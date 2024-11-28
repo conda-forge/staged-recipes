@@ -2,29 +2,104 @@
 
 This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
 
-[![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
+[![Join the chat at https://conda-forge.zulipchat.com](https://img.shields.io/badge/Zulip-join_chat-53bfad.svg)](https://conda-forge.zulipchat.com)
 
+## Feedstock conversion status
 
-## Build status
+[![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
-[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
+Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
+This can result in empty feedstock repositories and will resolve itself automatically.
+If the issue persists, support can be found [on Zulip](https://conda-forge.zulipchat.com).
 
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+2. Make a new folder in `recipes` for your package. Look at the [example recipe](recipes/example), our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
+### `pixi`
+
+`pixi` is a project based environment and task runner optimized for `conda`. Several of
+the local workflows and their dependencies described below are captured in
+`pixi.toml`. Install `pixi` via the [documented approaches](https://pixi.sh/latest/#installation),
+or via `conda`/`mamba`/`micromamba`:
+
+```bash
+$CONDA_EXE install -c conda-forge pixi
+```
+
+See the available tasks with `pixi task list`.
+
+## Local debugging with `build-locally.py`
+
+The script `build-locally.py` will guide you through the local debugging process. This script
+will then launch the platform-specific scripts, which support some key environment variables in
+macOS and Windows:
+
+- `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
+- `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
+  on macOS and `C:\bld` on Windows.
+
+On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
+
+`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task:
+
+* `pixi run build-linux`: will launch a Docker container, provision all the necessary tools and build your recipe for Linux.
+* `pixi run build-osx`: will provision a conda environment with the necessary tools to build your recipe for macOS. This involves fetching and caching the necessary Apple SDKs.
+* `pixi run build-win`: will provision a conda environment with the necessary tools to build your recipe for Windows.
+
+These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
+artifacts will be available under `build_artifacts`.
+
+## Generating recipes with `grayskull`
+
+[grayskull](https://github.com/conda-incubator/grayskull) can generate recipes from
+Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
+The user should review the recipe generated, especially the license and dependencies.
+
+Use one of:
+
+- manually
+  1. install `grayskull`: `conda install -c conda-forge grayskull`
+  2. generate recipe:
+    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+- with [`pixi`](#pixi):
+  1. generate recipe:
+    - `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+    - `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+
+## Linting recipes with `conda-smithy`
+
+The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provides
+helpful linters that can save CI resources by catching known issues up-front.
+
+Use one of:
+- manually
+  - install `conda-smithy`: `conda install -c conda-forge conda-smithy`
+  - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
+- with [`pixi`](#pixi):
+  - lint recipes: `pixi run lint`
+
+> **NOTE**
+>
+> `conda-smithy` is
+> [frequently updated](https://github.com/conda-forge/conda-smithy/blob/main/CHANGELOG.rst)
+> with current best practices. Ensure using the latest with:
+>
+> - `$CONDA_EXE upgrade conda-smithy`
+> - `pixi upgrade --feature conda-smithy`
 
 ## FAQ
 
 ### 1. **How do I start editing the recipe?**
 
-Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
+Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/main/recipes)
 in this repository and modify it as necessary.
 
-Your final recipe should have no comments and follow the order in the example.
+Follow the order of the sections in the example recipe. If you make a copy of example recipe, please remove the example's explainer comments from your recipe. Add your own comments to the recipe and build scripts to explain unusual build behavior or recipe options.
 
 *If there are details you are not sure about please open a pull request. The conda-forge team will be happy to answer your questions.*
 
@@ -50,10 +125,11 @@ build:
     skip: true  # [win]
 ```
 
-A full description of selectors is [in the conda docs](http://conda.pydata.org/docs/building/meta-yaml.html#preprocessing-selectors).
+A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
-on Windows from even starting.
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html).
+
+_Note_: As the package will always be built on linux, it needs to be at least available on there.
 
 
 ### 4. **What does the `build: 0` entry mean?**
@@ -67,7 +143,7 @@ When the package version changes you should reset the build number to `0`.
 
 ### 5. **Do I have to import all of my unit tests into the recipe's `test` field?**
 
-No, you do not.
+No, you do not. The main purpose of the test section is to test whether this conda package was built and installed correctly (not whether the upstream package contains bugs).
 
 ### 6. **Do all of my package's dependencies have to be in conda(-forge) already?**
 
@@ -87,13 +163,13 @@ In many cases, no. Python packages almost never need it. If the build can be don
 
 The maintainers "job" is to:
 
-- keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
+- keep the feedstock updated by merging maintenance PRs from conda-forge's bots;
 - keep the package updated by bumping the version whenever there is a new release;
-- answer eventual question about the package on the feedstock issue tracker.
+- answer questions about the package on the feedstock issue tracker.
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
-When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
+When a PR of recipe(s) is ready to go, it is merged into `main`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `main` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
 
 ### 11. **Some checks failed, but it wasn't my recipe! How do I trigger a rebuild?**
 
@@ -113,44 +189,59 @@ If the problem was due to scripts in the `staged-recipes` repository, you may be
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
-git rebase upstream/master
+git rebase upstream/main
 git push -f
 ```
 
 ### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
-If your PR is passing all checks, but has not been acted on by the staged recipes
-maintainers, you can ping @conda-forge/staged-recipes to request action. You do
-not need to wait any specific amount of time once the recipe is ready to go.
+<!--
+Keep this message in sync with the PR template.
 
-If your recipe still does not recieve any attention after a few days, you may
-attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
-the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+https://raw.githubusercontent.com/conda-forge/staged-recipes/main/.github/pull_request_template.md
+-->
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
-This is a high volume repository and issues can easily be missed. We are always
+Thank you very much for putting in this recipe PR!
+
+This repository is very active, so if you need help with a PR, please let the
+right people know. There are language-specific teams for reviewing recipes.
+
+| Language        | Name of review team           |
+| --------------- | ----------------------------- |
+| python          | `@conda-forge/help-python`    |
+| python/c hybrid | `@conda-forge/help-python-c`  |
+| r               | `@conda-forge/help-r`         |
+| java            | `@conda-forge/help-java`      |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| perl            | `@conda-forge/help-perl`      |
+| Julia           | `@conda-forge/help-julia`     |
+| ruby            | `@conda-forge/help-ruby`      |
+| other           | `@conda-forge/staged-recipes` |
+
+Once the PR is ready for review, please mention one of the teams above in a
+new comment. i.e. `@conda-forge/help-some-language, ready for review!`
+Then, a bot will label the PR as 'review-requested'.
+
+Due to GitHub limitations, first time contributors to conda-forge are unable
+to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
+using a special command in a comment on the PR to get the attention of the
+`staged-recipes` team. You can also consider asking on our [Zulip chat][2]
+if your recipe isn't reviewed promptly.
+
+[1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
+[2]: https://conda-forge.zulipchat.com
+
+All apologies in advance if your recipe PR does not receive prompt attention.
+This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
-please contact a member of @conda-forge/core. We'd love to have the help!
+please contact a member of @conda-forge/core. We'd love to have your help!
 
-### 13. How to build with old compilers (GCC v4) on staged-recipes?
 
-First, don't. Second, please don't.
+### 13. Is there a changelog for this repository?
 
-Add a `conda_build_config.yaml` file inside the recipe folder with the contents
+There's no changelog file, but the following `git` command gives a good overview of the recent changes in the repository:
 
-```yaml
-channel_sources:
-- conda-forge/label/cf201901,defaults   # [unix]
-- conda-forge,defaults                  # [win]
-channel_targets:
-- conda-forge cf201901                  # [unix]
-- conda-forge main                      # [win]
-c_compiler:                             # [unix]
-- gcc                                   # [linux]
-- clang                                 # [osx]
-cxx_compiler:                           # [unix]
-- gxx                                   # [linux]
-- clangxx                               # [osx]
-fortran_compiler:                       # [unix]
-- gfortran                              # [unix]
+```bash
+$ git log --merges -- ':!recipes'
 ```

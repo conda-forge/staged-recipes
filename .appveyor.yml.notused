@@ -1,0 +1,54 @@
+image: Visual Studio 2017
+
+skip_commits:
+  message: /^Merge pull request /
+
+environment:
+
+  CONDA_INSTALL_LOCN: "C:\\Miniconda36-x64"
+  CONFIG: win64
+
+  matrix:
+    - PLATFORM: "64"
+
+artifacts:
+    # Store built conda packages as artifacts
+    - path: 'conda_packages\*.bz2'
+
+platform:
+    - x64
+
+install:
+    # Find the recipes from main in this PR and remove them.
+    - cmd: echo Finding recipes merged in main and removing them.
+    - cmd: cd recipes
+    - cmd: |
+             for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
+    - cmd: cd ..
+
+    # Remove cygwin (and therefore the git that comes with it).
+    - cmd: rmdir C:\cygwin /s /q
+
+    # Use the pre-installed Miniconda for the desired arch
+    - cmd: call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+    - cmd: conda.exe config --add channels conda-forge
+    - cmd: conda.exe config --set show_channel_urls true
+    - cmd: appveyor-retry conda.exe update --yes --quiet conda
+
+
+    - cmd: appveyor-retry conda.exe install --yes --quiet "conda>4.7.12" conda-forge-pinning conda-forge-ci-setup=2.* networkx=2.3 "conda-build>=3.18,!=3.28.3" "boa"
+
+    - cmd: setup_conda_rc .\ .\recipes .\.ci_support\%CONFIG%.yaml
+    - cmd: appveyor-retry run_conda_forge_build_setup
+
+# Skip .NET project specific build phase.
+build: off
+
+test_script:
+    - python .ci_support\build_all.py --arch %PLATFORM%
+
+    # copy any newly created conda packages into the conda_packages dir
+    - cmd: mkdir conda_packages
+    # Uncomment the following two lines to make any conda packages created
+    # available as build artifacts in AppVeyor
+    #- cmd: 'copy /Y C:\Miniconda-x64\conda-bld\win-64\*.bz2 conda_packages || cmd /c "exit /b 0"'
