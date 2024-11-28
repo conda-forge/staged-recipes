@@ -1,8 +1,9 @@
 import argparse
-from collections import defaultdict
-from pathlib import Path
 import os
 import sys
+from collections import defaultdict
+from pathlib import Path
+from subprocess import check_output
 
 from conda_smithy.linter import conda_recipe_v1_linter
 from conda_smithy.linter.utils import (
@@ -12,8 +13,9 @@ from conda_smithy.utils import get_yaml, render_meta_yaml
 import github
 import requests
 
-NOCOMMENT_REQ_TEAMS = ["conda-forge/r"]
-
+NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
+HERE = Path(__file__).parent
+ROOT = (HERE / ".." / ".." / "..").absolute()
 
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
@@ -46,6 +48,24 @@ def _lint_recipes(gh, pr):
                 "`recipe/<name of feedstock>/<your recipe file>.yaml`."
             )
 
+    # 3. Ensure environment.yaml and pixi.toml are in sync
+    original_environment_yaml = (ROOT / "environment.yaml").read_text()
+    pixi_exported_env_yaml = check_output(
+        ["pixi", "project", "export", "conda-environment", "-e", "build"],
+        text=True,
+    )
+    if original_environment_yaml != pixi_exported_env_yaml:
+        import difflib
+
+        _orig_lines = original_environment_yaml.splitlines(keepends=True)
+        _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
+        print("environment diff:", flush=True)
+        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
+        lints["environment.yaml"].append(
+            "The `environment.yaml` file is out of sync with `pixi.toml`. "
+            "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
+        )
+
     # Recipe-specific lints/hints
     for fname in fnames:
         if (
@@ -71,6 +91,9 @@ def _lint_recipes(gh, pr):
         sources_section = get_section(
             meta, "source", lints, recipe_version=recipe_version
         )
+        outputs_section = get_section(
+            meta, "outputs", lints, recipe_version=recipe_version
+        )
         extra_section = get_section(
             meta, "extra", lints, recipe_version=recipe_version
         )
@@ -80,6 +103,8 @@ def _lint_recipes(gh, pr):
             recipe_name = conda_recipe_v1_linter.get_recipe_name(meta)
         else:
             recipe_name = package_section.get("name", "").strip()
+
+        recipe_name = extra_section.get("feedstock-name", recipe_name)
 
         # 4. Check for existing feedstocks in conda-forge or bioconda
         if recipe_name:
@@ -163,7 +188,7 @@ def _lint_recipes(gh, pr):
             non_participating_maintainers = set()
             for maintainer in maintainers:
                 if (
-                    maintainer not in commenters 
+                    maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
                 ):
@@ -175,6 +200,33 @@ def _lint_recipes(gh, pr):
                     f"The following maintainers have not yet confirmed that they are willing to be listed here: "
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
+
+        # 6. Only conda-forge teams can be maintainers
+        if maintainers:
+            for maintainer in maintainers:
+                if "/" in maintainer:
+                    res = maintainer.split("/", 1)
+                    if len(res) == 2:
+                        org, team = res
+                        if org != "conda-forge":
+                            lints[fname].append(
+                                "Only conda-forge teams can be team maintainers."
+                                f" {maintainer} is not a team in conda-forge."
+                            )
+                    else:
+                        lints[fname].append(
+                            f'Maintainer team "{maintainer}" is not in the '
+                            'correct format. Please use "org/team" format.'
+                        )
+
+        # 7. Check that feedstock-name is defined if recipe is multi-output
+        if outputs_section and ("feedstock-name" not in extra_section):
+            hints[fname].append(
+                "It looks like you are submitting a multi-output recipe. "
+                "In these cases, the correct name for the feedstock is ambiguous, "
+                "and our infrastructure defaults to the top-level `package.name` field. "
+                "Please add a `feedstock-name` entry in the `extra` section."
+            )
 
     return dict(lints), dict(hints), extra_edits
 
