@@ -1,0 +1,180 @@
+{% set name = "dydx-v4-proto-cpp" %}
+{% set version = "1.1.31" %}
+
+{% set dydx_v4_proto_header_paths = {
+  'dydxprotocol/clob': ["order.pb.h", "query.pb.h", "operation.pb.h", "order_removals.pb.h", "genesis.pb.h", "tx.pb.h",
+                        "equity_tier_limit_config.pb.h", "clob_pair.pb.h", "matches.pb.h", "liquidations_config.pb.h",
+                        "liquidations.pb.h", "process_proposer_matches_events.pb.h", "mev.pb.h",
+                        "block_rate_limit_config.pb.h"],
+  'dydxprotocol/subaccounts': ["subaccount.pb.h", "asset_position.pb.h", "query.pb.h", "genesis.pb.h",
+                               "perpetual_position.pb.h"],
+  'dydxprotocol/assets': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "asset.pb.h"],
+  'dydxprotocol/perpetuals': ["perpetual.pb.h", "query.pb.h", "genesis.pb.h", "tx.pb.h", "params.pb.h"],
+  'dydxprotocol/feetiers': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "params.pb.h"],
+  'dydxprotocol/blocktime': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "blocktime.pb.h", "params.pb.h"],
+  'dydxprotocol/rewards': ["reward_share.pb.h", "query.pb.h", "genesis.pb.h", "tx.pb.h", "params.pb.h"],
+  'dydxprotocol/sending': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "transfer.pb.h"],
+  'dydxprotocol/prices': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "market_param.pb.h", "market_price.pb.h"],
+  'dydxprotocol/epochs': ["query.pb.h", "genesis.pb.h", "epoch_info.pb.h"],
+  'dydxprotocol/indexer/shared': ["removal_reason.pb.h"],
+  'dydxprotocol/indexer/socks': ["messages.pb.h"],
+  'dydxprotocol/indexer/redis': ["redis_order.pb.h"],
+  'dydxprotocol/indexer/events': ["events.pb.h"],
+  'dydxprotocol/indexer/off_chain_updates': ["off_chain_updates.pb.h"],
+  'dydxprotocol/indexer/indexer_manager': ["event.pb.h"],
+  'dydxprotocol/indexer/protocol/v1': ["subaccount.pb.h", "clob.pb.h"],
+  'dydxprotocol/delaymsg': ["query.pb.h", "block_message_ids.pb.h", "genesis.pb.h", "tx.pb.h", "delayed_message.pb.h"],
+  'dydxprotocol/daemons/liquidation': ["liquidation.pb.h"],
+  'dydxprotocol/daemons/pricefeed': ["price_feed.pb.h"],
+  'dydxprotocol/daemons/bridge': ["bridge.pb.h"],
+  'dydxprotocol/stats': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "stats.pb.h", "params.pb.h"],
+  'dydxprotocol/bridge': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "bridge_event.pb.h", "params.pb.h",
+                          "bridge_event_info.pb.h"],
+  'dydxprotocol/vest': ["query.pb.h", "genesis.pb.h", "tx.pb.h", "vest_entry.pb.h"],
+} %}
+
+{% set dydx_v4_proto_header_dir_paths = ['amino', 'cosmos', 'cosmos_proto', 'gogoproto', 'google', 'tendermint'] %}
+
+
+package:
+  name: dydx-v4-proto-cpp-split
+  version: {{ version }}
+
+source:
+  folder: all-sources
+  url: https://github.com/dydxprotocol/v4-clients/archive/refs/tags/v4-client-js@{{ version }}.tar.gz
+  sha256: eb6ffc4e53aa0a22f195092f2102fb5233c5c4dda7b11700208a1974d1428297
+  patches:
+    - patches/0001-build-proto-only.patch
+    - patches/0002-remove-unused-packages.patch
+    - patches/0003-add-sharedlib-install.patch
+    - patches/0004-remove-FetchContent.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake
+    # - libprotobuf >=4.22  # [build_platform == target_platform]
+    - m2w64-binutils  # [win]
+    - ninja
+    - pkg-config
+    - zlib
+  host:
+    - catch2
+    - libabseil
+    - libprotobuf
+
+outputs:
+  - name: libdydx_v4_proto
+    build:
+      ignore_run_exports_from:
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+        - libzlib
+    files:
+      - lib/libdydx_v4_proto.so  # [linux]
+      - lib/libdydx_v4_proto.dylib  # [osx]
+      - Library\\lib\\dydx_v4_proto.lib  # [win]
+      - Library\\bin\\dydx_v4_proto.dll  # [win]
+
+      - lib/pkgconfig/dydx_v4_proto.pc  # [unix]
+      - lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
+      - Library\\lib\\pkgconfig\\dydx_v4_proto.pc  # [win]
+      - Library\\lib\\cmake\\dydx_v4_proto/dydx_v4_proto-config.cmake  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage('libdydx_v4_proto-headers') }}
+        - libabseil
+        - libprotobuf
+      run:
+        - {{ pin_subpackage('libdydx_v4_proto-headers') }}
+        # - libprotobuf >=4.22  # [win]
+    test:
+      files:
+        - helpers/verify_installed_lib.ps1  # [win]
+      requires:
+        - {{ compiler('c') }}  # [win]
+      commands:
+        - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\dydx_v4_proto.lib exit 1  # [win]
+
+        - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_proto.pc  # [unix]
+        - if not exist %PREFIX%\\Library/lib/pkgconfig/dydx_v4_proto.pc exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
+        - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake exit 1  # [win]
+
+        - powershell -ExecutionPolicy Bypass -File "helpers\\verify_installed_lib.ps1"  # [win]
+
+
+  - name: libdydx_v4_proto-headers
+    files:
+      {% for path, headers in dydx_v4_proto_header_paths.items() %}
+        {% for header in headers %}
+      - include/dydx_v4_proto/{{ path }}/{{ header }}  # [unix]
+      - Library\\include\\dydx_v4_proto\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
+        {% endfor %}
+      {% endfor %}
+
+      {% for path in dydx_v4_proto_header_dir_paths %}
+      - include/dydx_v4_proto/{{ path }}  # [unix]
+      - Library\\include\\dydx_v4_proto\\{{ path | replace('/', '\\\\') }}  # [win]
+      {% endfor %}
+    requirements:
+      host:
+      run:
+    test:
+      commands:
+        {% for path, headers in dydx_v4_proto_header_paths.items() %}
+          {% for header in headers %}
+        - test -f ${PREFIX}/include/dydx_v4_proto/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_proto\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+          {% endfor %}
+        {% endfor %}
+
+        {% for path in dydx_v4_proto_header_dir_paths %}
+        - test -d ${PREFIX}/include/dydx_v4_proto/{{ path }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_proto\\{{ path | replace('/', '\\\\') }} exit 1  # [win]
+        {% endfor %}
+
+
+
+  - name: libdydx_v4_proto
+    build:
+      run_exports:
+        - {{ pin_subpackage('libdydx_v4_proto') }}
+      ignore_run_exports:
+        - ucrt  # [win]
+        - vc14_runtime  # [win
+        - libzlib
+    requirements:
+      host:
+        - {{ pin_subpackage('libdydx_v4_proto') }}
+      run:
+        - {{ pin_subpackage('libdydx_v4_proto') }}
+    test:
+      commands:
+        - echo "libdydx_v4_proto is a meta-package and has no tests."
+
+about:
+  home: https://github.com/dydxprotocol/v4-clients
+  summary: 'The dYdX Chain Protocol used for placing transactions and querying the dYdX chain.'
+  description: |
+    The dYdX Chain Protocol used for placing transactions and querying the dYdX chain.
+  license: AGPL-3.0-only
+  license_file:
+    - all-sources/LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: dydx-v4-proto-cpp
