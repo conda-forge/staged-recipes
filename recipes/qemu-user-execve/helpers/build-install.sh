@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-source "${RECIPE_DIR}/helpers/_build_qemu.sh"
+source "${RECIPE_DIR}/helpers/_build_install_qemu.sh"
 
 # --- Main ---
 
@@ -20,3 +20,12 @@ build_linux_qemu \
   "${SRC_DIR}/_conda-build-${qemu_arch}" \
   "${SRC_DIR}/_conda-install-${qemu_arch}"
 
+install_qemu_arch ${qemu_arch}
+
+# Install shared files
+mkdir -p "${PREFIX}"/include
+install -m 0644 "${SRC_DIR}/_conda-install-${qemu_arch}/include/qemu-plugin.h" "${PREFIX}/include/qemu-plugin.h"
+
+# Install all the files in the share directory
+mkdir -p "${PREFIX}"/share
+cp -r "${SRC_DIR}/_conda-install-${qemu_arch}/share" "${PREFIX}"
