@@ -1,5 +1,3 @@
-maturin build --release
+%PYTHON% -m pip install . -vv
 
-for %%f in (target/wheels/keygen_py-*.whl) do (
-    %PYTHON% -m pip install target/wheels/%%f
-)
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml

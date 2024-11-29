@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-maturin build --release
+$PYTHON -m pip install . -vv
 
-$PYTHON -m pip install target/wheels/keygen_py-*.whl
-
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
