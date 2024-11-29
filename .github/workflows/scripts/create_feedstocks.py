@@ -427,9 +427,11 @@ if __name__ == '__main__':
                 if not feedstock_token_exists("conda-forge", name + "-feedstock"):
                     subprocess.check_call(
                         ['conda', 'smithy', 'generate-feedstock-token',
+                         '--unique-token-per-provider',
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
+                         '--unique-token-per-provider',
                          '--without-circle', '--without-drone',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
