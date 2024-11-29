@@ -1,0 +1,99 @@
+From cc968a797278f4862db877a9449fadcc60f455b7 Mon Sep 17 00:00:00 2001
+From: "H. Vetinari" <h.vetinari@gmx.com>
+Date: Mon, 25 Nov 2024 08:07:00 +1100
+Subject: [PATCH] use our own sentencepiece/abseil
+
+---
+ curated_tokenizers/_spp.pxd |  2 +-
+ setup.py                    | 38 +++++++++++++++++++++++++------------
+ 2 files changed, 27 insertions(+), 13 deletions(-)
+
+diff --git a/curated_tokenizers/_spp.pxd b/curated_tokenizers/_spp.pxd
+index 29f5ec2..4630b45 100644
+--- a/curated_tokenizers/_spp.pxd
++++ b/curated_tokenizers/_spp.pxd
+@@ -3,7 +3,7 @@ from libcpp.memory cimport shared_ptr
+ from libcpp.string cimport string
+ from libcpp.vector cimport vector
+ 
+-cdef extern from "builtin_pb/sentencepiece.pb.h" namespace "sentencepiece":
++cdef extern from "sentencepiece.pb.h" namespace "sentencepiece":
+     cdef cppclass SentencePieceText_SentencePiece:
+         uint32_t id() const
+         const string & piece() const
+diff --git a/setup.py b/setup.py
+index d0aa11b..0306041 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,4 +1,6 @@
+ #!/usr/bin/env python
++import pathlib
++import os
+ import sys
+ from setuptools.command.build_ext import build_ext
+ from setuptools import Extension, setup, find_packages
+@@ -79,18 +81,17 @@ MOD_NAMES = [
+ ]
+ COMPILE_OPTIONS = {
+     "msvc": [
++        "/std:c++17",
+         "/Ox",
+         "/EHsc",
+-        "/D_USE_INTERNAL_STRING_VIEW",
+         "/DHAVE_PTHREAD",
+         "/wd4018",
+         "/wd4514",
+     ],
+     "other": [
+-        "--std=c++14",
++        "--std=c++17",
+         "-Wno-sign-compare" "-Wno-strict-prototypes",
+         "-Wno-unused-function",
+-        "-D_USE_INTERNAL_STRING_VIEW",
+         "-pthread",
+         "-DHAVE_PTHREAD=1",
+     ],
+@@ -139,21 +140,34 @@ def setup_package():
+     if len(sys.argv) > 1 and sys.argv[1] == "clean":
+         return clean(root / "curated_tokenizers")
+ 
++    library_path = pathlib.Path(os.environ['PREFIX'])
++    EXTENSION_LIBRARIES = []
++    if "win32" in sys.platform:
++        absl_libs = (
++            'abseil_dll', 'absl_log_flags', 'absl_flags_commandlineflag', 'absl_flags_commandlineflag_internal',
++            'absl_flags_config', 'absl_flags_internal', 'absl_flags_marshalling', 'absl_flags_parse',
++            'absl_flags_private_handle_accessor', 'absl_flags_program_name', 'absl_flags_reflection',
++            'absl_flags_usage', 'absl_flags_usage_internal',
++        )
++        EXTENSION_LIBRARIES += ["sentencepiece_import", "libprotobuf"]
++        library_path = library_path / "Library"
++    else:
++        absl_glob = pathlib.Path(os.environ['PREFIX']).glob('lib/libabsl_*.so')
++        absl_libs = tuple(lib.stem[3:] for lib in absl_glob)
++        EXTENSION_LIBRARIES += ["sentencepiece", "protobuf"]
++
++    EXTENSION_LIBRARIES += absl_libs
++
+     ext_modules = [
+         Extension(
+             "curated_tokenizers._spp",
+-            ["curated_tokenizers/_spp.pyx"]
+-            + ABSL_SRC
+-            + PROTOBUF_LIGHT_SRC
+-            + SENTENCEPIECE_SRC
+-            + SENTENCEPIECE_PROTOBUF_SRC,
++            ["curated_tokenizers/_spp.pyx"],
+             include_dirs=[
+                 "curated_tokenizers",
+-                "sentencepiece",
+-                "sentencepiece/src",
+-                "sentencepiece/src/builtin_pb",
+-                "sentencepiece/third_party/protobuf-lite",
++                str(library_path / "include")
+             ],
++            libraries=EXTENSION_LIBRARIES,
++            library_dirs=[str(library_path)],
+             language="c++",
+         ),
+         Extension(
