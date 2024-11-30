@@ -41,8 +41,8 @@ context:
       "qemu-system-x86_64"
     ] | join(' ') }}
   qemu_system_tools: ${{ [
-      "elf2dmp", "qemu-io", "qemu-edid", "qemu-nbd", "qemu-ga", "qemu-pr-helper", 
-      "qemu-vmsr-helper", "qemu-img", "qemu-storage-daemon"
+      "elf2dmp", "qemu-io", "qemu-edid", "qemu-nbd", "qemu-pr-helper", 
+      "qemu-img", "qemu-storage-daemon"
     ] | join(' ') }}
   qemu_system_icons: ${{ [
       "128x128/apps/qemu.png", "16x16/apps/qemu.png", "24x24/apps/qemu.png", "64x64/apps/qemu.png",
@@ -90,7 +90,6 @@ build:
   number: 0
   skip:
     - win
-    - match(c_stdlib_version, "<11")
   script: |
     export ALPINE_ISO_VERSION=${{ alpine_iso_version }}
     ${RECIPE_DIR}/helpers/build-${{ target_platform | split('-') |first }}.${{ 'bat' if win else 'sh' }}
@@ -202,9 +201,13 @@ tests:
         - ${{ "Library/" if win }}include/qemu-plugin.h
         - ${{ "Library/" if win }}libexec/qemu-bridge-helper
         - ${{ "Library/" if win }}share/applications/qemu.desktop
+        - ${{ "Library/" if win }}share/qemu/trace-events-all
+        - if: linux
+          then:
+            - bin/qemu-ga
+            - bin/qemu-vmsr-helper
         #- etc/conda/activate.d/qemu-system-activate.sh
         #- etc/conda/deactivate.d/qemu-system-deactivate.sh
-
   - script: |
       _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu"; \
           missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
@@ -234,6 +237,12 @@ tests:
     requirements:
       run:
         - python >=3.10
+
+  - script:
+      - cd _conda_build/test/qemu-iotests && ./check -r -qcow2
+    files:
+      source:
+        - _conda_build/test
 
 
 about:
