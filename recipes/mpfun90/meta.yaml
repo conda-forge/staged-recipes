@@ -1,0 +1,81 @@
+{% set name = "mpfun90" %}
+{% set version = "2024.12.05" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  # need to match the GitHub version tag but only want one variable
+  url: https://github.com/APN-Pucky/mpfun90/archive/{{ version | replace('.', '-') }}.tar.gz
+  sha256: a273027f373eaa23743503612de4ca448628b5c1521510c21d5da3a5cfde79f5
+
+build:
+  skip: true  # [win]
+  number: 0
+  run_exports:
+    # MPFUN90 is archival software and the ABI should be static
+    - {{ pin_subpackage('mpfun90', max_pin='x') }}
+  script:
+    # FIXME: https://github.com/APN-Pucky/mpfun90/commit/d00bfe06b8f69329464906817f7f8b795bed5388
+    - sed -i 's/ -Wl,--as-needed -Wl,-soname,libmpfun90.so / /g' Makefile  # [not linux]
+
+    - sed -i "s/libmpfun90.so/libmpfun90${SHLIB_EXT}/g" Makefile  # [not linux]
+    - export LDFLAGS="$LDFLAGS -lgfortran"  # [not linux]
+    - make dynamic FC="$FC" FFLAGS="$FFLAGS"
+    - mv libmpfun90${SHLIB_EXT} $PREFIX/lib/
+    - mkdir -p $PREFIX/include/mpfun90
+    - mv *.mod $PREFIX/include/mpfun90/
+    - make clean
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - make
+    - sed  # [not linux]
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libmpfun90${SHLIB_EXT}
+    - test -f $PREFIX/include/mpfun90/mpfuna.mod
+    - test -f $PREFIX/include/mpfun90/mpfunb.mod
+    - test -f $PREFIX/include/mpfun90/mpfunc.mod
+    - test -f $PREFIX/include/mpfun90/mpfund.mod
+    - test -f $PREFIX/include/mpfun90/mpfune.mod
+    - test -f $PREFIX/include/mpfun90/mpfunf.mod
+    - test -f $PREFIX/include/mpfun90/mpfung.mod
+    - test -f $PREFIX/include/mpfun90/mpfunh.mod
+    - test -f $PREFIX/include/mpfun90/mpfuni.mod
+    - test -f $PREFIX/include/mpfun90/mpfunj.mod
+    - test -f $PREFIX/include/mpfun90/mpfunmod.mod
+    - test -f $PREFIX/include/mpfun90/mpdefmod.mod
+    - test -f $PREFIX/include/mpfun90/mpintmod.mod
+    - test -f $PREFIX/include/mpfun90/mprealmod.mod
+    - test -f $PREFIX/include/mpfun90/mpcmpmod.mod
+    - test -f $PREFIX/include/mpfun90/mpgenmod.mod
+    - test -f $PREFIX/include/mpfun90/mpfunsubmod.mod
+    - test -f $PREFIX/include/mpfun90/mpmodule.mod
+    - test -f $PREFIX/include/mpfun90/mpmodulem.mod
+    - test -f $PREFIX/include/mpfun90/mpmodulex.mod
+
+about:
+  home: https://github.com/APN-Pucky/mpfun90
+  summary: 'MPFUN90: A multiple precision floating point computation package'
+  description: |
+    MPFUN90 is software developed by David H. Bailey.
+    It is based on the work described in
+    David H. Bailey, "_A Fortran 90-based multiprecision system_,"
+    ACM Transactions on Mathematical Software (TOMS), 21 (1995) 379
+    DOI: [10.1145/212066.212075](https://doi.org/10.1145/212066.212075)
+  # modified BSD-3-Clause-LBNL license
+  license: LicenseRef-DHB
+  license_family: OTHER
+  license_file: LICENSE
+  dev_url: https://github.com/APN-Pucky/mpfun90
+  doc_url: https://www.davidhbailey.com/dhbsoftware/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
