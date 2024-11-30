@@ -1,0 +1,68 @@
+{% set version = '1.5.2' %}
+
+package:
+  name: imgui-bundle
+  version: {{ version }}
+
+source:
+  # url: https://github.com/pthom/imgui_bundle/archive/refs/tags/v{{ version }}.tar.gz
+  # sha256: ffae861ff9fd47c95cc56807f028d5fe78a700f92a2a43c43f31ea2358542a68
+  git_url: https://github.com/pthom/imgui_bundle.git
+  git_tag: v{{ version }}
+  patches:
+    - 0001-Do-not-force-GLFW-to-be-recompiled.patch
+    - 0002-Do-not-force-static-freetype.patch
+    # https://github.com/pthom/imgui_bundle/pull/284
+    - 0003-Do-not-force-linking-to-non-existent-nlohmann_json-s.patch
+
+build:
+  number: 0
+  script:
+    - rm -rf external/glfw/          # [unix]
+    - del /s /q external\glfw\       # [win]
+    - python -m pip install . -vvv
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    # - {{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pip
+    - pybind11 >=2.6.0
+    - scikit-build-core
+    - glfw
+    - xorg-libxrandr   # [linux]
+    - xorg-libxcursor  # [linux]
+    - xorg-libxi       # [linux]
+    - freetype
+    - opencv
+      # Avoid downloading Qt (a dependency of opencv) for the CI
+    - opencv *=headless*
+    - nlohmann_json
+    - libgl-devel                        # [linux]
+    - libegl-devel                       # [linux]
+    - libglx-devel                       # [linux]
+    - lunasvg
+    # https://github.com/memononen/nanovg
+    # - nanovg
+  run:
+    - python
+
+
+test:
+  imports:
+    - imgui_bundle
+  requires:
+    - pytest
+  source_files:
+    - tests
+  commands:
+    - pytest tests
+
+about:
+  summary: An example project built with pybind11, litgen and scikit-build.
+  license_file: LICENSE
