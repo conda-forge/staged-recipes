@@ -1,0 +1,63 @@
+{% set version = "0.4.0" %}
+
+{% set python_min = python_min | default("3.9") %}
+
+package:
+  name: litestar-htmx
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/l/litestar-htmx/litestar_htmx-{{ version }}.tar.gz
+  sha256: b5f53aa25b665d673fe2e9d835ff711f7fe28fa8f57b87b61e4f6317b983632e
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - hatchling
+    - pip
+    - python {{ python_min }}
+  run:
+    - python >={{ python_min }}
+
+test:
+  source_files:
+    - tests
+  requires:
+    # cfep-25
+    - python {{ python_min }}
+    # pip/version check
+    - pip
+    - m2-grep  # [win]
+    # circular deps
+    - litestar
+    # test
+    - pytest
+    - pytest-cov
+    - pytest-sugar
+    - pytest-mock
+    - pytest-xdist
+    # undeclared test deps
+    - jinja2
+    - mako
+  imports:
+    - litestar_htmx
+  commands:
+    - pip check
+    - python -c "print(__import__('litestar_htmx.__metadata__').__metadata__.__version__)" | grep -iE "{{ version.replace('.', '\.') }}"
+    - coverage run --source=litestar_htmx --branch -m pytest -vv --color=yes --tb=long
+    - coverage report --show-missing --skip-covered --fail-under 92
+
+about:
+  home: https://github.com/litestar-org/litestar-htmx
+  summary: HTMX Integration for Litesstar
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
