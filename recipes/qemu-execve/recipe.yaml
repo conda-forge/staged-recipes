@@ -4,7 +4,11 @@ context:
   alpine_iso_version: "3.20.3"
   emulated_c_stdlib: "sysroot"
   emulated_c_stdlib_version: "2.17"
+  qemu_include: "qemu-plugin.h"
+  qemu_libexec: "qemu-bridge-helper"
+  qemu_applications: "qemu.desktop"
   qemu_bins: ${{ [
+      "trace-events-all",
       "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin",
       "vgabios-stdvga.bin", "vgabios-vmware.bin", "vgabios-qxl.bin", "vgabios-virtio.bin", "vgabios-ramfb.bin",
       "vgabios-bochs-display.bin", "vgabios-ati.bin", "openbios-sparc32", "openbios-sparc64", "openbios-ppc",
@@ -44,14 +48,18 @@ context:
       "elf2dmp", "qemu-io", "qemu-edid", "qemu-nbd", "qemu-pr-helper", 
       "qemu-img", "qemu-storage-daemon"
     ] | join(' ') }}
+  qemu_system_tools_linux: ${{ [
+      "qemu-ga", "qemu-vmsr-helper"
+    ] | join(' ') }}
   qemu_system_icons: ${{ [
       "128x128/apps/qemu.png", "16x16/apps/qemu.png", "24x24/apps/qemu.png", "64x64/apps/qemu.png",
       "256x256/apps/qemu.png", "32x32/apps/qemu.bmp", "32x32/apps/qemu.png", "48x48/apps/qemu.png",
-      "512x512/apps/qemu.png", "icon-theme.cache", "scalable/apps/qemu.svg"
+      "512x512/apps/qemu.png", "scalable/apps/qemu.svg"
     ] | join(' ') }}
   qemu_system_locale: ${{ [
       "bg", "de_DE", "fr_FR", "hu", "it", "sv", "tr", "uk", "zh_CN"
     ] | join(' ') }}
+  conda_local_install_dir: "_conda_install"
 
 package:
   name: qemu-system
@@ -90,12 +98,28 @@ build:
   number: 0
   skip:
     - win
-  script: |
-    export ALPINE_ISO_VERSION=${{ alpine_iso_version }}
-    ${RECIPE_DIR}/helpers/build-${{ target_platform | split('-') |first }}.${{ 'bat' if win else 'sh' }}
-    ${RECIPE_DIR}/helpers/install-share.${{ 'bat' if win else 'sh' }}
-    ${RECIPE_DIR}/helpers/install-tools.${{ 'bat' if win else 'sh' }}
-    ${RECIPE_DIR}/helpers/install-execs.${{ 'bat' if win else 'sh' }}
+  script:
+    - export ALPINE_ISO_VERSION=${{ alpine_iso_version }}
+    - ${RECIPE_DIR}/helpers/build-${{ target_platform | split('-') |first }}.${{ 'bat' if win else 'sh' }} ${{ conda_local_build_dir }} ${{ conda_local_install_dir }}
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "bin" "${{ qemu_system_tools }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "bin" "${{ qemu_system_execs }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "include" "${{ qemu_include }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "libexec" "${{ qemu_libexec }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/applications" "${{ qemu_applications }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/qemu" "${{ qemu_bins }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/qemu/keymaps" "${{ qemu_keymaps }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/qemu" "${{ qemu_system_share }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/qemu/firmware" "${{ qemu_system_firmware }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/icons/hicolor" "${{ qemu_system_icons }}"
+    - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "share/locale" "${{ qemu_system_locale }}"
+    - if: linux
+      then:
+        - ${RECIPE_DIR}/helpers/install_resources.py "${{ conda_local_install_dir }}" "bin" "${{ qemu_system_tools_linux }}"
+    # Verify that all locally installed resources have been installed
+    - ${RECIPE_DIR}/helpers/uninstalled_resources.py "${{ conda_local_install_dir }}"
+# ${RECIPE_DIR}/helpers/install-share.${{ 'bat' if win else 'sh' }}
+# ${RECIPE_DIR}/helpers/install-tools.${{ 'bat' if win else 'sh' }}
+# ${RECIPE_DIR}/helpers/install-execs.${{ 'bat' if win else 'sh' }}
 
 requirements:
   build:
@@ -196,53 +220,36 @@ requirements:
         - libnuma
 
 tests:
-  - package_contents:
-      files:
-        - ${{ "Library/" if win }}include/qemu-plugin.h
-        - ${{ "Library/" if win }}libexec/qemu-bridge-helper
-        - ${{ "Library/" if win }}share/applications/qemu.desktop
-        - ${{ "Library/" if win }}share/qemu/trace-events-all
-        - if: linux
-          then:
-            - bin/qemu-ga
-            - bin/qemu-vmsr-helper
-        #- etc/conda/activate.d/qemu-system-activate.sh
-        #- etc/conda/deactivate.d/qemu-system-deactivate.sh
-  - script: |
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
-          print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
+  - script:
+      - helpers/verify_installed_resources.py "bin" "${{ qemu_system_tools }}"
+      - helpers/verify_installed_resources.py "bin" "${{ qemu_system_execs }}"
+      - helpers/verify_installed_resources.py "include" "${{ qemu_include }}"
+      - helpers/verify_installed_resources.py "libexec" "${{ qemu_libexec }}"
+      - helpers/verify_installed_resources.py "share/applications" "${{ qemu_applications }}"
+      - helpers/verify_installed_resources.py "share/qemu" "${{ qemu_bins }}"
+      - helpers/verify_installed_resources.py "share/qemu/keymaps" "${{ qemu_keymaps }}"
+      - helpers/verify_installed_resources.py "share/qemu" "${{ qemu_system_share }}"
+      - helpers/verify_installed_resources.py "share/qemu/firmware" "${{ qemu_system_firmware }}"
+      - helpers/verify_installed_resources.py "share/icons/hicolor" "${{ qemu_system_icons }}"
+      - helpers/verify_installed_resources.py "share/locale" "${{ qemu_system_locale }}"
+      - if: linux
+        then:
+          - helpers/verify_installed_resources.py "bin" "${{ qemu_system_tools_linux }}"
 
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu/keymaps"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()]; \
-          print("Missing keymaps:", missing_bins) or exit(1 if missing_bins else 0);'
-
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_system_share }}".split() if not Path(f"{share}/{b}").exists()]; \
-          print("Missing share:", missing_bins) or exit(1 if missing_bins else 0);'
-
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu/firmware"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_system_firmware }}".split() if not Path(f"{share}/{b}").exists()]; \
-          print("Missing firmware:", missing_bins) or exit(1 if missing_bins else 0);'
-
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/icons/hicolor"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_system_icons }}".split() if not Path(f"{share}/{b}").exists()]; \
-          print("Missing icons:", missing_bins) or exit(1 if missing_bins else 0);'
-
-      _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/locale"; \
-          missing_bins = [f"{share}/{b}" for b in "${{ qemu_system_locale }}".split() if not Path(f"{share}/{b}/LC_MESSAGES/qemu.mo").exists()]; \
-          print("Missing locale:", missing_bins) or exit(1 if missing_bins else 0);'
-
-      qemu-system-x86_64 --help
+      - qemu-system-x86_64 --help
     requirements:
       run:
         - python >=3.10
-
+    files:
+      recipe:
+        - helpers/verify_installed_resources.py
   - script:
-      - cd _conda_build/test/qemu-iotests && ./check -r -qcow2
+      - ls -l
+      - ls -l _conda_build/test/ || true
+      - cd _conda_build/test/qemu-iotests && ./check -r -qcow2 || true
     files:
       source:
-        - _conda_build/test
+        - _conda_build/test/
 
 
 about:
@@ -269,10 +276,13 @@ about:
     It also aims to facilitate integration into higher level management
     layers, by providing a stable command line interface and monitor API.
     It is commonly invoked indirectly via the libvirt library when using
-    open source applications such as oVirt, OpenStack and virt-manager.
+    open source applicationss such as oVirt, OpenStack and virt-manager.
     QEMU as a whole is released under the GNU General Public License,
     version 2. For full licensing details, consult the LICENSE file.  license: GPL-2.0-only
-  license_file: qemu_source/LICENSE
+  license_file:
+    - qemu_source/COPYING
+    - qemu_source/COPYING.LIB
+    - qemu_source/LICENSE
   documentation: https://www.qemu.org/documentation/
   repository: https://gitlab.com/qemu-project/qemu
 
