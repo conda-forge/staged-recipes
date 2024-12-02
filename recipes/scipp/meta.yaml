@@ -1,0 +1,68 @@
+{% set version = "24.11.2" %}
+
+package:
+  name: scipp
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/scipp/scipp/archive/{{ version }}.tar.gz
+  sha256: 7f6b461506ebc50c8864d5e1a81b1508685f9f7c46ac080fe72868f63bf2bc20
+  patches:
+    - patch
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python                              # [build_platform != target_platform]
+    - cmake
+    - conan==1.64.1
+    # - git
+    - ninja
+  host:
+    - python
+    - tbb-devel
+    - numpy
+  run:
+    - python
+
+{% if build_platform == target_platform %}
+test:
+  imports:
+    - scipp
+  requires:
+    - numba # [py<313]
+    - bs4
+    - h5py
+    - hypothesis
+    - pandas
+    - pytest
+    - python-graphviz
+    - scipy
+    - xarray
+    - ipython
+  source_files:
+    - pyproject.toml
+    - tests/
+  commands:
+    - python -m pytest -v tests
+{% endif %}
+
+build:
+  script_env:
+    - GIT_VERSION_INFO={{version}}
+  number: 0
+  script:
+    # Passing Python_EXECUTABLE ensures that cmake sees the host interpreter instead of build.
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE="%PYTHON%" # [win]
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=$PYTHON # [unix]
+    - cmake --build --preset build
+    - ctest --preset test  # [build_platform == target_platform]
+
+about:
+  home: https://scipp.github.io/
+  license: BSD-3-Clause
+  summary: Multi-dimensional data arrays with labeled dimensions
+  description: Multi-dimensional data arrays with labeled dimensions
+  dev_url: https://github.com/scipp/scipp
+  doc_url: https://scipp.github.io/
