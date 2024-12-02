@@ -2,6 +2,17 @@
 
 {% set python_min = python_min | default("3.9") %}
 
+# for the actual `uv` CLI tool (which does not require or link against `python`), see:
+# - https://github.com/conda-forge/uv-feedstock
+#
+# _this_ package provides the `site-packages` content of the upstream PyPI package to:
+# - appease `pip check` for downstreams which (presently) might use `uv`
+#   programatically as a `run` dependency
+# - eventually to provide a PEP517 backend as a `host` dependency, which _does_ require python
+#
+# for more context, see:
+# - https://github.com/conda-forge/uv-feedstock/issues/42
+
 package:
   name: python-uv
   version: {{ version }}
@@ -11,8 +22,17 @@ source:
   sha256: 7f8db4bdf7eaef6be271457c4b2a167f41ad115434944a09f5034018a29b4093
   patches:
     # replaces `maturin` with `setuptools`
+    #
+    # this avoids 
+    # - populating `(Library/)bin` 
+    # - forcing {os x arch x python} builds
+    # and enables 
+    # - the `uv` CLI (which can install its _own_ python) to be installed separately 
     - 0000-no-rust.patch
     # provide binary path in `sys.prefix`
+    #
+    # this replaces machinery which doesn't work with conda-forge packaging on osx/win 
+    # with a `sys.prefix`-relative path to the `uv` CLI provided by conda-forge/uv-feedstock
     - 0001-use-conda-forge-bin.patch
 
 build:
@@ -45,8 +65,8 @@ test:
     - mypy -p uv
 
 about:
-  home: https://pypi.org/project/uv/
-  summary: An extremely fast Python package and project manager, written in Rust.
+  home: https://pypi.org/project/uv
+  summary: An extremely fast Python package and project manager, written in Rust. (with python)
   license: Apache-2.0 OR MIT
   license_file:
     - LICENSE-APACHE
