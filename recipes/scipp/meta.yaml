@@ -10,14 +10,28 @@ source:
   patches:
     - patch
 
+build:
+  script_env:
+    - GIT_VERSION_INFO={{version}}
+    - CMAKE_MAKE_PROGRAM=Ninja
+    - CMAKE_C_COMPILER=CC
+    - CMAKE_CXX_COMPILER=CXX
+  number: 0
+  script:
+    # Passing Python_EXECUTABLE ensures that cmake sees the host interpreter instead of build.
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE="%PYTHON%"  # [win]
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=$PYTHON  # [unix]
+    - cmake --build --preset build
+    - ctest --preset test  # [build_platform == target_platform]
+
 requirements:
   build:
+    - {{ stdlib("c") }}
     - {{ compiler('cxx') }}
     - cross-python_{{ target_platform }}  # [build_platform != target_platform]
-    - python                              # [build_platform != target_platform]
+    - python  # [build_platform != target_platform]
     - cmake
-    - conan==1.64.1
-    # - git
+    - conan ==1.64.1
     - ninja
   host:
     - python
@@ -26,12 +40,11 @@ requirements:
   run:
     - python
 
-{% if build_platform == target_platform %}
 test:
   imports:
     - scipp
   requires:
-    - numba # [py<313]
+    - numba  # [py<313]
     - bs4
     - h5py
     - hypothesis
@@ -46,22 +59,12 @@ test:
     - tests/
   commands:
     - python -m pytest -v tests
-{% endif %}
 
-build:
-  script_env:
-    - GIT_VERSION_INFO={{version}}
-  number: 0
-  script:
-    # Passing Python_EXECUTABLE ensures that cmake sees the host interpreter instead of build.
-    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE="%PYTHON%" # [win]
-    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=$PYTHON # [unix]
-    - cmake --build --preset build
-    - ctest --preset test  # [build_platform == target_platform]
 
 about:
   home: https://scipp.github.io/
   license: BSD-3-Clause
+  license_file: LICENSE
   summary: Multi-dimensional data arrays with labeled dimensions
   description: Multi-dimensional data arrays with labeled dimensions
   dev_url: https://github.com/scipp/scipp
