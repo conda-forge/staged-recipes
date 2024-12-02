@@ -1,3 +1,27 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0c3b5d9f..69b17eab 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -262,11 +262,6 @@ if(TARGET imgui_bundle)
+     return()
+ endif()
+ 
+-# Disable system libraries for python bindings (only if not using vcpkg or conan)
+-if (IMGUI_BUNDLE_BUILD_PYTHON)
+-    ibd_disable_system_libraries_for_python()
+-endif()
+-
+ 
+ # Reset installable dependencies at startup
+ ibd_reset_installable_dependencies()
+@@ -302,7 +297,6 @@ set(CMAKE_CXX_STANDARD 17)
+ if (IMGUI_BUNDLE_BUILD_PYTHON)
+     add_compile_definitions(IMGUI_BUNDLE_BUILD_PYTHON)
+     add_compile_definitions(IMGUI_BUNDLE_PYTHON_API)
+-    ibd_disable_system_libraries_for_python()
+ endif()
+ 
+ 
 diff --git a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt b/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
 index 16358f94..a17f4c99 100644
 --- a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
@@ -13,7 +37,7 @@ index 16358f94..a17f4c99 100644
  
 Submodule external/hello_imgui/hello_imgui contains modified content
 diff --git a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
-index 923da1b..6e8a02d 100644
+index 923da1b..40ef5f3 100644
 --- a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
 +++ b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
 @@ -280,10 +280,11 @@ function(him_build_imgui)
@@ -44,12 +68,13 @@ index 923da1b..6e8a02d 100644
      endif()
      get_target_property(library_type glad TYPE)
      target_compile_definitions(glad PUBLIC HELLOIMGUI_USE_GLAD)
-@@ -818,7 +819,7 @@ function(_him_add_glad)
+@@ -818,7 +819,8 @@ function(_him_add_glad)
      endif()
  
      hello_imgui_msvc_target_set_folder(glad ${HELLOIMGUI_SOLUTIONFOLDER}/external/OpenGL_Loaders)
 -    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glad)
 +    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glad)
++    target_include_directories(${HELLOIMGUI_TARGET} PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
  
      him_add_installable_dependency(glad)
      if(HELLOIMGUI_INSTALL)
@@ -77,10 +102,10 @@ index f764f88..71bb95c 100644
      add_library(imgui::${component} ALIAS imgui_${component})
 Submodule external/immvision/immvision contains modified content
 diff --git a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
-index 14df249..5244f00 100644
+index 14df249..59d9540 100644
 --- a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
 +++ b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
-@@ -28,11 +28,11 @@ target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${CMAKE_
+@@ -28,11 +28,12 @@ target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${CMAKE_
  
  if (NOT EMSCRIPTEN)
      find_package(OpenGL REQUIRED)
@@ -91,9 +116,39 @@ index 14df249..5244f00 100644
  if (IMMVISION_USE_GLAD)
 -    target_link_libraries(immvision_gl_loader PUBLIC glad_imm)
 +    target_link_libraries(immvision_gl_loader PRIVATE glad_imm)
++    target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${GLAD_DIR}/include>)
      target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLAD)
  elseif(IMMVISION_USE_GLES3)
      target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLES3)
+diff --git a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+index c7fa439b..50d12f2e 100644
+--- a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
++++ b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+@@ -34,17 +34,6 @@ function(ibd_force_freetype_static_for_python)
+     endif()
+ endfunction()
+ 
+-# See https://github.com/pthom/imgui_bundle/issues/261 and https://chatgpt.com/share/66ffb718-6408-8004-be5b-9e74064a8709
+-function(ibd_disable_system_libraries_for_python)
+-    if(IMGUI_BUNDLE_BUILD_PYTHON AND
+-       (NOT "$ENV{CMAKE_TOOLCHAIN_FILE}" MATCHES "vcpkg" AND NOT DEFINED CONAN_BUILD)  # Not using vcpkg or conan
+-       )
+-        message(STATUS "ibd_disable_system_libraries_for_python: Disabling system libraries for python bindings")
+-        set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "" FORCE)
+-        set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY CACHE STRING "" FORCE)
+-    endif()
+-endfunction()
+-
+ # Check if freetype is available: ON by default, except on Android and MinGW
+ # On MacOS, if building a distributable wheel with cibuilwheel for a version less than 14.0, we disable freetype
+ function(ibd_check_freetype_availability result_var)
+@@ -184,4 +173,4 @@ function(ibd_add_emscripten_otions)
+     # This would enable exception to be handled by wasm (and thus may be faster)
+     #add_compile_options(-fwasm-exceptions)
+     #add_link_options(-fwasm-exceptions)
+-endfunction()
+\ No newline at end of file
++endfunction()
 diff --git a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake b/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
 index 312e2bf4..24e605cf 100644
 --- a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
