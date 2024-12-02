@@ -1,0 +1,74 @@
+{% set name = "pynvjitlink" %}
+{% set version = "0.1.14" %}
+
+package:
+  name: pynvjitlink
+  version: {{ version }}
+
+source:
+  url:  https://github.com/rapidsai/pynvjitlink/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: b1991a211df1c33b2a6e99ea8eb5cea34c0efaf5317fe04f1fe26183d8a5552e
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+  skip: true  # [cuda_compiler_version == "None"]
+  skip: true  # [(cuda_compiler_version or "").startswith("11")]
+  skip: true  # [py<39]
+  skip: true  # [not linux]
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+    - libnvjitlink-dev
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.26.4
+    - ninja
+  host:
+    - libnvjitlink-dev
+    - libnvjitlink-static
+    - cuda-version {{ cuda_compiler_version }}
+    - python
+    - pip
+    - scikit-build-core
+  run:
+    - python
+    - numba >=0.58
+    - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x.x') }}
+
+test:
+  imports:
+    - pynvjitlink
+  source_files:
+    - test_binary_generation/Makefile
+    - test_binary_generation/test.cu
+    - test_binary_generation/undefined_extern.cu
+    - pynvjitlink/tests/test_pynvjitlink_api.py
+    - pynvjitlink/tests/test_pynvjitlink.py
+  requires:
+    - pytest
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+  commands: 
+    - cd test_binary_generation && make
+    - cd .. && pytest -v
+
+about:
+  home: https://rapids.ai/
+  dev_url: https://github.com/rapidsai/pynvjitlink
+  doc_url: https://github.com/rapidsai/pynvjitlink/blob/main/README.md
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  license_url: https://github.com/rapidsai/pynvjitlink/blob/main/LICENSE
+  summary: nvJitLink Python binding
+
+extra:
+  recipe-maintainers:
+    - brandon-b-miller
