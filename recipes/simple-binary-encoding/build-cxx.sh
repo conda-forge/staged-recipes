@@ -2,9 +2,8 @@
 
 set -xeo pipefail
 
-
-mkdir build
-cd build
+mkdir build-cxx
+cd build-cxx
 
 cmake \
   -LAH \
