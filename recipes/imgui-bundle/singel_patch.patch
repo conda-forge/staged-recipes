@@ -1,0 +1,397 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bfc37dd8..fe4017d3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -253,11 +253,6 @@ if(TARGET imgui_bundle)
+     return()
+ endif()
+ 
+-# Disable system libraries for python bindings (only if not using vcpkg or conan)
+-if (IMGUI_BUNDLE_BUILD_PYTHON)
+-    ibd_disable_system_libraries_for_python()
+-endif()
+-
+ 
+ # Reset installable dependencies at startup
+ ibd_reset_installable_dependencies()
+@@ -293,7 +288,6 @@ set(CMAKE_CXX_STANDARD 17)
+ if (IMGUI_BUNDLE_BUILD_PYTHON)
+     add_compile_definitions(IMGUI_BUNDLE_BUILD_PYTHON)
+     add_compile_definitions(IMGUI_BUNDLE_PYTHON_API)
+-    ibd_disable_system_libraries_for_python()
+ endif()
+ 
+ # IMGUI_BUNDLE_WITH_TEST_ENGINE is propagated to HELLOIMGUI_WITH_TEST_ENGINE
+diff --git a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt b/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
+index 16358f94..a17f4c99 100644
+--- a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
++++ b/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
+@@ -4,7 +4,7 @@ if(EMSCRIPTEN)
+ else()
+     if (UNIX OR (APPLE AND NOT IOS))
+         find_package(OpenGL REQUIRED)
+-        target_link_libraries(imgui_example_glfw_opengl3 PUBLIC OpenGL::GL)
++        target_link_libraries(imgui_example_glfw_opengl3 PRIVATE OpenGL::GL)
+     endif()
+ endif()
+ 
+Submodule external/hello_imgui/hello_imgui contains modified content
+diff --git a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
+index 923da1b..0b257a8 100644
+--- a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
++++ b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
+@@ -245,9 +245,9 @@ function(him_add_hello_imgui)
+     target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC stb_hello_imgui)
+     if (HELLOIMGUI_USE_IMGUI_CMAKE_PACKAGE)
+         find_package(imgui CONFIG REQUIRED)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui::imgui)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui::imgui)
+     else()
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui)
+     endif()
+ 
+     add_library(hello-imgui::hello_imgui ALIAS hello_imgui)
+@@ -280,10 +280,11 @@ function(him_build_imgui)
+             _him_do_build_imgui()
+         endif()
+         if (HELLOIMGUI_USE_FREETYPE)
+-            _him_add_freetype_to_imgui()
+-            if (HELLOIMGUI_USE_FREETYPE_PLUTOSVG)
+-                _him_add_freetype_plutosvg_to_imgui()
+-            endif()
++            find_package(Freetype REQUIRED)
++            target_link_libraries(imgui PRIVATE ${FREETYPE_LIBRARIES})
++            target_include_directories(imgui PRIVATE ${FREETYPE_INCLUDE_DIRS})
++            find_library(PLUTOVG_LIBRARIES plutovg REQUIRED)
++            target_link_libraries(imgui PRIVATE ${PLUTOVG_LIBRARIES})
+         endif()
+     endif()
+ endfunction()
+@@ -433,7 +434,7 @@ function(_him_add_freetype_to_imgui)
+     endif()
+ 
+     # 2. Add freetype to imgui
+-    target_link_libraries(imgui PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY})
++    target_link_libraries(imgui PRIVATE ${HIM_FREETYPE_LINKED_LIBRARY})
+     target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+ 
+     # 3. Add support for wchar32 (for emojis, and other unicode characters)
+@@ -490,10 +491,10 @@ function(_him_add_freetype_plutosvg_to_imgui)
+     add_library(plutosvg STATIC ${plutosvg_SOURCE_DIR}/source/plutosvg.c)
+     target_include_directories(plutosvg PUBLIC $<BUILD_INTERFACE:${plutosvg_SOURCE_DIR}/source>)
+     target_compile_definitions(plutosvg PUBLIC PLUTOSVG_HAS_FREETYPE PLUTOSVG_BUILD_STATIC)
+-    target_link_libraries(plutosvg PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
++    target_link_libraries(plutosvg PRIVATE ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
+     him_add_installable_dependency(plutosvg)
+ 
+-    target_link_libraries(imgui PUBLIC plutosvg)
++    target_link_libraries(imgui PRIVATE plutosvg)
+     target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+ 
+     set(BUILD_SHARED_LIBS ${backup_build_shared_libs})
+@@ -637,13 +638,13 @@ endfunction()
+ 
+ function(_him_link_apple_frameworks)
+     if (IOS)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework UIKit")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework UIKit")
+     endif ()
+     if (APPLE AND NOT IOS) # If mac
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework AppKit -framework IOKit")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework AppKit -framework IOKit")
+     endif()
+     if (APPLE)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework Foundation")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework Foundation")
+     endif()
+ endfunction()
+ 
+@@ -669,8 +670,8 @@ endfunction()
+ ###################################################################################################
+ function(him_add_linux_options)
+     if (UNIX AND NOT EMSCRIPTEN  AND NOT APPLE AND NOT ANDROID)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC stdc++ dl)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC X11)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE stdc++ dl)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE X11)
+     endif()
+ endfunction()
+ 
+@@ -727,7 +728,7 @@ function(him_add_emscripten_options)
+     if (EMSCRIPTEN)
+         target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_USE_GLES3)
+         target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_CANNOTQUIT)
+-        target_link_options(${HELLOIMGUI_TARGET} PUBLIC -sMAX_WEBGL_VERSION=2)
++        target_link_options(${HELLOIMGUI_TARGET} PRIVATE -sMAX_WEBGL_VERSION=2)
+     endif()
+ endfunction()
+ 
+@@ -771,9 +772,9 @@ endfunction()
+ 
+ function(_him_link_opengl_es_sdl target)
+     if(IOS)
+-        target_link_libraries(${target} PUBLIC "-framework OpenGLES")
++        target_link_libraries(${target} PRIVATE "-framework OpenGLES")
+     elseif(ANDROID)
+-        target_link_libraries(${target} PUBLIC GLESv3)
++        target_link_libraries(${target} PRIVATE GLESv3)
+     endif()
+ 
+     target_compile_definitions(${target}
+@@ -792,7 +793,7 @@ function(_him_add_glad)
+     find_package(glad CONFIG QUIET)
+     if(glad_FOUND)
+         message(STATUS "HelloImGui: using glad from find_package(glad)")
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glad::glad)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glad::glad)
+         return()
+     endif()
+ 
+@@ -805,9 +806,9 @@ function(_him_add_glad)
+     target_include_directories(glad PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
+ 
+     if(WIN32)
+-        target_link_libraries(glad PUBLIC opengl32.lib)
++        target_link_libraries(glad PRIVATE opengl32.lib)
+     else()
+-        target_link_libraries(glad PUBLIC ${OPENGL_LIBRARIES})
++        target_link_libraries(glad PRIVATE ${OPENGL_LIBRARIES})
+     endif()
+     get_target_property(library_type glad TYPE)
+     target_compile_definitions(glad PUBLIC HELLOIMGUI_USE_GLAD)
+@@ -818,7 +819,8 @@ function(_him_add_glad)
+     endif()
+ 
+     hello_imgui_msvc_target_set_folder(glad ${HELLOIMGUI_SOLUTIONFOLDER}/external/OpenGL_Loaders)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glad)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glad)
++    target_include_directories(${HELLOIMGUI_TARGET} PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
+ 
+     him_add_installable_dependency(glad)
+     if(HELLOIMGUI_INSTALL)
+@@ -842,7 +844,7 @@ function(him_has_metal target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_METAL)
+     set(HELLOIMGUI_HAS_METAL ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE
+         "-framework Metal -framework MetalKit -framework QuartzCore")
+ endfunction()
+ 
+@@ -860,7 +862,7 @@ function(him_has_vulkan target)
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_VULKAN)
+     set(HELLOIMGUI_HAS_VULKAN ON CACHE BOOL "" FORCE)
+     find_package(Vulkan REQUIRED)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC Vulkan::Vulkan)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE Vulkan::Vulkan)
+ endfunction()
+ 
+ 
+@@ -876,7 +878,7 @@ function(him_has_directx11 target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX11)
+     set(HELLOIMGUI_HAS_DIRECTX11 ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC d3d11.lib)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE d3d11.lib)
+ endfunction()
+ 
+ 
+@@ -892,7 +894,7 @@ function(him_has_directx12 target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX12)
+     set(HELLOIMGUI_HAS_DIRECTX12 ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC d3d12.lib dxgi.lib)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE d3d12.lib dxgi.lib)
+ endfunction()
+ 
+ 
+@@ -987,21 +989,21 @@ function(_him_link_sdl target)
+     endif()
+ 
+     if(IOS)
+-        target_link_libraries(${target} PUBLIC SDL2-static SDL2main)
++        target_link_libraries(${target} PRIVATE SDL2-static SDL2main)
+     elseif(EMSCRIPTEN)
+         target_compile_options(${target} PUBLIC -s USE_SDL=2)
+         target_link_options(${target} INTERFACE -s USE_SDL=2)
+     elseif(ANDROID)
+-        target_link_libraries(${target} PUBLIC SDL2main SDL2)
++        target_link_libraries(${target} PRIVATE SDL2main SDL2)
+     elseif(TARGET SDL2-static)
+-        target_link_libraries(${target} PUBLIC SDL2-static)
++        target_link_libraries(${target} PRIVATE SDL2-static)
+     else()
+         find_package(SDL2 REQUIRED)
+-        target_link_libraries(${target} PUBLIC SDL2::SDL2 SDL2::SDL2main)
++        target_link_libraries(${target} PRIVATE SDL2::SDL2 SDL2::SDL2main)
+     endif()
+ 
+     if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+-        target_link_libraries(${target} PUBLIC Xext X11)
++        target_link_libraries(${target} PRIVATE Xext X11)
+     endif()
+ endfunction()
+ 
+@@ -1014,7 +1016,7 @@ function(him_use_glfw3_backend target)
+     if (NOT TARGET glfw) # if glfw is not built as part of the whole build, find it
+         find_package(glfw3 CONFIG REQUIRED)
+     endif()
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glfw)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glfw)
+ 
+     # vcpkg will have added those files to imgui
+     if (NOT HELLOIMGUI_USE_IMGUI_CMAKE_PACKAGE)
+@@ -1093,7 +1095,7 @@ function(him_with_netimgui)
+     set(NETIMGUI_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+     add_subdirectory(${NETIMGUI_DIR}  netimgui)
+ 
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC net_imgui_client)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE net_imgui_client)
+     him_add_installable_dependency(net_imgui_client)
+ endfunction()
+ 
+@@ -1109,7 +1111,7 @@ function(him_with_imguiws)
+     set(IMGUIWS_DIR ${HELLOIMGUI_BASEPATH}/external/imgui-ws CACHE STRING "" FORCE)
+     add_subdirectory(${IMGUIWS_DIR} imgui-ws)
+     target_include_directories(imgui-ws PRIVATE $<BUILD_INTERFACE:${HELLOIMGUI_IMGUI_SOURCE_DIR}/..>)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui-ws)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui-ws)
+     target_compile_definitions(imgui PUBLIC "ImDrawIdx=unsigned int")
+     set(HELLOIMGUI_INSTALL OFF CACHE BOOL "" FORCE)  # imgui-ws is not installable
+ endfunction()
+@@ -1158,7 +1160,7 @@ function(him_add_nlohmann_json)
+     find_package(nlohmann_json CONFIG QUIET)
+     if(nlohmann_json_FOUND)
+         message(STATUS "HelloImGui: using nlohmann_json from find_package(nlohmann_json)")
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC nlohmann_json::nlohmann_json)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE nlohmann_json::nlohmann_json)
+         set(HELLOIMGUI_NLOHMANN_JSON_SELECTED_INFO "Found via find_package(nlohmann_json)" CACHE INTERNAL "" FORCE)
+     else()
+         message(STATUS "HelloImGui: using nlohmann_json from external/nlohmann_json")
+@@ -1166,7 +1168,7 @@ function(him_add_nlohmann_json)
+         add_library(nlohmann_json INTERFACE)
+         target_include_directories(nlohmann_json INTERFACE $<BUILD_INTERFACE:${nlohmann_json_dir}>)
+         # target_compile_definitions(nlohmann_json INTERFACE NLOHMANN_JSON_NOEXCEPTION)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC nlohmann_json)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE nlohmann_json)
+         set(HELLOIMGUI_NLOHMANN_JSON_SELECTED_INFO "Using external/nlohmann_json" CACHE INTERNAL "" FORCE)
+ 
+         him_add_installable_dependency(nlohmann_json)
+Submodule external/imgui-node-editor/imgui-node-editor contains modified content
+diff --git a/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake b/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
+index f764f88..71bb95c 100644
+--- a/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
++++ b/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
+@@ -55,13 +55,13 @@ foreach(component ${imgui_FIND_COMPONENTS})
+     target_link_libraries(imgui_${component} PUBLIC imgui)
+ 
+     if (component MATCHES "dx11")
+-        target_link_libraries(imgui_${component} PUBLIC d3d11)
++        target_link_libraries(imgui_${component} PRIVATE d3d11)
+     elseif (component MATCHES "opengl*")
+         find_package(OpenGL REQUIRED COMPONENTS OpenGL)
+-        target_link_libraries(imgui_${component} PUBLIC OpenGL::GL)
++        target_link_libraries(imgui_${component} PRIVATE OpenGL::GL)
+     elseif(component STREQUAL "glfw")
+         find_package(glfw REQUIRED)
+-        target_link_libraries(imgui_${component} PUBLIC glfw)
++        target_link_libraries(imgui_${component} PRIVATE glfw)
+     endif()
+ 
+     add_library(imgui::${component} ALIAS imgui_${component})
+Submodule external/immvision/immvision contains modified content
+diff --git a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
+index 14df249..59d9540 100644
+--- a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
++++ b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
+@@ -28,11 +28,12 @@ target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${CMAKE_
+ 
+ if (NOT EMSCRIPTEN)
+     find_package(OpenGL REQUIRED)
+-    target_link_libraries(immvision_gl_loader PUBLIC OpenGL::GL)
++    target_link_libraries(immvision_gl_loader PRIVATE OpenGL::GL)
+ endif()
+ 
+ if (IMMVISION_USE_GLAD)
+-    target_link_libraries(immvision_gl_loader PUBLIC glad_imm)
++    target_link_libraries(immvision_gl_loader PRIVATE glad_imm)
++    target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${GLAD_DIR}/include>)
+     target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLAD)
+ elseif(IMMVISION_USE_GLES3)
+     target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLES3)
+diff --git a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+index c7fa439b..50d12f2e 100644
+--- a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
++++ b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+@@ -34,17 +34,6 @@ function(ibd_force_freetype_static_for_python)
+     endif()
+ endfunction()
+ 
+-# See https://github.com/pthom/imgui_bundle/issues/261 and https://chatgpt.com/share/66ffb718-6408-8004-be5b-9e74064a8709
+-function(ibd_disable_system_libraries_for_python)
+-    if(IMGUI_BUNDLE_BUILD_PYTHON AND
+-       (NOT "$ENV{CMAKE_TOOLCHAIN_FILE}" MATCHES "vcpkg" AND NOT DEFINED CONAN_BUILD)  # Not using vcpkg or conan
+-       )
+-        message(STATUS "ibd_disable_system_libraries_for_python: Disabling system libraries for python bindings")
+-        set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "" FORCE)
+-        set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY CACHE STRING "" FORCE)
+-    endif()
+-endfunction()
+-
+ # Check if freetype is available: ON by default, except on Android and MinGW
+ # On MacOS, if building a distributable wheel with cibuilwheel for a version less than 14.0, we disable freetype
+ function(ibd_check_freetype_availability result_var)
+@@ -184,4 +173,4 @@ function(ibd_add_emscripten_otions)
+     # This would enable exception to be handled by wasm (and thus may be faster)
+     #add_compile_options(-fwasm-exceptions)
+     #add_link_options(-fwasm-exceptions)
+-endfunction()
+\ No newline at end of file
++endfunction()
+diff --git a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake b/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
+index 312e2bf4..ea1c2811 100644
+--- a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
++++ b/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
+@@ -1,15 +1,3 @@
+-# Set the rpath for Linux and  MacOS (see https://github.com/pybind/cmake_example/issues/11)
+-function(_target_set_rpath target relative_path)
+-    set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+-    if(UNIX AND NOT APPLE)
+-        set_target_properties(${target} PROPERTIES INSTALL_RPATH "$ORIGIN/${relative_path}/")
+-    elseif(APPLE)
+-        set_target_properties(${target} PROPERTIES INSTALL_RPATH "@loader_path/${relative_path}/")
+-    endif()
+-    set_target_properties(${target} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+-endfunction()
+-
+-
+ function(_nanobind_hack_disable_forceinline)
+     # Hack to disable forceinline in nanobind under Windows
+     # This speeds up compilation by a factor of 60x during the optimization phase for MSVC in Release mode
+@@ -70,23 +58,11 @@ function(add_imgui_bundle_bindings)
+         target_compile_definitions(${python_native_module_name} PUBLIC IMGUI_BUNDLE_WITH_IMMVISION)
+     endif()
+ 
+-    if(IMGUI_BUNDLE_BUILD_PYTHON)
+-        # if using shared libraries, we need to set the rpath,
+-        # so that dll/dylibs can be found in the same folder as imgui_bundle python lib.
+-        _target_set_rpath(${python_native_module_name} ".")
+-    endif()
+-
+     if (IMGUI_BUNDLE_BUILD_PYODIDE)
+         ibd_pyodide_manually_link_sdl_to_bindings()
+     endif()
+ 
+-    target_link_libraries(${python_native_module_name} PUBLIC ${bound_library})
+-
+-    # Link with OpenGL (necessary for nanobind)
+-    if (NOT  EMSCRIPTEN)
+-        find_package(OpenGL REQUIRED)
+-        target_link_libraries(${python_native_module_name} PUBLIC OpenGL::GL)
+-    endif()
++    target_link_libraries(${python_native_module_name} PRIVATE ${bound_library})
+ 
+     # Disable optimizations on release build for msvc
+     # (leads to compilation times of > 3 hours!!!)
+
