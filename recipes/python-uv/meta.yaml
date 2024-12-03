@@ -1,0 +1,80 @@
+{% set version = "0.5.5" %}
+
+{% set python_min = python_min | default("3.9") %}
+
+# for the actual `uv` CLI tool (which does not require or link against `python`), see:
+# - https://github.com/conda-forge/uv-feedstock
+#
+# _this_ package provides the `site-packages` content of the upstream PyPI package to:
+# - appease `pip check` for downstreams which (presently) might use `uv`
+#   programatically as a `run` dependency
+# - eventually to provide a PEP517 backend as a `host` dependency, which _does_ require python
+#
+# for more context, see:
+# - https://github.com/conda-forge/uv-feedstock/issues/42
+
+package:
+  name: python-uv
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/u/uv/uv-{{ version }}.tar.gz
+  sha256: 7f8db4bdf7eaef6be271457c4b2a167f41ad115434944a09f5034018a29b4093
+  patches:
+    # replaces `maturin` with `setuptools`
+    #
+    # this avoids 
+    # - populating `(Library/)bin` 
+    # - forcing {os x arch x python} builds
+    # and enables 
+    # - the `uv` CLI (which can install its _own_ python) to be installed separately 
+    - 0000-no-rust.patch
+    # provide binary path in `sys.prefix`
+    #
+    # this replaces machinery which doesn't work with conda-forge packaging on osx/win 
+    # with a `sys.prefix`-relative path to the `uv` CLI provided by conda-forge/uv-feedstock
+    - 0001-use-conda-forge-bin.patch
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - pip
+    - python {{ python_min }}
+    - setuptools
+  run:
+    - python >={{ python_min }}
+    - uv {{ version }}.*
+
+test:
+  requires:
+    - python {{ python_min }}
+    - mypy
+    - pip
+  imports:
+    - uv
+    - uv._find_uv
+  commands:
+    - pip check
+    - python -c "import uv; print(uv.find_uv_bin())"
+    - uv --version
+    - python -m uv --version
+    - mypy -p uv
+
+about:
+  home: https://pypi.org/project/uv
+  summary: An extremely fast Python package and project manager, written in Rust. (with python)
+  license: Apache-2.0 OR MIT
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+  dev_url: https://github.com/astral-sh/uv
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
+    # TODO: add after feedstock creation
+    # - conda-forge/uv
