@@ -1,6 +1,6 @@
 @echo ON
 
-meson setup build %MESON_ARGS% --prefix="%LIBRARY_PREFIX%"
+meson setup build %MESON_ARGS% --prefix="%LIBRARY_PREFIX%" --buildtype=release
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 meson compile -C build -j %CPU_COUNT%
