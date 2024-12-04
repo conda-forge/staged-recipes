@@ -17,6 +17,10 @@ if ! command -v csh &> /dev/null; then
     exit 1
 fi
 
+
+# Add RPATH to link libraries during runtime
+export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
+
 mkdir -p $PREFIX/bin
 
 
