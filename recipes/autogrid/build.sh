@@ -4,10 +4,16 @@
 
 export PATH="$BUILD_PREFIX/bin:$PATH"
 
-# Debugging step: Check if csh is available
+
+# Ensure csh is available
 if ! command -v csh &> /dev/null; then
-    echo "Error: csh is not available in the build environment."
-    echo "PATH: $PATH"
+    echo "csh is not available. Creating a symlink to tcsh."
+    ln -s "$(which tcsh)" "$BUILD_PREFIX/bin/csh"
+fi
+
+# Debugging: Verify csh is now available
+if ! command -v csh &> /dev/null; then
+    echo "Error: Failed to create csh symlink."
     exit 1
 fi
 
