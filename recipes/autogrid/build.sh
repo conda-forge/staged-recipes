@@ -1,9 +1,15 @@
 #!/bin/bash
 
 #tar -xvf autodocksuite-4.2.6-x86_64Linux2.tar
-shopt -s expand_aliases
 
-alias csh='tcsh'
+export PATH="$BUILD_PREFIX/bin:$PATH"
+
+# Debugging step: Check if csh is available
+if ! command -v csh &> /dev/null; then
+    echo "Error: csh is not available in the build environment."
+    echo "PATH: $PATH"
+    exit 1
+fi
 
 mkdir -p $PREFIX/bin
 
