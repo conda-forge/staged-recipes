@@ -29,6 +29,7 @@ autoreconf -i
 mkdir Linux
 
 cd Linux
+export CPPFLAGS="-static"
 ../configure
 make
 
