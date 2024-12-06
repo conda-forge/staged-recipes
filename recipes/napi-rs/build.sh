@@ -7,3 +7,8 @@ npm install -ddd \
     --global \
     --build-from-source \
     ${SRC_DIR}/napi-rs-cli-${PKG_VERSION}.tgz
+
+# Create batch wrapper
+tee ${PREFIX}/bin/napi.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\napi %*
+EOF

@@ -13,7 +13,7 @@ npm install -ddd \
     --build-from-source \
     stoplight-${PKG_NAME}-${PKG_VERSION}.tgz
 
-# Run pnpm so that pnpm-licenses can create report
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 

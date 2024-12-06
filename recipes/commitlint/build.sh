@@ -13,7 +13,7 @@ npm install -ddd \
 mv package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
 
-# Run pnpm so that pnpm-licenses can create report
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
