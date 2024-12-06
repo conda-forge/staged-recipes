@@ -8,6 +8,8 @@ mkdir build
 
 cd build
 
+if errorlevel 1 exit 1
+
 set NVIMG_BUILD_ARGS= ^
     -DBUILD_DOCS:BOOL=OFF ^
     -DBUILD_SAMPLES:BOOL=OFF ^
@@ -41,7 +43,11 @@ cmake %CMAKE_ARGS% -GNinja -DCMAKE_INSTALL_PREFIX="%PREFIX%/Library" ^
     %NVIMG_BUILD_ARGS% %NVIMG_LIBRARY_ARGS% %NVIMG_EXT_ARGS% ^
     %NVIMG_PYTHON_ARGS% %SRC_DIR%
 
+if errorlevel 1 exit 1
+
 cmake --build .
+
+if errorlevel 1 exit 1
 
 cmake --install .
 
