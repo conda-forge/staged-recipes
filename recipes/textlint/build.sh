@@ -13,6 +13,7 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+# Create batch wrapper
 tee ${PREFIX}/bin/textlint.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\textlint %*
 EOF
