@@ -2,8 +2,6 @@
 
 set -e
 
-git clone https://github.com/jbeder/yaml-cpp.git external_libs/yaml-cpp
-
 mkdir build && cd build
 
 export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
