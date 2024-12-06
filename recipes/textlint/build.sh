@@ -13,6 +13,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\textlint %*
+tee ${PREFIX}/bin/textlint.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\textlint %*
 EOF
