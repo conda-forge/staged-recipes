@@ -13,10 +13,11 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
-# generate license disclaimer for the package
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+# Create batch wrapper
 tee ${PREFIX}/bin/sql-formatter.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\sql-formatter %*
 EOF

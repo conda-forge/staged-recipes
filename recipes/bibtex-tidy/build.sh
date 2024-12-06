@@ -9,6 +9,7 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
+# Create batch wrapper
 tee ${PREFIX}/bin/bibtex-tidy.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\bibtex-tidy %*
 EOF
