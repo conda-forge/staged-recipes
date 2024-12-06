@@ -1,0 +1,703 @@
+diff --git a/bindings/imgui_bundle/demos_cpp/CMakeLists.txt b/bindings/imgui_bundle/demos_cpp/CMakeLists.txt
+index 5fe9c10c..e07fcfd4 100644
+--- a/bindings/imgui_bundle/demos_cpp/CMakeLists.txt
++++ b/bindings/imgui_bundle/demos_cpp/CMakeLists.txt
+@@ -4,6 +4,7 @@ include_directories(.)
+ 
+ set(demos_cpp_folder ${CMAKE_CURRENT_LIST_DIR})
+ 
++find_package(Threads REQUIRED)
+ 
+ function(add_demo_cpp)
+     # Creates an app using imgui_bundle_add_app, and link it with demo_utils
+@@ -17,6 +18,10 @@ function(add_demo_cpp)
+         hello_imgui_msvc_target_set_folder(${demo_name} demos_cpp)
+     endif()
+     target_link_libraries(${demo_name} PUBLIC demo_utils)
++    target_link_libraries(${demo_name} PRIVATE Threads::Threads)
++    target_link_libraries(${demo_name} PRIVATE fplus)
++    find_package(OpenCV REQUIRED)
++    target_link_libraries(${demo_name} PRIVATE opencv_core opencv_imgcodecs)
+     if (EMSCRIPTEN)
+         # Bundle demos_assets
+         hello_imgui_bundle_assets_from_folder(${demo_name} ${demos_cpp_folder}/../demos_assets)
+@@ -75,7 +80,8 @@ function(add_this_folder_as_demos_library)
+     get_filename_component(folder_name "${CMAKE_CURRENT_LIST_DIR}" NAME_WE)
+     set(demos_library_name ${folder_name})
+     add_library(${demos_library_name} ${sources})
+-    target_link_libraries(${demos_library_name} PRIVATE imgui_bundle)
++    find_package(OpenCV REQUIRED)
++    target_link_libraries(${demos_library_name} PRIVATE imgui_bundle fplus opencv_core opencv_imgcodecs)
+     target_compile_definitions(${demos_library_name} PRIVATE IMGUI_BUNDLE_BUILD_DEMO_AS_LIBRARY)
+ endfunction()
+ 
+@@ -112,18 +118,23 @@ if (EMSCRIPTEN)
+ endif()
+ 
+ 
+-target_link_libraries(demo_imguizmo_launcher PRIVATE demos_imguizmo)
+-target_link_libraries(demo_node_editor_launcher PRIVATE demos_node_editor)
+-target_link_libraries(demo_tex_inspect_launcher PRIVATE demos_tex_inspect)
++target_link_libraries(demo_imguizmo_launcher PRIVATE demos_imguizmo Threads::Threads)
++target_link_libraries(demo_node_editor_launcher PRIVATE demos_node_editor Threads::Threads)
++target_link_libraries(demo_tex_inspect_launcher PRIVATE demos_tex_inspect Threads::Threads)
+ target_link_libraries(demo_imgui_bundle PRIVATE
+     demos_cpp
+     demos_imguizmo
+     demos_tex_inspect
+     demos_node_editor
+     demo_utils
++    Threads::Threads
+ )
++
+ if (IMGUI_BUNDLE_WITH_IMMVISION)
++    find_package(OpenCV REQUIRED)
++    target_link_libraries(demo_immvision_launcher PRIVATE opencv_core)
+     target_link_libraries(demo_immvision_launcher PRIVATE demos_immvision)
++    target_link_libraries(demo_imgui_bundle PRIVATE opencv_core)
+     target_link_libraries(demo_imgui_bundle PRIVATE demos_immvision)
+ endif()
+ 
+diff --git a/bindings/imgui_bundle/demos_cpp/demo_utils/CMakeLists.txt b/bindings/imgui_bundle/demos_cpp/demo_utils/CMakeLists.txt
+index ab140500..3461adaa 100644
+--- a/bindings/imgui_bundle/demos_cpp/demo_utils/CMakeLists.txt
++++ b/bindings/imgui_bundle/demos_cpp/demo_utils/CMakeLists.txt
+@@ -1,4 +1,5 @@
+ file(GLOB sources *.h *.cpp)
+ add_library(demo_utils ${sources})
+ target_include_directories(demo_utils PUBLIC ${CMAKE_CURRENT_LIST_DIR}/..)
+-target_link_libraries(demo_utils PUBLIC imgui_bundle immapp)
++target_link_libraries(demo_utils PRIVATE imgui_bundle immapp)
++target_link_libraries(demo_utils PRIVATE fplus)
+diff --git a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt b/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
+index 16358f94..726b8a80 100644
+--- a/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
++++ b/bindings/imgui_bundle/demos_cpp/demos_immapp/CMakeLists.txt
+@@ -1,10 +1,10 @@
+ add_this_folder_demos()
+ if(EMSCRIPTEN)
+-    target_link_libraries(imgui_example_glfw_opengl3 PUBLIC GL)
++    target_link_libraries(imgui_example_glfw_opengl3 PRIVATE GL)
+ else()
+     if (UNIX OR (APPLE AND NOT IOS))
+         find_package(OpenGL REQUIRED)
+-        target_link_libraries(imgui_example_glfw_opengl3 PUBLIC OpenGL::GL)
++        target_link_libraries(imgui_example_glfw_opengl3 PRIVATE OpenGL::GL)
+     endif()
+ endif()
+ 
+diff --git a/external/CMakeLists.txt b/external/CMakeLists.txt
+index 9df61aba..b5793563 100644
+--- a/external/CMakeLists.txt
++++ b/external/CMakeLists.txt
+@@ -88,7 +88,7 @@ if(NOT IMGUI_BUNDLE_DISABLE_IMGUI_NODE_EDITOR)
+         imgui-node-editor/imgui_node_editor_immapp/node_editor_default_context.cpp
+         imgui-node-editor/imgui_node_editor_immapp/node_editor_default_context.h
+         )
+-    target_link_libraries(imgui_node_editor PUBLIC immapp)
++    target_link_libraries(imgui_node_editor PRIVATE immapp)
+     target_compile_definitions(imgui_bundle INTERFACE IMGUI_BUNDLE_WITH_IMGUI_NODE_EDITOR)
+     set(IMGUI_BUNDLE_WITH_IMGUI_NODE_EDITOR ON CACHE INTERNAL "" FORCE)
+ endif()
+@@ -137,7 +137,7 @@ if(NOT IMGUI_BUNDLE_DISABLE_IMGUI_TEX_INSPECT)
+         target_compile_definitions(imgui_tex_inspect PRIVATE IMGUI_IMPL_OPENGL_LOADER_GLAD)
+         target_compile_definitions(imgui_tex_inspect PUBLIC IMGUI_BUNDLE_WITH_TEXT_INSPECT)
+         target_include_directories(imgui_tex_inspect PRIVATE hello_imgui/hello_imgui/external/OpenGL_Loaders/glad/include)
+-        target_link_libraries(imgui_tex_inspect PUBLIC hello_imgui)
++        target_link_libraries(imgui_tex_inspect PRIVATE hello_imgui)
+ 
+         target_compile_definitions(imgui_bundle INTERFACE IMGUI_BUNDLE_WITH_IMGUI_TEX_INSPECT)
+         set(IMGUI_BUNDLE_WITH_IMGUI_TEX_INSPECT ON CACHE INTERNAL "" FORCE)
+@@ -172,7 +172,7 @@ if(NOT IMGUI_BUNDLE_DISABLE_NANOVG)
+ 
+         # Add nvg_imgui
+         add_simple_external_library(nvg_imgui nanovg)
+-        target_link_libraries(nvg_imgui PUBLIC nanovg hello_imgui)
++        target_link_libraries(nvg_imgui PRIVATE nanovg hello_imgui)
+         file(GLOB_RECURSE nvg_imgui_sources nanovg/nvg_imgui/*.cpp nanovg/nvg_imgui/*.h)
+         if (HELLOIMGUI_HAS_METAL)
+             set(nvg_imgui_sources ${nvg_imgui_sources}
+@@ -215,7 +215,7 @@ target_sources(imgui_md PRIVATE
+ )
+ target_include_directories(imgui_md PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imgui_md/md4c/src>)
+ target_include_directories(imgui_md PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imgui_md/imgui_md_wrapper>)
+-target_link_libraries(imgui_md PUBLIC hello_imgui imgui_color_text_edit fplus immapp)
++target_link_libraries(imgui_md PRIVATE hello_imgui imgui_color_text_edit fplus immapp)
+ hello_imgui_msvc_target_group_sources(imgui_md)
+ if(IMGUI_BUNDLE_INSTALL_CPP)
+     install(FILES imgui_md/imgui_md_wrapper/imgui_md_wrapper.h DESTINATION include/imgui_md_wrapper)
+@@ -251,4 +251,4 @@ endif()
+ # Finally, build immapp (Immediate App lib, internal to ImGui Bundle
+ add_subdirectory(immapp/immapp)
+ # And add info about the active libraries
+-target_link_libraries(immapp PUBLIC imgui_bundle)
++target_link_libraries(immapp PRIVATE imgui_bundle)
+Submodule external/ImFileDialog/ImFileDialog contains modified content
+diff --git a/external/ImFileDialog/ImFileDialog/CMakeLists.txt b/external/ImFileDialog/ImFileDialog/CMakeLists.txt
+index e66494c..393e029 100644
+--- a/external/ImFileDialog/ImFileDialog/CMakeLists.txt
++++ b/external/ImFileDialog/ImFileDialog/CMakeLists.txt
+@@ -54,15 +54,15 @@ target_include_directories(ImFileDialogExample PRIVATE ${SDL2_INCLUDE_DIRS} ${GL
+ target_include_directories(ImFileDialogExample PRIVATE libs libs/imgui)
+ 
+ # link libraries
+-target_link_libraries(ImFileDialogExample ${OPENGL_LIBRARIES})
++target_link_libraries(ImFileDialogExample PRIVATE ${OPENGL_LIBRARIES})
+ 
+ if(WIN32)
+ 	# link specific win32 libraries
+-	target_link_libraries(ImFileDialogExample GLEW::GLEW SDL2::SDL2 SDL2::SDL2main)
++    target_link_libraries(ImFileDialogExample PRIVATE GLEW::GLEW SDL2::SDL2 SDL2::SDL2main)
+ 
+ elseif(UNIX AND NOT APPLE)
+ 	# link linux libraries
+-	target_link_libraries(ImFileDialogExample ${GLEW_LIBRARIES} ${SDL2_LIBRARIES} ${CMAKE_DL_LIBS} stdc++fs pthread)
++    target_link_libraries(ImFileDialogExample PRIVATE ${GLEW_LIBRARIES} ${SDL2_LIBRARIES} ${CMAKE_DL_LIBS} stdc++fs pthread)
+ elseif(APPLE)
+-	target_link_libraries(ImFileDialogExample GLEW::GLEW ${SDL2_LIBRARIES} ${CMAKE_DL_LIBS})
++    target_link_libraries(ImFileDialogExample PRIVATE GLEW::GLEW ${SDL2_LIBRARIES} ${CMAKE_DL_LIBS})
+ endif()
+Submodule external/hello_imgui/hello_imgui contains modified content
+diff --git a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
+index 923da1b..34889a6 100644
+--- a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
++++ b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
+@@ -245,9 +245,9 @@ function(him_add_hello_imgui)
+     target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC stb_hello_imgui)
+     if (HELLOIMGUI_USE_IMGUI_CMAKE_PACKAGE)
+         find_package(imgui CONFIG REQUIRED)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui::imgui)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui::imgui)
+     else()
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui)
+     endif()
+ 
+     add_library(hello-imgui::hello_imgui ALIAS hello_imgui)
+@@ -280,10 +280,11 @@ function(him_build_imgui)
+             _him_do_build_imgui()
+         endif()
+         if (HELLOIMGUI_USE_FREETYPE)
+-            _him_add_freetype_to_imgui()
+-            if (HELLOIMGUI_USE_FREETYPE_PLUTOSVG)
+-                _him_add_freetype_plutosvg_to_imgui()
+-            endif()
++            find_package(Freetype REQUIRED)
++            target_link_libraries(imgui PRIVATE ${FREETYPE_LIBRARIES})
++            target_include_directories(imgui PRIVATE ${FREETYPE_INCLUDE_DIRS})
++            find_library(PLUTOVG_LIBRARIES plutovg REQUIRED)
++            target_link_libraries(imgui PRIVATE ${PLUTOVG_LIBRARIES})
+         endif()
+     endif()
+ endfunction()
+@@ -294,7 +295,7 @@ function(him_install_imgui)
+             return()
+         endif()
+ 
+-        install(TARGETS imgui DESTINATION ./lib/)
++        install(TARGETS imgui DESTINATION lib)
+         file(GLOB imgui_headers
+             ${HELLOIMGUI_IMGUI_SOURCE_DIR}/*.h
+             ${HELLOIMGUI_IMGUI_SOURCE_DIR}/misc/cpp/*.h
+@@ -433,7 +434,7 @@ function(_him_add_freetype_to_imgui)
+     endif()
+ 
+     # 2. Add freetype to imgui
+-    target_link_libraries(imgui PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY})
++    target_link_libraries(imgui PRIVATE ${HIM_FREETYPE_LINKED_LIBRARY})
+     target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+ 
+     # 3. Add support for wchar32 (for emojis, and other unicode characters)
+@@ -490,10 +491,10 @@ function(_him_add_freetype_plutosvg_to_imgui)
+     add_library(plutosvg STATIC ${plutosvg_SOURCE_DIR}/source/plutosvg.c)
+     target_include_directories(plutosvg PUBLIC $<BUILD_INTERFACE:${plutosvg_SOURCE_DIR}/source>)
+     target_compile_definitions(plutosvg PUBLIC PLUTOSVG_HAS_FREETYPE PLUTOSVG_BUILD_STATIC)
+-    target_link_libraries(plutosvg PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
++    target_link_libraries(plutosvg PRIVATE ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
+     him_add_installable_dependency(plutosvg)
+ 
+-    target_link_libraries(imgui PUBLIC plutosvg)
++    target_link_libraries(imgui PRIVATE plutosvg)
+     target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG)
+ 
+     set(BUILD_SHARED_LIBS ${backup_build_shared_libs})
+@@ -637,13 +638,13 @@ endfunction()
+ 
+ function(_him_link_apple_frameworks)
+     if (IOS)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework UIKit")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework UIKit")
+     endif ()
+     if (APPLE AND NOT IOS) # If mac
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework AppKit -framework IOKit")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework AppKit -framework IOKit")
+     endif()
+     if (APPLE)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC "-framework Foundation")
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE "-framework Foundation")
+     endif()
+ endfunction()
+ 
+@@ -669,8 +670,8 @@ endfunction()
+ ###################################################################################################
+ function(him_add_linux_options)
+     if (UNIX AND NOT EMSCRIPTEN  AND NOT APPLE AND NOT ANDROID)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC stdc++ dl)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC X11)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE stdc++ dl)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE X11)
+     endif()
+ endfunction()
+ 
+@@ -727,7 +728,7 @@ function(him_add_emscripten_options)
+     if (EMSCRIPTEN)
+         target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_USE_GLES3)
+         target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_CANNOTQUIT)
+-        target_link_options(${HELLOIMGUI_TARGET} PUBLIC -sMAX_WEBGL_VERSION=2)
++        target_link_options(${HELLOIMGUI_TARGET} PRIVATE -sMAX_WEBGL_VERSION=2)
+     endif()
+ endfunction()
+ 
+@@ -771,9 +772,9 @@ endfunction()
+ 
+ function(_him_link_opengl_es_sdl target)
+     if(IOS)
+-        target_link_libraries(${target} PUBLIC "-framework OpenGLES")
++        target_link_libraries(${target} PRIVATE "-framework OpenGLES")
+     elseif(ANDROID)
+-        target_link_libraries(${target} PUBLIC GLESv3)
++        target_link_libraries(${target} PRIVATE GLESv3)
+     endif()
+ 
+     target_compile_definitions(${target}
+@@ -789,40 +790,30 @@ function(_him_add_glad)
+         return()
+     endif()
+ 
+-    find_package(glad CONFIG QUIET)
+-    if(glad_FOUND)
+-        message(STATUS "HelloImGui: using glad from find_package(glad)")
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glad::glad)
+-        return()
+-    endif()
+-
+     set(glad_dir ${HELLOIMGUI_BASEPATH}/external/OpenGL_Loaders/glad)
+     set(glad_files
+         ${glad_dir}/src/glad.c
+         ${glad_dir}/include/glad/glad.h
+         ${glad_dir}/include/KHR/khrplatform.h)
+-    add_library(glad ${glad_files})
+-    target_include_directories(glad PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
++    add_library(glad_him ${glad_files})
++    target_include_directories(glad_him PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
+ 
+-    if(WIN32)
+-        target_link_libraries(glad PUBLIC opengl32.lib)
+-    else()
+-        target_link_libraries(glad PUBLIC ${OPENGL_LIBRARIES})
+-    endif()
+-    get_target_property(library_type glad TYPE)
+-    target_compile_definitions(glad PUBLIC HELLOIMGUI_USE_GLAD)
++    get_target_property(library_type glad_him TYPE)
+     if (library_type STREQUAL SHARED_LIBRARY)
+         # If glad is a shared lobrary, define the macro GLAD_API_EXPORT on the command line.
+         target_compile_definitions(glad PRIVATE GLAD_GLAPI_EXPORT)
+         target_compile_definitions(glad PUBLIC GLAD_GLAPI_EXPORT PRIVATE GLAD_GLAPI_EXPORT_BUILD)
+     endif()
+ 
+-    hello_imgui_msvc_target_set_folder(glad ${HELLOIMGUI_SOLUTIONFOLDER}/external/OpenGL_Loaders)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glad)
++    target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_USE_GLAD)
++
++    # hello_imgui_msvc_target_set_folder(glad_him ${HELLOIMGUI_SOLUTIONFOLDER}/external/OpenGL_Loaders)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glad_him)
++    target_include_directories(${HELLOIMGUI_TARGET} PUBLIC $<BUILD_INTERFACE:${glad_dir}/include>)
+ 
+-    him_add_installable_dependency(glad)
++    him_add_installable_dependency(glad_him)
+     if(HELLOIMGUI_INSTALL)
+-        install(TARGETS glad DESTINATION ./lib/)
++        install(TARGETS glad_him DESTINATION lib)
+         install(FILES ${glad_dir}/include/glad/glad.h DESTINATION include/glad)
+         install(FILES ${glad_dir}/include/KHR/khrplatform.h DESTINATION include/KHR)
+     endif()
+@@ -842,7 +833,7 @@ function(him_has_metal target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_METAL)
+     set(HELLOIMGUI_HAS_METAL ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE
+         "-framework Metal -framework MetalKit -framework QuartzCore")
+ endfunction()
+ 
+@@ -860,7 +851,7 @@ function(him_has_vulkan target)
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_VULKAN)
+     set(HELLOIMGUI_HAS_VULKAN ON CACHE BOOL "" FORCE)
+     find_package(Vulkan REQUIRED)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC Vulkan::Vulkan)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE Vulkan::Vulkan)
+ endfunction()
+ 
+ 
+@@ -876,7 +867,7 @@ function(him_has_directx11 target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX11)
+     set(HELLOIMGUI_HAS_DIRECTX11 ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC d3d11.lib)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE d3d11.lib)
+ endfunction()
+ 
+ 
+@@ -892,7 +883,7 @@ function(him_has_directx12 target)
+     endif()
+     target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX12)
+     set(HELLOIMGUI_HAS_DIRECTX12 ON CACHE BOOL "" FORCE)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC d3d12.lib dxgi.lib)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE d3d12.lib dxgi.lib)
+ endfunction()
+ 
+ 
+@@ -987,21 +978,21 @@ function(_him_link_sdl target)
+     endif()
+ 
+     if(IOS)
+-        target_link_libraries(${target} PUBLIC SDL2-static SDL2main)
++        target_link_libraries(${target} PRIVATE SDL2-static SDL2main)
+     elseif(EMSCRIPTEN)
+         target_compile_options(${target} PUBLIC -s USE_SDL=2)
+         target_link_options(${target} INTERFACE -s USE_SDL=2)
+     elseif(ANDROID)
+-        target_link_libraries(${target} PUBLIC SDL2main SDL2)
++        target_link_libraries(${target} PRIVATE SDL2main SDL2)
+     elseif(TARGET SDL2-static)
+-        target_link_libraries(${target} PUBLIC SDL2-static)
++        target_link_libraries(${target} PRIVATE SDL2-static)
+     else()
+         find_package(SDL2 REQUIRED)
+-        target_link_libraries(${target} PUBLIC SDL2::SDL2 SDL2::SDL2main)
++        target_link_libraries(${target} PRIVATE SDL2::SDL2 SDL2::SDL2main)
+     endif()
+ 
+     if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+-        target_link_libraries(${target} PUBLIC Xext X11)
++        target_link_libraries(${target} PRIVATE Xext X11)
+     endif()
+ endfunction()
+ 
+@@ -1014,7 +1005,7 @@ function(him_use_glfw3_backend target)
+     if (NOT TARGET glfw) # if glfw is not built as part of the whole build, find it
+         find_package(glfw3 CONFIG REQUIRED)
+     endif()
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC glfw)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE glfw)
+ 
+     # vcpkg will have added those files to imgui
+     if (NOT HELLOIMGUI_USE_IMGUI_CMAKE_PACKAGE)
+@@ -1093,7 +1084,7 @@ function(him_with_netimgui)
+     set(NETIMGUI_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+     add_subdirectory(${NETIMGUI_DIR}  netimgui)
+ 
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC net_imgui_client)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE net_imgui_client)
+     him_add_installable_dependency(net_imgui_client)
+ endfunction()
+ 
+@@ -1109,7 +1100,7 @@ function(him_with_imguiws)
+     set(IMGUIWS_DIR ${HELLOIMGUI_BASEPATH}/external/imgui-ws CACHE STRING "" FORCE)
+     add_subdirectory(${IMGUIWS_DIR} imgui-ws)
+     target_include_directories(imgui-ws PRIVATE $<BUILD_INTERFACE:${HELLOIMGUI_IMGUI_SOURCE_DIR}/..>)
+-    target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC imgui-ws)
++    target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE imgui-ws)
+     target_compile_definitions(imgui PUBLIC "ImDrawIdx=unsigned int")
+     set(HELLOIMGUI_INSTALL OFF CACHE BOOL "" FORCE)  # imgui-ws is not installable
+ endfunction()
+@@ -1158,7 +1149,7 @@ function(him_add_nlohmann_json)
+     find_package(nlohmann_json CONFIG QUIET)
+     if(nlohmann_json_FOUND)
+         message(STATUS "HelloImGui: using nlohmann_json from find_package(nlohmann_json)")
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC nlohmann_json::nlohmann_json)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE nlohmann_json::nlohmann_json)
+         set(HELLOIMGUI_NLOHMANN_JSON_SELECTED_INFO "Found via find_package(nlohmann_json)" CACHE INTERNAL "" FORCE)
+     else()
+         message(STATUS "HelloImGui: using nlohmann_json from external/nlohmann_json")
+@@ -1166,7 +1157,7 @@ function(him_add_nlohmann_json)
+         add_library(nlohmann_json INTERFACE)
+         target_include_directories(nlohmann_json INTERFACE $<BUILD_INTERFACE:${nlohmann_json_dir}>)
+         # target_compile_definitions(nlohmann_json INTERFACE NLOHMANN_JSON_NOEXCEPTION)
+-        target_link_libraries(${HELLOIMGUI_TARGET} PUBLIC nlohmann_json)
++        target_link_libraries(${HELLOIMGUI_TARGET} PRIVATE nlohmann_json)
+         set(HELLOIMGUI_NLOHMANN_JSON_SELECTED_INFO "Using external/nlohmann_json" CACHE INTERNAL "" FORCE)
+ 
+         him_add_installable_dependency(nlohmann_json)
+Submodule external/imgui-node-editor/imgui-node-editor contains modified content
+diff --git a/external/imgui-node-editor/imgui-node-editor/examples/application/CMakeLists.txt b/external/imgui-node-editor/imgui-node-editor/examples/application/CMakeLists.txt
+index a2504cb..58507e8 100644
+--- a/external/imgui-node-editor/imgui-node-editor/examples/application/CMakeLists.txt
++++ b/external/imgui-node-editor/imgui-node-editor/examples/application/CMakeLists.txt
+@@ -32,7 +32,7 @@ endif()
+ 
+ find_package(imgui REQUIRED COMPONENTS ${imgui_components})
+ find_package(stb REQUIRED COMPONENTS image)
+-target_link_libraries(application PUBLIC imgui)
++target_link_libraries(application PRIVATE imgui)
+ target_link_libraries(application PRIVATE stb::image)
+ 
+ if (OpenGL_FOUND)
+@@ -55,4 +55,4 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${_Application_Sources})
+ 
+ target_sources(application PRIVATE ${_Application_Sources})
+ 
+-set_property(TARGET application PROPERTY FOLDER "lib")
+\ No newline at end of file
++set_property(TARGET application PROPERTY FOLDER "lib")
+diff --git a/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake b/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
+index f764f88..f99916b 100644
+--- a/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
++++ b/external/imgui-node-editor/imgui-node-editor/examples/cmake/Findimgui.cmake
+@@ -52,16 +52,16 @@ foreach(component ${imgui_FIND_COMPONENTS})
+         ${imgui_SOURCE_DIR}/backends
+     )
+ 
+-    target_link_libraries(imgui_${component} PUBLIC imgui)
++    target_link_libraries(imgui_${component} PRIVATE imgui)
+ 
+     if (component MATCHES "dx11")
+-        target_link_libraries(imgui_${component} PUBLIC d3d11)
++        target_link_libraries(imgui_${component} PRIVATE d3d11)
+     elseif (component MATCHES "opengl*")
+         find_package(OpenGL REQUIRED COMPONENTS OpenGL)
+-        target_link_libraries(imgui_${component} PUBLIC OpenGL::GL)
++        target_link_libraries(imgui_${component} PRIVATE OpenGL::GL)
+     elseif(component STREQUAL "glfw")
+         find_package(glfw REQUIRED)
+-        target_link_libraries(imgui_${component} PUBLIC glfw)
++        target_link_libraries(imgui_${component} PRIVATE glfw)
+     endif()
+ 
+     add_library(imgui::${component} ALIAS imgui_${component})
+Submodule external/immvision/cvnp contains modified content
+diff --git a/external/immvision/cvnp/CMakeLists.txt b/external/immvision/cvnp/CMakeLists.txt
+index 2fb57d3..ca8102d 100644
+--- a/external/immvision/cvnp/CMakeLists.txt
++++ b/external/immvision/cvnp/CMakeLists.txt
+@@ -50,7 +50,7 @@ if (PROJECT_IS_TOP_LEVEL)
+     #
+     file(GLOB sources cvnp/*.h cvnp/*.cpp)
+     pybind11_add_module(cvnp ${sources} main/cvnp_main.cpp)
+-    target_link_libraries(cvnp PUBLIC opencv_core)
++    target_link_libraries(cvnp PRIVATE opencv_core)
+     target_include_directories(cvnp PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+     # Copy the .so or .pyd module into this dir, to facilitate the tests
+     add_custom_command(
+Submodule external/immvision/cvnp_nano contains modified content
+diff --git a/external/immvision/cvnp_nano/CMakeLists.txt b/external/immvision/cvnp_nano/CMakeLists.txt
+index 4569f87..161e6df 100644
+--- a/external/immvision/cvnp_nano/CMakeLists.txt
++++ b/external/immvision/cvnp_nano/CMakeLists.txt
+@@ -55,7 +55,7 @@ find_opencv()
+ nanobind_build_library(nanobind SHARED)
+ add_library(cvnp_nano cvnp_nano/cvnp_nano.cpp cvnp_nano/cvnp_nano.h)
+ target_include_directories(cvnp_nano PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+-target_link_libraries(cvnp_nano PUBLIC opencv_core nanobind)
++target_link_libraries(cvnp_nano PRIVATE opencv_core nanobind)
+ if (UNIX)
+     # add fPIC
+     set_property(TARGET cvnp_nano PROPERTY POSITION_INDEPENDENT_CODE ON)
+Submodule external/immvision/immvision contains modified content
+diff --git a/external/immvision/immvision/src/immdebug/CMakeLists.txt b/external/immvision/immvision/src/immdebug/CMakeLists.txt
+index 3654a5c..7274e3a 100644
+--- a/external/immvision/immvision/src/immdebug/CMakeLists.txt
++++ b/external/immvision/immvision/src/immdebug/CMakeLists.txt
+@@ -5,4 +5,4 @@ add_library(${target_name} ${sources})
+ target_include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+ 
+ find_package(OpenCV REQUIRED)
+-target_link_libraries(${target_name} PUBLIC opencv_core)
++target_link_libraries(${target_name} PRIVATE opencv_core)
+diff --git a/external/immvision/immvision/src/immvision/CMakeLists.txt b/external/immvision/immvision/src/immvision/CMakeLists.txt
+index 7b5aefa..17f77bd 100644
+--- a/external/immvision/immvision/src/immvision/CMakeLists.txt
++++ b/external/immvision/immvision/src/immvision/CMakeLists.txt
+@@ -8,11 +8,5 @@ if (IMMVISION_SERIALIZE_JSON)
+ endif()
+ target_include_directories(${target_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>)
+ 
+-target_link_libraries(${target_name} PUBLIC
+-    imgui
+-    immvision_gl_loader
+-    opencv_core
+-    opencv_imgproc
+-    opencv_imgcodecs
+-    )
+-
++target_link_libraries(${target_name} PUBLIC imgui immvision_gl_loader)
++target_link_libraries(${target_name} PRIVATE opencv_core)
+diff --git a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
+index 14df249..59d9540 100644
+--- a/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
++++ b/external/immvision/immvision/src/immvision_gl_loader/CMakeLists.txt
+@@ -28,11 +28,12 @@ target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${CMAKE_
+ 
+ if (NOT EMSCRIPTEN)
+     find_package(OpenGL REQUIRED)
+-    target_link_libraries(immvision_gl_loader PUBLIC OpenGL::GL)
++    target_link_libraries(immvision_gl_loader PRIVATE OpenGL::GL)
+ endif()
+ 
+ if (IMMVISION_USE_GLAD)
+-    target_link_libraries(immvision_gl_loader PUBLIC glad_imm)
++    target_link_libraries(immvision_gl_loader PRIVATE glad_imm)
++    target_include_directories(immvision_gl_loader PUBLIC $<BUILD_INTERFACE:${GLAD_DIR}/include>)
+     target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLAD)
+ elseif(IMMVISION_USE_GLES3)
+     target_compile_definitions(immvision_gl_loader PUBLIC IMMVISION_USE_GLES3)
+diff --git a/external/immvision/immvision/src_all_in_one/immvision/CMakeLists.txt b/external/immvision/immvision/src_all_in_one/immvision/CMakeLists.txt
+index 06a6bd4..3b91d88 100644
+--- a/external/immvision/immvision/src_all_in_one/immvision/CMakeLists.txt
++++ b/external/immvision/immvision/src_all_in_one/immvision/CMakeLists.txt
+@@ -6,5 +6,5 @@ target_include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+ target_link_libraries(${target_name} PUBLIC
+     imgui
+     immvision_gl_loader
+-    opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs
+-    )
++)
++target_link_libraries(${target_name} PRIVATE opencv_core opencv_imgproc opencv_highgui opencv_imgcodecs)
+diff --git a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+index c7fa439b..50d12f2e 100644
+--- a/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
++++ b/imgui_bundle_cmake/imgui_bundle_build_lib.cmake
+@@ -34,17 +34,6 @@ function(ibd_force_freetype_static_for_python)
+     endif()
+ endfunction()
+ 
+-# See https://github.com/pthom/imgui_bundle/issues/261 and https://chatgpt.com/share/66ffb718-6408-8004-be5b-9e74064a8709
+-function(ibd_disable_system_libraries_for_python)
+-    if(IMGUI_BUNDLE_BUILD_PYTHON AND
+-       (NOT "$ENV{CMAKE_TOOLCHAIN_FILE}" MATCHES "vcpkg" AND NOT DEFINED CONAN_BUILD)  # Not using vcpkg or conan
+-       )
+-        message(STATUS "ibd_disable_system_libraries_for_python: Disabling system libraries for python bindings")
+-        set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "" FORCE)
+-        set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY CACHE STRING "" FORCE)
+-    endif()
+-endfunction()
+-
+ # Check if freetype is available: ON by default, except on Android and MinGW
+ # On MacOS, if building a distributable wheel with cibuilwheel for a version less than 14.0, we disable freetype
+ function(ibd_check_freetype_availability result_var)
+@@ -184,4 +173,4 @@ function(ibd_add_emscripten_otions)
+     # This would enable exception to be handled by wasm (and thus may be faster)
+     #add_compile_options(-fwasm-exceptions)
+     #add_link_options(-fwasm-exceptions)
+-endfunction()
+\ No newline at end of file
++endfunction()
+diff --git a/imgui_bundle_cmake/internal/add_imgui.cmake b/imgui_bundle_cmake/internal/add_imgui.cmake
+index f6f08bb0..e5f9f842 100644
+--- a/imgui_bundle_cmake/internal/add_imgui.cmake
++++ b/imgui_bundle_cmake/internal/add_imgui.cmake
+@@ -35,7 +35,7 @@ function(add_imgui imgui_dir)
+         target_compile_definitions(imgui PUBLIC IMGUI_USER_CONFIG="${IMGUI_BUNDLE_CMAKE_PATH}/imgui_bundle_config.h")
+         lg_disable_warning_exception_in_destructor(imgui)
+         if(PROJECT_IS_TOP_LEVEL AND NOT SKBUILD)
+-            install(TARGETS imgui DESTINATION ./lib/)
++            install(TARGETS imgui DESTINATION lib)
+         endif()
+ 
+         if(IMGUI_BUNDLE_BUILD_PYTHON)
+diff --git a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake b/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
+index 312e2bf4..b39d5e69 100644
+--- a/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
++++ b/imgui_bundle_cmake/internal/add_imgui_bundle_bindings.cmake
+@@ -1,15 +1,3 @@
+-# Set the rpath for Linux and  MacOS (see https://github.com/pybind/cmake_example/issues/11)
+-function(_target_set_rpath target relative_path)
+-    set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+-    if(UNIX AND NOT APPLE)
+-        set_target_properties(${target} PROPERTIES INSTALL_RPATH "$ORIGIN/${relative_path}/")
+-    elseif(APPLE)
+-        set_target_properties(${target} PROPERTIES INSTALL_RPATH "@loader_path/${relative_path}/")
+-    endif()
+-    set_target_properties(${target} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+-endfunction()
+-
+-
+ function(_nanobind_hack_disable_forceinline)
+     # Hack to disable forceinline in nanobind under Windows
+     # This speeds up compilation by a factor of 60x during the optimization phase for MSVC in Release mode
+@@ -39,7 +27,9 @@ endfunction()
+ function(add_imgui_bundle_bindings)
+     include(${IMGUI_BUNDLE_PATH}/imgui_bundle_cmake/internal/litgen_setup_module.cmake)
+     litgen_find_nanobind()
++    if (WIN32)
+     _nanobind_hack_disable_forceinline()
++    endif()
+ 
+     set(bindings_main_folder ${IMGUI_BUNDLE_PATH}/external/bindings_generation/cpp/)
+     include(${bindings_main_folder}/all_pybind_files.cmake)
+@@ -59,7 +49,6 @@ function(add_imgui_bundle_bindings)
+     nanobind_add_module(${python_native_module_name} ${python_module_sources})
+     target_compile_definitions(${python_native_module_name} PRIVATE VERSION_INFO=${PROJECT_VERSION})
+ 
+-    litgen_setup_module(${bound_library} ${python_native_module_name} ${python_wrapper_module_name} ${IMGUI_BUNDLE_PATH}/bindings)
+ 
+     # add cvnp for immvision
+     if (IMGUI_BUNDLE_WITH_IMMVISION)
+@@ -70,23 +59,18 @@ function(add_imgui_bundle_bindings)
+         target_compile_definitions(${python_native_module_name} PUBLIC IMGUI_BUNDLE_WITH_IMMVISION)
+     endif()
+ 
+-    if(IMGUI_BUNDLE_BUILD_PYTHON)
+-        # if using shared libraries, we need to set the rpath,
+-        # so that dll/dylibs can be found in the same folder as imgui_bundle python lib.
+-        _target_set_rpath(${python_native_module_name} ".")
+-    endif()
+-
+     if (IMGUI_BUNDLE_BUILD_PYODIDE)
+         ibd_pyodide_manually_link_sdl_to_bindings()
+-    endif()
++   endif()
+ 
+-    target_link_libraries(${python_native_module_name} PUBLIC ${bound_library})
++    find_package(OpenGL REQUIRED)
++    target_link_libraries(${python_native_module_name} PRIVATE OpenGL::GL)
+ 
+-    # Link with OpenGL (necessary for nanobind)
+-    if (NOT  EMSCRIPTEN)
+-        find_package(OpenGL REQUIRED)
+-        target_link_libraries(${python_native_module_name} PUBLIC OpenGL::GL)
+-    endif()
++    target_link_libraries(${python_native_module_name} PRIVATE ${bound_library})
++    find_package(OpenCV REQUIRED)
++    target_link_libraries(${python_native_module_name} PRIVATE ${OpenCV_LIBS})
++
++    litgen_setup_module(${bound_library} ${python_native_module_name} ${python_wrapper_module_name} ${IMGUI_BUNDLE_PATH}/bindings)
+ 
+     # Disable optimizations on release build for msvc
+     # (leads to compilation times of > 3 hours!!!)
+diff --git a/imgui_bundle_cmake/internal/add_simple_library.cmake b/imgui_bundle_cmake/internal/add_simple_library.cmake
+index a81f956c..b4628017 100644
+--- a/imgui_bundle_cmake/internal/add_simple_library.cmake
++++ b/imgui_bundle_cmake/internal/add_simple_library.cmake
+@@ -7,7 +7,7 @@ set(IMGUIBUNDLE_EXTERNAL_PATH ${IMGUI_BUNDLE_PATH}/external CACHE STRING "" FORC
+ ####################################################
+ function(add_simple_external_library lib_target_name lib_folder)
+     add_library(${lib_target_name} STATIC)
+-    target_link_libraries(${lib_target_name} PUBLIC imgui)
++    target_link_libraries(${lib_target_name} PRIVATE imgui)
+ 
+     set(lib_parent_folder ${IMGUIBUNDLE_EXTERNAL_PATH}/${lib_folder})
+     target_include_directories(${lib_target_name} PUBLIC $<BUILD_INTERFACE:${lib_parent_folder}>)
+diff --git a/imgui_bundle_cmake/internal/litgen_setup_module.cmake b/imgui_bundle_cmake/internal/litgen_setup_module.cmake
+index 7dffb911..072d4742 100644
+--- a/imgui_bundle_cmake/internal/litgen_setup_module.cmake
++++ b/imgui_bundle_cmake/internal/litgen_setup_module.cmake
+@@ -82,7 +82,7 @@ macro(litgen_find_nanobind)
+ 
+     # Detect the installed nanobind package and import it into CMake
+     execute_process(
+-        COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
++        COMMAND python -m nanobind --cmake_dir
+         OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
+     find_package(nanobind CONFIG REQUIRED)
+ 
