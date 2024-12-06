@@ -9,13 +9,15 @@ npm install -ddd \
     --build-from-source \
     ${PKG_NAME}-cli-${PKG_VERSION}.tgz
 
-# Create license report for dependencies
+# Patch package.json to remove devDependencies which are not needed for license report
 mv package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
+
+# Run pnpm so that pnpm-licenses can create report
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 # Create batch wrapper
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
+tee ${PREFIX}/bin/commitlint.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\commitlint %*
 EOF

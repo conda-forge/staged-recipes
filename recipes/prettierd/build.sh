@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Run pnpm so that pnpm-licenses can create report
+# Patch package.json to skip unneessary prepare step
 mv package.json package.json.bak
 jq 'del(.scripts.prepare)' package.json.bak > package.json
 
@@ -18,6 +18,6 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 # Create batch wrapper
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
+tee ${PREFIX}/bin/prettierd.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\prettierd %*
 EOF
