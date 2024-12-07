@@ -47,6 +47,7 @@ ARCH_ARG="$3"
     QEMU_GUEST_BASE=0x400000 \
     QEMU_STACK_SIZE=8388608 \
     QEMU_RESERVED_VA=0x8000000 \
+    QEMU_CPU=any \
     QEMU_LOG_FILENAME=qemu-debug-%d.log \
     "$PREFIX/usr/bin/strace" -f -v -e trace=execve,open,stat,mmap,munmap "$QEMU_BIN" -d exec,guest_errors,all -L "$QEMU_LD_PREFIX" "$TEST_BINARY" "$ARCH_ARG" 2>&1
 
