@@ -13,11 +13,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/perlnavigator << EOF
-#!/bin/sh
-exec node \${CONDA_PREFIX}/lib/node_modules/perlnavigator-server/out/server.js "\$@"
-EOF
-
 tee ${PREFIX}/bin/perlnavigator.cmd << EOF
-call node %CONDA_PREFIX%\lib\node_modules\perlnavigator-server\out\server.js %* 
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\perlnavigator %*
 EOF
