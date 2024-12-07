@@ -9,6 +9,6 @@ npm install -ddd \
     --build-from-source \
     ${PKG_NAME}-${PKG_VERSION}.tgz
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\vim-language-server %*
+tee ${PREFIX}/bin/vim-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\vim-language-server %*
 EOF
