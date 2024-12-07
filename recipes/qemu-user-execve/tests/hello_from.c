@@ -6,5 +6,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    return printf("Hello, I'm executing %s instructions!\n", argv[1]);
+    printf("Hello, I'm executing %s instructions!\n", argv[1]);
+    return 0;
 }

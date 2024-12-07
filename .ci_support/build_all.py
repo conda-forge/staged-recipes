@@ -271,6 +271,7 @@ def build_folders_rattler_build(
     args = [
         "rattler-build",
         "build",
+        "--experimental",
         "--recipe-dir",
         recipes_dir,
         "--target-platform",
