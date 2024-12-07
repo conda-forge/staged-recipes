@@ -1,0 +1,60 @@
+{% set version = "1.14.5" %}
+{% set build = 0 %}
+
+{% if mpi == "mvapich_ucx" %}
+{% set mpi_prefix = "mpi_mvapich_ucx" %}
+{% set mpi_package = 'mvapich * ucx*' %}
+{% elif mpi == "mvapich_ofi" %}
+{% set mpi_prefix = "mpi_mvapich_ofi" %}
+{% set mpi_package = 'mvapich * ofi*' %}
+{% else %}
+{% set mpi_prefix = "mpi_" + mpi %}
+{% set mpi_package = mpi %}
+{% endif %}
+
+package:
+  name: hdf5
+  version: {{ version }}
+
+source:
+  url: https://github.com/HDFGroup/hdf5/releases/download/hdf5_{{ version }}/hdf5-{{ version }}.tar.gz
+  sha256: ec2e13c52e60f9a01491bb3158cb3778c985697131fc6a342262d32a26e58e44
+
+build:
+  number: {{ build }}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+  skip: true  # [win or osx]
+  run_exports:
+    - {{ pin_subpackage('hdf5', max_pin='x.x.x') }}
+  ignore_run_exports:
+    - libacl
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }} 
+    - {{ stdlib('c') }}
+    - cmake 
+    - make
+  host:
+    - {{ mpi_package }} 
+    - zlib
+    - libaec
+    - libacl 
+    - libcurl
+
+test:
+  commands:
+    - h5fc -showconfig
+
+about:
+  home: https://www.hdfgroup.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: HDF5 is a file format and set of tools designed for managing, storing, and organizing large and complex data.
+
+extra:
+  recipe-maintainers:
+    - j34ni
