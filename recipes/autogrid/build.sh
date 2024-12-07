@@ -23,7 +23,6 @@ fi
 
 mkdir -p $PREFIX/bin
 
-
 meson setup builddir
 
 cd builddir
