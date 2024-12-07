@@ -159,7 +159,7 @@ index e66494c..393e029 100644
  endif()
 Submodule external/hello_imgui/hello_imgui contains modified content
 diff --git a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
-index 923da1b..34889a6 100644
+index 923da1b..d5df60b 100644
 --- a/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
 +++ b/external/hello_imgui/hello_imgui/hello_imgui_cmake/hello_imgui_build_lib.cmake
 @@ -245,9 +245,9 @@ function(him_add_hello_imgui)
@@ -174,23 +174,26 @@ index 923da1b..34889a6 100644
      endif()
  
      add_library(hello-imgui::hello_imgui ALIAS hello_imgui)
-@@ -280,10 +280,11 @@ function(him_build_imgui)
+@@ -279,12 +279,12 @@ function(him_build_imgui)
+             _him_checkout_imgui_submodule_if_needed()
              _him_do_build_imgui()
          endif()
-         if (HELLOIMGUI_USE_FREETYPE)
+-        if (HELLOIMGUI_USE_FREETYPE)
 -            _him_add_freetype_to_imgui()
 -            if (HELLOIMGUI_USE_FREETYPE_PLUTOSVG)
 -                _him_add_freetype_plutosvg_to_imgui()
 -            endif()
-+            find_package(Freetype REQUIRED)
-+            target_link_libraries(imgui PRIVATE ${FREETYPE_LIBRARIES})
-+            target_include_directories(imgui PRIVATE ${FREETYPE_INCLUDE_DIRS})
-+            find_library(PLUTOVG_LIBRARIES plutovg REQUIRED)
-+            target_link_libraries(imgui PRIVATE ${PLUTOVG_LIBRARIES})
-         endif()
+-        endif()
++        find_library(PLUTOVG_LIBRARIES plutovg REQUIRED)
++        target_link_libraries(imgui PRIVATE ${PLUTOVG_LIBRARIES})
++
++        find_library(PLUTOSVG_LIBRARIES plutovg REQUIRED)
++        target_link_libraries(imgui PRIVATE ${PLUTOSVG_LIBRARIES})
++        target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG)
      endif()
  endfunction()
-@@ -294,7 +295,7 @@ function(him_install_imgui)
+ 
+@@ -294,7 +294,7 @@ function(him_install_imgui)
              return()
          endif()
  
@@ -199,7 +202,7 @@ index 923da1b..34889a6 100644
          file(GLOB imgui_headers
              ${HELLOIMGUI_IMGUI_SOURCE_DIR}/*.h
              ${HELLOIMGUI_IMGUI_SOURCE_DIR}/misc/cpp/*.h
-@@ -433,7 +434,7 @@ function(_him_add_freetype_to_imgui)
+@@ -433,7 +433,7 @@ function(_him_add_freetype_to_imgui)
      endif()
  
      # 2. Add freetype to imgui
@@ -208,20 +211,56 @@ index 923da1b..34889a6 100644
      target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
  
      # 3. Add support for wchar32 (for emojis, and other unicode characters)
-@@ -490,10 +491,10 @@ function(_him_add_freetype_plutosvg_to_imgui)
-     add_library(plutosvg STATIC ${plutosvg_SOURCE_DIR}/source/plutosvg.c)
-     target_include_directories(plutosvg PUBLIC $<BUILD_INTERFACE:${plutosvg_SOURCE_DIR}/source>)
-     target_compile_definitions(plutosvg PUBLIC PLUTOSVG_HAS_FREETYPE PLUTOSVG_BUILD_STATIC)
--    target_link_libraries(plutosvg PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
-+    target_link_libraries(plutosvg PRIVATE ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
-     him_add_installable_dependency(plutosvg)
+@@ -454,46 +454,8 @@ endfunction()
  
+ 
+ function(_him_add_freetype_plutosvg_to_imgui)
+-    # Add freetype + plutosvg to imgui
+-    # This is especially useful to support emojis (possibly colored) in imgui
+-    # See doc:
+-    #     https://github.com/ocornut/imgui/blob/master/docs/FONTS.md#using-colorful-glyphsemojis
+-    # We have to
+-    # - enable plutosvg in imgui via IMGUI_ENABLE_FREETYPE_PLUTOSVG
+-    # - add plutosvg + plutovg to imgui
+-    if (HELLOIMGUI_FETCH_FORBIDDEN OR (NOT HELLOIMGUI_DOWNLOAD_FREETYPE_IF_NEEDED AND NOT HELLOIMGUI_FREETYPE_STATIC))
+-        message(WARNING "Cannot add plutosvg because fetching is forbidden")
+-        return()
+-    endif()
+-
+-    set(backup_build_shared_libs ${BUILD_SHARED_LIBS})
+-    set(BUILD_SHARED_LIBS OFF)
+-
+-    # Fetch & build plutovg at configure time
+-    include(FetchContent)
+-    FetchContent_Declare(plutovg
+-        GIT_REPOSITORY https://github.com/sammycage/plutovg
+-        GIT_TAG        v0.0.8
+-        GIT_PROGRESS TRUE
+-    )
+-    FetchContent_MakeAvailable(plutovg)
+-
+-    # Fetch plutosvg at configure time, then compile manually at build time
+-    # (the stock CMakeLists of plutosvg is not compatible with a custom install of freetype)
+-    FetchContent_Populate(
+-        plutosvg
+-        GIT_REPOSITORY https://github.com/sammycage/plutosvg
+-        GIT_TAG v0.0.2
+-        SOURCE_DIR ${CMAKE_BINARY_DIR}/plutosvg_source
+-        BINARY_DIR ${CMAKE_BINARY_DIR}/plutosvg_build
+-    )
+-    add_library(plutosvg STATIC ${plutosvg_SOURCE_DIR}/source/plutosvg.c)
+-    target_include_directories(plutosvg PUBLIC $<BUILD_INTERFACE:${plutosvg_SOURCE_DIR}/source>)
+-    target_compile_definitions(plutosvg PUBLIC PLUTOSVG_HAS_FREETYPE PLUTOSVG_BUILD_STATIC)
+-    target_link_libraries(plutosvg PUBLIC ${HIM_FREETYPE_LINKED_LIBRARY} plutovg)
+-    him_add_installable_dependency(plutosvg)
+-
 -    target_link_libraries(imgui PUBLIC plutosvg)
-+    target_link_libraries(imgui PRIVATE plutosvg)
++    find_library(PLUTOSVG_LIBRARIES plutovg REQUIRED)
++    target_link_libraries(imgui PRIVATE ${PLUTOSVG_LIBRARIES})
      target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG)
  
      set(BUILD_SHARED_LIBS ${backup_build_shared_libs})
-@@ -637,13 +638,13 @@ endfunction()
+@@ -637,13 +599,13 @@ endfunction()
  
  function(_him_link_apple_frameworks)
      if (IOS)
@@ -238,7 +277,7 @@ index 923da1b..34889a6 100644
      endif()
  endfunction()
  
-@@ -669,8 +670,8 @@ endfunction()
+@@ -669,8 +631,8 @@ endfunction()
  ###################################################################################################
  function(him_add_linux_options)
      if (UNIX AND NOT EMSCRIPTEN  AND NOT APPLE AND NOT ANDROID)
@@ -249,7 +288,7 @@ index 923da1b..34889a6 100644
      endif()
  endfunction()
  
-@@ -727,7 +728,7 @@ function(him_add_emscripten_options)
+@@ -727,7 +689,7 @@ function(him_add_emscripten_options)
      if (EMSCRIPTEN)
          target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_USE_GLES3)
          target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_CANNOTQUIT)
@@ -258,7 +297,7 @@ index 923da1b..34889a6 100644
      endif()
  endfunction()
  
-@@ -771,9 +772,9 @@ endfunction()
+@@ -771,9 +733,9 @@ endfunction()
  
  function(_him_link_opengl_es_sdl target)
      if(IOS)
@@ -270,7 +309,7 @@ index 923da1b..34889a6 100644
      endif()
  
      target_compile_definitions(${target}
-@@ -789,40 +790,30 @@ function(_him_add_glad)
+@@ -789,40 +751,30 @@ function(_him_add_glad)
          return()
      endif()
  
@@ -321,7 +360,7 @@ index 923da1b..34889a6 100644
          install(FILES ${glad_dir}/include/glad/glad.h DESTINATION include/glad)
          install(FILES ${glad_dir}/include/KHR/khrplatform.h DESTINATION include/KHR)
      endif()
-@@ -842,7 +833,7 @@ function(him_has_metal target)
+@@ -842,7 +794,7 @@ function(him_has_metal target)
      endif()
      target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_METAL)
      set(HELLOIMGUI_HAS_METAL ON CACHE BOOL "" FORCE)
@@ -330,7 +369,7 @@ index 923da1b..34889a6 100644
          "-framework Metal -framework MetalKit -framework QuartzCore")
  endfunction()
  
-@@ -860,7 +851,7 @@ function(him_has_vulkan target)
+@@ -860,7 +812,7 @@ function(him_has_vulkan target)
      target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_VULKAN)
      set(HELLOIMGUI_HAS_VULKAN ON CACHE BOOL "" FORCE)
      find_package(Vulkan REQUIRED)
@@ -339,7 +378,7 @@ index 923da1b..34889a6 100644
  endfunction()
  
  
-@@ -876,7 +867,7 @@ function(him_has_directx11 target)
+@@ -876,7 +828,7 @@ function(him_has_directx11 target)
      endif()
      target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX11)
      set(HELLOIMGUI_HAS_DIRECTX11 ON CACHE BOOL "" FORCE)
@@ -348,7 +387,7 @@ index 923da1b..34889a6 100644
  endfunction()
  
  
-@@ -892,7 +883,7 @@ function(him_has_directx12 target)
+@@ -892,7 +844,7 @@ function(him_has_directx12 target)
      endif()
      target_compile_definitions(${HELLOIMGUI_TARGET} PUBLIC HELLOIMGUI_HAS_DIRECTX12)
      set(HELLOIMGUI_HAS_DIRECTX12 ON CACHE BOOL "" FORCE)
@@ -357,7 +396,7 @@ index 923da1b..34889a6 100644
  endfunction()
  
  
-@@ -987,21 +978,21 @@ function(_him_link_sdl target)
+@@ -987,21 +939,21 @@ function(_him_link_sdl target)
      endif()
  
      if(IOS)
@@ -384,7 +423,7 @@ index 923da1b..34889a6 100644
      endif()
  endfunction()
  
-@@ -1014,7 +1005,7 @@ function(him_use_glfw3_backend target)
+@@ -1014,7 +966,7 @@ function(him_use_glfw3_backend target)
      if (NOT TARGET glfw) # if glfw is not built as part of the whole build, find it
          find_package(glfw3 CONFIG REQUIRED)
      endif()
@@ -393,7 +432,7 @@ index 923da1b..34889a6 100644
  
      # vcpkg will have added those files to imgui
      if (NOT HELLOIMGUI_USE_IMGUI_CMAKE_PACKAGE)
-@@ -1093,7 +1084,7 @@ function(him_with_netimgui)
+@@ -1093,7 +1045,7 @@ function(him_with_netimgui)
      set(NETIMGUI_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
      add_subdirectory(${NETIMGUI_DIR}  netimgui)
  
@@ -402,7 +441,7 @@ index 923da1b..34889a6 100644
      him_add_installable_dependency(net_imgui_client)
  endfunction()
  
-@@ -1109,7 +1100,7 @@ function(him_with_imguiws)
+@@ -1109,7 +1061,7 @@ function(him_with_imguiws)
      set(IMGUIWS_DIR ${HELLOIMGUI_BASEPATH}/external/imgui-ws CACHE STRING "" FORCE)
      add_subdirectory(${IMGUIWS_DIR} imgui-ws)
      target_include_directories(imgui-ws PRIVATE $<BUILD_INTERFACE:${HELLOIMGUI_IMGUI_SOURCE_DIR}/..>)
@@ -411,7 +450,7 @@ index 923da1b..34889a6 100644
      target_compile_definitions(imgui PUBLIC "ImDrawIdx=unsigned int")
      set(HELLOIMGUI_INSTALL OFF CACHE BOOL "" FORCE)  # imgui-ws is not installable
  endfunction()
-@@ -1158,7 +1149,7 @@ function(him_add_nlohmann_json)
+@@ -1158,7 +1110,7 @@ function(him_add_nlohmann_json)
      find_package(nlohmann_json CONFIG QUIET)
      if(nlohmann_json_FOUND)
          message(STATUS "HelloImGui: using nlohmann_json from find_package(nlohmann_json)")
@@ -420,7 +459,7 @@ index 923da1b..34889a6 100644
          set(HELLOIMGUI_NLOHMANN_JSON_SELECTED_INFO "Found via find_package(nlohmann_json)" CACHE INTERNAL "" FORCE)
      else()
          message(STATUS "HelloImGui: using nlohmann_json from external/nlohmann_json")
-@@ -1166,7 +1157,7 @@ function(him_add_nlohmann_json)
+@@ -1166,7 +1118,7 @@ function(him_add_nlohmann_json)
          add_library(nlohmann_json INTERFACE)
          target_include_directories(nlohmann_json INTERFACE $<BUILD_INTERFACE:${nlohmann_json_dir}>)
          # target_compile_definitions(nlohmann_json INTERFACE NLOHMANN_JSON_NOEXCEPTION)
