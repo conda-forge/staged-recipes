@@ -1,6 +1,5 @@
 @echo off
 setlocal enabledelayedexpansion
-set -euxo pipefail
 
 cargo build --release --all-targets
 cargo test --release --lib

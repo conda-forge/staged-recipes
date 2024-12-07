@@ -9,6 +9,7 @@ $SERIALPORT_VERSION = (Get-ChildItem "$env:BUILD_PREFIX/src/rust-libraries/seria
 New-Item -ItemType Directory -Force -Path .cargo
 New-Item -ItemType File -Force -Path .cargo/config.toml
 Add-Content -Path .cargo/config.toml -Value @"
+
 [patch.crates-io]
 serialport = { path = "$env:BUILD_PREFIX/src/rust-libraries/serialport-rs-rust-source-$SERIALPORT_VERSION" }
 egui-phosphor = { path = "$env:BUILD_PREFIX/src/rust-libraries/egui-phosphor-rust-source-$EGUI_PHOSPHOR_VERSION" }
