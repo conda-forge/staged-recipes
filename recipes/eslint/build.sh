@@ -9,13 +9,14 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
-# Create license report for dependencies
+# Patch package.json to remove devDependencies which are not needed for license report
 mv package.json package.json.bak
-jq 'del(.devDependencies."eslint-config-eslint")' package.json.bak | \
-    jq 'del(.devDependencies.eslint)' > package.json
+jq 'del(.devDependencies)' package.json.bak > package.json
+
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\eslint %*
+tee ${PREFIX}/bin/eslint.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\eslint %*
 EOF
