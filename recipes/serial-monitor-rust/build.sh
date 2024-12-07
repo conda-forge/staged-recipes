@@ -17,6 +17,12 @@ egui-phosphor = { path = "${BUILD_PREFIX}/src/rust-libraries/egui-phosphor-rust-
 preferences = { path = "${BUILD_PREFIX}/src/rust-libraries/preferences-rs-rust-source-${PREFERENCES_VERSION}" }
 EOF
 
+if [[ "${target_platform}" == osx-* ]]; then
+  export PATH="/Applications/Xcode_15.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
+  export CPATH="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+  unset CONDA_BUILD_SYSROOT
+fi
+
 cargo build --release --all-targets
 cargo test --release --all-targets
 CARGO_TARGET_DIR=target cargo install --path . --root "${PREFIX}"
