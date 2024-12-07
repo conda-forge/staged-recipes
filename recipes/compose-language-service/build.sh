@@ -7,13 +7,12 @@ npm pack --ignore-scripts
 npm install -ddd \
     --global \
     --build-from-source \
-    --prefix=${PREFIX}/libexec/${PKG_NAME} \
     microsoft-${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\compose-language-service %*
+tee ${PREFIX}/bin/compose-language-service.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\compose-language-service %*
 EOF
