@@ -19,18 +19,15 @@ fi
 
 
 # Add RPATH to link libraries during runtime
-export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
+# export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
 
 mkdir -p $PREFIX/bin
 
 
-autoreconf -i
+meson setup builddir
 
-mkdir Linux
+cd builddir
 
-cd Linux
-export CPPFLAGS="-static"
-../configure
-make
+meson compile
 
 cp autogrid4 $PREFIX/bin
