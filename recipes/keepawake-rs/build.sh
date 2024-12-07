@@ -4,8 +4,10 @@ set -euxo pipefail
 
 # On macos, clang 18 conflicts with Xcode_15.2
 if [[ "${target_platform}" == osx-* ]]; then
-    unset CONDA_BUILD_SYSROOT
-    export DEVELOPER_DIR=/Applications/Xcode_15.2.app/Contents/Developer
+  unset CONDA_BUILD_SYSROOT
+  export DEVELOPER_DIR=/Applications/Xcode_15.2.app/Contents/Developer
+  export LIBCLANG_PATH=/Applications/Xcode_15.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib
+  export BINDGEN_EXTRA_CLANG_ARGS="-I/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
 fi
 
 cargo build --release --all-targets
