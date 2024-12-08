@@ -2,6 +2,19 @@
 
 set -euxo pipefail
 
+# Use Conda Rust source libraries (compiled/tested) instead of downloading from crates.io
+if [[ "${target_platform}" == osx-* ]]; then
+  APPLE_SYS_VERSION=$(find $BUILD_PREFIX/src/rust-libraries/apple-sys-rust-source-* -type d -exec basename {} \; | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | sort -V | tail -n1)
+
+  mkdir -p .cargo
+  touch .cargo/config.toml
+  cat >> .cargo/config.toml << EOF
+
+[patch.crates-io]
+apple-sys = { path = "${BUILD_PREFIX}/src/rust-libraries/apple-sys-rust-source-${APPLE_SYS_VERSION}" }
+EOF
+fi
+
 # On macos, clang 18 conflicts with Xcode_15.2
 if [[ "${target_platform}" == osx-* ]]; then
   export PATH="/Applications/Xcode_15.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
