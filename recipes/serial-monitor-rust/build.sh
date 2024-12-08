@@ -17,11 +17,11 @@ egui-phosphor = { path = "${BUILD_PREFIX}/src/rust-libraries/egui-phosphor-rust-
 preferences = { path = "${BUILD_PREFIX}/src/rust-libraries/preferences-rs-rust-source-${PREFERENCES_VERSION}" }
 EOF
 
-if [[ "${target_platform}" == osx-* ]]; then
-  # On macos, clang 18 conflicts with Xcode_xx.x in relation to apple-sys: Use Xcode_xx.x
-  export PATH="${SDKROOT}/../../../Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
-  export CPATH="${SDKROOT}/usr/include"
-fi
+# if [[ "${target_platform}" == osx-* ]]; then
+#   # On macos, clang 18 conflicts with Xcode_xx.x in relation to apple-sys: Use Xcode_xx.x
+#   export PATH="${SDKROOT}/../../../Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
+#   export CPATH="${SDKROOT}/usr/include"
+# fi
 
 cargo build --release --all-targets
 cargo test --release --all-targets
