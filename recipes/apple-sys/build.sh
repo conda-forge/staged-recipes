@@ -2,12 +2,9 @@
 
 set -euxo pipefail
 
-if [[ "${target_platform}" == osx-* ]]; then
-    # Use SDK from conda
-    export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
-    # Prevent clang from finding other module maps
-    export CPATH="${SDKROOT}/usr/include"
-fi
+export CLANG_PATH="${SDKROOT}/usr/bin/clang"
+export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
+export CPATH="${SDKROOT}/usr/include"
 
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
 cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin
