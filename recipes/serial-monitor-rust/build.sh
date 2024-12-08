@@ -18,9 +18,9 @@ preferences = { path = "${BUILD_PREFIX}/src/rust-libraries/preferences-rs-rust-s
 EOF
 
 if [[ "${target_platform}" == osx-* ]]; then
-  export PATH="/Applications/Xcode_15.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
-  export CPATH="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-  unset CONDA_BUILD_SYSROOT
+  # On macos, clang 18 conflicts with Xcode_xx.x in relation to apple-sys: Use Xcode_xx.x
+  export PATH="${SDKROOT}/../../../Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
+  export CPATH="${SDKROOT}/usr/include"
 fi
 
 cargo build --release --all-targets
