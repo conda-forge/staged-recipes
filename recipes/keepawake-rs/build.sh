@@ -4,8 +4,9 @@ set -euxo pipefail
 
 if [[ "${target_platform}" == osx-* ]]; then
   # On macos, clang 18 conflicts with Xcode_xx.x in relation to apple-sys: Use Xcode_xx.x
-  export PATH="${SDKROOT}/../../../Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
-  export CPATH="${SDKROOT}/usr/include"
+  # export PATH="${SDKROOT}/../../../Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
+  # export CPATH="${SDKROOT}/usr/include"
+  unset CONDA_BUILD_SYSROOT
 fi
 
 cargo build --release --all-targets
