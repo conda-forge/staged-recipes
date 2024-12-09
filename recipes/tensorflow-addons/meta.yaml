@@ -1,0 +1,99 @@
+{% set version = "0.14.0" %}
+{% set tf_version = "2.6.2" %}
+{% set cpu_or_cuda = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: tensorflow-addons
+  version: {{ version }}
+
+source:
+  url: https://github.com/tensorflow/addons/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: da9eaf683192054db73941e0de34d83754be4054dc92c409bc4693c3f3091586
+  patches:
+    # import sklearn before tensorflow due to conda-forge/conda-forge.github.io#1551
+    - patches/0001-import-sklearn-before-tensorflow-due-to-libgomp-TLS-.patch
+    # parser.addoption(..., action='store_true') not working, see pytest-dev/pytest#9303
+    - patches/0002-work-around-for-store_true-in-pytest_addoption.patch
+    # some tests are dependent on being run in source tree; add patch to find test images
+    - patches/0003-make-get_path_to_datafile-work-outside-of-source-tre.patch
+
+build:
+  number: 0
+  # missing dependency: https://github.com/conda-forge/tensorflow-feedstock/issues/124
+  # osx is only missing the libtensorflow builds
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - sysroot_linux-64 2.17   # [linux64]
+    - bazel
+    - bazel-toolchain
+    - rsync
+    - sed
+  host:
+    # GPU requirements for CUDA
+    - cudnn           # [cuda_compiler_version != "None"]
+    - python
+    - pip
+    - libprotobuf
+    # check tensorflow-range per addons-version, see
+    # https://github.com/tensorflow/addons#python-op-compatibility-matrix
+    - tensorflow ={{ tf_version }}={{ cpu_or_cuda }}*
+    # needed for headers in tensorflow/core/framework
+    - libtensorflow_cc ={{ tf_version }}={{ cpu_or_cuda }}*
+    - typeguard >=2.7
+  run:
+    - python
+    # due to lack of ABI, we need the same version at runtime
+    - tensorflow ={{ tf_version }}={{ cpu_or_cuda }}*
+    - libtensorflow_cc ={{ tf_version }}={{ cpu_or_cuda }}*
+    - typeguard >=2.7
+test:
+  requires:
+    - pytest
+    - pillow
+    - scikit-learn
+    - scikit-image
+    - tqdm
+  source_files:
+    - tensorflow_addons/activations/tests/
+    - tensorflow_addons/callbacks/tests/
+    - tensorflow_addons/image/tests/
+    - tensorflow_addons/layers/tests/
+    - tensorflow_addons/losses/tests/
+    - tensorflow_addons/metrics/tests/
+    - tensorflow_addons/optimizers/tests/
+    - tensorflow_addons/rnn/tests/
+    - tensorflow_addons/seq2seq/tests/
+    - tensorflow_addons/text/tests/
+    - tensorflow_addons/utils/tests/
+    - tensorflow_addons/tests/
+    - tensorflow_addons/conftest.py
+  imports:
+    - tensorflow_addons
+  commands:
+    # presence of (empty!) __init__.py breaks pytest collection in weird ways, see pytest-dev/pytest#9300
+    - shopt -s globstar && rm -f **/tests/__init__.py
+    # rename ambiguous test modules due to pytest-dev/pytest#9301
+    - mv tensorflow_addons/layers/tests/crf_test.py tensorflow_addons/layers/tests/crf_test2.py
+    - mv tensorflow_addons/layers/tests/gelu_test.py tensorflow_addons/layers/tests/gelu_test2.py
+    - mv tensorflow_addons/layers/tests/snake_test.py tensorflow_addons/layers/tests/snake_test2.py
+    - mv tensorflow_addons/layers/tests/sparsemax_test.py tensorflow_addons/layers/tests/sparsemax_test2.py
+    # remove redundant submodule wrappers that also run into pytest-dev/pytest#9301, see e.g.
+    # https://github.com/tensorflow/addons/blob/master/tensorflow_addons/tests/run_all_test.py
+    - shopt -s globstar && rm -f **/tests/run_all_test.py
+    # finally, run test suite
+    - pytest -v
+
+about:
+  home: https://github.com/tensorflow/addons
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Useful extra functionality for TensorFlow 2.x maintained by SIG-addons
+  dev_url: https://github.com/tensorflow/addons
+
+extra:
+  recipe-maintainers:
+    - conda-forge/tensorflow
