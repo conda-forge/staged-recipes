@@ -16,10 +16,12 @@ _build_install_qemu() {
       --enable-strip \
       --enable-user \
       --enable-seccomp \
+      --enable-debug-info \
+      --disable-tcg-interpreter \
+      --disable-debug-tcg \
       --disable-docs \
       --disable-system \
       --disable-bsd-user --disable-guest-agent --disable-werror --disable-gcrypt --disable-pie \
-      --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
       --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
