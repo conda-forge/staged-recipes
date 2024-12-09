@@ -5,6 +5,8 @@ set -euxo pipefail
 export CLANG_PATH="${BUILD_PREFIX}/bin/clang"
 export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
 export CPATH="${SDKROOT}/usr/include"
+export PATH="${BUILD_PREFIX}/bin:${PATH}"
+unset DEVELOPER_DIR
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
