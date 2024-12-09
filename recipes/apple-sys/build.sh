@@ -8,6 +8,7 @@ export CPATH="${SDKROOT}/usr/include"
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
+export LIBCLANG_LOGGING=1
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
