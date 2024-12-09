@@ -2,10 +2,11 @@
 
 set -euxo pipefail
 
-export CLANG_PATH="${SDKROOT}/usr/bin/clang"
+export CLANG_PATH="${BUILD_PREFIX}/bin/clang"
 export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
 export CPATH="${SDKROOT}/usr/include"
 
+cargo fix --lib -p apple-bindgen
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
 cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
