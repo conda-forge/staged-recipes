@@ -7,6 +7,8 @@ export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
 export CPATH="${SDKROOT}/usr/include"
 export PATH="${BUILD_PREFIX}/bin:${PATH}"
 unset DEVELOPER_DIR
+export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
+export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT} -I${BUILD_PREFIX}/lib/clang/18/include"
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
