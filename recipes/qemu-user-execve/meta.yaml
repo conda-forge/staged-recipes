@@ -1,0 +1,229 @@
+{% set name = "qemu-execve" %}
+{% set version = "9.1.0" %}
+
+{% set emulated_c_stdlib = "sysroot" %}
+{% set emulated_c_stdlib_version = "2.17" %}
+
+{% set qemu_include = "qemu-plugin.h" %}
+{% set qemu_bins = [
+  "trace-events-all",
+  "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin",
+  "vgabios-stdvga.bin", "vgabios-vmware.bin", "vgabios-qxl.bin", "vgabios-virtio.bin", "vgabios-ramfb.bin",
+  "vgabios-bochs-display.bin", "vgabios-ati.bin", "openbios-sparc32", "openbios-sparc64", "openbios-ppc",
+  "QEMU,tcx.bin", "QEMU,cgthree.bin", "pxe-e1000.rom", "pxe-eepro100.rom", "pxe-ne2k_pci.rom", "pxe-pcnet.rom",
+  "pxe-rtl8139.rom", "pxe-virtio.rom", "efi-e1000.rom", "efi-eepro100.rom", "efi-ne2k_pci.rom", "efi-pcnet.rom",
+  "efi-rtl8139.rom", "efi-virtio.rom", "efi-e1000e.rom", "efi-vmxnet3.rom", "qemu-nsis.bmp", "multiboot.bin",
+  "multiboot_dma.bin", "linuxboot.bin", "linuxboot_dma.bin", "kvmvapic.bin", "pvh.bin", "s390-ccw.img",
+  "s390-netboot.img", "slof.bin", "skiboot.lid", "palcode-clipper", "u-boot.e500", "u-boot-sam460-20100605.bin",
+  "qemu_vga.ndrv", "edk2-licenses.txt", "hppa-firmware.img", "hppa-firmware64.img",
+  "opensbi-riscv32-generic-fw_dynamic.bin", "opensbi-riscv64-generic-fw_dynamic.bin", "npcm7xx_bootrom.bin",
+  "vof.bin", "vof-nvram.bin", "bamboo.dtb", "canyonlands.dtb", "petalogix-s3adsp1800.dtb", "petalogix-ml605.dtb",
+  ]
+%}
+{% set qemu_keymaps = [
+  "ar", "bepo", "cz", "da", "de", "de-ch", "en-gb", "en-us", "es", "et", "fi", "fo", "fr", "fr-be", "fr-ca",
+  "fr-ch", "hr", "hu", "is", "it", "ja", "lt", "lv", "mk", "nl", "no", "pl", "pt", "pt-br", "ru", "th", "tr"
+  ]
+%}
+
+{% set conda_qemu_user_archs = "aarch64" %}
+# {% set conda_qemu_user_archs = "aarch64 ppc64le s390x riscv64" %}
+{% set conda_local_install_dir = "_conda_install" %}
+
+package:
+  name: qemu-execve-split
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/qemu-project/qemu/-/archive/v9.1.0/qemu-v{{ version }}.tar.gz
+  sha256: 7a0d0e6b7e955d03c0d418025d8551146dbd4ec0128c1fb7dec791b94de7bbb7
+  patches:
+    - patches/0001-intercept-qexecve.patch
+    - patches/0002-execve-syscall.patch
+    - patches/0003-set-MAP_FIXED_NO_REPLACE.patch
+    - patches/0004-set-qemu-name.patch
+  folder: qemu-source
+
+build:
+  number: 0
+  skip: true  # [not (linux and x86_64)]
+  script:
+    - ${RECIPE_DIR}/helpers/build-install.sh
+  script_env:
+    - CONDA_QEMU_USER_ARCHS={{ conda_qemu_user_archs }}
+    - CONDA_QEMU_INSTALL_DIR="${PREFIX}"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - autoconf
+    - automake
+    - git
+    - libtool
+    - make
+    - ninja
+    - pkg-config
+  host:
+    - libcapstone
+    - glib
+    - libseccomp
+    - meson >=1.1.0
+    - sphinx >=3.4.3
+    - sphinx-rtd-theme >=0.5
+    - zlib
+
+outputs:
+  - name: qemu-shared-resources
+    files:
+      - include/qemu-plugin.h
+      - share/qemu/trace-events-all
+
+      {% for bin in qemu_bins %}
+      - share/qemu/{{ bin }}
+      {% endfor %}
+
+      {% for keymap in qemu_keymaps %}
+      - share/qemu/keymaps/{{ keymap }}
+      {% endfor %}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+      host:
+      run:
+    test:
+      commands:
+        - test -f ${PREFIX}/include/qemu-plugin.h
+        - test -f ${PREFIX}/share/qemu/trace-events-all
+
+        {% for bin in qemu_bins %}
+        - test -f ${PREFIX}/share/qemu/{{ bin }}
+        {% endfor %}
+
+        {% for keymap in qemu_keymaps %}
+        - test -f ${PREFIX}/share/qemu/keymaps/{{ keymap }}
+        {% endfor %}
+
+
+  - name: qemu-execve-aarch64
+    files:
+      - bin/qemu-execve-aarch64
+      - etc/conda/activate.d/qemu-execve-aarch64-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
+        - libcapstone
+        - glib
+        - zlib
+      run:
+        - {{ emulated_c_stdlib }}_linux-aarch64 {{ emulated_c_stdlib_version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-aarch64
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-aarch64-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
+        
+        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
+        
+        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+        
+        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-aarch64 ./hello_from AARCH64
+        
+        - qemu-execve-aarch64 ./hello_from AARCH64 > hello.txt
+        - grep "AARCH64" hello.txt || exit 1
+      
+        - qemu-execve-aarch64 ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+        - grep "hello_from" ls_x86_64.txt || exit 1
+
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "/bin/ls" > ls_aarch64.txt 2>&1 || true
+        - grep "Invalid ELF image" ls_aarch64.txt || exit 1
+
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+        - grep "EXECVE" execve_call.txt || exit 1
+      
+      requires:
+        - file
+        - gcc_impl_linux-aarch64
+        - gdb
+        - libcap
+        - patchelf
+        - sysroot_linux-aarch64
+        - anaconda::strace_{{ target_platform }}
+      files:
+        - helpers/execute_cmd.py
+        - helpers/debug-qemu.sh
+        - tests/hello_from.c
+        - tests/execve_call.c
+
+
+  - name: qemu-execve-ppc64le
+    files:
+      - bin/qemu-execve-ppc64le
+      - etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
+        - libcapstone
+        - glib
+        - zlib
+      run:
+        - {{ emulated_c_stdlib }}_linux-ppc64le {{ emulated_c_stdlib_version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-ppc64le
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+        
+        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
+        
+        - powerpc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - powerpc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+        
+        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-ppc64le ./hello_from PPC64LE
+
+        - qemu-execve-ppc64le ./hello_from PPC64LE > hello.txt
+        - grep "PPC64LE" hello.txt || exit 1
+      
+        - qemu-execve-ppc64le ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+        - grep "hello_from" ls_x86_64.txt || exit 1
+
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-ppc64le qemu-execve-ppc64le ./execve_call "/bin/ls" > ls_ppc64le.txt 2>&1 || true
+        - grep "Invalid ELF image" ls_ppc64le.txt || exit 1
+
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-ppc64le qemu-execve-ppc64le ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+        - grep "EXECVE" execve_call.txt || exit 1
+      requires:
+        - file
+        - gcc_impl_linux-ppc64le
+        - gdb
+        - libcap
+        - patchelf
+        - sysroot_linux-ppc64le
+        - anaconda::strace_{{ target_platform }}
+      files:
+        - helpers/execute_cmd.py
+        - helpers/debug-qemu.sh
+        - tests/hello_from.c
+        - tests/execve_call.c
+
+about:
+  home: https://gitlab.com/qemu-project/qemu
+  summary: 'QEMU is a generic and open source machine & userspace emulator and virtualizer.'
+  description: |
+    Patched QEMU to intercept and log execve calls.
+  license: GPL-2.0-only
+  license_file: qemu-source/LICENSE
+  doc_url: https://www.qemu.org/documentation/
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: qemu-execve

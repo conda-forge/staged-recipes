@@ -15,6 +15,7 @@ _build_install_qemu() {
       "${qemu_args[@]}" \
       --enable-strip \
       --enable-user \
+      --enable-seccomp \
       --disable-docs \
       --disable-system \
       --disable-bsd-user --disable-guest-agent --disable-werror --disable-gcrypt --disable-pie \
@@ -22,7 +23,7 @@ _build_install_qemu() {
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
       --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
-      --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
+      --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl  \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
       --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough --disable-tools > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
