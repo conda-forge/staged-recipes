@@ -13,6 +13,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\c8 %*
+tee ${PREFIX}/bin/c8.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\c8 %*
 EOF
