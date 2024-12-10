@@ -1,0 +1,174 @@
+{% set version = "2.6.0.1" %}
+{% set cuda_version = "12.6" %}
+{% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
+{% set lib_major_version = version.split(".")[0] %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}    # [aarch64]
+{% set extension = "tar.xz" %}
+
+package:
+  name: holoscan-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/{{ platform }}/holoscan-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: bfc694199967eab7bfcf1fc23bd55779d06e97845d9b201bb8c5ad3e57bdca3b  # [linux64]
+  sha256: c7f0aeb769933b1f61ed2dc29c5a37f4821994cecad822c4137ccad77da3434d  # [aarch64]
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64)]
+  skip: true  # [cuda_compiler_version in (None, "None") or (cuda_compiler_version or "").startswith("11")]
+  script:
+    - cp -rv bin $PREFIX
+    - cp -rv examples $PREFIX
+    - cp -rv lib $PREFIX
+    - cp -rv include $PREFIX
+    - cp -rv python $PREFIX
+
+outputs:
+  - name: holoscan
+    build:
+      missing_dso_whitelist:
+        - "*libcuda.so*" # driver
+        - "*libgdrapi.so*" # part of gdrcopy (gds-tools) yet not pre-built for conda-forge channel
+        - "*libnvidia-ml.so*"  # driver
+        - "*libnvinfer_plugin.so*" # NVIDIA's TensorRT not on conda-forge
+        - "*libnvonnxparser.so*" # NVIDIA's TensorRT not on conda-forge
+        - "*libonnxruntime.so.1.18.1" # onnxruntime conda package is there, but this particular version does not have this DSO
+        - "*libtorchvision.so*" # not available even in torchvision package
+        - "*libv4l2.so*" # lideo4linux2 lib, not available
+        - "*libxpmem.so*" # XPMEM, Linux Cross-Memory Attach kernel module, not available
+      run_exports:
+        - {{ pin_subpackage("holoscan", max_pin="x") }}
+      script_env:
+        - PYTHONDONTWRITEBYTECODE=1
+    files:
+      - bin/
+      - examples/
+      - lib/
+      - include/
+      - python/
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - {{ stdlib("c") }}
+      host:
+        - cuda-cudart-dev
+        - cuda-crt-dev_{{ target_platform }}
+        - cuda-nvcc
+        - cuda-version {{ cuda_version }}
+        - libjpeg-turbo
+        - libnpp-dev
+        - libtorch
+        - rdma-core
+        - libvulkan-loader
+      run:
+        - _openmp_mutex
+        - cuda-nvrtc
+        - cuda-nvtx # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - cudnn
+        - bzip2
+        - gmp
+        - libabseil
+        - libcurand
+        - libhwloc
+        - libblas
+        - libcublas
+        - libcufft
+        - libcusolver
+        - libcusparse
+        - libexpat
+        - libjpeg-turbo
+        - liblapack
+        - libmagma
+        - libiconv
+        - libffi
+        - libgfortran5
+        - libmpdec
+        - liblzma
+        - libnl
+        - libnpp
+        - libprotobuf
+        - libpng
+        - libsqlite
+        - libuuid
+        - libxcb
+        - libvulkan-loader
+        - libxml2
+        - libzlib
+        - llvm-openmp
+        - mkl
+        - mpc
+        - mpfr
+        - nccl
+        - ncurses
+        - openjpeg
+        - openssl
+        - python
+        - readline
+        - rdma-core
+        - sleef
+        - tbb
+        - tk
+        - xorg-libx11
+        - xorg-libxau
+        - xorg-libxdmcp
+        - xorg-libxext
+        - xorg-libxrender
+        - xz
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      requires:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - cuda-cudart-dev
+        - cuda-crt-dev_{{ target_platform }}
+      files:
+        - compile_hello_world.sh
+      commands:
+        - test -L $PREFIX/lib/libholoscan_core.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_core.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_infer.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_infer.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_logger.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_logger.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_op_holoviz.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_op_holoviz.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_op_inference.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_op_inference.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_profiler.so.{{ lib_major_version }}
+        - test -f $PREFIX/lib/libholoscan_profiler.so.{{ lib_version }}
+        - test -L $PREFIX/lib/libholoscan_viz.so.{{ lib_major_version }}
+        - test -f $PREFIX/include/holoscan/core/application.hpp
+        - test -f $PREFIX/include/holoscan/core/operator.hpp
+        - test -f $PREFIX/include/holoscan/logger/logger.hpp
+        - test -f $PREFIX/include/holoscan/operators/holoviz/holoviz.hpp
+        - test -f $PREFIX/include/holoscan/profiler/profiler.hpp
+        - test -f $PREFIX/include/holoviz/holoviz.hpp
+        - test -f $PREFIX/include/gxf/core/gxf.h
+        - bash compile_hello_world.sh
+
+about:
+  home: https://docs.nvidia.com/cuda/holoscan/
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://developer.download.nvidia.com/assets/Clara/NVIDIA_Clara_EULA.pdf
+  summary: NVIDIA Holoscan is the AI sensor processing platform that combines hardware systems for low-latency sensor and network connectivity, optimized libraries for data processing and AI, and core microservices to run streaming, imaging, and other applications, from embedded to edge to cloud.
+  description: |
+    NVIDIA Holoscan is the AI sensor processing platform that combines hardware systems for low-latency sensor and network connectivity, optimized libraries for data processing and AI, and core microservices to run streaming, imaging, and other applications, from embedded to edge to cloud.
+    It can be used to build streaming AI pipelines for a variety of domains, including Medical Devices, High Performance Computing at the Edge, Industrial Inspection and more.
+  doc_url: https://docs.nvidia.com/cuda/holoscan/
+
+extra:
+  feedstock-name: holoscan
+  recipe-maintainers:
+    - conda-forge/cuda
