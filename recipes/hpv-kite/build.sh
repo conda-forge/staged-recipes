@@ -1,8 +1,7 @@
 #!/bin/bash
 
-env
-
-set
+# Zatrzymaj przy błędzie
+set -o errexit
 
 # Budowanie projektu za pomocą Gradle
 sh ./gradlew clean build jar createDependenciesJar
