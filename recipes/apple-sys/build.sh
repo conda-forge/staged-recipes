@@ -37,7 +37,7 @@ SDK_PATH=${SDKROOT}/System/Library/Frameworks
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
-cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture --verbose
+cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
 # Create conda local source for apple-sys
