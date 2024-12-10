@@ -28,12 +28,12 @@
 
 # {% set conda_qemu_user_archs = "ppc64le" %}
 {% set conda_qemu_user_archs = "aarch64 ppc64le s390x" %}
-{% set conda_test_gcc = {
-    'aarch64': "aarch64-conda-linux-gnu-gcc",
-    'ppc64le': "powerpc64le-conda-linux-gnu-gcc",
-    's390x': "s390x-conda-linux-gnu-gcc",
-    'riscv64': "riscv64-conda-linux-gnu-gcc"
-  }
+{% set conda_test_gcc = [
+    ("aarch64", "aarch64-conda-linux-gnu-gcc"),
+    # ("ppc64le", "powerpc64le-conda-linux-gnu-gcc"),
+    # ("s390x", "s390x-conda-linux-gnu-gcc"),
+    # ("riscv64", "riscv64-conda-linux-gnu-gcc"),
+  ]
 %}
 
 package:
@@ -112,7 +112,8 @@ outputs:
         {% endfor %}
 
 
-  {% for arch in conda_qemu_user_archs.split() %}
+  # This does not seem to work for more than one arch
+  {% for arch, test_gcc in conda_test_gcc %}
   - name: qemu-execve-{{ arch }}
     files:
       - bin/qemu-execve-{{ arch }}
@@ -125,7 +126,9 @@ outputs:
         - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
         - libcapstone
         - glib
-        # - zlib
+        - if: arch == "aarch64"
+          then:
+            - zlib
       run:
         - {{ emulated_c_stdlib }}_linux-{{ arch }} {{ emulated_c_stdlib_version }}
     test:
@@ -133,28 +136,11 @@ outputs:
         - test -f ${PREFIX}/bin/qemu-execve-{{ arch }}
         - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-{{ arch }}-activate.sh
         - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-{{ arch }}-deactivate.sh
-        
         - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
         - qemu-execve-{{ arch }} -h
-
-# These do not seem to work due to memory issues in the docker container. They work when run manually
-        - {{ conda_test_gcc[arch] }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
-        - {{ conda_test_gcc[arch] }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
-
+        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
         - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-{{ arch }} ./hello_from AARCH64
-#
-#        - qemu-execve-{{ arch }} ./hello_from {{ arch }} > hello.txt
-#        - grep {{ arch }} hello.txt || exit 1
-#
-#        - qemu-execve-{{ arch }} ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
-#        - grep "hello_from" ls_x86_64.txt || exit 1
-#
-#        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ arch }} qemu-execve-{{ arch }} ./execve_call "/bin/ls" > ls_{{ arch }}.txt 2>&1 || true
-#        - grep "Invalid ELF image" ls_{{ arch }}.txt || exit 1
-#
-#        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ arch }} qemu-execve-{{ arch }} ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
-#        - grep "EXECVE" execve_call.txt || exit 1
-      
       requires:
         - file
         - gcc_impl_linux-{{ arch }}
@@ -168,7 +154,21 @@ outputs:
         - helpers/debug-qemu.sh
         - tests/hello_from.c
         - tests/execve_call.c
-    {% endfor %}
+  {% endfor %}
+# These do not seem to work due to memory issues in the docker container. They work when run manually
+#
+#        - qemu-execve-{{ arch }} ./hello_from {{ arch }} > hello.txt
+#        - grep {{ arch }} hello.txt || exit 1
+#
+#        - qemu-execve-{{ arch }} ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+#        - grep "hello_from" ls_x86_64.txt || exit 1
+#
+#        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ arch }} qemu-execve-{{ arch }} ./execve_call "/bin/ls" > ls_{{ arch }}.txt 2>&1 || true
+#        - grep "Invalid ELF image" ls_{{ arch }}.txt || exit 1
+#
+#        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ arch }} qemu-execve-{{ arch }} ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+#        - grep "EXECVE" execve_call.txt || exit 1
+
 
 
 about:
