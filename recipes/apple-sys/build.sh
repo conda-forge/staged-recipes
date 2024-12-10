@@ -14,6 +14,8 @@ export BINDGEN_CLANG_PATH="${CC_FOR_BUILD}"
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
 export LIBCLANG_LOGGING=1
+export RUST_LOG=debug
+export RUST_BACKTRACE=full
 
 SDK_PATH=${SDKROOT}/System/Library/Frameworks
 # echo "=== CoreFoundation Framework Structure ==="
@@ -34,9 +36,7 @@ SDK_PATH=${SDKROOT}/System/Library/Frameworks
 # done
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
-cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose -- --nocapture
-export RUST_LOG=debug
-export RUST_BACKTRACE=full
+cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose
 cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
