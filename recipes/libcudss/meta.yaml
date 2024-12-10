@@ -33,10 +33,21 @@ build:
     - cp -rv lib %LIBRARY_LIB%  # [win]
     - cp -rv bin %LIBRARY_BIN%  # [win]
 
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+
 outputs:
 
   - name: libcudss{{ somajor }}
     build:
+      ignore_run_exports_from:
+        - {{ compiler('cuda') }}
+        - libcublas-dev
       run_exports:
         # Breaking changes every version until 1.0
         - {{ pin_subpackage("libcudss" ~ somajor, max_pin="x.x.x") }}
@@ -51,6 +62,10 @@ outputs:
         - {{ stdlib("c") }}
       host:
         - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - libcublas-dev
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}  # [cuda_compiler_version != "None"]
+        - libcublas
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - {{ pin_subpackage("libcudss-commlayer-nccl" ~ somajor, exact=True) }}
