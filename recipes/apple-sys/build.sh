@@ -14,6 +14,17 @@ export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
 export LIBCLANG_LOGGING=1
 
+find ${SDKROOT}/System/Library/Frameworks/CoreFoundation.framework \
+    -type f -o -type l \
+    | sort \
+    | while read file; do
+        if [ -L "$file" ]; then
+            echo "$file -> $(readlink $file)"
+        else
+            echo "$file"
+        fi
+    done
+
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
 export RUST_LOG=debug
