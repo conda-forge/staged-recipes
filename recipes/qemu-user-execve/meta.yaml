@@ -112,13 +112,11 @@ outputs:
         {% endfor %}
 
 
-  # This does not seem to work for more than one arch
-  {% for arch, test_gcc in conda_test_gcc %}
-  - name: qemu-execve-{{ arch }}
+  - name: qemu-execve-aarch64
     files:
-      - bin/qemu-execve-{{ arch }}
-      - etc/conda/activate.d/qemu-execve-{{ arch }}-activate.sh
-      - etc/conda/deactivate.d/qemu-execve-{{ arch }}-deactivate.sh
+      - bin/qemu-execve-aarch64
+      - etc/conda/activate.d/qemu-execve-aarch64-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
     requirements:
       build:
         - {{ stdlib('c') }}
@@ -126,35 +124,76 @@ outputs:
         - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
         - libcapstone
         - glib
-        - if: arch == "aarch64"
-          then:
-            - zlib
+        - zlib
       run:
-        - {{ emulated_c_stdlib }}_linux-{{ arch }} {{ emulated_c_stdlib_version }}
+        - {{ emulated_c_stdlib }}_linux-aarch64 {{ emulated_c_stdlib_version }}
     test:
       commands:
-        - test -f ${PREFIX}/bin/qemu-execve-{{ arch }}
-        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-{{ arch }}-activate.sh
-        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-{{ arch }}-deactivate.sh
+        - test -f ${PREFIX}/bin/qemu-execve-aarch64
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-aarch64-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
         - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
-        - qemu-execve-{{ arch }} -h
-        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
-        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
-        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-{{ arch }} ./hello_from AARCH64
+        - qemu-execve-aarch64 -h
+        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-aarch64 ./hello_from {{ target_platform }}
       requires:
         - file
-        - gcc_impl_linux-{{ arch }}
+        - gcc_impl_linux-aarch64
         - gdb
         - libcap
         - patchelf
-        - sysroot_linux-{{ arch }}
+        - sysroot_linux-aarch64
         - anaconda::strace_{{ target_platform }}
       files:
         - helpers/execute_cmd.py
         - helpers/debug-qemu.sh
         - tests/hello_from.c
         - tests/execve_call.c
-  {% endfor %}
+
+  # This does not seem to work for more than one arch
+#  {% for arch, test_gcc in conda_test_gcc %}
+#  - name: qemu-execve-{{ arch }}
+#    files:
+#      - bin/qemu-execve-{{ arch }}
+#      - etc/conda/activate.d/qemu-execve-{{ arch }}-activate.sh
+#      - etc/conda/deactivate.d/qemu-execve-{{ arch }}-deactivate.sh
+#    requirements:
+#      build:
+#        - {{ stdlib('c') }}
+#      host:
+#        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
+#        - libcapstone
+#        - glib
+#        - if: arch == "aarch64"
+#          then:
+#            - zlib
+#      run:
+#        - {{ emulated_c_stdlib }}_linux-{{ arch }} {{ emulated_c_stdlib_version }}
+#    test:
+#      commands:
+#        - test -f ${PREFIX}/bin/qemu-execve-{{ arch }}
+#        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-{{ arch }}-activate.sh
+#        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-{{ arch }}-deactivate.sh
+#        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
+#        - qemu-execve-{{ arch }} -h
+#        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+#        - {{ test_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+#        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-{{ arch }} ./hello_from AARCH64
+#      requires:
+#        - file
+#        - gcc_impl_linux-{{ arch }}
+#        - gdb
+#        - libcap
+#        - patchelf
+#        - sysroot_linux-{{ arch }}
+#        - anaconda::strace_{{ target_platform }}
+#      files:
+#        - helpers/execute_cmd.py
+#        - helpers/debug-qemu.sh
+#        - tests/hello_from.c
+#        - tests/execve_call.c
+#  {% endfor %}
 # These do not seem to work due to memory issues in the docker container. They work when run manually
 #
 #        - qemu-execve-{{ arch }} ./hello_from {{ arch }} > hello.txt
