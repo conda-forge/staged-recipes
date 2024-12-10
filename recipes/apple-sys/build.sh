@@ -2,13 +2,13 @@
 
 set -euxo pipefail
 
-export CLANG_PATH="${BUILD_PREFIX}/bin/clang"
-export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
-export CPATH="${SDKROOT}/usr/include"
 export PATH="${BUILD_PREFIX}/bin:${PATH}"
-unset DEVELOPER_DIR
+export CLANG_PATH="${BUILD_PREFIX}/bin/clang"
 export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
-export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT} -I${BUILD_PREFIX}/lib/clang/18/include -iframework ${SDKROOT}/System/Library/Frameworks"
+
+export CPATH=""
+unset DEVELOPER_DIR
+export BINDGEN_EXTRA_CLANG_ARGS=""
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
