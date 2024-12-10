@@ -2,9 +2,6 @@
 
 #tar -xvf autodocksuite-4.2.6-x86_64Linux2.tar
 
-export PATH="$BUILD_PREFIX/bin:$PATH"
-
-
 # Ensure csh is available
 if ! command -v csh &> /dev/null; then
     echo "csh is not available. Creating a symlink to tcsh."
@@ -23,7 +20,7 @@ fi
 
 mkdir -p $PREFIX/bin
 
-meson setup builddir
+meson setup $MESON_ARGS builddir
 
 cd builddir
 
