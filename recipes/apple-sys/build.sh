@@ -34,7 +34,7 @@ SDK_PATH=${SDKROOT}/System/Library/Frameworks
 # done
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
-cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
+cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose -- --nocapture
 export RUST_LOG=debug
 export RUST_BACKTRACE=full
 cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture
