@@ -3,13 +3,13 @@
 set -euxo pipefail
 
 export PATH="${BUILD_PREFIX}/bin:${PATH}"
-export CLANG_PATH="${CC_FOR_BUILD}"
-export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
 export CFLAGS="-v ${CFLAGS}"
-export CPATH=""
 unset DEVELOPER_DIR
-export BINDGEN_EXTRA_CLANG_ARGS=""
+
 export BINDGEN_CLANG_PATH="${CC_FOR_BUILD}"
+export BINDGEN_EXTRA_CLANG_ARGS="-v"
+export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
+export CLANG_PATH="${CC_FOR_BUILD}"
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
@@ -36,8 +36,8 @@ SDK_PATH=${SDKROOT}/System/Library/Frameworks
 # done
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
-cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose
-cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose -- --nocapture
+cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
+cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture --verbose
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
 # Create conda local source for apple-sys
