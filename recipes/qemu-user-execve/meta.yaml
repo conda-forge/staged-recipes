@@ -151,6 +151,45 @@ outputs:
         - tests/hello_from.c
         - tests/execve_call.c
 
+
+  - name: qemu-execve-ppc64le
+    files:
+      - bin/qemu-execve-ppc64le
+      - etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
+        - libcapstone
+        - glib
+      run:
+        - {{ emulated_c_stdlib }}_linux-ppc64le {{ emulated_c_stdlib_version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-ppc64le
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
+        - qemu-execve-ppc64le -h
+        - ppc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - ppc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-ppc64le ./hello_from {{ target_platform }}
+      requires:
+        - file
+        - gcc_impl_linux-ppc64le
+        - gdb
+        - libcap
+        - patchelf
+        - sysroot_linux-ppc64le
+        - anaconda::strace_{{ target_platform }}
+      files:
+        - helpers/execute_cmd.py
+        - helpers/debug-qemu.sh
+        - tests/hello_from.c
+        - tests/execve_call.c
+
   # This does not seem to work for more than one arch
 #  {% for arch, test_gcc in conda_test_gcc %}
 #  - name: qemu-execve-{{ arch }}
