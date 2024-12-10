@@ -2,7 +2,7 @@
 set -e
 
 mkdir -p $PREFIX/examples/cudss
-cp -rv examples $PREFIX/examples/cudss
+cp -rv examples/* $PREFIX/examples/cudss
 cp -rv include $PREFIX
 cp -rv lib $PREFIX
 
