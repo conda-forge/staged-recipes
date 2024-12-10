@@ -14,16 +14,23 @@ export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
 export LIBCLANG_LOGGING=1
 
-find ${SDKROOT}/System/Library/Frameworks/CoreFoundation.framework \
-    -type f -o -type l \
-    | sort \
-    | while read file; do
-        if [ -L "$file" ]; then
-            echo "$file -> $(readlink $file)"
-        else
-            echo "$file"
-        fi
-    done
+SDK_PATH=${SDKROOT}/System/Library/Frameworks
+echo "=== CoreFoundation Framework Structure ==="
+find ${SDK_PATH}/CoreFoundation.framework -type f -o -type l | sort
+
+echo -e "\n=== Module Maps ==="
+find ${SDK_PATH} -name "module*.map" -o -name "module*.modulemap" | while read map; do
+    echo -e "\n>>> $map:"
+    head -n 20 "$map"
+    echo "..."
+done
+
+echo -e "\n=== Framework Headers ==="
+find ${SDK_PATH}/CoreFoundation.framework -name "*.h" | while read header; do
+    echo -e "\n>>> $header:"
+    head -n 5 "$header"
+    echo "..."
+done
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
