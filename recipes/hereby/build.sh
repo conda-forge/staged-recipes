@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Run pnpm so that pnpm-licenses can create report
+# Patch package.json to skip unneeded prepare step
 mv package.json package.json.bak
 jq 'del(.packageManager)' package.json.bak > package.json
 
@@ -17,6 +17,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\hereby %*
+tee ${PREFIX}/bin/hereby.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\hereby %*
 EOF
