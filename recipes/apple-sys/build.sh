@@ -3,12 +3,13 @@
 set -euxo pipefail
 
 export PATH="${BUILD_PREFIX}/bin:${PATH}"
-export CLANG_PATH="${BUILD_PREFIX}/bin/clang"
+export CLANG_PATH="${CC_FOR_BUILD}"
 export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
-
+export CFLAGS="-v ${CFLAGS}"
 export CPATH=""
 unset DEVELOPER_DIR
 export BINDGEN_EXTRA_CLANG_ARGS=""
+export BINDGEN_CLANG_PATH="${CC_FOR_BUILD}"
 
 export RUST_BACKTRACE=1
 export BINDGEN_LOG=debug
