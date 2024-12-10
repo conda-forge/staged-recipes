@@ -2,19 +2,16 @@
 
 set -euxo pipefail
 
-rm -rf build || true
-mkdir -p build/distrib
-cd build
-
 if [[ $target_platform == osx-* ]]; then
     mkdir -p distrib/meshlab.app/MacOS
     mkdir -p distrib/meshlab.app/Contents/Resources
 fi
 
-cmake ${SRC_DIR}/src ${CMAKE_ARGS} \
+cmake ${SRC_DIR} \
+    ${CMAKE_ARGS} \
     -DALLOW_OPTIONAL_EXTERNAL_MESHLAB_LIBRARIES=ON \
     -DBUILD_BUNDLED_SOURCES_WITHOUT_WARNINGS=OFF \
-    -DUSE_DEFAULT_BUILD_AND_INSTALL_DIRS=OFF \
+    -DMESHLAB_USE_DEFAULT_BUILD_AND_INSTALL_DIRS=OFF \
     -DMESHLAB_BUILD_DISTRIB_DIR=./distrib \
 	  -DMESHLAB_LIB_OUTPUT_DIR=./distrib \
 	  -DMESHLAB_PLUGIN_OUTPUT_DIR=./distrib/plugins \
