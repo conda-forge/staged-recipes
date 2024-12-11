@@ -11,7 +11,6 @@ if [[ "${target_platform}" == osx-arm64 ]]; then
 else
     BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
 fi
-export BINDGEN_EXTRA_CLANG_ARGS="$(echo "${BINDGEN_EXTRA_CLANG_ARGS}" | sed 's/ /\n/g' | sort -u | paste -s -d ' ' -)"
 export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
