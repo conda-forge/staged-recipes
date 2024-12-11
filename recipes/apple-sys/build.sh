@@ -16,6 +16,7 @@ export BINDGEN_LOG=debug
 export LIBCLANG_LOGGING=1
 export RUST_LOG=debug
 export RUST_BACKTRACE=full
+find ${SDKROOT} -name "CoreFoundation.h"
 
 SDK_PATH=${SDKROOT}/System/Library/Frameworks
 # echo "=== CoreFoundation Framework Structure ==="
