@@ -13,7 +13,7 @@ else
 fi
 export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 
-cargo fix --lib -p apple-bindgen --allow-no-vcs
+# cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
 cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --nocapture
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
