@@ -11,7 +11,7 @@ if [[ "${target_platform}" == osx-arm64 ]]; then
 else
     export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
 fi
-export LIBCLANG_PATH=${BUILD_PREFIX}/bin
+# export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
