@@ -17,9 +17,9 @@ npm install -ddd \
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/babel.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\babel %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\babel %*
 EOF
 
 tee ${PREFIX}/bin/babel-external-helpers.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\babel-external-helpers %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\babel-external-helpers %*
 EOF
