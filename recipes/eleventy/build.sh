@@ -10,7 +10,7 @@ npm install -ddd \
     ${SRC_DIR}/11ty-${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
-pnpm install
+pnpm install --ignore-scripts
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/eleventy.cmd << EOF
