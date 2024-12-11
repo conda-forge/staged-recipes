@@ -90,9 +90,6 @@ cd ..
 if not exist "%CONDA_BLD_PATH%\win-64\" mkdir "%CONDA_BLD_PATH%\win-64\"
 if not exist "%CONDA_BLD_PATH%\win-arm64\" mkdir "%CONDA_BLD_PATH%\win-arm64\"
 if not exist "%CONDA_BLD_PATH%\noarch\" mkdir "%CONDA_BLD_PATH%\noarch\"
-:: Make sure CONDA_BLD_PATH is a valid channel; only do it if noarch/repodata.json doesn't exist
-:: to save some time running locally
-if not exist "%CONDA_BLD_PATH%\noarch\repodata.json" conda index "%CONDA_BLD_PATH%"
 
 echo Index %CONDA_BLD_PATH%
 conda.exe index "%CONDA_BLD_PATH%"
