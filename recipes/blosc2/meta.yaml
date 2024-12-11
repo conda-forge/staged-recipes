@@ -1,0 +1,88 @@
+# Jinja variables
+{% set name = "blosc2" %}
+{% set version = "3.0.0rc3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Blosc/python-blosc2/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 9186daeb69bdffefc222063e3cb7c01185b6f794b5fa42f4d190761a556fdd62
+
+build:
+  number: 0
+  skip: true  # [py<311]
+  script_env:
+    - USE_SYSTEM_BLOSC2=1
+  script: |
+    {% if win %}
+    git clone https://github.com/microsoft/vcpkg.git
+    .\vcpkg\bootstrap-vcpkg.bat
+    .\vcpkg\vcpkg install pkg-config
+    set PATH=%CD%\vcpkg\installed\x64-windows\bin;%PATH%
+    {% endif %}
+    {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - ninja                                  # [build_platform != target_platform]
+    - pkg-config                             # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - pip
+    - scikit-build-core
+    - cmake
+    - make
+    - numpy >=2.0.0
+    - c-blosc2 >=2.15.2
+  host:
+    - python
+    - python-build
+    - pip
+    - scikit-build-core
+    - cmake
+    - pkg-config
+    - cython
+    - numpy >=2.0.0
+    - c-blosc2 >=2.15.2
+  run:
+    - python
+    - numpy >=1.25.0
+    - c-blosc2 >=2.15.2
+    - ndindex
+    - msgpack-python
+    - numexpr
+    - py-cpuinfo
+    - httpx
+
+test:
+  imports:
+    - blosc2
+  requires:
+    - pip
+    - python >=3.11
+  commands:
+    - pip check
+    - python -c "import blosc2; blosc2.print_versions()"
+
+about:
+  home: https://github.com/Blosc/python-blosc2
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  summary: A fast & compressed ndarray library with a flexible computational engine.
+  description: |
+    Blosc2 is a high-performance compressor optimized for binary and n-dimensional data.
+    It adds a flexible computational engine, making it ideal for scientific computing
+    and other data-intensive applications.
+  doc_url: https://www.blosc.org/python-blosc2
+  dev_url: https://github.com/Blosc/python-blosc2
+
+extra:
+  recipe-maintainers:
+    - FrancescAlted
