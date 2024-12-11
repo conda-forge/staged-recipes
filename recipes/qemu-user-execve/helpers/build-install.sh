@@ -31,21 +31,25 @@ qemu_args=(${target_list})
 _build_install_qemu "${SRC_DIR}/_conda-build" "${local_install_dir}" "${qemu_args[@]}"
 
 # Copy the [de]activate scripts to $<install dir>/etc/conda/[de]activate.d.
-# This will allow them to be run on environment activation.
 for SCRIPT in "activate" "deactivate"
 do
   mkdir -p "${local_install_dir}/etc/conda/${SCRIPT}.d"
   for qemu_arch in ${qemu_archs}
   do
-    install -m 0755 "${RECIPE_DIR}/scripts/${SCRIPT}-${qemu_arch}.sh" "${local_install_dir}/etc/conda/${SCRIPT}.d/qemu-execve-${qemu_arch}-${SCRIPT}.sh"
-  done
+    _qemu_arch="${qemu_arch}"
+    if [[ "${qemu_arch}" == "ppc64le" ]]; then
+      _qemu_arch="powerpc64le"
+    fi
+    sed -e "s|@QEMU_ARCH@|${_qemu_arch}|g" "${RECIPE_DIR}/scripts/${SCRIPT}.sh" > "${local_install_dir}/etc/conda/${SCRIPT}.d/qemu-execve-${qemu_arch}-${SCRIPT}.sh"
+    chmod +x "${local_install_dir}/etc/conda/${SCRIPT}.d/qemu-execve-${qemu_arch}-${SCRIPT}.sh"
+    done
 done
 
 # Rename execs
-for qemu_arch in ${qemu_archs}
-do
-  mv "${local_install_dir}"/bin/qemu-${qemu_arch} "${local_install_dir}"/bin/qemu-execve-${qemu_arch}
-done
+# for qemu_arch in ${qemu_archs}
+# do
+#   mv "${local_install_dir}"/bin/qemu-${qemu_arch} "${local_install_dir}"/bin/qemu-execve-${qemu_arch}
+# done
 
 # Only files installed in prefix will remain in the build cache
 if [[ ${install_dir} != ${PREFIX} ]]; then

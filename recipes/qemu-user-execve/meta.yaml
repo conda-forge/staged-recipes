@@ -1,10 +1,6 @@
 {% set name = "qemu-execve" %}
 {% set version = "9.1.0" %}
 
-{% set emulated_c_stdlib = "sysroot" %}
-{% set emulated_c_stdlib_version = "2.17" %}
-
-{% set qemu_include = "qemu-plugin.h" %}
 {% set qemu_bins = [
   "trace-events-all",
   "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin",
@@ -26,8 +22,6 @@
   ]
 %}
 
-{% set conda_qemu_user_archs = "aarch64 ppc64le s390x" %}
-
 package:
   name: qemu-execve-split
   version: {{ version }}
@@ -38,8 +32,7 @@ source:
   patches:
     - patches/0001-intercept-qexecve.patch
     - patches/0002-execve-syscall.patch
-    - patches/0003-set-MAP_FIXED_NO_REPLACE.patch
-    - patches/0004-set-qemu-name.patch
+    - patches/0003-set-qemu-name.patch
   folder: qemu-source
 
 build:
@@ -48,7 +41,7 @@ build:
   script:
     - ${RECIPE_DIR}/helpers/build-install.sh
   script_env:
-    - CONDA_QEMU_USER_ARCHS={{ conda_qemu_user_archs }}
+    - CONDA_QEMU_USER_ARCHS={{ emulated_targets }}
     - CONDA_QEMU_INSTALL_DIR="${PREFIX}"
 
 requirements:
@@ -92,7 +85,7 @@ outputs:
       run:
     test:
       commands:
-        - test -f ${PREFIX}/include/qemu-plugin.h
+        # no plugins - test -f ${PREFIX}/include/qemu-plugin.h
         - test -f ${PREFIX}/share/qemu/trace-events-all
 
         {% for bin in qemu_bins %}
@@ -104,11 +97,11 @@ outputs:
         {% endfor %}
 
 
-  - name: qemu-execve-aarch64
+  - name: qemu-execve-{{ target_emulated_platform }}
     files:
-      - bin/qemu-execve-aarch64
-      - etc/conda/activate.d/qemu-execve-aarch64-activate.sh
-      - etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
+      - bin/qemu-execve-{{ target_emulated_platform }}
+      - etc/conda/activate.d/qemu-execve-{{ target_emulated_platform }}-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-{{ target_emulated_platform }}-deactivate.sh
     requirements:
       build:
         - {{ stdlib('c') }}
@@ -116,108 +109,36 @@ outputs:
         - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
         - libcapstone
         - glib
+        {% if target_emulated_platform == "aarch64" %}
         - zlib
+        {% endif %}
       run:
-        - {{ emulated_c_stdlib }}_linux-aarch64 {{ emulated_c_stdlib_version }}
+        - {{ emulated_c_stdlib }}_linux-{{ target_emulated_platform }} {{ emulated_c_stdlib_version }}.*
     test:
       commands:
-        - test -f ${PREFIX}/bin/qemu-execve-aarch64
-        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-aarch64-activate.sh
-        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh
+        - test -f ${PREFIX}/bin/qemu-execve-{{ target_emulated_platform }}
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-{{ target_emulated_platform }}-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-{{ target_emulated_platform }}-deactivate.sh
         - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
-        - qemu-execve-aarch64 -h
-        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
-        - aarch64-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
-        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-aarch64 ./hello_from {{ target_platform }}
+        - qemu-execve-{{ target_emulated_platform }} -h
+        # Test the normal execution of a cross-compiled binary
+        - {{ target_emulated_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
+        - qemu-execve-{{ target_emulated_platform }} ./hello_from {{ target_emulated_platform }} > hello.txt
+        - grep "Hello, I'm executing {{ target_emulated_platform }} instructions!" hello.txt
+        # Test the typical execve() execution of a non-cross-compiled binary (x86_64)
+        - {{ target_emulated_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
+        - qemu-execve-{{ target_emulated_platform }} ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+        - grep "hello_from" ls_x86_64.txt
+        # Test redirected execve() execution of a non-cross-compiled binary (x86_64) - Must fail with 'Invalid ELF image'
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ target_emulated_platform }} qemu-execve-{{ target_emulated_platform }} ./execve_call "/bin/ls" > ls_{{ target_emulated_platform }}.txt 2>&1 || true
+        - grep "Invalid ELF image" ls_{{ target_emulated_platform }}.txt || exit 1
+        # Test redirected execve() execution of a cross-compiled binary - Redirected to qemu which executes the binary
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-{{ target_emulated_platform }} qemu-execve-{{ target_emulated_platform }} ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+        - grep "EXECVE" execve_call.txt || exit 1
       requires:
-        - file
-        - gcc_impl_linux-aarch64
-        - gdb
-        - libcap
-        - patchelf
-        - sysroot_linux-aarch64
-        - anaconda::strace_{{ target_platform }}
+        - gcc_impl_linux-{{ target_emulated_platform }}
+        - sysroot_linux-{{ target_emulated_platform }} {{ emulated_c_stdlib_version }}.*
       files:
-        - helpers/execute_cmd.py
-        - helpers/debug-qemu.sh
-        - tests/hello_from.c
-        - tests/execve_call.c
-
-
-  - name: qemu-execve-ppc64le
-    files:
-      - bin/qemu-execve-ppc64le
-      - etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
-      - etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
-    requirements:
-      build:
-        - {{ stdlib('c') }}
-      host:
-        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
-        - libcapstone
-        - glib
-      run:
-        - {{ emulated_c_stdlib }}_linux-ppc64le {{ emulated_c_stdlib_version }}
-    test:
-      commands:
-        - test -f ${PREFIX}/bin/qemu-execve-ppc64le
-        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
-        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
-        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
-        - qemu-execve-ppc64le -h
-        - powerpc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
-        - powerpc64le-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
-        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-ppc64le ./hello_from {{ target_platform }}
-      requires:
-        - file
-        - gcc_impl_linux-ppc64le
-        - gdb
-        - libcap
-        - patchelf
-        - sysroot_linux-ppc64le
-        - anaconda::strace_{{ target_platform }}
-      files:
-        - helpers/execute_cmd.py
-        - helpers/debug-qemu.sh
-        - tests/hello_from.c
-        - tests/execve_call.c
-
-
-  - name: qemu-execve-s390x
-    files:
-      - bin/qemu-execve-s390x
-      - etc/conda/activate.d/qemu-execve-s390x-activate.sh
-      - etc/conda/deactivate.d/qemu-execve-s390x-deactivate.sh
-    requirements:
-      build:
-        - {{ stdlib('c') }}
-      host:
-        - {{ pin_subpackage('qemu-shared-resources', exact=True) }}
-        - libcapstone
-        - glib
-      run:
-        - {{ emulated_c_stdlib }}_linux-s390x {{ emulated_c_stdlib_version }}
-    test:
-      commands:
-        - test -f ${PREFIX}/bin/qemu-execve-s390x
-        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-s390x-activate.sh
-        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-s390x-deactivate.sh
-        - test -f ${QEMU_LD_PREFIX}/lib/ld-{{ emulated_c_stdlib_version }}.so
-        - qemu-execve-s390x -h
-        - s390x-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o hello_from tests/hello_from.c
-        - s390x-conda-linux-gnu-gcc -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L$QEMU_LD_PREFIX/lib64:$QEMU_LD_PREFIX/lib -Wl,--dynamic-linker=$QEMU_LD_PREFIX/lib/ld-{{ emulated_c_stdlib_version }}.so -o execve_call tests/execve_call.c
-        - bash helpers/debug-qemu.sh $PREFIX/bin/qemu-execve-s390x ./hello_from {{ target_platform }}
-      requires:
-        - file
-        - gcc_impl_linux-s390x
-        - gdb
-        - libcap
-        - patchelf
-        - sysroot_linux-s390x
-        - anaconda::strace_{{ target_platform }}
-      files:
-        - helpers/execute_cmd.py
-        - helpers/debug-qemu.sh
         - tests/hello_from.c
         - tests/execve_call.c
 

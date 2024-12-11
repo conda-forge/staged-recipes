@@ -44,7 +44,8 @@ git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 # Skip build_artifacts and other big items because it gets huge with time
 mkdir -p ~/staged-recipes-copy
 shopt -s extglob dotglob
-cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
+cp -r "${FEEDSTOCK_ROOT}"/{recipes,.ci_support,conda-forge.yml,.scripts} ~/staged-recipes-copy/
+# cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
 shopt -u extglob dotglob
 
 # Remove any macOS system files
