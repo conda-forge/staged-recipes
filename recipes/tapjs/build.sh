@@ -18,5 +18,5 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/tap.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\tap %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\tap %*
 EOF
