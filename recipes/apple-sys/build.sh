@@ -5,12 +5,13 @@ set -euxo pipefail
 export CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=$CC
 export CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=$CC
 
-export BINDGEN_EXTRA_CLANG_ARGS="-v ${CPPFLAGS} ${CFLAGS}"
+BINDGEN_EXTRA_CLANG_ARGS="-v ${CPPFLAGS} ${CFLAGS}"
 if [[ "${target_platform}" == osx-arm64 ]]; then
-    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=aarch64-apple-darwin"
+    BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=aarch64-apple-darwin"
 else
-    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
+    BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
 fi
+export BINDGEN_EXTRA_CLANG_ARGS="$(echo "${BINDGEN_EXTRA_CLANG_ARGS}" | sed 's/ /\n/g' | sort -u | paste -s -d ' ' -)"
 export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
