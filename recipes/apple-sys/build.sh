@@ -3,11 +3,11 @@
 set -euxo pipefail
 
 export BINDGEN_EXTRA_CLANG_ARGS="-v ${CPPFLAGS} ${CFLAGS} ${LDFLAGS}"
-# if [[ "${target_platform}" == osx-arm64 ]]; then
-#     export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=aarch64-apple-darwin"
-# else
-#     export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
-# fi
+if [[ "${target_platform}" == osx-arm64 ]]; then
+    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=aarch64-apple-darwin"
+else
+    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS} --target=x86_64-apple-darwin13.4.0"
+fi
 export LIBCLANG_PATH=${BUILD_PREFIX}/lib/libclang${SHLIB_EXT}
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
