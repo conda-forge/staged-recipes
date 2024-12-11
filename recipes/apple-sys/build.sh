@@ -18,6 +18,7 @@ export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 # cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin --verbose -- --nocapture
 # CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
+cargo fix --lib -p apple-bindgen
 cargo build --manifest-path=sys/Cargo.toml --features Foundation --verbose
 
 # Create conda local source for apple-sys
