@@ -2,40 +2,13 @@
 
 set -euxo pipefail
 
-export PATH="${BUILD_PREFIX}/bin:${PATH}"
-export CFLAGS="-v ${CFLAGS}"
-unset DEVELOPER_DIR
-
 export BINDGEN_CLANG_PATH="${CC_FOR_BUILD}"
-export BINDGEN_EXTRA_CLANG_ARGS="-v"
-export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
-export CLANG_PATH="${CC_FOR_BUILD}"
-
-export RUST_BACKTRACE=1
-export BINDGEN_LOG=debug
-export LIBCLANG_LOGGING=1
-export RUST_LOG=debug
-export RUST_BACKTRACE=full
-
-find ${SDKROOT} -name "CoreFoundation.h"
-
-SDK_PATH=${SDKROOT}/System/Library/Frameworks
-# echo "=== CoreFoundation Framework Structure ==="
-# find ${SDK_PATH}/CoreFoundation.framework -type f -o -type l | sort
-#
-# echo -e "\n=== Module Maps ==="
-# find ${SDK_PATH} -name "module*.map" -o -name "module*.modulemap" | while read map; do
-#     echo -e "\n>>> $map:"
-#     head -n 20 "$map"
-#     echo "..."
-# done
-#
-# echo -e "\n=== Framework Headers ==="
-# find ${SDK_PATH}/CoreFoundation.framework -name "*.h" | while read header; do
-#     echo -e "\n>>> $header:"
-#     head -n 5 "$header"
-#     echo "..."
-# done
+if [[ "${target_platform}" == osx-arm64 ]]; then
+    export BINDGEN_EXTRA_CLANG_ARGS_aarch64-apple-darwin="-v --target=aarch64-apple-darwin"
+else
+    export BINDGEN_EXTRA_CLANG_ARGS_x86_64-apple-darwin="-v --target=x86_64-apple-darwin13.4.0"
+fi
+export LIBCLANG_PATH="${BUILD_PREFIX}/bin"
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
 cargo build --release --manifest-path=bindgen/Cargo.toml --features=bin
