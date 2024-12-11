@@ -9,9 +9,12 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/angular-devkit-${PKG_NAME}-${PKG_VERSION}.tgz
 
-# Create license report for dependencies
+# Patch package.json to remove packageManager key so that
+# pnpm can be used to create license report
 mv package.json package.json.bak
 jq 'del(.packageManager)' package.json.bak > package.json
+
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
