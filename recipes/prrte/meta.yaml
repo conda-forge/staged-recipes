@@ -1,0 +1,120 @@
+{% set name = "prrte" %}
+{% set version = "3.0.7" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/openpmix/prrte/releases/download/v{{ version }}/prrte-{{ version }}.tar.bz2
+  sha256: dbcaa3aa9fdcbd20a4320d21d569472b05c0203d0d24aa9c30912e214f758322
+
+build:
+  skip: true  # [win]
+  number: 0
+
+# one top-level build
+# outputs select which files to include
+# from this build
+# but don't run any build scripts themselves
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - make
+    - pkg-config
+  host:
+    - libevent
+    - libhwloc
+    - libpmix-devel
+
+outputs:
+  - name: libprrte
+    files:
+      # libprrte has everything except for specific exclusions
+      include:
+        - '**/*'
+      exclude:
+        # these are in -bin
+        - bin/
+        # these are in -devel
+        - include
+        # exclude docs (not packaged)
+        - share/prte/rst
+        - share/doc/
+        - share/man/
+    build:
+      run_exports:
+        - {{ pin_subpackage('libprrte', max_pin='x') }}
+    requirements:
+      # only need requirements with run_exports here
+      # no build is actually run
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+      host:
+        - libevent
+        - libhwloc
+        - libpmix-devel
+
+    test:
+      commands:
+        - test -f $PREFIX/lib/libprrte${SHLIB_EXT}
+        - test ! -f $PREFIX/lib/libprrte.a
+        - test ! -f $PREFIX/bin/prte_info
+        - test ! -f $PREFIX/bin/prun
+        - test ! -d $PREFIX/include/prte/src
+        - test ! -d $PREFIX/share/doc/prte
+
+  - name: libprrte-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage('libprrte', max_pin='x') }}
+    files:
+      include:
+        - include
+    requirements:
+      run:
+        - {{ pin_subpackage('libprrte', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/prte.h
+        - test -d $PREFIX/include/prte/src
+
+  - name: prrte
+    files:
+      # should only include files excluded by libprrte
+      include:
+        - bin/
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+      host:
+        - libevent
+        - libhwloc
+        - libpmix-devel
+        - {{ pin_subpackage('libprrte', exact=True) }}
+      run:
+        - {{ pin_subpackage('libprrte', exact=True) }}
+    test:
+      commands:
+        - prte_info
+        - prun --do-not-connect --allow-run-as-root -n 2 sh -c 'echo hi'
+
+
+about:
+  home: https://prrte.org
+  summary: PMIx Reference RunTime Environment
+  description: |
+    PRRTE is the PMIx Reference RunTime Environment
+  license: BSD-3-Clause
+  license_file: LICENSE
+  doc_url: https://docs.prrte.org
+  dev_url: https://github.com/openpmix/prrte
+
+extra:
+  feedstock-name: prrte
+  recipe-maintainers:
+    - j34ni
+    - minrk
