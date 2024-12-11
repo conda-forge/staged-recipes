@@ -8,7 +8,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy "%SRC_DIR%\wcurl.cmd" "%LIBRARY_BIN%\wcurl.cmd" >nul
+copy "%RECIPE_DIR%\wcurl.cmd" "%LIBRARY_BIN%\wcurl.cmd" >nul
 if errorlevel 1 (
     echo ERROR: Failed to copy wcurl.cmd to %LIBRARY_BIN%.
     exit /b 1
