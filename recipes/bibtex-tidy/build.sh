@@ -13,6 +13,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/copyfiles.cmd << EOF
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\copyfiles %*
+tee ${PREFIX}/bin/bibtex-tidy.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\bibtex-tidy %*
 EOF
