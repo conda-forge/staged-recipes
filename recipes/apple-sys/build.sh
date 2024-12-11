@@ -19,7 +19,7 @@ cargo test --release --manifest-path=bindgen/Cargo.toml --features=bin -- --noca
 CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
 # Create conda local source for apple-sys
-source ./apple-sys-features.sh
+source ${RECIPE_DIR}/apple-sys-features.sh
 failed_features=()
 for feature in "${features[@]}"; do
   if ! cargo build --manifest-path=sys/Cargo.toml --features "$feature"; then
