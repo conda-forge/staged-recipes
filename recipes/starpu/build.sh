@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
 
+libtoolize --force --copy
 ./autogen.sh
 
 # Configure
