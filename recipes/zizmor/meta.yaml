@@ -1,0 +1,54 @@
+{% set name = "zizmor" %}
+{% set version = "0.8.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/zizmor-{{ version }}.tar.gz
+  sha256: 0a236717c9f6fdbace47c2dfdabdd963207e8101ecc6334ccf24205a98baef24
+
+build:
+  number: 0
+  script:
+    - export CARGO_PROFILE_RELEASE_STRIP=symbols  # [not win]
+    - export RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS"   # [not win]
+    - set CARGO_PROFILE_RELEASE_STRIP=symbols  # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - maturin  >=1.0,<2.0                    # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - maturin >=1.0,<2.0
+    - pip
+  run:
+    - python
+
+test:
+  commands:
+    - zizmor --help
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/woodruffw/zizmor
+  summary: Static analysis for GitHub Actions
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - ocefpaf
