@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Create package archive and install globally
+# Patch package.json to remove unneeded prepare step
 mv package.json package.json.bak
 jq 'del(.scripts.prepare)' package.json.bak > package.json
 
@@ -12,13 +12,15 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/ember-tooling-${PKG_NAME}-${PKG_VERSION}.tgz
 
-# Create license report for dependencies
+# Patch package.json to remove resolutions key so pnpm-licenses
+# can be run to generate license report
 mv package.json package.json.bak
 jq 'del(.resolutions)' package.json.bak > package.json
 
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\ember-language-server %*
+tee ${PREFIX}/bin/ember-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\ember-language-server %*
 EOF
