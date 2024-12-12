@@ -14,13 +14,13 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/css-beautify.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\css-beautify %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\css-beautify %*
 EOF
 
 tee ${PREFIX}/bin/html-beautify.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\html-beautify %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\html-beautify %*
 EOF
 
 tee ${PREFIX}/bin/js-beautify.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\js-beautify %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\js-beautify %*
 EOF
