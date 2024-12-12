@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-autoreconf -i
+./autogen.sh
 
 # Configure
 ./configure \
