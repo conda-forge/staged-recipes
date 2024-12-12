@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+autoreconf -i
+
 # Configure
 ./configure \
     --prefix=$PREFIX \
