@@ -16,6 +16,6 @@ jq 'del(.devDependencies)' package.json.bak > package.json
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=${SRC_DIR}/third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\glint %*
+tee ${PREFIX}/bin/glint.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\glint %*
 EOF
