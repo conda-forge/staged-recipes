@@ -19,13 +19,13 @@ export LIBCLANG_PATH=${BUILD_PREFIX}/lib
 # CARGO_TARGET_DIR=target cargo install --features=bin --path bindgen --root "${PREFIX}"
 
 cargo fix --lib -p apple-bindgen --allow-no-vcs
-cargo build --manifest-path=sys/Cargo.toml --features Foundation --verbose
+cargo build --manifest-path=sys/Cargo.toml --release --features Foundation
 
 # Create conda local source for apple-sys
 source ${RECIPE_DIR}/apple-sys-features.sh
 failed_features=()
 for feature in "${features[@]}"; do
-  if ! cargo build --manifest-path=sys/Cargo.toml --features "$feature"; then
+  if ! cargo build --manifest-path=sys/Cargo.toml --release --features "$feature"; then
     echo "Warning: Failed to build feature $feature"
     failed_features+=("$feature")
   fi
