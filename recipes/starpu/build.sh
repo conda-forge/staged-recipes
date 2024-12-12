@@ -1,0 +1,13 @@
+#!/bin/bash
+set -ex
+
+# Configure
+./configure \
+    --prefix=$PREFIX \
+    --enable-shared \
+    --with-hwloc=$PREFIX \
+    --disable-static
+
+# Build and install
+make -j$(nproc)
+make install
