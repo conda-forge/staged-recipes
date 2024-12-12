@@ -14,12 +14,11 @@ _build_install_qemu() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --enable-user \
-      --enable-strip \
-      > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+      --enable-strip
 
-    make -j"${CPU_COUNT}" > "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
-    make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
-    make install > "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
+    make -j"${CPU_COUNT}"
+    make check
+    make install
 
   popd || exit 1
 }
