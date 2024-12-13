@@ -8,7 +8,6 @@ pushd !SRC_DIR! || exit /b 1
   meson setup build-!PKG_NAME! ^
     --prefix=!PREFIX! ^
     --buildtype=release ^
-    --default-library=shared ^
     --strip ^
     --backend=ninja ^
     -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS"
