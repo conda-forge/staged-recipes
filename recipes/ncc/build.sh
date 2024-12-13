@@ -9,6 +9,6 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/vercel-${PKG_NAME}-${PKG_VERSION}.tgz
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\ncc %*
+tee ${PREFIX}/bin/ncc.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\ncc %*
 EOF
