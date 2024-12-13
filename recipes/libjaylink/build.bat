@@ -13,7 +13,7 @@ pushd !SRC_DIR! || exit /b 1
     --backend=ninja
    if errorlevel 1 exit 1
 
-  meson compile -C build-!PKG_NAME!
+  meson compile -C build-!PKG_NAME! -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS"
   if errorlevel 1 exit 1
 
   meson install -C build-!PKG_NAME!
