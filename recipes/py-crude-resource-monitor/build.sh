@@ -11,7 +11,7 @@ cargo-bundle-licenses \
 
 pushd frontend
 pnpm install
-pnpm-licenses generate-disclaimer --json-input --prod --output-file=../THIRDPARTY-frontend.yml
+pnpm-licenses generate-disclaimer --prod --output-file=../THIRDPARTY-frontend.yml
 popd
 
 cargo install --no-track --locked --root "$PREFIX" --path .
