@@ -6,10 +6,10 @@ import numpy as np
 from click.testing import CliRunner
 
 from src.CRMS_general_functions import *
-from src.CRMS_Discrete_Hydrographic2subsets import *
-from src.CRMS2Resample import *
-from src.CRMS2Plot import *
-from src.click_main import discrete_subcommand
+# from src.CRMS_Discrete_Hydrographic2subsets import *
+# from src.CRMS2Resample import *
+# from src.CRMS2Plot import *
+# from src.click_main import discrete_subcommand
 
 
 # def test_download_CRMS(tmpdir):
