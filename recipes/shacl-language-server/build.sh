@@ -14,11 +14,13 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME} << EOF
+mkdir -p ${PREFIX}/bin
+tee ${PREFIX}/bin/shacl-language-server << EOF
 #!/bin/sh
-exec \${CONDA_PREFIX}/bin/node \${PREFIX}/libexec/shacl-language-server/bin/shacl-language-server \$@
+exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/shacl-language-server/bin/shacl-language-server \$@
 EOF
+chmod +x ${PREFIX}/bin/shacl-language-server
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\libexec\shacl-language-server\bin\shacl-language-server %*
+tee ${PREFIX}/bin/shacl-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\shacl-language-server\bin\shacl-language-server %*
 EOF

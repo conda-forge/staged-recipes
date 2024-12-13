@@ -14,11 +14,13 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME} << EOF
+mkdir -p ${PREFIX}/bin
+tee ${PREFIX}/bin/sparql-language-server << EOF
 #!/bin/sh
-exec \${CONDA_PREFIX}/bin/node \${PREFIX}/libexec/sparql-language-server/bin/sparql-language-server \$@
+exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/sparql-language-server/bin/sparql-language-server \$@
 EOF
+chmod +x ${PREFIX}/bin/sparql-language-server
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\libexec\sparql-language-server\bin\sparql-language-server %*
+tee ${PREFIX}/bin/sparql-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\sparql-language-server\bin\sparql-language-server %*
 EOF

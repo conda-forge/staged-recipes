@@ -14,11 +14,13 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME} << EOF
+mkdir -p ${PREFIX}/bin
+tee ${PREFIX}/bin/sms-language-server << EOF
 #!/bin/sh
-exec \${CONDA_PREFIX}/bin/node \${PREFIX}/libexec/sms-language-server/bin/sms-language-server \$@
+exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/sms-language-server/bin/sms-language-server \$@
 EOF
+chmod +x ${PREFIX}/bin/sms-language-server
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\libexec\sms-language-server\bin\sms-language-server %*
+tee ${PREFIX}/bin/sms-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\sms-language-server\bin\sms-language-server %*
 EOF

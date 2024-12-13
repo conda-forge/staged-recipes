@@ -14,11 +14,13 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME} << EOF
+mkdir -p ${PREFIX}/bin
+tee ${PREFIX}/bin/stardog-graphql-language-server << EOF
 #!/bin/sh
-exec \${CONDA_PREFIX}/bin/node \${PREFIX}/libexec/stardog-graphql-language-server/bin/stardog-graphql-language-server \$@
+exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/stardog-graphql-language-server/bin/stardog-graphql-language-server \$@
 EOF
+chmod +x ${PREFIX}/bin/stardog-graphql-language-server
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\libexec\stardog-graphql-language-server\bin\stardog-graphql-language-server %*
+tee ${PREFIX}/bin/stardog-graphql-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\stardog-graphql-language-server\bin\stardog-graphql-language-server %*
 EOF
