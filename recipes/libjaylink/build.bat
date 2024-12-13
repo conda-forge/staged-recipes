@@ -10,7 +10,8 @@ pushd !SRC_DIR! || exit /b 1
     --buildtype=release ^
     --default-library=shared ^
     --strip ^
-    --backend=ninja
+    --backend=ninja ^
+    -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS"
    if errorlevel 1 exit 1
 
   meson compile -C build-!PKG_NAME! -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS"
