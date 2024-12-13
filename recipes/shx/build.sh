@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Patch package.json to remove unneeded prebuid step
+# Patch package.json to remove unneeded prebuild step
 mv package.json package.json.bak
 jq 'del(.scripts.prebuild)' package.json.bak > package.json
 
