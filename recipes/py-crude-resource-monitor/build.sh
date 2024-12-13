@@ -14,4 +14,6 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=../THIRDPARTY-frontend.yml
 popd
 
+export RUSTFLAGS="-C link-arg=-Wl,-rpath-link,${PREFIX}/lib -L${PREFIX}/lib"
+
 cargo install --no-track --locked --root "$PREFIX" --path .

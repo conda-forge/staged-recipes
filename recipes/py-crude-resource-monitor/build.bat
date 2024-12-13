@@ -8,16 +8,15 @@ cargo-bundle-licenses ^
     --format yaml ^
     --output "%SRC_DIR%\THIRDPARTY.yml" ^
     || exit 1
-cd frontend
-pnpm install
+
+@REM https://github.com/prefix-dev/rattler-build/issues/1165
+cd frontend && ^
+pnpm install && ^
 pnpm-licenses generate-disclaimer ^
     --prod ^
     --output-file=..\THIRDPARTY-frontend.yml ^
-    || exit 1
-
-cd ..
-
-:: build
+    && ^
+cd .. && ^
 cargo install --locked ^
     --root "%PREFIX%" ^
     --path . ^
