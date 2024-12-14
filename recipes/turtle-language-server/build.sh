@@ -14,10 +14,12 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+mkdir -p ${PREFIX}/bin
 tee ${PREFIX}/bin/turtle-language-server << EOF
 #!/bin/sh
 exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/turtle-language-server/bin/turtle-language-server \$@
 EOF
+chmod +x ${PREFIX}/bin/turtle-language-server
 
 tee ${PREFIX}/bin/turtle-language-server.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\turtle-language-server\bin\turtle-language-server %*
