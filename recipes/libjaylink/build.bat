@@ -18,4 +18,11 @@ pushd !SRC_DIR! || exit /b 1
 
   meson install -C build-!PKG_NAME!
   if errorlevel 1 exit 1
+
+  :: Create non-versioned .dll
+  copy /Y !PREFIX!\Library\bin\libjaylink-*.dll !PREFIX!\Library\bin\libjaylink.dll
+  if errorlevel 1 exit 1
+
+  copy /Y !PREFIX!\Library\bin\jaylink-*.dll !PREFIX!\Library\bin\jaylink.dll
+  if errorlevel 1 exit 1
 popd || exit /b 1
