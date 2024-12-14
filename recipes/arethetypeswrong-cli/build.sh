@@ -14,5 +14,5 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/attw.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\attw %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\attw %*
 EOF

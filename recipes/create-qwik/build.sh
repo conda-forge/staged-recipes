@@ -9,6 +9,6 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\create-qwik %*
+tee ${PREFIX}/bin/create-qwik.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\create-qwik %*
 EOF
