@@ -14,11 +14,11 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME} << EOF
+tee ${PREFIX}/bin/trig-language-server << EOF
 #!/bin/sh
-exec \${CONDA_PREFIX}/bin/node \${PREFIX}/libexec/trig-language-server/bin/trig-language-server \$@
+exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/libexec/trig-language-server/bin/trig-language-server \$@
 EOF
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\libexec\trig-language-server\bin\trig-language-server %*
+tee ${PREFIX}/bin/trig-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\libexec\trig-language-server\bin\trig-language-server %*
 EOF
