@@ -7,7 +7,7 @@ npm pack --ignore-scripts
 npm install -ddd \
     --global \
     --build-from-source \
-    ${SRC_DIR}/${PKG_NAME}-cli-${PKG_VERSION//_/-}.tgz
+    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
 pnpm install
