@@ -6,7 +6,7 @@ set PREFIX=%PREFIX%
 
 pushd !SRC_DIR! || exit /b 1
   meson setup build-!PKG_NAME! ^
-    --prefix=!PREFIX! ^
+    --prefix=!PREFIX!\Library ^
     --buildtype=release ^
     --strip ^
     --backend=ninja ^
