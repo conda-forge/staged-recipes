@@ -9,12 +9,15 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/lit-labs-cli-${PKG_VERSION}.tgz
 
-# Create license report for dependencies
+# Patch package.json to remove devDependencies key so that
+# pnpm-licenses can be run to create license report
 mv package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
+
+# Create license report for dependencies
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/lit.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\lit %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\lit %*
 EOF
