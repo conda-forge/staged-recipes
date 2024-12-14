@@ -11,6 +11,10 @@ libtoolize --force --copy
     --with-hwloc=$PREFIX \
     --disable-static
 
+echo "#### begin config.log ####"
+cat config.log
+echo "#### end config.log ####"
+
 # Build and install
 make -j$(nproc)
 make install
