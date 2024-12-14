@@ -28,10 +28,12 @@ npm install -ddd \
 mv ${PREFIX}/lib/node_modules/server ${PREFIX}/lib/node_modules/${PKG_NAME}
 
 # Create bash and batch wrappers
+mkdir -p ${PREFIX}//bin
 tee ${PREFIX}/bin/spectral-language-server << EOF
 #!/bin/sh
 exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/lib/node_modules/vscode-spectral-language-server/out/server.js \$@
 EOF
+chmod +x ${PREFIX}/bin/spectral-language-server
 
 tee ${PREFIX}/bin/spectral-language-server.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\vscode-spectral-language-server\out\server.js %*
