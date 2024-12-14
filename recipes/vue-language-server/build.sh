@@ -13,6 +13,6 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\vue-language-server %*
+tee ${PREFIX}/bin/vue-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\vue-language-server %*
 EOF
