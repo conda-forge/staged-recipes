@@ -14,9 +14,9 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/tsp.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\tsp %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\tsp %*
 EOF
 
 tee ${PREFIX}/bin/tsp-server.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\tsp-server %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\tsp-server %*
 EOF

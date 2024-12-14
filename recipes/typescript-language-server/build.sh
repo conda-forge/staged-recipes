@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Create package archive and install globally
+# Patch package.json to skip unnecesary prepare step
 mv package.json package.json.bak
 jq 'del(.scripts.prepare)' package.json.bak > package.json
 
@@ -12,6 +12,6 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
-tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\typescript-language-server %*
+tee ${PREFIX}/bin/typescript-language-server.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\typescript-language-server %*
 EOF
