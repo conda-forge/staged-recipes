@@ -7,13 +7,12 @@ mkdir -p "${SRC_DIR}"/jimtcl
 pushd "${SRC_DIR}"/jimtcl || exit 1
   ./configure \
     --prefix="${SRC_DIR}"/jimtcl-install \
-    --disable-docs \
-    > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
-  make -j"${CPU_COUNT}" > "${SRC_DIR}"/_jimtcl_make.log 2>&1
+    --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
+  make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_jimtcl_make.log 2>&1
   make install
 
   export PATH="${SRC_DIR}"/jimtcl-install/bin:"${PATH}"
-  export CFLAGS="-I${SRC_DIR}/jimtcl-install/include ${CFLAGS}"
+  export CFLAGS="-I${SRC_DIR}/jimtcl-install/include -Wno-strict-prototypes ${CFLAGS}"
   export LDFLAGS="-L${SRC_DIR}/jimtcl-install/lib ${LDFLAGS}"
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH}"
 popd || exit 1
