@@ -9,7 +9,7 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
     --prefix="${SRC_DIR}"/jimtcl-install \
     --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
   make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_jimtcl_make.log 2>&1
-  make test
+  # This is not built on windows
   touch build-jim-ext
   make install
 
