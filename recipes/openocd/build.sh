@@ -20,7 +20,7 @@ popd || exit 1
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 if [[ ${target_platform} == osx-* ]]; then
-  export CFLAGS="${CFLAGS} -Wno-strict-prototypes -Wunused-but-set-variable"
+  export CFLAGS="${CFLAGS} -Wno-strict-prototypes -Wno-unused-but-set-variable"
 fi
 
 mkdir -p "${SRC_DIR}/_conda-build"
