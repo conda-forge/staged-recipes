@@ -14,9 +14,9 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/titanium.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\titanium %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\titanium %*
 EOF
 
 tee ${PREFIX}/bin/ti.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\ti %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\ti %*
 EOF
