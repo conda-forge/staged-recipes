@@ -16,6 +16,7 @@ npm install -ddd \
 # Remove some unneeded vendored binaries
 pushd ${PREFIX}/lib/node_modules/gatsby-cli/node_modules/
     find -name *.glibc.node | xargs -I % rm %
+    find -name *.musl.node | xargs -I % rm %
     rm -rf clipboardy/fallbacks/linux/xsel
 popd
 
