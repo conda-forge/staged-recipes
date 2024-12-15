@@ -18,7 +18,7 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH}"
 popd || exit 1
 
-"${SRC_DIR}"/bootstrap > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
+"${SRC_DIR}"/bootstrap  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 mkdir -p "${SRC_DIR}/_conda-build"
 pushd "${SRC_DIR}/_conda-build" || exit 1
@@ -27,7 +27,7 @@ pushd "${SRC_DIR}/_conda-build" || exit 1
     --enable-shared \
     --disable-static \
     --disable-internal-jimtcl \
-    --disable-internal-libjaylink > "${SRC_DIR}"/_configure_openocd.log 2>&1
-  make -j"${CPU_COUNT}" > "${SRC_DIR}"/_make_openocd.log 2>&1
+    --disable-internal-libjaylink   # > "${SRC_DIR}"/_configure_openocd.log 2>&1
+  make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_make_openocd.log 2>&1
   make install
 popd || exit 1
