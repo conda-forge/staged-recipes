@@ -18,7 +18,7 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH}"
 popd || exit 1
 
-"${SRC_DIR}"/bootstrap  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
+"${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 mkdir -p "${SRC_DIR}/_conda-build"
 pushd "${SRC_DIR}/_conda-build" || exit 1
