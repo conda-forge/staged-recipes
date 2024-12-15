@@ -14,9 +14,9 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   make install
 
   export PATH="${SRC_DIR}"/jimtcl-install/bin:"${PATH}"
-  export CFLAGS="-I${SRC_DIR}/jimtcl-install/include ${CFLAGS}"
-  export LDFLAGS="-L${SRC_DIR}/jimtcl-install/lib ${LDFLAGS}"
-  export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH}"
+  export CFLAGS="-I${SRC_DIR}/jimtcl-install/include ${CFLAGS:-}"
+  export LDFLAGS="-L${SRC_DIR}/jimtcl-install/lib ${LDFLAGS:-}"
+  export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 popd || exit 1
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
