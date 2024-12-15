@@ -2,13 +2,12 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Run pnpm so that pnpm-licenses can create report
+# Install devDependencies and transpile TypeScript to JavaScript
 cd extension
-pnpm install
-
-# Create package archive and install globally
 npm install
 npm run compile
+
+# Create package archive and install globally
 npm pack --ignore-scripts
 npm install -ddd \
     --global \
@@ -17,6 +16,7 @@ npm install -ddd \
     go-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
+pnpm install
 mv pnpm-lock.yaml pnpm-lock.yaml.bak
 yq 'del(.importers.[].dependencies.tree-kill)' pnpm-lock.yaml.bak > pnpm-lock.yaml
 pnpm-licenses generate-disclaimer --prod --output-file=${SRC_DIR}/third-party-licenses.txt
