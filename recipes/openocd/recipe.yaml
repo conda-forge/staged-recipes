@@ -1,6 +1,7 @@
 context:
   name: openocd
   version: "0.12.0"
+  jimtcl_version: "0.83"
   build_num: 0
 
 package:
@@ -8,50 +9,69 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/openocd-org/openocd/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 0e2bcff1ef96f0591937220dcacfe7001069ddd823514dc4ba0ea2d33504e5b5
+  - url: https://github.com/openocd-org/openocd/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 0e2bcff1ef96f0591937220dcacfe7001069ddd823514dc4ba0ea2d33504e5b5
+    patches:
+      # Patches from Debian 0.12.0-3 dpkg source package
+      - patches/fix-unused-vars.patch
+      - patches/jimtcl-0.83-include-fix.patch
+      #- patches/jimtcl-expr-0.81-onwards.patch
+  - url: https://github.com/msteveb/jimtcl/archive/refs/tags/${{ jimtcl_version }}.tar.gz
+    sha256: 6f2df00009f5ac4ad654c1ae1d2f8ed18191de38d1f5a88a54ea99cc16936686
+    target_directory: jimtcl
 
 build:
   number: ${{ build_num }}
-  skip:
-    - win
-    - osx
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - git
     - libtool
-    - ninja
     - pkg-config
+    - texinfo
+    - if: unix
+      then:
+        - make
+      else:
+        - m2w64-make
   host:
+    - capstone
+    - hidapi
+    - libftdi
+    - libjaylink
     - libusb
-    - meson >=1.1.0
+    - openssl
+    - zlib
+
 
 tests:
-  - package_contents:
-      files:
-        - include/libjaylink/libjaylink.h
-        - include/libjaylink/version.h
-        - lib64/pkgconfig/libjaylink.pc
-        - if: linux
-          then:
-            - lib64/libjaylink.so
-            - lib64/libjaylink.so.${{ so_version }}
-            - lib64/libjaylink.so.${{ major_so_version }}
+  - script: |
+      openocd --version
+      openocd --help
 
 
 about:
-  homepage: https://gitlab.zapb.de/libjaylink/libjaylink
-  summary: 'libjaylink is a shared library written in C to access SEGGER J-Link.'
+  homepage: https://github.com/openocd-org/openocd
+  summary: 'OpenOCD: on-chip programming and debugging support with JTAG and TAP.'
   description: |
-    libjaylink is a shared library written in C to access SEGGER J-Link and
-    compatible devices.
+    OpenOCD provides on-chip programming and debugging support with a
+    layered architecture of JTAG interface and TAP support including:
+    - (X)SVF playback to facilitate automated boundary scan and FPGA/CPLD
+      programming;
+    - debug target support (e.g. ARM, MIPS): single-stepping,
+      breakpoints/watchpoints, gprof profiling, etc;
+    - flash chip drivers (e.g. CFI, NAND, internal flash);
+    - embedded TCL interpreter for easy scripting.  license: GPL-2.0-or-later
   license: GPL-2.0-or-later
   license_file: COPYING
-  repository: https://gitlab.zapb.de/libjaylink/libjaylink
+  documentation: https://openocd.org/
+  repository: https://github.com/openocd-org/openocd
 
 extra:
   recipe-maintainers:
     - MementoRC
-  feedstock-name: libjaylink
+  feedstock-name: openocd
