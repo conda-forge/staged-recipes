@@ -19,6 +19,10 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 popd || exit 1
 
+if [[ ${target_platform} == win-* ]]; then
+  export PKG_PROG_PKG_CONFIG=$(which pkg-config)
+fi
+
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 if [[ ${target_platform} == osx-* ]]; then
