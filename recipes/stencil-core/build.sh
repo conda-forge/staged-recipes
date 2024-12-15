@@ -10,5 +10,5 @@ npm install -ddd \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
 tee ${PREFIX}/bin/stencil.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\stencil %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\stencil %*
 EOF

@@ -14,5 +14,5 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/ui5.cmd << EOF
-call %CONDA_PREFIX%\bin\node %PREFIX%\bin\ui5 %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\ui5 %*
 EOF
