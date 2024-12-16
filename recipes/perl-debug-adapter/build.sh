@@ -18,6 +18,9 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+# Delete broken wrapper
+rm ${PREFIX}/bin/perl-debug-adapter
+
 tee ${PREFIX}/bin/perl-debug-adapter << EOF
 #!/bin/sh
 exec \${CONDA_PREFIX}/bin/node \${CONDA_PREFIX}/lib/node_modules/perl-debug-adapter/out/debugAdapter.js \$@
