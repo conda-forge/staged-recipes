@@ -19,8 +19,12 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 popd || exit 1
 
-export ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+:}${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
+if [[ ${target_platform} == win-* ]]; then
+  export ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+:}${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
+  type ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
+  echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
+fi
+
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 if [[ ${target_platform} == osx-* ]]; then
