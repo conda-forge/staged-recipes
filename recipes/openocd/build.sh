@@ -21,11 +21,15 @@ popd || exit 1
 export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 if [[ ${target_platform} == win-* ]]; then
-  ls "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4"
-  export ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-  export ACLOCAL="aclocal -I ${ACLOCAL_PATH}"
+  # Use forward slashes even on Windows
+  BUILD_PREFIX_FWD=$(echo "${BUILD_PREFIX}" | sed 's/\\/\//g')
   mkdir -p m4
-  cp "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4" m4/
+  cp "${BUILD_PREFIX_FWD}/Library/mingw-w64/share/aclocal/pkg.m4" m4/
+  # Set aclocal paths with forward slashes
+  ACLOCAL_PATH="${BUILD_PREFIX_FWD}/Library/mingw-w64/share/aclocal"
+  export ACLOCAL_PATH
+  # Add both the m4 directory and the mingw-w64 aclocal directory
+  export ACLOCAL="aclocal -I m4 -I ${ACLOCAL_PATH}"
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
