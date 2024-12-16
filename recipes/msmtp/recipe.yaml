@@ -1,28 +1,31 @@
-{% set name = "msmtp" %}
-{% set version = "1.8.27" %}
+schema_version: 1
 
-package:
-  name: {{ name }}
-  version: {{ version }}
+context:
+  name: msmtp
+  version: 1.8.27
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
 
 source:
-  url: https://marlam.de/msmtp/releases/{{ name }}-{{ version}}.tar.xz
+  url: https://marlam.de/msmtp/releases/${{ name }}-${{ version}}.tar.xz
   sha256: 94030580a63a747faa0a3b9b1b264ae355aad33a4d94b832bfeb5b21633c965e
 
 build:
-  skip: True  # [win]
+  number: 0
+  skip: win
   script:
     - autoreconf -ivf
     - ./configure --prefix=$PREFIX --datarootdir=$PREFIX --with-tls=gnutls --with-libidn
     # Conda libgsasl needs updated to v2.1 for --with-libgsasl
     - make
     - make install
-  number: 0
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
     - autoconf
     - make
     - pkg-config
@@ -31,36 +34,40 @@ requirements:
     - libidn11
     # - libgsasl
 
-test:
-  commands:
-    - msmtp --help
-    - msmtpd --help
-    - test -f $PREFIX/man/man1/msmtp.1
-
 outputs:
-  - name: {{ name }}
-  - name: {{ name }}-sendmail
+  - package:
+      name: ${{ name }}
+  - package:
+      name: ${{ name }}-sendmail
     build:
-      skip: True  # [win]
+      skip: win
       script:
         - ln -s msmtp $PREFIX/bin/sendmail
         - ln -s msmtp.1 $PREFIX/man/man1/sendmail.1
     requirements:
       run:
         - msmtp
-    test:
-      commands:
-        - sendmail --help
-        - test -e $PREFIX/man/man1/sendmail.1
+    tests:
+      - script:
+          - sendmail --help
+          - test -e $PREFIX/man/man1/sendmail.1
     about:
-      summary: 'Use msmtp as a sendmail alternative'
+      summary: Use msmtp as a sendmail alternative
       desription: |
         Provides an alternative to the 'sendmail' tool. When sendmail is called
         it will call 'msmtp' instead.
+      license: GPL-3.0-or-later
+
+
+
+tests:
+  - script:
+      - msmtp --help
+      - msmtpd --help
+      - test -f $PREFIX/man/man1/msmtp.1
 
 about:
-  home: https://marlam.de/msmtp/
-  summary: 'msmtp is an SMTP client'
+  summary: msmtp is an SMTP client
   description: |
     In the default mode, it transmits a mail to an SMTP server which takes care
     of further delivery.
@@ -69,9 +76,9 @@ about:
     file with your mail account(s) and tell your MUA to call msmtp instead of
     /usr/sbin/sendmail.
   license: GPL-3.0-or-later
-  license_family: GPL
   license_file: COPYING
-  dev_url: https://git.marlam.de/gitweb/?p=msmtp.git
+  homepage: https://marlam.de/msmtp/
+  repository: https://git.marlam.de/gitweb/?p=msmtp.git
 
 extra:
   recipe-maintainers:
