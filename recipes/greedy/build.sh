@@ -11,7 +11,7 @@ export CXXFLAGS="${CXXFLAGS} -I ${PREFIX}/include/eigen3"
 
 
 cmake  $CMAKE_ARGS ../greedy \
-      -DITK_DIR="${CONDA_PREFIX}/lib/cmake/ITK" \
+      -DITK_DIR="${PREFIX}/lib/cmake/ITK" \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_FFTW=OFF \
       -DEigen3_DIR="${PREFIX}/include/eigen3" \
