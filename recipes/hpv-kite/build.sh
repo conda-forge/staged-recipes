@@ -4,7 +4,7 @@
 set -o errexit
 
 # add dependency-license-report plugin
-sed -i 's/id 'java'/id 'java'\nid "com.github.jk1.dependency-license-report" version "latest.release"/' build.gradle
+sed -i "s/^\(\s*\)id 'java'/&\n\1id 'com.github.jk1.dependency-license-report' version 'latest.release'/" build.gradle
 
 # build package with hpv-kite
 chmod +x ./gradlew
