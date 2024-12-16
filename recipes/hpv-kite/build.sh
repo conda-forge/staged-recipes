@@ -7,6 +7,7 @@ set -o errexit
 sed -i 's/id 'java'/id 'java'\nid "com.github.jk1.dependency-license-report" version "latest.release"/' build.gradle
 
 # build package with hpv-kite
+chmod +x ./gradlew
 ./gradlew clean build jar createDependenciesJar
 ./gradlew generateLicenseReport
 
