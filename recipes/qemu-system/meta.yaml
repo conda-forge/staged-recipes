@@ -1,0 +1,299 @@
+{% set name = "qemu-system" %}
+{% set version = "9.1.0" %}
+
+{% set qemu_system_share = [
+    "edk2-aarch64-code.fd", "edk2-arm-code.fd", "edk2-arm-vars.fd", "edk2-riscv-code.fd", "edk2-riscv-vars.fd",
+    "edk2-i386-code.fd", "edk2-i386-secure-code.fd", "edk2-i386-vars.fd", "edk2-x86_64-code.fd",
+    "edk2-x86_64-secure-code.fd"
+  ]
+%}
+{% set qemu_system_firmware = [
+    "50-edk2-i386-secure.json", "50-edk2-x86_64-secure.json", "60-edk2-aarch64.json", "60-edk2-arm.json",
+    "60-edk2-i386.json", "60-edk2-x86_64.json",
+  ]
+%}
+{% set qemu_system_tools = [
+      "elf2dmp", "qemu-io", "qemu-edid", "qemu-nbd", 
+      "qemu-img", "qemu-storage-daemon"
+    ]
+%}
+{% set qemu_system_tools_linux = [
+    "qemu-ga", "qemu-vmsr-helper", "qemu-pr-helper"
+  ]
+%}
+{% set qemu_system_icons = [
+    "128x128/apps/qemu.png", "16x16/apps/qemu.png", "24x24/apps/qemu.png", "64x64/apps/qemu.png",
+    "256x256/apps/qemu.png", "32x32/apps/qemu.bmp", "32x32/apps/qemu.png", "48x48/apps/qemu.png",
+    "512x512/apps/qemu.png", "scalable/apps/qemu.svg"
+  ]
+%}
+# {% set qemu_system_locale = [
+#     "bg", "de_DE", "fr_FR", "hu", "it", "sv", "tr", "uk", "zh_CN"
+#   ]
+# %}
+
+package:
+  name: qemu-system-split
+  version: {{ version }}
+
+source:
+  - url: https://gitlab.com/qemu-project/qemu/-/archive/v{{ version }}/qemu-v{{ version }}.tar.gz
+    sha256: 7a0d0e6b7e955d03c0d418025d8551146dbd4ec0128c1fb7dec791b94de7bbb7
+    folder: qemu_source
+    patches:
+      - patches/0002-osx-attr-meson.build.patch  # [osx]
+      - patches/0003-osx-block_file-posix.c.patch  # [osx]
+      - patches/0004-osx-audio_coreaudio.m.patch  # [osx]
+      - patches/0002-win-configure-pyvenv.patch  # [win]
+      - patches/0003-win-dbg-MESONINTROSPECT.patch  # [win]
+      - patches/0004-win-fix-PYTHON-var-Makefile.patch  # [win]
+      - patches/0005-win-fix-tracetool-path.patch  # [win]
+
+  # - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz  # [osx]
+  #   sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  # [osx]
+  - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-virt-{{ alpine_iso_version }}-aarch64.iso  # [osx]
+    sha256: dbd0c2eaa0bfa39e18d075dae07760a9055ffdee0a338c8a35059413b0f76fec  # [osx]
+  - url: https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd  # [osx]
+    sha256: 42f915c44de6858f69ae6f1ffc9eaa3884d1b2ca97a7537d81312fb0dfd712cd  # [osx]
+
+build:
+  number: 0
+  skip: True  # [win]
+  script_env:
+    - CONDA_QEMU_INSTALL_DIR=${PREFIX}
+
+requirements:
+  build:
+    # QEMU needs:
+    # https://gitlab.com/qemu-project/berkeley-softfloat-3.git (not in conda-forge ... yet?)
+    # https://gitlab.com/qemu-project/berkeley-testfloat-3.git (not in conda-forge ... yet?)
+    # https://gitlab.com/qemu-project/keycodemapdb.git (not in conda-forge ... yet?)
+    # ... and a few more
+    - git
+    - ninja
+    - pkg-config
+    
+    {% if target_platform == "linux-64" or target_platform == "osx-64" %}
+    - {{ compiler("c") }}
+    - {{ stdlib("c") }}
+    - autoconf
+    - automake
+    - libtool
+    - meson
+    # - patchelf
+    # - python-qemu-qmp
+    {% endif %}
+    
+    {% if target_platform == "osx-64" %}
+    - clang_osx-arm64
+    {% endif %}
+    
+    {% if target_platform == "win-64" %}
+    - {{ compiler("m2w64_c") }}
+    - {{ stdlib("m2w64_c") }}
+    - binutils
+    - gettext
+    - m2-autoconf
+    - m2-automake-wrapper
+    - m2-findutils
+    - m2-grep
+    - m2-libtool
+    - m2-make
+    - m2-which
+    - packaging
+    {% endif %}
+  host:
+    - capstone
+    - epoxy
+    - gnutls
+    - glib
+    - glfw
+    - gtk3
+    - gmp
+    - libcurl
+    - libgcrypt
+    - libgsasl
+    - libjpeg-turbo
+    - libpng
+    - libusb
+    - lzfse
+    - lzo
+    - nettle
+    - openssh
+    - pixman
+    # - python ==3.12
+    - sdl2
+    - sdl2_image
+    - snappy
+    - sphinx >=3.4.3
+    - sphinx-rtd-theme >=0.5
+    - zlib
+    
+    {% if target_platform == "linux-64" or target_platform == "osx-64" %}
+    - dtc
+    - libfdt
+    {% endif %}
+    
+    {% if target_platform == "linux-64" %}
+    - alsa-lib
+    - jack
+    - keyutils
+    - libaio
+    - libegl-devel
+    - libnuma
+    # - libseccomp  : causes error: 'CLONE_NEWCGROUP' undeclared
+    - libslirp
+    - libudev1
+    - liburing
+    - libxkbcommon
+    {% endif %}
+    
+    {% if target_platform == "osx-64" %}
+    - llvmdev
+    - zstd
+    {% endif %}
+    
+    {% if target_platform == "win-64" %}
+    - bzip2
+    {% endif %}
+  run:
+    - capstone
+    - lzfse
+    
+    {% if target_platform == "linux-64" %}
+    - libfdt
+    - libnuma
+    {% endif %}
+    
+    {% if target_platform == "osx-64" %}
+    - libfdt
+    {% endif %}
+
+outputs:
+  - name: qemu-system-shared-resources
+    files:
+      {% for file in qemu_system_tools %}
+      - bin/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_tools_linux %}  # [linux]
+      - bin/{{ file }}  # [linux]
+      {% endfor %}  # [linux]
+
+      {% for file in qemu_system_share %}
+      - share/qemu/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_firmware %}
+      - share/qemu/firmware/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_icons %}
+      - share/icons/hicolor/{{ file }}
+      {% endfor %}
+
+      - share/applications/qemu.desktop
+      - libexec/qemu-bridge-helper
+    requirements:
+      build:
+          - {{ compiler("c") }}
+          - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("qemu-system-shared-resources") }}
+
+        {% for dep in qemu_noarch_dependencies %}
+        - {{ dep }}
+        {% endfor %}
+
+        {% if target_platform == "linux-64" %}
+          {% for dep in qemu_linux_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "osx-64" %}
+          {% for dep in qemu_osx_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "win-64" %}
+        - bzip2
+        {% endif %}
+      run:
+        - {{ pin_subpackage("qemu-system-shared-resources") }}
+
+        {% for dep in qemu_noarch_dependencies %}
+        - {{ dep }}
+        {% endfor %}
+
+        {% if target_platform == "linux-64" %}
+          {% for dep in qemu_linux_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "osx-64" %}
+          {% for dep in qemu_osx_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+
+  - name: qemu-system-{{ qemu_system_execs }}
+    files:
+      - bin/qemu-system-{{ qemu_system_execs }}
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("qemu-system-shared-resources") }}
+
+        {% for dep in qemu_noarch_dependencies %}
+        - {{ dep }}
+        {% endfor %}
+
+        {% if target_platform == "linux-64" %}
+          {% for dep in qemu_linux_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "osx-64" %}
+          {% for dep in qemu_osx_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "win-64" %}
+        - bzip2
+        {% endif %}
+      run:
+        - {{ pin_subpackage("qemu-system-shared-resources") }}
+
+        {% for dep in qemu_noarch_dependencies %}
+        - {{ dep }}
+        {% endfor %}
+
+        {% if target_platform == "linux-64" %}
+          {% for dep in qemu_linux_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "osx-64" %}
+          {% for dep in qemu_osx_dependencies %}
+        - {{ dep }}
+          {% endfor %}
+        {% endif %}
+
+        {% if target_platform == "win-64" %}
+        - bzip2
+        {% endif %}
+    tests:
+      package_contents:
+        bin:
+          - qemu-system-{{ qemu_system_execs }}
+        script: |
+          qemu-system-{{ qemu_system_execs }} --version
