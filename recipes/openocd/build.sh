@@ -26,7 +26,7 @@ if [[ ${target_platform} == win-* ]]; then
   # Set aclocal paths with forward slashes
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
-  export LDFLAGS="${LDFLAGS:-} -lz"
+  export LDFLAGS="${LDFLAGS:-} -ljim  -lz"
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
