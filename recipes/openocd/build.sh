@@ -21,8 +21,6 @@ popd || exit 1
 if [[ ${target_platform} == win-* ]]; then
   export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}${PKG_CONFIG_PATH:+;}${SRC_DIR}/jimtcl-install/lib/pkgconfig;${PREFIX}/lib64/pkgconfig"
   export ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+;}${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-  ls ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
-  cat ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
   echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
 else
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
