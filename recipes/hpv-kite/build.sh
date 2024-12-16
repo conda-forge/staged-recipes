@@ -13,6 +13,12 @@ mkdir -p $PREFIX/bin
 cp build/libs/*.jar $PREFIX/bin/
 
 # Tworzenie skryptu startowego
-echo -e "#!/bin/bash\njava -jar $PREFIX/bin/hpv-kite-1.0.jar \"\$@\"" > $PREFIX/bin/hpv-kite
+tee ${PREFIX}/bin/hpv-kite << EOF
+#!/bin/sh
+exec \${JAVA_HOME}/bin/java -jar \${CONDA_PREFIX}/libexec/hpv-kite/hpv-kite-${PKG_VERSION}.jar "\$@"
+
+tee ${PREFIX}/bin/hpv-kite.cmd << EOF
+call %JAVA_HOME%\bin\java -jar %CONDA_PREFIX%\libexec\hpv-kite\hpv-kite-${PKG_VERSION}.jar %*
+EOF
 chmod +x $PREFIX/bin/hpv-kite
 
