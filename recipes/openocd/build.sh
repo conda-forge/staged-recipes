@@ -24,7 +24,7 @@ if [[ ${target_platform} == win-* ]]; then
   mkdir -p m4
   cp "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4" m4/
   # Set aclocal paths with forward slashes
-  ACLOCAL_PATH="${BUILD_PREFIX_FWD}/Library/mingw-w64/share/aclocal"
+  ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
   ls -l "${ACLOCAL_PATH}"
   ls m4
