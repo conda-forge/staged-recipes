@@ -1,0 +1,72 @@
+{% set name = "qcdloop-fortran" %}
+{% set version = "1.98" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+    url: https://qcdloop.fnal.gov/QCDLoop-{{ version }}.tar.gz
+    sha256: 917ba1daa6d526937a93e0e0b3392103660efdeef2880a0d9188bdc0ad9c0035
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ name }}-static
+
+    build:
+      skip: true  # [win]
+      script:
+        # Enable extended-source with '-ffixed-line-length-none' for long lines
+        # c.f. https://gcc.gnu.org/onlinedocs/gfortran/Fortran-Dialect-Options.html#index-ffixed-line-length-n
+        - cd ql
+        - make FC=$FC FFLAGS="$FFLAGS -std=legacy -Wall -ffixed-line-length-none"
+        - cd ..
+
+        # Install
+        - mv ql/libqcdloop.a $PREFIX/lib/
+
+        - mkdir -p $PREFIX/include/ql
+        - mv ql/*.mod $PREFIX/include/ql/
+
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('fortran') }}
+        - make
+        - libtool
+      run:
+        # QCDLoop calls FF functions
+        - ff-static
+
+    test:
+      source_files:
+        - test.f
+      requires:
+        - {{ compiler('fortran') }}
+      commands:
+        - test -f $PREFIX/lib/libqcdloop.a
+        - test -f $PREFIX/include/ql/qldiffi2.mod
+        - test -f $PREFIX/include/ql/solvequadratic.mod
+
+        - $FC test.f -o test $FFLAGS -I$PREFIX/include/ql -std=legacy $LDFLAGS -lqcdloop -lff
+        - ./test
+
+about:
+  home: https://qcdloop.fnal.gov/
+  summary: 'QCDLoop: one-loop scalar integrals'
+  description: |
+    QCDLoop is software for one-loop scalar Feynman integrals, evaluated
+    close to four dimensions. For integrals with all massive internal lines
+    the integrals are all known, both analytically and numerically.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  dev_url: https://qcdloop.fnal.gov/
+  doc_url: https://qcdloop.fnal.gov/
+
+extra:
+  feedstock-name: qcdloop-fortran
+  recipe-maintainers:
+    - matthewfeickert
