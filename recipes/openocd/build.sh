@@ -19,27 +19,8 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 popd || exit 1
 
-if [[ ${target_platform} == win-* ]]; then
-  POSSIBLE_PATHS="
-  ${CONDA_PREFIX}/Library/mingw-w64/share/aclocal
-  "
-
-  for path in ${POSSIBLE_PATHS}; do
-    if [ -f "${path}/pkg.m4" ]; then
-      ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+:}${path}"
-      type "${path}/pkg.m4"
-      break
-    fi
-  done
-
-  if [ -n "$ACLOCAL_PATH" ]; then
-    echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
-    export ACLOCAL_PATH
-  else
-    echo "Warning: pkg.m4 not found in common locations"
-  fi
-fi
-
+export ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+:}${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
+echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
 if [[ ${target_platform} == osx-* ]]; then
