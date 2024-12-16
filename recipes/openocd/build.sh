@@ -21,7 +21,8 @@ popd || exit 1
 
 if [[ ${target_platform} == win-* ]]; then
   export ACLOCAL_PATH="${ACLOCAL_PATH}${ACLOCAL_PATH:+:}${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-  type ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
+  ls ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
+  cat ${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4
   echo "Setting ACLOCAL_PATH to: ${ACLOCAL_PATH}"
 fi
 
