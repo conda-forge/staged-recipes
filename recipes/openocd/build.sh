@@ -22,6 +22,10 @@ export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib/pk
 
 if [[ ${target_platform} == win-* ]]; then
   export ACLOCAL_PKG_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
+  aclocal --print-ac-dir
+  export ACLOCAL_DIR="${ACLOCAL_PKG_PATH}"
+  export ACLOCAL="aclocal -I ${ACLOCAL_DIR}"
+  export PATH="${BUILD_PREFIX}/Library/mingw-w64/bin:${PATH}"
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
