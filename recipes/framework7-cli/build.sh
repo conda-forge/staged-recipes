@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-export CFLAGS="${CFLAGS} -I${PREFIX}/include/glib-2.0"
+export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include/glib-2.0"
 
 # Create package archive and install globally
 npm pack --ignore-scripts
