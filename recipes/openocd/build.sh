@@ -26,7 +26,7 @@ if [[ ${target_platform} == win-* ]]; then
   # Set aclocal paths with forward slashes
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
-  export LDFLAGS="${LDFLAGS:-} -ljim  -lz"
+  export LDFLAGS="${LDFLAGS:-} -ljim -lz"
   cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
 fi
 
