@@ -37,4 +37,7 @@ pushd !SRC_DIR! || exit /b 1
 
   copy /Y !PREFIX!\Library\bin\jaylink-%VERSION%.dll !PREFIX!\Library\bin\jaylink.dll
   if errorlevel 1 exit 1
+
+  :: Remove potentially confusing libjaylink.lib
+  del !PREFIX!\Library\lib\libjaylink.lib
 popd || exit /b 1
