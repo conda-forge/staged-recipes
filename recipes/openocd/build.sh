@@ -30,9 +30,6 @@ if [[ ${target_platform} == win-* ]]; then
   PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig:${PREFIX}/lib/pkgconfig"
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
-
-  find $PREFIX -name '*capstone*.pc'
-  pkg-config --libs libcapstone
 fi
 
 export PKG_CONFIG_PATH
