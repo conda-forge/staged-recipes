@@ -24,7 +24,7 @@ if [[ ${target_platform} == win-* ]]; then
   export ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
   cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
-  pkg-config --libs libusb-1.0
+  pkg-config --libs libusb
   pkg-config --libs libjaylink
   pkg-config --libs jimtcl
 fi
