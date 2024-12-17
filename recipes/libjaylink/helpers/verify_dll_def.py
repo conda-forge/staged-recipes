@@ -1,16 +1,26 @@
 import subprocess
 import re
+import sys
 
 
 def get_dll_exports(dll_path):
-    # Use nm -D for MinGW or dumpbin /exports for MSVC
     try:
+        # Try dumpbin first (MSVC)
         output = subprocess.check_output(['dumpbin', '/exports', dll_path], text=True)
-        # Extract function names from nm output
-        exports = set(re.findall(r'\s+T\s+(_?)(\w+)', output))
-        return {name for _, name in exports}
-    except subprocess.CalledError:
-        return set()
+        exports = set(re.findall(r'\s+\d+\s+[\dA-F]+\s+[\dA-F]+\s+(\w+)', output))
+        print("Found exports using dumpbin:", exports)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        try:
+            # Fall back to nm (MinGW)
+            output = subprocess.check_output(['nm', '-D', dll_path], text=True)
+            print("Raw nm output:", output)  # Debug output
+            exports = set(re.findall(r'\s+T\s+(_?)(\w+)', output))
+            exports = {name for _, name in exports}
+            print("Found exports using nm:", exports)
+        except subprocess.CalledProcessError as e:
+            print("Error running nm:", e)
+            return set()
+    return exports
 
 
 def get_def_exports(def_path):
@@ -20,19 +30,39 @@ def get_def_exports(def_path):
             line = line.strip()
             if line and not line.startswith(';') and 'EXPORTS' not in line:
                 exports.add(line.split()[0])
+        print("Found exports in .def file:", exports)
         return exports
 
 
 def compare_exports(dll_path, def_path):
+    print(f"Checking DLL: {dll_path}")
+    print(f"Against DEF: {def_path}")
+
     dll_exports = get_dll_exports(dll_path)
     def_exports = get_def_exports(def_path)
+
+    if not dll_exports:
+        print("ERROR: No exports found in DLL!")
+        return False
 
     missing_in_dll = def_exports - dll_exports
     missing_in_def = dll_exports - def_exports
 
     if missing_in_dll:
-        print("Functions in .def but not in DLL:", missing_in_dll)
+        print("ERROR: Functions in .def but not in DLL:", missing_in_dll)
     if missing_in_def:
-        print("Functions in DLL but not in .def:", missing_in_def)
+        print("ERROR: Functions in DLL but not in .def:", missing_in_def)
 
     return not (missing_in_dll or missing_in_def)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: verify_dll_def.py <dll_path> <def_path>")
+        sys.exit(1)
+
+    success = compare_exports(sys.argv[1], sys.argv[2])
+    if not success:
+        print("Validation FAILED")
+        sys.exit(1)
+    print("Validation PASSED")
