@@ -30,6 +30,11 @@ if [[ ${target_platform} == win-* ]]; then
   PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig"
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
+
+  ls -l %PREFIX%/Library/lib/libjaylink*
+  ls -l %PREFIX%/Library/bin/libjaylink*
+  nm -D %PREFIX%/Library/bin/libjaylink.dll | grep jaylink_has_cap
+  exit 1
 fi
 
 export PKG_CONFIG_PATH
