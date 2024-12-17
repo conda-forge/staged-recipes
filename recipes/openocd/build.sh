@@ -26,8 +26,7 @@ if [[ ${target_platform} == win-* ]]; then
   # Set aclocal paths with forward slashes
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
-  export LDFLAGS="${LDFLAGS:-} -ljim -lz"
-  cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
+  sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
