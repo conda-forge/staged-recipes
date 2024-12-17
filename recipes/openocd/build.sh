@@ -24,10 +24,12 @@ if [[ ${target_platform} == win-* ]]; then
   export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig"
   export ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
+  echo "${PKG_CONFIG_PATH}"
   cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
+  cat ${PREFIX}/Library/lib/pkgconfig/libjaylink.pc
+  find ${PREFIX} -name "*usb*.pc"
   pkg-config --libs libjaylink
   pkg-config --libs jimtcl
-  find ${PREFIX} -name "*usb*.pc"
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
