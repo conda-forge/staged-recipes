@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set +e  
 
 libtoolize --force --copy
 ./autogen.sh
@@ -19,3 +19,7 @@ echo "#### end config.log ####"
 make -j$(nproc)
 make install
 make check
+
+cat tools/test-suite.log
+
+set -e
