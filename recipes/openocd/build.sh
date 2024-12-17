@@ -18,9 +18,10 @@ pushd "${SRC_DIR}"/jimtcl || exit 1
   export LDFLAGS="-L${SRC_DIR}/jimtcl-install/lib ${LDFLAGS:-}"
 popd || exit 1
 
-export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}${PKG_CONFIG_PATH:+:}${SRC_DIR}/jimtcl-install/lib/pkgconfig"
 
 if [[ ${target_platform} == win-* ]]; then
+  export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig"
   export ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
   cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
