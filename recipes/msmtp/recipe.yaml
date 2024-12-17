@@ -1,8 +1,6 @@
-schema_version: 1
-
 context:
   name: msmtp
-  version: 1.8.27
+  version: 1.8.25
 
 recipe:
   name: ${{ name }}
@@ -10,61 +8,64 @@ recipe:
 
 source:
   url: https://marlam.de/msmtp/releases/${{ name }}-${{ version}}.tar.xz
-  sha256: 94030580a63a747faa0a3b9b1b264ae355aad33a4d94b832bfeb5b21633c965e
-
-build:
-  number: 0
-  skip: win
-  script:
-    - autoreconf -ivf
-    - ./configure --prefix=$PREFIX --datarootdir=$PREFIX --with-tls=gnutls --with-libidn
-    # Conda libgsasl needs updated to v2.1 for --with-libgsasl
-    - make
-    - make install
-
-requirements:
-  build:
-    - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}
-    - autoconf
-    - make
-    - pkg-config
-  host:
-    - gnutls
-    - libidn11
-    # - libgsasl
+  sha256: 2dfe1dbbb397d26fe0b0b6b2e9cd2efdf9d72dd42d18e70d7f363ada2652d738
 
 outputs:
   - package:
       name: ${{ name }}
+    build:
+      number: 0
+      skip: win
+      script:
+        - autoreconf -ivf
+        - ./configure --prefix=$PREFIX --datarootdir=$PREFIX --with-tls=gnutls --with-libidn --with-libgsasl
+        - make
+        - make install
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - automake
+        - make
+        - pkg-config
+        - gettext
+        - texinfo
+      host:
+        - gnutls
+        - libidn11
+        - libgsasl
+      run:
+        - libgsasl
+    tests:
+      - script:
+        - msmtp --help
+        - msmtpd --help
+        - test -f $PREFIX/man/man1/msmtp.1
+
   - package:
       name: ${{ name }}-sendmail
     build:
       skip: win
       script:
+        - mkdir -p $PREFIX/bin
         - ln -s msmtp $PREFIX/bin/sendmail
+        - mkdir -p $PREFIX/man/man1
         - ln -s msmtp.1 $PREFIX/man/man1/sendmail.1
     requirements:
+      host:
+        - msmtp
       run:
         - msmtp
     tests:
       - script:
-          - sendmail --help
-          - test -e $PREFIX/man/man1/sendmail.1
+        - test -e $PREFIX/bin/sendmail
+        - test -e $PREFIX/man/man1/sendmail.1
     about:
       summary: Use msmtp as a sendmail alternative
-      desription: |
+      description: |
         Provides an alternative to the 'sendmail' tool. When sendmail is called
         it will call 'msmtp' instead.
       license: GPL-3.0-or-later
-
-
-
-tests:
-  - script:
-      - msmtp --help
-      - msmtpd --help
-      - test -f $PREFIX/man/man1/msmtp.1
 
 about:
   summary: msmtp is an SMTP client
