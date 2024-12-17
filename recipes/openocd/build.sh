@@ -21,12 +21,12 @@ popd || exit 1
 export PKG_CONFIG_PATH="${SRC_DIR}/jimtcl-install/lib/pkgconfig:${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 if [[ ${target_platform} == win-* ]]; then
-  # mkdir -p m4
-  # cp "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal/pkg.m4" m4/
-  # Set aclocal paths with forward slashes
-  ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-  export ACLOCAL_PATH
+  export ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
+  cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
+  pkg-config --libs libusb-1.0
+  pkg-config --libs libjaylink
+  pkg-config --libs jimtcl
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
