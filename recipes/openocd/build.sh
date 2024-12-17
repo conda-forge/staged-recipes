@@ -30,14 +30,9 @@ if [[ ${target_platform} == win-* ]]; then
   PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig"
   ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
   export ACLOCAL_PATH
-  sed -i 's/ljim/ljim -lz/' ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
-  echo "${PKG_CONFIG_PATH}"
-  cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
-  cat ${PREFIX}/Library/lib/pkgconfig/libjaylink.pc
-  find ${PREFIX} -name "*usb*.pc"
-  pkg-config --list-all
-  pkg-config --libs libjaylink
-  pkg-config --libs jimtcl
+
+  find $PREFIX -name 'capstone.pc'
+  pkg-config --libs capstone
 fi
 
 export PKG_CONFIG_PATH
