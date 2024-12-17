@@ -7,6 +7,14 @@ mv package.json package.json.bak
 jq 'del(.scripts.prepare)' package.json.bak > package.json
 
 # Create package archive and install globally
+if [[ "${target_platform}" == "osx-arm64" ]]; then
+  export npm_config_arch="arm64"
+fi
+
+rm $PREFIX/bin/node
+ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
+
+# Create package archive and install globally
 npm pack --ignore-scripts
 npm install -ddd \
     --global \
