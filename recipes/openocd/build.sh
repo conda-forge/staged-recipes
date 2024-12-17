@@ -27,7 +27,7 @@ if [[ ${target_platform} == win-* ]]; then
   cat ${SRC_DIR}/jimtcl-install/lib/pkgconfig/jimtcl.pc
   pkg-config --libs libjaylink
   pkg-config --libs jimtcl
-  find ${PREFIX} -name '*usb*.pc"
+  find ${PREFIX} -name "*usb*.pc"
 fi
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
