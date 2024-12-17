@@ -28,7 +28,8 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
-  dlltool -d jaylink.def --dllname libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  dlltool -d libjaylink\jaylink.def --dllname libjaylink\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  if errorlevel 1 exit 1
 
   :: Create non-versioned .dll
   copy /Y !PREFIX!\Library\bin\libjaylink-%VERSION%.dll !PREFIX!\Library\bin\libjaylink.dll
