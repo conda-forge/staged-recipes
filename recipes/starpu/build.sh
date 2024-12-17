@@ -18,3 +18,4 @@ echo "#### end config.log ####"
 # Build and install
 make -j$(nproc)
 make install
+make test
