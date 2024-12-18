@@ -48,8 +48,8 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   echo "Checking symbols in .dll and .dll.a files"
-  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "*jaylink_has_cap*"
-  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "*jaylink_has_cap*"
+  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr /r ".*jaylink_has_cap.*"
+  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr /r ".*jaylink_has_cap.*"
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
