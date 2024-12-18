@@ -38,11 +38,11 @@ pushd !SRC_DIR! || exit /b 1
   dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\bin\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
-  lib /list !PREFIX!\Library\lib\libjaylink.lib
+  dumpbin /symbols !PREFIX!\Library\lib\libjaylink.lib | findstr "jaylink_"
 
-  ar t !PREFIX!\Library\lib\libjaylink.dll.a
+  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr " I "
 
-  objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | grep -A 100 "[Ordinal/Name Pointer] Table"
-  objdump -p !PREFIX!\Library\bin\libjaylink.dll | grep -A 100 "[Ordinal/Name Pointer] Table"
+  objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | findstr "jaylink_"
+  objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_"
 
 popd || exit /b 1
