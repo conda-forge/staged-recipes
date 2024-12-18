@@ -38,7 +38,7 @@ pushd !SRC_DIR! || exit /b 1
   dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\bin\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
-  lib /list libjaylink.lib
+  lib /list !PREFIX!\Library\lib\libjaylink.lib
 
   ar t !PREFIX!\Library\lib\libjaylink.dll.a
 
