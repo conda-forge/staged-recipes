@@ -232,13 +232,10 @@ outputs:
       - bin/{{ file }}
       {% endfor %}
 
-      {% if target_platform == "linux-64" %}
-        {% for file in qemu_system_tools_linux %}
-      - bin/{{ file }}
-        {% endfor %}
-      {% endif %}
+      {% for file in qemu_system_tools_linux %}
+      - bin/{{ file }}  # [linux]
+      {% endfor %}
 
-      - share/applications/qemu.desktop
       - libexec/qemu-bridge-helper
     requirements:
       build:
@@ -307,7 +304,17 @@ outputs:
         # {% endif %}
     test:
       commands:
-        - echo "No tests yet"
+        {% for file in qemu_system_tools %}
+        - test -f ${PREFIX}/bin/{{ file }}  # [unix]
+        - if not exist %PREFIX%\\bin\\{{ file }} echo "File not found"  # [not unix]
+        - {{ file }} --version
+        {% endfor %}
+
+        {% for file in qemu_system_tools_linux %}
+        - test -f ${PREFIX}/bin/{{ file }}  # [linux]
+        {% endfor %}
+
+        - libexec/qemu-bridge-helper
 
 
   - name: qemu-system-{{ qemu_system_execs }}
@@ -381,7 +388,7 @@ outputs:
     test:
       commands:
         - test -f $PREFIX/bin/qemu-system-{{ qemu_system_execs }}  # [not win]
-        - qemu-system-{{ qemu_system_execs }} --version  # [not win]
+        - qemu-system-{{ qemu_system_execs }} --version
 
 
 about:
