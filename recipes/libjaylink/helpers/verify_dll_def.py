@@ -4,17 +4,24 @@ import sys
 
 
 def get_dll_exports(dll_path):
-    try:
-        output = subprocess.check_output(['nm', '-D', dll_path], text=True)
-        print("Raw nm output:", output)  # Debug output
-        exports = set(re.findall(r'\s+T\s+(_?)(\w+)', output))
-        exports = {name for _, name in exports}
-        print("Found exports using nm:", exports)
-        return exports
-    except subprocess.CalledProcessError as e:
-        print("Error running nm:", e)
-        return set()
-
+    for nm_args in [
+        ['nm', '-gp', dll_path],       # Global symbols with no sort
+        ['nm', '--extern-only', dll_path],  # Only external symbols
+        ['nm', '--dynamic', dll_path],  # Dynamic symbols
+        ['nm', '-g', '--defined-only', dll_path],  # Defined global symbols
+    ]:
+        try:
+            print(f"Trying {' '.join(nm_args)}")
+            output = subprocess.check_output(nm_args, text=True, stderr=subprocess.STDOUT)
+            print("Raw nm output:", output)
+            if output.strip():
+                exports = set(re.findall(r'\s*[\w]+\s+[\w]+\s+(\w+)', output))
+                print("Found exports:", exports)
+                return exports
+        except subprocess.CalledProcessError as e:
+            print(f"Error with {' '.join(nm_args)}:", e)
+            continue
+    return set()
 
 def get_def_exports(def_path):
     with open(def_path) as f:
