@@ -35,14 +35,14 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
-  :: objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll
-  dlltool --identify build-libjaylink\libjaylink\libjaylink.dll
-  dlltool --identify build-libjaylink\libjaylink\libjaylink-%VERSION%.dll
-  dlltool --identify build-libjaylink\libjaylink\libjaylink.lib
-  dlltool --identify build-libjaylink\libjaylink\libjaylink-%VERSION%.lib
-  dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\lib\libjaylink.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\bin\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
-  :: Remove potentially confusing libjaylink.lib
-  del !PREFIX!\Library\lib\libjaylink.lib
+  lib /list libjaylink.lib
+
+  ar t !PREFIX!\Library\lib\libjaylink.dll.a
+
+  objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | grep -A 100 "[Ordinal/Name Pointer] Table"
+  objdump -p !PREFIX!\Library\bin\libjaylink.dll | grep -A 100 "[Ordinal/Name Pointer] Table"
+
 popd || exit /b 1
