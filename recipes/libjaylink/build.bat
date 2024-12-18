@@ -18,7 +18,7 @@ pushd !SRC_DIR! || exit /b 1
     --strip ^
     --backend=ninja ^
     --default-library=shared ^
-    -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS"
+    -Dc_args="-D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS -DBUILDING_DLL"
    if errorlevel 1 exit 1
 
   meson compile -C build-!PKG_NAME!
@@ -39,6 +39,7 @@ pushd !SRC_DIR! || exit /b 1
   powershell -Command "Get-Content libjaylink\libjaylink.h | Select-Object -Skip 450 -First 11"
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
+          --as-flags="--defsym __imp_prefix=1" ^
           --add-underscore ^
           --kill-at ^
           --output-lib libjaylink-%VERSION%.dll.a
@@ -49,7 +50,7 @@ pushd !SRC_DIR! || exit /b 1
 
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink.dll ^
-          --as-flags="--defsym __imp_prefix=1"
+          --as-flags="--defsym __imp_prefix=1" ^
           --add-underscore ^
           --kill-at ^
           --output-lib libjaylink.dll.a
