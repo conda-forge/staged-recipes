@@ -1,0 +1,143 @@
+{% set version = "17.0.6" %}
+{% set major_ver = version.split(".")[0] %}
+
+# as of LLVM 17, we expect an "rc" suffix for the release candidates
+{% set extra = "rc" if version.split(".")[-1] not in "0123456789" else "" %}
+{% set extra = "git" if version.split(".")[-1] == "dev0" else extra %}
+
+package:
+  name: bolt-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version.replace(".rc", "-rc") }}/llvm-project-{{ version.replace(".rc", "rc") }}.src.tar.xz
+  sha256: 58a8818c60e6627064f312dbf46c02d9949956558340938b71cf731ad8bc0813
+  # matching https://github.com/conda-forge/llvmdev-feedstock/tree/main/recipe/patches,
+  # since we rebuild llvmdev here (until https://github.com/llvm/llvm-project/pull/97130)
+  patches:
+    - patches/0001-pass-through-QEMU_LD_PREFIX-SDKROOT.patch
+    # backports patch for issues with LLJIT, see
+    # https://github.com/llvm/llvm-project/commit/122ebe3b500190b1f408e2e6db753853e297ba28
+    - patches/0002-ORC-Use-EPC-bootstrap-symbols-to-communicate-eh-fram.patch
+
+build:
+  number: 0
+  merge_build_host: false
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - libcxx {{ cxx_compiler_version }}  # [osx]
+  host:
+    - libcxx {{ cxx_compiler_version }}  # [osx]
+    # needs aarch/ppc/arm (re)build of conda-forge/backtrace-feedstock
+    - backtrace                          # [unix and x86]
+    - libxml2
+    - zlib
+    - zstd
+
+outputs:
+  # Contains bolt support libraries
+  - name: libbolt-devel
+    script: install_bolt.sh   # [unix]
+    script: install_bolt.bat  # [win]
+    build:
+      activate_in_script: true
+      always_include_files:
+        # Must overwrite CMake targets from llvmdev
+        {% set prefix = "Library/" if win else "" %}
+        - {{ prefix }}lib/cmake/llvm/LLVM-Config.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMConfig.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMConfigVersion.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMExports-release.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMExports.cmake
+
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libcxx {{ cxx_compiler_version }}  # [osx]
+      host:
+        # ensure we don't pick up stuff already packaged in llvmdev
+        - llvmdev {{ version }}
+      run:
+        # necessary due to shared CMake metadata
+        - llvmdev {{ version }}
+      run_constrained:
+        - llvm        {{ version }}
+        - llvmdev     {{ version }}
+        - clang       {{ version }}
+        - clang-tools {{ version }}
+    test:
+      commands:
+      {% for each_lib in [
+          "Core", "Passes", "Profile", "Rewrite", "RuntimeLibs",
+          "TargetAArch64", "TargetX86", "Utils"
+      ] %}
+        - test -f $PREFIX/lib/libLLVMBOLT{{ each_lib }}.a               # [unix]
+        - if not exist %LIBRARY_LIB%\LLVMBOLT{{ each_lib }}.lib exit 1  # [win]
+      {% endfor %}
+        # only on linux-64
+        - test -f $PREFIX/lib/libbolt_rt_hugify.a                       # [linux64]
+        - test -f $PREFIX/lib/libbolt_rt_instr.a                        # [linux64]
+
+      {% for each_file in [
+          "-Config", "Config", "ConfigVersion", "Exports", "Exports-release"
+      ] %}
+        # CMake metadata
+        - test -f $PREFIX/lib/cmake/llvm/LLVM{{ each_file }}.cmake                  # [unix]
+        - if not exist %LIBRARY_LIB%/cmake/llvm/LLVM{{ each_file }}.cmake exit 1    # [win]
+      {% endfor %}
+
+  # Contains bolt
+  - name: bolt
+    script: install_bolt.sh   # [unix]
+    script: install_bolt.bat  # [win]
+    build:
+      activate_in_script: true
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libcxx {{ cxx_compiler_version }}  # [osx]
+      host:
+        - libcxx {{ cxx_compiler_version }}  # [osx]
+        # ensure we don't pick up stuff already packaged in llvmdev/libbolt-devel
+        - llvmdev {{ version }}
+        - {{ pin_subpackage("libbolt-devel", exact=True) }}
+        - zlib
+        - zstd
+      run:
+        - {{ pin_subpackage("libbolt-devel", exact=True) }}
+      run_constrained:
+        - llvm        {{ version }}
+        - llvmdev     {{ version }}
+        - clang       {{ version }}
+        - clang-tools {{ version }}
+    test:
+      commands:
+        - llvm-bolt -version
+        - llvm-boltdiff -version
+        - llvm-bolt-heatmap -version
+        - merge-fdata -version
+        - perf2bolt -version
+
+about:
+  home: https://github.com/llvm/llvm-project/tree/main/bolt
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: bolt/LICENSE.TXT
+  license_family: Apache
+  summary: BOLT is a post-link optimizer developed to speed up large applications.
+  dev_url: https://github.com/llvm/llvm-project/
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
+  feedstock-name: bolt
