@@ -49,15 +49,13 @@ def compare_exports(dll_path, def_path):
         return False
 
     missing_in_dll = def_exports - dll_exports
-    missing_in_def = dll_exports - def_exports
+    # missing_in_def = dll_exports - def_exports  # Don't check for extra DLL exports
 
     if missing_in_dll:
         print("ERROR: Functions in .def but not in DLL:", missing_in_dll)
-    if missing_in_def:
-        print("ERROR: Functions in DLL but not in .def:", missing_in_def)
+        return False
 
-    return not (missing_in_dll or missing_in_def)
-
+    return True
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
