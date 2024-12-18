@@ -5,22 +5,15 @@ import sys
 
 def get_dll_exports(dll_path):
     try:
-        # Try dumpbin first (MSVC)
-        output = subprocess.check_output(['dumpbin', '/exports', dll_path], text=True)
-        exports = set(re.findall(r'\s+\d+\s+[\dA-F]+\s+[\dA-F]+\s+(\w+)', output))
-        print("Found exports using dumpbin:", exports)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        try:
-            # Fall back to nm (MinGW)
-            output = subprocess.check_output(['nm', '-D', dll_path], text=True)
-            print("Raw nm output:", output)  # Debug output
-            exports = set(re.findall(r'\s+T\s+(_?)(\w+)', output))
-            exports = {name for _, name in exports}
-            print("Found exports using nm:", exports)
-        except subprocess.CalledProcessError as e:
-            print("Error running nm:", e)
-            return set()
-    return exports
+        output = subprocess.check_output(['nm', '-D', dll_path], text=True)
+        print("Raw nm output:", output)  # Debug output
+        exports = set(re.findall(r'\s+T\s+(_?)(\w+)', output))
+        exports = {name for _, name in exports}
+        print("Found exports using nm:", exports)
+        return exports
+    except subprocess.CalledProcessError as e:
+        print("Error running nm:", e)
+        return set()
 
 
 def get_def_exports(def_path):
