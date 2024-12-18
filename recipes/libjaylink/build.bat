@@ -27,21 +27,20 @@ pushd !SRC_DIR! || exit /b 1
   meson install -C build-!PKG_NAME!
   if errorlevel 1 exit 1
 
-  :: Create .dll.a file
-  :: objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll
-  dir build-libjaylink
-  dlltool --identify build-libjaylink\jaylink.dll
-  dlltool --identify build-libjaylink\jaylink-%VERSION%.dll
-  dlltool --identify build-libjaylink\libjaylink.lib
-  dlltool --identify build-libjaylink\libjaylink-%VERSION%.lib
-  dlltool -d libjaylink\jaylink.def --dllname build-libjaylink\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
-  if errorlevel 1 exit 1
-
   :: Create non-versioned .dll
   copy /Y !PREFIX!\Library\bin\libjaylink-%VERSION%.dll !PREFIX!\Library\bin\libjaylink.dll
   if errorlevel 1 exit 1
 
   copy /Y !PREFIX!\Library\bin\jaylink-%VERSION%.dll !PREFIX!\Library\bin\jaylink.dll
+  if errorlevel 1 exit 1
+
+  :: Create .dll.a file
+  :: objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll
+  dlltool --identify build-libjaylink\libjaylink\libjaylink.dll
+  dlltool --identify build-libjaylink\libjaylink\libjaylink-%VERSION%.dll
+  dlltool --identify build-libjaylink\libjaylink\libjaylink.lib
+  dlltool --identify build-libjaylink\libjaylink\libjaylink-%VERSION%.lib
+  dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\lib\libjaylink.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
   :: Remove potentially confusing libjaylink.lib
