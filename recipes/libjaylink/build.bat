@@ -28,28 +28,28 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create non-versioned .dll
-  copy /Y !PREFIX!\Library\bin\libjaylink-%VERSION%.dll !PREFIX!\Library\bin\libjaylink.dll
+  copy /Y !PREFIX!\Library\bin\libjaylink-%VERSION%.dll !PREFIX!\Library\bin\libjaylink.dll > nul
   if errorlevel 1 exit 1
 
-  copy /Y !PREFIX!\Library\bin\jaylink-%VERSION%.dll !PREFIX!\Library\bin\jaylink.dll
+  copy /Y !PREFIX!\Library\bin\jaylink-%VERSION%.dll !PREFIX!\Library\bin\jaylink.dll > nul
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
   dlltool -d libjaylink\jaylink.def --dllname libjaylink-%VERSION%.dll --output-lib libjaylink-%VERSION%.dll.a
   if errorlevel 1 exit 1
 
-  copy /Y libjaylink-%VERSION%.dll.a !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a
+  copy /Y libjaylink-%VERSION%.dll.a !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a > nul
   if errorlevel 1 exit 1
 
   dlltool -d libjaylink\jaylink.def --dllname libjaylink.dll --output-lib libjaylink.dll.a
   if errorlevel 1 exit 1
 
-  copy /Y libjaylink.dll.a !PREFIX!\Library\lib\libjaylink.dll.a
+  copy /Y libjaylink.dll.a !PREFIX!\Library\lib\libjaylink.dll.a > nul
   if errorlevel 1 exit 1
 
   echo "Checking symbols in .dll and .dll.a files"
-  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
-  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
+  nm -g !PREFIX!\Library\lib\libjaylink.dll.a
+  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
