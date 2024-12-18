@@ -1,0 +1,62 @@
+context:
+  name: stacrs
+  version: 0.3.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/stacrs-${{ version }}.tar.gz
+  sha256: 0b321137b06a7a6be118d81a5dac01657252ed3f5c3c6b0f20f30ad10cd27a96
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: win
+      then:
+        - set OPENSSL_DIR=%LIBRARY_PREFIX%
+        - set OPENSSL_NO_VENDOR=1
+    - if: unix
+      then:
+        - export OPENSSL_DIR=$PREFIX
+        - export OPENSSL_NO_VENDOR=1
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - match(python, "<3.10")
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }} # needed to compile libduckdb-sys
+    - ${{ compiler("rust") }} <1.82 # https://github.com/geoarrow/geoarrow-rs/issues/833
+    - cargo-bundle-licenses
+  host:
+    - maturin >=1.7,<2.0
+    - openssl
+    - pip
+    - python
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - stacrs
+      pip_check: true
+
+about:
+  summary: A no-dependency Python package for STAC, using Rust under the hood.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  homepage: https://www.gadom.ski/stacrs
+  repository: https://github.com/gadomski/stacrs
+
+extra:
+  recipe-maintainers:
+    - gadomski
+    - weiji14
