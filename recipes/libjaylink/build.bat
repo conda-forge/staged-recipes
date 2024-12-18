@@ -35,13 +35,18 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
-  dlltool -d libjaylink\jaylink.def --dllname !PREFIX!\Library\bin\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  dlltool -d libjaylink\jaylink.def --dllname libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a
+  if errorlevel 1 exit 1
+
+  dlltool -d libjaylink\jaylink.def --dllname libjaylink.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
   dumpbin /symbols !PREFIX!\Library\lib\libjaylink.lib | findstr "jaylink_"
 
+  echo "Checking symbols in .dll and .dll.a files"
   nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
   objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
+  echo "Checking symbols in .dll files"
 
   objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | findstr "jaylink_"
   objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_"
