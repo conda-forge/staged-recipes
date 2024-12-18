@@ -59,7 +59,7 @@ pushd !SRC_DIR! || exit /b 1
   findstr /v "^;" libjaylink\jaylink.def | findstr /v "^$" > temp.def
   dlltool -v -d temp.def ^
           --dllname libjaylink.dll ^
-          --as-flags="--defsym __imp_prefix=1"
+          --as-flags="--defsym __imp_prefix=1" ^
           --add-underscore ^
           --kill-at ^
           --output-lib libjaylink.dll.a
