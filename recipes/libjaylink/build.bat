@@ -35,20 +35,21 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
-  dlltool -d libjaylink\jaylink.def --dllname libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a
+  dlltool -d libjaylink\jaylink.def --dllname libjaylink-%VERSION%.dll --output-lib libjaylink-%VERSION%.dll.a
   if errorlevel 1 exit 1
 
-  dlltool -d libjaylink\jaylink.def --dllname libjaylink.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  copy /Y libjaylink-%VERSION%.dll.a !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a
   if errorlevel 1 exit 1
 
-  dumpbin /symbols !PREFIX!\Library\lib\libjaylink.lib | findstr "jaylink_"
+  dlltool -d libjaylink\jaylink.def --dllname libjaylink.dll --output-lib libjaylink.dll.a
+  if errorlevel 1 exit 1
+
+  copy /Y libjaylink.dll.a !PREFIX!\Library\lib\libjaylink.dll.a
+  if errorlevel 1 exit 1
 
   echo "Checking symbols in .dll and .dll.a files"
-  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
-  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
+  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
+  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
   echo "Checking symbols in .dll files"
-
-  objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | findstr "jaylink_"
-  objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_"
 
 popd || exit /b 1
