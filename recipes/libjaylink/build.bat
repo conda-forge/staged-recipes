@@ -29,11 +29,12 @@ pushd !SRC_DIR! || exit /b 1
 
   :: Create .dll.a file
   :: objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll
-  dir libjaylink
-  dir
-  dlltool --identify libjaylink\jaylink.dll
-  dlltool --identify libjaylink\jaylink-%VERSION%.dll
-  dlltool -d libjaylink\jaylink.def --dllname libjaylink\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
+  dir build-libjaylink
+  dlltool --identify build-libjaylink\jaylink.dll
+  dlltool --identify build-libjaylink\jaylink-%VERSION%.dll
+  dlltool --identify build-libjaylink\libjaylink.lib
+  dlltool --identify build-libjaylink\libjaylink-%VERSION%.lib
+  dlltool -d libjaylink\jaylink.def --dllname build-libjaylink\libjaylink-%VERSION%.dll --output-lib !PREFIX!\Library\lib\libjaylink.dll.a
   if errorlevel 1 exit 1
 
   :: Create non-versioned .dll
