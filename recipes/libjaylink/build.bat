@@ -35,6 +35,8 @@ pushd !SRC_DIR! || exit /b 1
   if errorlevel 1 exit 1
 
   :: Create .dll.a file
+
+  powershell -Command "Get-Content libjaylink\libjaylink.h | Select-Object -Skip 450 -First 11"
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
           --add-underscore ^
@@ -47,6 +49,7 @@ pushd !SRC_DIR! || exit /b 1
 
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink.dll ^
+          --as-flags="--defsym __imp_prefix=1"
           --add-underscore ^
           --kill-at ^
           --output-lib libjaylink.dll.a
@@ -55,6 +58,7 @@ pushd !SRC_DIR! || exit /b 1
   findstr /v "^;" libjaylink\jaylink.def | findstr /v "^$" > temp.def
   dlltool -v -d temp.def ^
           --dllname libjaylink.dll ^
+          --as-flags="--defsym __imp_prefix=1"
           --add-underscore ^
           --kill-at ^
           --output-lib libjaylink.dll.a
