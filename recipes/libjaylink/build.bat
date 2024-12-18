@@ -40,7 +40,8 @@ pushd !SRC_DIR! || exit /b 1
 
   dumpbin /symbols !PREFIX!\Library\lib\libjaylink.lib | findstr "jaylink_"
 
-  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr " I "
+  nm -g !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
+  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
 
   objdump -p !PREFIX!\Library\bin\libjaylink-%VERSION%.dll | findstr "jaylink_"
   objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_"
