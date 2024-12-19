@@ -12,6 +12,9 @@ set FAILURE_THRESHOLD=7.e-4
 
 set FCFLAGS="-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -fbacktrace"
 
+set "HOST=x86_64-w64-mingw32"
+set "FC=%HOST%-gfortran.exe"
+
 :: CMake configuration
 mkdir build
 cd build
@@ -30,7 +33,7 @@ cmake %CMAKE_ARGS% ^
       -G Ninja ..
 
 :: Compile
-cmake --build . -- /maxcpucount:%NUMBER_OF_PROCESSORS%
+cmake --build . -- -j%NUMBER_OF_PROCESSORS%
 
 :: Run tests
 ctest --output-on-failure --test-dir . -V
