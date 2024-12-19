@@ -36,7 +36,8 @@ pushd !SRC_DIR! || exit /b 1
 
   :: Create .dll.a file
 
-  type libjaylink\libjaylink.exp
+  type build-libjaylink\libjaylink.exp
+  type build-libjaylink\libjaylink\libjaylink.exp
   powershell -Command "Get-Content libjaylink\libjaylink.h | Select-Object -Skip 450 -First 11"
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
@@ -71,8 +72,31 @@ pushd !SRC_DIR! || exit /b 1
 
   echo "Checking symbols in .dll and .dll.a files"
   objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "has_cap"
-  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "__imp_jaylink_has_cap"
-  objdump -x !PREFIX!\Library\lib\libjaylink.dll.a | findstr "__imp_jaylink_has_cap"
+  echo "   nm .dll.a"
+  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
+  echo "   objdump -x nm .dll"
+  objdump -x !PREFIX!\Library\lib\libjaylink.dll | findstr "jaylink"
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
+
+echo Creating test program...
+echo #include ^<libjaylink/libjaylink.h^> > test.c
+echo int main() { >> test.c
+echo     int cap = jaylink_has_cap(NULL, 0); >> test.c
+echo     return cap; >> test.c
+echo } >> test.c
+
+echo Compiling test...
+gcc -c test.c -I%PREFIX%/Library/include
+if errorlevel 1 (
+    echo Compilation failed
+    exit /b 1
+)
+
+echo Linking test...
+gcc -v test.o -L%PREFIX%/Library/lib -ljaylink -o test.exe
+if errorlevel 1 (
+    echo Linking failed
+    exit /b 1
+)
