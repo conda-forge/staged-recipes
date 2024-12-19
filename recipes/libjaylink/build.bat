@@ -77,7 +77,7 @@ pushd !SRC_DIR! || exit /b 1
   echo "   nm .dll.a"
   nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
   echo "   objdump -x nm .dll"
-  objdump -x !PREFIX!\Library\lib\libjaylink.dll | findstr "jaylink"
+  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink"
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
@@ -89,16 +89,9 @@ echo     int cap = jaylink_has_cap(NULL, 0); >> test.c
 echo     return cap; >> test.c
 echo } >> test.c
 
-echo Compiling test...
-gcc -c test.c -I%PREFIX%/Library/include
+echo Compiling and linking with MSVC...
+cl.exe /I%PREFIX%/Library/include test.c /link /LIBPATH:%PREFIX%/Library/lib libjaylink.lib
 if errorlevel 1 (
-    echo Compilation failed
-    exit /b 1
-)
-
-echo Linking test...
-gcc -v test.o -L%PREFIX%/Library/lib -ljaylink -o test.exe
-if errorlevel 1 (
-    echo Linking failed
+    echo Build failed
     exit /b 1
 )
