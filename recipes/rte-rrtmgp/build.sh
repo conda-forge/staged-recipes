@@ -43,7 +43,6 @@ mkdir -p $PREFIX/include
 
 # Copy libraries
 find $SRC_DIR/build/ -name "*.a" -exec cp {} $PREFIX/lib/ \;
-find $SRC_DIR/build/ -name "*.so*" -exec cp {} $PREFIX/lib/ \;
 
 # Copy Fortran module files
 find $SRC_DIR/build/modules -name "*.mod" -exec cp {} $PREFIX/include/ \;

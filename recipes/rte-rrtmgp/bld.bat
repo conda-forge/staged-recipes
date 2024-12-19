@@ -10,7 +10,7 @@ set ENABLE_TESTS=ON
 set RTE_KERNELS=default
 set FAILURE_THRESHOLD=7.e-4
 
-FCFLAGS="-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -fbacktrace"
+set FCFLAGS="-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -fbacktrace"
 
 :: CMake configuration
 mkdir build
@@ -36,7 +36,5 @@ cmake --build . -- /maxcpucount:%NUMBER_OF_PROCESSORS%
 ctest --output-on-failure --test-dir . -V
 
 :: Manually copy libraries, binaries, and Fortran module files to %PREFIX%
-xcopy /s /y build\*.a %PREFIX%\lib\
-xcopy /s /y build\*.dll %PREFIX%\lib\
 xcopy /s /y build\*.lib %PREFIX%\lib\
 xcopy /s /y build\*.mod %PREFIX%\include\
