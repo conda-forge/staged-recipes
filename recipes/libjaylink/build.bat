@@ -38,8 +38,10 @@ pushd !SRC_DIR! || exit /b 1
 
   dumpbin /EXPORTS build-libjaylink\libjaylink\libjaylink.exp > exports.txt
   dumpbin /SYMBOLS build-libjaylink\libjaylink\libjaylink.exp > symbols.txt
-  type exports.txt
-  type symbols.txt
+  echo "Checking exports in .exp files"
+  type exports.txt | findstr "jaylink_has_cap"
+  echo "Checking symbols in .exp files"
+  type symbols.txt | findstr "jaylink_has_cap"
 
   dlltool -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
@@ -61,9 +63,9 @@ pushd !SRC_DIR! || exit /b 1
 
   echo "Checking symbols in .dll and .dll.a files"
   echo "   nm .dll.a"
-  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
+  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
   echo "   objdump -x .dll"
-  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_has_cap"
+  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink"
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
