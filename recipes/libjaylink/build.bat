@@ -36,8 +36,7 @@ pushd !SRC_DIR! || exit /b 1
 
   :: Create .dll.a file
 
-  type build-libjaylink\libjaylink.exp
-  type build-libjaylink\libjaylink\libjaylink.exp
+  dumpbin /all build-libjaylink\libjaylink\libjaylink.exp
   powershell -Command "Get-Content libjaylink\libjaylink.h | Select-Object -Skip 450 -First 11"
   dlltool -v -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
