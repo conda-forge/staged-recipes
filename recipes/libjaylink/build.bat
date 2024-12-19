@@ -34,14 +34,8 @@ pushd !SRC_DIR! || exit /b 1
   copy /Y !PREFIX!\Library\bin\jaylink-%VERSION%.dll !PREFIX!\Library\bin\jaylink.dll > nul
   if errorlevel 1 exit 1
 
-  :: Create .dll.a file
-
-  dumpbin /EXPORTS build-libjaylink\libjaylink\libjaylink.exp > exports.txt
-  dumpbin /SYMBOLS build-libjaylink\libjaylink\libjaylink.exp > symbols.txt
-  echo "Checking exports in .exp files"
-  type exports.txt | findstr "jaylink_has_cap"
-  echo "Checking symbols in .exp files"
-  type symbols.txt | findstr "jaylink_has_cap"
+  :: Create .dll.a file to clearly distinguish Mingw from MSVC builds
+  del !PREFIX!\Library\lib\libjaylink.lib
 
   dlltool -d libjaylink\jaylink.def ^
           --dllname libjaylink-%VERSION%.dll ^
@@ -51,54 +45,12 @@ pushd !SRC_DIR! || exit /b 1
   copy /Y libjaylink-%VERSION%.dll.a !PREFIX!\Library\lib\libjaylink-%VERSION%.dll.a > nul
   if errorlevel 1 exit 1
 
+  :: Add non-version since it references the .dll
   dlltool -d libjaylink\jaylink.def ^
           --dllname libjaylink.dll ^
-          --as-flags="--defsym __imp_prefix=1" ^
-          --add-underscore ^
-          --kill-at ^
           --output-lib libjaylink.dll.a
   if errorlevel 1 exit 1
 
   copy /Y libjaylink.dll.a !PREFIX!\Library\lib\libjaylink.dll.a > nul
   if errorlevel 1 exit 1
-
-  del !PREFIX!\Library\lib\libjaylink.lib
-
-  echo "Checking symbols in .dll and .dll.a files"
-  echo "   nm .dll.a"
-  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
-  echo "   objdump -x .dll"
-  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink"
-  echo "Checking symbols in .dll files"
-
 popd || exit /b 1
-
-echo Creating test program...
-echo #include ^<libjaylink/libjaylink.h^> > test.c
-echo int main() { >> test.c
-echo     int cap = jaylink_has_cap(NULL, 0); >> test.c
-echo     return cap; >> test.c
-echo } >> test.c
-
-echo Compiling and linking with MSVC...
-cl.exe /I%PREFIX%/Library/include test.c /link /LIBPATH:%PREFIX%/Library/lib jaylink.lib
-if errorlevel 1 (
-    echo Build failed
-    exit /b 1
-)
-
-call conda create -n testenv -c conda-forge -c defaults -c msys2 gcc > nul
-call conda activate testenv
-echo Compiling and linking with GCC...
-gcc -v -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
-if errorlevel 1 (
-    echo Build failed
-    exit /b 1
-)
-
-echo Compiling and linking with MSVC...
-cl.exe /I%PREFIX%/Library/include test.c /link /LIBPATH:%PREFIX%/Library/lib libjaylink.dll.a
-if errorlevel 1 (
-    echo Build failed
-    exit /b 1
-)
