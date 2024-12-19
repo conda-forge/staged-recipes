@@ -83,16 +83,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Compiling and linking with MSVC...
-cl.exe /I%PREFIX%/Library/include test.c /link /LIBPATH:%PREFIX%/Library/lib -ljaylink
+conda install gcc
+echo Compiling and linking with GCC...
+gcc -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
 if errorlevel 1 (
     echo Build failed
     exit /b 1
 )
 
-conda install gcc
-echo Compiling and linking with GCC...
-gcc -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
+echo Compiling and linking with MSVC...
+cl.exe /I%PREFIX%/Library/include test.c /link /LIBPATH:%PREFIX%/Library/lib libjaylink.dll.a
 if errorlevel 1 (
     echo Build failed
     exit /b 1
