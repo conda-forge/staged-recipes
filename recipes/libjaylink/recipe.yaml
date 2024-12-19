@@ -15,6 +15,9 @@ source:
   patches:
     - if: win
       then:
+        - patches/add-jaylink.def.patch
+        - patches/add-jaylink.lib-meson.build.patch
+        - patches/enable-dynamic-library.patch
         - patches/fix-types-discovery_tcp.c.patch
         - patches/fix-types-discovery_usb.c.patch
         - patches/fix-types-fileio.c.patch
@@ -23,8 +26,6 @@ source:
         - patches/fix-types-transport_tcp.c.patch
         - patches/fix-types-transport_usb.c.patch
         - patches/fix-uninitialized.patch
-        - patches/add-jaylink.def.patch
-        - patches/add-jaylink.lib-meson.build.patch
 
 build:
   number: ${{ build_num }}
@@ -60,6 +61,7 @@ tests:
           then:
             - Library/lib/pkgconfig/libjaylink.pc
             - Library/lib/libjaylink.dll.a
+            - Library/lib/libjaylink-${{ major_so_version }}.dll.a
       include:
         - libjaylink/libjaylink.h
         - libjaylink/version.h
@@ -81,17 +83,25 @@ tests:
   - script:
       - if: win
         then:
-          - python helpers\\verify_dll_def.py Library\\bin\\jaylink.dll libjaylink\\jaylink.def
+          - python helpers\\verify_dll_def.py %PREFIX%\\Library\\bin\\libjaylink-${{ major_so_version }}.dll libjaylink\\jaylink.def
+          - python helpers\\verify_dll_def.py %PREFIX%\\Library\\bin\\libjaylink.dll libjaylink\\jaylink.def
         else:
           - echo "Only windows is THAT high-maintenance!"
     files:
       recipe:
-        - helpers/verify_dll_def.py
+        - if: win
+          then:
+            - helpers/verify_dll_def.py
       source:
-        - libjaylink/jaylink.def
+        - if: win
+          then:
+            - libjaylink/jaylink.def
     requirements:
       run:
-        - python
+        - if: win
+          then:
+            - m2w64-binutils
+            - python
 
 about:
   homepage: https://gitlab.zapb.de/libjaylink/libjaylink
