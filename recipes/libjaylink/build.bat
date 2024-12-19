@@ -89,3 +89,11 @@ if errorlevel 1 (
     echo Build failed
     exit /b 1
 )
+
+conda install gcc
+echo Compiling and linking with GCC...
+gcc -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
+if errorlevel 1 (
+    echo Build failed
+    exit /b 1
+)
