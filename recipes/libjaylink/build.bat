@@ -82,7 +82,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-conda create -n testenv -c conda-forge -c defaults -c msys2 gcc
+call conda create -n testenv -c conda-forge -c defaults -c msys2 gcc > nul
 echo Compiling and linking with GCC...
 $(which gcc) -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
 if errorlevel 1 (
