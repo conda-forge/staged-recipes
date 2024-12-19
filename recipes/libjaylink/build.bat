@@ -60,11 +60,10 @@ pushd !SRC_DIR! || exit /b 1
   del !PREFIX!\Library\lib\libjaylink.lib
 
   echo "Checking symbols in .dll and .dll.a files"
-  objdump -p !PREFIX!\Library\bin\libjaylink.dll | findstr "has_cap"
   echo "   nm .dll.a"
-  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink"
-  echo "   objdump -x nm .dll"
-  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink"
+  nm !PREFIX!\Library\lib\libjaylink.dll.a | findstr "jaylink_has_cap"
+  echo "   objdump -x .dll"
+  objdump -x !PREFIX!\Library\bin\libjaylink.dll | findstr "jaylink_has_cap"
   echo "Checking symbols in .dll files"
 
 popd || exit /b 1
@@ -83,7 +82,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-conda install gcc
+conda create -n testenv -c conda-forge -c defaults -c msys2 gcc
 echo Compiling and linking with GCC...
 gcc -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
 if errorlevel 1 (
