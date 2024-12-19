@@ -53,6 +53,9 @@ pushd !SRC_DIR! || exit /b 1
 
   dlltool -d libjaylink\jaylink.def ^
           --dllname libjaylink.dll ^
+          --as-flags="--defsym __imp_prefix=1" ^
+          --add-underscore ^
+          --kill-at ^
           --output-lib libjaylink.dll.a
   if errorlevel 1 exit 1
 
