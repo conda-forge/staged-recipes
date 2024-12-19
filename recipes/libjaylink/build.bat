@@ -90,7 +90,7 @@ if errorlevel 1 (
 call conda create -n testenv -c conda-forge -c defaults -c msys2 gcc > nul
 call conda activate testenv
 echo Compiling and linking with GCC...
-gcc -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
+gcc -v -I%PREFIX%/Library/include test.c -L%PREFIX%/Library/lib -ljaylink
 if errorlevel 1 (
     echo Build failed
     exit /b 1
