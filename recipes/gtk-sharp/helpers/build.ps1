@@ -2,10 +2,9 @@ $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig;${env:PREFIX}/share/pkgconfi
 
 # Split off last part of the version string
 $_pkg_version = $env:PKG_VERSION -replace "\.[^.]+$", ""
-& "./bootstrap-$_pkg_version" --prefix=$(pkg-config --variable=prefix mono)
-# This should find the PREFIX mono (check for cross-compilation)
+& "./bootstrap-$_pkg_version" --prefix=$env:PREFIX
 & "./configure" `
-    --prefix=$(pkg-config --variable=prefix mono) `
+    --prefix=$env:PREFIX `
     --disable-static
 & "make"
 & "make install"

@@ -20,3 +20,13 @@ _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
   --disable-static
 make
 make install
+
+# Rename the .so on osx
+if [[ ${target_platform} == osx-* ]]; then
+    cd $(pkg-config --variable=prefix mono)/lib
+    for f in *.so; do
+        if [ -f "$f" ]; then
+            mv "$f" "${f%.so}.dylib"
+        fi
+    done
+fi
