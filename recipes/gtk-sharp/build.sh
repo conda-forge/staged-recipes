@@ -4,6 +4,16 @@ set -euxo pipefail
 
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${BUILD_PREFIX}/lib/pkgconfig"
 
+if [[ ${target_platform} == osx-* ]]; then
+  # Find libtool on OSX conda environment
+  echo $(which glibtool)
+  echo $(which libtool)
+  LIBTOOL=$(which glibtool)
+  ${LIBTOOL} --version
+  LIBTOOL=$(which libtool)
+  ${LIBTOOL} --version
+fi
+
 # Split off last part of the version string
 _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
 ./bootstrap-${_pkg_version} --prefix=$(pkg-config --variable=prefix mono)
