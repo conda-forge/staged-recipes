@@ -2,8 +2,8 @@ $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig;${env:PREFIX}/share/pkgconfi
 
 # Split off last part of the version string
 $_pkg_version = $env:PKG_VERSION -replace "\.[^.]+$", ""
-& "bootstrap-$_pkg_version" --prefix=$env:PREFIX
-& "configure" `
+& ".\bootstrap-$_pkg_version" --prefix=$env:PREFIX
+& ".\configure" `
     --prefix=$env:PREFIX `
     --disable-static
 & "make"
