@@ -1,0 +1,99 @@
+{% set name = "ndcurves" %}
+{% set cppname = "lib" ~ name %}
+{% set pythonname = name ~ "-python" %}
+{% set version = "2.0.0" %}
+
+
+package:
+  name:  {{ name }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/loco-3d/{{ name }}/releases/download/v{{ version }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 814f7f4551c042794fe5bccbe6eb737825574d8c6b90b2274aa9dcd6430b7ebd
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cppname }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cppname, max_pin='x.x.x') }}
+    script: build_ndcurves.sh   # [not win]
+    script: build_ndcurves.bat  # [win]
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - clang  # [win]
+      host:
+        - libboost-devel
+        - eigen
+        - pinocchio
+      run:
+        - libboost-devel
+        - pinocchio
+    test:
+      commands:
+        - test -f $PREFIX/include/ndcurves/fwd.h                       # [not win]
+        - if not exist %PREFIX%\Library\include\ndcurves\fwd.h exit 1  # [win]
+  - name: {{ pythonname }}
+    script: build_ndcurves_python.sh   # [not win]
+    script: build_ndcurves_python.bat  # [win]
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - clang  # [win]
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        # Avoid overlinking error.
+        # Pinocchio depend of openmp but don't run export it.
+        - libgomp       # [linux]
+        - llvm-openmp   # [osx]
+      host:
+        - libboost-devel
+        - libboost-python-devel
+        - eigen
+        - eigenpy
+        - pinocchio
+        - python
+      run:
+        - python
+    test:
+      imports:
+        - ndcurves
+  - name: {{ name }}
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage(cppname, max_pin="x.x.x") }}
+        - {{ pin_subpackage(pythonname, max_pin="x.x.x") }}
+    test:
+      imports:
+        - ndcurves
+      commands:
+        - test -f $PREFIX/include/ndcurves/fwd.h                       # [not win]
+        - if not exist %PREFIX%\Library\include\ndcurves\fwd.h exit 1  # [win]
+
+about:
+  home: https://github.com/loco-3d/ndcurves
+  summary: |
+    A template-based Library for creating curves of arbitrary order and dimension,
+    eventually subject to derivative constraints.
+    The main use of the library is the creation of end-effector trajectories for legged robots.
+  license: BSD-2-Clause
+  license_family: BSD
+  dev_url: https://github.com/loco-3d/ndcurves
+
+extra:
+  feedstock-name: {{ name }}
+  recipe-maintainers:
+    - ManifoldFR
+    - jorisv
