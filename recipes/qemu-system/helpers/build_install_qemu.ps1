@@ -51,20 +51,13 @@ function Build-Qemu {
         Write-Host "PATH: $env:PATH"
 
         $unixPath = $env:SRC_DIR -replace '\\', '/'
-        Invoke-CommandWithLogging "bash -c '$unixPath/qemu-source/configure --help'"
+        Invoke-CommandWithLogging "ls $unixPath/qemu-source/configure"
+        Invoke-CommandWithLogging "bash -c $unixPath/qemu-source/configure --help"
 
         $configureArgs = @(
             "--prefix=$install_dir",
             $qemu_args,
-            "--disable-bsd-user", "--disable-guest-agent", "--disable-strip", "--disable-werror", "--disable-gcrypt", "--disable-pie",
-            "--disable-debug-info", "--disable-debug-tcg", "--enable-docs", "--disable-tcg-interpreter", "--enable-attr",
-            "--disable-brlapi", "--disable-linux-aio", "--disable-bzip2", "--disable-cap-ng", "--disable-curl", "--disable-fdt",
-            "--disable-glusterfs", "--disable-gnutls", "--disable-nettle", "--disable-gtk", "--disable-rdma", "--disable-libiscsi",
-            "--disable-vnc-jpeg", "--disable-kvm", "--disable-lzo", "--disable-curses", "--disable-libnfs", "--disable-numa",
-            "--disable-opengl", "--disable-rbd", "--disable-vnc-sasl", "--disable-sdl", "--disable-seccomp",
-            "--disable-smartcard", "--disable-snappy", "--disable-spice", "--disable-libusb", "--disable-usb-redir", "--disable-vde",
-            "--disable-vhost-net", "--disable-virglrenderer", "--disable-virtfs", "--disable-vnc", "--disable-vte", "--disable-xen",
-            "--disable-xen-pci-passthrough", "--disable-system", "--disable-tools"
+            "--enable-system"
         )
 
         Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure $($configureArgs -join ' ')"
