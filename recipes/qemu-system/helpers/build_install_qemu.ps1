@@ -51,8 +51,8 @@ function Build-Qemu {
         Write-Host "PATH: $env:PATH"
 
         $unixPath = $env:SRC_DIR -replace '\\', '/'
-        Invoke-CommandWithLogging "ls $unixPath/qemu-source/configure"
-        Invoke-CommandWithLogging "bash -c $unixPath/qemu-source/configure --help"
+        Invoke-CommandWithLogging "ls $unixPath/qemu_source/configure"
+        Invoke-CommandWithLogging "bash -c $unixPath/qemu_source/configure --help"
 
         $configureArgs = @(
             "--prefix=$install_dir",
@@ -60,7 +60,7 @@ function Build-Qemu {
             "--enable-system"
         )
 
-        Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure $($configureArgs -join ' ')"
+        Invoke-CommandWithLogging "$env:SRC_DIR\qemu_source\configure $($configureArgs -join ' ')"
 
         Invoke-CommandWithLogging "make -j$env:CPU_COUNT"
         Invoke-CommandWithLogging "make check"
