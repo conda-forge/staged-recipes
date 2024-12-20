@@ -9,6 +9,8 @@ package:
 source:
   url: https://github.com/mono/gtk-sharp/archive/refs/tags/${{ version }}.tar.gz
   sha256: a4bb3593235ef26e1a38c26760f118126ede2801abc41c674aa4d1eee068d9e0
+  patches:
+    - patches/fix-TestRange.cs.patch
 
 build:
   number: 0
@@ -17,37 +19,41 @@ requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
+    - cairo
+    - expat
+    - liblzma-devel
     - libtool
+    - make
+    - pango
     - pkg-config
     - sed
+    - zlib
     - if: unix
       then:
         - autoconf
         - automake
-        - mono
+        - mono  # [build_platform != target_platform]
       else:
         - m2-autoconf
         - m2-automake-wrapper
   host:
+    - atk
+    - fontconfig
+    - glib
     - gtk2
     - netifaces
     - psutil
-    - python ${{ python_min }}.*
+    # - python ${{ python_min }}.*
     - pyyaml
     - requests
     - robotframework
-    - zlib
+    - xorg-xorgproto
     - if: unix
       then:
-        - atk
-        - cairo
-        - fontconfig
-        - gtk3
-        - glib
         - mono
-        - pango
-        - pcre
+        # - pcre
   run:
+    # overdepending - liblzma
     - netifaces
     - psutil
     - python >=${{ python_min }}
@@ -57,17 +63,56 @@ requirements:
     - if: unix
       then:
         - atk
-        - cairo
-        - fontconfig
-        - gtk3
-        - glib
-        - mono
-        - pango
-        - pcre
+        # overdepending - cairo
+        # overdepending - fontconfig
+        # overdepending - gtk3
+        # overdepending - glib
+        # overdepending - mono
+        # overdepending - pango
+        # overdepending - pcre
 
 tests:
+  - package_contents:
+      bin:
+        - gapi2-codegen
+        - gapi2-fixup
+        - gapi2-parser
+      lib:
+        - libatksharpglue-2.so
+        - libgdksharpglue-2.so
+        - libglibsharpglue-2.so
+        - libgtksharpglue-2.so
+        - libpangosharpglue-2.so
+      files:
+        - ${{ "Library/" if win }}share/gapi-2.0/atk-api.xml
+        - ${{ "Library/" if win }}share/gapi-2.0/gdk-api.xml
+        - ${{ "Library/" if win }}share/gapi-2.0/glib-api.xml
+        - ${{ "Library/" if win }}share/gapi-2.0/gtk-api.xml
+        - ${{ "Library/" if win }}share/gapi-2.0/pango-api.xml
+
+        - ${{ "Library/" if win }}lib/pkgconfig/gapi-2.0.pc
+        - ${{ "Library/" if win }}lib/pkgconfig/glib-sharp-2.0.pc
+        - ${{ "Library/" if win }}lib/pkgconfig/gtk-dotnet-2.0.pc
+        - ${{ "Library/" if win }}lib/pkgconfig/gtk-sharp-2.0.pc
+
+        - ${{ "Library/" if win }}lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
+        - ${{ "Library/" if win }}lib/gtk-sharp-2.0/gapi-fixup.exe
+        - ${{ "Library/" if win }}lib/gtk-sharp-2.0/gapi-parser.exe
+        - ${{ "Library/" if win }}lib/gtk-sharp-2.0/gapi2xml.pl
+        - ${{ "Library/" if win }}lib/gtk-sharp-2.0/gapi_codegen.exe
+        - ${{ "Library/" if win }}lib/gtk-sharp-2.0/gapi_pp.pl
   - script:
-      - echo "No test suite available"
+      interpreter: python
+      content: |
+        import os
+        from pathlib import Path
+        root = Path(os.environ["PREFIX"]) / ("Library" if os.name == "nt" else "") / "lib" / "mono" / "gtk-sharp-2.0"
+        vs = ["2.10", "2.4", "2.6", "2.8"]
+        ds = ["atk-sharp.dll", "gdk-sharp.dll", "glib-sharp.dll", "gtk-dotnet.dll", "gtk-sharp.dll", "pango-sharp.dll"]
+        missing_dlls = [f"policy.{v}.{d}" for v in vs for d in ds if not (root / f"policy.{v}.{d}").exists()]
+        if missing_dlls:
+            print("\n".join(missing_dlls))
+            exit(1)
 
 about:
   homepage: https://github.com/mono/gtk-sharp
