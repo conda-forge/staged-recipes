@@ -1,0 +1,123 @@
+{% set name = "jupyter-suggestions-packages" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://pypi.io/packages/source/j/jupyter_suggestions_core/jupyter_suggestions_core-{{ version }}.tar.gz
+    sha256: 09208c15791154b9bbcc2f019710cbf7a66abfaf339de49672d4a1b5c3e00543
+    folder: jupyter_suggestions_core
+  - url: https://pypi.io/packages/source/j/jupyter_suggestions_rtc/jupyter_suggestions_rtc-{{ version }}.tar.gz
+    sha256: 8024742de84d3874b834c44e3f920165b760f64fe92f77dff8d5fab721dd6f08
+    folder: jupyter_suggestions_rtc
+  - url: https://pypi.io/packages/source/j/jupyter_suggestions/jupyter_suggestions-{{ version }}.tar.gz
+    sha256: 868e711458ff7dd078cb154662024b4773c09b9a8337d537340e7d2aabd8d94e
+    folder: jupyter_suggestions
+
+build:
+  noarch: python
+  number: 0
+
+
+outputs:
+  - name: jupyter_suggestions_core
+    version: {{ version }}
+    build:
+      noarch: python
+      script: |
+        cd jupyter_suggestions_core
+        python -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-index
+    requirements:
+      host:
+        - pip
+        - python >=3.9
+        - hatchling
+        - yarn >=3, <4
+        - jupyterlab >=4,<5
+        - hatch-jupyter-builder
+        - hatch-nodejs-version >=0.3.2
+      run:
+        - python >=3.9
+    test:
+      imports:
+        - jupyter_suggestions_core
+      commands:
+        - pip check
+        - test -f ${PREFIX}/share/jupyter/labextensions/@jupyter/suggestions-core/package.json                            # [unix]
+        - if not exist %PREFIX%\\share\\jupyter\\labextensions\\@jupyter/suggestions-core\\package.json (exit 1)          # [win]
+      requires:
+        - pip
+
+  - name: jupyter_suggestions_rtc
+    version: {{ version }}
+    build:
+      noarch: python
+      script: |
+        cd jupyter_suggestions_rtc
+        python -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-index
+    requirements:
+      host:
+        - pip
+        - python >=3.9
+        - hatchling
+        - yarn >=3, <4
+        - jupyterlab >=4,<5
+        - hatch-jupyter-builder
+        - hatch-nodejs-version >=0.3.2
+      run:
+        - jupyter-collaboration >=3.1.0,<4
+      run_constrained:
+        - jupyter_suggestions_core ={{ version }}
+    test:
+      imports:
+        - jupyter_suggestions_rtc
+      commands:
+        - pip check
+        - test -f ${PREFIX}/share/jupyter/labextensions/@jupyter/suggestions-rtc/package.json                            # [unix]
+        - if not exist %PREFIX%\\share\\jupyter\\labextensions\\@jupyter/suggestions-rtc\\package.json (exit 1)          # [win]
+      requires:
+        - pip
+
+  - name: jupyter_suggestions
+    version: {{ version }}
+    build:
+      noarch: python
+      script: |
+        cd jupyter_suggestions
+        python -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-index
+    requirements:
+      host:
+        - pip
+        - python >=3.9
+        - hatchling
+      run:
+        - python >=3.9
+        - jupyter_suggestions_core
+        - jupyter_suggestions_rtc
+      run_constrained:
+        - jupyter_suggestions_core ={{ version }}
+        - jupyter_suggestions_rtc ={{ version }}
+    test:
+      imports:
+        - jupyter_suggestions
+      commands:
+        - pip check
+      requires:
+        - pip
+
+about:
+  home: https://github.com/jupyterlab-contrib/jupyter-suggestions
+  summary: A JupyterLab extension for suggesting changes
+  description: |
+    A JupyterLab extension for suggesting changes.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: jupyter-suggestions/LICENSE
+  dev_url: https://github.com/jupyterlab-contrib/jupyter-suggestions
+
+extra:
+  recipe-maintainers:
+    - jtpio
+    - trungleduc
