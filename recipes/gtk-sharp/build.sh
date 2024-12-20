@@ -6,10 +6,7 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${BUIL
 
 if [[ ${target_platform} == osx-* ]]; then
   # Find libtool on OSX conda environment
-  echo $(which glibtool)
   echo $(which libtool)
-  LIBTOOL=$(which glibtool)
-  ${LIBTOOL} --version
   LIBTOOL=$(which libtool)
   ${LIBTOOL} --version
 fi
