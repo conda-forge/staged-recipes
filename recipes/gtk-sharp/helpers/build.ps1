@@ -2,9 +2,7 @@ $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig;${env:PREFIX}/share/pkgconfi
 
 # Split off last part of the version string
 $_pkg_version = $env:PKG_VERSION -replace "\.[^.]+$", ""
-& ".\bootstrap-$_pkg_version" --prefix=$env:PREFIX
-& ".\configure" `
-    --prefix=$env:PREFIX `
-    --disable-static
-& "make"
-& "make install"
+Invoke-CommandWithLogging "bash -c 'bootstrap-$_pkg_version --prefix=$env:PREFIX'"
+Invoke-CommandWithLogging "bash -c 'configure --prefix=$env:PREFIX --disable-static'"
+Invoke-CommandWithLogging "makw"
+Invoke-CommandWithLogging "make install"
