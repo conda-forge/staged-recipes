@@ -52,7 +52,7 @@ function Build-Qemu {
 
         $unixPath = $env:SRC_DIR -replace '\\', '/'
         Invoke-CommandWithLogging "ls $unixPath/qemu_source/configure"
-        Invoke-CommandWithLogging "bash -c $unixPath/qemu_source/configure --help"
+        Invoke-CommandWithLogging "bash -c '$unixPath/qemu_source/configure --help'"
 
         $configureArgs = @(
             "--prefix=$install_dir",
