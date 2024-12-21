@@ -34,10 +34,9 @@ $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig;${env:PREFIX}/share/pkgconfi
 $_pkg_version = $env:PKG_VERSION -replace "\.[^.]+$", ""
 
 Invoke-CommandWithLogging "ls -l bootstrap-$_pkg_version"
-Invoke-CommandWithLogging "bash -c 'ls -l bootstrap-$_pkg_version'"
 
-Invoke-CommandWithLogging "bash -c 'bootstrap-$_pkg_version --prefix=$env:PREFIX'"
+Invoke-CommandWithLogging ".\bootstrap-$_pkg_version --prefix=$env:PREFIX"
 
-Invoke-CommandWithLogging "bash -c 'configure --prefix=$env:PREFIX --disable-static'"
+Invoke-CommandWithLogging ".\configure --prefix=$env:PREFIX --disable-static"
 Invoke-CommandWithLogging "makw"
 Invoke-CommandWithLogging "make install"
