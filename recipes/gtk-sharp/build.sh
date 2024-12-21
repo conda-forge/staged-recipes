@@ -7,11 +7,11 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${BUIL
 LIBTOOL=$(which libtool)
 
 if [[ ${target_platform} == win-* ]]; then
-  CC=x86_64-w64-mingw32-gcc
-  AR=x86_64-w64-mingw32-ar
-  RANLIB=x86_64-w64-mingw32-ranlib
-  STRIP=x86_64-w64-mingw32-strip
-  LD=x86_64-w64-mingw32-ld
+  export CC=x86_64-w64-mingw32-gcc
+  export AR=x86_64-w64-mingw32-ar
+  export RANLIB=x86_64-w64-mingw32-ranlib
+  export STRIP=x86_64-w64-mingw32-strip
+  export LD=x86_64-w64-mingw32-ld
   _prefix=${PREFIX}
 else
   _prefix=$(pkg-config --variable=prefix mono)
