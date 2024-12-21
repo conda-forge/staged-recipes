@@ -7,18 +7,22 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${BUIL
 LIBTOOL=$(which libtool)
 
 if [[ ${target_platform} == win-* ]]; then
-    CC=x86_64-w64-mingw32-gcc
-    AR=x86_64-w64-mingw32-ar
-    RANLIB=x86_64-w64-mingw32-ranlib
-    STRIP=x86_64-w64-mingw32-strip
-    LD=x86_64-w64-mingw32-ld
+  CC=x86_64-w64-mingw32-gcc
+  AR=x86_64-w64-mingw32-ar
+  RANLIB=x86_64-w64-mingw32-ranlib
+  STRIP=x86_64-w64-mingw32-strip
+  LD=x86_64-w64-mingw32-ld
+  _prefix=${PREFIX}
+else
+  _prefix=$(pkg-config --variable=prefix mono)
 fi
+
 # Split off last part of the version string
 _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
-./bootstrap-${_pkg_version} --prefix=$(pkg-config --variable=prefix mono)
+./bootstrap-${_pkg_version} --prefix=${_prefix}
 # This should fine the PREFIX mono (check for cross-compilation)
 ./configure \
-  --prefix=$(pkg-config --variable=prefix mono) \
+  --prefix=${_prefix} \
   --disable-static
 make
 make install
