@@ -14,8 +14,7 @@ build_install_qemu() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --enable-user \
-      --enable-strip \
-      > "${SRC_DIR}"/_configure.log 2>&1
+      --enable-strip
 
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
