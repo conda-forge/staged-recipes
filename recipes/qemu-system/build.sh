@@ -18,9 +18,12 @@ qemu_args=(
   "--disable-linux-user"
 )
 
-build_install_qemu "${SRC_DIR}/_conda-build" "${local_install_dir}" "${qemu_args[@]}"
-
-# Rattler-build: Only files installed in prefix will remain in the build cache
-if [[ ${install_dir} != ${PREFIX} ]]; then
-  tar -cf - -C "${SRC_DIR}" "${install_dir}" | tar -xf - -C "${PREFIX}"
+if [[ ${target_platform} == win-* ]]; then
+  qemu_args+=(
+    "--datadir=share/qemu"
+    "--disable-install-blobs"
+  )
+  build_install_qemu_win "${SRC_DIR}/_conda-build" "${local_install_dir}" "${qemu_args[@]}"
+else
+  build_install_qemu "${SRC_DIR}/_conda-build" "${local_install_dir}" "${qemu_args[@]}"
 fi
