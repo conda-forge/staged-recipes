@@ -21,6 +21,7 @@ qemu_args=(
 if [[ ${target_platform} == win-* ]]; then
   qemu_args+=(
     "--datadir=share/qemu"
+    "--disable-attr"
     "--disable-install-blobs"
   )
   build_install_qemu_win "${SRC_DIR}/_conda-build" "${local_install_dir}" "${qemu_args[@]}"
