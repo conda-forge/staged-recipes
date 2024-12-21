@@ -41,7 +41,7 @@ build_install_qemu_win() {
       --enable-strip
 
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
-    sed -i 's#D__[^ ]*_qapi_##g' build.ninja
+    sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
 
     PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
