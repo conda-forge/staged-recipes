@@ -35,7 +35,7 @@ build_install_qemu_win() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
+    # export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
