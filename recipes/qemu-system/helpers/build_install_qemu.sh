@@ -48,6 +48,7 @@ build_install_qemu_win() {
     PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
     export PYTHON_WIN
 
+    export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
     MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install
