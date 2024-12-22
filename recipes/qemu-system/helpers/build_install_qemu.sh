@@ -35,6 +35,7 @@ build_install_qemu_win() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
+    export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
@@ -48,7 +49,6 @@ build_install_qemu_win() {
     PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
     export PYTHON_WIN
 
-    export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
     MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install
