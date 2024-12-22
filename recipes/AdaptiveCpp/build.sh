@@ -12,4 +12,4 @@ cmake \
 
 cmake --build build --parallel
 
-cmake --build build --parallel --target install
+cmake --install build
