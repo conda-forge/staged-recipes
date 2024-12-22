@@ -36,15 +36,14 @@ inline double fmaxmag(double x, double y) {
 #endif // FALLBACK_FMAXMAG_H
 EOF
 
-export CXXFLAGS="$CXXFLAGS -include $PWD/fallback_fmaxmag.h"
-
 cmake \
   $SRC_DIR \
   ${CMAKE_ARGS} \
   -G Ninja \
   -B build \
   -DBUILD_SHARED_LIBS=ON \
-  -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_FLAGS="${CXXFLAGS} -include ${PWD}/fallback_fmaxmag.h" \
 
 cmake --build build --parallel
 
