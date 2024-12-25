@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${BUILD_PREFIX}/lib/pkgconfig"
+
+LIBTOOL=$(which libtool)
+
+if [[ ${target_platform} == win-* ]]; then
+  export CC=x86_64-w64-mingw32-gcc
+  export AR=x86_64-w64-mingw32-ar
+  export RANLIB=x86_64-w64-mingw32-ranlib
+  export STRIP=x86_64-w64-mingw32-strip
+  export LD=x86_64-w64-mingw32-ld
+  _prefix=${PREFIX}
+else
+  _prefix=$(pkg-config --variable=prefix mono)
+fi
+
+# Split off last part of the version string
+_pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
+./bootstrap-${_pkg_version} --prefix=${_prefix}
+# This should fine the PREFIX mono (check for cross-compilation)
+./configure \
+  --prefix=${_prefix} \
+  --disable-static
+make
+make install
+
+# Rename the .so on osx
+if [[ ${target_platform} == osx-* ]]; then
+    cd $(pkg-config --variable=prefix mono)/lib
+    for f in *.so; do
+        if [ -f "$f" ]; then
+            mv "$f" "${f%.so}.dylib"
+        fi
+    done
+fi
