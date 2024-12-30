@@ -2,6 +2,10 @@
 
 set -xe
 
-./meson.py build --prefix=${PREFIX} -Denable-openblas=true -Denable-pywrapper=true
+git init .
+
+git add .
+
+./meson.py build --prefix=${PREFIX} -Denable-openblas=true -Denable-pywrapper=true -Denable-autodiff=true -Denable-directdiff=true
 
 ./ninja -C build install
