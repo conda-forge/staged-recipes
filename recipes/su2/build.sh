@@ -2,6 +2,6 @@
 
 set -xe
 
-./meson.py build --prefix=${PREFIX} -Denable-openblas=true
+./meson.py build --prefix=${PREFIX} -Denable-openblas=true -Denable-pywrapper=true
 
 ./ninja -C build install
