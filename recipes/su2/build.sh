@@ -2,7 +2,7 @@
 
 set -xe
 
-git status
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 
 ./meson.py build --prefix=${PREFIX} -Denable-openblas=true -Denable-pywrapper=true -Denable-autodiff=true -Denable-directdiff=true
 
