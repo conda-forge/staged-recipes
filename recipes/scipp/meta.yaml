@@ -1,0 +1,73 @@
+{% set version = "24.11.2" %}
+
+package:
+  name: scipp
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/scipp/scipp/archive/{{ version }}.tar.gz
+  sha256: 7f6b461506ebc50c8864d5e1a81b1508685f9f7c46ac080fe72868f63bf2bc20
+  patches:
+    - 0001-Use-GIT_VERSION_INFO-as-a-env-var.patch
+
+build:
+  skip: true  # [py<310]
+  script_env:
+    - GIT_VERSION_INFO={{ version }}
+  number: 0
+  script:
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=$PYTHON  # [unix]
+    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE="%PYTHON%"  # [win]
+    - cmake --build --preset build
+    - ctest --preset test  # [build_platform == target_platform]
+
+requirements:
+  build:
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python  # [build_platform != target_platform]
+    - cmake
+    - conan ==1.64.1
+    - ninja
+    - make  # [linux]
+  host:
+    - python
+    - tbb-devel
+    - numpy
+  run:
+    - python
+
+test:
+  imports:
+    - scipp
+  requires:
+    - numba  # [py<313]
+    - bs4
+    - h5py
+    - hypothesis
+    - pandas
+    - pytest
+    - python-graphviz
+    - scipy
+    - xarray
+    - ipython
+  source_files:
+    - pyproject.toml
+    - tests/
+  commands:
+    - python -m pytest -v tests
+
+
+about:
+  home: https://scipp.github.io/
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Multi-dimensional data arrays with labeled dimensions
+  description: Multi-dimensional data arrays with labeled dimensions
+  dev_url: https://github.com/scipp/scipp
+  doc_url: https://scipp.github.io/
+
+extra:
+  recipe-maintainers:
+    - MridulS
