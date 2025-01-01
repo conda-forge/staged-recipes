@@ -11,4 +11,4 @@ cmake $SRC_DIR \
 
 cmake --build build --parallel
 
-cmake --install build --parallel
+cmake --install build
