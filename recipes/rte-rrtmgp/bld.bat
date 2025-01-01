@@ -39,5 +39,9 @@ cmake --build . -- -j%NUMBER_OF_PROCESSORS%
 ctest --output-on-failure --test-dir . -V
 
 :: Manually copy libraries, binaries, and Fortran module files to %PREFIX%
-xcopy /s /y build\*.a %PREFIX%\lib\
-xcopy /s /y build\*.mod %PREFIX%\include\
+xcopy /s /y rte-kernels\*.a %PREFIX%\lib\
+xcopy /s /y rte-frontend\*.a %PREFIX%\lib\
+xcopy /s /y rrtmgp-kernels\*.a %PREFIX%\lib\
+xcopy /s /y rrtmgp-frontend\*.a %PREFIX%\lib\
+xcopy /s /y modules\*.mod %PREFIX%\include\
+
