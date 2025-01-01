@@ -1,6 +1,6 @@
 @echo on
 
-cmake $SRC_DIR ^
+cmake %SRC_DIR% ^
   -B build ^
   -DBUILD_SHARED_LIBS=ON
 
