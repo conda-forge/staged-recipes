@@ -1,0 +1,199 @@
+{% set version = "3.1.7" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}    # [aarch64]
+{% set extension = "tar.xz" %}
+
+{% set soname = version.split(".")[0] %}
+{% set cuda_major = environ.get("cuda_compiler_version", "12.6").split(".")[0] %}
+
+package:
+  name: libnvshmem-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvshmem/redist/libnvshmem/{{ platform }}/libnvshmem-{{ platform }}-{{ version }}_cuda{{ cuda_major }}-archive.{{ extension }}
+  sha256: 4e03e40d16770a5bdbcefeb7f18579bdfc07aaa7b09a4825a7ab9b5122f69567  # [linux64 and (cuda_compiler_version or "").startswith("11")]
+  sha256: 128c62dd19926f58d1ff69290917dd50f3fb1690567f52d3965cd8fbfb9b2412  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+  sha256: 03e4404e888609bc98f496453896acc34c9ca7bbc39cc32b41d677bcaab71c49  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64)]
+  skip: true  # [cuda_compiler_version in (None, "None") or (aarch64 and (cuda_compiler_version or "").startswith("11"))]
+
+outputs:
+  - name: libnvshmem{{ soname }}
+    build:
+      missing_dso_whitelist:
+        - "*libcuda.so*" # driver
+      run_exports:
+        - {{ pin_subpackage("libnvshmem" ~ soname, max_pin="x") }}
+      script: |
+        cp -rv lib $PREFIX/
+    files:
+      - lib/libnvshmem_host.so.*
+      - lib/nvshmem_bootstrap*.so.*
+      - lib/nvshmem_transport*.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+        - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
+        - openmpi 5.0.6
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - libfabric1 1.22.0
+        - libpciaccess
+        - openmpi 5.0.6
+        - rdma-core
+        - ucx
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnvshmem_host.so.{{ soname }}
+        - test -f $PREFIX/lib/libnvshmem_host.so.{{ version }}
+        - test -L $PREFIX/lib/nvshmem_bootstrap_mpi.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_mpi.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmi.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_pmi.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmi2.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_pmi2.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmix.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_pmix.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_bootstrap_shmem.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_shmem.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_bootstrap_uid.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_bootstrap_uid.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_transport_ibdevx.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_transport_ibdevx.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_transport_ibgda.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_transport_ibgda.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_transport_ibrc.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_transport_ibrc.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_transport_libfabric.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_transport_libfabric.so.{{ soname }}.0.0
+        - test -L $PREFIX/lib/nvshmem_transport_ucx.so.{{ soname }}
+        - test -f $PREFIX/lib/nvshmem_transport_ucx.so.{{ soname }}.0.0
+
+  - name: libnvshmem-dev
+    build:
+      missing_dso_whitelist:
+        - "*libcuda.so*" # driver
+        - "*libnvshmem_host.so.{{ soname }}" # avoids: ERROR (libnvshmem-dev,bin/perftest/device/pt-to-pt/shmem_put_bw): lib/libnvshmem_host.so.3 not found in any packages. We DO test for its existence though.
+    run_exports:
+      - {{ pin_subpackage("libnvshmem" ~ soname, max_pin="x") }}
+    script: build-libnvshmem.sh
+    script_interpreter: /bin/bash
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+        - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
+        - libpciaccess
+        - openmpi 5.0.6
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libnvshmem" ~ soname, exact=True) }}
+        - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
+        - openmpi 5.0.6
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/bin/hydra_pmi_proxy
+        - test -f $PREFIX/bin/nvshmem-info
+        - test -f $PREFIX/bin/nvshmrun.hydra
+        - test -f $PREFIX/bin/hydra_nameserver
+        - test -f $PREFIX/bin/nvshmrun
+        - test -f $PREFIX/bin/hydra_persist
+        - test -f $PREFIX/bin/examples/collective-launch
+        - test -f $PREFIX/bin/examples/on-stream
+        - test -f $PREFIX/bin/perftest/device/pt-to-pt/shmem_p_latency
+        - test -f $PREFIX/bin/perftest/device/coll/reduction_latency
+        - test -f $PREFIX/bin/perftest/host/init/malloc
+        - test -f $PREFIX/bin/perftest/host/pt-to-pt/bw
+        - test -f $PREFIX/bin/perftest/host/coll/broadcast_on_stream
+        - test -f $PREFIX/include/bootstrap_device_host/nvshmem_uniqueid.h
+        - test -f $PREFIX/include/device/nvshmem_defines.h
+        - test -f $PREFIX/include/device_host/nvshmem_types.h
+        - test -f $PREFIX/include/host/nvshmem_api.h
+        - test -f $PREFIX/include/non_abi/device/coll/defines.cuh
+        - test -f $PREFIX/include/device_host_transport/nvshmem_constants.h
+        - test -f $PREFIX/include/nvshmem.h
+        - test -f $PREFIX/include/nvshmemx.h
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMConfig.cmake
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMDeviceTargets-release.cmake
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMDeviceTargets.cmake
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMTargets-release.cmake
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMTargets.cmake
+        - test -f $PREFIX/lib/cmake/nvshmem/NVSHMEMVersion.cmake
+        - test -L $PREFIX/lib/libnvshmem_host.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_mpi.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmi.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmi2.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_pmix.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_shmem.so
+        - test -L $PREFIX/lib/nvshmem_bootstrap_uid.so
+        - test -L $PREFIX/lib/nvshmem_transport_ibdevx.so
+        - test -L $PREFIX/lib/nvshmem_transport_ibgda.so
+        - test -L $PREFIX/lib/nvshmem_transport_ibrc.so
+        - test -L $PREFIX/lib/nvshmem_transport_libfabric.so
+        - test -L $PREFIX/lib/nvshmem_transport_ucx.so
+
+  - name: libnvshmem-static
+    build:
+      script: |
+        cp -rv lib/*.a $PREFIX/lib/
+    files:
+      - lib/libnvshmem*.a
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - openmpi 5.0.6
+        - rdma-core
+        - ucx
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libnvshmem-dev", exact=True) }}
+        - openmpi 5.0.6
+        - rdma-core
+        - ucx
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvshmem_device.a
+        - test -f $PREFIX/lib/libnvshmem.a
+
+about:
+  home: https://docs.nvidia.com/nvshmem/index.html
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/nvshmem/api/sla.html
+  summary: NVIDIA NVSHMEM is an NVIDIA based "shared memory" library that provides an easy-to-use CPU-side interface to allocate pinned memory that is symmetrically distributed across a cluster of NVIDIA GPUs.
+  description: |
+    NVIDIA NVSHMEM is an NVIDIA based "shared memory" library that provides an easy-to-use CPU-side interface to allocate pinned memory that is symmetrically distributed across a cluster of NVIDIA GPUs. 
+    NVSHMEM can significantly reduce communication and coordination overheads by allowing programmers to perform these operations from within CUDA kernels and on CUDA streams.
+  doc_url: https://docs.nvidia.com/nvshmem/api/index.html
+
+extra:
+  feedstock-name: libnvshmem
+  recipe-maintainers:
+    - conda-forge/cuda
