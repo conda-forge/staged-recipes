@@ -17,3 +17,4 @@ BUILD_DIR="_build"
 FFLAGS="-fno-backtrace" cmake "${cmake_options[@]}" -GNinja -B ${BUILD_DIR}
 cmake --build ${BUILD_DIR}
 cmake --install ${BUILD_DIR}
+ctest --test-dir ${BUILD_DIR}
