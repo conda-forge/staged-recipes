@@ -1,0 +1,69 @@
+context:
+  name: minio-client
+  tag: RELEASE.2024-11-21T17-21-54Z
+  version: ${{ tag | replace('RELEASE.', '') | replace('T', '.') | replace('-', '.') | replace('Z', '') }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/minio/mc/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: dbfb5eff8a9d1a8b3b02c30596377d44478040cd19563314656f4cd009de8922
+    target_directory: src
+  - url: https://raw.githubusercontent.com/minio/madmin-go/refs/heads/main/LICENSE
+    sha256: 0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0
+    file_name: minio-madmin-go-LICENSE
+  - url: https://raw.githubusercontent.com/minio/pkg/refs/heads/main/LICENSE
+    sha256: 0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0
+    file_name: minio-pkg-LICENSE
+  - url: https://raw.githubusercontent.com/mattn/go-localereader/refs/heads/master/LICENSE
+    sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+    file_name: mattn-go-localereader-LICENSE
+
+build:
+  script:
+    - cd src
+    - if: unix
+      then:
+        - go build -o $PREFIX/bin/mc
+      else:
+        - go build -o %PREFIX%\bin\mc.exe
+    - go-licenses save --save_path=../library_licenses .
+        --ignore=github.com/minio/mc
+        --ignore=github.com/minio/colorjson
+        --ignore=github.com/minio/filepath
+        --ignore=github.com/minio/madmin-go/v3
+        --ignore=github.com/minio/pkg/v3${{ ' --ignore=github.com/mattn/go-localereader' if win else '' }}
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('go') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - go-licenses
+
+tests:
+  - script:
+      content: mc --version
+
+about:
+  homepage: https://min.io
+  summary: Unix like utilities for object store
+  description: |
+    MinIO Client (mc) provides a modern alternative to UNIX commands like ls, cat, cp, mirror, diff, find etc. It supports filesystems and Amazon S3 compatible cloud storage service (AWS Signature v2 and v4).
+  license: AGPL-3.0-or-later
+  license_file:
+    - src/LICENSE
+    - library_licenses
+    - manual-licenses
+    - minio-madmin-go-LICENSE
+    - minio-pkg-LICENSE
+    - if: win
+      then: mattn-go-localereader-LICENSE
+  repository: https://github.com/minio/mc
+
+extra:
+  recipe-maintainers:
+    - pavelzw
