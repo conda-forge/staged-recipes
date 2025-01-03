@@ -1,3 +1,5 @@
+# This test is a modified version of the cppRouting::get_distance_pair documentation
+
 library(RcppParallel)
 library(cppRouting)
 
