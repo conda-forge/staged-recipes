@@ -1,0 +1,76 @@
+{% set name = "fortuno" %}
+{% set version = "0.1.0" %}
+{% set build = 0 %}
+{% set mpi = mpi or "nompi" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/fortuno-repos/fortuno/archive/v{{ version }}.tar.gz
+  sha256: 9639be1159e03d5e31032af6aa9d4f8483d1f3df0b84a3b43a564273a68ff5e1
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != "nompi" %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - {{ mpi }}  # [mpi != "nompi"]
+  run:
+    - {{ mpi }}  # [mpi != "nompi"]
+
+test:
+  source_files:
+    - test/export/**
+  requires:
+    - {{ compiler('fortran') }}
+    - {{ stdlib('c') }}
+    - {{ mpi }}  # [mpi != "nompi"]
+    - cmake
+    - meson
+    - ninja
+    - fypp
+    - pkg-config
+  commands:
+    - pkg-config fortuno --exact-version={{ version }}
+    - pkg-config fortuno_serial --exact-version={{ version }}
+    - pkg-config fortuno_mpi --exact-version={{ version }}  # [mpi != "nompi"]
+
+about:
+  home: https://github.com/fortuno-repos/fortuno
+  summary: 'Flextensible unit testing framework for Fortran'
+  description: |
+    Fortuno (Fortran Unit Testing Objects) is a flexible & extensible, object-oriented unit testing
+    framework designed for the Fortran programming language. It emphasizes ease of use by minimizing
+    boiler plate code when writing tests, while also prioratizing modularity and extensibility.
+    Fortuno provides the essential building blocks to help developers create customized unit testing
+    solutions.
+  license: BSD-2-Clause-Patent
+  license_family: BSD
+  license_file: LICENSE.txt
+  doc_url: https://fortuno.readthedocs.io/
+  dev_url: https://github.com/fortuno-repos/fortuno
+
+extra:
+  recipe-maintainers:
+    - aradi
