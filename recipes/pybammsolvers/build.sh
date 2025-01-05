@@ -15,7 +15,7 @@ mkdir -p build_sundials
 cd build_sundials
 KLU_INCLUDE_DIR=/usr/local/include
 KLU_LIBRARY_DIR=/usr/local/lib
-SUNDIALS_DIR=sundials                  
+SUNDIALS_DIR=sundials
 cmake -DENABLE_LAPACK=ON\
       -DSUNDIALS_INDEX_SIZE=32\
       -DEXAMPLES_ENABLE:BOOL=OFF\
