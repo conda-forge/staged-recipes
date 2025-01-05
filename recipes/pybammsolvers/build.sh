@@ -4,7 +4,7 @@ set -euxo pipefail
 # SuiteSparse is required to compile SUNDIALS's
 # KLU solver.
 
-SUITESPARSE_DIR=suitsparse
+SUITESPARSE_DIR=suitesparse
 for dir in SuiteSparse_config AMD COLAMD BTF KLU
 do
     make -C $SUITESPARSE_DIR/$dir library
