@@ -8,7 +8,7 @@ SUITESPARSE_DIR=suitesparse
 for dir in SuiteSparse_config AMD COLAMD BTF KLU
 do
     make -C $SUITESPARSE_DIR/$dir library
-    make -C $SUITESPARSE_DIR/$dir install INSTALL=/usr
+    make -C $SUITESPARSE_DIR/$dir install INSTALL=$PREFIX
 done
 
 mkdir -p build_sundials
@@ -23,6 +23,6 @@ cmake -DENABLE_LAPACK=ON\
       -DENABLE_OPENMP=ON\
       -DKLU_INCLUDE_DIR=$KLU_INCLUDE_DIR\
       -DKLU_LIBRARY_DIR=$KLU_LIBRARY_DIR\
-      -DCMAKE_INSTALL_PREFIX=/usr\
+      -DCMAKE_INSTALL_PREFIX=$PREFIX\
       ../$SUNDIALS_DIR
 make install
