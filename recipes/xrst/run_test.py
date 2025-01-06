@@ -1,4 +1,7 @@
 #! /usr/bin/env python
+# The xrst automated test uses xrst to document itself using its source code.
+# The program pytest/test_rst.py has an argument that determines 
+# if the local verision or the installed version of xrst is tested.
 #
 # imports
 import sys
