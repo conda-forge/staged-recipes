@@ -29,9 +29,6 @@ print( ' '.join(command) )
 subprocess.run( command , check = True)
 os.chdir( f'xrst-{version}' )
 #
-# file_name
-file_name = 'pytest/test_rst.py'
-#
 # pytest/test_rst.py
 test_installed_version = 'True'
 command = [ 'python', 'pytest/test_rst.py', test_installed_version ]
