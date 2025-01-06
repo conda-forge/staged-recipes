@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.8)
 project(implot CXX)
 
 find_package(imgui CONFIG REQUIRED)
-get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui
-    INTERFACE_INCLUDE_DIRECTORIES
-)
 
 set(CMAKE_DEBUG_POSTFIX d)
 
@@ -16,9 +13,8 @@ target_include_directories(
 	PUBLIC
 	   	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 		$<INSTALL_INTERFACE:include>
-	PRIVATE
-		${IMGUI_INCLUDE_DIRS}
 )
+target_link_libraries(${PROJECT_NAME} PUBLIC imgui::imgui)
 
 target_sources(
 	${PROJECT_NAME}
