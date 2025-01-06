@@ -14,28 +14,50 @@ build:
   ignore_run_exports_from:
     - {{ compiler("c") }}
     - {{ compiler("cxx") }}
+    - sysroot_linux-64  # [linux]
   script: |
-    export PATH=$HOME/.cargo/bin:$PATH
-    export CARGO_TARGET_DIR=$SRC_DIR/target
-    export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib -C link-arg=-Wl,-rpath,${PREFIX}/lib"
+    set -ex
+
+    export PATH="$HOME/.cargo/bin:$PATH"
+    export CARGO_TARGET_DIR="$SRC_DIR/target"
+
     cd crates/shell
-    cargo install --path . --root $PREFIX
+
+    if [[ "$target_platform" == win-* ]]; then
+      # Windows build
+      cargo build --release
+      mkdir -p "%PREFIX%\\bin"
+      cp ../../target/release/shell.exe "${PREFIX}/bin/shell.exe"
+    elif [[ "$target_platform" == linux-* ]]; then
+      # Linux build
+      export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib \
+                        -C link-arg=-Wl,-rpath,${PREFIX}/lib"
+      cargo build --release
+      install -Dm755 ../../target/release/shell "$PREFIX/bin/shell"
+    elif [[ "$target_platform" == osx-* ]]; then
+      # macOS build
+      export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib \
+                        -C link-arg=-Wl,-rpath,${PREFIX}/lib"
+      cargo build --release
+      ls
+      install -Dm755 ../../target/release/shell "$PREFIX/bin/shell"
+    fi
 
 requirements:
   host:
     - rust
     - {{ compiler("c") }}
     - {{ compiler("cxx") }}
-    - sysroot_linux-64  # [linux]
+    - sysroot_linux-64    # [linux]
   run:
-    - sysroot_linux-64  # [linux]
-    - libgcc  # [linux]
+    - sysroot_linux-64    # [linux]
+    - libgcc              # [linux]
     - libgfortran
-    - libiconv
+    - libiconv            # [osx]
 
 test:
   commands:
-    - shell --help  # [not win]
+    - shell --help        # [not win]
     - set PATH=%PREFIX%\bin;%PATH% && shell --help  # [win]
 
 about:
