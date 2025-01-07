@@ -2,6 +2,8 @@
 # Stop on any error
 set -e
 
+BUILD_DIR=build
+
 BUILD_TYPE=Debug
 RRTMGP_DATA_VERSION=v1.8.2
 FP_MODEL=DP
@@ -12,13 +14,15 @@ FAILURE_THRESHOLD=7.e-4
 
 FCFLAGS="-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -fbacktrace"
 
-# CMake configuration
-mkdir -p build
-cd build
+# Ensure the directories exist
+mkdir -p "${BUILD_DIR}"
+mkdir -p $PREFIX/lib
+mkdir -p $PREFIX/include
 
 # Note: $CMAKE_ARGS is automatically provided by conda-forge. 
 # It sets default paths and platform-independent CMake arguments.
-cmake ${CMAKE_ARGS} \
+cmake -S . -B "${BUILD_DIR}" \
+      ${CMAKE_ARGS} \
       -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
       -DCMAKE_Fortran_COMPILER=${FC} \
       -DCMAKE_Fortran_FLAGS="${FCFLAGS}" \
@@ -28,21 +32,13 @@ cmake ${CMAKE_ARGS} \
       -DKERNEL_MODE=${RTE_KERNELS} \
       -DENABLE_TESTS=${ENABLE_TESTS} \
       -DFAILURE_THRESHOLD=${FAILURE_THRESHOLD} \
-      -G Ninja ..
+      -G Ninja
 
 # Compile
-cmake --build . -- -j${CPU_COUNT}
+cmake --build "${BUILD_DIR}" --parallel
+
+# Install the necessery files into the package
+cmake --install "${BUILD_DIR}" --prefix "${PREFIX}"
 
 # Run tests
-ctest --output-on-failure --test-dir . -V
-
-# Manually copy libraries, binaries, and Fortran module files to $PREFIX
-# Ensure the directories exist before copying
-mkdir -p $PREFIX/lib
-mkdir -p $PREFIX/include
-
-# Copy libraries
-find $SRC_DIR/build/ -name "*.a" -exec cp {} $PREFIX/lib/ \;
-
-# Copy Fortran module files
-find $SRC_DIR/build/modules -name "*.mod" -exec cp {} $PREFIX/include/ \;
+ctest --output-on-failure --test-dir "${BUILD_DIR}" -V
