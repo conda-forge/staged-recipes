@@ -24,12 +24,12 @@ For NVIDIA conda packages which are redists (binary redistributions) there is no
 when building the package, so we do not automatically know if the glibc provided by `{{
 stdlib('c') }}` is new enough for the binaries in the package. If we don't set a new enough
 version for `c_stdlib_version`, end users can get undefined symbol errors. This tool is used
-for checking that a binary redist has correctly specified the c_stdlib_version variable in
+for checking that a binary redist has correctly specified the `c_stdlib_version` variable in
 the recipe.
 
 ### How to Use
 
-Use the tool in the build script after installing the binaries to the PREFIX like so:
+Use the tool in the build script after installing the binaries to `$PREFIX`. For example:
 
 ```bash
 check-glibc $PREFIX/lib/*.so.*
@@ -38,7 +38,7 @@ check-glibc $PREFIX/lib/*.so.*
 Here we have used bash to expand a glob expression and provide `check-glibc` with a list of
 files to search for glibc symbols. We have narrowed the glob to versioned shared libraries
 only because we don't need to check links to binaries (that would be duplicate effort). In
-fact, the tool will ignore any non-files. In other words, symbolic links will be ignored, so
+fact, the tool will ignore any non-files. In other words, *symbolic links will be ignored*, so
 you must name the actual files.
 
 You can check arbitrary files by setting your own glob expression or explicitly listing the
