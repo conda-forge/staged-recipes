@@ -1,17 +1,14 @@
-From 3857b3db49e2c9ddea304c249442132655b2f006 Mon Sep 17 00:00:00 2001
-From: Mridul Seth <git@mriduls.com>
-Date: Mon, 2 Dec 2024 10:18:10 +0100
-Subject: [PATCH] Use GIT_VERSION_INFO as a env var
+commit da1c4e86df2ba20f4a7e4317909c7d8bdda0601b
+Author: Mridul Seth <git@mriduls.com>
+Date:   Wed Jan 8 22:17:37 2025 +0100
 
----
- CMakeLists.txt | 11 ++++-------
- 1 file changed, 4 insertions(+), 7 deletions(-)
+    MAINT: Patch to build package from github release source archive
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 6394f24c3..fc4d6548c 100644
+index 6394f24c3..92968791f 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -21,13 +21,10 @@ if(SKBUILD)
+@@ -21,13 +21,25 @@ if(SKBUILD)
    add_definitions(-DSCIPP_VERSION="${SKBUILD_PROJECT_VERSION_FULL}")
    message(STATUS "Got version from SKBUILD: ${SKBUILD_PROJECT_VERSION_FULL}")
  else()
@@ -22,14 +19,25 @@ index 6394f24c3..fc4d6548c 100644
 -    OUTPUT_VARIABLE GIT_VERSION_INFO
 -    OUTPUT_STRIP_TRAILING_WHITESPACE
 -  )
-+  set(GIT_VERSION_INFO $ENV{GIT_VERSION_INFO})
-+  set(HAVE_GIT_VERSION_INFO 0)
-+  message(STATUS "Got version from environment: $ENV{GIT_VERSION_INFO}")
-+
++  # Set GIT_VERSION_INFO from conda recipe as conda-forge doesn't like using git
++  # repos during the build process. The recipe links to the tar archive from a
++  # github release.
++  if(CONDA_FORGE_BUILD)
++    set(GIT_VERSION_INFO $ENV{GIT_VERSION_INFO})
++    set(HAVE_GIT_VERSION_INFO 0)
++    message(
++      STATUS
++        "Got version from environment inside conda-forge build: $ENV{GIT_VERSION_INFO}"
++    )
++  else()
++    execute_process(
++      COMMAND git describe --tags --exclude nightly
++      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
++      RESULT_VARIABLE HAVE_GIT_VERSION_INFO
++      OUTPUT_VARIABLE GIT_VERSION_INFO
++      OUTPUT_STRIP_TRAILING_WHITESPACE
++    )
++  endif()
    # We get something like 23.08.0-266-g068b161fe, remove the -g<hash> part
    string(REGEX REPLACE "-g[0-9a-f]+$" "" GIT_VERSION_INFO ${GIT_VERSION_INFO})
    # Replace '-' with '.dev' for PEP440 compatibility
--- 
-2.47.0
-
-
