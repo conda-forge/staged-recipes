@@ -1,3 +1,8 @@
+@echo on
+setlocal enabledelayedexpansion
+
+mkdir build
+
 :: Windows build script
 
 :: test for new compiler default
@@ -7,7 +12,6 @@
 :: flang-new.exe --version
 :: if %ERRORLEVEL% neq 0 exit 1
 ::
-cd %SRC_DIR%\src\gridmarthe\lecsem
 
 :: Flags for meson, which do not correctly detect flang-new and linkers
 :: https://github.com/mesonbuild/meson/issues/12306
@@ -28,10 +32,10 @@ REM set "FFLAGS=-fdefault-real-8 -ffree-form -fimplicit-none"
 REM set "LDFLAGS=-fuse-ld=lld"
 REM set "LDFLAGS=%LDFLAGS% -Wl,-Lucrt" // ignored
 
-
-%PYTHON% -m numpy.f2py -c lecsem.f90 edsemigl.f90 scan_grid.f90 -m lecsem --backend=meson --lower --build-dir builddir
-if %ERRORLEVEL% neq 0 (type builddir\meson-logs\meson-log.txt && exit 1)
-
 cd %SRC_DIR%
-%PYTHON% -m pip install --no-deps -vvv .
-if errorlevel 1 exit 1
+%PYTHON% -m pip install --no-deps -vvv . ^
+    -Cbuild-dir=build ^
+    -Csetup-args=-Dcondabuild=true
+
+if %ERRORLEVEL% neq 0 (type build\meson-logs\meson-log.txt && exit 1)
+
