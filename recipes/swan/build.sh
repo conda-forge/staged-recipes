@@ -2,7 +2,7 @@
 
 set -xe
 
-mkdir ${PREFIX}/bin
+mkdir -p ${PREFIX}/bin ${BUILD_PREFIX}/bin/
 
 ln -s ${FC} ${BUILD_PREFIX}/bin/gfortran
 
