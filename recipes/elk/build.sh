@@ -4,7 +4,7 @@ set -xe
 
 F90_OPTS="-O3 -ffast-math -funroll-loops -fopenmp -fallow-argument-mismatch"
 F77_OPTS=$F90_OPTS
-LIB_LPK="-L${PREFIX}/lib -llapack -lopenblas -lgfortran"
+LIB_LPK="lapack.a blas.a"
 LIB_FFT="fftlib.a"
 
 echo > make.inc
