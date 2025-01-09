@@ -4,8 +4,8 @@ set -xe
 
 F90_OPTS="-O3 -ffast-math -funroll-loops -fopenmp -fallow-argument-mismatch"
 F77_OPTS=$F90_OPTS
-LIB_LPK="lapack.a blas.a"
-LIB_FFT="fftlib.a"
+LIB_LPK="liblapack.so libopenblas.so -L${PREFIX}/lib"
+LIB_FFT="libfftw3.so -L${PREFIX}/lib"
 
 echo > make.inc
 echo "MAKE = make" >> make.inc
