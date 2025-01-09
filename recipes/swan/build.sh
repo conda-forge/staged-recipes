@@ -11,5 +11,6 @@ FC=gfortran make config
 make mpi
 
 install -m 0755 swan.exe ${PREFIX}/bin
+install -m 0755 swanrun ${PREFIX}/bin
 
 unlink ${BUILD_PREFIX}/bin/gfortran
