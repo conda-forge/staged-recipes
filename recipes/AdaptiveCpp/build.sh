@@ -15,4 +15,4 @@ cmake \
 
 cmake --build build --parallel
 
-cmake --install build
+cmake --install build --strip
