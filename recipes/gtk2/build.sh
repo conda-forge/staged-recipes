@@ -227,9 +227,11 @@ make V=0 -j"$CPU_COUNT"
 make install -j$CPU_COUNT
 
 if [[ "${target_platform}" == win-* ]]; then
-  dlltool -D ${PREFIX}/Library/bin/libgdk-win32-2.0-0.dll -d ${PREFIX}/Library/lib/gdk-win32-2.0.def -l gdk-win32-2.0.lib
-  dlltool -D ${PREFIX}/Library/bin/libgtk-win32-2.0-0.dll -d ${PREFIX}/Library/lib/gtk-win32-2.0.def -l gtk-win32-2.0.lib
-  dlltool -D ${PREFIX}/Library/bin/libgailutil-18.dll -d ${PREFIX}/Library/lib/gailutil.def -l gailutil.lib
+  bindir=$(echo "${PREFIX}/Library/bin" | sed -E 's|/|\\|g')
+  libdir=$(echo "${PREFIX}/Library/lib" | sed -E 's|/|\\|g')
+  dlltool -v -D ${bindir}\\libgdk-win32-2.0-0.dll -d ${libdir}\\gdk-win32-2.0.def -l gdk-win32-2.0.lib
+  dlltool -v -D ${bindir}\\libgtk-win32-2.0-0.dll -d ${libdir}\\gtk-win32-2.0.def -l gtk-win32-2.0.lib
+  dlltool -v -D ${bindir}\\libgailutil-18.dll -d ${libdir}\\gailutil.def -l gailutil.lib
   cp gdk-win32-2.0.lib gtk-win32-2.0.lib gailutil.lib ${PREFIX}/Library/lib/
 fi
 
