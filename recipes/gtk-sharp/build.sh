@@ -19,7 +19,6 @@ if [[ ${target_platform} == win-* ]]; then
       PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}${PKG_CONFIG_PATH:+:}${path}"
   done
   PKG_CONFIG=$(which pkg-config.exe | sed -E 's|^/(\w)|\1:|')
-  PKG_CONFIG=$(echo "${RECIPE_DIR}/non-unix-helpers/my-pkg-config.sh" | sed -E 's|^/(\w)|\1:|')
   PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed -E 's|^(\w):|/\1|' | sed -E 's|:(\w):|:/\1|g')
 
   export PKG_CONFIG
