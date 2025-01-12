@@ -229,10 +229,10 @@ make install -j$CPU_COUNT
 if [[ "${target_platform}" == win-* ]]; then
   bindir=$(echo "${PREFIX}/Library/bin" | sed -E 's|/|\\|g')
   libdir=$(echo "${PREFIX}/Library/lib" | sed -E 's|/|\\|g')
-  dlltool -v -D ${bindir}\\libgdk-win32-2.0-0.dll -d ${libdir}\\gdk-win32-2.0.def -l gdk-win32-2.0.lib
-  dlltool -v -D ${bindir}\\libgtk-win32-2.0-0.dll -d ${libdir}\\gtk-win32-2.0.def -l gtk-win32-2.0.lib
-  dlltool -v -D ${bindir}\\libgailutil-18.dll -d ${libdir}\\gailutil.def -l gailutil.lib
-  cp gdk-win32-2.0.lib gtk-win32-2.0.lib gailutil.lib ${PREFIX}/Library/lib/
+  dlltool=${BUILD_PREFIX}/Library/x86_64-w64-mingw32/bin/dlltool.exe
+  ${dlltool} -D "${bindir}"\\libgdk-win32-2.0-0.dll -d "${libdir}"\\gdk-win32-2.0.def -l "${libdir}"\\gdk-win32-2.0.lib
+  ${dlltool} -D "${bindir}"\\libgtk-win32-2.0-0.dll -d "${libdir}"\\gtk-win32-2.0.def -l "${libdir}"\\gtk-win32-2.0.lib
+  ${dlltool} -D "${bindir}"\\libgailutil-18.dll -d "${libdir}"\\gailutil.def -l "${libdir}"\\gailutil.lib
 fi
 
 # We use the GTK 3 version of gtk-update-icon-cache
