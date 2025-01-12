@@ -1,12 +1,12 @@
-import pytest
+import subprocess
 
-def test_plugin_installed():
-    try:
-        # Access pytest's plugin manager
-        plugin_manager = pytest.PytestPluginManager()
-        # Check if the "textual-snapshot" plugin is registered
-        if not plugin_manager.hasplugin("textual-snapshot"):
-            raise ImportError("textual-snapshot plugin is not installed or not registered.")
-        print("textual-snapshot plugin is installed and registered.")
-    except Exception as e:
-        print(f"Error: {e}")
+def check_plugin_in_trace_config():
+    # Run pytest with --trace-config to get configuration info
+    result = subprocess.run(['pytest', '--trace-config'], capture_output=True, text=True)
+
+    # Check if the textual-snapshot plugin is in the output
+    if "textual-snapshot" not in result.stdout:
+        raise RuntimeError("The 'textual-snapshot' plugin is not loaded. ")
+
+# Run the check
+check_plugin_in_trace_config()
