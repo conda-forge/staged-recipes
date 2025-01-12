@@ -2,9 +2,10 @@ import pytest
 
 def test_plugin_installed():
     try:
-        # Check if "textual-snapshot" plugin is registered
-        plugins = pytest.config.pluginmanager.list_name_plugin()
-        if "textual-snapshot" not in [name for name, _ in plugins]:
+        # Access pytest's plugin manager
+        plugin_manager = pytest.PytestPluginManager()
+        # Check if the "textual-snapshot" plugin is registered
+        if not plugin_manager.hasplugin("textual-snapshot"):
             raise ImportError("textual-snapshot plugin is not installed or not registered.")
         print("textual-snapshot plugin is installed and registered.")
     except Exception as e:
