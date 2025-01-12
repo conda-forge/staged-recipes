@@ -34,11 +34,10 @@ if [[ ${target_platform} == win-* ]]; then
   # Split off last part of the version string
   _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
 
-  # For Windows, we'll use dotnet instead of mono
-  autoupdate
-
   # Bootstrap with dotnet configuration
   ./bootstrap-${_pkg_version} --prefix=${_prefix} --with-dotnet
+  autoreconf -vif
+  autoupdate
 
   # Configure specifically for dotnet on Windows
   ./configure \
@@ -50,9 +49,10 @@ else
   _prefix=$(pkg-config --variable=prefix mono)
   # Split off last part of the version string
   _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
-  autoupdate
 
   ./bootstrap-${_pkg_version} --prefix=${_prefix} --with-dotnet
+  autoreconf -vif
+  autoupdate
 
   # This should find the PREFIX mono (check for cross-compilation)
   ./configure \
