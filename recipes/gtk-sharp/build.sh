@@ -31,17 +31,35 @@ if [[ ${target_platform} == win-* ]]; then
   export STRIP=x86_64-w64-mingw32-strip
   export LD=x86_64-w64-mingw32-ld
   _prefix=${PREFIX}
+  # Split off last part of the version string
+  _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
+
+  # For Windows, we'll use dotnet instead of mono
+  autoupdate
+
+  # Bootstrap with dotnet configuration
+  ./bootstrap-${_pkg_version} --prefix=${_prefix} --with-dotnet
+
+  # Configure specifically for dotnet on Windows
+  ./configure \
+      --prefix=${_prefix} \
+      --disable-static \
+      --enable-dotnet \
+      --disable-mono
 else
   _prefix=$(pkg-config --variable=prefix mono)
+  # Split off last part of the version string
+  _pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
+  autoupdate
+
+  ./bootstrap-${_pkg_version} --prefix=${_prefix} --with-dotnet
+
+  # This should find the PREFIX mono (check for cross-compilation)
+  ./configure \
+    --prefix=${_prefix} \
+    --disable-static
 fi
 
-# Split off last part of the version string
-_pkg_version=$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//')
-./bootstrap-${_pkg_version} --prefix=${_prefix}
-# This should fine the PREFIX mono (check for cross-compilation)
-./configure \
-  --prefix=${_prefix} \
-  --disable-static
 make
 make install
 
