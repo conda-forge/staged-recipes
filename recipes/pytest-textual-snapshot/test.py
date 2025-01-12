@@ -10,6 +10,3 @@ def test_plugin_installed():
         print("textual-snapshot plugin is installed and registered.")
     except Exception as e:
         print(f"Error: {e}")
-
-# Run the test
-test_plugin_installed()
