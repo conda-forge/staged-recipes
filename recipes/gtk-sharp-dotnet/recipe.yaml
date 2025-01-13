@@ -1,0 +1,81 @@
+context:
+  name: gtk-sharp-dotnet
+  version: "2.12.45"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mono/gtk-sharp/archive/refs/tags/${{ version }}.tar.gz
+  sha256: a4bb3593235ef26e1a38c26760f118126ede2801abc41c674aa4d1eee068d9e0
+
+build:
+  moarch: generic
+  number: 0
+
+requirements:
+  host:
+    - dotnet
+    - nuget-license
+  run:
+    - dotnet
+
+tests:
+  - package_contents:
+      bin:
+        - gapi2-codegen
+        - gapi2-fixup
+        - gapi2-parser
+      lib:
+        - libatksharpglue-2
+        - libgdksharpglue-2
+        - libglibsharpglue-2
+        - libgtksharpglue-2
+        - libpangosharpglue-2
+      files:
+        - share/gapi-2.0/atk-api.xml
+        - share/gapi-2.0/gdk-api.xml
+        - share/gapi-2.0/glib-api.xml
+        - share/gapi-2.0/gtk-api.xml
+        - share/gapi-2.0/pango-api.xml
+
+        - lib/pkgconfig/gapi-2.0.pc
+        - lib/pkgconfig/glib-sharp-2.0.pc
+        - lib/pkgconfig/gtk-dotnet-2.0.pc
+        - lib/pkgconfig/gtk-sharp-2.0.pc
+
+        # - ${{ "Library/" if win }}lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
+        - lib/gtk-sharp-2.0/gapi-fixup.exe
+        - lib/gtk-sharp-2.0/gapi-parser.exe
+        - lib/gtk-sharp-2.0/gapi2xml.pl
+        - lib/gtk-sharp-2.0/gapi_codegen.exe
+        - lib/gtk-sharp-2.0/gapi_pp.pl
+  - script:
+      interpreter: python
+      content: |
+        import os
+        from pathlib import Path
+        root = Path(os.environ["PREFIX"]) / ("Library" if os.name == "nt" else "") / "lib" / "mono" / "gtk-sharp-2.0"
+        vs = ["2.10", "2.4", "2.6", "2.8"]
+        ds = ["atk-sharp.dll", "gdk-sharp.dll", "glib-sharp.dll", "gtk-dotnet.dll", "gtk-sharp.dll", "pango-sharp.dll"]
+        missing_dlls = [f"policy.{v}.{d}" for v in vs for d in ds if not (root / f"policy.{v}.{d}").exists()]
+        if missing_dlls:
+            print("\n".join(missing_dlls))
+            exit(1)
+
+about:
+  homepage: https://github.com/mono/gtk-sharp
+  summary: "Gtk# is a Mono/.NET binding to the cross platform Gtk+ GUI toolkit"
+  description: |
+    Gtk# is a Graphical User Interface Toolkit for mono and .Net. The project binds
+    the gtk+ toolkit and assorted GNOME libraries, enabling fully native graphical
+    Gnome application development using the Mono and .Net development frameworks.
+  license: GPL-2.0-only
+  license_file: COPYING
+  documentation: http://www.mono-project.com/GtkSharp
+  repository: https://github.com/mono/gtk-sharp
+
+extra:
+  recipe-maintainers:
+    - MementoRC
