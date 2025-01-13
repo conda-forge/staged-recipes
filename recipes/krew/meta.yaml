@@ -1,0 +1,49 @@
+{% set goname = "github.com/kubernetes-sigs/krew" %}
+{% set version = "0.4.4" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+package:
+  name: kubectl-{{ name|lower }}
+  version: {{ version|replace("-", "_") }}
+
+source:
+  - folder: {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: dd11ef2d56a0897d38ac219f17332effbd09a3c6a1f68974635b925ba129cd35
+
+build:
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go build -ldflags "-w -X sigs.k8s.io/krew/internal/version.gitTag=v{{ version }}" -v -o $PREFIX/bin/kubectl-krew -tags netgo ./cmd/krew  # [not win]
+    - go build -ldflags "-w -X sigs.k8s.io/krew/internal/version.gitTag=v{{ version }}" -v -o %LIBRARY_BIN%\kubectl-krew.exe -tags netgo ./cmd/krew  # [win]
+    - go-licenses save ./cmd/krew --save_path ../../../../library_licenses
+    # Clear out cache to avoid file not removable warnings
+    - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+    - go-licenses
+
+test:
+  requires:
+    - git
+  commands:
+    - kubectl-krew version
+    - kubectl-krew update
+    - kubectl-krew install ctx  # [not win]
+
+about:
+  home: https://{{ goname }}
+  license: Apache-2.0
+  license_file:
+    - {{ pkg_src }}/LICENSE
+    - library_licenses/
+  summary: Krew is the package manager for kubectl plugins
+
+extra:
+  recipe-maintainers:
+    - dbast
