@@ -88,9 +88,21 @@ echo ""
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
+# Set the target arch
+# check TARGET_ARCH IS SET AND USE IT, otherwise fallback to auto detection
+if [[ -z "${TARGET_ARCH}" ]]; then
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    TARGET_ARCH="arm64"
+  else
+    TARGET_ARCH="64"
+  fi
+else
+  echo "TARGET_ARCH is set to ${TARGET_ARCH}"
+fi
+
 # We just want to build all of the recipes.
 echo "Building all recipes"
-python .ci_support/build_all.py
+python .ci_support/build_all.py --arch ${TARGET_ARCH}
 
 ( startgroup "Inspecting artifacts" ) 2> /dev/null
 # inspect_artifacts was only added in conda-forge-ci-setup 4.6.0; --all-packages in 4.9.3
