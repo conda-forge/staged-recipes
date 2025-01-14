@@ -24,6 +24,11 @@ target_sources(
 		${CMAKE_CURRENT_SOURCE_DIR}/implot_demo.cpp
 )
 
+# Set the property to export all symbols on Windows
+if(WIN32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 install(
 	TARGETS ${PROJECT_NAME}
 	EXPORT ${PROJECT_NAME}_target
