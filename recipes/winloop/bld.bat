@@ -1,6 +1,6 @@
 cd %SRC_DIR%
 
-if exist vendor(
+if exist vendor (
     rmdir /s /q vendor
 )
 
