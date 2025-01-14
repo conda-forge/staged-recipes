@@ -13,7 +13,7 @@ cmake ${CMAKE_ARGS} \
   -DBUILD_FETCH_DEM=False \
   -DBUILD_STL_CONVERTER=False \
   -DBUILD_CONVERT_OUTPUT=False \
-  -DBUILD_SOLAR_GRID=False
+  -DBUILD_SOLAR_GRID=False \
   ..
 
 make -j${CPU_COUNT} install
