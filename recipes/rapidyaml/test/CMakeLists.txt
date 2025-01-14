@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.17)
+project(app LANGUAGES CXX)
+find_package(ryml REQUIRED)
+add_executable(app app.cpp)
+target_link_libraries(app ryml::ryml)
