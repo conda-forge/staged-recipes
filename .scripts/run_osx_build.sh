@@ -88,8 +88,7 @@ echo ""
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
-# Set the target arch
-# check TARGET_ARCH IS SET AND USE IT, otherwise fallback to auto detection
+# Set the target arch or auto detect it
 if [[ -z "${TARGET_ARCH}" ]]; then
   if [[ "$(uname -m)" == "arm64" ]]; then
     TARGET_ARCH="arm64"
