@@ -34,14 +34,6 @@ function glibc-detect () {(
   local mode="${1}" ; shift
   ## modes:
   case "${mode}" in
-    ## 1. "env" - unpack the value of a named variable
-    ### e.g. 'glibc-detect "env" "c_stdlib_version"'
-    #### returns the value of "c_stdlib_version"
-    #### it is equivalent to echo "${c_stdlib_version}"
-    "env" )
-      local named_variable="${1}"
-      echo "${!named_variable}"
-    ;;
     ## 2. "req" - detect the glibc version required by a library
     ### e.g. 'glibc-detect "req" "/path/to/library"'
     #### returns the minimum required version of glibc for the library
@@ -93,21 +85,17 @@ function glibc-check () {(
       local -a sorted
       first="$(glibc version-normalize "${1}")" ; shift
       second="$(glibc version-normalize "${1}")" ; shift
-
       mapfile -t sorted < <(
         printf "%s\n" "${first}" "${second}" |
         sort -Vr
       )
       if [[ "${first}" == "${second}" ]] ; then
         echo "true"
-        return 0
       fi
       if [[ "${first}" == "${sorted[0]}" ]] ; then
         echo "false"
-        return 1
       else
         echo "true"
-        return 0
       fi
     ;;
     ## 2. "status" - check if two glibc versions are compatible
@@ -122,47 +110,13 @@ function glibc-check () {(
         sort -Vr
       )
       if [[ "${first}" == "${second}" ]] ; then
-        echo "true"
         return 0
       fi
       if [[ "${first}" == "${sorted[0]}" ]] ; then
-        echo "false"
         return 1
       else
-        echo "true"
         return 0
       fi
-    ;;
-    ## 3. "system" - check if the system glibc version is compatible with a library
-    ### e.g. 'glibc-check "system" "/path/to/library"'
-    #### returns 0 if the system glibc version is compatible with the library
-    #### returns 1 if the system glibc version is not compatible with the library
-    "system" )
-      glibc-check "status" \
-        "$(glibc-detect "system")" "${@}"
-    ;;
-    ## 4. "library" - check if a library glibc version is compatible with a library
-    ### for each detected glibc symbol in library, compare with the input version of glibc
-    ### e.g. 'glibc-check "library" "2.17" "/path/to/library"'
-    #### returns 0 if the library glibc version is compatible with the input version ("2.17")
-    "library" )
-      local version
-      local glibc_version="${1}" ; shift
-      while read -r version ; do
-        local -a command=(
-          "glibc-check" "status"
-          "${glibc_version}" "${version}"
-        )
-        if "${command[@]}" ; then
-          return 0
-        else
-          return 1
-        fi
-      done < <(glibc-detect "library" "${@}")
-    ;;
-    "env:library" )
-      local named_variable="${1}" ; shift
-      glibc-check "library" "${!named_variable}" "${@}"
     ;;
   esac
 )}
