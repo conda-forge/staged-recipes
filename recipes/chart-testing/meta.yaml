@@ -1,0 +1,58 @@
+{% set goname = "github.com/helm/chart-testing" %}
+{% set version = "3.12.0" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version|replace("-", "_") }}
+
+source:
+  - folder: {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: 129e380050ca79c6b89160475cb339da59067b6c36db85187ebbc50ea6b901d5
+
+build:
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go build -ldflags "-w -X github.com/helm/chart-testing/v3/ct/cmd.Version={{ version }}" -v -o $PREFIX/bin/ct ./ct  # [not win]
+    - go build -ldflags "-w -X github.com/helm/chart-testing/v3/ct/cmd.Version={{ version }}" -v -o %LIBRARY_BIN%\ct.exe .\ct  # [win]
+    - bash -c "mkdir ${PREFIX}/etc; cp -v ./etc/* ${PREFIX}/etc/"
+    - bash -c "mkdir -p ${PREFIX}/etc/conda/activate.d"
+    - bash -c "cp ${RECIPE_DIR}/activate.sh ${PREFIX}/etc/conda/activate.d/${PKG_NAME}.sh"
+    - bash -c "cp ${RECIPE_DIR}/activate.bat ${PREFIX}/etc/conda/activate.d/${PKG_NAME}.bat"
+    - go-licenses save ./ct --save_path ../../../../library_licenses
+    # Clear out cache to avoid file not removable warnings
+    - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+    - go-licenses
+  run:
+    - yamllint
+    - yamale
+
+test:
+  requires:
+    - kubernetes-helm
+  commands:
+    - ct version
+    - ct --help
+    - ct lint --help
+    - helm create testchart
+    - ct lint --charts ./testchart --validate-chart-schema=false --validate-maintainers=false
+
+about:
+  home: https://{{ goname }}
+  license: Apache-2.0
+  license_file:
+    - {{ pkg_src }}/LICENSE
+    - library_licenses/
+  summary: CLI tool for linting and testing Helm charts
+
+extra:
+  recipe-maintainers:
+    - dbast
