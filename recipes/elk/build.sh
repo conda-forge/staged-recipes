@@ -19,7 +19,6 @@ echo "# LAPACK and BLAS libraries" >> make.inc
 echo "LIB_LPK = $LIB_LPK" >> make.inc
 echo "LIB_FFT = $LIB_FFT" >> make.inc
 echo "SRC_OMP = " >> make.inc
-cat make.def >> make.inc
 
 make all
 
