@@ -1,226 +1,113 @@
 #!/usr/bin/env bash
 
-merge_custom() {
-    local pkg=$1
-    # For each .custom file
-    mkdir -p "${pkg}/merged"
-    for custom in ${pkg}/*.custom; do
-        if [ -f "$custom" ]; then
-            base=$(basename "$custom" .custom)
-            gen="${pkg}/generated/${base}.cs"
-            merged="${pkg}/merged/${base}.cs"
-            if [ -f "$gen" ]; then
-                # Count closing braces at the end of generated file
-                closing_braces=$(grep -c "^}$" "$gen")
-                # Create merged file without the closing braces
-                head -n -${closing_braces} "$gen" > "$merged"
-                # Add custom content
-                tail -n +2 "$custom" >> "$merged"  # Skip first line (comment)
-                # Add back closing braces
-                for ((i=0; i<closing_braces; i++)); do
-                    echo "}" >> "$merged"
-                done
-            else
-                echo "Warning: no generated file for $custom"
-            fi
-        fi
-    done
-}
-
-convert_proj() {
-    local pkg=$1
-    local namespace="${2:-$(tr '[:lower:]' '[:upper:]' <<< ${pkg:0:1})${pkg:1}}"
-
-    cat > ${pkg}/${pkg}.csproj << EOF
+create_gapi_csproj() {
+  local framework_version=$1
+  local gapi_call=$2
+    cat > "parser/gapi-${gapi_call}.csproj" << EOF
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputType>Library</OutputType>
-    <RootNamespace>${namespace}</RootNamespace>
-    <AssemblyName>${pkg}</AssemblyName>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>0649;1616;1699</NoWarn>
-    <DefineConstants>GTK_SHARP_2_6;GTK_SHARP_2_8;GTK_SHARP_2_10;GTK_SHARP_2_12</DefineConstants>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>../gtk-sharp.snk</AssemblyOriginatorKeyFile>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-  </PropertyGroup>
-
-  <ItemGroup>
-EOF
-
-    # First merge custom files with generated
-    merge_custom ${pkg}
-
-    echo "    <Compile Include=\"../AssemblyInfo.cs\" />" >> ${pkg}/${pkg}.csproj
-
-    # First add regular .cs files
-    for csfile in ${pkg}/*.cs; do
-        if [ -f "$csfile" ]; then
-            base=$(basename "$csfile" .cs)
-            echo "    <Compile Include=\"$(basename "$csfile")\" />" >> ${pkg}/${pkg}.csproj
-        fi
-    done
-
-    # Then add generated files
-    if [ -d "${pkg}/generated" ]; then
-        for gen in ${pkg}/generated/*.cs; do
-            if [ -f "$gen" ]; then
-                base=$(basename "$gen" .cs)
-                if [ -f "${pkg}/merged/${base}.cs" ]; then
-                    echo "    <Compile Include=\"merged/${base}.cs\" />" >> ${pkg}/${pkg}.csproj
-                else
-                    # Only include generated file if there's no source version
-                    if [ ! -f "${pkg}/${base}.cs" ]; then
-                        echo "    <Compile Include=\"generated/${base}.cs\" />" >> ${pkg}/${pkg}.csproj
-                    fi
-                fi
-            fi
-        done
-    fi
-
-    echo "  </ItemGroup>" >> ${pkg}/${pkg}.csproj
-    echo "  <ItemGroup>" >> ${pkg}/${pkg}.csproj
-
-    case ${pkg} in
-        atk|gdk|pango)
-            echo "    <ProjectReference Include=\"../glib/glib.csproj\">" >> ${pkg}/${pkg}.csproj
-            echo "      <Name>glib</Name>" >> ${pkg}/${pkg}.csproj
-            echo "    </ProjectReference>" >> ${pkg}/${pkg}.csproj
-            ;;
-        gtk)
-            echo "    <ProjectReference Include=\"../glib/glib.csproj\">" >> ${pkg}/${pkg}.csproj
-            echo "      <Name>glib</Name>" >> ${pkg}/${pkg}.csproj
-            echo "    </ProjectReference>" >> ${pkg}/${pkg}.csproj
-            echo "    <ProjectReference Include=\"../gdk/gdk.csproj\">" >> ${pkg}/${pkg}.csproj
-            echo "      <Name>gdk</Name>" >> ${pkg}/${pkg}.csproj
-            echo "    </ProjectReference>" >> ${pkg}/${pkg}.csproj
-            echo "    <ProjectReference Include=\"../pango/pango.csproj\">" >> ${pkg}/${pkg}.csproj
-            echo "      <Name>pango</Name>" >> ${pkg}/${pkg}.csproj
-            echo "    </ProjectReference>" >> ${pkg}/${pkg}.csproj
-            ;;
-    esac
-
-    echo "  </ItemGroup>" >> ${pkg}/${pkg}.csproj
-    echo "</Project>" >> ${pkg}/${pkg}.csproj
-
-    dotnet restore ${pkg}/${pkg}.csproj
-}
-
-convert_gtkdotnet() {
-    cat > gtkdotnet/gtkdotnet.csproj << EOF
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputType>Library</OutputType>
-    <RootNamespace>Gtk.DotNet</RootNamespace>
-    <AssemblyName>gtkdotnet</AssemblyName>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>0618;0169;0612;0414;1616;1699</NoWarn>
-    <DefineConstants>DEBUG;GTK_SHARP_2_6;GTK_SHARP_2_8;GTK_SHARP_2_10;GTK_SHARP_2_12</DefineConstants>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>../gtk-sharp.snk</AssemblyOriginatorKeyFile>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PlatformTarget>x64</PlatformTarget>
-    <NativeLibrarySearchPaths>\$(PREFIX)/Library/bin</NativeLibrarySearchPaths>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="../gdk/gdk.csproj" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-  </ItemGroup>
-</Project>
-EOF
-
-    dotnet restore gtkdotnet/gtkdotnet.csproj
-}
-
-# For generator, which is likely different as it's an executable:
-convert_generator_proj() {
-    cat > generator/generator.csproj << EOF
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <RootNamespace>GtkSharp.Generation</RootNamespace>
-    <AssemblyName>generator</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>0618;0169;0612;0414;1616;1699</NoWarn>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>../gtk-sharp.snk</AssemblyOriginatorKeyFile>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+EOF
+    echo "    <TargetFramework>net${framework_version}</TargetFramework>" >> "parser/gapi-${gapi_call}.csproj"
+    cat >> "parser/gapi-${gapi_call}.csproj" << EOF
+
   </PropertyGroup>
+
   <ItemGroup>
-    <Compile Include="*.cs" />
+EOF
+    echo "    <Compile Include=\"gapi-${gapi_call}.cs\" />" >> "parser/gapi-${gapi_call}.csproj"
+    cat >> "parser/gapi-${gapi_call}.csproj" << EOF
   </ItemGroup>
 </Project>
 EOF
-
-    dotnet restore generator/generator.csproj
-    dotnet build -c Release generator/generator.csproj
 }
 
 generate_bindings() {
     local pkg=$1
     local namespace="${2:-$(tr '[:lower:]' '[:upper:]' <<< ${pkg:0:1})${pkg:1}}"
-
     # Create generated directory if it doesn't exist
     mkdir -p ${pkg}/generated
 
-    # Different packages use different file naming patterns
-    local api_file=""
-    if [ -f "${pkg}/${pkg}-api.xml" ]; then
-        api_file="${pkg}/${pkg}-api.xml"
-    elif [ -f "${pkg}/${pkg}-symbols.xml" ]; then
-        api_file="${pkg}/${pkg}-symbols.xml"
-    elif [ -f "${pkg}/${pkg}-api-2.12.raw" ]; then
-        api_file="${pkg}/${pkg}-api-2.12.raw"
-    fi
-
-    local meta_file=""
-    if [ -f "${pkg}/${namespace}.metadata" ]; then
-        meta_file="-I:${pkg}/${namespace}.metadata"
-    fi
-
-    # Run generator on the API file
-    if [ -n "$api_file" ]; then
+    # Process main API file
+    if [ -f "${pkg}/${pkg}-api-2.12.raw" ]; then
+        if [ ! -f "${pkg}/${pkg}-api.xml" ] || [ "${pkg}/${pkg}-api-2.12.raw" -nt "${pkg}/${pkg}-api.xml" ]; then
+            cp "${pkg}/${pkg}-api-2.12.raw" "${pkg}/${pkg}-api.xml"
+            chmod u+w "${pkg}/${pkg}-api.xml"
+            if [ -f "${pkg}/${namespace}.metadata" ]; then
+                dotnet run --project parser/gapi-fixup.csproj \
+                    --api="${pkg}/${pkg}-api.xml" \
+                    --metadata="${pkg}/${namespace}.metadata"
+            fi
+        fi
         dotnet run --project generator/generator.csproj \
+            --generate "${pkg}/${pkg}-api.xml" \
             --outdir=${pkg}/generated \
-            --generate \
-            "${api_file}" \
-            "${meta_file}"
+            --customdir=${pkg}
+    elif [ -f "${pkg}/${pkg}-api.xml" ]; then
+        if [ -f "${pkg}/${namespace}.metadata" ]; then
+            dotnet run --project parser/gapi-fixup.csproj \
+                --api="${pkg}/${pkg}-api.xml" \
+                --metadata="${pkg}/${namespace}.metadata"
+        fi
+        dotnet run --project generator/generator.csproj \
+            --generate "${pkg}/${pkg}-api.xml" \
+            --outdir=${pkg}/generated \
+            --customdir=${pkg}
+    fi
+
+    # Process symbols if they exist
+    if [ -f "${pkg}/${pkg}-symbols.xml" ]; then
+        dotnet run --project generator/generator.csproj \
+            --generate "${pkg}/${pkg}-symbols.xml" \
+            --outdir=${pkg}/generated \
+            --customdir=${pkg}
+    fi
+}
+
+process_assembly_info() {
+    # Create AssemblyInfo.cs from template if it doesn't exist
+    if [ ! -f "AssemblyInfo.cs" ] && [ -f "AssemblyInfo.cs.in" ]; then
+        # Use API_VERSION from PKG_VERSION (first two components)
+        local api_version=$(echo "${PKG_VERSION}" | cut -d. -f1,2)
+        sed -e "s/@API_VERSION@/${api_version}/g" \
+            AssemblyInfo.cs.in > "AssemblyInfo.cs"
     fi
 }
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Split off last part of the version string
+./bootstrap-$(echo "${PKG_VERSION}" | sed -e 's/\.[^.]\+$//') --prefix=${PREFIX}
+./configure --prefix=${PREFIX} --enable-dotnet || true
+exit 1
 mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 ln -sf ${DOTNET_ROOT}/dotnet ${PREFIX}/bin
 
 framework_version=$(dotnet --version | sed -e 's/^\([0-9]*\)\.\([0-9]*\).*/\1.\2/')
 
-convert_generator_proj
+process_assembly_info
+create_gapi_csproj ${framework_version} fixup
 
-for pkg in glib atk gdk cairo gtk pango; do
+cp ${SRC_DIR}/AssemblyInfo.cs generator/AssemblyInfo.cs
+python ${RECIPE_DIR}/csproj-modernizer.py generator ${framework_version}
+rm -rf generator/generated generator/bin generator/obj
+dotnet restore generator/generator.csproj
+dotnet build -c Release generator/generator.csproj --framework "net${framework_version}"
+
+for pkg in glib atk gdk cairo gtk pango gtkdotnet; do
+  cp ${SRC_DIR}/AssemblyInfo.cs ${pkg}/AssemblyInfo.cs
+  python ${RECIPE_DIR}/csproj-modernizer.py ${pkg} ${framework_version}
   generate_bindings ${pkg}
-  convert_proj ${pkg}
+  cp ${pkg}/*.custom ${pkg}/generated 2>/dev/null || echo "No .custom files to copy."
+  dotnet restore ${pkg}/${pkg}.csproj
   dotnet-project-licenses --input ${pkg}/${pkg}.csproj -t -d license-files
-done
-convert_gtkdotnet
-convert_generator_proj
-dotnet-project-licenses --input gtkdotnet/gtkdotnet.csproj -t -d license-files
-
-# Clean old build artifacts
-for pkg in glib atk gdk cairo gtk pango gtkdotnet generator; do
-    rm -rf ${pkg}/bin ${pkg}/obj
+  rm -rf ${pkg}/bin ${pkg}/obj
 done
 
 # Build in dependency order
@@ -231,6 +118,7 @@ dotnet build -c Release pango/pango.csproj --framework "net${framework_version}"
 dotnet build -c Release gdk/gdk.csproj --framework "net${framework_version}"
 dotnet build -c Release gtk/gtk.csproj --framework "net${framework_version}"
 dotnet build -c Release gtkdotnet/gtkdotnet.csproj --framework "net${framework_version}"
-dotnet build -c Release generator/generator.csproj --framework "net${framework_version}"
 
 dotnet build -c Release gtk-sharp.sln --framework "net${framework_version}"
+
+}
