@@ -2,13 +2,12 @@
 
 set -ex
 
-cmake \
+cmake $CMAKE_ARGS \
     -DCMAKE_BUILD_TYPE=Release \
     -B build \
 
 
-ls -l /Library/Frameworks/Mono.framework/Headers
-rm -f /Library/Frameworks/Mono.framework/Headers/sqlite3.h
+ls -l /Library/Frameworks/Mono.framework/Versions/Current/include || true
 
 
 sed -i.bak '1i\
