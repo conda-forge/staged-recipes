@@ -1,0 +1,127 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8e6901f..5007ce3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -20,8 +20,8 @@ set(SQLITECPP_INTERNAL_SQLITE OFF CACHE INTERNAL "")
+ set(SQLITE_ENABLE_COLUMN_METADATA OFF CACHE INTERNAL "")
+ FetchContent_Declare(
+     sqlitecpp
+-    GIT_REPOSITORY  https://github.com/mlin/SQLiteCpp.git
+-    GIT_TAG         6d089fc
++    GIT_REPOSITORY  https://github.com/SRombauts/SQLiteCpp.git
++    GIT_TAG         643b153
+ )
+ FetchContent_MakeAvailable(sqlitecpp)
+ include_directories(${sqlitecpp_SOURCE_DIR}/include)
+diff --git a/src/SQLiteNestedVFS.h b/src/SQLiteNestedVFS.h
+index 0be2b21..273b18c 100644
+--- a/src/SQLiteNestedVFS.h
++++ b/src/SQLiteNestedVFS.h
+@@ -82,7 +82,7 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+                 throw SQLite::Exception("expected result from page count query", SQLITE_ERROR);
+             }
+             assert(select_page_count_.getColumn(0).isInteger());
+-            sqlite3_int64 page_count = select_page_count_.getColumn(0);
++            int64_t page_count = select_page_count_.getColumn(0);
+             assert(page_count >= 0);
+             if (page_count > 0) {
+                 page_count_ = page_count;
+@@ -255,13 +255,13 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+                     bool btree_interior_pageno_hit = false;
+                     if (btree_interior_pageno_cursor) {
+                         btree_interior_pageno_cursor->reset();
+-                        btree_interior_pageno_cursor->bind(1, pageno);
++                        btree_interior_pageno_cursor->bind(1, (int64_t) pageno);
+                         btree_interior_pageno_hit = btree_interior_pageno_cursor->executeStep();
+                     }
+                     if (btree_interior_pageno_hit) {
+                         assert(btree_interior_cursor);
+                         btree_interior_cursor->reset();
+-                        btree_interior_cursor->bind(1, pageno);
++                        btree_interior_cursor->bind(1, (int64_t) pageno);
+                         if (!btree_interior_cursor->executeStep()) {
+                             // impossible
+                             throw SQLite::Exception("inconsistent btree interior index, page " +
+@@ -276,7 +276,7 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+                         // otherwise seek the main cursor
+                         ResetCursor();
+ 
+-                        cursor.bind(1, pageno);
++                        cursor.bind(1, (int64_t) pageno);
+                     }
+                 } else {
+                     // main cursor will naturally step to the desired page
+@@ -775,16 +775,16 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+             upsert->clearBindings();
+             upsert->bind(1, job->encoded_page, job->encoded_page_size);
+             if (!job->meta1null) {
+-                upsert->bind(2, job->meta1);
++                upsert->bind(2, (int64_t) job->meta1);
+             }
+             if (!job->meta2null) {
+-                upsert->bind(3, job->meta2);
++                upsert->bind(3, (int64_t) job->meta2);
+             }
+             if (btree_interior_index_.empty()) {
+-                upsert->bind(4, job->pageno);
++                upsert->bind(4, (int64_t) job->pageno);
+             } else {
+                 upsert->bind(4, job->btree_interior);
+-                upsert->bind(5, job->pageno);
++                upsert->bind(5, (int64_t) job->pageno);
+             }
+ 
+             {
+@@ -800,7 +800,7 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+                     upsert->bind(1, job->encoded_page,
+                                  std::min(job->encoded_page_size, size_t(100)));
+                     // keep meta1 & meta2 bindings, if any
+-                    upsert->bind(btree_interior_index_.empty() ? 4 : 5, (sqlite_int64)-100);
++                    upsert->bind(btree_interior_index_.empty() ? 4 : 5, (int64_t)-100);
+                     if (upsert->exec() != 1) {
+                         throw std::runtime_error("unexpected result from header upsert");
+                     }
+@@ -909,7 +909,7 @@ class InnerDatabaseFile : public SQLiteVFS::File {
+                 delete_pages_.reset(new SQLite::Statement(
+                     *outer_db_, "DELETE FROM " + inner_db_pages_table_ + " WHERE pageno > ?"));
+             }
+-            delete_pages_->bind(1, new_page_count);
++            delete_pages_->bind(1, (int64_t) new_page_count);
+             StatementResetter resetter(*delete_pages_);
+             begin();
+             delete_pages_->exec();
+diff --git a/src/zstd_vfs.h b/src/zstd_vfs.h
+index 744cfa9..52b2d7b 100644
+--- a/src/zstd_vfs.h
++++ b/src/zstd_vfs.h
+@@ -85,7 +85,7 @@ class ZstdInnerDatabaseFile : public SQLiteNested::InnerDatabaseFile {
+                 *outer_db_, "SELECT dict, page_count FROM nested_vfs_zstd_dicts WHERE id = ?"));
+         }
+         StatementResetter resetter(*get_dict_);
+-        get_dict_->bind(1, dict_id);
++        get_dict_->bind(1, (int64_t) dict_id);
+         if (!get_dict_->executeStep()) {
+             throw SQLite::Exception("zstd page requires nonexistent dictionary", SQLITE_CORRUPT);
+         }
+@@ -255,7 +255,7 @@ class ZstdInnerDatabaseFile : public SQLiteNested::InnerDatabaseFile {
+             }
+             StatementResetter put_dict_resetter(*put_dict_);
+             put_dict_->bind(1, dict.data(), dict.size());
+-            put_dict_->bind(2, dict_page_count);
++            put_dict_->bind(2, (int64_t) dict_page_count);
+             begin();
+             if (put_dict_->exec() != 1) {
+                 throw SQLite::Exception("unexpected result from dict insert", SQLITE_IOERR_WRITE);
+diff --git a/test/test.cc b/test/test.cc
+index 943c1fb..e816f17 100644
+--- a/test/test.cc
++++ b/test/test.cc
+@@ -200,7 +200,7 @@ bool UpdateCells(SQLite::Database &db, SQLite::Statement &get_state, SQLite::Sta
+         auto *stmt = (pos >= (0 - n / 2) && pos <= n / 2) ? &update : &insert;
+         stmt->bind(1, new_state[i] ? 1 : 0);
+         stmt->bind(2, rule);
+-        stmt->bind(3, pos);
++        stmt->bind(3, (int64_t) pos);
+         stmt->exec();
+         stmt->reset();
+         if (pos == 0) {
