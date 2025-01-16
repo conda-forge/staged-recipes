@@ -14,8 +14,6 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=../THIRDPARTY-frontend.yml
 popd
 
-export RUSTFLAGS="-C link-arg=-Wl,-rpath-link,${PREFIX}/lib -L${PREFIX}/lib"
-
 if [[ "$target_platform" == linux* ]]
 then
     cargo install --no-track --locked --features unwind --root "$PREFIX" --path .
