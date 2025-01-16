@@ -4,7 +4,8 @@ set -ex
 
 cmake -DCMAKE_BUILD_TYPE=Release -B build
 
-sed -i.bak '1i #include <climits>' build/_deps/sqlite_web_vfs-src/src/SQLiteVFS.h
+sed -i.bak '1i\
+    #include <climits>' build/_deps/sqlite_web_vfs-src/src/SQLiteVFS.h
 
 cmake --build build
 
