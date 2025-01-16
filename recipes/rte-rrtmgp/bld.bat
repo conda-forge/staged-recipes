@@ -40,3 +40,7 @@ cmake --install %BUILD_DIR% --prefix %PREFIX%
 
 :: Run tests
 ctest --output-on-failure --test-dir %BUILD_DIR% -V
+
+if /I "%RUN_VALIDATION_PLOTS%"=="True" (
+    cmake --build %BUILD_DIR% --target validation-plots
+)
