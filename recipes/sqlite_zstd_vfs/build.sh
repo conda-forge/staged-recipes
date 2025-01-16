@@ -5,7 +5,10 @@ set -ex
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -B build \
-    -DCMAKE_PREFIX_PATH=$PREFIX/include \
+
+
+ls -l /Library/Frameworks/Mono.framework/Headers
+rm -f /Library/Frameworks/Mono.framework/Headers/sqlite3.h
 
 
 sed -i.bak '1i\
