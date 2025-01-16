@@ -2,7 +2,11 @@
 
 set -ex
 
-cmake -DCMAKE_BUILD_TYPE=Release -B build
+cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -B build \
+    -DSQLite3_INCLUDE_DIR=$PREFIX/include \
+
 
 sed -i.bak '1i\
     #include <climits>' build/_deps/sqlite_web_vfs-src/src/SQLiteVFS.h
