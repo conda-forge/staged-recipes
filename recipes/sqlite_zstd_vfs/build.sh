@@ -5,7 +5,7 @@ set -ex
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -B build \
-    -DSQLite3_INCLUDE_DIR=$PREFIX/include \
+    -DCMAKE_PREFIX_PATH=$PREFIX/include \
 
 
 sed -i.bak '1i\
