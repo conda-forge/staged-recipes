@@ -4,7 +4,7 @@ set -xe
 
 cp -f ${RECIPE_DIR}/make.inc .
 
-make all
+F90=${F90} AR=${AR} make all
 
 install -m 0755 src/elk ${PREFIX}/bin/
 install -m 0755 src/eos/eos ${PREFIX}/bin/
