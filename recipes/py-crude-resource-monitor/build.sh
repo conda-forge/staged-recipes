@@ -16,6 +16,7 @@ popd
 
 if [[ "$target_platform" == linux* ]]
 then
+    export RUSTFLAGS="-C link-arg=-Wl,-rpath-link,${PREFIX}/lib -L${PREFIX}/lib"
     cargo install --no-track --locked --features unwind --root "$PREFIX" --path .
 else
     cargo install --no-track --locked --root "$PREFIX" --path .
