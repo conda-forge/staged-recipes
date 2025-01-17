@@ -1,0 +1,81 @@
+context:
+  name: outlines-core
+  version: 0.1.27
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/outlines_core-${{ version }}.tar.gz
+  sha256: 594d35c616a90a5da1d172406c8c56ba8a72192964a5f51bb012a3d6710efd22
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - setuptools >=45
+        - setuptools-scm >=6.2
+        - setuptools-rust
+        - openssl
+
+    - ${{ compiler('rust') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+    - pkg-config
+  host:
+    - python
+    - setuptools >=45
+    - setuptools-scm >=6.2
+    - setuptools-rust
+    - pip
+    - openssl
+  run:
+    - python
+    - interegular
+    - jsonschema
+
+tests:
+  - python:
+      imports:
+        - outlines_core
+      pip_check: true
+  - requirements:
+      run:
+        - pytest
+        - pytest-benchmark
+        - pytest-mock
+        - scipy
+        - numpy
+        - pytorch
+        - pydantic
+        - transformers
+        - datasets
+        - sentencepiece
+    files:
+      source:
+        - tests/
+    # NOTE: remove test_serialization.py since it imports the tests folder
+    # which is a bad practice and raise an error here.
+    script: pytest -vvv tests/ --ignore=tests/fsm/test_serialization.py
+
+about:
+  summary: Structured Text Generation in Rust
+  license: Apache-2.0
+  license_file:
+    - THIRDPARTY.yml
+    - LICENSE
+  homepage: https://github.com/dottxt-ai/outlines-core
+
+extra:
+  recipe-maintainers:
+    - hadim
