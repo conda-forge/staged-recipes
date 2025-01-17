@@ -1,0 +1,84 @@
+{% set name = "arborx" %}
+{% set version = "1.7" %}
+{% set cuda_major = environ.get("cuda_compiler_version", "0.0").split(".")[0]|int %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/arborx/ArborX/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: e3d9a57a1d7c1ad62f6bbb43fd29a366506f3a16cbbe801c04d10f5fb0dec201
+  patches:
+    - findcuda.patch  # [cuda_compiler_version != "None"]
+
+build:
+  number: 0
+  string: "cuda{{ cuda_major }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"  # [cuda_compiler_version != "None"]
+  string: "h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"  # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake >=3.16,<4
+    - kokkos >=4.4.0
+    - ninja
+
+  run:
+    - kokkos >=4.3.0
+    - __cuda   # [cuda_compiler_version != "None"]
+
+test:
+  source_files:
+    - examples
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake >=3.16
+    - ninja
+  # Will get nvcc linker warnings if the cudatoolkit version doesn't match
+    - cuda-version {{ environ.get("cuda_compiler_version") }}.*  # [cuda_compiler_version != "None"]
+{% if cuda_major == 11 %}
+    - cudatoolkit {{ environ.get("cuda_compiler_version") }}.*
+{% endif %}
+{% if cuda_major == 12 %}
+    - cuda-cudart-dev
+    - cuda-driver-dev  # [not win]
+{% endif %}
+    - kokkos >=4.4.0
+    - boost
+
+  commands:
+  # Lots more CMake files; just checking for one
+    - test -f $PREFIX/lib/cmake/ArborX/ArborXConfig.cmake  # [unix]
+    - if not exist %STDLIB_DIR%\\cmake\\ArborX\\ArborXConfig.cmake exit 1  # [win]
+  # There are lots more headers; only test for a few.
+    - test -f $PREFIX/include/ArborX/ArborX.hpp  # [unix]
+    - if not exist %PREFIX%\\include\\ArborX\\ArborX.hpp exit 1  # [win]
+  # Test example
+    - cd examples
+    - export NVCC_WRAPPER_DEFAULT_COMPILER=$CXX  # [cuda_compiler_version != "None" and unix]
+    - set NVCC_WRAPPER_DEFAULT_COMPILER=$CXX  # [cuda_compiler_version != "None" and win]
+    - cmake -GNinja  -DCMAKE_BUILD_TYPE=Release  -B build  # [cuda_compiler_version == "None" and unix]
+    - cmake --build build  # [cuda_compiler_version == "None" and unix]
+    - ./build/simple_intersection/ArborX_Example_Intersection.exe  # [cuda_compiler_version == "None" and unix]
+
+about:
+  home: https://github.com/arborx/ArborX/
+  summary: This module provides the header-only open-source library ArborX.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  license_url: https://github.com/arborx/ArborX/blob/master/LICENSE
+  description: ArborX is an open-source library designed to provide performance portable algorithms for geometric search, similarly to nanoflann and Boost Geometry.
+  doc_url: https://github.com/arborx/ArborX/wiki/
+  dev_url: https://github.com/arborx/ArborX/
+
+extra:
+  recipe-maintainers:
+    - Frayzen
+    - fbordeu
+    - messahelramzi
