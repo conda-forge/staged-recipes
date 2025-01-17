@@ -1,0 +1,257 @@
+--- a/configure.in.in	2017-05-31 04:31:41.000000000 -0500
++++ b/configure.in.in	2025-01-17 09:21:45.259481043 -0600
+@@ -1,2 +1 @@
+-
+ AC_INIT([gtk-sharp], [@GTK_SHARP_VERSION@])
+@@ -8,1 +7,1 @@
+-
++AC_CONFIG_MACRO_DIRS([m4])
+@@ -23,6 +22,2 @@
+ 		AC_DEFINE(PLATFORM_WIN32,1,[Platform is Win32])
+-		if test "x$cross_compiling" = "xno"; then
+-			CC="gcc -g"
+-			HOST_CC="gcc"
+-		fi
+ 		;;
+@@ -31,6 +26,2 @@
+ 		AC_DEFINE(PLATFORM_WIN32,1,[Platform is Win32])
+-		if test "x$cross_compiling" = "xno"; then
+-			CC="gcc -g"
+-			HOST_CC="gcc"
+-		fi
+ 		;;
+@@ -47,16 +38,2 @@
+ 
+-dnl may require a specific autoconf version
+-dnl AC_PROG_CC_FOR_BUILD
+-dnl CC_FOR_BUILD not automatically detected
+-CC_FOR_BUILD=$CC
+-BUILD_EXEEXT=
+-if test "x$cross_compiling" = "xyes"; then
+-	CC_FOR_BUILD=cc
+-	BUILD_EXEEXT=""
+-fi
+-AC_SUBST(CC_FOR_BUILD)
+-AC_SUBST(HOST_CC)
+-AC_SUBST(BUILD_EXEEXT)
+-
+-# Set STDC_HEADERS
+ AC_HEADER_STDC
+@@ -88,3 +65,2 @@
+ CSDEFINES='@VERSIONCSDEFINES@'
+-
+ GTK_SHARP_VERSION_CFLAGS='@VERSIONCFLAGS@'
+@@ -97,93 +73,27 @@
+ 
+-dnl for use on the build system
+-BUILD_GTK_CFLAGS=`$PKG_CONFIG --cflags gtk+-2.0`
+-BUILD_GTK_LIBS=`$PKG_CONFIG --libs gtk+-2.0`
+-AC_SUBST(BUILD_GTK_CFLAGS)
+-AC_SUBST(BUILD_GTK_LIBS)
+-
+-AC_CHECK_SIZEOF(off_t)
+-OFF_T_FLAGS="-define:OFF_T_$ac_cv_sizeof_off_t"
+-AC_SUBST(OFF_T_FLAGS)
+-
+-MONO_REQUIRED_VERSION=1.0
+-FIRST_MONO_VERSION_WITH_NET_4_6_SUPPORT=4.4
+-PKG_CHECK_MODULES(MONO_DEPENDENCY, mono >= $MONO_REQUIRED_VERSION, has_mono=true, has_mono=false)
+-if test "x$has_mono" = "xfalse" ; then
+-	PKG_CHECK_MODULES(MONO_DEPENDENCY, mono-2 >= $MONO_REQUIRED_VERSION, has_mono=true, has_mono=false)
+-	if test "x$has_mono" = "xtrue" ; then
+-		PKG_CHECK_MODULES(MONO_DEPENDENCY, mono-2 >= $FIRST_MONO_VERSION_WITH_NET_4_6_SUPPORT, NET_4_6_SUPPORT=true, NET_4_6_SUPPORT=false)
+-	fi
+-else
+-	PKG_CHECK_MODULES(MONO_DEPENDENCY, mono >= $FIRST_MONO_VERSION_WITH_NET_4_6_SUPPORT, NET_4_6_SUPPORT=true, NET_4_6_SUPPORT=false)
+-fi
+-
+-if test "x$platform_win32" = "xyes"; then
+-	NET_4_6_SUPPORT=true
+-fi
+-
+-AC_PATH_PROG(GACUTIL, gacutil, no)
+-if test "x$GACUTIL" = "xno" ; then
+-	AC_MSG_ERROR([No gacutil tool found. You need to install either the mono or .Net SDK.])
++# Check for dotnet SDK
++AC_PATH_PROG(DOTNET, dotnet, no)
++if test "x$DOTNET" = "xno"; then
++    AC_MSG_ERROR([No dotnet runtime found. You need to install .NET SDK.])
+ fi
+ 
+-AC_PATH_PROG([AL], al, no)
+-if test "x$AL" = "xno" ; then
+-	AC_MSG_ERROR([No al tool found. You need to install either the mono or .Net SDK.])
+-fi
++# Set dotnet variables
++RUNTIME="dotnet"
++CSC="$DOTNET build"
++GACUTIL="$DOTNET nuget"
++AC_SUBST(RUNTIME)
++AC_SUBST(CSC)
++AC_SUBST(GACUTIL)
+ 
+-if test "x$has_mono" = "xtrue"; then
+-GACUTIL_FLAGS='-package $(PACKAGE_VERSION) -gacdir $(DESTDIR)$(prefix)/lib'
+ GENERATED_SOURCES=generated/*.cs
+-AC_PATH_PROG(RUNTIME, mono, no)
+-
+-# If mono is found, it's in the path.  Require it to be in the path at runtime as well
+-if test "x$RUNTIME" != "xno" ; then
+-	RUNTIME=mono
+-fi
+-
+-AC_PATH_PROG([CSC], mcs, no)
+-if test `uname -s` = "Darwin"; then
+-	LIB_PREFIX=
+-	LIB_SUFFIX=.dylib
+-else
+-	LIB_PREFIX=.so
+-	LIB_SUFFIX=
+-fi
+-SDCHECK="`$GACUTIL -l |grep ^System.Drawing, | head -n1 |cut -f1 -d','`"
+-if test "x$SDCHECK" = "xSystem.Drawing"; then
+-	enable_dotnet=yes
+-else
+-	enable_dotnet=no
+-fi
+-else
+-AC_PATH_PROG(CSC, csc.exe, no)
+-GACUTIL_FLAGS=
+-GENERATED_SOURCES=generated\\\\*.cs
+-enable_dotnet=yes
++AC_SUBST(GENERATED_SOURCES)
+ 
+-if test x$CSC = "xno"; then
+-	AC_MSG_ERROR([You need to install either mono or .Net])
+-else
+-RUNTIME=
+ LIB_PREFIX=
+ LIB_SUFFIX=.dylib
++if test `uname -s` != "Darwin"; then
++	LIB_PREFIX=.so
++	LIB_SUFFIX=
+ fi
+-fi
+-
+-CS="C#"
+-if test "x$CSC" = "xno" ; then
+-	AC_MSG_ERROR([No $CS compiler found])
+-fi
+-
+-AL="\"$AL\""
+-AC_SUBST(RUNTIME)
+-AC_SUBST(CSC)
+-AC_SUBST(GACUTIL)
+-AC_SUBST(GACUTIL_FLAGS)
+ AC_SUBST(LIB_PREFIX)
+ AC_SUBST(LIB_SUFFIX)
+-AC_SUBST(GENERATED_SOURCES)
+-
+-PKG_CHECK_MODULES(MONO_CAIRO, mono-cairo >= $MONO_REQUIRED_VERSION, enable_mono_cairo=no, enable_mono_cairo=yes)
+-AC_SUBST(MONO_CAIRO_LIBS)
+ 
+@@ -227,8 +137,5 @@
+ 
+-AM_CONDITIONAL(ENABLE_MONO_CAIRO, test "x$enable_mono_cairo" = "xyes")
+ AM_CONDITIONAL(ENABLE_GLADE, test "x$enable_glade" = "xyes")
+-AM_CONDITIONAL(ENABLE_DOTNET, test "x$enable_dotnet" = "xyes")
+ AM_CONDITIONAL(ENABLE_MONODOC, test "x$enable_monodoc" = "xyes")
+ AM_CONDITIONAL(ENABLE_MSI, test "x$enable_msi" = "xyes")
+-AM_CONDITIONAL(ENABLE_MONOGETOPTIONS, test "x$has_mono" = "xtrue")
+ 
+@@ -236,5 +143,2 @@
+ 
+-if test "x$NET_4_6_SUPPORT" = "xtrue" ; then
+-  CSFLAGS="$CSFLAGS -define:HAVE_NET_4_6"
+-fi
+ PKG_CHECK_MODULES(GLIB_2_31,
+@@ -251,88 +155,2 @@
+ 
+-AC_OUTPUT([
+-AssemblyInfo.cs
+-Makefile
+-policy.config
+-msi/gtk-sharp-2.0.wxs
+-msi/Makefile
+-msi/unmanaged/Makefile
+-msi/unmanaged/custom/Makefile
+-msi/unmanaged/custom/etc/Makefile
+-msi/unmanaged/custom/etc/gtk-2.0/Makefile
+-msi/unmanaged/custom/share/Makefile
+-msi/unmanaged/custom/share/icons/Makefile
+-msi/unmanaged/custom/share/icons/hicolor/Makefile
+-sources/Makefile
+-parser/Makefile
+-parser/gapi-2.0.pc
+-parser/gapi2-fixup
+-parser/gapi2-parser
+-generator/Makefile
+-generator/gapi2-codegen
+-glib/Makefile
+-glib/glib-sharp-2.0.pc
+-glib/glib-sharp.dll.config
+-glib/glue/Makefile
+-cairo/Makefile
+-pango/Makefile
+-pango/pango-sharp.dll.config
+-pango/glue/Makefile
+-atk/Makefile
+-atk/atk-sharp.dll.config
+-atk/glue/Makefile
+-gdk/Makefile
+-gdk/gdk-sharp.dll.config
+-gdk/glue/Makefile
+-gtk/Makefile
+-gtk/gtk-sharp-2.0.pc
+-gtk/gtk-sharp.dll.config
+-gtk/glue/Makefile
+-glade/Makefile
+-glade/glade-sharp.dll.config
+-glade/glade-sharp-2.0.pc
+-glade/glue/Makefile
+-gtkdotnet/Makefile
+-gtkdotnet/gtk-dotnet.dll.config
+-gtkdotnet/gtk-dotnet-2.0.pc
+-doc/Makefile
+-sample/GtkDemo/Makefile
+-sample/Makefile
+-sample/pixmaps/Makefile
+-sample/test/Makefile
+-sample/valtest/Makefile
+-sample/valtest/valtest.exe.config
+-sample/opaquetest/Makefile
+-sample/opaquetest/opaquetest.exe.config
+-])
+-
+-if test x$platform_win32 = xyes; then
+-   # Get rid of 'cyg' prefixes in library names
+-   sed -e "s/\/cyg\//\/\//" libtool > libtool.new; mv libtool.new libtool; chmod 755 libtool
+-fi
+-
+-echo "---"
+-echo "Configuration summary"
+-echo ""
+-echo "   * Installation prefix = $prefix"
+-echo "   * $CS compiler: $CSC $CSFLAGS"
+-echo ""
+-echo "   Optional assemblies included in the build:"
+-echo ""
+-echo "      * glade-sharp.dll: $enable_glade"
+-echo "      * gtk-dotnet.dll: $enable_dotnet "
+-if test "x$enable_mono_cairo" = "xyes"; then
+-  echo "      * Mono.Cairo.dll: building local assembly"
+-else
+-  echo "      * Mono.Cairo.dll: using system assembly"
+-fi
+-echo ""
+-echo "      NOTE: if any of the above say 'no' you may install the"
+-echo "            corresponding development packages for them, rerun"
+-echo "            autogen.sh to include them in the build."
+-echo ""
+-echo "   * Documentation build enabled: $enable_monodoc "
+-if test "x$enable_monodoc" = "xyes" -a "x$doc_sources_dir" != "x$prefix/lib/monodoc/sources"; then
+-  echo "      WARNING: The install prefix is different than the monodoc prefix."
+-  echo "               Monodoc will not be able to load the documentation."
+-fi
+-echo "---"
++AC_OUTPUT([...]) # Keep your existing output list

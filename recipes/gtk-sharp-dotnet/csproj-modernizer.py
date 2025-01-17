@@ -20,7 +20,15 @@ def get_constants(content):
 
 def convert_project(pkg, dotnet_version, output_file=None):
     # Create new project file
-    output_type = 'Exe' if pkg == 'generator' else 'Library'
+    if pkg == 'generator':
+        output_type = 'Exe'
+        root_namespace = 'GtkSharp.Generation'
+        project_references = []
+    else:
+        output_type = 'Library'
+        root_namespace = f"GtkSharp.{pkg.capitalize()}"
+        project_references = [('../glib/glib.csproj', 'glib')] if pkg in ['cairo', 'pango'] else []
+
 
     input_file = f"{pkg}/{pkg}.csproj"
     if output_file is None:
@@ -39,7 +47,7 @@ def convert_project(pkg, dotnet_version, output_file=None):
         f'    <TargetFramework>net{dotnet_version}</TargetFramework>',
         f'    <OutputType>{output_type}</OutputType>',
         '    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>',
-        '    <RootNamespace>GtkSharp.Generation</RootNamespace>',
+        f'    <RootNamespace>{root_namespace}</RootNamespace>',
         f'    <AssemblyName>{pkg}</AssemblyName>',
         f'    <DefineConstants>{constants}</DefineConstants>' if constants else '',
         '    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>',
@@ -55,12 +63,12 @@ def convert_project(pkg, dotnet_version, output_file=None):
         '  </ItemGroup>',
     ]
 
-    if pkg == 'cairo':
+    if project_references:
         new_content.extend(
             (
                 '  <ItemGroup>',
-                '    <ProjectReference Include="../glib/glib.csproj">',
-                '      <Name>glib</Name>',
+                f'    <ProjectReference Include="{project_references[0]}">',
+                f'      <Name>{project_references[1]}</Name>',
                 '    </ProjectReference>',
                 '  </ItemGroup>',
             )
