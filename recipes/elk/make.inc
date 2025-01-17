@@ -1,6 +1,7 @@
 
 MAKE ?= make
 AR ?= $(AR)
+SRC_LIBXC ?= libxcifc_stub.f90
 SRC_MPI ?= mpi_stub.f90
 SRC_MKL ?= mkl_stub.f90
 SRC_FFT ?= zfftifc_fftw.f90 cfftifc_fftw.f90
