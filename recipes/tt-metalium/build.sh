@@ -3,6 +3,7 @@ set -e
 
 cmake \
   $CMAKE_ARGS \
+  -G Ninja \
   -S $SRC_DIR \
   -B $SRC_DIR/build-release \
   -DCMAKE_BUILD_TYPE=Release \
