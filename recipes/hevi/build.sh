@@ -12,4 +12,4 @@ unset all_proxy
 unset ALL_PROXY
 
 # Build the binary
-zig build --summary all --verbose -Dcpu=baseline -Dpie -Doptimize=ReleaseSafe -p "$PREFIX"
+zig build --summary all --verbose -Dcpu=baseline -Dpie=true -Doptimize=ReleaseSafe -p "$PREFIX"
