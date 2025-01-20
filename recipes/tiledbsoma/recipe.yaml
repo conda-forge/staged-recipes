@@ -1,0 +1,201 @@
+context:
+  name: tiledbsoma
+  version: 1.15.3
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/single-cell-data/TileDB-SOMA/archive/refs/tags/${{ version }}.zip
+  sha256: 1c9b60b14c900e252c30586fcadaeddd455d58df624112ecea62eef24212dc61
+  patches:
+    # NOTE:
+    # - fix failing includes
+    # - fix failing linking configuration for tiledbsoma-cli and spdlog
+    - fix-lib-build.patch
+
+build:
+  number: 0
+  skip: win
+
+outputs:
+  # C++ library
+  - package:
+      name: libtiledbsoma
+
+    build:
+      script: |
+        # Configure
+        cmake -G Ninja \
+          ${CMAKE_ARGS} \
+          -DCMAKE_BUILD_TYPE="Release" \
+          -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+          -DDOWNLOAD_TILEDB_PREBUILT=OFF \
+          -DOVERRIDE_INSTALL_PREFIX=OFF \
+          -DFORCE_BUILD_TILEDB=OFF \
+          -DTILEDBSOMA_BUILD_PYTHON=ON \
+          -DTILEDBSOMA_BUILD_CLI=ON \
+          -DTILEDBSOMA_ENABLE_TESTING=OFF \
+          -DTILEDBSOMA_ENABLE_WERROR=OFF \
+          -DTileDB_DIR="${PREFIX}" \
+          -B build/ \
+          -S $SRC_DIR/libtiledbsoma
+
+        # Compile
+        cmake --build build/ -j ${CPU_COUNT}
+
+        # Install
+        cmake --build build/ -j ${CPU_COUNT} --target install-libtiledbsoma
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib("c") }}
+        - cmake >=3.21
+        - ninja
+        - pkg-config
+      host:
+        - tiledb
+        - spdlog >=1.15
+        - fmt >=11.0
+      run_exports:
+        - ${{ pin_subpackage('libtiledbsoma', exact=True) }}
+
+    tests:
+      - script:
+          - tdbsoma
+      - package_contents:
+          files:
+            - lib/cmake/tiledbsoma/TileDBSomaConfig.cmake
+            - lib/cmake/tiledbsoma/TileDBSomaTargets-release.cmake
+            - lib/cmake/tiledbsoma/TileDBSomaTargets.cmake
+          bin:
+            - tdbsoma
+          lib:
+            - tiledbsoma
+          include:
+            - tiledbsoma/nanoarrow/nanoarrow.h
+            - tiledbsoma/nanoarrow/nanoarrow.hpp
+            - tiledbsoma/nlohmann/json.hpp
+            - tiledbsoma/reindexer/reindexer.h
+            - tiledbsoma/soma/array_buffers.h
+            - tiledbsoma/soma/column_buffer.h
+            - tiledbsoma/soma/enums.h
+            - tiledbsoma/soma/logger_public.h
+            - tiledbsoma/soma/managed_query.h
+            - tiledbsoma/soma/soma_array.h
+            - tiledbsoma/soma/soma_collection.h
+            - tiledbsoma/soma/soma_context.h
+            - tiledbsoma/soma/soma_dataframe.h
+            - tiledbsoma/soma/soma_dense_ndarray.h
+            - tiledbsoma/soma/soma_experiment.h
+            - tiledbsoma/soma/soma_geometry_dataframe.h
+            - tiledbsoma/soma/soma_group.h
+            - tiledbsoma/soma/soma_measurement.h
+            - tiledbsoma/soma/soma_multiscale_image.h
+            - tiledbsoma/soma/soma_object.h
+            - tiledbsoma/soma/soma_point_cloud_dataframe.h
+            - tiledbsoma/soma/soma_scene.h
+            - tiledbsoma/soma/soma_sparse_ndarray.h
+            - tiledbsoma/soma/span/span.hpp
+            - tiledbsoma/tiledbsoma
+            - tiledbsoma/tiledbsoma_export.h
+            - tiledbsoma/utils/arrow_adapter.h
+            - tiledbsoma/utils/common.h
+            - tiledbsoma/utils/fastercsx.h
+            - tiledbsoma/utils/parallel_functions.h
+            - tiledbsoma/utils/stats.h
+            - tiledbsoma/utils/util.h
+            - tiledbsoma/utils/version.h
+
+  # python bindings
+  - package:
+      name: tiledbsoma-py
+
+    build:
+      script: |
+        # Set the version
+        echo "${PKG_VERSION}" > ${SRC_DIR}/apis/python/RELEASE-VERSION
+
+        # Define prefix for tiledb and tiledbsoma
+        export TILEDB_PATH="$PREFIX"
+        export TILEDBSOMA_PATH="$PREFIX"
+
+        # Use Ninja
+        export CMAKE_GENERATOR="Ninja"
+
+        # Build the python binding
+        ${{ PYTHON }} -m pip install apis/python/ -vv --no-deps --no-build-isolation
+
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - pybind11 >=2.10.0
+
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib("c") }}
+        - cmake >=3.21
+        - ninja
+        - pkg-config
+        - git
+      host:
+        - python
+        - setuptools >=70.1
+        - pip
+        - pybind11 >=2.10.0
+        # libraries
+        - libtiledbsoma
+        - tiledb
+      run:
+        - python
+        - anndata >=0.10.1
+        - attrs >=22.2
+        - numpy
+        - pandas
+        - pyarrow
+        - scanpy >=1.9.2
+        - scipy
+        - somacore ==1.0.26
+        - typing_extensions
+
+    tests:
+      - python:
+          imports:
+            - tiledbsoma
+          pip_check: true
+      - requirements:
+          run:
+            - pytest
+            - typeguard
+        files:
+          source:
+            - apis/python/tests/
+        script: |
+          # NOTE: we only test a subset of the test suite to avoid long build times but
+          # still make sure the package is working.
+          pytest -vvv \
+            apis/python/tests/test_experiment_basic.py \
+            apis/python/tests/test_type_system.py \
+            apis/python/tests/test_stats.py \
+            apis/python/tests/test_simple.py \
+            apis/python/tests/test_scene.py \
+            apis/python/tests/test_reindexer_api.py \
+            apis/python/tests/test_regression.py \
+            apis/python/tests/test_point_cloud_dataframe.py
+
+about:
+  summary: Python and R SOMA APIs using TileDB's cloud-native format. Ideal for single-cell data at any scale.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/single-cell-data/TileDB-SOMA/
+
+extra:
+  feedstock-name: tiledbsoma
+  recipe-maintainers:
+    - hadim
+    - jdblischak
+    - johnkerl
