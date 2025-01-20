@@ -14,7 +14,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
         echo "Unsupported CUDA version ${cuda_compiler_version}"
         exit 1
     fi
-    $PYTHON -m pip install . --config-settings "--global-option=--blas=blas --force_cuda" --no-build-isolation
+    $PYTHON -m pip install --verbose . --config-settings "--global-option=--blas=blas --force_cuda" --no-build-isolation
 else
-    $PYTHON -m pip install . --config-settings "--global-option=--blas=blas --cpu_only" --no-build-isolation
+    $PYTHON -m pip install --verbose . --config-settings "--global-option=--blas=blas --cpu_only" --no-build-isolation
 fi
