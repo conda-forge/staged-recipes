@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 mkdir build
 if errorlevel 1 exit 1
 
-cmake ^
+cmake %CMAKE_ARGS% ^
     -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
