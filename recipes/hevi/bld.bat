@@ -1,3 +1,3 @@
 @echo on
 
-zig build install -p "%PREFIX%" || exit 1
+zig build --summary all --verbose -Dcpu=baseline -Dpie -Doptimize=ReleaseSafe -p "%PREFIX%" || exit 1
