@@ -1,0 +1,1 @@
+export CT_CONFIG_DIR="$CONDA_PREFIX/etc"
