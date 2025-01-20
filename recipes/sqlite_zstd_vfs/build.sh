@@ -7,11 +7,7 @@ cmake $CMAKE_ARGS \
     -B build \
 
 
-ls -l /Library/Frameworks/Mono.framework/Versions/Current/include || true
-
-
-sed -i.bak '1i\
-    #include <climits>' build/_deps/sqlite_web_vfs-src/src/SQLiteVFS.h
+sed -i.bak '1i #include <climits>' build/_deps/sqlite_web_vfs-src/src/SQLiteVFS.h
 
 cmake --build build
 
