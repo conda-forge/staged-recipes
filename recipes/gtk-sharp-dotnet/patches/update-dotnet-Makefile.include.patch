@@ -1,6 +1,20 @@
---- a/Makefile.include	2017-05-31 04:31:41.000000000 -0500
-+++ b/Makefile.include	2025-01-17 09:22:08.723319987 -0600
-@@ -25,5 +25,4 @@
+--- /c/bld/src_cache/2_12_45_a4bb3593/Makefile.include	2017-05-31 02:31:41.000000000 -0700
++++ Makefile.include	2025-01-20 12:54:26.271407200 -0800
+@@ -7,3 +7,3 @@
+ 
+-TARGET = $(pkg:=-sharp.dll) $(pkg:=-sharp.dll.config) $(POLICY_ASSEMBLIES)
++TARGET = $(pkg:=-sharp.dll) $(pkg:=-sharp.dll.config)
+ noinst_DATA = $(TARGET)
+@@ -12,3 +12,3 @@
+ gapi_DATA = $(TARGET_API)
+-CLEANFILES = $(ASSEMBLY) $(ASSEMBLY).mdb $(POLICY_ASSEMBLIES) generated-stamp generated/*.cs $(API) glue/generated.c $(SNK) AssemblyInfo.cs $(POLICY_CONFIGS)
++CLEANFILES = $(ASSEMBLY) $(ASSEMBLY).mdb generated-stamp generated/*.cs $(API) glue/generated.c $(SNK) AssemblyInfo.cs $(POLICY_CONFIGS)
+ DISTCLEANFILES = $(ASSEMBLY).config
+@@ -22,8 +22,7 @@
+ 
+-$(API): $(METADATA) $(RAW_API) $(SYMBOLS) $(top_builddir)/parser/gapi-fixup.exe
++$(API): $(METADATA) $(RAW_API) $(SYMBOLS) 
+ 	cp $(srcdir)/$(RAW_API) $(API)
  	chmod u+w $(API)
 -	@if test -n '$(METADATA)'; then		\
 -		echo "$(RUNTIME) $(top_builddir)/parser/gapi-fixup.exe --api=$(API) --metadata=$(srcdir)/$(METADATA) $(build_symbols)";	\
@@ -8,14 +22,16 @@
 +	@if test -n '$(METADATA)'; then \
 +		$(RUNTIME) run --project $(top_builddir)/parser/gapi-fixup.csproj --api=$(API) --metadata=$(srcdir)/$(METADATA) $(build_symbols); \
  	fi
-@@ -34,8 +33,8 @@
- generated-stamp: $(API) $(INCLUDE_API) $(top_builddir)/generator/gapi_codegen.exe $(build_customs)
+@@ -33,9 +32,9 @@
+ 
+-generated-stamp: $(API) $(INCLUDE_API) $(top_builddir)/generator/gapi_codegen.exe $(build_customs)
 -	rm -f generated/* &&	\
 -	$(RUNTIME) $(top_builddir)/generator/gapi_codegen.exe --generate $(API) \
 -	$(api_includes)	\
 -	--outdir=generated --customdir=$(srcdir) --assembly-name=$(ASSEMBLY_NAME)	\
 -	--gluelib-name=$(pkg)sharpglue-2 --glue-filename=glue/generated.c		\
 -	--glue-includes=$(glue_includes)						\
++generated-stamp: $(API) $(INCLUDE_API)  $(build_customs)
 +	rm -f generated/* && \
 +	$(RUNTIME) run --project $(top_builddir)/generator/generator.csproj --generate $(API) \
 +	$(api_includes) \
@@ -23,22 +39,21 @@
 +	--gluelib-name=$(pkg)sharpglue-2 --glue-filename=glue/generated.c \
 +	--glue-includes=$(glue_includes) \
  	&& touch generated-stamp
-@@ -51,4 +50,4 @@
+@@ -51,7 +50,7 @@
  
 -$(POLICY_ASSEMBLIES) : policy.%.$(ASSEMBLY): policy.%.config $(SNK)
 -	$(AL) -link:policy.$*.config -version:$* -out:$@ -keyfile:$(SNK)
 +$(POLICY_ASSEMBLIES): policy.%.$(ASSEMBLY): policy.%.config $(SNK)
-+	$(CSC) -c Release --framework net8.0 /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=$(SNK) /t:library /out:$@ policy.$*.config
++	$(CSC) -c Release $(pkg).csproj --framework net8.0 /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=$(SNK) /t:library /out:$@ policy.$*.config
  
-@@ -59,14 +58,19 @@
+ build_sources = $(addprefix $(srcdir)/, $(sources)) AssemblyInfo.cs
+-build_references = $(addprefix -r:, $(references)) $(MONO_CAIRO_LIBS)
++build_references = $(MONO_CAIRO_LIBS)
+ 
+@@ -59,14 +58,14 @@
  	@rm -f $(ASSEMBLY).mdb
 -	$(CSC) $(CSFLAGS) -nowarn:0169,0612,0618 -unsafe -out:$(ASSEMBLY) -target:library $(build_references) $(GENERATED_SOURCES) $(build_sources)
-+	$(CSC) -c Release --framework net8.0 -o $(ASSEMBLY) \
-+		/p:AllowUnsafeBlocks=true \
-+		/p:NoWarn=0169,0612,0618 \
-+		/p:SignAssembly=true \
-+		/p:AssemblyOriginatorKeyFile=$(SNK) \
-+		$(build_references) $(GENERATED_SOURCES) $(build_sources)
++	$(CSC) -c Release $(pkg).csproj --framework net8.0 -o $(ASSEMBLY) $(build_references)
  
  install-data-local:
 -	@if test -n '$(pkg)'; then							\
@@ -60,7 +75,7 @@
 +			done \
 +		fi \
  	fi
-@@ -74,11 +78,11 @@
+@@ -74,11 +73,11 @@
  uninstall-local:
 -	@if test -n '$(pkg)'; then							\
 -	  echo "$(GACUTIL) -u $(ASSEMBLY_NAME) $(GACUTIL_FLAGS)";			\

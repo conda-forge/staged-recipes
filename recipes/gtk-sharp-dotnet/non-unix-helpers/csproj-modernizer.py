@@ -27,7 +27,7 @@ def convert_project(pkg, dotnet_version, output_file=None):
     else:
         output_type = 'Library'
         root_namespace = f"GtkSharp.{pkg.capitalize()}"
-        project_references = [('../glib/glib.csproj', 'glib')] if pkg in ['cairo', 'pango'] else []
+        project_references = ('../glib/glib.csproj', 'glib') if pkg in ['cairo', 'pango'] else []
 
 
     input_file = f"{pkg}/{pkg}.csproj"
@@ -48,7 +48,7 @@ def convert_project(pkg, dotnet_version, output_file=None):
         f'    <OutputType>{output_type}</OutputType>',
         '    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>',
         f'    <RootNamespace>{root_namespace}</RootNamespace>',
-        f'    <AssemblyName>{pkg}</AssemblyName>',
+        f'    <AssemblyName>{pkg}-sharp</AssemblyName>',
         f'    <DefineConstants>{constants}</DefineConstants>' if constants else '',
         '    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>',
         '    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>',
