@@ -57,16 +57,18 @@ export RANLIB=x86_64-w64-mingw32-ranlib
 export STRIP=x86_64-w64-mingw32-strip
 export LD=x86_64-w64-mingw32-ld
 
-framework_version=$(dotnet --version | sed -e 's/^\([0-9]*\)\.\([0-9]*\).*/\1.\2/')
+# Hard to patch section of Makefile related to older .NET framewrok (pre-dotnet 8)
+perl -0777 -i -pe 's|install-data-local:.*?fi\n\n|install-data-local:\n\n|s' Makefile.am */Makefile.am
+sed -i -E 's/INCLUDES/AM_CPPFLAGS/g' Makefile.am */Makefile.am */*/Makefile.am
+sed -i -E 's/(noinst_DATA =.*?) \$\(POLICY_ASSEMBLIES\)(.*)/\1\2/g' */Makefile.am
 
 # Replace gapi codes
-sed -i -E 's/INCLUDES/AM_CPPFLAGS/g' Makefile.am */Makefile.am */*/Makefile.am
 sed -i -E 's|\$\(top_builddir\)/parser/gapi\-fixup\.exe||' Makefile.am */Makefile.am */*/Makefile.am
 sed -i -E 's|\$\(top_builddir\)/generator/gapi_codegen\.exe||' Makefile.am */Makefile.am */*/Makefile.am
 sed -i -E 's/ gapi2?(_|\-)(fixup|parser|codegen|2\.0\.pc)(\.exe)?/ /g' generator/Makefile.am parser/Makefile.am
-sed -i -E 's/(noinst_DATA =.*?) \$\(POLICY_ASSEMBLIES\)(.*)/\1\2/g' */Makefile.am
 
 # Replace the builds with dotnet xxx.csproj
+framework_version=$(dotnet --version | sed -e 's/^\([0-9]*\)\.\([0-9]*\).*/\1.\2/')
 create_gapi_csproj "${framework_version}" fixup
 python "${RECIPE_DIR}/non-unix-helpers/csproj-modernizer.py" generator "${framework_version}"
 export DOTNET_ROOT="$(dirname $(which dotnet))"
@@ -78,12 +80,15 @@ for pkg in glib atk gdk cairo gtk pango gtkdotnet; do
 done
 
 libtoolize  # Complains about missing ltmain.sh
-NOCONFIGURE=1 ./bootstrap-"$(echo ${PKG_VERSION} | sed -e 's/\.[^.]\+$//')" --prefix=${PREFIX}
+NOCONFIGURE=1 ./bootstrap-"$(echo ${PKG_VERSION} | sed -e 's/\.[^.]\+$//')"
 
 # Configure specifically for dotnet on Windows
 export CFLAGS="-DDISABLE_GTHREAD_CHECK ${CFLAGS}"
 PKG_CONFIG="${PKG_CONFIG}" ./configure \
     --prefix="${PREFIX}" \
+    --bindir="${PREFIX}/Library/bin" \
+    --libdir="${PREFIX}/Library/lib" \
+    --libexecdir="${PREFIX}/Library/bin" \
     --disable-static
 
 makefiles=(
@@ -127,7 +132,24 @@ sed -i -E "s|(libgtksharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl
 sed -i -E "s|(libpangosharpglue_2_la_LIBADD = .*)|\1|" pango/glue/Makefile
 sed -i -E 's|\s\$\(POLICY_ASSEMBLIES\)||g' */Makefile
 
-sed -i -E 's|\$\(addprefix -r:,\s*(\S+)\)|\1|' sample/Makefile sample/*/Makefile
+# Remove sample that would require a lot of .csproj. Fix unneeded policy install
+sed -i -E 's|sample doc msi||' Makefile
+sed -i -E 's|\$\(GACUTIL\) -i \$\(ASSEMBLY\) -f \$\(GACUTIL_FLAGS\)|$(GACUTIL) add $(ASSEMBLY) -s $(DESTDIR)$(prefix)/Library/lib|' */Makefile
+sed -i -E 's|\w+install-gapi\w+||g' Makefile */Makefile
+# sed -i -E 's|\$\(prefix\)/lib|$(prefix)/Library/lib|' Makefile */Makefile
+# sed -i -E 's|(exec_prefix = \${prefix})|\1/Library|' Makefile */Makefile
+
+# sed -i -E 's|\$\(addprefix -r:,\s*([^)]+)\)|\1|' sample/Makefile sample/*/Makefile
+# sed -i -E 's|-out:|-o |' sample/Makefile sample/*/Makefile
 
 make
 make install
+
+# Add .lib
+bindir=$(echo "${PREFIX}/Library/bin" | sed -E 's|/|\\|g')
+libdir=$(echo "${PREFIX}/Library/lib" | sed -E 's|/|\\|g')
+dlltool=${BUILD_PREFIX}/Library/x86_64-w64-mingw32/bin/dlltool.exe
+for lib in atk gdk glib gtk pango; do
+  gendef "${lib}"\\glue\\.libs\\lib${lib}sharpglue-2.dll
+  ${dlltool} -D "${bindir}"\\lib${lib}sharpglue-2.dll -d lib${lib}sharpglue-2.def -l "${libdir}"\\${lib}sharpglue-2.lib
+done
