@@ -72,10 +72,15 @@ framework_version=$(dotnet --version | sed -e 's/^\([0-9]*\)\.\([0-9]*\).*/\1.\2
 create_gapi_csproj "${framework_version}" fixup
 python "${RECIPE_DIR}/non-unix-helpers/csproj-modernizer.py" generator "${framework_version}"
 export DOTNET_ROOT="$(dirname $(which dotnet))"
+
+cat > ignored_packages.json << EOF
+["Microsoft.Win32.SystemEvents", "System.Runtime", "System.Drawing.Common", "Microsoft.NETCore.Targets", "Microsoft.NETCore.Platforms"]
+EOF
+
 for pkg in glib atk gdk cairo gtk pango gtkdotnet; do
   python "${RECIPE_DIR}/non-unix-helpers/csproj-modernizer.py" "${pkg}" "${framework_version}"
   dotnet restore ${pkg}/${pkg}.csproj
-  dotnet exec "${BUILD_PREFIX}"/libexec/nuget-license/NuGetLicenseCore.dll --input ${pkg}/${pkg}.csproj -t -d license-files
+  dotnet exec "${BUILD_PREFIX}"/libexec/nuget-license/NuGetLicenseCore.dll --input ${pkg}/${pkg}.csproj -t -d license-files -ignore ignored_packages.json
   sed -i -E "s|CSC\).+|CSC) -c Release ${pkg}.csproj --framework 'net${framework_version}' -o \$(ASSEMBLY) -p:OutputPath=.|" "${pkg}/Makefile.am"
 done
 
@@ -88,6 +93,7 @@ PKG_CONFIG="${PKG_CONFIG}" ./configure \
     --prefix="${PREFIX}" \
     --bindir="${PREFIX}/Library/bin" \
     --libdir="${PREFIX}/Library/lib" \
+    --datarootdir="${PREFIX}/Library/share" \
     --libexecdir="${PREFIX}/Library/bin" \
     --disable-static
 
@@ -150,6 +156,15 @@ bindir=$(echo "${PREFIX}/Library/bin" | sed -E 's|/|\\|g')
 libdir=$(echo "${PREFIX}/Library/lib" | sed -E 's|/|\\|g')
 dlltool=${BUILD_PREFIX}/Library/x86_64-w64-mingw32/bin/dlltool.exe
 for lib in atk gdk glib gtk pango; do
-  gendef "${lib}"\\glue\\.libs\\lib${lib}sharpglue-2.dll
+  # Could not quickly figure out how to patch the install into lib, doing it brutishly
+  mv "${libdir}"\\lib${lib}sharpglue-2.dll "${bindir}"\\lib${lib}sharpglue-2.dll
+  gendef "${bindir}"\\lib${lib}sharpglue-2.dll
   ${dlltool} -D "${bindir}"\\lib${lib}sharpglue-2.dll -d lib${lib}sharpglue-2.def -l "${libdir}"\\${lib}sharpglue-2.lib
+done
+
+mv "${PREFIX}"/Lib/gtk-sharp-2.0 ${libdir}
+
+# Publish the dotnet libraries
+for sharp_lib in atk cairo gdk glib gtk gtkdotnet pango; do
+  dotnet publish --framework "net${framework_version}" --no-self-contained ${SRC_DIR}/${sharp_lib}/${sharp_lib}.csproj -c Release -o ${PREFIX}/Library/libexec
 done
