@@ -57,11 +57,16 @@ def convert_project(pkg, dotnet_version, output_file=None):
         '    <InvariantGlobalization>true</InvariantGlobalization>',
         '    <NoWarn>$(NoWarn);MSB3243</NoWarn>',
         '  </PropertyGroup>',
-        '  <ItemGroup>',
-        '    <PackageReference Include="System.Runtime" Version="4.3.1" />    <Reference Include="System" />',
-        '    <Reference Include="System.Xml" />',
-        '  </ItemGroup>',
     ]
+    if pkg == 'gtkdotnet':
+        new_content.extend(
+            [
+                '  <ItemGroup>',
+                '    <PackageReference Include="System.Runtime" Version="4.3.1" />',
+                '    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />',
+                '  </ItemGroup>',
+            ]
+        )
 
     if project_references:
         new_content.extend(

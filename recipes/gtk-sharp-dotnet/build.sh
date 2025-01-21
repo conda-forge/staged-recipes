@@ -74,7 +74,7 @@ for pkg in glib atk gdk cairo gtk pango gtkdotnet; do
   python "${RECIPE_DIR}/non-unix-helpers/csproj-modernizer.py" "${pkg}" "${framework_version}"
   dotnet restore ${pkg}/${pkg}.csproj
   dotnet exec "${BUILD_PREFIX}"/libexec/nuget-license/NuGetLicenseCore.dll --input ${pkg}/${pkg}.csproj -t -d license-files
-  sed -i -E "s|CSC\).+|CSC) -c Release ${pkg}.csproj --framework 'net${framework_version}' -p:AssemblyName=\$(ASSEMBLY_NAME) -p:OutputPath=.|" "${pkg}/Makefile.am"
+  sed -i -E "s|CSC\).+|CSC) -c Release ${pkg}.csproj --framework 'net${framework_version}' -o \$(ASSEMBLY) -p:OutputPath=.|" "${pkg}/Makefile.am"
 done
 
 libtoolize  # Complains about missing ltmain.sh
@@ -120,12 +120,14 @@ python "${RECIPE_DIR}"/non-unix-helpers/replace_l_flags.py \
 
 # It seems that libtool is missing some dynamic libraries to create the .dll
 sed -i -E "s|(libatksharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl,-L${host_conda_libs} -Wl,-lglib-2.0 -Wl,-lgobject-2.0 -Wl,-latk-1.0|" atk/glue/Makefile
-sed -i -E "s|(libgdksharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl,-L${host_conda_libs} -Wl,-lglib-2.0 -Wl,-lgobject-2.0|" gdk/glue/Makefile
+sed -i -E "s|(libgdksharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl,-L${host_conda_libs} -Wl,-lglib-2.0 -Wl,-lgobject-2.0 -Wl,-lgdk-win32-2.0|" gdk/glue/Makefile
 sed -i -E "s|(libgladesharpglue_2_la_LIBADD = .*)|\1|" glade/glue/Makefile
 sed -i -E "s|(libglibsharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl,-L${host_conda_libs} -Wl,-lglib-2.0 -Wl,-lgobject-2.0|" glib/glue/Makefile
-sed -i -E "s|(libgtksharpglue_2_la_LIBADD = .*)|\1|" gdk/glue/Makefile
-sed -i -E "s|(libpangosharpglue_2_la_LIBADD = .*)|\1|" gdk/glue/Makefile
+sed -i -E "s|(libgtksharpglue_2_la_LIBADD = .*)|\1 -Wl,-L${build_conda_libs} -Wl,-L${host_conda_libs} -Wl,-lglib-2.0 -Wl,-lgobject-2.0 -Wl,-lgdk-win32-2.0 -Wl,-lgtk-win32-2.0|" gtk/glue/Makefile
+sed -i -E "s|(libpangosharpglue_2_la_LIBADD = .*)|\1|" pango/glue/Makefile
 sed -i -E 's|\s\$\(POLICY_ASSEMBLIES\)||g' */Makefile
+
+sed -i -E 's|\$\(addprefix -r:,\s*(\S+)\)|\1|' sample/Makefile sample/*/Makefile
 
 make
 make install
