@@ -1,0 +1,61 @@
+context:
+  name: milvus-lite
+  version: "2.4.11"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/milvus-io/milvus-lite/archive/refs/tags/v${{ version }}.zip
+  sha256: b69e0053c713f5a7950642dcdd64be8f8803e73d5baa101389c1aa0857ebfd80
+
+build:
+  number: 0
+  skip: win
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - milvus-lite = milvus_lite.cmdline:main
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ${{ "make" if unix else "ninja" }}
+    - pkg-config
+  host:
+    # build tools
+    - python
+    - wheel
+    - pip
+    # libraries
+    - ${{ "openssl" if unix }}
+  run:
+    - python
+    - tqdm
+
+tests:
+  - python:
+      imports:
+        - milvus_lite
+      pip_check: true
+  - script:
+      - milvus-lite --help
+
+about:
+  summary: A lightweight version of Milvus
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://github.com/milvus-io/milvus-lite
+
+extra:
+  recipe-maintainers:
+    - hadim
