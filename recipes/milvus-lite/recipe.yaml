@@ -1,6 +1,7 @@
 context:
   name: milvus-lite
   version: "2.4.11"
+  conan_compiler: ${{ "gcc" if linux else "clang" if macos else "INVALID" }}
 
 package:
   name: ${{ name|lower }}
@@ -13,7 +14,13 @@ source:
 build:
   number: 0
   skip: win
-  script: ${{ PYTHON }} -m pip install python/ -vv --no-deps --no-build-isolation
+  script:
+    - conan profile new default --detect
+    - conan profile update settings.compiler=${{ conan_compiler }} default
+    - conan profile update settings.compiler.libcxx=libstdc++11 default
+    - conan profile update settings.compiler.version=${{ cxx_compiler_version }} default
+    - conan profile show default
+    - ${{ PYTHON }} -m pip install python/ -vv --no-deps --no-build-isolation
   python:
     entry_points:
       - milvus-lite = milvus_lite.cmdline:main
@@ -31,7 +38,8 @@ requirements:
     - cmake
     - ${{ "make" if unix else "ninja" }}
     - pkg-config
-    - conan
+    - conan ==1.64.1
+    - ccache
   host:
     # build tools
     - python
