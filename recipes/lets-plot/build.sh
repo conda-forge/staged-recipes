@@ -2,7 +2,7 @@
 # Set paths and links:
 
 base_url="https://github.com/JetBrains/lets-plot/releases/download/${PROJECT_VERSION}"
-js_package_link="${base_url}/lets-plot.min.js"
+js_package_distr="js-package/distr/lets-plot.min.js"
 js_package_path="js-package/build/dist/js/productionExecutable/"
 extension_path="python-extension/build/bin/native/releaseStatic/"
 
@@ -19,11 +19,10 @@ add_extension() {
     mv ${package_name}/* $extension_path
 }
 
-# Downloads and includes JS package to the build
+# Includes JS package to the build
 add_js_package() {
     mkdir -p $js_package_path
-    curl -OL $js_package_link
-    mv lets-plot.min.js $js_package_path
+    cp $js_package_distr $js_package_path
 }
 
 if [ ! -f $extension_path ]; then
