@@ -16,7 +16,8 @@ cmake -Bbuild -GNinja ^
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ^
     -DMDI_Fortran=ON ^
     -DMDI_Python=ON ^
-    -DMDI_CXX=ON
+    -DMDI_CXX=ON ^
+    -DMDI_Python_PACKAGE=ON
 
 cmake --build build
 cmake --install build
