@@ -6,7 +6,7 @@ make -j"${CPU_COUNT}"
 
 mkdir -p ${PREFIX}/{include,lib}
 
-install -m 644 build/lib/libolbcore.so ${PREFIX}/lib/
+install -m 644 build/lib/libolbcore${SHLIB_EXT} ${PREFIX}/lib/
 
 # copy the header files
 DEST=${PREFIX}/include/openlb
