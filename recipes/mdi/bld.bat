@@ -9,6 +9,7 @@ set CFLAGS=%CFLAGS:-GL=%
 )
 
 cmake -Bbuild -GNinja ^
+    %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DBUILD_SHARED_LIBS=ON ^
