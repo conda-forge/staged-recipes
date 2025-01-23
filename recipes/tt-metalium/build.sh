@@ -23,6 +23,4 @@ cmake --build $SRC_DIR/build --parallel $NUM_PROCS
 
 cmake --install $SRC_DIR/build
 
-python -m build
-
-pip install --no-deps dist/ttnn-*.whl
+pip install --no-deps $SRC_DIR
