@@ -19,6 +19,8 @@ cmake --install $SRC_DIR/build
 
 export TT_FROM_PRECOMPILED_DIR=$SRC_DIR
 
+pip install build
+
 python -m build
 
 pip install --no-deps dist/ttnn-*.whl
