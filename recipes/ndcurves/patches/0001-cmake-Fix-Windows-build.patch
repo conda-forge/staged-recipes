@@ -1,0 +1,109 @@
+From 6890b287030d5b77cb52e80d7470d7afd9fe4c9f Mon Sep 17 00:00:00 2001
+From: Joris Vaillant <joris.vaillant@inria.fr>
+Date: Fri, 20 Dec 2024 14:15:01 +0100
+Subject: [PATCH] cmake: Fix Windows build
+
+cmake: Don't filter define
+
+core: Fix build with cl compiler
+
+cmake: Setup the right library suffix for bindings
+---
+ CMakeLists.txt                     |  4 ++++
+ include/ndcurves/linear_variable.h | 14 ++++++++++++++
+ python/ndcurves/CMakeLists.txt     |  5 ++++-
+ tests/Main.cpp                     |  6 +++---
+ 4 files changed, 25 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 52983bb..8c39dd3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -149,6 +149,10 @@ if(CURVES_WITH_PINOCCHIO_SUPPORT)
+                              INTERFACE -DCURVES_WITH_PINOCCHIO_SUPPORT)
+ endif(CURVES_WITH_PINOCCHIO_SUPPORT)
+ 
++# Define M_PI constant in <cmath>
++cxx_flags_by_compiler_frontend(MSVC _USE_MATH_DEFINES OUTPUT PUBLIC_DEFINITION)
++target_compile_definitions(${PROJECT_NAME} INTERFACE ${PUBLIC_DEFINITION})
++
+ if(NOT INSTALL_PYTHON_INTERFACE_ONLY)
+   install(
+     TARGETS ${PROJECT_NAME}
+diff --git a/include/ndcurves/linear_variable.h b/include/ndcurves/linear_variable.h
+index c6fc2aa..d50e27b 100644
+--- a/include/ndcurves/linear_variable.h
++++ b/include/ndcurves/linear_variable.h
+@@ -220,6 +220,20 @@ struct linear_variable : public serialization::Serializable {
+     return (*this - other).norm() < prec;
+   }
+ 
++  /// \brief Check if actual linear variable and other are equal.
++  /// \param other : the other linear_variable to check.
++  /// \return true if the two linear_variable are equals.
++  virtual bool operator==(const linear_variable& other) const {
++    return this->B_ == other.B_ && this->c_ == other.c_;
++  }
++
++  /// \brief Check if actual linear variable and other are different.
++  /// \param other : the other linear_variable to check.
++  /// \return true if the two linear_variable are different.
++  virtual bool operator!=(const linear_variable& other) const {
++    return !(*this == other);
++  }
++
+   const matrix_x_t& B() const { return B_; }
+   const vector_x_t& c() const { return c_; }
+   bool isZero() const { return zero; }
+diff --git a/python/ndcurves/CMakeLists.txt b/python/ndcurves/CMakeLists.txt
+index bed73b3..878c561 100644
+--- a/python/ndcurves/CMakeLists.txt
++++ b/python/ndcurves/CMakeLists.txt
+@@ -18,9 +18,12 @@ get_relative_rpath(${${wrap}_INSTALL_DIR} ${wrap}_INSTALL_RPATH)
+ set_target_properties(
+   ${wrap}
+   PROPERTIES PREFIX ""
++             SUFFIX ${PYTHON_EXT_SUFFIX}
+              OUTPUT_NAME ${PROJECT_NAME}
+              INSTALL_RPATH "${${wrap}_INSTALL_RPATH}")
+-target_compile_options(${wrap} PRIVATE "-Wno-conversion")
++cxx_flags_by_compiler_frontend(GNU -Wno-conversion OUTPUT PRIVATE_OPTIONS
++                               FILTER)
++target_compile_options(${wrap} PRIVATE ${PRIVATE_OPTIONS})
+ target_link_libraries(${wrap} PUBLIC ${PROJECT_NAME} eigenpy::eigenpy)
+ 
+ if(GENERATE_PYTHON_STUBS)
+diff --git a/tests/Main.cpp b/tests/Main.cpp
+index 18812c3..b63e159 100644
+--- a/tests/Main.cpp
++++ b/tests/Main.cpp
+@@ -1432,7 +1432,7 @@ void piecewiseCurveTest(bool& error) {
+     }
+     // C0
+     isC0 = pc_C0.is_continuous(0);
+-    if (not isC0) {
++    if (!isC0) {
+       std::cout << errmsg2 << " pc_C0 " << std::endl;
+       error = true;
+     }
+@@ -1444,7 +1444,7 @@ void piecewiseCurveTest(bool& error) {
+     }
+     // C1
+     isC1 = pc_C1.is_continuous(1);
+-    if (not isC1) {
++    if (!isC1) {
+       std::cout << errmsg3 << " pc_C1 " << std::endl;
+       error = true;
+     }
+@@ -1456,7 +1456,7 @@ void piecewiseCurveTest(bool& error) {
+     }
+     // C2
+     isC2 = pc_C2.is_continuous(2);
+-    if (not isC2) {
++    if (!isC2) {
+       std::cout << errmsg4 << " pc_C2 " << std::endl;
+       error = true;
+     }
+-- 
+2.34.1
+
