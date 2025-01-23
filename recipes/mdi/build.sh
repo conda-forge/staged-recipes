@@ -11,7 +11,8 @@ cmake -Bbuild -GNinja \
     -DBUILD_SHARED_LIBS=ON \
     -DMDI_Fortran=ON \
     -DMDI_Python=ON \
-    -DMDI_CXX=ON
+    -DMDI_CXX=ON \
+    -DMDI_Python_PACKAGE=ON
 
 # Build step
 cmake --build build -j${CPU_COUNT}
