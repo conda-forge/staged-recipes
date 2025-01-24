@@ -18,6 +18,9 @@ source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 export PYTHONUNBUFFERED=1
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
 
+# https://github.com/conda-forge/conda-smithy/issues/2057
+export RATTLER_BUILD_EXPERIMENTAL=true
+
 cat >~/.condarc <<CONDARC
 always_yes: true
 
