@@ -93,62 +93,6 @@ public:
         {
             ImPlot::ShowDemoWindow(&params->showImPlotDemoWindow);
         }
-
-        // UV for a square in the logo texture
-        if (texture)
-        {
-            ImVec2 squareUV(static_cast<float>(texture->height) / texture->width, 1.0f);
-
-            if (params->showLogoWindow)
-            {
-                // Copied from imgui_demo.cpp simple overlay
-                ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-                const float PAD = 10.0f;
-                const ImGuiViewport* viewport = ImGui::GetMainViewport();
-                ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-                ImVec2 work_size = viewport->WorkSize;
-                ImVec2 window_pos, window_pos_pivot;
-                window_pos.x = work_pos.x + PAD;
-                window_pos.y = work_pos.y + work_size.y - PAD;
-                window_pos_pivot.x = 0.0f;
-                window_pos_pivot.y = 1.0f;
-                ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-                window_flags |= ImGuiWindowFlags_NoMove;
-                ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-                ImGui::Begin("vsgCS UI", nullptr, window_flags);
-
-                // Display a square from the VSG logo
-                const float size = 128.0f;
-                ImGui::Image(texture->id(cb.deviceID), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
-
-                ImGui::End();
-                ImGui::PopStyleVar();
-            }
-
-            if (params->showImagesWindow)
-            {
-                ImGui::Begin("Image Window", &params->showImagesWindow);
-                ImGui::Text("An texture:");
-                // The logo texture is big, show it at half size
-
-                ImGui::Image(texture->id(cb.deviceID), ImVec2(texture->width / 2.0f, texture->height / 2.0f));
-
-                // We could make another component class for ImageButton, but we will take a short cut
-                // and reuse the descriptor set from our existing texture.
-                //
-                // Make a small square button
-                if (ImGui::ImageButton("Button", texture->id(cb.deviceID),
-                                       ImVec2(32.0f, 32.0f),
-                                       ImVec2(0.0f, 0.0f),
-                                       squareUV))
-                    params->counter++;
-
-                ImGui::SameLine();
-                ImGui::Text("counter = %d", params->counter);
-                ImGui::End();
-            }
-        }
     }
 };
 
