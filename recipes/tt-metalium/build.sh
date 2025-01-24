@@ -23,4 +23,8 @@ cmake --build $SRC_DIR/build --parallel $NUM_PROCS
 
 cmake --install $SRC_DIR/build
 
+# Warning - HACK!
+mkdir -p $SRC_DIR/build/lib
+cp $PREFIX/lib/_ttnn.so $SRC_DIR/build/lib/
+
 pip install --no-deps $SRC_DIR
