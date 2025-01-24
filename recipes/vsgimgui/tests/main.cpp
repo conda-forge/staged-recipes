@@ -3,8 +3,8 @@
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
 #include <vsgImGui/Texture.h>
-#include <vsgImGui/imgui.h>
-#include <vsgImGui/implot.h>
+#include <imgui.h>
+#include <implot.h>
 
 #include <vsg/all.h>
 
