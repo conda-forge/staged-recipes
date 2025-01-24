@@ -2,6 +2,10 @@
 
 set -exo pipefail
 
+# Remove existing imgui and implot headers to use the external ones installed by their Conda packages
+rm include/vsgImGui/imgui.h
+rm include/vsgImGui/implot.h
+
 cmake $SRC_DIR \
   ${CMAKE_ARGS} \
   -G Ninja \
