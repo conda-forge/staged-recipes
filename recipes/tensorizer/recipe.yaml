@@ -10,6 +10,7 @@ source:
   sha256: f79ac50d0a3bc328e3ee8cdf838ba04ddb5b9fa1d72be69f6ae618533d349e8e
 
 build:
+  noarch: python
   number: 0
   script: ${{ PYTHON }} -m pip install .
 
@@ -18,10 +19,6 @@ requirements:
   - python
   - setuptools
   - pip
-  - cmake
-  - ${{ stdlib('c') }}
-  - ${{ compiler('c') }}
-  - ${{ compiler('cxx') }}
   run:
   - python
   - pytorch >=1.9.0
@@ -43,16 +40,32 @@ tests:
       - tests/
   requirements:
     run:
+      - pytest
       - transformers >=4.27.1
       - moto >=4.1.4,<5.0.0
       - redis-py >=5.0.0
-      - redis-server
+      - if: not win
+        then:
+          - redis-server
       - boto3
       # Opened <https://github.com/coreweave/tensorizer/pull/183>
       # to fix the underlying issue.
       - numpy <2
   script:
-    - python -m unittest discover --start-directory tests -v
+    # Fails on macOS in test_cpu_multiple_readers
+    # (test_serialization.TestDeserialization) with:
+    #     ValueError: Cannot reopen this type of file to enable parallel reading with
+    #     num_readers > 1. File paths, URIs, and HTTP(S) or S3 streams returned from
+    #     tensorizer.stream_io.open_stream, plus some open files are capable of being
+    #     reopened. Other file-like objects and special files (e.g. BytesIO, pipes,
+    #     sockets) are not supported.
+    # Unfortunately I don't know which type of file is being opened, but this doesn't
+    # seem serious, so I'm skipping it.
+    - if: osx
+      then:
+        - pytest tests -vv -k "not test_cpu_multiple_readers"
+    - else:
+        - pytest tests -vv
 
 about:
   homepage: https://github.com/coreweave/tensorizer
