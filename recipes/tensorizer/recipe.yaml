@@ -42,6 +42,7 @@ tests:
   requirements:
     run:
       - pytest
+      - pytest-rerunfailures
       - transformers >=4.27.1
       - moto >=4.1.4,<5.0.0
       - redis-py >=5.0.0
@@ -53,9 +54,13 @@ tests:
       # to fix the underlying issue.
       - numpy <2
   script:
+    # Redis tests are flaky, sometimes failing with:
+    #     redis.exceptions.ConnectionError: Error 111 connecting to localhost:6381.
+    #     Connection refused.
+    # I suspect that there's not enough startup time, so we retry a few times.
     - if: linux
       then:
-        - pytest tests -vvv
+        - pytest tests -vvv --reruns 2
     # Fails on macOS and Windows in test_cpu_multiple_readers
     # (test_serialization.TestDeserialization) with:
     #     ValueError: Cannot reopen this type of file to enable parallel reading with
@@ -68,7 +73,7 @@ tests:
     - if: osx
       then:
         - |
-          pytest tests -vvv \
+          pytest tests -vvv --reruns 2 \
             --deselect tests/test_serialization.py::TestDeserialization::test_cpu_multiple_readers
     # In addition to the above, we don't have a Redis server on Windows.
     # Also, test_bfloat16 and test_structure fail with:
