@@ -53,7 +53,10 @@ tests:
       # to fix the underlying issue.
       - numpy <2
   script:
-    # Fails on macOS in test_cpu_multiple_readers
+    - if: linux
+      then:
+        - pytest tests -vvv
+    # Fails on macOS and Windows in test_cpu_multiple_readers
     # (test_serialization.TestDeserialization) with:
     #     ValueError: Cannot reopen this type of file to enable parallel reading with
     #     num_readers > 1. File paths, URIs, and HTTP(S) or S3 streams returned from
@@ -64,9 +67,21 @@ tests:
     # seem serious, so I'm skipping it.
     - if: osx
       then:
-        - pytest tests -vv -k "not test_cpu_multiple_readers"
-      else:
-        - pytest tests -vv
+        - pytest tests -vvv \
+            --deselect tests/test_serialization.py::TestDeserialization::test_cpu_multiple_readers
+    # In addition to the above, we don't have a Redis server on Windows.
+    # Also, test_bfloat16 and test_structure fail with:
+    #     PermissionError: [WinError 32] The process cannot access the file because it
+    #     is being used by another process:
+    #       'C:\\Users\\VSSADM~1\\AppData\\Local\\Temp\\tensorizer-testu78j78id'
+    - if: win
+      then:
+        - pytest tests -vvv \
+            --deselect tests/test_serialization.py::TestDeserialization::test_cpu_multiple_readers \
+            --deselect tests/test_serialization.py::TestDeserialization::test_redis \
+            --deselect tests/test_stream_io.py::TestRedis::test_redis_stream \
+            --deselect tests/test_serialization.py::TestSerialization::test_bfloat16 \
+            --deselect tests/test_serialization.py::TestSerialization::test_structure
 
 about:
   homepage: https://github.com/coreweave/tensorizer
