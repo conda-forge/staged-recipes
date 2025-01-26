@@ -1,0 +1,60 @@
+context:
+  name: hf-transfer
+  version: 0.1.9
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/hf_transfer-${{ version }}.tar.gz
+  sha256: 035572865dab29d17e783fbf1e84cf1cb24f3fcf8f1b17db1cfc7fdf139f02bf
+  patches:
+    # unvendor openssl
+    - 001-cargo.patch
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: 
+       - export OPENSSL_DIR="$PREFIX"
+       - export OPENSSL_NO_VENDOR=1
+      else:
+       - set OPENSSL_DIR=%LIBRARY_PREFIX% 
+       - set OPENSSL_NO_VENDOR=1
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - pkg-config
+    - cargo-bundle-licenses
+  host:
+    - python
+    - maturin >=1.4,<2
+    - pip
+    - openssl
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - hf_transfer
+
+about:
+  summary: Speed up file transfers with the Hugging Face Hub.
+  license: Apache-2.0
+  license_file: 
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/huggingface/hf_transfer
+  repository: https://github.com/huggingface/hf_transfer
+
+extra:
+  recipe-maintainers:
+    - zbowling
+    - maresb
