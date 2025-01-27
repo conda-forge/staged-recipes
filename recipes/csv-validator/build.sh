@@ -1,24 +1,6 @@
 #!/bin/bash
 
 # Note: This will run in a Docker container for building package on Linux
-# Copy over .sh and csv-validator-cmd-X.Y.jar and the /lib/ to Conda environment directory (like /home/conda/bin/csv-validator/X.Y)
-# Set up environment variables if needed
-
-echo "\$REPO_ROOT" $REPO_ROOT   # Set in .scripts/run_docker_build.sh
-echo "\$PREFIX" $PREFIX
-echo "\$BUILD_PREFIX" $BUILD_PREFIX
-echo "\$ENV_PREFIX" $ENV_PREFIX
-echo "\$CONDA_PREFIX" $CONDA_PREFIX
-echo "\$PKG_NAME" $PKG_NAME
-echo "\$PKG_VERSION" $PKG_VERSION
-echo "\$PKG_BUILDNUM" $PKG_BUILDNUM
-echo "\$SRC_DIR" $SRC_DIR
-echo "\$CONDA_BLD_PATH" $CONDA_BLD_PATH
-echo "\n"
-printenv
-echo "\n"
-conda config --show
-
 # Note: $PREFIX, $SRC_DIR, and variables that start with "$PKG_" are defined by main Conda build scripts
 
 # TODO: What is best practice for storing downloaded files from source?
@@ -53,9 +35,6 @@ echo "Setting symbolic link and file permissions..."
 ln -s $INSTALL_PATH/csv-validator-cmd $PREFIX/bin
 
 chmod 0755 "$PREFIX/bin/csv-validator-cmd"
-
-# TODO: Do we need to perform a clean up operation to remove downloaded files in /work? Or is that handled by Conda?
-# I think it's handled by Conda b/c work/ content moved to work_moved_csv-validator-XXX/ after installation
 
 echo "csv-validator-cmd installation complete!"
 echo "If you want to change the maximum memory heap allocation (1024 MB default) run "export csvValidatorMemory=\<number in MB\>" before using the csv-validator-cmd command"
