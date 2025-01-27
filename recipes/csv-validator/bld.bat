@@ -1,4 +1,4 @@
-REM Note: This will run in a Docker container for building package on Windows
+REM TODO: Test Conda build on Windows machine and update script as necessary
 REM Note: %PREFIX%, %SRC_DIR%, and variables that start with "%PKG_" are defined by main Conda build scripts
 
 REM Define installation path
