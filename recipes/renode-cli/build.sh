@@ -101,12 +101,12 @@ exec "${DOTNET_ROOT}"/dotnet exec "${CONDA_PREFIX}"/libexec/renode-cli/Renode.dl
 EOF
 chmod +x ${PREFIX}/bin/renode
 
-ccat > $PREFIX/bin/renode.cmd <<"EOF"
+cat > $PREFIX/bin/renode.cmd <<"EOF"
 call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\libexec\renode-cli\Renode.dll %*
 EOF
 chmod +x ${PREFIX}/bin/renode
 
-at > $PREFIX/bin/renode-test <<"EOF"
+cat > $PREFIX/bin/renode-test <<"EOF"
 #!/usr/bin/env bash
 
 STTY_CONFIG=`stty -g 2>/dev/null`
