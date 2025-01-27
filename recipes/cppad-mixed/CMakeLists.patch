@@ -1,0 +1,75 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 37a99042..4ab1342d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -50,6 +50,10 @@ MACRO( required_definition variable type docstring )
+          SET( ${variable}_01 0 )
+       ENDIF( ${variable} )
+    ENDIF( ${type} STREQUAL "BOOL" )
++   IF( ${type} STREQUAL "PATH" )
++      CMAKE_PATH(SET ${variable} "${${variable}}" )
++      MESSAGE( STATUS "${variable} = ${${variable}}" )
++   ENDIF( ${type} STREQUAL "PATH" )
+ ENDMACRO( required_definition )
+ # ----------------------------------------------------------------------------
+ # optional_definition( variable type docstring )
+@@ -220,7 +224,7 @@ IF( NOT "${brew_prefix}" STREQUAL "" )
+          SET(suitesparse_suffix "${suffix}")
+       ENDIF( EXISTS "${brew_prefix}/${suffix}/cholmod.h" )
+    ENDFOREACH(suffix "include" "include/suitesparse")
+-ENDIF( NOT ( "${brew_prefix}" STREQUAL "" ) )
++ENDIF( NOT "${brew_prefix}" STREQUAL "" )
+ FOREACH(prefix
+    /usr
+    /usr/local
+@@ -229,6 +233,7 @@ FOREACH(prefix
+    ${cmake_install_prefix}
+ )
+    FOREACH(suffix "include" "include/suitesparse")
++# ----------------------------------------------------------------------------
+       IF( EXISTS "${prefix}/${suffix}/cholmod.h" )
+          IF( suitesparse_prefix )
+             SET(same "yes")
+@@ -271,22 +276,29 @@ SET(suitesparse_LIBRARIES
+ # suitesparse_LIBRARY_DIRS
+ SET(suitesparse_LIBRARY_DIRS "NOTFOUND")
+ FOREACH(suffix "lib" "lib64" "${cmake_libdir}" )
+-   SET(both "${suitesparse_prefix}/${suffix}")
+-   SET(globbing_expression "${both}/libcholmod.*")
+-   FILE(GLOB match_1 ${globbing_expression})
+-   IF( match_1 )
+-      SET(suitesparse_LIBRARY_DIRS "${both}")
+-   ELSE( match_1 )
+-      SET(globbing_expression "${both}/*/libcholmod.*")
+-      FILE(GLOB match_2 ${globbing_expression})
+-      IF( match_2 )
+-         SET(suitesparse_LIBRARY_DIRS "${both}")
+-      ENDIF( match_2 )
+-   ENDIF( match_1 )
++   SET(libdir "${suitesparse_prefix}/${suffix}")
++   FOREACH(name "libcholmod" "cholmod")
++      SET(globbing_expression "${libdir}/${name}.*")
++      FILE(GLOB match_1 ${globbing_expression})
++      IF( match_1 )
++         SET(suitesparse_LIBRARY_DIRS "${libdir}")
++      ELSE( match_1 )
++         SET(globbing_expression "${libdir}/*/${name}.*")
++         FILE(GLOB match_2 ${globbing_expression})
++         IF( match_2 )
++            SET(suitesparse_LIBRARY_DIRS "${libdir}")
++            MESSAGE(FATAL_ERROR
++               "Report this error as a cppad-mixed issue. The search results"
++               "seem to be incorrect and never get used because the true"
++               "libdir is ${libdir}/* where * is the match found by GLOB"
++            )
++         ENDIF( match_2 )
++      ENDIF( match_1 )
++   ENDFOREACH(name "libcholmod" "cholmod")
+ ENDFOREACH(suffix "lib" "lib64" "${cmake_libdir}" )
+ IF( NOT suitesparse_LIBRARY_DIRS )
+    MESSAGE(FATAL_ERROR
+-      "Cannot find libcholmod.* in ${suitesparse_prefix}/libdir"
++      "Cannot find cholmod library in ${suitesparse_prefix}/libdir"
+       " where libdir is lib, lib64, or cmake_libdir"
+    )
+ ENDIF( NOT suitesparse_LIBRARY_DIRS )

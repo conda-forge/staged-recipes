@@ -1,11 +1,14 @@
 mkdir build
 cd build
 
+echo SRC_DIR = %SRC_DIR%
+echo BUILD_PREFIX = %BUILD_PREFIX%
 :: cmake
-cmake -S %SRCDIR%  -B . ^
+cmake -S %SRC_DIR% -B . ^
    -G "NMake Makefiles" ^
    -D CMAKE_BUILD_TYPE=Release ^
-   -D cmake_install_prefix=%LIBRARY_PREFIX% ^
+   -D cmake_install_prefix="%BUILD_PREFIX%\Library" ^
+   -D extra_cxx_flags="" ^
    -D cmake_libdir=lib ^
    -D ldlt_cholmod=yes ^
    -D optimize_cppad_function=yes ^
