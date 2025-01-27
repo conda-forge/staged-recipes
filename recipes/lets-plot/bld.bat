@@ -21,6 +21,3 @@ CALL copy %js_package_distr% %js_package_path%
 
 CALL cd python-package
 CALL %PYTHON% -m pip install . -vv
-
-
-D:\\bld\\lets-plot_1737743107017\\work\\js-package\\build\\dist\\js\\productionExecutable\\lets-plot.min.js
