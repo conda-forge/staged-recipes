@@ -16,7 +16,7 @@ On Linux, Docker is used to build packages from recipes for testing (`./scripts/
 
 Conda builds will automatically download files from the source defined in `meta.yml` and store them in `/build_artifacts/src_cache`. Files are unpacked to the directory set by `$SRC_DIR` variable (done by Conda).
 
-`/build_artifacts/$PKG_NAME_X/work/build_env_setup.sh` contains all the environment variables set up before running the user-defined `build.sh`.
+`/build_artifacts/$PKG_NAME_X/work/build_env_setup.sh` contains all the environment variables set up before running the user-defined `build.sh`. See https://docs.conda.io/projects/conda-build/en/stable/user-guide/environment-variables.html#env-vars for more info.
 
 # DevOps Automation
 
