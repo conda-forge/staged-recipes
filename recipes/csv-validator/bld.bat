@@ -25,7 +25,7 @@ IF EXIST "%SRC_DIR%\lib\*" (
 
 REM Copying main binary
 IF EXIST "%SRC_DIR%\%PKG_NAME%-cmd-%PKG_VERSION%.jar" (
-    COPY "%SRC_DIR%\%PKG_NAME%-cmd-%PKG_VERSION%.jar" "%INSTALL_PATH\" || (
+    COPY "%SRC_DIR%\%PKG_NAME%-cmd-%PKG_VERSION%.jar" "%INSTALL_PATH%\" || (
         ECHO Failed to copy application JAR file
         EXIT /B 1
     )
@@ -36,7 +36,7 @@ IF EXIST "%SRC_DIR%\%PKG_NAME%-cmd-%PKG_VERSION%.jar" (
 
 REM Copying wrapper script
 IF EXIST "%SRC_DIR%\csv-validator-cmd.bat" (
-    COPY "%SRC_DIR%\csv-validator-cmd.bat" "%INSTALL_PATH\" || (
+    COPY "%SRC_DIR%\csv-validator-cmd.bat" "%INSTALL_PATH%\" || (
         ECHO Failed to copy wrapper script csv-validator-cmd.bat
         EXIT /B 1
     )
@@ -47,7 +47,7 @@ IF EXIST "%SRC_DIR%\csv-validator-cmd.bat" (
 
 REM Copying LICENSE file
 IF EXIST "%SRC_DIR%\LICENSE" (
-    COPY "%SRC_DIR%\LICENSE" "%INSTALL_PATH\" || (
+    COPY "%SRC_DIR%\LICENSE" "%INSTALL_PATH%\" || (
         ECHO Failed to copy LICENSE file.
         EXIT /B 1
     )
@@ -58,7 +58,7 @@ IF EXIST "%SRC_DIR%\LICENSE" (
 
 REM Copying README text
 IF EXIST "%SRC_DIR%\running-csv-validator.txt" (
-    COPY "%SRC_DIR%\running-csv-validator.txt" "%INSTALL_PATH\" || (
+    COPY "%SRC_DIR%\running-csv-validator.txt" "%INSTALL_PATH%\" || (
         ECHO Failed to copy running-csv-validator.txt.
         EXIT /B 1
     )
@@ -71,7 +71,7 @@ ECHO Setting symbolic link and file permissions...
 
 REM Create symbolic link for the wrapper script in bin directory
 SET symlinkTarget=%INSTALL_PATH%\csv-validator-cmd.bat
-SET symlinkPath=%PREFIX%\bin\csv-validate
+SET symlinkPath=%PREFIX%\bin\csv-validator-cmd
 
 REM Check if the symlink already exists and remove it if necessary
 IF EXIST "%symlinkPath%" (
