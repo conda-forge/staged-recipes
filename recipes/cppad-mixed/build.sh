@@ -1,16 +1,8 @@
 #! /bin/sh
 #
 # PKG_CONFIG_PATH
-if [ ! -d "$PKG_CONFIG_PATH" ]
-then
-	echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-	echo 'Environment setting for PKG_CONFIG_PATH does not exist'
-	PKG_CONFIG_PATH=''
-fi
-for dir in lib share
-do
-	PKG_CONFIG_PATH+=":$BUILD_PREFIX/$dir/pkgconfig"
-done
+PKG_CONFIG_PATH="$BUILD_PREFIX/lib/pkgconfig"
+PKG_CONFIG_PATH+=":$BUILD_PREFIX/share/pkgconfig"
 echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 #
 # extra_cxx_flags
@@ -42,3 +34,5 @@ make -j4 check
 #
 # install
 make install
+#
+echo 'build.sh: OK'

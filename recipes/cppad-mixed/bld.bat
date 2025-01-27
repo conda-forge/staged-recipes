@@ -1,13 +1,15 @@
 mkdir build
 cd build
 
-echo SRC_DIR = %SRC_DIR%
-echo BUILD_PREFIX = %BUILD_PREFIX%
+:: PKG_CONFIG_PATH
+echo PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
+
 :: cmake
 cmake -S %SRC_DIR% -B . ^
    -G "NMake Makefiles" ^
    -D CMAKE_BUILD_TYPE=Release ^
-   -D cmake_install_prefix="%BUILD_PREFIX%\Library" ^
+   -D cmake_install_prefix="%PREFIX%\Library" ^
+   -D cmake_search_prefix="%BUILD_PREFIX%\Library" ^
    -D extra_cxx_flags="" ^
    -D cmake_libdir=lib ^
    -D ldlt_cholmod=yes ^
@@ -27,3 +29,4 @@ if errorlevel 1 exit 1
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
 
+echo 'bld.bat: OK'
