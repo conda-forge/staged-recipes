@@ -82,5 +82,5 @@ REM Create the symbolic link using mklink (requires admin privileges)
 CMD /C MKLINK "%symlinkPath%" "%symlinkTarget%"
 
 ECHO csv-validator-cmd installation complete!
-ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "set csvValidatorMemory=<number in MB>" before using the csv-validator-cmd command.
+ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "SET csvValidatorMemory=<number in MB>" before using the csv-validator-cmd command.
 ECHO See running-csv-validator.txt in the package's installation path for more information.
