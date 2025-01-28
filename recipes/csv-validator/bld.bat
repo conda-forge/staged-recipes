@@ -1,5 +1,9 @@
 REM TODO: Test Conda build on Windows machine and update script as necessary
-REM Note: %PREFIX%, %SRC_DIR%, and variables that start with "%PKG_" are defined by main Conda build scripts
+REM TODO: Getting this error https://dev.azure.com/conda-forge/feedstock-builds/_build/results?buildId=1162590&view=logs&j=53c3d5f4-e7c7-5b53-4b94-211701b2ba17&t=8f042650-8479-5761-7a4a-8d021c0bb2de&l=1946
+REM TODO: "conda.CondaMultiError: [Errno 2] No such file or directory: 'D:\\Miniforge\\pkgs\\csv-validator-1.3.0-h57928b3_0\\bin\\csv-validator-cmd'"
+REM Note: PREFIX, SRC_DIR, LIB, and variables that start with "PKG_" are defined by main Conda build scripts
+
+SETLOCAL
 
 REM Define installation path
 SET INSTALL_PATH=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
@@ -84,3 +88,5 @@ CMD /C MKLINK "%symlinkPath%" "%symlinkTarget%"
 ECHO csv-validator-cmd installation complete!
 ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "SET csvValidatorMemory=<number in MB>" before using the csv-validator-cmd command.
 ECHO See running-csv-validator.txt in the package's installation path for more information.
+
+ENDLOCAL
