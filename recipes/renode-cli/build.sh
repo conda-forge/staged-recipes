@@ -2,17 +2,6 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-update_antmicro_submodule() {
-  local commit=$1
-  local module=$2
-
-  git clone https://github.com/antmicro/${module}.git
-  pushd ${module}
-    git fetch origin ${commit}
-    git submodule update --init --recursive
-  popd
-}
-
 mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 export PATH="${DOTNET_ROOT}/dotnet:${PATH}"
@@ -22,29 +11,8 @@ install_prefix="${PREFIX}/opt/${PKG_NAME}"
 dotnet_version=$(dotnet --version)
 framework_version=${dotnet_version%.*}
 
-mkdir -p ${SRC_DIR}/src/Infrastructure/
-mv renode-infrastructure/* ${SRC_DIR}/src/Infrastructure/ && rm -rf renode-infrastructure
-
-mkdir -p ${SRC_DIR}/lib
-pushd ${SRC_DIR}/lib
-  git clone https://github.com/renode/renode-resources.git
-  pushd renode-resources && git submodule update --init --recursive && popd
-  mv renode-resources resources
-
-  update_antmicro_submodule b1d3d03d602581fc2bed6db586b5e5c3388456c7 AntShell
-  update_antmicro_submodule e7bfa5873f2300e6e87c185f466e227762dbf4b2 BigGustave
-  update_antmicro_submodule b0c2a820f28a7bdedb85575bfca6447c9e7fa955 CxxDemangler
-  update_antmicro_submodule de4e4f6ffab555771285cb810f17f61cfd38ef39 ELFsharp
-  rm -rf ELFSharp && mv ELFsharp ELFSharp
-  update_antmicro_submodule e379e8ae696676afffed2f33dd8083855af00f2f FdtSharp
-  update_antmicro_submodule 33e5ab24eaaab488e9a94f1a40d5d6ae2f7f02f1 InpliTftpServer
-  update_antmicro_submodule c6514e99f2c35afec083b9f4a7eec3408c0081d1 Migrant
-  update_antmicro_submodule 2fe74fd257f6d6f86076c100952178f347098b3d Packet.Net
-  update_antmicro_submodule 33d24f1307d267c34b7f1439bc159a8825c5aa3d bc-csharp
-  update_antmicro_submodule bde21d04fbfc540989b7a0ac13a54eae8b756994 cctask
-  update_antmicro_submodule e8c2051dec56c5ccd3a4927b07a5740f34eed8c8 options-parser
-  update_antmicro_submodule 71af57ef4fec29e416f48160b8918057a58548a9 termsharp
-popd
+# Update the submodule to the latest commit CMakeLists.txt
+cp ${RECIPE_DIR}/patches/Cores-CMakeLists.txt ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt
 
 find lib src tests -name "*.csproj" -exec sed -i -E \
   -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
@@ -55,19 +23,26 @@ find . -type d -name "obj" -exec rm -rf {} +
 find . -type d -name "bin" -exec rm -rf {} +
 sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
 
-export CC=${CC}
-export CFLAGS="${CFLAGS} -fPIC"
+# export CC=${CC}
+# export CFLAGS="${CFLAGS} -fPIC"
+
+# Prevent CMake build since we provide the binaries
+sed -i -E 's;^(\s*)(cmake|\./check_weak_implementations|cp\s+(\-u\s+)?\-v\s+tlib/\*\.so);\1true \|\| \2;' build.sh
+mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
+cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
+rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
 
 if [[ "${target_platform}" == linux-* ]] || [[ "${target_platform}" == osx-* ]]; then
   _os_name=${target_platform%-*}
-
+  chmod +x build.sh tools/{building,packaging}/*.sh
   ./build.sh --net --no-gui --force-net-framework-version ${framework_version}
 else
   _os_name=windows
+  chmod +x build.sh tools/{building,packaging}/*.sh
   ./build.sh --net --no-gui --force-net-framework-version ${framework_version}
 fi
 
-
+# Install procedure
 mkdir -p $PREFIX/libexec/${PKG_NAME}
 cp -r output/bin/Release/net${framework_version}/* $PREFIX/libexec/${PKG_NAME}/
 
