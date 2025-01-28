@@ -6,6 +6,7 @@ mkdir -p build
 cd build
 cmake .. \
     -DPYBIND11_FINDPYTHON=ON \
+    -DPython_INCLUDE_DIRS=${CONDA_PREFIX}/include \
     -DUSE_VENDORED_PYBIND11=OFF \
     -DUSE_VENDORED_QUAZIP=ON \
     -DUSE_VENDORED_IGRAPH=ON \
@@ -13,8 +14,8 @@ cmake .. \
     -DHAL_VERSION_MAJOR=4 \
     -DHAL_VERSION_MINOR=4 \
     -DHAL_VERSION_PATCH=1 \
-    -DZ3_LIBRARIES=$CONDA_PREFIX/lib \
-    -DZ3_INCLUDE_DIRS=$CONDA_PREFIX/include \
+    -DZ3_LIBRARIES=${CONDA_PREFIX}/lib \
+    -DZ3_INCLUDE_DIRS=${CONDA_PREFIX}/include \
     ${CMAKE_ARGS}
 make -j"${CPU_COUNT}" install
 
