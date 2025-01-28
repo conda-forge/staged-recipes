@@ -13,7 +13,7 @@ cmake .. -G "Ninja" --debug-output \
     -DHAL_VERSION_MINOR=4 \
     -DHAL_VERSION_PATCH=1 \
     -DZ3_LIBRARIES=$CONDA_PREFIX/lib \
-    -DZ3_INCLUDE_DIRS=$CONDA_PREFIX/include \
-    ${CMAKE_ARGS}
+    -DZ3_INCLUDE_DIRS=$CONDA_PREFIX/include
+    # ${CMAKE_ARGS}
 ninja install
 
