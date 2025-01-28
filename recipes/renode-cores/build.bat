@@ -13,6 +13,4 @@ set "RECIPE_DIR=%RECIPE_DIR:\=/%"
 set MSYSTEM=UCRT64
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
-set build_platform=win-64
-set target_platform=win-64
 bash -lc "./conda_build.sh"
