@@ -6,7 +6,9 @@ mkdir -p build
 cd build
 cmake .. \
     -DPYBIND11_FINDPYTHON=ON \
-    -DPython_INCLUDE_DIRS=${CONDA_PREFIX}/include \
+    -DPYTHON_EXECUTABLE:FILEPATH=$(which python3) \
+    -DPYTHON_INCLUDE_DIR=$(python3 -c "import sysconfig; print(sysconfig.get_path('include'))")  \
+    -DPYTHON_LIBRARY=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))") \
     -DUSE_VENDORED_PYBIND11=OFF \
     -DUSE_VENDORED_QUAZIP=ON \
     -DUSE_VENDORED_IGRAPH=ON \
