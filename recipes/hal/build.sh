@@ -5,6 +5,7 @@ set -xe
 mkdir -p build
 cd build
 cmake .. \
+    -DPYBIND11_FINDPYTHON=ON \
     -DUSE_VENDORED_PYBIND11=OFF \
     -DUSE_VENDORED_QUAZIP=ON \
     -DUSE_VENDORED_IGRAPH=ON \
