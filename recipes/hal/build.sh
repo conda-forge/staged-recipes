@@ -4,7 +4,7 @@ set -xe
 
 mkdir -p build
 cd build
-cmake .. -G "Ninja" --debug-output \
+cmake .. \
     -DUSE_VENDORED_PYBIND11=OFF \
     -DUSE_VENDORED_QUAZIP=ON \
     -DUSE_VENDORED_IGRAPH=ON \
@@ -13,7 +13,7 @@ cmake .. -G "Ninja" --debug-output \
     -DHAL_VERSION_MINOR=4 \
     -DHAL_VERSION_PATCH=1 \
     -DZ3_LIBRARIES=$CONDA_PREFIX/lib \
-    -DZ3_INCLUDE_DIRS=$CONDA_PREFIX/include
-    # ${CMAKE_ARGS}
-ninja install
+    -DZ3_INCLUDE_DIRS=$CONDA_PREFIX/include \
+    ${CMAKE_ARGS}
+make -j"${CPU_COUNT}" install
 
