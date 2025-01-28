@@ -15,10 +15,5 @@ CONFIGURATION="Release"
 CORES_PATH="$ROOT_PATH/src/Infrastructure/src/Emulator/Cores"
 CORES_BIN_PATH="$CORES_PATH/bin/$CONFIGURATION"
 
-if [[ "${target_platform}" == linux-* ]] || [[ "${target_platform}" == osx-* ]]; then
-  mkdir -p "${PREFIX}/lib/${PKG_NAME}"
-  tar -c -C "${CORES_BIN_PATH}/lib" . | tar -x -C "${PREFIX}/lib/${PKG_NAME}"
-else
-  mkdir -p "${PREFIX}/Library/lib/${PKG_NAME}"
-  tar -c -C "${CORES_BIN_PATH}/lib" . | tar -x -C "${PREFIX}/Library/lib/${PKG_NAME}"
-fi
+mkdir -p "${PREFIX}/lib/${PKG_NAME}"
+tar -c -C "${CORES_BIN_PATH}/lib" . | tar -x -C "${PREFIX}/lib/${PKG_NAME}"
