@@ -23,6 +23,7 @@ cmake -S $SRC_DIR -B . \
    -D CMAKE_CROSSCOMPILING_EMULATOR=$CONDA_BUILD_CROSS_COMPILATION \
    -D CMAKE_BUILD_TYPE=Release \
    -D cmake_install_prefix="$PREFIX" \
+   -D cmake_search_prefix="$BUILD_PREFIX" \
    -D extra_cxx_flags="$extra_cxx_flags" \
    -D cmake_libdir=lib \
    -D ldlt_cholmod=yes \

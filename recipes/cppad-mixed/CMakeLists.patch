@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 37a99042..d8db5445 100644
+index 37a99042..25675cca 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -12,7 +12,8 @@
+@@ -12,13 +12,21 @@
  #                        -D cmake_libdir=value \
  #                        -D ldlt_cholmod=value \
  #                        -D optimize_cppad_function=value \
@@ -12,7 +12,20 @@ index 37a99042..d8db5445 100644
  # ============================================================================
  # Macro definitions
  # ============================================================================
-@@ -50,6 +51,10 @@ MACRO( required_definition variable type docstring )
++#
++# print_variable(variable)
+ MACRO(print_variable variable)
+    MESSAGE(STATUS "${variable}=${${variable}}" )
+ ENDMACRO(print_variable variable)
++#
++# trace_line_in_file(${CMAKE_CURRENT_LIST_LINE}, ${CMAKE_CURRENT_LIST_FILE} )
++MACRO(trace_line_in_file line file)
++MESSAGE(STATUS "Line ${line} in ${file}")
++ENDMACRO( )
+ # ----------------------------------------------------------------------------
+ # required_definition( variable type docstring )
+ #
+@@ -50,6 +58,10 @@ MACRO( required_definition variable type docstring )
           SET( ${variable}_01 0 )
        ENDIF( ${variable} )
     ENDIF( ${type} STREQUAL "BOOL" )
@@ -23,7 +36,7 @@ index 37a99042..d8db5445 100644
  ENDMACRO( required_definition )
  # ----------------------------------------------------------------------------
  # optional_definition( variable type docstring )
-@@ -75,6 +80,10 @@ MACRO( optional_definition variable type docstring )
+@@ -75,11 +87,15 @@ MACRO( optional_definition variable type docstring )
           SET( ${variable}_01 0 )
        ENDIF( ${variable} )
     ENDIF( ${type} STREQUAL "BOOL" )
@@ -34,7 +47,13 @@ index 37a99042..d8db5445 100644
  ENDMACRO( optional_definition )
  # ============================================================================
  CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
-@@ -127,6 +136,9 @@ required_definition(optimize_cppad_function BOOL
+ PROJECT(cppad_mixed)
+-SET(cppad_mixed_version "2025.0.1")
++SET(cppad_mixed_version "2025.1.28")
+ INCLUDE_DIRECTORIES( ${cppad_mixed_SOURCE_DIR}/include )
+ INCLUDE(CheckCXXSourceRuns)
+ MESSAGE(STATUS "BEGIN:")
+@@ -127,6 +143,9 @@ required_definition(optimize_cppad_function BOOL
  required_definition(for_hes_sparsity BOOL
     "use forward (reverse) method for computing Hessian w.r.t. random effects"
  )
@@ -44,7 +63,7 @@ index 37a99042..d8db5445 100644
  # ----------------------------------------------------------------------------
  MESSAGE(STATUS "END:")
  # ----------------------------------------------------------------------------
-@@ -198,13 +210,9 @@ ENDIF( cppad_mixed_has_nullptr_flag )
+@@ -198,13 +217,9 @@ ENDIF( cppad_mixed_has_nullptr_flag )
  MESSAGE(STATUS "cppad_mixed_has_nullptr = ${cppad_mixed_has_nullptr_01}")
  # ----------------------------------------------------------------------------
  # no pkg-config for SuiteSparse so explicitly set following values:
@@ -58,12 +77,21 @@ index 37a99042..d8db5445 100644
  SET(suitesparse_prefix "NOTFOUND")
  SET(suitesparse_suffix "NOTFOUND")
  EXECUTE_PROCESS(
-@@ -220,13 +228,17 @@ IF( NOT "${brew_prefix}" STREQUAL "" )
+@@ -212,7 +227,7 @@ EXECUTE_PROCESS(
+    OUTPUT_VARIABLE brew_prefix
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+ )
+-IF( NOT "${brew_prefix}" STREQUAL "" )
++IF( FALSE )
+    FOREACH(suffix "include" "include/suitesparse")
+       IF( EXISTS "${brew_prefix}/${suffix}/cholmod.h" )
+          MESSAGE(STATUS "Using ${brew_prefix}/${suffix}/cholmod.h" )
+@@ -220,13 +235,17 @@ IF( NOT "${brew_prefix}" STREQUAL "" )
           SET(suitesparse_suffix "${suffix}")
        ENDIF( EXISTS "${brew_prefix}/${suffix}/cholmod.h" )
     ENDFOREACH(suffix "include" "include/suitesparse")
 -ENDIF( NOT ( "${brew_prefix}" STREQUAL "" ) )
-+ENDIF( NOT "${brew_prefix}" STREQUAL "" )
++ENDIF( )
 +IF( NOT cmake_search_prefix )
 +   SET(cmake_search_prefix "" )
 +ENDIF( NOT cmake_search_prefix )
@@ -72,13 +100,12 @@ index 37a99042..d8db5445 100644
     /usr/local
     /opt/local
     /usr/local/opt/suitesparse
--   ${cmake_install_prefix}
-+   ${cmake_install_prefix} 
+    ${cmake_install_prefix}
 +   ${cmake_search_prefix}
  )
     FOREACH(suffix "include" "include/suitesparse")
        IF( EXISTS "${prefix}/${suffix}/cholmod.h" )
-@@ -263,7 +275,7 @@ ELSE( ${suitesparse_suffix} STREQUAL "include" )
+@@ -263,7 +282,7 @@ ELSE( ${suitesparse_suffix} STREQUAL "include" )
     SET(suitesparse_INCLUDE_DIRS  "${suitesparse_prefix}/include/suitesparse" )
  ENDIF( ${suitesparse_suffix} STREQUAL "include" )
  #
@@ -87,7 +114,7 @@ index 37a99042..d8db5445 100644
  SET(suitesparse_LIBRARIES
     "cholmod;amd;camd;colamd;ccolamd;suitesparseconfig"
  )
-@@ -271,22 +283,29 @@ SET(suitesparse_LIBRARIES
+@@ -271,22 +290,18 @@ SET(suitesparse_LIBRARIES
  # suitesparse_LIBRARY_DIRS
  SET(suitesparse_LIBRARY_DIRS "NOTFOUND")
  FOREACH(suffix "lib" "lib64" "${cmake_libdir}" )
@@ -109,17 +136,6 @@ index 37a99042..d8db5445 100644
 +      FILE(GLOB match_1 ${globbing_expression})
 +      IF( match_1 )
 +         SET(suitesparse_LIBRARY_DIRS "${libdir}")
-+      ELSE( match_1 )
-+         SET(globbing_expression "${libdir}/*/${name}.*")
-+         FILE(GLOB match_2 ${globbing_expression})
-+         IF( match_2 )
-+            SET(suitesparse_LIBRARY_DIRS "${libdir}")
-+            MESSAGE(FATAL_ERROR
-+               "Report this error as a cppad-mixed issue. The search results"
-+               "seem to be incorrect and never get used because the true"
-+               "libdir is ${libdir}/* where * is the match found by GLOB"
-+            )
-+         ENDIF( match_2 )
 +      ENDIF( match_1 )
 +   ENDFOREACH(name "libcholmod" "cholmod")
  ENDFOREACH(suffix "lib" "lib64" "${cmake_libdir}" )
