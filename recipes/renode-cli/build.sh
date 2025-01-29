@@ -11,9 +11,7 @@ install_prefix="${PREFIX}/opt/${PKG_NAME}"
 dotnet_version=$(dotnet --version)
 framework_version=${dotnet_version%.*}
 
-# Update the submodule to the latest commit CMakeLists.txt
-cp ${RECIPE_DIR}/patches/Cores-CMakeLists.txt ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt
-
+# Patch the project files to use the correct .NET version
 find lib src tests -name "*.csproj" -exec sed -i -E \
   -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
   -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
@@ -23,23 +21,16 @@ find . -type d -name "obj" -exec rm -rf {} +
 find . -type d -name "bin" -exec rm -rf {} +
 sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
 
-# export CC=${CC}
-# export CFLAGS="${CFLAGS} -fPIC"
-
 # Prevent CMake build since we provide the binaries
-sed -i -E 's;^(\s*)(cmake|\./check_weak_implementations|cp\s+(\-u\s+)?\-v\s+tlib/\*\.so);\1true \|\| \2;' build.sh
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
 
 if [[ "${target_platform}" == linux-* ]] || [[ "${target_platform}" == osx-* ]]; then
-  _os_name=${target_platform%-*}
-  chmod +x build.sh tools/{building,packaging}/*.sh
-  ./build.sh --net --no-gui --force-net-framework-version ${framework_version}
+  chmod +x tools/{building,packaging}/*.sh
+  ${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh --net --no-gui --force-net-framework-version ${framework_version}
 else
-  _os_name=windows
-  chmod +x build.sh tools/{building,packaging}/*.sh
-  ./build.sh --net --no-gui --force-net-framework-version ${framework_version}
+  ${RECIPE_DIR}/helpers/renode_build_with_dotnet.ps1 --net --no-gui --force-net-framework-version ${framework_version}
 fi
 
 # Install procedure
