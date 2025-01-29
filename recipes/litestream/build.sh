@@ -2,8 +2,6 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-export CGO_ENABLED=1
-
 # build command from https://github.com/benbjohnson/litestream/blob/main/.github/workflows/release.linux.yml
 # updated tag name to use PKG_VERSION
 # removed -extldflags '-static' for non-static linking on macos
