@@ -6,7 +6,7 @@ $PassedArgs = $args.Where({$ValidArgs -contains $_})
 $cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
-$env:ROOT_PATH = $env:SRC_DIR
+$env:SRC_DIR = $env:SRC_DIR
 
 $CMAKE = (Get-Command cmake).Source
 
@@ -68,12 +68,9 @@ if ($HEADLESS) {
     $BUILD_TARGET = "Headless"
 }
 
-$OUT_BIN_DIR = Join-Path -Path "output\bin" -ChildPath $CONFIGURATION
-$BUILD_TYPE_FILE = Join-Path -Path $OUT_BIN_DIR -ChildPath "build_type"
+$CORES_PATH = Join-Path -Path $env:SRC_DIR -ChildPath "src\Infrastructure\src\Emulator\Cores"
 
-$CORES_PATH = Join-Path -Path $env:ROOT_PATH -ChildPath "src\Infrastructure\src\Emulator\Cores"
-
-Push-Location "$env:ROOT_PATH\tools\building"
+Push-Location "$env:SRC_DIR\tools\building"
     bash .\check_weak_implementations.sh
 Pop-Location
 
@@ -94,7 +91,8 @@ function Update-CMakeLists {
 }
 
 Update-CMakeLists "$CORES_PATH\tlib\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
-Update-CMakeLists "$CORES_PATH\tlib\softload-3\CMakeLists.txt" "-fPIC" ""
+# Not in this older 1.15.3 version (in master)
+# Update-CMakeLists "$CORES_PATH\tlib\softload-3\CMakeLists.txt" "-fPIC" ""
 Update-CMakeLists "$CORES_PATH\tlib\tcg\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
 
 foreach ($core_config in $CORES) {
