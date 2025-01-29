@@ -27,7 +27,6 @@ function print_help {
     Write-Host "<ARGS>                            arguments to pass to the build system"
 }
 
-$opts = Get-CommandLineArgs
 while ($opts.Count -gt 0) {
     $opt = $opts[0]
     switch -regex ($opt) {
