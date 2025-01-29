@@ -16,6 +16,7 @@ set "CORES_PATH=%SRC_DIR%\src\Infrastructure\src\Emulator\Cores"
 set "CORES_BIN_PATH=%CORES_PATH%\bin\%CONFIGURATION%"
 
 mkdir "%PREFIX%\Library\lib\%PKG_NAME%"
+icacls "%PREFIX%\Library\lib\%PKG_NAME%" /grant Users:(OI)(CI)F /T
 robocopy "%CORES_BIN_PATH%\lib" "%PREFIX%\Library\lib\%PKG_NAME%" /E /COPY:DATSO
 if %errorlevel% neq 0 exit /b  %errorlevel%
 

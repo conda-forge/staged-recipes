@@ -13,43 +13,47 @@ HOST_ARCH="i386"
 CMAKE_COMMON=""
 
 function print_help() {
-  echo "Usage: $0 [-cdvspnt] [-b properties-file.csproj] [--no-gui] [--skip-fetch] [--profile-build] [--tlib-only] [--tlib-export-compile-commands] [--tlib-arch <arch>] [--host-arch i386|aarch64] [-- <ARGS>]"
+  echo "Usage: $0 [--no-gui] [--net] [--tlib-only] [--host-arch i386|aarch64] [-- <ARGS>]"
   echo
   echo "--no-gui                          build with GUI disabled"
   echo "--net                             build with dotnet"
   echo "--tlib-only                       only build tlib"
+  echo "--host-arch <arch>                specify host architecture (i386 or aarch64)"
   echo "<ARGS>                            arguments to pass to the build system"
 }
 
-while getopts "vnstb:o:B:F:a:-:" opt
-do
-  case $opt in
-    -)
-      case $OPTARG in
-        "no-gui")
-          HEADLESS=true
-          ;;
-        "net")
-          NET=true
-          ;;
-        "host-arch")
-          shift $((OPTIND-1))
-          HOST_ARCH=$1
-          OPTIND=2
-          ;;
-        *)
-          print_help
-          exit 1
-          ;;
-      esac
+OPTIONS=$(getopt -o vhnt: -l "no-gui,net,tlib-only,host-arch:" -n "$0" -- "$@")
+eval set -- "$OPTIONS"
+
+while true; do
+  case $1 in
+    --no-gui)
+      HEADLESS=true
+      shift
       ;;
-    \?)
+    --net)
+      NET=true
+      shift
+      ;;
+    --tlib-only)
+      TLIB_ONLY=true
+      shift
+      ;;
+    --host-arch)
+      shift
+      HOST_ARCH=$1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
       print_help
       exit 1
       ;;
   esac
 done
-shift "$((OPTIND-1))"
 
 if [ -n "${PLATFORM:-}" ]
 then
