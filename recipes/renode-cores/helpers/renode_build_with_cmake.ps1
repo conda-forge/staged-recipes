@@ -1,16 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$opts, $remainingArgs = $global:args | ForEach-Object {
-    switch -regex ($_) {
-        "-v"|"--no-gui"|"--net"|"--tlib-only" {
-            $_
-        }
-        default {
-            Write-Host "Invalid argument: $_"
-            exit 1
-        }
-    }
-}
+$ValidArgs = @("-v", "--no-gui", "--net", "--tlib-only")
+$PassedArgs = $args.Where({$ValidArgs -contains $_})
 
 $cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 
