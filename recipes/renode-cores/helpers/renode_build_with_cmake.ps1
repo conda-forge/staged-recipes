@@ -1,63 +1,28 @@
 $ErrorActionPreference = "Stop"
 
-function Get-CommandLineArgs {
-    param (
-        [string[]]$args = $null
-    )
-    if ($args -eq $null) {
-        $args = $global:args
+$opts, $remainingArgs = $global:args | ForEach-Object {
+    switch -regex ($_) {
+        "-v"|"--no-gui"|"--net"|"--tlib-only" {
+            $_
+        }
+        default {
+            Write-Host "Invalid argument: $_"
+            exit 1
+        }
     }
-    return $args
 }
 
-function Get-CpuCount {
-    $cpuCount = (Get-WmiObject -Class Win32_Processor).NumberOfCores
-    return $cpuCount
-}
-
-function Remove-fPICFlag {
-    param (
-        [string]$filePath
-    )
-
-    if (-Not (Test-Path $filePath)) {
-        Write-Host "File not found: $filePath"
-        return
-    }
-
-    $fileContent = Get-Content -Path $filePath
-    $updatedContent = $fileContent -replace "-fPIC","-Wno-unused-function"
-    Set-Content -Path $filePath -Value $updatedContent
-
-    Write-Host "Removed '-fPIC' from $filePath"
-}
+$cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
 $env:ROOT_PATH = $env:SRC_DIR
 
 $CMAKE = (Get-Command cmake).Source
 
-$OUTPUT_DIRECTORY = "$env:ROOT_PATH/output"
-$EXPORT_DIRECTORY = ""
-
-$UPDATE_SUBMODULES = $false
 $CONFIGURATION = "Release"
-$BUILD_PLATFORM = "Any CPU"
-$CLEAN = $false
-$PACKAGES = $false
-$NIGHTLY = $false
-$PORTABLE = $false
 $HEADLESS = $false
-$SKIP_FETCH = $false
 $TLIB_ONLY = $false
-$TLIB_EXPORT_COMPILE_COMMANDS = $false
-$TLIB_ARCH = ""
 $NET = $false
-$TFM = "net8.0"
-$GENERATE_DOTNET_BUILD_TARGET = $true
-$CUSTOM_PROP = $null
-$NET_FRAMEWORK_VER = $null
-$RID = "linux-x64"
 $HOST_ARCH = "i386"
 $CMAKE_COMMON = ""
 
@@ -66,10 +31,7 @@ function print_help {
     Write-Host
     Write-Host "-v                                verbose output"
     Write-Host "--no-gui                          build with GUI disabled"
-    Write-Host "--force-net-framework-version     build against different version of .NET Framework than specified in the solution"
     Write-Host "--net                             build with dotnet"
-    Write-Host "-F                                select the target framework for which Renode should be built (default value: $TFM)"
-    Write-Host "--profile-build                   build optimized for profiling"
     Write-Host "--tlib-only                       only build tlib"
     Write-Host "<ARGS>                            arguments to pass to the build system"
 }
@@ -132,8 +94,19 @@ $CMAKE_GEN = "-GNinja"
 
 $CORES = @("arm.le", "arm.be", "arm64.le", "arm-m.le", "arm-m.be", "ppc.le", "ppc.be", "ppc64.le", "ppc64.be", "i386.le", "x86_64.le", "riscv.le", "riscv64.le", "sparc.le", "sparc.be", "xtensa.le")
 
-Remove-fPICFlag -filePath "$CORES_PATH\tlib\CMakeLists.txt"
-Remove-fPICFlag -filePath "$CORES_PATH\tlib\tcg\CMakeLists.txt"
+function Update-CMakeLists {
+    param (
+        [string]$filePath,
+        [string]$flagToRemove,
+        [string]$flagToAdd
+    )
+    (gc $filePath) -replace $flagToRemove,$flagToAdd | sc $filePath
+}
+
+Update-CMakeLists "$CORES_PATH\tlib\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
+Update-CMakeLists "$CORES_PATH\tlib\softload-3\CMakeLists.txt" "-fPIC" ""
+Update-CMakeLists "$CORES_PATH\tlib\tcg\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
+
 foreach ($core_config in $CORES) {
     Write-Host "Building $core_config"
 
@@ -154,9 +127,8 @@ foreach ($core_config in $CORES) {
             $CMAKE_CONF_FLAGS += @("-DTARGET_BIG_ENDIAN=1")
         }
 
-        # Remove-fPICFlag -filePath "CMakeLists.txt"
         & $CMAKE $CMAKE_GEN $CMAKE_COMMON @CMAKE_CONF_FLAGS -DHOST_ARCH="$HOST_ARCH" $CORES_PATH -DCMAKE_VERBOSE_MAKEFILE=ON
-        & $CMAKE --build . -j (Get-CpuCount)
+        & $CMAKE --build . -j $cpuCount
 
         $CORE_BIN_DIR = Join-Path -Path $CORES_BIN_PATH -ChildPath "lib"
         New-Item -ItemType Directory -Path $CORE_BIN_DIR -Force | Out-Null

@@ -11,9 +11,8 @@ powershell -ExecutionPolicy Bypass -File "%RECIPE_DIR%\helpers\renode_build_with
 if %errorlevel% neq 0 exit /b  %errorlevel%
 
 rem Install procedure into a conda path that renode-cli can retrieve
-set "ROOT_PATH=%~dp0.."
 set "CONFIGURATION=Release"
-set "CORES_PATH=%ROOT_PATH%src\Infrastructure\src\Emulator\Cores"
+set "CORES_PATH=%SRC_DIR%\src\Infrastructure\src\Emulator\Cores"
 set "CORES_BIN_PATH=%CORES_PATH%\bin\%CONFIGURATION%"
 
 mkdir "%PREFIX%\Library\lib\%PKG_NAME%"
