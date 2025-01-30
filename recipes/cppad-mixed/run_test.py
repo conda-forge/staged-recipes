@@ -17,23 +17,39 @@ import os
 import subprocess
 import platform
 #
-def main() :
-   #
-   # eigen-version
-   # The eigen include files are in the build environment, but not the
-   # test environment, so we make a separate copy of its source.
-   url  =  'https://gitlab.com/libeigen/eigen/-/archive'
-   url += f'/{eigen_version}/eigen-{eigen_version}.tar.gz'
-   command = [ 'curl', '-LJO', url ]
+# system_command
+def system_command(command) :
    print( " ".join( command ) )
-   result = subprocess.run(command, check = True)
-   command = [ 'tar' , '-xzf', f'eigen-{eigen_version}.tar.gz' ]
-   print( ' '.join(command) )
-   subprocess.run( command , check = True)
+   try :
+      result = subprocess.run(
+         command, 
+         check = False,
+         capture_output = True , 
+         encoding = 'utf-8', 
+         env = os.environ
+      )
+   #
+   except subprocess.CalledProcessErrror as e :
+      if e.stdout != None and e.stdout != "" :
+         print( e.stdout )
+      sys.exit( e.stderr )
+   #
+   if result.stdout != None and result.stdout != "" :
+      print( result.stdout )
+   if result.returncode != 0 :
+      sys.exit( result.stderr )
+   return result.stdout
+#
+# main
+def main() :
    #
    # prefix
    prefix  = os.environ['PREFIX']
    print( f'prefix = {prefix}' )
+   #
+   # path
+   path = os.environ['PATH']
+   print( f'path = {path}' )
    #
    # system
    system = platform.system()
@@ -42,6 +58,17 @@ def main() :
    if system != 'Linux' :
       print( f'run_test.py: Skiping {system} system' )
       return
+   #
+   # clang++
+   system_command( [ 'which', 'clang++'] )
+   #
+   # eigen-version
+   # The eigen include files are in the build environment, but not the
+   # test environment, so we make a separate copy of its source.
+   url  =  'https://gitlab.com/libeigen/eigen/-/archive'
+   url += f'/{eigen_version}/eigen-{eigen_version}.tar.gz'
+   system_command(  [ 'curl', '-LJO', url ] )
+   system_command( [ 'tar' , '-xzf', f'eigen-{eigen_version}.tar.gz' ] )
    #
    # example_file
    assert example_file[-4 :] == '.cpp'
@@ -80,21 +107,10 @@ int main(void)
       '-lcppad_mixed',
       '-o', 'main'
    ]
-   print( " ".join( command ) )
-   result = subprocess.run(
-      command, capture_output = True , encoding = 'utf-8', env = env
-   )
-   if result.stdout != None :
-      print( result.stdout )
-   if result.returncode != 0 :
-      print( result.stderr )
-      print( 'run_test.py: Error' )
-      return
+   system_command( command )
    #
    # main
-   command = [ './main' ]
-   print( " ".join( command ) )
-   subprocess.run(command, check = True )
+   system_command( [ './main' ] )
    #
    print( 'run_test.py: OK' )
 #
