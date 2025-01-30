@@ -4,10 +4,6 @@
 # This file must be in the test.sources of meta.yaml
 example_file = 'example/user/no_random.cpp'
 #
-# cxx_compiler
-# This compiler is requires for testing in meta.yaml
-cxx_compiler = 'clang++'
-#
 # eigen_version
 eigen_version = '3.4.0'
 #
@@ -47,9 +43,9 @@ def main() :
    prefix  = os.environ['PREFIX']
    print( f'prefix = {prefix}' )
    #
-   # path
-   path = os.environ['PATH']
-   print( f'path = {path}' )
+   # cxx_compiler
+   cxx_compiler = os.environ['CXX']
+   print( f'cxx_compiler = {cxx_compiler}' )
    #
    # system
    system = platform.system()
@@ -58,17 +54,6 @@ def main() :
    if system != 'Linux' :
       print( f'run_test.py: Skiping {system} system' )
       return
-   #
-   # clang++
-   system_command( [ 'which', 'clang++'] )
-   #
-   # eigen-version
-   # The eigen include files are in the build environment, but not the
-   # test environment, so we make a separate copy of its source.
-   url  =  'https://gitlab.com/libeigen/eigen/-/archive'
-   url += f'/{eigen_version}/eigen-{eigen_version}.tar.gz'
-   system_command(  [ 'curl', '-LJO', url ] )
-   system_command( [ 'tar' , '-xzf', f'eigen-{eigen_version}.tar.gz' ] )
    #
    # example_file
    assert example_file[-4 :] == '.cpp'
@@ -101,8 +86,8 @@ int main(void)
    env['LD_LIBRARY_PATH'] = f'{prefix}/lib'
    command = [ 
       cxx_compiler, 'main.cpp', example_file ,
-      '-I', f'eigen-{eigen_version}',
       '-I', f'{prefix}/include',
+      '-I', f'{prefix}/include/eigen3',
       '-L', f'{prefix}/lib',
       '-lcppad_mixed',
       '-o', 'main'
