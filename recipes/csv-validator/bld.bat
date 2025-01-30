@@ -10,6 +10,11 @@ SET "INSTALL_PATH=%LIBRARY_PREFIX%\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%"
 
 ECHO "Installing %PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM% to %INSTALL_PATH%"
 
+%CD%
+ECHO INSTALL_PATH is %INSTALL_PATH%
+ECHO PREFIX is %PREFIX%
+ECHO SRC_DIR is %SRC_DIR%
+
 REM Creating directories
 MKDIR "%INSTALL_PATH%\lib"
 MKDIR "%PREFIX%\bin"
@@ -88,5 +93,9 @@ CMD /C MKLINK %symlinkPath% %symlinkTarget%
 ECHO csv-validator-cmd installation complete!
 ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "SET csvValidatorMemory=<number in MB>" before using the csv-validator-cmd command.
 ECHO See running-csv-validator.txt in the package's installation path for more information.
+
+DIR %INSTALL_PATH%
+DIR %PREFIX%\bin
+%CD%
 
 ENDLOCAL
