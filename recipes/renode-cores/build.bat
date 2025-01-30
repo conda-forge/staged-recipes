@@ -19,4 +19,13 @@ mkdir "%PREFIX%\Library\lib\%PKG_NAME%"
 icacls "%PREFIX%\Library\lib\%PKG_NAME%" /grant Users:(OI)(CI)F /T
 robocopy "%CORES_BIN_PATH%\lib" "%PREFIX%\Library\lib\%PKG_NAME%" /E /COPY:DATSO
 
+:: Setting conda host environment variables
+if not exist "%PREFIX%\etc\conda\activate.d\" mkdir "%PREFIX%\etc\conda\activate.d\"
+if not exist "%PREFIX%\etc\conda\deactivate.d\" mkdir "%PREFIX%\etc\conda\deactivate.d\"
+
+copy "%RECIPE_DIR%\scripts\activate.bat" "%PREFIX%\etc\conda\activate.d\%PKG_NAME%-activate.bat" > nul
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+copy "%RECIPE_DIR%\scripts\deactivate.bat" "%PREFIX%\etc\conda\deactivate.d\%PKG_NAME%-deactivate.bat" > nul
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
 endlocal
