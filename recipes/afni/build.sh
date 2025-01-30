@@ -6,7 +6,6 @@ mkdir -p ${PREFIX}/{bin, lib, include}
 
 export C_INCLUDE_PATH="${PREFIX}/include"
 export CFLAGS="${CFLAGS} -I${PREFIX}/include"
-export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 export CEXE="$CC -I. $CFLAGS -L. $LDFLAGS"
 
 cd src
