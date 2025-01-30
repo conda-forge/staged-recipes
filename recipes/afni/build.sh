@@ -24,9 +24,9 @@ for binary in 1deval 1dmatcalc 1dplot 1dtranspose 24swap 2dImReg 2swap 3dANOVA 3
 done
 
 for header in coxplot.h niml.h; do
-    install -v -m 0755 ${header} ${PREFIX}/include
+    install -v -m 0644 ${header} ${PREFIX}/include
 done
 
 for library in libmri.so libf2c.so; do
-    install -v -m 0755 ${library} ${PREFIX}/lib
+    install -v -m 0644 ${library} ${PREFIX}/lib
 done
