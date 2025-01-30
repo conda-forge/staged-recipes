@@ -81,7 +81,15 @@ int main(void)
       '-o', 'main'
    ]
    print( " ".join( command ) )
-   subprocess.run(command, check = True , env = env)
+   result = subprocess.run(
+      command, capture_output = True , encoding = 'utf-8', env = env
+   )
+   if result.stdout != None :
+      print( result.stdout )
+   if result.returncode != 0 :
+      print( result.stderr )
+      print( 'run_test.py: Error' )
+      return
    #
    # main
    command = [ './main' ]
