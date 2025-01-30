@@ -82,8 +82,6 @@ int main(void)
       fobj.write(data)
    #
    # main 
-   env = os.environ
-   env['LD_LIBRARY_PATH'] = f'{prefix}/lib'
    command = [ 
       cxx_compiler, 'main.cpp', example_file ,
       '-I', f'{prefix}/include',
