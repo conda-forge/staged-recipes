@@ -25,6 +25,6 @@ cmake --install $SRC_DIR/build
 
 # Warning - HACK!
 mkdir -p $SRC_DIR/build/lib
-cp $PREFIX/lib/_ttnn.so $SRC_DIR/build/lib/
+ln -sf $PREFIX/lib/_ttnn.so $SRC_DIR/build/lib/_ttnn.so
 
 pip install --no-deps $SRC_DIR
