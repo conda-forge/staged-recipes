@@ -24,14 +24,10 @@ sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
 # Prevent CMake build since we provide the binaries
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
-rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
+# rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
 
-if [[ "${target_platform}" == linux-* ]] || [[ "${target_platform}" == osx-* ]]; then
-  chmod +x tools/{building,packaging}/*.sh
-  ${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh --net --no-gui --force-net-framework-version ${framework_version}
-else
-  ${RECIPE_DIR}/helpers/renode_build_with_dotnet.ps1 --net --no-gui --force-net-framework-version ${framework_version}
-fi
+chmod +x tools/{building,packaging}/*.sh
+${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh ${framework_version}
 
 # Install procedure
 mkdir -p $PREFIX/libexec/${PKG_NAME}
@@ -54,7 +50,7 @@ cp -r tools/sel4_extensions $PREFIX/opt/${PKG_NAME}/tools
 
 cp lib/resources/styles/robot.css $PREFIX/opt/${PKG_NAME}/tests
 
-tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses $_os_name
+tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses linux
 cp -r $PREFIX/opt/${PKG_NAME}/licenses license-files
 
 sed -i.bak "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.path.join(this_path,'robot.css')#g" $PREFIX/opt/${PKG_NAME}/tests/robot_tests_provider.py
@@ -76,7 +72,7 @@ cat > $PREFIX/bin/renode-test <<"EOF"
 #!/usr/bin/env bash
 
 STTY_CONFIG=`stty -g 2>/dev/null`
-python3 "${CONDA_PREFIX}"/opt/"${PKG_NAME}"/tests/run_tests.py --robot-framework-remote-server-full-directory "${CONDA_PREFIX}"/libexec/"${PKG_NAME}" "$@"
+python3 "${CONDA_PREFIX}"/opt/renode-cli/tests/run_tests.py --robot-framework-remote-server-full-directory "${CONDA_PREFIX}"/libexec/renode-cli "$@"
 RESULT_CODE=$?
 if [ -n "${STTY_CONFIG:-}" ]
 then
