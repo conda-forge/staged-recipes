@@ -8,6 +8,9 @@ example_file = 'example/user/no_random.cpp'
 # This compiler is requires for testing in meta.yaml
 cxx_compiler = 'clang++'
 #
+# eigen_version
+eigen_version = '3.4.0'
+#
 # imports
 import sys
 import os
@@ -16,16 +19,21 @@ import platform
 #
 def main() :
    #
-   # example_file
-   assert example_file[-4 :] == '.cpp'
+   # eigen-version
+   # The eigen include files are in the build environment, but not the
+   # test environment, so we make a separate copy of its source.
+   url  =  'https://gitlab.com/libeigen/eigen/-/archive'
+   url += f'/{eigen_version}/eigen-{eigen_version}.tar.gz'
+   command = [ 'curl', '-LJO', url ]
+   print( " ".join( command ) )
+   result = subprocess.run(command, check = True)
+   command = [ 'tar' , '-xzf', f'eigen-{eigen_version}.tar.gz' ]
+   print( ' '.join(command) )
+   subprocess.run( command , check = True)
    #
    # prefix
    prefix  = os.environ['PREFIX']
-   print( f'prefix = {prefix}' , flush = True )
-   #
-   # env
-   env = os.environ
-   env['LD_LIBRARY_PATH'] = f'{prefix}/lib'
+   print( f'prefix = {prefix}' )
    #
    # system
    system = platform.system()
@@ -35,17 +43,12 @@ def main() :
       print( f'run_test.py: Skiping {system} system' )
       return
    #
+   # example_file
+   assert example_file[-4 :] == '.cpp'
+   #
    # example_function
    start            = example_file.rfind('/') + 1
    example_function = example_file[start : -4] + '_xam'
-   #
-   # eigen_cflags
-   command = [ 'pkg-config', 'eigen3', '--cflags' ]
-   print( " ".join( command ) , flush = True )
-   result = subprocess.run(command, 
-      check = True , capture_output = True, encoding = 'utf-8'
-   )
-   eigen_cflags = result.stdout.strip().split()
    #
    # main.cpp
    data = '''
@@ -67,20 +70,22 @@ int main(void)
       fobj.write(data)
    #
    # main 
-   command = [ cxx_compiler, 'main.cpp', example_file ]
-   command += eigen_cflags
-   command += [
+   env = os.environ
+   env['LD_LIBRARY_PATH'] = f'{prefix}/lib'
+   command = [ 
+      cxx_compiler, 'main.cpp', example_file ,
+      '-I', f'eigen-{eigen_version}',
       '-I', f'{prefix}/include',
       '-L', f'{prefix}/lib',
       '-lcppad_mixed',
       '-o', 'main'
    ]
-   print( " ".join( command ) , flush = True )
+   print( " ".join( command ) )
    subprocess.run(command, check = True , env = env)
    #
    # main
    command = [ './main' ]
-   print( " ".join( command ), flush = True )
+   print( " ".join( command ) )
    subprocess.run(command, check = True )
    #
    print( 'run_test.py: OK' )
