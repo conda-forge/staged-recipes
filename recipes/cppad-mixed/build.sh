@@ -1,4 +1,6 @@
-#! /bin/sh
+#! /usr/bin/env bash
+set -e -u
+echo "build.sh: Start"
 #
 # PKG_CONFIG_PATH
 PKG_CONFIG_PATH="$BUILD_PREFIX/lib/pkgconfig"
@@ -20,8 +22,6 @@ mkdir build && cd build
 # cmake
 cmake -S $SRC_DIR -B . \
    -G 'Unix Makefiles' \
-   -D CMAKE_CROSSCOMPILING=$CONDA_BUILD_CROSS_COMPILATION \
-   -D CMAKE_CROSSCOMPILING_EMULATOR=$CONDA_BUILD_CROSS_COMPILATION \
    -D CMAKE_BUILD_TYPE=Release \
    -D cmake_install_prefix="$PREFIX" \
    -D cmake_search_prefix="$BUILD_PREFIX" \
@@ -35,6 +35,6 @@ cmake -S $SRC_DIR -B . \
 make -j4 check
 #
 # install
-make install
+make -j4 install
 #
-echo 'build.sh: OK'
+echo 'build.sh: Done: OK'
