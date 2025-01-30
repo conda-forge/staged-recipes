@@ -11,7 +11,7 @@ export CEXE="$CC -I. $CFLAGS -L. $LDFLAGS"
 cd src
 make -f other_builds/Makefile.linux_universal
 
-for binary in 1deval 1dmatcalc  1dplot 1dtranspose 24swap 2dImReg 2swap 3dANOVA 3dANOVA2 \
+for binary in 1deval 1dmatcalc 1dplot 1dtranspose 24swap 2dImReg 2swap 3dANOVA 3dANOVA2 \
     3dANOVA3 3dDeconvolve 3dFriedman 3dIntracranial 3dKruskalWallis 3dMannWhitney 3dNLfim \
     3dNotes 3dROIstats 3dRegAna 3dStatClust 3dTSgen 3dTcat 3dTsmooth 3dTstat 3dWilcoxon \
     3daxialize 3dbucket 3dcalc 3dclust 3dfractionize 3dhistog 3dinfo 3dmaskave 3dmaskdump \
@@ -27,6 +27,6 @@ for header in coxplot.h niml.h; do
     install -v -m 0755 ${header} ${PREFIX}/include
 done
 
-for library in libmri.so libf2c.so do
+for library in libmri.so libf2c.so; do
     install -v -m 0755 ${library} ${PREFIX}/lib
 done
