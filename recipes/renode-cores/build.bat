@@ -3,11 +3,26 @@
 setlocal EnableDelayedExpansion
 
 rem Update the submodule to the latest commit CMakeLists.txt
-set "CMAKEFILES_TXT=src\Emulator\Cores\CMakeLists.txt"
-copy "cmake-renode-infrastructure\${CMAKEFILES_TXT}" "${SRC_DIR}\src\Infrastructure\${CMAKEFILES_TXT}"
-copy "cmake-tlib\CMakeLists.txt" "${SRC_DIR}\src\Infrastructure\src\Emulator\Cores\tlib"
-copy "cmake-tlib\tcg\CMakeLists.txt" "${SRC_DIR}\src\Infrastructure\src\Emulator\Cores\tlib\tcg"
-if %errorlevel% neq 0 exit /b  %errorlevel%
+mkdir %SRC_DIR%\updates
+pushd %SRC_DIR%\updates
+    git clone "https://github.com/renode/renode-infrastructure.git"
+    pushd renode-infrastructure
+        git checkout 3fc2d5fe643068e595e875d9408cb4329522b229
+        set "CMAKEFILES_TXT=src\Emulator\Cores\CMakeLists.txt"
+        copy %CMAKEFILES_TXT% "%SRC_DIR%\src\Infrastructure\%CMAKEFILES_TXT%"
+    popd
+
+    git clone "https://github.com/antmicro/tlib.git"
+    pushd tlib
+        git checkout 69fff75a0eba7471283b0b8db2e55e8388e284f6
+        copy "CMakeLists.txt" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\tlib"
+        copy "tcg\CMakeLists.txt" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\tlib\tcg"
+        copy LICENSE %RECIPE_DIR%\tlib-LICENSE
+    popd
+    if %errorlevel% neq 0 exit /b  %errorlevel%
+popd
+
+copy "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\tlib\softfloat-3\COPYING.txt" "%RECIPE_DIR%\softfloat-3-COPYING.txt"
 
 powershell -ExecutionPolicy Bypass -File "%RECIPE_DIR%\helpers\renode_build_with_cmake.ps1"
 if %errorlevel% neq 0 exit /b  %errorlevel%

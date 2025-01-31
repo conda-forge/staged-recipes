@@ -33,10 +33,8 @@ function Update-CMakeLists {
     (gc $filePath) -replace $flagToRemove,$flagToAdd | sc $filePath
 }
 
-Update-CMakeLists "$CORES_PATH\tlib\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
-# Not in this older 1.15.3 version (in master)
-# Update-CMakeLists "$CORES_PATH\tlib\softload-3\CMakeLists.txt" "-fPIC" ""
-Update-CMakeLists "$CORES_PATH\tlib\tcg\CMakeLists.txt" "-fPIC" "-Wno-unused-function"
+Update-CMakeLists "$CORES_PATH\tlib\CMakeLists.txt" "-fPIC" "-Wno-unused-function -Wno-maybe-uninitialized"
+Update-CMakeLists "$CORES_PATH\tlib\tcg\CMakeLists.txt" "-fPIC" "-Wno-unused-function -Wno-maybe-uninitialized"
 
 foreach ($core_config in $CORES) {
     Write-Host "Building $core_config"

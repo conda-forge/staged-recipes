@@ -3,20 +3,18 @@ setlocal enabledelayedexpansion
 
 set "install_prefix=%PREFIX%\opt\%PKG_NAME%"
 
-for /f "tokens=*" %%i in ('dotnet --version') do set "dotnet_version=%%i"
-set "framework_version=%dotnet_version:~0,-2%"
+:: for /f "tokens=*" %%i in ('dotnet --version') do set "dotnet_version=%%i"
+:: set "framework_version=%dotnet_version:~0,-2%"
+set "framework_version=8.0"
 
 rem Patch the project files to use the correct .NET version
-for /r %%i in (lib src tests) do (
-    for /r %%j in (*.csproj) do (
-        sed -i -E "s/([>;])net6.0([<;])/\1net%framework_version%\2/" "%%j"
-        sed -i -E "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" "%%j"
-        sed -i -E 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' "%%j"
-    )
-)
-for /d %%i in (obj bin) do (
-    rd /s /q "%%i"
-)
+find lib src tests -name "*.csproj" -exec sed -i -E \
+  -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
+  -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
+  -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' \
+  {} \;
+find . -type d -name "obj" -exec rm -rf {} +
+find . -type d -name "bin" -exec rm -rf {} +
 sed -i -E "s/(ReleaseHeadless\|Any .+ = )Debug/\1Release/" Renode_NET.sln
 
 rem Prevent CMake build since we provide the binaries

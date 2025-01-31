@@ -8,6 +8,9 @@ cp "cmake-renode-infrastructure/${CMAKEFILES_TXT}" "${SRC_DIR}/src/Infrastructur
 cp cmake-tlib/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib"
 cp cmake-tlib/tcg/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
 
+cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
+cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
+
 chmod +x build.sh tools/building/check_weak_implementations.sh
 ${RECIPE_DIR}/helpers/renode_build_with_cmake.sh
 
