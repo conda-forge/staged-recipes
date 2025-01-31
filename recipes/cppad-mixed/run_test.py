@@ -4,9 +4,6 @@
 # This file must be in the test.sources of meta.yaml
 example_file = 'example/user/no_random.cpp'
 #
-# eigen_version
-eigen_version = '3.4.0'
-#
 # imports
 import sys
 import os
@@ -51,7 +48,7 @@ def main() :
    system = platform.system()
    assert system in [ 'Linux', 'Darwin', 'Windows' ]
    #
-   if system != 'Linux' :
+   if system == 'Windows' :
       print( f'run_test.py: Skiping {system} system' )
       return
    #
@@ -84,9 +81,11 @@ int main(void)
    # main 
    command = [ 
       cxx_compiler, 'main.cpp', example_file ,
+      '-D', 'NDEBUG',
       '-I', f'{prefix}/include',
       '-I', f'{prefix}/include/eigen3',
       '-L', f'{prefix}/lib',
+      f'-Wl,-rpath,{prefix}/lib',
       '-lcppad_mixed',
       '-o', 'main'
    ]

@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 37a99042..25675cca 100644
+index 37a99042..89893e99 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -12,13 +12,21 @@
@@ -36,7 +36,7 @@ index 37a99042..25675cca 100644
  ENDMACRO( required_definition )
  # ----------------------------------------------------------------------------
  # optional_definition( variable type docstring )
-@@ -75,11 +87,15 @@ MACRO( optional_definition variable type docstring )
+@@ -75,6 +87,10 @@ MACRO( optional_definition variable type docstring )
           SET( ${variable}_01 0 )
        ENDIF( ${variable} )
     ENDIF( ${type} STREQUAL "BOOL" )
@@ -47,13 +47,7 @@ index 37a99042..25675cca 100644
  ENDMACRO( optional_definition )
  # ============================================================================
  CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
- PROJECT(cppad_mixed)
--SET(cppad_mixed_version "2025.0.1")
-+SET(cppad_mixed_version "2025.1.28")
- INCLUDE_DIRECTORIES( ${cppad_mixed_SOURCE_DIR}/include )
- INCLUDE(CheckCXXSourceRuns)
- MESSAGE(STATUS "BEGIN:")
-@@ -127,6 +143,9 @@ required_definition(optimize_cppad_function BOOL
+@@ -127,33 +143,43 @@ required_definition(optimize_cppad_function BOOL
  required_definition(for_hes_sparsity BOOL
     "use forward (reverse) method for computing Hessian w.r.t. random effects"
  )
@@ -63,7 +57,49 @@ index 37a99042..25675cca 100644
  # ----------------------------------------------------------------------------
  MESSAGE(STATUS "END:")
  # ----------------------------------------------------------------------------
-@@ -198,13 +217,9 @@ ENDIF( cppad_mixed_has_nullptr_flag )
+ # https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+ #
++# CMAKE_SKIP_BUILD_RPATH
+ # use, i.e. don't skip the full RPATH for the build tree
+-set(CMAKE_SKIP_BUILD_RPATH FALSE)
++SET(CMAKE_SKIP_BUILD_RPATH FALSE)
+ #
++# CMAKE_BUILD_WITH_INSTALL_RPATH
+ # when building, don't use the install RPATH already
+ # (but later on when installing)
+-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+-#
+-set(CMAKE_INSTALL_RPATH "${cmake_install_prefix}/${cmake_libdir}")
++SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+ #
++# CMAKE_INSTAL_RPATH_USE_LINK_PATH
+ # add the automatically determined parts of the RPATH
+ # which point to directories outside the build tree to the install RPATH
+-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
++SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+ #
+-# the RPATH to be used when installing, but only if it's not a system directory
+-list(FIND
++# isSyatemDir
++# is this RPATH choice a system directory
++LIST(FIND
+    CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
+    "${cmake_install_prefix}/${cmake_libdir}"
+    isSystemDir
+ )
++#
++# CMAKE_INSTALL_RPATH
++# the RPATH to be used when installing, but only if it's not a system directory
++SET(CMAKE_INSTALL_RPATH "")
+ if("${isSystemDir}" STREQUAL "-1")
+-   set(CMAKE_INSTALL_RPATH "${dismod_at_pefix}/${cmake_libdir}")
++   SET(CMAKE_INSTALL_RPATH "${cmake_install_prefix}/${cmake_libdir}")
+ endif("${isSystemDir}" STREQUAL "-1")
++print_variable( CMAKE_INSTALL_RPATH )
+ # ----------------------------------------------------------------------------
+ # check compiler flags
+ #
+@@ -198,13 +224,9 @@ ENDIF( cppad_mixed_has_nullptr_flag )
  MESSAGE(STATUS "cppad_mixed_has_nullptr = ${cppad_mixed_has_nullptr_01}")
  # ----------------------------------------------------------------------------
  # no pkg-config for SuiteSparse so explicitly set following values:
@@ -77,7 +113,7 @@ index 37a99042..25675cca 100644
  SET(suitesparse_prefix "NOTFOUND")
  SET(suitesparse_suffix "NOTFOUND")
  EXECUTE_PROCESS(
-@@ -212,7 +227,7 @@ EXECUTE_PROCESS(
+@@ -212,7 +234,7 @@ EXECUTE_PROCESS(
     OUTPUT_VARIABLE brew_prefix
     OUTPUT_STRIP_TRAILING_WHITESPACE
  )
@@ -86,7 +122,7 @@ index 37a99042..25675cca 100644
     FOREACH(suffix "include" "include/suitesparse")
        IF( EXISTS "${brew_prefix}/${suffix}/cholmod.h" )
           MESSAGE(STATUS "Using ${brew_prefix}/${suffix}/cholmod.h" )
-@@ -220,13 +235,17 @@ IF( NOT "${brew_prefix}" STREQUAL "" )
+@@ -220,13 +242,17 @@ IF( NOT "${brew_prefix}" STREQUAL "" )
           SET(suitesparse_suffix "${suffix}")
        ENDIF( EXISTS "${brew_prefix}/${suffix}/cholmod.h" )
     ENDFOREACH(suffix "include" "include/suitesparse")
@@ -105,7 +141,7 @@ index 37a99042..25675cca 100644
  )
     FOREACH(suffix "include" "include/suitesparse")
        IF( EXISTS "${prefix}/${suffix}/cholmod.h" )
-@@ -263,7 +282,7 @@ ELSE( ${suitesparse_suffix} STREQUAL "include" )
+@@ -263,7 +289,7 @@ ELSE( ${suitesparse_suffix} STREQUAL "include" )
     SET(suitesparse_INCLUDE_DIRS  "${suitesparse_prefix}/include/suitesparse" )
  ENDIF( ${suitesparse_suffix} STREQUAL "include" )
  #
@@ -114,7 +150,7 @@ index 37a99042..25675cca 100644
  SET(suitesparse_LIBRARIES
     "cholmod;amd;camd;colamd;ccolamd;suitesparseconfig"
  )
-@@ -271,22 +290,18 @@ SET(suitesparse_LIBRARIES
+@@ -271,22 +297,18 @@ SET(suitesparse_LIBRARIES
  # suitesparse_LIBRARY_DIRS
  SET(suitesparse_LIBRARY_DIRS "NOTFOUND")
  FOREACH(suffix "lib" "lib64" "${cmake_libdir}" )
