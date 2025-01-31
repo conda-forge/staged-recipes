@@ -2,12 +2,14 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Update the submodule to the latest commit CMakeLists.txt
-cp ${RECIPE_DIR}/patches/Cores-CMakeLists.txt ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt
-cp ${RECIPE_DIR}/patches/tlib-CMakeLists.txt ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/CMakeLists.txt
+# Update the submodule CMakeLists.txt with a recent version (post-CMake conversion)
+CMAKEFILES_TXT="src/Emulator/Cores/CMakeLists.txt"
+cp "cmake-renode-infrastructure/${CMAKEFILES_TXT}" "${SRC_DIR}/src/Infrastructure/${CMAKEFILES_TXT}"
+cp cmake-tlib/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib"
+cp cmake-tlib/tcg/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
 
 chmod +x build.sh tools/building/check_weak_implementations.sh
-${RECIPE_DIR}/helpers/renode_build_with_cmake.sh --tlib-only --net --no-gui
+${RECIPE_DIR}/helpers/renode_build_with_cmake.sh
 
 # Install procedure into a conda path that renode-cli can retrieve
 CONFIGURATION="Release"

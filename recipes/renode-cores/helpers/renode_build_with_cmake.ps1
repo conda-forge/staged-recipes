@@ -1,8 +1,5 @@
 $ErrorActionPreference = "Stop"
 
-$ValidArgs = @("-v", "--no-gui", "--net", "--tlib-only")
-$PassedArgs = $args.Where({$ValidArgs -contains $_})
-
 $cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
@@ -11,62 +8,8 @@ $env:SRC_DIR = $env:SRC_DIR
 $CMAKE = (Get-Command cmake).Source
 
 $CONFIGURATION = "Release"
-$HEADLESS = $false
-$TLIB_ONLY = $false
-$NET = $false
 $HOST_ARCH = "i386"
 $CMAKE_COMMON = ""
-
-function print_help {
-    Write-Host "Usage: $0 [-cdvspnt] [-b properties-file.csproj] [--no-gui] [--skip-fetch] [--profile-build] [--tlib-only] [--tlib-export-compile-commands] [--tlib-arch <arch>] [--host-arch i386|aarch64] [-- <ARGS>]"
-    Write-Host
-    Write-Host "-v                                verbose output"
-    Write-Host "--no-gui                          build with GUI disabled"
-    Write-Host "--net                             build with dotnet"
-    Write-Host "--tlib-only                       only build tlib"
-    Write-Host "<ARGS>                            arguments to pass to the build system"
-}
-
-while ($opts.Count -gt 0) {
-    $opt = $opts[0]
-    switch -regex ($opt) {
-        "-v" {
-            $opts = $opts[1..$($opts.Count - 1)]
-        }
-        "--no-gui" {
-            $HEADLESS = $true
-            $opts = $opts[1..$($opts.Count - 1)]
-        }
-        "--net" {
-            $NET = $true
-            $opts = $opts[1..$($opts.Count - 1)]
-        }
-        "--tlib-only" {
-            $TLIB_ONLY = $true
-            $opts = $opts[1..$($opts.Count - 1)]
-        }
-        default {
-            print_help
-            exit 1
-        }
-    }
-}
-
-if ($env:PLATFORM) {
-    Write-Host "PLATFORM environment variable is currently set to: >>$env:PLATFORM<<"
-    Write-Host "This might cause problems during the build."
-    Write-Host "Please clear it with:"
-    Write-Host
-    Write-Host "    unset PLATFORM"
-    Write-Host
-    Write-Host " and run the build script again."
-    exit 1
-}
-
-if ($HEADLESS) {
-    Write-Host "Headless build"
-    $BUILD_TARGET = "Headless"
-}
 
 $CORES_PATH = Join-Path -Path $env:SRC_DIR -ChildPath "src\Infrastructure\src\Emulator\Cores"
 

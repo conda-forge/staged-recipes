@@ -3,11 +3,13 @@
 setlocal EnableDelayedExpansion
 
 rem Update the submodule to the latest commit CMakeLists.txt
-copy "%RECIPE_DIR%\patches\Cores-CMakeLists.txt" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\CMakeLists.txt"
-copy "%RECIPE_DIR%\patches\tlib-CMakeLists.txt" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\tlib\CMakeLists.txt"
+set "CMAKEFILES_TXT=src\Emulator\Cores\CMakeLists.txt"
+copy "cmake-renode-infrastructure\${CMAKEFILES_TXT}" "${SRC_DIR}\src\Infrastructure\${CMAKEFILES_TXT}"
+copy "cmake-tlib\CMakeLists.txt" "${SRC_DIR}\src\Infrastructure\src\Emulator\Cores\tlib"
+copy "cmake-tlib\tcg\CMakeLists.txt" "${SRC_DIR}\src\Infrastructure\src\Emulator\Cores\tlib\tcg"
 if %errorlevel% neq 0 exit /b  %errorlevel%
 
-powershell -ExecutionPolicy Bypass -File "%RECIPE_DIR%\helpers\renode_build_with_cmake.ps1" --tlib-only --net --no-gui
+powershell -ExecutionPolicy Bypass -File "%RECIPE_DIR%\helpers\renode_build_with_cmake.ps1"
 if %errorlevel% neq 0 exit /b  %errorlevel%
 
 rem Install procedure into a conda path that renode-cli can retrieve

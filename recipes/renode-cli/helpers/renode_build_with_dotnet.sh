@@ -12,9 +12,6 @@ BUILD_PLATFORM="Any CPU"
 HEADLESS=true
 NET=true
 TFM="net${framework_version}"
-GENERATE_DOTNET_BUILD_TARGET=true
-NET_FRAMEWORK_VER=
-RID="linux-x64"
 HOST_ARCH="i386"
 # Common cmake flags
 CMAKE_COMMON=""
@@ -61,7 +58,8 @@ if [[ "${target_platform}" == "osx-"* ]]; then
 elif [[ "${target_platform}" == "linux-"* ]] || [[ "${target_platform}" == "noarch" ]]; then
   PROP_FILE="${CURRENT_PATH:=.}/src/Infrastructure/src/Emulator/Cores/linux-properties.csproj"
 else
-  PROP_FILE="${CURRENT_PATH:=.}/src/Infrastructure/src/Emulator/Cores/windows-properties.csproj"
+  echo "Unsupported platform: ${target_platform}"
+  exit 1
 fi
 cp "$PROP_FILE" "$OUTPUT_DIRECTORY/properties.csproj"
 
@@ -73,11 +71,7 @@ PARAMS+=(p:Configuration=${CONFIGURATION}${BUILD_TARGET} p:GenerateFullPaths=tru
 function build_args_helper() {
     local retStr=""
     for p in "$@" ; do
-        if [ "$CS_COMPILER" = 'xbuild' ] ; then
-            retStr="${retStr} /$p"
-        else
-            retStr="${retStr} -$p"
-        fi
+        retStr="${retStr} -$p"
     done
     echo ${retStr}
 }

@@ -28,9 +28,6 @@ cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator
 # Remove the C cores that are not built in this recipe
 rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
 
-# Add dynamic libraries framewkr
-cp ${RECIPE_DIR}/helpers/DynamicLibraryLoader.{cs,csproj} ${SRC_DIR}/src/Renode
-
 chmod +x tools/{building,packaging}/*.sh
 ${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh ${framework_version}
 
