@@ -1,0 +1,67 @@
+--- a/src/Plugins/VerilatorPlugin/Connection/SocketVerilatorConnection.cs
++++ b/src/Plugins/VerilatorPlugin/Connection/SocketVerilatorConnection.cs
+@@ -7,4 +7,6 @@
+ using System;
++using System.IO;
+ using System.Net;
+ using System.Net.Sockets;
++using System.Security.AccessControl;
+ using System.Text;
+@@ -19,2 +21,3 @@
+ using Antmicro.Renode.Peripherals;
++using Antmicro.Renode.Peripherals.Bus;
+ using Antmicro.Renode.Peripherals.CPU;
+@@ -212,3 +215,7 @@
+ #if !PLATFORM_WINDOWS
+-                Mono.Unix.Native.Syscall.chmod(value, FilePermissions.S_IRWXU); //setting permissions to 0x700
++                // Use built-in .NET methods for file permissions
++                var fileInfo = new FileInfo(value);
++                var fileSecurity = fileInfo.GetAccessControl();
++                fileSecurity.AddAccessRule(new FileSystemAccessRule(Environment.UserName, FileSystemRights.FullControl, AccessControlType.Allow));
++                fileInfo.SetAccessControl(fileSecurity);
+ #endif
+--- a/src/Renode/Backends/Terminals/UartPtyTerminal.cs 2024-09-17 03:09:19.000000000 -0500
++++ b/src/Renode/Backends/Terminals/UartPtyTerminal.cs       2025-01-25 21:32:28.901091634 -0600
+@@ -10,2 +10,3 @@
+ using System;
++using System.IO;
+ using Antmicro.Renode.Peripherals.UART;
+@@ -14,4 +15,2 @@
+ using Antmicro.Migrant;
+-using Mono.Unix;
+-using System.IO;
+ #endif
+@@ -49,3 +48,3 @@
+             {
+-                symlink.Delete();
++                File.Delete(linkName);
+             }
+@@ -53,3 +52,3 @@
+             {
+-                throw new RecoverableException(string.Format("There was an error when removing symlink `{0}': {1}", symlink.FullName, e.Message));
++                throw new RecoverableException(string.Format("There was an error when removing symlink `{0}': {1}", symlink, e.Message));
+             }
+@@ -105,4 +104,4 @@
+             {
+-                var slavePtyFile = new UnixFileInfo(ptyStream.SlaveName);
+-                symlink = slavePtyFile.CreateSymbolicLink(linkName);
++                symlink = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
++                File.CreateSymbolicLink(symlink, ptyStream.SlaveName);
+             }
+@@ -114,4 +113,2 @@
+ 
+-        private UnixSymbolicLinkInfo symlink;
+-
+         private readonly bool forceCreate;
+@@ -122,2 +119,4 @@
+         private IOProvider io;
++        [Transient]
++        private string symlink;
+     }
+--- a/src/Renode/Program.cs	2024-09-17 03:09:19.000000000 -0500
++++ b/src/Renode/Program.cs	2025-01-26 11:07:01.717709447 -0600
+@@ -98,3 +98,3 @@
+             ConfigurationManager.Instance.Get("general", "terminal", "Termsharp");
+-            ConsoleBackend.Instance.ReportRepeatingLines = !ConfigurationManager.Instance.Get("general", "collapse-repeated-log-entries", true);
++            // Logger.LogEntriesLimit = ConfigurationManager.Instance.Get("general", "log-entries-limit", 10000);
+         }
