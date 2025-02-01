@@ -1,3 +1,7 @@
+:: echo
+echo off
+
+:: build
 mkdir build
 cd build
 
