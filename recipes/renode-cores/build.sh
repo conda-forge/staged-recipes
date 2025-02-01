@@ -8,6 +8,13 @@ cp "cmake-renode-infrastructure/${CMAKEFILES_TXT}" "${SRC_DIR}/src/Infrastructur
 cp cmake-tlib/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib"
 cp cmake-tlib/tcg/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
 
+if [[ "${target_platform}" == "osx-arm64" ]]; then
+  # We use Clang on osx-arm64, which does not support -Wno-error=clobbered/-Wno-error=clobbered
+  sed -i -E 's/add_definitions(-Wno-error=clobbered)/string(REPLACE "-Wno-error=clobbered" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")/' "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/CMakeLists.txt"
+  # Oddly, it does not find additional.h, trying to add the include path
+  sed -i -E 's|    \$\{CMAKE_SOURCE_DIR\}|    \$\{CMAKE_SOURCE_DIR\} \$\{CMAKE_SOURCE_DIR\}/\.\.|' "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg/CMakeLists.txt"
+fi
+
 cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
 cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
 
