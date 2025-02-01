@@ -8,13 +8,17 @@ set "install_prefix=%PREFIX%\opt\%PKG_NAME%"
 set "framework_version=8.0"
 
 rem Patch the project files to use the correct .NET version
-find lib src tests -name "*.csproj" -exec sed -i -E \
-  -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
-  -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
-  -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' \
-  {} \;
-find . -type d -name "obj" -exec rm -rf {} +
-find . -type d -name "bin" -exec rm -rf {} +
+:: for /f "delims=" %%i in ('find lib src tests -name "*.csproj"') do (
+::     sed -i -E "s/([>;])net6.0([<;])/\1net${framework_version}\2/" "%%i"
+::     sed -i -E "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" "%%i"
+:: )
+:: %BUILD_PREFIX%\Library\usr\bin\find.exe lib src tests -name "*.csproj" -exec sed -i -E ^
+::   -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" ^
+::   -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" ^
+::   -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' ^
+::   {} \;
+:: %BUILD_PREFIX%\Library\usr\bin\find.exe . -type d -name "obj" -exec rm -rf {} \;
+:: %BUILD_PREFIX%\Library\usr\bin\find.exe . -type d -name "bin" -exec rm -rf {} \;
 sed -i -E "s/(ReleaseHeadless\|Any .+ = )Debug/\1Release/" Renode_NET.sln
 
 rem Prevent CMake build since we provide the binaries
