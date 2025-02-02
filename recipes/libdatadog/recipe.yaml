@@ -14,21 +14,35 @@ build:
   number: 0
   script:
     - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
-    - LIBDD_OUTPUT_FOLDER=${PREFIX} cargo build -p builder --features profiling,telemetry,data-pipeline,crashtracker,symbolizer,library-config
-    - cargo run --bin release --features profiling,telemetry,data-pipeline,symbolizer,crashtracker,library-config --release -- --out ${PREFIX}
+    - LIBDD_OUTPUT_FOLDER=${PREFIX} cargo run --bin release --features telemetry,profiling,data-pipeline,library-config --release -- --out ${PREFIX}
+
     - if: unix
       then:
-        - rm ${PREFIX}/lib/libdatadog_profiling.a # no static lib
+        # no static lib
+        - rm ${PREFIX}/lib/pkgconfig/datadog_profiling-static.pc
+        - rm ${PREFIX}/lib/libdatadog_profiling.a
+        # datadog's bespoke build system makes a tarball of the output too
+        - rm ${PREFIX}/libdatadog_v${{ version }}.tar
+        - mkdir -p $PREFIX/lib/cmake/Datadog
+        - mv $PREFIX/cmake/* $PREFIX/lib/cmake/Datadog
 
 requirements:
   build:
     - ${{ stdlib("c") }}
     - ${{ compiler('rust') }}
+    - cmake
     - cargo-bundle-licenses
 
 tests:
   - script:
-    - libdatadog-crashtracking-receiver --help
+    - cmake -S examples/ffi/ -B build
+
+    requirements:
+      run:
+        - cmake
+    files:
+      source:
+        - examples/ffi/
 
 about:
   homepage: https://github.com/DataDog/libdatadog
