@@ -6,7 +6,10 @@ mkdir build
 cd build
 
 :: PKG_CONFIG_PATH
-echo PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
+set PKG_CONFIG_PATH=^
+%BUILD_PREIX%\Library\lib\pkgconfig;^
+%BUILD_PREIX%\Library\share\pkgconfig;
+ehco PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
 
 :: cmake
 cmake -S %SRC_DIR% -B . ^
