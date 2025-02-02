@@ -2,6 +2,8 @@
 
 set -exuo pipefail
 
+export HERMETIC_PYTHON_VERSION=${python}
+
 WHEEL_DIR=${PWD}/wheel_dir
 mkdir -p ${WHEEL_DIR}
 bazel build ./oss_scripts/pip_package:build_pip_package
