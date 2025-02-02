@@ -2,7 +2,7 @@
 
 set -exuo pipefail
 
-export HERMETIC_PYTHON_VERSION=${python}
+export HERMETIC_PYTHON_VERSION=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 
 WHEEL_DIR=${PWD}/wheel_dir
 mkdir -p ${WHEEL_DIR}
