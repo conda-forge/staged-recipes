@@ -1,0 +1,43 @@
+context:
+  name: libdatadog
+  version: 15.0.0
+
+package:
+  name: ${{ name | lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DataDog/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 988f3674ba37ce7f2277e59f08b2ff870383e98b8d1e64eb06c5c977a81057e3
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+    - LIBDD_OUTPUT_FOLDER=${PREFIX} cargo build -p builder --features profiling,telemetry,data-pipeline,crashtracker,symbolizer,library-config
+    - cargo run --bin release --features profiling,telemetry,data-pipeline,symbolizer,crashtracker,library-config --release -- --out ${PREFIX}
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+
+test:
+  script:
+    - libdatadog-crashtracking-receiver --help
+
+about:
+  homepage: https://github.com/DataDog/libdatadog
+  license: Apache-2.0
+  license_file: 
+    - LICENSE
+    - LICENSE-3rdparty.yml
+    - THIRDPARTY.yml
+  summary: Datadog shared rust-based library.
+  description: |
+    libdatadog provides a shared library containing common code used in the implementation of Datadog's libraries.
+
+extra:
+  recipe-maintainers:
+    - zbowling
