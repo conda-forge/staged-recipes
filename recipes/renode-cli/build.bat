@@ -1,39 +1,27 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "install_prefix=%PREFIX%\opt\%PKG_NAME%"
-
-:: for /f "tokens=*" %%i in ('dotnet --version') do set "dotnet_version=%%i"
 :: set "framework_version=%dotnet_version:~0,-2%"
 set "framework_version=8.0"
 
-rem Patch the project files to use the correct .NET version
-:: for /f "delims=" %%i in ('find lib src tests -name "*.csproj"') do (
-::     sed -i -E "s/([>;])net6.0([<;])/\1net${framework_version}\2/" "%%i"
-::     sed -i -E "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" "%%i"
-:: )
-:: %BUILD_PREFIX%\Library\usr\bin\find.exe lib src tests -name "*.csproj" -exec sed -i -E ^
-::   -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" ^
-::   -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" ^
-::   -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' ^
-::   {} \;
-:: %BUILD_PREFIX%\Library\usr\bin\find.exe . -type d -name "obj" -exec rm -rf {} \;
-:: %BUILD_PREFIX%\Library\usr\bin\find.exe . -type d -name "bin" -exec rm -rf {} \;
 sed -i -E "s/(ReleaseHeadless\|Any .+ = )Debug/\1Release/" Renode_NET.sln
 
 rem Prevent CMake build since we provide the binaries
 mkdir "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\bin\Release\lib"
-copy "%BUILD_PREFIX%\lib\renode-cores\*" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\bin\Release\lib"
+copy "%BUILD_PREFIX%\Library\lib\renode-cores\*" "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\bin\Release\lib"
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 rem Remove the C cores that are not built in this recipe
 del "%SRC_DIR%\src\Infrastructure\src\Emulator\Cores\translate*.cproj"
 
 rem Build with dotnet
 call powershell "%RECIPE_DIR%\helpers\renode_build_with_dotnet.ps1" %framework_version%
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 rem Install procedure
 mkdir "%PREFIX%\libexec\%PKG_NAME%"
 xcopy /e /i /y "output\bin\Release\net%framework_version%\*" "%PREFIX%\libexec\%PKG_NAME%"
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 mkdir "%PREFIX%\opt\%PKG_NAME%\scripts"
 mkdir "%PREFIX%\opt\%PKG_NAME%\platforms"
@@ -53,7 +41,9 @@ xcopy /e /i /y "tools\sel4_extensions" "%PREFIX%\opt\%PKG_NAME%\tools"
 copy "lib\resources\styles\robot.css" "%PREFIX%\opt\%PKG_NAME%\tests"
 
 call tools\packaging\common_copy_licenses.bat "%PREFIX%\opt\%PKG_NAME%\licenses" linux
+if %errorlevel% neq 0 exit /b %errorlevel%
 xcopy /e /i /y "%PREFIX%\opt\%PKG_NAME%\licenses" "license-files"
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 sed -i.bak "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.path.join(this_path,'robot.css')#g" "%PREFIX%\opt\%PKG_NAME%\tests\robot_tests_provider.py"
 del "%PREFIX%\opt\%PKG_NAME%\tests\robot_tests_provider.py.bak"
