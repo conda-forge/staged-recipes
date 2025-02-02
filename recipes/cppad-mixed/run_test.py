@@ -60,9 +60,9 @@ def main() :
    #
    # cppad_mixed_lib
    path_dict = {
-      'Linux'   : f'{prefix}/lib/libcppad_mixed.so' ,
-      'Darwin'  : f'{prefix}/lib/libcppad_mixed.so' ,
-      'Windows' : f'{prefix}/Library/lib/cppad_mixed.lib'
+      'Linux'   : 'libcppad_mixed.so' ,
+      'Darwin'  : 'libcppad_mixed.so' ,
+      'Windows' : 'cppad_mixed.lib'
    }
    cppad_mixed_lib = path_dict[system]
    #
@@ -102,26 +102,30 @@ project( check_install )
 # include_directories
 # link_directories
 find_package(PkgConfig)
-pkg_check_modules( cppad_mixed QUIET cppad_mixed )
-if( cppad_mixed_FOUND )
-   message(STATUS "Found cppad_mixed.pc file")
-else( )
-   message(STATUS 
-      "Cannot find *.pc file for cppad_mixed or a package it requires"
-   )
-   message(FATAL_ERROR  "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}")
-endif( )
-include_directories( SYSTEM ${cppad_mixed_INCLUDE_DIRS} )
-link_directories( ${cppad_mixed_LIBRARY_DIRS} )
+foreach(pkg gsl eigen3 ipopt cppad cppad_mixed)
+   pkg_check_modules( ${pkg} QUIET ${pkg} )
+   if( ${pkg}_FOUND )
+      message(STATUS "Found ${pkg}.pc file")
+   else( )
+      message(STATUS 
+         "Cannot find *.pc file for ${pkg} or a package it requires"
+      )
+      message(FATAL_ERROR  "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}")
+   endif( )
+   include_directories( SYSTEM ${${pkg}_INCLUDE_DIRS} )
+   link_directories( ${${pkg}_LIBRARY_DIRS} )
+endforeach( )
+#
+# Kludge: CHOLMOD.pc is missing on conda-forge windows install
+include_directories( SYSTEM PREFIX/include/suitesparse )
 #
 # check_main
 add_executable( main main.cpp EXAMPLE_FILE ) 
 target_link_libraries(main ${cppad_mixed_LIBRARIES} )
 add_custom_target(check_main main)
 '''
-   data = data.replace( 'PREFIX',          prefix )
    data = data.replace( 'EXAMPLE_FILE',    example_file )
-   data = data.replace( 'CPPAD_MIXED_LIB', cppad_mixed_lib )
+   data = data.replace( 'PREFIX',          prefix )
    with open('CMakeLists.txt', 'w') as fobj :
       fobj.write(data)
    #
