@@ -1,0 +1,54 @@
+name: staged-recipes linter
+
+on:
+  # this workflow requires access to a read-only github token
+  # and potentially runs untrusted code via python's `eval`
+  # thus we can only run it on pull_request events so that the
+  # the token does not have any write permissions
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linter:
+    name: linter
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: install code
+        uses: mamba-org/setup-micromamba@06375d89d211a1232ef63355742e9e2e564bc7f7
+        with:
+          environment-name: lint
+          condarc: |
+            show_channel_urls: true
+            channel_priority: strict
+            channels:
+              - conda-forge
+          create-args: >-
+            conda-smithy
+            pygithub
+            requests
+            pixi
+
+      - name: lint
+        run: |
+          python .github/workflows/scripts/linter.py \
+            --owner=${{ github.repository_owner }} \
+            --pr-num=${{ github.event.number }} \
+          >> $GITHUB_STEP_SUMMARY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
