@@ -29,8 +29,8 @@ nvimg_build_args=(
     -DBUILD_LIBRARY:BOOL=ON
     -DBUILD_SHARED_LIBS:BOOL=ON
     -DBUILD_STATIC_LIBS:BOOL=OFF
-# "DYNAMIC_LINK" means using dlopen, but we want to link to shared libraries?
-    -DWITH_DYNAMIC_LINK:BOOL=ON
+# "DYNAMIC_LINK" means using dlopen, but we want to link to shared libraries.
+    -DWITH_DYNAMIC_LINK:BOOL=OFF
 # Extension args
     -DBUILD_EXTENSIONS:BOOL=ON
     -DBUILD_LIBJPEG_TURBO_EXT:BOOL=ON
@@ -39,7 +39,7 @@ nvimg_build_args=(
     -DBUILD_NVJPEG_EXT:BOOL=ON
     -DBUILD_NVJPEG2K_EXT:BOOL=ON
     -DBUILD_NVPNM_EXT:BOOL=ON
-    -DBUILD_NVTIFF_EXT:BOOL=OFF
+    -DBUILD_NVTIFF_EXT:BOOL=ON
     -DBUILD_OPENCV_EXT:BOOL=ON
 # Python args
     -DPython_EXECUTABLE=$PYTHON

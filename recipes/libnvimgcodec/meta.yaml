@@ -23,6 +23,7 @@ source:
   url: https://github.com/NVIDIA/nvImageCodec/archive/refs/tags/v{{ version }}.tar.gz
   sha256: 4bba949d6cf4e88fcd6b2d86bff960c9ed68eb25b6c4dde3b7772615480ab9fb
   patches:
+    - patches/0002-BLD-Use-only-dynamic-shared-library-links-to-CUDA-ta.patch
     - patches/001-move-config.patch
 build:
   number: 0
@@ -36,20 +37,21 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ stdlib('c') }}
   # Must use 3.18 because of changes in find_package(TIFF) - @carterbox Jan 2025
-    - cmake 3.18.*
+    - cmake 3.18.*  # [win]
+    - cmake  # [not win]
     - ninja
     - pkg-config
-    - python-clang
   host:
     - cuda-version {{ cuda_compiler_version }}
     - libboost-headers
     - libjpeg-turbo
-{% if cuda_major == 12 %}
+    {% if cuda_major == 12 %}
+    - cuda-driver-dev  # [linux]
+    - cuda-cudart-dev
     - libnvjpeg-dev
     - libnvjpeg2k-dev
-  # nvTIFF package not published on conda-forge yet - @carterbox Jan 2025
-    - libnvtiff-dev  # [not win]
-{% endif %}
+    - libnvtiff-dev
+    {% endif %}
     - libopencv
     - libtiff
     - nvtx-c
@@ -98,9 +100,9 @@ outputs:
         - {{ stdlib('c') }}  # [build_platform == target_platform]
         - cmake   # [build_platform == target_platform]
         - ninja  # [build_platform == target_platform]
-{% if cuda_major == 12 %}
+       {% if cuda_major == 12 %}
         - cuda-cudart-dev  # [build_platform == target_platform]
-{% endif %}
+       {% endif %}
       commands:
         - test -f ${PREFIX}/include/nvimgcodec.h  # [linux]
         - if not exist %LIBRARY_INC%\\nvimgcodec.h exit 1  # [win]
@@ -119,6 +121,9 @@ outputs:
       - extensions/*.so.*  # [linux]
       - Library/bin/nvimgcodec_{{ somajor }}.dll  # [win]
       - Library/extensions/*.dll  # [win]
+    build:
+      ignore_run_exports_from:
+        - {{ compiler('cuda') }}
     requirements:
       build:
         - {{ compiler('c') }}
@@ -128,11 +133,17 @@ outputs:
       host:
         - cuda-version {{ cuda_compiler_version }}
         - libjpeg-turbo
-{% if cuda_major == 12 %}
+      {% if cuda_major == 12 %}
+        - cuda-driver-dev  # [linux]
+        - cuda-cudart-dev
         - libnvjpeg-dev
-{% endif %}
+        - libnvjpeg2k-dev
+        - libnvtiff-dev
+      {% endif %}
         - libopencv
         - libtiff
+      run:
+        - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
     test:
       commands:
         - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ somajor }}  # [linux]
