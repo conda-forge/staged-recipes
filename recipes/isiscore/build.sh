@@ -15,7 +15,7 @@ cmake -GNinja \
   -DBUILD_TESTS=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DISIS_BUILD_SWIG=ON \
-  -DCMAKE_INSTALL_PREFIX=../install_core \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DPython3_EXECUTABLE=$PYTHON \
   -DPython3_LIBRARY=$PREFIX/lib/libpython${PY_VER}m.so \
   -DPython3_INCLUDE_DIR=$PREFIX/include/python${PY_VER} \
@@ -23,6 +23,10 @@ cmake -GNinja \
 
 # Build and install
 ninja && ninja install
+
+# Debug: Check if libcore is installed
+echo "Checking installed files..."
+find $PREFIX -name "libcore*"
 
 # Install Python bindings
 cd swig/python
