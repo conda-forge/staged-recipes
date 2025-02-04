@@ -28,6 +28,10 @@ ninja && ninja install
 echo "Checking installed files..."
 find $PREFIX -name "libcore*"
 
+# Print the directories in lib to verify if it's there
+echo "Contents of $PREFIX/lib:"
+ls $PREFIX/lib
+
 # Install Python bindings
 cd swig/python
 $PYTHON setup.py install
