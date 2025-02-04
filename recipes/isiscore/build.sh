@@ -15,7 +15,7 @@ cmake -GNinja \
   -DBUILD_TESTS=OFF \
   -DCMAKE_BUILD_TYPE=Release \
   -DISIS_BUILD_SWIG=ON \
-  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DCMAKE_INSTALL_PREFIX=../install_core \
   -DPython3_EXECUTABLE=$PYTHON \
   -DPython3_LIBRARY=$PREFIX/lib/libpython${PY_VER}m.so \
   -DPython3_INCLUDE_DIR=$PREFIX/include/python${PY_VER} \
