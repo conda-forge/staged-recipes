@@ -9,4 +9,6 @@ ${PYTHON} setup.py install
 
 find . -name "_isiscore.so"
 
-readelf -d ${PYTHON_PATH}/site-packages/isiscore/_isiscore.so | grep RPATH
+readelf -d $PREFIX/lib/python3.11/site-packages/isiscore/_isiscore.so | grep RPATH
+
+find $PREFIX -name "_isiscore.so"
