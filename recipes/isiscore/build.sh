@@ -1,14 +1,9 @@
-mkdir build_core install_core
+mkdir build_core
 cd build_core
 export ISISROOT=$PWD
 
-cmake -GNinja -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -DISIS_BUILD_SWIG=ON -DCMAKE_INSTALL_PREFIX=../install_core ../isis/src/core
-ninja core && ninja install
+cmake -GNinja -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -DISIS_BUILD_SWIG=ON -DCMAKE_INSTALL_PREFIX=$PREFIX ../isis/src/core
+ninja install
 cd swig/python/
 ${PYTHON} setup.py install
-
-
-readelf -d isiscore/_isiscore.so | grep RPATH
-
-ls ${CMAKE_INSTALL_PREFIX}/lib
 
