@@ -34,3 +34,7 @@ On Windows, library dependencies are stored in `%BUILD_PREFIX%\Library\lib` or `
 # DevOps Automation
 
 Can set up DevOps flow to update recipe on new release candidate upstream. Have bot change the version and rerun `python build-locally.py` to ensure build works.
+
+# TODO
+
+1. Finish recipe for Windows builds.
