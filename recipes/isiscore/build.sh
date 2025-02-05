@@ -8,3 +8,5 @@ cd swig/python/
 ${PYTHON} setup.py install
 
 find . -name "_isiscore.so"
+
+readelf -d ${PYTHON_PATH}/site-packages/isiscore/_isiscore.so | grep RPATH
