@@ -6,3 +6,5 @@ cmake -GNinja -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -DISIS_BUILD_SWIG=ON 
 ninja core && ninja install
 cd swig/python/
 ${PYTHON} setup.py install
+
+find . -name "_isiscore.so"
