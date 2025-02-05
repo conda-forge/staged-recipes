@@ -21,6 +21,11 @@ find . -type d -name "obj" -exec rm -rf {} +
 find . -type d -name "bin" -exec rm -rf {} +
 sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
 
+# Update System.Drawing.Common to 5.0.3
+sed -i -E 's|<PackageReference Include="System.Drawing.Common" Version="5.*" />|<PackageReference Include="System.Drawing.Common" Version="5.0.3" />|' \
+  "${SRC_DIR}"/lib/termsharp/TermSharp_NET.csproj \
+  "${SRC_DIR}"/lib/termsharp/xwt/Xwt.*/Xwt.*.csproj
+
 # Prevent CMake build since we provide the binaries
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
