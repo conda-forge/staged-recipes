@@ -1,0 +1,159 @@
+{% set name = "mg5amcnlo" %}
+{% set version = "3.5.7" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/hep-packaging-coordination/mg5amcnlo-release-mirror/releases/download/{{ version }}/MG5_aMC_v{{ version }}.tar.gz
+    sha256: ca3e027f078438318bd4143a102aebc2d51358f537b5d52bbc574fe49a6a901e
+    folder: source
+    patches:
+      # FIXME: mg5amcnlo assumes that ninja and collier are only static libraries
+      - allow-for-shared-libraries.patch
+
+build:
+  # FIXME: mg5amcnlo doesn't support Python 3.12 yet
+  skip: true  # [py<37 or py>311 or win]
+  number: 0
+  script:
+    # Remove unnecessary files
+    - rm -r source/.github
+    - rm -r source/tests
+    - rm -r source/vendor/CutTools
+    - rm source/.bzrignore
+    - rm source/.gitignore
+    - rm source/code-notes
+    - rm source/README
+    - rm source/UpdateNotes.txt
+    # FIXME: Remove prebuilt binary added in tarball
+    - rm source/vendor/DiscreteSampler/check
+
+    # Fix bugs
+    # FIXME: Use user space perl instead of system perl
+    - find source -type f -exec grep -Il '#!/usr/bin/perl -w' {} + | xargs sed -i 's|#!/usr/bin/perl -w|#!/usr/bin/env perl -w|g'
+
+    # Need to use -a to preserve symlinks
+    - cp -a source $PREFIX/MG5_aMC
+
+    # TODO: Add MG5aMC_PY8_interface
+    # https://github.com/mg5amcnlo/MG5aMC_PY8_interface
+
+    # Build configuration file be replacing placeholder values with PREFIX
+    - cp $RECIPE_DIR/mg5_configuration.txt .
+    - sed -i "s|REPLACE_WITH_PREFIX|$PREFIX|g" mg5_configuration.txt
+    - sed -i "s|REPLACE_WITH_BASENAME_FC|$(basename $FC)|g" mg5_configuration.txt
+    - sed -i "s|REPLACE_WITH_BASENAME_GXX|$(basename $GXX)|g" mg5_configuration.txt
+    - mv mg5_configuration.txt $PREFIX/MG5_aMC/input/mg5_configuration.txt
+
+    # Setup links
+    - mkdir -p $PREFIX/bin
+    - ln -s $PREFIX/MG5_aMC/bin/mg5_aMC $PREFIX/bin/mg5_aMC
+    - mkdir -p $PREFIX/share/mg5_aMC
+    - ln -s $PREFIX/MG5_aMC/proc_card.dat $PREFIX/share/mg5_aMC/proc_card.dat
+
+    # Generate initial files
+    # conda-build intentionally compiles .pyc files, so keep those.
+    # c.f. https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#skip-compiling-some-py-files-into-pyc-files
+    - echo "exit" | mg5_aMC
+    - rm py.py
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    # Compilers needed to set names in mg5_configuration.txt and will be
+    # used in the future along with make when bugs with Pythia8 are fixed
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    # - make
+    - sed
+    - grep
+  host:
+    - python
+    - six
+    - ply
+    - fastjet-cxx
+    - emela
+    - lhapdf
+  run:
+    # mg5amcnlo is a code generator and so requires a build system at runtime
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - make
+    - tar
+    - perl
+    - python
+    - six
+    - numpy
+    - fastjet-contrib
+    - emela
+    - lhapdf
+    - pythia8
+    - ply
+    - oneloop
+    # ninja-hep-ph uses libquadmath and so does not support macOS
+    - ninja-hep-ph  # [linux]
+    - collier
+    - ghostscript
+
+test:
+  files:
+    - $RECIPE_DIR/tutorial.mg5
+  commands:
+    - test -d $PREFIX/MG5_aMC
+    - test -d $PREFIX/MG5_aMC/aloha
+    - test -d $PREFIX/MG5_aMC/bin
+    - test -d $PREFIX/MG5_aMC/HELAS
+    - test -d $PREFIX/MG5_aMC/input
+    - test -d $PREFIX/MG5_aMC/madgraph
+    - test -d $PREFIX/MG5_aMC/MadSpin
+    - test -d $PREFIX/MG5_aMC/mg5decay
+    - test -d $PREFIX/MG5_aMC/models
+    - test -d $PREFIX/MG5_aMC/PLUGIN
+    - test -d $PREFIX/MG5_aMC/Template
+    - test -d $PREFIX/MG5_aMC/vendor
+
+    - test -f $PREFIX/MG5_aMC/proc_card.dat
+    - test -f $PREFIX/MG5_aMC/VERSION
+    - test -f $PREFIX/bin/mg5_aMC
+    - test -f $PREFIX/MG5_aMC/input/mg5_configuration.txt
+    - test -f $PREFIX/MG5_aMC/madgraph/LICENSE
+
+    - echo -e "\n# Checking mg5_configuration.txt"
+    - cat $PREFIX/MG5_aMC/input/mg5_configuration.txt
+
+    - mg5_aMC --help
+
+    - echo "exit" | mg5_aMC
+
+    - mg5_aMC $RECIPE_DIR/tutorial.mg5
+
+about:
+  home: https://github.com/mg5amcnlo/mg5amcnlo
+  summary: 'MadGraph5_aMC@NLO'
+  description: |
+    MadGraph5_aMC@NLO is a framework that aims at providing all the elements
+    necessary for SM and BSM phenomenology, such as the computations of cross
+    sections, the generation of hard events and their matching with event
+    generators, and the use of a variety of tools relevant to event manipulation
+    and analysis.
+    Processes can be simulated to LO accuracy for any user-defined Lagrangian,
+    and the NLO accuracy in the case of models that support this kind of calculations
+    &mdash; prominent among these are QCD and EW corrections to SM processes.
+    Matrix elements at the tree- and one-loop-level can also be obtained.
+
+    MadGraph5_aMC@NLO is the new version of both MadGraph5 and aMC@NLO that unifies
+    the LO and NLO lines of development of automated tools within the MadGraph family.
+    As such, the code allows one to simulate processes in virtually all configurations
+    of interest, in particular for hadronic and e+e- colliders; starting from version
+    3.2.0, the latter include Initial State Radiation and beamstrahlung effects.
+  # modified University of Illinois/NCSA license
+  license: LicenseRef-NCSA
+  license_family: OTHER
+  license_file: source/LICENSE
+  dev_url: https://github.com/mg5amcnlo/mg5amcnlo
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
