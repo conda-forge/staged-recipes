@@ -9,7 +9,7 @@ rm -rf "${BUILD_PREFIX}/share/bazel/install/e57f3167855b9a43667af9e285ef5011" "$
 source gen-bazel-toolchain
 
 export CROSSTOOL_TOP="//bazel_toolchain:toolchain"
-if [ "${TARGET_PLATFORM}" = linux-* ]; then
+if [[ "${target_platform}" == linux-* ]]; then
     export AUDITWHEEL_PLATFORM="manylinux2014_$(uname -m)"
 fi
 export PYTHON_BIN="${PYTHON}"
