@@ -1,0 +1,43 @@
+diff --git a/python/xgrammar/kernels/__init__.py b/python/xgrammar/kernels/__init__.py
+index f99dfba..1a1df35 100644
+--- a/python/xgrammar/kernels/__init__.py
++++ b/python/xgrammar/kernels/__init__.py
+@@ -1,4 +1,9 @@
+ """The kernels for XGrammar."""
+ 
+ from .apply_token_bitmask_inplace_cpu import apply_token_bitmask_inplace_cpu
+-from .apply_token_bitmask_inplace_triton import apply_token_bitmask_inplace_triton
++
++# Try to import the triton kernel. If it fails, we will use the CPU kernel.
++try:
++    from .apply_token_bitmask_inplace_triton import apply_token_bitmask_inplace_triton
++except ImportError:
++    pass
+diff --git a/python/xgrammar/matcher.py b/python/xgrammar/matcher.py
+index 64a5289..f8843ec 100644
+--- a/python/xgrammar/matcher.py
++++ b/python/xgrammar/matcher.py
+@@ -8,7 +8,13 @@ import torch
+ 
+ from .base import XGRObject, _core
+ from .compiler import CompiledGrammar
+-from .kernels import apply_token_bitmask_inplace_cpu, apply_token_bitmask_inplace_triton
++from .kernels import apply_token_bitmask_inplace_cpu
++
++# Try to import the triton kernel. If it fails, we will use the CPU kernel.
++try:
++    from .kernels import apply_token_bitmask_inplace_triton
++except ImportError:
++    pass
+ 
+ """The dtype of the bitmask: int32."""
+ bitmask_dtype = torch.int32
+@@ -122,6 +128,8 @@ def apply_token_bitmask_inplace(
+         )
+ 
+     if logits.device.type == "cuda":
++        if apply_token_bitmask_inplace_triton is None:
++            raise ImportError("Triton is not installed.`.")
+         apply_token_bitmask_inplace_triton(logits, bitmask, indices)
+     elif logits.device.type == "cpu":
+         apply_token_bitmask_inplace_cpu(logits, bitmask, indices)
