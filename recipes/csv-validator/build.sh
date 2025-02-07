@@ -32,10 +32,11 @@ cp "$SRC_DIR/running-csv-validator.txt" "$INSTALL_PATH/" || { echo "Failed to co
 
 echo "Setting symbolic link and file permissions..."
 
-ln -s $INSTALL_PATH/csv-validator-cmd $PREFIX/bin
+# Changing command name to csv-validator
+ln -s $INSTALL_PATH/csv-validator-cmd $PREFIX/bin/csv-validator
 
-chmod 0755 "$PREFIX/bin/csv-validator-cmd"
+chmod 0755 "$PREFIX/bin/csv-validator"
 
-echo "csv-validator-cmd installation complete!"
-echo "If you want to change the maximum memory heap allocation (1024 MB default) run "export csvValidatorMemory=\<number in MB\>" before using the csv-validator-cmd command"
+echo "csv-validator installation complete!"
+echo "If you want to change the maximum memory heap allocation (1024 MB default) run "export csvValidatorMemory=\<number in MB\>" before using the csv-validator command"
 echo "See running-csv-validator.txt in the package's installation path for more information"

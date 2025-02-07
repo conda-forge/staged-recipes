@@ -80,7 +80,7 @@ ECHO Setting symbolic link and file permissions...
 
 REM Create symbolic link for the wrapper script in bin directory
 SET "symlinkTarget=%INSTALL_PATH%\csv-validator-cmd.bat"
-SET "symlinkPath=%PREFIX%\bin\csv-validator-cmd"
+SET "symlinkPath=%PREFIX%\bin\csv-validator"
 
 REM Check if the symlink already exists and remove it if necessary
 IF EXIST %symlinkPath% (
@@ -90,10 +90,11 @@ IF EXIST %symlinkPath% (
 REM Create the symbolic link using mklink (requires admin privileges)
 CMD /C MKLINK %symlinkPath% %symlinkTarget%
 
-ECHO csv-validator-cmd installation complete!
-ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "SET csvValidatorMemory=<number in MB>" before using the csv-validator-cmd command.
+ECHO csv-validator installation complete!
+ECHO If you want to change the maximum memory heap allocation (1024 MB default), run "SET csvValidatorMemory=<number in MB>" before using the csv-validator command.
 ECHO See running-csv-validator.txt in the package's installation path for more information.
 
+REM TODO: Debugging
 DIR %INSTALL_PATH%
 DIR %PREFIX%\bin
 %CD%
