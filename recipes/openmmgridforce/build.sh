@@ -22,6 +22,7 @@ cmake .. \
 # Build in parallel
 make -j$CPU_COUNT
 make install
+make check
 
 # Build Python wrappers
 cd ../python
