@@ -25,6 +25,12 @@ make install
 
 # Build Python wrappers
 cd ../python
+
+# Replace template variables in setup.py
+sed -i.bak "s|@OPENMM_DIR@|$PREFIX|g" setup.py
+sed -i.bak "s|@GRIDFORCEPLUGIN_HEADER_DIR@|$PREFIX/include|g" setup.py
+sed -i.bak "s|@GRIDFORCEPLUGIN_LIBRARY_DIR@|$PREFIX/lib|g" setup.py
+
 swig -python -c++ -o GridForcePluginWrapper.cpp -I$PREFIX/include gridforceplugin.i
 $PYTHON setup.py build
 $PYTHON setup.py install
