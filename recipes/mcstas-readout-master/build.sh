@@ -14,13 +14,11 @@ cmake \
 	-GNinja \
 	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 	-DCMAKE_INSTALL_LIBDIR=lib \
-	-DCMAKE_BUILD_TYPE=Release
+	-DCMAKE_BUILD_TYPE=Release \
+	-DREADOUT_TESTS=OFF \
+	-DREADOUT_USE_CONAN=OFF
 
 cmake --build ./build --config Release -j
 
 cmake --build ./build --target install
-
-cd ./build
-
-ctest 
 

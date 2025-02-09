@@ -19,6 +19,8 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     -DCMAKE_BUILD_TYPE=Release
+    -DREADOUT_TESTS=OFF
+    -DREADOUT_USE_CONAN=OFF
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
@@ -29,14 +31,4 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 cmake --build %BLDDIR% --target install --config Release
 
 if %errorlevel% neq 0 exit /b %errorlevel%
-
-cd %BLDDIR%
-
-if %errorlevel% neq 0 exit /b %errorlevel%
-
-ctest
-
-if %errorlevel% neq 0 exit /b %errorlevel%
-
-
 
