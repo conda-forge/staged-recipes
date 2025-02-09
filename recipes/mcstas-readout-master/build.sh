@@ -16,7 +16,8 @@ cmake \
 	-DCMAKE_INSTALL_LIBDIR=lib \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DREADOUT_TESTS=OFF \
-	-DREADOUT_USE_CONAN=OFF
+	-DREADOUT_USE_CONAN=OFF \
+	-DHIGHFIVE_USE_INSTALL_DEPS=ON
 
 cmake --build ./build --config Release -j
 

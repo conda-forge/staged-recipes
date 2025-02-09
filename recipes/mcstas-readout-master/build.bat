@@ -18,9 +18,10 @@ cmake ^
     -GNinja ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
-    -DCMAKE_BUILD_TYPE=Release
-    -DREADOUT_TESTS=OFF
-    -DREADOUT_USE_CONAN=OFF
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DREADOUT_TESTS=OFF ^
+    -DREADOUT_USE_CONAN=OFF ^
+    -DHIGHFIVE_USE_INSTALL_DEPS=ON
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
