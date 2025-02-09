@@ -15,6 +15,7 @@ cmake ^
     -B %BLDDIR% ^
     -S %CD% ^
     %CMAKE_ARGS% ^
+    -GNinja ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     -DCMAKE_BUILD_TYPE=Release
