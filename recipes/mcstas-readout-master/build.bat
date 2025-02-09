@@ -29,6 +29,13 @@ cmake --build %BLDDIR% --target install --config Release
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
+cd %BLDDIR%
+
+if %errorlevel% neq 0 exit /b %errorlevel%
+
+ctest
+
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 
 

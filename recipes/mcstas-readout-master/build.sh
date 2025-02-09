@@ -19,4 +19,7 @@ cmake --build ./build --config Release -j
 
 cmake --build ./build --target install
 
+cd ./build
+
+ctest 
 
