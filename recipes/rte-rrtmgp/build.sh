@@ -8,6 +8,7 @@ BUILD_TYPE=Debug
 FFLAGS='-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan'
 
 BUILD_TESTING=ON
+BUILD_SHARED_LIBS=ON
 RTE_ENABLE_SP=OFF
 KERNEL_MODE=default
 FAILURE_THRESHOLD='7.e-4'
@@ -27,6 +28,7 @@ cmake -S . -B ${BUILD_DIR} \
       -DKERNEL_MODE=$KERNEL_MODE \
       -DBUILD_TESTING=$BUILD_TESTING \
       -DFAILURE_THRESHOLD=$FAILURE_THRESHOLD \
+      -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
       -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
       -G Ninja
 
