@@ -9,7 +9,8 @@ cmake .. \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DSDL_CAMERA=OFF \
-      -DSDL_AUDIO=OFF
+      -DSDL_AUDIO=OFF \
+      -DSDL_JOYSTICK=OFF
 
 make
 make install
