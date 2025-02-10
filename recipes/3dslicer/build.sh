@@ -9,10 +9,10 @@ cmake .. -GNinja \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DSlicer_RELEASE_TYPE="Stable" \
     -DQt5_DIR=${PREFIX} \
-    -DSlicer_USE_SYSTEM_python=1 \
+    -DSlicer_USE_SYSTEM_python=0 \
     -DSlicer_USE_SYSTEM_python-numpy=1 \
     -DSlicer_USE_SYSTEM_python-scipy=1 \
-    -DSlicer_USE_SYSTEM_python-pip=1 \
+    -DSlicer_USE_SYSTEM_python-pip=0 \
     -DSlicer_USE_SYSTEM_python-setuptools=1 \
     -DSlicer_USE_SYSTEM_python-ensurepip=1 \
     -DSlicer_USE_SYSTEM_python-wheel=1 \
