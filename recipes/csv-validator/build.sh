@@ -3,7 +3,8 @@
 # Note: This will run in a Docker container for building package on Linux
 # Note: $PREFIX, $SRC_DIR, and variables that start with "$PKG_" are defined by main Conda build scripts
 
-# TODO: What is best practice for storing downloaded files from source?
+env | sort
+
 INSTALL_PATH="$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM"
 
 echo "Installing $PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM to $INSTALL_PATH"
@@ -33,7 +34,7 @@ cp "$SRC_DIR/running-csv-validator.txt" "$INSTALL_PATH/" || { echo "Failed to co
 echo "Setting symbolic link and file permissions..."
 
 # Changing command name to csv-validator
-ln -s $INSTALL_PATH/csv-validator-cmd $PREFIX/bin/csv-validator
+ln -s "$INSTALL_PATH/csv-validator-cmd" "$PREFIX/bin/csv-validator"
 
 chmod 0755 "$PREFIX/bin/csv-validator"
 
