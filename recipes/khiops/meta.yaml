@@ -1,10 +1,7 @@
-
-{% set name = "khiops" %}
-{% set version = "10.3.0" %}
-
+{% set version = "10.3.0".replace("-", "") %}
 package:
-  name: {{ name|lower }}
-  version: {{ version.replace("-", ".") }}
+  name: khiops-binaries
+  version: {{ version }}
 
 source:
   url: https://github.com/KhiopsML/khiops/archive/refs/tags/{{ version }}.tar.gz
@@ -17,7 +14,7 @@ requirements:
     - cmake
     - ninja
     - {{ compiler('cxx') }}
-
+    - {{ stdlib("c") }}
   host:
     - {{ mpi }}
   run:
@@ -25,14 +22,15 @@ requirements:
 
 outputs:
 
-  # khiops-core package
+# khiops-core package
   - name: khiops-core
-    version: {{ version.replace("-", ".") }}
+    version: {{ version }}
     requirements:
       build:
         - cmake
         - ninja
         - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
       host:
         - {{ mpi }}
       run:
@@ -40,35 +38,43 @@ outputs:
     files:
       - bin/MODL*
       - bin/_khiopsgetprocnumber*
-      - bin/khiops_env # [linux or osx]
-      - bin/khiops # [linux or osx]
-      - bin/khiops_coclustering # [linux or osx]
-      - bin/khiops_env.cmd # [win]
-      - bin/khiops.cmd # [win]
-      - bin/khiops_coclustering.cmd # [win]
+      - bin/khiops_env               # [linux or osx]
+      - bin/khiops                   # [linux or osx]
+      - bin/khiops_coclustering      # [linux or osx]
+      - bin/khiops_env.cmd           # [win]
+      - bin/khiops.cmd               # [win]
+      - bin/khiops_coclustering.cmd  # [win]
     test:
       commands:
         - khiops_env --env
         - khiops -s
         - khiops_coclustering -s
 
-  # kni package (do not need khiops-core as a runtime dependency)
+# kni package (do not need khiops-core as a runtime dependency)
   - name: kni
-    version: {{ version.replace("-", ".") }}
+    version: {{ version }}
     files:
-      - lib/libKhiopsNativeInterface.so* # [linux]
-      - lib/libKhiopsNativeInterface*.dylib # [osx]
-      - bin/KhiopsNativeInterface.dll # [win]
-      - lib/KhiopsNativeInterface.lib # [win]
+      - lib/libKhiopsNativeInterface.so*                  # [linux]
+      - lib/libKhiopsNativeInterface.{{ version }}.dylib  # [osx]
+      - bin/KhiopsNativeInterface.dll                     # [win]
+      - lib/KhiopsNativeInterface.lib                     # [win]
     requirements:
       build:
         - cmake
         - ninja
         - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libKhiopsNativeInterface.so                           # [linux]
+        - test -f $PREFIX/lib/libKhiopsNativeInterface.{{ version }}.dylib          # [osx]
+        - if not exist %PREFIX%\\Library\\lib\\libKhiopsNativeInterface.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\libKhiopsNativeInterface.dll exit 1  # [win]
 
 about:
   home: https://khiops.org
-  license: BSD+3-clause
+  license: BSD-3-Clause
+  license_family: BSD
   license_file: LICENSE
   summary: Khiops is an AutoML suite for supervised and unsupervised learning
   doc_url: https://khiops.org
