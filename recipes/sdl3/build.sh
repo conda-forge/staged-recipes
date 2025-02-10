@@ -15,7 +15,8 @@ cmake .. \
       -DSDL_HIDAPI=OFF \
       -DSDL_POWER=OFF \
       -DSDL_SENSOR=OFF \
-      -DSDL_DIALOG=OFF
+      -DSDL_DIALOG=OFF \
+      -DSDL_COCOA=OFF
 
 make
 make install
