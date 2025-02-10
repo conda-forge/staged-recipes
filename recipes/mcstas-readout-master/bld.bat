@@ -20,8 +20,7 @@ cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DREADOUT_BUILD_ON_CONDA=ON ^
     -DREADOUT_BUILD_TESTS=OFF ^
-    -DREADOUT_USE_CONAN=OFF ^
-    -DHIGHFIVE_USE_INSTALL_DEPS=ON
+    -DREADOUT_USE_CONAN=OFF
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
