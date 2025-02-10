@@ -20,7 +20,7 @@ cmake .. -GNinja \
     -DSlicer_USE_SYSTEM_zlib=1 \
     -DSlicer_USE_SYSTEM_bzip2=1 \
     -DSlicer_USE_SYSTEM_curl=1 \
-    -DSlicer_USE_SYSTEM_sqlite=1 \
+    -DSlicer_USE_SYSTEM_sqlite=0 \
     -DSlicer_USE_SYSTEM_RapidJSON=0 \
     -DSlicer_USE_SYSTEM_LibFFI=1 \
     -DSlicer_USE_SYSTEM_DCMTK=1 \
