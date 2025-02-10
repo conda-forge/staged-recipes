@@ -8,7 +8,8 @@ cmake .. \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_INSTALL_LIBDIR=lib \
-      -DSDL_CAMERA=OFF
+      -DSDL_CAMERA=OFF \
+      -DSDL_AUDIO=OFF
 
 make
 make install
