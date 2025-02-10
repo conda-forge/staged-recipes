@@ -3,7 +3,6 @@
 mkdir build
 cd build
 
-ccmake .
 cmake .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
