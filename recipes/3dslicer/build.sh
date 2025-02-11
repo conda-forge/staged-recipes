@@ -3,10 +3,10 @@
 set -xe
 
 cmake -S . -B build  \
-    -DADDITIONAL_CXX_FLAGS="-fPIC -I$PREFIX/include -L$PREFIX/lib" \
-    -DADDITIONAL_C_FLAGS="-fPIC -I$PREFIX/include -L$PREFIX/lib" \
     -DCMAKE_C_COMPILER=${CC} \
     -DCMAKE_CXX_COMPILER=${CXX} \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC -I$PREFIX/include -L$PREFIX/lib" \
+    -DCMAKE_C_FLAGS="${CFLAGS} -fPIC -I$PREFIX/include -L$PREFIX/lib" \
     -DSlicer_FORCED_WC_LAST_CHANGED_DATE=$(date +%Y-%m-%d) \
     -DSlicer_FORCED_REVISION="12345678" \
     -Wno-dev \
