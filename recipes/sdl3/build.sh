@@ -13,17 +13,12 @@ if [[ ${HOST} =~ .*darwin.* ]]; then
   fi
 fi
 
-mkdir build
-cd build
-
-cmake .. \
-      ${CMAKE_ARGS} \
+cmake -S . -B build ${CMAKE_ARGS} \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DSDL_INSTALL=ON \
       $ADDITIONAL_OPTIONS
 
-make
-make install
+cmake --build build --config Release
+
+cmake --install build --config Release --prefix $PREFIX
