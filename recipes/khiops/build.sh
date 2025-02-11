@@ -7,8 +7,7 @@ set -euo pipefail
 cmake -B build/conda -S . -D BUILD_JARS=OFF -D TESTING=OFF -D CMAKE_BUILD_TYPE=Release -G Ninja
 
 # Build MODL and MODL_Coclustering
-cmake --build build/conda --parallel \
-    --target MODL MODL_Coclustering KhiopsNativeInterface _khiopsgetprocnumber
+cmake --build build/conda --parallel --target MODL MODL_Coclustering KhiopsNativeInterface _khiopsgetprocnumber
 
 # Move the binaries to the Conda PREFIX path
 mv ./build/conda/bin/MODL* "$PREFIX/bin"
