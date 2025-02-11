@@ -1,8 +1,8 @@
 #!/bin/sh
 
 if [[ ${HOST} =~ .*darwin.* ]]; then
-    # Adapt cflags for the sdk in use
-    export CFLAGS="${CFLAGS} -isysroot ${SDKROOT:-$CONDA_BUILD_SYSROOT}"
+  # Adapt cflags for the sdk in use
+  export CFLAGS="${CFLAGS} -isysroot ${SDKROOT:-$CONDA_BUILD_SYSROOT}"
 
   # Additional build option depending on target architecture
   if [[ "${target_platform}" == "osx-arm64" ]]; then
@@ -13,12 +13,15 @@ if [[ ${HOST} =~ .*darwin.* ]]; then
   fi
 fi
 
+# Configure using the CMakeFiles
 cmake -S . -B build ${CMAKE_ARGS} \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       $ADDITIONAL_OPTIONS
 
+# Build
 cmake --build build --config Release
 
+# Install
 cmake --install build --config Release --prefix $PREFIX
