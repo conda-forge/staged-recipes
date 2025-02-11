@@ -16,8 +16,22 @@ done
 echo "Creation java home"
 mkdir -p "${PREFIX}/opt/temurin"
 
+echo "Setting Archive Path"
+if [ "$(uname -s)" == "Darwin" ]
+then
+    ARCHIVE_PATH="Contents/Home/"
+else
+    ARCHIVE_PATH=""
+fi
+
+echo "... set to '$ARCHIVE_PATH'"
+
 echo "Copying java files"
-mv bin conf legal lib NOTICE release ${PREFIX}/opt/temurin/
+for ITEM in bin conf legal lib NOTICE release
+do
+    echo "... item $ITEM"
+    cp -r ${ARCHIVE_PATH}${ITEM} ${PREFIX}/opt/temurin/
+done
 
 echo "Creating symlinks"
 ln -sf ${PREFIX}/opt/temurin/bin/java ${PREFIX}/bin/java
