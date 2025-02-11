@@ -24,6 +24,9 @@ build:
 outputs:
   - name: libnvshmem{{ soname }}
     build:
+      ignore_run_exports_from:    # [(cuda_compiler_version or "").startswith("12")]
+        - {{ compiler('cuda') }}  # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-cudart-dev         # [(cuda_compiler_version or "").startswith("12")]
       missing_dso_whitelist:
         - "*libcuda.so*" # driver
         - "*openmpi*"    # omitted as dependency - customer HPC systems have own versions of MPI installed already
@@ -34,8 +37,6 @@ outputs:
         - "*libpmix*"    # omitted as dependency - part of openmpi
         - "*liboshmem*"  # omitted as dependency - part of openmpi
         - "*rdma-core*"  # omitted as dependency - MOFED replaces rdma-core
-      run_exports:
-        - {{ pin_subpackage("libnvshmem" ~ soname, max_pin="x") }}
       script: |
         cp -rv lib $PREFIX/
     files:
@@ -48,14 +49,14 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
-        - {{ stdlib("c") }}
       host:
-        - cuda-version {{ cuda_compiler_version }}
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
         - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
         - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
         - ucx
       run:
         - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - cuda-cudart       # [(cuda_compiler_version or "").startswith("12")]
         - libpciaccess
         - libpmix
         - nccl
@@ -92,24 +93,29 @@ outputs:
 
   - name: libnvshmem-dev
     build:
+      ignore_run_exports_from:    # [(cuda_compiler_version or "").startswith("12")]
+        - {{ compiler('cuda') }}  # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-cudart-dev         # [(cuda_compiler_version or "").startswith("12")]
       missing_dso_whitelist:
         - "*libcuda.so*" # driver
         - "*libnvshmem_host.so.{{ soname }}" # avoids: ERROR (libnvshmem-dev,bin/perftest/device/pt-to-pt/shmem_put_bw): lib/libnvshmem_host.so.3 not found in any packages. We DO test for its existence though.
         - "*libmpi*"
         - "*libpmix*"
         - "*liboshmem*"
-    run_exports:
-      - {{ pin_subpackage("libnvshmem" ~ soname, max_pin="x") }}
+      run_exports:
+        - {{ pin_subpackage("libnvshmem" ~ soname, max_pin=None) }}
     script: build-libnvshmem.sh
     script_interpreter: /bin/bash
     requirements:
       build:
         - {{ compiler("c") }}
+        - {{ compiler('cuda') }}
         - {{ compiler("cxx") }}
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - cf-nvidia-tools 1  # [linux]
       host:
-        - cuda-version {{ cuda_compiler_version }}
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
         - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
         - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
         - libpciaccess
@@ -117,6 +123,7 @@ outputs:
         - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
         - {{ pin_subpackage("libnvshmem" ~ soname, exact=True) }}
         - cudatoolkit       # [(cuda_compiler_version or "").startswith("11")]
+        - cuda-cudart       # [(cuda_compiler_version or "").startswith("12")]
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
@@ -164,7 +171,7 @@ outputs:
   - name: libnvshmem-static
     build:
       script: |
-        cp -rv lib/libnvshmem_device.a $PREFIX/lib/
+        cp -rv lib/libnvshmem*.a $PREFIX/lib/
     files:
       - lib/libnvshmem*.a
     requirements:
@@ -174,7 +181,7 @@ outputs:
         - {{ stdlib("c") }}
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
-        - cuda-version {{ cuda_compiler_version }}
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
       run:
         - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
         - {{ pin_subpackage("libnvshmem-dev", exact=True) }}
@@ -183,8 +190,22 @@ outputs:
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
+      skip: true  # [not linux64]
+      requires:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - cmake
+        - make
+        - cuda-version {{ cuda_compiler_version }}                     # [cuda_compiler_version != "None"]
+        - {{ compiler('cuda') }}
+        - openmpi
+      files:
+        - compile_perf_test.sh
       commands:
         - test -f $PREFIX/lib/libnvshmem_device.a
+        - test -f $PREFIX/lib/libnvshmem.a
+        - bash compile_perf_test.sh
 
 about:
   home: https://docs.nvidia.com/nvshmem/index.html

@@ -2,6 +2,8 @@
 
 set -e
 
+$BUILD_PREFIX/bin/check-glibc bin/* lib/* bin/examples/* bin/perftest/device/coll/* bin/perftest/device/pt-to-pt/* bin/perftest/host/coll/* bin/perftest/host/init/* bin/perftest/host/pt-to-pt/*
+
 mkdir -p $PREFIX/lib/cmake/nvshmem/
 
 cp -rv bin $PREFIX/
