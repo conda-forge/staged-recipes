@@ -8,13 +8,20 @@ package:
 source:
   url: https://gitlab.cern.ch/yarr/{{ name }}/-/archive/v{{ version }}/{{ name }}-v{{ version }}.tar.gz
   sha256: 56dd0a42f5260470239f76b89aad016913e8267fbf3e10227abf1797618de18d
+  patches:
+    - patches/0001-patch-strip-debug.patch  # Apply the patch
 
 build:
   skip: true  # [win]
   script:
-    - CXXFLAGS="${CXXFLAGS}" cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -S . -B build
-    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - CXXFLAGS="${CXXFLAGS}" cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_VERBOSE_MAKEFILE=ON -S . -B build
+    #- cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --build build --parallel="${CPU_COUNT}"
     - cmake --install build
+    - rsync -ravz lib/ $PREFIX/lib
+    - rsync -ravz bin/ $PREFIX/bin
+    - ls -lhtra $PREFIX/
+    - find $PREFIX -type f -iname "scanConsole"
   number: 0
 
 requirements:
@@ -23,6 +30,7 @@ requirements:
     - {{ stdlib('c') }}
     - cmake
     - make
+    - rsync
   host: []
   run: []
 
@@ -30,6 +38,7 @@ test:
   requires:
     - {{ compiler('cxx') }}
   commands:
+    - test -f $PREFIX/bin/scanConsole
     - scanConsole -h
 
 about:
