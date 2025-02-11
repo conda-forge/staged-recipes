@@ -6,7 +6,7 @@ if [[ ${HOST} =~ .*darwin.* ]]; then
 
   # Additional build option depending on target architecture
   if [[ "${target_platform}" == "osx-arm64" ]]; then
-    export ADDITIONAL_OPTIONS="-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.3"
+    export ADDITIONAL_OPTIONS="-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
   fi
 
   if [[ "${target_platform}" == "osx-x86_64" ]]; then
