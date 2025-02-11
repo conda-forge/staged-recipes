@@ -2,26 +2,18 @@
 
 set -xe
 
-mkdir -p build && pushd build
-
-cmake .. -GNinja \
-    -DCMAKE_BUILD_TYPE:STRING=Release \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DSlicer_RELEASE_TYPE="Stable" \
-    -DQt5_DIR=${PREFIX} \
-    -DSlicer_USE_SYSTEM_python=0 \
-    -DSlicer_USE_SYSTEM_python-numpy=1 \
-    -DSlicer_USE_SYSTEM_python-scipy=1 \
-    -DSlicer_USE_SYSTEM_python-pip=0 \
-    -DSlicer_USE_SYSTEM_python-setuptools=1 \
-    -DSlicer_USE_SYSTEM_python-ensurepip=1 \
-    -DSlicer_USE_SYSTEM_python-wheel=1 \
+cmake -S . -B build  \
+    -DADDITIONAL_CXX_FLAGS="-fPIC -I$PREFIX/include -L$PREFIX/lib" \
+    -DADDITIONAL_C_FLAGS="-fPIC -I$PREFIX/include -L$PREFIX/lib" \
+    -DCMAKE_C_COMPILER=${CC} \
+    -DCMAKE_CXX_COMPILER=${GXX} \
+    -DSlicer_FORCED_WC_LAST_CHANGED_DATE=$(date +%Y-%m-%d) \
+    -DSlicer_FORCED_REVISION="12345678" \
+    -Wno-dev \
     -DSlicer_USE_SYSTEM_LZMA=1 \
     -DSlicer_USE_SYSTEM_zlib=1 \
     -DSlicer_USE_SYSTEM_bzip2=1 \
     -DSlicer_USE_SYSTEM_curl=1 \
-    -DSlicer_USE_SYSTEM_sqlite=0 \
-    -DSlicer_USE_SYSTEM_RapidJSON=0 \
     -DSlicer_USE_SYSTEM_LibFFI=1 \
     -DSlicer_USE_SYSTEM_DCMTK=1 \
     -DSlicer_USE_SYSTEM_OpenSSL=1 \
@@ -31,18 +23,10 @@ cmake .. -GNinja \
     -DBUILD_TESTING="OFF" \
     -DCMAKE_MESSAGE_LOG_LEVEL=ERROR
 
-cmake --build . --target Slicer -- -j"${CPU_COUNT}" > build.log
-
-# debug
-ls -la
-
-pushd Slicer-build
-cmake --build . --target install
+cmake --build build --target install -j"${CPU_COUNT}"
 
 # debug
 ls -la ${PREFIX}/bin
 
 #    -DSlicer_USE_SYSTEM_ITK=1 \
 #    -DSlicer_USE_SYSTEM_VTK=1 \
-#    -DSlicer_FORCED_WC_LAST_CHANGED_DATE="${last_revision_date}" \
-#    -DSlicer_FORCED_REVISION="${last_revision_hash}"
