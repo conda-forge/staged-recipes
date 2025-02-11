@@ -5,7 +5,6 @@
 {% set build_number = version.split('+')[1] %}
 {% set base_url = 'https://github.com/adoptium/temurin' + version_major + '-binaries/releases/download/jdk-' + version_base + '%2B' + build_number + '/OpenJDK' + version_major + 'U-jre_' %}
 {% set end_url = "_hotspot_" + version.replace('+', '_') %}
-
 {% set name = "temurin-jre" %}
 
 package:
@@ -25,17 +24,52 @@ source:
     sha256: "a4b0015872758aac6a5d17139e952a3951ee536ae6d9a99828823a80a71add56"  # [linux and x86_64]
   - url:    "{{ base_url }}x64_mac{{ end_url }}.tar.gz"                         # [osx and x86_64]
     sha256: "f2c7454f7aba076cd414887b31da92e4a50fda7a13d97f6e295c911af60de0b6"  # [osx and x86_64]
-  - url:    "{{ base_url }}x64_windows{{ end_url }}.zip"                        # [win and x86_64]
-    sha256: "d42f84605c8e27c38998b44ac493d1067abbe45be89969c935d71a858393405c"  # [win and x86_64]
-  - url:    "{{ base_url }}x86-32_windows{{ end_url }}.zip"                     # [win32 and x86]
-    sha256: "b4c418fd053fd85decacb124c9e84c94fee3bbec3999451132227d4bb6fd82cb"  # [win32 and x86]
+  - url:    "{{ base_url }}x64_windows{{ end_url }}.zip"                        # [win64]
+    sha256: "d42f84605c8e27c38998b44ac493d1067abbe45be89969c935d71a858393405c"  # [win64]
+  - url:    "{{ base_url }}x86-32_windows{{ end_url }}.zip"                     # [win32]
+    sha256: "b4c418fd053fd85decacb124c9e84c94fee3bbec3999451132227d4bb6fd82cb"  # [win32]
 
 build:
   number: 0
+  ignore_run_exports:
+    - sysroot_linux-64
+  missing_dso_whitelist:
+    - "*/libfreetype.so.6"      # freetype
+    - "*/libc.so.6"             # glibc/libc6
+    - "*/libdl.so.2"            # glibc/libc6
+    - "*/libm.so.6"             # glibc/libc6
+    - "*/libpthread.so.0"       # glibc/libc6
+    - "*/librt.so.1"            # glibc/libc6
+    - "*/ld-linux-x86-64.so.2"  # glibc/libc6
+    - "*/libutil.so.1"          # glibc/libc6
+    - "*/libX11.so.6"           # xorg-libx11
+    - "*/libXext.so.6"          # xorg-libxext
+    - "*/libasound.so.2"        # alsa-lib
+    - "*/libXi.so.6"            # xorg-libxi
+    - "*/libXrender.so.1"       # xorg-libxrender
+    - "*/libXtst.so.6"          # xorg-libxtst
+  rpaths:
+    - opt/temurin/lib/server
+    - opt/temurin/lib
+    - opt/temurin/bin
 
 outputs:
   - name: {{ name|lower }}
+    requirements:
+      run:
+        - {{ stdlib('c') }}
+        - freetype
+  - name: {{ name|lower }}-headless
+    requirements:
+      run:
+        - {{ pin_subpackage(name|lower, exact=True) }}
+    test:
+      commands:
+        - java -version
+  - name: {{ name|lower }}-graphics
     build:
+      script: bash $RECIPE_DIR/build_graphics.sh      # [linux or osx]
+      script: batch %RECIPE_DIR%\build_graphics.bat   # [win]
       number: 0
       ignore_run_exports:
         - sysroot_linux-64
@@ -54,32 +88,13 @@ outputs:
         - "*/libXi.so.6"            # xorg-libxi
         - "*/libXrender.so.1"       # xorg-libxrender
         - "*/libXtst.so.6"          # xorg-libxtst
+        - "opt/temurin/lib/server/*"
+        - "opt/temurin/lib/*"
+        - "opt/temurin/bin/*"
       rpaths:
         - opt/temurin/lib/server
         - opt/temurin/lib
         - opt/temurin/bin
-    requirements:
-      build:
-        - tar                                   # [linux or osx]
-        - unzip                                 # [win]
-        - gzip                                  # [linux or osx]
-      run:
-        - {{ stdlib('c') }}
-        - freetype
-  - name: {{ name|lower }}-headless
-    requirements:
-      run:
-        - {{ pin_subpackage(name|lower, exact=True) }}
-    files:
-      exclude:
-        - opt/temurin/lib/libawt_xawt.so
-        - opt/temurin/lib/libsplashscreen.so
-        - opt/temurin/lib/libjsound.so
-        - opt/temurin/lib/libjawt.so
-    test:
-      commands:
-        - java -version
-  - name: {{ name|lower }}-graphics
     requirements:
       run:
         - {{ pin_subpackage(name|lower, exact=True) }}

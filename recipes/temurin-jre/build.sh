@@ -34,6 +34,7 @@ do
 done
 
 echo "Creating symlinks"
+mkdir -p ${PREFIX}/bin
 ln -sf ${PREFIX}/opt/temurin/bin/java ${PREFIX}/bin/java
 
 
@@ -49,3 +50,9 @@ echo "JAVA_HOME: ${JAVA_HOME}"
 echo "Creating CDS archive..."
 
 java -Xshare:dump
+
+# Remove x11 related libs
+rm ${PREFIX}/opt/temurin/lib/libawt_xawt.so
+rm ${PREFIX}/opt/temurin/lib/libsplashscreen.so
+rm ${PREFIX}/opt/temurin/lib/libjsound.so
+rm ${PREFIX}/opt/temurin/lib/libjawt.so
