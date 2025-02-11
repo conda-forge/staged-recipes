@@ -19,12 +19,16 @@ cmake ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DREADOUT_BUILD_ON_CONDA=ON ^
-    -DREADOUT_BUILD_TESTS=OFF ^
+    -DREADOUT_BUILD_TESTS=ON ^
     -DREADOUT_USE_CONAN=OFF
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 cmake --build %BLDDIR% --config Release -j
+
+if %errorlevel% neq 0 exit /b %errorlevel%
+
+ctest --test-dir %BLDDIR% --output-on-failure --build-config Release
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
