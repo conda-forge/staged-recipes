@@ -1,0 +1,96 @@
+From 8484d563ec177b453a288202e3bdd6a0e3e37417 Mon Sep 17 00:00:00 2001
+From: Matthias Wittgen <matthias.michael.wittgen@cern.ch>
+Date: Tue, 11 Feb 2025 15:14:24 -0800
+Subject: [PATCH] Allow using CMAKE_INSTALL_PREFIX
+
+---
+ CMakeLists.txt                | 14 ++++++++------
+ cmake/CMakeLists.txt.external |  4 ++--
+ src/python/CMakeLists.txt     |  6 +++---
+ 3 files changed, 13 insertions(+), 11 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9e10bc64..aa385466 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -111,8 +111,10 @@ if(BUILD_TESTS)
+     message(STATUS "Building the YARR test suite" )
+     enable_testing()
+ endif()
+-set(TARGET_INSTALL_AREA ${PROJECT_SOURCE_DIR})
+-set(SHARED_INSTALL_AREA ${PROJECT_SOURCE_DIR}/installed/)
++
++if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
++  set_property(CACHE CMAKE_INSTALL_PREFIX PROPERTY VALUE "${PROJECT_SOURCE_DIR}")
++endif()
+ 
+ function(post_build_debug_library name)
+   add_custom_command(TARGET ${name}
+@@ -123,7 +125,7 @@ function(post_build_debug_library name)
+   )
+ 
+   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lib${name}.so.debug
+-    DESTINATION ${TARGET_INSTALL_AREA}/lib
++	  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+     )
+ endfunction(post_build_debug_library)
+ 
+@@ -136,14 +138,14 @@ function(post_build_debug_executable name)
+   )
+ 
+   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${name}.debug
+-    DESTINATION ${TARGET_INSTALL_AREA}/bin
++	  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+     )
+ endfunction(post_build_debug_executable)
+ 
+ include(cmake/CMakeLists.txt.external)
+ add_subdirectory(src)
+ 
+-install(DIRECTORY ${PROJECT_BINARY_DIR}/bin DESTINATION ${TARGET_INSTALL_AREA}  FILES_MATCHING PATTERN "*" PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
++install(DIRECTORY ${PROJECT_BINARY_DIR}/bin DESTINATION ${CMAKE_INSTALL_PREFIX}  FILES_MATCHING PATTERN "*" PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+     WORLD_EXECUTE WORLD_READ GROUP_EXECUTE GROUP_READ  )
+-install(DIRECTORY ${PROJECT_BINARY_DIR}/lib DESTINATION ${TARGET_INSTALL_AREA}  FILES_MATCHING PATTERN "*" PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
++install(DIRECTORY ${PROJECT_BINARY_DIR}/lib DESTINATION ${CMAKE_INSTALL_PREFIX}  FILES_MATCHING PATTERN "*" PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+     WORLD_EXECUTE WORLD_READ GROUP_EXECUTE GROUP_READ  )
+diff --git a/cmake/CMakeLists.txt.external b/cmake/CMakeLists.txt.external
+index cb0114ee..a84036fd 100644
+--- a/cmake/CMakeLists.txt.external
++++ b/cmake/CMakeLists.txt.external
+@@ -6,7 +6,7 @@ function(YARR_ADD_PLOTTING)
+         plotting_tools
+         GIT_REPOSITORY https://gitlab.cern.ch/YARR/utilities/plotting-tools.git
+         GIT_TAG master
+-        CMAKE_ARGS "-DTARGET_INSTALL_AREA=${TARGET_INSTALL_AREA}"
++        CMAKE_ARGS "-DTARGET_INSTALL_AREA=${CMAKE_INSTALL_PREFIX}"
+         PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external"
+ 	INSTALL_COMMAND make install
+         )
+@@ -84,7 +84,7 @@ function(YARR_ADD_FELIX_CLIENT)
+         GIT_TAG master
+         UPDATE_COMMAND ""
+         PATCH_COMMAND ""
+-        INSTALL_COMMAND mkdir -p ${TARGET_INSTALL_AREA}/lib && cp ${CMAKE_CURRENT_BINARY_DIR}/external/src/felix_client_thread/libfelix-client-thread.so ${TARGET_INSTALL_AREA}/lib
++        INSTALL_COMMAND mkdir -p ${CMAKE_INSTALL_PREFIX}/lib && cp ${CMAKE_CURRENT_BINARY_DIR}/external/src/felix_client_thread/libfelix-client-thread.so ${CMAKE_INSTALL_PREFIX}/lib
+         CONFIGURE_COMMAND ""
+         BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/external/src/felix_client_thread && ./build-standalone.sh
+         PREFIX "${CMAKE_CURRENT_BINARY_DIR}/external"
+diff --git a/src/python/CMakeLists.txt b/src/python/CMakeLists.txt
+index 8c580759..79e42f9e 100644
+--- a/src/python/CMakeLists.txt
++++ b/src/python/CMakeLists.txt
+@@ -1,7 +1,7 @@
+ YARR_ADD_PYBIND11()
+ pybind11_add_module(_pyyarr src/_pyyarr.cpp)
+ target_link_libraries(_pyyarr PRIVATE Yarr Scan)
+-install(DIRECTORY tools/ DESTINATION ${TARGET_INSTALL_AREA}/python
++install(DIRECTORY tools/ DESTINATION ${CMAKE_INSTALL_PREFIX}/python
++        FILES_MATCHING PATTERN "*.py")
++install(DIRECTORY pyYARR/ DESTINATION ${CMAKE_INSTALL_PREFIX}/python/pyYARR
+         FILES_MATCHING PATTERN "*.py")
+-install(DIRECTORY pyYARR/ DESTINATION ${TARGET_INSTALL_AREA}/python/pyYARR
+-        FILES_MATCHING PATTERN "*.py")
+\ No newline at end of file
+-- 
+2.45.2
+
