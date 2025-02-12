@@ -18,3 +18,6 @@ mv ./build/conda/lib/libKhiopsNativeInterface* "$PREFIX/lib"
 cp ./build/conda/tmp/khiops_env "$PREFIX/bin"
 cp ./packaging/linux/common/khiops "$PREFIX/bin"
 cp ./packaging/linux/common/khiops_coclustering "$PREFIX/bin"
+
+# Copy header file
+cp ./src/Learning/KhiopsNativeInterface/KhiopsNativeInterface.h "$PREFIX/include"

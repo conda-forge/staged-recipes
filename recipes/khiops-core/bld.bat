@@ -14,12 +14,16 @@ copy build\conda\bin\MODL_Coclustering.exe %PREFIX%\bin
 copy build\conda\bin\_khiopsgetprocnumber.exe %PREFIX%\bin
 
 REM Copy the KhiopsNativeInterface libs for the kni package
-copy build\conda\bin\KhiopsNativeInterface.dll %PREFIX%\bin
-copy build\conda\lib\KhiopsNativeInterface.lib %PREFIX%\lib
+copy build\conda\bin\KhiopsNativeInterface.dll %LIBRARY_BIN%
+copy build\conda\lib\KhiopsNativeInterface.lib %LIBRARY_LIB%
 
 REM Copy the scripts to the Conda PREFIX path
 copy build\conda\tmp\khiops_env.cmd %PREFIX%\bin
 copy packaging\windows\khiops_coclustering.cmd %PREFIX%\bin
 copy packaging\windows\khiops.cmd %PREFIX%\bin
+
+REM Copy the header file
+copy src\Learning\KhiopsNativeInterface\KhiopsNativeInterface.h %LIBRARY_INC%
+
 
 if errorlevel 1 exit 1
