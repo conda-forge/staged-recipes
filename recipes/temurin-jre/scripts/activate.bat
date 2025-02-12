@@ -3,7 +3,7 @@
 if defined JAVA_HOME (
     set "JAVA_HOME_CONDA_BACKUP=%JAVA_HOME%"
 )
-set "JAVA_HOME=%CONDA_PREFIX%\opt\temurin"
+set "JAVA_HOME=%CONDA_PREFIX%\Library\temurin"
 
 if defined JAVA_LD_LIBRARY_PATH (
     set "JAVA_LD_LIBRARY_PATH_CONDA_BACKUP=%JAVA_LD_LIBRARY_PATH%"

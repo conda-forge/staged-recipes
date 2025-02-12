@@ -13,5 +13,5 @@ echo "Copying java files"
 for ITEM in libawt_xawt libsplashscreen libjsound libjawt
 do
     echo "... item $ITEM"
-    cp ${ARCHIVE_PATH}lib/${ITEM}.so ${PREFIX}/opt/temurin/lib/
+    cp ${ARCHIVE_PATH}lib/${ITEM}.* ${PREFIX}/opt/temurin/lib/
 done
