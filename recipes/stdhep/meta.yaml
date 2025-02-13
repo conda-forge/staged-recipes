@@ -29,10 +29,15 @@ outputs:
         - {{ pin_subpackage('stdhep', max_pin='x.x') }}
       script:
         - cd vendor/StdHEP/
-        - make BUILD_SHARED="true" SHEXT='so' SHX='_s' all --jobs=$CPU_COUNT  # [linux]
+
+        # macOS fixes
         # FIXME: There should be a better way to specify the '-fno-second-underscore' flag
         - sed -i 's/ffixed-line-length-none/ffixed-line-length-none -fno-second-underscore/g' makefile  # [osx]
+        # clang doesn't know about -soname, but instead used -install_name
+        - find . -type f -exec grep -l "Wl,-soname," {} + | xargs sed -i 's|soname,|install_name,@rpath/|g'  # [osx]
         - sed -i 's|(cd src/stdhep; $(MAKE) $(DMAKE) all) > log.stdhep.$$$$ 2>&1|cd src/stdhep; $(MAKE) $(DMAKE) all|g' makefile  # [osx]
+
+        - make BUILD_SHARED="true" SHEXT='so' SHX='_s' all --jobs=$CPU_COUNT  # [linux]
         - make BUILD_SHARED="true" SHEXT='dylib' SHX='_s' all --jobs=$CPU_COUNT  # [osx]
 
         # Install
