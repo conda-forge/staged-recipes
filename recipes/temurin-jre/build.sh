@@ -52,7 +52,15 @@ echo "Creating CDS archive..."
 java -Xshare:dump
 
 # Remove x11 related libs
-rm ${PREFIX}/opt/temurin/lib/libawt_xawt.*
-rm ${PREFIX}/opt/temurin/lib/libsplashscreen.*
-rm ${PREFIX}/opt/temurin/lib/libjsound.*
-rm ${PREFIX}/opt/temurin/lib/libjawt.*
+if [ "$(uname -s)" == "Darwin" ]
+then
+    rm ${PREFIX}/opt/temurin/lib/libsplashscreen.dylib
+    rm ${PREFIX}/opt/temurin/lib/libjsound.dylib
+    rm ${PREFIX}/opt/temurin/lib/libjawt.dylib
+else
+    rm ${PREFIX}/opt/temurin/lib/libawt_xawt.so
+    rm ${PREFIX}/opt/temurin/lib/libsplashscreen.so
+    rm ${PREFIX}/opt/temurin/lib/libjsound.so
+    rm ${PREFIX}/opt/temurin/lib/libjawt.so
+fi
+

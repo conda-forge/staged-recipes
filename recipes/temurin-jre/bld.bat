@@ -27,7 +27,8 @@ echo "Create bin directory if it doesn't exist"
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
 
 echo "Create symlink to java.exe"
-mklink "%PREFIX%\bin\java.exe" "%PREFIX%\Library\temurin\bin\java.exe"
+mklink "%LIBRARY_BIN%\java.exe" "%PREFIX%\Library\temurin\bin\java.exe"
+mklink "%LIBRARY_BIN%\java" "%PREFIX%\Library\temurin\bin\java.exe"
 
 echo "Set environment variables"
 set "JAVA_HOME=%PREFIX%\opt\temurin"
