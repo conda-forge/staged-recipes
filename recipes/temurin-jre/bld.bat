@@ -16,12 +16,17 @@ if not exist "%PREFIX%\Library" mkdir "%PREFIX%\Library"
 if not exist "%PREFIX%\Library\temurin" mkdir "%PREFIX%\Library\temurin"
 
 echo "Moving files to temurin directory..."
-xcopy /e /k /h /i bin "%PREFIX%\Library\temurin\"
-xcopy /e /k /h /i conf "%PREFIX%\Library\temurin\"
-xcopy /e /k /h /i legal "%PREFIX%\Library\temurin\"
-xcopy /e /k /h /i lib "%PREFIX%\Library\temurin\"
-xcopy /e /k /h /i NOTICE "%PREFIX%\Library\temurin\"
-xcopy /e /k /h /i release "%PREFIX%\Library\temurin\"
+xcopy /e /k /h /i bin "%PREFIX%\Library\temurin\bin"
+xcopy /e /k /h /i conf "%PREFIX%\Library\temurin\conf"
+xcopy /e /k /h /i legal "%PREFIX%\Library\temurin\legal"
+xcopy /e /k /h /i lib "%PREFIX%\Library\temurin\lib\"
+xcopy /k /i NOTICE "%PREFIX%\Library\temurin\NOTICE"
+xcopy /k /i release "%PREFIX%\Library\temurin\release"
+
+echo "Check Library\teurin dir"
+dir "%PREFIX%\Library\temurin"
+echo "Check Library\teurin\bin dir"
+dir "%PREFIX%\Library\temurin\bin"
 
 echo "Create bin directory if it doesn't exist"
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
@@ -32,7 +37,8 @@ mklink "%LIBRARY_BIN%\java" "%PREFIX%\Library\temurin\bin\java.exe"
 
 echo "Set environment variables"
 set "JAVA_HOME=%PREFIX%\Library\temurin"
-set "JAVA_LD_LIBRARY_PATH=%JAVA_HOME%\lib\server"
+set "JAVA_LD_LIBRARY_PATH=%PREFIX%\Library\temurin\lib\server"
 
 :: Run java -Xshare:dump
-%JAVA_HOME%\bin\java.exe -Xshare:dump
+echo "Running java -Xshare:dump..."
+"%JAVA_HOME%\bin\java.exe" -Xshare:dump
