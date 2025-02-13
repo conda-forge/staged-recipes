@@ -3,7 +3,7 @@
 set CARGO_PROFILE_RELEASE_STRIP=symbols
 set CARGO_PROFILE_RELEASE_LTO=fat
 
-cargo install --features vendored-openssl --no-track --locked --root "%PREFIX%" --path . || exit 1
+cargo install --features vendored-openssl --no-track --locked --root "%PREFIX%" --path .\cli || exit 1
 
 cargo-bundle-licenses ^
     --format yaml ^
