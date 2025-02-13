@@ -29,6 +29,7 @@ cmake -S . -B ${BUILD_DIR} \
       -DBUILD_TESTING=$BUILD_TESTING \
       -DFAILURE_THRESHOLD=$FAILURE_THRESHOLD \
       -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
       -G Ninja
 
@@ -37,7 +38,3 @@ cmake --build ${BUILD_DIR} --target install -- -v
 
 # Run tests
 ctest --output-on-failure --test-dir ${BUILD_DIR} -V
-
-if [ "$RUN_VALIDATION_PLOTS" = "True" ]; then
-    cmake --build build --target validation-plots
-fi

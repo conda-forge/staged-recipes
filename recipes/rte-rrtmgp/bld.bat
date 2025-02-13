@@ -31,6 +31,7 @@ cmake -S . -B %BUILD_DIR% ^
       -DBUILD_TESTING=%BUILD_TESTING% ^
       -DFAILURE_THRESHOLD=%FAILURE_THRESHOLD% ^
       -DBUILD_SHARED_LIBS=%BUILD_SHARED_LIBS% ^
+      -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
       -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
       -G Ninja
 if errorlevel 1 exit 1
@@ -42,7 +43,3 @@ if errorlevel 1 exit 1
 :: Run tests
 ctest --output-on-failure --test-dir %BUILD_DIR% -V
 if errorlevel 1 exit 1
-
-if /I "%RUN_VALIDATION_PLOTS%"=="True" (
-    cmake --build %BUILD_DIR% --target validation-plots
-)
