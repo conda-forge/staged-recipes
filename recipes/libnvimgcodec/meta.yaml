@@ -43,15 +43,15 @@ requirements:
     - pkg-config
   host:
     - cuda-version {{ cuda_compiler_version }}
-    - libboost-headers
-    - libjpeg-turbo
     {% if cuda_major == 12 %}
-    - cuda-driver-dev  # [linux]
     - cuda-cudart-dev
+    - cuda-driver-dev  # [linux]
     - libnvjpeg-dev
     - libnvjpeg2k-dev
     - libnvtiff-dev
     {% endif %}
+    - libboost-headers
+    - libjpeg-turbo
     - libopencv
     - libtiff
     - nvtx-c
@@ -63,7 +63,7 @@ outputs:
   - name: libnvimgcodec-dev
     build:
       run_exports:
-        - {{ pin_subpackage('libnvimgcodec' ~ somajor) }}
+        - {{ pin_subpackage('libnvimgcodec' ~ somajor, max_pin=None) }}
     files:
       # This recipe requires conda-build 24.7 or later
       include:
@@ -71,7 +71,7 @@ outputs:
         - lib/libnvimgcodec.so  # [linux]
         - lib/cmake/nvimgcodec  # [linux]
         - etc/**  # [linux]
-        - extensions/*.so  # [linux]
+        - lib/extensions/*.so  # [linux]
         # FIXME: Drop static libraries once CMake config supports it
         - lib/libnvimgcodec_static.a  # [linux]
         - Library/include/**  # [win]
@@ -84,7 +84,7 @@ outputs:
       exclude:
         - lib/python*  # [linux]
         - lib/libnvimgcodec.so.*  # [linux]
-        - extensions/*.so.*  # [linux]
+        - lib/extensions/*.so.*  # [linux]
     requirements:
       host:
         - {{ pin_subpackage('libnvimgcodec' ~ somajor, exact=True) }}
@@ -117,10 +117,18 @@ outputs:
 
   - name: libnvimgcodec{{ somajor }}
     files:
-      - lib/libnvimgcodec.so.*  # [linux]
-      - extensions/*.so.*  # [linux]
-      - Library/bin/nvimgcodec_{{ somajor }}.dll  # [win]
-      - Library/extensions/*.dll  # [win]
+      include:
+        - lib/libnvimgcodec.so.*  # [linux]
+        - lib/extensions/*.so.*  # [linux]
+        - Library/bin/nvimgcodec_{{ somajor }}.dll  # [win]
+        - Library/extensions/*.dll  # [win]
+      exclude:
+        - lib/extensions/*opencv*  # [linux]
+        - lib/extensions/*libtiff*  # [linux]
+        - lib/extensions/*libjpeg*  # [linux]
+        - Library/extensions/*opencv*  # [win]
+        - Library/extensions/*libtiff*  # [win]
+        - Library/extensions/*libjpeg*  # [win]
     build:
       ignore_run_exports_from:
         - {{ compiler('cuda') }}
@@ -132,7 +140,6 @@ outputs:
         - {{ stdlib('c') }}
       host:
         - cuda-version {{ cuda_compiler_version }}
-        - libjpeg-turbo
       {% if cuda_major == 12 %}
         - cuda-driver-dev  # [linux]
         - cuda-cudart-dev
@@ -140,15 +147,75 @@ outputs:
         - libnvjpeg2k-dev
         - libnvtiff-dev
       {% endif %}
-        - libopencv
-        - libtiff
       run:
         - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+      run_constrained:
+        - {{ pin_subpackage('libnvimgcodec-libtiff-ext', exact=True) }}
+        - {{ pin_subpackage('libnvimgcodec-libopencv-ext', exact=True) }}
+        - {{ pin_subpackage('libnvimgcodec-libjpeg-turbo-ext', exact=True) }}
     test:
       commands:
         - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ somajor }}  # [linux]
         - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}  # [linux]
+        - test -f ${PREFIX}/lib/extensions/libnvbmp_ext.so.{{ version }}  # [linux]
+        - test -f ${PREFIX}/lib/extensions/libnvjpeg_ext.so.{{ version }}  # [linux]
+        - test -f ${PREFIX}/lib/extensions/libnvjpeg2k_ext.so.{{ version }}  # [linux]
+        - test -f ${PREFIX}/lib/extensions/libnvpnm_ext.so.{{ version }}  # [linux]
+        - test -f ${PREFIX}/lib/extensions/libnvtiff_ext.so.{{ version }}  # [linux]
         - if not exist %LIBRARY_BIN%\\nvimgcodec_{{ somajor }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\extensions\\nvbmp_ext_{{ somajor }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\extensions\\nvjpeg_ext_{{ somajor }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\extensions\\nvjpeg2k_ext_{{ somajor }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\extensions\\nvpnm_ext_{{ somajor }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\extensions\\nvtiff_ext_{{ somajor }}.dll exit 1  # [win]
+
+  - name: libnvimgcodec-libjpeg-turbo-ext
+    files:
+      - lib/extensions/*libjpeg*.so.*  # [linux]
+      - Library/extensions/*libjpeg*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - libjpeg-turbo
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/extensions/libjpeg_turbo_ext.so.{{ version }}  # [linux]
+        - if not exist %PREFIX%\\extensions\\libjpeg_turbo_ext_{{ somajor }}.dll exit 1  # [win]
+
+  - name: libnvimgcodec-libtiff-ext
+    files:
+      - lib/extensions/*libtiff*.so.*  # [linux]
+      - Library/extensions/*libtiff*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - libtiff
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/extensions/libtiff_ext.so.{{ version }}  # [linux]
+        - if not exist %PREFIX%\\extensions\\libtiff_ext_{{ somajor }}.dll exit 1  # [win]
+
+  - name: libnvimgcodec-libopencv-ext
+    files:
+      - lib/extensions/*libopencv*.so.*  # [linux]
+      - Library/extensions/*libopencv*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - libopencv
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/extensions/libopencv_ext.so.{{ version }}  # [linux]
+        - if not exist %PREFIX%\\extensions\\opencv_ext_{{ somajor }}.dll exit 1  # [win]
 
 about:
   home: https://github.com/NVIDIA/nvImageCodec
