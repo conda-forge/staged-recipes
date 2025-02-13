@@ -21,6 +21,10 @@ build:
   skip: true  # [not (linux64 or aarch64)]
   skip: true  # [cuda_compiler_version in (None, "None") or (aarch64 and (cuda_compiler_version or "").startswith("11"))]
 
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+
 outputs:
   - name: libnvshmem{{ soname }}
     build:
@@ -37,12 +41,8 @@ outputs:
         - "*libpmix*"    # omitted as dependency - part of openmpi
         - "*liboshmem*"  # omitted as dependency - part of openmpi
         - "*rdma-core*"  # omitted as dependency - MOFED replaces rdma-core
-      script: |
-        cp -rv lib $PREFIX/
     files:
-      - lib/libnvshmem_host.so.*
-      - lib/nvshmem_bootstrap*.so.*
-      - lib/nvshmem_transport*.so.*
+      - lib/*nvshmem*.so.*
     requirements:
       build:
         - {{ compiler('c') }}
@@ -105,8 +105,18 @@ outputs:
         - "*liboshmem*"
       run_exports:
         - {{ pin_subpackage("libnvshmem" ~ soname, max_pin=None) }}
-    script: build-libnvshmem.sh
-    script_interpreter: /bin/bash
+    files:
+      - bin/
+      - include/nvshmem*.h
+      - include/bootstrap_device_host
+      - include/device
+      - include/device_host
+      - include/device_host_transport
+      - include/host
+      - include/non_abi
+      - lib/cmake
+      - lib/*nvshmem*.so
+      - share/src
     requirements:
       build:
         - {{ compiler("c") }}
@@ -114,7 +124,6 @@ outputs:
         - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
-        - cf-nvidia-tools 1  # [linux]
       host:
         - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
         - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
@@ -170,9 +179,6 @@ outputs:
         - test -L $PREFIX/lib/nvshmem_transport_ucx.so
 
   - name: libnvshmem-static
-    build:
-      script: |
-        cp -rv lib/libnvshmem*.a $PREFIX/lib/
     files:
       - lib/libnvshmem*.a
     requirements:
