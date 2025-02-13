@@ -59,3 +59,8 @@ cmake --install . --strip
 
 rm $PREFIX/LICENSE.txt
 rm $PREFIX/Acknowledgements.txt
+
+# The default search path for nvimgcodec plugins is $PREFIX/lib/extensions
+# Can also be overridden by env variable NVIMGCODEC_EXTENSIONS_PATH or in source code
+mv -v $PREFIX/extensions $PREFIX/lib/extensions
+sed -i 's|"${_PACKAGE_ROOTDIR}/extensions"|"${_PACKAGE_ROOTDIR}/lib/extensions"|g' $PREFIX/lib/cmake/nvimgcodec/nvimgcodecConfig.cmake
