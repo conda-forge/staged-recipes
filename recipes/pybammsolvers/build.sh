@@ -4,7 +4,7 @@ mkdir -p build_sundials
 cd build_sundials
 KLU_INCLUDE_DIR=$PREFIX/include/suitesparse
 KLU_LIBRARY_DIR=$PREFIX/lib
-SUNDIALS_DIR=$SRC_DIR/sundials               
+SUNDIALS_DIR=$SRC_DIR/sundials
 cmake -DENABLE_LAPACK=ON\
       -DSUNDIALS_INDEX_SIZE=32\
       -DEXAMPLES_ENABLE:BOOL=OFF\
@@ -16,3 +16,6 @@ cmake -DENABLE_LAPACK=ON\
       $SRC_DIR/sundials
 make install
 
+cd $SRC_DIR
+
+pip install -vv --no-deps --no-build-isolation .
