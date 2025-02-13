@@ -33,10 +33,7 @@ cmake -S . -B ${BUILD_DIR} \
       -G Ninja
 
 # Compile
-cmake --build ${BUILD_DIR} --parallel
-
-# Install the necessery files into the package
-cmake --install ${BUILD_DIR} --prefix "${PREFIX}"
+cmake --build ${BUILD_DIR} --target install -- -v
 
 # Run tests
 ctest --output-on-failure --test-dir ${BUILD_DIR} -V
