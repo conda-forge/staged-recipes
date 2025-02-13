@@ -30,6 +30,8 @@ outputs:
       script:
         - cd vendor/StdHEP/
         - make BUILD_SHARED="true" SHEXT='so' SHX='_s' all  # [linux]
+        # FIXME: There should be a better way to specify the '-fno-second-underscore' flag
+        - sed -i 's/ffixed-line-length-none/ffixed-line-length-none -fno-second-underscore/g' makefile  # [osx]
         - make BUILD_SHARED="true" SHEXT='dylib' SHX='_s' all  # [osx]
 
         # Install
@@ -39,11 +41,14 @@ outputs:
         - mkdir -p $PREFIX/include/stdhep/mcfio
         - mkdir -p $PREFIX/include/stdhep/display/spin
         - mkdir -p $PREFIX/include/stdhep/display/util
-        - cp src/inc/*.h* $PREFIX/include/stdhep/
+        - cp src/inc/*.h $PREFIX/include/stdhep/
+        - cp src/inc/*.inc $PREFIX/include/stdhep/
         - cp mcfio/src/*.h* $PREFIX/include/stdhep/mcfio/
-        - cp src/display/*.h* $PREFIX/include/stdhep/display/
-        - cp src/display/spin/*.h* $PREFIX/include/stdhep/display/spin/
-        - cp src/display/util/*.h* $PREFIX/include/stdhep/display/util/
+        - cp mcfio/src/*.inc $PREFIX/include/stdhep/mcfio/
+        - cp src/display/*.h $PREFIX/include/stdhep/display/
+        - cp src/display/*.inc $PREFIX/include/stdhep/display/
+        - cp src/display/spin/*.h $PREFIX/include/stdhep/display/spin/
+        - cp src/display/util/*.h $PREFIX/include/stdhep/display/util/
 
     requirements:
       build:
@@ -53,6 +58,11 @@ outputs:
         - make
 
     test:
+      source_files:
+        - vendor/StdHEP/example/listStdHep.F
+      requires:
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
       commands:
         - test -f $PREFIX/lib/libFmcfio${SHLIB_EXT}
         - test -f $PREFIX/lib/libstdhep${SHLIB_EXT}
@@ -138,6 +148,11 @@ outputs:
         - test -f $PREFIX/include/stdhep/stdtmp.h
         - test -f $PREFIX/include/stdhep/stdver.h
 
+        - cd vendor/StdHEP/example/
+        - $FC listStdHep.F -o listStdHep $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep -lFmcfio -lstdhepC
+        # - ./listStdHep
+        # - test -f listStdHep.lpt
+
   - name: {{ name }}-static
 
     build:
@@ -153,20 +168,27 @@ outputs:
         - mkdir -p $PREFIX/include/stdhep/mcfio
         - mkdir -p $PREFIX/include/stdhep/display/spin
         - mkdir -p $PREFIX/include/stdhep/display/util
-        - mv src/inc/*.h* $PREFIX/include/stdhep/
+        - mv src/inc/*.h $PREFIX/include/stdhep/
+        - mv src/inc/*.inc $PREFIX/include/stdhep/
         - mv mcfio/src/*.h* $PREFIX/include/stdhep/mcfio/
-        - mv src/display/*.h* $PREFIX/include/stdhep/display/
-        - mv src/display/spin/*.h* $PREFIX/include/stdhep/display/spin/
-        - mv src/display/util/*.h* $PREFIX/include/stdhep/display/util/
+        - mv mcfio/src/*.inc $PREFIX/include/stdhep/mcfio/
+        - mv src/display/*.h $PREFIX/include/stdhep/display/
+        - mv src/display/*.inc $PREFIX/include/stdhep/display/
+        - mv src/display/spin/*.h $PREFIX/include/stdhep/display/spin/
+        - mv src/display/util/*.h $PREFIX/include/stdhep/display/util/
 
     requirements:
       build:
         - {{ stdlib('c') }}
         - {{ compiler('fortran') }}
         - {{ compiler('cxx') }}
-        - make
 
     test:
+      source_files:
+        - vendor/StdHEP/example/listStdHep.F
+      requires:
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
       commands:
         - test -f $PREFIX/lib/libFmcfio.a
         - test -f $PREFIX/lib/libstdhep.a
@@ -251,6 +273,12 @@ outputs:
         - test -f $PREFIX/include/stdhep/stdlun.h
         - test -f $PREFIX/include/stdhep/stdtmp.h
         - test -f $PREFIX/include/stdhep/stdver.h
+
+        - cd vendor/StdHEP/example/
+        - ls -lhtra
+        - $FC listStdHep.F -o listStdHep $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep -lFmcfio -lstdhepC
+        - ./listStdHep
+        - test -f listStdHep.lpt
 
 about:
   home: https://github.com/mg5amcnlo/mg5amcnlo/tree/3.x/vendor/StdHEP
