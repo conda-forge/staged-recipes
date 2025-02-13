@@ -31,7 +31,7 @@ mklink "%LIBRARY_BIN%\java.exe" "%PREFIX%\Library\temurin\bin\java.exe"
 mklink "%LIBRARY_BIN%\java" "%PREFIX%\Library\temurin\bin\java.exe"
 
 echo "Set environment variables"
-set "JAVA_HOME=%PREFIX%\opt\temurin"
+set "JAVA_HOME=%PREFIX%\Library\temurin"
 set "JAVA_LD_LIBRARY_PATH=%JAVA_HOME%\lib\server"
 
 :: Run java -Xshare:dump
