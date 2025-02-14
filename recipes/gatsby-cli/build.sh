@@ -2,6 +2,10 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+if [[ ${target_platform} =~ .*linux.* ]]; then
+    ln -sf ${BUILD_PREFIX}/bin/${CC} ${BUILD_PREFIX}/bin/gcc
+fi
+
 # Patch package.json to remove unneeded prepare step
 mv package.json package.json.bak
 jq 'del(.scripts.prepare)' package.json.bak > package.json
