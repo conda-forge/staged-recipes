@@ -1,0 +1,64 @@
+{% set version = '1.1.3' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-pyinit
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/pyinit_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/pyinit/pyinit_{{ version }}.tar.gz
+  sha256: d6e7826d62e8ed65b7afa56959a395d2ed2294b13b533297f627b444ca8d7c31
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'        # [win]
+    - '*/Rblas.dll'    # [win]
+    - '*/Rlapack.dll'  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ stdlib('c') }}                # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ stdlib('m2w64_c') }}          # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+  host:
+    - libblas
+    - liblapack
+    - r-base
+    - r-robustbase
+  run:
+    - r-base
+    - {{ native }}gcc-libs         # [win]
+    - r-robustbase
+
+test:
+  commands:
+    - $R -e "library('pyinit')"           # [not win]
+    - "\"%R%\" -e \"library('pyinit')\""  # [win]
+
+about:
+  home: https://github.com/dakep/pyinit
+  license: GPL-2.0-or-later
+  summary: Deterministic Pena-Yohai initial estimator for robust S estimators of regression.
+    The procedure is described in detail in Pena, D., & Yohai, V. (1999) <doi:10.2307/2670164>.
+  license_family: GPL2
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-2'
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
