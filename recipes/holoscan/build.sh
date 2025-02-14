@@ -3,6 +3,8 @@
 set -e
 set -x
 
+check-glibc bin/* lib/* lib/ucx/* lib/gxf_extensions/*
+
 cp -rv bin $PREFIX
 cp -rv examples $PREFIX
 cp -rv lib $PREFIX

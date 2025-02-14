@@ -1,5 +1,5 @@
-{% set version = "2.6.0.1" %}
-{% set cuda_version = "12.6" %}
+{% set version = "3.0.0.1" %}
+{% set cuda_version = "12.8" %}
 {% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
 {% set lib_major_version = version.split(".")[0] %}
 {% set platform = "linux-x86_64" %}  # [linux64]
@@ -11,27 +11,29 @@ package:
   version: {{ version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/{{ platform }}/holoscan-{{ platform }}-{{ version }}-archive.{{ extension }}
-  sha256: bfc694199967eab7bfcf1fc23bd55779d06e97845d9b201bb8c5ad3e57bdca3b  # [linux64]
-  sha256: c7f0aeb769933b1f61ed2dc29c5a37f4821994cecad822c4137ccad77da3434d  # [aarch64]
+  url: holoscan-linux-x86_64-3.0.0.1-archive.tar.xz                         # [linux64]
+  sha256: 9293e6612780b7c53a8f38eb16399b6b020f1b0441d78a21a830505253775034  # [linux64]
+  sha256: ed14cfeb194246eef3a9622c586d9fba22eee282e3153e737a3cf649d2abe7f7  # [aarch64]
 
 build:
   number: 0
   skip: true  # [not (linux64 or aarch64)]
   skip: true  # [cuda_compiler_version in (None, "None") or (cuda_compiler_version or "").startswith("11")]
-
   missing_dso_whitelist:
-    - "*libcuda.so*" # driver
-    - "*libgdrapi.so*" # part of gdrcopy yet not pre-built for conda-forge channel
-    - "*libnvidia-ml.so*"  # driver
-    - "*libnvinfer_plugin.so*" # NVIDIA's TensorRT not on conda-forge
-    - "*libnvonnxparser.so*" # NVIDIA's TensorRT not on conda-forge
+    - "*libcuda.so*"              # driver
+    - "*libgdrapi.so*"            # part of gdrcopy yet not pre-built for conda-forge channel
+    - "*libnvidia-ml.so*"         # driver
+    - "*libmlx5*"                 # installed as part of the Mellanox OFED
+    - "*libnvinfer_plugin.so*"    # NVIDIA's TensorRT not on conda-forge
+    - "*libnvonnxparser.so*"      # NVIDIA's TensorRT not on conda-forge
     - "*libonnxruntime.so.1.18.1" # onnxruntime conda package is there, but this particular version does not have this DSO
-    - "*libtorchvision.so*" # not available even in torchvision package
-    - "*libv4l2.so*" # lideo4linux2 lib, not available
-    - "*libxpmem.so*" # XPMEM, Linux Cross-Memory Attach kernel module, not available
-  run_exports:
-    - {{ pin_subpackage("holoscan", max_pin="x") }}
+    - "*libtorchvision.so*"       # not available even in torchvision package
+    - "*libv4l2.so*"              # lideo4linux2 lib, not available
+    - "*libxpmem.so*"             # XPMEM, Linux Cross-Memory Attach kernel module, not available
+    - "*rdma-core*"               # MOFED includes rdma-core
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+    - cuda-cudart-dev
 
 requirements:
   build:
@@ -40,6 +42,7 @@ requirements:
     - {{ compiler('cuda') }}
     - arm-variant * {{ arm_variant_type }}  # [aarch64]
     - {{ stdlib("c") }}
+    - cf-nvidia-tools 1  # [linux]
   host:
     - cuda-cudart-dev
     - cuda-crt-dev_{{ target_platform }}
@@ -49,27 +52,33 @@ requirements:
     - libnpp-dev
     - libtorch
     - python =3.10
-    - rdma-core
     - libvulkan-loader
+    - ucx
   run:
     - cloudpickle
+    - cuda-cudart
     - cuda-nvcc
+    - cuda-nvrtc
     - cuda-nvtx # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
-    - cuda-runtime
-    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
     - cudnn
     - libegl
     - libgomp
+    - libcublas
+    - libcufft
+    - libcurand
+    - libcusolver
+    - libcusparse
     - libjpeg-turbo
     - libnpp-dev
     - libnvjitlink
-    - libpng
     - libvulkan-loader
     - libzlib
     - nccl
     - pip
     - python =3.10
     - pytorch
+    - ucx # added because we took out rdma-core, which depends on ucx. rdma-core is provided by MOFED
   run_constrained:
     - arm-variant * {{ arm_variant_type }}  # [aarch64]
 test:
@@ -82,7 +91,6 @@ test:
     - cuda-cudart-dev
     - cuda-version {{ cuda_version }}
     - cuda-nvcc
-    - cuda-crt-dev_{{ target_platform }}
   files:
     - compile_hello_world.sh
   commands:
