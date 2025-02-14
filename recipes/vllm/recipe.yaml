@@ -1,5 +1,7 @@
 context:
   version: 0.7.0
+  cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
+  vllm_target_device: ${{ "cuda" if cuda == "true" else "cpu" }}
 
 package:
   name: vllm
@@ -15,7 +17,7 @@ build:
     python use_existing_torch.py
     mkdir -p $SRC_DIR/third_party/NVTX/c
     ln -s $CONDA_PREFIX/include $SRC_DIR/third_party/NVTX/c/include
-    VERBOSE=1 ${{ PYTHON }} -m pip install . --no-build-isolation
+    VERBOSE=1 VLLM_TARGET_DEVICE=${{ vllm_target_device }} ${{ PYTHON }} -m pip install . --no-build-isolation
   python:
     entry_points:
     - vllm  =  vllm.scripts:main
@@ -30,7 +32,9 @@ requirements:
   - ${{ stdlib('c') }}
   - ${{ compiler('c') }}
   - ${{ compiler('cxx') }}
-  - ${{ compiler('cuda') }}
+  - if: cuda == "true"
+    then:
+    - ${{ compiler('cuda') }}
   host:
   - python
   - pip
@@ -39,6 +43,9 @@ requirements:
   - packaging
   - wheel
   - jinja2
+  - pytorch
+  - ${{ "pytorch * cuda*" if cuda == "true" }}
+  - ${{ "pytorch * cpu*" if cuda == "false" }}
   - pytorch * cuda*
   - nvtx-c
   - cuda-version ==${{ cuda_compiler_version }}
