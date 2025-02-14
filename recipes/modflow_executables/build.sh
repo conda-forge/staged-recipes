@@ -3,5 +3,8 @@ set -ex
 
 conda activate root
 
-make-program : --appdir "${PREFIX}/bin" --verbose
+mkdir ~/build
+cd ~/build
+
+make-program mf2005,mfusg,triangle,gridgen --appdir "${PREFIX}/bin" --verbose
 
