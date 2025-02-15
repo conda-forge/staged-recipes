@@ -1,7 +1,7 @@
 context:
   version: 0.7.2
-  cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
-  vllm_target_device: ${{ "cuda" if cuda == "true" else "cpu" }}
+  use_cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
+  vllm_target_device: ${{ "cuda" if use_cuda == "true" else "cpu" }}
 
 package:
   name: vllm
@@ -11,7 +11,7 @@ source:
 - url: https://pypi.org/packages/source/v/vllm/vllm-${{ version }}.tar.gz
   sha256: bdeeda5624182e6a93895cbb7e20b6e88b04d22b8272d8a255741b28b36ae941
   patches:
-  - patches/vllm-cmake-args.patch
+  - patches/vllm-cmakefiles.patch
   target_directory: vllm
 - url: https://github.com/vllm-project/flash-attention/archive/720c94869cf2e0ff5a706e9c7f1dce0939686ade.tar.gz
   sha256: 5ba61742ebbf496d9daa846ed09b51f6e941db955398be75e2565141e2656219
@@ -20,19 +20,12 @@ source:
 build:
   number: 0
   script: |
-    sed -i 's/CUDA_FOUND/CUDAToolkit_FOUND/g' vllm/CMakeLists.txt
-    sed -i 's/CUDA_FOUND/CUDAToolkit_FOUND/g' flash-attention/CMakeLists.txt
-    sed -i 's/CUDA_VERSION/CUDAToolkit_VERSION/g' vllm/CMakeLists.txt
-    sed -i 's/CUDA_VERSION/CUDAToolkit_VERSION/g' flash-attention/CMakeLists.txt
-    sed -i 's/CUDA_VERSION/CUDAToolkit_VERSION/g' flash-attention/cmake/utils.cmake
-    sed -i 's/CUDA::/CUDAToolkit::/g' vllm/cmake/utils.cmake
-    sed -i 's/CUDA::/CUDAToolkit::/g' flash-attention/cmake/utils.cmake
     sed -i 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "2.5.1")/g' flash-attention/CMakeLists.txt
     export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
     cd vllm
     python use_existing_torch.py
     mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
-    ln -s $CONDA_PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
+    ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
     export VERBOSE=1
     export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
     # export VLLM_CMAKE_ARGS="-DVLLM_TARGET_DEVICE=${{ vllm_target_device }} -DCUDA_TOOLKIT_ROOT_DIR=$PREFIX"
@@ -52,7 +45,7 @@ requirements:
   - ${{ stdlib('c') }}
   - ${{ compiler('c') }}
   - ${{ compiler('cxx') }}
-  - if: cuda == "true"
+  - if: use_cuda == "true"
     then:
     - ${{ compiler('cuda') }}
   host:
@@ -64,16 +57,19 @@ requirements:
   - wheel
   - jinja2
   - pytorch ==2.5.1
-  - if: cuda == "true"
+  - if: use_cuda == "true"
     then:
-    - pytorch * cuda*
+    - pytorch-gpu
     - nvtx-c
+    - cuda
     - cuda-version ==${{ cuda_compiler_version }}
     - cuda-cudart-dev
     - cuda-nvrtc-dev
+    - cuda-nvrtc-static
+    - cutlass
     - libcublas-dev
     else:
-    - pytorch * cpu*
+    - pytorch-cpu
   run:
   - python
   - psutil
@@ -120,6 +116,11 @@ requirements:
   - torch ==2.5.1
   - torchaudio ==2.5.1
   - torchvision ==0.20.1
+  - if: use_cuda == "true"
+    then:
+    - pytorch-gpu
+    else:
+    - pytorch-cpu
   - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
   # - tensorizer>=2.9.0; extra == "tensorizer"
   # - runai-model-streamer; extra == "runai"
@@ -140,7 +141,7 @@ about:
   summary: A high-throughput and memory-efficient inference and serving engine for LLMs
   description:  Easy, fast, and cheap LLM serving for everyone
   license: Apache-2.0
-  license_file: LICENSE
+  license_file: vllm/LICENSE
   documentation: https://vllm.readthedocs.io/en/latest/
 
 extra:
