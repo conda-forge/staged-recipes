@@ -12,7 +12,18 @@ source:
 build:
   number: 0
   skip: true  # [win32]
-  script: {{ PYTHON }} -m pip install . -vv
+  script_env:
+    - MACOSX_DEPLOYMENT_TARGET=10.9  # [osx]
+    - CONDA_BUILD_SYSROOT  # [osx]
+  script:
+    - |
+      if [[ "$target_platform" == osx-* ]]; then
+        export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+        export CFLAGS="${CFLAGS} -isysroot ${SDKROOT} -I${PREFIX}/include"
+        export CXXFLAGS="${CXXFLAGS} -isysroot ${SDKROOT} -I${PREFIX}/include -std=c++11 -stdlib=libc++ -Wno-deprecated-declarations -Wno-unused-function -Wno-unused-variable -Wno-c++11-narrowing"
+        export LDFLAGS="${LDFLAGS} -isysroot ${SDKROOT} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
+      fi
+    - {{ PYTHON }} -m pip install . -vv
 
 requirements:
   build:
@@ -28,7 +39,7 @@ requirements:
     - ninja  # [win]
     - make  # [unix]
     - llvm-openmp  # [osx]
-    - libcxx  # [osx]
+    - libcxx >=11.1.0  # [osx]
   host:
     - python
     - pip
@@ -37,13 +48,13 @@ requirements:
     - setuptools >=45
     - wheel
     - llvm-openmp  # [osx]
-    - libcxx  # [osx]
+    - libcxx >=11.1.0  # [osx]
   run:
     - python
     - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x') }}
     - pandas >=1.0.0
     - llvm-openmp  # [osx]
-    - libcxx  # [osx]
+    - libcxx >=11.1.0  # [osx]
 
 test:
   requires:
