@@ -14,11 +14,17 @@ build:
   skip: true  # [win32]
   script_env:
     - MACOSX_DEPLOYMENT_TARGET=10.14  # [osx]
+    - CONDA_BUILD_SYSROOT  # [osx]
   script:
-    - export SDKROOT=${CONDA_BUILD_SYSROOT:-$(xcrun --sdk macosx --show-sdk-path)}
-    - export CFLAGS="${CFLAGS} -isysroot ${SDKROOT} -Wno-deprecated-declarations -Wno-nullability-completeness -Wno-nullability-extension"  # [osx]
-    - export CXXFLAGS="${CXXFLAGS} -std=c++17 -isysroot ${SDKROOT} -Wno-deprecated-declarations -Wno-nullability-completeness -Wno-nullability-extension"  # [osx]
-    - export LDFLAGS="${LDFLAGS} -isysroot ${SDKROOT} -Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib"  # [osx]
+    - |
+      if [[ "$target_platform" == osx-* ]]; then
+        export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+        export CC=$(xcrun -f clang)
+        export CXX=$(xcrun -f clang++)
+        export CFLAGS="${CFLAGS} -isysroot ${SDKROOT} -I${PREFIX}/include"
+        export CXXFLAGS="${CXXFLAGS} -isysroot ${SDKROOT} -I${PREFIX}/include -std=c++17 -stdlib=libc++"
+        export LDFLAGS="${LDFLAGS} -isysroot ${SDKROOT} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
+      fi
     - {{ PYTHON }} -m pip install . -vv
 
 requirements:
@@ -34,10 +40,8 @@ requirements:
     - cmake  # [win]
     - ninja  # [win]
     - make  # [unix]
-    - llvm-openmp >=11.0.0  # [osx]
-    - libcxx >=11.0.0  # [osx]
-    - clang_osx-64  # [osx]
-    - clangxx_osx-64  # [osx]
+    - llvm-openmp  # [osx]
+    - libcxx  # [osx]
   host:
     - python
     - pip
@@ -45,14 +49,14 @@ requirements:
     - pandas >=1.0.0
     - setuptools >=45
     - wheel
-    - llvm-openmp >=11.0.0  # [osx]
-    - libcxx >=11.0.0  # [osx]
+    - llvm-openmp  # [osx]
+    - libcxx  # [osx]
   run:
     - python
     - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x') }}
     - pandas >=1.0.0
-    - llvm-openmp >=11.0.0  # [osx]
-    - libcxx >=11.0.0  # [osx]
+    - llvm-openmp  # [osx]
+    - libcxx  # [osx]
 
 test:
   requires:
