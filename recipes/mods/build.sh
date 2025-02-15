@@ -3,4 +3,4 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 go build -buildmode=pie -trimpath -o=${PREFIX}/bin/mods -ldflags="-s -w -X main.Version=${PKG_VERSION}"
-go-licenses save . --save_path=license-files --ignore github.com/mattn/go-localereader
+go-licenses save . --save_path=license-files --ignore github.com/mattn/go-localereader --ignore github.com/caarlos0/duration --ignore modernc.org/mathutil
