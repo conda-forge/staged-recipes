@@ -1,0 +1,90 @@
+context:
+  version: "0.10.1"
+  build_number: 0
+  # see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+  torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: tinygrad
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tinygrad/tinygrad/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a22402a8c08da0930720b13a8a66a9c9f99507b15fca9caf31fde63776529ca8
+
+build:
+  number: ${{ build_number }}
+  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  script: python -m pip install . -vv
+  skip: match(python, "<3.10")
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cxx') }}
+        - triton
+
+tests:
+  - python:
+      imports:
+      - tinygrad
+      pip_check: true
+  - requirements:
+      run:
+        # minimal
+        - pytest
+        - pytest-xdist
+        - hypothesis
+        - numpy
+        - pytorch
+        # optional
+        - blobfile
+        - bottle
+        - capstone
+        # https://github.com/conda-forge/staged-recipes/issues/29179
+        # - ggml-python
+        - jax
+        - librosa
+        - networkx
+        - nibabel
+        - onnx2torch
+        - onnx
+        - py-opencv
+        - pillow
+        - safetensors
+        - sentencepiece
+        - tabulate
+        - tiktoken
+        - tqdm
+        - transformers
+    files:
+      source:
+        - extra/
+        - test/
+    script:
+      - pytest -v test/
+
+about:
+  homepage: https://github.com/tinygrad/tinygrad
+  summary: 'You like pytorch? You like micrograd? You love tinygrad! ❤️'
+  description: |
+    This may not be the best deep learning framework, but it is a deep learning framework.
+    
+    Due to its extreme simplicity, it aims to be the easiest framework to add new accelerators to,
+    with support for both inference and training. If XLA is CISC, tinygrad is RISC.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://docs.tinygrad.org/
+  repository: https://github.com/tinygrad/tinygrad
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
