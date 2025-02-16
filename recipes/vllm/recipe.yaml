@@ -3,6 +3,7 @@ context:
   use_cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
   is_cuda_12: ${{ "true" if (cuda_compiler_version or '')[:2] == '12' else "false" }}
   vllm_target_device: ${{ "cuda" if use_cuda == "true" else "cpu" }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
 
 package:
   name: vllm
@@ -16,6 +17,9 @@ source:
   - if: linux and use_cuda == "false"
     then:
     - patches/vllm-cpu-utils.patch
+  - if: is_cross_compiling
+    then:
+    - patches/vllm-cmake-args.patch
   target_directory: vllm
 - url: https://github.com/vllm-project/flash-attention/archive/720c94869cf2e0ff5a706e9c7f1dce0939686ade.tar.gz
   sha256: 5ba61742ebbf496d9daa846ed09b51f6e941db955398be75e2565141e2656219
@@ -52,6 +56,10 @@ requirements:
   - if: use_cuda == "true"
     then:
     - ${{ compiler('cuda') }}
+  - if: is_cross_compiling
+    then:
+    - python
+    - cross-python_{{ target_platform }}
   host:
   - python
   - pip
