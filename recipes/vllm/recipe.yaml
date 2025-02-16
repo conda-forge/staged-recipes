@@ -1,6 +1,7 @@
 context:
   version: 0.7.2
   use_cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
+  is_cuda_12: ${{ "(cuda_compiler_version or "").startswith("12")" }}
   vllm_target_device: ${{ "cuda" if use_cuda == "true" else "cpu" }}
 
 package:
@@ -69,10 +70,12 @@ requirements:
     - nvtx-c
     - cuda
     - cuda-version ==${{ cuda_compiler_version }}
-    - cuda-cudart-dev  # [(cuda_compiler_version or "").startswith("12")]
-    - cuda-nvrtc-dev  # [(cuda_compiler_version or "").startswith("12")]
-    - cuda-nvrtc-static  # [(cuda_compiler_version or "").startswith("12")]
-    - libcublas-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - if: is_cuda_12
+      then:
+      - cuda-cudart-dev
+      - cuda-nvrtc-dev
+      - cuda-nvrtc-static
+      - libcublas-dev
     - cutlass
     else:
     - pytorch-cpu
@@ -100,7 +103,9 @@ requirements:
   - lm-format-enforcer <0.11,>=0.10.9
   - outlines ==0.1.11
   - lark ==1.2.2
-  - xgrammar >=0.1.6 # platform_machine == "x86_64"
+  - if: x86_64
+    then:
+    - xgrammar >=0.1.6
   - typing_extensions >=4.10
   - filelock >=3.16.1
   - partial-json-parser
@@ -111,8 +116,10 @@ requirements:
   - mistral-common >=1.5.0
   - opencv-python-headless >=4.0.0  # mistral-common[opencv]
   - pyyaml
-  - six >=1.16.0  # python_version > "3.11"
-  - setuptools >=74.1.1  # python_version > "3.11"
+  - if: py > 311
+    then:
+    - six >=1.16.0
+    - setuptools >=74.1.1
   - einops
   - compressed-tensors ==0.9.1
   - depyf ==0.18.0
@@ -127,7 +134,9 @@ requirements:
     - pytorch-gpu
     else:
     - pytorch-cpu
-  - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
+  - if: linux and x86_64
+    then:
+    - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
   # - tensorizer>=2.9.0; extra == "tensorizer"
   # - runai-model-streamer; extra == "runai"
   # - runai-model-streamer-s3; extra == "runai"
