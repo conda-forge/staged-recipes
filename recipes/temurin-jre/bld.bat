@@ -37,13 +37,12 @@ dir "%PREFIX%\Library\temurin\bin"
 echo "Create bin directory if it doesn't exist"
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
 
-echo "Create symlink to java.exe"
-mklink "%LIBRARY_BIN%\java.exe" "%PREFIX%\Library\temurin\bin\java.exe"
-mklink "%LIBRARY_BIN%\java" "%PREFIX%\Library\temurin\bin\java.exe"
-
 echo "Set environment variables"
 set "JAVA_HOME=%PREFIX%\Library\temurin"
 set "JAVA_LD_LIBRARY_PATH=%PREFIX%\Library\temurin\lib\server"
+
+echo "Create symlink to java.exe"
+bash -euc "build-symlink-exe.sh ${JAVA_HOME//\\\\//}/bin/*.exe ${LIBRARY_BIN}"
 
 echo "check java version"
 %JAVA_HOME%\bin\java.exe -v
