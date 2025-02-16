@@ -5,7 +5,7 @@ context:
   vllm_target_device: ${{ "cuda" if use_cuda == "true" else "cpu" }}
   is_cross_compiling: ${{ "true" if build_platform != target_platform else "false" }}
 
-package:
+recipe:
   name: vllm
   version: ${{ version }}
 
@@ -27,137 +27,155 @@ source:
 
 build:
   number: 0
-  script: |
-    sed -i.bak 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "2.5.1")/g' flash-attention/CMakeLists.txt
-    export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
-    cd vllm
-    python use_existing_torch.py
-    mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
-    ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
-    # export VERBOSE=1
-    export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
-    ${{ PYTHON }} -m pip install . --no-build-isolation
 
-  python:
-    entry_points:
-    - vllm  =  vllm.scripts:main
+outputs:
+  - package:
+      name: vllm
+    build:
+      script: |
+        sed -i.bak 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "2.5.1")/g' flash-attention/CMakeLists.txt
+        export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
+        cd vllm
+        python use_existing_torch.py
+        mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
+        ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
+        # export VERBOSE=1
+        export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
+        ${{ PYTHON }} -m pip install . --no-build-isolation
 
-  skip: win
+      python:
+        entry_points:
+        - vllm  =  vllm.scripts:main
 
-requirements:
-  build:
-  - ninja
-  - cmake
-  - git
-  - zlib
-  - ${{ stdlib('c') }}
-  - ${{ compiler('c') }}
-  - ${{ compiler('cxx') }}
-  - if: use_cuda == "true"
-    then:
-    - ${{ compiler('cuda') }}
-  - if: is_cross_compiling == "true"
-    then:
-    - python
-    - cross-python_${{ target_platform }}
-  host:
-  - python
-  - pip
-  - setuptools
-  - setuptools-scm
-  - packaging
-  - wheel
-  - jinja2
-  - pytorch ==2.5.1
-  - if: linux
-    then:
-    - libnuma
-  - if: use_cuda == "true"
-    then:
-    - pytorch-gpu
-    - nvtx-c
-    - cuda-version ==${{ cuda_compiler_version }}
-    - if: is_cuda_12 == "true"
-      then:
-      - cuda
-      - cuda-cudart-dev
-      - cuda-nvrtc-dev
-      - cuda-nvrtc-static
-      - libcublas-dev
-    - cutlass
-    else:
-    - pytorch-cpu
-  run:
-  - python
-  - psutil
-  - sentencepiece
-  - numpy <2.0.0
-  - requests >=2.26.0
-  - tqdm
-  - blake3
-  - py-cpuinfo
-  - transformers >=4.48.2
-  - tokenizers >=0.19.1
-  - protobuf
-  - fastapi <0.113.0,>=0.107.0
-  - aiohttp
-  - openai >=1.52.0
-  - uvicorn-standard
-  - pydantic >=2.9
-  - prometheus_client >=0.18.0
-  - pillow
-  - prometheus-fastapi-instrumentator >=7.0.0
-  - tiktoken >=0.6.0
-  - lm-format-enforcer <0.11,>=0.10.9
-  - outlines ==0.1.11
-  - lark ==1.2.2
-  - if: x86_64
-    then:
-    - xgrammar >=0.1.6
-  - typing_extensions >=4.10
-  - filelock >=3.16.1
-  - partial-json-parser
-  - pyzmq
-  - msgspec
-  - gguf ==0.10.0
-  - importlib-metadata
-  - mistral-common >=1.5.0
-  - opencv-python-headless >=4.0.0  # mistral-common[opencv]
-  - pyyaml
-  - if: match(python, ">3.11")
-    then:
-    - six >=1.16.0
-    - setuptools >=74.1.1
-  - einops
-  - compressed-tensors ==0.9.1
-  - depyf ==0.18.0
-  - cloudpickle
-  - ray-default >=2.9
-  - nvidia-ml-py >=12.560.30
-  - pytorch ==2.5.1
-  - torchaudio ==2.5.1
-  - torchvision ==0.20.1
-  - if: use_cuda == "true"
-    then:
-    - pytorch-gpu
-    else:
-    - pytorch-cpu
-  - if: linux and x86_64
-    then:
-    - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
-  # - tensorizer>=2.9.0; extra == "tensorizer"
-  # - runai-model-streamer; extra == "runai"
-  # - runai-model-streamer-s3; extra == "runai"
-  # - boto3; extra == "runai"
-  # - librosa; extra == "audio"
-  # - soundfile; extra == "audio"
-  # - decord; extra == "video"
+      skip: win
 
-tests:
-- python:
-    imports:
-    - vllm
-    pip_check: true
+    requirements:
+      build:
+      - ninja
+      - cmake
+      - git
+      - zlib
+      - ${{ stdlib('c') }}
+      - ${{ compiler('c') }}
+      - ${{ compiler('cxx') }}
+      - if: use_cuda == "true"
+        then:
+        - ${{ compiler('cuda') }}
+      - if: is_cross_compiling == "true"
+        then:
+        - python
+        - cross-python_${{ target_platform }}
+      host:
+      - python
+      - pip
+      - setuptools
+      - setuptools-scm
+      - packaging
+      - wheel
+      - jinja2
+      - pytorch ==2.5.1
+      - if: linux
+        then:
+        - libnuma
+      - if: use_cuda == "true"
+        then:
+        - pytorch-gpu
+        - nvtx-c
+        - cuda-version ==${{ cuda_compiler_version }}
+        - if: is_cuda_12 == "true"
+          then:
+          - cuda
+          - cuda-cudart-dev
+          - cuda-nvrtc-dev
+          - cuda-nvrtc-static
+          - libcublas-dev
+        - cutlass
+        else:
+        - pytorch-cpu
+      run:
+      - python >=${{ python_min }}
+      - psutil
+      - sentencepiece
+      - numpy <2.0.0
+      - requests >=2.26.0
+      - tqdm
+      - blake3
+      - py-cpuinfo
+      - transformers >=4.48.2
+      - tokenizers >=0.19.1
+      - protobuf
+      - fastapi <0.113.0,>=0.107.0
+      - aiohttp
+      - openai >=1.52.0
+      - uvicorn-standard
+      - pydantic >=2.9
+      - prometheus_client >=0.18.0
+      - pillow
+      - prometheus-fastapi-instrumentator >=7.0.0
+      - tiktoken >=0.6.0
+      - lm-format-enforcer <0.11,>=0.10.9
+      - outlines ==0.1.11
+      - lark ==1.2.2
+      - if: x86_64
+        then:
+        - xgrammar >=0.1.6
+      - typing_extensions >=4.10
+      - filelock >=3.16.1
+      - partial-json-parser
+      - pyzmq
+      - msgspec
+      - gguf ==0.10.0
+      - importlib-metadata
+      - mistral-common >=1.5.0
+      - opencv-python-headless >=4.0.0  # mistral-common[opencv]
+      - pyyaml
+      - if: match(python, ">3.11")
+        then:
+        - six >=1.16.0
+        - setuptools >=74.1.1
+      - einops
+      - compressed-tensors ==0.9.1
+      - depyf ==0.18.0
+      - cloudpickle
+      - ray-default >=2.9
+      - nvidia-ml-py >=12.560.30
+      - pytorch ==2.5.1
+      - torchaudio ==2.5.1
+      - torchvision ==0.20.1
+      - if: use_cuda == "true"
+        then:
+        - pytorch-gpu
+        else:
+        - pytorch-cpu
+      - if: linux and x86_64
+        then:
+        - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
+      # - tensorizer>=2.9.0; extra == "tensorizer"
+      # - runai-model-streamer; extra == "runai"
+      # - runai-model-streamer-s3; extra == "runai"
+      # - boto3; extra == "runai"
+      # - librosa; extra == "audio"
+      # - soundfile; extra == "audio"
+      # - decord; extra == "video"
+
+    tests:
+    - python:
+        python_version: ${{ python_min }}.*
+        imports:
+        - vllm
+        pip_check: true
+  - package:
+      name: vllm-flash-attn
+    requirements:
+      run:
+      - python >=${{ python_min }}
+      - ${{ pin_subpackage("vllm", exact=True) }}
+    tests:
+    - python:
+        python_version: ${{ python_min }}.*
+        imports:
+        - vllm-flash-attn
+        pip_check: true
 
 about:
   homepage: https://github.com/vllm-project/vllm
