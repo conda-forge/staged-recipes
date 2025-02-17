@@ -45,10 +45,10 @@ export CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED=1
 
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
-setup_conda_rc ./ ./recipe ./.ci_support/${CONFIG}.yaml
+setup_conda_rc ./ ./recipes/vllm ./.ci_support/${CONFIG}.yaml
 
 if [[ "${CI:-}" != "" ]]; then
-  mangle_compiler ./ ./recipe .ci_support/${CONFIG}.yaml
+  mangle_compiler ./ ./recipes/vllm .ci_support/${CONFIG}.yaml
 fi
 
 if [[ "${CI:-}" != "" ]]; then
@@ -82,7 +82,7 @@ else
         EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --no-test"
     fi
 
-    rattler-build build --recipe ./recipe \
+    rattler-build build --recipe ./recipes/vllm \
         -m ./.ci_support/${CONFIG}.yaml \
         ${EXTRA_CB_OPTIONS:-} \
         --target-platform "${HOST_PLATFORM}" \
