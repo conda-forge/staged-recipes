@@ -98,7 +98,9 @@ echo ""
 
 # Set the target arch or auto detect it
 if [[ -z "${TARGET_ARCH}" ]]; then
-  if [[ "$(uname -m)" == "arm64" ]]; then
+  if [[ -n "${HOST_PLATFORM}" ]]; then
+    TARGET_ARCH=${HOST_PLATFORM}
+  elif [[ "$(uname -m)" == "arm64" ]]; then
     TARGET_ARCH="arm64"
   else
     TARGET_ARCH="64"
