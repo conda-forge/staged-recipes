@@ -15,6 +15,7 @@ sw_vers
 /usr/bin/arch
 /usr/bin/uname -p
 /usr/bin/uname -a
+cmake --system-information | grep CMAKE_HOST_SYSTEM_PROCESSOR
 
 if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
   echo "Build tools already installed at ${MINIFORGE_HOME}."
