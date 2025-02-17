@@ -1,10 +1,12 @@
 {% set version = "3.0.0.1" %}
-{% set cuda_version = "12.8" %}
-{% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
-{% set lib_major_version = version.split(".")[0] %}
+{% set cuda_version = "12.6" %} # min version holoscan works with
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-sbsa" %}    # [aarch64]
 {% set extension = "tar.xz" %}
+
+{% set soname = version.split(".")[0] %}
+{% set sha256 = "9293e6612780b7c53a8f38eb16399b6b020f1b0441d78a21a830505253775034" %}  # [linux64]
+{% set sha256 = "" %}  # [aarch64]
 
 package:
   name: holoscan
@@ -12,109 +14,336 @@ package:
 
 source:
   url: holoscan-linux-x86_64-3.0.0.1-archive.tar.xz                         # [linux64]
-  sha256: 9293e6612780b7c53a8f38eb16399b6b020f1b0441d78a21a830505253775034  # [linux64]
-  sha256: ed14cfeb194246eef3a9622c586d9fba22eee282e3153e737a3cf649d2abe7f7  # [aarch64]
+  sha256: {{ sha256 }}
 
 build:
   number: 0
   skip: true  # [not (linux64 or aarch64)]
-  skip: true  # [cuda_compiler_version in (None, "None") or (cuda_compiler_version or "").startswith("11")]
-  missing_dso_whitelist:
-    - "*libcuda.so*"              # driver
-    - "*libgdrapi.so*"            # part of gdrcopy yet not pre-built for conda-forge channel
-    - "*libnvidia-ml.so*"         # driver
-    - "*libmlx5*"                 # installed as part of the Mellanox OFED
-    - "*libnvinfer_plugin.so*"    # NVIDIA's TensorRT not on conda-forge
-    - "*libnvonnxparser.so*"      # NVIDIA's TensorRT not on conda-forge
-    - "*libonnxruntime.so.1.18.1" # onnxruntime conda package is there, but this particular version does not have this DSO
-    - "*libtorchvision.so*"       # not available even in torchvision package
-    - "*libv4l2.so*"              # lideo4linux2 lib, not available
-    - "*libxpmem.so*"             # XPMEM, Linux Cross-Memory Attach kernel module, not available
-    - "*rdma-core*"               # MOFED includes rdma-core
-  ignore_run_exports_from:
-    - {{ compiler('cuda') }}
-    - cuda-cudart-dev
+  skip: true  # [cuda_compiler_version in (None, "None", "") or (cuda_compiler_version or "").startswith("11")]
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}
-    - arm-variant * {{ arm_variant_type }}  # [aarch64]
-    - {{ stdlib("c") }}
     - cf-nvidia-tools 1  # [linux]
-  host:
-    - cuda-cudart-dev
-    - cuda-crt-dev_{{ target_platform }}
-    - cuda-nvcc
-    - cuda-version {{ cuda_version }}
-    - libjpeg-turbo
-    - libnpp-dev
-    - libtorch
-    - python =3.10
-    - libvulkan-loader
-    - ucx
-  run:
-    - cloudpickle
-    - cuda-cudart
-    - cuda-nvcc
-    - cuda-nvrtc
-    - cuda-nvtx # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
-    - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
-    - cudnn
-    - libegl
-    - libgomp
-    - libcublas
-    - libcufft
-    - libcurand
-    - libcusolver
-    - libcusparse
-    - libjpeg-turbo
-    - libnpp-dev
-    - libnvjitlink
-    - libvulkan-loader
-    - libzlib
-    - nccl
-    - pip
-    - python =3.10
-    - pytorch
-    - ucx # added because we took out rdma-core, which depends on ucx. rdma-core is provided by MOFED
-  run_constrained:
-    - arm-variant * {{ arm_variant_type }}  # [aarch64]
-test:
-  requires:
-    - cmake
-    - make
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
-    - cuda-cudart-dev
-    - cuda-version {{ cuda_version }}
-    - cuda-nvcc
-  files:
-    - compile_hello_world.sh
-  commands:
-    - test -L $PREFIX/lib/libholoscan_core.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_core.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_infer.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_infer.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_logger.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_logger.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_op_holoviz.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_op_holoviz.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_op_inference.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_op_inference.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_profiler.so.{{ lib_major_version }}
-    - test -f $PREFIX/lib/libholoscan_profiler.so.{{ lib_version }}
-    - test -L $PREFIX/lib/libholoscan_viz.so.{{ lib_major_version }}
-    - test -f $PREFIX/include/holoscan/core/application.hpp
-    - test -f $PREFIX/include/holoscan/core/operator.hpp
-    - test -f $PREFIX/include/holoscan/logger/logger.hpp
-    - test -f $PREFIX/include/holoscan/operators/holoviz/holoviz.hpp
-    - test -f $PREFIX/include/holoscan/profiler/profiler.hpp
-    - test -f $PREFIX/include/holoviz/holoviz.hpp
-    - test -f $PREFIX/include/gxf/core/gxf.h
-    - bash compile_hello_world.sh
+
+outputs:
+  - name: libholoscan{{ soname }}
+    build:
+      missing_dso_whitelist:
+        - "*libcuda.so*"              # driver
+        - "*libgdrapi.so*"            # part of gdrcopy yet not pre-built for conda-forge channel
+        - "*libnvidia-ml.so*"         # driver
+        - "*libnvinfer_plugin.so*"    # NVIDIA's TensorRT not on conda-forge
+        - "*libnvonnxparser.so*"      # NVIDIA's TensorRT not on conda-forge
+        - "*libonnxruntime.so.1.18.1" # onnxruntime conda package is there, but this particular version does not have this DSO
+        - "*libtorchvision.so*"       # not available even in torchvision package
+        - "*libv4l2.so*"              # lideo4linux2 lib, not available
+        - "*libxpmem.so*"             # XPMEM, Linux Cross-Memory Attach kernel module, not available
+      ignore_run_exports_from:
+        - {{ compiler('cuda') }}
+        - cuda-cudart-dev
+    files:
+      - lib/libholoscan*.so.*
+      - lib/gxf_extensions
+      - lib/libgxf*.so
+      - lib/libucm*.so.*
+      - lib/libucp*.so.*
+      - lib/libucs*.so.*
+      - lib/libuct*.so.*
+      - lib/libyaml*.so.*
+      - lib/ucx/*.so.*
+      - python/lib/gxf
+      - python/lib/holoscan
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-cudart-dev
+        - cuda-nvcc
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - libjpeg-turbo
+        - libnpp-dev
+        - libtorch
+        - libvulkan-loader
+        - python =3.10
+        - rdma-core
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}  # [cuda_compiler_version != "None"]
+        - _openmp_mutex
+        - cloudpickle
+        - cuda-cudart
+        - cuda-nvcc
+        - cuda-nvrtc
+        - cuda-nvtx # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+        - cudnn
+        - libegl
+        - libgomp
+        - libcublas
+        - libcufft
+        - libcurand
+        - libcusolver
+        - libcusparse
+        - libjpeg-turbo
+        - libnpp-dev
+        - libnvjitlink
+        - libvulkan-loader
+        - libzlib
+        - nccl
+        - pip
+        - python =3.10
+        - pytorch
+        - rdma-core
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libholoscan_core.so.3
+        - test -L $PREFIX/lib/libholoscan_infer.so.3
+        - test -L $PREFIX/lib/libholoscan_infer_onnx_runtime.so.3
+        - test -L $PREFIX/lib/libholoscan_infer_torch.so.3
+        - test -L $PREFIX/lib/libholoscan_infer_utils.so.3
+        - test -L $PREFIX/lib/libholoscan_logger.so.3
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_rx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_tx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_bayer_demosaic.so.3
+        - test -L $PREFIX/lib/libholoscan_op_format_converter.so.3
+        - test -L $PREFIX/lib/libholoscan_op_gxf_codelet.so.3
+        - test -L $PREFIX/lib/libholoscan_op_holoviz.so.3
+        - test -L $PREFIX/lib/libholoscan_op_inference.so.3
+        - test -L $PREFIX/lib/libholoscan_op_inference_processor.so.3
+        - test -L $PREFIX/lib/libholoscan_op_ping_rx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_rx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_tx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_ping_tx.so.3
+        - test -L $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so.3
+        - test -L $PREFIX/lib/libholoscan_op_v4l2.so.3
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_recorder.so.3
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_replayer.so.3
+        - test -L $PREFIX/lib/libholoscan_profiler.so.3
+        - test -L $PREFIX/lib/libholoscan_spdlog_logger.so.3
+        - test -L $PREFIX/lib/libholoscan_viz.so.3
+        - test -f $PREFIX/lib/libholoscan_core.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_infer.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_infer_onnx_runtime.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_infer_torch.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_infer_utils.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_logger.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_async_ping_rx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_async_ping_tx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_bayer_demosaic.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_format_converter.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_gxf_codelet.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_holoviz.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_inference.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_inference_processor.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_ping_rx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_ping_tensor_rx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_ping_tensor_tx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_ping_tx.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_v4l2.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_video_stream_recorder.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_op_video_stream_replayer.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_profiler.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_spdlog_logger.so.3.0.0
+        - test -f $PREFIX/lib/libholoscan_viz.so.3.0.0
+        - test -L $PREFIX/lib/ucx/libucm_cuda.so.0
+        - test -L $PREFIX/lib/ucx/libucs_fuse.so.0
+        - test -L $PREFIX/lib/ucx/libuct_cma.so.0
+        - test -L $PREFIX/lib/ucx/libuct_cuda.so.0
+        - test -L $PREFIX/lib/ucx/libuct_cuda_gdrcopy.so.0
+        - test -L $PREFIX/lib/ucx/libuct_ib.so.0
+        - test -L $PREFIX/lib/ucx/libuct_rdmacm.so.0
+        - test -L $PREFIX/lib/ucx/libuct_xpmem.so.0
+        - test -L $PREFIX/lib/ucx/libucx_perftest_cuda.so.0
+        - test -f $PREFIX/lib/ucx/libucm_cuda.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libucs_fuse.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_cma.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_cuda.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_cuda_gdrcopy.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_ib.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_rdmacm.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libuct_xpmem.so.0.0.0
+        - test -f $PREFIX/lib/ucx/libucx_perftest_cuda.so.0.0.0
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_holoscan_wrapper.so
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_holoscan_wrapper_lib.so
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan.so
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan_lib.so
+        - test -L $PREFIX/lib/libyaml-cpp.so.0.7
+        - test -f $PREFIX/lib/libyaml-cpp.so.0.7.0
+        - test -d $PREFIX/python/lib/gxf
+        - test -d $PREFIX/python/lib/holoscan
+
+  - name: libholoscan-dev
+    build:
+      missing_dso_whitelist:
+        - "*libgxf_app.so"                                   # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_core.so"                                  # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_holoscan_wrapper_lib.so"                  # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_multimedia.so"                            # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_rmm.so"                                   # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_std.so"                                   # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_sample.so"                                # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_serialization.so"                         # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libgxf_ucx.so"                                   # Packaged in libholoscan{{ soname }} lib, but referened by examples/** here
+        - "*libholoscan_*.so.3"                              # Packaged in libholoscan{{ soname }} lib, but referened by python/** here
+        - "*libyaml-cpp.so.0.7"                              # Packaged in libholoscan{{ soname }} lib, but referened by python/** here
+      run_exports:
+        - {{ pin_subpackage("libholoscan" ~ soname, max_pin=None) }}
+      ignore_run_exports_from:
+        - cuda-cudart-dev
+    files:
+      - bin/README.md
+      - bin/convert_gxf_entities_to_images.py
+      - bin/convert_gxf_entities_to_video.py
+      - bin/convert_video_to_gxf_entities.py
+      - bin/ctest_time_comparison.py
+      - bin/download_ngc_data
+      - bin/generate_extension_uuids.py
+      - bin/generate_gxf_manifest.py
+      - bin/graph_surgeon.py
+      - bin/gxe
+      - bin/gxf_entity_codec.py
+      - bin/holoscan
+      - bin/video_validation.py
+      - examples/
+      - include/3rdparty
+      - include/fmt
+      - include/gxf
+      - include/gxf_holoscan_wrapper
+      - include/holoinfer
+      - include/holoscan
+      - include/holoviz
+      - include/magic_enum.hpp
+      - include/rmm
+      - include/yaml-cpp
+      - lib/libholoscan*.so
+      - lib/cmake
+      - lib/libucm*.so
+      - lib/libucp*.so
+      - lib/libucs*.so
+      - lib/libuct*.so
+      - lib/libyaml*.so
+      - lib/ucx/*.so
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-cudart-dev
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}  # [cuda_compiler_version != "None"]
+        - {{ pin_subpackage("libholoscan" ~ soname, exact=True) }}
+        - cuda-cudart
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/bin/README.md
+        - test -f $PREFIX/bin/convert_gxf_entities_to_images.py
+        - test -f $PREFIX/bin/convert_gxf_entities_to_video.py
+        - test -f $PREFIX/bin/convert_video_to_gxf_entities.py
+        - test -f $PREFIX/bin/ctest_time_comparison.py
+        - test -f $PREFIX/bin/download_ngc_data
+        - test -f $PREFIX/bin/generate_extension_uuids.py
+        - test -f $PREFIX/bin/generate_gxf_manifest.py
+        - test -f $PREFIX/bin/graph_surgeon.py
+        - test -f $PREFIX/bin/gxe
+        - test -f $PREFIX/bin/gxf_entity_codec.py
+        - test -f $PREFIX/bin/holoscan
+        - test -f $PREFIX/bin/video_validation.py
+        - test -d $PREFIX/lib/cmake/holoscan
+        - test -d $PREFIX/examples
+        - test -d $PREFIX/include/3rdparty
+        - test -d $PREFIX/include/fmt
+        - test -d $PREFIX/include/gxf
+        - test -d $PREFIX/include/gxf_holoscan_wrapper
+        - test -d $PREFIX/include/holoinfer
+        - test -d $PREFIX/include/holoscan
+        - test -d $PREFIX/include/holoviz
+        - test -f $PREFIX/include/magic_enum.hpp
+        - test -d $PREFIX/include/rmm
+        - test -d $PREFIX/include/yaml-cpp
+        - test -f $PREFIX/lib/libgxf_app.so
+        - test -f $PREFIX/lib/libgxf_core.so
+        - test -f $PREFIX/lib/libgxf_cuda.so
+        - test -f $PREFIX/lib/libgxf_logger.so
+        - test -f $PREFIX/lib/libgxf_multimedia.so
+        - test -f $PREFIX/lib/libgxf_rmm.so
+        - test -f $PREFIX/lib/libgxf_sample.so
+        - test -f $PREFIX/lib/libgxf_serialization.so
+        - test -f $PREFIX/lib/libgxf_std.so
+        - test -f $PREFIX/lib/libgxf_ucx.so
+        - test -L $PREFIX/lib/libholoscan_core.so
+        - test -L $PREFIX/lib/libholoscan_infer.so
+        - test -L $PREFIX/lib/libholoscan_infer_onnx_runtime.so
+        - test -L $PREFIX/lib/libholoscan_infer_torch.so
+        - test -L $PREFIX/lib/libholoscan_infer_utils.so
+        - test -L $PREFIX/lib/libholoscan_logger.so
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_bayer_demosaic.so
+        - test -L $PREFIX/lib/libholoscan_op_format_converter.so
+        - test -L $PREFIX/lib/libholoscan_op_gxf_codelet.so
+        - test -L $PREFIX/lib/libholoscan_op_holoviz.so
+        - test -L $PREFIX/lib/libholoscan_op_inference.so
+        - test -L $PREFIX/lib/libholoscan_op_inference_processor.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so
+        - test -L $PREFIX/lib/libholoscan_op_v4l2.so
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_recorder.so
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_replayer.so
+        - test -L $PREFIX/lib/libholoscan_profiler.so
+        - test -L $PREFIX/lib/libholoscan_spdlog_logger.so
+        - test -L $PREFIX/lib/libholoscan_viz.so
+        - test -L $PREFIX/lib/libucm.so
+        - test -L $PREFIX/lib/libucp.so
+        - test -L $PREFIX/lib/libucs.so
+        - test -L $PREFIX/lib/libucs_signal.so
+        - test -L $PREFIX/lib/libuct.so
+        - test -L $PREFIX/lib/libyaml-cpp.so
+        - test -L $PREFIX/lib/ucx/libucm_cuda.so
+        - test -L $PREFIX/lib/ucx/libucs_fuse.so
+        - test -L $PREFIX/lib/ucx/libuct_cma.so
+        - test -L $PREFIX/lib/ucx/libuct_cuda.so
+        - test -L $PREFIX/lib/ucx/libuct_cuda_gdrcopy.so
+        - test -L $PREFIX/lib/ucx/libuct_ib.so
+        - test -L $PREFIX/lib/ucx/libuct_rdmacm.so
+        - test -L $PREFIX/lib/ucx/libuct_xpmem.so
+        - test -L $PREFIX/lib/ucx/libucx_perftest_cuda.so
+
+  - name: libholoscan-static
+    files:
+      - lib/libholo*.a
+    requirements:
+      run:
+        - {{ pin_subpackage("libholoscan-dev", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      requires:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - cuda-version {{ cuda_version }}
+        - cuda   # need entire CTK to compile all examples
+        - patch  # needed by one of the examples
+      files:
+        - compile_examples.sh
+      commands:
+        - test -f $PREFIX/lib/libholoviz_imgui.a
+        - bash compile_examples.sh
 
 about:
   home: https://docs.nvidia.com/cuda/holoscan/

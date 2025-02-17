@@ -4,12 +4,13 @@ set -e
 set -x
 
 check-glibc bin/* lib/* lib/ucx/* lib/gxf_extensions/*
+find python/ -name "*.so*" | xargs -I"{}" check-glibc "{}"
 
-cp -rv bin $PREFIX
-cp -rv examples $PREFIX
-cp -rv lib $PREFIX
-cp -rv include $PREFIX
-cp -rv python $PREFIX
+cp -rv bin $PREFIX/
+cp -rv examples $PREFIX/
+cp -rv lib $PREFIX/
+cp -rv include $PREFIX/
+cp -rv python $PREFIX/
 
 echo $SP_DIR
 
@@ -18,4 +19,3 @@ mkdir -p $SP_DIR
 
 # Add a .pth file that references extra directory needed by holoscan
 echo "$PREFIX/python/lib" > $SP_DIR/holoscan_extra.pth
-
