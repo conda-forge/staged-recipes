@@ -35,12 +35,12 @@ def setup_environment(ns):
 
 
 def run_docker_build(ns):
-    script = ".scripts/run_docker_build.sh"
+    script = ".scripts/new_run_docker_build.sh"
     subprocess.check_call([script])
 
 
 def run_osx_build(ns):
-    script = ".scripts/run_osx_build.sh"
+    script = ".scripts/new_run_osx_build.sh"
     subprocess.check_call([script])
 
 
