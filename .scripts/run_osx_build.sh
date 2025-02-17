@@ -10,6 +10,7 @@ MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
 MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
 export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
+env /usr/bin/arch -arm64 /bin/bash ---login
 file `which bash`
 sw_vers
 /usr/bin/arch
