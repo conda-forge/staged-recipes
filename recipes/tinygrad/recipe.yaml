@@ -23,7 +23,7 @@ context:
     ${{ "tinygrad.codegen.kernel.KernelOptError: must have tensor cores or TC=2" if 0 }}
     ${{ " or test_unmerged_ifs" if osx }}
 
-package:
+recipe:
   name: tinygrad
   version: ${{ version }}
 
@@ -38,7 +38,6 @@ source:
 build:
   number: ${{ build_number }}
   string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
-  script: python -m pip install . -vv
   skip:
     - match(python, "<3.10")
     # toolchain for 11.8 is not usable in end-user environment
@@ -49,75 +48,86 @@ build:
     # only one CUDA build because there's not enough disk space to build all variants in one job
     - cuda_compiler_version != "None" and match(python, "!=3.12")
 
-requirements:
-  host:
-    - python
-    - pip
-    - setuptools
-  run:
-    - python
-    - if: win
-      then:
-        - clang-cl_${{ target_platform }}
-      else:
-        - clangxx_${{ target_platform }}
-    - if: cuda_compiler_version != "None"
-      then:
-        - cuda-nvcc_${{ target_platform }}
-        - triton
-
-tests:
-  - python:
-      imports:
-      - tinygrad
-      pip_check: true
-  - requirements:
+outputs:
+  - package:
+      name: tinygrad
+    build:
+      script: python -m pip install . -vv
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools
       run:
-        # minimal
-        - pytest
-        - pytest-rerunfailures
-        - pytest-xdist
-        - hypothesis
-        - numpy
-        - pytorch
-        # optional
-        - blobfile
-        - bottle
-        - capstone
-        # https://github.com/conda-forge/staged-recipes/issues/29179
-        # - ggml-python
-        - if: unix
+        - python
+        - if: win
           then:
-            # not available on windows yet
-            - jax
-        - librosa
-        - networkx
-        - nibabel
-        - onnx2torch
-        - onnx
-        - py-opencv
-        - pillow
-        - safetensors
-        - sentencepiece
-        - tabulate
-        - tiktoken
-        - tqdm
-        - transformers
-    files:
-      source:
-        - examples/
-        - extra/
-        - test/
-    script:
-      # tinygrad uses `CLANG` as a boolean switch, which is incompatible with our compiler activation;
-      # see https://github.com/tinygrad/tinygrad/blob/v0.10.1/tinygrad/device.py#L13
-      - if: unix
-        then:
-          - unset CLANG
-      - if: win
-        then:
-          - set "CLANG="
-      - pytest -n 2 -v test/ -k "not (${{ tests_to_skip }})" --reruns=5 --reruns-delay=5
+            - clang-cl_${{ target_platform }}
+          else:
+            - clangxx_${{ target_platform }}
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-nvcc_${{ target_platform }}
+            - triton
+    tests:
+      - python:
+          imports:
+          - tinygrad
+          pip_check: true
+
+  - package:
+      name: tinygrad-tests
+    requirements:
+      run:
+        - ${{ pin_subpackage('tinygrad', exact=True) }}
+    tests:
+      - requirements:
+          run:
+            # minimal
+            - pytest
+            - pytest-rerunfailures
+            - pytest-xdist
+            - hypothesis
+            - numpy
+            - pytorch
+            # optional
+            - blobfile
+            - bottle
+            - capstone
+            # https://github.com/conda-forge/staged-recipes/issues/29179
+            # - ggml-python
+            - if: unix
+              then:
+                # not available on windows yet
+                - jax
+            - librosa
+            - networkx
+            - nibabel
+            - onnx2torch
+            - onnx
+            - py-opencv
+            - pillow
+            - safetensors
+            - sentencepiece
+            - tabulate
+            - tiktoken
+            - tqdm
+            - transformers
+        files:
+          source:
+            - examples/
+            - extra/
+            - test/
+        script:
+          # tinygrad uses `CLANG` as a boolean switch, which is incompatible with our compiler activation;
+          # see https://github.com/tinygrad/tinygrad/blob/v0.10.1/tinygrad/device.py#L13
+          - if: unix
+            then:
+              - unset CLANG
+          - if: win
+            then:
+              - set "CLANG="
+          - pytest -n 2 -v test/ -k "not (${{ tests_to_skip }})" --reruns=5 --reruns-delay=5
 
 about:
   homepage: https://github.com/tinygrad/tinygrad
