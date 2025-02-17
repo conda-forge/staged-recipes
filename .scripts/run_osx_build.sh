@@ -10,6 +10,12 @@ MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
 MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
 export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
+file `which bash`
+sw_vers
+/usr/bin/arch
+/usr/bin/uname -p
+/usr/bin/uname -a
+
 if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
   echo "Build tools already installed at ${MINIFORGE_HOME}."
 else
