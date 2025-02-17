@@ -5,7 +5,7 @@ set -ex
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} \
+cmake ${CMAKE_ARGS} -GNinja \
   -B . \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
