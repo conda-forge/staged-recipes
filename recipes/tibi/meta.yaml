@@ -1,0 +1,94 @@
+{% set name = "tibi" %}
+{% set version = "1.1.0" %}
+{% set build = 0 %}
+{% set ase_min = "3.22" %}
+
+package:
+  name: tibi-package
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/mvdb/tibi/-/archive/v{{ version }}/tibi-v{{ version }}.tar.gz
+  sha256: 423b356a8ec0c356a9940c9d250686e82507f5ed5679f71d22f526ea0f968aeb
+
+build:
+  skip: true  # [not linux]
+  number: {{ build }}
+
+outputs:
+  - name: tibi
+    number: {{ build }}          # [not (unix and x86_64)]
+    number: {{ build + 100 }}    # [unix and x86_64 and microarch_level == 1]
+    number: {{ build + 300 }}    # [unix and x86_64 and microarch_level == 3]
+    script: build_tibi.sh
+
+    requirements:
+      build:
+        - x86_64-microarch-level {{ microarch_level }}  # [unix and x86_64]
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('fortran') }}
+        - make
+        - libgomp
+      host:
+        - libblas
+        - liblapack
+        - libxsmm
+        - elpa =*=*nompi*
+
+    test:
+      commands:
+        - tibi --version
+        - eiger --version
+
+  - name: tibi-python
+    number: {{ build }}
+
+    build:
+      script: python -m pip install . -vv --no-deps --no-build-isolation
+      noarch: python
+
+    requirements:
+      host:
+        - python {{ python_min }}.*
+        - setuptools
+        - pip
+      run:
+        - python >={{ python_min }}
+        - ase >={{ ase_min }}
+        - {{ pin_subpackage('tibi', max_pin='x.x.x') }}
+
+    test:
+      imports:
+        - tibi
+      requires:
+        - make
+        - python {{ python_min }}.*
+        - pip
+        - numpy <2
+        - ase {{ ase_min }}.*
+      source_files:
+        - tests
+      commands:
+        - pip check
+        - export ASE_TIBI_COMMAND="tibi PREFIX.in PREFIX.xyz > PREFIX.out"
+        - export ASE_EIGER_COMMAND="eiger PREFIX.in > PREFIX.out"
+        - export OPENBLAS_NUM_THREADS=1
+        - export OMP_NUM_THREADS=2
+        - export NPROCS=$((CPU_COUNT / OMP_NUM_THREADS))
+        - export TST=${PWD}/tests
+        - make -f tests/Makefile TEST_DIAG=DC -j${NPROCS}
+        - make -f tests/Makefile TEST_DIAG=ELPA -j${NPROCS} test_041 test_042
+ 
+about:
+  home: https://mvdb.gitlab.io/tibi
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: An ab-initio tight-binding electronic structure code
+  doc_url: https://mvdb.gitlab.io/tibi
+  dev_url: https://gitlab.com/mvdb/tibi
+
+extra:
+  feedstock-name: tibi
+  recipe-maintainers:
+    - MaximeVdB
