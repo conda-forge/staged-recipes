@@ -4,6 +4,10 @@ mkdir -p build_sundials
 cd build_sundials
 KLU_INCLUDE_DIR=$PREFIX/include/suitesparse
 KLU_LIBRARY_DIR=$PREFIX/lib
+
+export CXXFLAGS="${CXXFLAGS} -I${KLU_INCLUDE_DIR}"
+export CFLAGS="${CFLAGS} -I${KLU_INCLUDE_DIR}"
+
 SUNDIALS_DIR=$SRC_DIR/sundials
 cmake -DENABLE_LAPACK=ON\
       -DSUNDIALS_INDEX_SIZE=32\
