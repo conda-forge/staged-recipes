@@ -1,0 +1,186 @@
+{% set version = "6.0.0" %}
+{% set met_version = "12.0.2" %}
+{% set ecbuild_version = "3.9.0" %}
+{% set eckit_version = "1.28.4" %}
+{% set atlas_version = "0.37.0" %}
+
+package:
+  name: metplus
+  version: {{ version }}
+
+source:
+  - url: https://github.com/dtcenter/METplus/archive/refs/tags/v{{ version }}.tar.gz
+    md5: a5612dfd025055707f4a45dff028e628
+    sha256: e9358aede2fd2abecd81806227de7b165d68fdf2fc9defcbba24df229461b155
+
+  - url: https://github.com/dtcenter/MET/archive/refs/tags/v{{ met_version }}.tar.gz
+    md5: 4b9dba80639a74f1a3ecb15357785603
+    sha256: 613c74cbe5a0afa87422e81a4cd70984238c1a0eaf1a395503486331223ede45
+    folder: MET
+
+  - url: https://downloads.sourceforge.net/project/gs-fonts/gs-fonts/8.11%20%28base%2035%2C%20GPL%29/ghostscript-fonts-std-8.11.tar.gz
+    md5: 6865682b095f8c4500c54b285ff05ef6
+    sha256: 0eb6f356119f2e49b2563210852e17f57f9dcc5755f350a69a46a0d641a0c401
+    folder: gs-fonts
+
+  - url: https://github.com/ecmwf/ecbuild/archive/refs/tags/{{ ecbuild_version }}.tar.gz
+    md5: d2117212580160c24f62649643fa92e5
+    sha256: 8ad20169a7d917d6ac81a7ca0d1b11616e2aeb82c7782f6ae5b768603a3e000a
+    folder: ecbuild
+
+  - url: https://github.com/ecmwf/eckit/archive/refs/tags/{{ eckit_version }}.tar.gz
+    md5: 2f5299480ad43b53fa0df8482683968f
+    sha256: c6215efc5b6f190e9dd239e7784986f9d72381e70cb83b1067538240cc9b5c41
+    folder: eckit
+
+  - url: https://github.com/ecmwf/atlas/archive/refs/tags/{{ atlas_version }}.tar.gz
+    md5: 3d27a1b3273e06a21bbab1982278ad58
+    sha256: 26edab963e7f17bf4759924af4d3fb45582a64d1afd003d50a93ea7cf6f052a5
+    folder: atlas
+
+channels:
+  - conda-forge
+
+build:
+  skip: true # [win]
+  missing_dso_whitelist:
+    # eckit/atlas libraries are installed within this recipe
+    {% if osx %}
+    - libeckit.dylib
+    - libeckit_geometry.dylib
+    - libatlas.dylib
+    {% else %}
+    - libeckit.so
+    - libeckit_geometry.so
+    - libatlas.so
+    {% endif %}
+
+# Notes:
+# - GCC 12 on Linux and fftw are needed to install atlas
+# - libopenblas v0.3.28 is needed using 0.3.29 causes eckit to not find
+#  the library and it compiles with other libraries that are not included
+#  in this recipe.
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - {{ compiler('cxx') }}
+    - gcc_linux-64=12  # [linux]
+    - libcxx
+    - cairo
+    - freetype
+    - gsl
+    - libnetcdf
+    - netcdf-cxx4=4.3.1
+    - libopenblas==0.3.28
+    - python
+    - zlib
+    - nceplibs-bufr
+    - python-configuration
+    - jasper
+    - nceplibs-g2c
+    - hdf4
+    - hdfeos2
+    - proj
+    - fftw
+    - _openmp_mutex=4.5 # [linux]
+    - llvm-openmp       # [osx]
+
+  host:
+    - python 3.10
+    - gsl
+    - netcdf-cxx4
+    - zlib
+    - cairo
+    - freetype
+    - nceplibs-bufr
+    - nceplibs-g2c
+    - xarray
+    - numpy
+    - pandas
+    - pyyaml
+    - scipy
+    - fftw
+    - ncurses
+    - hdfeos2
+    - _openmp_mutex # [linux]
+    - llvm-openmp   # [osx]
+    - libcxx
+    - setuptools
+    - setuptools-git-versioning >=2.0,<3
+
+  run:
+    - gsl
+    - netcdf-cxx4
+    - libopenblas
+    - python
+    - nceplibs-bufr
+    - nceplibs-g2c
+    - hdf4
+    - ncurses
+    - bzip2
+    - lz4-c
+    - snappy
+    - libaec
+    - libcurl
+    - fftw
+    - xarray
+    - numpy
+    - pandas
+    - pyyaml
+    - netcdf4
+    - scipy
+    - _openmp_mutex # [linux]
+    - llvm-openmp   # [osx]
+
+test:
+  commands:
+    - test -f $PREFIX/bin/ascii2nc
+    - test -f $PREFIX/bin/ensemble_stat
+    - test -f $PREFIX/bin/gen_ens_prod
+    - test -f $PREFIX/bin/gen_vx_mask
+    - test -f $PREFIX/bin/grid_diag
+    - test -f $PREFIX/bin/grid_stat
+    - test -f $PREFIX/bin/ioda2nc
+    - test -f $PREFIX/bin/lidar2nc
+    - test -f $PREFIX/bin/madis2nc
+    - test -f $PREFIX/bin/mode
+    - test -f $PREFIX/bin/mode_analysis
+    - test -f $PREFIX/bin/mtd
+    - test -f $PREFIX/bin/pb2nc
+    - test -f $PREFIX/bin/pcp_combine
+    - test -f $PREFIX/bin/plot_data_plane
+    - test -f $PREFIX/bin/plot_point_obs
+    - test -f $PREFIX/bin/point2grid
+    - test -f $PREFIX/bin/point_stat
+    - test -f $PREFIX/bin/regrid_data_plane
+    - test -f $PREFIX/bin/series_analysis
+    - test -f $PREFIX/bin/stat_analysis
+    - test -f $PREFIX/bin/tc_diag
+    - test -f $PREFIX/bin/tc_gen
+    - test -f $PREFIX/bin/tc_pairs
+    - test -f $PREFIX/bin/tc_rmw
+    - test -f $PREFIX/bin/tc_stat
+    - test -f $PREFIX/bin/wavelet_stat
+  imports:
+    - metplus
+    - xarray
+    - numpy
+    - scipy
+    - yaml
+    - pandas
+
+
+about:
+  home: https://dtcenter.org/community-code/metplus
+  summary: 'Unified NWP model verification, validation, and diagnostic tools'
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE.md
+  doc_url: https://metplus.readthedocs.io
+  dev_url: https://github.com/dtcenter/METplus
+
+extra:
+  recipe-maintainers:
+    - georgemccabe
