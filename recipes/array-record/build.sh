@@ -14,7 +14,7 @@ if [[ "${target_platform}" == linux-* ]]; then
 fi
 
 export PYTHON_BIN="${PYTHON}"
-export PYTHON_VERSION="$(${PYTHON} -c \"import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')\")"
+export PYTHON_VERSION="$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")"
 
 # Remove .bazelrc if it already exists
 [ -e .bazelrc ] && rm -f .bazelrc
