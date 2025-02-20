@@ -30,9 +30,9 @@ echo "build --host_cxxopt=-std=c++17" >> .bazelrc
 echo "build --linkopt=\"-lrt -lm\"" >> .bazelrc
 echo "build --experimental_repo_remote_exec" >> .bazelrc
 echo "build --python_path=\"${PYTHON_BIN}\"" >> .bazelrc
+
 echo "build --logging=6" >> .bazelrc
 echo "build --verbose_failures" >> .bazelrc
-
 echo "build --local_cpu_resources=${CPU_COUNT}"
 
 if [ -n "${CROSSTOOL_TOP}" ]; then
