@@ -47,8 +47,8 @@ mkdir atlas/build
      make -j${NUM_PROCS} install)
 
 
-wget -O ./MET/config.sub http://git.savannah.gnu.org/cgit/config.git/plain/config.sub
-wget -O ./MET/config.guess http://git.savannah.gnu.org/cgit/config.git/plain/config.guess
+curl -o ./MET/config.sub http://git.savannah.gnu.org/cgit/config.git/plain/config.sub
+curl -o ./MET/config.guess http://git.savannah.gnu.org/cgit/config.git/plain/config.guess
 
 
 (cd MET &&
