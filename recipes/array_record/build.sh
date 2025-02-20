@@ -86,5 +86,5 @@ popd
 
 echo $(date) : "=== Output wheel file is in: ${DEST}"
 
-# Install the wheel to Conda environment
+# Install the wheel to Conda prefix
 ${PYTHON} -m pip install -vv --no-deps --no-build-isolation ${DEST}/*.whl
