@@ -1,0 +1,71 @@
+context:
+  name: libdatadog
+  version: 15.0.0
+
+package:
+  name: ${{ name | lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DataDog/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 988f3674ba37ce7f2277e59f08b2ff870383e98b8d1e64eb06c5c977a81057e3
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+    - if: unix
+      then:
+        - export LIBDD_OUTPUT_FOLDER=${PREFIX}
+        - cargo run --bin release --features telemetry,profiling,data-pipeline,library-config --release -- --out ${PREFIX}
+        # no static lib
+        - rm ${PREFIX}/lib/pkgconfig/datadog_profiling-static.pc
+        - rm ${PREFIX}/lib/libdatadog_profiling.a
+        # datadog's bespoke build system makes a tarball of the output too
+        - rm ${PREFIX}/libdatadog_v${{ version }}.tar
+        - mkdir -p $PREFIX/lib/cmake/Datadog
+        - mv $PREFIX/cmake/* $PREFIX/lib/cmake/Datadog
+      else:
+        - set LIBDD_OUTPUT_FOLDER=%PREFIX%
+        - cargo run --bin release --features telemetry,profiling,data-pipeline,library-config --release -- --out %PREFIX%
+        - mkdir -p %PREFIX%/lib/cmake/Datadog
+        - mv %PREFIX%/cmake/* %PREFIX%/lib/cmake/Datadog
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - cmake
+    - cargo-bundle-licenses
+    - if: linux
+      then:
+        - patchelf
+    - if: mac
+      then:
+        - openssl
+
+tests:
+  - package_contents:
+      include:
+        - datadog/common.h
+        - datadog/profiling.h
+        - datadog/data-pipeline.h
+        - datadog/library-config.h
+        - datadog/telemetry.h
+      lib:
+        - libdatadog_profiling
+
+about:
+  homepage: https://github.com/DataDog/libdatadog
+  license: Apache-2.0
+  license_file: 
+    - LICENSE
+    - LICENSE-3rdparty.yml
+    - THIRDPARTY.yml
+  summary: Datadog shared rust-based library.
+  description: |
+    libdatadog provides a shared library containing common code used in the implementation of Datadog's libraries.
+
+extra:
+  recipe-maintainers:
+    - zbowling
