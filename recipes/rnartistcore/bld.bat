@@ -10,13 +10,11 @@ call mvn clean package || exit /b %ERRORLEVEL%
 dir target
 
 :: Create installation directory if needed
-mkdir "%CONDA_PREFIX%\share\rnartistcore"
+mkdir "%PREFIX%\share\rnartistcore"
 
 :: Copy the correct jar using the dash version from %JAR_VERSION%
 :: This name must match exactly what Maven produces.
 copy "target\rnartistcore-%JAR_VERSION%-jar-with-dependencies.jar" ^
-     "%CONDA_PREFIX%\share\rnartistcore\rnartistcore.jar" || exit /b %ERRORLEVEL%
-
-java -jar "%~dp0\..\share\rnartistcore\rnartistcore.jar" %*
+     "%PREFIX%\share\rnartistcore\rnartistcore.jar" || exit /b %ERRORLEVEL%
 
 exit /b 0
