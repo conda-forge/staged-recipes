@@ -1,11 +1,12 @@
-{% set version = "3.0.0.1" %}
-{% set cuda_version = "12.6" %} # min version holoscan works with
+{% set version = "3.0.0.7" %}
+{% set python_version = "3.10" %}    # holoscan python libs compiled for python 3.10
+{% set cuda_version = "12.6" %}      # min version holoscan works with
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-sbsa" %}    # [aarch64]
 {% set extension = "tar.xz" %}
 
 {% set soname = version.split(".")[0] %}
-{% set sha256 = "28c19afd9a80f6acc93d33afea2063d0288c851052f9bfd7b18f9759a688b517" %}  # [linux64]
+{% set sha256 = "e0f38b5e74c61f0a9974460dd3947b102519d5e5db18c5fade610491b1ccd012" %}  # [linux64]
 {% set sha256 = "" %}  # [aarch64]
 
 package:
@@ -13,7 +14,7 @@ package:
   version: {{ version }}
 
 source:
-  url: holoscan-linux-x86_64-3.0.0.4-archive.tar.xz                         # [linux64]
+  url: holoscan-linux-x86_64-3.0.0.7-archive.tar.xz                         # [linux64]
   sha256: {{ sha256 }}
 
 build:
@@ -24,6 +25,7 @@ build:
 requirements:
   build:
     - cf-nvidia-tools 1  # [linux]
+    - python ={{ python_version }}
 
 outputs:
   - name: libholoscan{{ soname }}
@@ -40,7 +42,7 @@ outputs:
         - "*libxpmem.so*"             # XPMEM, Linux Cross-Memory Attach kernel module, not available
       ignore_run_exports_from:
         - {{ compiler('cuda') }}
-        - cuda-cudart-dev
+        - libnpp-dev  # libnpp is tied to specific cuda-version at x.x, so relax it, as we support cuda-version >= 12.6, < 13
     files:
       - lib/libholoscan*.so.*
       - lib/gxf_extensions
@@ -51,8 +53,7 @@ outputs:
       - lib/libuct*.so.*
       - lib/libyaml*.so.*
       - lib/ucx/*.so.*
-      - python/lib/gxf
-      - python/lib/holoscan
+      - lib/libholo*.a
     requirements:
       build:
         - {{ compiler('c') }}
@@ -62,22 +63,18 @@ outputs:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-cudart-dev
-        - cuda-nvcc
-        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - cuda-version {{ cuda_version }}
         - libjpeg-turbo
         - libnpp-dev
         - libtorch
         - libvulkan-loader
-        - python =3.10
         - rdma-core
       run:
-        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}  # [cuda_compiler_version != "None"]
+        - {{ pin_compatible("cuda-version", max_pin="x") }}  # [cuda_compiler_version != "None"]
         - cloudpickle
-        - cuda-cudart
-        - cuda-nvcc
-        - cuda-nvrtc     # needed on its own as libs depend on it
-        - cuda-nvrtc-dev # holoscan wants to explicitly depend on cuda-nvrtc-dev
-        - cuda-nvtx # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+        - cuda-nvrtc        # needed on its own as libs depend on it
+        - cuda-nvrtc-dev    # holoscan wants to explicitly install cuda-nvrtc-dev
+        - cuda-nvtx         # needed to fix broken symlinks: libnvToolsExt.so.1.0.0 -> ../targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
         - cudnn
         - libegl
         - libgomp
@@ -87,13 +84,13 @@ outputs:
         - libcusolver
         - libcusparse
         - libjpeg-turbo
-        - libnpp-dev
+        - libnpp            # needed on its own as libs depend on it
+        - libnpp-dev        # holoscan wants to explicitly install libnpp-dev
         - libnvjitlink
         - libvulkan-loader
         - libzlib
         - nccl
         - pip
-        - python =3.10
         - pytorch
         - rdma-core
       run_constrained:
@@ -150,6 +147,16 @@ outputs:
         - test -f $PREFIX/lib/libholoscan_profiler.so.3.0.0
         - test -f $PREFIX/lib/libholoscan_spdlog_logger.so.3.0.0
         - test -f $PREFIX/lib/libholoscan_viz.so.3.0.0
+        - test -f $PREFIX/lib/libgxf_app.so
+        - test -f $PREFIX/lib/libgxf_core.so
+        - test -f $PREFIX/lib/libgxf_cuda.so
+        - test -f $PREFIX/lib/libgxf_logger.so
+        - test -f $PREFIX/lib/libgxf_multimedia.so
+        - test -f $PREFIX/lib/libgxf_rmm.so
+        - test -f $PREFIX/lib/libgxf_sample.so
+        - test -f $PREFIX/lib/libgxf_serialization.so
+        - test -f $PREFIX/lib/libgxf_std.so
+        - test -f $PREFIX/lib/libgxf_ucx.so
         - test -L $PREFIX/lib/ucx/libucm_cuda.so.0
         - test -L $PREFIX/lib/ucx/libucs_fuse.so.0
         - test -L $PREFIX/lib/ucx/libuct_cma.so.0
@@ -174,8 +181,34 @@ outputs:
         - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan_lib.so
         - test -L $PREFIX/lib/libyaml-cpp.so.0.7
         - test -f $PREFIX/lib/libyaml-cpp.so.0.7.0
-        - test -d $PREFIX/python/lib/gxf
-        - test -d $PREFIX/python/lib/holoscan
+        - test -f $PREFIX/lib/libholoviz_imgui.a
+
+  - name: libholoscan-python
+    build:
+      run_exports:
+        - {{ pin_subpackage("libholoscan" ~ soname, max_pin=None) }}
+    files:
+      - lib/python{{ python_version }}/site-packages/gxf
+      - lib/python{{ python_version }}/site-packages/holoscan
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - {{ pin_subpackage("libholoscan" ~ soname, exact=True) }}
+        - cuda-version {{ cuda_version }}
+        - python ={{ python_version }}
+      run:
+        - {{ pin_subpackage("libholoscan" ~ soname, exact=True) }}
+        - cuda-cudart
+        - python ={{ python_version }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -d $PREFIX/lib/python{{ python_version }}/site-packages/gxf
+        - test -d $PREFIX/lib/python{{ python_version }}/site-packages/holoscan
 
   - name: libholoscan-dev
     build:
@@ -193,8 +226,6 @@ outputs:
         - "*libyaml-cpp.so.0.7"                              # Packaged in libholoscan{{ soname }} lib, but referened by python/** here
       run_exports:
         - {{ pin_subpackage("libholoscan" ~ soname, max_pin=None) }}
-      ignore_run_exports_from:
-        - cuda-cudart-dev
     files:
       - bin/README.md
       - bin/convert_gxf_entities_to_images.py
@@ -236,14 +267,23 @@ outputs:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-cudart-dev
-        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - cuda-version {{ cuda_version }}
       run:
-        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}  # [cuda_compiler_version != "None"]
         - {{ pin_subpackage("libholoscan" ~ soname, exact=True) }}
-        - cuda-cudart
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
+      requires:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - cuda-version {{ cuda_version }}
+        - cuda   # need entire CTK to compile all examples
+        - patch  # needed by one of the examples
+      files:
+        - compile_examples.sh
       commands:
         - test -f $PREFIX/bin/README.md
         - test -f $PREFIX/bin/convert_gxf_entities_to_images.py
@@ -270,16 +310,6 @@ outputs:
         - test -f $PREFIX/include/magic_enum.hpp
         - test -d $PREFIX/include/rmm
         - test -d $PREFIX/include/yaml-cpp
-        - test -f $PREFIX/lib/libgxf_app.so
-        - test -f $PREFIX/lib/libgxf_core.so
-        - test -f $PREFIX/lib/libgxf_cuda.so
-        - test -f $PREFIX/lib/libgxf_logger.so
-        - test -f $PREFIX/lib/libgxf_multimedia.so
-        - test -f $PREFIX/lib/libgxf_rmm.so
-        - test -f $PREFIX/lib/libgxf_sample.so
-        - test -f $PREFIX/lib/libgxf_serialization.so
-        - test -f $PREFIX/lib/libgxf_std.so
-        - test -f $PREFIX/lib/libgxf_ucx.so
         - test -L $PREFIX/lib/libholoscan_core.so
         - test -L $PREFIX/lib/libholoscan_infer.so
         - test -L $PREFIX/lib/libholoscan_infer_onnx_runtime.so
@@ -320,29 +350,6 @@ outputs:
         - test -L $PREFIX/lib/ucx/libuct_rdmacm.so
         - test -L $PREFIX/lib/ucx/libuct_xpmem.so
         - test -L $PREFIX/lib/ucx/libucx_perftest_cuda.so
-
-  - name: libholoscan-static
-    files:
-      - lib/libholo*.a
-    requirements:
-      run:
-        - {{ pin_subpackage("libholoscan-dev", exact=True) }}
-      run_constrained:
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
-    test:
-      requires:
-        - cmake
-        - make
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
-        - cuda-version {{ cuda_version }}
-        - cuda   # need entire CTK to compile all examples
-        - patch  # needed by one of the examples
-      files:
-        - compile_examples.sh
-      commands:
-        - test -f $PREFIX/lib/libholoviz_imgui.a
         - bash compile_examples.sh
 
 about:
