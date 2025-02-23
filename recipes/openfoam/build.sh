@@ -72,5 +72,5 @@ DEACTIVATE_DIR="${PREFIX}/etc/conda/deactivate.d"
 mkdir -p "${ACTIVATE_DIR}"
 mkdir -p "${DEACTIVATE_DIR}"
 
-cp "${RECIPE_DIR}/activate.sh" "${ACTIVATE_DIR}/openfoam-activate.sh"
-cp "${RECIPE_DIR}/deactivate.sh" "${DEACTIVATE_DIR}/openfoam-deactivate.sh"
+cp "${RECIPE_DIR}/openfoam_activate.sh" "${ACTIVATE_DIR}/openfoam_activate.sh"
+cp "${RECIPE_DIR}/openfoam_deactivate.sh" "${DEACTIVATE_DIR}/openfoam_deactivate.sh"
