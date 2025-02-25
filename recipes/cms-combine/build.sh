@@ -2,7 +2,7 @@
 set -ex
 
 pushd HiggsAnalysis/CombinedLimit
-sed -i .bak 's|\${CONDA_PREFIX}|\${PREFIX}|g'  Makefile
+sed -i 's|\${CONDA_PREFIX}|\${PREFIX}|g'  Makefile
 make CONDA=1 -j${CPU_COUNT}
 cp -rv build/bin ${PREFIX}
 # the Makefile always uses .so as a target, so we don't use SHLIB_EXT
