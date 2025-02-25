@@ -1,10 +1,10 @@
 context:
   version: 0.7.2
   pytorch_version: 2.5.1
-  use_cuda: ${{ "true" if cuda_compiler_version != "None" else "false" }}
-  is_cuda_12: ${{ "true" if (cuda_compiler_version or '')[:2] == '12' else "false" }}
-  vllm_target_device: ${{ "cuda" if use_cuda == "true" else "cpu" }}
-  is_cross_compiling: ${{ "true" if build_platform != target_platform else "false" }}
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  is_cuda_12: ${{ (cuda_compiler_version or '')[:2] == '12' }}
+  vllm_target_device: ${{ "cuda" if use_cuda else "cpu" }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
 
 package:
   name: vllm
@@ -15,10 +15,10 @@ source:
   sha256: bdeeda5624182e6a93895cbb7e20b6e88b04d22b8272d8a255741b28b36ae941
   patches:
   - patches/vllm-cmakefiles.patch
-  - if: linux and use_cuda == "false"
+  - if: linux and use_cuda
     then:
     - patches/vllm-cpu-utils.patch
-  - if: is_cross_compiling == "true"
+  - if: is_cross_compiling
     then:
     - patches/vllm-cmake-args.patch
   target_directory: vllm
@@ -54,15 +54,15 @@ requirements:
   - ${{ stdlib('c') }}
   - ${{ compiler('c') }}
   - ${{ compiler('cxx') }}
-  - if: use_cuda == "true"
+  - if: use_cuda
     then:
     - ${{ compiler('cuda') }}
-  - if: is_cross_compiling == "true"
+  - if: is_cross_compiling
     then:
     - python
     - cross-python_${{ target_platform }}
     - pytorch ==${{ pytorch_version }}
-    - if: use_cuda == "true"
+    - if: use_cuda
       then:
       - pytorch-gpu
       else:
@@ -79,12 +79,12 @@ requirements:
   - if: linux
     then:
     - libnuma
-  - if: use_cuda == "true"
+  - if: use_cuda
     then:
     - pytorch-gpu
     - nvtx-c
     - cuda-version ==${{ cuda_compiler_version }}
-    - if: is_cuda_12 == "true"
+    - if: is_cuda_12
       then:
       - cuda
       - cuda-cudart-dev
@@ -145,7 +145,7 @@ requirements:
   - pytorch ==${{ pytorch_version }}
   - torchaudio ==${{ pytorch_version }}
   - torchvision ==0.20.1
-  - if: use_cuda == "true"
+  - if: use_cuda
     then:
     - pytorch-gpu
     else:
@@ -162,7 +162,7 @@ requirements:
   # - decord; extra == "video"
   ignore_run_exports:
     from_package:
-    - if: is_cuda_12 == "true"
+    - if: is_cuda_12
       then:
         - cuda-nvrtc-dev
         - libcublas-dev
@@ -170,7 +170,7 @@ tests:
 - python:
     imports:
     - vllm
-    - if: linux and is_cuda_12 == "true"
+    - if: linux and is_cuda_12
       then:
       - flash_attn
     pip_check: true
