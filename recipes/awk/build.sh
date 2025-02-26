@@ -2,7 +2,7 @@
 
 set -xe
 
-make
+make CC="gcc -Wall"
 if [ ! -d ${PREFIX}/bin ] ; then
     mkdir -p ${PREFIX}/bin
 fi
