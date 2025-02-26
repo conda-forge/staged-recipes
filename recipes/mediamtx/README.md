@@ -15,3 +15,6 @@ The v1 recipe format is fully functional when built with rattler-build.
 ## Inspiration
 
 * https://github.com/conda-forge/carapace-feedstock/blob/main/recipe/recipe.yaml
+* https://github.com/conda-forge/minio-client-feedstock/blob/main/recipe/recipe.yaml
+
+
