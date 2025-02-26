@@ -2,7 +2,8 @@
 
 `node-red-contrib-web-worldmap` is an nodejs package.
 
-https://www.npmjs.com/package/node-red-contrib-web-worldmap
+* https://www.npmjs.com/package/node-red-contrib-web-worldmap
+* https://flows.nodered.org/search?term=node-red-contrib-web-worldmap&type=node&type=flow&type=collection
 
 # V1 recipe format
 
