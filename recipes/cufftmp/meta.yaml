@@ -1,0 +1,104 @@
+{% set version = "11.4.0.6" %}
+{% set libnvshmem_soname = "3" %}
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set extension = "tar.xz" %}  # [unix]
+
+{% set cuda_compiler_version = cuda_compiler_version|default("None") %}
+
+{% set soname = version.split(".")[0] %}
+{% set sha256 = "516714b997bba8266e98ea8cebb3267c33d382d2cccb42bd1731eff3f2846a67" %}  # [linux64]
+{% set sha256 = "" %}  # [aarch64]
+
+package:
+  name: libcufftmp-split
+  version: {{ version }}
+
+source:
+  url: libcufftmp-linux-x86_64-11.4.0.6_cuda12-archive.tar.xz # [linux64]
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [(cuda_compiler_version in (None, "None", "11.8")) or (not (linux64 or aarch64))]
+  script:
+    - cp -rvp include $PREFIX/
+    - cp -rvp lib $PREFIX/
+
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+
+outputs:
+
+  - name: libcufftmp{{ soname }}
+    build:
+      ignore_run_exports_from:
+        - libnvshmem-dev
+    files:
+      - lib/libcufftMp.so.*
+      - bin/chech-glibc lib/libcufftMp.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - libnvshmem-dev {{ libnvshmem_soname }}
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}  # [cuda_compiler_version != "None"]
+        - libnvshmem{{ libnvshmem_soname }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcufftMp.so.11
+        - test -f $PREFIX/lib/libcufftMp.so.11.4.0
+
+  - name: libcufftmp-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcufftmp" ~ soname, max_pin=None) }}
+    files:
+      - lib/libcufftMp.so
+      - include/cufftMp.h
+      - include/cufft.h
+      - include/cudalibxt.h
+      - include/cufftXt.h
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}  # [cuda_compiler_version != "None"]
+        - {{ pin_subpackage("libcufftmp" ~ soname, exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcufftMp.so
+        - test -f $PREFIX/include/cudalibxt.h
+        - test -f $PREFIX/include/cufft.h
+        - test -f $PREFIX/include/cufftMp.h
+        - test -f $PREFIX/include/cufftXt.h
+
+about:
+  home: https://developer.nvidia.com/cufftmp
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/cufftmp/license.html
+  summary: The NVIDIA cuDSS development package.
+  description: >-
+    NVIDIA cuDSS is an optimized, first-generation
+    GPU-accelerated Direct Sparse Solver library for solving linear systems
+    with sparse matrices. Direct Sparse Solvers are an important part
+    of numerical computing as they provide a general robust way of solving large
+    linear systems without and are capable of taking advantage of both high compute
+    throughput and memory bandwidth of the GPUs.
+  doc_url: https://docs.nvidia.com/cuda/cufftmp/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
+  feedstock-name: libcufftmp
