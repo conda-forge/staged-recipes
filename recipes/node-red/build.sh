@@ -2,20 +2,23 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-env
-# export SRC_DIR=./src/github.com/node-red/node-red
+# env
+export SRC_DIR_1=./src/github.com/node-red/node-red
 find .
-# echo ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+mkdir -p ./tgt/
+export TAR_GET=./tgt/${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create package archive and install globally
-pnpm pack src/github.com/node-red/node-red
-pnpm add -ddd \
+pnpm pack ./src/github.com/node-red/node-red
+pnpm store path
+pnpm store add -ddd \
     --global \
     --build-from-source \
-    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+    ${TAR_GET}
+    # ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
-pnpm install
+pnpm install ${TAR_GET}
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/node-red.cmd << EOF
