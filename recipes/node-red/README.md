@@ -1,11 +1,8 @@
-# NodeJS Project : Node-Red
+# NodeJS Project : Node-Red Web World Map
 
-`node-red` is an nodejs package.
+`node-red-contrib-web-worldmap` is an nodejs package.
 
-https://nodered.org/docs/getting-started/development
-
-https://github.com/conda-forge/grunt-feedstock
-https://docs.npmjs.com/about-the-public-npm-registry
+https://www.npmjs.com/package/node-red-contrib-web-worldmap
 
 # V1 recipe format
 
