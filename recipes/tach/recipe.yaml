@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 0.27.0
+  maturin_min: "1.5"
+  maturin_max: "2.0"
+
+package:
+  name: tach
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/tach/tach-${{ version }}.tar.gz
+  sha256: 0c221a51ddfce5a4d65183f0ff2ebda6fd4230c36eb39cf2021c1aeea84be81a
+
+build:
+  number: 0
+  skip: not (match(python, python_min ~ ".*") and is_abi3 == "true")
+  python:
+    version_independent: true
+    entry_points:
+      - tach = "tach.start:start"
+  script:
+    file: build-tach
+
+requirements:
+  build:
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=${{ maturin_min }},<${{ maturin_max }}
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+  host:
+    - maturin >=${{ maturin_min }},<${{ maturin_max }}
+    - pip
+    - python
+    - python-abi3
+  run:
+    - gitpython >=3.1,<4.0
+    - networkx >=2.6,<4.0
+    - prompt-toolkit >=3.0,<4.0
+    - pydot >=2,<4
+    - python
+    - pyyaml >=6.0,<7.0
+    - rich >=13.0,<14.0
+    - stdlib-list >=0.10.0
+    - tomli >=1.2.2
+    - tomli-w >=1.0,<2.0
+
+tests:
+  - python:
+      pip_check: true
+      python_version: ${{ python_min }}.*
+      imports: tach
+  - files:
+      source:
+        - python/tests/
+        - pyproject.toml
+    requirements:
+      run:
+        - coverage
+        - pytest
+        - pytest-mock
+        - python !=${{ python_min }}.*
+    script:
+      - coverage run --source=tach --branch -m pytest -vv --tb=long --color=yes
+      - coverage report --show-missing --skip-covered --fail-under=49
+
+about:
+  summary: A Python tool to maintain a modular package architecture.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/gauge-sh/tach
+  documentation: https://docs.gauge.sh
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
