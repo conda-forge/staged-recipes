@@ -2,8 +2,16 @@
 
 set -xe
 
-make CC=$CC
+# If running in Linux, set the `$HOSTCC` manually to
+# avoid calling the hardcoded `cc` command in the makefile
+if [ "$(uname)" = "Linux" ]; then
+    make HOSTCC="$CC -g -Wall -pedantic -Wcast-qual"
+else
+    make
+fi
+
 if [ ! -d ${PREFIX}/bin ] ; then
     mkdir -p ${PREFIX}/bin
 fi
+
 mv a.out ${PREFIX}/bin/awk
