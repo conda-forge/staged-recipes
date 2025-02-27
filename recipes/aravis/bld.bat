@@ -1,6 +1,6 @@
 
 meson setup %MESON_ARGS% ^
-    -Dviewer=enabled ^
+    -Dviewer=disabled ^
     --prefix="%PREFIX%" ^
     builddir .
 
