@@ -1,3 +1,5 @@
+schema_version: 1
+
 # Much of the information is available via:
 context:
   group: mumble-voip
@@ -5,7 +7,6 @@ context:
   version: "1.5.735"
   sha: 539680318419ca6c236d129dc5b6a96878bd048957cfcfb3882d313dd16660fa
   git_rel: github.com/${{ group }}/${{ name }}
-  num_jobs: 10
 
 package:
   version: ${{ version }}
@@ -22,20 +23,27 @@ source:
 build:
   number: 0
   script:
-    - cd src/mumble
-    - cmake -B build -DCMAKE_BUILD_TYPE=Release -Dspeechd=OFF -Dstatic=ON
-    - cd build
-    - cmake --build . -j ${{ num_jobs }}
+    env:
+      JOB_CNT: ${{ nprocs }}   
+    interpreter: nu
+    content: |
+      cd src/mumble
+      cmake -B build -DCMAKE_BUILD_TYPE=Release -Dspeechd=OFF -Dstatic=ON
+      cd build
+      cmake --build . -j $env.JOB_CNT
+      cmake --install .
 
 requirements:
   build:
+    - nushell
     - ${{ compiler('cxx') }}
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - python
     - cmake
     - ninja
-    - make
+    - if: unix
+      then: make
     - pkg-config
     - libopenssl-static
     - libprotobuf-static
