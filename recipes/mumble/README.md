@@ -17,4 +17,8 @@ The v1 recipe format is fully functional when built with rattler-build.
 * https://github.com/conda-forge/fans-feedstock/
 * https://github.com/conda-forge/pixi-feedstock/
 
+## Patches
 
+Mumble makes use of a 3rd party `cmake` module.
+
+https://github.com/Krzmbrzl/FindPythonInterpreter
