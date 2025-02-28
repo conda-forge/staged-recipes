@@ -24,7 +24,7 @@ cmake ^
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-cmake --build %BLDDIR% --config Release -j
+cmake --build %BLDDIR% --config Release -j%CPU_COUNT%
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 

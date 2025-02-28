@@ -19,7 +19,7 @@ cmake \
 	-DREADOUT_USE_CONAN=OFF \
 	-DHIGHFIVE_USE_INSTALL_DEPS=ON
 
-cmake --build ./build --config Release -j
+cmake --build ./build --config Release -j${CPU_COUNT}
 
 if [[ ("${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "") ]]; then
 	ctest --test-dir ./build --output-on-failure --build-config Release
