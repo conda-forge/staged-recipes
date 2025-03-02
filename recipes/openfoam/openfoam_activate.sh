@@ -3,7 +3,7 @@
 # set all env vars
 export FOAM_API=2412
 
-export WM_PROJECT_DIR="${CONDA_PREFIX}/include/OpenFOAM-v${FOAM_API}"
+export WM_PROJECT_DIR="${CONDA_PREFIX}"
 export WM_ARCH=linux64
 export WM_COMPILER_TYPE=system
 export WM_PROJECT_VERSION=v${FOAM_API}
@@ -31,5 +31,3 @@ export FOAM_ETC=${WM_PROJECT_DIR}/etc
 export FOAM_MPI=sys-mpich
 export FOAM_LIBBIN=${CONDA_PREFIX}/lib
 export FOAM_USER_APPBIN=${CONDA_PREFIX}/bin
-
-export PATH=$PATH:${WM_PROJECT_DIR}/bin

@@ -73,12 +73,12 @@ sed -i "s/$SCRIPTDIR/$NEW_SCRIPTDIR/g" wmake/w*
 cp wmake/w* ${PREFIX}/bin
 
 # copy config and script files
-cp -r etc ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/ 
-cp -r bin ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
-cp -r wmake ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
-cp -r platforms ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
+cp -r etc ${PREFIX} 
+cp -r bin ${PREFIX}
+cp -r wmake ${PREFIX}
+cp -r platforms ${PREFIX}
 
-cp -r tutorials ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
+cp -r tutorials ${PREFIX}
 
 ACTIVATE_DIR="${PREFIX}/etc/conda/activate.d"
 DEACTIVATE_DIR="${PREFIX}/etc/conda/deactivate.d"
