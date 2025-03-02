@@ -5,7 +5,7 @@ export FOAM_DIR_NAME="${SRC_DIR}" #/openfoam-OpenFOAM-${PKG_VERSION}"
 # source foam dot file throws error if not compiled
 # modify the the output folder of the binaries 
 sed -i 's/\$WM_PROJECT_DIR\/platforms\/\$WM_OPTIONS/\$\{PREFIX\}/g' ${FOAM_DIR_NAME}/etc/config.sh/settings
-source "${FOAM_DIR_NAME}/etc/bashrc" || true
+source "${FOAM_DIR_NAME}/etc/bashrc" WM_COMPILER=Gcc WM_MPLIB=MPICH || true
 export CONFIGSHDIR=${FOAM_DIR_NAME}/etc/config.sh
 
 # change scotch version to the conda version
@@ -27,9 +27,21 @@ sed -i 's/^export PETSC_ARCH_PATH=.*/export PETSC_ARCH_PATH=${PREFIX}/g' ${CONFI
 # change hypre version to the conda version
 sed -i 's/^hypre_version=.*/hypre_version=hypre-system/g' ${CONFIGSHDIR}/hypre
 sed -i 's/^export HYPRE_ARCH_PATH=.*/export HYPRE_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/hypre
+
+# change boost and cgal version to the conda version
+sed -i 's/^boost_version=.*/boost_version=boost-system/g' ${CONFIGSHDIR}/CGAL
+sed -i 's/^export BOOST_ARCH_PATH=.*/export BOOST_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/CGAL
+sed -i 's/^cgal_version=.*/cgal_version=cgal-system/g' ${CONFIGSHDIR}/CGAL
+sed -i 's/^export CGAL_ARCH_PATH=.*/export CGAL_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/CGAL
+
+# change fftw version to the conda version
+sed -i 's/^fftw_version=.*/fftw_version=hypre-system/g' ${CONFIGSHDIR}/FFTW
+sed -i 's/^export FFTW_ARCH_PATH=.*/export FFTW_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/FFTW
+
 #
 echo "cFLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c"
 echo "c++FLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
+echo "c++FLAGS += -L ${FOAM_LIBBIN}" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
 
 # remove Allwmake falsely sets the headers to the system
 rm "${FOAM_DIR_NAME}/applications/utilities/mesh/manipulation/setSet/Allwmake"
@@ -65,6 +77,8 @@ cp -r etc ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
 cp -r bin ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
 cp -r wmake ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
 cp -r platforms ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
+
+cp -r tutorials ${PREFIX}/include/OpenFOAM-${PKG_VERSION}/
 
 ACTIVATE_DIR="${PREFIX}/etc/conda/activate.d"
 DEACTIVATE_DIR="${PREFIX}/etc/conda/deactivate.d"
