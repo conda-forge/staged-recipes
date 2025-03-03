@@ -1,0 +1,54 @@
+context:
+  name: parse-changelog
+  version: "0.6.12"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/taiki-e/parse-changelog/archive/refs/tags/v${{ version }}.zip
+  sha256: 80acb0224c2b089f725ede4c7830b12bd40852d796b4bbf2bac9bb2230d71fe7
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: "symbols"
+      CARGO_PROFILE_RELEASE_LTO: "fat"
+    content:
+      - if: unix
+        then:
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - cargo install --bins --no-track --locked --root ${PREFIX} --path .
+      - if: win
+        then:
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || exit 1
+          - cargo install --bins --no-track --locked --root %LIBRARY_PREFIX% --path . || exit 1
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - parse-changelog --help
+  - package_contents:
+      bin:
+        - parse-changelog
+
+about:
+  license: Apache-2.0 AND MIT
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  summary: Simple changelog parser, written in Rust.
+  homepage: https://github.com/taiki-e/parse-changelog
+
+extra:
+  recipe-maintainers:
+    - hadim
