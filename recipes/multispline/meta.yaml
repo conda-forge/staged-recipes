@@ -1,0 +1,75 @@
+{% set name = "multispline" %}
+{% set version = "0.8.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/znasipak/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 08fc81aa2e688f4ee05312dbf8343aac8b7f5f3b789e262b25d12b4c550d145b
+
+build:
+  script:
+    - export CMAKE_GENERATOR=Ninja  # [unix]
+    - {{ PYTHON }} -m pip install . -vv --config-settings=cmake.verbose=true --config-settings=logging.level=DEBUG
+  number: 0
+  skip: True  # [py<39]
+
+requirements:
+  build:
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - scikit-build-core                   # [build_platform != target_platform]
+    - cython                              # [build_platform != target_platform]
+    - numpy                               # [build_platform != target_platform]
+    - libcxx-devel <19                    # [osx]
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - ninja
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - cython
+    - numpy
+  run:
+    - python
+    - numpy
+
+test:
+  source_files:
+    - multispline/tests/test_cubic.py
+    - multispline/tests/test_bicubic.py
+    - multispline/tests/test_tricubic.py
+  imports:
+    - splinecy
+    - multispline.spline
+  requires:
+    - pip
+  commands:
+    - pip check
+    - python -c "import importlib.metadata; assert importlib.metadata.version('multispline') == '{{ version }}'"
+    - python -m unittest multispline/tests/test_cubic.py
+    - python -m unittest multispline/tests/test_bicubic.py
+    - python -m unittest multispline/tests/test_tricubic.py
+
+about:
+  home: https://github.com/znasipak/multispline
+  summary: 'A Python package for generating cubic splines in multiple dimensions'
+  description: |
+    A Python package for generating cubic splines in one, two, or three (hence, multiple)
+    dimensions. The package supports a number of boundary conditions, but is restricted 
+    to interpolating data that is spaced on a uniform grid.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  dev_url: https://github.com/znasipak/multispline
+
+extra:
+  recipe-maintainers:
+    - znasipak
+    - mpigou
