@@ -3,11 +3,10 @@
 setlocal ENABLEEXTENSIONS
 
 set BUILD_DIR=build
-set BUILD_TYPE=Debug
+set BUILD_TYPE=RelWithDebInfo
 
 set "HOST=x86_64-w64-mingw32"
 set "FC=%HOST%-gfortran.exe"
-set FCFLAGS="-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -fbacktrace"
 
 set BUILD_TESTING=ON
 set BUILD_SHARED_LIBS=ON
@@ -25,7 +24,6 @@ if not exist %PREFIX%/include mkdir %PREFIX%/include
 cmake -S . -B %BUILD_DIR% ^
       %CMAKE_ARGS% ^
       -DCMAKE_Fortran_COMPILER=%FC% ^
-      -DCMAKE_Fortran_FLAGS=%FCFLAGS% ^
       -DRTE_ENABLE_SP=%RTE_ENABLE_SP% ^
       -DKERNEL_MODE=%KERNEL_MODE% ^
       -DBUILD_TESTING=%BUILD_TESTING% ^
