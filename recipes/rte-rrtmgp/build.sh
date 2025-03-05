@@ -3,9 +3,8 @@
 set -e
 
 BUILD_DIR=build
-BUILD_TYPE=Debug
+BUILD_TYPE=RelWithDebInfo
 
-FFLAGS='-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan'
 
 BUILD_TESTING=ON
 BUILD_SHARED_LIBS=ON
@@ -23,7 +22,6 @@ mkdir -p $PREFIX/include
 cmake -S . -B ${BUILD_DIR} \
       ${CMAKE_ARGS} \
       -DCMAKE_Fortran_COMPILER=$FC \
-      -DCMAKE_Fortran_FLAGS="$FFLAGS" \
       -DRTE_ENABLE_SP=$RTE_ENABLE_SP \
       -DKERNEL_MODE=$KERNEL_MODE \
       -DBUILD_TESTING=$BUILD_TESTING \
