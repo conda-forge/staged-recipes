@@ -15,7 +15,6 @@ else
 fi
 
 ./configure --prefix=${PREFIX} \
-            --with-mpi-root=${PREFIX} \
             --with-yaxt-root=${PREFIX} \
             --disable-netcdf \
             --disable-examples \
@@ -25,6 +24,13 @@ fi
             --with-pic
 
 make -j ${CPU_COUNT} all
+
+${CC} -shared ./src/core/*.o $(pkg-config yac-core --variable clibs) -o libyac_core.so
+${CC} -shared ./src/mci/*.o $(pkg-config yac-mci --variable clibs) -o libyac_mci.so
+${CC} -shared ./src/utils/*.o $(pkg-config yac-utils --variable clibs) -o libyac_utils.so
+
 make install
 
-${PYTHON} -m pip install ./python/
+cp libyac_core.so ${PREFIX}/lib/
+cp libyac_mci.so ${PREFIX}/lib/
+cp libyac_utils.so ${PREFIX}/lib/
