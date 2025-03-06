@@ -1,7 +1,5 @@
 #
 # Set paths and links:
-
-base_url="https://github.com/JetBrains/lets-plot/releases/download/${PROJECT_VERSION}"
 js_package_path="js-package/build/dist/js/productionExecutable/"
 extension_path="python-extension/build/bin/native/releaseStatic/"
 
