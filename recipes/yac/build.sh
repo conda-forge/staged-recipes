@@ -25,12 +25,12 @@ fi
 
 make -j ${CPU_COUNT} all
 
+make install
+
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${PREFIX}/lib/pkgconfig
 ${CC} -shared ./src/core/*.o $(pkg-config yac-core --variable clibs) -o libyac_core.so
 ${CC} -shared ./src/mci/*.o $(pkg-config yac-mci --variable clibs) -o libyac_mci.so
 ${CC} -shared ./src/utils/*.o $(pkg-config yac-utils --variable clibs) -o libyac_utils.so
-
-make install
 
 cp libyac_core.so ${PREFIX}/lib/
 cp libyac_mci.so ${PREFIX}/lib/
