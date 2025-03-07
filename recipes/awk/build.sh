@@ -4,7 +4,7 @@ set -xe
 
 # If running in Linux, set the `$HOSTCC` manually to
 # avoid calling the hardcoded `cc` command in the makefile
-if [ "$(uname)" = "Linux" ]; then
+if [[ "${target_platform}" == linux-* ]];
     make HOSTCC="$CC -g -Wall -pedantic -Wcast-qual"
 else
     make
