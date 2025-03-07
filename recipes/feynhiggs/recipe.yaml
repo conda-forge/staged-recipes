@@ -1,0 +1,83 @@
+context:
+  name: feynhiggs
+  version: "2.16.1"
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hep-packaging-coordination/feynhiggs-release-mirror/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 47c749bcaa2400973dd492a62a8e72f6c2fc5acbc7499fe17c75de62382e6ec7
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ${{ name }}-static
+
+    build:
+      skip:
+        - win
+      script:
+        # c.f. https://conda-forge.org/docs/maintainer/knowledge_base/#cross-compilation-examples
+        # Get an updated config.sub and config.guess
+        - cp $BUILD_PREFIX/share/gnuconfig/config.* .
+        - ./configure --help
+        - ./configure --prefix=$PREFIX --enable-full-g-2 --enable-slhapara FFLAGS="-ffixed-line-length-none -std=legacy $FFLAGS"
+        - make --jobs="${CPU_COUNT}"
+        - make install
+        - mv $PREFIX/lib64/libFH.a $PREFIX/lib/
+        - rm -r $PREFIX/lib64
+
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('fortran') }}
+        - automake
+        - libtool
+        - make
+        - gawk
+        - pkg-config
+        - gnuconfig
+
+    tests:
+      - script:
+          - cd example
+          - echo "\nC++ demo"
+          - if: linux and (x86_64 or ppc64le)
+            then: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran -lquadmath
+            else: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran
+          - ./demo
+          - rm demo
+
+          - echo "\nFortran demo"
+          - $FC demo.F -o demo $FFLAGS $FLDFLAGS -lFH
+          - echo "\n$FC"
+          - ./demo
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - ${{ compiler('fortran') }}
+        files:
+          source:
+            - example/demo.cc
+            - example/demo.F
+
+about:
+  homepage: http://www.feynhiggs.de/
+  summary: 'FeynHiggs'
+  description: |
+    FeynHiggs is a Fortran code for the (diagrammatic/EFT/hybrid) calculation
+    of the masses, mixings and much more of the Higgs bosons in the MSSM with
+    real/complex parameters at the highest level of accuracy.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  documentation: http://www.feynhiggs.de/
+
+extra:
+  feedstock-name: feynhiggs
+  recipe-maintainers:
+    - matthewfeickert
