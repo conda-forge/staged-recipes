@@ -1,0 +1,154 @@
+{% set version = "0.9.0.0" %}
+
+package:
+  name: libnpp-plus-split
+  version: {{ version.split(".")[:3] | join(".") }}
+
+{% set arm_variant_type = arm_variant_type | default("None") %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
+
+source:
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/linux-x86_64/libnpp_plus-linux-x86_64-0.9.0.0_cuda11-archive.tar.xz"  # [linux and x86_64 and (cuda_compiler_version or "").startswith("11")]
+    sha256: "36bb45a648512a3169e0152f5ad138b8cb2e58a6940bd1f37d1f8f537f98c902"  # [linux and x86_64 and (cuda_compiler_version or "").startswith("11")]
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/linux-x86_64/libnpp_plus-linux-x86_64-0.9.0.0_cuda12-archive.tar.xz"  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: "c41e0bf5494109c19baacbcadce94403a130f04cfb6e60280b68b5c6bec28fb4"  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/linux-sbsa/libnpp_plus-linux-sbsa-0.9.0.0_cuda11-archive.tar.xz"  # [linux and arm64 and (cuda_compiler_version or "").startswith("11") and arm_variant_type == "sbsa"]
+    sha256: "0a21378dd27a61aee28aef9a3ac70d10d449f19ed160a4325e13935059211266"  # [linux and arm64 and (cuda_compiler_version or "").startswith("11") and arm_variant_type == "sbsa"]
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/linux-sbsa/libnpp_plus-linux-sbsa-0.9.0.0_cuda12-archive.tar.xz"  # [linux and arm64 and (cuda_compiler_version or "").startswith("12") and arm_variant_type == "sbsa"]
+    sha256: "840b662dd6ef6c22503f80a07a5f1275c88bd2555052e8c6674c04bdde3aadd3"  # [linux and arm64 and (cuda_compiler_version or "").startswith("12") and arm_variant_type == "sbsa"]
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/windows-x86_64/libnpp_plus-windows-x86_64-0.9.0.0_cuda11-archive.zip"  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
+    sha256: "d72799b9aff46ff4e0e60241654a2aee0d932f05e3e7d9482cf71eb6e8e05eea"  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
+  - url: "https://developer.download.nvidia.com/compute/nppplus/redist/libnpp_plus/windows-x86_64/libnpp_plus-windows-x86_64-0.9.0.0_cuda12-archive.zip"  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: "0d82d14a057c7021c71cf5c60b5fa834269b4c14b9ffaab1305b024039344c4a"  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
+
+build:
+  number: 0
+  skip: true  # [(cuda_compiler_version or "None") == "None"]
+  script:
+    - check-glibc lib/*.so.*  # [linux]
+    - cp -rv lib/ $PREFIX  # [linux]
+    - cp -rv include/ $PREFIX  # [linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cf-nvidia-tools 1  # [linux]
+
+outputs:
+
+  - name: libnpp-plus{{ version.split(".")[0] }}
+    build:
+      ignore_run_exports_from:
+        - {{ compiler("cuda") }}
+    files:
+      - lib/libnpp_plus_*.so.*            # [linux]
+      - Library\bin\npp_plus_*.dll       # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cuda") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnpp_plus_c.so.{{ version.split(".")[0] }}                            # [linux]
+        - test -f $PREFIX/lib/libnpp_plus_c.so.{{ version }}                                          # [linux]
+        - if not exist %LIBRARY_BIN%\npp_plus_c64_{{ version.split(".")[0] }}.dll exit 1              # [win]
+    about:
+      summary: The NVIDIA NPP+ runtime library.
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      description: >-
+        This is a runtime package only. Developers should install libnpp-plus-dev to build
+        with NPP+.
+
+  - name: libnpp-plus
+    requirements:
+      host:
+        - {{ pin_subpackage("libnpp-plus" ~ version.split(".")[0], exact=True) }}
+      run:
+        - {{ pin_subpackage("libnpp-plus" ~ version.split(".")[0], exact=True) }}
+    about:
+      summary: The NVIDIA NPP+ runtime library.
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      description: >-
+        This is a runtime package only. Developers should install libnpp-plus-dev to build
+        with NPP+.
+
+  - name: libnpp-plus-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnpp-plus", max_pin=None) }}
+        - {{ pin_subpackage("libnpp-plus" ~ version.split(".")[0], max_pin=None) }}
+    files:
+      - lib/stubs/*.so                                  # [linux]
+      - lib/libnpp_plus_*.so                            # [linux]
+      - include/nppPlus                                    # [linux]
+      - Library\include\nppPlus                            # [win]
+      - Library\lib\npp_plus_*.lib                      # [win]
+    requirements:
+      host:
+        - {{ pin_subpackage("libnpp-plus", max_pin=None) }}
+        - {{ pin_subpackage("libnpp-plus" ~ version.split(".")[0], max_pin=None) }}
+      run:
+        - {{ pin_subpackage("libnpp-plus", max_pin=None) }}
+        - {{ pin_subpackage("libnpp-plus" ~ version.split(".")[0], max_pin=None) }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnpp_plus_c.so                                    # [linux]
+        - test -f $PREFIX/include/nppPlus/nppPlus.h                             # [linux]
+        - test ! -f $PREFIX/include/npp.h                                         # [linux]
+        - if not exist %LIBRARY_INC%\nppPlus\nppPlus.h exit 1                     # [win]
+        - if exist %LIBRARY_INC%\npp.h exit 1                                 # [win]
+        - if not exist %LIBRARY_LIB%\npp_plus_c.lib exit 1                        # [win]
+
+  - name: libnpp-plus-static
+    build:
+      skip: True  # [not linux]
+    files:
+      - lib/libnpp_plus_*_static.a
+    requirements:
+      host:
+        - {{ pin_subpackage("libnpp-plus-dev", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnpp-plus-dev", exact=True) }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnpp_plus_c_static.a
+    about:
+      summary: The NVIDIA NPP+ static library.
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      description: >-
+        This is a developer package only. Developers should install this package to link
+        statically to NPP+.
+
+about:
+  home: https://developer.nvidia.com/npp
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVIDIA NPP+ is a library of functions for performing CUDA accelerated 2D image and signal processing.
+  description: >-
+    NPP+ enables C++ support—a game-changer that surpasses the overall performance of NPP
+    while requiring fewer operators. With the NPP+ library, you'll experience a seamless
+    interface for image and signal processing, plus the added advantage of multi-GPU
+    support. It's an innovative standalone component that delivers enhanced capabilities and
+    efficiency for all your processing needs.
+  doc_url: https://docs.nvidia.com/cuda/nppplus/
+
+extra:
+  feedstock-name: libnpp-plus
+  recipe-maintainers:
+    - conda-forge/cuda
