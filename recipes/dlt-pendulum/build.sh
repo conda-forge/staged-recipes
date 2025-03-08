@@ -2,6 +2,8 @@
 
 set -ex
 
+export PENDULUM_EXTENSIONS=1
+
 maturin build -vv -j "${CPU_COUNT}" --release --strip --manylinux off --interpreter="${PYTHON}" "${_xtra_maturin_args[@]}"
 
 # Bundle licenses
