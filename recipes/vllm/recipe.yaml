@@ -1,0 +1,192 @@
+context:
+  version: 0.7.2
+  pytorch_version: 2.5.1
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  is_cuda_12: ${{ (cuda_compiler_version or '')[:2] == '12' }}
+  vllm_target_device: ${{ "cuda" if use_cuda else "cpu" }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
+
+package:
+  name: vllm
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/v/vllm/vllm-${{ version }}.tar.gz
+  sha256: bdeeda5624182e6a93895cbb7e20b6e88b04d22b8272d8a255741b28b36ae941
+  patches:
+  - patches/vllm-cmakefiles.patch
+  - if: linux and use_cuda
+    then:
+    - patches/vllm-cpu-utils.patch
+  - if: is_cross_compiling
+    then:
+    - patches/vllm-cmake-args.patch
+  target_directory: vllm
+- url: https://github.com/vllm-project/flash-attention/archive/720c94869cf2e0ff5a706e9c7f1dce0939686ade.tar.gz
+  sha256: 5ba61742ebbf496d9daa846ed09b51f6e941db955398be75e2565141e2656219
+  target_directory: flash-attention
+
+build:
+  number: 0
+  script: |
+    sed -i.bak 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "2.5.1")/g' flash-attention/CMakeLists.txt
+    export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
+    cd vllm
+    python use_existing_torch.py
+    mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
+    ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
+    # export VERBOSE=1
+    export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
+    ${{ PYTHON }} -m pip install . --no-build-isolation
+
+  python:
+    entry_points:
+    - vllm  =  vllm.scripts:main
+
+  skip: win or (osx and x86_64)
+
+requirements:
+  build:
+  - ninja
+  - cmake
+  - git
+  - zlib
+  - ${{ stdlib('c') }}
+  - ${{ compiler('c') }}
+  - ${{ compiler('cxx') }}
+  - if: use_cuda
+    then:
+    - ${{ compiler('cuda') }}
+  - if: is_cross_compiling
+    then:
+    - python
+    - cross-python_${{ target_platform }}
+    - pytorch ==${{ pytorch_version }}
+    - if: use_cuda
+      then:
+      - pytorch-gpu
+      else:
+      - pytorch-cpu
+  host:
+  - python
+  - pip
+  - setuptools
+  - setuptools-scm
+  - packaging
+  - wheel
+  - jinja2
+  - pytorch ==${{ pytorch_version }}
+  - if: linux
+    then:
+    - libnuma
+  - if: use_cuda
+    then:
+    - pytorch-gpu
+    - nvtx-c
+    - cuda-version ==${{ cuda_compiler_version }}
+    - if: is_cuda_12
+      then:
+      - cuda
+      - cuda-cudart-dev
+      - cuda-nvrtc-dev
+      - cuda-nvrtc-static
+      - libcublas-dev
+    - cutlass
+    else:
+    - pytorch-cpu
+  run:
+  - python >=${{ python_min }}
+  - psutil
+  - sentencepiece
+  - numpy <2.0.0
+  - requests >=2.26.0
+  - tqdm
+  - blake3
+  - py-cpuinfo
+  - transformers >=4.48.2
+  - tokenizers >=0.19.1
+  - protobuf
+  - fastapi <0.113.0,>=0.107.0
+  - aiohttp
+  - openai >=1.52.0
+  - uvicorn-standard
+  - pydantic >=2.9
+  - prometheus_client >=0.18.0
+  - pillow
+  - prometheus-fastapi-instrumentator >=7.0.0
+  - tiktoken >=0.6.0
+  - lm-format-enforcer <0.11,>=0.10.9
+  - outlines ==0.1.11
+  - lark ==1.2.2
+  - if: x86_64
+    then:
+    - xgrammar >=0.1.6
+    - pybind11
+  - typing_extensions >=4.10
+  - filelock >=3.16.1
+  - partial-json-parser
+  - pyzmq
+  - msgspec
+  - gguf ==0.10.0
+  - importlib-metadata
+  - mistral-common >=1.5.0
+  - opencv-python-headless >=4.0.0  # mistral-common[opencv]
+  - pyyaml
+  - if: match(python, ">3.11")
+    then:
+    - six >=1.16.0
+    - setuptools >=74.1.1
+  - einops
+  - compressed-tensors ==0.9.1
+  - depyf ==0.18.0
+  - cloudpickle
+  - ray-default >=2.9
+  - nvidia-ml-py >=12.560.30
+  - pytorch ==${{ pytorch_version }}
+  - torchaudio ==${{ pytorch_version }}
+  - torchvision ==0.20.1
+  - if: use_cuda
+    then:
+    - pytorch-gpu
+    else:
+    - pytorch-cpu
+  - if: linux64
+    then:
+    - xformers ==0.0.28.post3  # platform_system == "Linux" and platform_machine == "x86_64"
+  # - tensorizer>=2.9.0; extra == "tensorizer"
+  # - runai-model-streamer; extra == "runai"
+  # - runai-model-streamer-s3; extra == "runai"
+  # - boto3; extra == "runai"
+  # - librosa; extra == "audio"
+  # - soundfile; extra == "audio"
+  # - decord; extra == "video"
+  ignore_run_exports:
+    from_package:
+    - if: is_cuda_12
+      then:
+        - cuda-nvrtc-dev
+        - libcublas-dev
+tests:
+- python:
+    imports:
+    - vllm
+    - if: linux and is_cuda_12
+      then:
+      - flash_attn
+    pip_check: true
+
+about:
+  homepage: https://github.com/vllm-project/vllm
+  summary: A high-throughput and memory-efficient inference and serving engine for LLMs
+  description:  Easy, fast, and cheap LLM serving for everyone
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+  - vllm/LICENSE
+  - flash-attention/LICENSE
+  - LICENSE_CUTLASS.txt
+  documentation: https://vllm.readthedocs.io/en/latest/
+
+extra:
+  recipe-maintainers:
+    - maresb
+    - shermansiu
