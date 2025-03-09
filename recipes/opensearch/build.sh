@@ -9,7 +9,7 @@ sed -i "s/id 'lifecycle-base'/id 'lifecycle-base'\nid 'com.github.jk1.dependency
 ./gradlew localDistro
 
 # Download dependency licenses
-./gradlew generateLicenseReport
+./gradlew generateLicenseReport --warning-mode all
 
 mkdir -p "$PREFIX/bin"
 mkdir -p "$PREFIX/lib"
