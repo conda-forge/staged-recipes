@@ -2,11 +2,7 @@
 
 set -e
 
-export CC=${CXX}
-export CFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib"
-
-make CC=$CC CFLAGS="$CFLAGS" LFLAGS="$LDFLAGS" all
+make CC=$CC CFLAGS="$CFLAGS" LFLAGS="$LDFLAGS -lm" all
 
 # copy binaries to $PREFIX/bin
 mkdir -p $PREFIX/bin
