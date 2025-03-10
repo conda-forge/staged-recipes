@@ -10,9 +10,15 @@ Such as:
     export GH_TOKEN=$(cat ~/.conda-smithy/github.token)
 
 """
-from __future__ import print_function
 
+from __future__ import print_function
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Iterator
 from conda_build.metadata import MetaData
+from rattler_build_conda_compat.render import MetaData as RattlerBuildMetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -25,32 +31,92 @@ import tempfile
 import traceback
 import time
 
+import github
 import requests
 from ruamel.yaml import YAML
+from conda_forge_feedstock_ops.parse_package_and_feedstock_names import (
+    parse_package_and_feedstock_names
+)
+from conda_forge_metadata.feedstock_outputs import sharded_path as _get_sharded_path
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
 REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
-recipe_directory_name = 'recipes'
+recipe_directory_name = "recipes"
 
 
-def list_recipes():
-    if os.path.isdir(recipe_directory_name):
-        recipes = os.listdir(recipe_directory_name)
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
+def _register_package_for_feedstock(feedstock, pkg_name, gh):
+    repo = gh.get_repo("conda-forge/feedstock-outputs")
+    try:
+        contents = repo.get_contents(_get_sharded_path(pkg_name))
+    except github.GithubException as e:
+        _test_and_raise_besides_file_not_exists(e)
+        contents = None
+
+    if contents is None:
+        data = {"feedstocks": [feedstock]}
+        repo.create_file(
+            _get_sharded_path(pkg_name),
+            f"[cf admin skip] ***NO_CI*** add output {pkg_name} for conda-forge/{feedstock}-feedstock",
+            json.dumps(data),
+        )
+        print(f"    output {pkg_name} added for feedstock {feedstock}", flush=True)
     else:
-        recipes = []
+        # we proceed anyways and do not raise since it could be a rerun of staged recipes
+        # print a warning for the users
+        data = json.loads(contents.decoded_content.decode("utf-8"))
+        print(f"    WARNING: output {pkg_name} already exists from feedstock(s) {data["feedstocks"]}", flush=True)
 
-    for recipe_dir in recipes:
+
+def list_recipes() -> Iterator[tuple[str, str]]:
+    """
+    Locates all the recipes in the `recipes/` folder at the root of the repository.
+
+    For each found recipe this function returns a tuple consisting of
+    * the path to the recipe directory
+    * the name of the feedstock
+    """
+    repository_root = Path(__file__).parent.parent.parent.parent.absolute()
+    repository_recipe_dir = repository_root / recipe_directory_name
+
+    # Ignore if the recipe directory does not exist.
+    if not repository_recipe_dir.is_dir:
+        return
+
+    for recipe_dir in repository_recipe_dir.iterdir():
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
         # .DS_Store is created by macOS to store custom attributes of its
         # containing folder.
-        if recipe_dir in ['example', '.DS_Store']:
+        if recipe_dir.name in ["example", "example-v1", ".DS_Store"]:
             continue
-        path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, get_feedstock_name_from_meta(MetaData(path))
+
+        # Try to look for a conda-build recipe.
+        absolute_feedstock_path = repository_recipe_dir / recipe_dir
+        try:
+            yield (
+                str(absolute_feedstock_path),
+                get_feedstock_name_from_meta(MetaData(absolute_feedstock_path)),
+            )
+            continue
+        except OSError:
+            pass
+
+        # If no conda-build recipe was found, try to load a rattler-build recipe.
+        yield (
+            str(absolute_feedstock_path),
+            get_feedstock_name_from_meta(RattlerBuildMetaData(absolute_feedstock_path)),
+        )
 
 
 @contextmanager
@@ -206,7 +272,7 @@ if __name__ == '__main__':
 
     # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
     gh_travis = None
-    
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -370,9 +436,11 @@ if __name__ == '__main__':
                 if not feedstock_token_exists("conda-forge", name + "-feedstock"):
                     subprocess.check_call(
                         ['conda', 'smithy', 'generate-feedstock-token',
+                         '--unique-token-per-provider',
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
+                         '--unique-token-per-provider',
                          '--without-circle', '--without-drone',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
@@ -398,6 +466,12 @@ if __name__ == '__main__':
                 )
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
+
+                # pre-register outputs
+                print("registering outputs...")
+                _, pkg_names, _ = parse_package_and_feedstock_names(feedstock_dir, use_container=False)
+                for pkg_name in pkg_names:
+                    _register_package_for_feedstock(name, pkg_name, gh)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
