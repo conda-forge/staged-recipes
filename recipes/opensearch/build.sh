@@ -1,25 +1,23 @@
-#!/bin/bash
-set -ex -o pipefail
+#!/usr/bin/env bash
+
+set -o xtrace -o nounset -o pipefail -o errexit
 
 export JAVA_OPTS="-XX:ReservedCodeCacheSize=64m"
 
-sed -i "s/id 'lifecycle-base'/id 'lifecycle-base'\nid 'com.github.jk1.dependency-license-report' version '2.9'/" build.gradle
+sed -i "s/id 'lifecycle-base'/id 'lifecycle-base'\nid 'com.github.jk1.dependency-license-report' version 'latest.release'/" build.gradle
 
 # Build OpenSearch distribution (https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#gradle-build)
 ./gradlew -Dbuild.noJdk=true localDistro
 
 # Download dependency licenses
-./gradlew generateLicenseReport --warning-mode all
+./gradlew publishToMavenLocal --warning-mode all
 
 mkdir -p "$PREFIX/bin"
-mkdir -p "$PREFIX/lib"
-mkdir -p "$PREFIX/libexec"
+mkdir -p "$PREFIX/libexec/opensearch"
 
-# Find the exact built files directory
-OPENSEARCH_DIR=$(find build/distribution/local -type d -name "opensearch-*" | head -n 1)
-cp -r "$OPENSEARCH_DIR"/* "$PREFIX/libexec"
+rm -rf build/distribution/local/opensearch-${PKG_VERSION}-SNAPSHOT/jdk
+rm -rf build/distribution/local/opensearch-${PKG_VERSION}-SNAPSHOT/jdk.app
 
-for exe in "$PREFIX/libexec/bin"/*; do
-    [ -x "$exe" ] && ln -sf "$exe" "$PREFIX/bin/$(basename "$exe")"
-done
+cp -r build/distribution/local/opensearch-${PKG_VERSION}-SNAPSHOT/* ${PREFIX}/libexec/opensearch
 
+ln -sf ${PREFIX}/libexec/opensearch/bin/* ${PREFIX}/bin
