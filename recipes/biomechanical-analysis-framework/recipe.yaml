@@ -1,0 +1,93 @@
+context:
+  name: "biomechanical-analysis-framework"
+  cxx_name: "libbiomechanical-analysis-framework"
+  version: "0.1.0"
+
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: "https://github.com/ami-iit/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz"
+    sha256: "fb12cae8da4146c1bb39f7f71e5e95b43c8e8714a1065fa18dbb307c1e8f4d15"
+    patches:
+      - 65.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ${{ cxx_name }}
+    build:
+      script:
+        - if: unix
+          then: build_cxx.sh
+        - if: win
+          then: build_cxx.bat
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - pkg-config
+        - ninja
+      host:
+        - if: linux
+          then: libgl-devel
+        # Workaround for https://github.com/conda-forge/staged-recipes/pull/29395#issuecomment-2713675868
+        - spdlog 1.15.*
+        - manif
+        - eigen
+        - idyntree
+        - libyarp
+        - libbipedal-locomotion-framework
+        - catch2
+      run_exports:
+         - ${{ pin_subpackage(cxx_name, upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - BiomechanicalAnalysisFrameworkIK
+            - BiomechanicalAnalysisFrameworkLogging
+          include:
+            - BiomechanicalAnalysis/IK/InverseKinematics.h
+            - BiomechanicalAnalysis/Logging/Logger.h
+      - script:
+          - cmake-package-check BiomechanicalAnalysisFramework --targets BiomechanicalAnalysis::IK BiomechanicalAnalysis::CommonConversions BiomechanicalAnalysis::Logging
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+
+  - package:
+      name: ${{ name }}
+    requirements:
+      run:
+        - ${{ pin_subpackage(cxx_name, exact=true) }}
+      run_exports:
+        - ${{ pin_subpackage(cxx_name, upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - cmake-package-check BiomechanicalAnalysisFramework --targets BiomechanicalAnalysis::IK BiomechanicalAnalysis::CommonConversions BiomechanicalAnalysis::Logging
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+
+about:
+  homepage: https://github.com/ami-iit/biomechanical-analysis-framework
+  repository: https://github.com/ami-iit/biomechanical-analysis-framework
+  license: "BSD-3-Clause"
+  license_file: "LICENSE"
+  summary: "Set of C++ libraries that can be used to estimate a human kinematics and dynamics quantities."
+
+extra:
+  feedstock-name: ${{ repo_name }}
+  recipe-maintainers:
+    - traversaro
+    - davidegorbani
