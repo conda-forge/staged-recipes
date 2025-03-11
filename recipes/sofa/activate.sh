@@ -1,0 +1,1 @@
+export SOFA_ROOT=$CONDA_PREFIX
