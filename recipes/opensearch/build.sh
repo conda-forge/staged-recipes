@@ -15,7 +15,8 @@ sed -i "s/id 'lifecycle-base'/id 'lifecycle-base'\nid 'com.github.jk1.dependency
 
 mkdir -p "$PREFIX/bin"
 mkdir -p "$PREFIX/libexec/opensearch"
-mkdir -p "${PREFIX}/libexec/opensearch/logs"
+mkdir -p "$PREFIX/libexec/opensearch/logs"
+touch "$PREFIX/libexec/opensearch/logs/gc.log"
 
 rm -rf build/distribution/local/opensearch-${PKG_VERSION}-SNAPSHOT/jdk
 rm -rf build/distribution/local/opensearch-${PKG_VERSION}-SNAPSHOT/jdk.app
