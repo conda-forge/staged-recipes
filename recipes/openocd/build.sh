@@ -11,6 +11,7 @@ fi
 # Prepare jimtcl (conda feedstock does not provide header/library)
 mkdir -p "${SRC_DIR}"/jimtcl
 pushd "${SRC_DIR}"/jimtcl || exit 1
+  autoreconf -vfi   # > "${SRC_DIR}"/_jimtcl_autoreconf.log 2>&1
   ./configure \
     --prefix="${SRC_DIR}"/jimtcl-install \
     --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
