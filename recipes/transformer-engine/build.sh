@@ -25,4 +25,5 @@ fi
 
 
 echo "Installing"
-NVTE_FRAMEWORK=pytorch ${PYTHON} -m pip install . -vv
+export NVTE_FRAMEWORK=pytorch
+${PYTHON} -m pip install .[pytorch] -vv
