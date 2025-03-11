@@ -9,18 +9,18 @@ mkdir %PREFIX%\bin
 
 REM Copy the khiops-core binaries to the Conda PREFIX path: MODL, MODL_Cocluetsring and _khiopsgetprocnumber.
 REM This last one is used by khiops_env to get the physical cores number 
-copy build\conda\bin\MODL.exe %PREFIX%\bin
-copy build\conda\bin\MODL_Coclustering.exe %PREFIX%\bin
-copy build\conda\bin\_khiopsgetprocnumber.exe %PREFIX%\bin
+copy build\conda\bin\MODL.exe %LIBRARY_BIN%
+copy build\conda\bin\MODL_Coclustering.exe %LIBRARY_BIN%
+copy build\conda\bin\_khiopsgetprocnumber.exe %LIBRARY_BIN%
 
 REM Copy the KhiopsNativeInterface libs for the kni package
 copy build\conda\bin\KhiopsNativeInterface.dll %LIBRARY_BIN%
 copy build\conda\lib\KhiopsNativeInterface.lib %LIBRARY_LIB%
 
 REM Copy the scripts to the Conda PREFIX path
-copy build\conda\tmp\khiops_env.cmd %PREFIX%\bin
-copy packaging\windows\khiops_coclustering.cmd %PREFIX%\bin
-copy packaging\windows\khiops.cmd %PREFIX%\bin
+copy build\conda\tmp\khiops_env.cmd %LIBRARY_BIN%
+copy packaging\windows\khiops_coclustering.cmd %LIBRARY_BIN%
+copy packaging\windows\khiops.cmd %LIBRARY_BIN%
 
 REM Copy the header file
 copy src\Learning\KhiopsNativeInterface\KhiopsNativeInterface.h %LIBRARY_INC%
