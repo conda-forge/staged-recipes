@@ -1,0 +1,82 @@
+{% set version = "1.13" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: transformer_engine
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/TransformerEngine/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 90dd8f694cba29707c502a4f4d12871cb9d4c1f157d329f22cb3d382de8468ae
+
+build:
+  number: 0
+  skip: true  # [win]
+  # pytorch in conda-forge does not support CUDA 11.8 as of v2.5
+  skip: true  # [cuda_compiler_version == "11.8"]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - pytorch                                # [build_platform != target_platform]
+    - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - cmake >=3.21
+    - ninja
+  host:
+    - python
+    - pip
+    - pybind11
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+    - setuptools
+    - pydantic
+    - importlib-metadata>=1.0
+    - packaging
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-nvml-dev
+    - libcublas-dev
+    - libcusparse-dev
+    - libcusolver-dev
+    {% endif %}
+
+  run:
+    - python
+    - scipy
+    - pytorch_scatter
+    - pydantic
+    - importlib-metadata>=1.0
+  run_constrained:
+    # additional run constraint to the one from the (version-only) run_export;
+    # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - transformer_engine.pytorch
+    - transformer_engine.common
+
+about:
+  home: https://github.com/NVIDIA/TransformerEngine
+  summary: A library for accelerating Transformer models on NVIDIA GPUs.
+  license: Apache-2.0
+  license_file: LICENSE
+  dev_url: https://github.com/NVIDIA/TransformerEngine
+
+extra:
+  recipe-maintainers:
+    - pstjohn
