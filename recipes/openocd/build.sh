@@ -11,7 +11,6 @@ fi
 # Prepare jimtcl (conda feedstock does not provide header/library)
 mkdir -p "${SRC_DIR}"/jimtcl
 pushd "${SRC_DIR}"/jimtcl || exit 1
-  autoreconf -vfi   # > "${SRC_DIR}"/_jimtcl_autoreconf.log 2>&1
   ./configure \
     --prefix="${SRC_DIR}"/jimtcl-install \
     --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
@@ -29,8 +28,8 @@ PKG_CONFIG_PATH="${PKG_CONFIG_PATH}${PKG_CONFIG_PATH:+:}${SRC_DIR}/jimtcl-instal
 
 if [[ ${target_platform} == win-* ]]; then
   PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/Library/lib/pkgconfig"
-  # ACLOCAL_PATH="${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
-  # export ACLOCAL_PATH
+  ACLOCAL_PATH="$(find "${BUILD_PREFIX}" -name pkg.m4 -print -quit)"
+  export ACLOCAL_PATH
 fi
 
 export PKG_CONFIG_PATH
