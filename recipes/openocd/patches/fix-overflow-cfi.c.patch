@@ -1,5 +1,58 @@
 --- a/src/flash/nor/cfi.c
 +++ b/src/flash/nor/cfi.c
-@@ -155,1 +155,1 @@
+@@ -142,19 +142,30 @@
+ 
+-static void cfi_command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
++static void cfi_command(struct flash_bank *bank, uint8_t cmd,
++                        uint8_t *cmd_buf, size_t cmd_buf_len)
+ {
+-	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+-
+-	/* clear whole buffer, to ensure bits that exceed the bus_width
+-	 * are set to zero
+-	 */
+-	for (size_t i = 0; i < CFI_MAX_BUS_WIDTH; i++)
+-		cmd_buf[i] = 0;
++    struct cfi_flash_bank *cfi_info = bank->driver_priv;
++    unsigned int i;
+ 
+-	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN) {
+-		for (unsigned int i = bank->bus_width; i > 0; i--)
 -			*cmd_buf++ = (i & (bank->chip_width - 1)) ? 0x0 : cmd;
-+			*cmd_buf++ = (i <= bank->chip_width) ? cmd : 0x0;
+-	} else {
+-		for (unsigned int i = 1; i <= bank->bus_width; i++)
+-			*cmd_buf++ = (i & (bank->chip_width - 1)) ? 0x0 : cmd;
+-	}
++    /* clear whole buffer, to ensure bits that exceed the bus_width
++     * are set to zero
++     */
++    for (i = 0; i < cmd_buf_len; i++) {
++        cmd_buf[i] = 0x0;
++    }
++
++    if (cfi_info->endianness == TARGET_LITTLE_ENDIAN) {
++        for (i = bank->bus_width; i > 0; i--) {
++            if (cmd_buf_len > 0) {  // Check buffer size before writing
++                *cmd_buf++ = (i <= bank->chip_width) ? cmd : 0x0;
++                cmd_buf_len--;
++            }
++        }
++    } else {
++        for (i = 1; i <= bank->bus_width; i++) {
++            if (cmd_buf_len > 0) {  // Check buffer size before writing
++                *cmd_buf++ = (i <= bank->chip_width) ? cmd : 0x0;
++                cmd_buf_len--;
++            }
++        }
++    }
+ }
+@@ -166,3 +177,3 @@
+ 	cfi_command(bank, cmd, command);
+-	return cfi_target_write_memory(bank, address, 1, command);
++	return cfi_target_write_memory(bank, address, 1, command, sizeof(command));
+ }
+@@ -1100,3 +1111,3 @@
+ 	uint8_t buf[CFI_MAX_BUS_WIDTH];
+-	cfi_command(bank, cmd, buf);
++	cfi_command(bank, cmd, buf, sizeof(buf));
+ 	switch (bank->bus_width) {
