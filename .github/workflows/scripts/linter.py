@@ -17,6 +17,15 @@ NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
 HERE = Path(__file__).parent
 ROOT = (HERE / ".." / ".." / "..").absolute()
 
+
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
     hints = defaultdict(list)
@@ -124,7 +133,8 @@ def _lint_recipes(gh, pr):
                         break
                     else:
                         feedstock_exists = False
-                except github.UnknownObjectException:
+                except github.GithubException as e:
+                    _test_and_raise_besides_file_not_exists(e)
                     feedstock_exists = False
 
             if feedstock_exists and existing_recipe_name == recipe_name:
@@ -138,8 +148,8 @@ def _lint_recipes(gh, pr):
             bio = gh.get_user("bioconda").get_repo("bioconda-recipes")
             try:
                 bio.get_dir_contents(f"recipes/{recipe_name}")
-            except github.UnknownObjectException:
-                pass
+            except github.GithubException as e:
+                _test_and_raise_besides_file_not_exists(e)
             else:
                 hints[fname].append(
                     "Recipe with the same name exists in bioconda: "
