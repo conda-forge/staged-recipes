@@ -26,14 +26,6 @@ export CXXFLAGS="${CXXFLAGS} -fno-use-linker-plugin"
 echo CC = $CC
 echo CXX = $CXX
 
-CMAKE_ARGS="-DCMAKE_LIBRARY_PATH=${GCC_DIR} \
-  -DCMAKE_C_COMPILER=$CC \
-  -DCMAKE_CXX_COMPILER=$CXX \
-  -DCUDAToolkit_INCLUDE_DIRECTORIES=\"$PREFIX/include;$PREFIX/${targetsDir}/include\" \
-  -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
-  -DCMAKE_CUDA_COMPILER=$PREFIX/bin/nvcc \
-  -DCUDAToolkit_ROOT=$PREFIX"
-
 cmake -S $PREFIX/examples ${CMAKE_ARGS}
 
 cmake --build .

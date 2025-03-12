@@ -6,14 +6,15 @@
 {% set extension = "tar.xz" %}
 
 {% set sha256 = "3ed03c5f8882975d4241f1a798a78ceea5c91b1ad5278c9db50105d1a8266a28" %}  # [linux64]
-{% set sha256 = "" %}  # [aarch64]
+{% set sha256 = "d6a36bfa06217893fb79bf8affdb31a4d3942953c7d602918e2655ccf01acb25" %}  # [aarch64 and arm_variant_type == "sbsa"]
+{% set sha256 = "c3e49c05eae6de09f0bbd37b55874754f9209f941a07a34770b5b047960a073d" %}  # [aarch64 and arm_variant_type == "tegra"]
 
 package:
   name: holoscan-split
   version: {{ version }}
 
 source:
-  url: holoscan-linux-x86_64-3.0.0.9-archive.tar.xz                         # [linux64]
+  url: https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/{{ platform }}/holoscan-{{ platform }}-{{ version }}-archive.{{ extension }}
   sha256: {{ sha256 }}
 
 build:
@@ -91,7 +92,7 @@ outputs:
         - libzlib
         - nccl
         - pip
-        - python ={{ python_version }}  # be explicit about python version as holoscan python libs are compiled for given version
+        - python ={{ python_version }}  # be explicit about python version in order to pull pytorch version that works with this python version
         - pytorch
         - rdma-core
     test:
@@ -187,12 +188,9 @@ outputs:
       license_url: https://developer.download.nvidia.com/assets/Clara/NVIDIA_Clara_EULA.pdf
       summary: NVIDIA Holoscan runtime library
       description: |
-        This is a runtime package only. Developers should install holoscan or libholoscan-dev to build with Holoscan
+        This is a runtime package only. Developers should install holoscan (python) to build with Holoscan
 
   - name: holoscan
-    build:
-      run_exports:
-        - {{ pin_subpackage("libholoscan", max_pin="x") }}
     files:
       - lib/python{{ python_version }}/site-packages/gxf
       - lib/python{{ python_version }}/site-packages/holoscan
@@ -221,6 +219,7 @@ outputs:
         - test -d $PREFIX/lib/python{{ python_version }}/site-packages/gxf
         - test -d $PREFIX/lib/python{{ python_version }}/site-packages/holoscan
         - pip check
+        - python -c "import holoscan; print(holoscan.__version__)"
     about:
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
@@ -231,6 +230,7 @@ outputs:
 
   - name: libholoscan-dev
     build:
+      skip: true
       missing_dso_whitelist:
         - "*libgxf_app.so"                                   # Packaged in libholoscan lib, but referened by examples/** here
         - "*libgxf_core.so"                                  # Packaged in libholoscan lib, but referened by examples/** here
@@ -288,6 +288,7 @@ outputs:
         - cuda-cudart-dev
         - cuda-version {{ cuda_version }}
       run:
+        - python ={{ python_version }}
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - {{ pin_subpackage("libholoscan", exact=True) }}
     test:
