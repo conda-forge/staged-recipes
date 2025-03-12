@@ -8,7 +8,6 @@ if ($dotnet_version -match "^(\d+\.\d+)") {
 }
 
 $SRC_DIR = Resolve-Path "$Env:SRC_DIR"
-$BUILD_PREFIX = Resolve-Path "$Env:BUILD_PREFIX"
 $PREFIX = Resolve-Path "$Env:PREFIX"
 $PKG_NAME = $Env:PKG_NAME
 
@@ -37,7 +36,7 @@ foreach ($file in $csprojFiles) {
 
 # Install renode-cores .so where they are looked for
 New-Item -ItemType Directory -Path "$SRC_DIR\src\Infrastructure\src\Emulator\Cores\bin\Release\lib" -Force
-Copy-Item -Path "$BUILD_PREFIX\Library\lib\renode-cores\*" -Destination "$SRC_DIR\src\Infrastructure\src\Emulator\Cores\bin\Release\lib" -Force
+Copy-Item -Path "$PREFIX\Library\lib\renode-cores\*" -Destination "$SRC_DIR\src\Infrastructure\src\Emulator\Cores\bin\Release\lib" -Force
 
 # Remove C cores not built in this recipe
 Remove-Item -Path "$SRC_DIR\src\Infrastructure\src\Emulator\Cores\translate*.cproj" -Force
@@ -62,7 +61,7 @@ Copy-Item "$SRC_DIR\lib\resources\styles\robot.css" "$PREFIX\opt\$PKG_NAME\tests
 
 $licensesPath = (Resolve-Path "$PREFIX\opt\$PKG_NAME\licenses").Path -replace '\\', '/'
 $scriptPath = (Resolve-Path "$SRC_DIR\tools\packaging\common_copy_licenses.sh").Path -replace '\\', '/'
-$command = "'$scriptPath' '$licensesPath' 'linux'"
+$command = "'$scriptPath' '$licensesPath' 'windows'"
 & "bash.exe" -c $command
 Copy-Item -Path "$PREFIX\opt\$PKG_NAME\licenses" -Destination "license-files" -Recurse -Force
 
