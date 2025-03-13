@@ -57,7 +57,11 @@ cp -r tools/sel4_extensions $PREFIX/opt/${PKG_NAME}/tools
 
 cp lib/resources/styles/robot.css $PREFIX/opt/${PKG_NAME}/tests
 
-tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses "${target_platform%%-*}"
+if [[ "${target_platform}" == "osx-*" ]]; then
+  tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses macos
+else
+  tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses linux
+fi
 cp -r $PREFIX/opt/${PKG_NAME}/licenses license-files
 
 sed -i.bak "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.path.join(this_path,'robot.css')#g" $PREFIX/opt/${PKG_NAME}/tests/robot_tests_provider.py
