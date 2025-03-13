@@ -28,7 +28,7 @@ sed -i -E 's|<PackageReference Include="System.Drawing.Common" Version="5.*" />|
 
 # Prevent CMake build since we provide the binaries
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
-cp ${BUILD_PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
+ln -s ${PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 
 # Remove the C cores that are not built in this recipe
 rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
