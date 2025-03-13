@@ -69,6 +69,9 @@ set -e
 
 # make sure there is a package directory so that artifact publishing works
 mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD_PATH}/noarch/"
+# Make sure CONDA_BLD_PATH is a valid channel; only do it if noarch/repodata.json doesn't exist
+# to save some time running locally
+test -f "${CONDA_BLD_PATH}/noarch/repodata.json" || conda index "${CONDA_BLD_PATH}"
 
 # Find the recipes from upstream:main in this PR and remove them.
 echo ""
@@ -85,9 +88,20 @@ echo ""
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
+# Set the target arch or auto detect it
+if [[ -z "${TARGET_ARCH}" ]]; then
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    TARGET_ARCH="arm64"
+  else
+    TARGET_ARCH="64"
+  fi
+else
+  echo "TARGET_ARCH is set to ${TARGET_ARCH}"
+fi
+
 # We just want to build all of the recipes.
 echo "Building all recipes"
-python .ci_support/build_all.py
+python .ci_support/build_all.py --arch ${TARGET_ARCH}
 
 ( startgroup "Inspecting artifacts" ) 2> /dev/null
 # inspect_artifacts was only added in conda-forge-ci-setup 4.6.0; --all-packages in 4.9.3

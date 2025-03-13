@@ -17,6 +17,15 @@ NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
 HERE = Path(__file__).parent
 ROOT = (HERE / ".." / ".." / "..").absolute()
 
+
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
     hints = defaultdict(list)
@@ -91,6 +100,9 @@ def _lint_recipes(gh, pr):
         sources_section = get_section(
             meta, "source", lints, recipe_version=recipe_version
         )
+        outputs_section = get_section(
+            meta, "outputs", lints, recipe_version=recipe_version
+        )
         extra_section = get_section(
             meta, "extra", lints, recipe_version=recipe_version
         )
@@ -100,6 +112,8 @@ def _lint_recipes(gh, pr):
             recipe_name = conda_recipe_v1_linter.get_recipe_name(meta)
         else:
             recipe_name = package_section.get("name", "").strip()
+
+        recipe_name = extra_section.get("feedstock-name", recipe_name)
 
         # 4. Check for existing feedstocks in conda-forge or bioconda
         if recipe_name:
@@ -119,7 +133,8 @@ def _lint_recipes(gh, pr):
                         break
                     else:
                         feedstock_exists = False
-                except github.UnknownObjectException:
+                except github.GithubException as e:
+                    _test_and_raise_besides_file_not_exists(e)
                     feedstock_exists = False
 
             if feedstock_exists and existing_recipe_name == recipe_name:
@@ -133,8 +148,8 @@ def _lint_recipes(gh, pr):
             bio = gh.get_user("bioconda").get_repo("bioconda-recipes")
             try:
                 bio.get_dir_contents(f"recipes/{recipe_name}")
-            except github.UnknownObjectException:
-                pass
+            except github.GithubException as e:
+                _test_and_raise_besides_file_not_exists(e)
             else:
                 hints[fname].append(
                     "Recipe with the same name exists in bioconda: "
@@ -213,6 +228,15 @@ def _lint_recipes(gh, pr):
                             f'Maintainer team "{maintainer}" is not in the '
                             'correct format. Please use "org/team" format.'
                         )
+
+        # 7. Check that feedstock-name is defined if recipe is multi-output
+        if outputs_section and ("feedstock-name" not in extra_section):
+            hints[fname].append(
+                "It looks like you are submitting a multi-output recipe. "
+                "In these cases, the correct name for the feedstock is ambiguous, "
+                "and our infrastructure defaults to the top-level `package.name` field. "
+                "Please add a `feedstock-name` entry in the `extra` section."
+            )
 
     return dict(lints), dict(hints), extra_edits
 
