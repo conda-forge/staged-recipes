@@ -2,9 +2,16 @@
 
 export FOAM_DIR_NAME="${SRC_DIR}" #/openfoam-OpenFOAM-${PKG_VERSION}"
 
-ln -s $GCC $BUILD_PREFIX/bin/gcc
-ln -s $GXX $BUILD_PREFIX/bin/g++
-ln -s $CPP $BUILD_PREFIX/bin/cpp
+#ln -s $GCC $BUILD_PREFIX/bin/gcc
+#ln -s $GXX $BUILD_PREFIX/bin/g++
+#ln -s $CPP $BUILD_PREFIX/bin/cpp
+
+sed -i 's/gcc\$(COMPILER_VERSION)/\$(GCC)\$(COMPILER_VERSION)/g' ${FOAM_DIR_NAME}/wmake/rules/General/Gcc/c
+sed -i 's/g++\$(COMPILER_VERSION)/\$(GXX)\$(COMPILER_VERSION)/g' ${FOAM_DIR_NAME}/wmake/rules/General/Gcc/c++
+sed -i 's/= ar/= \$(AR)/g' ${FOAM_DIR_NAME}/wmake/rules/General/general
+sed -i 's/= ranlib/= \$(RANLIB)/g' ${FOAM_DIR_NAME}/wmake/rules/General/general
+sed -i 's/= cpp/= \$(CPP)/g' ${FOAM_DIR_NAME}/wmake/rules/General/general
+sed -i 's/= ld/= \$(LD)/g' ${FOAM_DIR_NAME}/wmake/rules/General/general
 
 # source foam dot file throws error if not compiled
 # modify the the output folder of the binaries 
