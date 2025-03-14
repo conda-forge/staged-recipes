@@ -6,7 +6,6 @@ mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 export PATH="${DOTNET_ROOT}/dotnet:${PATH}"
 
-install_prefix="${PREFIX}/opt/${PKG_NAME}"
 
 dotnet_version=$(dotnet --version)
 framework_version=${dotnet_version%.*}
