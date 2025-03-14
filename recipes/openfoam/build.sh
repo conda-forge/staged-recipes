@@ -12,6 +12,9 @@ export CONFIGSHDIR=${FOAM_DIR_NAME}/etc/config.sh
 sed -i 's/^SCOTCH_VERSION=.*/SCOTCH_VERSION=scotch-system/g' ${CONFIGSHDIR}/scotch
 sed -i 's/^export SCOTCH_ARCH_PATH=.*/export SCOTCH_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/scotch
 
+sed -i 's/^ZOLTAN_VERSION=.*/ZOLTAN_VERSION=zoltan-system/g' ${CONFIGSHDIR}/zoltan
+sed -i 's/^export ZOLTAN_ARCH_PATH=.*/export ZOLTAN_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/zoltan
+
 # change kahip version to the conda version
 sed -i 's/^KAHIP_VERSION=.*/KAHIP_VERSION=kahip-system/g' ${CONFIGSHDIR}/kahip
 sed -i 's/^export KAHIP_ARCH_PATH=.*/export KAHIP_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/kahip
@@ -35,13 +38,13 @@ sed -i 's/^cgal_version=.*/cgal_version=cgal-system/g' ${CONFIGSHDIR}/CGAL
 sed -i 's/^export CGAL_ARCH_PATH=.*/export CGAL_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/CGAL
 
 # change fftw version to the conda version
-sed -i 's/^fftw_version=.*/fftw_version=hypre-system/g' ${CONFIGSHDIR}/FFTW
+sed -i 's/^fftw_version=.*/fftw_version=fftw-system/g' ${CONFIGSHDIR}/FFTW
 sed -i 's/^export FFTW_ARCH_PATH=.*/export FFTW_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/FFTW
 
 #
 echo "cFLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c"
 echo "c++FLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
-echo "c++FLAGS += -L ${FOAM_LIBBIN}" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
+echo "c++FLAGS += -L ${FOAM_LIBBIN} -L ${BUILD_PREFIX}/lib" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
 
 # remove Allwmake falsely sets the headers to the system
 rm "${FOAM_DIR_NAME}/applications/utilities/mesh/manipulation/setSet/Allwmake"

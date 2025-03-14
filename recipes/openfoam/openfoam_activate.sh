@@ -31,3 +31,4 @@ export FOAM_ETC=${WM_PROJECT_DIR}/etc
 export FOAM_MPI=sys-mpich
 export FOAM_LIBBIN=${CONDA_PREFIX}/lib
 export FOAM_USER_APPBIN=${CONDA_PREFIX}/bin
+
