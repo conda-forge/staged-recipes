@@ -1,5 +1,6 @@
 #!/bin/bash
-#export DISABLE_AUTOBREW=1
+export DISABLE_AUTOBREW=1
+export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CXX_FLAGS=-D_LIBCPP_DISABLE_AVAILABILITY"
 
 sed -i.bak 's/${PROJ_LIBS}/${PROJ_LIBS} ${LDFLAGS}/g' configure
 sed -i.bak 's/${LIBS}/${LIBS} ${LDFLAGS}/g' configure
