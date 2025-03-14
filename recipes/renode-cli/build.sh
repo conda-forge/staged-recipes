@@ -6,24 +6,17 @@ mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 export PATH="${DOTNET_ROOT}/dotnet:${PATH}"
 
-
 dotnet_version=$(dotnet --version)
 framework_version=${dotnet_version%.*}
 
 # Patch the project files to use the correct .NET version
 find lib src tests -name "*.csproj" -exec sed -i -E \
   -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
-  -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
-  -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' \
   {} \;
+#DEBUG:  -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
+#Needed?  -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' \
 find . -type d -name "obj" -exec rm -rf {} +
 find . -type d -name "bin" -exec rm -rf {} +
-sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
-
-# Update System.Drawing.Common to 5.0.3
-sed -i -E 's|<PackageReference Include="System.Drawing.Common" Version="5.*" />|<PackageReference Include="System.Drawing.Common" Version="5.0.3" />|' \
-  "${SRC_DIR}"/lib/termsharp/TermSharp_NET.csproj \
-  "${SRC_DIR}"/lib/termsharp/xwt/Xwt.*/Xwt.*.csproj
 
 # Prevent CMake build since we provide the binaries
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
@@ -39,32 +32,30 @@ ${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh ${framework_version}
 mkdir -p $PREFIX/libexec/${PKG_NAME}
 cp -r output/bin/Release/net${framework_version}/* $PREFIX/libexec/${PKG_NAME}/
 
-mkdir -p $PREFIX/opt/${PKG_NAME}/scripts
-mkdir -p $PREFIX/opt/${PKG_NAME}/platforms
-mkdir -p $PREFIX/opt/${PKG_NAME}/tests
+mkdir -p $PREFIX/share/${PKG_NAME}/scripts
+mkdir -p $PREFIX/share/${PKG_NAME}/platforms
+mkdir -p $PREFIX/share/${PKG_NAME}/tests
 mkdir -p $PREFIX/opt/${PKG_NAME}/tools
-mkdir -p $PREFIX/opt/${PKG_NAME}/licenses
 
-cp .renode-root $PREFIX/opt/${PKG_NAME}/
-cp -r scripts/* $PREFIX/opt/${PKG_NAME}/scripts/
-cp -r platforms/* $PREFIX/opt/${PKG_NAME}/platforms/
-cp -r tests/* $PREFIX/opt/${PKG_NAME}/tests/
+cp -r scripts/* $PREFIX/share/${PKG_NAME}/scripts/
+cp -r platforms/* $PREFIX/share/${PKG_NAME}/platforms/
+cp -r tests/* $PREFIX/share/${PKG_NAME}/tests/
+
 cp -r tools/metrics_analyzer $PREFIX/opt/${PKG_NAME}/tools
 cp -r tools/execution_tracer $PREFIX/opt/${PKG_NAME}/tools
 cp -r tools/gdb_compare $PREFIX/opt/${PKG_NAME}/tools
 cp -r tools/sel4_extensions $PREFIX/opt/${PKG_NAME}/tools
 
-cp lib/resources/styles/robot.css $PREFIX/opt/${PKG_NAME}/tests
+cp lib/resources/styles/robot.css $PREFIX/share/${PKG_NAME}/tests
 
 if [[ "${target_platform}" == "osx-*" ]]; then
-  tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses macos
+  tools/packaging/common_copy_licenses.sh license-files macos
 else
-  tools/packaging/common_copy_licenses.sh $PREFIX/opt/${PKG_NAME}/licenses linux
+  tools/packaging/common_copy_licenses.sh license-files linux
 fi
-cp -r $PREFIX/opt/${PKG_NAME}/licenses license-files
 
-sed -i.bak "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.path.join(this_path,'robot.css')#g" $PREFIX/opt/${PKG_NAME}/tests/robot_tests_provider.py
-rm $PREFIX/opt/${PKG_NAME}/tests/robot_tests_provider.py.bak
+sed -i.bak "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.path.join(this_path,'robot.css')#g" $PREFIX/share/${PKG_NAME}/tests/robot_tests_provider.py
+rm $PREFIX/share/${PKG_NAME}/tests/robot_tests_provider.py.bak
 
 mkdir -p $PREFIX/bin/
 cat > $PREFIX/bin/renode <<"EOF"
