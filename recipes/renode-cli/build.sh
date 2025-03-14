@@ -73,10 +73,6 @@ exec "${DOTNET_ROOT}"/dotnet exec "${CONDA_PREFIX}"/libexec/renode-cli/Renode.dl
 EOF
 chmod +x ${PREFIX}/bin/renode
 
-cat > $PREFIX/bin/renode.cmd <<"EOF"
-call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\libexec\renode-cli\Renode.dll %*
-EOF
-chmod +x ${PREFIX}/bin/renode
 
 cat > $PREFIX/bin/renode-test <<"EOF"
 #!/usr/bin/env bash
