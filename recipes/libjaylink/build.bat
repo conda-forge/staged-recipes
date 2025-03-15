@@ -13,7 +13,8 @@ pushd !SRC_DIR! || exit /b 1
   set /a VERSION=CURRENT-AGE
 
   meson setup build-!PKG_NAME! ^
-    !MESON_ARGS! ^
+    --prefix=!PREFIX!\Library ^
+    --buildtype=release ^
     --strip ^
     --backend=ninja ^
     --default-library=shared ^
