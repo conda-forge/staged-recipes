@@ -50,8 +50,8 @@ foreach ($core_config in $CORES) {
         "-DTARGET_WORD_SIZE=$BITS",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DHOST_ARCH=i386",
-        "-DCMAKE_VERBOSE_MAKEFILE=ON"
-        $CORES_PATH,
+        "-DCMAKE_VERBOSE_MAKEFILE=ON",
+        $CORES_PATH
     )
     if ($ENDIAN -eq "be") { $cmakeArgs += "-DTARGET_BIG_ENDIAN=1" }
 

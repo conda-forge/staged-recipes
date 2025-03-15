@@ -2,34 +2,62 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Update the submodule CMakeLists.txt with a recent version (post-CMake conversion)
-CMAKEFILES_TXT="src/Emulator/Cores/CMakeLists.txt"
-cp "cmake-renode-infrastructure/${CMAKEFILES_TXT}" "${SRC_DIR}/src/Infrastructure/${CMAKEFILES_TXT}"
+# Update CMakeLists.txt and copy license files
+cp "cmake-renode-infrastructure/src/Emulator/Cores/CMakeLists.txt" "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt"
 cp cmake-tlib/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib"
 cp cmake-tlib/tcg/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
+cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
+cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
 
 if [[ "${target_platform}" == "osx-arm64" ]]; then
-  # We use Clang on osx-arm64, which does not support -Wno-error=clobbered/-Wno-clobbered
+  # Apply OSX-specific patches
   sed -i -E 's/add_definitions\(-Wno-error=clobbered\)/add_compile_options(-Wno-unknown-warning-option -Wno-clobbered)/' \
     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt" \
     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/CMakeLists.txt" \
     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg/CMakeLists.txt"
-
-  # Oddly, it does not find additional.h, trying to add the include path
   sed -i -E 's|    \$\{CMAKE_SOURCE_DIR\}|    \$\{CMAKE_SOURCE_DIR\} \$\{CMAKE_SOURCE_DIR\}/tlib/tcg|' \
     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg/CMakeLists.txt"
 fi
 
-cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
-cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
+# Check weak implementations
+pushd "${SRC_DIR}/tools/building" > /dev/null
+  ./check_weak_implementations.sh
+popd > /dev/null
 
-chmod +x build.sh tools/building/check_weak_implementations.sh
-${RECIPE_DIR}/helpers/renode_build_with_cmake.sh
-
-# Install procedure into a conda path that renode-cli can retrieve
-CONFIGURATION="Release"
 CORES_PATH="${SRC_DIR}/src/Infrastructure/src/Emulator/Cores"
-CORES_BIN_PATH="$CORES_PATH/bin/$CONFIGURATION"
+CORES=("arm.le" "arm.be" "arm64.le" "arm-m.le" "arm-m.be" "ppc.le" "ppc.be" "ppc64.le" "ppc64.be" "i386.le" "x86_64.le" "riscv.le" "riscv64.le" "sparc.le" "sparc.be" "xtensa.le")
 
+for core_config in "${CORES[@]}"; do
+    CORE="${core_config%%.*}"
+    ENDIAN="${core_config##*.}"
+    BITS=32
+    [[ "$CORE" == *"64"* ]] && BITS=64
+
+    CMAKE_CONF_FLAGS=(
+        "-GNinja"
+        "-DTARGET_ARCH=$CORE"
+        "-DTARGET_WORD_SIZE=$BITS"
+        "-DCMAKE_BUILD_TYPE=Release"
+        "-DCMAKE_VERBOSE_MAKEFILE=ON"
+        "$CORES_PATH"
+    )
+
+    [[ "${target_platform}" == "osx-arm64" ]] && CMAKE_CONF_FLAGS+=("-DCMAKE_OSX_ARCHITECTURES=arm64" "-DHOST_ARCH=aarch64")
+    [[ "$ENDIAN" == "be" ]] && CMAKE_CONF_FLAGS+=("-DTARGET_BIG_ENDIAN=1")
+
+    CORE_DIR="$CORES_PATH/obj/Release/$CORE/$ENDIAN"
+    mkdir -p "$CORE_DIR"
+    pushd "$CORE_DIR" > /dev/null
+        cmake "${CMAKE_CONF_FLAGS[@]}"
+        cmake --build .
+        mkdir -p "$CORES_PATH/bin/Release/lib"
+        cp -u -v tlib/*.so "$CORES_PATH/bin/Release/lib/"
+    popd > /dev/null
+done
+
+# Install to conda path
 mkdir -p "${PREFIX}/lib/${PKG_NAME}"
-tar -c -C "${CORES_BIN_PATH}/lib" . | tar -x -C "${PREFIX}/lib/${PKG_NAME}"
+tar -c -C "${CORES_PATH}/bin/Release/lib" . | tar -x -C "${PREFIX}/lib/${PKG_NAME}"
+
+exit 0
+
