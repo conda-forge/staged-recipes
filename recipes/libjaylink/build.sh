@@ -4,8 +4,7 @@ set -euxo pipefail
 
 pushd "${SRC_DIR}" || exit 1
   meson setup build-${PKG_NAME} \
-    --prefix="${PREFIX}" \
-    --buildtype=release \
+    ${MESON_ARGS} \
     --default-library=shared \
     --strip \
     --backend=ninja
