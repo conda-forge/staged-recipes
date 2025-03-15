@@ -24,14 +24,6 @@ PROP_FILE="${CURRENT_PATH:=.}/src/Infrastructure/src/Emulator/Cores/${target_pla
 cp "$PROP_FILE" "$OUTPUT_DIRECTORY/properties.csproj"
 
 # build
-function build_args_helper() {
-    local retStr=""
-    for p in "$@" ; do
-        retStr="${retStr} -$p"
-    done
-    echo ${retStr}
-}
-
 eval "dotnet build \
   -p:GUI_DISABLED=true \
   -p:Configuration=ReleaseHeadless \
