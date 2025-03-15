@@ -37,6 +37,7 @@ $CMAKE = (Get-Command cmake).Source
 $CORES_PATH = Join-Path $SRC_DIR "/src/Infrastructure/src/Emulator/Cores"
 $CORES = @("arm.le", "arm.be", "arm64.le", "arm-m.le", "arm-m.be", "ppc.le", "ppc.be", "ppc64.le", "ppc64.be", "i386.le", "x86_64.le", "riscv.le", "riscv64.le", "sparc.le", "sparc.be", "xtensa.le")
 
+New-Item -ItemType Directory -Path "$CORES_PATH/bin/Release/lib" -Force | Out-Null
 foreach ($core_config in $CORES) {
     Write-Host "Building $core_config"
 
