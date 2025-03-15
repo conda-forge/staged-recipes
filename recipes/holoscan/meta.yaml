@@ -1,6 +1,9 @@
 {% set version = "3.0.0.9" %}
-{% set python_version = "3.10" %}    # holoscan python libs compiled for python 3.10
 {% set cuda_version = "12.6" %}      # min version holoscan works with
+{% set libtorch_version = "2.6.0=cuda126_generic_he2678a1_201" %}
+{% set python_version = "3.10" %}    # holoscan python libs compiled for python 3.10
+{% set ucx_version = "1.17.0" %}
+{% set yaml_cpp_version = "0.7.0" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-sbsa" %}    # [aarch64]
 {% set extension = "tar.xz" %}
@@ -44,6 +47,7 @@ outputs:
         - {{ compiler('cuda') }}
         - libnpp-dev  # libnpp is tied to specific cuda-version at x.x, so relax it, as we support cuda-version >= 12.6, < 13
     files:
+      - NOTICE/NOTICE
       - lib/libholoscan*.so.*
       - lib/gxf_extensions
       - lib/libgxf*.so
@@ -53,7 +57,6 @@ outputs:
       - lib/libuct*.so.*
       - lib/libyaml*.so.*
       - lib/ucx/*.so.*
-      - lib/libholo*.a
     requirements:
       build:
         - {{ compiler('c') }}
@@ -66,7 +69,7 @@ outputs:
         - cuda-version {{ cuda_version }}
         - libjpeg-turbo
         - libnpp-dev
-        - libtorch
+        - libtorch {{ libtorch_version }}
         - libvulkan-loader
         - rdma-core
       run:
@@ -92,9 +95,9 @@ outputs:
         - libzlib
         - nccl
         - pip
-        - python ={{ python_version }}  # be explicit about python version in order to pull pytorch version that works with this python version
-        - pytorch
         - rdma-core
+        - ucx {{ ucx_version }}
+        - yaml-cpp  {{ yaml_cpp_version }}
     test:
       commands:
         - test -L $PREFIX/lib/libholoscan_core.so.3
@@ -181,7 +184,6 @@ outputs:
         - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan_lib.so
         - test -L $PREFIX/lib/libyaml-cpp.so.0.7
         - test -f $PREFIX/lib/libyaml-cpp.so.0.7.0
-        - test -f $PREFIX/lib/libholoviz_imgui.a
     about:
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
@@ -220,7 +222,6 @@ outputs:
         - test -d $PREFIX/lib/python{{ python_version }}/site-packages/gxf
         - test -d $PREFIX/lib/python{{ python_version }}/site-packages/holoscan
         - pip check
-        - python -c "import holoscan; print(holoscan.__version__)"
     about:
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
@@ -235,6 +236,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage("libholoscan", max_pin="x") }}
     files:
+      # FIXME: Figure out a better way to deliver the readme text. Conda package description? Print to terminal as an activation script?
       - bin/README.md
       - bin/convert_gxf_entities_to_images.py
       - bin/convert_gxf_entities_to_video.py
@@ -267,6 +269,7 @@ outputs:
       - lib/libuct*.so
       - lib/libyaml*.so
       - lib/ucx/*.so
+      - lib/libholo*.a
     requirements:
       build:
         - {{ compiler('c') }}
@@ -359,6 +362,7 @@ outputs:
         - test -L $PREFIX/lib/ucx/libuct_rdmacm.so
         - test -L $PREFIX/lib/ucx/libuct_xpmem.so
         - test -L $PREFIX/lib/ucx/libucx_perftest_cuda.so
+        - test -f $PREFIX/lib/libholoviz_imgui.a
         - bash compile_examples.sh
 
 about:
