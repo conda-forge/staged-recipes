@@ -2,9 +2,7 @@
 
 export FOAM_DIR_NAME="${SRC_DIR}" #/openfoam-OpenFOAM-${PKG_VERSION}"
 
-#ln -s $GCC $BUILD_PREFIX/bin/gcc
-#ln -s $GXX $BUILD_PREFIX/bin/g++
-#ln -s $CPP $BUILD_PREFIX/bin/cpp
+ln -s $CPP $BUILD_PREFIX/bin/cpp
 
 sed -i 's/gcc\$(COMPILER_VERSION)/\$(GCC)\$(COMPILER_VERSION)/g' ${FOAM_DIR_NAME}/wmake/rules/General/Gcc/c
 sed -i 's/g++\$(COMPILER_VERSION)/\$(GXX)\$(COMPILER_VERSION)/g' ${FOAM_DIR_NAME}/wmake/rules/General/Gcc/c++
