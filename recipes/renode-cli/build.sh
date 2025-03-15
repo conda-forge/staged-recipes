@@ -18,6 +18,10 @@ find lib src tests -name "*.csproj" -exec sed -i -E \
 find . -type d -name "obj" -exec rm -rf {} +
 find . -type d -name "bin" -exec rm -rf {} +
 
+# Typo in release, already fixed in master
+# This is solved in upstream master - Also, patching with leading tabs seems to fail with rattler
+sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
+
 # Prevent CMake build since we provide the binaries
 mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
 ln -s ${PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
@@ -40,14 +44,15 @@ mkdir -p $PREFIX/opt/${PKG_NAME}/tools
 cp -r scripts/* $PREFIX/share/${PKG_NAME}/scripts/
 cp -r platforms/* $PREFIX/share/${PKG_NAME}/platforms/
 cp -r tests/* $PREFIX/share/${PKG_NAME}/tests/
-
-cp -r tools/metrics_analyzer $PREFIX/opt/${PKG_NAME}/tools
-cp -r tools/execution_tracer $PREFIX/opt/${PKG_NAME}/tools
-cp -r tools/gdb_compare $PREFIX/opt/${PKG_NAME}/tools
-cp -r tools/sel4_extensions $PREFIX/opt/${PKG_NAME}/tools
-
 cp lib/resources/styles/robot.css $PREFIX/share/${PKG_NAME}/tests
 
+# Refactoring into separate companion packages
+# cp -r tools/metrics_analyzer $PREFIX/opt/${PKG_NAME}/tools
+# cp -r tools/execution_tracer $PREFIX/opt/${PKG_NAME}/tools
+# cp -r tools/gdb_compare $PREFIX/opt/${PKG_NAME}/tools
+# cp -r tools/sel4_extensions $PREFIX/opt/${PKG_NAME}/tools
+
+mkdir -p license-files
 if [[ "${target_platform}" == "osx-*" ]]; then
   tools/packaging/common_copy_licenses.sh license-files macos
 else

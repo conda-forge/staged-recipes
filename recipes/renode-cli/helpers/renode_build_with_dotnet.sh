@@ -47,4 +47,4 @@ LLVM_LIB="libllvm-disas"
 #   # aarch64 host binaries have a different name
 #   LLVM_LIB="libllvm-disas-aarch64"
 # fi
-cp lib/resources/llvm/$LLVM_LIB.$SHLIB_EXT ${SRC_DIR}/output/bin/Release/libllvm-disas.$SHLIB_EXT
+cp lib/resources/llvm/$LLVM_LIB$SHLIB_EXT ${SRC_DIR}/output/bin/Release/libllvm-disas$SHLIB_EXT
