@@ -2,63 +2,64 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-main() {}
-  export PATH="${DOTNET_ROOT}/dotnet:${PATH}"
+# Consolidated script logic
+main() {
+    export PATH="${DOTNET_ROOT}/dotnet:${PATH}"
 
-  dotnet_version=$(dotnet --version)
-  framework_version=${dotnet_version%.*}
+    dotnet_version=$(dotnet --version)
+    framework_version=${dotnet_version%.*}
 
-  # Patch the project files to use the correct .NET version
-  find lib src tests -name "*.csproj" -exec sed -i -E \
-    -e "s/([>;])net6.0([<;])/\1net${framework_version}\2/" \
-    {} \;
-  #DEBUG:  -e "s|^((\s+)<PropertyGroup>)|\1\n\2\2<NoWarn>CS0168;CS0219;CS8981;SYSLIB0050;SYSLIB0051</NoWarn>|" \
-  #Does this prevents the compile/install of Mono related .dll?  -e 's|^(\s+)<(Package)?Reference\s+Include="Mono.Posix".*\n||g' \
+    # Patch project files (combined find and sed)
+    find lib src tests -name "*.csproj" -exec sed -i -E "s/([>;])net6.0([<;])/\1net${framework_version}\2/g" {} \;
 
-  find . -type d -name "obj" -exec rm -rf {} +
-  find . -type d -name "bin" -exec rm -rf {} +
+    # Remove obj and bin directories (combined find)
+    find . -name "obj" -o -name "bin" -type d -exec rm -rf {} +
 
-  # Typo in release, already fixed in master
-  # This is solved in upstream master - Also, patching with leading tabs seems to fail with rattler
-  sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
+    # Fix typo in Renode_NET.sln
+    sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
 
-  # Prevent CMake build since we provide the binaries
-  mkdir -p ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
-  ln -s ${PREFIX}/lib/renode-cores/* ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib
+    # Prepare for build (using more robust path)
+    mkdir -p "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
+    ln -sf "${PREFIX}/lib/renode-cores/*" "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
 
-  # Remove the C cores that are not built in this recipe
-  rm -f ${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj
+    rm -f "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj"
 
-  chmod +x tools/{building,packaging}/*.sh
-  ${RECIPE_DIR}/helpers/renode_build_with_dotnet.sh ${framework_version}
+    # Build with dotnet (combined commands and simplified logic)
+    mkdir -p "output/bin/Release/net${framework_version}"
+    dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "${SRC_DIR}/Renode_NET.sln"
+    echo -n "dotnet" > "output/bin/Release/build_type"
 
-  # Install procedure
-  mkdir -p ${PREFIX}/bin
-  mkdir -p ${PREFIX}/libexec/${PKG_NAME}
-  mkdir -p ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}
+    # Copy LLVM library (simplified logic)
+    LLVM_LIB="libllvm-disas"
+    cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "output/bin/Release/libllvm-disas$SHLIB_EXT"
 
-  cp -r output/bin/Release/net${framework_version}/* ${PREFIX}/libexec/${PKG_NAME}/
-  cp -r scripts/*                                    ${PREFIX}/share/${PKG_NAME}/scripts/
-  cp -r platforms/*                                  ${PREFIX}/share/${PKG_NAME}/platforms/
+    # Install procedure (combined mkdir)
+    mkdir -p "${PREFIX}/bin" "${PREFIX}/libexec/${PKG_NAME}" "${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}"
 
-  mkdir -p license-files
-  if [[ "${target_platform}" == "osx-*" ]]; then
-    tools/packaging/common_copy_licenses.sh license-files macos
-  else
-    tools/packaging/common_copy_licenses.sh license-files linux
-  fi
+    cp -r "output/bin/Release/net${framework_version}/*" "${PREFIX}/libexec/${PKG_NAME}/"
+    cp -r scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
+    cp -r platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 
-  mkdir -p ${PREFIX}/bin/
-  cat > ${PREFIX}/bin/renode <<"EOF"
+    # Copy licenses (simplified conditional)
+    mkdir -p license-files
+    if [[ "${target_platform}" == "osx-*" ]]; then
+        tools/packaging/common_copy_licenses.sh license-files macos
+    else
+        tools/packaging/common_copy_licenses.sh license-files linux
+    fi
+
+    # Create renode script (using heredoc)
+    cat > "${PREFIX}/bin/renode" <<EOF
 #!/bin/sh
-exec "${DOTNET_ROOT}"/dotnet exec "${CONDA_PREFIX}"/libexec/renode-cli/Renode.dll "$@"
+exec "${DOTNET_ROOT}"/dotnet exec "${CONDA_PREFIX}"/libexec/renode-cli/Renode.dll "\$@"
 EOF
-  chmod +x ${PREFIX}/bin/renode
+    chmod +x "${PREFIX}/bin/renode"
 
-  # Do we need to install the tests?
-  install_tests "${SRC_DIR}/test-bundle" "$PKG_NAME" "$PREFIX"
+    # Install tests
+    install_tests "${SRC_DIR}/test-bundle" "$PKG_NAME" "$PREFIX"
 }
 
+# Function to install tests (defined after main logic)
 install_tests() {
     local test_prefix="$1"
     local pkg_name="$2"
@@ -85,10 +86,3 @@ EOF
 main "$@"
 
 exit 0
-
-# Refactoring into separate companion packages
-# mkdir -p ${PREFIX}/opt/${PKG_NAME}/tools
-# cp -r tools/metrics_analyzer ${PREFIX}/opt/${PKG_NAME}/tools
-# cp -r tools/execution_tracer ${PREFIX}/opt/${PKG_NAME}/tools
-# cp -r tools/gdb_compare ${PREFIX}/opt/${PKG_NAME}/tools
-# cp -r tools/sel4_extensions ${PREFIX}/opt/${PKG_NAME}/tools
