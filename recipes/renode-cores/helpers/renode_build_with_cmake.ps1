@@ -14,6 +14,7 @@ if ([string]::IsNullOrEmpty($PREFIX)) { throw "PREFIX is empty" }
 if ([string]::IsNullOrEmpty($PKG_NAME)) { throw "PKG_NAME is empty" }
 
 # Update CMakeLists.txt (using combined git commands)
+New-Item -ItemType Directory -Path "$SRC_DIR/updates" -Force | Out-Null
 git -C "$SRC_DIR/updates" clone "https://github.com/renode/renode-infrastructure.git" -q
 git -C "$SRC_DIR/updates/renode-infrastructure" checkout 3fc2d5fe643068e595e875d9408cb4329522b229 -q
 Copy-Item -Path "$SRC_DIR/updates/renode-infrastructure/src/Emulator/Cores/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt" -Force
