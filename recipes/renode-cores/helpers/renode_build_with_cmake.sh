@@ -9,8 +9,6 @@ popd > /dev/null
 
 # Paths for tlib
 CORES_PATH="${SRC_DIR}/src/Infrastructure/src/Emulator/Cores"
-CORES_BUILD_PATH="$CORES_PATH/obj/Release"
-CORES_BIN_PATH="$CORES_PATH/bin/Release"
 
 # This list contains all cores that will be built.
 # If you are adding a new core or endianness add it here to have the correct tlib built
@@ -28,7 +26,7 @@ do
     fi
     # Core specific flags to cmake
     CMAKE_CONF_FLAGS="-DTARGET_ARCH=$CORE -DTARGET_WORD_SIZE=$BITS -DCMAKE_BUILD_TYPE=Release"
-    CORE_DIR=$CORES_BUILD_PATH/$CORE/$ENDIAN
+    CORE_DIR=${CORES_PATH}/obj/Release/$CORE/$ENDIAN
 
     mkdir -p $CORE_DIR
     pushd "$CORE_DIR" > /dev/null
@@ -53,9 +51,8 @@ do
       fi
       cmake --build .
 
-      CORE_BIN_DIR=$CORES_BIN_PATH/lib
-      mkdir -p $CORE_BIN_DIR
-      cp -u -v tlib/*.so $CORE_BIN_DIR/
+      mkdir -p ${CORES_PATH}/bin/Release/lib
+      cp -u -v tlib/*.so ${CORES_PATH}/bin/Release/lib/
     popd > /dev/null
 done
 
