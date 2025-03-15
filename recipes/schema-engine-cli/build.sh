@@ -6,6 +6,7 @@ export CARGO_PROFILE_RELEASE_STRIP=symbols
 export CARGO_PROFILE_RELEASE_LTO=fat
 export OPENSSL_DIR=$PREFIX
 export OPENSSL_NO_VENDOR=1
+export GIT_HASH="abcde"
 
 cargo-bundle-licenses \
     --format yaml \
