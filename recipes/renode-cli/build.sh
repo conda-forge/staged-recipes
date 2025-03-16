@@ -20,7 +20,7 @@ main() {
 
     # Prepare for build (using more robust path)
     mkdir -p "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
-    ln -sf "${PREFIX}/lib/renode-cores/*" "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
+    ln -sf ${PREFIX}/lib/renode-cores/* "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
 
     rm -f "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj"
 
