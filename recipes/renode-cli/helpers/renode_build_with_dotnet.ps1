@@ -79,13 +79,8 @@ Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version/*" -Destinati
 Copy-Item -Path "$SRC_DIR/scripts/*" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/platforms/*" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
 
-$licensesPath = Resolve-Path "license-files"
-& bash.exe -c "
-  SRC_DIR=$(cygpath -u '$Env:SRC_DIR') # Convert SRC_DIR to Unix path
-  scriptPath=$(cygpath -u '$SRC_DIR/tools/packaging/common_copy_licenses.sh')
-  licensesPath=$(cygpath -u '$licensesPath')
-  \"$scriptPath\" \"$licensesPath\" windows
-"
+$licensesPath = (Resolve-Path "$PREFIX\opt\$PKG_NAME\licenses").Path -replace '\\', '/'
+& bash.exe -c "./tools/packaging/common_copy_licenses.sh $PREFIX_UNIX/opt/$PKG_NAME/licenses windows ./tools/packaging"
 
 # Create renode.cmd
 New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force

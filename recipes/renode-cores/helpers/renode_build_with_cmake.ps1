@@ -28,10 +28,19 @@ Copy-Item -Path "$SRC_DIR/updates/tlib/LICENSE" -Destination "$Env:RECIPE_DIR/tl
 Copy-Item "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "$Env:RECIPE_DIR/softfloat-3-COPYING.txt" -Force
 
 # Check weak implementations (using combined path)
-& bash.exe -c ". '$SRC_DIR/tools/building/check_weak_implementations.sh'"
+pushd $SRC_DIR/tools/building
+    & bash.exe -c ". './check_weak_implementations.sh'"
+popd
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
-$env:CXXFLAGS = "-Wno-unused-function -Wno-maybe-uninitialized"
+$env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized -Wno-error"
+$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized -Wno-error"
+
+# This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
+# It is not overridable by CFLAGS update (at least, I did not figure out how)
+Get-ChildItem -Path "$SRC_DIR/src/Infrastructure/src/Emulator" -Filter "CMakeLists.txt" -Recurse | ForEach-Object {
+    (Get-Content $_.FullName) | ForEach-Object { $_ -replace "-fPIC", "" } | Set-Content $_.FullName
+}
 
 $CMAKE = (Get-Command cmake).Source
 $CORES_PATH = Join-Path $SRC_DIR "/src/Infrastructure/src/Emulator/Cores"
