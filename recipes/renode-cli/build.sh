@@ -25,18 +25,20 @@ main() {
     rm -f "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj"
 
     # Build with dotnet (combined commands and simplified logic)
-    mkdir -p "output/bin/Release/net${framework_version}"
+    mkdir -p "${SRC_DIR}/output/bin/Release/net${framework_version}"
+    cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/${target_platform%%-*}-properties.csproj" "${SRC_DIR}/output"
+
     dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "${SRC_DIR}/Renode_NET.sln"
-    echo -n "dotnet" > "output/bin/Release/build_type"
+    echo -n "dotnet" > "${SRC_DIR}/output/bin/Release/build_type"
 
     # Copy LLVM library (simplified logic)
     LLVM_LIB="libllvm-disas"
-    cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "output/bin/Release/libllvm-disas$SHLIB_EXT"
+    cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "${SRC_DIR}/output/bin/Release/libllvm-disas$SHLIB_EXT"
 
     # Install procedure (combined mkdir)
     mkdir -p "${PREFIX}/bin" "${PREFIX}/libexec/${PKG_NAME}" "${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}"
 
-    cp -r "output/bin/Release/net${framework_version}/*" "${PREFIX}/libexec/${PKG_NAME}/"
+    cp -r "${SRC_DIR}/output/bin/Release/net${framework_version}/*" "${PREFIX}/libexec/${PKG_NAME}/"
     cp -r scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
     cp -r platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 
