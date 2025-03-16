@@ -28,7 +28,12 @@ main() {
     mkdir -p "${SRC_DIR}/output/bin/Release/net${framework_version}"
     cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/${target_platform%%-*}-properties.csproj" "${SRC_DIR}/output/properties.csproj"
 
-    dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "${SRC_DIR}/Renode_NET.sln"
+    dotnet build \
+      -p:GUI_DISABLED=true \
+      -p:Configuration=ReleaseHeadless \
+      -p:GenerateFullPaths=true \
+      -p:Platform="Any CPU" \
+      ${SRC_DIR}/Renode_NET.sln
     echo -n "dotnet" > "${SRC_DIR}/output/bin/Release/build_type"
 
     # Copy LLVM library (simplified logic)
@@ -36,11 +41,11 @@ main() {
     cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "${SRC_DIR}/output/bin/Release/libllvm-disas$SHLIB_EXT"
 
     # Install procedure (combined mkdir)
-    mkdir -p "${PREFIX}/bin" "${PREFIX}/libexec/${PKG_NAME}" "${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}"
+    mkdir -p ${PREFIX}/bin ${PREFIX}/libexec/${PKG_NAME} ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}
 
-    cp -r "${SRC_DIR}/output/bin/Release/net${framework_version}/*" "${PREFIX}/libexec/${PKG_NAME}/"
-    cp -r scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
-    cp -r platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
+    cp -r ${SRC_DIR}/output/bin/Release/net${framework_version}/* ${PREFIX}/libexec/${PKG_NAME}/
+    cp -r ${SRC_DIR}/scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
+    cp -r ${SRC_DIR}/platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 
     # Copy licenses (simplified conditional)
     mkdir -p license-files
