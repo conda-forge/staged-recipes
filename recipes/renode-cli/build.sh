@@ -58,7 +58,7 @@ main() {
     # Create renode script (using heredoc)
     cat > "${PREFIX}/bin/renode" <<EOF
 #!/bin/sh
-exec "${DOTNET_ROOT}"/dotnet exec "${CONDA_PREFIX}"/libexec/renode-cli/Renode.dll "\$@"
+exec "\${DOTNET_ROOT}"/dotnet exec "\${CONDA_PREFIX}"/libexec/renode-cli/Renode.dll "\$@"
 EOF
     chmod +x "${PREFIX}/bin/renode"
 
