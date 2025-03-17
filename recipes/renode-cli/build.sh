@@ -48,11 +48,11 @@ main() {
     cp -r ${SRC_DIR}/platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 
     # Copy licenses (simplified conditional)
-    mkdir -p license-files
+    mkdir -p ${SRC_DIR}/license-files
     if [[ "${target_platform}" == "osx-*" ]]; then
-        tools/packaging/common_copy_licenses.sh license-files macos
+        tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files macos
     else
-        tools/packaging/common_copy_licenses.sh license-files linux
+        tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files linux
     fi
 
     # Create renode script (using heredoc)
