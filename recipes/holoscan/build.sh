@@ -12,6 +12,9 @@ echo "site-packages dir, SP_DIR = $SP_DIR"
 rm -v lib/libyaml-cpp*
 rm -vr include/yaml-cpp
 
+rm -v lib/libuc[mpst]*
+rm -vr lib/ucx
+
 check-glibc bin/* lib/* lib/ucx/* lib/gxf_extensions/*
 find python/ -name "*.so*" | xargs -I"{}" check-glibc "{}"
 
