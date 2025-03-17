@@ -6,18 +6,18 @@ mkdir -p "$PREFIX/bin/clincnv/"
 cp -r "$SRC_DIR"/* "$PREFIX/bin/clincnv/"
 
 # List of R script names
-scripts=("clinCNV" "mergeFilesFromFolder" "generalHelpers" "mergeFilesFromFolderDT")
+scripts=("clinCNV.R" "mergeFilesFromFolder.R" "mergeFilesFromFolderDT.R")
 
 # Loop through each script name
 for script in "${scripts[@]}"; do
   # Define the wrapper script path
-  WRAPPER="$PREFIX/bin/${script}.R"
+  WRAPPER="$PREFIX/bin/${script}"
   
   # Create the wrapper script
   echo '#!/bin/bash' > "$WRAPPER"
-  echo "Rscript \"\$PREFIX/bin/clincnv/${script}.R\" \"\$@\"" >> "$WRAPPER"
+  echo "Rscript \"\$PREFIX/bin/clincnv/${script}\" \"\$@\"" >> "$WRAPPER"
   
   # Make the wrapper and the original R script executable
   chmod +x "$WRAPPER"
-  chmod +x "$PREFIX/bin/clincnv/${script}.R"
+  chmod +x "$PREFIX/bin/clincnv/${script}"
 done
