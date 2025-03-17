@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-# On Unix-like systems, ensure that files have the correct line endings
-if [[ "$(uname)" != "Windows_NT" ]]; then
-  find "$SRC_DIR" -type f -exec dos2unix {} \;
-fi
-
-# Continue with copying files and creating wrappers as before
+# Copy all source files from SRC_DIR into the bin folder
 mkdir -p "$PREFIX/bin/clincnv/"
 cp -r "$SRC_DIR"/* "$PREFIX/bin/clincnv/"
 
@@ -15,9 +10,14 @@ scripts=("clinCNV" "mergeFilesFromFolder" "generalHelpers" "mergeFilesFromFolder
 
 # Loop through each script name
 for script in "${scripts[@]}"; do
+  # Define the wrapper script path
   WRAPPER="$PREFIX/bin/${script}"
+  
+  # Create the wrapper script
   echo '#!/bin/bash' > "$WRAPPER"
   echo "Rscript \"\$PREFIX/bin/clincnv/${script}.R\" \"\$@\"" >> "$WRAPPER"
+  
+  # Make the wrapper and the original R script executable
   chmod +x "$WRAPPER"
   chmod +x "$PREFIX/bin/clincnv/${script}.R"
 done
