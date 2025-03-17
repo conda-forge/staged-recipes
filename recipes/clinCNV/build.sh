@@ -11,12 +11,7 @@ scripts=("clinCNV" "mergeFilesFromFolder" "generalHelpers" "mergeFilesFromFolder
 # Loop through each script name
 for script in "${scripts[@]}"; do
   # Define the wrapper script path
-  WRAPPER="$PREFIX/bin/${script}"
-  
-  # Ensure WRAPPER is not a directory
-  if [ -d "$WRAPPER" ]; then
-    rm -rf "$WRAPPER"
-  fi
+  WRAPPER="$PREFIX/bin/${script}.R"
   
   # Create the wrapper script
   echo '#!/bin/bash' > "$WRAPPER"
