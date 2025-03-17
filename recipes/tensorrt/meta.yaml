@@ -36,6 +36,22 @@ requirements:
 
 outputs:
 
+  - name: libnvinfer
+    files:
+      include:
+        - lib/libnvinfer*.so.*  # [linux]
+      exclude:
+        - lib/libnvinfer_dispatch.so.*  # [linux]
+        - lib/libnvinfer_lean.so.*  # [linux]
+        - lib/libnvinfer_plugin.so.*  # [linux]
+        - lib/libnvinfer_vc_plugin.so.*  # [linux]
+        - lib/libnvonnxparser.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
   - name: libnvinfer-dispatch
     files:
       include:
@@ -44,6 +60,7 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
 
   - name: libnvinfer-lean
     files:
@@ -53,38 +70,137 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
 
-  - name: libnvinfer
+  - name: libnvinfer-plugin
     files:
       include:
-        - lib/libnvinfer*.so.*  # [linux]
-        - lib/libnvonnx*.so.*  # [linux]
-      exclude:
-        - lib/libnvinfer_lean.so.*  # [linux]
-        - lib/libnvinfer_dispatch.so.*  # [linux]
+        - lib/libnvinfer_plugin.so.*  # [linux]
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-vc-plugin
+    files:
+      include:
+        - lib/libnvinfer_vc_plugin.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvonnxparser
+    files:
+      include:
+        - lib/libnvonnxparser.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-headers
+    files:
+      include:
+        - include/NvInfer*  # [linux]
+        - include/NvOnnx*  # [linux]
+    build:
+      noarch: generic
 
   - name: libnvinfer-dev
     files:
       include:
         - bin/trtexec  # [linux]
-        - include/NvInfer*  # [linux]
-        - include/NvOnnx*  # [linux]
-        - lib/stubs  # [linux]
         - lib/libnvinfer*.so  # [linux]
-        - lib/libnvonnx*.so  # [linux]
+    build:
+      run_exports:
+        # Upstream claims the package version tracks both API and ABI breaks
+        - {{ pin_subpackage("libnvinfer") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-dispatch-dev
+    files:
+      include:
+        - lib/libnvinfer_dispatch.so  # [linux]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-dispatch") }}
     requirements:
       host:
         - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
-        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
-        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
       run:
         - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-lean-dev
+    files:
+      include:
+        - lib/libnvinfer_lean.so  # [linux]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-lean") }}
+    requirements:
+      host:
         - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
-        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-plugin-dev
+    files:
+      include:
+        - lib/libnvinfer_plugin.so  # [linux]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-plugin") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-vc-plugin-dev
+    files:
+      include:
+        - lib/libnvinfer_vc_plugin.so  # [linux]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-vc-plugin") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-vc-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-vc-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvonnxparser-dev
+    files:
+      include:
+        - lib/libnvonnxparser.so  # [linux]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvonnxparser") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
 
   - name: libnvinfer-static
     files:
@@ -93,8 +209,10 @@ outputs:
         - lib/libnvonnx*.a  # [linux]
     requirements:
       host:
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
         - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
       run:
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
         - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
 
 # Python APIs
@@ -110,6 +228,7 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
@@ -136,6 +255,7 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
@@ -162,6 +282,7 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
