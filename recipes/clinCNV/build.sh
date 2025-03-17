@@ -13,6 +13,11 @@ for script in "${scripts[@]}"; do
   # Define the wrapper script path
   WRAPPER="$PREFIX/bin/${script}"
   
+  # Ensure WRAPPER is not a directory
+  if [ -d "$WRAPPER" ]; then
+    rm -rf "$WRAPPER"
+  fi
+  
   # Create the wrapper script
   echo '#!/bin/bash' > "$WRAPPER"
   echo "Rscript \"\$PREFIX/bin/clincnv/${script}.R\" \"\$@\"" >> "$WRAPPER"
