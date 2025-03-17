@@ -9,6 +9,9 @@ mkdir -p $PREFIX/NOTICE
 mkdir -p $SP_DIR
 echo "site-packages dir, SP_DIR = $SP_DIR"
 
+rm -v lib/libyaml-cpp*
+rm -vr include/yaml-cpp
+
 check-glibc bin/* lib/* lib/ucx/* lib/gxf_extensions/*
 find python/ -name "*.so*" | xargs -I"{}" check-glibc "{}"
 
