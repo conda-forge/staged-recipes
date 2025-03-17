@@ -18,20 +18,86 @@ source:
 build:
   number: 0
   skip: true  # [(cuda_compiler_version or "None") == "None"]
+  script:
+    - check-glibc lib/*.so.*  # [linux]
+    - mkdir -p ${PREFIX}/bin  # [linux]
+    - mv -v bin/* ${PREFIX}/bin  # [linux]
+    - mv -v include ${PREFIX}  # [linux]
+    - mkdir -p ${PREFIX}/lib  # [linux]
+    - mv -v lib/* ${PREFIX}/lib  # [linux]
 
 requirements:
   build:
     - cf-nvidia-tools 1
-    - python  # Must exist for conda-build to inject PYTHON jinja variable
+    - python  # (PYTHON 1/2) Must exist for conda-build to inject PYTHON jinja variable
 
 outputs:
-  # - name: nvinfer
-  # - name: nvinfer-lean
-  # - name: nvinfer-dispatch
-  # - name: libnvnfer-dev
-  # - name: libnvnfer
-  # - name: libnvnfer-static
+
+  - name: libnvinfer-dispatch
+    files:
+      include:
+        - lib/libnvinfer_dispatch.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+
+  - name: libnvinfer-lean
+    files:
+      include:
+        - lib/libnvinfer_lean.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+
+  - name: libnvinfer
+    files:
+      include:
+        - lib/libnvinfer*.so.*  # [linux]
+        - lib/libnvonnx*.so.*  # [linux]
+      exclude:
+        - lib/libnvinfer_lean.so.*  # [linux]
+        - lib/libnvinfer_dispatch.so.*  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+
+  - name: libnvinfer-dev
+    files:
+      include:
+        - bin/trtexec  # [linux]
+        - include/NvInfer*  # [linux]
+        - include/NvOnnx*  # [linux]
+        - lib/stubs  # [linux]
+        - lib/libnvinfer*.so  # [linux]
+        - lib/libnvonnx*.so  # [linux]
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+
+  - name: libnvinfer-static
+    files:
+      include:
+        - lib/libnvinfer*.a  # [linux]
+        - lib/libnvonnx*.a  # [linux]
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
+
 # Python APIs
+
+  {% set PYTHON = PYTHON | default("python") %}  # (PYTHON 2/2) Default value required for first pass recipe render
+
   - name: tensorrt
     build:
       script:
@@ -39,11 +105,16 @@ outputs:
         - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt-{{ full_version }}-cp{{ py }}* -vv  # [win]
     requirements:
       build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
         - python
         - pip
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
     test:
       requires:
         - pip
@@ -52,6 +123,7 @@ outputs:
       script:
         - pip check
         - python -c "import tensorrt; assert tensorrt.__version__ == "{{ full_version }}"; assert tensorrt.Builder(tensorrt.Logger())"
+
   - name: tensorrt-lean
     build:
       script:
@@ -59,11 +131,16 @@ outputs:
         - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt_lean-{{ full_version }}-cp{{ py }}* -vv  # [win]
     requirements:
       build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
         - python
         - pip
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
     test:
       requires:
         - pip
@@ -72,6 +149,7 @@ outputs:
       script:
         - pip check
         - python -c "import tensorrt_lean; assert tensorrt_lean.__version__ == "{{ full_version }}"; assert tensorrt_lean.Runtime(tensorrt.Logger())"
+
   - name: tensorrt-dispatch
     build:
       script:
@@ -79,11 +157,16 @@ outputs:
         - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt_dispatch-{{ full_version }}-cp{{ py }}* -vv  # [win]
     requirements:
       build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
         - cross-python_{{ target_platform }}    # [build_platform != target_platform]
         - python                                # [build_platform != target_platform]
       host:
         - python
         - pip
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
     test:
       requires:
         - pip
