@@ -40,47 +40,58 @@ set "STTY_CONFIG=%stty -g 2^>nul%"
 IF NOT DEFINED LOCAL_TEST_PREFIX (
   set "LOCAL_TEST_PREFIX=%CONDA_PREFIX%"
 )
-python3 "%LOCAL_TEST_PREFIX%\opt\renode-cli\tests\run_tests.py" --robot-framework-remote-server-full-directory "%CONDA_PREFIX%\libexec\renode-cli" %*
+python "%LOCAL_TEST_PREFIX%\share\renode-cli\tests\run_tests.py" --robot-framework-remote-server-full-directory "%CONDA_PREFIX%\libexec\renode-cli" %*
 set "RESULT_CODE=%ERRORLEVEL%"
 if not "%STTY_CONFIG%"=="" stty "%STTY_CONFIG%"
 exit /b %RESULT_CODE%
-"@ | Out-File -FilePath "$PREFIX\bin\renode-test.cmd" -Encoding ascii
+"@ | Out-File -FilePath "$test_prefix\bin\renode-test.cmd" -Encoding ascii
 
     # No need for chmod +x in PowerShell, but ensure execution policy allows it
 }
 
 # Consolidated script logic
 $dotnet_version = dotnet --version
-$framework_version = $dotnet_version -replace "^(\d+\.\d+).*", '$1'
 
+$framework_version = $dotnet_version -replace "^(\d+\.\d+).*", '$1'
+@"
+<Project>
+  <PropertyGroup>
+    <TargetFrameworks>net$framework_version-windows</TargetFrameworks>
+  </PropertyGroup>
+</Project>
+"@ | Set-Content "$SRC_DIR\Directory.Build.targets"
 # Patch project files, remove obj/bin, fix sln (combined commands)
-Get-ChildItem -Path lib,src,tests -Filter "*.csproj" -Recurse | ForEach-Object {
-    (Get-Content $_.FullName) | ForEach-Object { $_ -replace "([>;])net6\.0([<;])", "`$1net$framework_version`$2" } | Set-Content $_.FullName
+# Get-ChildItem -Path lib,src,tests -Filter "*.csproj" -Recurse | ForEach-Object {
+#     (Get-Content $_.FullName) | ForEach-Object { $_ -replace "([>;])net6\.0([<;])", "`$1net$framework_version`$2" } | Set-Content $_.FullName
+# }
+Get-ChildItem -Path lib,src,tests -Filter "*UI_NET.csproj" -Recurse | ForEach-Object {
+    (Get-Content $_.FullName) | ForEach-Object { $_ -replace "(<\/PropertyGroup>)", "    <UseWPF>true</UseWPF>`n`$1" } | Set-Content $_.FullName
 }
-Get-ChildItem -Path . -Directory -Filter "obj","bin" -Recurse | Remove-Item -Force -Recurse
+
+Get-ChildItem -Path . -Directory -Filter "obj" -Recurse | Remove-Item -Force -Recurse
+Get-ChildItem -Path . -Directory -Filter "bin" -Recurse | Remove-Item -Force -Recurse
 (Get-Content Renode_NET.sln) | ForEach-Object { $_ -replace "(ReleaseHeadless\|Any .+ = )Debug", '$1Release' } | Set-Content Renode_NET.sln
 
 # Prepare, build, and install (combined and simplified)
-New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "license-files" -Force | Out-Null
+New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "$SRC_DIR/license-files" -Force | Out-Null
 
 # Symbolic links are tricky in Windows, use Copy-Item instead
-Copy-Item -Path "$PREFIX/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
+Copy-Item -Path "$PREFIX/Library/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
 
 Remove-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/translate*.cproj" -Force
 
-Copy-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/${target_platform%%-*}-properties.csproj" -Destination "$SRC_DIR/output/properties.csproj" -Force
+Copy-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/windows-properties_NET.csproj" -Destination "$SRC_DIR/output/properties.csproj" -Force
 
 dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "$SRC_DIR/Renode_NET.sln"
 "dotnet" | Out-File -FilePath "$SRC_DIR/output/bin/Release/build_type" -Encoding ascii
 
-Copy-Item "lib/resources/llvm/libllvm-disas$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture).ToString().Replace('X64','amd64').Replace('X86','i386')$SHLIB_EXT" "$SRC_DIR/output/bin/Release/libllvm-disas$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture).ToString().Replace('X64','amd64').Replace('X86','i386')$SHLIB_EXT" -Force
+Copy-Item "$SRC_DIR/lib/resources/llvm/libllvm-disas.dll" "$SRC_DIR/output/bin/Release/" -Force
 
-Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version/*" -Destination "$PREFIX/libexec/$PKG_NAME/" -Recurse -Force
-Copy-Item -Path "$SRC_DIR/scripts/*" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
-Copy-Item -Path "$SRC_DIR/platforms/*" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Destination "$PREFIX/libexec/$PKG_NAME/" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
 
-$licensesPath = (Resolve-Path "$PREFIX\opt\$PKG_NAME\licenses").Path -replace '\\', '/'
-& bash.exe -c "./tools/packaging/common_copy_licenses.sh $PREFIX_UNIX/opt/$PKG_NAME/licenses windows ./tools/packaging"
+& bash.exe -c "./tools/packaging/common_copy_licenses.sh ./license-files windows ./tools/packaging"
 
 # Create renode.cmd
 New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force
@@ -91,5 +102,13 @@ call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\renode-cli\Renode.dll %*
 
 # Install tests
 install_tests "$SRC_DIR/test-bundle" "$PKG_NAME" "$PREFIX"
+
+try {
+    Get-Process -Name *dotnet* | Stop-Process
+    conda env remove -p $BUILD_PREFIX -y
+}
+catch {
+    Write-Warning "Error removing the build environment: $_"
+}
 
 exit 0
