@@ -1,27 +1,8 @@
-@echo on
-setlocal EnableDelayedExpansion
+@echo off
+mkdir "%PREFIX%\Library\bin\clincnv"
+xcopy /s /e /y "%SRC_DIR%\*" "%PREFIX%\Library\bin\clincnv\"
 
-:: Define installation paths
-set SRC_DIR=%CD%
-set BIN_DIR=%PREFIX%\bin
-set CLINCNV_DIR=%BIN_DIR%\clincnv
-
-:: Create the necessary directory
-mkdir "%CLINCNV_DIR%"
-
-:: Copy all source files to the installation directory
-xcopy /E /I /Y "%SRC_DIR%\*" "%CLINCNV_DIR%\"
-
-:: List of R script names
-set scripts=clinCNV mergeFilesFromFolder mergeFilesFromFolderDT
-
-:: Loop through each script and create a Windows batch wrapper
-for %%s in (%scripts%) do (
-    echo @echo off > "%BIN_DIR%\%%s.bat"
-    echo Rscript "%CLINCNV_DIR%\%%s.R" %%* >> "%BIN_DIR%\%%s.bat"
+for %%s in (clinCNV.R mergeFilesFromFolder.R mergeFilesFromFolderDT.R) do (
+    echo @echo off > "%PREFIX%\Scripts\%%s.bat"
+    echo Rscript "%CONDA_PREFIX%\Library\bin\clincnv\%%s" %%* >> "%PREFIX%\Scripts\%%s.bat"
 )
-
-:: Ensure scripts are executable
-chmod +x "%CLINCNV_DIR%\*.R"
-
-exit /b 0
