@@ -12,6 +12,7 @@ import atexit
 import re
 import os
 from collections import OrderedDict
+from pathlib import Path
 import sys
 import subprocess
 import yaml
@@ -23,7 +24,7 @@ except ImportError:
 
 
 EXAMPLE_RECIPE_FOLDERS = ["example", "example-v1"]
-
+LOCAL_CHANNELS = os.environ.get("CONDA_BLD_PATH", "local").split(",")
 
 def get_host_platform():
     from sys import platform
@@ -41,7 +42,12 @@ def get_config_name(arch):
 
 
 def build_all(recipes_dir, arch):
-    folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
+    folders = [
+        d
+        for d in os.listdir(recipes_dir)
+        if os.path.isdir(os.path.join(recipes_dir, d))
+        and d not in EXAMPLE_RECIPE_FOLDERS
+    ]
     if not folders:
         print("Found no recipes to build")
         return
@@ -138,17 +144,17 @@ def build_all(recipes_dir, arch):
                         sdk_version = max(sdk_version, deployment_version, version)
 
             if 'channel_sources' not in text:
-                new_channel_urls = ['local', 'conda-forge']
+                new_channel_urls = [*LOCAL_CHANNELS, 'conda-forge']
             else:
                 config = load(text, Loader=BaseLoader)
-                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+                new_channel_urls = [*LOCAL_CHANNELS, *config['channel_sources'][0].split(',')]
             if channel_urls is None:
                 channel_urls = new_channel_urls
             elif channel_urls != new_channel_urls:
                 raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
 
     if channel_urls is None:
-        channel_urls = ['local', 'conda-forge']
+        channel_urls = [*LOCAL_CHANNELS, 'conda-forge']
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -247,7 +253,7 @@ def build_folders_rattler_build(
 ):
     config = get_config(arch, channel_urls)
 
-    # Remove the example recipes to ensure that they are not also build.
+    # Remove the example recipes to ensure that they are not also built.
     for example_recipe in EXAMPLE_RECIPE_FOLDERS:
         rmtree(os.path.join(recipes_dir, example_recipe), ignore_errors=True)
 
@@ -287,16 +293,23 @@ def build_folders_rattler_build(
 
 
 def check_recipes_in_correct_dir(root_dir, correct_dir):
-    from pathlib import Path
-    for path in Path(root_dir).rglob('meta.yaml'):
-        path = path.absolute().relative_to(root_dir)
-        if path.parts[0] == 'build_artifacts':
+    for path in Path(root_dir).glob("*"):
+        path = Path(path)
+        if path.is_dir() and path.name.lower() in ('.pixi', 'build_artifacts', 'miniforge3'):
             # ignore pkg_cache in build_artifacts
             continue
-        if path.parts[0] != correct_dir and path.parts[0] != "broken-recipes":
-            raise RuntimeError(f"recipe {path.parts} in wrong directory")
-        if len(path.parts) != 3:
-            raise RuntimeError(f"recipe {path.parts} in wrong directory")
+        for recipe_path in path.rglob('*.yaml'):
+            if recipe_path.name not in ("meta.yaml", "recipe.yaml"):
+                continue
+            recipe_path = recipe_path.absolute().relative_to(root_dir)
+            if (
+                (recipe_path.parts[0] != correct_dir and recipe_path.parts[0] != "broken-recipes")
+                or len(recipe_path.parts) != 3
+            ):
+                raise RuntimeError(
+                    f"recipe {recipe_path} in wrong directory; "
+                    f"must be under {correct_dir}/<name>/"
+                )
 
 
 def read_mambabuild(recipes_dir):
@@ -328,8 +341,11 @@ def use_mambabuild():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--arch', default='64',
-                        help='target architecture (64 or 32)')
+    parser.add_argument(
+        '--arch',
+        default='64',
+        help='target architecture (second component of a subdir; e.g. 64, arm64, ppc64le)'
+    )
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
