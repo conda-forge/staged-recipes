@@ -97,7 +97,7 @@ Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/share/$PKG_NAME/platf
 New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force
 @"
 @echo off
-call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\renode-cli\Renode.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\renode-cli\net$framework_version-windows\Renode.dll %*
 "@ | Out-File -FilePath "$PREFIX\bin\renode.cmd" -Encoding ascii
 
 # Install tests
