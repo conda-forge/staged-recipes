@@ -453,7 +453,7 @@ def _buildable(name, version, recipes_dir, worker, config, finalize):
                     packagename_re.match(dirname)))
     metadata_tuples = [m for path in likely_dirs
                         for (m, _, _) in _get_or_render_metadata(os.path.join(recipes_dir,
-                                                                 path), worker, finalize=finalize)]
+                                                                 path), worker, config=config, finalize=finalize)]
 
     # this is our target match
     ms = MatchSpec(" ".join([name, _fix_any(version, config)]))
