@@ -5,7 +5,7 @@ export CFLAGS="-I${PREFIX}/include $CFLAGS"
 export CPPFLAGS="-I${PREFIX}/include $CPPFLAGS"
 export LIBRARY_PATH="${PREFIX}/lib:$LIBRARY_PATH"
 export CPATH="${PREFIX}/include:$CPATH"
-export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib"
+export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib/metview-bundle/lib -L${PREFIX}/lib/metview-bundle/lib"
 
 export CXXFLAGS="-DHAVE_ISATTY ${CXXFLAGS}"
 
@@ -16,6 +16,8 @@ export MET_FREETYPELIB="${PREFIX}/lib"
 export MET_FREETYPEINC="${PREFIX}/include/freetype2"
 export MET_CAIROINC="${PREFIX}/include/cairo"
 export MET_CAIROLIB="${PREFIX}/lib"
+export MET_ECKIT="${PREFIX}/lib/metview-bundle"
+export MET_ATLAS="${PREFIX}/lib/metview-bundle"
 
 NUM_PROCS=$(sysctl -n hw.ncpu || grep -c ^processor /proc/cpuinfo || 1)
 
@@ -25,28 +27,6 @@ printf "export MET_FONT_DIR=${PREFIX}/gs-fonts\n" > "${PREFIX}/etc/conda/activat
 
 PYTHON_VERSION=$(${MET_PYTHON_BIN_EXE} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 printf "export METPLUS_PARM_BASE=${PREFIX}/lib/python${PYTHON_VERSION}/site-packages/metplus/parm\n" >> "${PREFIX}/etc/conda/activate.d/${PKG_NAME}-activate.sh"
-
-
-mkdir ecbuild/build
-(cd ecbuild/build &&
-     cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} &&
-     make -j${NUM_PROCS} install)
-
-
-cmake_args=""
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  cmake_args="-DCURSES_LIBRARY=${PREFIX}/lib/libncurses.dylib"
-fi
-mkdir eckit/build
-(cd eckit/build &&
-     cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_PREFIX_PATH=${PREFIX} -DMPI_C_COMPILER=${PREFIX}/bin/mpicc -DMPI_CXX_COMPILER=${PREFIX}/bin/mpicxx ${cmake_args} &&
-     make -j${NUM_PROCS} && make install)
-
-
-mkdir atlas/build
-(cd atlas/build &&
-     cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_PREFIX_PATH=${PREFIX} &&
-     make -j${NUM_PROCS} install)
 
 
 curl -o ./MET/config.sub http://git.savannah.gnu.org/cgit/config.git/plain/config.sub
