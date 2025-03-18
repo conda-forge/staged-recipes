@@ -1,0 +1,149 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  name: torchcodec
+  version: "0.2.1"
+  build_number: 0
+  cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None") }}
+  cuda: ${{ "true" if cuda_version != "None" else "false" }}
+  cuda_build_string: cuda_${{ cuda_version | version_to_buildstring }}
+  string_prefix: ${{ cuda_build_string if cuda ==  "true" else "cpu_" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pytorch/torchcodec/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 200fbb1234c104a3662b444c0bec2acf4049c4b2113a73c0dc5f4e672cc2a4cc
+
+build:
+  script:
+    - if: cuda == "true"
+      then:
+        ENABLE_CUDA=1 pip install . --no-deps --no-build-isolation -vv
+      else:
+        pip install . --no-deps --no-build-isolation -vv
+  number: ${{ build_number }}
+  skip:
+    - match(cuda_compiler_version, "11.8")
+  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      # use cuda from the variant config, e.g. to build multiple CUDA variants
+      - ${{ "cuda" if cuda == "true" }}
+    # this will down-prioritize the cpu variant versus other variants of the package
+    down_prioritize_variant: ${{ 0 if cuda == "true" else 1 }}
+  script:
+    file: build
+    env:
+      cuda_compiler_version: ${{ cuda_version | default('None') }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pytorch
+
+        - if: match(cuda_version, ">=12")
+          then:
+            - cuda-driver-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+            - cuda-nvtx-dev
+            - cuda-nvml-dev
+            - cuda-profiler-api
+            - libcublas-dev
+            - libcufft-dev
+            - libcurand-dev
+            - libcusolver-dev
+            - libcusparse-dev
+
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+    - if: cuda == "true"
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_version }}
+
+  host:
+    - python
+    - pip
+    - setuptools
+    - ffmpeg
+    - ${{ "libtorch * cuda*" if cuda == "true" }}
+    - ${{ "libtorch * cpu*" if cuda == "false" }}
+    - if: cuda == "true"
+      then:
+        - cuda-version ==${{ cuda_version }}
+
+    - if: match(cuda_version, ">=12")
+      then:
+        # These are transitive dependency of the libtorch cuda package
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - cuda-profiler-api
+        - libcublas-dev
+        - libcufft-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - magma
+        - nccl
+        - nvtx-c
+        - zlib
+        # These are actual torchcodec deps
+        - libnpp-dev
+  run:
+    - python
+    - ${{ "pytorch * cuda*" if cuda == "true" }}
+    - ${{ "pytorch * cpu*" if cuda == "false" }}
+
+  ignore_run_exports:
+    from_package:
+      - if: match(cuda_version, ">=12")
+        then:
+          - cuda-nvrtc-dev
+          - cuda-nvtx-dev
+          - libcublas-dev
+          - libcufft-dev
+          - libcurand-dev
+          - libcusolver-dev
+          - libcusparse-dev
+
+tests:
+  - python:
+      imports:
+        - torchcodec
+      pip_check: true
+
+  - requirements:
+      run:
+        - pytest
+        - numpy
+        - pillow
+        - torchvision
+    files:
+      source:
+        - test/
+    script:
+      - pytest test
+
+about:
+  homepage: https://github.com/pytorch/torchcodec
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+  summary: TorchCodec is a Python library for decoding videos into PyTorch tensors, on CPU and CUDA GPU. 
+
+extra:
+  recipe-maintainers:
+    - traversaro
