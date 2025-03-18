@@ -15,7 +15,9 @@ source:
   - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/tars/TensorRT-{{ full_version }}.Linux.x86_64-gnu.cuda-12.8.tar.gz  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
     sha256: 33be0e61e3bf177bbbcabb4892bf013f0c8ac71d2be73f2803848a382cb14272  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
   - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/zip/TensorRT-{{ full_version }}.Windows.win10.cuda-11.8.zip  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
+    sha256: 9cab2924331dcc92ef43e257155d28d2f40d95482b860c60fc24a91e99ea7152  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
   - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/zip/TensorRT-{{ full_version }}.Windows.win10.cuda-12.8.zip  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: c2758eb60191f01a47b24f54700e5463f577ebe129cd18fe835d0aa9f1e1a16d  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
 
 build:
   number: 0
@@ -28,10 +30,16 @@ build:
     - mv -v include/* ${PREFIX}/include  # [linux]
     - mkdir -p ${PREFIX}/lib  # [linux]
     - mv -v lib/* ${PREFIX}/lib  # [linux]
+    - md  %PREFIX%\Library\bin 2>nul  # [win]
+    - move lib\*.dll %PREFIX%\Library\lib  # [win]
+    - md  %PREFIX%\Library\include 2>nul  # [win]
+    - move include\* %PREFIX%\Library\include  # [win]
+    - md  %PREFIX%\Library\lib 2>nul  # [win]
+    - move lib\*lib %PREFIX%\Library\lib  # [win]
 
 requirements:
   build:
-    - cf-nvidia-tools 1
+    - cf-nvidia-tools 1  # [linux]
     - python  # (PYTHON 1/2) Must exist for conda-build to inject PYTHON jinja variable
 
 outputs:
@@ -40,12 +48,18 @@ outputs:
     files:
       include:
         - lib/libnvinfer*.so.*  # [linux]
+        - Library/lib/nvinfer*.dll  # [win]
       exclude:
         - lib/libnvinfer_dispatch.so.*  # [linux]
         - lib/libnvinfer_lean.so.*  # [linux]
         - lib/libnvinfer_plugin.so.*  # [linux]
         - lib/libnvinfer_vc_plugin.so.*  # [linux]
         - lib/libnvonnxparser.so.*  # [linux]
+        - Library/lib/nvinfer_dispatch*.dll  # [win]
+        - Library/lib/nvinfer_lean*.dll  # [win]
+        - Library/lib/nvinfer_plugin*.dll  # [win]
+        - Library/lib/nvinfer_vc_plugin*.dll  # [win]
+        - Library/lib/nvonnxparser*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -56,6 +70,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_dispatch.so.*  # [linux]
+        - Library/lib/nvinfer_dispatch*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -66,6 +81,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_lean.so.*  # [linux]
+        - Library/lib/nvinfer_lean*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -76,6 +92,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_plugin.so.*  # [linux]
+        - Library/lib/nvinfer_plugin*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -90,6 +107,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_vc_plugin.so.*  # [linux]
+        - Library/lib/nvinfer_vc_plugin*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -100,6 +118,7 @@ outputs:
     files:
       include:
         - lib/libnvonnxparser.so.*  # [linux]
+        - Library/lib/nvonnxparser*.dll  # [win]
     requirements:
       build:
         - {{ compiler("c") }}
@@ -111,20 +130,27 @@ outputs:
       include:
         - include/NvInfer*  # [linux]
         - include/NvOnnx*  # [linux]
-    build:
-      noarch: generic
+        - Library/include/NvInfer*  # [win]
+        - Library/include/NvOnnx*  # [win]
 
   - name: libnvinfer-dev
     files:
       include:
         - bin/trtexec  # [linux]
         - lib/libnvinfer*.so  # [linux]
+        - Library/bin/trtexec  # [win]
+        - Library/lib/nvinfer*.lib  # [win]
       exclude:
         - lib/libnvinfer_dispatch.so  # [linux]
         - lib/libnvinfer_lean.so  # [linux]
         - lib/libnvinfer_plugin.so  # [linux]
         - lib/libnvinfer_vc_plugin.so  # [linux]
         - lib/libnvonnxparser.so  # [linux]
+        - Library/lib/nvinfer_dispatch*.lib  # [win]
+        - Library/lib/nvinfer_lean*.lib # [win]
+        - Library/lib/nvinfer_plugin*.lib  # [win]
+        - Library/lib/nvinfer_vc_plugin*.lib  # [win]
+        - Library/lib/nvonnxparser*.lib  # [win]
     build:
       run_exports:
         # Upstream claims the package version tracks both API and ABI breaks
@@ -145,6 +171,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_dispatch.so  # [linux]
+        - Library/lib/nvinfer_dispatch*.lib  # [win]
     build:
       run_exports:
         - {{ pin_subpackage("libnvinfer-dispatch") }}
@@ -160,6 +187,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_lean.so  # [linux]
+        - Library/lib/nvinfer_lean*.lib # [win]
     build:
       run_exports:
         - {{ pin_subpackage("libnvinfer-lean") }}
@@ -175,6 +203,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_plugin.so  # [linux]
+        - Library/lib/nvinfer_plugin*.lib  # [win]
     build:
       run_exports:
         - {{ pin_subpackage("libnvinfer-plugin") }}
@@ -190,6 +219,7 @@ outputs:
     files:
       include:
         - lib/libnvinfer_vc_plugin.so  # [linux]
+        - Library/lib/nvinfer_vc_plugin*.lib  # [win]
     build:
       run_exports:
         - {{ pin_subpackage("libnvinfer-vc-plugin") }}
@@ -205,6 +235,7 @@ outputs:
     files:
       include:
         - lib/libnvonnxparser.so  # [linux]
+        - Library/lib/nvonnxparser*.lib  # [win]
     build:
       run_exports:
         - {{ pin_subpackage("libnvonnxparser") }}
@@ -221,6 +252,8 @@ outputs:
       include:
         - lib/libnvinfer*.a  # [linux]
         - lib/libnvonnx*.a  # [linux]
+    build:
+      skip: true  # [not unix]
     requirements:
       host:
         - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
@@ -230,6 +263,8 @@ outputs:
         - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
 
 # Python APIs
+
+  # TODO: Where does python/include/impl/plugin.h go?
 
   {% set PYTHON = PYTHON | default("python") %}  # (PYTHON 2/2) Default value required for first pass recipe render
 
