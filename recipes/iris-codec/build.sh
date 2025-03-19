@@ -9,5 +9,5 @@ cmake ${CMAKE_ARGS} -D CMAKE_INSTALL_PREFIX=$PREFIX \
       -D CMAKE_ASM_NASM_COMPILER=yasm \
       $SRC_DIR
 
-make -j$CPU_COUNT
-make install -j$CPU_COUNT
+cmake --build . #-j$CPU_COUNT
+cmake --install .
