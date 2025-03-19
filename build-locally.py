@@ -10,7 +10,6 @@ import sys
 from argparse import ArgumentParser
 import platform
 
-BUILD_LOCALLY_FILTER = os.environ.get("BUILD_LOCALLY_FILTER", "*")
 
 def setup_environment(ns):
     os.environ["CONFIG"] = ns.config
@@ -50,11 +49,12 @@ def run_win_build(ns):
 
 
 def verify_config(ns):
+    choices_filter = ns.filter or "*"
     valid_configs = {
-        os.path.basename(f)[:-5] for f in glob.glob(f".ci_support/{BUILD_LOCALLY_FILTER}.yaml")
+        os.path.basename(f)[:-5] for f in glob.glob(f".ci_support/{choices_filter}.yaml")
     }
-    if BUILD_LOCALLY_FILTER != "*":
-        print(f"filtering for '{BUILD_LOCALLY_FILTER}.yaml' configs")
+    if choices_filter != "*":
+        print(f"filtering for '{choices_filter}.yaml' configs")
     print(f"valid configs are {valid_configs}")
     if ns.config in valid_configs:
         print("Using " + ns.config + " configuration")
@@ -88,6 +88,11 @@ def verify_config(ns):
 def main(args=None):
     p = ArgumentParser("build-locally")
     p.add_argument("config", default=None, nargs="?")
+    p.add_argument(
+        "--filter",
+        default=None,
+        help="Glob string to filter which build choices are presented in interactive mode.",
+    )
     p.add_argument(
         "--debug",
         action="store_true",
