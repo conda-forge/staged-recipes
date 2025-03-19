@@ -9,22 +9,29 @@ main() {
     dotnet_version=$(dotnet --version)
     framework_version=${dotnet_version%.*}
 
-    # Patch project files (combined find and sed)
+    # Patch project files
     find lib src tests -name "*.csproj" -exec sed -i -E "s/([>;])net6.0([<;])/\1net${framework_version}\2/g" {} \;
 
-    # Remove obj and bin directories (combined find)
+    # Remove obj and bin directories
     find . -name "obj" -o -name "bin" -type d -exec rm -rf {} +
 
     # Fix typo in Renode_NET.sln
-    sed -i -E 's/(ReleaseHeadless\|Any .+ = )Debug/\1Release/' Renode_NET.sln
+    if [[ "${PKG_VERSION}" == "1.15.3" ]]; then
+        sed -i -E 's/ReleaseHeadless\|Any (.+) = Debug/ReleaseHeadless\|Any \1 = Release/' Renode_NET.sln
+        sed -i -E 's/GetBytes\(registers.Read\(offset\)\);/GetBytes((ushort)registers.Read(offset));/' src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs
+        sed -i -E 's/"System.Drawing.Common" Version="5.0.2"/"System.Drawing.Common" Version="5.0.3"/' lib/termsharp/TermSharp_NET.csproj lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj
+    else
+        echo "Remove these patches from the script after 1.15.3"
+        exit 1
+    fi
 
-    # Prepare for build (using more robust path)
+    # Prepare for build
     mkdir -p "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
     ln -sf ${PREFIX}/lib/renode-cores/* "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
 
     rm -f "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/translate*.cproj"
 
-    # Build with dotnet (combined commands and simplified logic)
+    # Build with dotnet
     mkdir -p "${SRC_DIR}/output/bin/Release/net${framework_version}"
     cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/${target_platform%%-*}-properties_NET.csproj" "${SRC_DIR}/output/properties.csproj"
 
@@ -40,20 +47,22 @@ main() {
     LLVM_LIB="libllvm-disas"
     cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "${SRC_DIR}/output/bin/Release/libllvm-disas$SHLIB_EXT"
 
-    # Install procedure (combined mkdir)
-    mkdir -p ${PREFIX}/bin ${PREFIX}/libexec/${PKG_NAME} ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests}
+    # Install procedure
+    mkdir -p ${PREFIX}/bin ${PREFIX}/libexec/${PKG_NAME} ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests} ${SRC_DIR}/license-files
 
     cp -r ${SRC_DIR}/output/bin/Release/net${framework_version}/* ${PREFIX}/libexec/${PKG_NAME}/
     cp -r ${SRC_DIR}/scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
     cp -r ${SRC_DIR}/platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 
-    # Copy licenses (simplified conditional)
-    mkdir -p ${SRC_DIR}/license-files
-    if [[ "${target_platform}" == "osx-*" ]]; then
-        tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files macos
-    else
-        tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files linux
-    fi
+    # Remove Mono dynamic library
+    find ${PREFIX}/libexec/${PKG_NAME} -name "libMonoPosixHelper.so" -exec rm -f {} +
+
+    # if [[ "${target_platform}" == "osx-*" ]]; then
+    #     tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files macos
+    # else
+    #     tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files linux
+    # fi
+    dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC_DIR/license-files"
 
     # Create renode script (using heredoc)
     cat > "${PREFIX}/bin/renode" <<EOF

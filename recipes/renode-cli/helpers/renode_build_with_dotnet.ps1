@@ -60,26 +60,25 @@ $framework_version = $dotnet_version -replace "^(\d+\.\d+).*", '$1'
   </PropertyGroup>
 </Project>
 "@ | Set-Content "$SRC_DIR\Directory.Build.targets"
-# Patch project files, remove obj/bin, fix sln (combined commands)
-# Get-ChildItem -Path lib,src,tests -Filter "*.csproj" -Recurse | ForEach-Object {
-#     (Get-Content $_.FullName) | ForEach-Object { $_ -replace "([>;])net6\.0([<;])", "`$1net$framework_version`$2" } | Set-Content $_.FullName
-# }
-Get-ChildItem -Path lib,src,tests -Filter "*UI_NET.csproj" -Recurse | ForEach-Object {
-    (Get-Content $_.FullName) | ForEach-Object { $_ -replace "(<\/PropertyGroup>)", "    <UseWPF>true</UseWPF>`n`$1" } | Set-Content $_.FullName
-}
 
 Get-ChildItem -Path . -Directory -Filter "obj" -Recurse | Remove-Item -Force -Recurse
 Get-ChildItem -Path . -Directory -Filter "bin" -Recurse | Remove-Item -Force -Recurse
-(Get-Content Renode_NET.sln) | ForEach-Object { $_ -replace "(ReleaseHeadless\|Any .+ = )Debug", '$1Release' } | Set-Content Renode_NET.sln
-
-# Prepare, build, and install (combined and simplified)
-New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "$SRC_DIR/license-files" -Force | Out-Null
-
-# Symbolic links are tricky in Windows, use Copy-Item instead
-Copy-Item -Path "$PREFIX/Library/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
-
 Remove-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/translate*.cproj" -Force
 
+(Get-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj) -replace "(<\/PropertyGroup>)", "    <UseWPF>true</UseWPF>`n`$1" | Set-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj
+if ($PKG_VERSION -eq "1.15.3") {
+    (Get-Content $SRC_DIR/Renode_NET.sln) -replace "ReleaseHeadless\|Any (.+) = Debug", "ReleaseHeadless\|Any $1 = Release" | Set-Content Renode_NET.sln
+    (Get-Content $SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs) -replace "GetBytes\(registers.Read\(offset\)\);", "GetBytes((ushort)registers.Read(offset));" | Set-Content src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs
+    (Get-Content $SRC_DIR/lib/termsharp/TermSharp_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/TermSharp_NET.csproj
+    (Get-Content $SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj
+} else {
+    Write-Host "Remove these patches from the script after 1.15.3"
+    exit 1
+}
+
+# Prepare, build, and install
+New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "$SRC_DIR/license-files" -Force | Out-Null
+Copy-Item -Path "$PREFIX/Library/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
 Copy-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/windows-properties_NET.csproj" -Destination "$SRC_DIR/output/properties.csproj" -Force
 
 dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "$SRC_DIR/Renode_NET.sln"
@@ -91,7 +90,7 @@ Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Des
 Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
 
-& bash.exe -c "./tools/packaging/common_copy_licenses.sh ./license-files windows ./tools/packaging"
+dotnet-project-licenses --input "$SRC_DIR/src/Renode_NET.csproj" -d "$SRC_DIR/license-files" -f "txt"
 
 # Create renode.cmd
 New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force
