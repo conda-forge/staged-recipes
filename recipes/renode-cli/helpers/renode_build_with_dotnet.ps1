@@ -33,7 +33,9 @@ Remove-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/translate*.cpr
 
 (Get-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj) -replace "(<\/PropertyGroup>)", "    <UseWPF>true</UseWPF>`n`$1" | Set-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj
 if ($env:PKG_VERSION -eq "1.15.3") {
-    (Get-Content $SRC_DIR/Renode_NET.sln) -replace "ReleaseHeadless\|Any (.+) = Debug", "ReleaseHeadless\|Any `$1 = Release" | Set-Content Renode_NET.sln
+    (Get-Content $SRC_DIR/Renode_NET.sln) | ForEach-Object {
+        $_ -replace '(ReleaseHeadless\|Any CPU\.(ActiveCfg|Build\.0) = )Debug', '$1Release'
+    } | Set-Content "$SRC_DIR/Renode_NET.sln"
     (Get-Content $SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs) -replace "GetBytes\(registers.Read\(offset\)\);", "GetBytes((ushort)registers.Read(offset));" | Set-Content src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs
     (Get-Content $SRC_DIR/lib/termsharp/TermSharp_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/TermSharp_NET.csproj
     (Get-Content $SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj
@@ -47,8 +49,9 @@ New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cor
 Copy-Item -Path "$PREFIX/Library/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
 Copy-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/windows-properties_NET.csproj" -Destination "$SRC_DIR/output/properties.csproj" -Force
 
-dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "$SRC_DIR/Renode_NET.sln"
+$OUT_BIN_DIR = "$SRC_DIR\output\bin\Release"
 "dotnet" | Out-File -FilePath "$SRC_DIR/output/bin/Release/build_type" -Encoding ascii
+dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFullPaths=true -p:Platform="Any CPU" "$SRC_DIR/Renode_NET.sln"
 
 Copy-Item "$SRC_DIR/lib/resources/llvm/libllvm-disas.dll" "$SRC_DIR/output/bin/Release/" -Force
 
@@ -93,7 +96,6 @@ exit /b %RESULT_CODE%
 # Terminate the dotnet processes that may hang around and prevent the build environment from being removed
 try {
     Get-Process -Name *dotnet* | Stop-Process
-    conda env remove -p $BUILD_PREFIX -y
 }
 catch {
     Write-Warning "Error removing the build environment: $_"
