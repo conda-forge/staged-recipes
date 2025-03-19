@@ -9,3 +9,7 @@ fi
 export I_CONFIRM_THIS_IS_NOT_A_LICENSE_VIOLATION=1
 
 pip install . --no-deps --no-build-isolation -vv
+
+# Remove spurious files created by gtk post-link activation script,
+# that should not be included as part of the installed files
+rm -f $PREFIX/lib/gdk-pixbuf-2.0/*/loaders.cache
