@@ -82,7 +82,7 @@ sed -i "s#os\.path\.join(this_path, '\.\./lib/resources/styles/robot\.css')#os.p
 cat > "${TEST_PREFIX}/bin/renode-test" <<EOF
 #!/usr/bin/env bash
 stty_config=\$(stty -g 2>/dev/null)
-python3 "\${LOCAL_TEST_PREFIX:-\${conda_prefix}}"/share/"${PKG_NAME}"/tests/run_tests.py --robot-framework-remote-server-full-directory "${conda_prefix}"/libexec/renode-cli "\$@"
+python3 "\${LOCAL_TEST_PREFIX:-\${CONDA_PREFIX}}"/share/"${PKG_NAME}"/tests/run_tests.py --robot-framework-remote-server-full-directory "${CONDA_PREFIX}"/libexec/renode-cli "\$@"
 result_code=\$?
 if [[ -n "\${stty_config+_}" ]]; then stty "\$stty_config"; fi
 exit \$result_code

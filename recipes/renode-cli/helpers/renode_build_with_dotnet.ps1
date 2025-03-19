@@ -33,7 +33,7 @@ Remove-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/translate*.cpr
 
 (Get-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj) -replace "(<\/PropertyGroup>)", "    <UseWPF>true</UseWPF>`n`$1" | Set-Content $SRC_DIR/src/Infrastructure/src/UI/UI_NET.csproj
 if ($env:PKG_VERSION -eq "1.15.3") {
-    (Get-Content $SRC_DIR/Renode_NET.sln) -replace "ReleaseHeadless\|Any (.+) = Debug", "ReleaseHeadless\|Any $1 = Release" | Set-Content Renode_NET.sln
+    (Get-Content $SRC_DIR/Renode_NET.sln) -replace "ReleaseHeadless\|Any (.+) = Debug", "ReleaseHeadless\|Any `$1 = Release" | Set-Content Renode_NET.sln
     (Get-Content $SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs) -replace "GetBytes\(registers.Read\(offset\)\);", "GetBytes((ushort)registers.Read(offset));" | Set-Content src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs
     (Get-Content $SRC_DIR/lib/termsharp/TermSharp_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/TermSharp_NET.csproj
     (Get-Content $SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj
@@ -56,7 +56,7 @@ Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Des
 Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
 
-dotnet-project-licenses --input "$SRC_DIR/src/Renode_NET.csproj" -d "$SRC_DIR/license-files" -f "txt"
+dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC_DIR/license-files" -f "txt"
 
 # Create renode.cmd
 New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force
