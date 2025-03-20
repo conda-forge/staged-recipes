@@ -21,6 +21,11 @@ exec $GCC -I$PREFIX/include "$@"
 EOF
     chmod +x $RECIPE_DIR/gcc_shim
     export CC="$RECIPE_DIR/gcc_shim"
+
+    # Create a symlink to the nvvm directory where transformer-engine's Cmake expects it.
+    ln -s $PREFIX/nvvm $PREFIX/targets/x86_64-linux/nvvm
+    cp -n $BUILD_PREFIX/targets/x86_64-linux/include/*.h $PREFIX/targets/x86_64-linux/include
+
 fi
 
 
