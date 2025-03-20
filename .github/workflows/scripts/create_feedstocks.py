@@ -252,8 +252,11 @@ if __name__ == '__main__':
         os.mkdir(smithy_conf)
 
     def write_token(name, token):
-        with open(os.path.join(smithy_conf, name + '.token'), 'w') as fh:
+        path = os.path.join(smithy_conf, name + '.token')
+        with open(path, 'w') as fh:
             fh.write(token)
+        os.chmod(path, 0o600)
+
     if 'APPVEYOR_TOKEN' in os.environ:
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
     if 'CIRCLE_TOKEN' in os.environ:
