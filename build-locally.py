@@ -6,9 +6,11 @@
 import os
 import glob
 import subprocess
+import sys
 from argparse import ArgumentParser
 import platform
 
+BUILD_LOCALLY_FILTER = os.environ.get("BUILD_LOCALLY_FILTER", "*")
 
 def setup_environment(ns):
     os.environ["CONFIG"] = ns.config
@@ -27,6 +29,10 @@ def setup_environment(ns):
             os.path.dirname(__file__), "SDKs"
         )
 
+    # The default cache location might not be writable using docker on macOS.
+    if ns.config.startswith("linux") and platform.system() == "Darwin":
+        os.environ["CONDA_FORGE_DOCKER_RUN_ARGS"] = "-e RATTLER_CACHE_DIR=/tmp/rattler_cache"
+
 
 def run_docker_build(ns):
     script = ".scripts/run_docker_build.sh"
@@ -38,10 +44,17 @@ def run_osx_build(ns):
     subprocess.check_call([script])
 
 
+def run_win_build(ns):
+    script = ".scripts/run_win_build.bat"
+    subprocess.check_call(["cmd", "/D", "/Q", "/C", f"CALL {script}"])
+
+
 def verify_config(ns):
     valid_configs = {
-        os.path.basename(f)[:-5] for f in glob.glob(".ci_support/*.yaml")
+        os.path.basename(f)[:-5] for f in glob.glob(f".ci_support/{BUILD_LOCALLY_FILTER}.yaml")
     }
+    if BUILD_LOCALLY_FILTER != "*":
+        print(f"filtering for '{BUILD_LOCALLY_FILTER}.yaml' configs")
     print(f"valid configs are {valid_configs}")
     if ns.config in valid_configs:
         print("Using " + ns.config + " configuration")
@@ -54,18 +67,17 @@ def verify_config(ns):
         selections = list(enumerate(sorted(valid_configs), 1))
         for i, c in selections:
             print(f"{i}. {c}")
-        s = input("\n> ")
+        try:
+            s = input("\n> ")
+        except KeyboardInterrupt:
+            print("\nno option selected, bye!", file=sys.stderr)
+            sys.exit(1)
         idx = int(s) - 1
         ns.config = selections[idx][1]
         print(f"selected {ns.config}")
     else:
         raise ValueError("config " + ns.config + " is not valid")
-    # Remove the following, as implemented
-    if ns.config.startswith("win"):
-        raise ValueError(
-            f"only Linux/macOS configs currently supported, got {ns.config}"
-        )
-    elif ns.config.startswith("osx") and platform.system() == "Darwin":
+    if ns.config.startswith("osx") and platform.system() == "Darwin":
         if "OSX_SDK_DIR" not in os.environ:
             raise RuntimeError(
                 "Need OSX_SDK_DIR env variable set. Run 'export OSX_SDK_DIR=/opt'"
@@ -95,6 +107,8 @@ def main(args=None):
         run_docker_build(ns)
     elif ns.config.startswith("osx"):
         run_osx_build(ns)
+    elif ns.config.startswith("win"):
+        run_win_build(ns)
 
 
 if __name__ == "__main__":
