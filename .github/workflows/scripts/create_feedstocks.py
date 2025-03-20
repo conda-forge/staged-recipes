@@ -251,11 +251,13 @@ if __name__ == '__main__':
     if not os.path.exists(smithy_conf):
         os.mkdir(smithy_conf)
 
+    def open_file_with_0o600(path, flags):
+        return os.open(path, flags, mode=0o600)
+
     def write_token(name, token):
         path = os.path.join(smithy_conf, name + '.token')
-        with open(path, 'w') as fh:
+        with open(path, 'w', opener=open_file_with_0o600) as fh:
             fh.write(token)
-        os.chmod(path, 0o600)
 
     if 'APPVEYOR_TOKEN' in os.environ:
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
