@@ -1,11 +1,6 @@
 #/usr/bin/env bash
 set -e
 
-if [ $(uname) == Linux ]; then
-  export LDFLAGS="$LDFLAGS -L$(PREFIX)/lib64 -L$(PREFIX)/lib -lpthread -lm -lstdc++"
-  PLATFORM_OPTS=""
-fi
-
 cmake -S . -B build \
          ${CMAKE_ARGS} \
          -G Ninja \
