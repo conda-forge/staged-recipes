@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 0.9.3
+
+package:
+  name: python-taplo
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/t/taplo/taplo-${{ version }}.tar.gz
+    sha256: 6b73b45b9adbd20189d8981ac9055d5465227c58bbe1b0646a7588a1a5c07a1a
+    patches:
+      - 0000-no-rust.patch
+  - url: https://raw.githubusercontent.com/tamasfe/taplo/refs/tags/${{ version }}/LICENSE.md
+    sha256: 552604656340642782345c47dda89218136f141a25aaecdfd1501180841ff98b
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - python ${{ RECIPE_DIR }}/patch_pyproject.py
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - pip
+    - python ${{ python_min }}.*
+    # maturin is replaced with setuptools
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+    - taplo ${{ version }}.*
+
+tests:
+  - requirements:
+      run:
+        - pip
+        - python ${{ python_min }}.*
+        - if: win
+          then:
+            - m2-grep
+    script:
+      # provides no importable python name
+      - pip check
+      - taplo --version
+      - taplo --version | grep -iE "${{ version | replace('.', '\\.') }}"
+
+about:
+  homepage: https://taplo.tamasfe.dev
+  license_file: LICENSE.md
+  license: MIT
+  summary: A CLI for Taplo TOML toolkit (for PyPI compatibility)
+  repository: https://github.com/tamasfe/taplo
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
