@@ -23,6 +23,9 @@ else
     exit 1
 fi
 
+# Renode computes its version based upon `git rev-parse --short=8 HEAD`
+sed -i -E "s/\`git rev-parse --short=8 HEAD\`/0/" ${SRC_DIR}/tools/building/createAssemblyInfo.sh
+
 # Prepare for build
 mkdir -p "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"
 ln -sf ${PREFIX}/lib/renode-cores/* "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/bin/Release/lib"

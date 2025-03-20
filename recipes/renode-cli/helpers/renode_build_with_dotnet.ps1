@@ -36,13 +36,16 @@ if ($env:PKG_VERSION -eq "1.15.3") {
     (Get-Content $SRC_DIR/Renode_NET.sln) | ForEach-Object {
         $_ -replace '(ReleaseHeadless\|Any CPU\.(ActiveCfg|Build\.0) = )Debug', '$1Release'
     } | Set-Content "$SRC_DIR/Renode_NET.sln"
-    (Get-Content $SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs) -replace "GetBytes\(registers.Read\(offset\)\);", "GetBytes((ushort)registers.Read(offset));" | Set-Content src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs
-    (Get-Content $SRC_DIR/lib/termsharp/TermSharp_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/TermSharp_NET.csproj
-    (Get-Content $SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj
+    (Get-Content $SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs) -replace "GetBytes\(registers.Read\(offset\)\);", "GetBytes((ushort)registers.Read(offset));" | Set-Content "$SRC_DIR/src/Infrastructure/src/Emulator/Peripherals/Peripherals/Sensors/PAC1934.cs"
+    (Get-Content $SRC_DIR/lib/termsharp/TermSharp_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content "$SRC_DIR/lib/termsharp/TermSharp_NET.csproj"
+    (Get-Content $SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj) -replace '"System.Drawing.Common" Version="5.0.2"', '"System.Drawing.Common" Version="5.0.3"' | Set-Content "$SRC_DIR/lib/termsharp/xwt/Xwt.Gtk/Xwt.Gtk3_NET.csproj"
 } else {
     Write-Host "Remove these patches from the script after 1.15.3"
     exit 1
 }
+
+# Renode computes its version based upon `git rev-parse --short=8 HEAD`
+(Get-Content $SRC_DIR/tools/building/createAssemblyInfo.ps1) -replace "git rev-parse --short=8 HEAD", "\"0\"" | Set-Content "$SRC_DIR/tools/building/createAssemblyInfo.ps1"
 
 # Prepare, build, and install
 New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "$SRC_DIR/license-files" -Force | Out-Null
