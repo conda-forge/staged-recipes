@@ -45,7 +45,7 @@ if ($env:PKG_VERSION -eq "1.15.3") {
 }
 
 # Renode computes its version based upon `git rev-parse --short=8 HEAD`
-(Get-Content $SRC_DIR/tools/building/createAssemblyInfo.ps1) -replace "git rev-parse --short=8 HEAD", "\"0\"" | Set-Content "$SRC_DIR/tools/building/createAssemblyInfo.ps1"
+(Get-Content $SRC_DIR/tools/building/createAssemblyInfo.ps1) -replace 'git rev-parse --short=8 HEAD', '"0"' | Set-Content "$SRC_DIR/tools/building/createAssemblyInfo.ps1"
 
 # Prepare, build, and install
 New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tests}", "$SRC_DIR/license-files" -Force | Out-Null
