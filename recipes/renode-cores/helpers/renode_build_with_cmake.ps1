@@ -14,17 +14,12 @@ if ([string]::IsNullOrEmpty($PREFIX)) { throw "PREFIX is empty" }
 if ([string]::IsNullOrEmpty($PKG_NAME)) { throw "PKG_NAME is empty" }
 
 # Update CMakeLists.txt (using combined git commands)
-New-Item -ItemType Directory -Path "$SRC_DIR/updates" -Force | Out-Null
-git -C "$SRC_DIR/updates" clone "https://github.com/renode/renode-infrastructure.git" -q
-git -C "$SRC_DIR/updates/renode-infrastructure" checkout 3fc2d5fe643068e595e875d9408cb4329522b229 -q
-Copy-Item -Path "$SRC_DIR/updates/renode-infrastructure/src/Emulator/Cores/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt" -Force
+Copy-Item -Path "$SRC_DIR/cmake-renode-infrastructure/src/Emulator/Cores/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt" -Force
 
-git -C "$SRC_DIR/updates" clone "https://github.com/antmicro/tlib.git" -q
-git -C "$SRC_DIR/updates/tlib" checkout 69fff75a0eba7471283b0b8db2e55e8388e284f6 -q
-Copy-Item -Path "$SRC_DIR/updates/tlib/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib" -Force
-Copy-Item -Path "$SRC_DIR/updates/tlib/tcg/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/tcg" -Force
-Copy-Item -Path "$SRC_DIR/updates/tlib/LICENSE" -Destination "$Env:RECIPE_DIR/tlib-LICENSE" -Force
+Copy-Item -Path "$SRC_DIR/cmake-tlib/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib" -Force
+Copy-Item -Path "$SRC_DIR/cmake-tlib/tcg/CMakeLists.txt" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/tcg" -Force
 
+Copy-Item -Path "$SRC_DIR/cmake-tlib/LICENSE" -Destination "$Env:RECIPE_DIR/tlib-LICENSE" -Force
 Copy-Item "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "$Env:RECIPE_DIR/softfloat-3-COPYING.txt" -Force
 
 # Check weak implementations (using combined path)
