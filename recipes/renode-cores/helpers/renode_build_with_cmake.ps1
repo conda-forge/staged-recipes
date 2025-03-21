@@ -28,8 +28,8 @@ pushd $SRC_DIR/tools/building
 popd
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
-$env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized -Wno-error"
-$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized -Wno-error"
+$env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
+$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
 # It is not overridable by CFLAGS update (at least, I did not figure out how)
