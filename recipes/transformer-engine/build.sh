@@ -3,6 +3,9 @@
 
 set -euxo pipefail
 
+mkdir -p $PREFIX/etc/conda/activate.d
+cp $RECIPE_DIR/transformer-engine-env.sh $PREFIX/etc/conda/activate.d/
+
 if [[ ${cuda_compiler_version} != "None" && "$target_platform" == linux-64 ]]; then
     export FORCE_CUDA="1"
     if [[ ${cuda_compiler_version} == 12.6 ]]; then
@@ -25,6 +28,7 @@ EOF
     # Create a symlink to the nvvm directory where transformer-engine's Cmake expects it.
     ln -s $PREFIX/nvvm $PREFIX/targets/x86_64-linux/nvvm
     cp -n $BUILD_PREFIX/targets/x86_64-linux/include/*.h $PREFIX/targets/x86_64-linux/include
+    cp $PREFIX/include/cudnn*.h $PREFIX/targets/x86_64-linux/include
 
 fi
 
