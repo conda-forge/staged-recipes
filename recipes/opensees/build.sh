@@ -6,7 +6,7 @@ cmake ${CMAKE_ARGS} \
       -DSCALAPACK_LIBRARIES=$PREFIX/lib/libscalapack.so \
       -DCONAN_LIB_DIRS_TCL=$PREFIX/lib \
       -DCMAKE_CXX_FLAGS="$CXXFLAGS -isystem $PREFIX/include/eigen3" \
-      -DCMAKE_CXX_STANDARD_LIBRARIES="-L$PREFIX/lib -lesmumps -lscotch -lscotcherr -lscotchmetisv5 -lmetis -lhdf5 -lhdf5_hl -ltcl8.6 $PREFIX/lib/libz.so.1 $PREFIX/lib/libdmumps.a" \      
+      -DCMAKE_CXX_STANDARD_LIBRARIES="-L$PREFIX/lib -lesmumps -lscotch -lscotcherr -lscotchmetisv5 -lmetis -lhdf5 -lhdf5_hl -ltcl8.6 $PREFIX/lib/libz.so.1 $PREFIX/lib/libdmumps.a" \
       -S . -B build
 
 cmake --build ./build --config Release --target OpenSees   --parallel $CPU_COUNT
