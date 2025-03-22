@@ -1,0 +1,78 @@
+context:
+  name: renode-cli
+  version: "1.15.3"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/renode/renode/releases/download/v${{ version }}/renode_${{ version }}_source.tar.xz
+    sha256: 40c50afe8db86a9c63f4a86b93116a6babd43bf241cfaac47b2c0d2cbc2b15a8
+    patches:
+      - patches/update-cores.template_NET.csproj.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - dotnet
+    - nuget-license
+    - if: unix
+      then:
+        - sed
+        - bash
+      else:
+        - m2-bash
+        - m2-coreutils
+        - m2-findutils
+        - m2-sed
+  host:
+    - dotnet
+    - renode-cores ==${{ version }}
+  run:
+    - dotnet
+
+tests:
+  - package_contents:
+      bin:
+        - renode
+      files:
+        - ${{ "Library/" if win }}share/renode-cli/scripts/monitor.py
+        - ${{ "Library/" if win }}share/renode-cli/platforms/cpus/cortex-a9.repl
+        - ${{ "Library/" if win }}share/renode-cli/tools/sel4_extensions/seL4Extensions.cs
+  - script:
+      - renode --help
+      - LOCAL_TEST_PREFIX=./test-bundle test-bundle/${{ "Library/" if win }}bin/renode-test test-bundle/${{ "Library/" if win }}share/renode-cli/tests/unit-tests
+    requirements:
+      run:
+        - robotframework >=6.1
+        - psutil >=5.9.3
+        - python
+        - pyyaml >=6.0
+    files:
+      source:
+        - test-bundle/
+
+about:
+  homepage: https://github.com/renode/renode
+  summary: "Antmicro's open source simulation and virtual development framework for complex embedded systems"
+  description: |
+    Renode was created by Antmicro as a virtual development tool for multi-node
+    embedded networks (both wired and wireless) and is intended to enable a scalable
+    workflow for creating effective, tested and secure IoT systems.
+
+    With Renode, developing, testing, debugging and simulating unmodified software
+    for IoT devices is fast, cost-effective and reliable.
+  license: MIT
+  license_file:
+    - LICENSE
+    - license-files/
+  documentation: https://renode.io/
+  repository: https://github.com/renode/renode
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - danielnachun
