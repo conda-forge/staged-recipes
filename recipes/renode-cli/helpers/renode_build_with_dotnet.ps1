@@ -59,9 +59,9 @@ dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFu
 Copy-Item "$SRC_DIR/lib/resources/llvm/libllvm-disas.dll" "$SRC_DIR/output/bin/Release/" -Force
 
 Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Destination "$PREFIX/libexec/$PKG_NAME/" -Recurse -Force
-Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/share/$PKG_NAME/scripts" -Recurse -Force
-Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/share/$PKG_NAME/platforms" -Recurse -Force
-Copy-Item -Path "$SRC_DIR/tools/sel4_extensions" -Destination "$PREFIX/share/$PKG_NAME/tools/sel4_extensions" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/Library/share/$PKG_NAME/scripts" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/Library/share/$PKG_NAME/platforms" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/tools/sel4_extensions" -Destination "$PREFIX/Library/share/$PKG_NAME/tools/sel4_extensions" -Recurse -Force
 
 dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC_DIR/license-files" -f "txt"
 
