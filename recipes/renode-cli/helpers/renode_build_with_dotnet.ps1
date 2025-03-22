@@ -58,7 +58,7 @@ dotnet build -p:GUI_DISABLED=true -p:Configuration=ReleaseHeadless -p:GenerateFu
 
 Copy-Item "$SRC_DIR/lib/resources/llvm/libllvm-disas.dll" "$SRC_DIR/output/bin/Release/" -Force
 
-Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Destination "$PREFIX/libexec/$PKG_NAME/" -Recurse -Force
+Copy-Item -Path "$SRC_DIR/output/bin/Release/net$framework_version-windows" -Destination "$PREFIX/Library/libexec/$PKG_NAME/" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/scripts" -Destination "$PREFIX/Library/share/$PKG_NAME/scripts" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/platforms" -Destination "$PREFIX/Library/share/$PKG_NAME/platforms" -Recurse -Force
 Copy-Item -Path "$SRC_DIR/tools/sel4_extensions" -Destination "$PREFIX/Library/share/$PKG_NAME/tools/sel4_extensions" -Recurse -Force
@@ -69,19 +69,19 @@ dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC
 New-Item -ItemType File -Path "$PREFIX\Library\bin\renode.cmd" -Force
 @"
 @echo off
-call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\renode-cli\net$framework_version-windows\Renode.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\Library\libexec\renode-cli\net$framework_version-windows\Renode.dll %*
 "@ | Out-File -FilePath "$PREFIX\Library\bin\renode.cmd" -Encoding ascii
 
 # Install tests for post-install testing
 $TEST_PREFIX = "$SRC_DIR/test-bundle"
 
-mkdir -p "$TEST_PREFIX/bin"
-mkdir -p "$TEST_PREFIX/share/$PKG_NAME/tests"
-Copy-Item -Path "tests/*" -Destination "$TEST_PREFIX/share/$PKG_NAME/tests" -Recurse -Force
-Copy-Item -Path "lib/resources/styles/robot.css" -Destination "$TEST_PREFIX/share/$PKG_NAME/tests" -Force
+mkdir -p "$TEST_PREFIX/Library/bin"
+mkdir -p "$TEST_PREFIX/Library/share/$PKG_NAME/tests"
+Copy-Item -Path "tests/*" -Destination "$TEST_PREFIX/Library/share/$PKG_NAME/tests" -Recurse -Force
+Copy-Item -Path "lib/resources/styles/robot.css" -Destination "$TEST_PREFIX/Library/share/$PKG_NAME/tests" -Force
 
 # Use PowerShell's -replace operator
-(Get-Content "$TEST_PREFIX/share/$PKG_NAME/tests/robot_tests_provider.py") | ForEach-Object { $_ -replace "os\.path\.join\(this_path, '\.\./lib/resources/styles/robot\.css'\)", "os.path.join(this_path,'robot.css')" } | Set-Content "$TEST_PREFIX/share/$PKG_NAME/tests/robot_tests_provider.py"
+(Get-Content "$TEST_PREFIX/Library/share/$PKG_NAME/tests/robot_tests_provider.py") | ForEach-Object { $_ -replace "os\.path\.join\(this_path, '\.\./lib/resources/styles/robot\.css'\)", "os.path.join(this_path,'robot.css')" } | Set-Content "$TEST_PREFIX/Library/share/$PKG_NAME/tests/robot_tests_provider.py"
 
 # Create renode-test script (using PowerShell heredoc)
 @"
@@ -91,11 +91,11 @@ set "STTY_CONFIG=%stty -g 2^>nul%"
 IF NOT DEFINED LOCAL_TEST_PREFIX (
   set "LOCAL_TEST_PREFIX=%CONDA_PREFIX%"
 )
-python "%LOCAL_TEST_PREFIX%\share\renode-cli\tests\run_tests.py" --robot-framework-remote-server-full-directory "%CONDA_PREFIX%\libexec\renode-cli" %*
+python "%LOCAL_TEST_PREFIX%\Library\share\renode-cli\tests\run_tests.py" --robot-framework-remote-server-full-directory "%CONDA_PREFIX%\Library\libexec\renode-cli" %*
 set "RESULT_CODE=%ERRORLEVEL%"
 if not "%STTY_CONFIG%"=="" stty "%STTY_CONFIG%"
 exit /b %RESULT_CODE%
-"@ | Out-File -FilePath "$TEST_PREFIX\bin\renode-test.cmd" -Encoding ascii
+"@ | Out-File -FilePath "$TEST_PREFIX\Library\bin\renode-test.cmd" -Encoding ascii
 
 # Terminate the dotnet processes that may hang around and prevent the build environment from being removed
 try {
