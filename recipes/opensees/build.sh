@@ -16,8 +16,6 @@ cmake --build ./build --config Release --target OpenSeesMP --parallel $CPU_COUNT
 
 #cmake --install . --verbose
 
-cp -r ./lib/tcl8.6 $PREFIX/lib
-
 cp -r EXAMPLES $PREFIX/share/
 
 #cp $PREFIX/lib/OpenSeesPy.so $PREFIX/lib/opensees.so
