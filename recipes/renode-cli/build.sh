@@ -49,11 +49,12 @@ LLVM_LIB="libllvm-disas"
 cp "lib/resources/llvm/$LLVM_LIB$SHLIB_EXT" "${SRC_DIR}/output/bin/Release/libllvm-disas$SHLIB_EXT"
 
 # Install procedure
-mkdir -p ${PREFIX}/bin ${PREFIX}/libexec/${PKG_NAME} ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tests} ${SRC_DIR}/license-files
+mkdir -p ${PREFIX}/bin ${PREFIX}/libexec/${PKG_NAME} ${PREFIX}/share/${PKG_NAME}/{scripts,platforms,tools/sel4_extensions,tools/tlib_helper} ${SRC_DIR}/license-files
 
 cp -r ${SRC_DIR}/output/bin/Release/net${framework_version}/* ${PREFIX}/libexec/${PKG_NAME}/
 cp -r ${SRC_DIR}/scripts/* "${PREFIX}/share/${PKG_NAME}/scripts/"
 cp -r ${SRC_DIR}/platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
+cp -r ${SRC_DIR}/tools/sel4_extensions "${PREFIX}/share/${PKG_NAME}/tools/"
 
 # Remove Mono dynamic library
 find ${PREFIX}/libexec/${PKG_NAME} -name "libMonoPosixHelper.so" -exec rm -f {} +
