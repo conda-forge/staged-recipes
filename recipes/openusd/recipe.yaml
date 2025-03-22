@@ -1,0 +1,94 @@
+schema_version: 1
+
+context:
+  name: openusd
+  version: 25.05
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/PixarAnimationStudios/OpenUSD/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 231faca9ab71fa63d6c1e0da18bda0c365f82d9bef1cfd4b3d3d6784c8d5fb96
+    patches:
+      - link_python_to_executables.patch
+
+build:
+  number: 0
+  skip:
+    # osx requires the use of macOS SDK 10.14 via the use of MTLIndirectCommandBuffer, see:
+    # https://github.com/PixarAnimationStudios/OpenUSD/blob/v25.05/BUILDING.md?plain=1#L110
+    # So in staged-recipe we skip it, and then the build will be enabled in the feedstock
+    - osx
+    # Windows fails due to the CI running out of disk space, see
+    # https://github.com/conda-forge/staged-recipes/pull/29501#issuecomment-2838524046
+    # it will be enabled in the feedstock
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ninja
+    - cmake
+  host:
+    - if: linux
+      then:
+        - libgl-devel
+        - libglx-devel
+        - xorg-libxrandr
+    - glfw
+    - tbb-devel
+    - libboost-devel
+    - libopensubdiv
+    - python
+    - jinja2
+    - pyside6
+    - pyopengl
+  run:
+    - python
+    # Without tbb-devel, CMake's find_package(pxr REQUIRED) fails
+    - tbb-devel
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - pxr/pxr.h
+      lib:
+        - usd_usd
+  - requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - pip
+    script:
+      - cmake-package-check pxr
+      - usdInitSchema --help
+      - if: win
+        then:
+          - pip list | findstr "usd-core"
+        else:
+          - test $(pip list | grep usd-core | tr -s " " | grep ${PKG_VERSION/\.0/.} | wc -l) -eq 1
+  - python:
+      imports:
+        - pxr
+        - pxr.Usd
+        - pxr.UsdGeom
+
+about:
+  # The main openusd license is the Tomorrow Open Source Technology License 1.0 (see https://forum.aousd.org/t/upcoming-openusd-license-update/1561)
+  # The license is not OSI-approved or have an official SPDX identified, so we use LicenseRef-Tomorrow-Open-Source-Technology-License-1.0
+  # openusd vendors several  other libraries, but all their licenses are listed in LICENSE.txt and listed in the following
+  license: LicenseRef-Tomorrow-Open-Source-Technology-License-1.0 AND Apache-2.0 AND MIT AND BSD-2-Clause AND BSD-3-Clause AND JSON AND BSL-1.0
+  license_file: LICENSE.txt
+  summary: Library to read and write Universal Scene Description (USD) files.
+  homepage: https://github.com/PixarAnimationStudios/OpenUSD
+
+extra:
+  recipe-maintainers:
+    - traversaro
