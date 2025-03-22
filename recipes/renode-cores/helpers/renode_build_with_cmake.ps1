@@ -73,9 +73,9 @@ foreach ($core_config in $CORES) {
 
 # Install to conda path (combined path and robocopy)
 $CORES_BIN_PATH = "$CORES_PATH/bin/Release"
-$installPath = "$PREFIX/Library/lib/$PKG_NAME"
+$installPath = "$PREFIX/Library/bin/$PKG_NAME"
 New-Item -ItemType Directory -Path $installPath -Force | Out-Null
 # & icacls $installPath /grant Users:(OI)(CI)F /T
-robocopy "$CORES_BIN_PATH/lib" "$PREFIX/Library/lib/$PKG_NAME" /E /COPY:DATSO
+robocopy "$CORES_BIN_PATH/lib" "$PREFIX/Library/bin/$PKG_NAME" /E /COPY:DATSO
 
 exit 0

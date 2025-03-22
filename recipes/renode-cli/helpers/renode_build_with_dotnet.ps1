@@ -48,8 +48,8 @@ if ($env:PKG_VERSION -eq "1.15.3") {
 (Get-Content $SRC_DIR/tools/building/createAssemblyInfo.ps1) -replace 'git rev-parse --short=8 HEAD', '"0"' | Set-Content "$SRC_DIR/tools/building/createAssemblyInfo.ps1"
 
 # Prepare, build, and install
-New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/bin", "$PREFIX/libexec/$PKG_NAME", "$PREFIX/share/$PKG_NAME/{scripts,platforms,tools/sel4_extensions}", "$SRC_DIR/license-files" -Force | Out-Null
-Copy-Item -Path "$PREFIX/Library/lib/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
+New-Item -ItemType Directory -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib", "$SRC_DIR/output/bin/Release/net$framework_version", "$PREFIX/Library/bin", "$PREFIX/Library/libexec/$PKG_NAME", "$PREFIX/Library/share/$PKG_NAME/{scripts,platforms,tools/sel4_extensions}", "$SRC_DIR/license-files" -Force | Out-Null
+Copy-Item -Path "$PREFIX/Library/bin/renode-cores/*" -Destination "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/bin/Release/lib" -Force
 Copy-Item -Path "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/windows-properties_NET.csproj" -Destination "$SRC_DIR/output/properties.csproj" -Force
 
 $OUT_BIN_DIR = "$SRC_DIR\output\bin\Release"
@@ -66,11 +66,11 @@ Copy-Item -Path "$SRC_DIR/tools/sel4_extensions" -Destination "$PREFIX/share/$PK
 dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC_DIR/license-files" -f "txt"
 
 # Create renode.cmd
-New-Item -ItemType File -Path "$PREFIX\bin\renode.cmd" -Force
+New-Item -ItemType File -Path "$PREFIX\Library\bin\renode.cmd" -Force
 @"
 @echo off
 call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\renode-cli\net$framework_version-windows\Renode.dll %*
-"@ | Out-File -FilePath "$PREFIX\bin\renode.cmd" -Encoding ascii
+"@ | Out-File -FilePath "$PREFIX\Library\bin\renode.cmd" -Encoding ascii
 
 # Install tests for post-install testing
 $TEST_PREFIX = "$SRC_DIR/test-bundle"
