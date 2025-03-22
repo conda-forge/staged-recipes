@@ -58,11 +58,6 @@ cp -r ${SRC_DIR}/platforms/* "${PREFIX}/share/${PKG_NAME}/platforms/"
 # Remove Mono dynamic library
 find ${PREFIX}/libexec/${PKG_NAME} -name "libMonoPosixHelper.so" -exec rm -f {} +
 
-# if [[ "${target_platform}" == "osx-*" ]]; then
-#     tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files macos
-# else
-#     tools/packaging/common_copy_licenses.sh ${SRC_DIR}/license-files linux
-# fi
 dotnet-project-licenses --input "$SRC_DIR/src/Renode/Renode_NET.csproj" -d "$SRC_DIR/license-files"
 
 # Create renode script (using heredoc)

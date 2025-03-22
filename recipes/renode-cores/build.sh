@@ -13,16 +13,6 @@ cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.tx
 
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option"
 
-# if [[ "${target_platform}" == "osx-arm64" ]]; then
-#   # Apply OSX-specific patches
-#   sed -i -E 's/add_definitions\(-Wno-error=clobbered\)/add_compile_options(-Wno-unknown-warning-option -Wno-clobbered)/' \
-#     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/CMakeLists.txt" \
-#     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/CMakeLists.txt" \
-#     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg/CMakeLists.txt"
-#   sed -i -E 's|    \$\{CMAKE_SOURCE_DIR\}|    \$\{CMAKE_SOURCE_DIR\} \$\{CMAKE_SOURCE_DIR\}/tlib/tcg|' \
-#     "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg/CMakeLists.txt"
-# fi
-
 # Check weak implementations
 pushd "${SRC_DIR}/tools/building" > /dev/null
   ./check_weak_implementations.sh
