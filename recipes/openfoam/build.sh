@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 export FOAM_DIR_NAME="${SRC_DIR}" #/openfoam-OpenFOAM-${PKG_VERSION}"
 
 ln -s $CPP $BUILD_PREFIX/bin/cpp
@@ -51,9 +53,9 @@ sed -i 's/^fftw_version=.*/fftw_version=fftw-system/g' ${CONFIGSHDIR}/FFTW
 sed -i 's/^export FFTW_ARCH_PATH=.*/export FFTW_ARCH_PATH=${PREFIX}/g' ${CONFIGSHDIR}/FFTW
 
 #
-echo "cFLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c"
-echo "c++FLAGS += -I ${BUILD_PREFIX}/include" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
-echo "c++FLAGS += -L ${FOAM_LIBBIN} -L ${BUILD_PREFIX}/lib" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
+echo "cFLAGS += ${CFLAGS}" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c"
+echo "c++FLAGS += ${CXXFLAGS}" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
+echo "c++FLAGS += -L ${FOAM_LIBBIN} ${LDFLAGS}" >> "${FOAM_DIR_NAME}/wmake/rules/linux64Gcc/c++"
 
 # remove Allwmake falsely sets the headers to the system
 rm "${FOAM_DIR_NAME}/applications/utilities/mesh/manipulation/setSet/Allwmake"
