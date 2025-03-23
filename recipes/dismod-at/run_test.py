@@ -41,17 +41,20 @@ def main() :
    #
    prefix          = os.environ['PREFIX'].replace('/', '|');
    print( f'run_test.py:\nprefix = {prefix}' )
-   if not os.path.isfile(example_file) :
-      sys.exit( f'run_test.py: cannot find example file = {example_file}' )
    #
    # example_file
    assert example_file[-3 :] == '.py'
+   if not os.path.isfile(example_file) :
+      sys.exit( f'run_test.py: cannot find example file = {example_file}' )
+   #
+   # file_data
+   with open( example_file, 'r') as file_obj :
+      file_data = file_obj.read()
+   # change execuable from sandbox verison to installed version
+   file_data = file_data.replace('../../devel/dismod_at', 'dismod_at' )
    #
    # example_copy
    example_copy = 'example_copy.py'
-   with open( example_file, 'r') as file_obj :
-      file_data = file_obj.read()
-   file_data = file_data.replace('../../devel/dismod_at', 'dismod_at' )
    file_data = file_data.replace(example_file, example_copy)
    with open(example_copy , 'w') as file_obj :
       file_obj.write(file_data)

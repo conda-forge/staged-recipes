@@ -11,14 +11,6 @@ if [[ "${target_platform}" == osx-* ]]; then
 fi
 extra_cxx_flags+=' -Wno-sign-conversion'
 #
-# dismodat.py
-file='python/bin/dismodat.py.in'
-sed -i "$SRC_DIR/$file" -e 's|@python3_executable@|/usr/bin/env python|'
-#
-# user_test.sh
-file='bin/user_test.sh.in'
-sed -i "$SRC_DIR/$file" -e 's|{1..3}|{1..4}|'
-#
 # build
 mkdir build && cd build
 #
@@ -36,6 +28,8 @@ cmake -S $SRC_DIR -B . \
 make -j$CPU_COUNT
 #
 # check
+# This does not support parallel execut because many of the tests
+# use the same file names.
 make check
 #
 # install
