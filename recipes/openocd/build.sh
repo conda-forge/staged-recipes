@@ -9,11 +9,11 @@ if [[ ${target_platform} == win-* ]]; then
 fi
 
 # Prepare jimtcl (conda feedstock does not provide header/library)
+# We thus cannot use shared libs, plus feedstock seems unmaintained and stuck at 0.82
 mkdir -p "${SRC_DIR}"/jimtcl
 pushd "${SRC_DIR}"/jimtcl || exit 1
   ./configure \
     --prefix="${SRC_DIR}"/jimtcl-install \
-    --with-jim-shared \
     --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
   make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_jimtcl_make.log 2>&1
   # This is not built on windows
