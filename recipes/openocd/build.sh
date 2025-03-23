@@ -13,6 +13,7 @@ mkdir -p "${SRC_DIR}"/jimtcl
 pushd "${SRC_DIR}"/jimtcl || exit 1
   ./configure \
     --prefix="${SRC_DIR}"/jimtcl-install \
+    --with-jim-shared \
     --disable-docs   # > "${SRC_DIR}"/_jimtcl_configure.log 2>&1
   make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_jimtcl_make.log 2>&1
   # This is not built on windows
