@@ -14,9 +14,11 @@ cmake --build ./build --config Release --target OpenSeesPy --parallel $CPU_COUNT
 cmake --build ./build --config Release --target OpenSeesSP --parallel $CPU_COUNT
 cmake --build ./build --config Release --target OpenSeesMP --parallel $CPU_COUNT
 
-#cmake --install . --verbose
+cmake --install ./build --verbose
+cp ./build/OpenSeesPy.so $PREFIX/bin/opensees.so
+cp ./build/OpenSeesSP $PREFIX/bin
+cp ./build/OpenSeesMP $PREFIX/bin
 
-cp -r EXAMPLES $PREFIX/share/
+#cp -r EXAMPLES $PREFIX/share/
 
-#cp $PREFIX/lib/OpenSeesPy.so $PREFIX/lib/opensees.so
 
