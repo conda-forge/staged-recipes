@@ -1,5 +1,7 @@
 echo on
 
+xcopy LICENSE.txt %PREFIX%\
+
 cmake -G"Ninja" -S . -B build ^
     %CMAKE_ARGS% ^
     -DCMAKE_CXX_STANDARD_LIBRARIES=-lxml2 ^
