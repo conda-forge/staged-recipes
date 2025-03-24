@@ -16,7 +16,7 @@ mkdir build && cd build
 #
 # cmake
 cmake -S $SRC_DIR -B . \
-   -G 'Unix Makefiles' \
+   -G 'Ninja' \
    -D CMAKE_BUILD_TYPE=Release \
    -D extra_cxx_flags="'$extra_cxx_flags'" \
    -D cmake_install_prefix="$PREFIX" \
@@ -24,18 +24,24 @@ cmake -S $SRC_DIR -B . \
    -D cmake_libdir=lib \
    -D python3_executable="python3"
 #
-# make
-make -j$CPU_COUNT
+# build
+# dismod_at C++ executable
+ninja -j$CPU_COUNT dismod_at
 #
+# build
+# dismod_at unit tests (developer tests) can be built in parallel
+ninja -j$CPU_COUNT example_devel test_devel
+#
+# 
 # check
-# This does not support parallel execut because many of the tests
-# use the same file names.
-make check
+# This target does not support parallel execution because many of the 
+# user tests use the same file name.
+ninja -j1 check
 #
-# install
-make -j$CPU_COUNT install
+# C++ install
+ninja -j$CPU_COUNT install
 #
-# pip
+# python install
 $PYTHON -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
 #
-echo 'build.sh: Done: OK'
+echo 'build.sh: OK'
