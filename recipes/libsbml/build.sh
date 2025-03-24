@@ -1,4 +1,7 @@
 #!/bin/bash
+
+cp LICENSE.txt ${PREFIX}
+
 mkdir build
 cd build
 
