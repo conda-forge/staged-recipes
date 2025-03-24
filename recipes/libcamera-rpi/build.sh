@@ -12,5 +12,9 @@ meson setup build ${MESON_ARGS} \
      -Dcam=disabled \
      -Dqcam=disabled \
      -Ddocumentation=disabled \
-     -Dpycamera=enabled
+     -Dpycamera=enabled \
+     -Dc_args="-Wno-unused-parameter" \
+     -Dcxx_args="-Wno-unused-parameter"
+# the latter two are needed to avoid build errors with GCC,
+# see https://github.com/raspberrypi/libpisp/pull/43
 ninja -C build install
