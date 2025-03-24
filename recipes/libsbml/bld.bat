@@ -1,10 +1,7 @@
 echo on
 
 cmake -G"Ninja" -S . -B build ^
-    -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
-    -DCMAKE_INSTALL_LIBDIR="%PREFIX%"/lib ^
-    -DCMAKE_CXX_COMPILER="%CXX%" ^
-    -DCMAKE_C_COMPILER="%CC%" ^
+    %CMAKE_ARGS% ^
     -DCMAKE_CXX_STANDARD_LIBRARIES=-lxml2 ^
     -DWITH_SWIG=OFF ^
     -DLIBXML_LIBRARY="%PREFIX%"/Library/lib/libxml2.lib ^
