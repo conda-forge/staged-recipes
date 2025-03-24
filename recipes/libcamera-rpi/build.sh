@@ -3,7 +3,6 @@ set -xeuo pipefail
 
 rm -f subprojects/gtest.wrap
 meson setup build ${MESON_ARGS} \
-     --buildtype=release \
      -Dpipelines=rpi/vc4,rpi/pisp \
      -Dipas=rpi/vc4,rpi/pisp \
      -Dv4l2=true \
