@@ -15,7 +15,7 @@ echo PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
 cmake -S %SRC_DIR% -B . ^
    -G "Ninja" ^
    -D CMAKE_BUILD_TYPE=Release ^
-   -D extra_cxx_flags="" ^
+   -D extra_cxx_flags="/std:c++17" ^
    -D cmake_install_prefix="%PREFIX%\Library" ^
    -D dismod_at_prefix="%PREFIX%\Library" ^
    -D cmake_libdir=lib ^
