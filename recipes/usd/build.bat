@@ -12,6 +12,7 @@ cmake %CMAKE_ARGS% ^
     -DPXR_BUILD_USD_IMAGING=ON ^
     -DPXR_ENABLE_PYTHON_SUPPORT=ON ^
     -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY:BOOL=ON ^
+    -DPXR_PYTHON_SHEBANG="/usr/bin/env python" ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
