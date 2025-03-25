@@ -1,54 +1,29 @@
-From 6c0b5885ceb5a3c984e5b0e8a9c7595996d09376 Mon Sep 17 00:00:00 2001
-From: Silvio Traversaro <silvio@traversaro.it>
-Date: Sun, 23 Mar 2025 22:06:28 +0100
-Subject: [PATCH] Add workaround for Python linking with statically linked
- Python interpreter
-
----
- cmake/macros/Public.cmake                | 10 ++++++++++
- pxr/external/boost/python/CMakeLists.txt |  4 ++++
- 2 files changed, 14 insertions(+)
-
-diff --git a/cmake/macros/Public.cmake b/cmake/macros/Public.cmake
-index 2647707ac6..134fe6676c 100644
---- a/cmake/macros/Public.cmake
-+++ b/cmake/macros/Public.cmake
-@@ -167,6 +167,11 @@ function(pxr_cpp_bin BIN_NAME)
- 
-     add_executable(${BIN_NAME} ${BIN_NAME}.cpp)
- 
-+    # Workaround for https://github.com/PixarAnimationStudios/OpenUSD/issues/2371
-+    if (PXR_ENABLE_PYTHON_SUPPORT AND PXR_PY_UNDEFINED_DYNAMIC_LOOKUP)
-+        target_link_libraries(${BIN_NAME} Python3::Python)
-+    endif ()
-+
-     # Turn PIC ON otherwise ArchGetAddressInfo() on Linux may yield
-     # unexpected results.
-     _get_folder("" folder)
-@@ -638,6 +643,11 @@ function(pxr_build_test TEST_NAME)
-         ${bt_CPPFILES}
-     )
- 
-+    # Workaround for https://github.com/PixarAnimationStudios/OpenUSD/issues/2371
-+    if (PXR_ENABLE_PYTHON_SUPPORT AND PXR_PY_UNDEFINED_DYNAMIC_LOOKUP)
-+        target_link_libraries(${TEST_NAME} Python3::Python)
-+    endif ()
-+
-     # Turn PIC ON otherwise ArchGetAddressInfo() on Linux may yield
-     # unexpected results.
-     _get_folder("tests/bin" folder)
 diff --git a/pxr/external/boost/python/CMakeLists.txt b/pxr/external/boost/python/CMakeLists.txt
-index ec85789f76..2197b117d9 100644
+index 3874e7b24d..b5bb9f15a4 100644
 --- a/pxr/external/boost/python/CMakeLists.txt
 +++ b/pxr/external/boost/python/CMakeLists.txt
-@@ -414,6 +414,10 @@ function(boost_python_cpp_target TARGET_NAME)
-         set(destination "tests/lib")
-     else()
-         add_executable(${TARGET_NAME})
-+        # Workaround for https://github.com/PixarAnimationStudios/OpenUSD/issues/2371
-+        if (PXR_ENABLE_PYTHON_SUPPORT AND PXR_PY_UNDEFINED_DYNAMIC_LOOKUP)
-+            target_link_libraries(${TARGET_NAME} Python3::Python)
-+        endif ()
-         set(destination "tests")
-     endif()
+@@ -338,6 +338,23 @@ target_compile_definitions(python
+     PRIVATE $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
+ )
+ 
++# Even if PXR_PY_UNDEFINED_DYNAMIC_LOOKUP is defined (to avoid that the usd python extensions
++# links to the python library, to avoid problems with statically linked python interpreters) 
++# we want that executables that link usd_python to link with the Python library, 
++# as otherwise they would fail due to missing symbols, see
++# https://github.com/PixarAnimationStudios/OpenUSD/issues/2371
++# and https://github.com/PixarAnimationStudios/OpenUSD/issues/2568
++# This can be done by adding to INTERFACE_LINK_LIBRARIES the appropriate generator expression,
++# that will evalute to empty when usd_python is linked to a library, but it will evaluate to
++# Python3::Python when linked to an executable
++if (PXR_PY_UNDEFINED_DYNAMIC_LOOKUP)
++    # This should equivalent to target_link_libraries(python INTERFACE ...), that we can't
++    # use as pxr_library already use the target_link_libraries plain signature, and the two can't be mixed
++    set_property(TARGET python APPEND PROPERTY INTERFACE_LINK_LIBRARIES
++        "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:Python3::Python>"
++    )
++endif()
++
+ # Since we're not going through the normal pxr_build_test macros
+ # we need to elide tests here if requested.
+ if (NOT PXR_BUILD_TESTS)
 
