@@ -9,7 +9,7 @@ cd build
 set PKG_CONFIG_PATH=^
 %BUILD_PREIX%\Library\lib\pkgconfig;^
 %BUILD_PREIX%\Library\share\pkgconfig;
-ehco PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
+echo PKG_CONFIG_PATH=%PKG_CONFIG_PATH%
 
 :: cmake
 cmake -S %SRC_DIR% -B . ^
@@ -46,4 +46,4 @@ if errorlevel 1 exit 1
 %PYTHON% -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1
 
-echo 'bld.bat: OK'
+echo 'build.bat: OK'
