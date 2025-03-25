@@ -40,7 +40,10 @@ def system_command(command) :
 def main() :
    #
    prefix          = os.environ['PREFIX'].replace('/', '|');
-   print( f'run_test.py:\nprefix = {prefix}' )
+   print( f'run_test.py:\nprefix with / and \\ repalced by / = {prefix}' )
+   #
+   # sys.path
+   print( 'sys.path = ', sys.path ) 
    #
    # example_file
    assert example_file[-3 :] == '.py'
