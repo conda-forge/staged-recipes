@@ -1,0 +1,58 @@
+From 997a3f61de38456e54fc860a077cc3979017e18d Mon Sep 17 00:00:00 2001
+From: "H. Vetinari" <h.vetinari@gmx.com>
+Date: Sun, 18 Dec 2022 22:41:08 +1100
+Subject: [PATCH] unpin LLVM; adapt sources where necessary
+
+---
+ clif/backend/ast.cc                | 5 +++--
+ clif/backend/matcher.cc            | 4 +---
+ clif/cmake/modules/CLIFUtils.cmake | 2 +-
+ 3 files changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/clif/backend/ast.cc b/clif/backend/ast.cc
+index 5e46820..6d62107 100644
+--- a/clif/backend/ast.cc
++++ b/clif/backend/ast.cc
+@@ -418,8 +418,9 @@ bool TranslationUnitAST::ConstructorIsAccessible(
+   auto entity = clang::InitializedEntity::InitializeResult(
+       SourceLocation(),
+       ast_->getASTContext().getQualifiedType(
+-          ctor->getParent()->getTypeForDecl(), clang::Qualifiers()),
+-      false);  // NRVO is irrelevant.
++          ctor->getParent()->getTypeForDecl(), clang::Qualifiers()
++      )
++  );
+   Sema& sema = ast_->getSema();
+   auto access = sema.CheckConstructorAccess(
+       SourceLocation(), ctor,
+diff --git a/clif/backend/matcher.cc b/clif/backend/matcher.cc
+index 728aaa1..d994d94 100644
+--- a/clif/backend/matcher.cc
++++ b/clif/backend/matcher.cc
+@@ -731,9 +731,7 @@ bool ClifMatcher::AreAssignableTypes(const QualType from_type,
+   clang::EnterExpressionEvaluationContext context(ast_->GetSema(),
+       clang::Sema::ExpressionEvaluationContext::Unevaluated);
+ 
+-  InitializedEntity entity =
+-      InitializedEntity::InitializeResult(
+-          loc, to_type, false);  // NRVO is irrelevant.
++  InitializedEntity entity = InitializedEntity::InitializeResult(loc, to_type);
+   clang::OpaqueValueExpr init_expr(loc, from_type.getNonReferenceType(),
+                                    clang::ExprValueKind::VK_LValue);
+   bool assignable = ast_->GetSema().CanPerformCopyInitialization(
+diff --git a/clif/cmake/modules/CLIFUtils.cmake b/clif/cmake/modules/CLIFUtils.cmake
+index aa95d37..ecdc16c 100644
+--- a/clif/cmake/modules/CLIFUtils.cmake
++++ b/clif/cmake/modules/CLIFUtils.cmake
+@@ -34,7 +34,7 @@ pkg_check_modules(GOOGLE_GLOG REQUIRED libglog)
+ 
+ find_package(absl REQUIRED)
+ find_package(Clang REQUIRED)
+-find_package(LLVM 11.1.0 REQUIRED)
++find_package(LLVM REQUIRED)
+ find_package(GTest REQUIRED)
+ 
+ function(add_protobuf_include_directories)
+-- 
+2.38.1.windows.1
+
