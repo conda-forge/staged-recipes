@@ -1,4 +1,3 @@
-:: Borrowed from LibTurboJpeg
 :: Build step
 
 mkdir build
@@ -12,9 +11,10 @@ cmake .. -GNinja ^
     -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE ^
     -D IRIS_BUILD_SHARED=OFF ^
     -D IRIS_BUILD_STATIC=OFF ^
-    -D IRIS_BUILD_ENCODER=OFF ^
+    -D IRIS_BUILD_ENCODER=ON ^
     -D IRIS_BUILD_DEPENDENCIES=OFF ^
     -D IRIS_BUILD_PYTHON=ON ^
+    -D IRIS_USE_OPENSLIDE=OFF ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
