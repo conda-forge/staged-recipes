@@ -13,6 +13,6 @@ export DISABLE_AUTOBREW=1
 mv DESCRIPTION DESCRIPTION.old
 grep -va '^Priority: ' DESCRIPTION.old > DESCRIPTION
 sed -i 's/-mmacosx-version-min=10.13//g' ${PREFIX}/lib/R/etc/Makeconf
-export PKG_CPPFLAGS -D_LIBCPP_DISABLE_AVAILABILITY
+export PKG_CPPFLAGS='-D_LIBCPP_DISABLE_AVAILABILITY'
 # shellcheck disable=SC2086
 ${R} CMD INSTALL --build . ${R_ARGS}
