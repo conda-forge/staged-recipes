@@ -16,7 +16,6 @@ cmake -S %SRC_DIR% -B . ^
    -G "Ninja" ^
    -D CMAKE_BUILD_TYPE=Release ^
    -D extra_cxx_flags="/std:c++17" ^
-   -D cmake_install_prefix="%PREFIX%\Library" ^
    -D dismod_at_prefix="%PREFIX%\Library" ^
    -D cmake_libdir=lib ^
    -D python3_executable="python3" 
@@ -44,6 +43,8 @@ if errorlevel 1 exit 1
 
 :: python install
 %PYTHON% -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
+if errorlevel 1 exit 1
+%PYTHON% -m pip show dismod_at
 if errorlevel 1 exit 1
 
 echo 'build.bat: OK'

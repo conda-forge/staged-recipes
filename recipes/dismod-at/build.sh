@@ -19,7 +19,6 @@ cmake -S $SRC_DIR -B . \
    -G 'Ninja' \
    -D CMAKE_BUILD_TYPE=Release \
    -D extra_cxx_flags="'$extra_cxx_flags'" \
-   -D cmake_install_prefix="$PREFIX" \
    -D dismod_at_prefix="$PREFIX" \
    -D cmake_libdir=lib \
    -D python3_executable="python3"
@@ -43,5 +42,6 @@ ninja -j$CPU_COUNT install
 #
 # python install
 $PYTHON -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
+$PYTHON -m pip show dismod_at
 #
 echo 'build.sh: OK'
