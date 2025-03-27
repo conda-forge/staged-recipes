@@ -1,8 +1,7 @@
 if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
-#    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+    # avoid in tests `error: no member named 'assoc_legendre' in namespace 'std'`, a known omission for Clang
     _TESTS=OFF
-#error: no member named 'assoc_legendre' in namespace 'std'
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
@@ -24,8 +23,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D BUILD_SHARED_LIBS=ON \
   -D INTEGRATORXX_ENABLE_TESTS=${_TESTS} \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
-
-#  -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="share/cmake/OpenOrbitalOptimizer"
 
 cmake --build build --target install -j${CPU_COUNT}
 
