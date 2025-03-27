@@ -1,2 +1,2 @@
 cargo build --release
-cargo install --path . --bin xsv --root %PREFIX%
+cargo install --path . --bin xan --root %PREFIX%
