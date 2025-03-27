@@ -19,7 +19,6 @@ if errorlevel 1 exit 1
       ::-DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
       ::-DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
 
-cd build
 cmake --build build ^
       --config Release ^
       --target install ^
