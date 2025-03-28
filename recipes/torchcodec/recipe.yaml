@@ -1,0 +1,155 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  name: torchcodec
+  version: "0.2.1"
+  build_number: 0
+  cuda_build_string: cuda${{ cuda_compiler_version | version_to_buildstring }}_
+  string_prefix: ${{ "cpu_" if cuda_compiler_version == "None" else cuda_build_string }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pytorch/torchcodec/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 3335d8fcf58c26acf3c628d751103b59226e01c91847ce56efb2a4e7ae8351ef
+
+build:
+  number: ${{ build_number }}
+  skip:
+    - win
+    # CUDA 11.8 not supported by pytorch anymore
+    - cuda_compiler_version != "None" and match(cuda_compiler_version, "<12.0")
+    # llvmlite fix only available for numba version that doesn't support py39 anymore
+    - match(python, "<3.10")
+  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      # use cuda from the variant config, e.g. to build multiple CUDA variants
+      - ${{ "cuda" if cuda_compiler_version != "None" }}
+    # this will down-prioritize the cuda variant versus other variants of the package
+    down_prioritize_variant: ${{ 0 if cuda_compiler_version == "None" else 1 }}
+  script:
+    file: build
+    env:
+      cuda_compiler_version: ${{ cuda_compiler_version | default('None') }}
+      # required by the setup.py script to find the right version
+      BUILD_VERSION: ${{ version }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pytorch
+
+        - if: match(cuda_compiler_version, ">=12")
+          then:
+            - cuda-driver-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+            - cuda-nvtx-dev
+            - cuda-nvml-dev
+            - cuda-profiler-api
+            - libcublas-dev
+            - libcufft-dev
+            - libcurand-dev
+            - libcusolver-dev
+            - libcusparse-dev
+
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_compiler_version }}
+
+  host:
+    - python
+    - pip
+    - setuptools
+    - pytorch
+    - ${{ "pytorch * cuda*" if cuda_compiler_version != "None" }}
+    - ${{ "pytorch * cpu*" if cuda_compiler_version == "None" }}
+    - pybind11
+    - ffmpeg
+
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ==${{ cuda_compiler_version }}
+
+    - if: match(cuda_compiler_version, ">=12")
+      then:
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - cuda-profiler-api
+        - libcublas-dev
+        - libcufft-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+  run:
+    - python
+    - numpy
+    - pillow
+    - ${{ "pytorch * cuda*" if cuda_compiler_version != "None" }}
+    - ${{ "pytorch * cpu*" if cuda_compiler_version == "None" }}
+
+  ignore_run_exports:
+    from_package:
+      - if: match(cuda_compiler_version, ">=12")
+        then:
+          - cuda-nvrtc-dev
+          - cuda-nvtx-dev
+          - libcublas-dev
+          - libcufft-dev
+          - libcurand-dev
+          - libcusolver-dev
+          - libcusparse-dev
+
+tests:
+  - python:
+      imports:
+        - torchcodec
+        - torchcodec.decoders
+        - torchcodec.samplers
+      pip_check: true
+
+  - requirements:
+      run:
+        - pytest
+        - scipy
+        - numpy
+        - expecttest
+        - requests
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-version ==${{ cuda_compiler_version }}
+    files:
+      source:
+        - test/
+        - examples/
+      recipe:
+        - run_tests.sh
+    script:
+      - bash run_tests.sh
+
+about:
+  homepage: https://github.com/pytorch/torchcodec
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+  summary: TorchCodec is a Python library for decoding videos into PyTorch tensors, on CPU and CUDA GPU.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
