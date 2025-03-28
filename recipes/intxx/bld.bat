@@ -27,4 +27,5 @@ cd build
 ctest --rerun-failed --output-on-failure -E SPH_GEN
 if errorlevel 1 exit 1
 
-:: QUADRATURES_SPH_GEN ..............Exit code 0xc0000135  apparently a .NET issue?
+:: apparently a .NET issue? skipping for now
+:: QUADRATURES_SPH_GEN ..............Exit code 0xc0000135

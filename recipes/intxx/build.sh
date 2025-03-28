@@ -3,7 +3,6 @@ if [ "$(uname)" == "Darwin" ]; then
     # avoid in tests `error: no member named 'assoc_legendre' in namespace 'std'`, a known omission for Clang
     _TESTS=OFF
 
-    # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
