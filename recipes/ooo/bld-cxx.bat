@@ -9,14 +9,12 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
+  -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="Library\OpenOrbitalOptimizer\CMake" ^
   -D CMAKE_CXX_COMPILER=clang-cl ^
   -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
-
-      ::-D CMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
-      ::-DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
 
 cmake --build build ^
       --config Release ^
