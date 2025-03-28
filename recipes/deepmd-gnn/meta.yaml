@@ -1,0 +1,66 @@
+{% set name = "deepmd-gnn" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/deepmodeling/deepmd-gnn/releases/download/{{ version }}/deepmd-gnn-{{ version }}.tar.gz
+  sha256: 1835e48d0d5de5cceeddb1d188c46034b24af857336f45d8c3e97ff34304de60
+
+build:
+  script: |
+      export CMAKE_PREFIX_PATH=$(python -c "import torch;print(torch.utils.cmake_prefix_path)")
+      # Python interface
+      {{ PYTHON }} -m pip install . -vv
+      # C++ interface
+      mkdir -p build
+      cd build
+      cmake .. ${CMAKE_ARGS} -D CMAKE_INSTALL_PREFIX=${CMAKE_PREFIX_PATH}
+      cmake --build . -j`nproc`
+      cmake --install .
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - setuptools-scm
+    - pytorch
+  run:
+    - python
+    - pytorch
+    - deepmd-kit>=3.0.0b2
+    - mace-torch>=0.3.5
+    - nequip
+    - e3nn
+    - dargs
+
+test:
+  imports:
+    - deepmd_gnn
+  requires:
+    - pip
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/deepmodeling/deepmd-gnn
+  summary: 'DeePMD-kit plugin for various graph neural network models'
+  description: |
+    deepmd-gnn is a DeePMD-kit plugin for various graph neural network (GNN) models, which connects
+    DeePMD-kit and atomistic GNN packages by enabling GNN models in DeePMD-kit.
+  license: LGPL-3.0-only
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://simplejson.readthedocs.io/
+  dev_url: https://github.com/deepmodeling/deepmd-gnn
+
+extra:
+  recipe-maintainers:
+    - njzjz
