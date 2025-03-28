@@ -1,4 +1,3 @@
-    - name: Testing find_package Consumption
 cmake_minimum_required(VERSION 3.16)
 project(atomtest LANGUAGES CXX)
 
