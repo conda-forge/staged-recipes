@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeuo pipefail
+set -xeo pipefail
 
 rm -f subprojects/gtest.wrap
 meson setup build ${MESON_ARGS} \
