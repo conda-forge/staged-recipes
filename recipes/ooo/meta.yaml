@@ -57,10 +57,8 @@ outputs:
         - nlohmann_json
         - integratorxx
         # TODO peel these away later
-        - armadillo                                                            # [win]
-        - libblas * *netlib                                                    # [win]    # armadillo+win missing blas.lib w/o this
-        - liblapack * *netlib                                                  # [win]
-        #- libblas * *mkl                                                       # [not win]
+        - liblapack * *mkl                                                     # [linux]
+        - liblapack * *netlib                                                  # [win]    # armadillo+win missing blas.lib w/o this
       commands:
         # Verify library (skip, as header-only)
         # Verify accessories
@@ -76,170 +74,14 @@ outputs:
         - cd tests
         - cmake -S. -Bbuild -GNinja -DCMAKE_PREFIX_PATH="${PREFIX}"            # [unix]
         - cmake -S. -Bbuild -GNinja -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_BUILD_TYPE=Release" # [win]
-        #- type %LIBRARY_PREFIX%\OpenOrbitalOptimizer\CMake\*.cmake  # [win]
         - cmake --build build
         - ./build/atomtest --Z 8 --xfunc GGA_X_PBE --cfunc GGA_C_PBE --M 3 --sto 0 --basis "cc-pvdz.json"  # [unix]
         - build\\atomtest.exe --Z 8 --xfunc GGA_X_PBE --cfunc GGA_C_PBE --M 3 --sto 0 --basis "cc-pvdz.json"  # [win]
 
-#  - name: pyambit
-#    script: build-py.sh                                                        # [unix]
-#    script: bld-py.bat                                                         # [win]
-#    build:
-#      skip: true                                                               # [win]
-#    requirements:
-#      build:
-#        - {{ compiler('c') }}
-#        - {{ compiler('cxx') }}
-#        - cmake
-#        - ninja
-#        - python                                                               # [build_platform != target_platform]
-#        - cross-python_{{ target_platform }}                                   # [build_platform != target_platform]
-#        - numpy                                                                # [build_platform != target_platform]
-#        - pybind11                                                             # [build_platform != target_platform]
-#      host:
-#        - {{ pin_subpackage('ambit', exact=True) }}
-#        - python
-#        - pybind11
-#        - pybind11-abi
-#        - numpy
-#        - libblas                                                              # [win]
-#        - liblapack                                                            # [win]
-#        - intel-openmp                                                         # [win]
-#      run:
-#        - {{ pin_subpackage('ambit', exact=True) }}
-#        - python
-#        - intel-openmp                                                         # [win]
-#    test:
-#      requires:
-#        - pip                                                                            # provides `pip check`
-#        - pytest
-#        - numpy
-#        - m2w64-binutils                                                       # [win]   # provides objdump.exe
-#      files:
-#        - test_ambit.py
-#      imports:
-#        - ambit
-#      commands:
-#        - ls -l $SP_DIR/ambit                                                  # [unix]
-#        - dir %SP_DIR%\\ambit                                                  # [win]
-#        # Verify module
-#        - test -f $SP_DIR/ambit/pyambit*.so                                    # [unix]
-#        - if not exist %SP_DIR%\\ambit\\pyambit*.pyd exit 1                    # [win]
-#        # Verify accessories
-#        - test -f $PREFIX/share/cmake/ambit/ambitConfig.cmake                  # [unix]
-#        - test -f $PREFIX/share/cmake/ambit/ambitTargets-Python.cmake          # [unix]
-#        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitConfig.cmake exit 1  # [win]
-#        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitTargets-Python.cmake exit 1  # [win]
-#        # Inspect linkage
-#        - ldd -v $SP_DIR/ambit/pyambit*.so                                     # [linux]
-#        - otool -L $SP_DIR/ambit/pyambit*.so                                   # [osx]
-#        - objdump.exe -p %SP_DIR%\\ambit\\pyambit.*.pyd | findstr /i "dll"     # [win]
-#        # Actually test
-#        - pip check
-#        - python test_ambit.py
-#        - pytest -v -rws --color yes $SP_DIR/ambit                             # [unix]
-#        - pytest -v -rws --color yes %SP_DIR%\\ambit                           # [win]
-
-#      host:
-#        - libblas
-#        - liblapack
-#    files:
-#      - include/efp.h                   # [unix]
-#      - include/libefp/*                # [unix]
-#      - lib/libefp{{ SHLIB_EXT }}*      # [linux]
-#      - lib/libefp.*dylib               # [osx]
-#      - share/cmake/libefp/*            # [unix]
-#      - share/libefp/*                  # [unix]
-#      - share/libefp/fraglib/*          # [unix]
-#      - Library/include/efp.h           # [win]
-#      - Library/include/libefp/*        # [win]
-#      - Library/bin/efp*                # [win]
-#      - Library/lib/efp*                # [win]
-#      - Library/share/cmake/libefp      # [win]
-#      - Library/share/libefp/*          # [win]
-#      - Library/share/libefp/fraglib/*  # [win]
-#    test:
-#      commands:
-#        - ls -l $PREFIX/lib                                       # [unix]
-#        - ls -l $PREFIX/share/cmake/libefp                        # [unix]
-#        - dir %PREFIX%\\Library                                   # [win]
-#        - dir %PREFIX%\\Library\\include                          # [win]
-#        # Verify library
-#        - test -f $PREFIX/lib/libefp$SHLIB_EXT                    # [unix]
-#        - test ! -f $PREFIX/lib/libefp.a                          # [unix]
-#        - if not exist %PREFIX%\\Library\\lib\\efp.lib exit 1     # [win]
-#        - if not exist %PREFIX%\\Library\\bin\\efp.dll exit 1     # [win]
-#        # Verify accessories
-#        - test -f $PREFIX/include/libefp/efp.h                    # [unix]
-#        - test -f $PREFIX/share/cmake/libefp/libefpConfig.cmake   # [unix]
-#        - test -f $PREFIX/share/libefp/fraglib/h2.efp             # [unix]
-#        - if not exist %PREFIX%\\Library\\include\\libefp\\efp.h exit 1  # [win]
-#        - if not exist %PREFIX%\\Library\\share\\cmake\\libefp\\libefpConfig.cmake exit 1  # [win]
-#        - if not exist %PREFIX%\\Library\\share\\libefp\\fraglib\\h2.efp exit 1  # [win]
-#        # Inspect linkage
-#        - ldd -v $PREFIX/lib/libefp$SHLIB_EXT                     # [linux and build_platform == target_platform]
-#        - otool -L $PREFIX/lib/libefp$SHLIB_EXT                   # [osx]
-#
-#  - name: pylibefp
-#    version: {{ version }}
-#    requirements:
-#      build:
-#        - {{ compiler('c') }}
-#        - {{ compiler('cxx') }}
-#        - cmake
-#        - ninja
-#      host:
-#        - {{ pin_subpackage('libefp', exact=True) }}
-#        - python
-#        - pybind11
-#        - pybind11-abi
-#        - qcelemental
-#      run:
-#        - {{ pin_subpackage('libefp', exact=True) }}
-#        - python
-#        - {{ pin_compatible('qcelemental', max_pin='x') }}
-#    files:
-#      - lib/python{{ PY_VER }}/site-packages/pylibefp  # [unix]
-#      - Lib/site-packages/pylibefp                     # [win]
-#        # if later install cmake config files for Py module, these are the correct filters
-#        # - share/cmake/pylibefp/*                         # [unix]
-#        # - Library/share/cmake/pylibefp/*                 # [win]
-#    test:
-#      requires:
-#        - numpy
-#        - pytest
-#      files:
-#        - test_pylibefp.py
-#      imports:
-#        - pylibefp
-#      commands:
-#        - ls -l $SP_DIR/pylibefp                                  # [unix]
-#        - dir %SP_DIR%\\pylibefp                                  # [win]
-#        # Verify module
-#        - test -f $SP_DIR/pylibefp/core*.so                       # [unix]
-#        - if not exist %SP_DIR%\\pylibefp\\core*.pyd exit 1       # [win]
-#        # Inspect linkage
-#        - ldd -v $SP_DIR/pylibefp/core*.so                        # [linux]
-#        - otool -L $SP_DIR/pylibefp/core*.so                      # [osx]
-#        # Actually test
-#        - python test_pylibefp.py
-#        - python -c "import pylibefp; assert pylibefp.test(extras=['--color', 'yes']) == 0"
-#          # equivalent to above: pytest -v -rws --color yes $SP_DIR/pylibefp  # [unix]
-#          # equivalent to above: pytest -v -rws --color yes %SP_DIR%\\pylibefp  # [win]
-#    about:
-#      home: https://github.com/loriab/pylibefp
-#      dev_url: https://github.com/loriab/pylibefp/blob/master/README.md
-#      doc_source_url: https://github.com/loriab/pylibefp/blob/master/doc/source/introduction.rst
-#      license: BSD-3-Clause
-#      license_url: https://opensource.org/licenses/BSD-3-Clause
-#      license_file: LICENSE
-#      license_family: BSD
-#      summary: "L. A. Burns's Python bindings to libefp"
-
 about:
   home: https://github.com/SusiLehtola/OpenOrbitalOptimizer
   dev_url: https://github.com/SusiLehtola/OpenOrbitalOptimizer
-#  doc_url: https://libefp2.github.io/doxygen_html/index.html
+  # doc_url:
   license: MPL-2.0
   license_url: https://opensource.org/licenses/MPL-2.0
   license_file: LICENSE
@@ -258,4 +100,4 @@ extra:
   feedstock-name: openorbitaloptimizer
   recipe-maintainers:
     - loriab
-    - susilehtola
+    # - susilehtola
