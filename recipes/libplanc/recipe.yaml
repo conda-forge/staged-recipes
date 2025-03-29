@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  version: 1.0.0
+
+package:
+  name: libplanc
+  version: ${{ version|replace("-", "_") }}
+
+source:
+  url: https://github.com/welch-lab/libplanc/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 3339df4b589d23fee9d02c1b45d74fb0da77e5178726a636c4b2d6035028369c
+
+build:
+  number: 0
+  script:
+    - if: linux
+      then:
+        - cmake -E env CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY cmake -S $SRC_DIR -DBUILD_EXECUTABLE=ON -DBLA_VENDOR="Generic" $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+    - if: osx
+      then:
+        - cmake -E env CXXFLAGS=-D_LIBCPP_DISABLE_AVAILABILITY cmake -S $SRC_DIR -DBUILD_EXECUTABLE=ON $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+    - if: win
+      then:
+        - cmake -S %SRC_DIR% -DCMAKE_C_FLAGS=/I%LIBRARY_INC% -DCMAKE_CXX_FLAGS=/I%LIBRARY_INC% -DBUILD_EXECUTABLE=ON %CMAKE_ARGS%
+        - cmake --build .
+        - cmake --install .
+
+requirements:
+  build:
+    - if: win
+      then:
+        - m2-filesystem
+        - m2-zip
+        - m2-diffutils
+        - m2-patch
+      else:
+        - patch
+        - diffutils
+        - git
+        - gnuconfig
+        - make
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('cxx') }}  
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
+    - cmake <4
+    - pkg-config
+  host:
+    - libhwloc >=2.0.0,<3.0.0
+    - zlib
+    - hdf5 >=1.10
+    - if: osx
+      then: llvm-openmp
+      else: libgomp
+    - libblas
+    - libcblas
+    - liblapack
+    - indicators
+    - armadillo
+    - cpp-argparse
+    - if: win
+      then: dlfcn-win32
+  run:
+    - if: osx and arm64
+      then: libblas * *accelerate
+      else: libblas
+
+tests:
+  - script:
+      - plancnmf --help
+
+about:
+  license: GPL-2.0-or-later
+  summary: '''PLANC'', a highly parallel and extensible NMF/NTF  (Non-negative Matrix/Tensor Factorization) library. Wraps algorithms described in Kannan et. al (2018) <doi:10.1109/TKDE.2017.2767592> and Eswar et. al (2021) <doi:10.1145/3432185>. Implements algorithms described in Welch et al. (2019) <doi:10.1016/j.cell.2019.05.006>, Gao et al. (2021) <doi:10.1038/s41587-021-00867-x>, and Kriebel & Welch (2022) <doi:10.1038/s41467-022-28431-4>.'
+  license_file:
+    - README.md
+  homepage: https://github.com/welch-lab/libplanc
+
+extra:
+  recipe-maintainers:
+    - theAeon
