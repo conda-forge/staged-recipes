@@ -38,10 +38,14 @@ def _lint_recipes(gh, pr):
     if "maintenance" not in labels:
         for fname in fnames:
             if fname in example_recipes:
-                lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+                lints[fname].append(
+                    "Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`."
+                )
                 extra_edits = True
             if not fname.startswith("recipes/"):
-                lints[fname].append("Do not edit files outside of the `recipes/` directory.")
+                lints[fname].append(
+                    "Do not edit files outside of the `recipes/` directory."
+                )
                 extra_edits = True
 
     # 2. Make sure the new recipe is in the right directory
@@ -69,7 +73,7 @@ def _lint_recipes(gh, pr):
         _orig_lines = original_environment_yaml.splitlines(keepends=True)
         _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
         print("environment diff:", flush=True)
-        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
+        print("".join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
         lints["environment.yaml"].append(
             "The `environment.yaml` file is out of sync with `pixi.toml`. "
             "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
@@ -103,9 +107,7 @@ def _lint_recipes(gh, pr):
         outputs_section = get_section(
             meta, "outputs", lints, recipe_version=recipe_version
         )
-        extra_section = get_section(
-            meta, "extra", lints, recipe_version=recipe_version
-        )
+        extra_section = get_section(meta, "extra", lints, recipe_version=recipe_version)
         maintainers = extra_section.get("recipe-maintainers", [])
 
         if recipe_version == 1:
@@ -138,7 +140,9 @@ def _lint_recipes(gh, pr):
                     feedstock_exists = False
 
             if feedstock_exists and existing_recipe_name == recipe_name:
-                lints[fname].append("Feedstock with the same name exists in conda-forge.")
+                lints[fname].append(
+                    "Feedstock with the same name exists in conda-forge."
+                )
             elif feedstock_exists:
                 hints[fname].append(
                     f"Feedstock with the name {existing_recipe_name} exists in conda-forge. "
@@ -159,7 +163,9 @@ def _lint_recipes(gh, pr):
             url = None
             if recipe_version == 1:
                 for source_section in sources_section:
-                    if str(source_section.get("url")).startswith("https://pypi.io/packages/source/"):
+                    if str(source_section.get("url")).startswith(
+                        "https://pypi.io/packages/source/"
+                    ):
                         url = source_section["url"]
             else:
                 for source_section in sources_section:
@@ -291,9 +297,9 @@ please add a `maintenance` label to the PR.\n"""
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Lint staged recipes.')
-    parser.add_argument('--owner', type=str, required=True, help='the repo owner')
-    parser.add_argument('--pr-num', type=int, required=True, help='the PR number')
+    parser = argparse.ArgumentParser(description="Lint staged recipes.")
+    parser.add_argument("--owner", type=str, required=True, help="the repo owner")
+    parser.add_argument("--pr-num", type=int, required=True, help="the PR number")
 
     args = parser.parse_args()
 
@@ -305,4 +311,3 @@ if __name__ == "__main__":
     _comment_on_pr(pr, lints, hints, extra_edits)
     if lints:
         sys.exit(1)
-
