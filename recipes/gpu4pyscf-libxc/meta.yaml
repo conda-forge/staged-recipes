@@ -1,0 +1,71 @@
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+# If your package is python based, we recommend using Grayskull to generate it instead:
+# https://github.com/conda-incubator/grayskull
+
+# Jinja variables help maintain the recipe as you'll update the version only here.
+# Using the name variable with the URL in line 16 is convenient
+# when copying and pasting from another recipe, but not really needed.
+{% set name = "gpu4pyscf-libxc" %}
+{% set version = "1.0.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+
+source:
+  url: https://github.com/pyscf/gpu4pyscf/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 2926c5444bdc3df02fe40fc9fcd36ca352394bd0f05d5c7dff412595e9c8d1fe
+build:
+  script:
+  - cmake -S gpu4pyscf/lib -B build/temp.gpu4pyscf-libxc -DBUILD_DFTD3=OFF -DBUILD_DFTD4=OFF
+  - cmake --build build/temp.gpu4pyscf-libxc -j 4
+  - mkdir -p build/lib.gpu4pyscf-libxc/gpu4pyscf/lib/deps/lib
+  - cp gpu4pyscf/lib/deps/lib/libxc.so build/lib.gpu4pyscf-libxc/gpu4pyscf/lib/deps/lib/
+  - {{ PYTHON }} builder/setup_libxc.py bdist_wheel
+  - {{ PYTHON }} builder/setup_libxc.py install
+  skip: true  # [osx or win]
+  skip: true  # [cuda_compiler_version == "None"]
+  number: 0
+
+requirements:
+  build:
+    # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
+    # Compilers are named 'c', 'cxx' and 'fortran'.
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.26
+    - make
+  host:
+    - python
+    - pip
+    - setuptools
+    - cmake
+  run:
+    - python
+    - openblas
+test:
+  imports:
+    - pyscf
+  requires:
+    - pip
+    - pyscf
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/pyscf/gpu4pyscf
+  summary: "A separated module from GPU4PySCF"
+  description: |
+    CUDA libxc (https://gitlab.com/libxc/libxc/-/tree/stable/src) with modifications for GPU4PySCF.
+
+  license: "GPL-3.0-only"
+  license_family: "GPL"
+  license_file: "LICENSE"
+
+extra:
+  recipe-maintainers:
+    - wxj6000
