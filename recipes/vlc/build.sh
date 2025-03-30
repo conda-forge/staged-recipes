@@ -14,11 +14,8 @@ if [[ "${target_platform}" == "linux-*" ]]; then
     EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --enable-udev"
 fi
 
-if [[ "${PKG_NAME:-libvlc}" == "vlc-bin" ]]; then
-    EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --enable-vlc --enable-qt --enable-skins2"
-else
-    EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --disable-vlc"
-fi
+EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --enable-vlc --enable-qt --enable-skins2"
+
 # I couldn't get wayland to work on vlc4, but we aren't building vlc4
 # we are building vlc3
 # --disable-wayland
