@@ -1,0 +1,63 @@
+From f291fedf5e7f0980c758d38a4be9a73ba5b99538 Mon Sep 17 00:00:00 2001
+From: Zhao Zhili <quinkblack@foxmail.com>
+Date: Fri, 11 Jun 2021 18:02:34 +0800
+Subject: [PATCH 20/30] codec: avcodec: check open codec return value
+
+(cherry picked from commit 21ab6be22e7c1831cebf023fd53bd7ffbfad22f6) (edited)
+edited:
+- on 3.0 DecodeBlock returns a picture_t, not an error code
+---
+ modules/codec/avcodec/audio.c |  7 ++++++-
+ modules/codec/avcodec/video.c | 11 +++++++----
+ 2 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/modules/codec/avcodec/audio.c b/modules/codec/avcodec/audio.c
+index a3f67f7..e843675 100644
+--- a/modules/codec/avcodec/audio.c
++++ b/modules/codec/avcodec/audio.c
+@@ -309,7 +309,12 @@ static int DecodeBlock( decoder_t *p_dec, block_t **pp_block )
+      && !avcodec_is_open( ctx ) )
+     {
+         InitDecoderConfig( p_dec, ctx );
+-        OpenAudioCodec( p_dec );
++        if( OpenAudioCodec( p_dec ) < 0 )
++        {
++            if( pp_block != NULL && *pp_block != NULL )
++                block_Release( *pp_block );
++            return VLCDEC_ECRITICAL;
++        }
+     }
+ 
+     if( !avcodec_is_open( ctx ) )
+diff --git a/modules/codec/avcodec/video.c b/modules/codec/avcodec/video.c
+index c306e91..096a0b7 100644
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -1114,17 +1114,20 @@ static picture_t *DecodeBlock( decoder_t *p_dec, block_t **pp_block, bool *error
+     bool eos_spotted = false;
+ 
+ 
+-    block_t *p_block;
++    block_t *p_block = pp_block ? *pp_block : NULL;
+     vlc_tick_t current_time;
+ 
+     if( !p_context->extradata_size && p_dec->fmt_in.i_extra )
+     {
+         ffmpeg_InitCodec( p_dec );
+-        if( !avcodec_is_open( p_context ) )
+-            OpenVideoCodec( p_dec );
++        if( !avcodec_is_open( p_context ) && OpenVideoCodec(p_dec) < 0 )
++        {
++            if( p_block != NULL )
++                block_Release( p_block );
++            return NULL;
++        }
+     }
+ 
+-    p_block = pp_block ? *pp_block : NULL;
+     if(!p_block && !(p_sys->p_codec->capabilities & AV_CODEC_CAP_DELAY) )
+         return NULL;
+ 
+-- 
+2.43.0
+

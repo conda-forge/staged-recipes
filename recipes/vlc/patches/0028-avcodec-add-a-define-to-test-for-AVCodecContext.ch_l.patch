@@ -1,0 +1,117 @@
+From 3e480e61fb5a1561776fe49a1a5f78a301d5afc7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fran=C3=A7ois=20Cartegnie?= <fcvlcdev@free.fr>
+Date: Thu, 20 Jun 2024 13:12:37 +0200
+Subject: [PATCH 28/30] avcodec: add a define to test for
+ AVCodecContext.ch_layout availability
+
+Co-authored-by: Steve Lhomme <robux4@ycbcr.xyz>
+(cherry picked from commit 3abf93735df97cc2c96e11028b76067547c27eb7) (rebased)
+rebased:
+- on 3.0 the fmt_in is not a pointer
+- the code around is slightly different due to the use of API_CHANNEL_LAYOUT
+---
+ modules/codec/avcodec/audio.c   |  8 +++++---
+ modules/codec/avcodec/encoder.c | 12 +++++++-----
+ 2 files changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/modules/codec/avcodec/audio.c b/modules/codec/avcodec/audio.c
+index c27771a..b6186d6 100644
+--- a/modules/codec/avcodec/audio.c
++++ b/modules/codec/avcodec/audio.c
+@@ -41,6 +41,8 @@
+ #include <libavcodec/avcodec.h>
+ #include <libavutil/mem.h>
+ 
++#define API_CHANNEL_LAYOUT_STRUCT (LIBAVCODEC_VERSION_CHECK(59, 24, 100)) // AVCodecContext.ch_layout
++
+ #define API_CHANNEL_LAYOUT (LIBAV_UTIL_VERSION_CHECK( 52, 2, 6, 0, 100))
+ 
+ #if API_CHANNEL_LAYOUT
+@@ -142,7 +144,7 @@ static int OpenAudioCodec( decoder_t *p_dec )
+     }
+ 
+     ctx->sample_rate = p_dec->fmt_in.audio.i_rate;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+     av_channel_layout_default( &ctx->ch_layout, p_dec->fmt_in.audio.i_channels );
+ #else
+     ctx->channels = p_dec->fmt_in.audio.i_channels;
+@@ -598,7 +600,7 @@ static void SetupOutputFormat( decoder_t *p_dec, bool b_trust )
+     p_dec->fmt_out.audio.i_rate = p_sys->p_context->sample_rate;
+ 
+     /* */
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT
+     if( p_sys->i_previous_channels == p_sys->p_context->ch_layout.nb_channels &&
+         p_sys->i_previous_layout == p_sys->p_context->ch_layout.u.mask )
+         return;
+@@ -622,7 +624,7 @@ static void SetupOutputFormat( decoder_t *p_dec, bool b_trust )
+ 
+     int i_channels_src = 0, channel_count;
+     uint64_t channel_layout_mask;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT
+     channel_layout_mask = p_sys->p_context->ch_layout.u.mask;
+     channel_count = p_sys->p_context->ch_layout.nb_channels;
+ #elif API_CHANNEL_LAYOUT
+diff --git a/modules/codec/avcodec/encoder.c b/modules/codec/avcodec/encoder.c
+index ec63c9c..b0d3126 100644
+--- a/modules/codec/avcodec/encoder.c
++++ b/modules/codec/avcodec/encoder.c
+@@ -47,6 +47,8 @@
+ #include "avcodec.h"
+ #include "avcommon.h"
+ 
++#define API_CHANNEL_LAYOUT_STRUCT (LIBAVCODEC_VERSION_CHECK(59, 24, 100)) // AVCodecContext.ch_layout
++
+ #define API_CHANNEL_LAYOUT (LIBAV_UTIL_VERSION_CHECK( 52, 2, 6, 0, 100))
+ 
+ #if API_CHANNEL_LAYOUT
+@@ -182,7 +184,7 @@ static const uint64_t pi_channels_map[][2] =
+     { AV_CH_STEREO_RIGHT,      0 },
+ };
+ 
+-# if !LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++# if !API_CHANNEL_LAYOUT_STRUCT
+ static const uint32_t channel_mask[][2] = {
+     {0,0},
+     {AOUT_CHAN_CENTER, AV_CH_LAYOUT_MONO},
+@@ -764,7 +766,7 @@ int InitVideoEnc( vlc_object_t *p_this )
+         uint32_t order_mask = 0;
+         int i_channels_src = 0;
+         msg_Dbg( p_enc, "Creating channel order for reordering");
+-# if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
++# if API_CHANNEL_LAYOUT_STRUCT && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+         av_channel_layout_default( &p_context->ch_layout, p_enc->fmt_out.audio.i_channels );
+         uint64_t channel_mask = p_context->ch_layout.u.mask;
+ # else
+@@ -917,7 +919,7 @@ errmsg:
+ 
+         if( p_enc->fmt_out.audio.i_channels > 2 )
+         {
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+             av_channel_layout_default( &p_context->ch_layout, 2 );
+ #else
+             p_context->channels = 2;
+@@ -1281,7 +1283,7 @@ static block_t *handle_delay_buffer( encoder_t *p_enc, encoder_sys_t *p_sys, uns
+     av_frame_unref( p_sys->frame );
+     p_sys->frame->format     = p_sys->p_context->sample_fmt;
+     p_sys->frame->nb_samples = leftover_samples + p_sys->i_samples_delay;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+     av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+     p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+@@ -1416,7 +1418,7 @@ static block_t *EncodeAudio( encoder_t *p_enc, block_t *p_aout_buf )
+         p_sys->frame->pts        = date_Get( &p_sys->buffer_date ) * p_sys->p_context->time_base.den /
+                                     CLOCK_FREQ / p_sys->p_context->time_base.num;
+ 
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
++#if API_CHANNEL_LAYOUT_STRUCT && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+         av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+         p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+-- 
+2.43.0
+

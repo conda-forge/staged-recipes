@@ -1,0 +1,79 @@
+From ff5454b0d6e9b1a1aabc84153b5fa2efdc3ac062 Mon Sep 17 00:00:00 2001
+From: Steve Lhomme <robux4@ycbcr.xyz>
+Date: Tue, 18 Jun 2024 15:34:10 +0200
+Subject: [PATCH 24/30] ffmpeg: fix libavutil version check for
+ av_channel_layout_default()
+
+It was added in c41899a3770cb4510e15b223fa34d129305b1589 which
+was libavutil 57.23.100 at the time but the minor version was not updated in
+that commit so we check 57.24.100.
+
+The same check applies for av_channel_layout_copy() added in the same commit.
+
+This is part of FFmpeg 5.1.
+
+https://github.com/FFmpeg/FFmpeg/commit/086a8048061bf9fb4c63943f6962db48175f655c
+(cherry picked from commit 195f0c98599b55950c49a62f98d9d3495be310df) (rebased)
+rebased:
+- the code around is slightly different
+---
+ modules/codec/avcodec/encoder.c | 8 ++++----
+ modules/demux/avformat/mux.c    | 2 +-
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/modules/codec/avcodec/encoder.c b/modules/codec/avcodec/encoder.c
+index 2014b8a..ec63c9c 100644
+--- a/modules/codec/avcodec/encoder.c
++++ b/modules/codec/avcodec/encoder.c
+@@ -764,7 +764,7 @@ int InitVideoEnc( vlc_object_t *p_this )
+         uint32_t order_mask = 0;
+         int i_channels_src = 0;
+         msg_Dbg( p_enc, "Creating channel order for reordering");
+-# if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++# if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+         av_channel_layout_default( &p_context->ch_layout, p_enc->fmt_out.audio.i_channels );
+         uint64_t channel_mask = p_context->ch_layout.u.mask;
+ # else
+@@ -917,7 +917,7 @@ errmsg:
+ 
+         if( p_enc->fmt_out.audio.i_channels > 2 )
+         {
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+             av_channel_layout_default( &p_context->ch_layout, 2 );
+ #else
+             p_context->channels = 2;
+@@ -1281,7 +1281,7 @@ static block_t *handle_delay_buffer( encoder_t *p_enc, encoder_sys_t *p_sys, uns
+     av_frame_unref( p_sys->frame );
+     p_sys->frame->format     = p_sys->p_context->sample_fmt;
+     p_sys->frame->nb_samples = leftover_samples + p_sys->i_samples_delay;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+     av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+     p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+@@ -1416,7 +1416,7 @@ static block_t *EncodeAudio( encoder_t *p_enc, block_t *p_aout_buf )
+         p_sys->frame->pts        = date_Get( &p_sys->buffer_date ) * p_sys->p_context->time_base.den /
+                                     CLOCK_FREQ / p_sys->p_context->time_base.num;
+ 
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if LIBAVCODEC_VERSION_CHECK(59, 24, 100) && LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+         av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+         p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+diff --git a/modules/demux/avformat/mux.c b/modules/demux/avformat/mux.c
+index 090ed9f..bf65ca3 100644
+--- a/modules/demux/avformat/mux.c
++++ b/modules/demux/avformat/mux.c
+@@ -273,7 +273,7 @@ static int AddStream( sout_mux_t *p_mux, sout_input_t *p_input )
+     {
+     case AUDIO_ES:
+         codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+         av_channel_layout_default( &codecpar->ch_layout, fmt->audio.i_channels );
+ #else
+         codecpar->channels = fmt->audio.i_channels;
+-- 
+2.43.0
+

@@ -1,0 +1,106 @@
+From e8f6abb0b96718120960ebe73a867c5bacd3e0c3 Mon Sep 17 00:00:00 2001
+From: Steve Lhomme <robux4@ycbcr.xyz>
+Date: Wed, 19 Jun 2024 13:56:31 +0200
+Subject: [PATCH 15/30] avcommon: use a specific macro to check the FFmpeg
+ libavutil version
+
+This macro doesn't check for libav which is assumed to not have to relevant
+code. This is the same macro name used in VLC 4.0.
+---
+ modules/codec/avcodec/avcommon_compat.h | 6 +++++-
+ modules/codec/avcodec/chroma.c          | 8 ++++----
+ modules/codec/avcodec/video.c           | 7 ++++---
+ 3 files changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/modules/codec/avcodec/avcommon_compat.h b/modules/codec/avcodec/avcommon_compat.h
+index bb2b9ae..5bade93 100644
+--- a/modules/codec/avcodec/avcommon_compat.h
++++ b/modules/codec/avcodec/avcommon_compat.h
+@@ -86,7 +86,11 @@
+ #ifdef HAVE_LIBAVUTIL_AVUTIL_H
+ # include <libavutil/avutil.h>
+ 
+-/* LIBAV_UTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
++/* check the FFmpeg libavutil version */
++#define LIBAVUTIL_VERSION_CHECK( a, d, e ) \
++    (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( a, d, e ) )
++
++/* LIBAV_UTIL_VERSION_CHECK checks for the right libavutil version of libav and FFmpeg
+  * a is the major version
+  * b and c the minor and micro versions of libav
+  * d and e the minor and micro versions of FFmpeg */
+diff --git a/modules/codec/avcodec/chroma.c b/modules/codec/avcodec/chroma.c
+index da20bcb..156fb0b 100644
+--- a/modules/codec/avcodec/chroma.c
++++ b/modules/codec/avcodec/chroma.c
+@@ -86,7 +86,7 @@ static const struct
+     {VLC_CODEC_I420_9B, AV_PIX_FMT_YUV420P9BE, 0, 0, 0 },
+     {VLC_CODEC_I420_10L, AV_PIX_FMT_YUV420P10LE, 0, 0, 0 },
+     {VLC_CODEC_I420_10B, AV_PIX_FMT_YUV420P10BE, 0, 0, 0 },
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 54, 17, 100 ) )
++#if LIBAVUTIL_VERSION_CHECK( 54, 17, 100 )
+     {VLC_CODEC_I420_12L, AV_PIX_FMT_YUV420P12LE, 0, 0, 0 },
+     {VLC_CODEC_I420_12B, AV_PIX_FMT_YUV420P12BE, 0, 0, 0 },
+ #endif
+@@ -100,7 +100,7 @@ static const struct
+     {VLC_CODEC_I422_9B, AV_PIX_FMT_YUV422P9BE, 0, 0, 0 },
+     {VLC_CODEC_I422_10L, AV_PIX_FMT_YUV422P10LE, 0, 0, 0 },
+     {VLC_CODEC_I422_10B, AV_PIX_FMT_YUV422P10BE, 0, 0, 0 },
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 54, 17, 100 ) )
++#if LIBAVUTIL_VERSION_CHECK( 54, 17, 100 )
+     {VLC_CODEC_I422_12L, AV_PIX_FMT_YUV422P12LE, 0, 0, 0 },
+     {VLC_CODEC_I422_12B, AV_PIX_FMT_YUV422P12BE, 0, 0, 0 },
+ #endif
+@@ -116,7 +116,7 @@ static const struct
+     {VLC_CODEC_I444_9B, AV_PIX_FMT_YUV444P9BE, 0, 0, 0 },
+     {VLC_CODEC_I444_10L, AV_PIX_FMT_YUV444P10LE, 0, 0, 0 },
+     {VLC_CODEC_I444_10B, AV_PIX_FMT_YUV444P10BE, 0, 0, 0 },
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 54, 17, 100 ) )
++#if LIBAVUTIL_VERSION_CHECK( 54, 17, 100 )
+     {VLC_CODEC_I444_12L, AV_PIX_FMT_YUV444P12LE, 0, 0, 0 },
+     {VLC_CODEC_I444_12B, AV_PIX_FMT_YUV444P12BE, 0, 0, 0 },
+ #endif
+@@ -145,7 +145,7 @@ static const struct
+     VLC_RGB( VLC_CODEC_RGB32, AV_PIX_FMT_0BGR32, AV_PIX_FMT_0RGB32, 0x000000ff, 0x0000ff00, 0x00ff0000 )
+ #endif
+ 
+-#if (LIBAVUTIL_VERSION_MICRO == 0 || LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 0, 100 ) )
++#if (LIBAVUTIL_VERSION_MICRO == 0 || LIBAVUTIL_VERSION_CHECK( 55, 0, 100 ) )
+ #ifdef WORDS_BIGENDIAN
+     {VLC_CODEC_RGBA64, AV_PIX_FMT_RGBA64BE, 0, 0, 0 },
+ #else /* !WORDS_BIGENDIAN */
+diff --git a/modules/codec/avcodec/video.c b/modules/codec/avcodec/video.c
+index deefd30..d3284da 100644
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -39,7 +39,8 @@
+ #include <libavcodec/avcodec.h>
+ #include <libavutil/mem.h>
+ #include <libavutil/pixdesc.h>
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 16, 101 ) )
++#include "avcommon_compat.h"
++#if LIBAVUTIL_VERSION_CHECK( 55, 16, 101 )
+ #include <libavutil/mastering_display_metadata.h>
+ #endif
+ 
+@@ -995,7 +996,7 @@ static int DecodeSidedata( decoder_t *p_dec, const AVFrame *frame, picture_t *p_
+     decoder_sys_t *p_sys = p_dec->p_sys;
+     bool format_changed = false;
+ 
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 16, 101 ) )
++#if LIBAVUTIL_VERSION_CHECK( 55, 16, 101 )
+ #define FROM_AVRAT(default_factor, avrat) \
+ (uint64_t)(default_factor) * (avrat).num / (avrat).den
+     const AVFrameSideData *metadata =
+@@ -1050,7 +1051,7 @@ static int DecodeSidedata( decoder_t *p_dec, const AVFrame *frame, picture_t *p_
+ #undef FROM_AVRAT
+     }
+ #endif
+-#if (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 60, 100 ) )
++#if LIBAVUTIL_VERSION_CHECK( 55, 60, 100 )
+     const AVFrameSideData *metadata_lt =
+             av_frame_get_side_data( frame,
+                                     AV_FRAME_DATA_CONTENT_LIGHT_LEVEL );
+-- 
+2.43.0
+

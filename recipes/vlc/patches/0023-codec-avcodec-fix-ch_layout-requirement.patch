@@ -1,0 +1,59 @@
+From 803309a44489386799c0f23ff69ff5470e8a4770 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fran=C3=A7ois=20Cartegnie?= <fcvlcdev@free.fr>
+Date: Mon, 10 Jun 2024 11:10:37 +0700
+Subject: [PATCH 23/30] codec: avcodec: fix ch_layout requirement
+
+refs #28667
+
+(cherry picked from commit 41778535dcae8b145ebfaa0392de281e470a91bf) (edited)
+edited:
+- on 3.0 the audio check was still using a LIBAVCODEC_VERSION_CHECK check
+- the mux/demux checks were already there with different spaces
+---
+ modules/codec/avcodec/audio.c  | 2 +-
+ modules/demux/avformat/demux.c | 2 +-
+ modules/demux/avformat/mux.c   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules/codec/avcodec/audio.c b/modules/codec/avcodec/audio.c
+index 04c5401..979256c 100644
+--- a/modules/codec/avcodec/audio.c
++++ b/modules/codec/avcodec/audio.c
+@@ -142,7 +142,7 @@ static int OpenAudioCodec( decoder_t *p_dec )
+     }
+ 
+     ctx->sample_rate = p_dec->fmt_in.audio.i_rate;
+-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
++#if LIBAVUTIL_VERSION_CHECK(57, 24, 100)
+     av_channel_layout_default( &ctx->ch_layout, p_dec->fmt_in.audio.i_channels );
+ #else
+     ctx->channels = p_dec->fmt_in.audio.i_channels;
+diff --git a/modules/demux/avformat/demux.c b/modules/demux/avformat/demux.c
+index 9975b0f..c49f7eb 100644
+--- a/modules/demux/avformat/demux.c
++++ b/modules/demux/avformat/demux.c
+@@ -400,7 +400,7 @@ int avformat_OpenDemux( vlc_object_t *p_this )
+             es_format_Init( &es_fmt, AUDIO_ES, fcc );
+             es_fmt.i_original_fourcc = CodecTagToFourcc( cp->codec_tag );
+             es_fmt.i_bitrate = cp->bit_rate;
+-#if LIBAVCODEC_VERSION_CHECK( 59, 24, 100 )
++#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
+             es_fmt.audio.i_channels = cp->ch_layout.nb_channels;
+ #else
+             es_fmt.audio.i_channels = cp->channels;
+diff --git a/modules/demux/avformat/mux.c b/modules/demux/avformat/mux.c
+index a48190c..090ed9f 100644
+--- a/modules/demux/avformat/mux.c
++++ b/modules/demux/avformat/mux.c
+@@ -273,7 +273,7 @@ static int AddStream( sout_mux_t *p_mux, sout_input_t *p_input )
+     {
+     case AUDIO_ES:
+         codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
+-#if LIBAVCODEC_VERSION_CHECK( 59, 24, 100 )
++#if LIBAVCODEC_VERSION_CHECK(59, 24, 100)
+         av_channel_layout_default( &codecpar->ch_layout, fmt->audio.i_channels );
+ #else
+         codecpar->channels = fmt->audio.i_channels;
+-- 
+2.43.0
+

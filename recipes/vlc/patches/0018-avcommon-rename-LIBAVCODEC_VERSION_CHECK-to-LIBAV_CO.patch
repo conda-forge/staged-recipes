@@ -1,0 +1,218 @@
+From b36c034eb26dc97ba370b3d4bcf7ceb3ebb6e8ae Mon Sep 17 00:00:00 2001
+From: Steve Lhomme <robux4@ycbcr.xyz>
+Date: Thu, 7 Nov 2024 07:23:27 +0100
+Subject: [PATCH 18/30] avcommon: rename LIBAVCODEC_VERSION_CHECK to
+ LIBAV_CODEC_VERSION_CHECK
+
+The LIBAVCODEC_VERSION_CHECK form will be for checks also done in 4.0.
+
+No functional changes.
+---
+ modules/codec/avcodec/audio.c           |  8 ++++----
+ modules/codec/avcodec/avcommon_compat.h |  4 ++--
+ modules/codec/avcodec/d3d11va.c         |  4 ++--
+ modules/codec/avcodec/encoder.c         | 10 +++++-----
+ modules/codec/avcodec/fourcc.c          | 14 +++++++-------
+ modules/codec/avcodec/video.c           |  2 +-
+ 6 files changed, 21 insertions(+), 21 deletions(-)
+
+diff --git a/modules/codec/avcodec/audio.c b/modules/codec/avcodec/audio.c
+index 44335ec..7a979e9 100644
+--- a/modules/codec/avcodec/audio.c
++++ b/modules/codec/avcodec/audio.c
+@@ -142,7 +142,7 @@ static int OpenAudioCodec( decoder_t *p_dec )
+     }
+ 
+     ctx->sample_rate = p_dec->fmt_in.audio.i_rate;
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+     av_channel_layout_default( &ctx->ch_layout, p_dec->fmt_in.audio.i_channels );
+ #else
+     ctx->channels = p_dec->fmt_in.audio.i_channels;
+@@ -402,7 +402,7 @@ static int DecodeBlock( decoder_t *p_dec, block_t **pp_block )
+         ret = avcodec_receive_frame( ctx, frame );
+         if( ret == 0 )
+         {
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+             int channels = frame->ch_layout.nb_channels;
+ #else
+             int channels = ctx->channels;
+@@ -592,7 +592,7 @@ static void SetupOutputFormat( decoder_t *p_dec, bool b_trust )
+     p_dec->fmt_out.audio.i_rate = p_sys->p_context->sample_rate;
+ 
+     /* */
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+     if( p_sys->i_previous_channels == p_sys->p_context->ch_layout.nb_channels &&
+         p_sys->i_previous_layout == p_sys->p_context->ch_layout.u.mask )
+         return;
+@@ -617,7 +617,7 @@ static void SetupOutputFormat( decoder_t *p_dec, bool b_trust )
+ 
+     int i_channels_src = 0, channel_count;
+     uint64_t channel_layout_mask;
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+     channel_layout_mask = p_sys->p_context->ch_layout.u.mask;
+     channel_count = p_sys->p_context->ch_layout.nb_channels;
+ #elif API_CHANNEL_LAYOUT
+diff --git a/modules/codec/avcodec/avcommon_compat.h b/modules/codec/avcodec/avcommon_compat.h
+index 3feab3a..b504fcd 100644
+--- a/modules/codec/avcodec/avcommon_compat.h
++++ b/modules/codec/avcodec/avcommon_compat.h
+@@ -30,11 +30,11 @@
+ #ifdef HAVE_LIBAVCODEC_AVCODEC_H
+ #include <libavcodec/avcodec.h>
+ 
+-/* LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
++/* LIBAV_CODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
+  * a is the major version
+  * b and c the minor and micro versions of libav
+  * d and e the minor and micro versions of FFmpeg */
+-#define LIBAVCODEC_VERSION_CHECK( a, b, c, d, e ) \
++#define LIBAV_CODEC_VERSION_CHECK( a, b, c, d, e ) \
+     ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( a, b, c ) ) || \
+       (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( a, d, e ) ) )
+ 
+diff --git a/modules/codec/avcodec/d3d11va.c b/modules/codec/avcodec/d3d11va.c
+index 5260628..e1c10d3 100644
+--- a/modules/codec/avcodec/d3d11va.c
++++ b/modules/codec/avcodec/d3d11va.c
+@@ -76,7 +76,7 @@ vlc_module_end()
+  * So we get the surfaces from the decoder pool when needed. We don't need to
+  * extract the decoded surface into the decoder picture anymore.
+  */
+-#define D3D11_DIRECT_DECODE  LIBAVCODEC_VERSION_CHECK( 57, 30, 3, 72, 101 )
++#define D3D11_DIRECT_DECODE  LIBAV_CODEC_VERSION_CHECK( 57, 30, 3, 72, 101 )
+ 
+ #include <initguid.h> /* must be last included to not redefine existing GUIDs */
+ 
+@@ -764,7 +764,7 @@ static int DxCreateDecoderSurfaces(vlc_va_t *va, int codec_id,
+             assert(texDesc.Format == sys->render);
+             assert(texDesc.BindFlags & D3D11_BIND_DECODER);
+ 
+-#if !LIBAVCODEC_VERSION_CHECK( 57, 27, 2, 61, 102 )
++#if !LIBAV_CODEC_VERSION_CHECK( 57, 27, 2, 61, 102 )
+             if (pic->p_sys->slice_index != surface_idx)
+             {
+                 msg_Warn(va, "d3d11va requires decoding slices to be the first in the texture (%d/%d)",
+diff --git a/modules/codec/avcodec/encoder.c b/modules/codec/avcodec/encoder.c
+index c9a34d8..9cf9a7d 100644
+--- a/modules/codec/avcodec/encoder.c
++++ b/modules/codec/avcodec/encoder.c
+@@ -183,7 +183,7 @@ static const uint64_t pi_channels_map[][2] =
+     { AV_CH_STEREO_RIGHT,      0 },
+ };
+ 
+-# if !LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++# if !LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+ static const uint32_t channel_mask[][2] = {
+     {0,0},
+     {AOUT_CHAN_CENTER, AV_CH_LAYOUT_MONO},
+@@ -765,7 +765,7 @@ int InitVideoEnc( vlc_object_t *p_this )
+         uint32_t order_mask = 0;
+         int i_channels_src = 0;
+         msg_Dbg( p_enc, "Creating channel order for reordering");
+-# if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++# if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+         av_channel_layout_default( &p_context->ch_layout, p_enc->fmt_out.audio.i_channels );
+         uint64_t channel_mask = p_context->ch_layout.u.mask;
+ # else
+@@ -918,7 +918,7 @@ errmsg:
+ 
+         if( p_enc->fmt_out.audio.i_channels > 2 )
+         {
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+             av_channel_layout_default( &p_context->ch_layout, 2 );
+ #else
+             p_context->channels = 2;
+@@ -1282,7 +1282,7 @@ static block_t *handle_delay_buffer( encoder_t *p_enc, encoder_sys_t *p_sys, uns
+     av_frame_unref( p_sys->frame );
+     p_sys->frame->format     = p_sys->p_context->sample_fmt;
+     p_sys->frame->nb_samples = leftover_samples + p_sys->i_samples_delay;
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+     av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+     p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+@@ -1417,7 +1417,7 @@ static block_t *EncodeAudio( encoder_t *p_enc, block_t *p_aout_buf )
+         p_sys->frame->pts        = date_Get( &p_sys->buffer_date ) * p_sys->p_context->time_base.den /
+                                     CLOCK_FREQ / p_sys->p_context->time_base.num;
+ 
+-#if LIBAVCODEC_VERSION_CHECK(59, 999, 999, 24, 100)
++#if LIBAV_CODEC_VERSION_CHECK(59, 999, 999, 24, 100)
+         av_channel_layout_copy(&p_sys->frame->ch_layout, &p_sys->p_context->ch_layout);
+ #else
+         p_sys->frame->channel_layout = p_sys->p_context->channel_layout;
+diff --git a/modules/codec/avcodec/fourcc.c b/modules/codec/avcodec/fourcc.c
+index 97f3188..3aea6b5 100644
+--- a/modules/codec/avcodec/fourcc.c
++++ b/modules/codec/avcodec/fourcc.c
+@@ -230,7 +230,7 @@ static const struct vlc_avcodec_fourcc video_codecs[] =
+     { VLC_CODEC_CLLC, AV_CODEC_ID_CLLC },
+     { VLC_CODEC_MSS2, AV_CODEC_ID_MSS2 },
+     { VLC_CODEC_VP9, AV_CODEC_ID_VP9 },
+-#if LIBAVCODEC_VERSION_CHECK( 57, 26, 0, 83, 101 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 26, 0, 83, 101 )
+     { VLC_CODEC_AV1, AV_CODEC_ID_AV1 },
+ #endif
+     { VLC_CODEC_ICOD, AV_CODEC_ID_AIC },
+@@ -285,19 +285,19 @@ static const struct vlc_avcodec_fourcc video_codecs[] =
+     /* ffmpeg only: AV_CODEC_ID_SNOW */
+     /* ffmpeg only: AV_CODEC_ID_SMVJPEG */
+ 
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 24, 102 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 24, 102 )
+     { VLC_CODEC_CINEFORM, AV_CODEC_ID_CFHD },
+ #endif
+ 
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 70, 100 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 70, 100 )
+     { VLC_CODEC_PIXLET, AV_CODEC_ID_PIXLET },
+ #endif
+ 
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 71, 101 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 71, 101 )
+     { VLC_CODEC_SPEEDHQ, AV_CODEC_ID_SPEEDHQ },
+ #endif
+ 
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 79, 100 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 79, 100 )
+     { VLC_CODEC_FMVC, AV_CODEC_ID_FMVC },
+ #endif
+ };
+@@ -414,7 +414,7 @@ static const struct vlc_avcodec_fourcc audio_codecs[] =
+     /* AV_CODEC_ID_WESTWOOD_SND1 */
+     { VLC_CODEC_GSM, AV_CODEC_ID_GSM },
+     { VLC_CODEC_QDM2, AV_CODEC_ID_QDM2 },
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 71, 100 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 71, 100 )
+     { VLC_CODEC_QDMC, AV_CODEC_ID_QDMC },
+ #endif
+     { VLC_CODEC_COOK, AV_CODEC_ID_COOK },
+@@ -482,7 +482,7 @@ static const struct vlc_avcodec_fourcc spu_codecs[] =
+     { VLC_CODEC_SSA, AV_CODEC_ID_SSA },
+     /* AV_CODEC_ID_MOV_TEXT */
+     { VLC_CODEC_BD_PG, AV_CODEC_ID_HDMV_PGS_SUBTITLE },
+-#if LIBAVCODEC_VERSION_CHECK( 57, 999, 999, 71, 100 )
++#if LIBAV_CODEC_VERSION_CHECK( 57, 999, 999, 71, 100 )
+     { VLC_CODEC_BD_TEXT, AV_CODEC_ID_HDMV_TEXT_SUBTITLE },
+ #endif
+     { VLC_CODEC_TELETEXT, AV_CODEC_ID_DVB_TELETEXT },
+diff --git a/modules/codec/avcodec/video.c b/modules/codec/avcodec/video.c
+index d3284da..552c602 100644
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -1307,7 +1307,7 @@ static picture_t *DecodeBlock( decoder_t *p_dec, block_t **pp_block, bool *error
+         }
+ 
+         /* Compute the PTS */
+-#if LIBAVCODEC_VERSION_CHECK(57, 24, 0, 61, 100)
++#if LIBAV_CODEC_VERSION_CHECK(57, 24, 0, 61, 100)
+ # if LIBAVCODEC_VERSION_MICRO >= 100
+         vlc_tick_t i_pts = frame->best_effort_timestamp;
+ # else
+-- 
+2.43.0
+
