@@ -28,14 +28,13 @@ fi
 sed -i "s,^exec gcc ,exec ${CC} ," ${BUILDCC}
 
 # Parts I would love to enable in the future
-#     --enable-matroska  -- needs https://github.com/Matroska-Org/libebml
-#     --enable-freerdp
+#     --enable-matroska   -- needs https://github.com/Matroska-Org/libebml
+#     --enable-freerdp    -- needs freerdp
 #     --enable-smbclient  -- needs smbclient
-#     --enable-nfs      -- needs libnfs
-#     --enable-smb2  -- needs libsmb2
-#     --enable-shine -- needs libshine
-#     --enable-opencv -- needs libopencv
-#     --enable-qt -- needs qt
+#     --enable-nfs        -- needs libnfs
+#     --enable-smb2       -- needs libsmb2
+#     --enable-shine      -- needs libshine
+#     --enable-opencv     -- needs libopencv -- but it can't find it even if I add it...
 
 ./bootstrap
 ./configure \
