@@ -1,0 +1,106 @@
+From 01cdbc0da7fb6d2d9cf56efa4b0110a865b69e31 Mon Sep 17 00:00:00 2001
+From: Vittorio Giovara <vittorio.giovara@gmail.com>
+Date: Tue, 26 Feb 2019 18:37:48 -0500
+Subject: [PATCH 31/33] demux/libmp4: Apply flip operations from the display
+ matrix
+
+---
+ modules/demux/mp4/essetup.c | 15 ++++++++++++++-
+ modules/demux/mp4/libmp4.c  | 10 ++++++++++
+ modules/demux/mp4/libmp4.h  |  1 +
+ modules/demux/mp4/mp4.c     |  1 +
+ modules/demux/mp4/mp4.h     |  1 +
+ 5 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/modules/demux/mp4/essetup.c b/modules/demux/mp4/essetup.c
+index 81d6550..ec22c1d 100644
+--- a/modules/demux/mp4/essetup.c
++++ b/modules/demux/mp4/essetup.c
+@@ -280,13 +280,26 @@ int SetupVideoES( demux_t *p_demux, mp4_track_t *p_track, MP4_Box_t *p_sample )
+             p_track->fmt.video.orientation = ORIENT_ROTATED_90;
+             break;
+         case 180:
+-            p_track->fmt.video.orientation = ORIENT_ROTATED_180;
++            if (p_track->i_flip == 1) {
++                p_track->fmt.video.orientation = ORIENT_VFLIPPED;
++            } else {
++                p_track->fmt.video.orientation = ORIENT_ROTATED_180;
++            }
+             break;
+         case 270:
+             p_track->fmt.video.orientation = ORIENT_ROTATED_270;
+             break;
+     }
+ 
++    /* Flip, unless already flipped */
++    if (p_track->i_flip == 1 && (int)p_track->f_rotation != 180) {
++    fprintf(stderr, "p_track->f_rotation %f flip %d\n", p_track->f_rotation, p_track->i_flip);
++        video_transform_t transform = (video_transform_t)p_track->fmt.video.orientation;
++        /* Flip first then rotate */
++        p_track->fmt.video.orientation = ORIENT_HFLIPPED;
++        video_format_TransformBy(&p_track->fmt.video, transform);
++    }
++
+     /* Set 360 video mode */
+     p_track->fmt.video.projection_mode = PROJECTION_MODE_RECTANGULAR;
+     const MP4_Box_t *p_uuid = MP4_BoxGet( p_track->p_track, "uuid" );
+diff --git a/modules/demux/mp4/libmp4.c b/modules/demux/mp4/libmp4.c
+index c5f6310..b3a0be0 100644
+--- a/modules/demux/mp4/libmp4.c
++++ b/modules/demux/mp4/libmp4.c
+@@ -1227,6 +1227,16 @@ static int MP4_ReadBox_tkhd(  stream_t *p_stream, MP4_Box_t *p_box )
+     double scale[2];    // scale factor; sx = scale[0] , sy = scale[1]
+     int32_t *matrix = p_box->data.p_tkhd->i_matrix;
+ 
++    int32_t fmatrix[9];
++    int64_t det = (int64_t)matrix[0] * matrix[4] - (int64_t)matrix[1] * matrix[3];
++    if (det < 0) {
++        /* If determinant is negative copy the matrix and flip it horizontally. */
++        const int flip[] = { -1, 1, 1 };
++        for (int j = 0; j < 9; j++)
++            matrix[j] *= flip[j % 3];
++        p_box->data.p_tkhd->i_flip = 1;
++    }
++
+     scale[0] = sqrt(conv_fx(matrix[0]) * conv_fx(matrix[0]) +
+                     conv_fx(matrix[3]) * conv_fx(matrix[3]));
+     scale[1] = sqrt(conv_fx(matrix[1]) * conv_fx(matrix[1]) +
+diff --git a/modules/demux/mp4/libmp4.h b/modules/demux/mp4/libmp4.h
+index 087ce07..9a3c301 100644
+--- a/modules/demux/mp4/libmp4.h
++++ b/modules/demux/mp4/libmp4.h
+@@ -509,6 +509,7 @@ typedef struct MP4_Box_data_tkhd_s
+     int32_t  i_width;
+     int32_t  i_height;
+     float    f_rotation;
++    int      i_flip;
+ 
+ } MP4_Box_data_tkhd_t;
+ 
+diff --git a/modules/demux/mp4/mp4.c b/modules/demux/mp4/mp4.c
+index bcdb244..359c681 100644
+--- a/modules/demux/mp4/mp4.c
++++ b/modules/demux/mp4/mp4.c
+@@ -3367,6 +3367,7 @@ static void MP4_TrackSetup( demux_t *p_demux, mp4_track_t *p_track,
+     p_track->i_width = BOXDATA(p_tkhd)->i_width / BLOCK16x16;
+     p_track->i_height = BOXDATA(p_tkhd)->i_height / BLOCK16x16;
+     p_track->f_rotation = BOXDATA(p_tkhd)->f_rotation;
++    p_track->i_flip = BOXDATA(p_tkhd)->i_flip;
+ 
+     /* FIXME: unhandled box: tref */
+ 
+diff --git a/modules/demux/mp4/mp4.h b/modules/demux/mp4/mp4.h
+index b7c6cdf..d285524 100644
+--- a/modules/demux/mp4/mp4.h
++++ b/modules/demux/mp4/mp4.h
+@@ -99,6 +99,7 @@ typedef struct
+     int i_width;
+     int i_height;
+     float f_rotation;
++    int i_flip;
+ 
+     /* more internal data */
+     uint32_t        i_timescale;    /* time scale for this track only */
+-- 
+2.48.1
+

@@ -2,7 +2,7 @@
 {% set version = "3.0.21" %}
 
 package:
-  name: vlc
+  name: libvlc
   version: {{ version }}
 
 source:
@@ -69,10 +69,12 @@ source:
 
     # https://code.videolan.org/videolan/vlc/-/merge_requests/7116
     # https://code.videolan.org/videolan/vlc/-/issues/29101
-    - patches/7116-fix_rotation_and_flip_for_videos.patch
+    - patches/0031-demux-libmp4-Apply-flip-operations-from-the-display-.patch
+    - patches/0032-demux-mp4-remove-junk-debug.patch
+    - patches/0033-mp4-remove-unused-variable.patch
 
     # https://fedoraproject.org/wiki/Changes/CryptoPolicy
-    - patches/0001-Use-SYSTEM-wide-ciphers-for-gnutls.patch
+    - patches/Use-SYSTEM-wide-ciphers-for-gnutls.patch
    #  # Fix building with fdk-aac-2.0; backport for 3.0 from flathub
    #  - patches/fdk-aac2.patch
    #  # port from intel-mediasdk to oneVPL
@@ -93,6 +95,9 @@ source:
 build:
   number: 0
   skip: true  # [not linux]
+  script: build_vlc.sh
+  run_exports:
+    - {{ pin_subpackage('libvlc', max_pin='x.x') }}
 
 requirements:
   build:
@@ -110,7 +115,13 @@ requirements:
     - bison
     - flex
   host:
+    - libarchive
     - gnutls
+    - libssh2
+    # used for idna
+    - icu
+    # zlib needed to find libssh2
+    - zlib
     - lua
     - libflac
     - pulseaudio-client
@@ -125,6 +136,10 @@ requirements:
     - libiconv
     - mpg123
     - libjpeg-turbo
+    # What value does opencv bring to vlc???
+    # - libopencv
+    # limit opencv to headless to avoid pulling in the whole thing
+    # - libopencv *=headless*
     - ffmpeg
     # Specify LGPL so as not get the whole thing to be GPL'ed
     - ffmpeg  *=lgpl*
@@ -138,6 +153,7 @@ requirements:
     - gst-plugins-base
     - ncurses
     - libprotobuf
+    - libudev             # [linux]
     - libgl-devel         # [linux]
     - libva               # [linux]
     - libvpx              # [linux]
@@ -151,7 +167,177 @@ requirements:
 
 test:
   commands:
-    - cvlc --version
+    - test -f ${PREFIX}/lib/libvlc.so
+    - test -f ${PREFIX}/lib/libvlccore.so
+    # SO Name seems to be quite strict, I think VLC is pretty "stable"
+    # but lets add this just to check
+    - test -f ${PREFIX}/lib/libvlc.so.5.6.1
+    - test -f ${PREFIX}/lib/libvlccore.so.9.0.1
+
+outputs:
+  - name: libvlc
+  - name: vlc-bin
+    script: build_vlc.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - pkg-config
+        - automake
+        - make
+        - lua
+        - libtool
+        - gnuconfig
+        - autoconf
+        - scdoc
+        - bison
+        - flex
+      host:
+        - {{ pin_subpackage('libvlc', exact=True) }}
+        - libarchive
+        - gnutls
+        - libssh2
+        # used for idna
+        - icu
+        # zlib needed to find libssh2
+        - zlib
+        - lua
+        - libflac
+        - pulseaudio-client
+        - jack
+        - dav1d-dev
+        - libopus
+        - libvorbis
+        - libogg
+        - libxml2
+        - alsa-lib
+        - libflac
+        - libiconv
+        - mpg123
+        - libjpeg-turbo
+        - libopencv
+        # limit opencv to headless to avoid pulling in the whole thing
+        - libopencv *=headless*
+        - ffmpeg
+        # Specify LGPL so as not get the whole thing to be GPL'ed
+        - ffmpeg  *=lgpl*
+        - ncurses
+        # - qt-main
+        - glib
+        - gstreamer
+        - gst-plugins-base
+        - libprotobuf
+        - libudev             # [linux]
+        - libudev             # [linux]
+        - libgl-devel         # [linux]
+        - libva               # [linux]
+        - libvpx              # [linux]
+        - xcb-util-keysyms    # [linux]
+        - aom                 # [linux]
+        - dbus                # [linux]
+        - xorg-libx11         # [linux]
+        - libxcb              # [linux]
+        - xorg-xorgproto      # [linux]
+        - libgl-devel         # [linux]
+      run:
+        - {{ pin_subpackage('libvlc', exact=True) }}
+    test:
+      commands:
+        - vlc --version
+        - cvlc --version
+        - nvlc --version
+        - test ! -x ${PREFIX}/bin/qvlc
+
+  - name: vlc-gui
+    script: build_vlc.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - pkg-config
+        - automake
+        - make
+        - lua
+        - libtool
+        - gnuconfig
+        - autoconf
+        - scdoc
+        - bison
+        - flex
+      host:
+        - {{ pin_subpackage('libvlc', exact=True) }}
+        - {{ pin_subpackage('vlc-bin', exact=True) }}
+        - libarchive
+        - gnutls
+        - libssh2
+        # used for idna
+        - icu
+        # zlib needed to find libssh2
+        - zlib
+        - lua
+        - libflac
+        - pulseaudio-client
+        - jack
+        - dav1d-dev
+        - libopus
+        - libvorbis
+        - libogg
+        - libxml2
+        - alsa-lib
+        - libflac
+        - libiconv
+        - mpg123
+        - libjpeg-turbo
+        - libopencv
+        # limit opencv to headless to avoid pulling in the whole thing
+        - libopencv *=headless*
+        - ffmpeg
+        # Specify LGPL so as not get the whole thing to be GPL'ed
+        - ffmpeg  *=lgpl*
+        - ncurses
+        - qt-main
+        - glib
+        - gstreamer
+        - gst-plugins-base
+        - libprotobuf
+        - libudev             # [linux]
+        - libudev             # [linux]
+        - libgl-devel         # [linux]
+        - libva               # [linux]
+        - libvpx              # [linux]
+        - xcb-util-keysyms    # [linux]
+        - aom                 # [linux]
+        - dbus                # [linux]
+        - xorg-libx11         # [linux]
+        - libxcb              # [linux]
+        - xorg-xorgproto      # [linux]
+        - libgl-devel         # [linux]
+      run:
+        - {{ pin_subpackage('libvlc', exact=True) }}
+        - {{ pin_subpackage('vlc-bin', exact=True) }}
+    test:
+      commands:
+        - vlc --version
+        - cvlc --version
+        - nvlc --version
+        - qvlc --version
+  - name: vlc
+    requirements:
+      run:
+        - {{ pin_subpackage('libvlc', exact=True) }}
+        - {{ pin_compatible('vlc-bin'), exact=True }}
+        - {{ pin_compatible('vlc-gui'), exact=True }}
+    test:
+      commands:
+        - vlc --version
+        # command line version
+        - cvlc --version
+        # ncurses version
+        - nvlc --version
+        # qt version
+        - qvlc --version
 
 about:
   home: https://videolan.org/
