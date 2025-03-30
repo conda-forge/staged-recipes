@@ -10,17 +10,6 @@ source:
   sha256: 1835e48d0d5de5cceeddb1d188c46034b24af857336f45d8c3e97ff34304de60
 
 build:
-  script: |
-      export CMAKE_PREFIX_PATH=$(python -c "import torch;print(torch.utils.cmake_prefix_path)")
-      # Python interface
-      export SETUPTOOLS_SCM_PRETEND_VERSION=$PKG_VERSION
-      {{ PYTHON }} -m pip install . -vv
-      # C++ interface
-      mkdir -p build
-      cd build
-      cmake .. ${CMAKE_ARGS}
-      cmake --build . -j`nproc`
-      cmake --install .
   number: 0
   skip: true  # [win]
 
@@ -46,12 +35,25 @@ requirements:
     - dargs
 
 test:
+  files:
+    - train.json
+    - water.lmp
+    - in.lammps
+  source_files:
+    - examples/water/data
   imports:
     - deepmd_gnn
   requires:
     - pip
+    - lammps
   commands:
-    - pip check
+    # https://github.com/conda-forge/mendeleev-feedstock/issues/37
+    - pip check  # [py<312]
+    - mv examples/water/data/data_0 ./data
+    - dp --pt train train.json
+    - dp --pt freeze -o frozen_model.pth
+    - export OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes OMPI_MCA_plm_ssh_agent=false  # [mpi == "openmpi"]
+    - mpiexec -n 1 lmp_mpi -in in.lammps
 
 about:
   home: https://github.com/deepmodeling/deepmd-gnn
@@ -62,7 +64,7 @@ about:
   license: LGPL-3.0-only
   license_family: LGPL
   license_file: LICENSE
-  doc_url: https://simplejson.readthedocs.io/
+  doc_url: https://docs.deepmodeling.com/projects/deepmd-gnn/
   dev_url: https://github.com/deepmodeling/deepmd-gnn
 
 extra:
