@@ -10,6 +10,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
   -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="Library\OpenOrbitalOptimizer\CMake" ^
+  -D OpenOrbitalOptimizer_BUILD_TESTING=OFF ^
   -D CMAKE_CXX_COMPILER=clang-cl ^
   -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
