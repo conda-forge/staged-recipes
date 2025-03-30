@@ -15,9 +15,6 @@ if [[ "${target_platform}" == "linux-*" ]]; then
 fi
 
 if [[ "${PKG_NAME:-libvlc}" == "vlc-bin" ]]; then
-    # Only build cvlc (command line) and nvlc (ncurses)
-    EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --enable-vlc --disable-qt"
-elif [[ "${PKG_NAME:-libvlc}" == "vlc-gui" ]]; then
     EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --enable-vlc --enable-qt --enable-skins2"
 else
     EXTRA_CONFIGURE_ARGS="${EXTRA_CONFIGURE_ARGS} --disable-vlc"
@@ -67,22 +64,3 @@ sed -i "s,^exec gcc ,exec ${CC} ," ${BUILDCC}
 
 make -j${CPU_COUNT}
 make -j${CPU_COUNT} install
-
-# Remove the pre-made vlc binary
-# We will make a conda-forge specific one
-rm -f ${PREFIX}/bin/vlc
-if [[ $PKG_NAME == "vlc-bin" ]]; then
-    # Create a vlc binary that prefers qvlc, then nvlc, then cvlc
-    cat <<EOF > ${PREFIX}/bin/vlc
-if [[ -x ${PREFIX}/bin/qvlc ]] then
-    exec ${PREFIX}/bin/qvlc "\$@"
-elif [[ -x ${PREIFX}/bin/nvlc ]] then
-    exec ${PREFIX}/bin/nvlc "\$@"
-elif [[ -x ${PREFIX}/bin/cvlc ]] then
-    exec ${PREFIX}/bin/cvlc "\$@"
-else
-    echo "No VLC binary interface found"
-    exit 1
-fi
-EOF
-fi
