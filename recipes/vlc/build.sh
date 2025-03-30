@@ -5,7 +5,7 @@ set -ex
 export BUILDCC="$(echo ${CC} | sed 's/-cc$//')-c99"
 
 # Seems like there is a bug in the C99 script
-sed -i "s/^exec gcc /exec ${CC} /" ${BUILDCC}
+sed -i "s,^exec gcc ,exec ${CC} ," ${BUILDCC}
 ./bootstrap
 ./configure \
   --enable-qt \
