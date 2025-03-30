@@ -1,0 +1,1 @@
+export DP_PLUGIN_PATH=$(echo ${DP_PLUGIN_PATH} | awk -v RS=: -v ORS=: 'libdeepmd_gnn {next} {print}' | sed 's/:*$//')
