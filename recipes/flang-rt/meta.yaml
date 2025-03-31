@@ -1,0 +1,67 @@
+{% set version = "21.0.0.dev1" %}
+{% set major = version.split(".")[0] %}
+
+package:
+  name: flang-rt-split
+  version: {{ version }}
+
+source:
+  # url: https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-{{ version.replace(".rc", "-rc") }}.tar.gz
+  url: https://github.com/llvm/llvm-project/archive/e5129b7e2092c54e503f60cc0ac552c765d5a144.tar.gz
+  sha256: f8506cf5d53a5d555384a8917432db40ef8a2b89a5172d64f8a753b649f0274b
+  patches:
+    - patches/0001-avoid-baking-in-build-time-paths-to-compiler-rt-into.patch
+
+build:
+  number: 0
+  # intentionally only windows (main target) & linux (debuggability)
+  skip: true  # [osx]
+
+outputs:
+  - name: flang-rt
+    script: install_flang-rt.sh   # [unix]
+    script: install_flang-rt.bat  # [win]
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - flang {{ version }}.*
+      host:
+        - clangdev =={{ version }}
+        - compiler-rt =={{ version }}
+        - llvmdev =={{ version }}
+        - mlir =={{ version }}
+    test:
+      commands:
+        # static library; default location
+        - test -f $PREFIX/clang/{{ major }}/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a                        # [linux]
+        - if not exist %LIBRARY_LIB%\clang\{{ major }}\lib\x86_64-pc-windows-msvc\flang_rt.runtime.static.lib exit 1  # [win]
+        # symlink (necessary on linux for linker to find it)
+        - test -f $PREFIX/lib/libflang_rt.runtime.a     # [linux]
+
+  # compatibility output for previous name
+  - name: libflang
+    requirements:
+      host:
+        - {{ pin_subpackage('flang-rt', exact=True) }}
+      run:
+        - {{ pin_subpackage('flang-rt', exact=True) }}
+    test:
+      commands:
+        - echo "pure metapackage"
+
+about:
+  home: https://flang.llvm.org
+  license: Apache-2.0
+  license_file: flang/LICENSE.TXT
+  summary: Flang is a Fortran compiler targeting LLVM.
+  dev_url: https://github.com/llvm/llvm-project
+
+extra:
+  recipe-maintainers:
+    - conda-forge/flang
+    - h-vetinari
+  feedstock-name: flang-rt
