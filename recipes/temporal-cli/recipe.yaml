@@ -1,0 +1,49 @@
+context:
+  version: "1.3.0"
+
+package:
+  name: temporal-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/temporalio/cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 15be9f155cd5114367942568f884969f7ed2d3262ad39bb665cf359735f643b3
+  target_directory: src
+
+build:
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: win
+      then: go build -ldflags="-s -w -X github.com/temporalio/cli/temporalcli.Version=${{ version }}" -v -o %LIBRARY_BIN%\temporal.exe ./cmd/temporal
+      else: go build -ldflags="-s -w -X github.com/temporalio/cli/temporalcli.Version=${{ version }}" -v -o $PREFIX/bin/temporal ./cmd/temporal
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/bash-completion/completions
+        - temporal completion bash > $PREFIX/share/bash-completion/completions/temporal
+        - mkdir -p $PREFIX/share/zsh/site-functions
+        - temporal completion zsh > $PREFIX/share/zsh/site-functions/_temporal
+        - mkdir -p $PREFIX/share/fish/vendor_completions.d
+        - temporal completion fish > $PREFIX/share/fish/vendor_completions.d/temporal.fish
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - temporal --version
+
+about:
+  homepage: https://temporal.io/
+  license: MIT
+  license_file:
+    - LICENSE
+    - library_licenses/
+  summary: Command-line interface for running and interacting with Temporal Server and UI
+  description: |
+    Temporal CLI is a command-line interface for running and interacting with Temporal Server and UI.
+  repository: https://github.com/temporalio/cli
+  documentation: https://docs.temporal.io/cli
