@@ -38,6 +38,7 @@ from conda_forge_feedstock_ops.parse_package_and_feedstock_names import (
     parse_package_and_feedstock_names
 )
 from conda_forge_metadata.feedstock_outputs import sharded_path as _get_sharded_path
+from conda_build.utils import create_file_with_permissions
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
@@ -47,11 +48,20 @@ REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 recipe_directory_name = "recipes"
 
 
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
 def _register_package_for_feedstock(feedstock, pkg_name, gh):
     repo = gh.get_repo("conda-forge/feedstock-outputs")
     try:
         contents = repo.get_contents(_get_sharded_path(pkg_name))
-    except github.UnknownObjectException:
+    except github.GithubException as e:
+        _test_and_raise_besides_file_not_exists(e)
         contents = None
 
     if contents is None:
@@ -243,8 +253,10 @@ if __name__ == '__main__':
         os.mkdir(smithy_conf)
 
     def write_token(name, token):
-        with open(os.path.join(smithy_conf, name + '.token'), 'w') as fh:
+        path = os.path.join(smithy_conf, name + '.token')
+        with create_file_with_permissions(path, 0o600) as fh:
             fh.write(token)
+
     if 'APPVEYOR_TOKEN' in os.environ:
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
     if 'CIRCLE_TOKEN' in os.environ:
