@@ -1,0 +1,104 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6a8b694a..40744e15 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -32,9 +32,9 @@ endif()
+ ### Eigen
+ set(VCG_EIGEN_DIR ${CMAKE_CURRENT_LIST_DIR}/eigenlib)
+
+-if(VCG_ALLOW_SYSTEM_EIGEN AND EIGEN3_INCLUDE_DIR)
++if(VCG_ALLOW_SYSTEM_EIGEN)
+ 	message(STATUS "- Eigen - using system-provided library")
+-	set(EIGEN_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
++	find_package(Eigen3 CONFIG REQUIRED)
+ elseif(VCG_ALLOW_BUNDLED_EIGEN AND EXISTS "${VCG_EIGEN_DIR}/Eigen/Eigen")
+ 	message(STATUS "- Eigen - using bundled source")
+ 	set(EIGEN_INCLUDE_DIRS ${VCG_EIGEN_DIR})
+@@ -293,8 +293,12 @@ if (VCG_HEADER_ONLY)
+ 		add_library(vcglib INTERFACE)
+ 		target_include_directories(
+ 				vcglib INTERFACE
+-				${CMAKE_CURRENT_LIST_DIR}
+-				${EIGEN_INCLUDE_DIRS})
++				$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
++				$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
++		target_link_libraries(
++				vcglib INTERFACE
++				Eigen3::Eigen
++		)
+ 		if(OPENMP_FOUND)
+ 			target_link_libraries(vcglib INTERFACE OpenMP::OpenMP_CXX)
+ 		endif()
+@@ -309,6 +313,51 @@ else()
+ 	# if the the required targets (e.g. qt, gl, glew...) exists
+ endif()
+
++include(GNUInstallDirs)
++
++# Generate required install artifacts for CMake buildsystem
++include(CMakePackageConfigHelpers)
++set(VCGLIB_CONFIG_INPUT cmake/vcglib-config.cmake.in)
++set(VCGLIB_CONFIG_OUTPUT ${CMAKE_BINARY_DIR}/cmake/vcglib-config.cmake)
++set(VCGLIB_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/vcglib)
++configure_package_config_file(
++  ${VCGLIB_CONFIG_INPUT}
++  ${VCGLIB_CONFIG_OUTPUT}
++  INSTALL_DESTINATION ${VCGLIB_CONFIG_INSTALL_DIR}
++)
++install(
++  FILES ${VCGLIB_CONFIG_OUTPUT}
++  DESTINATION ${VCGLIB_CONFIG_INSTALL_DIR}
++)
++
++# Install headers
++install(
++  DIRECTORY vcg
++  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++  COMPONENT headers
++  FILES_MATCHING PATTERN "*.h"
++  PATTERN "*/examples/*" EXCLUDE
++  PATTERN "*/test/*" EXCLUDE
++  PATTERN "*/website/*" EXCLUDE
++)
++install(
++  FILES wrap/callback.h
++  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wrap
++)
++
++# Install targets
++install(
++  TARGETS vcglib
++  EXPORT vcglibTargets
++  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
++  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++)
++install(
++  EXPORT vcglibTargets
++  DESTINATION ${VCGLIB_CONFIG_INSTALL_DIR}
++)
++
+ if(VCG_BUILD_EXAMPLES)
+ 	#TODO make the list of samples to build
+ 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/apps)
+diff --git a/cmake/vcglib-config.cmake.in b/cmake/vcglib-config.cmake.in
+new file mode 100644
+index 00000000..00847b96
+--- /dev/null
++++ b/cmake/vcglib-config.cmake.in
+@@ -0,0 +1,15 @@
++cmake_minimum_required(VERSION 3.10)
++
++@PACKAGE_INIT@
++
++include(CMakeFindDependencyMacro)
++
++list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
++
++find_dependency(Eigen3 CONFIG)
++
++list(REMOVE_AT CMAKE_MODULE_PATH -1)
++
++include("${CMAKE_CURRENT_LIST_DIR}/vcglibTargets.cmake")
++
++check_required_components("vcglib")
