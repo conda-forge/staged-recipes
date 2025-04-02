@@ -1,7 +1,7 @@
 @echo on
 @setlocal EnableDelayedExpansion
 
-set cmd_names = (^
+set cmd_names = ^
     auth/authtest ^
     auth/cookieauth ^
     auth/gitauth ^
@@ -32,8 +32,7 @@ set cmd_names = (^
     ssadump ^
     stress ^
     stringer ^
-    toolstash^
-)
+    toolstash
 
 for %%a in (%cmd_names%) do(
     call:build_cmd %%a
