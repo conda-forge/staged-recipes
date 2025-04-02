@@ -1,0 +1,15 @@
+@echo off
+
+if defined JAVA_HOME_CONDA_BACKUP (
+    set "JAVA_HOME=%JAVA_HOME_CONDA_BACKUP%"
+    set "JAVA_HOME_CONDA_BACKUP="
+) else (
+    set "JAVA_HOME="
+)
+
+if defined JAVA_LD_LIBRARY_PATH_CONDA_BACKUP (
+    set "JAVA_LD_LIBRARY_PATH=%JAVA_LD_LIBRARY_PATH_CONDA_BACKUP%"
+    set "JAVA_LD_LIBRARY_PATH_CONDA_BACKUP="
+) else (
+    set "JAVA_LD_LIBRARY_PATH="
+)
