@@ -33,7 +33,7 @@ set cmd_names=^
     stringer ^
     toolstash
 
-for %%a in (%cmd_names%) do(
+for %%a in (%cmd_names%) do (
     call:build_cmd %%a
 )
 
