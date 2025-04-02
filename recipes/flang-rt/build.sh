@@ -26,6 +26,7 @@ cmake -G Ninja \
     -DLLVM_CMAKE_DIR=$PREFIX/lib/cmake/llvm \
     -DLLVM_DIR=$PREFIX/lib/cmake/llvm \
     -DLLVM_ENABLE_RUNTIMES="flang-rt" \
+    -DFLANG_RT_ENABLE_SHARED=ON \
     -DFLANG_RT_INCLUDE_TESTS=OFF \
     ../runtimes
 
@@ -33,5 +34,6 @@ cmake --build . -j2
 cmake --install .
 
 ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a $PREFIX/lib/libflang_rt.runtime.a
+ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.so $PREFIX/lib/libflang_rt.runtime.so
 
 rm $PREFIX/compile_commands.json
