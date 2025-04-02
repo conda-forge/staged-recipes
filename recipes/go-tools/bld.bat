@@ -44,7 +44,7 @@ goto :eof
 :build_cmd
 set cmd_name = %~1
 set cmd_prefix = %cmd_name:~0,2%
-if %cmd_prefix% == "go" (
+if %cmd_prefix% != "go" (
     set bin_name = go-%cmd_name:/=-%
 ) else (
     set bin_name = %cmd_name:/=-%
