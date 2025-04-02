@@ -2,7 +2,9 @@
 # Exit immediately on error, print commands, and fail on pipe errors
 set -exo pipefail
 
-meson setup . ${MESON_ARGS} \
+mkdir -p build
+
+meson setup build ${MESON_ARGS} \
     -Dlogging=disabled
-meson compile -C .
-meson install -C .
+meson compile -C build
+meson install -C build
