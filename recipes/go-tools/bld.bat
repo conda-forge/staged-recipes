@@ -43,9 +43,9 @@ goto :eof
 set cmd_name=%~1
 set cmd_prefix=%cmd_name:~0,2%
 if %cmd_prefix% NEQ go (
-    set bin_name=go-%cmd_name:/=-%
+    set bin_name=go-%cmd_name:\=-%
 ) else (
-    set bin_name=%cmd_name:/=-%
+    set bin_name=%cmd_name:\=-%
 )
 go build -modcacherw -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%bin_name%.exe -ldflags="-s" .\cmd\%cmd_name% || goto :error
 go-licenses save .\cmd\%cmd_name% --save_path=license-files\%cmd_name% || goto :error
