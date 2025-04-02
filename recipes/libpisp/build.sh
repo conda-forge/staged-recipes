@@ -3,6 +3,6 @@
 set -exo pipefail
 
 meson setup . ${MESON_ARGS} \
-    - Dlogging=disabled
+    -Dlogging=disabled
 meson compile -C .
 meson install -C .
