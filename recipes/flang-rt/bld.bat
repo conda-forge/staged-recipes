@@ -26,3 +26,5 @@ if %ERRORLEVEL% neq 0 exit 1
 
 cmake --install .
 if %ERRORLEVEL% neq 0 exit 1
+
+del /s /q %LIBRARY_PREFIX%\compile_commands.json

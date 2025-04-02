@@ -33,3 +33,5 @@ cmake --build . -j2
 cmake --install .
 
 ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a $PREFIX/lib/libflang_rt.runtime.a
+
+rm $PREFIX/compile_commands.json
