@@ -47,11 +47,20 @@ REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 recipe_directory_name = "recipes"
 
 
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
 def _register_package_for_feedstock(feedstock, pkg_name, gh):
     repo = gh.get_repo("conda-forge/feedstock-outputs")
     try:
         contents = repo.get_contents(_get_sharded_path(pkg_name))
-    except github.UnknownObjectException:
+    except github.GithubException as e:
+        _test_and_raise_besides_file_not_exists(e)
         contents = None
 
     if contents is None:
@@ -427,9 +436,11 @@ if __name__ == '__main__':
                 if not feedstock_token_exists("conda-forge", name + "-feedstock"):
                     subprocess.check_call(
                         ['conda', 'smithy', 'generate-feedstock-token',
+                         '--unique-token-per-provider',
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
+                         '--unique-token-per-provider',
                          '--without-circle', '--without-drone',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
