@@ -22,7 +22,7 @@ cmake -S %SRC_DIR% -B . ^
    -D extra_cxx_flags="/std:c++17" ^
    -D dismod_at_prefix="%PREFIX%\Library" ^
    -D cmake_libdir=lib ^
-   -D python3_executable="python3" 
+   -D python3_executable="python" 
 if errorlevel 1 exit 1
 
 :: build
