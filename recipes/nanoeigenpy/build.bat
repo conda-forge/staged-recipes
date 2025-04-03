@@ -7,7 +7,6 @@ cd build
 
 set "CC=clang-cl.exe"
 set "CXX=clang-cl.exe"
-set "CL=/MP"
 
 ::Configure
 cmake ^
