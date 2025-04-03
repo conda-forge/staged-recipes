@@ -15,7 +15,7 @@ cmake -G Ninja \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF \
     -DCMAKE_Fortran_COMPILER=$BUILD_PREFIX/bin/flang \
     -DCMAKE_Fortran_COMPILER_WORKS=yes \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -35,5 +35,3 @@ cmake --install .
 
 ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a $PREFIX/lib/libflang_rt.runtime.a
 ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.so $PREFIX/lib/libflang_rt.runtime.so
-
-rm $PREFIX/compile_commands.json

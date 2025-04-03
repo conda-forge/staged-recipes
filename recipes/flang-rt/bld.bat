@@ -6,7 +6,7 @@ cd build
 cmake -G "Ninja" ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DCMAKE_CXX_STANDARD=17 ^
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF ^
     -DCMAKE_Fortran_COMPILER=%BUILD_PREFIX%/Library/bin/flang.exe ^
     -DCMAKE_Fortran_COMPILER_WORKS=yes ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
@@ -26,5 +26,3 @@ if %ERRORLEVEL% neq 0 exit 1
 
 cmake --install .
 if %ERRORLEVEL% neq 0 exit 1
-
-del /s /q %LIBRARY_PREFIX%\compile_commands.json
