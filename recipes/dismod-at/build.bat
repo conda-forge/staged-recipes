@@ -46,7 +46,7 @@ ninja -j%CPU_COUNT% install
 if errorlevel 1 exit 1
 
 :: python install
-%PYTHON% -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
+%PYTHON% -m pip install %SRC_DIR%/python  -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1
 %PYTHON% -m pip show dismod_at
 if errorlevel 1 exit 1

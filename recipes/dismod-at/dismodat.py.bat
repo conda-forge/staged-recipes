@@ -1,1 +1,1 @@
-python %CONDA_PREFIX/bin/dismodat.py %*
+python %SRC_DIR%/python/bin/dismodat.py %*
