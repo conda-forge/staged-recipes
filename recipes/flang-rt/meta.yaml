@@ -56,7 +56,6 @@ outputs:
     build:
       noarch: generic
     files:
-      - lib/libflang_rt.runtime.a                                                               # [linux]
       - lib/clang/{{ major }}/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a                # [linux]
       - Library/lib/clang/{{ major }}/lib/x86_64-pc-windows-msvc/flang_rt.runtime.static.lib    # [win]
     requirements:
@@ -70,8 +69,6 @@ outputs:
         # static library; default location
         - test -f $PREFIX/lib/clang/{{ major }}/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a                    # [linux]
         - if not exist %LIBRARY_LIB%\clang\{{ major }}\lib\x86_64-pc-windows-msvc\flang_rt.runtime.static.lib exit 1  # [win]
-        # symlink (necessary on linux for linker to find it)
-        - test -f $PREFIX/lib/libflang_rt.runtime.a     # [linux]
 
         # absence of compile_commands.json
         - test ! -f $PREFIX/compile_commands.json                   # [linux]
@@ -79,6 +76,8 @@ outputs:
 
   # convenience wrapper around target-specific flang-rt
   - name: flang-rt
+    files:
+      - lib/libflang_rt.runtime.a   # [linux]
     requirements:
       host:
         - {{ pin_subpackage("libflang-rt", exact=True) }}   # [linux]
@@ -88,7 +87,8 @@ outputs:
         - {{ pin_subpackage("flang-rt_" ~ target_platform, exact=True) }}
     test:
       commands:
-        - echo "pure metapackage"
+        # symlink that's not appropriate for noarch package (but necessary for linker to find it)
+        - test -f $PREFIX/lib/libflang_rt.runtime.a     # [linux]
 
   # compatibility output for previous name
   - name: libflang
