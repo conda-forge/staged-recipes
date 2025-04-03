@@ -1,6 +1,10 @@
 :: echo
 echo off
 
+::
+mkdir %PREFIX%\bin
+copy %RECIPE_DIR%\dismodat.py.bat %PREFIX%\Library\bin\dismodat.py.bat
+
 :: build
 mkdir build
 cd build
