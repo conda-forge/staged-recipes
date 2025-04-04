@@ -14,7 +14,7 @@
 {% set PYTHON = "%PREFIX%\\python" %}  # [win]
 
 package:
-  name: {{ name|lower }}-split
+  name: {{ name|lower }}
   version: {{ version }}
 
 source:
@@ -25,6 +25,7 @@ source:
 
 build:
   number: {{ number }}
+  skip: True  # [py<310]
 
 outputs:
   - name: fastemriwaveforms
@@ -39,10 +40,7 @@ outputs:
       entry_points:
         - few_citations = few.cmd.citations:main
         - few_files = few.cmd.files:main
-    files:
-      include:
-        - few
-        - few_backend_cpu
+    script: move_tests.py
     requirements:
       build:
         - python                              # [build_platform != target_platform]
@@ -95,6 +93,7 @@ outputs:
     test:
       imports:
         - few
+        - few.tests
         - few_backend_cpu
       requires:
         - pip
@@ -124,11 +123,9 @@ outputs:
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
         - sed -i'' -e 's|" #@NAMESUFFIX@|-cuda{{ cuda_major }}x"|g' pyproject.toml
+        - sed -i'' -e '/@SKIP_PLUGIN@/d' pyproject.toml
         - >-
           {{ PYTHON }} -m pip install . -vv -Ccmake.define=FEW_LAPACKE_FETCH=OFF -Ccmake.define=FEW_WITH_GPU=ONLY
-    files:
-      include:
-        - few_backend_cuda{{ cuda_major }}x/
     requirements:
       build:
         - {{ compiler('c') }}
