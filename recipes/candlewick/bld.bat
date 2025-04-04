@@ -7,6 +7,7 @@ cmake -S . -B build -G Ninja ^
         -DCMAKE_BUILD_TYPE:STRING=Release ^
         -DBUILD_PINOCCHIO_VISUALIZER:BOOL=ON ^
         -DBUILD_PYTHON_BINDINGS:BOOL=ON ^
+        -DBUILD_EXAMPLES:BOOL=OFF ^
         -DBUILD_TESTING:BOOL=OFF
 
 if errorlevel 1 exit 1
