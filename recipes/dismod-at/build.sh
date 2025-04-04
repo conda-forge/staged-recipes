@@ -41,7 +41,7 @@ ninja -j1 check
 ninja -j$CPU_COUNT install
 #
 # python install
-$PYTHON -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
-$PYTHON -m pip show dismod_at
+python -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
+python -m pip show dismod_at
 #
 echo 'build.sh: OK'
