@@ -41,6 +41,8 @@ ninja -j1 check
 ninja -j$CPU_COUNT install
 #
 # python install
+echo 'build.sh: python version = '
+$PREFIX/bin/python --version
 $PREFIX/bin/python -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
 $PREFIX/bin/python -m pip show dismod_at
 #

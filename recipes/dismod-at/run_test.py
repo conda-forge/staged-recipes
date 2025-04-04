@@ -39,14 +39,12 @@ def system_command(command) :
 # Put this code in a function so as to not polute the file namespace
 def main() :
    #
+   # PREFIX
    prefix  = os.environ['PREFIX'].replace('/', '|').replace('\\', '|');
-   print( f'run_test.py:\nprefix with / and \\ repalced by / = {prefix}' )
+   print( f'run_test.py:\nprefix with /, \\ repalced by | = {prefix}' )
    #
    # sys.path
-   for path in sys.path :
-      if path.endswith('site-packages') :
-         print( f'os.listdir( {path} )' )
-         print( sorted( os.listdir(path) ) )
+   print( f'run_test.py:\nsys.path = {sys.path}' )
    #
    # example_file
    assert example_file[-3 :] == '.py'
