@@ -1,9 +1,6 @@
 REM Echo all output
 @echo on
 
-subst W: %CD% 
-W:
-
 REM Configure project
 cmake --fresh -G Ninja -D CMAKE_BUILD_TYPE=Release -B builds\conda -S .
 
