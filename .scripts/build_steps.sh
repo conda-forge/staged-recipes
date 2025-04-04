@@ -37,14 +37,14 @@ solver: libmamba
 CONDARC
 
 # Workaround for errors related to "unsafe" directories:
-# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765 
+# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765
 git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 
 # Copy the host recipes folder so we don't ever muck with it
-# Skip build_artifacts because it gets huge with time
+# Skip build_artifacts and other big items because it gets huge with time
 mkdir -p ~/staged-recipes-copy
 shopt -s extglob dotglob
-cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts) ~/staged-recipes-copy
+cp -r "${FEEDSTOCK_ROOT}"/!(.|..|build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
 shopt -u extglob dotglob
 
 # Remove any macOS system files
@@ -55,15 +55,20 @@ echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
 echo "Finding recipes merged in main and removing them from the build."
 pushd "${FEEDSTOCK_ROOT}/recipes" > /dev/null
-if [ "${AZURE}" == "True" ]; then
+if [ "${CI:-}" != "" ]; then
     git fetch --force origin main:main
 fi
-git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+shopt -s extglob dotglob
+git ls-tree --name-only main -- !(example|example-v1)  | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+shopt -u extglob dotglob
 popd > /dev/null
 
-# Prevent permission errors in ~/.cache/conda
-export CONDA_NUMBER_CHANNEL_NOTICES=0
-conda install --quiet --file ${FEEDSTOCK_ROOT}/.ci_support/requirements.txt
+# Update environment
+mv /opt/conda/conda-meta/history /opt/conda/conda-meta/history.$(date +%Y-%m-%d-%H-%M-%S)
+echo > /opt/conda/conda-meta/history
+micromamba install --root-prefix ~/.conda --prefix /opt/conda \
+    --yes --override-channels --channel conda-forge --strict-channel-priority \
+    --file "${FEEDSTOCK_ROOT}/environment.yaml"
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
@@ -74,12 +79,12 @@ find ~/staged-recipes-copy/recipes -mindepth 2 -maxdepth 2 -type f -name "yum_re
     xargs -r /usr/bin/sudo -n yum install -y
 
 # Make sure build_artifacts is a valid channel
-conda index ${FEEDSTOCK_ROOT}/build_artifacts
+conda index "${FEEDSTOCK_ROOT}/build_artifacts"
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
 echo "Building all recipes"
-python ${CI_SUPPORT}/build_all.py
+python "${CI_SUPPORT}/build_all.py"
 
 ( startgroup "Inspecting artifacts" ) 2> /dev/null
 # inspect_artifacts was only added in conda-forge-ci-setup 4.6.0; --all-packages in 4.9.3
