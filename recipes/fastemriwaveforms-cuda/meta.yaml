@@ -1,6 +1,9 @@
 {% set name = "FastEMRIWaveforms-cuda" %}
 {% set version = "2.0.0rc1" %}
 
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+
+
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -10,6 +13,7 @@ source:
   sha256: 1108dc635cee5dc27c89575b49da3a194db9e720130a5f2aa07f39b284a455b6
   patches:
     - patches/version_scheme.patch
+    - patches/cuda_package.patch
 
 build:
   script:
@@ -19,71 +23,58 @@ build:
         -Ccmake.define=FEW_LAPACKE_FETCH=OFF 
         -Ccmake.define=FEW_WITH_GPU=ONLY
   number: 0
-  skip: True  # [py<310]
-  entry_points:
-    - few_citations = few.cmd.citations:main
-    - few_files = few.cmd.files:main
+  skip: true  # [(py<310) or (cuda_compiler_version == "None")]
 
 requirements:
   build:
-    - python                              # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
-    - numpy                               # [build_platform != target_platform]
-    - scikit-build-core                   # [build_platform != target_platform]
-    - setuptools_scm                      # [build_platform != target_platform]
-    - cython                              # [build_platform != target_platform]
-    - numpy                               # [build_platform != target_platform]
-    - pkg-config                          # [build_platform != target_platform]
-    - liblapacke                          # [build_platform != target_platform]
-    - libblas                             # [build_platform != target_platform]
-    - libtmglib                           # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
-    - libcxx-devel <19  # [osx]
+    - {{ compiler('cuda') }}
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - scikit-build-core                   # [build_platform != target_platform]
+    - setuptools_scm                      # [build_platform != target_platform]
+    - cython                              # [build_platform != target_platform]
     - ninja
     - cmake
     - make
+    - cuda-driver-dev                     # [build_platform != target_platform and linux]
+    - cuda-cudart-dev                     # [build_platform != target_platform]
+    - cuda-nvrtc-dev                      # [build_platform != target_platform]
+    - libcublas-dev                       # [build_platform != target_platform]
+    - libcusparse-dev                     # [build_platform != target_platform]
   host:
     - python
     - pip
     - scikit-build-core
     - setuptools_scm
     - cython
-    - numpy
-    - pkg-config
-    - liblapacke
-    - libblas
-    - libtmglib
+    - cuda-driver-dev                     # [linux]
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - libcublas-dev
+    - libcusparse-dev
   run:
     - python
-    - exceptiongroup  # [py<311]
-    - h5py
-    - jsonschema
-    - liblapacke
-    - lisaconstants
-    - multispline
-    - numba
-    - numpy
-    - nvidia-ml-py
-    - platformdirs
-    - pydantic
-    - pyyaml
-    - requests
-    - rich
-    - scipy
-    - tqdm
+    - {{ pin_subpackage('fastemriwaveforms', exact=True)}}
+    - cupy
+    - cuda-nvrtc
+    - libcublas
+    - libcusparse
+    - {{ pin_compatible("cuda-version", min_pin="x") }}
 
 test:
   imports:
-    - few
-    - few_backend_cpu
+    - few_backend_cuda{{ cuda_major }}x
   requires:
     - pip
+    - cuda-driver-dev  # [linux]
   commands:
     - pip check
     - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms') == '{{ version }}'"
     - python -c "import few; few.get_backend('cpu')"
+    - python -c "import few; few.get_backend('cuda{{ cuda_major }}x')"
 
 about:
   home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
