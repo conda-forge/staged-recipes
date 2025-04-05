@@ -1,0 +1,96 @@
+{% set name = "tiny-cuda-nn" %}
+{% set version = "1.6.99" %}  # new version (1.7) has not been released yet
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/NVlabs/{{ name }}/archive/c91138bcd4c6877c8d5e60e483c0581aafc70cce.tar.gz
+    sha256: 0e0a331ab08a0b63a843ed9517bd746b52bc366c68ed882894d2066ac940dea6
+  - url: https://github.com/fmtlib/fmt/archive/b0c8263cb26ea178d3a5df1b984e1a61ef578950.tar.gz
+    sha256: 49473ea73d3d97724fb9c69beaa7ef4547c05e53b1d9d40c8994c1e369e49faa
+    folder: dependencies/fmt
+  - url: https://github.com/NVIDIA/cutlass/archive/1eb6355182a5124639ce9d3ff165732a94ed9a70.tar.gz
+    sha256: 6ea7f41ed6548b980c96459855088f10efaf3c9ef6cb3668cc094a337cef86a3
+    folder: dependencies/cutlass
+
+build:
+  number: 0
+  skip: true  # [osx]
+  skip: true  # [win]
+  skip: true  # [cuda_compiler_version == "None"]
+  skip: true  # [cuda_compiler_version == "11.8"]
+
+  # We link directly against the system's libcuda.so, which conda-build cannot provide.
+  # Hence, we must whitelist it so conda-build doesn't fail the overlinking check.
+  missing_dso_whitelist:
+    - $RPATH/libcuda.so.1
+
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - {{ compiler("cuda") }}
+    - {{ stdlib("c") }}
+    - cmake
+    - pybind11
+    - python
+    - pytorch
+    - setuptools
+    - cuda-nvcc
+    - cuda-driver-dev           # [build_platform != target_platform]
+    - cuda-cudart-dev           # [build_platform != target_platform]
+    - cuda-nvrtc-dev            # [build_platform != target_platform]
+    - cuda-nvtx-dev             # [build_platform != target_platform]
+    - cuda-nvml-dev             # [build_platform != target_platform]
+    - cuda-profiler-api         # [build_platform != target_platform]
+    - libcublas-dev             # [build_platform != target_platform]
+    - libcufft-dev              # [build_platform != target_platform]
+    - libcurand-dev             # [build_platform != target_platform]
+    - libcusolver-dev           # [build_platform != target_platform]
+    - libcusparse-dev           # [build_platform != target_platform]
+  host:
+    - pip
+    - python
+    - pytorch
+    - setuptools
+    - setuptools_scm
+    - cudnn
+    - nccl
+    - magma
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-nvcc
+    - cuda-driver-dev
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-nvml-dev
+    - cuda-profiler-api
+    - libcublas-dev
+    - libcufft-dev
+    - libcurand-dev
+    - libcusolver-dev
+    - libcusparse-dev
+  run:
+    - python
+    - pytorch
+    - {{ pin_compatible('cudnn') }}
+
+test:
+  # Disabled because it raises an exception when torch.cuda.is_available() returns false.
+  # imports:
+  #   - tinycudann
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/NVlabs/tiny-cuda-nn
+  summary: Lightning fast C++/CUDA neural network framework
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
