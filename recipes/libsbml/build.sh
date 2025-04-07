@@ -25,3 +25,7 @@ cmake ${CMAKE_ARGS} \
 
 make -j"${CPU_COUNT}"
 make install
+
+rm ${PREFIX}/share/cmake/Modules/FindLIBXML.cmake
+rm ${PREFIX}/share/cmake/Modules/FindBZ2.cmake
+rm ${PREFIX}/share/cmake/Modules/FindZLIB.cmake

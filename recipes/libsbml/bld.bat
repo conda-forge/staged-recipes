@@ -15,3 +15,7 @@ cmake -G"Ninja" -S . -B build ^
 
 cmake --build build --parallel %CPU_COUNT% --config Release
 cmake --build build --target install
+
+del /q %PREFIX%\Library\share\cmake\Modules\FindLIBXML.cmake
+del /q %PREFIX%\Library\share\cmake\Modules\FindBZ2.cmake
+del /q %PREFIX%\Library\share\cmake\Modules\FindZLIB.cmake
