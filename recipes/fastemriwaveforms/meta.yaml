@@ -28,7 +28,7 @@ outputs:
     version: {{ version }}
     build:
       number: {{ number }}
-      skip: true  # [(py<310) or (cuda_compiler_version != "None")]
+      skip: true  # [(py<310)]
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
         - >-
@@ -118,14 +118,11 @@ outputs:
       skip: true  # [(py<310) or (cuda_compiler_version == "None")]
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
-        - sed -i'' -e 's|" \#@NAMESUFFIX@|-cuda12x"|g' pyproject.toml  # [cuda_compiler == "cuda-nvcc"]
-        - sed -i'' -e 's|" \#@NAMESUFFIX@|-cuda11x"|g' pyproject.toml  # [cuda_compiler == "nvcc"]
+        - {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda11x  # [cuda_compiler == "nvcc"]
+        - {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda12x  # [cuda_compiler == "cuda-nvcc"]
         - sed -i'' -e '/@SKIP_PLUGIN@/d' pyproject.toml
         - >-
-          {{ PYTHON }} -m pip install . -vv \
-            -Ccmake.define.FEW_LAPACKE_FETCH=OFF \
-            -Ccmake.define.FEW_WITH_GPU=ONLY \
-            -Ccmake.define.FEW_CUDA_ARCH=all
+          {{ PYTHON }} -m pip install . -vv -Ccmake.define.FEW_LAPACKE_FETCH=OFF -Ccmake.define.FEW_WITH_GPU=ONLY -Ccmake.define.FEW_CUDA_ARCH=all
       ignore_run_exports_from:
         - {{ compiler('cuda') }}
         - cuda-driver-dev  # [cuda_compiler == "cuda-nvcc" and linux]
@@ -154,6 +151,8 @@ outputs:
         - cuda-nvrtc-dev                            # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
         - libcublas-dev                             # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
         - libcusparse-dev                           # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
+        - tomli                                     # [build_platform != target_platform]
+        - tomli-w                                   # [build_platform != target_platform]
       host:
         - python
         - pip
@@ -161,6 +160,8 @@ outputs:
         - setuptools_scm
         - cython
         - numpy
+        - tomli
+        - tomli-w
         - cuda-version {{ cuda_compiler_version }}
         - cuda-driver-dev                           # [cuda_compiler == "cuda-nvcc" and linux]
         - cuda-cudart-dev                           # [cuda_compiler == "cuda-nvcc"]
@@ -169,16 +170,15 @@ outputs:
 
       run:
         - python
-        - {{ pin_subpackage('fastemriwaveforms', max_pin='x.x') }}
-        - {{ pin_compatible("cuda-version", lower_bound="11.2") }}
-        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+        - {{ pin_subpackage('fastemriwaveforms', exact=True) }}
+        - {{ pin_compatible("cuda-version", lower_bound="11.2") }}  # [cuda_compiler == "nvcc"]
+        - {{ pin_compatible('cuda-version', min_pin='x') }}         # [cuda_compiler == "cuda-nvcc"]
         - libstdcxx  # [linux]
         - libgcc  # [linux]
         - cupy
-        - cuda-cudart  # [cuda_compiler == "cuda-nvcc"]
-        - libcublas    # [cuda_compiler == "cuda-nvcc"]
-        - libcusparse  # [cuda_compiler == "cuda-nvcc"]
-        - cudatoolkit  # [cuda_compiler == "nvcc"]
+        - cuda-cudart
+        - libcublas
+        - libcusparse
 
     test:
       imports:
