@@ -2,13 +2,6 @@
 {% set version = "2.0.0rc1" %}
 {% set number = 0 %}
 
-{% if cuda_compiler_version in (None, "None", True, False) %}
-{% set cuda_major = 0 %}
-{% else %}
-{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
-{% endif %}
-
-# {{ PYTHON }} is not resolved properly in multi-output recipes...
 {% set PYTHON = "python" %}
 {% set PYTHON = "$PREFIX/bin/python" %}  # [linux]
 {% set PYTHON = "%PREFIX%\\python" %}  # [win]
@@ -125,7 +118,8 @@ outputs:
       skip: true  # [(py<310) or (cuda_compiler_version == "None")]
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
-        - sed -i'' -e 's|" \#@NAMESUFFIX@|-cuda{{ cuda_major }}x"|g' pyproject.toml
+        - sed -i'' -e 's|" \#@NAMESUFFIX@|-cuda12x"|g' pyproject.toml  # [cuda_compiler == "cuda-nvcc"]
+        - sed -i'' -e 's|" \#@NAMESUFFIX@|-cuda11x"|g' pyproject.toml  # [cuda_compiler == "nvcc"]
         - sed -i'' -e '/@SKIP_PLUGIN@/d' pyproject.toml
         - >-
           {{ PYTHON }} -m pip install . -vv \
@@ -134,13 +128,11 @@ outputs:
             -Ccmake.define.FEW_CUDA_ARCH=all
       ignore_run_exports_from:
         - {{ compiler('cuda') }}
-        {% if cuda_major >= 12 %}
-        - cuda-driver-dev  # [linux]
-        - cuda-cudart-dev
-        - cuda-nvrtc-dev
-        - libcublas-dev
-        - libcusparse-dev
-        {% endif %}
+        - cuda-driver-dev  # [cuda_compiler == "cuda-nvcc" and linux]
+        - cuda-cudart-dev  # [cuda_compiler == "cuda-nvcc"]
+        - cuda-nvrtc-dev   # [cuda_compiler == "cuda-nvcc"]
+        - libcublas-dev    # [cuda_compiler == "cuda-nvcc"]
+        - libcusparse-dev  # [cuda_compiler == "cuda-nvcc"]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -157,13 +149,11 @@ outputs:
         - cmake
         - make
         - cuda-version {{ cuda_compiler_version }}  # [build_platform != target_platform]
-        {% if cuda_major >= 12 %}
-        - cuda-driver-dev                           # [build_platform != target_platform and linux]
-        - cuda-cudart-dev                           # [build_platform != target_platform]
-        - cuda-nvrtc-dev                            # [build_platform != target_platform]
-        - libcublas-dev                             # [build_platform != target_platform]
-        - libcusparse-dev                           # [build_platform != target_platform]
-        {% endif %}
+        - cuda-driver-dev                           # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform and linux]
+        - cuda-cudart-dev                           # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
+        - cuda-nvrtc-dev                            # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
+        - libcublas-dev                             # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
+        - libcusparse-dev                           # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
       host:
         - python
         - pip
@@ -172,12 +162,11 @@ outputs:
         - cython
         - numpy
         - cuda-version {{ cuda_compiler_version }}
-        {% if cuda_major >= 12 %}
-        - cuda-driver-dev                           # [linux]
-        - cuda-cudart-dev
-        - libcublas-dev
-        - libcusparse-dev
-        {% endif %}
+        - cuda-driver-dev                           # [cuda_compiler == "cuda-nvcc" and linux]
+        - cuda-cudart-dev                           # [cuda_compiler == "cuda-nvcc"]
+        - libcublas-dev                             # [cuda_compiler == "cuda-nvcc"]
+        - libcusparse-dev                           # [cuda_compiler == "cuda-nvcc"]
+
       run:
         - python
         - {{ pin_subpackage('fastemriwaveforms', max_pin='x.x') }}
@@ -186,21 +175,25 @@ outputs:
         - libstdcxx  # [linux]
         - libgcc  # [linux]
         - cupy
-        - cuda-cudart
-        - libcublas
-        - libcusparse
+        - cuda-cudart  # [cuda_compiler == "cuda-nvcc"]
+        - libcublas    # [cuda_compiler == "cuda-nvcc"]
+        - libcusparse  # [cuda_compiler == "cuda-nvcc"]
+        - cudatoolkit  # [cuda_compiler == "nvcc"]
 
     test:
       imports:
-        - few_backend_cuda{{ cuda_major }}x
+        - few_backend_cuda11x  # [cuda_compiler == "nvcc"]
+        - few_backend_cuda12x  # [cuda_compiler == "cuda-nvcc"]
       requires:
         - pip
         - cuda-driver-dev  # [linux]
       commands:
         - pip check
-        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda{{ cuda_major }}x') == '{{ version }}'"
+        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda11x') == '{{ version }}'"  # [cuda_compiler == "nvcc"]
+        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda12x') == '{{ version }}'"  # [cuda_compiler == "cuda-nvcc"]
         - python -c "import few; few.get_backend('cpu')"
-        - python -c "import few; few.get_backend('cuda{{ cuda_major }}x')"
+        - python -c "import few; few.get_backend('cuda11x')"  # [cuda_compiler == "nvcc"]
+        - python -c "import few; few.get_backend('cuda12x')"  # [cuda_compiler == "cuda-nvcc"]
 
     about:
       home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
