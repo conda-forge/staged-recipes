@@ -13,14 +13,14 @@ source:
 
 build:
   skip: true  # [win or not (cuda_compiler_version or "").startswith("12")]
+  # Debugging skips
+  # skip: true  # [py != 312]
   number: 0
-  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}blas{{ blas_impl }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   rpaths:
     - lib/
   missing_dso_whitelist:
     - '*/libcuda.*'  # [linux64]
-  script_env:
-    - CMAKE_ARGS+="-DMKL_INCLUDE_DIR=${PREFIX}/include"  # [blas_impl == "mkl"]
 requirements:
   build:
     - python                                 # [build_platform != target_platform]
@@ -29,9 +29,11 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}
     - make
-    - cmake >=3.23
-    - numpy
-    - nomkl                 # [blas_impl != "mkl"]
+    - cmake >=3.25.2
+    - numpy                                  # [build_platform != target_platform]
+    - nomkl                                  # [build_platform != target_platform]
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
   host:
     - python
     - numpy
@@ -41,27 +43,19 @@ requirements:
     - libcublas-dev
     - libcusolver-dev
     - libcurand-dev
-    - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
-    - libcblas              # [blas_impl != "mkl"]
-    - liblapack             # [blas_impl != "mkl"]
-    - liblapacke            # [blas_impl != "mkl"]
-    - libblas               # [blas_impl != "mkl"]
-    - nomkl                 # [blas_impl != "mkl"]
+    - blas-devel
+    - libblas
+    - liblapacke
+    - nomkl
   run:
     - python
-    - cuda-cudart
-    - libcufft
-    - libcublas
-    - llvm-openmp
-    - liblapack            # [blas_impl != "mkl"]
-    - libblas              # [blas_impl != "mkl"]
-    - libcblas             # [blas_impl != "mkl"]
-    - mkl {{ mkl }}        # [blas_impl == "mkl"]
 
 test:
   requires:
     - pytest
     - scipy
+    # Prove that netlib-linked BLAS works with MKL
+    - libblas=*=*mkl  # [x86 or x86_64]
   imports:
     - libMobility
   source_files:
