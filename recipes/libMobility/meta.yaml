@@ -1,11 +1,7 @@
 {% set name = "libmobility" %}
 {% set version = "0.5.0" %}
 
-{% if cuda_compiler_version in (None, "None", True, False) %}
-{% set cuda_major = 0 %}
-{% else %}
-{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
-{% endif %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
 
 package:
   name: {{ name }}
@@ -16,31 +12,28 @@ source:
     sha256: 44a3298709b8d8ae9ef16b0c49167510a3d49dafe5f4d4dfd6670f365004959c
 
 build:
-  skip: true  # [win]
-  skip: true  # [cuda_compiler_version == "None"]
-{% if cuda_major < 12 %}
-  skip: true
-{% endif %}
+  skip: true  # [win or not (cuda_compiler_version or "").startswith("12")]
+  # Debugging skips
+  # skip: true  # [py != 312]
   number: 0
   string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   rpaths:
     - lib/
   missing_dso_whitelist:
     - '*/libcuda.*'  # [linux64]
-  script_env:
-    - CMAKE_ARGS+="-DMKL_INCLUDE_DIR=${PREFIX}/include"
 requirements:
   build:
     - python                                 # [build_platform != target_platform]
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - {{ stdlib("c") }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [cuda_compiler_version != 'None']
-    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ compiler('cuda') }}
     - make
-    - cmake >=3.23
-    - numpy
-    - llvm-openmp
+    - cmake >=3.25.2
+    - numpy                                  # [build_platform != target_platform]
+    - nomkl                                  # [build_platform != target_platform]
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
     - libcusolver-dev
     - libcurand-dev
     ignore_run_exports_from:
@@ -53,31 +46,26 @@ requirements:
     - cuda-cudart-dev
     - libcufft-dev
     - libcublas-dev
-    - liblapack
+    - blas-devel
     - libblas
-    - libcblas
     - liblapacke
+    - nomkl
   run:
     - python
-    - cuda-cudart
-    - libcufft
-    - libcublas
-    - liblapack
-    - libblas
-    - libcblas
-    - liblapacke
 
 test:
   requires:
     - pytest
     - scipy
+    # Prove that netlib-linked BLAS works with MKL
+    - libblas * *mkl  # [x86 or x86_64]
   imports:
     - libMobility
   source_files:
     - tests
   commands:
     - pytest -vs -k SelfMobility tests/test_*py
-    
+
 about:
   home: https://github.com/stochasticHydroTools/libmobility
   license: MIT
