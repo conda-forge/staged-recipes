@@ -1,11 +1,7 @@
 {% set name = "libmobility" %}
 {% set version = "0.5.0" %}
 
-{% if cuda_compiler_version in (None, "None", True, False) %}
-{% set cuda_major = 0 %}
-{% else %}
-{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
-{% endif %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
 
 package:
   name: {{ name }}
@@ -16,11 +12,7 @@ source:
     sha256: 44a3298709b8d8ae9ef16b0c49167510a3d49dafe5f4d4dfd6670f365004959c
 
 build:
-  skip: true  # [win]
-  skip: true  # [cuda_compiler_version == "None"]
-{% if cuda_major < 12 %}
-  skip: true
-{% endif %}
+  skip: true  # [win or not (cuda_compiler_version or "").startswith("12")]
   number: 0
   string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}blas{{ blas_impl }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   rpaths:
@@ -35,8 +27,7 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - {{ stdlib("c") }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [cuda_compiler_version != 'None']
-    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ compiler('cuda') }}
     - make
     - cmake >=3.23
     - numpy
@@ -77,7 +68,7 @@ test:
     - tests
   commands:
     - pytest -vs -k SelfMobility tests/test_*py
-    
+
 about:
   home: https://github.com/stochasticHydroTools/libmobility
   license: MIT
