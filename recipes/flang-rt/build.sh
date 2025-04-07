@@ -34,4 +34,6 @@ cmake --build . -j2
 cmake --install .
 
 ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.a $PREFIX/lib/libflang_rt.runtime.a
-ln -s $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.so $PREFIX/lib/libflang_rt.runtime.so
+# here we copy rather than symlink, because the target-specific path ends up in `flang-rt_<target>`,
+# whereas the regular path under $PREFIX/lib goes into `libflang-rt`
+cp $PREFIX/lib/clang/$MAJOR_VER/lib/x86_64-unknown-linux-gnu/libflang_rt.runtime.so $PREFIX/lib/libflang_rt.runtime.so
