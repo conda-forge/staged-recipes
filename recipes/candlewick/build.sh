@@ -10,6 +10,6 @@ cmake -S . -B build ${CMAKE_ARGS} \
   -DBUILD_EXAMPLES=OFF \
   -DBUILD_TESTING=OFF
 
-cmake --build build -j${CPU_COUNT}
+cmake --build build --config Release -j${CPU_COUNT}
 
-cmake --install build
+cmake --install build --config Release
