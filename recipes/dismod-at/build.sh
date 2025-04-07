@@ -40,7 +40,7 @@ ninja -j1 check
 # C++ install
 ninja -j$CPU_COUNT install
 #
-# python install
+# install python module
 echo 'build.sh: python version = '
 "${PYTHON}" --version
 "${PYTHON}" -m pip install $SRC_DIR/python  -vv --no-deps --no-build-isolation
