@@ -21,14 +21,14 @@ source:
 
 build:
   number: {{ number }}
-  skip: True  # [py<310]
+  skip: True  # [(py<310)]
 
 outputs:
   - name: fastemriwaveforms
     version: {{ version }}
     build:
       number: {{ number }}
-      skip: true  # [(py<310)]
+      skip: true  # [(py<310) or (cuda_compiler == "nvcc")]
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
         - >-
@@ -111,24 +111,23 @@ outputs:
       doc_url: https://bhptoolkit.org/FastEMRIWaveforms/html/index.html
       dev_url: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
 
-  - name: fastemriwaveforms-cuda
+  - name: fastemriwaveforms-cuda12x
     version: {{ version }}
     build:
       number: {{ number }}
-      skip: true  # [(py<310) or (cuda_compiler_version == "None")]
+      skip: true  # [(py<310) or (cuda_compiler != "cuda-nvcc")]
       script:
         - export CMAKE_GENERATOR=Ninja  # [unix]
-        - >-
-          {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda11x  # [cuda_compiler == "nvcc"]
-          {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda12x  # [cuda_compiler == "cuda-nvcc"]
         - sed -i'' -e '/@SKIP_PLUGIN@/d' pyproject.toml
+        - >-
+          {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda12x
         - >-
           {{ PYTHON }} -m pip install . -vv -Ccmake.define.FEW_LAPACKE_FETCH=OFF -Ccmake.define.FEW_WITH_GPU=ONLY -Ccmake.define.FEW_CUDA_ARCH=all
       ignore_run_exports_from:
         - {{ compiler('cuda') }}
-        - cuda-driver-dev  # [cuda_compiler == "cuda-nvcc" and linux]
+        - cuda-driver-dev  # [linux]
         - cuda-cudart-dev
-        - cuda-nvrtc-dev   # [cuda_compiler == "cuda-nvcc"]
+        - cuda-nvrtc-dev
         - libcublas-dev   
         - libcusparse-dev
     requirements:
@@ -147,9 +146,9 @@ outputs:
         - cmake
         - make
         - cuda-version {{ cuda_compiler_version }}  # [build_platform != target_platform]
-        - cuda-driver-dev                           # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform and linux]
+        - cuda-driver-dev                           # [build_platform != target_platform and linux]
         - cuda-cudart-dev                           # [build_platform != target_platform]
-        - cuda-nvrtc-dev                            # [cuda_compiler == "cuda-nvcc" and build_platform != target_platform]
+        - cuda-nvrtc-dev                            # [build_platform != target_platform]
         - libcublas-dev                             # [build_platform != target_platform]
         - libcusparse-dev                           # [build_platform != target_platform]
         - tomli                                     # [build_platform != target_platform]
@@ -164,7 +163,7 @@ outputs:
         - tomli
         - tomli-w
         - cuda-version {{ cuda_compiler_version }}
-        - cuda-driver-dev                           # [cuda_compiler == "cuda-nvcc" and linux]
+        - cuda-driver-dev                           # [linux]
         - cuda-cudart-dev
         - libcublas-dev
         - libcusparse-dev
@@ -172,27 +171,23 @@ outputs:
       run:
         - python
         - {{ pin_subpackage('fastemriwaveforms', exact=True) }}
-        - {{ pin_compatible("cuda-version", lower_bound="11.2") }}  # [cuda_compiler == "nvcc"]
-        - {{ pin_compatible('cuda-version', min_pin='x') }}         # [cuda_compiler == "cuda-nvcc"]
+        - {{ pin_compatible('cuda-version', min_pin='x') }}
         - libstdcxx  # [linux]
         - libgcc  # [linux]
         - cupy
-        - cudatoolkit                                               # [cuda_compiler == "nvcc"]
         - cuda-cudart
         - libcublas
         - libcusparse
 
     test:
       imports:
-        - few_backend_cuda11x  # [cuda_compiler == "nvcc"]
-        - few_backend_cuda12x  # [cuda_compiler == "cuda-nvcc"]
+        - few_backend_cuda12x
       requires:
         - pip
         - cuda-driver-dev  # [linux]
       commands:
         - pip check
-        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda11x') == '{{ version }}'"  # [cuda_compiler == "nvcc"]
-        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda12x') == '{{ version }}'"  # [cuda_compiler == "cuda-nvcc"]
+        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda12x') == '{{ version }}'"
 
     about:
       home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
