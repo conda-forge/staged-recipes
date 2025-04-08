@@ -19,7 +19,7 @@ cmake ${CMAKE_ARGS} \
       "${CMAKE_LIBXML_LIBRARY[@]}" \
       -DLIBXML_INCLUDE_DIR=${PREFIX}/include/libxml2 \
       -DWITH_SWIG=OFF \
-      -DWITH_ALL_PACKAGES=ON \
+      -DWITH_STABLE_PACKAGES=ON \
       -DWITH_CPP_NAMESPACE=ON \
       ..
 
