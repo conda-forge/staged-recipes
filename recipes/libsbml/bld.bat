@@ -10,7 +10,7 @@ cmake -G"Ninja" -S . -B build ^
     -DLIBXML_LIBRARY="%PREFIX%"/Library/lib/libxml2.lib ^
     -DLIBXML_INCLUDE_DIR="%PREFIX%"/Library/include/libxml2 ^
     -DWITH_SWIG=OFF ^
-    -DWITH_ALL_PACKAGES=ON ^
+    -DWITH_STABLE_PACKAGES=ON ^
     -DWITH_CPP_NAMESPACE=ON
 
 cmake --build build --parallel %CPU_COUNT% --config Release
