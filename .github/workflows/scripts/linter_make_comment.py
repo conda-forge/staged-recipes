@@ -33,10 +33,16 @@ def _get_latest_run_summary(repo, workflow_run_id):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Lint staged recipes.')
-    parser.add_argument('--head-repo-owner', type=str, required=True, help='the head repo owner')
-    parser.add_argument('--workflow-run-id', type=int, required=True, help='the ID of the workflor run')
-    parser.add_argument('--head-sha', type=str, required=True, help='the head SHA of the PR')
+    parser = argparse.ArgumentParser(description="Lint staged recipes.")
+    parser.add_argument(
+        "--head-repo-owner", type=str, required=True, help="the head repo owner"
+    )
+    parser.add_argument(
+        "--workflow-run-id", type=int, required=True, help="the ID of the workflor run"
+    )
+    parser.add_argument(
+        "--head-sha", type=str, required=True, help="the head SHA of the PR"
+    )
 
     args = parser.parse_args()
 
