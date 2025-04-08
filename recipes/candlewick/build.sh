@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# Required by apple SDK symbol check: https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
 CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
 cmake -S . -B build ${CMAKE_ARGS} \

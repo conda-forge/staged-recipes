@@ -12,7 +12,7 @@ cmake -S . -B build -G Ninja ^
 if errorlevel 1 exit 1
 
 :: Build!
-cmake --build build --config Release
+cmake --build build --config Release -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: Install!
