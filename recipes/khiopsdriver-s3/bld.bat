@@ -8,4 +8,4 @@ REM Build
 cmake --build builds\conda --parallel --target khiopsdriver_file_s3
 
 REM Copy the lib for the driver package
-copy builds\conda\bin\khiopsdriver_file_s3.dll %LIBRARY_BIN%\libkhiopsdriver_file_s3.dll
+copy builds\conda\bin\khiopsdriver_file_s3.dll %LIBRARY_PREFIX%\bin\libkhiopsdriver_file_s3.dll
