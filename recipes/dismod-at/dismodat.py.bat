@@ -1,1 +1,2 @@
-python %SRC_DIR%/python/bin/dismodat.py %*
+python %CONDA_PREFIX%\bin\dismodat.py %*
+if errorlevel 1 exit 1
