@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 #
-# example_file
+# test_file
 # This file must be in the test.sources of recipe.yaml
-example_file = 'example/user/fit_fixed_both.py'
+test_file = 'test/user/db2csv.py'
 #
 # imports
 import sys
@@ -39,35 +39,46 @@ def system_command(command) :
 # Put this code in a function so as to not polute the file namespace
 def main() :
    #
-   # PREFIX
-   prefix  = os.environ['PREFIX'].replace('/', '|').replace('\\', '|');
+   # prefix
+   prefix  = os.environ['PREFIX'].replace('/', '|').replace('\\', '|')
    print( f'run_test.py:\nprefix with /, \\ repalced by | = {prefix}' )
+   #
+   # env_path
+   env_path  = os.environ['PATH']
+   print( f'run_test.py:\nenv_path = {env_path}' )
    #
    # sys.path
    print( f'run_test.py:\nsys.path = {sys.path}' )
    #
-   # example_file
-   assert example_file[-3 :] == '.py'
-   if not os.path.isfile(example_file) :
-      sys.exit( f'run_test.py: cannot find example file = {example_file}' )
+   # test_file
+   assert test_file[-3 :] == '.py'
+   if not os.path.isfile(test_file) :
+      sys.exit( f'run_test.py: cannot find test file = {test_file}' )
    #
    # file_data
-   with open( example_file, 'r') as file_obj :
+   with open( test_file, 'r') as file_obj :
       file_data = file_obj.read()
-   # change execuable from sandbox verison to installed version
+   #
+   # ../../devel/dismod_at -> dismod_at
+   # Change execuable from sandbox verison to installed version
    file_data = file_data.replace('../../devel/dismod_at', 'dismod_at' )
    #
-   # example_copy
-   example_copy = 'example_copy.py'
-   file_data = file_data.replace(example_file, example_copy)
-   with open(example_copy , 'w') as file_obj :
+   # python_exe python/bin/dismodat.py -> dismod-at
+   # Change script from sandbox verison to installed version
+   file_data = file_data.replace('python_exe,\n', '' )
+   file_data = file_data.replace('python/bin/dismodat.py', 'dismod-at')
+   #
+   # test_copy
+   test_copy = 'test_copy.py'
+   file_data = file_data.replace(test_file, test_copy)
+   with open(test_copy , 'w') as file_obj :
       file_obj.write(file_data)
    #
-   # run example_copy 
-   command = [ 'python', example_copy ] 
+   # run test_copy 
+   command = [ 'python', test_copy ] 
    system_command( command )
    #
-   print( 'run_test.py: OK' )
+   print( sys.argv[0] + ': OK' )
 #
 #
 # python main
