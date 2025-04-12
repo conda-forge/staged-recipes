@@ -8,6 +8,7 @@ test_file = 'test/user/db2csv.py'
 import sys
 import os
 import subprocess
+import platform
 #
 # system_command
 # 1. print the command before executing it
@@ -51,6 +52,9 @@ def main() :
    # sys.argv[0]
    print( f'run_test.py: sys.argv[0] = {sys.argv[0]}' )
    #
+   # platform.system
+   print( 'run_test.py: platform.system() = ', platform.system() )
+   #
    # dismod_at, dismod-at
    dir_list  = os.environ['PATH'].replace(';', ':').split(':')
    for directory in dir_list :
@@ -58,6 +62,10 @@ def main() :
          file_path = f'{directory}/{file_name}'
          if os.path.isfile( file_path ) :
             print( f'run_test.py: found {file_path}' )
+         if platform.system() == 'Windows' :
+            for extension in [ 'exe', 'bat' ] :
+               if os.path.isfile( f'{file_path}.{extension}' ) :
+                  print( f'run_test.py: found {file_path}.{extension}' )
    #
    # test_file
    assert test_file[-3 :] == '.py'
