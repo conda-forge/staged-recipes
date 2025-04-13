@@ -29,6 +29,8 @@ def system_command(command) :
       if e.stdout == None or e.stdout == "" :
          sys.exit('run_test.py: command above failed with no error message')
       sys.exit( e.stderr )
+   except :
+      sys.exit('run_test.py: command above failed with unkhown error')
    #
    if result.stdout != None and result.stdout != "" :
       print( result.stdout )
