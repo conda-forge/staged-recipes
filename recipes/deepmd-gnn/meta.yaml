@@ -1,0 +1,74 @@
+{% set name = "deepmd-gnn" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/deepmodeling/deepmd-gnn/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 1835e48d0d5de5cceeddb1d188c46034b24af857336f45d8c3e97ff34304de60
+
+build:
+  number: 0
+  skip: true  # [win]
+  # https://github.com/deepmodeling/deepmd-kit/issues/4686
+  skip: true  # [osx]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - setuptools-scm
+    - pytorch
+  run:
+    - python
+    - pytorch
+    - deepmd-kit >=3.0.0b2
+    - pymace >=0.3.5
+    - nequip
+    - e3nn
+    - dargs
+
+test:
+  files:
+    - train.json
+    - water.lmp
+    - in.lammps
+  source_files:
+    - examples/water/data
+  imports:
+    - deepmd_gnn
+  requires:
+    - pip
+    - lammps
+  commands:
+    # https://github.com/conda-forge/mendeleev-feedstock/issues/37
+    - pip check  # [py<312]
+    - mv examples/water/data/data_0 ./data
+    - dp --pt train train.json
+    - dp --pt freeze -o frozen_model.pth
+    - export OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes OMPI_MCA_plm_ssh_agent=false  # [mpi == "openmpi"]
+    - mpiexec -n 1 lmp_mpi -in in.lammps
+
+about:
+  home: https://github.com/deepmodeling/deepmd-gnn
+  summary: 'DeePMD-kit plugin for various graph neural network models'
+  description: |
+    deepmd-gnn is a DeePMD-kit plugin for various graph neural network (GNN) models, which connects
+    DeePMD-kit and atomistic GNN packages by enabling GNN models in DeePMD-kit.
+  license: LGPL-3.0-only
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://docs.deepmodeling.com/projects/deepmd-gnn/
+  dev_url: https://github.com/deepmodeling/deepmd-gnn
+
+extra:
+  recipe-maintainers:
+    - njzjz
