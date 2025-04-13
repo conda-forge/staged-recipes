@@ -8,7 +8,7 @@ python -m pip install . -vv
 mkdir -p build
 cd build
 cmake .. ${CMAKE_ARGS}
-cmake --build . -j`nproc`
+cmake --build . -j${CPU_COUNT}
 cmake --install .
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
