@@ -1,1 +1,0 @@
-export DP_PLUGIN_PATH=${CONDA_PREFIX}/lib/libdeepmd_gnn.so${DP_PLUGIN_PATH:+:$DP_PLUGIN_PATH}
