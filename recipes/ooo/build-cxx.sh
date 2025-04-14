@@ -1,9 +1,9 @@
-if [ "$(uname)" == "Darwin" ]; then
+if [[ "$target_platform" == osx-* ]]; then
     ARCH_ARGS=""
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
-if [ "$(uname)" == "Linux" ]; then
+if [[ "$target_platform" == linux-* ]]; then
     ARCH_ARGS=""
 
 fi

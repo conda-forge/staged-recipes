@@ -1,10 +1,10 @@
-if [ "$(uname)" == "Darwin" ]; then
+if [[ "$target_platform" == osx-* ]]; then
     ARCH_ARGS=""
     # avoid in tests `error: no member named 'assoc_legendre' in namespace 'std'`, a known omission for Clang
     _TESTS=OFF
 
 fi
-if [ "$(uname)" == "Linux" ]; then
+if [[ "$target_platform" == linux-* ]]; then
     ARCH_ARGS=""
     _TESTS=ON
 
