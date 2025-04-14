@@ -1,0 +1,67 @@
+context:
+  version: "2.17"
+
+package:
+  name: little-cms2
+  version: ${{ version }}
+
+source:
+  url: https://downloads.sourceforge.net/project/lcms/lcms/${{ version }}/lcms2-${{ version }}.tar.gz
+  sha256: d11af569e42a1baa1650d20ad61d12e41af4fead4aa7964a01f93b08b53ab074
+
+build:
+  script:
+    - if: unix
+      then:
+        - meson setup builddir ${MESON_ARGS} -Dutils=true -Djpeg=enabled -Dtiff=enabled 
+      else:
+        - set "LIBRARY_PREFIX_M=%LIBRARY_PREFIX:\=/%"
+        - meson setup builddir %MESON_ARGS% --prefix=%LIBRARY_PREFIX_M% --buildtype=release -Dutils=true -Djpeg=enabled -Dtiff=enabled 
+    - meson compile -C builddir
+    - meson install -C builddir
+    - meson test -C builddir
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - meson
+    - pkg-config
+  host:
+    - libjpeg-turbo
+    - libtiff
+    # needed to have pc files installed (for libtiff)
+    - xz
+    - zlib
+  ignore_run_exports:
+    from_package: 
+      - xz
+      - zlib
+
+tests:
+  - package_contents:
+      bin:
+        - jpgicc
+        - linkicc
+        - psicc
+        - tificc
+        - transicc
+      include:
+        - lcms2.h
+      lib:
+        - lcms2
+      files:
+        - "**/pkgconfig/lcms2.pc"
+
+  - script: |
+      jpgicc -v
+
+about:
+  homepage: https://www.littlecms.com/
+  license: MIT
+  summary: Color management engine supporting ICC profiles
+  description: |
+    Little CMS is an open source color management engine, which implements fast transforms between ICC profiles.
+
+extra:
+  recipe-maintainers:
+    - your-github-username-here
