@@ -9,9 +9,10 @@ mamba install \
   "pycodestyle>=2.5.0" \
   python-mimeparse==2.0.0 \
   selenium==4.27.1 \
-  main::testscenarios==0.5.0 \
   testtools==2.7.2 \
   traceback2==1.4.0
+  # We propose a conda version
+  # main::testscenarios==0.5.0
 
 # Detect windows
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
