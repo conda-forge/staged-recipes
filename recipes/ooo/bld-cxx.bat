@@ -4,11 +4,7 @@ cmake %CMAKE_ARGS% ^
   -S %SRC_DIR% ^
   -B build ^
   -D CMAKE_BUILD_TYPE=Release ^
-  -D CMAKE_INSTALL_PREFIX="%PREFIX%" ^
-  -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
-  -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
-  -D CMAKE_INSTALL_BINDIR="Library\bin" ^
-  -D CMAKE_INSTALL_DATADIR="Library\share" ^
+  -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
   -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="Library\OpenOrbitalOptimizer\CMake" ^
   -D OpenOrbitalOptimizer_BUILD_TESTING=OFF ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
