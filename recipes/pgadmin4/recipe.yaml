@@ -9,21 +9,23 @@ package:
 source:
   url: https://ftp.postgresql.org/pub/pgadmin/pgadmin4/v${{ version }}/source/pgadmin4-${{ version }}.tar.gz
   sha256: 3b41fd0ec898d474c4166a6aa3fe545ece0e3d0faf99a2ede7393331e41fc125
+  patches:
+    - patches/dbg-runtest.py.patch
 
 build:
   number: 0
+  python:
+    entry_points:
+      - pgadmin4=pgadmin4.pgAdmin4:main
+      - pgadmin4-cli=pgadmin4.setup:main
 
 requirements:
   build:
-    - if: unix
-      then:
-        - make
-      else:
-        - m2-make
+    - ${{ "m2-" if not unix else "" }}make
   host:
     - nodejs
     - python
-    - postgresql
+    # - postgresql
     - yarn
     - if: python >= 3.12
       then:
@@ -84,6 +86,7 @@ requirements:
     - pyotp 2.*
     - python
     - python-dateutil 2.*
+    - python-gssapi 1.9.*
     - SQLAlchemy 2.*
     - sqlparse 0.*
     - speaklater 1.*
@@ -93,30 +96,15 @@ requirements:
     - user-agents ==2.2.0
 
 tests:
+  - package_contents:
+      # bin:
+      #   - pgadmin4
+      #   - pgadmin4-cli
   - script:
-      - sed "s/__PGVER__/${{ postgresql }}/g" testing/test_config.json > web/regression/test_config.json
-      - cp testing/config_local.py web/
-      - make check-python
-    requirements:
-      run:
-        - linecache2 ==1.0.0
-        - make
-        - pbr ==6.1.0
-        - pycodestyle >=2.5.0
-        - pytest
-        - python-mimeparse ==1.6.0
-        - python
-        - selenium ==4.27.1
-        - testscenarios ==0.5.0
-        - testtools ==2.7.2
-        - traceback2 ==1.4.0
-    files:
-      source:
-        - Makefile
-        - tests/
-        - web/
-      recipe:
-        - testing/
+      # - pgadmin4 --help
+      - bash test.sh
+    requirements: { run: [postgresql 17.*, python] }
+    files: { source: [Makefile, web/], recipe: [test.sh, testing/] }
 
 about:
   homepage: https://github.com/pgadmin-org/pgadmin4
