@@ -1,3 +1,6 @@
+echo %LDFLAGS%
+set "LDFLAGS=%LDFLAGS:/link=%"
+echo %LDFLAGS%
 
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^

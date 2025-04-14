@@ -1,3 +1,6 @@
+echo %LDFLAGS%
+set "LDFLAGS=%LDFLAGS:/link=%"
+echo %LDFLAGS%
 
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^
@@ -5,7 +8,7 @@ cmake %CMAKE_ARGS% ^
   -B build ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-  -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="Library\OpenOrbitalOptimizer\CMake" ^
+  -D OpenOrbitalOptimizer_INSTALL_CMAKEDIR="OpenOrbitalOptimizer\CMake" ^
   -D OpenOrbitalOptimizer_BUILD_TESTING=OFF ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
