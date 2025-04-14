@@ -95,7 +95,7 @@ def main() :
    command = [ 'python', test_file ] 
    system_command( command )
    #
-   print( 'run_test: OK' )
+   print( 'run_test.py: OK' )
 #
 #
 # python main
