@@ -1,21 +1,28 @@
 #! /usr/bin/env python
 #
-# test_file
-# This file must be in the test.sources of recipe.yaml
-test_file = 'test/user/db2csv.py'
+# test_file_list
+# These files must be in the test.sources of recipe.yaml.
+# In addition, if any of the example/get_started/*.py appears below,
+# example/get_started/get_started_db.py must be in test.sources of recipe.yaml.
+test_file_list = [
+   'example/get_started/fit_command.py',
+   'test/user/db2csv.py' ,
+]
 #
 # imports
 import sys
 import os
+import re
 import subprocess
 import platform
 #
 # system_command
-# 1. print the command before executing it
+# 1. print 'system_command:' followed by the command before executing it
 # 2. double check for errors during the command
-# 3. if an error occurs, exit with message
+# 3. if an error occurs, exit with message, 
+#    otherwise print 'system_command: OK'
 def system_command(command) :
-   print( " ".join( command ) )
+   print( "system_command: " + " ".join( command ) )
    try :
       result = subprocess.run(
          command, 
@@ -35,18 +42,59 @@ def system_command(command) :
    if result.stdout != None and result.stdout != "" :
       print( result.stdout )
    if result.returncode != 0 :
-      if result.stdout == None or result.stdout == "" :
+      if result.stderr == None or result.stderr == "" :
          sys.exit('run_test.py: command above failed with no error message')
       sys.exit( result.stderr )
+   print( "system_command: OK" )
+#
+# sandbox2installed
+def sandbox2installed(test_file) :
+   #
+   # test_file
+   assert test_file[-3 :] == '.py'
+   if not os.path.isfile(test_file) :
+      sys.exit( f'run_test.py: cannot find test file = {test_file}' )
+   #
+   # file_data
+   with open( test_file, 'r') as file_obj :
+      file_data = file_obj.read()
+   #
+   # file_data
+   # Change from sandbox dismod_at to installed dismod_at
+   pattern   = r'\.\./\.\./devel/dismod_at'
+   replace   = r'dismod_at'
+   file_data = re.sub(pattern, replace, file_data)
+   #
+   # file_data
+   # Change from sandbox dismodat.py to installed dismod-at
+   pattern   = r'python/bin/dismodat.py'
+   replace   = r'dismod-at'
+   file_data = re.sub(pattern, replace, file_data)
+   #
+   # file_data
+   # Remove python from font of dismod-at commands
+   pattern   = r'python_exe *,'
+   replace   = r''
+   file_data = re.sub(pattern, replace, file_data)
+   #
+   # test_file
+   with open(test_file , 'w') as file_obj :
+      file_obj.write(file_data)
+
 #
 # main
 # Put this code in a function so as to not polute the file namespace
 def main() :
    #
-   # prefix
-   prefix  = os.environ['PREFIX'].replace('/', '|').replace('\\', '|')
-   print( f'run_test.py: prefix with / and \\ repalced by |')
-   print( prefix )
+   # work_dir
+   work_dir  = os.getcwd().replace('/', '|').replace('\\', '|')
+   print( f'run_test.py: work directory with / and \\ repalced by |')
+   print( work_dir )
+   #
+   # prefix_dir
+   prefix_dir  = os.environ['PREFIX'].replace('/', '|').replace('\\', '|')
+   print( f'run_test.py: prefix directory with / and \\ repalced by |')
+   print( prefix_dir )
    #
    # sys.path
    print( f'run_test.py: sys.path =\n{sys.path}' )
@@ -70,30 +118,14 @@ def main() :
                   print( f'run_test.py: found {file_path}.{extension}' )
    #
    # test_file
-   assert test_file[-3 :] == '.py'
-   if not os.path.isfile(test_file) :
-      sys.exit( f'run_test.py: cannot find test file = {test_file}' )
-   #
-   # file_data
-   with open( test_file, 'r') as file_obj :
-      file_data = file_obj.read()
-   #
-   # file_data
-   # Change from sandbox dismod_at verison to installed version
-   file_data = file_data.replace('../../devel/dismod_at', 'dismod_at' )
-   #
-   # file_data
-   # Change script from sandbox dismod-at to installed version
-   file_data = file_data.replace('python_exe,\n', '' )
-   file_data = file_data.replace('python/bin/dismodat.py', 'dismod-at')
-   #
-   # test_file
-   with open(test_file , 'w') as file_obj :
-      file_obj.write(file_data)
-   #
-   # test_file 
-   command = [ 'python', test_file ] 
-   system_command( command )
+   for test_file in test_file_list :
+      #
+      # sandbox2installed
+      sandbox2installed(test_file)
+      #
+      # test_file 
+      command = [ 'python', test_file ] 
+      system_command( command )
    #
    print( 'run_test.py: OK' )
 #
