@@ -19,16 +19,16 @@ import platform
 # system_command
 # 1. print 'system_command:' followed by the command before executing it
 # 2. double check for errors during the command
-# 3. if an error occurs, exit with message, 
+# 3. if an error occurs, exit with message,
 #    otherwise print 'system_command: OK'
 def system_command(command) :
    print( "system_command: " + " ".join( command ) )
    try :
       result = subprocess.run(
-         command, 
+         command,
          check          = False,
-         capture_output = True , 
-         encoding       = 'utf-8', 
+         capture_output = True ,
+         encoding       = 'utf-8',
          env            = os.environ
       )
    #
@@ -123,8 +123,8 @@ def main() :
       # sandbox2installed
       sandbox2installed(test_file)
       #
-      # test_file 
-      command = [ 'python', test_file ] 
+      # test_file
+      command = [ 'python', test_file ]
       system_command( command )
    #
    print( 'run_test.py: OK' )
