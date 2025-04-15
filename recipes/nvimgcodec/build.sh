@@ -50,4 +50,3 @@ cmake --install . --strip
 
 $PYTHON -m pip install --no-deps --no-build-isolation -v $SRC_DIR/build/python
 
-# ln -s $PREFIX/extensions $SP_DIR/nvidia/nvimgcodec/extensions
