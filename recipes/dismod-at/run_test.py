@@ -34,16 +34,21 @@ def system_command(command) :
    #
    except subprocess.CalledProcessErrror as e :
       if e.stdout == None or e.stdout == "" :
-         sys.exit('run_test.py: command above failed with no error message')
+         msg  = 'run_test.py: systme_command failed with a '
+         msg += 'CalledProcessErrror exception that has an empty error message'
+         sys.exit(msg)
       sys.exit( e.stderr )
    except :
-      sys.exit('run_test.py: command above failed with unkhown error')
+         msg  = 'run_test.py: system_command failed with a '
+         msg += str(sys.exception()) + 'exception'
+         sys.exit(msg)
    #
    if result.stdout != None and result.stdout != "" :
       print( result.stdout )
    if result.returncode != 0 :
       if result.stderr == None or result.stderr == "" :
-         sys.exit('run_test.py: command above failed with no error message')
+         msg  = 'run_test.py: system_command failed with no error message'
+         sys.exit(msg)
       sys.exit( result.stderr )
    print( "system_command: OK" )
 #
