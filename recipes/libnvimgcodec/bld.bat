@@ -10,7 +10,6 @@ cd build
 
 if errorlevel 1 exit 1
 
-set CUDAARCHS="50"
 
 set NVIMG_BUILD_ARGS= ^
     -DBUILD_DOCS:BOOL=OFF ^
