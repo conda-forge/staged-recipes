@@ -18,7 +18,6 @@ set -ex
 mkdir build
 cd build
 
-export CUDAARCHS="50"
 
 nvimg_build_args=(
     -DBUILD_DOCS:BOOL=OFF
