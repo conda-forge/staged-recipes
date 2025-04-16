@@ -6,8 +6,6 @@ cmake_args=(
     $CMAKE_ARGS
     -GNinja
     -DCASACPP_VERSION=$PKG_VERSION
-    -DCMAKE_COLOR_MAKEFILE=OFF
-    -DCMAKE_INSTALL_PREFIX=$PREFIX
 )
 
 if [ $(uname) = Darwin ] ; then
