@@ -15,42 +15,7 @@ import os
 import re
 import subprocess
 import platform
-#
-# system_command
-# 1. print 'system_command:' followed by the command before executing it
-# 2. double check for errors during the command
-# 3. if an error occurs, exit with message,
-#    otherwise print 'system_command: OK'
-def system_command(command) :
-   print( "system_command: " + " ".join( command ) )
-   try :
-      result = subprocess.run(
-         command,
-         check          = False,
-         capture_output = True ,
-         encoding       = 'utf-8',
-         env            = os.environ
-      )
-   #
-   except subprocess.CalledProcessErrror as e :
-      if e.stdout == None or e.stdout == "" :
-         msg  = 'run_test.py: systme_command failed with a '
-         msg += 'CalledProcessErrror exception that has an empty error message'
-         sys.exit(msg)
-      sys.exit( e.stderr )
-   except :
-         msg  = 'run_test.py: system_command failed with a '
-         msg += str(sys.exception()) + 'exception'
-         sys.exit(msg)
-   #
-   if result.stdout != None and result.stdout != "" :
-      print( result.stdout )
-   if result.returncode != 0 :
-      if result.stderr == None or result.stderr == "" :
-         msg  = 'run_test.py: system_command failed with no error message'
-         sys.exit(msg)
-      sys.exit( result.stderr )
-   print( "system_command: OK" )
+import dismod_at
 #
 # sandbox2installed
 def sandbox2installed(test_file) :
@@ -130,7 +95,20 @@ def main() :
       #
       # test_file
       command = [ 'python', test_file ]
-      system_command( command )
+      result = dismod_at.system_command_prc( 
+         command               ,
+         print_command  = True ,
+         return_stdout  = True ,
+         return_stderr  = True ,
+      )
+      if result.stdout != '' :
+         print( result.stdout )
+      if result.returncode == 0 :
+         assert result.stderr == ''
+      else :
+         print( 'system_command_prc: Error Message:' )
+         print( result.stderr )
+         sys.exit(1)
    #
    print( 'run_test.py: OK' )
 #
