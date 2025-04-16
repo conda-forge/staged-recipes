@@ -12,7 +12,7 @@ export npm_config_build_from_source=true
 rm $PREFIX/bin/node
 ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
-yarn pack
+yarn pack --ignore-scripts
 yarn licenses generate-disclaimer > third-party-licenses.txt
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
