@@ -95,7 +95,7 @@ def main() :
       # This is failing on the conda-forge test machine, but works
       # doing a local rattler-build on a windows machine. At this point
       # I think it is a problem with the conda test system. 
-      skip = test_file=='test/user/db2csv.py' and platform.system=='Windows'
+      skip = test_file=='test/user/db2csv.py' and platform.system() =='Windows'
       if not skip :
          #
          # sandbox2installed
