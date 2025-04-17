@@ -7,7 +7,7 @@ set ERRORLEVEL=0
 call mvn clean package || exit /b %ERRORLEVEL%
 
 :: Generate a THIRD-PARTY license report
-call mvn org.codehaus.mojo:license-maven-plugin:1.19:aggregate-add-third-party || exit /b %ERRORLEVEL%
+call mvn org.codehaus.mojo:license-maven-plugin:1.19:aggregate-add-third-party-report || exit /b %ERRORLEVEL%
 
 :: Show what's in target (for debugging)
 dir target

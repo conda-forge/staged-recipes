@@ -5,7 +5,7 @@ set -ex  # Fail on error and print each command
 mvn clean package
 
 # Generate a THIRD-PARTY license report
-mvn org.codehaus.mojo:license-maven-plugin:1.19:aggregate-add-third-party
+mvn org.codehaus.mojo:license-maven-plugin:1.19:aggregate-add-third-party-report
 
 # Create installation directory
 mkdir -p "${PREFIX}/share/rnartistcore"
