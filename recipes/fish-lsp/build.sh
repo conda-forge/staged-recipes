@@ -18,11 +18,6 @@ npm uninstall tsc
 npm install typescript
 npm run compile
 
-# Move transpiled javascript from out to dist so that npm pack notices it
-# Then symlink out back to dist so post install works
-mv out dist
-ln -sf dist out
-
 # Add fast-glob as a production dependency
 npm install fast-glob --save-prod
 
@@ -38,11 +33,6 @@ npm install -ddd \
     --global \
     --build-from-source \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION//_/-}.tgz
-
-# Delete empty out directory from ${PREFIX}/lib/node_modules/fish-lsp
-# and then symlink out back to dist so that bin wrapper script works
-rm -rf ${PREFIX}/lib/node_modules/fish-lsp/out
-ln -sf ${PREFIX}/lib/node_modules/fish-lsp/dist ${PREFIX}/lib/node_modules/fish-lsp/out
 
 # Create license report for dependencies
 pnpm install --ignore-scripts
