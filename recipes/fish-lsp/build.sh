@@ -10,13 +10,15 @@ if [[ "$(uname)" == "Darwin" ]]; then
 fi
 
 # Fix package.json so it can bootstrap itself
-# Remove preinstall script because it needs devDependencies that need to be installed with npm install
-# Remove compile command from post install script so we don't try to transpile typescript again
+# Remove preinstall script because it needs devDependencies that need to be installed
+# with npm install
+# Remove compile command from post install script so we don't try to transpile
+# typescript again
 mv package.json package.json.bak
 jq "del(.scripts.preinstall)" package.json.bak > package.json
 sed -i 's/setup compile sh:relink/setup sh:relink/' package.json
 
-# Install depenendencies without running postinstall
+# Install dependencies without running postinstall
 npm install --ignore-scripts
 
 # Remove tsc package and replace with typescript so we can transpile typescript
@@ -35,7 +37,7 @@ npm pack --ignore-scripts
 ln -sf ${SRC_DIR}/node_modules/npm-run-all/bin/run-s/index.js ${SRC_DIR}/bin/run-s
 export PATH="${SRC_DIR}/bin:${PATH}"
 
-# Install globally
+# Install the packed tgz globally
 npm install -ddd \
     --global \
     --build-from-source \
