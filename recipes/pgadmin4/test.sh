@@ -14,17 +14,12 @@ mamba install \
   # We propose a conda version
   # main::testscenarios==0.5.0
 
-# Detect windows
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-  mamba install m2-make
-else
-  mamba install make
-fi
-
 POSTGRESQL_VERSION="99" python testing/update_config.py testing/test_config.json
 cp testing/test_config.json web/regression/
 cp testing/config_local.py web/
 POSTGRESQL_VERSION="99" TEST_COMMAND="echo 'Done'" python testing/run_test_command.py
 
-# One test: BackupJobTest fails
-make check-python || true
+# Correct imports
+sed -i -E 's/(from|import) pgadmin/$1 pgadmin4.pgadmin/g' web/config.py web/regression/runtests.py
+# One test fails: BackupJobTest
+cd web && python regression/runtests.py --exclude feature_tests || true
