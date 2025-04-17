@@ -22,6 +22,6 @@ git add recipes/
 git commit -m "Add recipe for genomicranges, iranges, biocutils, biocframe and ncls"
 git push origin add-biocpy
 ```
-After this you could open a pull request to conda-forge [staged-recipes](https://github.com/conda-forge/staged-recipes)
-
-I've already prepared the recipe for `iranges` (attached) and can help with the others. Would the BiocPy organization be interested in maintaining these packages on conda-forge? This would make the packages more accessible to the bioinformatics community and help with reproducibility of analyses that depend on these libraries.
+The linting step is suggested soem edits (adding home url for ncls, and adding {{ stdlib('c') }} for ncls and iranges). 
+I've ran the above (but with my github username instead of BiocPy) - https://github.com/UriNeri/staged-recipes/tree/add-biocpy - and I can a pull request to conda-forge [staged-recipes](https://github.com/conda-forge/staged-recipes) if it is ok with you. I'd prefer to have BiocPy as the maintainer listed in the meta.yaml files, instead of my username as the default (or we could add both).  
+Let me know what you think.
