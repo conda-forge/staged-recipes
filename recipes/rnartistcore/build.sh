@@ -14,5 +14,5 @@ mkdir -p "${PREFIX}/share/rnartistcore"
 # Copy the built JAR file to the installation directory
 cp target/rnartistcore-*-jar-with-dependencies.jar "${PREFIX}/share/rnartistcore/rnartistcore.jar"
 
-# Copy the third‑party license report
-cp target/generated-sources/license/THIRD-PARTY.txt "${PREFIX}/share/rnartistcore/THIRD-PARTY.txt"
+# Copy the third‑party license report to the package root
+cp target/generated-sources/license/THIRD-PARTY.txt "${PREFIX}/THIRD-PARTY.txt"

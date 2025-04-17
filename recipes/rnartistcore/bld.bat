@@ -20,8 +20,8 @@ mkdir "%PREFIX%\share\rnartistcore"
 copy "target\rnartistcore-%JAR_VERSION%-jar-with-dependencies.jar" ^
      "%PREFIX%\share\rnartistcore\rnartistcore.jar" || exit /b %ERRORLEVEL%
 
-:: Copy the third‑party license report
+:: Copy the third‑party license report to the package root
 copy "target\generated-sources\license\THIRD-PARTY.txt" ^
-     "%PREFIX%\share\rnartistcore\THIRD-PARTY.txt" || exit /b %ERRORLEVEL%
+     "%PREFIX%\THIRD-PARTY.txt" || exit /b %ERRORLEVEL%
 
 exit /b 0
