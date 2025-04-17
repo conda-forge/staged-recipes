@@ -37,7 +37,7 @@ export PATH="${SRC_DIR}/bin:${PATH}"
 npm install -ddd \
     --global \
     --build-from-source \
-    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION//_/-}.tgz
 
 # Delete empty out directory from ${PREFIX}/lib/node_modules/fish-lsp
 # and then symlink out back to dist so that bin wrapper script works
