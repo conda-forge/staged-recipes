@@ -1,0 +1,109 @@
+{% set name = "OpenOrbitalOptimizer" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/SusiLehtola/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: 26b5f11fcf47dcfd54e2fc4545f47f0ffff426bb0e35a0fb8e93a63c7fb15a89
+
+build:
+  number: 0
+
+# multi-output recipe is weird for single output (not to mention a header-only output), but it is
+#   preparation for a separate python output with compiled extension. (I've done these before --
+#   see ambit, gdma, libefp, libxc, etc.)
+outputs:
+  - name: openorbitaloptimizer
+    script: build-cxx.sh                                                       # [unix]
+    script: bld-cxx.bat                                                        # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('openorbitaloptimizer', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ stdlib("c") }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - armadillo
+    test:
+      files:
+        - tests/CMakeLists.txt
+      source_files:
+        - tests/atomicsolver.hpp
+        - tests/atomtest.cpp
+        - tests/cc-pvdz.json
+        - tests/cmdline.h
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libxc-c
+        - nlohmann_json
+        - integratorxx
+        - liblapack * *mkl                                                     # [linux]
+        - libblas * *netlib                                                    # [win]    # armadillo+win missing blas.lib w/o this
+        - liblapack * *netlib                                                  # [win]
+      commands:
+        # Verify library (skip, as header-only)
+        # Verify accessories
+        - test -f $PREFIX/include/openorbitaloptimizer/scfsolver.hpp           # [unix]
+        - test -f $PREFIX/include/openorbitaloptimizer/cg_optimizer.hpp        # [unix]
+        - test -f $PREFIX/share/cmake/OpenOrbitalOptimizer/OpenOrbitalOptimizerConfig.cmake  # [unix]
+        - test -f $PREFIX/share/cmake/OpenOrbitalOptimizer/OpenOrbitalOptimizerTargets.cmake  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\openorbitaloptimizer\\scfsolver.hpp exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\include\\openorbitaloptimizer\\cg_optimizer.hpp exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\OpenOrbitalOptimizer\\CMake\\OpenOrbitalOptimizerConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\OpenOrbitalOptimizer\\CMake\\OpenOrbitalOptimizerTargets.cmake exit 1  # [win]
+        # Actually test
+        - cd tests
+        - set "LDFLAGS=%LDFLAGS:/link =%"                                      # [win]
+        - echo "%LDFLAGS%"                                                     # [win]
+        - cmake -S. -Bbuild -GNinja -DCMAKE_PREFIX_PATH="${PREFIX}"            # [unix]
+        - cmake -S. -Bbuild -GNinja -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_BUILD_TYPE=Release"  # [win]
+        - cmake --build build
+        - ./build/atomtest --Z 8 --xfunc GGA_X_PBE --cfunc GGA_C_PBE --M 3 --sto 0 --basis "cc-pvdz.json"  # [unix]
+        - build\\atomtest.exe --Z 8 --xfunc GGA_X_PBE --cfunc GGA_C_PBE --M 3 --sto 0 --basis "cc-pvdz.json"  # [win]
+
+about:
+  home: https://github.com/SusiLehtola/OpenOrbitalOptimizer
+  dev_url: https://github.com/SusiLehtola/OpenOrbitalOptimizer
+  # doc_url:
+  license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
+  license_file: LICENSE
+  license_family: MOZILLA
+  summary: "S. Lehtola's general library for orbital optimization problems in quantum chemistry"
+  description: |
+    The OpenOrbitalOptimizer is general and reusable library aimed for orbital optimization problems
+    that arise with various methods in quantum chemistry, ranging from self-consistent field (SCF)
+    methods like Hartree-Fock (HF) and density functional theory (DFT) to more elaborate methods like
+    multiconfigurational self-consistent field theory, orbital-optimized coupled-cluster theory,
+    generalized valence bond theories, etc. At the moment, the library only does Roothaan-type SCF
+    for HF and DFT calculations, but general algorithms for direct minimization on the Grassmann and
+    Stiefel manifolds are forthcoming.
+
+extra:
+  feedstock-name: openorbitaloptimizer
+  recipe-maintainers:
+    - loriab
+    # - susilehtola
+
+# Notes
+
+# * to run ctests in build phase, add these back
+#      build/ignore_run_exports:
+#        - libxc-c
+#        - nlohmann_json
+#        - integratorxx
+#      requirements/host:
+#        - libblas * *netlib                                                    # [win]    # armadillo+win missing blas.lib w/o this
+#        - liblapack * *netlib                                                  # [win]
+#        - libblas * *mkl                                                       # [not win]
+#        - libxc-c                                                                         # testing
+#        - nlohmann_json                                                                   # testing
+#        - integratorxx                                                                    # testing

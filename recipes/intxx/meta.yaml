@@ -1,0 +1,69 @@
+{% set name = "IntegratorXX" %}
+{% set version = "0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # no tags on repo yet, but this is the master HEAD in stable use
+  url: https://github.com/wavefunction91/{{ name }}/archive/cf2917c.tar.gz
+  patches:
+    - 0001-windows-adaptations.patch
+  sha256: 7b16cee93458e528dea190b17b5f6ebf25024ccc28a8c66fceae603a345f6713
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('integratorxx', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - catch2                                                                         # for testing
+test:
+  requires:
+    - m2w64-binutils                                                       # [win]   # provides objdump.exe
+  commands:
+    # Verify library
+    - test -f $PREFIX/lib/libintegratorxx$SHLIB_EXT                        # [unix]
+    - test ! -f $PREFIX/lib/libintegratorxx.a                              # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\integratorxx.lib exit 1         # [win]   # ms import lib
+    - if not exist %PREFIX%\\Library\\bin\\integratorxx.dll exit 1         # [win]   # ms dyn lib
+    # Verify accessories
+    - test -f $PREFIX/include/integratorxx/quadrature.hpp                  # [unix]
+    - test -f $PREFIX/lib/cmake/IntegratorXX/IntegratorXXConfig.cmake      # [unix]
+    - test -f $PREFIX/lib/cmake/IntegratorXX/IntegratorXXTargets.cmake     # [unix]
+    - if not exist %PREFIX%\\Library\\include\\integratorxx\\quadrature.hpp exit 1                # [win]
+    - if not exist %PREFIX%\\Library\\lib\\cmake\\IntegratorXX\\IntegratorXXConfig.cmake exit 1   # [win]
+    - if not exist %PREFIX%\\Library\\lib\\cmake\\IntegratorXX\\IntegratorXXTargets.cmake exit 1  # [win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libintegratorxx$SHLIB_EXT                                # [linux]
+    - otool -L $PREFIX/lib/libintegratorxx$SHLIB_EXT                              # [osx]
+    - objdump.exe -p %PREFIX%\\Library\\bin\\integratorxx.dll | findstr /i "dll"  # [win]
+    # Actually test (skip, as done through ctest in build phase)
+
+about:
+  home: https://github.com/wavefunction91/IntegratorXX
+  dev_url: https://github.com/wavefunction91/IntegratorXX
+  # doc_url:
+  license: BSD-3-Clause
+  license_url: https://opensource.org/licenses/BSD-3-Clause
+  license_file: LICENSE.txt
+  license_family: BSD
+  summary: "D. Williams-Young's reuseable density functional theory (DFT) grid library"
+  description: |
+    IntegratorXX is a modern C++ library for the generation of atomic and molecular grids for quantum
+    chemistry calculations. Among the most important applications of these grids is the evaluation
+    of exchange--correlation (XC) related quantities (energies, potentials, etc) required for density
+    functional theory calculations. IntegratorXX provides a uniform interface for the generation of
+    primitive, radial and solid angle quadratures, as well as their combination into spherical grids.
+
+extra:
+  recipe-maintainers:
+    - loriab
+    # - wavefunction91
