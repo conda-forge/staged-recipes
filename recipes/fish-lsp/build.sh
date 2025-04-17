@@ -2,6 +2,13 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Avoid limitations with install_name_tool rpath re-writing
+if [[ "$(uname)" == "Darwin" ]]; then
+  export CFLAGS="${CFLAGS} -Wl,-headerpad_max_install_names"
+  export CXXFLAGS="${CXXFLAGS} -Wl,-headerpad_max_install_names"
+  export LDFLAGS="${LDFLAGS} -headerpad_max_install_names"
+fi
+
 # Fix package.json so it can bootstrap itself
 # Remove preinstall script because it needs devDependencies that need to be installed with npm install
 # Remove compile command from post install script so we don't try to transpile typescript again
