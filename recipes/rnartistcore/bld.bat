@@ -6,6 +6,9 @@ set ERRORLEVEL=0
 :: --- Build with Maven ---
 call mvn clean package || exit /b %ERRORLEVEL%
 
+:: Generate a THIRD-PARTY license report
+call mvn org.codehaus.mojo:license-maven-plugin:3.0:aggregate-add-third-party || exit /b %ERRORLEVEL%
+
 :: Show what's in target (for debugging)
 dir target
 
@@ -13,8 +16,11 @@ dir target
 mkdir "%PREFIX%\share\rnartistcore"
 
 :: Copy the correct jar using the dash version from %JAR_VERSION%
-:: This name must match exactly what Maven produces.
 copy "target\rnartistcore-%JAR_VERSION%-jar-with-dependencies.jar" ^
      "%PREFIX%\share\rnartistcore\rnartistcore.jar" || exit /b %ERRORLEVEL%
+
+:: Copy the third‑party license report
+copy "target\generated-sources\license\THIRD-PARTY.txt" ^
+     "%PREFIX%\share\rnartistcore\THIRD-PARTY.txt" || exit /b %ERRORLEVEL%
 
 exit /b 0
