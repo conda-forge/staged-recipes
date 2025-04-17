@@ -18,6 +18,6 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 # Create batch wrapper
-# tee ${PREFIX}/bin/codex.cmd << EOF
-# call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\codex %*
-# EOF
+tee ${PREFIX}/bin/codex.cmd << EOF
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\codex %*
+EOF
