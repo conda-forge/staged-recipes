@@ -1,12 +1,3 @@
-# set -euxo pipefail
-
-# pnpm install #@openai/codex@$PKG_VERSION --prefix=$PREFIX
-# pnpm list
-
-# pushd $PREFIX/
-# pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
-# popd
-
 #!/usr/bin/env bash
 
 set -o xtrace -o nounset -o pipefail -o errexit
