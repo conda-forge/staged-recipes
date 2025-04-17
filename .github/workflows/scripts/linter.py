@@ -207,6 +207,7 @@ def _lint_recipes(gh, pr):
                     maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
+                    and ("/" not in maintainer or maintainer.split("/", 1)[0] != "conda-forge")
                 ):
                     non_participating_maintainers.add(maintainer)
 
