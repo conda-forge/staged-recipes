@@ -19,7 +19,6 @@ export MET_CAIROLIB="${PREFIX}/lib"
 export MET_ECKIT="${PREFIX}/lib/metview-bundle"
 export MET_ATLAS="${PREFIX}/lib/metview-bundle"
 
-NUM_PROCS=$(sysctl -n hw.ncpu || grep -c ^processor /proc/cpuinfo || 1)
 
 mv "${SRC_DIR}/gs-fonts" "${PREFIX}/gs-fonts"
 mkdir -p "${PREFIX}/etc/conda/activate.d"
@@ -29,13 +28,13 @@ PYTHON_VERSION=$(${MET_PYTHON_BIN_EXE} -c "import sys; print(f'{sys.version_info
 printf "export METPLUS_PARM_BASE=${PREFIX}/lib/python${PYTHON_VERSION}/site-packages/metplus/parm\n" >> "${PREFIX}/etc/conda/activate.d/${PKG_NAME}-activate.sh"
 
 
-curl -o ./MET/config.sub http://git.savannah.gnu.org/cgit/config.git/plain/config.sub
-curl -o ./MET/config.guess http://git.savannah.gnu.org/cgit/config.git/plain/config.guess
+cp ${BUILD_PREFIX}/share/gnuconfig/config.sub ./MET/
+cp ${BUILD_PREFIX}/share/gnuconfig/config.guess ./MET/
 
 
 (cd MET &&
      ./configure --prefix="${PREFIX}" --enable-all BUFRLIB_NAME=-lbufr_4 GRIB2CLIB_NAME=-lg2c &&
-     make install -j${NUM_PROCS} &&
+     make install -j${CPU_COUNT} &&
      make test)
 
 
