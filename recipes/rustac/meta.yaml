@@ -12,11 +12,26 @@ source:
 build:
   entry_points:
     - rustac = rustac:main
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script: 
+    - if: win # work around long path problem, https://github.com/conda-forge/staged-recipes/commit/d86e4bb10154fc3833cae054e197ea2d7119dac7
+      then: |
+        set CARGO_HOME=C:\.cargo
+        set MATURIN_PEP517_ARGS="--features=duckdb-bundled"
+        md %CARGO_HOME%
+      else: |
+        export MATURIN_PEP517_ARGS="--features=duckdb-bundled"
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - match(python, "<3.10")
   number: 0
 
 requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }} # needed to compile libduckdb-sys
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
   host:
     - python >=3.10
     - maturin >=1.7,<2.0
@@ -34,6 +49,8 @@ test:
     - pip
 
 about:
+  homepage: https://stac-utils.github.io/rustac
+  repository: https://github.com/stac-utils/rustac
   summary: A no-dependency Python package for STAC, using Rust under the hood.
   license: MIT AND Apache-2.0
   license_file:
