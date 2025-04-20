@@ -3,20 +3,19 @@ import shutil
 import subprocess
 import sys
 import time
-import psycopg2
 
-def create_databases(db_names, pg_version):
-    port = f"59{pg_version}"
-    for db_name in db_names:
-        try:
-            with psycopg2.connect(f"dbname=postgres user=postgres host=localhost port={port}") as conn:
-                conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT) # Enable autocommit
-                with conn.cursor() as cur:
-                    cur.execute(f"CREATE DATABASE {db_name};")
-                    print(f"Database '{db_name}' created successfully.", file=sys.stderr)
-        except psycopg2.Error as e:
-            print(f"Error creating database '{db_name}': {e}", file=sys.stderr)
-            sys.exit(1)
+# def create_databases(db_names, pg_version):
+#     port = f"59{pg_version}"
+#     for db_name in db_names:
+#         try:
+#             with psycopg.connect(f"dbname=postgres user=postgres host=localhost port={port}") as conn:
+#                 conn.set_isolation_level(psycopg.extensions.ISOLATION_LEVEL_AUTOCOMMIT) # Enable autocommit
+#                 with conn.cursor() as cur:
+#                     cur.execute(f"CREATE DATABASE {db_name};")
+#                     print(f"Database '{db_name}' created successfully.", file=sys.stderr)
+#         except psycopg.Error as e:
+#             print(f"Error creating database '{db_name}': {e}", file=sys.stderr)
+#             sys.exit(1)
 
 
 def setup_postgresql(pg_version, conda_prefix):

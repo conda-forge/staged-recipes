@@ -90,6 +90,7 @@ _build_py_project() {
     yarn install > /dev/null 2>&1
     yarn run bundle > /dev/null 2>&1
 
+    set +x
     find . -mindepth 1 \
       -not -path "*/node_modules/*" \
       -not -path "*/regression/*" \
@@ -111,6 +112,7 @@ _build_py_project() {
       -print0 | while IFS= read -r -d $'\0' FILE; do
         tar cf - "${FILE}" | (cd "${PYPROJECTROOT}"; tar xf -)
     done
+    set -x
   popd > /dev/null || exit
 }
 

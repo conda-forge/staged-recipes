@@ -21,6 +21,9 @@ cp LICENSE DEPENDENCIES README.md ${BUILDROOT}
 # Run the build
 echo Installing...
 pushd ${BUILDROOT} || exit
+  #${PYTHON} ${RECIPE_DIR}/building/generate_package_init.py \
+  #  pgadmin4/config.py \
+  #  pgadmin4/__init__.py
   touch pgadmin4/__init__.py
 
   ${PYTHON} "${RECIPE_DIR}"/building/generate_pyproject.py \
