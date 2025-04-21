@@ -1,7 +1,7 @@
 _setup_env() {
   echo "Setting up the environment..."
   SOURCEDIR=$(realpath "${1:-${SRC_DIR}}")
-  BUILDROOT=$(realpath "${SOURCEDIR}/$2-build")
+  BUILDROOT="${SOURCEDIR}/$2-build"
   PYPROJECTROOT=${BUILDROOT}/pgadmin4
   
   SHAREROOT=${PREFIX}/share/pgadmin4
