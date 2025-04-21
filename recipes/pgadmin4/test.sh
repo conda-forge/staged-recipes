@@ -27,11 +27,13 @@ POSTGRESQL_VERSION="99" TEST_COMMAND="echo 'Done'" python testing/run_test_comma
 
 # One test fails: BackupJobTest
 pushd "${PGADMIN_PKG}"
-  PYTHONPATH=.:${PYTHONPATH:-.} python web/regression/runtests.py --exclude feature_tests || true
+  PYTHONPATH=.:${PYTHONPATH:-.} python web/regression/runtests.py \
+    --exclude feature_tests \
+    --parallel \
+    --pkg browser.tests.test_login \
+    || true
 popd
 
-# Terminate the server if POSTGRESQL_PID is set
-if [ -n "${POSTGRESQL_PID}" ]; then
-  kill -9 "${POSTGRESQL_PID}"
-fi
+# Terminate all PostgreSQL-related processes
+pkill -9 -f "postgres|postmaster" || true
 
