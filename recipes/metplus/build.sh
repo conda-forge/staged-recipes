@@ -20,9 +20,7 @@ export MET_ECKIT="${PREFIX}/lib/metview-bundle"
 export MET_ATLAS="${PREFIX}/lib/metview-bundle"
 
 
-mv "${SRC_DIR}/gs-fonts" "${PREFIX}/gs-fonts"
 mkdir -p "${PREFIX}/etc/conda/activate.d"
-printf "export MET_FONT_DIR=${PREFIX}/gs-fonts\n" > "${PREFIX}/etc/conda/activate.d/${PKG_NAME}-activate.sh"
 
 PYTHON_VERSION=$(${MET_PYTHON_BIN_EXE} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 printf "export METPLUS_PARM=${PREFIX}/lib/python${PYTHON_VERSION}/site-packages/metplus/parm\n" >> "${PREFIX}/etc/conda/activate.d/${PKG_NAME}-activate.sh"
