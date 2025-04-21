@@ -89,6 +89,7 @@ _build_py_project() {
     yarn set version 3
     yarn install > /dev/null 2>&1
     yarn run bundle > /dev/null 2>&1
+    # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
     find . -mindepth 1 \

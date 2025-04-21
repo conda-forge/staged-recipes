@@ -35,9 +35,10 @@ pushd ${BUILDROOT} || exit
   ${PYTHON} -m pip install . \
     --no-build-isolation \
     --no-deps \
-    --no-cache-dir \
-    --prefix="${PREFIX}"
+    --no-cache-dir
 popd
+
+ls -l ${PREFIX}/bin/pgadmin4
 
 # python -m pip install \
 #   --no-build-isolation \
