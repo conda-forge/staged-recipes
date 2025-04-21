@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -eux
 
+if [[ "${target_platform}" == "win-64" ]]; then
+  export PREFIX=$(cygpath -u "${PREFIX}"/Library)
+fi
+
 export PYTHONDONTWRITEBYTECODE=1
 source "${RECIPE_DIR}"/building/build-functions.sh
 

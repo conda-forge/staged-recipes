@@ -88,31 +88,52 @@ _build_py_project() {
     yarn set version berry
     yarn set version 3
     yarn install > /dev/null 2>&1
-    yarn run bundle > /dev/null 2>&1
+    yarn run bundle
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
-    find . -mindepth 1 \
-      -not -path "*/node_modules/*" \
-      -not -path "*/regression/*" \
-      -not -path "*/tools/*" \
-      -not -path "*/pgadmin/static/js/generated/.cache/*" \
-      -not -path "*/tests/*" \
-      -not -path "*/feature_tests/*" \
-      -not -path "*/__pycache__/*" \
-      -not -name "pgadmin4.db" \
-      -not -name "config_local.*" \
-      -not -name "jest.config.js" \
-      -not -name "babel.*" \
-      -not -name "package.json" \
-      -not -name ".yarn*" \
-      -not -name "yarn*" \
-      -not -name ".editorconfig" \
-      -not -name ".eslint*" \
-      -not -name "pgAdmin4.wsgi" \
-      -print0 | while IFS= read -r -d $'\0' FILE; do
-        tar cf - "${FILE}" | (cd "${PYPROJECTROOT}"; tar xf -)
-    done
+    # find . -mindepth 1 \
+    #   -not -path "*/node_modules/*" \
+    #   -not -path "*/regression/*" \
+    #   -not -path "*/tools/*" \
+    #   -not -path "*/pgadmin/static/js/generated/.cache/*" \
+    #   -not -path "*/tests/*" \
+    #   -not -path "*/feature_tests/*" \
+    #   -not -path "*/__pycache__/*" \
+    #   -not -name "pgadmin4.db" \
+    #   -not -name "config_local.*" \
+    #   -not -name "jest.config.js" \
+    #   -not -name "babel.*" \
+    #   -not -name "package.json" \
+    #   -not -name ".yarn*" \
+    #   -not -name "yarn*" \
+    #   -not -name ".editorconfig" \
+    #   -not -name ".eslint*" \
+    #   -not -name "pgAdmin4.wsgi" \
+    #   -print0 | while IFS= read -r -d $'\0' FILE; do
+    #     tar cf - "${FILE}" | (cd "${PYPROJECTROOT}"; tar xf -)
+    # done
+
+    rsync -a \
+      --exclude='node_modules' \
+      --exclude='regression' \
+      --exclude='tools' \
+      --exclude='pgadmin/static/js/generated/.cache' \
+      --exclude='tests' \
+      --exclude='feature_tests' \
+      --exclude='__pycache__' \
+      --exclude='pgadmin4.db' \
+      --exclude='config_local.*' \
+      --exclude='jest.config.js' \
+      --exclude='babel.*' \
+      --exclude='package.json' \
+      --exclude='.yarn*' \
+      --exclude='yarn.*' \
+      --exclude='.editorconfig' \
+      --exclude='.eslint*' \
+      --exclude='pgAdmin4.wsgi' \
+      . "${PYPROJECTROOT}"
+
     set -x
   popd > /dev/null || exit
 }
