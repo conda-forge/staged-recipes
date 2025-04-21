@@ -21,5 +21,3 @@ cp ./build/OpenSeesSP $PREFIX/bin
 cp ./build/OpenSeesMP $PREFIX/bin
 
 #cp -r EXAMPLES $PREFIX/share/
-
-
