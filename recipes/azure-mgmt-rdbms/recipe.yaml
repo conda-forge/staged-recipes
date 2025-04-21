@@ -1,0 +1,76 @@
+context:
+  name: azure-mgmt-rdbms
+  version: "10.1.0"
+  u_name: azure_mgmt_rdbms
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/a/${{ u_name }}/${{ name }}-${{ version }}.zip
+    sha256: a87d401c876c84734cdd4888af551e4a1461b4b328d9816af60cb8ac5979f035
+
+build:
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - pip
+    - python ${{ python_min }}.*
+    - setuptools
+  run:
+    - azure-common
+    - azure-mgmt-core
+    - msrest
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - azure.mgmt.rdbms
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - git clone --depth=1 --filter=blob:none --sparse https://github.com/Azure/azure-sdk-for-python.git azure-sdk-repo
+      - pushd azure-sdk-repo
+      -   git fetch --depth=1 origin tags/${{ name }}_${{ version }}
+      -   git checkout FETCH_HEAD
+      -   git sparse-checkout init
+      -   git sparse-checkout set tools/azure-devtools tools/azure-sdk-tools/devtools_testutils
+      -   cp -r tools/azure-sdk-tools/devtools_testutils tools/azure-devtools/src/azure_devtools ..
+      - popd
+      - if: unix
+        then: PYTHONPATH="$PWD:${PYTHONPATH:-.}" python -m pytest tests
+        else: echo "Hacky test fails"  # set PYTHONPATH=%CD%;%PYTHONPATH% && python -m pytest tests
+    requirements:
+      run:
+        - azure-mgmt-keyvault
+        - azure-mgmt-resource
+        - configargparse
+        - python-dotenv
+        - git >=2.25.0
+        - pip
+        - pytest
+        - python >=${{ python_min }}
+        - setuptools
+        - vcrpy
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://github.com/Azure/azure-sdk-for-python
+  summary: 'This is the Microsoft Azure RDBMS Management Client Library.'
+  description: |
+    This is the Microsoft Azure RDBMS Management Client Library.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://azure.github.io/azure-sdk-for-python
+  repository: https://github.com/Azure/azure-sdk-for-python
+
+extra:
+  recipe-maintainers:
+    - MementoRC
