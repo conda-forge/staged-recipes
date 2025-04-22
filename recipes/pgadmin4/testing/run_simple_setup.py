@@ -15,7 +15,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 threading.Timer(
-    20,
+    60,
     lambda: os.kill(os.getpid(),signal.SIGINT)
 ).start()
 

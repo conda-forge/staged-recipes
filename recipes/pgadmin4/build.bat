@@ -1,4 +1,4 @@
-echo source %SYS_PREFIX:\=/%/etc/profile.d/conda.sh    > conda_build.sh
+echo source D:/Miniforge/etc/profile.d/conda.sh       > conda_build.sh
 echo conda activate "${PREFIX}"                       >> conda_build.sh
 echo conda activate --stack "${BUILD_PREFIX}"         >> conda_build.sh
 echo CONDA_PREFIX=${CONDA_PREFIX//\\//}               >> conda_build.sh

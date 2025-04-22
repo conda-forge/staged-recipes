@@ -4,8 +4,8 @@ _setup_env() {
   BUILDROOT="${SOURCEDIR}/$2-build"
   PYPROJECTROOT=${BUILDROOT}/pgadmin4
   
-  SHAREROOT=${PREFIX}/share/pgadmin4
-  DOCSROOT=${SHAREROOT}/docs/html
+  SHAREROOT="${PREFIX}"/share/pgadmin4
+  DOCSROOT="${SHAREROOT}"/docs/html
 
   set +x
   # DESKTOPROOT=${BUILDROOT}/desktop
@@ -19,7 +19,7 @@ _setup_env() {
   APP_LONG_VERSION=${APP_RELEASE}.${APP_REVISION}
   APP_SUFFIX=$(grep "^APP_SUFFIX" web/version.py | cut -d"=" -f2 | sed 's/ //g' | sed "s/'//g")
   if [ -n "${APP_SUFFIX}" ]; then
-      APP_LONG_VERSION=${APP_LONG_VERSION}-${APP_SUFFIX}
+      APP_LONG_VERSION="${APP_LONG_VERSION}-${APP_SUFFIX}"
   fi
   set -x
 }
@@ -93,7 +93,7 @@ _build_runtime() {
 _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
     yarn install > /dev/null 2>&1
-    yarn run bundle > /dev/null 2>&1
+    yarn run bundle
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
