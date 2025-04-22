@@ -3,10 +3,10 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 pushd 3rd/luamake
-compile/build.sh
+compile/build.sh notest
 popd
 
-3rd/luamake/luamake rebuild
+3rd/luamake/luamake -cc "$CC" -ar "$AR" -cflags "$CFLAGS" rebuild -notest
 
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}/bin
