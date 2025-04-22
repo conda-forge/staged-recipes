@@ -4,18 +4,18 @@
 curl -O https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
 chmod u+x coinbrew
 
-# coin-or osi and clp
-./coinbrew build Osi --latest-release \
-    --skip-dependencies \
-    --prefix=$PREFIX \
-    --tests=none \
-    --without-cplex \
-    --without-gurobi \
+# # coin-or osi and clp
+# ./coinbrew build Osi --latest-release \
+#     --skip-dependencies \
+#     --prefix=$PREFIX \
+#     --tests=none \
+#     --without-cplex \
+#     --without-gurobi \
 
-./coinbrew build Clp --latest-release \
-    --skip-dependencies \
-    --prefix=$PREFIX \
-    --tests=none
+# ./coinbrew build Clp --latest-release \
+#     --skip-dependencies \
+#     --prefix=$PREFIX \
+#     --tests=none
 
 git clone https://gitlab.com/stochastic-control/StOpt
 cd StOpt
