@@ -6,7 +6,8 @@ _setup_env() {
   
   SHAREROOT=${PREFIX}/share/pgadmin4
   DOCSROOT=${SHAREROOT}/docs/html
-  
+
+  set +x
   # DESKTOPROOT=${BUILDROOT}/desktop
   # METAROOT=${BUILDROOT}/meta
   # SERVERROOT=${BUILDROOT}/server
@@ -20,6 +21,7 @@ _setup_env() {
   if [ -n "${APP_SUFFIX}" ]; then
       APP_LONG_VERSION=${APP_LONG_VERSION}-${APP_SUFFIX}
   fi
+  set -x
 }
 
 _cleanup() {
@@ -39,11 +41,13 @@ _setup_dirs() {
 
 _build_docs() {
   echo "Building HTML documentation..."
+  set -x
   pushd "${SOURCEDIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
-    sphinx-build -W -b html -d _build/doctrees . _build/html
+    sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
   popd
   (cd "${SOURCEDIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) > /dev/null 2>&1
+  set -x
 }
 
 _build_runtime() {
@@ -93,35 +97,15 @@ _build_py_project() {
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
-    # find . -mindepth 1 \
-    #   -not -path "*/node_modules/*" \
-    #   -not -path "*/regression/*" \
-    #   -not -path "*/tools/*" \
-    #   -not -path "*/pgadmin/static/js/generated/.cache/*" \
-    #   -not -path "*/tests/*" \
-    #   -not -path "*/feature_tests/*" \
-    #   -not -path "*/__pycache__/*" \
-    #   -not -name "pgadmin4.db" \
-    #   -not -name "config_local.*" \
-    #   -not -name "jest.config.js" \
-    #   -not -name "babel.*" \
-    #   -not -name "package.json" \
-    #   -not -name ".yarn*" \
-    #   -not -name "yarn*" \
-    #   -not -name ".editorconfig" \
-    #   -not -name ".eslint*" \
-    #   -not -name "pgAdmin4.wsgi" \
-    #   -print0 | while IFS= read -r -d $'\0' FILE; do
-    #     tar cf - "${FILE}" | (cd "${PYPROJECTROOT}"; tar xf -)
-    # done
+    find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
+      tar -cf "${SRC_DIR}/tests.tar" --null -T -
 
     if [[ "${target_platform}" == "win-"* ]]; then
-      cmd.exe /c "robocopy \"$SOURCEDIR\web\" \"$PYPROJECTROOT\" /E /COPYALL /XD node_modules regression tools pgadmin/static/js/generated/.cache tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi"
+      cmd.exe /c "robocopy \"$SOURCEDIR\web\" \"$PYPROJECTROOT\" /E /COPYALL /XD node_modules regression pgadmin/static/js/generated/.cache tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi"
     else
       rsync -a \
         --exclude='node_modules' \
         --exclude='regression' \
-        --exclude='tools' \
         --exclude='pgadmin/static/js/generated/.cache' \
         --exclude='tests' \
         --exclude='feature_tests' \

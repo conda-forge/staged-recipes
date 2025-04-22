@@ -19,6 +19,8 @@ PGADMIN_PKG="${PREFIX}"/lib/python"${PY_VER}"/site-packages/pgadmin4
 
 # Due to circular imports, we run the regression inside the package itself
 tar cf - web | (cd "${PGADMIN_PKG}"/; tar xf -)
+tar xf tests.tar -C "${PGADMIN_PKG}"/
+
 cp testing/config_local.py "${PGADMIN_PKG}"/
 cp testing/test_config.json "${PGADMIN_PKG}"/web/regression/
 

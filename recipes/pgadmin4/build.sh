@@ -28,7 +28,7 @@ pushd ${BUILDROOT} || exit
   #${PYTHON} ${RECIPE_DIR}/building/generate_package_init.py \
   #  pgadmin4/config.py \
   #  pgadmin4/__init__.py
-  touch pgadmin4/__init__.py
+  echo "" | cat > pgadmin4/__init__.py
 
   ${PYTHON} "${RECIPE_DIR}"/building/generate_pyproject.py \
     --setup "${SRC_DIR}"/pkg/pip/setup_pip.py \
@@ -36,13 +36,15 @@ pushd ${BUILDROOT} || exit
     --version "${APP_LONG_VERSION}" \
     --output pyproject.toml
 
-  ${PYTHON} -m pip install . \
+  ${PYTHON} -m build -w -n -x -Cbuilddir=.
+
+  ${PYTHON} -m pip install \
+    dist/pgadmin4-"${APP_LONG_VERSION}"-py3-none-any.whl \
+    -vvv \
     --no-build-isolation \
     --no-deps \
     --no-cache-dir
 popd
-
-ls -l ${PREFIX}/bin/pgadmin4
 
 # python -m pip install \
 #   --no-build-isolation \
@@ -58,5 +60,9 @@ rm -rf web/pgadmin/static/css/generated/*
 rm -rf web/pgadmin/static/css/generated/.cache
 
 rm -rf web/node-modules/
+
+# Remove links from corepack
+rm -rf ${PREFIX}/python-scripts/{pnpm,pnpx,yarn,yarnpkg}
+
 # rm -rf conda-build/
 
