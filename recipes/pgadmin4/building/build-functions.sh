@@ -58,9 +58,12 @@ _build_runtime() {
 
   # Install the runtime node_modules
   pushd "${SHAREROOT}/resources/app" > /dev/null || exit
-      yarn set version berry
-      yarn set version 3
-      yarn plugin import workspace-tools
+      corepack enable
+      corepack prepare yarn@3.8.7 --activate
+      export PATH=$PATH:$HOME/.corepack/yarn/3.8.7/bin
+      if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
+        yarn plugin import workspace-tools
+      fi
       yarn workspaces focus --production
 
       # remove the yarn cache
@@ -85,10 +88,8 @@ _build_runtime() {
 
 _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
-    yarn set version berry
-    yarn set version 3
     yarn install > /dev/null 2>&1
-    yarn run bundle
+    yarn run bundle > /dev/null 2>&1
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
@@ -114,25 +115,29 @@ _build_py_project() {
     #     tar cf - "${FILE}" | (cd "${PYPROJECTROOT}"; tar xf -)
     # done
 
-    rsync -a \
-      --exclude='node_modules' \
-      --exclude='regression' \
-      --exclude='tools' \
-      --exclude='pgadmin/static/js/generated/.cache' \
-      --exclude='tests' \
-      --exclude='feature_tests' \
-      --exclude='__pycache__' \
-      --exclude='pgadmin4.db' \
-      --exclude='config_local.*' \
-      --exclude='jest.config.js' \
-      --exclude='babel.*' \
-      --exclude='package.json' \
-      --exclude='.yarn*' \
-      --exclude='yarn.*' \
-      --exclude='.editorconfig' \
-      --exclude='.eslint*' \
-      --exclude='pgAdmin4.wsgi' \
-      . "${PYPROJECTROOT}"
+    if [[ "${target_platform}" == "win-"* ]]; then
+      cmd.exe /c "robocopy \"$SOURCEDIR\web\" \"$PYPROJECTROOT\" /E /COPYALL /XD node_modules regression tools pgadmin/static/js/generated/.cache tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi"
+    else
+      rsync -a \
+        --exclude='node_modules' \
+        --exclude='regression' \
+        --exclude='tools' \
+        --exclude='pgadmin/static/js/generated/.cache' \
+        --exclude='tests' \
+        --exclude='feature_tests' \
+        --exclude='__pycache__' \
+        --exclude='pgadmin4.db' \
+        --exclude='config_local.*' \
+        --exclude='jest.config.js' \
+        --exclude='babel.*' \
+        --exclude='package.json' \
+        --exclude='.yarn*' \
+        --exclude='yarn.*' \
+        --exclude='.editorconfig' \
+        --exclude='.eslint*' \
+        --exclude='pgAdmin4.wsgi' \
+        . "${PYPROJECTROOT}"
+    fi
 
     set -x
   popd > /dev/null || exit
