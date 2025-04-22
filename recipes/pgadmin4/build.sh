@@ -4,7 +4,7 @@ set -eux
 if [[ "${target_platform}" == "win-64" ]]; then
   echo "PREFIX ${PREFIX}"
   _PREFIX=$(cygpath -u "${PREFIX}"/Library)
-  export PREFIX=_PREFIX
+  export PREFIX=${PREFIX}
   echo "PREFIX ${PREFIX}"
 fi
 
