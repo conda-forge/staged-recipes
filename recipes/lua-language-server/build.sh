@@ -5,6 +5,7 @@ set -o xtrace -o nounset -o pipefail -o errexit
 pushd 3rd/luamake
 compile/build.sh
 popd
+
 3rd/luamake/luamake rebuild
 
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
