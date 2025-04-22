@@ -92,6 +92,14 @@ _build_runtime() {
 
 _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
+    if [[ ! -d .git ]]; then
+      # osx fails on git command in yarn bundle?
+      mkdir -p .git
+      echo "ref: refs/heads/main" > .git/HEAD
+      mkdir -p .git/refs/heads
+      echo "dummy-hash" > .git/refs/heads/main
+    fi
+
     yarn install > /dev/null 2>&1
     yarn run bundle
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES

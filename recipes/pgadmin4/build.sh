@@ -2,7 +2,10 @@
 set -eux
 
 if [[ "${target_platform}" == "win-64" ]]; then
-  export PREFIX=$(cygpath -u "${PREFIX}"/Library)
+  echo "PREFIX ${PREFIX}"
+  _PREFIX=$(cygpath -u "${PREFIX}"/Library)
+  export PREFIX=_PREFIX
+  echo "PREFIX ${PREFIX}"
 fi
 
 export PYTHONDONTWRITEBYTECODE=1
