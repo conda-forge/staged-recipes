@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 0.30.0
+  maturin_version: ">=1.0,<2.0"
+
+package:
+  name: jsonschema-rs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/j/jsonschema-rs/jsonschema_rs-${{ version }}.tar.gz
+  sha256: 29f988d229371d6aefd560c5b13e71bf1c91c972a0d83a66c5eb941ce47d3193
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  build:
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin ${{ maturin_version }}
+  host:
+    - python
+    - maturin ${{ maturin_version }}
+    - pip
+  run:
+    - python
+
+tests:
+  - python:
+      imports: jsonschema_rs
+      pip_check: true
+  - files:
+      source:
+        - crates/jsonschema-py/tests-py/
+    requirements:
+      run:
+        - flask >=2.2.5
+        - hypothesis >=6.79.4
+        - pytest >=7.4.4
+    script:
+      - pytest -vv --tb=long --color=yes crates/jsonschema-py -k "not readme"
+
+about:
+  summary: A high-performance JSON Schema validator for Python
+  license: MIT
+  license_file:
+    - THIRDPARTY.yml
+    - crates/jsonschema-referencing/LICENSE
+    - crates/jsonschema/LICENSE
+  homepage: https://pypi.org/project/jsonschema-rs
+  repository: https://github.com/Stranger6667/jsonschema
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
