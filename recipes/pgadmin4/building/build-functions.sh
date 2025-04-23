@@ -101,24 +101,47 @@ _build_runtime() {
 _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
     # osx buckles on missing git repo
-    git init
+    git init > /dev/null 2>&1
     git config user.email "temp@example.com"
     git config user.name "Temp User"
     git add .
-    git commit -m "Initial commit"
-    # sed -i 's/yarn run bundle:dev && yarn run git:hash/yarn run bundle:dev \&\& (git log -1 --format="%H %as" > commit_hash || echo "3b41fd0e $(date +%Y-%m-%d)" > commit_hash)/g' package.json
+    git commit -m "Initial commit" > /dev/null 2>&1
 
     ${PG_YARN} install > /dev/null 2>&1
-    ${PG_YARN} run bundle
-    # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
+    ${PG_YARN} run bundle > /dev/null 2>&1
 
     set +x
-    find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
-      tar -cf "${SRC_DIR}/tests.tar" --null -T -
 
     if [[ "${target_platform}" == "win-"* ]]; then
-      cmd.exe /c "robocopy \"$SOURCEDIR\web\" \"$PYPROJECTROOT\" /E /COPYALL /XD node_modules regression pgadmin/static/js/generated/.cache tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi"
+      # Create a batch file for Windows commands
+      cat > "${TEMP}/build_tests.bat" << 'EOF'
+@echo off
+set "OUTPUT_FILE=%1"
+set "TEMP_FILE=%TEMP%\test_dirs.txt"
+if exist "%TEMP_FILE%" del "%TEMP_FILE%"
+
+echo Finding test directories...
+dir /s /b /ad | findstr /i "\\tests$" | findstr /i /v "__pycache__" > "%TEMP_FILE%"
+dir /s /b /ad | findstr /i "\\test_" | findstr /i /v "__pycache__" >> "%TEMP_FILE%"
+
+echo Creating tar archive...
+tar -cf "%OUTPUT_FILE%" -T "%TEMP_FILE%"
+del "%TEMP_FILE%"
+EOF
+
+      # Create robocopy batch file
+      cat > "${TEMP}/copy_files.bat" << 'EOF'
+@echo off
+robocopy %1 %2 /E /COPYALL /XD node_modules regression "pgadmin/static/js/generated/.cache" tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi
+exit /b 0
+EOF
+
+      # Execute batch files with proper parameters
+      cmd.exe /c "${TEMP}/build_tests.bat" "${SRC_DIR}/tests.tar"
+      cmd.exe /c "${TEMP}/copy_files.bat" "${SOURCEDIR}/web" "${PYPROJECTROOT}"
     else
+      find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
+        tar -cf "${SRC_DIR}"/tests.tar --null -T -
       rsync -a \
         --exclude='node_modules' \
         --exclude='regression' \
