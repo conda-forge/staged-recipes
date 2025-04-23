@@ -114,10 +114,10 @@ _build_py_project() {
 
     if [[ "${target_platform}" == "win-"* ]]; then
       # Create a batch file for Windows commands
-      cat > "${TEMP}/build_tests.bat" << 'EOF'
+      cat > "${SRC_DIR}/build_tests.bat" << 'EOF'
 @echo off
 set "OUTPUT_FILE=%1"
-set "TEMP_FILE=%TEMP%\test_dirs.txt"
+set "TEMP_FILE=%SRC_DIR%\test_dirs.txt"
 if exist "%TEMP_FILE%" del "%TEMP_FILE%"
 
 echo Finding test directories...
@@ -130,15 +130,16 @@ del "%TEMP_FILE%"
 EOF
 
       # Create robocopy batch file
-      cat > "${TEMP}/copy_files.bat" << 'EOF'
+      cat > "${SRC_DIR}/copy_files.bat" << 'EOF'
 @echo off
 robocopy %1 %2 /E /COPYALL /XD node_modules regression "pgadmin/static/js/generated/.cache" tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi
 exit /b 0
 EOF
 
       # Execute batch files with proper parameters
-      cmd.exe /c "${TEMP}/build_tests.bat" "${SRC_DIR}/tests.tar"
-      cmd.exe /c "${TEMP}/copy_files.bat" "${SOURCEDIR}/web" "${PYPROJECTROOT}"
+      cmd.exe /c "${SRC_DIR}/build_tests.bat" "${SRC_DIR}/tests.tar"
+      cmd.exe /c "${SRC_DIR}/copy_files.bat" "${SOURCEDIR}/web" "${PYPROJECTROOT}"
+      rm -f "${SRC_DIR}/build_tests.bat" "${SRC_DIR}/copy_files.bat"
     else
       find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
         tar -cf "${SRC_DIR}"/tests.tar --null -T -
