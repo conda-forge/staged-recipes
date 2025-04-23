@@ -1,4 +1,5 @@
 _setup_env() {
+  set +x
   echo "Setting up the environment..."
   SOURCEDIR=$(realpath "${1:-${SRC_DIR}}")
   BUILDROOT="${SOURCEDIR}/$2-build"
@@ -7,7 +8,6 @@ _setup_env() {
   SHAREROOT="${PREFIX}"/share/pgadmin4
   DOCSROOT="${SHAREROOT}"/docs/html
 
-  set +x
   # DESKTOPROOT=${BUILDROOT}/desktop
   # METAROOT=${BUILDROOT}/meta
   # SERVERROOT=${BUILDROOT}/server
@@ -55,8 +55,8 @@ _build_docs() {
 }
 
 _build_runtime() {
-  echo "Assembling the desktop runtime..."
   set +x
+  echo "Assembling the desktop runtime..."
   mkdir -p "${SHAREROOT}/resources/app"
   cp -r "${SOURCEDIR}/runtime/assets" "${SHAREROOT}/resources/app/assets"
   cp -r "${SOURCEDIR}/runtime/src" "${SHAREROOT}/resources/app/src"
@@ -68,23 +68,13 @@ _build_runtime() {
   # Install the runtime node_modules
   pushd "${SHAREROOT}/resources/app" > /dev/null || exit
     set +x
+    export PATH=${SRC_DIR}/yarn-dist-${PG_YARN_VERSION}/bin:$PATH
     corepack enable
-    if [[ "${target_platform}" == "win-"* ]]; then
-      corepack prepare yarn@3.8.7 --activate
-      echo "yarnPath: .yarn/releases/yarn-3.8.7.cjs" > .yarnrc.yml
-      mkdir -p .yarn/releases
-      curl -L -o .yarn/releases/yarn-3.8.7.cjs https://github.com/yarnpkg/berry/releases/download/3.8.7/yarn-3.8.7.cjs
-      node .yarn/releases/yarn-3.8.7.cjs plugin import workspace-tools
-      node .yarn/releases/yarn-3.8.7.cjs workspaces focus --production
-    else
-      corepack prepare yarn@3.8.7 --activate
-      export PATH=$PATH:$HOME/.corepack/yarn/3.8.7/bin
-      export PATH=$PATH:$APPDATA/npm/node_modules/corepack/dist/yarn/3.8.7/bin
-      if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
-        yarn plugin import workspace-tools
-      fi
-      yarn workspaces focus --production > /dev/null 2>&1
+    corepack prepare yarn@"${PG_YARN_VERSION}" --activate
+    if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
+      yarn plugin import workspace-tools
     fi
+    yarn workspaces focus --production > /dev/null 2>&1
 
     # remove the yarn cache
     rm -rf .yarn .yarn*
