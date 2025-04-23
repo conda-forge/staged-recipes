@@ -104,13 +104,11 @@ _build_py_project() {
     git init > /dev/null 2>&1
     git config user.email "temp@example.com"
     git config user.name "Temp User"
-    git add .
+    git add . > /dev/null 2>&1
     git commit -m "Initial commit" > /dev/null 2>&1
 
     ${PG_YARN} install > /dev/null 2>&1
     ${PG_YARN} run bundle > /dev/null 2>&1
-
-    set +x
 
     if [[ "${target_platform}" == "win-"* ]]; then
       # Create a batch file for Windows commands
@@ -137,10 +135,11 @@ exit /b 0
 EOF
 
       # Execute batch files with proper parameters
-      cmd.exe /c "${SRC_DIR}/build_tests.bat" "${SRC_DIR}/tests.tar"
-      cmd.exe /c "${SRC_DIR}/copy_files.bat" "${SOURCEDIR}/web" "${PYPROJECTROOT}"
-      rm -f "${SRC_DIR}/build_tests.bat" "${SRC_DIR}/copy_files.bat"
+      cmd.exe /c "%SRC_DIR%\build_tests.bat" "%SRC_DIR%\tests.tar"
+      cmd.exe /c "%SRC_DIR%\copy_files.bat" "%SRC_DIR%\web" "${PYPROJECTROOT//\//\\}"
+      rm -f "${SRC_DIR}"/build_tests.bat "${SRC_DIR}"/copy_files.bat
     else
+      set +x
       find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
         tar -cf "${SRC_DIR}"/tests.tar --null -T -
       rsync -a \
@@ -161,9 +160,8 @@ EOF
         --exclude='.eslint*' \
         --exclude='pgAdmin4.wsgi' \
         . "${PYPROJECTROOT}"
+      set -x
     fi
-
-    set -x
   popd > /dev/null || exit
 }
 
