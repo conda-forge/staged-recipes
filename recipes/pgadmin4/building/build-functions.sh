@@ -112,40 +112,83 @@ _build_py_project() {
 
     if [[ "${target_platform}" == "win-"* ]]; then
       # Create a batch file for Windows commands
-      cat > "${SRC_DIR}/build_tests.bat" << 'EOF'
-@echo off
-set "OUTPUT_FILE=%1"
-set "TEMP_FILE=%SRC_DIR%\test_dirs.txt"
-if exist "%TEMP_FILE%" del "%TEMP_FILE%"
+      cat > "${SRC_DIR}/build_tests.ps1" << 'EOF'
+param (
+    [string]$OutputFile
+)
+$ErrorActionPreference = "Stop"
+Write-Host "Finding test directories..."
+$testDirs = @()
+$testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name -eq "tests" -and $_.FullName -notmatch "__pycache__" } | Select-Object -ExpandProperty FullName
+$testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name -like "test_*" -and $_.FullName -notmatch "__pycache__" } | Select-Object -ExpandProperty FullName
 
-echo Finding test directories...
-dir /s /b /ad | findstr /i "\\tests$" | findstr /i /v "__pycache__" > "%TEMP_FILE%"
-dir /s /b /ad | findstr /i "\\test_" | findstr /i /v "__pycache__" >> "%TEMP_FILE%"
-
-echo Creating tar archive...
-tar -cf "%OUTPUT_FILE%" -T "%TEMP_FILE%"
-del "%TEMP_FILE%"
+Write-Host "Creating tar archive with $($testDirs.Count) directories..."
+$testDirs | tar -cf $OutputFile -T -
+Write-Host "Archive created: $OutputFile"
 EOF
 
       # Create robocopy batch file
-      cat > "${SRC_DIR}/copy_files.bat" << 'EOF'
-#@echo off
-echo Source: %1
-echo Destination: %2
+      cat > "${SRC_DIR}/copy_files.ps1" << 'EOF'
+param (
+    [string]$Source,
+    [string]$Destination
+)
+$ErrorActionPreference = "Stop"
+Write-Host "Source: $Source"
+Write-Host "Destination: $Destination"
 
-if not exist "%2" mkdir "%2"
+if (-not (Test-Path $Destination)) {
+    New-Item -Path $Destination -ItemType Directory -Force
+}
 
-echo Running robocopy...
-robocopy "%1" "%2" /E /COPYALL /XD node_modules regression "pgadmin/static/js/generated/.cache" tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi
+Write-Host "Copying files..."
+# Use PowerShell Copy-Item with exclusions
+$excludedDirs = @("node_modules", "regression", "pgadmin/static/js/generated/.cache", "tests", "feature_tests", "__pycache__")
+$excludedFiles = @("pgadmin4.db", "config_local.*", "jest.config.js", "babel.*", "package.json", ".yarn*", "yarn.*", ".editorconfig", ".eslint*", "pgAdmin4.wsgi")
 
-echo Robocopy returned: %ERRORLEVEL%
-rem Robocopy returns non-zero even on success, so force success
-exit /b 0
+# First copy everything
+Get-ChildItem -Path $Source -Recurse |
+    Where-Object {
+        # Check if it's not in excluded directories
+        $item = $_
+        $excluded = $false
+        foreach ($dir in $excludedDirs) {
+            if ($item.FullName -match $dir) {
+                $excluded = $true
+                break
+            }
+        }
+        if ($excluded) { return $false }
+
+        # Check if it's not an excluded file
+        if ($item.PSIsContainer) { return $true }
+        foreach ($file in $excludedFiles) {
+            if ($item.Name -like $file) {
+                return $false
+            }
+        }
+        return $true
+    } |
+    ForEach-Object {
+        $targetPath = Join-Path $Destination $_.FullName.Substring($Source.Length)
+        if ($_.PSIsContainer) {
+            if (-not (Test-Path $targetPath)) {
+                New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
+            }
+        } else {
+            $targetDir = Split-Path $targetPath -Parent
+            if (-not (Test-Path $targetDir)) {
+                New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+            }
+            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+        }
+    }
+Write-Host "Copy completed successfully"
 EOF
 
       # Execute batch files with proper parameters
-      cmd.exe /c "%SRC_DIR%\build_tests.bat" "%SRC_DIR%\tests.tar"
-      cmd.exe /c "%SRC_DIR%\copy_files.bat" "%SRC_DIR%\web" "${PYPROJECTROOT//\//\\}"
+      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/build_tests.ps1" -OutputFile "${SRC_DIR}/tests.tar"
+      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/copy_files.ps1" -Source "${SRC_DIR}/web" -Destination "${PYPROJECTROOT}"
       rm -f "${SRC_DIR}"/build_tests.bat "${SRC_DIR}"/copy_files.bat
     else
       set +x
