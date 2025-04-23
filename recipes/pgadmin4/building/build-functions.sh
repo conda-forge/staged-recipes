@@ -26,22 +26,26 @@ _setup_env() {
 
 _cleanup() {
   echo "Cleaning up the old environment and app..."
+  set +x
   rm -rf "${SOURCEDIR}/runtime/pgAdmin4"
   rm -rf "${BUILDROOT}"
+  set -x
 }
 
 _setup_dirs() {
   echo "Creating output directories..."
+  set +x
   mkdir -p \
     "${BUILDROOT}" \
     "${PYPROJECTROOT}" \
     "${SHAREROOT}" \
     "${DOCSROOT}"
+  set -x
 }
 
 _build_docs() {
   echo "Building HTML documentation..."
-  set -x
+  set +x
   pushd "${SOURCEDIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
     sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
@@ -52,31 +56,43 @@ _build_docs() {
 
 _build_runtime() {
   echo "Assembling the desktop runtime..."
-
+  set +x
   mkdir -p "${SHAREROOT}/resources/app"
   cp -r "${SOURCEDIR}/runtime/assets" "${SHAREROOT}/resources/app/assets"
   cp -r "${SOURCEDIR}/runtime/src" "${SHAREROOT}/resources/app/src"
 
   cp "${SOURCEDIR}/runtime/package.json" "${SHAREROOT}/resources/app"
   cp "${SOURCEDIR}/runtime/.yarnrc.yml" "${SHAREROOT}/resources/app"
+  set -x
 
   # Install the runtime node_modules
   pushd "${SHAREROOT}/resources/app" > /dev/null || exit
-      corepack enable
+    set +x
+    corepack enable
+    if [[ "${target_platform}" == "win-"* ]]; then
+      corepack prepare yarn@3.8.7 --activate
+      echo "yarnPath: .yarn/releases/yarn-3.8.7.cjs" > .yarnrc.yml
+      mkdir -p .yarn/releases
+      curl -L -o .yarn/releases/yarn-3.8.7.cjs https://github.com/yarnpkg/berry/releases/download/3.8.7/yarn-3.8.7.cjs
+      node .yarn/releases/yarn-3.8.7.cjs plugin import workspace-tools
+      node .yarn/releases/yarn-3.8.7.cjs workspaces focus --production
+    else
       corepack prepare yarn@3.8.7 --activate
       export PATH=$PATH:$HOME/.corepack/yarn/3.8.7/bin
       export PATH=$PATH:$APPDATA/npm/node_modules/corepack/dist/yarn/3.8.7/bin
       if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
         yarn plugin import workspace-tools
       fi
-      yarn --version  # Verify correct version
-      yarn workspaces focus --production
+      yarn workspaces focus --production > /dev/null 2>&1
+    fi
 
-      # remove the yarn cache
-      rm -rf .yarn .yarn*
+    # remove the yarn cache
+    rm -rf .yarn .yarn*
+    set -x
   popd > /dev/null || exit
 
   # Create the icon
+  set +x
   mkdir -p "${SHAREROOT}/icons/hicolor/128x128/apps/"
   cp "${SOURCEDIR}/pkg/linux/pgadmin4-128x128.png" "${SHAREROOT}/icons/hicolor/128x128/apps/${APP_NAME}.png"
   mkdir -p "${SHAREROOT}/icons/hicolor/64x64/apps/"
@@ -90,21 +106,15 @@ _build_runtime() {
 
   mkdir -p "${SHAREROOT}/applications"
   cp "${SOURCEDIR}/pkg/linux/pgadmin4.desktop" "${SHAREROOT}/applications"
+  set -x
 }
 
 _build_py_project() {
-  if [[ ! -d "${SOURCEDIR}"/.git ]]; then
-    # osx fails on git command in yarn bundle?
-    mkdir -p "${SOURCEDIR}"/.git
-    echo "ref: refs/heads/main" > "${SOURCEDIR}"/.git/HEAD
-    mkdir -p "${SOURCEDIR}"/.git/refs/heads
-    echo "dummy-hash" > "${SOURCEDIR}"/.git/refs/heads/main
-  fi
-
   pushd "${SOURCEDIR}/web" > /dev/null || exit
+    # osx buckles on missing git repo
+    echo "3b41fd0e $(date +%Y-%m-%d)" > commit_hash
     yarn install > /dev/null 2>&1
     yarn run bundle
-    echo "Bundled..."
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
