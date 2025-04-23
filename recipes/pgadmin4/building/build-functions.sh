@@ -129,8 +129,7 @@ EOF
 
       # Create robocopy batch file
       cat > "${SRC_DIR}/copy_files.bat" << 'EOF'
-@echo off
-@echo off
+#@echo off
 echo Source: %1
 echo Destination: %2
 
