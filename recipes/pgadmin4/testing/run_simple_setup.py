@@ -9,13 +9,13 @@ def signal_handler(sig, frame):
     print("Shutting down setup gracefully...")
     # Give some time for cleanup
     time.sleep(1)
-    sys.exit(0)
+    os._exit(0)
 
 # Register signal handler
 signal.signal(signal.SIGINT, signal_handler)
 
 threading.Timer(
-    60,
+    120,
     lambda: os.kill(os.getpid(),signal.SIGINT)
 ).start()
 
@@ -37,4 +37,4 @@ except Exception as e:
         or "does not exists." not in str(e)
     ):
         print(f"Error running cleanup_session_files: {e}")
-        sys.exit(1)
+        os._exit(1)

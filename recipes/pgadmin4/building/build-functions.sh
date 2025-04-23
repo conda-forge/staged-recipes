@@ -65,9 +65,11 @@ _build_runtime() {
       corepack enable
       corepack prepare yarn@3.8.7 --activate
       export PATH=$PATH:$HOME/.corepack/yarn/3.8.7/bin
+      export PATH=$PATH:$APPDATA/npm/node_modules/corepack/dist/yarn/3.8.7/bin
       if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
         yarn plugin import workspace-tools
       fi
+      yarn --version  # Verify correct version
       yarn workspaces focus --production
 
       # remove the yarn cache
@@ -102,6 +104,7 @@ _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
     yarn install > /dev/null 2>&1
     yarn run bundle
+    echo "Bundled..."
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x

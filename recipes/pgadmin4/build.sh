@@ -28,9 +28,6 @@ cp LICENSE DEPENDENCIES README.md ${BUILDROOT}
 # Run the build
 echo Installing...
 pushd ${BUILDROOT} || exit
-  #${PYTHON} ${RECIPE_DIR}/building/generate_package_init.py \
-  #  pgadmin4/config.py \
-  #  pgadmin4/__init__.py
   echo "" | cat > pgadmin4/__init__.py
 
   ${PYTHON} "${RECIPE_DIR}"/building/generate_pyproject.py \
@@ -48,13 +45,6 @@ pushd ${BUILDROOT} || exit
     --no-deps \
     --no-cache-dir
 popd
-
-# python -m pip install \
-#   --no-build-isolation \
-#   --no-deps \
-#   --prefix="${PREFIX}" \
-#   conda-build/dist/*.whl
-#  --target $PREFIX/lib/site-packages \
 
 # Cleanup (in particular since tests mounts web)
 rm -rf web/pgadmin/static/js/generated/*

@@ -37,5 +37,7 @@ pushd "${PGADMIN_PKG}"
 popd
 
 # Terminate all PostgreSQL-related processes
-pkill -9 -f "postgres|postmaster" || true
+for pid in $(ps -ef | grep -E "postgres|postmaster" | grep -v grep | awk '{print $2}'); do
+  kill -9 $pid 2>/dev/null || true
+done
 
