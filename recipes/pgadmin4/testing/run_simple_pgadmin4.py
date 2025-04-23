@@ -1,30 +1,45 @@
 import os
-import signal
-import sys
 import threading
-import time
-
-
-def signal_handler(sig, frame):
-    print("Shutting down pgAdmin4 gracefully...")
-    # Give some time for cleanup
-    time.sleep(1)
-    os._exit(0)
+import importlib.util
+from pgadmin_test_utils import setup_signal_handler, setup_timeout, wait_for_server
 
 # Register signal handler
-signal.signal(signal.SIGINT, signal_handler)
+setup_signal_handler()
 
-threading.Timer(
-    30,
-    lambda: os.kill(os.getpid(),signal.SIGINT)
-).start()
+# Set a reasonable timeout
+timer = setup_timeout(60)
 
 try:
-    from pgadmin4.pgAdmin4 import main
-    main()
+    # Check if pgadmin4 module is available
+    if importlib.util.find_spec("pgadmin4") is None:
+        print("Error: pgadmin4 module not found. Make sure it's installed properly.")
+        os._exit(1)
+
+    # Start pgAdmin4 in a separate thread
+    def run_pgadmin():
+        try:
+            from pgadmin4.pgAdmin4 import main
+            main()
+        except Exception as e:
+            print(f"Error in pgAdmin thread: {e}")
+
+    pgadmin_thread = threading.Thread(target=run_pgadmin)
+    pgadmin_thread.daemon = True
+    pgadmin_thread.start()
+
+    # Wait for server to start
+    print("Starting pgAdmin 4...")
+    if wait_for_server():
+        # Cancel the timeout timer
+        timer.cancel()
+        print("Test completed - pgAdmin4 started successfully")
+        os._exit(0)
+    else:
+        os._exit(1)
+
 except KeyboardInterrupt:
-    # This handles the SIGINT more elegantly
-    pass
+    print("Test interrupted")
+    os._exit(0)
 except Exception as e:
-    print(f"Error running pgAdmin4: {e}")
-    sys.exit(1)
+    print(f"Error: {e}")
+    os._exit(1)
