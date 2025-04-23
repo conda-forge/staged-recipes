@@ -130,7 +130,17 @@ EOF
       # Create robocopy batch file
       cat > "${SRC_DIR}/copy_files.bat" << 'EOF'
 @echo off
-robocopy %1 %2 /E /COPYALL /XD node_modules regression "pgadmin/static/js/generated/.cache" tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi
+@echo off
+echo Source: %1
+echo Destination: %2
+
+if not exist "%2" mkdir "%2"
+
+echo Running robocopy...
+robocopy "%1" "%2" /E /COPYALL /XD node_modules regression "pgadmin/static/js/generated/.cache" tests feature_tests __pycache__ /XF pgadmin4.db config_local.* jest.config.js babel.* package.json .yarn* yarn.* .editorconfig .eslint* pgAdmin4.wsgi
+
+echo Robocopy returned: %ERRORLEVEL%
+rem Robocopy returns non-zero even on success, so force success
 exit /b 0
 EOF
 
