@@ -2,6 +2,13 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Create symlinks on Linux because gcc/g++/ar are hardcoded for luamake build
+if [[ ${target_platform} =~ .*linux.* ]]; then
+  ln -sf ${CC} ${BUILD_PREFIX}/gcc
+  ln -sf ${CXX} ${BUILD_PREFIX}/gxx
+  ln -sf ${AR} ${BUILD_PREFIX}/ar
+fi
+
 pushd 3rd/luamake
 compile/build.sh notest
 popd
