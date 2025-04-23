@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 set -eux
 
+set +x
 if [[ "${target_platform}" == "win-64" ]]; then
-  echo "PREFIX ${PREFIX}"
   _PREFIX="${PREFIX}"/Library
   export PREFIX=${_PREFIX}
-  echo "PREFIX ${PREFIX}"
 fi
 
 export PYTHONDONTWRITEBYTECODE=1
+export PG_YARN=${SRC_DIR}/yarn-dist-${PG_YARN_VERSION}/bin/yarn
+if [[ "${target_platform}" == "win-"* ]]; then
+  PG_YARN="${PG_YARN}.cmd"
+fi
+chmod 755 ${PG_YARN}
+
 source "${RECIPE_DIR}"/building/build-functions.sh
+set -x
 
 _setup_env "${SRC_DIR}" "conda"
 _cleanup "whl"
@@ -26,8 +32,8 @@ echo "MINIFY_HTML = False" >> ${PYPROJECTROOT}/config_distro.py
 cp LICENSE DEPENDENCIES README.md ${BUILDROOT}
 
 # Run the build
-echo Installing...
 pushd ${BUILDROOT} || exit
+  echo "Installing..."
   echo "" | cat > pgadmin4/__init__.py
 
   ${PYTHON} "${RECIPE_DIR}"/building/generate_pyproject.py \

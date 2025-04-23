@@ -25,16 +25,16 @@ _setup_env() {
 }
 
 _cleanup() {
-  echo "Cleaning up the old environment and app..."
   set +x
+  echo "Cleaning up the old environment and app..."
   rm -rf "${SOURCEDIR}/runtime/pgAdmin4"
   rm -rf "${BUILDROOT}"
   set -x
 }
 
 _setup_dirs() {
-  echo "Creating output directories..."
   set +x
+  echo "Creating output directories..."
   mkdir -p \
     "${BUILDROOT}" \
     "${PYPROJECTROOT}" \
@@ -44,8 +44,8 @@ _setup_dirs() {
 }
 
 _build_docs() {
-  echo "Building HTML documentation..."
   set +x
+  echo "Building HTML documentation..."
   pushd "${SOURCEDIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
     sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
@@ -66,20 +66,19 @@ _build_runtime() {
   set -x
 
   # Install the runtime node_modules
+  set +x
   pushd "${SHAREROOT}/resources/app" > /dev/null || exit
-    set +x
-    export PATH=${SRC_DIR}/yarn-dist-${PG_YARN_VERSION}/bin:$PATH
     corepack enable
     corepack prepare yarn@"${PG_YARN_VERSION}" --activate
-    if ! yarn plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
-      yarn plugin import workspace-tools
+    if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
+      ${PG_YARN} plugin import workspace-tools
     fi
-    yarn workspaces focus --production > /dev/null 2>&1
+    ${PG_YARN} workspaces focus --production > /dev/null 2>&1
 
     # remove the yarn cache
     rm -rf .yarn .yarn*
-    set -x
   popd > /dev/null || exit
+  set -x
 
   # Create the icon
   set +x
@@ -102,9 +101,15 @@ _build_runtime() {
 _build_py_project() {
   pushd "${SOURCEDIR}/web" > /dev/null || exit
     # osx buckles on missing git repo
-    echo "3b41fd0e $(date +%Y-%m-%d)" > commit_hash
-    yarn install > /dev/null 2>&1
-    yarn run bundle
+    git init
+    git config user.email "temp@example.com"
+    git config user.name "Temp User"
+    git add .
+    git commit -m "Initial commit"
+    # sed -i 's/yarn run bundle:dev && yarn run git:hash/yarn run bundle:dev \&\& (git log -1 --format="%H %as" > commit_hash || echo "3b41fd0e $(date +%Y-%m-%d)" > commit_hash)/g' package.json
+
+    ${PG_YARN} install > /dev/null 2>&1
+    ${PG_YARN} run bundle
     # yarn licenses generate-disclaimer > "${SRC_DIR}"/JS_LICENSES
 
     set +x
