@@ -1,0 +1,192 @@
+context:
+  name: pgadmin4-py
+  version: "9.2"
+  python_min: "3.9"
+  yarn_version: "3.8.7"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://ftp.postgresql.org/pub/pgadmin/pgadmin4/v${{ version }}/source/pgadmin4-${{ version }}.tar.gz
+    sha256: 3b41fd0ec898d474c4166a6aa3fe545ece0e3d0faf99a2ede7393331e41fc125
+    patches:
+      # speaklater3 implements a python 2.x support, its github homepage was deleted
+      # replacing speaklater3 req with speaklater (https://github.com/pgadmin-org/pgadmin4/issues/8673)
+      - patches/speaklater-requirements.txt.patch
+      - patches/psycopg-requirements.txt.patch
+  # # This is temporary until 3.8.7 is back-populated or pgadmin4 uses a updated version
+  # # in its package.json
+  # - url: https://registry.npmjs.org/@yarnpkg/cli-dist/-/cli-dist-${{ yarn_version }}.tgz
+  #   sha256: fc06b5df6ee5f43580f7b786cf4bdfcd6de4108827ba7cf85776608b3ab34207
+  #   target_directory: yarn-dist-${{ yarn_version }}
+
+build:
+  number: 0
+  noarch: python
+  skip: win
+  # python:
+  #   entry_points:
+  #     - pgadmin4 = pgadmin4.pgAdmin4:main
+  #     - pgadmin4-cli = pgadmin4.setup:main
+
+requirements:
+  host:
+    # - if: unix
+    #   then:
+    #     - rsync
+    #   else:
+    #     - m2-base
+    #     - m2-diffutils
+
+    - Flask 3.1.*
+    - Flask-Babel 4.0.*
+    - Flask-Compress 1.*
+    - Flask-Login 0.*
+    - Flask-Mail 0.*
+    - Flask-Migrate 4.*
+    - Flask-Paranoid 0.*
+    - Flask-Security-Too 5.4.*
+    - Flask-SocketIO 5.5.*
+    - Flask-SQLAlchemy 3.1.*
+    - Flask-WTF 1.2.*
+    - git
+    - jinja2
+    - jsonformatter =0.3.4
+    - hatchling >=1.10
+    - keyring 25.*
+    - krb5
+    - libgravatar
+    - nodejs
+    - pip
+    - python-build
+    - python-dateutil
+    - python ${{ python_min }}.*
+    - rsync
+    - setuptools
+    - sphinx
+    - sphinxcontrib-youtube
+    - Werkzeug 3.1.*
+    - yarn ==${{ yarn_version }}
+  run:
+    #- if: not unix
+    #  then: pywinpty 2.0.*
+
+    - authlib 1.4.*
+    - azure-identity ==1.19.0
+    - azure-mgmt-rdbms ==10.1.0
+    - azure-mgmt-resource ==23.2.0
+    - azure-mgmt-subscription ==3.1.1
+    - bcrypt 4.2.*
+    - boto3 1.36.*
+    - cryptography 44.0.*
+    - Flask 3.1.*
+    - Flask-Babel 4.0.*
+    - Flask-Compress 1.*
+    - Flask-Login 0.*
+    - Flask-Mail 0.*
+    - Flask-Migrate 4.*
+    - Flask-Paranoid 0.*
+    - Flask-Security-Too 5.4.*
+    - Flask-SocketIO 5.5.*
+    - Flask-SQLAlchemy 3.1.*
+    - Flask-WTF 1.2.*
+    - google-api-python-client 2.*
+    - google-auth-oauthlib ==1.2.1
+    - jsonformatter =0.3.4
+    - keyring 25.*
+    - ldap3 2.*
+    - libgravatar 1.0.*
+    - passlib 1.*
+    - psutil 6.1.*
+    - psycopg >=3.0.0,<3.3.0
+    - psycopg-c >=3.0.0,<3.3.0
+    - pytz 2025.*
+    - pyotp 2.*
+    - python >=${{ python_min }}
+    - python-gssapi 1.9.*
+    - qrcode 8.*
+    - setuptools 75.*
+    - speaklater 1.*
+    - SQLAlchemy 2.*
+    - sqlparse 0.*
+    - sshtunnel 0.*
+    - typer 0.15.*
+    - urllib3 1.26.*
+    - user-agents ==2.2.0
+    - wtforms 3.1.*
+
+tests:
+  - python:
+      imports:
+        - pgadmin4
+      python_version: ${{ python_min }}.*
+      pip_check: true
+  - package_contents:
+      site_packages:
+        - pgadmin4.pgadmin
+      files:
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/docs/html/*
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/docs/html/release_notes_${{ version | replace(".", "_") }}.html
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/resources/app/assets/*
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/resources/app/node_modules/*
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/resources/app/package.json
+        - ${{ "Library/" if not unix else "" }}share/pgadmin4/resources/app/src/*
+      # bin:
+      #   - pgadmin4
+      #   - pgadmin4-cli
+  - script: cd testing && python run_simple_pgadmin4.py
+    requirements: { run: ["python ${{ python_min }}.*"] }
+    files: { recipe: [testing/] }
+  - script: cd testing && python run_simple_setup.py
+    requirements: { run: ["python ${{ python_min }}.*"] }
+    files: { recipe: [testing/] }
+  - script:
+      - if: unix
+        then: PY_VER=${{ python_min }} ./test.sh
+        else: set PY_VER=${{ python_min }} && test.bat
+    requirements: { run: [postgresql 17.*, "python ${{ python_min }}.*"] }
+    files: { source: [tests.tar, web/regression/], recipe: [test.sh, test.bat, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 16.*, "python ${{ python_min }}.*"] }
+  #   files: { source: [tests.tar, web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 15.*, "python ${{ python_min }}.*"] }
+  #   files: { source: [tests.tar, web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 14.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [tests.tar, web/regression/], recipe: [test.sh, testing/] }
+
+  # This seems incompatible with psycopg
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 13.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 12.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 11.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 10.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [web/regression/], recipe: [test.sh, testing/] }
+  # - script: PY_VER=${{ python_min }} ./test.sh
+  #   requirements: { run: [postgresql 9.*, "python ${{ python_min }}.*", typing_extensions 4.7.*] }
+  #   files: { source: [web/regression/], recipe: [test.sh, testing/] }
+
+about:
+  homepage: https://github.com/pgadmin-org/pgadmin4
+  summary: 'pgAdmin 4 is a rewrite of the popular pgAdmin3 management tool for the PostgreSQL'
+  description: |
+    pgAdmin is the most popular and feature rich Open Source administration and
+    development platform for PostgreSQL, the most advanced Open Source database in the world.
+  license: PostgreSQL
+  license_file:
+    - LICENSE
+  documentation: https://www.pgadmin.org/
+  repository: https://github.com/pgadmin-org/pgadmin4
+
+extra:
+  recipe-maintainers:
+    - MementoRC
