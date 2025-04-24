@@ -10,7 +10,7 @@ fi
 export PYTHONDONTWRITEBYTECODE=1
 export PG_YARN=${PREFIX}/bin/yarn
 if [[ "${target_platform}" == "win-"* ]]; then
-  PG_YARN="${PREFIX}/Library/bin/${PG_YARN}.cmd"
+  PG_YARN="${PREFIX}/Library/bin/yarn.cmd"
 fi
 
 source "${RECIPE_DIR}"/building/build-functions.sh
