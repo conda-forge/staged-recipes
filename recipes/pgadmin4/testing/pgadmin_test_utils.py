@@ -19,6 +19,10 @@ def setup_timeout(seconds=60):
     """Set up a timeout that will terminate the program if exceeded."""
     def timeout_handler():
         print(f"Timeout reached after {seconds} seconds - terminating test")
+        # Print thread info to help diagnose where it might be stuck
+        print("Active threads at timeout:")
+        for thread in threading.enumerate():
+            print(f"  - {thread.name}")
         os._exit(2)
     
     timer = threading.Timer(seconds, timeout_handler)

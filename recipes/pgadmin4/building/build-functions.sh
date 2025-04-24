@@ -68,8 +68,8 @@ _build_runtime() {
   # Install the runtime node_modules
   set +x
   pushd "${SHAREROOT}/resources/app" > /dev/null || exit
-    corepack enable
-    corepack prepare yarn@"${PG_YARN_VERSION}" --activate
+    # corepack enable
+    # corepack prepare yarn@"${PG_YARN_VERSION}" --activate
     if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
       ${PG_YARN} plugin import workspace-tools
     fi

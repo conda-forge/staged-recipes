@@ -8,11 +8,10 @@ if [[ "${target_platform}" == "win-64" ]]; then
 fi
 
 export PYTHONDONTWRITEBYTECODE=1
-export PG_YARN=${SRC_DIR}/yarn-dist-${PG_YARN_VERSION}/bin/yarn
+export PG_YARN=${PREFIX}/bin/yarn
 if [[ "${target_platform}" == "win-"* ]]; then
-  PG_YARN="${PG_YARN}.cmd"
+  PG_YARN="${PREFIX}/Library/bin/${PG_YARN}.cmd"
 fi
-chmod 755 ${PG_YARN}
 
 source "${RECIPE_DIR}"/building/build-functions.sh
 set -x
