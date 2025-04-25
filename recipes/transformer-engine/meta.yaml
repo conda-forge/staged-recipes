@@ -8,7 +8,7 @@
 {% endif %}
 
 package:
-  name: transformer_engine
+  name: transformer-engine
   version: {{ version }}
 
 source:
@@ -25,61 +25,70 @@ source:
 
 build:
   number: 0
-  skip: true  # [not (cuda_compiler_version or "").startswith("12")]
-  skip: true  # [not (linux64 or aarch64)]
-  script_env:
-    - CUDA_HOME={{ BUILD_PREFIX }}
-    - NVTE_FRAMEWORK=pytorch
 
-requirements:
-  build:
-    - python                                 # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - pytorch                                # [build_platform != target_platform]
-    - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
-    - {{ stdlib('c') }}
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
-    - cuda-nvvm
-    - cmake >=3.21
-    - ninja
+outputs:
+  - name: transformer-engine-torch
+    version: {{ version }}
+    script: build_te.sh
 
-  host:
-    - python
-    - pip
-    - pybind11
-    - pytorch
-    - pytorch =*={{ torch_proc_type }}*
-    - setuptools
-    - pydantic
-    - importlib-metadata >=1.0
-    - packaging
-    - cuda-driver-dev
-    - cuda-cudart-dev
-    - cuda-nvrtc-dev
-    - cuda-nvtx-dev
-    - cuda-nvml-dev
-    - libcublas-dev
-    - libcusparse-dev
-    - libcusolver-dev
-    - cudnn
-    - cuda-profiler-api
+    build:
+      skip: true  # [not (cuda_compiler_version or "").startswith("12")]
+      skip: true  # [not (linux64 or aarch64)]
+      script_env:
+        - CUDA_HOME={{ BUILD_PREFIX }}
+        - NVTE_FRAMEWORK=pytorch
+      run_exports:
+        - {{ pin_subpackage('transformer-engine-torch', max_pin='x.x') }}
 
-  run:
-    - python
-    - pydantic
-    - importlib-metadata >=1.0
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - pytorch                                # [build_platform != target_platform]
+        - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+        - cuda-nvvm
+        - cmake >=3.21
+        - ninja
 
-  run_constrained:
-    # additional run constraint to the one from the (version-only) run_export;
-    # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
-    - pytorch =*={{ torch_proc_type }}*
+      host:
+        - python
+        - pip
+        - pybind11
+        - pytorch
+        - pytorch =*={{ torch_proc_type }}*
+        - setuptools
+        - pydantic
+        - importlib-metadata >=1.0
+        - packaging
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - libcublas-dev
+        - libcusparse-dev
+        - libcusolver-dev
+        - cudnn
+        - cuda-profiler-api
 
-test:
-  imports:
-    - transformer_engine.pytorch
-    - transformer_engine.common
+      run:
+        - python
+        - pydantic
+        - importlib-metadata >=1.0
+
+      run_constrained:
+        # additional run constraint to the one from the (version-only) run_export;
+        # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
+        - pytorch =*={{ torch_proc_type }}*
+
+    test:
+      imports:
+        - transformer_engine.pytorch
+        - transformer_engine.common
 
 about:
   home: https://github.com/NVIDIA/TransformerEngine
