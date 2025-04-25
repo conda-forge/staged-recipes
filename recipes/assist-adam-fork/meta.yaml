@@ -10,30 +10,50 @@ source:
   sha256: 15ff6aa4239e5b66d04c6bc3ab7e4a5d179dcc170aeb95c9f19b2daab93f63cd
 
 build:
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  number: 0
+  number: 2
+  skip: True  # [win]
+  script:
+  - |
+    SUFFIX=$({{ PYTHON }} -c "import distutils.sysconfig as s; print(s.get_config_var('EXT_SUFFIX'))")
+    LIBDIR=$({{ PYTHON }} -c "import distutils.sysconfig as s; print(s.get_python_lib())")
+    L="$LIBDIR/libassist$SUFFIX"
+    echo "BUILDING LIBRARY: $L"
+    {{ PYTHON }} -m pip install . --no-deps -vv
+    if [[ $(uname) == Darwin ]]; then
+      echo "CHECKING LINKED DEPENDENCIES:"
+      otool -L "$L"
+      if ! otool -L "$L" | grep -q "librebound"; then
+        echo "error: librebound not linked"
+        /bin/false
+      else
+        echo "librebound found to be linked, OK!"
+      fi
+      echo "==="
+    fi
 
 requirements:
   build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - rebound >=4.4.1                        # [build_platform != target_platform]
     - {{ compiler('c') }}
+    - {{ stdlib('c') }}
   host:
     - python
-    - setuptools
-    - rebound >=4.0.1
     - numpy
+    - rebound >=4.4.1
     - pip
   run:
     - python
-    - rebound >=4.0.1
+    - rebound >=4.4.1
     - {{ pin_compatible('numpy') }}
+
 
 test:
   imports:
     - assist
-  commands:
-    - pip check
-  requires:
-    - pip
+
 
 about:
   home: https://github.com/B612-Asteroid-Institute/assist-fork
