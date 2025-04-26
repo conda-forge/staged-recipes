@@ -72,6 +72,11 @@ if(HAVE_SINF)
   add_definitions(-DHAVE_SINF)
 endif()
 
+check_function_exists("setenv" HAVE_SETENV)
+if(HAVE_SETENV)
+  add_definitions(-DHAVE_SETENV)
+endif(HAVE_SETENV)
+
 if (BUILD_SHARED_LIBS)
   set (LIB_TYPE SHARED)
   if (WIN32 OR CYGWIN)
@@ -127,6 +132,10 @@ add_library(modplug ${LIB_TYPE}
   src/sndfile.cpp
   src/sndmix.cpp
   src/tables.h
+)
+
+set_target_properties(modplug PROPERTIES
+  CXX_STANDARD 98
 )
 
 if (BUILD_SHARED_LIBS)
