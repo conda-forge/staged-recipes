@@ -6,6 +6,7 @@ mamba install \
   linecache2==1.0.0 \
   openssl \
   pbr==6.1.0 \
+  procps-ng \
   "pycodestyle>=2.5.0" \
   python-mimeparse==2.0.0 \
   selenium==4.27.1 \

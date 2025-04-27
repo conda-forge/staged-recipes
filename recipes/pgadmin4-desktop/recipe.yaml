@@ -1,0 +1,143 @@
+context:
+  name: pgadmin4-desktop
+  version: "9.2"
+  python_min: "3.9"
+  yarn_version: "3.8.7"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://ftp.postgresql.org/pub/pgadmin/pgadmin4/v${{ version }}/source/pgadmin4-${{ version }}.tar.gz
+    sha256: 3b41fd0ec898d474c4166a6aa3fe545ece0e3d0faf99a2ede7393331e41fc125
+    patches:
+      - patches/set-pgadmin4-path-pgadmin4.js.patch
+  # # This is temporary until 3.8.7 is back-populated or pgadmin4 uses a updated version
+  # # in its package.json
+  # - url: https://registry.npmjs.org/@yarnpkg/cli-dist/-/cli-dist-${{ yarn_version }}.tgz
+  #   sha256: fc06b5df6ee5f43580f7b786cf4bdfcd6de4108827ba7cf85776608b3ab34207
+  #   target_directory: yarn-dist-${{ yarn_version }}
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+  host:
+    - curl
+    - libvulkan-loader
+    - pgadmin4-python ==${{ version }}
+    - syft
+    - yarn ==${{ yarn_version }}
+    - if: linux
+      then:
+        - ${{ cdt("mesa-libgbm") }}
+        - libegl
+        - libgles
+        - libdrm
+        - libglvnd
+        - nss
+    - if: unix
+      then:
+        - alsa-lib
+        - atk
+        - cairo
+        - dbus
+        - glib
+        - gtk3
+        - libudev
+        - mesalib
+        - pango
+        - unzip
+        - xorg-libx11
+        - xorg-libxcomposite
+        - xorg-libxext
+        - xorg-libxdamage
+        - xorg-libxfixes
+        - xorg-libxrandr
+  run:
+    - libvulkan-loader
+    - pgadmin4-python ==${{ version }}
+    - if: linux
+      then:
+        # - ${{ cdt("mesa-dri-drivers") }}
+        # - ${{ cdt("mesa-libgbm") }}
+        # - ${{ cdt("mesa-libgl-devel") }}
+        # - ${{ cdt("mesa-libglapi") }}
+        - alsa-lib
+        - fontconfig
+        - libdrm
+        - libegl
+        - libgles
+        - libglvnd
+        - libxcrypt1
+        - mesalib
+        - nss
+        - xorg-libx11
+        - xorg-libxcomposite
+        - xorg-libxext
+        - xorg-libxdamage
+        - xorg-libxfixes
+        - xorg-libxrandr
+    - if: unix
+      then:
+        - mesalib
+
+tests:
+  - package_contents:
+      files:
+        - ${{ "Library/" if not unix else "" }}share/icons/hicolor/128x128/apps/pgadmin4.png
+        - ${{ "Library/" if not unix else "" }}share/icons/hicolor/16x16/apps/pgadmin4.png
+        - ${{ "Library/" if not unix else "" }}share/icons/hicolor/32x32/apps/pgadmin4.png
+        - ${{ "Library/" if not unix else "" }}share/icons/hicolor/48x48/apps/pgadmin4.png
+        - ${{ "Library/" if not unix else "" }}share/icons/hicolor/64x64/apps/pgadmin4.png
+        - ${{ "Library/" if not unix else "" }}usr/pgadmin4/bin/pgadmin4
+        - ${{ "Library/" if not unix else "" }}usr/pgadmin4/bin/resources/app/assets/*
+        - ${{ "Library/" if not unix else "" }}usr/pgadmin4/bin/resources/app/node_modules/*
+        - ${{ "Library/" if not unix else "" }}usr/pgadmin4/bin/resources/app/package.json
+        - ${{ "Library/" if not unix else "" }}usr/pgadmin4/bin/resources/app/src/*
+        - if: linux
+          then:
+            - Menu/pgadmin4.desktop
+        - if: osx
+          then:
+            - Menu/pgadmin4.app
+        - if: not unix
+          then:
+            - Menu/pgadmin4.lnk
+  - script:
+      - if: linux
+        then:
+          - cd testing && export DISPLAY=localhost:0.0
+          - python run_pgadmin4.py -f=--disable-gpu
+          - python run_pgadmin4.py -f=--use-gl=egl
+          - python run_pgadmin4.py -f=--use-vulkan=none
+          - python run_pgadmin4.py -f=--use-gl=desktop
+          - python run_pgadmin4.py -f=--use-gl=swiftshader
+          # - exit 1
+        else: echo "No tests yet"
+    files:
+      recipe:
+        - testing/
+    requirements:
+      run:
+        - ${{ cdt("xorg-x11-server-xvfb") }}
+
+about:
+  homepage: https://github.com/pgadmin-org/pgadmin4
+  summary: 'pgAdmin 4 Desktop application'
+  description: |
+    pgAdmin is the most popular and feature rich Open Source administration and
+    development platform for PostgreSQL, the most advanced Open Source database in the world.
+  license: PostgreSQL
+  license_file:
+    - LICENSE
+  documentation: https://www.pgadmin.org/
+  repository: https://github.com/pgadmin-org/pgadmin4
+
+extra:
+  recipe-maintainers:
+    - MementoRC

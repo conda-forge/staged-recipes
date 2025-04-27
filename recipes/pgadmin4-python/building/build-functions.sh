@@ -3,10 +3,7 @@ _setup_env() {
   echo "Setting up the environment..."
   SOURCEDIR=$(realpath "${1:-${SRC_DIR}}")
   BUILDROOT="${SOURCEDIR}/$2-build"
-  PYPROJECTROOT=${BUILDROOT}/pgadmin4
-  
-  SHAREROOT="${PREFIX}"/share/pgadmin4
-  DOCSROOT="${SHAREROOT}"/docs/html
+  PYPROJECTROOT=${BUILDROOT}/pgadmin4-python
 
   APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
   APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
@@ -16,6 +13,9 @@ _setup_env() {
   if [ -n "${APP_SUFFIX}" ]; then
       APP_LONG_VERSION="${APP_LONG_VERSION}-${APP_SUFFIX}"
   fi
+
+  SHAREROOT="${PREFIX}"/share/${APP_NAME}
+  DOCSROOT="${SHAREROOT}"/docs/html
   set -x
 }
 
@@ -32,45 +32,18 @@ _setup_dirs() {
   echo "Creating output directories..."
   mkdir -p \
     "${BUILDROOT}" \
-    "${PYPROJECTROOT}" \
-    "${SHAREROOT}" \
-    "${DOCSROOT}"
+    "${PYPROJECTROOT}"
   set -x
 }
 
 _build_docs() {
   set +x
   echo "Building HTML documentation..."
-  pushd "${SOURCEDIR}"/docs/en_US || exit
+  pushd "${SRC_DIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
     sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
-  popd
-  (cd "${SOURCEDIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) > /dev/null 2>&1
-  set -x
-}
-
-_build_runtime() {
-  set +x
-  echo "Assembling the desktop runtime..."
-  mkdir -p "${SHAREROOT}/resources/app"
-  cp -r "${SOURCEDIR}/runtime/assets" "${SHAREROOT}/resources/app/assets"
-  cp -r "${SOURCEDIR}/runtime/src" "${SHAREROOT}/resources/app/src"
-
-  cp "${SOURCEDIR}/runtime/package.json" "${SHAREROOT}/resources/app"
-  cp "${SOURCEDIR}/runtime/.yarnrc.yml" "${SHAREROOT}/resources/app"
-  set -x
-
-  # Install the runtime node_modules
-  set +x
-  pushd "${SHAREROOT}/resources/app" > /dev/null || exit
-    if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
-      ${PG_YARN} plugin import workspace-tools
-    fi
-    ${PG_YARN} workspaces focus --production > /dev/null 2>&1
-
-    # remove the yarn cache
-    rm -rf .yarn .yarn*
-  popd > /dev/null || exit
+  popd || exit
+  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) > /dev/null 2>&1
   set -x
 }
 
