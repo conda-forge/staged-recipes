@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
-set -eux
-
-set +x
-if [[ "${target_platform}" == "win-64" ]]; then
-  _PREFIX="${PREFIX}"/Library
-  export PREFIX=${_PREFIX}
-fi
+set -eu
 
 export PYTHONDONTWRITEBYTECODE=1
 export PG_YARN=${PREFIX}/bin/yarn
 
 source "${RECIPE_DIR}"/building/build-functions.sh
-set -x
 
 _setup_env
 _cleanup
@@ -27,7 +20,7 @@ cp LICENSE DEPENDENCIES README.md "${BUILDROOT}"
 # Build/Install python package
 pushd "${BUILDROOT}" || exit
   echo "Installing..."
-  echo "" | cat > pgadmin4/__init__.py
+  echo "" | cat > $(basename "$PYPROJECTROOT")/__init__.py
 
   ${PYTHON} "${RECIPE_DIR}"/building/generate_pyproject.py \
     --setup "${SRC_DIR}"/pkg/pip/setup_pip.py \
