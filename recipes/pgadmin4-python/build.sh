@@ -13,8 +13,8 @@ export PG_YARN=${PREFIX}/bin/yarn
 source "${RECIPE_DIR}"/building/build-functions.sh
 set -x
 
-_setup_env "${SRC_DIR}" "conda"
-_cleanup "whl"
+_setup_env
+_cleanup
 _setup_dirs
 _build_docs
 _build_py_project

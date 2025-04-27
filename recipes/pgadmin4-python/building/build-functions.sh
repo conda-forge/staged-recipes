@@ -1,8 +1,7 @@
 _setup_env() {
   set +x
   echo "Setting up the environment..."
-  SOURCEDIR=$(realpath "${1:-${SRC_DIR}}")
-  BUILDROOT="${SOURCEDIR}/$2-build"
+  BUILDROOT="${SRC_DIR}"/conda-build
   PYPROJECTROOT=${BUILDROOT}/pgadmin4-python
 
   APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
@@ -22,7 +21,7 @@ _setup_env() {
 _cleanup() {
   set +x
   echo "Cleaning up the old environment and app..."
-  rm -rf "${SOURCEDIR}/runtime/pgAdmin4"
+  rm -rf "${SRC_DIR}/runtime/pgAdmin4"
   rm -rf "${BUILDROOT}"
   set -x
 }
@@ -32,6 +31,7 @@ _setup_dirs() {
   echo "Creating output directories..."
   mkdir -p \
     "${BUILDROOT}" \
+    "${DOCSROOT}" \
     "${PYPROJECTROOT}"
   set -x
 }
@@ -43,12 +43,12 @@ _build_docs() {
     ${PYTHON} build_code_snippet.py
     sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
   popd || exit
-  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) > /dev/null 2>&1
+  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) #> /dev/null 2>&1
   set -x
 }
 
 _build_py_project() {
-  pushd "${SOURCEDIR}/web" > /dev/null || exit
+  pushd "${SRC_DIR}/web" > /dev/null || exit
     # osx buckles on missing git repo
     git init > /dev/null 2>&1
     git config user.email "temp@example.com"
