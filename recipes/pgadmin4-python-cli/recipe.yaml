@@ -1,0 +1,63 @@
+context:
+  name: pgadmin4-python-cli
+  version: "9.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://ftp.postgresql.org/pub/pgadmin/pgadmin4/v${{ version }}/source/pgadmin4-${{ version }}.tar.gz
+    sha256: 3b41fd0ec898d474c4166a6aa3fe545ece0e3d0faf99a2ede7393331e41fc125
+    patches:
+      # speaklater3 implements a python 2.x support, its github homepage was deleted
+      # replacing speaklater3 req with speaklater (https://github.com/pgadmin-org/pgadmin4/issues/8673)
+      - patches/speaklater-requirements.txt.patch
+      - patches/psycopg-requirements.txt.patch
+
+build:
+  number: 0
+  script: echo "Nothing to install"
+  python:
+    entry_points:
+      - pgadmin4 = pgadmin4.pgAdmin4:main
+      - pgadmin4-cli = pgadmin4.setup:main
+
+requirements:
+  host:
+    - pgadmin4-python ==${{ version }}
+    - python
+  run:
+    - pgadmin4-python ==${{ version }}
+    - python
+
+tests:
+  - package_contents:
+      bin:
+        - pgadmin4
+        - pgadmin4-cli
+  # Running 'pgadmin4 --help' will await for a Ctrl+C to exit, so calling it with a python script
+  - script: |
+      cd testing && 
+      PGADMIN_PATH=$(python -c "import importlib.util, os; spec = importlib.util.find_spec('pgadmin4'); print(os.path.dirname(spec.origin) if spec else 'MODULE_NOT_FOUND')") && 
+      cp config_local.py "$PGADMIN_PATH" &&
+      python run_simple_pgadmin4.py &&
+      lsof -ti :5050 | xargs kill -9
+    requirements: { run: [python, lsof] }
+    files: { recipe: [testing/] }
+
+about:
+  homepage: https://github.com/pgadmin-org/pgadmin4
+  summary: 'pgAdmin 4 is a rewrite of the popular pgAdmin3 management tool for the PostgreSQL'
+  description: |
+    pgAdmin is the most popular and feature rich Open Source administration and
+    development platform for PostgreSQL, the most advanced Open Source database in the world.
+  license: PostgreSQL
+  license_file:
+    - LICENSE
+  documentation: https://www.pgadmin.org/
+  repository: https://github.com/pgadmin-org/pgadmin4
+
+extra:
+  recipe-maintainers:
+    - MementoRC
