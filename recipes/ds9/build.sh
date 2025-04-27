@@ -2,7 +2,7 @@
 
 set -eu
 
-if [[ $(uname -s) == "Linux" ]]; then
+if [[ "$target_platform" == linux-* ]]; then
   ./unix/configure
   OUTPUT="bin/ds9"
 
