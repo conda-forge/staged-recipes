@@ -1,0 +1,65 @@
+{% set version = "0.21.0" %}
+
+package:
+  name: anserini
+  version: {{ version }}
+
+source:
+  - url: https://github.com/castorini/anserini/archive/refs/tags/anserini-{{ version }}.tar.gz
+    sha256: d0308fb94e8bb3f4c187619d465dc2b28fb8bd7e7e2957da13ceb3d7a7c08918
+  # include submodule (not in github tarball due to dear-github/dear-github#214);
+  # trec_evals is built separately;
+  # TODO: check if eval/rbp_eval-0.2.tar.gz artefact
+  #       (from https://github.com/jsc/rbp_eval?) is used
+  - git_url: https://github.com/castorini/anserini-tools.git
+    git_rev: 7800357c37ac000bb16d7c23d8b7d618882ff7dc
+    folder: tools
+    patches:
+      - patches/0001-don-t-hardcode-compiler.patch
+
+build:
+  noarch: python
+  number: 0
+  # windows fails but we cannot skip due to noarch
+  # skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - maven
+    - make
+  host:
+    - python *
+    - python >=3.8
+    - openjdk >=11
+  run:
+    - python *
+    - python >=3.8
+    - trec_eval
+    - tqdm
+
+test:
+  source_files:
+    - src/main/python
+    - src/main/resources/regression
+  requires:
+    - python
+    - pyyaml
+  commands:
+    - test -f $PREFIX/share/anserini/anserini-{{ version }}.jar
+    # TODO: test expected CLI interface
+    # - anserini SearchCollection --help
+    - python src/main/python/run_regression.py -h
+
+about:
+  home: anserini.io
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: Anserini is a Lucene toolkit for reproducible information retrieval research
+  dev_url: https://github.com/castorini/anserini
+
+extra:
+  recipe-maintainers:
+    - lintool
+    - MXueguang
+    - h-vetinari
