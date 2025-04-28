@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eux
 
-if [[ "${build_platform}" == "win-"* ]]; then
+if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "win32" ]] || [[ "${OSTYPE}" == "cygwin" ]]; then
   _PREFIX="${PREFIX}/Library"
   export PREFIX="${_PREFIX}"
 fi
