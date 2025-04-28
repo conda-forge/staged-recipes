@@ -1,5 +1,4 @@
 _setup_env() {
-  set +x
   echo "Setting up the environment..."
   BUILDROOT="${SRC_DIR}"/conda-build
 
@@ -15,15 +14,12 @@ _setup_env() {
   PYPROJECTROOT="${BUILDROOT}"/${APP_NAME}
   SHAREROOT="${PREFIX}"/share/${APP_NAME}
   DOCSROOT="${SHAREROOT}"/docs/html
-  set -x
 }
 
 _cleanup() {
-  set +x
   echo "Cleaning up the old environment and app..."
   rm -rf "${SRC_DIR}/runtime/pgAdmin4"
   rm -rf "${BUILDROOT}"
-  set -x
 }
 
 _setup_dirs() {
@@ -55,26 +51,111 @@ _build_py_project() {
     ${PG_YARN} install > /dev/null 2>&1
     ${PG_YARN} run bundle > /dev/null 2>&1
 
-    find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
-      tar -cf "${SRC_DIR}"/tests.tar --null -T -
-    rsync -a \
-      --exclude='node_modules' \
-      --exclude='regression' \
-      --exclude='pgadmin/static/js/generated/.cache' \
-      --exclude='tests' \
-      --exclude='feature_tests' \
-      --exclude='__pycache__' \
-      --exclude='pgadmin4.db' \
-      --exclude='config_local.*' \
-      --exclude='jest.config.js' \
-      --exclude='babel.*' \
-      --exclude='package.json' \
-      --exclude='.yarn*' \
-      --exclude='yarn.*' \
-      --exclude='.editorconfig' \
-      --exclude='.eslint*' \
-      --exclude='pgAdmin4.wsgi' \
-      . "${PYPROJECTROOT}"
+    if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "win32" ]] || [[ "${OSTYPE}" == "cygwin" ]]; then
+      # Create a batch file for Windows commands
+      cat > "${SRC_DIR}/build_tests.ps1" << 'EOF'
+param (
+    [string]$OutputFile
+)
+$ErrorActionPreference = "Stop"
+Write-Host "Finding test directories..."
+$testDirs = @()
+$testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name -eq "tests" -and $_.FullName -notmatch "__pycache__" } | Select-Object -ExpandProperty FullName
+$testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name -like "test_*" -and $_.FullName -notmatch "__pycache__" } | Select-Object -ExpandProperty FullName
+
+Write-Host "Creating tar archive with $($testDirs.Count) directories..."
+$testDirs | tar -cf $OutputFile -T -
+Write-Host "Archive created: $OutputFile"
+EOF
+
+      # Create robocopy batch file
+      cat > "${SRC_DIR}/copy_files.ps1" << 'EOF'
+param (
+    [string]$Source,
+    [string]$Destination
+)
+$ErrorActionPreference = "Stop"
+Write-Host "Source: $Source"
+Write-Host "Destination: $Destination"
+
+if (-not (Test-Path $Destination)) {
+    New-Item -Path $Destination -ItemType Directory -Force
+}
+
+Write-Host "Copying files..."
+# Use PowerShell Copy-Item with exclusions
+$excludedDirs = @("node_modules", "regression", "pgadmin/static/js/generated/.cache", "tests", "feature_tests", "__pycache__")
+$excludedFiles = @("pgadmin4.db", "config_local.*", "jest.config.js", "babel.*", "package.json", ".yarn*", "yarn.*", ".editorconfig", ".eslint*", "pgAdmin4.wsgi")
+
+# First copy everything
+Get-ChildItem -Path $Source -Recurse |
+    Where-Object {
+        # Check if it's not in excluded directories
+        $item = $_
+        $excluded = $false
+        foreach ($dir in $excludedDirs) {
+            if ($item.FullName -match $dir) {
+                $excluded = $true
+                break
+            }
+        }
+        if ($excluded) { return $false }
+
+        # Check if it's not an excluded file
+        if ($item.PSIsContainer) { return $true }
+        foreach ($file in $excludedFiles) {
+            if ($item.Name -like $file) {
+                return $false
+            }
+        }
+        return $true
+    } |
+    ForEach-Object {
+        $targetPath = Join-Path $Destination $_.FullName.Substring($Source.Length)
+        if ($_.PSIsContainer) {
+            if (-not (Test-Path $targetPath)) {
+                New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
+            }
+        } else {
+            $targetDir = Split-Path $targetPath -Parent
+            if (-not (Test-Path $targetDir)) {
+                New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+            }
+            Copy-Item -Path $_.FullName -Destination $targetPath -Force
+        }
+    }
+Write-Host "Copy completed successfully"
+EOF
+
+      # Execute batch files with proper parameters
+      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/build_tests.ps1" -OutputFile "${SRC_DIR}/tests.tar"
+      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/copy_files.ps1" -Source "${SRC_DIR}/web" -Destination "${PYPROJECTROOT}"
+      rm -f "${SRC_DIR}"/build_tests.bat "${SRC_DIR}"/copy_files.bat
+    else
+      conda install rsync
+
+      find . -type d \( -name "tests" -o -name "test_*" \) ! -path "*/__pycache__*" -print0 | \
+        tar -cf "${SRC_DIR}"/tests.tar --null -T -
+      rsync -a \
+        --exclude='node_modules' \
+        --exclude='regression' \
+        --exclude='pgadmin/static/js/generated/.cache' \
+        --exclude='tests' \
+        --exclude='feature_tests' \
+        --exclude='__pycache__' \
+        --exclude='pgadmin4.db' \
+        --exclude='config_local.*' \
+        --exclude='jest.config.js' \
+        --exclude='babel.*' \
+        --exclude='package.json' \
+        --exclude='.yarn*' \
+        --exclude='yarn.*' \
+        --exclude='.editorconfig' \
+        --exclude='.eslint*' \
+        --exclude='pgAdmin4.wsgi' \
+        . "${PYPROJECTROOT}"
+      set -x
+    fi
   popd > /dev/null || exit
 }
 
