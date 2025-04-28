@@ -35,8 +35,11 @@ _build_docs() {
   pushd "${SRC_DIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
     sphinx-build -W -b html -d _build/doctrees . _build/html
+
+    pushd _build/html || exit
+      tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)
+    popd || exit
   popd || exit
-  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -))
 }
 
 _build_py_project() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -eux
 
 export PYTHONDONTWRITEBYTECODE=1
 export PG_YARN=${PREFIX}/bin/yarn
