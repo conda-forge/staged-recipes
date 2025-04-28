@@ -132,9 +132,8 @@ Write-Host "Copy completed successfully"
 EOF
 
       # Execute batch files with proper parameters
-      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/build_tests.ps1" -OutputFile "${SRC_DIR}/tests.tar"
+      powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/build_tests.ps1" -OutputFile "../tests.tar"
       powershell.exe -ExecutionPolicy Bypass -File "${SRC_DIR}/copy_files.ps1" -Source "${SRC_DIR}/web" -Destination "${PYPROJECTROOT}"
-      rm -f "${SRC_DIR}"/build_tests.bat "${SRC_DIR}"/copy_files.bat
     else
       conda install rsync
 

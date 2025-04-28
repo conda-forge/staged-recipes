@@ -213,7 +213,7 @@ def main():
         os.makedirs(pgadmin_pkg, exist_ok=True)
         # Use rsync or cp -r depending on the platform
         if os_type in ["Linux", "Darwin", "WSL"]:
-            run_command(f"cp -r {web_dir} {pgadmin_pkg}/", shell=True)
+            run_command(f"cp -r {web_dir} {pgadmin_pkg}", shell=True)
         else:
             # Fallback to Python's copy for Windows
             for item in os.listdir(web_dir):
@@ -233,7 +233,7 @@ def main():
         with tarfile.open(tests_tar, "r") as tar:
             tar.extractall(path=pgadmin_pkg)
     else:
-        print(f"Warning: web directory not found at {web_dir}")
+        print(f"Warning: test tarball not found at {tests_tar}")
         raise RuntimeError("Tests tarball not found")
 
     # Update config directly instead of calling external script
