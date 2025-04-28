@@ -34,9 +34,9 @@ _build_docs() {
   echo "Building HTML documentation..."
   pushd "${SRC_DIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
-    sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
+    sphinx-build -W -b html -d _build/doctrees . _build/html
   popd || exit
-  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)) > /dev/null 2>&1
+  (cd "${SRC_DIR}"/docs/en_US/_build/html/ && tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -))
 }
 
 _build_py_project() {
