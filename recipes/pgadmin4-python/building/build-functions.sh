@@ -34,7 +34,7 @@ _build_docs() {
   echo "Building HTML documentation..."
   pushd "${SRC_DIR}"/docs/en_US || exit
     ${PYTHON} build_code_snippet.py
-    sphinx-build -W -b html -d _build/doctrees . _build/html
+    sphinx-build -W -b html -d _build/doctrees . _build/html > /dev/null 2>&1
 
     pushd _build/html || exit
       tar cf - ./* | (cd "${DOCSROOT}"/ && tar xf -)
@@ -43,6 +43,7 @@ _build_docs() {
 }
 
 _build_py_project() {
+  echo "Building python project folder..."
   pushd "${SRC_DIR}/web" > /dev/null || exit
     # osx buckles on missing git repo
     git init > /dev/null 2>&1
@@ -51,7 +52,7 @@ _build_py_project() {
     git add . > /dev/null 2>&1
     git commit -m "Initial commit" > /dev/null 2>&1
 
-    ${PG_YARN} install > /dev/null 2>&1
+    ${PG_YARN} install
     ${PG_YARN} run bundle > /dev/null 2>&1
 
     if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "win32" ]] || [[ "${OSTYPE}" == "cygwin" ]]; then

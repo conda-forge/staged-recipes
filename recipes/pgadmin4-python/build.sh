@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -eux
 
+if [[ "${build_platform}" == "win-"* ]]; then
+  _PREFIX="${PREFIX}/Library"
+  export PREFIX="${_PREFIX}"
+fi
+
 export PYTHONDONTWRITEBYTECODE=1
 export PG_YARN=${PREFIX}/bin/yarn
 
