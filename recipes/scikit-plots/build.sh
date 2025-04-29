@@ -5,6 +5,9 @@
 
 set -ex
 
+git submodule update --init --recursive || true
+echo -e "\033[1;32m## Submodule update process completed!\033[0m"
+
 mkdir builddir
 
 # HACK: extend $CONDA_PREFIX/meson_cross_file that's created in
