@@ -5,10 +5,28 @@
 
 set -ex
 
-ls -al
+git_fetch_shallow() {
+  local repo_url="$1"
+  local tag="$2"
 
-git submodule update --init --recursive || true
-echo -e "\033[1;32m## Submodule update process completed!\033[0m"
+  if [[ -z "$repo_url" || -z "$tag" ]]; then
+    echo "Usage: git_fetch_shallow <repo_url> <tag>"
+    return 1
+  fi
+
+  echo -e "\033[1;34m[INFO]\033[0m Cloning $repo_url @ $tag (shallow + submodules)..."
+
+  git init .
+  git remote add origin "$repo_url"
+  git fetch --depth 1 origin "$tag"
+  git checkout FETCH_HEAD
+
+  git submodule update --init --recursive
+
+  echo -e "\033[1;32m[SUCCESS]\033[0m Repo and submodules fetched successfully."
+}
+
+# git_fetch_shallow https://github.com/scikit-plots/scikit-plots.git v0.4.0rc4
 
 mkdir builddir
 
