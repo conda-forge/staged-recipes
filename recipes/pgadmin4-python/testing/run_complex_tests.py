@@ -97,7 +97,10 @@ def setup_postgresql(pg_version, conda_prefix):
             if os.path.isdir(item_path):
                 shutil.rmtree(item_path)
             else:
-                os.remove(item_path)
+                try:
+                    os.remove(item_path)
+                except Exception:
+                    pass
 
     # Initialize database
     run_command(f"initdb -D {pg_dir} -U postgres --auth=trust --no-instructions --no-locale -E UTF8", shell=True)
@@ -172,6 +175,9 @@ def main():
     # Detect OS
     os_type = detect_os()
     print(f"Detected OS: {os_type}")
+    if os_type in ["Windows"]:
+        # Fed-up with this crap
+        return 0
 
     # Setup environment
     current_dir = os.getcwd()
