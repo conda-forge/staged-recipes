@@ -58,7 +58,7 @@ def update_config(config_file, prefix, pg_version="99"):
 
     try:
         # Create absolute tablespace path
-        tablespace_path = os.path.abspath(f".postgresql/{pg_version}-main/tablespaces")
+        tablespace_path = os.path.abspath(os.path.join(".postgresql", pg_version, "-main", "tablespaces"))
 
         with open(config_file, "r") as f:
             content = f.read()
@@ -80,10 +80,9 @@ def setup_postgresql(pg_version, conda_prefix):
     """Implement PostgreSQL setup from run_test_command.py directly"""
     print(f"Setting up PostgreSQL {pg_version}...")
 
-    pg_dir = f".postgresql/{pg_version}-main"
+    pg_dir = os.path.join(".postgresql", f"{pg_version}-main")
     pg_stat_tmp = f"{pg_dir}.pg_stat_tmp"
-    pg_hba_conf = f"{pg_dir}/pg_hba.conf"
-    pg_conf = f"{pg_dir}/postgresql.conf"
+    pg_conf = os.path.join(pg_dir, "postgresql.conf")
     port = f"59{pg_version}"
 
     # Create directories
@@ -108,7 +107,7 @@ def setup_postgresql(pg_version, conda_prefix):
     os.makedirs(tablespace_path, exist_ok=True)
 
     # Configure pg_hba.conf
-    with open(f"{pg_dir}/pg_hba.conf", "w") as f:
+    with open(os.path.join(pg_dir, "pg_hba.conf"), "w") as f:
         f.write("local   all  all                    trust\n")
         f.write("host    all  all      127.0.0.1/32  trust\n")
         f.write("host    all  all      ::1/128       trust\n")
@@ -126,7 +125,7 @@ def setup_postgresql(pg_version, conda_prefix):
 
     # Start PostgreSQL with Popen (not run_command)
     print(f"Starting PostgreSQL on port {port}...")
-    postgres_cmd = f"{conda_prefix}/bin/postgres -D {pg_dir} -c config_file={pg_conf}"
+    postgres_cmd = os.path.join(conda_prefix, "bin", "postgres") + f" -D {pg_dir} -c config_file={pg_conf}"
     postgres_proc = subprocess.Popen(
         postgres_cmd.split(),
         stdout=subprocess.PIPE,
@@ -138,7 +137,7 @@ def setup_postgresql(pg_version, conda_prefix):
 
     # Check if PostgreSQL is ready
     try:
-        pg_isready_cmd = f"{conda_prefix}/bin/pg_isready -h localhost -p {port}"
+        pg_isready_cmd = os.path.join(conda_prefix, "bin", "pg_isready") + f" -h localhost -p {port}"
         subprocess.run(pg_isready_cmd.split(), check=True)
         print("PostgreSQL is ready!")
     except subprocess.CalledProcessError:
@@ -263,7 +262,7 @@ def main():
         try:
             # Run tests but don't exit on failure
             test_cmd = [
-                "python", "web/regression/runtests.py",
+                "python", os.path.join("web", "regression", "runtests.py"),
                 "--exclude", "feature_tests",
                 "--parallel",
                 "--pkg", "browser.tests.test_login"
