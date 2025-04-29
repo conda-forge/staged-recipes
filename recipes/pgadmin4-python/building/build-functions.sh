@@ -68,7 +68,14 @@ $testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name 
 $testDirs += Get-ChildItem -Path . -Directory -Recurse | Where-Object { $_.Name -like "test_*" -and $_.FullName -notmatch "__pycache__" } | Select-Object -ExpandProperty FullName
 
 Write-Host "Creating tar archive with $($testDirs.Count) directories..."
-$testDirs | tar -cf $OutputFile -T -
+$tempFile = [System.IO.Path]::GetTempFileName()
+$testDirs | ForEach-Object { $_ -replace '\\', '/' } | Out-File -FilePath $tempFile -Encoding ascii
+
+# Use the temp file as input for tar
+tar -cf $OutputFile -T $tempFile
+
+# Clean up
+Remove-Item $tempFile
 Write-Host "Archive created: $OutputFile"
 EOF
 
