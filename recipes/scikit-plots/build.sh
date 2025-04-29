@@ -23,6 +23,9 @@ git_fetch_shallow() {
 }
 # git_fetch_shallow https://github.com/scikit-plots/scikit-plots.git v0.4.0rc4
 
+# Initialize and update submodules
+git submodule update --init --recursive || true
+
 mkdir builddir
 
 # HACK: extend $CONDA_PREFIX/meson_cross_file that's created in
