@@ -1,21 +1,6 @@
 #!/bin/bash
 
-# # download coinbrew
-# curl -O https://raw.githubusercontent.com/coin-or/coinbrew/master/coinbrew
-# chmod u+x coinbrew
-
-# # coin-or osi and clp
-# ./coinbrew build Osi --latest-release \
-#     --skip-dependencies \
-#     --prefix=$PREFIX \
-#     --tests=none \
-#     --without-cplex \
-#     --without-gurobi \
-
-# ./coinbrew build Clp --latest-release \
-#     --skip-dependencies \
-#     --prefix=$PREFIX \
-#     --tests=none
+## smspp-project [SCIP and HiGHS only]
 
 git clone https://gitlab.com/stochastic-control/StOpt
 cd StOpt
@@ -27,10 +12,9 @@ cmake --install . --prefix "$PREFIX"
 cd ../..
 
 # build SMS++
-rm -fr smspp-project
-git clone -b develop --recurse-submodules https://gitlab.com/smspp/smspp-project.git
+git submodule init
+git submodule update
 
-cd smspp-project
 mkdir build
 cd build
 cmake ..
