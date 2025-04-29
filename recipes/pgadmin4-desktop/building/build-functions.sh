@@ -4,11 +4,18 @@ _setup_env() {
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
 
-  APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
-  APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
-  APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
+  if [[ "${build_platform}" == "linux-"* ]] || [[ "${build_platform}" == "osx-"* ]]; then
+    APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
+    APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
+    APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
+    APP_SUFFIX=$(grep "^APP_SUFFIX" web/version.py | cut -d"=" -f2 | sed 's/ //g' | sed "s/'//g")
+  else
+    while IFS= read -r line; do
+      export "$line"
+    done < <(powershell.exe -ExecutionPolicy Bypass -File "${RECIPE_DIR}"/building/version-info.ps1)
+  fi
+
   APP_LONG_VERSION=${APP_RELEASE}.${APP_REVISION}
-  APP_SUFFIX=$(grep "^APP_SUFFIX" web/version.py | cut -d"=" -f2 | sed 's/ //g' | sed "s/'//g")
   if [ -n "${APP_SUFFIX}" ]; then
       APP_LONG_VERSION="${APP_LONG_VERSION}-${APP_SUFFIX}"
   fi
