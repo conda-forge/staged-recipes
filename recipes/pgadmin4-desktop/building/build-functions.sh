@@ -4,7 +4,7 @@ _setup_env() {
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
 
-  if [[ "${build_platform}" == "linux-"* ]] || [[ "${build_platform}" == "osx-"* ]]; then
+  if [[ -n "${build_platform}" ]]; then
     APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
@@ -52,7 +52,7 @@ _install_electron() {
   echo "Installing Electron..."
   ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
   ELECTRON_ARCH="x64"
-  if [[ "${target_platform}" == *"-aarch64" ]] || [[ "${target_platform}" == *"-arm64" ]]; then
+  if [[ -n "${target_platform}" ]] && ([[ "${target_platform}" == *"-aarch64" ]] || [[ "${target_platform}" == *"-arm64" ]]); then
     ELECTRON_ARCH="arm64"
   fi
 
@@ -69,13 +69,19 @@ _install_electron() {
 
   cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
 
-  if [[ "${target_platform}" == "linux-"* ]]; then
+  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
     rm "${BUNDLEDIR}"/{libvulkan,libEGL,libGLESv2}.*
     ln -sf "${PREFIX}/lib/libGLESv2.so.2" "${BUNDLEDIR}/libGLESv2.so"
     ln -sf "${PREFIX}/lib/libEGL.so.1" "${BUNDLEDIR}/libEGL.so"
     ln -sf "${PREFIX}/lib/libvulkan.so" "${BUNDLEDIR}/libvulkan.so"
   fi
-  mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
+  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
+    mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
+  fi
+  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
+    mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Electron.app/Contents/MacOS/${APP_NAME}"
+  fi
+
 }
 
 _build_runtime() {
@@ -92,9 +98,9 @@ _build_runtime() {
   # Install the runtime node_modules
   set +x
   pushd "${BUNDLEDIR}/resources/app" > /dev/null || exit
-    if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
+    #if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
       ${PG_YARN} plugin import workspace-tools
-    fi
+    #fi
     ${PG_YARN} workspaces focus --production > /dev/null 2>&1
 
     # remove the yarn cache
