@@ -14,16 +14,26 @@ git_fetch_shallow() {
     return 1
   fi
   echo -e "\033[1;34m[INFO]\033[0m Cloning $repo_url @ $tag (shallow + submodules)..."
+  # Initialize the git repository (if not done already)
   git init .
+  # Add the remote origin URL
   git remote add origin "$repo_url"
-  git fetch --depth 1 origin "$tag"
-  git checkout FETCH_HEAD
+  # Fetch the tags from the remote repository
+  # git fetch --depth 1 origin "$tag"
+  git fetch --tags
+  # Checkout the desired tag
+  # git checkout FETCH_HEAD
+  git checkout "$tag"
+  # Initialize and update the submodules
   git submodule update --init --recursive
+  # Install and pull LFS files for the repository and submodules
+  # git lfs install
+  # git lfs pull
   echo -e "\033[1;32m[SUCCESS]\033[0m Repo and submodules fetched successfully."
 }
 # git_fetch_shallow https://github.com/scikit-plots/scikit-plots.git v0.4.0rc4
 
-# Initialize and update submodules
+# Initialize and update the submodules
 git submodule update --init --recursive || true
 
 mkdir builddir
