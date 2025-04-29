@@ -5,6 +5,8 @@
 
 set -ex
 
+ls -al
+
 git submodule update --init --recursive || true
 echo -e "\033[1;32m## Submodule update process completed!\033[0m"
 
