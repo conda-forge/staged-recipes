@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-set -eu
+set -eux
+
+if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "win32" ]] || [[ "${OSTYPE}" == "cygwin" ]]; then
+  _PREFIX="${PREFIX}/Library"
+  export PREFIX="${_PREFIX}"
+fi
 
 export PYTHONDONTWRITEBYTECODE=1
 export PG_YARN=${PREFIX}/bin/yarn
