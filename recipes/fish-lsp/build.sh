@@ -2,21 +2,22 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-yarn config set enableScripts false
-yarn config set enableImmutableInstalls false
-yarn install
+# Fix package.json so it can bootstrap itself
+# Remove prepare script because it tries to call husky
+# Remove compile command from post install script so we don't try to transpile typescript again
+mv package.json package.json.bak
+jq 'del(.scripts.prepare)' package.json.bak > package.json
+sed -i 's/setup compile sh:relink/setup sh:relink/' package.json
 
-# Create package archive
-rm -f tree-sitter-fish.wasm
-yarn pack
-
-# Symlink run-s from npm-run-all to ${SRC_DIR}/bin and add this folder to path
-ln -sf ${SRC_DIR}/node_modules/npm-run-all/bin/run-s/index.js ${SRC_DIR}/bin/run-s
-export PATH="${SRC_DIR}/bin:${PATH}"
-
-# Install the packed tgz globally
-npm install -ddd --global --omit=dev ${SRC_DIR}/package.tgz
+# Create package archive and install globally
+npm pack --ignore-scripts
+npm install -ddd \
+    --global \
+    --build-from-source \
+    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION//_/-}.tgz
 
 # Create license report for dependencies
-yarn plugin import https://raw.githubusercontent.com/mhassan1/yarn-plugin-licenses/v0.15.0/bundles/@yarnpkg/plugin-licenses.js
-yarn licenses generate-disclaimer > third-party-licenses.txt
+pnpm install --ignore-scripts
+pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+
+rm -rf ${PREFIX}/lib/node_modules/fish-lsp/node_modules/tree-sitter/build
