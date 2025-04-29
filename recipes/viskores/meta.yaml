@@ -1,0 +1,103 @@
+{% set platform_dependent_flags = " -DViskores_ENABLE_OPENMP=ON" %}  # [unix]
+{% set name = "viskores" %}
+{% set version = "1.0.0" %}
+{% set soversion = version.split('.')[0] + "." + version.split('.')[1] %}
+{% set platform_dependent_flags = "" %}
+{% set platform_dependent_flags = " -DViskores_ENABLE_OPENMP=ON" %}  # [unix]
+{% set common_flags = "-DCMAKE_BUILD_TYPE=Release -DViskores_ENABLE_HDF5_IO=ON -DViskores_ENABLE_EXAMPLES=ON -DViskores_INSTALL_EXAMPLES=OFF" + platform_dependent_flags %}
+{% set viskores_modules = [
+       'cont',
+       'filter_clean_grid',
+       'filter_connected_components',
+       'filter_contour',
+       'filter_core',
+       'filter_density_estimate',
+       'filter_entity_extraction',
+       'filter_field_conversion',
+       'filter_field_transform',
+       'filter_flow',
+       'filter_geometry_refinement',
+       'filter_image_processing',
+       'filter_mesh_info',
+       'filter_multi_block',
+       'filter_resampling',
+       'filter_scalar_topology',
+       'filter_vector_analysis',
+       'filter_zfp',
+       'io',
+       'rendering',
+       'source',
+       'worklet',
+] %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Viskores/viskores/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 5bff5bbd747b7662bb4630889960371d06fcc5e5a962d974a898d1883f196eba
+
+build:
+  number: 0
+  script:
+    - cmake -GNinja -S $SRC_DIR  -B build -DCMAKE_INSTALL_PREFIX=$PREFIX {{ common_flags }}  # [unix]
+    - cmake -GNinja -S %SRC_DIR% -B build -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% {{ common_flags }}  # [win]
+    - cmake --build build -j
+    - cmake --install build
+    - Viskores_DIR=$PREFIX cmake -GNinja -S $SRC_DIR/examples/smoke_test/ -B smoke_test_build  # [unix]
+    - cmake --build smoke_test_build  # [unix]
+    - ./smoke_test_build/smoke_test  # [unix]
+  run_exports:
+    - {{ pin_subpackage(name|lower, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.23
+    - gnuconfig
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx]
+    - ninja
+    - pkg-config
+  host:
+    - hdf5
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx]
+
+test:
+  commands:
+    {% for module in viskores_modules %}
+    - test -f $PREFIX/lib/libviskores_{{ module }}-{{ soversion }}.so.{{ version }}  # [linux]
+    - test -f $PREFIX/lib/libviskores_{{ module }}-{{ soversion }}.{{ version }}.dylib  # [osx]
+    - if not exist %LIBRARY_PREFIX%\bin\viskores_{{ module }}-{{ soversion }}.dll exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\viskores_{{ module }}-{{ soversion }}.lib exit 1  # [win]
+    {% endfor %}
+    - if not exist %LIBRARY_PREFIX%\include\viskores-{{ soversion }} exit 1  # [win]
+
+about:
+  home: https://github.com/Viskores/viskores
+  summary: 'Visualization ToolKit for Many-cores (viskores)'
+  description: |
+    Viskores is a toolkit of scientific visualization algorithms for emerging
+    processor architectures. Viskores supports the fine-grained concurrency for
+    data analysis and visualization algorithms required to drive extreme scale
+    computing by providing abstract models for data and execution that can be
+    applied to a variety of algorithms across many different processor
+    architectures.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE.txt
+    - viskores/thirdparty/diy/viskoresdiy/LICENSE.txt
+    - viskores/thirdparty/lcl/viskoreslcl/LICENSE.md
+    - viskores/thirdparty/lodepng/viskoreslodepng/LICENSE
+  doc_url: https://viskores.readthedocs.io/
+  dev_url: https://github.com/Viskores/viskores
+
+extra:
+  feedstock-name: viskores
+  recipe-maintainers:
+    - vicentebolea
