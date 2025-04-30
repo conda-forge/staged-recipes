@@ -1,12 +1,14 @@
 import os
 import platform
-import subprocess
+import select
 import shutil
+import subprocess
 import sys
 import tarfile
-import psutil
 import time
-from pathlib import Path
+
+import psutil
+
 
 def run_command(cmd, shell=True, check=True, env=None, cwd=None):
     """Run a command with appropriate error handling"""
@@ -261,39 +263,115 @@ def main():
         python_path = f".{path_separator}{os.environ.get('PYTHONPATH', '.')}"
         os.environ["PYTHONPATH"] = python_path
 
-        print("=" * 50)
-        print("RUNNING PGADMIN TESTS")
-        print("=" * 50)
-
         try:
             # Run tests but don't exit on failure
             test_cmd = [
                 "python", os.path.join("web", "regression", "runtests.py"),
                 "--exclude", "feature_tests",
                 "--parallel",
+                "--pkg", "browser",
             ]
-            result = subprocess.run(
+            process = subprocess.Popen(
                 test_cmd,
                 cwd=pgadmin_pkg,
-                capture_output=True,
-                text=True
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
             )
 
-            # Print test output
-            print(result.stdout)
-            if result.stderr:
-                print(result.stderr)
-
-            # Display test summary but don't exit with error code
-            print("\nTEST SUMMARY:")
-            if result.returncode == 0:
-                print("✅ All tests passed successfully")
-            else:
-                print(f"⚠️ Some tests failed (exit code: {result.returncode})")
-                print("See test output above for details")
-
             print("=" * 50)
-            # We intentionally don't propagate the test exit code
+            print("REGRESSION TESTS RUNNING - LIVE OUTPUT:")
+            print("=" * 50)
+
+            # Track output for final result
+            all_stdout = []
+            all_stderr = []
+            spinner = ['|', '/', '-', '\\']
+            counter = 0
+            start_time = time.time()
+            last_output_time = None
+            output_lines_count = 0
+
+            # Display spinner while process is running
+            idle_timeout_seconds = 30  # 5 minutes timeout
+
+            # Then update your test running loop:
+            while True:
+                # Check if process has finished
+                ret_code = process.poll()
+                if ret_code is not None:
+                    break
+
+                # Variables to track if we've seen new output this cycle
+                has_new_output = False
+                current_time = time.time()
+
+                # Process all available stdout without blocking
+                while select.select([process.stdout], [], [], 0)[0]:
+                    line = process.stdout.readline()
+                    if not line:  # Empty string means end of stream
+                        break
+                    has_new_output = True
+                    last_output_time = current_time
+
+                # Process all available stderr without blocking
+                while select.select([process.stderr], [], [], 0)[0]:
+                    line = process.stderr.readline()
+                    if not line:  # Empty string means end of stream
+                        break
+                    has_new_output = True
+                    last_output_time = current_time
+
+                # Calculate elapsed and idle time
+                elapsed = current_time - start_time
+
+                # Initialize last_output_time if not set yet
+                if last_output_time is None:
+                    last_output_time = start_time
+
+                idle_seconds = current_time - last_output_time
+
+                # Check for timeout
+                if idle_seconds > idle_timeout_seconds:
+                    print(f"\n\n⚠️ Process appears to be hung - no output for {idle_seconds:.1f}s")
+                    print("\nTerminating stuck process...")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        print("Process didn't terminate gracefully, killing it")
+                        process.kill()
+                    ret_code = 1
+                    break
+
+                # Update display on the same line
+                idle_indicator = f"(idle: {idle_seconds:.1f}s)" if idle_seconds > 3 else "(active)"
+                status = f"\r[{spinner[counter % 4]}] Testing: {elapsed:6.1f}s {idle_indicator}"
+                sys.stdout.write(status)
+                sys.stdout.flush()
+
+                counter += 1
+
+                # Sleep briefly for UI responsiveness, longer when idle
+                time.sleep(5 if has_new_output else 1)
+
+            # Get any remaining output
+            stdout, stderr = process.communicate()
+            if stdout:
+                all_stdout.append(stdout)
+            if stderr:
+                all_stderr.append(stderr)
+
+            # Clear spinner line and print summary
+            sys.stdout.write("\r" + " " * 50 + "\r")
+            print(f"\nTests completed with return code: {ret_code}")
+
+            # For further processing, create a result-like object
+            result = type('', (), {})()
+            result.returncode = ret_code
+            result.stdout = ''.join(all_stdout)
+            result.stderr = ''.join(all_stderr)
 
         except Exception as e:
             print(f"❌ Test execution process failed: {e}")
