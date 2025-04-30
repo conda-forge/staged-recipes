@@ -4,7 +4,7 @@ _setup_env() {
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
 
-  if [[ -n "${build_platform}" ]]; then
+  if [[ "${OSTYPE}" == "linux" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
     APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
@@ -24,6 +24,9 @@ _setup_env() {
 
   SHAREROOT="${DESKTOPROOT}"/share/"${APP_NAME}"
   BUNDLEDIR="${DESKTOPROOT}"/usr/"${APP_NAME}"/bin
+  if [[ "${OSTYPE}" == "darwin" ]]; then
+    BUNDLEDIR="${DESKTOPROOT}"/usr/${APP_NAME}.app
+  fi
   MENUROOT="${DESKTOPROOT}"/Menu
 
   set -x
@@ -41,6 +44,7 @@ _setup_dirs() {
   echo "Creating output directories..."
   mkdir -p \
     "${BUILDROOT}" \
+    "${DESKTOPROOT}" \
     "${SHAREROOT}" \
     "${MENUROOT}" \
     "${BUNDLEDIR}"
@@ -50,9 +54,14 @@ _setup_dirs() {
 _install_electron() {
   set +x
   echo "Installing Electron..."
-  ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
+  if [[ "${OSTYPE}" == "linux" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
+    ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
+  else
+    ELECTRON_OS="win32"
+  fi
+
   ELECTRON_ARCH="x64"
-  if [[ -n "${target_platform}" ]] && ([[ "${target_platform}" == *"-aarch64" ]] || [[ "${target_platform}" == *"-arm64" ]]); then
+  if [[ -n "${target_platform:-}" ]] && ([[ "${target_platform}" == *"-aarch64" ]] || [[ "${target_platform}" == *"-arm64" ]]); then
     ELECTRON_ARCH="arm64"
   fi
 
@@ -69,63 +78,111 @@ _install_electron() {
 
   cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
 
-  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
+  if [[ "${OSTYPE}" == "linux" ]]; then
     rm "${BUNDLEDIR}"/{libvulkan,libEGL,libGLESv2}.*
     ln -sf "${PREFIX}/lib/libGLESv2.so.2" "${BUNDLEDIR}/libGLESv2.so"
     ln -sf "${PREFIX}/lib/libEGL.so.1" "${BUNDLEDIR}/libEGL.so"
     ln -sf "${PREFIX}/lib/libvulkan.so" "${BUNDLEDIR}/libvulkan.so"
   fi
-  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
-    mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
-  fi
-  if [[ -n "${target_platform}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Electron.app/Contents/MacOS/${APP_NAME}"
-  fi
 
+  if [[ "${OSTYPE}" == "linux" ]]; then
+    mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
+  elif [[ "${OSTYPE}" == "darwin" ]]; then
+    mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
+  else
+    mv "${BUNDLEDIR}/electron.exe" "${BUNDLEDIR}/${APP_NAME}.exe"
+    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-icon "$SRC_DIR"/pkg/win32/Resources/pgAdmin4.ico
+    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "FileDescription" "${APP_NAME}"
+    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "ProductName" "${APP_NAME}"
+    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-product-version "${APP_VERSION}"
+  fi
 }
 
 _build_runtime() {
-  set +x
   echo "Assembling the desktop runtime..."
-  mkdir -p "${BUNDLEDIR}/resources/app"
-  cp -r "${SRC_DIR}/runtime/assets" "${BUNDLEDIR}/resources/app/assets"
-  cp -r "${SRC_DIR}/runtime/src" "${BUNDLEDIR}/resources/app/src"
+  if [[ "${OSTYPE}" == "darwin" ]]; then
+    _DEST="${BUNDLE_DIR}"/Contents/Resources/app
+  else
+    _DEST="${BUNDLEDIR}/resources/app"
+  fi
 
-  cp "${SRC_DIR}/runtime/package.json" "${BUNDLEDIR}/resources/app"
-  cp "${SRC_DIR}/runtime/.yarnrc.yml" "${BUNDLEDIR}/resources/app"
-  set -x
-
-  # Install the runtime node_modules
-  set +x
-  pushd "${BUNDLEDIR}/resources/app" > /dev/null || exit
-    #if ! ${PG_YARN} plugin runtime | grep -q "@yarnpkg/plugin-workspace-tools"; then
-      ${PG_YARN} plugin import workspace-tools
-    #fi
+  popd > /dev/null || exit
+  mkdir -p "${_DEST}"
+  cp -r "${SRC_DIR}/runtime/assets" "${_DEST}"
+  cp -r "${SRC_DIR}/runtime/src" "${_DEST}"
+  cp "${SRC_DIR}/runtime/package.json" "${_DEST}"
+  cp "${SRC_DIR}/runtime/.yarnrc.yml" "${_DEST}"
+  pushd "${_DEST}" > /dev/null || exit
+    ${PG_YARN} plugin import workspace-tools
     ${PG_YARN} workspaces focus --production > /dev/null 2>&1
-
-    # remove the yarn cache
     rm -rf .yarn .yarn*
   popd > /dev/null || exit
-  set -x
+}
+
+_install_osx_bundle() {
+  echo "Completing the appbundle..."
+  pushd "${RECIPE_DIR}"/pkg/mac || exit
+    # Update the plist
+    cp Info.plist.in "${BUNDLE_DIR}/Contents/Info.plist"
+    sed -i '' "s/%APPNAME%/${APP_NAME}/g" "${BUNDLE_DIR}/Contents/Info.plist"
+    sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${BUNDLE_DIR}/Contents/Info.plist"
+    sed -i '' "s/%APPID%/org.pgadmin.pgadmin4/g" "${BUNDLE_DIR}/Contents/Info.plist"
+
+    # Rename helper execs and Update the plist
+    for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
+    do
+      pgadmin_exec=${helper_exec//Electron/pgAdmin 4}
+      mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
+      mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app"
+
+      info_plist="${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents/Info.plist"
+      cp Info.plist-helper.in "${info_plist}"
+      sed -i '' "s/%APPNAME%/${pgadmin_exec}/g" "${info_plist}"
+      sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${info_plist}"
+      sed -i '' "s/%APPID%/org.pgadmin.pgadmin4.helper/g" "${info_plist}"
+    done
+
+    # PkgInfo
+    echo APPLPGA4 > "${BUNDLE_DIR}/Contents/PkgInfo"
+
+    # Icon
+    cp pgAdmin4.icns "${BUNDLE_DIR}/Contents/Resources/app.icns"
+
+    # Rename the app in package.json so the menu looks as it should
+    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLE_DIR}/Contents/Resources/app/package.json"
+
+    # copy the web directory to the bundle as it is required by runtime
+    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLE_DIR}/Contents/Resources/web"
+
+    # Update permissions to make sure all users can access installed pgadmin.
+    chmod -R og=u "${BUNDLE_DIR}"
+    chmod -R og-w "${BUNDLE_DIR}"
+  popd || exit
 }
 
 _install_bundle() {
   # Install the app
-  pushd "${DESKTOPROOT}" || exit 1
-    tar cf - ./* | (cd "${PREFIX}" || exit; tar xf -)
-  popd || exit 1
+  if [[ "${OSTYPE}" == "darwin" ]]; then
+    _install_osx_bundle
+  else
+    # Install the correct location for python and pgadmin4 python lib
+    # RELATIVE_PYTHON_PATH=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/bin/python")
+    # RELATIVE_PGADMIN_FILE=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py")
+    RELATIVE_PYTHON_PATH=$(python -c "import os; print(os.path.relpath('${PREFIX}/bin/python', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
+    RELATIVE_PGADMIN_FILE=$(python -c "import os; print(os.path.relpath('${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
 
-  # Install the correct location for python and pgadmin4 python lib
-  RELATIVE_PYTHON_PATH=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/bin/python")
-  RELATIVE_PGADMIN_FILE=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py")
-
-  cat << EOF > "${BUNDLEDIR}/resources/app/src/js/dev_config.json"
+    cat << EOF > "${BUNDLEDIR}/resources/app/src/js/dev_config.json"
 {
     "pythonPath": "${RELATIVE_PYTHON_PATH}",
     "pgadminFile": "${RELATIVE_PGADMIN_FILE}"
 }
 EOF
-  cp "${BUNDLEDIR}/resources/app/src/js/dev_config.json" "${PREFIX}"/usr/"${APP_NAME}"/bin/resources/app/src/js
+    cp "${BUNDLEDIR}/resources/app/src/js/dev_config.json" "${PREFIX}"/usr/"${APP_NAME}"/bin/resources/app/src/js
+  fi
+
+  pushd "${DESKTOPROOT}" || exit 1
+    tar cf - ./* | (cd "${PREFIX}" || exit; tar xf -)
+  popd || exit 1
 }
 
 _install_icons_menu(){
@@ -142,12 +199,25 @@ _install_icons_menu(){
   cp "${SRC_DIR}/pkg/linux/pgadmin4-16x16.png" "${DESKTOPROOT}/share/icons/hicolor/16x16/apps/${APP_NAME}.png"
 
   # Install the Menu
-  if [[ "${target_platform}" == "linux-"* ]]; then
+  if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
+  fi
+  if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
+    cp "${BUNDLE_DIR}/Contents/Resources/app.icns" "${MENUROOT}"
+    sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
+  fi
+  if [[ ! -n "${target_platform:-}" ]]; then
+    cp "${RECIPE_DIR}"/building/menu-windows.json "${MENUROOT}/pgadmin4.json"
+    cp "${SRC_DIR}"/pkg/win32/Resources/pgAdmin4.ico "${MENUROOT}/pgadmin4.ico"
   fi
 }
 
 _generate_sbom() {
    echo "Generating SBOMs..."
    syft "${DESKTOPROOT}/" -o cyclonedx-json > "${DESKTOPROOT}/usr/${APP_NAME}/sbom-desktop.json"
+}
+
+_generate_osx_sbom() {
+   echo "Generating SBOM..."
+   syft "${BUNDLE_DIR}/Contents/" -o cyclonedx-json > "${BUNDLE_DIR}/Contents/sbom.json"
 }
