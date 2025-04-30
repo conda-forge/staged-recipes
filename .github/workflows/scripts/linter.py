@@ -144,7 +144,7 @@ def _lint_recipes(gh, pr):
                     "Feedstock with the same name exists in conda-forge."
                 )
             elif feedstock_exists:
-                hints[fname].append(
+                lints[fname].append(
                     f"Feedstock with the name {existing_recipe_name} exists in conda-forge. "
                     f"Is it the same as this package ({recipe_name})?"
                 )
@@ -155,7 +155,7 @@ def _lint_recipes(gh, pr):
             except github.GithubException as e:
                 _test_and_raise_besides_file_not_exists(e)
             else:
-                hints[fname].append(
+                lints[fname].append(
                     "Recipe with the same name exists in bioconda: "
                     "please discuss with @conda-forge/bioconda-recipes."
                 )
@@ -185,30 +185,32 @@ def _lint_recipes(gh, pr):
                     for pkg in mapping:
                         if pkg.get("pypi_name", "") == pypi_name:
                             conda_name = pkg["conda_name"]
-                            hints[fname].append(
+                            lints[fname].append(
                                 f"A conda package with same name ({conda_name}) already exists."
                             )
 
         # 5. Ensure all maintainers have commented that they approve of being listed
         if maintainers:
             # Get PR author, issue comments, and review comments
-            pr_author = pr.user.login
+            pr_author = pr.user.login.lower()
             issue_comments = pr.get_issue_comments()
             review_comments = pr.get_reviews()
 
             # Combine commenters from both issue comments and review comments
-            commenters = {comment.user.login for comment in issue_comments}
-            commenters.update({review.user.login for review in review_comments})
+            commenters = {comment.user.login.lower() for comment in issue_comments}
+            commenters.update({review.user.login.lower() for review in review_comments})
 
             # Check if all maintainers have either commented or are the PR author
             non_participating_maintainers = set()
-            for maintainer in maintainers:
+            for orig_maintainer in maintainers:
+                maintainer = orig_maintainer.lower()
                 if (
                     maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
+                    and "/" not in maintainer
                 ):
-                    non_participating_maintainers.add(maintainer)
+                    non_participating_maintainers.add(orig_maintainer)
 
             # Add a lint message if there are any non-participating maintainers
             if non_participating_maintainers:
