@@ -1,5 +1,4 @@
 _setup_env() {
-  set +x
   echo "Setting up the environment..."
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
@@ -28,8 +27,6 @@ _setup_env() {
     BUNDLEDIR="${DESKTOPROOT}"/usr/${APP_NAME}.app
   fi
   MENUROOT="${DESKTOPROOT}"/Menu
-
-  set -x
 }
 
 _cleanup() {
