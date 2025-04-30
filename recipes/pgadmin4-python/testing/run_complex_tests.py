@@ -271,7 +271,6 @@ def main():
                 "python", os.path.join("web", "regression", "runtests.py"),
                 "--exclude", "feature_tests",
                 "--parallel",
-                "--pkg", "browser.tests.test_login"
             ]
             result = subprocess.run(
                 test_cmd,
