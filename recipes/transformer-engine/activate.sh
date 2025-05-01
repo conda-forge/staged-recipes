@@ -1,4 +1,4 @@
-if [[ ! -z "${CUDA_HOME +x}" ]]
+if [[ -n "${CUDA_HOME:-}" ]]
 then
     export CUDA_HOME_BACKUP="${CUDA_HOME}"
 fi
