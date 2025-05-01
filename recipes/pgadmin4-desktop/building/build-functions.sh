@@ -3,7 +3,7 @@ _setup_env() {
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
 
-  if [[ "${OSTYPE}" == "linux-gnu" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "linux"* ]] || [[ "${OSTYPE}" == "darwin"* ]]; then
     APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
@@ -23,7 +23,7 @@ _setup_env() {
 
   SHAREROOT="${DESKTOPROOT}"/share/"${APP_NAME}"
   BUNDLEDIR="${DESKTOPROOT}"/usr/"${APP_NAME}"/bin
-  if [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
     BUNDLEDIR="${DESKTOPROOT}"/usr/${APP_NAME}.app
   fi
   MENUROOT="${DESKTOPROOT}"/Menu
@@ -51,7 +51,7 @@ _setup_dirs() {
 _install_electron() {
   set +x
   echo "Installing Electron..."
-  if [[ "${OSTYPE}" == "linux-gnu" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "linux"* ]] || [[ "${OSTYPE}" == "darwin"* ]]; then
     ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
   else
     ELECTRON_OS="win32"
@@ -75,16 +75,16 @@ _install_electron() {
 
   cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
 
-  if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+  if [[ "${OSTYPE}" == "linux"* ]]; then
     rm "${BUNDLEDIR}"/{libvulkan,libEGL,libGLESv2}.*
     ln -sf "${PREFIX}/lib/libGLESv2.so.2" "${BUNDLEDIR}/libGLESv2.so"
     ln -sf "${PREFIX}/lib/libEGL.so.1" "${BUNDLEDIR}/libEGL.so"
     ln -sf "${PREFIX}/lib/libvulkan.so" "${BUNDLEDIR}/libvulkan.so"
   fi
 
-  if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+  if [[ "${OSTYPE}" == "linux"* ]]; then
     mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
-  elif [[ "${OSTYPE}" == "darwin" ]]; then
+  elif [[ "${OSTYPE}" == "darwin"* ]]; then
     mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
   else
     mv "${BUNDLEDIR}/electron.exe" "${BUNDLEDIR}/${APP_NAME}.exe"
@@ -97,7 +97,7 @@ _install_electron() {
 
 _build_runtime() {
   echo "Assembling the desktop runtime..."
-  if [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
     _DEST="${BUNDLE_DIR}"/Contents/Resources/app
   else
     _DEST="${BUNDLEDIR}/resources/app"
@@ -158,12 +158,9 @@ _install_osx_bundle() {
 
 _install_bundle() {
   # Install the app
-  if [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
     _install_osx_bundle
   else
-    # Install the correct location for python and pgadmin4 python lib
-    # RELATIVE_PYTHON_PATH=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/bin/python")
-    # RELATIVE_PGADMIN_FILE=$(realpath --relative-to="${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js" "${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py")
     RELATIVE_PYTHON_PATH=$(python -c "import os; print(os.path.relpath('${PREFIX}/bin/python', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
     RELATIVE_PGADMIN_FILE=$(python -c "import os; print(os.path.relpath('${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
 
@@ -177,7 +174,11 @@ EOF
   fi
 
   pushd "${DESKTOPROOT}" || exit 1
-    tar cf - ./* | (cd "${PREFIX}" || exit; tar xf -)
+    if [[ "${OSTYPE}" == "linux"* ]] || [[ "${OSTYPE}" == "darwin"* ]]; then
+      tar cf - ./* | (cd "${PREFIX}" || exit; tar xf -)
+    else
+      tar cf - ./* | (cd "${PREFIX}/Library" || exit; tar xf -)
+    fi
   popd || exit 1
 }
 
