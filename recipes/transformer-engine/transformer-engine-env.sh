@@ -1,1 +1,0 @@
-export CUDA_HOME=$CONDA_PREFIX
