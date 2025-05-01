@@ -53,16 +53,16 @@ _install_electron() {
   echo "Installing Electron..."
   if [[ "${OSTYPE}" == "linux"* ]] || [[ "${OSTYPE}" == "darwin"* ]]; then
     ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
+    ELECTRON_VERSION="$(pnpm info electron version)"
   else
     ELECTRON_OS="win32"
+    ELECTRON_VERSION="$(pnpm.bat info electron version)"
   fi
 
   ELECTRON_ARCH="x64"
   if [[ -n "${target_platform:-}" ]] && ([[ "${target_platform}" == *"-aarch64" ]] || [[ "${target_platform}" == *"-arm64" ]]); then
     ELECTRON_ARCH="arm64"
   fi
-
-  ELECTRON_VERSION="$(pnpm info electron version)"
 
   pushd "${BUILDROOT}" > /dev/null || exit
     curl -LfO "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}.zip"
@@ -146,6 +146,8 @@ _install_osx_bundle() {
 
     # Icon
     mkdir -p "${BUNDLEDIR}"/Contents/Resources
+    ls -l pgAdmin4.icns
+    ls -l "${BUNDLEDIR}"/Contents/ "${BUNDLEDIR}"/Contents/Resources/
     cp pgAdmin4.icns "${BUNDLEDIR}"/Contents/Resources/app.icns
 
     # Rename the app in package.json so the menu looks as it should
