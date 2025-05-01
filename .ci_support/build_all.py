@@ -306,10 +306,6 @@ def build_folders_rattler_build(
         "--target-platform",
         f"{platform}-{arch}",
     ]
-    for channel_url in channel_urls:
-        # Local is automatically added by rattler-build so we just remove it.
-        if channel_url != "local":
-            args.extend(["-c", channel_url])
 
     # Construct a temporary file where we write the combined variant config. We can then pass that
     # to rattler-build.
