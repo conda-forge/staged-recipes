@@ -3,7 +3,7 @@ _setup_env() {
   BUILDROOT="${SRC_DIR}"/conda-build
   DESKTOPROOT="${SRC_DIR}"/desktop
 
-  if [[ "${OSTYPE}" == "linux" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "linux-gnu" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
     APP_RELEASE=$(grep "^APP_RELEASE" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_REVISION=$(grep "^APP_REVISION" web/version.py | cut -d"=" -f2 | sed 's/ //g')
     APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
@@ -51,7 +51,7 @@ _setup_dirs() {
 _install_electron() {
   set +x
   echo "Installing Electron..."
-  if [[ "${OSTYPE}" == "linux" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
+  if [[ "${OSTYPE}" == "linux-gnu" ]] || [[ "${OSTYPE}" == "darwin" ]]; then
     ELECTRON_OS="$(uname | tr '[:upper:]' '[:lower:]')"
   else
     ELECTRON_OS="win32"
@@ -75,14 +75,14 @@ _install_electron() {
 
   cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
 
-  if [[ "${OSTYPE}" == "linux" ]]; then
+  if [[ "${OSTYPE}" == "linux-gnu" ]]; then
     rm "${BUNDLEDIR}"/{libvulkan,libEGL,libGLESv2}.*
     ln -sf "${PREFIX}/lib/libGLESv2.so.2" "${BUNDLEDIR}/libGLESv2.so"
     ln -sf "${PREFIX}/lib/libEGL.so.1" "${BUNDLEDIR}/libEGL.so"
     ln -sf "${PREFIX}/lib/libvulkan.so" "${BUNDLEDIR}/libvulkan.so"
   fi
 
-  if [[ "${OSTYPE}" == "linux" ]]; then
+  if [[ "${OSTYPE}" == "linux-gnu" ]]; then
     mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
   elif [[ "${OSTYPE}" == "darwin" ]]; then
     mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
