@@ -66,7 +66,7 @@ _install_electron() {
 
   pushd "${BUILDROOT}" > /dev/null || exit
     curl -LfO "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}.zip"
-    unzip "electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}.zip" -d "electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"
+    unzip "electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}.zip" -d "electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}" > /dev/null 2>&1
   popd > /dev/null || exit
 
   # Change the permission for others and group the same as the owner
@@ -142,16 +142,17 @@ _install_osx_bundle() {
     done
 
     # PkgInfo
-    echo APPLPGA4 > "${BUNDLEDIR}/Contents/PkgInfo"
+    echo APPLPGA4 > "${BUNDLEDIR}"/Contents/PkgInfo
 
     # Icon
-    cp pgAdmin4.icns "${BUNDLEDIR}/Contents/Resources/app.icns"
+    mkdir -p "${BUNDLEDIR}"/Contents/Resources
+    cp pgAdmin4.icns "${BUNDLEDIR}"/Contents/Resources/app.icns
 
     # Rename the app in package.json so the menu looks as it should
-    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}/Contents/Resources/app/package.json"
+    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}"/Contents/Resources/app/package.json
 
     # copy the web directory to the bundle as it is required by runtime
-    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLEDIR}/Contents/Resources/web"
+    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLEDIR}"/Contents/Resources/web
 
     # Update permissions to make sure all users can access installed pgadmin.
     chmod -R og=u "${BUNDLEDIR}"
