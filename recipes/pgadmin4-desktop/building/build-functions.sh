@@ -19,7 +19,7 @@ _setup_env() {
       APP_LONG_VERSION="${APP_LONG_VERSION}-${APP_SUFFIX}"
   fi
 
-  PYTHON_BINARY=$("${PREFIX}/bin/python" -c "import sys; print('python%d.%.d' % (sys.version_info.major, sys.version_info.minor))")
+  PYTHON_BINARY=$("${PYTHON}" -c "import sys; print('python%d.%.d' % (sys.version_info.major, sys.version_info.minor))")
 
   SHAREROOT="${DESKTOPROOT}"/share/"${APP_NAME}"
   BUNDLEDIR="${DESKTOPROOT}"/usr/"${APP_NAME}"/bin
@@ -85,6 +85,7 @@ _install_electron() {
   if [[ "${OSTYPE}" == "linux"* ]]; then
     mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
   elif [[ "${OSTYPE}" == "darwin"* ]]; then
+    mkdir -p "${BUNDLEDIR}/Contents/MacOS"
     mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
   else
     mv "${BUNDLEDIR}/electron.exe" "${BUNDLEDIR}/${APP_NAME}.exe"
@@ -128,9 +129,11 @@ _install_osx_bundle() {
     for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
     do
       pgadmin_exec=${helper_exec//Electron/pgAdmin 4}
+      mkdir -p "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app"
       mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
       mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app"
 
+      mkdir -p "${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents"
       info_plist="${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents/Info.plist"
       cp Info.plist-helper.in "${info_plist}"
       sed -i '' "s/%APPNAME%/${pgadmin_exec}/g" "${info_plist}"
