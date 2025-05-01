@@ -1,9 +1,3 @@
-@echo off
-setlocal enabledelayedexpansion
-
-:: Abort on error
-set "ERROR_CODE=0"
-
 :: Clean and create build directory
 if exist build rmdir /s /q build
 mkdir build
@@ -21,25 +15,9 @@ cmake ^
     -DBOX2D_SAMPLES=OFF ^
     "%SRC_DIR%"
 
-if %ERRORLEVEL% neq 0 (
-    echo CMake configuration failed
-    exit /b %ERRORLEVEL%
-)
-
 :: Build
 cmake --build . -j %CPU_COUNT%
-
-if %ERRORLEVEL% neq 0 (
-    echo Build failed
-    exit /b %ERRORLEVEL%
-)
-
 :: Install
 cmake --build . --target install
-
-if %ERRORLEVEL% neq 0 (
-    echo Installation failed
-    exit /b %ERRORLEVEL%
-)
 
 cd .. 
