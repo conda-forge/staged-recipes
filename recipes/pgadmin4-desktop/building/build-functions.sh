@@ -99,7 +99,7 @@ _install_electron() {
 _build_runtime() {
   echo "Assembling the desktop runtime..."
   if [[ "${OSTYPE}" == "darwin"* ]]; then
-    _DEST="${BUNDLE_DIR}"/Contents/Resources/app
+    _DEST="${BUNDLEDIR}"/Contents/Resources/app
   else
     _DEST="${BUNDLEDIR}/resources/app"
   fi
@@ -120,21 +120,21 @@ _install_osx_bundle() {
   echo "Completing the appbundle..."
   pushd "${RECIPE_DIR}"/pkg/mac || exit
     # Update the plist
-    cp Info.plist.in "${BUNDLE_DIR}/Contents/Info.plist"
-    sed -i '' "s/%APPNAME%/${APP_NAME}/g" "${BUNDLE_DIR}/Contents/Info.plist"
-    sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${BUNDLE_DIR}/Contents/Info.plist"
-    sed -i '' "s/%APPID%/org.pgadmin.pgadmin4/g" "${BUNDLE_DIR}/Contents/Info.plist"
+    cp Info.plist.in "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i '' "s/%APPNAME%/${APP_NAME}/g" "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i '' "s/%APPID%/org.pgadmin.pgadmin4/g" "${BUNDLEDIR}/Contents/Info.plist"
 
     # Rename helper execs and Update the plist
     for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
     do
       pgadmin_exec=${helper_exec//Electron/pgAdmin 4}
-      mkdir -p "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app"
-      mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
-      mv "${BUNDLE_DIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app"
+      mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app"
+      mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
+      mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app"
 
-      mkdir -p "${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents"
-      info_plist="${BUNDLE_DIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents/Info.plist"
+      mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents"
+      info_plist="${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents/Info.plist"
       cp Info.plist-helper.in "${info_plist}"
       sed -i '' "s/%APPNAME%/${pgadmin_exec}/g" "${info_plist}"
       sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${info_plist}"
@@ -142,20 +142,20 @@ _install_osx_bundle() {
     done
 
     # PkgInfo
-    echo APPLPGA4 > "${BUNDLE_DIR}/Contents/PkgInfo"
+    echo APPLPGA4 > "${BUNDLEDIR}/Contents/PkgInfo"
 
     # Icon
-    cp pgAdmin4.icns "${BUNDLE_DIR}/Contents/Resources/app.icns"
+    cp pgAdmin4.icns "${BUNDLEDIR}/Contents/Resources/app.icns"
 
     # Rename the app in package.json so the menu looks as it should
-    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLE_DIR}/Contents/Resources/app/package.json"
+    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}/Contents/Resources/app/package.json"
 
     # copy the web directory to the bundle as it is required by runtime
-    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLE_DIR}/Contents/Resources/web"
+    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLEDIR}/Contents/Resources/web"
 
     # Update permissions to make sure all users can access installed pgadmin.
-    chmod -R og=u "${BUNDLE_DIR}"
-    chmod -R og-w "${BUNDLE_DIR}"
+    chmod -R og=u "${BUNDLEDIR}"
+    chmod -R og-w "${BUNDLEDIR}"
   popd || exit
 }
 
@@ -203,7 +203,7 @@ _install_icons_menu(){
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    cp "${BUNDLE_DIR}/Contents/Resources/app.icns" "${MENUROOT}"
+    cp "${BUNDLEDIR}/Contents/Resources/app.icns" "${MENUROOT}"
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ ! -n "${target_platform:-}" ]]; then
@@ -219,5 +219,5 @@ _generate_sbom() {
 
 _generate_osx_sbom() {
    echo "Generating SBOM..."
-   syft "${BUNDLE_DIR}/Contents/" -o cyclonedx-json > "${BUNDLE_DIR}/Contents/sbom.json"
+   syft "${BUNDLEDIR}/Contents/" -o cyclonedx-json > "${BUNDLEDIR}/Contents/sbom.json"
 }
