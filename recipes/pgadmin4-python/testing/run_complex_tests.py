@@ -269,7 +269,7 @@ def main():
                 "python", os.path.join("web", "regression", "runtests.py"),
                 "--exclude", "feature_tests",
                 "--parallel",
-                "--pkg", "browser",
+                # "--pkg", "browser",
             ]
             process = subprocess.Popen(
                 test_cmd,
@@ -287,6 +287,8 @@ def main():
             # Track output for final result
             all_stdout = []
             all_stderr = []
+            # Store all output lines for showing the last 20 at the end
+            all_output_lines = []
             spinner = ['|', '/', '-', '\\']
             counter = 0
             start_time = time.time()
@@ -312,6 +314,8 @@ def main():
                     line = process.stdout.readline()
                     if not line:  # Empty string means end of stream
                         break
+                    all_stdout.append(line)
+                    all_output_lines.append(line.rstrip())
                     has_new_output = True
                     last_output_time = current_time
 
@@ -320,6 +324,8 @@ def main():
                     line = process.stderr.readline()
                     if not line:  # Empty string means end of stream
                         break
+                    all_stderr.append(line)
+                    all_output_lines.append(f"[ERROR] {line.rstrip()}")
                     has_new_output = True
                     last_output_time = current_time
 
@@ -360,8 +366,12 @@ def main():
             stdout, stderr = process.communicate()
             if stdout:
                 all_stdout.append(stdout)
+                for line in stdout.splitlines():
+                    all_output_lines.append(line)
             if stderr:
                 all_stderr.append(stderr)
+                for line in stderr.splitlines():
+                    all_output_lines.append(f"{line}")
 
             # Clear spinner line and print summary
             sys.stdout.write("\r" + " " * 50 + "\r")
@@ -391,6 +401,19 @@ def main():
             except (subprocess.TimeoutExpired, Exception) as e:
                 print(f"Error terminating PostgreSQL: {e}")
                 postgres_proc.kill()
+
+        # Display the last 20 lines of test output regardless of how it completed
+        try:
+            if 'all_output_lines' in locals() and all_output_lines:
+                print("\n" + "=" * 50)
+                print("LAST 20 LINES OF TEST OUTPUT:")
+                print("=" * 50)
+                last_lines = all_output_lines[-100:] if len(all_output_lines) > 100 else all_output_lines
+                for line in last_lines:
+                    print(line)
+                print("=" * 50)
+        except Exception as e:
+            print(f"Error displaying last lines of output: {e}")
 
         kill_postgres_processes()
         os.chdir(current_dir)
