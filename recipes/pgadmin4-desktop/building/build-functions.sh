@@ -62,7 +62,7 @@ _install_electron() {
     ELECTRON_ARCH="arm64"
   fi
 
-  ELECTRON_VERSION="$(npm info electron version)"
+  ELECTRON_VERSION="$(pnpm info electron version)"
 
   pushd "${BUILDROOT}" > /dev/null || exit
     curl -LfO "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}.zip"
