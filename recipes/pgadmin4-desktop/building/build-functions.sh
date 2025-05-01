@@ -103,7 +103,6 @@ _build_runtime() {
     _DEST="${BUNDLEDIR}/resources/app"
   fi
 
-  popd > /dev/null || exit
   mkdir -p "${_DEST}"
   cp -r "${SRC_DIR}/runtime/assets" "${_DEST}"
   cp -r "${SRC_DIR}/runtime/src" "${_DEST}"
@@ -168,13 +167,13 @@ _install_bundle() {
     RELATIVE_PYTHON_PATH=$(python -c "import os; print(os.path.relpath('${PREFIX}/bin/python', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
     RELATIVE_PGADMIN_FILE=$(python -c "import os; print(os.path.relpath('${PREFIX}/lib/${PYTHON_BINARY}/site-packages/${APP_NAME}/pgAdmin4.py', '${PREFIX}/usr/${APP_NAME}/bin/resources/app/src/js'))")
 
+    mkdir -p "${BUNDLEDIR}"/resources/app/src/js
     cat << EOF > "${BUNDLEDIR}/resources/app/src/js/dev_config.json"
 {
     "pythonPath": "${RELATIVE_PYTHON_PATH}",
     "pgadminFile": "${RELATIVE_PGADMIN_FILE}"
 }
 EOF
-    cp "${BUNDLEDIR}/resources/app/src/js/dev_config.json" "${PREFIX}"/usr/"${APP_NAME}"/bin/resources/app/src/js
   fi
 
   pushd "${DESKTOPROOT}" || exit 1

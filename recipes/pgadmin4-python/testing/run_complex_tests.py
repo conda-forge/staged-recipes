@@ -287,18 +287,16 @@ def main():
             # Track output for final result
             all_stdout = []
             all_stderr = []
-            # Store all output lines for showing the last 20 at the end
-            all_output_lines = []
+            # Store only test result lines
+            test_result_lines = []
             spinner = ['|', '/', '-', '\\']
             counter = 0
             start_time = time.time()
             last_output_time = None
-            output_lines_count = 0
 
             # Display spinner while process is running
-            idle_timeout_seconds = 30  # 5 minutes timeout
+            idle_timeout_seconds = 30  # 30 seconds timeout
 
-            # Then update your test running loop:
             while True:
                 # Check if process has finished
                 ret_code = process.poll()
@@ -315,7 +313,9 @@ def main():
                     if not line:  # Empty string means end of stream
                         break
                     all_stdout.append(line)
-                    all_output_lines.append(line.rstrip())
+                    # Only store lines with test results
+                    if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
+                        test_result_lines.append(line.rstrip())
                     has_new_output = True
                     last_output_time = current_time
 
@@ -325,7 +325,9 @@ def main():
                     if not line:  # Empty string means end of stream
                         break
                     all_stderr.append(line)
-                    all_output_lines.append(f"[ERROR] {line.rstrip()}")
+                    # Only store lines with test results
+                    if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
+                        test_result_lines.append(f"[ERROR] {line.rstrip()}")
                     has_new_output = True
                     last_output_time = current_time
 
@@ -360,22 +362,32 @@ def main():
                 counter += 1
 
                 # Sleep briefly for UI responsiveness, longer when idle
-                time.sleep(5 if has_new_output else 1)
+                time.sleep(10 if has_new_output else 1)
 
             # Get any remaining output
             stdout, stderr = process.communicate()
             if stdout:
                 all_stdout.append(stdout)
                 for line in stdout.splitlines():
-                    all_output_lines.append(line)
+                    if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
+                        test_result_lines.append(line)
             if stderr:
                 all_stderr.append(stderr)
                 for line in stderr.splitlines():
-                    all_output_lines.append(f"{line}")
+                    if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
+                        test_result_lines.append(f"[ERROR] {line}")
 
             # Clear spinner line and print summary
             sys.stdout.write("\r" + " " * 50 + "\r")
             print(f"\nTests completed with return code: {ret_code}")
+
+            # Display test result lines
+            if test_result_lines:
+                print("\nTest Results Summary:")
+                print("=" * 50)
+                for line in test_result_lines:
+                    print(line)
+                print("=" * 50)
 
             # For further processing, create a result-like object
             result = type('', (), {})()
@@ -402,18 +414,13 @@ def main():
                 print(f"Error terminating PostgreSQL: {e}")
                 postgres_proc.kill()
 
-        # Display the last 20 lines of test output regardless of how it completed
+        # Display test results regardless of how it completed
         try:
-            if 'all_output_lines' in locals() and all_output_lines:
-                print("\n" + "=" * 50)
-                print("LAST 20 LINES OF TEST OUTPUT:")
-                print("=" * 50)
-                last_lines = all_output_lines[-100:] if len(all_output_lines) > 100 else all_output_lines
-                for line in last_lines:
-                    print(line)
-                print("=" * 50)
+            if 'test_result_lines' in locals() and test_result_lines:
+                if not test_result_lines:
+                    print("No test result information was captured.")
         except Exception as e:
-            print(f"Error displaying last lines of output: {e}")
+            print(f"Error displaying test results: {e}")
 
         kill_postgres_processes()
         os.chdir(current_dir)
