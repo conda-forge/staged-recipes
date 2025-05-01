@@ -14,10 +14,12 @@ cmake ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     -DBOX2D_SAMPLES=OFF ^
     "%SRC_DIR%"
+if errorlevel 1 exit 1
 
 :: Build
 cmake --build . -j %CPU_COUNT%
+if errorlevel 1 exit 1
+
 :: Install
 cmake --build . --target install
-
-cd .. 
+if errorlevel 1 exit 1
