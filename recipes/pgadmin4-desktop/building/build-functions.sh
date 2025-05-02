@@ -203,7 +203,7 @@ _install_icons_menu(){
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    cp "${RECIPE_DIR}"/pkg/mac/pgadmin4.icns "${MENUROOT}"/app.icns
+    cp "${SRC_DIR}"/pkg/mac/pgadmin4.icns "${MENUROOT}"/app.icns
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ ! -n "${target_platform:-}" ]]; then
