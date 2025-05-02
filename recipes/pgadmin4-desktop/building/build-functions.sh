@@ -89,10 +89,10 @@ _install_electron() {
     mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
   else
     mv "${BUNDLEDIR}/electron.exe" "${BUNDLEDIR}/${APP_NAME}.exe"
-    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-icon "$SRC_DIR"/pkg/win32/Resources/pgAdmin4.ico
-    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "FileDescription" "${APP_NAME}"
-    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "ProductName" "${APP_NAME}"
-    rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-product-version "${APP_VERSION}"
+    ${PREFIX}/Library/bin/rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-icon "$SRC_DIR"/pkg/win32/Resources/pgAdmin4.ico
+    ${PREFIX}/Library/bin/rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "FileDescription" "${APP_NAME}"
+    ${PREFIX}/Library/bin/rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-version-string "ProductName" "${APP_NAME}"
+    ${PREFIX}/Library/bin/rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-product-version "${APP_VERSION}"
   fi
 }
 
