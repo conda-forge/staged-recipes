@@ -9,8 +9,11 @@ _setup_env() {
     APP_NAME=$(grep "^APP_NAME" web/branding.py | cut -d"=" -f2 | sed "s/'//g" | sed 's/^ //' | sed 's/ //g' | tr '[:upper:]' '[:lower:]')
     APP_SUFFIX=$(grep "^APP_SUFFIX" web/version.py | cut -d"=" -f2 | sed 's/ //g' | sed "s/'//g")
   else
+    # Process PowerShell output line by line, explicitly removing carriage returns
     while IFS= read -r line; do
-      export "$line"
+      # Replace any carriage returns in the line
+      clean_line=$(echo "$line" | tr -d '\r')
+      export "$clean_line"
     done < <(powershell.exe -ExecutionPolicy Bypass -File "${RECIPE_DIR}"/building/version-info.ps1)
   fi
 
