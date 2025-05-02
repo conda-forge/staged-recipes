@@ -56,7 +56,7 @@ _install_electron() {
     ELECTRON_VERSION="$(pnpm info electron version)"
   else
     ELECTRON_OS="win32"
-    ELECTRON_VERSION="$(pnpm.bat info electron version)"
+    ELECTRON_VERSION="$(${PREFIX}/Library/bin/pnpm.bat info electron version)"
   fi
 
   ELECTRON_ARCH="x64"
@@ -145,9 +145,6 @@ _install_osx_bundle() {
     echo APPLPGA4 > "${BUNDLEDIR}"/Contents/PkgInfo
 
     # Icon
-    mkdir -p "${BUNDLEDIR}"/Contents/Resources
-    ls -l pgAdmin4.icns
-    ls -l "${BUNDLEDIR}"/Contents/ "${BUNDLEDIR}"/Contents/Resources/
     cp pgAdmin4.icns "${BUNDLEDIR}"/Contents/Resources/app.icns
 
     # Rename the app in package.json so the menu looks as it should
@@ -206,7 +203,7 @@ _install_icons_menu(){
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    cp "${BUNDLEDIR}/Contents/Resources/app.icns" "${MENUROOT}"
+    cp "${RECIPE_DIR}"/pkg/mac/pgadmin4.icns "${MENUROOT}"/app.icns
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ ! -n "${target_platform:-}" ]]; then
