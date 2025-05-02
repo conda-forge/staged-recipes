@@ -121,7 +121,7 @@ _build_runtime() {
 
 _install_osx_bundle() {
   echo "Completing the appbundle..."
-  pushd "${RECIPE_DIR}"/pkg/mac || exit
+  pushd "${SRC_DIR}"/pkg/mac || exit
     # Update the plist
     cp Info.plist.in "${BUNDLEDIR}/Contents/Info.plist"
     sed -i '' "s/%APPNAME%/${APP_NAME}/g" "${BUNDLEDIR}/Contents/Info.plist"

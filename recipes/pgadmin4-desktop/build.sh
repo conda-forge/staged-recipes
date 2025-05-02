@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -eux
 
-export PG_YARN=${PREFIX}/bin/yarn
+if [[ ${OSTYPE} == "linux"*]] || [[ ${OSTYPE} == "darwin"*]]
+  export PG_YARN=${PREFIX}/bin/yarn
+else
+  export PG_YARN=${PREFIX}/Library/bin/yarn
+fi
 
 source "${RECIPE_DIR}"/building/build-functions.sh
 
