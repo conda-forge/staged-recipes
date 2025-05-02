@@ -295,7 +295,7 @@ def main():
             last_output_time = None
 
             # Display spinner while process is running
-            idle_timeout_seconds = 60
+            idle_timeout_seconds = 120
 
             while True:
                 # Check if process has finished
@@ -327,7 +327,7 @@ def main():
                     all_stderr.append(line)
                     # Only store lines with test results
                     if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
-                        test_result_lines.append(f"[ERROR] {line.rstrip()}")
+                        test_result_lines.append(f"{line.rstrip()}")
                     has_new_output = True
                     last_output_time = current_time
 
@@ -375,7 +375,7 @@ def main():
                 all_stderr.append(stderr)
                 for line in stderr.splitlines():
                     if any(keyword in line.lower() for keyword in ["tests passed", "tests failed", "tests skipped"]):
-                        test_result_lines.append(f"[ERROR] {line}")
+                        test_result_lines.append(f"{line}")
 
             # Clear spinner line and print summary
             sys.stdout.write("\r" + " " * 50 + "\r")
