@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eux
 
-if [[ ${OSTYPE} == "linux"*]] || [[ ${OSTYPE} == "darwin"*]]; then
+if [[ "${OSTYPE}" == "linux"* ]] || [[ "${OSTYPE}" == "darwin"* ]]; then
   export PG_YARN=${PREFIX}/bin/yarn
 else
   export PG_YARN=${PREFIX}/Library/bin/yarn
