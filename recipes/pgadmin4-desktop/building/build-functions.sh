@@ -132,7 +132,7 @@ _install_osx_bundle() {
     for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
     do
       pgadmin_exec=${helper_exec//Electron/pgAdmin 4}
-      mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app"
+      mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS"
       mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
       mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app"
 
@@ -216,11 +216,12 @@ _install_icons_menu(){
 }
 
 _generate_sbom() {
-   echo "Generating SBOMs..."
-   syft "${DESKTOPROOT}/" -o cyclonedx-json > "${DESKTOPROOT}/usr/${APP_NAME}/sbom-desktop.json"
-}
-
-_generate_osx_sbom() {
-   echo "Generating SBOM..."
-   syft "${BUNDLEDIR}/Contents/" -o cyclonedx-json > "${BUNDLEDIR}/Contents/sbom.json"
+  if [[ "${OSTYPE}" == "linux"* ]]; then
+    echo "Generating SBOMs..."
+    syft "${DESKTOPROOT}/" -o cyclonedx-json > "${DESKTOPROOT}/usr/${APP_NAME}/sbom-desktop.json"
+  fi
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
+    echo "Generating SBOMs..."
+    syft "${BUNDLEDIR}/Contents/" -o cyclonedx-json > "${BUNDLEDIR}/Contents/sbom.json"
+  fi
 }
