@@ -76,7 +76,11 @@ _install_electron() {
   chmod -R og=u "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/*
   chmod -R og-w "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/*
 
-  cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
+    mv "${BUILDROOT}"/Electon.app "${BUNDLEDIR}"
+  else
+    cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
+  fi
 
   if [[ "${OSTYPE}" == "linux"* ]]; then
     rm "${BUNDLEDIR}"/{libvulkan,libEGL,libGLESv2}.*
@@ -132,7 +136,6 @@ _install_osx_bundle() {
     for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
     do
       pgadmin_exec=${helper_exec//Electron/pgAdmin 4}
-      mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS"
       mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${helper_exec}" "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app/Contents/MacOS/${pgadmin_exec}"
       mv "${BUNDLEDIR}/Contents/Frameworks/${helper_exec}.app" "${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app"
 
@@ -202,16 +205,19 @@ _install_icons_menu(){
   cp "${SRC_DIR}/pkg/linux/pgadmin4-16x16.png" "${DESKTOPROOT}/share/icons/hicolor/16x16/apps/${APP_NAME}.png"
 
   # Install the Menu
+  cp "${SRC_DIR}/pkg/linux/pgadmin4-128x128.png" "${MENUROOT}"/pgadmin4.png
   if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
   if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    cp "${SRC_DIR}"/pkg/mac/pgadmin4.icns "${MENUROOT}"/app.icns
     sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
   fi
-  if [[ ! -n "${target_platform:-}" ]]; then
-    cp "${RECIPE_DIR}"/building/menu-windows.json "${MENUROOT}/pgadmin4.json"
-    cp "${SRC_DIR}"/pkg/win32/Resources/pgAdmin4.ico "${MENUROOT}/pgadmin4.ico"
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
+    sed -E "s#__pgadmin4__#${APP_NAME}#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
+  elif [[ "${OSTYPE}" == "linux"* ]]; then
+    sed -E "s#__pgadmin4__#${APP_NAME}#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
+  else
+    sed -E "s#__pgadmin4__#${APP_NAME}.exe#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
   fi
 }
 
