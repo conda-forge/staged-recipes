@@ -77,10 +77,11 @@ _install_electron() {
   chmod -R og-w "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/*
 
   if [[ "${OSTYPE}" == "darwin"* ]]; then
-    ls -l "${BUILDROOT}"
-    ls -l "${BUILDROOT}"/*
+    ls -l "${BUILDROOT}"/electron-v"${ELECTRON_VERSION}"-"${ELECTRON_OS}"-"${ELECTRON_ARCH}"/Electon.app/*
+    echo "${BUNDLEDIR}"
     ls -l "${BUNDLEDIR}"
-    cp -r "${BUILDROOT}"/electron-v"${ELECTRON_VERSION}"-"${ELECTRON_OS}"-"${ELECTRON_ARCH}"/Electon.app/* "${BUNDLEDIR}"
+    rm -rf "${BUNDLEDIR}"
+    cp -r "${BUILDROOT}"/electron-v"${ELECTRON_VERSION}"-"${ELECTRON_OS}"-"${ELECTRON_ARCH}"/Electon.app "${BUNDLEDIR}"
   else
     cp -r "${BUILDROOT}/electron-v${ELECTRON_VERSION}-${ELECTRON_OS}-${ELECTRON_ARCH}"/* "${BUNDLEDIR}"
   fi
