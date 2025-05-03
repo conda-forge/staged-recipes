@@ -157,7 +157,8 @@ _install_osx_bundle() {
     sed -i "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}"/Contents/Resources/app/package.json
 
     # copy the web directory to the bundle as it is required by runtime
-    ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLEDIR}"/Contents/Resources/web
+    PY_PGADMIN=$(find "${PREFIX}/lib/python3*/site-packages" -type d -name "${APP_NAME}")
+    ln -s "${PY_PGADMIN}" "${BUNDLEDIR}"/Contents/Resources/web
 
     # Update permissions to make sure all users can access installed pgadmin.
     chmod -R og=u "${BUNDLEDIR}"
