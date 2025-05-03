@@ -128,9 +128,9 @@ _install_osx_bundle() {
   pushd "${SRC_DIR}"/pkg/mac || exit
     # Update the plist
     cp Info.plist.in "${BUNDLEDIR}/Contents/Info.plist"
-    sed -i '' "s/%APPNAME%/${APP_NAME}/g" "${BUNDLEDIR}/Contents/Info.plist"
-    sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${BUNDLEDIR}/Contents/Info.plist"
-    sed -i '' "s/%APPID%/org.pgadmin.pgadmin4/g" "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i "s/%APPNAME%/${APP_NAME}/g" "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i "s/%APPVER%/${APP_LONG_VERSION}/g" "${BUNDLEDIR}/Contents/Info.plist"
+    sed -i "s/%APPID%/org.pgadmin.pgadmin4/g" "${BUNDLEDIR}/Contents/Info.plist"
 
     # Rename helper execs and Update the plist
     for helper_exec in "Electron Helper" "Electron Helper (Renderer)" "Electron Helper (Plugin)" "Electron Helper (GPU)"
@@ -142,9 +142,9 @@ _install_osx_bundle() {
       mkdir -p "${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents"
       info_plist="${BUNDLEDIR}/Contents/Frameworks/${pgadmin_exec}.app/Contents/Info.plist"
       cp Info.plist-helper.in "${info_plist}"
-      sed -i '' "s/%APPNAME%/${pgadmin_exec}/g" "${info_plist}"
-      sed -i '' "s/%APPVER%/${APP_LONG_VERSION}/g" "${info_plist}"
-      sed -i '' "s/%APPID%/org.pgadmin.pgadmin4.helper/g" "${info_plist}"
+      sed -i "s/%APPNAME%/${pgadmin_exec}/g" "${info_plist}"
+      sed -i "s/%APPVER%/${APP_LONG_VERSION}/g" "${info_plist}"
+      sed -i "s/%APPID%/org.pgadmin.pgadmin4.helper/g" "${info_plist}"
     done
 
     # PkgInfo
@@ -154,7 +154,7 @@ _install_osx_bundle() {
     cp pgAdmin4.icns "${BUNDLEDIR}"/Contents/Resources/app.icns
 
     # Rename the app in package.json so the menu looks as it should
-    sed -i '' "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}"/Contents/Resources/app/package.json
+    sed -i "s/\"name\": \"pgadmin4\"/\"name\": \"${APP_NAME}\"/g" "${BUNDLEDIR}"/Contents/Resources/app/package.json
 
     # copy the web directory to the bundle as it is required by runtime
     ln -s "${PREFIX}/lib/python${PY_VERSION}/site-packages/${APP_NAME}" "${BUNDLEDIR}"/Contents/Resources/web
