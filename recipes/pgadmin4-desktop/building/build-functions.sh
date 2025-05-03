@@ -93,7 +93,7 @@ _install_electron() {
     mv "${BUNDLEDIR}/electron" "${BUNDLEDIR}/${APP_NAME}"
   elif [[ "${OSTYPE}" == "darwin"* ]]; then
     mkdir -p "${BUNDLEDIR}/Contents/MacOS"
-    mv "${BUNDLEDIR}/Electron.app/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
+    mv "${BUNDLEDIR}/Contents/MacOS/Electron" "${BUNDLEDIR}/Contents/MacOS/${APP_NAME}"
   else
     mv "${BUNDLEDIR}/electron.exe" "${BUNDLEDIR}/${APP_NAME}.exe"
     "${PREFIX}"/Library/bin/rcedit "${BUNDLEDIR}/${APP_NAME}.exe" --set-icon "$SRC_DIR"/pkg/win32/Resources/pgAdmin4.ico
@@ -205,19 +205,14 @@ _install_icons_menu(){
   cp "${SRC_DIR}/pkg/linux/pgadmin4-16x16.png" "${DESKTOPROOT}/share/icons/hicolor/16x16/apps/${APP_NAME}.png"
 
   # Install the Menu
-  cp "${SRC_DIR}/pkg/linux/pgadmin4-128x128.png" "${MENUROOT}"/pgadmin4.png
-  if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "linux-"* ]]; then
-    sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
-  fi
-  if [[ -n "${target_platform:-}" ]] && [[ "${target_platform}" == "osx-"* ]]; then
-    sed -E "s#/usr/pgadmin4#${PREFIX}/usr/pgadmin4#" "${SRC_DIR}/pkg/linux/pgadmin4.desktop" > "${MENUROOT}/pgadmin4.desktop"
+  sed -E "s#__PREFIX__#${PREFIX}#g;s#__PGADMIN4__#${APP_NAME}#g" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
+  if [[ "${OSTYPE}" == "linux"* ]]; then
+    cp "${SRC_DIR}/pkg/linux/pgadmin4-128x128.png" "${MENUROOT}"/pgadmin4.png
   fi
   if [[ "${OSTYPE}" == "darwin"* ]]; then
-    sed -E "s#__pgadmin4__#${APP_NAME}#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
-  elif [[ "${OSTYPE}" == "linux"* ]]; then
-    sed -E "s#__pgadmin4__#${APP_NAME}#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
+    cp "${SRC_DIR}/pkg/mac/pgadmin4.icns" "${MENUROOT}"/pgadmin4.icns
   else
-    sed -E "s#__pgadmin4__#${APP_NAME}.exe#" "${RECIPE_DIR}"/building/pgadmin4_menu.json > "${MENUROOT}/pgadmin4_menu.json"
+    cp "${SRC_DIR}/pkg/win32/Resources/pgAdmin4.ico" "${MENUROOT}"/pgadmin4.ico
   fi
 }
 
