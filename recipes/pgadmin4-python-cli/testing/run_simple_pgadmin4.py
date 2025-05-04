@@ -25,7 +25,7 @@ def kill_process_on_port(port):
 
     print(f"Terminating process on port {port}")
     try:
-        for proc in psutil.process_iter(['pid', 'name', 'connections']):
+        for proc in psutil.process_iter(['pid', 'name']):
             try:
                 for conn in proc.connections():
                     if conn.laddr.port == port:
