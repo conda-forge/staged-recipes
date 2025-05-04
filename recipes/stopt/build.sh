@@ -3,7 +3,7 @@
 mkdir build
 cd build
 cmake -DBUILD_PYTHON=OFF ..
-cmake --build . -j $(nproc)
+cmake --build . --config=Release -j $(nproc)
 
 ctest -R MyTestForGlobal
 
