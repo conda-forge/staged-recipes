@@ -2,7 +2,7 @@
 
 mkdir build
 cd build
-cmake -DBUILD_PYTHON=OFF -DBUILD_TEST=OFF ..
+cmake ..
 cmake --build . -j $(nproc)
 
 cd ..
