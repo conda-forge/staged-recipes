@@ -1,0 +1,73 @@
+{% set name = "metatomic-torch" %}
+{% set version = "0.1.2" %}
+
+package:
+  name: python-{{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/metatomic_torch-{{ version }}.tar.gz
+  sha256: 0d793b16b3d6eee915c89e9b1a385143ec2dbb6dc451bed8feee3a2445b3f63e
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  script_env:
+    # Don't build metatomic-torch, but use the already compiled `libmetatomic-torch`
+    # package
+    - METATOMIC_TORCH_PYTHON_USE_EXTERNAL_LIB='ON'
+  ignore_run_exports:
+    # pytorch is only used as a Python package, all the pytorch version pinning
+    # is happening in libmetatomic-torch
+    - libtorch
+    - pytorch
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    # Nothing will be built but we need a correct env to make pip happy
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - setuptools >=77
+    - packaging >=23
+    # We build against the CPU version of torch to not have to deal with CUDA compilers
+    # (torch's CMake targets tries to find CUDA compilers even when there is no CUDA
+    # code to build). This does not impact the `run` dependency, since torch's
+    # `run_exports` are variant agnostic
+    - libtorch * cpu*
+    - libmetatomic-torch {{ version }}
+    - python-metatensor-torch >=0.7.6,<0.8
+  run:
+    - python
+    - pytorch
+    - libmetatomic-torch {{ version }}
+    - python-metatensor-torch >=0.7.6,<0.8
+    - python-metatensor-operations >=0.3.3,<0.4.0
+    - python-vesin
+
+test:
+  imports:
+    - metatomic.torch
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/metatensor/metatomic
+  summary: Python bindings for metatomic-torch
+  license: BSD-3-Clause
+  license_file: LICENSE
+  doc_url: https://docs.metatensor.org/metatomic/
+
+extra:
+  recipe-maintainers:
+    - PicoCentauri
+    - Luthaf
+    - Haozeke
