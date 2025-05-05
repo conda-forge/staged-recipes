@@ -1,0 +1,166 @@
+{% set version = "0.2.0" %}
+{% set soname = version.split(".")[0] %}
+
+package:
+  name: libmathdx-split
+  version: {{ version }}
+
+source:
+  - url: https://developer.nvidia.com/downloads/compute/cublasdx/redist/cublasdx/libmathdx-Linux-x86_64-{{ version }}.tar.gz  # [linux and x86_64]
+    sha256: 2e4f8fc5616fc901910a515d9b2ba8e32ec705d47ba6280e84cc84cda8ea6e68  # [linux and x86_64]
+  - url: https://developer.nvidia.com/downloads/compute/cublasdx/redist/cublasdx/libmathdx-Linux-aarch64-{{ version }}.tar.gz  # [linux and aarch64]
+    sha256: ead1fd607f7c912bc38aeb7dad0114e69a2d12978aaa66bf42dac21cbc7044ba  # [linux and aarch64]
+  - url: https://developer.nvidia.com/downloads/compute/cublasdx/redist/cublasdx/libmathdx-win32-x86_64-{{ version }}.zip  # [win and x86_64]
+    sha256: 07cab08fb533397103661da84f78a9d6a5b4baab7280cb327dc6e18790e073c5  # [win and x86_64]
+
+build:
+  number: 0
+  skip: True  # [((cuda_compiler_version or "").startswith("11")) or ((cuda_compiler_version or "None") == "None")]
+  script:
+    - check-glibc $SRC_DIR/lib*/*.so.*  # [linux]
+    - mkdir -p $PREFIX/include/  # [linux]
+    - cp -r $SRC_DIR/include/* $PREFIX/include/  # [linux]
+    - mkdir -p $PREFIX/lib/  # [linux]
+    - cp -r $SRC_DIR/lib/* $PREFIX/lib/  # [linux]
+    - mkdir %PREFIX%\include\  # [win]
+    - xcopy "%SRC_DIR%\include\*" "%PREFIX%\Library\include\" /E /I /Y  # [win]
+    - mkdir %PREFIX%\Library\bin\  # [win]
+    - xcopy "%SRC_DIR%\lib\*.dll" "%PREFIX%\Library\bin\" /E /I /Y  # [win]
+    - mkdir %PREFIX%\Library\lib\  # [win]
+    - xcopy "%SRC_DIR%\lib\*.lib" "%PREFIX%\Library\lib\" /E /I /Y  # [win]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1.*  # [linux]
+
+outputs:
+  - name: libmathdx{{ soname }}
+    build:
+      ignore_run_exports:
+        - cuda-nvrtc
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib('c') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-nvrtc-dev
+      run:
+        - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+        - cuda-nvrtc
+    files:
+      - lib/libmathdx.so.*  # [linux]
+      - Library\bin\mathdx.dll  # [win]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libmathdx.so.{{ soname }}  # [linux]
+        - test -f $PREFIX/lib/libmathdx.so.{{ version }}  # [linux]
+        - if not exist %PREFIX%\Library\bin\mathdx.dll exit 1  # [win]
+    about:
+      summary: The libmathdx runtime library.
+      description: >-
+        This is a runtime package only. Developers should install libmathdx-dev to build with libmathdx.
+      license: LicenseRef-MathDx-Software-License-Agreement
+      license_file: LICENSE.txt
+
+  - name: libmathdx
+    build:
+      noarch: generic
+    requirements:
+      host:
+        - {{ pin_subpackage('libmathdx' ~ soname, max_pin=None) }}
+      run:
+      # FIXME: max_pin=None when library is stable
+        - {{ pin_subpackage('libmathdx' ~ soname, max_pin="x.x.x") }}
+    about:
+      summary: The libmathdx runtime library.
+      description: >-
+        This is a runtime package only. Developers should install libmathdx-dev to build with libmathdx.
+      license: LicenseRef-MathDx-Software-License-Agreement
+      license_file: LICENSE.txt
+
+  - name: libmathdx-dev
+    build:
+      run_exports:
+      # FIXME: both run_exports max_pin=None when library is stable
+        - {{ pin_subpackage('libmathdx', max_pin="x.x.x") }}
+        - {{ pin_subpackage('libmathdx' ~ soname, max_pin="x.x.x") }}
+    requirements:
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage('libmathdx', exact=True) }}
+        - {{ pin_subpackage('libmathdx' ~ soname, exact=True) }}
+      run:
+        - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+        - {{ pin_subpackage('libmathdx', exact=True) }}
+        - {{ pin_subpackage('libmathdx' ~ soname, exact=True) }}
+    files:
+      - include  # [linux]
+      - Library\include\  # [win]
+      - lib/libmathdx.so  # [linux]
+      - Library\lib\mathdx.lib  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/libcufftdx.h  # [linux]
+        - test -f $PREFIX/include/libcublasdx.h  # [linux]
+        - test -f $PREFIX/include/libcusolverdx.h  # [linux]
+        - test -f $PREFIX/include/libmathdx.h  # [linux]
+        - test -f $PREFIX/include/libcommondx.h  # [linux]
+        - test -L $PREFIX/lib/libmathdx.so  # [linux]
+        - test ! -f $PREFIX/lib/libmathdx_static.a  # [linux]
+        - if not exist %PREFIX%\Library\include\libcufftdx.h exit 1  # [win]
+        - if not exist %PREFIX%\Library\include\libcublasdx.h exit 1  # [win]
+        - if not exist %PREFIX%\Library\include\libcusolverdx.h exit 1  # [win]
+        - if not exist %PREFIX%\Library\include\libmathdx.h exit 1  # [win]
+        - if not exist %PREFIX%\Library\include\libcommondx.h exit 1  # [win]
+        - if not exist %PREFIX%\Library\lib\mathdx.lib exit 1  # [win]
+        - if exist %PREFIX%\Library\lib\mathdx_static.lib exit 1  # [win]
+
+  - name: libmathdx-static
+    build:
+      ignore_run_exports:
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib('c') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage('libmathdx-dev', exact=True) }}
+      run:
+        - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+        - {{ pin_subpackage('libmathdx-dev', exact=True) }}
+    files:
+      - lib/libmathdx_static.a  # [linux]
+      - Library\lib\mathdx_static.lib  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libmathdx_static.a  # [linux]
+        - if not exist %PREFIX%\Library\lib\mathdx_static.lib exit 1  # [win]
+    about:
+      summary: The libmathdx static library.
+      description: >-
+        Developers should install this package to link statically with libmathdx.
+      license: LicenseRef-MathDx-Software-License-Agreement
+      license_file: LICENSE.txt
+
+about:
+  home: https://developer.nvidia.com/mathdx
+  license: LicenseRef-MathDx-Software-License-Agreement
+  license_file: LICENSE.txt
+  license_url: https://docs.nvidia.com/cuda/cufftdx/license.html
+  summary: The development package for libmathdx.
+  description: >-
+    NVIDIA libmathdx is a runtime code-generation library for cuFFTDx and cuBLASDx.
+    This is the development package. Developers should install this package to link dynamically with libmathdx.
+  doc_url: https://docs.nvidia.com/cuda/cufftdx/index.html
+
+extra:
+  feedstock-name: libmathdx
+  recipe-maintainers:
+    - conda-forge/cuda
