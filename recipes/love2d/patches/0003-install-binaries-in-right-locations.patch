@@ -1,0 +1,98 @@
+From 8642ca9e4e55e3f2213c8ede634fad55974ec7e0 Mon Sep 17 00:00:00 2001
+From: Bas Zalmstra <bas@prefix.dev>
+Date: Wed, 30 Apr 2025 14:07:41 +0200
+Subject: [PATCH 3/5] install binaries in right locations
+
+---
+ CMakeLists.txt | 44 ++++++++++++++++++++++++++------------------
+ 1 file changed, 26 insertions(+), 18 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2f12de8c..d15b59ae 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -27,7 +27,7 @@ cmake_minimum_required(VERSION 3.12)
+ 
+ project(love)
+ 
+-set(LOVE_EXE_NAME love)
++set(LOVE_EXE_NAME lovebin)
+ set(LOVE_LIB_NAME liblove)
+ 
+ set(CMAKE_MODULE_PATH "${love_SOURCE_DIR}/extra/cmake" ${CMAKE_MODULE_PATH})
+@@ -1786,24 +1786,27 @@ if(MSVC OR MINGW)
+ endif()
+ 
+ add_library(${LOVE_LIB_NAME} SHARED ${LOVE_LIB_SRC} ${LOVE_RC})
+-set_target_properties(${LOVE_LIB_NAME} PROPERTIES C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
++set_target_properties(${LOVE_LIB_NAME} PROPERTIES
++	C_VISIBILITY_PRESET hidden
++	CXX_VISIBILITY_PRESET hidden
++	VISIBILITY_INLINES_HIDDEN ON
++	OUTPUT_NAME "love")
+ target_link_libraries(${LOVE_LIB_NAME} ${LOVE_LINK_LIBRARIES} ${LOVE_3P})
+ 
+ if(LOVE_EXTRA_DEPENDECIES)
+ 	add_dependencies(${LOVE_LIB_NAME} ${LOVE_EXTRA_DEPENDECIES})
+ endif()
+ 
+-if(MSVC)
+-	set_target_properties(${LOVE_LIB_NAME} PROPERTIES RELEASE_OUTPUT_NAME "love" PDB_NAME "liblove" IMPORT_PREFIX "lib")
+-	set_target_properties(${LOVE_LIB_NAME} PROPERTIES DEBUG_OUTPUT_NAME "love" PDB_NAME "liblove" IMPORT_PREFIX "lib")
+-endif()
+-
+ #
+ # love (executable)
+ #
+ add_executable(${LOVE_EXE_NAME} WIN32 src/love.cpp ${LOVE_RC})
+ target_link_libraries(${LOVE_EXE_NAME} ${LOVE_LIB_NAME})
+-set_target_properties(${LOVE_EXE_NAME} PROPERTIES C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
++set_target_properties(${LOVE_EXE_NAME} PROPERTIES
++	C_VISIBILITY_PRESET hidden
++	CXX_VISIBILITY_PRESET hidden
++	VISIBILITY_INLINES_HIDDEN ON
++	RUNTIME_OUTPUT_NAME "love")
+ 
+ if(MSVC OR MINGW)
+ 	add_executable(${LOVE_CONSOLE_EXE_NAME} src/love.cpp ${LOVE_RC})
+@@ -1862,7 +1865,12 @@ message(STATUS "Version: ${LOVE_VERSION_STR}")
+ ###################################
+ # CPack
+ ###################################
+-install(TARGETS ${LOVE_EXE_NAME} ${LOVE_CONSOLE_EXE_NAME} ${LOVE_LIB_NAME} RUNTIME DESTINATION .)
++include(GNUInstallDirs)
++install(TARGETS ${LOVE_EXE_NAME} ${LOVE_CONSOLE_EXE_NAME} ${LOVE_LIB_NAME}
++	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ 
+ # Extra DLLs.
+ if(LOVE_EXTRA_DLLS)
+@@ -1894,17 +1902,17 @@ copy_text_file(readme.md readme.txt)
+ copy_text_file(license.txt license.txt)
+ copy_text_file(changes.txt changes.txt)
+ 
+-install(FILES
+-		${CMAKE_CURRENT_BINARY_DIR}/changes.txt
+-		${CMAKE_CURRENT_BINARY_DIR}/license.txt
+-		${CMAKE_CURRENT_BINARY_DIR}/readme.txt
+-		DESTINATION .)
++# install(FILES
++# 		${CMAKE_CURRENT_BINARY_DIR}/changes.txt
++# 		${CMAKE_CURRENT_BINARY_DIR}/license.txt
++# 		${CMAKE_CURRENT_BINARY_DIR}/readme.txt
++# 		DESTINATION .)
+ 
+ # Icons
+-install(FILES
+-		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/love.ico
+-		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/game.ico
+-		DESTINATION .)
++# install(FILES
++# 		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/love.ico
++# 		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/game.ico
++# 		DESTINATION .)
+ 
+ set(CPACK_GENERATOR ZIP NSIS)
+ set(CPACK_PACKAGE_NAME "love")
