@@ -1,8 +1,9 @@
+set PYYAML_FORCE_CYTHON=1
+set PYYAML_FORCE_LIBYAML=1
+set CFLAGS="-I%LIBRARY_INC%"
+set LDFLAGS="-L%LIBRARY_LIB%"
+
 %PYTHON% -m pip install . ^
     -vv ^
     --no-deps ^
-    --no-build-isolation ^
-    --global-option="--with-libyaml" ^
-    --global-option="build_ext" ^
-    --global-option="-I%LIBRARY_INC%" ^
-    --global-option="-L%LIBRARY_LIB%"
+    --no-build-isolation
