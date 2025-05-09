@@ -8,7 +8,7 @@ cmake $SRC_DIR \
   -DBUILD_SHARED_LIBS=OFF \
   -DCMAKE_INSTALL_PREFIX=$SRC_DIR/pymeshlab \
   -DCMAKE_BUILD_TYPE=Release \
-  -DMESHLAB_BUILD_MINI=ON
+  -DMESHLAB_BUILD_MINI=OFF
 
 cmake --build build --parallel --target install
 
