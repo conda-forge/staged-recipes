@@ -1,0 +1,62 @@
+{% set version = "0.1.0" %}
+{% set url_base = "https://github.com/metatensor/metatomic/releases/download" %}
+
+package:
+  name: libmetatomic-torch
+  version: {{ version | replace('-', '') }}
+
+source:
+  url: {{ url_base }}/metatomic-torch-v{{ version }}/metatomic-torch-cxx-{{ version }}.tar.gz
+  sha256: 402b78cc6038fa191b5028bc3bc6a93ae5daef00a72ad3c72a9b3e8f5433f793
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libmetatomic-torch', max_pin='x.x') }}
+
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - libmetatensor >=0.1.14,<0.2
+    - libmetatensor-torch >=0.7.5,<0.8
+    # We build against the CPU version of torch to not have to deal with CUDA
+    # compilers (torch's CMake targets tries to find CUDA compilers even when
+    # there is no CUDA code to build). This does not impact the `run`
+    # dependency, since libtorch `run_exports` are variant agnostic
+    - libtorch * cpu*
+
+test:
+  requires:
+    - cmake
+    - ninja
+    - {{ compiler('cxx') }}
+    - libtorch * cpu*
+  files:
+    - test-project/
+  commands:
+    - test -f $PREFIX/lib/libmetatomic_torch$SHLIB_EXT  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\metatomic_torch.dll exit 1  # [win]
+    - cmake -G Ninja -S test-project -B test-project
+    - cmake --build test-project
+    - ctest --verbose --output-on-failure --test-dir test-project
+
+about:
+  home: https://github.com/metatensor/metatomic
+  summary: Atomistic machine learning models you can use everywhere for everything
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE
+    - _deps/nlohmann_json-src/LICENSE.MIT
+  doc_url: https://docs.metatensor.org/metatomic/
+
+extra:
+  recipe-maintainers:
+    - Luthaf
+    - PicoCentauri
+    - Haozeke
