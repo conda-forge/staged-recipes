@@ -2,12 +2,13 @@
 
 set -eu
 
+export LDFLAGS="${LDFLAGS} -Wl,-rpath,${SRC_DIR}/pymeshlab"
+
 cmake $SRC_DIR \
   -G Ninja \
   -B build \
   -DBUILD_SHARED_LIBS=OFF \
   -DCMAKE_INSTALL_PREFIX=$SRC_DIR/pymeshlab \
-  -DCMAKE_PREFIX_PATH=$SRC_DIR/pymeshlab \
   -DCMAKE_BUILD_TYPE=Release \
   -DMESHLAB_ALLOW_OPTIONAL_EXTERNAL_LIBRARIES=OFF \
   -DMESHLAB_BUILD_MINI=OFF
