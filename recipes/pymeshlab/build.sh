@@ -2,8 +2,6 @@
 
 set -eu
 
-export LDFLAGS="${LDFLAGS} -Wl,-rpath,${SRC_DIR}/pymeshlab"
-
 cmake $SRC_DIR \
   -G Ninja \
   -B build \
@@ -14,5 +12,7 @@ cmake $SRC_DIR \
   -DMESHLAB_BUILD_MINI=OFF
 
 cmake --build build --parallel --target install
+
+rsync -avm --include="*${SHLIB_EXT}" --include="*/" --exclude="*" ${SRC_DIR}/pymeshlab/lib/ ${PREFIX}/lib/
 
 $PYTHON -m pip install . -vv --no-deps --no-build-isolation
