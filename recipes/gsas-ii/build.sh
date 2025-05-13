@@ -12,7 +12,6 @@ echo "python = '${PREFIX}/bin/python'" >> ${CONDA_PREFIX}/meson_cross_file.txt
 
 # binary is called `pkg-config`, but package metadata is under `lib/pkgconfig`
 export MESON_ARGS="${MESON_ARGS} --pkg-config-path=${PREFIX}/lib/pkgconfig"
-export MESON_ARGS="${MESON_ARGS} -Dsystem-freetype=true -Dsystem-qhull=true"
 
 # meson-python already sets up a -Dbuildtype=release argument to meson, so
 # we need to strip --buildtype out of MESON_ARGS or fail due to redundancy
