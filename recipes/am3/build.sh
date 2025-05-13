@@ -23,6 +23,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX
 # Compile using all available CPUs
 cmake --build . --parallel ${CPU_COUNT}
 
+cmake --install .
+
 # Find the built .so file — it should be somewhere in build/libpython or similar
 SO_FILE=$(find . -name "am3*.so" | head -n 1)
 
