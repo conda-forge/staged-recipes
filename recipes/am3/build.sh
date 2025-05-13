@@ -29,3 +29,7 @@ SO_FILE=$(find . -name "am3*.so" | head -n 1)
 # Copy it to site-packages manually using SP_DIR
 cp "$SO_FILE" "$SP_DIR/am3.so"
 
+if [[ "$target_platform" == osx-* ]]; then
+    echo "Fixing rpath on macOS..."
+    install_name_tool -change libam3.dylib @loader_path/libam3.dylib $SP_DIR/am3/am3.so
+fi
