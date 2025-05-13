@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## smspp-project [SCIP and HiGHS only]
+## stopt
 
 git clone https://gitlab.com/stochastic-control/StOpt
 cd StOpt
