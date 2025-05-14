@@ -1,0 +1,69 @@
+{% set name = "assist-adam-fork" %}
+{% set version = "1.1.9.post1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/assist_adam_fork-{{ version }}.tar.gz
+  sha256: 9d6230ae27b13867a8c48956f1b6c45aa2c945949ef79d007e711f91f621e905
+
+build:
+  number: 0
+  skip: True  # [win]
+  script:
+  - |
+    SUFFIX=$({{ PYTHON }} -c "import distutils.sysconfig as s; print(s.get_config_var('EXT_SUFFIX'))")
+    LIBDIR=$({{ PYTHON }} -c "import distutils.sysconfig as s; print(s.get_python_lib())")
+    L="$LIBDIR/libassist$SUFFIX"
+    echo "BUILDING LIBRARY: $L"
+    {{ PYTHON }} -m pip install . --no-deps -vv
+    if [[ $(uname) == Darwin ]]; then
+      echo "CHECKING LINKED DEPENDENCIES:"
+      otool -L "$L"
+      if ! otool -L "$L" | grep -q "librebound"; then
+        echo "error: librebound not linked"
+        /bin/false
+      else
+        echo "librebound found to be linked, OK!"
+      fi
+      echo "==="
+    fi
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - rebound >=4.4.1                        # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+  host:
+    - python
+    - numpy
+    - rebound >=4.4.1
+    - pip
+  run:
+    - python
+    - rebound >=4.4.1
+    - {{ pin_compatible('numpy') }}
+
+
+test:
+  imports:
+    - assist
+
+
+about:
+  home: https://github.com/B612-Asteroid-Institute/assist-fork
+  summary: 'A temporary fork of ASSIST: A library high accuracy ephemeris in REBOUND'
+  license: GPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - akoumjian
+    - moeyensj
+    - ntellis
+    - KatKiker
