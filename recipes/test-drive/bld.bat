@@ -6,7 +6,6 @@ cmake -G "Ninja" ^
     -D CMAKE_VERBOSE_MAKEFILE=%CMAKE_VERBOSE_MAKEFILE% ^
     -D CMAKE_LIBRARY_PATH:FILEPATH="=%LIBRARY_LIB%" ^
     -D CMAKE_INCLUDE_PATH:FILEPATH="%LIBRARY_INC%" ^
-    -D gtest_force_shared_crt=ON ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
