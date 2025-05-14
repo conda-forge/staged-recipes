@@ -1,0 +1,54 @@
+context:
+  version: "0.21.2"
+
+package:
+  name: cargo-audit
+  version: ${{ version }}
+
+source:
+  url: https://github.com/rustsec/rustsec/archive/refs/tags/cargo-audit/v${{ version }}.tar.gz
+  sha256: caf8914af7f95ebb45590c95b5f9bfd71bd6f9f57c1ffcf69dc9d20f0430e578
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo install --no-track --locked --root ${PREFIX} --path cargo-audit
+          - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+      - if: win
+        then:
+          - cargo install --no-track --locked --root %PREFIX% --path cargo-audit
+          - if errorlevel 1 exit 1
+          - cargo-bundle-licenses --format yaml --output %SRC_DIR%/THIRDPARTY.yml
+          - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - cargo-audit --help
+
+about:
+  homepage: https://github.com/rustsec/rustsec
+  repository: https://github.com/rustsec/rustsec
+  documentation: https://github.com/rustsec/rustsec
+  summary: Audit Cargo.lock against the advisory DB
+  license: Apache-2.0 OR MIT
+  license_file:
+    - cargo-audit/LICENSE-MIT
+    - cargo-audit/LICENSE-APACHE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - xhochy
