@@ -1,0 +1,100 @@
+{% set name = "tardigrade_vector_tools" %}
+{% set version = "0.8.7" %}
+
+package:
+  name: {{ name|lower }}
+  # TODO: setup and use pyproject.toml and a Conda build Jinja template
+  version: {{ version }}
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_vector_tools
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'A collection of tools for vector manipulation'
+  description: |
+    tardigrade_vector_tools A collection of tools for C++ that make interfacing with vectors easier
+    and less prone to error. These tools also allow the user access to the powerful Eigen library which provides matrix
+    utilities in such a way that Eigen does not need to be used explicitly in the user's code.
+  dev_url: https://github.com/UCBoulder/tardigrade_vector_tools
+
+source:
+  url: https://github.com/UCBoulder/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  path: '..'
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set -x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --install build --prefix ${PREFIX}
+#    # Build and install Conda package
+#    - $PYTHON -m pip install build/src/python/dist/$PKG_NAME-$PKG_VERSION.tar.gz --no-deps --ignore-installed -v --no-build-isolation
+#    - $PYTHON -m pip show $PKG_NAME
+  missing_dso_whitelist:
+      - /lib64/librt.so.1
+      - /lib64/libc.so.6
+      - /lib64/libpthread.so.0
+
+requirements:
+  build:
+    - cython
+    - python {{ python }}
+    - breathe >=4.3.0
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+    - setuptools_scm[toml] >=6.2
+    - tardigrade_error_tools >=0.9.7
+  host:
+    - {{ compiler('cxx') }}
+    - libgcc-ng {{ libstdcxx }}             # [linux]
+    - libstdcxx-ng {{ libstdcxx }}          # [linux]
+    - python {{ python }}
+    - python-build
+    - pip
+    - cython
+    - setuptools >=62
+    - setuptools_scm >=6.2
+    - make
+    - cmake >=3.18
+    - eigen >=3.3.7
+    - boost >=1.59  # TODO: Separate the package/test configuration to make BOOST an optional build dependency
+    - doxygen  # TODO: Separate the package/documentation configuration to make Doxygen an optional build dependency
+  run:
+    - python
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.7
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ pin_compatible('libgcc-ng') }}     # [linux]
+    - {{ pin_compatible('libstdcxx-ng') }}  # [linux]
+    - pytest
+    - pytest-xdist
+    - make
+    - cmake >=3.18
+    - boost >=1.59
+    - doxygen  # TODO: Separate the package/documentation configuration to make Doxygen an optional build dependency
+    - sphinx >=3.0.4  # TODO: Separate the package/documentation configuration to make Sphinx an optional build dependency
+    - tardigrade_error_tools >=0.9.7
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/CMakeLists.txt
+    - src/cpp/tests/test_tardigrade_vector_tools.cpp
+    - src/cpp/tests/test_tardigrade_interp_ndCartesian.cpp
+  commands:
+    - echo running tests
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --verbose --parallel 4
+    - ctest --test-dir build --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
