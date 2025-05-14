@@ -1,0 +1,108 @@
+{% set name = "tardigrade_constitutive_tools" %}
+{% set version = "0.8.2" %}
+
+package:
+  name: {{ name|lower }}
+  # TODO: setup and use pyproject.toml and a Conda build Jinja template
+  version: {{ version }}
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_constitutive_tools
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'Tools for use in building constitutive equations'
+  description: |
+    tardigrade-constitutive-tools A collection of tools useful for constitutive modeling. These
+    tools are intended to reduce the burden in creating a new constitutive model from scratch enabling a faster turn-around
+    for model development. These tools should be as general as possible to avoid cluttering the database with extraneous
+    things
+  dev_url: https://github.com/UCBoulder/tardigrade_constitutive_tools
+
+source:
+  url: https://github.com/UCBoulder/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  path: '..'
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set -x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target tardigrade_constitutive_tools tardigrade_constitutive_tools_PYTHON
+    - cmake --install build --prefix ${PREFIX}
+    # Build and install Conda package
+    - $PYTHON -m pip install build/src/python/dist/$PKG_NAME-$PKG_VERSION.tar.gz --no-deps --ignore-installed -v --no-build-isolation
+    - $PYTHON -m pip show $PKG_NAME
+  missing_dso_whitelist:
+      - /lib64/librt.so.1
+      - /lib64/libc.so.6
+      - /lib64/libpthread.so.0
+
+requirements:
+  build:
+    - cython
+    - python {{ python }}
+    - numpy
+    - breathe >=4.3.0
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+    - setuptools_scm[toml] >=6.2
+    - tardigrade_error_tools >=0.9.7
+    - tardigrade_vector_tools >=0.8.7
+  host:
+    - {{ compiler('cxx') }}
+    - libgcc-ng {{ libstdcxx }}             # [linux]
+    - libstdcxx-ng {{ libstdcxx }}          # [linux]
+    - python {{ python }}
+    - python-build
+    - pip
+    - numpy
+    - cython
+    - setuptools >=62
+    - setuptools_scm >=6.2
+    - make
+    - cmake >=3.18
+    - eigen >=3.3.7
+    - boost >=1.59  # TODO: Separate the package/test configuration to make BOOST an optional build dependency
+    - doxygen  # TODO: Separate the package/documentation configuration to make Doxygen an optional build dependency
+  run:
+    - python
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.7
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ pin_compatible('libgcc-ng') }}     # [linux]
+    - {{ pin_compatible('libstdcxx-ng') }}  # [linux]
+    - pytest
+    - pytest-xdist
+    - numpy
+    - make
+    - cmake >=3.18
+    - boost >=1.59
+    - doxygen  # TODO: Separate the package/documentation configuration to make Doxygen an optional build dependency
+    - sphinx >=3.0.4  # TODO: Separate the package/documentation configuration to make Sphinx an optional build dependency
+    - tardigrade_error_tools >=0.9.7
+    - tardigrade_vector_tools >=0.8.7
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/CMakeLists.txt
+    - src/cpp/tests/test_tardigrade_constitutive_tools.cpp
+  commands:
+    - echo running tests
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target all --verbose --parallel 4
+    - ctest --test-dir build --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+    - cd $SP_DIR/$PKG_NAME
+    - pytest
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
