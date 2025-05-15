@@ -1,0 +1,69 @@
+{% set name = "hf-xet" %}
+{% set version = "1.0.5" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name.replace('-', '_') }}-{{ version }}.tar.gz
+  sha256: 00ce4f6ad98ee5a2c9a5bcadcbe1df7188f9d91a1fb0355c88b0e7cd9a1a69cf
+
+build:
+  number: 0
+  python_version_independent: true  # [is_abi3]
+  skip: true  # [is_abi3 and not is_python_min]
+
+requirements:
+  build:
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - maturin >=1.7,<2.0                  # [build_platform != target_platform]
+    - make                                # [unix]
+    - perl                                # [unix]
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('rust') }}
+    - pkg-config
+    - cargo-bundle-licenses
+  host:
+    - python-abi3  # [is_abi3]
+    - python
+    - maturin >=1.7,<2.0
+    - openssl
+    - pip
+  run:
+    - python
+
+test:
+  imports:
+    - hf_xet
+  commands:
+    - pip check
+    - abi3audit $SP_DIR/hf_xet/hf_xet.abi3.so -s -v --assume-minimum-abi3 {{ python_min }}   # [unix and is_abi3]
+    - abi3audit %SP_DIR%/hf_xet/hf_xet.pyd -s -v --assume-minimum-abi3 {{ python_min }}      # [win and is_abi3]
+  requires:
+    - pip
+    - python
+    - abi3audit                      # [is_abi3]
+
+about:
+  home: https://pypi.org/project/hf-xet/
+  summary: |
+    xet-core enables huggingface_hub to utilize xet storage for uploading and
+    downloading to HF Hub. Xet storage provides chunk-based deduplication,
+    efficient storage/retrieval with local disk caching, and backwards 
+    ompatibility with Git LFS. This library is not meant to be used directly,
+    and is instead intended to be used from huggingface_hub.
+
+    hf_xet: Python integration with Rust code, uses maturin to build hfxet
+    Python package. Main integration with HF Hub Python package.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  dev_url: https://github.com/huggingface/xet-core
+
+extra:
+  recipe-maintainers:
+    - shermansiu
