@@ -1,12 +1,20 @@
-@echo off
+@echo on
 setlocal enabledelayedexpansion
 
-set BINARY=zasper.exe
+:: Ensure Go modules mode is enabled
+set GO111MODULE=on
 
-if not exist "%PREFIX%\Scripts" (
-    mkdir "%PREFIX%\Scripts"
-)
+:: Create a temporary GOPATH to avoid go.mod conflict
+set GOPATH=%TEMP%\gopath
 
-copy "%SRC_DIR%\%BINARY%" "%PREFIX%\Scripts\zasper.exe"
+:: Move to the frontend directory and build
+make init
 
-endlocal
+:: Build the Go binary using Makefile
+make build
+
+:: Create bin directory if it doesn't exist
+if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
+
+:: Copy the binary (adjust name if different)
+copy /Y bin\zasper.exe %PREFIX%\bin\zasper.exe

@@ -1,10 +1,11 @@
 #!/bin/bash
-set -ex
+set -eoux pipefail
 
-cd "$SRC_DIR"
+make init
+make build
 
-BINARY="zasper"
+# Ensure the binary exists
+test -f zasper
 
-chmod +x "$SRC_DIR/$BINARY"
-mkdir -p "${PREFIX}/bin"
-cp "$SRC_DIR/$BINARY" "${PREFIX}/bin/zasper"
+# Install the binary into Conda env bin/
+install -Dm755 zasper "$PREFIX/bin/zasper"
