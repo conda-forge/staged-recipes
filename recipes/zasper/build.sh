@@ -8,4 +8,4 @@ make build
 test -f zasper
 
 # Install the binary into Conda env bin/
-install -Dm755 zasper "$PREFIX/bin/zasper"
+install -m755 zasper "$PREFIX/bin/zasper"
