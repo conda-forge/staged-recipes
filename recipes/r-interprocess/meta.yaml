@@ -1,0 +1,71 @@
+{% set version = '1.0.2' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-interprocess
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/interprocess_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/interprocess/interprocess_{{ version }}.tar.gz
+  sha256: ddcc7ba305f1941fb0d58013916fcea62bd702ea18d4f13fd1fc148f10b5e887
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'        # [win]
+    - '*/Rblas.dll'    # [win]
+    - '*/Rlapack.dll'  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}          # [not win]
+    - {{ compiler('m2w64_c') }}    # [win]
+    - {{ compiler('cxx') }}        # [not win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ stdlib('c') }}
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+  host:
+    - r-base
+    - r-bh
+    - r-rcpp
+  run:
+    - r-base
+    - {{ native }}gcc-libs         # [win]
+    - r-bh
+    - r-rcpp
+
+test:
+  commands:
+    - $R -e "library('interprocess')"           # [not win]
+    - "\"%R%\" -e \"library('interprocess')\""  # [win]
+
+about:
+  home: https://cmmr.github.io/interprocess/, https://github.com/cmmr/interprocess
+  license: MIT
+  summary: Provides access to low-level operating system mechanisms for performing atomic
+    operations on shared data structures. Mutexes provide shared and exclusive locks.
+    Semaphores act as counters. Message queues move text strings from one process to another. All
+    these interprocess communication (IPC) tools can optionally block with or without a timeout.
+    Implemented using the cross-platform 'boost' 'C++' library
+    <https://www.boost.org/doc/libs/release/libs/interprocess/>.
+  license_family: MIT
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/MIT'
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - dansmith01
+    - conda-forge/r
