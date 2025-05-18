@@ -1,0 +1,83 @@
+context:
+  name: whisper.cpp
+  version: '1.7.5'
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ggml-org/${{ name }}/archive/v${{ version }}.tar.gz
+  sha256: 2fda42b57b7b8427d724551bd041616d85401fb9382e42b0349132a28920a34f
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        set -euxo pipefail
+        ${{ 'export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"' if osx else '' }}
+        cmake -S . -B build -GNinja \
+            -DBUILD_SHARED_LIBS=ON \
+            -DGGML_METAL=${{ 'OFF' if not (osx and arm64) else 'ON' }} \
+            -DWHISPER_BUILD_EXAMPLES=ON \
+            -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_SERVER=OFF \
+            $CMAKE_ARGS
+        cmake --build build
+        cmake --install build
+      else: |
+        cmake -S . -B build -GNinja ^
+            -DBUILD_SHARED_LIBS=ON ^
+            -DCMAKE_INSTALL_RPATH=$PREFIX/lib/whisper-cpp ^
+            -DWHISPER_BUILD_EXAMPLES=ON ^
+            -DWHISPER_BUILD_TESTS=OFF ^
+            -DWHISPER_BUILD_SERVER=OFF ^
+            %CMAKE_ARGS% || exit 1
+        cmake --build build || exit 1
+        cmake --install build || exit 1
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - git
+    - ninja
+    - pkgconfig
+  host:
+    - if: not osx
+      then:
+        - blas-devel * *_${{ blas_impl }}
+        - mkl-devel ==${{ mkl }}
+  run_constraints:
+    # llama.cpp also vendors ggml
+    - llama.cpp <0.0.0a0
+
+tests:
+  - package_contents:
+      bin:
+        - whisper-cli
+        - whisper-server
+        - whisper-bench
+      lib:
+        - whisper
+        - ggml
+      include:
+        - ggml.h
+        - whisper.h
+
+  - script:
+      - whisper-cli --help
+
+about:
+  homepage: https://github.com/ggml-org/whisper.cpp
+  repository: https://github.com/ggml-org/whisper.cpp
+  summary: Port of OpenAI's Whisper model in C/C++
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pavelzw
