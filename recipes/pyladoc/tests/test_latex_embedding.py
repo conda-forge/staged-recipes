@@ -22,9 +22,7 @@ def test_latex_embedding2():
     contains the interaction parameter <latex>\Phi_{ij}</latex>, which describes the influence of component
     <latex>j</latex> on the transport properties of component <latex>i</latex>.
 
-    The interaction parameter <latex>\Phi_{ij}</latex> is given by the relation shown in @eq:ExampleFormula2.
-    <latex type="block" reference="eq:ExampleFormula2" caption="(1)">\Phi_{ij} = \frac{1}{\sqrt{8}} \left(1 + \frac{M_i}{M_j} \right)^{-1/2} \left[ 1 + \left( \frac{\lambda_i}{\lambda_j} \right)^{1/2} \left( \frac{M_j}{M_i} \right)^{1/4} \right]^2</latex>
-    """)
+    The interaction parameter <latex>\Phi_{ij}</latex> is given by the relation shown in @eq:ExampleFormula2.<latex type="block" reference="eq:ExampleFormula2" caption="(1)">\Phi_{ij} = \frac{1}{\sqrt{8}} \left(1 + \frac{M_i}{M_j} \right)^{-1/2} \left[ 1 + \left( \frac{\lambda_i}{\lambda_j} \right)^{1/2} \left( \frac{M_j}{M_i} \right)^{1/4} \right]^2</latex>""")
 
     dummy = pyladoc.DocumentWriter()
     result_string = dummy._equation_embedding_reescaping(test_input)
@@ -44,9 +42,7 @@ def test_latex_embedding():
     """)
 
     expected_output = pyladoc._normalize_text_indent(r"""
-    # Test
-    <latex type="block" reference="eq:ExampleFormula2" caption="(1)">\Phi_{ij} = \frac{1}{\sqrt{8}}</latex>
-    This <latex>i</latex> is inline LaTeX.
+    # Test<latex type="block" reference="eq:ExampleFormula2" caption="(1)">\Phi_{ij} = \frac{1}{\sqrt{8}}</latex>This <latex>i</latex> is inline LaTeX.
     """)
 
     dummy = pyladoc.DocumentWriter()
