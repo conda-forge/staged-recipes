@@ -144,7 +144,7 @@ def _lint_recipes(gh, pr):
                     "Feedstock with the same name exists in conda-forge."
                 )
             elif feedstock_exists:
-                hints[fname].append(
+                lints[fname].append(
                     f"Feedstock with the name {existing_recipe_name} exists in conda-forge. "
                     f"Is it the same as this package ({recipe_name})?"
                 )
@@ -155,7 +155,7 @@ def _lint_recipes(gh, pr):
             except github.GithubException as e:
                 _test_and_raise_besides_file_not_exists(e)
             else:
-                hints[fname].append(
+                lints[fname].append(
                     "Recipe with the same name exists in bioconda: "
                     "please discuss with @conda-forge/bioconda-recipes."
                 )
@@ -185,7 +185,7 @@ def _lint_recipes(gh, pr):
                     for pkg in mapping:
                         if pkg.get("pypi_name", "") == pypi_name:
                             conda_name = pkg["conda_name"]
-                            hints[fname].append(
+                            lints[fname].append(
                                 f"A conda package with same name ({conda_name}) already exists."
                             )
 
