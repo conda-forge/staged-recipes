@@ -1,13 +1,15 @@
 import pyladoc
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pandas as pd
 from . import document_validation
 
 VALIDATE_HTML_CODE_ONLINE = False
-WRITE_RESULT_FILES = True
+WRITE_RESULT_FILES = False
 
 
 def make_document():
+    mpl.rcParams['pgf.texsystem'] = 'pdflatex'
     doc = pyladoc.DocumentWriter()
 
     doc.add_markdown("""

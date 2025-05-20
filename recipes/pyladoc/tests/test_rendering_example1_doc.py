@@ -1,11 +1,12 @@
 import pyladoc
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pandas as pd
 from . import document_validation
 import numpy as np
 
 VALIDATE_HTML_CODE_ONLINE = True
-WRITE_RESULT_FILES = True
+WRITE_RESULT_FILES = False
 
 
 def mason_saxena_k_mixture(x_h2):
@@ -55,6 +56,7 @@ def mason_saxena_k_mixture(x_h2):
 
 
 def make_document():
+    mpl.rcParams['pgf.texsystem'] = 'pdflatex'
     doc = pyladoc.DocumentWriter()
 
     doc.add_markdown("""

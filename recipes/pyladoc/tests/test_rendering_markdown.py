@@ -2,7 +2,7 @@ import pyladoc
 from . import document_validation
 
 VALIDATE_HTML_CODE_ONLINE = False
-WRITE_RESULT_FILES = True
+WRITE_RESULT_FILES = False
 
 
 def test_markdown_styling():
