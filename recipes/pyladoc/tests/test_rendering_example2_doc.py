@@ -9,7 +9,7 @@ WRITE_RESULT_FILES = False
 
 
 def make_document():
-    mpl.rcParams['pgf.texsystem'] = 'pdflatex'
+    # mpl.rcParams['pgf.texsystem'] = 'pdflatex'
     doc = pyladoc.DocumentWriter()
 
     doc.add_markdown("""

@@ -56,7 +56,7 @@ def mason_saxena_k_mixture(x_h2):
 
 
 def make_document():
-    mpl.rcParams['pgf.texsystem'] = 'pdflatex'
+    # mpl.rcParams['pgf.texsystem'] = 'pdflatex'
     doc = pyladoc.DocumentWriter()
 
     doc.add_markdown("""
