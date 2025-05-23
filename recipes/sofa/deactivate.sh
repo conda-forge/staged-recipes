@@ -1,0 +1,1 @@
+unset SOFA_ROOT
