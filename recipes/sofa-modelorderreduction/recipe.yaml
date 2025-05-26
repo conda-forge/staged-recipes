@@ -1,0 +1,78 @@
+context:
+  name: sofa-modelorderreduction
+  version: 24.06.00
+  build_num: 1
+  major: ${{ (version | split('.'))[0] }}
+  minor: ${{ (version | split('.'))[1] }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/SofaDefrost/ModelOrderReduction/archive/refs/tags/release-v${{ major }}.${{ minor }}.tar.gz
+  sha256: 214481e12b0038a8b0fddaa18b4b36528b737df2714866d18a843e2a0ad952d4
+
+build:
+  number: ${{ build_num }}
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - if: not win
+      then: 
+        - make
+    - if: win
+      then: 
+        - ninja
+    - if: linux
+      then: 
+        - ${{ cdt('mesa-libgl-devel') }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+  host:
+    - sofa-devel
+    - sofa-python3
+    - eigen
+    - libboost-headers
+    - cxxopts
+    - python
+    - pybind11
+  run:
+    # we manually pin compatibility between sofa libs and plugins to MAJOR.MINOR versions
+    - ${{ pin_compatible('sofa-devel', lower_bound='x.x', upper_bound='x.x') }}
+    - ${{ pin_compatible('sofa-python3', lower_bound='x.x', upper_bound='x.x') }}
+    - python
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include: 
+        - ModelOrderReduction/config.h
+      lib: 
+        - ModelOrderReduction
+      files: 
+        - ${{ "Library/" if win }}lib/cmake/ModelOrderReduction/ModelOrderReductionConfig.cmake
+        - ${{ "Library/" if win }}lib/cmake/ModelOrderReduction/ModelOrderReductionConfigVersion.cmake
+  - python:
+      imports:
+        - mor
+
+about:
+  homepage: https://www.sofa-framework.org/applications/marketplace/modelorderreduction/
+  summary: SOFA plugin to reduce model.
+  license: GPL-2.0-or-later
+  license_file: LICENSE
+  documentation: https://modelorderreduction.readthedocs.io/en/latest/
+  repository: https://github.com/SofaDefrost/ModelOrderReduction
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
