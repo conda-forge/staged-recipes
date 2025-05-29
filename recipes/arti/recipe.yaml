@@ -1,0 +1,62 @@
+context:
+  name: arti
+  version: "1.4.3"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.torproject.org/tpo/core/${{ name }}/-/archive/${{ name }}-v${{ version }}/${{ name }}-${{ name }}-v${{ version }}.tar.gz
+  sha256: 5d54ce2e29b6b23107277dd8d1dea8a5bff56ddf04fb46ce851013fddb14639e
+
+build:
+  script:
+    - cd crates/arti
+    - if: unix
+      then:
+        - if: linux
+          then: export OPENSSL_DIR="$PREFIX"
+        - export CARGO_PROFILE_RELEASE_STRIP=symbols
+        - export CARGO_PROFILE_RELEASE_LTO=fat
+        - cargo install --locked --no-track --bins --root ${PREFIX} --path .
+      else:
+        - set CARGO_PROFILE_RELEASE_STRIP=symbols
+        - set CARGO_PROFILE_RELEASE_LTO=fat
+        - cargo install --locked --no-track --bins --root %PREFIX% --path .
+    - cargo-bundle-licenses --format yaml --output ../../THIRDPARTY.yml
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+  host:
+    - if: linux
+      then:
+        - openssl
+    - libsqlite
+
+tests:
+  - script: arti --help
+
+about:
+  homepage: https://tpo.pages.torproject.net/core/arti
+  summary: An implementation of Tor, in Rust.
+  description: |
+    Arti is a project to produce an embeddable, production-quality implementation of the Tor anonymity protocols in the Rust programming language.
+  license: (MIT OR Apache-2.0) AND LGPL-3.0-or-later
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - LGPL-3
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/arti
+  repository: https://gitlab.torproject.org/tpo/core/arti
+
+extra:
+  recipe-maintainers:
+    - pavelzw
