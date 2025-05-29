@@ -16,4 +16,5 @@ export ACLOCAL_FLAGS="-I ${PREFIX}/share/aclocal"
     --disable-dependency-tracking \
     --prefix=${PREFIX} \
     --libdir=${PREFIX}/lib
+make check
 make -j${CPU_COUNT} install
