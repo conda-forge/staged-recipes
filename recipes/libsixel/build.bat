@@ -1,12 +1,13 @@
 meson %MESON_ARGS% ^
     --wrap-mode=nofallback ^
     build ^
-    -Dgdk-pixbuf2=disabled ^
-    -Dtests=disabled || goto :error
+    -Dgdk-pixbuf2=enabled ^
+    -Dtests=enabled || goto :error
 meson compile -C build -v || goto :error
+meson test -C build || goto :error
 meson install -C build || goto :error
 
-goto :EOF
+goto :eof
 
 :error
 echo Failed with error #%errorlevel%.
