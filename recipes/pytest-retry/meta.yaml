@@ -30,7 +30,17 @@ test:
     - pytest_retry
   commands:
     - pip check
-    - pip install .
+    # We need the pytest_retry source dir not to be on the import path,
+    # because otherwise (if ChatGPT has it right) the pytest invocations in
+    # the subprocesses created by the packages' pytester testdir.runpytest()
+    # calls will pick up the package from the not-pytest-registered source tree,
+    # instead of the fully-installed and pytest-plugin-registered package,
+    # resulting in breakage of the test suite.
+    #
+    # We achieve this removal of the source dir from the import path via the
+    # cd into `tests/`. pytest auto-locates the correct rootdir of `..`
+    # (equal to `$SRC_DIR`) for us, and finds its config in pyproject.toml there.
+    - cd tests
     - pytest
   requires:
     - python {{ python_min }}
@@ -38,6 +48,8 @@ test:
     - pytest >=7.0.0
   source_files:
     - tests/
+    - pytest_retry/
+    - pyproject.toml
 
 about:
   home: https://github.com/str0zzapreti/pytest-retry
