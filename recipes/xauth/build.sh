@@ -15,4 +15,5 @@ set -o xtrace -o nounset -o pipefail -o errexit
     --libdir=${PREFIX}/lib
 
 make
+make check
 make install

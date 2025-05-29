@@ -8,4 +8,5 @@ autoreconf -fiv
     --prefix=${PREFIX} \
     --libdir=${PREFIX}/lib
 
+make check
 make -j${CPU_COUNT} install
