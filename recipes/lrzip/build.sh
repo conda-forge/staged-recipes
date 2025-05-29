@@ -15,5 +15,6 @@ if [[ ${target_platform} == "osx-arm64" ]]; then
     configure_args="--disable-asm"
 fi
 ./configure --prefix=$PREFIX ${configure_args}
+make check
 make -j${CPU_COUNT} V=1 SHELL=bash
 make install

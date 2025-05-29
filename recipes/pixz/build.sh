@@ -10,7 +10,6 @@ if [[ ${target_platform} =~ .*osx.* ]]; then
     export PKG_CONFIG_PATH="${SRC_DIR}/pkgconfig:${PREFIX}/lib/pkgconfig"
 fi
 
-#autoupdate
 autoreconf --force --verbose --install
 ./configure --disable-debug \
     --disable-dependency-tracking \

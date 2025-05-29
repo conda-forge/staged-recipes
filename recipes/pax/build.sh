@@ -6,4 +6,6 @@ mkdir build
 cd build
 sh ../Build.sh -r -tpax
 mkdir ${PREFIX}/bin
-cp pax ${PREFIX}/bin
+install -m 755 pax ${PREFIX}/bin
+
+exit 1
