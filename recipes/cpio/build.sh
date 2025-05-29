@@ -8,4 +8,5 @@ set -o xtrace -o nounset -o pipefail -o errexit
     --prefix=${PREFIX} \
     --libdir=${PREFIX}/lib
 
+make check
 make -j${CPU_COUNT} install

@@ -12,6 +12,7 @@ set -o xtrace -o nounset -o pipefail -o errexit
     --with-universal-ctags=${PREFIX}/bin/ctags
 
 make -j${CPU_COUNT} install
+make check
 
 mkdir -p ${PREFIX}/etc
 install -m 644 gtags.conf ${PREFIX}/etc
