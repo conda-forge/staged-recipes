@@ -26,15 +26,19 @@ build:
     # use the new sparse index instead of cloning the giant git index
     - CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
+    # --- memory optimization for CI environments ------------------
+    - CARGO_BUILD_JOBS=1                                      # [win]
+    - MATURIN_BUILD_ARGS=--jobs 1                            # [win]
+
   script: |
     # one-liner is fine on Unix-likes
-    {{ PYTHON }} -m pip install . -vv                       # [not win]
+    {{ PYTHON }} -m pip install . -vv --no-build-isolation   # [not win]
 
-    # Windows still needs the explicit wheel phase
-    maturin build --release --strip -o wheelhouse           # [win]
-    for %%F in (wheelhouse\*.whl) do {{ PYTHON }} -m pip install "%%F" -vv  # [win]
-    if exist wheelhouse rmdir /S /Q wheelhouse              # [win]
-    if exist target    rmdir /S /Q target                   # [win]
+    # Windows - more memory-conscious build
+    maturin build --release --strip --jobs 1 -o wheelhouse   # [win]
+    for %%F in (wheelhouse\*.whl) do {{ PYTHON }} -m pip install "%%F" -vv --no-deps  # [win]
+    if exist wheelhouse rmdir /S /Q wheelhouse               # [win]
+    if exist target    rmdir /S /Q target                    # [win]
 
 requirements:
   build:
@@ -45,19 +49,24 @@ requirements:
     - python
     - pip
     - maturin >=1.0,<2.0
-    - polars >=0.20.6
+    - polars >=0.20.6,<1.0
   run:
     - python
-    - polars >=0.20.6
-    - libgcc            # [linux]   # don’t pull libgcc on Windows
+    - polars >=0.20.6,<1.0
+    - libgcc            # [linux]   # don't pull libgcc on Windows
 
 test:
   imports:
     - polars_order_book
   commands:
+    # Simple import test first
+    - python -c "import polars_order_book; print('Import successful')"
+    # Then check dependencies
     - pip check
   requires:
     - pip
+  # Optional: Skip tests in resource-constrained environments
+  # skip_tests: true  # [win and environ.get("CI")]
 
 about:
   home: https://github.com/ChristopherRussell/polars-order-book
@@ -70,4 +79,3 @@ about:
 extra:
   recipe-maintainers:
     - ChristopherRussell
-  
