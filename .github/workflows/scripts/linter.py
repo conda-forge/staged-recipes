@@ -151,7 +151,7 @@ def _lint_recipes(gh, pr):
 
             bio = gh.get_user("bioconda").get_repo("bioconda-recipes")
             try:
-                bio.get_dir_contents(f"recipes/{recipe_name}")
+                bio.get_contents(f"recipes/{recipe_name}")
             except github.GithubException as e:
                 _test_and_raise_besides_file_not_exists(e)
             else:
