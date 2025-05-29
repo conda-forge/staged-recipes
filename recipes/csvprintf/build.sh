@@ -9,5 +9,6 @@ fi
 ./configure --disable-silent \
     --disable-debug \
     --disable-dependency-tracking \
-    --prefix=${PREFIX} 
-make install LIBS="-L${PREFIX}/lib -liconv"
+    --prefix=${PREFIX}
+make install LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
+make tests LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
