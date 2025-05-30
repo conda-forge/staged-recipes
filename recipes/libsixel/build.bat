@@ -1,3 +1,6 @@
+@echo on
+@setlocal EnableDelayedExpansion
+
 meson %MESON_ARGS% ^
     --wrap-mode=nofallback ^
     build ^
