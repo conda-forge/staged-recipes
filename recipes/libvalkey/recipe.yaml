@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  name: libvalkey
+  version: "0.1.0"
+
+package:
+  name: "${{ name }}"
+  version: "${{ version }}"
+
+source:
+  url: https://github.com/valkey-io/libvalkey/archive/refs/tags/${{ version }}.zip
+  sha256: "118e4cf50daf32645d267740f431e81c91bc85f332ea14a8051ddab59bba79c5"
+  patches:
+    # remove this after https://github.com/valkey-io/libvalkey/pull/203
+    - patches/0000-tls.patch
+
+build:
+  number: 0
+  script:
+    content:
+      - if: linux
+        then: cmake . -B build $CMAKE_ARGS  -D ENABLE_TLS=1 -D ENABLE_RDMA=1 -G Ninja
+      - if: osx
+        then: cmake . -B build $CMAKE_ARGS  -D ENABLE_TLS=1 -G Ninja
+      - if: win
+        then: cmake . -B build %CMAKE_ARGS% -D ENABLE_TLS=1 -G Ninja
+
+      - ninja -v -C build install
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage('libvalkey', upper_bound='x.x.x') }}
+
+  build:
+    - "${{ compiler('c') }}"
+    - "${{ stdlib('c') }}"
+    - cmake
+    - ninja
+    - pkg-config
+
+  host:
+    - openssl >=3
+    - if: linux
+      then: rdma-core
+
+tests:
+  - package_contents:
+      files:
+        - "**/valkey_tls/valkey_tls-targets.cmake"
+      lib:
+        - valkey
+        - valkey_tls
+        - if: linux
+          then: valkey_rdma
+      include:
+        - valkey/valkey.h
+
+about:
+  license: MIT
+  license_file:
+    - COPYING
+  summary: Valkey client library in C
+  description: |
+    Libvalkey is the official C client for the [Valkey](https://valkey.io) database.
+    It also supports any server that uses the `RESP` protocol (version 2 or 3).
+    This project supports both standalone and cluster modes.
+  homepage: https://github.com/valkey-io/libvalkey
+  repository: https://github.com/valkey-io/libvalkey
+
+extra:
+  recipe-maintainers:
+    - trim21
