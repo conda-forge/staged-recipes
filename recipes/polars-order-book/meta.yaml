@@ -1,0 +1,81 @@
+{% set name = "polars-order-book" %}
+{% set version = "0.4.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/polars_order_book-{{ version }}.tar.gz
+  sha256: df31f057f7ffa46048740937ec6382f6b33ee58b2a2734abea209d0219abcbbd
+
+build:
+  number: 0
+  skip: true  # [py<310]
+
+  # --- keep the linker lean on Windows ----------------------------------
+  script_env:
+    # --- existing flags that keep the artefact small --------------------
+    - MATURIN_STRIP=1                                         # [win]
+    - RUSTFLAGS=-C debuginfo=0 -C link-arg=/DEBUG:NONE        # [win]
+    - CARGO_PROFILE_RELEASE_DEBUG=false                       # [win]
+
+    # --- be nicer to flaky networks -------------------------------
+    - CARGO_NET_RETRY=10          # default is 3
+    - CARGO_NET_TIMEOUT=60        # seconds; default is 30
+    # use the new sparse index instead of cloning the giant git index
+    - CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+
+    # --- memory optimization for CI environments ------------------
+    - CARGO_BUILD_JOBS=1                                      # [win]
+    - MATURIN_BUILD_ARGS=--jobs 1                            # [win]
+
+  script: |
+    # one-liner is fine on Unix-likes
+    {{ PYTHON }} -m pip install . -vv --no-build-isolation   # [not win]
+
+    # Windows - more memory-conscious build
+    maturin build --release --strip --jobs 1 -o wheelhouse   # [win]
+    for %%F in (wheelhouse\*.whl) do {{ PYTHON }} -m pip install "%%F" -vv --no-deps  # [win]
+    if exist wheelhouse rmdir /S /Q wheelhouse               # [win]
+    if exist target    rmdir /S /Q target                    # [win]
+
+requirements:
+  build:
+    - {{ compiler('rust') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+  host:
+    - python
+    - pip
+    - maturin >=1.0,<2.0
+    - polars >=0.20.6,<1.0
+  run:
+    - python
+    - polars >=0.20.6,<1.0
+    - libgcc            # [linux]   # don't pull libgcc on Windows
+
+test:
+  imports:
+    - polars_order_book
+  commands:
+    # Simple import test first
+    - python -c "import polars_order_book; print('Import successful')"
+    # Then check dependencies
+    - pip check
+  requires:
+    - pip
+  # Optional: Skip tests in resource-constrained environments
+  # skip_tests: true  # [win and environ.get("CI")]
+
+about:
+  home: https://github.com/ChristopherRussell/polars-order-book
+  license: Apache-2.0
+  license_file: polars_order_book/LICENSE
+  summary: >
+    A performant Polars expression plugin for calculating price-level summaries
+    from a dataframe of order-book updates.
+
+extra:
+  recipe-maintainers:
+    - ChristopherRussell
