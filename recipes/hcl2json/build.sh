@@ -4,9 +4,9 @@ set -exuo pipefail
 echo "PKG_VERSION = ${PKG_VERSION}"
 
 go build \
-    -trimpath \
-    -ldflags "-X main.version=${PKG_VERSION}" \
-    -o "${BINARY_FILEPATH}"
+  -trimpath \
+  -ldflags "-X main.version=${PKG_VERSION}" \
+  -o "${PREFIX}/bin/${BINARY_NAME}"
 
 
 go-licenses save . --save_path ./thirdparty --ignore github.com/tmccombs/hcl2json
