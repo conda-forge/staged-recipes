@@ -3,7 +3,6 @@ set -exuo pipefail
 
 echo "PKG_VERSION = ${PKG_VERSION}"
 
-go build -trimpath  -ldflags "-X main.version=0.6.7" -o "${BINARY_FILEPATH}"
 go build \
     -trimpath \
     -ldflags "-X main.version=${PKG_VERSION}" \
