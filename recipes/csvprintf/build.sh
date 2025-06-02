@@ -10,5 +10,5 @@ fi
     --disable-debug \
     --disable-dependency-tracking \
     --prefix=${PREFIX}
-make install LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
-make tests LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
+make -j${CPU_COUNT} install LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
+make -j${CPU_COUNT} tests LIBS="-Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib -liconv"
