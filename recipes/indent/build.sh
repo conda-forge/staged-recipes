@@ -13,5 +13,5 @@ sed -i 's/else-comment-2-br.c//' regression/TEST
     --disable-dependency-tracking \
     --prefix=${PREFIX} \
     --mandir=${PREFIX}/share/man
-make check
+make -j${CPU_COUNT} check
 make -j${CPU_COUNT} install

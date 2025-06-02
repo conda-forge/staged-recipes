@@ -9,5 +9,5 @@ fi
 ./configure --disable-silent \
     --disable-dependency-tracking \
     --prefix=${PREFIX}
-make check
+make -j${CPU_COUNT} check
 make -j${CPU_COUNT} install
