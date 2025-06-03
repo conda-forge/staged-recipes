@@ -6,6 +6,8 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Configure Docker" ) 2> /dev/null
 
+set -xeo pipefail
+
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
@@ -42,7 +44,7 @@ mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done"
 rm -f "$DONE_CANARY"
 
-DOCKER_RUN_ARGS="-it"
+DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
 
 if [ "${AZURE}" == "True" ]; then
     DOCKER_RUN_ARGS=""
