@@ -14,6 +14,7 @@ cmake -GNinja \
     -DENKITS_BUILD_EXAMPLES=OFF \
     -DENKITS_INSTALL=ON \
     -DENKITS_SANITIZE=OFF \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.16 \
     ${SRC_DIR}
 
 cmake --build . -j "${CPU_COUNT}"
