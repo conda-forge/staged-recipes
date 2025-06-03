@@ -7,4 +7,5 @@ export CFLAGS="${CFLAGS} -Wno-implicit-function-declaration -Wno-int-conversion"
 ./configure --disable-silent \
     --disable-dependency-tracking \
     --prefix=${PREFIX}
-make install LIBTOOL=${PREFIX}/bin/libtool
+make -j${CPU_COUNT} check LIBTOOL=${PREFIX}/bin/libtool
+make -j${CPU_COUNT} install LIBTOOL=${PREFIX}/bin/libtool
