@@ -2,6 +2,8 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Workaround for incorrect flags in libarchive.pc
+# Remove when https://github.com/conda-forge/libarchive-feedstock/pull/110 is merged
 if [[ ${target_platform} =~ .*osx.* ]]; then
     mkdir pkgconfig
     cp ${PREFIX}/lib/pkgconfig/libarchive.pc pkgconfig
