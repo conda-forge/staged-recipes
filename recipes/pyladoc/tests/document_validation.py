@@ -50,7 +50,7 @@ def validate_html(html_string: str, validate_online: bool = False, check_for: li
         assert tag_type in tags, f"Tag {tag_type} not found in the html code"
 
     if validate_online:
-        test_page = pyladoc.inject_to_template(html_string, internal_template='templates/test_template.html')
+        test_page = pyladoc.inject_to_template({'CONTENT': html_string}, internal_template='templates/test_template.html')
         validation_result = validate_html_with_w3c(test_page)
         assert 'messages' in validation_result, 'Validate request failed'
         if validation_result['messages']:

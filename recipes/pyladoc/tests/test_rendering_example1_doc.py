@@ -1,6 +1,5 @@
 import pyladoc
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import pandas as pd
 from . import document_validation
 import numpy as np
@@ -56,7 +55,6 @@ def mason_saxena_k_mixture(x_h2):
 
 
 def make_document():
-    # mpl.rcParams['pgf.texsystem'] = 'pdflatex'
     doc = pyladoc.DocumentWriter()
 
     doc.add_markdown("""
@@ -160,7 +158,7 @@ def test_html_render():
 
     if WRITE_RESULT_FILES:
         with open('tests/out/test_html_render1.html', 'w', encoding='utf-8') as f:
-            f.write(pyladoc.inject_to_template(html_code, internal_template='templates/test_template.html'))
+            f.write(pyladoc.inject_to_template({'CONTENT': html_code}, internal_template='templates/test_template.html'))
 
 
 def test_latex_render():
@@ -170,7 +168,9 @@ def test_latex_render():
         with open('tests/out/test_html_render1.tex', 'w', encoding='utf-8') as f:
             f.write(doc.to_latex())
 
-    assert doc.to_pdf('tests/out/test_latex_render1.pdf', font_family='serif')
+        assert doc.to_pdf('tests/out/test_latex_render1.pdf', font_family='serif')
+    else:
+        assert doc.to_pdf('', font_family='serif')  # Write only to temp folder
 
 
 if __name__ == '__main__':
