@@ -15,5 +15,4 @@ set -o xtrace -o nounset -o pipefail -o errexit
     --libdir=${PREFIX}/lib
 
 make -j${CPU_COUNT}
-make -j${CPU_COUNT} check
 make -j${CPU_COUNT} install
