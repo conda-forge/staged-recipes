@@ -2,11 +2,11 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-autoreconf -fiv
+autoreconf --force --verbose --install
 ./configure --disable-debug \
     --disable-dependency-tracking \
     --prefix=${PREFIX} \
     --libdir=${PREFIX}/lib
 
-make check
+make -j${CPU_COUNT} check
 make -j${CPU_COUNT} install
