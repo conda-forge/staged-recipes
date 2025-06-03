@@ -6,8 +6,8 @@ meson %MESON_ARGS% ^
     build ^
     -Dgdk-pixbuf2=enabled ^
     -Dtests=enabled || goto :error
-meson compile -C build -v || goto :error
-meson test -C build || goto :error
+meson compile -C build -v -j %CPU_COUNT% || goto :error
+meson test -C build -j %CPU_COUNT% || goto :error
 meson install -C build || goto :error
 
 goto :eof
