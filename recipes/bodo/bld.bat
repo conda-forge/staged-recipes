@@ -1,9 +1,9 @@
 set "SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%"
 set "CONDA_PREFIX=%PREFIX%"
+set "CMAKE_BUILD_PARALLEL_LEVEL=1"
 set "BODO_WINDOWS_BUILD_TYPE=Release"
 
 :: Build using pip and CMake
 "%PYTHON%" -m pip install --no-deps --no-build-isolation -vv ^
-    --config-settings=cmake.define.CMAKE_CXX_FLAGS="/FS /Zi" ^
     --config-settings=build.verbose=true ^
     --config-settings=logging.level="DEBUG" .
