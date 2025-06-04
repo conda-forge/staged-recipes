@@ -1,0 +1,100 @@
+{% set name = "tardigrade_error_tools" %}
+{% set version = "0.9.7" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/UCBoulder/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  path: '..'
+  sha256: af55feef37f99979c3ccfb20c2f563b5e10175cb7599264b441c9608fdb68652
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set -x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target tardigrade_error_tools tardigrade_error_tools_PYTHON
+    - cmake --install build --prefix ${PREFIX}
+    # Build and install Conda package
+    - $PYTHON -m pip install build/src/python/dist/$PKG_NAME-$PKG_VERSION.tar.gz --no-deps --ignore-installed -v --no-build-isolation
+    - $PYTHON -m pip show $PKG_NAME
+  missing_dso_whitelist:
+      - /lib64/librt.so.1
+      - /lib64/libc.so.6
+      - /lib64/libpthread.so.0
+  skip: true # [osx or win]
+
+requirements:
+  build:
+    - cython
+    - python {{ python }}
+    - breathe >=4.3.0
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+    - setuptools_scm[toml] >=6.2
+  host:
+    - {{ compiler('cxx') }}
+    - libgcc {{ libstdcxx }}             # [linux]
+    - libstdcxx {{ libstdcxx }}          # [linux]
+    - python {{ python }}
+    - python-build
+    - pip
+    - cython
+    - setuptools >=62
+    - setuptools_scm >=6.2
+    - make
+    - cmake >=3.18
+    - eigen >=3.3.7
+    - boost >=1.59
+    - doxygen
+  run:
+    - python
+    - eigen >=3.3.7
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ pin_compatible('libgcc') }}     # [linux]
+    - {{ pin_compatible('libstdcxx') }}  # [linux]
+    - pytest
+    - pytest-xdist
+    - make
+    - cmake >=3.18
+    - boost >=1.59
+    - doxygen
+    - sphinx >=3.0.4
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/CMakeLists.txt
+    - src/cpp/tests/test_tardigrade_error_tools.cpp
+  commands:
+    - echo running tests
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target all --verbose --parallel 4
+    - ctest --test-dir build --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+    - cd $SP_DIR/$PKG_NAME
+    - pytest
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_error_tools
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'A collection of tools used for error handling. '
+  description: |
+    tardigrade_error_tools A collection of tools used for error handling. These tools provide a
+    linked list class which can help a user both understand where an error happened and also help the developer to
+    correct for the errors.
+  dev_url: https://github.com/UCBoulder/tardigrade_error_tools
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
