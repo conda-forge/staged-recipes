@@ -14,7 +14,9 @@ build:
   script:
     - cmake -GNinja -S . -B build ${{ "$CMAKE_ARGS" if unix else "%CMAKE_ARGS%" }}
     - cmake --build build
+    - ${{ "if %errorlevel% neq 0 exit 1" if win }}
     - cmake --install build
+    - ${{ "if %errorlevel% neq 0 exit 1" if win }}
 
 requirements:
   build:
@@ -31,18 +33,22 @@ requirements:
 
   ignore_run_exports:
     from_package:
-      - zlib
+      # looks like on Windows, libzlib _is_ linked
+      - ${{ "zlib" if unix }}
 
 
 tests:
   - script:
       - castxml --version
+
   - script:
       - if: unix
         then:
           - castxml --castxml-cc-gnu $CXX --castxml-gccxml -o test.xml test.cpp
         else:
           - castxml --castxml-cc-msvc %CXX% --castxml-gccxml -o test.xml test.cpp
+          - if %errorlevel% neq 0 exit 1
+
     files:
       recipe:
         - test.cpp
