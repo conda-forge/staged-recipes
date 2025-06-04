@@ -7,3 +7,6 @@ set "BODO_WINDOWS_BUILD_TYPE=Release"
 "%PYTHON%" -m pip install --no-deps --no-build-isolation -vv ^
     --config-settings=build.verbose=true ^
     --config-settings=logging.level="DEBUG" .
+
+:: Clean up build artifacts
+rd /s /q build
