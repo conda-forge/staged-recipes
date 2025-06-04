@@ -1,0 +1,60 @@
+context:
+  version: "3.9"
+
+package:
+  name: tio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tio/tio/releases/download/v${{ version }}/tio-${{ version }}.tar.xz
+  sha256: 06fe0c22e3e75274643c017928fbc85e86589bc1acd515d92f98eecd4bbab11b
+
+build:
+  number: 0
+  script: |
+    meson setup build -Dbashcompletiondir=$PREFIX/share/bash-completion/completions $MESON_ARGS
+    meson compile -C build --verbose
+    meson install -C build
+  skip: win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - glib
+    - lua
+
+tests:
+  - script: |
+      tio --version
+      # Test that tio emits the correct error output when run with an argument that is not a tty
+      # Use `script` to run tio with its stdio attached to a PTY, otherwise it will complain about that instead
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        script -q /dev/null $PREFIX/bin/tio /dev/null || test $? -eq 1
+      else
+        script -q /dev/null -e -c "$PREFIX/bin/tio /dev/null" || test $? -eq 1
+      fi
+      # Check that the output contains the expected error message
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        script -q /dev/null $PREFIX/bin/tio /dev/null 2>&1 | grep "Error: Not a tty device"
+      else
+        script -q /dev/null -e -c "$PREFIX/bin/tio /dev/null" 2>&1 | grep "Error: Not a tty device"
+      fi
+
+about:
+  homepage: https://tio.github.io
+  license: GPL-2.0-or-later
+  license_file: LICENSE
+  summary: Simple TTY terminal I/O application
+  description: |
+    tio is a simple TTY terminal I/O application which features a straightforward
+    command-line interface to easily connect to TTY devices for basic input/output.
+  repository: https://github.com/tio/tio
+
+extra:
+  recipe-maintainers:
+    - wolfv
