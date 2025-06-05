@@ -1,0 +1,48 @@
+context:
+  version: "2.0.8"
+
+package:
+  name: berglas
+  version: ${{ version }}
+
+source:
+  url: https://github.com/GoogleCloudPlatform/berglas/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1765994e212c0281b215aabae3ec95eef2894a6bfa99f5434db4bf6814c0c940
+
+build:
+  script: |
+    go build -ldflags="-s -w -X github.com/GoogleCloudPlatform/berglas/v2/internal/version.name=berglas -X github.com/GoogleCloudPlatform/berglas/v2/internal/version.version=${{ version }}" -o $PREFIX/bin/berglas
+    mkdir -p $PREFIX/share/bash-completion/completions
+    $PREFIX/bin/berglas completion bash > $PREFIX/share/bash-completion/completions/berglas
+    mkdir -p $PREFIX/share/zsh/site-functions
+    $PREFIX/bin/berglas completion zsh > $PREFIX/share/zsh/site-functions/_berglas
+
+    go-licenses save --save_path $SRC_DIR/license-files .
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - berglas -v | grep $PKG_VERSION
+  - script: |
+      set -x
+      berglas list -l info condaforgetest 2> out.txt || EXIT_CODE=$?
+      echo "Exit code: $EXIT_CODE"
+      cat out.txt
+      test $EXIT_CODE -eq 60
+      grep "failed to list secrets: storage: bucket doesn't exist:" out.txt
+
+about:
+  homepage: https://github.com/GoogleCloudPlatform/berglas
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - license-files/
+  summary: Tool for managing secrets on Google Cloud
+
+extra:
+  recipe-maintainers:
+    - wolfv
