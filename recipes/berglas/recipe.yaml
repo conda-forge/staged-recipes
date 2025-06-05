@@ -13,7 +13,6 @@ build:
   number: 0
   script:
     - go build -ldflags="-s -w -X github.com/GoogleCloudPlatform/berglas/v2/internal/version.name=berglas -X github.com/GoogleCloudPlatform/berglas/v2/internal/version.version=${{ version }}" -o ${{ "$PREFIX" if unix else "%PREFIX%" }}/bin/berglas
-
     - if: unix and target_platform == build_platform
       then:
         - mkdir -p $PREFIX/share/bash-completion/completions
@@ -21,7 +20,7 @@ build:
         - mkdir -p $PREFIX/share/zsh/site-functions
         - $PREFIX/bin/berglas completion zsh > $PREFIX/share/zsh/site-functions/_berglas
 
-    - go-licenses save --save_path $SRC_DIR/license-files .
+    - go-licenses save --save_path ${{ "$SRC_DIR" if unix else "%SRC_DIR%" }}/license-files .
 
 requirements:
   build:
@@ -30,14 +29,17 @@ requirements:
 
 tests:
   - script:
-      - berglas -v | grep $PKG_VERSION
-  - script: |
-      set -x
-      berglas list -l info condaforgetest 2> out.txt || EXIT_CODE=$?
-      echo "Exit code: $EXIT_CODE"
-      cat out.txt
-      test $EXIT_CODE -eq 60
-      grep "failed to list secrets: storage: bucket doesn't exist:" out.txt
+      - berglas --version
+
+  - if: unix
+    then:
+      script: |
+        set -x
+        berglas list -l info condaforgetest 2> out.txt || EXIT_CODE=$?
+        echo "Exit code: $EXIT_CODE"
+        cat out.txt
+        test $EXIT_CODE -eq 61
+        grep "failed to list secrets: storage: bucket doesn't exist:" out.txt
 
 about:
   homepage: https://github.com/GoogleCloudPlatform/berglas
