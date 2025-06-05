@@ -1,6 +1,15 @@
 #!/bin/bash
 
-# This will be worked on after the visionworkbench package, which is part of the
-# same proposed feedstock, is merged in, as this one depends on that one.
+cd $SRC_DIR
 
-exit 0
+mkdir build
+cd build
+cmake ..                             \
+    -DCMAKE_PREFIX_PATH=${PREFIX}    \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DASP_DEPS_DIR=${PREFIX}         \
+    -DUSE_OPENEXR=OFF                \
+    -DCMAKE_VERBOSE_MAKEFILE=ON
+make -j${CPU_COUNT}
+make install
+
