@@ -163,4 +163,4 @@ install(TARGETS cadical cadical-bin mobical
     RUNTIME DESTINATION bin
 )
 
-install(FILES src/cadical.hpp DESTINATION include)
+install(FILES src/cadical.hpp src/ccadical.h src/ipasir.h DESTINATION include)
