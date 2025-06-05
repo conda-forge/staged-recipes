@@ -5,9 +5,6 @@ cd $SRC_DIR
 wget https://github.com/visionworkbench/visionworkbench/archive/refs/tags/3.5.1.tar.gz > /dev/null 2>&1 # this is verbose
 tar xzf 3.5.1.tar.gz
 
-echo List all files
-ls -d *
-
 cd visionworkbench-3.5.1
 
 # Build visionworkbench

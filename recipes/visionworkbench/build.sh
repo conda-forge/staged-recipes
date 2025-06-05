@@ -4,8 +4,6 @@
 # cd $SRC_DIR
 # wget https://github.com/NeoGeographyToolkit/StereoPipeline/archive/refs/tags/3.5.0_minimal.tar.gz > /dev/null 2>&1 # this is verbose
 # tar xzf 3.5.0_minimal.tar.gz
-# echo List all files
-# ls -d *
 
 cd $SRC_DIR
 
