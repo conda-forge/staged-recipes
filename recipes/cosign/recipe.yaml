@@ -1,0 +1,65 @@
+context:
+  version: "2.5.0"
+  git_revision: "38bb98697005cdc5c092f031594c0e45d039f4a0"
+
+package:
+  name: cosign
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/sigstore/cosign/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 35beac6937e310dd08800d6077832682490d4d23bc349f60b786f4be74a68c7f
+
+build:
+  script:
+    - pkg="sigs.k8s.io/release-utils/version"
+    - if: unix
+      then:
+        - ldflags="-s -w -X ${pkg}.gitVersion=${{ version }} -X ${pkg}.gitCommit=${{ git_revision }} -X ${pkg}.gitTreeState=clean -X ${pkg}.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        - go build -ldflags="${ldflags}" -o $PREFIX/bin/cosign ./cmd/cosign
+      else:
+        - ldflags="-s -w -X ${pkg}.gitVersion=${{ version }} -X ${pkg}.gitCommit=${{ git_revision }} -X ${pkg}.gitTreeState=clean -X ${pkg}.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        - go build -ldflags="%ldflags%" -o %PREFIX%/bin/cosign.exe ./cmd/cosign
+
+    # Generate shell completions (only on Unix and when target platform equals build platform)
+    - if: unix and target_platform == build_platform
+      then:
+        - mkdir -p $PREFIX/share/bash-completion/completions
+        - mkdir -p $PREFIX/share/zsh/site-functions
+        - mkdir -p $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/cosign completion bash > $PREFIX/share/bash-completion/completions/cosign
+        - $PREFIX/bin/cosign completion zsh > $PREFIX/share/zsh/site-functions/_cosign
+        - $PREFIX/bin/cosign completion fish > $PREFIX/share/fish/vendor_completions.d/cosign.fish
+
+    # Collect license information
+    - go-licenses save --save_path ${{ "$SRC_DIR" if unix else "%SRC_DIR%" }}/license-files ./cmd/cosign || true
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script: cosign version
+  - script: |
+      echo -e "testpassword\ntestpassword" | cosign generate-key-pair
+      test -f cosign.pub
+
+
+about:
+  homepage: https://github.com/sigstore/cosign
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - license-files/
+  summary: Container Signing
+  description: |
+    Cosign aims to make signatures invisible infrastructure. 
+    Cosign supports:
+    - Container Signing
+    - Artifacts in OCI registries
+    - Blobs
+    - Multiple architectures
+    - Other artifacts (SBOM, SLSA, etc.)
+  repository: https://github.com/sigstore/cosign
+  documentation: https://github.com/sigstore/cosign
