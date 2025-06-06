@@ -73,3 +73,7 @@ def test_dynare_preprocessor():
    """
    
    res = dynare_preprocessor.preprocess(txt)
+   print(res)
+
+
+test_dynare_preprocessor()
