@@ -1,0 +1,66 @@
+context:
+  version: "8.0.1956"
+
+package:
+  name: pike
+  version: ${{ version }}
+
+source:
+  url: https://pike.lysator.liu.se/pub/pike/latest-stable/Pike-v${{ version }}.tar.gz
+  sha256: 6a0f2677eb579865321bd75118c638c335860157a420a96e52e2765513dad4c0
+
+build:
+  script: |
+    export CFLAGS="${CFLAGS} -m64"
+    ./src/configure --prefix=$PREFIX \
+                --with-abi=64 \
+                --without-bundles \
+                --without-freetype \
+                --without-gdbm \
+                --without-odbc
+    make
+    make install INSTALLARGS=--traditional
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - make
+    - autoconf
+    - sed
+  host:
+    - gettext
+    - gmp
+    - libjpeg-turbo
+    - libtiff
+    - nettle
+    - pcre
+    - libwebp
+    - bzip2
+    - krb5
+    - libxcrypt
+    - sqlite
+    - zlib
+    - if: linux
+      then:
+      - libnsl
+
+
+tests:
+  - script: |
+      cat > test.pike << 'EOF'
+      int main() {
+        for (int i=0; i<10; i++) { write("%d", i); }
+        return 0;
+      }
+      EOF
+      pike test.pike > output.txt
+      grep -q "0123456789" output.txt
+
+about:
+  homepage: https://pike.lysator.liu.se/
+  license: GPL-2.0-only OR LGPL-2.1-only OR MPL-1.1
+  summary: Dynamic programming language
+  description: |
+    Pike is a dynamic programming language with a syntax similar to Java and C. 
+    It is simple to learn, does not require long compilation passes and has 
+    powerful built-in data types allowing simple and fast data manipulation.
