@@ -1,0 +1,53 @@
+{% set version = "1.45.1" %}
+
+{% set lic_args = "--save_path=license-files --ignore github.com/dolthub/dolt" %}
+
+
+package:
+  name: doltdb
+  version: {{ version }}
+
+source:
+  url: https://github.com/dolthub/dolt/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 5dd2c43687de4fe10abc3778c5284a3e78393ad1da781f9418f2f1f38e101874
+
+build:
+  number: 0
+  script:
+    - set GOPATH=%cd/go%  # [win]
+    - set GOBIN=%PREFIX%/bin  # [win]
+    - cd ${SRC_DIR}/go  # [not win]
+    - cd %SRC_DIR%/go  # [win]
+    - go install ./cmd/dolt
+    - go install ./utils/remotesrv
+    - go-licenses save ./cmd/dolt {{ lic_args }}
+    - go-licenses save ./utils/remotesrv {{ lic_args }}
+
+requirements:
+  build:
+    - {{ compiler("cgo") }}
+    - {{ compiler("c") }}  # [not win]
+    - {{ stdlib("c") }}  # [not win]
+    - {{ compiler("m2w64_c") }}  # [win]
+    - {{ stdlib("m2w64_c") }}  # [win]
+    - diffutils  # [not win]
+    - go-licenses
+
+test:
+  commands:
+    - dolt version | grep {{ version }}  # [not win]
+    - dolt version | FINDSTR {{ version }}  # [win]
+
+about:
+  home: https://github.com/dolthub/dolt
+  summary: 'Dolt – Git for Data'
+  description: |
+    Dolt is a SQL database that you can fork, clone, branch, merge, push and pull just like a Git repository. Connect to Dolt just like any MySQL database to read or modify schema and data. Version control functionality is exposed in SQL via system tables, functions, and procedures. Or, use the Git-like command line interface to import CSV files, commit your changes, push them to a remote, or merge your teammate's changes. All the commands you know for Git work exactly the same for Dolt. Git versions files. Dolt versions tables. It's like Git and MySQL had a baby
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - license-files/
+
+extra:
+  recipe-maintainers:
+    - weatherhead99
