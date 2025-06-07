@@ -1,0 +1,100 @@
+context:
+  name: lnav
+  version: "0.12.4"
+
+package:
+  name: ${{ name|lower }}
+  version: v${{ version }}
+
+source:
+  url: https://github.com/tstack/${{ name|lower }}/releases/download/v${{ version }}/${{ name|lower }}-${{ version }}.tar.gz
+  sha256: e1e70c9e5a2fce21da80eec9b9c3adb09fd05e03986285098a9f2567c1eb4792
+
+build:
+  number: 0
+  skip:
+    - win
+  script: |
+    set -exo pipefail
+
+    if [[ "$OSX_ARCH" == "x86_64" ]]; then
+      export MACOSX_DEPLOYMENT_TARGET=10.15
+    fi
+
+    export CPPFLAGS="-I${PREFIX}/include $CPPFLAGS"
+    export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
+    export CXXFLAGS="$CXXFLAGS -fpermissive -std=c++17"
+
+    ./configure --prefix=${{ PREFIX }} \
+      --with-sqlite3=${{ PREFIX }} \
+      --with-readline=${{ PREFIX }} \
+      --with-libarchive=${{ PREFIX }} \
+      --with-ncurses=${{ PREFIX }}
+
+    make -j${{ CPU_COUNT }} V=1
+    make install
+    cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - autoconf
+    - automake ==1.16.5
+    - make
+    - re2c
+    - pcre2
+    - zlib
+    - cargo-bundle-licenses
+    - pkg-config
+  host:
+    - libarchive
+    - libunistring
+    - pcre2
+    - ncurses
+    - readline
+    - sqlite
+    - zlib
+  run:
+    - bzip2
+    - curl
+
+tests:
+  - script:
+    - lnav -V
+
+about:
+  homepage: https://lnav.org/
+  license: BSD-2-Clause
+  license_family: BSD-2
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: "A log file viewer for the terminal"
+  description: |
+    The Logfile Navigator is a log file viewer for the terminal. Given a set of files/directories, lnav will:
+
+      - decompress as needed;
+      - detect their format;
+      - merge the files by time into a single view;
+      - tail the files, follow renames, find new files in directories;
+      - build an index of errors and warnings;
+      - pretty-print JSON-lines.
+
+    Then, in the lnav TUI, you can:
+
+      - jump quickly to the previous/next error (press e/E);
+      - search using regular expressions (press /);
+      - highlight text with a regular expression (:highlight command);
+      - filter messages using regular expressions or SQLite expressions;
+      - pretty-print structured text (press P);
+      - view a histogram of messages over time (press i);
+      - analyze messages using SQLite (press ;)
+  repository: https://github.com/tstack/lnav
+  documentation: https://docs.lnav.org/en/v0.12.4/
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
