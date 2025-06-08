@@ -4,7 +4,7 @@ context:
 
 package:
   name: ${{ name|lower }}
-  version: v${{ version }}
+  version: ${{ version }}
 
 source:
   url: https://github.com/tstack/${{ name|lower }}/releases/download/v${{ version }}/${{ name|lower }}-${{ version }}.tar.gz
@@ -19,17 +19,52 @@ build:
 
     if [[ "$OSX_ARCH" == "x86_64" ]]; then
       export MACOSX_DEPLOYMENT_TARGET=10.15
+      export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=10.15"
     fi
 
-    export CXXFLAGS="$CXXFLAGS -fpermissive -std=c++17 -mmacosx-version-min=10.15"
+    # export CPPFLAGS="-I${SRC_DIR}/src ${CPPFLAGS}"
+    export CXXFLAGS="${CXXFLAGS} -fpermissive -std=c++17"
 
-    ./configure --prefix=${{ PREFIX }} \
-      --with-sqlite3=${{ PREFIX }} \
-      --with-readline=${{ PREFIX }} \
-      --with-libarchive=${{ PREFIX }} \
-      --with-ncurses=${{ PREFIX }}
+    #cd src/third-party/prqlc-c
+    #cargo build --release
+    #cd ${SRC_DIR}
+    #mkdir -p third-party/prqlc-c/target/release
+    #cp -r src/third-party/prqlc-c/target/release/* third-party/prqlc-c/target/release/
 
-    make -j${{ CPU_COUNT }} V=1
+    #export CARGO_TARGET_DIR="${SRC_DIR}/src/third-party/prqlc-c/target"
+
+    # sed -i.bak \
+    #   's|RUST_DEPS_LIBS = $(PRQLC_DIR)/release/libprqlc_c.a|RUST_DEPS_LIBS = $(PRQLC_DIR)/$(build_triplet)/release/libprqlc_c.a|' \
+    #   src/Makefile.am
+
+    # sed -i.bak \
+    #   -e '/third-party\/prqlc-c\/target.*--package prqlc-c.*--release/ s|--release|--release --target=$(build_triplet)|' \
+    #   src/Makefile.am
+
+    # autoreconf -fvi
+
+    ./configure \
+      --prefix=${PREFIX} \
+      --with-sqlite3=${PREFIX} \
+      --with-readline=${PREFIX} \
+      --with-libarchive=${PREFIX} \
+      --with-ncurses=${PREFIX} \
+      --with-pcre2=${PREFIX} \
+      --with-libcurl=${PREFIX} \
+      --with-jemalloc=${PREFIX} \
+      --disable-dependency-tracking \
+      --disable-silent-rules \
+      --disable-static
+
+    # Adjust the path to where libprqlc_c.a is generated in the conda system and cargo
+    sed -i.bak \
+      -e 's|\(RUST_DEPS_LIBS *= *\$(PRQLC_DIR)/\)release|\1$(build_triplet)/release|' \
+      -e 's|env CARGO_TARGET_DIR=third-party/prqlc-c/target|env CARGO_TARGET_DIR=third-party/prqlc-c/target/$(build_triplet)|' \
+      -e 's|\$(PRQLC_DIR)/release/libprqlc_c.a|$(PRQLC_DIR)/$(build_triplet)/release/libprqlc_c.a|' \
+      src/Makefile
+
+    #make -j${CPU_COUNT} V=1
+    make -j3 V=1
     make install
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
@@ -37,35 +72,37 @@ requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    - ${{ stdlib("c") }}
+    # - ${{ stdlib("c") }}
     - ${{ compiler('rust') }}
-    - autoconf
-    - automake ==1.16.5
+    # - autoconf
+    # - automake
     - make
-    - fmt >=10.0,<11.0
-    - re2c
-    - pcre2
     - cargo-bundle-licenses
+    # - libtool
+    # - m4
+    # - perl
     - pkg-config
   host:
-    - fmt >=10.0,<11.0
+    - bzip2
+    - curl
+    - jemalloc
     - libarchive
     - libunistring
-    - pcre2
     - ncurses
+    - pcre2
     - readline
     - sqlite
     - zlib
-  run:
-    - bzip2
-    - curl
 
 tests:
   - script:
     - lnav -V
+    - printf 'lnav' | lnav -n -c ';from [{ col1=1 }] | take 1' | grep -q col1
 
 about:
-  homepage: https://lnav.org/
+  homepage: https://lnav.org
+  repository: https://github.com/tstack/lnav
+  documentation: https://docs.lnav.org
   license: BSD-2-Clause
   license_family: BSD-2
   license_file:
@@ -91,8 +128,6 @@ about:
       - pretty-print structured text (press P);
       - view a histogram of messages over time (press i);
       - analyze messages using SQLite (press ;)
-  repository: https://github.com/tstack/lnav
-  documentation: https://docs.lnav.org/en/v0.12.4/
 
 extra:
   recipe-maintainers:
