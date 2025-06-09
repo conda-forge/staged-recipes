@@ -1,30 +1,19 @@
 context:
   version: "2.5.0"
-  git_revision: "38bb98697005cdc5c092f031594c0e45d039f4a0"
 
 package:
   name: cosign
   version: ${{ version }}
 
 source:
-  - url: https://github.com/sigstore/cosign/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: 35beac6937e310dd08800d6077832682490d4d23bc349f60b786f4be74a68c7f
+  # cosign uses `GitVersion`` and thus needs to be checked out with a tag
+  - git: https://github.com/sigstore/cosign
+    tag: v${{ version }}
 
 build:
   number: 0
   script:
-    - pkg="sigs.k8s.io/release-utils/version"
-    - if: unix
-      then:
-        - ldflags="-s -w -X ${pkg}.gitVersion=${{ version }} -X ${pkg}.gitCommit=${{ git_revision }} -X ${pkg}.gitTreeState=clean -X ${pkg}.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        - go build -ldflags="${ldflags}" -o $PREFIX/bin/cosign ./cmd/cosign
-      else:
-        - for /f %%i in ('powershell -Command "Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ' -AsUTC"') do set BUILD_DATE=%%i
-        - if %exitcode% neq 0 exit /b %exitcode%
-        - set ldflags="-s -w -X ${pkg}.gitVersion=${{ version }} -X ${pkg}.gitCommit=${{ git_revision }} -X ${pkg}.gitTreeState=clean -X ${pkg}.buildDate=%BUILD_DATE%"
-        - if %exitcode% neq 0 exit /b %exitcode%
-        - go build -ldflags="%ldflags%" -o %PREFIX%/bin/cosign.exe ./cmd/cosign
-        - if %exitcode% neq 0 exit /b %exitcode%
+    - go build -ldflags="-s -w" -o $PREFIX/bin/cosign${{ ".exe" if win }} ./cmd/cosign
 
     # Generate shell completions (only on Unix and when target platform equals build platform)
     - if: unix and target_platform == build_platform
