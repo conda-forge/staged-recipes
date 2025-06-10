@@ -11,5 +11,6 @@ CMAKE_FLAGS+=" -DFETCHCONTENT_SOURCE_DIR_UAMMD=${SRC_DIR}/uammd-src"
 CMAKE_FLAGS+=" -DFETCHCONTENT_SOURCE_DIR_LANCZOS=${SRC_DIR}/lanczos-src"
 CMAKE_FLAGS+=" -Dnanobind_DIR=$(${PYTHON} -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/nanobind/cmake"
 CMAKE_FLAGS+=" -DFETCHCONTENT_QUIET=OFF"
+CMAKE_FLAGS+=" -DCMAKE_CUDA_ARCHITECTURES=all-major"
 cmake ${SRC_DIR} ${CMAKE_FLAGS}
 make install -j$CPU_COUNT
