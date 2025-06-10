@@ -15,13 +15,16 @@ build:
   skip: true  # [py<310]
 
   script_env:
-    # keep the final .pyd and wheel small
-    - MATURIN_STRIP=1                                                           # [win]
-    - RUSTFLAGS=-C debuginfo=0 -C link-arg=/DEBUG:NONE                          # [win]
-    - CARGO_PROFILE_RELEASE_DEBUG=false                                         # [win]
+    # Windows: aggressive memory optimization for Rust compilation
+    - CARGO_BUILD_JOBS=1                                                        # [win]
+    - RUSTFLAGS=-C opt-level=s -C debuginfo=0 -C codegen-units=1 -C link-arg=/DEBUG:NONE  # [win]
 
   script:
-    - maturin build --release --strip -o wheelhouse
+    # Unix-like systems: normal build
+    - maturin build --release --strip -o wheelhouse                            # [not win]
+    
+    # Windows: single-threaded build to reduce memory usage
+    - maturin build --release --strip -o wheelhouse --jobs 1                   # [win]
 
     # On unix‐like, the shell expands *.whl for us:
     - {{ PYTHON }} -m pip install wheelhouse/*.whl -vv                          # [not win]
