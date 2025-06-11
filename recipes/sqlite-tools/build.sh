@@ -23,6 +23,7 @@ fi
             --enable-threadsafe \
             --enable-load-extension \
             --disable-static \
+            --dynlink-tools \
             --with-tclsh="${PREFIX}/bin/tclsh" \
             CFLAGS="${CFLAGS} -I${PREFIX}/include" \
             LDFLAGS="${LDFLAGS} -L${PREFIX}/lib" \
