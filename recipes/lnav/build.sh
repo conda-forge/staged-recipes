@@ -1,9 +1,5 @@
 set -exo pipefail
 
-if [[ "${OSX_ARCH}" == "x86_64" ]]; then
-    export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=10.15"
-fi
-
 export CXXFLAGS="${CXXFLAGS} -fpermissive -std=c++17"
 
 # `ptsname_r` compatibility for macOS
