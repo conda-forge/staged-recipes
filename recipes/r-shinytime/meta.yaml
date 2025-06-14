@@ -1,0 +1,63 @@
+{% set version = '1.0.3' %}
+{% set posix = 'm2-' if win else '' %}
+
+package:
+  name: r-shinytime
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/shinyTime_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/shinyTime/shinyTime_{{ version }}.tar.gz
+  sha256: ff41c8909ac0080cbcc56e80a7e9e1dec1f1a2a46c0c9a148d3c867b5dc27713
+
+build:
+  number: 0
+  noarch: generic
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'        # [win]
+    - '*/Rblas.dll'    # [win]
+    - '*/Rlapack.dll'  # [win]
+
+requirements:
+  build:
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+    # The libstdc++.dll provided in libstdcxx v15.1.0 build h904f734_2
+    # is missing `_ZSt21ios_base_library_initv`.
+    # see: conda-forge/ctng-compilers-feedstock#174
+    - libstdcxx !=14.3.0,!=15.1.0  # [win]
+  host:
+    - r-base
+    - r-htmltools
+    - r-shiny
+  run:
+    - r-base
+    - r-htmltools
+    - r-shiny
+  run_constrained:
+    - libstdcxx !=14.3.0,!=15.1.0           # [win]
+
+test:
+  commands:
+    - $R -e "library('shinyTime')"           # [not win]
+    - "\"%R%\" -e \"library('shinyTime')\""  # [win]
+
+about:
+  home: https://burgerga.github.io/shinyTime/, https://github.com/burgerga/shinyTime
+  license: GPL-3.0-only
+  summary: Provides a time input widget for Shiny. This widget allows intuitive time input in
+    the '[hh]:[mm]:[ss]' or '[hh]:[mm]' (24H) format by using a separate numeric input
+    for each time component. The interface with R uses date-time objects. See the project
+    page for more information and examples.
+  license_family: GPL3
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-3'
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
