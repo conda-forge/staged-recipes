@@ -1,0 +1,224 @@
+{% set name = "FastEMRIWaveforms" %}
+{% set version = "2.0.0" %}
+{% set number = 0 %}
+
+{% set PYTHON = "python" %}
+{% set PYTHON = "$PREFIX/bin/python" %}  # [linux]
+{% set PYTHON = "%PREFIX%\\python" %}  # [win]
+
+{% set RECIPE_DIR = "$RECIPE_DIR/" %}
+{% set RECIPE_DIR = "%RECIPE_DIR%\\" %}  # [win]
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/archive/refs/tags/v2.0.0.tar.gz
+  sha256: d5c8bcba1ec24cb71be8a293f75cf1491e2e474515c1481559a4ef07378e0c36
+
+build:
+  number: {{ number }}
+  skip: True  # [(py<310)]
+
+outputs:
+  - name: fastemriwaveforms
+    version: {{ version }}
+    build:
+      number: {{ number }}
+      skip: true  # [(py<310) or (cuda_compiler == "nvcc")]
+      script_env:
+        - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+      script:
+        - >-
+          {{ PYTHON }} -m pip install . -vv -Ccmake.define.FEW_LAPACKE_FETCH=OFF -Ccmake.define.FEW_WITH_GPU=OFF -Ccmake.define.FEW_LAPACKE_DETECT_WITH=PKGCONFIG
+        - >-
+          {{ PYTHON }} {{ RECIPE_DIR }}move_tests.py
+      entry_points:
+        - few_citations = few.cmd.citations:main
+        - few_files = few.cmd.files:main
+    requirements:
+      build:
+        - python                              # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+        - numpy                               # [build_platform != target_platform]
+        - scikit-build-core                   # [build_platform != target_platform]
+        - setuptools_scm                      # [build_platform != target_platform]
+        - cython                              # [build_platform != target_platform]
+        - pkg-config                          # [build_platform != target_platform]
+        - liblapacke                          # [build_platform != target_platform]
+        - libblas                             # [build_platform != target_platform]
+        - libtmglib                           # [build_platform != target_platform]
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - libcxx-devel <19  # [osx]
+        - ninja
+        - cmake
+        - make
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - setuptools_scm
+        - cython
+        - numpy
+        - pkg-config
+        - liblapacke
+        - libblas
+        - libtmglib
+      run:
+        - python
+        - exceptiongroup  # [py<311]
+        - h5py
+        - jsonschema
+        - liblapacke
+        - lisaconstants
+        - multispline
+        - numba
+        - numpy
+        - nvidia-ml-py
+        - platformdirs
+        - pydantic
+        - pyyaml
+        - requests
+        - rich
+        - scipy
+        - tqdm
+        - wrapt
+    test:
+      imports:
+        - few
+        - few.tests
+        - few_backend_cpu
+      requires:
+        - pip
+        - matplotlib
+      commands:
+        - pip check
+        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms') == '{{ version }}'"
+        - python -c "import few; few.get_backend('cpu')"
+        - python -m few.tests --disable testfile
+    about:
+      home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+      summary: 'Blazingly fast EMRI waveforms'
+      description: |
+        This package contains the highly modular framework for fast and accurate extreme mass ratio
+        inspiral (EMRI) waveforms. This is the core package with only CPU support
+        for waveform generation.
+      license: GPL-3.0-or-later
+      license_family: GPL
+      license_file: LICENSE
+      doc_url: https://bhptoolkit.org/FastEMRIWaveforms/html/index.html
+      dev_url: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+
+  - name: fastemriwaveforms-cuda12x
+    version: {{ version }}
+    build:
+      number: {{ number }}
+      skip: true  # [(py<310) or (cuda_compiler != "cuda-nvcc") or not linux]
+      script_env:
+        - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+      script:
+        - sed -i'' -e '/@SKIP_PLUGIN@/d' pyproject.toml
+        - >-
+          {{ PYTHON }} {{ RECIPE_DIR }}update_name.py fastemriwaveforms-cuda12x
+        - >-
+          {{ PYTHON }} -m pip install . -vv -Ccmake.define.FEW_LAPACKE_FETCH=OFF -Ccmake.define.FEW_WITH_GPU=ONLY -Ccmake.define.FEW_CUDA_ARCH=all
+      ignore_run_exports_from:
+        - {{ compiler('cuda') }}
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - libcublas-dev   
+        - libcusparse-dev
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - python                                    # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}        # [build_platform != target_platform]
+        - scikit-build-core                         # [build_platform != target_platform]
+        - setuptools_scm                            # [build_platform != target_platform]
+        - cython                                    # [build_platform != target_platform]
+        - numpy                                     # [build_platform != target_platform]
+        - ninja
+        - cmake
+        - make
+        - cuda-version {{ cuda_compiler_version }}  # [build_platform != target_platform]
+        - cuda-driver-dev                           # [build_platform != target_platform and linux]
+        - cuda-cudart-dev                           # [build_platform != target_platform]
+        - cuda-nvrtc-dev                            # [build_platform != target_platform]
+        - libcublas-dev                             # [build_platform != target_platform]
+        - libcusparse-dev                           # [build_platform != target_platform]
+        - tomli                                     # [build_platform != target_platform]
+        - tomli-w                                   # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - setuptools_scm
+        - cython
+        - numpy
+        - tomli
+        - tomli-w
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - libcublas-dev
+        - libcusparse-dev
+
+      run:
+        - python
+        - {{ pin_subpackage('fastemriwaveforms', exact=True) }}
+        - {{ pin_compatible('cuda-version', min_pin='x') }}
+        - libstdcxx
+        - libgcc
+        - cupy
+        - cuda-cudart
+        - libcublas
+        - libcusparse
+
+    test:
+      imports:
+        - few_backend_cuda12x
+      requires:
+        - pip
+        - cuda-driver-dev
+      commands:
+        - pip check
+        - python -c "import importlib.metadata; assert importlib.metadata.version('fastemriwaveforms-cuda12x') == '{{ version }}'"
+        - FEW_ENABLED_BACKENDS=cpu python -m few.tests --disable testfile
+
+    about:
+      home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+      summary: 'Blazingly fast EMRI waveforms'
+      description: |
+        This package contains the highly modular framework for fast and accurate extreme mass ratio
+        inspiral (EMRI) waveforms. This is the CUDA plugin package which adds GPU acceleration
+        to the waveform generation.
+      license: GPL-3.0-or-later
+      license_family: GPL
+      license_file: LICENSE
+      doc_url: https://bhptoolkit.org/FastEMRIWaveforms/html/index.html
+      dev_url: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+
+about:
+  home: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+  summary: 'Blazingly fast EMRI waveforms'
+  description: |
+    This package contains the highly modular framework for fast and accurate extreme mass ratio
+    inspiral (EMRI) waveforms.
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  doc_url: https://bhptoolkit.org/FastEMRIWaveforms/html/index.html
+  dev_url: https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms
+
+extra:
+  feedstock-name: fastemriwaveforms
+  recipe-maintainers:
+    - mpigou
+    - cchapmanbird
