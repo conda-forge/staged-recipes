@@ -2,7 +2,7 @@
 
 set -e
 
-make CXXFLAGS="$CXXFLAGS" CC=$CC CFLAGS="$CFLAGS" LFLAGS="$LDFLAGS" all
+make all
 
 # copy binaries to $PREFIX/bin
 mkdir -p $PREFIX/bin
