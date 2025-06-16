@@ -13,6 +13,7 @@ export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-arg=-fuse-ld=$CO
 # cargo-bundle-licenses \
 #     --format yaml \
 #     --output THIRDPARTY.yml
+export CFLAGS="$CFLAGS -D_BSD_SOURCE"
 
 cargo check
 #cargo install --locked --root "$PREFIX" --path zed --no-track
