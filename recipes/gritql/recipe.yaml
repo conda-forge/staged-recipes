@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.0-alpha.1743007075"
+
+recipe:
+  name: gritql
+  version: ${{ version | replace("-alpha.", "a") | replace("-beta.", "b") | replace("-rc.", "rc") }}
+
+build:
+  number: 0
+
+source:
+  - url: https://github.com/honeycombio/gritql/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: d05fbc0e73fa0a0531cdd43fd622fd626c0bd3d078f6058b2a7250de8b1ced48
+  - url: https://github.com/getgrit/tree-sitter-facade/archive/a26c147cea7049a5d2c42006499371b346b52648.tar.gz
+    sha256: bb0ed7d6ca292c97d7e84861ebddbe712b3a36250e38f14ddbbc085bca35f490
+    target_directory: vendor/tree-sitter-facade
+  - url: https://github.com/honeycombio/tree-sitter-gritql/archive/f9d98660bd7ae78c9211cb52e295bcd6531a8121.tar.gz
+    sha256: 1833096a60ed449417053bcb4f954eca6e74cfacb3ce23f5e950d3372e2a0253
+    target_directory: vendor/tree-sitter-gritql
+  - url: https://github.com/getgrit/web-tree-sitter/archive/9a01e452ec7288851405722e13aca08d9d90b6b1.tar.gz
+    sha256: d42925a4d986c3d875184f006e8f247eeea209e864c5b25ddd65be30a814bfd0
+    target_directory: vendor/web-tree-sitter
+
+outputs:
+  - package:
+      name: gritql
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ compiler("rust") }}
+        - ${{ stdlib("c") }}
+        - cargo-bundle-licenses
+        - if: unix
+          then:
+            - pkg-config
+            - make
+      host:
+        - if: unix
+          then:
+            - openssl
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        content:
+          - cargo install --path=crates/cli_bin --no-track --locked --profile=release --root="${{ PREFIX }}"
+          - cd crates/cli_bin && cargo-bundle-licenses --format=yaml --output=THIRDPARTY.yml
+    tests:
+      - script:
+        - grit --version
+        - grit --help
+    about:
+      license_file:
+        - LICENSE
+        - crates/cli_bin/THIRDPARTY.yml
+
+about:
+  license: MIT
+  summary: GritQL is a query language for searching, linting, and modifying code.
+  license_file:
+    - LICENSE
+  homepage: https://github.com/honeycombio/gritql
+  documentation: https://docs.grit.io/
