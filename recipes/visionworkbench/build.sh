@@ -1,10 +1,7 @@
 #!/bin/bash
 
-cd $SRC_DIR
-
-mkdir build
-cd build
-cmake ..                             \
+mkdir build && cd build
+cmake ${SRC_DIR}                             \
     -DCMAKE_PREFIX_PATH=${PREFIX}    \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DASP_DEPS_DIR=${PREFIX}         \
