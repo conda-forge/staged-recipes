@@ -1,8 +1,6 @@
-set -exo pipefail
+#!/bin/bash
 
-if [[ "$OSX_ARCH" == "x86_64" ]]; then
-    export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=10.15"
-fi
+set -exo pipefail
 
 export CXXFLAGS="${CXXFLAGS} -fpermissive -std=c++17"
 
