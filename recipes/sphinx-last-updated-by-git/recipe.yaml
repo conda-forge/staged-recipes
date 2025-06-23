@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 0.3.8
+  test_commit: 23d25d0b7ac4604b7a9545420b2f9de84daabe73
+  test_repo: https://github.com/mgeier/test-repo-for-sphinx-last-updated-by-git.git
+
+package:
+  name: sphinx-last-updated-by-git
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/sphinx-last-updated-by-git/sphinx_last_updated_by_git-${{ version }}.tar.gz
+  sha256: c145011f4609d841805b69a9300099fc02fed8f5bb9e5bcef77d97aea97b7761
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=40.8.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - sphinx >=1.8
+
+tests:
+  - python:
+      imports: sphinx_last_updated_by_git
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - 3.13.*
+  - requirements:
+      run:
+        - pytest-cov
+        - python ${{ python_min }}.*
+    files:
+      source:
+        - tests/
+    script:
+      - cd tests
+      - git clone "${{ test_repo }}" repo_full
+      - cd repo_full && git checkout "${{ test_commit }}" && cd ..
+      - coverage run --source=sphinx_last_updated_by_git --branch -m pytest -vv --tb=long --color=yes -k "not (
+        shallow or untracked_source_files
+        )"
+      - coverage report --show-missing --skip-covered --fail-under=91
+
+about:
+  summary: Get the "last updated" time for each Sphinx page from Git
+  license: BSD-2-Clause
+  license_file: LICENSE
+  homepage: https://github.com/mgeier/sphinx-last-updated-by-git
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
