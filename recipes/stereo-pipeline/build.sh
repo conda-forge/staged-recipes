@@ -4,8 +4,6 @@
 
 # Geoid
 cd $SRC_DIR/geoids
-echo temporary list
-ls -altrdh *
 if [ "$(uname)" = "Darwin" ]; then
     LIB_FLAG='-dynamiclib'
     EXT='.dylib'
@@ -24,7 +22,7 @@ mkdir -p ${GEOID_DIR}
 /bin/cp -fv *tif *jp2 ${GEOID_DIR}
 
 # libnabo
-cd $SRC_DIR/libnabo/libnabo
+cd $SRC_DIR/libnabo
 mkdir -p build && cd build
 cmake                                          \
   -DCMAKE_BUILD_TYPE=Release                   \
@@ -41,7 +39,7 @@ cmake                                          \
 make -j${CPU_COUNT} install
 
 # libpointmatcher
-cd $SRC_DIR/libpointmatcher/libpointmatcher
+cd $SRC_DIR/libpointmatcher
 mkdir -p build && cd build
 cmake                                          \
   -DCMAKE_BUILD_TYPE=Release                   \
@@ -63,7 +61,7 @@ cmake                                          \
 make -j${CPU_COUNT} install
 
 # fgr
-cd $SRC_DIR/FastGlobalRegistration/FastGlobalRegistration
+cd $SRC_DIR/FastGlobalRegistration
 FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
 INC_FLAGS="-I${PREFIX}/include/eigen3 -I${PREFIX}/include -O3 -L${PREFIX}/lib -lflann_cpp -llz4 -O3 -std=c++11"
@@ -85,7 +83,7 @@ mkdir -p ${FGR_LIB_DIR}
 /bin/cp -fv FastGlobalRegistration/libFastGlobalRegistrationLib* ${FGR_LIB_DIR}
 
 # s2p
-cd $SRC_DIR/s2p/s2p
+cd $SRC_DIR/s2p
 baseDir=$(pwd)
 export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -march=native"
 export LDFLAGS="-L$PREFIX/lib"
@@ -105,10 +103,11 @@ cd $baseDir
 cd 3rdparty/msmw
 mkdir -p build
 cd build
-cmake .. -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS" \
-    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"     \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"   \
-    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"      \
+cmake ..                                                  \
+    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS" \
+    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"    \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"  \
+    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"     \
     -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${EXT}"
 make -j${CPU_COUNT}
 cd $baseDir
@@ -139,14 +138,42 @@ mkdir -p ${BIN_DIR}
     3rdparty/msmw2/build/libstereo_newversion/iip_stereo_correlation_multi_win2_newversion \
     ${BIN_DIR}/msmw2
 
-# # This is for later
-# mkdir build && cd build
-# cmake ${SRC_DIR}                             \
-#     -DCMAKE_PREFIX_PATH=${PREFIX}    \
-#     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-#     -DASP_DEPS_DIR=${PREFIX}         \
-#     -DUSE_OPENEXR=OFF                \
-#     -DCMAKE_VERBOSE_MAKEFILE=ON
-# make -j${CPU_COUNT}
-# make install
+# libelas
+if [ "$(uname -m | grep -i arm)" != "" ]; then 
+    echo Libelas does not build on Arm
+else
+    cd $SRC_DIR/libelas
+    # Set the env
+    export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
+    export LDFLAGS="-L$PREFIX/lib"
+    if [ "$(uname)" = "Darwin" ]; then
+        EXT='.dylib'
+    else
+        EXT='.so'
+    fi
+    # build
+    mkdir -p build
+    cd build
+    cmake ..                                             \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}" \
+    -DTIFF_INCLUDE_DIR="${PREFIX}/include"               \
+    -DCMAKE_CXX_FLAGS="-I${PREFIX}/include"
+    make -j${CPU_COUNT}
+    # Copy the 'elas' tool to the plugins subdir meant for it
+    BIN_DIR=${PREFIX}/plugins/stereo/elas/bin
+    mkdir -p ${BIN_DIR}
+    /bin/cp -fv elas ${BIN_DIR}/elas
+fi
 
+# Build stereo-pipeline
+cd $SRC_DIR/StereoPipeline
+mkdir -p build
+cd build
+cmake ..                             \
+    -DCMAKE_PREFIX_PATH=${PREFIX}    \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DASP_DEPS_DIR=${PREFIX}         \
+    -DUSE_ISIS=OFF                   \
+    -DUSE_OPENEXR=OFF                \
+    -DCMAKE_VERBOSE_MAKEFILE=ON
+make -j${CPU_COUNT} install
