@@ -3,7 +3,9 @@
 # Build dependencies first
 
 # Geoid
-cd $SRC_DIR/geoids/geoids
+cd $SRC_DIR/geoids
+echo temporary list
+ls -altrdh *
 if [ "$(uname)" = "Darwin" ]; then
     LIB_FLAG='-dynamiclib'
     EXT='.dylib'
@@ -59,6 +61,83 @@ cmake                                          \
   -DBoost_NO_SYSTEM_PATHS=ON                   \
   ..
 make -j${CPU_COUNT} install
+
+# fgr
+cd $SRC_DIR/FastGlobalRegistration/FastGlobalRegistration
+FGR_SOURCE_DIR=$(pwd)/source
+mkdir -p build && cd build
+INC_FLAGS="-I${PREFIX}/include/eigen3 -I${PREFIX}/include -O3 -L${PREFIX}/lib -lflann_cpp -llz4 -O3 -std=c++11"
+cmake                                        \
+  -DCMAKE_BUILD_TYPE=Release                 \
+  -DCMAKE_CXX_FLAGS="${INC_FLAGS}"           \
+  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}      \
+  -DCMAKE_PREFIX_PATH=${PREFIX}              \
+  -DCMAKE_VERBOSE_MAKEFILE=ON                \
+  -DFastGlobalRegistration_LINK_MODE=SHARED  \
+  ${FGR_SOURCE_DIR}
+make -j${CPU_COUNT}
+# Install
+FGR_INC_DIR=${PREFIX}/include/FastGlobalRegistration
+mkdir -p ${FGR_INC_DIR}
+/bin/cp -fv ${FGR_SOURCE_DIR}/FastGlobalRegistration/app.h ${FGR_INC_DIR}
+FGR_LIB_DIR=${PREFIX}/lib
+mkdir -p ${FGR_LIB_DIR}
+/bin/cp -fv FastGlobalRegistration/libFastGlobalRegistrationLib* ${FGR_LIB_DIR}
+
+# s2p
+cd $SRC_DIR/s2p/s2p
+baseDir=$(pwd)
+export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -march=native"
+export LDFLAGS="-L$PREFIX/lib"
+# Extension
+if [ "$(uname)" = "Darwin" ]; then
+    EXT='.dylib'
+else
+    EXT='.so'
+fi
+# Build the desired programs
+cd 3rdparty/mgm
+perl -pi -e "s#CFLAGS=#CFLAGS=$CFLAGS #g" Makefile
+perl -pi -e "s#LDFLAGS=#LDFLAGS=$LDFLAGS #g" Makefile 
+make -j${CPU_COUNT}
+cd $baseDir
+# msmw
+cd 3rdparty/msmw
+mkdir -p build
+cd build
+cmake .. -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS" \
+    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"     \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"   \
+    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"      \
+    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${EXT}"
+make -j${CPU_COUNT}
+cd $baseDir
+# msmw2
+cd 3rdparty/msmw2
+mkdir -p build
+cd build
+cmake ..                                                   \
+    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"  \
+    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"     \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"   \
+    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"      \
+    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${EXT}"
+make -j${CPU_COUNT}
+cd $baseDir
+# Install the desired programs
+BIN_DIR=${PREFIX}/plugins/stereo/mgm/bin
+mkdir -p ${BIN_DIR}
+/bin/cp -fv 3rdparty/mgm/mgm ${BIN_DIR}
+BIN_DIR=${PREFIX}/plugins/stereo/msmw/bin
+mkdir -p ${BIN_DIR}
+/bin/cp -fv \
+    3rdparty/msmw/build/libstereo/iip_stereo_correlation_multi_win2 \
+    ${BIN_DIR}/msmw
+BIN_DIR=${PREFIX}/plugins/stereo/msmw2/bin
+mkdir -p ${BIN_DIR}
+/bin/cp -fv \
+    3rdparty/msmw2/build/libstereo_newversion/iip_stereo_correlation_multi_win2_newversion \
+    ${BIN_DIR}/msmw2
 
 # # This is for later
 # mkdir build && cd build
