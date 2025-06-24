@@ -1,0 +1,96 @@
+context:
+  name: acts
+  version: "44.0.1"
+
+recipe:
+  name: ${{ name }}-suite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/acts-project/acts/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: eb546f56163f12093032161ea36b84235448902f530576c3d64dca1502f3b45e
+
+build:
+  number: 0
+  skip: win
+
+outputs:
+  - package:
+      name: ${{ name|lower }}-core
+
+    build:
+      script:
+        # due to https://github.com/conda-forge/z5py-feedstock/issues/24 and
+        # PR https://github.com/conda-forge/z5py-feedstock/commit/5fbcb9220d468f0e8f90dd39f3fbb7427dfc5e88
+        - if: osx
+          then: export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+        # ACTS_USE_SYSTEM_LIBS is to avoid ACTS installing with uv
+        - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DACTS_USE_SYSTEM_LIBS=ON -S . -B build
+        - cmake -LH build
+        - cmake --build build --parallel=${CPU_COUNT}
+        - cmake --install build
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - make
+        # Python needed to build codegen components in the build and
+        # Fatras/scripts/generate_particle_data_table.py, it is NOT used
+        # in the library build itself, so can just select a single Python.
+        # c.f. https://github.com/acts-project/acts/blob/d039b6d741bc145ab265e3c4537db07f6ac896d4/codegen/README.md#L3-L4
+        - python 3.13.*
+        - setuptools
+        - numpy
+        - sympy
+        - particle
+      host:
+        - libboost-devel
+        - eigen
+
+    tests:
+      - package_contents:
+          files:
+            - lib/cmake/Acts/ActsConfigVersion.cmake
+            - lib/cmake/Acts/ActsConfig.cmake
+            - lib/cmake/Acts/Modules/FindFastJet.cmake
+            - lib/cmake/Acts/Modules/FindFilesystem.cmake
+            - lib/cmake/Acts/Modules/FindPythia8.cmake
+            - lib/cmake/Acts/Modules/FindSphinx.cmake
+            - lib/cmake/Acts/Modules/FindTBB.cmake
+            - lib/cmake/Acts/Modules/FindTensorRT.cmake
+            - lib/cmake/Acts/Modules/FindZSTD.cmake
+            - lib/cmake/Acts/Modules/Findonnxruntime.cmake
+            - lib/cmake/Acts/ActsCoreTargets.cmake
+          include:
+            - Acts/*
+          lib:
+            - ActsCore
+          bin:
+            - this_acts.sh
+            - this_acts_withdeps.sh
+
+about:
+  homepage: https://acts.readthedocs.io/
+  summary: |
+    ACTS is an experiment-independent toolkit for (charged) particle track
+    reconstruction in (high energy) physics experiments implemented in modern
+    C++.
+  description: |
+    The ACTS project provides high-level track reconstruction modules that can
+    be used for any tracking detector.
+    The tracking detector geometry description is optimized for efficient
+    navigation and fast extrapolation of tracks.
+    Converters for several common geometry description packages are available.
+    In addition to the algorithmic code, this project also provides an event data
+    model for the description of track parameters and measurements.
+  license: MPL-2.0
+  license_file: LICENSE
+  documentation: https://acts.readthedocs.io/
+  repository: https://github.com/acts-project/acts
+
+extra:
+  feedstock-name: acts
+  recipe-maintainers:
+    - Snakemonster
+    - matthewfeickert
