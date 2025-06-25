@@ -3,7 +3,7 @@
 set CC=gcc
 set CXX=g++
 
-.\configure --prefix=%PREFIX% ^
+./configure --prefix=%PREFIX% ^
     --enable-shared ^
     --disable-static ^
     --disable-debug ^
