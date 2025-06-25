@@ -2,6 +2,20 @@
 
 # Build dependencies first
 
+# Multiview
+cd $SRC_DIR/MultiView
+mkdir -p build && cd build
+cmake ..                                                              \
+    -DCMAKE_BUILD_TYPE=Release                                        \
+    -DMULTIVIEW_DEPS_DIR=${PREFIX}                                    \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13                               \
+    -DCMAKE_MODULE_PATH=$PREFIX/share/pcl-1.13/Modules                \
+    -DCMAKE_VERBOSE_MAKEFILE=ON                                       \
+    -DCMAKE_CXX_FLAGS="-O3 -std=c++11 -Wno-error -I${PREFIX}/include" \
+    -DCMAKE_C_FLAGS='-O3 -Wno-error'                                  \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}
+make -j${CPU_COUNT} install
+
 # Geoid
 cd $SRC_DIR/geoids
 if [ "$(uname)" = "Darwin" ]; then
