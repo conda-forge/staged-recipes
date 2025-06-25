@@ -1,30 +1,34 @@
 #!/bin/bash
 
+# Architecture-dependent flags
+if [ "$(uname)" = "Darwin" ]; then
+    LIB_FLAG='-dynamiclib'
+    EXT='.dylib'
+    deployFlag="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
+else
+    LIB_FLAG='-shared'
+    EXT='.so'
+    deployFlag=""
+fi
+
 # Build dependencies first
 
 # Multiview
 cd $SRC_DIR/MultiView
 mkdir -p build && cd build
+CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=${PREFIX}")
 cmake ..                                                              \
     -DCMAKE_BUILD_TYPE=Release                                        \
     -DMULTIVIEW_DEPS_DIR=${PREFIX}                                    \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13                               \
-    -DCMAKE_MODULE_PATH=$PREFIX/share/pcl-1.13/Modules                \
     -DCMAKE_VERBOSE_MAKEFILE=ON                                       \
     -DCMAKE_CXX_FLAGS="-O3 -std=c++11 -Wno-error -I${PREFIX}/include" \
     -DCMAKE_C_FLAGS='-O3 -Wno-error'                                  \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX}
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}                                  \
+    $deployFlag
 make -j${CPU_COUNT} install
 
 # Geoid
 cd $SRC_DIR/geoids
-if [ "$(uname)" = "Darwin" ]; then
-    LIB_FLAG='-dynamiclib'
-    EXT='.dylib'
-else
-    LIB_FLAG='-shared'
-    EXT='.so'
-fi
 # Build
 ${FC} ${FFLAGS} -fPIC -O3 -c interp_2p5min.f
 ${FC} ${LDFLAGS} ${LIB_FLAG} -o libegm2008${EXT} interp_2p5min.o
@@ -45,8 +49,6 @@ cmake                                          \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
   -DCMAKE_PREFIX_PATH=${PREFIX}                \
-  -DBoost_DIR=${PREFIX}/lib                    \
-  -DBoost_INCLUDE_DIR=${PREFIX}/include        \
   -DBUILD_SHARED_LIBS=ON                       \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
   ..
@@ -65,12 +67,6 @@ cmake                                          \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
   -DBUILD_SHARED_LIBS=ON                       \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
-  -DBoost_DIR=${PREFIX}/lib                    \
-  -DBoost_INCLUDE_DIR=${PREFIX}/include        \
-  -DBoost_NO_BOOST_CMAKE=OFF                   \
-  -DBoost_DEBUG=ON                             \
-  -DBoost_DETAILED_FAILURE_MSG=ON              \
-  -DBoost_NO_SYSTEM_PATHS=ON                   \
   ..
 make -j${CPU_COUNT} install
 
