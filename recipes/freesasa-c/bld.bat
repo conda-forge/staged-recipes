@@ -1,5 +1,8 @@
 @echo on
 
+set CC=gcc
+set CXX=g++
+
 .\configure --prefix=%PREFIX% ^
     --enable-shared ^
     --disable-static ^
