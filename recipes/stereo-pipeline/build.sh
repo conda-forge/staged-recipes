@@ -11,19 +11,20 @@ else
     deployFlag=""
 fi
 
+CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=${PREFIX}")
+
 # Build dependencies first
 
 # Multiview
 cd $SRC_DIR/MultiView
 mkdir -p build && cd build
-CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=${PREFIX}")
-cmake ..                                                              \
-    -DCMAKE_BUILD_TYPE=Release                                        \
-    -DMULTIVIEW_DEPS_DIR=${PREFIX}                                    \
-    -DCMAKE_VERBOSE_MAKEFILE=ON                                       \
-    -DCMAKE_CXX_FLAGS="-O3 -std=c++11 -Wno-error -I${PREFIX}/include" \
-    -DCMAKE_C_FLAGS='-O3 -Wno-error'                                  \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX}                                  \
+cmake ..                                          \
+    -DCMAKE_BUILD_TYPE=Release                    \
+    -DMULTIVIEW_DEPS_DIR=${PREFIX}                \
+    -DCMAKE_VERBOSE_MAKEFILE=ON                   \
+    -DCMAKE_CXX_FLAGS="-O3 -std=c++11 -Wno-error" \
+    -DCMAKE_C_FLAGS='-O3 -Wno-error'              \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}              \
     $deployFlag
 make -j${CPU_COUNT} install
 
@@ -48,7 +49,6 @@ cmake                                          \
   -DCMAKE_C_FLAGS='-O3'                        \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
-  -DCMAKE_PREFIX_PATH=${PREFIX}                \
   -DBUILD_SHARED_LIBS=ON                       \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
   ..
@@ -63,7 +63,6 @@ cmake                                          \
   -DCMAKE_C_FLAGS='-O3'                        \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-  -DCMAKE_PREFIX_PATH=${PREFIX}                \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
   -DBUILD_SHARED_LIBS=ON                       \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
@@ -79,7 +78,6 @@ cmake                                        \
   -DCMAKE_BUILD_TYPE=Release                 \
   -DCMAKE_CXX_FLAGS="${INC_FLAGS}"           \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}      \
-  -DCMAKE_PREFIX_PATH=${PREFIX}              \
   -DCMAKE_VERBOSE_MAKEFILE=ON                \
   -DFastGlobalRegistration_LINK_MODE=SHARED  \
   ${FGR_SOURCE_DIR}
@@ -180,7 +178,6 @@ cd $SRC_DIR/StereoPipeline
 mkdir -p build
 cd build
 cmake ..                             \
-    -DCMAKE_PREFIX_PATH=${PREFIX}    \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DASP_DEPS_DIR=${PREFIX}         \
     -DUSE_ISIS=OFF                   \
