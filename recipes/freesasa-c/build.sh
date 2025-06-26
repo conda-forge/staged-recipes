@@ -2,9 +2,7 @@
 
 set -exo pipefail
 
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
-export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
-export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
+export PKG_CONFIG_PATH="${CONDA_BUILD_SYSROOT}/usr/lib/pkgconfig:${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
 
 cd "${SRC_DIR}"
 
