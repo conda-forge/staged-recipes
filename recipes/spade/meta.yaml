@@ -1,0 +1,77 @@
+{% set name = "spade" %}
+{% set version = VERSION %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/lanl-aea/spade/archive/refs/tags/0.4.1.tar.gz
+  sha256: e8509ff7891b7ca9ed3416ac6de05aa020e958b41bcb8c99652532a5d0b67c52
+  # Use command: curl -sL <URL above> | openssl sha256
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ VERSION }}
+  script:
+    - scons install --prefix=${PREFIX}  # [unix]
+    - scons install --prefix=%PREFIX%  # [win]
+  entry_points:
+    - spade = spade._main:main
+
+requirements:
+  build:
+    - python {{ python }}
+    - python-build
+    - numpy
+    - sphinx >=7.1
+    - sphinx-argparse
+    - sphinx-book-theme
+    - sphinx-copybutton >=0.5.1
+    - sphinx-design
+    - sphinxcontrib-bibtex
+    - setuptools >=77
+    - setuptools_scm >=8
+    - {{ compiler('cxx') }}
+    - hdf5
+    - scons >=4.6
+    - sysroot_linux-64 >=2.28  # [linux]
+    - ld_impl_linux-64         # [linux]
+  host:
+    - python {{ python }}
+    - numpy
+    - python-build
+    - pip
+    - setuptools >=77
+    - setuptools_scm >=8
+    - {{ compiler('cxx') }}
+    - hdf5
+    - scons >=4.6
+    - sysroot_linux-64 >=2.28  # [linux]
+    - ld_impl_linux-64         # [linux]
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - scons >=4.6
+    - {{ compiler('cxx') }}
+    - hdf5
+    - sysroot_linux-64 >=2.28  # [linux]
+    - ld_impl_linux-64         # [linux]
+
+test:
+  requires:
+    - pytest
+    - pytest-xdist
+  imports:
+    - spade
+  commands:
+    # Test as-installed project unit tests
+    - working_directory=${PWD}
+    - cd $SP_DIR/$PKG_NAME
+    - pytest -n 4 -vvv -m "not require_third_party"
+    - pytest -n 4 -v --no-showlocals -m "systemtest and require_third_party" --tb=short --system-test-dir=${working_directory} --abaqus-command=/apps/abaqus/Commands/abq2024
+
+about:
+  home: https://github.com/lanl-aea/spade
+  summary: 'Tool for extracting data from an Abaqus output database (odb) file into a hierarchical data format (hdf5) file'
