@@ -2,7 +2,10 @@
 
 set -exo pipefail
 
-autoreconf -fvi
+if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "osx-"* ]]; then
+    autoreconf -fvi
+fi
+
 ./configure --prefix="${PREFIX}" \
     --enable-shared \
     --disable-static \
@@ -10,7 +13,8 @@ autoreconf -fvi
     --disable-dependency-tracking \
     --enable-silent-rules \
     --disable-option-checking
-if [[ "${target_platform}" == linux-* ]]; then
+
+if [[ "${target_platform}" == "linux-"* ]]; then
     sed -i.bak 's|-lc++|-lstdc++|' src/Makefile
 fi
 
