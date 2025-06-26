@@ -29,7 +29,7 @@ else
         --disable-option-checking
 fi
 
-if [[ "${target_platform}" == "linux-"* ]]; then
+if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "win-"* ]]; then
     sed -i.bak 's|-lc++|-lstdc++|' src/Makefile
 fi
 
