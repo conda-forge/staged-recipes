@@ -3,11 +3,9 @@
 # Architecture-dependent flags
 if [ "$(uname)" = "Darwin" ]; then
     LIB_FLAG='-dynamiclib'
-    EXT='.dylib'
     deployFlag="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
 else
     LIB_FLAG='-shared'
-    EXT='.so'
     deployFlag=""
 fi
 
@@ -32,7 +30,7 @@ make -j${CPU_COUNT} install
 cd $SRC_DIR/geoids
 # Build
 ${FC} ${FFLAGS} -fPIC -O3 -c interp_2p5min.f
-${FC} ${LDFLAGS} ${LIB_FLAG} -o libegm2008${EXT} interp_2p5min.o
+${FC} ${LDFLAGS} ${LIB_FLAG} -o libegm2008${SHLIB_EXT} interp_2p5min.o
 # Install
 mkdir -p ${PREFIX}/lib
 /bin/cp -fv libegm2008.* ${PREFIX}/lib
@@ -111,24 +109,24 @@ cd $baseDir
 cd 3rdparty/msmw
 mkdir -p build
 cd build
-cmake ..                                                  \
-    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS" \
-    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"    \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"  \
-    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"     \
-    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${EXT}"
+cmake ..                                                       \
+    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
+    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
+    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${SHLIB_EXT}"    \
+    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${SHLIB_EXT}"
 make -j${CPU_COUNT}
 cd $baseDir
 # msmw2
 cd 3rdparty/msmw2
 mkdir -p build
 cd build
-cmake ..                                                   \
-    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"  \
-    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${EXT}"     \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}"   \
-    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${EXT}"      \
-    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${EXT}"
+cmake ..                                                       \
+    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
+    -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
+    -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${SHLIB_EXT}"    \
+    -DJPEG_LIBRARY="${PREFIX}/lib/libjpeg${SHLIB_EXT}"
 make -j${CPU_COUNT}
 cd $baseDir
 # Install the desired programs
@@ -154,17 +152,12 @@ else
     # Set the env
     export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
     export LDFLAGS="-L$PREFIX/lib"
-    if [ "$(uname)" = "Darwin" ]; then
-        EXT='.dylib'
-    else
-        EXT='.so'
-    fi
     # build
     mkdir -p build
     cd build
-    cmake ..                                             \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${EXT}" \
-    -DTIFF_INCLUDE_DIR="${PREFIX}/include"               \
+    cmake ..                                                   \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
+    -DTIFF_INCLUDE_DIR="${PREFIX}/include"                     \
     -DCMAKE_CXX_FLAGS="-I${PREFIX}/include"
     make -j${CPU_COUNT}
     # Copy the 'elas' tool to the plugins subdir meant for it
