@@ -12,6 +12,7 @@ if [[ "${target_platform}" == "win-"* ]]; then
     # Use `-disable-json` due to no m2-json-c package
     ./configure --prefix="${PREFIX}" \
         --disable-json \
+        --disable-xml \
         --enable-shared \
         --disable-static \
         --disable-debug \
