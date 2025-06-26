@@ -93,12 +93,6 @@ cd $SRC_DIR/s2p
 baseDir=$(pwd)
 export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -march=native"
 export LDFLAGS="-L$PREFIX/lib"
-# Extension
-if [ "$(uname)" = "Darwin" ]; then
-    EXT='.dylib'
-else
-    EXT='.so'
-fi
 # Build the desired programs
 cd 3rdparty/mgm
 perl -pi -e "s#CFLAGS=#CFLAGS=$CFLAGS #g" Makefile
