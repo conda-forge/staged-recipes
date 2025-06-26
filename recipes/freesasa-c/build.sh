@@ -7,6 +7,10 @@ cd "${SRC_DIR}"
 autoreconf -fvi
 
 if [[ "${target_platform}" == "win-"* ]]; then
+    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export CPPFLAGS="-I$PREFIX/include $CPPFLAGS"
+    export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
+
     # Use `-disable-json ` due to no m2-json-c package
     ./configure --prefix="${PREFIX}" \
         --disable-json \
