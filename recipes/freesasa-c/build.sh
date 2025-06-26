@@ -4,24 +4,27 @@ set -exo pipefail
 
 cd "${SRC_DIR}"
 
+autoreconf -fvi
+
 if [[ "${target_platform}" == "win-"* ]]; then
-    export CC=$(which gcc)
-    export CXX=$(which g++)
-    unset INCLUDE
-    unset LIB
+    # Use `-disable-json ` due to no m2-json-c package
+    ./configure --prefix="${PREFIX}" \
+        --disable-json \
+        --enable-shared \
+        --disable-static \
+        --disable-debug \
+        --disable-dependency-tracking \
+        --enable-silent-rules \
+        --disable-option-checking
+else
+    ./configure --prefix="${PREFIX}" \
+        --enable-shared \
+        --disable-static \
+        --disable-debug \
+        --disable-dependency-tracking \
+        --enable-silent-rules \
+        --disable-option-checking
 fi
-
-if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "osx-"* ]]; then
-    autoreconf -fvi
-fi
-
-./configure --prefix="${PREFIX}" \
-    --enable-shared \
-    --disable-static \
-    --disable-debug \
-    --disable-dependency-tracking \
-    --enable-silent-rules \
-    --disable-option-checking
 
 if [[ "${target_platform}" == "linux-"* ]]; then
     sed -i.bak 's|-lc++|-lstdc++|' src/Makefile
