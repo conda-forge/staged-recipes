@@ -11,7 +11,7 @@ cd "${SRC_DIR}"
 autoreconf -fvi
 
 if [[ "${target_platform}" == "win-"* ]]; then
-    # Use `-disable-json ` due to no m2-json-c package
+    # Use `-disable-json` due to no m2-json-c package
     ./configure --prefix="${PREFIX}" \
         --disable-json \
         --enable-shared \
