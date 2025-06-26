@@ -4,6 +4,11 @@ set -exo pipefail
 
 cd "${SRC_DIR}"
 
+if [[ "${target_platform}" == "win-"* ]]; then
+    export CC="${BUILD_PREFIX}/bin/gcc.exe"
+    export CXX="${BUILD_PREFIX}/bin/g++.exe"
+fi
+
 if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "osx-"* ]]; then
     autoreconf -fvi
 fi
