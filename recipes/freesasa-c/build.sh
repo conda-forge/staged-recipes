@@ -2,6 +2,8 @@
 
 set -exo pipefail
 
+cd "${SRC_DIR}"
+
 if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "osx-"* ]]; then
     autoreconf -fvi
 fi
