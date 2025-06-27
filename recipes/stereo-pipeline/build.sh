@@ -20,7 +20,6 @@ cmake ..                                          \
     -DCMAKE_BUILD_TYPE=Release                    \
     -DMULTIVIEW_DEPS_DIR=${PREFIX}                \
     -DCMAKE_VERBOSE_MAKEFILE=ON                   \
-    -DCMAKE_CXX_FLAGS="-O3 -std=c++11 -Wno-error" \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}              \
     $deployFlag
 make -j${CPU_COUNT} install
@@ -42,7 +41,6 @@ cd $SRC_DIR/libnabo
 mkdir -p build && cd build
 cmake                                          \
   -DCMAKE_BUILD_TYPE=Release                   \
-  -DCMAKE_CXX_FLAGS='-O3 -std=c++11'           \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
   -DBUILD_SHARED_LIBS=ON                       \
@@ -55,7 +53,6 @@ cd $SRC_DIR/libpointmatcher
 mkdir -p build && cd build
 cmake                                          \
   -DCMAKE_BUILD_TYPE=Release                   \
-  -DCMAKE_CXX_FLAGS="-O3 -std=c++17"           \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
