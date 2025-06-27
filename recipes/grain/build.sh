@@ -15,7 +15,6 @@ export RUN_TESTS="true"
 
 #build_and_test_grain
 setup_env_vars_py "$PYTHON_MAJOR_VERSION" "$PYTHON_MINOR_VERSION"
-"$PYTHON_BIN" -m pip install -U setuptools wheel
 sh "${SOURCE_DIR}"'/grain/oss/build_whl.sh'
 
 ${PYTHON} -m pip install ./all_dist/grain-*.whl
