@@ -12,11 +12,11 @@ fi
 # Multiview
 cd $SRC_DIR/MultiView
 mkdir -p build && cd build
-cmake ${CMAKE_ARGS} ..                            \
-    -DCMAKE_BUILD_TYPE=Release                    \
-    -DMULTIVIEW_DEPS_DIR=${PREFIX}                \
-    -DCMAKE_VERBOSE_MAKEFILE=ON                   \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX}              \
+cmake ..                             \
+    -DCMAKE_BUILD_TYPE=Release       \
+    -DMULTIVIEW_DEPS_DIR=${PREFIX}   \
+    -DCMAKE_VERBOSE_MAKEFILE=ON      \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
 make -j${CPU_COUNT} install
 
 # Geoid
@@ -35,7 +35,6 @@ cp *.tif *.jp2 ${GEOID_DIR}
 cd $SRC_DIR/libnabo
 mkdir -p build && cd build
 cmake                                          \
-  ${CMAKE_ARGS}                                \
   -DCMAKE_BUILD_TYPE=Release                   \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
@@ -48,7 +47,6 @@ make -j${CPU_COUNT} install
 cd $SRC_DIR/libpointmatcher
 mkdir -p build && cd build
 cmake                                          \
-  ${CMAKE_ARGS}                                \
   -DCMAKE_BUILD_TYPE=Release                   \
   -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
   -DCMAKE_VERBOSE_MAKEFILE=ON                  \
@@ -64,7 +62,6 @@ FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
 INC_FLAGS="-I${PREFIX}/include/eigen3 -I${PREFIX}/include -O3 -L${PREFIX}/lib -lflann_cpp -llz4 -O3 -std=c++11"
 cmake                                        \
-  ${CMAKE_ARGS}                              \
   -DCMAKE_BUILD_TYPE=Release                 \
   -DCMAKE_CXX_FLAGS="${INC_FLAGS}"           \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}      \
@@ -96,7 +93,6 @@ cd 3rdparty/msmw
 mkdir -p build
 cd build
 cmake ..                                                       \
-    ${CMAKE_ARGS}                                              \
     -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
     -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
     -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
@@ -109,7 +105,6 @@ cd 3rdparty/msmw2
 mkdir -p build
 cd build
 cmake ..                                                       \
-    ${CMAKE_ARGS}                                              \
     -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
     -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
     -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
@@ -157,7 +152,6 @@ cd $SRC_DIR/StereoPipeline
 mkdir -p build
 cd build
 cmake ..                             \
-    ${CMAKE_ARGS}                    \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DASP_DEPS_DIR=${PREFIX}         \
     -DUSE_ISIS=OFF                   \
