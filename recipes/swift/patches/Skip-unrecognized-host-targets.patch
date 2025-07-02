@@ -1,0 +1,53 @@
+From 363a60003df69673fd1068973b75c255b60bb42a Mon Sep 17 00:00:00 2001
+From: Julien Jerphanion <git@jjerphan.xyz>
+Date: Thu, 3 Jul 2025 17:38:03 +0200
+Subject: [PATCH] Skip unrecognized host targets
+
+Signed-off-by: Julien Jerphanion <git@jjerphan.xyz>
+---
+ .../build_script_invocation.py                | 22 +++++++++++++------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/utils/swift_build_support/swift_build_support/build_script_invocation.py b/utils/swift_build_support/swift_build_support/build_script_invocation.py
+index ff86107445e..f5e95106454 100644
+--- a/utils/swift_build_support/swift_build_support/build_script_invocation.py
++++ b/utils/swift_build_support/swift_build_support/build_script_invocation.py
+@@ -757,8 +757,13 @@ class BuildScriptInvocation(object):
+         # Compute the list of hosts to operate on.
+         all_host_names = [
+             self.args.host_target] + self.args.cross_compile_hosts
+-        all_hosts = [StdlibDeploymentTarget.get_target_for_name(name)
+-                     for name in all_host_names]
++        all_hosts = []
++        for name in all_host_names:
++            target = StdlibDeploymentTarget.get_target_for_name(name)
++            if target is None:
++                print("WARNING: Unknown host target '{}', skipping".format(name))
++                continue
++            all_hosts.append(target)
+ 
+         # Compute the list of lists of product classes to operate on.
+         #
+@@ -783,11 +788,14 @@ class BuildScriptInvocation(object):
+             else:
+                 assert index != last_impl_index
+                 if index > last_impl_index:
+-                    non_darwin_cross_compile_hostnames = [
+-                        target for target in self.args.cross_compile_hosts if not
+-                        StdlibDeploymentTarget.get_target_for_name(
+-                            target).platform.is_darwin
+-                    ]
++                    non_darwin_cross_compile_hostnames = []
++                    for target in self.args.cross_compile_hosts:
++                        target_obj = StdlibDeploymentTarget.get_target_for_name(target)
++                        if target_obj is None:
++                            print("WARNING: Unknown cross-compile host target '{}', skipping".format(target))
++                            continue
++                        if not target_obj.platform.is_darwin:
++                            non_darwin_cross_compile_hostnames.append(target)
+                     self._execute(pipeline, [self.args.host_target] +
+                                   non_darwin_cross_compile_hostnames)
+                 else:
+-- 
+2.50.0
+
