@@ -1,0 +1,64 @@
+context:
+  name: libmcfp
+  version: "1.4.2"
+  sha256: dcdf3e81601081b2a9e2f2e1bb1ee2a8545190358d5d9bec9158ad70f5ca355e
+  build_number: 0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then:
+        - set -exo pipefail
+        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=OFF
+        - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - cmake --install build
+      else:
+        - echo on
+        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_TESTING=OFF
+        - if errorlevel 1 exit 1
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -d ${PREFIX}/include/mcfp
+        else:
+          - if not exist "%PREFIX%\include\mcfp" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/libmcfp
+  repository: https://github.com/mhekkel/libmcfp
+  documentation: https://mhekkel.github.io/libmcfp/api/library_root.html
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: "A library for parsing command line arguments and configuration files and making them available throughout a program."
+  description: |
+    This library attempts to implement the POSIX.1-2017 standard for parsing arguments passed to an application.
+    These arguments are delivered to the main function as the well known argc and argv parameters.
+    This library allows you to parse the contents of these variables and then provides easy access to the information.
+    The library also contains code to parse configuration files
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
