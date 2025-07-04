@@ -8,4 +8,4 @@ mkdir build
 cd build
 cmake ..
 cmake --build . --config Release -j $(nproc)
-cmake --install . --prefix "$PREFIX"
+cmake --install . --config Release --prefix "$PREFIX"
