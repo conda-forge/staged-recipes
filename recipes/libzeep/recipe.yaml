@@ -1,0 +1,72 @@
+context:
+  name: libzeep
+  version: "7.0.3"
+  sha256: 846c6873a7d5d6031b2948ed6838551a45780b81309f7adf392cedabec9bfc7e
+  build_number: 0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then:
+        - set -exo pipefail
+        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF
+        - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - cmake --install build
+      else:
+        - echo on
+        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF
+        - if errorlevel 1 exit 1
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - pkg-config
+  host:
+    - howardhinnant_date
+    - libboost-devel
+    - mxml
+    - nlohmann_json
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound="x") }}
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -d ${PREFIX}/include/libzeep
+          - test -f ${PREFIX}/lib/libzeep.a
+        else:
+          - if not exist "%PREFIX%\Library\include\libzeep\" exit /b 1
+          - if not exist "%PREFIX%\Library\lib\libzeep.lib" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/libzeep
+  repository: https://github.com/mhekkel/libzeep
+  documentation: https://mhekkel.github.io/libzeep
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: "C++ library for reading and writing XML and creating web, REST and SOAP servers."
+  description: |
+    Libzeep is a web application framework written in C++.
+    To see a starter project visit the [libzeep-webapp-starter](https://github.com/mhekkel/libzeep-webapp-starter.git) page.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
