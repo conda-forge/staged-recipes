@@ -1,0 +1,83 @@
+context:
+  name: mxml
+  version: "2.0.0"
+  sha256: 7aec00d2fb02c784f1b0216b02cb691b0acce10a4f1a9f192e4e24c99eb1ddb1
+  build_number: 0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+  patches: doctype.cpp.patch
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then:
+        - set -exo pipefail
+        - |
+          if [[ "${OSX_ARCH}" == "x86_64" ]]; then
+            export EXTRA_CMAKE_ARGS="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15"
+          fi
+        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF ${EXTRA_CMAKE_ARGS}
+        - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - cmake --install build
+      else:
+        - echo on
+        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF
+        - if errorlevel 1 exit 1
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - pkg-config
+  host:
+    - fast_float
+    - howardhinnant_date
+  run_exports:
+    - ${{ pin_subpackage(name|lower, upper_bound="x") }}
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -d ${PREFIX}/include/mxml
+          - test -f ${PREFIX}/lib/libmxml.a
+        else:
+          - if not exist "%PREFIX%\Library\include\mxml\" exit /b 1
+          - if not exist "%PREFIX%\Library\lib\mxml.lib" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/mxml
+  repository: https://github.com/mhekkel/mxml
+  documentation: https://mhekkel.github.io/mxml
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: "A C++ Module Library offering a full XML library with validating parser, DOM tree, XPaths and serialization."
+  description: >
+    This is a feature complete XML library containing a validating parser as well as a modern C++ API for the data structures.
+    It also supports serializing custom data structures.
+
+    The core of this library is a validating XML parser with DTD processing and all.
+    On top of this are implemented an API for manipulating XML data in a DOM like fashion and a serialization API.
+    As a bonus there’s also an XPath implementation, albeit this is limited to XPath 1.0.
+
+    This XML library was extracted from [libzeep](https://github.com/mhekkel/libzeep) since having a separate and simple XML library is more convenient.
+    The API is unfortunately no longer compatible since the goal was to be more standards compliant.
+    E.g., mxml::element should now be a complete [Sequence Container](https://en.cppreference.com/w/cpp/named_req/SequenceContainer).
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
