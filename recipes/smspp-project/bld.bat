@@ -1,4 +1,4 @@
-# build SMS++
+:: build SMS++
 rmdir /S smspp-project
 git clone -b develop --recurse-submodules https://gitlab.com/smspp/smspp-project.git
 
