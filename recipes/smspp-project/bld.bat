@@ -1,8 +1,7 @@
 :: build SMS++
-rmdir /S smspp-project
-git clone -b develop --recurse-submodules https://gitlab.com/smspp/smspp-project.git
+git submodule init
+git submodule update
 
-cd smspp-project
 mkdir build
 cd build
 cmake %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release ..
