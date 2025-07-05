@@ -1,0 +1,73 @@
+context:
+  name: acts
+  version: "41.1.0"
+
+recipe:
+  name: ${{ name }}-suite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/acts-project/acts/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2cd559003d7c37c089adef0c357b7cb8dee7d2fa55f26d83ac41b3e9a2a1c22c
+  patches:
+    - fix-cmake-HelloWorld-example.patch
+
+build:
+  number: 0
+  skip: win
+
+outputs:
+  - package:
+      name: ${{ name|lower }}-core
+
+    build:
+      script:
+        # due to https://github.com/conda-forge/z5py-feedstock/issues/24 and PR https://github.com/conda-forge/z5py-feedstock/commit/5fbcb9220d468f0e8f90dd39f3fbb7427dfc5e88
+        - if: osx
+          then: export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+        - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -S . -B build
+        - cmake -LH build
+        - cmake --build build --parallel=${CPU_COUNT}
+        - cmake --install build
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - make
+        - uv
+      host:
+        - libboost-devel
+        - eigen
+    tests:
+      - script:
+          - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -S ./Examples/HelloWorld -B build
+          - cmake -LH build
+          - cmake --build build --parallel=${CPU_COUNT}
+          - cmake --install build
+          - ActsExampleHelloWorld
+
+        files:
+          source:
+            - Examples/HelloWorld
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - cmake
+            - make
+
+about:
+  homepage: https://acts.readthedocs.io/
+  summary: 'ACTS is an experiment-independent toolkit for (charged) particle track reconstruction in (high energy) physics experiments implemented in modern C++.'
+  description: |
+    The ACTS project provides high-level track reconstruction modules that can be used for any tracking detector. The tracking detector geometry description is optimized for efficient navigation and fast extrapolation of tracks. Converters for several common geometry description packages are available. In addition to the algorithmic code, this project also provides an event data model for the description of track parameters and measurements.
+  license: MPL-2.0
+  license_file: LICENSE
+  documentation: https://acts.readthedocs.io/
+  repository: https://github.com/acts-project/acts
+
+extra:
+  feedstock-name: acts
+  recipe-maintainers:
+    - Snakemonster
+    - matthewfeickert
