@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [[ $OSTYPE == 'darwin'* ]]; then
-    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
-fi
+# if [[ $OSTYPE == 'darwin'* ]]; then
+#     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+# fi
 
 # build SMS++
 git submodule init
