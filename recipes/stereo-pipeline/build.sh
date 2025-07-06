@@ -9,6 +9,29 @@ fi
 
 # Build dependencies first
 
+# fgr
+cd $SRC_DIR/FastGlobalRegistration
+FGR_SOURCE_DIR=$(pwd)/source
+mkdir -p build && cd build
+cmake                                                                           \
+  ${CMAKE_ARGS}                                                                 \
+  -DCMAKE_BUILD_TYPE=Release                                                    \
+  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include -I${PREFIX}/include/eigen3 -std=c++11" \
+  -DCMAKE_EXE_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp"                        \
+  -DCMAKE_SHARED_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp -llz4                \
+  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                                         \
+  -DCMAKE_VERBOSE_MAKEFILE=ON                                                   \
+  -DFastGlobalRegistration_LINK_MODE=SHARED                                     \
+  ${FGR_SOURCE_DIR}
+make -j${CPU_COUNT}
+# Install
+FGR_INC_DIR=${PREFIX}/include/FastGlobalRegistration
+mkdir -p ${FGR_INC_DIR}
+cp ${FGR_SOURCE_DIR}/FastGlobalRegistration/app.h ${FGR_INC_DIR}
+FGR_LIB_DIR=${PREFIX}/lib
+mkdir -p ${FGR_LIB_DIR}
+cp FastGlobalRegistration/libFastGlobalRegistrationLib* ${FGR_LIB_DIR}
+
 # Multiview
 cd $SRC_DIR/MultiView
 mkdir -p build && cd build
@@ -57,28 +80,6 @@ cmake                                          \
   -DEIGEN_INCLUDE_DIR=${PREFIX}/include/eigen3 \
   ..
 make -j${CPU_COUNT} install
-
-# fgr
-cd $SRC_DIR/FastGlobalRegistration
-FGR_SOURCE_DIR=$(pwd)/source
-mkdir -p build && cd build
-cmake                                                                           \
-  ${CMAKE_ARGS}                                                                 \
-  -DCMAKE_BUILD_TYPE=Release                                                    \
-  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include -I${PREFIX}/include/eigen3 -std=c++11" \
-  -DCMAKE_EXE_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp -llz4"                  \
-  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                                         \
-  -DCMAKE_VERBOSE_MAKEFILE=ON                                                   \
-  -DFastGlobalRegistration_LINK_MODE=SHARED                                     \
-  ${FGR_SOURCE_DIR}
-make -j${CPU_COUNT}
-# Install
-FGR_INC_DIR=${PREFIX}/include/FastGlobalRegistration
-mkdir -p ${FGR_INC_DIR}
-cp ${FGR_SOURCE_DIR}/FastGlobalRegistration/app.h ${FGR_INC_DIR}
-FGR_LIB_DIR=${PREFIX}/lib
-mkdir -p ${FGR_LIB_DIR}
-cp FastGlobalRegistration/libFastGlobalRegistrationLib* ${FGR_LIB_DIR}
 
 # s2p
 cd $SRC_DIR/s2p
