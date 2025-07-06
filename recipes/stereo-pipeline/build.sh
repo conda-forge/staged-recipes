@@ -14,7 +14,6 @@ cd $SRC_DIR/FastGlobalRegistration
 FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
 cmake                                                                           \
-  ${CMAKE_ARGS}                                                                 \
   -DCMAKE_BUILD_TYPE=Release                                                    \
   -DCMAKE_CXX_FLAGS="-I${PREFIX}/include -I${PREFIX}/include/eigen3 -std=c++11" \
   -DCMAKE_EXE_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp"                        \
