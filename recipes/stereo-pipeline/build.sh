@@ -13,14 +13,14 @@ fi
 cd $SRC_DIR/FastGlobalRegistration
 FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
-cmake                                                                           \
-  -DCMAKE_BUILD_TYPE=Release                                                    \
-  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include -I${PREFIX}/include/eigen3 -std=c++11" \
-  -DCMAKE_EXE_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp"                        \
-  -DCMAKE_SHARED_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp -llz4                \
-  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                                         \
-  -DCMAKE_VERBOSE_MAKEFILE=ON                                                   \
-  -DFastGlobalRegistration_LINK_MODE=SHARED                                     \
+INC_FLAGS="-I${PREFIX}/include/eigen3 -I${PREFIX}/include -O3 -L${PREFIX}/lib -lflann_cpp -llz4 -O3 -std=c++11"
+cmake                                        \
+  ${CMAKE_ARGS}                              \
+  -DCMAKE_BUILD_TYPE=Release                 \
+  -DCMAKE_CXX_FLAGS="${INC_FLAGS}"           \
+  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}      \
+  -DCMAKE_VERBOSE_MAKEFILE=ON                \
+  -DFastGlobalRegistration_LINK_MODE=SHARED  \
   ${FGR_SOURCE_DIR}
 make -j${CPU_COUNT}
 # Install
