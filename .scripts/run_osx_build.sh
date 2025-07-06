@@ -10,14 +10,6 @@ MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
 MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
 export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
-env /usr/bin/arch -arm64e /bin/bash ---login
-file `which bash`
-sw_vers
-/usr/bin/arch
-/usr/bin/uname -p
-/usr/bin/uname -a
-cmake --system-information | grep CMAKE_HOST_SYSTEM_PROCESSOR
-
 if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
   echo "Build tools already installed at ${MINIFORGE_HOME}."
 else
@@ -98,9 +90,7 @@ echo ""
 
 # Set the target arch or auto detect it
 if [[ -z "${TARGET_ARCH}" ]]; then
-  if [[ -n "${HOST_PLATFORM}" ]]; then
-    TARGET_ARCH="${HOST_PLATFORM#osx-}"
-  elif [[ "$(uname -m)" == "arm64" ]]; then
+  if [[ "$(uname -m)" == "arm64" ]]; then
     TARGET_ARCH="arm64"
   else
     TARGET_ARCH="64"
