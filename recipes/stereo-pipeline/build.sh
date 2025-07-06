@@ -62,14 +62,14 @@ make -j${CPU_COUNT} install
 cd $SRC_DIR/FastGlobalRegistration
 FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
-INC_FLAGS="-I${PREFIX}/include/eigen3 -I${PREFIX}/include -O3 -L${PREFIX}/lib -lflann_cpp -llz4 -O3 -std=c++11"
-cmake                                        \
-  ${CMAKE_ARGS}                              \
-  -DCMAKE_BUILD_TYPE=Release                 \
-  -DCMAKE_CXX_FLAGS="${INC_FLAGS}"           \
-  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}      \
-  -DCMAKE_VERBOSE_MAKEFILE=ON                \
-  -DFastGlobalRegistration_LINK_MODE=SHARED  \
+cmake                                                       \
+  ${CMAKE_ARGS}                                             \
+  -DCMAKE_BUILD_TYPE=Release                                \
+  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include/eigen3 -std=c++11" \
+  -DCMAKE_EXE_LINKER_FLAGS="-lflann_cpp -llz4"              \
+  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                     \
+  -DCMAKE_VERBOSE_MAKEFILE=ON                               \
+  -DFastGlobalRegistration_LINK_MODE=SHARED                 \
   ${FGR_SOURCE_DIR}
 make -j${CPU_COUNT}
 # Install
@@ -97,7 +97,6 @@ mkdir -p build
 cd build
 cmake ..                                                       \
     ${CMAKE_ARGS}                                              \
-    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
     -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
     -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
     -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${SHLIB_EXT}"    \
@@ -110,7 +109,6 @@ mkdir -p build
 cd build
 cmake ..                                                       \
     ${CMAKE_ARGS}                                              \
-    -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CFLAGS"      \
     -DPNG_LIBRARY_RELEASE="${PREFIX}/lib/libpng${SHLIB_EXT}"   \
     -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
     -DZLIB_LIBRARY_RELEASE="${PREFIX}/lib/libz${SHLIB_EXT}"    \
@@ -131,26 +129,21 @@ cp 3rdparty/msmw2/build/libstereo_newversion/iip_stereo_correlation_multi_win2_n
    ${BIN_DIR}/msmw2
 
 # libelas
-if [[ "$target_platform" == "aarch64" || "$target_platform" == "arm64" ]]; then
-    echo Libelas does not build on Arm
-else
-    cd $SRC_DIR/libelas
-    # Set the env
-    export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
-    export LDFLAGS="-L$PREFIX/lib"
-    # build
-    mkdir -p build
-    cd build
-    cmake ..                                                   \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}" \
-    -DTIFF_INCLUDE_DIR="${PREFIX}/include"                     \
-    -DCMAKE_CXX_FLAGS="-I${PREFIX}/include"
-    make -j${CPU_COUNT}
-    # Copy the 'elas' tool to the plugins subdir meant for it
-    BIN_DIR=${PREFIX}/plugins/stereo/elas/bin
-    mkdir -p ${BIN_DIR}
-    cp elas ${BIN_DIR}/elas
-fi
+cd $SRC_DIR/libelas
+# Set the env
+export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
+export LDFLAGS="-L$PREFIX/lib"
+# build
+mkdir -p build
+cd build
+cmake ..                                                      \
+    ${CMAKE_ARGS}                                             \
+    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}"
+make -j${CPU_COUNT}
+# Copy the 'elas' tool to the plugins subdir meant for it
+BIN_DIR=${PREFIX}/plugins/stereo/elas/bin
+mkdir -p ${BIN_DIR}
+cp elas ${BIN_DIR}/elas
 
 # Build stereo-pipeline
 cd $SRC_DIR/StereoPipeline
