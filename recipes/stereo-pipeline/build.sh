@@ -129,21 +129,25 @@ cp 3rdparty/msmw2/build/libstereo_newversion/iip_stereo_correlation_multi_win2_n
    ${BIN_DIR}/msmw2
 
 # libelas
-cd $SRC_DIR/libelas
-# Set the env
-export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
-export LDFLAGS="-L$PREFIX/lib"
-# build
-mkdir -p build
-cd build
-cmake ..                                                      \
-    ${CMAKE_ARGS}                                             \
-    -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}"
-make -j${CPU_COUNT}
-# Copy the 'elas' tool to the plugins subdir meant for it
-BIN_DIR=${PREFIX}/plugins/stereo/elas/bin
-mkdir -p ${BIN_DIR}
-cp elas ${BIN_DIR}/elas
+if [[ "$target_platform" == *aarch64* || "$target_platform" == *arm64* ]]; then
+    echo libelas does not build on Arm
+else
+    cd $SRC_DIR/libelas
+    # Set the env
+    export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
+    export LDFLAGS="-L$PREFIX/lib"
+    # build
+    mkdir -p build
+    cd build
+    cmake ..                                                      \
+        ${CMAKE_ARGS}                                             \
+        -DTIFF_LIBRARY_RELEASE="${PREFIX}/lib/libtiff${SHLIB_EXT}"
+    make -j${CPU_COUNT}
+    # Copy the 'elas' tool to the plugins subdir meant for it
+    BIN_DIR=${PREFIX}/plugins/stereo/elas/bin
+    mkdir -p ${BIN_DIR}
+    cp elas ${BIN_DIR}/elas
+fi
 
 # Build stereo-pipeline
 cd $SRC_DIR/StereoPipeline
