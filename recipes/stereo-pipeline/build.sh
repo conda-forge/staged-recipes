@@ -62,14 +62,14 @@ make -j${CPU_COUNT} install
 cd $SRC_DIR/FastGlobalRegistration
 FGR_SOURCE_DIR=$(pwd)/source
 mkdir -p build && cd build
-cmake                                                       \
-  ${CMAKE_ARGS}                                             \
-  -DCMAKE_BUILD_TYPE=Release                                \
-  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include/eigen3 -std=c++11" \
-  -DCMAKE_EXE_LINKER_FLAGS="-lflann_cpp -llz4"              \
-  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                     \
-  -DCMAKE_VERBOSE_MAKEFILE=ON                               \
-  -DFastGlobalRegistration_LINK_MODE=SHARED                 \
+cmake                                                         \
+  ${CMAKE_ARGS}                                               \
+  -DCMAKE_BUILD_TYPE=Release                                  \
+  -DCMAKE_CXX_FLAGS="-I${PREFIX}/include/eigen3 -std=c++11"   \
+  -DCMAKE_EXE_LINKER_FLAGS="-L${PREFIX}/lib -lflann_cpp -llz4"\
+  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}                       \
+  -DCMAKE_VERBOSE_MAKEFILE=ON                                 \
+  -DFastGlobalRegistration_LINK_MODE=SHARED                   \
   ${FGR_SOURCE_DIR}
 make -j${CPU_COUNT}
 # Install
@@ -133,9 +133,6 @@ if [[ "$target_platform" == *aarch64* || "$target_platform" == *arm64* ]]; then
     echo libelas does not build on Arm
 else
     cd $SRC_DIR/libelas
-    # Set the env
-    export CFLAGS="-I$PREFIX/include -O3 -DNDEBUG -ffast-math -march=native"
-    export LDFLAGS="-L$PREFIX/lib"
     # build
     mkdir -p build
     cd build
