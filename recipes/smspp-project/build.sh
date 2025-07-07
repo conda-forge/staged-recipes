@@ -4,7 +4,6 @@
 #     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 # fi
 
-# build SMS++
 git submodule init
 git submodule update
 
