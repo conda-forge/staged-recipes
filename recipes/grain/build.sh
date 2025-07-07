@@ -34,7 +34,7 @@ write_to_bazelrc "common --check_direct_dependencies=error"
 bazel clean
 bazel build ... --action_env PYTHON_BIN_PATH="${PYTHON_BIN}" --action_env MACOSX_DEPLOYMENT_TARGET='11.0'
 
-# bazel test --verbose_failures --test_output=errors ... --action_env PYTHON_BIN_PATH="${PYTHON_BIN}"
+# bazel test --verbose_failures --test_output=errors ... --action_env PYTHON_BIN_PATH="${PYTHON}"
 
 DEST="${OUTPUT_DIR}"'/all_dist'
 mkdir -p "${DEST}"
@@ -56,7 +56,7 @@ WHEEL_BLD_ARGS="${WHEEL_BLD_ARGS} bdist_wheel --python-tag py3${PYTHON_MINOR_VER
 if [ "$(uname)" == "Darwin" ]; then
   WHEEL_BLD_ARGS="${WHEEL_BLD_ARGS} --plat-name macosx_11_0_$(uname -m)"
 fi
-"$PYTHON_BIN" setup.py $WHEEL_BLD_ARGS
+$PYTHON setup.py $WHEEL_BLD_ARGS
 
 cp 'dist/'*.whl "${DEST}"
 
@@ -66,7 +66,9 @@ cd "${previous_wd}"
 
 printf '%s : "=== Output wheel file is in: %s\n' "$(date)" "${DEST}"
 
-$PYTHON_BIN -m pip install --find-links=./all_dist --pre grain
+$PYTHON -m pip install ./all_dist/grain*.whl
+
+#--find-links=./all_dist --pre grain
 
 # $PYTHON_BIN -m pip install jax
 # $PYTHON_BIN grain/_src/core/smoke_test_with_jax.py
