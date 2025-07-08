@@ -10,3 +10,7 @@ if [[ ${target_platform} =~ .*linux.* ]]; then
 fi
 ./gen_stub
 $PYTHON -m pip install . -vv
+
+if [[ ${target_platform} =~ .*linux.* ]]; then
+    rm ${PREFIX}/lib/libglib-2.0.so
+fi
