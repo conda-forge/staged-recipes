@@ -6,10 +6,12 @@ export CPLUS_INCLUDE_PATH=${PREFIX}/include
 export LIBRARY_PATH=${PREFIX}/lib
 
 if [[ ${target_platform} =~ .*linux.* ]]; then
-	ln -sf ${PREFIX}/lib/libglib-2.0.so.0 ${PREFIX}/lib/libglib-2.0.so
+    ln -sf ${PREFIX}/lib/libglib-2.0.so.0 ${PREFIX}/lib/libglib-2.0.so
 fi
 ./gen_stub
 $PYTHON -m pip install . -vv
+
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 if [[ ${target_platform} =~ .*linux.* ]]; then
     rm ${PREFIX}/lib/libglib-2.0.so
