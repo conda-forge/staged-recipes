@@ -8,8 +8,13 @@ rm -rf license-files
 # Save licenses of dependencies, ignoring specified packages
 go-licenses save . --save_path=license-files --ignore github.com/mattn/go-localereader
 
-# Download the upstream license for go-localereader into the license-files directory.
-curl -L https://raw.githubusercontent.com/mattn/go-localereader/master/LICENSE -o license-files/go-localereader.LICENSE
+# Manually add the missing license in the expected directory structure
+mkdir -p ${RECIPE_DIR}/license-files/github.com/mattn/go-localereader
+curl -L https://raw.githubusercontent.com/mattn/go-localereader/master/LICENSE \
+  -o ${RECIPE_DIR}/license-files/github.com/mattn/go-localereader/LICENSE
 
-# Build the Go binary for 'walk'
-go build -buildmode=pie -trimpath -o=${PREFIX}/bin/walk -ldflags="-s -w -X main.Version=${PKG_VERSION}"
+# Merge manual licenses into the saved license directory
+cp -r ${RECIPE_DIR}/license-files/* license-files/
+
+# Build the Go binary for 'walk'; GOFLAGS already injects necessary flags
+go build -o="${PREFIX}/bin/walk" -ldflags="-s -w -X main.Version=${PKG_VERSION}"
