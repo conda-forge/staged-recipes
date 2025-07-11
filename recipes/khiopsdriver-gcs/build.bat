@@ -1,18 +1,11 @@
+REM Echo all output
 @echo on
 
-makedir %LIBRARY_PREFIX%
-cmake -LAH -G "Ninja" ^
-    %CMAKE_ARGS% ^
-    -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
-    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -DCMAKE_MESSAGE_LOG_LEVEL=STATUS ^
-    -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -B build .
-if errorlevel 1 exit 1
+REM Configure project
+cmake --fresh -G Ninja -D CMAKE_BUILD_TYPE=Release -B builds\conda -S .
 
-cmake --build build --target install --config Release
-if errorlevel 1 exit 1
+REM Build
+cmake --build builds\conda --parallel --target khiopsdriver_file_gcs
 
-xcopy /y /s %LIBRARY_PREFIX%\lib\*.dll %LIBRARY_PREFIX%\bin\
-if errorlevel 1 exit 1
-
+REM Copy the lib for the driver package
+copy builds\conda\bin\khiopsdriver_file_gcs.dll %LIBRARY_PREFIX%\bin\libkhiopsdriver_file_gcs.dll
