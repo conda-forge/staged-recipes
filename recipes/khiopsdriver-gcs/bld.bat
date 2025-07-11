@@ -13,8 +13,9 @@ if errorlevel 1 exit 1
 cmake --build build --target install --config Release
 if errorlevel 1 exit 1
 
-xcopy /y /s %LIBRARY_PREFIX%\bin\*.dll %LIBRARY_PREFIX%\bin
+xcopy /y /s %LIBRARY_PREFIX%\lib\*.dll %LIBRARY_PREFIX%\bin\
 if errorlevel 1 exit 1
 
 dir %LIBRARY_PREFIX%
 dir %LIBRARY_PREFIX%\bin
+dir %LIBRARY_PREFIX%\lib
