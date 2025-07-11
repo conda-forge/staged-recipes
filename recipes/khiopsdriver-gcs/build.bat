@@ -16,6 +16,3 @@ if errorlevel 1 exit 1
 xcopy /y /s %LIBRARY_PREFIX%\lib\*.dll %LIBRARY_PREFIX%\bin\
 if errorlevel 1 exit 1
 
-dir %LIBRARY_PREFIX%
-dir %LIBRARY_PREFIX%\bin
-dir %LIBRARY_PREFIX%\lib
