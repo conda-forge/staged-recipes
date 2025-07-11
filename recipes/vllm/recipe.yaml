@@ -1,0 +1,206 @@
+context:
+  version: 0.8.3
+  pytorch_version: 2.6.0
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  is_cuda_12: ${{ (cuda_compiler_version or '')[:2] == '12' }}
+  vllm_target_device: ${{ "cuda" if use_cuda else "cpu" }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
+
+package:
+  name: vllm
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/v/vllm/vllm-${{ version }}.tar.gz
+  sha256: 475a39d1093b8ef8a905d63eafe0c6c9b8f4f4c2ae2d23f1f3d0fae5e37bb4bd
+  patches:
+  - patches/vllm-cmakefiles.patch
+  - patches/remove_ninja_pip_requirement.txt
+  - if: linux
+    then:
+    - patches/vllm-cpu-utils.patch
+  - if: is_cross_compiling
+    then:
+    - patches/vllm-cmake-args.patch
+  target_directory: vllm
+- url: https://github.com/vllm-project/flash-attention/archive/d637d8927a35922ce6f6c0dff6dd3f765ed71f3c.tar.gz
+  sha256: 3099add00c9938735b84319d176c5b239c0165e3f9be6540a7a3505cd897c7cd
+  target_directory: flash-attention
+
+build:
+  number: 0
+  script: |
+    sed -i.bak 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "2.5.1")/g' flash-attention/CMakeLists.txt
+    export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
+    cd vllm
+    python use_existing_torch.py
+    mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
+    ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
+    # export VERBOSE=1
+    export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
+    ${{ PYTHON }} -m pip install . --no-build-isolation
+
+  python:
+    entry_points:
+    - vllm  =  vllm.scripts:main
+
+  skip:
+    - win
+    - osx and x86_64
+    # conda-forge torchaudio dropped support for CUDA 11.8
+    - cuda_compiler_version != "None" and match(cuda_compiler_version, "<12.0")
+    # conda-forge torchaudio dropped support for Python 3.9 (llvmlite fix only available for Python >=3.10)
+    - match(python, "<3.10")
+
+requirements:
+  build:
+  - cmake >=3.26
+  - ninja
+  - git
+  - zlib
+  - ${{ stdlib('c') }}
+  - ${{ compiler('c') }}
+  - ${{ compiler('cxx') }}
+  - if: use_cuda
+    then:
+    - ${{ compiler('cuda') }}
+  - if: is_cross_compiling
+    then:
+    - python
+    - cross-python_${{ target_platform }}
+    - pytorch ==${{ pytorch_version }}
+    - if: use_cuda
+      then:
+      - pytorch * [build=cuda*]
+  host:
+  - python
+  - pip
+  - setuptools >=61
+  - setuptools-scm >=8
+  - packaging
+  - wheel
+  - jinja2 >=3.1.6
+  - pytorch ==${{ pytorch_version }}
+  - if: linux
+    then:
+    - libnuma
+  - if: use_cuda
+    then:
+    - pytorch * [build=cuda*]
+    - nvtx-c
+    - cuda-version ==${{ cuda_compiler_version }}
+    - if: is_cuda_12
+      then:
+      - cuda
+      - cuda-cudart-dev
+      - cuda-nvrtc-dev
+      - cuda-nvrtc-static
+      - libcublas-dev
+    - cutlass
+  run:
+  - python
+  - cachetools
+  - psutil
+  - sentencepiece
+  - numpy
+  - requests >=2.26.0
+  - tqdm
+  - blake3
+  - py-cpuinfo
+  - transformers >=4.51.0
+  - huggingface_hub >=0.30.0
+  - hf-xet >=0.1.4
+  - tokenizers >=0.19.1
+  - protobuf
+  - fastapi >=0.115.0
+  - aiohttp
+  - openai >=1.52.0
+  - uvicorn-standard
+  - pydantic >=2.9
+  - prometheus_client >=0.18.0
+  - pillow
+  - prometheus-fastapi-instrumentator >=7.0.0
+  - tiktoken >=0.6.0
+  - lm-format-enforcer >=0.10.9,<0.11
+  - if: x86_64 or arm64 or aarch64
+    then:
+    - llguidance >=0.7.9,< 0.8.0
+  - outlines ==0.1.11
+  - lark ==1.2.2
+  - if: x86_64 or aarch64
+    then:
+    - xgrammar ==0.1.17
+  - typing_extensions >=4.10
+  - filelock >=3.16.1
+  - partial-json-parser
+  - pyzmq
+  - msgspec
+  - gguf ==0.10.0
+  - importlib-metadata
+  - mistral-common >=1.5.4
+  - opencv >=4.11.0
+  - pyyaml
+  - if: match(python, ">3.11")
+    then:
+    - six >=1.16.0
+    - setuptools >=74.1.1
+  - einops
+  - compressed-tensors ==0.9.2
+  - depyf ==0.18.0
+  - cloudpickle
+  - watchfiles
+  - python-json-logger
+  - scipy
+  - pytorch ==${{ pytorch_version }}
+  - if: use_cuda or ppc64le
+    then:
+    - torchaudio ==${{ pytorch_version }}
+    - torchvision ==0.21.0
+    else:
+    - torchaudio
+    - torchvision
+  - if: use_cuda
+    then:
+    - if: match(python, ">3.9")
+      then:
+      - numba ==0.61
+      else:
+      - numba ==0.60.0
+    - ray-cgraph >=2.43.0,!=2.44
+    - if: linux64
+      then:
+      - xformers ==0.0.29.post2  # platform_system == "Linux" and platform_machine == "x86_64"
+  run_constraints:
+  - if: use_cuda
+    then:
+    - pytorch * [build=cuda*]
+  ignore_run_exports:
+    from_package:
+    - if: is_cuda_12
+      then:
+        - cuda-nvrtc-dev
+        - libcublas-dev
+tests:
+- python:
+    imports:
+    - vllm
+    - if: linux and is_cuda_12
+      then:
+      - vllm.vllm_flash_attn
+    pip_check: true
+
+about:
+  homepage: https://github.com/vllm-project/vllm
+  summary: A high-throughput and memory-efficient inference and serving engine for LLMs
+  description:  Easy, fast, and cheap LLM serving for everyone
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+  - vllm/LICENSE
+  - flash-attention/LICENSE
+  - LICENSE_CUTLASS.txt
+  documentation: https://vllm.readthedocs.io/en/latest/
+
+extra:
+  recipe-maintainers:
+    - maresb
+    - shermansiu
