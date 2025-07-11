@@ -1,5 +1,6 @@
 @echo on
 
+makedir %LIBRARY_PREFIX%
 cmake -LAH -G "Ninja" ^
     %CMAKE_ARGS% ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
@@ -14,3 +15,6 @@ if errorlevel 1 exit 1
 
 xcopy /y /s %LIBRARY_PREFIX%\bin\*.dll %LIBRARY_PREFIX%\bin
 if errorlevel 1 exit 1
+
+dir %LIBRARY_PREFIX%
+dir %LIBRARY_PREFIX%\bin
