@@ -1,0 +1,83 @@
+#                             VVVVVV  minimum `pixi` version
+"$schema" = "https://pixi.sh/v0.36.0/schema/manifest/schema.json"
+
+[project]
+name = "staged-recipes"
+description = "The entry point to conda-forge"
+version = "0.1.0"
+license = "BSD-3-Clause"
+license-file = "LICENSE.txt"
+authors = ["@conda-forge/core"]
+channels = ["conda-forge"]
+platforms = [
+    "linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"
+    # TODO: add here and below in `feature.win` when possible
+    # "win-arm64"
+]
+
+[feature.python.dependencies]
+python = "3.12.*"
+
+[feature.build.dependencies]
+conda = ">=24.9.2"
+conda-libmamba-solver = ">=24.9.0"
+conda-build = ">=25.3.1"
+conda-index = ">=0.3.0"
+conda-forge-ci-setup = ">=4.9.3,<5.0"
+conda-forge-pinning = "*"
+frozendict = "*"
+networkx = "2.4.*"
+rattler-build-conda-compat = ">=1.2.0,<2.0.0a0"
+
+[feature.linux]
+# The linux feature runs on every platform that can run Docker.
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+[feature.linux.tasks.build-linux]
+description = "build for Linux inside a docker container"
+cmd = "python build-locally.py --filter 'linux*'"
+
+# The osx env will run conda-build directly on the machine.
+[feature.osx]
+platforms = ["osx-64", "osx-arm64"]
+[feature.osx.tasks.build-osx]
+description = "build directly on a MacOS host machine"
+cmd = "python build-locally.py --filter 'osx*'"
+[feature.osx.tasks.build-osx.env]
+CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
+MINIFORGE_HOME = "$CONDA_PREFIX"
+OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
+
+# The windows env will run conda-build directly on the machine.
+[feature.win]
+platforms = ["win-64"]
+[feature.win.tasks.build-win]
+description = "build directly on a Windows host machine"
+cmd = "python build-locally.py --filter 'win*'"
+[feature.win.tasks.build-win.env]
+CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
+MINIFORGE_HOME = "$CONDA_PREFIX"
+
+[feature.grayskull.dependencies]
+grayskull = ">=2.7.3"
+[feature.grayskull.tasks.pypi]
+description = "generate a recipe for a PyPI package name with `grayskull`"
+cmd = "cd recipes && grayskull pypi --strict-conda-forge"
+[feature.grayskull.tasks.cran]
+description = "generates a recipe for a CRAN package name with `grayskull`"
+cmd = "cd recipes && grayskull cran --strict-conda-forge"
+
+[feature.conda-smithy.dependencies]
+conda-smithy = ">=3.44.6,<4"
+[feature.conda-smithy.tasks.lint]
+description = "validate all recipes with `conda-smithy`"
+cmd = "conda-smithy recipe-lint --conda-forge recipes/*"
+
+[environments]
+# linux only needs Python to run build-locally.py. Everything else happens in Docker.
+linux = ["linux", "python"]
+# osx and win do run natively on the machine, so we need the build deps too
+osx = ["osx", "python", "build"]
+win = ["win", "python", "build"]
+build = ["python", "build"]
+grayskull = ["python", "grayskull"]
+conda-smithy = ["python", "conda-smithy"]
