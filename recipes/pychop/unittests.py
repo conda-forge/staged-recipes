@@ -2,8 +2,6 @@
 import unittest
 import numpy as np
 import sys
-# appending a path
-sys.path.append('../')
 
 import pychop
 
