@@ -18,6 +18,6 @@ cmake  $CMAKE_ARGS ../greedy \
       -DVTK_DIR="${PREFIX}/include/vtk-9.3" \
       ..
 
-make
+make -j$CPU_COUNT
 
 make install
