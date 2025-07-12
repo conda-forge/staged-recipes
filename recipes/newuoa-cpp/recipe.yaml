@@ -9,24 +9,26 @@ package:
 source:
   url: https://github.com/elsid/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 660274f2ab2188bdf096c0ed0eefa8e10fe563e440064bc4e48ce547a8ef90a4
+  patches:
+    - fix_dll_install.patch
 
 build:
   number: 0
   script:
     - if: unix
-      then:
-        - set -exo pipefail
-        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON
-        - cmake --build build --config Release --parallel ${CPU_COUNT}
-        - cmake --install build
-      else:
-        - echo on
-        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON
-        - if errorlevel 1 exit 1
-        - cmake --build build --config Release --parallel %CPU_COUNT%
-        - if errorlevel 1 exit 1
-        - cmake --install build
-        - if errorlevel 1 exit 1
+      then: |
+        set -exo pipefail
+        cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON
+        cmake --build build --config Release --parallel ${CPU_COUNT}
+        cmake --install build
+      else: |
+        @echo on
+        cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON
+        if errorlevel 1 exit 1
+        cmake --build build --config Release --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
 
 requirements:
   build:
@@ -48,6 +50,7 @@ tests:
           - test -f ${PREFIX}/lib/libnewuoa${SHLIB_EXT}
         else:
           - if not exist "%LIBRARY_PREFIX%\include\newuoa.h" exit /b 1
+          - if not exist "%LIBRARY_PREFIX%\lib\newuoa.lib" exit /b 1
           - if not exist "%LIBRARY_PREFIX%\bin\newuoa%SHLIB_EXT%" exit /b 1
 
 about:
