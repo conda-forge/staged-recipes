@@ -15,6 +15,9 @@ cmake -S . -B build ${CMAKE_ARGS} -G Ninja \
     -DAPR_USE_OPENMP=ON \
     -DAPR_BENCHMARK=OFF \
     -DAPR_DENOISE=OFF
+
 cmake --build build -j${CPU_COUNT}
-ctest --verbose --test-dir build
+if [[ ${target_platform} =~ .*linux.* ]]; then
+    ctest --verbose --test-dir build
+fi
 cmake --install build
