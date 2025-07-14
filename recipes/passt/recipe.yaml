@@ -1,0 +1,59 @@
+context:
+  version: 2025_06_11
+
+package:
+  name: passt
+  version: ${{ version }}
+
+source:
+  url: https://passt.top/passt/snapshot/passt-2025_06_11.0293c6f.tar.gz
+  # run “curl -sL $url | sha256sum” to update
+  sha256: a2f90542551ae602d8c02a4d8f07c6549d39e5a0ca097219a2efede297faab9a
+
+build:
+  skip:
+    - win
+    - win_64
+    - osx
+    - osx_64
+  number: 0
+  script:
+    - |
+      make
+    - export CPPFLAGS="${CPPFLAGS} -isystem ${BUILD_PREFIX}/${HOST}/sysroot/usr/include"
+    # passt uses a plain Makefile that already honours $CFLAGS/CPPFLAGS
+    - make -j${CPU_COUNT}
+    - install -Dm755 passt   "${PREFIX}/bin/passt"
+    - install -Dm755 pasta   "${PREFIX}/bin/pasta"
+    - install -Dm644 passt.1 "${PREFIX}/share/man/man1/passt.1"
+    - install -Dm644 pasta.1 "${PREFIX}/share/man/man1/pasta.1"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    - kernel-headers_linux-64 >=5.14.0
+
+  host:
+    - make
+    - gcc                 # C tool-chain for native deps
+
+tests:
+  - script:
+      - passt --version
+      - passt --help | head -n 5
+      - pasta --version
+      - pasta --help | head -n 5
+
+about:
+  homepage: https://passt.top/passt/about/
+  #license: BSD 3-Clause AND GPL-2.0-or-later
+  license: GPL-2.0-or-later
+  license_file: 
+    - LICENSES/
+  summary: "passt: Plug A Simple Socket Transport/pasta: Pack A Subtle Tap Abstraction"
+
+extra:
+  recipe-maintainers:
+    - 2themaxx
