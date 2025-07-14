@@ -1,0 +1,78 @@
+context:
+  name: libzeep
+  version: "7.0.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 846c6873a7d5d6031b2948ed6838551a45780b81309f7adf392cedabec9bfc7e
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        set -exo pipefail
+        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+        cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON
+        cmake --build build --config Release --parallel ${CPU_COUNT}
+        ctest -V -C Release --test-dir build
+        cmake --install build
+      else: |
+        @echo on
+        cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON
+        if errorlevel 1 exit 1
+        cmake --build build --config Release --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        set PATH=%CD%\build\bin;%CD%\build\lib;%CD%\build\Release;%CD%\build\bin\Release;%CD%\build\lib\Release;%PATH%
+        if errorlevel 1 exit 1
+        @REM Run tests, excluding the HTTP test which brings about a SEGFAULT error
+        ctest -V -C Release --test-dir build -E "http-test"
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - pkg-config
+  host:
+    - catch2
+    - howardhinnant_date
+    - libboost-devel
+    - mxml
+    - nlohmann_json
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound="x") }}
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -d ${PREFIX}/include/zeep
+          - test -f ${PREFIX}/lib/libzeep${SHLIB_EXT}
+        else:
+          - if not exist "%LIBRARY_PREFIX%\include\zeep\" exit /b 1
+          - if not exist "%LIBRARY_PREFIX%\lib\zeep.lib" exit /b 1
+          - if not exist "%LIBRARY_PREFIX%\bin\zeep%SHLIB_EXT%" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/libzeep
+  repository: https://github.com/mhekkel/libzeep
+  documentation: https://mhekkel.github.io/libzeep
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: "C++ library for reading and writing XML and creating web, REST and SOAP servers."
+  description: |
+    Libzeep is a web application framework written in C++.
+    To see a starter project visit the [libzeep-webapp-starter](https://github.com/mhekkel/libzeep-webapp-starter.git) page.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
