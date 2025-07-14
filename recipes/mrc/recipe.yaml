@@ -18,35 +18,38 @@ build:
     - osx
   script:
     - if: unix
-      then:
-        - set -exo pipefail
-        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF ${EXTRA_CMAKE_ARGS}
-        - cmake --build build --config Release --parallel ${CPU_COUNT}
-        - cmake --install build
-      else:
-        - echo on
-        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF
-        - if errorlevel 1 exit 1
-        - cmake --build build --config Release --parallel %CPU_COUNT%
-        - if errorlevel 1 exit 1
-        - cmake --install build
-        - if errorlevel 1 exit 1
+      then: |
+        set -exo pipefail
+        cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=ON
+        cmake --build build --config Release --parallel ${CPU_COUNT}
+        ctest -V -C Release --test-dir build
+        cmake --install build
+      else: |
+        @echo on
+        cmake -S . -B build %CMAKE_ARGS% -DBUILD_TESTING=ON
+        if errorlevel 1 exit 1
+        cmake --build build --config Release --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest -V -C Release --test-dir build
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
 
 requirements:
   build:
     - ${{ compiler("cxx") }}
-    # - ${{ stdlib("c") }}
+    - ${{ stdlib("c") }}
     - cmake
     - if: unix
       then: make
     - pkg-config
   host:
+    - catch2
     - libmcfp
-  run_exports:
-    - ${{ pin_subpackage(name, upper_bound="x") }}
 
 tests:
   - script:
+      - mrc --version
       - mrc --header -o mrsrc.h
 
 about:
