@@ -1,0 +1,71 @@
+{% set python_min = "3.10" %}
+{% set name = "PyActiveStorage" %}
+{% set version = "0.4.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name|lower }}-{{ version }}.tar.gz
+  sha256: 8931b55898be7b8e317bc3264d3396005330aa1e5a24110dfb675daa83a3ea93
+
+build:
+  # Increment the build number when building a new conda package of the same
+  # pyactivestorage version, reset to 0 when building a new version.
+  number: 0
+  # This is noarch but has NOT been tested on Windows.
+  noarch: python
+  script: {{ PYTHON }} -m pip install . --no-deps -vv
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip !=21.3
+    - pytest-runner
+    - setuptools >=40.6.0
+    - setuptools_scm >=6.2
+  run:
+    - python >={{ python_min }}
+    - pyfive >=0.5.0  # earliest support for advanced Pyfive
+    - dask !=2024.8.0  # github.com/dask/dask/issues/11296
+    - fsspec
+    - h5netcdf
+    - netcdf4
+    - numcodecs >=0.12  # github.com/valeriupredoi/PyActiveStorage/issues/162
+    - numpy !=1.24.3  # severe masking bug
+    - requests
+    - s3fs >=2024.2.0  # loose s3fs deps leading to old aiobotocore for <2024.2.0
+    - ujson
+test:
+  source_files:
+    - tests
+    - setup.cfg
+  requires:
+    - moto  # mock S3 tests
+    - pip
+    - pytest
+    - pytest-cov >=2.10.1
+    - pytest-html !=2.1.0
+    - pytest-metadata >=1.5.1
+    - pytest-xdist
+    - python {{ python_min }}
+  commands:
+    - pytest -n 2 -m "not slow"
+    - python -c "from activestorage import Active"
+  imports:
+    - activestorage
+
+about:
+  home: https://github.com/NCAS-CMS/PyActiveStorage
+  license: Apache-2.0  # change to MIT for v0.5.0
+  license_file: LICENSE
+  summary: 'PyActiveStorage: provides a Python client to local or remote active storage (aka computational storage).'
+  description: 'PyActiveStorage: shrink data transfers by applying data reductions straight in the storage unit.'
+  doc_url: https://pyactivestorage.readthedocs.io
+  dev_url: https://github.com/NCAS-CMS/PyActiveStorage
+
+extra:
+  recipe-maintainers:
+    - valeriupredoi
+    - davidhassell
