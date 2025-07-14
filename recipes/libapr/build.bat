@@ -1,8 +1,7 @@
-#!/usr/bin/env bash
+@echo on
+@setLocal EnabledDelayedExpansion
 
-set -o xtrace -o nounset -o pipefail -o errexit
-
-cmake -S . -B build ${CMAKE_ARGS} -G Ninja \
+cmake -S . -B build %CMAKE_ARGS% -G Ninja \
     -DAPR_INSTALL=ON \
     -DAPR_BUILD_SHARED_LIB=ON \
     -DAPR_BUILD_STATIC_LIB=OFF \
@@ -15,6 +14,6 @@ cmake -S . -B build ${CMAKE_ARGS} -G Ninja \
     -DAPR_USE_OPENMP=ON \
     -DAPR_BENCHMARK=OFF \
     -DAPR_DENOISE=OFF
-cmake --build build -j${CPU_COUNT}
+cmake --build build -j%CPU_COUNT%
 ctest --verbose --test-dir build
 cmake --install build
