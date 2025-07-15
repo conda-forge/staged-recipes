@@ -13,7 +13,15 @@ cmake -S . -B build %CMAKE_ARGS% -G Ninja ^
     -DAPR_USE_CUDA=OFF ^
     -DAPR_USE_OPENMP=ON ^
     -DAPR_BENCHMARK=OFF ^
-    -DAPR_DENOISE=OFF
-cmake --build build -j%CPU_COUNT%
-ctest --verbose --test-dir build
-cmake --install build
+    -DAPR_DENOISE=OFF || goto :error
+
+cmake --build build -j1 || goto :error
+ctest --verbose --test-dir build || goto :error
+cmake --install build || goto :error
+
+goto :eof
+
+:error
+echo Failed with error #%errorlevel%.
+exit 1
+
