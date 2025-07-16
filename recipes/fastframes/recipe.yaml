@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  name: fastframes
+  version: "5.5.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.cern.ch/atlas-amglab/${{ name }}/-/archive/v${{ version }}/${{ name }}-v${{ version }}.tar.gz
+  sha256: 77d0a1f0f5685b31f9d62a245fe571be7db062988b37e5915a6c3eb08c2f7bca
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - export RFLAGS="-DCMAKE_INSTALL_RPATH='$ORIGIN/../lib'"
+    - if: osx
+      then:
+        - export RFLAGS="-DCMAKE_MACOSX_RPATH=ON -DCMAKE_INSTALL_RPATH='@loader_path/../lib'"
+    - CXXFLAGS="${CXXFLAGS}" cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -DPython3_ROOT_DIR="$PREFIX" -DPython3_EXECUTABLE="$PYTHON" -DPython3_FIND_STRATEGY=LOCATION ${RFLAGS} -S "${SRC_DIR}" -B build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+    - rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $PREFIX/bin/
+    # NOTE: we must manually set SP_DIR since it is not set.
+    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+    - if: unix
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: osx
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: win
+      then:
+        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+    - rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python_wrapper $SP_DIR/
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - cmake
+    - make
+    - rsync
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+  host:
+    - root_base >= 6.34
+    - boost
+    - python
+  run:
+    - root_base >= 6.34
+    - boost
+    - python
+
+tests:
+  - package_contents:
+      files:
+        - bin/fast-frames.exe
+  - requirements:
+      run:
+        - python
+    script:
+      - LD_LIBRARY_PATH=$(python -c 'import sys; print(f"{sys.prefix}/lib")') FastFrames.py -h
+
+about:
+  license: BSD-2-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'FastFrames: RDataFrames for ATLAS analysis ntuples'
+  description: |
+    FastFrames is a package aimed at processing ntuples produced by
+    TopCPToolkit, or a similar CP algorithm based framework, into histograms or
+    ntuples.  FastFrames rely on ROOT's RDataFrame to do the event loop
+    processing.  The code allows users to define their own columns in a minimal
+    way while using all the functionality of the processing.
+  homepage: https://gitlab.cern.ch/atlas-amglab/fastframes
+  repository: https://gitlab.cern.ch/atlas-amglab/fastframes
+  documentation: https://atlas-project-topreconstruction.web.cern.ch/fastframesdocumentation/latest/
+
+extra:
+  recipe-maintainers:
+    - kratsg
