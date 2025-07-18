@@ -1,0 +1,217 @@
+{% set version = "4.2.0.11" %}
+{% set cuda_major = (cuda_compiler_version|default("12.0.0")).split(".")[0] %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+{% set sha256 = "2d60c0caa5fc68eead96ac5c16bcd8bd97aaa83fa69c7d79fdfcbab4110666c7" %}  # [linux64 and (cuda_compiler_version or "None").startswith("11")]
+{% set sha256 = "0e235903b08f0173835b204e9fa90208660c33eb6a986ec178bb05ea891d5119" %}  # [linux64 and (cuda_compiler_version or "None").startswith("12")]
+{% set sha256 = "abc6ea596b63536272f6ed28df2919e3e1876dfad5c62be2732d87ce45de09b5" %}  # [aarch64 and (cuda_compiler_version or "None").startswith("11")]
+{% set sha256 = "dedc289953e9011a0876b7ae0bbb422155a7302646487cba0c384a4518318a47" %}  # [aarch64 and (cuda_compiler_version or "None").startswith("12")]
+{% set sha256 = "7d1cafcbfd0373e8d2a7af996091ceb1e1fa64f2590fc2c8224b69f70d67e3bb" %}  # [win and (cuda_compiler_version or "None").startswith("11")]
+{% set sha256 = "746e1e3c85538bd2602b8acdc793ee92cf62d7bd0cc7a49e8c7954c1c35083b0" %}  # [win and (cuda_compiler_version or "None").startswith("12")]
+{% set soname = version.split(".")[0] %}
+
+package:
+  name: libnvcomp-split
+  version: {{ version }}
+
+source:
+  - url: https://developer.download.nvidia.com/compute/nvcomp/redist/nvcomp/{{ platform }}/nvcomp-{{ platform }}-{{ version }}_cuda{{ cuda_major }}-archive.{{ extension }}
+    sha256: {{ sha256 }}
+  # Include cudart license because it is statically linked.
+  - url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/LICENSE.txt
+    fn: cudart_LICENSE.txt
+    sha256: e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07
+
+build:
+  number: 0
+  skip: true  # [ppc64le or (cuda_compiler_version or "None") == "None"]
+  script:
+    - mkdir -pv $PREFIX/include                    # [linux]
+    - mv -v include/* $PREFIX/include              # [linux]
+    - mkdir -pv $PREFIX/lib                        # [linux]
+    - mv -v lib/* $PREFIX/lib/                     # [linux]
+    - mkdir %LIBRARY_INC%                                   # [win]
+    - xcopy %SRC_DIR%\\include\\* %LIBRARY_INC%\\ /S /Y     # [win]
+    - mkdir %LIBRARY_LIB%                                   # [win]
+    - xcopy %SRC_DIR%\\lib\\* %LIBRARY_LIB%\\ /S /Y         # [win]
+    - mkdir %LIBRARY_BIN%                                   # [win]
+    - xcopy %SRC_DIR%\\bin\\* %LIBRARY_BIN%\\ /S /Y         # [win]
+    - check-glibc "$PREFIX"/lib*/*.so.* "$PREFIX"/bin/* "$PREFIX"/targets/*/lib*/*.so.* "$PREFIX"/targets/*/bin/*  # [linux]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+
+outputs:
+  - name: libnvcomp
+    files:
+      include:
+        - lib/*.so  # [linux]
+        - lib/*.so.*  # [linux]
+        - Library\bin  # [win]
+    build:
+      ignore_run_exports:
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvcomp.so                                 # [linux]
+        - test -f $PREFIX/lib/libnvcomp.so.{{ soname }}                    # [linux]
+        - test -f $PREFIX/lib/libnvcomp_cpu.so                             # [linux]
+        - if not exist %LIBRARY_BIN%\nvcomp.dll exit 1                     # [win]
+        - if not exist %LIBRARY_BIN%\nvcomp_cpu.dll exit 1                 # [win]
+    about:
+      license: LicenseRef-nvCOMP-Software-License-Agreement AND LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file:
+        - LICENSE
+        - cudart_LICENSE.txt
+      summary: The NVIDIA nvCOMP runtime libraries.
+      description: >-
+        This is a runtime package only. Developers should install libnvcomp-dev to build with nvCOMP.
+
+  - name: libnvcomp-dev
+    files:
+      include:
+        - include  # [unix]
+        - lib/cmake  # [unix]
+        - lib/*nvcomp_device_static.a  # [unix]
+        - Library\include  # [win]
+        - Library\lib\cmake  # [win]
+        - Library\lib\nvcomp.lib  # [win]
+        - Library\lib\nvcomp_cpu.lib  # [win]
+        - Library\lib\nvcomp_device_static.lib  # [win]
+      exclude:
+        - lib/cmake/nvcomp/*static*.cmake  # [linux]
+        - Library\lib\cmake\nvcomp\*static*.cmake  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvcomp") }}
+      ignore_run_exports:
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage("libnvcomp", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvcomp", exact=True) }}
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+    test:
+      requires:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }}
+        - cmake
+        - ninja
+        - cuda-cudart-dev  # [(cuda_compiler_version or "").startswith("12")]
+      files:
+        - test-shared
+      commands:
+        - test -f $PREFIX/include/nvcomp.h                                 # [linux]
+        - test -f $PREFIX/include/nvcomp.hpp                               # [linux]
+        - test -f $PREFIX/lib/cmake/nvcomp/nvcomp-config.cmake             # [linux]
+        - test ! -f $PREFIX/lib/nvcomp_static.a                            # [linux]
+        - if not exist %LIBRARY_INC%\nvcomp.h exit 1                       # [win]
+        - if not exist %LIBRARY_INC%\nvcomp.hpp exit 1                     # [win]
+        - if not exist %LIBRARY_LIB%\nvcomp.lib exit 1                     # [win]
+        - if not exist %LIBRARY_LIB%\nvcomp_cpu.lib exit 1                 # [win]
+        - if not exist %LIBRARY_LIB%\cmake\nvcomp\nvcomp-config.cmake exit 1      # [win]
+        - if exist %LIBRARY_LIB%\nvcomp_static.lib exit 1                  # [win]
+        - cmake -B build $CMAKE_ARGS -G Ninja -S test-shared  # [linux]
+        - cmake -B build %CMAKE_ARGS% -S test-shared  # [win]
+        - cmake --build build
+
+  - name: libnvcomp-static
+    files:
+      include:
+        - lib/*static.a  # [unix]
+        - lib/cmake/nvcomp/*static*.cmake  # [linux]
+        - Library\lib\*static.lib  # [win]
+        - Library\lib\cmake\nvcomp\*static*.cmake  # [win]
+      exclude:
+        - lib/*device_static.a  # [unix]
+        - Library\lib\*device_static.lib  # [win]
+    build:
+      ignore_run_exports:
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage("libnvcomp-dev", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvcomp-dev", exact=True) }}
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+    test:
+      requires:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }}
+        - cmake
+        - ninja
+        - cuda-cudart-dev  # [(cuda_compiler_version or "").startswith("12")]
+      files:
+        - test-static
+      commands:
+        - test -f $PREFIX/lib/libnvcomp_static.a  # [unix]
+        - if not exist %LIBRARY_LIB%\nvcomp_static.lib exit 1  # [win]
+        - cmake -B build $CMAKE_ARGS -G Ninja -S test-static  # [linux]
+        - cmake -B build %CMAKE_ARGS% -S test-static  # [win]
+        - cmake --build build
+    about:
+      license: LicenseRef-nvCOMP-Software-License-Agreement AND LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file:
+        - LICENSE
+        - cudart_LICENSE.txt
+      summary: The NVIDIA nvCOMP static libraries.
+      description: >-
+        Developers should install libnvcomp-dev to build with nvCOMP shared libraries.
+
+about:
+  home: https://developer.nvidia.com/nvcomp
+  license: LicenseRef-nvCOMP-Software-License-Agreement AND LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file:
+    - LICENSE
+    - cudart_LICENSE.txt
+  license_url: https://developer.download.nvidia.com/compute/nvcomp/2.3/LICENSE.txt
+  summary: The NVIDIA nvCOMP development package.
+  description: >-
+    The nvCOMP library provides fast lossless data compression and
+    decompression using a GPU. It features generic compression interfaces to
+    enable developers to use high-performance GPU compressors in their
+    applications.
+
+    License Agreements:- The packages are governed by the standard NVIDIA
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA nvCOMP EULA -
+    https://developer.download.nvidia.com/compute/nvcomp/2.3/LICENSE.txt
+  doc_url: https://docs.nvidia.com/cuda/nvcomp/index.html
+  dev_url: https://developer.nvidia.com/nvcomp
+
+extra:
+  feedstock-name: libnvcomp
+  recipe-maintainers:
+    - conda-forge/cuda
