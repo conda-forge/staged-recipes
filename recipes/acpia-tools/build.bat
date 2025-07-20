@@ -1,0 +1,4 @@
+@echo on
+
+make PREFIX="%LIBRARY_PREFIX%" OPT_CFLAGS="-DACPI_PACKED_POINTERS_NOT_SUPPORTED" || exit /b
+make install PREFIX="%LIBRARY_PREFIX%" || exit /b
