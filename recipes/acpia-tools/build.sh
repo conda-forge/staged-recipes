@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -exo pipefail
 
 if [ "x$PATH_OVERRIDE" != "x" ]; then
     PATH="$PATH_OVERRIDE:$PATH"
