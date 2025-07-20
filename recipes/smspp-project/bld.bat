@@ -5,7 +5,7 @@ git submodule update
 mkdir build
 cd build
 cmake %CMAKE_ARGS% ^
-    -DBUILD_SHARED_LIBS=OFF ^
+    -DBUILD_SHARED_LIBS=ON ^
     ..
 cmake --build . --config Release -j%CPU_COUNT%
 cmake --install . --config Release --prefix "$PREFIX"
