@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
+set -o xtrace -o nounset -o pipefail -o errexit
 
-mkdir -p build && cd build
-
-cmake ${CMAKE_ARGS} -G Ninja \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+cmake -S ${SRC_DIR} -B build -G Ninja \
       -DBUILD_SHARED_LIBS=ON \
-      ${SRC_DIR}
+      ${CMAKE_ARGS}
 
-ninja
-ninja install
+cmake --build build -j${CPU_COUNT}
+cmake --install build
