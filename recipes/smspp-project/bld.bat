@@ -4,7 +4,7 @@ git submodule update
 
 set "CFLAGS=%CFLAGS% /I%LIBRARY_PREFIX%\include"
 set "CXXFLAGS=%CXXFLAGS% /I%LIBRARY_PREFIX%\include"
-set "LDFLAGS=%LDFLAGS% /L%LIBRARY_PREFIX%\lib"
+set "LDFLAGS=%LDFLAGS% -L%LIBRARY_PREFIX%\lib"
 
 mkdir build
 cd build
