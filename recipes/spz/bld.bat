@@ -1,20 +1,18 @@
-mkdir build && cd build
+@echo on
+@setlocal EnableDelayedExpansion
 
-cmake -G "Ninja" ^
+cmake -S %SRC_DIR% -B build -G "Ninja" ^
     -D CMAKE_BUILD_TYPE=Release% ^
-    -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -D CMAKE_VERBOSE_MAKEFILE=%CMAKE_VERBOSE_MAKEFILE% ^
-    -D CMAKE_LIBRARY_PATH:FILEPATH="=%LIBRARY_LIB%" ^
-    -D CMAKE_INCLUDE_PATH:FILEPATH="%LIBRARY_INC%" ^
     -D BUILD_SHARED_LIBS=ON ^
     -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
-    %SRC_DIR%
+     %CMAKE_ARGS%
 if errorlevel 1 exit 1
 
-ninja
+cmake --build build -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
-ninja install
+cmake --install build
 if errorlevel 1 exit 1
 
 
