@@ -7,11 +7,6 @@ VERSION="${PKG_VERSION}"
 
 echo "Installing Swift ${VERSION} toolchain..."
 
-# Set up environment for proper linking
-export LIBRARY_PATH="${CONDA_BUILD_SYSROOT}/usr/lib64:${CONDA_BUILD_SYSROOT}/usr/lib:${LIBRARY_PATH}"
-export LD_LIBRARY_PATH="${CONDA_BUILD_SYSROOT}/usr/lib64:${CONDA_BUILD_SYSROOT}/usr/lib:${LD_LIBRARY_PATH}"
-export CPATH="${CONDA_BUILD_SYSROOT}/usr/include:${CPATH}"
-
 # Debug: Show current directory and contents
 echo "Current directory: $PWD"
 echo "Directory contents:"
