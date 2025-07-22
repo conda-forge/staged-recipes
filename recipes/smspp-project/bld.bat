@@ -2,10 +2,6 @@
 git submodule init
 git submodule update
 
-set "CFLAGS=%CFLAGS% /I%LIBRARY_PREFIX%\include"
-set "CXXFLAGS=%CXXFLAGS% /I%LIBRARY_PREFIX%\include"
-set "LDFLAGS=%LDFLAGS% /LIBPATH:%LIBRARY_PREFIX%\lib"
-
 mkdir build
 cd build
 cmake %CMAKE_ARGS% ^
