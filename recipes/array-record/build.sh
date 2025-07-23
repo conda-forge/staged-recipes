@@ -41,10 +41,10 @@ TMPDIR="$(mktemp -d -t tmp.XXXXXXXXXX)"
 cp setup.py "${TMPDIR}"
 cp LICENSE "${TMPDIR}"
 rsync -avm -L  --exclude="bazel-*/" . "${TMPDIR}/array_record"
-rsync -avm -L  --include="*.so" --include="*_pb2.py" \
+rsync -avm -L  --include="*${SHLIB_EXT}" --include="*_pb2.py" \
   --exclude="*.runfiles" --exclude="*_obj" --include="*/" --exclude="*" \
   bazel-bin/cpp "${TMPDIR}/array_record"
-rsync -avm -L  --include="*.so" --include="*_pb2.py" \
+rsync -avm -L  --include="*${SHLIB_EXT}" --include="*_pb2.py" \
   --exclude="*.runfiles" --exclude="*_obj" --include="*/" --exclude="*" \
   bazel-bin/python "${TMPDIR}/array_record"
 
