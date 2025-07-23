@@ -12,10 +12,20 @@ echo "Current directory: $PWD"
 echo "Directory contents:"
 ls -la
 
-# Debug: Show environment variables
-echo "CONDA_BUILD_SYSROOT: $CONDA_BUILD_SYSROOT"
-echo "LIBRARY_PATH: $LIBRARY_PATH"
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+# Ensure runtime libraries are available for cross-compilation
+export LIBRARY_PATH="$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot/usr/lib64:$BUILD_PREFIX/lib/gcc/x86_64-conda-linux-gnu/14.3.0:$BUILD_PREFIX/lib:$LIBRARY_PATH"
+export LD_LIBRARY_PATH="$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot/usr/lib64:$BUILD_PREFIX/lib/gcc/x86_64-conda-linux-gnu/14.3.0:$BUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+
+# Debug: Show the configured toolchain
+echo "Configured toolchain:"
+echo "  CC                 : $CC"
+echo "  CXX                : $CXX"
+echo "  LD                 : $LD"
+echo "  AR                 : $AR"
+echo "  SYSROOT            : $CONDA_BUILD_SYSROOT"
+echo "  LIBRARY_PATH       : $LIBRARY_PATH"
+echo "  LD_LIBRARY_PATH    : $LD_LIBRARY_PATH"
+echo "  CONDA_BUILD_SYSROOT: $CONDA_BUILD_SYSROOT"
 
 # Check if swift directory exists, if not, look for it or create the structure
 if [ ! -d "swift" ]; then
