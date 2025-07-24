@@ -11,4 +11,4 @@ mkdir -p "${PREFIX}/bin"
 cp gocryptfs "${PREFIX}/bin/"
 
 # Add licenses
-go-licenses save . --save_path="./license_files/"
+go-licenses save . --save_path="./license-files/"
