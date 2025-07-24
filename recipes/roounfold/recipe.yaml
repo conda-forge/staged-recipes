@@ -18,6 +18,18 @@ build:
     - cmake ${CMAKE_ARGS}  -S . -B build
     - cmake --build build --clean-first --parallel="${CPU_COUNT}"
     - cmake --install build
+    # NOTE: we must manually set SP_DIR since it is not set.
+    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+    - if: unix
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: osx
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: win
+      then:
+        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+    - rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $SP_DIR/RooUnfold/
 
 requirements:
   build:
@@ -39,19 +51,9 @@ requirements:
     - python
 
 tests:
-  - requirements:
-      run:
-        - root_base
-        - python
-        - pip
-    script:
-      - python -c "import ROOT; import RooUnfold"
-  # you might be tempted to do this, but RooUnfold needs ROOT imported first
-  # - python:
-  #     imports:
-  #     - ROOT
-  #     - RooUnfold
-  #     pip_check: true
+  - python:
+      imports:
+      - RooUnfold
 
 about:
   homepage: https://gitlab.cern.ch/RooUnfold/RooUnfold
