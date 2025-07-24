@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.2.0"
+  # linter complains if any of this is done with if/then/else below
+  python_min: ${{ "3.11" if is_noop == "true" else python_min }}
+  python_max: ${{ ""     if is_noop == "true" else ",<3.11" }}
+
+package:
+  name: backports.asyncio.runner
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/backports.asyncio.runner/backports_asyncio_runner-${{ version }}.tar.gz
+  sha256: a5aa7b2b7d8f8bfcaa2b57313f70792df84e32a2a746f585213373f900b42162
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - if: is_noop == "false"
+      then: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - hatch-fancy-pypi-readme
+    - hatchling
+    - pip
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+  run_constraints:
+    - python >=${{ python_min }}${{ python_max }}
+
+tests:
+  - if: is_noop == "false"
+    then:
+      python:
+        imports: backports.asyncio.runner
+        pip_check: true
+        python_version:
+          - ${{ python_min }}.*
+  - if: is_noop == "false"
+    then:
+      requirements:
+        run:
+          - pytest-cov
+          - python ${{ python_min }}.*
+      files:
+        source:
+          - tests/
+      script:
+        # remove tests that import the python 3.11 test suite
+        - python -c "from pathlib import Path; [p.unlink() for p in Path('tests').glob('test_tasks_*.py')]"
+        - coverage run --source=backports.asyncio.runner --branch -m pytest -vv --tb=long --color=yes
+        - coverage report --show-missing --skip-covered --fail-under=91
+  - if: is_noop == "false"
+    then:
+      requirements:
+        run:
+          - mypy
+          - python ${{ python_min }}.*
+      script:
+        - mypy -p backports.asyncio.runner
+
+about:
+  summary: Backport of asyncio.Runner, a context manager that controls event loop life cycle.
+  license: PSF-2.0
+  license_file: LICENSE.md
+  homepage: https://github.com/samypr100/backports.asyncio.runner
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
