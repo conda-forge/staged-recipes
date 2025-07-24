@@ -9,3 +9,6 @@ mkdir -p "${PREFIX}/bin"
 
 # Copy the resulting binary into the Conda environment's bin
 cp gocryptfs "${PREFIX}/bin/"
+
+# Add licenses
+go-licenses save . --save_path="./license_files/"
