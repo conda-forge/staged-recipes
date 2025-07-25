@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: pixi-build-cmake
+  version: "0.2.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/prefix-dev/pixi-build-backends/archive/refs/tags/${{ name }}-v${{ version }}.tar.gz
+  sha256: a2345509a1ad738f315551ebf32b6baaa60df6f3f71207617e599cdc7e1df010
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: osx and x86_64
+        then:
+          # use the default linker for osx-64 as we are hitting a bug with the conda-forge linker
+          # https://github.com/rust-lang/rust/issues/140686
+          - unset CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER
+
+      - if: unix
+        then:
+          - export OPENSSL_DIR="$PREFIX"
+      - if: win
+        then:
+          - set CARGO_HOME=C:\.cargo
+          - md %CARGO_HOME%
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/${{ name }}
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+  files:
+    - bin/${{ name }}
+    - bin/${{ name }}.exe
+
+requirements:
+  build:
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  host:
+    - pkg-config
+    - libzlib
+    - liblzma
+    - if: unix
+      then: openssl
+  run:
+    - pixi-build-api-version >=0,<1
+
+tests:
+  - script: ${{ name }} --help
+  - package_contents:
+      bin:
+        - ${{ name }}
+
+about:
+  homepage: https://github.com/prefix-dev/pixi-build-backends
+  summary: A pixi build backend to build CMake based packages.
+  description: |
+    This package provides a build backend for pixi that allows building packages using CMake.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://prefix-dev.github.io/pixi-build-backends
+  repository: https://github.com/prefix-dev/pixi-build-backends
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
