@@ -1,0 +1,86 @@
+context:
+  name: decord
+  version: "0.6.0"
+  dlpack_version: "0.3"
+  dmlc_core_version: "0.3"
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/dmlc/decord/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4aeeb102973bbf6e3b0344d53b055e49939ea47f3607fd0e8ae4aad2d4e60b5b
+  - url: https://github.com/dmlc/dlpack/archive/refs/tags/v${{ dlpack_version }}.tar.gz
+    sha256: 703149f5b39ead42cc734c03c7c4bd581fcad1c5a3939e7a4b5bc82f54c3c32a
+    target_directory: 3rdparty/dlpack
+  - url: https://github.com/dmlc/dmlc-core/archive/refs/tags/v${{ dmlc_core_version }}.tar.gz
+    sha256: 29a6bac5b1639d079cb7336b15d0ea99dbd72dda9cac62057b652d871d06753b
+    target_directory: 3rdparty/dmlc-core
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - if: not use_cuda
+          then:
+            # https://github.com/dmlc/decord/issues/276
+            # https://github.com/egorovivannn/decord_image/blob/24490ef9f402d03f44909e11a88517ffbf77908e/Dockerfile#L77C31-L77C58
+            - mkdir -p $PREFIX/include/cuda/lib64/stubs
+            - touch $PREFIX/include/cuda/lib64/stubs/nvcuvid.so
+        - mkdir build && cd build
+        - cmake .. -DUSE_CUDA=${{ "ON" if use_cuda else 0 }} -DCMAKE_BUILD_TYPE=Release
+        - make
+        - cd ../python
+        - ${{ PYTHON }} -m pip install . --no-build-isolation -vv
+    - if: win
+      then:
+        - mkdir build
+        - cd build
+        - cmake -DCMAKE_CXX_FLAGS="/DDECORD_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -G "Visual Studio 15 2017 Win64" ..
+        - cd ../python
+        - ${{ PYTHON }} -m pip install . --no-build-isolation -vv
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ffmpeg =4
+    - make
+    - if: use_cuda
+      then:
+        - ${{ compiler('cuda') }}
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+    - ffmpeg =4
+    - numpy >=1.14.0
+
+tests:
+  - python:
+      imports:
+      - decord
+      pip_check: true
+
+about:
+  homepage: https://github.com/dmlc/decord
+  summary: An efficient video loader for deep learning with smart shuffling that's super easy to digest
+  description: |
+    Decord is a reverse procedure of Record. It provides convenient video slicing methods based on a thin wrapper on top of hardware accelerated video decoders, e.g.
+    FFMPEG/LibAV, Nvidia Codecs, Intel Codecs.
+    Decord was designed to handle awkward video shuffling experience in order to provide smooth experiences similar to random image loader for deep learning.
+    Decord is also able to decode audio from both video and audio files. One can slice video and audio together to get a synchronized result; hence providing a one-stop solution for both video and audio decoding.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/dmlc/decord
+
+extra:
+  recipe-maintainers:
+    - shermansiu
