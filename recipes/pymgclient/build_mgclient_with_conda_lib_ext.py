@@ -1,8 +1,16 @@
-import os
+import glob
 from pathlib import Path
-
+import os
 from setuptools import Extension
-from setuptools.command.build_ext import build_ext
+
+
+def get_source_files():
+  """Dynamically find all .c files in src/ directory"""
+  src_dir = "src"
+  if os.path.exists(src_dir):
+      return glob.glob(os.path.join(src_dir, "*.c"))
+  return []
+
 
 def build_mgclient_with_conda_lib_ext():
   """Create extension using system-installed mgclient library."""
@@ -25,8 +33,8 @@ def build_mgclient_with_conda_lib_ext():
       libraries = ['mgclient']
 
   return Extension(
-      "pymgclient",
-      sources=["src/mgclientmodule.c"],
+      "mgclient",
+      sources=get_source_files(),
       include_dirs=include_dirs,
       library_dirs=library_dirs,
       libraries=libraries,
