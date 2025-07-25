@@ -9,29 +9,46 @@ package:
 source:
   url: https://github.com/memgraph/pymgclient/archive/refs/tags/v${{ version }}.tar.gz
   sha256: fc98ccc306fbb61f60c7232a3db9ad0b821947a213c36473679037a607a2b799
+  patches:
+    - update-setup.py.patch
 
 build:
-  script: python -m pip install . -vv
+  script: |
+    cp ${RECIPE_DIR}/build_mgclient_with_conda_lib_ext.py ${SRC_DIR}
+    rm ${SRC_DIR}/setup.cfg
+    touch src/__init__.py
+    python -m pip install . -vv --use-pep517 --no-build-isolation
   number: 0
 
 requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
   host:
     - mgclient
     - pip
-    - python =${{ python_min }}.*
-    - pyopenssl
-    - networkx
+    - python ${{ python_min }}.*
     - setuptools
   run:
+    - mgclient
+    - networkx
+    - pyopenssl
     - python >=${{ python_min }}
 
 tests:
   - python:
       imports:
-      - pymgclient
+        - pymgclient
       pip_check: true
-    requirements:
-      run: python ${{ python_min }}.*
+      python_version: ${{ python_min }}.*
+
+  # - script: pytest -v test
+  #   files:
+  #     source: test
+  #   requirements:
+  #     run:
+  #       - pytest
+  #       - python >=${{ python_min }}.*
 
 about:
   homepage: https://github.com/memgraph/pymgclient
@@ -46,7 +63,7 @@ about:
     implementation of the Python programming language.
   license: Apache-2.0
   license_file: LICENSE
-  documentation: memgraph.github.io/pymgclient/
+  documentation: https://memgraph.github.io/pymgclient/
   repository: https://github.com/memgraph/pymgclient
 
 extra:
