@@ -1,0 +1,182 @@
+context:
+  name: UDA
+  version: "2.8.1"
+  username: ukaea
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+cache:
+  source:
+    url: https://github.com//${{ username }}/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 58ad0b9adcf5e9ac4b31e38df38a47d3d6e8501beed5958cf7237a60177c1c0e
+    patches:
+      - uda_cli_help.patch
+      - no_cast_function_type.patch
+  build:
+    script:
+      - if: unix
+        then: build_cache.sh
+      - if: win
+        then: build_cache.bat
+  requirements:
+    build:
+      - ${{ compiler("cxx") }}
+      - git
+      - cmake
+      - ninja
+      - pkg-config
+    host:
+      - libxml2
+      - libboost-devel
+      - fmt
+      - openssl
+      - capnproto
+      - python
+      - pip
+      - openjdk
+      - if: linux and x86_64
+        then: libtirpc
+    ignore_run_exports:
+      from_package:
+        - libxml2
+        - python
+
+outputs:
+  # Client only (core library)
+  - package:
+      name: libuda-client
+      version: ${{ version }}
+    build:
+      number: 0
+      files:
+        include: ["**"]
+        exclude:
+          - ${{ "Library/" if win }}bin/install_plugin
+          - ${{ "Library/" if win }}include/uda/c++/*
+          - ${{ "Library/" if win }}lib/libuda_cpp*
+          - ${{ "Library/" if win }}lib/libuda_jni*
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-cpp.pc
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-fat-cpp.pc
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-fat-client.pc
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-plugins.pc
+          - etc/*
+          - java/*
+          - python_installer/*
+          - modulefiles/*
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libuda-client", upper_bound="x.x.x") }}
+
+    tests:
+      - script:
+          - uda_cli --help
+
+  # C++ client
+  - package:
+      name: uda-client-cpp
+      version: ${{ version }}
+    build:
+      number: 0
+      files:
+        include:
+          - ${{ "Library/" if win }}include/uda/c++/*
+          - ${{ "Library/" if win }}lib/libuda_cpp*
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-cpp.pc
+    requirements:
+      run:
+        - libuda-client
+      run_exports:
+        - ${{ pin_subpackage("uda-client-cpp", upper_bound="x.x.x") }}
+
+  # Python client
+  - package:
+      name: pyuda
+      version: ${{ version }}
+    build:
+      number: 0
+      files:
+        include: ["**"]
+        exclude:
+          - ${{ "Library/" if win }}bin/*
+          - etc/*
+          - ${{ "Library/" if win }}include/*
+          - ${{ "Library/" if win }}lib/libuda_cpp*
+          - ${{ "Library/" if win }}lib/libuda_jni*
+          - ${{ "Library/" if win }}lib/pkgconfig/*
+          - java/*
+          - python_installer/*
+          - modulefiles/*
+
+      script: ${{ PYTHON }} -m pip install --no-deps --no-build-isolation $PREFIX/python_installer/
+
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - pip
+            - setuptools
+            - cython
+            - numpy
+            - six
+      host:
+        - libuda-client
+        - python
+        - pip
+        - setuptools
+        - cython
+        - numpy
+        - six
+      run:
+        - six
+        - progress
+      ignore_run_exports:
+        from_package:
+          - libxml2
+          - libuda-client
+
+    tests:
+      - python:
+          imports:
+            - pyuda
+            - uda
+          pip_check: true
+
+  # Java client
+  - package:
+      name: uda-client-java
+      version: ${{ version }}
+    build:
+      number: 0
+      files:
+        include:
+          - java/*
+          - ${{ "Library/" if win }}lib/libuda_jni*
+
+    requirements:
+      run:
+        - libuda-client
+        - openjdk
+      run_exports:
+        - ${{ pin_subpackage("uda-client-java", upper_bound="x.x") }}
+
+about:
+  homepage: https://ukaea.github.io/UDA/
+  summary: Universal Data Access (USA) library to provide data over the network in a unified data object.
+  description: |
+    The UDA can be either run as a client-server API, running as thin client with all functionality
+    being handled on a remote server, or as fat-client API where both the client access and plugin
+    functionality is run on the local machine.
+  license: Apache-2.0
+  license_file: LICENCE.txt
+  documentation: https://ukaea.github.io/UDA/
+  repository: https://github.com/ukaea/UDA
+
+extra:
+  feedstock-name: uda-feedstock
+  recipe-maintainers:
+    - munechika-koyo
