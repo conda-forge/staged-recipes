@@ -10,11 +10,11 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   CMAKE_ARGS="${CMAKE_ARGS:-} -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
 fi
 
+sed -i 's/install(TARGETS mgclient-static mgclient-shared/install(TARGETS mgclient-shared/' "${SRC_DIR}"/src/CMakeLists.txt
 mkdir -p "${SRC_DIR}"/build
 pushd "${SRC_DIR}"/build
   cmake ${CMAKE_ARGS} .. -G "Ninja"
   cmake --build .
-  sed -i 's/install(TARGETS mgclient-static mgclient-shared/install(TARGETS mgclient-static/' src/CMakeLists.txt
   ninja install
 popd
 
