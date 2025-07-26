@@ -4,5 +4,6 @@ set CARGO_TERM_COLOR=always
 cargo build --release
 if errorlevel 1 exit 1
 
-copy target\release\glinfo.exe %LIBRARY_BIN%
+cargo install --path . --root %LIBRARY_PREFIX%
 if errorlevel 1 exit 1
+
