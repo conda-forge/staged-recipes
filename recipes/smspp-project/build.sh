@@ -1,8 +1,5 @@
 #!/bin/bash
 
-git submodule init
-git submodule update
-
 mkdir build
 cd build
 cmake ${CMAKE_ARGS} \
