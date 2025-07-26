@@ -18,9 +18,14 @@ pushd "${SRC_DIR}"/build
   ninja install
 popd
 
-# The static library .lib conflicts with the dynamic on non-unix platforms,
+if [[ "${target_platform}" != "osx-"* ]] && [[ "${target_platform}" != "linux-"* ]]; then
+  # Oddly, cmake install the dll in 'lib'
+  mv "${PREFIX}"/Library/lib/mgclient.dll ${PREFIX}/Library/bin/mgclient.dll
+fi
+
+# The static library .lib conflicts with the dynamic on non-linux platforms,
 # and the tests depend on static library
-if [[ "${target_platform}" == "osx-"* ]] || [[ "${target_platform}" == "linux-"* ]]; then
+if [[ "${target_platform}" == "linux-"* ]]; then
   pushd "${SRC_DIR}"/build
     cmake ${CMAKE_ARGS} \
       -DCMAKE_POLICY_VERSION_MINIMUM=3.10 \
@@ -30,7 +35,4 @@ if [[ "${target_platform}" == "osx-"* ]] || [[ "${target_platform}" == "linux-"*
     # 3 tests fail due to lack of memgraph server
     ctest --output-on-failure || true
   popd
-else
-  # Oddly, cmake install the dll in 'lib'
-  mv "${PREFIX}"/Library/lib/mgclient.dll ${PREFIX}/Library/bin/mgclient.dll
 fi
