@@ -1,0 +1,89 @@
+context:
+  name: torchao
+  version: "0.12.0"
+  cutlass_version: "3.9.0"
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  cuda_build_string: cuda_${{ cuda_compiler_version | version_to_buildstring }}
+  string_prefix: ${{ cuda_build_string if cuda_compiler_version != "None" else "cpu_" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pytorch/ao/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: c477d78ca5268187979934d3eb38590758adc5415526b3705a9a85099e40ad21
+  - url: https://github.com/NVIDIA/cutlass/archive/refs/tags/v${{ cutlass_version }}.tar.gz
+    sha256: 0ea98a598d1f77fade5187ff6ec6d9e6ef3acd267ee68850aae6e800dcbd69c7
+    target_directory: third_party/cutlass
+
+build:
+  number: 0
+  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pytorch >=2.7
+        - if: use_cuda
+          then:
+            - cuda-cudart-dev
+            - libcublas-dev
+            - libcusolver-dev
+            - libcusparse-dev
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake <4.0.0,>=3.19.0
+    - if: use_cuda
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_compiler_version }}
+        - ninja
+  host:
+    - python
+    - pip
+    - setuptools
+    - if: use_cuda
+      then:
+        - cuda-version ==${{ cuda_compiler_version }}
+        - cuda-cudart-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - pytorch * [build=cuda*]
+      else:
+        - pytorch * [build=cpu*]
+  run:
+    - python
+    # Indirectly needed through torch/distributed/elastic/rendezvous/registry.py
+    # Happens when importing torchao
+    - importlib_metadata
+
+tests:
+  - python:
+      imports:
+      - torchao
+      pip_check: true
+
+about:
+  homepage: https://pytorch.org/ao/stable/index.html
+  summary: PyTorch native quantization and sparsity for training and inference
+  description: |
+    TorchAO is a PyTorch-native model optimization framework leveraging quantization
+    and sparsity to provide an end-to-end, training-to-serving workflow for
+    AI models. TorchAO works out-of-the-box with torch.compile() and FSDP2
+    across most HuggingFace PyTorch models.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - third_party/cutlass/LICENSE.txt
+  documentation: https://docs.pytorch.org/ao/stable/
+  repository: https://github.com/pytorch/ao
+
+extra:
+  recipe-maintainers:
+    - shermansiu
