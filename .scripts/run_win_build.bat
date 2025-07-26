@@ -98,6 +98,7 @@ if !errorlevel! neq 0 exit /b !errorlevel!
 call :end_group
 
 echo Building all recipes
+set "RATTLER_BUILD_EXPERIMENTAL=true"
 python .ci_support\build_all.py
 if !errorlevel! neq 0 exit /b !errorlevel!
 

@@ -84,6 +84,7 @@ conda index "${FEEDSTOCK_ROOT}/build_artifacts"
 ( endgroup "Configuring conda" ) 2> /dev/null
 
 echo "Building all recipes"
+export RATTLER_BUILD_EXPERIMENTAL=true
 python "${CI_SUPPORT}/build_all.py"
 
 ( startgroup "Inspecting artifacts" ) 2> /dev/null
