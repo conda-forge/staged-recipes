@@ -1,6 +1,4 @@
 #!/bin/bash
 set -xeo pipefail
-
-export SKIP_YASM_BUILD=true
-
+cp ${RECIPE_DIR}/setup.py .
 python -m pip install . -vv
