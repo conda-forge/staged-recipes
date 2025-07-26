@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ "${target_platform}" == "osx-64" ]]; then
-  CMAKE_ARGS="${CMAKE_ARGS:-} -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15"
+  CMAKE_ARGS="${CMAKE_ARGS:-} -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=x86_64"
 fi
 
 if [[ "${target_platform}" == "osx-arm64" ]]; then
@@ -30,4 +30,7 @@ if [[ "${target_platform}" == "osx-"* ]] || [[ "${target_platform}" == "linux-"*
     # 3 tests fail due to lack of memgraph server
     ctest --output-on-failure || true
   popd
+else
+  # Oddly, cmake install the dll in 'lib'
+  mv "${PREFIX}"/Library/lib/mgclient.dll ${PREFIX}/Library/bin/mgclient.dll
 fi
