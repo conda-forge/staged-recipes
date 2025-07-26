@@ -1,11 +1,29 @@
 --- a/setup.py
 +++ b/setup.py
-@@ -26,2 +26,17 @@
+@@ -26,2 +26,34 @@
  from setuptools.command.build_ext import build_ext
 +from build_mgclient_with_conda_lib_ext import build_mgclient_with_conda_lib_ext
 +
 +class GccBuildExt(build_ext):
 +  def finalize_options(self):
++    print(f"DEBUG: Platform: {platform.system()}")
++    print(f"DEBUG: Available compilers: {list(distutils.ccompiler.compiler_class.keys())}")
++    # Check if gcc is available
++    import subprocess
++    try:
++        result = subprocess.run(['gcc', '--version'], capture_output=True, text=True)
++        print(f"DEBUG: GCC available: {result.returncode == 0}")
++        if result.returncode == 0:
++            print(f"DEBUG: GCC version: {result.stdout.split()[0:3]}")
++    except:
++        print("DEBUG: GCC not found")
++
++    if platform.system() == "Windows":
++        self.compiler = 'mingw32'
++        print(f"DEBUG: Set compiler to mingw32")
++
++    super().finalize_options()
++    print(f"DEBUG: Final compiler setting: {self.compiler}")
 +    if platform.system() == "Windows":
 +      self.compiler = 'mingw32'
 +    super().finalize_options()
@@ -18,12 +36,12 @@
 +        self.compiler_obj.initialize()
 +    super().build_extensions()
 
-@@ -316,3 +331,3 @@
+@@ -316,3 +350,3 @@
      ext_modules=[
 -        Extension(EXTENSION_NAME, sources=sources, depends=headers, extra_link_args=extra_link_args)
 +        build_mgclient_with_conda_lib_ext()
      ],
-@@ -322,3 +342,3 @@
+@@ -322,3 +356,3 @@
      },
 -    cmdclass={"build_ext": BuildMgclientExt},
 +    cmdclass={"build_ext": GccBuildExt},
