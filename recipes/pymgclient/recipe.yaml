@@ -22,9 +22,33 @@ build:
       else: |
         copy %RECIPE_DIR%\build_mgclient_with_conda_lib_ext.py %SRC_DIR%
         rm %SRC_DIR%\setup.cfg
-        where gcc.exe
-        set CC=%BUILD_PREFIX%\bin\gcc
-        %CC% --version
+        python -m pip install . -vv --no-build-isolation
+        if exist "%BUILD_PREFIX%\bin\gcc.exe" (
+            echo "Found gcc at: %BUILD_PREFIX%\bin\gcc.exe"
+            set "CC=%BUILD_PREFIX%\bin\gcc.exe"
+        ) else if exist "%BUILD_PREFIX%\Library\bin\gcc.exe" (
+            echo "Found gcc at: %BUILD_PREFIX%\Library\bin\gcc.exe"
+            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
+        ) else if exist "%BUILD_PREFIX%\Scripts\gcc.exe" (
+            echo "Found gcc at: %BUILD_PREFIX%\Library\bin\gcc.exe"
+            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
+        ) else if exist "%BUILD_PREFIX%\Scripts\gcc.exe" (
+            echo "Found gcc at: %BUILD_PREFIX%\mingw-w64\bin\gcc.exe"
+            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
+        ) else (
+            echo "ERROR: gcc.exe not found in expected locations"
+            exit /b 1
+        )
+
+        REM Test gcc
+        echo "=== Testing GCC ==="
+        "%CC%" --version || (echo "ERROR: GCC test failed" && exit /b 1)
+
+        REM Force distutils to use gcc
+        set DISTUTILS_USE_SDK=1
+
+        REM Install
+        echo "=== Installing ==="
         python -m pip install . -vv --no-build-isolation
   number: 0
 
