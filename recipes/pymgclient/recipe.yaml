@@ -22,32 +22,46 @@ build:
       else: |
         copy %RECIPE_DIR%\build_mgclient_with_conda_lib_ext.py %SRC_DIR%
         rm %SRC_DIR%\setup.cfg
-        if exist "%BUILD_PREFIX%\bin\gcc.exe" (
-            echo "Found gcc at: %BUILD_PREFIX%\bin\gcc.exe"
-            set "CC=%BUILD_PREFIX%\bin\gcc.exe"
-        ) else if exist "%BUILD_PREFIX%\Library\bin\gcc.exe" (
-            echo "Found gcc at: %BUILD_PREFIX%\Library\bin\gcc.exe"
-            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
-        ) else if exist "%BUILD_PREFIX%\Scripts\gcc.exe" (
-            echo "Found gcc at: %BUILD_PREFIX%\Library\bin\gcc.exe"
-            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
-        ) else if exist "%BUILD_PREFIX%\Scripts\gcc.exe" (
-            echo "Found gcc at: %BUILD_PREFIX%\mingw-w64\bin\gcc.exe"
-            set "CC=%BUILD_PREFIX%\Library\bin\gcc.exe"
+        REM Debug: Find gcc anywhere in BUILD_PREFIX
+        echo "=== Searching for GCC ==="
+        dir /s /b "%BUILD_PREFIX%\*gcc*.exe" 2>nul || echo "No gcc.exe found in BUILD_PREFIX"
+
+        REM Also check PREFIX
+        dir /s /b "%PREFIX%\*gcc*.exe" 2>nul || echo "No gcc.exe found in PREFIX"
+
+        REM Check conda environment
+        echo "=== Conda packages ==="
+        conda list | findstr gcc
+
+        REM Look for cross-compiler names (common in conda-forge)
+        if exist "%BUILD_PREFIX%\bin\x86_64-w64-mingw32-gcc.exe" (
+            echo "Found cross-compiler gcc"
+            set "CC=%BUILD_PREFIX%\bin\x86_64-w64-mingw32-gcc.exe"
+            set "CXX=%BUILD_PREFIX%\bin\x86_64-w64-mingw32-g++.exe"
         ) else (
-            echo "ERROR: gcc.exe not found in expected locations"
+            REM Search for any gcc-like executable
+            for /f "delims=" %%i in ('dir /s /b "%BUILD_PREFIX%\*gcc*.exe" 2^>nul ^| findstr /v "lib"') do (
+                echo "Found potential gcc: %%i"
+                set "CC=%%i"
+                set "CXX=%%i"
+                goto :found_gcc
+            )
+
+            echo "ERROR: No GCC executable found"
             exit /b 1
         )
 
+        :found_gcc
+        echo "=== Using GCC ==="
+        echo "CC=%CC%"
+        echo "CXX=%CXX%"
+
         REM Test gcc
-        echo "=== Testing GCC ==="
         "%CC%" --version || (echo "ERROR: GCC test failed" && exit /b 1)
 
         REM Force distutils to use gcc
         set DISTUTILS_USE_SDK=1
 
-        REM Install
-        echo "=== Installing ==="
         python -m pip install . -vv --no-build-isolation
   number: 0
 
