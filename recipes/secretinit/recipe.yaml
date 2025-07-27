@@ -3,7 +3,7 @@ context:
   version: "1.0.0"
 
 package:
-  name: ${{ name }}
+  name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
@@ -12,27 +12,39 @@ source:
 
 build:
   number: 0
+  script:
+    - cd cmd/secretinit
+    - go-licenses save . --save_path ../../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/secretinit -ldflags="-s -w -X main.version=${{ version }}" -trimpath
+      else: go build -v -o %LIBRARY_BIN%\secretinit.exe -ldflags="-s -X main.version=${{ version }}" -trimpath
 
 requirements:
   build:
-    - go >=1.21
+    - ${{ compiler("go-nocgo") }} >=1.24
+    - go-licenses
     # Note: git is NOT required for building, only as an optional runtime dependency
     # for users who want to use the git credential backend feature
 
 tests:
-  - script:
-      - ${{ name }} --version
+  - script: secretinit -h
+  - package_contents:
+      bin:
+        - secretinit
+      strict: true
 
 about:
   homepage: https://github.com/liifi/secretinit
-  license: MIT
-  license_file: LICENSE
   summary: Inject secrets from cloud providers and git credential stores into your app's environment variables
   description: |
     secretinit is a command-line tool that injects secrets into your application's 
     environment variables from secure storage backends including AWS Secrets Manager,
     GCP Secret Manager, Azure Key Vault, and git credential helpers.
-  documentation: https://github.com/liifi/secretinit#readme
+  license: MIT
+  license_file:
+    - LICENSE
+    - library_licenses/
+  documentation: https://pkg.go.dev/github.com/liifi/secretinit
   repository: https://github.com/liifi/secretinit
 
 extra:
