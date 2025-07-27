@@ -1,7 +1,7 @@
 @echo off
 
 :: Configure Portable XDR
-cmake cmake %CMAKE_ARGS% ^
+cmake %CMAKE_ARGS% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%PREFIX%" ^
