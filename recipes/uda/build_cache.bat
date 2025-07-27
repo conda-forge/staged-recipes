@@ -6,6 +6,7 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
     -B build -S "%SRC_DIR%\extlib"  || exit /b 1
 
 :: Build and install Portable XDR
