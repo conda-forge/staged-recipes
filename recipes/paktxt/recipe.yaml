@@ -1,9 +1,9 @@
 context:
-  name: "paktxt"
+  name: paktxt
   version: "1.0.0"
 
 package:
-  name: ${{ name }}
+  name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
@@ -12,26 +12,39 @@ source:
 
 build:
   number: 0
+  script:
+    # - cd src
+    - go-licenses save . --save_path ./library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/paktxt -ldflags="-s -w -X main.version=${{ version }}" -trimpath
+      else: go build -v -o %LIBRARY_BIN%\paktxt.exe -ldflags="-s -X main.version=${{ version }}" -trimpath
+
 
 requirements:
   build:
-    - go >=1.21
+    - ${{ compiler("go-nocgo") }} >=1.24
+    - go-licenses
     # Note: git is an optional runtime dependency for git-aware file scanning feature
 
 tests:
-  - script:
-      - ${{ name }} --version
+  - script: paktxt -h
+  - package_contents:
+      bin:
+        - paktxt
+      strict: true
 
 about:
   homepage: https://github.com/liifi/paktxt
-  license: MIT
-  license_file: LICENSE
   summary: A command-line tool that consolidates multiple text files into a single portable archive
   description: |
     paktxt is a command-line tool that consolidates multiple text files into a single 
     structured .paktxt file and accurately restores them with original directory structure 
     and executable flags. It features git-aware file scanning, intelligent filtering of 
     binaries and temp files, and supports both clipboard and file-based operations.
+  license: MIT
+  license_file:
+    - LICENSE
+    - library_licenses/
   documentation: https://github.com/liifi/paktxt#readme
   repository: https://github.com/liifi/paktxt
 
