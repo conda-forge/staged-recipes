@@ -306,6 +306,7 @@ def build_folders_rattler_build(
         recipes_dir,
         "--target-platform",
         f"{platform}-{arch}",
+        "--experimental",
     ]
 
     # Construct a temporary file where we write the combined variant config. We can then pass that
