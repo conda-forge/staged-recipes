@@ -1,27 +1,33 @@
 --- a/setup.py
 +++ b/setup.py
-@@ -14,8 +14,13 @@
-
- import os
-+import sys
- import platform
--import shutil
-+
-+# Set compiler environment before any imports
-+if sys.platform == "win32":
-+    os.environ.setdefault('CC', 'gcc')
-+
-+import shutil
-@@ -26,2 +38,3 @@
+@@ -26,2 +26,20 @@
  from setuptools.command.build_ext import build_ext
 +from build_mgclient_with_conda_lib_ext import build_mgclient_with_conda_lib_ext
++
++class GccBuildExt(build_ext):
++    def build_extensions(self):
++        # Force mingw32 compiler on Windows
++        if sys.platform == "win32":
++            print("DEBUG: Forcing mingw32 compiler object creation")
++            from distutils.cygwinccompiler import Mingw32CCompiler
++            from distutils.unixccompiler import UnixCCompiler
++
++            # Replace the compiler object entirely
++            self.compiler = Mingw32CCompiler()
++            self.compiler.set_executable('compiler_so', 'gcc')
++            self.compiler.set_executable('compiler_cxx', 'g++')
++            self.compiler.set_executable('linker_so', 'gcc -shared')
++            print(f"DEBUG: Compiler object: {type(self.compiler)}")
++
++        super().build_extensions()
 
-@@ -316,3 +329,3 @@
+@@ -316,3 +334,3 @@
      ext_modules=[
 -        Extension(EXTENSION_NAME, sources=sources, depends=headers, extra_link_args=extra_link_args)
 +        build_mgclient_with_conda_lib_ext()
      ],
-@@ -322,3 +335,2 @@
+@@ -322,3 +340,2 @@
      },
 -    cmdclass={"build_ext": BuildMgclientExt},
++    cmdclass={"build_ext": GccBuildExt},
      install_requires=[
