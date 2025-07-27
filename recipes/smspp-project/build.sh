@@ -9,4 +9,4 @@ cmake --build . --config Release -j ${CPU_COUNT}
 cmake --install . --config Release --prefix "$PREFIX"
 
 chmod +x InvestmentBlock/test/InvestmentBlock_test
-cp build/InvestmentBlock/test/InvestmentBlock_test "$PREFIX"
+cp InvestmentBlock/test/InvestmentBlock_test "$PREFIX"/bin/InvestmentBlock_test
