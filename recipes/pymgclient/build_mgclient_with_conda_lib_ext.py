@@ -78,7 +78,8 @@ def build_mgclient_with_conda_lib_ext():
       # Fallback to environment variables or common paths
       if sys.platform == "win32":
           # Windows-specific paths
-          prefix = os.environ.get('LIBRARY_PREFIX') or os.environ.get('PREFIX', '')
+          prefix = os.environ.get('PREFIX', '')
+          
           print(f"DEBUG: Windows PREFIX={prefix}")
 
           include_dirs = [
@@ -93,9 +94,7 @@ def build_mgclient_with_conda_lib_ext():
 
           # Debug: check if library exists
           for lib_dir in library_dirs:
-              lib_file = os.path.join(lib_dir, 'libmgclient.a')
               dll_file = os.path.join(lib_dir, 'mgclient.lib')
-              print(f"DEBUG: Checking for library at {lib_file}: {os.path.exists(lib_file)}")
               print(f"DEBUG: Checking for library at {dll_file}: {os.path.exists(dll_file)}")
       else:
           # Unix-like systems
