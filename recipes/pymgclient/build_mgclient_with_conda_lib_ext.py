@@ -1,12 +1,12 @@
 import glob
 from pathlib import Path
 import os
+import sys
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 
 class GccBuildExt(build_ext):
     def build_extensions(self):
-        import sys
         if sys.platform == "win32":
             # Try to find gcc in PATH first
             import subprocess
