@@ -14,11 +14,8 @@ class GccBuildExt(build_ext):
         cc_path = shutil.which('x86_64-w64-mingw32-gcc.exe')
 
         if cc_path and os.path.exists(cc_path):
-          print(f"DEBUG: Found GCC at: {cc_path}")
-
           # Use forward slashes to avoid backslash issues
           cc_path = cc_path.replace('\\', '/')
-          print(f"DEBUG: Normalized path: {cc_path}")
 
           from distutils.unixccompiler import UnixCCompiler
 
@@ -39,13 +36,10 @@ class GccBuildExt(build_ext):
           # Set proper shared library settings for Windows
           self.compiler.shared_lib_extension = '.dll'
           self.compiler.exe_extension = '.exe'
-
-          print("DEBUG: Compiler setup complete")
         else:
           print("DEBUG: GCC not found")
 
       except Exception as e:
-        print(f"DEBUG: Exception: {e}")
         import traceback
         traceback.print_exc()
 
@@ -79,9 +73,6 @@ def build_mgclient_with_conda_lib_ext():
     if sys.platform == "win32":
       # Windows-specific paths
       prefix = os.environ.get('PREFIX', '')
-      
-      print(f"DEBUG: Windows PREFIX={prefix}")
-
       include_dirs = [
         os.path.join(prefix, 'Library', 'include'),
         os.path.join(prefix, 'include')
@@ -92,11 +83,6 @@ def build_mgclient_with_conda_lib_ext():
         os.path.join(prefix, 'libs'),
       ]
       libraries = ['mgclient']
-
-      # Debug: check if library exists
-      for lib_dir in library_dirs:
-        dll_file = os.path.join(lib_dir, 'mgclient.lib')
-        print(f"DEBUG: Checking for library at {dll_file}: {os.path.exists(dll_file)}")
     else:
       # Unix-like systems
       base_path = Path(os.environ.get('PREFIX', ''))
