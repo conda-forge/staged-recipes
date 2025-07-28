@@ -2,7 +2,7 @@ REM Echo all output
 @echo on
 
 REM Configure project
-cmake --fresh -G Ninja -D CMAKE_BUILD_TYPE=Release -B builds\conda -S .
+cmake --fresh -G Ninja -D CMAKE_BUILD_TYPE=Release -B builds\conda -S . %CMAKE_ARGS%
 
 REM Build
 cmake --build builds\conda --parallel --target khiopsdriver_file_s3
