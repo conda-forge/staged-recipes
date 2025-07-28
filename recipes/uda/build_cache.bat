@@ -10,8 +10,11 @@ cmake %CMAKE_ARGS% ^
     -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
 
 :: Build and install Portable XDR
-cmake --build build/xdr --target install  || exit /b 1
+cmake --build build\xdr --target install  || exit /b 1
 
+:: Set environment variables for UDA client
+set XDR_LIBRARIES=%PREFIX%\lib
+set XDR_INCLUDE_DIR=%PREFIX%\include
 
 :: === Build & Install UDA client ===
 :: Configure and build
