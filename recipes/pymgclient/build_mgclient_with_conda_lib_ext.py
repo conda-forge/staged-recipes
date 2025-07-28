@@ -10,11 +10,13 @@ class GccBuildExt(build_ext):
     if sys.platform == "win32":
       import subprocess
       try:
-        result = subprocess.run(['where', 'x86_64-w64-mingw32-gcc.exe'],
-                              capture_output=True, text=True)
+        result = subprocess.run(
+          ['where', 'x86_64-w64-mingw32-gcc.exe'],
+          capture_output=True, text=True
+        )
         if result.returncode == 0:
           cc_path = result.stdout.strip().split('\n')[0]
-          cc_path = os.path.normpath(cc_path)  # Only normalize backslashes
+          # cc_path = os.path.normpath(cc_path)  # Only normalize backslashes
           print(f"DEBUG: Using GCC at: {cc_path}")
 
           if os.path.exists(cc_path):
