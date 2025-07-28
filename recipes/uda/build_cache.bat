@@ -12,9 +12,6 @@ cmake %CMAKE_ARGS% ^
 :: Build and install Portable XDR
 cmake --build build\xdr --target install  || exit /b 1
 
-:: Set environment variables for UDA client
-set XDR_LIBRARIES=%PREFIX%\lib
-set XDR_INCLUDE_DIR=%PREFIX%\include
 
 :: === Build & Install UDA client ===
 :: Configure and build
@@ -36,6 +33,8 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+    -DXDR_LIBRARIES="%PREFIX%\lib" ^
+    -DXDR_INCLUDE_DIR="%PREFIX%\include" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
 
 :: Build and install
