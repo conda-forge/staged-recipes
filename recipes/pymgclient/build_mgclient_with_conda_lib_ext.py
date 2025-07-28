@@ -2,7 +2,7 @@ import glob
 from pathlib import Path
 import os
 from setuptools import Extension
-
+from setuptools.command.build_ext import build_ext
 
 class GccBuildExt(build_ext):
     def build_extensions(self):
