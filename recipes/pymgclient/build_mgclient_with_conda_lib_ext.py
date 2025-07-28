@@ -29,14 +29,11 @@ class GccBuildExt(build_ext):
 
                     if os.path.exists(cc_path):
                         print(f"DEBUG: GCC exists at: {cc_path}")
-                        cxx_path = cc_path.replace('gcc.exe', 'g++.exe')
-
                         from distutils.cygwinccompiler import Mingw32CCompiler
                         self.compiler = Mingw32CCompiler()
                         self.compiler.set_executables(
                             compiler=cc_path,
                             compiler_so=cc_path,
-                            compiler_cxx=cxx_path,
                             linker_exe=cc_path,
                             linker_so=cc_path
                         )
