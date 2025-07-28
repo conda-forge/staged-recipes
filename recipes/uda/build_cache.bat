@@ -33,8 +33,8 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
-    -DXDR_LIBRARIES="%PREFIX%\lib" ^
-    -DXDR_INCLUDE_DIR="%PREFIX%\include" ^
+    -DXDR_LIBRARIES="%LIBRARY_LIB%" ^
+    -DXDR_INCLUDE_DIR="%LIBRARY_INC%" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
 
 :: Build and install
