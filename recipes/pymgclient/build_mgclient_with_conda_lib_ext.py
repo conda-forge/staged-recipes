@@ -6,44 +6,35 @@ from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 
 class GccBuildExt(build_ext):
-    def build_extensions(self):
-        if sys.platform == "win32":
-            import subprocess
-            try:
-                result = subprocess.run(['where', 'x86_64-w64-mingw32-gcc.exe'],
-                                      capture_output=True, text=True)
-                if result.returncode == 0:
-                    cc_path_raw = result.stdout.strip().split('\n')[0]
-                    print(f"DEBUG: Raw path from 'where': {repr(cc_path_raw)}")  # Use repr to see actual string
+  def build_extensions(self):
+    if sys.platform == "win32":
+      import subprocess
+      try:
+        result = subprocess.run(['where', 'x86_64-w64-mingw32-gcc.exe'],
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+          cc_path = result.stdout.strip().split('\n')[0]
+          cc_path = os.path.normpath(cc_path)  # Only normalize backslashes
+          print(f"DEBUG: Using GCC at: {cc_path}")
 
-                    # Manually expand environment variables with proper path handling
-                    cc_path = cc_path_raw
-                    for var_name in ['BUILD_PREFIX', 'PREFIX', 'CONDA_PREFIX']:
-                        var_value = os.environ.get(var_name, '')
-                        if var_value and f'%{var_name}%' in cc_path:
-                            # Use raw string replacement and normalize path
-                            cc_path = cc_path.replace(f'%{var_name}%', var_value)
-                            cc_path = os.path.normpath(cc_path)  # Normalize backslashes
-                            print(f"DEBUG: Expanded {var_name}={var_value}")
-                            print(f"DEBUG: Path after expansion: {repr(cc_path)}")
-
-                    if os.path.exists(cc_path):
-                        print(f"DEBUG: GCC exists at: {cc_path}")
-                        from distutils.cygwinccompiler import Mingw32CCompiler
-                        self.compiler = Mingw32CCompiler()
-                        self.compiler.set_executables(
-                            compiler=cc_path,
-                            compiler_so=cc_path,
-                            linker_exe=cc_path,
-                            linker_so=cc_path
-                        )
-                        self.compiler.initialize()
-                        super().build_extensions()
-                        return
-                    else:
-                        print(f"DEBUG: GCC not found at: {repr(cc_path)}")
-            except Exception as e:
-                print(f"DEBUG: Exception: {e}")
+          if os.path.exists(cc_path):
+            print(f"DEBUG: GCC exists at: {cc_path}")
+            from distutils.cygwinccompiler import Mingw32CCompiler
+            self.compiler = Mingw32CCompiler()
+            self.compiler.set_executables(
+              compiler=cc_path,
+              compiler_so=cc_path,
+              linker_exe=cc_path,
+              linker_so=cc_path
+            )
+            self.compiler.initialize()
+            super().build_extensions()
+            print(f"DEBUG: Done")
+            return
+          else:
+              print(f"DEBUG: GCC not found at: {repr(cc_path)}")
+      except Exception as e:
+            print(f"DEBUG: Exception: {e}")
 
 def get_source_files():
   """Dynamically find all .c files in src/ directory"""
