@@ -16,20 +16,29 @@ class GccBuildExt(build_ext):
         if cc_path and os.path.exists(cc_path):
           print(f"DEBUG: Found GCC at: {cc_path}")
 
-          from distutils.cygwinccompiler import Mingw32CCompiler
+          # Use forward slashes to avoid backslash issues
+          cc_path = cc_path.replace('\\', '/')
+          print(f"DEBUG: Normalized path: {cc_path}")
 
-          # Create compiler but override the default cc BEFORE initialization
-          self.compiler = Mingw32CCompiler.__new__(Mingw32CCompiler)
-          self.compiler.cc = cc_path  # Set this before __init__
-          self.compiler.__init__()
+          from distutils.unixccompiler import UnixCCompiler
 
-          # Now set all the other executables
+          self.compiler = UnixCCompiler()
+
+          # Set proper MinGW flags (not Cygwin flags)
           self.compiler.set_executables(
             compiler=cc_path,
             compiler_so=cc_path,
             linker_exe=cc_path,
             linker_so=cc_path
           )
+
+          # Override the problematic flags
+          self.compiler.compile_options = ['-O2']  # Remove -mcygwin
+          self.compiler.compile_options_debug = ['-g', '-O0']
+
+          # Set proper shared library settings for Windows
+          self.compiler.shared_lib_extension = '.dll'
+          self.compiler.exe_extension = '.exe'
 
           print("DEBUG: Compiler setup complete")
         else:
