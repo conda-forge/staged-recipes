@@ -10,14 +10,32 @@ class GccBuildExt(build_ext):
     if sys.platform == "win32":
       import subprocess
       try:
+        # Debug the where command itself
+        print(f"DEBUG: Running 'where x86_64-w64-mingw32-gcc.exe'...")
         result = subprocess.run(
           ['where', 'x86_64-w64-mingw32-gcc.exe'],
           capture_output=True, text=True
         )
+        print(f"DEBUG: where returncode: {result.returncode}")
+        print(f"DEBUG: where stdout: {repr(result.stdout)}")
+        print(f"DEBUG: where stderr: {repr(result.stderr)}")
+
         if result.returncode == 0:
           cc_path = result.stdout.strip().split('\n')[0]
-          # cc_path = os.path.normpath(cc_path)  # Only normalize backslashes
-          print(f"DEBUG: Using GCC at: {cc_path}")
+          print(f"DEBUG: Extracted path: {repr(cc_path)}")
+
+          # Let's also try a different approach - check PATH directly
+          path_env = os.environ.get('PATH', '')
+          print(f"DEBUG: PATH contains gcc location: {'x86_64-w64-mingw32-gcc.exe' in path_env}")
+
+          # Try using shutil.which instead
+          import shutil
+          which_result = shutil.which('x86_64-w64-mingw32-gcc.exe')
+          print(f"DEBUG: shutil.which result: {repr(which_result)}")
+
+          if which_result:
+            cc_path = which_result
+            print(f"DEBUG: Using shutil.which result: {cc_path}")
 
           if os.path.exists(cc_path):
             print(f"DEBUG: GCC exists at: {cc_path}")
@@ -36,7 +54,12 @@ class GccBuildExt(build_ext):
           else:
               print(f"DEBUG: GCC not found at: {repr(cc_path)}")
       except Exception as e:
-            print(f"DEBUG: Exception: {e}")
+        print(f"DEBUG: Exception: {e}")
+        import traceback
+        traceback.print_exc()
+
+    super().build_extensions()
+
 
 def get_source_files():
   """Dynamically find all .c files in src/ directory"""
