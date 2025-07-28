@@ -64,6 +64,6 @@ echo "Install destination: $PREFIX"
 ./utils/build-script \
     --preset=buildbot_linux,no_test \
     install_destdir="$PREFIX" \
-    installable_package="$PREFIX"
+    installable_package="$PREFIX/swift-${VERSION}-RELEASE.tar.gz"
 
 echo "Swift build completed successfully"
