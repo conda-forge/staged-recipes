@@ -67,48 +67,54 @@ def build_mgclient_with_conda_lib_ext():
 
   # Try pkg-config first
   try:
-      subprocess.run(['pkg-config', '--exists', 'mgclient'], check=True)
-      cflags = subprocess.check_output(['pkg-config', '--cflags', 'mgclient']).decode().strip()
-      libs = subprocess.check_output(['pkg-config', '--libs', 'mgclient']).decode().strip()
+    subprocess.run(['pkg-config', '--exists', 'mgclient'], check=True)
+    cflags = subprocess.check_output(['pkg-config', '--cflags', 'mgclient']).decode().strip()
+    libs = subprocess.check_output(['pkg-config', '--libs', 'mgclient']).decode().strip()
 
-      include_dirs = [flag[2:] for flag in cflags.split() if flag.startswith('-I')]
-      library_dirs = [flag[2:] for flag in libs.split() if flag.startswith('-L')]
-      libraries = [flag[2:] for flag in libs.split() if flag.startswith('-l')]
+    include_dirs = [flag[2:] for flag in cflags.split() if flag.startswith('-I')]
+    library_dirs = [flag[2:] for flag in libs.split() if flag.startswith('-L')]
+    libraries = [flag[2:] for flag in libs.split() if flag.startswith('-l')]
   except:
-      # Fallback to environment variables or common paths
-      if sys.platform == "win32":
-          # Windows-specific paths
-          prefix = os.environ.get('PREFIX', '')
-          
-          print(f"DEBUG: Windows PREFIX={prefix}")
+    # Fallback to environment variables or common paths
+    if sys.platform == "win32":
+      # Windows-specific paths
+      prefix = os.environ.get('PREFIX', '')
+      
+      print(f"DEBUG: Windows PREFIX={prefix}")
 
-          include_dirs = [
-              os.path.join(prefix, 'Library', 'include'),
-              os.path.join(prefix, 'include')
-          ]
-          library_dirs = [
-              os.path.join(prefix, 'Library', 'lib'),
-              os.path.join(prefix, 'lib')
-          ]
-          libraries = ['mgclient']
+      include_dirs = [
+        os.path.join(prefix, 'Library', 'include'),
+        os.path.join(prefix, 'include')
+      ]
+      library_dirs = [
+        os.path.join(prefix, 'Library', 'lib'),
+        os.path.join(prefix, 'lib'),
+        os.path.join(prefix, 'libs'),
+      ]
+      libraries = ['mgclient']
 
-          # Debug: check if library exists
-          for lib_dir in library_dirs:
-              dll_file = os.path.join(lib_dir, 'mgclient.lib')
-              print(f"DEBUG: Checking for library at {dll_file}: {os.path.exists(dll_file)}")
-      else:
-          # Unix-like systems
-          base_path = Path(os.environ.get('PREFIX', ''))
-          include_dirs = [str(base_path / 'include')]
-          library_dirs = [str(base_path / 'lib')]
-          libraries = ['mgclient']
+      # Debug: check if library exists
+      for lib_dir in library_dirs:
+        dll_file = os.path.join(lib_dir, 'mgclient.lib')
+        print(f"DEBUG: Checking for library at {dll_file}: {os.path.exists(dll_file)}")
+    else:
+      # Unix-like systems
+      base_path = Path(os.environ.get('PREFIX', ''))
+      include_dirs = [str(base_path / 'include')]
+      library_dirs = [str(base_path / 'lib')]
+      libraries = ['mgclient']
 
-  return Extension(
-      "mgclient",
-      sources=get_source_files(),
-      include_dirs=include_dirs,
-      library_dirs=library_dirs,
-      libraries=libraries,
-      language="c"
+  ext = Extension(
+    "mgclient",
+    sources=get_source_files(),
+    include_dirs=include_dirs,
+    library_dirs=library_dirs,
+    libraries=libraries,
+    language="c"
   )
   
+  # On Windows, don't link against python39.lib - extensions don't need it
+  if sys.platform == "win32":
+    ext.extra_link_args = ['-shared']
+
+  return ext
