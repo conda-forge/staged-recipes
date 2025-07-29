@@ -1,0 +1,208 @@
+context:
+  version: 0.8.3
+  pytorch_version: 2.6.0
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  vllm_target_device: ${{ "cuda" if use_cuda else "cpu" }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
+
+package:
+  name: vllm
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/v/vllm/vllm-${{ version }}.tar.gz
+  sha256: 475a39d1093b8ef8a905d63eafe0c6c9b8f4f4c2ae2d23f1f3d0fae5e37bb4bd
+  patches:
+  - patches/0001-Search-for-the-CUDA-package-in-CMakeLists.patch
+  - patches/0002-Remove-ninja-pip-requirement.patch
+  - if: linux
+    then:
+    - patches/0003-Manually-define-gettid.patch
+  - if: is_cross_compiling
+    then:
+    - patches/0004-Factor-in-the-cmake-args-when-building-e.g.-for-cros.patch
+  target_directory: vllm
+# Needs to be vendored because vLLM uses a modified version of the flash attention primitives that supports KV-caching.
+- url: https://github.com/vllm-project/flash-attention/archive/d637d8927a35922ce6f6c0dff6dd3f765ed71f3c.tar.gz
+  sha256: 3099add00c9938735b84319d176c5b239c0165e3f9be6540a7a3505cd897c7cd
+  target_directory: flash-attention
+
+build:
+  number: 0
+  script: |
+    sed -i.bak 's/set(TORCH_SUPPORTED_VERSION_CUDA "2.4.0")/set(TORCH_SUPPORTED_VERSION_CUDA "${{ pytorch_version }}")/g' flash-attention/CMakeLists.txt
+    export VLLM_FLASH_ATTN_SRC_DIR=$SRC_DIR/flash-attention
+    cd vllm
+    python use_existing_torch.py
+    mkdir -p $SRC_DIR/vllm/third_party/NVTX/c
+    ln -s $PREFIX/include $SRC_DIR/vllm/third_party/NVTX/c/include
+    export VERBOSE=1
+    export VLLM_TARGET_DEVICE=${{ vllm_target_device }}
+    ${{ PYTHON }} -m pip install . -vv --no-build-isolation --no-deps
+
+  python:
+    entry_points:
+    - vllm = vllm.entrypoints.cli.main:main
+
+  skip:
+    - win
+    - osx and x86_64
+    # conda-forge torchaudio dropped support for Python 3.9 (llvmlite fix only available for Python >=3.10)
+    - match(python, "<3.10")
+
+requirements:
+  build:
+  - cmake >=3.26
+  - git
+  - ninja
+  - zlib
+  - ${{ stdlib('c') }}
+  - ${{ compiler('c') }}
+  - ${{ compiler('cxx') }}
+  - if: use_cuda
+    then:
+    - ${{ compiler('cuda') }}
+  - if: is_cross_compiling
+    then:
+    - python
+    - cross-python_${{ target_platform }}
+    - pytorch ==${{ pytorch_version }}
+    - if: use_cuda
+      then:
+      - pytorch * [build=cuda*]
+  host:
+  - python
+  - jinja2 >=3.1.6
+  - packaging
+  - pip
+  - pytorch ==${{ pytorch_version }}
+  - setuptools >=61
+  - setuptools-scm >=8
+  - wheel
+  - if: linux
+    then:
+    - libnuma
+  - if: use_cuda
+    then:
+    - pytorch * [build=cuda*]
+    - cuda
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvrtc-static
+    - cuda-version ==${{ cuda_compiler_version }}
+    - cutlass <4  # Cutlass 4 introduces some major changes to the API that causes it to not compile
+    - libcublas-dev
+    - nvtx-c
+  run:
+  - python
+  - aiohttp
+  - blake3
+  - cachetools
+  - cloudpickle
+  - compressed-tensors ==0.9.2
+  - depyf ==0.18.0
+  - einops
+  - fastapi >=0.115.0
+  - filelock >=3.16.1
+  - gguf ==0.10.0
+  - importlib-metadata
+  - hf-xet >=0.1.4
+  - huggingface_hub >=0.30.0
+  - lark ==1.2.2
+  - lm-format-enforcer >=0.10.11,<0.11
+  - mistral-common >=1.5.4
+  - msgspec
+  - numpy
+  - openai >=1.52.0
+  - opencv >=4.11.0
+  - outlines ==0.1.11
+  - partial-json-parser
+  - pillow
+  - prometheus_client >=0.18.0
+  - prometheus-fastapi-instrumentator >=7.0.0
+  - protobuf
+  - psutil
+  - py-cpuinfo
+  - pydantic >=2.9
+  - python-json-logger
+  - pytorch ==${{ pytorch_version }}
+  - pyyaml
+  - pyzmq
+  - requests >=2.26.0
+  - scipy
+  - sentencepiece
+  - tiktoken >=0.6.0
+  - tokenizers >=0.19.1
+  - tqdm
+  - transformers >=4.51.0
+  - typing_extensions >=4.10
+  - uvicorn-standard
+  - watchfiles
+  - if: x86_64 or arm64 or aarch64
+    then:
+    - llguidance >=0.7.9,< 0.8.0
+  - if: x86_64 or aarch64
+    then:
+    - xgrammar ==0.1.17
+  - if: match(python, ">3.11")
+    then:
+    - six >=1.16.0
+    - setuptools >=74.1.1
+  - if: use_cuda
+    then:
+    # Numba v0.61 doesn't support Python 3.9. Required for N-gram speculative decoding
+    # Requirements taken from https://github.com/vllm-project/vllm/blob/296c6572dd1f76b31b93be19e550790afcfb8843/requirements/cuda.txt#L4-L5
+    # Also, because conda-forge's torchaudio dropped support for Python 3.9, we don't include the conditional numba 0.60 run requirement.
+    - numba ==0.61
+    - ray-cgraph >=2.43.0,!=2.44
+    - torchaudio ==${{ pytorch_version }}
+    - torchvision ==0.21.0
+    - if: linux64
+      then:
+      - xformers ==0.0.29.post2  # platform_system == "Linux" and platform_machine == "x86_64"
+    else:
+    - torchaudio
+    - torchvision
+  run_constraints:
+  - if: use_cuda
+    then:
+    - pytorch * [build=cuda*]
+  ignore_run_exports:
+    from_package:
+    - cuda-nvrtc-dev
+    - libcublas-dev
+tests:
+- python:
+    imports:
+    - vllm
+    - if: linux and use_cuda
+      then:
+      - vllm.vllm_flash_attn
+    pip_check: true
+- script:
+  - vllm --version
+- script:
+    # Pick an arbitrary test to run: some of the other ones rely on a bunch of external packages
+  - pytest ./vllm/tests/core/test_scheduler.py
+  requirements:
+    run:
+    - pytest
+  files:
+    source:
+    - vllm/tests
+
+about:
+  homepage: https://github.com/vllm-project/vllm
+  summary: A high-throughput and memory-efficient inference and serving engine for LLMs
+  description:  Easy, fast, and cheap LLM serving for everyone
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+  - vllm/LICENSE
+  - flash-attention/LICENSE
+  - LICENSE_CUTLASS.txt
+  documentation: https://vllm.readthedocs.io/en/latest/
+
+extra:
+  recipe-maintainers:
+    - maresb
+    - shermansiu
