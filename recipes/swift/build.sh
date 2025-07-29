@@ -13,8 +13,9 @@ echo "Directory contents:"
 ls -la
 
 # Ensure runtime libraries are available for cross-compilation
-export LIBRARY_PATH="$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot/usr/lib64:$BUILD_PREFIX/lib/gcc/x86_64-conda-linux-gnu/14.3.0:$BUILD_PREFIX/lib:$LIBRARY_PATH"
-export LD_LIBRARY_PATH="$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot/usr/lib64:$BUILD_PREFIX/lib/gcc/x86_64-conda-linux-gnu/14.3.0:$BUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+export LIBSTDCXX_VERSION="15.1.0"
+export ADDITIONAL_LIBRARY_PATHS="$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot/usr/lib64:$BUILD_PREFIX/lib/gcc/x86_64-conda-linux-gnu/$LIBSTDCXX_VERSION:$BUILD_PREFIX/"
+export LIBRARY_PATH="$ADDITIONAL_LIBRARY_PATHS:$LIBRARY_PATH"
 
 # Debug: Show the configured toolchain
 echo "Configured toolchain:"
