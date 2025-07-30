@@ -17,7 +17,6 @@ cmake --build build\xdr --target install  || exit /b 1
 :: Configure and build
 cmake %CMAKE_ARGS% ^
     -G Ninja ^
-    -DMINGW=OFF ^
     -DBUILD_SHARED_LIBS=ON ^
     -DSSLAUTHENTICATION=ON ^
     -DCLIENT_ONLY=ON ^
