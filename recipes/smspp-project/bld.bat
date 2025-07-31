@@ -6,6 +6,6 @@ mkdir build
 cd build
 cmake %CMAKE_ARGS% ..
 cmake --build . --config Release -j%CPU_COUNT%
-cmake --install . --config Release --prefix "$PREFIX"
+cmake --install . --config Release --prefix "$LIBRARY_PREFIX"
 
-copy InvestmentBlock\test\Release\InvestmentBlock_test.exe %PREFIX%\bin\InvestmentBlock_test.exe
+copy InvestmentBlock\test\Release\InvestmentBlock_test.exe %LIBRARY_PREFIX%\bin\InvestmentBlock_test.exe
