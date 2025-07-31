@@ -1,0 +1,33 @@
+diff --git a/hadrian/src/Settings/Builders/Ghc.hs b/hadrian/src/Settings/Builders/Ghc.hs
+index c1b0584c59..bd7d294eb9 100644
+--- a/hadrian/src/Settings/Builders/Ghc.hs
++++ b/hadrian/src/Settings/Builders/Ghc.hs
+@@ -17,2 +17,4 @@
+
++import System.Environment (lookupEnv)
++
+ ghcBuilderArgs :: Args
+@@ -110,2 +112,5 @@
+
++    -- Get PREFIX from environment variable
++    maybePrefix <- exprIO (lookupEnv "PREFIX")
++
+     let
+@@ -146,5 +151,17 @@
+                 , isLibrary pkg ? pure [ "-shared", "-dynload", "deploy" ]
++                , osxTarget ? mconcat [
++                    arg "-optl-Wl,-no_pie",  -- Disable PIE on macOS
++                    arg "-optl-Wl,-headerpad_max_install_names",  -- Allow for longer install paths
++                    arg "-optl-Wl,-dead_strip_dylibs",  -- Remove unused dylibs
++                    arg "-optl-Wl,-search_paths_first"  -- Search paths in order they appear
++                  ]
+                 , notStage0 ? targetSupportsRPaths ? mconcat
+                       [ arg ("-optl-Wl,-rpath," ++ rpath)
++                      -- Add PREFIX/lib to rpath on macOS if PREFIX is set
++                      , osxTarget ? case maybePrefix of
++                          Just prefix -> arg ("-optl-Wl,-rpath," ++ prefix ++ "/lib")
++                          Nothing     -> mempty
+                       , isProgram pkg ? arg ("-optl-Wl,-rpath," ++ bindistRpath)
++                      -- Fix for macOS linker RIP relative reference out of range error
++                      , osxTarget ? arg "-optl-Wl,-no_pie"
+                       -- The darwin and Windows linkers don't support/require the -zorigin option

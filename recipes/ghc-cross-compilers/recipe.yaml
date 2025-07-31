@@ -1,0 +1,136 @@
+context:
+  version: "9.12.2"
+  cabal_version: "3.14.2.0"
+
+package:
+  name: ghc-cross-compilers
+  version: ${{ version }}
+
+source:
+  - url: https://downloads.haskell.org/~ghc/${{ version }}/ghc-${{ version }}-src.tar.xz
+    sha256: 0e49cd5dde43f348c5716e5de9a5d7a0f8d68d945dc41cf75dfdefe65084f933
+    patches:
+      - patch-rpath-macos.patch
+      - if: osx and arm64
+        then:
+          - patch-osname-macos.patch
+
+build:
+  number: 0
+  skip: not unix or or aarch64 or ppc64le
+  script:
+    env:
+      C_COMPILER_VERSION: ${{ c_compiler_version }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cabal
+    - ghc-bootstrap ==9.10.1
+    - gmp
+    - llvm-tools ${{ c_compiler_version }}.*
+    - perl
+    - python 3.12.*
+    - sphinx
+
+    - if: linux
+      then:
+        - patchelf
+
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - file
+        - m4
+        - make
+        - sed
+
+    # Cross-compiler aarch64 on linux-64
+    - if: target_platform == "linux-64"
+      then:
+        - ${{ c_stdlib }}_linux-aarch64 >=${{ c_stdlib_version }}
+        - binutils_impl_linux-aarch64 ${{ binutils_version }}.*
+        - ${{ c_compiler }}_impl_linux-aarch64 ${{ c_compiler_version }}.*
+        - ${{ cxx_compiler }}_impl_linux-aarch64 ${{ cxx_compiler_version }}.*
+        - libgcc-devel_linux-aarch64
+  host:
+    - gmp
+    - libiconv
+    - libffi
+    - zstd
+    - if: unix
+      then:
+        - ncurses
+
+tests:
+  - package_contents:
+      bin:
+        - if: linux and x86_64
+          then:
+            - aarch64-conda-linux-gnu-ghc
+            - aarch64-conda-linux-gnu-ghc-pkg
+            - aarch64-conda-linux-gnu-ghci
+            - aarch64-conda-linux-gnu-hp2ps
+            - aarch64-conda-linux-gnu-hsc2hs
+      files:
+        - etc/bash_completion.d/ghc
+        - etc/conda/activate.d/ghc_activate.sh
+        - if: linux and x86_64
+          then:
+            # It is too complex to change 'aarch64-unknown-ghc'
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/llvm-passes
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/llvm-targets
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/package.conf.d/**
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/dyld.mjs
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/ghc-interp.js
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/ghc-usage.txt
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/ghci-usage.txt
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/post-link.mjs
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/prelude.mjs
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/settings
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/template-hsc.h
+            - lib/aarch64-unknown-ghc-${{ version }}/lib/*-ghc-${{ version }}-inplace/*-inplace/*-inplace.a
+
+  - script:
+      - if: linux and x86_64
+        then: |
+          echo "Testing aarch64 cross-compiler..."
+          aarch64-conda-linux-gnu-ghc --version
+          printf 'main = putStrLn "Hello from aarch64 cross-compiler"\n' > cross_hello.hs
+          aarch64-conda-linux-gnu-ghc cross_hello.hs
+          file cross_hello | grep -i aarch64
+          qemu-execve-aarch64 cross_hello
+          echo "Cross-compiler test passed: generated aarch64 object file"
+        else:
+          echo "Skipping cross-compiler test (not available on this platform)"
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - if: unix
+          then: ${{ stdlib('c') }}
+        - if: linux and x86_64
+          then:
+          - binutils_linux-aarch64
+          - qemu-execve-aarch64
+
+
+about:
+  homepage: https://haskell.org/ghc/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - license_files
+  summary: Glorious Glasgow Haskell Compilation System
+  description: |
+    GHC is a state-of-the-art, open source, compiler and interactive environment 
+    for the functional language Haskell.
+  documentation: https://www.haskell.org/ghc/documentation.html
+  repository: https://gitlab.haskell.org/ghc/ghc
+
+extra:
+  recipe-maintainers:
+    - xhochy
+    - MementoRC
