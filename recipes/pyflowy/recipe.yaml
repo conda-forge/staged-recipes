@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  name: pyflowy
+  version: 0.0.1
+  build_num: 0
+  shasum: babe8f58e1d2cc3784a87a50bfbb904cac088ad51259a7a2ccb835d5e3f0dfd1
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/pyflowy-${{ version }}.tar.gz
+  sha256: ${{ shasum }}
+
+build:
+  skip:
+    - if: python < 3.9
+      then: true
+    - win
+  number: ${{ build_num }}
+  string: h${{ hash }}_${{ build_num }}
+  script:
+    - if: osx
+      then:
+        - export CXXFLAGS="-stdlib=libc++ $CXXFLAGS"
+        - export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ninja
+    - meson
+    - xtensor <0.25.0
+    - xtensor-blas
+    - xtensor-python
+    - cmake
+    - ${{ stdlib('c') }}
+    - if: (build_platform != target_platform)
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - meson-python
+    - pybind11
+    - pkgconfig
+    - pip
+    - fmt
+    - numpy
+    - libnetcdf
+    - hdf5
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - libcblas
+  run:
+    - python
+    - fmt
+    - pybind11 >=2.12.0
+    - libnetcdf
+    - hdf5
+    - ${{ pin_compatible('numpy') }}
+
+tests:
+  - python:
+      imports:
+        - pyflowy
+  - script:
+      - pip check
+    requirements:
+      run:
+        - pip
+
+about:
+  homepage: https://pypi.org/project/pyflowy/
+  license: GPL-3.0-only AND MIT
+  license_file:
+    - LICENSE
+    - subprojects/pdf_cpplib/LICENSE
+    - subprojects/flowy/LICENSE
+    - subprojects/flowy/thirdparty/tsl/LICENSE
+  license_family: BSD
+  summary: "Python bindings for flowy"
+  repository: https://github.com/flowy-code/pyflowy
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
+    - amritagos
+    - MSallermann
