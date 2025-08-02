@@ -14,11 +14,6 @@ let configure_args = [
     # Needed to pin the right Python file
     "--native-file", "native.ini",
     # Handling conditionals
-    ...(if ($env.WITH_LAMMPS == "1") {
-        ["-Dwith_lammps=True"]
-    } else {
-        []
-    })
     # Always build metatomic support here
     "-Dwith_metatomic=True",
     "-Dpip_metatomic=False"
