@@ -23,8 +23,15 @@ let configure_args = [
 print $"INFO: Running meson setup with ($configure_args | str join ' ')"
 # External commands will get LIBS, CPPFLAGS, CXXFLAGS as space-separated strings
 # due to the to_string closure in ENV_CONVERSIONS.
-meson setup bbdir ...$configure_args
-meson install -C bbdir
+if ($env.target_platform | str starts-with "osx") {
+(CXXFLAGS=$"($env.CXXFLAGS) -D_LIBCPP_DISABLE_AVAILABILITY"
+  meson setup bbdir ...$configure_args)
+  meson install -C bbdir
+} else {
+  meson setup bbdir ...$configure_args
+  meson install -C bbdir
+}
+
 
 # --- Post-Install Linking Fix for macOS ---
 # Delete all existing rpaths, and then add back a single correct one.
