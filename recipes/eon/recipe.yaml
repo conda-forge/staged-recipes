@@ -1,0 +1,113 @@
+context:
+  version: "3.0.0"
+  build_num: 0
+  git_rev: 9a5343a038893477a220afc3d2748789ffdddaa4
+
+package:
+  name: eon
+  version: ${{ version }}
+
+source:
+  git: https://github.com/TheochemUI/eOn.git
+  rev: ${{ git_rev }}
+
+build:
+  number: ${{ build_num }}
+  string: h${{ hash }}_${{ build_num }}_gc_${{ git_rev[:7] }}
+  skip:
+    - win
+  dynamic_linking:
+    binary_relocation:
+      - if: osx
+        then: false
+  script:
+    file: build.nu
+requirements:
+  build:
+    - ninja
+    - meson
+    - sccache
+    - cmake
+    - nushell
+    - git
+    - if: (build_platform != target_platform)
+      then:
+        - python
+        - cross-python_${{target_platform}}
+    - if: osx
+      then: llvm-openmp
+  host:
+    - python
+    - pip
+    - numpy
+    - pyyaml
+    - setuptools
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - if: osx # xref: https://github.com/scipy/scipy/issues/23361
+      then: gfortran_impl_osx-64 >14
+    - ${{ stdlib('c') }}
+    - if: true # metatomic_enabled
+      then:
+        # always build against the CPU version of libtorch, we can still pick
+        # the cuda one at runtime [1]
+        - libtorch >=2.7,<2.8 cpu*
+        - libmetatomic-torch >=0.1.2,<0.2
+        - libmetatensor-torch
+        - vesin
+    - eigen >=3.4,<3.5
+    - libblas
+    - libcblas
+    - liblapack
+    - liblapacke
+    - fmt
+    - spdlog
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+    - pyyaml
+    - numpy
+    - eigen
+    - fmt
+    - spdlog
+    - if: true # metatomic_enabled
+      then:
+        - libtorch >=2.7,<2.8 cpu*
+        - libmetatomic-torch >=0.1.2,<0.2
+        - libmetatensor-torch
+        - vesin
+    - if: osx
+      then: llvm-openmp
+
+tests:
+  - python:
+      imports:
+        - eon.server
+  - script:
+      - eonclient -h
+      - conda inspect linkages -p $PREFIX $PKG_NAME
+      - if: osx
+        then:
+          - conda inspect objects -p $PREFIX $PKG_NAME
+    requirements:
+      run:
+        - conda-build
+
+about:
+  homepage: https://theochemui.github.io/eOn/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: "Algorithms for long time scales and potential energy surface exploration"
+  description: |
+    The EON software package contains a set of algorithms used primarily to
+    model the evolution of atomic scale systems over long time scales. This
+    version is instrumented for working with Metatensor.
+  documentation: https://theochemui.github.io/eOn/user_guide/index.html
+  repository: https://github.com/TheochemUI/eOn
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
