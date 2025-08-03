@@ -3,10 +3,10 @@ set "CMAKE_EXTRA=-DOpenMP_ROOT=%LIBRARY_LIB%"
 
 cmake -G "Ninja"                    ^
        -DCMAKE_C_COMPILER=clang-cl  ^
-       -DCMAKE_Fortran_COMPILER=flang ^
+       -DCMAKE_CXX_COMPILER=clang-cl  ^
        -DCMAKE_BUILD_TYPE=Release   ^
        -DBLIS_CONFIG_FAMILY=amdzen  ^
-       -DBUILD_STATIC_LIBS=OFF      ^
+       -DCOMPLEX_RETURN=gnu         ^
        -DENABLE_THREADING=openmp    ^
        -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
        !CMAKE_EXTRA!                ^
