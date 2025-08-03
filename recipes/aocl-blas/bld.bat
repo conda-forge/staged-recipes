@@ -2,11 +2,12 @@ REM https://discourse.cmake.org/t/how-to-find-openmp-with-clang-on-macos/8860
 set "CMAKE_EXTRA=-DOpenMP_ROOT=%LIBRARY_LIB%"
 
 cmake -G "Ninja"                    ^
-       -DCMAKE_C_COMPILER=clang     ^
-       -DCMAKE_CXX_COMPILER=clang++ ^
-       -DCMAKE_Fortran_COMPILER=flang ^
+       -DCMAKE_C_COMPILER=clang-cl  ^
+       -DCMAKE_CXX_COMPILER=clang-cl  ^
        -DCMAKE_BUILD_TYPE=Release   ^
        -DBLIS_CONFIG_FAMILY=amdzen  ^
+       -DCOMPLEX_RETURN=gnu         ^
+       -DBUILD_SHARED_LIBS=ON       ^
        -DBUILD_STATIC_LIBS=OFF      ^
        -DENABLE_THREADING=openmp    ^
        -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
