@@ -7,8 +7,6 @@ cmake -G "Ninja"                    ^
        -DCMAKE_BUILD_TYPE=Release   ^
        -DBLIS_CONFIG_FAMILY=amdzen  ^
        -DCOMPLEX_RETURN=gnu         ^
-       -DBUILD_SHARED_LIBS=ON       ^
-       -DBUILD_STATIC_LIBS=OFF      ^
        -DENABLE_THREADING=openmp    ^
        -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
        !CMAKE_EXTRA!                ^
