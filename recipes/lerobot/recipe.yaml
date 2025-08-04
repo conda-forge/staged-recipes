@@ -1,0 +1,455 @@
+context:
+  version: 0.3.3
+
+package:
+  name: lerobot-split
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/l/lerobot/lerobot-${{ version }}.tar.gz
+  sha256: f4a04674cf89835da4167ff55b6efe982798713227c63053487b7a45e2b6a2bd
+  # patches:
+  #  - use_upstream_feetech.patch # Allow to use the official feetch package
+
+build:
+  number: ${{ build_number }}
+  noarch: python
+
+outputs:
+  - package:
+      name: lerobot
+    build:
+      script: ${{ PYTHON }} -m pip install .
+      python:
+        entry_points:
+        - lerobot-calibrate = lerobot.calibrate:main
+        - lerobot-eval = lerobot.scripts.eval:main
+        - lerobot-find-cameras = lerobot.find_cameras:main
+        - lerobot-find-port = lerobot.find_port:main
+        - lerobot-record = lerobot.record:main
+        - lerobot-replay = lerobot.replay:main
+        - lerobot-setup-motors = lerobot.setup_motors:main
+        - lerobot-teleoperate = lerobot.teleoperate:main
+        - lerobot-train = lerobot.scripts.train:main
+    
+    requirements:
+      host:
+      - python ${{ python_min }}.*
+      - setuptools
+      - pip
+      run:
+      - python >=${{ python_min }}
+      - datasets <=3.6.0,>=2.19.0
+      - diffusers >=0.27.2
+      - huggingface_hub >=0.34.2
+      # This is from https://github.com/huggingface/huggingface_hub/blob/v0.34.3/setup.py#L47
+      - hf-transfer >= 0.1.4
+      - cmake >=3.29.0
+      - einops >=0.8.0
+      - py-opencv >=4.9.0
+      - av >=14.2.0
+      - pytorch >=2.2.1,<2.8.0
+      - torchvision >=0.21.0,<0.23.0
+      - jsonlines >=4.0.0
+      - packaging >=24.2
+      - pynput >=1.7.7
+      - pyserial >=3.5
+      - wandb >=0.20.0
+      - draccus ==0.10.0
+      - gymnasium <1.0.0,>=0.29.1
+      - rerun-sdk <0.23.0,>=0.21.0
+      - deepdiff <9.0.0,>=7.0.1
+      - flask <4.0.0,>=3.0.3
+      - imageio <3.0.0,>=2.34.0
+      - imageio-ffmpeg
+      - termcolor <4.0.0,>=2.4.0
+      - torchcodec >=0.2.1
+
+    
+    tests:
+    - python:
+        imports:
+        - lerobot
+        pip_check: true
+        python_version: ${{ python_min }}.*
+
+
+  - package:
+      name: lerobot-all
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot-dynamixel-sdk', exact=True) }}
+        - ${{ pin_subpackage('lerobot-gamepad', exact=True) }}
+        - ${{ pin_subpackage('lerobot-hopejr', exact=True) }}
+        - ${{ pin_subpackage('lerobot-lekiwi', exact=True) }}
+        - ${{ pin_subpackage('lerobot-kinematics', exact=True) }}
+        - ${{ pin_subpackage('lerobot-intelrealsense', exact=True) }}
+        - ${{ pin_subpackage('lerobot-pi0', exact=True) }}
+        - ${{ pin_subpackage('lerobot-smolvla', exact=True) }}
+        - ${{ pin_subpackage('lerobot-hilserl', exact=True) }}
+        - ${{ pin_subpackage('lerobot-async', exact=True) }}
+        - ${{ pin_subpackage('lerobot-dev', exact=True) }}
+        - ${{ pin_subpackage('lerobot-test', exact=True) }}
+        - ${{ pin_subpackage('lerobot-video_benchmark', exact=True) }}
+        - ${{ pin_subpackage('lerobot-aloha', exact=True) }}
+        - ${{ pin_subpackage('lerobot-pusht', exact=True) }}
+        - ${{ pin_subpackage('lerobot-xarm', exact=True) }}
+
+    tests:
+    - python:
+        imports:
+        - lerobot
+        pip_check: true
+        python_version: ${{ python_min }}.*
+
+
+  # The tests files are non-neglibile in size, so we put them in a separate package
+  - package:
+      name: lerobot-tests
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot-all', exact=True) }}
+
+    tests:
+      - python:
+          pip_check: true
+          imports:
+            - lerobot
+      - files:
+          source:
+            - tests/
+        requirements:
+          run:
+            - pytest
+            # EGL is still not working fine, let's use osmesa for now
+            - mesalib <25.1
+        script:
+          - if: unix
+            then: |
+              tests_to_skip="_not_a_real_test"
+          - if: win
+            then: |
+              set tests_to_skip="_not_a_real_test"
+          - if: linux
+            then: export MUJOCO_GL="osmesa"
+          # Workaround for https://github.com/conda-forge/gymnasium-feedstock/pull/50#issuecomment-3218125344
+          - if: aarch64
+            then: export LD_PRELOAD=libGLdispatch.so.0
+          # Ensure that pygame tests pass on unix,
+          # see https://github.com/conda-forge/gymnasium-feedstock/pull/36#issuecomment-2124699477
+          - if: unix
+            then: export SDL_VIDEODRIVER="dummy"
+          - if: unix
+            then: pytest -v tests/ --durations=50 -k "not ($tests_to_skip)"
+          - if: win
+            then: pytest -v tests/ --durations=50 -k "not (%tests_to_skip%)"
+
+  - package:
+      name: lerobot-pygame-dep
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - pygame >=2.5.1
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-placo-dep
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - placo >=0.9.6
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-transformers-dep
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - transformers >=4.50.3,<4.52.0
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-grpcio-dep
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - grpcio 1.73.1.*
+        - protobuf 6.31.0.*
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-feetech
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ftservo-python-sdk
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-dynamixel-sdk
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - dynamixel-sdk >=3.7.31
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-gamepad
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-pygame-dep', exact=True) }}
+        - hidapi >=0.14.0
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-hopejr
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-feetech', exact=True) }}
+        - ${{ pin_subpackage('lerobot-pygame-dep', exact=True) }}
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-lekiwi
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-feetech', exact=True) }}
+        - pyzmq >=26.2.1
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-kinematics
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-placo-dep', exact=True) }}
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-intelrealsense
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - pyrealsense2 >=2.55.1
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-pi0
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-transformers-dep', exact=True) }}
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-smolvla
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-transformers-dep', exact=True) }}
+        - num2words >=0.5.14
+        - accelerate >=1.7.0
+        - safetensors >=0.4.3
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-hilserl
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-transformers-dep', exact=True) }}
+        - gym-hil >=0.1.9
+        - ${{ pin_subpackage('lerobot-grpcio-dep', exact=True) }}
+        - ${{ pin_subpackage('lerobot-placo-dep', exact=True) }}
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-async
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - ${{ pin_subpackage('lerobot-grpcio-dep', exact=True) }}
+        - matplotlib >=3.10.3
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-dev
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - pre-commit >=3.7.0
+        - debugpy >=1.8.1
+        - ${{ pin_subpackage('lerobot-grpcio-dep', exact=True) }}
+        - grpcio-tools 1.73.1.*
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-test
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - pytest >=8.1.0
+        - pytest-timeout >=2.4.0
+        - pytest-cov >=5.0.0
+        - mock-serial >=0.0.1  # [not win]
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-video_benchmark
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - scikit-image >=0.23.2
+        - pandas >=2.2.2
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-aloha
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - gym-aloha >=0.1.1
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-pusht
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - gym-pusht >=0.1.5
+        - pymunk >=6.6.0,<7.0.0
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+  - package:
+      name: lerobot-xarm
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('lerobot', exact=True) }}
+        - gym-xarm >=0.1.1
+    tests:
+      - script:
+          - echo "tested in lerobot-all"
+
+about:
+  homepage: https://github.com/huggingface/lerobot
+  summary: 'LeRobot: State-of-the-art Machine Learning for Real-World Robotics in Pytorch'
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - traversaro
+  feedstock-name: lerobot
