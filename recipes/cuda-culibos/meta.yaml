@@ -1,0 +1,66 @@
+{% set version = "13.0.39" %}
+{% set cuda_version = "13.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64 and arm_variant_type == "sbsa"]
+{% set platform = "linux-aarch64" %}  # [aarch64 and arm_variant_type == "tegra"]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "sbsa-linux" %}  # [aarch64 and arm_variant_type=="sbsa"]
+{% set target_name = "aarch64-linux" %}  # [aarch64 and arm_variant_type=="tegra"]
+{% set target_name = "x64" %}  # [win]
+
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+{% set soname = version.split(".")[0] %}
+
+{% set sha256 = "a31ee11b8bf482d12b35ab9b5e805521a7539b345a45f95aaa32cf02a12e1e27" %}  # [linux64]
+{% set sha256 = "f91c3b0b12264de81d0c419f7582fe99b3d30ad003f4f5af469216c15c20283d" %}  # [aarch64 and arm_variant_type=="sbsa"]
+#{% set sha256 = "03e4404e888609bc98f496453896acc34c9ca7bbc39cc32b41d677bcaab71c49" %}  # [aarch64 and arm_variant_type=="tegra"]
+
+package:
+  name: cuda-culibos-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_culibos/{{ platform }}/cuda_culibos-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+outputs:
+  - name: cuda-culibos-static
+    files:                # [linux]
+      - lib/libculibos.a  # [linux]
+      - targets/{{ target_name }}/lib/*.a  # [linux]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libculibos.a  # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libculibos.a  # [linux]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: The cuLIBOS library is a backend thread abstraction layer library.
+  description:
+    The CUDA cuLIBOS static library is required to link against the static CUDA math libraries.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  feedstock-name: cuda-culibos
+  recipe-maintainers:
+    - conda-forge/cuda
