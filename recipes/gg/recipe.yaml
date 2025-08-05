@@ -12,13 +12,21 @@ source:
 
 build:
   number: 0
-  skip: win
   script:
-    - TARGET=${TARGET:-$(rustc -vV | grep "host:" | awk '{print $2}')}
-    - npm install
-    - npm run tauri build -- --no-bundle
-    - mkdir -p ${{ PREFIX }}/bin && cp ${{ SRC_DIR }}/src-tauri/target/${TARGET}/release/gg ${{ PREFIX }}/bin
-    - cd ${{ SRC_DIR }}/src-tauri && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+    - if: unix
+      then:
+        - TARGET=${TARGET:-$(rustc -vV | grep "host:" | awk '{print $2}')}
+        - npm install
+        - npm run tauri build -- --no-bundle
+        - mkdir -p ${{ PREFIX }}/bin && cp ${{ SRC_DIR }}/src-tauri/target/${TARGET}/release/gg ${{ PREFIX }}/bin
+        - cd ${{ SRC_DIR }}/src-tauri && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+    - if: win
+      then:
+        - cmd /c "npm install"
+        - cmd /c "npm run tauri build -- --no-bundle"
+        - cmd /c "if not exist %PREFIX%\bin\ mkdir %PREFIX%\bin\"
+        - cp %SRC_DIR%\src-tauri\target\release\gg.exe %PREFIX%\bin
+        - cd %SRC_DIR%\src-tauri && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
 
 requirements:
   build:
@@ -46,7 +54,11 @@ requirements:
         - webkit2gtk4.1
 
 tests:
-  - script: gg --version
+  - script:
+      - if: unix
+        then: "gg --version"
+      - if: win
+        then: "gg.exe --version"
 
 about:
   homepage: https://github.com/gulbanana/gg
