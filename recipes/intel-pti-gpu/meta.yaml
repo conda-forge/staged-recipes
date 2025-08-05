@@ -1,0 +1,146 @@
+{% set name = "libipti" %}
+{% set version = "0.9.0-rc1" %}
+{% set version_pkg = version | replace("-", ".") %}
+{% set so_version = version.split('.')[0] ~ "." ~ version.split('.')[1] %}
+{% set so_version_major = version.split('.')[0] %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version_pkg }}
+
+source:
+  url: https://github.com/intel/pti-gpu/archive/refs/tags/pti-{{version}}.tar.gz
+  sha256: 6b712931b4b9af7c57dc19cfffeeafa1806a1f8a6464d1a781e6a83acb409b3a
+  patches:
+    - patches/0001-Link-spdlog-dynamically.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  ignore_run_exports:
+    - dpcpp-cpp-rt
+    - spdlog >=1.14.1
+  script_env:
+    - http_proxy
+    - https_proxy
+    - no_proxy
+
+requirements:
+  build:
+    - cmake >=3.29
+    - ninja >=1.11.1
+    - {{ compiler('cxx') }} # that is lilbstc++ for both rt and build
+    # FIXME: use 2024.2.1 compiler, once available. There is a queue_id feature
+    #  missing
+    - {{ compiler('dpcpp') }} >=2024.2.0 # dpcpp for build
+    - {{ stdlib('c') }} # glibc for build/rt
+  host:
+    - level-zero-devel >=1.17.6 # level zero for build/rt
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [not linux]
+    - spdlog >=1.14.1
+    # TODO: https://github.com/conda-forge/spdlog-feedstock/issues/52
+    #   remove once fmt is in run_export of spdlog.
+    - fmt
+    # These packages are not required during build, but we want proper version
+    # export for runtime:
+    - intel-cmplr-lib-rt # this is the dependency for dpcpp rt
+
+outputs:
+  - name: {{ name | lower }}{{ so_version_major }}
+    script: install.sh
+    version: {{ version_pkg }}
+    requirements:
+      build:
+        - cmake >=3.29
+        - ninja >=1.11.1
+        - {{ compiler('cxx') }}
+        - {{ compiler('dpcpp') }} >=2024.2.0
+        - {{ stdlib('c') }}
+      host:
+        - level-zero-devel >=1.17.6
+        - ocl-icd  # [linux]
+        - khronos-opencl-icd-loader  # [not linux]
+        - spdlog >=1.14.1
+        # TODO: https://github.com/conda-forge/spdlog-feedstock/issues/52
+        #   remove once fmt is in run_export of spdlog.
+        - fmt
+        # These packages are not required during build, but we want proper version
+        # export for runtime:
+        - intel-cmplr-lib-rt
+    test:
+      commands:
+        - test ! -f $PREFIX/lib/libpti.so  # [linux]
+        - test ! -f $PREFIX/lib/libpti_view.so  # [linux]
+        - test -f $PREFIX/lib/libpti.so.{{ so_version }}  # [linux]
+        - test -f $PREFIX/lib/libpti_view.so.{{ so_version }}  # [linux]
+    about:
+      home: https://github.com/intel/pti-gpu
+      summary: 'Profiling Tools Interfaces for GPU'
+      description: |
+        This a PTI library for Intel(R) oneAPI applications. 
+      license: MIT
+      license_family: MIT
+      license_file: LICENSE
+      doc_url: https://github.com/intel/pti-gpu
+      dev_url: https://github.com/intel/pti-gpu
+
+  - name: {{ name }}
+    script: install.sh
+    version: {{ version_pkg }}
+    run_exports:
+        - {{ pin_subpackage(name ~ so_version_major, max_pin='x.x') }}
+    requirements:
+      build:
+        - cmake >=3.29
+        - ninja >=1.11.1
+        - {{ compiler('cxx') }}
+        - {{ compiler('dpcpp') }} >=2024.2.0
+        - {{ stdlib('c') }}
+      host:
+        - level-zero-devel >=1.17.6
+        - ocl-icd  # [linux]
+        - khronos-opencl-icd-loader  # [not linux]
+        - spdlog >=1.14.1
+        # TODO: https://github.com/conda-forge/spdlog-feedstock/issues/52
+        #   remove once fmt is in run_export of spdlog.
+        - fmt
+        # These packages are not required during build, but we want proper version
+        # export for runtime:
+        - intel-cmplr-lib-rt
+        - {{ pin_subpackage(name ~ so_version_major, exact=True) }}
+      run:
+        - {{ pin_subpackage(name ~ so_version_major, exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libpti.so  # [linux]
+        - test -f $PREFIX/lib/libpti_view.so  # [linux]
+        - test -f $PREFIX/lib/libpti.so.{{ so_version }}  # [linux]
+        - test -f $PREFIX/lib/libpti_view.so.{{ so_version }}  # [linux]
+    about:
+      home: https://github.com/intel/pti-gpu
+      summary: 'Profiling Tools Interfaces for GPU2'
+      description: |
+        This a PTI library for Intel(R) oneAPI applications. 
+      license: MIT
+      license_family: MIT
+      license_file: LICENSE
+      doc_url: https://github.com/intel/pti-gpu
+      dev_url: https://github.com/intel/pti-gpu
+
+about:
+  home: https://github.com/intel/pti-gpu
+  summary: 'Profiling Tools Interfaces for GPU'
+  description: |
+    This a PTI library for Intel(R) oneAPI applications. 
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://github.com/intel/pti-gpu
+  dev_url: https://github.com/intel/pti-gpu
+
+extra:
+  recipe-maintainers:
+    - ZzEeKkAa
+    - oleksandr-pavlyk
+    - mschilling0
