@@ -1,0 +1,72 @@
+{% set version = "0.1.0" %}
+
+package:
+  name: svcrows
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/A-Crow-Nowhere/SVCROWS.git
+  git_rev: master
+
+build:
+  number: 0
+  noarch: generic
+  script: |
+    {% if win %}
+    R CMD INSTALL .
+    REM Windows does not need to create Unix scripts or chmod
+    {% else %}
+    R CMD INSTALL .
+
+    mkdir -p $PREFIX/bin
+
+    # Copy all bash scripts from scripts/ to $PREFIX/bin and make executable
+    install -m755 scripts/*.sh $PREFIX/bin/
+
+    # Create 'scavenge' wrapper for R function
+    echo '#!/bin/bash' > $PREFIX/bin/scavenge
+    echo 'Rscript -e "SVCROWS::Scavenge(commandArgs(trailingOnly = TRUE))" "$@"' >> $PREFIX/bin/scavenge
+    chmod +x $PREFIX/bin/scavenge
+
+    # Create 'hunt' wrapper for R function
+    echo '#!/bin/bash' > $PREFIX/bin/hunt
+    echo 'Rscript -e "SVCROWS::Hunt(commandArgs(trailingOnly = TRUE))" "$@"' >> $PREFIX/bin/hunt
+    chmod +x $PREFIX/bin/hunt
+
+    {% endif %}
+
+requirements:
+  build:
+    - r-base >=4.2,<4.4
+  run:
+    - r-base >=4.2,<4.4
+    - r-dplyr
+    - r-purrr
+    - r-tidyverse
+    - r-stringr  # if not a tidyverse dependency explicitly
+    - r-stringi  # to ensure .so loads
+    - r-cli      # optional, but tidyverse often uses it
+
+test:
+  requires:
+    - r-base
+  commands:
+    - Rscript -e "library(SVCROWS)"
+
+about:
+  home: https://github.com/A-Crow-Nowhere/SVCROWS
+  license: MIT
+  license_file: LICENSE
+  summary: >
+    SVCROWS is a user-friendly program for categorizing structural variants.
+  description: |
+    Structural variants (SVs) are large rearrangements of the genome of an organism that are
+    prevalent in critical organism phenotypes and human diseases. SVCROWS provides users with
+    options to produce biologically meaningful variant calls based on reciprocal overlap
+    dependent on SV size. It optionally uses breakpoint matching to further define similarity
+    between SVs. These features make SVCROWS a versatile and malleable tool for SV analysis.
+
+
+extra:
+  recipe-maintainers:
+    - A-Crow-Nowhere
