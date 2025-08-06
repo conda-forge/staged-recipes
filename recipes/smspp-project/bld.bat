@@ -4,7 +4,7 @@ git submodule update
 
 mkdir build
 cd build
-cmake %CMAKE_ARGS% ..
+cmake %CMAKE_ARGS% -DOpenMP_RUNTIME_MSVC="llvm" ..
 cmake --build . --config Release -j%CPU_COUNT%
 cmake --install . --config Release --prefix %LIBRARY_PREFIX%
 
