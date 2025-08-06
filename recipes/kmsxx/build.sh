@@ -1,7 +1,8 @@
 #!/bin/bash
 set -ex
 
-export CXXFLAGS="$CXXFLAGS -I$CONDA_BUILD_SYSROOT"
+echo "Checking for dma-buf.h:"
+find $BUILD_PREFIX -name dma-buf.h
 
 meson setup build \
   --prefix=$PREFIX \
