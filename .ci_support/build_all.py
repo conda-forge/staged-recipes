@@ -295,6 +295,7 @@ def build_folders_rattler_build(
 
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
+    combined_spec["channel_sources"] = [",".join(channel_urls)]
     variant_config = yaml.dump(combined_spec)
 
     # Define the arguments for rattler-build
