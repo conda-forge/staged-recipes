@@ -1,10 +1,11 @@
 #!/bin/bash
 set -ex
 
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
 
 meson setup build \
   --prefix=$PREFIX \
+  --buildtype=release \
   -Dpykms=enabled \
   -Dlibutils=true \
   -Dutils=true \
@@ -12,4 +13,5 @@ meson setup build \
   -Domap=auto
 
 ninja -C build
+find $PREFIX -name 'libkms++util.so*'
 ninja -C build install
