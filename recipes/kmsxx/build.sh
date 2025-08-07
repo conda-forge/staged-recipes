@@ -7,7 +7,7 @@ meson setup build \
   -Dpykms=enabled \
   -Dlibutils=true \
   -Dutils=true \
-  -Dkmscube=true \
+  -Dkmscube=false \
   -Domap=auto \
   --buildtype=release
 
