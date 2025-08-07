@@ -7,8 +7,8 @@ meson setup build \
   -Dpykms=enabled \
   -Dlibutils=true \
   -Dutils=true \
-  -Dkmscube=false \
-  -Domap=true \
+  -Dkmscube=true \
+  -Domap=enabled \
   --buildtype=release
 
 ninja -C build
