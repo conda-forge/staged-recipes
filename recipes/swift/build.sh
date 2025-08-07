@@ -7,6 +7,41 @@ VERSION="${PKG_VERSION}"
 
 echo "Installing Swift ${VERSION} toolchain..."
 
+# Install Swiftly and the latest Swift compiler for bootstrapping
+echo "Installing Swiftly and latest Swift compiler for bootstrapping..."
+
+# Download and install Swiftly
+curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
+tar zxf swiftly-$(uname -m).tar.gz
+./swiftly init --quiet-shell-followup --skip-install
+
+# Source the Swiftly environment
+. "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+
+# Install the latest stable Swift toolchain
+echo "Installing latest stable Swift toolchain..."
+swiftly install latest
+
+hash -r
+
+# Verify Swift installation
+echo "Verifying Swift installation before path update..."
+swift --version
+which swift
+which swiftc
+
+# Set up environment for the build
+export SWIFT_TOOLCHAIN_PATH="$HOME/.local/share/swiftly/bin"
+export PATH="$SWIFT_TOOLCHAIN_PATH:$PATH"
+
+echo "Verifying Swift installation after path update..."
+swift --version
+which swift
+which swiftc
+
+echo "Swift toolchain installed at: $SWIFT_TOOLCHAIN_PATH"
+echo "Swift version: $(swift --version | head -1)"
+
 # Debug: Show current directory and contents
 echo "Current directory: $PWD"
 echo "Directory contents:"
@@ -27,6 +62,7 @@ echo "  SYSROOT            : $CONDA_BUILD_SYSROOT"
 echo "  LIBRARY_PATH       : $LIBRARY_PATH"
 echo "  LD_LIBRARY_PATH    : $LD_LIBRARY_PATH"
 echo "  CONDA_BUILD_SYSROOT: $CONDA_BUILD_SYSROOT"
+echo "  SWIFT_TOOLCHAIN_PATH: $SWIFT_TOOLCHAIN_PATH"
 
 # Check if swift directory exists, if not, look for it or create the structure
 if [ ! -d "swift" ]; then
@@ -61,8 +97,31 @@ echo "Starting Swift build with preset: buildbot_linux,no_test"
 echo "Install destination: $PREFIX"
 echo "Building minimal Swift toolchain (compiler only, no standard library)"
 
-# Run the Swift build-script with the Fedora preset
-# Use the correct argument syntax based on the error message
+# Verify that we're using the correct Swift toolchain
+echo "Verifying Swift toolchain usage..."
+echo "Swift executable: $(which swift)"
+echo "Swiftc executable: $(which swiftc)"
+echo "Expected Swift path: $SWIFT_TOOLCHAIN_PATH/swift"
+echo "Expected Swiftc path: $SWIFT_TOOLCHAIN_PATH/swiftc"
+
+# Ensure we're using the Swift toolchain from SWIFT_TOOLCHAIN_PATH
+if [ "$(which swift)" != "$SWIFT_TOOLCHAIN_PATH/swift" ]; then
+    echo "ERROR: Swift is not being used from SWIFT_TOOLCHAIN_PATH"
+    echo "Current swift: $(which swift)"
+    echo "Expected swift: $SWIFT_TOOLCHAIN_PATH/swift"
+    exit 1
+fi
+
+if [ "$(which swiftc)" != "$SWIFT_TOOLCHAIN_PATH/swiftc" ]; then
+    echo "ERROR: Swiftc is not being used from SWIFT_TOOLCHAIN_PATH"
+    echo "Current swiftc: $(which swiftc)"
+    echo "Expected swiftc: $SWIFT_TOOLCHAIN_PATH/swiftc"
+    exit 1
+fi
+
+echo "✓ Swift toolchain verification passed"
+
+# Run the Swift build-script with the pre-built Swift toolchain
 ./utils/build-script \
     --preset=buildbot_linux,no_test \
     install_destdir="$PREFIX" \
