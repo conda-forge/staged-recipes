@@ -8,7 +8,7 @@ meson setup build \
   -Dlibutils=true \
   -Dutils=true \
   -Dkmscube=false \
-  -Domap=auto \
+  -Domap=true \
   --buildtype=release
 
 ninja -C build
