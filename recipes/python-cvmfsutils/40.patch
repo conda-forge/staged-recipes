@@ -1,0 +1,590 @@
+From 2e4938307ff8e53cffb15874c832b4b547b017eb Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 8 Aug 2025 06:27:08 +0200
+Subject: [PATCH 1/4] feat: migrate from setup.py to pyproject.toml with
+ entrypoints
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Replace setup.py with modern pyproject.toml configuration using setuptools-scm
+for dynamic versioning. Convert scripts to proper entrypoints in cvmfs.scripts
+module.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ cvmfs/scripts/__init__.py                     |  1 +
+ cvmfs/scripts/big_catalogs.py                 | 40 +++++++++++++++
+ cvmfs/scripts/catdirusage.py                  | 44 ++++++++++++++++
+ .../scripts/cvmfs_search.py                   |  6 ++-
+ pyproject.toml                                | 50 +++++++++++++++++++
+ setup.py                                      | 44 ----------------
+ utils/big_catalogs                            | 33 ------------
+ utils/catdirusage                             | 37 --------------
+ 8 files changed, 140 insertions(+), 115 deletions(-)
+ create mode 100644 cvmfs/scripts/__init__.py
+ create mode 100644 cvmfs/scripts/big_catalogs.py
+ create mode 100644 cvmfs/scripts/catdirusage.py
+ rename utils/cvmfs_search => cvmfs/scripts/cvmfs_search.py (99%)
+ mode change 100755 => 100644
+ create mode 100644 pyproject.toml
+ delete mode 100644 setup.py
+ delete mode 100755 utils/big_catalogs
+ delete mode 100755 utils/catdirusage
+
+diff --git a/cvmfs/scripts/__init__.py b/cvmfs/scripts/__init__.py
+new file mode 100644
+index 0000000..ed1cc7f
+--- /dev/null
++++ b/cvmfs/scripts/__init__.py
+@@ -0,0 +1 @@
++# Scripts module for cvmfs utilities
+\ No newline at end of file
+diff --git a/cvmfs/scripts/big_catalogs.py b/cvmfs/scripts/big_catalogs.py
+new file mode 100644
+index 0000000..3a5eaa4
+--- /dev/null
++++ b/cvmfs/scripts/big_catalogs.py
+@@ -0,0 +1,40 @@
++#!/usr/bin/env python3
++
++import sys
++import cvmfs
++import os
++
++
++def usage():
++    print("Usage: big_catalogs <local repo name | remote repo url> [BIGNUM [BIGMB]]")
++    print("  Lists all catalogs of the provided CVMFS repository with more than BIGNUM")
++    print("  files in them, default 100000, or more than BIGMB megabytes, default 50.")
++
++
++def main():
++    if len(sys.argv) < 2 or len(sys.argv) > 4:
++        usage()
++        sys.exit(1)
++
++    repo_identifier = sys.argv[1]
++    bignum = 100000
++    bigmb = 50
++    if len(sys.argv) > 2:
++        bignum = int(sys.argv[2])
++    if len(sys.argv) > 3:
++        bigmb = int(sys.argv[3])
++
++    repo = cvmfs.open_repository(repo_identifier)
++    revision = repo.get_current_revision()
++    for clg in revision.catalogs():
++        res = clg.run_sql('SELECT count(*) FROM catalog;')
++        num_entries = res[0][0]
++        uncomp_mb = clg.db_size() / (1024*1024)
++        if (num_entries > bignum) or (uncomp_mb >= bigmb):
++            print(clg.root_prefix, num_entries, 'files',  uncomp_mb, 'MB')
++        del res
++        del clg
++
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/cvmfs/scripts/catdirusage.py b/cvmfs/scripts/catdirusage.py
+new file mode 100644
+index 0000000..f5034c9
+--- /dev/null
++++ b/cvmfs/scripts/catdirusage.py
+@@ -0,0 +1,44 @@
++#!/usr/bin/env python3
++
++import sys
++import cvmfs
++import os
++
++
++def usage():
++    print("Usage: catdirusage <local repo name | remote repo url> topdir")
++    print("  Prints the number of files in the current catalog for each sub-directory")
++    print("  under topdir, sorted smallest to largest.")
++    sys.exit(1)
++
++
++def main():
++    if len(sys.argv) != 3:
++        usage()
++
++    repo_identifier = sys.argv[1]
++    toppath = sys.argv[2]
++
++    repo = cvmfs.open_repository(repo_identifier)
++    revision = repo.get_current_revision()
++    clg = revision.retrieve_catalog_for_path(toppath)
++    counts = {}
++    pathlen = len(toppath)
++    for dirent in clg:
++        file = dirent[0]
++        if len(file) <= pathlen:
++            continue
++        if file[0:pathlen] != toppath:
++            continue
++        slash = file.find('/', pathlen+1)
++        if slash == -1:
++            counts[file] = 0
++        else:
++            counts[file[0:slash]] += 1
++    for dir in sorted(counts, key=counts.get):
++        if counts[dir] > 0:
++            print(str(counts[dir]) + '\t' + dir)
++
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/utils/cvmfs_search b/cvmfs/scripts/cvmfs_search.py
+old mode 100755
+new mode 100644
+similarity index 99%
+rename from utils/cvmfs_search
+rename to cvmfs/scripts/cvmfs_search.py
+index 4d0c815..2a933d6
+--- a/utils/cvmfs_search
++++ b/cvmfs/scripts/cvmfs_search.py
+@@ -122,7 +122,7 @@ def search_cvmfs_repo(url, enable_index=True):
+     return ret
+ 
+ 
+-if __name__ == "__main__":
++def main():
+     parser = argparse.ArgumentParser(
+         description="Search CVMFS repositories for all files matching a given download URL."
+     )
+@@ -142,3 +142,7 @@ def search_cvmfs_repo(url, enable_index=True):
+     names = search_cvmfs_repo(args.url, args.db_index)
+     for name in names:
+         print(name)
++
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/pyproject.toml b/pyproject.toml
+new file mode 100644
+index 0000000..765195d
+--- /dev/null
++++ b/pyproject.toml
+@@ -0,0 +1,50 @@
++[build-system]
++requires = ["setuptools>=80", "setuptools-scm>=8"]
++build-backend = "setuptools.build_meta"
++
++[project]
++name = "python-cvmfsutils"
++dynamic = ["version"]
++description = "Inspect CernVM-FS repositories"
++readme = "README"
++license = {text = "(c) 2015 CERN - BSD License"}
++authors = [
++    {name = "Rene Meusel", email = "rene.meusel@cern.ch"}
++]
++classifiers = [
++    "Development Status :: 4 - Beta",
++    "Environment :: Console",
++    "Intended Audience :: Developers",
++    "Intended Audience :: System Administrators",
++    "License :: OSI Approved :: BSD License",
++    "Natural Language :: English",
++    "Operating System :: POSIX :: Linux",
++    "Operating System :: MacOS :: MacOS X",
++    "Topic :: Software Development",
++    "Topic :: Software Development :: Libraries :: Python Modules",
++    "Topic :: System :: Filesystems",
++    "Topic :: System :: Networking :: Monitoring",
++    "Topic :: System :: Systems Administration"
++]
++dependencies = [
++    "python-dateutil >= 1.4.1",
++    "requests >= 1.1.0",
++    "M2Crypto >= 0.20.0"
++]
++requires-python = ">=3.6"
++
++[project.urls]
++Homepage = "http://cernvm.cern.ch"
++
++[project.optional-dependencies]
++test = ["xmlrunner"]
++
++[project.scripts]
++big_catalogs = "cvmfs.scripts.big_catalogs:main"
++catdirusage = "cvmfs.scripts.catdirusage:main"
++cvmfs_search = "cvmfs.scripts.cvmfs_search:main"
++
++[tool.setuptools.packages.find]
++exclude = ["*.test*"]
++
++[tool.setuptools_scm]
+diff --git a/setup.py b/setup.py
+deleted file mode 100644
+index e069962..0000000
+--- a/setup.py
++++ /dev/null
+@@ -1,44 +0,0 @@
+-# -*- coding: utf-8 -*-
+-
+-from setuptools import setup, find_packages
+-from os         import path
+-
+-
+-readme_path = path.join(path.dirname(__file__), 'README')
+-
+-setup(
+-  name='python-cvmfsutils',
+-  version='0.5.0',
+-  url='http://cernvm.cern.ch',
+-  author='Rene Meusel',
+-  author_email='rene.meusel@cern.ch',
+-  license='(c) 2015 CERN - BSD License',
+-  description='Inspect CernVM-FS repositories',
+-  # read the first paragraph
+-  long_description=open(readme_path).read().split("\n\n")[0],
+-  classifiers= [
+-    'Development Status :: 4 - Beta',
+-    'Environment :: Console',
+-    'Intended Audience :: Developers',
+-    'Intended Audience :: System Administrators',
+-    'License :: OSI Approved :: BSD License',
+-    'Natural Language :: English',
+-    'Operating System :: POSIX :: Linux',
+-    'Operating System :: MacOS :: MacOS X',
+-    'Topic :: Software Development',
+-    'Topic :: Software Development :: Libraries :: Python Modules',
+-    'Topic :: System :: Filesystems',
+-    'Topic :: System :: Networking :: Monitoring',
+-    'Topic :: System :: Systems Administration'
+-  ],
+-  packages=find_packages(),
+-  scripts=['utils/big_catalogs', 'utils/catdirusage', 'utils/cvmfs_search'],
+-  zip_safe=False,
+-  test_suite='cvmfs.test',
+-  tests_require='xmlrunner',
+-  install_requires=[ # for pip; don't forget the similar RPM dependencies!
+-    'python-dateutil >= 1.4.1',
+-    'requests >= 1.1.0',
+-    'M2Crypto >= 0.20.0'
+-  ]
+-)
+diff --git a/utils/big_catalogs b/utils/big_catalogs
+deleted file mode 100755
+index d9aea6e..0000000
+--- a/utils/big_catalogs
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#!/usr/bin/env python3
+-
+-import sys
+-import cvmfs
+-import os
+-
+-def usage():
+-    print("Usage: big_catalogs <local repo name | remote repo url> [BIGNUM [BIGMB]]")
+-    print("  Lists all catalogs of the provided CVMFS repository with more than BIGNUM")
+-    print("  files in them, default 100000, or more than BIGMB megabytes, default 50.")
+-
+-if len(sys.argv) < 2 or len(sys.argv) > 4:
+-    usage();
+-    sys.exit(1)
+-
+-repo_identifier = sys.argv[1]
+-bignum = 100000
+-bigmb = 50
+-if len(sys.argv) > 2:
+-  bignum=int(sys.argv[2])
+-if len(sys.argv) > 3:
+-  bigmb=int(sys.argv[3])
+-
+-repo = cvmfs.open_repository(repo_identifier)
+-revision = repo.get_current_revision()
+-for clg in revision.catalogs():
+-    res = clg.run_sql('SELECT count(*) FROM catalog;')
+-    num_entries = res[0][0]
+-    uncomp_mb = clg.db_size() / (1024*1024)
+-    if (num_entries > bignum) or (uncomp_mb >= bigmb):
+-        print(clg.root_prefix, num_entries, 'files',  uncomp_mb, 'MB')
+-    del res
+-    del clg
+diff --git a/utils/catdirusage b/utils/catdirusage
+deleted file mode 100755
+index 2679ebe..0000000
+--- a/utils/catdirusage
++++ /dev/null
+@@ -1,37 +0,0 @@
+-#!/usr/bin/env python3
+-
+-import sys
+-import cvmfs
+-import os
+-
+-def usage():
+-    print("Usage: catdirusage <local repo name | remote repo url> topdir")
+-    print("  Prints the number of files in the current catalog for each sub-directory")
+-    print("  under topdir, sorted smallest to largest.")
+-    sys.exit(1)
+-
+-if len(sys.argv) != 3:
+-    usage();
+-
+-repo_identifier = sys.argv[1]
+-toppath = sys.argv[2]
+-
+-repo = cvmfs.open_repository(repo_identifier)
+-revision = repo.get_current_revision()
+-clg = revision.retrieve_catalog_for_path(toppath)
+-counts = {}
+-pathlen = len(toppath)
+-for dirent in clg:
+-    file = dirent[0]
+-    if len(file) <= pathlen:
+-        continue
+-    if file[0:pathlen] != toppath:
+-        continue
+-    slash = file.find('/', pathlen+1)
+-    if slash == -1:
+-        counts[file] = 0
+-    else:
+-        counts[file[0:slash]] += 1
+-for dir in sorted(counts, key=counts.get):
+-    if counts[dir] > 0:
+-        print(str(counts[dir]) + '\t' + dir)
+-- 
+2.48.1
+
+From ef1bd9fb3485c122490058db203b366d48955380 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 8 Aug 2025 06:28:45 +0200
+Subject: [PATCH 2/4] fix: use raw string for regex to avoid SyntaxWarning
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ cvmfs/__init__.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cvmfs/__init__.py b/cvmfs/__init__.py
+index 6aad449..aa035d6 100644
+--- a/cvmfs/__init__.py
++++ b/cvmfs/__init__.py
+@@ -36,7 +36,7 @@ def __init__(self, input_string):
+ 
+ 
+ def __extract_version_string(input_str):
+-    match = re.search('.*([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*).*', input_str)
++    match = re.search(r'.*([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*).*', input_str)
+     if not match or len(match.groups()) != 1:
+         raise VersionNotDetected(input_str)
+     return match.groups()[0]
+-- 
+2.48.1
+
+From 2b9927f07151e785c55be7763bdef2a982b56b59 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 8 Aug 2025 06:35:34 +0200
+Subject: [PATCH 3/4] refactor: convert entrypoints to use argparse
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Replace manual sys.argv parsing with argparse for better argument handling
+and help messages. All scripts now provide proper --help output, automatic
+type validation, and consistent error messages.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ cvmfs/scripts/big_catalogs.py | 46 +++++++++++++++++++++--------------
+ cvmfs/scripts/catdirusage.py  | 30 +++++++++++++----------
+ cvmfs/scripts/cvmfs_search.py |  2 +-
+ 3 files changed, 46 insertions(+), 32 deletions(-)
+
+diff --git a/cvmfs/scripts/big_catalogs.py b/cvmfs/scripts/big_catalogs.py
+index 3a5eaa4..2893f7f 100644
+--- a/cvmfs/scripts/big_catalogs.py
++++ b/cvmfs/scripts/big_catalogs.py
+@@ -1,28 +1,38 @@
+ #!/usr/bin/env python3
+ 
+-import sys
++import argparse
+ import cvmfs
+ import os
+ 
+ 
+-def usage():
+-    print("Usage: big_catalogs <local repo name | remote repo url> [BIGNUM [BIGMB]]")
+-    print("  Lists all catalogs of the provided CVMFS repository with more than BIGNUM")
+-    print("  files in them, default 100000, or more than BIGMB megabytes, default 50.")
+-
+-
+ def main():
+-    if len(sys.argv) < 2 or len(sys.argv) > 4:
+-        usage()
+-        sys.exit(1)
+-
+-    repo_identifier = sys.argv[1]
+-    bignum = 100000
+-    bigmb = 50
+-    if len(sys.argv) > 2:
+-        bignum = int(sys.argv[2])
+-    if len(sys.argv) > 3:
+-        bigmb = int(sys.argv[3])
++    parser = argparse.ArgumentParser(
++        description="Lists all catalogs of the provided CVMFS repository with more than BIGNUM files in them or more than BIGMB megabytes."
++    )
++    parser.add_argument(
++        "repo_identifier",
++        help="Local repo name or remote repo url"
++    )
++    parser.add_argument(
++        "bignum",
++        type=int,
++        nargs="?",
++        default=100000,
++        help="Minimum number of files in catalog (default: 100000)"
++    )
++    parser.add_argument(
++        "bigmb",
++        type=int,
++        nargs="?",
++        default=50,
++        help="Minimum size in MB (default: 50)"
++    )
++    
++    args = parser.parse_args()
++    
++    repo_identifier = args.repo_identifier
++    bignum = args.bignum
++    bigmb = args.bigmb
+ 
+     repo = cvmfs.open_repository(repo_identifier)
+     revision = repo.get_current_revision()
+diff --git a/cvmfs/scripts/catdirusage.py b/cvmfs/scripts/catdirusage.py
+index f5034c9..e6e83e9 100644
+--- a/cvmfs/scripts/catdirusage.py
++++ b/cvmfs/scripts/catdirusage.py
+@@ -1,23 +1,27 @@
+ #!/usr/bin/env python3
+ 
+-import sys
++import argparse
+ import cvmfs
+ import os
+ 
+ 
+-def usage():
+-    print("Usage: catdirusage <local repo name | remote repo url> topdir")
+-    print("  Prints the number of files in the current catalog for each sub-directory")
+-    print("  under topdir, sorted smallest to largest.")
+-    sys.exit(1)
+-
+-
+ def main():
+-    if len(sys.argv) != 3:
+-        usage()
+-
+-    repo_identifier = sys.argv[1]
+-    toppath = sys.argv[2]
++    parser = argparse.ArgumentParser(
++        description="Prints the number of files in the current catalog for each sub-directory under topdir, sorted smallest to largest."
++    )
++    parser.add_argument(
++        "repo_identifier",
++        help="Local repo name or remote repo url"
++    )
++    parser.add_argument(
++        "topdir",
++        help="Top directory to analyze"
++    )
++    
++    args = parser.parse_args()
++    
++    repo_identifier = args.repo_identifier
++    toppath = args.topdir
+ 
+     repo = cvmfs.open_repository(repo_identifier)
+     revision = repo.get_current_revision()
+diff --git a/cvmfs/scripts/cvmfs_search.py b/cvmfs/scripts/cvmfs_search.py
+index 2a933d6..7799ef7 100644
+--- a/cvmfs/scripts/cvmfs_search.py
++++ b/cvmfs/scripts/cvmfs_search.py
+@@ -126,7 +126,7 @@ def main():
+     parser = argparse.ArgumentParser(
+         description="Search CVMFS repositories for all files matching a given download URL."
+     )
+-    parser.add_argument("url", type=str, help="A CVMFS URL to print the paths for.")
++    parser.add_argument("url", help="A CVMFS URL to print the paths for.")
+     parser.add_argument(
+         "--no-db-index",
+         dest="db_index",
+-- 
+2.48.1
+
+From 42877482a21612ddeddc58b34bb618dbf9b3bafe Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 8 Aug 2025 06:38:38 +0200
+Subject: [PATCH 4/4] fix: add missing newlines at end of files
+
+---
+ cvmfs/scripts/__init__.py     | 2 +-
+ cvmfs/scripts/big_catalogs.py | 2 +-
+ cvmfs/scripts/catdirusage.py  | 2 +-
+ cvmfs/scripts/cvmfs_search.py | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/cvmfs/scripts/__init__.py b/cvmfs/scripts/__init__.py
+index ed1cc7f..2d56b66 100644
+--- a/cvmfs/scripts/__init__.py
++++ b/cvmfs/scripts/__init__.py
+@@ -1 +1 @@
+-# Scripts module for cvmfs utilities
+\ No newline at end of file
++# Scripts module for cvmfs utilities
+diff --git a/cvmfs/scripts/big_catalogs.py b/cvmfs/scripts/big_catalogs.py
+index 2893f7f..4694611 100644
+--- a/cvmfs/scripts/big_catalogs.py
++++ b/cvmfs/scripts/big_catalogs.py
+@@ -47,4 +47,4 @@ def main():
+ 
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+diff --git a/cvmfs/scripts/catdirusage.py b/cvmfs/scripts/catdirusage.py
+index e6e83e9..bd3c791 100644
+--- a/cvmfs/scripts/catdirusage.py
++++ b/cvmfs/scripts/catdirusage.py
+@@ -45,4 +45,4 @@ def main():
+ 
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+diff --git a/cvmfs/scripts/cvmfs_search.py b/cvmfs/scripts/cvmfs_search.py
+index 7799ef7..d02f42c 100644
+--- a/cvmfs/scripts/cvmfs_search.py
++++ b/cvmfs/scripts/cvmfs_search.py
+@@ -145,4 +145,4 @@ def main():
+ 
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+-- 
+2.48.1
+
