@@ -1,0 +1,111 @@
+context:
+  name: instantclient-basiclite
+  version: "23.9.0.25.07"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - if: linux and x86_64
+    then:
+      url: https://download.oracle.com/otn_software/linux/instantclient/2390000/instantclient-basiclite-linux.x64-${{ version }}.zip
+      sha256: 664a88e52f04ca787184a78b90ce09d34b1af919830be6973688219550e079b3
+  - if: linux and aarch64
+    then:
+      url: https://download.oracle.com/otn_software/linux/instantclient/2390000/instantclient-basiclite-linux.arm64-${{ version }}.zip
+      sha256: 6fd71c89bad50c4ccf1cb8c9b4a177776a47ca884935b979eda3b9c7d0d4dc16
+
+build:
+  number: 0
+  skip:
+    - if: not (linux and (x86_64 or aarch64))
+      then: true
+  script: |
+    # Create opt directory and copy instantclient
+    mkdir -p $PREFIX/opt
+    cp -r instantclient_* $PREFIX/opt/
+    
+    # Create symlinks to shared libraries in standard lib directory
+    mkdir -p $PREFIX/lib
+    for lib in $PREFIX/opt/instantclient_23_9/*.so*; do
+      if [ -f "$lib" ] && [ ! -L "$lib" ]; then
+        ln -sf ../opt/instantclient_23_9/$(basename "$lib") $PREFIX/lib/$(basename "$lib")
+      fi
+    done
+    
+    # Set up ORACLE_HOME environment variable
+    mkdir -p $PREFIX/etc/conda/activate.d
+    mkdir -p $PREFIX/etc/conda/deactivate.d
+    
+    # Bash/sh activation
+    cat > $PREFIX/etc/conda/activate.d/instantclient.sh << 'EOF'
+    export ORACLE_HOME=$CONDA_PREFIX/opt/instantclient_23_9
+    EOF
+    
+    # Fish activation
+    cat > $PREFIX/etc/conda/activate.d/instantclient.fish << 'EOF'
+    set -gx ORACLE_HOME $CONDA_PREFIX/opt/instantclient_23_9
+    EOF
+    
+    # Csh activation
+    cat > $PREFIX/etc/conda/activate.d/instantclient.csh << 'EOF'
+    setenv ORACLE_HOME $CONDA_PREFIX/opt/instantclient_23_9
+    EOF
+    
+    # Bash/sh deactivation
+    cat > $PREFIX/etc/conda/deactivate.d/instantclient.sh << 'EOF'
+    unset ORACLE_HOME
+    EOF
+    
+    # Fish deactivation
+    cat > $PREFIX/etc/conda/deactivate.d/instantclient.fish << 'EOF'
+    set -e ORACLE_HOME
+    EOF
+    
+    # Csh deactivation
+    cat > $PREFIX/etc/conda/deactivate.d/instantclient.csh << 'EOF'
+    unsetenv ORACLE_HOME
+    EOF
+
+requirements:
+  build: []
+  host: []
+  run: []
+
+tests:
+  - package_contents:
+      files:
+        exists:
+          - opt/instantclient_23_9/adrci
+          - opt/instantclient_23_9/ojdbc11.jar
+      lib:
+        exists:
+          - libclntsh.so.23.1
+          - libocci.so.23.1
+          - libnnz.so
+
+about:
+  homepage: https://www.oracle.com/database/technologies/instant-client.html
+  license: LicenseRef-Oracle-Free-Distribution
+  license_file: instantclient_*/BASIC_LITE_LICENSE
+  summary: Oracle Instant Client Basic Lite - lightweight Oracle database client
+  description: |
+    Oracle Instant Client Basic Lite is a compact version of Oracle Instant Client
+    that provides the basic functionality needed to connect to Oracle Database.
+    It is significantly smaller than the full Basic package and contains only 
+    the essential libraries required for basic database connectivity.
+    
+    This package includes:
+    - Oracle Call Interface (OCI) libraries
+    - Oracle C++ Call Interface (OCCI) libraries  
+    - JDBC Thin driver
+    - Basic connectivity tools (adrci, genezi, uidrvci)
+    
+    Note: This package only supports Linux platforms (x86_64 and ARM64).
+  documentation: https://docs.oracle.com/en/database/oracle/oracle-database/23/
+  repository: https://www.oracle.com/database/technologies/instant-client/downloads.html
+
+extra:
+  recipe-maintainers:
+    - chrisburr
