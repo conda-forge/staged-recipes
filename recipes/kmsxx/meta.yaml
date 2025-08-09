@@ -1,8 +1,7 @@
-{% set name = "kmsxx" %}
 {% set version = "0.0.0" %}
 
 package:
-  name: {{ name }}
+  name: kmsxx-split  # not actually built, outputs define real packages
   version: {{ version }}
 
 source:
@@ -13,35 +12,63 @@ source:
 build:
   number: 0
   skip: true  # [win or osx]
-  # ABI compatibility is not known...
-  run_exports:
-    - {{ pin_subpackage('kmsxx', max_pin='x.x.x') }}
 
-requirements:
-  build:
-    - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
-    - meson
-    - ninja
-    - pkg-config
-  host:
-    - python
-    - pybind11
-    - fmt
-    - libdrm
-  run:
-    - python
+outputs:
+  - name: libkmsxx
+    build:
+      run_exports:
+        - {{ pin_subpackage("libkmsxx", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - fmt
+        - libdrm
+      run: []
+    files:
+      - bin/fbtest
+      - bin/kmsblank
+      - bin/kmsprint
+      - bin/kmstest
+      - include/kms++/
+      - include/kms++util/
+      - lib/libkms++.so*
+      - lib/libkms++util.so*
+      - lib/pkgconfig/kms++.pc
+      - lib/pkgconfig/kms++util.pc
+    test:
+      commands:
+        - test -f $PREFIX/lib/libkms++.so.0
+        - test -f $PREFIX/lib/libkms++util.so.0
+        - test -x $PREFIX/bin/kmsblank
+        - test -x $PREFIX/bin/kmstest
+        - test -x $PREFIX/bin/kmsprint
+        - test -x $PREFIX/bin/fbtest
 
-test:
-  imports:
-    - pykms
-  commands:
-    - test -f $PREFIX/lib/libkms++.so.0
-    - test -f $PREFIX/lib/libkms++util.so.0
-    - test -x $PREFIX/bin/kmsblank
-    - test -x $PREFIX/bin/kmstest
-    - test -x $PREFIX/bin/kmsprint
-    - test -x $PREFIX/bin/fbtest
+  - name: pykms
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - python
+        - pybind11
+        - {{ pin_subpackage("libkmsxx", exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage("libkmsxx", exact=True) }}
+    files:
+      - lib/python*/site-packages/pykms*
+    test:
+      imports:
+        - pykms
 
 about:
   home: https://github.com/tomba/kmsxx
