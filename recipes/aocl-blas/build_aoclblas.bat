@@ -8,9 +8,10 @@ cmake %CMAKE_ARGS% -G "Ninja"                                ^
        -DENABLE_THREADING=openmp                ^
        -DOpenMP_ROOT=%LIBRARY_LIB%              ^
        -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  ^
-       -S %SRC_DIR%
+       -S aoclblas                              ^
+       -B buildaoclblas
 if errorlevel 1 exit 1
 
-cmake --build . --target install
+cmake --build buildaoclblas --target install
 if errorlevel 1 exit 1
 
