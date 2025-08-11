@@ -1,0 +1,102 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 1.9.4
+
+recipe:
+  name: linkml-runtime
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/l/linkml-runtime/linkml_runtime-${{ version }}.tar.gz
+    sha256: ac8f01aa4f92eb32ca377bf15ce42dad63fc2d2201e08e2b955896e34016075b
+    target_directory: dist
+  - url: https://github.com/linkml/linkml-runtime/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 0740a3fe4af76bf8a16740248e20b922296d279d80dc3134d2a6fee1dd2fff46
+    target_directory: src
+
+build:
+  noarch: python
+  number: 0
+
+outputs:
+  - package:
+      name: linkml-runtime
+    build:
+      noarch: python
+      script:
+        - cd dist
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+      python:
+        entry_points:
+          - comparefiles = linkml_runtime.utils.comparefiles:cli
+          - linkml-normalize = linkml_runtime.processing.referencevalidator:cli
+    requirements:
+      host:
+        - pip
+        - poetry-core
+        - poetry-dynamic-versioning
+        - python ${{ python_min }}.*
+      run:
+        - click
+        - curies >=0.5.4
+        - deprecated
+        - hbreader
+        - isodate >=0.7.2,<1.0.0
+        - json-flattener >=0.1.9
+        - jsonasobj2 >=1.0.0,>=1.0.4
+        - jsonschema >=3.2.0
+        - prefixcommons >=0.1.12
+        - prefixmaps >=0.1.4
+        - pydantic >=1.10.2,<3.0.0
+        - python >=${{ python_min }}
+        - pyyaml
+        - rdflib >=6.0.0
+        - requests
+    tests:
+      - python:
+          imports: linkml_runtime
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - 3.13.*
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - comparefiles --help
+          - linkml-normalize --help
+
+  - package:
+      name: _linkml_runtime_tests
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - ${{ pin_subpackage("linkml-runtime", exact=True) }}
+    tests:
+      - requirements:
+          run:
+            - coverage
+            - pytest
+            - python ${{ python_min }}.*
+            - requests-cache
+        files:
+          source:
+            - src/tests/
+        script:
+          - cd src
+          - coverage run --source=linkml_runtime --branch -m pytest -vv --tb=long --color=yes
+          - coverage report --show-missing --skip-covered --fail-under=66
+
+about:
+  summary: Runtime environment for LinkML, the Linked open data modeling language
+  license: CC0-1.0
+  license_file: dist/LICENSE
+  homepage: https://github.com/linkml/linkml-runtime
+
+extra:
+  feedstock-name: linkml-runtime
+  recipe-maintainers:
+    - bollwyvl
