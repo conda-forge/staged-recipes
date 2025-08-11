@@ -7,7 +7,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                                ^
        -DBUILD_STATIC_LIBS=OFF                  ^
        -DENABLE_THREADING=openmp                ^
        -DOpenMP_ROOT=%LIBRARY_LIB%              ^
-       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  ^
        -S aoclblas                              ^
        -B buildaoclblas
 if errorlevel 1 exit 1

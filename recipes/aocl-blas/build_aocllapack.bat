@@ -5,7 +5,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                                ^
        -DENABLE_AMD_FLAGS=ON                    ^
        -DENABLE_AOCL_BLAS=ON                    ^
        -DOpenMP_ROOT=%LIBRARY_LIB%              ^
-       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  ^
        -S aocllapack                            ^
        -B buildaocllapack
 if errorlevel 1 exit 1
