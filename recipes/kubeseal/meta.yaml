@@ -1,0 +1,49 @@
+{% set name = "kubeseal" %}
+{% set version = "0.30.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/bitnami-labs/sealed-secrets/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 03331dd38ab4fbd73017df5488a404346babe6cac3722b822b858629645a44e6
+
+build:
+  number: 0
+  script:
+    - go mod tidy
+    - go-licenses save ./cmd/kubeseal --save_path ../library_licenses
+    - go build -v -o $PREFIX/bin/kubeseal ./cmd/kubeseal   # [not win]
+    - go build -v -o %LIBRARY_BIN%\kubeseal.exe .\cmd\kubeseal   # [win]
+    # Clear out cache to avoid file not removable warnings
+    - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+    - go-licenses
+
+test:
+  commands:
+    - which kubeseal    # [not win]
+    - where kubeseal    # [win]
+    - kubeseal --help
+
+about:
+  home: https://github.com/bitnami-labs/sealed-secrets
+  summary: 'Command-line tool for one-way encrypted Kubernetes SealedSecrets'
+  description: |
+    The kubeseal utility is the client-side component of the Sealed Secrets system.
+    It uses asymmetric cryptography to convert a standard Kubernetes Secret into a
+    SealedSecret, which can safely be stored--even in public version control--
+    because it can only be decrypted by the cluster's sealed-secrets controller.
+    Typically paired with the cluster-side controller, kubeseal enables secure
+    secret management and GitOps-style workflows for Kubernetes users.
+  license: Apache-2.0
+  license_file: LICENSE
+  dev_url: https://github.com/bitnami-labs/sealed-secrets
+
+extra:
+  recipe-maintainers:
+    - ianatha
