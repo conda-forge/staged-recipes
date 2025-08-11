@@ -3,8 +3,8 @@ schema_version: 1
 context:
   version: 5.1
 
-package:
-  name: aocl-blas
+recipe:
+  name: aocl-blas-lapack
   version: ${{ version }}
 
 source:
@@ -21,35 +21,105 @@ source:
 build:
   number: 0
 
-requirements:
-  build:
-    - ${{ stdlib("c") }}
-    - ${{ compiler("c") }}
-    - ${{ compiler("cxx") }}
-    - if: not win
-      then: ${{ compiler("fortran") }}
-    - if: not linux
-      then: llvm-openmp
-    - if: linux
-      then: libgomp
-    - if: not win
-      then: make
-    - if: win
-      then: ninja
-    - cmake
-  host:
-  run:
 
-tests:
-  - script:
-      - if: unix
-        then: test -f $PREFIX/lib/libblis-mt${SHLIB_EXT}
-      - if: unix
-        then: test -f $PREFIX/include/blis.h
-      - if: win
-        then: if not exist %LIBRARY_INC%\\blis.h exit 1
-      - if: win
-        then: if not exist %LIBRARY_LIB%\\AOCL-LibBlis-Win-MT-dll.dll exit 1
+outputs:
+  - package:
+      name: aocl-utils
+      version: ${{ version }}
+    build:
+      script: build_aoclutils
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - if: not win
+          then: make
+        - if: win
+          then: ninja
+        - cmake
+      host:
+      run:
+    tests:
+      - script:
+          - if: unix
+            then: test -f $PREFIX/lib/libaoclutils${SHLIB_EXT}
+          - if: unix
+            then: test -f $PREFIX/include/alci/alci.h
+          - if: win
+            then: if not exist %LIBRARY_INC%\\alci.h exit 1
+          - if: win
+            then: if not exist %LIBRARY_LIB%\\AOCL-Utils-dll.dll exit 1
+  - package:
+      name: aocl-blas
+      version: ${{ version }}
+    build:
+      script: build_aoclblas
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - if: not win
+          then: ${{ compiler("fortran") }}
+        - if: not linux
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: not win
+          then: make
+        - if: win
+          then: ninja
+        - cmake
+      host:
+      run:
+    tests:
+      - script:
+          - if: unix
+            then: test -f $PREFIX/lib/libblis-mt${SHLIB_EXT}
+          - if: unix
+            then: test -f $PREFIX/include/blis.h
+          - if: win
+            then: if not exist %LIBRARY_INC%\\blis.h exit 1
+          - if: win
+            then: if not exist %LIBRARY_LIB%\\AOCL-LibBlis-Win-MT-dll.dll exit 1
+  - package:
+      name: aocl-lapack
+      version: ${{ version }}
+    build:
+      script: build_aocllapack
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - if: not win
+          then: ${{ compiler("fortran") }}
+        - if: not linux
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: not win
+          then: make
+        - if: win
+          then: ninja
+        - cmake
+      host:
+        - ${{ pin_subpackage('aocl-utils', exact=True) }}
+        - ${{ pin_subpackage('aocl-blas', exact=True) }}
+      run:
+    tests:
+      - script:
+          - if: unix
+            then: test -f $PREFIX/lib/libflame${SHLIB_EXT}
+          - if: unix
+            then: test -f $PREFIX/include/lapacke.h
+          - if: unix
+            then: test -f $PREFIX/include/libflame.hh
+          - if: win
+            then: if not exist %LIBRARY_INC%\\libflame.hh exit 1
+          - if: win
+            then: if not exist %LIBRARY_LIB%\\AOCL-LibBlis-Win-MT-dll.dll exit 1
 
 about:
   license: BSD-3-Clause
