@@ -1,9 +1,6 @@
 context:
   name: milvus-lite
   version: "2.5.1"
-  conan_compiler: ${{ "gcc" if linux else "clang" }}
-  # NOTE: because only 17 is supported
-  conan_compiler_version: ${{ cxx_compiler_version if linux else "17" }}
 
 package:
   name: ${{ name|lower }}
@@ -17,11 +14,9 @@ build:
   number: 0
   skip: win
   script:
-    - conan profile new default --detect
-    - conan profile update settings.compiler=${{ conan_compiler }} default
-    - conan profile update settings.compiler.libcxx=libstdc++11 default
-    - conan profile update settings.compiler.version=${{ conan_compiler_version }} default
-    - conan profile show default
+    # Disable any internal Conan usage (env var + CMake flag)
+    - export MILVUS_LITE_SKIP_CONAN=1
+    - export CMAKE_ARGS="$CMAKE_ARGS -DMILVUS_LITE_USE_CONAN=OFF -DBUILD_SHARED_LIBS=ON"
     - ${{ PYTHON }} -m pip install python/ -vv --no-deps --no-build-isolation
   python:
     entry_points:
@@ -39,7 +34,6 @@ requirements:
     - cmake <3.30
     - ${{ "make" if unix else "ninja" }}
     - pkg-config
-    - conan <2
     - ccache
     - perl
   host:
@@ -47,7 +41,18 @@ requirements:
     - wheel
     - pip
     - setuptools >=64.0
-    - ${{ "openssl" if unix }}
+    - fmt
+    - spdlog
+    - libabseil
+    - re2
+    - libprotobuf
+    - rapidjson
+    - simdjson
+    - openssl
+    - libcurl
+    - zlib
+    - zstd
+    - lz4-c
     - bzip2
   run:
     - python
