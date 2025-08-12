@@ -1,0 +1,73 @@
+context:
+  version: "0.3.1"
+
+package:
+  name: libmarisa
+  version: ${{ version }}
+
+source:
+  url: https://github.com/s-yata/marisa-trie/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 986ed5e2967435e3a3932a8c95980993ae5a196111e377721f0849cad4e807f3
+
+build:
+  number: 0
+  skip: win
+  script: |
+    mkdir build
+    cmake -S . -B build -G Ninja \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=ON \
+      -DCMAKE_CXX_STANDARD=17 \
+      -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+      -DENABLE_STATIC_STDLIB=OFF
+    cmake --build build -j${CPU_COUNT}
+    cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage('libmarisa', upper_bound='x.x.x') }}
+
+tests:
+  - if: unix
+    then:
+      script:
+        - |
+          cat > test.cpp <<'EOF'
+          #include <marisa.h>
+          int main() {
+            marisa::Trie t;
+            return 0;
+          }
+          EOF
+        - $CXX test.cpp -std=c++17 -I$PREFIX/include -L$PREFIX/lib -lmarisa -o test
+        - ./test
+      requirements:
+        run:
+          - ${{ compiler('cxx') }}
+
+  - package_contents:
+      include:
+        - marisa.h
+      lib:
+        - ${{ "libmarisa" if unix }}
+
+about:
+  license: BSD-2-Clause OR LGPL-2.1-or-later
+  license_file: COPYING.md
+  summary: Matching Algorithm with Recursively Implemented StorAge - fast, compact static trie library
+  description: |
+    MARISA is a static and space-efficient trie data structure. It provides
+    fast prefix searches, predictive searches, approximate searches and
+    reverse lookup operations while keeping memory usage low.
+  homepage: https://github.com/s-yata/marisa-trie
+  repository: https://github.com/s-yata/marisa-trie
+
+extra:
+  recipe-maintainers:
+    - xylar
