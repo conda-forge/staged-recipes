@@ -3,18 +3,9 @@
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} -GNinja .. \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      ..
-
-cmake --build . --config Release
-
-if [[ ("${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "") ]]; then
-  ctest --output-on-failure --repeat until-pass:5 -C Release 
-fi
-
 cmake -B build -S . \
 	   -GNinja  \
+     -DCMAKE_INSTALL_PREFIX=$PREFIX \
 	   -DCMAKE_BUILD_TYPE=Release \
        ${CMAKE_ARGS}
 
