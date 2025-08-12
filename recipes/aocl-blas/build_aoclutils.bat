@@ -7,6 +7,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                                ^
        -B buildaoclutils
 if errorlevel 1 exit 1
 
-cmake --build buildaoclutils --target install
+cmake --build buildaoclutils --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 

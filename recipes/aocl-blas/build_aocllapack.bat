@@ -10,6 +10,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                                  ^
        -B buildaocllapack
 if errorlevel 1 exit 1
 
-cmake --build buildaocllapack --target install
+cmake --build buildaocllapack --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 

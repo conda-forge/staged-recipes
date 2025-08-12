@@ -12,6 +12,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                           ^
        -B buildaoclblas
 if errorlevel 1 exit 1
 
-cmake --build buildaoclblas --target install
+cmake --build buildaoclblas --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 
