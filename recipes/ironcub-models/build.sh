@@ -13,7 +13,18 @@ if [[ ("${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR
   ctest --output-on-failure --repeat until-pass:5 -C Release 
 fi
 
-cmake --build . --config Release --target install
+cmake -B build -S . \
+	   -GNinja  \
+	   -DCMAKE_BUILD_TYPE=Release \
+       ${CMAKE_ARGS}
+
+cmake --build build --config Release -j${CPU_COUNT}
+
+if [[ ("${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "") ]]; then
+  ctest --test-dir build --output-on-failure --repeat until-pass:5 -C Release 
+fi
+
+cmake --build build --config Release --target install
 
 # Generate and copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
