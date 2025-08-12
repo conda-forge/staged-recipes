@@ -1,8 +1,5 @@
 #!/bin/sh
 
-mkdir build
-cd build
-
 cmake -B build -S . \
 	   -GNinja  \
      -DCMAKE_INSTALL_PREFIX=$PREFIX \
