@@ -7,10 +7,11 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
+    -DBUILD_SHARED_LIBS=OFF ^
     -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
 
 :: Build and install Portable XDR
-cmake --build build\xdr --target install  || exit /b 1
+cmake --build build\xdr --target install --config Release || exit /b 1
 
 
 :: === Build & Install UDA client ===
@@ -33,9 +34,9 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -DXDR_LIBRARIES="%LIBRARY_LIB%" ^
-    -DXDR_INCLUDE_DIR="%LIBRARY_INC%" ^
+    -DXDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
+    -DXDR_INCLUDE_DIR="%LIBRARY_INC%\rpc" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
 
 :: Build and install
-cmake --build build\uda --target install || exit /b 1
+cmake --build build\uda --target install --config Release || exit /b 1
