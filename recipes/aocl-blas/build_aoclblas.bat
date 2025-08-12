@@ -7,7 +7,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                           ^
        -DBUILD_STATIC_LIBS=OFF                          ^
        -DENABLE_THREADING=openmp                        ^
        -DOpenMP_ROOT=%LIBRARY_LIB%                      ^
-       -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%LIBRARY_BIN%   ^
        -S aoclblas                                      ^
        -B buildaoclblas
 if errorlevel 1 exit 1
@@ -15,3 +14,6 @@ if errorlevel 1 exit 1
 cmake --build buildaoclblas --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 
+mklink %LIBRARY_BIN%\AOCL-LibBlis-Win-MT-dll.dll %LIBRARY_LIB%\AOCL-LibBlis-Win-MT-dll.dll
+
+if errorlevel 1 exit 1

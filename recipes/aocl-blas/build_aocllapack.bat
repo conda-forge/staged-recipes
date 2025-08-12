@@ -5,7 +5,6 @@ cmake %CMAKE_ARGS% -G "Ninja"                                  ^
        -DENABLE_AMD_FLAGS=ON                                   ^
        -DENABLE_AOCL_BLAS=ON                                   ^
        -DOpenMP_ROOT=%LIBRARY_LIB%                             ^
-       -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%LIBRARY_BIN%          ^
        -S aocllapack                                           ^
        -B buildaocllapack
 if errorlevel 1 exit 1
@@ -13,3 +12,5 @@ if errorlevel 1 exit 1
 cmake --build buildaocllapack --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 
+mklink %LIBRARY_BIN%\AOCL-LibFlame-Win-MT-dll.dll %LIBRARY_LIB%\AOCL-LibFlame-Win-MT-dll.dll
+if errorlevel 1 exit 1
