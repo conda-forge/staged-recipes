@@ -1,20 +1,19 @@
-mkdir build
-cd build
-
-cmake ^
+cmake -B build -S . ^
     -G "Ninja" ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
-    ..
+    %CMAKE_ARGS%
 if errorlevel 1 exit 1
 
 :: Build.
-cmake --build . --config Release
+cmake --build build --config Release -j%CPU_COUNT%
+if errorlevel 1 exit 1
+
+:: Test.
+ctest --test-dir build --output-on-failure --repeat until-pass:5 -C Release 
 if errorlevel 1 exit 1
 
 :: Install.
-cmake --build . --config Release --target install
+cmake --build build --config Release --target install
 if errorlevel 1 exit 1
 
 setlocal EnableDelayedExpansion
