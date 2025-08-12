@@ -14,6 +14,5 @@ if errorlevel 1 exit 1
 cmake --build buildaoclblas --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 
-mklink %LIBRARY_BIN%\AOCL-LibBlis-Win-MT-dll.dll %LIBRARY_LIB%\AOCL-LibBlis-Win-MT-dll.dll
-
+move %LIBRARY_LIB%\AOCL-LibBlis-Win-MT-dll.dll %LIBRARY_BIN%\AOCL-LibBlis-Win-MT-dll.dll 
 if errorlevel 1 exit 1

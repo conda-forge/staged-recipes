@@ -12,5 +12,5 @@ if errorlevel 1 exit 1
 cmake --build buildaocllapack --parallel %CPU_COUNT% --target install
 if errorlevel 1 exit 1
 
-mklink %LIBRARY_BIN%\AOCL-LibFlame-Win-MT-dll.dll %LIBRARY_LIB%\AOCL-LibFlame-Win-MT-dll.dll
+move %LIBRARY_LIB%\AOCL-LibFlame-Win-MT-dll.dll %LIBRARY_BIN%\AOCL-LibFlame-Win-MT-dll.dll
 if errorlevel 1 exit 1
