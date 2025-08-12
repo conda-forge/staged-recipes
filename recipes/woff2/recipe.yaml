@@ -1,0 +1,76 @@
+context:
+  version: "1.0.2"
+
+package:
+  name: woff2
+  version: ${{ version }}
+
+source:
+  url: https://github.com/google/woff2/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: add272bb09e6384a4833ffca4896350fdb16e0ca22df68c0384773c67a175594
+  patches:
+    - patches/001-include-cstdint.patch
+    - patches/002-install-binaries.patch
+
+build:
+  number: 0
+  skip: win
+  script:
+    - cmake ${CMAKE_ARGS} -S . -B build -GNinja 
+    - cmake --build build
+    - cmake --install build
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake <=3.31.6
+    - ninja
+    - pkg-config
+  host:
+    - brotli
+
+tests:
+  - package_contents:
+      include:
+        - woff2/decode.h
+        - woff2/encode.h
+        - woff2/output.h
+      lib:
+        - libwoff2common
+        - libwoff2dec
+        - libwoff2enc
+      files:
+        - bin/woff2_compress
+        - bin/woff2_decompress
+        - bin/woff2_info
+  - script:
+    - curl -LO https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxP.ttf
+    - curl -LO https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu72xKKTU1Kvnz.woff2
+    # Convert TTF to WOFF2
+    - woff2_compress KFOmCnqEu92Fr1Mu4mxP.ttf
+    - woff2_info KFOmCnqEu92Fr1Mu4mxP.woff2 | grep "WOFF2Header"
+    # Convert WOFF2 to TTF
+    - woff2_decompress KFOmCnqEu92Fr1Mu72xKKTU1Kvnz.woff2
+    - file --brief KFOmCnqEu92Fr1Mu72xKKTU1Kvnz.ttf | grep -i "TrueType font data"
+    requirements:
+      run:
+        - file
+        - curl
+
+about:
+  homepage: https://github.com/google/woff2
+  summary: Web Open Font Format 2.0 library
+  description: |
+    Web Open Font Format (WOFF) 2.0 is an update to the existing WOFF 
+    1.0 with improved compression that is achieved by using the 
+    Brotli algorithm. The primary purpose of the WOFF2 format is to 
+    efficiently package fonts linked to Web documents by means of CSS 
+    @font-face rules.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - Hofer-Julian
