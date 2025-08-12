@@ -1,0 +1,74 @@
+context:
+  name: milvus-lite
+  version: "2.5.1"
+  conan_compiler: ${{ "gcc" if linux else "clang" }}
+  # NOTE: because only 17 is supported
+  conan_compiler_version: ${{ cxx_compiler_version if linux else "17" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/milvus-io/milvus-lite/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 63e6ceac1f404abd567eb7d51b63fe4a9134a92b37c5b2a2b002e481394898cf
+
+build:
+  number: 0
+  skip: win
+  script:
+    - conan profile new default --detect
+    - conan profile update settings.compiler=${{ conan_compiler }} default
+    - conan profile update settings.compiler.libcxx=libstdc++11 default
+    - conan profile update settings.compiler.version=${{ conan_compiler_version }} default
+    - conan profile show default
+    - ${{ PYTHON }} -m pip install python/ -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - milvus-lite = milvus_lite.cmdline:main
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ${{ "make" if unix else "ninja" }}
+    - pkg-config
+    - conan <2
+    - ccache
+    - perl
+  host:
+    # build tools
+    - python
+    - wheel
+    - pip
+    - setuptools >=64.0
+    # libraries
+    - ${{ "openssl" if unix }}
+  run:
+    - python
+    - tqdm
+
+tests:
+  - python:
+      imports:
+        - milvus_lite
+      pip_check: true
+  - script:
+      - milvus-lite --help
+
+about:
+  summary: A lightweight version of Milvus
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://github.com/milvus-io/milvus-lite
+
+extra:
+  recipe-maintainers:
+    - xylar
