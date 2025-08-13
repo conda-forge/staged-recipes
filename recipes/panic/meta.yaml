@@ -3,7 +3,7 @@
 {% set python_min = "3.10" %}
 
 package:
-  name: {{ name|lower }}
+  name: panic-suite
   version: {{ version }}
 
 source:
@@ -14,9 +14,6 @@ build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
-  entry_points:
-    - panic = panic.gui.gui:main
-    - PyAlarm = panic.ds.PyAlarm:main
 
 requirements:
   host:
@@ -27,19 +24,53 @@ requirements:
     - python >={{ python_min }}
     - fandango
     - pytango
-    - taurus    
 
-test:
-  imports:
-    - panic
-  commands:
-    - pip check
-    - PyAlarm --help
-  requires:
-    - python {{ python_min }}  
-    - pip
-    - fandango
-    - pytango
+outputs:
+  - name: panic
+    build:
+      entry_points:
+        - PyAlarm = panic.ds.PyAlarm:main  
+    requirements:
+      host:
+        - python {{ python_min }}
+        - pip
+        - setuptools
+      run:
+        - python >={{ python_min }}
+        - fandango
+        - pytango
+      test:
+        imports:
+          - panic
+        commands:
+          - pip check
+          - PyAlarm --help
+        requires:
+          - python {{ python_min }}  
+          - pip
+  # optional panic user interface, built on Taurus (PyQt5)
+  - name: panic-gui
+    build:
+      entry_points:
+        - panic = panic.gui.gui:main
+    requirements:
+      host:
+        - python {{ python_min }}
+        - pip
+        - setuptools
+      run:
+        - python >={{ python_min }}
+        - panic
+        - taurus
+      test:
+        imports:
+          - panic.gui
+        commands:
+          - pip check
+          - panic --help
+        requires:
+          - python {{ python_min }}  
+          - pip
 
 about:
   home: https://gitlab.com/tango-controls/panic
@@ -47,7 +78,13 @@ about:
   doc_url: https://pythonhosted.org/panic/
   license: LGPL-3.0-or-later
   license_file: LICENSE
+  description: | 
+    panic is a python Alarm System for TANGO Control Systems that provides
+    several tools (api, Tango device server, user interface) for periodic
+    evaluation of conditions, notification services, logging, automated actions
+    and configuration and visualization of alarms.
 
 extra:
   recipe-maintainers:
     - sergirubio
+    - ovallcorba
