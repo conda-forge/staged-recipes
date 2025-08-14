@@ -3,7 +3,7 @@
 {% set python_min = "3.9" %}
 
 package:
-  name: panic-suite
+  name: panic
   version: {{ version }}
 
 source:
@@ -11,17 +11,12 @@ source:
   sha256: f2772142ac60f69a8927a98317213804abb5becff565a852438288f97353827b
 
 build:
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
-  # hint from cibuildwheel
-  script_env:
-    - MACOSX_DEPLOYMENT_TARGET=10.9
+  noarch: python
+  #skip: true
 
 requirements:
   build:
-    - {{ compiler("c") }}
-    - {{ stdlib("c") }}
     - python
     - pip
   host:
@@ -38,17 +33,20 @@ test:
     - panic    
 
 outputs:
-  - name: panic
+  - name: panic-server
     build:
+      noarch: python
+      script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
       entry_points:
-        - PyAlarm = panic.ds.PyAlarm:main  
+        - PyAlarm = panic.ds.PyAlarm:main
+        - panic = panic.gui.gui:main        
     requirements:
       host:
-        - python {{ python_min }}
+        - python ${{ python_min }}
         - pip
         - setuptools
       run:
-        - python >={{ python_min }}
+        - python >=${{ python_min }}
         - fandango
         - pytango
       test:
@@ -62,28 +60,18 @@ outputs:
           - pip
   # optional panic user interface, built on Taurus (PyQt5)
   - name: panic-gui
-    build:
-      noarch: generic
-      entry_points:
-        - panic = panic.gui.gui:main
     requirements:
       host:
         - python {{ python_min }}
-        - pip
-        - setuptools    
       run:
         - python >={{ python_min }}
-        - panic
-        - taurus
+        - {{ pin_subpackage('panic', exact=True) }}
+        - taurus-qt
       test:
         imports:
           - panic.gui
         commands:
-          - pip check
           - panic --help
-        requires:
-          - python {{ python_min }}  
-          - pip
           
 about:
   home: https://gitlab.com/tango-controls/panic
