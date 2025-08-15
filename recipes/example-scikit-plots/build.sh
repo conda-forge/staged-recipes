@@ -1,11 +1,49 @@
 #!/bin/bash
+
 # Inspired by the numpy-feedstock build script:
 # https://github.com/conda-forge/numpy-feedstock/blob/main/recipe/build.sh
 
-set -e  # Exit immediately if a command exits with a non-zero status
-set -o pipefail  # Ensure pipeline errors are captured
-# set -u  # Treat unset variables as an error
-set -x  # Print each command before executing it
+set -ex  # Exit on error, and print commands
+
+git_fetch_shallow() {
+  local repo_url="$1"
+  local tag="$2"
+
+  if [[ -z "$repo_url" || -z "$tag" ]]; then
+    echo "Usage: git_fetch_shallow <repo_url> <tag>"
+    return 1
+  fi
+
+  echo -e "\033[1;34m[INFO]\033[0m Cloning $repo_url @ $tag (shallow + submodules)..."
+
+  # Initialize git repo if not already done
+  if [ ! -d .git ]; then
+    git init .
+    # Add the remote origin URL
+    git remote add origin "$repo_url"
+  fi
+  
+  # Fetch the tags from the remote repository
+  # git fetch --tags --depth 1 origin "$tag"
+  git fetch --tags
+  # Checkout the desired tag
+  # git checkout FETCH_HEAD
+  git checkout "$tag"
+
+  # Initialize and update the submodules recursively
+  git submodule update --init --recursive
+
+  # Optional: git LFS install/pull if needed for the repository and submodules
+  # git lfs install
+  # git lfs pull
+
+  echo -e "\033[1;32m[SUCCESS]\033[0m Repo and submodules fetched successfully."
+}
+# Uncomment and modify the following line to fetch a specific tag
+# git_fetch_shallow https://github.com/scikit-plots/scikit-plots.git v0.4.0rc4
+
+# Ensure submodules are updated (safe even if already done)
+git submodule update --init --recursive || true
 
 mkdir builddir
 
