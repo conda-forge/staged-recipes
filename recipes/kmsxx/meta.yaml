@@ -1,0 +1,74 @@
+{% set version = "0.0.0" %}
+
+package:
+  name: kmsxx-split  # not actually built, outputs define real packages
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/tomba/kmsxx.git
+  # pin to this while upstream handles https://github.com/tomba/kmsxx/issues/83
+  git_rev: 1813adae89203e15fc60344864fc2ca0d3c75e07
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - {{ stdlib("c") }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - pybind11
+    - fmt
+    - libdrm
+
+outputs:
+  - name: libkmsxx
+    build:
+      run_exports:
+        - {{ pin_subpackage("libkmsxx", max_pin="x.x.x") }}
+    files:
+      - bin/fbtest
+      - bin/kmsblank
+      - bin/kmsprint
+      - bin/kmstest
+      - include/kms++/
+      - include/kms++util/
+      - lib/libkms++.so*
+      - lib/libkms++util.so*
+      - lib/pkgconfig/kms++.pc
+      - lib/pkgconfig/kms++util.pc
+    test:
+      commands:
+        - test -f $PREFIX/lib/libkms++.so.0
+        - test -f $PREFIX/lib/libkms++util.so.0
+        - test -x $PREFIX/bin/kmsblank
+        - test -x $PREFIX/bin/kmstest
+        - test -x $PREFIX/bin/kmsprint
+        - test -x $PREFIX/bin/fbtest
+
+  - name: pykms
+    requirements:
+      run:
+        - python
+        - {{ pin_subpackage("libkmsxx", exact=True) }}
+    files:
+      - lib/python*/site-packages/pykms*
+    test:
+      imports:
+        - pykms
+
+about:
+  home: https://github.com/tomba/kmsxx
+  license: MIT
+  license_file: LICENSE
+  summary: "DRM/KMS library for Linux with Python bindings"
+
+extra:
+  feedstock-name: kmsxx
+  recipe-maintainers:
+    - carlodri
