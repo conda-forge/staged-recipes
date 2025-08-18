@@ -1,5 +1,7 @@
 #!/bin/bash
 
+git config url."https://github.com/".insteadOf "git@github.com:"
+git config url."https://github.com/".insteadOf "ssh://git@github.com/"
 git submodule update --init --recursive
 
 rm -rf build
