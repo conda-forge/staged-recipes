@@ -4,7 +4,7 @@ rm -rf build
 mkdir build
 cd build
 
-export CMAKE_NUM_THREADS=8
-cmake $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DUSE_USHER=ON ..
+export CMAKE_NUM_THREADS=${CPU_COUNT}
+cmake $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wno-c++20-extensions" ..
 make -j${CPU_COUNT}
 make install
