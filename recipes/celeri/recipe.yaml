@@ -1,0 +1,125 @@
+context:
+  version: "0.0.3"
+  python_min: "3.11"
+  python_check_max: "3.13"
+
+package:
+  name: celeri
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/c/celeri/celeri-${{ version }}.tar.gz
+  sha256: cca3f52089649cf67882a4d96e8f630001374682b5f0f4eb2041eb3cd9bfa307
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+    - celeri-create-grid-station = celeri.scripts.create_grid_station:main
+    - celeri-forward = celeri.scripts.celeri_forward:main
+    - celeri-msh2stl = celeri.scripts.msh2stl:main
+    - celeri-segmesh = celeri.scripts.segmesh:main
+    - celeri-snap-segments = celeri.scripts.snap_segments:main
+    - celeri-solve = celeri.scripts.celeri_solve:main
+    - celeri-stl2msh = celeri.scripts.stl2msh:main
+
+requirements:
+  host:
+  - python ${{ python_min }}.*
+  - hatchling
+  - hatch-vcs
+  - hatch-fancy-pypi-readme
+  - pip
+  run:
+  - python >=${{ python_min }}
+  - addict
+  - cartopy
+  - colorcet
+  - cutde >=25.7.24
+  - cvxopt
+  - cvxpy
+  - python-gmsh
+  - h5py
+  - ipykernel
+  - ipython
+  - loguru
+  - matplotlib-base
+  - meshio
+  - numpy
+  - pandas
+  - papermill
+  - pydantic
+  - pyproj
+  - pytest
+  - scipy
+  - shapely
+  - spherical-geometry
+  - tqdm
+  - xarray
+  - zarr
+
+  # occt is a dependency of gmsh, which is a dependency of python-gmsh.
+  # There are two variants of occt build strings: novtk_* and all_*.
+  # Example build strings are novtk_h09ba48e_103 and all_h4c4714a_203
+  # Without the following, in the event that the novtk variant of occt is selected:
+
+  #   >>> import gmsh
+  #   Traceback (most recent call last):
+  #     File "<stdin>", line 1, in <module>
+  #     File "/home/conda/staged-recipes/build_artifacts/celeri_1755440886981/_test_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold/lib/python3.11/site-packages/gmsh.py", line 87, in <module>
+  #       lib = CDLL(libpath)
+  #             ^^^^^^^^^^^^^
+  #     File "/home/conda/staged-recipes/build_artifacts/celeri_1755440886981/_test_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold/lib/python3.11/ctypes/__init__.py", line 376, in __init__
+  #       self._handle = _dlopen(self._name, mode)
+  #                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  #   OSError: libGL.so.1: cannot open shared object file: No such file or directory
+
+  # Therefore we require the all_* variant over the novtk_* variant.
+  - occt * all_*
+
+tests:
+- python:
+    python_version:
+    - ${{ python_min }}.*
+    - ${{ python_check_max }}.*
+    imports:
+    - celeri
+    # TODO: switch to true once the note below is resolved.
+    pip_check: false
+- requirements:
+    run:
+      - python ${{ python_min }}.*
+      # TODO: remove the following once the note below is resolved.
+      - pip
+  script:
+    - celeri-solve --help
+    - celeri-snap-segments --help
+    - celeri-segmesh --help
+    - celeri-msh2stl --help
+    - celeri-stl2msh --help
+    - celeri-forward --help
+    - celeri-create-grid-station --help
+    - python -c "from importlib.metadata import version; v = version('celeri'); print(v); assert v == '${{ version }}'"
+    # TODO: See the previous two TODOs and remove the following once this PR is merged:
+    # <https://github.com/conda-forge/gmsh-feedstock/pull/103>
+    # NOTE: These are all workarounds for the failure of pip check due to:
+    # <https://github.com/conda-forge/gmsh-feedstock/issues/97>
+    - pip install gmsh
+    # TODO: Remove this in favor of pip_check: true above.
+    - pip check
+
+about:
+  summary: Next generation earthquake cycle kinematics
+  homepage: https://github.com/brendanjmeade/celeri
+  repository: https://github.com/brendanjmeade/celeri
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  feedstock_name: celeri
+  recipe-maintainers:
+    - aseyboldt
+    - brendanjmeade
+    - maresb
