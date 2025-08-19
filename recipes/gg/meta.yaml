@@ -1,0 +1,67 @@
+{% set version = "0.29.0" %}
+
+package:
+  name: gg
+  version: {{ version }}
+
+source:
+  url: https://github.com/gulbanana/gg/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: bf06f189ccf7df091fdc3a5111916bae42ae236ab9cee24439182ca24db64a81
+
+build:
+  number: 0
+  script:
+    - unset CI                                                                                                 # [unix]
+    - TARGET=${TARGET:-$(rustc -vV | grep "host:" | awk '{print $2}')}                                         # [unix]
+    - npm install                                                                                              # [unix]
+    - npm run tauri build -- --no-bundle                                                                       # [unix]
+    - mkdir -p $PREFIX/bin && cp $SRC_DIR/src-tauri/target/$TARGET/release/gg $PREFIX/bin                      # [unix]
+    - cd $SRC_DIR/src-tauri && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml                  # [unix]
+    - set CI=                                                                                                  # [win]
+    - cmd /c "npm install"                                                                                     # [win]
+    - cmd /c "npm run tauri build -- --no-bundle"                                                              # [win]
+    - cmd /c "if not exist %PREFIX%\bin\ mkdir %PREFIX%\bin\"                                                  # [win]
+    - cp %SRC_DIR%\src-tauri\target\release\gg.exe %PREFIX%\bin                                                # [win]
+    - cd %SRC_DIR%\src-tauri && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml                 # [win]
+
+requirements:
+  build:
+    - {{ compiler('rust') }}
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - nodejs
+    - cargo-bundle-licenses
+    - pkg-config     # [linux]
+    - make           # [linux]
+  host:
+    - zlib            # [linux]
+    - glib            # [linux]
+    - pango           # [linux]
+    - cairo           # [linux]
+    - fontconfig      # [linux]
+    - libsoup         # [linux]
+    - gtk3            # [linux]
+    - expat           # [linux]
+    - xorg-xorgproto  # [linux]
+    - webkit2gtk4.1   # [linux]
+
+test:
+  commands:
+    - gg --version      # [unix]
+    - gg.exe --version  # [win]
+
+about:
+  home: https://github.com/gulbanana/gg
+  summary: GG - Gui for JJ
+  description: |
+    GG is a GUI for the version control system Jujutsu. It takes advantage 
+    of Jujutsu's composable primitives to present an interactive view of 
+    your repository. Just imagine: what if you were always in the middle 
+    of an interactive rebase, but this was actually good?
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - Hofer-Julian
