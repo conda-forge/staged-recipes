@@ -1,0 +1,98 @@
+{% set required_compiler_version = "2024.2.0" %}
+
+{% set pyproject = load_file_data('pyproject.toml') %}
+{% set py_build_deps = pyproject.get('build-system', {}).get('requires', []) %}
+
+{% set version = "0.20.2" %}
+{% set buildnumber = "0" %}
+
+package:
+    name: dpctl
+    version: {{ version }}
+
+source:
+    url: https://github.com/IntelPython/dpctl/archive/refs/tags/{{ version }}.tar.gz
+    sha256: ad14bb214e341d9315245012e39d2aec6ca8217f99114790134664420d0eae4f
+
+build:
+    number: {{ buildnumber }}
+    ignore_run_exports:
+        - level-zero
+    skip: True  # [osx or py<39 or py>313]
+
+requirements:
+    # TODO: keep in sync with /pyproject.toml
+    build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('dpcpp') }} >={{ required_compiler_version }}
+    host:
+        - python
+        - pip >=24.0
+        - level-zero-devel >=1.16
+        - pybind11 >=2.12
+        - {{ pin_compatible('intel-sycl-rt', min_pin='x.x', max_pin='x') }}
+        - {{ pin_compatible('intel-cmplr-lib-rt', min_pin='x.x', max_pin='x') }}
+        # Ensure we are using latest version of setuptools, since we don't need
+        # editable environments for release.
+        - setuptools >=69
+        {% for dep in py_build_deps %}
+        {% if dep.startswith('ninja') %}
+        - {{ dep.split(';')[0] }}  # [not win]
+        {% elif dep.startswith('cmake') %}
+        - {{ dep }}
+        {% elif dep.startswith('build>=') %}
+        - {{ 'python-' ~ dep }}
+        {% elif dep.startswith('cython') %}
+        {% if dep.split(';')[1] == "python_version<'3.13'" %}
+        - {{ dep.split(';')[0] }}  # [py<313]
+        {% else %}
+        - {{ dep.split(';')[0] }}  # [py>=313]
+        {% endif %}
+        {% else %}
+        - {{ dep|replace('_','-') }}
+        {% endif %}
+        {% endfor %}
+        # versioneer dependency
+        - tomli  # [py<311]
+    run:
+        - python
+        - {{ pin_compatible('intel-sycl-rt', min_pin='x.x', max_pin='x') }}
+        - {{ pin_compatible('intel-cmplr-lib-rt', min_pin='x.x', max_pin='x') }}
+        - numpy
+
+test:
+    requires:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - cython
+        - setuptools
+        - pytest
+        - pytest-cov
+    commands:
+        - python -c "import dpctl; print(dpctl.__version__)"
+        - python -m dpctl -f
+
+about:
+    home: https://github.com/IntelPython/dpctl.git
+    license: Apache-2.0
+    license_file: LICENSE
+    summary: 'A lightweight Python wrapper for a subset of SYCL API.'
+    description: |
+        <strong>LEGAL NOTICE: Use of this software package is subject to the
+        software license agreement (as set forth above, in the license section of
+        the installed Conda package and/or the README file) and all notices,
+        disclaimers or license terms for third party or open source software
+        included in or with the software.</strong>
+        <br/><br/>
+        EULA: <a href="https://opensource.org/licenses/Apache-2.0" target="_blank">Apache-2.0</a>
+        <br/><br/>
+
+extra:
+    recipe-maintainers:
+        - jharlow-intel
+        - ekomarova
+        - ndgrigorian
+        - antonwolfy
+        - vlad-perevezentsev
