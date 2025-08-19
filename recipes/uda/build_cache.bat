@@ -3,11 +3,10 @@
 :: Configure Portable XDR
 cmake %CMAKE_ARGS% ^
     -G Ninja ^
-    -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
-    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-    -DBUILD_SHARED_LIBS=OFF ^
+    -D CMAKE_BUILD_TYPE=Release ^
+    -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+    -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ^
+    -D BUILD_SHARED_LIBS=OFF ^
     -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
 
 :: Build and install Portable XDR
@@ -18,24 +17,23 @@ cmake --build build\xdr --target install --config Release || exit /b 1
 :: Configure and build
 cmake %CMAKE_ARGS% ^
     -G Ninja ^
-    -DBUILD_SHARED_LIBS=ON ^
-    -DSSLAUTHENTICATION=ON ^
-    -DCLIENT_ONLY=ON ^
-    -DSERVER_ONLY=OFF ^
-    -DENABLE_CAPNP=ON ^
-    -DNO_MEMCACHE=ON ^
-    -DNO_WRAPPERS=OFF ^
-    -DNO_CXX_WRAPPER=OFF ^
-    -DNO_IDL_WRAPPER=ON ^
-    -DNO_PYTHON_WRAPPER=OFF ^
-    -DNO_JAVA_WRAPPER=OFF ^
-    -DFAT_IDL=OFF ^
-    -DNO_CLI=OFF ^
-    -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
-    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -DXDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
-    -DXDR_INCLUDE_DIR="%LIBRARY_INC%\rpc" ^
+    -D BUILD_SHARED_LIBS=ON ^
+    -D SSLAUTHENTICATION=ON ^
+    -D CLIENT_ONLY=ON ^
+    -D SERVER_ONLY=OFF ^
+    -D ENABLE_CAPNP=ON ^
+    -D NO_MEMCACHE=ON ^
+    -D NO_WRAPPERS=OFF ^
+    -D NO_CXX_WRAPPER=OFF ^
+    -D NO_IDL_WRAPPER=ON ^
+    -D NO_PYTHON_WRAPPER=OFF ^
+    -D NO_JAVA_WRAPPER=OFF ^
+    -D FAT_IDL=OFF ^
+    -D NO_CLI=OFF ^
+    -D CMAKE_BUILD_TYPE=Release ^
+    -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+    -D XDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
+    -D XDR_INCLUDE_DIR="%LIBRARY_INC%\rpc" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
 
 :: Build and install

@@ -26,8 +26,6 @@ extra_cmake_args=(
 
 cmake ${CMAKE_ARGS} "${extra_cmake_args[@]}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D CMAKE_PREFIX_PATH=$PREFIX \
-    -D CMAKE_INSTALL_PREFIX=$PREFIX \
     -B build -S $SRC_DIR
 
 # Build and install
