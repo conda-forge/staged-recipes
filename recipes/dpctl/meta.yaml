@@ -1,0 +1,74 @@
+{% set required_compiler_version = "2024.2.0" %}
+
+{% set version = "0.20.2" %}
+{% set buildnumber = "0" %}
+
+package:
+  name: dpctl
+  version: {{ version }}
+
+source:
+  url: https://github.com/IntelPython/dpctl/archive/refs/tags/{{ version }}.tar.gz
+  sha256: ad14bb214e341d9315245012e39d2aec6ca8217f99114790134664420d0eae4f
+
+build:
+  number: {{ buildnumber }}
+  ignore_run_exports:
+    - level-zero
+  missing_dso_whitelist:
+    - '**/DPCTLSyclInterface.dll'  # [win]
+  skip: True  # [osx or py<39 or py>313]
+
+requirements:
+  # TODO: keep in sync with /pyproject.toml
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('dpcpp') }} >={{ required_compiler_version }}
+  host:
+    - python
+    - pip >=24.0
+    - level-zero-devel >=1.16
+    - pybind11 >=2.12
+    - intel-sycl-rt
+    - intel-cmplr-lib-rt
+    # Ensure we are using latest version of setuptools, since we don't need
+    # editable environments for release.
+    - setuptools >=69
+    - wheel >=0.43
+    - python-build >=1.1
+    - scikit-build >=0.17.0
+    - ninja >=1.11.1          # [linux]
+    - cmake >=3.29.0
+    - cython >=3.0.10,<3.1.0  # [py>=313]
+    - cython >=3.0.10         # [py<313]
+    - numpy >=1.23
+    # WARNING: check with doc how to upgrade
+    - versioneer ==0.29
+    # versioneer dependency
+    - tomli                   # [py<311]
+  run:
+    - python
+    - {{ pin_compatible('intel-sycl-rt', min_pin='x.x', max_pin='x') }}
+    - {{ pin_compatible('intel-cmplr-lib-rt', min_pin='x.x', max_pin='x') }}
+    - numpy
+
+test:
+  commands:
+    - python -c "import dpctl; print(dpctl.__version__)"
+    - python -m dpctl -f
+
+about:
+  home: https://github.com/IntelPython/dpctl.git
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'A lightweight Python wrapper for a subset of SYCL API.'
+  description: |
+    Data Parallel Control or dpctl is a Python library that allows users to control the execution placement of a compute kernel on an XPU.
+
+extra:
+  recipe-maintainers:
+    - jharlow-intel
+    - ndgrigorian
+    - antonwolfy
+    - vlad-perevezentsev
