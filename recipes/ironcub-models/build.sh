@@ -2,7 +2,6 @@
 
 cmake -B build -S . \
 	   -GNinja  \
-     -DCMAKE_INSTALL_PREFIX=$PREFIX \
 	   -DCMAKE_BUILD_TYPE=Release \
        ${CMAKE_ARGS}
 
