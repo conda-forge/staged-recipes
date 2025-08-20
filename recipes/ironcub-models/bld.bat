@@ -1,6 +1,8 @@
 cmake -B build -S . ^
     -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     %CMAKE_ARGS%
 if errorlevel 1 exit 1
 
