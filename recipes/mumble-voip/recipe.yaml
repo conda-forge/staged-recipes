@@ -1,0 +1,169 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# Much of the information is available via:
+context:
+  version: "1.5.735"
+  nprocs: 4
+
+package:
+  name: mumble-voip
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mumble-voip/mumble/archive/refs/tags/v1.5.735.tar.gz
+    sha256: 539680318419ca6c236d129dc5b6a96878bd048957cfcfb3882d313dd16660fa
+    target_directory: src/mumble
+    patches:
+      - patches/0001-find-python.patch
+  - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
+    sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
+    target_directory: src/mumble/3rdparty/FindPythonInterpreter/
+  - url: https://raw.githubusercontent.com/Krzmbrzl/cmake-compiler-flags/refs/heads/main/CompilerFlags.cmake
+    sha256: 297e2c9fa52a913ac1880812a71313656b40b2cd15e92e5565d570434165bf0c
+    target_directory: src/mumble/3rdparty/cmake-compiler-flags/
+  - url: https://github.com/lipis/flag-icons/archive/refs/tags/v7.3.2.tar.gz
+    sha256: 6a5497e1029e66415c3941a5e5ee001944b0a7e46bf365c6d5a91a033acee87e
+    target_directory: src/mumble/3rdparty/flag-icons/
+  - url: https://github.com/microsoft/GSL/archive/refs/tags/v4.1.0.tar.gz
+    sha256: 0a227fc9c8e0bf25115f401b9a46c2a68cd28f299d24ab195284eb3f1d7794bd
+    target_directory: src/mumble/3rdparty/gsl/
+  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz
+    sha256: 0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
+    target_directory: src/mumble/3rdparty/nlohmann_json/
+  - url: https://github.com/wolfpld/tracy/archive/refs/tags/v0.11.1.tar.gz
+    sha256: 2c11ca816f2b756be2730f86b0092920419f3dabc7a7173829ffd897d91888a1
+    target_directory: src/mumble/3rdparty/tracy/
+  - url: https://github.com/xiph/speexdsp/archive/refs/tags/SpeexDSP-1.2.1.tar.gz
+    sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
+    target_directory: src/mumble/3rdparty/speexdsp/
+  - url: https://github.com/mumble-voip/ReNameNoise/archive/refs/heads/master.tar.gz
+    sha256: 8f4ecd90d0445a2455c82437f67e18cab873674d593dcee9a4b87b5dc0bba0cd
+    target_directory: src/mumble/3rdparty/renamenoise/
+  - url: https://github.com/TsudaKageyu/minhook/archive/refs/tags/v1.3.4.tar.gz
+    sha256: 1aebeae4ca898330c507860acc2fca2eb335fe446a3a2b8444c3bf8b2660a14e
+    target_directory: src/mumble/3rdparty/minhook/
+  - if: linux
+    then:
+      path: service.yaml
+      target_directory: service-config
+
+# https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+build:
+  number: 0
+  script:
+    env:
+      JOB_CNT: ${{ nprocs }}
+    interpreter: nu
+    content: |
+      cd src/mumble
+      cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -Dspeechd=OFF -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dserver=OFF -Dcelt=OFF -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations" -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11" -DCMAKE_PREFIX_PATH=$BUILD_PREFIX -DBOOST_ROOT=$BUILD_PREFIX -DCMAKE_INSTALL_PREFIX=$PREFIX
+      cd build
+      cmake --build . -j $env.JOB_CNT
+      # Manual installation since cmake install isn't working properly
+      mkdir ($env.PREFIX + "/bin")
+      cp mumble ($env.PREFIX + "/bin/mumble")
+
+      # Install service configuration file on Linux
+      if ($nu.os-info.name == "linux") {
+        print "Installing service configuration file..."
+
+        let config_dir = $"($env.PREFIX)/config"
+        mkdir $config_dir
+        cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+        # Verify the file was placed correctly
+        if ($"($config_dir)/service.yaml" | path exists) {
+          print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+        } else {
+          print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+        }
+      }
+
+requirements:
+  build:
+    - nushell
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+      # - ${{ stdlib('c') }}
+      # - qt6-main
+    - qt
+    - qt-main
+      # - qt-wayland
+    - mesalib
+    - python
+    - cmake
+    - py-build-cmake
+    - ninja
+    - if: unix
+      then: make
+    - pkg-config
+    - xorg-xproto
+    - xorg-xextproto
+    - xorg-xorgproto
+    - libopenssl-static
+    - libprotobuf-static
+    - libprotobuf
+    - protobuf
+    - boost-cpp
+    - abseil-cpp
+  host:
+    # - ${{ stdlib('c') }}
+    # - qt
+    # - qt6-main
+    # - qt6-wayland
+    - xorg-libx11
+    - xorg-libxext
+    - xorg-libxi
+    - boost-cpp
+    - libgl-devel
+    - alsa-lib
+    - abseil-cpp
+    - libprotobuf
+    - libcap
+    - libogg
+    - libsndfile
+    - libopus
+      # - libspeechd
+    - avahi
+    - libxcb
+    - zeroconf
+    - poco
+
+tests:
+  # Test 1: Verify package contents are included
+  - package_contents:
+      files:
+        # Mumble binary
+        - ${{ "Library/" if win }}bin/mumble${{ ".exe" if win }}
+          # Service configuration file (Linux only)
+        - ${{ "config/service.yaml" if linux }}
+
+    # Test 2: Functional tests
+  - requirements:
+      build:
+        - nushell
+    script:
+      interpreter: nu
+      content:
+        - ^mumble --version
+
+about:
+  homepage: https://www.mumble.info/
+  summary: "Mumble is a free, open source, low latency, high quality voice chat application."
+  description: |
+    Mumble was the first VoIP application to establish true low latency voice communication over a decade ago.
+      But low latency and gaming are not the only use cases it shines in.
+  license: BSD-3-Clause
+  license_file:
+    - src/mumble/LICENSE
+    - src/mumble/3rdPartyLicenses
+  documentation: https://www.mumble.info/documentation/
+  repository: https://github.com/mumble-voip/mumble
+
+extra:
+  recipe-maintainers:
+    - phreed
+  version:
+    github-release:
+      - ^(\d+\.\d+\.\d+)
