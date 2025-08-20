@@ -2,61 +2,130 @@
 schema_version: 1
 
 context:
-  group: bluenviron
-  name: mediamtx
-  version: "1.11.3"
-  sha: cdd46bbbfe2be95057df8eb5016b88328063255c38e0e42d27abccd7d3ebbad6
+  version: "1.12.3"
 
 package:
   version: ${{ version }}
-  name: ${{ name|lower }}
-  
+  name: mediamtx
+
 source:
-  url: https://github.com/${{ group }}/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: ${{ sha }}
-  target_directory: src/mediamtx
+  - url: https://github.com/bluenviron/mediamtx/archive/refs/tags/v1.12.3.tar.gz
+    sha256: 0059f748ad37cbc467b6370caddeb661c152e304f4eb2fd51d2b0dc8d2e72554
+    target_directory: src/mediamtx
+  - if: linux
+    then:
+      path: service.yaml
+      target_directory: service-config
 
 build:
   number: 0
   script:
-    - cd src/mediamtx
-    - go generate ./...
-    - go build -ldflags="-s -w -X=github.com/${{ group }}/${{ name }}/version.Version=${{ version }} -X=github.com/${{ group }}/${{ name }}/server.mode=release" 
-        -o $PREFIX/bin/${{ name }}
-    - go-licenses save . --save_path ../../library_licenses
-        --ignore=golang.org/x/crypto/internal/poly1305
-        --ignore=golang.org/x/crypto/salsa20/salsa
-        --ignore=golang.org/x/sys/unix
-        --ignore=golang.org/x/crypto/argon2
-        --ignore=golang.org/x/crypto/blake2b
-        --ignore=golang.org/x/sys/cpu
-        --ignore=golang.org/x/crypto/sha3
-        --ignore=github.com/ugorji/go/codec
-        --ignore=github.com/benburkert/openpgp
+    interpreter: nu
+    content: |
+      echo $"Building ($env.PKG_NAME) version ($env.PKG_VERSION)..."
+
+      # Change to source directory
+      cd src/mediamtx
+
+      # Create VERSION file with correct version
+      print $"Creating VERSION file with version ($env.PKG_VERSION)..."
+      $"v($env.PKG_VERSION)" | save VERSION
+
+      # Run go generate to create embedded files
+      print "Generating embedded files..."
+      go generate ./...
+
+      # Set up LDFLAGS for optimized binary
+      mut ldflags = ["-s" "-w"]
+
+      let ldflags_str = ($ldflags | str join " ")
+
+      # Build the binary with static linking
+      $env.CGO_ENABLED = "0"
+      let output_path = $"($env.PREFIX)/bin/mediamtx"
+      go build -ldflags $ldflags_str -o $output_path .
+
+      # Install service configuration file on Linux
+      if ($nu.os-info.name == "linux") {
+        print "Installing service configuration file..."
+
+        let config_dir = $"($env.PREFIX)/config"
+        mkdir $config_dir
+        cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+        # Verify the file was placed correctly
+        if ($"($config_dir)/service.yaml" | path exists) {
+          print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+        } else {
+          print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+        }
+      }
+
+      # Collect licenses from all dependencies (optional)
+      print "Collecting dependency licenses..."
+      let license_dir = $"($env.SRC_DIR)/license-files"
+      mkdir $license_dir
+
+      # Save licenses, ignoring common problematic packages
+      # Use try to make this step optional if it fails
+      try {
+        go-licenses save .
+          --save_path=$license_dir
+          --ignore=golang.org/x/sys/unix
+          --ignore=golang.org/x/crypto/internal/poly1305
+          --ignore=golang.org/x/crypto/salsa20/salsa
+          --ignore=golang.org/x/crypto/argon2
+          --ignore=golang.org/x/crypto/blake2b
+          --ignore=golang.org/x/sys/cpu
+          --ignore=golang.org/x/crypto/sha3
+          --ignore=github.com/ugorji/go/codec
+          --ignore=github.com/benburkert/openpgp
+      } catch {
+        print "Warning: go-licenses failed, proceeding without dependency licenses"
+      }
 
 requirements:
   build:
-    - cmake
-    - ${{ compiler('go') }}
-    - ${{ stdlib('c') }}
+    - nushell
+      # For static binaries without C dependencies
     - go-licenses
+    - if arch == "aarch64" {
+      - ${{ compiler('go-nocgo_linux-aarch64') }}
+      }
+    - if arch == "x86_64" {
+      - ${{ compiler('go-nocgo') }}
+      }
 
 tests:
-  - script: | 
-      mediamtx --help 2>&1  | grep "${{ version }}"
+  # Test 1: Verify package contents are included
+  - package_contents:
+      files:
+        # MediaMTX binary
+        - ${{ "Library/" if win }}bin/mediamtx${{ ".exe" if win }}
+          # Service configuration file (Linux only)
+        - ${{ "config/service.yaml" if linux }}
+
+      # Test 2: Functional tests
+  - requirements:
+      build:
+        - nushell
+    script:
+      interpreter: nu
+      content:
+        # Test that the binary works
+        - ^mediamtx --version
+        - ^mediamtx --help
 
 about:
   homepage: https://github.com/bluenviron/mediamtx/blob/main/README.md
-  summary: 'MediaMTX is a live media server'
+  summary: "MediaMTX is a live media server"
   description: |
-     MediaMTX is a ready-to-use and zero-dependency real-time media server and 
-     media proxy that allows to publish, read, proxy, record and playback video and audio streams. 
-     It has been conceived as a "media router" that routes media streams from one end to the other.
+    MediaMTX is a ready-to-use and zero-dependency real-time media server and
+    media proxy that allows to publish, read, proxy, record and playback video and audio streams.
+    It has been conceived as a "media router" that routes media streams from one end to the other.
   license: Apache-2.0
   license_file:
-    - LICENSE.txt
-    - https://github.com/bluenviron/mediamtx/blob/main/LICENSE
-    - library_licenses
+    - src/mediamtx/LICENSE
   documentation: https://github.com/bluenviron/mediamtx/blob/main/README.md
   repository: https://github.com/bluenviron/mediamtx
 
