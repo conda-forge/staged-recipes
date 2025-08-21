@@ -17,6 +17,7 @@ cache:
       - udaClient.patch
       - add_log_memcached.patch
       - improve_install_destination.patch
+      - fix_win_setup_py.patch
   build:
     script:
       - if: unix
@@ -82,8 +83,9 @@ outputs:
           - ${{ "Library/" if win }}modulefiles/*
           - if: win
             then:
+              - Library/bin/uda_cpp.*
+              - Library/bin/uda_jni.*
               - Library/lib/uda_cpp.*
-              - Library/lib/uda_jni.*
             else:
               - lib/libuda_cpp*
               - lib/libuda_jni*
@@ -106,6 +108,7 @@ outputs:
           - ${{ "Library/" if win }}lib/pkgconfig/uda-cpp.pc
           - if: win
             then:
+              - Library/bin/uda_cpp.*
               - Library/lib/uda_cpp.*
             else:
               - lib/libuda_cpp*
@@ -122,10 +125,6 @@ outputs:
       - package_contents:
           files:
             - ${{ "Library/" if win }}lib/pkgconfig/uda-cpp.pc
-            - if: win
-              then:
-                - Library/lib/uda_cpp.dll.lib
-                - Library/lib/uda_cpp.lib
           lib:
             - uda_cpp
           include:
@@ -149,34 +148,13 @@ outputs:
       number: 0
       files:
         include: ["**"]
-        exclude:
-          - ${{ "Library/" if win }}bin/*
-          - ${{ "Library/" if win }}etc/*
-          - ${{ "Library/" if win }}include/*
-          - ${{ "Library/" if win }}java/*
-          - ${{ "Library/" if win }}python_installer/*
-          - ${{ "Library/" if win }}modulefiles/*
-          - ${{ "Library/" if win }}lib/pkgconfig/*
-          - if: win
-            then:
-              - Library/lib/uda_cpp.*
-              - Library/lib/uda_jni.*
-              - Library/lib/uda_serialisation.lib
-              - Library/lib/xdr.lib
-              - Library/lib/uda_client.lib
-              - Library/lib/uda_client2.lib
-              - Library/lib/uda_client.dll.lib
-              - Library/lib/uda_client2.dll.lib
-            else:
-              - lib/libuda_cpp*
-              - lib/libuda_jni*
+        exclude: ["**"]
       script:
         - if: unix
           then: ${{ PYTHON }} -m pip install --no-deps --no-build-isolation ${PREFIX}/python_installer/
         - if: win
           then: |
             ${{ PYTHON }} -m pip install --no-deps --no-build-isolation "%LIBRARY_PREFIX%\python_installer"
-            copy "%LIBRARY_PREFIX%\lib\uda_client.dll" "%SP_DIR%\"
     requirements:
       build:
         - ${{ compiler("cxx") }}
@@ -224,7 +202,7 @@ outputs:
           - ${{ "Library/" if win }}java/*
           - if: win
             then:
-              - Library/lib/uda_jni.*
+              - Library/bin/uda_jni.*
             else:
               - lib/libuda_jni*
     requirements:
@@ -245,9 +223,10 @@ outputs:
               then: java/UDA-${{ version }}.jar
             - if: win
               then:
-                - Library/lib/uda_jni.dll.lib
+                - Library/bin/uda_jni.dll
           lib:
-            - uda_jni
+            - if: unix
+              then: uda_jni
 
 about:
   homepage: https://ukaea.github.io/UDA/
