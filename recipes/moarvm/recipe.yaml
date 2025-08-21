@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: "MoarVM"
+  version: "2025.06"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/${{ name }}/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: e8d6b00cdb3f99022ade2a843a7a8ec87f66a38bb5655f85d50351c6b3b8d257
+
+build:
+  number: 0
+  skip: windows or osx
+  script:
+    - if: linux
+      then: export CFLAGS="$CFLAGS -D_GNU_SOURCE" # Needed for memmem
+    - perl Configure.pl --c11-atomics --has-libtommath --has-mimalloc --has-libuv --has-libffi --prefix="${{ PREFIX }}" --cc="$(basename "$CC")"
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - make
+    - perl
+    - pkgconf
+    - mimalloc
+  host:
+    - libtommath
+    - mimalloc
+    - libuv
+    - libffi
+  run_exports:
+    - ${{ pin_subpackage("moarvm", exact=True) }}
+
+tests:
+  - script:
+      - moar --version
+      - moar --help
+    requirements:
+      run: moarvm
+
+about:
+  homepage: https://moarvm.org/
+  license: Artistic-2.0
+  license_file: LICENSE
+  summary: A VM with adaptive optimization and JIT compilation, built for Rakudo
+  description: |
+    MoarVM (short for Metamodel On A Runtime Virtual Machine) is a runtime built for the 6model object system. It is primarily aimed at running NQP and Rakudo, but should be able to serve as a backend for any compilers built using the NQP compiler toolchain.
+  repository: https://github.com/MoarVM/MoarVM
+  documentation: https://github.com/MoarVM/MoarVM/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - remimimimimi

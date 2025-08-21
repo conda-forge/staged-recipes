@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: "nqp"
+  version: "2025.06"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Raku/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: cfb396d6d0114d00f0dc2de4cf5f424fa72968e53c9c7cb75690bcdfd45bfcc5
+  patches: fix-compiler-path.patch
+
+build:
+  number: 0
+  skip: windows or osx
+  script:
+    # - if: unix
+    #   then:
+    #     - export CC="${CC:-gcc}" # Sometimes configure script can't find compiler binary. This seems to be a bug in rattler-build.
+    #     - which "$CC" || export CC=gcc
+    - perl Configure.pl --backends=moar --prefix="${{ PREFIX }}" --with-moar="$(which moar)" --no-silent-build --relocatable
+    - make -j${CPU_COUNT}
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - pkgconf
+    - perl
+    - make
+    - moarvm
+  host:
+    - moarvm
+  run_exports:
+    - ${{ pin_subpackage("nqp", exact=True) }}
+
+tests:
+  - script:
+      - nqp -e 'say("Hello from NQP")'
+      - out=$(nqp -e 'say(40+2)'); test "$out" = "42"
+
+about:
+  homepage: https://github.com/Raku/nqp
+  license: Artistic-2.0
+  license_file: LICENSE
+  summary: This is "Not Quite Perl" -- a lightweight Raku-like environment for virtual machines.
+  description: |
+    The key feature of NQP is that it's designed to be a very small environment (as compared with, say, raku or Rakudo) and is focused on being a high-level way to create compilers and libraries for virtual machines like MoarVM, the JVM, and others
+
+    Unlike a full-fledged implementation of Raku, NQP strives to have as small a runtime footprint as it can, while still providing a Raku object model and regular expression engine for the virtual machine.
+  repository: https://github.com/Raku/nqp
+  documentation: https://github.com/Raku/nqp/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - remimimimimi
