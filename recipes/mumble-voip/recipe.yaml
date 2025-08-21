@@ -6,7 +6,7 @@ context:
   version: "1.5.735"
   nprocs: 4
 
-package:
+recipe:
   name: mumble-voip
   version: ${{ version }}
 
@@ -48,107 +48,257 @@ source:
       path: service.yaml
       target_directory: service-config
 
-# https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
-build:
-  number: 0
-  script:
-    env:
-      JOB_CNT: ${{ nprocs }}
-    interpreter: nu
-    content: |
-      cd src/mumble
-      cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -Dspeechd=OFF -Doverlay=OFF -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dserver=OFF -Dcelt=OFF -Dclient=ON -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations" -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11" -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX" -DBOOST_ROOT=$BUILD_PREFIX -DCMAKE_INSTALL_PREFIX=$PREFIX
-      cd build
-      cmake --build . -j $env.JOB_CNT
-      # Manual installation since cmake install isn't working properly
-      mkdir ($env.PREFIX + "/bin")
-      cp mumble ($env.PREFIX + "/bin/mumble")
+outputs:
+  - package:
+      name: mumble-client
 
-      # Install service configuration file on Linux
-      if ($nu.os-info.name == "linux") {
-        print "Installing service configuration file..."
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      number: 0
+      script:
+        env:
+          JOB_CNT: ${{ nprocs }}
+        interpreter: nu
+        content: |
+          cd src/mumble
 
-        let config_dir = $"($env.PREFIX)/config"
-        mkdir $config_dir
-        cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+          # Build both client and server
+          (cmake -B build -G Ninja
+             -DCMAKE_BUILD_TYPE=Release
+             -Dspeechd=OFF -Doverlay=OFF
+             -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
+             -Dclient=ON -Dserver=OFF
+             -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+             -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11"
+             -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
+             -DBOOST_ROOT=$BUILD_PREFIX
+             -DCMAKE_INSTALL_PREFIX=$PREFIX)
+          cd build
+          cmake --build . -j $env.JOB_CNT
 
-        # Verify the file was placed correctly
-        if ($"($config_dir)/service.yaml" | path exists) {
-          print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
-        } else {
-          print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
-        }
-      }
+          # Create directories
+          mkdir ($env.PREFIX + "/bin")
+          mkdir ($env.PREFIX + "/share")
 
-requirements:
-  build:
-    - nushell
-    - ${{ compiler('cxx') }}
-    - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}
-      # - qt6-main
-    - qt
-    - qt-main
-      # - qt-wayland
-    - mesalib
-    - python
-    - cmake
-    - py-build-cmake
-    - ninja
-    - if: unix
-      then: make
-    - pkg-config
-    - libopenssl-static
-    - libprotobuf-static
-    - libprotobuf
-    - protobuf
-    - libboost-devel
-    - libabseil
-    - zlib
-  host:
-    - ${{ stdlib('c') }}
-    # - qt
-    # - qt6-main
-    # - qt6-wayland
-    - libboost-devel
-    - if: linux
-      then: alsa-lib
-    - libabseil
-    - libprotobuf
-    - libcap
-    - zlib
-    - libogg
-    - libsndfile
-    - libopus
-      # - libspeechd
-    - avahi
-    - zeroconf
-    - poco
+          # Install client binary
+          cp mumble ($env.PREFIX + "/bin/mumble")
 
-tests:
-  # Test 1: Verify package contents are included
-  - package_contents:
-      files:
-        # Mumble binary
-        - ${{ "Library/" if win }}bin/mumble${{ ".exe" if win }}
-          # Service configuration file (Linux only)
-        - ${{ "config/service.yaml" if linux }}
+          # Install server binary
+          cp src/murmur/murmur ($env.PREFIX + "/bin/murmur")
 
-    # Test 2: Functional tests
-  - requirements:
+          # Install service configuration file on Linux
+          if ($nu.os-info.name == "linux") {
+            print "Installing service configuration file..."
+
+            let config_dir = $"($env.PREFIX)/config"
+            mkdir $config_dir
+            cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+            # Verify the file was placed correctly
+            if ($"($config_dir)/service.yaml" | path exists) {
+              print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+            } else {
+              print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+            }
+          }
+
+    requirements:
       build:
         - nushell
-    script:
-      interpreter: nu
-      content:
-        - ^mumble --version
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        # - qt6-main
+        - qt
+        - qt-main
+        # - qt-wayland
+        - mesalib
+        - python
+        - cmake
+        - py-build-cmake
+        - ninja
+        - if: unix
+          then: make
+        - pkg-config
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+        - libopenssl-static
+        - libprotobuf-static
+        - libprotobuf
+        - protobuf
+        - libboost-devel
+        - libabseil
+        - zlib
+      host:
+        - ${{ stdlib('c') }}
+        # - qt
+        # - qt6-main
+        # - qt6-wayland
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+        - libboost-devel
+        - if: linux
+          then: alsa-lib
+        - libabseil
+        - libprotobuf
+        - libcap
+        - zlib
+        - libogg
+        - libsndfile
+        - libopus
+          # - libspeechd
+        - avahi
+        - if: linux
+          then: libxcb
+        - zeroconf
+        - poco
+    tests:
+      - package_contents:
+          files:
+            - bin/mumble${{ ".exe" if win }}
+      - requirements:
+          build:
+            - nushell
+        script:
+          interpreter: nu
+          content:
+            - ^mumble --version
+
+  - package:
+      name: murmur-server
+
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      number: 0
+      script:
+        env:
+          JOB_CNT: ${{ nprocs }}
+        interpreter: nu
+        content: |
+          cd src/mumble
+
+          # Build both client and server
+          (cmake -B build -G Ninja
+             -DCMAKE_BUILD_TYPE=Release
+             -Dspeechd=OFF -Doverlay=OFF
+             -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
+             -Dclient=OFF -Dserver=ON
+             -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+             -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11"
+             -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
+             -DBOOST_ROOT=$BUILD_PREFIX
+             -DCMAKE_INSTALL_PREFIX=$PREFIX)
+          cd build
+          cmake --build . -j $env.JOB_CNT
+
+          # Create directories
+          mkdir ($env.PREFIX + "/bin")
+          mkdir ($env.PREFIX + "/share")
+
+          # Install client binary
+          cp mumble ($env.PREFIX + "/bin/mumble")
+
+          # Install server binary
+          cp src/murmur/murmur ($env.PREFIX + "/bin/murmur")
+
+          # Install service configuration file on Linux
+          if ($nu.os-info.name == "linux") {
+            print "Installing service configuration file..."
+
+            let config_dir = $"($env.PREFIX)/config"
+            mkdir $config_dir
+            cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+            # Verify the file was placed correctly
+            if ($"($config_dir)/service.yaml" | path exists) {
+              print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+            } else {
+              print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+            }
+          }
+
+    requirements:
+      build:
+        - nushell
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        # - qt6-main
+        - qt
+        - qt-main
+        # - qt-wayland
+        - mesalib
+        - python
+        - cmake
+        - py-build-cmake
+        - ninja
+        - if: unix
+          then: make
+        - pkg-config
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+        - libopenssl-static
+        - libprotobuf-static
+        - libprotobuf
+        - protobuf
+        - libboost-devel
+        - libabseil
+        - zlib
+      host:
+        - ${{ stdlib('c') }}
+        # - qt
+        # - qt6-main
+        # - qt6-wayland
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+        - libboost-devel
+        - if: linux
+          then: alsa-lib
+        - libabseil
+        - libprotobuf
+        - libcap
+        - zlib
+        - libogg
+        - libsndfile
+        - libopus
+          # - libspeechd
+        - avahi
+        - if: linux
+          then: libxcb
+        - zeroconf
+        - poco
+    tests:
+      - package_contents:
+          files:
+            - bin/murmur${{ ".exe" if win }}
+            - ${{ "config/service.yaml" if linux }}
+      - requirements:
+          build:
+            - nushell
+        script:
+          interpreter: nu
+          content:
+            - ^mumble --version
 
 about:
   homepage: https://www.mumble.info/
-  summary: "Mumble is a free, open source, low latency, high quality voice chat application."
+  summary: "Mumble voice chat client and Murmur server"
   description: |
     Mumble was the first VoIP application to establish true low latency voice communication over a decade ago.
-      But low latency and gaming are not the only use cases it shines in.
+    But low latency and gaming are not the only use cases it shines in.
+    This package provides both the Mumble client and Murmur server components.
   license: BSD-3-Clause
   license_file:
     - src/mumble/LICENSE
