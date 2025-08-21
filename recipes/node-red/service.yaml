@@ -1,0 +1,348 @@
+version: 1
+name: node-red
+display_name: Node-RED
+description: Node-RED - Low-code programming for event-driven applications
+category: "automation-server"
+
+executable:
+  task: node-red
+  arguments:
+    - "--userDir"
+    - "/var/lib/node-red"
+  working_directory: /var/lib/node-red
+  environment:
+    - NODE_ENV=production
+    - NODE_RED_OPTIONS=-v
+    - NODE_PATH=/opt/conda/lib/node_modules
+    - PORT=1880
+    - NODE_RED_USER_DIR=/var/lib/node-red
+    - NODE_RED_LOG_LEVEL=info
+    - NODE_OPTIONS=--max-old-space-size=512
+
+service_type: simple
+startup_mode: automatic
+
+security:
+  run_as_user: nodered
+  run_as_group: nodered
+
+dependencies:
+  services:
+    - network-online.target
+  groups:
+    - network
+
+recovery:
+  restart_policy: on_failure
+  restart_delay: "5s"
+  max_restarts: 3
+  restart_window: "60s"
+
+timeouts:
+  start: "60s"
+  stop: "30s"
+  watchdog: "120s"
+
+files:
+  # Service home directory
+  - path: /var/lib/node-red
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Flows directory
+  - path: /var/lib/node-red/flows
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Library directory
+  - path: /var/lib/node-red/lib
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Flows library directory
+  - path: /var/lib/node-red/lib/flows
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Configuration directory
+  - path: /etc/node-red
+    persistence: durable
+    type: directory
+    permissions: "755"
+    owner: "root:root"
+
+  # Log directory
+  - path: /var/log/node-red
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Public directory for static files
+  - path: /var/lib/node-red/public
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Custom nodes directory
+  - path: /var/lib/node-red/nodes
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "nodered:nodered"
+
+  # Settings file
+  - path: /var/lib/node-red/settings.js
+    content: |
+      /**
+       * Node-RED Settings File
+       */
+      module.exports = {
+          // The tcp port that the Node-RED web server is listening on
+          uiPort: process.env.PORT || 1880,
+
+          // The maximum length, in characters, of messages sent to the debug sidebar
+          debugMaxLength: 1000,
+
+          // The file containing the flows
+          flowFile: 'flows.json',
+
+          // The file containing the flow credentials
+          credentialsFile: 'flows_cred.json',
+
+          // By default, the Node-RED UI accepts connections on all IPv4 interfaces
+          // To listen on all IPv6 addresses, set uiHost to "::",
+          // The following property can be used to listen on a specific interface
+          uiHost: "0.0.0.0",
+
+          // Retry time in milliseconds for MQTT connections
+          mqttReconnectTime: 15000,
+
+          // Retry time in milliseconds for Serial port connections
+          serialReconnectTime: 15000,
+
+          // Retry time in milliseconds for TCP socket connections
+          socketReconnectTime: 10000,
+
+          // Timeout in milliseconds for TCP server socket connections
+          socketTimeout: 120000,
+
+          // The maximum length, in characters, of any message sent to the debug sidebar
+          debugMaxLength: 1000,
+
+          // The maximum number of messages nodes will buffer internally as part of their
+          // operation. This applies across a range of nodes that operate on a flow of
+          // messages.
+          nodeMessageBufferMaxLength: 0,
+
+          // To disable the runtime version check
+          runtimeState: {
+              enabled: false,
+              ui: false,
+          },
+
+          // Configure the logging output
+          logging: {
+              // Console logging
+              console: {
+                  level: "info",
+                  metrics: false,
+                  audit: false
+              },
+              // File logging
+              file: {
+                  level: "info",
+                  filename: "/var/log/node-red/node-red.log",
+                  maxFiles: 5,
+                  maxSize: "10MB"
+              }
+          },
+
+          // The file containing the context storage configuration
+          contextStorage: {
+              default: {
+                  module: "memory"
+              },
+              file: {
+                  module: "localfilesystem"
+              }
+          },
+
+          // The following property can be used to order the categories in the editor
+          // palette. If a node's category is not in the list, the category will get
+          // added to the end of the palette.
+          paletteCategories: ['subflows', 'common', 'function', 'network', 'sequence', 'parser', 'storage'],
+
+          // Configure the directory for installing nodes
+          userDir: '/var/lib/node-red/',
+
+          // Node-RED scans the `nodes` directory in the userDir to find local node files
+          nodesDir: '/var/lib/node-red/nodes/',
+
+          // By default, credentials are encrypted in storage using a generated key
+          // To specify your own secret, set this property
+          credentialSecret: false,
+
+          // Node-RED will, by default, honor the 'http_proxy' and 'https_proxy'
+          // environment variables. If you need to use a proxy please set this property
+          httpProxy: process.env.HTTP_PROXY || process.env.http_proxy,
+          httpsProxy: process.env.HTTPS_PROXY || process.env.https_proxy,
+
+          // The following property can be used to disable the editor
+          disableEditor: false,
+
+          // The following property can be used to configure cross-origin resource sharing
+          // in the HTTP nodes.
+          httpNodeCors: {
+              origin: "*",
+              methods: "GET,PUT,POST,DELETE"
+          },
+
+          // The following property can be used to configure cross-origin resource sharing
+          // for the editor and admin API.
+          httpAdminCors: {
+              origin: "*",
+              methods: "GET,PUT,POST,DELETE"
+          },
+
+          // Anything in this hash is globally available to all functions.
+          functionGlobalContext: {
+              // os:require('os'),
+          },
+
+          // Context Storage
+          contextStorage: {
+              default: "memoryOnly",
+              memoryOnly: { module: 'memory' },
+              file: { module: 'localfilesystem' }
+          },
+
+          // Export HTTP Static path
+          httpStatic: '/var/lib/node-red/public/',
+
+          // Securing Node-RED
+          // adminAuth: {
+          //     type: "credentials",
+          //     users: [{
+          //         username: "admin",
+          //         password: "$2a$08$zZWtXTja0fB1pzD4sHCMyOCMYz2Z6dNbM6tl8sJogENOMcxWV9DN.",
+          //         permissions: "*"
+          //     }]
+          // },
+
+          // Customising the editor
+          editorTheme: {
+              projects: {
+                  enabled: false
+              }
+          }
+      }
+    persistence: volatile
+    type: regular
+    permissions: "644"
+    owner: "nodered:nodered"
+    backup: true
+
+  # Package.json file
+  - path: /var/lib/node-red/package.json
+    content: |
+      {
+          "name": "node-red-project",
+          "description": "Node-RED project",
+          "version": "0.0.1",
+          "private": true,
+          "dependencies": {
+          }
+      }
+    persistence: volatile
+    type: regular
+    permissions: "644"
+    owner: "nodered:nodered"
+    backup: true
+
+  # Environment file
+  - path: /etc/default/node-red
+    content: |
+      # Node-RED Environment Variables
+
+      # Node.js environment
+      NODE_ENV=production
+
+      # Node-RED options
+      NODE_RED_OPTIONS="-v"
+
+      # Node.js module path
+      NODE_PATH=/opt/conda/lib/node_modules
+
+      # Port configuration
+      PORT=1880
+
+      # User directory
+      NODE_RED_USER_DIR=/var/lib/node-red
+
+      # Logging level
+      NODE_RED_LOG_LEVEL=info
+
+      # Memory settings
+      NODE_OPTIONS="--max-old-space-size=512"
+    persistence: durable
+    type: regular
+    permissions: "644"
+    owner: "root:root"
+    backup: true
+
+platform_specific:
+  systemd:
+    unit:
+      Description: "Node-RED - Low-code programming for event-driven applications"
+      Documentation: "https://nodered.org/docs/"
+      After:
+        - network.target
+        - network-online.target
+      Wants:
+        - network-online.target
+    service:
+      Type: simple
+      Restart: on-failure
+      RestartSec: 5
+      StartLimitInterval: 60s
+      StartLimitBurst: 3
+      StandardOutput: journal
+      StandardError: journal
+      SyslogIdentifier: node-red
+      # Security settings
+      NoNewPrivileges: true
+      ProtectSystem: strict
+      ProtectHome: true
+      ReadWritePaths:
+        - /var/lib/node-red
+        - /var/log/node-red
+      PrivateTmp: true
+      ProtectKernelTunables: true
+      ProtectKernelModules: true
+      ProtectControlGroups: true
+      RestrictRealtime: true
+      RestrictSUIDSGID: true
+      MemoryDenyWriteExecute: true
+      # Network security
+      IPAddressDeny: any
+      IPAddressAllow:
+        - localhost
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+      # Resource limits
+      LimitNOFILE: 65536
+      LimitNPROC: 32768
+    install:
+      WantedBy:
+        - multi-user.target
