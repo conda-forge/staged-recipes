@@ -4,7 +4,7 @@ schema_version: 1
 # Much of the information is available via:
 context:
   version: "1.5.735"
-  nprocs: 4
+  nprocs: 8
 
 recipe:
   name: mumble-voip
@@ -15,7 +15,7 @@ source:
     sha256: 539680318419ca6c236d129dc5b6a96878bd048957cfcfb3882d313dd16660fa
     target_directory: src/mumble
     patches:
-      - patches/0001-find-python.patch
+      - patches/0001-fix-windows-msvc-flags.patch
   - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
     sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
     target_directory: src/mumble/3rdparty/FindPythonInterpreter/
@@ -69,6 +69,25 @@ outputs:
           $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
           $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
 
+          let cm_args = match ($nu.os-info.name) {
+            "macos" => {
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations -Wimplicit-int-float-conversion"
+              c_flags:  "-Wno-error=cpp -Wno-cpp -Wimplicit-int-float-conversion -std=c11"
+              }
+            "linux" => {
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
+              }
+            "windows" => {
+              cxx_flags: ""
+              c_flags: "/std:c11"
+              }
+            _ => {
+              cxx_flags: ""
+              c_flags: ""
+              }
+          }
+
           # Build both client and server
           (cmake -B build -G Ninja
              -DCMAKE_BUILD_TYPE=Release
@@ -76,8 +95,8 @@ outputs:
              -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
              -Dice=OFF
              -Dclient=ON -Dserver=OFF
-             -DCMAKE_CXX_FLAGS="${{ '-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations -Wno-implicit-int-float-conversion' if unix else '/wd4996' }}"
-             -DCMAKE_C_FLAGS="${{ '-Wno-error=cpp -Wno-cpp -Wno-implicit-int-float-conversion -std=c11' if unix else '/wd4996 /std:c11' }}"
+             -DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)
+             -DCMAKE_C_FLAGS=($cm_args.c_flags)
              -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
              -DBOOST_ROOT=$BUILD_PREFIX
              -DCMAKE_INSTALL_PREFIX=$PREFIX
@@ -218,6 +237,25 @@ outputs:
           $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
           $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
 
+          let cm_args = match ($nu.os-info.name) {
+            "macos" => {
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations -Wimplicit-int-float-conversion"
+              c_flags: "-Wno-error=cpp -Wno-cpp -Wimplicit-int-float-conversion -std=c11"
+              }
+            "linux" => {
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
+              }
+            "windows" => {
+              cxx_flags: ""
+              c_flags: "/std:c11"
+              }
+            _ => {
+              cxx_flags: ""
+              c_flags: ""
+              }
+          }
+
           # Build server
           (cmake -B build -G Ninja
              -DCMAKE_BUILD_TYPE=Release
@@ -225,8 +263,8 @@ outputs:
              -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
              -Dice=OFF
              -Dclient=OFF -Dserver=ON
-             -DCMAKE_CXX_FLAGS="${{ '-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations -Wno-implicit-int-float-conversion' if unix else '/wd4996' }}"
-             -DCMAKE_C_FLAGS="${{ '-Wno-error=cpp -Wno-cpp -Wno-implicit-int-float-conversion -std=c11' if unix else '/wd4996 /std:c11' }}"
+             -DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)
+             -DCMAKE_C_FLAGS=($cm_args.c_flags)
              -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
              -DBOOST_ROOT=$BUILD_PREFIX
              -DCMAKE_INSTALL_PREFIX=$PREFIX
