@@ -4,7 +4,6 @@
 cmake %CMAKE_ARGS% ^
     -G Ninja ^
     -D CMAKE_BUILD_TYPE=Release ^
-    -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ^
     -D BUILD_SHARED_LIBS=OFF ^
     -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
@@ -31,7 +30,6 @@ cmake %CMAKE_ARGS% ^
     -D FAT_IDL=OFF ^
     -D NO_CLI=OFF ^
     -D CMAKE_BUILD_TYPE=Release ^
-    -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -D XDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
     -D XDR_INCLUDE_DIR="%LIBRARY_INC%\rpc" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
