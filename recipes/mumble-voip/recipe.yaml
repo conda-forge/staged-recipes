@@ -48,13 +48,15 @@ source:
       path: service.yaml
       target_directory: service-config
 
+build:
+  number: 0
+
 outputs:
   - package:
       name: mumble-client
 
     # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
     build:
-      number: 0
       script:
         env:
           JOB_CNT: ${{ nprocs }}
@@ -67,12 +69,15 @@ outputs:
              -DCMAKE_BUILD_TYPE=Release
              -Dspeechd=OFF -Doverlay=OFF
              -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
+             -Dice=OFF
              -Dclient=ON -Dserver=OFF
              -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
              -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11"
              -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
              -DBOOST_ROOT=$BUILD_PREFIX
-             -DCMAKE_INSTALL_PREFIX=$PREFIX)
+             -DCMAKE_INSTALL_PREFIX=$PREFIX
+             -DX11_INCLUDE_DIR="$env.BUILD_PREFIX/include"
+             -DX11_LIBRARIES="$env.BUILD_PREFIX/lib/libX11.so;$env.BUILD_PREFIX/lib/libXext.so;$env.BUILD_PREFIX/lib/libXi.so")
           cd build
           cmake --build . -j $env.JOB_CNT
 
@@ -82,9 +87,6 @@ outputs:
 
           # Install client binary
           cp mumble ($env.PREFIX + "/bin/mumble")
-
-          # Install server binary
-          cp src/murmur/murmur ($env.PREFIX + "/bin/murmur")
 
           # Install service configuration file on Linux
           if ($nu.os-info.name == "linux") {
@@ -125,6 +127,8 @@ outputs:
             - xorg-libx11
             - xorg-libxext
             - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
         - libopenssl-static
         - libprotobuf-static
         - libprotobuf
@@ -142,6 +146,8 @@ outputs:
             - xorg-libx11
             - xorg-libxext
             - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
         - libboost-devel
         - if: linux
           then: alsa-lib
@@ -175,7 +181,6 @@ outputs:
 
     # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
     build:
-      number: 0
       script:
         env:
           JOB_CNT: ${{ nprocs }}
@@ -183,17 +188,24 @@ outputs:
         content: |
           cd src/mumble
 
-          # Build both client and server
+          # Build server
+          # Set up environment for X11 detection
+          $env.PKG_CONFIG_PATH = $"($env.BUILD_PREFIX)/lib/pkgconfig:($env.PREFIX)/lib/pkgconfig"
+          $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
+
           (cmake -B build -G Ninja
              -DCMAKE_BUILD_TYPE=Release
              -Dspeechd=OFF -Doverlay=OFF
              -Doverlay-xcompile=OFF -Dzeroconf=OFF -Dcelt=OFF
+             -Dice=OFF
              -Dclient=OFF -Dserver=ON
              -DCMAKE_CXX_FLAGS="-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
              -DCMAKE_C_FLAGS="-Wno-error=cpp -Wno-cpp -std=c11"
              -DCMAKE_PREFIX_PATH="$BUILD_PREFIX;$PREFIX"
              -DBOOST_ROOT=$BUILD_PREFIX
-             -DCMAKE_INSTALL_PREFIX=$PREFIX)
+             -DCMAKE_INSTALL_PREFIX=$PREFIX
+             -DX11_INCLUDE_DIR="$env.BUILD_PREFIX/include"
+             -DX11_LIBRARIES="$env.BUILD_PREFIX/lib/libX11.so;$env.BUILD_PREFIX/lib/libXext.so;$env.BUILD_PREFIX/lib/libXi.so")
           cd build
           cmake --build . -j $env.JOB_CNT
 
@@ -201,11 +213,8 @@ outputs:
           mkdir ($env.PREFIX + "/bin")
           mkdir ($env.PREFIX + "/share")
 
-          # Install client binary
-          cp mumble ($env.PREFIX + "/bin/mumble")
-
           # Install server binary
-          cp src/murmur/murmur ($env.PREFIX + "/bin/murmur")
+          cp mumble-server ($env.PREFIX + "/bin/murmur")
 
           # Install service configuration file on Linux
           if ($nu.os-info.name == "linux") {
@@ -246,6 +255,8 @@ outputs:
             - xorg-libx11
             - xorg-libxext
             - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
         - libopenssl-static
         - libprotobuf-static
         - libprotobuf
@@ -255,7 +266,8 @@ outputs:
         - zlib
       host:
         - ${{ stdlib('c') }}
-        # - qt
+        - qt
+        - qt-main
         # - qt6-main
         # - qt6-wayland
         - if: linux
@@ -263,6 +275,8 @@ outputs:
             - xorg-libx11
             - xorg-libxext
             - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
         - libboost-devel
         - if: linux
           then: alsa-lib
@@ -290,7 +304,7 @@ outputs:
         script:
           interpreter: nu
           content:
-            - ^mumble --version
+            - ^murmur --version
 
 about:
   homepage: https://www.mumble.info/
