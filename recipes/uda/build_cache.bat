@@ -3,13 +3,12 @@
 :: Configure Portable XDR
 cmake %CMAKE_ARGS% ^
     -G Ninja ^
-    -D CMAKE_BUILD_TYPE=Release ^
     -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ^
     -D BUILD_SHARED_LIBS=OFF ^
     -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
 
 :: Build and install Portable XDR
-cmake --build build\xdr --target install --config Release || exit /b 1
+cmake --build build\xdr --target install || exit /b 1
 
 
 :: === Build & Install UDA client ===
@@ -29,10 +28,9 @@ cmake %CMAKE_ARGS% ^
     -D NO_JAVA_WRAPPER=OFF ^
     -D FAT_IDL=OFF ^
     -D NO_CLI=OFF ^
-    -D CMAKE_BUILD_TYPE=Release ^
     -D XDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
     -D XDR_INCLUDE_DIR="%LIBRARY_INC%\rpc" ^
     -B build\uda -S "%SRC_DIR%" || exit /b 1
 
 :: Build and install
-cmake --build build\uda --target install --config Release || exit /b 1
+cmake --build build\uda --target install || exit /b 1
