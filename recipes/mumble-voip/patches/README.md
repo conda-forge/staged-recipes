@@ -1,53 +1,72 @@
 # Patches for Mumble VoIP Package
 
-This directory contains patches that are applied to the mumble source code during the conda build process.
+This directory contains minimal patches applied to the mumble source code during the conda build process.
 
-## Patch Descriptions
+## Current Patches
 
-### 0001-fix-windows-msvc-flags.patch
-**Purpose**: Fixes Windows MSVC compiler flag conflicts when building protobuf generated files.
+### 0001-fix-msvc-protobuf-warnings.patch
+**Purpose**: Fixes MSVC compiler flag conflicts specifically for protobuf generated files.
 
 **Problem**: 
-The original mumble build system causes compilation errors on Windows with MSVC due to:
-1. **D9025 Warning**: Conflicting `/W4` and `/w` compiler flags
-   - The project enables `/W4` (warning level 4) globally
-   - Protobuf generated files use `/w` (disable all warnings) directly
-   - MSVC reports: `warning D9025 : overriding '/W4' with '/w'`
-
-2. **C4530 Error**: Missing exception handling support
-   - Error: `C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc`
-   - The `/EHsc` flag was not being applied consistently
-
-3. **C4100 Warning**: Unreferenced parameter warnings in generated protobuf code
-   - Warning: `'parameter_name': unreferenced parameter`
-   - Protobuf generated code often contains unused parameters that trigger this warning
+The original CMakeLists.txt uses `-w` (disable all warnings) for protobuf generated files, which conflicts with MSVC's `/W4` flag and causes D9025 warnings about conflicting compiler flags.
 
 **Solution**:
-The patch modifies `src/CMakeLists.txt` to:
-
-1. **Replace blanket warning disable**: Instead of using `-w` for all compilers, it now:
-   - Uses specific warning disables for MSVC: `/wd4996 /wd4244 /wd4267 /wd4005 /wd4800 /wd4018 /wd4065 /wd4100`
-   - Keeps `-w` for GCC/Clang compilers
-   - Always includes `/EHsc` for MSVC to ensure exception handling
-
-2. **Ensure exception handling**: Adds explicit `/EHsc` flag to the shared target for MSVC
+The patch replaces the problematic `-w` flag with MSVC-specific warning disables only for protobuf files:
+```cmake
+if(MSVC)
+    # For MSVC, use specific warning disables to avoid flag conflicts
+    set_source_files_properties("${CURRENT_FILE}" PROPERTIES 
+        COMPILE_FLAGS "/wd4996 /wd4244 /wd4267 /wd4005 /wd4800 /wd4018 /wd4065 /wd4100"
+    )
+else()
+    # For GCC/Clang, use -w to disable all warnings
+    set_source_files_properties("${CURRENT_FILE}" PROPERTIES COMPILE_FLAGS "-w")
+endif()
+```
 
 **Files Modified**:
-- `src/CMakeLists.txt`: Updated protobuf file compilation flags
+- `src/CMakeLists.txt`: Updated protobuf file warning handling for MSVC
+
+**Additional Configuration**:
+The recipe also includes global `/EHsc` flags for proper exception handling:
+```yaml
+"windows" => {
+  cxx_flags: "/EHsc"
+  c_flags: "/std:c11 /EHsc"
+}
+```
 
 **Result**:
-- Eliminates D9025 warnings about conflicting flags
-- Prevents C4530 errors about missing exception handling
-- Suppresses C4100 warnings about unreferenced parameters in protobuf code
-- Maintains warning suppression for protobuf generated files
-- Ensures proper C++ exception handling on Windows
+- Eliminates D9025 warnings about conflicting flags for protobuf files
+- Suppresses common warnings in generated protobuf code (`/wd4996`, `/wd4244`, etc.)
+- Maintains warning suppression approach for GCC/Clang builds
+- Combined with global `/EHsc`, ensures successful Windows builds
 
-This patch is essential for successful Windows builds using MSVC compiler.
+This targeted approach handles protobuf-specific issues without suppressing warnings globally.
 
 ## Removed Patches
 
 ### 0002-fix-macos-avfoundation-compatibility.patch (REMOVED)
-**Status**: Removed - no longer needed with macOS 10.14 target.
+**Status**: Removed - replaced with updated build target.
 
-**Reason**: 
-This patch was removed when the build configuration was updated to target macOS 10.14 instead of 10.13. Since Mumble requires `AVAuthorizationStatus` (introduced in macOS 10.14), updating `c_stdlib_version` to "10.14" in the conda build configuration eliminates the need for compatibility patches. The AVFoundation APIs are now natively available at build time.
+**Original Problem**: 
+Mumble uses `AVAuthorizationStatus` (introduced in macOS 10.14) but conda-forge was targeting macOS 10.13 for backward compatibility.
+
+**New Solution**:
+The conda build configuration was updated to target macOS 10.14:
+```yaml
+c_stdlib_version: # [osx and x86_64]
+  - "10.14" # [osx and x86_64]
+```
+
+**Benefit**: This eliminates the need for complex compatibility patches by aligning the build target with Mumble's API requirements. The AVFoundation APIs are now natively available at build time.
+
+## Current Status
+
+The build now uses a hybrid approach:
+
+1. **Windows**: Minimal protobuf warning patch + global `/EHsc` compiler flags
+2. **macOS**: Updated build target to 10.14 (no patches needed)
+3. **Linux**: No patches needed
+
+This approach provides clean, maintainable builds with minimal source code modifications, targeting only the specific issues that cannot be resolved through configuration alone.
