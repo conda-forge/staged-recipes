@@ -11,49 +11,41 @@ source:
 
 build:
   number: 0
-  skip:
-    - osx
   script:
+    - mkdir build
+    - cd build
     - if: unix
       then:
-        - mkdir build
-        - cd build
-        - cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
-        - make -j$CPU_COUNT
-        - make install
+        - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON ..
     - if: win
       then:
-        - mkdir build
-        - cd build
-        - cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF ..
-        - nmake
-        - nmake install
+        - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON ..
+    - ninja
+    - ninja install
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - cmake
-    - make
-    - if: win
-      then:
-        - ninja
+    - ninja
 
 tests:
-  - script:
-      - if: win
-        then:
-          - if not exist "%LIBRARY_LIB%\tommath.lib" exit 1
-          - if not exist "%LIBRARY_INC%\tommath.h" exit 1
-      - if: unix
-        then:
-          - test -f $PREFIX/lib/libtommath.a || test -f $PREFIX/lib/libtommath.so
-          - test -f $PREFIX/include/tommath.h
+  - package_contents:
+      files:
+        - include/tommath.h
+        - if: unix
+          then:
+            - lib/libtommath.so*
+        - if: win
+          then:
+            - Library/lib/tommath.lib
+            - Library/bin/tommath.dll
 
 about:
   homepage: https://www.libtom.net/LibTomMath/
   repository: https://github.com/libtom/libtommath
-  documentation: https://www.libtom.net/LibTomMath/
+  documentation: https://github.com/libtom/libtommath/releases/download/v1.3.0/bn-1.3.0.pdf
   license: Unlicense
   license_file: LICENSE
   summary: A free open source portable number theoretic multiple-precision integer library
