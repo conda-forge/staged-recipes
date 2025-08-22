@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 0.0.20
+  # test fixture encoding and path separator errors on windows
+  pytest_args: ${{ '' if unix else '-k "not (query_with_async_iterable or cli_path_accepts_pathlib_path or build_command_with_add_dirs or build_command_with_mcp_servers_as_file_path)"' }}
+  cov_fail_under: ${{ 79 if unix else 73 }}
+
+package:
+  name: claude-code-sdk
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/claude-code-sdk/claude_code_sdk-${{ version }}.tar.gz
+  sha256: 5f9872f105563db8975de48ddc88c948d9c5e1244addca02241d6fcd2a47b3d6
+
+build:
+  noarch: python
+  number: 0
+  script:
+    # remove a test file that references not-distributed CHANGELOG.md
+    - rm tests/test_changelog.py || del tests/test_changelog.py || exit 1
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+
+requirements:
+  host:
+    - hatchling
+    - pip
+    - python ${{ python_min }}.*
+  run:
+    - anyio >=4.0.0
+    - python >=${{ python_min }}
+    - typing_extensions >=4.0.0
+
+tests:
+  - python:
+      imports: claude_code_sdk
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - 3.13.*
+  - files:
+      source:
+        - tests/
+        - pyproject.toml
+    requirements:
+      run:
+        - pytest >=7.0.0
+        - pytest-asyncio >=0.20.0
+        - pytest-cov >=4.0.0
+        - python ${{ python_min }}.*
+        - trio
+    script:
+      - coverage run --source=claude_code_sdk --branch -m pytest -vv --tb=long --color=yes ${{ pytest_args }}
+      - coverage report --show-missing --skip-covered --fail-under=${{ cov_fail_under }}
+
+about:
+  summary: Python SDK for Claude Code
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/anthropics/claude-code-sdk-python
+  documentation: https://docs.anthropic.com/en/docs/claude-code/sdk
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
