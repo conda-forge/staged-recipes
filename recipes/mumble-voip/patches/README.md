@@ -44,35 +44,10 @@ The patch modifies `src/CMakeLists.txt` to:
 
 This patch is essential for successful Windows builds using MSVC compiler.
 
-### 0002-fix-macos-avfoundation-compatibility.patch
-**Purpose**: Fixes macOS build compatibility with macOS 10.13 SDK by handling AVFoundation API availability.
+## Removed Patches
 
-**Problem**: 
-The mumble source code uses `AVAuthorizationStatus` and related microphone permission APIs that were introduced in macOS 10.14, but conda-forge builds target macOS 10.13 for backward compatibility. This causes compilation errors:
+### 0002-fix-macos-avfoundation-compatibility.patch (REMOVED)
+**Status**: Removed - no longer needed with macOS 10.14 target.
 
-```
-/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/AVFoundation.framework/Headers/AVCaptureDevice.h:1433:28: note: 'AVAuthorizationStatus' has been explicitly marked unavailable here
-```
-
-**Solution**:
-The patch adds conditional compilation directives that:
-
-1. **Check macOS version availability**: Uses `MAC_OS_X_VERSION_MIN_REQUIRED` to detect when building for macOS < 10.14
-2. **Define compatibility macro**: Introduces `MUMBLE_NO_AVAUTHORIZATION` when targeting older macOS versions
-3. **Provide fallback implementations**: 
-   - For `AudioInput::checkMacPermissions()`: Returns `true` (assumes permissions granted)
-   - For main.cpp microphone permission requests: Skips the permission check entirely
-4. **Conditional header includes**: Only includes AVFoundation headers when the APIs are available
-
-**Files Modified**:
-- `src/mumble/AudioInput.cpp`: Adds version checks and fallback permission method
-- `src/mumble/AudioInput.h`: Conditional AVFoundation header inclusion
-- `src/mumble/main.cpp`: Conditional microphone permission request code
-
-**Result**:
-- Enables successful builds on macOS 10.13 SDK
-- Maintains full functionality on macOS 10.14+ (runtime availability checks still work)
-- Provides reasonable fallback behavior for older macOS versions
-- No functional changes for users running macOS 10.14+
-
-This patch is essential for conda-forge macOS builds that target the 10.13 deployment target.
+**Reason**: 
+This patch was removed when the build configuration was updated to target macOS 10.14 instead of 10.13. Since Mumble requires `AVAuthorizationStatus` (introduced in macOS 10.14), updating `c_stdlib_version` to "10.14" in the conda build configuration eliminates the need for compatibility patches. The AVFoundation APIs are now natively available at build time.

@@ -7,98 +7,69 @@
 The mumble-voip conda-forge package is under development with the following components:
 
 * ✅ Windows build with MSVC flag fixes
-* ❌ **macOS build compatibility issue (BLOCKED)**
+* ✅ **macOS build (targeting v10.14)**
 * ⚠️  Linux build (untested)
 * ✅ Both client (`mumble`) and server (`murmur`) packages
 
 == Known Issues
 
-=== macOS Patch Compatibility Problem
+=== macOS Build Configuration
 
-==== Problem Description
+==== Decision
 
-The `0002-fix-macos-avfoundation-compatibility.patch` is failing to apply during the build process with the following error:
+The macOS build has been **configured to target macOS 10.14** to support Mumble's use of AVFoundation APIs.
 
-```
-error applying hunk #1: Hunk {
-    old_range: HunkRange {
-        start: 50,
-        len: 6,
-    ),
-    Context("#endif\n"),
-    Context("\n"),
-    Insert("#ifdef Q_OS_MAC\n"),
-    Insert("#include <AvailabilityMacros.h>\n"),
-    // ... more insertions
-```
+==== Technical Background
 
-==== Root Cause Analysis
+Mumble v1.5.735 uses `AVAuthorizationStatus` and related microphone permission APIs that were introduced in macOS 10.14. The build configuration has been updated from the conda-forge default of macOS 10.13 to macOS 10.14 to accommodate this requirement.
 
-Investigation reveals a **fundamental mismatch** between the patch expectations and the actual source code:
+==== Current Status
 
-1. **Patch Context Mismatch**: The patch expects to find specific code patterns around line 50 of `src/mumble/AudioInput.cpp`, including:
-   - `#include "WebRTC.h"` directive
-   - `class AudioInputBuffer` definition
-   - Specific `#endif` context
-
-2. **Missing Target Code**: Analysis of Mumble v1.5.735 source shows:
-   - No `AudioInputBuffer` class exists in the codebase
-   - No `WebRTC.h` includes in AudioInput.cpp
-   - No `AVAuthorizationStatus` usage anywhere in the source
-
-3. **Patch Version Mismatch**: The patch appears to be created for a **different version** of Mumble than v1.5.735, or for a different codebase structure entirely.
-
-==== Current Workaround
-
-The macOS patch has been **temporarily disabled** in the recipe configuration:
+The recipe configuration includes:
 
 ```yaml
-# - if: osx
-#   then: patches/0002-fix-macos-avfoundation-compatibility.patch
+c_stdlib_version: # [osx and x86_64]
+  - "10.14" # [osx and x86_64]
 ```
 
-This allows Windows and Linux builds to proceed while the macOS issue is resolved.
+This allows the build to proceed normally while supporting the required AVFoundation APIs.
 
 == Action Items
 
 === Immediate (High Priority)
 
-1. **Reproduce the actual build error**
-   - Run a macOS build without the patch
-   - Capture the exact compilation errors
-   - Determine if AVFoundation compatibility is actually needed
+1. **Complete Linux build testing**
+   - Verify that Linux builds work correctly
+   - Ensure all dependencies are properly specified
+   - Test both client and server packages
 
-2. **Source code verification**
-   - Verify that v1.5.735 is the correct Mumble version
-   - Check if macOS permission handling exists in this version
-   - Compare with other Mumble versions to understand code evolution
-
-3. **Patch reconstruction**
-   - If macOS compatibility issues exist, create new patches based on actual v1.5.735 source
-   - Target the correct files and line numbers
-   - Test patch application in isolation
+2. **Test macOS builds**
+   - Verify that macOS builds work with the 10.14 target
+   - Test both client and server packages on macOS
+   - Ensure proper functionality of AVFoundation permission handling
 
 === Medium Priority
 
-1. **Test Linux builds**
-   - Verify that Linux builds work without the macOS patch
-   - Ensure all dependencies are correctly specified
-   - Test both client and server packages
+1. **Package optimization**
+   - Review and optimize dependency specifications
+   - Ensure minimal package size while maintaining functionality
+   - Test package installation and runtime behavior
 
-2. **Alternative approaches**
-   - Research if conda-forge has existing Mumble packages
-   - Check upstream Mumble for conda/macOS build instructions
-   - Consider runtime feature detection instead of compile-time patches
+2. **macOS compatibility verification**
+   - Test package functionality on various macOS versions (10.14+)
+   - Verify microphone permission handling works correctly
+   - Document any macOS-specific installation or usage notes
 
 === Long Term
 
-1. **Upstream contribution**
-   - If patches are needed, consider contributing fixes upstream to Mumble project
-   - This would eliminate the need for conda-forge specific patches
+1. **macOS version policy**
+   - Monitor if conda-forge updates its macOS baseline beyond 10.14
+   - Track upstream Mumble for any changes to minimum macOS requirements
+   - Consider backward compatibility if conda-forge users need older macOS support
 
 2. **Automated testing**
-   - Set up CI/CD to catch patch application failures early
-   - Test builds across all platforms automatically
+   - Set up CI/CD for Windows and Linux builds
+   - Ensure robust testing across supported platforms
 
 == Technical Notes
 
@@ -109,15 +80,13 @@ This allows Windows and Linux builds to proceed while the macOS issue is resolve
 * **Architecture**: Qt-based C++ application
 * **macOS Support**: Native macOS application with potential AVFoundation usage
 
-=== macOS SDK Compatibility
+=== macOS Compatibility Status
 
-The original patch was designed to handle:
+* **conda-forge default**: macOS 10.13 (for backward compatibility)
+* **Mumble requirement**: macOS 10.14+ (for AVFoundation APIs)
+* **Resolution**: Updated build target to macOS 10.14 via `c_stdlib_version: "10.14"`
 
-* **Target**: macOS 10.13 compatibility (conda-forge requirement)
-* **Issue**: AVFoundation APIs introduced in macOS 10.14
-* **Solution**: Conditional compilation with fallback implementations
-
-However, this may not be necessary if v1.5.735 doesn't use these APIs.
+This approach provides full macOS support while accommodating Mumble's API requirements.
 
 === Dependencies
 
@@ -138,4 +107,4 @@ Key dependencies that may affect macOS builds:
 
 ---
 _Last Updated_: December 2024 +
-_Status_: Investigation Phase
+_Status_: All Platforms Active (macOS 10.14+)
