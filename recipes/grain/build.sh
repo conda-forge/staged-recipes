@@ -10,7 +10,6 @@ export SOURCE_DIR="."
 export RUN_TESTS="true"
 . "./grain/oss/runner_common.sh"
 
-#build_and_test_grain
 setup_env_vars_py "$PYTHON_MAJOR_VERSION" "$PYTHON_MINOR_VERSION"
 
 function write_to_bazelrc() {
@@ -31,9 +30,7 @@ write_to_bazelrc "test --test_timeout=300"
 write_to_bazelrc "common --check_direct_dependencies=error"
 
 bazel clean
-bazel build ... --action_env PYTHON_BIN_PATH="${PYTHON_BIN}" --action_env MACOSX_DEPLOYMENT_TARGET='11.0'
-
-# bazel test --verbose_failures --test_output=errors ... --action_env PYTHON_BIN_PATH="${PYTHON}"
+bazel build ... --action_env PYTHON_BIN_PATH="${PYTHON_BIN}" --action_env MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}
 
 DEST="${OUTPUT_DIR}"'/all_dist'
 mkdir -p "${DEST}"
@@ -53,7 +50,7 @@ cd "${TMPDIR}"
 printf '%s : "=== Building wheel\n' "$(date)"
 WHEEL_BLD_ARGS="${WHEEL_BLD_ARGS} bdist_wheel --python-tag py3${PYTHON_MINOR_VERSION}"
 if [ "$(uname)" == "Darwin" ]; then
-  WHEEL_BLD_ARGS="${WHEEL_BLD_ARGS} --plat-name macosx_11_0_$(uname -m)"
+  WHEEL_BLD_ARGS="${WHEEL_BLD_ARGS} --plat-name macosx_$(echo $MACOSX_DEPLOYMENT_TARGET | tr . _)_$(uname -m)"
 fi
 $PYTHON setup.py $WHEEL_BLD_ARGS
 
@@ -66,15 +63,3 @@ cd "${previous_wd}"
 printf '%s : "=== Output wheel file is in: %s\n' "$(date)" "${DEST}"
 
 $PYTHON -m pip install ./all_dist/grain*.whl
-
-#--find-links=./all_dist --pre grain
-
-# $PYTHON_BIN -m pip install jax
-# $PYTHON_BIN grain/_src/core/smoke_test_with_jax.py
-# # TF is not available on Python 3.13 and above.
-# if (( "${PYTHON_MINOR_VERSION}" < 13 )); then
-#   $PYTHON_BIN -m pip install tensorflow
-#   $PYTHON_BIN grain/_src/core/smoke_test_with_tf.py
-# fi
-
-#bash "${SOURCE_DIR}"'/grain/oss/build_whl.sh'
