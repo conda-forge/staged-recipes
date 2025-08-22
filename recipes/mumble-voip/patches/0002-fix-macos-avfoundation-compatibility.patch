@@ -1,0 +1,103 @@
+diff --git a/src/mumble/AudioInput.cpp b/src/mumble/AudioInput.cpp
+index 1234567..abcdefg 100644
+--- a/src/mumble/AudioInput.cpp
++++ b/src/mumble/AudioInput.cpp
+@@ -50,6 +50,15 @@
+ #include "WebRTC.h"
+ #endif
+ 
++#ifdef Q_OS_MAC
++#include <AvailabilityMacros.h>
++// AVAuthorizationStatus was introduced in macOS 10.14
++// For builds targeting macOS 10.13, we need to provide compatibility
++#if MAC_OS_X_VERSION_MIN_REQUIRED < 101400
++#define MUMBLE_NO_AVAUTHORIZATION
++#endif
++#endif
++
+ class AudioInputBuffer {
+ public:
+ 	QMutex qmBuffer;
+@@ -1065,6 +1074,7 @@ void AudioInput::setMaxAudibleDistance(float distance) {
+ }
+ 
+ #ifdef Q_OS_MAC
++#ifndef MUMBLE_NO_AVAUTHORIZATION
+ bool AudioInput::checkMacPermissions() {
+ 	if (@available(macOS 10.14, *)) {
+ 		AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+@@ -1085,6 +1095,13 @@ bool AudioInput::checkMacPermissions() {
+ 	}
+ 	return true;
+ }
++#else
++// For macOS < 10.14, assume permissions are granted
++bool AudioInput::checkMacPermissions() {
++	return true;
++}
++#endif
++#endif
+ 
+ void AudioInput::on_Tick() {
+ 	if (iFrameCounter++ < iFrameTarget) {
+diff --git a/src/mumble/AudioInput.h b/src/mumble/AudioInput.h
+index 1234567..abcdefg 100644
+--- a/src/mumble/AudioInput.h
++++ b/src/mumble/AudioInput.h
+@@ -18,7 +18,17 @@
+ #include "Audio.h"
+ #include "Timer.h"
+ 
+-#ifdef Q_OS_MAC
++#ifdef Q_OS_MAC
++#include <AvailabilityMacros.h>
++// Only include AVFoundation headers if we're targeting macOS 10.14+
++// or if the system headers support it
++#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101400 || MAC_OS_X_VERSION_MAX_ALLOWED >= 101400
++#import <AVFoundation/AVFoundation.h>
++#else
++// For older macOS versions, we'll provide stub definitions
++#define MUMBLE_NO_AVAUTHORIZATION
++#endif
++#else
+ #import <AVFoundation/AVFoundation.h>
+ #endif
+ 
+diff --git a/src/mumble/main.cpp b/src/mumble/main.cpp
+index 1234567..abcdefg 100644
+--- a/src/mumble/main.cpp
++++ b/src/mumble/main.cpp
+@@ -60,6 +60,15 @@
+ #include <QComboBox>
+ #endif
+ 
++#ifdef Q_OS_MAC
++#include <AvailabilityMacros.h>
++// AVAuthorizationStatus was introduced in macOS 10.14
++// For builds targeting macOS 10.13, we need to provide compatibility
++#if MAC_OS_X_VERSION_MIN_REQUIRED < 101400
++#define MUMBLE_NO_AVAUTHORIZATION
++#endif
++#endif
++
+ #if defined(USE_STATIC_QT_PLUGINS)
+ #	if defined(Q_OS_WIN)
+ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+@@ -387,6 +396,7 @@ int main(int argc, char **argv) {
+ 
+ #ifdef Q_OS_MAC
+ 	// Request microphone permissions on macOS
++#ifndef MUMBLE_NO_AVAUTHORIZATION
+ 	if (@available(macOS 10.14, *)) {
+ 		AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+ 		if (status != AVAuthorizationStatusAuthorized) {
+@@ -398,6 +408,9 @@ int main(int argc, char **argv) {
+ 			}];
+ 		}
+ 	}
++#else
++	// For macOS < 10.14, no explicit permission request is needed
++#endif
+ #endif
+ 
+ 	QTranslator translator;
