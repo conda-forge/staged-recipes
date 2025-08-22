@@ -12,26 +12,44 @@ source:
 build:
   number: 0
   skip:
-    - win
     - osx
   script:
-    - mkdir build
-    - cd build
-    - cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release ..
-    - make -j$CPU_COUNT
-    - make install
+    - if: unix
+      then:
+        - mkdir build
+        - cd build
+        - cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
+        - make -j$CPU_COUNT
+        - make install
+    - if: win
+      then:
+        - mkdir build
+        - cd build
+        - cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF ..
+        - nmake
+        - nmake install
 
 requirements:
   build:
     - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}
     - cmake
-    - make
+    - if: unix
+      then:
+        - ${{ stdlib('c') }}
+    - if: win
+      then:
+        - ninja
 
 tests:
   - script:
-      - test -f $PREFIX/lib/libtommath.a || test -f $PREFIX/lib/libtommath.so
-      - test -f $PREFIX/include/tommath.h
+      - if: win
+        then:
+          - if not exist "%LIBRARY_LIB%\tommath.lib" exit 1
+          - if not exist "%LIBRARY_INC%\tommath.h" exit 1
+      - if: unix
+        then:
+          - test -f $PREFIX/lib/libtommath.a || test -f $PREFIX/lib/libtommath.so
+          - test -f $PREFIX/include/tommath.h
 
 about:
   homepage: https://www.libtom.net/LibTomMath/
