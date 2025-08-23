@@ -13,12 +13,46 @@ source:
 
 build:
   number: 0
-  skip: windows or osx
   script:
-    - if: linux
-      then: export CFLAGS="$CFLAGS -D_GNU_SOURCE" # Needed for memmem
-    - perl Configure.pl --c11-atomics --has-libtommath --has-mimalloc --has-libuv --has-libffi --prefix="${{ PREFIX }}" --cc="$(basename "$CC")"
-    - make install
+    interpreter: perl
+    content: |
+      use strict;
+      use warnings;
+      use File::Basename;
+
+      # Set up environment for Linux (needed for memmem)
+      if ($^O eq 'linux') {
+          $ENV{CFLAGS} = ($ENV{CFLAGS} // '') . ' -D_GNU_SOURCE';
+      }
+
+      # Get the compiler basename
+      my $cc = $ENV{CC} // 'gcc';
+      my $cc_basename = basename($cc);
+
+      # Configure MoarVM
+      my @configure_args = (
+          'Configure.pl',
+          '--c11-atomics',
+          '--has-libtommath',
+          '--has-mimalloc',
+          '--has-libuv',
+          '--has-libffi',
+          "--prefix=$ENV{PREFIX}",
+          "--cc=$cc_basename"
+      );
+
+      print "Running: perl @configure_args\n";
+      system('perl', @configure_args) == 0
+          or die "Configure failed: $?\n";
+
+      # Build and install
+      my $make_cmd = $^O eq 'MSWin32' ? 'nmake' : 'make';
+
+      print "Running: $make_cmd install\n";
+      system($make_cmd, 'install') == 0
+          or die "Make install failed: $?\n";
+
+      print "MoarVM build completed successfully\n";
 
 requirements:
   build:

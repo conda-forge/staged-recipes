@@ -16,13 +16,18 @@ build:
   number: 0
   skip: windows or osx
   script:
-    # - if: unix
-    #   then:
-    #     - export CC="${CC:-gcc}" # Sometimes configure script can't find compiler binary. This seems to be a bug in rattler-build.
-    #     - which "$CC" || export CC=gcc
     - perl Configure.pl --backends=moar --prefix="${{ PREFIX }}" --with-moar="$(which moar)" --no-silent-build --relocatable
     - make -j${CPU_COUNT}
     - make install
+
+    # Compile the NQP wrapper to handle binary patching artifacts
+    - cp "$RECIPE_DIR/nqp-wrapper.c" .
+    - ${CC:-gcc} -O2 -o nqp-wrapper nqp-wrapper.c
+
+    # Replace nqp with the wrapper
+    - mv "${{ PREFIX }}/bin/nqp" "${{ PREFIX }}/bin/nqp-unwrapper"
+    - cp nqp-wrapper "${{ PREFIX }}/bin/nqp"
+    - chmod +x "${{ PREFIX }}/bin/nqp"
 
 requirements:
   build:
@@ -41,6 +46,8 @@ tests:
   - script:
       - nqp -e 'say("Hello from NQP")'
       - out=$(nqp -e 'say(40+2)'); test "$out" = "42"
+      - nqp --show-config > /dev/null
+      - test -x "$(which nqp-unwrapper)"  # Ensure nqp-unwrapper exists
 
 about:
   homepage: https://github.com/Raku/nqp
