@@ -8,22 +8,45 @@ source .scripts/logging_utils.sh
 
 set -xeo pipefail
 
-REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
-ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename "$THISDIR")"
-AZURE="${AZURE:-False}"
+
+FEEDSTOCK_ROOT="$( cd "$( dirname "$0" )/.." >/dev/null && pwd )"
+RECIPE_ROOT="${FEEDSTOCK_ROOT}/recipe"
+
+if [ -z ${FEEDSTOCK_NAME} ]; then
+    export FEEDSTOCK_NAME=$(basename ${FEEDSTOCK_ROOT})
+fi
+
+if [[ "${sha:-}" == "" ]]; then
+  pushd "${FEEDSTOCK_ROOT}"
+  sha=$(git rev-parse HEAD)
+  popd
+fi
 
 docker info
 
 # In order for the conda-build process in the container to write to the mounted
 # volumes, we need to run with the same id as the host machine, which is
 # normally the owner of the mounted volumes, or at least has write permission
-HOST_USER_ID=$(id -u)
+export HOST_USER_ID=$(id -u)
 # Check if docker-machine is being used (normally on OSX) and get the uid from
 # the VM
 if hash docker-machine 2> /dev/null && docker-machine active > /dev/null; then
-    HOST_USER_ID=$(docker-machine ssh $(docker-machine active) id -u)
+    export HOST_USER_ID=$(docker-machine ssh $(docker-machine active) id -u)
+fi
+
+ARTIFACTS="$FEEDSTOCK_ROOT/build_artifacts"
+
+if [ -z "$CONFIG" ]; then
+    set +x
+    FILES=`ls .ci_support/linux_*`
+    CONFIGS=""
+    for file in $FILES; do
+        CONFIGS="${CONFIGS}'${file:12:-5}' or ";
+    done
+    echo "Need to set CONFIG env variable. Value can be one of ${CONFIGS:0:-4}"
+    exit 1
 fi
 
 if [ -z "${DOCKER_IMAGE}" ]; then
@@ -36,36 +59,50 @@ if [ -z "${DOCKER_IMAGE}" ]; then
             DOCKER_IMAGE="quay.io/condaforge/linux-anvil-comp7"
         fi
     else
-        DOCKER_IMAGE="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
+        DOCKER_IMAGE="$(cat "${FEEDSTOCK_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
     fi
 fi
 
 mkdir -p "$ARTIFACTS"
-DONE_CANARY="$ARTIFACTS/conda-forge-build-done"
+DONE_CANARY="$ARTIFACTS/conda-forge-build-done-${CONFIG}"
 rm -f "$DONE_CANARY"
 
-DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
-
-if [ "${AZURE}" == "True" ]; then
-    DOCKER_RUN_ARGS=""
+# Allow people to specify extra default arguments to `docker run` (e.g. `--rm`)
+DOCKER_RUN_ARGS="${CONDA_FORGE_DOCKER_RUN_ARGS}"
+if [ -z "${CI}" ]; then
+    DOCKER_RUN_ARGS="-it ${DOCKER_RUN_ARGS}"
 fi
+
 ( endgroup "Configure Docker" ) 2> /dev/null
 
 ( startgroup "Start Docker" ) 2> /dev/null
-# this group is closed in build_steps.sh
 
+export UPLOAD_PACKAGES="${UPLOAD_PACKAGES:-True}"
+export IS_PR_BUILD="${IS_PR_BUILD:-False}"
 docker pull "${DOCKER_IMAGE}"
 docker run ${DOCKER_RUN_ARGS} \
-           -v "${REPO_ROOT}:/home/conda/staged-recipes" \
-           -e HOST_USER_ID=${HOST_USER_ID} \
-           -e AZURE=${AZURE} \
+           -v "${RECIPE_ROOT}":/home/conda/recipe_root:rw,z,delegated \
+           -v "${FEEDSTOCK_ROOT}":/home/conda/feedstock_root:rw,z,delegated \
            -e CONFIG \
+           -e HOST_USER_ID \
+           -e UPLOAD_PACKAGES \
+           -e IS_PR_BUILD \
+           -e GIT_BRANCH \
+           -e UPLOAD_ON_BRANCH \
            -e CI \
+           -e FEEDSTOCK_NAME \
            -e CPU_COUNT \
-           -e DEFAULT_LINUX_VERSION \
+           -e BUILD_WITH_CONDA_DEBUG \
+           -e BUILD_OUTPUT_ID \
+           -e flow_run_id \
+           -e remote_url \
+           -e sha \
+           -e BINSTAR_TOKEN \
+           -e FEEDSTOCK_TOKEN \
+           -e STAGING_BINSTAR_TOKEN \
            "${DOCKER_IMAGE}" \
            bash \
-           "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
+           "/home/conda/feedstock_root/${PROVIDER_DIR}/build_steps.sh"
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
