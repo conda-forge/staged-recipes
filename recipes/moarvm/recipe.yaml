@@ -25,11 +25,11 @@ build:
           $ENV{CFLAGS} = ($ENV{CFLAGS} // '') . ' -D_GNU_SOURCE';
       }
 
-      # Get the compiler basename
-      my $cc = $ENV{CC} // 'gcc';
+      # Handle compiler configuration per platform
+      my $cc = $ENV{CC} // ($^O eq 'MSWin32' ? 'cl' : 'gcc');
       my $cc_basename = basename($cc);
 
-      # Configure MoarVM
+      # Configure arguments - start with common ones
       my @configure_args = (
           'Configure.pl',
           '--c11-atomics',
@@ -37,9 +37,97 @@ build:
           '--has-mimalloc',
           '--has-libuv',
           '--has-libffi',
-          "--prefix=$ENV{PREFIX}",
-          "--cc=$cc_basename"
+          "--prefix=$ENV{PREFIX}"
       );
+
+      # Platform-specific compiler handling
+      if ($^O eq 'MSWin32') {
+          # On Windows, use explicit toolchain and compiler parameters
+          print "Windows build - configuring for MSVC toolchain\n";
+
+          # Determine the right toolchain and compiler
+          if ($cc_basename =~ /^cl(\.exe)?$/i) {
+              print "Using Visual Studio compiler (cl)\n";
+              push @configure_args, '--toolchain=msvc', '--compiler=cl';
+          } elsif ($cc_basename =~ /^clang-cl(\.exe)?$/i) {
+              print "Using clang-cl compiler\n";
+              push @configure_args, '--toolchain=msvc', '--compiler=cl';
+          } elsif ($cc_basename =~ /^clang(\.exe)?$/i) {
+              print "Using clang compiler\n";
+              push @configure_args, '--toolchain=posix', '--compiler=clang';
+          } else {
+              print "Using gcc-compatible compiler\n";
+              push @configure_args, '--toolchain=posix', '--compiler=gcc';
+          }
+      }
+      elsif ($^O eq 'darwin') {
+          # macOS - ensure we're using the right compiler and handle libtommath carefully
+          print "macOS build - using compiler: $cc_basename\n";
+          push @configure_args, "--cc=$cc_basename";
+
+          # Check if we need to help with libtommath linking
+          if ($ENV{BUILD_PREFIX}) {
+              my $lib_dir = "$ENV{BUILD_PREFIX}/lib";
+              my $bin_dir = "$ENV{BUILD_PREFIX}/bin";
+
+              # Add library search paths - libtommath might be in lib or bin directory
+              my $ldflags_additions = "";
+              if (-d $lib_dir) {
+                  print "Adding library search path: $lib_dir\n";
+                  $ldflags_additions .= " -L$lib_dir";
+              }
+              if (-d $bin_dir) {
+                  print "Adding library search path: $bin_dir\n";
+                  $ldflags_additions .= " -L$bin_dir";
+              }
+
+              if ($ldflags_additions) {
+                  $ENV{LDFLAGS} = ($ENV{LDFLAGS} // '') . $ldflags_additions . " -ltommath";
+              }
+
+              my $include_dir = "$ENV{BUILD_PREFIX}/include";
+              if (-d $include_dir) {
+                  print "Adding include search path: $include_dir\n";
+                  $ENV{CPPFLAGS} = ($ENV{CPPFLAGS} // '') . " -I$include_dir";
+              }
+          }
+      }
+      else {
+          # Linux and other Unix-like systems
+          push @configure_args, "--cc=$cc_basename";
+      }
+
+      # Debug: Show environment and configuration
+      print "Platform: $^O\n";
+      print "Compiler: $cc (basename: $cc_basename)\n";
+      print "PREFIX: $ENV{PREFIX}\n";
+      print "BUILD_PREFIX: " . ($ENV{BUILD_PREFIX} // 'not set') . "\n";
+      print "Environment CC: " . ($ENV{CC} // 'not set') . "\n";
+      print "CFLAGS: " . ($ENV{CFLAGS} // 'not set') . "\n";
+      print "CPPFLAGS: " . ($ENV{CPPFLAGS} // 'not set') . "\n";
+      print "LDFLAGS: " . ($ENV{LDFLAGS} // 'not set') . "\n";
+      print "Configure args: @configure_args\n";
+
+      # Show what libraries we can find
+      if ($ENV{BUILD_PREFIX}) {
+          for my $dir_name ('lib', 'bin') {
+              my $lib_dir = "$ENV{BUILD_PREFIX}/$dir_name";
+              if (-d $lib_dir) {
+                  print "Libraries in $lib_dir:\n";
+                  opendir(my $dh, $lib_dir) or die "Cannot open $lib_dir: $!";
+                  my @libs = grep { /^lib.*\.(a|so|dylib|dll)$/ } readdir($dh);
+                  closedir($dh);
+                  for my $lib (sort @libs) {
+                      print "  $lib\n";
+                  }
+                  if (!@libs) {
+                      print "  (no libraries found)\n";
+                  }
+              } else {
+                  print "$lib_dir does not exist\n";
+              }
+          }
+      }
 
       print "Running: perl @configure_args\n";
       system('perl', @configure_args) == 0
@@ -62,11 +150,15 @@ requirements:
     - perl
     - pkgconf
     - mimalloc
+    - if: win
+      then: zstd
   host:
     - libtommath
     - mimalloc
     - libuv
     - libffi
+    - if: win
+      then: zstd
   run_exports:
     - ${{ pin_subpackage("moarvm", exact=True) }}
 

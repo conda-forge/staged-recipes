@@ -17,17 +17,69 @@ source:
 
 build:
   number: 0
-  skip: windows or osx
   script:
-    # Clean environment variables to remove null characters and excessive whitespace
-    - export BUILD_PREFIX="$(printf '%s' "$BUILD_PREFIX" | tr -d '\0' | sed 's/[[:space:]]*$//')"
-    - export PREFIX="$(printf '%s' "$PREFIX" | tr -d '\0' | sed 's/[[:space:]]*$//')"
+    interpreter: perl
+    content: |
+      use strict;
+      use warnings;
+      use File::Spec;
 
+      # Clean environment variables to remove null characters and excessive whitespace
+      sub clean_env_var {
+          my $var = shift;
+          if (defined $ENV{$var}) {
+              # Remove null bytes and trailing whitespace
+              $ENV{$var} =~ tr/\0//d;
+              $ENV{$var} =~ s/\s+$//;
+          }
+      }
 
-    # Complains about MoarVM, NQP and Rakudo not being in the same directory, so we ignore errors.
-    - perl Configure.pl --backends=moar --prefix="${{ PREFIX }}" --with-nqp="$(which nqp)" --no-silent-build --ignore-errors --relocatable
-    - make -j${CPU_COUNT}
-    - make install
+      clean_env_var('BUILD_PREFIX');
+      clean_env_var('PREFIX');
+
+      # Find nqp executable (cross-platform)
+      sub which {
+          my $cmd = shift;
+          my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+
+          for my $dir (split($^O eq 'MSWin32' ? ';' : ':', $ENV{PATH})) {
+              my $path = File::Spec->catfile($dir, $cmd . $exe_ext);
+              return $path if -x $path;
+          }
+          die "Cannot find $cmd in PATH\n";
+      }
+
+      my $nqp_path = which('nqp');
+
+      # Configure Rakudo
+      my @configure_args = (
+          'Configure.pl',
+          '--backends=moar',
+          "--prefix=$ENV{PREFIX}",
+          "--with-nqp=$nqp_path",
+          '--no-silent-build',
+          # Note: Complains about MoarVM, NQP and Rakudo not being in the same directory, so we ignore errors.
+          '--ignore-errors',
+          '--relocatable'
+      );
+
+      print "Running: perl @configure_args\n";
+      system('perl', @configure_args) == 0
+          or die "Configure failed: $?\n";
+
+      # Build and install
+      my $make_cmd = $^O eq 'MSWin32' ? 'nmake' : 'make';
+      my $cpu_count = $ENV{CPU_COUNT} // 1;
+
+      print "Running: $make_cmd -j$cpu_count\n";
+      system($make_cmd, "-j$cpu_count") == 0
+          or die "Make failed: $?\n";
+
+      print "Running: $make_cmd install\n";
+      system($make_cmd, 'install') == 0
+          or die "Make install failed: $?\n";
+
+      print "Rakudo build completed successfully\n";
 
 requirements:
   build:

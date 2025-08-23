@@ -14,20 +14,81 @@ source:
 
 build:
   number: 0
-  skip: windows or osx
   script:
-    - perl Configure.pl --backends=moar --prefix="${{ PREFIX }}" --with-moar="$(which moar)" --no-silent-build --relocatable
-    - make -j${CPU_COUNT}
-    - make install
+    interpreter: perl
+    content: |
+      use strict;
+      use warnings;
+      use File::Spec;
+      use File::Copy;
+      use File::Basename;
 
-    # Compile the NQP wrapper to handle binary patching artifacts
-    - cp "$RECIPE_DIR/nqp-wrapper.c" .
-    - ${CC:-gcc} -O2 -o nqp-wrapper nqp-wrapper.c
+      # Find moar executable (cross-platform)
+      sub which {
+          my $cmd = shift;
+          my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
 
-    # Replace nqp with the wrapper
-    - mv "${{ PREFIX }}/bin/nqp" "${{ PREFIX }}/bin/nqp-unwrapper"
-    - cp nqp-wrapper "${{ PREFIX }}/bin/nqp"
-    - chmod +x "${{ PREFIX }}/bin/nqp"
+          for my $dir (split($^O eq 'MSWin32' ? ';' : ':', $ENV{PATH})) {
+              my $path = File::Spec->catfile($dir, $cmd . $exe_ext);
+              return $path if -x $path;
+          }
+          die "Cannot find $cmd in PATH\n";
+      }
+
+      my $moar_path = which('moar');
+
+      # Configure NQP
+      my @configure_args = (
+          'Configure.pl',
+          '--backends=moar',
+          "--prefix=$ENV{PREFIX}",
+          "--with-moar=$moar_path",
+          '--no-silent-build',
+          '--relocatable'
+      );
+
+      print "Running: perl @configure_args\n";
+      system('perl', @configure_args) == 0
+          or die "Configure failed: $?\n";
+
+      # Build and install
+      my $make_cmd = $^O eq 'MSWin32' ? 'nmake' : 'make';
+      my $cpu_count = $ENV{CPU_COUNT} // 1;
+
+      print "Running: $make_cmd -j$cpu_count\n";
+      system($make_cmd, "-j$cpu_count") == 0
+          or die "Make failed: $?\n";
+
+      print "Running: $make_cmd install\n";
+      system($make_cmd, 'install') == 0
+          or die "Make install failed: $?\n";
+
+      # Compile the NQP wrapper to handle binary patching artifacts
+      my $wrapper_source = File::Spec->catfile($ENV{RECIPE_DIR}, 'nqp-wrapper.c');
+      copy($wrapper_source, 'nqp-wrapper.c') or die "Copy failed: $!";
+
+      my $cc = $ENV{CC} // 'gcc';
+      my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+
+      print "Compiling NQP wrapper...\n";
+      system($cc, '-O2', '-o', "nqp-wrapper$exe_ext", 'nqp-wrapper.c') == 0
+          or die "Wrapper compilation failed: $?\n";
+
+      # Replace nqp with the wrapper
+      my $nqp_bin = File::Spec->catfile($ENV{PREFIX}, 'bin', "nqp$exe_ext");
+      my $nqp_unwrapper = File::Spec->catfile($ENV{PREFIX}, 'bin', "nqp-unwrapper$exe_ext");
+      my $wrapper_bin = "nqp-wrapper$exe_ext";
+
+      print "Installing NQP wrapper...\n";
+      rename($nqp_bin, $nqp_unwrapper) or die "Failed to rename nqp: $!";
+      copy($wrapper_bin, $nqp_bin) or die "Failed to install wrapper: $!";
+
+      # Make executable on Unix-like systems
+      if ($^O ne 'MSWin32') {
+          chmod(0755, $nqp_bin) or die "Failed to chmod wrapper: $!";
+      }
+
+      print "NQP build completed successfully\n";
 
 requirements:
   build:
