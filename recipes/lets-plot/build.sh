@@ -8,11 +8,11 @@ extension_path="python-extension/build/bin/native/releaseStatic/"
 py_bin_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['scripts'])")
 py_include_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['include'])")
 py_architecture=$($PYTHON -c "import platform; print(platform.machine())")
-
+imagemagick_path="$PREFIX/lib/ImageMagick-7.1.2"
 
 if [ ! -f $extension_path ]; then
    # Runs extension build:
-   ./gradlew python-extension:build -Pbuild_release=true -Ppython.bin_path=${py_bin_path} -Ppython.include_path=${py_include_path} -Penable_python_package=true -Parchitecture=${py_architecture}
+   ./gradlew python-extension:build -Pbuild_release=true -Ppython.bin_path=${py_bin_path} -Ppython.include_path=${py_include_path} -Penable_python_package=true -Parchitecture=${py_architecture} -Pimagemagick_lib_path=${imagemagick_path}
 fi
 
 
