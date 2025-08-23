@@ -1,0 +1,60 @@
+context:
+  name: doxx
+  version: "0.1.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bgreenwell/doxx/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6923cefa432a08adacedeb105902d47858f0ceea51b00e21e8b10117d86ca9e6
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        # Unix recipe
+        - export OPENSSL_DIR="$PREFIX"
+        - cargo install --root ${PREFIX} --path . --no-track
+        - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+      else:
+        # Win recipe
+        # hack: path too long for pixi_config subpackage, https://github.com/prefix-dev/pixi/issues/3691
+        - set CARGO_HOME=C:\.cargo
+        - md %CARGO_HOME%
+        - cargo install --locked --bins --root %PREFIX% --path . --no-track
+        - if errorlevel 1 exit 1
+        - cargo-bundle-licenses --format yaml --output %SRC_DIR%/THIRDPARTY.yml
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    # - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - cargo-bundle-licenses
+    - if: linux
+      then:
+        - libxcb
+
+tests:
+  # Some packages might need a `test/commands` key to check CLI.
+  - script:
+      - doxx --version
+
+about:
+  homepage: https://bgreenwell.github.io/doxx
+  summary: 'Expose the contents of .docx files without leaving your terminal. Fast, safe, and smart — no Office required!'
+  description: |
+    A fast, terminal-native document viewer for Word files. View, search, and export .docx documents without leaving your command line.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/bgreenwell/doxx
+
+extra:
+  recipe-maintainers:
+    - claudiushaag
