@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # Set paths and links:
 js_package_path="js-package/build/dist/js/productionExecutable/"
 extension_path="python-extension/build/bin/native/releaseStatic/"
