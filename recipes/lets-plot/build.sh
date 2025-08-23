@@ -10,7 +10,7 @@ py_include_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()[
 py_architecture=$($PYTHON -c "import platform; print(platform.machine())")
 imagemagick_path="$SRC_DIR/platf-imagick/deps/lib"
 
-# Set DOCKER_TRUE to "1" to avoid calling Docker in ''
+# Set DOCKER_TRUE to "1" to avoid calling Docker in 'init_imagemagick.sh'
 export DOCKER_TRUE="1"
 ./platf-imagick/init_imagemagick.sh
 
