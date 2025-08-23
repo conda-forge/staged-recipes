@@ -8,7 +8,11 @@ extension_path="python-extension/build/bin/native/releaseStatic/"
 py_bin_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['scripts'])")
 py_include_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['include'])")
 py_architecture=$($PYTHON -c "import platform; print(platform.machine())")
-imagemagick_path="$PREFIX"
+imagemagick_path="$SRC_DIR/platf-imagick/deps/lib"
+
+# Set DOCKER_TRUE to "1" to avoid calling Docker in ''
+export DOCKER_TRUE="1"
+./platf-imagick/init_imagemagick.sh
 
 if [ ! -f $extension_path ]; then
    # Runs extension build:
