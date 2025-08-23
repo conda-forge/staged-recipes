@@ -8,7 +8,7 @@ extension_path="python-extension/build/bin/native/releaseStatic/"
 py_bin_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['scripts'])")
 py_include_path=$($PYTHON -c "from sysconfig import get_paths as gp; print(gp()['include'])")
 py_architecture=$($PYTHON -c "import platform; print(platform.machine())")
-imagemagick_path="$PREFIX/include/ImageMagick-7"
+imagemagick_path="$PREFIX"
 
 if [ ! -f $extension_path ]; then
    # Runs extension build:
