@@ -1,0 +1,464 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# Much of the information is available via:
+context:
+  version: "1.5.735"
+  nprocs: 8
+
+recipe:
+  name: mumble-voip
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mumble-voip/mumble/archive/refs/tags/v1.5.735.tar.gz
+    sha256: 539680318419ca6c236d129dc5b6a96878bd048957cfcfb3882d313dd16660fa
+    target_directory: src/mumble
+    patches:
+      - if: win
+        then: patches/0001-fix-msvc-protobuf-warnings.patch
+  - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
+    sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
+    target_directory: src/mumble/3rdparty/FindPythonInterpreter/
+  - url: https://raw.githubusercontent.com/Krzmbrzl/cmake-compiler-flags/refs/heads/main/CompilerFlags.cmake
+    sha256: 297e2c9fa52a913ac1880812a71313656b40b2cd15e92e5565d570434165bf0c
+    target_directory: src/mumble/3rdparty/cmake-compiler-flags/
+  - url: https://github.com/lipis/flag-icons/archive/refs/tags/v7.3.2.tar.gz
+    sha256: 6a5497e1029e66415c3941a5e5ee001944b0a7e46bf365c6d5a91a033acee87e
+    target_directory: src/mumble/3rdparty/flag-icons/
+  - url: https://github.com/microsoft/GSL/archive/refs/tags/v4.1.0.tar.gz
+    sha256: 0a227fc9c8e0bf25115f401b9a46c2a68cd28f299d24ab195284eb3f1d7794bd
+    target_directory: src/mumble/3rdparty/gsl/
+  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz
+    sha256: 0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
+    target_directory: src/mumble/3rdparty/nlohmann_json/
+  - url: https://github.com/wolfpld/tracy/archive/refs/tags/v0.11.1.tar.gz
+    sha256: 2c11ca816f2b756be2730f86b0092920419f3dabc7a7173829ffd897d91888a1
+    target_directory: src/mumble/3rdparty/tracy/
+  - url: https://github.com/xiph/speexdsp/archive/refs/tags/SpeexDSP-1.2.1.tar.gz
+    sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
+    target_directory: src/mumble/3rdparty/speexdsp/
+  - url: https://github.com/mumble-voip/ReNameNoise/archive/refs/heads/master.tar.gz
+    sha256: 8f4ecd90d0445a2455c82437f67e18cab873674d593dcee9a4b87b5dc0bba0cd
+    target_directory: src/mumble/3rdparty/renamenoise/
+  - url: https://github.com/mumble-voip/minhook/archive/8b972409bd85f851b280f5334c16aecb7f131e76.tar.gz
+    sha256: 8f67781478a881cd252675b60b774feb1c764a636e43f9638ffafd7ce13fe86b
+    target_directory: src/mumble/3rdparty/minhook/
+  - url: https://github.com/mumble-voip/SPSCQueue/archive/e0defee95d54785f767fd99a58fce391c2d04b81.tar.gz
+    sha256: f0eb90c200ec31cf8aa5b7a7e833a2f35f32d4fe4bfc38225d8b4c7681b3924c
+    target_directory: src/mumble/3rdparty/SPSCQueue/
+  - url: https://github.com/mumble-voip/mach_override/archive/919148f94db54fc04d287eb6a42c0c36b166bbfa.tar.gz
+    sha256: dc2f83c126efece316abff2e49f19cfaeb52c3d1f78324263192ed10ca9fd1f8
+    target_directory: src/mumble/3rdparty/mach-override-src/
+  - url: https://github.com/SOCI/soci/archive/ce348126e7b8f8f851c0461ec4b5cf8e38f848d6.tar.gz
+    sha256: 09f22c98c135cc212ac9e9dbdc56a604e381adda07d9e4833c0ce3e49996104e
+    target_directory: src/mumble/3rdparty/soci/
+  - url: https://github.com/gabime/spdlog/archive/faa0a7a9c5a3550ed5461fab7d8e31c37fd1a2ef.tar.gz
+    sha256: e471675f9d6eb34caa119617c144f5d34cde4dff95c7d1902d189f027b916a5f
+    target_directory: src/mumble/3rdparty/spdlog/
+  - url: https://github.com/mumble-voip/utfcpp/archive/e717ac3928b759b79c5e7e403fa2ecbcf4697205.tar.gz
+    sha256: 3ca4539a3b34182c6566e52c41a02a0edf820580e21449f5e074cd1376490fa1
+    target_directory: src/mumble/3rdparty/utfcpp/
+  - path: service.yaml
+    target_directory: service-config
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: mumble-client
+
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      script:
+        env:
+          JOB_CNT: ${{ nprocs }}
+        interpreter: nu
+        content: |
+          cd src/mumble
+
+          # Set up environment for X11 detection
+          $env.PKG_CONFIG_PATH = $"($env.BUILD_PREFIX)/lib/pkgconfig:($env.PREFIX)/lib/pkgconfig"
+          $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
+          $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
+
+          let cm_args = match ($nu.os-info.name) {
+            "linux" => {
+              # gcc
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
+              }
+            "macos" => {
+              # clang
+              cxx_flags: "-Wno-deprecated-declarations"
+              c_flags: "-Wno-deprecated-declarations -std=c11"
+              }
+            "windows" => {
+              # cl
+              cxx_flags: "/EHsc /DWIN32 /wd4996"
+              c_flags: "/std:c11 /EHsc /DWIN32 /wd4996"
+              }
+            _ => {
+              cxx_flags: ""
+              c_flags: ""
+              }
+          }
+
+          # Build client
+          mut cmake_args = [
+            -B build
+            -G Ninja
+            -DCMAKE_BUILD_TYPE=Release
+            -Dspeechd=OFF
+            -Doverlay=OFF
+            -Doverlay-xcompile=OFF
+            -Dzeroconf=OFF
+            -Dcelt=OFF
+            -Dice=OFF
+            -Dclient=ON
+            -Dserver=OFF
+            $"-DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)"
+            $"-DCMAKE_C_FLAGS=($cm_args.c_flags)"
+            $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
+            $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
+            $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
+            -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
+            -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
+            $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
+            $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
+            $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
+          ]
+
+          # Add Windows Socket library for Windows builds
+          if ($nu.os-info.name == "windows") {
+            $cmake_args = ($cmake_args | append "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib")
+          }
+          ^cmake ...$cmake_args
+
+          cd build
+          ^cmake --build . -j $env.JOB_CNT
+
+          # Create directories
+          mkdir ($env.PREFIX + "/bin")
+          mkdir ($env.PREFIX + "/share")
+
+          # Install client binary
+          let mumble_exec = match ($nu.os-info.name) {
+            "macos" => "mumble"
+            "linux" => "mumble"
+            "windows" => "mumble.exe"
+            _ => "mumble"
+          }
+
+          # Install client binary
+          cp $mumble_exec ($env.PREFIX + $"/bin/($mumble_exec)")
+
+          # Install service configuration file
+          print "Installing service configuration file..."
+
+          let config_dir = $"($env.PREFIX)/config"
+          mkdir $config_dir
+          cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+    requirements:
+      build:
+        - nushell
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        # - qt6-main
+        - qt
+        - qt-main
+        # - qt-wayland
+        - mesalib
+        - python
+        - cmake
+        - py-build-cmake
+        - ninja
+        - if: unix
+          then: make
+        - pkg-config
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
+            - xorg-inputproto
+            - xorg-xorgproto
+        - libopenssl-static
+        - libprotobuf-static
+        - libprotobuf
+        - protobuf
+        - libboost-devel
+        - libabseil
+        - zlib
+      host:
+        - ${{ stdlib('c') }}
+        - qt
+        - qt-main
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
+            - xorg-inputproto
+            - xorg-xorgproto
+        - libboost-devel
+        - if: linux
+          then: alsa-lib
+        - libabseil
+        - libprotobuf
+        - if: linux
+          then: libcap
+        - zlib
+        - libogg
+        - libsndfile
+        - libopus
+          # - libspeechd
+        - if: linux
+          then: avahi
+        - if: linux
+          then: libxcb
+        - if: linux
+          then: zeroconf
+        - poco
+    tests:
+      - package_contents:
+          files:
+            - bin/mumble${{ ".exe" if win }}
+      - requirements:
+          build:
+            - nushell
+          run:
+            - qt
+            - qt-main
+            - if: linux
+              then:
+                - xorg-libx11
+                - xorg-libxext
+                - xorg-libxi
+                - libxcb
+        script:
+          env:
+            QT_QPA_PLATFORM: offscreen
+          interpreter: nu
+          content:
+            - ^mumble --version
+
+  - package:
+      name: murmur-server
+
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      script:
+        env:
+          JOB_CNT: ${{ nprocs }}
+        interpreter: nu
+        content: |
+          cd src/mumble
+
+          # Set up environment for X11 detection
+          $env.PKG_CONFIG_PATH = $"($env.BUILD_PREFIX)/lib/pkgconfig:($env.PREFIX)/lib/pkgconfig"
+          $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
+          $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
+
+          let cm_args = match ($nu.os-info.name) {
+            "linux" => {
+              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
+              }
+            "macos" => {
+              # clang
+              cxx_flags: "-Wno-deprecated-declarations"
+              c_flags: "-Wno-deprecated-declarations -std=c11"
+              }
+            "windows" => {
+              cxx_flags: "/EHsc /DWIN32 /wd4996"
+              c_flags: "/std:c11 /EHsc /DWIN32 /wd4996"
+              }
+            _ => {
+              cxx_flags: ""
+              c_flags: ""
+              }
+          }
+
+          # Build server
+          mut cmake_args = [
+            -B build
+            -G Ninja
+            -DCMAKE_BUILD_TYPE=Release
+            -Dspeechd=OFF
+            -Doverlay=OFF
+            -Doverlay-xcompile=OFF
+            -Dzeroconf=OFF
+            -Dcelt=OFF
+            -Dice=OFF
+            -Dclient=OFF
+            -Dserver=ON
+            $"-DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)"
+            $"-DCMAKE_C_FLAGS=($cm_args.c_flags)"
+            $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
+            $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
+            $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
+            -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
+            -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
+            $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
+            $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
+            $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
+          ]
+
+          # Add Windows Socket library for Windows builds
+          if ($nu.os-info.name == "windows") {
+            $cmake_args = ($cmake_args | append "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib")
+          }
+          ^cmake ...$cmake_args
+
+          cd build
+          ^cmake --build . -j $env.JOB_CNT
+
+          # Create directories
+          mkdir ($env.PREFIX + "/bin")
+          mkdir ($env.PREFIX + "/share")
+
+          let mumble_server_exec = match ($nu.os-info.name) {
+            "macos" => "mumble-server"
+            "linux" => "mumble-server"
+            "windows" => "mumble-server.exe"
+            _ => "mumble-server"
+          }
+
+          # Install server binary
+          cp $mumble_server_exec ($env.PREFIX + $"/bin/($mumble_server_exec)")
+
+          # Install service configuration file on Linux
+          if ($nu.os-info.name == "linux") {
+            print "Installing service configuration file..."
+
+            let config_dir = $"($env.PREFIX)/config"
+            mkdir $config_dir
+            cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+            # Verify the file was placed correctly
+            if ($"($config_dir)/service.yaml" | path exists) {
+              print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+            } else {
+              print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+            }
+          }
+
+    requirements:
+      build:
+        - nushell
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        # - qt6-main
+        - qt
+        - qt-main
+        # - qt-wayland
+        - mesalib
+        - python
+        - cmake
+        - py-build-cmake
+        - ninja
+        - if: unix
+          then: make
+        - pkg-config
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
+            - xorg-inputproto
+            - xorg-xorgproto
+        - libopenssl-static
+        - libprotobuf-static
+        - libprotobuf
+        - protobuf
+        - libboost-devel
+        - libabseil
+        - zlib
+      host:
+        - ${{ stdlib('c') }}
+        - qt
+        - qt-main
+        - if: linux
+          then:
+            - xorg-libx11
+            - xorg-libxext
+            - xorg-libxi
+            - xorg-xproto
+            - xorg-xextproto
+            - xorg-inputproto
+            - xorg-xorgproto
+        - libboost-devel
+        - if: linux
+          then: alsa-lib
+        - libabseil
+        - libprotobuf
+        - if: linux
+          then: libcap
+        - zlib
+        - libogg
+        - libsndfile
+        - libopus
+          # - libspeechd
+        - if: linux
+          then: avahi
+        - if: linux
+          then: libxcb
+        - if: linux
+          then: zeroconf
+        - poco
+    tests:
+      - package_contents:
+          files:
+            - bin/mumble-server${{ ".exe" if win }}
+            - ${{ "config/service.yaml" if linux }}
+      - requirements:
+          build:
+            - nushell
+          run:
+            - qt
+            - qt-main
+            - if: linux
+              then:
+                - xorg-libx11
+                - xorg-libxext
+                - xorg-libxi
+                - libxcb
+        script:
+          env:
+            QT_QPA_PLATFORM: offscreen
+          interpreter: nu
+          content:
+            - ^mumble-server --version
+
+about:
+  homepage: https://www.mumble.info/
+  summary: "Mumble voice chat client and Murmur server"
+  description: |
+    Mumble was the first VoIP application to establish true low latency voice communication over a decade ago.
+    But low latency and gaming are not the only use cases it shines in.
+    This package provides both the Mumble client and Murmur server components.
+  license: BSD-3-Clause
+  license_file:
+    - src/mumble/LICENSE
+    - src/mumble/3rdPartyLicenses
+  documentation: https://www.mumble.info/documentation/
+  repository: https://github.com/mumble-voip/mumble
+
+extra:
+  recipe-maintainers:
+    - phreed
+  version:
+    github-release:
+      - ^(\d+\.\d+\.\d+)
+  feedstock-name: mumble-voip

@@ -1,0 +1,196 @@
+version: 1
+name: mumble-server
+display_name: Mumble VoIP Server
+description: Mumble VoIP Server (Murmur) - Low latency, high quality voice chat server
+category: "voip-server"
+
+executable:
+  task: murmur
+  arguments:
+    - "-ini"
+    - "/etc/mumble/murmur.ini"
+  working_directory: /var/lib/mumble
+  environment:
+    - MURMUR_CONFIG=/etc/mumble/murmur.ini
+    - MURMUR_LOG_LEVEL=1
+
+service_type: simple
+startup_mode: automatic
+
+security:
+  run_as_user: mumble
+  run_as_group: mumble
+
+dependencies:
+  services:
+    - network-online.target
+  groups:
+    - network
+
+recovery:
+  restart_policy: on_failure
+  restart_delay: "5s"
+  max_restarts: 3
+  restart_window: "60s"
+
+timeouts:
+  start: "30s"
+  stop: "15s"
+  watchdog: "60s"
+
+files:
+  # Service home directory
+  - path: /var/lib/mumble
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "mumble:mumble"
+
+  # Data directory
+  - path: /var/lib/mumble/data
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "mumble:mumble"
+
+  # Configuration directory
+  - path: /etc/mumble
+    persistence: durable
+    type: directory
+    permissions: "755"
+    owner: "root:root"
+
+  # Log directory
+  - path: /var/log/mumble
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "mumble:mumble"
+
+  # Main configuration file
+  - path: /etc/mumble/murmur.ini
+    content: |
+      # Murmur configuration file
+      # For full configuration options, see: https://wiki.mumble.info/wiki/Murmur.ini
+
+      # Database configuration
+      database=/var/lib/mumble/data/murmur.sqlite
+
+      # Network configuration
+      port=64738
+      host=0.0.0.0
+
+      # Server settings
+      serverpassword=
+      welcometext="<br />Welcome to this Mumble server running <b>Murmur</b>.<br />Enjoy your stay!<br />"
+      registername=Mumble Server
+      registerpassword=
+      registerurl=https://www.mumble.info/
+      registerhostname=
+
+      # Logging
+      logfile=/var/log/mumble/murmur.log
+      loglevel=1
+
+      # Security settings
+      # SSL certificate paths (optional)
+      #sslCert=/var/lib/mumble/server.crt
+      #sslKey=/var/lib/mumble/server.key
+
+      # Maximum users
+      users=100
+
+      # Bandwidth settings (bits per second)
+      bandwidth=72000
+
+      # Text message length limit
+      textmessagelength=5000
+
+      # Channel limits
+      channelnestinglimit=10
+
+      # Timeout settings
+      timeout=30
+      keepalive=20
+
+      # Recording settings
+      allowhtml=true
+      rememberchannel=true
+
+      # Anti-flood settings
+      messageburst=5
+      messagelimit=1
+    persistence: durable
+    type: regular
+    permissions: "644"
+    owner: "root:root"
+    backup: true
+
+  # Environment file
+  - path: /etc/default/mumble-server
+    content: |
+      # Mumble Server Environment Variables
+
+      # Configuration file path
+      MURMUR_CONFIG=/etc/mumble/murmur.ini
+
+      # Additional options
+      MURMUR_OPTS=""
+
+      # Log level (0=debug, 1=info, 2=warnings, 3=critical)
+      MURMUR_LOG_LEVEL=1
+    persistence: durable
+    type: regular
+    permissions: "644"
+    owner: "root:root"
+    backup: true
+
+platform_specific:
+  systemd:
+    unit:
+      Description: "Mumble VoIP Server (Murmur)"
+      Documentation: "https://www.mumble.info/documentation/"
+      After:
+        - network.target
+        - network-online.target
+      Wants:
+        - network-online.target
+    service:
+      Type: simple
+      ExecReload: "/bin/kill -HUP $MAINPID"
+      Restart: on-failure
+      RestartSec: 5
+      StartLimitInterval: 60s
+      StartLimitBurst: 3
+      StandardOutput: journal
+      StandardError: journal
+      SyslogIdentifier: mumble-server
+      # Security settings
+      NoNewPrivileges: true
+      ProtectSystem: strict
+      ProtectHome: true
+      ReadWritePaths:
+        - /var/lib/mumble
+        - /var/log/mumble
+      PrivateTmp: true
+      ProtectKernelTunables: true
+      ProtectKernelModules: true
+      ProtectControlGroups: true
+      RestrictRealtime: true
+      RestrictSUIDSGID: true
+      MemoryDenyWriteExecute: true
+      # Network security
+      IPAddressDeny: any
+      IPAddressAllow:
+        - localhost
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+      # Resource limits
+      LimitNOFILE: 65536
+      LimitNPROC: 32768
+    install:
+      WantedBy:
+        - multi-user.target
+      Alias:
+        - murmur.service
