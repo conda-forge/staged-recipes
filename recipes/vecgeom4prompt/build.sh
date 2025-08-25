@@ -1,0 +1,15 @@
+echo "CONDA_PREFIX="${PREFIX}
+mkdir build && cd build
+
+cmake \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_PREFIX_PATH=${PREFIX} \
+    -DVECGEOM_BUILTIN_VECCORE=ON \
+    -DVECGEOM_FAST_MATH=OFF \
+    -DBUILD_TESTING=OFF \
+    -DVECGEOM_GDML=ON \
+    -DVECGEOM_USE_NAVINDEX=ON \
+    ..
+    
+make -j${CPU_COUNT:-1}
+make install
