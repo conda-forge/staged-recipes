@@ -44,6 +44,31 @@ The recipe also includes global `/EHsc` flags for proper exception handling:
 
 This targeted approach handles protobuf-specific issues without suppressing warnings globally.
 
+### 0002-fix-macos-implicit-int-float-conversion.patch
+**Purpose**: Fixes implicit int-to-float conversion warning in TextToSpeech_macx.mm on macOS.
+
+**Problem**: 
+The TextToSpeech_macx.mm file contains code that triggers a compiler warning when `-Werror` is enabled:
+```
+TextToSpeech_macx.mm:138:48: error: implicit conversion from 'int' to 'float' may lose precision [-Werror,-Wimplicit-int-float-conversion]
+  138 |                 [[m_synthesizerHelper synthesizer] setVolume:volume / 100.0f];
+      |                                                              ^~~~~~ ~
+```
+
+**Solution**:
+The patch explicitly casts the `volume` parameter to `float` before the division:
+```objective-c
+[[m_synthesizerHelper synthesizer] setVolume:(float)volume / 100.0f];
+```
+
+**Files Modified**:
+- `src/mumble/TextToSpeech_macx.mm`: Line 138, explicit cast added
+
+**Result**:
+- Eliminates the implicit conversion warning that was being treated as an error
+- Maintains the same functionality with explicit type conversion
+- Allows the build to succeed with `-Werror` enabled
+
 ## Removed Patches
 
 ### 0002-fix-macos-avfoundation-compatibility.patch (REMOVED)
@@ -66,7 +91,7 @@ c_stdlib_version: # [osx and x86_64]
 The build now uses a hybrid approach:
 
 1. **Windows**: Minimal protobuf warning patch + global `/EHsc` compiler flags
-2. **macOS**: Updated build target to 10.14 (no patches needed)
+2. **macOS**: Updated build target to 10.14 + implicit conversion fix patch
 3. **Linux**: No patches needed
 
 This approach provides clean, maintainable builds with minimal source code modifications, targeting only the specific issues that cannot be resolved through configuration alone.
