@@ -69,6 +69,35 @@ The patch explicitly casts the `volume` parameter to `float` before the division
 - Maintains the same functionality with explicit type conversion
 - Allows the build to succeed with `-Werror` enabled
 
+### 0003-fix-macos-updateentry-struct-initialization.patch
+**Purpose**: Fixes aggregate initialization error with UpdateEntry struct on macOS.
+
+**Problem**: 
+The PluginUpdater.cpp file contains code that uses brace initialization with a struct that only has a default constructor. This triggers a compiler error on macOS:
+```
+PluginUpdater.cpp:48:18: error: no matching constructor for initialization of 'UpdateEntry'
+   48 |                                         UpdateEntry entry = { plugin->getID(), updateURL, updateURL.fileName(), 0 };
+      |                                                     ^       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+**Solution**:
+The patch replaces the brace initialization with explicit member assignment:
+```cpp
+UpdateEntry entry;
+entry.pluginID = plugin->getID();
+entry.updateURL = updateURL;
+entry.fileName = updateURL.fileName();
+entry.redirects = 0;
+```
+
+**Files Modified**:
+- `src/mumble/PluginUpdater.cpp`: Line 48, replaced brace initialization with member assignment
+
+**Result**:
+- Eliminates the compilation error on macOS while maintaining identical functionality
+- Makes the code more explicit and portable across different compiler implementations
+- Allows the build to succeed on macOS with strict aggregate initialization rules
+
 ## Removed Patches
 
 ### 0002-fix-macos-avfoundation-compatibility.patch (REMOVED)
@@ -91,7 +120,7 @@ c_stdlib_version: # [osx and x86_64]
 The build now uses a hybrid approach:
 
 1. **Windows**: Minimal protobuf warning patch + global `/EHsc` compiler flags
-2. **macOS**: Updated build target to 10.14 + implicit conversion fix patch
+2. **macOS**: Updated build target to 10.14 + implicit conversion fix patch + struct initialization fix patch
 3. **Linux**: No patches needed
 
 This approach provides clean, maintainable builds with minimal source code modifications, targeting only the specific issues that cannot be resolved through configuration alone.
