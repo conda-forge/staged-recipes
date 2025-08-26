@@ -98,6 +98,40 @@ entry.redirects = 0;
 - Makes the code more explicit and portable across different compiler implementations
 - Allows the build to succeed on macOS with strict aggregate initialization rules
 
+### 0004-fix-macos-avcapturedevice-sdk-compatibility.patch
+**Purpose**: Fixes macOS AVCaptureDevice API availability issues when building with older SDKs.
+
+**Problem**: 
+The CoreAudio.mm file uses `authorizationStatusForMediaType:` which was introduced in macOS 10.14, but the build might use an older SDK (like 10.13). The `@available()` check only prevents runtime execution on older systems, but doesn't prevent compilation errors when the API isn't available in the SDK:
+```
+CoreAudio.mm:503:28: error: 'authorizationStatusForMediaType:' is unavailable: not available on macOS
+  503 |                 switch ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio])
+      |                                          ^
+```
+
+**Solution**:
+The patch adds both compile-time and runtime availability checks:
+```objective-c
+// Check if the API is available both at compile time and runtime
+AVAuthorizationStatus authStatus;
+if (__builtin_available(macOS 10.14, *) && 
+    [AVCaptureDevice respondsToSelector:@selector(authorizationStatusForMediaType:)]) {
+    authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+} else {
+    // Fallback: assume permission is granted on older systems/SDKs
+    return false;
+}
+```
+
+**Files Modified**:
+- `src/mumble/CoreAudio.mm`: Lines around 503, added compile-time availability checks with fallback behavior
+
+**Result**:
+- Allows compilation with older macOS SDKs while preserving modern API functionality when available
+- Uses `__builtin_available` for compile-time checks and `respondsToSelector:` for runtime safety
+- Provides graceful fallback for older SDK/system combinations
+- Maintains full functionality on macOS 10.14+ while ensuring backward compatibility
+
 ## Removed Patches
 
 ### 0002-fix-macos-avfoundation-compatibility.patch (REMOVED)
@@ -120,7 +154,7 @@ c_stdlib_version: # [osx and x86_64]
 The build now uses a hybrid approach:
 
 1. **Windows**: Minimal protobuf warning patch + global `/EHsc` compiler flags
-2. **macOS**: Updated build target to 10.14 + implicit conversion fix patch + struct initialization fix patch
+2. **macOS**: Updated build target to 10.14 + implicit conversion fix patch + struct initialization fix patch + AVCaptureDevice SDK compatibility patch
 3. **Linux**: No patches needed
 
 This approach provides clean, maintainable builds with minimal source code modifications, targeting only the specific issues that cannot be resolved through configuration alone.

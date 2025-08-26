@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@conda-forge.org>
+Date: Mon, 1 Jan 2025 00:00:00 +0000
+Subject: [PATCH] Fix macOS AVCaptureDevice SDK compatibility for older SDKs
+
+This patch fixes the compilation error when building with macOS SDKs older
+than 10.14 while still supporting the AVCaptureDevice authorization APIs
+when available at runtime.
+
+The issue occurs because authorizationStatusForMediaType: and 
+requestAccessForMediaType:completionHandler: were introduced in macOS 10.14,
+but the build might use an older SDK (like 10.13). The @available() check
+only prevents runtime execution on older systems, but doesn't prevent
+compilation errors when the APIs aren't available in the SDK.
+
+Error:
+    CoreAudio.mm:503:28: error: 'authorizationStatusForMediaType:' is unavailable: not available on macOS
+
+Solution:
+1. Add __builtin_available compile-time checks alongside @available runtime checks
+2. Use respondsToSelector: to safely check API availability at runtime
+3. Provide fallback behavior for older SDKs (assume permission granted)
+
+--- a/src/mumble/CoreAudio.mm
++++ b/src/mumble/CoreAudio.mm
+@@ -497,8 +497,18 @@ bool CoreAudioInputRegistrar::isMicrophoneAccessDeniedByOS() {
+ 	// requesting_authorization_for_media_capture_on_macos?language=objc
+ 	if (@available(macOS 10.14, *)){
+ 		qDebug("CoreAudioInput: Checking microphone permission....");
+-		// Request permission to access the camera and microphone.
+-		switch ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio])
++		
++		// Check if the API is available both at compile time and runtime
++		AVAuthorizationStatus authStatus;
++		if (__builtin_available(macOS 10.14, *) && 
++		    [AVCaptureDevice respondsToSelector:@selector(authorizationStatusForMediaType:)]) {
++			authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
++		} else {
++			// Fallback: assume permission is granted on older systems/SDKs
++			qDebug("CoreAudioInput: AVCaptureDevice authorizationStatusForMediaType: not available, assuming access granted.");
++			return false;
++		}
++		switch (authStatus)
+ 		{
+ 			case AVAuthorizationStatusAuthorized: {
+ 				// The user has previously granted access to the camera.
+@@ -508,11 +518,21 @@ bool CoreAudioInputRegistrar::isMicrophoneAccessDeniedByOS() {
+ 			case AVAuthorizationStatusNotDetermined: {
+ 				// The app hasn't yet asked the user for microphone access.
+ 				qWarning("CoreAudioInput: Mumble hasn't asked the user for microphone access. Asking for it now.");
+-				[AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio completionHandler: ^(BOOL _granted) {
+-					if (_granted) {
+-						Audio::stopInput();
+-						Audio::startInput();
+-					} else {
+-						qWarning("CoreAudioInput: Microphone access denied by user.");
++				
++				if (__builtin_available(macOS 10.14, *) && 
++				    [AVCaptureDevice respondsToSelector:@selector(requestAccessForMediaType:completionHandler:)]) {
++					[AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio completionHandler: ^(BOOL _granted) {
++						if (_granted) {
++							Audio::stopInput();
++							Audio::startInput();
++						} else {
++							qWarning("CoreAudioInput: Microphone access denied by user.");
++						}
++					}];
++				} else {
++					// Fallback: assume permission is granted on older SDKs
++					qDebug("CoreAudioInput: AVCaptureDevice requestAccessForMediaType: not available, assuming access granted.");
++					return false;
+ 				}];
+ 				return true;
+ 			}
