@@ -85,28 +85,6 @@ outputs:
           $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
           $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
 
-          let cm_args = match ($nu.os-info.name) {
-            "linux" => {
-              # gcc
-              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
-              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
-              }
-            "macos" => {
-              # clang
-              cxx_flags: "-Wno-deprecated-declarations"
-              c_flags: "-Wno-deprecated-declarations -std=c11"
-              }
-            "windows" => {
-              # cl
-              cxx_flags: "/EHsc /DWIN32 /wd4996"
-              c_flags: "/std:c11 /EHsc /DWIN32 /wd4996"
-              }
-            _ => {
-              cxx_flags: ""
-              c_flags: ""
-              }
-          }
-
           # Build client
           mut cmake_args = [
             -B build
@@ -120,31 +98,43 @@ outputs:
             -Dice=OFF
             -Dclient=ON
             -Dserver=OFF
-            $"-DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)"
-            $"-DCMAKE_C_FLAGS=($cm_args.c_flags)"
             $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
             $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
             $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
             -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
             -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
-            $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
-            $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
             $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
           ]
 
-          # Add macOS-specific SDK version override
-          if ($nu.os-info.name == "macos") {
-            $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
-            $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14")
-            # Force use of newer SDK if available
-            if ($env.CONDA_BUILD_SYSROOT? != null) {
-              $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_SYSROOT=($env.CONDA_BUILD_SYSROOT)")
+          # Add platform-specific arguments
+          match ($nu.os-info.name) {
+            "linux" => {
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+                "-DCMAKE_C_FLAGS=-Wno-error=cpp -Wno-cpp -std=c11"
+                $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
+                $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
+              ])
             }
-          }
-
-          # Add Windows Socket library for Windows builds
-          if ($nu.os-info.name == "windows") {
-            $cmake_args = ($cmake_args | append "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib")
+            "macos" => {
+              $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations"
+                "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11"
+                "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
+              ])
+              # Force use of newer SDK if available
+              if ($env.CONDA_BUILD_SYSROOT? != null) {
+                $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_SYSROOT=($env.CONDA_BUILD_SYSROOT)")
+              }
+            }
+            "windows" => {
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996"
+                "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996"
+                "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib"
+              ])
+            }
           }
           ^cmake ...$cmake_args
 
@@ -279,26 +269,6 @@ outputs:
           $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
           $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
 
-          let cm_args = match ($nu.os-info.name) {
-            "linux" => {
-              cxx_flags: "-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
-              c_flags: "-Wno-error=cpp -Wno-cpp -std=c11"
-              }
-            "macos" => {
-              # clang
-              cxx_flags: "-Wno-deprecated-declarations"
-              c_flags: "-Wno-deprecated-declarations -std=c11"
-              }
-            "windows" => {
-              cxx_flags: "/EHsc /DWIN32 /wd4996"
-              c_flags: "/std:c11 /EHsc /DWIN32 /wd4996"
-              }
-            _ => {
-              cxx_flags: ""
-              c_flags: ""
-              }
-          }
-
           # Build server
           mut cmake_args = [
             -B build
@@ -312,31 +282,43 @@ outputs:
             -Dice=OFF
             -Dclient=OFF
             -Dserver=ON
-            $"-DCMAKE_CXX_FLAGS=($cm_args.cxx_flags)"
-            $"-DCMAKE_C_FLAGS=($cm_args.c_flags)"
             $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
             $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
             $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
             -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
             -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
-            $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
-            $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
             $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
           ]
 
-          # Add macOS-specific SDK version override
-          if ($nu.os-info.name == "macos") {
-            $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
-            $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14")
-            # Force use of newer SDK if available
-            if ($env.CONDA_BUILD_SYSROOT? != null) {
-              $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_SYSROOT=($env.CONDA_BUILD_SYSROOT)")
+          # Add platform-specific arguments
+          match ($nu.os-info.name) {
+            "linux" => {
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+                "-DCMAKE_C_FLAGS=-Wno-error=cpp -Wno-cpp -std=c11"
+                $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
+                $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
+              ])
             }
-          }
-
-          # Add Windows Socket library for Windows builds
-          if ($nu.os-info.name == "windows") {
-            $cmake_args = ($cmake_args | append "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib")
+            "macos" => {
+              $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations"
+                "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11"
+                "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
+              ])
+              # Force use of newer SDK if available
+              if ($env.CONDA_BUILD_SYSROOT? != null) {
+                $cmake_args = ($cmake_args | append $"-DCMAKE_OSX_SYSROOT=($env.CONDA_BUILD_SYSROOT)")
+              }
+            }
+            "windows" => {
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996"
+                "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996"
+                "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib"
+              ])
+            }
           }
           ^cmake ...$cmake_args
 
