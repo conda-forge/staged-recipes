@@ -456,9 +456,6 @@ outputs:
               # Force macOS 10.14 environment variables to override conda defaults
               $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
 
-              # Completely unset CONDA_BUILD_SYSROOT to prevent empty isysroot parameter
-              $env.CONDA_BUILD_SYSROOT = null
-
               # Debug: Show current environment
               print $"Current MACOSX_DEPLOYMENT_TARGET: ($env.MACOSX_DEPLOYMENT_TARGET)"
               print $"Current CONDA_BUILD_SYSROOT: ($env.CONDA_BUILD_SYSROOT?)"
@@ -495,9 +492,15 @@ outputs:
                 $env.OSX_DEPLOYMENT_TARGET = "10.14"
                 $env.SYSTEM_VERSION_COMPAT = "0"
 
+                # Override conda's compiler completely by specifying explicit compiler paths
+                let system_clang = (^xcrun --find clang)
+                let system_clangxx = (^xcrun --find clang++)
+
                 $cmake_args = ($cmake_args | append [
-                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+                  $"-DCMAKE_C_COMPILER=($system_clang)"
+                  $"-DCMAKE_CXX_COMPILER=($system_clangxx)"
+                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
+                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
                   "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
                   $"-DCMAKE_OSX_SYSROOT=($macos_sdk)"
                   $"-DCMAKE_EXE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
@@ -510,9 +513,14 @@ outputs:
                 # Set environment variables anyway
                 $env.OSX_DEPLOYMENT_TARGET = "10.14"
                 $env.SYSTEM_VERSION_COMPAT = "0"
-                # Don't set CONDA_BUILD_SYSROOT if we don't have a valid SDK
+
+                # Use system compiler as fallback
+                let system_clang = (^xcrun --find clang)
+                let system_clangxx = (^xcrun --find clang++)
 
                 $cmake_args = ($cmake_args | append [
+                  $"-DCMAKE_C_COMPILER=($system_clang)"
+                  $"-DCMAKE_CXX_COMPILER=($system_clangxx)"
                   "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
                   "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
                   "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
