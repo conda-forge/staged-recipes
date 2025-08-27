@@ -5,6 +5,8 @@ schema_version: 1
 context:
   version: "1.5.735"
   nprocs: 8
+  # Number of processors to use during build
+  # nprocs: ${{ [2, env.get('CPU_COUNT', default="8")] | max }}
 
 recipe:
   name: mumble-voip
@@ -70,265 +72,342 @@ build:
   number: 0
 
 outputs:
+  # - package:
+  #     name: mumble-client
+
+  #   # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+  #   build:
+  #     script:
+  #       env:
+  #         CPU_COUNT: ${{ nprocs }}
+  #       interpreter: nu
+  #       content: |
+  #         # Security: Validate environment variables
+  #         if ($env.PREFIX | is-empty) {
+  #           print "❌ ERROR: Required environment variable PREFIX not set"
+  #           exit 1
+  #         }
+
+  #         print $"Using PREFIX: ($env.PREFIX)"
+
+  #         cd src/mumble
+
+  #         # Build client
+  #         mut cmake_args = [
+  #           -B build
+  #           -G Ninja
+  #           -DCMAKE_BUILD_TYPE=Release
+  #           -DCMAKE_CXX_STANDARD=20
+  #           -DCMAKE_CXX_STANDARD_REQUIRED=ON
+  #           -Dspeechd=OFF
+  #           -Doverlay=OFF
+  #           -Doverlay-xcompile=OFF
+  #           -Dzeroconf=OFF
+  #           -Dcelt=OFF
+  #           -Dice=OFF
+  #           -Dclient=ON
+  #           -Dserver=OFF
+  #           $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
+  #           $"-DBOOST_ROOT=($env.PREFIX)"
+  #           $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
+  #           $"-DCMAKE_INSTALL_LIBDIR=($env.PREFIX)/lib"
+  #           $"-DCMAKE_INSTALL_BINDIR=($env.PREFIX)/bin"
+  #           $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)/include"
+  #           -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
+  #           -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
+  #           $"-DCMAKE_INCLUDE_PATH=($env.PREFIX)/include"
+  #           "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON"
+  #           "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+  #           $"-DCMAKE_INSTALL_RPATH=($env.PREFIX)/lib"
+  #         ]
+
+  #         # Add platform-specific arguments
+  #         match ($nu.os-info.name) {
+  #           "linux" => {
+  #             # Set up environment for X11 detection
+  #             $env.PKG_CONFIG_PATH = $"($env.PREFIX)/lib/pkgconfig"
+  #             $env.CMAKE_PREFIX_PATH = $"($env.PREFIX)"
+  #             $env.CPPFLAGS = $"-I($env.PREFIX)/include"
+
+  #             $cmake_args = ($cmake_args | append [
+  #               "-DCMAKE_CXX_FLAGS=-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
+  #               "-DCMAKE_C_FLAGS=-Wno-error=cpp -Wno-cpp -std=c11"
+  #               $"-DX11_INCLUDE_DIR=($env.PREFIX)/include"
+  #               $"-DX11_LIBRARIES=($env.PREFIX)/lib/libX11($env.SHLIB_EXT);($env.PREFIX)/lib/libXext($env.SHLIB_EXT);($env.PREFIX)/lib/libXi($env.SHLIB_EXT)"
+  #             ])
+  #           }
+  #           "macos" => {
+  #             # Force macOS 10.14 environment variables to override conda defaults
+  #             $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
+  #             $env.CONDA_BUILD_SYSROOT = ""
+
+  #             # Debug: Show current environment
+  #             print $"Current MACOSX_DEPLOYMENT_TARGET: ($env.MACOSX_DEPLOYMENT_TARGET)"
+  #             print $"Current CONDA_BUILD_SYSROOT: ($env.CONDA_BUILD_SYSROOT?)"
+
+  #             # Debug: Show available SDKs
+  #             print "Available SDKs:"
+  #             try { ^xcrun --show-sdk-path --sdk macosx } catch { print "xcrun failed" }
+  #             try { ^ls "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" } catch { print "SDK dir not found" }
+
+  #             # Try to get SDK path using xcrun first, then fallback to manual paths
+  #             let macos_sdk = try {
+  #               let xcrun_sdk = (^xcrun --show-sdk-path --sdk macosx | str trim)
+  #               if ($xcrun_sdk | str contains "10.14") or ($xcrun_sdk | str contains "10.15") or ($xcrun_sdk | str contains "11.") or ($xcrun_sdk | str contains "12.") or ($xcrun_sdk | str contains "13.") or ($xcrun_sdk | str contains "14.") or ($xcrun_sdk | str contains "15.") {
+  #                 print $"Found SDK via xcrun: ($xcrun_sdk)"
+  #                 $xcrun_sdk
+  #               } else {
+  #                 # Fallback to manual paths for 10.14+
+  #                 let sdk_paths = [
+  #                   "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
+  #                   "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
+  #                   "/Applications/Xcode_15.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
+  #                   "/Applications/Xcode_14.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
+  #                   "/opt/MacOSX-SDKs/MacOSX10.14.sdk"
+  #                 ]
+  #                 $sdk_paths | where {|path| ($path | path exists)} | first
+  #               }
+  #             } catch { "" }
+
+  #             if ($macos_sdk != "") {
+  #               print $"Using macOS SDK: ($macos_sdk)"
+  #               $env.SDKROOT = $macos_sdk
+
+  #               # Set all possible environment variables to force 10.14
+  #               $env.OSX_DEPLOYMENT_TARGET = "10.14"
+  #               $env.SYSTEM_VERSION_COMPAT = "0"
+
+  #               $cmake_args = ($cmake_args | append [
+  #                 "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+  #                 "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+  #                 "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
+  #                 $"-DCMAKE_OSX_SYSROOT=($macos_sdk)"
+  #                 $"-DCMAKE_EXE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+  #                 $"-DCMAKE_SHARED_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+  #                 $"-DCMAKE_MODULE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
+  #               ])
+  #             } else {
+  #               print "Warning: No suitable macOS SDK found, trying default with 10.14 deployment target"
+
+  #               # Set environment variables anyway
+  #               $env.OSX_DEPLOYMENT_TARGET = "10.14"
+  #               $env.SYSTEM_VERSION_COMPAT = "0"
+
+  #               $cmake_args = ($cmake_args | append [
+  #                 "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
+  #                 "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
+  #                 "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
+  #                 $"-DCMAKE_EXE_LINKER_FLAGS=-mmacosx-version-min=10.14"
+  #                 $"-DCMAKE_SHARED_LINKER_FLAGS=-mmacosx-version-min=10.14"
+  #                 $"-DCMAKE_MODULE_LINKER_FLAGS=-mmacosx-version-min=10.14"
+  #               ])
+  #             }
+  #           }
+  #           "windows" => {
+  #             $cmake_args = ($cmake_args | append [
+  #               "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996"
+  #               "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996"
+  #               "-DCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /DNDEBUG"
+  #               "-DCMAKE_C_FLAGS_RELEASE=/MD /O2 /DNDEBUG"
+  #               "-DCMAKE_CXX_FLAGS_DEBUG=/MDd /Od /Zi /RTC1"
+  #               "-DCMAKE_C_FLAGS_DEBUG=/MDd /Od /Zi /RTC1"
+  #               "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib"
+  #               $"-DQt5_DIR=($env.PREFIX)/Library/lib/cmake/Qt5"
+  #             ])
+  #           }
+  #         }
+  #         ^cmake ...$cmake_args
+
+  #         cd build
+  #         ^cmake --build . -j $env.CPU_COUNT
+
+  #         # Security: Create directories with proper permissions
+  #         mkdir $"($env.PREFIX)/bin"
+  #         mkdir $"($env.PREFIX)/share"
+
+  #         # Security: Set secure permissions on directories
+  #         if ($nu.os-info.name != "windows") {
+  #           ^chmod 755 $"($env.PREFIX)/bin"
+  #           ^chmod 755 $"($env.PREFIX)/share"
+  #         }
+
+  #         # Install client binary
+  #         let mumble_exec = match ($nu.os-info.name) {
+  #           "macos" => "mumble"
+  #           "linux" => "mumble"
+  #           "windows" => "mumble.exe"
+  #           _ => "mumble"
+  #         }
+
+  #         # Security: Validate binary exists before installation
+  #         if not ($mumble_exec | path exists) {
+  #           print $"❌ ERROR: Mumble binary not found: ($mumble_exec)"
+  #           exit 1
+  #         }
+
+  #         # Install client binary with secure permissions
+  #         let target_binary = $"($env.PREFIX)/bin/($mumble_exec)"
+  #         cp $mumble_exec $target_binary
+  #         if ($nu.os-info.name != "windows") {
+  #           ^chmod 755 $target_binary  # Secure: not world-writable
+  #         }
+
+  #         # Install service configuration file
+  #         print "Installing service configuration file..."
+
+  #         let config_dir = $"($env.PREFIX)/etc/mumble"
+  #         mkdir $config_dir
+
+  #         # Security: Set secure permissions on config directory
+  #         if ($nu.os-info.name != "windows") {
+  #           ^chmod 755 $config_dir
+  #         }
+
+  #         # Security: Validate source config file exists
+  #         let src_config = $"($env.SRC_DIR)/service-config/service.yaml"
+  #         if not ($src_config | path exists) {
+  #           print $"❌ ERROR: Source config file not found: ($src_config)"
+  #           exit 1
+  #         }
+
+  #         let dest_config = $"($config_dir)/service.yaml"
+  #         cp $src_config $dest_config
+
+  #         # Security: Set secure permissions on config file
+  #         if ($nu.os-info.name != "windows") {
+  #           ^chmod 644 $dest_config  # Read-only for group/others
+  #         }
+
+  #         # Install license files to share/licenses directory
+  #         let license_dir = $"($env.PREFIX)/share/licenses/mumble-client"
+  #         mkdir $license_dir
+
+  #         # Security: Set secure permissions on license directory
+  #         if ($nu.os-info.name != "windows") {
+  #           ^chmod 755 $license_dir
+  #         }
+
+  #         if ($"($env.SRC_DIR)/src/mumble/LICENSE" | path exists) {
+  #           cp $"($env.SRC_DIR)/src/mumble/LICENSE" $"($license_dir)/LICENSE"
+  #           if ($nu.os-info.name != "windows") {
+  #             ^chmod 644 $"($license_dir)/LICENSE"
+  #           }
+  #         }
+  #         if ($"($env.SRC_DIR)/src/mumble/3rdPartyLicenses" | path exists) {
+  #           cp -r $"($env.SRC_DIR)/src/mumble/3rdPartyLicenses" $"($license_dir)/"
+  #           if ($nu.os-info.name != "windows") {
+  #             ^find $"($license_dir)/3rdPartyLicenses" -type f -exec chmod 644 {} \;
+  #           }
+  #         }
+
+  #   requirements:
+  #     build:
+  #       - nushell
+  #       - ${{ compiler('cxx') }}
+  #       - ${{ compiler('c') }}
+  #       - ${{ stdlib('c') }}
+  #       # - qt6-main
+  #       - qt >=5.15,<6
+  #       - qt-main >=5.15,<6
+  #       # - qt-wayland
+  #       - mesalib
+  #       - python >=3.8
+  #       - cmake >=3.20
+  #       - py-build-cmake
+  #       - ninja >=1.10
+  #       - if: unix
+  #         then: make
+  #       - pkg-config
+  #       - if: linux
+  #         then:
+  #           - xorg-libx11
+  #           - xorg-libxext
+  #           - xorg-libxi
+  #           - xorg-xproto
+  #           - xorg-xextproto
+  #           - xorg-inputproto
+  #           - xorg-xorgproto
+  #       - libopenssl-static
+  #       - libprotobuf-static
+  #       - libprotobuf
+  #       - protobuf
+  #       - libboost-devel
+  #       - libabseil
+  #       - zlib
+  #     host:
+  #       - ${{ stdlib('c') }}
+  #       - qt
+  #       - qt-main
+  #       - pkg-config >=0.29
+  #       - if: linux
+  #         then:
+  #           - xorg-libx11 >=1.6
+  #           - xorg-libxext >=1.3
+  #           - xorg-libxi >=1.7
+  #           - xorg-xproto
+  #           - xorg-xextproto
+  #           - xorg-inputproto
+  #           - xorg-xorgproto
+  #       - libboost-devel >=1.70
+  #       - if: linux
+  #         then: alsa-lib
+  #       - libabseil >=20230125
+  #       - libprotobuf >=3.21
+  #       - if: linux
+  #         then: libcap >=2.25
+  #       - zlib >=1.2.11
+  #       - libogg >=1.3
+  #       - libsndfile >=1.0.28
+  #       - libopus >=1.3
+  #         # - libspeechd
+  #       - if: linux
+  #         then: avahi
+  #       - if: linux
+  #         then: libxcb
+  #       - if: linux
+  #         then: zeroconf >=0.70
+  #       - poco >=1.12
+  #   tests:
+  #     - package_contents:
+  #         files:
+  #           - bin/mumble${{ ".exe" if win }}
+  #           - ${{ "etc/mumble/service.yaml" if linux }}
+  #           - lib/mumble/
+  #           - lib/mumble/plugins/
+  #           - share/licenses/mumble-client/LICENSE
+  #     - script:
+  #         - ls *
+  #         - pwd
+  #       requirements:
+  #         build:
+  #           - nushell
+  #         run:
+  #           - nushell
+  #       files:
+  #         recipe:
+  #           - tests/test_mumble_client.nu
+  #     - script:
+  #         - nu test_mumble_client.nu
+  #       requirements:
+  #         build:
+  #           - nushell
+  #         run:
+  #           - nushell
+  #       files:
+  #         recipe:
+  #           - tests/test_mumble_client.nu
+
   - package:
-      name: mumble-client
+      name: mumble-server
 
     # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
     build:
       script:
         env:
-          JOB_CNT: ${{ nprocs }}
+          CPU_COUNT: ${{ nprocs }}
         interpreter: nu
         content: |
           cd src/mumble
-
-          # Build client
-          mut cmake_args = [
-            -B build
-            -G Ninja
-            -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_CXX_STANDARD=20
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON
-            -Dspeechd=OFF
-            -Doverlay=OFF
-            -Doverlay-xcompile=OFF
-            -Dzeroconf=OFF
-            -Dcelt=OFF
-            -Dice=OFF
-            -Dclient=ON
-            -Dserver=OFF
-            $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
-            $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
-            $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
-            -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
-            -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
-            $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
-          ]
-
-          # Add platform-specific arguments
-          match ($nu.os-info.name) {
-            "linux" => {
-              # Set up environment for X11 detection
-              $env.PKG_CONFIG_PATH = $"($env.BUILD_PREFIX)/lib/pkgconfig:($env.PREFIX)/lib/pkgconfig"
-              $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
-              $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
-
-              $cmake_args = ($cmake_args | append [
-                "-DCMAKE_CXX_FLAGS=-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
-                "-DCMAKE_C_FLAGS=-Wno-error=cpp -Wno-cpp -std=c11"
-                $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
-                $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
-              ])
-            }
-            "macos" => {
-              # Force macOS 10.14 environment variables to override conda defaults
-              $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
-              $env.CONDA_BUILD_SYSROOT = ""
-
-              # Debug: Show current environment
-              print $"Current MACOSX_DEPLOYMENT_TARGET: ($env.MACOSX_DEPLOYMENT_TARGET)"
-              print $"Current CONDA_BUILD_SYSROOT: ($env.CONDA_BUILD_SYSROOT?)"
-
-              # Debug: Show available SDKs
-              print "Available SDKs:"
-              try { ^xcrun --show-sdk-path --sdk macosx } catch { print "xcrun failed" }
-              try { ^ls "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" } catch { print "SDK dir not found" }
-
-              # Try to get SDK path using xcrun first, then fallback to manual paths
-              let macos_sdk = try {
-                let xcrun_sdk = (^xcrun --show-sdk-path --sdk macosx | str trim)
-                if ($xcrun_sdk | str contains "10.14") or ($xcrun_sdk | str contains "10.15") or ($xcrun_sdk | str contains "11.") or ($xcrun_sdk | str contains "12.") or ($xcrun_sdk | str contains "13.") or ($xcrun_sdk | str contains "14.") or ($xcrun_sdk | str contains "15.") {
-                  print $"Found SDK via xcrun: ($xcrun_sdk)"
-                  $xcrun_sdk
-                } else {
-                  # Fallback to manual paths for 10.14+
-                  let sdk_paths = [
-                    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_15.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_14.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/opt/MacOSX-SDKs/MacOSX10.14.sdk"
-                  ]
-                  $sdk_paths | where {|path| ($path | path exists)} | first
-                }
-              } catch { "" }
-
-              if ($macos_sdk != "") {
-                print $"Using macOS SDK: ($macos_sdk)"
-                $env.SDKROOT = $macos_sdk
-
-                # Set all possible environment variables to force 10.14
-                $env.OSX_DEPLOYMENT_TARGET = "10.14"
-                $env.SYSTEM_VERSION_COMPAT = "0"
-
-                $cmake_args = ($cmake_args | append [
-                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
-                  $"-DCMAKE_OSX_SYSROOT=($macos_sdk)"
-                  $"-DCMAKE_EXE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  $"-DCMAKE_SHARED_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  $"-DCMAKE_MODULE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                ])
-              } else {
-                print "Warning: No suitable macOS SDK found, trying default with 10.14 deployment target"
-
-                # Set environment variables anyway
-                $env.OSX_DEPLOYMENT_TARGET = "10.14"
-                $env.SYSTEM_VERSION_COMPAT = "0"
-
-                $cmake_args = ($cmake_args | append [
-                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
-                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
-                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
-                  $"-DCMAKE_EXE_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                  $"-DCMAKE_SHARED_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                  $"-DCMAKE_MODULE_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                ])
-              }
-            }
-            "windows" => {
-              $cmake_args = ($cmake_args | append [
-                "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996"
-                "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996"
-                "-DCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /DNDEBUG"
-                "-DCMAKE_C_FLAGS_RELEASE=/MD /O2 /DNDEBUG"
-                "-DCMAKE_CXX_FLAGS_DEBUG=/MDd /Od /Zi /RTC1"
-                "-DCMAKE_C_FLAGS_DEBUG=/MDd /Od /Zi /RTC1"
-                "-DCMAKE_EXE_LINKER_FLAGS=/DEFAULTLIB:ws2_32.lib /DEFAULTLIB:crypt32.lib"
-                $"-DQt5_DIR=($env.PREFIX)/Library/lib/cmake/Qt5"
-              ])
-            }
-          }
-          ^cmake ...$cmake_args
-
-          cd build
-          ^cmake --build . -j $env.JOB_CNT
-
-          # Create directories
-          mkdir ($env.PREFIX + "/bin")
-          mkdir ($env.PREFIX + "/share")
-
-          # Install client binary
-          let mumble_exec = match ($nu.os-info.name) {
-            "macos" => "mumble"
-            "linux" => "mumble"
-            "windows" => "mumble.exe"
-            _ => "mumble"
-          }
-
-          # Install client binary
-          cp $mumble_exec ($env.PREFIX + $"/bin/($mumble_exec)")
-
-          # Install service configuration file
-          print "Installing service configuration file..."
-
-          let config_dir = $"($env.PREFIX)/config"
-          mkdir $config_dir
-          cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
-
-    requirements:
-      build:
-        - nushell
-        - ${{ compiler('cxx') }}
-        - ${{ compiler('c') }}
-        - ${{ stdlib('c') }}
-        # - qt6-main
-        - qt
-        - qt-main
-        # - qt-wayland
-        - mesalib
-        - python
-        - cmake
-        - py-build-cmake
-        - ninja
-        - if: unix
-          then: make
-        - pkg-config
-        - if: linux
-          then:
-            - xorg-libx11
-            - xorg-libxext
-            - xorg-libxi
-            - xorg-xproto
-            - xorg-xextproto
-            - xorg-inputproto
-            - xorg-xorgproto
-        - libopenssl-static
-        - libprotobuf-static
-        - libprotobuf
-        - protobuf
-        - libboost-devel
-        - libabseil
-        - zlib
-      host:
-        - ${{ stdlib('c') }}
-        - qt
-        - qt-main
-        - if: linux
-          then:
-            - xorg-libx11
-            - xorg-libxext
-            - xorg-libxi
-            - xorg-xproto
-            - xorg-xextproto
-            - xorg-inputproto
-            - xorg-xorgproto
-        - libboost-devel
-        - if: linux
-          then: alsa-lib
-        - libabseil
-        - libprotobuf
-        - if: linux
-          then: libcap
-        - zlib
-        - libogg
-        - libsndfile
-        - libopus
-          # - libspeechd
-        - if: linux
-          then: avahi
-        - if: linux
-          then: libxcb
-        - if: linux
-          then: zeroconf
-        - poco
-    tests:
-      - package_contents:
-          files:
-            - bin/mumble${{ ".exe" if win }}
-      - requirements:
-          build:
-            - nushell
-          run:
-            - qt
-            - qt-main
-            - if: linux
-              then:
-                - xorg-libx11
-                - xorg-libxext
-                - xorg-libxi
-                - libxcb
-        script:
-          env:
-            QT_QPA_PLATFORM: offscreen
-          interpreter: nu
-          content:
-            - ^mumble --version
-
-  - package:
-      name: murmur-server
-
-    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
-    build:
-      script:
-        env:
-          JOB_CNT: ${{ nprocs }}
-        interpreter: nu
-        content: |
-          cd src/mumble
-
-
 
           # Build server
           mut cmake_args = [
@@ -345,27 +424,33 @@ outputs:
             -Dice=OFF
             -Dclient=OFF
             -Dserver=ON
-            $"-DCMAKE_PREFIX_PATH=($env.BUILD_PREFIX);($env.PREFIX)"
-            $"-DBOOST_ROOT=($env.BUILD_PREFIX)"
+            $"-DCMAKE_PREFIX_PATH=($env.PREFIX)"
+            $"-DBOOST_ROOT=($env.PREFIX)"
             $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
+            $"-DCMAKE_INSTALL_LIBDIR=($env.PREFIX)/lib"
+            $"-DCMAKE_INSTALL_BINDIR=($env.PREFIX)/bin"
+            $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)/include"
             -DMUMBLE_INSTALL_LIBDIR="lib/mumble"
             -DMUMBLE_INSTALL_PLUGINDIR="lib/mumble/plugins"
-            $"-DCMAKE_INCLUDE_PATH=($env.BUILD_PREFIX)/include"
+            $"-DCMAKE_INCLUDE_PATH=($env.PREFIX)/include"
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON"
+            "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON"
+            $"-DCMAKE_INSTALL_RPATH=($env.PREFIX)/lib"
           ]
 
           # Add platform-specific arguments
           match ($nu.os-info.name) {
             "linux" => {
               # Set up environment for X11 detection
-              $env.PKG_CONFIG_PATH = $"($env.BUILD_PREFIX)/lib/pkgconfig:($env.PREFIX)/lib/pkgconfig"
-              $env.CMAKE_PREFIX_PATH = $"($env.BUILD_PREFIX);($env.PREFIX)"
-              $env.CPPFLAGS = $"-I($env.BUILD_PREFIX)/include"
+              $env.PKG_CONFIG_PATH = $"($env.PREFIX)/lib/pkgconfig"
+              $env.CMAKE_PREFIX_PATH = $"($env.PREFIX)"
+              $env.CPPFLAGS = $"-I($env.PREFIX)/include"
 
               $cmake_args = ($cmake_args | append [
                 "-DCMAKE_CXX_FLAGS=-Wno-error=cpp -Wno-cpp -Wno-deprecated-declarations"
                 "-DCMAKE_C_FLAGS=-Wno-error=cpp -Wno-cpp -std=c11"
-                $"-DX11_INCLUDE_DIR=($env.BUILD_PREFIX)/include"
-                $"-DX11_LIBRARIES=($env.BUILD_PREFIX)/lib/libX11.so;($env.BUILD_PREFIX)/lib/libXext.so;($env.BUILD_PREFIX)/lib/libXi.so"
+                $"-DX11_INCLUDE_DIR=($env.PREFIX)/include"
+                $"-DX11_LIBRARIES=($env.PREFIX)/lib/libX11($env.SHLIB_EXT);($env.PREFIX)/lib/libXext($env.SHLIB_EXT);($env.PREFIX)/lib/libXi($env.SHLIB_EXT)"
               ])
             }
             "macos" => {
@@ -450,11 +535,17 @@ outputs:
           ^cmake ...$cmake_args
 
           cd build
-          ^cmake --build . -j $env.JOB_CNT
+          ^cmake --build . -j $env.CPU_COUNT
 
-          # Create directories
-          mkdir ($env.PREFIX + "/bin")
-          mkdir ($env.PREFIX + "/share")
+          # Security: Create directories with proper permissions
+          mkdir $"($env.PREFIX)/bin"
+          mkdir $"($env.PREFIX)/share"
+
+          # Security: Set secure permissions on directories
+          if ($nu.os-info.name != "windows") {
+            ^chmod 755 $"($env.PREFIX)/bin"
+            ^chmod 755 $"($env.PREFIX)/share"
+          }
 
           let mumble_server_exec = match ($nu.os-info.name) {
             "macos" => "mumble-server"
@@ -463,22 +554,74 @@ outputs:
             _ => "mumble-server"
           }
 
-          # Install server binary
-          cp $mumble_server_exec ($env.PREFIX + $"/bin/($mumble_server_exec)")
+          # Security: Validate binary exists before installation
+          if not ($mumble_server_exec | path exists) {
+            print $"❌ ERROR: Mumble server binary not found: ($mumble_server_exec)"
+            exit 1
+          }
+
+          # Install server binary with secure permissions
+          let target_binary = $"($env.PREFIX)/bin/($mumble_server_exec)"
+          cp $mumble_server_exec $target_binary
+          if ($nu.os-info.name != "windows") {
+            ^chmod 755 $target_binary  # Secure: not world-writable
+          }
 
           # Install service configuration file on Linux
           if ($nu.os-info.name == "linux") {
             print "Installing service configuration file..."
 
-            let config_dir = $"($env.PREFIX)/config"
+            let config_dir = $"($env.PREFIX)/etc/mumble"
             mkdir $config_dir
-            cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+            # Security: Set secure permissions on config directory
+            ^chmod 755 $config_dir
+
+            # Security: Validate source config file exists
+            let src_config = $"($env.SRC_DIR)/service-config/service.yaml"
+            if not ($src_config | path exists) {
+              print $"❌ ERROR: Source config file not found: ($src_config)"
+              exit 1
+            }
+
+            let dest_config = $"($config_dir)/service.yaml"
+            cp $src_config $dest_config
+
+            # Security: Set secure permissions on config file
+            ^chmod 644 $dest_config  # Read-only for group/others
 
             # Verify the file was placed correctly
             if ($"($config_dir)/service.yaml" | path exists) {
               print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
             } else {
               print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+            }
+          }
+
+          # Install license files to share/licenses directory
+          let license_dir = $"($env.PREFIX)/share/licenses/mumble-server"
+          mkdir $license_dir
+          if ($"($env.SRC_DIR)/src/mumble/LICENSE" | path exists) {
+            cp $"($env.SRC_DIR)/src/mumble/LICENSE" $"($license_dir)/LICENSE"
+          }
+          if ($"($env.SRC_DIR)/src/mumble/3rdPartyLicenses" | path exists) {
+            cp -r $"($env.SRC_DIR)/src/mumble/3rdPartyLicenses" $"($license_dir)/"
+          }
+
+          # Install individual third-party licenses
+          let third_party_licenses = [
+            ["3rdparty/gsl/LICENSE" "gsl-LICENSE"]
+            ["3rdparty/nlohmann_json/LICENSE.MIT" "nlohmann_json-LICENSE.MIT"]
+            ["3rdparty/tracy/LICENSE" "tracy-LICENSE"]
+            ["3rdparty/speexdsp/COPYING" "speexdsp-COPYING"]
+            ["3rdparty/utfcpp/LICENSE" "utfcpp-LICENSE"]
+          ]
+
+          for license_info in $third_party_licenses {
+            let src_path = $"($env.SRC_DIR)/src/mumble/($license_info.0)"
+            let dest_name = $license_info.1
+            if ($src_path | path exists) {
+              cp $src_path $"($license_dir)/($dest_name)"
             }
           }
 
@@ -489,26 +632,27 @@ outputs:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         # - qt6-main
-        - qt
-        - qt-main
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
         # - qt-wayland
         - mesalib
-        - python
-        - cmake
+        - python >=3.8
+        - cmake >=3.20
         - py-build-cmake
-        - ninja
+        - ninja >=1.10
         - if: unix
           then: make
-        - pkg-config
+        - pkg-config >=0.29
         - if: linux
           then:
-            - xorg-libx11
-            - xorg-libxext
-            - xorg-libxi
+            - xorg-libx11 >=1.6
+            - xorg-libxext >=1.3
+            - xorg-libxi >=1.7
             - xorg-xproto
             - xorg-xextproto
             - xorg-inputproto
             - xorg-xorgproto
+        - libboost-devel >=1.70
         - libopenssl-static
         - libprotobuf-static
         - libprotobuf
@@ -532,57 +676,63 @@ outputs:
         - libboost-devel
         - if: linux
           then: alsa-lib
-        - libabseil
-        - libprotobuf
+        - libabseil >=20230125
+        - libprotobuf >=3.21
         - if: linux
-          then: libcap
-        - zlib
-        - libogg
-        - libsndfile
-        - libopus
+          then: libcap >=2.25
+        - zlib >=1.2.11
+        - libogg >=1.3
+        - libsndfile >=1.0.28
+        - libopus >=1.3
           # - libspeechd
         - if: linux
           then: avahi
         - if: linux
           then: libxcb
         - if: linux
-          then: zeroconf
-        - poco
+          then: zeroconf >=0.70
+        - poco >=1.12
+
     tests:
       - package_contents:
           files:
             - bin/mumble-server${{ ".exe" if win }}
-            - ${{ "config/service.yaml" if linux }}
-      - requirements:
-          build:
-            - nushell
+            - ${{ "etc/mumble/service.yaml" if linux }}
+            - share/licenses/mumble-server/LICENSE
+      - script:
+          - echo "Run Tests:"
+          - nu tests/test_mumble_server.nu
+        requirements:
           run:
-            - qt
-            - qt-main
-            - if: linux
-              then:
-                - xorg-libx11
-                - xorg-libxext
-                - xorg-libxi
-                - libxcb
-        script:
-          env:
-            QT_QPA_PLATFORM: offscreen
-          interpreter: nu
-          content:
-            - ^mumble-server --version
+            - nushell
+        files:
+          recipe:
+            - tests/
 
 about:
   homepage: https://www.mumble.info/
-  summary: "Mumble voice chat client and Murmur server"
+  summary: "Mumble voice chat client and server"
   description: |
     Mumble was the first VoIP application to establish true low latency voice communication over a decade ago.
     But low latency and gaming are not the only use cases it shines in.
-    This package provides both the Mumble client and Murmur server components.
+    This package provides both the Mumble client and mumble-server (previously Murmur) components.
+
+    Features:
+    - Low-latency, high-quality voice communication
+    - Advanced positional audio for gaming
+    - Flexible server architecture (mumble-server)
+    - Cross-platform support (Windows, macOS, Linux)
+    - Plugin system for game integration
+    - Strong encryption and privacy protection
   license: BSD-3-Clause
   license_file:
     - src/mumble/LICENSE
     - src/mumble/3rdPartyLicenses
+    - src/mumble/3rdparty/gsl/LICENSE
+    - src/mumble/3rdparty/nlohmann_json/LICENSE.MIT
+    - src/mumble/3rdparty/tracy/LICENSE
+    - src/mumble/3rdparty/speexdsp/COPYING
+    - src/mumble/3rdparty/utfcpp/LICENSE
   documentation: https://www.mumble.info/documentation/
   repository: https://github.com/mumble-voip/mumble
 
