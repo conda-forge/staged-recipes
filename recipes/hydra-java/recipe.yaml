@@ -2,8 +2,8 @@
 
 context:
   name: hydra-java
-  # version: "0.12.0"
   version: "0.8.1"
+  # version: "0.12.0"
 
 package:
   name: ${{ name }}
@@ -11,7 +11,7 @@ package:
 
 source:
   url: https://github.com/CategoricalData/hydra/archive/refs/tags/${{ version }}.tar.gz
-  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256: "e99f30146c4556477a522903d399736cafcd7b7c0435a6d334e7d3c501fed7aa"
 
 build:
   number: 0
@@ -22,7 +22,17 @@ build:
       cd $env.SRC_DIR
 
       # Run Gradle build
-      ./gradlew build -x test --no-daemon
+      match ($nu.os-info.name) {
+        "linux" {
+          ^./gradlew build -x test --no-daemon
+        }
+        "windows" {
+          ^./gradlew.bat build -x test --no-daemon
+        }
+        "macos" {
+          ^./gradlew build -x test --no-daemon
+        }
+      }
 
       # Create installation directories
       mkdir ($env.PREFIX | path join "lib" "hydra-java")
@@ -41,8 +51,13 @@ build:
       }
 
       # Copy and install the wrapper script
-      cp wrapper.sh ($env.PREFIX | path join "bin" "hydra-java")
-      chmod +x ($env.PREFIX | path join "bin" "hydra-java")
+      ^cp wrapper.sh ($env.PREFIX | path join "bin" "hydra-java")
+      match ($nu.os-info.family) {
+        "unix" {
+          ^chmod +x ($env.PREFIX | path join "bin" "hydra-java")
+        }
+        _ {}
+      }
 
       # Copy license and documentation
       if ("LICENSE" | path exists) { cp LICENSE $env.PREFIX }
