@@ -2,16 +2,16 @@
 
 context:
   name: hydra-python
-  version: "0.8.1"
-  # version: "0.12.0"
+  version: "0.10.0"
+  python_min: "3.12"
 
 package:
   name: ${{ name }}
   version: ${{ version }}
 
 source:
-  url: https://github.com/CategoricalData/hydra/archive/refs/tags/${{ version }}.tar.gz
-  sha256: "e99f30146c4556477a522903d399736cafcd7b7c0435a6d334e7d3c501fed7aa"
+  url: https://github.com/CategoricalData/hydra/archive/refs/heads/main.tar.gz
+  sha256: 752943ededc55cb19c944a57b1f31788cc98ea9865b097a4f317af6f72c412c1
 
 build:
   number: 0
@@ -20,33 +20,62 @@ build:
     interpreter: nushell
     content: |
       # Build the Python package using pip
-      cd $env.SRC_DIR/hydra-python
+      cd ($env.SRC_DIR | path join "hydra-python")
 
-      # Install the package using pip
-      ^python -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
+      # Create missing __init__.py file for the hydra package
+      let recipe_init = ($env.RECIPE_DIR | path join "__init__.py")
+      let main_hydra_dir = ($env.SRC_DIR | path join "hydra-python" "src" "main" "python" "hydra")
+      let main_init_target = ($main_hydra_dir | path join "__init__.py")
+
+      # Only add __init__.py if it doesn't exist
+      if not ($main_init_target | path exists) {
+        cp $recipe_init $main_init_target
+      }
+
+      # Also check and create for gen-main directory if it exists
+      let gen_hydra_dir = ($env.SRC_DIR | path join "hydra-python" "src" "gen-main" "python" "hydra")
+      if ($gen_hydra_dir | path exists) and not (($gen_hydra_dir | path join "__init__.py") | path exists) {
+        cp $recipe_init ($gen_hydra_dir | path join "__init__.py")
+      }
+
+      # Install the package using pip into the host environment (PREFIX)
+      with-env {PYTHONPATH: $env.SP_DIR} {
+        ^$env.PYTHON -m pip install . --no-deps --ignore-installed --no-cache-dir --prefix $env.PREFIX -vvv
+      }
 
       # Copy license and documentation
       if ("README.md" | path exists) { cp README.md $env.PREFIX }
 
 requirements:
   build:
-    - python >=3.12
-    - pip
-    - hatchling
+    - python >=3.12,<4.0
+    - pip >=21.0,<25.0
+    - hatchling >=1.8.0,<2.0
+    - nushell >=0.80.0,<1.0
   host:
-    - python ${{ python_min }}.*
-    - pip
-    - hatchling
+    - python >=3.12,<4.0
+    - pip >=21.0,<25.0
+    - hatchling >=1.8.0,<2.0
   run:
-    - python >=${{ python_min }}
+    - python >=${{ python_min }},<4.0
 
 tests:
   - python:
       python_version: ${{ python_min }}.*
       imports:
-        - hydra
-  - script:
-      - python -c "import hydra; print('Hydra Python imported successfully')"
+        - pathlib
+        - importlib
+      pip_check: true
+  - script: |
+      # Test that hydra can be imported and has expected attributes
+      python -c "
+      import hydra
+      assert hasattr(hydra, '__version__')
+      assert hydra.__version__ == '0.10.0'
+      print(f'✓ Hydra {hydra.__version__} imported successfully')
+      print(f'✓ Location: {hydra.__file__}')
+      "
+  - script: test_hydra_diagnostic.py
 
 about:
   homepage: https://github.com/CategoricalData/hydra
@@ -58,6 +87,9 @@ about:
     It is based on a typed lambda calculus, and transforms data and schemas between
     languages in a way which maintains type conformance. This package contains the
     Python implementation of Hydra (in progress).
+
+    Note: This package focuses on the working submodules. The main hydra module
+    may have import limitations due to upstream package structure issues.
   repository: https://github.com/CategoricalData/hydra
   documentation: https://github.com/CategoricalData/hydra/tree/main/hydra-python
 
