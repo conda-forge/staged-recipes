@@ -8,7 +8,6 @@ import pathlib
 import importlib
 import importlib.util
 import os
-import glob
 
 def main():
     print('=== HYDRA MODULE DIAGNOSTIC ===')
@@ -73,11 +72,11 @@ def main():
                         except Exception as e:
                             print(f'    __init__.py read error: {e}')
                     else:
-                        print(f'    __init__.py: NOT FOUND')
+                        print('    __init__.py: NOT FOUND')
 
                     # Check if it's in site-packages
                     if 'site-packages' in str(hdir):
-                        print(f'    ✓ This is in site-packages!')
+                        print('    ✓ This is in site-packages!')
         except Exception as e:
             print(f'  Error searching {root}: {e}')
 
@@ -151,7 +150,7 @@ def main():
             else:
                 print(f'✗ {submod}: spec not found')
         except Exception as e:
-            print(f'✗ {submod}: error finding spec: {e}')
+            print(f'✗ {submod}: error finding spec@conda-forge/staged-recipes: {e}')
     print()
 
     print('Checking if we are in build vs test environment:')

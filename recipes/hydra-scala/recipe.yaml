@@ -10,7 +10,7 @@ package:
 
 source:
   url: https://github.com/CategoricalData/hydra/archive/refs/heads/main.tar.gz
-  sha256: 740cb4a18a325f74a51661ec8c18184bc65aa5ce93920d9e251eaebc1ec3a14d
+  sha256: 752943ededc55cb19c944a57b1f31788cc98ea9865b097a4f317af6f72c412c1
 
 build:
   number: 0
@@ -20,11 +20,28 @@ build:
       # Build the Scala package using SBT
       cd ($env.SRC_DIR | path join "hydra-scala")
 
-      # Build the project
-      ^sbt clean compile
+      # Update SBT version to be compatible with available conda-forge version
+      # The upstream uses 1.5.5 but we need 1.6+ for better Java compatibility
+      if ("project/build.properties" | path exists) {
+        "sbt.version=1.6.2" | save --force "project/build.properties"
+      }
+
+      # Set JVM arguments to help with module system compatibility
+      $env.SBT_OPTS = "--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED"
+
+      # Display Java and SBT versions for debugging
+      print "Java version:"
+      ^java -version
+      print "SBT version:"
+      ^sbt --version
+
+      # Build the project with verbose output
+      print "Running SBT clean compile..."
+      ^sbt -v clean compile
 
       # Package the project
-      ^sbt package
+      print "Running SBT package..."
+      ^sbt -v package
 
       # Create installation directories
       mkdir ($env.PREFIX | path join "lib" "hydra-scala")
@@ -54,8 +71,15 @@ build:
       }
 
       # Copy and install the wrapper script
-      cp wrapper.sh ($env.PREFIX | path join "bin" "hydra-scala")
-      ^chmod +x ($env.PREFIX | path join "bin" "hydra-scala")
+      match ($nu.os-info.family) {
+        "unix" => {
+          cp ($env.RECIPE_DIR | path join "wrapper.sh") ($env.PREFIX | path join "bin" "hydra-scala")
+          ^chmod +x ($env.PREFIX | path join "bin" "hydra-scala")
+        }
+        "windows" => {
+          cp ($env.RECIPE_DIR | path join "wrapper.bat") ($env.PREFIX | path join "Scripts" "hydra-scala.bat")
+        }
+      }
 
       # Copy license and documentation
       if ("README.md" | path exists) { cp README.md $env.PREFIX }
@@ -65,19 +89,27 @@ build:
 
 requirements:
   build:
-    - openjdk >=11
-    - sbt
+    - openjdk >=11,<12
+    - sbt >=1.6,<2.0
     - nushell
   host:
-    - openjdk >=11
-    - sbt
+    - openjdk >=11,<12
+    - sbt >=1.6,<2.0
   run:
-    - openjdk >=11
+    - openjdk >=11,<12
 
 tests:
-  - script:
-      - java -version
-      - sbt --version
+  - package_contents:
+      files:
+        - bin/hydra-scala
+  - script: test_hydra_diagnostic.py
+    requirements:
+      build:
+        - python >=3.8
+        - openjdk >=11,<12
+      run:
+        - python >=3.8
+        - openjdk >=11,<12
 
 about:
   homepage: https://github.com/CategoricalData/hydra
