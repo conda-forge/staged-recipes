@@ -7,11 +7,17 @@ import sys
 import pathlib
 import os
 import subprocess
-import glob
 
 def main():
     print('=== HYDRA-HASKELL DIAGNOSTIC ===')
     print()
+
+    # Check if we're on Windows - this package should not be built on Windows
+    if os.name == 'nt' or sys.platform.startswith('win'):
+        print('ERROR: hydra-haskell should not be built on Windows!')
+        print('       GHC is not available as a conda package on Windows.')
+        print('       This package is marked as skip: win in the recipe.')
+        sys.exit(1)
 
     print('Python version:', sys.version)
     print('Python executable:', sys.executable)
@@ -94,7 +100,7 @@ def main():
                 hydra_haskell_exe = bin_dir / 'hydra-haskell'
                 if hydra_haskell_exe.exists():
                     print(f'  ✓ Found hydra-haskell executable: {hydra_haskell_exe}')
-                    print(f'    Permissions: {oct(hydra_haskell_exe.stat().st_mode)[-3:])')
+                    print(f'    Permissions: {oct(hydra_haskell_exe.stat().st_mode)[-3:]}')
                     print(f'    Size: {hydra_haskell_exe.stat().st_size} bytes')
 
                     # Try to read first few lines

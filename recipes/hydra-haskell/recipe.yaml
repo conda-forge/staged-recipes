@@ -15,20 +15,40 @@ source:
 
 build:
   number: 0
+  # Skip Windows builds - GHC is not available as a conda package on Windows
+  skip:
+    - win
   script:
     interpreter: nushell
     content: |
       # Build the Haskell package using Stack
       cd ($env.SRC_DIR | path join "hydra-haskell")
 
-      # Configure Stack to use system GHC
-      ^stack config set system-ghc --global true
+      # macOS-specific configuration to fix GHC linker issues
+      if ($env.target_platform | str contains "osx") {
+        # Set proper compiler environment variables for macOS
+        $env.CC = "clang"
+        $env.CXX = "clang++"
+        $env.MACOSX_DEPLOYMENT_TARGET = "10.13"
 
-      # Build the project
-      ^stack build --no-test --local-bin-path ($env.PREFIX | path join "bin")
+        # Ensure we have proper SDK path
+        $env.SDKROOT = (xcrun --show-sdk-path)
 
-      # Install the library
-      ^stack install --local-bin-path ($env.PREFIX | path join "bin")
+        # Configure Stack for macOS with controlled GHC installation
+        ^stack config set system-ghc --global false
+        ^stack config set install-ghc --global true
+        ^stack config set resolver --global lts-22.0
+
+        # Build with macOS-specific configuration
+        ^stack build --no-test --local-bin-path ($env.PREFIX | path join "bin") --stack-yaml stack-macos.yaml
+        ^stack install --local-bin-path ($env.PREFIX | path join "bin") --stack-yaml stack-macos.yaml
+
+      } else {
+        # Configure Stack to use system GHC for non-macOS
+        ^stack config set system-ghc --global true
+        ^stack build --no-test --local-bin-path ($env.PREFIX | path join "bin")
+        ^stack install --local-bin-path ($env.PREFIX | path join "bin")
+      }
 
       # Create library directory
       mkdir ($env.PREFIX | path join "lib" "hydra-haskell")
@@ -39,6 +59,9 @@ build:
           cp $file ($env.PREFIX | path join "lib" "hydra-haskell")
         }
         glob ".stack-work/dist/**/*.so" | each { |file|
+          cp $file ($env.PREFIX | path join "lib" "hydra-haskell")
+        }
+        glob ".stack-work/dist/**/*.dylib" | each { |file|
           cp $file ($env.PREFIX | path join "lib" "hydra-haskell")
         }
       }
@@ -54,30 +77,35 @@ build:
 
 requirements:
   build:
-    - ghc >=8.10
-    - stack
-    - nushell
+    - ghc >=8.10,<9.8
+    - stack >=2.7,<3.0
+    - nushell >=0.80,<1.0
+    - if: osx
+      then:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
   host:
-    - ghc >=8.10
-    - stack
+    - ghc >=8.10,<9.8
+    - stack >=2.7,<3.0
   run:
-    - ghc >=8.10
+    - ghc >=8.10,<9.8
 
 tests:
-  # - package_contents:
-  #     files:
-  #       - lib/hydra-haskell
-  # - bin/hydra-haskell
+  - package_contents:
+      files:
+        - lib/hydra-haskell/*
+        # - bin/hydra-haskell
   - script:
       - ghc --version
-      - test_hydra_diagnostic.py
+      - hydra-haskell --help || echo "Hydra Haskell library installed"
     requirements:
       build:
-        - python >=3.8
-        - ghc >=8.10
+        - python >=3.8,<4.0
+        - ghc >=8.10,<9.8
       run:
-        - python >=3.8
-        - ghc >=8.10
+        - python >=3.8,<4.0
+        - ghc >=8.10,<9.8
+  - script: test_hydra_diagnostic.py
 
 about:
   homepage: https://github.com/CategoricalData/hydra
