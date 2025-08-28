@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  name: hydra-scala
+  version: "0.8.1"
+  # version: "0.12.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CategoricalData/hydra/archive/refs/tags/${{ version }}.tar.gz
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+
+build:
+  number: 0
+  script:
+    interpreter: nushell
+    content: |
+      # Build the Scala package using SBT
+      cd $env.SRC_DIR/hydra-scala
+
+      # Build the project
+      sbt clean compile
+
+      # Package the project
+      sbt package
+
+      # Create installation directories
+      mkdir ($env.PREFIX | path join "lib" "hydra-scala")
+      mkdir ($env.PREFIX | path join "bin")
+
+      # Copy built JAR files
+      glob "target/**/*.jar" | each { |jar|
+        cp $jar ($env.PREFIX | path join "lib" "hydra-scala")
+      }
+
+      # Copy dependencies
+      try {
+        sbt "export runtime:dependencyClasspath" | save deps.txt
+
+        if ("deps.txt" | path exists) {
+          open deps.txt | lines | each { |line|
+            $line | parse --regex '(/[^:]*\.jar)' | each { |match|
+              let jar_path = $match.capture0
+              if ($jar_path | path exists) {
+                cp $jar_path ($env.PREFIX | path join "lib" "hydra-scala")
+              }
+            }
+          }
+        }
+      } catch {
+        print "Warning: Could not export dependencies"
+      }
+
+      # Copy and install the wrapper script
+      cp wrapper.sh ($env.PREFIX | path join "bin" "hydra-scala")
+      chmod +x ($env.PREFIX | path join "bin" "hydra-scala")
+
+      # Copy license and documentation
+      if ("README.md" | path exists) { cp README.md $env.PREFIX }
+
+      # Copy build configuration
+      if ("build.sbt" | path exists) { cp build.sbt ($env.PREFIX | path join "lib" "hydra-scala") }
+
+requirements:
+  build:
+    - openjdk >=11
+    - sbt
+  host:
+    - openjdk >=11
+    - sbt
+  run:
+    - openjdk >=11
+
+tests:
+  - script:
+      - java -version
+      - sbt --version
+
+about:
+  homepage: https://github.com/CategoricalData/hydra
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Hydra Scala implementation - type-safe transformations for data and programs
+  description: |
+    Hydra is a domain-specific language for data models and data transformations.
+    It is based on a typed lambda calculus, and transforms data and schemas between
+    languages in a way which maintains type conformance. This package contains the
+    Scala implementation of Hydra.
+  repository: https://github.com/CategoricalData/hydra
+  documentation: https://github.com/CategoricalData/hydra/tree/main/hydra-scala
+
+extra:
+  recipe-maintainers:
+    - joshsh

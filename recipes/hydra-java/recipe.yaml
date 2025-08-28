@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  name: hydra-java
+  # version: "0.12.0"
+  version: "0.8.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CategoricalData/hydra/archive/refs/tags/${{ version }}.tar.gz
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+
+build:
+  number: 0
+  script:
+    interpreter: "nushell"
+    content: |
+      # Build the Java components using Gradle
+      cd $env.SRC_DIR
+
+      # Run Gradle build
+      ./gradlew build -x test --no-daemon
+
+      # Create installation directories
+      mkdir ($env.PREFIX | path join "lib" "hydra-java")
+      mkdir ($env.PREFIX | path join "bin")
+
+      # Copy built JAR files
+      glob "**/*.jar" | where ($it | str contains "build/tmp" | not) | each { |jar|
+        cp $jar ($env.PREFIX | path join "lib" "hydra-java")
+      }
+
+      # Copy dependencies if they exist
+      if ("build/libs" | path exists) {
+        glob "build/libs/*.jar" | each { |jar|
+          cp $jar ($env.PREFIX | path join "lib" "hydra-java")
+        }
+      }
+
+      # Copy and install the wrapper script
+      cp wrapper.sh ($env.PREFIX | path join "bin" "hydra-java")
+      chmod +x ($env.PREFIX | path join "bin" "hydra-java")
+
+      # Copy license and documentation
+      if ("LICENSE" | path exists) { cp LICENSE $env.PREFIX }
+      if ("README.md" | path exists) { cp README.md $env.PREFIX }
+
+requirements:
+  build:
+    - openjdk >=11
+    - gradle >=9.0
+  host:
+    - openjdk >=11
+  run:
+    - openjdk >=11
+
+tests:
+  - script:
+      - java -version
+
+about:
+  homepage: https://github.com/CategoricalData/hydra
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Hydra Java implementation - type-safe transformations for data and programs
+  description: |
+    Hydra is a domain-specific language for data models and data transformations.
+    It is based on a typed lambda calculus, and transforms data and schemas between
+    languages in a way which maintains type conformance. This package contains the
+    Java implementation of Hydra.
+  repository: https://github.com/CategoricalData/hydra
+  documentation: https://github.com/CategoricalData/hydra/tree/main/hydra-java
+
+extra:
+  recipe-maintainers:
+    - joshsh
+    - phreed

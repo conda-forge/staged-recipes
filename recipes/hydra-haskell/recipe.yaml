@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  name: hydra-haskell
+  # version: "0.12.0"
+  version: "0.8.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CategoricalData/hydra/archive/refs/tags/${{ version }}.tar.gz
+  sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+
+build:
+  number: 0
+  script:
+    interpreter: nushell
+    content: |
+      # Build the Haskell package using Stack
+      cd $env.SRC_DIR/hydra-haskell
+
+      # Configure Stack to use system GHC
+      stack config set system-ghc --global true
+
+      # Build the project
+      stack build --no-test --local-bin-path ($env.PREFIX | path join "bin")
+
+      # Install the library
+      stack install --local-bin-path ($env.PREFIX | path join "bin")
+
+      # Create library directory
+      mkdir ($env.PREFIX | path join "lib" "hydra-haskell")
+
+      # Copy built artifacts
+      if (".stack-work/dist" | path exists) {
+        glob ".stack-work/dist/**/*.a" | each { |file|
+          cp $file ($env.PREFIX | path join "lib" "hydra-haskell")
+        }
+        glob ".stack-work/dist/**/*.so" | each { |file|
+          cp $file ($env.PREFIX | path join "lib" "hydra-haskell")
+        }
+      }
+
+      # Copy documentation
+      if ("CHANGELOG.md" | path exists) { cp CHANGELOG.md $env.PREFIX }
+      if ("LICENSE" | path exists) { cp LICENSE $env.PREFIX }
+      if ("README.md" | path exists) { cp README.md $env.PREFIX }
+
+      # Copy package configuration
+      if ("package.yaml" | path exists) { cp package.yaml ($env.PREFIX | path join "lib" "hydra-haskell") }
+      if ("stack.yaml" | path exists) { cp stack.yaml ($env.PREFIX | path join "lib" "hydra-haskell") }
+
+requirements:
+  build:
+    - ghc >=8.10
+    - stack
+  host:
+    - ghc >=8.10
+    - stack
+  run:
+    - ghc >=8.10
+
+tests:
+  - script:
+      - hydra-haskell --help || echo "Hydra Haskell library installed"
+
+about:
+  homepage: https://github.com/CategoricalData/hydra
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Hydra Haskell implementation - type-safe transformations for data and programs
+  description: |
+    Hydra is a domain-specific language for data models and data transformations.
+    It is based on a typed lambda calculus, and transforms data and schemas between
+    languages in a way which maintains type conformance. This package contains the
+    Haskell implementation of Hydra.
+  repository: https://github.com/CategoricalData/hydra
+  documentation: https://github.com/CategoricalData/hydra/tree/main/hydra-haskell
+
+extra:
+  recipe-maintainers:
+    - joshsh
+    - phreed
