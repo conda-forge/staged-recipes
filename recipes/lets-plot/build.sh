@@ -19,4 +19,4 @@ if [ ! -f $js_package_path ]; then
    ./gradlew js-package:jsBrowserProductionWebpack -Pbuild_release=true -Penable_python_package=false -Parchitecture=${py_architecture}
 fi
 
-$PYTHON -m pip install $SRC_DIR/python-package -vv
+$PYTHON -m pip install $SRC_DIR/python-package -vv --no-deps --no-build-isolation
