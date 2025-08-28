@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  name: redis-om
+  version: 0.3.5
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/redis/redis-om-python/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d197f9325ddeca628d18ce3765c50f22c9590a6125d55dc47ff9e17c499a0fa0
+  patches:
+    - include-redis_om-package.patch
+    - python-ulid-version-upper-bound.patch
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - ${{ PYTHON }} make_sync.py
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - migrate = redis_om.model.cli.migrate:migrate
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - poetry-core
+    - pip
+    - unasync
+  run:
+    - python >=${{ python_min }}
+    - redis-py >=3.5.3,<6.0.0
+    - pydantic >=1.10.2
+    - click >=8.0.1
+    - types-redis >=3.5.9,<5.0.0
+    - python-ulid >=1.0.3
+    - typing_extensions >=4.4.0
+    - hiredis >=2.2.3
+    - more-itertools >=8.14
+    - setuptools >=70.0
+
+tests:
+  - python:
+      imports:
+        - aredis_om
+        - redis_om
+      python_version:
+        - ${{ python_min }}.*
+        - 3.*
+      pip_check: true
+  - script:
+      - migrate --help
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  summary: Object mappings, and more, for Redis.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/redis/redis-om-python
+  repository: https://github.com/redis/redis-om-python
+
+extra:
+  recipe-maintainers:
+    - beenje
