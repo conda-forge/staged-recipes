@@ -1,9 +1,6 @@
 #!/bin/bash
 set -ex
 
-export CFLAGS="-I${PREFIX}/include $CFLAGS"
-export LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -Wl,-rpath-link,${PREFIX}/lib $LDFLAGS"
-
 make install \
     PREFIX="${PREFIX}" \
     ETCDIR="${PREFIX}/etc" \
