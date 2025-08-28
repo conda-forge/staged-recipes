@@ -1,354 +1,464 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 665e89ca..0facedc9 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -51,7 +51,7 @@ set( Boost_USE_MULTITHREADED OFF )
+ # Version and Machine information
+ 
+ # Set VERSION and FULL_VERSION from `git describe`
+-# but use git export attribute for release tarballs 
++# but use git export attribute for release tarballs
+ set( GIT_ARCHIVE_DESCRIBE [[$Format:%(describe)$]] )
+ include( DetermineVersion )
+ 
+@@ -109,16 +109,16 @@ endif()
+ if( NOT WIN32 )
+   set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread -Wno-implicit-function-declaration" )
+   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -pthread" )
+-  
++
+   if( MINGW )
+     add_definitions( -DMINGW )
+   endif()
+-  
++
+   if( GOPTION )
+     message( "Compiling with g option to generate and embed debug information" )
+     set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g" )
+     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g" )
+-  endif() 
++  endif()
+ endif()
+ 
+ if( WIN32 AND NOT MINGW )
+@@ -136,12 +136,12 @@ if( WIN32 OR MINGW )
+   set( CMAKE_FIND_LIBRARY_PREFIXES "lib" "" )
+   set( CMAKE_FIND_LIBRARY_SUFFIXES ".dll.a" ".dll.lib" ".a" ".lib" )
+   if( MINGW )
+-    set( IMPLIB_SUFFIX ".dll.a" )
++    set( IMPLIB_SUFFIX ".a" )
+   else()
+-    set( IMPLIB_SUFFIX ".dll.lib" )
++    set( IMPLIB_SUFFIX ".lib" )
+   endif()
+   find_package( XDR REQUIRED )
+-  
++
+   # "-Wl,-z,defs" is an ELF instruction, not supported by Windows
+   string( REGEX REPLACE "-Wl,-z,defs" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}" )
+ endif()
+@@ -184,7 +184,7 @@ endif()
+ if( SSLAUTHENTICATION )
+   message( "Including SSL/RTL X509 User Authentication" )
+   add_definitions( -DSSLAUTHENTICATION )
+-endif() 
++endif()
+ 
+ if( BUILD_SHARED_LIBS )
+   message( "Build shared libraries asked" )
+@@ -256,7 +256,7 @@ if( WIN32 OR MINGW )
+     # otherwise it is not able to find files
+     set( CPACK_NSIS_FULL_INSTALL "File /r \\\"\\\${INST_DIR_WIN}\\\\*.*\\\"" )
+   endif()
+-  
++
+   set( CPACK_TEMPORARY_INSTALL_DIRECTORY "${CMAKE_BINARY_DIR}/cpack" )
+   set( CPACK_PACKAGE_DIRECTORY "${CMAKE_WIN_BINARY_DIR}" )
+   set( CPACK_TEMPORARY_DIRECTORY "${CMAKE_BINARY_DIR}/cpack" )
 diff --git a/extlib/portablexdr-4.9.1/CMakeLists.txt b/extlib/portablexdr-4.9.1/CMakeLists.txt
-index 2e760367..f74955ae 100644
+index 2e760367..5c427a49 100644
 --- a/extlib/portablexdr-4.9.1/CMakeLists.txt
 +++ b/extlib/portablexdr-4.9.1/CMakeLists.txt
 @@ -43,7 +43,9 @@ install(
  )
-
+ 
  install(
 -    TARGETS ${PROJECT_NAME}
 -    DESTINATION lib
 +  TARGETS ${PROJECT_NAME}
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
 diff --git a/source/bin/CMakeLists.txt b/source/bin/CMakeLists.txt
-index 8267775f..ee08f619 100644
+index 8267775f..c92cb8b1 100644
 --- a/source/bin/CMakeLists.txt
 +++ b/source/bin/CMakeLists.txt
 @@ -23,12 +23,12 @@ if( ENABLE_CAPNP )
-
+ 
    target_link_libraries( uda_cli PRIVATE serialisation-static )
    target_compile_definitions( uda_cli PRIVATE CAPNP_ENABLED=1 )
--
+-  
 +
    find_library( STDCXX_LIBRARY_FILE stdc++ HINTS ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES} )
    get_filename_component(STDCXX_LIBRARY_DIR ${STDCXX_LIBRARY_FILE} DIRECTORY )
--
+-  
 +
    if ( "${STDCXX_LIBRARY_DIR}" STREQUAL "" )
--    set ( STDCXX_RPATH "" )
+-    set ( STDCXX_RPATH "" ) 
 +    set ( STDCXX_RPATH "" )
    else()
        set ( STDCXX_RPATH "-Wl,-rpath,${STDCXX_LIBRARY_DIR} -L${STDCXX_LIBRARY_DIR} -lstdc++" )
    endif()
 @@ -41,12 +41,14 @@ if( ENABLE_CAPNP )
-
+ 
    set_target_properties( uda_cli
      PROPERTIES
--    LINK_FLAGS "${CAPNP_RPATH} ${STDCXX_RPATH}"
+-    LINK_FLAGS "${CAPNP_RPATH} ${STDCXX_RPATH}" 
 +    LINK_FLAGS "${CAPNP_RPATH} ${STDCXX_RPATH}"
    )
  endif()
-
+ 
  install(
    TARGETS uda_cli
 -  DESTINATION bin
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
  )
 diff --git a/source/client/CMakeLists.txt b/source/client/CMakeLists.txt
-index 3a285829..aec8a8d3 100755
+index 3a285829..5b423af0 100755
 --- a/source/client/CMakeLists.txt
 +++ b/source/client/CMakeLists.txt
 @@ -140,7 +140,7 @@ endif()
  if( NOT CLIENT_ONLY )
    add_library( fatclient-static STATIC ${FATCLIENT_OBJS} )
    target_link_libraries( fatclient-static PUBLIC plugins-static ${CLIENT_LINK_LIBS} )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      add_library( fatclient-shared SHARED ${FATCLIENT_OBJS} )
      target_link_libraries( fatclient-shared PUBLIC plugins-shared ${CLIENT_LINK_LIBS} )
-@@ -153,7 +153,9 @@ set_target_properties( client-static
+@@ -149,11 +149,13 @@ endif()
+ 
+ set_target_properties( client-static
+   PROPERTIES
+-    OUTPUT_NAME ${PROJECT_NAME}_client
++    OUTPUT_NAME ${PROJECT_NAME}_client_static
  )
-
+ 
  install( TARGETS client-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -172,7 +174,9 @@ if( BUILD_SHARED_LIBS )
    endif()
-
+ 
    install( TARGETS client-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
-@@ -189,9 +193,11 @@ if( NOT CLIENT_ONLY )
+ 
+@@ -185,13 +189,15 @@ install( FILES ${HEADER_FILES}
+ if( NOT CLIENT_ONLY )
+   set_target_properties( fatclient-static
+     PROPERTIES
+-    OUTPUT_NAME fat${PROJECT_NAME}_client
++    OUTPUT_NAME fat${PROJECT_NAME}_client_static
    )
-
+ 
    install( TARGETS fatclient-static
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      set_target_properties( fatclient-shared
        PROPERTIES
 @@ -208,7 +214,9 @@ if( NOT CLIENT_ONLY )
      endif()
-
+ 
      install( TARGETS fatclient-shared
 -      DESTINATION lib
-+      RUNTIME DESTINATION bin
++      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
    endif()
  endif()
 diff --git a/source/client2/CMakeLists.txt b/source/client2/CMakeLists.txt
-index 18ac1ea4..22b34069 100755
+index 18ac1ea4..5a4c0311 100755
 --- a/source/client2/CMakeLists.txt
 +++ b/source/client2/CMakeLists.txt
 @@ -139,7 +139,7 @@ endif()
  if( NOT CLIENT_ONLY )
    add_library( fatclient2-static STATIC ${FATCLIENT_OBJS} )
    target_link_libraries( fatclient2-static PRIVATE plugins-static ${CLIENT_LINK_LIBS} )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      add_library( fatclient2-shared SHARED ${FATCLIENT_OBJS} )
      target_link_libraries( fatclient2-shared PRIVATE plugins-shared ${CLIENT_LINK_LIBS} )
-@@ -152,7 +152,9 @@ set_target_properties( client2-static
+@@ -148,11 +148,13 @@ endif()
+ 
+ set_target_properties( client2-static
+   PROPERTIES
+-    OUTPUT_NAME ${PROJECT_NAME}_client2
++    OUTPUT_NAME ${PROJECT_NAME}_client2_static
  )
-
+ 
  install( TARGETS client2-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -171,7 +173,9 @@ if( BUILD_SHARED_LIBS )
    endif()
-
+ 
    install( TARGETS client2-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
-@@ -188,9 +192,11 @@ if( NOT CLIENT_ONLY )
+ 
+@@ -184,13 +188,15 @@ install( FILES ${HEADER_FILES}
+ if( NOT CLIENT_ONLY )
+   set_target_properties( fatclient2-static
+     PROPERTIES
+-    OUTPUT_NAME fat${PROJECT_NAME}_client2
++    OUTPUT_NAME fat${PROJECT_NAME}_client2_static
    )
-
+ 
    install( TARGETS fatclient2-static
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      set_target_properties( fatclient2-shared
        PROPERTIES
 @@ -207,7 +213,9 @@ if( NOT CLIENT_ONLY )
      endif()
-
+ 
      install( TARGETS fatclient2-shared
 -      DESTINATION lib
-+      RUNTIME DESTINATION bin
++      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
    endif()
  endif()
 diff --git a/source/plugins/CMakeLists.txt b/source/plugins/CMakeLists.txt
-index 52b03f92..53dea5a6 100755
+index 52b03f92..146dca3c 100755
 --- a/source/plugins/CMakeLists.txt
 +++ b/source/plugins/CMakeLists.txt
-@@ -112,7 +112,9 @@ set_target_properties( plugins-static
-
+@@ -107,12 +107,14 @@ endif()
+ 
+ set_target_properties( plugins-static
+   PROPERTIES
+-    OUTPUT_NAME ${PROJECT_NAME}_plugins
++    OUTPUT_NAME ${PROJECT_NAME}_plugins_static
+ )
+ 
  install(
    TARGETS plugins-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -132,7 +134,9 @@ if( BUILD_SHARED_LIBS )
-
+ 
    install(
      TARGETS plugins-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
+ 
 diff --git a/source/serialisation/CMakeLists.txt b/source/serialisation/CMakeLists.txt
-index ddc9b27f..df48a86f 100644
+index ddc9b27f..d089a817 100644
 --- a/source/serialisation/CMakeLists.txt
 +++ b/source/serialisation/CMakeLists.txt
 @@ -19,7 +19,9 @@ set_target_properties( serialisation-static
  )
-
+ 
  install( TARGETS serialisation-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  file( GLOB HEADER_FILES "*.h" )
 diff --git a/source/server/CMakeLists.txt b/source/server/CMakeLists.txt
-index 0a17a0c0..4c4decf0 100755
+index 0a17a0c0..2cef1c21 100755
 --- a/source/server/CMakeLists.txt
 +++ b/source/server/CMakeLists.txt
-@@ -210,7 +210,9 @@ set_target_properties( server-static
-
+@@ -205,12 +205,14 @@ endif()
+ 
+ set_target_properties( server-static
+   PROPERTIES
+-  OUTPUT_NAME ${PROJECT_NAME}_server
++  OUTPUT_NAME ${PROJECT_NAME}_server_static
+ )
+ 
  install(
    TARGETS server-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -230,7 +232,9 @@ if( BUILD_SHARED_LIBS )
-
+ 
    install(
      TARGETS server-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
+ 
 @@ -250,7 +254,9 @@ if( WIN32 )
  endif()
-
+ 
  install( TARGETS server-exe
 -  DESTINATION bin
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  ########################################################################################################################
 diff --git a/source/server2/CMakeLists.txt b/source/server2/CMakeLists.txt
-index 42dd89ea..f72bd818 100755
+index 42dd89ea..d834c1bd 100755
 --- a/source/server2/CMakeLists.txt
 +++ b/source/server2/CMakeLists.txt
-@@ -179,7 +179,9 @@ set_target_properties( server2-static
-
+@@ -174,12 +174,14 @@ endif()
+ 
+ set_target_properties( server2-static
+   PROPERTIES
+-  OUTPUT_NAME ${PROJECT_NAME}_server2
++  OUTPUT_NAME ${PROJECT_NAME}_server2_static
+ )
+ 
  install(
    TARGETS server2-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -199,7 +201,9 @@ if( BUILD_SHARED_LIBS )
-
+ 
    install(
      TARGETS server2-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
+ 
 @@ -219,7 +223,9 @@ if( WIN32 )
  endif()
-
+ 
  install( TARGETS server2-exe
 -  DESTINATION bin
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  ########################################################################################################################
 diff --git a/source/wrappers/c++/CMakeLists.txt b/source/wrappers/c++/CMakeLists.txt
-index 8bf3ebe1..0e94d33b 100755
+index 8bf3ebe1..105cddf2 100755
 --- a/source/wrappers/c++/CMakeLists.txt
 +++ b/source/wrappers/c++/CMakeLists.txt
 @@ -106,7 +106,7 @@ if( NOT CLIENT_ONLY )
-
+ 
    add_library( fat${LIB_NAME}-static STATIC $<TARGET_OBJECTS:fatcpp-objects> ${FATCLIENT_OBJS} )
    target_link_libraries( fat${LIB_NAME}-static PRIVATE ${LINK_LIB} plugins-static )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      add_library( fat${LIB_NAME}-shared SHARED $<TARGET_OBJECTS:fatcpp-objects> ${FATCLIENT_OBJS} )
      target_link_libraries( fat${LIB_NAME}-shared PRIVATE ${LINK_LIB} plugins-shared )
-@@ -119,7 +119,9 @@ set_target_properties( ${LIB_NAME}-static
+@@ -115,11 +115,13 @@ endif()
+ 
+ set_target_properties( ${LIB_NAME}-static
+   PROPERTIES
+-    OUTPUT_NAME ${LIB_NAME}
++    OUTPUT_NAME ${LIB_NAME}_static
  )
-
+ 
  install( TARGETS ${LIB_NAME}-static
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
-
+ 
  if( BUILD_SHARED_LIBS )
 @@ -138,7 +140,9 @@ if( BUILD_SHARED_LIBS )
    endif()
-
+ 
    install( TARGETS ${LIB_NAME}-shared
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
  endif()
-
+ 
 @@ -159,11 +163,13 @@ if( NOT CLIENT_ONLY )
      PROPERTIES
        OUTPUT_NAME fat${LIB_NAME}
    )
--
+-  
 +
    install( TARGETS fat${LIB_NAME}-static
 -    DESTINATION lib
-+    RUNTIME DESTINATION bin
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    )
--
+-  
 +
    if( BUILD_SHARED_LIBS )
      set_target_properties( fat${LIB_NAME}-shared
        PROPERTIES
 @@ -180,17 +186,19 @@ if( NOT CLIENT_ONLY )
      endif()
-
+ 
      install( TARGETS fat${LIB_NAME}-shared
 -      DESTINATION lib
-+      RUNTIME DESTINATION bin
++      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
      )
    endif()
--
+-  
 +
    # pkg-config file
    configure_file(
@@ -356,21 +466,53 @@ index 8bf3ebe1..0e94d33b 100755
      ${CMAKE_BINARY_DIR}/etc/uda/uda-fat-cpp.pc
      @ONLY
    )
--
+-  
 +
    install( FILES ${CMAKE_BINARY_DIR}/etc/uda/uda-fat-cpp.pc
      DESTINATION modulefiles/uda
    )
 diff --git a/source/wrappers/java/CMakeLists.txt b/source/wrappers/java/CMakeLists.txt
-index d2903303..7741c8a3 100755
+index d2903303..6dd26e08 100755
 --- a/source/wrappers/java/CMakeLists.txt
 +++ b/source/wrappers/java/CMakeLists.txt
 @@ -64,5 +64,7 @@ if( WIN32 )
  endif()
-
+ 
  install( TARGETS ${LIB_NAME}
 -  DESTINATION lib
-+  RUNTIME DESTINATION bin
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 +  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 +  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
  )
+diff --git a/source/wrappers/python/win.setup.py.in b/source/wrappers/python/win.setup.py.in
+index cb56dd95..343e010b 100644
+--- a/source/wrappers/python/win.setup.py.in
++++ b/source/wrappers/python/win.setup.py.in
+@@ -37,14 +37,14 @@ uda_lib_names = '@UDA_LIBS@'.split(';') if '@UDA_LIBS@' else []
+ build_fat = os.environ.get('UDA_FAT_PYTHON', False)
+ if build_fat:
+     uda_libs = [
+-        'libfat@PROJECT_NAME@_client.' + stalib_ext,
+-        'lib@PROJECT_NAME@_plugins.' + stalib_ext,
+-    ] + ['lib@PROJECT_NAME@_' + name + '.' + stalib_ext for name in uda_lib_names]
++        'fat@PROJECT_NAME@_client',
++        '@PROJECT_NAME@_plugins',
++    ] + ['@PROJECT_NAME@_' + name for name in uda_lib_names]
+     extra_libs = ['xml2', 'pq']
+     extra_macros = [('FATCLIENT', None)]
+ else:
+     uda_libs = [
+-        '@PROJECT_NAME@_client.dll.' + stalib_ext,
++        '@PROJECT_NAME@_client.' + stalib_ext,
+     ] + ['@PROJECT_NAME@_' + name + '.' + stalib_ext for name in uda_lib_names]
+     extra_libs = '@EXTRA_LIBS@'.split(';') if '@EXTRA_LIBS@' else []
+     extra_macros = []
+@@ -83,7 +83,7 @@ def get_version(v):
+ 
+ 
+ setup(
+-    name='ukaea_pyuda_test',
++    name='uda',
+     version=get_version('@PROJECT_VERSION@'),
+     description='Unified Data Access (UDA)',
+     long_description='Unified Data Access (UDA)',
