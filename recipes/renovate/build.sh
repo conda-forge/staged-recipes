@@ -30,12 +30,12 @@ ls -lh $PREFIX
 
 # Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
-tee ${PREFIX}/bin/renovate.cmd << EOF
+tee ${PREFIX}/bin/renovate << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\renovate.js %*
 EOF
-chmod +x $PREFIX/bin/renovate.cmd
+chmod +x $PREFIX/bin/renovate
 
-echo "$PREFIX/bin"
+echo "PREFIX/bin"
 ls -lh $PREFIX/bin
 
 # Generate third-party license report
