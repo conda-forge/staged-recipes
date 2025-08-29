@@ -1,0 +1,148 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 4.1.0
+
+package:
+  name: node-red
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/node-red/node-red/archive/refs/tags/4.1.0.tar.gz
+    sha256: 9d773d99cc291c59140bfc4f2eb48706d52135828ed3c7376d4ec7c2fba93ae1
+    file_name: node-red.tgz
+    target_directory: node-red-src
+
+  - path: service.yaml
+    target_directory: service-config
+
+build:
+  number: 0
+  script:
+    interpreter: nu
+    content: |
+      print $"building ($env.PKG_NAME)!"
+
+      # Extract the tarball first
+      cd node-red-src
+      ^tar -xzf node-red.tgz
+      cd ..
+
+      # Set up paths according to conda conventions (Windows uses Library/ subdirectory)
+      let library_prefix = match ($nu.os-info.family) {
+          "windows" => $"($env.PREFIX)/Library"
+          _ => $env.PREFIX
+      }
+
+      ^npm install -g ./node-red-src/node-red.tgz --prefix $library_prefix
+
+      ## Create node-red wrapper script
+
+      # Define the installation paths using Nushell variables
+      # npm global install structure differs between Unix and Windows
+      let bin_dir = $"($library_prefix)/bin"
+      let node_red_lib = match ($nu.os-info.family) {
+          "windows" => $"($library_prefix)/node_modules/node-red/red.js"
+          _ => $"($library_prefix)/lib/node_modules/node-red/red.js"
+      }
+
+      # Create the bin directory if it doesn't exist
+      mkdir $bin_dir
+
+      # Generate the script content based on the OS
+      match ($nu.os-info.family) {
+          "unix" => {
+              # Create a literal string for the bash script.
+              # This will be written to the file without Nushell trying to interpolate it.
+              let node_red_bin = $"($bin_dir)/node-red"
+              $"#!/bin/sh
+              exec node \"($node_red_lib)\" \"$@\"
+              " | save $node_red_bin
+              ^chmod +x $node_red_bin
+          }
+          "windows" => {
+              # This creates a valid Windows batch file
+              $"@echo off
+              \"%CONDA_PREFIX%\\Scripts\\node\" \"($node_red_lib)\" %*
+              " | save $"($bin_dir)/node-red.cmd"
+          }
+          _ => { error make { msg: "Unsupported OS family" } }
+      }
+
+      # Install service configuration file
+      print "Installing service configuration file..."
+
+      let config_dir = $"($library_prefix)/config"
+      mkdir $config_dir
+      cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
+
+      # Verify the file was placed correctly
+      if ($"($config_dir)/service.yaml" | path exists) {
+        print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
+      } else {
+        print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
+      }
+
+      # Create a simple license summary since npm_licenses.nu script is not available in build environment
+      "Node-RED npm dependencies license information generated during build" | save license_summary.txt
+      if (which npm | is-not-empty) {
+        try {
+          let deps = (^npm list --depth=0 --json | from json | get dependencies)
+          if ($deps | is-not-empty) {
+            $deps | columns | each { |pkg| $"($pkg): Check npm registry for license" } | str join "\n" | save --append license_summary.txt
+          }
+        } catch {
+          "Could not generate detailed npm license list" | save --append license_summary.txt
+        }
+      }
+
+requirements:
+  build:
+    - nushell
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  # Test 1: Verify package contents are included
+  - package_contents:
+      files:
+        # Node-RED Node.js package
+        - ${{ "Library/node_modules/" if win else "lib/node_modules/" }}node-red/package.json
+          # Binary/executable
+        - ${{ "Library/" if win }}bin/node-red${{ ".cmd" if win }}
+          # Service configuration file
+        - ${{ "Library/" if win }}config/service.yaml
+
+      # Test 2: Functional tests
+  - requirements:
+      build:
+        - nushell
+    script:
+      interpreter: nu
+      content:
+        - ls . | first 10
+        - echo "Testing node-red installation..."
+        - ${{ "^where.exe node-red" if win else "which node-red" }}
+
+about:
+  homepage: https://nodered.org
+  summary: Low-code programming for event-driven applications
+  description: |
+    Node-RED's goal is to enable anyone to build applications that collect,
+      transform and visualize their data;
+      building flows that can automate their world.
+      Its low-code nature makes it accessible to users of any background,
+      whether for home automation,
+      industrial control systems or anything in between.
+  license: Apache-2.0
+  license_file:
+    - node-red-src/node-red-4.1.0/LICENSE
+    - license_summary.txt
+  documentation: https://nodered.org/docs/
+  repository: https://github.com/node-red/node-red
+
+extra:
+  recipe-maintainers:
+    - phreed
