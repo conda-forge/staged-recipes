@@ -24,7 +24,7 @@ pnpm run build
 # rm "$TARBALL"
 
 cp -R dist/* $PREFIX/
-cp -R node_moduels/* $PREFIX/lib
+cp -R node_modules/* $PREFIX/lib
 
 echo "$PREFIX:"
 ls -lh $PREFIX
