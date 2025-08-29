@@ -1,31 +1,23 @@
-
 #!/usr/bin/env bash
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Create package archive and install globally
 if [[ "${target_platform}" == "osx-arm64" ]]; then
     export npm_config_arch="arm64"
 fi
 
 if [[ "${build_platform}" != "${target_platform}" ]]; then
-    rm $PREFIX/bin/node
+    rm -f $PREFIX/bin/node
     ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 fi
 
-# Create package archive and install globally
-# echo "CURRENT DIR"
-# pwd
-# echo "CONTENT"
-# ls -lh 
+# Install dependencies and build
+pnpm install --frozen-lockfile
+pnpm build
 
-# npm i
-# npm pack --ignore-scripts
-# pnpm build
-npm install -ddd \
-    --global \
-    --build-from-source \
-    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+# Copy the CLI entrypoint into $PREFIX/bin
+mkdir -p $PREFIX/bin
+# Symlink the main renovate executable (from node_modules/.bin)
+ln -s $SRC_DIR/node_modules/.bin/renovate $PREFIX/bin/renovate
 
-# Create license report for dependencies
-pnpm install
-pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+# Create license report
+pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
