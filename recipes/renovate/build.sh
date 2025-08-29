@@ -1,23 +1,25 @@
 #!/usr/bin/env bash
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Handle arch differences
 if [[ "${target_platform}" == "osx-arm64" ]]; then
     export npm_config_arch="arm64"
 fi
 
+# Make sure node from build env is available for cross-compiles
 if [[ "${build_platform}" != "${target_platform}" ]]; then
-    rm -f $PREFIX/bin/node
+    rm -f $PREFIX/bin/node || true
     ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 fi
 
-# Install dependencies and build
+# Install dependencies and build Renovate
 pnpm install --frozen-lockfile
-pnpm build
+pnpm run build
 
-# Copy the CLI entrypoint into $PREFIX/bin
+# Copy the CLI executable into $PREFIX/bin (cannot be a symlink)
 mkdir -p $PREFIX/bin
-# Symlink the main renovate executable (from node_modules/.bin)
-ln -s $SRC_DIR/node_modules/.bin/renovate $PREFIX/bin/renovate
+cp $SRC_DIR/node_modules/.bin/renovate $PREFIX/bin/renovate
+chmod +x $PREFIX/bin/renovate
 
-# Create license report
+# Generate third-party license report
 pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
