@@ -32,7 +32,7 @@ ls -lh $PREFIX
 mkdir -p $PREFIX/bin
 cat > $PREFIX/bin/renovate <<'EOF'
 #!/usr/bin/env node
-require(process.env.CONDA_PREFIX + '/lib/renovate/dist/renovate.js')
+require(process.env.CONDA_PREFIX + 'renovate.js')
 EOF
 chmod +x $PREFIX/bin/renovate
 
