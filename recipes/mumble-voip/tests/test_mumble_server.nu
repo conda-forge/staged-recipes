@@ -85,4 +85,4 @@ match ($nu.os-info.name) {
   }
 }
 
-print "✅ All mumble-server tests passed successfully!"
+print "✓ All mumble-server tests passed successfully!"

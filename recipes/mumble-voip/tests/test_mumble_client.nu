@@ -47,4 +47,4 @@ for license in $license_files {
   }
 }
 
-print "✅ All mumble client tests passed successfully!"
+print "✓ All mumble client tests passed successfully!"

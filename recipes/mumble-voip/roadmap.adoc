@@ -6,11 +6,11 @@
 
 The mumble-voip conda-forge package is under development with the following components:
 
-* ✅ Windows build with MSVC flag fixes
-* ✅ **macOS build (using conda-forge best practices)**
-* ⚠️  Linux build (untested)
-* ✅ Server package (`mumble-server`) - primary focus
-* ⚠️  Client package (`mumble`) - commented out for now
+* ✓ Windows build with MSVC flag fixes
+* ✓ **macOS build (using conda-forge best practices)**
+* !  Linux build (untested)
+* ✓ Server package (`mumble-server`) - primary focus
+* !  Client package (`mumble`) - commented out for now
 
 == Recent Changes
 
@@ -58,3 +58,135 @@ Current macOS build flags:
 CMAKE_CXX_FLAGS = "-Wno-deprecated-declarations -D_LIBCPP_DISABLE_AVAILABILITY"
 CMAKE_C_FLAGS = "-Wno-deprecated-declarations -std=c11"
 ```
+
+=== License Compliance
+
+The recipe properly handles license compliance through conda-build's automatic license handling via the `license_file` specification in the recipe's `about` section:
+
+* **Main License**: `src/mumble/LICENSE` (BSD-3-Clause)
+* **3rdPartyLicenses Directory**: Complete `src/mumble/3rdPartyLicenses/` directory from upstream
+* **Individual 3rd Party Licenses**:
+  - GSL (Microsoft Guidelines Support Library)
+  - Tracy profiler
+  - SpeexDSP
+
+License files are automatically included by conda-build based on the `license_file` field, eliminating the need for manual license copying in the build script.
+
+**Dependency Strategy**: This package uses a hybrid approach combining conda-forge dependencies where available with bundled dependencies where necessary. Three key dependencies have been migrated to conda-forge packages, while others remain bundled for compatibility or availability reasons.
+
+=== 3rd Party Library conda-forge Migration Status
+
+**✓ Using conda-forge packages:**
+
+* **nlohmann_json** - v3.12.0 ✓
+* **spdlog** - v1.15.3 ✓
+* **utfcpp** - v4.0.6 ✓
+
+**! Available but not yet migrated:**
+
+* **soci** - Available through conda-forge (soci-core, soci-mysql, soci-postgresql, soci-sqlite) !
+* **tracy** - Available as tracy-profiler-client-python v0.11.1 (requires C++ library verification) !
+
+**❌ Using bundled versions:**
+
+* **speexdsp** - Only found `speex` codec and `m2w64-speexdsp` for Windows ❌
+* **GSL** (Microsoft Guidelines Support Library) - No conda-forge package found ❌
+* **ReNameNoise** - Mumble-specific fork ❌
+* **minhook** - Mumble-specific fork, Windows-only ❌
+* **SPSCQueue** - Mumble-specific fork ❌
+* **mach_override** - Mumble-specific fork, macOS-only ❌
+* **FindPythonInterpreter** - CMake utility, not typically packaged ❌
+* **cmake-compiler-flags** - CMake utility, not typically packaged ❌
+
+**Current Status:**
+1. **✓ Active conda-forge usage**: nlohmann_json, spdlog, utfcpp
+2. **📋 Migration candidates**: soci (requires configuration evaluation)
+3. **🔍 Under evaluation**: tracy (requires C++ library vs Python bindings verification)
+
+**Benefits of conda-forge integration:**
+- Automatic security updates and bug fixes
+- Reduced build time (no compilation of external libraries)
+- Better integration with conda ecosystem
+- Reduced license tracking complexity
+
+**Implementation approach:**
+- Version compatibility confirmed for migrated dependencies
+- No ABI compatibility issues observed
+- CMake automatically detects conda-forge packages
+
+=== Current Migration Progress
+
+**Phase 1: Initial conda-forge integration (✓ COMPLETED)**
+
+*Changes made:*
+- ✓ Added conda-forge dependencies to host requirements:
+  - `nlohmann_json >=3.11.3` (conda-forge: v3.12.0)
+  - `spdlog >=1.10.0` (conda-forge: v1.15.3)
+  - `utfcpp >=3.2.0` (conda-forge: v4.0.6)
+- ✓ Removed bundled source downloads for nlohmann_json, spdlog, utfcpp
+- ✓ Removed license handling for migrated dependencies
+- ✓ **BUILD SUCCESS** - Mumble's CMake correctly detected conda-forge packages automatically
+- ✓ Fixed nushell script issues (stdlib functions, find command syntax)
+- ✓ Simplified license file handling (removed manual license copying - conda-build handles this automatically)
+- ✓ Extracted build script to external `build.nu` file for better maintainability
+
+*Current Results:*
+- **Build time improvement**: No compilation required for 3 external dependencies
+- **Package size optimization**: Uses shared conda-forge libraries
+- **Automatic dependency resolution**: CMake finds packages without manual intervention
+- **Maintainability**: Reduced license tracking burden for external dependencies
+
+**Phase 2: Additional dependencies (PLANNED)**
+
+*Future migration candidates:*
+- **tracy profiler** - Available as `tracy-profiler-client-python` (requires C++ library verification)
+- **soci** - Available through conda-forge (soci-core, soci-mysql, etc.) (requires integration analysis)
+
+*Remaining bundled dependencies:*
+- **GSL** (Microsoft Guidelines Support Library) - No conda-forge package
+- **speexdsp** - Only platform-specific packages available
+- **Platform-specific forks** - ReNameNoise, minhook, SPSCQueue, mach_override
+- **CMake utilities** - FindPythonInterpreter, cmake-compiler-flags
+
+**Phase 3: Cross-platform testing (FUTURE WORK)**
+- Build and test on macOS and Windows platforms
+- Verify runtime functionality with conda-forge dependencies across platforms
+- Performance comparison with previous bundled approach
+- Document any platform-specific considerations
+
+**Lessons Learned:**
+- CMake's find_package() works well with conda-forge installations
+- Manual CMake directory hints were unnecessary
+- Nushell script syntax requires careful escaping for shell commands
+- License files are automatically handled by conda-build via `license_file` specification - no manual copying needed
+- External nushell build scripts (`build.nu`) provide better maintainability than inline script content
+
+== Summary
+
+**✓ conda-forge Integration Status**
+
+This package integrates conda-forge dependencies for key third-party libraries. Three dependencies (`nlohmann_json`, `spdlog`, `utfcpp`) are sourced from conda-forge rather than bundled with the source code.
+
+**Current Implementation:**
+- ✓ **BUILD SUCCESS** - Package compiles and links correctly with conda-forge dependencies
+- ✓ Reduced Complexity: No bundled dependency downloads or compilations for external libraries
+- ✓ Automatic Detection: CMake finds conda-forge packages without manual configuration
+- ✓ License Compliance: Proper license attribution with reduced maintenance burden
+- ✓ Package Quality: Generated conda package contains all expected components
+- ✓ Clean Build Script: External `build.nu` file replaces inline script content for better organization
+
+**Package Verification:**
+- ✓ mumble-server binary: `bin/mumble-server`
+- ✓ Service configuration: `etc/mumble/service.yaml`
+- ✓ License compliance: `share/licenses/mumble-server/`
+- ✓ Clean package contents (no bundled dependency artifacts)
+- ✓ Correct runtime dependency declarations
+
+**Future Considerations:**
+1. **Cross-platform testing** - macOS and Windows build verification
+2. **Runtime validation** - Server functionality testing with conda-forge dependencies
+3. **Phase 2 evaluation** - tracy and soci migration feasibility assessment
+4. **Performance analysis** - Comparison with alternative approaches
+5. **Feedstock readiness** - conda-forge feedstock submission preparation
+
+This approach demonstrates effective conda package modernization by leveraging the conda-forge ecosystem while maintaining build reliability and compliance requirements. The extraction of build logic to external nushell scripts follows conda-forge best practices for maintainable recipe organization.
