@@ -13,13 +13,10 @@ if [[ "${build_platform}" != "${target_platform}" ]]; then
 fi
 
 # Install dependencies
-pnpm install
+pnpm install --frozen-lockfile
 
 # Build the project
 pnpm run build
-
-echo "current dir, after build:"
-ls -lh
 
 # Extract the package into $PREFIX/lib/renovate
 # mkdir -p $PREFIX/lib/renovate
