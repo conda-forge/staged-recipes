@@ -33,7 +33,7 @@ mkdir -p $PREFIX/bin
 tee ${PREFIX}/bin/renovate.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\renovate.js %*
 EOF
-chmod +x $PREFIX/bin/renovate
+chmod +x $PREFIX/bin/renovate.cmd
 
 echo "$PREFIX/bin"
 ls -lh $PREFIX/bin
