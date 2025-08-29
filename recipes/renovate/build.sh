@@ -31,8 +31,8 @@ ls -lh $PREFIX
 # Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
 cat > $PREFIX/bin/renovate <<'EOF'
-#!/usr/bin/env node
-require(process.env.CONDA_PREFIX + 'renovate.js')
+#!/usr/bin/bash
+node $CONDA_PREFIX/renovate.js
 EOF
 chmod +x $PREFIX/bin/renovate
 
