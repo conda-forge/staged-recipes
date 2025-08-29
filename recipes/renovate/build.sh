@@ -12,13 +12,24 @@ if [[ "${build_platform}" != "${target_platform}" ]]; then
     ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 fi
 
-# Install dependencies and build Renovate
+# Install dependencies
 pnpm install --frozen-lockfile
+
+# Build the project
 pnpm run build
 
-# Copy the CLI executable into $PREFIX/bin (cannot be a symlink)
+# Package Renovate into $PREFIX/lib
+mkdir -p $PREFIX/lib/renovate
+pnpm pack > renovate.tgz
+tar -xzf renovate.tgz -C $PREFIX/lib/renovate --strip-components=1
+rm renovate.tgz
+
+# Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
-cp $SRC_DIR/node_modules/.bin/renovate $PREFIX/bin/renovate
+cat > $PREFIX/bin/renovate <<'EOF'
+#!/usr/bin/env node
+require(process.env.CONDA_PREFIX + '/lib/renovate/dist/renovate.js')
+EOF
 chmod +x $PREFIX/bin/renovate
 
 # Generate third-party license report
