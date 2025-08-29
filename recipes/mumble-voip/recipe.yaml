@@ -453,82 +453,12 @@ outputs:
               ])
             }
             "macos" => {
-              # Force macOS 10.14 environment variables to override conda defaults
-              $env.MACOSX_DEPLOYMENT_TARGET = "10.14"
-
-              # Debug: Show current environment
-              print $"Current MACOSX_DEPLOYMENT_TARGET: ($env.MACOSX_DEPLOYMENT_TARGET)"
-              print $"Current CONDA_BUILD_SYSROOT: ($env.CONDA_BUILD_SYSROOT?)"
-
-              # Debug: Show available SDKs
-              print "Available SDKs:"
-              try { ^xcrun --show-sdk-path --sdk macosx } catch { print "xcrun failed" }
-              try { ^ls "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/" } catch { print "SDK dir not found" }
-
-              # Try to get SDK path using xcrun first, then fallback to manual paths
-              let macos_sdk = try {
-                let xcrun_sdk = (^xcrun --show-sdk-path --sdk macosx | str trim)
-                if ($xcrun_sdk | str contains "10.14") or ($xcrun_sdk | str contains "10.15") or ($xcrun_sdk | str contains "11.") or ($xcrun_sdk | str contains "12.") or ($xcrun_sdk | str contains "13.") or ($xcrun_sdk | str contains "14.") or ($xcrun_sdk | str contains "15.") {
-                  print $"Found SDK via xcrun: ($xcrun_sdk)"
-                  $xcrun_sdk
-                } else {
-                  # Fallback to manual paths for 10.14+
-                  let sdk_paths = [
-                    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_15.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/Applications/Xcode_14.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk"
-                    "/opt/MacOSX-SDKs/MacOSX10.14.sdk"
-                  ]
-                  $sdk_paths | where {|path| ($path | path exists)} | first
-                }
-              } catch { "" }
-
-              if ($macos_sdk != "") {
-                print $"Using macOS SDK: ($macos_sdk)"
-                $env.SDKROOT = $macos_sdk
-
-                # Set all possible environment variables to force 10.14
-                $env.OSX_DEPLOYMENT_TARGET = "10.14"
-                $env.SYSTEM_VERSION_COMPAT = "0"
-
-                # Override conda's compiler completely by specifying explicit compiler paths
-                let system_clang = (^xcrun --find clang)
-                let system_clangxx = (^xcrun --find clang++)
-
-                $cmake_args = ($cmake_args | append [
-                  $"-DCMAKE_C_COMPILER=($system_clang)"
-                  $"-DCMAKE_CXX_COMPILER=($system_clangxx)"
-                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
-                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
-                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
-                  $"-DCMAKE_OSX_SYSROOT=($macos_sdk)"
-                  $"-DCMAKE_EXE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  $"-DCMAKE_SHARED_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                  $"-DCMAKE_MODULE_LINKER_FLAGS=-isysroot ($macos_sdk) -mmacosx-version-min=10.14"
-                ])
-              } else {
-                print "Warning: No suitable macOS SDK found, trying default with 10.14 deployment target"
-
-                # Set environment variables anyway
-                $env.OSX_DEPLOYMENT_TARGET = "10.14"
-                $env.SYSTEM_VERSION_COMPAT = "0"
-
-                # Use system compiler as fallback
-                let system_clang = (^xcrun --find clang)
-                let system_clangxx = (^xcrun --find clang++)
-
-                $cmake_args = ($cmake_args | append [
-                  $"-DCMAKE_C_COMPILER=($system_clang)"
-                  $"-DCMAKE_CXX_COMPILER=($system_clangxx)"
-                  "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -mmacosx-version-min=10.14"
-                  "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11 -mmacosx-version-min=10.14"
-                  "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.14"
-                  $"-DCMAKE_EXE_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                  $"-DCMAKE_SHARED_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                  $"-DCMAKE_MODULE_LINKER_FLAGS=-mmacosx-version-min=10.14"
-                ])
-              }
+              # Use conda-forge recommended approach for C++ availability
+              # MACOSX_SDK_VERSION is set in variants.yaml, let conda handle deployment target
+              $cmake_args = ($cmake_args | append [
+                "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -D_LIBCPP_DISABLE_AVAILABILITY"
+                "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11"
+              ])
             }
             "windows" => {
               $cmake_args = ($cmake_args | append [
