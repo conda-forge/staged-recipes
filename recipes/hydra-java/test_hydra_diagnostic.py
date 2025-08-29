@@ -27,13 +27,13 @@ def main():
     try:
         result = subprocess.run(['java', '-version'], capture_output=True, text=True)
         if result.returncode == 0:
-            print('✓ Java is available:')
+            print('[OK] Java is available:')
             for line in result.stderr.strip().split('\n'):
                 print(f'  {line}')
         else:
-            print(f'✗ Java version check failed: {result.stderr}')
+            print(f'[ERROR] Java version check failed: {result.stderr}')
     except Exception as e:
-        print(f'✗ Error running java -version: {e}')
+        print(f'[ERROR] Error running java -version: {e}')
     print()
 
     print('Searching for hydra-java installation:')
@@ -54,7 +54,7 @@ def main():
             hydra_lib_dir = root / 'lib' / 'hydra-java'
             if hydra_lib_dir.exists():
                 hydra_java_found = True
-                print(f'  ✓ Found hydra-java lib: {hydra_lib_dir}')
+                print(f'  [OK] Found hydra-java lib: {hydra_lib_dir}')
 
                 # Check JAR files
                 jar_files = list(hydra_lib_dir.glob('*.jar'))
@@ -68,16 +68,16 @@ def main():
                 for expected in expected_jars:
                     matching_jars = [j for j in jar_files if expected in j.name.lower()]
                     if matching_jars:
-                        print(f'    ✓ Found {expected}-related JARs: {[j.name for j in matching_jars]}')
+                        print(f'    [OK] Found {expected}-related JARs: {[j.name for j in matching_jars]}')
                     else:
-                        print(f'    - No {expected}-related JARs found')
+                        print(f'    [MISSING] No {expected}-related JARs found')
 
             # Look for hydra-java executable
             bin_dir = root / 'bin'
             if bin_dir.exists():
                 hydra_java_exe = bin_dir / 'hydra-java'
                 if hydra_java_exe.exists():
-                    print(f'  ✓ Found hydra-java executable: {hydra_java_exe}')
+                    print(f'  [OK] Found hydra-java executable: {hydra_java_exe}')
                     print(f'    Permissions: {oct(hydra_java_exe.stat().st_mode)[-3:]}')
                     print(f'    Size: {hydra_java_exe.stat().st_size} bytes')
 
@@ -89,14 +89,14 @@ def main():
                     except Exception as e:
                         print(f'    Could not read content: {e}')
                 else:
-                    print(f'  ✗ hydra-java executable not found in {bin_dir}')
+                    print(f'  [MISSING] hydra-java executable not found in {bin_dir}')
 
             # Look for Windows batch file
             scripts_dir = root / 'Scripts'
             if scripts_dir.exists():
                 hydra_java_bat = scripts_dir / 'hydra-java.bat'
                 if hydra_java_bat.exists():
-                    print(f'  ✓ Found hydra-java.bat: {hydra_java_bat}')
+                    print(f'  [OK] Found hydra-java.bat: {hydra_java_bat}')
                     print(f'    Size: {hydra_java_bat.stat().st_size} bytes')
 
         except Exception as e:
@@ -111,9 +111,9 @@ def main():
         # First check if command exists in PATH
         result = subprocess.run(['which', 'hydra-java'], capture_output=True, text=True)
         if result.returncode == 0:
-            print(f'✓ hydra-java found in PATH: {result.stdout.strip()}')
+            print(f'[OK] hydra-java found in PATH: {result.stdout.strip()}')
         else:
-            print('✗ hydra-java not found in PATH')
+            print('[MISSING] hydra-java not found in PATH')
             # Try whereis on Linux
             result2 = subprocess.run(['whereis', 'hydra-java'], capture_output=True, text=True)
             if result2.returncode == 0:
@@ -123,13 +123,13 @@ def main():
         try:
             result = subprocess.run(['where', 'hydra-java'], capture_output=True, text=True)
             if result.returncode == 0:
-                print(f'✓ hydra-java found: {result.stdout.strip()}')
+                print(f'[OK] hydra-java found: {result.stdout.strip()}')
             else:
-                print('✗ hydra-java not found with where command')
+                print('[MISSING] hydra-java not found with where command')
         except Exception as e:
-            print(f'✗ Could not check command availability: {e}')
+            print(f'[ERROR] Could not check command availability: {e}')
     except Exception as e:
-        print(f'✗ Error checking command availability: {e}')
+        print(f'[ERROR] Error checking command availability: {e}')
     print()
 
     print('Testing classpath construction:')
@@ -148,25 +148,25 @@ def main():
                     result = subprocess.run(['java', '-cp', classpath, '-version'],
                                           capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
-                        print('  ✓ Java can load the classpath successfully')
+                        print('  [OK] Java can load the classpath successfully')
                     else:
-                        print(f'  ✗ Java classpath test failed: {result.stderr}')
+                        print(f'  [ERROR] Java classpath test failed: {result.stderr}')
                 except subprocess.TimeoutExpired:
-                    print('  ✗ Java classpath test timed out')
+                    print('  [ERROR] Java classpath test timed out')
                 except Exception as e:
-                    print(f'  ✗ Error testing classpath: {e}')
+                    print(f'  [ERROR] Error testing classpath: {e}')
             else:
-                print('  ✗ No JAR files found for classpath')
+                print('  [MISSING] No JAR files found for classpath')
             break
     print()
 
     print('Checking build vs test environment:')
     if os.environ.get('BUILD_PREFIX'):
-        print('  ✓ BUILD_PREFIX set - this appears to be build environment')
+        print('  [OK] BUILD_PREFIX set - this appears to be build environment')
         build_prefix = pathlib.Path(os.environ['BUILD_PREFIX'])
         print(f'    BUILD_PREFIX: {build_prefix}')
     else:
-        print('  ✗ BUILD_PREFIX not set - this appears to be test environment')
+        print('  [INFO] BUILD_PREFIX not set - this appears to be test environment')
 
     if os.environ.get('PREFIX'):
         prefix = pathlib.Path(os.environ['PREFIX'])
