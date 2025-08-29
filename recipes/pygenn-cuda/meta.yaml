@@ -1,0 +1,94 @@
+{% set name = "pygenn-cuda" %}
+{% set version = "5.3.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/genn-team/genn/archive/refs/tags/5.3.0_RC1.tar.gz
+  sha256: f1a6807d15f99d91732cd2484727100e54c39b055bcbe2126e7792d07c776fe3
+
+build:
+  number: 0
+  string: "py{{ PY_VER | replace('.', '') }}_cuda{{ cuda_version | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+  script: |
+    {% if win %}
+    :: Point GeNN at Conda's modular CUDA.
+    set "CUDA_PATH=%BUILD_PREFIX%\Library"
+    :: Let MSBuild projects (for libgenn/backends) link against modular CUDA without the VS CUDA plugin
+    set "CUDA_LIBRARY_PATH=%BUILD_PREFIX%\Library\lib"
+    :: Make sure modular CUDA headers/libs and DLLs are discoverable during build
+    set "INCLUDE=%BUILD_PREFIX%\Library\include;%INCLUDE%"
+    set "LIB=%BUILD_PREFIX%\Library\lib;%LIB%"
+    set "PATH=%BUILD_PREFIX%\Library\bin;%PATH%"
+    "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
+    {% else %}
+    # --- Linux (Conda modular CUDA, POSIX layout) ---
+    export CUDA_PATH="${BUILD_PREFIX}"
+    export PATH="${BUILD_PREFIX}/bin:${PATH}"
+    $PYTHON setup.py install --single-version-externally-managed --record=record.txt
+    {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make       #[linux]
+    - python
+    - setuptools
+    - pybind11
+    - psutil
+    - vs2022_win-64  # [win]
+    - cuda-nvcc {{ cuda_nvcc }}
+    - cuda-cudart-dev {{ cuda_cudart_dev }}
+    - cuda-libraries-dev {{ cuda_libraries_dev }}
+    - cuda-cccl {{ cuda_version }}                   # provides nv/target and other libcu++ headers
+
+  host:
+    - python
+    - numpy 
+    - psutil
+    - pybind11
+    - cuda-cudart-dev {{ cuda_cudart_dev }}
+    - cuda-cccl {{ cuda_version }}
+
+  run:
+    - python
+    - numpy 
+    - psutil
+    - make                     # [linux] runtime codegen
+    - {{ compiler('cxx') }}    # [linux] required to compile generated code
+    - cuda-version =={{ cuda_version }}
+    - cuda-nvcc {{ cuda_nvcc }}
+    - cuda-cudart {{ cuda_cudart }}
+    - cuda-libraries {{ cuda_libraries }}
+    - cuda-libraries-dev {{ cuda_libraries_dev }} 
+    - cuda-cccl {{ cuda_version }} 
+    - importlib-metadata  # [py<38]
+    
+
+test:
+  imports:
+    - pygenn
+  files:
+    - tests/run_pygenn_cuda_smoketest.py
+  commands:
+    - python tests/run_pygenn_cuda_smoketest.py
+
+about:
+  home: https://github.com/genn-team/genn
+  license: LGPL-2.1-or-later
+  license_family: LGPL
+  license_file: LICENSE
+  summary: "GeNN Python bindings (pygenn) with CUDA backend support"
+  description: |
+    GeNN (GPU enhanced Neuronal Networks) is a code generation framework for
+    accelerating spiking neural network simulations using GPUs.
+    This package provides the Python bindings to use GeNN in Python.
+  dev_url: https://github.com/genn-team/genn
+
+extra:
+  recipe-maintainers:
+    - Agrim-P777
+    - tnowotny
+    - neworderofjamie
