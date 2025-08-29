@@ -18,13 +18,13 @@ fi
 # echo "CONTENT"
 # ls -lh 
 
-npm i
+# npm i
 # npm pack --ignore-scripts
-pnpm build
-# npm install -ddd \
-#     --global \
-#     --build-from-source \
-#     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+# pnpm build
+npm install -ddd \
+    --global \
+    --build-from-source \
+    ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
 pnpm install
