@@ -13,12 +13,12 @@ if [[ "${build_platform}" != "${target_platform}" ]]; then
 fi
 
 # Create package archive and install globally
-echo "CURRENT DIR"
-pwd
-echo "CONTENT"
-ls -lh 
+# echo "CURRENT DIR"
+# pwd
+# echo "CONTENT"
+# ls -lh 
 
-npm install --include=dev
+npm i
 # npm pack --ignore-scripts
 pnpm build
 # npm install -ddd \
