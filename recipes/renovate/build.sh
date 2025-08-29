@@ -31,7 +31,7 @@ ls -lh $PREFIX
 # Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
 tee ${PREFIX}/bin/renovate << EOF
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\renovate.js %*
+%CONDA_PREFIX%\bin\node %CONDA_PREFIX%\renovate.js %*
 EOF
 chmod +x $PREFIX/bin/renovate
 
