@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Handle arch differences
+# Handle architecture differences
 if [[ "${target_platform}" == "osx-arm64" ]]; then
     export npm_config_arch="arm64"
 fi
@@ -18,11 +18,14 @@ pnpm install --frozen-lockfile
 # Build the project
 pnpm run build
 
-# Package Renovate into $PREFIX/lib
+# Create tarball of Renovate
+TARBALL=$(pnpm pack)
+ls -lh
+ls -lh $TARBALL
+# Extract the package into $PREFIX/lib/renovate
 mkdir -p $PREFIX/lib/renovate
-pnpm pack > renovate.tgz
-tar -xzf renovate.tgz -C $PREFIX/lib/renovate --strip-components=1
-rm renovate.tgz
+tar -xzf "$TARBALL" -C $PREFIX/lib/renovate --strip-components=1
+rm "$TARBALL"
 
 # Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
