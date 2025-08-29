@@ -13,7 +13,7 @@ if [[ "${build_platform}" != "${target_platform}" ]]; then
 fi
 
 # Install dependencies
-pnpm install --frozen-lockfile
+pnpm install
 
 # Build the project
 pnpm run build
@@ -26,10 +26,15 @@ ls -lh
 # tar -xzf "$TARBALL" -C $PREFIX/lib/renovate --strip-components=1
 # rm "$TARBALL"
 
+cp -R dist/* $PREFIX/
+
+echo "$PREFIX:"
+ls -lh $PREFIX
+
 # Create CLI wrapper in $PREFIX/bin
 mkdir -p $PREFIX/bin
 tee ${PREFIX}/bin/renovate.cmd << EOF
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\dist\renovate.js %*
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\renovate.js %*
 EOF
 chmod +x $PREFIX/bin/renovate
 
