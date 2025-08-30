@@ -1,22 +1,7 @@
-@echo on
-setlocal enabledelayedexpansion
+@ECHO ON
 
-REM Set LLVM/Clang path (conda-forge clang should be in PATH)
-REM The conda-forge clang package should handle this automatically
+REM This is the standard command for installing a modern Python package in conda-build
+REM We add cpp_std to ensure the compiler uses the C++20 standard
+"%PYTHON%" -m pip install . --no-deps -vv --config-settings=setup-args="-Dcpp_std=c++20"
 
-REM Clean and configure build using Meson with Windows-specific options
-meson setup --wipe _build ^
-    --prefix=%PREFIX% ^
-    --buildtype=release ^
-    --vsenv ^
-    -Duse_mpi=false ^
-    -Duse_hdf5=true
-if errorlevel 1 exit 1
-
-REM Compile with verbose output
-meson compile -vC _build
-if errorlevel 1 exit 1
-
-REM Install
-meson install -C _build
-if errorlevel 1 exit 1
+IF %ERRORLEVEL% NEQ 0 exit /B 1
