@@ -1,0 +1,97 @@
+diff --git a/source/serialisation/CMakeLists.txt b/source/serialisation/CMakeLists.txt
+index d089a817..a461278c 100644
+--- a/source/serialisation/CMakeLists.txt
++++ b/source/serialisation/CMakeLists.txt
+@@ -15,15 +15,48 @@ target_include_directories(
+
+ set_target_properties( serialisation-static
+   PROPERTIES
+-  OUTPUT_NAME ${PROJECT_NAME}_serialisation
++  OUTPUT_NAME ${PROJECT_NAME}_serialisation_static
+ )
+
++# Optionally build a shared library variant as well
++if( BUILD_SHARED_LIBS )
++  add_library( serialisation-shared SHARED capnp_serialisation.cpp ${CAPNP_SRCS} )
++  target_link_libraries( serialisation-shared PRIVATE CapnProto::capnp )
++  target_include_directories(
++    serialisation-shared
++    PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/source ${CMAKE_SOURCE_DIR}/extlib/GSL-4.0.0/include
++  )
++
++  set_target_properties( serialisation-shared
++    PROPERTIES
++      OUTPUT_NAME ${PROJECT_NAME}_serialisation
++      VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
++      SOVERSION ${PROJECT_VERSION_MAJOR}
++  )
++
++  if( WIN32 )
++    set_target_properties( serialisation-shared
++      PROPERTIES
++        COMPILE_FLAGS -DLIBRARY_EXPORTS
++        IMPORT_SUFFIX ${IMPLIB_SUFFIX}
++    )
++  endif()
++endif()
++
+ install( TARGETS serialisation-static
+   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+ )
+
++if( BUILD_SHARED_LIBS )
++  install( TARGETS serialisation-shared
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  )
++endif()
++
+ file( GLOB HEADER_FILES "*.h" )
+
+ install( FILES ${HEADER_FILES}
+diff --git a/source/wrappers/python/setup.py.in b/source/wrappers/python/setup.py.in
+index e865cbc2..e4399cc0 100644
+--- a/source/wrappers/python/setup.py.in
++++ b/source/wrappers/python/setup.py.in
+@@ -33,16 +33,16 @@ uda_lib_names = '@UDA_LIBS@'.split(';') if '@UDA_LIBS@' else []
+ build_fat = os.environ.get('UDA_FAT_PYTHON', False)
+ if build_fat:
+     uda_libs = [
+-        'libfat@PROJECT_NAME@_client.' + stalib_ext,
+-        'lib@PROJECT_NAME@_plugins.' + stalib_ext,
+-    ] + ['lib@PROJECT_NAME@_' + name + '.' + stalib_ext for name in uda_lib_names]
++        'fat@PROJECT_NAME@_client',
++        '@PROJECT_NAME@_plugins',
++    ] + ['@PROJECT_NAME@_' + name for name in uda_lib_names]
+     extra_libs = ['xml2']
+     extra_libs.extend('@EXTRA_LIBS@'.split(';') if '@EXTRA_LIBS@' else [])
+     extra_macros = [('FATCLIENT', None)]
+ else:
+     uda_libs = [
+-        'lib@PROJECT_NAME@_client.' + stalib_ext,
+-    ] + ['lib@PROJECT_NAME@_' + name + '.' + stalib_ext for name in uda_lib_names]
++        '@PROJECT_NAME@_client',
++    ] + ['@PROJECT_NAME@_' + name for name in uda_lib_names]
+     extra_libs = '@EXTRA_LIBS@'.split(';') if '@EXTRA_LIBS@' else []
+     extra_macros = []
+
+@@ -57,7 +57,7 @@ ext = Extension(
+         numpy.get_include(),
+         '@FMT_INCLUDE_DIR@'
+     ])),
+-    libraries=list(filter(None, ['ssl', 'crypto', 'xml2'] + extra_libs)),
++    libraries=list(filter(None, ['ssl', 'crypto', 'xml2'] + extra_libs + uda_libs)),
+     library_dirs=list(filter(None, [
+         '@STDCXX_LIB_DIR@',
+         '@OPENSSL_LIB_DIR@',
+@@ -72,7 +72,6 @@ ext = Extension(
+         '@CAPNP_LIB_DIR@',
+         '@FMT_LIB_DIR@'
+     ])),
+-    extra_objects=[os.path.join(root, 'lib', uda_lib) for uda_lib in uda_libs],
+     extra_link_args=extra_link_args,
+     extra_compile_args=extra_compile_args,
+     language='c++',
