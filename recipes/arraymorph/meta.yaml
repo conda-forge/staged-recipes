@@ -1,0 +1,72 @@
+package:
+  name: libarraymorph
+  version: 0.1.1
+
+source:
+  url: https://github.com/ICICLE-ai/ArrayMorph/archive/refs/tags/v0.1.1.tar.gz
+  sha256: 833651c4440971cc52469c18d8b8cfa521080a085e09661be5027ecbbae9ddca
+
+build:
+  skip: true  # [not linux64]
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libarraymorph', max_pin='x.x') }}
+  script: |
+    #!/bin/bash
+    # Build from source code
+    cd "${SRC_DIR}/arraymorph/" || exit 1
+    cmake -B ./build -S . ${CMAKE_ARGS}
+    cd ./build
+    make
+    cd ..
+    # Create target directory
+    mkdir -p ${PREFIX}/lib/arraymorph
+    # Install library
+    cp ./build/src/libarraymorph.so ${PREFIX}/lib/arraymorph/
+    # Install activation/deactivation scripts
+    mkdir -p ${PREFIX}/etc/conda/activate.d
+    mkdir -p ${PREFIX}/etc/conda/deactivate.d
+    cp activate.sh ${PREFIX}/etc/conda/activate.d/arraymorph-activate.sh
+    cp deactivate.sh ${PREFIX}/etc/conda/deactivate.d/arraymorph-deactivate.sh
+    # Make scripts executable
+    chmod +x ${PREFIX}/etc/conda/activate.d/arraymorph-activate.sh
+    chmod +x ${PREFIX}/etc/conda/deactivate.d/arraymorph-deactivate.sh
+  post-link: |
+    #!/bin/bash
+    export HDF5_PLUGIN_PATH=$CONDA_PREFIX/lib/arraymorph/
+    export HDF5_VOL_CONNECTOR=arraymorph
+
+requirements:
+  build:
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+  host:
+    - hdf5 ==1.14.2
+    - aws-sdk-cpp
+    - azure-storage-blobs-cpp
+    - azure-core-cpp
+  run:
+    - hdf5 ==1.14.2
+    - aws-sdk-cpp
+    - azure-storage-blobs-cpp
+    - azure-core-cpp
+    - h5py
+
+test:
+  commands:
+    - test -f $PREFIX/lib/arraymorph/libarraymorph.so
+    - ldd $PREFIX/lib/arraymorph/libarraymorph.so  # Verify dependencies
+
+about:
+  home: https://github.com/ICICLE-ai/ArrayMorph
+  license: MIT
+  license_file: LICENSE
+  summary: ArrayMorph enables efficient storage and retrieval of array data from cloud object stores, supporting platforms including AWS S3 and Azure Blob Storage. It is designed to accelerate scientific and AI workloads that rely on partial array access.
+
+extra:
+  recipe-maintainers:
+    - wangtg2013
+    - icicle-bot
