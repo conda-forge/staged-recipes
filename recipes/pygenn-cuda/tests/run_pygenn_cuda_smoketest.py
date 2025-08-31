@@ -1,6 +1,7 @@
 # recipe/tests/run_pygenn_cuda_smoketest.py
 import os
 import sys
+import ctypes
 
 # Prefer the conda-build provided prefixes
 prefix = os.environ.get("PREFIX") or os.environ.get("CONDA_PREFIX")
@@ -71,6 +72,32 @@ if os.name != "nt":
 print("PATH head:", os.environ.get("PATH", "")[:200], "...")
 
 # ----------------------------
+# Detect real NVIDIA driver and soft-skip if absent
+# ----------------------------
+def _driver_available() -> bool:
+    try:
+        if os.name == "nt":
+            ctypes.WinDLL("nvcuda.dll")
+        else:
+            try:
+                ctypes.CDLL("libcuda.so.1")
+            except OSError:
+                # WSL fallback: many images expose the driver here
+                if os.path.isdir("/usr/lib/wsl/lib"):
+                    os.environ["LD_LIBRARY_PATH"] = "/usr/lib/wsl/lib:" + os.environ.get("LD_LIBRARY_PATH", "")
+                    ctypes.CDLL("libcuda.so.1")
+                else:
+                    raise
+        return True
+    except OSError as e:
+        print(f"SKIP: No NVIDIA driver loadable ({e}). CUDA runtime tests skipped.")
+        return False
+
+if not _driver_available():
+    # Exit success so conda-forge CI passes when no GPU/driver is present
+    sys.exit(0)
+
+# ----------------------------
 # Check available backends
 # ----------------------------
 from pygenn.genn_model import backend_modules
@@ -87,7 +114,6 @@ from pygenn import GeNNModel
 
 model = GeNNModel("float", "cuda_smoke", backend="cuda")
 model.dt = 0.1
-
 
 izk_init = {
     "V": -65.0,
