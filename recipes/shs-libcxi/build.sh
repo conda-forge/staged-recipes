@@ -7,7 +7,8 @@ sed -i "s|../cassini-headers/install/share/cassini-headers/csr_defs.json|${PREFI
 autoreconf -ivf
 
 ./configure --prefix=${PREFIX} \
-            --with-udevrulesdir=${PREFIX}/etc/udev/rules.d
+            --with-udevrulesdir=${PREFIX}/etc/udev/rules.d \
+	    --enable-static=no
 
 make -j${CPU_COUNT}
 
