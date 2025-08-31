@@ -1,40 +1,46 @@
 # recipe/tests/run_pygenn_cuda_smoketest.py
 import os
 import sys
-import shutil
 
+# Prefer the conda-build provided prefixes
 prefix = os.environ.get("PREFIX") or os.environ.get("CONDA_PREFIX")
 if not prefix:
-    print("ERROR: PREFIX/CONDA_PREFIX not found", file=sys.stderr)
+    print("ERROR: PREFIX/CONDA_PREFIX not found; cannot configure toolchain/CUDA_PATH", file=sys.stderr)
     sys.exit(1)
 
 # ----------------------------
-# Toolchain & CUDA setup
+# Toolchain & CUDA env wiring
 # ----------------------------
 if os.name == "nt":
-    # Windows: CUDA under Library/
+    # Windows: modular CUDA lives under Library/
     cuda_path = os.path.join(prefix, "Library")
     os.environ["CUDA_PATH"] = cuda_path
     os.environ["CUDA_LIBRARY_PATH"] = os.path.join(cuda_path, "lib")
     os.environ["PATH"] = os.path.join(cuda_path, "bin") + os.pathsep + os.environ.get("PATH", "")
 else:
-    # Linux: CUDA directly under prefix
+    # Linux: modular CUDA headers/libs/bin live directly under the prefix
     cuda_path = prefix
     os.environ["CUDA_PATH"] = cuda_path
-    os.environ["PATH"] = os.path.join(cuda_path, "bin") + os.pathsep + os.environ.get("PATH", "")
-    os.environ["LD_LIBRARY_PATH"] = (
-        os.path.join(prefix, "lib") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-    )
+    os.environ["PATH"] = os.path.join(prefix, "bin") + os.pathsep + os.environ.get("PATH", "")
 
-    # Ensure nvcc uses conda’s compiler
+    # Make sure loader can find both libcudart and the driver stub from modular CUDA
+    ld_candidates = [
+        os.path.join(prefix, "lib"),
+        os.path.join(prefix, "targets", "x86_64-linux", "lib"),
+        os.path.join(prefix, "targets", "x86_64-linux", "lib", "stubs"),
+    ]
+    ld_existing = [p for p in ld_candidates if os.path.isdir(p)]
+    os.environ["LD_LIBRARY_PATH"] = ":".join(ld_existing + [os.environ.get("LD_LIBRARY_PATH", "")]).strip(":")
+
+    # Prefer the conda host C++ compiler (so nvcc picks a compatible ccbin)
     host_cxx = os.path.join(prefix, "bin", "x86_64-conda-linux-gnu-c++")
     if os.path.exists(host_cxx):
         os.environ["CXX"] = host_cxx
 
-    # Avoid conflicts if CUDAHOSTCXX is set
+    # Avoid conflicts with pre-set CUDAHOSTCXX in CI containers
     os.environ.pop("CUDAHOSTCXX", None)
 
-    # Strip pre-existing -ccbin flags from NVCCFLAGS
+    # Strip any pre-existing -ccbin flags from NVCCFLAGS (we inject CXX above)
     def _strip_ccbin(flags: str) -> str:
         toks, out, skip = flags.split(), [], False
         for t in toks:
@@ -50,13 +56,25 @@ else:
         return " ".join(out)
 
     cleaned = _strip_ccbin(os.environ.get("NVCCFLAGS", ""))
-    os.environ["NVCCFLAGS"] = (cleaned + " --std=c++17 -Xcompiler -std=gnu++17").strip()
+    # Encourage C++17 both for host and device; keep user flags intact otherwise
+    nvccflags = (cleaned + " --std=c++17 -Xcompiler -std=gnu++17").strip()
+    os.environ["NVCCFLAGS"] = nvccflags
     os.environ["CXXFLAGS"] = (os.environ.get("CXXFLAGS", "") + " -std=gnu++17").strip()
 
 # ----------------------------
-# Check CUDA backend
+# Quick visibility for logs
+# ----------------------------
+print("PREFIX:", prefix)
+print("CUDA_PATH:", os.environ.get("CUDA_PATH"))
+if os.name != "nt":
+    print("LD_LIBRARY_PATH:", os.environ.get("LD_LIBRARY_PATH", ""))
+print("PATH head:", os.environ.get("PATH", "")[:200], "...")
+
+# ----------------------------
+# Check available backends
 # ----------------------------
 from pygenn.genn_model import backend_modules
+print("Backends found:", list(backend_modules.keys()))
 
 if "cuda" not in backend_modules:
     print(f"ERROR: CUDA backend not found (found {list(backend_modules.keys())})", file=sys.stderr)
@@ -69,6 +87,7 @@ from pygenn import GeNNModel
 
 model = GeNNModel("float", "cuda_smoke", backend="cuda")
 model.dt = 0.1
+
 
 izk_init = {
     "V": -65.0,
