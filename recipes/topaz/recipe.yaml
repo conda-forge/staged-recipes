@@ -1,0 +1,76 @@
+context:
+  name: topaz
+  version: 0.3.13
+  sha256: 108912a6b60c909fe443a92ae80ceb69c4d0f2f1cecc78097cd4c11417cd41ef
+  python_min: "3.8"
+  python_max: "3.13"
+  processor: "${{ processor | default('cpu') }}"  # values: cpu|cuda
+  cuda_version: "${{ cuda_version | default('none') }}"  # e.g. 11.8, 12.2, or none
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tbepler/topaz/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  noarch: python
+  script: python -m pip install . --no-deps --ignore-installed -vv
+
+about:
+  homepage: https://github.com/tbepler/topaz
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: Deep learning-based particle picker for cryo-EM.
+
+extra:
+  recipe-maintainers:
+    - PertuyF
+
+# Optional GPU convenience output mirroring torchvision feedstock patterns
+outputs:
+  - package:
+      name: ${{ name }}
+    requirements:
+      host:
+        - python >=${{ python_min }},<${{ python_max }}
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }},<${{ python_max }}
+        - future
+        - pytorch >=2.0  # CPU or CUDA variant selected by solver on conda-forge
+        - torchvision
+        - numpy >=1.11
+        - tqdm >=4.65.0
+        - scipy >=0.17.0
+        - pandas >=0.20.3
+        - h5py >=3.7.0
+        - pillow >=6.2.0
+        - scikit-learn >=0.19.0
+      run_constraints:
+        - if: linux and processor == "cuda"
+          then:
+            - cuda-version >=11.8
+
+    tests:
+      - python:
+          imports:
+            - topaz
+      - script:
+          - topaz --help
+
+  - package:
+      name: ${{ name }}-gpu
+      version: ${{ version }}
+    requirements:
+      run:
+        - ${{ name }} ==${{ version }}
+      run_constraints:
+        - cuda-version >=11.8
+    tests:
+      - script:
+          - topaz --help
