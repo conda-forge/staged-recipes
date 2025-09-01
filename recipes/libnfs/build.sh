@@ -2,9 +2,10 @@
 
 set -eu -o pipefail
 
-cmake \
--DCMAKE_BUILD_TYPE=Release \
--DCMAKE_INSTALL_PREFIX=$PREFIX \
-$SRC_DIR
-make
-make install
+cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_VERBOSE_MAKEFILE=ON \
+    ${CMAKE_ARGS}
+
+cmake --build build -j${CPU_COUNT}
+cmake --install build
