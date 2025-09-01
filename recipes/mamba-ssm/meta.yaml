@@ -1,0 +1,64 @@
+{% set name = "mamba-ssm" %}
+{% set version = "2.2.5" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/mamba_ssm-{{ version }}.tar.gz
+  sha256: 5055c8e631a22bb3cfc9958828a7a57ea14deef2ab2a98dcf425a27c87dcf6a7
+
+build:
+  number: 0
+  skip: true   # [cuda_compiler_version == "None"]
+  script:
+    - export MAMBA_FORCE_BUILD=TRUE
+    - export MAMBA_FORCE_CXX11_ABI=TRUE
+    - export MAMBA_SKIP_CUDA_BUILD=FALSE
+    - sed -i.bak 's@"ninja"@#"ninja"@g' setup.py
+    - sed -i.bak 's@"ninja"@#"ninja"@g' pyproject.toml
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cuda') }}
+    - ninja
+  host:
+    - python
+    - setuptools >=61.0.0
+    - wheel
+    - pytorch 2.7.*
+    - packaging
+    - pip
+    - cuda-cudart-dev
+  run:
+    - python
+    - pytorch 2.7.*
+    - triton
+    - einops
+    - transformers
+    - packaging
+    - setuptools >=61.0.0
+    - causal-conv1d >=1.5.2
+
+test:
+  # Need a GPU to import mamba_ssm
+  # imports:
+  #  - mamba_ssm
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/state-spaces/mamba
+  summary: Mamba state-space model
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - timkpaine
