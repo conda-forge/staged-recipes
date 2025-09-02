@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $SRC_DIR
+cd StereoPipeline-${PKG_VERSION}
 mkdir -p build
 cd build
 cmake ..                             \
