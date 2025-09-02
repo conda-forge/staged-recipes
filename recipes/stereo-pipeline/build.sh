@@ -1,8 +1,5 @@
 #!/bin/bash
 
-ls -dl *
-cd StereoPipeline*
-
 mkdir -p build
 cd build
 cmake ..                             \
