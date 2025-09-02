@@ -1,6 +1,8 @@
 #!/bin/bash
 
-cd StereoPipeline-${PKG_VERSION}
+ls -dl *
+cd StereoPipeline*
+
 mkdir -p build
 cd build
 cmake ..                             \
