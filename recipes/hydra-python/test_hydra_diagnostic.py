@@ -56,7 +56,7 @@ def main():
             for hdir in hydra_dirs:
                 if hdir.is_dir():
                     hydra_found = True
-                    print(f'  ✓ Found hydra dir: {hdir}')
+                    print(f'  [+] Found hydra dir: {hdir}')
 
                     # Check contents
                     contents = list(hdir.iterdir())[:15]
@@ -76,7 +76,7 @@ def main():
 
                     # Check if it's in site-packages
                     if 'site-packages' in str(hdir):
-                        print('    ✓ This is in site-packages!')
+                        print('    [+] This is in site-packages!')
         except Exception as e:
             print(f'  Error searching {root}: {e}')
 
@@ -104,24 +104,24 @@ def main():
     try:
         spec = importlib.util.find_spec('hydra')
         if spec:
-            print(f'✓ Module spec found: {spec}')
+            print(f'[+] Module spec found: {spec}')
             print(f'  Origin: {spec.origin}')
             print(f'  Submodule search locations: {spec.submodule_search_locations}')
 
             # Try to actually import it
             try:
                 hydra_module = importlib.import_module('hydra')
-                print(f'✓ Successfully imported hydra: {hydra_module}')
+                print(f'[+] Successfully imported hydra: {hydra_module}')
                 print(f'  Hydra __file__: {getattr(hydra_module, "__file__", "N/A")}')
                 print(f'  Hydra __path__: {getattr(hydra_module, "__path__", "N/A")}')
             except Exception as e:
-                print(f'✗ Import failed: {e}')
+                print(f'[-] Import failed: {e}')
                 import traceback
                 traceback.print_exc()
         else:
-            print('✗ No module spec found for hydra')
+            print('[-] No module spec found for hydra')
     except Exception as e:
-        print(f'✗ Error finding spec: {e}')
+        print(f'[-] Error finding spec: {e}')
         import traceback
         traceback.print_exc()
     print()
@@ -140,22 +140,22 @@ def main():
         try:
             spec = importlib.util.find_spec(submod)
             if spec:
-                print(f'✓ {submod}: spec found at {spec.origin}')
+                print(f'[+] {submod}: spec found at {spec.origin}')
                 try:
                     module = importlib.import_module(submod)
-                    print(f'  ✓ Successfully imported: {module}')
+                    print(f'  [+] Successfully imported: {module}')
                     print(f'    __file__: {getattr(module, "__file__", "N/A")}')
                 except Exception as e:
-                    print(f'  ✗ Import failed: {e}')
+                    print(f'  [-] Import failed: {e}')
             else:
-                print(f'✗ {submod}: spec not found')
+                print(f'[-] {submod}: spec not found')
         except Exception as e:
-            print(f'✗ {submod}: error finding spec@conda-forge/staged-recipes: {e}')
+            print(f'[-] {submod}: error finding spec: {e}')
     print()
 
     print('Checking if we are in build vs test environment:')
     if os.environ.get('BUILD_PREFIX'):
-        print('  ✓ BUILD_PREFIX set - this appears to be build environment')
+        print('  [+] BUILD_PREFIX set - this appears to be build environment')
         build_prefix = pathlib.Path(os.environ['BUILD_PREFIX'])
         print(f'    BUILD_PREFIX: {build_prefix}')
         if build_prefix.exists():
@@ -164,7 +164,7 @@ def main():
                 hydra_build = bsp / 'hydra'
                 print(f'    Build site-packages hydra: {hydra_build} (exists: {hydra_build.exists()})')
     else:
-        print('  ✗ BUILD_PREFIX not set - this appears to be test environment')
+        print('  [-] BUILD_PREFIX not set - this appears to be test environment')
 
     print('Pip list in current environment:')
     try:

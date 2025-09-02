@@ -34,24 +34,24 @@ def main():
     try:
         result = subprocess.run(['ghc', '--version'], capture_output=True, text=True)
         if result.returncode == 0:
-            print('✓ GHC is available:')
+            print('[+] GHC is available:')
             print(f'  {result.stdout.strip()}')
         else:
-            print(f'✗ GHC version check failed: {result.stderr}')
+            print(f'[-] GHC version check failed: {result.stderr}')
     except Exception as e:
-        print(f'✗ Error running ghc --version: {e}')
+        print(f'[-] Error running ghc --version: {e}')
     print()
 
     print('Stack version check:')
     try:
         result = subprocess.run(['stack', '--version'], capture_output=True, text=True)
         if result.returncode == 0:
-            print('✓ Stack is available:')
+            print('[+] Stack is available:')
             print(f'  {result.stdout.strip()}')
         else:
-            print(f'✗ Stack version check failed: {result.stderr}')
+            print(f'[-] Stack version check failed: {result.stderr}')
     except Exception as e:
-        print(f'✗ Error running stack --version: {e}')
+        print(f'[-] Error running stack --version: {e}')
     print()
 
     print('Searching for hydra-haskell installation:')
@@ -72,7 +72,7 @@ def main():
             hydra_lib_dir = root / 'lib' / 'hydra-haskell'
             if hydra_lib_dir.exists():
                 hydra_haskell_found = True
-                print(f'  ✓ Found hydra-haskell lib: {hydra_lib_dir}')
+                print(f'  [+] Found hydra-haskell lib: {hydra_lib_dir}')
 
                 # Check Haskell library files
                 lib_files = list(hydra_lib_dir.rglob('*'))
@@ -90,7 +90,7 @@ def main():
                 for expected in expected_dirs:
                     matching_dirs = list(hydra_lib_dir.rglob(expected))
                     if matching_dirs:
-                        print(f'    ✓ Found {expected}-related directories: {[d.relative_to(hydra_lib_dir) for d in matching_dirs[:3]]}')
+                        print(f'    [+] Found {expected}-related directories: {[d.relative_to(hydra_lib_dir) for d in matching_dirs[:3]]}')
                     else:
                         print(f'    - No {expected}-related directories found')
 
@@ -99,7 +99,7 @@ def main():
             if bin_dir.exists():
                 hydra_haskell_exe = bin_dir / 'hydra-haskell'
                 if hydra_haskell_exe.exists():
-                    print(f'  ✓ Found hydra-haskell executable: {hydra_haskell_exe}')
+                    print(f'  [+] Found hydra-haskell executable: {hydra_haskell_exe}')
                     print(f'    Permissions: {oct(hydra_haskell_exe.stat().st_mode)[-3:]}')
                     print(f'    Size: {hydra_haskell_exe.stat().st_size} bytes')
 
@@ -111,14 +111,14 @@ def main():
                     except Exception as e:
                         print(f'    Could not read content (binary?): {e}')
                 else:
-                    print(f'  ✗ hydra-haskell executable not found in {bin_dir}')
+                    print(f'  [-] hydra-haskell executable not found in {bin_dir}')
 
             # Look for Windows batch file
             scripts_dir = root / 'Scripts'
             if scripts_dir.exists():
                 hydra_haskell_bat = scripts_dir / 'hydra-haskell.bat'
                 if hydra_haskell_bat.exists():
-                    print(f'  ✓ Found hydra-haskell.bat: {hydra_haskell_bat}')
+                    print(f'  [+] Found hydra-haskell.bat: {hydra_haskell_bat}')
                     print(f'    Size: {hydra_haskell_bat.stat().st_size} bytes')
 
         except Exception as e:
@@ -133,25 +133,25 @@ def main():
         # First check if command exists in PATH
         result = subprocess.run(['which', 'hydra-haskell'], capture_output=True, text=True)
         if result.returncode == 0:
-            print(f'✓ hydra-haskell found in PATH: {result.stdout.strip()}')
+            print(f'[+] hydra-haskell found in PATH: {result.stdout.strip()}')
 
             # Try to run it with --help
             try:
                 result2 = subprocess.run(['hydra-haskell', '--help'],
                                        capture_output=True, text=True, timeout=10)
                 if result2.returncode == 0:
-                    print('✓ hydra-haskell --help works:')
+                    print('[+] hydra-haskell --help works:')
                     lines = result2.stdout.strip().split('\n')[:5]  # First 5 lines
                     for line in lines:
                         print(f'    {line}')
                 else:
-                    print(f'✗ hydra-haskell --help failed: {result2.stderr}')
+                    print(f'[-] hydra-haskell --help failed: {result2.stderr}')
             except subprocess.TimeoutExpired:
-                print('✗ hydra-haskell --help timed out')
+                print('[-] hydra-haskell --help timed out')
             except Exception as e:
-                print(f'✗ Error running hydra-haskell --help: {e}')
+                print(f'[-] Error running hydra-haskell --help: {e}')
         else:
-            print('✗ hydra-haskell not found in PATH')
+            print('[-] hydra-haskell not found in PATH')
             # Try whereis on Linux
             result2 = subprocess.run(['whereis', 'hydra-haskell'], capture_output=True, text=True)
             if result2.returncode == 0:
@@ -161,13 +161,13 @@ def main():
         try:
             result = subprocess.run(['where', 'hydra-haskell'], capture_output=True, text=True)
             if result.returncode == 0:
-                print(f'✓ hydra-haskell found: {result.stdout.strip()}')
+                print(f'[+] hydra-haskell found: {result.stdout.strip()}')
             else:
-                print('✗ hydra-haskell not found with where command')
+                print('[-] hydra-haskell not found with where command')
         except Exception as e:
-            print(f'✗ Could not check command availability: {e}')
+            print(f'[-] Could not check command availability: {e}')
     except Exception as e:
-        print(f'✗ Error checking command availability: {e}')
+        print(f'[-] Error checking command availability: {e}')
     print()
 
     print('GHC package database check:')
@@ -177,11 +177,11 @@ def main():
             packages = result.stdout.strip()
             hydra_packages = [line for line in packages.split('\n') if 'hydra' in line.lower()]
             if hydra_packages:
-                print('✓ Found Hydra-related packages in GHC package database:')
+                print('[+] Found Hydra-related packages in GHC package database:')
                 for pkg in hydra_packages:
                     print(f'    {pkg.strip()}')
             else:
-                print('✗ No Hydra-related packages found in GHC package database')
+                print('[-] No Hydra-related packages found in GHC package database')
                 # Show a sample of packages
                 lines = packages.split('\n')[:10]
                 print('  Sample packages:')
@@ -189,18 +189,18 @@ def main():
                     if line.strip():
                         print(f'    {line.strip()}')
         else:
-            print(f'✗ ghc-pkg list failed: {result.stderr}')
+            print(f'[-] ghc-pkg list failed: {result.stderr}')
     except Exception as e:
-        print(f'✗ Error running ghc-pkg list: {e}')
+        print(f'[-] Error running ghc-pkg list: {e}')
     print()
 
     print('Checking build vs test environment:')
     if os.environ.get('BUILD_PREFIX'):
-        print('  ✓ BUILD_PREFIX set - this appears to be build environment')
+        print('  [+] BUILD_PREFIX set - this appears to be build environment')
         build_prefix = pathlib.Path(os.environ['BUILD_PREFIX'])
         print(f'    BUILD_PREFIX: {build_prefix}')
     else:
-        print('  ✗ BUILD_PREFIX not set - this appears to be test environment')
+        print('  [-] BUILD_PREFIX not set - this appears to be test environment')
 
     if os.environ.get('PREFIX'):
         prefix = pathlib.Path(os.environ['PREFIX'])
