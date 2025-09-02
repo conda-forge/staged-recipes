@@ -18,36 +18,36 @@ def test_hydra_import(expected_version=None):
         actual_version = hydra.__version__
 
         # Print version information
-        print(f'✓ Hydra {actual_version} imported successfully')
-        print(f'✓ Location: {hydra.__file__}')
+        print(f'[PASS] Hydra {actual_version} imported successfully')
+        print(f'[PASS] Location: {hydra.__file__}')
 
         # Version validation
         if expected_version:
             assert actual_version == expected_version, f"Version mismatch: expected {expected_version}, got {actual_version}"
-            print(f'✓ Version matches expected: {expected_version}')
+            print(f'[PASS] Version matches expected: {expected_version}')
         else:
             assert isinstance(actual_version, str) and len(actual_version) > 0, f"Invalid version format: {actual_version}"
-            print(f'✓ Version format is valid: {actual_version}')
+            print(f'[PASS] Version format is valid: {actual_version}')
 
         # Get non-private attributes
         public_attrs = [attr for attr in dir(hydra) if not attr.startswith('_')]
-        print(f'✓ Available public attributes ({len(public_attrs)}): {public_attrs}')
+        print(f'[PASS] Available public attributes ({len(public_attrs)}): {public_attrs}')
 
         # Test basic functionality if possible
         if hasattr(hydra, '__path__'):
-            print(f'✓ Hydra package path: {hydra.__path__}')
+            print(f'[PASS] Hydra package path: {hydra.__path__}')
 
         return True
 
     except ImportError as e:
-        print(f'✗ Failed to import hydra: {e}')
+        print(f'[FAIL] Failed to import hydra: {e}')
         print(f'  Python path: {sys.path}')
         return False
     except AssertionError as e:
-        print(f'✗ Assertion failed: {e}')
+        print(f'[FAIL] Assertion failed: {e}')
         return False
     except Exception as e:
-        print(f'✗ Unexpected error: {e}')
+        print(f'[FAIL] Unexpected error: {e}')
         import traceback
         traceback.print_exc()
         return False
@@ -63,10 +63,10 @@ def main():
     success = test_hydra_import(expected_version=args.version)
 
     if success:
-        print("\n✓ All hydra import tests passed!")
+        print("\n[PASS] All hydra import tests passed!")
         sys.exit(0)
     else:
-        print("\n✗ Hydra import tests failed!")
+        print("\n[FAIL] Hydra import tests failed!")
         sys.exit(1)
 
 if __name__ == '__main__':

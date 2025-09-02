@@ -34,8 +34,32 @@ build:
         # Ensure we have proper SDK path
         $env.SDKROOT = (xcrun --show-sdk-path)
 
-        # Append macOS-specific GHC options from stack-macos.yaml to stack.yaml
-        $"\n(open ($env.RECIPE_DIR | path join "stack-macos.yaml"))" | save --append stack.yaml
+        # Create a properly formatted stack.yaml with macOS-specific options
+        # Read the macOS configuration template
+        let macos_config = open ($env.RECIPE_DIR | path join "stack-macos.yaml")
+
+        # Check if stack.yaml exists and backup original content
+        if ("stack.yaml" | path exists) {
+          cp stack.yaml stack.yaml.bak
+          let original_content = open stack.yaml
+          # Merge by appending macOS config with proper YAML formatting
+          $"($original_content)\n\n# macOS-specific build configurations added by conda-forge\n($macos_config)" | save stack.yaml
+        } else {
+          # If no stack.yaml exists, create one with just the macOS config
+          $"# Stack configuration for conda-forge build\nresolver: lts\n\n# macOS-specific build configurations\n($macos_config)" | save stack.yaml
+        }
+
+        # Validate the merged YAML syntax
+        try {
+          let test_parse = open stack.yaml | from yaml
+          print "✓ stack.yaml syntax validation passed"
+        } catch {
+          print "✗ stack.yaml syntax validation failed - attempting to fix..."
+          if ("stack.yaml.bak" | path exists) {
+            mv stack.yaml.bak stack.yaml
+            print "Restored original stack.yaml"
+          }
+        }
 
         # Debug: show current directory and files
         print $"Current working directory: (pwd)"
