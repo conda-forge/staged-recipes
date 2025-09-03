@@ -54,7 +54,7 @@ fi
 ( startgroup "Start Docker" ) 2> /dev/null
 # this group is closed in build_steps.sh
 
-docker pull "${DOCKER_IMAGE}"
+#docker pull "${DOCKER_IMAGE}"
 docker run ${DOCKER_RUN_ARGS} \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
