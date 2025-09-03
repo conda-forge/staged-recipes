@@ -1,0 +1,185 @@
+schema_version: 1
+
+context:
+  name: ghc
+  version: "9.10.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+# No source section needed since we're using ghcup to install GHC
+
+build:
+  number: 0
+  script:
+    interpreter: nu
+    content: |
+      # Build script for GHC using ghcup
+      # This script installs GHC via ghcup and redistributes it to the conda prefix
+
+      print "Starting GHC build using ghcup..."
+      print $"Target version: ($env.PKG_VERSION)"
+      print $"Target prefix: ($env.PREFIX)"
+
+      # ghcup is already available from conda package
+      print "Using ghcup from conda package..."
+
+      # Verify ghcup installation
+      if not (which ghcup | is-not-empty) {
+          print "ERROR: ghcup installation failed"
+          exit 1
+      }
+
+      print $"ghcup version: (ghcup --version)"
+
+      # List available GHC versions (for debugging)
+      print "Available GHC versions:"
+      ghcup list -t ghc
+
+      # Install the specific GHC version
+      print $"Installing GHC ($env.PKG_VERSION)..."
+      ghcup install ghc $env.PKG_VERSION
+
+      # Set the installed version as active
+      ghcup set ghc $env.PKG_VERSION
+
+      # Verify GHC installation
+      try {
+          ghcup whereis ghc $env.PKG_VERSION
+      } catch {
+          print $"ERROR: GHC ($env.PKG_VERSION) installation failed"
+          exit 1
+      }
+
+      # Get the GHC installation path
+      let ghc_binary_path = (ghcup whereis ghc $env.PKG_VERSION | str trim)
+      let ghc_install_dir = ($ghc_binary_path | path dirname | path dirname)
+
+      print $"GHC installed at: ($ghc_install_dir)"
+      print $"GHC binary path: ($ghc_binary_path)"
+
+      # Verify the installation directory exists and contains expected files
+      if not ($ghc_install_dir | path exists) {
+          print $"ERROR: GHC installation directory not found: ($ghc_install_dir)"
+          exit 1
+      }
+
+      if not ($ghc_binary_path | path exists) {
+          print $"ERROR: GHC binary not found: ($ghc_binary_path)"
+          exit 1
+      }
+
+      # Copy GHC installation to conda prefix
+      print "Copying GHC installation to conda prefix..."
+      cp -r ($ghc_install_dir | path join "*") $env.PREFIX
+
+      # Ensure proper permissions
+      chmod -R u+w $env.PREFIX
+
+      # Create version-agnostic symlinks for main binaries
+      print "Creating symlinks for GHC binaries..."
+      cd ($env.PREFIX | path join "bin")
+
+      let binaries = ["ghc", "ghci", "ghc-pkg", "runghc", "runhaskell"]
+      for binary in $binaries {
+          let versioned_binary = $"($binary)-($env.PKG_VERSION)"
+          let binary_path = ($env.PREFIX | path join "bin" $versioned_binary)
+          let target_path = ($env.PREFIX | path join "bin" $binary)
+
+          if ($binary_path | path exists) and not ($target_path | path exists) {
+              print $"Creating symlink: ($versioned_binary) -> ($binary)"
+              ln -sf $versioned_binary $binary
+          } else if ($target_path | path exists) {
+              print $"Binary ($binary) already exists"
+          } else {
+              print $"WARNING: Expected binary not found: ($versioned_binary)"
+          }
+      }
+
+      # Handle license file - GHC installations typically include LICENSE file
+      print "Handling license file..."
+      let license_locations = [
+          ($env.PREFIX | path join "LICENSE"),
+          ($env.PREFIX | path join "share" "doc" "ghc" "LICENSE"),
+          ($env.PREFIX | path join "share" "doc" $"ghc-($env.PKG_VERSION)" "LICENSE")
+      ]
+
+      let existing_license = ($license_locations | where {|path| $path | path exists} | first)
+
+      if ($existing_license | is-not-empty) {
+          print $"License file found at ($existing_license)"
+          if $existing_license != ($env.PREFIX | path join "LICENSE") {
+              cp $existing_license ($env.PREFIX | path join "LICENSE")
+          }
+      } else {
+          print "WARNING: License file not found, copying from recipe directory"
+          cp "LICENSE.txt" ($env.PREFIX | path join "LICENSE")
+      }
+
+      print "GHC build completed successfully!"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - nushell
+    - ghcup
+    - make
+    - perl
+    - if: linux
+      then: patchelf
+  host:
+    - gmp
+    - ncurses
+    - libffi
+  run:
+    - ${{ c_compiler }}_${{ target_platform }} >=${{ c_compiler_version }}
+    - gmp
+    - ncurses
+    - libffi
+
+tests:
+  - script:
+      # Verify the installation
+      - echo "Verifying GHC installation..."
+      - ${PREFIX}/bin/ghc --version
+
+      # Test basic functionality
+      - echo "Testing basic GHC functionality..."
+      - cd ${SRC_DIR}
+      - echo 'main = putStrLn "Hello from GHC!"' > test_ghc.hs
+      - ${PREFIX}/bin/ghc test_ghc.hs -o test_ghc
+      - ./test_ghc
+
+      # Clean up test files
+      - rm -f test_ghc.hs test_ghc
+
+      # Additional verification commands
+      - ghc --help
+      - ghc --version
+      - echo "GHC installation verified successfully!"
+      - echo "Installed GHC version: $(${PREFIX}/bin/ghc --numeric-version)"
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+
+about:
+  homepage: https://haskell.org/ghc/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE.txt
+  summary: Glorious Glasgow Haskell Compilation System (installed via ghcup)
+  description: |
+    The Glasgow Haskell Compiler (GHC) is a state-of-the-art, open source,
+    compiler and interactive environment for the functional language Haskell.
+    This package uses ghcup to install GHC, providing a more streamlined
+    and consistent installation process across platforms.
+  documentation: https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/
+  repository: https://github.com/ghc/ghc
+
+extra:
+  recipe-maintainers:
+    - eggzilla
+    - step21
+    - xhochy
