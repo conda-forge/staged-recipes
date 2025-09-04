@@ -1,15 +1,5 @@
 #!/bin/bash
 set -ex
 
-# Configure
-meson setup builddir \
-    --prefix="$PREFIX" \
-    --buildtype=release \
-    -Dpython=true
-
-# Build
-meson compile -C builddir
-
-# Install
-meson install -C builddir
-
+# Build and install via the meson-python backend
+${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
