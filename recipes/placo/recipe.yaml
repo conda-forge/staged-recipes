@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  version: "0.9.14"
+  build_number: 0
+
+recipe:
+  name: placo-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/Rhoban/placo/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 8037f1d95a72014b63e3303a7a0be0beee5645a04c7ccc4d5ea45c513b392038
+
+build:
+  number: ${{ build_number }}
+
+outputs:
+  - package:
+      name: placo
+    build:
+      script:
+        - if: unix
+          then: build_placo.sh
+        - if: win
+          then: build_placo.bat
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib("c") }}
+        - cmake
+        - pkg-config
+        - ninja
+        - doxystub
+      host:
+        - python
+        - pip
+        - setuptools
+        - pinocchio
+        - eigenpy
+        - eiquadprog
+        - jsoncpp
+      run:
+        - python
+      run_exports:
+        - ${{ pin_subpackage('placo', upper_bound='x.x.x') }}
+
+    tests:
+      - python:
+          imports:
+            - placo
+          pip_check: true
+
+  - package:
+      name: placo-tests
+    build:
+      script: ${{ 'true' if unix else 'exit /b 0' }}
+    requirements:
+      run:
+        - ${{ pin_subpackage('placo', upper_bound="x.x.x") }}
+    tests:
+      - files:
+          source:
+            - python/tests
+        requirements:
+          run:
+            - pytest
+        script:
+          - python -m unittest discover python/tests/ "*_test.py"
+
+about:
+  homepage: https://github.com/Rhoban/placo
+  license: MIT
+  license_file:
+    - LICENSE
+  summary:  Rhoban Planning and Control.
+
+extra:
+  recipe-maintainers:
+    - traversaro
+  feedstock-name: placo
