@@ -80,7 +80,8 @@ rattler-build build recipe.yaml
 ```
 conda-forge-babeloff/recipes/ghc2/
 ├── recipe.yaml              # Main recipe file (rattler-build v1 format)
-├── build.sh                 # Build script
+├── build.nu                 # Build script (Nushell)
+├── LICENSE.txt              # License file
 └── README.md                 # This comprehensive documentation
 ```
 
@@ -94,7 +95,7 @@ conda-forge-babeloff/recipes/ghc2/
 - Reduced maintenance burden
 - Official support from the Haskell community
 
-**Implementation**: The build script uses the ghcup conda package directly, then copies the installed GHC to the conda prefix.
+**Implementation**: The build script (`build.nu`) uses the ghcup conda package directly, then copies the installed GHC to the conda prefix.
 
 #### 2. Rattler-build v1 Format
 
@@ -108,12 +109,13 @@ conda-forge-babeloff/recipes/ghc2/
 
 #### 3. Version Selection
 
-**Current Version**: GHC 9.10.1 (updated from 8.10.7 in original)
+**Current Version**: GHC 9.4.8 (updated from 8.10.7 in original)
 
 **Reasoning**: 
-- More recent version with better features
-- ghcup has excellent support for modern GHC versions
+- Most stable latest release with proven reliability
+- ghcup has excellent support for this LTS version
 - Maintains compatibility with existing Haskell ecosystem
+- Recommended stable version for production use
 
 ### Build Process
 
@@ -273,16 +275,17 @@ fi
   - `extra` section with maintainer information
 
 ### Context Variables
-- **Version**: 9.10.1 (modern GHC version)
+- **Version**: 9.4.8 (stable LTS GHC version)
 - **Name**: ghc (following conda-forge naming conventions)
 - **Templating**: Proper use of `${{ variable }}` syntax
 
 ### Build Script Structure
-- **Shebang**: `#!/bin/bash` 
-- **Error Handling**: `set -euo pipefail`
+- **Shebang**: `#!/usr/bin/env nu`
+- **Language**: Nushell script for better cross-platform compatibility
 - **Documentation**: Comprehensive comments
-- **Logging**: Informative echo statements
-- **Cleanup**: Proper temporary file cleanup
+- **Logging**: Informative print statements
+- **Path Fixing**: Updates GHC wrapper scripts and configuration files
+- **Error Handling**: Proper exit codes and error messages
 
 ### All Validation Checks Passed
 - [x] YAML syntax validation
