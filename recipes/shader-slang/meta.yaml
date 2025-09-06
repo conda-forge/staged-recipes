@@ -1,0 +1,71 @@
+{% set name = "shader-slang" %}
+{% set version = "2025.15" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - folder: shader-slang
+    url:  https://github.com/shader-slang/slang/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: e22b82a62ce1ab9789706be15c4db8dfcba0c362769f4f8650052b6adc48f8e3
+
+  - folder: shader-slang/external/unordered_dense
+    git_url: https://github.com/martinus/unordered_dense
+
+  - folder: shader-slang/external/miniz
+    git_url: https://github.com/richgel999/miniz
+
+  # The conda-forge LUA package doesn't install all of the necessary headers
+  - folder: shader-slang/external/lua
+    git_url:  https://github.com/lua/lua
+
+  # LZ4 find_package support is currently in PR
+  # https://github.com/conda-forge/lz4-c-feedstock/pull/40
+  - folder: shader-slang/external/lz4
+    git_url: https://github.com/lz4/lz4
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('shader-slang', exact=True) }}
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
+    - libvulkan-headers
+    - libx11-devel       # [linux]
+    - spirv-headers
+    - spirv-tools
+    - python
+
+test:
+  commands:
+    - slangc --help                                # [unix]
+    - test -d $PREFIX/include/slang                # [unix]
+    - test -f $PREFIX/lib/libslang${SHLIB_EXT}     # [unix]
+    - slangc.exe --help                            # [win]
+    - if not exist %LIBRARY_LIB%\slang.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\slang.dll exit 1  # [win]
+    - if not exist %LIBRARY_INC%\slang exit 1      # [win]
+
+about:
+  home: https://github.com/shader-slang/slang
+  summary: |
+    'The Slang shading language is designed to enable real-time graphics developers to
+    work with large-scale, high-performance shader code.'
+  description: |
+    Slang is a shading language that makes it easier to build and maintain large shader
+    codebases in a modular and extensible fashion, while also maintaining the highest
+    possible performance on modern GPUs and graphics APIs.
+  license: Apache-2.0
+  license_family: Apache
+  license_file: shader-slang/LICENSE
+
+extra:
+  recipe-maintainers:
+    - JarrettSJohnson
