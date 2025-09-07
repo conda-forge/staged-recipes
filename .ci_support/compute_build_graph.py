@@ -34,7 +34,7 @@ from __future__ import print_function, division
 
 import logging
 import os
-import pkg_resources
+import importlib.resources
 import re
 import subprocess
 import functools
@@ -134,8 +134,8 @@ def _get_base_folders(base_dir, changed_files):
 def git_changed_submodules(git_rev="HEAD@{1}", stop_rev=None, git_root="."):
     if stop_rev is not None:
         git_rev = "{0}..{1}".format(git_rev, stop_rev)
-    diff_script = pkg_resources.resource_filename(
-        "conda_concourse_ci", "diff-script.sh"
+    diff_script = str(
+        importlib.resources.files("conda_concourse_ci") / "diff-script.sh"
     )
 
     diff = subprocess.check_output(
@@ -157,8 +157,8 @@ def git_new_submodules(git_rev="HEAD@{1}", stop_rev=None, git_root="."):
     if stop_rev is not None:
         git_rev = "{0}..{1}".format(git_rev, stop_rev)
 
-    new_submodule_script = pkg_resources.resource_filename(
-        "conda_concourse_ci", "new-submodule-script.sh"
+    new_submodule_script = str(
+        importlib.resources.files("conda_concourse_ci") / "new-submodule-script.sh"
     )
 
     diff = subprocess.check_output(
@@ -172,8 +172,8 @@ def git_renamed_folders(git_rev="HEAD@{1}", stop_rev=None, git_root="."):
     if stop_rev is not None:
         git_rev = "{0}..{1}".format(git_rev, stop_rev)
 
-    rename_script = pkg_resources.resource_filename(
-        "conda_concourse_ci", "rename-script.sh"
+    rename_script = str(
+        importlib.resources.files("conda_concourse_ci") / "rename-script.sh"
     )
 
     renamed_files = subprocess.check_output(
