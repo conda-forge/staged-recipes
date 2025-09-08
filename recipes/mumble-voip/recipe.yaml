@@ -17,11 +17,13 @@ source:
     target_directory: src/mumble
     patches:
       - patches/0003-fix-updateentry-struct-initialization.patch
+      - patches/0004-make-tracy-directory-optional.patch
       - if: win
         then: patches/0001-fix-msvc-protobuf-warnings.patch
       - if: osx
         then:
           - patches/0002-fix-macos-implicit-int-float-conversion.patch
+  # Keep only essential mumble-specific bundled libraries
   - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
     sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
     target_directory: src/mumble/3rdparty/FindPythonInterpreter/
@@ -31,15 +33,7 @@ source:
   - url: https://github.com/lipis/flag-icons/archive/refs/tags/v7.3.2.tar.gz
     sha256: 6a5497e1029e66415c3941a5e5ee001944b0a7e46bf365c6d5a91a033acee87e
     target_directory: src/mumble/3rdparty/flag-icons/
-  - url: https://github.com/microsoft/GSL/archive/refs/tags/v4.1.0.tar.gz
-    sha256: 0a227fc9c8e0bf25115f401b9a46c2a68cd28f299d24ab195284eb3f1d7794bd
-    target_directory: src/mumble/3rdparty/gsl/
-  - url: https://github.com/wolfpld/tracy/archive/refs/tags/v0.11.1.tar.gz
-    sha256: 2c11ca816f2b756be2730f86b0092920419f3dabc7a7173829ffd897d91888a1
-    target_directory: src/mumble/3rdparty/tracy/
-  - url: https://github.com/xiph/speexdsp/archive/refs/tags/SpeexDSP-1.2.1.tar.gz
-    sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
-    target_directory: src/mumble/3rdparty/speexdsp/
+  # Keep mumble-specific forks that aren't available as system packages
   - url: https://github.com/mumble-voip/ReNameNoise/archive/refs/heads/master.tar.gz
     sha256: 8f4ecd90d0445a2455c82437f67e18cab873674d593dcee9a4b87b5dc0bba0cd
     target_directory: src/mumble/3rdparty/renamenoise/
@@ -52,12 +46,25 @@ source:
   - url: https://github.com/mumble-voip/mach_override/archive/919148f94db54fc04d287eb6a42c0c36b166bbfa.tar.gz
     sha256: dc2f83c126efece316abff2e49f19cfaeb52c3d1f78324263192ed10ca9fd1f8
     target_directory: src/mumble/3rdparty/mach-override-src/
-  - url: https://github.com/SOCI/soci/archive/ce348126e7b8f8f851c0461ec4b5cf8e38f848d6.tar.gz
-    sha256: 09f22c98c135cc212ac9e9dbdc56a604e381adda07d9e4833c0ce3e49996104e
-    target_directory: src/mumble/3rdparty/soci/
+  # Use system SOCI library instead of bundled version - commented out bundled source
+  # - url: https://github.com/SOCI/soci/archive/ce348126e7b8f8f851c0461ec4b5cf8e38f848d6.tar.gz
+  #   sha256: 09f22c98c135cc212ac9e9dbdc56a604e381adda07d9e4833c0ce3e49996104e
+  #   target_directory: src/mumble/3rdparty/soci/
+  # Use system Tracy library instead of bundled version - commented out bundled source
+  # - url: https://github.com/wolfpld/tracy/archive/refs/tags/v0.12.2.tar.gz
+  #   sha256: 09617765ba5ff1aa6da128d9ba3c608166c5ef05ac28e2bb77f791269d444952
+  #   target_directory: src/mumble/3rdparty/tracy/
+  # Use system SpeexDSP library instead of bundled version - commented out bundled source
+  # - url: https://github.com/xiph/speexdsp/archive/refs/tags/SpeexDSP-1.2.1.tar.gz
+  #   sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
+  #   target_directory: src/mumble/3rdparty/speexdsp/
 
   - path: service.yaml
     target_directory: service-config
+  - path: cmake_system_libs.cmake
+    target_directory: cmake-config
+  - path: conda_toolchain.cmake
+    target_directory: cmake-config
 
 build:
   number: 0
@@ -75,7 +82,7 @@ outputs:
         - nushell >=0.80
         - ${{ compiler('cxx') }}
         - ${{ compiler('c') }}
-        - ${{ stdlib('c') }}
+        - libstdcxx-ng
         # - qt6-main
         - qt >=5.15,<6
         - qt-main >=5.15,<6
@@ -108,6 +115,10 @@ outputs:
         - nlohmann_json >=3.11.3,<4
         - spdlog >=1.10.0,<2
         - utfcpp >=3.2.0,<4
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+        - speexdsp >=1.2
       host:
         - if: linux
           then:
@@ -120,6 +131,8 @@ outputs:
             - xorg-xorgproto >=2021.4
         - if: linux
           then: alsa-lib >=1.2
+        - tracy-profiler >=0.12.2
+        - ms-gsl >=4.2.0
         - if: linux
           then: libcap >=2.25,<3
         - qt >=5.15,<6
@@ -130,6 +143,9 @@ outputs:
           then: libxcb >=1.13
         - if: linux
           then: zeroconf >=0.70,<1
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
       run:
         - qt >=5.15,<6
         - qt-main >=5.15,<6
@@ -162,7 +178,7 @@ outputs:
         - nushell >=0.80
         - ${{ compiler('cxx') }}
         - ${{ compiler('c') }}
-        - ${{ stdlib('c') }}
+        - libstdcxx-ng
         # - qt6-main
         - qt >=5.15,<6
         - qt-main >=5.15,<6
@@ -195,6 +211,10 @@ outputs:
         - nlohmann_json >=3.11.3,<4
         - spdlog >=1.10.0,<2
         - utfcpp >=3.2.0,<4
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+        - speexdsp >=1.2
       host:
         - qt >=5.15,<6
         - qt-main >=5.15,<6
@@ -210,6 +230,8 @@ outputs:
         - libboost-devel >=1.70,<2
         - if: linux
           then: alsa-lib >=1.2
+        - tracy-profiler >=0.12.2
+        - ms-gsl >=4.2.0
         - libabseil >=20230125,<20250101
         - libprotobuf >=3.21,<5
         - if: linux
@@ -226,6 +248,9 @@ outputs:
         - if: linux
           then: zeroconf >=0.70,<1
         - poco >=1.12,<2
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
 
     tests:
       - package_contents:
@@ -262,9 +287,6 @@ about:
   license_file:
     - src/mumble/LICENSE
     - src/mumble/3rdPartyLicenses
-    - src/mumble/3rdparty/gsl/LICENSE
-    - src/mumble/3rdparty/tracy/LICENSE
-    - src/mumble/3rdparty/speexdsp/COPYING
   documentation: https://www.mumble.info/documentation/
   repository: https://github.com/mumble-voip/mumble
 

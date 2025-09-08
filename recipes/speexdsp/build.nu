@@ -24,7 +24,7 @@ def build_unix [] {
 
     # Run autogen to generate configure script
     print "Running autogen.sh..."
-    ^./autogen.sh
+    ^sh -c "./autogen.sh"
 
     if $env.LAST_EXIT_CODE != 0 {
         error make {msg: "autogen.sh failed"}
@@ -34,16 +34,28 @@ def build_unix [] {
     let prefix_path = $env.PREFIX
     print "Configuring with autotools..."
     print $"Using prefix path: ($prefix_path)"
-    ^./configure ...[--prefix $prefix_path --disable-static --enable-shared --disable-examples --enable-sse --enable-fixed-point]
+    # Add verbose flags and ensure proper environment
+    let configure_args = [
+        $"--prefix=($prefix_path)"
+        "--disable-static"
+        "--enable-shared"
+        "--disable-examples"
+        "--enable-sse"
+        "--enable-fixed-point"
+        "--enable-silent-rules=no"
+    ]
+
+    print $"Configure args: (($configure_args | str join ' '))"
+    ^./configure ...$configure_args
 
     if $env.LAST_EXIT_CODE != 0 {
         error make {msg: "Configure failed"}
     }
 
-    # Build with parallel jobs
+    # Build with parallel jobs and verbose output
     let cpu_count = ($env.CPU_COUNT? | default "4")
     print $"Building with ($cpu_count) parallel jobs..."
-    ^make $"-j($cpu_count)"
+    ^make $"-j($cpu_count)" "V=1"
 
     if $env.LAST_EXIT_CODE != 0 {
         error make {msg: "Build failed"}
