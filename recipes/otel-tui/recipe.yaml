@@ -1,0 +1,53 @@
+schema_version: 1
+
+context:
+  name: otel-tui
+  version: "0.5.3"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ymtdzzz/otel-tui/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7a82ccb467c1f2ae127b8699637c69f5cc87e05dba8cef82c1078493c29d6154
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go mod download all
+    - export GOFLAGS="-mod=readonly"
+    # all ignored deps are Apache2.0, but the linces checker doesn't pick up on that.
+    - go-licenses save . --save_path ../library_licenses --ignore github.com/apache/thrift  --ignore github.com/jmespath/go-jmespath --ignore github.com/ymtdzzz/otel-tui/tuiexporter
+    - if: unix
+      then:
+        - go build -ldflags="-s -w" -v -o $PREFIX/bin/otel-tui
+      else: go build -ldflags="-s -w" -v -o %LIBRARY_BIN%\otel-tui.exe
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('go-nocgo') }}
+    - make
+    - go-licenses >=2.0
+    - if: unix
+      then: pandoc
+
+tests:
+  - script:
+      - otel-tui --help
+
+about:
+  summary: A terminal OpenTelemetry viewer inspired by otel-desktop-viewer
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  homepage: https://github.com/ymtdzzz/otel-tui
+  repository: https://github.com/ymtdzzz/otel-tui
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
