@@ -20,7 +20,7 @@ npm install -ddd \
 
 # Create license report for dependencies
 pnpm install
-pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+pnpm-licenses generate-disclaimer --prod --output-file=${SRC_DIR}/third-party-licenses.txt
 
 mkdir -p ${PREFIX}/share/${PKG_NAME}
 install -m 644 ${RECIPE_DIR}/service.yaml ${PREFIX}/share/${PKG_NAME}
