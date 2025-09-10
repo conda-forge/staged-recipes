@@ -1,165 +1,137 @@
 #!/usr/bin/env nu
 
-# SpeexDSP nushell build script
-# Combines Unix and Windows build logic
+# SpeexDSP simplified build script for rattler-build
 
 def main [] {
-    print "Building SpeexDSP audio processing library..."
-
     match $nu.os-info.name {
         "windows" => {
-            build_windows
+            build_windows_cmake
         }
         _ => {
-            build_unix
+            build_unix_autotools
         }
     }
-
-    # Verify installation
-    verify_installation
 }
 
-def build_unix [] {
-    print "Building on Unix system..."
-
-    # Run autogen to generate configure script
-    print "Running autogen.sh..."
+def build_unix_autotools [] {
+    # Generate configure script
     ^sh -c "./autogen.sh"
 
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "autogen.sh failed"}
-    }
-
-    # Configure SpeexDSP
-    let prefix_path = $env.PREFIX
-    print "Configuring with autotools..."
-    print $"Using prefix path: ($prefix_path)"
-    # Add verbose flags and ensure proper environment
+    # Configure and build
     let configure_args = [
-        $"--prefix=($prefix_path)"
+        $"--prefix=($env.PREFIX)"
         "--disable-static"
         "--enable-shared"
         "--disable-examples"
         "--enable-sse"
         "--enable-fixed-point"
-        "--enable-silent-rules=no"
     ]
 
-    print $"Configure args: ($configure_args | str join ' ')"
     ^./configure ...$configure_args
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Configure failed"}
-    }
-
-    # Build with parallel jobs and verbose output
-    let cpu_count = ($env.CPU_COUNT? | default "4")
-    print $"Building with ($cpu_count) parallel jobs..."
-    ^make $"-j($cpu_count)" "V=1"
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Build failed"}
-    }
-
-    # Install
-    print "Installing..."
+    ^make $"-j($env.CPU_COUNT? | default "4")"
     ^make install
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Installation failed"}
-    }
 }
 
-def build_windows [] {
-    print "Building on Windows using MSYS2/MinGW..."
+def build_windows_cmake [] {
+    print "🔨 Building SpeexDSP audio processing library..."
+    print "🪟 Building on Windows with CMake + MSVC..."
 
-    # Set up MSYS2 environment
-    $env.MSYSTEM = "MINGW64"
-    $env.PATH = ($env.PATH | split row (char esep) | prepend [$"($env.PREFIX)/Library/usr/bin", $"($env.PREFIX)/Library/mingw-w64/bin"] | str join (char esep))
+    # Copy recipe CMake files
+    print "📝 Copying CMakeLists.txt from recipe..."
+    cp ($env.RECIPE_DIR | path join "CMakeLists.txt") "./CMakeLists.txt"
+    print "📝 Copying cmake directory from recipe..."
+    cp -r ($env.RECIPE_DIR | path join "cmake") "./cmake"
 
-    # Run autotools configuration
-    print "Running autogen.sh..."
-    ^bash -c "./autogen.sh"
+    # Create build directory
+    print "📁 Creating build directory..."
+    mkdir build
+    cd build
 
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "autogen.sh failed"}
+    # Configure and build with CMake
+    print "🔧 Configuring with CMake..."
+    let cmake_version_output = (^cmake --version | str trim)
+    print $"📋 CMake version: ($cmake_version_output | lines | first)"
+    print $"📋 LIBRARY_PREFIX: ($env.PREFIX)\\Library"
+    print $"📚 LIBRARY_LIB: ($env.PREFIX)\\Library\\lib"
+    print $"📝 LIBRARY_INC: ($env.PREFIX)\\Library\\include"
+    print $"🔧 LIBRARY_BIN: ($env.PREFIX)\\Library\\bin"
+
+    let cmake_args = [
+        "-DCMAKE_BUILD_TYPE=Release"
+        "-DBUILD_SHARED_LIBS=ON"
+        "-DENABLE_SSE=ON"
+        "-DENABLE_FIXED_POINT=OFF"
+        "-DENABLE_FLOAT_API=ON"
+        "-DBUILD_EXAMPLES=OFF"
+        "-GNinja"
+        $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)\\Library"
+        $"-DCMAKE_INSTALL_LIBDIR=($env.PREFIX)\\Library\\lib"
+        $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)\\Library\\include"
+        $"-DCMAKE_INSTALL_BINDIR=($env.PREFIX)\\Library\\bin"
+        $env.SRC_DIR
+    ]
+
+    print $"📋 CMake args: (($cmake_args | str join ' '))"
+
+    print "🔍 Checking FFT configuration..."
+    print "📋 Expected FFT defines: USE_KISS_FFT, HAVE_KISS_FFT, HAVE_CONFIG_H"
+    print "📋 Config header will be generated at: build/config.h"
+
+    try {
+        ^cmake ...$cmake_args
+        print "✅ CMake configuration successful"
+    } catch {
+        print "❌ Error: CMake configuration failed"
+        exit 1
     }
 
-    # Configure with MinGW
-    let prefix_unix = ($env.PREFIX | str replace -a '\\' '/')
-    print "Configuring with autotools..."
-    print $"Using prefix path: ($prefix_unix)"
-    let configure_args = ["./configure" $"--prefix=($prefix_unix)" "--disable-static" "--enable-shared" "--build=x86_64-w64-mingw32"]
-    ^bash -c ($configure_args | str join " ")
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Configure failed"}
-    }
-
-    # Build
-    let cpu_count = ($env.CPU_COUNT? | default "4")
-    print $"Building with ($cpu_count) parallel jobs..."
-    ^bash -c $"make -j($cpu_count)"
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Build failed"}
-    }
-
-    # Install
-    print "Installing..."
-    ^bash -c "make install"
-
-    if $env.LAST_EXIT_CODE != 0 {
-        error make {msg: "Installation failed"}
-    }
-}
-
-def verify_installation [] {
-    print "Verifying installation..."
-
-    match $nu.os-info.name {
-        "windows" => {
-            let lib_path = $"($env.PREFIX)/Library/lib/speexdsp.lib"
-            let header_path = $"($env.PREFIX)/Library/include/speex/speex_preprocess.h"
-
-            if not ($lib_path | path exists) {
-                error make {msg: $"ERROR: SpeexDSP library not found at ($lib_path)"}
-            }
-
-            if not ($header_path | path exists) {
-                error make {msg: $"ERROR: SpeexDSP headers not found at ($header_path)"}
-            }
-
-            print "✓ SpeexDSP installed successfully on Windows"
-            print $"  Library: ($lib_path)"
-            print $"  Headers: ($header_path)"
+    print "🏗️  Building with CMake..."
+    print "🔍 Building with FFT implementation: KissFFT (USE_KISS_FFT=1)"
+    try {
+        ^cmake --build . --config Release
+        print "✅ CMake build successful"
+    } catch { |e|
+        print "❌ Error: CMake build failed"
+        print "🔍 FFT configuration issue - checking if USE_KISS_FFT is properly defined"
+        if ($e | get -o "stdout") != null {
+            print $"📋 stdout: ($e.stdout)"
         }
-        _ => {
-            let shlib_ext = match $nu.os-info.name {
-                "macos" => ".dylib"
-                _ => ".so"
-            }
-
-            let lib_path = $"($env.PREFIX)/lib/libspeexdsp($shlib_ext)"
-            let header_path = $"($env.PREFIX)/include/speex/speex_preprocess.h"
-            let pkgconfig_path = $"($env.PREFIX)/lib/pkgconfig/speexdsp.pc"
-
-            if not ($lib_path | path exists) {
-                error make {msg: $"ERROR: SpeexDSP library not found at ($lib_path)"}
-            }
-
-            if not ($header_path | path exists) {
-                error make {msg: $"ERROR: SpeexDSP headers not found at ($header_path)"}
-            }
-
-            if not ($pkgconfig_path | path exists) {
-                error make {msg: $"ERROR: SpeexDSP pkg-config file not found at ($pkgconfig_path)"}
-            }
-
-            print "✓ SpeexDSP installed successfully on Unix"
-            print $"  Library: ($lib_path)"
-            print $"  Headers: ($header_path)"
-            print $"  Pkg-config: ($pkgconfig_path)"
+        if ($e | get -o "stderr") != null {
+            print $"📋 stderr: ($e.stderr)"
         }
+        exit 1
     }
+
+    print "📦 Installing with CMake..."
+    try {
+        ^cmake --install . --config Release
+        print "✅ CMake install successful"
+    } catch {
+        print "❌ Error: CMake install failed"
+        exit 1
+    }
+
+    print "🔍 Verifying installation..."
+    print $"PREFIX environment variable: ($env.PREFIX)"
+    print $"LIBRARY_PREFIX environment variable: ($env.PREFIX)\\Library"
+    print $"LIBRARY_INC environment variable: ($env.PREFIX)\\Library\\include"
+    print "OS: windows"
+
+    print $"Looking for library at: ($env.PREFIX)\\Library\\lib/speexdsp.lib"
+    print $"Looking for header at: ($env.PREFIX)\\Library\\include/speex/speex_preprocess.h"
+
+    print $"Contents of ($env.PREFIX)\\Library\\lib:"
+    (ls ($env.PREFIX + "\\Library\\lib") | each { |file| print $"  ($env.PREFIX)\\Library\\lib\\($file.name)" })
+
+    print $"Contents of ($env.PREFIX)\\Library\\include:"
+    (ls ($env.PREFIX + "\\Library\\include") | each { |file| print $"  ($env.PREFIX)\\Library\\include\\($file.name)" })
+
+    if (($env.PREFIX + "\\Library\\include\\speex") | path exists) {
+        print $"Contents of ($env.PREFIX)\\Library\\include/speex:"
+        (ls ($env.PREFIX + "\\Library\\include\\speex") | each { |file| print $"  ($env.PREFIX)\\Library\\include\\speex\\($file.name)" })
+    }
+
+    print "✓ SpeexDSP installed successfully"
+    print $"  Library: ($env.PREFIX)\\Library\\lib/speexdsp.lib"
+    print $"  Headers: ($env.PREFIX)\\Library\\include/speex/speex_preprocess.h"
 }
