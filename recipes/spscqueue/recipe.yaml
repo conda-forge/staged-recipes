@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.1.0"
+
+package:
+  name: spscqueue
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/rigtorp/SPSCQueue/archive/master.tar.gz
+    sha256: 9e9f2829ac1fd9e9c56004cdffcd742dc62814cf8d383f3b18e640541e4e7a4c
+
+build:
+  number: 0
+  script: build.nu
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.15
+    - nushell
+    - if: unix
+      then:
+        - make
+    - if: win
+      then:
+        - ninja
+  host: []
+  run: []
+
+tests:
+  - script:
+      - if: unix
+        then: test -f $PREFIX/include/rigtorp/SPSCQueue.h
+      - if: win
+        then: if not exist "%LIBRARY_INC%\rigtorp\SPSCQueue.h" exit 1
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+      run: []
+  - if: unix
+    then:
+      script:
+        - echo "#include <rigtorp/SPSCQueue.h>" > test.cpp
+        - echo "int main() { rigtorp::SPSCQueue<int> q(10); return 0; }" >> test.cpp
+        - $CXX test.cpp -std=c++11 -I$PREFIX/include -o test && ./test
+      requirements:
+        build:
+          - ${{ compiler('cxx') }}
+  - if: unix
+    then:
+      script:
+        - $CXX test_spscqueue.cpp -std=c++11 -I$PREFIX/include -pthread -o test_comprehensive && ./test_comprehensive
+      files:
+        recipe:
+          - test_spscqueue.cpp
+          - CMakeLists.txt
+      requirements:
+        build:
+          - ${{ compiler('cxx') }}
+
+about:
+  homepage: https://github.com/rigtorp/SPSCQueue
+  summary: "A bounded single-producer single-consumer wait-free and lock-free queue written in C++11"
+  description: |
+    SPSCQueue is a high-performance lock-free queue optimized for single-producer,
+    single-consumer scenarios. It provides:
+
+    - Wait-free and lock-free operations
+    - Cache line alignment to avoid false sharing
+    - Header-only implementation for easy integration
+    - C++11 compatible
+    - Optimal performance for high-throughput applications
+
+    This library is particularly useful for:
+    - High-frequency trading systems
+    - Audio/video processing pipelines
+    - Real-time applications requiring predictable latency
+    - Inter-thread communication with minimal overhead
+
+    Note: This package uses upstream rigtorp/SPSCQueue with a replacement
+    CMakeLists.txt file to ensure proper conda build compatibility. The
+    replacement file adds conditional SYSTEM includes and improved CMake
+    version compatibility while maintaining full API compatibility.
+
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/rigtorp/SPSCQueue
+  documentation: https://github.com/rigtorp/SPSCQueue/blob/master/README.md
+
+extra:
+  recipe-maintainers:
+    - phreed
