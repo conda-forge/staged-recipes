@@ -5,39 +5,73 @@ set -ex
 if [[ "$(uname)" == "Darwin" ]]; then
     echo "Applying macOS-specific fixes to fmt library..."
 
-    # Create backup of files before modifying (safety first)
-    find external/fmt -name "*.h" -exec cp {} {}.bak \; 2>/dev/null || true
+    # Create backup of files before modifying
+    cp external/fmt/include/fmt/core.h external/fmt/include/fmt/core.h.bak
+    cp external/fmt/include/fmt/format.h external/fmt/include/fmt/format.h.bak
 
-    # Fix 1: core.h - Replace char8_t length calculation with strlen
+    # Fix 1: core.h - Only fix the specific char8_t line
     if [ -f external/fmt/include/fmt/core.h ]; then
         echo "Patching fmt/core.h..."
-        # Replace the problematic char8_t length calculation
-        sed -i '' 's/std::char_traits<internal::char8_type>::length(s))/strlen(reinterpret_cast<const char*>(s)))/' external/fmt/include/fmt/core.h
-        # Replace internal::char8_type with char
-        sed -i '' 's/internal::char8_type/char/g' external/fmt/include/fmt/core.h
+        # Use a more precise approach to find and replace the specific line
+        # Look for the exact line containing char8_type length calculation
+        awk '
+        /basic_string_view\(const internal::char8_type\* s\)/ {
+            print "  basic_string_view(const internal::char8_type* s)"
+            getline
+            if (/      : data_\(s\), size_\(std::char_traits<internal::char8_type>::length\(s\)\)/) {
+                print "      : data_(s), size_(strlen(reinterpret_cast<const char*>(s))) {}"
+                next
+            }
+        }
+        { print }
+        ' external/fmt/include/fmt/core.h > external/fmt/include/fmt/core.h.tmp
+        mv external/fmt/include/fmt/core.h.tmp external/fmt/include/fmt/core.h
     fi
 
-    # Fix 2: format.h - Completely remove u8string_view class (most problematic)
+    # Fix 2: format.h - Only disable u8string_view, don't remove internal namespace
     if [ -f external/fmt/include/fmt/format.h ]; then
         echo "Patching fmt/format.h..."
         
-        # Remove the entire u8string_view class definition (lines 580-597)
-        sed -i '' '580,597d' external/fmt/include/fmt/format.h
-        
-        # Remove the related namespace and function declarations
-        sed -i '' '/namespace internal {/,/}  \/\/ namespace internal/d' external/fmt/include/fmt/format.h
-        sed -i '' '/FMT_API void to_string_view(std::string_view s);/d' external/fmt/include/fmt/format.h
-        sed -i '' '/FMT_API u8string_view operator"" _u(const char\* s, std::size_t n);/d' external/fmt/include/fmt/format.h
-        
-        # Replace any remaining internal::char8_type references
-        sed -i '' 's/internal::char8_type/char/g' external/fmt/include/fmt/format.h
-        
-        # Ensure proper namespace closure
-        echo "#endif" >> external/fmt/include/fmt/format.h
+        # Comment out the u8string_view class definition (lines 580-597)
+        # But be very careful not to remove other critical parts
+        awk '
+        /class FMT_DEPRECATED u8string_view/ {
+            in_u8string_view = 1
+            print "// " $0
+            next
+        }
+        in_u8string_view && /^};$/ {
+            print "// " $0
+            in_u8string_view = 0
+            next
+        }
+        in_u8string_view {
+            print "// " $0
+            next
+        }
+        /FMT_API u8string_view\(const char\* s\);/ {
+            print "// " $0
+            next
+        }
+        /FMT_API u8string_view\(const char\* s, std::size_t count\);/ {
+            print "// " $0
+            next
+        }
+        /FMT_API void to_string_view\(std::string_view s\);/ {
+            print "// " $0
+            next
+        }
+        /FMT_API u8string_view operator"" _u\(const char\* s, std::size_t n\);/ {
+            print "// " $0
+            next
+        }
+        { print }
+        ' external/fmt/include/fmt/format.h > external/fmt/include/fmt/format.h.tmp
+        mv external/fmt/include/fmt/format.h.tmp external/fmt/include/fmt/format.h
     fi
 
-    # Fix 3: Add compiler flag to disable char8_t entirely
-    export CXXFLAGS="${CXXFLAGS} -D_FMT_USE_CHAR8_T=0 -fno-char8_t -std=c++17"
+    # Fix 3: Add compiler flags
+    export CXXFLAGS="${CXXFLAGS} -D_FMT_USE_CHAR8_T=0 -fno-char8-t -std=c++17"
     
     # Build with explicit C++17 standard
     $PYTHON -m pip install . --no-deps -vv --config-settings=setup-args="-Dcpp_std=c++17"
