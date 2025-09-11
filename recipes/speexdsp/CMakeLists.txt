@@ -35,6 +35,42 @@ check_include_file(sys/stat.h HAVE_SYS_STAT_H)
 check_include_file(sys/types.h HAVE_SYS_TYPES_H)
 check_include_file(unistd.h HAVE_UNISTD_H)
 
+# Check type sizes for speexdsp_config_types.h
+include(CheckTypeSize)
+check_type_size("short" SIZEOF_SHORT)
+check_type_size("int" SIZEOF_INT)
+check_type_size("long" SIZEOF_LONG)
+
+# Set type definitions based on detected sizes
+if(SIZEOF_SHORT EQUAL 2)
+    set(SIZE16 "short")
+    set(USIZE16 "unsigned short")
+elseif(SIZEOF_INT EQUAL 2)
+    set(SIZE16 "int")
+    set(USIZE16 "unsigned int")
+else()
+    set(SIZE16 "int16_t")
+    set(USIZE16 "uint16_t")
+endif()
+
+if(SIZEOF_INT EQUAL 4)
+    set(SIZE32 "int")
+    set(USIZE32 "unsigned int")
+elseif(SIZEOF_LONG EQUAL 4)
+    set(SIZE32 "long")
+    set(USIZE32 "unsigned long")
+else()
+    set(SIZE32 "int32_t")
+    set(USIZE32 "uint32_t")
+endif()
+
+# Set include stdint flag
+if(HAVE_STDINT_H)
+    set(INCLUDE_STDINT "#include <stdint.h>")
+else()
+    set(INCLUDE_STDINT "/* stdint.h not available */")
+endif()
+
 # Platform detection
 if(WIN32)
     set(OS_SUPPORT_FILES)
@@ -78,6 +114,7 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/libspeexdsp"
     "${CMAKE_BINARY_DIR}"
     "${CMAKE_BINARY_DIR}/include"
+    "${CMAKE_BINARY_DIR}/include/speex"
 )
 
 # Source files
