@@ -1,13 +1,9 @@
 #!/usr/bin/env nu
 
-# Tracy Profiler simplified build script for rattler-build
-
 def main [] {
-    # Create build directory
     mkdir build
     cd build
 
-    # Configure with CMake - use proper Windows install prefix
     let install_prefix = if $nu.os-info.name == "windows" {
         $env.PREFIX | path join "Library"
     } else {
@@ -27,8 +23,6 @@ def main [] {
     ]
 
     ^cmake ...$cmake_args ..
-
-    # Build and install
     ^ninja
     ^ninja install
 }

@@ -1,13 +1,9 @@
 #!/usr/bin/env nu
 
-# Microsoft GSL simplified build script for rattler-build
-
 def main [] {
-    # Create build directory
     mkdir build
     cd build
 
-    # Configure with CMake - handle Windows conda paths properly
     let cmake_args = if ($nu.os-info.name == "windows") {
         [
             "-GNinja"
@@ -29,8 +25,6 @@ def main [] {
     }
 
     ^cmake ...$cmake_args ..
-
-    # Build and install
     ^ninja
     ^ninja install
 }

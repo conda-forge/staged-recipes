@@ -1,14 +1,10 @@
 #!/usr/bin/env nu
 
-# SPSCQueue simplified build script for rattler-build
-
-# Copy conda-compatible CMakeLists.txt
 cp ($env.RECIPE_DIR | path join "CMakeLists.txt") "./CMakeLists.txt"
 
 mkdir build
 cd build
 
-# Configure and build with CMake - use proper Windows install prefix
 let install_prefix = if $nu.os-info.name == "windows" {
     $env.PREFIX | path join "Library"
 } else {
@@ -24,8 +20,10 @@ let cmake_args = [
     $env.SRC_DIR
 ]
 
-if $nu.os-info.name == "windows" {
-    let cmake_args = ($cmake_args | append "-GNinja")
+let cmake_args = if $nu.os-info.name == "windows" {
+    $cmake_args | append "-GNinja"
+} else {
+    $cmake_args
 }
 
 ^cmake ...$cmake_args
