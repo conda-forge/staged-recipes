@@ -1,0 +1,65 @@
+# MAQAO conda recipe using rattler-build format (CEP 13)
+# MAQAO (Modular Assembly Quality Analyzer and Optimizer) is a performance analysis tool
+
+context:
+  name: maqao
+  version: "2025.1.0"
+  arch: ${{ "x86_64" if target_platform == "linux-64" else 
+            "aarch64" if target_platform == "linux-aarch64" }}
+  sha256: ${{ "e28f4c3ad8f15aaf455b46d6c46f6451fa8aef51ffee134bb766f98570941c8c" if arch == "x86_64" else 
+              "993d610a3625c7ff605233a388981d87a2f42741a900c29e5de1e47ae69e5b67" if arch == "aarch64" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://maqao.org/maqao_archive/${{ name }}.${{ arch }}.${{ version }}.tar.xz
+  sha256: ${{ sha256 }}
+
+build:
+  skip: 
+    - if: not (linux and (x86_64 or aarch64))
+      then: true
+  number: 0
+  script: |
+    MAQAO_EXEC=$(find bin -name "maqao*" -executable | head -1)
+    if [ -z "$MAQAO_EXEC" ]; then
+      echo "No maqao executable found in bin directory. Available files:"
+      ls -la bin/
+      exit 1
+    fi
+    
+    echo "Found MAQAO executable: $MAQAO_EXEC for ${{ arch }}"
+    
+    # Create wrapper script in bin directory
+    mkdir -p ${PREFIX}/bin
+    cp $MAQAO_EXEC ${PREFIX}/bin/maqao
+
+tests:
+  - script:
+    - maqao --version
+    - maqao --help
+
+about:
+  homepage: https://www.maqao.org/
+  summary: 'MAQAO - Modular Assembly Quality Analyzer and Optimizer'
+  description: |
+    MAQAO (Modular Assembly Quality Analyzer and Optimizer) is a performance analysis and optimization 
+    framework operating at binary level with a focus on core performance. 
+    
+    Its main goal of is to guide application developpers along the optimization process through synthetic reports and hints.
+
+    MAQAO mixes both dynamic and static analyses based on its ability to reconstruct high level structures 
+    such as functions and loops from an application binary. Since MAQAO operates at binary level, 
+    it is agnostic with regard to the language used in the source code and does not require recompiling 
+    the application to perform analyses. MAQAO has also been designed to concurrently support multiple architectures.
+  license: LGPL-2.1-or-later
+  license_family: LGPL
+  license_file: LICENSE
+  documentation: https://maqao.org/documentation.html
+
+extra:
+  recipe-maintainers:
+    - toprinse
+    - cvalensi
