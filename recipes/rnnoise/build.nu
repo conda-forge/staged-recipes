@@ -130,6 +130,17 @@ def create-fallback-models [] {
             print "⚠️  Template rnnoise_data.c.in not found"
         }
     }
+
+    # Create os_support.h if missing (needed for Windows builds)
+    if not ("src/os_support.h" | path exists) {
+        let os_support = ($env.RECIPE_DIR | path join "os_support.h")
+        if ($os_support | path exists) {
+            cp $os_support "src/os_support.h"
+            print "✅ Created os_support.h from recipe"
+        } else {
+            print "⚠️  os_support.h not found in recipe directory"
+        }
+    }
 }
 
 # Main build process
@@ -140,6 +151,17 @@ let models_success = (download-models)
 if not $models_success {
     print "⚠️  Model download failed, creating fallback models..."
     create-fallback-models
+} else {
+    # Even if models downloaded successfully, we still need os_support.h on Windows
+    if not ("src/os_support.h" | path exists) {
+        let os_support = ($env.RECIPE_DIR | path join "os_support.h")
+        if ($os_support | path exists) {
+            cp $os_support "src/os_support.h"
+            print "✅ Created os_support.h from recipe (required for Windows)"
+        } else {
+            print "⚠️  os_support.h not found in recipe directory"
+        }
+    }
 }
 
 # Copy CMakeLists.txt from recipe directory
