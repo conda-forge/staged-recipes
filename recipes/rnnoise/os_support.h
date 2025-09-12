@@ -41,33 +41,54 @@
 
 /* Platform-specific definitions */
 #ifdef _MSC_VER
-#define RNNOISE_INLINE __forceinline
+#define RNNOISE_INLINE static __forceinline
+#define RNNOISE_WEAK_ATTR
 #else
 #define RNNOISE_INLINE static inline
+#define RNNOISE_WEAK_ATTR __attribute__((weak))
 #endif
 
-/** RNNoise wrapper for malloc(). To do your own dynamic allocation replace this function, rnnoise_realloc, and rnnoise_free */
-#ifndef OVERRIDE_RNNOISE_ALLOC
-RNNOISE_INLINE void *rnnoise_alloc(size_t size)
-{
-   return malloc(size);
+/* Check if functions are already defined by testing if we can declare them as extern */
+#ifndef RNNOISE_ALLOC_DECLARED
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Declare functions - these may already be defined elsewhere */
+#if defined(_MSC_VER)
+/* For MSVC, use selectany to allow multiple definitions */
+__declspec(selectany) void *rnnoise_alloc(size_t size) {
+    return malloc(size);
+}
+
+__declspec(selectany) void *rnnoise_realloc(void *ptr, size_t size) {
+    return realloc(ptr, size);
+}
+
+__declspec(selectany) void rnnoise_free(void *ptr) {
+    free(ptr);
+}
+#else
+/* For GCC/Clang, use weak linking */
+RNNOISE_WEAK_ATTR void *rnnoise_alloc(size_t size) {
+    return malloc(size);
+}
+
+RNNOISE_WEAK_ATTR void *rnnoise_realloc(void *ptr, size_t size) {
+    return realloc(ptr, size);
+}
+
+RNNOISE_WEAK_ATTR void rnnoise_free(void *ptr) {
+    free(ptr);
 }
 #endif
 
-#ifndef OVERRIDE_RNNOISE_REALLOC
-RNNOISE_INLINE void *rnnoise_realloc(void *ptr, size_t size)
-{
-   return realloc(ptr, size);
+#ifdef __cplusplus
 }
 #endif
 
-/** RNNoise wrapper for free(). To do your own dynamic allocation replace this function, rnnoise_realloc, and rnnoise_free */
-#ifndef OVERRIDE_RNNOISE_FREE
-RNNOISE_INLINE void rnnoise_free(void *ptr)
-{
-   free(ptr);
-}
-#endif
+#define RNNOISE_ALLOC_DECLARED
+#endif /* RNNOISE_ALLOC_DECLARED */
 
 /** Copy n elements from src to dst. The 0* term provides compile-time type checking  */
 #ifndef OVERRIDE_RNNOISE_COPY
@@ -85,12 +106,24 @@ RNNOISE_INLINE void rnnoise_free(void *ptr)
 #define RNNOISE_CLEAR(dst, n) (memset((dst), 0, (n)*sizeof(*(dst))))
 #endif
 
-/* Legacy compatibility macros for older RNNoise code */
+/* Legacy compatibility macros for older RNNoise code - only define if not already defined */
+#ifndef opus_alloc
 #define opus_alloc rnnoise_alloc
+#endif
+#ifndef opus_realloc
 #define opus_realloc rnnoise_realloc
+#endif
+#ifndef opus_free
 #define opus_free rnnoise_free
+#endif
+#ifndef OPUS_COPY
 #define OPUS_COPY RNNOISE_COPY
+#endif
+#ifndef OPUS_MOVE
 #define OPUS_MOVE RNNOISE_MOVE
+#endif
+#ifndef OPUS_CLEAR
 #define OPUS_CLEAR RNNOISE_CLEAR
+#endif
 
 #endif /* OS_SUPPORT_H */
