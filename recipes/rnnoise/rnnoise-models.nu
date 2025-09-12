@@ -1,28 +1,11 @@
 #!/usr/bin/env nu
 
-# RNNoise build script using CMake with official model downloading
-# Updated for RNNoise v0.2 which includes official model download mechanism
+# RNNoise Model Management Module
+# Handles downloading and validation of official RNNoise models
 
-print "🔨 RNNoise CMake build script starting..."
-
-# Check environment variables
-print $"📁 Current directory: (pwd)"
-print $"📂 SRC_DIR: ($env.SRC_DIR)"
-print $"🖥️  Platform: ($nu.os-info.name)"
-
-# Verify source directory exists
-if not ($env.SRC_DIR | path exists) {
-    print "❌ Error: SRC_DIR does not exist"
-    exit 1
-}
-
-print $"✅ Found source directory at ($env.SRC_DIR)"
-
-# Download RNNoise models using inline functionality
-print "📥 Attempting to download official RNNoise models..."
-
-def download-models [] {
-    print "📋 RNNoise Model Download Starting..."
+# Download and extract RNNoise models using the official mechanism
+export def download-models [] {
+    print "📋 RNNoise Model Download Module Starting..."
 
     try {
         # Check for official download script first
@@ -72,7 +55,8 @@ def download-models [] {
     }
 }
 
-def download-models-manual [] {
+# Manual model download implementation
+export def download-models-manual [] {
     try {
         let hash = (open "model_version" | str trim)
         let model = $"rnnoise_data-($hash).tar.gz"
@@ -103,12 +87,11 @@ def download-models-manual [] {
             print "🔍 Validating checksum..."
             try {
                 let actual_hash = (open $model | hash sha256)
-                let actual_short = ($actual_hash | str substring 0..6)
-                if $actual_hash == $hash or $actual_short == $hash {
+                if $actual_hash == $hash {
                     print "✅ Checksum validation passed"
                     extract-model $model
                 } else {
-                    print $"❌ Checksum mismatch: expected ($hash), got ($actual_hash) (short: ($actual_short))"
+                    print $"❌ Checksum mismatch: expected ($hash), got ($actual_hash)"
                     print "🗑️  Removing corrupted file..."
                     rm $model
                     return false
@@ -129,7 +112,8 @@ def download-models-manual [] {
     }
 }
 
-def extract-model [model_file: string] {
+# Extract model archive
+export def extract-model [model_file: string] {
     print $"📂 Extracting model data from ($model_file)..."
     try {
         # Use external tar command with better error handling
@@ -174,7 +158,36 @@ def extract-model [model_file: string] {
     }
 }
 
-def create-fallback-models [] {
+# Check what model files are currently available
+export def list-model-files [] {
+    print "📋 Current model files in source:"
+
+    try {
+        let model_files = (glob "*rnnoise*data*" | where ($it | path type) == "file")
+
+        if ($model_files | length) > 0 {
+            $model_files | each { |file|
+                try {
+                    let size = (ls $file | get size.0)
+                    let size_str = ($size | into string)
+                    print $"    ($file) ($size_str) bytes"
+                } catch {
+                    print $"    ($file) (size unknown)"
+                }
+            }
+        } else {
+            print "    (no model data files found)"
+        }
+
+        $model_files
+    } catch { |err|
+        print $"⚠️  Error listing model files: ($err.msg)"
+        []
+    }
+}
+
+# Create fallback model files if none exist
+export def create-fallback-models [] {
     print "📝 Checking for fallback model templates..."
 
     try {
@@ -222,183 +235,13 @@ def create-fallback-models [] {
     }
 }
 
-def list-model-files [] {
-    print "📋 Current model files in source:"
-
-    try {
-        let model_files = (glob "*rnnoise*data*" | where ($it | path type) == "file")
-
-        if ($model_files | length) > 0 {
-            $model_files | each { |file|
-                try {
-                    let size = (ls $file | get size.0)
-                    let size_str = ($size | into string)
-                    print $"    ($file) ($size_str) bytes"
-                } catch {
-                    print $"    ($file) (size unknown)"
-                }
-            }
-        } else {
-            print "    (no model data files found)"
-        }
-
-        $model_files
-    } catch { |err|
-        print $"⚠️  Error listing model files: ($err.msg)"
-        []
-    }
+# Main entry point for model management
+export def main [] {
+    print "🎯 RNNoise Model Management"
+    print "Available commands:"
+    print "  download-models     - Download official RNNoise models"
+    print "  list-model-files    - List current model files"
+    print "  create-fallback-models - Create template fallback files"
+    print ""
+    print "Usage: use rnnoise-models.nu; download-models"
 }
-
-# Execute model download
-let download_success = (download-models)
-
-if $download_success {
-    print "✅ Model download completed successfully"
-} else {
-    print "⚠️  Model download failed or not available, using fallbacks"
-    create-fallback-models
-}
-
-# List current model files
-list-model-files
-
-# Copy CMakeLists.txt from recipe directory if it exists
-let cmake_file = ($env.RECIPE_DIR | path join "CMakeLists.txt")
-if ($cmake_file | path exists) {
-    print "📝 Copying CMakeLists.txt from recipe directory..."
-    cp $cmake_file "CMakeLists.txt"
-    print "✅ CMakeLists.txt copied successfully"
-}
-
-# Create build directory
-print "📁 Creating build directory..."
-if ("build" | path exists) {
-    rm -rf build
-}
-mkdir build
-print "✅ Build directory created"
-
-# Configure with CMake
-print "🔧 Configuring with CMake..."
-cd build
-
-let cmake_args = [
-    ".."
-    $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)"
-    $"-DCMAKE_BUILD_TYPE=Release"
-    "-G" "Ninja"
-]
-
-# Add Windows-specific configuration if needed
-let final_cmake_args = if ($nu.os-info.name == "windows") {
-    $cmake_args | append [
-        $"-DCMAKE_INSTALL_LIBDIR=($env.PREFIX)/lib"
-        $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)/include"
-        $"-DCMAKE_INSTALL_BINDIR=($env.PREFIX)/bin"
-    ]
-} else {
-    $cmake_args | append [
-        $"-DCMAKE_INSTALL_LIBDIR=($env.PREFIX)/lib"
-        $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)/include"
-    ]
-}
-
-let configure_result = (^cmake ...$final_cmake_args | complete)
-
-if $configure_result.exit_code != 0 {
-    print "❌ Error: CMake configure failed"
-    print $"📋 stdout: ($configure_result.stdout)"
-    print $"📋 stderr: ($configure_result.stderr)"
-    exit 1
-}
-print "✅ CMake configure successful"
-
-# Build with Ninja
-print "🏗️  Building with Ninja..."
-let cpu_count = ($env.CPU_COUNT? | default "1")
-let build_result = (^ninja $"-j($cpu_count)" | complete)
-
-if $build_result.exit_code != 0 {
-    print "❌ Error: Ninja build failed"
-    print $"📋 stdout: ($build_result.stdout)"
-    print $"📋 stderr: ($build_result.stderr)"
-    exit 1
-}
-print "✅ Ninja build successful"
-
-# Install with Ninja
-print "📦 Installing with Ninja..."
-let install_result = (^ninja install | complete)
-
-if $install_result.exit_code != 0 {
-    print "❌ Error: Ninja install failed"
-    print $"📋 stdout: ($install_result.stdout)"
-    print $"📋 stderr: ($install_result.stderr)"
-    exit 1
-}
-print "✅ Ninja install successful"
-
-# Go back to source directory
-cd ..
-
-# Remove static libraries if they were built
-let static_libs = (glob $"($env.PREFIX)/lib/*.a")
-if ($static_libs | length) > 0 {
-    print "🧹 Removing static libraries..."
-    $static_libs | each { |lib| rm $lib }
-}
-
-# Verify pkg-config file installation (Unix only)
-if ($nu.os-info.name != "windows") {
-    let pkgconfig_file = ($env.PREFIX | path join "lib" "pkgconfig" "rnnoise.pc")
-    if ($pkgconfig_file | path exists) {
-        print "✅ pkg-config file installed successfully"
-    } else {
-        print "⚠️  Warning: pkg-config file not found"
-    }
-}
-
-# Verify installation
-print "🔍 Verifying installation..."
-
-if ($nu.os-info.name == "windows") {
-    # Windows verification
-    let lib_file = ($env.PREFIX | path join "lib" "rnnoise.lib")
-    let dll_file = ($env.PREFIX | path join "bin" "rnnoise.dll")
-    let header_file = ($env.PREFIX | path join "include" "rnnoise.h")
-
-    if ($lib_file | path exists) or ($dll_file | path exists) {
-        print "✅ RNNoise library installed successfully"
-    } else {
-        print "❌ Error: RNNoise library not found after installation"
-        exit 1
-    }
-
-    if ($header_file | path exists) {
-        print "✅ RNNoise header installed successfully"
-    } else {
-        print "❌ Error: RNNoise header not found after installation"
-        exit 1
-    }
-} else {
-    # Unix verification
-    let shlib_ext = ($env.SHLIB_EXT? | default ".so")
-    let lib_file = ($env.PREFIX | path join "lib" $"librnnoise($shlib_ext)")
-    let header_file = ($env.PREFIX | path join "include" "rnnoise.h")
-
-    if ($lib_file | path exists) {
-        print "✅ RNNoise shared library installed successfully"
-    } else {
-        print "❌ Error: RNNoise shared library not found after installation"
-        exit 1
-    }
-
-    if ($header_file | path exists) {
-        print "✅ RNNoise header installed successfully"
-    } else {
-        print "❌ Error: RNNoise header not found after installation"
-        exit 1
-    }
-}
-
-print "🎉 RNNoise CMake build completed successfully!"

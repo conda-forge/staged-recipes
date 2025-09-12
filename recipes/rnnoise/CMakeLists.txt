@@ -1,5 +1,5 @@
-# RNNoise CMakeLists.txt for Windows builds
-# This file is used by the conda-forge build system for cross-platform compilation
+# RNNoise CMakeLists.txt for cross-platform builds
+# This file is used by the conda-forge build system for CMake-based compilation
 cmake_minimum_required(VERSION 3.15)
 project(rnnoise VERSION 0.2 LANGUAGES C)
 
@@ -7,69 +7,27 @@ project(rnnoise VERSION 0.2 LANGUAGES C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Ensure required source files exist - create placeholders if needed
-message(STATUS "Checking for required RNNoise source files...")
+# Check for model data files (downloaded or extracted)
+message(STATUS "Checking for RNNoise model data files...")
 
-# Check for model data header
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.h")
-    message(STATUS "Found rnnoise_data.h")
+# Check for extracted model files first (from official download)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise_data.h" AND
+   EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rnnoise_data.c")
+    message(STATUS "Found extracted model data files in root - using downloaded model")
+    set(HAS_MODEL_DATA TRUE)
+    set(MODEL_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.h" AND
+       EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.c")
+    message(STATUS "Found model data files in src/ - using custom model")
+    set(HAS_MODEL_DATA TRUE)
+    set(MODEL_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 else()
-    message(STATUS "Creating placeholder rnnoise_data.h (model data not downloaded)")
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.h"
-        "#ifndef RNNOISE_DATA_H\n"
-        "#define RNNOISE_DATA_H\n"
-        "/* Placeholder header - model data not available */\n"
-        "/* This will use built-in fallback model */\n"
-        "#endif\n")
+    message(STATUS "Model data files not found - will use built-in default model")
+    set(HAS_MODEL_DATA FALSE)
 endif()
 
-# Check for model data implementation
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.c")
-    message(STATUS "Found rnnoise_data.c")
-else()
-    message(STATUS "Creating placeholder rnnoise_data.c (model data not downloaded)")
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_data.c"
-        "/* Placeholder implementation - model data not available */\n"
-        "/* RNNoise will fall back to built-in default model */\n")
-endif()
-
-# Check for os_support.h (needed by vec.h when no SIMD optimizations are used)
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/os_support.h")
-    message(STATUS "Creating minimal os_support.h stub")
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/src/os_support.h"
-        "#ifndef OS_SUPPORT_H\n"
-        "#define OS_SUPPORT_H\n"
-        "\n"
-        "#include <string.h>\n"
-        "#include <stdlib.h>\n"
-        "#include \"opus_types.h\"\n"
-        "\n"
-        "/* Minimal OS support macros for RNNoise */\n"
-        "#define OPUS_CLEAR(dst, n) (memset((dst), 0, (n)*sizeof(*(dst))))\n"
-        "#define OPUS_COPY(dst, src, n) (memcpy((dst), (src), (n)*sizeof(*(dst)) + 0*((dst)-(src))))\n"
-        "#define OPUS_MOVE(dst, src, n) (memmove((dst), (src), (n)*sizeof(*(dst)) + 0*((dst)-(src))))\n"
-        "\n"
-        "#endif /* OS_SUPPORT_H */\n")
-endif()
-
-# Verify core source files exist
-set(REQUIRED_FILES
-    "src/denoise.c"
-    "src/rnn.c"
-    "src/pitch.c"
-    "src/kiss_fft.c"
-    "src/celt_lpc.c"
-    "include/rnnoise.h"
-)
-
-foreach(file ${REQUIRED_FILES})
-    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
-        message(FATAL_ERROR "Required source file missing: ${file}")
-    endif()
-endforeach()
-
-# Core library sources (from Makefile.am)
-set(SOURCES
+# Define core library sources (based on what's typically available)
+set(CORE_SOURCES
     "src/denoise.c"
     "src/rnn.c"
     "src/pitch.c"
@@ -78,9 +36,43 @@ set(SOURCES
     "src/nnet.c"
     "src/nnet_default.c"
     "src/parse_lpcnet_weights.c"
-    "src/rnnoise_data.c"
-    "src/rnnoise_tables.c"
 )
+
+# Add extracted table files if they exist
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/rnnoise_tables.c")
+    list(APPEND CORE_SOURCES "src/rnnoise_tables.c")
+endif()
+
+# Add model data files only if they exist
+if(HAS_MODEL_DATA)
+    if(MODEL_DATA_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+        # Model files are in root directory (extracted from download)
+        list(APPEND CORE_SOURCES "rnnoise_data.c")
+        # Copy header to build directory for inclusion
+        configure_file("${CMAKE_CURRENT_SOURCE_DIR}/rnnoise_data.h"
+                      "${CMAKE_CURRENT_BINARY_DIR}/rnnoise_data.h" COPYONLY)
+    else()
+        # Model files are in src directory
+        list(APPEND CORE_SOURCES "src/rnnoise_data.c")
+    endif()
+endif()
+
+# Filter to only include sources that actually exist
+set(SOURCES)
+foreach(source_file ${CORE_SOURCES})
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
+        list(APPEND SOURCES ${source_file})
+    else()
+        message(STATUS "Skipping missing source: ${source_file}")
+    endif()
+endforeach()
+
+message(STATUS "Using source files: ${SOURCES}")
+
+# Verify we have the main header
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/rnnoise.h")
+    message(FATAL_ERROR "Required header file missing: include/rnnoise.h")
+endif()
 
 # Create library
 add_library(rnnoise SHARED ${SOURCES})
@@ -90,7 +82,13 @@ target_include_directories(rnnoise PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 target_include_directories(rnnoise PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR})
+
+# Add model data directory if model files exist
+if(HAS_MODEL_DATA AND MODEL_DATA_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(rnnoise PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
 
 # Platform-specific configurations
 if(WIN32)
@@ -141,6 +139,26 @@ install(TARGETS rnnoise
 install(FILES "include/rnnoise.h"
     DESTINATION include
 )
+
+# Generate pkg-config file for Unix platforms
+if(UNIX)
+    # Create pkg-config file
+    set(PKG_CONFIG_REQUIRES "")
+    set(PKG_CONFIG_LIBDIR "\${libdir}")
+    set(PKG_CONFIG_INCLUDEDIR "\${includedir}")
+    set(PKG_CONFIG_LIBS "-L\${libdir} -lrnnoise")
+    set(PKG_CONFIG_CFLAGS "-I\${includedir}")
+
+    configure_file(
+        "${CMAKE_CURRENT_LIST_DIR}/rnnoise.pc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/rnnoise.pc"
+        @ONLY
+    )
+
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rnnoise.pc"
+        DESTINATION lib/pkgconfig
+    )
+endif()
 
 # Install export targets (for find_package support)
 install(EXPORT rnnoise-targets
