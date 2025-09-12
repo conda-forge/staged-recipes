@@ -36,7 +36,14 @@ def test_rnnoise_installation():
     else:  # Unix-like systems
         # Unix paths
         prefix = os.environ.get('PREFIX', '/usr/local')
-        lib_pattern = os.path.join(prefix, 'lib', 'librnnoise.so*')
+        # Check for the appropriate library for this platform
+        import platform
+        system = platform.system()
+        if system == 'Darwin':  # macOS
+            lib_pattern = os.path.join(prefix, 'lib', 'librnnoise.dylib*')
+        else:  # Linux and other Unix-like systems
+            lib_pattern = os.path.join(prefix, 'lib', 'librnnoise.so*')
+
         lib_files = glob.glob(lib_pattern)
         header_file = os.path.join(prefix, 'include', 'rnnoise.h')
         pc_file = os.path.join(prefix, 'lib', 'pkgconfig', 'rnnoise.pc')
