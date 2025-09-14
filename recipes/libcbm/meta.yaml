@@ -11,28 +11,44 @@ source:
   patches:
     - no-hard-requirements-file.patch
 
+
 build:
   number: 0
   skip: true  # [ppc64le or s390x or py<39]
   script: |
     python -m pip install . -vv --no-deps --no-build-isolation
-    
+
     if [[ "$target_platform" == "linux-64" ]]; then
       PKG="$SP_DIR/libcbm"
+      # place the DSO where the Python import expects it
       cp -f "$PKG/resources/libcbm_bin/ubuntu_24_04_x86_64/libcbm.so" "$PKG/libcbm.so"
       chmod 0755 "$PKG/libcbm.so" || true
-    fi
-    
-    if [[ "$target_platform" == "osx-64" ]]; then
-      PKG="$SP_DIR/libcbm"
-      cp -f "$PKG/resources/libcbm_bin/macos_64/libcbm.dylib" "$PKG/libcbm.dylib"
-      chmod 0755 "$PKG/libcbm.dylib" || true
+      # remove vendored binaries for other platforms & duplicates to appease the auditor
+      rm -rf "$PKG/resources/libcbm_bin" || true
     fi
 
-    if [[ "$target_platform" == "win-64" ]]; then
-      PKG="$SP_DIR/libcbm"
-      cp -f "$PKG/resources/libcbm_bin/win_x86_64/libcbm.dll" "$PKG/libcbm.dll"
-    fi
+# build:
+#   number: 0
+#   skip: true  # [ppc64le or s390x or py<39]
+#   script: |
+#     python -m pip install . -vv --no-deps --no-build-isolation
+    
+#     if [[ "$target_platform" == "linux-64" ]]; then
+#       PKG="$SP_DIR/libcbm"
+#       cp -f "$PKG/resources/libcbm_bin/ubuntu_24_04_x86_64/libcbm.so" "$PKG/libcbm.so"
+#       chmod 0755 "$PKG/libcbm.so" || true
+#     fi
+    
+#     if [[ "$target_platform" == "osx-64" ]]; then
+#       PKG="$SP_DIR/libcbm"
+#       cp -f "$PKG/resources/libcbm_bin/macos_64/libcbm.dylib" "$PKG/libcbm.dylib"
+#       chmod 0755 "$PKG/libcbm.dylib" || true
+#     fi
+
+#     if [[ "$target_platform" == "win-64" ]]; then
+#       PKG="$SP_DIR/libcbm"
+#       cp -f "$PKG/resources/libcbm_bin/win_x86_64/libcbm.dll" "$PKG/libcbm.dll"
+#     fi
 
 requirements:
   host:
@@ -41,6 +57,8 @@ requirements:
     - setuptools
   run:
     - python
+    - libgcc
+    - libstdcxx
     - numpy
     - pandas >=1.1.5
     - scipy
