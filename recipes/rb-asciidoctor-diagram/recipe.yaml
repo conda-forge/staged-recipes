@@ -4,6 +4,7 @@
 context:
   name: asciidoctor-diagram
   version: "3.0.1"
+  ruby_version: "3.4.0"
 
 package:
   name: rb-${{ name|lower }}
@@ -16,34 +17,37 @@ source:
 build:
   noarch: generic
   number: 0
-  script: |
-    gem install --no-document --ignore-dependencies --install-dir ${{ PREFIX }}/lib/ruby/gems ${{ name }}-${{ version }}.gem
+  script:
+    interpreter: nu
+    content:
+      - mkdir $"($env.PREFIX)/lib/ruby/gems/${{ ruby_version }}"
+      - let gem_dir = ($env.PREFIX | path join "lib" "ruby" "gems" "${{ ruby_version }}")
+      - ^($env.PREFIX | path join "bin" "gem") install -N -l -V --norc --ignore-dependencies --install-dir $gem_dir -n ($env.PREFIX | path join "bin") ${{ name }}-${{ version }}.gem
+      - ^($env.PREFIX | path join "bin" "gem") unpack ${{ name }}-${{ version }}.gem
+      - cp ${{ name }}-${{ version }}/LICENSE.txt .
 
 requirements:
   build:
-    - ruby
+    - nushell ==0.106.1
+    - ruby ==${{ ruby_version }}
   host:
-    - ruby
+    - ruby >=2.7,<4.0
   run:
-    - ruby >=2.7
+    - ruby >=2.7,<4.0
     - asciidoctor >=1.5.7,<3.0
-    - rb-rexml
+    - rb-rexml >=3.2.5
 
 tests:
   - script:
-      - nu test-pkg.nu --debug
+      - ruby -r 'asciidoctor-diagram'
     requirements:
       run:
-        - nushell
-        - ruby
-    files:
-      recipe:
-        - test-pkg.nu
-        - test-diagram.adoc
-        - class-diagram.puml
+        - ruby >=2.7,<4.0
 
 about:
   homepage: https://github.com/asciidoctor/asciidoctor-diagram
+  license: MIT
+  license_file: LICENSE.txt
   summary: Asciidoctor diagramming extension
   description: |
     A family of Asciidoctor extensions that generate images from a broad range of
@@ -51,7 +55,6 @@ about:
     and many others. The extension supports AsciiToSVG, BlockDiag (BlockDiag,
     SeqDiag, ActDiag, NwDiag), Ditaa, Erd, GraphViz, Mermaid, Msc, PlantUML,
     Shaape, SvgBob, Syntrax, UMLet, Vega, Vega-Lite and WaveDrom.
-  license: MIT
   documentation: https://docs.asciidoctor.org/diagram-extension/latest/
   repository: https://github.com/asciidoctor/asciidoctor-diagram
 
