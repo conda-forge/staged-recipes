@@ -9,7 +9,7 @@ export CXXFLAGS="$CXXFLAGS -std=c++11 -I$BOOST_INCLUDE_DIR -I$BUILD_PREFIX/lib/j
 
 echo Package workdir: "${PREFIX} $SRC_DIR"
 # Run the COMPSs install script
-./install ${PREFIX}/lib/COMPSs
+./install -T ${PREFIX}/lib/COMPSs
 
 # Link the user and utils scripts to bin
 mkdir -p ${PREFIX}/bin
