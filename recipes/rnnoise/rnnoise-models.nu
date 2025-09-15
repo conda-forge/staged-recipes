@@ -3,50 +3,47 @@
 # RNNoise Model Management Module - Simplified Cross-Platform Version
 # Handles downloading and validation of official RNNoise models
 
-# Download and extract RNNoise models
+# Download RNNoise models and return model file and hash
 export def download-models [] {
     print "📦 RNNoise Model Download Starting..."
 
     # Only use cross-platform manual download approach
-    if ("model_version" | path exists) {
-        print "📥 Found model_version file, downloading model..."
-
-        try {
-            let hash = (open "model_version" | str trim)
-            let model = $"rnnoise_data-($hash).tar.gz"
-            let download_url = $"https://media.xiph.org/rnnoise/models/($model)"
-
-            print $"🔑 Expected hash: ($hash)"
-            print $"📦 Model file: ($model)"
-
-            # Download if not present
-            if not ($model | path exists) {
-                print $"📥 Downloading from: ($download_url)"
-                try {
-                    http get $download_url | save $model
-                    print "✅ Download successful"
-                } catch { |err|
-                    print $"❌ Download failed: ($err.msg)"
-                    return false
-                }
-            } else {
-                print "✅ Model file already exists"
-            }
-
-            # Validate and extract
-            validate-and-extract $model $hash
-        } catch { |err|
-            print $"❌ Model download failed: ($err.msg)"
-            false
-        }
-    } else {
+    if not ("model_version" | path exists) {
         print "📋 No model_version file found, will use built-in defaults"
-        false
+        return null
+    }
+    print "📥 Found model_version file, downloading model..."
+
+    try {
+        let hash = (open "model_version" | str trim)
+        let model = $"rnnoise_data-($hash).tar.gz"
+        print $"🔑 Expected hash: ($hash)"
+        print $"📦 Model file: ($model)"
+
+        if ($model | path exists) {
+            print "✅ Model file already exists"
+            return {model: $model, hash: $hash}
+        }
+
+        let download_url = $"https://media.xiph.org/rnnoise/models/($model)"
+
+        print $"📥 Downloading from: ($download_url)"
+        try {
+            http get $download_url | save $model
+            print "✅ Download successful"
+        } catch { |err|
+            print $"❌ Download failed: ($err.msg)"
+            return null
+        }
+        {model: $model, hash: $hash}
+    } catch { |err|
+        print $"❌ Model download failed: ($err.msg)"
+        null
     }
 }
 
 # Validate checksum and extract model
-def validate-and-extract [model_file: string, expected_hash: string] {
+export def validate-and-extract [model_file: string, expected_hash: string] {
     try {
         print "🔍 Validating checksum..."
         let actual_hash = (open $model_file | hash sha256)
@@ -79,9 +76,9 @@ def validate-and-extract [model_file: string, expected_hash: string] {
     }
 }
 
-# Create fallback model files
-export def create-fallback-models [] {
-    print "📝 Creating fallback model files..."
+# Patch missing files with templates from recipe directory
+export def patch-missing-files [] {
+    print "🔧 Patching missing model files..."
 
     # Ensure src directory exists
     if not ("src" | path exists) {
@@ -89,18 +86,31 @@ export def create-fallback-models [] {
         print "📁 Created src directory"
     }
 
-    # Create header file
-    let template_h = ($env.RECIPE_DIR | path join "rnnoise_data.h.in")
-    if ($template_h | path exists) and not ("src/rnnoise_data.h" | path exists) {
-        cp $template_h "src/rnnoise_data.h"
-        print "✅ Created rnnoise_data.h from template"
+    # Patch rnnoise_data.h if missing
+    if not ("src/rnnoise_data.h" | path exists) {
+        let template = ($env.RECIPE_DIR | path join "rnnoise_data.h.in")
+        if ($template | path exists) {
+            cp $template "src/rnnoise_data.h"
+            print "✅ Patched rnnoise_data.h"
+        }
     }
 
-    # Create source file
-    let template_c = ($env.RECIPE_DIR | path join "rnnoise_data.c.in")
-    if ($template_c | path exists) and not ("src/rnnoise_data.c" | path exists) {
-        cp $template_c "src/rnnoise_data.c"
-        print "✅ Created rnnoise_data.c from template"
+    # Patch rnnoise_data.c if missing
+    if not ("src/rnnoise_data.c" | path exists) {
+        let template = ($env.RECIPE_DIR | path join "rnnoise_data.c.in")
+        if ($template | path exists) {
+            cp $template "src/rnnoise_data.c"
+            print "✅ Patched rnnoise_data.c"
+        }
+    }
+
+    # Patch os_support.h if missing (required for Windows builds)
+    if not ("src/os_support.h" | path exists) {
+        let os_support = ($env.RECIPE_DIR | path join "os_support.h")
+        if ($os_support | path exists) {
+            cp $os_support "src/os_support.h"
+            print "✅ Patched os_support.h"
+        }
     }
 }
 
@@ -123,7 +133,8 @@ export def list-model-files [] {
 export def main [] {
     print "🎯 RNNoise Model Management (Simplified)"
     print "Commands:"
-    print "  download-models        - Download official models"
-    print "  create-fallback-models - Create fallback files"
+    print "  download-models        - Download official models (returns model info)"
+    print "  validate-and-extract   - Validate and extract model file"
+    print "  patch-missing-files    - Patch missing model files"
     print "  list-model-files       - List current files"
 }
