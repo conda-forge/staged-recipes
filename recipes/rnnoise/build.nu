@@ -6,7 +6,7 @@
 cp ($env.RECIPE_DIR | path join "CMakeLists.txt") "CMakeLists.txt"
 
 # Copy os_support.h to src directory (required for Windows builds)
-cp ($env.RECIPE_DIR | path join "os_support.h") "src/os_support.h"
+# cp ($env.RECIPE_DIR | path join "os_support.h") "src/os_support.h"
 
 # Create build directory
 mkdir build
