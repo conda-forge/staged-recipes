@@ -4,7 +4,9 @@
 cmake -S . -B build -GNinja %CMAKE_ARGS% || goto :error
 cmake --build build || goto :error
 ctest --test-dir build --output-on-failure || goto :error
-cmake --install build || goto :error
+xcopy *.dll %LIBRARY_PREFIX%\bin
+xcopy *.lib %LIBRARY_PREFIX%\lib
+copy faad_cli.exe %LIBRARY_PREFIX%\bin
 
 goto :eof
 
