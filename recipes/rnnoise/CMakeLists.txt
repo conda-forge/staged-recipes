@@ -77,10 +77,20 @@ endif()
 # Create library
 add_library(rnnoise SHARED ${SOURCES})
 
+# Windows DLL export configuration
+if(WIN32)
+    # Generate import library (.lib) for the shared library (.dll)
+    set_target_properties(rnnoise PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
+    )
+endif()
+
 # Include directories
 target_include_directories(rnnoise PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
+    $<INSTALL_INTERFACE:$<IF:$<PLATFORM_ID:Windows>,Library/include,include>>)
 target_include_directories(rnnoise PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR})
@@ -132,17 +142,33 @@ if(UNIX)
 endif()
 
 # Installation configuration
-install(TARGETS rnnoise
-    EXPORT rnnoise-targets
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
+if(WIN32)
+    # Windows conda packages use Library/ prefix
+    install(TARGETS rnnoise
+        EXPORT rnnoise-targets
+        RUNTIME DESTINATION Library/bin
+        LIBRARY DESTINATION Library/lib
+        ARCHIVE DESTINATION Library/lib
+    )
 
-# Install headers
-install(FILES "include/rnnoise.h"
-    DESTINATION include
-)
+    # Install headers
+    install(FILES "include/rnnoise.h"
+        DESTINATION Library/include
+    )
+else()
+    # Unix platforms use standard paths
+    install(TARGETS rnnoise
+        EXPORT rnnoise-targets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+
+    # Install headers
+    install(FILES "include/rnnoise.h"
+        DESTINATION include
+    )
+endif()
 
 # Generate pkg-config file for Unix platforms
 if(UNIX)
@@ -165,11 +191,19 @@ if(UNIX)
 endif()
 
 # Install export targets (for find_package support)
-install(EXPORT rnnoise-targets
-    FILE rnnoise-targets.cmake
-    NAMESPACE rnnoise::
-    DESTINATION lib/cmake/rnnoise
-)
+if(WIN32)
+    install(EXPORT rnnoise-targets
+        FILE rnnoise-targets.cmake
+        NAMESPACE rnnoise::
+        DESTINATION Library/lib/cmake/rnnoise
+    )
+else()
+    install(EXPORT rnnoise-targets
+        FILE rnnoise-targets.cmake
+        NAMESPACE rnnoise::
+        DESTINATION lib/cmake/rnnoise
+    )
+endif()
 
 # Create and install package configuration files
 include(CMakePackageConfigHelpers)
@@ -177,10 +211,16 @@ include(CMakePackageConfigHelpers)
 # Generate config files if template exists
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/rnnoise-config.cmake.in")
     # Generate config file
+    if(WIN32)
+        set(CONFIG_INSTALL_DESTINATION Library/lib/cmake/rnnoise)
+    else()
+        set(CONFIG_INSTALL_DESTINATION lib/cmake/rnnoise)
+    endif()
+
     configure_package_config_file(
         "${CMAKE_CURRENT_LIST_DIR}/rnnoise-config.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/rnnoise-config.cmake"
-        INSTALL_DESTINATION lib/cmake/rnnoise
+        INSTALL_DESTINATION ${CONFIG_INSTALL_DESTINATION}
         NO_SET_AND_CHECK_MACRO
     )
 
@@ -195,7 +235,7 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/rnnoise-config.cmake.in")
     install(FILES
         "${CMAKE_CURRENT_BINARY_DIR}/rnnoise-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/rnnoise-config-version.cmake"
-        DESTINATION lib/cmake/rnnoise
+        DESTINATION ${CONFIG_INSTALL_DESTINATION}
     )
 else()
     message(STATUS "Package config template not found - skipping CMake config generation")
