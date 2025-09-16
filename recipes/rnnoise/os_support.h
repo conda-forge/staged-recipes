@@ -46,6 +46,9 @@
 #define RNNOISE_INLINE static inline
 #endif
 
+/* Only define allocation functions if not already defined elsewhere */
+#ifndef CUSTOM_ALLOC_DEFINED
+
 /** RNNoise wrapper for malloc(). To do your own dynamic allocation replace this function, rnnoise_realloc, and rnnoise_free */
 #ifndef OVERRIDE_RNNOISE_ALLOC
 RNNOISE_INLINE void *rnnoise_alloc(size_t size)
@@ -68,6 +71,8 @@ RNNOISE_INLINE void rnnoise_free(void *ptr)
    free(ptr);
 }
 #endif
+
+#endif /* CUSTOM_ALLOC_DEFINED */
 
 /** Copy n elements from src to dst. The 0* term provides compile-time type checking  */
 #ifndef OVERRIDE_RNNOISE_COPY
