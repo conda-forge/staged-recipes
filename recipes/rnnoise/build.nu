@@ -5,6 +5,8 @@
 # Copy CMakeLists.txt from recipe directory
 cp ($env.RECIPE_DIR | path join "CMakeLists.txt") "CMakeLists.txt"
 
+
+
 # Create build directory
 mkdir build
 cd build

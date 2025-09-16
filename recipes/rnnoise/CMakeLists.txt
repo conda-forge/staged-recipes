@@ -104,6 +104,8 @@ if(WIN32)
             _USE_MATH_DEFINES          # Enable M_PI and other math constants
             _CRT_SECURE_NO_WARNINGS    # Suppress MSVC security warnings
             "M_PI=3.14159265358979323846"  # Define M_PI explicitly as fallback
+            CUSTOM_ALLOC_DEFINED       # Prevent allocation function conflicts
+            RNNOISE_ALLOC_DECLARED     # Mark allocation functions as declared
         )
 
         # MSVC compiler flags for better compatibility
@@ -111,6 +113,8 @@ if(WIN32)
             /W3              # Warning level 3
             /wd4244          # Disable conversion warnings (common in audio code)
             /wd4305          # Disable truncation warnings
+            /wd4996          # Disable deprecated function warnings
+            /DWIN32_LEAN_AND_MEAN  # Reduce Windows header conflicts
         )
     endif()
 endif()
