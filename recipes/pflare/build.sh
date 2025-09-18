@@ -20,8 +20,10 @@ cd $SRC_DIR/pflare_src
 
 if [ "$(uname -s)" = "Darwin" ]; then
    sed -i '.bak' -E 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' tests/Makefile
+   sed -i '.bak' -E 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' python/Makefile
 else
    sed -i.bak 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' tests/Makefile
+   sed -i.bak 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' python/Makefile
 fi
 
 # Build PFLARE and Python bindings
