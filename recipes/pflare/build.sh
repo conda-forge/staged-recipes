@@ -10,7 +10,7 @@ export PETSC_ARCH=""
 PETSC_SRC_INCLUDE_DIR="$SRC_DIR/petsc_src/include"
 
 # Add the explicit source include path to the compiler flags.
-# We prepend any existing flags to ensure we don't overwrite them.
+# We need some of the petsc private headers that aren't included in builds
 export CFLAGS="-I${PETSC_SRC_INCLUDE_DIR} ${CFLAGS}"
 export CXXFLAGS="-I${PETSC_SRC_INCLUDE_DIR} ${CXXFLAGS}"
 export CPPFLAGS="-I${PETSC_SRC_INCLUDE_DIR} ${CPPFLAGS}"
