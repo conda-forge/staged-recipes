@@ -1,6 +1,7 @@
 @echo on
 @setlocal EnableDelayedExpansion
 
+sed -i "s/AR=ar/AR=%AR%/" Makefile || goto :error
 make ARGON2_VERSION='%PKG_VERSION%' OPTTARGET='none' LIBRARY_REL='lib' AR='%AR%' install || goto :error
 make test || goto :error
 
