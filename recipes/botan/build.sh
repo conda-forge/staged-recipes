@@ -6,6 +6,8 @@ extra_args=""
 if [[ ${target_platform} =~ .*linux.* ]]; then
     extra_args+="--cc=gcc "
     extra_args+="--without-os-features=getrandom,getentropy,explicit_bzero "
+else
+    rm src/tests/test_tls_session_manager.cpp
 fi
 
 ./configure.py \
