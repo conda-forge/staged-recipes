@@ -1,0 +1,87 @@
+{% set name = "cccl-python" %}
+{% set version = "0.2.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/cccl/archive/refs/tags/python-{{ version }}.tar.gz
+  sha256: 8dca4ecf57a86f1c8c5254b646578374774640e03e2f686299906f399a0745dd
+
+build:
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script: |
+    export CMAKE_GENERATOR=Ninja
+    {{ PYTHON }} -m pip install python/cuda_cccl -vv --no-deps --no-build-isolation
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  skip: true  # [(py < 39) or cuda_compiler_version not in ("12.6",) or ppc64le or win64]
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+    - cuda-nvrtc-dev
+    - libnvjitlink-dev
+    - cuda-driver-dev
+  missing_dso_whitelist:
+    - "*/libcuda.so.1"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-nvrtc-dev
+    - libnvjitlink-dev
+    - cuda-driver-dev
+    - python
+    - cython
+    - scikit-build-core >=0.10
+    - setuptools-scm
+    - pip
+  run:
+    - {{ pin_compatible("cuda-version", min_pin="x") }}
+    - python
+    - numba >=0.60.0
+    - cuda-pathfinder >=1.1.0,<2.0.0a0
+    - cuda-core 0.3.*
+    - numba-cuda >=0.18.0
+    - {{ pin_compatible('cuda-nvrtc', min_pin='x', max_pin='x') }}
+    - {{ pin_compatible('libnvjitlink', min_pin='x', max_pin='x') }}
+  run_constrained:
+    - __cuda >=12.0
+
+test:
+  imports:
+    - cuda.cccl
+    - cuda.cccl.headers
+    - cuda.cccl.cooperative
+    # - cuda.cccl.parallel
+    # ideally we could also import cuda.cccl.parallel, but it links to the driver
+    # which gets loaded on `import` and thus cannot be tested on a CPU-only node.
+    # LD_PRELOAD-ing the cuda stub would also work, but alas there's some overzealous
+    # invocations of CUDA APIs that prevent that from working too.
+
+
+
+about:
+  home: https://github.com/NVIDIA/cccl
+  summary: 'Python interfaces to CUDA Core Compute Libraries (CCCL)'
+  description: 'Python interfaces to CUDA Core Compute Libraries (CCCL)'
+  license: LicenseRef-NVIDIA-SOFTWARE-LICENSE
+  license_file: LICENSE
+  # The doc_url and dev_url are optional.
+  doc_url: https://nvidia.github.io/cccl/python/
+  dev_url: https://github.com/NVIDIA/cccl
+
+extra:
+  recipe-maintainers:
+    - leofang
+    - cpcloud
+    - oleksandr-pavlyk
+    - shwina
