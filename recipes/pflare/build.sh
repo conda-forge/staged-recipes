@@ -30,6 +30,9 @@ make -j${CPU_COUNT} check "CONDA_BUILD=1"
 # 1. Create the destination directories
 # The library will go in $PREFIX/lib
 mkdir -p $PREFIX/lib
+# The header files/mod will go in $PREFIX/include and $PREFIX/include/finclude
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/include/finclude
 # The Python modules will go in the site-packages directory
 SITE_PACKAGES_DIR=$PREFIX/lib/python${PY_VER}/site-packages
 mkdir -p $SITE_PACKAGES_DIR
@@ -39,9 +42,7 @@ mkdir -p $SITE_PACKAGES_DIR
 cp lib/libpflare* $PREFIX/lib/
 
 # 3. Copy the pflare public headers and .mod files
-mkdir -p $PREFIX/include
-mkdir -p $PREFIX/include/finclude
-cp -r include/ $PREFIX/include/
+cp -r include/* $PREFIX/include/
 # .mod files can be either in top level or include directories
 # depending on the compiler
 cp *.mod $PREFIX/include/ || true
