@@ -18,14 +18,6 @@ export CPPFLAGS="-I${PETSC_SRC_INCLUDE_DIR} ${CPPFLAGS}"
 # PFLARE source directory given the source in the yaml
 cd $SRC_DIR/pflare_src
 
-if [ "$(uname -s)" = "Darwin" ]; then
-   sed -i '.bak' -E 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' tests/Makefile
-   sed -i '.bak' -E 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' python/Makefile
-else
-   sed -i.bak 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' tests/Makefile
-   sed -i.bak 's/[[:space:]]*>[[:space:]]*\/dev\/null[[:space:]]*2>&1//g' python/Makefile
-fi
-
 # Build PFLARE and Python bindings
 # Have to explicitly tell make that this is a conda build to avoid overlinking
 make -j${CPU_COUNT} "CONDA_BUILD=1"
