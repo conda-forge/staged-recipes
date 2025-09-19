@@ -38,7 +38,16 @@ mkdir -p $SITE_PACKAGES_DIR
 # Assumes the library is named libpflare* and is in the top-level build directory
 cp lib/libpflare* $PREFIX/lib/
 
-# 3. Copy the Python modules
+# 3. Copy the pflare public headers and .mod files
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/include/finclude
+cp -r include/ $PREFIX/include/
+# .mod files can be either in top level or include directories
+# depending on the compiler
+cp *.mod $PREFIX/include/ || true
+cp lib/*.mod $PREFIX/include/ || true
+
+# 4. Copy the Python modules
 # The python files are in the 'python' subdirectory. The `*` glob handles
 # the full name of the compiled Cython module (e.g., pflare_defs.cpython-311-x86_64-linux-gnu.so)
 cp python/pflare.py $SITE_PACKAGES_DIR/
