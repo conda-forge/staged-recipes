@@ -1,0 +1,148 @@
+version: 1
+name: mediamtx
+display_name: MediaMTX
+description: MediaMTX - Ready-to-use real-time media server and media proxy
+category: "media-server"
+
+executable:
+  task: mediamtx
+  working_directory: /var/lib/mediamtx
+  environment:
+    - MEDIAMTX_CONFIG_FILE=/etc/mediamtx/mediamtx.yml
+
+service_type: simple
+startup_mode: automatic
+
+security:
+  run_as_user: mediamtx
+  run_as_group: mediamtx
+
+dependencies:
+  services:
+    - network-online.target
+  groups:
+    - network
+
+recovery:
+  restart_policy: on_failure
+  restart_delay: "5s"
+  max_restarts: 3
+  restart_window: "60s"
+
+timeouts:
+  start: "30s"
+  stop: "15s"
+  watchdog: "60s"
+
+files:
+  # Service home directory
+  - path: /var/lib/mediamtx
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "mediamtx:mediamtx"
+
+  # Configuration directory
+  - path: /etc/mediamtx
+    persistence: durable
+    type: directory
+    permissions: "755"
+    owner: "root:root"
+
+  # Log directory
+  - path: /var/log/mediamtx
+    persistence: volatile
+    type: directory
+    permissions: "755"
+    owner: "mediamtx:mediamtx"
+
+  # Basic configuration file
+  - path: /etc/mediamtx/mediamtx.yml
+    content: |
+      # MediaMTX configuration file
+      # For full configuration options, see: https://github.com/bluenviron/mediamtx
+
+      # General settings
+      logLevel: info
+      logDestinations: [stdout]
+
+      # API settings
+      api: yes
+      apiAddress: 127.0.0.1:9997
+
+      # Metrics settings
+      metrics: yes
+      metricsAddress: 127.0.0.1:9998
+
+      # RTSP settings
+      rtspAddress: :8554
+      protocols: [udp, multicast, tcp]
+
+      # RTMP settings
+      rtmpAddress: :1935
+
+      # HLS settings
+      hlsAddress: :8888
+      hlsAllowOrigin: "*"
+
+      # WebRTC settings
+      webrtcAddress: :8889
+      webrtcAllowOrigin: "*"
+
+      # Paths (streams configuration)
+      paths:
+        all:
+          # Allow publishing and reading from any client
+          publishUser: ""
+          publishPass: ""
+          readUser: ""
+          readPass: ""
+    persistence: durable
+    type: regular
+    permissions: "644"
+    owner: "root:root"
+    backup: true
+
+platform_specific:
+  systemd:
+    unit:
+      Description: "MediaMTX Real-time Media Server"
+      Documentation: "https://github.com/bluenviron/mediamtx"
+      After:
+        - network.target
+        - network-online.target
+      Wants:
+        - network-online.target
+    service:
+      Type: simple
+      Restart: on-failure
+      RestartSec: 5
+      StartLimitInterval: 60s
+      StartLimitBurst: 3
+      StandardOutput: journal
+      StandardError: journal
+      SyslogIdentifier: mediamtx
+      # Security settings
+      NoNewPrivileges: true
+      ProtectSystem: strict
+      ProtectHome: true
+      ReadWritePaths:
+        - /var/lib/mediamtx
+      PrivateTmp: true
+      ProtectKernelTunables: true
+      ProtectKernelModules: true
+      ProtectControlGroups: true
+      RestrictRealtime: true
+      RestrictSUIDSGID: true
+      # Network security
+      IPAddressDeny: any
+      IPAddressAllow:
+        - localhost
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+      # Resource limits
+      LimitNOFILE: 65536
+    install:
+      WantedBy:
+        - multi-user.target
