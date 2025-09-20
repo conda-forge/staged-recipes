@@ -14,12 +14,47 @@ source:
 
 build:
   number: 0
-  noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: true
+  script:
+    - if: unix
+      then:
+        # https://github.com/rust-lang/cargo/issues/10583#issuecomment-1129997984
+        - export CARGO_NET_GIT_FETCH_WITH_CLI=true
+        # Optimize the Cargo build
+        - export CARGO_PROFILE_RELEASE_STRIP=symbols
+        - export CARGO_PROFILE_RELEASE_LTO=fat
+        # Install the Python package using maturin
+        - python -m pip install . -vv --no-deps --no-build-isolation
+        # Generate the THIRDPARTY.yml file
+        - cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+    - if: win
+      then:
+        # https://github.com/rust-lang/cargo/issues/10583#issuecomment-1129997984
+        - set CARGO_NET_GIT_FETCH_WITH_CLI=true
+        # Optimize the Cargo build
+        - set CARGO_PROFILE_RELEASE_STRIP=symbols
+        - set CARGO_PROFILE_RELEASE_LTO=fat
+        # Install the Python package using maturin
+        - python -m pip install . -vv --no-deps --no-build-isolation
+        # Generate the THIRDPARTY.yml file
+        - cargo-bundle-licenses --format yaml --output %SRC_DIR%\THIRDPARTY.yml || goto :error
+  skip: not (match(python, python_min ~ ".*") and is_abi3)
 
 requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.7,<2.0
   host:
     - python ${{ python_min }}.*
+    - python-abi3 ${{ python_min }}.*
     - maturin >=1.8,<2.0
     - pip
   run:
@@ -31,7 +66,21 @@ tests:
       imports:
         - openai_harmony
       pip_check: true
-      python_version: ${{ python_min }}.*
+      python_version: ["${{ python_min ~ '.*' }}"]
+  - script:
+    # NOTE: we must manually set SP_DIR since it is not set.
+    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+    - if: unix
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+        - abi3audit $SP_DIR/openai_harmony/openai_harmony.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+    - if: win
+      then:
+        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+        - abi3audit %SP_DIR%\\openai_harmony\\openai_harmony.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
 
 about:
   homepage: https://pypi.org/project/openai-harmony/
