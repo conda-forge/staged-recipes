@@ -20,6 +20,8 @@ source:
 build:
   script:
     content: |
+        for /f "delims=" %%i in ('python -c "import sys; print(sys.version_info[1])"') do set PY_VERSION=%%i
+        echo Python minor version found: %PY_VERSION%
         cmake ^
           -G "Visual Studio 17 2022" ^
           -A x64 ^
@@ -27,24 +29,22 @@ build:
           -DBUILD_DOCUMENTATION=OFF ^
           -DBUILD_EXAMPLES=OFF ^
           -DBUILD_GUI=OFF ^
-          -DBUILD_PYTHON_INTERFACE=OFF ^
+          -DBUILD_PYTHON_INTERFACE=ON ^
+          -DPython_EXECUTABLE="%PYTHON%" ^
+          -DPYTHON_INCLUDE_DIR="%PREFIX%"\include\ ^
+          -DPYTHON_LIBRARY="%PREFIX%\libs\python3%PY_VERSION%.lib" ^
+          -DPYTHON_SITEPACKAGES_DIR="%SP_DIR%" ^
           -DBUILD_RENDERER=OFF ^
           -DBUILD_SHARED=ON ^
           -DBUILD_UNIT_TESTS=OFF ^
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
           -DCMAKE_CXX_STANDARD=14 ^
+          -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
           "%SRC_DIR%"
         cmake --build . --config Release
-
-    env:
-      BUILD_CASCADE_EXPORT: "OFF"
-      BUILD_DOCUMENTATION: "OFF"
-      BUILD_EXAMPLES: "OFF"
-      BUILD_GUI: "OFF"
-      BUILD_PYTHON_INTERFACE: "OFF"
-      BUILD_RENDERER: "OFF"
-      BUILD_SHARED: "ON"
-      BUILD_UNIT_TESTS: "OFF"
+        cmake --install .
+        copy "%SRC_DIR%\OctreeRefinement\libsc.dll" "%PREFIX%\Library\bin\"
+        copy "%SRC_DIR%\OctreeRefinement\libp4est.dll" "%PREFIX%\Library\bin\"
   number: 0
 
 requirements:
@@ -53,6 +53,18 @@ requirements:
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
     - cmake
+    - swig
+  host:
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+      - TexGen.Core
+      pip_check: true
+      python_version: ${{ python_min }}.*
 
 about:
   homepage: https://texgen.sourceforge.io/index.php/Main_Page
