@@ -11,40 +11,70 @@ source:
   # sha256: 4E49837ACEBAC59DD03E269E3D23D034569E4E436C8D6395F3B568AA08C4F6A1
   # does not work?! Cloning into '/d/XXX/Code/staged-recipes/build_artifacts/src_cache/TexGen.git'...
   # fatal: unable to access 'https://github.com/louisepb/TexGen.git/': error setting certificate file: /usr/ssl/certs/ca-bundle.crt
-  # git: https://github.com/louisepb/TexGen.git
+  git: https://github.com/louisepb/TexGen.git
   # branch: main
-  path: ../../../TexGen
+  # path: ../../../TexGen
   patches:
     - fix-windows-linking.patch
+    - add_ctype.patch
+    - if: unix
+      then:
+        - delete_include.patch
 
 build:
   script:
-    content: |
-        for /f "delims=" %%i in ('python -c "import sys; print(sys.version_info[1])"') do set PY_VERSION=%%i
-        echo Python minor version found: %PY_VERSION%
-        cmake ^
-          -G "Visual Studio 17 2022" ^
-          -A x64 ^
-          -DBUILD_CASCADE_EXPORT=OFF ^
-          -DBUILD_DOCUMENTATION=OFF ^
-          -DBUILD_EXAMPLES=OFF ^
-          -DBUILD_GUI=OFF ^
-          -DBUILD_PYTHON_INTERFACE=ON ^
-          -DPython_EXECUTABLE="%PYTHON%" ^
-          -DPYTHON_INCLUDE_DIR="%PREFIX%"\include\ ^
-          -DPYTHON_LIBRARY="%PREFIX%\libs\python3%PY_VERSION%.lib" ^
-          -DPYTHON_SITEPACKAGES_DIR="%SP_DIR%" ^
-          -DBUILD_RENDERER=OFF ^
-          -DBUILD_SHARED=ON ^
-          -DBUILD_UNIT_TESTS=OFF ^
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-          -DCMAKE_CXX_STANDARD=14 ^
-          -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
-          "%SRC_DIR%"
-        cmake --build . --config Release
-        cmake --install .
-        copy "%SRC_DIR%\OctreeRefinement\libsc.dll" "%PREFIX%\Library\bin\"
-        copy "%SRC_DIR%\OctreeRefinement\libp4est.dll" "%PREFIX%\Library\bin\"
+    - if: unix
+      then: |
+          cmake "$SRC_DIR" \
+            -DBUILD_CASCADE_EXPORT=OFF \
+            -DBUILD_DOCUMENTATION=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_GUI=OFF \
+            -DBUILD_PYTHON_INTERFACE=ON \
+            -DPYTHON_INCLUDE_DIR="$PREFIX/include/python${PY_VER}" \
+            -DPYTHON_LIBRARY="$PREFIX/lib/libpython${PY_VER}${SHLIB_EXT}" \
+            -DPYTHON_SITEPACKAGES_DIR="$SP_DIR" \
+            -DBUILD_RENDERER=OFF \
+            -DBUILD_SHARED=ON \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_CXX_STANDARD=14 \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DCMAKE_MACOSX_RPATH=ON \
+            -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+            -DCMAKE_INSTALL_RPATH="$PREFIX"/lib \
+            --debug-output \
+            $SRC_DIR
+          cmake --build . --config Release
+          cmake --install . --prefix $PREFIX
+          cp $SRC_DIR/OctreeRefinement/*.so $PREFIX/lib
+    - if: win
+      then: |
+          for /f "delims=" %%i in ('python -c "import sys; print(sys.version_info[1])"') do set PY_VERSION=%%i
+          echo Python minor version found: "%PY_VERSION%"
+          cmake ^
+            -G "Visual Studio 17 2022" ^
+            -A x64 ^
+            -DBUILD_CASCADE_EXPORT=OFF ^
+            -DBUILD_DOCUMENTATION=OFF ^
+            -DBUILD_EXAMPLES=OFF ^
+            -DBUILD_GUI=OFF ^
+            -DBUILD_PYTHON_INTERFACE=ON ^
+            -DPython_EXECUTABLE="%PYTHON%" ^
+            -DPYTHON_INCLUDE_DIR="%PREFIX%"\include\ ^
+            -DPYTHON_LIBRARY="%PREFIX%\libs\python3%PY_VERSION%.lib" ^
+            -DPYTHON_SITEPACKAGES_DIR="%SP_DIR%" ^
+            -DBUILD_RENDERER=OFF ^
+            -DBUILD_SHARED=ON ^
+            -DBUILD_UNIT_TESTS=OFF ^
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
+            -DCMAKE_CXX_STANDARD=14 ^
+            -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
+            "%SRC_DIR%"
+          cmake --build . --config Release
+          cmake --install .
+          copy "%SRC_DIR%\OctreeRefinement\libsc.dll" "%PREFIX%\Library\bin\"
+          copy "%SRC_DIR%\OctreeRefinement\libp4est.dll" "%PREFIX%\Library\bin\"
   number: 0
 
 requirements:
@@ -71,7 +101,7 @@ about:
   summary: 'TexGen is a geometric textile modelling software package to be used for obtaining engineering properties of woven textiles and textile composites.'
   description: |
     TexGen is a geometric textile modelling software package to be used for obtaining engineering properties of woven textiles and textile composites.
-  license: GPL-2.0
+  license: GPL-2.0-or-later
   license_file: LICENSE
   repository: https://github.com/louisepb/TexGen
 
