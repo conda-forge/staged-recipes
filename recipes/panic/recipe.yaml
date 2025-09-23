@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  name: panic
+  version: 9.4.4
+  python_min: "3.11"
+
+recipe:
+  name: panic-suite
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/panic-${{ version }}.tar.gz
+  sha256: 70a035f7618680a6bbf64dcaa56c3d25de510137eccd9fc89b1763dc65148cad
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: panic
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install --no-deps -vv .
+      python:
+        entry_points:
+          - PyAlarm = panic.ds.PyAlarm:main
+          - panic = panic.gui.gui:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - pytango
+        - fandango
+    tests:
+      - python:
+          imports:
+            - panic.ds
+          python_version:
+            - ${{ python_min }}.*
+            - 3.*
+          pip_check: true
+      - script:
+          - PyAlarm --help
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+
+  - package:
+      name: panic-gui
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('panic', exact=True) }}
+        - taurus
+    tests:
+      - python:
+          imports:
+            - panic
+          python_version:
+            - ${{ python_min }}.*
+            - 3.*
+          pip_check: true
+
+about:
+  summary: PANIC, a python Alarm System for TANGO
+  license: LGPL-3.0-or-later
+  license_file: LICENSE
+  homepage: https://gitlab.com/tango-controls/panic
+  documentation: https://pythonhosted.org/panic/
+  description: |
+    Panic is a python Alarm System for TANGO Control Systems that provides
+    several tools (api, Tango device server, user interface) for periodic
+    evaluation of conditions, notification services, logging, automated actions
+    and configuration and visualization of alarms.
+
+extra:
+  recipe-maintainers:
+    - sergirubio
+    - ovallcorba
