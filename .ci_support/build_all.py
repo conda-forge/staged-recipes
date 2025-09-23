@@ -292,8 +292,7 @@ def build_folders_rattler_build(
         specs[f] = conda_build.variants.parse_config_file(
             os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
         )
-
-    recipes_config = os.path.join(recipes_dir, "conda_build_config.yaml")
+    recipes_config = next(Path(recipes_dir).glob("**/conda_build_config.yaml"), None)
     if os.path.isfile(recipes_config):
         specs[recipes_config] = conda_build.variants.parse_config_file(
             os.path.abspath(recipes_config), config
