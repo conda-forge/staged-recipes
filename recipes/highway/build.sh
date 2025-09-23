@@ -1,5 +1,5 @@
-mkdir build
-cd build
+mkdir build-hwy
+cd build-hwy
 
 cmake ${CMAKE_ARGS} -GNinja .. \
       -DCMAKE_BUILD_TYPE=Release \
