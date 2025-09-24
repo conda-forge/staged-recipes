@@ -293,11 +293,18 @@ def build_folders_rattler_build(
             os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
         )
 
-    recipes_config = next(Path(recipes_dir).glob("**/conda_build_config.yaml"), None)
-    if recipes_config and os.path.isfile(recipes_config):
-        specs[recipes_config] = conda_build.variants.parse_config_file(
-            os.path.abspath(recipes_config), config
+    variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
+             + list(Path(recipes_dir).glob(f"**/variants.yaml"))
+    if len(variants) > 1:
+        raise ValueError(
+            f"Found multiple variant config files in the recipes: {variants}. "
+            "Consider merging or submitting them in separate PRs."
         )
+    for recipes_config in variants:
+        if recipes_config and os.path.isfile(recipes_config):
+            specs[recipes_config] = conda_build.variants.parse_config_file(
+                os.path.abspath(recipes_config), config
+            )
 
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
