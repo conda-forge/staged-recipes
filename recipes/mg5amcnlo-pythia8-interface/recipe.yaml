@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  name: "mg5amcnlo-pythia8-interface"
+  version: "1.3.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mg5amcnlo/MG5aMC_PY8_interface/archive/5d82df1b77bd2b69ffeae5b6bfe100a62b31c30e.tar.gz
+  sha256: 66055e0faac2c1ab0b0bb9d98cf88d80e79040be7d6d27dfb8964b141b802203
+
+build:
+  number: 0
+  skip:
+    - win
+    # PY8_parallelization is broken on osx-64
+    - osx and x86_64
+  script:
+    # Manually compile MG5aMC_PY8_interface.cc instead of using compile.py
+    - $CXX ./MG5aMC_PY8_interface.cc -o MG5aMC_PY8_interface $CXXFLAGS $(pythia8-config --cxxflags) $LDFLAGS $(pythia8-config --ldflags) -lHepMC
+    - echo "UNSPECIFIED" > MG5AMC_VERSION_ON_INSTALL
+    # - pythia8-config --version > PYTHIA8_VERSION_ON_INSTALL
+    # FIXME: pythia8-config --version added in 8.312, so fall back
+    # to get_pythia8_version.py
+    - python ./get_pythia8_version.py $PREFIX > PYTHIA8_VERSION_ON_INSTALL
+
+    # Install in location mg5amcnlo expects
+    - mkdir -p $PREFIX/MG5_aMC/HEPTools/MG5aMC_PY8_interface
+    - cp MG5aMC_PY8_interface *.h VERSION COMPATIBILITY PYTHIA8_VERSION_ON_INSTALL MG5AMC_VERSION_ON_INSTALL $PREFIX/MG5_aMC/HEPTools/MG5aMC_PY8_interface/
+    # # Be optimistic about future compatibility
+    # - mkdir -p $PREFIX/include/mg5amcnlo_pythia8_interface/
+    # - mkdir -p $PREFIX/share/mg5amcnlo_pythia8_interface/
+
+    # - mv MG5aMC_PY8_interface $PREFIX/bin/
+    # - mv *.h $PREFIX/include/mg5amcnlo_pythia8_interface/
+    # - mv *.dat VERSION COMPATIBILITY PYTHIA8_VERSION_ON_INSTALL MG5AMC_VERSION_ON_INSTALL $PREFIX/share/mg5amcnlo_pythia8_interface/
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - hepmc2
+    - pythia8  # variant
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/MG5aMC_PY8_interface
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/VERSION
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/COMPATIBILITY
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/MG5AMC_VERSION_ON_INSTALL
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/PYTHIA8_VERSION_ON_INSTALL
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/MultiHist.h
+        - MG5_aMC/HEPTools/MG5aMC_PY8_interface/SyscalcVeto.h
+        - etc/conda/test-files/mg5amcnlo-pythia8-interface/0/pythia8_test.mg5
+  - files:
+      recipe:
+        - pythia8_test.mg5
+    requirements:
+      run:
+        - mg5amcnlo
+        - pythia8  # variant
+    script:
+      # Download NNPDF23_lo_as_0130_qed in advance to avoid long output in CI logs
+      # Somehow downloading in advance causes a compilation error on x86 Linux only in CI
+      - lhapdf install NNPDF23_lo_as_0130_qed &> download_log.txt
+      # FIXME: mg5amcnlo activation scripts added for pythia8 8.311 versions only
+      # c.f. https://github.com/conda-forge/mg5amcnlo-feedstock/issues/11
+      # can remove once mg5amcnlo supports pythia8 8.312 also, which should once
+      # this is a feedstock.
+      - export FFLAGS="$FFLAGS -std=legacy"
+      - mg5_aMC pythia8_test.mg5
+
+about:
+  # modified University of Illinois/NCSA license
+  license: LicenseRef-NCSA
+  license_file: LICENSE
+  summary: Interface between MadGraph5_aMC@NLO and Pythia8
+  homepage: https://github.com/mg5amcnlo/MG5aMC_PY8_interface
+  repository: https://github.com/mg5amcnlo/MG5aMC_PY8_interface
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
