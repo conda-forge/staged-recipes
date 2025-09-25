@@ -15,9 +15,10 @@ If the issue persists, support can be found [on Zulip](https://conda-forge.zulip
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the [example recipe](recipes/example), our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
-3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
-4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
+2. Make a new branch from `main` for your package's recipe.
+3. Make a new folder in `recipes` for your package. Look at the [example recipe](recipes/example), our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
+4. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
+5. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
 ### `pixi`
 
@@ -78,19 +79,31 @@ helpful linters that can save CI resources by catching known issues up-front.
 
 Use one of:
 - manually
-  - install `conda-smithy`: `conda install -c conda-forge conda-smithy`
+  - install `conda-smithy`: `conda install -c conda-forge conda-smithy shellcheck`
   - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
 - with [`pixi`](#pixi):
   - lint recipes: `pixi run lint`
 
-> **NOTE**
+> **NOTES**
 >
-> `conda-smithy` is
+> - `conda-smithy` is
 > [frequently updated](https://github.com/conda-forge/conda-smithy/blob/main/CHANGELOG.rst)
 > with current best practices. Ensure using the latest with:
+>   - `$CONDA_EXE upgrade conda-smithy shellcheck`
+>   - or `pixi upgrade --feature conda-smithy`
 >
-> - `$CONDA_EXE upgrade conda-smithy`
-> - `pixi upgrade --feature conda-smithy`
+> - to enable most [`shellcheck`](https://www.shellcheck.net/) [rules](https://www.shellcheck.net/wiki)
+>    - create a [`conda-forge.yml`](https://conda-forge.org/docs/maintainer/conda_forge_yml)
+>      next to your new recipe (and any `.sh` scripts):
+>      ```yaml
+>      # recipes/your-new-recipe/conda-forge.yml
+>      shellcheck:
+>        enabled: true
+>      ```
+>    - run the linter using your preferred method, as described above
+>    - if committed and pushed, this will be checked in CI during the review process,
+>      then merged into the defaults in the root of the rendered feedstock.
+
 
 ## FAQ
 
@@ -158,6 +171,9 @@ This should be the default install line for most Python packages. This is prefer
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
 In many cases, no. Python packages almost never need it. If the build can be done with one line you can put it in the `script` line of the `build` section.
+
+If you _would_ like help with `.sh` best practices, see more information about
+[linting with `conda-smithy`](#linting-recipes-with-conda-smithy) and `shellcheck`.
 
 ### 9. What does being a conda-forge feedstock maintainer entail?
 
