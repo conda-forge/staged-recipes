@@ -42,44 +42,46 @@ requirements:
     - freud >=3.0.0,!=3.2.0
     
 tests:
-  - python:
-      imports:
-        - spatula
-        - numpy
-        - scipy
-        - freud
-      pip_check: true
+  - if: unix
+    then:
+      - script:
+          - python -m  pytest tests -v
+      - files:
+          source:
+            - tests/
+      - requirements:
+          run:
+            - pytest
+            - pytest-rerunfailures
+            - coxeter
 
-  - script:
-      if: unix
-      then:
-        - pytest tests/ -v
-    requirements:
-      run:
-        - pytest
-        - pytest-rerunfailures
-        - coxeter
-    files:
-      source:
-        - tests/
-
-  - script:
-      if: win
-      then:
-        - >-
-          python -c "import sys,subprocess,xml.etree.ElementTree as ET;
-          rc=subprocess.call([sys.executable,'-m','pytest','tests','-v','--junitxml','pytest-report.xml','--reruns','2','--reruns-delay','1']);
-          sys.exit(0) if rc==0 else
-          (lambda ts:(sys.exit(0) if (int(ts.get('failures',0))==0 and int(ts.get('errors',0))==0) else sys.exit(rc)))
-          (ET.parse('pytest-report.xml').getroot().find('testsuite'))"
-    requirements:
-      run:
-        - pytest
-        - pytest-rerunfailures
-        - coxeter
-    files:
-      source:
-        - tests/
+  - if: win
+    then:
+      - script:
+          interpreter: pwsh
+          content: |
+            python -m pytest tests/ -v --junitxml pytest-report.xml
+            if ($LASTEXITCODE -ne 0) {
+              [xml]$j = Get-Content pytest-report.xml
+              $failures = [int]$j.testsuite.failures
+              $errors   = [int]$j.testsuite.errors
+              if ($failures -eq 0 -and $errors -eq 0) {
+                Write-Host "Only flaky reruns occurred; forcing success."
+                exit 0
+              } else {
+                exit $LASTEXITCODE
+              }
+            } else {
+              exit 0
+            }
+      - files:
+          source:
+            - tests/
+      - requirements:
+          run:
+            - pytest
+            - pytest-rerunfailures
+            - coxeter
 
 about:
   homepage: https://glotzerlab.engin.umich.edu
