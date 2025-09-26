@@ -59,6 +59,9 @@ echo "** INSTALL COMPLETE **"
 echo "ls -lh $PREFIX/bin"
 ls -lh $PREFIX/bin
 
+cp -R dist/* $PREFIX/
+cp -R node_modules/* $PREFIX/lib
+
 cat > $PREFIX/bin/renovate <<'EOF'
 #!/usr/bin/bash
 node $CONDA_PREFIX/renovate.js
