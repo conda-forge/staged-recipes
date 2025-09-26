@@ -59,7 +59,9 @@ echo "** INSTALL COMPLETE **"
 echo "ls -lh $PREFIX/bin"
 ls -lh $PREFIX/bin
 
-cp -R dist/* $PREFIX/
+ls -lh
+
+cp -R dist/* $PREFIX/ || true
 cp -R node_modules/* $PREFIX/lib
 
 cat > $PREFIX/bin/renovate <<'EOF'
