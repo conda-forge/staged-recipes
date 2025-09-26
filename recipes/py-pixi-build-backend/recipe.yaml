@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: py-pixi-build-backend
+  python_name: pixi_build_backend
+  version: "0.2.0"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/prefix-dev/pixi-build-backends/archive/refs/tags/py-pixi-build-backend-v${{ version }}.tar.gz
+  sha256: 750907d8a161206b088da09e78c0a38b5320c27ed82f1aec5b8dc50fa26dce48
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ${{ name }}
+      version: ${{ version }}
+    build:
+      # only build for the minimal python version
+      skip: not (match(python, python_min ~ ".*") and is_abi3)
+      script: |
+          cd py-pixi-build-backend
+          $PYTHON -m pip install . -vv
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      python:
+        version_independent: true
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.2.2,<2
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      host:
+        - python
+        - python-abi3
+        - maturin >=1.2.2,<2
+        - pip
+      run:
+        - python >=${{ python_min }}
+        - pixi-build-api-version >=2,<3
+      ignore_run_exports:
+        from_package:
+          - cross-python_${{ target_platform }}
+
+    tests:
+      - python:
+          imports:
+            - pixi_build_backend
+          python_version: ["${{ python_min ~ '.*' }}", "3.12.*"]
+
+  # Make sure we also capture the name of with underscores
+  - package:
+      name: py_pixi_build_backend
+    build:
+      noarch: generic
+      skip: not (linux and x86_64 and match(python, python_min ~ ".*"))
+    requirements:
+      run:
+        - ${{ pin_subpackage('py-pixi-build-backend', upper_bound="x.x.x") }}
+    tests:
+      - python:
+          imports:
+            - pixi_build_backend
+    about:
+      license_file: []
+
+about:
+  homepage: https://github.com/prefix-dev/pixi-build-backends
+  summary: Python bindings for pixi-build-backends
+  description: |
+    This package provides Python bindings for pixi-build-backends, enabling
+    Python applications to use the pixi build system programmatically.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  documentation: https://prefix-dev.github.io/pixi-build-backends
+  repository: https://github.com/prefix-dev/pixi-build-backends
