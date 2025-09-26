@@ -46,7 +46,6 @@ chmod +x $PREFIX/bin/renovate
 
 export npm_config_build_from_source=true
 
-rm $PREFIX/bin/node
 ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
