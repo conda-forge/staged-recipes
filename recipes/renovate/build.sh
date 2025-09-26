@@ -55,5 +55,5 @@ pnpm install --frozen-lockfile
 pnpm pack
 echo "LISTING BUILD..."
 ls -lh
-npm install -g ${PKG_NAME}-${PKG_VERSION}.tgz
+npm install -g renovate-0.0.0-semantic-release.tgz
 pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=ThirdPartyLicenses.txt
