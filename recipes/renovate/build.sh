@@ -29,13 +29,13 @@ fi
 # echo "$PREFIX:"
 # ls -lh $PREFIX
 
-# # Create CLI wrapper in $PREFIX/bin
-# mkdir -p $PREFIX/bin
-# cat > $PREFIX/bin/renovate <<'EOF'
-# #!/usr/bin/bash
-# node $CONDA_PREFIX/renovate.js
-# EOF
-# chmod +x $PREFIX/bin/renovate
+# Create CLI wrapper in $PREFIX/bin
+mkdir -p $PREFIX/bin
+cat > $PREFIX/bin/renovate <<'EOF'
+#!/usr/bin/bash
+node $CONDA_PREFIX/renovate.js
+EOF
+chmod +x $PREFIX/bin/renovate
 
 # echo "PREFIX/bin"
 # ls -lh $PREFIX/bin
