@@ -32,11 +32,11 @@ fi
 # Create CLI wrapper in $PREFIX/bin
 rm -rf $PREFIX/bin
 mkdir -p $PREFIX/bin
-cat > $PREFIX/bin/renovate <<'EOF'
-#!/usr/bin/bash
-node $CONDA_PREFIX/renovate.js
-EOF
-chmod +x $PREFIX/bin/renovate
+# cat > $PREFIX/bin/renovate <<'EOF'
+# #!/usr/bin/bash
+# node $CONDA_PREFIX/renovate.js
+# EOF
+# chmod +x $PREFIX/bin/renovate
 
 # echo "PREFIX/bin"
 # ls -lh $PREFIX/bin
