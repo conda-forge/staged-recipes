@@ -52,8 +52,9 @@ NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
 # pnpm import
 pnpm install --frozen-lockfile
-pnpm pack
-npm install -g renovate-*-semantic-release.tgz
+# pnpm pack
+pnpm run build
+# npm install -g renovate-*-semantic-release.tgz
 
 echo "** INSTALL COMPLETE **"
 echo "ls -lh $PREFIX/bin"
