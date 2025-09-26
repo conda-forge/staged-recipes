@@ -53,7 +53,5 @@ NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 # pnpm import
 pnpm install --frozen-lockfile
 pnpm pack
-echo "LISTING BUILD..."
-ls -lh
-npm install -g renovate-0.0.0-semantic-release.tgz
-pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=ThirdPartyLicenses.txt
+npm install -g renovate-*-semantic-release.tgz
+pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
