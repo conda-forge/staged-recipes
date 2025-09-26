@@ -12,9 +12,10 @@ from argparse import ArgumentParser
 from subprocess import check_output
 
 
-
 def verify_system():
-    branch_name = check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
+    branch_name = check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
+    ).strip()
     if branch_name == "main":
         raise RuntimeError(
             "You should run build-locally from a new branch, not 'main'. "
