@@ -54,4 +54,15 @@ NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 pnpm install --frozen-lockfile
 pnpm pack
 npm install -g renovate-*-semantic-release.tgz
+
+echo "** INSTALL COMPLETE **"
+echo "ls -lh $PREFIX/bin"
+ls -lh $PREFIX/bin
+
+cat > $PREFIX/bin/renovate <<'EOF'
+#!/usr/bin/bash
+node $CONDA_PREFIX/renovate.js
+EOF
+chmod +x $PREFIX/bin/renovate
+
 pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
