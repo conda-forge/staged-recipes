@@ -12,34 +12,46 @@ if [[ "${build_platform}" != "${target_platform}" ]]; then
     ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 fi
 
-# Install dependencies
-pnpm install --frozen-lockfile
+# # Install dependencies
+# pnpm install --frozen-lockfile
 
-# Build the project
-pnpm run build
+# # Build the project
+# pnpm run build
 
-# Extract the package into $PREFIX/lib/renovate
-# mkdir -p $PREFIX/lib/renovate
-# tar -xzf "$TARBALL" -C $PREFIX/lib/renovate --strip-components=1
-# rm "$TARBALL"
+# # Extract the package into $PREFIX/lib/renovate
+# # mkdir -p $PREFIX/lib/renovate
+# # tar -xzf "$TARBALL" -C $PREFIX/lib/renovate --strip-components=1
+# # rm "$TARBALL"
 
-cp -R dist/* $PREFIX/
-cp -R node_modules/* $PREFIX/lib
+# cp -R dist/* $PREFIX/
+# cp -R node_modules/* $PREFIX/lib
 
-echo "$PREFIX:"
-ls -lh $PREFIX
+# echo "$PREFIX:"
+# ls -lh $PREFIX
 
-# Create CLI wrapper in $PREFIX/bin
-mkdir -p $PREFIX/bin
-cat > $PREFIX/bin/renovate <<'EOF'
-#!/usr/bin/bash
-node $CONDA_PREFIX/renovate.js
-EOF
-chmod +x $PREFIX/bin/renovate
+# # Create CLI wrapper in $PREFIX/bin
+# mkdir -p $PREFIX/bin
+# cat > $PREFIX/bin/renovate <<'EOF'
+# #!/usr/bin/bash
+# node $CONDA_PREFIX/renovate.js
+# EOF
+# chmod +x $PREFIX/bin/renovate
 
-echo "PREFIX/bin"
-ls -lh $PREFIX/bin
+# echo "PREFIX/bin"
+# ls -lh $PREFIX/bin
 
-# Generate third-party license report
-pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
+# # Generate third-party license report
+# pnpm-licenses generate-disclaimer --prod --output-file=$SRC_DIR/third-party-licenses.txt
 
+export npm_config_build_from_source=true
+
+rm $PREFIX/bin/node
+ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
+
+NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
+
+# pnpm import
+pnpm install --prod
+pnpm pack
+npm install -g ${PKG_NAME}-${PKG_VERSION}.tgz
+pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=ThirdPartyLicenses.txt
