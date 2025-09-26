@@ -30,6 +30,7 @@ fi
 # ls -lh $PREFIX
 
 # Create CLI wrapper in $PREFIX/bin
+rm $PREFIX/bin/renovate
 mkdir -p $PREFIX/bin
 cat > $PREFIX/bin/renovate <<'EOF'
 #!/usr/bin/bash
