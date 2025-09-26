@@ -51,7 +51,7 @@ ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
 # pnpm import
-pnpm install --prod
+pnpm install --frozen-lockfile
 pnpm pack
 npm install -g ${PKG_NAME}-${PKG_VERSION}.tgz
 pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=ThirdPartyLicenses.txt
