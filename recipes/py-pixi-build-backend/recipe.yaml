@@ -21,7 +21,7 @@ outputs:
       version: ${{ version }}
     build:
       # only build for the minimal python version
-      skip: not (match(python, python_min ~ ".*") and is_abi3)
+      skip: is_abi3 and not is_python_min
       script: |
           cd py-pixi-build-backend
           $PYTHON -m pip install . -vv
@@ -40,28 +40,43 @@ outputs:
         - cargo-bundle-licenses
       host:
         - python
-        - python-abi3
+        - if: is_abi3
+          then: python-abi3
         - maturin >=1.2.2,<2
         - pip
       run:
-        - python >=${{ python_min }}
+        - python
         - pixi-build-api-version >=2,<3
-      ignore_run_exports:
-        from_package:
-          - cross-python_${{ target_platform }}
 
     tests:
       - python:
           imports:
             - pixi_build_backend
-          python_version: ["${{ python_min ~ '.*' }}", "3.12.*"]
+          python_version:
+            - if: is_abi3
+              then: "${{ python_min ~ '.*' }}"
+            - "*"
+      - script:
+          - if: not is_abi3
+            then: echo "skipping abi3audit tests"
+          - if: win and is_abi3
+            then: abi3audit %PREFIX%/Lib/site-packages/py_pixi_build_backend/pixi_build_backend.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          - if: not win and is_abi3
+            then:
+              # Need to set SP_DIR because of https://github.com/prefix-dev/rattler-build/issues/1733
+              - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+              - abi3audit $SP_DIR/py_pixi_build_backend/py_pixi_build_backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        requirements:
+          run:
+            - if: is_abi3
+              then: abi3audit
 
   # Make sure we also capture the name of with underscores
   - package:
       name: py_pixi_build_backend
     build:
       noarch: generic
-      skip: not (linux and x86_64 and match(python, python_min ~ ".*"))
+      skip: not (linux and x86_64 and is_python_min)
     requirements:
       run:
         - ${{ pin_subpackage('py-pixi-build-backend', upper_bound="x.x.x") }}
