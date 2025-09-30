@@ -1,0 +1,123 @@
+schema_version: 1
+
+context:
+  name: spheno
+  version: "4.0.5"
+
+package:
+  name: ${{ name }}
+  version: ${{ version | replace(".", "") }}
+
+source:
+  url: https://spheno.hepforge.org/downloads/?f=SPheno-${{ version }}.tar.gz
+  sha256: 3f84a6c3e47f40e0dd1bcccb88eb08a1d0a65aa3d8e42504befdfc3d47ec9529
+  patches:
+    - dynamic-library-makefile.patch
+
+build:
+  number: 0
+  skip: win
+  script:
+    - cd src
+    - make version=${{ version }}
+    - make --jobs 1
+    # Install
+    - cd ..
+    - mkdir -p $PREFIX/bin $PREFIX/lib $PREFIX/include/spheno
+    - mv bin/* $PREFIX/bin/
+    - mv lib/* $PREFIX/lib/
+    - mv include/* $PREFIX/include/spheno/
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    - make
+
+tests:
+  - package_contents:
+      strict: true
+      include:
+        - spheno/branchingratios.mod
+        - spheno/chargino3decays.mod
+        - spheno/control.mod
+        - spheno/couplings.mod
+        - spheno/decayfunctions.mod
+        - spheno/epluseminusproduction.mod
+        - spheno/experiment.mod
+        - spheno/gluino3decays.mod
+        - spheno/inputoutput.mod
+        - spheno/lhc_observables.mod
+        - spheno/loopcouplings.mod
+        - spheno/loopfunctions.mod
+        - spheno/loopmasses.mod
+        - spheno/lowenergy.mod
+        - spheno/mathematics.mod
+        - spheno/mathematicsqp.mod
+        - spheno/model_data.mod
+        - spheno/mssm_data.mod
+        - spheno/neut3decays.mod
+        - spheno/nmssm_data.mod
+        - spheno/nmssm_tools.mod
+        - spheno/rges.mod
+        - spheno/rp_data.mod
+        - spheno/rptools.mod
+        - spheno/slepton3bodydecays.mod
+        - spheno/standardmodel.mod
+        - spheno/stop3bodydecays.mod
+        - spheno/sugraruns.mod
+        - spheno/susydecays.mod
+        - spheno/susymasses.mod
+        - spheno/threebodyphasespace.mod
+        - spheno/threebodyphasespaces.mod
+        - spheno/twoloophiggsmass.mod
+      lib:
+        - libSPheno
+      bin:
+        - SPheno
+      files:
+        - etc/conda/test-files/spheno/0/input/LesHouches.in.GMSB
+        - etc/conda/test-files/spheno/0/output/SPheno.spc.GMSB
+
+  - files:
+      source:
+        - input/LesHouches.in.GMSB
+        - output/SPheno.spc.GMSB
+    script:
+      - SPheno input/LesHouches.in.GMSB
+      # Should be minimal differences
+      # Use || true to avoid diff returning non-zero exit code
+      - diff SPheno.spc output/SPheno.spc.GMSB || true
+
+about:
+  summary: "SPheno: a program for calculating supersymmetric spectra, SUSY particle decays and SUSY particle production at e+e- colliders"
+  description: |
+    SPheno stands for S(upersymmetric) Pheno(menology).
+
+    The code calculates the SUSY spectrum using low energy data and a user
+    supplied high scale model as input.
+    The spectrum is used to calculate two- and three body decay modes of
+    supersymmetric particle as well as of Higgs bosons.
+    In addition the production cross sections for supersymmetric particle
+    and Higgs bosons in e^+ e^- annihilation is calculated.
+    Moreover, the branching of the decay $b \to s \gamma$, the SUSY
+    contribution to anomalous magnetic moment of the muon as well as the
+    SUSY contributions to the rho parameter due to sfermions are calculated.
+    The code is written in F90 with an emphasis on easy generalisability.
+    The structure is set such that complex phases as well as the extension to
+    include the flavour structure can be done in a straight forward way.
+    The 2-loop renormalization group equations as well as the one-loop finite
+    corrections a la Bagger, Matchev, Pierce and Zhang are included.
+    In addition the two-loop corrections to the neutral Higgs boson masses
+    (a la Brignole, Degrassi, Slavich and Zwirner) and to the mu-parameter
+    (a la Dedes and Slavich) are included.
+    Starting with version 2.2.2 the SUSY Les Houches Accord is supported as
+    well as the SPA conventions (for details see hep-ph/0511344).
+  license: BSD-4-Clause
+  license_file: LICENSE
+  homepage: https://spheno.hepforge.org/
+  repository: https://spheno.hepforge.org/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
