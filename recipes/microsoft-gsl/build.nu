@@ -10,9 +10,9 @@ def main [] {
             "-DCMAKE_BUILD_TYPE=Release"
             "-DGSL_TEST=OFF"
             "-DGSL_INSTALL=ON"
-            $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)\\Library"
-            $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)\\Library\\include"
-            $"-DCMAKE_INSTALL_DATADIR=($env.PREFIX)\\Library\\share"
+            $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)/Library"
+            $"-DCMAKE_INSTALL_INCLUDEDIR=($env.PREFIX)/Library/include"
+            $"-DCMAKE_INSTALL_DATADIR=($env.PREFIX)/Library/share"
         ]
     } else {
         [
