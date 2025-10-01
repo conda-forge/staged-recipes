@@ -1,0 +1,6 @@
+cmake -G "Ninja" -B "build"  ^
+      -D CMAKE_BUILD_TYPE:STRING='Release' ^
+      -D CMAKE_INSTALL_PREFIX:FILEPATH=%LIBRARY_PREFIX% ^
+      -D QT_HOST_PATH=%LIBRARY_PREFIX%
+
+ninja -C build install
