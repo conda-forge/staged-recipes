@@ -1,0 +1,49 @@
+{% set version = "1.59" %}
+{% set sha256 = "cb53da17f502aa8d9285e151111d7c59f989078241f687b59ef3db0dd71dfcdf" %}
+
+{% set win_patch = "s|C:\\\\strawberry\\\\c|$ENV{LIBRARY_PREFIX}\\\\mingw-w64|g" %}
+
+package:
+  name: perl-algorithm-cluster
+  version: {{ version }}
+
+source:
+  url: https://cpan.metacpan.org/authors/id/M/MD/MDEHOON/Algorithm-Cluster-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  # needed for linker to find some m2w64 libs
+  merge_build_host: True  # [win]
+  script: >-
+    perl Makefile.PL INSTALLDIRS=vendor NO_PERLLOCAL=1 NO_PACKLIST=1 MAKE=make
+    && (for /r . %%f in (*Makefile) do perl -i -pe "{{ win_patch }}" %%f)  # [win]
+    && make
+    && make test
+    && make install VERBINST=1
+
+requirements:
+  build:
+    - make  # [unix]
+    - m2w64-make  # [win]
+    - {{ compiler('c') }}  # [unix]
+    - {{ compiler('m2w64_c') }}  # [win]
+  host:
+    - perl
+  run:
+    - perl
+
+test:
+  imports:
+    - Algorithm::Cluster
+    - Algorithm::Cluster::Record
+
+about:
+  home: https://metacpan.org/pod/Algorithm::Cluster
+  summary: Perl interface to the C Clustering Library
+  license: Artistic-1.0-Perl AND MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - jvolkening
