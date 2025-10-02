@@ -1,0 +1,159 @@
+From 451743e7d9ee0ed2c2d6972bf82c05c290f8512a Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 30 Sep 2025 14:03:38 -0600
+Subject: [PATCH] ENH: Enable for dynamic linking
+
+* Create a src/Makefile with dynamic linking that is built with the
+  assumption of the variables $FC, $FFLAGS, and $LDFLAGS.
+---
+ src/Makefile | 116 +++++++++++++++++++--------------------------------
+ 1 file changed, 44 insertions(+), 72 deletions(-)
+
+diff --git a/src/Makefile b/src/Makefile
+index 1fb620c..07b6eb9 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1,96 +1,68 @@
+-# linker flags depend on system
++# Detect OS for platform-specific settings
+ OS=$(strip $(shell uname -s))
+-linker = -U -ruc
+-ifeq ($(OS),Linux)   
+-linker = -U -ruc
+-endif   
+-ifeq ($(OS),Darwin)   
+-linker = -ruc   
++
++# Set shared library extension and flags based on OS
++ifeq ($(OS),Linux)
++  SHARED_EXT = so
++  LINK_SHARED = -shared
++endif
++ifeq ($(OS),Darwin)
++  SHARED_EXT = dylib
++  LINK_SHARED = -dynamiclib -install_name @rpath/libSPheno.$(SHARED_EXT)
+ endif
+ 
++PreDef = -DGENERATIONMIXING -DONLYDOUBLE -DSEESAWIII
+ 
+-# PreDef = -DGENERATIONMIXING  -DONLYDOUBLE -DSEESAWIII
+-PreDef = -DGENERATIONMIXING  -DONLYDOUBLE
+ # setting various paths
+ InDir = ../include
+ Mdir = ${InDir}
+-name = ../lib/libSPheno.a
++name = libSPheno.$(SHARED_EXT)
++lib_path = ../lib/$(name)
+ 
+ #
+ # options for various compilers
+ #
+ 
+-# Intels ifort, default in optimized mode
+-F90 = ifort
+-comp = -c -O -module ${Mdir} -I${InDir} 
+-LFlagsB = -O  
+-
+-# Intels ifort, debug modus
+-ifeq (${F90},ifortg)
+- F90 = ifort
+- comp = -c -g -module ${Mdir} -I${InDir} 
+- LFlagsB = -g  
+-endif
+-
+ # gfortran
+-ifeq (${F90},gfortran)
+- comp = -c -O -J${Mdir} -I${InDir}
+- LFlagsB = -O  
+-endif
++FC = $(shell echo $$FC)
++comp = -c $(FFLAGS) -J${Mdir} -I${InDir}
+ 
+-# g95 
+-ifeq (${F90},g95)
+- comp = -c -O -fmod=${Mdir} -I${InDir}
+- LFlagsB = -O  
+-endif
++# Object files list
++OBJS = Control.o Mathematics.o RGEs.o MathematicsQP.o LoopFunctions.o \
++       StandardModel.o Model_Data.o Couplings.o SusyMasses.o \
++       LoopCouplings.o DecayFunctions.o SusyDecays.o ThreeBodyPhaseSpace.o \
++       ThreeBodyPhaseSpaceS.o Chargino3.o Gluino3.o Neutralino3.o \
++       Stop3BodyDecays.o Slepton3Body.o BranchingRatios.o \
++       EplusEminusProduction.o TwoLoopHiggsMass.o LoopMasses.o \
++       SugraRuns.o Experiment.o LowEnergy.o NMSSM_tools.o RPtools.o \
++       LHC_observables.o InputOutput.o
+ 
+-# Lahey F95 compiler
+-ifeq (${F90},lf95)
+- comp = -c -O -M ${Mdir} -I${InDir}
+- LFlagsB = -O  
+-endif
+- 
+-# NAG f95/2003
+-ifeq (${F90},nagfor)
+- comp = -c -O  -DONLYDOUBLE -mdir ${Mdir} -I${InDir}   
+- LFlagsB = -O
+-endif
+- 
+-.SUFFIXES : .o .ps .f90 .F90 .a
+-bin/SPheno: ${name} SPheno4.o
+-	${F90} -o SPheno ${LFlagsB} SPheno4.o ../lib/${name}
++.SUFFIXES : .o .ps .f90 .F90 .so .dylib
++
++bin/SPheno: $(lib_path) SPheno4.o
++	${FC} -o SPheno SPheno4.o $(LDFLAGS) -L../lib -lSPheno
+ 	mv SPheno ../bin
+-${name}: ${name}(Control.o)  ${name}(Mathematics.o)  ${name}(RGEs.o)       \
+-    ${name}(MathematicsQP.o)  ${name}(LoopFunctions.o) ${name}(StandardModel.o) \
+-  ${name}(Model_Data.o) ${name}(Couplings.o)  ${name}(SusyMasses.o) \
+-   ${name}(LoopCouplings.o)  ${name}(DecayFunctions.o)  \
+-  ${name}(SusyDecays.o) ${name}(ThreeBodyPhaseSpace.o)               \
+-  ${name}(ThreeBodyPhaseSpaceS.o) ${name}(Chargino3.o)               \
+-  ${name}(Gluino3.o) ${name}(Neutralino3.o)                          \
+-  ${name}(Stop3BodyDecays.o) ${name}(Slepton3Body.o) ${name}(BranchingRatios.o)              \
+-  ${name}(EplusEminusProduction.o) ${name}(TwoLoopHiggsMass.o) \
+-  ${name}(LoopMasses.o) ${name}(SugraRuns.o) ${name}(Experiment.o) \
+-  ${name}(LowEnergy.o) ${name}(NMSSM_tools.o) ${name}(RPtools.o) \
+-  ${name}(LHC_observables.o) ${name}(InputOutput.o) 
++
++$(lib_path): $(OBJS)
++	${FC} $(LDFLAGS) $(LINK_SHARED) -o $@ $(OBJS)
++
+ clean:
+ 	rm -f *.o *~ */*.o */*~
++
+ cleanall:
+-	rm -f bin/SPheno4 lib/*.a *~ */*.o */*~ include/*
++	rm -f bin/SPheno ../lib/*.so ../lib/*.dylib ../lib/*.a *~ */*.o */*~ include/*
++
+ #
+ # Suffix rules
+ #
+-.f90.a:
+-	${F90} ${comp} $<
+-	ar ${linker} $@ $*.o
+-	rm -f $*.o
+-.F90.a:
+-	${F90} ${comp}  ${PreDef} $<
+-	ar ${linker} $@ $*.o
+-	rm -f $*.o
+-.f90.o: 
+-	${F90} ${comp}  $< 
++.f90.o:
++	${FC} ${comp} $<
++
++.F90.o:
++	${FC} ${comp} ${PreDef} $<
++
+ .f90.ps:
+-	a2ps  -o $*.ps $<
+-.h.ps:
+-	a2ps -o  $*.ps $<
++	a2ps -o $*.ps $<
+ 
++.h.ps:
++	a2ps -o $*.ps $
+-- 
+2.51.0
+
