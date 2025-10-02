@@ -234,7 +234,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index_path = os.path.join(sys.exec_prefix, "conda-bld")
     os.makedirs(index_path, exist_ok=True)
     conda_index.api.update_index(index_path)
-    index = conda.core.index.Index(channel_urls=channel_urls)
+    index = conda.core.index.Index(channels=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
