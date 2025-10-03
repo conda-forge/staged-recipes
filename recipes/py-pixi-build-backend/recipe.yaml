@@ -4,7 +4,7 @@ context:
   python_name: pixi_build_backend
   version: "0.2.0"
 
-recipe:
+package:
   name: ${{ name }}
   version: ${{ version }}
 
@@ -14,74 +14,53 @@ source:
 
 build:
   number: 0
+  # only build for the minimal python version
+  skip: is_abi3 and not is_python_min
+  script: build_base
+  python:
+    version_independent: true
 
-outputs:
-  - package:
-      name: ${{ name }}
-      version: ${{ version }}
-    build:
-      # only build for the minimal python version
-      skip: is_abi3 and not is_python_min
-      script: build_base
-      python:
-        version_independent: true
-    requirements:
-      build:
-        - if: build_platform != target_platform
-          then:
-            - python
-            - cross-python_${{ target_platform }}
-            - maturin >=1.2.2,<2
-        - ${{ stdlib('c') }}
-        - ${{ compiler('rust') }}
-        - cargo-bundle-licenses
-      host:
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
         - python
-        - if: is_abi3
-          then: python-abi3
+        - cross-python_${{ target_platform }}
         - maturin >=1.2.2,<2
-        - pip
-      run:
-        - python
-        - pixi-build-api-version >=2,<3
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - maturin >=1.2.2,<2
+    - pip
+  run:
+    - python
+    - pixi-build-api-version >=2,<3
 
-    tests:
-      - python:
-          imports:
-            - pixi_build_backend
-          python_version:
-            - "${{ python_min }}.*"
-            - "*"
-      - script:
-          - if: not is_abi3
-            then: echo "skipping abi3audit tests"
-          - if: win and is_abi3
-            then: abi3audit %PREFIX%/Lib/site-packages/pixi_build_backend/pixi_build_backend.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
-          - if: not win and is_abi3
-            then:
-              # Need to set SP_DIR because of https://github.com/prefix-dev/rattler-build/issues/1733
-              - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-              - abi3audit $SP_DIR/pixi_build_backend/pixi_build_backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
-        requirements:
-          run:
-            - if: is_abi3
-              then: abi3audit
-
-  # Make sure we also capture the name of with underscores
-  - package:
-      name: py_pixi_build_backend
-    build:
-      noarch: generic
-      skip: not (linux and x86_64 and is_python_min)
+tests:
+  - python:
+      imports:
+        - pixi_build_backend
+      python_version:
+        - "${{ python_min }}.*"
+        - "*"
+  - script:
+      - if: not is_abi3
+        then: echo "skipping abi3audit tests"
+      - if: win and is_abi3
+        then: abi3audit %PREFIX%/Lib/site-packages/pixi_build_backend/pixi_build_backend.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: not win and is_abi3
+        then:
+          # Need to set SP_DIR because of https://github.com/prefix-dev/rattler-build/issues/1733
+          - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+          - abi3audit $SP_DIR/pixi_build_backend/pixi_build_backend.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
     requirements:
       run:
-        - ${{ pin_subpackage('py-pixi-build-backend', upper_bound="x.x.x") }}
-    tests:
-      - python:
-          imports:
-            - pixi_build_backend
-    about:
-      license_file: []
+        - if: is_abi3
+          then: abi3audit
 
 about:
   homepage: https://github.com/prefix-dev/pixi-build-backends
@@ -95,7 +74,6 @@ about:
   repository: https://github.com/prefix-dev/pixi-build-backends
 
 extra:
-  feedstock-name: py-pixi-build-backend
   recipe-maintainers:
     - baszalmstra
     - tdejager
