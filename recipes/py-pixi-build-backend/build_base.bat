@@ -8,12 +8,8 @@ set CARGO_PROFILE_RELEASE_LTO=fat
 cd py-pixi-build-backend
 
 :: Avoid path length issues
-set "TEMP_BUILD_DIR=%TEMP%\ppbb-%RANDOM%"
-set "TEMP_CARGO_HOME=C:\ch-%RANDOM%"
-mkdir "%TEMP_BUILD_DIR%"
-mkdir "%TEMP_CARGO_HOME%"
-set CARGO_TARGET_DIR=%TEMP_BUILD_DIR%
-set CARGO_HOME=%TEMP_CARGO_HOME%
+set "CARGO_HOME=C:\ch-%RANDOM%"
+mkdir "%CARGO_HOME%"
 
 :: Build and install the package
 set "CMAKE_GENERATOR=NMake Makefiles"
