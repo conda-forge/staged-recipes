@@ -5,6 +5,7 @@ cmake -S . -B build ^
          -DSFCGAL_BUILD_TESTS=OFF ^
 	 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF ^
 	 -DCMAKE_CXX_FLAGS="/DSFCGAL_EXPORTS" ^
+	 -DCGAL_USE_GMPXX=OFF ^
          -Wno-dev
 cmake --build build --config Release
 cmake --install build
