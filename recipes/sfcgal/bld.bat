@@ -4,7 +4,7 @@ cmake -S . -B build ^
          -DCMAKE_BUILD_TYPE=Release ^
          -DSFCGAL_BUILD_TESTS=OFF ^
 	 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
-	 -DCGAL_USE_GMPXX=OFF ^
+	 -DCMAKE_CXX_FLAGS="/bigobj" ^
          -Wno-dev
 cmake --build build --config Release
 cmake --install build
