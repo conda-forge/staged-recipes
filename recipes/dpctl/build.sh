@@ -8,9 +8,6 @@ echo "--gcc-toolchain=${BUILD_PREFIX} --sysroot=${BUILD_PREFIX}/${HOST}/sysroot 
 export ICPXCFG="$(pwd)/icpx_for_conda.cfg"
 export ICXCFG="$(pwd)/icpx_for_conda.cfg"
 
-read -r GLIBC_MAJOR GLIBC_MINOR <<<"$(conda list '^sysroot_linux-64$' \
-    | tail -n 1 | awk '{print $2}' | grep -oP '\d+' | head -n 2 | tr '\n' ' ')"
-
 if [ -e "_skbuild" ]; then
     ${PYTHON} setup.py clean --all
 fi
@@ -23,7 +20,7 @@ export CMAKE_GENERATOR=Ninja
 export VERBOSE=1
 
 # set CMAKE to use less threads to avoid OOM
-export CMAKE_BUILD_PARALLEL_LEVEL=2
+export CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}
 
 CMAKE_ARGS="${CMAKE_ARGS} -DDPCTL_LEVEL_ZERO_INCLUDE_DIR=${PREFIX}/include/level_zero -DDPCTL_WITH_REDIST=ON"
 
