@@ -7,10 +7,14 @@ set "INCLUDE=%BUILD_PREFIX%\include;%INCLUDE%"
 REM useful for building in resources constrained VMs (public CI)
 set "CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=FALSE"
 
-FOR %%V IN (17.0.0 17 18.0.0 18 19.0.0 19 20.0.0 20 21.0.0 21) DO @(
-  REM set DIR_HINT if directory exists
-  IF EXIST "%BUILD_PREFIX%\Library\lib\clang\%%V\" (
-     SET "SYCL_INCLUDE_DIR_HINT=%BUILD_PREFIX%\Library\lib\clang\%%V"
+REM Try to detect SYCL resource/include dir from icpx
+for /f "usebackq delims=" %%R in (`icpx --print-resource-dir 2^>NUL`) do (
+  set "SYCL_RESOURCE_DIR=%%R"
+)
+
+if defined SYCL_RESOURCE_DIR (
+  if exist "%SYCL_RESOURCE_DIR%\include" (
+    set "SYCL_INCLUDE_DIR_HINT=%SYCL_RESOURCE_DIR%"
   )
 )
 
@@ -36,7 +40,7 @@ set "CMAKE_GENERATOR=Ninja"
 set "VERBOSE=1"
 
 :: set CMAKE to use less threads to avoid OOM
-set CMAKE_BUILD_PARALLEL_LEVEL=2
+set CMAKE_BUILD_PARALLEL_LEVEL=%CPU_COUNT%
 
 set "CMAKE_ARGS=%CMAKE_ARGS% -DDPCTL_LEVEL_ZERO_INCLUDE_DIR=%PREFIX:\=/%/Library/include/level_zero"
 
