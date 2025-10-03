@@ -1,15 +1,59 @@
-From 5c5ea8b359a8b17dd5edb60c23264543bc391114 Mon Sep 17 00:00:00 2001
+From a9609fa41193cfcdee98d274007e966b8f801b14 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Lo=C3=AFc=20Bartoletti?= <loic.bartoletti@oslandia.com>
 Date: Fri, 3 Oct 2025 12:08:57 +0200
-Subject: [PATCH] fix(simplification): use fully qualified namespace for
- algorithm::simplify call
+Subject: [PATCH] fix(algorithm): use fully qualified namespace for algorithm
+ call
 
 ---
- src/detail/algorithm/simplification.cpp | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ src/detail/GeometrySet.cpp                 | 8 ++++----
+ src/detail/algorithm/simplification.cpp    | 2 +-
+ src/detail/generator/building.cpp          | 4 ++--
+ src/detail/transform/ForceOrderPoints.cpp  | 8 ++++----
+ src/detail/transform/ForceZOrderPoints.cpp | 6 +++---
+ 5 files changed, 14 insertions(+), 14 deletions(-)
 
+diff --git a/src/detail/GeometrySet.cpp b/src/detail/GeometrySet.cpp
+index c16269e46..c61362c65 100644
+--- a/src/detail/GeometrySet.cpp
++++ b/src/detail/GeometrySet.cpp
+@@ -127,7 +127,7 @@ _decompose_solid(const Solid &solid, GeometrySet<3>::VolumeCollection &volumes,
+   MarkedPolyhedron p =
+       *solid.exteriorShell().toPolyhedron_3<Kernel, MarkedPolyhedron>();
+ 
+-  if (algorithm::volume(solid) < 0) {
++  if (SFCGAL::algorithm::volume(solid) < 0) {
+     // if the volume is "inverted", we reverse it
+     // TODO: Once every boolean operations work with complement geometries, we
+     // may want to keep the solid inverted
+@@ -824,7 +824,7 @@ recompose_surfaces(const GeometrySet<3>::SurfaceCollection &surfaces,
+     tri->addPatch(new Triangle(surface.primitive()));
+   }
+ 
+-  algorithm::SurfaceGraph const graph(*tri);
++  SFCGAL::algorithm::SurfaceGraph const graph(*tri);
+   std::vector<size_t> component(boost::num_vertices(graph.faceGraph()));
+   BOOST_ASSERT(tri->numPatches() == component.size());
+   const size_t numComponents =
+@@ -1076,7 +1076,7 @@ _filter_covered(IT ibegin, IT iend, GeometrySet<Dim> &output)
+       GeometrySet<Dim> v2;
+       v2.addPrimitive(it2->primitive());
+ 
+-      if (algorithm::covers(v2, v1)) {
++      if (SFCGAL::algorithm::covers(v2, v1)) {
+         v1_covered = true;
+         break;
+       }
+@@ -1085,7 +1085,7 @@ _filter_covered(IT ibegin, IT iend, GeometrySet<Dim> &output)
+     // if its not covered by another primitive
+     if (!v1_covered) {
+       // and not covered by another already inserted primitive
+-      bool const b = algorithm::covers(output, v1);
++      bool const b = SFCGAL::algorithm::covers(output, v1);
+ 
+       if (!b) {
+         output.addPrimitive(it->primitive(), it->flags());
 diff --git a/src/detail/algorithm/simplification.cpp b/src/detail/algorithm/simplification.cpp
-index 137b9df7..33a95780 100644
+index 137b9df70..33a957802 100644
 --- a/src/detail/algorithm/simplification.cpp
 +++ b/src/detail/algorithm/simplification.cpp
 @@ -1040,7 +1040,7 @@ inline auto
@@ -21,6 +65,95 @@ index 137b9df7..33a95780 100644
  }
  
  /**
+diff --git a/src/detail/generator/building.cpp b/src/detail/generator/building.cpp
+index f7ad87462..15d2f0bfa 100644
+--- a/src/detail/generator/building.cpp
++++ b/src/detail/generator/building.cpp
+@@ -68,7 +68,7 @@ building(const Polygon &g, const Kernel::FT &wallHeight,
+   Polygon_with_holes_2 polygon = g.toPolygon_with_holes_2();
+ 
+   // fix orientation
+-  algorithm::makeValidOrientation(polygon);
++  SFCGAL::algorithm::makeValidOrientation(polygon);
+ #if CGAL_VERSION_MAJOR < 6
+   boost::shared_ptr<Straight_skeleton_2> const skeleton =
+ #else
+@@ -84,7 +84,7 @@ building(const Polygon &g, const Kernel::FT &wallHeight,
+   {
+     Polygon bottom(polygon);
+     bottom.reverse();
+-    algorithm::force3D(bottom);
++    SFCGAL::algorithm::force3D(bottom);
+     shell->addPolygon(bottom);
+   }
+ 
+diff --git a/src/detail/transform/ForceOrderPoints.cpp b/src/detail/transform/ForceOrderPoints.cpp
+index 898be257b..33385059e 100644
+--- a/src/detail/transform/ForceOrderPoints.cpp
++++ b/src/detail/transform/ForceOrderPoints.cpp
+@@ -21,7 +21,7 @@ ForceOrderPoints::transform(Point & /*p*/)
+ void
+ ForceOrderPoints::visit(Triangle &t)
+ {
+-  if (!algorithm::isCounterClockWiseOriented(t)) {
++  if (!SFCGAL::algorithm::isCounterClockWiseOriented(t)) {
+     // not pointing up, reverse
+     if (_orientCCW) {
+       t.reverse();
+@@ -40,7 +40,7 @@ ForceOrderPoints::visit(Polygon &p)
+ {
+   LineString &ext = p.exteriorRing();
+ 
+-  if (!algorithm::isCounterClockWiseOriented(p.exteriorRing())) {
++  if (!SFCGAL::algorithm::isCounterClockWiseOriented(p.exteriorRing())) {
+     // exterior ring not pointing up, reverse
+     if (_orientCCW) {
+       ext.reverse();
+@@ -50,11 +50,11 @@ ForceOrderPoints::visit(Polygon &p)
+       ext.reverse();
+     }
+   }
+-  const bool isCCWO{algorithm::isCounterClockWiseOriented(ext)};
++  const bool isCCWO{SFCGAL::algorithm::isCounterClockWiseOriented(ext)};
+   for (size_t i = 0; i < p.numInteriorRings(); ++i) {
+     LineString &inter = p.interiorRingN(i);
+ 
+-    if (algorithm::isCounterClockWiseOriented(inter) == isCCWO) {
++    if (SFCGAL::algorithm::isCounterClockWiseOriented(inter) == isCCWO) {
+       inter.reverse();
+     }
+   }
+diff --git a/src/detail/transform/ForceZOrderPoints.cpp b/src/detail/transform/ForceZOrderPoints.cpp
+index 9231b07ff..59623e7cb 100644
+--- a/src/detail/transform/ForceZOrderPoints.cpp
++++ b/src/detail/transform/ForceZOrderPoints.cpp
+@@ -30,7 +30,7 @@ void
+ ForceZOrderPoints::visit(Triangle &t)
+ {
+   if (!t.is3D()) {
+-    if (!algorithm::isCounterClockWiseOriented(t)) {
++    if (!SFCGAL::algorithm::isCounterClockWiseOriented(t)) {
+       // not pointing up, reverse
+       t.reverse();
+     }
+@@ -45,7 +45,7 @@ ForceZOrderPoints::visit(Polygon &p)
+   if (!p.is3D()) {
+     LineString &ext = p.exteriorRing();
+ 
+-    if (!algorithm::isCounterClockWiseOriented(p.exteriorRing())) {
++    if (!SFCGAL::algorithm::isCounterClockWiseOriented(p.exteriorRing())) {
+       // exterior ring not pointing up, reverse
+       ext.reverse();
+     }
+@@ -53,7 +53,7 @@ ForceZOrderPoints::visit(Polygon &p)
+     for (size_t i = 0; i < p.numInteriorRings(); ++i) {
+       LineString &inter = p.interiorRingN(i);
+ 
+-      if (algorithm::isCounterClockWiseOriented(inter)) {
++      if (SFCGAL::algorithm::isCounterClockWiseOriented(inter)) {
+         // interior ring is pointing up, reverse
+         inter.reverse();
+       }
 -- 
 GitLab
 
