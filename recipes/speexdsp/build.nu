@@ -21,9 +21,9 @@ def main [] {
         let install_prefix = $env.PREFIX | path join "Library"
         $cmake_args = ($cmake_args | append [
             $"-DCMAKE_INSTALL_PREFIX=($install_prefix)"
-            $"-DCMAKE_INSTALL_LIBDIR=($install_prefix)\\lib"
-            $"-DCMAKE_INSTALL_INCLUDEDIR=($install_prefix)\\include"
-            $"-DCMAKE_INSTALL_BINDIR=($install_prefix)\\bin"
+            $"-DCMAKE_INSTALL_LIBDIR=($install_prefix | path join 'lib')"
+            $"-DCMAKE_INSTALL_INCLUDEDIR=($install_prefix | path join 'include')"
+            $"-DCMAKE_INSTALL_BINDIR=($install_prefix | path join 'bin')"
         ])
     } else {
         $cmake_args = ($cmake_args | append [
