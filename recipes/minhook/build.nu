@@ -5,7 +5,7 @@ def main [] {
     cd build
 
     let install_prefix = if ($nu.os-info.name == "windows") {
-        $env.PREFIX | path join "Library"
+        ($env.PREFIX | str replace --all '\\' '/') + "/Library"
     } else {
         $env.PREFIX
     }

@@ -5,7 +5,7 @@ def main [] {
     cd build
 
     let cmake_args = if ($nu.os-info.name == "windows") {
-        # Use forward slashes consistently on Windows to avoid escape sequence issues
+        # Use forward slashes for prefix and relative paths for install directories
         let prefix_path = ($env.PREFIX | str replace --all '\\' '/')
         [
             "-GNinja"
@@ -13,8 +13,6 @@ def main [] {
             "-DGSL_TEST=OFF"
             "-DGSL_INSTALL=ON"
             $"-DCMAKE_INSTALL_PREFIX=($prefix_path)/Library"
-            $"-DCMAKE_INSTALL_INCLUDEDIR=($prefix_path)/Library/include"
-            $"-DCMAKE_INSTALL_DATADIR=($prefix_path)/Library/share"
         ]
     } else {
         [

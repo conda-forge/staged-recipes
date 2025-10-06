@@ -18,12 +18,10 @@ def main [] {
     ]
 
     if ($nu.os-info.name == "windows") {
-        let install_prefix = $env.PREFIX | path join "Library"
+        # Use forward slashes for prefix path to avoid escape sequence issues
+        let install_prefix = ($env.PREFIX | str replace --all '\\' '/') + "/Library"
         $cmake_args = ($cmake_args | append [
             $"-DCMAKE_INSTALL_PREFIX=($install_prefix)"
-            $"-DCMAKE_INSTALL_LIBDIR=($install_prefix | path join 'lib')"
-            $"-DCMAKE_INSTALL_INCLUDEDIR=($install_prefix | path join 'include')"
-            $"-DCMAKE_INSTALL_BINDIR=($install_prefix | path join 'bin')"
         ])
     } else {
         $cmake_args = ($cmake_args | append [
