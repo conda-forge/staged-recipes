@@ -5,6 +5,7 @@ cmake -S . -B build ^
       -DCMAKE_INCLUDE_PATH="%PREFIX%\include" ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_CXX_STANDARD=17 ^
+      -DCGAL_USE_GMPXX=OFF ^
       -DBoost_NO_BOOST_CMAKE=ON ^
       -DBUILD_SHARED_LIBS=ON ^
       -DSFCGAL_BUILD_TESTS=OFF ^
