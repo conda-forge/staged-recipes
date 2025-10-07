@@ -5,11 +5,12 @@ cmake -S . -B build ^
       -DCMAKE_INCLUDE_PATH="%PREFIX%\include" ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_CXX_STANDARD=17 ^
-      -DCGAL_USE_GMPXX=OFF ^
       -DBoost_NO_BOOST_CMAKE=ON ^
       -DBUILD_SHARED_LIBS=ON ^
       -DSFCGAL_BUILD_TESTS=OFF ^
       -DCMAKE_CXX_FLAGS="/bigobj" ^
+      -DCMAKE_UNITY_BUILD=ON ^
+      -DCMAKE_UNITY_BUILD_BATCH_SIZE=16 ^
       -DSFCGAL_EXPORTS=ON ^
       -Wno-dev
 
