@@ -234,7 +234,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index_path = os.path.join(sys.exec_prefix, "conda-bld")
     os.makedirs(index_path, exist_ok=True)
     conda_index.api.update_index(index_path)
-    index = conda.core.index.get_index(channel_urls=channel_urls)
+    index = conda.core.index.Index(channels=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
@@ -293,8 +293,21 @@ def build_folders_rattler_build(
             os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
         )
 
+    variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
+             + list(Path(recipes_dir).glob(f"**/variants.yaml"))
+    if len(variants) > 1:
+        raise ValueError(
+            f"Found multiple variant config files in the recipes: {variants}. "
+            "Consider merging or submitting them in separate PRs."
+        )
+    if variants and os.path.isfile(variants[0]):
+        specs[variants[0]] = conda_build.variants.parse_config_file(
+            os.path.abspath(variants[0]), config
+        )
+
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
+    combined_spec["channel_sources"] = [",".join(channel_urls)]
     variant_config = yaml.dump(combined_spec)
 
     # Define the arguments for rattler-build
@@ -306,10 +319,6 @@ def build_folders_rattler_build(
         "--target-platform",
         f"{platform}-{arch}",
     ]
-    for channel_url in channel_urls:
-        # Local is automatically added by rattler-build so we just remove it.
-        if channel_url != "local":
-            args.extend(["-c", channel_url])
 
     # Construct a temporary file where we write the combined variant config. We can then pass that
     # to rattler-build.
