@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  version: 0.1.5
+
+package:
+  name: polars-talib
+  version: ${{ version }}
+
+source:
+  # pypi does not have sdists
+  url: https://github.com/Yvictor/polars_ta_extension/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 7e2b11f9aa8c4875035b87eec92c762323466b0bb9d702deffc3f4109359c48b
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: export LIBCLANG_PATH=$PREFIX/lib
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+  python:
+    version_independent: true
+  skip: is_abi3 and not is_python_min
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - if: unix
+      then: make
+    - if: build_platform != target_platform
+      then:
+        - maturin >=1.0,<2.0
+        - cross-python_${{ target_platform }}
+        - python
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python ${{ python_min }}.*
+    - maturin >=1.0,<2.0
+    - pip
+    - if: unix and x86_64
+      then:
+        - libclang
+        - clang
+  run:
+    - python
+    - polars >=0.19
+  ignore_run_exports:
+    from_package:
+      - libclang
+
+tests:
+  - python:
+      imports:
+        - polars_talib
+      pip_check: true
+      python_version:
+        - "${{ python_min }}.*"
+        - "*"
+  - script:
+      - if: win
+        then: abi3audit %PREFIX%/Lib/site-packages/polars_talib/_polars_talib.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: not win
+        then:
+          - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+          - abi3audit $SP_DIR/polars_talib/_polars_talib.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
+
+about:
+  homepage: https://github.com/Yvictor/polars_ta_extension
+  repository: https://github.com/Yvictor/polars_ta_extension
+  summary: Polars extension for Ta-Lib
+  description: |
+    Polars extension for Ta-Lib: Support Ta-Lib functions in Polars expressions
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - isuruf
