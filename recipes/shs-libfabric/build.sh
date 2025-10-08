@@ -11,7 +11,6 @@ autoreconf -ivf
             --with-curl=${PREFIX} \
             --with-json-c=${PREFIX} \
             --with-libnl=${PREFIX} \
-            --with-libcxi=${PREFIX} \
             --docdir=$PWD/noinst/doc \
             --mandir=$PWD/noinst/man \
             --disable-lpp \
