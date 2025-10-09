@@ -1,9 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 schema_version: 1
 
-# Much of the information is available via:
-#  pnpm info node-red
-# The sha256 is currently not available from these sources.
 context:
   version: 4.1.0
 
@@ -12,99 +9,47 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://registry.npmjs.org/${{ name }}/-/${{ name }}-${{ version }}.tgz
-  sha256: ${{ sha }}
+  - url: https://registry.npmjs.org/node-red/-/node-red-${{ version }}.tgz
+    sha256: eb72d0d4327bd7d08736e08f5bd4950c0071e93b75ea26f06f79e4f9b43b6ec5
 
 build:
   number: 0
-  script:
-    interpreter: nu
-    content: |
-      print $"building ($env.PKG_NAME)!"
-
-      # Extracgit rebase --continuet the tarball first
-      cd node-red-src
-      ^tar -xzf node-red.tgz
-      cd ..
-
-      ^npm install -g ./node-red-src/node-red.tgz --prefix $env.PREFIX
-
-      ## Create node-red wrapper script
-
-      # Define the installation paths using Nushell variables
-      let bin_dir = $"($env.PREFIX)/bin"
-      let node_red_lib = $"($env.PREFIX)/lib/node_modules/node-red/packages/node-modules/node-red/red.js"
-
-      # Create the bin directory if it doesn't exist
-      mkdir $bin_dir
-
-      # Generate the script content based on the OS
-      match ($nu.os-info.family) {
-          "unix" => {
-              # Create a literal string for the bash script.
-              # This will be written to the file without Nushell trying to interpolate it.
-              let node_red_bin = $"($bin_dir)/node-red"
-              $"#!/bin/sh
-              exec node \"($node_red_lib)\" \"$@\"
-              " | save $node_red_bin
-              ^chmod +x $node_red_bin
-          }
-          "windows" => {
-              # This creates a valid Windows batch file
-              $"@echo off
-              \"%CONDA_PREFIX%\\Scripts\\node\" \"($node_red_lib)\" %*
-              " | save $"($bin_dir)/node-red.cmd"
-          }
-          _ => { error make { msg: "Unsupported OS family" } }
-      }
-
-      # Install service configuration file
-      print "Installing service configuration file..."
-
-      let config_dir = $"($env.PREFIX)/config"
-      mkdir $config_dir
-      cp $"($env.SRC_DIR)/service-config/service.yaml" $"($config_dir)/service.yaml"
-
-      # Verify the file was placed correctly
-      if ($"($config_dir)/service.yaml" | path exists) {
-        print $"✓ Service configuration installed to: ($config_dir)/service.yaml"
-      } else {
-        print $"❌ Failed to install service configuration to: ($config_dir)/service.yaml"
-      }
-
-      # Create a simple license summary since npm_licenses.nu script is not available in build environment
-      "Node-RED npm dependencies license information generated during build" | save license_summary.txt
-      if (which npm | is-not-empty) {
-        try {
-          let deps = (^npm list --depth=0 --json | from json | get dependencies)
-          if ($deps | is-not-empty) {
-            $deps | columns | each { |pkg| $"($pkg): Check npm registry for license" } | str join "\n" | save --append license_summary.txt
-          }
-        } catch {
-          "Could not generate detailed npm license list" | save --append license_summary.txt
-        }
-      }
+  script: build.nu
+  # noarch: generic # has binaries on macos, so not 'noarch'
 
 requirements:
   build:
     - nodejs
     - pnpm
     - pnpm-licenses
+    - nushell
+  run:
+    - nodejs
 
 tests:
+  # Test 1: Verify package contents are included
+  - package_contents:
+      files:
+        - if: not win
+          then:
+            - share/node-red/service.yaml
+          else:
+            - Library\share\node-red\service.yaml
+  # Test 2: Functional tests
   - script:
-      - "echo node-red --help 2>&1"
+      content:
+        - node-red --help
 
 about:
   homepage: https://nodered.org
-  summary: "Low-code programming for event-driven applications"
+  summary: Low-code programming for event-driven applications
   description: |
     Node-RED's goal is to enable anyone to build applications that collect,
-    transform and visualize their data;
-    building flows that can automate their world.
-    Its low-code nature makes it accessible to users of any background,
-    whether for home automation,
-    industrial control systems or anything in between.
+      transform and visualize their data;
+      building flows that can automate their world.
+      Its low-code nature makes it accessible to users of any background,
+      whether for home automation,
+      industrial control systems or anything in between.
   license: Apache-2.0
   license_file:
     - LICENSE
