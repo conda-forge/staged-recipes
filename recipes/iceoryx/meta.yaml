@@ -25,10 +25,11 @@ requirements:
     - ncurses
 
 outputs:
-  - name: libiceoryx
+  - name: libiceoryx-hoofs
     files:
       include:
-        - lib/libiceoryx*
+        - lib/libiceoryx_hoofs*
+        - lib/libiceoryx_platform*
     requirements:
       build:
         - {{ compiler('cxx') }}
@@ -40,19 +41,100 @@ outputs:
         - ncurses
     test:
       commands:
-        - test -f ${PREFIX}/lib/libiceoryx_posh${SHLIB_EXT}
+        - test -f ${PREFIX}/lib/libiceoryx_hoofs${SHLIB_EXT}
 
-  - name: libiceoryx-devel
+  - name: libiceoryx-posh
     files:
       include:
-        - include/iceoryx
-        - lib/cmake/
+        - lib/libiceoryx_posh*
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - cmake
+        - make
+      host:
+        - libacl    # [linux]
+        - ncurses
+        - {{ pin_subpackage("libiceoryx-hoofs", exact=True) }}
+      run:
+        - {{ pin_subpackage("libiceoryx-hoofs", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libiceoryx_posh${SHLIB_EXT}
+
+  - name: libiceoryx-binding-c
+    files:
+      include:
+        - lib/libiceoryx_binding_c*
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - cmake
+        - make
+      host:
+        - libacl    # [linux]
+        - ncurses
+        - {{ pin_subpackage("libiceoryx-hoofs", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh", exact=True) }}
+      run:
+        - {{ pin_subpackage("libiceoryx-hoofs", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libiceoryx_binding_c${SHLIB_EXT}
+
+  - name: libiceoryx-hoofs-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage("libiceoryx-hoofs", max_pin="x.x.x") }}
+    files:
+      include:
+        - include/iceoryx/v{{ version }}/iceoryx_versions.hpp
+        - include/iceoryx/v{{ version }}/iceoryx_hoofs
+        - lib/cmake/iceoryx_hoofs
     requirements:
       run:
-        - {{ pin_subpackage("libiceoryx", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-hoofs", exact=True) }}
     test:
       commands:
         - test -f ${PREFIX}/include/iceoryx/v{{ version }}/iceoryx_versions.hpp
+        - test -f ${PREFIX}/include/iceoryx/v{{ version }}/iceoryx_hoofs/platform/inet.hpp
+
+  - name: libiceoryx-posh-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage("libiceoryx-posh", max_pin="x.x.x") }}
+        - {{ pin_subpackage("libiceoryx-hoofs", max_pin="x.x.x") }}
+    files:
+      include:
+        - include/iceoryx/v{{ version }}/iceoryx_posh
+        - lib/cmake/iceoryx_posh
+    requirements:
+      run:
+        - {{ pin_subpackage("libiceoryx-hoofs-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/iceoryx/v{{ version }}/iceoryx_posh/version/version_info.hpp
+
+  - name: libiceoryx-binding-c-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage("libiceoryx-binding-c", max_pin="x.x.x") }}
+    files:
+      include:
+        - include/iceoryx/v{{ version }}/iceoryx_binding_c
+        - lib/cmake/iceoryx_binding
+    requirements:
+      run:
+        - {{ pin_subpackage("libiceoryx-hoofs-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-binding-c", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/iceoryx/v{{ version }}/iceoryx_posh/version/version_info.hpp
 
   - name: iceoryx
     files:
@@ -70,10 +152,14 @@ outputs:
         - libacl     # [linux]
         - ncurses
         - {{ pin_subpackage("libiceoryx", exact=True) }}
-        - {{ pin_subpackage("libiceoryx-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-hoofs-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-binding-c-devel", exact=True) }}
       run:
         - {{ pin_subpackage("libiceoryx", exact=True) }}
-        - {{ pin_subpackage("libiceoryx-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-hoofs-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-posh-devel", exact=True) }}
+        - {{ pin_subpackage("libiceoryx-binding-c-devel", exact=True) }}
     test:
       commands:
         - iox-roudi -h
