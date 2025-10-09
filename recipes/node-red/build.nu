@@ -39,6 +39,7 @@ def main [] {
     let service_target = $pkg_share_dir | path join "service.yaml"
     let service_source = $env.RECIPE_DIR | path join "service.yaml"
 
+    mkdir $share_dir
     mkdir $pkg_share_dir
     cp $service_source $service_target
 
