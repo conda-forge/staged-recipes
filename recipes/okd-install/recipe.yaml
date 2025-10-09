@@ -15,29 +15,52 @@ source:
 build:
   number: 0
   script:
-    - if: target_platform in ("linux-aarch64", "osx-arm64", "osx-64")
+    - if: target_platform in ("linux-aarch64", "osx-arm64", "osx-64", "win-64")
       then:
-        - export CGO_ENABLED=0
-    - export PATH=$BUILD_PREFIX/bin:$BUILD_PREFIX/go/bin:$PATH
-    - which go
-    - go version
-    - unset LDFLAGS
-    - unset CPPFLAGS
-    - unset CFLAGS
-    - unset CXXFLAGS
-    - TAGS="include_gcs include_oss containers_image_openpgp" OUTPUT="openshift-installer" hack/build.sh
-    - go-licenses csv ./cmd/openshift-installer > licenses.csv || touch licenses.csv
-    - go-licenses save ./cmd/openshift-installer --save_path=licenses/ || mkdir -p licenses
+        - if: unix
+          then:
+            - export CGO_ENABLED=0
+        - if: win
+          then:
+            - set "CGO_ENABLED=0"
     - if: unix
       then:
+        - export PATH=$BUILD_PREFIX/bin:$BUILD_PREFIX/go/bin:$PATH
+        - unset LDFLAGS
+        - unset CPPFLAGS
+        - unset CFLAGS
+        - unset CXXFLAGS
+        - export SOURCE_GIT_COMMIT="${{ version }}"
+        - export BUILD_VERSION="${{ version }}"
+        - TAGS="include_gcs include_oss containers_image_openpgp" OUTPUT="openshift-installer" hack/build.sh
+        - go-licenses csv ./cmd/openshift-installer > licenses.csv || touch licenses.csv
+        - go-licenses save ./cmd/openshift-installer --save_path=licenses/ || mkdir -p licenses
         - mkdir -p $PREFIX/bin/
         - cp openshift-installer $PREFIX/bin/
         - cp openshift-installer $PREFIX/bin/okd-install
     - if: win
       then:
+        - set "PATH=%BUILD_PREFIX%\bin;%BUILD_PREFIX%\go\bin;%PATH%"
+        - set "LDFLAGS="
+        - set "CPPFLAGS="
+        - set "CFLAGS="
+        - set "CXXFLAGS="
+        - set "SOURCE_GIT_COMMIT=${{ version }}"
+        - set "BUILD_VERSION=${{ version }}"
+        - set "TAGS=include_gcs include_oss containers_image_openpgp"
+        - set "OUTPUT=openshift-installer"
+        - dir /b
+        - if exist installer-${{ version }} cd installer-${{ version }}
+        - if exist openshift-installer-${{ version }} cd openshift-installer-${{ version }}
+        - if exist openshift-installer cd openshift-installer
+        - if exist installer cd installer
+        - dir cmd 2>nul || echo cmd directory not found at current level
+        - go build -tags "%TAGS%" -ldflags "-X github.com/openshift/installer/pkg/version.Raw=%BUILD_VERSION% -X github.com/openshift/installer/pkg/version.Commit=%SOURCE_GIT_COMMIT%" -o "%OUTPUT%.exe" .\cmd\openshift-installer
+        - go-licenses csv .\cmd\openshift-installer > licenses.csv 2>nul || type nul > licenses.csv
+        - go-licenses save .\cmd\openshift-installer --save_path=licenses\ 2>nul || mkdir licenses
         - if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
-        - cp openshift-installer.exe %PREFIX%\bin\
-        - cp openshift-installer.exe %PREFIX%\bin\okd-install.exe
+        - copy "%OUTPUT%.exe" "%PREFIX%\bin\"
+        - copy "%OUTPUT%.exe" "%PREFIX%\bin\okd-install.exe"
 
 requirements:
   build:
@@ -47,12 +70,17 @@ requirements:
       then:
         - ${{ stdlib('c') }}
     - ${{ compiler('go-nocgo') }} >=1.15.2
-    - go-licenses >=1.2.1
+    - go-licenses >=2.0.1
     - make >=4.0
     - git >=2.0
     - krb5 >=1.21
     - pkg-config >=0.29
-    - zip >=3.0
+    - if: unix
+      then:
+        - zip >=3.0
+    - if: win
+      then:
+        - m2-zip >=3.0.3
 
 tests:
   - package_contents:
