@@ -1,0 +1,82 @@
+schema_version: 1
+
+context:
+  name: "openshift-installer"
+  version: "4.19.15"
+
+package:
+  name: okd-install
+  version: ${{ version }}
+
+source:
+  url: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${{ version }}/${{ name }}-src.tar.gz
+  sha256: d4c19a4f3c438535bf69c727f85ff4eea1395325d78a8a0e6bf0b554b6102a3b
+
+build:
+  number: 0
+  script:
+    - if: target_platform in ("linux-aarch64", "osx-arm64", "osx-64")
+      then:
+        - export CGO_ENABLED=0
+    - export PATH=$BUILD_PREFIX/bin:$BUILD_PREFIX/go/bin:$PATH
+    - which go
+    - go version
+    - unset LDFLAGS
+    - unset CPPFLAGS
+    - unset CFLAGS
+    - unset CXXFLAGS
+    - TAGS="include_gcs include_oss containers_image_openpgp" OUTPUT="openshift-installer" hack/build.sh
+    - go-licenses csv ./cmd/openshift-installer > licenses.csv || touch licenses.csv
+    - go-licenses save ./cmd/openshift-installer --save_path=licenses/ || mkdir -p licenses
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/bin/
+        - cp openshift-installer $PREFIX/bin/
+        - cp openshift-installer $PREFIX/bin/okd-install
+    - if: win
+      then:
+        - if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
+        - cp openshift-installer.exe %PREFIX%\bin\
+        - cp openshift-installer.exe %PREFIX%\bin\okd-install.exe
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - if: build_platform != target_platform
+      then:
+        - ${{ stdlib('c') }}
+    - ${{ compiler('go-nocgo') }} >=1.15.2
+    - go-licenses >=1.2.1
+    - make >=4.0
+    - git >=2.0
+    - krb5 >=1.21
+    - pkg-config >=0.29
+    - zip >=3.0
+
+tests:
+  - package_contents:
+      bin:
+        - openshift-installer
+        - okd-install
+  - script:
+      - okd-install --help
+
+about:
+  homepage: https://www.okd.io/
+  summary: OpenShift Installer Console Application
+  description: |
+    The OpenShift Installer is the command-line utility used to deploy and
+    install Red Hat OpenShift Container Platform on various cloud providers
+    (like AWS, Azure, Google Cloud) or
+    on-premises infrastructure (like vSphere or bare metal).
+    It is the primary tool that takes a set of configuration parameters and
+    transforms them into a fully operational OpenShift cluster.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/openshift/installer
+  documentation: https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html
+
+extra:
+  recipe-maintainers:
+    - phreed
