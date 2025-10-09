@@ -2,6 +2,16 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# Create package archive and install globally
+if [[ "${target_platform}" == "osx-arm64" ]]; then
+    export npm_config_arch="arm64"
+fi
+
+if [[ "${build_platform}" != "${target_platform}" ]]; then
+    rm $PREFIX/bin/node
+    ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
+fi
+
 npm pack --ignore-scripts
 npm install -ddd \
     --global \
@@ -12,6 +22,5 @@ npm install -ddd \
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-tee ${PREFIX}/bin/node-red.cmd << EOF
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\nodered %*
-EOF
+mkdir -p ${PREFIX}/share/${PKG_NAME}
+install -m 644 ${RECIPE_DIR}/service.yaml ${PREFIX}/share/${PKG_NAME}
