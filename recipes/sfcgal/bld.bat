@@ -8,9 +8,9 @@ cmake -S . -B build ^
       -DBoost_NO_BOOST_CMAKE=ON ^
       -DBUILD_SHARED_LIBS=ON ^
       -DSFCGAL_BUILD_TESTS=OFF ^
-      -DCMAKE_CXX_FLAGS="/bigobj /EHsc /DBOOST_THROW_EXCEPTION_NO_SOURCE_LOCATION /DCGAL_USE_GMPXX" ^
+      -DCMAKE_CXX_FLAGS="/bigobj /EHsc /DBOOST_THROW_EXCEPTION_NO_SOURCE_LOCATION" ^
       -DSFCGAL_EXPORTS=ON ^
-      -DCGAL_USE_GMPXX=ON ^
+      -DCGAL_USE_GMPXX=OFF ^
       -Wno-dev
 
 cmake --build build --config Release
