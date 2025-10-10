@@ -445,12 +445,13 @@ def main [] {
     let prefix = ($env.PREFIX? | default "/usr/local")
     let bin_dir = ($prefix | path join "bin")
     let output = $build_result.output
+    let basename = ($output | path basename)
     let exe_suffix = $build_result.exe_suffix
     let binary_path = $build_result.binary_path
 
     # Copy main binary
     mkdir $bin_dir
     print $"Copying main binary ($output)($exe_suffix) to ($bin_dir)"
-    cp $"($output)($exe_suffix)" ($bin_dir | path join $"($output)($exe_suffix)")
+    cp $"($output)($exe_suffix)" ($bin_dir | path join $"($basename)($exe_suffix)")
     cp $"($output)($exe_suffix)" ($bin_dir | path join $"okd-install($exe_suffix)")
 }
