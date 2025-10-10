@@ -31,3 +31,14 @@ Simplified Experience::
 It aims to provide a reliable, repeatable, and
 relatively straightforward way to set up a production-ready OpenShift cluster,
 abstracting away many of the underlying infrastructure complexities.
+
+## Build Notes
+
+There is no helper script for windows builds only a bash script:
+* https://github.com/openshift/installer/blob/main/hack/build.sh
+* https://github.com/openshift/installer/blob/main/hack/build-cluster-api.sh
+
+These scripts are used to build on posix shell systems.
+As we want to build on windows systems as well,
+we have created a nushell script to replace the bash script.
+As this script is not part of the official source it will need to be maintained separately.
