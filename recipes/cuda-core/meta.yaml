@@ -1,0 +1,81 @@
+# Note: For each release please update the variables in conda_build_config.yaml.
+{% set number = 0 %}
+{% set git_tag = environ.get("git_tag") %}
+{% set core_version = environ.get("core_version", "0.0.0") %}
+{% set build_core = environ.get("build_core", False) %}
+{% set is_freethreading = environ.get("is_freethreading", False) %}
+
+{% set core_major_version = core_version.split(".")[0]|int %}
+{% set core_minor_version = core_version.split(".")[1]|int %}
+{% set core_patch_version = core_version.split(".")[2]|int %}
+{% set core_ver = core_major_version ~ "." ~ core_minor_version ~ "." ~ core_patch_version %}
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win64]
+{% set subdir = "" %}
+{% set subdir = os.sep.join(["", "targets", target_name]) %}  # [linux64 or aarch64]
+{% set subdir = os.sep.join(["", "Library"]) %}               # [win64]
+
+package:
+  name: cuda-core
+  version: {{ core_ver }}
+
+source:
+  url: https://github.com/NVIDIA/cuda-python/releases/download/{{ git_tag }}/cuda-python-{{ git_tag }}.tar.gz
+  sha256: 47a6181f1a8fa1db2df31251c0bb654558b3eddf47c41964bfa39965a46c7b41
+
+build:
+  script: build_output.sh   # [linux]
+  script: build_output.bat  # [win]
+  number: {{ number }}
+  string: cuda{{ cuda_major_version }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  skip: true  # [not build_core]
+  script_env:
+    - CUDA_PATH={{ PREFIX ~ subdir }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python                              # [build_platform != target_platform]
+    - cython                              # [build_platform != target_platform]
+  host:
+    - cython
+    - pip
+    - python
+    - setuptools
+    - cuda-cudart-dev
+    - cuda-profiler-api
+    - cuda-bindings {{ cuda_major_version }}.*
+    - cuda-version {{ cuda_major_version }}.*
+  run:
+    - python
+    - numpy
+    - cuda-bindings {{ cuda_major_version }}.*
+    - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+
+test:
+  commands:
+    - python -c "from cuda.core.experimental import Device, Buffer, utils"
+
+about:
+  home: https://nvidia.github.io/cuda-python/cuda-core
+  license: Apache-2.0
+  license_file: cuda_core/LICENSE
+  license_url: https://github.com/NVIDIA/cuda-python/blob/main/cuda_core/LICENSE
+  summary: "cuda.core: (experimental) pythonic CUDA module"
+  description: |
+    cuda.core bridges Python's productivity with CUDA's performance through intuitive and pythonic APIs.
+    The mission is to provide users full access to all of the core CUDA features in Python, such as
+    runtime control, compiler and linker.
+  doc_url: https://nvidia.github.io/cuda-python/cuda-core
+  dev_url: https://github.com/NVIDIA/cuda-python
+
+extra:
+  recipe-maintainers:
+    - cpcloud
+    - leofang
+    - kkraus14
+    - oleksandr-pavlyk
