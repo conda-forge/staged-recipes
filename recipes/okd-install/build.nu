@@ -55,11 +55,11 @@ def sync_envtest [cluster_api_bin_dir: string] {
 
     if not ($dst | path exists) {
         print "Downloading envtest binaries..."
-        let result = do { run-external "curl" "-fL" $"($bucket)/($tar_file)" "-o" $dst } | complete
-        if $result.exit_code == 0 {
+        try {
+            http get $"($bucket)/($tar_file)" | save --raw $dst
             print $"Downloaded: ($tar_file)"
-        } else {
-            print $"Error downloading envtest binaries: ($result.stderr)"
+        } catch { |error|
+            print $"Error downloading envtest binaries: ($error.msg)"
             return
         }
     } else {
@@ -149,31 +149,12 @@ def copy_cluster_api_to_mirror [] {
     cd $cluster_api_bin_dir
     let binary_names = ($binaries | get name | path basename)
 
-    if ($nu.os-info.name == "windows") {
-        # On Windows, try PowerShell Compress-Archive if zip is not available
-        let zip_result = do {run-external "zip" "-j1" $zip_file ...$binary_names} | complete
-        if $zip_result.exit_code != 0 {
-            print "zip command not found, trying PowerShell Compress-Archive..."
-            let temp_script = "temp_compress.ps1"
-            let binary_list = ($binary_names | str join '","')
-            $"Compress-Archive -Path \"($binary_list)\" -DestinationPath \"($zip_file)\" -CompressionLevel Optimal -Force" | save $temp_script
-            let ps_result = (run-external "powershell" "-ExecutionPolicy" "Bypass" "-File" $temp_script | complete)
-            rm $temp_script
-            if $ps_result.exit_code != 0 {
-                print $"Error creating zip file: ($ps_result.stderr)"
-                cd -
-                return
-            }
-        }
-    } else {
-        let zip_result = do {run-external "zip" "-j1" $zip_file ...$binary_names} | complete
-        if $zip_result.exit_code != 0 {
-            print $"Error creating zip file: ($zip_result.stderr)"
-            cd -
-            return
-        }
+    let zip_result = do {run-external "zip" "-j1" $zip_file ...$binary_names} | complete
+    if $zip_result.exit_code != 0 {
+        print $"Error creating zip file: ($zip_result.stderr)"
+        cd -
+        return
     }
-
     cd -
     print $"Created cluster API zip: ($zip_file)"
 }
@@ -294,8 +275,10 @@ def hack_build [config: record] {
     }
 
     # Note that the default git_* variables are for the feedstock and not the source.
-    let git_commit = ($env.SOURCE_GIT_COMMIT? | default (^git rev-parse --verify 'HEAD^{commit}'))
-    let git_tag = ($env.BUILD_VERSION? | default (^git describe --always --abbrev=40 --dirty) )
+    # (^git rev-parse --verify 'HEAD^{commit}')
+    let git_commit = ($env.SOURCE_GIT_COMMIT? | default "unknown-git-commit")
+    # (^git describe --always --abbrev=40 --dirty)
+    let git_tag = ($env.BUILD_VERSION? | default "unknown-git-tag")
 
     let default_arch = ($env.DEFAULT_ARCH? | default "amd64")
     let goflags = ($env.GOFLAGS? | default "-mod=vendor")
@@ -409,14 +392,7 @@ def generate_licenses [config: record] {
         print $"License CSV saved to ($licenses_csv)"
     } else {
         print $"Warning: go-licenses csv failed: ($csv_result.stderr), creating empty file"
-        if $is_windows {
-            let null_result = do {run-external "cmd" "/c" $"type nul > ($licenses_csv)"} | complete
-            if $null_result.exit_code != 0 {
-                "" | save -f $licenses_csv
-            }
-        } else {
-            "" | save -f $licenses_csv
-        }
+        "" | save -f $licenses_csv
     }
 
     let save_result = do {run-external "go-licenses" "save" $cmd_dir "--save_path" $licenses_dir} | complete
