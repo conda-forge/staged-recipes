@@ -14,7 +14,31 @@ source:
 
 build:
   number: 0
-  script: nu ${{ RECIPE_DIR }}/build.nu
+  script: |
+    # Use the existing build script from source
+    export CGO_ENABLED=0
+    export SOURCE_GIT_COMMIT=${{ version }}
+    export BUILD_VERSION=${{ version }}
+    export TAGS="include_gcs include_oss containers_image_openpgp"
+    export OUTPUT="openshift-install"
+
+    # Clear LDFLAGS to avoid passing GNU linker flags to Go linker
+    # Since CGO_ENABLED=0, external linker flags are not needed
+    unset LDFLAGS
+
+    # Build the installer
+    ./hack/build.sh
+
+    # Generate license information
+    go-licenses csv ./cmd/openshift-install > licenses.csv || echo "Warning: go-licenses csv failed"
+    go-licenses save ./cmd/openshift-install --save_path licenses || mkdir -p licenses
+
+    # Install binaries
+    mkdir -p $PREFIX/bin
+    cp bin/openshift-install $PREFIX/bin/
+    cp bin/openshift-install $PREFIX/bin/okd-install
+  skip:
+    - win
 
 requirements:
   build:
@@ -28,17 +52,9 @@ requirements:
     - git >=2.0
     - krb5 >=1.21
     - pkg-config >=0.29
-    - nushell >=0.106.1
-    - if: unix
-      then:
-        - zip >=3.0
-        - tar >=1.35
-        - make >=4.0
-    - if: win
-      then:
-        - m2-zip >=3.0.3
-        - m2-tar >=1.35.2
-        - m2-make >=4.4.1
+    - zip >=3.0
+    - tar >=1.35
+    - make >=4.0
 
 tests:
   - package_contents:
