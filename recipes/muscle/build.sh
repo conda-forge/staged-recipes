@@ -29,3 +29,11 @@ if [[ "${OS}" == "Darwin" ]]; then
 elif [[ "${OS}" == "Linux" ]]; then
 	python ./vcxproj_make.py --openmp --pthread --lrt --cppcompiler "${CXX}" --ccompiler "${CC}" --nonative
 fi
+
+# Verify binary exists and is executable
+if [ ! -x ../bin/muscle ]; then
+    echo "Error: muscle binary not found"
+    exit 1
+fi
+
+install -v -m 0755 ../bin/muscle "${PREFIX}/bin"
