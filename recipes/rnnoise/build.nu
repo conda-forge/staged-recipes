@@ -1,27 +1,26 @@
 #!/usr/bin/env nu
 
-# RNNoise build script using CMake - Simplified version using rnnoise-models.nu module
-
-# Copy CMakeLists.txt from recipe directory
-cp ($env.RECIPE_DIR | path join "CMakeLists.txt") "CMakeLists.txt"
-
-# Copy os_support.h to src directory (required for Windows builds)
-if ($nu.os-info.family == "windows") {
-  cp ($env.RECIPE_DIR | path join "os_support.h") "src/os_support.h"
+if $env.target_platform? != "win-64" {
+    cp ($env.BUILD_PREFIX | path join "share" "gnuconfig" "config.guess") .
+    cp ($env.BUILD_PREFIX | path join "share" "gnuconfig" "config.sub") .
 }
 
-# Create build directory
-mkdir build
-cd build
+cd $env.SRC_DIR
+$env.LDFLAGS = $"($env.LDFLAGS? | default "") -L($env.PREFIX)/lib -Wl,-rpath,($env.PREFIX)/lib"
+if $nu.os_info.name == "Linux" {
+    $env.LDFLAGS = $"($env.LDFLAGS) -lrt"
+}
+print "=== Copying model files from model/src/ to root ==="
+# instead of ./download_model.sh
+cp model/src/rnnoise_data.c .
+cp model/src/rnnoise_data.h .
 
-# Configure with CMake
+^autoreconf --install --symlink --force --verbose
+./configure $"--prefix=($env.PREFIX)" --enable-x86-rtcd
+
+# Apply Windows-specific patches if needed
+if $env.target_platform? == "win-64" {
+    ^patch_libtool
+}
 let cpu_count = ($env.CPU_COUNT? | default "1")
-^cmake .. $"-DCMAKE_INSTALL_PREFIX=($env.PREFIX)" "-DCMAKE_BUILD_TYPE=Release" "-G" "Ninja"
-
-# Build with Ninja
-^ninja $"-j($cpu_count)"
-
-# Install
-^ninja install
-
-print "🎉 RNNoise build completed successfully!"
+^make $"-j($cpu_count)"
