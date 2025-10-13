@@ -14,41 +14,26 @@ source:
 
 build:
   number: 0
-  script: |
-    # Use the existing build script from source
-    export CGO_ENABLED=0
-    export SOURCE_GIT_COMMIT=${{ version }}
-    export BUILD_VERSION=${{ version }}
-    export TAGS="include_gcs include_oss containers_image_openpgp"
-    export OUTPUT="openshift-install"
-
-    # Clear LDFLAGS to avoid passing GNU linker flags to Go linker
-    # Since CGO_ENABLED=0, external linker flags are not needed
-    unset LDFLAGS
-
-    # Build the installer
-    ./hack/build.sh
-
-    # Generate license information
-    go-licenses csv ./cmd/openshift-install > licenses.csv || echo "Warning: go-licenses csv failed"
-    go-licenses save ./cmd/openshift-install --save_path licenses || mkdir -p licenses
-
-    # Install binaries
-    mkdir -p $PREFIX/bin
-    cp bin/openshift-install $PREFIX/bin/
-    cp bin/openshift-install $PREFIX/bin/okd-install
   skip:
     - win
+  script:
+    - go-licenses save ./cmd/openshift-install --save_path ./library_licenses/
+    - export SOURCE_GIT_COMMIT=${{ version }}
+    - export BUILD_VERSION=${{ version }}
+    - export TAGS="include_gcs include_oss containers_image_openpgp"
+    - export OUTPUT="$PREFIX/bin/openshift-install"
+    - unset LDFLAGS
+    # Use the existing build script from source
+    - ./hack/build.sh
+    - cp $PREFIX/bin/openshift-install $PREFIX/bin/okd-install
 
 requirements:
   build:
+    - ${{ compiler('go-cgo') }} >=1.23
+    - go-licenses >=2.0.1
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    - if: build_platform != target_platform
-      then:
-        - ${{ stdlib('c') }}
-    - ${{ compiler('go-nocgo') }} >=1.15.2
-    - go-licenses >=2.0.1
+    - ${{ stdlib('c') }}
     - git >=2.0
     - krb5 >=1.21
     - pkg-config >=0.29
@@ -61,8 +46,7 @@ tests:
       bin:
         - openshift-install
         - okd-install
-  - script:
-      - okd-install --help
+      strict: true
 
 about:
   homepage: https://www.okd.io/
@@ -75,7 +59,9 @@ about:
     It is the primary tool that takes a set of configuration parameters and
     transforms them into a fully operational OpenShift cluster.
   license: Apache-2.0
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    - library_licenses/
   repository: https://github.com/openshift/installer
   documentation: https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html
 
