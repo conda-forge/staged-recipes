@@ -6,14 +6,16 @@ if $env.target_platform? != "win-64" {
 }
 
 cd $env.SRC_DIR
-$env.LDFLAGS = $"($env.LDFLAGS? | default "") -L($env.PREFIX)/lib -Wl,-rpath,($env.PREFIX)/lib"
-if $nu.os-info.name == "Linux" {
-    $env.LDFLAGS = $"($env.LDFLAGS) -lrt"
+let base_ldflags = $"($env.LDFLAGS? | default "") -L($env.PREFIX)/lib -Wl,-rpath,($env.PREFIX)/lib"
+$env.LDFLAGS = match $nu.os-info.name {
+    "linux" | "Linux" => $"($base_ldflags) -lrt"
+    "macos" | "macOS" | "darwin" | "Darwin" => $base_ldflags
+    "windows" | "Windows" => $base_ldflags
+    _ => $base_ldflags
 }
-print "=== Copying model files from model/src/ to root ==="
+# Model files are now extracted directly to src/ directory
+# (no need to copy since target_directory was removed from recipe.yaml)
 # instead of ./download_model.sh
-cp model/src/rnnoise_data.c .
-cp model/src/rnnoise_data.h .
 
 ^autoreconf --install --symlink --force --verbose
 ./configure $"--prefix=($env.PREFIX)" --enable-x86-rtcd
@@ -24,3 +26,4 @@ if $env.target_platform? == "win-64" {
 }
 let cpu_count = ($env.CPU_COUNT? | default "1")
 ^make $"-j($cpu_count)"
+^make install
