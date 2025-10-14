@@ -10,14 +10,14 @@ export SOURCE_DIR="."
 export RUN_TESTS="true"
 . "./grain/oss/runner_common.sh"
 
+# Workaround for a timestamp issue: https://github.com/prefix-dev/rattler-build/issues/1865
+touch -m -t 203510100101 $(find $BUILD_PREFIX/share/bazel/install -type f)
+
 setup_env_vars_py "$PYTHON_MAJOR_VERSION" "$PYTHON_MINOR_VERSION"
 
 function write_to_bazelrc() {
   echo "$1" >> .bazelrc
 }
-
-# TMP PREFIX
-rm -rf ${BUILD_PREFIX}
 
 write_to_bazelrc "build --incompatible_default_to_explicit_init_py"
 write_to_bazelrc "build --enable_platform_specific_config"
@@ -27,6 +27,7 @@ write_to_bazelrc "build --@rules_python//python/config_settings:python_version=$
 write_to_bazelrc "build --cxxopt=-Wno-deprecated-declarations --host_cxxopt=-Wno-deprecated-declarations"
 write_to_bazelrc "build --cxxopt=-Wno-parentheses --host_cxxopt=-Wno-parentheses"
 write_to_bazelrc "build --cxxopt=-Wno-sign-compare --host_cxxopt=-Wno-sign-compare"
+write_to_bazelrc "build --python_path=\"${PYTHON_BIN}\""
 write_to_bazelrc "test --@rules_python//python/config_settings:python_version=${PYTHON_VERSION}"
 write_to_bazelrc "test --action_env PYTHON_VERSION=${PYTHON_VERSION}"
 write_to_bazelrc "test --test_timeout=300"
