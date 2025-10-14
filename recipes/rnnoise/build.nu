@@ -7,7 +7,7 @@ if $env.target_platform? != "win-64" {
 
 cd $env.SRC_DIR
 $env.LDFLAGS = $"($env.LDFLAGS? | default "") -L($env.PREFIX)/lib -Wl,-rpath,($env.PREFIX)/lib"
-if $nu.os_info.name == "Linux" {
+if $nu.os-info.name == "Linux" {
     $env.LDFLAGS = $"($env.LDFLAGS) -lrt"
 }
 print "=== Copying model files from model/src/ to root ==="
