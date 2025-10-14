@@ -16,8 +16,8 @@ function write_to_bazelrc() {
   echo "$1" >> .bazelrc
 }
 
-# TMP
-rm -rf /home/conda/staged-recipes/build_artifacts/grain_1760433100232/_build_env/share/bazel/install/d5ea8e76aac25d217992a725971c6d83
+# TMP PREFIX
+rm -rf ${BUILD_PREFIX}
 
 write_to_bazelrc "build --incompatible_default_to_explicit_init_py"
 write_to_bazelrc "build --enable_platform_specific_config"
