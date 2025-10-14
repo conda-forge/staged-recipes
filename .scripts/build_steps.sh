@@ -37,7 +37,7 @@ solver: libmamba
 CONDARC
 
 # Workaround for errors related to "unsafe" directories:
-# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765 
+# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765
 git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 
 # Copy the host recipes folder so we don't ever muck with it
