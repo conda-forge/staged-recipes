@@ -11,12 +11,12 @@ if exist "%PREFIX%\share\dcm4che" rmdir /S /Q "%PREFIX%\share\dcm4che"
 if not exist "%PREFIX%\share\dcm4che" mkdir "%PREFIX%\share\dcm4che"
 
 
-move "%SRC_DIR\bin%" "%PREFIX%\share\dcm4che"
-move "%SRC_DIR\etc%" "%PREFIX%\share\dcm4che"
-move "%SRC_DIR\js%" "%PREFIX%\share\dcm4che"
-move "%SRC_DIR\lib%" "%PREFIX%\share\dcm4che"
-move "%SRC_DIR\LICENSE.txt%" "%PREFIX%\share\dcm4che"
-move "%SRC_DIR\README.md%" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\bin" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\etc" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\js" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\lib" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\LICENSE.txt" "%PREFIX%\share\dcm4che"
+move "%SRC_DIR%\README.md" "%PREFIX%\share\dcm4che"
 
 setlocal EnableDelayedExpansion
 
