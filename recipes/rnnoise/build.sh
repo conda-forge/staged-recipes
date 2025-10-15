@@ -1,10 +1,8 @@
 #!/bin/bash
 set -euxo pipefail
 
-if [[ "${target_platform}" != "win-64" ]]; then
-    cp "${BUILD_PREFIX}/share/gnuconfig/config.guess" .
-    cp "${BUILD_PREFIX}/share/gnuconfig/config.sub" .
-fi
+cp "${BUILD_PREFIX}/share/gnuconfig/config.guess" .
+cp "${BUILD_PREFIX}/share/gnuconfig/config.sub" .
 
 cd "${SRC_DIR}"
 
@@ -26,13 +24,6 @@ esac
 
 autoreconf --install --symlink --force --verbose
 ./configure --prefix="${PREFIX}" --enable-x86-rtcd
-
-# Apply Windows-specific patches if needed
-if [[ "${target_platform}" == "win-64" ]]; then
-    patch_libtool
-    # Set REMOVE_LIB_PREFIX for Windows builds to handle library naming
-    export REMOVE_LIB_PREFIX=1
-fi
 
 make -j"${CPU_COUNT:-1}"
 make install
