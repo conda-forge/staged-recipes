@@ -27,7 +27,6 @@ esac
 autoreconf --install --symlink --force --verbose
 ./configure --prefix="${PREFIX}" --enable-x86-rtcd
 
-# Apply Windows-specific patches if needed
 if [[ "${target_platform}" == "win-64" ]]; then
     patch_libtool
     # Set REMOVE_LIB_PREFIX for Windows builds to handle library naming
