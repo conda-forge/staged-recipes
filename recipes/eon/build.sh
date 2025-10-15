@@ -9,8 +9,7 @@ tee native.ini << EOF
 python = ${PREFIX}/bin/python
 EOF
 
-meson --buildtype=release \
-    -Dpython.install_env=prefix \
+meson -Dpython.install_env=prefix \
     --native-file native.ini \
     -Dwith_metatomic=True \
     -Dpip_metatomic=False \
