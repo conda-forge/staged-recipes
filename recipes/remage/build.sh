@@ -27,6 +27,6 @@ cmake -S . -B build -G Ninja \
     ${CMAKE_ARGS} \
     "${SRC_DIR}"
 
-cmake --build build "-j${CPU_COUNT}" ${VERBOSE_CM:-}
+cmake --build build -j${CPU_COUNT}
 ctest -V --test-dir build
-cmake --install install "-j${CPU_COUNT}"
+cmake --install build
