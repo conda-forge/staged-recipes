@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eux
+set -o xtrace -o nounset -o pipefail -o errexit
 
 if [[ "${DEBUG_C:-no}" == "yes" ]]; then
   CMAKE_BUILD_TYPE=Debug
@@ -13,9 +13,7 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-mkdir build && cd build
-
-cmake \
+cmake -S . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DRMG_CONDA_BUILD=ON \
@@ -29,5 +27,6 @@ cmake \
     ${CMAKE_ARGS} \
     "${SRC_DIR}"
 
-make "-j${CPU_COUNT}" ${VERBOSE_CM:-}
-make install "-j${CPU_COUNT}"
+cmake --build build "-j${CPU_COUNT}" ${VERBOSE_CM:-}
+ctest -V --test-dir build
+cmake --install install "-j${CPU_COUNT}"
