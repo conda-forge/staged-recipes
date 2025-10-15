@@ -6,7 +6,7 @@ export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
 tee native.ini << EOF
 [binaries]
-python = "${PREFIX}/bin/python"
+python = '${PREFIX}/bin/python'
 EOF
 
 meson -Dpython.install_env=prefix \
