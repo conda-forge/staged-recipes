@@ -18,6 +18,8 @@ move "%SRC_DIR%\lib" "%PREFIX%\share\dcm4che"
 move "%SRC_DIR%\LICENSE.txt" "%PREFIX%\share\dcm4che"
 move "%SRC_DIR%\README.md" "%PREFIX%\share\dcm4che"
 
+dir "%PREFIX%\share\dcm4che"
+
 setlocal EnableDelayedExpansion
 
 :: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
