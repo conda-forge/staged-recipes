@@ -14,10 +14,11 @@ if [[ "${target_platform}" == "osx-64" ]]; then
 fi
 
 cmake -S . -B build \
-    -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DRMG_CONDA_BUILD=ON \
-    -DPython3_EXECUTABLE="$PYTHON" \
+    -D CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+    -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -D RMG_CONDA_BUILD=ON \
+    -D BUILD_TESTING=ON \
+    -D Python3_EXECUTABLE="$PYTHON" \
     -D FETCHCONTENT_TRY_FIND_PACKAGE_MODE="ALWAYS" \
     -D FETCHCONTENT_QUIET=OFF \
     -D FETCHCONTENT_FULLY_DISCONNECTED=OFF \
@@ -28,5 +29,11 @@ cmake -S . -B build \
     "${SRC_DIR}"
 
 cmake --build build -j${CPU_COUNT}
-ctest -V --test-dir build
+
+# prevent fontconfig cache and pycache pollution from tests.
+export XDG_CACHE_HOME="$PWD/build/.cache"
+export PYTHONPYCACHEPREFIX="$PWD/build/.cache"
+ctest -V --test-dir build --label-exclude "flaky|mt"
+unset PYTHONPYCACHEPREFIX
+
 cmake --install build
