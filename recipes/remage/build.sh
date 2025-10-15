@@ -13,11 +13,15 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+# prevent poluting the pycache directories with numba-compiled files from tests.
+export NUMBA_CACHE_DIR="$PWD/build/.numba-cache"
+
 cmake -S . -B build \
-    -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DRMG_CONDA_BUILD=ON \
-    -DPython3_EXECUTABLE="$PYTHON" \
+    -D CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+    -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -D RMG_CONDA_BUILD=ON \
+    -D BUILD_TESTING=ON \
+    -D Python3_EXECUTABLE="$PYTHON" \
     -D FETCHCONTENT_TRY_FIND_PACKAGE_MODE="ALWAYS" \
     -D FETCHCONTENT_QUIET=OFF \
     -D FETCHCONTENT_FULLY_DISCONNECTED=OFF \
@@ -28,5 +32,10 @@ cmake -S . -B build \
     "${SRC_DIR}"
 
 cmake --build build -j${CPU_COUNT}
-ctest -V --test-dir build
+
+ctest -V --test-dir build --label-exclude "flaky|mt" -E observables
+
 cmake --install build
+
+# clean fontconfig cache that might have been written in the tests.
+rm -r $PREFIX/var/cache/fontconfig
