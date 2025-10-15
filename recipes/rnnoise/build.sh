@@ -30,6 +30,8 @@ autoreconf --install --symlink --force --verbose
 # Apply Windows-specific patches if needed
 if [[ "${target_platform}" == "win-64" ]]; then
     patch_libtool
+    # Set REMOVE_LIB_PREFIX for Windows builds to handle library naming
+    export REMOVE_LIB_PREFIX=1
 fi
 
 make -j"${CPU_COUNT:-1}"
