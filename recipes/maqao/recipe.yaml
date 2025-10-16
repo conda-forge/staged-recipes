@@ -4,18 +4,16 @@
 context:
   name: maqao
   version: "2025.1.0"
-  arch: ${{ "x86_64" if target_platform == "linux-64" else 
-            "aarch64" if target_platform == "linux-aarch64" }}
-  sha256: ${{ "e28f4c3ad8f15aaf455b46d6c46f6451fa8aef51ffee134bb766f98570941c8c" if arch == "x86_64" else 
-              "993d610a3625c7ff605233a388981d87a2f42741a900c29e5de1e47ae69e5b67" if arch == "aarch64" }}
+  sha256: "e470318f417f78af01395900b450a7c5d48e9720ac41da16be638deb1b134e07"
 
 package:
   name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
-  url: https://maqao.org/maqao_archive/${{ name }}.${{ arch }}.${{ version }}.tar.xz
+  url: https://gitlab.liparad.uvsq.fr/maqao_release/MAQAO/-/archive/master/MAQAO-master.tar.gz
   sha256: ${{ sha256 }}
+
 
 build:
   skip: 
@@ -23,18 +21,39 @@ build:
       then: true
   number: 0
   script: |
-    MAQAO_EXEC=$(find bin -name "maqao*" -executable | head -1)
-    if [ -z "$MAQAO_EXEC" ]; then
-      echo "No maqao executable found in bin directory. Available files:"
-      ls -la bin/
+
+    mkdir build
+    cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    make -C build -j${CPU_COUNT}
+
+    echo "Contents of build directory:"
+    ls -la
+
+    mkdir -p ${PREFIX}/bin
+
+    if [ -f bin/maqao ]; then
+      cp bin/maqao ${PREFIX}/bin/
+    else
+      echo "MAQAO executable not found after compilation"
+      find . -name "*maqao*" -type f
       exit 1
     fi
-    
-    echo "Found MAQAO executable: $MAQAO_EXEC for ${{ arch }}"
-    
-    # Create wrapper script in bin directory
-    mkdir -p ${PREFIX}/bin
-    cp $MAQAO_EXEC ${PREFIX}/bin/maqao
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake >=3.3.0
+    - gcc <= 14.0.0
+    - make
+  host:
+    - readline
+    - ncurses
+  run:
+    - libgcc-ng
+    - libstdcxx-ng
+    - readline
+    - ncurses
 
 tests:
   - script:
