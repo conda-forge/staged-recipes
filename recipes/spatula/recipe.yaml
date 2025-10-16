@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: "spatula"
-  version: "0.1.0"
+  version: "0.1.1"
 
 package:
   name: ${{ name }}
@@ -10,13 +10,26 @@ package:
 
 source:
   url: https://github.com/glotzerlab/${{ name }}/releases/download/v${{ version }}/${{ name }}-${{ version }}.tar.gz
-  sha256: 8223b5aad941a5d7c8135deecb38f3a15d7afc78228df02631473ec7c7e7298e
+  sha256: 8280057dd5950f5412d0d4c0e4d1116edddb93f1fe56975257b07726e0eeac5e
 
 build:
   script: python -m pip install . --ignore-installed --no-cache-dir --no-deps -vv
   number: 0
 
+context:
+  python_min: "3.10"
 requirements:
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - pybind11
+    - numpy
+  run:
+    - python
+    - ${{ pin_compatible('numpy') }}
+    - scipy
+    - freud >=3.0.0,!=3.2.0
   build:
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
@@ -25,21 +38,10 @@ requirements:
       then:
         - python
         - cross-python_${{ target_platform }}
-        - pybind11
         - scikit-build-core
-    - if: not win
+    - if: unix
       then:
         - make
-  host:
-    - python
-    - pip
-    - scikit-build-core
-    - pybind11
-  run:
-    - python
-    - numpy
-    - scipy
-    - freud >=3.0.0,!=3.2.0
 
 tests:
   - files:
@@ -53,16 +55,26 @@ tests:
     script:
       - if: unix
         then:
-          - python -m pytest tests/ -v
+          - python -m pytest tests/ -v --pg-first --skip-boosop
       - if: win
         then:
           - >
             powershell -NoProfile -ExecutionPolicy Bypass -Command "& {
-              python -m pytest tests/ -v --junitxml pytest-report.xml;
-              if ($LASTEXITCODE -ne 0) {
-                [xml]$j = Get-Content 'pytest-report.xml';
-                if (([int]$j.testsuite.failures -eq 0) -and ([int]$j.testsuite.errors -eq 0)) { exit 0 } else { exit $LASTEXITCODE }
-              } else { exit 0 }
+              $ErrorActionPreference='Continue';
+              $PSNativeCommandUseErrorActionPreference=$false;
+              $xmlPath = Join-Path (Get-Location) 'pytest-report.xml';
+              python -m pytest tests/ -v --pg-first --skip-boosop --junitxml $xmlPath;
+              $code = $LASTEXITCODE;
+              if ($code -eq 0) { exit 0 }
+              if (Test-Path -LiteralPath $xmlPath) {
+                [xml]$j = Get-Content -LiteralPath $xmlPath -ErrorAction Stop;
+                $suites = @(); if ($j.testsuite) { $suites=@($j.testsuite) } elseif ($j.testsuites){ $suites=@($j.testsuites.testsuite) }
+                $fails = ($suites | % { [int]$_.failures } | Measure-Object -Sum).Sum
+                $errs  = ($suites | % { [int]$_.errors }   | Measure-Object -Sum).Sum
+                $tests = ($suites | % { [int]$_.tests }    | Measure-Object -Sum).Sum
+                if ($tests -gt 0 -and $fails -eq 0 -and $errs -eq 0) { exit 0 }
+              }
+              exit $code
             }"
 
 about:
