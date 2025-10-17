@@ -1,0 +1,102 @@
+
+{% set cf_buildnumber = "0" %}
+{% set py_tag = "py" + PY_VER|replace('.','') %}
+{% set intel_ch = "https://software.repos.intel.com/python/conda" %}
+
+# gonna have to change these every time we repack new SVS packages
+{% set intel_buildnumber = "0" %}
+{% set build_string = "gdca8515" %}
+{% set version = "0.0.9" %}
+{% set md5_map = {
+  "py39": "149c47639cca8788180326d37daae816",
+  "py310": "27760bcee0a33a29f9298d1c36dc20b0",
+  "py311": "567aed55f1f1a6b1eac8a206afc19387",
+  "py312": "e6384258f4ba52a5d0a4f3209f00c36c",
+  "py313": "3f2ea4c27ae56f4e0d923f6d9c9a6b22"
+} %}
+
+# builds off above variables
+{% set url_string =  build_string + py_tag + "_" + intel_buildnumber %}
+{% set full_build_string = url_string + "_" + cf_buildnumber %}
+
+package:
+  name: scalable-vs-packs
+  version: {{ version }}
+
+source:
+  - url: {{ intel_ch }}/{{ target_platform }}/scalable-vs-{{ version }}-{{ url_string }}.conda
+    folder: scalable-vs
+    md5: {{ md5_map[py_tag] }}
+    no_hoist: true
+
+build:
+  number: {{ cf_buildnumber }}
+  string: {{ full_build_string }}
+  binary_relocation: false
+  detect_binary_files_with_prefix: false
+  skip: True  # [not (linux64) or py<39 or py>313]
+  missing_dso_whitelist:
+    - /lib64/ld-linux-x86-64.so.2
+    - /lib64/libpthread.so.0
+    - /lib64/libm.so.6
+    - /lib64/libdl.so.2
+    - /lib64/libc.so.6
+
+outputs:
+  - name: scalable-vs
+    version: {{ version }}
+    script: repack.sh
+    number: {{ cf_buildnumber }}
+    requirements:
+      host:
+        - python {{ python }}
+        - conda-package-handling
+      run:
+        - python {{ python }}
+        - numpy
+        - toml
+        - libstdcxx >=13
+        - libgcc
+        - libgfortran >=5
+        - libgomp
+
+    about:
+      home: https://intel.github.io/ScalableVectorSearch/index.html
+      license: Intel Simplified Software License (Version October 2022)
+      license_file:
+        - scalable-vs/info/licenses/distributions/LICENSE
+        - scalable-vs/info/licenses/ScalableVectorSearch/THIRD-PARTY-PROGRAMS
+      summary: Scalable Vector Search
+      description: |
+        <strong>LEGAL NOTICE: Use of this software package is subject to the
+        software license agreement (as set forth above, in the license section of
+        the installed Conda package and/or the README file) and all notices,
+        disclaimers or license terms for third party or open source software
+        included in or with the software.</strong>
+        <br/><br/>
+        EULA: <a href="https://www.intel.com/content/www/us/en/content-details/749362/intel-simplified-software-license-version-october-2022.html" target="_blank">Intel Simplified Software License (Version October 2022)</a>
+        <br/><br/>
+      dev_url: https://github.com/intel/ScalableVectorSearch
+      doc_url: https://intel.github.io/ScalableVectorSearch/index.html
+    
+    test:
+      requires:
+        - python {{ python }}
+        - numpy
+        - toml
+      commands:
+        - python -c "import sys,os; print('Python:',sys.version); import svs; print('svs ok', svs.library_version())"
+
+# pleases the linter
+about:
+  home: https://github.com/conda-forge/scalable-vs-feedstock
+  license: LicenseRef-IntelSimplifiedSoftwareOct2022
+  summary: 'Repackaged Intel Scalable Vector Search'
+
+extra:
+  feedstock-name: scalable-vs-packs
+  recipe-maintainers:
+    - jharlow-intel
+    - napetrov
+    - mihaic
+    - ethanglaser
