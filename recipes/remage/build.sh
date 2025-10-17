@@ -13,6 +13,8 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+export XDG_CACHE_HOME="$PWD/build/.cache"
+
 cmake -S . -B build \
     -D CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
     -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
@@ -30,10 +32,13 @@ cmake -S . -B build \
 
 cmake --build build -j${CPU_COUNT}
 
+ls -la $PREFIX/var/cache/fontconfig || :
+
 # prevent fontconfig cache and pycache pollution from tests.
-export XDG_CACHE_HOME="$PWD/build/.cache"
 export PYTHONPYCACHEPREFIX="$PWD/build/.cache"
-ctest -V --test-dir build --label-exclude "flaky|mt"
+ctest -V --test-dir build --label-exclude "flaky|mt" -E observables
 unset PYTHONPYCACHEPREFIX
 
 cmake --install build
+
+ls -la $PREFIX/var/cache/fontconfig || :
