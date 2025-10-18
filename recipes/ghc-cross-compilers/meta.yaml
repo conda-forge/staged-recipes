@@ -1,0 +1,101 @@
+{% set name = "ghc-cross" %}
+{% set version = "9.6.7" %}
+
+package:
+  name: ghc-cross_split
+  version: {{ version }}
+
+source:
+  - url: https://downloads.haskell.org/~ghc/{{ version }}/ghc-{{ version }}-src.tar.xz
+    sha256: d053bf6ce1d588a75cfe8c9316269486e9d8fb89dcdf6fd92836fa2e3df61305
+    patches:
+      - patches/skip-bindist-recache-crosscompile.patch
+
+build:
+  number: 0
+  skip: not (linux and x86_64)
+  detect_binary_files_with_prefix: false
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - binutils
+    - binutils_impl_{{ cross_target_platform }} {{ binutils_version }}.*
+    - cabal ==3.10.3.0
+    - ghc-bootstrap ==9.6.7
+    - llvm-tools {{ c_compiler_version }}.*
+    - pkg-config
+    - python 3.10.*
+    - sphinx
+    - zstd
+
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - file
+        - m4
+        - make
+        - sed
+
+    # Cross-compiler packages
+    - {{ c_stdlib }}_{{ cross_target_platform }} >={{ c_stdlib_version }}
+    - {{ c_compiler }}_impl_{{ cross_target_platform }} {{ c_compiler_version }}.*
+    - {{ cxx_compiler }}_impl_{{ cross_target_platform }} {{ cxx_compiler_version }}.*
+    - libgcc-devel_{{ cross_target_platform }}
+
+outputs:
+  - name: ghc_impl_{{ cross_target_platform }}
+    script: install_ld.sh
+    build:
+      merge_build_host: false
+      # ld binaries have host prefix search paths embeded in them
+      detect_binary_files_with_prefix: true
+      ignore_run_exports_from:    # [linux]
+        - {{ compiler('cxx') }}   # [linux]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+      run:
+      run_constrained:
+        - binutils_impl_{{ cross_target_platform }} {{ version }}
+    test:
+      commands:
+        - {{ triplet }}-ghc --version
+        - {{ triplet }}-ghc-pkg --version
+        - {{ triplet }}-ghci --version
+        - {{ triplet }}-hp2ps --version
+        - {{ triplet }}-hsc2hs --version
+        - echo "{{ ctng_vendor }}"
+  
+  - name: ghc_{{ cross_target_platform }}
+    script: install_activation.sh
+    requirements:
+      run:
+        - {{ pin_subpackage("ghc_impl_" ~ cross_target_platform, exact=True) }}
+    test:
+      commands:
+        - $GHC --version
+
+
+about:
+  homepage: https://haskell.org/ghc/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    # - license_files
+  summary: Glorious Glasgow Haskell Compilation System
+  description: |
+    GHC is a state-of-the-art, open source, compiler and interactive environment 
+    for the functional language Haskell.
+  documentation: https://www.haskell.org/ghc/documentation.html
+  repository: https://gitlab.haskell.org/ghc/ghc
+
+extra:
+  recipe-maintainers:
+    - xhochy
+    - MementoRC
