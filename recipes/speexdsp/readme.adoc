@@ -1,0 +1,222 @@
+= SpeexDSP Recipe
+:version: 1.2.1
+:toc: left
+:toclevels: 2
+:sectnums:
+:icons: font
+
+This recipe packages the SpeexDSP library, a patent-free, Open Source/Free Software DSP library derived from Speex.
+
+== About SpeexDSP
+
+SpeexDSP is a patent-free, Open Source/Free Software DSP library derived from Speex. It was split off from the main Speex project to allow more modular use of the DSP functionality without requiring the codec components.
+
+Key features:
+
+* Echo cancellation
+* Noise reduction
+* Automatic gain control (AGC)
+* Voice activity detection (VAD)
+* Resampling
+* Fixed-point and floating-point implementations
+* Cross-platform support
+
+== Package Details
+
+[cols="1,2"]
+|===
+| Property | Value
+
+| Package Name
+| `speexdsp`
+
+| Version
+| {version}
+
+| Source
+| https://github.com/xiph/speexdsp
+
+| License
+| BSD-3-Clause
+
+| Upstream
+| Xiph.Org Foundation
+|===
+
+== Build Information
+
+This package uses autotools for building:
+
+1. Uses a single nushell script (`build.nu`) for cross-platform build automation
+2. Runs `autogen.sh` to generate configure script
+3. Configures with shared library support and optimizations enabled
+4. Builds with parallel compilation
+5. Installs headers, shared library, and pkg-config files
+6. Automatically detects platform and uses appropriate build tools (autotools on Unix, MSYS2/MinGW on Windows)
+
+Build options enabled:
+
+* Shared libraries (static libraries disabled)
+* SSE optimizations (where supported)
+* Fixed-point arithmetic support
+
+== Usage
+
+After installation, you can use SpeexDSP in your C/C++ projects:
+
+[source,c]
+----
+#include <speex/speex_preprocess.h>
+#include <speex/speex_echo.h>
+
+// Echo cancellation example
+SpeexEchoState *echo_state;
+echo_state = speex_echo_state_init(frame_size, filter_length);
+
+// Noise reduction example
+SpeexPreprocessState *preprocess_state;
+preprocess_state = speex_preprocess_state_init(frame_size, sample_rate);
+----
+
+== Pkg-config Integration
+
+The package includes pkg-config support:
+
+[source,bash]
+----
+pkg-config --cflags speexdsp
+pkg-config --libs speexdsp
+----
+
+== CMake Integration
+
+While SpeexDSP doesn't provide native CMake support, you can use it in CMake projects:
+
+[source,cmake]
+----
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SPEEXDSP REQUIRED speexdsp)
+
+target_include_directories(your_target PRIVATE ${SPEEXDSP_INCLUDE_DIRS})
+target_link_libraries(your_target ${SPEEXDSP_LIBRARIES})
+----
+
+== Testing
+
+=== Option 1: Test with build-locally.py (Docker-based)
+
+[source,bash]
+----
+# Navigate to recipe directory
+cd recipes/speexdsp
+
+# Run local build test
+python ../../build-locally.py linux64
+----
+
+=== Option 2: Test with rattler-build directly
+
+[source,bash]
+----
+# Build for specific platform
+pixi run rattler-build build --recipe-dir recipes/speexdsp --target-platform linux-64
+
+# Test multiple platforms
+pixi run rattler-build build --recipe-dir recipes/speexdsp --target-platform linux-64,osx-64,osx-arm64,win-64
+----
+
+=== Option 3: Test from root directory with recipe name
+
+[source,bash]
+----
+# From staged-recipes root
+AZURE=True pixi run python build-locally.py linux64 --recipes speexdsp
+----
+
+=== Option 4: Lint and validate
+
+[source,bash]
+----
+# Validate recipe format and conda-forge compliance
+pixi run lint
+----
+
+=== Manual Testing
+
+After successful build, verify the package contains:
+
+* Headers in `include/speex/` directory
+* Shared library files
+* pkg-config configuration file
+* Proper license file placement
+
+Test basic functionality:
+
+[source,c]
+----
+#include <speex/speex_preprocess.h>
+#include <stdio.h>
+
+int main() {
+    int frame_size = 320;
+    int sample_rate = 8000;
+
+    SpeexPreprocessState *state = speex_preprocess_state_init(frame_size, sample_rate);
+
+    if (state != NULL) {
+        printf("SpeexDSP initialized successfully\n");
+        speex_preprocess_state_destroy(state);
+        return 0;
+    } else {
+        printf("Failed to initialize SpeexDSP\n");
+        return 1;
+    }
+}
+----
+
+Compile test:
+
+[source,bash]
+----
+gcc -o test_speexdsp test.c $(pkg-config --cflags --libs speexdsp)
+./test_speexdsp
+----
+
+== Applications
+
+SpeexDSP is commonly used in:
+
+* VoIP applications (like Mumble, as seen in the mumble-voip recipe)
+* Audio processing pipelines
+* Real-time communication software
+* Audio enhancement tools
+* Embedded audio systems
+
+== Cross-platform Support
+
+This recipe builds SpeexDSP for:
+
+* Linux (x86_64, ARM64, PowerPC64LE)
+* macOS (Intel and Apple Silicon)
+* Windows (via MinGW)
+
+== Performance Notes
+
+* SSE optimizations are enabled on x86/x64 platforms
+* Fixed-point implementation available for embedded/ARM systems
+* Optimized for real-time audio processing with minimal latency
+
+[NOTE]
+====
+SpeexDSP is designed for real-time audio processing. Enable compiler optimizations and consider platform-specific SIMD instructions for best performance.
+====
+
+== Maintainers
+
+* Recipe maintainer information will be added upon feedstock creation
+
+== Related Packages
+
+* `mumble-voip`: Uses SpeexDSP for audio processing
+* `speex`: The original Speex audio codec (includes older DSP components)
+* Audio processing and VoIP-related packages in conda-forge
