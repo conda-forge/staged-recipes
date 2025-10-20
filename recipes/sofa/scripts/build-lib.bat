@@ -1,38 +1,15 @@
 setlocal EnableDelayedExpansion
 @echo on
 
-rmdir /S /Q build
-
-mkdir build
-cd build
-
-:: We install to a temp directory to avoid duplicate compilation for libsofa and
-:: sofa-devel. This is inspired from:
-:: https://github.com/conda-forge/boost-feedstock/blob/main/recipe/meta.yaml
-mkdir temp_prefix
-
 :: Configure
 cmake %CMAKE_ARGS% ^
   -B . ^
   -S %SRC_DIR% ^
   -G Ninja ^
-  -DCMAKE_INSTALL_PREFIX:PATH=temp_prefix\ ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
-  -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
-  -DAPPLICATION_SOFAPHYSICSAPI=OFF ^
-  -DSOFA_BUILD_SCENECREATOR=OFF ^
-  -DSOFA_BUILD_TESTS=OFF ^
-  -DSOFA_FLOATING_POINT_TYPE=double ^
-  -DPLUGIN_CIMGPLUGIN=OFF ^
-  -DPLUGIN_SOFAMATRIX=OFF ^
-  -DPLUGIN_SOFAVALIDATION=OFF ^
-  -DPLUGIN_SOFA_GUI_QT=OFF ^
-  -DSOFA_NO_OPENGL=ON ^
-  -DSOFA_WITH_OPENGL=OFF ^
-  -DPLUGIN_MULTITHREADING=ON ^
-  -DAPPLICATION_RUNSOFA=OFF ^
-  -DPLUGIN_ARTICULATEDSYSTEMPLUGIN=OFF ^
-  -DSOFA_ALLOW_FETCH_DEPENDENCIES=OFF
+  -DSOFA_USE_DEPENDENCY_PACK=OFF ^
+  -DSOFA_ALLOW_FETCH_DEPENDENCIES=OFF ^
+  --preset conda-core
 if errorlevel 1 exit 1
 
 :: Build.
@@ -52,4 +29,11 @@ if errorlevel 1 exit 1
 for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do echo "%%f"
 for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do copy "%%f\bin\*.dll" "%LIBRARY_BIN%"
 
-@echo off
+:: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
+:: This will allow them to be run on environment activation.
+for %%F in (activate deactivate) DO (
+  if not exist %PREFIX%\etc\conda\%%F.d mkdir %PREFIX%\etc\conda\%%F.d
+  copy %RECIPE_DIR%\%%F.bat %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
+  :: Copy unix shell activation scripts, needed by Windows Bash users
+  copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
+)

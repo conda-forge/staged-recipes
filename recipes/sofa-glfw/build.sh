@@ -14,10 +14,11 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B . \
   -S .. \
+  -DPLUGIN_SOFAGLFW:BOOL=ON \
+  -DPLUGIN_SOFAIMGUI:BOOL=ON \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
-  -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages \
-  -DCOSSERAT_BUILD_TESTS:BOOL=OFF
+  -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages
 
 # build
 cmake --build . --parallel ${CPU_COUNT}

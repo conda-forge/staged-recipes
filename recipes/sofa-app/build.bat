@@ -1,6 +1,31 @@
 setlocal EnableDelayedExpansion
 @echo on
 
+:: SceneChecking application
+rmdir /S /Q build-scene-checking
+
+mkdir build-scene-checking
+cd build-scene-checking
+
+:: Configure
+cmake %CMAKE_ARGS% ^
+  -B . ^
+  -S %SRC_DIR%\applications\projects\SceneChecking ^
+  -G Ninja ^
+  -DSCENECHECKING_BUILD_TESTS=OFF ^
+  -DCMAKE_BUILD_TYPE:STRING=Release
+if errorlevel 1 exit 1
+
+:: Build.
+cmake --build . --parallel "%CPU_COUNT%"
+if errorlevel 1 exit 1
+
+:: Install.
+cmake --build . --parallel "%CPU_COUNT%" --target install
+if errorlevel 1 exit 1
+
+cd ..
+
 :: runSofa application
 rmdir /S /Q build-sofa-app
 

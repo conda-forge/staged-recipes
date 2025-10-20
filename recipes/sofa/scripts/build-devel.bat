@@ -1,16 +1,15 @@
 setlocal EnableDelayedExpansion
+@echo on
 
-mkdir build
-cd build
-
-::Configure
+:: Configure
 cmake %CMAKE_ARGS% ^
   -B . ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
-  -DPython_EXECUTABLE:PATH="%PREFIX%\python.exe" ^
-  -DSOFTROBOTS_BUILD_TESTS:BOOL=OFF
+  -DSOFA_USE_DEPENDENCY_PACK=OFF ^
+  -DSOFA_ALLOW_FETCH_DEPENDENCIES=OFF ^
+  --preset conda-core
 if errorlevel 1 exit 1
 
 :: Build.
