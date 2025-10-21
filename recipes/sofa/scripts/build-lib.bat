@@ -1,6 +1,11 @@
 setlocal EnableDelayedExpansion
 @echo on
 
+rmdir /S /Q build
+
+mkdir build
+cd build
+
 :: Configure
 cmake %CMAKE_ARGS% ^
   -B . ^
