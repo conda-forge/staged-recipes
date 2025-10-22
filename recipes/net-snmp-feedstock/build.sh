@@ -4,6 +4,7 @@
     --with-defaults \
     --prefix=$PREFIX
 make
+make test
 make install
 
 mkdir -p $PREFIX/etc/conda/activate.d
