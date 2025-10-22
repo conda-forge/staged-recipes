@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 1.0.0
+
+recipe:
+  name: backports.zstd-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/backports.zstd/backports_zstd-${{ version }}.tar.gz
+  sha256: 8e99702fd4092c26624b914bcd140d03911a16445ba6a74435b29a190469cce3
+
+build:
+  number: 0
+
+# To allow downstream `noarch: python` feedstocks to unconditionally depend
+# on `backports.zstd` without having their _own_ variants, this builds multiple
+# `outputs` with the same name, but different build strings, per upstream release:
+#
+# - one build that links against `zstd` and `python` per {platform x architecture x python}
+#   for python 3.10-3.13
+# - a single, empty, `noarch: generic` build (built on `linux-64`) which can be
+#   installed on python 3.14+
+
+outputs:
+  - package:
+      name: backports.zstd
+    build:
+      skip: match(python, ">=3.14")
+      script:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --config-settings=--build-option=--system-zstd --disable-pip-version-check
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      host:
+        - pip
+        - python
+        - setuptools
+        - zstd
+      run:
+        - python
+    tests:
+      - python:
+          imports: backports.zstd
+          pip_check: true
+
+  - package:
+      name: backports.zstd
+    build:
+      skip: not (build_platform == "linux-64" and match(python, python_min ~ ".*"))
+      noarch: generic
+    requirements:
+      run:
+        - python >=3.14
+    tests:
+      - python:
+          imports: compression.zstd
+          pip_check: true
+          python_version: "*"
+    about:
+      homepage: https://github.com/rogdham/backports.zstd
+      license: BSD-3-Clause AND MIT AND EPL-2.0
+      license_file: LICENSE.txt
+      summary: Backport of compression.zstd (no-op on Python 3.14+)
+
+about:
+  homepage: https://github.com/rogdham/backports.zstd
+  license: BSD-3-Clause AND MIT AND EPL-2.0
+  license_file: LICENSE.txt
+  summary: Backport of compression.zstd
+
+extra:
+  feedstock-name: backports.zstd
+  recipe-maintainers:
+    - rogdham
+    - bollwyvl
