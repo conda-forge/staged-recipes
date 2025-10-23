@@ -34,10 +34,53 @@ abstracting away many of the underlying infrastructure complexities.
 
 ## Build Notes
 
-The build uses the existing bash script from the source:
+The build process incorporates the cluster-api provider build logic from the upstream OpenShift installer:
+* https://github.com/openshift/installer/blob/main/cluster-api/Makefile
 * https://github.com/openshift/installer/blob/main/hack/build.sh
 * https://github.com/openshift/installer/blob/main/hack/build-cluster-api.sh
 
-This recipe is Unix-only and uses the upstream build scripts directly.
+This recipe is Unix-only and builds all cluster-api providers directly using Go build commands.
 Windows builds are not supported due to the complexity of the build process
 and dependencies on Unix-specific tools.
+
+## Cluster API Build Process
+
+The build script now incorporates the functionality equivalent to the upstream `cluster-api/Makefile`, building all provider binaries directly rather than relying on the makefile.
+
+### Cluster API Providers Built
+
+The following cluster-api provider binaries are built:
+
+- **cluster-api**: The core Cluster API controller binary
+- **cluster-api-provider-aws**: AWS infrastructure provider
+- **cluster-api-provider-azure**: Azure infrastructure provider
+- **cluster-api-provider-azureaso**: Azure Service Operator integration
+- **cluster-api-provider-azurestack**: Azure Stack infrastructure provider
+- **cluster-api-provider-gcp**: Google Cloud infrastructure provider
+- **cluster-api-provider-vsphere**: vSphere infrastructure provider
+- **cluster-api-provider-openstack**: OpenStack infrastructure provider
+- **cluster-api-provider-nutanix**: Nutanix infrastructure provider
+- **cluster-api-provider-ibmcloud**: IBM Cloud infrastructure provider
+
+### Build Implementation
+
+The build script (`build.sh`) directly implements the equivalent of:
+```make
+make -C cluster-api go-build
+```
+
+Each provider is built using individual `go build` commands with the same flags and output paths as the upstream Makefile:
+- **GCFLAGS**: Compilation flags (empty for release builds)
+- **LDFLAGS**: Link flags ("-s -w" for stripped binaries)
+- **TARGET_OS_ARCH**: Target platform (e.g., "linux_amd64")
+
+All binaries are placed in `bin/$TARGET_OS_ARCH/` and packaged into a single `cluster-api.zip` file.
+
+### How It's Used in the Installer
+The OpenShift installer **embeds these binaries** using Go's `embed` directive and extracts the appropriate Cluster API provider binaries at runtime based on:
+- The target cloud platform (AWS, Azure, GCP, etc.)
+- The target architecture (linux_amd64, darwin_arm64, etc.)
+
+These binaries are then used to provision and manage the underlying infrastructure resources (VMs, networks, load balancers, etc.) that OpenShift needs.
+
+The OpenShift installer uses Cluster API as its infrastructure provisioning layer, embedding pre-built provider binaries that handle infrastructure lifecycle management in a standardized way.
