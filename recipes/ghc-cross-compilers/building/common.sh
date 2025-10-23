@@ -65,33 +65,45 @@ run_and_log() {
   return $exit_code
 }
 
-# Function to calculate relative path from one directory to another
-calculate_relative_path() {
-    local from_path="$1"
-    local to_path="$2"
+# Function to set the conda ar/ranlib for OSX
+set_macos_conda_ar_ranlib() {
+  local settings_file="$1"
+  local toolchain="${2:-x86_64-apple-darwin13.4.0}"
 
-    # Convert to absolute paths
-    from_path=$(realpath "$from_path")
-    to_path=$(realpath "$to_path")
-
-    # Use Python to calculate relative path (most reliable)
-    python3 -c "
-import os
-print(os.path.relpath('$to_path', '$from_path'))
-"
+  if [[ -f "$settings_file" ]]; then
+    if [[ "$(basename "${settings_file}")" == "default."* ]]; then
+      # Use LLVM ar instead of GNU ar for compatibility with Apple ld64
+      perl -i -pe 's#(arMkArchive\s*=\s*).*#$1Program {prgPath = "llvm-ar", prgFlags = ["qcs"]}#g' "${settings_file}"
+      perl -i -pe 's#((arIsGnu|arSupportsAtFile)\s*=\s*).*#$1False#g' "${settings_file}"
+      perl -i -pe 's#(arNeedsRanlib\s*=\s*).*#$1False#g' "${settings_file}"
+      perl -i -pe 's#(tgtRanlib\s*=\s*).*#$1Nothing#g' "${settings_file}"
+    else
+      # Use LLVM ar instead of GNU ar for compatibility with Apple ld64
+      perl -i -pe 's#("ar command", ")[^"]*#$1llvm-ar#g' "${settings_file}"
+      perl -i -pe 's#("ar flags", ")[^"]*#$1qcs#g' "${settings_file}"
+      perl -i -pe "s#(\"(clang|llc|opt|ranlib) command\", \")[^\"]*#\$1${toolchain}-\$2#g" "${settings_file}"
+    fi
+  else
+    echo "Error: $settings_file not found!"
+    exit 1
+  fi
 }
 
-# Function to convert relative path to $ORIGIN-based rpath
-calculate_origin_rpath() {
-    local binary_path="$1"
-    local target_lib_path="$2"
+update_settings_link_flags() {
+  local settings_file="$1"
+  local toolchain="${2:-$CONDA_TOOLCHAIN_HOST}"
+  
+  if [[ "${target_platform}" == "linux-"* ]]; then
+    perl -pi -e 's#(C compiler flags", "[^"]*)#$1 -Wno-strict-prototypes#' "${settings_file}"
+    perl -pi -e 's#(C\+\+ compiler flags", "[^"]*)#$1 -Wno-strict-prototypes#' "${settings_file}"
 
-    # Get directory containing the binary
-    local binary_dir=$(dirname "$binary_path")
+    perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${BUILD_PREFIX}/lib -Wl,-L${PREFIX}/lib -Wl,-rpath,${BUILD_PREFIX}/lib -Wl,-rpath,${PREFIX}/lib#" "${settings_file}"
+    perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${BUILD_PREFIX}/lib -L${PREFIX}/lib -rpath ${BUILD_PREFIX}/lib -rpath ${PREFIX}/lib#" "${settings_file}"
 
-    # Calculate relative path from binary dir to target lib
-    local rel_path=$(calculate_relative_path "$binary_dir" "$target_lib_path")
-
-    # Convert to $ORIGIN syntax
-    echo "\$ORIGIN/$rel_path"
+  elif [[ "${target_platform}" == "osx-"* ]]; then
+    perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${PREFIX}/lib -Wl,-liconv -Wl,-L${PREFIX}/lib/ghc-${PKG_VERSION}/lib -Wl,-liconv_compat#" "${settings_file}"
+    perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${PREFIX}/lib -liconv -L${PREFIX}/lib/ghc-${PKG_VERSION}/lib -liconv_compat#" "${settings_file}"
+  fi
+  
+  perl -pi -e "s#\"[/\w\-]*?(ar|clang|clang\+\+|ld|ranlib|llc|objdump|opt)\"#\"${toolchain}-\$1\"#" "${settings_file}"
 }

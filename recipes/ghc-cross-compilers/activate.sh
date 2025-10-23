@@ -1,5 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -eu
 
-if [[ "$(uname)" == "Linux" ]] && [[ "$(uname -m)" == "x86_64" ]]; then
-  aarch64-conda-linux-gnu-ghc-pkg recache
-fi
+@CHOST@-ghc-pkg recache
