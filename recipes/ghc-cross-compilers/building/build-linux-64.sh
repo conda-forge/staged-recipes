@@ -177,9 +177,3 @@ pushd "${cross_prefix}"/bin
     fi
   done
 popd
-
-if [[ -d "${cross_prefix}"/lib/${ghc_target}-ghc-"${PKG_VERSION}" ]]; then
-  # $PREFIX/lib/cross-conda-linux-gnu-ghc-9.12.2 -> $PREFIX/lib/ghc-9.12.2
-  mv "${cross_prefix}"/lib/"${ghc_target}"-ghc-"${PKG_VERSION}" "${cross_prefix}"/lib/ghc-"${PKG_VERSION}"
-  (cd "${cross_prefix}"/lib; ln -sf ghc-"${PKG_VERSION}" "${ghc_target}"-ghc-"${PKG_VERSION}")
-fi

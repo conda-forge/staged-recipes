@@ -16,3 +16,7 @@ export PYTHON=${BUILD_PREFIX}/bin/python
 export PATH=${BUILD_PREFIX}/ghc-bootstrap/bin${PATH:+:}${PATH:-}
 
 "${RECIPE_DIR}"/building/build-"${target_platform}.sh"
+
+if [[ -f "${RECIPE_DIR}"/recipe.yaml ]]; then
+  "${RECIPE_DIR}"/install_ghc.sh
+fi

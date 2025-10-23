@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -eu
 
-# Create bash completion
-mkdir -p "${PREFIX}"/etc/bash_completion.d
-cp utils/completion/ghc.bash "${PREFIX}"/etc/bash_completion.d/ghc
-
 pushd "${SRC_DIR}"/cross_install
+  # Remove artifacts potentially conflicting with native GHC
+  rm -f bin/hsc2hs-ghc-"${PKG_VERSION}"
+  
   # Clean up package cache
   rm -f lib/*ghc-"${PKG_VERSION}"/lib/package.conf.d/package.cache
   rm -f lib/*ghc-"${PKG_VERSION}"/lib/package.conf.d/package.cache.lock
