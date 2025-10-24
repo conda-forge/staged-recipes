@@ -63,14 +63,17 @@ The user should review the recipe generated, especially the license and dependen
 Use one of:
 
 - manually
-  1. install `grayskull`: `conda install -c conda-forge grayskull`
-  2. generate recipe:
-    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
-    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+  1. install `grayskull`: `conda install -c conda-forge grayskull conda-recipe-manager`
+  2. `cd recipes`
+  3. generate recipe:
+    - `grayskull pypi --use-v1-format PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+    - `grayskull cran --use-v1-format PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+    - > omit `--use-v1-format` to get a `meta.yaml` for `conda-build` instead
 - with [`pixi`](#pixi):
   1. generate recipe:
     - `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
     - `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+    - > use `pypi-v0` or `cran-v0` to get a `meta.yaml` for `conda-build` instead
 
 ## Linting recipes with `conda-smithy`
 
@@ -79,10 +82,10 @@ helpful linters that can save CI resources by catching known issues up-front.
 
 Use one of:
 - manually
-  - install `conda-smithy`: `conda install -c conda-forge conda-smithy shellcheck`
-  - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
+  1. install `conda-smithy`: `conda install -c conda-forge conda-smithy shellcheck`
+  2. lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
 - with [`pixi`](#pixi):
-  - lint recipes: `pixi run lint`
+  1. lint recipes: `pixi run lint`
 
 > **NOTES**
 >
@@ -114,7 +117,7 @@ in this repository and modify it as necessary.
 
 Follow the order of the sections in the example recipe. If you make a copy of example recipe, please remove the example's explainer comments from your recipe. Add your own comments to the recipe and build scripts to explain unusual build behavior or recipe options.
 
-*If there are details you are not sure about please open a pull request. The conda-forge team will be happy to answer your questions.*
+*If there are details you are not sure about please open a pull request. The conda-forge team will be better able to answer questions about a failing build.*
 
 ### 2. **How do I populate the `hash` field?**
 
@@ -133,17 +136,22 @@ You may need the openssl package, available on conda-forge:
 
 Use the `skip` key in the `build` section along with a selector:
 
-```yaml
-build:
-    skip: true  # [win]
-```
-
-A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
+- v1 `recipe.yaml`
+  ```yaml
+  build:
+    skip: win
+  ```
+  > a full description of selectors is [in the rattler-build docs](https://rattler.build/latest/selectors)
+- v0 `meta.yaml`
+  ```yaml
+  build:
+      skip: true  # [win]
+  ```
+  > A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
 If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html).
 
 _Note_: As the package will always be built on linux, it needs to be at least available on there.
-
 
 ### 4. **What does the `build: 0` entry mean?**
 
@@ -224,16 +232,18 @@ right people know. There are language-specific teams for reviewing recipes.
 
 | Language        | Name of review team           |
 | --------------- | ----------------------------- |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| go              | `@conda-forge/help-go`        |
+| java            | `@conda-forge/help-java`      |
+| Julia           | `@conda-forge/help-julia`     |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| other           | `@conda-forge/staged-recipes` |
+| perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
-| java            | `@conda-forge/help-java`      |
-| nodejs          | `@conda-forge/help-nodejs`    |
-| c/c++           | `@conda-forge/help-c-cpp`     |
-| perl            | `@conda-forge/help-perl`      |
-| Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
-| other           | `@conda-forge/staged-recipes` |
+| rust            | `@conda-forge/help-rust`      |
 
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
