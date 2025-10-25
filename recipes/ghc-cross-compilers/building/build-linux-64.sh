@@ -94,14 +94,14 @@ run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[
 settings_file="${SRC_DIR}"/hadrian/cfg/system.config
 perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
 perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
-perl -pi -e "s#(conf-gcc-linker-args-stage[12].*?= )#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
-perl -pi -e "s#(conf-ld-linker-args-stage[12].*?= )#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib#" "${settings_file}"
-perl -pi -e "s#(settings-c-compiler-link-flags.*?= )#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
-perl -pi -e "s#(settings-c-compiler-link-flags.*?= )#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
-perl -pi -e "s#(settings-merge-objects-command.*?= ).*#\$1${conda_target}-ld#" "${settings_file}"
-perl -pi -e "s#(settings-ld-flags.*?= )#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(conf-gcc-linker-args-stage[12]s*?=s+)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(conf-ld-linker-args-stage[12]s*?=s+)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s+)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s+)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(settings-merge-objects-command\s*?=\s+).*#\$1${conda_target}-ld#" "${settings_file}"
+perl -pi -e "s#(settings-ld-flags\s*?=\s+)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib#" "${settings_file}"
 
-perl -pi -e "s#(settings-clang-command.*?= ).*#\$1${conda_target}-clang#" "${settings_file}"
+perl -pi -e "s#(settings-clang-command\s*?=\s+).*#\$1${conda_target}-clang#" "${settings_file}"
 
 _hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
 
@@ -116,7 +116,6 @@ run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=
 
 settings_file="${SRC_DIR}"/_build/stage0/lib/settings
 update_settings_link_flags "${settings_file}" "${conda_target}"
-cat "${settings_file}"
 run_and_log "stage1_lib" "${_hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
 update_settings_link_flags "${settings_file}" "${conda_target}"
 
@@ -134,33 +133,23 @@ if [[ -n "${bindist_dir}" ]]; then
 
     # Install WITHOUT running update_package_db (which tries to execute aarch64 ghc-pkg)
     # We'll manually recache using the bootstrap ghc-pkg after installation
-    echo "=== Installing bindist (skipping package DB update) ==="
     make install_bin install_lib install_docs install_man
-
-    # Manually update package database using bootstrap (x86_64) ghc-pkg
-    echo "=== Updating package database with bootstrap ghc-pkg ==="
-    # Find the actual package.conf.d directory (path varies based on target platform)
-    pkg_conf_dir=$(find "${cross_prefix}"/lib -type d -name "package.conf.d" | head -1)
-    if [[ -n "${pkg_conf_dir}" ]]; then
-      echo "Found package database at: ${pkg_conf_dir}"
-      "${ghc_path}"/ghc-pkg --global-package-db "${pkg_conf_dir}" recache
-    else
-      echo "ERROR: Could not find package.conf.d directory in ${cross_prefix}/lib"
-      find "${cross_prefix}"/lib -type d -name "*ghc*" || true
-      exit 1
-    fi
   popd
 else
   echo "Error: Could not find binary distribution directory"
   exit 1
 fi
 
+# Populate needed dynamic libraries
+mkdir -p ${cross_prefix}/lib/private
+cp "${CROSS_LIB_DIR}"/lib{gmp,iconv,ffi,ncurses,tinfo}*.so* "${cross_prefix}"/lib/private
+
 # Correct CC/CXX
 settings_file="$(find ${cross_prefix}/lib/ -name settings | head -1)"
 if [[ -f "${settings_file}" ]]; then
   perl -pi -e "s#${host_arch}(-[^ \"]*)#${target_arch}\$1#g" "${settings_file}"
-  perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L\\\$topdir/../../../lib -Wl,-rpath,\\\$topdir/../../../lib#" "${settings_file}"
-  perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L\\\$topdir/../../../lib -rpath \\\$topdir/../../../lib#" "${settings_file}"
+  perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L\\\$topdir/../../../lib -Wl,-rpath,\\\$topdir/../../../lib/private -Wl,-rpath,\\\$topdir/../../../lib#" "${settings_file}"
+  perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L\\\$topdir/../../../lib -rpath \\\$topdir/../../../lib/private -rpath \\\$topdir/../../../lib#" "${settings_file}"
   perl -pi -e "s#\"[\$/\w]*?(ar|clang|clang\+\+|ld|ranlib|llc|opt)\"#\"${conda_target}-\$1\"#" "${settings_file}"
   cat "${settings_file}"
 else
