@@ -94,13 +94,13 @@ run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[
 settings_file="${SRC_DIR}"/hadrian/cfg/system.config
 perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
 perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
-perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s+)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s+)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s+)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-ld-flags\s*?=\s+)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
+perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
+perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
+perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
+perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
 
-perl -pi -e "s#(settings-clang-command\s*?=\s+).*#\$1${conda_target}-clang#" "${settings_file}"
-perl -pi -e "s#(settings-merge-objects-command\s*?=\s+).*#\$1${conda_target}-ld#" "${settings_file}"
+perl -pi -e "s#(settings-clang-command\s*?=\s).*#\$1${conda_target}-clang#" "${settings_file}"
+perl -pi -e "s#(settings-merge-objects-command\s*?=\s).*#\$1${conda_target}-ld#" "${settings_file}"
 
 cat "${settings_file}"
 
