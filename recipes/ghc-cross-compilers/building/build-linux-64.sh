@@ -102,6 +102,8 @@ perl -pi -e "s#(settings-ld-flags\s*?=\s+)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${C
 perl -pi -e "s#(settings-clang-command\s*?=\s+).*#\$1${conda_target}-clang#" "${settings_file}"
 perl -pi -e "s#(settings-merge-objects-command\s*?=\s+).*#\$1${conda_target}-ld#" "${settings_file}"
 
+cat "${settings_file}"
+
 _hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
 
 # ---| Stage 1: Cross-compiler |---
