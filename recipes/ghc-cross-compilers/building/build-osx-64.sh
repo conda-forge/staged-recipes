@@ -51,6 +51,13 @@ CROSS_CFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem
 CROSS_CXXFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem $PREFIX/include"
 CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-min=11.0"
 
+echo $(find /Applications -name "MacOSX*.sdk" -type d)
+ARM64_SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
+if [[ -z "${ARM64_SDKROOT}" ]] || [[ ! -d "${ARM64_SDKROOT}" ]]; then
+  echo "ERROR: Could not find macOS arm64 SDK"
+  exit 1
+fi
+  
 # Configure and build GHC
 AR_STAGE0=$(find "${BUILD_PREFIX}" -name llvm-ar | head -1)
 
@@ -69,50 +76,34 @@ CONFIGURE_ARGS=(
   --with-gmp-libraries="${CROSS_LIB_DIR}"
   --with-iconv-includes="${CROSS_INCLUDE_DIR}"
   --with-iconv-libraries="${CROSS_LIB_DIR}"
-  ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
+  
   ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-  AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
-  AS="${BUILD_PREFIX}/bin/${conda_target}"-as
-  CC="${BUILD_PREFIX}/bin/${conda_target}"-clang
-  CXX="${BUILD_PREFIX}/bin/${conda_target}"-clang++
-  LD="${BUILD_PREFIX}/bin/${conda_target}"-ld
-  NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
-  OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
-  RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
-  CPPFLAGS="${CROSS_CPPFLAGS}"
-  CFLAGS="${CROSS_CFLAGS}"
-  CXXFLAGS="${CROSS_CXXFLAGS}"
-  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
+  ac_cv_prog_AR="${BUILD_PREFIX}/bin/${conda_target}-ar"
+  ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
+  ac_cv_prog_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
+  ac_cv_prog_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
+  ac_cv_prog_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
+
+  #AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
+  #AS="${BUILD_PREFIX}/bin/${conda_target}"-as
+  #CC="${BUILD_PREFIX}/bin/${conda_target}"-clang
+  #CXX="${BUILD_PREFIX}/bin/${conda_target}"-clang++
+  #LD="${BUILD_PREFIX}/bin/${conda_target}"-ld
+  #NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
+  #OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
+  #RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
+  
+  CPPFLAGS="${CROSS_CPPFLAGS} -isysroot ${ARM64_SDKROOT}"
+  CFLAGS="${CROSS_CFLAGS} -isysroot ${ARM64_SDKROOT}"
+  CXXFLAGS="${CROSS_CXXFLAGS} -isysroot ${ARM64_SDKROOT}"
+  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-} -isysroot ${ARM64_SDKROOT}"
   AR_STAGE0="${AR_STAGE0}"
   CC_STAGE0="${CC_FOR_BUILD}"
   LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
 )
 
-export ac_cv_path_ac_pt_CC=""
-export ac_cv_path_ac_pt_CXX=""
-export ac_cv_prog_AR="${AR}"
-export ac_cv_prog_CC="${CC}"
-export ac_cv_prog_CXX="${CXX}"
-export ac_cv_prog_LD="${LD}"
-export ac_cv_prog_RANLIB="${RANLIB}"
-export ac_cv_path_AR="${AR}"
-export ac_cv_path_CC="${CC}"
-export ac_cv_path_CXX="${CXX}"
-export ac_cv_path_LD="${LD}"
-export ac_cv_path_RANLIB="${RANLIB}"
-export DEVELOPER_DIR=""
-
 (
-  export SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
-  if [[ -z "${SDKROOT}" ]] || [[ ! -d "${SDKROOT}" ]]; then
-    echo "ERROR: Could not find macOS SDK"
-    exit 1
-  fi
-  export CPPFLAGS="${CROSS_CPPFLAGS} -isysroot ${SDKROOT}"
-  export CFLAGS="${CROSS_CFLAGS} -isysroot ${SDKROOT}"
-  export CXXFLAGS="${CROSS_CXXFLAGS} -isysroot ${SDKROOT}"
-  export LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-} -isysroot ${SDKROOT}"
   run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 )
 
