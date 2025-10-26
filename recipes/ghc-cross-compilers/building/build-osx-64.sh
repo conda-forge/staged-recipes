@@ -104,7 +104,7 @@ export ac_cv_path_RANLIB="${RANLIB}"
 export DEVELOPER_DIR=""
 
 (
-  export SDKROOT=$(find /Applications -name "MacOSX11*" -typ d | head -1)
+  export SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
   run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 )
 
