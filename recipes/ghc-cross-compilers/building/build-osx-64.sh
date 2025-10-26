@@ -38,7 +38,7 @@ conda create -y \
     gmp \
     libffi \
     libiconv \
-    macosx_deployment_target_osx-arm64 \
+    "macosx_deployment_target_osx-arm64=11" \
     ncurses
 
 sleep 10
