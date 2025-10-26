@@ -52,10 +52,12 @@ CROSS_CFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem
 CROSS_CXXFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem $PREFIX/include"
 CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-min=11.0"
 
-echo $(find /Applications -name "MacOSX*.sdk" -type d)
+echo $(find ${CROSS_ENV_PATH} -name "MacOSX*.sdk" -type d)
 ARM64_SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
 if [[ -z "${ARM64_SDKROOT}" ]] || [[ ! -d "${ARM64_SDKROOT}" ]]; then
   echo "ERROR: Could not find macOS arm64 SDK"
+  ls -l1  /Applications/Xcode_*/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/*
+  
   ARM64_SDKROOT="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
   # exit 1
 fi
