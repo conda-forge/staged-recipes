@@ -6,7 +6,7 @@ _log_index=0
 source "${RECIPE_DIR}"/building/common.sh
 
 conda_host="${build_alias}"
-conda_target="${host_alias}"
+conda_target="${triplet}"
 
 host_arch="${conda_host%%-*}"
 target_arch="${conda_target%%-*}"
@@ -19,31 +19,40 @@ export host_alias="${conda_host}"
 export target_alias="${conda_target}"
 export host_platform="${build_platform}"
 
-# Create environment and get library paths
-echo "Creating environment for cross-compilation libraries..."
-conda create -y \
-    -n osx64_env \
-    --platform osx-64 \
-    -c conda-forge \
-    cabal==3.10.3.0 \
-    ghc-bootstrap=="${PKG_VERSION}"
-
-osx_64_env=$(conda info --envs | grep osx64_env | awk '{print $2}')
-ghc_path="${osx_64_env}"/ghc-bootstrap/bin
+ghc_path="${BUILD_PREFIX}"/ghc-bootstrap/bin
 export GHC="${ghc_path}"/ghc
 
 "${ghc_path}"/ghc-pkg recache
 
-export CABAL="${osx_64_env}"/bin/cabal
+export CABAL="${BUILD_PREFIX}"/bin/cabal
 export CABAL_DIR="${SRC_DIR}"/.cabal
 
 mkdir -p "${CABAL_DIR}" && "${CABAL}" user-config init
 run_and_log "cabal-update" "${CABAL}" v2-update
 
+echo "Creating cross environment for cross-compilation libraries..."
+conda create -y \
+    -n cross_env \
+    --platform "${cross_target_platform}" \
+    -c conda-forge \
+    gmp \
+    libffi \
+    libiconv \
+    ncurses
+
+sleep 10
+
+# Get the environment path and set up library paths
+CROSS_ENV_PATH=$(conda info --envs | grep cross_env | awk '{print $2}')
+export CROSS_LIB_DIR="${CROSS_ENV_PATH}/lib"
+export CROSS_INCLUDE_DIR="${CROSS_ENV_PATH}/include"
+
+CROSS_CFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem $PREFIX/include"
+CROSS_CXXFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem $PREFIX/include"
+CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-min=11.0"
+
 # Configure and build GHC
-echo $(find "${BUILD_PREFIX}" -name llvm-ar)
 AR_STAGE0=$(find "${BUILD_PREFIX}" -name llvm-ar | head -1)
-export AR
 
 SYSTEM_CONFIG=(
   --target="${target_alias}"
@@ -52,18 +61,18 @@ SYSTEM_CONFIG=(
 
 CONFIGURE_ARGS=(
   --with-system-libffi=yes
-  --with-curses-includes="${PREFIX}"/include
-  --with-curses-libraries="${PREFIX}"/lib
-  --with-ffi-includes="${PREFIX}"/include
-  --with-ffi-libraries="${PREFIX}"/lib
-  --with-gmp-includes="${PREFIX}"/include
-  --with-gmp-libraries="${PREFIX}"/lib
-  --with-iconv-includes="${PREFIX}"/include
-  --with-iconv-libraries="${PREFIX}"/lib
+  --with-curses-includes="${CROSS_INCLUDE_DIR}"
+  --with-curses-libraries="${CROSS_LIB_DIR}"
+  --with-ffi-includes="${CROSS_INCLUDE_DIR}"
+  --with-ffi-libraries="${CROSS_LIB_DIR}"
+  --with-gmp-includes="${CROSS_INCLUDE_DIR}"
+  --with-gmp-libraries="${CROSS_LIB_DIR}"
+  --with-iconv-includes="${CROSS_INCLUDE_DIR}"
+  --with-iconv-libraries="${CROSS_LIB_DIR}"
   ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-  LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
+  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
   AR_STAGE0="${AR_STAGE0}"
   CC_STAGE0="${CC_FOR_BUILD}"
   LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
@@ -131,6 +140,38 @@ else
 fi
 
 # ---| Stage 1: Cross-compiler |---
+
+pushd "${SRC_DIR}"/hadrian
+  export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
+  "${CABAL}" v2-build \
+    --with-gcc="${CC_FOR_BUILD}" \
+    --with-ar="${AR}" \
+    -j \
+    clock \
+    file-io \
+    heaps \
+    js-dgtable \
+    js-flot \
+    js-jquery \
+    directory \
+    os-string \
+    splitmix \
+    utf8-string \
+    hashable \
+    process \
+    primitive \
+    random \
+    QuickCheck \
+    unordered-containers \
+    extra \
+    Cabal-syntax \
+    filepattern \
+    Cabal \
+    shake \
+    hadrian \
+    2>&1 | tee "${SRC_DIR}"/cabal-verbose.log
+    _cabal_exit_code=${PIPESTATUS[0]}
+popd
 
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
