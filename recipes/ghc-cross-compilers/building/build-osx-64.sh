@@ -35,13 +35,10 @@ conda create -y \
     -n cross_env \
     --platform "${cross_target_platform}" \
     -c conda-forge \
-    "${c_compiler}_impl_${cross_target_platform}=${c_compiler_version}" \
-    "${cxx_compiler}_impl_${cross_target_platform}=${cxx_compiler_version}" \
     gmp \
     libffi \
     libiconv \
     ncurses
-#    macos_deployment_target_"${cross_target_platform}" \
 
 sleep 10
 
@@ -72,17 +69,17 @@ CONFIGURE_ARGS=(
   --with-gmp-libraries="${CROSS_LIB_DIR}"
   --with-iconv-includes="${CROSS_INCLUDE_DIR}"
   --with-iconv-libraries="${CROSS_LIB_DIR}"
-  ac_cv_prog_CC="${CROSS_ENV_PATH}/bin/${conda_target}-clang"
-  ac_cv_path_ac_pt_CC="${CROSS_ENV_PATH}/bin/${conda_target}-clang"
-  ac_cv_path_ac_pt_CXX="${CROSS_ENV_PATH}/bin/${conda_target}-clang++"
-  AR="${CROSS_ENV_PATH}/bin/${conda_target}"-ar
-  AS="${CROSS_ENV_PATH}/bin/${conda_target}"-as
-  CC="${CROSS_ENV_PATH}/bin/${conda_target}"-clang
-  CXX="${CROSS_ENV_PATH}/bin/${conda_target}"-clang++
-  LD="${CROSS_ENV_PATH}/bin/${conda_target}"-ld
-  NM="${CROSS_ENV_PATH}/bin/${conda_target}"-nm
-  OBJDUMP="${CROSS_ENV_PATH}/bin/${conda_target}"-objdump
-  RANLIB="${CROSS_ENV_PATH}/bin/${conda_target}"-ranlib
+  ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
+  ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
+  ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
+  AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
+  AS="${BUILD_PREFIX}/bin/${conda_target}"-as
+  CC="${BUILD_PREFIX}/bin/${conda_target}"-clang
+  CXX="${BUILD_PREFIX}/bin/${conda_target}"-clang++
+  LD="${BUILD_PREFIX}/bin/${conda_target}"-ld
+  NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
+  OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
+  RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
   CPPFLAGS="${CROSS_CPPFLAGS}"
   CFLAGS="${CROSS_CFLAGS}"
   CXXFLAGS="${CROSS_CXXFLAGS}"
@@ -91,6 +88,20 @@ CONFIGURE_ARGS=(
   CC_STAGE0="${CC_FOR_BUILD}"
   LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
 )
+
+export ac_cv_path_ac_pt_CC=""
+export ac_cv_path_ac_pt_CXX=""
+export ac_cv_prog_AR="${AR}"
+export ac_cv_prog_CC="${CC}"
+export ac_cv_prog_CXX="${CXX}"
+export ac_cv_prog_LD="${LD}"
+export ac_cv_prog_RANLIB="${RANLIB}"
+export ac_cv_path_AR="${AR}"
+export ac_cv_path_CC="${CC}"
+export ac_cv_path_CXX="${CXX}"
+export ac_cv_path_LD="${LD}"
+export ac_cv_path_RANLIB="${RANLIB}"
+export DEVELOPER_DIR=""
 
 run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 
