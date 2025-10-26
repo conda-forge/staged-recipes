@@ -72,6 +72,9 @@ CONFIGURE_ARGS=(
   ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
+  CPPFLAGS="${CROSS_CPPFLAGS}"
+  CFLAGS="${CROSS_CFLAGS}"
+  CXXFLAGS="${CROSS_CXXFLAGS}"
   LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
   AR_STAGE0="${AR_STAGE0}"
   CC_STAGE0="${CC_FOR_BUILD}"
@@ -99,6 +102,8 @@ perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${osx_64_env}"/ghc-bootstrap/lib/
 
 # This will not generate ghc-toolchain-bin or the .ghc-toolchain (possibly due to x-platform)
 run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}"
+
+# ---| Stage 1: Cross-compiler |---
 
 # Build hadrian with cabal outside script
 pushd "${SRC_DIR}"/hadrian
@@ -138,40 +143,6 @@ if [[ $_cabal_exit_code -ne 0 ]]; then
 else
   echo "=== Cabal build SUCCEEDED ==="
 fi
-
-# ---| Stage 1: Cross-compiler |---
-
-pushd "${SRC_DIR}"/hadrian
-  export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
-  "${CABAL}" v2-build \
-    --with-gcc="${CC_FOR_BUILD}" \
-    --with-ar="${AR}" \
-    -j \
-    clock \
-    file-io \
-    heaps \
-    js-dgtable \
-    js-flot \
-    js-jquery \
-    directory \
-    os-string \
-    splitmix \
-    utf8-string \
-    hashable \
-    process \
-    primitive \
-    random \
-    QuickCheck \
-    unordered-containers \
-    extra \
-    Cabal-syntax \
-    filepattern \
-    Cabal \
-    shake \
-    hadrian \
-    2>&1 | tee "${SRC_DIR}"/cabal-verbose.log
-    _cabal_exit_code=${PIPESTATUS[0]}
-popd
 
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
