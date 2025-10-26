@@ -103,7 +103,10 @@ export ac_cv_path_LD="${LD}"
 export ac_cv_path_RANLIB="${RANLIB}"
 export DEVELOPER_DIR=""
 
-run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
+(
+  export SDKROOT=$(find /Applications -name "MacOSX11*" -typ d | head -1)
+  run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
+)
 
 # Fix host configuration to use x86_64, target cross
 settings_file="${SRC_DIR}"/hadrian/cfg/system.config
