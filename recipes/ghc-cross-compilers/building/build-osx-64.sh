@@ -35,6 +35,9 @@ conda create -y \
     -n cross_env \
     --platform "${cross_target_platform}" \
     -c conda-forge \
+    "${c_stdlib}"_"${cross_target_platform}" >="${c_stdlib_version}"
+    "${c_compiler}"_impl_"${cross_target_platform}" "${c_compiler_version}".*
+    "${cxx_compiler}"_impl_"${cross_target_platform}" "${cxx_compiler_version}".*
     gmp \
     libffi \
     libiconv \
@@ -73,6 +76,14 @@ CONFIGURE_ARGS=(
   ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
   ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
+  AR="${CROSS_ENV_PATH}/bin/${conda_target}"-ar
+  AS="${CROSS_ENV_PATH}/bin/${conda_target}"-as
+  CC="${CROSS_ENV_PATH}/bin/${conda_target}"-clang
+  CXX="${CROSS_ENV_PATH}/bin/${conda_target}"-clang++
+  LD="${CROSS_ENV_PATH}/bin/${conda_target}"-ld
+  NM="${CROSS_ENV_PATH}/bin/${conda_target}"-nm
+  OBJDUMP="${CROSS_ENV_PATH}/bin/${conda_target}"-objdump
+  RANLIB="${CROSS_ENV_PATH}/bin/${conda_target}"-ranlib
   CPPFLAGS="${CROSS_CPPFLAGS}"
   CFLAGS="${CROSS_CFLAGS}"
   CXXFLAGS="${CROSS_CXXFLAGS}"
