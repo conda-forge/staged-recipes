@@ -38,6 +38,7 @@ conda create -y \
     gmp \
     libffi \
     libiconv \
+    macosx_deployment_target_osx-arm64 \
     ncurses
 
 sleep 10
@@ -55,9 +56,9 @@ echo $(find /Applications -name "MacOSX*.sdk" -type d)
 ARM64_SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
 if [[ -z "${ARM64_SDKROOT}" ]] || [[ ! -d "${ARM64_SDKROOT}" ]]; then
   echo "ERROR: Could not find macOS arm64 SDK"
-  exit 1
+  ARM64_SDKROOT="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+  # exit 1
 fi
-  
 # Configure and build GHC
 AR_STAGE0=$(find "${BUILD_PREFIX}" -name llvm-ar | head -1)
 
