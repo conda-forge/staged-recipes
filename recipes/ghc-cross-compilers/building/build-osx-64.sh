@@ -40,8 +40,8 @@ conda create -y \
     gmp \
     libffi \
     libiconv \
-    macos_deployment_target_"${cross_target_platform}" \
     ncurses
+#    macos_deployment_target_"${cross_target_platform}" \
 
 sleep 10
 
