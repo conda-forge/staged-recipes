@@ -105,6 +105,14 @@ export DEVELOPER_DIR=""
 
 (
   export SDKROOT=$(find /Applications -name "MacOSX11.*.sdk" -type d | head -1)
+  if [[ -z "${SDKROOT}" ]] || [[ ! -d "${SDKROOT}" ]]; then
+    echo "ERROR: Could not find macOS SDK"
+    exit 1
+  fi
+  export CPPFLAGS="${CROSS_CPPFLAGS} -isysroot ${SDKROOT}"
+  export CFLAGS="${CROSS_CFLAGS} -isysroot ${SDKROOT}"
+  export CXXFLAGS="${CROSS_CXXFLAGS} -isysroot ${SDKROOT}"
+  export LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-} -isysroot ${SDKROOT}"
   run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 )
 
@@ -124,9 +132,6 @@ _hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
 
 # Bug in ghc-bootstrap for libiconv2
 perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${osx_64_env}"/ghc-bootstrap/lib/ghc-"${PKG_VERSION}"/lib/settings
-
-# This will not generate ghc-toolchain-bin or the .ghc-toolchain (possibly due to x-platform)
-run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}"
 
 # ---| Stage 1: Cross-compiler |---
 
