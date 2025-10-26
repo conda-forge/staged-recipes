@@ -35,9 +35,9 @@ conda create -y \
     -n cross_env \
     --platform "${cross_target_platform}" \
     -c conda-forge \
-    "${c_stdlib}"_"${cross_target_platform}" >="${c_stdlib_version}"
-    "${c_compiler}"_impl_"${cross_target_platform}" "${c_compiler_version}".*
-    "${cxx_compiler}"_impl_"${cross_target_platform}" "${cxx_compiler_version}".*
+    "${c_stdlib}"_"${cross_target_platform}" >="${c_stdlib_version}" \
+    "${c_compiler}"_impl_"${cross_target_platform}" "${c_compiler_version}".* \
+    "${cxx_compiler}"_impl_"${cross_target_platform}" "${cxx_compiler_version}".* \
     gmp \
     libffi \
     libiconv \
