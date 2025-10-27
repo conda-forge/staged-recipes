@@ -55,9 +55,14 @@ CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-mi
 ARM64_SDKROOT=$(find /Applications -name "MacOSX1[1-5].*.sdk" -type d | head -1)
 if [[ -z "${ARM64_SDKROOT}" ]] || [[ ! -d "${ARM64_SDKROOT}" ]]; then
   echo "ERROR: Could not find macOS arm64 SDK"
-  ls -l1  /Applications/Xcode_*/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/*.sdk
-  
-  ARM64_SDKROOT="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+  for sdk in /Applications/Xcode_*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX*.sdk; do
+    if [[ -f "${sdk}/SDKSettings.json" ]]; then
+      echo "Checking: ${sdk}"
+      grep -i "SupportedTargets\|arm64\|x86_64" "${sdk}/SDKSettings.json" 2>/dev/null || \
+      plutil -p "${sdk}/SDKSettings.plist" 2>/dev/null | grep -i "SupportedTargets" -A 5
+    fi
+  done
+  ARM64_SDKROOT=$(grep -l "arm64" /Applications/Xcode_*/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX1[1-9]*/usr/lib/libSystem.tbd 2>/dev/null | head -1 | xargs dirname | xargs dirname | xargs dirname)
   # exit 1
 fi
 # Configure and build GHC
