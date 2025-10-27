@@ -234,7 +234,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index_path = os.path.join(sys.exec_prefix, "conda-bld")
     os.makedirs(index_path, exist_ok=True)
     conda_index.api.update_index(index_path)
-    index = conda.core.index.get_index(channel_urls=channel_urls)
+    index = conda.core.index.Index(channels=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
@@ -291,6 +291,18 @@ def build_folders_rattler_build(
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
             os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
+        )
+
+    variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
+             + list(Path(recipes_dir).glob(f"**/variants.yaml"))
+    if len(variants) > 1:
+        raise ValueError(
+            f"Found multiple variant config files in the recipes: {variants}. "
+            "Consider merging or submitting them in separate PRs."
+        )
+    if variants and os.path.isfile(variants[0]):
+        specs[variants[0]] = conda_build.variants.parse_config_file(
+            os.path.abspath(variants[0]), config
         )
 
     # Combine all the variant config files together
