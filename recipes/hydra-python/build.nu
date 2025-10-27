@@ -10,9 +10,8 @@ cp ($env.RECIPE_DIR | path join "__init__.py") src/main/python/hydra/__init__.py
 mkdir src/gen-main/python/hydra
 cp ($env.RECIPE_DIR | path join "__init__.py") src/gen-main/python/hydra/__init__.py
 
-# Set environment variables to fix Windows hatchling import issue
-$env.PIP_NO_BUILD_ISOLATION = "1"
-$env.PIP_DISABLE_PIP_VERSION_CHECK = "1"
+# Environment variables are set via script_env in recipe.yaml:
+# PIP_NO_BUILD_ISOLATION and PIP_DISABLE_PIP_VERSION_CHECK
 
 # On Windows, pre-import hatchling to work around import issues
 if ($nu.os-info.name == "windows") {
@@ -24,7 +23,7 @@ if ($nu.os-info.name == "windows") {
     }
 
     # Pre-import hatchling to ensure it's available
-    ^python pre-import-hatchling.py
+    ^python ($env.RECIPE_DIR | path join "pre-import-hatchling.py")
 }
 
 # Install the package using pip with disabled build isolation
