@@ -155,6 +155,7 @@ pushd "${SRC_DIR}"/hadrian
     shake \
     hadrian \
     2>&1 | tee "${SRC_DIR}"/cabal-verbose.log
+    _cabal_exit_code=${PIPESTATUS[0]}
 popd
 
 if [[ $_cabal_exit_code -ne 0 ]]; then
