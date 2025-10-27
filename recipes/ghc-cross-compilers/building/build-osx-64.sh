@@ -117,7 +117,7 @@ unset settings_file
 _hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
 
 # Bug in ghc-bootstrap for libiconv2
-perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${cross_env}"/ghc-bootstrap/lib/ghc-"${PKG_VERSION}"/lib/settings
+perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${CROSS_ENV_PATH}"/ghc-bootstrap/lib/ghc-"${PKG_VERSION}"/lib/settings
 
 # ---| Stage 1: Cross-compiler |---
 

@@ -48,14 +48,20 @@ CROSS_ENV_PATH=$(conda info --envs | grep cross_env | awk '{print $2}')
 export CROSS_LIB_DIR="${CROSS_ENV_PATH}/lib"
 export CROSS_INCLUDE_DIR="${CROSS_ENV_PATH}/include"
 
-CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-
 if [[ "${target_arch}" == "aarch64" ]]; then
-  CROSS_CFLAGS=$(echo "$CROSS_CFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CXXFLAGS=$(echo "$CROSS_CXXFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CPPFLAGS=$(echo "$CROSS_CPPFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+elif [[ "${target_arch}" == "ppc64le" ]]; then
+  # -mcpu=power8 -mtune=power8
+  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+else
+  # -march=nocona -mtune=haswell
+  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
 fi
 
 echo "cross libraries located at: ${CROSS_LIB_DIR}"
@@ -87,6 +93,9 @@ CONFIGURE_ARGS=(
   OBJDUMP="${conda_target}"-objdump
   RANLIB="${conda_target}"-ranlib
   LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
+  AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
+  CC_STAGE0="${CC_FOR_BUILD}"
+  LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
 )
 
 run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}"
