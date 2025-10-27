@@ -111,13 +111,13 @@ perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -W
 perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
 perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib #" "${settings_file}"
 perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
+perl -pi -e "s#(settings.*?command\s*?=\s*)${conda_host}#\$1${conda_target}#" "${settings_file}"
 cat "${settings_file}"
 unset settings_file
 
-_hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
-
 # Bug in ghc-bootstrap for libiconv2
-perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${CROSS_ENV_PATH}"/ghc-bootstrap/lib/ghc-"${PKG_VERSION}"/lib/settings
+settings_file=$(find "${CROSS_ENV_PATH}"/ghc-bootstrap/lib -name settings -type f | head -1)
+perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${settings_file}"
 
 # ---| Stage 1: Cross-compiler |---
 
@@ -166,7 +166,19 @@ _hadrian_build=("${_hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
 perl -i -pe 's/finalStage = Stage2/finalStage = Stage1/' "${SRC_DIR}"/hadrian/src/UserSettings.hs
-"${_hadrian_build[@]}" stage1:exe:ghc-bin -VV --flavour=quickest --progress-info=unicorn
+(
+  export AR="${AR_STAGE0}"
+  export AS="${BUILD_PREFIX}/bin/${conda_host}-as"
+  export CC="${BUILD_PREFIX}/bin/${conda_host}-clang"
+  export CXX="${BUILD_PREFIX}/bin/${conda_host}-clang++"
+  export LD="${BUILD_PREFIX}/bin/${conda_host}-ld"
+  
+  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ar" "${BUILD_PREFIX}"/bin/ar
+  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-as" "${BUILD_PREFIX}"/bin/as
+  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ld" "${BUILD_PREFIX}"/bin/ld
+  
+  "${_hadrian_build[@]}" stage1:exe:ghc-bin -VV --flavour=quickest --progress-info=unicorn
+)
 run_and_log "stage1_ghc-pkg" "${_hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quickest --docs=none --progress-info=none
 run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quickest --docs=none --progress-info=none
 
