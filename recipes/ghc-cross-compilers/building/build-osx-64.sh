@@ -101,19 +101,22 @@ CONFIGURE_ARGS=(
 )
 
 # Fix host configuration to use x86_64, target cross
-settings_file="${SRC_DIR}"/hadrian/cfg/system.config
-perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
-perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|objdump|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
-perl -pi -e "s#(system-ar\s*?=\s).*#\$1${AR_STAGE0}#" "${settings_file}"
-perl -pi -e "s#(conf-cc-args-stage0\s*?=\s).*#\$1--target=${ghc_host}#" "${settings_file}"
-perl -pi -e "s#(conf-gcc-linker-args-stage0\s*?=\s).*#\$1--target=${ghc_host}#" "${settings_file}"
-perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib #" "${settings_file}"
-perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
-perl -pi -e "s#(settings.*?command\s*?=\s*)${conda_host}#\$1${conda_target}#" "${settings_file}"
-cat "${settings_file}"
-unset settings_file
+(
+  settings_file="${SRC_DIR}"/hadrian/cfg/system.config
+  perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
+  perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|objdump|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
+  perl -pi -e "s#(system-ar\s*?=\s).*#\$1${AR_STAGE0}#" "${settings_file}"
+  perl -pi -e "s#(conf-cc-args-stage0\s*?=\s).*#\$1--target=${ghc_host}#" "${settings_file}"
+  perl -pi -e "s#(conf-gcc-linker-args-stage0\s*?=\s).*#\$1--target=${ghc_host}#" "${settings_file}"
+  perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib #" "${settings_file}"
+  perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
+  perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib #" "${settings_file}"
+  perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${PREFIX}/lib -rpath ${PREFIX}/lib #" "${settings_file}"
+  perl -pi -e "s#(settings.*?command\s*?=\s*)${conda_host}#\$1${conda_target}#" "${settings_file}"
+
+  perl -pi -e "s#${conda_target}-(objdump)#\$1#" "${settings_file}"
+  cat "${settings_file}"
+)
 
 # Bug in ghc-bootstrap for libiconv2
 settings_file=$(find "${CROSS_ENV_PATH}"/ghc-bootstrap/lib -name settings -type f | head -1)
@@ -126,7 +129,8 @@ pushd "${SRC_DIR}"/hadrian
   export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
   "${CABAL}" v2-build \
     --with-gcc="${CC_FOR_BUILD}" \
-    --with-ar="${AR}" \
+    --with-ar="${AR_STAGE0}" \
+    --with-ld="${BUILD_PREFIX}/bin/${conda_host}-ld" \
     -j \
     clock \
     file-io \
