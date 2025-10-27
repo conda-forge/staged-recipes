@@ -171,34 +171,30 @@ _hadrian_build=("${_hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
 perl -i -pe 's/finalStage = Stage2/finalStage = Stage1/' "${SRC_DIR}"/hadrian/src/UserSettings.hs
-(
-  export AR="${AR_STAGE0}"
-  export AS="${BUILD_PREFIX}/bin/${conda_host}-as"
-  export CC="${BUILD_PREFIX}/bin/${conda_host}-clang"
-  export CXX="${BUILD_PREFIX}/bin/${conda_host}-clang++"
-  export LD="${BUILD_PREFIX}/bin/${conda_host}-ld"
-  
-  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ar" "${BUILD_PREFIX}"/bin/ar
-  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-as" "${BUILD_PREFIX}"/bin/as
-  ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ld" "${BUILD_PREFIX}"/bin/ld
-  
-  "${_hadrian_build[@]}" stage1:exe:ghc-bin -VV --flavour=quickest --progress-info=unicorn
-)
-run_and_log "stage1_ghc-pkg" "${_hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quickest --docs=none --progress-info=none
-run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quickest --docs=none --progress-info=none
+export AR="${AR_STAGE0}"
+export AS="${BUILD_PREFIX}/bin/${conda_host}-as"
+export CC="${BUILD_PREFIX}/bin/${conda_host}-clang"
+export CXX="${BUILD_PREFIX}/bin/${conda_host}-clang++"
+export LD="${BUILD_PREFIX}/bin/${conda_host}-ld"
+export LDFLAGS="-L${CROSS_ENV_PATH}/ ${LDFLAGS}"
 
-"${SRC_DIR}"/_build/stage0/bin/arm64-apple-darwin20.0.0-ghc --version || { echo "Stage0 GHC failed to report version"; exit 1; }
+ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ar" "${BUILD_PREFIX}"/bin/ar
+ln -sf "${BUILD_PREFIX}/bin/${conda_host}-as" "${BUILD_PREFIX}"/bin/as
+ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ld" "${BUILD_PREFIX}"/bin/ld
 
-# 9.12+: export DYLD_INSERT_LIBRARIES="${BUILD_PREFIX}/lib/libiconv.dylib:${BUILD_PREFIX}/lib/libffi.dylib${DYLD_INSERT_LIBRARIES:+:}${DYLD_INSERT_LIBRARIES:-}"
-# export DYLD_INSERT_LIBRARIES="${BUILD_PREFIX}/lib/libiconv.dylib:${BUILD_PREFIX}/lib/libffi.dylib${DYLD_INSERT_LIBRARIES:+:}${DYLD_INSERT_LIBRARIES:-}"
-run_and_log "stage1_lib" "${_hadrian_build[@]}" stage1:lib:ghc -VV --flavour=release --docs=none --progress-info=unicorn
+run_and_log "stage1_ghc-bin" "${_hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --progress-info=none
+settings_file="${SRC_DIR}"/_build/stage0/lib/settings
+perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${CROSS_ENV_PATH}/lib#" "${settings_file}"
+perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${CROSS_ENV_PATH}/lib#" "${settings_file}"
 
-run_and_log "binary-dist" "${_hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
-
+run_and_log "stage1_ghc-pkg" "${_hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_lib" "${_hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
+"${_hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
 
 # Now manually install from the bindist with correct configure arguments
 cross_prefix="${SRC_DIR}"/cross_install && mkdir -p "${SRC_DIR}"/cross_install
-bindist_dir=$(find "${SRC_DIR}"/_build/bindist -name "ghc-${PKG_VERSION}-${ghc_target}" -type d | head -1)
+bindist_dir=$(find "${SRC_DIR}"/_build/bindist -name "*ghc-${PKG_VERSION}-*" -type d | head -1)
 if [[ -n "${bindist_dir}" ]]; then
   pushd "${bindist_dir}"
     # Configure the binary distribution with proper cross-compilation settings
