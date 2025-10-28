@@ -126,8 +126,13 @@ CONFIGURE_ARGS=(
 (
   find ${BUILD_PREFIX} -name "libstdc++.*" -o -name "libc++.*"
   ${conda_target}-clang++ --print-file-name=libstdc++.so
-  run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
+  cd /tmp
+  echo '#include <iostream>' > test.cpp
+  echo 'int main() { std::cout << "test"; return 0; }' >> test.cpp
+  ${conda_target}-clang++ -c test.cpp -o test.o
+  ${conda_target}-clang -o test test.o -lstdc++ -L${BUILD_PREFIX}/${conda_target}/lib
 )
+run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 
 # Fix host configuration to use x86_64, target cross
 settings_file="${SRC_DIR}"/hadrian/cfg/system.config
