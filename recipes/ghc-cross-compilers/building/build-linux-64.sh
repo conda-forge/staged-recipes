@@ -185,8 +185,8 @@ pushd "${cross_prefix}"/bin
   for bin in ghc ghc-pkg hp2ps hsc2hs; do
     if [[ -f "${ghc_target}-${bin}" ]] && [[ ! -f "${conda_target}-${bin}" ]]; then
       mv "${ghc_target}-${bin}" "${conda_target}-${bin}"
-      perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
       rm -f "${bin}"
     fi
+    perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
   done
 popd
