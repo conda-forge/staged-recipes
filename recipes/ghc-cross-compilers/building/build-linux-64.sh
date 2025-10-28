@@ -115,9 +115,9 @@ CONFIGURE_ARGS=(
   # NM="${conda_target}"-nm
   # OBJDUMP="${conda_target}"-objdump
   # RANLIB="${conda_target}"-ranlib
-  CFLAGS=${CROSS_CFLAGS}
-  CPPFLAGS=${CROSS_CPPFLAGS}
-  CXXFLAGS=${CROSS_CXXFLAGS}
+  CFLAGS="${CROSS_CFLAGS}"
+  CPPFLAGS="${CROSS_CPPFLAGS}"
+  CXXFLAGS="${CROSS_CXXFLAGS}"
   LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
 )
 
