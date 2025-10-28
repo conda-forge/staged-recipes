@@ -112,7 +112,7 @@ CONFIGURE_ARGS=(
   # AR="${conda_target}"-ar
   # AS="${conda_target}"-as
   # CC="${conda_target}"-clang
-  # CXX="${conda_target}"-clang++
+  CXX="${conda_target}"-clang++
   # LD="${conda_target}"-ld
   # NM="${conda_target}"-nm
   # OBJDUMP="${conda_target}"-objdump
@@ -125,6 +125,7 @@ CONFIGURE_ARGS=(
 
 (
   find ${BUILD_PREFIX} -name "libstdc++.*" -o -name "libc++.*"
+  ${conda_target}-clang++ --print-file-name=libstdc++.so
   run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 )
 
