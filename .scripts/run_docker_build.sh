@@ -20,6 +20,7 @@ docker info
 # volumes, we need to run with the same id as the host machine, which is
 # normally the owner of the mounted volumes, or at least has write permission
 HOST_USER_ID=$(id -u)
+# HOST_USER_ID=1000
 # Check if docker-machine is being used (normally on OSX) and get the uid from
 # the VM
 if hash docker-machine 2> /dev/null && docker-machine active > /dev/null; then
