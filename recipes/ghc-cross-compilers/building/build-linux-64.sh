@@ -83,19 +83,42 @@ CONFIGURE_ARGS=(
   --with-gmp-libraries="${CROSS_LIB_DIR}"
   --with-iconv-includes="${CROSS_INCLUDE_DIR}"
   --with-iconv-libraries="${CROSS_LIB_DIR}"
+  
   ac_cv_lib_ffi_ffi_call=yes
-  AR="${conda_target}"-ar
-  AS="${conda_target}"-as
-  CC="${conda_target}"-clang
-  CXX="${conda_target}"-clang++
-  LD="${conda_target}"-ld
-  NM="${conda_target}"-nm
-  OBJDUMP="${conda_target}"-objdump
-  RANLIB="${conda_target}"-ranlib
-  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
+  
+  ac_cv_prog_AR="${conda_target}"-ar
+  ac_cv_prog_AS="${conda_target}"-as
+  ac_cv_prog_CC="${conda_target}-clang --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
+  ac_cv_prog_CXX="${conda_target}-clang++ --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
+  ac_cv_prog_LD="${conda_target}-ld --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
+  ac_cv_prog_NM="${conda_target}"-nm
+  ac_cv_prog_OBJDUMP="${conda_target}"-objdump
+  ac_cv_prog_RANLIB="${conda_target}"-ranlib
+  
+  ac_cv_path_ac_pt_AR="${conda_target}"-ar
+  ac_cv_path_ac_pt_NM="${conda_target}"-nm
+  ac_cv_path_ac_pt_OBJDUMP="${conda_target}"-objdump
+  ac_cv_path_ac_pt_RANLIB="${conda_target}"-ranlib
+
+  ac_cv_prog_ac_ct_LLC="${conda_target}"-llc
+  ac_cv_prog_ac_ct_OPT="${conda_target}"-opt
+
   AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
   CC_STAGE0="${CC_FOR_BUILD}"
   LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
+  
+  # AR="${conda_target}"-ar
+  # AS="${conda_target}"-as
+  # CC="${conda_target}"-clang
+  # CXX="${conda_target}"-clang++
+  # LD="${conda_target}"-ld
+  # NM="${conda_target}"-nm
+  # OBJDUMP="${conda_target}"-objdump
+  # RANLIB="${conda_target}"-ranlib
+  CFLAGS=${CROSS_CFLAGS}
+  CPPFLAGS=${CROSS_CPPFLAGS}
+  CXXFLAGS=${CROSS_CXXFLAGS}
+  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
 )
 
 run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}"
@@ -174,6 +197,7 @@ pushd "${cross_prefix}"/bin
     if [[ -f "${ghc_target}-${bin}" ]] && [[ ! -f "${conda_target}-${bin}" ]]; then
       mv "${ghc_target}-${bin}" "${conda_target}-${bin}"
       perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
+      rm -f "${bin}"
     fi
   done
 popd

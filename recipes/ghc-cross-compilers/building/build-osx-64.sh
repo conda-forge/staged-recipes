@@ -213,7 +213,7 @@ fi
 
 # Populate needed dynamic libraries
 mkdir -p ${cross_prefix}/lib/private
-cp "${CROSS_LIB_DIR}"/lib{gmp,iconv,ffi,ncurses,tinfo}*.so* "${cross_prefix}"/lib/private
+cp "${CROSS_LIB_DIR}"/lib{gmp,iconv,ffi,ncurses,tinfo}*.dylib* "${cross_prefix}"/lib/private
 
 # Correct CC/CXX
 settings_file="$(find ${cross_prefix}/lib/ -name settings | head -1)"
@@ -234,6 +234,7 @@ pushd "${cross_prefix}"/bin
     if [[ -f "${ghc_target}-${bin}" ]] && [[ ! -f "${conda_target}-${bin}" ]]; then
       mv "${ghc_target}-${bin}" "${conda_target}-${bin}"
       perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
+      rm -f "${bin}"
     fi
   done
 popd
