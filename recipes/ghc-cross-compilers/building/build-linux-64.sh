@@ -120,10 +120,11 @@ CONFIGURE_ARGS=(
   CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-  LDFLAGS="--sysroot=${BUILD_PREFIX}/${conda_target}/sysroot -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib -L${BUILD_PREFIX}/lib ${LDFLAGS:-}"
+  LDFLAGS="-L${BUILD_PREFIX}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
 )
 
 (
+  find ${BUILD_PREFIX} -name "libstdc++.*" -o -name "libc++.*"
   run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 )
 
