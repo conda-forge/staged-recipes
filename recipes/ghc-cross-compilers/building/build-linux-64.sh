@@ -94,6 +94,8 @@ CONFIGURE_ARGS=(
   ac_cv_prog_NM="${conda_target}"-nm
   ac_cv_prog_OBJDUMP="${conda_target}"-objdump
   ac_cv_prog_RANLIB="${conda_target}"-ranlib
+  ac_cv_prog_LLC="${conda_target}"-llc
+  ac_cv_prog_OPT="${conda_target}"-opt
   
   ac_cv_path_ac_pt_AR="${conda_target}"-ar
   ac_cv_path_ac_pt_NM="${conda_target}"-nm
@@ -118,7 +120,7 @@ CONFIGURE_ARGS=(
   CFLAGS="${CROSS_CFLAGS}"
   CPPFLAGS="${CROSS_CPPFLAGS}"
   CXXFLAGS="${CROSS_CXXFLAGS}"
-  LDFLAGS="-L${CROSS_ENV_PATH}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
+  LDFLAGS="--sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot -L${CROSS_ENV_PATH}/${conda_target}/sysroot/usr/lib -L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
 )
 
 (
