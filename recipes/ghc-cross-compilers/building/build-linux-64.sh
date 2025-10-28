@@ -120,7 +120,7 @@ CONFIGURE_ARGS=(
   CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-  LDFLAGS="-L${BUILD_PREFIX}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
+  LDFLAGS="-L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
 )
 
 (
