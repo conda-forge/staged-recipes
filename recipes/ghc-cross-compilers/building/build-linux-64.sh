@@ -84,69 +84,47 @@ CONFIGURE_ARGS=(
   --with-iconv-includes="${CROSS_INCLUDE_DIR}"
   --with-iconv-libraries="${CROSS_LIB_DIR}"
   
-  ac_cv_lib_ffi_ffi_call=yes
+  ac_cv_path_AR="${BUILD_PREFIX}"/bin/"${conda_target}"-ar
+  ac_cv_path_AS="${BUILD_PREFIX}"/bin/"${conda_target}"-as
+  ac_cv_path_CC="${BUILD_PREFIX}"/bin/"${conda_target}"-clang
+  ac_cv_path_CXX="${BUILD_PREFIX}"/bin/"${conda_target}"-clang++
+  ac_cv_path_LD="${BUILD_PREFIX}"/bin/"${conda_target}"-ld
+  ac_cv_path_NM="${BUILD_PREFIX}"/bin/"${conda_target}"-nm
+  ac_cv_path_OBJDUMP="${BUILD_PREFIX}"/bin/"${conda_target}"-objdump
+  ac_cv_path_RANLIB="${BUILD_PREFIX}"/bin/"${conda_target}"-ranlib
+  ac_cv_path_LLC="${BUILD_PREFIX}"/bin/"${conda_target}"-llc
+  ac_cv_path_OPT="${BUILD_PREFIX}"/bin/"${conda_target}"-opt
   
-  ac_cv_prog_AR="${conda_target}"-ar
-  ac_cv_prog_AS="${conda_target}"-as
-  ac_cv_prog_CC="${conda_target}"-clang
-  ac_cv_prog_CXX="${conda_target}"-clang++
-  ac_cv_prog_LD="${conda_target}"-ld
-  ac_cv_prog_NM="${conda_target}"-nm
-  ac_cv_prog_OBJDUMP="${conda_target}"-objdump
-  ac_cv_prog_RANLIB="${conda_target}"-ranlib
-  ac_cv_prog_LLC="${conda_target}"-llc
-  ac_cv_prog_OPT="${conda_target}"-opt
-  
-  ac_cv_path_ac_pt_AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
-  ac_cv_path_ac_pt_NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
-  ac_cv_path_ac_pt_OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
-  ac_cv_path_ac_pt_RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
-
-  ac_cv_prog_ac_ct_LLC="${conda_target}"-llc
-  ac_cv_prog_ac_ct_OPT="${conda_target}"-opt
-
   AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
   CC_STAGE0="${CC_FOR_BUILD}"
   LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
   
-  # AR="${conda_target}"-ar
-  # AS="${conda_target}"-as
-  # CC="${conda_target}"-clang
-  CXX="${conda_target}"-clang++
-  # LD="${conda_target}"-ld
-  # NM="${conda_target}"-nm
-  # OBJDUMP="${conda_target}"-objdump
-  # RANLIB="${conda_target}"-ranlib
   CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   LDFLAGS="-L${BUILD_PREFIX}/${conda_target}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
 )
 
-(
-  find ${BUILD_PREFIX} -name "libstdc++.*" -o -name "libc++.*"
-  ${conda_target}-clang++ --print-file-name=libstdc++.so
-  cd /tmp
-  echo '#include <iostream>' > test.cpp
-  echo 'int main() { std::cout << "test"; return 0; }' >> test.cpp
-  ${conda_target}-clang++ -c test.cpp -o test.o
-  ${conda_target}-clang -o test test.o -lstdc++ -L${BUILD_PREFIX}/${conda_target}/lib
-)
+export ac_cv_func_statx=no
+export ac_cv_have_decl_statx=no
+export ac_cv_lib_ffi_ffi_call=yes
 run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
 
 # Fix host configuration to use x86_64, target cross
-settings_file="${SRC_DIR}"/hadrian/cfg/system.config
-perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
-perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
-perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
-perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
+(
+  settings_file="${SRC_DIR}"/hadrian/cfg/system.config
+  perl -pi -e "s#${BUILD_PREFIX}/bin/##" "${settings_file}"
+  perl -pi -e "s#(=\s+)(ar|clang|clang\+\+|llc|nm|opt|ranlib)\$#\$1${conda_target}-\$2#" "${settings_file}"
+  perl -pi -e "s#(conf-gcc-linker-args-stage[12]\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
+  perl -pi -e "s#(conf-ld-linker-args-stage[12]\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
+  perl -pi -e "s#(settings-c-compiler-link-flags\s*?=\s)#\$1-Wl,-L${CROSS_ENV_PATH}/lib -Wl,-rpath,${CROSS_ENV_PATH}/lib #" "${settings_file}"
+  perl -pi -e "s#(settings-ld-flags\s*?=\s)#\$1-L${CROSS_ENV_PATH}/lib -rpath ${CROSS_ENV_PATH}/lib #" "${settings_file}"
 
-perl -pi -e "s#(settings-clang-command\s*?=\s).*#\$1${conda_target}-clang#" "${settings_file}"
-perl -pi -e "s#(settings-merge-objects-command\s*?=\s).*#\$1${conda_target}-ld#" "${settings_file}"
+  perl -pi -e "s#(settings-clang-command\s*?=\s).*#\$1${conda_target}-clang#" "${settings_file}"
+  perl -pi -e "s#(settings-merge-objects-command\s*?=\s).*#\$1${conda_target}-ld#" "${settings_file}"
 
-cat "${settings_file}"
+  cat "${settings_file}"
+)
 
 _hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
 

@@ -211,16 +211,12 @@ else
   exit 1
 fi
 
-# Populate needed dynamic libraries
-mkdir -p ${cross_prefix}/lib/private
-cp "${CROSS_LIB_DIR}"/lib{gmp,iconv,ffi,ncurses,tinfo}*.dylib* "${cross_prefix}"/lib/private
-
 # Correct CC/CXX
 settings_file="$(find ${cross_prefix}/lib/ -name settings | head -1)"
 if [[ -f "${settings_file}" ]]; then
   perl -pi -e "s#${host_arch}(-[^ \"]*)#${target_arch}\$1#g" "${settings_file}"
-  perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L\\\$topdir/../../../lib -Wl,-rpath,\\\$topdir/../../../lib/private -Wl,-rpath,\\\$topdir/../../../lib#" "${settings_file}"
-  perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L\\\$topdir/../../../lib -rpath \\\$topdir/../../../lib/private -rpath \\\$topdir/../../../lib#" "${settings_file}"
+  perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L\\\$topdir/private -Wl,-L\\\$topdir/../../../lib -Wl,-rpath,\\\$topdir/private -Wl,-rpath,\\\$topdir/../../../lib#" "${settings_file}"
+  perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L\\\$topdir/private -L\\\$topdir/../../../lib -rpath \\\$topdir/private -rpath \\\$topdir/../../../lib#" "${settings_file}"
   perl -pi -e "s#\"[\$/\w]*?(ar|clang|clang\+\+|ld|ranlib|llc|opt)\"#\"${conda_target}-\$1\"#" "${settings_file}"
   cat "${settings_file}"
 else
@@ -228,13 +224,17 @@ else
   exit 1
 fi
 
+# Populate needed dynamic libraries
+private_lib=$(dirname ${settings_file}) && mkdir -p "${private_lib}"
+cp "${CROSS_LIB_DIR}"/lib{gmp,iconv,ffi,ncurses,tinfo}*.dylib* "${private_lib}"
+
 # Create links of cross-conda-linux-gnu-xxx to xxx
 pushd "${cross_prefix}"/bin
   for bin in ghc ghc-pkg hp2ps hsc2hs; do
     if [[ -f "${ghc_target}-${bin}" ]] && [[ ! -f "${conda_target}-${bin}" ]]; then
       mv "${ghc_target}-${bin}" "${conda_target}-${bin}"
-      perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
       rm -f "${bin}"
     fi
+    perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
   done
 popd
