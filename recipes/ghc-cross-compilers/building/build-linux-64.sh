@@ -88,19 +88,19 @@ CONFIGURE_ARGS=(
   
   ac_cv_prog_AR="${conda_target}"-ar
   ac_cv_prog_AS="${conda_target}"-as
-  ac_cv_prog_CC="${conda_target}-clang --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
-  ac_cv_prog_CXX="${conda_target}-clang++ --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
-  ac_cv_prog_LD="${conda_target}-ld --sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot"
+  ac_cv_prog_CC="${conda_target}"-clang
+  ac_cv_prog_CXX="${conda_target}"-clang++
+  ac_cv_prog_LD="${conda_target}"-ld
   ac_cv_prog_NM="${conda_target}"-nm
   ac_cv_prog_OBJDUMP="${conda_target}"-objdump
   ac_cv_prog_RANLIB="${conda_target}"-ranlib
   ac_cv_prog_LLC="${conda_target}"-llc
   ac_cv_prog_OPT="${conda_target}"-opt
   
-  ac_cv_path_ac_pt_AR="${conda_target}"-ar
-  ac_cv_path_ac_pt_NM="${conda_target}"-nm
-  ac_cv_path_ac_pt_OBJDUMP="${conda_target}"-objdump
-  ac_cv_path_ac_pt_RANLIB="${conda_target}"-ranlib
+  ac_cv_path_ac_pt_AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
+  ac_cv_path_ac_pt_NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
+  ac_cv_path_ac_pt_OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
+  ac_cv_path_ac_pt_RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
 
   ac_cv_prog_ac_ct_LLC="${conda_target}"-llc
   ac_cv_prog_ac_ct_OPT="${conda_target}"-opt
@@ -117,10 +117,10 @@ CONFIGURE_ARGS=(
   # NM="${conda_target}"-nm
   # OBJDUMP="${conda_target}"-objdump
   # RANLIB="${conda_target}"-ranlib
-  CFLAGS="${CROSS_CFLAGS}"
-  CPPFLAGS="${CROSS_CPPFLAGS}"
-  CXXFLAGS="${CROSS_CXXFLAGS}"
-  LDFLAGS="--sysroot=${CROSS_ENV_PATH}/${conda_target}/sysroot -L${CROSS_ENV_PATH}/${conda_target}/sysroot/usr/lib -L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
+  CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+  CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+  CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+  LDFLAGS="--sysroot=${BUILD_PREFIX}/${conda_target}/sysroot -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib -L${BUILD_PREFIX}/lib ${LDFLAGS:-}"
 )
 
 (
