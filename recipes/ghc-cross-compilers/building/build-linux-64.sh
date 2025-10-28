@@ -121,7 +121,9 @@ CONFIGURE_ARGS=(
   LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
 )
 
-run_and_log "ghc-configure" ./configure "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}"
+(
+  run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
+)
 
 # Fix host configuration to use x86_64, target cross
 settings_file="${SRC_DIR}"/hadrian/cfg/system.config
