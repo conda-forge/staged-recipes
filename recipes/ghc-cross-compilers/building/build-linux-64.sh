@@ -52,7 +52,7 @@ if [[ "${target_arch}" == "aarch64" ]]; then
   CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
   CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
   CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-elif [[ "${target_arch}" == "ppc64le" ]]; then
+elif [[ "${target_arch}" == "powerpc64le" ]]; then
   # -mcpu=power8 -mtune=power8
   CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
   CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
