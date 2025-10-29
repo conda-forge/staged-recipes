@@ -5,12 +5,16 @@ _log_index=0
 
 source "${RECIPE_DIR}"/building/common.sh
 
+# Detect platform configuration
+detect_platform_config "${target_platform}"
+
 conda_host="${build_alias}"
 conda_target="${triplet}"
 
 host_arch="${conda_host%%-*}"
 target_arch="${conda_target%%-*}"
 
+# macOS uses pattern substitution to normalize darwin version
 ghc_host="${conda_host/darwin*/darwin}"
 ghc_target="${conda_target/darwin*/darwin}"
 
@@ -30,65 +34,14 @@ export CABAL_DIR="${SRC_DIR}"/.cabal
 mkdir -p "${CABAL_DIR}" && "${CABAL}" user-config init
 run_and_log "cabal-update" "${CABAL}" v2-update
 
-echo "Creating cross environment for cross-compilation libraries..."
-conda create -y \
-    -n cross_env \
-    --platform "${cross_target_platform}" \
-    -c conda-forge \
-    gmp \
-    libffi \
-    libiconv \
-    ncurses
+# Create cross-compilation environment with target libraries
+create_cross_environment "${cross_target_platform}"
 
-sleep 10
+# Configure architecture-specific compile flags
+get_arch_compile_flags "${target_arch}" "${OS_TYPE}" "${conda_target}"
 
-# Get the environment path and set up library paths
-CROSS_ENV_PATH=$(conda info --envs | grep cross_env | awk '{print $2}')
-export CROSS_LIB_DIR="${CROSS_ENV_PATH}/lib"
-export CROSS_INCLUDE_DIR="${CROSS_ENV_PATH}/include"
-
-CROSS_CFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem $PREFIX/include"
-CROSS_CXXFLAGS="-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem $PREFIX/include"
-CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-min=11.0"
-
-# Configure and build GHC
-AR_STAGE0=$(find "${BUILD_PREFIX}" -name llvm-ar | head -1)
-CC_STAGE0="${CC_FOR_BUILD}"
-LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
-
-SYSTEM_CONFIG=(
-  --target="${target_alias}"
-  --prefix="${PREFIX}"
-)
-
-CONFIGURE_ARGS=(
-  --with-system-libffi=yes
-  --with-curses-includes="${CROSS_INCLUDE_DIR}"
-  --with-curses-libraries="${CROSS_LIB_DIR}"
-  --with-ffi-includes="${CROSS_INCLUDE_DIR}"
-  --with-ffi-libraries="${CROSS_LIB_DIR}"
-  --with-gmp-includes="${CROSS_INCLUDE_DIR}"
-  --with-gmp-libraries="${CROSS_LIB_DIR}"
-  --with-iconv-includes="${CROSS_INCLUDE_DIR}"
-  --with-iconv-libraries="${CROSS_LIB_DIR}"
-  
-  ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
-  ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-  ac_cv_prog_AR="${BUILD_PREFIX}/bin/${conda_target}-ar"
-  ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
-  ac_cv_prog_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-  ac_cv_prog_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
-  ac_cv_prog_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
-
-  CPPFLAGS="${CROSS_CPPFLAGS}"
-  CFLAGS="${CROSS_CFLAGS}"
-  CXXFLAGS="${CROSS_CXXFLAGS}"
-  LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
-)
-
-(
-  run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
-)
+# Configure GHC for cross-compilation
+configure_ghc "${OS_TYPE}" "${ghc_target}" "${conda_host}" "${conda_target}"
 
 # Fix host configuration to use x86_64, target cross
 (
@@ -213,7 +166,10 @@ popd
 
 # A bug due to the numeric in the triplet
 find "${cross_prefix}"/lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSION}.0.0*" | while read -r mangled; do
-  unmangled=$(echo "${mangled}" | perl -pe 's#darwin(.*?)-(.*)((?:[0-9]|\.)+)#darwin$1$3-$2#')
-  mv "${mangled}" "${unmangled}"
+  folder=$(dirname ${mangled})
+  file=$(basename ${mangled})
+  
+  unmangled=$(echo "${file}" | perl -pe 's#darwin(.*?)-(.*)((?:[0-9]|\.)+)#darwin$1$3-$2#')
+  mv "${folder}"/"${mangled}" "${folder}"/"${unmangled}"
 done
 

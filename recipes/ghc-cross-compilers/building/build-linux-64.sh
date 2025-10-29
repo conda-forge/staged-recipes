@@ -5,6 +5,9 @@ _log_index=0
 
 source "${RECIPE_DIR}"/building/common.sh
 
+# Detect platform configuration
+detect_platform_config "${target_platform}"
+
 # in 9.12+ we can use x86_64-conda-linux-gnu
 conda_host="${build_alias}"
 conda_target="${triplet}"
@@ -12,8 +15,8 @@ conda_target="${triplet}"
 host_arch="${conda_host%%-*}"
 target_arch="${conda_target%%-*}"
 
-ghc_host="${host_arch}-unknown-linux-gnu"
-ghc_target="${target_arch}-unknown-linux-gnu"
+ghc_host="${host_arch}${GHC_OS_SUFFIX}"
+ghc_target="${target_arch}${GHC_OS_SUFFIX}"
 
 _build_alias=${build_alias}
 _host_alias=${host_alias}
@@ -31,88 +34,14 @@ export CABAL_DIR="${SRC_DIR}"/.cabal
 mkdir -p "${CABAL_DIR}" && "${CABAL}" user-config init
 run_and_log "cabal-update" "${CABAL}" v2-update
 
-echo "Creating cross environment for cross-compilation libraries..."
-conda create -y \
-    -n cross_env \
-    --platform "${cross_target_platform}" \
-    -c conda-forge \
-    gmp \
-    libffi \
-    libiconv \
-    ncurses
+# Create cross-compilation environment with target libraries
+create_cross_environment "${cross_target_platform}"
 
-sleep 10
+# Configure architecture-specific compile flags
+get_arch_compile_flags "${target_arch}" "${OS_TYPE}" "${conda_target}"
 
-# Get the environment path and set up library paths
-CROSS_ENV_PATH=$(conda info --envs | grep cross_env | awk '{print $2}')
-export CROSS_LIB_DIR="${CROSS_ENV_PATH}/lib"
-export CROSS_INCLUDE_DIR="${CROSS_ENV_PATH}/include"
-
-if [[ "${target_arch}" == "aarch64" ]]; then
-  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=armv8-a/g' | sed 's/-mtune=[^ ]*/-mtune=generic/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-elif [[ "${target_arch}" == "powerpc64le" ]]; then
-  # -mcpu=power8 -mtune=power8
-  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-mcpu=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-mcpu=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-mcpu=power8/g' | sed 's/-mtune=[^ ]*/-mtune=power8/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-else
-  # -march=nocona -mtune=haswell
-  CROSS_CFLAGS=$(echo "$CFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-  CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
-fi
-CROSS_CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-CROSS_CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-CROSS_CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-CROSS_LDFLAGS="-L${BUILD_PREFIX}/${conda_target}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
-
-echo "cross libraries located at: ${CROSS_LIB_DIR}"
-echo "cross headers located at: ${CROSS_INCLUDE_DIR}"
-
-# Configure and build GHC
-export AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
-export CC_STAGE0="${CC_FOR_BUILD}"
-export LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
-  
-SYSTEM_CONFIG=(
-  --target="${ghc_target}"
-  --prefix="${PREFIX}"
-)
-
-CONFIGURE_ARGS=(
-  --with-system-libffi=yes
-  --with-curses-includes="${CROSS_INCLUDE_DIR}"
-  --with-curses-libraries="${CROSS_LIB_DIR}"
-  --with-ffi-includes="${CROSS_INCLUDE_DIR}"
-  --with-ffi-libraries="${CROSS_LIB_DIR}"
-  --with-gmp-includes="${CROSS_INCLUDE_DIR}"
-  --with-gmp-libraries="${CROSS_LIB_DIR}"
-  --with-iconv-includes="${CROSS_INCLUDE_DIR}"
-  --with-iconv-libraries="${CROSS_LIB_DIR}"
-  
-  ac_cv_path_AR="${BUILD_PREFIX}"/bin/"${conda_target}"-ar
-  ac_cv_path_AS="${BUILD_PREFIX}"/bin/"${conda_target}"-as
-  ac_cv_path_CC="${BUILD_PREFIX}"/bin/"${conda_target}"-clang
-  ac_cv_path_CXX="${BUILD_PREFIX}"/bin/"${conda_target}"-clang++
-  ac_cv_path_LD="${BUILD_PREFIX}"/bin/"${conda_target}"-ld
-  ac_cv_path_NM="${BUILD_PREFIX}"/bin/"${conda_target}"-nm
-  ac_cv_path_OBJDUMP="${BUILD_PREFIX}"/bin/"${conda_target}"-objdump
-  ac_cv_path_RANLIB="${BUILD_PREFIX}"/bin/"${conda_target}"-ranlib
-  ac_cv_path_LLC="${BUILD_PREFIX}"/bin/"${conda_target}"-llc
-  ac_cv_path_OPT="${BUILD_PREFIX}"/bin/"${conda_target}"-opt
-  
-  CFLAGS="${CROSS_CFLAGS}"
-  CPPFLAGS="${CROSS_CPPFLAGS}"
-  CXXFLAGS="${CROSS_CXXFLAGS}"
-  LDFLAGS="${CROSS_LDFLAGS:-}"
-)
-
-export ac_cv_func_statx=no
-export ac_cv_have_decl_statx=no
-export ac_cv_lib_ffi_ffi_call=yes
-run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@]}" || { cat config.log; exit 1; }
+# Configure GHC for cross-compilation
+configure_ghc "${OS_TYPE}" "${ghc_target}" "${conda_host}" "${conda_target}"
 
 # Fix host configuration to use x86_64, target cross
 (
