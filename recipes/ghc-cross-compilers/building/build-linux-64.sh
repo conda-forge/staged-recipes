@@ -63,6 +63,10 @@ else
   CROSS_CXXFLAGS=$(echo "$CXXFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
   CROSS_CPPFLAGS=$(echo "$CPPFLAGS" | sed 's/-march=[^ ]*/-march=nocona/g' | sed 's/-mtune=[^ ]*/-mtune=haswell/g' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
 fi
+CROSS_CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+CROSS_CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+CROSS_CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
+CROSS_LDFLAGS="-L${BUILD_PREFIX}/${conda_target}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
 
 echo "cross libraries located at: ${CROSS_LIB_DIR}"
 echo "cross headers located at: ${CROSS_INCLUDE_DIR}"
@@ -99,10 +103,10 @@ CONFIGURE_ARGS=(
   ac_cv_path_LLC="${BUILD_PREFIX}"/bin/"${conda_target}"-llc
   ac_cv_path_OPT="${BUILD_PREFIX}"/bin/"${conda_target}"-opt
   
-  CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-  CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-  CXXFLAGS="${CROSS_CXXFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
-  LDFLAGS="-L${BUILD_PREFIX}/${conda_target}/lib -L${BUILD_PREFIX}/${conda_target}/sysroot/usr/lib ${LDFLAGS:-}"
+  CFLAGS="${CROSS_CFLAGS}"
+  CPPFLAGS="${CROSS_CPPFLAGS}"
+  CXXFLAGS="${CROSS_CXXFLAGS}"
+  LDFLAGS="${CROSS_LDFLAGS:-}"
 )
 
 export ac_cv_func_statx=no
@@ -129,7 +133,7 @@ run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@
 # ---| Stage 1: Cross-compiler |---
 
 # Build hadrian with cabal outside script
-hadrian_bin=build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}"
+hadrian_bin=build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}" "${CROSS_CFLAGS}" "${CROSS_LDFLAGS}"
 hadrian_build=("${hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 
 # Disable copy for cross-compilation - force building the cross binary
