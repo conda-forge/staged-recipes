@@ -337,13 +337,13 @@ There are language-specific teams for reviewing recipes.
 | java            | `@conda-forge/help-java`      |
 | Julia           | `@conda-forge/help-julia`     |
 | nodejs          | `@conda-forge/help-nodejs`    |
-| other           | `@conda-forge/staged-recipes` |
 | perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
 | ruby            | `@conda-forge/help-ruby`      |
 | rust            | `@conda-forge/help-rust`      |
+| other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
