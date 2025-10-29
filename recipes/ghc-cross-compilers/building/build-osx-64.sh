@@ -214,10 +214,11 @@ fi
 # Correct CC/CXX
 settings_file="$(find ${cross_prefix}/lib/ -name settings | head -1)"
 if [[ -f "${settings_file}" ]]; then
-  perl -pi -e "s#${host_arch}(-[^ \"]*)#${target_arch}\$1#g" "${settings_file}"
+  perl -pi -e "s#${conda_host}#${conda_target}#g" "${settings_file}"
   perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L\\\$topdir/private -Wl,-L\\\$topdir/../../../lib -Wl,-rpath,\\\$topdir/private -Wl,-rpath,\\\$topdir/../../../lib#" "${settings_file}"
   perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L\\\$topdir/private -L\\\$topdir/../../../lib -rpath \\\$topdir/private -rpath \\\$topdir/../../../lib#" "${settings_file}"
-  perl -pi -e "s#\"[\$/\w]*?(ar|clang|clang\+\+|ld|ranlib|llc|opt)\"#\"${conda_target}-\$1\"#" "${settings_file}"
+  perl -pi -e "s#\"[\$/\w]*?-(clang|clang\+\+|ld|ranlib|llc|opt)\"#\"${conda_target}-\$1\"#" "${settings_file}"
+  perl -pi -e "s#\".*?(llvm-ar)\"#\"\$1\"#" "${settings_file}"
   cat "${settings_file}"
 else
   echo "Error: Could not find settins file"
@@ -238,3 +239,10 @@ pushd "${cross_prefix}"/bin
     perl -pi -e "s#${cross_prefix}#\\\${PREFIX}#g" "${conda_target}-${bin}"
   done
 popd
+
+# A bug due to the numeric in the triplet
+find lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSION}.0.0*" | while read -r mangled; do
+  unmangled=$(echo "${mangled}" | perl -pe 's#darwin(.*?)-(.*)((?:[0-9]|\.)+)#darwin$1$3-$2#')
+  mv "${mangled}" "${unmangled}"
+done
+
