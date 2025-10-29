@@ -1,0 +1,56 @@
+diff --git a/cmake/config.cmake b/cmake/config.cmake
+index 77b1b421..adf645c1 100644
+--- a/cmake/config.cmake
++++ b/cmake/config.cmake
+@@ -45,16 +45,42 @@ endif()
+ 
+ find_package(Threads)
+ 
+-if( SC_USE_INTERNAL_JSON )
+-  message(STATUS "Using builtin jansson")
+-  include(${CMAKE_CURRENT_LIST_DIR}/jansson.cmake)
++# --- JSON configuration
++
++if(SC_USE_INTERNAL_JSON)
++    message(STATUS "Using builtin jansson")
++    include(${CMAKE_CURRENT_LIST_DIR}/jansson.cmake)
+ else()
+-  find_package(jansson CONFIG)
+-  if(TARGET jansson::jansson)
+-    set(SC_HAVE_JSON ON CACHE BOOL "JSON features enabled")
+-  else()
+-    set(SC_HAVE_JSON OFF CACHE BOOL "JSON features disabled")
+-  endif()
++    # Try CMake package first
++    find_package(jansson CONFIG)
++
++    if(TARGET jansson::jansson)
++        message(STATUS "Found jansson via CMake config")
++        set(SC_HAVE_JSON ON CACHE BOOL "JSON features enabled")
++    else()
++        # Fallback to pkg-config
++        find_package(PkgConfig REQUIRED)
++        pkg_check_modules(JANSSON jansson)
++
++        if(JANSSON_FOUND)
++            message(STATUS "Found jansson via pkg-config")
++
++            # create an imported INTERFACE target with a unique name
++            add_library(jansson_pkg INTERFACE IMPORTED GLOBAL)
++            set_target_properties(jansson_pkg PROPERTIES
++                INTERFACE_INCLUDE_DIRECTORIES "${JANSSON_INCLUDE_DIRS}"
++                INTERFACE_LINK_LIBRARIES "${JANSSON_LIBRARIES}"
++            )
++
++            # alias for convenience
++            add_library(jansson::jansson ALIAS jansson_pkg)
++
++            set(SC_HAVE_JSON ON CACHE BOOL "JSON features enabled")
++        else()
++            message(WARNING "Could not find jansson (CMake config or pkg-config), JSON support disabled")
++            set(SC_HAVE_JSON OFF CACHE BOOL "JSON features disabled")
++        endif()
++    endif()
+ endif()
+ 
+ # --- set global compile environment
