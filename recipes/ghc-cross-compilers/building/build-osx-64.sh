@@ -116,9 +116,19 @@ CONFIGURE_ARGS=(
 
 # ---| Stage 1: Cross-compiler |---
 
-# Build hadrian with cabal outside script
-hadrian_bin=build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}"
-hadrian_build=("${hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
+# Build hadrian with cabal (returns FULL path to binary)
+hadrian_path=$(build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}")
+echo "Using hadrian at: ${hadrian_path}"
+
+# Verify hadrian works before proceeding
+echo "Testing hadrian binary..."
+"${hadrian_path}" --version || {
+  echo "ERROR: Hadrian binary test failed!"
+  exit 1
+}
+
+# Use FULL path in hadrian_build array - don't rely on PATH
+hadrian_build=("${hadrian_path}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
@@ -134,16 +144,23 @@ ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ar" "${BUILD_PREFIX}"/bin/ar
 ln -sf "${BUILD_PREFIX}/bin/${conda_host}-as" "${BUILD_PREFIX}"/bin/as
 ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ld" "${BUILD_PREFIX}"/bin/ld
 
-run_and_log "stage1_ghc-bin" "${hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --progress-info=none
+# OPTIMIZATION: Build all stage1 executables in ONE hadrian invocation
+# This allows Shake to properly track dependencies and avoid unnecessary rebuilds
+run_and_log "stage1_executables" "${hadrian_build[@]}" \
+  stage1:exe:ghc-bin \
+  stage1:exe:ghc-pkg \
+  stage1:exe:hsc2hs \
+  --flavour=quick --docs=none --progress-info=none
+
+# Build stage1:lib:ghc separately with settings adjustment
 (
   settings_file="${SRC_DIR}"/_build/stage0/lib/settings
   perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${CROSS_ENV_PATH}/lib#" "${settings_file}"
   perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${CROSS_ENV_PATH}/lib#" "${settings_file}"
+  run_and_log "stage1_lib" "${hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
 )
 
-run_and_log "stage1_ghc-pkg" "${hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_hsc2hs"  "${hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_lib" "${hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
+# Build binary dist - will reuse all previously built artifacts
 run_and_log "bindist" "${hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
 
 # Now manually install from the bindist with correct configure arguments

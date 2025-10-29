@@ -157,29 +157,28 @@ build_hadrian_cross() {
   local extra_cflags="${5:-}"
   local extra_ldflags="${6:-}"
 
-  echo "=== Building Hadrian with dependencies ==="
-  echo "  GHC: ${ghc_path}"
-  echo "  AR: ${ar_stage0}"
-  echo "  CC: ${cc_stage0}"
-  echo "  LD: ${ld_stage0}"
+  echo "=== Building Hadrian with dependencies ===" >&2
+  echo "  GHC: ${ghc_path}" >&2
+  echo "  AR: ${ar_stage0}" >&2
+  echo "  CC: ${cc_stage0}" >&2
+  echo "  LD: ${ld_stage0}" >&2
 
-  pushd "${SRC_DIR}/hadrian" || return 1
+  # Silence pushd output to avoid polluting command substitution
+  pushd "${SRC_DIR}/hadrian" >/dev/null || return 1
 
   # CRITICAL: Override CFLAGS/LDFLAGS if provided
   # This prevents target architecture flags from contaminating Hadrian build
   if [[ -n "$extra_cflags" ]]; then
-    echo "  Overriding CFLAGS for build machine:"
-    echo "    ${extra_cflags}"
-    export CFLAGS="$extra_cflags"
+    echo "  Overriding CFLAGS for build machine:" >&2
+    echo "    ${extra_cflags}" >&2
+    cflags="$extra_cflags"
   fi
 
   if [[ -n "$extra_ldflags" ]]; then
-    echo "  Overriding LDFLAGS for build machine:"
-    echo "    ${extra_ldflags}"
-    export LDFLAGS="$extra_ldflags"
+    echo "  Overriding LDFLAGS for build machine:" >&2
+    echo "    ${extra_ldflags}" >&2
+    ldflags="$extra_ldflags"
   fi
-
-  export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
 
   # Hadrian dependency list (same across all platforms)
   local hadrian_deps=(
@@ -207,41 +206,116 @@ build_hadrian_cross() {
     hadrian
   )
 
-  "${CABAL}" v2-build \
+  CFLAGS="${extra_cflags:-${CFLAGS}}" LDFLAGS="${extra_ldflags:-${LDFLAGS}}" "${CABAL}" v2-build \
     --with-ar="${ar_stage0}" \
     --with-gcc="${cc_stage0}" \
     --with-ghc="${ghc_path}" \
     --with-ld="${ld_stage0}" \
     -j \
-    "${hadrian_deps[@]}" \
-    2>&1 | tee "${SRC_DIR}/cabal-verbose.log"
+    hadrian \
+    > "${SRC_DIR}/cabal-verbose.log" 2>&1
+    # --enable-shared \
+    # --enable-executable-dynamic \
+    # "${hadrian_deps[@]}" \
 
-  local exit_code=${PIPESTATUS[0]}
+  local exit_code=$?
 
-  popd || return 1
+  # Silence popd output to avoid polluting command substitution
+  popd >/dev/null || return 1
 
   if [[ $exit_code -ne 0 ]]; then
-    echo "=== Cabal build FAILED with exit code ${exit_code} ==="
-    echo "See ${SRC_DIR}/cabal-verbose.log for details"
+    echo "=== Cabal build FAILED with exit code ${exit_code} ===" >&2
+    cat "${SRC_DIR}"/cabal-verbose.log >&2
     return 1
   fi
 
-  # Find hadrian binary location
+  # Find hadrian binary location - return FULL ABSOLUTE path
   local hadrian_path
-  hadrian_path=$(find "${SRC_DIR}/hadrian" -type f -name hadrian -executable | head -1)
+  local search_dir
 
-  if [[ -z "$hadrian_path" ]]; then
-    echo "=== ERROR: Could not find hadrian binary ===" >&2
+  # Ensure SRC_DIR is actually set and is an absolute path
+  if [[ -z "${SRC_DIR}" ]]; then
+    echo "=== ERROR: SRC_DIR is not set ===" >&2
     return 1
+  fi
+
+  # Get absolute path to search directory
+  search_dir="$(cd "${SRC_DIR}/hadrian" 2>/dev/null && pwd)" || {
+    echo "=== ERROR: Cannot access ${SRC_DIR}/hadrian directory ===" >&2
+    return 1
+  }
+
+  echo "   Searching for hadrian in: ${search_dir}" >&2
+
+  # Note: -executable flag not supported on macOS find, use -perm instead
+  if [[ "$(uname)" == "Darwin" ]]; then
+    hadrian_path=$(find "${search_dir}" -type f -name hadrian -perm +111 2>/dev/null | head -1)
+  else
+    hadrian_path=$(find "${search_dir}" -type f -name hadrian -executable 2>/dev/null | head -1)
+  fi
+
+  # Fallback: just find by name if executable search failed
+  if [[ -z "$hadrian_path" ]]; then
+    hadrian_path=$(find "${search_dir}" -type f -name hadrian 2>/dev/null | head -1)
+  fi
+
+  echo "   DEBUG: Raw hadrian_path from find: ${hadrian_path}" >&2
+
+  if [[ -z "$hadrian_path" || ! -f "$hadrian_path" ]]; then
+    echo "=== ERROR: Could not find hadrian binary ===" >&2
+    echo "Searched in: ${search_dir}" >&2
+    echo "Files matching 'hadrian*':" >&2
+    find "${search_dir}" -type f -name "hadrian*" 2>&1 | head -10 >&2
+    echo "Directory contents:" >&2
+    ls -la "${search_dir}/dist-newstyle/build/" 2>&1 | head -20 >&2
+    return 1
+  fi
+
+  # Ensure path is absolute and doesn't contain variable references
+  if [[ "${hadrian_path}" == *'$'* ]]; then
+    echo "=== ERROR: Hadrian path contains variable reference: ${hadrian_path} ===" >&2
+    echo "This indicates a build system issue" >&2
+    return 1
+  fi
+
+  # Convert to absolute path if somehow it's relative
+  echo "   DEBUG: Converting to absolute path..." >&2
+  echo "   DEBUG: dirname: $(dirname "${hadrian_path}")" >&2
+  echo "   DEBUG: basename: $(basename "${hadrian_path}")" >&2
+
+  hadrian_path="$(cd "$(dirname "${hadrian_path}")" 2>/dev/null && pwd)/$(basename "${hadrian_path}")" || {
+    echo "   DEBUG: Failed to convert to absolute path, using as-is" >&2
+  }
+
+  echo "   DEBUG: Final hadrian_path: ${hadrian_path}" >&2
+
+  # Ensure it's executable
+  if [[ ! -x "$hadrian_path" ]]; then
+    echo "=== WARNING: Hadrian found but not executable, fixing permissions ===" >&2
+    chmod +x "$hadrian_path" || {
+      echo "=== ERROR: Cannot make hadrian executable ===" >&2
+      return 1
+    }
   fi
 
   # Export for convenience
   export HADRIAN_BIN="${hadrian_path}"
 
   echo "=== Hadrian build completed successfully ===" >&2
-  echo "  Hadrian binary: ${hadrian_path}" >&2
+  echo "   Hadrian binary: ${hadrian_path}" >&2
 
-  # Return path for command substitution: HADRIAN_BUILD=$(build_hadrian_cross ...)
+  # Test that it actually works
+  if "${hadrian_path}" --version >&2 2>&1; then
+    echo "   Hadrian version check: OK" >&2
+  else
+    echo "=== ERROR: Hadrian binary exists but --version failed ===" >&2
+    echo "   Path: ${hadrian_path}" >&2
+    echo "   Testing with ldd:" >&2
+    ldd "${hadrian_path}" 2>&1 | head -20 >&2 || true
+    return 1
+  fi
+
+  # Return FULL ABSOLUTE path (not just "hadrian") for command substitution
   echo "${hadrian_path}"
   return 0
 }

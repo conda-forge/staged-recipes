@@ -36,6 +36,7 @@ pushd "${SRC_DIR}"/cross_install
     popd
   fi
   
+  # Move to PREFIX
   tar cf - ./* | (cd ${PREFIX}; tar xf -)
 popd
 
