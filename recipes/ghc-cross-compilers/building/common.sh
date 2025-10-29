@@ -107,3 +107,141 @@ update_settings_link_flags() {
   
   perl -pi -e "s#\"[/\w\-]*?(ar|clang|clang\+\+|ld|ranlib|llc|objdump|opt)\"#\"${toolchain}-\$1\"#" "${settings_file}"
 }
+
+# ==============================================================================
+# HADRIAN DEPENDENCY BUILDER
+# ==============================================================================
+
+# Build Hadrian and its dependencies with correct toolchain for build machine
+#
+# CRITICAL: Hadrian is a BUILD TOOL that runs on the build machine (x86_64),
+# NOT on the target machine (aarch64/ppc64le). Therefore:
+# - MUST use BUILD machine compilers (CC_STAGE0, not CC)
+# - MUST use BUILD machine CFLAGS (x86_64, not target flags)
+# - MUST NOT be affected by target architecture environment variables
+#
+# Reference: CLAUDE.md "CRITICAL #1: Directory Package Configure Failure"
+#
+# Exports:
+#   HADRIAN_BIN - Path to the built hadrian executable
+#
+# Returns:
+#   stdout - Path to hadrian executable (for command substitution)
+#
+# Usage:
+#   # Option 1: Use exported variable
+#   build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}"
+#   "${HADRIAN_BIN}" --version
+#
+#   # Option 2: Capture return value
+#   HADRIAN_BUILD=$(build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}")
+#   "${HADRIAN_BUILD}" --version
+#
+#   # With custom CFLAGS for build machine:
+#   build_cflags="--sysroot=... -march=nocona ..."
+#   HADRIAN_BUILD=$(build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}" "${build_cflags}")
+#
+# Parameters:
+#   $1 - ghc_path: Path to bootstrap GHC (must run on build machine)
+#   $2 - ar_stage0: Path to ar for build machine
+#   $3 - cc_stage0: Path to C compiler for build machine
+#   $4 - ld_stage0: Path to linker for build machine
+#   $5 - extra_cflags: Override CFLAGS for build machine (optional)
+#   $6 - extra_ldflags: Override LDFLAGS for build machine (optional)
+#
+build_hadrian_cross() {
+  local ghc_path="$1"
+  local ar_stage0="$2"
+  local cc_stage0="$3"
+  local ld_stage0="$4"
+  local extra_cflags="${5:-}"
+  local extra_ldflags="${6:-}"
+
+  echo "=== Building Hadrian with dependencies ==="
+  echo "  GHC: ${ghc_path}"
+  echo "  AR: ${ar_stage0}"
+  echo "  CC: ${cc_stage0}"
+  echo "  LD: ${ld_stage0}"
+
+  pushd "${SRC_DIR}/hadrian" || return 1
+
+  # CRITICAL: Override CFLAGS/LDFLAGS if provided
+  # This prevents target architecture flags from contaminating Hadrian build
+  if [[ -n "$extra_cflags" ]]; then
+    echo "  Overriding CFLAGS for build machine:"
+    echo "    ${extra_cflags}"
+    export CFLAGS="$extra_cflags"
+  fi
+
+  if [[ -n "$extra_ldflags" ]]; then
+    echo "  Overriding LDFLAGS for build machine:"
+    echo "    ${extra_ldflags}"
+    export LDFLAGS="$extra_ldflags"
+  fi
+
+  export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
+
+  # Hadrian dependency list (same across all platforms)
+  local hadrian_deps=(
+    clock
+    file-io
+    heaps
+    js-dgtable
+    js-flot
+    js-jquery
+    directory
+    os-string
+    splitmix
+    utf8-string
+    hashable
+    process
+    primitive
+    random
+    QuickCheck
+    unordered-containers
+    extra
+    Cabal-syntax
+    filepattern
+    Cabal
+    shake
+    hadrian
+  )
+
+  "${CABAL}" v2-build \
+    --with-ar="${ar_stage0}" \
+    --with-gcc="${cc_stage0}" \
+    --with-ghc="${ghc_path}" \
+    --with-ld="${ld_stage0}" \
+    -j \
+    "${hadrian_deps[@]}" \
+    2>&1 | tee "${SRC_DIR}/cabal-verbose.log"
+
+  local exit_code=${PIPESTATUS[0]}
+
+  popd || return 1
+
+  if [[ $exit_code -ne 0 ]]; then
+    echo "=== Cabal build FAILED with exit code ${exit_code} ==="
+    echo "See ${SRC_DIR}/cabal-verbose.log for details"
+    return 1
+  fi
+
+  # Find hadrian binary location
+  local hadrian_path
+  hadrian_path=$(find "${SRC_DIR}/hadrian" -type f -name hadrian -executable | head -1)
+
+  if [[ -z "$hadrian_path" ]]; then
+    echo "=== ERROR: Could not find hadrian binary ===" >&2
+    return 1
+  fi
+
+  # Export for convenience
+  export HADRIAN_BIN="${hadrian_path}"
+
+  echo "=== Hadrian build completed successfully ===" >&2
+  echo "  Hadrian binary: ${hadrian_path}" >&2
+
+  # Return path for command substitution: HADRIAN_BUILD=$(build_hadrian_cross ...)
+  echo "${hadrian_path}"
+  return 0
+}

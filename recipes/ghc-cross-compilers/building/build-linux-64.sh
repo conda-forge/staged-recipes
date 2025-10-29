@@ -68,6 +68,10 @@ echo "cross libraries located at: ${CROSS_LIB_DIR}"
 echo "cross headers located at: ${CROSS_INCLUDE_DIR}"
 
 # Configure and build GHC
+export AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
+export CC_STAGE0="${CC_FOR_BUILD}"
+export LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
+  
 SYSTEM_CONFIG=(
   --target="${ghc_target}"
   --prefix="${PREFIX}"
@@ -94,10 +98,6 @@ CONFIGURE_ARGS=(
   ac_cv_path_RANLIB="${BUILD_PREFIX}"/bin/"${conda_target}"-ranlib
   ac_cv_path_LLC="${BUILD_PREFIX}"/bin/"${conda_target}"-llc
   ac_cv_path_OPT="${BUILD_PREFIX}"/bin/"${conda_target}"-opt
-  
-  AR_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ar"
-  CC_STAGE0="${CC_FOR_BUILD}"
-  LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
   
   CFLAGS="${CROSS_CFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
   CPPFLAGS="${CROSS_CPPFLAGS} --sysroot=${BUILD_PREFIX}/${conda_target}/sysroot"
@@ -126,23 +126,25 @@ run_and_log "configure" ./configure -v "${SYSTEM_CONFIG[@]}" "${CONFIGURE_ARGS[@
   cat "${settings_file}"
 )
 
-_hadrian_build=("${SRC_DIR}"/hadrian/build "-j${CPU_COUNT}")
-
 # ---| Stage 1: Cross-compiler |---
+
+# Build hadrian with cabal outside script
+hadrian_bin=build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}"
+hadrian_build=("${hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
 perl -i -pe 's/finalStage = Stage2/finalStage = Stage1/' "${SRC_DIR}"/hadrian/src/UserSettings.hs
-run_and_log "stage1_ghc-bin" "${_hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_ghc-pkg" "${_hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_ghc-bin" "${hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_ghc-pkg" "${hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_hsc2hs"  "${hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
 
 settings_file="${SRC_DIR}"/_build/stage0/lib/settings
 update_settings_link_flags "${settings_file}" "${conda_target}"
-run_and_log "stage1_lib" "${_hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_lib" "${hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
 update_settings_link_flags "${settings_file}" "${conda_target}"
 
-run_and_log "binary-dist" "${_hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
+run_and_log "binary-dist" "${hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
 
 # Now manually install from the bindist with correct configure arguments
 cross_prefix="${SRC_DIR}"/cross_install && mkdir -p "${SRC_DIR}"/cross_install

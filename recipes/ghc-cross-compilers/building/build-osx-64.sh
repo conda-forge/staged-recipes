@@ -53,6 +53,8 @@ CROSS_CPPFLAGS="-D_FORTIFY_SOURCE=2 -isystem $PREFIX/include -mmacosx-version-mi
 
 # Configure and build GHC
 AR_STAGE0=$(find "${BUILD_PREFIX}" -name llvm-ar | head -1)
+CC_STAGE0="${CC_FOR_BUILD}"
+LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
 
 SYSTEM_CONFIG=(
   --target="${target_alias}"
@@ -78,22 +80,10 @@ CONFIGURE_ARGS=(
   ac_cv_prog_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
   ac_cv_prog_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
 
-  #AR="${BUILD_PREFIX}/bin/${conda_target}"-ar
-  #AS="${BUILD_PREFIX}/bin/${conda_target}"-as
-  #CC="${BUILD_PREFIX}/bin/${conda_target}"-clang
-  #CXX="${BUILD_PREFIX}/bin/${conda_target}"-clang++
-  #LD="${BUILD_PREFIX}/bin/${conda_target}"-ld
-  #NM="${BUILD_PREFIX}/bin/${conda_target}"-nm
-  #OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}"-objdump
-  #RANLIB="${BUILD_PREFIX}/bin/${conda_target}"-ranlib
-  
   CPPFLAGS="${CROSS_CPPFLAGS}"
   CFLAGS="${CROSS_CFLAGS}"
   CXXFLAGS="${CROSS_CXXFLAGS}"
   LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
-  AR_STAGE0="${AR_STAGE0}"
-  CC_STAGE0="${CC_FOR_BUILD}"
-  LD_STAGE0="${BUILD_PREFIX}/bin/${conda_host}-ld"
 )
 
 (
@@ -119,54 +109,16 @@ CONFIGURE_ARGS=(
 )
 
 # Bug in ghc-bootstrap for libiconv2
-settings_file=$(find "${CROSS_ENV_PATH}"/ghc-bootstrap/lib -name settings -type f | head -1)
-perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${settings_file}"
+(
+  settings_file=$(find "${CROSS_ENV_PATH}"/ghc-bootstrap/lib -name settings -type f | head -1)
+  perl -pi -e "s#[^ ]+/usr/lib/libiconv2.tbd##" "${settings_file}"
+)
 
 # ---| Stage 1: Cross-compiler |---
 
 # Build hadrian with cabal outside script
-pushd "${SRC_DIR}"/hadrian
-  export CABFLAGS=(--enable-shared --enable-executable-dynamic -j)
-  "${CABAL}" v2-build \
-    --with-gcc="${CC_FOR_BUILD}" \
-    --with-ar="${AR_STAGE0}" \
-    --with-ld="${BUILD_PREFIX}/bin/${conda_host}-ld" \
-    -j \
-    clock \
-    file-io \
-    heaps \
-    js-dgtable \
-    js-flot \
-    js-jquery \
-    directory \
-    os-string \
-    splitmix \
-    utf8-string \
-    hashable \
-    process \
-    primitive \
-    random \
-    QuickCheck \
-    unordered-containers \
-    extra \
-    Cabal-syntax \
-    filepattern \
-    Cabal \
-    shake \
-    hadrian \
-    2>&1 | tee "${SRC_DIR}"/cabal-verbose.log
-    _cabal_exit_code=${PIPESTATUS[0]}
-popd
-
-if [[ $_cabal_exit_code -ne 0 ]]; then
-  echo "=== Cabal build FAILED with exit code ${_cabal_exit_code} ==="
-  exit 1
-else
-  echo "=== Cabal build SUCCEEDED ==="
-fi
-
-_hadrian_bin=$(find "${SRC_DIR}"/hadrian/dist-newstyle/build -name hadrian -type f | head -1)
-_hadrian_build=("${_hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
+hadrian_bin=build_hadrian_cross "${GHC}" "${AR_STAGE0}" "${CC_STAGE0}" "${LD_STAGE0}"
+hadrian_build=("${hadrian_bin}" "-j${CPU_COUNT}" "--directory" "${SRC_DIR}")
 
 # Disable copy for cross-compilation - force building the cross binary
 # Change the cross-compile copy condition to never match
@@ -182,15 +134,17 @@ ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ar" "${BUILD_PREFIX}"/bin/ar
 ln -sf "${BUILD_PREFIX}/bin/${conda_host}-as" "${BUILD_PREFIX}"/bin/as
 ln -sf "${BUILD_PREFIX}/bin/${conda_host}-ld" "${BUILD_PREFIX}"/bin/ld
 
-run_and_log "stage1_ghc-bin" "${_hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --progress-info=none
-settings_file="${SRC_DIR}"/_build/stage0/lib/settings
-perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${CROSS_ENV_PATH}/lib#" "${settings_file}"
-perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${CROSS_ENV_PATH}/lib#" "${settings_file}"
+run_and_log "stage1_ghc-bin" "${hadrian_build[@]}" stage1:exe:ghc-bin --flavour=quick --progress-info=none
+(
+  settings_file="${SRC_DIR}"/_build/stage0/lib/settings
+  perl -pi -e "s#(C compiler link flags\", \"[^\"]*)#\$1 -Wl,-L${CROSS_ENV_PATH}/lib#" "${settings_file}"
+  perl -pi -e "s#(ld flags\", \"[^\"]*)#\$1 -L${CROSS_ENV_PATH}/lib#" "${settings_file}"
+)
 
-run_and_log "stage1_ghc-pkg" "${_hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_hsc2hs"  "${_hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
-run_and_log "stage1_lib" "${_hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
-"${_hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_ghc-pkg" "${hadrian_build[@]}" stage1:exe:ghc-pkg --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_hsc2hs"  "${hadrian_build[@]}" stage1:exe:hsc2hs --flavour=quick --docs=none --progress-info=none
+run_and_log "stage1_lib" "${hadrian_build[@]}" stage1:lib:ghc --flavour=quick --docs=none --progress-info=none
+run_and_log "bindist" "${hadrian_build[@]}" binary-dist --flavour=quick --docs=none --progress-info=none
 
 # Now manually install from the bindist with correct configure arguments
 cross_prefix="${SRC_DIR}"/cross_install && mkdir -p "${SRC_DIR}"/cross_install
@@ -241,7 +195,7 @@ pushd "${cross_prefix}"/bin
 popd
 
 # A bug due to the numeric in the triplet
-find lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSION}.0.0*" | while read -r mangled; do
+find "${cross_prefix}"/lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSION}.0.0*" | while read -r mangled; do
   unmangled=$(echo "${mangled}" | perl -pe 's#darwin(.*?)-(.*)((?:[0-9]|\.)+)#darwin$1$3-$2#')
   mv "${mangled}" "${unmangled}"
 done
