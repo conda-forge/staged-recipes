@@ -14,21 +14,15 @@ source:
 
 build:
   number: 0
-  skip:
-    - win
   script:
     - if: unix
       then:
-        # - if: (build_platform != target_platform)
-        #   then:
-        #     # flags from https://conda-forge.org/docs/maintainer/knowledge_base/#cross-compilation and https://github.com/conda-forge/mumps-feedstock/blob/966474677d28486ef897b0d3bb2c10558dc9b5ca/recipe/build-mumps.sh
-        #     - export OMPI_CC=$CC
-        #     - export OMPI_CXX=$CXX
-        #     - export OMPI_FC=$FC
-        #     - export OPAL_PREFIX="$PREFIX"
-        #     - export FFLAGS="${FFLAGS} -DAVOID_MPI_IN_PLACE"
-        #     - export LDFLAGS="${LDFLAGS} -headerpad_max_install_names"
         - cmake -B build -DCMAKE_INSTALL_PREFIX=$PREFIX -DSC_BUILD_SHARED_LIBS=ON -DSC_ENABLE_MPI=ON -DSC_HAVE_JSON=ON -DSC_USE_INTERNAL_JSON=OFF
+        - cmake --build build --parallel
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -B build -DCMAKE_INSTALL_PREFIX=%PREFIX% -DSC_BUILD_SHARED_LIBS=ON -DSC_ENABLE_MPI=OFF -DSC_HAVE_JSON=ON -DSC_USE_INTERNAL_JSON=OFF
         - cmake --build build --parallel
         - cmake --install build
 
@@ -39,11 +33,11 @@ requirements:
     - cmake
     - make
     - pkg-config
-    - if: (build_platform != target_platform)
+
+  host:
+    - if: unix
       then:
         - openmpi-mpicc
-  host:
-    - openmpi-mpicc
     - zlib
     - jansson
 
@@ -51,23 +45,6 @@ tests:
   - package_contents:
       lib:
         - libsc
-  # - script:
-  #     # JSON test file has relative path to h5 included - changing that
-  #     - JSON_FILE="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/input_files/test_LinearElastic.json"
-  #     - MODIFIED_JSON_FILE="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/input_files/test_LinearElastic_mod.json"
-  #     - NEW_MS_FILENAME="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/microstructures/sphere32.h5"
-  #     # Use jq to create a modified copy of the JSON file
-  #     - jq --arg new_filename "$NEW_MS_FILENAME" '.microstructure.filepath = $new_filename' "$JSON_FILE" > "$MODIFIED_JSON_FILE"
-  #     # Run tests
-  #     - mpiexec -n 1 FANS "$MODIFIED_JSON_FILE" "$PREFIX/etc/conda/test-files/$PKG_NAME/0//test/test_results.h5"
-  #   requirements:
-  #     run:
-  #       - jq
-  #   files:
-  #     source:
-  #       - test/
-  # - script:
-  #     - FANS --version
 
 about:
   homepage: https://www.p4est.org/
