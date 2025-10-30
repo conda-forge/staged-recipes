@@ -15,21 +15,23 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 1. Fork this repository.
 2. Make a new branch from `main` for your package's recipe.
-3. Make a new folder in `recipes` for your package. Get more information:
+3. Make a new folder in `recipes` for your package, and start a `recipe.yaml` (or `meta.yaml`).
+  For more information:
    - [generate](#generating-recipes-with-grayskull) a recipe
    - read the [example recipe](recipes/example-v1)
    - read the [FAQ](https://github.com/conda-forge/staged-recipes#faq)
+   - search for [examples of GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
    - visit our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#)
-4. (recommended) Try to build the feedstock [locally](#local-debugging)
-5. Open a pull request, paying attention to the checklis. Building of your
+4. (recommended) Try to build the feedstock [locally](#local-debugging).
+5. Open a pull request, paying attention to the checklist. Building of your
    package will be tested on Linux, macOS, and Windows.
 6. Ask for review or help by `@`-mentioning the appropriate [review teams](#review-teams)
-   in a pull request comment
+   (or using the [bot command](#review-bot-command)) in a pull request comment
 7. When your pull request is reviewd and merged:
-    - a new "feedstock" repository will be created in the github conda-forge organization
-      - if this is your first recipe, you will receive an email about steps to accept an invitation
-        to a new GitHub group
-    - a build of your package will automatically triggered
+    - a new "feedstock" repository is created in the GitHub conda-forge organization
+      - if this is your first recipe, you will receive an email about steps to accept
+        an invitation to a new GitHub group
+    - a build of your package is triggered
     - the package is uploaded to conda-forge
 
 ### Feedstock conversion status
@@ -42,30 +44,84 @@ If the issue persists, support can be found [on Zulip](https://conda-forge.zulip
 
 ## Local debugging
 
-While all of the above eventually needs to work in CI for a recipe to be merged,
-building locally is a good
-way to learn more about conda-forge, and make better use of donated community resources.
+While all of the above steps eventually need to work in CI for a recipe to be merged,
+building locally is a good way to learn more about conda-forge, and make better
+use of donated, community resources.
+
+### Building with `build-locally.py`
+
+The script `build-locally.py` will guide you through the local debugging process. This script
+will then launch the platform-specific scripts, and the resulting artifacts will
+be available under `build_artifacts` in the repository directory.
+
+On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume.
+
+On macOS and Windows, some environment variables control where files are kept:
+
+- `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
+- `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
+  on macOS and `C:\bld` on Windows.
+
+`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task.
+
+<details>
+<summary>Learn more about <b>building with <code>pixi</code></b></summary>
+
+- Linux
+    ```bash
+    pixi run build-linux
+    ```
+  - launch a Docker container
+  - provision all the necessary tools
+  - build your recipe
+
+- macOS
+  ```bash
+  pixi run build-osx
+  ```
+  - find (or provision) [`$CONDA_EXE`](#conda-exe)
+  - provision a conda environment with the necessary tools
+    - This involves fetching and caching the necessary Apple SDKs.
+  - build your recipe
+
+- Windows
+  ```bash
+  pixi run build-win
+  ```
+  - find (or provision) [`$CONDA_EXE`](#conda-exe)
+  - provision a conda environment with the necessary tools
+  - build your recipe
+
+These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
+artifacts will be available under `build_artifacts`.
+
+</details>
 
 ### `$CONDA_EXE`
 
-If you have never used `conda-forge` before, you will likely first need a conda-compatible
+If you have never used `conda-forge` before, you may need a conda-compatible
 package manager, such as `conda`, `mamba`, and `micromamba`.
-`$CONDA_EXE`, the "well-known" environment variable for
-"_a conda package manager in an activated POSIX shell session_" is used below.
+`$CONDA_EXE`, the "well-known" environment variable is used for
+"_a conda package manager in an activated POSIX shell session._"
 
 > On Windows, this environment variable would be `%CONDA_EXE%`.
 
+If a compatible `$CONDA_EXE` is not found, the `build-locally.py` script may download
+`micromamba`: as a single file static binary it isn't _installed_, per se, and
+can be used to create other environments.
+
 ### `miniforge`
 
-The staged-recipes workflow runs locally, given at least a `$CONDA_EXE`:
-downloading and installing [miniforge](https://conda-forge.org/miniforge/) provides
-`conda` and `mamba`, and uses conda-forge for its default source of packages.
+For a more traditional installation, downloading, installing, and activating a
+[miniforge](https://conda-forge.org/miniforge/) installer provides `conda` and `mamba`,
+with conda-forge as the default source of packages. If found, `build-locally.py`
+will use this instead of downloading `micromamba`.
 
 ### `pixi`
 
-`pixi` is a workspace-based environment and task runner optimized for `conda`. Several of
-the local workflows and their dependencies described below are captured in
-`pixi.toml`. Install `pixi` via `$CONDA_EXE`:
+`pixi` is a workspace-based environment and task runner optimized for `conda`.
+Several of the local workflows and their dependencies described below are captured
+in `pixi.toml`. Install `pixi` via `$CONDA_EXE`:
 
 ```bash
 $CONDA_EXE install -c conda-forge pixi
@@ -81,7 +137,7 @@ See the available tasks with `pixi task list`.
 Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
 The user should review the recipe generated, especially the license and dependencies.
 
-<details><summary>Learn more about generating Python and R recipes...</summary>
+<details><summary>Learn more about <b>generating Python and R recipes</b>...</summary>
 Use one of:
 
 - manually
@@ -111,9 +167,16 @@ Use one of:
 
 - with [`pixi`](#pixi):
   1. generate recipe:
-  - `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
-  - `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
-  - > use `pypi-v0` or `cran-v0` to get a `meta.yaml` for `conda-build` instead
+     > use `pypi-v0` or `cran-v0` to get a `meta.yaml` for `conda-build` instead
+
+    - Python
+      ```bash
+      pixi run pypi PACKAGE_ON_PYPI_HERE [ANOTHER...]
+      ```
+    - R
+      ```bash
+      pixi run cran PACKAGE_ON_CRAN_HERE [ANOTHER...]
+      ```
 
 </details>
 
@@ -121,6 +184,9 @@ Use one of:
 
 The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provides
 helpful linters that can save CI resources by catching known issues up-front.
+
+<details>
+<summary><b>Learn more about linting with <code>conda-smithy</code></b></summary>
 
 Use one of:
 
@@ -162,46 +228,7 @@ Use one of:
 >   - if committed and pushed, this will be checked in CI during the review process,
 >     then merged into the defaults in the root of the rendered feedstock.
 
-### Building with `build-locally.py`
-
-The script `build-locally.py` will guide you through the local debugging process. This script
-will then launch the platform-specific scripts, which support some key environment variables in
-macOS and Windows:
-
-- `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
-- `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
-  on macOS and `C:\bld` on Windows.
-
-On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
-
-`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task:
-
-- Linux
-
-  - launch a Docker container, provision all the necessary tools, and build your recipe:
-
-    ```bash
-    pixi run build-linux
-    ```
-
-- macOS
-
-  - provision a conda environment with the necessary tools to build your recipe. This involves fetching and caching the necessary Apple SDKs.
-
-    ```bash
-    pixi run build-osx
-    ```
-
-- Windows
-
-  - provision a conda environment with the necessary tools to build your recipe
-
-    ```bash
-    pixi run build-win
-    ```
-
-These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
-artifacts will be available under `build_artifacts`.
+</details>
 
 ## FAQ
 
@@ -348,6 +375,8 @@ There are language-specific teams for reviewing recipes.
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
 Then, a bot will label the PR as 'review-requested'.
+
+#### Review Bot Command
 
 Due to GitHub limitations, first time contributors to conda-forge are unable
 to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]

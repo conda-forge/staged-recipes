@@ -11,13 +11,13 @@ right people know. There are language-specific teams for reviewing recipes.
 | java            | `@conda-forge/help-java`      |
 | Julia           | `@conda-forge/help-julia`     |
 | nodejs          | `@conda-forge/help-nodejs`    |
-| other           | `@conda-forge/staged-recipes` |
 | perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
 | ruby            | `@conda-forge/help-ruby`      |
 | rust            | `@conda-forge/help-rust`      |
+| other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
@@ -41,6 +41,7 @@ We'd love to have the help!
 -->
 
 Checklist
+
 - [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated meta.yaml".
 - [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/5eddbd7fc9d1502169089da06c3688d9759be978/recipes/example/meta.yaml#L64-L73) for an example).
 - [ ] Source is from official source.
