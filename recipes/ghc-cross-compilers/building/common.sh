@@ -294,27 +294,28 @@ configure_ghc() {
     --with-gmp-libraries="${CROSS_LIB_DIR}"
     --with-iconv-includes="${CROSS_INCLUDE_DIR}"
     --with-iconv-libraries="${CROSS_LIB_DIR}"
+    
+    ac_cv_path_AR="${BUILD_PREFIX}/bin/${conda_target}-ar"
+    ac_cv_path_AS="${BUILD_PREFIX}/bin/${conda_target}-as"
+    ac_cv_path_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
+    ac_cv_path_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
+    ac_cv_path_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
+    ac_cv_path_NM="${BUILD_PREFIX}/bin/${conda_target}-nm"
+    ac_cv_path_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
+    ac_cv_path_LLC="${BUILD_PREFIX}/bin/${conda_target}-llc"
+    ac_cv_path_OPT="${BUILD_PREFIX}/bin/${conda_target}-opt"
+    
+    CFLAGS="${CROSS_CFLAGS}"
+    CPPFLAGS="${CROSS_CPPFLAGS}"
+    CXXFLAGS="${CROSS_CXXFLAGS}"
+    LDFLAGS="${CROSS_LDFLAGS:-}"
   )
 
   # Platform-specific ac_cv variables and flags
   if [[ "${os_type}" == "linux" ]]; then
     # Linux: Use ac_cv_path_* for all tools
     CONFIGURE_ARGS+=(
-      ac_cv_path_AR="${BUILD_PREFIX}/bin/${conda_target}-ar"
-      ac_cv_path_AS="${BUILD_PREFIX}/bin/${conda_target}-as"
-      ac_cv_path_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
-      ac_cv_path_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-      ac_cv_path_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
-      ac_cv_path_NM="${BUILD_PREFIX}/bin/${conda_target}-nm"
       ac_cv_path_OBJDUMP="${BUILD_PREFIX}/bin/${conda_target}-objdump"
-      ac_cv_path_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
-      ac_cv_path_LLC="${BUILD_PREFIX}/bin/${conda_target}-llc"
-      ac_cv_path_OPT="${BUILD_PREFIX}/bin/${conda_target}-opt"
-
-      CFLAGS="${CROSS_CFLAGS}"
-      CPPFLAGS="${CROSS_CPPFLAGS}"
-      CXXFLAGS="${CROSS_CXXFLAGS}"
-      LDFLAGS="${CROSS_LDFLAGS:-}"
     )
 
     # Linux-specific exports before configure
@@ -322,22 +323,6 @@ configure_ghc() {
     export ac_cv_have_decl_statx=no
     export ac_cv_lib_ffi_ffi_call=yes
 
-  elif [[ "${os_type}" == "darwin" ]]; then
-    # macOS: Use ac_cv_prog_* for most tools, ac_cv_path_ac_pt_* for CC/CXX
-    CONFIGURE_ARGS+=(
-      ac_cv_path_ac_pt_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
-      ac_cv_path_ac_pt_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-      ac_cv_prog_AR="${BUILD_PREFIX}/bin/${conda_target}-ar"
-      ac_cv_prog_CC="${BUILD_PREFIX}/bin/${conda_target}-clang"
-      ac_cv_prog_CXX="${BUILD_PREFIX}/bin/${conda_target}-clang++"
-      ac_cv_prog_LD="${BUILD_PREFIX}/bin/${conda_target}-ld"
-      ac_cv_prog_RANLIB="${BUILD_PREFIX}/bin/${conda_target}-ranlib"
-
-      CPPFLAGS="${CROSS_CPPFLAGS}"
-      CFLAGS="${CROSS_CFLAGS}"
-      CXXFLAGS="${CROSS_CXXFLAGS}"
-      LDFLAGS="-L${CROSS_ENV_PATH}/lib ${LDFLAGS:-}"
-    )
   else
     echo "ERROR: Unsupported OS type: ${os_type}" >&2
     return 1
