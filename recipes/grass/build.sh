@@ -23,6 +23,16 @@ fi
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 
+# Platform-specific PDAL configuration
+# macOS x86_64 needs explicit path to pdal-config
+if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "x86_64" ]]; then
+    echo "=== macOS x86_64 detected: Using explicit PDAL path ===" >&2
+    PDAL_FLAG="--with-pdal=${PREFIX}/bin/pdal-config"
+else
+    # Linux and macOS ARM64 work with auto-detection
+    PDAL_FLAG="--with-pdal"
+fi
+
 # Configure flags adapted from Dockerfile. Use conda prefixes and configs.
 CONFIG_FLAGS=(
   --prefix="${PREFIX}"
@@ -40,7 +50,7 @@ CONFIG_FLAGS=(
   --with-netcdf
   --with-zstd
   --with-bzlib
-  --with-pdal
+  "${PDAL_FLAG}"
   --without-mysql
   --with-blas
   --with-lapack
