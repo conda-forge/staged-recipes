@@ -322,10 +322,6 @@ configure_ghc() {
     export ac_cv_func_statx=no
     export ac_cv_have_decl_statx=no
     export ac_cv_lib_ffi_ffi_call=yes
-
-  else
-    echo "ERROR: Unsupported OS type: ${os_type}" >&2
-    return 1
   fi
 
   echo "  Running ./configure..." >&2
