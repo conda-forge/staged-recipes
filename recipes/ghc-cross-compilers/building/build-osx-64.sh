@@ -170,6 +170,6 @@ find "${cross_prefix}"/lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSI
   file=$(basename ${mangled})
   
   unmangled=$(echo "${file}" | perl -pe 's#darwin(.*?)-(.*)((?:[0-9]|\.)+)#darwin$1$3-$2#')
-  mv "${folder}"/"${mangled}" "${folder}"/"${unmangled}"
+  mv "${folder}"/"${file}" "${folder}"/"${unmangled}"
 done
 
