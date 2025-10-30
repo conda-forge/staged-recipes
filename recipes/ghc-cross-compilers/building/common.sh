@@ -277,9 +277,21 @@ configure_ghc() {
   echo "  CC_STAGE0: ${CC_STAGE0}" >&2
   echo "  LD_STAGE0: ${LD_STAGE0}" >&2
 
+  # Platform-specific --target
+  # Linux: Use ghc_target (stripped to just arch-unknown-linux-gnu)
+  # macOS: Use conda_target (full triplet with darwin version for proper path generation)
+  local configure_target
+  if [[ "${os_type}" == "darwin" ]]; then
+    configure_target="${conda_target}"
+  else
+    configure_target="${ghc_target}"
+  fi
+
+  echo "  Configure --target: ${configure_target}" >&2
+
   # Common system configuration
   local SYSTEM_CONFIG=(
-    --target="${ghc_target}"
+    --target="${configure_target}"
     --prefix="${PREFIX}"
   )
 
