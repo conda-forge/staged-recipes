@@ -1,0 +1,103 @@
+context:
+  name: janet
+  version: "1.39.1"
+  soname: "1.39"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/janet-lang/janet/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a43489328b88846e5cddbdad9274f25ee9854e337e52490a74bb7955de03c650
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - make clean
+    - make -j${CPU_COUNT} PREFIX=/usr/local LDFLAGS="${LDFLAGS}" LIBJANET_LDFLAGS="${LDFLAGS}"
+
+outputs:
+  - package:
+      name: libjanet
+    build:
+      dynamic_linking:
+        binary_relocation: false
+      script:
+        - make install PREFIX="${PREFIX}"
+        # Remove binary, keep only libraries and headers
+        - rm -f "${PREFIX}/bin/janet"
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+      host:
+        - ${{ stdlib('c') }}
+      run:
+        - ${{ stdlib('c') }}
+    tests:
+      - script:
+          - test -f $PREFIX/lib/pkgconfig/janet.pc
+          - test -f $PREFIX/include/janet.h
+          # Test libraries are installed
+          - test -f $PREFIX/lib/libjanet.a
+          - test -f $PREFIX/lib/libjanet.1.39.1.dylib || test -f $PREFIX/lib/libjanet.so.1.39.1  # unix
+          - test -f $PREFIX/lib/libjanet.dylib || test -f $PREFIX/lib/libjanet.so  # unix
+
+  - package:
+      name: ${{ name }}
+    build:
+      script:
+        - make install PREFIX="${PREFIX}"
+        # Remove libraries, keep only binary
+        - rm -rf "${PREFIX}/lib/libjanet"* "${PREFIX}/lib/pkgconfig" "${PREFIX}/include"
+        - mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
+        - |
+          cat > "${PREFIX}/etc/conda/activate.d/janet.sh" << 'EOF'
+          #!/bin/sh
+          export JANET_PATH="${CONDA_PREFIX}/lib/janet"
+          EOF
+        - |
+          cat > "${PREFIX}/etc/conda/deactivate.d/janet.sh" << 'EOF'
+          #!/bin/sh
+          unset JANET_PATH
+          EOF
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+      host:
+        - ${{ pin_subpackage('libjanet', exact=True) }}
+    tests:
+      - script:
+          - janet --version
+          - janet -e '(printf "%d" (+ 2 2))'
+          - test -f $PREFIX/etc/conda/activate.d/janet.sh
+          - test -f $PREFIX/etc/conda/deactivate.d/janet.sh
+          - |
+            # Test that activation script sets JANET_PATH correctly
+            export CONDA_PREFIX="${PREFIX}"
+            source "${PREFIX}/etc/conda/activate.d/janet.sh"
+            test "${JANET_PATH}" = "${PREFIX}/lib/janet"
+            janet -e "(assert (= (dyn :syspath) \"${PREFIX}/lib/janet\") \"JANET_PATH not set correctly\")"
+
+about:
+  homepage: https://janet-lang.org
+  summary: Lightweight Lisp-like language and bytecode VM for system scripting
+  description: |
+    Janet is a functional, Lisp-like programming language that ships as a
+    small C library and embeddable interpreter. It targets scripting,
+    command-line tooling, and embedding in C or C++ applications.
+  license: MIT
+  license_file:
+    - LICENSE
+  documentation: https://janet-lang.org/docs/
+  repository: https://github.com/janet-lang/janet
+
+extra:
+  recipe-maintainers:
+    - tdejager
