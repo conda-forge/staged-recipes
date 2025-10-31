@@ -1,0 +1,56 @@
+{% set setup = load_setup_py_data() %}
+{% set python_min = "3.8" %}
+
+package:
+  name: microlens-submit
+  version: {{ setup.get("version") }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/m/microlens-submit/microlens_submit-0.16.3.tar.gz
+  sha256: e1081a269bfa164e53f7c1e1e65789bc22d95a99c0dc569b40e4d2fe555cac0b
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - python -m pip install . --no-deps --ignore-installed -vv
+    - rm -f $PREFIX/bin/microlens-submit.exe $PREFIX/python-scripts/microlens-submit.exe  # [unix]
+    - if exist %PREFIX%\Scripts\microlens-submit.exe del %PREFIX%\Scripts\microlens-submit.exe  # [win]
+    - echo @echo off> %PREFIX%\Scripts\microlens-submit.bat  # [win]
+    - echo "%PREFIX%\python.exe" -m microlens_submit.cli %%*>> %PREFIX%\Scripts\microlens-submit.bat  # [win]
+    - copy %PREFIX%\Scripts\microlens-submit.bat %PREFIX%\Scripts\microlens-submit.cmd /Y  # [win]
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools
+  run:
+    - python >={{ python_min }}
+    - pydantic >=2.0.0
+    - typer >=0.9.0
+    - rich >=13.0.0
+    - pyyaml >=6.0
+    - markdown >=3.4.0
+    - importlib_resources >=1.0.0
+
+test:
+  commands:
+    - microlens-submit --help
+    - python -c "import microlens_submit; import microlens_submit.cli"
+  requires:
+    - python {{ python_min }}
+
+about:
+  home: https://github.com/AmberLee2427/microlens-submit
+  license: MIT
+  license_file: LICENSE
+  summary: A tool for managing and submitting microlensing solutions
+  description: |
+    microlens-submit provides a Python API and CLI for managing submissions
+    to microlensing data challenges, including validation, dossier generation,
+    and export tooling.
+
+extra:
+  recipe-maintainers:
+    - AmberLee2427
