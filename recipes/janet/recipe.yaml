@@ -27,8 +27,9 @@ outputs:
         binary_relocation: false
       script:
         - make install PREFIX="${PREFIX}"
-        # Remove binary, keep only libraries and headers
+        # Remove binary and static library, keep only shared library and headers
         - rm -f "${PREFIX}/bin/janet"
+        - rm -f "${PREFIX}/lib/libjanet.a"
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -39,13 +40,17 @@ outputs:
       run:
         - ${{ stdlib('c') }}
     tests:
-      - script:
-          - test -f $PREFIX/lib/pkgconfig/janet.pc
-          - test -f $PREFIX/include/janet.h
-          # Test libraries are installed
-          - test -f $PREFIX/lib/libjanet.a
-          - test -f $PREFIX/lib/libjanet.1.39.1.dylib || test -f $PREFIX/lib/libjanet.so.1.39.1  # unix
-          - test -f $PREFIX/lib/libjanet.dylib || test -f $PREFIX/lib/libjanet.so  # unix
+      - package_contents:
+          lib:
+            - libjanet${{ SHLIB_EXT }}  # .dylib on macOS, .so on Linux
+          include:
+            - janet.h
+            - janet/janet.h
+      - requirements:
+          run:
+            - pkg-config
+        script:
+          - pkg-config --modversion janet
 
   - package:
       name: ${{ name }}
@@ -70,20 +75,37 @@ outputs:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         - make
-      host:
-        - ${{ pin_subpackage('libjanet', exact=True) }}
     tests:
+      - package_contents:
+          bin:
+            - janet
+          files:
+            - etc/conda/activate.d/janet.sh
+            - etc/conda/deactivate.d/janet.sh
       - script:
           - janet --version
           - janet -e '(printf "%d" (+ 2 2))'
-          - test -f $PREFIX/etc/conda/activate.d/janet.sh
-          - test -f $PREFIX/etc/conda/deactivate.d/janet.sh
           - |
             # Test that activation script sets JANET_PATH correctly
             export CONDA_PREFIX="${PREFIX}"
             source "${PREFIX}/etc/conda/activate.d/janet.sh"
             test "${JANET_PATH}" = "${PREFIX}/lib/janet"
             janet -e "(assert (= (dyn :syspath) \"${PREFIX}/lib/janet\") \"JANET_PATH not set correctly\")"
+      - files:
+          source:
+            - test/
+            - examples/
+        script:
+          # Run Janet test suite directly
+          - |
+            for f in test/suite*.janet; do
+              janet "$f" || exit 1
+            done
+          # Run examples (with -k flag to suppress output)
+          - |
+            for f in examples/*.janet; do
+              janet -k "$f" || exit 1
+            done
 
 about:
   homepage: https://janet-lang.org
