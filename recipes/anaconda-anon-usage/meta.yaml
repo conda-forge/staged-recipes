@@ -1,0 +1,65 @@
+{% set name = "anaconda-anon-usage" %}
+{% set version = "0.7.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/anaconda/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: a8393a70b68447f5e62e46ece5f22be0a9447784790c2be903eab6d704439b39
+
+build:
+  noarch: python
+  # Please continue to use starting build number 100 in order
+  # to match Anaconda's build number strategy for this package
+  number: 100
+  # The Anaconda recipe uses a build script to manage the two different
+  # variants, but that is not necessary here
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - setuptools
+    - wheel
+    - pip
+  run:
+    - python >={{ python_min }}
+  run_constrained:
+    # The source recipe supports conda <23.7 with post-install scripts
+    # instead of plugin support. For conda-forge we are choosing to
+    # build only the plugin variant
+    - conda >=23.7
+
+test:
+  requires:
+    - pip
+    - conda
+    - python {{ python_min }}
+  imports:
+    - anaconda_anon_usage
+    - anaconda_anon_usage.patch
+    - anaconda_anon_usage.tokens
+  commands:
+    - pip check
+    - python -m conda info | grep -q "user-agent.*aau/"  # [unix]
+    - python -m conda info | findstr "user-agent.*aau/"  # [win]
+
+about:
+  home: https://github.com/Anaconda-Platform/anaconda-anon-usage
+  summary: basic anonymous telemetry for conda clients
+  description: |
+    This package augments the request header data that conda delivers to package
+    servers during index and package requests. Specifically, three randomly generated
+    tokens are appended to the "user agent" that Conda already sends with each request.  
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://github.com/anaconda/anaconda-anon-usage/README.md
+  dev_url: https://github.com/anaconda/anaconda-anon-usage
+
+extra:
+  recipe-maintainers:
+    - mcg1969
+    - mattkram
