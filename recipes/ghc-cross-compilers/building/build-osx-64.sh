@@ -164,12 +164,12 @@ pushd "${cross_prefix}"/bin
   done
 popd
 
-# A bug due to the numeric in the triplet
+# A bug? numeric in the triplet mangles with version string
 find "${cross_prefix}"/lib/${triplet}-ghc-${PKG_VERSION}/bin -name "*${PKG_VERSION}.0.0*" | while read -r mangled; do
   folder=$(dirname ${mangled})
   file=$(basename ${mangled})
   
-  unmangled=$(echo "${file}" | perl -pe 's#darwin(\d*?)-(.*)(\.[0-9]\.[0-9])#darwin$1$3$2#')
+  unmangled=$(echo "${file}" | perl -pe 's#darwin(\d*?)(-.*)(\.[0-9]\.[0-9])#darwin$1$3$2#')
   mv "${folder}"/"${file}" "${folder}"/"${unmangled}"
 done
 
