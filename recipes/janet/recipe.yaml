@@ -10,35 +10,29 @@ recipe:
 source:
   url: https://github.com/janet-lang/janet/archive/refs/tags/v${{ version }}.tar.gz
   sha256: a43489328b88846e5cddbdad9274f25ee9854e337e52490a74bb7955de03c650
-
+  patches: 
+    - null-terminate.patch
 build:
   number: 0
   skip:
     - win
-  script:
-    - make clean
-    - make -j${CPU_COUNT} PREFIX=/usr/local LDFLAGS="${LDFLAGS}" LIBJANET_LDFLAGS="${LDFLAGS}"
 
 outputs:
   - package:
       name: libjanet
     build:
-      dynamic_linking:
-        binary_relocation: false
       script:
-        - make install PREFIX="${PREFIX}"
+        - make install -j${CPU_COUNT} PREFIX="${PREFIX}"
         # Remove binary and static library, keep only shared library and headers
         - rm -f "${PREFIX}/bin/janet"
         - rm -f "${PREFIX}/lib/libjanet.a"
+
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
         - make
-      host:
-        - ${{ stdlib('c') }}
-      run:
-        - ${{ stdlib('c') }}
+
     tests:
       - package_contents:
           lib:
@@ -56,20 +50,11 @@ outputs:
       name: ${{ name }}
     build:
       script:
-        - make install PREFIX="${PREFIX}"
+        - make install -j${CPU_COUNT} PREFIX="${PREFIX}"
         # Remove libraries, keep only binary
         - rm -rf "${PREFIX}/lib/libjanet"* "${PREFIX}/lib/pkgconfig" "${PREFIX}/include"
         - mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
-        - |
-          cat > "${PREFIX}/etc/conda/activate.d/janet.sh" << 'EOF'
-          #!/bin/sh
-          export JANET_PATH="${CONDA_PREFIX}/lib/janet"
-          EOF
-        - |
-          cat > "${PREFIX}/etc/conda/deactivate.d/janet.sh" << 'EOF'
-          #!/bin/sh
-          unset JANET_PATH
-          EOF
+
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -79,18 +64,11 @@ outputs:
       - package_contents:
           bin:
             - janet
-          files:
-            - etc/conda/activate.d/janet.sh
-            - etc/conda/deactivate.d/janet.sh
       - script:
           - janet --version
           - janet -e '(printf "%d" (+ 2 2))'
-          - |
-            # Test that activation script sets JANET_PATH correctly
-            export CONDA_PREFIX="${PREFIX}"
-            source "${PREFIX}/etc/conda/activate.d/janet.sh"
-            test "${JANET_PATH}" = "${PREFIX}/lib/janet"
-            janet -e "(assert (= (dyn :syspath) \"${PREFIX}/lib/janet\") \"JANET_PATH not set correctly\")"
+          # Test that activation script sets JANET_PATH correctly
+          - janet -e "(assert (= (dyn :syspath) \"${PREFIX}/lib/janet\") \"JANET_PATH not set correctly\")"
       - files:
           source:
             - test/
