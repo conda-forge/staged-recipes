@@ -10,7 +10,7 @@ recipe:
 source:
   url: https://github.com/janet-lang/janet/archive/refs/tags/v${{ version }}.tar.gz
   sha256: a43489328b88846e5cddbdad9274f25ee9854e337e52490a74bb7955de03c650
-  patches: 
+  patches:
     - null-terminate.patch
 build:
   number: 0
@@ -22,7 +22,9 @@ outputs:
       name: libjanet
     build:
       script:
-        - make install -j${CPU_COUNT} PREFIX="${PREFIX}"
+        - meson setup build-lib --prefix="${PREFIX}" --libdir=lib --buildtype=release --optimization=2 -Ddefault_library=shared -Dgit_hash=${PKG_VERSION}
+        - meson compile -C build-lib --jobs ${CPU_COUNT}
+        - meson install -C build-lib
         # Remove binary and static library, keep only shared library and headers
         - rm -f "${PREFIX}/bin/janet"
         - rm -f "${PREFIX}/lib/libjanet.a"
@@ -31,12 +33,13 @@ outputs:
       build:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
-        - make
+        - meson
+        - ninja
 
     tests:
       - package_contents:
           lib:
-            - libjanet${{ SHLIB_EXT }}  # .dylib on macOS, .so on Linux
+            - libjanet${{ SHLIB_EXT }} # .dylib on macOS, .so on Linux
           include:
             - janet.h
             - janet/janet.h
@@ -50,7 +53,9 @@ outputs:
       name: ${{ name }}
     build:
       script:
-        - make install -j${CPU_COUNT} PREFIX="${PREFIX}"
+        - meson setup build-bin --prefix="${PREFIX}" --libdir=lib --buildtype=release --optimization=2 -Ddefault_library=shared -Dgit_hash=${PKG_VERSION}
+        - meson compile -C build-bin --jobs ${CPU_COUNT}
+        - meson install -C build-bin
         # Remove libraries, keep only binary
         - rm -rf "${PREFIX}/lib/libjanet"* "${PREFIX}/lib/pkgconfig" "${PREFIX}/include"
         - mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
@@ -59,7 +64,10 @@ outputs:
       build:
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
-        - make
+        - meson
+        - ninja
+      run:
+        - libjanet
     tests:
       - package_contents:
           bin:
