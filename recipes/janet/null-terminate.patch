@@ -1,3 +1,6 @@
+# Janet marshals JANET_PATH as a length-prefixed string. Conda's prefix
+# replacement expects null-terminated C strings, so this patch appends and
+# handles a trailing '\0' to keep prefix rewriting working.
 diff --git a/src/core/marsh.c b/src/core/marsh.c
 index 13b3344b..dc3a0a89 100644
 --- a/src/core/marsh.c
@@ -6,7 +9,7 @@ index 13b3344b..dc3a0a89 100644
              pushbyte(st, lb);
              pushint(st, length);
              pushbytes(st, str, length);
-+            /* Append null terminator for conda prefix replacement compatibility */
++            /* Janet stores strings length-prefixed, so append a null byte to let conda rewrite JANET_PATH. */
 +            pushbyte(st, 0);
              return;
          }
@@ -19,7 +22,7 @@ index 13b3344b..dc3a0a89 100644
 +            /* Account for null terminator in strings/symbols/keywords */
 +            int has_null = (lead == LB_STRING || lead == LB_SYMBOL || lead == LB_KEYWORD) ? 1 : 0;
 +            MARSH_EOS(st, data - 1 + len + has_null);
-+            /* Truncate at first null byte for conda prefix replacement compatibility */
++            /* Respect the injected null terminator so Janet still sees the original length. */
 +            int32_t actual_len = len;
 +            for (int32_t i = 0; i < len; i++) {
 +                if (data[i] == '\0') {
@@ -51,7 +54,7 @@ index 13b3344b..dc3a0a89 100644
              }
              janet_v_push(st->lookup, *out);
 -            return data + len;
-+            /* Skip null terminator for strings/symbols/keywords (conda compatibility) */
++            /* Skip the extra null byte we added for conda prefix replacement. */
 +            int skip_null = (lead == LB_STRING || lead == LB_SYMBOL || lead == LB_KEYWORD) ? 1 : 0;
 +            return data + len + skip_null;
          }
