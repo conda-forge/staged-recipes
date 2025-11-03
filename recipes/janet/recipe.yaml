@@ -1,0 +1,124 @@
+context:
+  name: janet
+  version: "1.39.1"
+  soname: "1.39"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/janet-lang/janet/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a43489328b88846e5cddbdad9274f25ee9854e337e52490a74bb7955de03c650
+  patches:
+    - null-terminate.patch
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+  - package:
+      name: libjanet
+    build:
+      script:
+        - export JANET_EXTRA_MESON=""
+        - if: linux
+          then:
+            - export JANET_EXTRA_MESON="-Dc_args=-DJANET_SPAWN_NO_CHDIR"
+        - meson setup build-lib --prefix="${PREFIX}" --libdir=lib --buildtype=release --optimization=2 -Ddefault_library=shared -Dgit_hash=${PKG_VERSION} ${JANET_EXTRA_MESON}
+        - meson compile -C build-lib --jobs ${CPU_COUNT}
+        - meson install -C build-lib
+        # Remove binary and static library, keep only shared library and headers
+        - rm -f "${PREFIX}/bin/janet"
+        - rm -f "${PREFIX}/lib/libjanet.a"
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - meson
+        - ninja
+      run_exports:
+        - ${{ pin_subpackage('libjanet', upper_bound='x.x') }}
+      run:
+        - ${{ "__glibc >=2.29" if linux }}
+    tests:
+      - package_contents:
+          lib:
+            - libjanet${{ SHLIB_EXT }} # .dylib on macOS, .so on Linux
+          include:
+            - janet.h
+            - janet/janet.h
+      - requirements:
+          run:
+            - pkg-config
+        script:
+          - pkg-config --modversion janet
+
+  - package:
+      name: ${{ name }}
+    build:
+      script:
+        - export JANET_EXTRA_MESON=""
+        - if: linux
+          then:
+            - export JANET_EXTRA_MESON="-Dc_args=-DJANET_SPAWN_NO_CHDIR"
+        - meson setup build-bin --prefix="${PREFIX}" --libdir=lib --buildtype=release --optimization=2 -Ddefault_library=shared -Dgit_hash=${PKG_VERSION} ${JANET_EXTRA_MESON}
+        - meson compile -C build-bin --jobs ${CPU_COUNT}
+        - meson install -C build-bin
+        # Remove libraries, keep only binary
+        - rm -rf "${PREFIX}/lib/libjanet"* "${PREFIX}/lib/pkgconfig" "${PREFIX}/include"
+        - mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - meson
+        - ninja
+      run:
+        - ${{ pin_subpackage('libjanet', exact=True) }}
+        - ${{ "__glibc >=2.29" if linux }}
+    tests:
+      - package_contents:
+          bin:
+            - janet
+      - script:
+          - janet --version
+          - janet -e '(printf "%d" (+ 2 2))'
+          # Test that activation script sets JANET_PATH correctly
+          - janet -e "(assert (= (dyn :syspath) \"${PREFIX}/lib/janet\") \"JANET_PATH not set correctly\")"
+      - files:
+          source:
+            - test/
+            - examples/
+        script:
+          # Run Janet test suite directly
+          - |
+            for f in test/suite*.janet; do
+              janet "$f" || exit 1
+            done
+          # Run examples (with -k flag to suppress output)
+          - |
+            for f in examples/*.janet; do
+              janet -k "$f" || exit 1
+            done
+
+about:
+  homepage: https://janet-lang.org
+  summary: Lightweight Lisp-like language and bytecode VM for system scripting
+  description: |
+    Janet is a functional, Lisp-like programming language that ships as a
+    small C library and embeddable interpreter. It targets scripting,
+    command-line tooling, and embedding in C or C++ applications.
+  license: MIT
+  license_file:
+    - LICENSE
+  documentation: https://janet-lang.org/docs/
+  repository: https://github.com/janet-lang/janet
+
+extra:
+  feedstock-name: janet
+  recipe-maintainers:
+    - tdejager

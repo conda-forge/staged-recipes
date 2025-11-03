@@ -1,0 +1,62 @@
+# Janet marshals JANET_PATH as a length-prefixed string. Conda's prefix
+# replacement expects null-terminated C strings, so this patch appends and
+# handles a trailing '\0' to keep prefix rewriting working.
+diff --git a/src/core/marsh.c b/src/core/marsh.c
+index 13b3344b..dc3a0a89 100644
+--- a/src/core/marsh.c
++++ b/src/core/marsh.c
+@@ -551,6 +551,8 @@ static void marshal_one(MarshalState *st, Janet x, int flags) {
+             pushbyte(st, lb);
+             pushint(st, length);
+             pushbytes(st, str, length);
++            /* Janet stores strings length-prefixed, so append a null byte to let conda rewrite JANET_PATH. */
++            pushbyte(st, 0);
+             return;
+         }
+         case JANET_BUFFER: {
+@@ -1373,19 +1375,29 @@ static const uint8_t *unmarshal_one(
+         case LB_REGISTRY: {
+             data++;
+             int32_t len = readnat(st, &data);
+-            MARSH_EOS(st, data - 1 + len);
++            /* Account for null terminator in strings/symbols/keywords */
++            int has_null = (lead == LB_STRING || lead == LB_SYMBOL || lead == LB_KEYWORD) ? 1 : 0;
++            MARSH_EOS(st, data - 1 + len + has_null);
++            /* Respect the injected null terminator so Janet still sees the original length. */
++            int32_t actual_len = len;
++            for (int32_t i = 0; i < len; i++) {
++                if (data[i] == '\0') {
++                    actual_len = i;
++                    break;
++                }
++            }
+             if (lead == LB_STRING) {
+-                const uint8_t *str = janet_string(data, len);
++                const uint8_t *str = janet_string(data, actual_len);
+                 *out = janet_wrap_string(str);
+             } else if (lead == LB_SYMBOL) {
+-                const uint8_t *str = janet_symbol(data, len);
++                const uint8_t *str = janet_symbol(data, actual_len);
+                 *out = janet_wrap_symbol(str);
+             } else if (lead == LB_KEYWORD) {
+-                const uint8_t *str = janet_keyword(data, len);
++                const uint8_t *str = janet_keyword(data, actual_len);
+                 *out = janet_wrap_keyword(str);
+             } else if (lead == LB_REGISTRY) {
+                 if (st->reg) {
+-                    Janet regkey = janet_symbolv(data, len);
++                    Janet regkey = janet_symbolv(data, actual_len);
+                     *out = janet_table_get(st->reg, regkey);
+                 } else {
+                     *out = janet_wrap_nil();
+@@ -1397,7 +1409,9 @@ static const uint8_t *unmarshal_one(
+                 *out = janet_wrap_buffer(buffer);
+             }
+             janet_v_push(st->lookup, *out);
+-            return data + len;
++            /* Skip the extra null byte we added for conda prefix replacement. */
++            int skip_null = (lead == LB_STRING || lead == LB_SYMBOL || lead == LB_KEYWORD) ? 1 : 0;
++            return data + len + skip_null;
+         }
+         case LB_FIBER: {
+             JanetFiber *fiber;
