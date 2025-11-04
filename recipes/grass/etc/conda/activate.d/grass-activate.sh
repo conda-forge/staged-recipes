@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Add GRASS binaries to PATH
 export GRASS_BIN_PATH="${CONDA_PREFIX}/grass84/bin"
