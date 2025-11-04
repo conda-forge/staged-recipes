@@ -13,14 +13,15 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 ## Getting started
 
-1. Fork this repository.
+1. [Fork](https://github.com/conda-forge/staged-recipes/fork) this repository.
 2. Make a new branch from `main` for your package's recipe.
 3. Make a new folder in `recipes` for your package, and start a `recipe.yaml` (or `meta.yaml`).
-  For more information:
+
+   For more information:
    - [generate](#generating-recipes-with-grayskull) a recipe
    - read the [example recipe](recipes/example-v1)
    - read the [FAQ](https://github.com/conda-forge/staged-recipes#faq)
-   - search for [examples of GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
+   - search for [examples on GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
    - visit our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#)
 4. (recommended) Try to build the feedstock [locally](#local-debugging).
 5. Open a pull request, paying attention to the checklist. Building of your
@@ -29,8 +30,8 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
    (or using the [bot command](#review-bot-command)) in a pull request comment
 7. When your pull request is reviewed and merged:
     - a new "feedstock" repository is created in the GitHub conda-forge organization
-      - if this is your first recipe, you will receive an email about steps to accept
-        an invitation to a new GitHub group
+      - If this is your first recipe, you will receive an email about steps to accept
+        an invitation to a new GitHub group.
     - a build of your package is triggered
     - the package is uploaded to conda-forge
 
@@ -64,8 +65,10 @@ On macOS and Windows, some environment variables control where files are kept:
 
 `build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task.
 
+#### Building with `pixi`
+
 <details>
-<summary>Learn more about <b>building with <code>pixi</code></b></summary>
+<summary>Learn more about <b>building with <code>pixi</code></b>...</summary>
 
 - Linux
     ```bash
@@ -99,10 +102,11 @@ artifacts will be available under `build_artifacts`.
 
 ### `$CONDA_EXE`
 
-If you have never used `conda-forge` before, you may need a conda-compatible
-package manager, such as `conda`, `mamba`, and `micromamba`.
+If you have never used conda-forge before, you may need a conda-compatible
+package manager, such as `conda`, `mamba`, or `micromamba`.
 `$CONDA_EXE`, the "well-known" environment variable is used for
-"_a conda package manager in an activated POSIX shell session._"
+"_a conda package manager in an activated POSIX shell session,_" is used
+throughout this document.
 
 > On Windows, this environment variable would be `%CONDA_EXE%`.
 
@@ -129,7 +133,8 @@ $CONDA_EXE install -c conda-forge pixi
 
 ... or one of the [documented approaches](https://pixi.sh/latest/#installation).
 
-See the available tasks with `pixi task list`.
+See the available tasks with `pixi task list`, or get started
+[building with `pixi`](#building-with-pixi).
 
 ## Generating recipes with `grayskull`
 
@@ -186,7 +191,7 @@ The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provid
 helpful linters that can save CI resources by catching known issues up-front.
 
 <details>
-<summary><b>Learn more about linting with <code>conda-smithy</code></b></summary>
+<summary>Learn more about <b>linting with <code>conda-smithy</code></b>...</summary>
 
 Use one of:
 
