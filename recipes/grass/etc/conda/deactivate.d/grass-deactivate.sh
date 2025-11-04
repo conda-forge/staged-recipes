@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Remove GRASS binaries from PATH
 if [ -n "${GRASS_BIN_PATH}" ]; then
