@@ -3,6 +3,13 @@
 # Allow build to continue even if some tests fail
 set -uxo pipefail
 
+# Extract version components from PKG_VERSION (set by conda-build from meta.yaml)
+# PKG_VERSION format: MAJOR.MINOR.PATCH (e.g., "8.4.1")
+IFS='.' read -r GRASS_MAJOR GRASS_MINOR GRASS_PATCH <<< "${PKG_VERSION}"
+GRASS_VERSION_DIR="grass${GRASS_MAJOR}${GRASS_MINOR}"
+echo "=== GRASS Version: ${PKG_VERSION} (using directory: ${GRASS_VERSION_DIR}) ===" >&2
+echo "=== Version components: MAJOR=${GRASS_MAJOR}, MINOR=${GRASS_MINOR}, PATCH=${GRASS_PATCH} ===" >&2
+
 # Respect conda build environment
 export CC=${CC:-${GCC:-gcc}}
 export CXX=${CXX:-${GXX:-g++}}
@@ -101,15 +108,16 @@ echo "=== Running make install ===" >&2
 make install
 echo "make-install-complete" >> /tmp/build-status.txt
 
+# GRASS_VERSION_DIR already defined at the top from PKG_VERSION
 # Fix grass symlink to generic name expected by tools
-if [[ -d "${PREFIX}/grass84" && ! -e "${PREFIX}/grass" ]]; then
-  ln -s "${PREFIX}/grass84" "${PREFIX}/grass"
+if [[ -d "${PREFIX}/${GRASS_VERSION_DIR}" && ! -e "${PREFIX}/grass" ]]; then
+  ln -s "${PREFIX}/${GRASS_VERSION_DIR}" "${PREFIX}/grass"
 fi
 
 # Symlink all GRASS binaries to main bin directory for test discovery
 echo "=== Creating symlinks for GRASS binaries ===" >&2
-if [ -d "${PREFIX}/grass84/bin" ]; then
-    for cmd in "${PREFIX}/grass84/bin"/*; do
+if [ -d "${PREFIX}/${GRASS_VERSION_DIR}/bin" ]; then
+    for cmd in "${PREFIX}/${GRASS_VERSION_DIR}/bin"/*; do
         if [ -f "$cmd" ] && [ -x "$cmd" ]; then
             cmdname=$(basename "$cmd")
             # Don't overwrite existing binaries in $PREFIX/bin
