@@ -27,7 +27,7 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
    package will be tested on Linux, macOS, and Windows.
 6. Ask for review or help by `@`-mentioning the appropriate [review teams](#review-teams)
    (or using the [bot command](#review-bot-command)) in a pull request comment
-7. When your pull request is reviewd and merged:
+7. When your pull request is reviewed and merged:
     - a new "feedstock" repository is created in the GitHub conda-forge organization
       - if this is your first recipe, you will receive an email about steps to accept
         an invitation to a new GitHub group
@@ -119,7 +119,7 @@ will use this instead of downloading `micromamba`.
 
 ### `pixi`
 
-`pixi` is a workspace-based environment and task runner optimized for `conda`.
+`pixi` is a workspace-based environment and task runner optimized for conda packaging.
 Several of the local workflows and their dependencies described below are captured
 in `pixi.toml`. Install `pixi` via `$CONDA_EXE`:
 
