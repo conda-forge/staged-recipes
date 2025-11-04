@@ -1,0 +1,159 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: py-key-value
+  version: "0.2.8"
+  python_check_max: "3.14"
+
+recipe:
+  name: py-key-value
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/py_key_value_shared/py_key_value_shared-${{ version }}.tar.gz
+    sha256: 703b4d3c61af124f0d528ba85995c3c8d78f8bd3d2b217377bd3278598070cc1
+    target_directory: py-key-value-shared
+  - url: https://pypi.org/packages/source/${{ name[0] }}/py_key_value_aio/py_key_value_aio-${{ version }}.tar.gz
+    sha256: c0cfbb0bd4e962a3fa1a9fa6db9ba9df812899bd9312fa6368aaea7b26008b36
+    target_directory: py-key-value-aio
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: py-key-value-shared
+    build:
+      script:
+        - cd ${{ SRC_DIR }}/py-key-value-shared && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - uv-build >=0.8.2,<0.9.0
+        - pip
+      run:
+        - python >=${{ python_min }},<4
+        # [project.dependencies]
+        # https://github.com/strawgate/py-key-value/blob/0.2.8/key-value/key-value-shared/pyproject.toml#L17
+        - typing_extensions >=4.15.0
+        - beartype >=0.22.2
+    tests:
+      - python:
+          imports:
+            - key_value
+            - key_value.shared
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pip
+        script:
+          - python -c "from importlib.metadata import version; v = version('py-key-value-shared'); print(v); assert v == '${{ version }}'"
+          - pip check
+
+    about:
+      license: Apache-2.0
+      license_file: LICENSE
+      summary: Shared Key-Value, A pluggable interface for KV Stores
+      homepage: https://pypi.org/project/py-key-value-shared/
+      repository: https://github.com/strawgate/py-key-value/tree/main/key-value/key-value-shared
+      documentation: https://github.com/strawgate/py-key-value/blob/main/README.md
+
+  - package:
+      name: py-key-value-aio
+    build:
+      noarch: python
+      script:
+        - cd ${{ SRC_DIR }}/py-key-value-aio && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - uv-build >=0.8.2,<0.9.0
+        - pip
+      run:
+        - python >=${{ python_min }},<4
+        # [project.dependencies]
+        # https://github.com/strawgate/py-key-value/blob/0.2.8/key-value/key-value-aio/pyproject.toml#L17-L19
+        - beartype >=0.22.2
+        - ${{ pin_subpackage("py-key-value-shared", exact=True) }}
+      run_constraints:
+        # [project.optional-dependencies.standard]
+        # https://github.com/strawgate/py-key-value/blob/0.2.8/key-value/key-value-aio/pyproject.toml#L34-L49
+        # py-key-value-aio[memory]
+        - cachetools >=6.0.0
+        # py-key-value-aio[disk]
+        - diskcache >=5.6.0
+        - pathvalidate >=3.3.1
+        # py-key-value-aio[redis]
+        - redis-py >=4.3.0
+        # py-key-value-aio[mongodb]
+        - pymongo >=4.15.0
+        # py-key-value-aio[valkey]
+        - valkey-glide >=2.1.0
+        # py-key-value-aio[vault]
+        - hvac >=2.3.0
+        - types-hvac >=2.3.0
+        # py-key-value-aio[memcached]
+        - aiomcache >=0.8.0
+        # py-key-value-aio[elasticsearch]
+        - elasticsearch >=9.0.0
+        - aiohttp>=3.12
+        # py-key-value-aio[dynamodb]
+        - aioboto3 >=13.3.0
+        - types-aiobotocore-dynamodb >=2.16.0
+        # py-key-value-aio[keyring]
+        - keyring >=25.6.0
+        # py-key-value-aio[keyring-linux]
+        - keyring >=25.6.0
+        - dbus-python >=1.3.2
+        # py-key-value-aio[registry]
+        # Uses built-in winreg module on Windows
+        # py-key-value-aio[pydantic]
+        - pydantic >=2.11.9
+        # py-key-value-aio[rocksdb]
+        - rocksdict >=0.3.0
+        # py-key-value-aio[wrappers-encryption]
+        - cryptography >=45.0.0
+    tests:
+      - python:
+          imports:
+            - key_value
+            - key_value.shared
+            - key_value.aio
+            - key_value.aio.stores.base
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pip
+        script:
+          - python -c "from importlib.metadata import version; v = version('py-key-value-shared'); print(v); assert v == '${{ version }}'"
+          - python -c "from importlib.metadata import version; v = version('py-key-value-aio'); print(v); assert v == '${{ version }}'"
+          - pip check
+    about:
+      license: Apache-2.0
+      license_file: LICENSE
+      summary: Shared Key-Value, A pluggable interface for KV Stores
+      homepage: https://pypi.org/project/py-key-value-aio/
+      repository: https://github.com/strawgate/py-key-value/tree/main/key-value/key-value-aio
+      documentation: https://github.com/strawgate/py-key-value/blob/main/README.md
+
+about:
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Shared Key-Value, A pluggable interface for KV Stores
+  homepage: https://github.com/strawgate/py-key-value
+  documentation: https://github.com/strawgate/py-key-value/blob/main/README.md
+
+extra:
+  feedstock-name: py-key-value
+  recipe-maintainers:
+    - rxm7706
