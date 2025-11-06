@@ -1,0 +1,36 @@
+diff --git a/jpm/cc.janet b/jpm/cc.janet
+index 476d938..1dc791c 100644
+--- a/jpm/cc.janet
++++ b/jpm/cc.janet
+@@ -80,6 +80,22 @@
+   [name]
+   (string "janet_module_entry_" (entry-replace name)))
+ 
++(defn libjanet-link-path
++  []
++  (def libpath (dyn:libpath))
++  (def statext (dyn:statext))
++  (def primary (last (string/split "." statext)))
++  (def extensions
++    (if (string/has-suffix? ".a" statext)
++      [primary "dylib" "so"]
++      [primary]))
++  (var found nil)
++  (loop [ext :in extensions :when (nil? found)]
++    (def candidate (string libpath "/libjanet." ext))
++    (when (os/stat candidate :mode)
++      (set found candidate)))
++  (or found (string libpath "/libjanet." primary)))
++
+ (defn compile-c
+   "Compile a C file into an object file."
+   [compiler opts src dest &opt static?]
+@@ -368,7 +384,7 @@ int main(int argc, const char **argv) {
+           (unless no-compile
+             (def ldflags [;dep-ldflags ;(opt opts :ldflags [])])
+             (def lflags [;static-libs
+-                         (string (dyn:libpath) "/libjanet." (last (string/split "." (dyn:statext))))
++                         (libjanet-link-path)
+                           ;dep-lflags ;(opt opts :lflags []) ;(dyn:janet-lflags)])
+             (def defines (make-defines (opt opts :defines {})))
+             (def cc (opt opts :cc))
