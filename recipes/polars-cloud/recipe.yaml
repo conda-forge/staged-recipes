@@ -1,0 +1,89 @@
+context:
+  name: polars-cloud
+  version: "0.4.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pola-rs/${{ name }}-client/archive/refs/tags/client-${{ version }}.tar.gz
+  sha256: 12e38c9a1d7af9e49f7417e7f61a6ae4f2abd35092ff933bee2144c7b9929a93
+
+build:
+  python:
+    version_independent: true
+    entry_points:
+      - pc=polars_cloud.__main__:cli
+  skip:
+    - not (match(python, python_min ~ ".*") and is_abi3)
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO: cargo-auditable-wrapper${{ '' if unix else '.bat' }}
+    content:
+      - cd client
+      - if: unix
+        then:
+          - cp ${RECIPE_DIR}/cargo-auditable-wrapper.sh ${BUILD_PREFIX}/bin/cargo-auditable-wrapper
+        else:
+          - copy %RECIPE_DIR%\cargo-auditable-wrapper.bat %BUILD_PREFIX%\Library\bin\cargo-auditable-wrapper.bat
+      - python -m pip install . -vv
+      - cargo-bundle-licenses --format yaml --output ../THIRD_PARTY.yml
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - libprotobuf
+  host:
+    - python
+    - pip
+    - maturin >=1,<2
+    - libprotobuf
+  run:
+    - python
+    - polars
+    - polars-runtime-64
+    - cloudpickle
+    - typing-extensions
+
+tests:
+  - python:
+      imports:
+      - polars_cloud
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      content:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/polars_cloud/polars_cloud.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+        - if: not win
+          then:
+            # Need to set SP_DIR because of https://github.com/prefix-dev/rattler-build/issues/1733
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/polars_cloud/polars_cloud.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
+
+about:
+  homepage: https://cloud.pola.rs
+  summary: 'Python client for Polars Cloud'
+  description: |
+    Built on top of the popular open source project, Polars Cloud enables you to write DataFrame code once and run it anywhere. The distributed engine available with Polars Cloud allows you to scale your Polars queries beyond a single machine.
+  license: MIT
+  license_file:
+    - client/LICENSE
+    - THIRD_PARTY.yml
+  documentation: https://cloud.pola.rs
+  repository: https://github.com/pola-rs/polars-cloud-client
+
+extra:
+  recipe-maintainers:
+    - pavelzw
