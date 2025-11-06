@@ -11,7 +11,9 @@ cat <<'EOF' > project.janet
   :version "0.1.0")
 
 (rule "build/ok.txt" []
-  (spit $out "ok"))
+  (when (not (os/stat "build" :mode))
+    (os/mkdir "build"))
+  (spit "build/ok.txt" "ok"))
 
 (task "build" ["build/ok.txt"])
 EOF
