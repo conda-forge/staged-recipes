@@ -17,22 +17,36 @@ manpath="${PREFIX}/share/man/man1"
 
 target_platform="${target_platform:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
-cc_bin="${CC:-cc}"
-cxx_bin="${CXX:-c++}"
-ar_bin="${AR:-ar}"
-
+# The recipe declares the conda-forge C and C++ compiler packages for host+run,
+# so CC/CXX/AR must point at those wrapped toolchains. Fail fast with clear
+# guidance if something is misconfigured.
+if [[ -z "${CC:-}" ]]; then
+  echo "error: CC is unset. The conda-forge compiler('c') package should set it." >&2
+  exit 1
+fi
+cc_bin="${CC}"
 if ! command -v "${cc_bin}" >/dev/null 2>&1; then
-  echo "error: required C compiler '${cc_bin}' not found in PATH" >&2
+  echo "error: C compiler '${cc_bin}' from CC is not on PATH." >&2
   exit 1
 fi
 
+if [[ -z "${CXX:-}" ]]; then
+  echo "error: CXX is unset. The recipe expects compiler('cxx') to provide it." >&2
+  exit 1
+fi
+cxx_bin="${CXX}"
 if ! command -v "${cxx_bin}" >/dev/null 2>&1; then
-  echo "error: required C++ compiler '${cxx_bin}' not found in PATH" >&2
+  echo "error: C++ compiler '${cxx_bin}' from CXX is not on PATH." >&2
   exit 1
 fi
 
+if [[ -z "${AR:-}" ]]; then
+  echo "error: AR is unset. The compiler packages should export it." >&2
+  exit 1
+fi
+ar_bin="${AR}"
 if ! command -v "${ar_bin}" >/dev/null 2>&1; then
-  echo "error: required archiver '${ar_bin}' not found in PATH" >&2
+  echo "error: Archiver '${ar_bin}' from AR is not on PATH." >&2
   exit 1
 fi
 
