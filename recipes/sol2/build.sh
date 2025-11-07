@@ -6,6 +6,6 @@ cmake $SRC_DIR \
   -G Ninja \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_BUILD_TYPE=Release \
-  ${CMAKE_ARGS}
+  $CMAKE_ARGS
 
 cmake --build build --parallel --target install
