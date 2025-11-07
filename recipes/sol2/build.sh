@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+chmod a+x $SRC_DIR/single/single.py
+
 cmake $SRC_DIR \
   -B build \
   -G Ninja \
