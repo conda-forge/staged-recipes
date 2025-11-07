@@ -17,6 +17,25 @@ manpath="${PREFIX}/share/man/man1"
 
 target_platform="${target_platform:-$(uname | tr '[:upper:]' '[:lower:]')}"
 
+cc_bin="${CC:-cc}"
+cxx_bin="${CXX:-c++}"
+ar_bin="${AR:-ar}"
+
+if ! command -v "${cc_bin}" >/dev/null 2>&1; then
+  echo "error: required C compiler '${cc_bin}' not found in PATH" >&2
+  exit 1
+fi
+
+if ! command -v "${cxx_bin}" >/dev/null 2>&1; then
+  echo "error: required C++ compiler '${cxx_bin}' not found in PATH" >&2
+  exit 1
+fi
+
+if ! command -v "${ar_bin}" >/dev/null 2>&1; then
+  echo "error: required archiver '${ar_bin}' not found in PATH" >&2
+  exit 1
+fi
+
 declare -a janet_lflags dynamic_lflags
 modext=".so"
 statext=".a"
@@ -53,13 +72,13 @@ dynamic_lflags_literal=$(join_vec "${dynamic_lflags[@]}")
 conda_config="configs/conda_config.janet"
 cat > "${conda_config}" <<EOF
 (def config
-  {:ar "ar"
+  {:ar "${ar_bin}"
    :auto-shebang true
    :binpath "${binpath}"
-   :c++ "c++"
-   :c++-link "c++"
-   :cc "cc"
-   :cc-link "cc"
+   :c++ "${cxx_bin}"
+   :c++-link "${cxx_bin}"
+   :cc "${cc_bin}"
+   :cc-link "${cc_bin}"
    :cflags @["-std=c99"]
    :cflags-verbose @[]
    :cppflags @["-std=c++11"]
