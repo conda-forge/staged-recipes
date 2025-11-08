@@ -1,3 +1,8 @@
+"""
+This code is the result of fastidious trial/error in order to correctly find/use/compile
+pymgclient with the conda mgclient library
+"""
+
 import glob
 from pathlib import Path
 import os
@@ -6,6 +11,7 @@ from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 
 class GccBuildExt(build_ext):
+  """Redefine the method to find conda toolchain gcc on Windows"""
   def build_extensions(self):
     if sys.platform == "win32":
       import subprocess
