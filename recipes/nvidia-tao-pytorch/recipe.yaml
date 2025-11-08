@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  name: nvidia-tao-pytorch
+  version: 6.25.7
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # Need to use commit hash because release tags are missing, see https://github.com/NVIDIA/tao_pytorch_backend/issues/41
+  url: https://github.com/NVIDIA/tao_pytorch_backend/archive/70a3d9128bcf4a4675e6a1d1cf763df7b1803b3e.tar.gz # v6.25.7
+  sha256: d8e02b26b1d5defce139c9459ea1def3e8659916e26b665f3fce8d13cc1839c8
+
+build:
+  number: 0
+  script:
+    env:
+      TORCH_CUDA_ARCH_LIST: "5.0 6.0 7.0 7.5 8.0 8.6 9.0+PTX"
+    content:
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - cuda_compiler_version == "None" or not linux
+  string: cuda_${{ cuda_compiler_version | version_to_buildstring }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - libcublas-dev
+    - libcusparse-dev
+    - libcusolver-dev
+  host:
+    - pip
+    - python
+    - pytorch * cuda*
+    - setuptools
+  run:
+    - python
+    - pytorch * cuda*
+
+tests:
+  - python:
+      imports:
+        - nvidia_tao_pytorch.api
+        - nvidia_tao_pytorch.core
+        - nvidia_tao_pytorch.cv
+        - nvidia_tao_pytorch.pointcloud
+        - nvidia_tao_pytorch.pruning
+        - nvidia_tao_pytorch.sdg
+        - nvidia_tao_pytorch.ssl
+      pip_check: true
+
+about:
+  homepage: https://github.com/NVIDIA/tao_pytorch_backend
+  summary: TAO Toolkit deep learning networks with PyTorch backend
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - weiji14
