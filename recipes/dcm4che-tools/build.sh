@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
 
-set -e
+set -o xtrace -o nounset -o pipefail -o errexit
 
-mkdir -p "$PREFIX/share"
-    
-rm -rf "$PREFIX/share/dcm4che"
-mkdir -p "$PREFIX/share/dcm4che"
+./mvnw -Djdk.xml.maxGeneralEntitySizeLimit=0 -Djdk.xml.totalEntitySizeLimit=0 install
 
-cp -r $SRC_DIR/bin "$PREFIX/share/dcm4che"
-cp -r $SRC_DIR/etc "$PREFIX/share/dcm4che"
-cp -r $SRC_DIR/js "$PREFIX/share/dcm4che"
-cp -r $SRC_DIR/lib "$PREFIX/share/dcm4che"
-cp $SRC_DIR/LICENSE.txt "$PREFIX/share/dcm4che"
-cp $SRC_DIR/README.md "$PREFIX/share/dcm4che"
+mkdir -p ${PREFIX}/libexec/dcm4che-tools
+cp -r ${SRC_DIR}/dcm4che-assembly/target/dcm4che-${PKG_VERSION}-bin/dcm4che-${PKG_VERSION}/* ${PREFIX}/libexec/dcm4che-tools
 
+mkdir -p ${PREFIX}/bin
+exe_wrapper() {
+    exe_name=$1
+    tee ${PREFIX}/bin/${exe_name} << EOF
+#!/bin/sh
+exec \${CONDA_PREFIX}/libexec/dcm4che-tools/bin/${exe_name} "\$@"
+EOF
+    chmod +x ${PREFIX}/bin/${exe_name}
+}
+export -f exe_wrapper
+ls ${PREFIX}/libexec/dcm4che-tools/bin | grep -v ".bat" | xargs -I % bash -c "exe_wrapper %"
 
-# Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
-# This will allow them to be run on environment activation.
-for CHANGE in "activate" "deactivate"
-do
-    mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
-done
+cd dcm4che-assembly
+mvn license:download-licenses -Dgoal=download-licenses
