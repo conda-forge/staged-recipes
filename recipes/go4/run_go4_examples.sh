@@ -1,7 +1,6 @@
 #!/bin/bash
 set -eumx -o pipefail
 shopt -s failglob
-shopt -s globstar
 echo $GO4SYS
 echo $PREFIX
 

@@ -21,8 +21,3 @@ for CHANGE in $CHANGES; do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}-go4.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${CHANGE}-${PKG_NAME}.sh"
 done
-
-export PYTHONPATH=""
-export ROOT_INCLUDE_PATH=""
-now_change="activate"
-source "${PREFIX}/etc/conda/${now_change}.d/${now_change}-${PKG_NAME}.sh"
