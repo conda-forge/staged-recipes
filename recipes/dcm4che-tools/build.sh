@@ -15,9 +15,14 @@ exe_wrapper() {
 exec \${CONDA_PREFIX}/libexec/dcm4che-tools/bin/${exe_name} "\$@"
 EOF
     chmod +x ${PREFIX}/bin/${exe_name}
+
+    tee ${PREFIX}/bin/${exe_name}.bat << EOF
+call %CONDA_PREFIX%\libexec\dcm4che-tools\bin\\${exe_name}.bat %*
+EOF
 }
 export -f exe_wrapper
 ls ${PREFIX}/libexec/dcm4che-tools/bin | grep -v ".bat" | xargs -I % bash -c "exe_wrapper %"
 
 cd dcm4che-assembly
 mvn license:download-licenses -Dgoal=download-licenses
+exit 1
