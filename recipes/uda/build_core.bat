@@ -1,16 +1,5 @@
 @echo off
 
-:: Configure Portable XDR
-cmake %CMAKE_ARGS% ^
-    -G Ninja ^
-    -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-    -D BUILD_SHARED_LIBS=OFF ^
-    -B build\xdr -S "%SRC_DIR%\extlib"  || exit /b 1
-
-:: Build and install Portable XDR
-cmake --build build\xdr --target install || exit /b 1
-
-
 :: Set environment variables for UDA build
 set UDA_PYTHON_SHARED=ON
 
