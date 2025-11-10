@@ -16,9 +16,9 @@ extra_cmake_args=(
     # Wrappers
     -D NO_WRAPPERS=OFF
     -D NO_CXX_WRAPPER=OFF
-    -D NO_IDL_WRAPPER=ON
     -D NO_PYTHON_WRAPPER=OFF
     -D NO_JAVA_WRAPPER=OFF
+    -D NO_IDL_WRAPPER=ON
     -D FAT_IDL=OFF
     # CLI
     -D NO_CLI=OFF

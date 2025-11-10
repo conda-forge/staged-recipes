@@ -11,6 +11,9 @@ cmake %CMAKE_ARGS% ^
 cmake --build build\xdr --target install || exit /b 1
 
 
+:: Set environment variables for UDA build
+set UDA_PYTHON_SHARED=ON
+
 :: === Build & Install UDA client ===
 :: Configure and build
 cmake %CMAKE_ARGS% ^
@@ -23,9 +26,9 @@ cmake %CMAKE_ARGS% ^
     -D NO_MEMCACHE=ON ^
     -D NO_WRAPPERS=OFF ^
     -D NO_CXX_WRAPPER=OFF ^
-    -D NO_IDL_WRAPPER=ON ^
     -D NO_PYTHON_WRAPPER=OFF ^
     -D NO_JAVA_WRAPPER=OFF ^
+    -D NO_IDL_WRAPPER=ON ^
     -D FAT_IDL=OFF ^
     -D NO_CLI=OFF ^
     -D XDR_LIBRARIES="%LIBRARY_LIB%\xdr.lib" ^
