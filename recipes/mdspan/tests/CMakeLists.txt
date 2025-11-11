@@ -12,5 +12,5 @@ add_executable(test_mdspan test_mdspan.cpp)
 target_link_libraries(test_mdspan PRIVATE std::mdspan)
 
 # Set C++ standard
-set_property(TARGET test_mdspan PROPERTY CXX_STANDARD 17)
+set_property(TARGET test_mdspan PROPERTY CXX_STANDARD 20)
 set_property(TARGET test_mdspan PROPERTY CXX_STANDARD_REQUIRED ON)
