@@ -9,7 +9,7 @@ find_package(mdspan CONFIG REQUIRED)
 add_executable(test_mdspan test_mdspan.cpp)
 
 # Link against mdspan
-target_link_libraries(test_mdspan PRIVATE mdspan::mdspan)
+target_link_libraries(test_mdspan PRIVATE std::mdspan)
 
 # Set C++ standard
 set_property(TARGET test_mdspan PROPERTY CXX_STANDARD 17)
