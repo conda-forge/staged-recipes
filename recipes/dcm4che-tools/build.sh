@@ -25,4 +25,3 @@ ls ${PREFIX}/libexec/dcm4che-tools/bin | grep -v ".bat" | xargs -I % bash -c "ex
 
 cd dcm4che-assembly
 mvn license:download-licenses -Dgoal=download-licenses
-exit 1
