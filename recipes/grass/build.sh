@@ -10,7 +10,12 @@ GRASS_VERSION_DIR="grass${GRASS_MAJOR}${GRASS_MINOR}"
 echo "=== GRASS Version: ${PKG_VERSION} (using directory: ${GRASS_VERSION_DIR}) ===" >&2
 echo "=== Version components: MAJOR=${GRASS_MAJOR}, MINOR=${GRASS_MINOR}, PATCH=${GRASS_PATCH} ===" >&2
 
-# Respect conda build environment
+# Respect conda build environment while ensuring minimum requirements:
+# - CC/CXX: Use conda-build compilers with fallback chain (CC -> GCC -> gcc)
+# - -O2: Explicit optimization for performance-critical geospatial operations
+# - -std=gnu99: GRASS requires GNU C99 extensions (typeof, statement expressions, etc.)
+#   Pure C99 would fail compilation; newer standards (gnu11/gnu17) are untested
+# - LDFLAGS: Initialize empty to prevent errors when appending platform-specific flags
 export CC=${CC:-${GCC:-gcc}}
 export CXX=${CXX:-${GXX:-g++}}
 export CFLAGS="${CFLAGS:-} -O2 -std=gnu99"
@@ -26,7 +31,15 @@ else
     export LIBS="${LIBS:-} -liconv"
 fi
 
-# Ensure pkg-config finds things in $PREFIX
+# Configure dependency discovery for conda's non-standard installation paths:
+# PKG_CONFIG_PATH: Tells pkg-config where to find .pc metadata files for dependencies
+#   - configure scripts call "pkg-config --cflags/--libs <package>" to get build flags
+#   - Without this, configure fails to detect GDAL, GEOS, PROJ, Cairo, etc. in $PREFIX
+#   - Both lib/pkgconfig and share/pkgconfig are needed (packages vary in convention)
+# LD_LIBRARY_PATH: Tells dynamic linker where to find shared libraries (.so) at runtime
+#   - configure runs test programs that need to load conda's libgdal.so, libgeos.so, etc.
+#   - Without this, test programs fail with "cannot open shared object file" errors
+#   - Critical for GRASS's 20+ dependencies to be discovered correctly during build
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 
