@@ -1,0 +1,130 @@
+context:
+  version: 0.12.7
+
+recipe:
+  name: mitmproxy-rs
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mitmproxy/mitmproxy_rs/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: aadc49063b9ea1bfa5dad7ea707971de9be1ba42d578f54e5113ca495e47a955
+
+outputs:
+  - package:
+      name: mitmproxy-linux
+    build:
+      script:
+        - ${{ PYTHON }} -m pip install ./mitmproxy-linux
+        - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+      - if: build_platform != target_platform
+        then:
+          - maturin >=1.10.1,<2
+      - cargo-bundle-licenses
+      host:
+        - python >=3.12
+        - hatchling
+        - pip
+        - maturin >=1.10.1,<2
+      run:
+      - python >=3.12
+  - package:
+      name: mitmproxy-macos
+    build:
+      script:
+        - if: target_platform == "osx-64"
+          then:
+            - export CARGO_BUILD_TARGET=x86_64-apple-darwin
+        - if: target_platform == "osx-arm64"
+          then:
+            - export CARGO_BUILD_TARGET=aarch64-apple-darwin
+        - cargo auditable build --release --package macos-certificate-truster --target "$CARGO_BUILD_TARGET"
+        - lipo -create -output target/release/macos-certificate-truster "target/$CARGO_BUILD_TARGET/release/macos-certificate-truster"
+        - ${{ PYTHON }} -m pip install ./mitmproxy-macos
+        - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+      - if: build_platform != target_platform
+        then:
+          - maturin >=1.10.1,<2
+      - cargo-auditable
+      - cargo-bundle-licenses
+      host:
+        - python >=3.12
+        - hatchling
+        - pip
+        - maturin >=1.10.1,<2
+      run:
+      - python >=3.12
+  - package:
+      name: mitmproxy-windows
+    build:
+      script:
+        - cargo auditable build --release --package windows-redirector
+        - ${{ PYTHON }} -m pip install ./mitmproxy-windows
+        - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+      - if: build_platform != target_platform
+        then:
+          - maturin >=1.10.1,<2
+      - cargo-auditable
+      - cargo-bundle-licenses
+      host:
+        - python >=3.12
+        - hatchling
+        - pip
+        - maturin >=1.10.1,<2
+      run:
+      - python >=3.12
+  - package:
+      name: mitmproxy-rs
+    build:
+      script:
+        - ${{ PYTHON }} -m pip install ./mitmproxy-rs
+        - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+      - if: build_platform != target_platform
+        then:
+          - maturin >=1.10.1,<2
+      - cargo-bundle-licenses
+      host:
+        - python >=3.12
+        - hatchling
+        - pip
+        - maturin >=1.10.1,<2
+      run:
+        - python >=3.12
+        - if: win
+          then:
+            - ${{ pin_subpackage('mitmproxy-windows', exact=True) }}
+        - if: linux
+          then:
+            - ${{ pin_subpackage('mitmproxy-linux', exact=True) }}
+        - if: osx
+          then:
+            - ${{ pin_subpackage('mitmproxy-macos', exact=True) }}
+
+    tests:
+    - python:
+        imports:
+        - mitmproxy_rs
+        pip_check: true
+
+about:
+  description: |+
+    # mitmproxy_rs
+
+    This package contains mitmproxy's Rust bits.
+
+    [![dev documentation](https://shields.mitmproxy.org/badge/docs-Python%20API-blue.svg)](https://mitmproxy.github.io/mitmproxy_rs/)
+
+    https://github.com/mitmproxy/mitmproxy_rs
+
+  license: MIT
+  repository: https://github.com/mitmproxy/mitmproxy-rs
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
