@@ -1,4 +1,3 @@
-ls -l "$PREFIX/include"
 cmake -S . -B _build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=ON ${CMAKE_ARGS} -DUSE_OPENMP:BOOL=ON -DUSE_FFTW:BOOL=ON -DUSE_MKL:BOOL=OFF -DUSE_MKL_FFT:BOOL=OFF -DUSE_VSL:BOOL=OFF -DCMAKE_Fortran_FLAGS="-I${PREFIX}/include"
 cmake --build _build
 cmake --install _build --prefix $PREFIX
