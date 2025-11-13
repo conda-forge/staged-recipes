@@ -14,9 +14,7 @@ fi
 
 export PKG_CONFIG=$(which pkg-config)
 
-meson --prefix=${PREFIX} \
-      --libdir=$PREFIX/lib \
-      --buildtype=release \
+meson ${MESON_ARGS} \
       $EXTRA_FLAGS \
       --wrap-mode=nofallback \
       "${meson_options[@]}" \
