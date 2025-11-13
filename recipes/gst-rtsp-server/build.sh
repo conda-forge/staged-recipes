@@ -2,8 +2,6 @@
 
 set -ex
 
-pushd rtsp_server
-
 mkdir build
 pushd build
 
