@@ -9,7 +9,15 @@ set "LIBRARY_PREFIX_M=%LIBRARY_PREFIX:\=/%"
 
 cd rtsp_server
 
-%BUILD_PREFIX%\Scripts\meson.exe setup builddir --wrap-mode=nofallback --buildtype=release --prefix=%LIBRARY_PREFIX_M% --backend=ninja -Dexamples=disabled -Dintrospection=enabled -Dtests=disabled -Dc_link_args=intl.dll.lib
+%BUILD_PREFIX%\Scripts\meson.exe setup builddir ^
+    --wrap-mode=nofallback ^
+    --buildtype=release ^
+    --prefix=%LIBRARY_PREFIX_M% ^
+    --backend=ninja ^
+    -Dexamples=disabled ^
+    -Dintrospection=enabled ^
+    -Dtests=disabled ^
+    -Dc_link_args=intl.dll.lib
 if errorlevel 1 exit 1
 
 ninja -v -C builddir -j %CPU_COUNT%
