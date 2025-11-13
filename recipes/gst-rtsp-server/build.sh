@@ -17,7 +17,8 @@ export PKG_CONFIG=$(which pkg-config)
 meson ${MESON_ARGS} \
       $EXTRA_FLAGS \
       --wrap-mode=nofallback \
-      "${meson_options[@]}" \
+      -Dexamples=disabled \
+      -Dtests=disabled \
       ..
 ninja -j${CPU_COUNT}
 ninja install
