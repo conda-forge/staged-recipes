@@ -7,8 +7,6 @@ set "PKG_CONFIG_PATH=%LIBRARY_LIB%\pkgconfig;%LIBRARY_PREFIX%\share\pkgconfig;%B
 :: get mixed path (forward slash) form of prefix so host prefix replacement works
 set "LIBRARY_PREFIX_M=%LIBRARY_PREFIX:\=/%"
 
-cd rtsp_server
-
 %BUILD_PREFIX%\Scripts\meson.exe setup builddir ^
     --wrap-mode=nofallback ^
     --buildtype=release ^
