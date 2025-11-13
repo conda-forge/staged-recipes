@@ -9,6 +9,9 @@ else
   CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
+echo "Building using ${PREFIX}"
+echo "From ${PWD}"
+
 mkdir build
 cd build
 
@@ -23,7 +26,7 @@ cmake -G "${CMAKE_GENERATOR}" \
       -DCMAKE_FIND_FRAMEWORK=NEVER \
       -DCMAKE_FIND_APPBUNDLE=NEVER \
       -DBUILD_SHARED_LIBS=ON \
-      -DBUILD_STATIC_LIBS=ON \
+      -DBUILD_STATIC_LIBS=OFF \
       "${SRC_DIR}"
 make
 make install
