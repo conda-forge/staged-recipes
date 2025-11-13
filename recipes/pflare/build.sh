@@ -20,9 +20,9 @@ cd $SRC_DIR/pflare_src
 
 # Build PFLARE and Python bindings
 # Have to explicitly tell make that this is a conda build to avoid overlinking
-make -j${CPU_COUNT} "CONDA_BUILD=1"
-make -j${CPU_COUNT} python "CONDA_BUILD=1"
+make -j${CPU_COUNT} CONDA_BUILD="1"
+make -j${CPU_COUNT} python CONDA_BUILD="1"
 # Check the build
-make -j${CPU_COUNT} check "CONDA_BUILD=1"
+make -j${CPU_COUNT} check CONDA_BUILD="1"
 # Install the library
-make install "CONDA_BUILD=1" PREFIX="$PREFIX" PYVER="$PY_VER"
+make install CONDA_BUILD="1" PREFIX="$PREFIX" PYVER="$PY_VER"
