@@ -6,17 +6,17 @@ right people know. There are language-specific teams for reviewing recipes.
 
 | Language        | Name of review team           |
 | --------------- | ----------------------------- |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| go              | `@conda-forge/help-go`        |
+| java            | `@conda-forge/help-java`      |
+| Julia           | `@conda-forge/help-julia`     |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
-| java            | `@conda-forge/help-java`      |
-| nodejs          | `@conda-forge/help-nodejs`    |
-| c/c++           | `@conda-forge/help-c-cpp`     |
-| perl            | `@conda-forge/help-perl`      |
-| Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
-| Rust            | `@conda-forge/help-rust`      |
-| Go              | `@conda-forge/help-go`        |
+| rust            | `@conda-forge/help-rust`      |
 | other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
@@ -26,11 +26,11 @@ Then, a bot will label the PR as 'review-requested'.
 Due to GitHub limitations, first time contributors to conda-forge are unable
 to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
 using a special command in a comment on the PR to get the attention of the
-`staged-recipes` team. You can also consider asking on our [Gitter channel][2]
+`staged-recipes` team. You can also consider asking on our [Zulip chat][2]
 if your recipe isn't reviewed promptly.
 
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
-[2]: https://gitter.im/conda-forge/conda-forge.github.io
+[2]: https://conda-forge.zulipchat.com
 
 All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times
@@ -41,6 +41,7 @@ We'd love to have the help!
 -->
 
 Checklist
+
 - [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated meta.yaml".
 - [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/5eddbd7fc9d1502169089da06c3688d9759be978/recipes/example/meta.yaml#L64-L73) for an example).
 - [ ] Source is from official source.
