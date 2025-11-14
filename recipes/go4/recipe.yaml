@@ -1,0 +1,100 @@
+context:
+  name: Go4
+  version: '6.4.1'
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gsi-ee/go4//releases/download/${{ version }}/go4-${{ version }}.tar.gz
+  sha256: d4c4409b4a86e8686ac19a040824fc37f8ad9bdeef27545cb405b777025e12ee
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - if: unix
+      then:
+      - "${RECIPE_DIR}/build.sh"
+  dynamic_linking:
+    overdepending_behavior: "error"
+    overlinking_behavior: "error"
+    missing_dso_allowlist:
+      - if: osx
+        then:
+          - /usr/lib/libSystem.B.dylib
+
+requirements:
+  build:
+    - cmake
+    - make
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - if: linux
+      then:
+      - libgl-devel
+  host:
+    # conda-forge pins root_base 6.32 and 6.34 as variants
+    # however root_base 6.32 is pinned to gcc version 13, but gcc is pinned to 14
+    - root_base 6.34.*
+    - qt
+    - hdf5
+    - python
+  run:
+    - python
+
+tests:
+  - package_contents:
+      bin:
+      - go4
+      - go4analysis
+  - script:
+      - ./run_go4_examples.sh
+    files:
+      source:
+        - Go4ExampleSimple/
+        - Go4ExampleUserSource/
+      recipe:
+        - run_go4_examples.sh
+    requirements:
+      run:
+      - cmake
+      - make
+      - if: linux
+        then:
+        - gxx
+      # ${{ compiler('cxx') }} doesn't work in linux. g++ is not found:
+      # │ make: g++: No such file or directory
+      # │ make: *** [$PREFIX/Makefile.rules:50: TXXXProc.o] Error 127
+      # ${{ compiler('cxx') }} resolves to "gxx_linux-64 14.*", but we need the package "gxx" apparently
+  
+about:
+  homepage: https://www.gsi.de/en/work/research/experiment_electronics/data_processing/data_analysis/the_go4_home_page
+  summary: |
+    The object-oriented system Go4 (GSI Object Oriented On-line Off-line system)
+    is based on ROOT (R. Brun et al.) with the specific requirements of the low
+    and medium energy nuclear and atomic physics experiments implemented as extensions.
+  description: |
+    Go4 separates analysis and GUI in two tasks which could run on different nodes.
+    Communication is done through threads and sockets. The GUI is built with the
+    Qt widget library using the Qt designer. Qt and ROOT are interfaced by QtROOT.
+    Full ROOT functionality including menus and graphics is available without modifications.
+    The Go4 analysis framework provides the syntax to organize the analysis in steps
+    which can be controlled from the GUI. Each step has its own IO and processing classes. 
+    The Go4 event classes can be used to construct at runtime complex (composite) events which
+    are stored by Go4 in trees and branches without explicit programming. The Go4 GUI includes
+    a browser and tree viewer which can be used without analysis to process standard ROOT files.
+    The tree viewer resolves arbitrary hierarchy levels of composite event trees.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - Go4License.txt
+  documentation: https://www.gsi.de/en/work/research/experiment_electronics/data_processing/data_analysis/the_go4_home_page/documentation
+  repository: https://github.com/gsi-ee/go4
+
+extra:
+  recipe-maintainers:
+    - HLinde
