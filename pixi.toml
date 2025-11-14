@@ -1,8 +1,8 @@
-#                             VVVVVV  minimum `pixi` version
-"$schema" = "https://pixi.sh/v0.36.0/schema/manifest/schema.json"
+"$schema" = "https://pixi.sh/v0.59.0/schema/manifest/schema.json"
 
-[project]
+[workspace]
 name = "staged-recipes"
+requires-pixi = ">=0.59.0"
 description = "The entry point to conda-forge"
 version = "0.1.0"
 license = "BSD-3-Clause"
@@ -36,8 +36,8 @@ platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 description = "build for Linux inside a docker container"
 cmd = "python build-locally.py --filter 'linux*'"
 
-# The osx env will run conda-build directly on the machine.
 [feature.osx]
+# The osx env will run directly on the machine.
 platforms = ["osx-64", "osx-arm64"]
 [feature.osx.tasks.build-osx]
 description = "build directly on a MacOS host machine"
@@ -47,8 +47,8 @@ CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
 MINIFORGE_HOME = "$CONDA_PREFIX"
 OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
 
-# The windows env will run conda-build directly on the machine.
 [feature.win]
+# The windows env will run directly on the machine.
 platforms = ["win-64"]
 [feature.win.tasks.build-win]
 description = "build directly on a Windows host machine"
@@ -59,19 +59,30 @@ MINIFORGE_HOME = "$CONDA_PREFIX"
 
 [feature.grayskull.dependencies]
 grayskull = ">=2.7.3"
+conda-recipe-manager = ">=0.8.0"
 [feature.grayskull.tasks.pypi]
-description = "generate a recipe for a PyPI package name with `grayskull`"
-cmd = "cd recipes && grayskull pypi --strict-conda-forge"
+description = "generate a v1 (rattler-build) recipe for a PyPI package name with `grayskull`"
+cmd = "cd recipes && grayskull pypi --strict-conda-forge --use-v1-format"
 [feature.grayskull.tasks.cran]
-description = "generates a recipe for a CRAN package name with `grayskull`"
+description = "generate a v1 (rattler-build) recipe for a CRAN package name with `grayskull`"
+cmd = "cd recipes && grayskull cran --strict-conda-forge --use-v1-format"
+[feature.grayskull.tasks.pypi-v0]
+description = "generate a v0 (conda-build) recipe for a PyPI package name with `grayskull`"
+cmd = "cd recipes && grayskull pypi --strict-conda-forge"
+[feature.grayskull.tasks.cran-v0]
+description = "generate a v0 (conda-build) recipe for a CRAN package name with `grayskull`"
 cmd = "cd recipes && grayskull cran --strict-conda-forge"
 
 [feature.conda-smithy.dependencies]
 conda-smithy = ">=3.44.6,<4"
-shellcheck = "*"
 [feature.conda-smithy.tasks.lint]
 description = "validate all recipes with `conda-smithy`"
 cmd = "conda-smithy recipe-lint --conda-forge recipes/*"
+
+[feature.shellcheck]
+# merge this with `conda-smithy` when available for `linux-ppc64le`
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+dependencies.shellcheck = ">=0.10.0"
 
 [environments]
 # linux only needs Python to run build-locally.py. Everything else happens in Docker.
@@ -81,4 +92,4 @@ osx = ["osx", "python", "build"]
 win = ["win", "python", "build"]
 build = ["python", "build"]
 grayskull = ["python", "grayskull"]
-conda-smithy = ["python", "conda-smithy"]
+conda-smithy = ["python", "conda-smithy", "shellcheck"]
