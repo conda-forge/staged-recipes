@@ -1,0 +1,71 @@
+{% set name = "polymer" %}
+{% set version = "4.17" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/hygeos/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 2a00c567ca16a16de6770b9067f381cec1593fcec261c545b6d404d85e783f53
+
+build:
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv
+  skip: True  # [py<311 or py>=313]  # Python 3.13 builds require numpy>=2
+  entry_points:
+    - polymer = polymer.cli:main
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - cython
+    - meson-python
+    - numpy <2  # ensure headers available during cythonization
+    - pkg-config
+  host:
+    - python
+    - pip
+    - meson-python
+    - numpy <2 # needed at build time for includes
+  run:
+    - python
+    - cython
+    - h5py
+    - hygeos-core
+    - eoread
+    - eotools
+    - netcdf4
+    - numpy <2
+    - pandas
+    - pyhdf
+    - scipy
+    - xarray
+  run_constrained:
+    - rioxarray <0.20  # include this until https://github.com/conda-forge/rioxarray-feedstock/pull/90 is merged
+
+test:
+  imports:
+    - polymer
+  requires:
+    - pip
+    - python
+  commands:
+    - pip check
+    - export DIR_DATA=$PWD/auxdata  # [unix]
+    - set DIR_DATA=%CD%\auxdata  # [win]
+    - mkdir -p $DIR_DATA/static $DIR_DATA/ancillary  # [unix]
+    - mkdir %DIR_DATA%\static & mkdir %DIR_DATA%\ancillary  # [win]
+    - polymer --help  # requires $DIR_DATA to be set and directories to exist
+
+about:
+  home: https://github.com/hygeos/{{ name }}
+  summary: "Atmospheric correction of sun-glint contaminated ocean-colour observations."
+  license: LicenseRef-HYGEOS-Polymer-2.0
+  license_file: LICENCE.TXT
+
+extra:
+  recipe-maintainers:
+    - fsteinmetz
+    - danschef
