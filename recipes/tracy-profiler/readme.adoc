@@ -1,0 +1,229 @@
+= Tracy Profiler Client Library Recipe
+:version: 0.12.2
+:toc: left
+:toclevels: 2
+:sectnums:
+:icons: font
+
+This recipe packages the Tracy Profiler client library for instrumenting C++ applications.
+
+== About Tracy
+
+Tracy is a real time, nanosecond resolution, remote telemetry, hybrid frame and sampling profiler for games and other applications. It can profile CPU (C, C++, Lua), GPU (OpenGL, Vulkan, Direct3D 11/12, OpenCL) and memory. It also can monitor locks held by threads and show where contention does happen.
+
+Key features:
+
+* Real-time profiling with nanosecond resolution
+* Remote telemetry support
+* Hybrid frame and sampling profiling
+* GPU profiling support for major graphics APIs
+* Memory allocation tracking
+* Lock contention monitoring
+* Cross-platform support
+
+== Package Details
+
+[cols="1,2"]
+|===
+| Property | Value
+
+| Package Name
+| `tracy-profiler`
+
+| Version
+| {version}
+
+| Source
+| https://github.com/wolfpld/tracy
+
+| License
+| BSD-3-Clause
+|===
+
+== Build Information
+
+This package provides the Tracy client library that applications link against to enable profiling. The build process:
+
+1. Uses a single nushell script (`build.nu`) for cross-platform build automation
+2. Configures with CMake (client library only)
+3. Enables Tracy profiling features
+4. Installs headers and CMake configuration files
+5. Automatically detects platform and handles Windows/Unix path differences
+6. Does NOT include the Tracy profiler GUI (separate package)
+
+== Usage
+
+After installation, instrument your C++ code with Tracy macros:
+
+[source,cpp]
+----
+#include <tracy/Tracy.hpp>
+
+void your_function() {
+    ZoneScoped; // Profile this function
+
+    // Your code here
+    {
+        ZoneScopedN("Critical Section"); // Named zone
+        // Critical code section
+    }
+}
+
+int main() {
+    // Your application code
+    return 0;
+}
+----
+
+== CMake Integration
+
+The package includes CMake configuration files:
+
+[source,cmake]
+----
+find_package(tracy REQUIRED)
+target_link_libraries(your_target tracy::tracy)
+
+# Enable Tracy in your build
+target_compile_definitions(your_target PRIVATE TRACY_ENABLE)
+----
+
+== Testing
+
+=== Option 1: Test with build-locally.py (Docker-based)
+
+[source,bash]
+----
+# Navigate to recipe directory
+cd recipes/tracy-profiler
+
+# Run local build test
+python ../../build-locally.py linux64
+----
+
+=== Option 2: Test with rattler-build directly
+
+[source,bash]
+----
+# Build for specific platform
+pixi run rattler-build build --recipe-dir recipes/tracy-profiler --target-platform linux-64
+
+# Test multiple platforms
+pixi run rattler-build build --recipe-dir recipes/tracy-profiler --target-platform linux-64,osx-64,osx-arm64,win-64
+----
+
+=== Option 3: Test from root directory with recipe name
+
+[source,bash]
+----
+# From staged-recipes root
+AZURE=True pixi run python build-locally.py linux64 --recipes tracy-profiler
+----
+
+=== Option 4: Lint and validate
+
+[source,bash]
+----
+# Validate recipe format and conda-forge compliance
+pixi run lint
+----
+
+=== Manual Testing
+
+After successful build, verify the package contains:
+
+* Headers in `include/tracy/` directory
+* Tracy client library
+* CMake configuration files
+* Proper license file placement
+
+Test basic instrumentation:
+
+[source,cpp]
+----
+#include <tracy/Tracy.hpp>
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+void test_function() {
+    ZoneScoped; // Profile this function
+
+    // Simulate some work
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    {
+        ZoneScopedN("Inner Work"); // Named zone
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
+int main() {
+    std::cout << "Tracy instrumentation test\n";
+
+    for (int i = 0; i < 5; ++i) {
+        test_function();
+    }
+
+    std::cout << "Test completed successfully\n";
+    return 0;
+}
+----
+
+Compile test:
+
+[source,bash]
+----
+# With CMake
+cmake_minimum_required(VERSION 3.10)
+project(tracy_test)
+
+find_package(tracy REQUIRED)
+add_executable(tracy_test test.cpp)
+target_link_libraries(tracy_test tracy::tracy)
+target_compile_definitions(tracy_test PRIVATE TRACY_ENABLE)
+
+# Build and run
+mkdir build && cd build
+cmake ..
+make
+./tracy_test
+----
+
+== Profiler GUI
+
+This package only provides the client library for instrumenting applications. To view profiling data, you need the Tracy profiler GUI application, which should be available as a separate package or can be built from the same source.
+
+== Performance Impact
+
+Tracy is designed to have minimal performance impact when enabled:
+
+* Typically less than 1% overhead in most applications
+* Can be completely disabled at compile time
+* Supports on-demand profiling to reduce overhead further
+
+[NOTE]
+====
+Tracy profiling can be completely disabled at compile time by not defining `TRACY_ENABLE`. This allows you to keep instrumentation in your code without any runtime overhead in release builds.
+====
+
+== Use Cases
+
+Tracy is commonly used for:
+
+* Game engine profiling
+* Real-time application optimization
+* Performance analysis of multi-threaded applications
+* GPU workload analysis
+* Memory allocation tracking
+* Lock contention analysis
+
+== Maintainers
+
+* Recipe maintainer information will be added upon feedstock creation
+
+== Related Packages
+
+* `tracy-profiler-client-python`: Python bindings for Tracy
+* Future: `tracy-gui` (profiler viewer application)
+* Performance analysis and debugging tools in conda-forge
