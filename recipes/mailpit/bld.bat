@@ -1,6 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Patch package.json to remove Unix-style MINIFY syntax for Windows compatibility
+powershell -Command "(Get-Content package.json) -replace 'MINIFY=true node', 'node' | Set-Content package.json"
+if errorlevel 1 exit 1
+
 REM Build the web UI
 call npm install
 if errorlevel 1 exit 1
