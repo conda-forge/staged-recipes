@@ -1,0 +1,26 @@
+@echo off
+setlocal enabledelayedexpansion
+
+REM Build the web UI
+call npm install
+if errorlevel 1 exit 1
+
+call npm run build
+if errorlevel 1 exit 1
+
+REM Build the main mailpit binary
+go build -v -trimpath -buildmode=pie ^
+    -ldflags="-s -w -X 'github.com/axllent/mailpit/config.Version=%PKG_VERSION%'" ^
+    -o "%LIBRARY_BIN%\mailpit.exe"
+if errorlevel 1 exit 1
+
+REM Build the sendmail binary
+cd sendmail
+if errorlevel 1 exit 1
+
+go build -v -trimpath -buildmode=pie ^
+    -ldflags="-s -w" ^
+    -o "%LIBRARY_BIN%\mailpit-sendmail.exe"
+if errorlevel 1 exit 1
+
+exit 0
