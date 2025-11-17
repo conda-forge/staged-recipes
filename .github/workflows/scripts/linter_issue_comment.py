@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 
 import github
 
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     pr = repo.get_pull(args.pr_num)
 
     if pr.state == "closed" or pr.merged == True:
-        return
+        sys.exit(0)
 
     commit = repo.get_commit(pr.head.sha)
 
