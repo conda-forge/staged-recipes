@@ -18,7 +18,7 @@ if __name__ == "__main__":
     repo = gh.get_repo(f"{args.owner}/staged-recipes")
     pr = repo.get_pull(args.pr_num)
 
-    if pr.state == "closed" or pr.merged = True:
+    if pr.state == "closed" or pr.merged == True:
         return
 
     commit = repo.get_commit(pr.head.sha)
