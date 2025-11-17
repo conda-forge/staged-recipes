@@ -1,0 +1,162 @@
+# ref: https://github.com/conda-forge/scikit-learn-feedstock/blob/main/recipe/meta.yaml
+{% set name = "scikit-plots" %}  # Name of the package (e.g., "scikit-plots")
+{% set version = "0.4.0" %}  # Version of the package with suffix (e.g., "0.4.0")
+{% set tag = "" %}  # Sometimes used to match PyPI releases with suffix (e.g., "v0.4.0.postN")
+# {% set tag = "v" ~ version if version.startswith("v") else version ~ suffix %}  # ensure full tag starts with 'v' (e.g., 'v0.4.0', 'v0.4.0.postN')
+
+{% if CI is not defined %}{% set CI=False %}{% endif %}
+# (Optional) Update the numpy value here to the most recent released version
+# when updating to a new scipy feature release; override default pins
+# {% set numpy = "2.2.1" %}
+# {% set numpy_minor = numpy.split(".")[1] | int %}
+# ensure is_freethreading gets detected as a used variable
+# [is_freethreading]
+
+package:
+  name: {{ name|lower }}  # (e.g., "scikit-plots")
+  version: {{ version }}  # (e.g., "0.4.0", "0.4.0.postN")
+
+source:
+  # original source URL: https://github.com/scikit-plots/scikit-plots/archive/refs/tags/v0.4.0.tar.gz
+  # url: https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.tar.gz
+  url: https://github.com/{{ name }}/{{ name }}/archive/{{ "v" ~ version }}{{ tag }}.tar.gz
+  # curl -L https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.tar.gz | sha256sum
+  sha256: 715b1ca1b65ff966b05f8fd9bc2537515f8096fe9948da674518e597c36b5ac1
+
+build:
+  number: 0
+  skip: true  # [py<38]
+  # skip: true  # [python_impl == "pypy"]
+  # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors
+  # script: {{ PYTHON }} -m pip install . -vv
+  # script: build-cxx.sh  # [unix]
+  # script: bld-cxx.bat  # [win]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - meson                                  # [build_platform != target_platform]
+    - ninja                                  # [build_platform != target_platform]
+    - meson-python                           # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - pybind11                               # [build_platform != target_platform]
+    - pythran                                # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - scipy                                  # [build_platform != target_platform]
+    - pkg-config                             # [build_platform != target_platform]
+    - cmake                                  # [build_platform != target_platform]
+    - clang                                  # [win]
+    - llvm-openmp                            # [osx]
+    - libgomp                                # [linux]
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    # - patchelf
+  host:
+    - libblas
+    - libcblas
+    - liblapack
+    - pkg-config
+    - python
+    - pip
+    - python-build
+    - meson
+    - ninja
+    - meson-python
+    - cython
+    - pybind11
+    - pythran
+    - numpy
+    - scipy
+    - joblib >=1.2.0
+    - threadpoolctl >=3.1.0
+    # - scipy >=1.6.0  # [not aarch64]
+    # - scipy >=1.8  # [aarch64]
+    # See https://github.com/conda-forge/openmp-feedstock/issues/126
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]  
+  run:
+    - python
+    # numpy's run-export only requires <3 because not every package
+    # is exposed as deeply to its ABI. scipy however only supports
+    # the two next minor versions after the numpy we build against, see
+    # https://scipy.github.io/devdocs/dev/core-dev/index.html#version-ranges-for-numpy-and-other-dependencies
+    # - numpy <2.{{ numpy_minor + 3 }}
+    # double-check lower bound from
+    # https://github.com/scipy/scipy/blob/v{{ version }}/pyproject.toml#L55
+    - numpy
+    - scipy
+    - pandas >=1.2.0
+    - matplotlib-base >=3.4,!=3.6.1
+    - joblib >=1.2.0
+    - threadpoolctl >=3.1.0
+    - importlib-metadata  # [py<310]
+    - scikit-learn >=1.3.0rc1
+    - pillow >=6.2.0
+    - aggdraw >=1.3.11  # [sys_platform != "emscripten"]
+    ## [not (platform_system == "Emscripten" and (platform_machine == "wasm32" or platform_machine == "wasm64"))]
+
+test:
+  requires:
+    - pip
+    - pytest
+    - hypothesis
+  imports:
+    - scikitplot
+  commands:
+    # - pip check
+    - python -c "import scikitplot; scikitplot.show_config()"
+
+# https://github.com/conda-forge/matplotlib-feedstock/blob/main/recipe/meta.yaml#L104
+# https://github.com/QuantumMisaka/abacus-feedstock-conda/blob/main/recipe/meta.yaml
+about:
+  # The doc_url and dev_url are optional.
+  home: https://scikit-plots.github.io/dev
+  doc_url: https://scikit-plots.github.io/dev
+  dev_url: https://github.com/scikit-plots/scikit-plots
+  # https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file
+  license_url: https://scikit-plots.github.io/dev/project/license.html
+  # https://spdx.org/licenses
+  license: BSD-3-Clause AND MIT AND Apache-2.0 AND GPL-3.0-only
+  # https://github.com/conda/conda-build/blob/main/conda_build/license_family.py
+  license_family: BSD
+  # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
+  license_file:
+    - LICENSE.txt    
+    - LICENSES/  # folder
+    # - LICENSE_NumCpp
+    # - LICENSE_annoy
+    # - LICENSE_appdirs
+    # - LICENSE_array-api-compat
+    # - LICENSE_array-api-extra
+    # - LICENSE_astropy
+    # - LICENSE_boost-math
+    # - LICENSE_husl
+    # - LICENSE_kds
+    # - LICENSE_matplotlib
+    # - LICENSE_modelplotpy
+    # - LICENSE_mpl-probscale
+    # - LICENSE_numpydoc
+    # - LICENSE_packaging
+    # - LICENSE_scikit-learn
+    # - LICENSE_scikit-plot
+    # - LICENSE_scikit-plots
+    # - LICENSE_scipy
+    # - LICENSE_seaborn
+    # - LICENSE_tweedie
+    # - LICENSE_visualkeras
+  summary: |-
+    scikit-plots: Machine Learning Visualization in Python
+  description: |-
+    An intuitive library that seamlessly adds plotting capabilities and functionality
+    to any model objects or outputs, compatible with tools like scikit-learn, XGBoost,
+    TensorFlow, and more.
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - celik-muhammed
+  feedstock-name: scikit-plots
