@@ -21,7 +21,7 @@ cmake --build . --config Release
 if errorlevel 1 exit 1
 
 REM Test step
-ctest
+ctest --output-on-failure
 if errorlevel 1 exit 1
 
 REM Install step
