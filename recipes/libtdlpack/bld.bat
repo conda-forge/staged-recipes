@@ -20,6 +20,10 @@ REM Build step
 cmake --build . --config Release
 if errorlevel 1 exit 1
 
+REM Test step
+ctest
+if errorlevel 1 exit 1
+
 REM Install step
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
