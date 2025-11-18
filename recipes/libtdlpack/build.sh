@@ -28,10 +28,12 @@ cmake -G "${CMAKE_GENERATOR}" \
       -DBUILD_SHARED_LIBS=ON \
       -DBUILD_STATIC_LIBS=OFF \
       "${SRC_DIR}"
-make
-make install
 
-# Skip ctest when cross-compiling
-#if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR:-}" != "" ]]; then
-#  ctest -VV --output-on-failure -j"${CPU_COUNT}" --exclude-from-file "tests-to-exclude.txt"
-#fi
+# Build
+make
+
+# Test
+ctest -VV --output-on-failure -j"${CPU_COUNT}"
+
+# Install
+make install
