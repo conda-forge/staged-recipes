@@ -1,34 +1,22 @@
-name: staged-recipes linter
+name: rerun staged-recipes linter on issue comments
 
 on:
-  # this workflow requires access to a read-only github token
-  # and potentially runs untrusted code via python's `eval`
-  # thus we can only run it on pull_request events so that the
-  # the token does not have any write permissions
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - labeled
-      - unlabeled
+  issue_comment: null
 
 permissions:
-  actions: read
-  checks: read
   contents: read
-  issues: read
-  pull-requests: read
-  statuses: read
+  checks: write
+  actions: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  linter:
-    name: linter
+  rerun-linter:
+    name: rerun linter
     runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
     defaults:
       run:
         shell: bash -leo pipefail {0}
@@ -47,16 +35,12 @@ jobs:
             channels:
               - conda-forge
           create-args: >-
-            conda-smithy
             pygithub
-            requests
-            pixi
 
-      - name: lint
+      - name: rerun linter
         run: |
-          python .github/workflows/scripts/linter.py \
+          python .github/workflows/scripts/linter_issue_comment.py \
             --owner=${{ github.repository_owner }} \
-            --pr-num=${{ github.event.number }} \
-          >> $GITHUB_STEP_SUMMARY
+            --pr-num=${{ github.event.issue.number  }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
