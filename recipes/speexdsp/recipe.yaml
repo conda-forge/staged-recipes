@@ -13,15 +13,25 @@ source:
 
 build:
   number: 0
-  script: build.nu
+  script:
+    - if: win
+      then: |
+        cp %RECIPE_DIR%\CMakeLists.txt .\CMakeLists.txt
+        xcopy %RECIPE_DIR%\cmake .\cmake /S /E
+        cmake -GNinja %CMAKE_ARGS% %SRC_DIR%
+      else: |
+        cp $RECIPE_DIR/CMakeLists.txt ./CMakeLists.txt
+        cp -r $RECIPE_DIR/cmake ./cmake
+        cmake -GNinja $CMAKE_ARGS $SRC_DIR
+    - cmake --build . --config Release
+    - cmake --install . --config Releasebuild.nu
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
-    - cmake >=3.15
+    - cmake
     - ninja
-    - nushell >=0.80
     - if: win
       then:
         - vs2022_win-64
@@ -35,26 +45,18 @@ requirements:
         - libgomp >=4.0
 
 tests:
-  - if: linux
-    then:
-      package_contents:
-        files:
-          - lib/libspeexdsp.so*
-          - include/speex/speex_preprocess.h
-          - lib/pkgconfig/speexdsp.pc
-  - if: osx
-    then:
-      package_contents:
-        files:
-          - lib/libspeexdsp.dylib
-          - include/speex/speex_preprocess.h
-          - lib/pkgconfig/speexdsp.pc
-  - if: win
-    then:
-      package_contents:
-        files:
-          - Library/lib/speexdsp.lib
-          - Library/include/speex/speex_preprocess.h
+  - package_contents:
+      lib:
+        - speexdsp
+      include:
+        - speex/speex_preprocess.h
+      files:
+        exists:
+          - ${{ "Library/" if win }}lib/pkgconfig/speexdsp.pc
+          - ${{ "Library/" if win }}lib/cmake/SpeexDSP/SpeexDSPConfig.cmake
+          - ${{ "Library/" if win }}lib/cmake/SpeexDSP/SpeexDSPConfigVersion.cmake
+          - ${{ "Library/" if win }}lib/cmake/SpeexDSP/SpeexDSPTargets.cmake
+          - ${{ "Library/" if win }}lib/pkgconfig/speexdsp.pc
 
 about:
   homepage: https://speex.org/
