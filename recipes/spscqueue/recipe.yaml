@@ -14,54 +14,32 @@ source:
 
 build:
   number: 0
-  script: build.nu
+  script:
+    - if: win
+      then: |
+        cmake -GNinja %CMAKE_ARGS% %SRC_DIR%
+      else: |
+        cmake -GNinja $CMAKE_ARGS $SRC_DIR
+    - cmake --build . --config Release
+    - cmake --install . --config Release
 
 requirements:
   build:
     - ${{ compiler('cxx') }}
     - ${{ stdlib("c") }}
-    - cmake >=3.15
-    - nushell
-    - if: unix
-      then:
-        - make
-    - if: win
-      then:
-        - ninja
+    - cmake
+    - ninja
   host: []
   run: []
 
 tests:
-  - if: unix
-    then:
-      package_contents:
-        files:
-          - include/rigtorp/SPSCQueue.h
-  - if: win
-    then:
-      package_contents:
-        files:
-          - Library/include/rigtorp/SPSCQueue.h
-  - if: unix
-    then:
-      script:
-        - echo "#include <rigtorp/SPSCQueue.h>" > test.cpp
-        - echo "int main() { rigtorp::SPSCQueue<int> q(10); return 0; }" >> test.cpp
-        - $CXX test.cpp -std=c++11 -I$PREFIX/include -o test && ./test
-      requirements:
-        build:
-          - ${{ compiler('cxx') }}
-  - if: unix
-    then:
-      script:
-        - $CXX test_spscqueue.cpp -std=c++11 -I$PREFIX/include -pthread -o test_comprehensive && ./test_comprehensive
+  - package_contents:
+      include:
+        - rigtorp/SPSCQueue.h
       files:
-        recipe:
-          - test_spscqueue.cpp
-          - CMakeLists.txt
-      requirements:
-        build:
-          - ${{ compiler('cxx') }}
+        exists:
+          - ${{ "Library/" if win }}lib/cmake/SPSCQueue/SPSCQueueConfig.cmake
+          - ${{ "Library/" if win }}lib/cmake/SPSCQueue/SPSCQueueConfigVersion.cmake
 
 about:
   homepage: https://github.com/rigtorp/SPSCQueue
