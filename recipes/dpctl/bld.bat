@@ -1,3 +1,7 @@
+REM A workaround for activate-dpcpp.bat issue to be addressed in 2021.4
+set "LIB=%BUILD_PREFIX%\Library\lib;%BUILD_PREFIX%\compiler\lib;%LIB%"
+set "INCLUDE=%BUILD_PREFIX%\include;%INCLUDE%"
+
 "%PYTHON%" setup.py clean --all
 
 REM useful for building in resources constrained VMs (public CI)
