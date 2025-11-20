@@ -7,6 +7,20 @@ set "INCLUDE=%BUILD_PREFIX%\include;%INCLUDE%"
 REM useful for building in resources constrained VMs (public CI)
 set "CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=FALSE"
 
+REM Try to detect SYCL resource/include dir from icpx
+for /f "usebackq delims=" %%R in (`icpx --print-resource-dir 2^>NUL`) do (
+  set "SYCL_RESOURCE_DIR=%%R"
+)
+
+if defined SYCL_RESOURCE_DIR (
+  if exist "%SYCL_RESOURCE_DIR%\include" (
+    set "SYCL_INCLUDE_DIR_HINT=%SYCL_RESOURCE_DIR%"
+  )
+)
+
+set "CC=icx"
+set "CXX=icx"
+
 set "CMAKE_GENERATOR=Ninja"
 :: Make CMake verbose
 set "VERBOSE=1"
