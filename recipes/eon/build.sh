@@ -5,4 +5,4 @@ python -m pip install . -vv --no-deps --no-build-isolation
 
 # client 
 cd client
-make
+make NO_FORTRAN=1
