@@ -14,6 +14,11 @@ cmake .. \
     -DUSE_CUDA=OFF \
     -DBUILD_EXAMPLES=OFF
 make -j${CPU_COUNT}
+
+# Build and run C++ tests
+make cpptest -j${CPU_COUNT}
+ctest --output-on-failure
+
 cd ..
 
 # Install the Python bindings
