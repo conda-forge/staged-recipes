@@ -2,6 +2,9 @@
 
 set -ex
 
+# Initialize git submodules (needed for dlpack and dmlc-core)
+git submodule update --init --recursive
+
 # Build the C++ library
 mkdir -p build
 cd build
