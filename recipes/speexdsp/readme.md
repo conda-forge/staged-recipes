@@ -6,3 +6,5 @@ https://conda-forge.org/docs/maintainer/knowledge_base/#moving-from-an-autotools
 
 While there is tooling to make autotools work on Windows, 
 I have found reworking the project to use CMake regardless of platform is clearer and gives consistent builds.
+There is an outstanding pull request to upstream to add CMake support.
+https://github.com/xiph/speexdsp/pull/53/files

@@ -254,16 +254,14 @@ install(FILES "${CMAKE_BINARY_DIR}/include/speex/speexdsp_config_types.h"
 )
 
 # Create and install pkg-config file
-if(NOT WIN32)
-    configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/speexdsp.pc.in"
-        "${CMAKE_BINARY_DIR}/speexdsp.pc"
-        @ONLY
-    )
-    install(FILES "${CMAKE_BINARY_DIR}/speexdsp.pc"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-    )
-endif()
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/speexdsp.pc.in"
+    "${CMAKE_BINARY_DIR}/speexdsp.pc"
+    @ONLY
+)
+install(FILES "${CMAKE_BINARY_DIR}/speexdsp.pc"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
 
 # Export configuration
 install(EXPORT SpeexDSPTargets
