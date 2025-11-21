@@ -1,0 +1,109 @@
+# This recipe is adapted from https://github.com/conda-forge/sam-2-feedstock/blob/main/recipe/meta.yaml by hmaarrfk
+{% set git_hash_date = "20251119" %}
+{% set git_hash = "84cc43bca4347b772f17d1078a1ddb4c054655c2" %}
+# They claim version 1.0 but they don't really release anything on pypi
+# giswqs -- 2025/11
+{% set version = "1.0.0." + git_hash_date %}
+
+package:
+  name: sam-3
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/sam3/archive/{{ git_hash }}.tar.gz
+  sha256: b50d5f85bc57f13ef8c1b7fe485688bc0f76f58d18078ce9b505acb3bcfa408b
+  patches:
+    - 216_be_compatible_with_cpu_only.patch
+
+{% set build = 0 %}
+{% set build = build + 300 %}  # [cuda_compiler_version != "None"]
+
+build:
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  script:
+    # Ensure to add PTX at the end, always
+    - set TORCH_CUDA_ARCH_LIST=5.0;6.0;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX              # [cuda_compiler_version != "None" and win]
+    - set CUDA_TOOLKIT_ROOT_DIR=%PREFIX%                                                  # [cuda_compiler_version != "None" and win]
+    - export export TORCH_CUDA_ARCH_LIST="5.0;6.0;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"  # [cuda_compiler_version != "None" and unix]
+    - export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"                                            # [cuda_compiler_version != "None" and unix]
+    - set sam3_BUILD_ALLOW_ERRORS=0                                                       # [cuda_compiler_version != "None" and win]
+    - set FORCE_CUDA=1                                                                    # [cuda_compiler_version != "None" and win]
+    - export sam3_BUILD_ALLOW_ERRORS=0                                                    # [cuda_compiler_version != "None" and unix]
+    - export FORCE_CUDA=1                                                                 # [cuda_compiler_version != "None" and unix]
+    - python -m pip install . -vv
+  number: {{ build }}
+  skip: true      # [py<310]
+  skip: true      # [cuda_compiler_version == "11.8"]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - pytorch                                # [build_platform != target_platform]
+    - {{ stdlib('c') }}                      # [cuda_compiler_version != "None"]
+    - {{ compiler('c') }}                    # [cuda_compiler_version != "None"]
+    - {{ compiler('cxx') }}                  # [cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+    - ninja                                  # [cuda_compiler_version != "None"]
+    - libcublas-dev                          # [build_platform != target_platform and cuda_compiler_version != "None"]
+    - libcusolver-dev                        # [build_platform != target_platform and cuda_compiler_version != "None"]
+    - libcusparse-dev                        # [build_platform != target_platform and cuda_compiler_version != "None"]
+    - cuda-cudart-dev                        # [build_platform != target_platform and cuda_compiler_version != "None"]
+  host:
+    - python
+    - pip
+    - setuptools
+    - pytorch
+    - libtorch *=cpu*                        # [cuda_compiler_version == "None"]
+    - libtorch *=cuda*                       # [cuda_compiler_version != "None"]
+    - libcublas-dev                          # [cuda_compiler_version != "None"]
+    - libcusolver-dev                        # [cuda_compiler_version != "None"]
+    - libcusparse-dev                        # [cuda_compiler_version != "None"]
+    - cuda-cudart-dev                        # [cuda_compiler_version != "None"]
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+  run:
+    - python
+    - hydra-core >=1.3.2
+    - pytorch
+    - libtorch *=cpu*                        # [cuda_compiler_version == "None"]
+    - libtorch *=cuda*                       # [cuda_compiler_version != "None"]
+    - timm >=1.0.17
+    - numpy
+    - tqdm
+    - ftfy y==6.1.1
+    - regex
+    - iopath >=0.1.10
+    - typing_extensions
+    - huggingface_hub
+    # avoid that people without GPUs needlessly download ~0.5-1GB
+    - __cuda                                 # [cuda_compiler_version != "None"]
+  run_constrained:
+    - pytorch >=2.3.1
+    - sam3 >=1.0.0
+
+test:
+  imports:
+    - sam3
+  requires:
+    - pip
+  commands:
+    - pip check
+    # Tests that cuda compilation worked for the expected output
+    - test -f ${SP_DIR}/sam3/_C.so              # [linux and cuda_compiler_version != "None"]
+    - if not exist %SP_DIR%\sam3\_C.pyd exit 1  # [win and cuda_compiler_version != "None"]
+
+about:
+  home: https://github.com/facebookresearch/sam3
+  summary: 'SAM 3: Segment Anything with Concepts'
+  description: |
+    SAM 3 is a unified foundation model for promptable segmentation in images and videos. 
+    It can detect, segment, and track objects using text or visual prompts such as points, 
+    boxes, and masks.
+  license: SAM License
+  license_family: SAM License
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - giswqs
