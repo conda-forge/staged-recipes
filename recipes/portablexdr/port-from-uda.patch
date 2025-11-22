@@ -1,0 +1,368 @@
+--- a/rpc/types.h
++++ b/rpc/types.h
+@@ -67,7 +67,7 @@
+ #ifdef __CYGWIN32__
+ #include <time.h>
+ #endif
+-#include <sys/time.h>
++//#include <sys/time.h>
+
+ #ifndef INADDR_LOOPBACK
+ #define       INADDR_LOOPBACK         (u_long)0x7F000001
+--- a/rpc/xdr.h
++++ b/rpc/xdr.h
+@@ -38,6 +38,8 @@
+ #ifndef __XDR_HEADER__
+ #define __XDR_HEADER__
+
++#include <stdio.h>
++
+ /*
+  * XDR provides a conventional way for converting between C data
+  * types and an external bit-string representation.  Library supplied
+@@ -87,33 +89,30 @@
+ 		    * BYTES_PER_XDR_UNIT)
+
+ /*
+- * A xdrproc_t exists for each data type which is to be encoded or decoded.
+- *
+- * The second argument to the xdrproc_t is a pointer to an opaque pointer.
+- * The opaque pointer generally points to a structure of the data type
+- * to be decoded.  If this pointer is 0, then the type routines should
+- * allocate dynamic storage of the appropriate size and return it.
+- * bool_t	(*xdrproc_t)(XDR *, caddr_t *);
+- */
+-typedef	bool_t (*xdrproc_t)();
+-
+-/*
+  * The XDR handle.
+  * Contains operation which is being applied to the stream,
+  * an operations vector for the paticular implementation (e.g. see xdr_mem.c),
+  * and two private fields for the use of the particular impelementation.
+  */
+-typedef struct {
++typedef struct __rpc_xdr {
+ 	enum xdr_op	x_op;		/* operation; fast additional param */
+ 	struct xdr_ops {
+-		bool_t	(*x_getlong)();	/* get a long from underlying stream */
+-		bool_t	(*x_putlong)();	/* put a long to " */
+-		bool_t	(*x_getbytes)();/* get some bytes from " */
+-		bool_t	(*x_putbytes)();/* put some bytes to " */
+-		u_int	(*x_getpostn)();/* returns bytes off from beginning */
+-		bool_t  (*x_setpostn)();/* lets you reposition the stream */
+-		long *	(*x_inline)();	/* buf quick ptr to buffered data */
+-		void	(*x_destroy)();	/* free privates of this xdr_stream */
++		/* get a long from underlying stream */
++		bool_t	(*x_getlong)(struct __rpc_xdr *, long *);
++		/* put a long to " */
++		bool_t	(*x_putlong)(struct __rpc_xdr *, const long *);
++		/* get some bytes from " */
++		bool_t	(*x_getbytes)(struct __rpc_xdr *, char *, u_int);
++		/* put some bytes to " */
++		bool_t	(*x_putbytes)(struct __rpc_xdr *, const char *, u_int);
++		/* returns bytes off from beginning */
++		u_int	(*x_getpostn)(struct __rpc_xdr *);
++		/* lets you reposition the stream */
++		bool_t  (*x_setpostn)(struct __rpc_xdr *, u_int);
++		/* buf quick ptr to buffered data */
++		int32_t *(*x_inline)(struct __rpc_xdr *, u_int);
++		/* free privates of this xdr_stream */
++		void	(*x_destroy)(struct __rpc_xdr *);
+ 	} *x_ops;
+ 	caddr_t 	x_public;	/* users' data */
+ 	caddr_t		x_private;	/* pointer to private data */
+@@ -122,6 +121,19 @@
+ } XDR;
+
+ /*
++ * A xdrproc_t exists for each data type which is to be encoded or decoded.
++ *
++ * The second argument to the xdrproc_t is a pointer to an opaque pointer.
++ * The opaque pointer generally points to a structure of the data type
++ * to be decoded.  If this pointer is 0, then the type routines should
++ * allocate dynamic storage of the appropriate size and return it.
++ * bool_t	(*xdrproc_t)(XDR *, caddr_t *);
++ *
++ * XXX can't actually prototype it, because some take three args!!!
++ */
++typedef	bool_t (*xdrproc_t)(XDR *, ...);
++
++/*
+  * Operations defined on a XDR handle
+  *
+  * XDR		*xdrs;
+@@ -221,28 +233,34 @@
+ /*
+  * These are the "generic" xdr routines.
+  */
+-extern bool_t	xdr_void();
+-extern bool_t	xdr_int();
+-extern bool_t	xdr_u_int();
+-extern bool_t	xdr_long();
+-extern bool_t	xdr_u_long();
+-extern bool_t	xdr_short();
+-extern bool_t	xdr_u_short();
+-extern bool_t	xdr_bool();
+-extern bool_t	xdr_enum();
+-extern bool_t	xdr_array();
+-extern bool_t	xdr_bytes();
+-extern bool_t	xdr_opaque();
+-extern bool_t	xdr_string();
+-extern bool_t	xdr_union();
+-extern bool_t	xdr_char();
+-extern bool_t	xdr_u_char();
+-extern bool_t	xdr_vector();
+-extern bool_t	xdr_float();
+-extern bool_t	xdr_double();
+-extern bool_t	xdr_reference();
+-extern bool_t	xdr_pointer();
+-extern bool_t	xdr_wrapstring();
++#ifdef __cplusplus
++extern "C" {
++#endif
++extern bool_t	xdr_void(void);
++extern bool_t	xdr_int(XDR *, int *);
++extern bool_t	xdr_u_int(XDR *, u_int *);
++extern bool_t	xdr_long(XDR *, long *);
++extern bool_t	xdr_u_long(XDR *, u_long *);
++extern bool_t	xdr_short(XDR *, short *);
++extern bool_t	xdr_u_short(XDR *, u_short *);
++extern bool_t	xdr_bool(XDR *, bool_t *);
++extern bool_t	xdr_enum(XDR *, enum_t *);
++extern bool_t	xdr_array(XDR *, char **, u_int *, u_int, u_int, xdrproc_t);
++extern bool_t	xdr_bytes(XDR *, char **, u_int *, u_int);
++extern bool_t	xdr_opaque(XDR *, char *, u_int);
++extern bool_t	xdr_string(XDR *, char **, u_int);
++extern bool_t	xdr_union(XDR *, enum_t *, char *, const struct xdr_discrim *, xdrproc_t);
++extern bool_t	xdr_char(XDR *, char *);
++extern bool_t	xdr_u_char(XDR *, u_char *);
++extern bool_t	xdr_vector(XDR *, char *, u_int, u_int, xdrproc_t);
++extern bool_t	xdr_float(XDR *, float *);
++extern bool_t	xdr_double(XDR *, double *);
++extern bool_t	xdr_reference(XDR *, char **, u_int, xdrproc_t);
++extern bool_t	xdr_pointer(XDR *, char **, u_int, xdrproc_t);
++extern bool_t	xdr_wrapstring(XDR *, char **);
++#ifdef __cplusplus
++}
++#endif
+
+ /*
+  * Common opaque bytes objects used by many rpc protocols;
+@@ -254,23 +272,49 @@
+ 	char	*n_bytes;
+ };
+ typedef struct netobj netobj;
+-extern bool_t   xdr_netobj();
++extern bool_t   xdr_netobj(XDR *, struct netobj *);
+
+ /*
+  * These are the public routines for the various implementations of
+  * xdr streams.
+  */
+-extern void   xdrmem_create();		/* XDR using memory buffers */
+-extern void   xdrstdio_create();	/* XDR using stdio library */
+-extern void   xdrrec_create();		/* XDR pseudo records for tcp */
+-extern bool_t xdrrec_endofrecord();	/* make end of xdr record */
+-extern bool_t xdrrec_skiprecord();	/* move to beginning of next record */
+-extern bool_t xdrrec_eof();		/* true if no more input */
++#ifdef __cplusplus
++extern "C" {
++#endif
++/* XDR using memory buffers */
++extern void   xdrmem_create(XDR *, char *, u_int, enum xdr_op);
+
++/* XDR using stdio library */
++extern void   xdrstdio_create(XDR *, FILE *, enum xdr_op);
++
++/* XDR pseudo records for tcp */
++extern void   xdrrec_create(XDR *, u_int, u_int, void *,
++			    int (*)(void *, void *, int),
++			    int (*)(void *, void *, int));
++
++/* make end of xdr record */
++extern bool_t xdrrec_endofrecord(XDR *, int);
++
++/* move to beginning of next record */
++extern bool_t xdrrec_skiprecord(XDR *);
++
++/* true if no more input */
++extern bool_t xdrrec_eof(XDR *);
++#ifdef __cplusplus
++}
++#endif
++
++#ifdef __cplusplus
++extern "C" {
++#endif
+ /* RWMJ */
+ extern void xdr_free (xdrproc_t, char *);
+ extern bool_t xdr_uint64_t (XDR *xdrs, uint64_t *uip);
+ extern bool_t xdr_int64_t (XDR *xdrs, int64_t *uip);
++#ifdef __cplusplus
++}
++#endif
++
+
+ #define xdr_u_quad_t xdr_uint64_t
+ #define xdr_quad_t xdr_int64_t
+--- a/xdr.c
++++ b/xdr.c
+@@ -45,8 +45,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ /*
+  * constants specific to the xdr "protocol"
+@@ -252,7 +252,7 @@
+ bool_t
+ xdr_u_char(xdrs, cp)
+ 	XDR *xdrs;
+-	char *cp;
++	u_char *cp;
+ {
+ 	u_int u;
+
+@@ -457,7 +457,7 @@
+ 	register XDR *xdrs;
+ 	enum_t *dscmp;		/* enum to decide which arm to work on */
+ 	char *unp;		/* the union itself */
+-	struct xdr_discrim *choices;	/* [value, xdr proc] for each arm */
++	const struct xdr_discrim *choices;	/* [value, xdr proc] for each arm */
+ 	xdrproc_t dfault;	/* default xdr routine */
+ {
+ 	register enum_t dscm;
+--- a/xdr_array.c
++++ b/xdr_array.c
+@@ -44,8 +44,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ #define LASTUNSIGNED	((u_int)0-1)
+
+--- a/xdr_float.c
++++ b/xdr_float.c
+@@ -43,12 +43,12 @@
+
+ #include <stdio.h>
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+-#if defined(__CYGWIN32__) || defined(__MINGW32__)
+-#define vax
+-#endif
++//#if defined(__CYGWIN32__) || defined(__MINGW32__)
++//#define vax
++//#endif
+
+ /*
+  * NB: Not portable.
+@@ -232,7 +232,7 @@
+ 		id.sign = vd.sign;
+ 		lp = (long *)(void *)&id;
+ #endif
+-#if defined(__CYGWIN32__) || defined(__MINGW32__)
++#if defined(__CYGWIN32__) || defined(__MINGW32__) || defined(_WIN32)
+ 		return (XDR_PUTLONG(xdrs, lp+1) && XDR_PUTLONG(xdrs, lp));
+ #else
+ 		return (XDR_PUTLONG(xdrs, lp++) && XDR_PUTLONG(xdrs, lp));
+@@ -241,7 +241,7 @@
+ 	case XDR_DECODE:
+ #if !defined(vax)
+ 		lp = (long *)dp;
+-#if defined(__CYGWIN32__) || defined(__MINGW32__)
++#if defined(__CYGWIN32__) || defined(__MINGW32__) || defined(_WIN32)
+ 		return (XDR_GETLONG(xdrs, lp+1) && XDR_GETLONG(xdrs, lp));
+ #else
+ 		return (XDR_GETLONG(xdrs, lp++) && XDR_GETLONG(xdrs, lp));
+--- a/xdr_intXX_t.c
++++ b/xdr_intXX_t.c
+@@ -17,8 +17,8 @@
+    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+    02111-1307 USA.  */
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ /* XDR 64bit integers */
+ bool_t
+--- a/xdr_mem.c
++++ b/xdr_mem.c
+@@ -50,8 +50,8 @@
+
+ #include <string.h>
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ #include "byteswap.h"
+
+--- a/xdr_rec.c
++++ b/xdr_rec.c
+@@ -58,8 +58,8 @@
+ #include <arpa/inet.h>
+ #endif
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ #include "byteswap.h"
+
+@@ -147,7 +147,7 @@
+ 	register XDR *xdrs;
+ 	register u_int sendsize;
+ 	register u_int recvsize;
+-	caddr_t tcp_handle;
++	void *tcp_handle;
+ 	int (*readit)();  /* like read, but pass it a tcp_handle, not sock */
+ 	int (*writeit)();  /* like write, but pass it a tcp_handle, not sock */
+ {
+--- a/xdr_reference.c
++++ b/xdr_reference.c
+@@ -44,8 +44,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ #define LASTUNSIGNED	((u_int)0-1)
+
+--- a/xdr_stdio.c
++++ b/xdr_stdio.c
+@@ -49,12 +49,12 @@
+ #include <arpa/inet.h>
+ #endif
+
+-#include <rpc/types.h>
+-#include <rpc/xdr.h>
++#include "rpc/types.h"
++#include "rpc/xdr.h"
+
+ #include "byteswap.h"
+
+-#if defined(__CYGWIN32__) || defined(__MINGW32__)
++#if defined(__CYGWIN32__) || defined(__MINGW32__) || defined(_WIN32)
+ #include <stdlib.h>
+ #include <fcntl.h>
+ unsigned int _CRT_fmode = _O_BINARY;
