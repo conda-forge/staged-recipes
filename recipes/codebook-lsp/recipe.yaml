@@ -1,0 +1,51 @@
+context:
+  version: "0.3.14"
+
+package:
+  name: codebook-lsp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/blopker/codebook/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ae213ee0085c61dfc3ea25737e7bd26b4d0a2b127f662e0c516dc6f57b158397
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then: |
+          export CFLAGS="${CFLAGS} -D_BSD_SOURCE"
+          cargo-bundle-licenses --format yaml --output ${SRC_DIR}/THIRDPARTY.yml
+          cargo auditable install --locked --no-track --path ./crates/codebook-lsp --root ${PREFIX}
+        else: |
+          cargo-bundle-licenses --format yaml --output %SRC_DIR%\THIRDPARTY.yml
+          cargo auditable install --locked --no-track --path .\crates\codebook-lsp --root %LIBRARY_PREFIX%
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - codebook-lsp --version
+
+about:
+  homepage: https://github.com/blopker/codebook
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  description: "Spell Checker for Code"
+  summary: "Spell Checker for Code"
+
+extra:
+  recipe-maintainers:
+    - VasanthakumarV
