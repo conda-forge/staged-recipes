@@ -1,0 +1,129 @@
+context:
+  name: UDA
+  version: "2.9.1"
+  username: ukaea
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com//${{ username }}/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 188449998c94d377b8fc3d059b2e979669c2624b0f59f34a1674d5d2ba1b2db2
+  patches:
+    - patches/udaClient.patch
+    - patches/pr-83.patch
+
+build:
+  number: 0
+
+outputs:
+  # Client only (core library)
+  - package:
+      name: libuda-client
+      version: ${{ version }}
+    build:
+      script:
+        - if: unix
+          then: build_core.sh
+        - if: win
+          then: build_core.bat
+      files:
+        include: ["**"]
+        exclude:
+          - ${{ "Library/" if win }}bin/install_plugin
+          - ${{ "Library/" if win }}bin/*.py
+          - ${{ "Library/" if win }}etc/*
+          - ${{ "Library/" if win }}include/uda/c++/*
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-cpp.pc
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-fat-*.pc
+          - ${{ "Library/" if win }}lib/pkgconfig/uda-plugins.pc
+          - ${{ "Library/" if win }}lib/*_static.*
+          - ${{ "Library/" if win }}lib/python*
+          - ${{ "Library/" if win }}java/*
+          - ${{ "Library/" if win }}python_installer/*
+          - ${{ "Library/" if win }}modulefiles/*
+          - if: win
+            then:
+              - Library/bin/uda_cpp.*
+              - Library/bin/uda_jni.*
+              - Library/lib/uda_cpp.*
+              - Library/lib/uda_jni.*
+            else:
+              - lib/libuda_cpp*
+              - lib/libuda_jni*
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - git
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - libxml2-devel 2.14.*
+        - libboost-devel
+        - fmt
+        - openssl
+        - capnproto
+        - python ${{ python_min }}.*
+        - openjdk
+        - if: linux and x86_64
+          then: libtirpc
+        - if: win
+          then:
+            - dlfcn-win32
+            - zlib
+            - portablexdr
+      run:
+        - if: linux and x86_64
+          then: libtirpc
+      ignore_run_exports:
+        from_package:
+          - libxml2-devel
+          - python
+          - if: win
+            then:
+              - zlib
+              - dlfcn-win32
+      run_exports:
+        - ${{ pin_subpackage("libuda-client", upper_bound="x.x") }}
+    tests:
+      - script:
+          - uda_cli --help
+      - package_contents:
+          lib:
+            - uda_client
+            - uda_client2
+            - uda_serialisation
+          bin:
+            - uda_cli
+          include:
+            - uda/uda.h
+            - uda/version.h
+            - uda/logging/accessLog.h
+            - uda/logging/logging.h
+            - uda/structures/*.h
+            - uda/clientserver/*.h
+            - uda/client/*.h
+            - uda/client2/*.h
+            - uda/serialisation/*.h
+          files:
+            - ${{ "Library/" if win }}lib/pkgconfig/uda-client.pc
+
+about:
+  homepage: https://ukaea.github.io/UDA/
+  summary: Universal Data Access (USA) library to provide data over the network in a unified data object.
+  description: |
+    The UDA can be either run as a client-server API, running as thin client with all functionality
+    being handled on a remote server, or as fat-client API where both the client access and plugin
+    functionality is run on the local machine.
+  license: Apache-2.0
+  license_file: LICENCE.txt
+  documentation: https://ukaea.github.io/UDA/
+  repository: https://github.com/ukaea/UDA
+
+extra:
+  feedstock-name: uda
+  recipe-maintainers:
+    - munechika-koyo

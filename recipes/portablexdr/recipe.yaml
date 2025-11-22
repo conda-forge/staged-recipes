@@ -1,0 +1,72 @@
+context:
+  name: portablexdr
+  version: "4.9.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://people.redhat.com/~rjones/${{ name }}/files/${{ name }}-${{ version }}.tar.gz
+  sha256: 5cf4bdd153cf4d44eaf10b725f451d0cfadc070b4b9a9ccfb64094b8f78de72c
+  patches:
+    # Apply patches below which were originally from UDA repository
+    # to fix build issues on Windows and CMake support.
+    # See https://github.com/ukaea/UDA/tree/main/extlib/portablexdr-4.9.1
+    - add-cmake-support.patch
+    - port-from-uda.patch
+
+build:
+  number: 0
+  skip:
+    - unix
+  script:
+    - if: win
+      then: |
+        cmake %CMAKE_ARGS% ^
+          -G Ninja ^
+          -D BUILD_SHARED_LIBS=ON ^
+          -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
+          -B build -S . || exit /b 1
+
+        cmake --build build --target install || exit /b 1
+      else: |
+        cmake ${CMAKE_ARGS} \
+          -D BUILD_SHARED_LIBS=ON \
+          -B build -S .
+
+        cmake --build build --target install
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage('portablexdr', exact=True) }}
+
+tests:
+  - package_contents:
+      lib:
+        - xdr
+      include:
+        - rpc/config.h
+        - rpc/rpc.h
+        - rpc/types.h
+        - rpc/xdr.h
+
+about:
+  homepage: https://people.redhat.com/~rjones/portablexdr/
+  summary: external data representation (XDR) library
+  description: |
+    External Data Representation (XDR) is a technical standard format for data serialization, for uses such as computer network protocols.
+    It allows data to be transferred between different kinds of computer systems.
+  license: LGPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://people.redhat.com/~rjones/portablexdr/
+  repository: http://git.annexia.org/git/portablexdr.git
+
+extra:
+  recipe-maintainers:
+    - munechika-koyo
