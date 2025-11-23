@@ -7,7 +7,7 @@ cd build
 
 cmake .. ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DUSE_OPENMP=ON ^
     -G "NMake Makefiles"
 
