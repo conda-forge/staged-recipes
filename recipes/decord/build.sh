@@ -9,11 +9,12 @@ rm -rf 3rdparty/dlpack
 # Build the C++ library
 mkdir -p build
 cd build
-cmake .. \
+cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DUSE_CUDA=OFF \
-    -DBUILD_EXAMPLES=OFF
+    -DBUILD_EXAMPLES=OFF \
+    ..
 make -j${CPU_COUNT}
 
 # Note: C++ tests (cpptest) have linking issues in v0.6.0,
