@@ -1,0 +1,46 @@
+From 35c87a6ecfb31e6561d3b133253841337b65b974 Mon Sep 17 00:00:00 2001
+From: Weisu Yin <wyin@ucdavis.edu>
+Date: Wed, 14 Jul 2021 14:31:59 -0700
+Subject: [PATCH 2/7] fix mem leak (#167)
+
+* fix mem leak
+
+* fix wrongly released ptr
+
+* fix format
+---
+ src/audio/audio_reader.cc | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/audio/audio_reader.cc b/src/audio/audio_reader.cc
+index ee1d87e..be706f1 100644
+--- a/src/audio/audio_reader.cc
++++ b/src/audio/audio_reader.cc
+@@ -209,10 +209,12 @@ namespace decord {
+         DrainDecoder(pCodecContext, pFrame);
+         // clean up
+         av_frame_free(&pFrame);
++        av_packet_free(&pPacket);
+         avcodec_close(pCodecContext);
+         swr_close(swr);
+         swr_free(&swr);
+         avcodec_free_context(&pCodecContext);
++        avformat_close_input(&pFormatContext);
+     }
+ 
+     void AudioReader::HandleFrame(AVCodecContext *pCodecContext, AVFrame *pFrame) {
+@@ -248,7 +250,10 @@ namespace decord {
+             totalConvertedSamplesPerChannel += gotSamples;
+             SaveToVector(outBuffer, outNumChannels, gotSamples);
+         }
+-        // Convert to NDArray
++        if (outBuffer) {
++            av_freep(&outBuffer[0]);
++        }
++        av_freep(&outBuffer);
+     }
+ 
+     void AudioReader::DrainDecoder(AVCodecContext *pCodecContext, AVFrame *pFrame) {
+-- 
+2.43.0
+
