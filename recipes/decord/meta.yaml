@@ -1,12 +1,11 @@
-{% set name = "decord" %}
 {% set version = "0.6.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: decord
   version: {{ version }}
 
 source:
-  url: https://github.com/dmlc/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/dmlc/decord/archive/refs/tags/v{{ version }}.tar.gz
   sha256: 4aeeb102973bbf6e3b0344d53b055e49939ea47f3607fd0e8ae4aad2d4e60b5b
   patches:
     # There hasn't been a release in since 2021, so these patches backport a few things
@@ -23,6 +22,10 @@ source:
     - 362-remove_RTLD_GLOBAL.patch
 
 build:
+  # Decord is really built as a linux-only thing and assumes:
+  #  posix_memalign exists -- not compatible with windows
+  #  openmp setup tools -- difficult to work with OSX
+  skip: true   # [win]
   number: 0
 
 requirements:
@@ -34,6 +37,8 @@ requirements:
     - make  # [unix]
     - ninja  # [win]
   host:
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
     - python
     - pip
     - setuptools
@@ -43,7 +48,11 @@ requirements:
     # binary
     - ffmpeg {{ ffmpeg }} lgpl_*
     - dmlc-core
-    - dlpack
+    # dlpack is a header only library with a major ABI breakage between
+    # version 0.8 and the next one (the last version is 1.2 as of Nov 23, 2025)
+    # Thus we build version 0.8 for now since it is a dependency
+    # of decord
+    - dlpack   0.8
   run:
     - python
     - numpy
