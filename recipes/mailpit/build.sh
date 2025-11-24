@@ -6,9 +6,6 @@ set -euxo pipefail
 npm install
 npm run build
 
-# Disable CGO to avoid Security Framework API compatibility issues with macOS 10.13 SDK
-# (SecTrustCopyCertificateChain and SecTrustEvaluateWithError require macOS 10.14+)
-export CGO_ENABLED=0
 
 # Build the main mailpit binary
 go build -v -trimpath \
