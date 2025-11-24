@@ -2,9 +2,9 @@
 set -eumx -o pipefail
 shopt -s failglob
 
-cmake "$SRC_DIR" -Dexamples=OFF -DCMAKE_INSTALL_PREFIX="${PREFIX}"
-make -j"$(nproc)"
-make install
+cmake -B build -S "${SRC_DIR}" -Dexamples=OFF -DCMAKE_INSTALL_PREFIX=${PREFIX} "${CMAKE_ARGS}"
+cmake --build build -j"${CPU_COUNT}"
+cmake --install build
 
 cd "$PREFIX"
 CHANGES="activate deactivate"
