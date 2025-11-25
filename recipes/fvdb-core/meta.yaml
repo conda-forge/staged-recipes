@@ -1,6 +1,11 @@
 {% set name = "fvdb-core" %}
 {% set version = "0.3.0" %}
 
+context:
+  torch_proc_type: ${{ "cuda" if cuda_compiler_version != "None" else "cpu" }}
+  build_string_prefix: ${{ ("cuda" ~ (cuda_compiler_version | replace(".", ""))) if cuda_compiler_version != "None" else "cpu" }}
+
+
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -22,6 +27,8 @@ build:
     - cudnn
   script: ./build.sh install verbose --cuda-arch-list="7.5;8.0;9.0;10.0;12.0+PTX"
   number: 0
+  string: ${{ build_string_prefix }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+
 
 requirements:
   build:
@@ -30,9 +37,11 @@ requirements:
     - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}
-    - cuda-version {{ cuda_compiler_version }}
-    - cuda-command-line-tools
+    - if: cuda_compiler_version != "None"
+      then:
+        - {{ compiler('cuda') }}
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-command-line-tools
     - cmake >=3.25
     - ninja
     - make
@@ -44,26 +53,30 @@ requirements:
     - python
     - scikit-build-core
     - pip
-    - pytorch {{ pytorch }} *cuda*
+    - pytorch {{ pytorch }} *{{ torch_proc_type }}*
     - numpy
     - tqdm
     - pybind11 2.13.6
     - psutil
     - gitpython
-    - cuda-version {{ cuda_compiler_version }}
-    - cuda-nvrtc-dev
-    - cuda-nvtx-dev
-    - libcublas-dev
-    - libcusolver-dev
-    - libcusparse-dev
-    - cudnn >=9.10.0
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - cudnn >=9.10.0
     - libpng
     - zlib
   run:
     - python
-    - pytorch {{ pytorch }} *cuda*
+    - pytorch {{ pytorch }} *{{ torch_proc_type }}*
     - {{ pin_compatible('numpy') }}
-    - cuda-version {{ cuda_compiler_version }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version {{ cuda_compiler_version }}
 
 test:
   imports:
