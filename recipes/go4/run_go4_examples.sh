@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eumx -o pipefail
 shopt -s failglob
+shopt -s extglob
 
 # Test running an example analysis with Make build
 pushd Go4ExampleSimple
