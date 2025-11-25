@@ -2,7 +2,6 @@
 
 set -ex
 
-export LD_LIBRARY_PATH=$PREFIX/lib
 meson setup ${MESON_ARGS} \
   -Dexamples=false \
   -Ddocs=false \
