@@ -1,0 +1,158 @@
+context:
+  name: imas-core
+  version: "5.5.2"
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+    - url: https://github.com/iterorganization/IMAS-Core/archive/refs/tags/${{ version }}.tar.gz
+      sha256: 847b8c92b4d90014e78587f9ef0191456621badee864dad63377201e87c93e07
+      patches:
+        - patches/fix-macos-stdc-fs.patch
+build:
+  number: 0
+
+outputs:
+  # Core library
+  - package:
+      name: al-core
+      version: ${{ version }}
+    build:
+      script:
+        - if: unix
+          then: scripts/build_core.sh
+        - if: win
+          then: scripts/build_core.bat
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - git
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - libboost-devel
+        - hdf5
+        - uda-cpp
+        - libxml2-devel
+        - if: win
+          then:
+            - pthreads-win32
+            - dlfcn-win32
+      ignore_run_exports:
+        from_package:
+          - libxml2-devel
+      run_exports:
+        - ${{ pin_subpackage("al-core", upper_bound="x.x") }}
+    tests:
+      - script:
+          - imas_print_version
+      - package_contents:
+          files:
+            - ${{ "Library/" if win }}lib/pkgconfig/al-core.pc
+          bin:
+            - mdsplusIMASDB4to5
+          lib:
+            - al
+          include:
+            - access_layer_base_plugin.h
+            - access_layer_plugin.h
+            - access_layer_plugin_manager.h
+            - al_backend.h
+            - al_const.h
+            - al_context.h
+            - al_defs.h
+            - al_exception.h
+            - al_lowlevel.h
+            - data_interpolation.h
+            - provenance_plugin_feature.h
+            - readback_plugin_feature.h
+            - uri_parser.h
+
+  # Python bindings
+  - package:
+      name: imas-core
+      version: ${{ version }}
+    build:
+      script:
+        - if: unix
+          then: scripts/build_py.sh
+        - if: win
+          then: scripts/build_py.bat
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - git
+        - cmake
+        - ninja
+        - pkg-config
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - numpy
+            - cython
+      host:
+        - al-core
+        - libboost-devel
+        - libxml2-devel
+        - if: win
+          then:
+            - pthreads-win32
+            - dlfcn-win32
+        - pip
+        - python
+        - numpy
+        - cython
+        - cython-cmake
+        - setuptools
+        - setuptools-scm
+        - scikit-build-core
+        - scikit-build
+      ignore_run_exports:
+        from_package:
+          - libboost-devel
+          - libxml2-devel
+    tests:
+      - python:
+          imports:
+            - imas_core
+          pip_check: true
+      - script:
+          - pytest
+        files:
+          source:
+            - python/tests/
+            - pyproject.toml
+        requirements:
+          run:
+            - pytest
+
+about:
+  homepage: https://github.com/iterorganization/IMAS-Core
+  license: LGPL-3.0-or-later
+  summary: The IMAS Access Layer core library
+  description: |
+    IMAS-Core is part of the Integrated Modelling and Analysis Suite at ITER.
+    It provides a low-level library to read and write MDSplus ([Introduction](https://www.mdsplus.org/index.php/Introduction))
+    and HDF5 ([HDF5](https://www.hdfgroup.org/solutions/hdf5/)) formats.
+    It also supports reading and writing [FlexBuffers](https://flatbuffers.dev/flexbuffers/).
+    For debugging purposes, it allows writing ASCII files.
+    Notably, for keeping data in-memory when exchanging data between physics codes, it supports writing into memory.
+    The IMAS-Core library includes Python bindings, making it useful for working with Python.
+    It can be installed on different operating systems, including macOS and Windows.
+    IMAS-Core is a versatile library that helps users write fusion data in a standard format used by various users and facilitates easy data exchange.
+    Most of the code is written in C++, with wrappers on existing libraries for HDF5, MDSplus, and FlexBuffers.
+  repository: https://github.com/iterorganization/IMAS-Core
+  documentation: https://imas-core.readthedocs.io/en/stable/
+
+extra:
+  feedstock_name: imas-core
+  maintainers:
+    - munechika-koyo
