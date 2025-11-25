@@ -2,7 +2,7 @@
 set -eumx -o pipefail
 shopt -s failglob
 
-cmake -B build -S "${SRC_DIR}" -Dexamples=OFF -DCMAKE_INSTALL_PREFIX=${PREFIX} "${CMAKE_ARGS}"
+cmake -B build -S "${SRC_DIR}" -Dexamples=OFF -DCMAKE_INSTALL_PREFIX="${PREFIX}" "${CMAKE_ARGS}"
 cmake --build build -j"${CPU_COUNT}"
 cmake --install build
 

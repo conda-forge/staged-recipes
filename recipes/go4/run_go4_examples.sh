@@ -2,15 +2,18 @@
 set -eumx -o pipefail
 shopt -s failglob
 
+# Test running an example analysis with Make build
 pushd Go4ExampleSimple
 make clean
 make -j"$(nproc)"
 go4analysis -random -number 100000
 popd
 
+# Test running another example analysis with CMake build
 pushd Go4ExampleUserSource
-make clean
-make all -j"$(nproc)"
-go4analysis -user tafoil50.scf
-go4analysis -user befoil50.scf
+mkdir build
+cmake -S ./ -B ./build/ "${CMAKE_ARGS}"
+cmake --build build -j"${CPU_COUNT}"
+go4analysis -lib ./build/libGo4UserAnalysis.so -user tafoil50.scf
+go4analysis -lib ./build/libGo4UserAnalysis.so -user befoil50.scf
 popd
