@@ -1,0 +1,65 @@
+{% set name = "harness-cli" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/harness/harness-cli/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: afad5f8f9de4d6243bf5878d3c37a4bf22b8474713fdd8a34384440721728cde
+
+build:
+  number: 0
+  script:
+    # Install code generation tools
+    - go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest  # [unix]
+    # Run code generation
+    - go generate ./...  # [unix]
+    # Build the CLI binary with optimizations
+    - export CGO_ENABLED=0  # [unix]
+    - go build -ldflags="-s -w" -o $PREFIX/bin/hc ./cmd/hc  # [unix]
+    # Windows build
+    - set CGO_ENABLED=0  # [win]
+    - go build -ldflags="-s -w" -o %LIBRARY_PREFIX%\bin\hc.exe .\cmd\hc  # [win]
+    # Collect dependency licenses
+    - go-licenses save --save_path ./licenses ./cmd/hc  # [unix]
+    # Clear Go cache to avoid file removal warnings
+    - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
+
+requirements:
+  build:
+    - {{ compiler('go-nocgo') }}
+    - go-licenses
+
+test:
+  commands:
+    - hc --help
+    - hc --version
+
+about:
+  home: https://github.com/harness/harness-cli
+  license: MIT
+  license_family: MIT
+  license_file:
+    - COPYING
+    - licenses/  # Contains licenses for all Go dependencies
+  summary: Command-line utility for managing Harness platform resources
+  description: |
+    Harness CLI is a command-line utility that enables users to manage
+    Harness platform resources through YAML configuration files. It
+    provides comprehensive support for CD & GitOps entities and integrates
+    with public Harness REST APIs.
+
+    Features:
+    - Manage Harness entities through resource YAML files
+    - Create, delete, and modify Harness resources
+    - Support for CD & GitOps entities
+    - Integrates with Harness REST APIs
+    - Requires Harness API Key authentication
+  doc_url: https://developer.harness.io/docs/platform/automation/cli/
+  dev_url: https://github.com/harness/harness-cli
+
+extra:
+  recipe-maintainers:
+    - rxm7706
