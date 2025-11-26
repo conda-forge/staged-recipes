@@ -3,6 +3,9 @@
 :: Setuptools SCM configuration
 set SETUPTOOLS_SCM_PRETEND_VERSION="%PKG_VERSION%"
 
+:: Generate capnp.pc file (See https://github.com/capnproto/capnproto/issues/1356)
+cmake -DCAPNP_PREFIX="%LIBRARY_PREFIX%" -P "%SRC_DIR%\capnp_pc_gen.cmake"
+
 :: CMake extra configuration:
 set extra_cmake_args=-G Ninja ^
     -D BUILD_SHARED_LIBS=OFF ^
@@ -15,7 +18,8 @@ set extra_cmake_args=-G Ninja ^
     -D Python_EXECUTABLE="%PYTHON%" ^
     -D Python3_EXECUTABLE="%PYTHON%" ^
     -D AL_DOWNLOAD_DEPENDENCIES=OFF ^
-    -D AL_DEVELOPMENT_LAYOUT=OFF
+    -D AL_DEVELOPMENT_LAYOUT=OFF ^
+    -D PThreads4W_DIR="%LIBRARY_PREFIX%"
 
 cmake %CMAKE_ARGS% "%extra_cmake_args%" ^
     -B build -S "%SRC_DIR%"
@@ -35,3 +39,8 @@ if errorlevel 1 exit /b 1
 
 rmdir /s /q "%SP_DIR%\share\common"
 if errorlevel 1 exit /b 1
+
+if exist "%LIBRARY_PREFIX%\lib\pkgconfig\capnp.pc" (
+    del "%LIBRARY_PREFIX%\lib\pkgconfig\capnp.pc"
+    if errorlevel 1 exit /b 1
+)
