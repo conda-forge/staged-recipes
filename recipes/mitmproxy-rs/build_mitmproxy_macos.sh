@@ -1,13 +1,5 @@
 #!/bin/bash
 
-if [[ "${target_platform}" == "osx-64" ]]; then
-    export CARGO_BUILD_TARGET=x86_64-apple-darwin
-fi
-
-if [[ "${target_platform}" == "osx-arm64" ]]; then
-    export CARGO_BUILD_TARGET=aarch64-apple-darwin
-fi
-
 cargo auditable build --release --package macos-certificate-truster \
     --target "$CARGO_BUILD_TARGET"
 lipo -create -output target/release/macos-certificate-truster \
