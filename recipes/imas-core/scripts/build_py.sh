@@ -3,6 +3,9 @@
 # Setuptools SCM configuration
 export SETUPTOOLS_SCM_PRETEND_VERSION=${PKG_VERSION}
 
+# Fix by https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
+CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
 # CMake extra configuration:
 extra_cmake_args=(
     -G Ninja
