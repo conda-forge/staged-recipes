@@ -1,0 +1,70 @@
+{% set name = "emmontopy" %}
+{% set version = "0.10.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/emmontopy-{{ version }}.tar.gz
+  sha256: e42d4ec1fba372c6be092672d7be06ce7bf8d3408a4b8f238553d686f3df499a
+  patches:
+    - remove-factplusplus-reasoner.patch
+    - replace-blessings-with-blessed.patch
+
+build:
+  noarch: python
+  
+  # FaCT++ coming with emmontopy would only run on linux and require java
+  # as additional dependency. In agreement with upstream it is removed from
+  # the conda-forge package. Removing everything via a patch does not work because
+  # the patch command running during conda build does not allow binaries.
+  script: |
+    rm -rf ontopy/factpluspluswrapper  # [not win]
+    rmdir /s /q ontopy\factpluspluswrapper  # [win]
+    {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools
+  run:
+    - python >={{ python_min }}
+    - __linux  # [linux]
+    - __osx    # [osx]
+    - __win    # [win]
+    - blessed >=1.17
+    - defusedxml >=0.7.1,<1
+    - owlready2 >=0.28,!=0.32,!=0.34,<0.49
+    - packaging >=21.0,<26
+    - pygments >=2.7.4,<3
+    - pyparsing >=2.4.7
+    - pyyaml >=5.4.1,<7
+    - rdflib >=4.2.1,<8
+    - requests >=2.31,<3
+
+test:
+  imports:
+    - emmopy
+    - ontopy
+  commands:
+    - pip check
+  requires:
+    - python {{ python_min }}
+    - pip
+
+about:
+  home: https://github.com/emmo-repo/EMMOntoPy
+  summary: Python reference API for the Elementary MultiperspectiveMaterial Ontology.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  doc_url: https://emmo-repo.github.io/EMMOntoPy/latest/
+
+extra:
+  recipe-maintainers:
+    - andrea-petrocchi
+    - fangohr
+    - lang-m
