@@ -1,0 +1,196 @@
+From f9fe7b10a716e6df1d286296d11f2fff0801ef64 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Wed, 12 Feb 2025 22:58:32 -0700
+Subject: [PATCH] fix: Remove include stdhep_arch and arch_mcfio
+
+* stdhep_arch and arch_mcfio assume a local user's directory tree and as that's
+  not correct or viable it should not be used.
+* Similarly remove any direct includes of the form '-I/usr/*/include/'.
+* As stdhep_arch and arch_mcfio set defaults, set BUILD_SHARED and SHFLAG
+  defaults in vendor/StdHEP/makefile:
+  * BUILD_SHARED = false
+  * SHFLAG = -fPIC
+  and set SHFLAG = -fPIC in every makefile.
+---
+ vendor/StdHEP/example/GNUmakefile          |  2 +-
+ vendor/StdHEP/makefile                     |  2 ++
+ vendor/StdHEP/mcfio/example/GNUmakefile    |  3 +--
+ vendor/StdHEP/mcfio/src/GNUmakefile        |  4 ++--
+ vendor/StdHEP/src/display/GNUmakefile      |  2 +-
+ vendor/StdHEP/src/display/spin/GNUmakefile | 10 +++++-----
+ vendor/StdHEP/src/display/util/GNUmakefile | 10 +++++-----
+ vendor/StdHEP/src/stdhep/GNUmakefile       |  4 ++--
+ 8 files changed, 19 insertions(+), 18 deletions(-)
+
+diff --git a/vendor/StdHEP/example/GNUmakefile b/vendor/StdHEP/example/GNUmakefile
+index cb11f05..18ebea1 100644
+--- a/vendor/StdHEP/example/GNUmakefile
++++ b/vendor/StdHEP/example/GNUmakefile
+@@ -8,7 +8,7 @@
+ STDHEP_DIR ?= ..
+ MCFIO_DIR ?= ..
+ 
+-include $(STDHEP_DIR)/src/stdhep_arch
++SHFLAG = -fPIC
+ 
+ SINC=$(STDHEP_DIR)/src/inc
+ INCS = -I$(SINC) -I$(STDHEP_DIR)/mcfio/src \
+diff --git a/vendor/StdHEP/makefile b/vendor/StdHEP/makefile
+index 26762c9..c834e40 100644
+--- a/vendor/StdHEP/makefile
++++ b/vendor/StdHEP/makefile
+@@ -11,6 +11,8 @@ ifdef DEBUG
+ endif
+ 
+ STDHEP_DIR = .
++BUILD_SHARED = false
++SHFLAG = -fPIC
+ FFLAGS += -std=legacy
+ CFLAGS += -Wno-implicit-function-declaration
+ 
+diff --git a/vendor/StdHEP/mcfio/example/GNUmakefile b/vendor/StdHEP/mcfio/example/GNUmakefile
+index f63bd4b..ca4d097 100644
+--- a/vendor/StdHEP/mcfio/example/GNUmakefile
++++ b/vendor/StdHEP/mcfio/example/GNUmakefile
+@@ -5,8 +5,7 @@
+ SRCDIR = ../src
+ LIBDIR = ../../lib
+ 
+-include ../arch_mcfio
+-
++SHFLAG = -fPIC
+ 
+ FINC = -I$(SRCDIR) -I$(STDHEP_DIR)/src/inc
+ CINC = -I$(SRCDIR)
+diff --git a/vendor/StdHEP/mcfio/src/GNUmakefile b/vendor/StdHEP/mcfio/src/GNUmakefile
+index 14862ba..530ae9b 100644
+--- a/vendor/StdHEP/mcfio/src/GNUmakefile
++++ b/vendor/StdHEP/mcfio/src/GNUmakefile
+@@ -10,13 +10,13 @@ UNAME := $(shell uname)
+ LIBDIR = ../../lib
+ BINDIR = ../../bin
+ 
+-include ../arch_mcfio
++SHFLAG = -fPIC
+ 
+ FFLAGS += -std=legacy
+ CFLAGS += -Wno-implicit-function-declaration -Wno-incompatible-pointer-types
+ 
+ FINC = -I.
+-CINC = -I. -I/usr/include/tirpc
++CINC = -I.
+ HLIB =
+ ifdef HISTO_DIR
+    CFLAGS += -DHISTO
+diff --git a/vendor/StdHEP/src/display/GNUmakefile b/vendor/StdHEP/src/display/GNUmakefile
+index 7fab545..4a648b5 100644
+--- a/vendor/StdHEP/src/display/GNUmakefile
++++ b/vendor/StdHEP/src/display/GNUmakefile
+@@ -2,7 +2,7 @@
+ # Platform independent part of make procedure for Nirvana phase space 
+ # event display, included by machine specific makefiles.
+ #
+-include ../stdhep_arch
++SHFLAG = -fPIC
+ 
+ NLIBDIR = ../../lib
+ NBINDIR = ../../bin
+diff --git a/vendor/StdHEP/src/display/spin/GNUmakefile b/vendor/StdHEP/src/display/spin/GNUmakefile
+index 2f0a20c..91389d4 100644
+--- a/vendor/StdHEP/src/display/spin/GNUmakefile
++++ b/vendor/StdHEP/src/display/spin/GNUmakefile
+@@ -2,7 +2,7 @@
+ # Platform independent part of make procedure for Nirvana spin widget, 
+ # included by machine specific makefiles.
+ #
+-include ../../stdhep_arch
++SHFLAG = -fPIC
+ 
+ ifeq "$(UNAME)" "AIX"
+     CFLAGS += -D_BSD
+@@ -14,19 +14,19 @@ ifeq "$(UNAME)" "IRIX64"
+     CFLAGS += -DSYSV
+ endif
+ ifeq "$(UNAME)" "Linux"
+-    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11/include
++    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "Linux22"
+-    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11/include -I$(OPENMOTIF_DIR)/include
++    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO -I$(OPENMOTIF_DIR)/include
+ endif
+ ifeq "$(UNAME)" "Linux24"
+-    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11R6/include
++    CFLAGS += -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "OSF1"
+     CFLAGS += -DUSE_DIRENT -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "SunOS"
+-    CFLAGS += -Xa -I/usr/openwin/include -I/usr/dt/include -DMOTIF12
++    CFLAGS += -Xa -DMOTIF12
+ endif
+ 
+ OBJS = Spin$(SFX).o geometry$(SFX).o
+diff --git a/vendor/StdHEP/src/display/util/GNUmakefile b/vendor/StdHEP/src/display/util/GNUmakefile
+index bc40942..84226c0 100644
+--- a/vendor/StdHEP/src/display/util/GNUmakefile
++++ b/vendor/StdHEP/src/display/util/GNUmakefile
+@@ -2,7 +2,7 @@
+ # Platform independent part of make procedure for Nirvana utilities directory, 
+ # included by machine specific makefiles.
+ #
+-include ../../stdhep_arch
++SHFLAG = -fPIC
+ 
+ ifeq "$(UNAME)" "AIX"
+     CFLAGS += -O -DUSE_DIRENT
+@@ -14,19 +14,19 @@ ifeq "$(UNAME)" "IRIX64"
+      CFLAGS += -O -n32 -mips3 -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "Linux"
+-    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11/include
++    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "Linux22"
+-    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11/include -I$(OPENMOTIF_DIR)/include
++    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO -I$(OPENMOTIF_DIR)/include
+ endif
+ ifeq "$(UNAME)" "Linux24"
+-    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO -I/usr/X11R6/include
++    CFLAGS += -O -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "OSF1"
+      CFLAGS += -DUSE_DIRENT -DFUNCPROTO -DXTFUNCPROTO
+ endif
+ ifeq "$(UNAME)" "SunOS"
+-    CFLAGS += -Xa -I/usr/openwin/include -I/usr/dt/include -DUSE_DIRENT \
++    CFLAGS += -Xa -DUSE_DIRENT \
+ 	    -DMOTIF12
+ endif
+ 
+diff --git a/vendor/StdHEP/src/stdhep/GNUmakefile b/vendor/StdHEP/src/stdhep/GNUmakefile
+index d042178..af0a8d5 100644
+--- a/vendor/StdHEP/src/stdhep/GNUmakefile
++++ b/vendor/StdHEP/src/stdhep/GNUmakefile
+@@ -1,7 +1,7 @@
+ #
+ # StdHep makefile
+ #
+-include ../stdhep_arch
++SHFLAG = -fPIC
+ 
+ STDHEP_DIR = ../..
+ 
+@@ -17,7 +17,7 @@ SINC = $(STDHEP_DIR)/src/inc
+ INCS = -I$(SINC) -I$(STDHEP_DIR)/mcfio/src \
+        -I$(SINC)/isajet -I$(SINC)/pythia -I$(SINC)/herwig \
+        -I$(SINC)/qq -I$(SINC)/dpm
+-CFLAGS += -I$(SINC) -I$(STDHEP_DIR)/mcfio/src -I/usr/include/tirpc
++CFLAGS += -I$(SINC) -I$(STDHEP_DIR)/mcfio/src
+ CPPFLGS = $(KPPFLAGS) $(INCS)
+ 
+ FOBJS =	$(patsubst %.F,%$(SFX).o,$(wildcard *.F))
+-- 
+2.47.1
+
