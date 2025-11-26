@@ -1,0 +1,81 @@
+From c36992206ba75249660fca1bcc52d3fbef5eed18 Mon Sep 17 00:00:00 2001
+From: Martin Lang <martin.lang@mpsd.mpg.de>
+Date: Fri, 21 Nov 2025 16:54:48 +0100
+Subject: [PATCH] Remove factplusplus reasoner
+
+The reasoner is removed because:
+- it would require Java and compiled libraries/executables making the
+  package significantly more complex (and platform-dependent)
+- the compiled libraries are present in emmontopy for linux only, the
+  source code is not included in the package/repository and would have
+  to be pulled in separately
+- two other reasoners (HermiT, Pellet) are available and can be used
+  instead (FaCT++ is also not the default reasoner)
+- upstream agrees that removal is fine:
+  https://github.com/emmo-repo/EMMOntoPy/issues/857#issuecomment-3554777949
+---
+ MANIFEST.in        | 2 --
+ ontopy/ontology.py | 9 ++++-----
+ setup.py           | 5 -----
+ 3 files changed, 4 insertions(+), 12 deletions(-)
+
+diff --git a/MANIFEST.in b/MANIFEST.in
+index b4817ace..3b683b2b 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -9,5 +9,3 @@ recursive-exclude examples/emmodoc old/** genfigs/** *.pdf *.html *~
+ 
+ recursive-include demo *
+ recursive-exclude demo old __pycache__ *~ *.pyc *.off
+-
+-recursive-include ontopy/factpluspluswrapper/java **
+diff --git a/ontopy/ontology.py b/ontopy/ontology.py
+index 39485be6..6ab537db 100644
+--- a/ontopy/ontology.py
++++ b/ontopy/ontology.py
+@@ -29,7 +29,6 @@ from owlready2.prop import ObjectPropertyClass, DataPropertyClass
+ from owlready2 import AnnotationPropertyClass
+ from owlready2.base import rdf_type
+ 
+-from ontopy.factpluspluswrapper.sync_factpp import sync_reasoner_factpp
+ from ontopy.utils import (  # pylint: disable=cyclic-import
+     english,
+     asstring,
+@@ -1436,8 +1435,7 @@ class Ontology(owlready2.Ontology):  # pylint: disable=too-many-public-methods
+     ):
+         """Update current ontology by running the given reasoner.
+ 
+-        Supported values for `reasoner` are 'HermiT' (default), Pellet
+-        and 'FaCT++'.
++        Supported values for `reasoner` are 'HermiT' (default) and Pellet.
+ 
+         If `include_imported` is true, the reasoner will also reason
+         over imported ontologies.  Note that this may be **very** slow.
+@@ -1457,8 +1455,9 @@ class Ontology(owlready2.Ontology):  # pylint: disable=too-many-public-methods
+         removed_gspod = []  # data: (ontology, s, p, o, d)
+ 
+         if reasoner == "FaCT++":
+-            sync = sync_reasoner_factpp
+-            remove_custom_datatypes = True
++            raise RuntimeError(
++                "FaCT++ is not supported in the conda-forge build"
++            )
+         elif reasoner == "Pellet":
+             sync = owlready2.sync_reasoner_pellet
+             remove_custom_datatypes = False
+diff --git a/setup.py b/setup.py
+index 4f91455a..432f285c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -136,11 +136,6 @@ setuptools.setup(
+         "tools/excel2onto",
+         "tools/redirectioncheck",
+     ],
+-    package_data={
+-        "ontopy.factpluspluswrapper.java.lib.so": ["*"],
+-        "ontopy.factpluspluswrapper.java.lib.jars": ["*.jar"],
+-        "ontopy.factpluspluswrapper.java": ["pom.xml"],
+-    },
+     include_package_data=True,
+     data_files=[
+         ("share/EMMOntoPy", ["README.md", "LICENSE.txt"]),
