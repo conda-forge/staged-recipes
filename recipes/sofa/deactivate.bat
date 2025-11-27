@@ -1,1 +1,0 @@
-@set SOFA_ROOT=
