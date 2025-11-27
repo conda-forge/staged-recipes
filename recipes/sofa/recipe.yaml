@@ -1,0 +1,200 @@
+context:
+  name: sofa
+  version: "25.06.00"
+  build_num: 0
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sofa-framework/sofa/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a3a9345d71c3c62c26a0abddf18f7cbbd481bba5f095c92c0956f33530b50e69
+
+  patches:
+      # https://github.com/sofa-framework/sofa/pull/5664
+      - patches/0001-GUI-Fix-compilation-with-clang-and-boost-1.89-5664.patch
+      # https://github.com/sofa-framework/sofa/pull/5665
+      - patches/0002-Framework-Fix-compilation-with-clang20-5665.patch
+      # https://github.com/sofa-framework/sofa/pull/5775
+      - patches/0003-use-find-or-fetch-mechanism-for-nlohmann-json.patch
+
+build:
+  number: ${{ build_num }}
+
+outputs:
+  - package:
+      name: libsofa
+    build:
+      script: scripts/build-lib
+      files:
+        - ${{ "Library/" if win }}lib/${{ "lib" if not win }}Sofa*
+        - ${{ "Library/" if win }}plugins/**/lib
+        - if: win
+          then:
+            - Library/bin/*
+            - Library/plugins/**/bin
+        # for copying activation/deactivation scripts
+        - etc/conda/*
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: ninja
+      host:
+        - libboost-headers
+        - zlib
+        - tinyxml2
+        - eigen
+        - cxxopts
+        - gtest
+        - nlohmann_json
+      run_exports:
+        - ${{ pin_subpackage('libsofa', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - Sofa.Core*
+    about:
+      summary: Runtime librairies for the SOFA framework
+      description: Runtime librairies for SOFA, a real-time multi-physics
+       simulator with an emphasis on medical simulation and robotics.
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE-LGPL.md
+        - extlibs/difflib/LICENSE.MIT
+        - extlibs/stb/LICENSE.MIT
+
+  - package:
+      name: sofa-devel
+    build:
+      script: scripts/build-devel
+      files:
+      # exclude everything that has been packaged in libsofa subpackage
+        exclude:
+          - ${{ "Library/" if win }}lib/${{ "lib" if not win }}Sofa*
+          - ${{ "Library/" if win }}plugins/**/lib
+          - if: win
+            then:
+              - Library/bin/*
+              - Library/plugins/**/bin
+        include:
+          - ${{ "Library/" if win }}include/*
+          - ${{ "Library/" if win }}lib/cmake/Sofa*
+          - ${{ "Library/" if win }}plugins/**/include
+          - ${{ "Library/" if win }}plugins/**/lib/cmake
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: ninja
+      host:
+        - libboost-headers
+        - zlib
+        - tinyxml2
+        - eigen
+        - cxxopts
+        - gtest
+        - nlohmann_json
+      run:
+        - libboost-headers
+        - eigen
+        - zlib
+        - ${{ pin_subpackage('libsofa', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libsofa', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - Sofa.Core/sofa/core/init.h
+      - script:
+        - cmake-package-check Sofa.Core
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+    about:
+      summary: Development librairies for the SOFA framework
+      description: Development librairies for SOFA, a real-time multi-physics
+       simulator with an emphasis on medical simulation and robotics.
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE-LGPL.md
+        - extlibs/difflib/LICENSE.MIT
+        - extlibs/stb/LICENSE.MIT
+
+  - package:
+      name: sofa-gl
+    build:
+      script: scripts/build-sofa-gl
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - if: unix
+          then: make
+        - if: win 
+          then: ninja
+      host:
+        - ${{ pin_subpackage('sofa-devel', exact=True) }}
+        - eigen
+        - glew
+        - libboost-headers
+        - if: linux
+          then:
+            - libgl-devel
+            - libglu
+      run:
+        - ${{ pin_subpackage('sofa-devel', exact=True) }}
+        - eigen
+        - libboost-headers
+        - if: linux
+          then:
+            - libgl-devel
+            - libglu
+      run_exports:
+        - ${{ pin_subpackage('sofa-gl', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - Sofa.GL/sofa/gl/initSofa.GL.h
+          lib:
+            - Sofa.GL*
+      - script:
+        - cmake-package-check Sofa.GL
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}            
+    about:
+      summary: SOFA GL rendering library
+      description: GL rendering library for SOFA, a real-time multi-physics
+       simulator with an emphasis on medical simulation and robotics.
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE-LGPL.md
+
+about:
+  homepage: https://www.sofa-framework.org/
+  summary: Open-source framework for interactive mechanical simulation, with emphasis on biomechanics and robotics.
+  license: LGPL-2.1-or-later
+  license_file: LICENSE-LGPL.md
+  documentation: https://sofa-framework.github.io/doc/
+  repository: https://github.com/sofa-framework/sofa
+
+extra:
+  feedstock_name: sofa
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
