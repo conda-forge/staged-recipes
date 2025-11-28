@@ -1,0 +1,80 @@
+{% set version = "v6.0.2" %}
+
+package:
+  name: uppasd-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/UppASD/UppASD/releases/download/{{ version }}/{{ version }}.tar.gz
+  sha256: f483bb6e0a5c75820e4a3d38894c40557548777160eabd3c152c8c356e6ca8ed
+  patches:
+    - patches/0001-Change-name-of-binary-from-sd-to-uppasd.patch
+    - patches/0002-Remove-copying-of-static-library-to-outside-build-directory.patch
+    - patches/0003-Remove-compiler-optimization-for-host-architecture.patch
+    - patches/0004-Remove-lgfortran-which-is-not-supported-by-flang.patch  # [win]
+    - patches/0005-Replace-external-definitions-with-use-omp_lib.patch  # [win]
+    - patches/0006-Add-size-argument-to-transfer-calls.patch  # [win]
+    - patches/0007-Fix-print-formatting-syntax-errors.patch  # [win]
+
+build:
+  number: 0
+
+test:
+  source_files:
+    - examples/SimpleSystems/bccFe
+  commands:
+    - cd examples/SimpleSystems/bccFe && uppasd  # [not win and build_platform == target_platform]
+    - cd examples/SimpleSystems/bccFe && uppasd.exe  # [win]
+
+outputs:
+  - name: uppasd
+    script: build-uppasd.sh  # [unix]
+    script: build-uppasd.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('fortran') }}
+        - {{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - fftw  # [not win]
+        - libblas  # [not win]
+        - liblapack  # [not win]
+        - mkl-devel {{ mkl }}.*  # [win]
+        - llvm-openmp {{ fortran_compiler_version }}.*  # [win]
+        - llvm-openmp-fortran {{ fortran_compiler_version }}.*  # [win]
+        - llvm-openmp  # [osx]
+        - libgomp  # [linux]
+      run:
+        - libblas * *mkl  # [win]
+        - mkl >={{ mkl }}  # [win]
+    files:
+      # Only distribute the binary but not the static library. It does not have a publicly
+      # documented API.
+      include:
+        - bin/uppasd  # [not win]
+        - Library/bin/uppasd.exe  # [win]
+      exclude:
+        - lib/libasdlib.a  # [not win]
+        - Library/lib/libasdlib.a  # [win]
+
+about:
+  home: https://github.com/UppASD/UppASD
+  summary: 'Atomistic spin dynamics and Monte Carlo simulations'
+  description: |
+    The UppASD package is a simulation tool for atomistic spin dynamics and
+    Monte Carlo simulations of Heisenberg spin systems.
+
+    The executable provided by this package is called `uppasd` (deviating from
+    upstream, which calls it `sd.<compiler>` for versions <= 6.0.2).
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  doc_url: https://uppasd.github.io/UppASD-manual
+
+extra:
+  feedstock-name: uppasd
+  recipe-maintainers:
+    - andrea-petrocchi
+    - fangohr
+    - lang-m
