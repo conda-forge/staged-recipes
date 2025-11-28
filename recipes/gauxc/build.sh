@@ -17,6 +17,7 @@ if [ "${mpi}" == "openmpi" ]; then
 fi
 
 cmake \
+   -S . \
    -B _build \
    -G Ninja \
    -DGAUXC_ENABLE_HOST=ON \
