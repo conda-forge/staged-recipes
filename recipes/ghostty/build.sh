@@ -2,4 +2,7 @@
 
 set -ex
 
-zig build -p $PREFIX -Doptimize=ReleaseFast
+zig build \
+  --prefix $PREFIX \
+  -Doptimize=ReleaseFast \
+  -Dcpu=baseline
