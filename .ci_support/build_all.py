@@ -290,7 +290,7 @@ def build_folders_rattler_build(
     specs = OrderedDict()
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
-            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config, loader=yaml.SafeLoader
         )
 
     variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
@@ -302,7 +302,7 @@ def build_folders_rattler_build(
         )
     if variants and os.path.isfile(variants[0]):
         specs[variants[0]] = conda_build.variants.parse_config_file(
-            os.path.abspath(variants[0]), config
+            os.path.abspath(variants[0]), config, loader=yaml.SafeLoader
         )
 
     # Combine all the variant config files together
