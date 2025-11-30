@@ -1,8 +1,10 @@
-{% set name = "pygenn-cuda" %}
 {% set version = "5.3.0" %}
 
 package:
-  name: {{ name }}
+  # Package name depends on the backend variant:
+  #  - backend == "cpu"  -> pygenn-cpu
+  #  - backend == "cuda" -> pygenn-cuda
+  name: pygenn-{{ backend }}
   version: {{ version }}
 
 source:
@@ -11,10 +13,14 @@ source:
 
 build:
   number: 0
-  skip: true  # [not (linux64 or win)]
-  string: "py{{ PY_VER | replace('.', '') }}_cuda{{ cuda_version | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+  # CPU:  skip on osx
+  # CUDA: build only on linux-64 and win
+  skip: true  # [(backend == "cpu" and osx) or (backend == "cuda" and not (linux64 or win))]
+  string: "py{{ PY_VER | replace('.', '') }}{% if backend == 'cuda' %}_cuda{{ cuda_version | replace('.', '') }}{% endif %}_{{ PKG_BUILDNUM }}"
   script: |
+    {% if backend == "cuda" %}
     {% if win %}
+    :: --- CUDA backend build (Windows, modular CUDA) ---
     :: Point GeNN at Conda's modular CUDA.
     set "CUDA_PATH=%BUILD_PREFIX%\Library"
     :: Let MSBuild projects (for libgenn/backends) link against modular CUDA without the VS CUDA plugin
@@ -25,80 +31,109 @@ build:
     set "PATH=%BUILD_PREFIX%\Library\bin;%PATH%"
     "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
     {% else %}
-    # --- Linux (Conda modular CUDA, POSIX layout) ---
+    # --- CUDA backend build (Linux, modular CUDA) ---
     export CUDA_PATH="${BUILD_PREFIX}"
     export PATH="${BUILD_PREFIX}/bin:${PATH}"
-    $PYTHON setup.py install --single-version-externally-managed --record=record.txt
+    "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
+    {% endif %}
+    {% else %}
+    {% if win %}
+    :: --- CPU-only backend build (Windows) ---
+    :: Disable CUDA
+    set CUDA_PATH=
+    "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
+    {% else %}
+    # --- CPU-only backend build (Linux) ---
+    unset CUDA_PATH
+    "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
+    {% endif %}
     {% endif %}
   missing_dso_whitelist:
-    - $RPATH/libcuda.so.1                     # Provided by NVIDIA driver at runtime, (Linux driver lib)
-    - $RPATH/nvcuda.dll                       # Provided by NVIDIA driver at runtime (Windows driver lib)
-    # --- GeNN private DLLs (bundled with PyGeNN) ---
-    - $RPATH/genn_Release_DLL.dll                 # GeNN core runtime
-    - $RPATH/libffi_Release_DLL.dll               # Private libffi runtime
-    - $RPATH/genn_single_threaded_cpu_backend_Release_DLL.dll  # CPU backend, bundled
-    - $RPATH/genn_cuda_backend_Release_DLL.dll    # CUDA backend, bundled  
+    # Common private GeNN DLLs (bundled with PyGeNN)
+    - $RPATH/genn_Release_DLL.dll
+    - $RPATH/libffi_Release_DLL.dll
+    - $RPATH/genn_single_threaded_cpu_backend_Release_DLL.dll
+    # CUDA backend extras (only present in CUDA variant)
+    - $RPATH/libcuda.so.1                # Provided by NVIDIA driver at runtime (Linux)
+    - $RPATH/nvcuda.dll                  # Provided by NVIDIA driver at runtime (Windows)
+    - $RPATH/genn_cuda_backend_Release_DLL.dll
 
 requirements:
   build:
-    - {{ stdlib("c") }}  # [linux] 
+    - {{ stdlib("c") }}  # [linux]
     - {{ compiler('cxx') }}
     - make  # [linux]
     - python
     - setuptools
     - pybind11
     - psutil
-    - cuda-nvcc {{ cuda_nvcc }}
-    - cuda-cudart-dev {{ cuda_cudart_dev }}
-    - cuda-libraries-dev {{ cuda_libraries_dev }}
-    - cuda-driver-dev {{ cuda_version }}  # [linux]
-    - cuda-cccl {{ cuda_version }}                  
+    # CUDA toolchain (CUDA variant only)
+    - cuda-nvcc {{ cuda_nvcc }}              # [backend == "cuda"]
+    - cuda-cudart-dev {{ cuda_cudart_dev }}  # [backend == "cuda"]
+    - cuda-libraries-dev {{ cuda_libraries_dev }}  # [backend == "cuda"]
+    - cuda-driver-dev {{ cuda_version }}     # [backend == "cuda" and linux]
+    - cuda-cccl {{ cuda_version }}           # [backend == "cuda"]
 
   host:
     - python
-    - numpy 
+    - numpy
     - setuptools
     - psutil
     - pybind11
-    - cuda-cudart-dev {{ cuda_cudart_dev }}
-    - cuda-driver-dev {{ cuda_version }}  # [linux]
-    - cuda-cccl {{ cuda_version }}
     - libffi
+    # CUDA host deps (CUDA variant only)
+    - cuda-cudart-dev {{ cuda_cudart_dev }}  # [backend == "cuda"]
+    - cuda-driver-dev {{ cuda_version }}     # [backend == "cuda" and linux]
+    - cuda-cccl {{ cuda_version }}           # [backend == "cuda"]
 
   run:
     - python
-    - numpy 
+    - numpy
     - psutil
-    - make  # [linux] 
-    - {{ compiler('cxx') }}  # Required at runtime: PyGeNN JIT-compiles models via `make` + `g++`, so users need a C++ compiler in their environment. 
-    - cuda-version =={{ cuda_version }}
-    - cuda-nvcc {{ cuda_nvcc }}
-    - cuda-cudart {{ cuda_cudart }}
-    - cuda-libraries {{ cuda_libraries }}
-    - cuda-libraries-dev {{ cuda_libraries_dev }} 
-    - cuda-driver-dev {{ cuda_version }}  # [linux]
-    - cuda-cccl {{ cuda_version }} 
     - libffi
     - importlib-metadata  # [py<38]
-        
+    # JIT toolchain (CPU & CUDA differ slightly)
+    - make  # [linux]
+    - cxx-compiler          # [backend == "cpu"]
+    - {{ compiler('cxx') }} # [backend == "cuda"]
+    # CUDA runtime stack (CUDA variant only)
+    - cuda-version =={{ cuda_version }}      # [backend == "cuda"]
+    - cuda-nvcc {{ cuda_nvcc }}              # [backend == "cuda"]
+    - cuda-cudart {{ cuda_cudart }}          # [backend == "cuda"]
+    - cuda-libraries {{ cuda_libraries }}    # [backend == "cuda"]
+    - cuda-libraries-dev {{ cuda_libraries_dev }}  # [backend == "cuda"]
+    - cuda-driver-dev {{ cuda_version }}     # [backend == "cuda" and linux]
+    - cuda-cccl {{ cuda_version }}           # [backend == "cuda"]
+
 test:
   imports:
     - pygenn
   files:
-    - tests/run_pygenn_cuda_smoketest.py
+    - tests/run_pygenn_cpu_smoketest.py   # [backend == "cpu"]
+    - tests/run_pygenn_cuda_smoketest.py  # [backend == "cuda"]
   commands:
-    - python tests/run_pygenn_cuda_smoketest.py
+    - python tests/run_pygenn_cpu_smoketest.py   # [backend == "cpu"]
+    - python tests/run_pygenn_cuda_smoketest.py  # [backend == "cuda"]
 
 about:
   home: https://github.com/genn-team/genn
   license: LGPL-2.1-or-later
   license_family: LGPL
   license_file: LICENSE
-  summary: "GeNN Python bindings (pygenn) with CUDA backend support"
+  summary: >
+    {% if backend == "cuda" -%}
+    GeNN Python bindings (pygenn) with CUDA backend support
+    {%- else -%}
+    CPU-only PyGeNN (single-threaded backend, no CUDA required)
+    {%- endif %}
   description: |
     GeNN (GPU enhanced Neuronal Networks) is a code generation framework for
-    accelerating spiking neural network simulations using GPUs.
-    This package provides the Python bindings to use GeNN in Python.
+    accelerating spiking neural network simulations using GPUs and CPUs.
+    This package provides the Python bindings (PyGeNN) and JIT compilation
+    support. The specific backend included in this build is selected via the
+    `backend` build variant:
+      - backend == "cpu":  single-threaded CPU backend only.
+      - backend == "cuda": CUDA-enabled backend with GPU support.
   dev_url: https://github.com/genn-team/genn
 
 extra:
