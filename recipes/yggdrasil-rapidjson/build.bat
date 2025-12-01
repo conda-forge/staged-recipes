@@ -1,9 +1,7 @@
-@setlocal
+@setlocal EnableDelayedExpansion
+@echo on
 
-mkdir conda_build
-cd conda_build
-
-cmake %CMAKE_ARGS% ^
+cmake -B build -S %SRC_DIR% ^
       -G "Ninja" ^
       -D YGGDRASIL_RAPIDJSON_HAS_STDSTRING:BOOL=ON ^
       -D YGGDRASIL_RAPIDJSON_BUILD_TESTS:BOOL=OFF ^
@@ -11,10 +9,14 @@ cmake %CMAKE_ARGS% ^
       -D YGGDRASIL_RAPIDJSON_BUILD_DOC:BOOL=OFF ^
       -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON ^
       -D "Python3_EXECUTABLE:FILEPATH=%PYTHON%" ^
-      ..
-if errorlevel 1 exit 1
+      %CMAKE_ARGS% || goto :error
+cmake --build build -j%CPU_COUNT% || goto :error
+cmake --install build || goto :error
 
-cmake --install .
-if errorlevel 1 exit 1
+goto :eof
+
+:error
+echo Failed with error #%errorlevel%.
+exit 1
 
 @endlocal
