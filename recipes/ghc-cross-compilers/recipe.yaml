@@ -1,0 +1,121 @@
+context:
+  version: "9.6.7"
+
+package:
+  name: ghc_impl_${{ cross_target_platform }}
+  version: ${{ version }}
+
+source:
+  - url: https://downloads.haskell.org/~ghc/${{ version }}/ghc-${{ version }}-src.tar.xz
+    sha256: d053bf6ce1d588a75cfe8c9316269486e9d8fb89dcdf6fd92836fa2e3df61305
+
+build:
+  number: 0
+  skip: win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - binutils
+    - cabal ==3.10.3.0
+    - ghc-bootstrap ==9.6.7
+    - llvm-tools ${{ c_compiler_version }}.*
+    - m4
+    - make
+    - perl 5.32.*
+    - pkg-config
+    - python 3.10.*
+
+    # Cross-compiler packages
+    - if: unix
+      then:
+        - ${{ c_stdlib }}_${{ cross_target_platform }} >=${{ c_stdlib_version }}
+        - ${{ c_compiler }}_impl_${{ cross_target_platform }} ${{ c_compiler_version }}.*
+        - ${{ cxx_compiler }}_impl_${{ cross_target_platform }} ${{ cxx_compiler_version }}.*
+        - binutils_impl_${{ cross_target_platform }} ${{ binutils_version }}.*
+    - if: linux
+      then: libgcc-devel_${{ cross_target_platform }}
+    - if: osx
+      then: macosx_deployment_target_${{ cross_target_platform }} ==11.3
+  host:
+    - gmp
+    - libiconv
+    - libffi
+    - if: unix
+      then:
+        - ncurses
+  run:
+    - if: unix
+      then: ncurses
+  ignore_run_exports:
+    from_package:
+      - ncurses
+
+tests:
+  - package_contents:
+      bin:
+        - ${{ triplet }}-ghc
+        - ${{ triplet }}-ghc-pkg
+        - ${{ triplet }}-hp2ps
+        - ${{ triplet }}-hsc2hs
+      files:
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/llvm-passes
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/llvm-targets
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/package.conf.d/**
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/ghc-usage.txt
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/ghci-usage.txt
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/settings
+        - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/template-hsc.h
+        - if: version != "9.6.7"
+          then:
+            - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/ghc-interp.js
+            - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/post-link.mjs
+            - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/*-ghc-${{ version }}/*-inplace/*-inplace.a
+          else:
+            - lib/${{ ghc_triplet }}-ghc-${{ version }}/lib/*-ghc-${{ version }}/**
+
+  - script:
+      - if: linux and x86_64
+        then: |
+          echo "Testing ${{ ghc_triplet }} cross-compiler..."
+          ${{ triplet }}-ghc --version
+          printf 'main = putStrLn "Hello from ${{ ghc_triplet }} cross-compiler"\n' > cross_hello.hs
+          ${{ triplet }}-ghc cross_hello.hs
+          file cross_hello | grep -i '${{ cross_abi_string }}'
+          ${{ qemu_execve }} ./cross_hello
+        else:
+          echo "Skipping cross-compiler test (not available on this platform)"
+          ${{ triplet }}-ghc --version || true
+    requirements:
+      run:
+        - if: linux and x86_64
+          then:
+            - file
+            - ${{ c_stdlib }}_${{ cross_target_platform }} >=${{ c_stdlib_version }}
+            - ${{ c_compiler }}_impl_${{ cross_target_platform }} ${{ c_compiler_version }}.*
+            - ${{ cxx_compiler }}_impl_${{ cross_target_platform }} ${{ cxx_compiler_version }}.*
+            - libgcc-devel_${{ cross_target_platform }}
+            - binutils_${{ cross_target_platform }}
+            - ${{ qemu_execve }}
+
+about:
+  homepage: https://haskell.org/ghc/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    # version != "9.6.7": - license_files
+  summary: Glorious Glasgow Haskell Compilation System
+  description: |
+    GHC is a state-of-the-art, open source, compiler and interactive environment 
+    for the functional language Haskell.
+  documentation: https://www.haskell.org/ghc/documentation.html
+  repository: https://gitlab.haskell.org/ghc/ghc
+
+extra:
+  recipe-maintainers:
+    # - xhochy
+    - MementoRC
