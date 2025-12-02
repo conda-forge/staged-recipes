@@ -9,7 +9,7 @@ CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 # CMake extra configuration:
 extra_cmake_args=(
     -G Ninja
-    -D BUILD_SHARED_LIBS=OFF
+    -D BUILD_SHARED_LIBS=ON
     -D CMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
     # Backend configuration
     -D AL_BACKEND_HDF5=OFF
