@@ -8,5 +8,5 @@ copy "flamegraph.pl" "%PREFIX%\Library\bin\flamegraph.pl" >nul
 
 (
 echo @echo off
-echo perl "%PREFIX%\Library\bin\flamegraph.pl" %%*
+echo call perl "%PREFIX%\Library\bin\flamegraph.pl" %%*
 ) > "%PREFIX%\Library\bin\flamegraph.bat"
