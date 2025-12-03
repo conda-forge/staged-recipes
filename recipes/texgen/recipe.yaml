@@ -13,17 +13,20 @@ source:
   git: https://github.com/louisepb/TexGen.git
   branch: master
   patches:
-    - fix-windows-linking.patch
     - add_ctype.patch
-    - if: unix
-      then:
-        - delete_include.patch
+    # both changes to use p4est & libsc provided by cf
+    - del_octree_refinement_dir.patch
+    - p4est_from_conda.patch
 
 build:
+  skip:
+    - win
+    - osx
   script:
-    - if: unix
+    - if: linux
       then: |
           cmake "$SRC_DIR" \
+            $CMAKE_ARGS \
             -DBUILD_CASCADE_EXPORT=OFF \
             -DBUILD_DOCUMENTATION=OFF \
             -DBUILD_EXAMPLES=OFF \
@@ -44,32 +47,6 @@ build:
           cmake --build . --config Release
           cmake --install . --prefix $PREFIX
           cp $SRC_DIR/OctreeRefinement/*.so $PREFIX/lib
-    - if: win
-      then: |
-          for /f "delims=" %%i in ('python -c "import sys; print(sys.version_info[1])"') do set PY_VERSION=%%i
-          echo Python minor version found: "%PY_VERSION%"
-          cmake ^
-            -G "Visual Studio 17 2022" ^
-            -A x64 ^
-            -DBUILD_CASCADE_EXPORT=OFF ^
-            -DBUILD_DOCUMENTATION=OFF ^
-            -DBUILD_EXAMPLES=OFF ^
-            -DBUILD_GUI=OFF ^
-            -DBUILD_PYTHON_INTERFACE=ON ^
-            -DPYTHON_INCLUDE_DIR="%PREFIX%"\include\ ^
-            -DPYTHON_LIBRARY="%PREFIX%\libs\python3%PY_VERSION%.lib" ^
-            -DPYTHON_SITEPACKAGES_DIR="%SP_DIR%" ^
-            -DBUILD_RENDERER=OFF ^
-            -DBUILD_SHARED=ON ^
-            -DBUILD_UNIT_TESTS=OFF ^
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-            -DCMAKE_CXX_STANDARD=14 ^
-            -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
-            "%SRC_DIR%"
-          cmake --build . --config Release
-          cmake --install .
-          copy "%SRC_DIR%\OctreeRefinement\libsc.dll" "%PREFIX%\Library\bin\"
-          copy "%SRC_DIR%\OctreeRefinement\libp4est.dll" "%PREFIX%\Library\bin\"
   number: 0
 
 requirements:
@@ -79,11 +56,15 @@ requirements:
     - ${{ stdlib('c') }}
     - cmake
     - swig
-    - if: unix
-      then:
-        - make
+    - make
+    - pkgconfig
   host:
-    - python 
+    - python
+    - libsc
+    - p4est
+    - openmpi-mpicc # libsc?
+    - zlib # libsc?
+    - jansson # libsc?
   run:
     - python
 
