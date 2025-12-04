@@ -1,6 +1,6 @@
 context:
   name: RooUnfold
-  version: "3.0.5"
+  version: "3.1.0"
 
 package:
   name: ${{ name|lower }}
@@ -8,22 +8,44 @@ package:
 
 source:
   url: https://gitlab.cern.ch/RooUnfold/RooUnfold/-/archive/${{ version }}/${{ name }}-${{ version }}.tar.gz
-  sha256: e57d846efcaff831dfeaad528fa9ebc60fe3e09165decbbc261592c23851d40a
+  sha256: 14d83344c8f361e0738fb99af0dd1291db05fefc9b763b8749402235be3d755c
+  patches:
+    - patches/cmake-minimum-3.5.patch
 
 build:
   number: 0
+  skip:
+    - win
+    # https://github.com/conda-forge/root-feedstock/issues/327
+    - if: osx and (root_base is startingwith('6.32'))
+      then: true
+    - if: linux and (root_base is startingwith('6.32') or root_base is startingwith('6.34')) and (c_compiler_version != 13)
+      then: true
+    #- if: root_base is startingwith('6.36') and (c_compiler_version != "14")
+    #  then: true
   script:
     - cmake ${CMAKE_ARGS}  -S . -B build
     - cmake --build build --clean-first --parallel="${CPU_COUNT}"
     - cmake --install build
+    # NOTE: we must manually set SP_DIR since it is not set.
+    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+    - if: unix
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: win
+      then:
+        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+    # equivalent of the following:
+    #- rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $SP_DIR/RooUnfold/
+    - python -c "import shutil, os, sysconfig; shutil.copytree(os.path.join(os.environ['SRC_DIR'], 'python'), os.path.join(os.environ['SP_DIR'], 'RooUnfold'), dirs_exist_ok=True)"
 
 requirements:
   build:
-    - ${{ stdlib("c") }}
-    - ${{ compiler("cxx") }}
+    - ${{ compiler('c') }} #c-compiler 1.11.*
+    - ${{ compiler('cxx') }} #cxx-compiler 1.11.*
+    - ${{ stdlib('c') }} #sysroot_linux-64 2.17.*
     - cmake
     - make
-    - rsync
     - if: build_platform != target_platform
       then:
         - cross-python_${{ target_platform }}
@@ -37,11 +59,13 @@ requirements:
     - python
 
 tests:
-  - python:
-      imports:
-      - ROOT
-      - RooUnfold
-      pip_check: true
+  - requirements:
+      run:
+        - root_base
+        - python
+    script:
+      - printenv
+      - python -c "import RooUnfold"
 
 about:
   homepage: https://gitlab.cern.ch/RooUnfold/RooUnfold
@@ -59,8 +83,8 @@ about:
       - iterative dynamically stabilized (IDS) unfolding
       - usage of gaussian processes (GP) for regularizing a kernel, as developed by Adam Bosson
       - Poisson unfolding, a simple likelihood unfolding
-  license: MIT # TODO
-  license_file: README.md # TODO:
+  license: BSD-3-Clause
+  license_file: LICENSE
   documentation: https://gitlab.cern.ch/RooUnfold/documentation/-/blob/master/RooUnfold_user_guide.pdf
   repository: https://gitlab.cern.ch/RooUnfold/RooUnfold
 
