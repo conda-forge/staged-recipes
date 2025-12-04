@@ -1,0 +1,73 @@
+{% set version = "13.1.80" %}
+{% set arm_variant_type = arm_variant_type | default("sbsa") %}
+{% set cuda_version = "13.1" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}    # [linux and aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+{% set soname = version.split(".")[0] %}
+
+{% set sha256 = "e3f427f96492956527614c1283760463f7c02319d3e44c4b062fca17429d5951" %}  # [linux64]
+{% set sha256 = "94704a1cc2609d471ac1c157e43cc9d89cc437de3b85ec3b2df45199cf66d1f9" %}  # [linux and aarch64]
+{% set sha256 = "9215c7ed572ed74c6167589c32f135a65853cbc35e7d417ec29ddd886be85d43" %}  # [win]
+
+package:
+  name: cuda-tileiras-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_tileiras/{{ platform }}/cuda_tileiras-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [osx or ppc64le]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+
+outputs:
+  - name: cuda-tileiras
+    build:                           # [win]
+      script:                        # [win]
+         - move bin\* %LIBRARY_BIN%  # [win]
+    files:             # [linux]
+      - bin/tileiras   # [linux]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - arm-variant * {{ arm_variant_type }}  # [linux and aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    test:
+      commands:
+        - test -f $PREFIX/bin/tileiras                    # [linux]
+        - if not exist %LIBRARY_BIN%\tileiras.exe exit 1  # [win]
+        - tileiras --version
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: TileIR is a portable and language agnostic intermediate representation for CUDA kernels
+  description:
+    With Tile IR, we introduce a new operation set and programming model to retain
+    CUDA’s performance across architectures while regaining portability and improving
+    productivity for developers using matrix operations on new architectures.
+    We virtualize tensor-cores and their associated programming model to the point
+    that we can innovate new approaches in hardware without invalidating investments
+    in software.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  feedstock-name: cuda-tileiras
+  recipe-maintainers:
+    - conda-forge/cuda
