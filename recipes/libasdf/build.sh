@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 
-mkdir build
-cd build
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
-    -DENABLE_TESTING_CPP=YES \
-    -DENABLE_TESTING_SHELL=YES
+export CFLAGS="$CFLAGS -std=c11 -D_GNU_SOURCE $(pkg-config --cflags libfyaml)"
+export LDFLAGS="-Wl,-rpath,$PREFIX/lib $(pkg-config --libs libfyaml)"
 
+# Apply patches
+patch -p0 -i "$RECIPE_DIR"/0001-fix-test-fyaml-linkage.patch
+
+# Bootstrap for local autotools
+autoreconf -i
+
+# Configure
+./configure --prefix="$PREFIX" \
+    --with-gwcs \
+    CFLAGS="${CFLAGS}" \
+    CPPFLAGS="${CPPFLAGS}" \
+    LDFLAGS="${LDFLAGS}"
+
+# Build
+make V=1
+
+# Test
+make check
+
+# Install
 make install
-
