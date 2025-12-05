@@ -1,10 +1,13 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -ex
 
-# Enter the extracted source directory automatically
-cd "$SRC_DIR"/*/
+# We are already in the source directory ($SRC_DIR)
+# Install all git-extras scripts into the conda environment
 
-# Install all git-extras scripts
 mkdir -p "$PREFIX/bin"
-cp git-* "$PREFIX/bin"
+
+# Copy all commands that start with 'git-'
+cp git-* "$PREFIX/bin/"
+
+# Make them executable
 chmod +x "$PREFIX/bin"/git-*
