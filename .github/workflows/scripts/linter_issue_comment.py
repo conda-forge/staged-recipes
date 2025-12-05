@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 
 import github
 
@@ -17,6 +18,9 @@ if __name__ == "__main__":
     gh = github.Github(auth=github.Auth.Token(os.getenv("GH_TOKEN")))
     repo = gh.get_repo(f"{args.owner}/staged-recipes")
     pr = repo.get_pull(args.pr_num)
+
+    if pr.state == "closed" or pr.merged == True:
+        sys.exit(0)
 
     commit = repo.get_commit(pr.head.sha)
 
