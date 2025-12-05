@@ -36,3 +36,4 @@ if errorlevel 1 exit 1
 echo PREFIX:
 echo %PREFIX%
 
+move %SP_DIR%\cuik_molmaker\cuik_molmaker_core.dll %PREFIX%\Library\bin
