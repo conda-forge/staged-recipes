@@ -8,23 +8,13 @@ source .scripts/logging_utils.sh
 
 set -xeo pipefail
 
-# Detect container runtime (docker → podman fallback)
-if command -v docker &>/dev/null; then
-    CONTAINER_RUNTIME_EXE=docker
-elif command -v podman &>/dev/null; then
-    CONTAINER_RUNTIME_EXE=podman
-else
-    echo "Error: No supported container runtime found (docker or podman)."
-    exit 1
-fi
-
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename "$THISDIR")"
 AZURE="${AZURE:-False}"
 
-${CONTAINER_RUNTIME_EXE} info
+docker info
 
 # In order for the conda-build process in the container to write to the mounted
 # volumes, we need to run with the same id as the host machine, which is
@@ -64,8 +54,8 @@ fi
 ( startgroup "Start Docker" ) 2> /dev/null
 # this group is closed in build_steps.sh
 
-${CONTAINER_RUNTIME_EXE} pull "${DOCKER_IMAGE}"
-${CONTAINER_RUNTIME_EXE} run ${DOCKER_RUN_ARGS} \
+docker pull "${DOCKER_IMAGE}"
+docker run ${DOCKER_RUN_ARGS} \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
