@@ -1,23 +1,18 @@
 #!/usr/bin/env bash
 set -ex
 
-# Find extracted source directory (GitHub archives vary)
-src_dir=$(find . -maxdepth 1 -type d -name "concurrentqueue*" | sort | head -n 1)
+# Always build from the conda-provided source directory
+cd "$SRC_DIR"
 
-if [ -z "$src_dir" ]; then
-    echo "ERROR: Could not find extracted source dir!"
-    find . -maxdepth 2 -type d
-    exit 1
-fi
+# Create an out-of-source build
+mkdir build
+cd build
 
-echo "Using source dir: $src_dir"
-cd "$src_dir"
+# Configure with CMake
+cmake .. \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DCMAKE_BUILD_TYPE=Release
 
-# Install headers
-mkdir -p "$PREFIX/include/concurrentqueue"
-cp -v *.h "$PREFIX/include/concurrentqueue/"
-
-if [ -d internal ]; then
-    mkdir -p "$PREFIX/include/concurrentqueue/internal"
-    cp -vr internal/* "$PREFIX/include/concurrentqueue/internal/"
-fi
+# Build and install
+cmake --build . --config Release
+cmake --install .
