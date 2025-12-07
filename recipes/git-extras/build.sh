@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-mkdir -p "$PREFIX/bin"
-cp git-* "$PREFIX/bin"
-chmod +x "$PREFIX/bin"/git-*
+cd "$SRC_DIR"
+
+# Use the official installer provided by git-extras
+bash install.sh "$PREFIX"
