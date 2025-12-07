@@ -1,0 +1,156 @@
+{% set name = "apache-tika" %}
+{% set version = "3.2.3" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  - url: https://repo1.maven.org/maven2/org/apache/tika/tika-core/{{ version }}/tika-core-{{ version }}.jar
+    sha256: 4b697ae09a76b50102750816e9bd3ad26d89161ba65ddabdeee7ef3830428fd1
+    folder: tika-core
+  - url: https://repo1.maven.org/maven2/org/apache/tika/tika-app/{{ version }}/tika-app-{{ version }}.jar
+    sha256: 80c20c085e2c0976bbd55969e5bf90dda2b7155db31068639fbc871d0369e7e7
+    folder: tika-app
+  - url: https://repo1.maven.org/maven2/org/apache/tika/tika-parsers-standard-package/{{ version }}/tika-parsers-standard-package-{{ version }}.jar
+    sha256: 6c780c1bd3ef42d7df386a2587a71c7f92e8cc84c3f18d3548b049352dd04851
+    folder: tika-parsers
+
+build:
+  number: 0
+
+outputs:
+  - name: apache-tika-core
+    version: {{ version }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p ${PREFIX}/share/java/apache-tika  # [unix]
+        - mkdir %PREFIX%\share\java\apache-tika  # [win]
+        - cp ${SRC_DIR}/tika-core/tika-core-{{ version }}.jar ${PREFIX}/share/java/apache-tika/  # [unix]
+        - copy %SRC_DIR%\tika-core\tika-core-{{ version }}.jar %PREFIX%\share\java\apache-tika\  # [win]
+    requirements:
+      run:
+        - openjdk >=17
+    test:
+      commands:
+        - test -f ${PREFIX}/share/java/apache-tika/tika-core-{{ version }}.jar  # [unix]
+        - if not exist %PREFIX%\share\java\apache-tika\tika-core-{{ version }}.jar exit 1  # [win]
+    about:
+      home: https://tika.apache.org/
+      license: Apache-2.0
+      license_family: Apache
+      summary: Apache Tika core library for content detection and analysis
+      description: |
+        The Apache Tika™ toolkit detects and extracts metadata and text 
+        from over a thousand different file types (such as PPT, XLS, and PDF).
+        This package contains the core API library.
+      dev_url: https://github.com/apache/tika
+
+  - name: apache-tika-parsers
+    version: {{ version }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p ${PREFIX}/share/java/apache-tika  # [unix]
+        - mkdir %PREFIX%\share\java\apache-tika  # [win]
+        - cp ${SRC_DIR}/tika-parsers/tika-parsers-standard-package-{{ version }}.jar ${PREFIX}/share/java/apache-tika/  # [unix]
+        - copy %SRC_DIR%\tika-parsers\tika-parsers-standard-package-{{ version }}.jar %PREFIX%\share\java\apache-tika\  # [win]
+    requirements:
+      run:
+        - {{ pin_subpackage('apache-tika-core', exact=True) }}
+        - openjdk >=17
+    test:
+      commands:
+        - test -f ${PREFIX}/share/java/apache-tika/tika-parsers-standard-package-{{ version }}.jar  # [unix]
+        - if not exist %PREFIX%\share\java\apache-tika\tika-parsers-standard-package-{{ version }}.jar exit 1  # [win]
+    about:
+      home: https://tika.apache.org/
+      license: Apache-2.0
+      license_family: Apache
+      summary: Apache Tika standard parsers package
+      description: |
+        The Apache Tika™ toolkit detects and extracts metadata and text 
+        from over a thousand different file types (such as PPT, XLS, and PDF).
+        This package contains the standard parsers service configuration.
+        Note: For standalone use, consider apache-tika-app which bundles all dependencies.
+      dev_url: https://github.com/apache/tika
+
+  - name: apache-tika-app
+    version: {{ version }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p ${PREFIX}/share/java/apache-tika  # [unix]
+        - mkdir -p ${PREFIX}/bin  # [unix]
+        - cp ${SRC_DIR}/tika-app/tika-app-{{ version }}.jar ${PREFIX}/share/java/apache-tika/  # [unix]
+        - sed "s/@VERSION@/{{ version }}/g" ${RECIPE_DIR}/tika.sh > ${PREFIX}/bin/tika  # [unix]
+        - chmod +x ${PREFIX}/bin/tika  # [unix]
+        - mkdir %PREFIX%\share\java\apache-tika  # [win]
+        - mkdir %PREFIX%\Scripts  # [win]
+        - copy %SRC_DIR%\tika-app\tika-app-{{ version }}.jar %PREFIX%\share\java\apache-tika\  # [win]
+        - powershell -Command "(Get-Content %RECIPE_DIR%\tika.bat) -replace '@VERSION@', '{{ version }}' | Set-Content %PREFIX%\Scripts\tika.bat"  # [win]
+    requirements:
+      run:
+        - openjdk >=17
+    test:
+      commands:
+        - test -f ${PREFIX}/share/java/apache-tika/tika-app-{{ version }}.jar  # [unix]
+        - test -f ${PREFIX}/bin/tika  # [unix]
+        - tika --help  # [unix]
+        - if not exist %PREFIX%\share\java\apache-tika\tika-app-{{ version }}.jar exit 1  # [win]
+        - if not exist %PREFIX%\Scripts\tika.bat exit 1  # [win]
+    about:
+      home: https://tika.apache.org/
+      license: Apache-2.0
+      license_family: Apache
+      summary: Apache Tika application - complete bundled toolkit
+      description: |
+        The Apache Tika™ toolkit detects and extracts metadata and text 
+        from over a thousand different file types (such as PPT, XLS, and PDF).
+        This package contains the complete bundled application with all parsers
+        including PDF support. Run with: tika --help (or java -jar $CONDA_PREFIX/share/java/apache-tika/tika-app-{{ version }}.jar)
+      dev_url: https://github.com/apache/tika
+
+  - name: apache-tika
+    version: {{ version }}
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage('apache-tika-app', exact=True) }}
+    test:
+      commands:
+        - tika --help  # [unix]
+        - test -f ${PREFIX}/share/java/apache-tika/tika-app-{{ version }}.jar  # [unix]
+        - if not exist %PREFIX%\share\java\apache-tika\tika-app-{{ version }}.jar exit 1  # [win]
+    about:
+      home: https://tika.apache.org/
+      license: Apache-2.0
+      license_family: Apache
+      summary: Apache Tika - content detection and analysis toolkit (metapackage)
+      description: |
+        The Apache Tika™ toolkit detects and extracts metadata and text 
+        from over a thousand different file types (such as PPT, XLS, and PDF).
+        This is a metapackage that installs the complete Apache Tika toolkit.
+      dev_url: https://github.com/apache/tika
+
+about:
+  home: https://tika.apache.org/
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: Apache Tika - content detection and analysis toolkit
+  description: |
+    The Apache Tika™ toolkit detects and extracts metadata and text 
+    from over a thousand different file types (such as PPT, XLS, and PDF).
+    All of these file formats can be parsed through a single interface,
+    making Tika useful for search engine indexing, content analysis, 
+    translation, and much more.
+  dev_url: https://github.com/apache/tika
+  doc_url: https://tika.apache.org/documentation.html
+
+extra:
+  feedstock-name: apache-tika
+  recipe-maintainers:
+    - rxm7706
