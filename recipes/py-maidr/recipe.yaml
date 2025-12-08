@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: 1.9.0
+  python_check_max: "3.14"
+
+recipe:
+  name: py-maidr-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/maidr/maidr-${{ version }}.tar.gz
+  sha256: dd91489e7e7f058c0ed34ce2334038eeafbac4e142be4c7d225be3c4d871abc7
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: py-maidr
+    build:
+      number: 0
+      noarch: python
+      script:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      host:
+        - hatchling
+        - pip
+        - python ${{ python_min }}.*
+      run:
+        - htmltools >=0.5
+        - lxml >=5.1.0
+        - mplfinance >=0.12.10b0
+        - numpy >=1.26
+        - python >=${{ python_min }}
+        - wrapt >=1.16.0,<2
+        # undeclared, but import fails without
+        - seaborn-base
+      run_constraints:
+        - seaborn-base >=0.12
+        - matplotlib-base >=3.8
+        - statsmodels >=0.14.4
+    tests:
+      - python:
+          imports: maidr
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+
+  - package:
+      name: py-maidr-with-visualization
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - ${{ pin_subpackage("py-maidr", exact=True) }}
+        - flask >=3.0.0
+        - seaborn
+        - statsmodels
+    tests:
+      - python:
+          imports: maidr
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+    about:
+      summary: Multimodal Access and Interactive Data Representations (with [visualization])
+
+  - package:
+      name: py-maidr-with-jupyter
+    requirements:
+      run:
+        - ${{ pin_subpackage("py-maidr", exact=True) }}
+        - ipykernel >=6.0.0
+        - jupyter >=1.0.0,<2
+    tests:
+      - python:
+          imports: maidr
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+    about:
+      summary: Multimodal Access and Interactive Data Representations (with [jupyter])
+
+  - package:
+      name: py-maidr-with-all
+    requirements:
+      run:
+        - ${{ pin_subpackage("py-maidr-with-jupyter", exact=True) }}
+        - ${{ pin_subpackage("py-maidr-with-visualization", exact=True) }}
+        - ${{ pin_subpackage("py-maidr", exact=True) }}
+    tests:
+      - python:
+          imports: maidr
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - files:
+          source:
+            - tests/
+        requirements:
+          run:
+            - pytest-cov
+            - pytest >=7.3.2,<8
+            - pytest-mock >=3.12.0,<4
+        script:
+          - coverage run --source maidr --branch -m pytest -vv --tb=long --color=yes
+          - coverage report --show-missing --skip-covered --fail-under=30
+    about:
+      summary: Multimodal Access and Interactive Data Representations (with all [extras])
+
+about:
+  homepage: https://pypi.org/project/maidr
+  summary: Multimodal Access and Interactive Data Representations
+  license: GPL-3.0-only
+  license_file: LICENSE
+  repository: https://github.com/xability/py-maidr
+  documentation: https://py.maidr.ai
+
+extra:
+  feedstock-name: py-maidr
+  recipe-maintainers:
+    - bollwyvl
