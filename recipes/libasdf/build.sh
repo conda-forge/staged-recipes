@@ -12,6 +12,7 @@ autoreconf -i
 # Configure
 ./configure --prefix="$PREFIX" \
     --with-gwcs \
+    --without-libstatgrab
     CFLAGS="${CFLAGS}" \
     CPPFLAGS="${CPPFLAGS}" \
     LDFLAGS="${LDFLAGS}"
