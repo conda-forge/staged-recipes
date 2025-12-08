@@ -1,0 +1,82 @@
+schema_version: 1
+
+context:
+  name: fastdigest
+  version: 0.9.1
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/fastdigest-${{ version }}.tar.gz
+  sha256: 5ee10c99ca444b3689a8695542a4421426b9a0b0c778ad447a48bf33159d313c
+
+build:
+  number: 0
+  script:
+    - sed -i.bak 's/features = \[/features = \["abi3", /g' Cargo.toml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+  python:
+    version_independent: true
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: win
+      then: m2-sed
+      else: sed
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then:
+        - python-abi3
+        - python ${{ python_min }}.*
+      else: python
+    - maturin >=1.0,<2.0
+    - pip
+  run:
+    - if: is_abi3
+      then: python ${{ python_min }}.*
+      else: python
+
+tests:
+  - python:
+      imports:
+        - fastdigest
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - '*'
+  - if: is_abi3
+    then:
+      - script:
+        # NOTE: we must manually set SP_DIR since it is not set.
+        # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+        - if: unix
+          then:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/fastdigest/fastdigest.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        - if: win
+          then:
+            - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+            - abi3audit %SP_DIR%\\fastdigest\\fastdigest.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+        requirements:
+          run:
+            - abi3audit
+
+about:
+  homepage: https://github.com/moritzmucha/fastdigest
+  summary: A fast t-digest library for Python built on Rust.
+  license: MIT
+  license_file:
+    - THIRDPARTY.yml
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - isuruf
