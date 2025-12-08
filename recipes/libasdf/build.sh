@@ -5,6 +5,7 @@ export LDFLAGS="-Wl,-rpath,$PREFIX/lib $(pkg-config --libs libfyaml)"
 
 # Apply patches
 patch -p0 -i "$RECIPE_DIR"/patches/0002-0.1.0a2-fix-munit-integration.patch
+patch -p0 -i "$RECIPE_DIR"/patches/0003-0.1.0a2-check-userfaultfd-user-mode.patch
 
 # Bootstrap for local autotools
 autoreconf -i
