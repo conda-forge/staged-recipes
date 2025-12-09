@@ -1,0 +1,86 @@
+context:
+  name: zeem
+  version: "2.0.5"
+  sha256: cf82135e85c856e700ecaeb0a046769c84827166e6218b34839bf06301466e6f
+  build_number: 0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then:
+        - set -exo pipefail
+        - export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+        - cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=ON
+        - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - ctest -V -C Release --test-dir build
+        - cmake --install build
+      else:
+        - echo on
+        - cmake -S . -B build -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON
+        - if errorlevel 1 exit 1
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - ':': ctest -V -C Release --test-dir build
+        - ':': if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - pkg-config
+    - if: unix
+      then: sed
+      else: m2-sed
+  host:
+    - fast_float
+    - howardhinnant_date
+  run_exports:
+    - ${{ pin_subpackage(name|lower, upper_bound="x") }}
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -d ${PREFIX}/include/zeem
+          - test -f ${PREFIX}/lib/libzeem${SHLIB_EXT}
+        else:
+          - if not exist "%LIBRARY_PREFIX%\include\zeem\" exit /b 1
+          - if not exist "%LIBRARY_PREFIX%\lib\zeem.lib" exit /b 1
+          - if not exist "%LIBRARY_PREFIX%\bin\zeem.dll" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/zeem
+  repository: https://github.com/mhekkel/zeem
+  documentation: https://mhekkel.github.io/zeem
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: "A C++ Module Library offering a full XML library with validating parser, DOM tree, XPaths and serialization."
+  description: >
+    This is a feature complete XML library containing a validating parser as well as a modern C++ API for the data structures.
+    It also supports serializing custom data structures.
+
+    The core of this library is a validating XML parser with DTD processing and all.
+    On top of this are implemented an API for manipulating XML data in a DOM like fashion and a serialization API.
+    As a bonus there’s also an XPath implementation, albeit this is limited to XPath 1.0.
+
+    This XML library was extracted from [libzeep](https://github.com/mhekkel/libzeep) since having a separate and simple XML library is more convenient.
+    The API is unfortunately no longer compatible since the goal was to be more standards compliant.
+    E.g., zeem::element should now be a complete [Sequence Container](https://en.cppreference.com/w/cpp/named_req/SequenceContainer).
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
