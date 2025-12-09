@@ -1,0 +1,110 @@
+From a1dd069a410296fec55786e92b5410a4e09c76dd Mon Sep 17 00:00:00 2001
+From: Paul Baksic <paul.baksic@outlook.fr>
+Date: Fri, 21 Nov 2025 15:27:05 +0100
+Subject: [PATCH 3/3] Export symbols on windows
+
+---
+ CMakeLists.txt                    |  2 +-
+ src/tight_inclusion/ccd.hpp       | 12 ++++++------
+ src/tight_inclusion/config.hpp.in | 19 +++++++++++++++++++
+ 3 files changed, 26 insertions(+), 7 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 908e697..d02e813 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -153,7 +153,7 @@ target_compile_options(tight_inclusion PRIVATE ${SIMD_FLAGS})
+ # Use C++17
+ target_compile_features(tight_inclusion PUBLIC cxx_std_17)
+ 
+-
++target_compile_definitions(tight_inclusion PRIVATE "-DTIGHT_INCLUSION_BUILD")
+ ################################################################################
+ # Export target properly
+ ################################################################################
+diff --git a/src/tight_inclusion/ccd.hpp b/src/tight_inclusion/ccd.hpp
+index 69a6475..aef1ba0 100644
+--- a/src/tight_inclusion/ccd.hpp
++++ b/src/tight_inclusion/ccd.hpp
+@@ -6,10 +6,10 @@
+ #include <tight_inclusion/config.hpp>
+ 
+ namespace ticcd {
+-    static constexpr bool DEFAULT_NO_ZERO_TOI = false;
++    static constexpr bool  DEFAULT_NO_ZERO_TOI = false;
+     static constexpr Scalar DEFAULT_CCD_DISTANCE_TOL = 1e-6;
+ 
+-    enum class CCDRootFindingMethod {
++    enum class TIGHT_INCLUSION_API CCDRootFindingMethod {
+         DEPTH_FIRST_SEARCH,
+         BREADTH_FIRST_SEARCH,
+     };
+@@ -37,7 +37,7 @@ namespace ticcd {
+     /// @param[out] output_tolerance The precision under max_itr ( > 0). if max_itr < 0, output_tolerance = tolerance;
+     /// @param[in] no_zero_toi Refine further if a zero toi is produced (assumes not initially in contact).
+     /// @return True if there is a collision, false otherwise.
+-    bool edgeEdgeCCD(
++    bool TIGHT_INCLUSION_API edgeEdgeCCD(
+         const Vector3 &ea0_t0,
+         const Vector3 &ea1_t0,
+         const Vector3 &eb0_t0,
+@@ -80,7 +80,7 @@ namespace ticcd {
+     /// @param[out] output_tolerance The precision under max_itr ( > 0). if max_itr < 0, output_tolerance = tolerance;
+     /// @param[in] no_zero_toi Refine further if a zero toi is produced (assumes not initially in contact).
+     /// @return True if there is a collision, false otherwise.
+-    bool vertexFaceCCD(
++    bool TIGHT_INCLUSION_API vertexFaceCCD(
+         const Vector3 &v_t0,
+         const Vector3 &f0_t0,
+         const Vector3 &f1_t0,
+@@ -100,7 +100,7 @@ namespace ticcd {
+         const CCDRootFindingMethod ccd_method =
+             CCDRootFindingMethod::BREADTH_FIRST_SEARCH);
+ 
+-    Array3 compute_vertex_face_tolerances(
++    Array3 TIGHT_INCLUSION_API compute_vertex_face_tolerances(
+         const Vector3 &v_t0,
+         const Vector3 &f0_t0,
+         const Vector3 &f1_t0,
+@@ -111,7 +111,7 @@ namespace ticcd {
+         const Vector3 &f2_t1,
+         const Scalar distance_tolerance = DEFAULT_CCD_DISTANCE_TOL);
+ 
+-    Array3 compute_edge_edge_tolerances(
++    Array3 TIGHT_INCLUSION_API compute_edge_edge_tolerances(
+         const Vector3 &ea0_t0,
+         const Vector3 &ea1_t0,
+         const Vector3 &eb0_t0,
+diff --git a/src/tight_inclusion/config.hpp.in b/src/tight_inclusion/config.hpp.in
+index e10b433..3d2be42 100644
+--- a/src/tight_inclusion/config.hpp.in
++++ b/src/tight_inclusion/config.hpp.in
+@@ -14,6 +14,25 @@
+ #cmakedefine TIGHT_INCLUSION_LIMIT_QUEUE_SIZE
+ #cmakedefine TIGHT_INCLUSION_FLOAT_WITH_DOUBLE_INPUT
+ 
++#ifndef WIN32
++#	define TIGHT_INCLUSION_EXPORT_DYNAMIC_LIBRARY __attribute__ ((visibility ("default")))
++#   define TIGHT_INCLUSION_IMPORT_DYNAMIC_LIBRARY
++#else
++#	define TIGHT_INCLUSION_EXPORT_DYNAMIC_LIBRARY __declspec( dllexport )
++#   define TIGHT_INCLUSION_IMPORT_DYNAMIC_LIBRARY __declspec( dllimport )
++#   ifdef _MSC_VER
++#       pragma warning(disable : 4231)
++#       pragma warning(disable : 4910)
++#   endif
++#endif
++
++#ifdef TIGHT_INCLUSION_BUILD
++#  define TIGHT_INCLUSION_API  TIGHT_INCLUSION_EXPORT_DYNAMIC_LIBRARY
++#else
++#  define TIGHT_INCLUSION_API  TIGHT_INCLUSION_IMPORT_DYNAMIC_LIBRARY
++#endif
++
++
+ // #define TIGHT_INCLUSION_CHECK_QUEUE_SIZE
+ // #define TIGHT_INCLUSION_USE_MAX_ABS_TOL
+ 
+-- 
+2.43.0
+
