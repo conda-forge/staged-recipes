@@ -33,7 +33,7 @@ patches=(
 
 # Apply patches
 for p in "${patches[@]}"; do
-    patch -p0 < "$RECIPE_DIR/patches/$p"
+    patch -p1 < "$RECIPE_DIR/patches/$p"
 done
 
 # Bootstrap for local autotools
