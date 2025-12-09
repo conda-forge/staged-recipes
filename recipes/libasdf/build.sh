@@ -26,9 +26,8 @@ export LDFLAGS="-Wl,-rpath,$PREFIX/lib $(pkg-config --libs libfyaml)"
 #   ...
 # )
 patches=(
-    0001-Fix-munit-integration.patch
-    0002-Check-userfaultfd-user-mode-exists.patch
-    0003-Fix-test-linkage.patch
+    0001-Fix-build-system.patch
+    0002-Handle-missing-UFFD-define.patch
 )
 
 # Apply patches
