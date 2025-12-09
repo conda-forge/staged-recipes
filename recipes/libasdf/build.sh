@@ -54,3 +54,10 @@ make check
 
 # Install
 make install
+
+datadir="$PREFIX"/share/libasdf
+mkdir -p "$datadir"
+install -m 644 CHANGES.rst "$datadir"
+install -m 644 LICENSE.txt "$datadir"
+install -m 644 third_party/STC/LICENSE "$datadir"/LICENSE_STC.txt
+
