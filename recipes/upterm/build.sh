@@ -9,8 +9,6 @@ go build -ldflags "${LDFLAGS}" -o "${PREFIX}/bin/uptermd" ./cmd/uptermd
 # tj/go-update and tj/go cause linting errors
 # in the license generation code
 # https://github.com/conda-forge/staged-recipes/pull/31666/files/5334b8274ecc6aa56a74709271dd94bd0eb77513#r2607310667
-# We ignore them since they are build-only tools
-go-licenses save ./cmd/upterm ./cmd/uptermd \
-    --save_path="${SRC_DIR}/license-files" \
-    --ignore github.com/tj/go-update \
-    --ignore github.com/tj/go
+# the "|| true"
+# allows the command to succeed and to generate the license files it can
+go-licenses save ./cmd/upterm ./cmd/uptermd --save_path="${SRC_DIR}/license-files" || true
