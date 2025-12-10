@@ -26,8 +26,8 @@ export LDFLAGS="-Wl,-rpath,$PREFIX/lib $(pkg-config --libs libfyaml)"
 #   ...
 # )
 patches=(
-    0001-Fix-build-system.patch
-    0002-Handle-missing-UFFD-define.patch
+    0001-build-attempt-to-fix-autotools-build-in-conda-enviro.patch
+    0002-Fix-build-system.patch
 )
 
 # Apply patches
