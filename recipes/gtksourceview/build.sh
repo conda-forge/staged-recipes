@@ -7,6 +7,7 @@ meson setup ${MESON_ARGS} \
     --default-library=shared \
     --wrap-mode=nofallback \
     -Dintrospection=enabled \
+    -Ddocumentation=false \
     -Dvapi=false \
     builddir
 
