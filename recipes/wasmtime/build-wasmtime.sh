@@ -18,11 +18,11 @@ if [[ "${PKG_NAME}" == "libwasmtime" ]]; then
     cd wasmtime
     cargo build -p wasmtime-c-api --release
     mkdir -p "${PREFIX}/lib" "${PREFIX}/include"
-    cp target/*/release/libwasmtime${SHLIB_EXT} "${PREFIX}/lib"
+    cp "target/${CARGO_BUILD_TARGET}/release/libwasmtime${SHLIB_EXT}" "${PREFIX}/lib"
     cd crates/c-api
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     cd include
-    cp -r *.h *.hh wasmtime "${PREFIX}/include"
+    cp -r ./*.h ./*.hh ./wasmtime/ "${PREFIX}/include"
     exit 0
 fi
 

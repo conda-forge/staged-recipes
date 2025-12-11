@@ -17,14 +17,17 @@ if "%PKG_NAME%" == "libwasmtime" (
     cd wasmtime                                                                         || exit 20
     cargo build -p wasmtime-c-api --release                                             || exit 21
     md "%LIBRARY_LIB%" "%LIBRARY_INC%"                                                  || exit 22
-    copy target\*\release\libwasmtime%SHLIB_EXT% "%PREFIX%/lib"                         || exit 23
+    copy "target\%CARGO_BUILD_TARGET%\release\libwasmtime.dll" ^
+        "%LIBRARY_LIB%\libwasmtime.dll"                                                 || exit 23
     cd crates\c-api                                                                     || exit 24
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 25
     cd include                                                                          || exit 26
-    copy *.h ^
+    robocopy . ^
+        "%LIBRARY_INC%" ^
+        *.h ^
         *.hh ^
-        wasmtime ^
-        "%LIBRARY_INC%"                                                                 || exit 27
+        wasmtime\ ^
+        /s                                                                              || exit 27
     exit 0
 )
 
@@ -40,6 +43,6 @@ if "%PKG_NAME%" == "wasmtime" (
     exit 0
 )
 
-echo "unexpected %PKG_NAME%"
+echo "unexpected package: %PKG_NAME%'"
 
 exit 99
