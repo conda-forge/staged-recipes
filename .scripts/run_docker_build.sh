@@ -59,6 +59,17 @@ DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
 if [ "${AZURE}" == "True" ]; then
     DOCKER_RUN_ARGS=""
 fi
+
+# Add podman-specific configuration
+if [ "${CONTAINER_RUNTIME_EXE}" = "podman" ]; then
+    # Set ownership for rootless podman
+    podman unshare chown -R 1000:1000 "${ARTIFACTS}"
+
+    # Add SELinux label for access
+    if command -v getenforce &>/dev/null && [ "$(getenforce)" != "Disabled" ]; then
+        VOLUME_SUFFIX=":z"
+    fi
+fi
 ( endgroup "Configure Docker" ) 2> /dev/null
 
 ( startgroup "Start Docker" ) 2> /dev/null
