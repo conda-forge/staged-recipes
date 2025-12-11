@@ -1,0 +1,153 @@
+{% set version = "2.0.0" %}
+{% set commit = "c2e0b548" %}
+
+package:
+  name: opentrustregion-split
+  version: {{ version }}
+
+source:
+  # url: https://github.com/eriksen-lab/opentrustregion/archive/v{{ version }}.tar.bz2
+  url: https://github.com/loriab/opentrustregion/archive/cmakeconda.tar.gz
+  sha256: 927ee44c8db7466d1eb15d4f1e0281b68dcc4a0b9f66a537bdd719ae2f2e3ff4
+
+build:
+  number: 0
+  binary_relocation: true
+
+outputs:
+  - name: opentrustregion
+    script: build-fortran.sh                                                     # [unix]
+    script: bld-fortran.bat                                                      # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('opentrustregion', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ stdlib("c") }}                                                      # [unix]
+        - {{ compiler('c') }}                                                    # [unix]
+        - {{ compiler('fortran') }}                                              # [unix]
+#        - gcc_linux-64
+#        - gfortran_linux-64
+        - {{ stdlib("m2w64_c") }}                                                # [win]
+        - {{ compiler('m2w64_c') }}                                              # [win]
+        - {{ compiler('m2w64_fortran') }}                                        # [win]
+        - cmake
+        - ninja
+#        - python 3.12                                                                      # only for generating a source file, so suppress all but one Py version. update as necessary.
+      host:
+        - libblas
+        - liblapack
+    test:
+      commands:
+        - ls -l $PREFIX/lib                                                      # [unix]
+        - ls -l $PREFIX/lib/cmake/OpenTrustRegion                                # [unix]
+        - dir %PREFIX%\\Library\\lib                                             # [win]
+#        - dir %PREFIX%\\Library\\lib\\cmake\\gdma                              # [win]
+        # Verify library
+        - test -h $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                                  # [unix]
+        - test ! -h $PREFIX/lib/libopentrustregion_32.a                                        # [unix]
+#        - if not exist %PREFIX%\\Library\\lib\\libgdma.dll.a exit 1              # [win]   # gnu import lib
+#        - if not exist %PREFIX%\\Library\\lib\\libgdma.lib exit 1                # [win]   # ms import lib
+#        - if not exist %PREFIX%\\Library\\bin\\libgdma.dll exit 1                # [win]   # gnu/ms dyn lib
+#        - if exist %PREFIX%\\Library\\lib\\libgdma.a exit 1                      # [win]   # gnu static lib absent
+        # Verify accessories
+#        - test -f $PREFIX/bin/gdma                                               # [unix]
+        - test -f $PREFIX/include/opentrustregion.h                             # [unix]
+        - test -f $PREFIX/lib/cmake/OpenTrustRegion/OpenTrustRegionConfig.cmake                      # [unix]
+        - test -f $PREFIX/lib/cmake/OpenTrustRegion/OpenTrustRegionTargets.cmake                 # [unix]
+#        - if not exist %PREFIX%\\Library\\bin\\OpenTrustRegion.exe exit 1                   # [win]
+#        - if not exist %PREFIX%\\Library\\include\\GDMA\\GDMA_MANGLE.h exit 1    # [win]
+#        - if not exist %PREFIX%\\Library\\OpenTrustRegion\\CMake\\OpenTrustRegionConfig.cmake exit 1  # [win]
+#        - if not exist %PREFIX%\\Library\\OpenTrustRegion\\CMake\\OpenTrustRegionTargets-lib.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                                   # [linux and build_platform == target_platform]
+        - otool -L $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                                 # [osx]
+#          # TOO LONG - '%OBJDUMP% %PREFIX%\\Library\\bin\\libOpenTrustRegion.dll | findstr /i "dll"'     # [win]
+#        # Actually test
+#        - cd examples/H2O/ && OpenTrustRegion < data                                        # [unix]
+#        - cd examples/H2O/ && OpenTrustRegion.exe < data                                    # [win]
+
+  - name: pyopentrustregion
+#    script: build-py.sh                                                          # [unix]
+#    script: bld-py.bat                                                           # [win]
+    build:
+#      skip: true                                                                 # [(aarch64 or ppc64le) and python_impl == 'pypy']
+      #script: python -m pip install . --no-deps -vv
+      script: python -m pip install . -vv
+      ignore_run_exports:
+        - opentrustregion
+    requirements:
+      build:
+#        - gcc_linux-64
+#        - gfortran_linux-64
+        - {{ stdlib("c") }}                                                      # [unix]
+        - {{ compiler("c") }}                                                    # [unix]
+        - {{ compiler("cxx") }}                                                  # [unix]
+        - {{ stdlib("m2w64_c") }}                                                # [win]
+        - {{ compiler("m2w64_c") }}                                              # [win]
+        - {{ compiler("m2w64_cxx") }}                                            # [win]
+        - cmake
+        - ninja
+        - python                                                                 # [build_platform != target_platform]
+#        - cross-python_{{ target_platform }}                                     # [build_platform != target_platform]
+#        - pybind11                                                               # [build_platform != target_platform]
+      host:
+        - {{ pin_subpackage('opentrustregion', exact=True) }}
+        - python
+        - numpy >=2.0
+        - pip
+        - setuptools
+        - wheel
+        - libblas
+        - liblapack
+#        - pybind11
+#        - pybind11-abi
+      run:
+#        - {{ pin_subpackage('opentrustregion', exact=True) }}
+        - python
+        - numpy >=2.0
+    test:
+      requires:
+        - pip                                                                              # provides `pip check`
+      imports:
+        - pyopentrustregion
+        - pyopentrustregion.testsuite
+      commands:
+        - ls -l $SP_DIR/pyopentrustregion                                        # [unix]
+        - ls -l $SP_DIR/pyopentrustregion/test_data                              # [unix]
+        # Verify module
+        - test -f $SP_DIR/pyopentrustregion/libopentrustregion*.so               # [unix]
+        - test -f $SP_DIR/pyopentrustregion/python_interface.py                  # [unix]
+#        - if not exist %SP_DIR%\\gdma*.pyd exit 1                                # [win]
+        # Verify accessories
+#        - test -f $PREFIX/share/cmake/gdma/gdmaConfig.cmake                      # [unix]
+#        - test -f $PREFIX/share/cmake/gdma/gdmaTargets-Python.cmake              # [unix]
+        - test -f $SP_DIR/pyopentrustregion/test_data/h2o_r_ints.bin             # [unix]
+#        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaConfig.cmake exit 1  # [win]
+#        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaTargets-Python.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/pyopentrustregion/libopentrustregion*.so                # [linux and build_platform == target_platform]
+        - ldd -v $SP_DIR/pyopentrustregion/libtestsuite.so
+#        - otool -L $SP_DIR/gdma*.so                                              # [osx]
+#          # TOO LONG - '%OBJDUMP% %SP_DIR%\\gdma.*.pyd | findstr /i "dll"'                    # [win]
+        # Actually test
+        - pip check
+        - python -m pyopentrustregion.testsuite
+#        - cd examples/H2O/ && python -c "import gdma; print(gdma.__version__); gdma.run_gdma('stdout', 'data')"
+
+about:
+  home: https://github.com/eriksen-lab/opentrustregion
+  dev_url: https://github.com/eriksen-lab/opentrustregion
+#  doc_url: https://gitlab.com/anthonyjs/gdma/-/blob/master/doc/manual.pdf
+#  doc_source_url: https://gitlab.com/anthonyjs/gdma/-/tree/master/doc
+#  license: GPL-3.0-only
+#  license_url: https://opensource.org/license/gpl-3-0/
+#  license_file: LICENCE
+#  license_family: GPL
+#  summary: "A. J. Stone's Distributed Multipole Analysis for Gaussian wavefunctions"
+
+extra:
+  feedstock-name: opentrustregion
+  recipe-maintainers:
+    - loriab
+    - jonas-greiner
