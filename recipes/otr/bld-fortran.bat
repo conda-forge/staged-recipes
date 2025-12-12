@@ -5,8 +5,8 @@ cmake %CMAKE_ARGS% ^
   -B build ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-  -D CMAKE_C_FLAGS="%CFLAGS%" ^
-  -D CMAKE_Fortran_FLAGS="%FFLAGS% -Wl,--export-all-symbols" ^
+  -D CMAKE_C_FLAGS="-Wl,--export-all-symbols %CFLAGS%" ^
+  -D CMAKE_Fortran_FLAGS="-Wl,--export-all-symbols %FFLAGS%" ^
   -D BUILD_SHARED_LIBS=ON ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_GNUtoMS=ON ^
@@ -22,5 +22,5 @@ if errorlevel 1 exit 1
 
 :: testing library built here is copied in build-py
 
-:: objdump -p c_interface.dll | grep ilp64
-nm -g build\testsuite.dll | grep ilp64
+objdump -p build\libtestsuite.dll | grep ilp64
+:: nm -g build\libtestsuite.dll | grep ilp64
