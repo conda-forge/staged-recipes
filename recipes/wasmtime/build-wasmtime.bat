@@ -25,14 +25,12 @@ if "%PKG_NAME%" == "libwasmtime" (
     cd wasmtime                                                                         || exit 20
     cargo build -p wasmtime-c-api --release                                             || exit 21
     dir /s "target\%CARGO_BUILD_TARGET%\release"
-    md "%LIBRARY_LIB%" "%LIBRARY_INC%"                                                  || exit 22
+    md "%LIBRARY_LIB%"                                                                  || exit 22
     copy "target\%CARGO_BUILD_TARGET%\release\wasmtime.dll" ^
         "%LIBRARY_LIB%"                                                                 || exit 23
     cd crates\c-api                                                                     || exit 24
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 25
-    cd include                                                                          || exit 26
-    robocopy . "%LIBRARY_INC%" *.h *.hh /s                                              || exit 27
-    robocopy wasmtime "%LIBRARY_INC%\wasmtime" /s                                       || exit 28
+    xcopy include "%LIBRARY_INC%" /e                                                    || exit 26
     exit 0
 )
 
