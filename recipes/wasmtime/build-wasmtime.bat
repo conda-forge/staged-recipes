@@ -24,6 +24,7 @@ if not defined CARGO_BUILD_TARGET (
 if "%PKG_NAME%" == "libwasmtime" (
     cd wasmtime                                                                         || exit 20
     cargo build -p wasmtime-c-api --release                                             || exit 21
+    dir /s target
     md "%LIBRARY_LIB%" "%LIBRARY_INC%"                                                  || exit 22
     copy "target\%CARGO_BUILD_TARGET%\release\libwasmtime.dll" ^
         "%LIBRARY_LIB%\libwasmtime.dll"                                                 || exit 23
