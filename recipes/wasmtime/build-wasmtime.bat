@@ -24,10 +24,11 @@ if not defined CARGO_BUILD_TARGET (
 if "%PKG_NAME%" == "libwasmtime" (
     cd wasmtime                                                                         || exit 20
     cargo build -p wasmtime-c-api --release                                             || exit 21
-    md "%LIBRARY_LIB%"                                                                  || exit 22
+    md "%LIBRARY_BIN%"                                                                  || exit 22
+    dir /s "target\%CARGO_BUILD_TARGET%\release"
     copy "target\%CARGO_BUILD_TARGET%\release\wasmtime.dll" ^
-        "%LIBRARY_LIB%"                                                                 || exit 23
-    dir /s "%LIBRARY_LIB%"                                                              || exit 24
+        "%LIBRARY_BIN%"                                                                 || exit 23
+    dir /s "%LIBRARY_BIN%"                                                              || exit 24
     cd crates\c-api                                                                     || exit 25
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 26
     :: emits exotic return codes, ignore and check
