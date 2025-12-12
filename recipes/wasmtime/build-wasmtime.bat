@@ -13,6 +13,14 @@ set CARGO_PROFILE_RELEASE_PANIC=abort
 set CARGO_PROFILE_RELEASE_STRIP=symbols
 set CARGO_TARGET_DIR=target
 
+if not defined CARGO_BUILD_TARGET (
+    if "%target_platform%"=="win-arm64" (
+        set "CARGO_BUILD_TARGET=aarch64-pc-windows-msvc"
+    ) else if "%target_platform%"=="win-64" (
+        set "CARGO_BUILD_TARGET=x86_64-pc-windows-msvc"
+    )
+)
+
 if "%PKG_NAME%" == "libwasmtime" (
     cd wasmtime                                                                         || exit 20
     cargo build -p wasmtime-c-api --release                                             || exit 21
