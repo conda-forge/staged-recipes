@@ -35,8 +35,8 @@ if "%PKG_NAME%" == "libwasmtime" (
         "%LIBRARY_INC%" ^
         *.h ^
         *.hh ^
-        wasmtime\ ^
         /s                                                                              || exit 27
+    copy wasmtime "%LIBRARY_INC%\wasmtime"                                              || exit 28
     exit 0
 )
 
