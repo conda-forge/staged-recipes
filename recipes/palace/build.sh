@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+
+mkdir -p build
+cd build
+
+
+# # https://github.com/conda-forge/conda-forge.github.io/issues/1901
+# export CUDAARCHS="75;80;86;89;90;100;103;120;121"
+# # Fix cicc not found
+# export PATH="${BUILD_PREFIX}/nvvm/bin/:${PATH}"
+
+
+cmake \
+  -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+  -DCMAKE_BUILD_TYPE="Release" \
+  -DCMAKE_CXX_COMPILER="${CXX}" \
+  -DCMAKE_C_COMPILER="${CC}" \
+  -DCMAKE_Fortran_COMPILER="${FC}" \
+  -DBUILD_SHARED_LIBS=ON \
+  -DPALACE_WITH_CUDA=OFF \
+  -DPALACE_WITH_64BIT_INT=OFF \
+  -DPALACE_WITH_OPENMP=ON \
+  -DPALACE_WITH_HIP=OFF \
+  -DPALACE_WITH_SUPERLU=ON \
+  -DPALACE_WITH_STRUMPACK=ON \
+  -DPALACE_WITH_MUMPS=ON \
+  -DPALACE_WITH_SLEPC=ON \
+  -DPALACE_WITH_ARPACK=ON \
+  -DPALACE_WITH_LIBXSMM=ON \
+  -DPALACE_WITH_GSLIB=ON \
+  ..
+
+  # -DPALACE_WITH_CUDA="${CUDA_BUILD}" \
+  # -DCMAKE_CUDA_ARCHITECTURES="${CUDAARCHS}" \
+  # -DPALACE_WITH_GPU_AWARE_MPI="${CUDA_BUILD}" \
+  # -DPALACE_WITH_MAGMA="${CUDA_BUILD}" \
+
+
+
+make -j${CPU_COUNT}
