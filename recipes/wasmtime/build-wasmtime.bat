@@ -29,8 +29,9 @@ if "%PKG_NAME%" == "libwasmtime" (
         "%LIBRARY_LIB%"                                                                 || exit 23
     cd crates\c-api                                                                     || exit 24
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 25
-    dir "%LIBRARY_INC%"
-    robocopy include "%LIBRARY_INC%" /copyall                                           || exit 26
+    :: emits exotic return codes, ignore and check
+    robocopy include "%LIBRARY_INC%" /copyall
+    dir /s "%LIBRARY_INC%"                                                              || exit 26
     exit 0
 )
 
