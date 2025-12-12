@@ -27,11 +27,13 @@ if "%PKG_NAME%" == "libwasmtime" (
     md "%LIBRARY_LIB%"                                                                  || exit 22
     copy "target\%CARGO_BUILD_TARGET%\release\wasmtime.dll" ^
         "%LIBRARY_LIB%"                                                                 || exit 23
-    cd crates\c-api                                                                     || exit 24
-    cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 25
+    dir /s "%LIBRARY_LIB%"                                                              || exit 24
+    cd crates\c-api                                                                     || exit 25
+    cargo-bundle-licenses --format yaml --output THIRDPARTY.yml                         || exit 26
     :: emits exotic return codes, ignore and check
     robocopy include "%LIBRARY_INC%" /copyall
-    dir /s "%LIBRARY_INC%"                                                              || exit 26
+    robocopy include\wasmtime "%LIBRARY_INC%\wasmtime" /copyall
+    dir /s "%LIBRARY_INC%"                                                              || exit 27
     exit 0
 )
 
