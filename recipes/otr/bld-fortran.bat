@@ -22,5 +22,5 @@ if errorlevel 1 exit 1
 
 :: testing library built here is copied in build-py
 
-:: objdump -p build\libtestsuite.dll | grep ilp64
+objdump -p build\libtestsuite.dll | grep init_solver_setting
 :: nm -g build\libtestsuite.dll | grep ilp64
