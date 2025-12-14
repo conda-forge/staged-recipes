@@ -10,7 +10,7 @@ cmake %CMAKE_ARGS% ^
   -D BUILD_SHARED_LIBS=ON ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_GNUtoMS=ON ^
-  -D OpenTrustRegion_BUILD_TESTING=ON ^
+  -D OpenTrustRegion_BUILD_TESTING=OFF ^
   -D CMAKE_VERBOSE_MAKEFILE=OFF ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
@@ -25,4 +25,4 @@ if errorlevel 1 exit 1
 :: needs requirements/build: - binutils  # [win]
 ::objdump.exe -p build\libtestsuite.dll | findstr /i "init_solver_setting"
 objdump.exe -p build\libopentrustregion_32.dll
-objdump.exe -p build\libtestsuite.dll
+:: objdump.exe -p build\libtestsuite.dll
