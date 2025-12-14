@@ -5,8 +5,8 @@ cmake %CMAKE_ARGS% ^
   -B build ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-  -D CMAKE_C_FLAGS="-Wl,--export-all-symbols %CFLAGS%" ^
-  -D CMAKE_Fortran_FLAGS="-Wl,--export-all-symbols %FFLAGS%" ^
+  -D CMAKE_C_FLAGS="%CFLAGS%" ^
+  -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
   -D BUILD_SHARED_LIBS=ON ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_GNUtoMS=ON ^
