@@ -27,4 +27,4 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 
 cmake --build build --target install
 
-# testing library built here is copied in build-py
+# testing library built here is used in py: opentrustregion.testsuite

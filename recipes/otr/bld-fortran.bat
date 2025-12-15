@@ -20,7 +20,7 @@ cmake --build build ^
       --target install
 if errorlevel 1 exit 1
 
-:: testing library built here is copied in build-py
+:: testing library built here is used in py: opentrustregion.testsuite
 
 :: needs requirements/build: - binutils  # [win]
 :: objdump.exe -p build\libotrtestsuite.dll | findstr /i "init_solver_setting"
