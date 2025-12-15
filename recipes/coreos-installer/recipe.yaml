@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  name: "coreos-installer"
+  version: "0.25.0"
+
+package:
+  name: coreos-installer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/coreos/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 4a62a06c4eb3ec443bb30f135338e034da206793881425fe43f0343ec90649f2
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script:
+    env:
+      OPENSSL_DIR: "${PREFIX}"
+      OPENSSL_STATIC: "0"
+      ZSTD_SYS_USE_PKG_CONFIG: "0"
+    content:
+      - cargo auditable install --features rdcore --locked --no-track --bins --root ${{ PREFIX }} --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - cmake
+    - make
+    - pkg-config
+  host:
+    - openssl
+    - zlib
+    - zstd
+
+tests:
+  - package_contents:
+      bin:
+        - coreos-installer
+        - rdcore
+      strict: true
+  - script:
+      - coreos-installer --version
+      - rdcore --help
+
+about:
+  homepage: https://github.com/coreos/coreos-installer
+  summary: Installer for CoreOS disk images
+  description: |
+    coreos-installer is a program to assist with installing Fedora CoreOS (FCOS)
+    and Red Hat Enterprise Linux CoreOS (RHCOS). It can:
+    - Install the operating system to a target disk, optionally customizing it
+      with an Ignition config or first-boot kernel parameters
+    - Download and verify an operating system image for various cloud,
+      virtualization, or bare metal platforms
+    - List Fedora CoreOS images available for download
+    - Embed an Ignition config in a live ISO image to customize the running system
+    - Wrap an Ignition config in an initrd image for PXE boot customization
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/coreos/coreos-installer
+  documentation: https://coreos.github.io/coreos-installer/
+
+extra:
+  recipe-maintainers:
+    - phreed
