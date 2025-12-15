@@ -23,5 +23,5 @@ if errorlevel 1 exit 1
 :: testing library built here is copied in build-py
 
 :: needs requirements/build: - binutils  # [win]
-:: objdump.exe -p build\libtestsuite.dll | findstr /i "init_solver_setting"
+:: objdump.exe -p build\libotrtestsuite.dll | findstr /i "init_solver_setting"
 :: objdump.exe -p build\libopentrustregion_32.dll
