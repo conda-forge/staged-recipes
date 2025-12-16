@@ -9,6 +9,7 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B . \
   -S .. \
+  -G Ninja \
   -DCMAKE_INSTALL_INCLUDEDIR="include" \
   -DTIGHT_INCLUSION_TOPLEVEL_PROJECT=OFF \
   -DCMAKE_BUILD_TYPE:STRING=Release
