@@ -9,6 +9,7 @@ cmake %CMAKE_ARGS% ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DCMAKE_INSTALL_INCLUDEDIR="include" ^
+  -DCMAKE_INSTALL_LIBDIR="lib" ^
   -DTIGHT_INCLUSION_TOPLEVEL_PROJECT=OFF ^
   -DCMAKE_BUILD_TYPE:STRING=Release
 if errorlevel 1 exit 1
