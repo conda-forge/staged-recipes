@@ -1,0 +1,86 @@
+From a5c00e37d789f4f6d0bf6f76841358eef2b7675c Mon Sep 17 00:00:00 2001
+From: Olivier Roussel <olivier.roussel@inria.fr>
+Date: Tue, 16 Dec 2025 10:07:07 +0100
+Subject: [PATCH 2/2] add cmake config file & homogenize project name
+
+---
+ CMakeLists.txt                       | 27 +++++++++++++++++++++++----
+ cmake/tight_inclusionConfig.cmake.in | 10 ++++++++++
+ 2 files changed, 33 insertions(+), 4 deletions(-)
+ create mode 100644 cmake/tight_inclusionConfig.cmake.in
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ad1f596..502a47d 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -56,7 +56,7 @@ endif()
+ 
+ ################################################################################
+ 
+-project(TightInclusion
++project(tight_inclusion
+         DESCRIPTION "Tight Inclusion CCD"
+         LANGUAGES CXX
+         VERSION "1.0.4")
+@@ -111,6 +111,21 @@ add_subdirectory("${TIGHT_INCLUSION_SOURCE_DIR}")
+ target_include_directories(tight_inclusion PUBLIC $<BUILD_INTERFACE:${TIGHT_INCLUSION_INCLUDE_DIR}>)
+ target_include_directories(tight_inclusion PUBLIC $<INSTALL_INTERFACE:include>) #Include the generated metis file
+ 
++# Configure cmake config file
++include(CMakePackageConfigHelpers)
++
++configure_package_config_file(
++    cmake/${PROJECT_NAME}Config.cmake.in
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
++    INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
++)
++
++write_basic_package_version_file(
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
++    VERSION ${PROJECT_VERSION}
++    COMPATIBILITY SameMajorVersion
++)
++
+ ################################################################################
+ # Optional Definitions
+ ################################################################################
+@@ -161,13 +176,17 @@ target_compile_definitions(tight_inclusion PRIVATE "-DTIGHT_INCLUSION_BUILD")
+ ################################################################################
+ 
+ install(TARGETS tight_inclusion
+-        EXPORT tight_inclusionTargets DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        EXPORT ${PROJECT_NAME}Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+         RUNTIME DESTINATION "bin" COMPONENT applications
+         LIBRARY DESTINATION "lib" COMPONENT libraries
+         ARCHIVE DESTINATION "lib" COMPONENT libraries)
+-install(EXPORT tight_inclusionTargets FILE tight_inclusionTargets.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tight_inclusion)
+-#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tight_inclusionConfig.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
++install(EXPORT ${PROJECT_NAME}Targets FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
++install(FILES
++          ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
++          ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
++        DESTINATION
++          ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+ 
+ 
+ ################################################################################
+diff --git a/cmake/tight_inclusionConfig.cmake.in b/cmake/tight_inclusionConfig.cmake.in
+new file mode 100644
+index 0000000..186c944
+--- /dev/null
++++ b/cmake/tight_inclusionConfig.cmake.in
+@@ -0,0 +1,10 @@
++@PACKAGE_GUARD@
++@PACKAGE_INIT@
++
++find_package(Eigen3 QUIET REQUIRED)
++find_package(spdlog QUIET REQUIRED)
++
++if(NOT TARGET @PROJECT_NAME@)
++    include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
++endif()
++check_required_components(@PROJECT_NAME@)
+-- 
+2.43.0
+
