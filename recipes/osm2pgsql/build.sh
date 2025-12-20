@@ -3,6 +3,9 @@ set -e
 
 BUILD_DIR="build"
 
+# osx-64 compatibility (https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk)
+export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
 cd ${SRC_DIR}
 
 mkdir -p ${BUILD_DIR}
@@ -20,6 +23,7 @@ cmake ${CMAKE_ARGS} -S osm2pgsql \
  -D OSMIUM_INCLUDE_DIR=libosmium/include \
  -D PROTOZERO_INCLUDE_DIR=protozero/include \
  -D CMAKE_INSTALL_PREFIX="${PREFIX}"
+
 
 cmake --build ${BUILD_DIR} --target all
 
