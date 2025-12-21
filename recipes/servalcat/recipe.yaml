@@ -1,0 +1,113 @@
+context:
+  name: servalcat
+  version: "0.4.126"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+    url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: 240ebe686a05b753f40c73276ea02abf6376b924d3b693a76eb2675e23a06634
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        rm -rf eigen/  # Remove vendored eigen to use the conda package
+        ${{ PYTHON }} -m pip install . \
+          -vv \
+          --no-deps \
+          --no-build-isolation \
+          --config-settings="cmake.args=-DSEARCH_INSTALLED_GEMMI=ON;-DINSTALL_GEMMI_IF_BUILT=OFF"
+    - if: win
+      then: |
+        rmdir /s /q eigen
+        ${{ PYTHON }} -m pip wheel . ^
+          -vv ^
+          --no-deps ^
+          --no-build-isolation ^
+          --config-settings="cmake.args=-DSEARCH_INSTALLED_GEMMI=ON;-DINSTALL_GEMMI_IF_BUILT=OFF" ^
+          --config-settings="wheel.py-api=cp${{ PY_VER|replace('.', '') }}" ^
+          --wheel-dir dist_tmp
+        ${{ PYTHON }} -m delvewheel repair dist_tmp\servalcat*.whl ^
+          --wheel-dir dist ^
+          --no-mangle-all
+        ${{ PYTHON }} -m pip install servalcat ^
+          --no-deps ^
+          --force-reinstall ^
+          --no-index ^
+          --find-links dist
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+  host:
+    - if: win
+      then: delvewheel
+    - eigen >=3.4.0
+    - gemmi ==0.7.3
+    - nanobind ==2.9.2
+    - pip
+    - python ${{ python }}
+    - scikit-build-core ==0.11.6
+  run:
+    - ${{ pin_compatible("gemmi", upper_bound='x.x.x') }}
+    - numpy >=1.15
+    - omegaconf ==2.3.0
+    - packaging
+    - python ${{ python }}
+    - packaging
+    - pandas >=1.1.0
+    - scipy
+  run_exports: []  # No shared libraries to worry about
+
+tests:
+  - script:
+      - python -m servalcat --version
+      - python -m servalcat --help
+      - python tests/test_for_ci.py
+    files:
+      source:
+        - tests/test_for_ci.py
+        - tests/biotin/biotin_talos.pdb
+
+  - python:
+      pip_check: true
+      imports:
+        - servalcat
+      python_version: ${{ python }}
+
+about:
+  homepage: "https://pypi.org/project/servalcat"
+  summary: "Structure refinement and validation for crystallography and single particle analysis."
+  description: >
+    **S**tructur**e** **r**efinement and **val**idation for **c**rystallography and single p**a**r**t**icle analysis
+
+    Servalcat implements pipelines that use Refmac5:
+      - `servalcat refine_spa`: cryo-EM SPA refinement pipeline
+      - `servalcat refine_cx`: small molecule crystallography
+
+    and a Refmac5 controller
+      - `refmacat`: behaves as Refmac, but uses GEMMI for restraint generation instead of MAKECIF
+    Now “No Refmac5” refinement programs have been actively developed:
+      - `servalcat refine_geom`: geometry optimization
+      - `servalcat refine_spa_norefmac`: "No Refmac" version of refine\_spa
+      - `servalcat refine_xtal_norefmac`: crystallographic refinement
+
+    Also, it has several utility commands: `servalcat util`.
+  license: MPL-2.0
+  license_file: LICENSE
+  repository: https://github.com/keitaroyam/servalcat
+  documentation: https://servalcat.readthedocs.io/en/latest
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
+    - keitaroyam
