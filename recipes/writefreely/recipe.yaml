@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: writefreely
+  version: "0.16.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/writefreely/writefreely/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 284fbd70908b7461f3ca4067823ee099bffb2098dc6c5958767d9a8dad810e15
+
+build:
+  number: 0
+  script:
+    # Collect licenses first
+    - if: unix
+      then: |
+        mkdir -p library_licenses
+        go-licenses save ./... --save_path=library_licenses --ignore=github.com/writefreely/writefreely || true
+    - if: win
+      then: |
+        mkdir library_licenses 2>nul
+        go-licenses save ./... --save_path=library_licenses --ignore=github.com/writefreely/writefreely
+    # Build the binary with SQLite and netgo support
+    - cd cmd/writefreely
+    - if: unix
+      then: |
+        go build -v -tags='netgo sqlite' \
+          -ldflags="-s -w -X 'github.com/writefreely/writefreely.softwareVer=${{ version }}'" \
+          -o $PREFIX/bin/writefreely .
+    - if: win
+      then: |
+        go build -v -tags="netgo sqlite" -ldflags="-s -w -X 'github.com/writefreely/writefreely.softwareVer=${{ version }}'" -o %LIBRARY_BIN%\writefreely.exe .
+    - cd ../..
+    # Copy static assets for reference
+    - if: unix
+      then: |
+        mkdir -p $PREFIX/share/writefreely
+        cp -r pages templates static keys $PREFIX/share/writefreely/ 2>/dev/null || true
+        cp schema.sql sqlite.sql $PREFIX/share/writefreely/ 2>/dev/null || true
+    - if: win
+      then: |
+        mkdir %LIBRARY_PREFIX%\share\writefreely 2>nul
+        xcopy /E /I /Y pages %LIBRARY_PREFIX%\share\writefreely\pages 2>nul
+        xcopy /E /I /Y templates %LIBRARY_PREFIX%\share\writefreely\templates 2>nul
+        xcopy /E /I /Y static %LIBRARY_PREFIX%\share\writefreely\static 2>nul
+
+requirements:
+  build:
+    # CGO is required for SQLite support
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+  host:
+    - sqlite
+  run:
+    - sqlite
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - writefreely --version
+          - writefreely --help
+      - if: win
+        then:
+          - writefreely.exe --version
+          - writefreely.exe --help
+  - package_contents:
+      bin:
+        - if: unix
+          then: writefreely
+        - if: win
+          then: writefreely.exe
+
+about:
+  homepage: https://writefreely.org
+  summary: A clean, Markdown-based publishing platform made for writers
+  description: |
+    WriteFreely is a clean, minimalist publishing platform made for writers.
+    Start a blog, share knowledge within your organization, or build a community
+    around the shared act of writing. Features include:
+    - Distraction-free writing with auto-save
+    - Markdown support
+    - ActivityPub federation (connect with Mastodon, etc.)
+    - SQLite or MySQL database support
+    - Multi-user/community support
+    - Customizable themes
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - library_licenses/
+  documentation: https://writefreely.org/docs
+  repository: https://github.com/writefreely/writefreely
+
+extra:
+  recipe-maintainers:
+    - rxm7706
