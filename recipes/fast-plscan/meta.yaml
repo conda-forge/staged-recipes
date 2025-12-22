@@ -1,0 +1,80 @@
+{% set name = "fast-plscan" %}
+{% set version = "0.1.0.post1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/fast_plscan-{{ version }}.tar.gz
+  sha256: 0d4cd1d58db4e4f46d22cab2abcb283dda1a52fe96dfe52c4af1e849d367370f
+
+build:
+  number: 0
+  skip: true                                # [py < 310 or py > 312]
+  python_version_independent: true          # [py >= 312]
+  script: 
+    # Workaround for llvm linker crashing with /link flag on windows
+    - set "LDFLAGS=%LDFLAGS:/link =%"  # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -C cmake.args="-DPython_EXECUTABLE=%PYTHON%" -C cmake.args="-T ClangCL"  # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -C cmake.args="-G=Ninja" -C cmake.args="-DPython_EXECUTABLE=$PYTHON"     # [not win]
+
+requirements:
+  build:
+    - cmake
+    - ninja                                 # [not win]
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}                 # [linux]
+    - {{ compiler('clangxx') }}             # [not linux]
+    - scikit-build-core                     # [build_platform != target_platform]
+    - setuptools-scm                        # [build_platform != target_platform]
+    - nanobind                              # [build_platform != target_platform]
+    - python                                # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+    - libgomp                               # [build_platform != target_platform and linux]
+    - llvm-openmp                           # [build_platform != target_platform and not linux]
+  host:
+    - pip
+    - python
+    - python-abi3                           # [py >= 312] 
+    - python-gil                          
+    - scikit-build-core
+    - setuptools-scm
+    - nanobind
+    - libgomp                               # [linux]
+    - llvm-openmp                           # [not linux]
+  run:
+    - python
+    - numpy >=2,<3
+    - scipy >=1,<2
+    - matplotlib-base >=3,<4
+    - scikit-learn >=1.6,<2
+
+test:
+  imports:
+    - fast_plscan
+  commands:
+    - pip check
+    - abi3audit $SP_DIR/fast_plscan/_api.abi3.so -s -v --assume-minimum-abi3 3.12   # [unix and py >= 312]
+    - abi3audit %SP_DIR%/fast_plscan/_api.pyd -s -v --assume-minimum-abi3 3.12      # [win  and py >= 312]
+  requires:
+    - pip
+    - abi3audit                               # [py >= 312]
+
+about:
+  summary: A fast multi-core implementation of the PLSCAN clustering algorithm.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  home: https://github.com/jelmerbot/fast_plscan
+  doc_url: https://fast-plscan.readthedocs.io/
+  dev_url: https://github.com/jelmerbot/fast_plscan
+  description: | 
+    This package implements Persistent Leaf Spatial Clustering for Applications
+    with Noise, a density-based clustering algorithm designed for exploratory
+    data analyses. The algorithm identifies clusters that persist across
+    multiple size scales, providing robust clustering results that are less
+    sensitive to parameter choices.
+
+extra:
+  recipe-maintainers:
+    - JelmerBot
