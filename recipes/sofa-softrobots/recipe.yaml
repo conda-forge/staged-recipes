@@ -1,0 +1,73 @@
+context:
+  name: sofa-softrobots
+  version: "25.06.00"
+  major_minor: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/SofaDefrost/SoftRobots/archive/refs/tags/release-v${{ major_minor }}.tar.gz
+  sha256: 87d9d693851315de2c369cfcc8ce3324dc7ca949887604b5041a0d3a26f0b590
+
+  patches:
+    # https://github.com/SofaDefrost/SoftRobots/pull/339
+    - patches/0001-only-requires-Qt5-if-interactive-control-cmake-optio.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+  host:
+    - sofa-devel ${{ major_minor }}.*
+    - sofa-python3 ${{ major_minor }}.*
+    - sofa-stlib ${{ major_minor }}.*
+    - python
+    - pybind11
+  run:
+    # sofa-softrobots is a devel library so it needs sofa-devel at runtime
+    - sofa-devel ${{ major_minor }}.*
+    - python
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - SoftRobots/component/initSoftRobots.h
+      lib:
+        - SoftRobots
+  - script:
+      - cmake-package-check SoftRobots
+    requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}             
+  - python:
+      imports:
+        - softrobots
+
+about:
+  homepage: https://project.inria.fr/softrobot/
+  summary: Sofa plugin containing components & method for soft robotics.
+  license: LGPL-3.0-or-later
+  license_file: LICENSE
+  documentation: https://softrobots.readthedocs.io/
+  repository: https://github.com/SofaDefrost/SoftRobots
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
