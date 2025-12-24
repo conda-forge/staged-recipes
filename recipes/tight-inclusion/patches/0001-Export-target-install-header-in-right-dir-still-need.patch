@@ -1,0 +1,96 @@
+From 1687ad8acbf6f754c779d97bea9f48beb1f504d1 Mon Sep 17 00:00:00 2001
+From: Paul Baksic <paul.baksic@outlook.fr>
+Date: Mon, 17 Nov 2025 15:37:01 +0100
+Subject: [PATCH 2/3] Export target, install header in right dir, still need to
+ add config file
+
+---
+ CMakeLists.txt                     | 21 ++++++++++++++++++++-
+ src/tight_inclusion/CMakeLists.txt | 20 ++++++++++++++------
+ 2 files changed, 34 insertions(+), 7 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 38261cc..908e697 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -108,7 +108,8 @@ configure_file(
+ add_subdirectory("${TIGHT_INCLUSION_SOURCE_DIR}")
+ 
+ # Public include directory for Tight Inclusion
+-target_include_directories(tight_inclusion PUBLIC "${TIGHT_INCLUSION_INCLUDE_DIR}")
++target_include_directories(tight_inclusion PUBLIC $<BUILD_INTERFACE:${TIGHT_INCLUSION_INCLUDE_DIR}>)
++target_include_directories(tight_inclusion PUBLIC $<INSTALL_INTERFACE:include>) #Include the generated metis file
+ 
+ ################################################################################
+ # Optional Definitions
+@@ -152,6 +153,21 @@ target_compile_options(tight_inclusion PRIVATE ${SIMD_FLAGS})
+ # Use C++17
+ target_compile_features(tight_inclusion PUBLIC cxx_std_17)
+ 
++
++################################################################################
++# Export target properly
++################################################################################
++
++install(TARGETS tight_inclusion
++        EXPORT tight_inclusionTargets DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++        RUNTIME DESTINATION "bin" COMPONENT applications
++        LIBRARY DESTINATION "lib" COMPONENT libraries
++        ARCHIVE DESTINATION "lib" COMPONENT libraries)
++install(EXPORT tight_inclusionTargets FILE tight_inclusionTargets.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tight_inclusion)
++#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tight_inclusionConfig.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
++
++
+ ################################################################################
+ # App
+ ################################################################################
+@@ -159,3 +175,6 @@ target_compile_features(tight_inclusion PUBLIC cxx_std_17)
+ if(TIGHT_INCLUSION_TOPLEVEL_PROJECT)
+     add_subdirectory(app)
+ endif()
++
++
++
+diff --git a/src/tight_inclusion/CMakeLists.txt b/src/tight_inclusion/CMakeLists.txt
+index 479b915..86b13eb 100755
+--- a/src/tight_inclusion/CMakeLists.txt
++++ b/src/tight_inclusion/CMakeLists.txt
+@@ -1,20 +1,28 @@
+ set(SOURCES
+-    avx.hpp
+     avx.cpp
+     ccd.cpp
+-    ccd.hpp
+     interval_root_finder.cpp
+-    interval_root_finder.hpp
+     interval.cpp
+-    interval.hpp
+     logger.cpp
++)
++
++set(HEADERS
++    avx.hpp
++    ccd.hpp
++    interval_root_finder.hpp
++    interval.hpp
+     logger.hpp
+     timer.hpp
+     types.hpp
+ )
+ 
+-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source Files" FILES ${SOURCES})
+-target_sources(tight_inclusion PRIVATE ${SOURCES})
++
++
++
++source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source Files" FILES ${HEADERS} ${SOURCES})
++target_sources(tight_inclusion PRIVATE ${HEADERS} ${SOURCES})
++install(FILES ${HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/tight_inclusion" COMPONENT headers)
++
+ 
+ ################################################################################
+ # Subfolders
+-- 
+2.43.0
+
