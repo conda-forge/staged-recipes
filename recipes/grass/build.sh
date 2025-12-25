@@ -3,16 +3,16 @@ set -e
 
 ./configure \
 	--prefix=$PREFIX \
-	--with-nls \
-	--with-readline \
-	--with-wxwidgets \
+	--with-blas \
 	--with-bzlib \
+	--with-lapack \
+	--with-nls \
+	--with-openmp \
+	--with-pdal \
 	--with-postgres \
 	--with-pthread \
-	--with-openmp \
-	--with-blas \
-	--with-lapack \
-	--with-pdal
+	--with-readline \
+	--with-wxwidgets
 
 # ignore system built-in libiconv and use conda libiconv
 sed -Ei 's/^(ICONVLIB.*= *$)/\1-liconv/' include/Make/Platform.make
