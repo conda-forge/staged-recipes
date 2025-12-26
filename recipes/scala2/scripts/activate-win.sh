@@ -1,0 +1,2 @@
+export SCALA_HOME_CONDA_BACKUP=${SCALA_HOME:-}
+export SCALA_HOME=$CONDA_PREFIX/libexec/scala2
