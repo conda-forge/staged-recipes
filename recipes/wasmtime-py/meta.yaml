@@ -1,71 +1,55 @@
-{% set name = "wasmtime-py" %}
-{% set version = "29.0.0" %}
+{% set name = "wasmtime" %}
+{% set version = "40.0.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name }}
   version: {{ version }}
 
 source:
-  url: https://github.com/bytecodealliance/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
-  sha256: b0534181f7e2c290df51b08c075f91ddfe5623cc8a323e817ecf4e2a33125c34
-  patches:
-    - patches/0001-read-library.patch
-    - patches/0002-use-current-path-instead-of-hardcoded-one.patch
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 48417c59f13be145184cff61fef61bb52556ea0e7417c25bec09af2d859745ab
 
 build:
   number: 0
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
     - {{ compiler('rust') }}
-    - rust-std-wasm32-wasip1
-    - patch         # [unix]
-    - m2-patch      # [win]
-    - git           # [linux]
+    - cargo-bundle-licenses
+    - python                                     # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}         # [build_platform != target_platform]
   host:
     - python
-    - pip !=25.1
-    - wheel
+    - pip
     - setuptools
-    - wasmtime 29.0.0
+    - wheel
   run:
     - python
-    - wasmtime 29.0.0
-    - importlib-resources
-
-{% set ignore_tests = "" %}
-# codegen tests unstable on linux
-{% set ignore_tests = " --ignore=tests/codegen" %}  # [linux]
-# raise RuntimeError("Could not find componentize-py executable.") which is because of missing test dependency
-{% set tests_to_skip = "test_bare_funcs or test_lists or test_config" %}
 
 test:
-  source_files:
-    - tests
   imports:
-    - wasmtime 
+    - wasmtime
   commands:
-    - pip check 
-    - pytest -vv -k "not ({{ tests_to_skip }})" {{ ignore_tests }} .
+    - pip check
   requires:
-    - pip !=25.1
-    - pytest
+    - pip
 
 about:
   home: https://github.com/bytecodealliance/wasmtime-py
-  summary: python bindings for Wasmtime
+  summary: A WebAssembly runtime powered by Wasmtime
   description: |
-   The wasmtime-py package has initial support for running WebAssembly components in Python with high-level bindings. 
-
-  license_family: Apache
+    Python embedding of Wasmtime, a fast and secure runtime for WebAssembly.
+    Wasmtime is a standalone runtime for WebAssembly, using Cranelift as its
+    code generator. It runs WebAssembly code outside of the web browser and
+    can be used both as a command-line utility or as an embedded runtime.
   license: Apache-2.0 WITH LLVM-exception
   license_file: LICENSE
-  dev_url: https://github.com/bytecodealliance/wasmtime-py
   doc_url: https://docs.wasmtime.dev/lang-python.html
+  dev_url: https://github.com/bytecodealliance/wasmtime-py
 
 extra:
   recipe-maintainers:
     - rxm7706
-  skip-lints:
-    - missing_test_requirement_pip
