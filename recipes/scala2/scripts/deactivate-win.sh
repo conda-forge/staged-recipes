@@ -1,0 +1,5 @@
+export SCALA_HOME=$SCALA_HOME_CONDA_BACKUP
+unset SCALA_HOME_CONDA_BACKUP
+if [ -z $SCALA_HOME ]; then
+    unset SCALA_HOME
+fi
