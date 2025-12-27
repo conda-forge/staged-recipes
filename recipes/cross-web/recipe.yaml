@@ -4,8 +4,6 @@ schema_version: 1
 context:
   version: "0.4.0"
   python_check_max: "3.14"
-  # TODO: check for working versions of `chalice-feedstock`, `quart-feedstock`
-  pytest_k: not (chalice or quart)
 
 recipe:
   name: cross-web-split
@@ -24,7 +22,7 @@ outputs:
       name: cross-web
     build:
       script:
-      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
     requirements:
       host:
         - python ${{ python_min }}.*
@@ -96,9 +94,18 @@ outputs:
             - pytest-cov >=6.0.0
             - python ${{ python_min }}.*
         script:
-          - echo "#" > .coveragerc
-          - coverage run --source=cross_web --branch -m pytest -vv --tb=long --color=yes -k "${{ pytest_k }}"
-          - coverage report --show-missing --skip-covered --fail-under=89
+          env:
+            PYTEST_ADDOPTS:
+              -vv
+              --tb=long
+              --color=yes
+              -k "not (chalice or quart)"
+          content:
+            # avoid source tree path config in pyproject.toml
+            - echo "[tool.coverage.run]"  > .coveragerc
+            - echo "branch = true"        >> .coveragerc
+            - coverage run --source=cross_web -m pytest
+            - coverage report --show-missing --skip-covered --fail-under=89
     about:
       summary: A library for working with web frameworks (with [integrations])
 
