@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.3.1"
+  maturin_min: "1.0"
+  maturin_max: "2.0"
+  python_check_max: "3.14"
+
+package:
+  name: delta-kernel-rust-sharing-wrapper
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/d/delta-kernel-rust-sharing-wrapper/delta_kernel_rust_sharing_wrapper-${{ version }}.tar.gz
+    sha256: d7cc3160f9d58de4419b27339bcc9bf8ef84f1a91383aa66322b6f20f3f1ca9f
+  - url: https://raw.githubusercontent.com/delta-io/delta-sharing/refs/heads/main/LICENSE.txt
+    sha256: 5a2ae634be68464e407b80dbece9d8d822926c9b2cbdb1e801f5d27929589802
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      OPENSSL_DIR: ${{ "$PREFIX" if unix else "%LIBRARY_PREFIX%" }}
+    content:
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+      - cargo-bundle-licenses --format=yaml --output=THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - make
+    - cargo-bundle-licenses
+    - if: win
+      then:
+        - perl
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - maturin >=${{ maturin_min }},<${{ maturin_max }}
+        - openssl
+        - python ${{ python_min }}.*
+  host:
+    - maturin >=${{ maturin_min }},<${{ maturin_max }}
+    - openssl
+    - pip
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports: delta_kernel_rust_sharing_wrapper
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - ${{ python_check_max }}.*
+  - requirements:
+      run:
+        - python ${{ python_check_max }}.*
+    script:
+      interpreter: python
+      content: |
+        from importlib.metadata import version
+        assert version('delta-kernel-rust-sharing-wrapper') == '${{ version }}'
+
+about:
+  homepage: https://pypi.org/project/delta-kernel-rust-sharing-wrapper
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: This adds a thin python bindings via maturin and pyo3 for delta-kernel-rust.
+  repository: https://github.com/delta-io/delta-sharing/tree/main/python/delta-kernel-rust-sharing-wrapper
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
