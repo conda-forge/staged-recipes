@@ -1,0 +1,67 @@
+context:
+  name: sassc
+  version: "3.6.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sass/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 608dc9002b45a91d11ed59e352469ecc05e4f58fc1259fc9a9f5b8f0f8348a03
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - autoreconf --force --install
+        - ./configure --prefix=$PREFIX
+        - make -j${CPU_COUNT}
+        - make install
+    - if: win
+      then:
+        - msbuild win\sassc.sln /p:Configuration=Release /p:Platform=Win64
+        - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
+        - copy win\bin\sassc.exe %LIBRARY_BIN%\
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - libtool
+        - make
+  host:
+    - libsass-native
+  run:
+    - libsass-native
+
+tests:
+  - script:
+      - sassc --version
+      - if: unix
+        then:
+          - test -f $PREFIX/bin/sassc
+      - if: win
+        then:
+          - if not exist %LIBRARY_BIN%\sassc.exe exit 1
+
+about:
+  homepage: https://github.com/sass/sassc
+  summary: 'libsass command line driver'
+  description: |
+    SassC is a wrapper around libsass (http://github.com/sass/libsass) used to
+    generate a useful command-line application that can be installed and
+    packaged for several operating systems.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/sass/sassc
+
+extra:
+  recipe-maintainers:
+    - danyeaw
