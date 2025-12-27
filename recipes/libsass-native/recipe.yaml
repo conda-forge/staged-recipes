@@ -1,0 +1,82 @@
+context:
+  name: libsass
+  version: "3.6.6"
+
+package:
+  name: libsass-native
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sass/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 11f0bb3709a4f20285507419d7618f3877a425c0131ea8df40fe6196129df15d
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - autoreconf --force --install
+        - ./configure --prefix=$PREFIX --disable-tests --enable-shared --enable-static
+        - make -j${CPU_COUNT}
+        - make install
+    - if: win
+      then:
+        - msbuild win\libsass.sln /p:Configuration=Release /p:Platform=x64
+        - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
+        - if not exist %LIBRARY_LIB% mkdir %LIBRARY_LIB%
+        - if not exist %LIBRARY_INC%\sass mkdir %LIBRARY_INC%\sass
+        - copy win\bin\libsass.dll %LIBRARY_BIN%\
+        - copy win\bin\libsass.lib %LIBRARY_LIB%\
+        - copy include\*.h %LIBRARY_INC%\
+        - copy include\sass\*.h %LIBRARY_INC%\sass\
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - libtool
+        - make
+  host:
+  run:
+
+tests:
+  - script:
+      - if: linux
+        then:
+          - test -f $PREFIX/lib/libsass.so
+      - if: osx
+        then:
+          - test -f $PREFIX/lib/libsass.dylib
+      - if: unix
+        then:
+          - test -f $PREFIX/lib/libsass.a
+          - test -f $PREFIX/include/sass.h
+          - test -f $PREFIX/include/sass/base.h
+      - if: win
+        then:
+          - if not exist %LIBRARY_BIN%\libsass.dll exit 1
+          - if not exist %LIBRARY_LIB%\libsass.lib exit 1
+          - if not exist %LIBRARY_INC%\sass.h exit 1
+          - if not exist %LIBRARY_INC%\sass\base.h exit 1
+
+about:
+  homepage: https://sass-lang.com/libsass
+  summary: 'A C/C++ implementation of a Sass compiler'
+  description: |
+    LibSass is a C++ port of the original Ruby Sass CSS compiler with a C API.
+    We coded LibSass with portability and efficiency in mind. You can expect
+    LibSass to be a lot faster than Ruby Sass and on par or faster than the best
+    alternative CSS compilers around.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://sass-lang.com/libsass
+  repository: https://github.com/sass/libsass
+
+extra:
+  recipe-maintainers:
+    - danyeaw
