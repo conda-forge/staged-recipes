@@ -1,13 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
-SET VCPKG_ROOT=%CD%\vcpkg
-SET VCPKG_BUILD_TYPE=release
+git clone https://github.com/microsoft/vcpkg --branch 2025.01.13
+SET VCPKG_ROOT=%CD%\vcpkg\
 
 CALL %VCPKG_ROOT%\bootstrap-vcpkg.bat
 if %errorlevel% NEQ 0 exit /b %errorlevel%
-
-SET VCPKG_EXE=%VCPKG_ROOT%\vcpkg.exe
 
 SET PYBAMMSOLVERS_USE_VCPKG=ON
 SET VCPKG_ROOT_DIR=%VCPKG_ROOT%
