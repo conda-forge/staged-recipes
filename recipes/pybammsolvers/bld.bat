@@ -1,26 +1,19 @@
 @echo off
 setlocal enabledelayedexpansion
 
-mkdir build_sundials
-cd build_sundials
-set KLU_INCLUDE_DIR=%PREFIX%\include\suitesparse
-set KLU_LIBRARY_DIR=%PREFIX%\lib
+SET VCPKG_ROOT=%CD%\vcpkg
+SET VCPKG_BUILD_TYPE=release
 
-set "CXXFLAGS=!CXXFLAGS! -I%KLU_INCLUDE_DIR%"
-set "CFLAGS=!CFLAGS! -I%KLU_INCLUDE_DIR%"
+CALL %VCPKG_ROOT%\bootstrap-vcpkg.bat
+if %errorlevel% NEQ 0 exit /b %errorlevel%
 
-set SUNDIALS_DIR=%SRC_DIR%\sundials
-cmake -DENABLE_LAPACK=ON ^
-      -DSUNDIALS_INDEX_SIZE=32 ^
-      -DEXAMPLES_ENABLE:BOOL=OFF ^
-      -DENABLE_KLU=ON ^
-      -DENABLE_OPENMP=ON ^
-      -DKLU_INCLUDE_DIR=%KLU_INCLUDE_DIR% ^
-      -DKLU_LIBRARY_DIR=%KLU_LIBRARY_DIR% ^
-      -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
-      %SRC_DIR%\sundials
-cmake --build . --target install --config Release
+SET VCPKG_EXE=%VCPKG_ROOT%\vcpkg.exe
 
-cd %SRC_DIR%
+SET PYBAMMSOLVERS_USE_VCPKG=ON
+SET VCPKG_ROOT_DIR=%VCPKG_ROOT%
+SET VCPKG_DEFAULT_TRIPLET=x64-windows-static-md
+SET VCPKG_FEATURE_FLAGS=manifests,registries
+SET CMAKE_GENERATOR="Visual Studio 17 2022"
+SET CMAKE_GENERATOR_PLATFORM=x64
 
 pip install -vv --no-deps --no-build-isolation .
