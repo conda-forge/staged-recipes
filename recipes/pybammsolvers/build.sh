@@ -22,4 +22,4 @@ make install
 
 cd $SRC_DIR
 
-pip install -vv --no-deps --no-build-isolation .
+python -m pip install -vv --no-deps --no-build-isolation .

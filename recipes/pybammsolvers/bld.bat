@@ -14,4 +14,4 @@ SET VCPKG_FEATURE_FLAGS=manifests,registries
 SET CMAKE_GENERATOR="Visual Studio 17 2022"
 SET CMAKE_GENERATOR_PLATFORM=x64
 
-pip install -vv --no-deps --no-build-isolation .
+python -m pip install -vv --no-deps --no-build-isolation .
