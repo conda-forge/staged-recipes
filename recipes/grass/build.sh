@@ -16,7 +16,7 @@ osx-*)
 	;;
 esac
 
-$CXXFLAGS \
+CXXFLAGS=$CXXFLAGS \
 ./configure \
 	--prefix=$PREFIX \
 	--with-blas \
