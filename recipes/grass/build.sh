@@ -7,6 +7,7 @@ osx-*)
 		--with-opengl=osx
 		--with-x=no
 	"
+	sed_i_ext="''"
 	;;
 esac
 
@@ -23,7 +24,7 @@ esac
 	$with_others
 
 # ignore system built-in libiconv and use conda libiconv
-sed -E -i '' 's/^(ICONVLIB.*= *$)/\1-liconv/' include/Make/Platform.make
+sed -E -i $sed_i_ext 's/^(ICONVLIB.*= *$)/\1-liconv/' include/Make/Platform.make
 
 make -j$CPU_COUNT
 make install
