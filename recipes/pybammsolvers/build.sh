@@ -19,6 +19,10 @@ cmake -DENABLE_LAPACK=ON\
       -DCMAKE_INSTALL_PREFIX=$PREFIX\
       $SRC_DIR/sundials
 make install
+export LD_LIBRARY_PATH=$PREFIX/python3.10/site-packages/casadi:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$PREFIX/python3.11/site-packages/casadi:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$PREFIX/python3.12/site-packages/casadi:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$PREFIX/python3.13/site-packages/casadi:$LD_LIBRARY_PATH
 
 cd $SRC_DIR
 
