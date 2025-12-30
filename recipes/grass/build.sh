@@ -20,7 +20,7 @@ esac
 	--with-postgres \
 	--with-pthread \
 	--with-readline \
-	$with_others
+	$with_others || (echo "===== config.log =====" && cat config.log && exit 1)
 
 # ignore system built-in libiconv and use conda libiconv; avoid using
 # non-portable sed -i
