@@ -18,7 +18,21 @@ cmake -DENABLE_LAPACK=ON\
       -DKLU_LIBRARY_DIR=$KLU_LIBRARY_DIR\
       -DCMAKE_INSTALL_PREFIX=$PREFIX\
       $SRC_DIR/sundials
-make install
+make install -j10
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+      export USE_PYTHON_CASADI=FALSE
+      cd $SRC_DIR
+
+      mkdir -p build_casadi
+      cd build_casadi
+
+      cmake -DWITH_PYTHON=OFF\
+            -DWITH_PYTHON3=OFF\
+            -DCMAKE_INSTALL_PREFIX=$PREFIX\
+            $SRC_DIR/casadi
+      make install -j10
+fi
 
 cd $SRC_DIR
 
