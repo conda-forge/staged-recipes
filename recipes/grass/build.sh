@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e
 
+case "$target_platform" in
+osx-*)
+	with_others="
+		--with-opengl=osx
+		--with-x=no
+	"
+	;;
+esac
+
 ./configure \
 	--prefix=$PREFIX \
 	--with-blas \
@@ -10,10 +19,11 @@ set -e
 	--with-openmp \
 	--with-postgres \
 	--with-pthread \
-	--with-readline
+	--with-readline \
+	$with_others
 
 # ignore system built-in libiconv and use conda libiconv
-sed -Ei 's/^(ICONVLIB.*= *$)/\1-liconv/' include/Make/Platform.make
+sed -E -i '' 's/^(ICONVLIB.*= *$)/\1-liconv/' include/Make/Platform.make
 
 make -j$CPU_COUNT
 make install
