@@ -7,7 +7,8 @@ osx-*)
 	# $PREFIX/include/pdal/FileSpec.hpp:60:22: error: 'path' is
 	# unavailable: introduced in macOS 10.15 unknown - see
 	# https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
-	CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+	[ "$target_platform" = "osx-64" ] &&
+		CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 	with_others="
 		--with-opengl=osx
 		--with-x=no
@@ -26,7 +27,8 @@ $CXXFLAGS \
 	--with-postgres \
 	--with-pthread \
 	--with-readline \
-	$with_others || (echo "===== config.log =====" && cat config.log && exit 1)
+	$with_others ||
+	(echo "===== config.log =====" && cat config.log && exit 1)
 
 # ignore system built-in libiconv and use conda libiconv; avoid using
 # non-portable sed -i
