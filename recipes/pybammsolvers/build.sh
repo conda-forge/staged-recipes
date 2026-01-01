@@ -24,6 +24,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       export USE_PYTHON_CASADI=FALSE
       cd $SRC_DIR
 
+      git clone -b build-linux-rooms-natively --single-branch https://github.com/agriyakhetarpal/casadi
+
       mkdir -p build_casadi
       cd build_casadi
 
