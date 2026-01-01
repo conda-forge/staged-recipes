@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: libxmlb
+  version: "0.3.24"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hughsie/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.xz
+  sha256: ded52667aac942bb1ff4d1e977e8274a9432d99033d86918feb82ade82b8e001
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Dintrospection=true ^
+          -Dgtkdoc=false ^
+          -Dtests=false ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dintrospection=true \
+            -Dgtkdoc=false \
+            -Dtests=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.60.0
+    - ninja
+    - pkg-config
+    - gobject-introspection
+  host:
+    - glib >=2.45.8
+    - zlib
+    - gobject-introspection
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - lib/pkgconfig/xmlb.pc
+            - lib/libxmlb.so.2.0.0
+            - include/libxmlb-2/xmlb.h
+        - if: win
+          then:
+            - Library/lib/pkgconfig/xmlb.pc
+            - Library/lib/libxmlb-2.lib
+            - Library/bin/libxmlb-2.dll
+            - Library/include/libxmlb-2/xmlb.h
+      lib:
+        - if: unix
+          then: libxmlb
+
+about:
+  homepage: https://github.com/hughsie/libxmlb
+  summary: 'A library to help create and query binary XML blobs'
+  description: |
+    XML is slow to parse and strings inside the document cannot
+    be memory mapped as they do not have a trailing NUL char.
+    The libxmlb library takes XML source, and converts it to a
+    structured binary representation with a deduplicated string
+    table -- where the strings have the NULs included.
+  license: LGPL-2.1-or-later
+  license_file: LICENSE
+  documentation: https://github.com/hughsie/libxmlb
+  repository: https://github.com/hughsie/libxmlb
+
+extra:
+  recipe-maintainers:
+    - danyeaw
