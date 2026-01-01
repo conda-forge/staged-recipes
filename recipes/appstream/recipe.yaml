@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: AppStream
+  version: "1.1.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://www.freedesktop.org/software/${{ name|lower }}/releases/${{ name }}-${{ version }}.tar.xz
+  sha256: 3b9d325074ede328eed4746d0c4fbfc3b8f6f4fdbc9c173ed70e40569a79b117
+
+build:
+  number: 0
+  skip:
+    - win
+  script: |
+    meson setup ${MESON_ARGS} \
+        --prefix=$PREFIX \
+        --default-library=shared \
+        --wrap-mode=nofallback \
+        -Dc_args="-D_GNU_SOURCE" \
+        -Dgir=true \
+        -Ddocs=false \
+        -Dapidocs=false \
+        -Dman=false \
+        -Dvapi=false \
+        -Dsystemd=false \
+        -Dstemming=false \
+        builddir
+    ninja -v -C builddir -j ${CPU_COUNT}
+    ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.62.0
+    - ninja
+    - pkg-config
+    - gobject-introspection
+    - python
+  host:
+    - glib >=2.58
+    - libxml2-devel
+    - zlib
+    - libcurl
+    - libfyaml
+    - libxmlb
+    - gobject-introspection
+    - gperf
+    - gettext
+    - itstool
+    - python
+
+tests:
+  - package_contents:
+      files:
+        - lib/pkgconfig/appstream.pc
+        - bin/appstreamcli
+        - share/gir-1.0/AppStream-1.0.gir
+        - lib/girepository-1.0/AppStream-1.0.typelib
+      lib:
+        - appstream
+
+about:
+  homepage: https://www.freedesktop.org/wiki/Distributions/AppStream/
+  summary: 'Tools and libraries to work with AppStream metadata'
+  description: |
+    AppStream makes machine-readable software metadata
+    easily accessible. It is a foundational block for
+    modern Linux software centers, offering a seamless
+    way to retrieve information about available software,
+    no matter the repository it is contained in. It can
+    provide data about available applications as well as
+    available firmware, drivers, fonts and other components.
+    This project is part of freedesktop.org.
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  documentation: https://www.freedesktop.org/software/appstream/docs/
+  repository: https://github.com/ximion/appstream
+
+extra:
+  recipe-maintainers:
+    - danyeaw
