@@ -13,43 +13,50 @@ source:
 build:
   number: 0
   script:
-    - if: unix
-      then:
-        - autoreconf --force --install
-        - ./configure --prefix=$PREFIX
-        - make -j${CPU_COUNT}
-        - make install
     - if: win
-      then:
-        - msbuild win\sassc.sln /p:Configuration=Release /p:Platform=Win64 /p:LIBSASS_DIR=%LIBRARY_PREFIX%
-        - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
-        - copy win\bin\sassc.exe %LIBRARY_BIN%\
+      then: |
+        copy %RECIPE_DIR%\meson.build .
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Db_vscrt=md ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        cp $RECIPE_DIR/meson.build .
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
 
 requirements:
   build:
     - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    - if: unix
-      then:
-        - autoconf
-        - automake
-        - libtool
-        - make
+    - meson >=0.48.0
+    - ninja
+    - pkg-config
   host:
     - libsass-native
   run:
     - libsass-native
 
 tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - bin/sassc
+        - if: win
+          then:
+            - Library/bin/sassc.exe
   - script:
       - sassc --version
-      - if: unix
-        then:
-          - test -f $PREFIX/bin/sassc
-      - if: win
-        then:
-          - if not exist %LIBRARY_BIN%\sassc.exe exit 1
 
 about:
   homepage: https://github.com/sass/sassc
