@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: libadwaita
+  version: "1.8.2"
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://download.gnome.org/sources/libadwaita/${{ version_majmin }}/libadwaita-${{ version }}.tar.xz
+  sha256: 589a6e0f4191740e8690a7d3298e16fa0d4061341b551da7abb2f030b550adb1
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        patch -p1 -i %RECIPE_DIR%\0001-remove-appstream-dependency.patch || exit /b 1
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Dintrospection=enabled ^
+          -Dtests=false ^
+          -Dexamples=false ^
+          -Dvapi=false ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dintrospection=enabled \
+            -Dtests=false \
+            -Dexamples=false \
+            -Dvapi=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.63.0
+    - ninja
+    - pkg-config
+    - gobject-introspection
+    - python
+    - if: win
+      then:
+        - patch
+  host:
+    - glib >=2.80.0
+    - gtk4 >=4.19.4
+    - fribidi
+    - gobject-introspection
+    - zlib
+    - expat
+    - sassc
+    - python
+    - if: unix
+      then:
+        - appstream
+        - libxmlb
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - lib/pkgconfig/libadwaita-1.pc
+        - if: win
+          then:
+            - Library/lib/pkgconfig/libadwaita-1.pc
+            - Library/lib/adwaita-1.lib
+      lib:
+        - if: unix
+          then: adwaita-1
+
+about:
+  homepage: https://gnome.pages.gitlab.gnome.org/libadwaita/
+  summary: 'Building blocks for modern GNOME applications'
+  description: |
+    Adwaita offers application developers many widgets and
+    objects to build GNOME applications scaling from desktop
+    workstations to mobile phones. 
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  documentation: https://gnome.pages.gitlab.gnome.org/libadwaita/doc/
+  repository: https://gitlab.gnome.org/GNOME/libadwaita
+
+extra:
+  recipe-maintainers:
+    - danyeaw
