@@ -13,52 +13,55 @@ source:
 build:
   number: 0
   script:
-    - if: unix
-      then:
-        - autoreconf --force --install
-        - ./configure --prefix=$PREFIX --disable-tests --enable-shared --enable-static
-        - make -j${CPU_COUNT}
-        - make install
     - if: win
-      then:
-        - msbuild win\libsass.sln /p:Configuration=Release /p:Platform=Win64
-        - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
-        - if not exist %LIBRARY_LIB% mkdir %LIBRARY_LIB%
-        - if not exist %LIBRARY_INC%\sass mkdir %LIBRARY_INC%\sass
-        - copy win\bin\libsass.dll %LIBRARY_BIN%\
-        - copy win\bin\libsass.lib %LIBRARY_LIB%\
-        - copy include\*.h %LIBRARY_INC%\
-        - copy include\sass\*.h %LIBRARY_INC%\sass\
-        - if not exist %LIBRARY_PREFIX%\win mkdir %LIBRARY_PREFIX%\win
-        - copy win\libsass.targets %LIBRARY_PREFIX%\win\
+      then: |
+        copy %RECIPE_DIR%\meson.build .
+        copy %RECIPE_DIR%\src\meson.build .\src\
+        copy %RECIPE_DIR%\include\meson.build .\include\
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Db_vscrt=md ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        cp $RECIPE_DIR/meson.build .
+        cp $RECIPE_DIR/src/meson.build ./src/
+        cp $RECIPE_DIR/include/meson.build ./include/
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    - if: unix
-      then:
-        - autoconf
-        - automake
-        - libtool
-        - make
+    - meson >=0.48.0
+    - ninja
+    - pkg-config
 
 tests:
   - package_contents:
       files:
         - if: unix
           then:
-            - lib/libsass.a
             - include/sass.h
             - include/sass/base.h
+            - lib/pkgconfig/libsass.pc
         - if: win
           then:
-            - Library/bin/libsass.dll
             - Library/include/sass.h
             - Library/include/sass/base.h
+            - Library/lib/pkgconfig/libsass.pc
       lib:
-        - libsass
+        - sass*
 
 about:
   homepage: https://sass-lang.com/libsass

@@ -21,10 +21,10 @@ configure_file(
   configuration: version_conf_data,
 )
 
-# Find libsass from the installed libsass-native package
-# libsass-native doesn't provide pkg-config files, so we use find_library
-cc = meson.get_compiler('c')
-libsass_dep = cc.find_library('libsass', required: true)
+libsass_dep = dependency(
+  'libsass',
+  fallback: ['libsass', 'libsass_dep'],
+)
 
 sassc_sources = ['sassc.c']
 
