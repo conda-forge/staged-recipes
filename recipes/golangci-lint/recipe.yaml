@@ -1,0 +1,81 @@
+# For more information about this format see: https://prefix-dev.github.io/rattler-build/latest/reference/recipe_file/
+
+context:
+  name: golangci-lint
+  version: 2.7.2
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/golangci/golangci-lint/releases/download/v${{ version }}/golangci-lint-${{ version }}-source.tar.gz
+    sha256: 8774bf56253fae1b7b5100b3d7a0c81404145d4c6b29571278d4f8974de1dc01
+    target_directory: src
+  - url: https://raw.githubusercontent.com/cespare/xxhash/refs/heads/main/LICENSE.txt
+    sha256: f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c
+    target_directory: xxhash-license
+  - url: https://raw.githubusercontent.com/ashanbrown/forbidigo/refs/heads/master/LICENSE
+    sha256: 756ce9fc86420b4fb6cd01fcb8f7ea477e9e0017194b53ffbd23bef0e7a90ad9
+    target_directory: forbidigo-license
+  - url: https://raw.githubusercontent.com/ashanbrown/makezero/refs/heads/master/LICENSE
+    sha256: 756ce9fc86420b4fb6cd01fcb8f7ea477e9e0017194b53ffbd23bef0e7a90ad9
+    target_directory: makezero-license
+
+build:
+  script:
+    - cd src
+    # Use installed Go, don't download newer versions
+    - export GOTOOLCHAIN=local
+    - >-
+      go-licenses save ./cmd/golangci-lint --save_path ../library_licenses
+        --ignore golang.org/x/sys/unix
+        --ignore github.com/cespare/xxhash
+        --ignore github.com/ashanbrown/forbidigo
+        --ignore github.com/ashanbrown/makezero
+    - if: unix
+      then: go build -v -o $PREFIX/bin/golangci-lint -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\golangci-lint.exe -ldflags="-s"
+    # If cross-compiling check the arch is correct
+    - if: osx and arm64
+      then: file $PREFIX/bin/golangci-lint | grep -E "Mach-O.+arm64"
+    - if: linux and aarch64
+      then: file $PREFIX/bin/golangci-lint | grep -E "ELF.+aarch64"
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('go-cgo') }} >= 1.24
+    - go-cgo >= 1.24
+    - go-licenses >=2.0.1
+
+tests:
+  - script:
+      - golangci-lint help
+      - golangci-lint formatters
+      - golangci-lint linters
+      - golangci-lint version
+  - package_contents:
+      bin:
+        - golangci-lint
+      strict: true
+
+about:
+  homepage: https://golangci-lint.run/
+  summary: Fast linters runner for Go
+  description: >-
+    golangci-lint is a fast Go linters runner.
+    It runs linters in parallel, uses caching, supports YAML configuration, integrates with all major IDEs, and includes over a hundred linters.
+  license: GPL-3.0-only
+  license_file:
+    - src/LICENSE
+    - library-licenses/
+    - xxhash-license/
+    - forbidigo-license/
+    - makezero-license/
+  documentation: https://golangci-lint.run/
+  repository: https://github.com/golangci/golangci-lint
+
+extra:
+  recipe-maintainers:
+    - manics
