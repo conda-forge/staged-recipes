@@ -14,7 +14,7 @@ cd rust
 
 # Build with maturin
 echo "Building Rust extension with maturin..."
-cd rust && maturin build --release --features python --out dist
+maturin build --release --features python --out dist
 
 # Install the wheel
 echo "Installing built wheel..."
