@@ -11,6 +11,14 @@ cd /d "%SRC_DIR%"
 REM Change to rust directory for building
 cd rust
 
+REM Bundle licenses before building
+echo Bundling Rust dependency licenses...
+cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
+if errorlevel 1 (
+    echo License bundling failed!
+    exit /b 1
+)
+
 REM Build with maturin
 echo Building Rust extension with maturin...
 maturin build --release --features python --out dist
