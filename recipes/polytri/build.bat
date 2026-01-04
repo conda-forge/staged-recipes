@@ -13,7 +13,7 @@ cd rust
 
 REM Build with maturin
 echo Building Rust extension with maturin...
-maturin build --release --features python --out dist
+cd rust && maturin build --release --features python --out dist
 if errorlevel 1 (
     echo Build failed!
     exit /b 1
