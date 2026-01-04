@@ -29,11 +29,17 @@ if errorlevel 1 (
 
 REM Install the wheel
 echo Installing built wheel...
-%PYTHON% -m pip install dist\*.whl --no-deps --ignore-installed -vv
-if errorlevel 1 (
-    echo Installation failed!
-    exit /b 1
+for %%f in (dist\*.whl) do (
+    %PYTHON% -m pip install "%%f" --no-deps --ignore-installed -vv
+    if errorlevel 1 (
+        echo Installation failed!
+        exit /b 1
+    )
+    goto :wheel_installed
 )
+echo No wheel file found in dist directory!
+exit /b 1
+:wheel_installed
 
 REM Copy Python package files to site-packages
 echo Installing Python package files...
