@@ -1,6 +1,12 @@
 #!/bin/bash
 set -eumx -o pipefail
 shopt -s failglob
+
+# Fix libpthread linking paths...
+for dir in $PREFIX $BUILD_PREFIX; do
+    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread.so" "${RECIPE_DIR}/libpthread.patch"
+done
+
 # We do want to split words in $CMAKE_ARGS, so it must not be quoted!
 # shellcheck disable=SC2086
 cmake -B build -S "${SRC_DIR}" -Dexamples=OFF $CMAKE_ARGS
