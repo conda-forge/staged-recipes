@@ -5,6 +5,7 @@ shopt -s extglob
 
 # Fix libpthread linking paths...
 for dir in $PREFIX; do
+    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib/libc.so" "libc.patch"
     patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread.so" "libpthread.patch"
 done
 
