@@ -7,6 +7,12 @@ for dir in $PREFIX $BUILD_PREFIX; do
     patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread.so" "${RECIPE_DIR}/libpthread.patch"
 done
 
+# take out an argument from CMAKE_ARGS...
+read -r -a CMAKE_ARGS_ARRAY <<< "$CMAKE_ARGS"
+echo "CMAKE_ARGS has ${#CMAKE_ARGS_ARRAY[@]} arguments"
+echo "Leaving out ${CMAKE_ARGS_ARRAY[14]}"
+CMAKE_ARGS="${CMAKE_ARGS_ARRAY[*]:0:14} ${CMAKE_ARGS_ARRAY[*]:15}"
+
 # We do want to split words in $CMAKE_ARGS, so it must not be quoted!
 # shellcheck disable=SC2086
 cmake -B build -S "${SRC_DIR}" -Dexamples=OFF $CMAKE_ARGS
