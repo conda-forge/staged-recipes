@@ -6,7 +6,7 @@ shopt -s extglob
 # Test running an example analysis with Make build
 pushd Go4ExampleSimple
 make clean
-make -j"$(nproc)"
+make -j"${CPU_COUNT}"
 go4analysis -random -number 100000
 popd
 
