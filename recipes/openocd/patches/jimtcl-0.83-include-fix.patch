@@ -1,0 +1,49 @@
+From c26ae1e98e2b292743146ad0fb286c3511f7c952 Mon Sep 17 00:00:00 2001
+From: Antonio Borneo <borneo.antonio@gmail.com>
+Date: Fri, 27 Sep 2024 22:36:52 +0200
+Subject: [PATCH] openocd: fix build with jimtcl 0.83
+
+In jimtcl 0.82, the include file jim.h included in turn stdio.h
+This made redundant to include the former in openocd source files.
+Since jimtcl 0.83, jim.h drops the include of stdio.h, causing
+openocd build to fail.
+
+Include stdio.h in the files that need it.
+
+Change-Id: Ic81c9b273d7520f4d2d8c32bc3e0a6bcfffb67ed
+Signed-off-by: Antonio Borneo <borneo.antonio@gmail.com>
+
+
+diff --git a/src/helper/configuration.h b/src/helper/configuration.h
+index 295ea59..d646670 100644
+--- a/src/helper/configuration.h
++++ b/src/helper/configuration.h
+@@ -11,6 +11,7 @@
+ #ifndef OPENOCD_HELPER_CONFIGURATION_H
+ #define OPENOCD_HELPER_CONFIGURATION_H
+
++#include <stdio.h>
+ #include <helper/command.h>
+
+ int parse_cmdline_args(struct command_context *cmd_ctx,
+diff --git a/src/helper/jim-nvp.c b/src/helper/jim-nvp.c
+index e1ab64a..cdd4d34 100644
+--- a/src/helper/jim-nvp.c
++++ b/src/helper/jim-nvp.c
+@@ -21,6 +21,7 @@
+ #endif
+
+ #include "jim-nvp.h"
++#include <stdio.h>
+ #include <string.h>
+
+ int jim_get_nvp(Jim_Interp *interp,
+--- a/src/openocd.c
++++ b/src/openocd.c
+@@ -257,3 +257,3 @@
+-		struct jim_scriptobj *script = Jim_GetIntRepPtr(interp->currentScriptObj);
+-		if (interp->currentScriptObj == interp->emptyObj ||
+-				strcmp(interp->currentScriptObj->typePtr->name, "script") ||
++		struct jim_scriptobj *script = Jim_GetIntRepPtr(interp->evalFrame->scriptObj);
++		if (interp->evalFrame->scriptObj == interp->emptyObj ||
++				strcmp(interp->evalFrame->scriptObj->typePtr->name, "script") ||
