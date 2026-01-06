@@ -2,12 +2,6 @@
 set -eumx -o pipefail
 shopt -s failglob
 
-# Fix libpthread linking paths...
-for dir in $PREFIX $BUILD_PREFIX; do
-    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib/libc.so" "${RECIPE_DIR}/libc.patch"
-    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread.so" "${RECIPE_DIR}/libpthread.patch"
-done
-
 # take out an argument from CMAKE_ARGS...
 read -r -a CMAKE_ARGS_ARRAY <<< "$CMAKE_ARGS"
 echo "CMAKE_ARGS has ${#CMAKE_ARGS_ARRAY[@]} arguments"

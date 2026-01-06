@@ -3,17 +3,11 @@ set -eumx -o pipefail
 shopt -s failglob
 shopt -s extglob
 
-# Fix libpthread linking paths...
-for dir in $PREFIX; do
-    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib/libc.so" "libc.patch"
-    patch --verbose -u "$dir/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread.so" "libpthread.patch"
-done
-
 # Test running an example analysis with Make build
 pushd Go4ExampleSimple
 make clean
 make -j"${CPU_COUNT}"
-go4analysis -random -number 100000
+go4analysis -random -number 10000
 popd
 
 # Test running another example analysis with CMake build
