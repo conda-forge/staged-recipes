@@ -1,0 +1,85 @@
+{% set version = "0.3.2" %}
+{% set torch_proc_type = "cuda" ~ cuda_compiler_version | replace('.', '') if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: exllamav2
+  version: {{ version }}
+
+source:
+  url: https://github.com/turboderp-org/exllamav2/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 59bd24ff69855a9fbf7c62565479e6e7ecfd2063cce7dfd90cbe785517e34074
+
+build:
+  # noarch: python
+  script_env:
+    - CUDAARCHS=50-real;60-real;70-real;75-real;80-real;86-real;89-real;90a-real;100f-real;120a-real
+    - TORCH_CUDA_ARCH_LIST=5.0;6.0;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX
+    # - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
+  #   - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
+  #   - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
+    # - NVCC_APPEND_FLAGS='-allow-unsupported-compiler'  # allow post-11
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  skip: true  # [cuda_compiler_version == "None"]
+  # or win or py < 38]
+  #skip: true  # [py > 311]
+  rpaths:
+    - lib/
+    # PyTorch libs are in site-packages intead of with other shared objects
+    - {{ SP_DIR }}/torch/lib/
+  missing_dso_whitelist:
+    - "*/libtorch_python.so"
+
+requirements:
+  build:
+    - cmake
+    - make
+    - {{ stdlib("c") }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - ninja
+    
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - python
+    - pip
+    - setuptools
+    - pytorch
+    - torchvision
+    - ninja
+    - cudatoolkit-dev
+    - wget
+    # - cuda-runtime
+    
+  run:
+    - python
+    - pandas
+    - ninja
+    - fastparquet
+    - pytorch >=2.2.0
+    - safetensors >=0.3.2
+    - sentencepiece >=0.1.97
+    - pygments
+    - websockets
+    - regex
+    - numpy
+    - tokenizers
+    - rich
+    - pillow >=9.1.0
+
+test:
+  imports:
+    - exllamav2
+  requires:
+    - pip
+
+about:
+  home: https://github.com/turboderp/exllamav2
+  license: MIT
+  license_file: LICENSE
+  summary: ExLlamaV2 is an inference library for running local LLMs on modern consumer GPUs.
+
+extra:
+  recipe-maintainers:
+    - mediocretech
