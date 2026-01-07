@@ -22,5 +22,6 @@ if errorlevel 1 exit 1
 
 :: testing library built here is used in py: opentrustregion.testsuite
 
-:: needs requirements/build: - binutils  # [win]
-:: objdump.exe -p build\libopentrustregion_32.dll | findstr /i "init_solver_setting"
+:: in case need to inspect DLL contents again in future,
+::   (needs opentrustregion/requirements/build: - binutils  # [win])
+::   objdump.exe -p build\libopentrustregion_32.dll | findstr /i "init_solver_setting"
