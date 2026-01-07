@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+context:
+  name: gtksourceview
+  version: 5.18.0
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+source:
+  url: "https://download.gnome.org/sources/${{ name }}/${{ version_majmin }}/${{ name }}-${{ version }}.tar.xz"
+  sha256: 051a78fe38f793328047e5bcd6d855c6425c0b480c20d9432179e356742c6ac0
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          --buildtype=release ^
+          -Dintrospection=enabled ^
+          -Ddocumentation=false ^
+          -Dvapi=false ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dintrospection=enabled \
+            -Ddocumentation=false \
+            -Dvapi=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+  files:
+    exclude:
+      - '**/gschemas.compiled'
+      - '**/icon-theme.cache'
+      - '**/loaders.cache'
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    - gobject-introspection
+  host:
+    - expat
+    - fontconfig
+    - fribidi
+    - glib
+    - gobject-introspection
+    - gtk4
+    - libxml2-devel
+    - zlib
+    - if: unix
+      then: pango
+  ignore_run_exports:
+    by_name:
+      - libexpat
+      - adwaita-icon-theme
+      - libzlib
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - lib/pkgconfig/gtksourceview-5.pc
+        - if: win
+          then:
+            - Library/lib/pkgconfig/gtksourceview-5.pc
+            - Library/lib/gtksourceview-5.lib
+      lib:
+        - if: unix
+          then: gtksourceview-5
+about:
+  homepage: https://gitlab.gnome.org/GNOME/gtksourceview
+  summary: A GNOME library that extends GtkTextView
+  description: |
+    GtkSourceView is a GNOME library that extends GtkTextView, the standard GTK
+    widget for multiline text editing. GtkSourceView adds support for syntax
+    highlighting, file loading and saving, search and replace, code completion,
+    snippets, Vim emulation, printing, displaying line numbers, and other features
+    typical of a source code editor.
+  license: LGPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/
+  repository: https://gitlab.gnome.org/GNOME/gtksourceview
+extra:
+  recipe-maintainers:
+    - danyeaw
+    - pkgw
+    - ryanvolz
