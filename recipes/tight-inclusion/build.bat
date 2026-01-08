@@ -1,11 +1,8 @@
 setlocal EnableDelayedExpansion
 
-mkdir build
-cd build
-
 ::Configure
 cmake %CMAKE_ARGS% ^
-  -B . ^
+  -B build ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DCMAKE_INSTALL_INCLUDEDIR="include" ^
@@ -15,9 +12,9 @@ cmake %CMAKE_ARGS% ^
 if errorlevel 1 exit 1
 
 :: Build.
-cmake --build . --parallel "%CPU_COUNT%"
+cmake --build build --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
 :: Install.
-cmake --build . --parallel "%CPU_COUNT%" --target install
+cmake --build build --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1
