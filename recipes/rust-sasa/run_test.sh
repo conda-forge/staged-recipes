@@ -11,7 +11,7 @@ fi
 
 output=$(cat out.json)
 
-expected='"value":220.10417,"name":"MET","is_polar":false'
+expected='""value"":220.10417,""name"":""MET"",""is_polar"":false'
 if ! echo "$output" | grep -q "$expected"; then
   echo "Expected string '$expected' not found in output"
   exit 1
