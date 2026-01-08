@@ -29,6 +29,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
       mkdir -p build_casadi
       cd build_casadi
 
+        export LDFLAGS="-L${PREFIX}/lib/casadi -lcasadi"
+
       cmake -DWITH_PYTHON=OFF\
             -DWITH_PYTHON3=OFF\
             -DCMAKE_INSTALL_PREFIX=$PREFIX\
