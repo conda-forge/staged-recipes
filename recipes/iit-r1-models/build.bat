@@ -6,6 +6,7 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
+    -DBUILD_TESTING:BOOL=ON ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
@@ -14,8 +15,8 @@ cmake --build build --config Release
 if errorlevel 1 exit 1
 
 :: Test.
-:: ctest --test-dir build --output-on-failure --repeat until-pass:5 -C Release
-:: if errorlevel 1 exit 1
+ctest --test-dir build --output-on-failure --repeat until-pass:5 -C Release
+if errorlevel 1 exit 1
 
 :: Install.
 cmake --build build --config Release --target install
