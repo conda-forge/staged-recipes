@@ -26,21 +26,18 @@ cp -r ./build/pack/* ${PREFIX}/libexec/scala2/
 for FILE in fsc scala scalac scaladoc scalap; do
     tee ${PREFIX}/bin/${FILE} << EOF
 #!/bin/sh
-LAUNCHER_PATH="\$(cd -- "\$(dirname "\$0")/../libexec/scala2/bin" >/dev/null 2>&1 ; pwd -P)"
-exec \${LAUNCHER_PATH}/${FILE} "\$@"
+exec \${CONDA_PREFIX}/libexec/scala2/bin/${FILE} "\$@"
 EOF
     chmod +x ${PREFIX}/bin/${FILE}
 
     tee ${PREFIX}/bin/${FILE}.bat << EOF
 @echo off
-"%~dp0..\libexec\scala2\bin\${FILE}.bat" %*
+call "%CONDA_PREFIX%\libexec\scala2\bin\${FILE}.bat" %*
 EOF
 done
 
 for CHANGE in "activate" "deactivate"
 do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-    for ext in ".sh" ".bat" ".ps1" "-win.sh"; do
-        cp "${RECIPE_DIR}/scripts/${CHANGE}${ext}" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}${ext}"
-    done
+    cp "${RECIPE_DIR}/scripts/${CHANGE}"* "${PREFIX}/etc/conda/${CHANGE}.d/"
 done
