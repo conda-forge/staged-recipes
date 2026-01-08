@@ -1,0 +1,109 @@
+context:
+  name: servalcat
+  version: "0.4.126"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+    url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: 240ebe686a05b753f40c73276ea02abf6376b924d3b693a76eb2675e23a06634
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        rm -rf eigen/  # Remove vendored eigen to use the conda package
+        ${PYTHON} -m pip install . \
+          -vv \
+          --no-deps \
+          --no-build-isolation \
+          --config-settings="cmake.args=-DSEARCH_INSTALLED_GEMMI=ON;-DINSTALL_GEMMI_IF_BUILT=OFF"
+        mkdir -p ${PREFIX}/bin
+        cp ${RECIPE_DIR}/post-link.sh ${PREFIX}/bin/.${PKG_NAME}-post-link.sh
+        chmod +x ${PREFIX}/bin/.${PKG_NAME}-post-link.sh
+
+    - if: win
+      then: |
+        set "CMAKE_GENERATOR=NMake Makefiles JOM"
+        rmdir /s /q eigen
+        %PYTHON% -m pip install . ^
+          -vv ^
+          --no-deps ^
+          --no-build-isolation ^
+          --config-settings="cmake.args=-DSEARCH_INSTALLED_GEMMI=ON;-DINSTALL_GEMMI_IF_BUILT=OFF;-DCMAKE_GENERATOR_PLATFORM=;-DCMAKE_GENERATOR_TOOLSET="
+        mkdir %PREFIX%\Scripts
+        copy %RECIPE_DIR%\post-link.bat %PREFIX%\Scripts\.%PKG_NAME%-post-link.bat
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - if: win
+      then: jom
+  host:
+    - eigen >=3.4.0
+    - gemmi ==0.7.3
+    - nanobind ==2.9.2
+    - pip
+    - python ${{ python }}
+    - scikit-build-core ==0.11.6
+  run:
+    - ${{ pin_compatible("gemmi", upper_bound='x.x.x') }}
+    - numpy >=1.15
+    - omegaconf ==2.3.0
+    - packaging
+    - pandas >=1.1.0
+    - python ${{ python }}
+    - scipy
+  run_exports: []  # No shared libraries to worry about
+
+tests:
+  - script:
+      - python -m servalcat --version
+      - python -m servalcat --help
+      - python tests/test_for_ci.py
+    files:
+      source:
+        - tests/test_for_ci.py
+        - tests/biotin/biotin_talos.pdb
+
+  - python:
+      pip_check: true
+      imports:
+        - servalcat
+      python_version: ${{ python }}
+
+about:
+  homepage: "https://pypi.org/project/servalcat"
+  summary: "Structure refinement and validation for crystallography and single particle analysis"
+  description: >
+    Structure refinement and validation for crystallography and single particle analysis.
+
+    Servalcat implements pipelines that use Refmac5:
+      - `servalcat refine_spa`: cryo-EM SPA refinement pipeline
+      - `servalcat refine_cx`: small molecule crystallography
+
+    and a Refmac5 controller
+      - `refmacat`: behaves as Refmac, but uses GEMMI for restraint generation instead of MAKECIF
+    Now “No Refmac5” refinement programs have been actively developed:
+      - `servalcat refine_geom`: geometry optimization
+      - `servalcat refine_spa_norefmac`: "No Refmac" version of refine\_spa
+      - `servalcat refine_xtal_norefmac`: crystallographic refinement
+
+    Also, it has several utility commands: `servalcat util`.
+  license: MPL-2.0
+  license_file: LICENSE
+  repository: https://github.com/keitaroyam/servalcat
+  documentation: https://servalcat.readthedocs.io/en/latest
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
+    - keitaroyam
