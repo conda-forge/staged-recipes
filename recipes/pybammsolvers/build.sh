@@ -38,6 +38,6 @@ fi
 
 cd $SRC_DIR
 
-export LDFLAGS="-L${PREFIX}/lib/casadi -lcasadi"
+export LDFLAGS="-L${PREFIX}/lib -lcasadi"
 
 python -m pip install -vv --no-deps --no-build-isolation .
