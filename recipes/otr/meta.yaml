@@ -1,0 +1,118 @@
+{% set version = "2.0.0" %}
+{% set PYTHON = PYTHON | default("$PYTHON") %}  # https://github.com/conda/conda-build/issues/5424#issuecomment-2663290268
+
+package:
+  name: opentrustregion-split
+  version: {{ version }}
+
+source:
+  # url: https://github.com/eriksen-lab/opentrustregion/archive/v{{ version }}.tar.bz2
+  url: https://github.com/loriab/opentrustregion/archive/cmakeconda.tar.gz
+  sha256: 41e8515f046e3b0e7c37be895b9a89e5bcb208eece16d668f31c9c5a4f216f21
+
+build:
+  number: 0
+
+outputs:
+  - name: opentrustregion
+    script: build-fortran.sh                                                         # [unix]
+    script: bld-fortran.bat                                                          # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('opentrustregion', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ stdlib("c") }}                                                          # [unix]
+        - {{ compiler("c") }}                                                        # [unix]
+        - {{ compiler("fortran") }}                                                  # [unix]
+        - {{ stdlib("m2w64_c") }}                                                    # [win]
+        - {{ compiler("m2w64_c") }}                                                  # [win]
+        - {{ compiler("m2w64_fortran") }}                                            # [win]
+        - cmake
+        - ninja
+      host:
+        - libblas
+        - liblapack
+      run:
+        - libgcc                                                                     # [osx]   # libgcc_s.1.1.dylib needed
+    test:
+      commands:
+        - ls -l $PREFIX/lib                                                          # [unix]
+        - dir %PREFIX%\\Library\\lib                                                 # [win]
+        # Verify library
+        - test -h $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                        # [unix]
+        - test ! -h $PREFIX/lib/libopentrustregion_32.a                              # [unix]
+        - test -f $PREFIX/lib/libotrtestsuite$SHLIB_EXT                              # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\libopentrustregion_32.dll.a exit 1    # [win]   # gnu import lib
+        - if not exist %PREFIX%\\Library\\lib\\libopentrustregion_32.lib exit 1      # [win]   # ms import lib
+        - if not exist %PREFIX%\\Library\\bin\\libopentrustregion_32.dll exit 1      # [win]   # gnu/ms dyn lib
+        - if exist %PREFIX%\\Library\\lib\\libopentrustregion_32.a exit 1            # [win]   # gnu static lib absent
+        - if not exist %PREFIX%\\Library\\bin\\libotrtestsuite%SHLIB_EXT% exit 1     # [win]
+        # Verify accessories
+        - test -f $PREFIX/include/opentrustregion.h                                  # [unix]
+        - test -f $PREFIX/lib/cmake/OpenTrustRegion/OpenTrustRegionConfig.cmake      # [unix]
+        - test -f $PREFIX/lib/cmake/OpenTrustRegion/OpenTrustRegionTargets-32.cmake  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\opentrustregion.h exit 1          # [win]
+        - if not exist %PREFIX%\\Library\\OpenTrustRegion\\CMake\\OpenTrustRegionConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\OpenTrustRegion\\CMake\\OpenTrustRegionTargets-32.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                       # [linux and build_platform == target_platform]
+        - otool -L $PREFIX/lib/libopentrustregion_32$SHLIB_EXT                     # [osx]
+        # Actually test (deferred to Py)
+
+  - name: pyopentrustregion
+    build:
+      noarch: python
+      script: {{ PYTHON }} -m pip install . --ignore-installed --no-cache-dir --no-deps -vv
+    requirements:
+      build:
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage('opentrustregion', exact=True) }}
+        - python {{ python_min }}
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - {{ pin_subpackage('opentrustregion', exact=True) }}
+        - python >={{ python_min }}
+        - numpy
+    test:
+      requires:
+        - pip                                                                      # provides `pip check`
+        - python {{ python_min }}
+      imports:
+        - pyopentrustregion
+        - pyopentrustregion.testsuite
+      commands:
+        - ls -l $SP_DIR/pyopentrustregion                                          # [unix]
+        - dir %SP_DIR%\\pyopentrustregion                                          # [win]
+        # Verify module
+        - test ! -f $SP_DIR/pyopentrustregion/libopentrustregion_32$SHLIB_EXT      # [unix]
+        - test ! -f $SP_DIR/pyopentrustregion/libotrtestsuite$SHLIB_EXT            # [unix]
+        - test -f $SP_DIR/pyopentrustregion/python_interface.py                    # [unix]
+        - if exist %SP_DIR%\\pyopentrustregion\\libopentrustregion_32.dll exit 1   # [win]   # gnu/ms dyn lib
+        - if exist %SP_DIR%\\pyopentrustregion\\libotrtestsuite%SHLIB_EXT% exit 1  # [win]
+        - if not exist %SP_DIR%\\pyopentrustregion\\python_interface.py exit 1     # [win]
+        # Verify accessories
+        - test -f $SP_DIR/pyopentrustregion/test_data/h2o_r_ints.bin               # [unix]
+        - if not exist %SP_DIR%\\pyopentrustregion\\test_data\\h2o_r_ints.bin exit 1  # [win]
+        # Actually test
+        - pip check
+        - python -m pyopentrustregion.testsuite
+
+about:
+  home: https://github.com/eriksen-lab/opentrustregion
+  dev_url: https://github.com/eriksen-lab/opentrustregion
+  doc_url: https://github.com/eriksen-lab/opentrustregion/blob/main/README.md
+  license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
+  license_file: LICENSE
+  summary: "A Reusable Library for Second-Order Trust Region Orbital Optimization"
+
+extra:
+  feedstock-name: opentrustregion
+  recipe-maintainers:
+    - loriab
+    - jonas-greiner
