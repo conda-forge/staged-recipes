@@ -1,0 +1,60 @@
+context:
+  version: "0.11.1"
+
+package:
+  name: tea
+  version: ${{ version }}
+
+source:
+  - url: https://gitea.com/gitea/tea/archive/v${{ version }}.tar.gz
+    sha256: 1da6b6d2534bd6ffb0931400014bbdef26242cf4d35d4ba44c24928811825805
+    target_directory: src
+  - if: win
+    then:
+      url: https://github.com/mattn/go-localereader/raw/master/LICENSE
+      sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+      target_directory: go-localereader-license
+      file_name: LICENSE
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses ${{ "--ignore github.com/mattn/go-localereader" if win }}
+    - if: win
+      then:
+        - mkdir ..\library_licenses\github.com\mattn\go-localereader
+        - copy ..\go-localereader-license\LICENSE ..\library_licenses\github.com\mattn\go-localereader\LICENSE
+    - if: unix
+      then: go build -v -o $PREFIX/bin/tea -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\tea.exe -ldflags="-s"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - tea --version
+  - package_contents:
+      bin:
+        - tea
+      strict: true
+
+about:
+  homepage: https://gitea.com/gitea/tea
+  summary: A command line tool to interact with Gitea servers
+  description: |
+    tea is the official CLI for Gitea. It can be used to manage and
+    interact with Gitea servers from the command line.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://gitea.com/gitea/tea
+  repository: https://gitea.com/gitea/tea
+
+extra:
+  recipe-maintainers:
+    - pavelzw
