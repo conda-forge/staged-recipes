@@ -1,0 +1,352 @@
+From d22cd4126c7f49d4a3184840f5a09619ded4b3d5 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 14:46:54 +0100
+Subject: [PATCH] feat: auto-discover plugin path from library location
+
+Add C API function to get the directory containing libGaudiPluginService
+using dladdr, eliminating the need to manually set GAUDI_PLUGIN_PATH
+when Gaudi is properly installed.
+
+The default plugin path is prepended to search paths in:
+- GaudiPluginService factory loading
+- GaudiConfig2 confdb2 discovery
+- ConfigurableDb loading
+- Application library loading on macOS
+
+Also adds GAUDI_PLUGINSVC_LIBRARY environment variable export during
+builds to help Python find the correct library before installation.
+---
+ Gaudi/python/Gaudi/__init__.py                | 53 +++++++++++++++++--
+ GaudiConfiguration/python/GaudiConfig2/_db.py | 33 +++++++-----
+ .../python/GaudiKernel/ConfigurableDb.py      | 17 ++++--
+ GaudiPluginService/CMakeLists.txt             |  5 +-
+ GaudiPluginService/src/PluginServiceV2.cpp    | 14 ++++-
+ GaudiPluginService/src/capi_pluginservice.cpp | 18 ++++++-
+ GaudiPluginService/src/capi_pluginservice.h   |  6 ++-
+ cmake/GaudiToolbox.cmake                      |  5 +-
+ 8 files changed, 123 insertions(+), 28 deletions(-)
+
+diff --git a/Gaudi/python/Gaudi/__init__.py b/Gaudi/python/Gaudi/__init__.py
+index 95f63dbde0..4b452eb5d5 100644
+--- a/Gaudi/python/Gaudi/__init__.py
++++ b/Gaudi/python/Gaudi/__init__.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -11,9 +11,44 @@
+ import ctypes
+ import os
+ import sys
++from functools import lru_cache
+ 
+ from ._version import __version__, git_describe_tag, version_info  # noqa: F401
+ 
++
++@lru_cache(maxsize=1)
++def _get_default_plugin_path():
++    """Get default plugin path from libGaudiPluginService using dladdr."""
++    import logging
++    from ctypes.util import find_library
++
++    log = logging.getLogger(__name__)
++
++    # Check for explicit library path from build environment
++    lib_path = os.environ.get("GAUDI_PLUGINSVC_LIBRARY")
++    if not lib_path:
++        # Fallback: use find_library (works when properly installed)
++        lib_path = find_library("GaudiPluginService")
++
++    if not lib_path:
++        log.debug("Could not find GaudiPluginService library")
++        return ""
++
++    try:
++        lib = ctypes.CDLL(lib_path)
++        lib.cgaudi_pluginsvc_get_default_search_path.restype = ctypes.c_char_p
++        result = lib.cgaudi_pluginsvc_get_default_search_path()
++        path = result.decode() if result else ""
++        log.debug("Default plugin path: %s", path)
++        return path
++    except OSError as e:
++        log.debug("Failed to get default plugin path: %s", e)
++        return ""
++
++
++# For backwards compatibility
++GAUDI_DEFAULT_PLUGIN_PATH = _get_default_plugin_path()
++
+ __configurables_module_fullname__ = __name__ + ".Configurables"
+ __ignore_missing_configurables__ = False
+ 
+@@ -96,10 +131,18 @@ class Application(object):
+             if sys.platform == "darwin":
+                 # LD_LIBRARY_PATH cannot be used for dlopen on macos;
+                 # use custom variable GAUDI_PLUGIN_PATH instead
+-                _libpaths = os.environ.get("GAUDI_PLUGIN_PATH")
+-                if not _libpaths:
+-                    print("WARNING: GAUDI_PLUGIN_PATH is empty!")
+-                for _path in _libpaths.split(":"):
++                # Default path first, then environment variable
++                _paths = []
++                if GAUDI_DEFAULT_PLUGIN_PATH:
++                    _paths.append(GAUDI_DEFAULT_PLUGIN_PATH)
++                _paths.extend(
++                    p for p in os.environ.get("GAUDI_PLUGIN_PATH", "").split(":") if p
++                )
++                if not _paths:
++                    print(
++                        "WARNING: No plugin path available (GAUDI_PLUGIN_PATH not set)"
++                    )
++                for _path in _paths:
+                     _lib = os.path.join(_path, "libGaudiKernel.dylib")
+                     if os.path.isfile(_lib):
+                         gkl = _GaudiKernelLib = ctypes.CDLL(
+diff --git a/GaudiConfiguration/python/GaudiConfig2/_db.py b/GaudiConfiguration/python/GaudiConfig2/_db.py
+index 68c5408eb4..ae8e670bea 100644
+--- a/GaudiConfiguration/python/GaudiConfig2/_db.py
++++ b/GaudiConfiguration/python/GaudiConfig2/_db.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -13,6 +13,8 @@ import logging
+ import os
+ import sys
+ 
++from Gaudi import GAUDI_DEFAULT_PLUGIN_PATH
++
+ 
+ class ConfDB2(object):
+     def __init__(self):
+@@ -26,19 +28,24 @@ class ConfDB2(object):
+             else ["GAUDI_PLUGIN_PATH", "LD_LIBRARY_PATH"]
+         )
+         ignored_files = set(os.environ.get("CONFIGURABLE_DB_IGNORE", "").split(","))
++
++        # Collect paths: default path first, then environment variables
++        paths = []
++        if GAUDI_DEFAULT_PLUGIN_PATH:
++            paths.append(GAUDI_DEFAULT_PLUGIN_PATH)
+         for pathvar in pathvars:
+-            for path in os.getenv(pathvar, "").split(os.pathsep):
+-                if not path:
+-                    continue
+-                dbfiles = [
+-                    f.absolute().as_posix()
+-                    for f in Path(path).glob("*.confdb2")
+-                    if f.absolute().as_posix() not in ignored_files
+-                ]
+-                dbfiles.sort()
+-                for db in [shelve.open(f, "r") for f in dbfiles]:
+-                    for key in db:
+-                        self._dbs.setdefault(key, db)
++            paths.extend(p for p in os.getenv(pathvar, "").split(os.pathsep) if p)
++
++        for path in paths:
++            dbfiles = [
++                f.absolute().as_posix()
++                for f in Path(path).glob("*.confdb2")
++                if f.absolute().as_posix() not in ignored_files
++            ]
++            dbfiles.sort()
++            for db in [shelve.open(f, "r") for f in dbfiles]:
++                for key in db:
++                    self._dbs.setdefault(key, db)
+ 
+     def __getitem__(self, key):
+         return self._dbs[key][key]
+diff --git a/GaudiKernel/python/GaudiKernel/ConfigurableDb.py b/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
+index 7e70a6d098..686118988c 100644
+--- a/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
++++ b/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -20,6 +20,8 @@ __all__ = ["CfgDb", "cfgDb", "loadConfigurableDb", "getConfigurable"]
+ 
+ import logging
+ 
++from Gaudi import GAUDI_DEFAULT_PLUGIN_PATH
++
+ _transtable = str.maketrans("<>&*,: ().", "__rp__s___")
+ 
+ log = logging.getLogger("ConfigurableDb")
+@@ -119,9 +121,16 @@ def loadConfigurableDb():
+ 
+     log.debug("loading confDb files...")
+     nFiles = 0  # counter of imported files
+-    pathlist = os.getenv("GAUDI_PLUGIN_PATH", "").split(os.pathsep) + os.getenv(
+-        "LD_LIBRARY_PATH", ""
+-    ).split(os.pathsep)
++    # Collect paths: default path first, then environment variables
++    pathlist = []
++    if GAUDI_DEFAULT_PLUGIN_PATH:
++        pathlist.append(GAUDI_DEFAULT_PLUGIN_PATH)
++    pathlist.extend(
++        p
++        for p in os.getenv("GAUDI_PLUGIN_PATH", "").split(os.pathsep)
++        + os.getenv("LD_LIBRARY_PATH", "").split(os.pathsep)
++        if p
++    )
+     ignored_files = set(os.environ.get("CONFIGURABLE_DB_IGNORE", "").split(","))
+     for path in pathlist:
+         if not os.path.isdir(path):
+diff --git a/GaudiPluginService/CMakeLists.txt b/GaudiPluginService/CMakeLists.txt
+index 04824d05af..390fa2fae8 100644
+--- a/GaudiPluginService/CMakeLists.txt
++++ b/GaudiPluginService/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2013-2022 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2013-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -46,6 +46,9 @@ gaudi_add_library(GaudiPluginService
+                     PRIVATE ${CMAKE_DL_LIBS}
+                             ${filesystem_implementation}
+                     PUBLIC Threads::Threads)
++# Export library path for Python code to find the correct library during builds
++set_property(TARGET target_runtime_paths APPEND PROPERTY extra_commands
++    "export GAUDI_PLUGINSVC_LIBRARY=\"$<TARGET_FILE:GaudiPluginService>\"")
+ if(GAUDI_REFLEX_COMPONENT_ALIASES)
+   target_compile_definitions(GaudiPluginService PRIVATE
+     GAUDI_REFLEX_COMPONENT_ALIASES)
+diff --git a/GaudiPluginService/src/PluginServiceV2.cpp b/GaudiPluginService/src/PluginServiceV2.cpp
+index 8110039fac..7133873a85 100644
+--- a/GaudiPluginService/src/PluginServiceV2.cpp
++++ b/GaudiPluginService/src/PluginServiceV2.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 2013-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 2013-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -14,6 +14,8 @@
+ #define GAUDI_PLUGIN_SERVICE_V2
+ #include <Gaudi/PluginService.h>
+ 
++#include "capi_pluginservice.h"
++
+ #include <dirent.h>
+ #include <dlfcn.h>
+ 
+@@ -143,11 +145,19 @@ namespace Gaudi {
+           const char sep     = ':';
+ #endif
+ 
++          // Default plugin path: directory containing this library (from C API)
++          const std::string defaultPluginPath = cgaudi_pluginsvc_get_default_search_path();
++
+           std::regex line_format{ "^(?:[[:space:]]*(?:(v[0-9]+)::)?([^:]+):(.*[^[:space:]]))?[[:space:]]*(?:#.*)?$" };
+           for ( const auto& envVar : envVars ) {
+             std::smatch       m;
+             std::stringstream search_path;
+-            if ( auto ptr = std::getenv( envVar ) ) search_path << ptr;
++            if ( !defaultPluginPath.empty() ) {
++              search_path << defaultPluginPath;
++              if ( auto ptr = std::getenv( envVar ) ) search_path << sep << ptr;
++            } else {
++              if ( auto ptr = std::getenv( envVar ) ) search_path << ptr;
++            }
+             logger().debug( std::string( "searching factories in " ) + envVar );
+ 
+             // std::string_view::size_type start_pos = 0, end_pos = 0;
+diff --git a/GaudiPluginService/src/capi_pluginservice.cpp b/GaudiPluginService/src/capi_pluginservice.cpp
+index 8af4fd7570..1da0039abb 100644
+--- a/GaudiPluginService/src/capi_pluginservice.cpp
++++ b/GaudiPluginService/src/capi_pluginservice.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 2013-2019 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 2013-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -14,8 +14,11 @@
+ #include <Gaudi/PluginService.h>
+ 
+ #include <algorithm>
++#include <filesystem>
++#include <string>
+ #include <vector>
+ 
++#include <dlfcn.h>
+ #include <iostream>
+ 
+ using namespace Gaudi::PluginService::v2::Details;
+@@ -78,3 +81,16 @@ const char* cgaudi_property_get_value( cgaudi_property_t self ) {
+   auto                         prop = fi.properties.find( self.key );
+   return prop != fi.properties.end() ? prop->second.c_str() : nullptr;
+ }
++
++const char* cgaudi_pluginsvc_get_default_search_path( void ) {
++  // Use lambda for thread-safe static initialization (C++11 guarantees)
++  static const std::string path = []() {
++    Dl_info info;
++    // Use address of a symbol in this library to find its location
++    if ( dladdr( reinterpret_cast<void*>( &cgaudi_pluginsvc_instance ), &info ) && info.dli_fname ) {
++      return std::filesystem::path( info.dli_fname ).parent_path().string();
++    }
++    return std::string{};
++  }();
++  return path.c_str();
++}
+diff --git a/GaudiPluginService/src/capi_pluginservice.h b/GaudiPluginService/src/capi_pluginservice.h
+index 497aa9b8a8..ccbb3bddef 100644
+--- a/GaudiPluginService/src/capi_pluginservice.h
++++ b/GaudiPluginService/src/capi_pluginservice.h
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 2013-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 2013-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -77,6 +77,10 @@ const char* cgaudi_property_get_key( cgaudi_property_t self );
+ CGAUDI_API
+ const char* cgaudi_property_get_value( cgaudi_property_t self );
+ 
++/** Get the default plugin search path (directory containing this library) */
++CGAUDI_API
++const char* cgaudi_pluginsvc_get_default_search_path( void );
++
+ #ifdef __cplusplus
+ } /* extern "C" */
+ #endif
+diff --git a/cmake/GaudiToolbox.cmake b/cmake/GaudiToolbox.cmake
+index 10ac54de65..e7ce785d44 100644
+--- a/cmake/GaudiToolbox.cmake
++++ b/cmake/GaudiToolbox.cmake
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2020-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2020-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -1301,6 +1301,9 @@ function(gaudi_generate_confuserdb)
+         COMMENT "Generating ConfigurableUser DB for ${package_name}"
+         COMMAND_EXPAND_LISTS)
+     add_custom_target(${package_name}_confuserdb ALL DEPENDS "${output_file}")
++    if(TARGET GaudiPluginService)
++        add_dependencies(${package_name}_confuserdb GaudiPluginService)
++    endif()
+     # Merge ${package_name}_user.confdb with the others in ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.confdb
+     _merge_files_confdb(${package_name}_confuserdb "${output_file}") # see private functions at the end
+     # Add the path to the merged confdb file to LD_LIBRARY_PATH
+-- 
+GitLab
+
