@@ -1,32 +1,25 @@
-{% set name = "cppbmad" %}
-{% set version = "20260108-0" %}
-{% set dot_version = version | replace("-", ".") %}
+{% set name = "pybmad" %}
+{% set version = "20260112-0" %}
+{% set safe_version = version | replace("-", ".") %}
 {% set build = 0 %}
 
 {% set mpi = mpi or 'nompi' %}
-
-{% if mpi == 'nompi' %}
-# prioritize nompi variant via build number
-{% set build = build + 100 %}
-{% endif %}
-
-{% if mpi != 'nompi' %}
-{% set mpi_prefix = "mpi_" + mpi %}
-{% else %}
-{% set mpi_prefix = "nompi" %}
-{% endif %}
+{% set build = build + 100 %}  # [mpi == 'nompi']
+{% set mpi_prefix = "nompi" %}  # [mpi == 'nompi']
+{% set mpi_prefix = "mpi_" + mpi %}  # [mpi != 'nompi']
 
 package:
-  name: {{ name }}-split
-  version: {{ dot_version }}
+  name: {{ name }}
+  version: {{ safe_version }}
 
 source:
   - url: https://github.com/ken-lauer/cppbmad/archive/{{ version }}.tar.gz
-    sha256: 6b24bf6fea17a4e1cc025989ebb1279e6bc9e9be2393e573735d007556ec8ae3
+    sha256: 9b107c272130608d08b61d34c92e912aea673e9916920b95a79bb80970681ef5
 
 build:
   number: {{ build }}
-  skip: true  # [win] 
+  skip: true  # [win]
+  string: "{{ mpi_prefix }}_py{{ py }}h{{ PKG_HASH }}_{{ build }}"
 
 requirements:
   build:
@@ -36,51 +29,25 @@ requirements:
     - cmake
     - make
   host:
-    - bmad {{ dot_version }} {{ mpi_prefix }}*
+    - bmad {{ safe_version }} {{ mpi_prefix }}_*
     - {{ mpi }}  # [mpi != 'nompi']
     - python
     - pybind11
     - pybind11-stubgen
+  run:
+    - python
+    # - {{ pin_compatible('bmad', exact=True) }}
+    - bmad {{ safe_version }} {{ mpi_prefix }}_*
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libgcc     # [osx]
 
-outputs:
-  - name: cppbmad
-    build:
-      # script: build_cppbmad.sh
-      string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
-      run_exports:
-        - {{ pin_subpackage('cppbmad', max_pin="x.x") }}
-      ignore_run_exports:
-        - python  # cppbmad is independent of Python
-    files:
-      - include/bmad.hpp
-      - include/bmad/
-      - lib/libcppbmad*
-      - lib/cmake/cppbmad
-    requirements:
-      run:
-        - {{ pin_compatible('bmad', exact=True) }}
-        - {{ mpi }}  # [mpi != 'nompi']
-        - libgcc     # [osx]
-    test:
-      commands:
-        - test -f $PREFIX/lib/libcppbmad${SHLIB_EXT}
-        - test -f $PREFIX/include/bmad.hpp
-        - bash test_cppbmad_build.sh
-
-  - name: pybmad
-    build:
-      # script: build_pybmad.sh
-      string: "{{ mpi_prefix }}_py{{ python | replace('.', '') }}_h{{ PKG_HASH }}_{{ build }}"
-    files:
-      - {{ SP_DIR }}/pybmad
-    requirements:
-      run:
-        - python
-        - {{ mpi }}  # [mpi != 'nompi']
-        - {{ pin_subpackage('cppbmad', max_pin="x.x") }}
-    test:
-      imports:
-        - pybmad
+test:
+  imports:
+    - pybmad
+  commands:
+    - test -f $PREFIX/lib/libcppbmad${SHLIB_EXT}
+    - test -f $PREFIX/include/bmad.hpp
+    # - cd $RECIPE_DIR && bash test_cppbmad_build.sh
 
 about:
   home: github.com/ken-lauer/cppbmad
