@@ -3,12 +3,6 @@ set -e
 
 case "$target_platform" in
 osx-*)
-	# pdal requires this define
-	# $PREFIX/include/pdal/FileSpec.hpp:60:22: error: 'path' is
-	# unavailable: introduced in macOS 10.15 unknown - see
-	# https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
-	[ "$target_platform" = "osx-64" ] &&
-		CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 	with_others="
 		--with-opengl=osx
 		--with-x=no
@@ -16,7 +10,7 @@ osx-*)
 	;;
 esac
 
-CXXFLAGS="$CXXFLAGS" \
+export CXXFLAGS="$CXXFLAGS -D_LIBCPP_DISABLE_AVAILABILITY"
 ./configure \
 	--prefix=$PREFIX \
 	--with-blas \
