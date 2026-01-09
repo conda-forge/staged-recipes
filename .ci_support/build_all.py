@@ -119,8 +119,14 @@ def build_all(recipes_dir, arch):
     deployment_version = (0, 0)
     sdk_version = (0, 0)
     channel_urls = None
-    for folder in folders:
-        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+    config_files = [os.path.join(recipes_dir, "conda_build_config.yaml")]
+    config_files.extend(
+        [
+            os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+            for folder in folders
+        ]
+    )
+    for cbc in config_files:
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
                 lines = f.readlines()
@@ -290,11 +296,14 @@ def build_folders_rattler_build(
     specs = OrderedDict()
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
-            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config, loader=yaml.SafeLoader
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))),
+            config,
+            loader=yaml.SafeLoader,
         )
 
-    variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
-             + list(Path(recipes_dir).glob(f"**/variants.yaml"))
+    variants = list(Path(recipes_dir).glob("**/conda_build_config.yaml")) + list(
+        Path(recipes_dir).glob("**/variants.yaml")
+    )
     if len(variants) > 1:
         raise ValueError(
             f"Found multiple variant config files in the recipes: {variants}. "
