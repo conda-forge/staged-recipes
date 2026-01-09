@@ -10,7 +10,7 @@ osx-*)
 	;;
 esac
 
-export CXXFLAGS="$CXXFLAGS -D_LIBCPP_DISABLE_AVAILABILITY"
+CXXFLAGS="$CXXFLAGS -D_LIBCPP_DISABLE_AVAILABILITY" \
 ./configure \
 	--prefix=$PREFIX \
 	--with-blas \
@@ -24,11 +24,7 @@ export CXXFLAGS="$CXXFLAGS -D_LIBCPP_DISABLE_AVAILABILITY"
 	$with_others ||
 	(echo "===== config.log =====" && cat config.log && exit 1)
 
-# ignore system built-in libiconv and use conda libiconv; avoid using
-# non-portable sed -i
-platform_make=include/Make/Platform.make
-sed -E 's/^(ICONVLIB *= *$)/\1-liconv/' $platform_make > $platform_make.tmp
-mv $platform_make.tmp $platform_make
+sed -iE 's/^(ICONVLIB *= *$)/\1-liconv/' include/Make/Platform.make
 
 make -j$CPU_COUNT
 make install
