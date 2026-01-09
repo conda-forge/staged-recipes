@@ -1,0 +1,436 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 49a3dda..2279df9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -261,6 +265,55 @@ ELSE ("X${STRIP}" STREQUAL "Xfalse")
+    SET(STRIP true)
+ ENDIF ()
+ 
++## ------------------------------------------------------------------##
++##                    Options for system dependencies                ##
++## ------------------------------------------------------------------##
++
++# Options to use system libraries instead of vendored ones (ON by default)
++option(USE_SYSTEM_LUAJIT "Use system LuaJIT" ON)
++option(USE_SYSTEM_LIBDWARF "Use system libdwarf" ON)
++
++# Find system packages when requested
++if(USE_SYSTEM_LUAJIT)
++   find_package(PkgConfig REQUIRED)
++   pkg_check_modules(LUAJIT REQUIRED luajit)
++   message(STATUS "Using system LuaJIT from conda-forge: ${LUAJIT_LIBRARIES}")
++   # Add compatibility define for newer LuaJIT API
++   add_definitions(-DluaL_reg=luaL_Reg)
++endif()
++
++if(USE_SYSTEM_LIBDWARF)
++    find_library(LIBDWARF_LIBRARIES 
++        NAMES dwarf libdwarf
++        PATHS ${CMAKE_PREFIX_PATH}/lib $ENV{PREFIX}/lib
++        REQUIRED
++    )
++    find_path(LIBDWARF_INCLUDE_DIR
++        NAMES dwarf.h libdwarf.h
++        PATHS ${CMAKE_PREFIX_PATH}/include $ENV{PREFIX}/include
++        REQUIRED
++    )
++
++    message(STATUS "libdwarf path is : '${LIBDWARF_INCLUDE_DIR}'")
++    
++    if(LIBDWARF_LIBRARIES)
++        message(STATUS "Using system libdwarf from conda-forge: ${LIBDWARF_LIBRARIES}")
++        message(STATUS "libdwarf include path: $ENV{PREFIX}/include")
++        
++        INCLUDE_DIRECTORIES($ENV{PREFIX}/include)
++        
++        add_compile_definitions(HAVE_SYSTEM_LIBDWARF=1)
++    else()
++        message(FATAL_ERROR "libdwarf library not found!")
++    endif()
++
++    if(LIBDWARF_INCLUDE_DIR)
++        INCLUDE_DIRECTORIES(${LIBDWARF_INCLUDE_DIR})
++    else()
++        message(FATAL_ERROR "dwarf headers not found")
++    endif()
++endif()
++
+ ## ------------------------------------------------------------------##
+ ##                    Handling lua dependencies                      ##
+ ## ------------------------------------------------------------------##
+@@ -284,15 +337,30 @@ IF( "X${LUA}" STREQUAL "Xlua" )
+    SET (LUA_DIR                  "lua-5.1.5")
+    SET (DISTCLEAN_LUA            distclean_lua)
+ ELSE ()
+-   SET (LUA_INCLUDE_OUTPUT_PATH  "${CMAKE_SOURCE_DIR}/include/luajit")
+-   SET (LUA_BIN                  "${CMAKE_SOURCE_DIR}/bin/luajit")
+-   SET (LUA_LIB_DYN              "${CMAKE_SOURCE_DIR}/lib/libluajit.a")
+-   SET (LUA_LIB_STATIC           "${CMAKE_SOURCE_DIR}/lib/libluajit.a")
+-   SET (LUA_BIN_HOST             "${CMAKE_SOURCE_DIR}/src/LuaJIT/src/luajit")
+-   SET (LUA_LIB_HOST             "${CMAKE_SOURCE_DIR}/src/LuaJIT/src/libluajit.a")
+-   SET (DO_LUA_DEPENDENCY        do_luajit)
+-   SET (LUA_DIR                  "LuaJIT")
+-   SET (DISTCLEAN_LUA            distclean_luajit)
++   if(USE_SYSTEM_LUAJIT)
++      # Use system LuaJIT - just link to the library
++      message(STATUS "Configuring for system LuaJIT")
++      SET (LUA_INCLUDE_OUTPUT_PATH  "${LUAJIT_INCLUDE_DIRS}")
++      SET (LUA_BIN                  "luajit")
++      SET (LUA_LIB_DYN              "${LUAJIT_LIBRARIES}")
++      SET (LUA_LIB_STATIC           "${LUAJIT_LIBRARIES}")
++      SET (LUA_BIN_HOST             "luajit")
++      SET (LUA_LIB_HOST             "${LUAJIT_LIBRARIES}")
++      SET (DO_LUA_DEPENDENCY        "")
++      SET (LUA_DIR                  "")
++      SET (DISTCLEAN_LUA            "")
++   else()
++      # Use vendored LuaJIT
++      SET (LUA_INCLUDE_OUTPUT_PATH  "${CMAKE_SOURCE_DIR}/include/luajit")
++      SET (LUA_BIN                  "${CMAKE_SOURCE_DIR}/bin/luajit")
++      SET (LUA_LIB_DYN              "${CMAKE_SOURCE_DIR}/lib/libluajit.a")
++      SET (LUA_LIB_STATIC           "${CMAKE_SOURCE_DIR}/lib/libluajit.a")
++      SET (LUA_BIN_HOST             "${CMAKE_SOURCE_DIR}/src/LuaJIT/src/luajit")
++      SET (LUA_LIB_HOST             "${CMAKE_SOURCE_DIR}/src/LuaJIT/src/libluajit.a")
++      SET (DO_LUA_DEPENDENCY        do_luajit)
++      SET (LUA_DIR                  "LuaJIT")
++      SET (DISTCLEAN_LUA            distclean_luajit)
++   endif()
+ ENDIF ()
+ 
+ SET(VERSION_HASH_UNKNOWN "Build information not available")
+@@ -442,8 +510,12 @@ SET(_INSTALL_DIR ${CMAKE_SOURCE_DIR})
+ FILE(MAKE_DIRECTORY ${GRAPHS_PATH} ${INSTRU_PATH})
+ 
+ # ---- Specify where are includes
+-INCLUDE_DIRECTORIES(${INCLUDE_OUTPUT_PATH} ${LUA_INCLUDE_OUTPUT_PATH})
+-
++if(USE_SYSTEM_LUAJIT)
++    INCLUDE_DIRECTORIES(${INCLUDE_OUTPUT_PATH} ${LUAJIT_INCLUDE_DIRS})
++    link_directories(${LUAJIT_LIBRARY_DIRS})
++else()
++    INCLUDE_DIRECTORIES(${INCLUDE_OUTPUT_PATH} ${LUA_INCLUDE_OUTPUT_PATH})
++endif()
+ 
+ # ---- Specify paths to sub-directories
+ ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/src)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 6af07e2..5390d2c 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -74,7 +74,15 @@ FILE(GLOB
+ # ---- Specify paths to sub-directories
+ UNSET(LIBS_SUPP CACHE)        # Additional libraries for static executable
+ UNSET(LIBS_SUPP_DYN CACHE)    # Additional libraries for dynamic libraries
+-ADD_SUBDIRECTORY(${LUA_DIR})
++
++# Skip building LuaJIT if using system version
++if("${LUA_DIR}" STREQUAL "")
++    message(STATUS "Skipping LuaJIT build - using system version")
++else()
++    message(STATUS "Building vendored LuaJIT from ${LUA_DIR}")
++    ADD_SUBDIRECTORY(${LUA_DIR})
++endif()
++
+ ADD_SUBDIRECTORY(common)
+ ADD_SUBDIRECTORY(asm)
+ ADD_SUBDIRECTORY(madras)
+@@ -173,7 +181,39 @@ ENDFOREACH(file)
+ 
+ ### --- List sources files --- ###
+ # List static sources #
+-SET(maqao_sources-static      $<TARGET_OBJECTS:mmaqao-obj-static>
++if(USE_SYSTEM_LIBDWARF)
++    # Sans les objets dwarf - on utilise la lib système
++    SET(maqao_sources-static  $<TARGET_OBJECTS:mmaqao-obj-static>
++                              $<TARGET_OBJECTS:mcommon-obj-static>
++                              $<TARGET_OBJECTS:masm-obj-static>
++                              $<TARGET_OBJECTS:mdisass-obj-static>
++                              $<TARGET_OBJECTS:manalyze-obj-static>
++                              $<TARGET_OBJECTS:madras-obj-static>
++                              $<TARGET_OBJECTS:mtroll-obj-static>
++                              $<TARGET_OBJECTS:mpatch-obj-static>
++                              $<TARGET_OBJECTS:masmbl-obj-static>
++                              ${arch_objs-static}
++                              $<TARGET_OBJECTS:perf-obj-static>
++                              # SUPPRIMÉ: $<TARGET_OBJECTS:dwarf-obj-static>
++                              $<TARGET_OBJECTS:elf-obj-static>
++                              $<TARGET_OBJECTS:dwarfreader-obj-static>
++                              $<TARGET_OBJECTS:mdbg-obj-static>
++                              ${CMAKE_CURRENT_SOURCE_DIR}/maqao/linit.c
++                              $<TARGET_OBJECTS:fs_lua-obj-static>
++                              $<TARGET_OBJECTS:lfs_lua-obj-static>
++                              $<TARGET_OBJECTS:madras_lua-obj-static>
++                              $<TARGET_OBJECTS:bitops_lua-obj-static>
++                              $<TARGET_OBJECTS:common_c_lua-obj-static>
++                              $<TARGET_OBJECTS:errcode_c_lua-obj-static>
++                              $<TARGET_OBJECTS:abstract_objects_c_lua-obj-static>
++                              $<TARGET_OBJECTS:classes_c_lua-obj-static>
++                              $<TARGET_OBJECTS:lib_info_c_lua-obj-static>
++                              ${all_objs_stub-static}
++                              ${mtlrt-objs-static}
++    )
++else()
++    # Avec les objets dwarf - on compile depuis les sources
++    SET(maqao_sources-static  $<TARGET_OBJECTS:mmaqao-obj-static>
+                               $<TARGET_OBJECTS:mcommon-obj-static>
+                               $<TARGET_OBJECTS:masm-obj-static>
+                               $<TARGET_OBJECTS:mdisass-obj-static>
+@@ -200,7 +240,8 @@ SET(maqao_sources-static      $<TARGET_OBJECTS:mmaqao-obj-static>
+                               $<TARGET_OBJECTS:lib_info_c_lua-obj-static>
+                               ${all_objs_stub-static}
+                               ${mtlrt-objs-static}
+-)
++    )
++endif()
+ IF (NOT is_WINDOWS)
+    SET(maqao_sources-static   ${maqao_sources-static}
+                               $<TARGET_OBJECTS:fcgi-obj-static>
+@@ -210,47 +251,97 @@ ENDIF (NOT is_WINDOWS)
+ 
+ # List dynamic sources #
+ IF (is_WINDOWS)
+-	SET(maqao_sources-dyn         $<TARGET_OBJECTS:mmaqao-obj-dyn>
+-	                              $<TARGET_OBJECTS:mcommon-obj-dyn>
+-	                              $<TARGET_OBJECTS:masm-obj-dyn>
+-	                              $<TARGET_OBJECTS:mdisass-obj-dyn>
+-	                              $<TARGET_OBJECTS:manalyze-obj-dyn>
+-	                              $<TARGET_OBJECTS:madras-obj-dyn>
+-	                              $<TARGET_OBJECTS:mtroll-obj-dyn>
+-	                              $<TARGET_OBJECTS:mpatch-obj-dyn>
+-	                              $<TARGET_OBJECTS:masmbl-obj-dyn>
+-	                              ${arch_objs-dyn}
+-	                              $<TARGET_OBJECTS:perf-obj-dyn>
+-	                              $<TARGET_OBJECTS:dwarf-obj-dyn>
+-	                              $<TARGET_OBJECTS:elf-obj-dyn>
+-	                              $<TARGET_OBJECTS:dwarfreader-obj-dyn>
+-	                              $<TARGET_OBJECTS:mdbg-obj-dyn>
+-	                              ${error_files}
+-	                              $<TARGET_OBJECTS:madras_lua-obj-dyn>
+-	                              $<TARGET_OBJECTS:abstract_objects_c_lua-obj-dyn>
+-	                              $<TARGET_OBJECTS:classes_c_lua-obj-dyn>
+-	)
++    if(USE_SYSTEM_LIBDWARF)
++        # Sans les objets dwarf pour Windows - lib système
++        SET(maqao_sources-dyn     $<TARGET_OBJECTS:mmaqao-obj-dyn>
++                                  $<TARGET_OBJECTS:mcommon-obj-dyn>
++                                  $<TARGET_OBJECTS:masm-obj-dyn>
++                                  $<TARGET_OBJECTS:mdisass-obj-dyn>
++                                  $<TARGET_OBJECTS:manalyze-obj-dyn>
++                                  $<TARGET_OBJECTS:madras-obj-dyn>
++                                  $<TARGET_OBJECTS:mtroll-obj-dyn>
++                                  $<TARGET_OBJECTS:mpatch-obj-dyn>
++                                  $<TARGET_OBJECTS:masmbl-obj-dyn>
++                                  ${arch_objs-dyn}
++                                  $<TARGET_OBJECTS:perf-obj-dyn>
++                                  # SUPPRIMÉ: $<TARGET_OBJECTS:dwarf-obj-dyn>
++                                  $<TARGET_OBJECTS:elf-obj-dyn>
++                                  $<TARGET_OBJECTS:dwarfreader-obj-dyn>
++                                  $<TARGET_OBJECTS:mdbg-obj-dyn>
++                                  ${error_files}
++                                  $<TARGET_OBJECTS:madras_lua-obj-dyn>
++                                  $<TARGET_OBJECTS:abstract_objects_c_lua-obj-dyn>
++                                  $<TARGET_OBJECTS:classes_c_lua-obj-dyn>
++        )
++    else()
++        # Avec les objets dwarf pour Windows - sources vendored
++        SET(maqao_sources-dyn     $<TARGET_OBJECTS:mmaqao-obj-dyn>
++                                  $<TARGET_OBJECTS:mcommon-obj-dyn>
++                                  $<TARGET_OBJECTS:masm-obj-dyn>
++                                  $<TARGET_OBJECTS:mdisass-obj-dyn>
++                                  $<TARGET_OBJECTS:manalyze-obj-dyn>
++                                  $<TARGET_OBJECTS:madras-obj-dyn>
++                                  $<TARGET_OBJECTS:mtroll-obj-dyn>
++                                  $<TARGET_OBJECTS:mpatch-obj-dyn>
++                                  $<TARGET_OBJECTS:masmbl-obj-dyn>
++                                  ${arch_objs-dyn}
++                                  $<TARGET_OBJECTS:perf-obj-dyn>
++                                  $<TARGET_OBJECTS:dwarf-obj-dyn>
++                                  $<TARGET_OBJECTS:elf-obj-dyn>
++                                  $<TARGET_OBJECTS:dwarfreader-obj-dyn>
++                                  $<TARGET_OBJECTS:mdbg-obj-dyn>
++                                  ${error_files}
++                                  $<TARGET_OBJECTS:madras_lua-obj-dyn>
++                                  $<TARGET_OBJECTS:abstract_objects_c_lua-obj-dyn>
++                                  $<TARGET_OBJECTS:classes_c_lua-obj-dyn>
++        )
++    endif()
+ ELSE(is_WINDOWS)
+-	SET(maqao_sources-dyn         $<TARGET_OBJECTS:mmaqao-obj-static>
+-	                              $<TARGET_OBJECTS:mcommon-obj-static>
+-	                              $<TARGET_OBJECTS:masm-obj-static>
+-	                              $<TARGET_OBJECTS:mdisass-obj-static>
+-	                              $<TARGET_OBJECTS:manalyze-obj-static>
+-	                              $<TARGET_OBJECTS:madras-obj-static>
+-	                              $<TARGET_OBJECTS:mtroll-obj-static>
+-	                              $<TARGET_OBJECTS:mpatch-obj-static>
+-	                              $<TARGET_OBJECTS:masmbl-obj-static>
+-	                              ${arch_objs-dyn}
+-	                              $<TARGET_OBJECTS:perf-obj-static>
+-	                              $<TARGET_OBJECTS:dwarf-obj-static>
+-	                              $<TARGET_OBJECTS:elf-obj-static>
+-	                              $<TARGET_OBJECTS:dwarfreader-obj-static>
+-	                              $<TARGET_OBJECTS:mdbg-obj-static>
+-	                              ${error_files}
+-	                              $<TARGET_OBJECTS:madras_lua-obj-static>
+-	                              $<TARGET_OBJECTS:abstract_objects_c_lua-obj-static>
+-	                              $<TARGET_OBJECTS:classes_c_lua-obj-static>
+-	)
++    if(USE_SYSTEM_LIBDWARF)
++        # Sans les objets dwarf pour Unix - lib système
++        SET(maqao_sources-dyn     $<TARGET_OBJECTS:mmaqao-obj-static>
++                                  $<TARGET_OBJECTS:mcommon-obj-static>
++                                  $<TARGET_OBJECTS:masm-obj-static>
++                                  $<TARGET_OBJECTS:mdisass-obj-static>
++                                  $<TARGET_OBJECTS:manalyze-obj-static>
++                                  $<TARGET_OBJECTS:madras-obj-static>
++                                  $<TARGET_OBJECTS:mtroll-obj-static>
++                                  $<TARGET_OBJECTS:mpatch-obj-static>
++                                  $<TARGET_OBJECTS:masmbl-obj-static>
++                                  ${arch_objs-dyn}
++                                  $<TARGET_OBJECTS:perf-obj-static>
++                                  # SUPPRIMÉ: $<TARGET_OBJECTS:dwarf-obj-static>
++                                  $<TARGET_OBJECTS:elf-obj-static>
++                                  $<TARGET_OBJECTS:dwarfreader-obj-static>
++                                  $<TARGET_OBJECTS:mdbg-obj-static>
++                                  ${error_files}
++                                  $<TARGET_OBJECTS:madras_lua-obj-static>
++                                  $<TARGET_OBJECTS:abstract_objects_c_lua-obj-static>
++                                  $<TARGET_OBJECTS:classes_c_lua-obj-static>
++        )
++    else()
++        # Avec les objets dwarf pour Unix - sources vendored
++        SET(maqao_sources-dyn     $<TARGET_OBJECTS:mmaqao-obj-static>
++                                  $<TARGET_OBJECTS:mcommon-obj-static>
++                                  $<TARGET_OBJECTS:masm-obj-static>
++                                  $<TARGET_OBJECTS:mdisass-obj-static>
++                                  $<TARGET_OBJECTS:manalyze-obj-static>
++                                  $<TARGET_OBJECTS:madras-obj-static>
++                                  $<TARGET_OBJECTS:mtroll-obj-static>
++                                  $<TARGET_OBJECTS:mpatch-obj-static>
++                                  $<TARGET_OBJECTS:masmbl-obj-static>
++                                  ${arch_objs-dyn}
++                                  $<TARGET_OBJECTS:perf-obj-static>
++                                  $<TARGET_OBJECTS:dwarf-obj-static>
++                                  $<TARGET_OBJECTS:elf-obj-static>
++                                  $<TARGET_OBJECTS:dwarfreader-obj-static>
++                                  $<TARGET_OBJECTS:mdbg-obj-static>
++                                  ${error_files}
++                                  $<TARGET_OBJECTS:madras_lua-obj-static>
++                                  $<TARGET_OBJECTS:abstract_objects_c_lua-obj-static>
++                                  $<TARGET_OBJECTS:classes_c_lua-obj-static>
++        )
++    endif()
+ ENDIF(is_WINDOWS)
+ IF (NOT is_WINDOWS)
+    SET(maqao_sources-dyn      ${maqao_sources-dyn}
+@@ -265,12 +356,25 @@ ENDIF (NOT is_WINDOWS)
+ ADD_EXECUTABLE(maqao ${CMAKE_CURRENT_SOURCE_DIR}/maqao/maqao.c
+                   ${maqao_sources-static}
+ )
+-ADD_DEPENDENCIES(maqao do_dwarf ${DO_LUA_DEPENDENCY} do_luastatic)
++if(NOT USE_SYSTEM_LIBDWARF)
++   # If we compile libdwarf from sources, make sure the dwarf objects are built before maqao
++   ADD_DEPENDENCIES(maqao do_dwarf ${DO_LUA_DEPENDENCY} do_luastatic)
++endif()
+ TARGET_INCLUDE_DIRECTORIES(maqao PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/maqao)
+ SET_TARGET_PROPERTIES(maqao PROPERTIES COMPILE_FLAGS "${C_STATIC_FLAGS}")
+ 
+ # Link the MAQAO binary to the required libraries #
+-TARGET_LINK_LIBRARIES(maqao ${LUA_LIB_STATIC} libcounting-lib-static)
++if(USE_SYSTEM_LUAJIT AND USE_SYSTEM_LIBDWARF)
++   message(STATUS "Linking with system LuaJIT and libdwarf from conda-forge")
++   TARGET_LINK_LIBRARIES(maqao ${LUAJIT_LIBRARIES} ${LIBDWARF_LIBRARIES} libcounting-lib-static)
++elseif(USE_SYSTEM_LUAJIT)
++   message(STATUS "Linking with system LuaJIT from conda-forge")
++   TARGET_LINK_LIBRARIES(maqao ${LUAJIT_LIBRARIES} libcounting-lib-static)
++else()
++   message(STATUS "Linking with vendored LuaJIT: ${LUA_LIB_STATIC}")
++   TARGET_LINK_LIBRARIES(maqao ${LUA_LIB_STATIC} libcounting-lib-static)
++endif()
++
+ IF (NOT is_WINDOWS)
+    TARGET_LINK_LIBRARIES(maqao m dl rt pthread)
+    IF ("${MAQAO_LINKING}" STREQUAL "EXTERNAL_DYNAMIC")
+@@ -317,7 +421,9 @@ ENDIF (IS_STDCXX)
+ ADD_LIBRARY (maqao-lib-dyn SHARED
+             ${maqao_sources-dyn}
+             )
+-ADD_DEPENDENCIES(maqao-lib-dyn do_dwarf ${DO_LUA_DEPENDENCY})
++if(NOT USE_SYSTEM_LIBDWARF)
++   ADD_DEPENDENCIES(maqao-lib-dyn do_dwarf ${DO_LUA_DEPENDENCY})
++endif()
+ IF (is_WINDOWS)
+    SET_TARGET_PROPERTIES(maqao-lib-dyn PROPERTIES OUTPUT_NAME maqao_d)
+ ELSEIF (is_UNIX)
+diff --git a/src/asm/libmasm.h b/src/asm/libmasm.h
+index ed25dde..495fd6e 100644
+--- a/src/asm/libmasm.h
++++ b/src/asm/libmasm.h
+@@ -21,7 +21,6 @@
+ #ifndef __LA_LIBMASM_H__
+ #define __LA_LIBMASM_H__
+ 
+-#include "dwarf.h"
+ #include "libmcommon.h"
+ #include "arch.h"
+ 
+diff --git a/src/madras/libdbg/CMakeLists.txt b/src/madras/libdbg/CMakeLists.txt
+index fbca376..d2feeb2 100644
+--- a/src/madras/libdbg/CMakeLists.txt
++++ b/src/madras/libdbg/CMakeLists.txt
+@@ -18,7 +18,9 @@
+ #   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ ##
+ 
+-add_subdirectory(libdwarf)
++if(USE_SYSTEM_LIBDWARF)
++    message(STATUS "Using system libdwarf instead of vendored version")
++endif()
+ 
+ FILE(GLOB_RECURSE 
+    file_dwarfreader
+diff --git a/src/maqao/CMakeLists.txt b/src/maqao/CMakeLists.txt
+index 974f756..2a1a245 100644
+--- a/src/maqao/CMakeLists.txt
++++ b/src/maqao/CMakeLists.txt
+@@ -42,13 +42,18 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ # Create the mmaqao object for STATIC libraries/binaries #
+ ADD_LIBRARY(mmaqao-obj-static                   OBJECT ${source_libmmaqao})
+-ADD_DEPENDENCIES(mmaqao-obj-static do_dwarf     ${DO_LUA_DEPENDENCY} do_luastatic)
++if(NOT USE_SYSTEM_LIBDWARF)
++   ADD_DEPENDENCIES(mmaqao-obj-static do_dwarf)
++endif()
++ADD_DEPENDENCIES(mmaqao-obj-static ${DO_LUA_DEPENDENCY} do_luastatic)
+ SET_TARGET_PROPERTIES(mmaqao-obj-static         PROPERTIES COMPILE_FLAGS "${C_STATIC_FLAGS}")
+ 
+ IF (is_WINDOWS)
+ 	# Create the mmaqao object for DYNAMIC libraries/binaries #
+ 	ADD_LIBRARY(mmaqao-obj-dyn                      OBJECT ${source_libmmaqao})
+-	ADD_DEPENDENCIES(mmaqao-obj-dyn do_dwarf        ${DO_LUA_DEPENDENCY} do_luastatic)
++	if(NOT USE_SYSTEM_LIBDWARF)
++      ADD_DEPENDENCIES(mmaqao-obj-static do_dwarf    ${DO_LUA_DEPENDENCY} do_luastatic)
++   endif()
+ 	SET_TARGET_PROPERTIES(mmaqao-obj-dyn            PROPERTIES COMPILE_FLAGS "${C_DYNAMIC_FLAGS}")
+ ENDIF(is_WINDOWS)
+ 
+@@ -78,12 +83,18 @@ CONFIGURE_FILE(load_ressources.lua.in  ${CMAKE_CURRENT_SOURCE_DIR}/load_ressourc
+ CONFIGURE_FILE(lua_static.lua.in       ${CMAKE_CURRENT_SOURCE_DIR}/lua_static.lua @ONLY)
+ CONFIGURE_FILE(errs2Lua.lua.in         ${CMAKE_CURRENT_SOURCE_DIR}/errs2Lua.lua @ONLY)
+ 
++if(USE_SYSTEM_LUAJIT AND NOT DEFINED LUA_BIN_HOST)
++    find_program(LUA_BIN_HOST luajit REQUIRED)
++    message(STATUS "Using system luajit for script generation: ${LUA_BIN_HOST}")
++endif()
++
+ ADD_CUSTOM_TARGET(do_luastatic 
+                   COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/cst_C2Lua.lua
+                   COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/errs2Lua.lua 
+                   COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/load_images.lua
+                   COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/load_ressources.lua
+-                  COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/lua_static.lua 
++                  COMMAND ${LUA_BIN_HOST} ${CMAKE_CURRENT_SOURCE_DIR}/lua_static.lua
++                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                                DEPENDS ${DO_LUA_DEPENDENCY} cc_lfs_lua cc_fs_lua cc_bitops_lua)
+ 
+ ADD_CUSTOM_TARGET(distclean_maqao DEPENDS distclean_maqao_LuaConsts
