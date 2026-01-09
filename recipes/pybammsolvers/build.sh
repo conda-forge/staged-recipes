@@ -20,24 +20,8 @@ cmake -DENABLE_LAPACK=ON\
       $SRC_DIR/sundials
 make install -j10
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-      export USE_PYTHON_CASADI=FALSE
-      cd $SRC_DIR
-
-      git clone -b build-linux-rooms-natively --single-branch https://github.com/agriyakhetarpal/casadi
-
-      mkdir -p build_casadi
-      cd build_casadi
-
-      cmake -DWITH_PYTHON=OFF\
-            -DWITH_PYTHON3=OFF\
-            -DCMAKE_INSTALL_PREFIX=$PREFIX\
-            $SRC_DIR/casadi
-      make install -j10
-fi
-
 cd $SRC_DIR
 
-export LDFLAGS="-L${PREFIX}/lib -lcasadi"
+export LDFLAGS="-L${SP_DIR}/casadi -lcasadi"
 
 python -m pip install -vv --no-deps --no-build-isolation .
