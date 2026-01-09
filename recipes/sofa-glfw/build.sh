@@ -25,3 +25,14 @@ cmake --build . --parallel ${CPU_COUNT}
 
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
+
+# testing compilation as 3rd party
+if [[ $CONDA_BUILD_CROSS_COMPILATION != 1 ]]; then
+  cd ..
+  mkdir build-test
+  cmake ${CMAKE_ARGS} \
+    -B build-test \
+    -S SofaImGui/extensions/SofaImGui.Camera
+
+  cmake --build build-test --parallel ${CPU_COUNT}
+fi
