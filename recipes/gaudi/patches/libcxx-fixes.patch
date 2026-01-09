@@ -1,0 +1,439 @@
+diff --git a/GaudiKernel/include/GaudiKernel/NTuple.h b/GaudiKernel/include/GaudiKernel/NTuple.h
+index f3d304883..65265a3e4 100644
+--- a/GaudiKernel/include/GaudiKernel/NTuple.h
++++ b/GaudiKernel/include/GaudiKernel/NTuple.h
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -425,9 +425,9 @@ namespace NTuple {
+     StatusCode i_addItem( const std::string& name, long, const std::string&, TYPE low, TYPE high,
+                           _Item<TYPE>*& result ) {
+       if ( !i_find( name ) ) {
+-        TYPE nil;
+-        nil = 0;
+-        return add( result = _Item<TYPE>::create( this, name, typeid( TYPE ), low, high, nil ) );
++        TYPE zero;
++        zero = 0;
++        return add( result = _Item<TYPE>::create( this, name, typeid( TYPE ), low, high, zero ) );
+       }
+       return StatusCode::FAILURE;
+     }
+diff --git a/GaudiKernel/include/GaudiKernel/ToStream.h b/GaudiKernel/include/GaudiKernel/ToStream.h
+index bfa7176a8..f13ca9b54 100644
+--- a/GaudiKernel/include/GaudiKernel/ToStream.h
++++ b/GaudiKernel/include/GaudiKernel/ToStream.h
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -122,6 +122,17 @@ namespace Gaudi {
+     inline std::ostream& toStream( const std::vector<TYPE, ALLOCATOR>& obj, std::ostream& s ) {
+       return toStream( obj.begin(), obj.end(), s, "[ ", " ]", " , " );
+     }
++    /** Specialization for std::vector<bool> to handle proxy reference types correctly.
++     *  libc++ uses a proxy type for std::vector<bool>::const_reference which doesn't
++     *  match the bool overload of toStream, causing booleans to print as 0/1.
++     */
++    inline std::ostream& toStream( const std::vector<bool>& obj, std::ostream& s ) {
++      using GaudiUtils::details::ostream_joiner;
++      return ostream_joiner(
++                 s << "[ ", obj, " , ",
++                 []( std::ostream& os, bool b ) -> std::ostream& { return os << ( b ? "True" : "False" ); } )
++             << " ]";
++    }
+     /** the partial template specialization of <c>std::list<TYPE,ALLOCATOR></c>
+      *  printout. The vector is printed a'la Python list: "[ a, b, c ]"
+      *  @author Alexander MAZUROV Alexander.Mazurov@gmail.com
+diff --git a/GaudiKernel/src/Lib/Platform/SystemLinux.cpp b/GaudiKernel/src/Lib/Platform/SystemLinux.cpp
+index 1703c2def..b4cf12285 100644
+--- a/GaudiKernel/src/Lib/Platform/SystemLinux.cpp
++++ b/GaudiKernel/src/Lib/Platform/SystemLinux.cpp
+@@ -9,13 +9,11 @@
+ * or submit itself to any jurisdiction.                                             *
+ \***********************************************************************************/
+ #include "SystemLinux.h"
++#include "TypeNormalization.h"
+ #include <array>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cstring>
+-#include <cxxabi.h>
+-#include <memory>
+-#include <regex>
+ #include <sys/types.h>
+ #include <sys/utsname.h>
+ #include <unistd.h>
+@@ -47,25 +45,7 @@ namespace System {
+       return result;
+     }
+ 
+-    std::string typeinfoName( const char* class_name ) {
+-
+-      // Demangle the name:
+-      int  status;
+-      auto realname = std::unique_ptr<char, decltype( free )*>(
+-          abi::__cxa_demangle( class_name, nullptr, nullptr, &status ), std::free );
+-      if ( !realname ) return class_name;
+-
+-      // Substitute the full type of std::string with "std::string"
+-      static const std::regex cxx11_string{
+-          "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >( (?=>))?" };
+-      std::string result = std::regex_replace( realname.get(), cxx11_string, "std::string" );
+-
+-      // Substitute ', ' with ','
+-      static const std::regex comma_space{ ", " };
+-      result = std::regex_replace( result, comma_space, "," );
+-
+-      return result;
+-    }
++    std::string typeinfoName( const char* class_name ) { return Detail::normalizeTypeName( class_name, true ); }
+ 
+     std::string hostName() {
+ 
+diff --git a/GaudiKernel/src/Lib/Platform/SystemMacOS.mm b/GaudiKernel/src/Lib/Platform/SystemMacOS.mm
+index b0ee59561..9d5e35d2c 100644
+--- a/GaudiKernel/src/Lib/Platform/SystemMacOS.mm
++++ b/GaudiKernel/src/Lib/Platform/SystemMacOS.mm
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2024 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -14,12 +14,10 @@
+ #import <Foundation/NSProcessInfo.h>
+ #import <Foundation/NSString.h>
+ #import <sys/utsname.h>
+-#import <cxxabi.h>
+-#import <memory>
+-#import <regex>
+ 
+ // Local import(s):
+ #import "SystemMacOS.h"
++#import "TypeNormalization.h"
+ 
+ namespace System
+ {
+@@ -42,25 +40,7 @@ namespace System
+       return result;
+     }
+ 
+-    std::string typeinfoName( const char* class_name ) {
+-
+-      // Demangle the name:
+-      int status;
+-      auto realname = std::unique_ptr<char, decltype( free )*>(
+-        abi::__cxa_demangle( class_name, nullptr, nullptr, &status ), std::free );
+-      if ( !realname ) return class_name;
+-
+-      // Substitute the full type of std::string with "std::string"
+-      static const std::regex cxx11_string{
+-       "std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >( (?=>))?"};
+-      std::string result = std::regex_replace( realname.get(), cxx11_string, "std::string" );
+-
+-      // Substitute ', ' with ','
+-      static const std::regex comma_space{", "};
+-      result = std::regex_replace( result, comma_space, "," );
+-
+-      return result;
+-    }
++    std::string typeinfoName( const char* class_name ) { return Detail::normalizeTypeName( class_name, true ); }
+ 
+     std::string hostName() {
+ 
+diff --git a/GaudiKernel/src/Lib/Platform/TypeNormalization.h b/GaudiKernel/src/Lib/Platform/TypeNormalization.h
+new file mode 100644
+index 000000000..6407035d3
+--- /dev/null
++++ b/GaudiKernel/src/Lib/Platform/TypeNormalization.h
+@@ -0,0 +1,66 @@
++/***********************************************************************************\
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
++*                                                                                   *
++* This software is distributed under the terms of the Apache version 2 licence,     *
++* copied verbatim in the file "LICENSE".                                            *
++*                                                                                   *
++* In applying this licence, CERN does not waive the privileges and immunities       *
++* granted to it by virtue of its status as an Intergovernmental Organization        *
++* or submit itself to any jurisdiction.                                             *
++\***********************************************************************************/
++// Dear emacs, this is -*- c++ -*-
++#pragma once
++
++#include <cstdlib>
++#include <cxxabi.h>
++#include <memory>
++#include <regex>
++#include <string>
++
++namespace System {
++  namespace Detail {
++
++    /// Normalize a demangled C++ type name for cross-platform consistency.
++    /// Handles differences between libstdc++ and libc++:
++    /// - Removes std::__cxx11:: and std::__1:: inline namespace prefixes
++    /// - Converts basic_string<char,...> to std::string
++    /// - Normalizes ">>" to "> >" (C++03 style spacing)
++    /// @param normalize_commas If true, also converts ", " to "," (legacy behavior)
++    inline std::string normalizeTypeName( const char* mangled_name, bool normalize_commas = false ) {
++      int  status;
++      auto realname = std::unique_ptr<char, decltype( free )*>(
++          abi::__cxa_demangle( mangled_name, nullptr, nullptr, &status ), std::free );
++      if ( !realname ) return mangled_name;
++
++      std::string result = realname.get();
++
++      // Normalize libstdc++ (Linux) std::string representation
++      static const std::regex cxx11_string{
++          "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >( (?=>))?" };
++      result = std::regex_replace( result, cxx11_string, "std::string" );
++
++      // Normalize libc++ inline namespace - remove std::__1:: prefix
++      static const std::regex libc_ns{ "std::__1::" };
++      result = std::regex_replace( result, libc_ns, "std::" );
++
++      // Normalize std::basic_string (after removing __1::)
++      static const std::regex basic_string{
++          "std::basic_string<char, std::char_traits<char>, std::allocator<char>>( (?=>))?" };
++      result = std::regex_replace( result, basic_string, "std::string" );
++
++      // Normalize closing angle brackets: >> to > > (C++03 style)
++      static const std::regex angle_brackets{ ">>" };
++      result = std::regex_replace( result, angle_brackets, "> >" );
++      result = std::regex_replace( result, angle_brackets, "> >" ); // twice for >>>
++
++      // Optionally normalize commas: ", " to "," (legacy behavior)
++      if ( normalize_commas ) {
++        static const std::regex comma_space{ ", " };
++        result = std::regex_replace( result, comma_space, "," );
++      }
++
++      return result;
++    }
++
++  } // namespace Detail
++} // namespace System
+diff --git a/GaudiKernel/src/Lib/Property.cpp b/GaudiKernel/src/Lib/Property.cpp
+index c4c956f55..e50aa0aba 100644
+--- a/GaudiKernel/src/Lib/Property.cpp
++++ b/GaudiKernel/src/Lib/Property.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -461,7 +461,7 @@ StatusCode Gaudi::Utils::setProperty( IInterface* component, const std::string&
+ 
+ Gaudi::Details::WeakPropertyRef::operator std::string() const {
+   using Gaudi::Utils::toString;
+-  return m_property ? ( ( m_property->type_info() == &typeid( std::string ) ) ? toString( m_property->toString() )
++  return m_property ? ( ( *m_property->type_info() == typeid( std::string ) ) ? toString( m_property->toString() )
+                                                                               : m_property->toString() )
+                     : m_value;
+ }
+diff --git a/GaudiKernel/tests/src/test_PropertyFmt.cpp b/GaudiKernel/tests/src/test_PropertyFmt.cpp
+index 8a7802ded..316397e13 100644
+--- a/GaudiKernel/tests/src/test_PropertyFmt.cpp
++++ b/GaudiKernel/tests/src/test_PropertyFmt.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 2023-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 2023-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -69,9 +69,12 @@ TEMPLATE_TEST_CASE( "fmt property formatting", "", int, double, std::vector<int>
+ }
+ 
+ // TODO: As of C++20, <format> does not yet support ranges
++// Note: std::format tests disabled for libc++ < 19 due to formatter detection issues
++#if defined( _LIBCPP_VERSION ) && _LIBCPP_VERSION >= 190000
+ TEMPLATE_TEST_CASE( "std::format property formatting", "", int, double, std::string ) {
+   test_data<TestType>       data;
+   Gaudi::Property<TestType> p{ std::string{ data.name }, data.value };
+   CHECK( std::format( "{}", p ) == data.fmt );
+   CHECK( std::format( "{:?}", p ) == data.dbg );
+ }
++#endif
+diff --git a/GaudiKernel/tests/src/test_SystemTypeinfoName.cpp b/GaudiKernel/tests/src/test_SystemTypeinfoName.cpp
+index 3eda6cb62..e7b6b5c1f 100644
+--- a/GaudiKernel/tests/src/test_SystemTypeinfoName.cpp
++++ b/GaudiKernel/tests/src/test_SystemTypeinfoName.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -15,7 +15,9 @@
+ #include <boost/test/unit_test.hpp>
+ 
+ #include <GaudiKernel/System.h>
++#include <map>
+ #include <string>
++#include <vector>
+ 
+ /// Primitive test class used in the tests
+ class TestClass {};
+@@ -49,3 +51,14 @@ BOOST_AUTO_TEST_CASE( template_types ) {
+   CHECK_TYPE( TestContainer<float const&> );
+   CHECK_TYPE( TestContainer<std::string const&> );
+ }
++
++/// Test nested STL containers (cross-platform consistency)
++BOOST_AUTO_TEST_CASE( nested_stl_types ) {
++  // These test the normalization of std::__cxx11:: (libstdc++) and std::__1:: (libc++)
++  // as well as >> to > > spacing, and ", " to "," normalization
++  BOOST_CHECK( System::typeinfoName( typeid( std::vector<std::string> ) ) ==
++               "std::vector<std::string,std::allocator<std::string> >" );
++  BOOST_CHECK( System::typeinfoName( typeid( std::vector<int> ) ) == "std::vector<int,std::allocator<int> >" );
++  BOOST_CHECK( System::typeinfoName( typeid( std::map<std::string, int> ) ) ==
++               "std::map<std::string,int,std::less<std::string>,std::allocator<std::pair<std::string const,int> > >" );
++}
+diff --git a/GaudiPluginService/src/PluginServiceV2.cpp b/GaudiPluginService/src/PluginServiceV2.cpp
+index 7133873a8..a1d6ef2c6 100644
+--- a/GaudiPluginService/src/PluginServiceV2.cpp
++++ b/GaudiPluginService/src/PluginServiceV2.cpp
+@@ -91,10 +91,22 @@ namespace Gaudi {
+           auto realname = std::unique_ptr<char, decltype( free )*>(
+               abi::__cxa_demangle( id.c_str(), nullptr, nullptr, &status ), free );
+           if ( !realname ) return id;
+-          return std::regex_replace(
+-              realname.get(),
++          std::string result = realname.get();
++          // Normalize libstdc++ (Linux) std::string representation
++          result = std::regex_replace(
++              result,
+               std::regex{ "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >( (?=>))?" },
+               "std::string" );
++          // Normalize libc++ (macOS) inline namespace - remove std::__1:: prefix
++          result = std::regex_replace( result, std::regex{ "std::__1::" }, "std::" );
++          // Normalize libc++ basic_string (after removing __1::)
++          result = std::regex_replace(
++              result, std::regex{ "std::basic_string<char, std::char_traits<char>, std::allocator<char>>( (?=>))?" },
++              "std::string" );
++          // Normalize closing angle brackets: >> to > > (match libstdc++ C++03 style)
++          result = std::regex_replace( result, std::regex{ ">>" }, "> >" );
++          result = std::regex_replace( result, std::regex{ ">>" }, "> >" ); // twice for >>>
++          return result;
+         }
+         std::string demangle( const std::type_info& id ) { return demangle( id.name() ); }
+ 
+diff --git a/GaudiSvc/tests/src/test_random_mt.cpp b/GaudiSvc/tests/src/test_random_mt.cpp
+index 53edf3b5a..42f298791 100644
+--- a/GaudiSvc/tests/src/test_random_mt.cpp
++++ b/GaudiSvc/tests/src/test_random_mt.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 2025 CERN for the benefit of the LHCb and ATLAS collaborations      *
++* (c) Copyright 2025-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -46,7 +46,7 @@ int main() {
+       Rndm::Numbers dist{};
+       dist.initialize( randomSvc, Rndm::Flat( 0.0, 1.0 ) )
+           .orThrow( "failed to initialize random number distribution", "main" );
+-      std::vector<std::jthread> threads;
++      std::vector<std::thread> threads;
+       threads.reserve( 10 );
+ 
+       global_start = std::chrono::high_resolution_clock::now();
+@@ -62,6 +62,7 @@ int main() {
+               << std::chrono::duration_cast<std::chrono::microseconds>( elapsed ).count() << " us" << endmsg;
+         } );
+       }
++      for ( auto& t : threads ) { t.join(); }
+     }
+     auto global_elapsed = std::chrono::high_resolution_clock::now() - global_start;
+     log << MSG::INFO << "Finished test_random_mt in "
+diff --git a/RootCnv/src/RootNTupleCnv.cpp b/RootCnv/src/RootNTupleCnv.cpp
+index c859c4711..644c31d91 100644
+--- a/RootCnv/src/RootNTupleCnv.cpp
++++ b/RootCnv/src/RootNTupleCnv.cpp
+@@ -46,21 +46,51 @@
+ using namespace Gaudi;
+ using namespace std;
+ 
+-static inline istream& loadLong( istream& is ) {
+-  long i;
+-  is >> i;
++// Helper to read values from stream - default uses operator>>
++template <class TYP>
++static inline istream& readValue( istream& is, TYP& val ) {
++  return is >> val;
++}
++// For pointer types, just read and discard a long (pointers have meaningless 0 values in the descriptor)
++template <class TYP>
++static inline istream& readValue( istream& is, TYP*& ) {
++  long dummy;
++  return is >> dummy;
++}
++// Specializations for float/double to work around libc++ vs libstdc++ difference.
++//
++// libc++ (macOS/clang) sets failbit when parsing floating point values near the
++// minimum representable value (e.g., FLT_MIN ~1.17549e-38), even though the value
++// is parsed correctly. libstdc++ (Linux/gcc) does not set failbit in this case.
++// This is due to ambiguity in the C++ standard about when failbit should be set
++// for underflow conditions (see LWG Issue 3689).
++//
++// Reproducer:
++//   echo '#include <iostream>
++//   #include <sstream>
++//   int main() {
++//       std::istringstream is("1.17549e-38");
++//       float f;
++//       is >> f;
++//       std::cout << "good=" << is.good() << " fail=" << is.fail() << " val=" << f << std::endl;
++//   }' | c++ -x c++ - -o /tmp/test && /tmp/test
++//
++// libstdc++ (Linux): good=0 fail=0 val=1.17549e-38
++// libc++ (macOS):    good=0 fail=1 val=1.17549e-38
++//
++// The workaround clears failbit if a value was successfully read (i.e., not bad/eof).
++template <>
++inline istream& readValue<float>( istream& is, float& val ) {
++  is >> val;
++  if ( is.fail() && !is.bad() && !is.eof() ) is.clear( is.rdstate() & ~std::ios::failbit );
++  return is;
++}
++template <>
++inline istream& readValue<double>( istream& is, double& val ) {
++  is >> val;
++  if ( is.fail() && !is.bad() && !is.eof() ) is.clear( is.rdstate() & ~std::ios::failbit );
+   return is;
+ }
+-static inline istream& operator>>( istream& is, IOpaqueAddress*& /*pObj*/ ) { return loadLong( is ); }
+-
+-#if 0
+-static inline istream& operator>>(istream& is, SmartRef<DataObject>& /*pObj*/)
+-{  return loadLong(is);          }
+-static inline istream& operator>>(istream& is, SmartRef<ContainedObject>& /*pObj*/)
+-{  return loadLong(is);          }
+-static inline istream& operator>>(istream& is, string& /*pObj*/)
+-{  return loadLong(is);          }
+-#endif
+ 
+ template <class TYP>
+ static StatusCode createItem( TTree* tree, INTuple* tuple, istream& is, const string& name, bool add,
+@@ -75,7 +105,8 @@ static StatusCode createItem( TTree* tree, INTuple* tuple, istream& is, const st
+   for ( int i = 0; i < ndim; i++ ) is >> dim[i] >> c;
+ 
+   TYP low = null, high = null;
+-  is >> low >> c >> high >> c;
++  readValue( is, low ) >> c;
++  readValue( is, high ) >> c;
+   is >> c;
+   switch ( ndim ) {
+   case 0:
