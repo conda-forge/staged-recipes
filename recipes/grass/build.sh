@@ -24,7 +24,7 @@ CXXFLAGS="$CXXFLAGS -D_LIBCPP_DISABLE_AVAILABILITY" \
 	$with_others ||
 	(echo "===== config.log =====" && cat config.log && exit 1)
 
-sed -iE 's/^(ICONVLIB *= *$)/\1-liconv/' include/Make/Platform.make
+sed -Ei 's/^(ICONVLIB *= *$)/\1-liconv/' include/Make/Platform.make
 
 make -j$CPU_COUNT
 make install
