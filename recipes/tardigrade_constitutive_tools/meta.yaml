@@ -1,0 +1,100 @@
+{% set name = "tardigrade_constitutive_tools" %}
+{% set version = "0.8.5" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/UCBoulder/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: d147287ed6e3ee63ae64e25f587a1d4e55e14e8199d91e4516b91633584b1053
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set -x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS}
+    - cmake --build build --target tardigrade_constitutive_tools tardigrade_constitutive_tools_PYTHON
+    - cmake --install build --prefix ${PREFIX}
+    # Build and install Conda package
+    - $PYTHON -m pip install build/src/python/dist/$PKG_NAME-$PKG_VERSION.tar.gz --no-deps --ignore-installed -v --no-build-isolation
+    - $PYTHON -m pip show $PKG_NAME
+  skip: true  # [win]
+
+requirements:
+  build:
+    - python
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - cython
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - make
+    - cmake >=3.30
+    - breathe >=4.3.0
+    - clang-tools
+    - doxygen
+    - libboost-python-devel >=1.82
+    - pip
+    - python-build
+    - setuptools >=77
+    - setuptools_scm >=8
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+  host:
+    - python {{ python }}
+    - pip
+    - cython
+    - setuptools >=77
+    - setuptools_scm >=8
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.8
+    - tardigrade_vector_tools >=0.8.7
+  run:
+    - python
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.8
+    - tardigrade_vector_tools >=0.8.7
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - pytest
+    - pytest-xdist
+    - make
+    - cmake >=3.30
+    - clang-tools
+    - libboost-python-devel >=1.82
+    - doxygen
+    - sphinx >=3.0.4
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/CMakeLists.txt
+    - src/cpp/tests/test_tardigrade_constitutive_tools.cpp
+  commands:
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target all --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+    - cd $SP_DIR/$PKG_NAME
+    - pytest
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_constitutive_tools
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'Tools for use in building constitutive equations'
+  description: |
+    tardigrade-constitutive-tools A collection of tools useful for constitutive modeling. These
+    tools are intended to reduce the burden in creating a new constitutive model from scratch enabling a faster turn-around
+    for model development. These tools should be as general as possible to avoid cluttering the database with extraneous
+    things.
+  dev_url: https://github.com/UCBoulder/tardigrade_constitutive_tools
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
