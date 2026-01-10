@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  version: "0.1.1"
+
+package:
+  name: spatula
+  version: ${{ version }}
+
+source:
+  url: https://github.com/glotzerlab/spatula/releases/download/v${{ version }}/spatula-${{ version }}.tar.gz
+  sha256: 8280057dd5950f5412d0d4c0e4d1116edddb93f1fe56975257b07726e0eeac5e
+
+build:
+  script: ${{ PYTHON }} -m pip install . --ignore-installed --no-cache-dir --no-deps -vv
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - scikit-build-core
+    - if: unix
+      then:
+        - make
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - pybind11
+    - numpy
+  run:
+    - python
+    - scipy
+    - freud >=3.0.0,!=3.2.0
+
+tests:
+  - files:
+      source:
+        - tests/
+      recipe:
+        - run_pytest_windows.ps1
+    requirements:
+      run:
+        - pytest
+        - pytest-rerunfailures
+        - coxeter
+    script:
+      - if: unix
+        then:
+          - python -m pytest tests/ -v --pg-first --skip-boosop
+      - if: win
+        then:
+          - powershell -NoProfile -ExecutionPolicy Bypass -File run_pytest_windows.ps1
+
+about:
+  homepage: https://glotzerlab.engin.umich.edu
+  license: BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE
+    - vendor-licenses/BS_thread_pool_LICENSE.txt
+  summary: Python package for calculation of symmetry based order parameters in molecular simulation systems.
+  description: |
+    SPATULA (Symmetry Pattern Analysis Toolkit for Understanding Local Arrangements) is a
+    Python package for computing the continuous symmetry ordering of the neighbors of a
+    point in space. In general, this is to compute the local ordering of particles (molecules)
+    in simulations or experiments over time. The package serves as an extension of 
+    `freud <https://github.com/glotzerlab/freud>`__ with a new order parameters.
+  documentation: https://spatula.readthedocs.io/
+  repository: https://github.com/glotzerlab/spatula
+
+extra:
+  recipe-maintainers:
+    - DomFijan
+    - joaander
+    - janbridley
