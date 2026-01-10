@@ -16,6 +16,7 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B . \
   -S .. \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \

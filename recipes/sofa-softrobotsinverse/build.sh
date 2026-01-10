@@ -14,6 +14,7 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B . \
   -S .. \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
   -DSOFTROBOTSINVERSE_ENABLE_PROXQP:BOOL=ON \

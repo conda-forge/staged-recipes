@@ -14,6 +14,7 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B. \
   -S .. \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DBEAMADAPTER_BUILD_TESTS:BOOL=OFF
 

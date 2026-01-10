@@ -21,6 +21,7 @@ cd build-scene-checking
 cmake ${CMAKE_ARGS} \
   -B . \
   -S ../applications/projects/SceneChecking/ \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DSCENECHECKING_BUILD_TESTS=OFF \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib
@@ -46,6 +47,7 @@ cd build-sofa-app
 cmake ${CMAKE_ARGS} \
   -B . \
   -S ../applications/projects/runSofa/ \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib
 
@@ -76,6 +78,7 @@ cd build-sofa-examples
 cmake ${CMAKE_ARGS} \
   -B . \
   -S ../examples/ \
+  -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release
 
 # build

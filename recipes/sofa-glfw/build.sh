@@ -14,6 +14,7 @@ cd build
 cmake ${CMAKE_ARGS} \
   -B . \
   -S .. \
+  -G Ninja \
   -DPLUGIN_SOFAGLFW:BOOL=ON \
   -DPLUGIN_SOFAIMGUI:BOOL=ON \
   -DCMAKE_BUILD_TYPE:STRING=Release \
@@ -32,7 +33,8 @@ if [[ $CONDA_BUILD_CROSS_COMPILATION != 1 ]]; then
   mkdir build-test
   cmake ${CMAKE_ARGS} \
     -B build-test \
-    -S SofaImGui/extensions/SofaImGui.Camera
+    -S SofaImGui/extensions/SofaImGui.Camera \
+    -G Ninja
 
   cmake --build build-test --parallel ${CPU_COUNT}
 fi
