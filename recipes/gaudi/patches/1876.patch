@@ -1,108 +1,7 @@
-From 0b1de570b46e734202a36ed604483486101f1c3f Mon Sep 17 00:00:00 2001
-From: Chris Burr <christopher.burr@cern.ch>
-Date: Fri, 9 Jan 2026 21:48:12 +0100
-Subject: [PATCH 1/3] fix: Use configurable Python install path in installation
- tests
-
-The cmake.test_gaudi_install_check test had hardcoded "python/" paths
-for checking Python module installation. When GAUDI_INSTALL_PYTHONDIR
-is set to a different path (e.g., lib/pythonX.Y/site-packages for
-conda packaging), these checks would fail.
-
-Now the test uses the GAUDI_INSTALL_PYTHONDIR variable which is passed
-from the main CMake configuration.
----
- cmake/tests/testGaudiInstallation.cmake | 35 +++++++++++++------------
- 1 file changed, 18 insertions(+), 17 deletions(-)
-
-diff --git a/cmake/tests/testGaudiInstallation.cmake b/cmake/tests/testGaudiInstallation.cmake
-index cf145d2f6b..342370350c 100644
---- a/cmake/tests/testGaudiInstallation.cmake
-+++ b/cmake/tests/testGaudiInstallation.cmake
-@@ -1,5 +1,5 @@
- #####################################################################################
--# (c) Copyright 2020-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
-+# (c) Copyright 2020-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
- #                                                                                   #
- # This software is distributed under the terms of the Apache version 2 licence,     #
- # copied verbatim in the file "LICENSE".                                            #
-@@ -131,9 +131,9 @@ elseif(DEFINED TEST_GAUDI_INSTALL_FILES_EXIST) # check some files that should be
-         message(FATAL_ERROR "Merged confdb not found,"
-             " Gaudi.confdb not found in lib/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiUtils/GaudiUtilsConf.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiUtils/GaudiUtilsConf.py)
-         message(FATAL_ERROR "genconf python scripts not installed correctly,"
--            " GaudiUtilsConf.py not found in python/GaudiUtils/")
-+            " GaudiUtilsConf.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiUtils/")
-     endif()
-     # GaudiDict.rootmap
-     if(NOT EXISTS ${GAUDI_INSTALL_DIR}/lib/GaudiDict.rootmap)
-@@ -146,34 +146,34 @@ elseif(DEFINED TEST_GAUDI_INSTALL_FILES_EXIST) # check some files that should be
-             " GaudiKernelDict_rdict.pcm not found in lib/")
-     endif()
-     # Check python modules
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiKernel/ConfigurableDb.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiKernel/ConfigurableDb.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " ConfigurableDb.py not found in python/GaudiKernel/")
-+            " ConfigurableDb.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiKernel/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/Gaudi/Main.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/Gaudi/Main.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " Main.py not found in python/Gaudi/")
-+            " Main.py not found in ${GAUDI_INSTALL_PYTHONDIR}/Gaudi/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiHive/precedence.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiHive/precedence.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " precedence.py not found in python/GaudiHive/")
-+            " precedence.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiHive/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiMP/GMPBase.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiMP/GMPBase.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " GMPBase.py not found in python/GaudiMP/")
-+            " GMPBase.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiMP/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiSvc/ExtraModules.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiSvc/ExtraModules.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " ExtraModules.py not found in python/GaudiSvc/")
-+            " ExtraModules.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiSvc/")
-     endif()
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiTesting/GaudiExeTest.py)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiTesting/GaudiExeTest.py)
-         message(FATAL_ERROR "Python modules not installed correctly,"
--            " GaudiExeTest.py not found in python/GaudiTesting/")
-+            " GaudiExeTest.py not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiTesting/")
-     endif()
-     # -- check binary python modules
--    if(NOT EXISTS ${GAUDI_INSTALL_DIR}/python/GaudiTestSuite/PyExample.so)
-+    if(NOT EXISTS ${GAUDI_INSTALL_PYTHONDIR}/GaudiTestSuite/PyExample.so)
-         message(FATAL_ERROR "Binary python modules not installed correctly,"
--            " PyExample.so not found in python/GaudiTestSuite/")
-+            " PyExample.so not found in ${GAUDI_INSTALL_PYTHONDIR}/GaudiTestSuite/")
-     endif()
-     # Check config files
-     if(NOT EXISTS ${GAUDI_INSTALL_DIR}/lib/cmake/Gaudi/GaudiConfig.cmake)
-@@ -226,6 +226,7 @@ else()
-     add_test(NAME cmake.test_gaudi_install_check
-              COMMAND ${CMAKE_COMMAND} -D TEST_GAUDI_INSTALL_FILES_EXIST:BOOL=TRUE
-                                       -D GAUDI_INSTALL_DIR=${tmpInstallDest}
-+                                      -D GAUDI_INSTALL_PYTHONDIR=${GAUDI_INSTALL_PYTHONDIR}
-                                       -P ${CMAKE_CURRENT_LIST_FILE})
-     set_tests_properties(cmake.test_gaudi_install_check PROPERTIES
-         DEPENDS cmake.test_gaudi_install
--- 
-GitLab
-
-
-From 3d2b92910c6b787f42d236393dfd8f5eee2b0e36 Mon Sep 17 00:00:00 2001
+From b6c93db5aa8284d4cafc9577167ab667d2901682 Mon Sep 17 00:00:00 2001
 From: Chris Burr <christopher.burr@cern.ch>
 Date: Fri, 9 Jan 2026 22:57:26 +0100
-Subject: [PATCH 2/3] fix: Make Gaudi_PYTHON_DIR check optional in
+Subject: [PATCH 1/3] fix: Make Gaudi_PYTHON_DIR check optional in
  GaudiConfig.cmake
 
 The set_and_check macro verifies that a directory exists at CMake
@@ -146,10 +45,10 @@ index 48c4d482f3..b12a3d7882 100644
 GitLab
 
 
-From 87c21c9eef1fc9ef9b4d6184e3982100358080df Mon Sep 17 00:00:00 2001
+From e372b172c7969963ea70622ff22a8a18cc86e3f1 Mon Sep 17 00:00:00 2001
 From: Chris Burr <christopher.burr@cern.ch>
 Date: Sat, 10 Jan 2026 23:48:03 +0100
-Subject: [PATCH 3/3] Fix generator expressions to handle empty paths
+Subject: [PATCH 2/3] Fix generator expressions to handle empty paths
 
 The SHELL_PATH generator expression fails when it receives an empty string
 because "" is not a valid absolute path. This can happen when the filtered
@@ -158,13 +57,20 @@ path list is empty (e.g., in downstream projects with no custom paths).
 This patch wraps SHELL_PATH in a conditional that only evaluates it when
 the filtered list is non-empty, using $<$<BOOL:...>:$<SHELL_PATH:...>>.
 ---
- cmake/GaudiToolbox.cmake | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ cmake/GaudiToolbox.cmake | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/cmake/GaudiToolbox.cmake b/cmake/GaudiToolbox.cmake
-index 10ac54de65..15d83211d2 100644
+index 10ac54de65..8a832d3a8d 100644
 --- a/cmake/GaudiToolbox.cmake
 +++ b/cmake/GaudiToolbox.cmake
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2020-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2020-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
 @@ -1536,11 +1536,11 @@ if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT TARGET target_runtime_paths)
      file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/${_env_file}
                    CONTENT "#!/bin/sh
@@ -181,6 +87,48 @@ index 10ac54de65..15d83211d2 100644
  export ENV_PROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"
  export ENV_PROJECT_BINARY_DIR=\"${PROJECT_BINARY_DIR}\"
  export ENV_CMAKE_BUILD_TYPE=\"$<CONFIG>\"
+-- 
+GitLab
+
+
+From bf8cf7ea7caa61cb10527e8195a65739b89ee0fc Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 11 Jan 2026 13:49:47 +0100
+Subject: [PATCH 3/3] fix: Skip install test when GAUDI_INSTALL_PYTHONDIR is
+ absolute
+
+When GAUDI_INSTALL_PYTHONDIR is an absolute path (e.g., for conda
+packaging), cmake --install ignores the --prefix for those destinations.
+This means the test would install Python files to the real system
+location instead of the isolated test directory, polluting the build
+environment.
+
+Skip the test entirely in this case. For relative paths, correctly
+pass the absolute path to the check by prepending the install prefix.
+---
+ cmake/tests/testGaudiInstallation.cmake | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/cmake/tests/testGaudiInstallation.cmake b/cmake/tests/testGaudiInstallation.cmake
+index cf145d2f6b..fa969efd18 100644
+--- a/cmake/tests/testGaudiInstallation.cmake
++++ b/cmake/tests/testGaudiInstallation.cmake
+@@ -210,6 +210,15 @@ elseif(DEFINED TEST_GAUDI_INSTALL_PACKAGE)
+         message(FATAL_ERROR "Packaging of Gaudi failed")
+     endif()
+ else()
++    # Skip the installation test if GAUDI_INSTALL_PYTHONDIR is an absolute path.
++    # When absolute, cmake --install ignores the --prefix for Python files,
++    # meaning the test would install to the real system location instead of
++    # the isolated test directory, polluting the build environment.
++    if(IS_ABSOLUTE "${GAUDI_INSTALL_PYTHONDIR}")
++        message(STATUS "Skipping cmake.test_gaudi_install tests: GAUDI_INSTALL_PYTHONDIR is absolute (${GAUDI_INSTALL_PYTHONDIR})")
++        return()
++    endif()
++
+     # Try to install (locally in the build tree)
+     set(tmpInstallDest ${CMAKE_CURRENT_BINARY_DIR}/GaudiTestInstall)
+     add_test(NAME cmake.test_gaudi_install
 -- 
 GitLab
 
