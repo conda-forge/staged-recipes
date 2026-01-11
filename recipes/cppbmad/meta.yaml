@@ -1,0 +1,70 @@
+{% set name = "pybmad" %}
+{% set version = "20260108-0" %}
+# Convert "20260108-0" to "20260108.0" for conda version compliance
+{% set safe_version = version | replace("-", ".") %}
+{% set build = 0 %}
+
+{% set mpi = mpi or 'nompi' %}
+{% set build = build + 100 %}  # [mpi == 'nompi']
+{% set mpi_prefix = "nompi" %}  # [mpi == 'nompi']
+{% set mpi_prefix = "mpi_" + mpi %}  # [mpi != 'nompi']
+
+package:
+  name: {{ name }}
+  version: {{ safe_version }}
+
+source:
+  - url: https://github.com/ken-lauer/cppbmad/archive/{{ version }}.tar.gz
+    sha256: 6b24bf6fea17a4e1cc025989ebb1279e6bc9e9be2393e573735d007556ec8ae3
+
+build:
+  number: {{ build }}
+  skip: true  # [win]
+  string: "{{ mpi_prefix }}_py{{ py }}h{{ PKG_HASH }}_{{ build }}"
+
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - {{ compiler("fortran") }}
+    - {{ stdlib("c") }}
+    - cmake
+    - make
+  host:
+    - bmad {{ safe_version }} {{ mpi_prefix }}_*
+    - {{ mpi }}  # [mpi != 'nompi']
+    - python
+    - pybind11
+    - pybind11-stubgen
+  run:
+    - python
+    # - {{ pin_compatible('bmad', exact=True) }}
+    - bmad {{ safe_version }} {{ mpi_prefix }}_*
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libgcc     # [osx]
+
+test:
+  imports:
+    - pybmad
+  commands:
+    - test -f $PREFIX/lib/libcppbmad${SHLIB_EXT}
+    - test -f $PREFIX/include/bmad.hpp
+    - bash test_cppbmad_build.sh
+
+about:
+  home: github.com/ken-lauer/cppbmad
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: cppbmad and pybmad are wrappers for Bmad, a relativistic charged-particle dynamics simulations in accelerators and storage rings.
+  description: |
+    cppbmad wraps the original Fortran Bmad with convenient, modern C++ proxy classes
+    of the Fortran-allocated data. Many procedures are supported as well, allowing
+    for coordinating tracking and other simulations through C++.
+    pybmad wraps cppbmad with pybind11, further bringing the lower-level capabilities
+    of Bmad-ecosystem (including Tao) to Python.
+  doc_url: https://github.com/ken-lauer/cppbmad/wiki
+
+extra:
+  feedstock-name: cppbmad
+  recipe-maintainers:
+    - ken-lauer
