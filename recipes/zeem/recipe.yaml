@@ -14,7 +14,7 @@ build:
   script:
     # Use locally installed Catch2
     - sed -i.bak 's#CPMAddPackage("gh:catchorg/Catch2@3.4.0")#find_package(Catch2 REQUIRED)#' test/CMakeLists.txt
-    
+
     - if: unix
       then: |
         set -exo pipefail
@@ -26,10 +26,13 @@ build:
     - if: win
       then: |
         @echo on
-        @REM `-DBUILD_TESTING=OFF` due to test failure
-        cmake -S . -B build -G "NMake Makefiles" %CMAKE_ARGS% -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=ON
+        set PATH=%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%PATH%
+        if errorlevel 1 exit 1
+        cmake -S . -B build -G "NMake Makefiles" %CMAKE_ARGS% -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=ON
         if errorlevel 1 exit 1
         cmake --build build --config Release --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest -V -C Release --test-dir build
         if errorlevel 1 exit 1
         cmake --install build
         if errorlevel 1 exit 1
@@ -49,7 +52,7 @@ requirements:
     - fast_float
     - howardhinnant_date
   run_exports:
-    # Patch version update may be breakable 
+    # Patch version update may be breakable
     - ${{ pin_subpackage("zeem", upper_bound="x.x.x") }}
   ignore_run_exports:
     from_package:
