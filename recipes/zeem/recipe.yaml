@@ -1,0 +1,95 @@
+context:
+  version: "2.0.5"
+
+package:
+  name: zeem
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mhekkel/zeem/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: cf82135e85c856e700ecaeb0a046769c84827166e6218b34839bf06301466e6f
+
+build:
+  number: 0
+  script:
+    # Use locally installed Catch2
+    - sed -i.bak 's#CPMAddPackage("gh:catchorg/Catch2@3.4.0")#find_package(Catch2 REQUIRED)#' test/CMakeLists.txt
+
+    - if: unix
+      then: |
+        set -exo pipefail
+        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+        cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=ON
+        cmake --build build --config Release --parallel ${CPU_COUNT}
+        ctest -V -C Release --test-dir build
+        cmake --install build
+    - if: win
+      then: |
+        @echo on
+        set PATH=%SRC_DIR%\build;%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%SRC_DIR%\build\release;%PATH%
+        if errorlevel 1 exit 1
+        cmake -S . -B build -G "NMake Makefiles JOM" %CMAKE_ARGS% -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=ON
+        if errorlevel 1 exit 1
+        cmake --build build --config Release --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest -V -C Release --test-dir build
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - pkg-config
+    - if: win
+      then:
+        - jom
+        - m2-sed
+  host:
+    - catch2
+    - fast_float
+    - howardhinnant_date
+  run_exports:
+    # Patch version update may be breakable
+    - ${{ pin_subpackage("zeem", upper_bound="x.x.x") }}
+  ignore_run_exports:
+    by_name:
+      - catch2
+
+tests:
+  - script:
+      - if: unix
+        then: |
+          test -d ${PREFIX}/include/zeem
+          test -f ${PREFIX}/lib/libzeem${SHLIB_EXT}
+        else: |
+          if not exist "%LIBRARY_PREFIX%\include\zeem\" exit /b 1
+          if not exist "%LIBRARY_PREFIX%\lib\zeem.lib" exit /b 1
+          if not exist "%LIBRARY_PREFIX%\bin\zeem.dll" exit /b 1
+
+about:
+  homepage: https://mhekkel.github.io/zeem
+  repository: https://github.com/mhekkel/zeem
+  documentation: https://mhekkel.github.io/zeem
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: "A C++ Module Library offering a full XML library with validating parser, DOM tree, XPaths and serialization."
+  description: >
+    This is a feature complete XML library containing a validating parser as well as a modern C++ API for the data structures.
+    It also supports serializing custom data structures.
+
+    The core of this library is a validating XML parser with DTD processing and all.
+    On top of this are implemented an API for manipulating XML data in a DOM like fashion and a serialization API.
+    As a bonus there’s also an XPath implementation, albeit this is limited to XPath 1.0.
+
+    This XML library was extracted from [libzeep](https://github.com/mhekkel/libzeep) since having a separate and simple XML library is more convenient.
+    The API is unfortunately no longer compatible since the goal was to be more standards compliant.
+    E.g., zeem::element should now be a complete [Sequence Container](https://en.cppreference.com/w/cpp/named_req/SequenceContainer).
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
