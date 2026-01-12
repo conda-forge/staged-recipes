@@ -12,6 +12,7 @@ RUN xbps-install -Syu \
     cmake \
     fastfetch \
     git \
+    git-lfs \
     github-cli \
     gnupg2 \
     helix \
