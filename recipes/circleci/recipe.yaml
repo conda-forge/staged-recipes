@@ -1,0 +1,45 @@
+context:
+  version: 0.1.34038
+
+package:
+  name: circleci
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CircleCI-Public/circleci-cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 17772d81daaff93a423acba697e50ffbe3185d10d7e5629d64d8e3b461257dce
+
+build:
+  number: 0
+  script:
+    - go-licenses save . --save_path library_licenses --ignore github.com/inconshreveable/go-update --ignore github.com/mattn/go-localereader
+    # Manually copy licenses that go-licenses could not download
+    - if: unix
+      then: cp -r ${RECIPE_DIR}/library_licenses/* ${SRC_DIR}/library_licenses
+      else: xcopy /s %RECIPE_DIR%\library_licenses\* %SRC_DIR%\library_licenses
+    # Build
+    - if: unix
+      then: go build -v -o $PREFIX/bin/circleci -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\circleci.exe -ldflags="-s"
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - circleci version
+      - circleci help
+
+about:
+  homepage: https://circleci-public.github.io/circleci-cli/
+  summary: CircleCI's command-line application.
+  license: MIT
+  license_file:
+    - LICENSE
+    - library_licenses/
+
+extra:
+  recipe-maintainers:
+    - lucascolley
