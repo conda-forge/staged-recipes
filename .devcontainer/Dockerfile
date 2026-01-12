@@ -9,12 +9,14 @@ RUN xbps-install -Syu xbps && \
 RUN xbps-install -Syu \
     bash \
     bash-completion \
+    cargo \
     cmake \
     fastfetch \
     git \
     git-lfs \
     github-cli \
     gnupg2 \
+    sudo \
     helix \
     libsecret \
     ninja \
@@ -29,7 +31,8 @@ RUN xbps-install -Syu \
 RUN ln -sf /bin/bash /bin/sh
 
 RUN useradd -m -s /bin/bash codespace && \
-    echo "codespace ALL=(root) NOPASSWD:ALL" >> /etc/sudoers.d/codespace && \
+    mkdir -p /etc/sudoers.d && \
+    echo "codespace ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/codespace && \
     chmod 0440 /etc/sudoers.d/codespace
 
 RUN mkdir -p /home/vscode/.vscode-server /home/vscode/.vscode-server-insiders && \
