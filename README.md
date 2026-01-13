@@ -185,6 +185,14 @@ Use one of:
 
 </details>
 
+## Generating recipes with `conda skeleton`
+
+[`conda skeleton`](https://docs.conda.io/en/latest/user-guide/tutorials/build-pkgs-skeleton.html)
+is an older tool to generate boilerplate recipe.
+At the time of writing, in addition to what grayskull supports, it additionally supports
+generating boilerplate recipes from Perl packages on [CPAN](https://www.cpan.org/), Lua
+packages on [LuaRocks](https://luarocks.org/), and RPM files.
+
 ## Linting recipes with `conda-smithy`
 
 The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provides
