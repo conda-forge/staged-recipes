@@ -1,0 +1,43 @@
+context:
+  version: "0.18.1"
+
+package:
+  name: ko
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ko-build/ko/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1006eb94b6260690ab3ec79cbd03342e09cb0f32cecdd1b8743fa216e2fe7b0e
+
+build:
+  number: 0
+  script:
+    - go-licenses save ./ --save_path=./license-files --ignore github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer --ignore github.com/in-toto/attestation --ignore github.com/in-toto/in-toto-golang
+    - if: not win
+      then:
+        - go build -v -ldflags "-w -s -X github.com/ko-build/ko/pkg/commands.Version=${{ version }}" -o $PREFIX/bin/ko ./
+        - cp -r ${RECIPE_DIR}/license-files/* ${SRC_DIR}/license-files
+      else:
+        - go build -v -ldflags "-w -s -X github.com/ko-build/ko/pkg/commands.Version=${{ version }}" -o %LIBRARY_PREFIX%\bin\ko.exe ./
+        - xcopy /s %RECIPE_DIR%\license-files\* %SRC_DIR%\license-files || goto :error
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - ko version
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - license-files/
+  summary: A simple, fast container image builder for Go applications
+  homepage: https://ko.build/
+
+extra:
+  recipe-maintainers:
+    - benmoss
