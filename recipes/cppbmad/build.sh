@@ -14,7 +14,7 @@ cmake ${CMAKE_ARGS} \
   -DVERSION_INFO="${PKG_VERSION}" \
   ..
 
-make install -j2 # hitting memory limits during compilation
+make install -j "${CPU_COUNT}"
 
 echo "Moving python package from $PREFIX/pybmad to $SP_DIR/pybmad"
 mkdir -p $SP_DIR
