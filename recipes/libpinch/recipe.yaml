@@ -1,0 +1,100 @@
+context:
+  name: libpinch
+  version: "1.2.1"
+  author: "mhekkel"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/${{ author }}/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fc2515ab160be10375bd08760b3940caaa408b60c190752331780f9f36f413f4
+
+build:
+  number: 0
+  script:
+    - sed -i '/BASE_DIRS/{n;s|${CMAKE_CURRENT_SOURCE_DIR}|${CMAKE_CURRENT_SOURCE_DIR}/include|;}' CMakeLists.txt
+    - sed -i.bak 's|#include <cryptopp/factory.h>||g' src/crypto-engine.cpp
+    - sed -i.bak 's|#include <cryptopp/factory.h>||g' src/key_exchange.cpp
+
+    - if: unix
+      then: |
+        set -exo pipefail
+
+        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
+        if [[ ${build_platform} != ${target_platform} ]]; then
+          extra_cmake_args="-DTEST_STD_CHRONO_FROM_STREAM_R=ON"
+        fi
+
+        # Skip tests for cross compilation for macos
+        if [[ ${build_platform} != ${target_platform} && ${target_platform} == "osx-arm64" ]]; then
+          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON
+        else
+          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON ${extra_cmake_args}
+        fi
+
+        cmake --build build --parallel ${CPU_COUNT}
+        ctest -V --test-dir build
+        cmake --install build
+    - if: win
+      then: |
+        @echo on
+        set PATH=%SRC_DIR%\build;%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%SRC_DIR%\build\release;%PATH%
+        cmake -S . -B build -G "NMake Makefiles JOM" ^
+          %CMAKE_ARGS% ^
+          -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
+          -DBUILD_TESTING=ON ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -DPINCH_BUILD_TESTS=ON
+        if errorlevel 1 exit 1
+        cmake --build build --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest -V --test-dir build
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    # - ${{ stdlib("c") }}
+    - cmake
+    - pkg-config
+    - if: unix
+      then: make
+    - if: win
+      then:
+        - m2-sed
+        - jom
+  host:
+    - asio
+    - cryptopp
+    - zlib
+  run_exports: ${{ pin_subpackage(name, upper_bound="x.x.x") }}
+
+tests:
+  - script:
+      - if: unix
+        then: |
+          test -d ${PREFIX}/include/pinch/
+          test -f ${PREFIX}/lib/libpinch${SHLIB_EXT}
+      - if: win
+        then: |
+          if not exist "%LIBRARY_PREFIX%\include\pinch" exit /b 1
+          if not exist "%LIBRARY_PREFIX%\lib\pinch.lib" exit /b 1
+          if not exist "%LIBRARY_PREFIX%\bin\pinch.dll" exit /b 1
+
+about:
+  homepage: https://github.com/mhekkel/libpinch
+  repository: https://github.com/mhekkel/libpinch
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: "Library for asynchronous SSH"
+  description: |
+    This library provides asynchronous SSH for use in client applications.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
