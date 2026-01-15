@@ -28,11 +28,19 @@ build:
           extra_cmake_args="-DTEST_STD_CHRONO_FROM_STREAM_R=ON"
         fi
 
-        # Skip tests for cross compilation for macos
-        if [[ ${build_platform} != ${target_platform} && ${target_platform} == "osx-arm64" ]]; then
-          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON
-        else
-          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON ${extra_cmake_args}
+        if [[ ${target_platform} == "linux-"* ]]; then
+          if [[ ${build_platform} != ${target_platform} ]]; then
+            cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON ${extra_cmake_args}
+          else
+            cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON
+          fi
+        elif [[ ${target_platform} == "osx-"* ]]; then
+          # Skip tests for cross compilation for macos
+          if [[ ${build_platform} != ${target_platform} ]]; then
+            cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DUSE_BOOST_ASIO=ON ${extra_cmake_args}
+          else
+            cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DPINCH_BUILD_TESTS=ON -DUSE_BOOST_ASIO=ON 
+          fi
         fi
 
         cmake --build build --parallel ${CPU_COUNT}
@@ -54,10 +62,12 @@ build:
         set PATH=%SRC_DIR%\build;%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%SRC_DIR%\build\release;%PATH%
         cmake -S . -B build ^
           %CMAKE_ARGS% ^
+          -DCMAKE_CXX_FLAGS="%CXXFLAGS% -DUNICODE -D_UNICODE" ^
           -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
           -DBUILD_TESTING=ON ^
           -DBUILD_SHARED_LIBS=ON ^
-          -DPINCH_BUILD_TESTS=ON
+          -DPINCH_BUILD_TESTS=ON ^
+          -DUSE_BOOST_ASIO=ON
         if errorlevel 1 exit 1
         cmake --build build --parallel %CPU_COUNT%
         if errorlevel 1 exit 1
@@ -77,9 +87,12 @@ requirements:
     - if: win
       then: m2-sed
   host:
-    - asio
     - cryptopp
     - zlib
+    - if: linux
+      then: asio
+    - if: osx or win
+      then: libboost-devel
   run_exports: ${{ pin_subpackage(name, upper_bound="x.x.x") }}
 
 tests:
