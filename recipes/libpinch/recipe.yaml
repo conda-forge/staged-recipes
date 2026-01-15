@@ -21,6 +21,7 @@ build:
         sed -i.bak 's|${CMAKE_CURRENT_SOURCE_DIR}|${CMAKE_CURRENT_SOURCE_DIR}/include|' CMakeLists.txt
         sed -i.bak 's|#include <cryptopp/factory.h>||g' src/crypto-engine.cpp
         sed -i.bak 's|#include <cryptopp/factory.h>||g' src/key_exchange.cpp
+        rm *.bak
 
         export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
@@ -39,35 +40,37 @@ build:
           cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON
         fi
 
-        cmake --build build --parallel ${CPU_COUNT}
+        cmake --build build --config Release --parallel ${CPU_COUNT}
 
         if [[ ${build_platform} == "osx-"* ]]; then
           sudo ssh-keygen -A
           sudo /usr/sbin/sshd
         fi
 
-        ctest -V --test-dir build
+        ctest -V --config Release --test-dir build
         cmake --install build
 
     - if: win
       then: |
         @echo on
+        set PATH=%SRC_DIR%\build;%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%PATH%
+        
         sed -i.bak "s@$<$<CONFIG:Debug>:Debug>@@g" CMakeLists.txt
         sed -i.bak "s@${CMAKE_CURRENT_SOURCE_DIR}@${CMAKE_CURRENT_SOURCE_DIR}/include@" CMakeLists.txt
         sed -i.bak "s@#include <cryptopp/factory.h>@@g" src/crypto-engine.cpp
         sed -i.bak "s@#include <cryptopp/factory.h>@@g" src/key_exchange.cpp
-        set PATH=%SRC_DIR%\build;%SRC_DIR%\build\bin;%SRC_DIR%\build\Release;%SRC_DIR%\build\Debug;%PATH%
-
+        del /f /q *.bak
+        
         @REM Test code is not written for Windows
-        cmake -S . -B build ^
+        cmake -S . -B build -G "NMake Makefiles JOM" ^
           %CMAKE_ARGS% ^
           -DCMAKE_CXX_FLAGS="%CXXFLAGS% -DUNICODE -D_UNICODE" ^
           -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
           -DBUILD_SHARED_LIBS=ON
         if errorlevel 1 exit 1
-        cmake --build build --parallel %CPU_COUNT%
+        cmake --build build --config Release --parallel %CPU_COUNT%
         if errorlevel 1 exit 1
-        ctest -V --test-dir build
+        ctest -V --config Release --test-dir build
         if errorlevel 1 exit 1
         cmake --install build
         if errorlevel 1 exit 1
@@ -81,7 +84,9 @@ requirements:
     - if: unix
       then: make
     - if: win
-      then: m2-sed
+      then:
+        - m2-sed
+        - jom
   host:
     - asio
     - cryptopp
