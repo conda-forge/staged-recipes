@@ -1,0 +1,52 @@
+context:
+  name: image
+  version: "2.18.1"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://downloads.sourceforge.net/project/octave/Octave%20Forge%20Packages/Individual%20Package%20Releases/image-${{ version }}.tar.gz
+  sha256: d4eed0579782c2efaa0818de2f20f13b276eb3d4b4b3d63347c7317d84e29531
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - make
+  host:
+    - octave
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load ${{ name }}; disp('${{ name }} loaded') \
+      "
+
+about:
+  homepage: https://octave.sourceforge.io/image/
+  license: GPL-3.0-or-later
+  license_file: ${{ name }}/COPYING
+  summary: Image processing, feature extraction, filtering, and morphological operations for GNU Octave
+
+extra:
+  recipe-maintainers:
+    - arjxn-py

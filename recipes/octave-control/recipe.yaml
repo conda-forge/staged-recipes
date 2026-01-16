@@ -1,0 +1,52 @@
+context:
+  name: control
+  version: "4.1.3"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gnu-octave/pkg-control/releases/download/control-${{ version }}/control-${{ version }}.tar.gz
+  sha256: 07ce19c121778333e409b4fd67d8946ff6fa9d0eb93b00312b331b86ea6954b4
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - make
+  host:
+    - octave
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load ${{ name }}; disp('${{ name }} loaded') \
+      "
+
+about:
+  homepage: https://octave.sourceforge.io/control/
+  license: GPL-3.0-or-later AND BSD-3-Clause
+  license_file: ${{ name }}/COPYING
+  summary: Control system analysis and synthesis tools for GNU Octave, based on the SLICOT library
+
+extra:
+  recipe-maintainers:
+    - arjxn-py
