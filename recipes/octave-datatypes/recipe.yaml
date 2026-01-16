@@ -1,0 +1,54 @@
+context:
+  name: datatypes
+  version: "1.1.5"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pr0m1th3as/datatypes/releases/download/release-${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: d684b9cab257b6bdaa511525bad2044e7addb0902863183ca9609a74a51cb736
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - make
+  host:
+    - octave >=9.1.0
+  run:
+    - octave >=9.1.0
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load ${{ name }}; disp('${{ name }} loaded') \
+      "
+
+about:
+  homepage: https://gnu-octave.github.io/packages/${{ name }}/
+  license: GPL-3.0-or-later
+  license_file: ${{ name }}/LICENSE.txt
+  summary: Extra data types for GNU Octave
+
+extra:
+  recipe-maintainers:
+    - arjxn-py
