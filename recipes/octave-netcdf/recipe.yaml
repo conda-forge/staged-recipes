@@ -1,0 +1,52 @@
+context:
+  name: netcdf
+  version: "1.0.19"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gnu-octave/octave-netcdf/releases/download/v${{ version }}/netcdf-${{ version }}.tar.gz
+  sha256: 799717e30630caacaf3a079026a5d808022423a543fd2d20e00daa8e341c0acc
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - octave
+    - libnetcdf
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load ${{ name }}; disp('${{ name }} loaded') \
+      "
+
+about:
+  homepage: https://octave.sourceforge.io/netcdf/
+  license: GPL-3.0-or-later
+  license_file: ${{ name }}/COPYING
+  summary: NetCDF interface for GNU Octave
+
+extra:
+  recipe-maintainers:
+    - arjxn-py

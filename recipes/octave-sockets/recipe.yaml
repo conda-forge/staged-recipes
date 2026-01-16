@@ -1,0 +1,51 @@
+context:
+  name: sockets
+  version: "1.5.0"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gnu-octave/octave-sockets/releases/download/release-${{ version }}/sockets-${{ version }}.tar.gz
+  sha256: 2eec641df505d5952e3d6340ea06bbf1c8fe0a35558e4f05f2f1cbe776e1384a
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - octave
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load ${{ name }}; disp('${{ name }} loaded') \
+      "
+
+about:
+  homepage: https://octave.sourceforge.io/sockets/
+  license: GPL-3.0-or-later
+  license_file: ${{ name }}/COPYING
+  summary: Socket-based networking functions for GNU Octave
+
+extra:
+  recipe-maintainers:
+    - arjxn-py
