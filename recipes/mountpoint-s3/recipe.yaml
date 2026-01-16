@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: mountpoint-s3
+  version: "1.21.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  git:  https://github.com/awslabs/mountpoint-s3.git
+  tag: "v${{ version }}"
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content: |
+      echo "#############################################################################"
+      echo "# BUILD START"
+      echo "#############################################################################"
+      set -exo pipefail
+      export LIBCLANG_PATH="${PREFIX}/lib"
+      cargo install --locked --no-track --root "${PREFIX}" --path mountpoint-s3
+      cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('rust') }} >=1.85
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - pkg-config
+
+  host:
+    - clangdev
+    - libclang
+    - libfuse3
+
+tests:
+  - script:
+      - mount-s3 --help
+      - mount-s3 --version | rg ${{ version }}
+    requirements:
+      run:
+        - ripgrep
+
+about:
+  homepage: https://github.com/awslabs/mountpoint-s3
+  summary: 'A simple, high-throughput file client for mounting an Amazon S3 bucket as a local file system.'
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - dhirschfeld
