@@ -2,6 +2,9 @@
 
 set -ex
 
+export CFLAGS="${CFLAGS} -Wno-error=implicit-function-declaration"
+export CPPFLAGS="${CPPFLAGS} -Wno-error=implicit-function-declaration"
+
 export CC=$(basename "$CC")
 export CXX=$(basename "$CXX")
 export FC=$(basename "$FC")
