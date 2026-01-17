@@ -1,0 +1,57 @@
+context:
+  version: "2.1.2"
+
+package:
+  name: molscript
+  version: ${{ version }}
+
+source:
+  git: https://github.com/pekrau/MolScript.git
+  rev: b672de6542fd3c6625ed3f2184c2393e6d44694a
+
+build:
+  number: 0
+  skip: win
+  script: |
+    set -exo pipefail
+    cd code
+    sed -i.bak 's|CFLAGS = $(COPT) $(CCHECK) -Iclib|CFLAGS = $(COPT) $(CCHECK) -Wno-error=implicit-int -Wno-error=int-conversion -Iclib|' Makefile.basic
+    sed -i.bak 's|CC = gcc|CC = '"${CC}"'|' Makefile.basic
+    make -f Makefile.basic -j ${CPU_COUNT} all
+    mkdir -p ${PREFIX}/bin
+    install -m 755 ../molscript ../molauto ${PREFIX}/bin/
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    # - ${{ stdlib("c") }}
+    - bison
+    - make
+  run_exports: []  # No shared libraries to worry about
+
+tests:
+  - script: |
+      set -exo pipefail
+      cd examples
+      molscript -postscript -in ras_std.in -out test_output.ps
+      molscript -vrml -in ras_std.in -out test_output.wrl
+      molscript -postscript -in ras_gdp_cpk.in -out test_cpk.ps
+      molauto ras.pdb > test_auto.in
+    files:
+      source:
+        - examples/
+
+about:
+  homepage: "https://pekrau.github.io/MolScript"
+  summary: "The MolScript program produces publication-quality images of macromolecular 3D structures."
+  description: |
+    MolScript is a program for displaying molecular 3D structures,
+    such as proteins, in both schematic and detailed representations.
+  license: MIT
+  license_file: LICENSE.txt
+  repository: https://github.com/pekrau/MolScript
+  documentation: http://pekrau.github.io/MolScript
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
