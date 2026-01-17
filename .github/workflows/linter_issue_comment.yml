@@ -1,0 +1,46 @@
+name: rerun staged-recipes linter on issue comments
+
+on:
+  issue_comment: null
+
+permissions:
+  contents: read
+  checks: write
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rerun-linter:
+    name: rerun linter
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: install code
+        uses: mamba-org/setup-micromamba@06375d89d211a1232ef63355742e9e2e564bc7f7
+        with:
+          environment-name: lint
+          condarc: |
+            show_channel_urls: true
+            channel_priority: strict
+            channels:
+              - conda-forge
+          create-args: >-
+            pygithub
+
+      - name: rerun linter
+        run: |
+          python .github/workflows/scripts/linter_issue_comment.py \
+            --owner=${{ github.repository_owner }} \
+            --pr-num=${{ github.event.issue.number  }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
