@@ -6,9 +6,6 @@ export CC=$(basename "$CC")
 export CXX=$(basename "$CXX")
 export FC=$(basename "$FC")
 
-export CFLAGS="${CFLAGS} -D_GNU_SOURCE"
-export CPPFLAGS="${CPPFLAGS} -D_GNU_SOURCE"
-
 if [[ $CONDA_BUILD_CROSS_COMPILATION == 1 ]]; then
   export CROSS_F77_SIZEOF_INTEGER=4
   export CROSS_F77_SIZEOF_REAL=4
