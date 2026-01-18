@@ -9,10 +9,9 @@ if errorlevel 1 exit /b 1
 
 cmake %CMAKE_ARGS% ^
     -GNinja ^
-    -DCMAKE_INSTALL_LIBDIR=lib ^
     -DWERROR=OFF ^
     -DCMAKE_PREFIX_PATH=%PREFIX% ^
-    -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     %SRC_DIR%
 if errorlevel 1 exit /b 1
 

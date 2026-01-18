@@ -3,7 +3,6 @@ set -e
 
 extra_cmake_args=(
     -GNinja
-    -DCMAKE_INSTALL_LIBDIR=lib
     -DWERROR=OFF
 )
 
