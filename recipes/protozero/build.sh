@@ -14,6 +14,4 @@ cmake ${CMAKE_ARGS} "${extra_cmake_args[@]}" \
     $SRC_DIR
 
 ninja
-
-# The `install` command will take care of copying the files to the right place
 ninja install
