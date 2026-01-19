@@ -15,19 +15,18 @@ esac
 dotnet publish tools/cli/Cascode.Cli.csproj \
   -c Release \
   -r "${rid}" \
-  -p:SelfContained=true \
-  -p:PublishSingleFile=true \
+  -p:SelfContained=false \
   -p:PublishTrimmed=false \
   -o build/out
 
-mkdir -p "${PREFIX}/bin"
-if [[ -f build/out/Cascode.Cli ]]; then
-  mv build/out/Cascode.Cli "${PREFIX}/bin/cascode"
-elif [[ -f build/out/cascode ]]; then
-  mv build/out/cascode "${PREFIX}/bin/cascode"
-else
-  echo "cascode binary not found in build/out" >&2
-  exit 1
-fi
+# Install application files to lib/cascode
+mkdir -p "${PREFIX}/lib/cascode"
+cp -r build/out/* "${PREFIX}/lib/cascode/"
 
+# Create wrapper script in bin
+mkdir -p "${PREFIX}/bin"
+cat > "${PREFIX}/bin/cascode" << 'EOF'
+#!/bin/bash
+exec "$(dirname "$0")/../lib/cascode/Cascode.Cli" "$@"
+EOF
 chmod +x "${PREFIX}/bin/cascode"
