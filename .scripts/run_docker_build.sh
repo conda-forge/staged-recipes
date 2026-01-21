@@ -8,13 +8,23 @@ source .scripts/logging_utils.sh
 
 set -xeo pipefail
 
+# Detect container runtime (docker → podman fallback)
+if command -v docker &>/dev/null; then
+    CONTAINER_RUNTIME_EXE=docker
+elif command -v podman &>/dev/null; then
+    CONTAINER_RUNTIME_EXE=podman
+else
+    echo "Error: No supported container runtime found (docker or podman)."
+    exit 1
+fi
+
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename "$THISDIR")"
 AZURE="${AZURE:-False}"
 
-docker info
+${CONTAINER_RUNTIME_EXE} info
 
 # In order for the conda-build process in the container to write to the mounted
 # volumes, we need to run with the same id as the host machine, which is
@@ -49,13 +59,24 @@ DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
 if [ "${AZURE}" == "True" ]; then
     DOCKER_RUN_ARGS=""
 fi
+
+# Add podman-specific configuration
+if [ "${CONTAINER_RUNTIME_EXE}" = "podman" ]; then
+    # Set ownership for rootless podman
+    podman unshare chown -R 1000:1000 "${ARTIFACTS}"
+
+    # Add SELinux label for access
+    if command -v getenforce &>/dev/null && [ "$(getenforce)" != "Disabled" ]; then
+        VOLUME_SUFFIX=":z"
+    fi
+fi
 ( endgroup "Configure Docker" ) 2> /dev/null
 
 ( startgroup "Start Docker" ) 2> /dev/null
 # this group is closed in build_steps.sh
 
-docker pull "${DOCKER_IMAGE}"
-docker run ${DOCKER_RUN_ARGS} \
+${CONTAINER_RUNTIME_EXE} pull "${DOCKER_IMAGE}"
+${CONTAINER_RUNTIME_EXE} run ${DOCKER_RUN_ARGS} \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
