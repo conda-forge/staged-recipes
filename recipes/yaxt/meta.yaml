@@ -1,0 +1,71 @@
+{% set name = "yaxt" %}
+{% set version = "0.11.2" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.dkrz.de/dkrz-sw/{{ name }}/-/archive/v{{ version }}/{{ name }}-v{{ version }}.tar.gz
+  sha256: e9a552641c3b52daed4d09a59ac879cbe7253acf8cb6d6855211f68c4d4f2227
+
+build:
+  skip: true  # [win]
+  number: {{ build }}
+
+  # add build string so packages can depend on mpi variants explicitly:
+  # `yaxt * mpi_mpich_*` for mpich
+  # `yaxt * mpi_openmpi_*` for openmpi
+  # `yaxt * mpi_*` for any mpi
+
+  {% set mpi = mpi or "mpich" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+    - {{ name }} * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - {{ stdlib('c') }}
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+    - autoconf
+    - automake
+    - libtool
+    - make
+    - pkg-config
+  host:
+    - {{ mpi }}
+    - "{{ mpi }}-mpifort"
+  run:
+    - {{ mpi }}
+    - "{{ mpi }}-mpifort"
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libyaxt.so  # [linux]
+    - test -f ${PREFIX}/lib/libyaxt.dylib  # [osx]
+    - test -f ${PREFIX}/include/yaxt.h
+    - test -f ${PREFIX}/include/yaxt.mod
+
+about:
+  home: https://gitlab.dkrz.de/dkrz-sw/yaxt
+  summary: Yet Another eXchange Tool (yaxt) for coupling of Earth system model components.
+  description: |
+    Yet Another eXchange Tool (yaxt) is a lightweight software library for coupling of Earth system model components
+    which provides automated data redistributions in distributed memory applications.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://dkrz-sw.gitlab-pages.dkrz.de/yaxt/index.html
+  dev_url: https://gitlab.dkrz.de/dkrz-sw/yaxt
+
+extra:
+  recipe-maintainers:
+    - jhkennedy
+    - ckhroulev
+    - aaschwanden
