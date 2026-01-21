@@ -1,0 +1,63 @@
+context:
+  name: concurrentqueue
+  version: "1.0.4"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cameron314/concurrentqueue/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 87fbc9884d60d0d4bf3462c18f4c0ee0a9311d0519341cac7cbd361c885e5281
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - set -exo pipefail
+        #FORCE Ninja generator
+        - cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DBUILD_TESTING=OFF
+        - cmake --build build --parallel ${CPU_COUNT}
+        - cmake --install build
+      else:
+        - echo on
+        - cmake -S . -B build %CMAKE_ARGS% -DBUILD_TESTING=OFF
+        - if errorlevel 1 exit 1
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -f ${PREFIX}/include/concurrentqueue/moodycamel/concurrentqueue.h
+        else:
+          - if not exist "%LIBRARY_PREFIX%\include\concurrentqueue\moodycamel\concurrentqueue.h" exit /b 1
+
+
+
+about:
+  homepage: https://github.com/cameron314/concurrentqueue
+  repository: https://github.com/cameron314/concurrentqueue
+  license: BSD-2-Clause OR BSL-1.0
+  license_file: LICENSE.md
+  summary: "A fast C++11 multi-producer multi-consumer lock-free concurrent queue."
+  description: |
+    A fast, lock-free, multi-producer multi-consumer concurrent queue for C++11.
+    The library is header-only, lightweight, and widely used in high-performance systems.
+
+extra:
+  recipe-maintainers:
+    - aman-coder03
