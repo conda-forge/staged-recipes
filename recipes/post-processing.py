@@ -41,6 +41,7 @@ def custom_process(meta_dict: Dict[str, Any]) -> Dict[str, Any]:
     meta_dict["extra"]["recipe-maintainers"] = ["ChiahsinChu"]
     meta_dict["requirements"]["host"][0] = "python 3.10"
     meta_dict["test"]["requires"].append("python 3.10")
+    meta_dict["build"]["skip"] = "win"
     return meta_dict
 
 
