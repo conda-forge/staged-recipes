@@ -1,0 +1,121 @@
+From d971bc57c29bbc21797f113020487a213644cec1 Mon Sep 17 00:00:00 2001
+From: "E. Madison Bray" <erik.m.bray@gmail.com>
+Date: Tue, 9 Dec 2025 10:42:24 +0100
+Subject: [PATCH 1/2] build: attempt to fix autotools build in conda
+ environments
+
+it seems some conda environments have an older linux/userfaultfd.h that
+doesn't define UFFD_USER_MODE_ONLY, so just defining it as 0 seems to be
+OK as a fallback
+
+Put an AC_SUBST for ASDF_LIBS so it can be resused more easily in
+different link targets, especially in the tests
+---
+ Makefile.am                   | 5 +----
+ changes/+conda-build.misc     | 1 +
+ configure.ac                  | 5 ++++-
+ src/compression/compression.c | 5 +++++
+ tests/Makefile.am             | 7 ++++---
+ 5 files changed, 15 insertions(+), 8 deletions(-)
+ create mode 100644 changes/+conda-build.misc
+
+diff --git a/Makefile.am b/Makefile.am
+index ca18bd3..706bbfd 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -81,9 +81,6 @@ ACLOCAL_AMFLAGS = -Im4
+ 
+ noinst_HEADERS = $(src_headers)
+ 
+-ASDF_LIBS = $(FYAML_LIBS) $(ZLIB_LIBS) $(BZIP2_LIBS) $(LZ4_LIBS) $(STATGRAB_LIBS)
+-
+-
+ # libasdf library
+ #include .c and .h in SOURCES so that both appear in dist
+ lib_LTLIBRARIES = libasdf.la
+@@ -98,7 +95,7 @@ bin_PROGRAMS = asdf
+ asdf_SOURCES = src/main.c
+ asdf_CFLAGS = $(AM_CFLAGS) $(FYAML_CFLAGS) $(STATGRAB_CFLAGS) $(LZ4_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+ asdf_LDFLAGS = $(CODE_COVERAGE_LDFLAGS)
+-asdf_LDADD = libasdf.la $(ARGP_LIB) $(ASDF_LIBS)
++asdf_LDADD = libasdf.la $(ARGP_LIBS) $(ASDF_LIBS)
+ endif # ASDF_BUILD_TOOL
+ 
+ 
+diff --git a/changes/+conda-build.misc b/changes/+conda-build.misc
+new file mode 100644
+index 0000000..fd373d5
+--- /dev/null
++++ b/changes/+conda-build.misc
+@@ -0,0 +1 @@
++Added some build fixes that improve building and running the tests in Conda environments.
+diff --git a/configure.ac b/configure.ac
+index 1102b4b..77232a6 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -262,10 +262,13 @@ AS_IF([test "x$asdf_build_tool" = "xyes"], [
+ 
+ # Shouldn't be needed with glibc but is if we're using the homebrew package, e.g.
+   AC_CHECK_LIB([argp], [argp_parse], [
+-    AC_SUBST([ARGP_LIB], [-largp])
++    AC_SUBST([ARGP_LIBS], [-largp])
+   ])
+ ])
+ 
++ASDF_LIBS="$FYAML_LIBS $ZLIB_LIBS $BZIP2_LIBS $LZ4_LIBS $STATGRAB_LIBS"
++AC_SUBST([ASDF_LIBS])
++
+ # ------ Optional features ---------------------------------------------------
+ 
+ AC_ARG_WITH([gwcs],
+diff --git a/src/compression/compression.c b/src/compression/compression.c
+index b9f513e..a28f0a7 100644
+--- a/src/compression/compression.c
++++ b/src/compression/compression.c
+@@ -25,6 +25,11 @@
+ #include <sys/ioctl.h>
+ #include <sys/poll.h>
+ #include <sys/syscall.h>
++
++#ifndef UFFD_USER_MODE_ONLY
++#pragma message "warning: UFFD_USER_MODE_ONLY missing"
++#define UFFD_USER_MODE_ONLY 0
++#endif
+ #endif
+ 
+ 
+diff --git a/tests/Makefile.am b/tests/Makefile.am
+index 64c1dc9..e6e265d 100644
+--- a/tests/Makefile.am
++++ b/tests/Makefile.am
+@@ -50,7 +50,7 @@ unit_test_cflags += -DMUNIT_NO_FORK
+ endif
+ 
+ unit_test_ldflags = $(CODE_COVERAGE_LDFLAGS)
+-unit_test_ldadd = $(top_builddir)/libasdf.la libmunit.a $(LZ4_LIBS) $(STATGRAB_LIBS)
++unit_test_ldadd = $(top_builddir)/libasdf.la libmunit.a $(ASDF_LIBS)
+ 
+ # Unit tests
+ check_LIBRARIES = libmunit.a
+@@ -191,7 +191,7 @@ $(cpp_header_test): $(asdf_public_headers) $(srcdir)/scripts/generate_test_cpp_h
+ 
+ test-cpp-headers$(EXEEXT): $(cpp_header_test) $(top_builddir)/libasdf.la
+ 	$(AM_V_at)$(LIBTOOL) --mode=link $(CXX) -std=c++17 -I$(top_srcdir)/include \
+-	    $(ASDF_LDFLAGS) $(cpp_header_test) $(top_builddir)/libasdf.la \
++	    $(ASDF_LDFLAGS) $(cpp_header_test) $(top_builddir)/libasdf.la $(ASDF_LIBS) \
+ 	    -o $@ $(QUIET_OUT)
+ 
+ TESTS += test-cpp-headers
+@@ -211,7 +211,8 @@ $(DOC_EXAMPLES_DIR)/test-doc-examples.sh: $(top_srcdir)/README.rst $(srcdir)/scr
+ 	$(AM_V_at)for f in $(DOC_EXAMPLES_DIR)/*.c; do \
+ 	    exe=$${f%.c}; \
+ 	    $(LIBTOOL) --mode=link $(CC) $(ASDF_CFLAGS) -I$(top_srcdir)/include \
+-	      $(ASDF_LDFLAGS) $$f $(top_builddir)/libasdf.la -o $$exe $(QUIET_OUT); \
++	      $(ASDF_LDFLAGS) $$f $(top_builddir)/libasdf.la $(ASDF_LIBS) \
++	      -o $$exe $(QUIET_OUT); \
+ 	done
+ 
+ endif
+-- 
+2.51.2
+
