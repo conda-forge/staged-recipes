@@ -1,0 +1,352 @@
+{% set name = "stdhep" %}
+{% set version = "5.6.1" %}
+
+package:
+  # Have top level name be unique from any outputs
+  # c.f. https://github.com/conda-forge/conda-forge.github.io/blob/abfc33db28c35e9a8f6b719d0021768f0d5d06be/docs/maintainer/knowledge_base.md?plain=1#L1749
+  name: {{ name }}-split
+  version: {{ version }}
+
+source:
+  - url: https://github.com/hep-packaging-coordination/mg5amcnlo-release-mirror/releases/download/3.5.7/MG5_aMC_v3.5.7.tar.gz
+    sha256: ca3e027f078438318bd4143a102aebc2d51358f537b5d52bbc574fe49a6a901e
+    patches:
+      # Remove includes of stdhep_arch and arch_mcfio and direct includes of paths under /usr/
+      - remove-usr-includes.patch
+      # Enable extended-source with '-ffixed-line-length-none' for long lines
+      # c.f. https://gcc.gnu.org/onlinedocs/gfortran/Fortran-Dialect-Options.html#index-ffixed-line-length-n
+      - add-ffixed-line-length-none-to-FFLAGS.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ name }}
+
+    build:
+      skip: true  # [win]
+      run_exports:
+        - {{ pin_subpackage('stdhep', max_pin='x.x') }}
+      script:
+        - cd vendor/StdHEP/
+
+        # macOS fixes
+        # FIXME: There should be a better way to specify the '-fno-second-underscore' flag
+        - sed -i 's/ffixed-line-length-none/ffixed-line-length-none -fno-second-underscore/g' makefile  # [osx]
+        # clang doesn't know about -soname, but instead used -install_name
+        - find . -type f -exec grep -l "Wl,-soname," {} + | xargs sed -i 's|soname,|install_name,@rpath/|g'  # [osx]
+        - sed -i 's|(cd src/stdhep; $(MAKE) $(DMAKE) all) > log.stdhep.$$$$ 2>&1|cd src/stdhep; $(MAKE) $(DMAKE) all|g' makefile  # [osx]
+
+        - make BUILD_SHARED="true" SHEXT='so' SHX='_s' all --jobs=$CPU_COUNT  # [linux]
+        - make BUILD_SHARED="true" SHEXT='dylib' SHX='_s' all --jobs=$CPU_COUNT  # [osx]
+
+        # Install
+        # Note: Need to cp not mv the header files as they will still be needed
+        # by the static library build
+        - cp lib/lib*$SHLIB_EXT $PREFIX/lib/
+        - mkdir -p $PREFIX/include/stdhep/mcfio
+        - mkdir -p $PREFIX/include/stdhep/display/spin
+        - mkdir -p $PREFIX/include/stdhep/display/util
+        - cp src/inc/*.h $PREFIX/include/stdhep/
+        - cp src/inc/*.inc $PREFIX/include/stdhep/
+        - cp mcfio/src/*.h* $PREFIX/include/stdhep/mcfio/
+        - cp mcfio/src/*.inc $PREFIX/include/stdhep/mcfio/
+        - cp src/display/*.h $PREFIX/include/stdhep/display/
+        - cp src/display/*.inc $PREFIX/include/stdhep/display/
+        - cp src/display/spin/*.h $PREFIX/include/stdhep/display/spin/
+        - cp src/display/util/*.h $PREFIX/include/stdhep/display/util/
+
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
+        - make
+        - sed  # [osx]
+
+    test:
+      source_files:
+        - vendor/StdHEP/example/listStdHep.F
+      requires:
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
+      commands:
+        - test -f $PREFIX/lib/libFmcfio${SHLIB_EXT}
+        - test -f $PREFIX/lib/libstdhep${SHLIB_EXT}
+        - test -f $PREFIX/lib/libstdhepC${SHLIB_EXT}
+
+        - test -f $PREFIX/include/stdhep/display/dispTree.h
+        - test -f $PREFIX/include/stdhep/display/drawEvent.h
+        - test -f $PREFIX/include/stdhep/display/help.h
+        - test -f $PREFIX/include/stdhep/display/listNodeHep.h
+        - test -f $PREFIX/include/stdhep/display/menu.h
+        - test -f $PREFIX/include/stdhep/display/panel.h
+        - test -f $PREFIX/include/stdhep/display/panelPara.h
+        - test -f $PREFIX/include/stdhep/display/panelSpace.h
+        - test -f $PREFIX/include/stdhep/display/phase.h
+        - test -f $PREFIX/include/stdhep/display/phaseP.h
+        - test -f $PREFIX/include/stdhep/display/pick.h
+        - test -f $PREFIX/include/stdhep/display/pixmaps.h
+        - test -f $PREFIX/include/stdhep/display/rotation.h
+        - test -f $PREFIX/include/stdhep/display/settings.h
+        - test -f $PREFIX/include/stdhep/display/space.h
+        - test -f $PREFIX/include/stdhep/display/spaceP.h
+        - test -f $PREFIX/include/stdhep/display/spin/Spin.h
+        - test -f $PREFIX/include/stdhep/display/spin/SpinP.h
+        - test -f $PREFIX/include/stdhep/display/spin/geometry.h
+        - test -f $PREFIX/include/stdhep/display/stdHepFiles.h
+        - test -f $PREFIX/include/stdhep/display/tree.h
+        - test -f $PREFIX/include/stdhep/display/treeP.h
+        - test -f $PREFIX/include/stdhep/display/util/DialogF.h
+        - test -f $PREFIX/include/stdhep/display/util/fileUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/fontsel.h
+        - test -f $PREFIX/include/stdhep/display/util/getfiles.h
+        - test -f $PREFIX/include/stdhep/display/util/help.h
+        - test -f $PREFIX/include/stdhep/display/util/misc.h
+        - test -f $PREFIX/include/stdhep/display/util/prefFile.h
+        - test -f $PREFIX/include/stdhep/display/util/printUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/psUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/stringUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/vmsParam.h
+        - test -f $PREFIX/include/stdhep/display/util/vmsUtils.h
+        - test -f $PREFIX/include/stdhep/hepeup.h
+        - test -f $PREFIX/include/stdhep/hepev4.h
+        - test -f $PREFIX/include/stdhep/heprup.h
+        - test -f $PREFIX/include/stdhep/mcfio/DialogF.h
+        - test -f $PREFIX/include/stdhep/mcfio/fileUtils.h
+        - test -f $PREFIX/include/stdhep/mcfio/getfiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/glo23.h
+        - test -f $PREFIX/include/stdhep/mcfio/glob22.h
+        - test -f $PREFIX/include/stdhep/mcfio/help.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseHelp.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainMenu.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainPanel.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainProgram.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseUtil1.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseUtil2.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldFiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldHelp.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldMenu.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBuildWindow.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuIOFiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuIOUtils.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_nTupleBuild.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_nTupleDescript.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_ntuBldDbinc.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_ntubld_db.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_xdr.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_xdr_Ntuple.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio.hh
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Block.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Dict.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Direct.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Sequential.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_UserDictionary.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Util1.h
+        - test -f $PREFIX/include/stdhep/mcfio/misc.h
+        - test -f $PREFIX/include/stdhep/stdcm1.h
+        - test -f $PREFIX/include/stdhep/stdcnt.h
+        - test -f $PREFIX/include/stdhep/stdevent.h
+        - test -f $PREFIX/include/stdhep/stdhd.h
+        - test -f $PREFIX/include/stdhep/stdhep.h
+        - test -f $PREFIX/include/stdhep/stdhep_mcfio.h
+        - test -f $PREFIX/include/stdhep/stdlun.h
+        - test -f $PREFIX/include/stdhep/stdtmp.h
+        - test -f $PREFIX/include/stdhep/stdver.h
+
+        - cd vendor/StdHEP/example/
+        - $FC listStdHep.F -o listStdHep $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        # - ./listStdHep
+        # - test -f listStdHep.lpt
+
+  - name: {{ name }}-static
+
+    build:
+      skip: true  # [win]
+      script:
+        - cd vendor/StdHEP/
+        # Need to clean to avoid interacting with the shared library build
+        - make realclean
+        - make all --jobs=$CPU_COUNT
+
+        # Install
+        - mv lib/lib*.a $PREFIX/lib/
+        - mkdir -p $PREFIX/include/stdhep/mcfio
+        - mkdir -p $PREFIX/include/stdhep/display/spin
+        - mkdir -p $PREFIX/include/stdhep/display/util
+        - mv src/inc/*.h $PREFIX/include/stdhep/
+        - mv src/inc/*.inc $PREFIX/include/stdhep/
+        - mv mcfio/src/*.h* $PREFIX/include/stdhep/mcfio/
+        - mv mcfio/src/*.inc $PREFIX/include/stdhep/mcfio/
+        - mv src/display/*.h $PREFIX/include/stdhep/display/
+        - mv src/display/*.inc $PREFIX/include/stdhep/display/
+        - mv src/display/spin/*.h $PREFIX/include/stdhep/display/spin/
+        - mv src/display/util/*.h $PREFIX/include/stdhep/display/util/
+
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
+        - make
+
+    test:
+      source_files:
+        - vendor/StdHEP/example/listStdHep.F
+        - vendor/StdHEP/example/listStdHepConv.F
+        - vendor/StdHEP/example/readPDG.F
+        - vendor/StdHEP/example/testCInOut.c
+        - vendor/StdHEP/example/testCInOut.sh
+        - vendor/StdHEP/example/testpdgtran.F
+        - vendor/StdHEP/example/testcsvpdg.F
+        - vendor/StdHEP/mass_width_2006.csv
+      requires:
+        - {{ compiler('fortran') }}
+        - {{ compiler('cxx') }}
+      commands:
+        - test -f $PREFIX/lib/libFmcfio.a
+        - test -f $PREFIX/lib/libstdhep.a
+        - test -f $PREFIX/lib/libstdhepC.a
+
+        - test -f $PREFIX/include/stdhep/display/dispTree.h
+        - test -f $PREFIX/include/stdhep/display/drawEvent.h
+        - test -f $PREFIX/include/stdhep/display/help.h
+        - test -f $PREFIX/include/stdhep/display/listNodeHep.h
+        - test -f $PREFIX/include/stdhep/display/menu.h
+        - test -f $PREFIX/include/stdhep/display/panel.h
+        - test -f $PREFIX/include/stdhep/display/panelPara.h
+        - test -f $PREFIX/include/stdhep/display/panelSpace.h
+        - test -f $PREFIX/include/stdhep/display/phase.h
+        - test -f $PREFIX/include/stdhep/display/phaseP.h
+        - test -f $PREFIX/include/stdhep/display/pick.h
+        - test -f $PREFIX/include/stdhep/display/pixmaps.h
+        - test -f $PREFIX/include/stdhep/display/rotation.h
+        - test -f $PREFIX/include/stdhep/display/settings.h
+        - test -f $PREFIX/include/stdhep/display/space.h
+        - test -f $PREFIX/include/stdhep/display/spaceP.h
+        - test -f $PREFIX/include/stdhep/display/spin/Spin.h
+        - test -f $PREFIX/include/stdhep/display/spin/SpinP.h
+        - test -f $PREFIX/include/stdhep/display/spin/geometry.h
+        - test -f $PREFIX/include/stdhep/display/stdHepFiles.h
+        - test -f $PREFIX/include/stdhep/display/tree.h
+        - test -f $PREFIX/include/stdhep/display/treeP.h
+        - test -f $PREFIX/include/stdhep/display/util/DialogF.h
+        - test -f $PREFIX/include/stdhep/display/util/fileUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/fontsel.h
+        - test -f $PREFIX/include/stdhep/display/util/getfiles.h
+        - test -f $PREFIX/include/stdhep/display/util/help.h
+        - test -f $PREFIX/include/stdhep/display/util/misc.h
+        - test -f $PREFIX/include/stdhep/display/util/prefFile.h
+        - test -f $PREFIX/include/stdhep/display/util/printUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/psUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/stringUtils.h
+        - test -f $PREFIX/include/stdhep/display/util/vmsParam.h
+        - test -f $PREFIX/include/stdhep/display/util/vmsUtils.h
+        - test -f $PREFIX/include/stdhep/hepeup.h
+        - test -f $PREFIX/include/stdhep/hepev4.h
+        - test -f $PREFIX/include/stdhep/heprup.h
+        - test -f $PREFIX/include/stdhep/mcfio/DialogF.h
+        - test -f $PREFIX/include/stdhep/mcfio/fileUtils.h
+        - test -f $PREFIX/include/stdhep/mcfio/getfiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/glo23.h
+        - test -f $PREFIX/include/stdhep/mcfio/glob22.h
+        - test -f $PREFIX/include/stdhep/mcfio/help.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseHelp.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainMenu.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainPanel.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseMainProgram.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseUtil1.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_BrowseUtil2.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldFiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldHelp.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBldMenu.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuBuildWindow.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuIOFiles.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_NTuIOUtils.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_nTupleBuild.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_nTupleDescript.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_ntuBldDbinc.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_ntubld_db.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_xdr.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcf_xdr_Ntuple.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio.hh
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Block.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Dict.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Direct.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Sequential.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_UserDictionary.h
+        - test -f $PREFIX/include/stdhep/mcfio/mcfio_Util1.h
+        - test -f $PREFIX/include/stdhep/mcfio/misc.h
+        - test -f $PREFIX/include/stdhep/stdcm1.h
+        - test -f $PREFIX/include/stdhep/stdcnt.h
+        - test -f $PREFIX/include/stdhep/stdevent.h
+        - test -f $PREFIX/include/stdhep/stdhd.h
+        - test -f $PREFIX/include/stdhep/stdhep.h
+        - test -f $PREFIX/include/stdhep/stdhep_mcfio.h
+        - test -f $PREFIX/include/stdhep/stdlun.h
+        - test -f $PREFIX/include/stdhep/stdtmp.h
+        - test -f $PREFIX/include/stdhep/stdver.h
+
+        - cd vendor/StdHEP/example/
+        - rm -f *.lpt
+        - $FC listStdHep.F -o listStdHep $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        - ./listStdHep
+        - test -f listStdHep.lpt
+
+        - $FC listStdHepConv.F -o listStdHepConv $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        - ./listStdHepConv
+        - test -f listStdHepConv.lpt
+
+        - $FC readPDG.F -o readPDG $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        - ./readPDG
+        - test -f readPDG.lpt
+
+        - $CC $CFLAGS testCInOut.c -o testCInOut -I$PREFIX/include/stdhep -I$PREFIX/include/stdhep/mcfio/ $LDFLAGS -lstdhepC -lFmcfio
+        - bash testCInOut.sh
+
+        - $FC testpdgtran.F -o testpdg $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        - ./testpdg
+        - test -f testpdgtran.lpt
+
+        - $FC testcsvpdg.F -o testcsvpdg $FFLAGS -std=legacy -I$PREFIX/include/stdhep $LDFLAGS -lstdhep
+        - cp $SRC_DIR/vendor/StdHEP/mass_width_2006.csv .
+        - export PDG_MASS_TBL=./mass_width_2006.csv
+        - ./testcsvpdg
+        - test -f testcsvpdg.lpt
+
+about:
+  home: https://github.com/mg5amcnlo/mg5amcnlo/tree/3.x/vendor/StdHEP
+  summary: 'StdHEP: Standard HEP'
+  description: |
+    STDHEP contains a set of translation routines which convert
+    Herwig, Jetset, Isajet, or QQ events to and from the standard
+    HEP event format. STDHEP also contains utility routines
+    to work with the HEPEVT common block and a set of I/O routines.
+    The HEPEVT common block allows 4000 particles per event.
+
+    This release of StdHep contains all necessary files to build the
+    StdHep and mcfio libraries. You will need Isajet, Herwig, Pythia,
+    and/or QQ to build anything besides the "standalone" examples.
+
+    StdHep C++ code is in CLHEP.
+
+    StdHep uses include files from the event generators.
+    These include files are subject to change. Also, the generator
+    particle numbering is subject to change. Thus, we cannot
+    guarantee that StdHep will work with releases of the generators
+    other than those it was built with.
+
+    StdHEP was authored by Lynn Garren.
+  # stdhep source only exists in the MG5_aMC@NLO repo and so has the same license
+  # modified University of Illinois/NCSA license
+  license: LicenseRef-NCSA
+  license_family: OTHER
+  license_file: LICENSE
+  dev_url: https://github.com/mg5amcnlo/mg5amcnlo/tree/3.x/vendor/StdHEP
+
+extra:
+  feedstock-name: stdhep
+  recipe-maintainers:
+    - matthewfeickert
