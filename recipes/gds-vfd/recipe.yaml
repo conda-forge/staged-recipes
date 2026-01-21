@@ -1,0 +1,65 @@
+context:
+  name: gds-vfd
+  gds_vfd_version: "1.0.2"
+  cuda_version: "12.6" 
+
+package:
+  name: ${{ name }}
+  version: ${{ gds_vfd_version }}
+
+source:
+  url: https://github.com/hpc-io/vfd-gds/archive/refs/tags/${{ gds_vfd_version }}.tar.gz
+  sha256: f7df64ff62e057b525bc30ed6534f9c0752e52bd58b65f7c147878d6c68105ae
+  patches:
+    - fix-cmake-min-version.patch
+    - fix-handle-register.patch
+    - fix-cbsize-redef.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip:
+    - win
+    - osx
+  dynamic_linking:
+    missing_dso_allowlist:
+      - libc.so.6
+      - ld-linux-aarch64.so.1
+    overdepending_behavior: ignore
+
+requirements:
+  host:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.18
+    - cuda-toolkit ${{ cuda_version }}.*
+    - hdf5 >=1.14.0
+    - libcufile-dev
+    - make
+  run:
+    - cuda-toolkit ${{ cuda_version }}.*
+    - hdf5 >=1.14.0
+    - libcufile
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('c') }}
+
+tests:
+  - script:
+    - test -f $PREFIX/lib/hdf5/plugin/libhdf5_vfd_gds.so
+
+about:
+  homepage: https://github.com/hpc-io/vfd-gds
+  license: BSD-3-Clause
+  license_file: COPYING
+  license_family: BSD
+  summary: HDF5 Virtual File Driver (VFD) plugin for NVIDIA GPUDirect Storage (GDS)
+  description: |
+    This plugin enables direct GPU-to-storage I/O in HDF5 applications using NVIDIA's GDS API,
+    bypassing CPU buffers for improved performance in GPU workflows.
+  documentation: https://docs.nvidia.com/gpudirect-storage/user-guide/index.html
+  repository: https://github.com/hpc-io/vfd-gds
+
+extra:
+  recipe-maintainers:
+    - j34ni
