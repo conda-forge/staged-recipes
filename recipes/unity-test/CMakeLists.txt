@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.12)
+project(cmake_build_test)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+find_package(unity REQUIRED)
+add_executable(${PROJECT_NAME} test.c)
+target_link_libraries(${PROJECT_NAME} unity::framework)
