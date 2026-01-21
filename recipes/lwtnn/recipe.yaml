@@ -1,0 +1,159 @@
+context:
+  version: "2.14.1"
+
+package:
+  name: lwtnn
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lwtnn/lwtnn/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e0ec31f7129014324b91d2b7a6380bf1e9c571fa4b39577112192255d4fa83a9
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX="${PREFIX}" -S . -B build
+    - cmake build -LH
+    - cmake --build build --parallel "${CPU_COUNT}"
+    - cmake --install build
+    - ctest --test-dir build --output-on-failure
+    # c.f. https://github.com/lwtnn/lwtnn/issues/182
+    - rm "${PREFIX}"/lib/liblwtnn-stat.a
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage("lwtnn", upper_bound="x.x") }}
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    # FIXME: Patch lwtnn's CMakeLists.txt
+    # CMake Warning (dev) at CMakeLists.txt:82 (find_package):
+    #   Policy CMP0167 is not set: The FindBoost module is removed.  Run "cmake
+    #   --help-policy CMP0167" for policy details.  Use the cmake_policy command to
+    #   set the policy and suppress this warning.
+    - cmake
+    - make
+  host:
+    - libboost-devel
+    - eigen
+
+tests:
+  - package_contents:
+      strict: true
+      include:
+        - lwtnn/lightweight_network_config.hh
+        - lwtnn/InputPreprocessor.hh
+        - lwtnn/Source.hh
+        - lwtnn/lightweight_nn_streamers.hh
+        - lwtnn/NanReplacer.hh
+        - lwtnn/NNLayerConfig.hh
+        - lwtnn/Graph.hh
+        - lwtnn/Stack.hh
+        - lwtnn/Exceptions.hh
+        - lwtnn/LightweightNeuralNetwork.hh
+        - lwtnn/LightweightGraph.hh
+        - lwtnn/generic/Graph.tcc
+        - lwtnn/generic/FastInputPreprocessor.hh
+        - lwtnn/generic/eigen_typedefs.hh
+        - lwtnn/generic/InputPreprocessor.tcc
+        - lwtnn/generic/LightweightGraph.tcc
+        - lwtnn/generic/InputPreprocessor.hh
+        - lwtnn/generic/Source.hh
+        - lwtnn/generic/Graph.hh
+        - lwtnn/generic/Stack.hh
+        - lwtnn/generic/LightweightNeuralNetwork.hh
+        - lwtnn/generic/FastGraph.hh
+        - lwtnn/generic/FastGraph.tcc
+        - lwtnn/generic/LightweightGraph.hh
+        - lwtnn/generic/LightweightNeuralNetwork.tcc
+        - lwtnn/generic/FastInputPreprocessor.tcc
+        - lwtnn/generic/Stack.tcc
+        - lwtnn/InputOrder.hh
+        - lwtnn/parse_json.hh
+      lib:
+        - liblwtnn
+      bin:
+        - lwtnn-benchmark-rnn
+        - lwtnn-dump-config
+        - lwtnn-test-arbitrary-net
+        - lwtnn-test-graph
+        - lwtnn-test-lightweight-graph
+        - lwtnn-test-rnn
+        - lwtnn-test-fastgraph
+      files:
+        - converters/keras_layer_converters_common.py
+        - converters/keras_v1_layer_converters.py
+        - converters/keras_v2_layer_converters.py
+        - converters/keras2json.py
+        - converters/sequential2graph.py
+        - converters/kerasfunc2json.py
+        - converters/sklearn2json.py
+        - cmake/lwtnnConfig-targets.cmake
+        - cmake/lwtnnConfig-targets-release.cmake
+        - cmake/lwtnnConfig.cmake
+        - cmake/lwtnnConfig-version.cmake
+        # tests
+        - etc/conda/test-files/lwtnn/0/tests/*
+        - etc/conda/test-files/lwtnn/0/scripts/*
+
+  - files:
+      source:
+        - tests/data
+        - tests/test-highway.sh
+        - tests/test-GRU.sh
+        - tests/test-BatchNorm.sh
+        - tests/test-dense_dropout_functional.sh
+        - tests/test-lstm_functional.sh
+        - tests/test-merge-graph.sh
+        - tests/test-time-distributed-dense.sh
+        - tests/test-gru-sequence.sh
+        - tests/check-conversion.sh
+        - tests/test-leaky-relu.sh
+        - tests/test-elu.sh
+        - tests/test-unsplit-model.sh
+        - tests/test-SimpleRNN.sh
+        - tests/test-conv1d_functional.sh
+        - tests/reg-test.py
+        - scripts/lwtnn-split-keras-network.py
+
+    requirements:
+      run:
+        - sed
+        - wget
+        - tar
+        - h5py >=2.9.0
+
+    script:
+      # Remove hardcoded path to bin and converters
+      - find ./tests/ -type f -exec sed -i 's|TEST=\./bin/|TEST=|g' {} +
+      - find ./tests/ -type f -exec sed -i 's|CONVERT=\./convert|CONVERT=$CONDA_PREFIX/converters|g' {} +
+
+      - bash ./tests/test-highway.sh
+      - bash ./tests/test-GRU.sh
+      - bash ./tests/test-BatchNorm.sh
+      - bash ./tests/test-dense_dropout_functional.sh
+      - bash ./tests/test-lstm_functional.sh
+      - bash ./tests/test-merge-graph.sh
+      - bash ./tests/test-time-distributed-dense.sh
+      - bash ./tests/test-gru-sequence.sh
+      - bash ./tests/check-conversion.sh
+      - bash ./tests/test-leaky-relu.sh
+      - bash ./tests/test-elu.sh
+      - bash ./tests/test-unsplit-model.sh
+      - bash ./tests/test-SimpleRNN.sh
+      - bash ./tests/test-conv1d_functional.sh
+
+about:
+  homepage: https://github.com/lwtnn/lwtnn
+  summary: 'Lightweight Trained Neural Network'
+  license: MIT
+  # c.f. https://github.com/lwtnn/lwtnn/pull/180
+  license_file: LICENCE
+  documentation: https://github.com/lwtnn/lwtnn/wiki
+  repository: https://github.com/lwtnn/lwtnn
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
