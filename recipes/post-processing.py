@@ -39,6 +39,8 @@ def custom_process(meta_dict: Dict[str, Any]) -> Dict[str, Any]:
         The processed meta.yaml content.
     """
     meta_dict["extra"]["recipe-maintainers"] = ["ChiahsinChu"]
+    meta_dict["requirements"]["host"][0] = "python 3.10"
+    meta_dict["test"]["requires"].append("python 3.10")
     return meta_dict
 
 
@@ -200,6 +202,7 @@ def main() -> None:
     shutil.copyfile(file_path, file_path.with_suffix(".yaml.bak"))
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(s)
+        f.write("\n")
 
 
 if __name__ == "__main__":
