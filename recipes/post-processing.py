@@ -38,10 +38,7 @@ def custom_process(meta_dict: Dict[str, Any]) -> Dict[str, Any]:
     Dict[str, Any]
         The processed meta.yaml content.
     """
-    # Example: Add a custom field under the 'about' section
-    # if "about" not in meta_dict:
-    #     meta_dict["about"] = {}
-    # meta_dict["about"]["custom_field"] = "custom_value"
+    meta_dict["extra"]["recipe-maintainers"] = ["ChiahsinChu"]
     return meta_dict
 
 
