@@ -1,0 +1,1626 @@
+diff --git a/include/meson.build b/include/meson.build
+new file mode 100644
+index 00000000..e97c447a
+--- /dev/null
++++ b/include/meson.build
+@@ -0,0 +1,23 @@
++conf_data = configuration_data()
++conf_data.set('PROJECT_VERSION', meson.project_version())
++al_defs_h = configure_file(input: 'al_defs.h.in', output: 'al_defs.h', configuration: conf_data)
++
++public_headers = files(
++  'access_layer_base_plugin.h',
++  'access_layer_plugin.h',
++  'access_layer_plugin_manager.h',
++  'al_backend.h',
++  'al_const.h',
++  'al_context.h',
++  'al_exception.h',
++  'al_lowlevel.h',
++  'data_interpolation.h',
++  'extended_access_layer_plugin.h',
++  'provenance_plugin_feature.h',
++  'readback_plugin_feature.h',
++  'uri_parser.h',
++) + al_defs_h
++
++# Include both source include directory and build include directory
++public_includes = include_directories('.')
++install_headers(public_headers, subdir: 'al_core')
+\ No newline at end of file
+diff --git a/meson.build b/meson.build
+new file mode 100644
+index 00000000..36bcb27c
+--- /dev/null
++++ b/meson.build
+@@ -0,0 +1,79 @@
++project(
++  'imas-core',
++  ['c', 'cpp'],
++  license: 'LGPL-3.0-or-later',
++  meson_version: '>=0.60.0',
++  version: run_command('setuptools-scm', '--strip-dev', check: true).stdout().strip(),
++  default_options: [
++    'c_std=c17',
++    'cpp_std=c++17',
++    'buildtype=debugoptimized',
++  ],
++)
++
++# =============================================================================
++# Compiler and System Setup
++# =============================================================================
++cc = meson.get_compiler('c')
++cxx = meson.get_compiler('cpp')
++host_system = host_machine.system()
++host_cpu = host_machine.cpu_family()
++
++# =============================================================================
++# Access Layer core (al-core) Library
++# =============================================================================
++if get_option('al_core')
++  subdir('include')
++  subdir('src')
++else
++  if get_option('al_dummy_exe')
++    al_core_dep = dependency('al-core', required: true)
++  endif
++endif
++
++# =============================================================================
++# Dummy Executable for version printing
++# =============================================================================
++if get_option('al_dummy_exe')
++  executable(
++    'imas_print_version',
++    'tests/imas_print_version.cpp',
++    dependencies: [al_core_dep],
++    install: true,
++  )
++endif
++
++# =============================================================================
++# Python Bindings (imas-core)
++# =============================================================================
++if get_option('python_bindings')
++  subdir('python')
++endif
++
++#
++# MDSplus Models
++#
++if get_option('mdsplus_models')
++  warning('MDSplus models are not yet supported in Meson build system.')
++  # subdir('models/mdsplus')
++endif
++
++# =============================================================================
++# Summary
++# =============================================================================
++if get_option('al_core')
++  summary(
++    {
++      'HDF5': get_option('al_backend_hdf5'),
++      'UDA': get_option('al_backend_uda'),
++      'MDSplus': get_option('al_backend_mdsplus'),
++    },
++    section: 'Backends',
++  )
++  summary(
++    {
++      'C++ Arguments': al_core_cpp_args,
++    },
++    section: 'Compiler Arguments',
++  )
++endif
+\ No newline at end of file
+diff --git a/meson_options.txt b/meson_options.txt
+new file mode 100644
+index 00000000..fc649b41
+--- /dev/null
++++ b/meson_options.txt
+@@ -0,0 +1,56 @@
++# =============================================================================
++# Libraries to build
++# =============================================================================
++
++option(
++       'al_core',
++       type: 'boolean',
++       value: true,
++       description: 'Build internal core library, or use external installation',
++)
++
++option(
++       'al_dummy_exe',
++       type: 'boolean',
++       value: true,
++       description: 'Build dummy executable that prints version information.',
++)
++
++option(
++       'python_bindings',
++       type: 'boolean',
++       value: true,
++       description: 'Build Python wrapper',
++)
++
++option(
++       'mdsplus_models',
++       type: 'boolean',
++       value: false,
++       description: 'Build MDSplus models (requires MDSplus installation)',
++)
++
++# =============================================================================
++# Backends Options
++# =============================================================================
++
++option(
++       'al_backend_hdf5',
++       type: 'boolean',
++       value: true,
++       description: 'Enable HDF5 backend',
++)
++
++option(
++       'al_backend_uda',
++       type: 'boolean',
++       value: true,
++       description: 'Enable UDA backend',
++)
++
++option(
++       'al_backend_mdsplus',
++       type: 'boolean',
++       value: false,
++       description: 'Enable MDSplus backend',
++)
+\ No newline at end of file
+diff --git a/src/hdf5/meson.build b/src/hdf5/meson.build
+new file mode 100644
+index 00000000..7bd9d167
+--- /dev/null
++++ b/src/hdf5/meson.build
+@@ -0,0 +1,20 @@
++hdf5_backend_sources = files(
++  'hdf5_backend.cpp',
++  'hdf5_backend_factory.cpp',
++  'hdf5_dataset_handler.cpp',
++  'hdf5_events_handler.cpp',
++  'hdf5_hs_selection_reader.cpp',
++  'hdf5_hs_selection_writer.cpp',
++  'hdf5_reader.cpp',
++  'hdf5_utils.cpp',
++  'hdf5_writer.cpp',
++)
++
++private_includes += [include_directories('.')]
++
++core_deps += dependency('hdf5', language: 'c', required: true)
++
++al_core_cpp_args += '-DHDF5'
++
++# Add HDF5 backend sources
++al_core_sources += hdf5_backend_sources
+\ No newline at end of file
+diff --git a/src/meson.build b/src/meson.build
+new file mode 100644
+index 00000000..68bb1c3a
+--- /dev/null
++++ b/src/meson.build
+@@ -0,0 +1,89 @@
++# AL-Core Library
++
++al_core_sources = files(
++  'access_layer_plugin_manager.cpp',
++  'al_backend.cpp',
++  'al_const.cpp',
++  'al_context.cpp',
++  'al_exception.cpp',
++  'al_lowlevel.cpp',
++  'ascii_backend.cpp',
++  'data_interpolation.cpp',
++  'flexbuffers_backend.cpp',
++  'memory_backend.cpp',
++  'no_backend.cpp',
++)
++
++private_includes = [include_directories('.')]
++
++# Enable ASCII backend
++al_core_cpp_args = [
++  '-DASCII',
++]
++
++# =============================================================================
++# Dependencies
++# =============================================================================
++boost_dep = dependency('boost', modules: ['filesystem'], required: false)
++if not boost_dep.found()
++  boost_dep = cxx.find_library('boost_filesystem', required: true)
++endif
++
++core_deps = [
++  boost_dep,
++]
++
++if host_system == 'windows'
++  core_deps += [
++    dependency('threads', required: true),
++    dependency('dlfcn-win32', required: true),
++  ]
++endif
++
++# =============================================================================
++# Add Optional Backends
++# =============================================================================
++if get_option('al_backend_mdsplus')
++  warning('MDSplus backend is not yet supported in Meson build system.')
++  # subdir('mdsplus')
++endif
++
++if get_option('al_backend_hdf5')
++  subdir('hdf5')
++endif
++
++if get_option('al_backend_uda')
++  subdir('uda')
++endif
++
++# =============================================================================
++# Library
++# =============================================================================
++al_core = library(
++  'al',
++  al_core_sources,
++  cpp_args: al_core_cpp_args,
++  include_directories: private_includes + public_includes,
++  dependencies: core_deps,
++  version: meson.project_version(),
++  install: true,
++)
++
++# Declare dependency for other libraries to use
++al_core_dep = declare_dependency(
++  link_with: al_core,
++  include_directories: public_includes,
++)
++
++# =============================================================================
++# Package Configuration
++# =============================================================================
++pkg = import('pkgconfig')
++pkg.generate(
++  libraries: al_core,
++  subdirs: ['al_core'],
++  name: 'al-core',
++  description: 'IMAS Access Layer core libraries for C',
++  url: 'https://github.com/iterorganization/IMAS-Core',
++  version: meson.project_version(),
++)
+\ No newline at end of file
+diff --git a/src/uda/meson.build b/src/uda/meson.build
+new file mode 100644
+index 00000000..61a53e43
+--- /dev/null
++++ b/src/uda/meson.build
+@@ -0,0 +1,42 @@
++uda_backend_sources = files(
++  'pugixml.cpp',
++  'uda_backend.cpp',
++  'uda_cache.cpp',
++  'uda_path.cpp',
++  'uda_xml.cpp',
++)
++
++private_includes += [include_directories('.')]
++
++uda_client_dep = dependency('uda-client', required: false)
++uda_cpp_dep = dependency('uda-cpp', required: false)
++
++uda_client_dep = dependency('uda-fat-client', required: false)
++uda_fat_cpp_dep = dependency('uda-fat-cpp', required: false)
++
++if not uda_cpp_dep.found() and not uda_fat_cpp_dep.found()
++  error('UDA backend requested but UDA dependency not found.')
++endif
++
++if uda_cpp_dep.found()
++  core_deps += [uda_cpp_dep, uda_client_dep]
++  if uda_cpp_dep.version() >= '2.7.6'
++    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++  else
++    al_core_cpp_args += ['-DUDA']
++  endif
++endif
++
++if uda_fat_cpp_dep.found()
++  core_deps += [uda_fat_cpp_dep, uda_client_dep]
++  if uda_fat_cpp_dep.version() >= '2.7.6'
++    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++  else
++    al_core_cpp_args += ['-DUDA']
++  endif
++endif
++
++# Add UDA backend sources if UDA dependency is found
++if uda_cpp_dep.found() or uda_fat_cpp_dep.found()
++  al_core_sources += uda_backend_sources
++endif
+\ No newline at end of file
+
+From a83d76a56098b55b16f418d513b4efe3d2ab1ed1 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 01:56:10 +0100
+Subject: [PATCH 02/21] Update Meson version requirement and improve section
+ formatting in meson.build
+
+---
+ meson.build | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 36bcb27c..48de4a6d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2,7 +2,7 @@ project(
+   'imas-core',
+   ['c', 'cpp'],
+   license: 'LGPL-3.0-or-later',
+-  meson_version: '>=0.60.0',
++  meson_version: '>=1.1.0',
+   version: run_command('setuptools-scm', '--strip-dev', check: true).stdout().strip(),
+   default_options: [
+     'c_std=c17',
+@@ -50,9 +50,9 @@ if get_option('python_bindings')
+   subdir('python')
+ endif
+
+-#
++# ============================================================================
+ # MDSplus Models
+-#
++# ============================================================================
+ if get_option('mdsplus_models')
+   warning('MDSplus models are not yet supported in Meson build system.')
+   # subdir('models/mdsplus')
+
+From fb947cb401a46e99fcd257b8385f1e6a9aa4a2aa Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 10:06:05 +0100
+Subject: [PATCH 03/21] Refactor Meson build configuration to use external
+ al-core installation and add option for building tests
+
+---
+ meson.build       | 24 +++++++++++++++++++++---
+ meson_options.txt |  7 +++++++
+ 2 files changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 48de4a6d..06c00c84 100644
+--- a/meson.build
++++ b/meson.build
+@@ -26,9 +26,8 @@ if get_option('al_core')
+   subdir('include')
+   subdir('src')
+ else
+-  if get_option('al_dummy_exe')
+-    al_core_dep = dependency('al-core', required: true)
+-  endif
++  # Use external al-core installation
++  al_core_dep = dependency('al-core', required: true)
+ endif
+
+ # =============================================================================
+@@ -43,6 +42,13 @@ if get_option('al_dummy_exe')
+   )
+ endif
+
++# ============================================================================
++# Test Low-level C API (al-core)
++# ============================================================================
++if get_option('al_test')
++  # subdir('tests')  # TODO: fix test sources
++endif
++
+ # =============================================================================
+ # Python Bindings (imas-core)
+ # =============================================================================
+@@ -76,4 +82,16 @@ if get_option('al_core')
+     },
+     section: 'Compiler Arguments',
+   )
++endif
++
++if get_option('python_bindings')
++  summary(
++    {
++      'Python Version': py.language_version(),
++      'Python Path': py.full_path(),
++      'Installed in': join_paths(py.get_install_dir(), 'imas_core'),
++      'Cython Arguments': cython_args,
++    },
++    section: 'Python Bindings',
++  )
+ endif
+\ No newline at end of file
+diff --git a/meson_options.txt b/meson_options.txt
+index fc649b41..e5aee591 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -16,6 +16,13 @@ option(
+        description: 'Build dummy executable that prints version information.',
+ )
+
++option(
++       'al_test',
++       type: 'boolean',
++       value: false,
++       description: 'Build tests for al-core library',
++)
++
+ option(
+        'python_bindings',
+        type: 'boolean',
+
+From c7de00ba540c32e05a35d16ef112e74a1d50437e Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 10:06:54 +0100
+Subject: [PATCH 04/21] Add Meson build configuration for Python extension
+ module
+
+---
+ python/meson.build | 49 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+ create mode 100644 python/meson.build
+
+diff --git a/python/meson.build b/python/meson.build
+new file mode 100644
+index 00000000..aa076cab
+--- /dev/null
++++ b/python/meson.build
+@@ -0,0 +1,49 @@
++add_languages('cython', native: false)
++
++# =============================================================================
++# Modules and Dependencies
++# =============================================================================
++fs = import('fs')
++py = import('python').find_installation(pure: false)
++py_dep = py.dependency()
++numpy_dep = dependency('numpy')
++
++cython_args = ['--annotate']
++
++# =============================================================================
++# Source files
++# =============================================================================
++py_files = files(
++  'imas_core/__init__.py',
++  'imas_core/exception.py',
++  'imas_core/imasdef.py',
++)
++pyx_files = files(
++  'imas_core/_al_lowlevel.pyx',
++  'imas_core/al_defs.pyx',
++)
++pxd_files = files(
++  'imas_core/al_defs.pxd',
++  'imas_core/al_lowlevel_interface.pxd',
++)
++
++# =============================================================================
++# Build Python Extension Module
++# =============================================================================
++# compile cython
++foreach pyx_file : pyx_files
++  py.extension_module(
++    fs.stem(pyx_file),
++    pyx_file,
++    cython_args: cython_args,
++    dependencies: [al_core_dep, py_dep, numpy_dep],
++    install: true,
++    subdir: 'imas_core',
++  )
++endforeach
++
++# Install pure python files
++py.install_sources(py_files + pxd_files, subdir: 'imas_core')
++
++# =============================================================================
++# Version File
+\ No newline at end of file
+
+From 58407e0e00ec6e758232cf55b926d12f878a2a81 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 10:07:05 +0100
+Subject: [PATCH 05/21] Add Meson build configuration for test executables
+
+---
+ tests/meson.build | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+ create mode 100644 tests/meson.build
+
+diff --git a/tests/meson.build b/tests/meson.build
+new file mode 100644
+index 00000000..1aece80d
+--- /dev/null
++++ b/tests/meson.build
+@@ -0,0 +1,23 @@
++# Test executables for AL-Core
++
++# =============================================================================
++# Test executables
++# =============================================================================
++
++# C++ test executable
++executable(
++  'testlowlevel',
++  'testlowlevel.cpp',
++  dependencies: [al_core_dep],
++  cpp_args: ['-DNOIMPLIB'],
++  install: true,
++)
++
++# C test executable
++executable(
++  'testlowlevel_c',
++  'testlowlevel_c.c',
++  dependencies: [al_core_dep],
++  c_args: ['-DNOIMPLIB'],
++  install: true,
++)
+\ No newline at end of file
+
+From cf45462e5a8be0225f37d4ec60a729d8f77bd7b3 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 10:57:20 +0100
+Subject: [PATCH 06/21] Fix version comparison syntax in Meson build
+ configuration for UDA dependencies
+
+---
+ src/uda/meson.build | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/uda/meson.build b/src/uda/meson.build
+index 61a53e43..33dab133 100644
+--- a/src/uda/meson.build
++++ b/src/uda/meson.build
+@@ -20,7 +20,7 @@ endif
+
+ if uda_cpp_dep.found()
+   core_deps += [uda_cpp_dep, uda_client_dep]
+-  if uda_cpp_dep.version() >= '2.7.6'
++  if uda_cpp_dep.version().version_compare('>=2.7.6')
+     al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+   else
+     al_core_cpp_args += ['-DUDA']
+@@ -29,7 +29,7 @@ endif
+
+ if uda_fat_cpp_dep.found()
+   core_deps += [uda_fat_cpp_dep, uda_client_dep]
+-  if uda_fat_cpp_dep.version() >= '2.7.6'
++  if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
+     al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+   else
+     al_core_cpp_args += ['-DUDA']
+
+From 662586d266cce774c1ba459d796e7b7fd92eed2b Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 11:04:43 +0100
+Subject: [PATCH 07/21] Add versioning support in Meson build configuration and
+ create _version.py
+
+---
+ python/_version.py.in | 31 +++++++++++++++++++++++++++++++
+ python/meson.build    | 37 +++++++++++++++++++++++++++++++++----
+ 2 files changed, 64 insertions(+), 4 deletions(-)
+ create mode 100644 python/_version.py.in
+
+diff --git a/python/_version.py.in b/python/_version.py.in
+new file mode 100644
+index 00000000..de6f4d49
+--- /dev/null
++++ b/python/_version.py.in
+@@ -0,0 +1,31 @@
++__all__ = [
++    "__version__",
++    "__version_tuple__",
++    "version",
++    "version_tuple",
++    "__commit_id__",
++    "commit_id",
++]
++
++TYPE_CHECKING = False
++if TYPE_CHECKING:
++    from typing import Tuple
++    from typing import Union
++
++    VERSION_TUPLE = Tuple[Union[int, str], ...]
++    COMMIT_ID = Union[str, None]
++else:
++    VERSION_TUPLE = object
++    COMMIT_ID = object
++
++version: str
++__version__: str
++__version_tuple__: VERSION_TUPLE
++version_tuple: VERSION_TUPLE
++commit_id: COMMIT_ID
++__commit_id__: COMMIT_ID
++
++__version__ = version = "@VERSION@"
++__version_tuple__ = version_tuple = @VERSION_TUPLE@
++
++__commit_id__ = commit_id = "@COMMIT_ID@"
+diff --git a/python/meson.build b/python/meson.build
+index aa076cab..307fea1b 100644
+--- a/python/meson.build
++++ b/python/meson.build
+@@ -1,5 +1,37 @@
+ add_languages('cython', native: false)
+
++# =============================================================================
++# Version File
++# =============================================================================
++# Get version using setuptools-scm
++version = run_command('setuptools-scm', check: true).stdout().strip()
++
++# Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
++split_ver = version.split('.')
++ver_tuple = '(@0@, @1@, @2@)'.format(
++  split_ver[0],
++  split_ver[1],
++  split_ver[2],
++)
++
++# Get commit id
++git_commit = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
++
++if git_commit == ''
++  git_commit = 'None'
++endif
++
++# Generate _version.py
++version_file = configure_file(
++  input: '_version.py.in',
++  output: '_version.py',
++  configuration: {
++    'VERSION': version,
++    'VERSION_TUPLE': ver_tuple,
++    'COMMIT_ID': git_commit,
++  },
++)
++
+ # =============================================================================
+ # Modules and Dependencies
+ # =============================================================================
+@@ -43,7 +75,4 @@ foreach pyx_file : pyx_files
+ endforeach
+
+ # Install pure python files
+-py.install_sources(py_files + pxd_files, subdir: 'imas_core')
+-
+-# =============================================================================
+-# Version File
+\ No newline at end of file
++py.install_sources(py_files + pxd_files + version_file, subdir: 'imas_core')
+\ No newline at end of file
+
+From 06b19225d1e1afa7b97859f3e6487f9d83692cf2 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 15:00:37 +0100
+Subject: [PATCH 08/21] Update Meson build configuration
+
+add test cases for lowlevel executables and modify dummy executable option
+---
+ meson.build        |  6 +++---
+ meson_options.txt  |  2 +-
+ python/meson.build |  2 +-
+ tests/meson.build  | 10 +++++++---
+ 4 files changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 06c00c84..98dcade4 100644
+--- a/meson.build
++++ b/meson.build
+@@ -34,12 +34,13 @@ endif
+ # Dummy Executable for version printing
+ # =============================================================================
+ if get_option('al_dummy_exe')
+-  executable(
++  imas_print_version = executable(
+     'imas_print_version',
+     'tests/imas_print_version.cpp',
+     dependencies: [al_core_dep],
+     install: true,
+   )
++  test('imas_print_version_test', imas_print_version)
+ endif
+
+ # ============================================================================
+@@ -88,8 +89,7 @@ if get_option('python_bindings')
+   summary(
+     {
+       'Python Version': py.language_version(),
+-      'Python Path': py.full_path(),
+-      'Installed in': join_paths(py.get_install_dir(), 'imas_core'),
++      'Buildtime Python Path': py.full_path(),
+       'Cython Arguments': cython_args,
+     },
+     section: 'Python Bindings',
+diff --git a/meson_options.txt b/meson_options.txt
+index e5aee591..121be22d 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -12,7 +12,7 @@ option(
+ option(
+        'al_dummy_exe',
+        type: 'boolean',
+-       value: true,
++       value: false,
+        description: 'Build dummy executable that prints version information.',
+ )
+
+diff --git a/python/meson.build b/python/meson.build
+index 307fea1b..2d13345a 100644
+--- a/python/meson.build
++++ b/python/meson.build
+@@ -37,7 +37,7 @@ version_file = configure_file(
+ # =============================================================================
+ fs = import('fs')
+ py = import('python').find_installation(pure: false)
+-py_dep = py.dependency()
++py_dep = dependency('python3', native: false)
+ numpy_dep = dependency('numpy')
+
+ cython_args = ['--annotate']
+diff --git a/tests/meson.build b/tests/meson.build
+index 1aece80d..5a15e68d 100644
+--- a/tests/meson.build
++++ b/tests/meson.build
+@@ -5,7 +5,7 @@
+ # =============================================================================
+
+ # C++ test executable
+-executable(
++testlowlevel = executable(
+   'testlowlevel',
+   'testlowlevel.cpp',
+   dependencies: [al_core_dep],
+@@ -14,10 +14,14 @@ executable(
+ )
+
+ # C test executable
+-executable(
++testlowlevel_c = executable(
+   'testlowlevel_c',
+   'testlowlevel_c.c',
+   dependencies: [al_core_dep],
+   c_args: ['-DNOIMPLIB'],
+   install: true,
+-)
+\ No newline at end of file
++)
++
++# Test cases
++test('Test lowlevel C++', testlowlevel)
++test('Test lowlevel C', testlowlevel_c)
+\ No newline at end of file
+
+From e5fe0e21180b16d12c22455a16615ac8d4ccd5e4 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 5 Dec 2025 15:06:43 +0100
+Subject: [PATCH 09/21] Format comment bars
+
+---
+ meson.build | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 98dcade4..d88f7dec 100644
+--- a/meson.build
++++ b/meson.build
+@@ -43,9 +43,9 @@ if get_option('al_dummy_exe')
+   test('imas_print_version_test', imas_print_version)
+ endif
+
+-# ============================================================================
++# =============================================================================
+ # Test Low-level C API (al-core)
+-# ============================================================================
++# =============================================================================
+ if get_option('al_test')
+   # subdir('tests')  # TODO: fix test sources
+ endif
+@@ -57,9 +57,9 @@ if get_option('python_bindings')
+   subdir('python')
+ endif
+
+-# ============================================================================
++# =============================================================================
+ # MDSplus Models
+-# ============================================================================
++# =============================================================================
+ if get_option('mdsplus_models')
+   warning('MDSplus models are not yet supported in Meson build system.')
+   # subdir('models/mdsplus')
+
+From fbc8419c71b0be6655c1d14e19e15ac0312b7c58 Mon Sep 17 00:00:00 2001
+From: Koyo MUNECHIKA <munechika.koyo@gmail.com>
+Date: Tue, 9 Dec 2025 12:09:01 +0100
+Subject: [PATCH 10/21] Update version retrieval command in Meson build
+ configuration to use 'python -m setuptools_scm'
+
+---
+ meson.build        | 5 ++++-
+ python/meson.build | 2 +-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index d88f7dec..7b8f343a 100644
+--- a/meson.build
++++ b/meson.build
+@@ -3,7 +3,10 @@ project(
+   ['c', 'cpp'],
+   license: 'LGPL-3.0-or-later',
+   meson_version: '>=1.1.0',
+-  version: run_command('setuptools-scm', '--strip-dev', check: true).stdout().strip(),
++  version: run_command(
++    'python', '-m', 'setuptools_scm', '--strip-dev',
++    check: true
++  ).stdout().strip(),
+   default_options: [
+     'c_std=c17',
+     'cpp_std=c++17',
+diff --git a/python/meson.build b/python/meson.build
+index 2d13345a..cf40858f 100644
+--- a/python/meson.build
++++ b/python/meson.build
+@@ -4,7 +4,7 @@ add_languages('cython', native: false)
+ # Version File
+ # =============================================================================
+ # Get version using setuptools-scm
+-version = run_command('setuptools-scm', check: true).stdout().strip()
++version = run_command('python', '-m', 'setuptools_scm', check: true).stdout().strip()
+
+ # Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
+ split_ver = version.split('.')
+
+From 5e9b832067020232634a4bd955614f2686c5d5f7 Mon Sep 17 00:00:00 2001
+From: Koyo MUNECHIKA <munechika.koyo@gmail.com>
+Date: Tue, 9 Dec 2025 12:12:01 +0100
+Subject: [PATCH 11/21] Fix variable name for UDA fat client dependency in
+ Meson build configuration
+
+---
+ src/uda/meson.build | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/uda/meson.build b/src/uda/meson.build
+index 33dab133..b830c626 100644
+--- a/src/uda/meson.build
++++ b/src/uda/meson.build
+@@ -11,7 +11,7 @@ private_includes += [include_directories('.')]
+ uda_client_dep = dependency('uda-client', required: false)
+ uda_cpp_dep = dependency('uda-cpp', required: false)
+
+-uda_client_dep = dependency('uda-fat-client', required: false)
++uda_fat_client_dep = dependency('uda-fat-client', required: false)
+ uda_fat_cpp_dep = dependency('uda-fat-cpp', required: false)
+
+ if not uda_cpp_dep.found() and not uda_fat_cpp_dep.found()
+@@ -28,7 +28,7 @@ if uda_cpp_dep.found()
+ endif
+
+ if uda_fat_cpp_dep.found()
+-  core_deps += [uda_fat_cpp_dep, uda_client_dep]
++  core_deps += [uda_fat_cpp_dep, uda_fat_client_dep]
+   if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
+     al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+   else
+
+From 0b4a3808986623ceb5706479770d9a26be8121f7 Mon Sep 17 00:00:00 2001
+From: Koyo MUNECHIKA <munechika.koyo@gmail.com>
+Date: Thu, 11 Dec 2025 14:38:57 +0100
+Subject: [PATCH 12/21] Replace Windows thread dependency with pthreads and
+ update dlfcn-win32 dependency method in Meson build configuration
+
+---
+ src/meson.build | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/meson.build b/src/meson.build
+index 68bb1c3a..0b74ea9b 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -35,8 +35,8 @@ core_deps = [
+
+ if host_system == 'windows'
+   core_deps += [
+-    dependency('threads', required: true),
+-    dependency('dlfcn-win32', required: true),
++    cxx.find_library('pthreads', required: true),
++    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake', required: true),
+   ]
+ endif
+
+
+From cf9a7eafcbabfd102a12273ee74df2c0a49dfb16 Mon Sep 17 00:00:00 2001
+From: Koyo MUNECHIKA <munechika.koyo@gmail.com>
+Date: Mon, 15 Dec 2025 16:13:46 +0100
+Subject: [PATCH 13/21] Add conditional compiler flags for HDF5 on Windows
+
+---
+ src/hdf5/meson.build | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/hdf5/meson.build b/src/hdf5/meson.build
+index 7bd9d167..55401eec 100644
+--- a/src/hdf5/meson.build
++++ b/src/hdf5/meson.build
+@@ -14,7 +14,12 @@ private_includes += [include_directories('.')]
+
+ core_deps += dependency('hdf5', language: 'c', required: true)
+
++# Add compiler flags for HDF5
+ al_core_cpp_args += '-DHDF5'
+
++if host_system == 'windows'
++  al_core_cpp_args += '-DH5_BUILT_AS_DYNAMIC_LIB'
++endif
++
+ # Add HDF5 backend sources
+ al_core_sources += hdf5_backend_sources
+\ No newline at end of file
+
+From ee653f53d6dffc787384f1d8705afe1f13237165 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Tue, 16 Dec 2025 08:57:13 +0100
+Subject: [PATCH 14/21] Format
+
+---
+ meson.build | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 7b8f343a..3cd134ec 100644
+--- a/meson.build
++++ b/meson.build
+@@ -4,8 +4,10 @@ project(
+   license: 'LGPL-3.0-or-later',
+   meson_version: '>=1.1.0',
+   version: run_command(
+-    'python', '-m', 'setuptools_scm', '--strip-dev',
+-    check: true
++    'python',
++    '-m', 'setuptools_scm',
++    '--strip-dev',
++    check: true,
+   ).stdout().strip(),
+   default_options: [
+     'c_std=c17',
+
+From 2c641fed72374e2af00335e1f3f898b18e248766 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Thu, 18 Dec 2025 10:13:55 +0100
+Subject: [PATCH 15/21] Refactor Meson build configuration for al_defs.h and
+ public headers
+
+---
+ include/meson.build | 33 ++++++++++++++++++++++++---------
+ 1 file changed, 24 insertions(+), 9 deletions(-)
+
+diff --git a/include/meson.build b/include/meson.build
+index e97c447a..c88e776e 100644
+--- a/include/meson.build
++++ b/include/meson.build
+@@ -1,8 +1,26 @@
+-conf_data = configuration_data()
+-conf_data.set('PROJECT_VERSION', meson.project_version())
+-al_defs_h = configure_file(input: 'al_defs.h.in', output: 'al_defs.h', configuration: conf_data)
++# =============================================================================
++# Configuration Data for al_defs.h
++# =============================================================================
+
+-public_headers = files(
++cdata = configuration_data()
++
++# Version information
++cdata.set('PROJECT_VERSION', meson.project_version())
++
++# Generate Config Headers
++al_defs_h = configure_file(
++  input: 'al_defs.h.in',
++  output: 'al_defs.h',
++  configuration: cdata,
++)
++
++install_headers(al_defs_h, subdir: 'al_core')
++
++# =============================================================================
++# Install Public Headers
++# =============================================================================
++
++install_headers(
+   'access_layer_base_plugin.h',
+   'access_layer_plugin.h',
+   'access_layer_plugin_manager.h',
+@@ -16,8 +34,5 @@ public_headers = files(
+   'provenance_plugin_feature.h',
+   'readback_plugin_feature.h',
+   'uri_parser.h',
+-) + al_defs_h
+-
+-# Include both source include directory and build include directory
+-public_includes = include_directories('.')
+-install_headers(public_headers, subdir: 'al_core')
+\ No newline at end of file
++  subdir: 'al_core',
++)
+\ No newline at end of file
+
+From 06edbaf70effaa066e41e8083e623038f80ad37c Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Thu, 18 Dec 2025 10:59:48 +0100
+Subject: [PATCH 16/21] Add include directories section to Meson build
+ configuration
+
+---
+ include/meson.build | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/include/meson.build b/include/meson.build
+index c88e776e..28cedc45 100644
+--- a/include/meson.build
++++ b/include/meson.build
+@@ -35,4 +35,9 @@ install_headers(
+   'readback_plugin_feature.h',
+   'uri_parser.h',
+   subdir: 'al_core',
+-)
+\ No newline at end of file
++)
++
++# =============================================================================
++# Include Directories
++# =============================================================================
++public_inc = include_directories('.')
+\ No newline at end of file
+
+From 613bf1a6b0610721b739c3fdcb827a3c06a87078 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Thu, 18 Dec 2025 11:56:26 +0100
+Subject: [PATCH 17/21] Enhance Meson build configuration with warning flags
+ and refactor source handling for UDA and HDF5 backends
+
+---
+ meson.build          | 16 ++++++++++++-
+ meson_options.txt    |  4 ++--
+ src/hdf5/meson.build | 20 ++++++++--------
+ src/meson.build      | 39 +++++++++++++++++++------------
+ src/uda/meson.build  | 55 ++++++++++++++++++++++----------------------
+ 5 files changed, 80 insertions(+), 54 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 3cd134ec..9f0f7598 100644
+--- a/meson.build
++++ b/meson.build
+@@ -24,6 +24,19 @@ cxx = meson.get_compiler('cpp')
+ host_system = host_machine.system()
+ host_cpu = host_machine.cpu_family()
+
++# =============================================================================
++# Warning Flags
++# =============================================================================
++warning_flags = [
++  '-Wall',
++  '-Wno-switch',
++]
++if host_system == 'darwin'
++  warning_flags += [
++    '-Wno-deprecated-declarations',
++  ]
++endif
++
+ # =============================================================================
+ # Access Layer core (al-core) Library
+ # =============================================================================
+@@ -84,7 +97,8 @@ if get_option('al_core')
+   )
+   summary(
+     {
+-      'C++ Arguments': al_core_cpp_args,
++      'Core Arguments': core_args,
++      'Warning Flags': warning_flags,
+     },
+     section: 'Compiler Arguments',
+   )
+diff --git a/meson_options.txt b/meson_options.txt
+index 121be22d..1a67f04c 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -56,8 +56,8 @@ option(
+ )
+
+ option(
+-       'al_backend_mdsplus',
++       'uda_fat',
+        type: 'boolean',
+        value: false,
+-       description: 'Enable MDSplus backend',
++       description: 'Use UDA FAT client libraries',
+ )
+\ No newline at end of file
+diff --git a/src/hdf5/meson.build b/src/hdf5/meson.build
+index 55401eec..ab732698 100644
+--- a/src/hdf5/meson.build
++++ b/src/hdf5/meson.build
+@@ -1,4 +1,7 @@
+-hdf5_backend_sources = files(
++# HDF5 Backend
++
++# Add sources
++core_sources += files(
+   'hdf5_backend.cpp',
+   'hdf5_backend_factory.cpp',
+   'hdf5_dataset_handler.cpp',
+@@ -10,16 +13,15 @@ hdf5_backend_sources = files(
+   'hdf5_writer.cpp',
+ )
+
+-private_includes += [include_directories('.')]
++# Add include directories
++core_inc += include_directories('.')
+
++# Add dependency
+ core_deps += dependency('hdf5', language: 'c', required: true)
+
+-# Add compiler flags for HDF5
+-al_core_cpp_args += '-DHDF5'
++# Add compiler flags
++core_args += '-DHDF5'
+
+ if host_system == 'windows'
+-  al_core_cpp_args += '-DH5_BUILT_AS_DYNAMIC_LIB'
+-endif
+-
+-# Add HDF5 backend sources
+-al_core_sources += hdf5_backend_sources
+\ No newline at end of file
++  core_args += '-DH5_BUILT_AS_DYNAMIC_LIB'
++endif
+\ No newline at end of file
+diff --git a/src/meson.build b/src/meson.build
+index 0b74ea9b..0518ff90 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -1,6 +1,6 @@
+ # AL-Core Library
+
+-al_core_sources = files(
++core_sources = files(
+   'access_layer_plugin_manager.cpp',
+   'al_backend.cpp',
+   'al_const.cpp',
+@@ -14,17 +14,22 @@ al_core_sources = files(
+   'no_backend.cpp',
+ )
+
+-private_includes = [include_directories('.')]
+-
+ # Enable ASCII backend
+-al_core_cpp_args = [
++core_args = [
+   '-DASCII',
+ ]
+
++# Include local and public headers
++core_inc = [include_directories('.'), public_inc]
++
+ # =============================================================================
+ # Dependencies
+ # =============================================================================
+-boost_dep = dependency('boost', modules: ['filesystem'], required: false)
++boost_dep = dependency(
++  'boost',
++  modules: ['filesystem'],
++  required: false,
++)
+ if not boost_dep.found()
+   boost_dep = cxx.find_library('boost_filesystem', required: true)
+ endif
+@@ -36,22 +41,26 @@ core_deps = [
+ if host_system == 'windows'
+   core_deps += [
+     cxx.find_library('pthreads', required: true),
+-    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake', required: true),
++    dependency(
++      'dlfcn-win32',
++      modules: ['dlfcn-win32::dl'],
++      method: 'cmake',
++      required: true,
++    ),
+   ]
+ endif
+
+ # =============================================================================
+ # Add Optional Backends
+ # =============================================================================
+-if get_option('al_backend_mdsplus')
+-  warning('MDSplus backend is not yet supported in Meson build system.')
+-  # subdir('mdsplus')
+-endif
+-
+ if get_option('al_backend_hdf5')
+   subdir('hdf5')
+ endif
+
++if get_option('al_backend_mdsplus')
++  subdir('mdsplus')
++endif
++
+ if get_option('al_backend_uda')
+   subdir('uda')
+ endif
+@@ -61,9 +70,9 @@ endif
+ # =============================================================================
+ al_core = library(
+   'al',
+-  al_core_sources,
+-  cpp_args: al_core_cpp_args,
+-  include_directories: private_includes + public_includes,
++  core_sources,
++  cpp_args: core_args + warning_flags,
++  include_directories: core_inc,
+   dependencies: core_deps,
+   version: meson.project_version(),
+   install: true,
+@@ -72,7 +81,7 @@ al_core = library(
+ # Declare dependency for other libraries to use
+ al_core_dep = declare_dependency(
+   link_with: al_core,
+-  include_directories: public_includes,
++  include_directories: public_inc,
+ )
+
+ # =============================================================================
+diff --git a/src/uda/meson.build b/src/uda/meson.build
+index b830c626..e0b2d2c2 100644
+--- a/src/uda/meson.build
++++ b/src/uda/meson.build
+@@ -1,4 +1,7 @@
+-uda_backend_sources = files(
++# UDA Backend
++
++# Add sources
++core_sources += files(
+   'pugixml.cpp',
+   'uda_backend.cpp',
+   'uda_cache.cpp',
+@@ -6,37 +9,35 @@ uda_backend_sources = files(
+   'uda_xml.cpp',
+ )
+
+-private_includes += [include_directories('.')]
+-
+-uda_client_dep = dependency('uda-client', required: false)
+-uda_cpp_dep = dependency('uda-cpp', required: false)
+-
+-uda_fat_client_dep = dependency('uda-fat-client', required: false)
+-uda_fat_cpp_dep = dependency('uda-fat-cpp', required: false)
++# Add include directories
++core_inc += include_directories('.')
+
+-if not uda_cpp_dep.found() and not uda_fat_cpp_dep.found()
+-  error('UDA backend requested but UDA dependency not found.')
++# Add dependencies
++if get_option('uda_fat')
++  uda_fat_cpp_dep = dependency('uda-fat-cpp', required: true)
++  core_deps += [
++    dependency('uda-fat-client', required: true),
++    uda_fat_cpp_dep,
++  ]
++else
++  uda_cpp_dep = dependency('uda-cpp', required: true)
++  core_deps += [
++    dependency('uda-client', required: true),
++    uda_cpp_dep,
++  ]
+ endif
+
+-if uda_cpp_dep.found()
+-  core_deps += [uda_cpp_dep, uda_client_dep]
+-  if uda_cpp_dep.version().version_compare('>=2.7.6')
+-    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++# Add compiler flags
++if get_option('uda_fat')
++  if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
++    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+   else
+-    al_core_cpp_args += ['-DUDA']
++    core_args += ['-DUDA']
+   endif
+-endif
+-
+-if uda_fat_cpp_dep.found()
+-  core_deps += [uda_fat_cpp_dep, uda_fat_client_dep]
+-  if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
+-    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++else
++  if uda_cpp_dep.version().version_compare('>=2.7.6')
++    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+   else
+-    al_core_cpp_args += ['-DUDA']
++    core_args += ['-DUDA']
+   endif
+-endif
+-
+-# Add UDA backend sources if UDA dependency is found
+-if uda_cpp_dep.found() or uda_fat_cpp_dep.found()
+-  al_core_sources += uda_backend_sources
+ endif
+\ No newline at end of file
+
+From ab5bee69cb96b0a20cd31c355521bc6207f7ff05 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Thu, 18 Dec 2025 11:56:40 +0100
+Subject: [PATCH 18/21] Add MDSplus backend support in Meson build
+ configuration
+
+---
+ meson_options.txt       |  7 +++++++
+ src/mdsplus/meson.build | 19 +++++++++++++++++++
+ 2 files changed, 26 insertions(+)
+ create mode 100644 src/mdsplus/meson.build
+
+diff --git a/meson_options.txt b/meson_options.txt
+index 1a67f04c..90eafad3 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -48,6 +48,13 @@ option(
+        description: 'Enable HDF5 backend',
+ )
+
++option(
++       'al_backend_mdsplus',
++       type: 'boolean',
++       value: false,
++       description: 'Enable MDSplus backend',
++)
++
+ option(
+        'al_backend_uda',
+        type: 'boolean',
+diff --git a/src/mdsplus/meson.build b/src/mdsplus/meson.build
+new file mode 100644
+index 00000000..7005558f
+--- /dev/null
++++ b/src/mdsplus/meson.build
+@@ -0,0 +1,19 @@
++# MDSplus Backend
++
++# Add sources
++core_sources += files(
++  'mdsplus_backend.cpp',
++)
++
++# Add include directories
++core_inc += include_directories('.')
++
++# Add dependency
++core_deps += dependency('mdsplus', required: true)
++
++# Add compiler flags
++core_args += '-DMDSPLUS'
++
++if host_system == 'windows'
++  core_args += '-DMDSOBJECTSCPPSHRVS_EXPORTS'
++endif
+\ No newline at end of file
+
+From aeff00822e5c56867f5faa33cc6d489deb3ff5a6 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Thu, 18 Dec 2025 14:18:32 +0100
+Subject: [PATCH 19/21] Add additional warning flags for Darwin in Meson build
+ configuration
+
+---
+ meson.build | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index 9f0f7598..1142aecb 100644
+--- a/meson.build
++++ b/meson.build
+@@ -34,6 +34,14 @@ warning_flags = [
+ if host_system == 'darwin'
+   warning_flags += [
+     '-Wno-deprecated-declarations',
++    '-Wno-inconsistent-missing-override',
++    '-Wno-delete-non-abstract-non-virtual-dtor',
++    '-Wno-unused-but-set-variable',
++    '-Wno-unused-variable',
++    '-Wno-misleading-indentation',
++    '-Wno-reorder-ctor',
++    '-Wno-pessimizing-move',
++    '-Wno-sometimes-uninitialized',
+   ]
+ endif
+
+
+From b3c08f6668befad7bd23aab2f8175ab6234aa9a7 Mon Sep 17 00:00:00 2001
+From: munechika-koyo <munechika.koyo@gmail.com>
+Date: Fri, 19 Dec 2025 12:43:57 +0100
+Subject: [PATCH 20/21] Refactor Meson build configuration to remove 'required'
+ flag from dependencies
+
+Format code
+---
+ meson.build             |  2 +-
+ python/meson.build      | 18 +++++++++++++++---
+ src/hdf5/meson.build    |  2 +-
+ src/mdsplus/meson.build |  2 +-
+ src/meson.build         | 11 +++--------
+ src/uda/meson.build     |  8 ++++----
+ 6 files changed, 25 insertions(+), 18 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 1142aecb..313ce9ba 100644
+--- a/meson.build
++++ b/meson.build
+@@ -53,7 +53,7 @@ if get_option('al_core')
+   subdir('src')
+ else
+   # Use external al-core installation
+-  al_core_dep = dependency('al-core', required: true)
++  al_core_dep = dependency('al-core')
+ endif
+
+ # =============================================================================
+diff --git a/python/meson.build b/python/meson.build
+index cf40858f..cc29d8f0 100644
+--- a/python/meson.build
++++ b/python/meson.build
+@@ -4,7 +4,11 @@ add_languages('cython', native: false)
+ # Version File
+ # =============================================================================
+ # Get version using setuptools-scm
+-version = run_command('python', '-m', 'setuptools_scm', check: true).stdout().strip()
++version = run_command(
++  'python',
++  '-m', 'setuptools_scm',
++  check: true,
++).stdout().strip()
+
+ # Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
+ split_ver = version.split('.')
+@@ -15,7 +19,12 @@ ver_tuple = '(@0@, @1@, @2@)'.format(
+ )
+
+ # Get commit id
+-git_commit = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
++git_commit = run_command(
++  'git',
++  'rev-parse',
++  '--short', 'HEAD',
++  check: false,
++).stdout().strip()
+
+ if git_commit == ''
+   git_commit = 'None'
+@@ -75,4 +84,7 @@ foreach pyx_file : pyx_files
+ endforeach
+
+ # Install pure python files
+-py.install_sources(py_files + pxd_files + version_file, subdir: 'imas_core')
+\ No newline at end of file
++py.install_sources(
++  py_files + pxd_files + version_file,
++  subdir: 'imas_core',
++)
+\ No newline at end of file
+diff --git a/src/hdf5/meson.build b/src/hdf5/meson.build
+index ab732698..44dc20c4 100644
+--- a/src/hdf5/meson.build
++++ b/src/hdf5/meson.build
+@@ -17,7 +17,7 @@ core_sources += files(
+ core_inc += include_directories('.')
+
+ # Add dependency
+-core_deps += dependency('hdf5', language: 'c', required: true)
++core_deps += dependency('hdf5', language: 'c')
+
+ # Add compiler flags
+ core_args += '-DHDF5'
+diff --git a/src/mdsplus/meson.build b/src/mdsplus/meson.build
+index 7005558f..3c5a88de 100644
+--- a/src/mdsplus/meson.build
++++ b/src/mdsplus/meson.build
+@@ -9,7 +9,7 @@ core_sources += files(
+ core_inc += include_directories('.')
+
+ # Add dependency
+-core_deps += dependency('mdsplus', required: true)
++core_deps += dependency('mdsplus')
+
+ # Add compiler flags
+ core_args += '-DMDSPLUS'
+diff --git a/src/meson.build b/src/meson.build
+index 0518ff90..978d9397 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -31,7 +31,7 @@ boost_dep = dependency(
+   required: false,
+ )
+ if not boost_dep.found()
+-  boost_dep = cxx.find_library('boost_filesystem', required: true)
++  boost_dep = cxx.find_library('boost_filesystem')
+ endif
+
+ core_deps = [
+@@ -40,13 +40,8 @@ core_deps = [
+
+ if host_system == 'windows'
+   core_deps += [
+-    cxx.find_library('pthreads', required: true),
+-    dependency(
+-      'dlfcn-win32',
+-      modules: ['dlfcn-win32::dl'],
+-      method: 'cmake',
+-      required: true,
+-    ),
++    cxx.find_library('pthreads'),
++    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake'),
+   ]
+ endif
+
+diff --git a/src/uda/meson.build b/src/uda/meson.build
+index e0b2d2c2..dbead0d8 100644
+--- a/src/uda/meson.build
++++ b/src/uda/meson.build
+@@ -14,15 +14,15 @@ core_inc += include_directories('.')
+
+ # Add dependencies
+ if get_option('uda_fat')
+-  uda_fat_cpp_dep = dependency('uda-fat-cpp', required: true)
++  uda_fat_cpp_dep = dependency('uda-fat-cpp')
+   core_deps += [
+-    dependency('uda-fat-client', required: true),
++    dependency('uda-fat-client'),
+     uda_fat_cpp_dep,
+   ]
+ else
+-  uda_cpp_dep = dependency('uda-cpp', required: true)
++  uda_cpp_dep = dependency('uda-cpp')
+   core_deps += [
+-    dependency('uda-client', required: true),
++    dependency('uda-client'),
+     uda_cpp_dep,
+   ]
+ endif
+
+From 8e5ceb4cc7b02aa28b3cc9dcf6b314e71ab62cb5 Mon Sep 17 00:00:00 2001
+From: Koyo MUNECHIKA <munechika.koyo@gmail.com>
+Date: Fri, 19 Dec 2025 19:15:16 +0100
+Subject: [PATCH 21/21] Remove '-Wno-switch' from warning flags in Meson build
+ configuration
+
+---
+ meson.build | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 313ce9ba..20df1421 100644
+--- a/meson.build
++++ b/meson.build
+@@ -29,7 +29,6 @@ host_cpu = host_machine.cpu_family()
+ # =============================================================================
+ warning_flags = [
+   '-Wall',
+-  '-Wno-switch',
+ ]
+ if host_system == 'darwin'
+   warning_flags += [

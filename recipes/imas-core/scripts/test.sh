@@ -7,7 +7,12 @@ export SETUPTOOLS_SCM_PRETEND_VERSION="${PKG_VERSION}"
 # binary is called `pkg-config`, but package metadata is under `lib/pkgconfig`
 export MESON_ARGS="${MESON_ARGS} --pkg-config-path=${PREFIX}/lib/pkgconfig"
 
-# Build and install by pip with meson-python backend (PEP)
-$PYTHON -m pip install . --no-deps --no-build-isolation -vv \
-    -Csetup-args=-Dal_core=false \
-    -Csetup-args=-Dpython_bindings=true
+# Configure
+meson setup build ${MESON_ARGS} \
+    -D al_core=false \
+    -D python_bindings=false \
+    -D al_dummy_exe=true \
+    -D al_test=true
+
+# Run tests
+meson test -C build --verbose

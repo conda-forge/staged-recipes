@@ -1,6 +1,6 @@
 context:
   name: imas-core
-  version: "5.5.2"
+  version: "5.5.4"
 
 recipe:
   name: ${{ name|lower }}
@@ -8,13 +8,11 @@ recipe:
 
 source:
     - url: https://github.com/iterorganization/IMAS-Core/archive/refs/tags/${{ version }}.tar.gz
-      sha256: 847b8c92b4d90014e78587f9ef0191456621badee864dad63377201e87c93e07
+      sha256: d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
       patches:
-        - patches/fix-std-fs.patch
-        - if: win
-          then:
-            - patches/add_findpthreads4w_module.patch
-            - patches/add-capnp-pkgconf.patch
+        - patches/add-meson-files.patch
+        - patches/meson-python.patch
+
 build:
   number: 0
 
@@ -35,48 +33,62 @@ outputs:
         - ${{ compiler("cxx") }}
         - ${{ stdlib("c") }}
         - git
-        - cmake
+        - meson
         - ninja
         - pkg-config
+        - setuptools-scm
       host:
+        - libxml2-devel 2.15.*
+        - zlib
         - libboost-devel
         - hdf5
         - uda-cpp
-        - libxml2-devel 2.15.*
         - if: win
           then:
             - pthreads-win32
             - dlfcn-win32
-      ignore_run_exports:
-        from_package:
-          - libxml2-devel
       run_exports:
         - ${{ pin_subpackage("al-core", upper_bound="x.x") }}
     tests:
       - script:
-          - imas_print_version
+          - if: unix
+            then: scripts/test.sh
+          - if: win
+            then: scripts/test.bat
+        requirements:
+          run:
+            - ${{ compiler("c") }}
+            - ${{ compiler("cxx") }}
+            - ${{ stdlib("c") }}
+            - git
+            - meson
+            - ninja
+            - pkg-config
+            - setuptools-scm
+        files:
+          source:
+            - tests/
+            - meson.build
+            - meson_options.txt
       - package_contents:
           files:
             - ${{ "Library/" if win }}lib/pkgconfig/al-core.pc
-          bin:
-            - mdsplusIMASDB4to5
-            - imas_print_version
           lib:
             - al
           include:
-            - access_layer_base_plugin.h
-            - access_layer_plugin.h
-            - access_layer_plugin_manager.h
-            - al_backend.h
-            - al_const.h
-            - al_context.h
-            - al_defs.h
-            - al_exception.h
-            - al_lowlevel.h
-            - data_interpolation.h
-            - provenance_plugin_feature.h
-            - readback_plugin_feature.h
-            - uri_parser.h
+            - al_core/access_layer_base_plugin.h
+            - al_core/access_layer_plugin.h
+            - al_core/access_layer_plugin_manager.h
+            - al_core/al_backend.h
+            - al_core/al_const.h
+            - al_core/al_context.h
+            - al_core/al_defs.h
+            - al_core/al_exception.h
+            - al_core/al_lowlevel.h
+            - al_core/data_interpolation.h
+            - al_core/provenance_plugin_feature.h
+            - al_core/readback_plugin_feature.h
+            - al_core/uri_parser.h
 
   # Python bindings
   - package:
@@ -91,39 +103,27 @@ outputs:
     requirements:
       build:
         - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
         - ${{ stdlib("c") }}
         - git
-        - cmake
+        - meson
         - ninja
         - pkg-config
+        - setuptools-scm
         - if: build_platform != target_platform
           then:
-            - python
             - cross-python_${{ target_platform }}
             - numpy
             - cython
+            - meson-python
       host:
         - al-core
-        - libboost-devel
-        - libxml2-devel 2.15.*
-        - if: win
-          then:
-            - pthreads-win32
-            - dlfcn-win32
         - pip
         - python
+        - meson-python
         - numpy
         - cython
-        - cython-cmake
-        - setuptools
-        - setuptools-scm
-        - scikit-build-core
-        - scikit-build
-      ignore_run_exports:
-        from_package:
-          - libboost-devel
-          - libxml2-devel
+      run_exports:
+        - ${{ pin_subpackage("imas-core", upper_bound="x.x") }}
     tests:
       - python:
           imports:
