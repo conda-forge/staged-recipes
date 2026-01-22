@@ -1,0 +1,81 @@
+package:
+  name: cern-sso-cli
+  version: "0.28.0"
+
+source:
+  url: https://github.com/clelange/cern-sso-cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a36770129fb7a033fd49783f7b4748be4e3b3636340865ea4e0be671ffcecfc6
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+
+    # The LDFLAGS are used to set the version of the `cern-sso-cli` binary. This is a common practice in Go.
+    - export LDFLAGS="${LDFLAGS} -s -w -X github.com/clelange/cern-sso-cli/cern-sso-cli.Version=${PKG_VERSION}"
+    # Build the `cern-sso-cli` binary and store it in the `$PREFIX/bin` directory.
+    - go build -tags dynamic -v -ldflags "$LDFLAGS" -o $PREFIX/bin/cern-sso-cli ./cmd/cern-sso-cli
+
+    # Store the license files in a separate directory in the $SRC_DIR. These are embedded in the package
+    # in the `license_file` section.
+    - go-licenses save ./cmd/cern-sso-cli --save_path="${SRC_DIR}/license-files/" || true
+
+    # Install bash, zsh, and fish completions
+    - mkdir -p ${PREFIX}/share/bash-completion/completions
+    - ${PREFIX}/bin/cern-sso-cli completion bash > ${PREFIX}/share/bash-completion/completions/cern-sso-cli.bash
+    - mkdir -p ${PREFIX}/share/zsh/site-functions
+    - ${PREFIX}/bin/cern-sso-cli completion zsh > ${PREFIX}/share/zsh/site-functions/_cern-sso-cli
+    - mkdir -p ${PREFIX}/share/fish/vendor_completions.d
+    - ${PREFIX}/bin/cern-sso-cli completion fish > ${PREFIX}/share/fish/vendor_completions.d/cern-sso-cli.fish
+
+requirements:
+  build:
+    - ${{ compiler('go-cgo') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - go-licenses
+    - pkg-config
+  host:
+    - libfido2
+    - if: linux
+      then: libudev
+    - if: osx
+      then:
+        - openssl
+        - libcbor
+
+  run:
+    - libfido2
+
+tests:
+  - script:
+      - cern-sso-cli --help
+      - cern-sso-cli --version
+  - package_contents:
+      bin:
+        - cern-sso-cli
+      files:
+        - share/bash-completion/completions/cern-sso-cli.bash
+        - share/zsh/site-functions/_cern-sso-cli
+        - share/fish/vendor_completions.d/cern-sso-cli.fish
+      strict: true
+
+about:
+  homepage: https://github.com/clelange/cern-sso-cli
+  summary: Go implementation of CERN SSO authentication tools
+  description: |
+    A Go implementation of CERN SSO authentication tools. This is Go equivalent
+    of auth-get-sso-cookie. Features include SSO session cookie management, OIDC token
+    acquisition, 2FA support (OTP & WebAuthn/YubiKey), and shell completion.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - library_licenses/
+  documentation: https://pkg.go.dev/github.com/clelange/cern-sso-cli
+  repository: https://github.com/clelange/cern-sso-cli
+
+extra:
+  recipe-maintainers:
+    - clelange
+    - kratsg
