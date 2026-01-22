@@ -7,8 +7,8 @@ recipe:
   version: ${{ version }}
 
 source:
-  git: https://github.com/open-planning/roboplan.git
-  tag: ${{ version }}
+  url: https://github.com/open-planning/roboplan/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 6830c68399aeb69c721f9f4fe081a329d49d27ecf0640230e42e8d4c11fb0f9f
 
 build:
   number: 0
@@ -24,7 +24,7 @@ outputs:
         cmake -S "${SRC_DIR}/roboplan_example_models" \
           -B build/roboplan_example_models \
           -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          ${CMAKE_ARGS}
         cmake --build build/roboplan_example_models
         cmake --install build/roboplan_example_models
     requirements:
@@ -37,9 +37,15 @@ outputs:
         - ninja
       host:
         - gtest
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
     tests:
-      - script:
-        - test -f "${PREFIX}/lib/libroboplan_example_models${SHLIB_EXT}"
+      - package_contents:
+          lib:
+            - libroboplan_example_models
 
   - package:
       name: libroboplan
@@ -51,7 +57,7 @@ outputs:
         cmake -S "${SRC_DIR}/roboplan" \
           -B build/roboplan \
           -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          ${CMAKE_ARGS}
         cmake --build build/roboplan
         cmake --install build/roboplan
     requirements:
@@ -67,10 +73,16 @@ outputs:
         - libcoal
         - libpinocchio
         - yaml-cpp
-        - ${{ pin_subpackage("libroboplan_example_models", upper_bound="x.x.x") }}
+        - libroboplan_example_models
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
     tests:
-      - script:
-        - test -f "${PREFIX}/lib/libroboplan${SHLIB_EXT}"
+      - package_contents:
+          lib:
+            - libroboplan
 
   - package:
       name: libroboplan_rrt
@@ -82,7 +94,7 @@ outputs:
         cmake -S "${SRC_DIR}/roboplan_rrt" \
           -B build/roboplan_rrt \
           -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          ${CMAKE_ARGS}
         cmake --build build/roboplan_rrt
         cmake --install build/roboplan_rrt
     requirements:
@@ -95,24 +107,24 @@ outputs:
         - ninja
       host:
         - gtest
-        - ${{ pin_subpackage("libroboplan", upper_bound="x.x.x") }}
-        - ${{ pin_subpackage("libroboplan_example_models", upper_bound="x.x.x") }}
+        - libroboplan
+        - libroboplan_example_models
     tests:
-      - script:
-        - test -f "${PREFIX}/lib/libroboplan_rrt${SHLIB_EXT}"
+      - package_contents:
+          lib:
+            - libroboplan_rrt
 
   - package:
       name: libroboplan_simple_ik
       version: ${{ version }}
     build:
       skip:
-        - win
-        - osx
+        - not linux
       script: |
         cmake -S "${SRC_DIR}/roboplan_simple_ik" \
           -B build/roboplan_simple_ik \
           -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          ${CMAKE_ARGS}
         cmake --build build/roboplan_simple_ik
         cmake --install build/roboplan_simple_ik
     requirements:
@@ -125,34 +137,29 @@ outputs:
         - ninja
       host:
         - gtest
-        - ${{ pin_subpackage("libroboplan", upper_bound="x.x.x") }}
-        - ${{ pin_subpackage("libroboplan_example_models", upper_bound="x.x.x") }}
+        - libroboplan
+        - libroboplan_example_models
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
     tests:
-      - script:
-        - test -f "${PREFIX}/lib/libroboplan_simple_ik${SHLIB_EXT}"
+      - package_contents:
+          lib:
+            - libroboplan_simple_ik
 
   - package:
       name: libroboplan_toppra
       version: ${{ version }}
     build:
       skip:
-        - win
-        - osx
+        - not linux
       script: |
-        # Build TOPP-RA dependency from source
-        cmake -S "${SRC_DIR}/external/toppra/cpp" \
-          -B build/toppra \
-          -G Ninja \
-          -DBUILD_TESTS=OFF \
-          -DPYTHON_BINDINGS=OFF \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
-        cmake --build build/toppra
-        cmake --install build/toppra
-        # Build the roboplan library
         cmake -S "${SRC_DIR}/roboplan_toppra" \
           -B build/roboplan_toppra \
           -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          ${CMAKE_ARGS}
         cmake --build build/roboplan_toppra
         cmake --install build/roboplan_toppra
     requirements:
@@ -165,19 +172,25 @@ outputs:
         - ninja
       host:
         - gtest
-        - ${{ pin_subpackage("libroboplan", upper_bound="x.x.x") }}
-        - ${{ pin_subpackage("libroboplan_example_models", upper_bound="x.x.x") }}
+        - libroboplan
+        - libroboplan_example_models
+        - libtoppra
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
     tests:
-      - script:
-        - test -f "${PREFIX}/lib/libroboplan_toppra${SHLIB_EXT}"
+      - package_contents:
+          lib:
+            - libroboplan_toppra
 
   - package:
       name: roboplan-python
       version: ${{ version }}
     build:
       skip:
-        - win
-        - osx
+        - not linux
       script: |
         export CXX=${CXX:-c++}
         export CMAKE_ARGS="-DCMAKE_CXX_COMPILER=${CXX}"
@@ -198,20 +211,22 @@ outputs:
         - pip
         - nanobind
         - scikit-build-core
-        - ${{ pin_subpackage("libroboplan", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_example_models", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_rrt", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_simple_ik", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_toppra", exact=True) }}
+        - libroboplan
+        - libroboplan_example_models
+        - libroboplan_rrt
+        - libroboplan_simple_ik
+        - libroboplan_toppra
+        - libtoppra
       run:
         - python >=3.10
         - numpy
         - pinocchio-python
-        - ${{ pin_subpackage("libroboplan", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_example_models", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_rrt", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_simple_ik", exact=True) }}
-        - ${{ pin_subpackage("libroboplan_toppra", exact=True) }}
+        - libroboplan
+        - libroboplan_example_models
+        - libroboplan_rrt
+        - libroboplan_simple_ik
+        - libroboplan_toppra
+        - libtoppra
     tests:
       - python:
           imports:
