@@ -1,8 +1,9 @@
+import os
 import zipfile
 
 ZIP_PATH = "FRI-Client-SDK_Cpp.zip"
 HTML_PATH = "doc/html/index.html"
-OUT_PATH = "LICENSE-KUKA-Sunrise-Connectivity-FRI-Client-SDK.txt"
+OUT_NAME = "LICENSE-KUKA-Sunrise-Connectivity-FRI-Client-SDK.txt"
 
 
 def main() -> None:
@@ -19,9 +20,12 @@ def main() -> None:
     if h == -1 or i == -1 or j == -1:
         raise SystemExit("KUKA license not found in doc/html/index.html")
 
-    license_block = text[i:j].strip()
-    with open(OUT_PATH, "w", encoding="utf-8") as f:
-        f.write(license_block + "\n")
+    license_block = text[i:j].strip() + "\n"
+
+    src_dir = os.environ.get("SRC_DIR", ".")
+    out_path = os.path.join(src_dir, OUT_NAME)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(license_block)
 
 
 if __name__ == "__main__":
