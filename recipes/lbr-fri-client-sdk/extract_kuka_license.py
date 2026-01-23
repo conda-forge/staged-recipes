@@ -23,9 +23,15 @@ def main() -> None:
     license_block = text[i:j].strip() + "\n"
 
     src_dir = os.environ.get("SRC_DIR", ".")
-    out_path = os.path.join(src_dir, OUT_NAME)
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(license_block)
+    out_paths = {os.path.join(src_dir, OUT_NAME)}
+
+    recipe_dir = os.environ.get("RECIPE_DIR")
+    if recipe_dir:
+        out_paths.add(os.path.join(recipe_dir, OUT_NAME))
+
+    for path in out_paths:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(license_block)
 
 
 if __name__ == "__main__":
