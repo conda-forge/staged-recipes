@@ -1,7 +1,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 @echo on
 
-cmake -B _build -S . -G Ninja -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
+cmake -B _build -S . -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release %CMAKE_ARGS%
 if errorlevel 1 exit 1
 
 cmake --build _build
