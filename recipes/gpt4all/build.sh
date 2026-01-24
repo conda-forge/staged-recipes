@@ -19,7 +19,9 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_ROCM=OFF
     fi
 elif [[ ${target_platform} == "osx-"* ]]; then
-    cmake -S . -B build ${CMAKE_ARGS}
+    cmake -S . -B build \
+        ${CMAKE_ARGS} \
+        -DBUILD_UNIVERSAL=OFF
 fi
 
 cmake --build build --parallel 1
