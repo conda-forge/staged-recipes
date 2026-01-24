@@ -16,5 +16,5 @@ elif [[ ${target_platform} == "osx-"* ]]; then
 fi
 
 pushd gpt4all-bindings/python
-pip install .
+${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
 popd
