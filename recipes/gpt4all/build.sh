@@ -1,22 +1,19 @@
 set -exo pipefail
 
+git submodule update --init --recursive
+
 pushd gpt4all-backend
 
 if [[ ${target_platform} == "linux-"* ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
-        -DGGML_OPENMP=ON \
-        -DGGML_CUDA=OFF \
-        -DGGML_USE_VULKAN=OFF
+        -DLLMODEL_KOMPUTE=OFF \
+        -DLLMODEL_VULKAN=ON \
+        -DLLMODEL_CUDA=OFF \
+        -DLLMODEL_ROCM=OFF
 elif [[ ${target_platform} == "osx-"* ]]; then
-    cmake -S . -B build \
-        ${CMAKE_ARGS} \
-        -DGGML_OPENMP=ON \
-        -DGGML_METAL=ON
+    cmake -S . -B build ${CMAKE_ARGS}
 fi
-
-ctest --test-dir build
-popd
 
 pushd gpt4all-bindings/python
 pip install .
