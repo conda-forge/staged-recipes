@@ -12,7 +12,7 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
 
 if errorlevel 1 exit 1
 
-cmake --build build --parallel %CPU_COUNT%
+cmake --build build --parallel 1
 if errorlevel 1 exit 1
 
 popd
