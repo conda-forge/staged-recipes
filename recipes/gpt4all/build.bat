@@ -23,7 +23,7 @@ if errorlevel 1 exit 1
 pushd gpt4all-bindings\python
 if errorlevel 1 exit 1
 
-pip install .
+%PYTHON% -m pip install . -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1
 
 popd
