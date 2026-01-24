@@ -13,7 +13,7 @@ elif [[ ${target_platform} == "osx-"* ]]; then
     cmake -S . -B build ${CMAKE_ARGS}
 fi
 
-cmake --build build --parallel ${CPU_COUNT}
+cmake --build build --parallel 1
 pod
 
 pushd gpt4all-bindings/python
