@@ -18,7 +18,12 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_CUDA=OFF \
             -DLLMODEL_ROCM=OFF
     fi
-elif [[ ${target_platform} == "osx-"* ]]; then
+elif [[ ${target_platform} == "osx-64" ]]; then
+    cmake -S . -B build \
+        ${CMAKE_ARGS} \
+        -DBUILD_UNIVERSAL=OFF
+        -DGGML_METAL=OFF
+elif [[ ${target_platform} == "osx-arm64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
         -DBUILD_UNIVERSAL=OFF
