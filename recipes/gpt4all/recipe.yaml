@@ -1,0 +1,134 @@
+context:
+  version: "3.10.0"
+
+package:
+  name: gpt4all
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nomic-ai/gpt4all/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 14cfcf13de40e1bfb4df1096aac9d410bfa29d7b0c30a297bb2b3474a554f44e
+
+build:
+  number: 0
+  script:
+    - if: linux
+      then: |
+        set -exo pipefail
+        pushd gpt4all/gpt4all-backend
+        cmake -S . -B build \
+          ${CMAKE_ARGS} \
+          -DGGML_OPENMP=ON \
+          -DLLMODEL_CUDA=ON \
+          -DLLMODEL_VULKAN=ON \
+        popd
+        ctest --test-dir build
+        pushd gpt4all-bindings/python
+        pip install .
+        popd
+    - if: osx
+      then: |
+        set -exo pipefail
+        pushd gpt4all/gpt4all-backend
+        cmake -S . -B build \
+          ${CMAKE_ARGS} \
+          -DGGML_OPENMP=ON \
+          -DLLMODEL_METAL=ON
+        ctest --test-dir build
+        popd
+        pushd gpt4all-bindings/python
+        pip install .
+        popd
+    - if: win
+      then: |
+        @echo on
+        pushd gpt4all/gpt4all-backend
+        if errorlevel 1 exit 1
+        cmake -S . -B build -G "NMake Makefiles JOM" ^
+          %CMAKE_ARGS% ^
+          -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
+          -DGGML_OPENMP=ON ^
+          -DLLMODEL_CUDA=ON ^
+          -DLLMODEL_VULKAN=ON ^
+        if errorlevel 1 exit 1
+        cmake --build build --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest --test-dir build
+        if errorlevel 1 exit 1
+        popd
+        if errorlevel 1 exit 1
+        pushd gpt4all-bindings/python
+        if errorlevel 1 exit 1
+        pip install .
+        if errorlevel 1 exit 1
+        popd
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: cuda_compiler_version != "None"
+      then: ${{ compiler("cuda") }}
+    - if: unix
+      then: make
+    - if: win
+      then: jom
+  host:
+    - llvm-openmp
+    - glslang
+    - pip
+    - python ${{ python }}
+    - setuptools
+    - spirv-tools
+    - vulkan-headers
+    - vulkan-loader
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-cudart-dev
+        - cuda-version ${{ cuda_compiler_version }}
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+  run:
+    - jinja2 >=3.1,<4.0
+    - python ${{ python }}
+    - requests
+    - tqdm
+    - if: py >= 39 and py < 311
+      then: typing-extensions >=4.3.0
+  run_exports:
+    - ${{ pin_subpackage("gpt4all", upper_bound="x") }}
+
+tests:
+  - script:
+      cd gpt4all-bindings/python
+      python test.py
+    files:
+      source:
+        - gpt4all-bindings/python/test.py
+
+  - python:
+      imports:
+        - gpt4all
+      pip_check: true
+      python_version:
+        - ${{ python }}
+
+about:
+  homepage: https://www.nomic.ai/gpt4all
+  repository: https://github.com/nomic-ai/gpt4all
+  documentation: https://docs.gpt4all.io
+  license: MIT
+  license_file: LICENSE.txt
+  summary: "GPT4All: Run Local LLMs on Any Device. Open-source and available for commercial use."
+  description: |
+    Designed for developers, teams, and AI power-users,
+    GPT4All runs open-source language models on Windows, macOS, and Linux
+    —with full customization, local document chat (LocalDocs), and support for thousands of models
+    —empowering you to build assistants and workflows with maximum control, security, and speed.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
