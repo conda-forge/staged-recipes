@@ -23,7 +23,7 @@ elif [[ ${target_platform} == "osx-"* ]]; then
 fi
 
 cmake --build build --parallel 1
-pod
+popd
 
 pushd gpt4all-bindings/python
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
