@@ -1,7 +1,5 @@
 @echo on
 
-git submodule update --init --recursive
-
 pushd gpt4all-backend
 if errorlevel 1 exit 1
 
