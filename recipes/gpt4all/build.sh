@@ -7,7 +7,7 @@ if [[ ${target_platform} == "linux-"* ]]; then
         cmake -S . -B build \
             ${CMAKE_ARGS} \
             -DLLMODEL_KOMPUTE=ON \
-            -DLLMODEL_VULKAN=ON \
+            -DLLMODEL_VULKAN=OFF \
             -DLLMODEL_CUDA=ON \
             -DLLMODEL_ROCM=OFF \
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
@@ -15,7 +15,7 @@ if [[ ${target_platform} == "linux-"* ]]; then
         cmake -S . -B build \
             ${CMAKE_ARGS} \
             -DLLMODEL_KOMPUTE=ON \
-            -DLLMODEL_VULKAN=ON \
+            -DLLMODEL_VULKAN=OFF \
             -DLLMODEL_CUDA=OFF \
             -DLLMODEL_ROCM=OFF \
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
