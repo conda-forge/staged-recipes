@@ -9,8 +9,9 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
     -DLLMODEL_VULKAN=OFF ^
     -DLLMODEL_CUDA=OFF ^
     -DLLMODEL_ROCM=OFF ^
-    -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
-
+    -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON ^
+    -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF ^
+    -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
 if errorlevel 1 exit 1
 
 :: Build the vulkan-shaders-gen target first (if present)
