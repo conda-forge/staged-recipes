@@ -295,8 +295,17 @@ def build_folders_rattler_build(
             loader=yaml.SafeLoader,
         )
 
-    variants = list(Path(recipes_dir).glob("**/conda_build_config.yaml")) + list(
-        Path(recipes_dir).glob("**/variants.yaml")
+    # Check for root-level config files first
+    root_cbc = Path(recipes_dir) / "conda_build_config.yaml"
+    root_variants = Path(recipes_dir) / "variants.yaml"
+    variants = []
+    if root_cbc.exists():
+        variants.append(root_cbc)
+    if root_variants.exists():
+        variants.append(root_variants)
+    # Then check for recipe-specific config files
+    variants += list(Path(recipes_dir).glob("*/conda_build_config.yaml")) + list(
+        Path(recipes_dir).glob("*/variants.yaml")
     )
 
     # Collect all variant config files found in the recipes
