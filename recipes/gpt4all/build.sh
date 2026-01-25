@@ -11,8 +11,6 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_CUDA=ON \
             -DLLMODEL_ROCM=OFF \
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
-            -DKOMPUTE_OPT_USE_SPDLOG=ON \
-            -DKOMPUTE_OPT_USE_BUILT_IN_SPDLOG=OFF \
             -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF \
             -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
     else
@@ -23,8 +21,6 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_CUDA=OFF \
             -DLLMODEL_ROCM=OFF \
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
-            -DKOMPUTE_OPT_USE_SPDLOG=ON \
-            -DKOMPUTE_OPT_USE_BUILT_IN_SPDLOG=OFF \
             -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF \
             -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
     fi
