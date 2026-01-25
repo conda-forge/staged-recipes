@@ -10,7 +10,8 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_VULKAN=ON \
             -DLLMODEL_CUDA=ON \
             -DLLMODEL_ROCM=OFF \
-            -DVulkan_GLSLC_EXECUTABLE="${BUILD_PREFIX}/bin/glslc"
+            -DVulkan_GLSLC_EXECUTABLE="${BUILD_PREFIX}/bin/glslc" \
+            -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
     else
         cmake -S . -B build \
             ${CMAKE_ARGS} \
@@ -18,7 +19,8 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DLLMODEL_VULKAN=ON \
             -DLLMODEL_CUDA=OFF \
             -DLLMODEL_ROCM=OFF \
-            -DVulkan_GLSLC_EXECUTABLE="${BUILD_PREFIX}/bin/glslc"
+            -DVulkan_GLSLC_EXECUTABLE="${BUILD_PREFIX}/bin/glslc" \
+            -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
     fi
 elif [[ ${target_platform} == "osx-64" ]]; then
     cmake -S . -B build \
