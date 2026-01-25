@@ -8,7 +8,8 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
     -DLLMODEL_KOMPUTE=ON ^
     -DLLMODEL_VULKAN=ON ^
     -DLLMODEL_CUDA=OFF ^
-    -DLLMODEL_ROCM=OFF
+    -DLLMODEL_ROCM=OFF ^
+    -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
 
 if errorlevel 1 exit 1
 
