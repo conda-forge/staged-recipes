@@ -13,9 +13,9 @@ cd ${SRC_DIR}
 
 mkdir -p ${BUILD_DIR}
 
-rm -rf "osm2pgsql/contrib/"
+rm -rf "contrib/"
 
-cmake ${CMAKE_ARGS} -S osm2pgsql \
+cmake ${CMAKE_ARGS} -S . \
  -B ${BUILD_DIR} \
  -G "Ninja" \
  -D CMAKE_BUILD_TYPE=Release \
@@ -23,15 +23,13 @@ cmake ${CMAKE_ARGS} -S osm2pgsql \
  -D EXTERNAL_FMT=ON \
  -D EXTERNAL_CLI11=ON \
  -D EXTERNAL_PROTOZERO=ON \
- -D OSMIUM_INCLUDE_DIR=libosmium/include \
- -D PROTOZERO_INCLUDE_DIR=protozero/include \
  -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
  -D CMAKE_FIND_FRAMEWORK=NEVER \
  -D CMAKE_FIND_APPBUNDLE=NEVER \
  -D CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF \
+ -D CMAKE_PREFIX_PATH="${PREFIX};${BUILD_PREFIX}" \
  -D LUA_INCLUDE_DIR="${PREFIX}/include" \
  -D LUA_LIBRARY="${PREFIX}/lib/liblua.dylib"
-
 
 cmake --build ${BUILD_DIR} --target all
 
