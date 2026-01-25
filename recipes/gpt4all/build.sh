@@ -22,6 +22,40 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DVulkan_GLSLC_EXECUTABLE="${BUILD_PREFIX}/bin/glslc" \
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
     fi
+
+    # Build vulkan-shaders to generate shaders before the main build
+    pushd "${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline/ggml/src/vulkan-shaders"
+    cmake -S . -B build ${CMAKE_ARGS}
+    echo "Building vulkan-shaders subproject"
+    cmake --build build --parallel ${CPU_COUNT}
+
+    # Generated files that the generator will write
+    GEN_HDR="${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline/ggml/src/ggml-vulkan-shaders.hpp"
+    GEN_CPP="${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline/ggml/src/ggml-vulkan-shaders.cpp"
+
+    # Use a directory (not a filename) for SPIR-V output
+    OUT_DIR="${PWD}/build/vulkan-spv"
+    mkdir -p "$OUT_DIR"
+
+    # Find the generated tool in the subbuild (locations may vary by generator/platform)
+    GEN_TOOL=$(find build -type f -name 'vulkan-shaders-gen*' -executable -print -quit || true)
+    if [[ -n "$GEN_TOOL" ]]; then
+        echo "Running ${GEN_TOOL} to generate shaders"
+
+        # Prefer the build-provided glslc, fall back to PATH
+        GLSLC="${BUILD_PREFIX}/bin/glslc"
+
+        "${GEN_TOOL}" \
+            --glslc "$GLSLC" \
+            --input-dir "${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline/ggml/src/vulkan-shaders" \
+            --output-dir "$OUT_DIR" \
+            --target-hpp "$GEN_HDR" \
+            --target-cpp "$GEN_CPP" \
+            --no-clean
+    else
+        echo "vulkan-shaders-gen not produced by subbuild; continuing (build may fail)"
+    fi
+    popd
 elif [[ ${target_platform} == "osx-64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
@@ -30,38 +64,6 @@ elif [[ ${target_platform} == "osx-arm64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
         -DBUILD_UNIVERSAL=OFF
-fi
-
-# Build and run vulkan-shaders-gen to generate Vulkan shader headers before building everything
-# This ensures ggml-vulkan-shaders.hpp / .cpp exist before compiling ggml sources.
-cmake --build build --target vulkan-shaders-gen --parallel ${CPU_COUNT} || true
-
-# Locate the built vulkan-shaders-gen executable in common locations
-GEN_EXE=""
-for p in \
-    "${PWD}/build/vulkan-shaders-gen" \
-    "${PWD}/build/bin/vulkan-shaders-gen" \
-    "${PWD}/build/Debug/vulkan-shaders-gen" \
-    "${PWD}/build/Release/vulkan-shaders-gen" \
-    "${PWD}/build/bin/Debug/vulkan-shaders-gen" \
-    "${PWD}/build/bin/Release/vulkan-shaders-gen"; do
-    if [ -x "$p" ]; then
-        GEN_EXE="$p"
-        break
-    fi
-done
-
-if [ -n "$GEN_EXE" ]; then
-    echo "Running vulkan-shaders-gen: $GEN_EXE"
-    "$GEN_EXE" \
-        --glslc "${BUILD_PREFIX}/bin/glslc" \
-        --input-dir "${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline/ggml/src/vulkan-shaders" \
-        --output-dir "${PWD}/build/vulkan-shaders.spv" \
-        --target-hpp "${PWD}/build/ggml-vulkan-shaders.hpp" \
-        --target-cpp "${PWD}/build/ggml-vulkan-shaders.cpp" \
-        --no-clean
-else
-    echo "vulkan-shaders-gen not found; continuing build (may fail if Vulkan is enabled)"
 fi
 
 cmake --build build --parallel ${CPU_COUNT}
