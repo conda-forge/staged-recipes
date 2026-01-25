@@ -5,7 +5,7 @@ if errorlevel 1 exit 1
 
 cmake -S . -B build -G "NMake Makefiles JOM" ^
     %CMAKE_ARGS% ^
-    -DLLMODEL_KOMPUTE=OFF ^
+    -DLLMODEL_KOMPUTE=ON ^
     -DLLMODEL_VULKAN=ON ^
     -DLLMODEL_CUDA=OFF ^
     -DLLMODEL_ROCM=OFF
