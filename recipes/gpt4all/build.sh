@@ -22,7 +22,12 @@ if [[ ${target_platform} == "linux-"* ]]; then
     fi
 
     pushd "${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline"
-    make GGML_VULKAN=1
+    make GGML_VULKAN=1 vulkan-shaders-gen
+    ./vulkan-shaders-gen \
+        --glslc glslc \
+        --input-dir ggml/src/vulkan-shaders \
+        --target-hpp ggml/src/ggml-vulkan-shaders.hpp \
+        --target-cpp ggml/src/ggml-vulkan-shaders.cpp
     popd
 
 elif [[ ${target_platform} == "osx-64" ]]; then
