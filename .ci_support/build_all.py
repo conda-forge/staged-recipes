@@ -290,20 +290,21 @@ def build_folders_rattler_build(
     specs = OrderedDict()
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
-            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config, loader=yaml.SafeLoader
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))),
+            config,
+            loader=yaml.SafeLoader,
         )
 
-    variants = list(Path(recipes_dir).glob(f"**/conda_build_config.yaml")) \
-             + list(Path(recipes_dir).glob(f"**/variants.yaml"))
-    if len(variants) > 1:
-        raise ValueError(
-            f"Found multiple variant config files in the recipes: {variants}. "
-            "Consider merging or submitting them in separate PRs."
-        )
-    if variants and os.path.isfile(variants[0]):
-        specs[variants[0]] = conda_build.variants.parse_config_file(
-            os.path.abspath(variants[0]), config, loader=yaml.SafeLoader
-        )
+    variants = list(Path(recipes_dir).glob("**/conda_build_config.yaml")) + list(
+        Path(recipes_dir).glob("**/variants.yaml")
+    )
+
+    # Collect all variant config files found in the recipes
+    for variant_file in variants:
+        if os.path.isfile(variant_file):
+            specs[variant_file] = conda_build.variants.parse_config_file(
+                os.path.abspath(variant_file), config, loader=yaml.SafeLoader
+            )
 
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
