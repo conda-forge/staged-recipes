@@ -26,7 +26,8 @@ elif [[ ${target_platform} == "osx-64" ]]; then
 elif [[ ${target_platform} == "osx-arm64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
-        -DBUILD_UNIVERSAL=OFF
+        -DBUILD_UNIVERSAL=OFF \
+        -DGGML_METAL=ON
 fi
 
 cmake --build build --parallel 1
