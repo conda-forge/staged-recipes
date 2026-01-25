@@ -6,7 +6,7 @@ if [[ ${target_platform} == "linux-"* ]]; then
     if [[ ${cuda_compiler_version} != "None" ]]; then
         cmake -S . -B build \
             ${CMAKE_ARGS} \
-            -DLLMODEL_KOMPUTE=OFF \
+            -DLLMODEL_KOMPUTE=ON \
             -DLLMODEL_VULKAN=ON \
             -DLLMODEL_CUDA=ON \
             -DLLMODEL_ROCM=OFF \
@@ -14,7 +14,7 @@ if [[ ${target_platform} == "linux-"* ]]; then
     else
         cmake -S . -B build \
             ${CMAKE_ARGS} \
-            -DLLMODEL_KOMPUTE=OFF \
+            -DLLMODEL_KOMPUTE=ON \
             -DLLMODEL_VULKAN=ON \
             -DLLMODEL_CUDA=OFF \
             -DLLMODEL_ROCM=OFF \
@@ -23,13 +23,11 @@ if [[ ${target_platform} == "linux-"* ]]; then
 elif [[ ${target_platform} == "osx-64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
-        -DBUILD_UNIVERSAL=OFF \
-        -DGGML_METAL=OFF
+        -DBUILD_UNIVERSAL=OFF
 elif [[ ${target_platform} == "osx-arm64" ]]; then
     cmake -S . -B build \
         ${CMAKE_ARGS} \
-        -DBUILD_UNIVERSAL=OFF \
-        -DGGML_METAL=ON
+        -DBUILD_UNIVERSAL=OFF
 fi
 
 cmake --build build --parallel 1
