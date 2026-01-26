@@ -20,40 +20,69 @@ if errorlevel 1 exit 1
 popd
 if errorlevel 1 exit 1
 
-REM Ensure spm-headers exist and copy headers into the python package (search for ggml headers first)
+REM Ensure spm-headers exist and copy headers into the python package (search for ggml headers under %SRC_DIR% first)
 set "SPM_DEST=gpt4all-bindings\python\spm-headers"
 if not exist "%SPM_DEST%" mkdir "%SPM_DEST%"
 
-REM Try to find ggml-alloc.h anywhere under llama.cpp-mainline
-set "FOUND_HDR_DIR="
-for /f "delims=" %%I in ('dir /s /b "..\gpt4all-backend\deps\llama.cpp-mainline\*ggml-alloc.h" 2^>nul') do (
-    set "FOUND_HDR_DIR=%%~dpI"
-    goto :found_ggml_headers
+
+@REM Prefer absolute SRC_DIR path if available
+if defined SRC_DIR (
+    set "SEARCH_BASE=%SRC_DIR%\gpt4all-backend\deps\llama.cpp-mainline"
+) else (
+    set "SEARCH_BASE=..\gpt4all-backend\deps\llama.cpp-mainline"
 )
 
-REM If not found by name, fall back to spm-headers dir if present
-if exist "..\gpt4all-backend\deps\llama.cpp-mainline\spm-headers" (
-    echo Using existing spm-headers directory to populate %SPM_DEST%
-    xcopy /Y /E "..\gpt4all-backend\deps\llama.cpp-mainline\spm-headers\*" "%SPM_DEST%\" >nul
+@REM First, copy from ggml include if present
+if exist "%SEARCH_BASE%\ggml\include" (
+    echo Copying ggml headers from %SEARCH_BASE%\ggml\include to %SPM_DEST%
+    xcopy /Y /E "%SEARCH_BASE%\ggml\include\*.h" "%SPM_DEST%\" >nul
     if errorlevel 1 (
-        echo Error copying spm-headers into python package
+        echo Error copying ggml include headers
         exit /b 1
     )
 ) else (
-    echo Warning: ggml headers not found under llama.cpp-mainline; python metadata build may fail
+    REM Fallback: search recursively for ggml-alloc.h anywhere under SEARCH_BASE
+    set "FOUND_HDR_DIR="
+    for /f "delims=" %%I in ('dir /s /b "%SEARCH_BASE%\*ggml-alloc.h" 2^>nul') do (
+        set "FOUND_HDR_DIR=%%~dpI"
+        goto :found_ggml_headers
+    )
+
+    if defined FOUND_HDR_DIR goto :found_ggml_headers
+
+    REM If still not found, try spm-headers directory
+    if exist "%SEARCH_BASE%\spm-headers" (
+        echo Using existing spm-headers directory to populate %SPM_DEST%
+        xcopy /Y /E "%SEARCH_BASE%\spm-headers\*" "%SPM_DEST%\" >nul
+        if errorlevel 1 (
+            echo Error copying spm-headers into python package
+            exit /b 1
+        )
+    ) else (
+        echo Warning: ggml headers not found under %SEARCH_BASE%; python metadata build may fail
+    )
 )
 
 goto :after_spm_copy
 
 :found_ggml_headers
 echo Found ggml headers at %FOUND_HDR_DIR% - copying into %SPM_DEST%
-xcopy /Y /E "%FOUND_HDR_DIR%*.h" "%SPM_DEST%\" >nul
+xcopy /Y /E "%FOUND_HDR_DIR%\*.h" "%SPM_DEST%\" >nul
 if errorlevel 1 (
     echo Error copying ggml headers into python package
     exit /b 1
 )
 
 :after_spm_copy
+
+REM Verify ggml-alloc.h is present, fail early if not
+if not exist "%SPM_DEST%\ggml-alloc.h" (
+    echo ERROR: ggml-alloc.h not found in %SPM_DEST%; cannot continue
+    dir "%SEARCH_BASE%" /b
+    exit /b 1
+) else (
+    echo ggml-alloc.h found in %SPM_DEST%
+)
 
 
 pushd gpt4all-bindings\python
