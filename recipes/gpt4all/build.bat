@@ -75,9 +75,21 @@ if errorlevel 1 (
 
 :after_spm_copy
 
-REM Verify ggml-alloc.h is present, fail early if not
+REM Ensure compatibility with packaging scripts that expect headers under the llama.cpp tree
+if not exist "%SEARCH_BASE%\spm-headers\ggml-alloc.h" (
+    echo Copying ggml headers from %SPM_DEST% to %SEARCH_BASE%\spm-headers for setup.py compatibility
+    if not exist "%SEARCH_BASE%\spm-headers" mkdir "%SEARCH_BASE%\spm-headers"
+    xcopy /Y /E "%SPM_DEST%\*" "%SEARCH_BASE%\spm-headers\" >nul
+    if errorlevel 1 (
+        echo Error copying ggml headers into %SEARCH_BASE%\spm-headers
+        exit /b 1
+    )
+)
+
+REM Verify ggml-alloc.h is present in %SPM_DEST%, fail early if not
 if not exist "%SPM_DEST%\ggml-alloc.h" (
     echo ERROR: ggml-alloc.h not found in %SPM_DEST%; cannot continue
+    dir "%SPM_DEST%" /b
     dir "%SEARCH_BASE%" /b
     exit /b 1
 ) else (
