@@ -20,6 +20,18 @@ if errorlevel 1 exit 1
 popd
 if errorlevel 1 exit 1
 
+REM Ensure spm-headers are available inside the python package to avoid pip metadata errors on Windows
+if exist "..\gpt4all-backend\deps\llama.cpp-mainline\spm-headers" (
+    if not exist "gpt4all-bindings\python\spm-headers" mkdir "gpt4all-bindings\python\spm-headers"
+    xcopy /Y /E "..\gpt4all-backend\deps\llama.cpp-mainline\spm-headers\*" "gpt4all-bindings\python\spm-headers\" >nul
+    if errorlevel 1 (
+        echo Error copying spm-headers
+        exit /b 1
+    )
+) else (
+    echo Warning: spm-headers directory not found at ..\gpt4all-backend\deps\llama.cpp-mainline\spm-headers
+)
+
 pushd gpt4all-bindings\python
 if errorlevel 1 exit 1
 
