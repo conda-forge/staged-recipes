@@ -1,6 +1,17 @@
 # distrobuilder
 
-An image building tool for LXC and Incus, packaged for conda-forge.
+Image building tool for [LXC](https://linuxcontainers.org/lxc/) and
+[Incus](https://linuxcontainers.org/incus/) containers.
+
+## Linux only
+
+This recipe builds only on Linux. Windows and macOS are skipped.
+
+Distrobuilder depends on Linux-specific syscalls 
+(`mount`, `MS_BIND`, `MNT_DETACH`, `MemfdCreate` via `golang.org/x/sys/unix`) 
+and Linux userspace tools (`debootstrap`, `squashfs-tools`, `qemu-kvm`) 
+that have no equivalents on other platforms. 
+The upstream project does not support Windows or macOS.
 
 ## Upstream vs. conda-forge build
 
