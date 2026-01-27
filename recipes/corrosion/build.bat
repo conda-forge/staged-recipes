@@ -1,7 +1,7 @@
 @echo on
 
 @REM Use `lib` instead of `lib64` for tests
-sed -i "s#include(GNUInstallDirs)#&\nset(CMAKE_INSTALL_LIBDIR lib CACHE STRING "" FORCE)#" cmake/Corrosion.cmake
+powershell -C "(gc cmake\Corrosion.cmake -Raw)-replace 'include(GNUInstallDirs)','$&`r`nset(CMAKE_INSTALL_LIBDIR lib CACHE STRING \"\" FORCE)'|sc cmake\Corrosion.cmake"
 
 cmake -S . -B build -G "NMake Makefiles JOM" ^
     %CMAKE_ARGS% ^
