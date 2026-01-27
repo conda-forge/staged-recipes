@@ -9,23 +9,28 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/lxc/${{ name }}/releases/download/${{ name }}-${{ version }}/${{ name }}-${{ version }}.tar.gz
-  sha256: 443346dbbe1d5f6b0f46a0785541b7e20a6bfdee1c56ea022501526c4684820d
+  url: https://github.com/lxc/distrobuilder/archive/refs/tags/distrobuilder-${{ version }}.tar.gz
+  sha256: 899f2d608f8eaba089f9eb3d4cff4e47404d02c2e9fa4c32152f9de0ba2eb63a
+  target_directory: src
 
 build:
-  skip: not linux
-  script:
-    - export GOBIN=$PREFIX/bin
-    - go install -v ./...
-    # - cp $PREFIX/bin/distrobuilder $PREFIX/bin/incus-build
   number: 0
+  script:
+    - cd src
+    - if: unix
+      then: go build -v -o $PREFIX/bin/distrobuilder -ldflags="-s -w" ./distrobuilder
+      else: go build -v -o %LIBRARY_BIN%\distrobuilder.exe -ldflags="-s" ./distrobuilder
+    - >-
+      go-licenses save ./distrobuilder --save_path ../library_licenses
+      --ignore github.com/lxc/distrobuilder
+      --ignore github.com/rootless-containers/proto/go-proto
 
 requirements:
   build:
     - ${{ compiler('go-cgo') }}
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
-    - go-licenses >=2.0.1
+    - go-licenses
 
 tests:
   - package_contents:
@@ -44,7 +49,9 @@ about:
     as well as additional files to generate and arbitrary actions to execute as part of the image build process.
     The output is either a plain root filesystem, an Incus image or a LXC image.
   license: Apache-2.0
-  license_file: COPYING
+  license_file:
+    - src/COPYING
+    - library_licenses/
   documentation: https://linuxcontainers.org/distrobuilder/docs/latest/
   repository: https://github.com/lxc/distrobuilder
 
