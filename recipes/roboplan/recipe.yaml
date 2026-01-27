@@ -1,0 +1,247 @@
+context:
+  name: roboplan
+  version: "0.1.0"
+
+recipe:
+  name: roboplan
+  version: ${{ version }}
+
+source:
+  url: https://github.com/open-planning/roboplan/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 6830c68399aeb69c721f9f4fe081a329d49d27ecf0640230e42e8d4c11fb0f9f
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libroboplan-example-models
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        cmake -S "${SRC_DIR}/roboplan_example_models" \
+          -B build/roboplan_example_models \
+          -G Ninja \
+          ${CMAKE_ARGS}
+        cmake --build build/roboplan_example_models
+        cmake --install build/roboplan_example_models
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libroboplan-example-models", upper_bound="x.x.x") }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gtest
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
+    tests:
+      - package_contents:
+          lib:
+            - roboplan_example_models
+
+  - package:
+      name: libroboplan
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        cmake -S "${SRC_DIR}/roboplan" \
+          -B build/roboplan \
+          -G Ninja \
+          ${CMAKE_ARGS}
+        cmake --build build/roboplan
+        cmake --install build/roboplan
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libroboplan", upper_bound="x.x.x") }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gtest
+        - libcoal
+        - libpinocchio
+        - yaml-cpp
+        - libroboplan-example-models
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
+    tests:
+      - package_contents:
+          lib:
+            - roboplan
+
+  - package:
+      name: libroboplan-rrt
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        cmake -S "${SRC_DIR}/roboplan_rrt" \
+          -B build/roboplan_rrt \
+          -G Ninja \
+          ${CMAKE_ARGS}
+        cmake --build build/roboplan_rrt
+        cmake --install build/roboplan_rrt
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libroboplan-rrt", upper_bound="x.x.x") }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gtest
+        - libroboplan
+        - libroboplan-example-models
+    tests:
+      - package_contents:
+          lib:
+            - roboplan_rrt
+
+  - package:
+      name: libroboplan-simple-ik
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        cmake -S "${SRC_DIR}/roboplan_simple_ik" \
+          -B build/roboplan_simple_ik \
+          -G Ninja \
+          ${CMAKE_ARGS}
+        cmake --build build/roboplan_simple_ik
+        cmake --install build/roboplan_simple_ik
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libroboplan-simple-ik", upper_bound="x.x.x") }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gtest
+        - libroboplan
+        - libroboplan-example-models
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
+    tests:
+      - package_contents:
+          lib:
+            - roboplan_simple_ik
+
+  - package:
+      name: libroboplan-toppra
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        cmake -S "${SRC_DIR}/roboplan_toppra" \
+          -B build/roboplan_toppra \
+          -G Ninja \
+          ${CMAKE_ARGS}
+        cmake --build build/roboplan_toppra
+        cmake --install build/roboplan_toppra
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libroboplan-toppra", upper_bound="x.x.x") }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gtest
+        - libroboplan
+        - libroboplan-example-models
+        - libtoppra
+      ignore_run_exports:
+        by_name:
+          - gtest
+        from_package:
+          - gtest
+    tests:
+      - package_contents:
+          lib:
+            - roboplan_toppra
+
+  - package:
+      name: roboplan-python
+      version: ${{ version }}
+    build:
+      skip:
+        - not linux
+      script: |
+        export CXX=${CXX:-c++}
+        export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CXX_COMPILER=${CXX}"
+        export CMAKE_GENERATOR=Ninja
+        $PYTHON -m pip install ./bindings -vv --no-build-isolation --no-deps
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - python >=${{ python_min }}
+        - pip
+        - nanobind
+        - scikit-build-core
+      host:
+        - python >=${{ python_min }}
+        - pip
+        - nanobind
+        - scikit-build-core
+        - libroboplan
+        - libroboplan-example-models
+        - libroboplan-rrt
+        - libroboplan-simple-ik
+        - libroboplan-toppra
+        - libtoppra
+      run:
+        - python >=${{ python_min }}
+        - numpy
+        - pinocchio-python
+        - libroboplan
+        - libroboplan-example-models
+        - libroboplan-rrt
+        - libroboplan-simple-ik
+        - libroboplan-toppra
+        - libtoppra
+    tests:
+      - python:
+          imports:
+            - roboplan
+
+about:
+  homepage: https://github.com/open-planning/roboplan
+  license: MIT
+  license_file: LICENSE
+  summary: Modern robot motion planning library based on Pinocchio.
+  repository: https://github.com/open-planning/roboplan
+  documentation: https://roboplan.readthedocs.io/en/latest/
+
+extra:
+  feedstock-name: roboplan
+  recipe-maintainers:
+    - sea-bass
+    - eholum
