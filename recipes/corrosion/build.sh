@@ -13,8 +13,7 @@ set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "" FORCE)
 
 cmake -S . -B build \
     ${CMAKE_ARGS} \
-    -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -pthread" \
-    -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS} -lpthread" \
+    -DCMAKE_CXX_FLAGS="${CXX_FLAGS} -pthread" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCORROSION_BUILD_TESTS=ON
 cmake --build build --parallel ${CPU_COUNT}
