@@ -9,6 +9,8 @@ set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "" FORCE)
 
 cmake -S . -B build \
     ${CMAKE_ARGS} \
+    -DCMAKE_C_COMPILER="${CC}" \
+    -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCORROSION_BUILD_TESTS=ON
 cmake --build build --parallel ${CPU_COUNT}
