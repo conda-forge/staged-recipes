@@ -1,0 +1,52 @@
+{% set name = "lbr-fri-client-sdk" %}
+{% set version = "1.15" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/lbr-stack/fri/archive/refs/heads/fri-{{ version }}.tar.gz
+  sha256: 9bb4578864a8c92c28a798860e2d43c25b9d94841aa7527e40884c2899ce939c
+
+build:
+  number: 0
+  script: |
+    python "%RECIPE_DIR%\\extract_kuka_license.py"  # [win]
+    python "${RECIPE_DIR}/extract_kuka_license.py"  # [not win]
+    cmake -S . -B build -GNinja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release  # [win]
+    cmake -S . -B build -GNinja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release  # [not win]
+    cmake --build build
+    cmake --install build
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+    - python
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libFRIClient*  # [unix]
+    - test -f $PREFIX/include/friClientIf.h  # [unix]
+    - if exist %LIBRARY_BIN%\\FRIClient.dll (exit 0) else (exit 1)  # [win]
+    - if exist %LIBRARY_INC%\\friClientIf.h (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://github.com/lbr-stack/fri
+  summary: CMake support for KUKA Fast Robot Interface (FRI) client SDK
+  description: |
+    Adds CMake build support for KUKA's Fast Robot Interface (FRI) client SDK.
+    The SDK is bundled in the repository as FRI-Client-SDK_Cpp.zip.
+  license: Apache-2.0 AND LicenseRef-KUKA-Sunrise-Connectivity-FRI-Client-SDK
+  license_file:
+    - LICENSE
+    - NOTICE
+    - LICENSE-KUKA-Sunrise-Connectivity-FRI-Client-SDK.txt
+
+extra:
+  recipe-maintainers:
+    - kenichi-maeda
