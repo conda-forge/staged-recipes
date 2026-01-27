@@ -7,7 +7,7 @@ sed -i.bak '/include(GNUInstallDirs)/a\
 set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "" FORCE)
 ' cmake/Corrosion.cmake
 
-cmake -S . -B build \
+cmake -S . -B build -G "Ninja" \
     ${CMAKE_ARGS} \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
