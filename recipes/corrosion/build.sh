@@ -4,6 +4,7 @@ set -exo pipefail
 
 if [[ "${target_platform}" == "linux-"* ]]; then
     ln -s "${CC}" "${BUILD_PREFIX}/bin/cc"
+    ln -s "${CXX}" "${BUILD_PREFIX}/bin/c++"
 fi
 
 # Use `lib` instead of `lib64` for tests
