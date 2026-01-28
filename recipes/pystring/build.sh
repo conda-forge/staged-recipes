@@ -1,13 +1,13 @@
 #!/bin/bash
 
-set -ex
+set -euo pipefail
 
 mkdir -p build
 cd build
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_CXX_STANDARD=11 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
@@ -15,5 +15,4 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     ..
 
-cmake --build . --config Release
-cmake --install . --config Release
+cmake --build . -j${CPU_COUNT} --config Release --target install
