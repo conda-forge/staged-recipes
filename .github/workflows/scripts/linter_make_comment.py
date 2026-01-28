@@ -33,10 +33,16 @@ def _get_latest_run_summary(repo, workflow_run_id):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Lint staged recipes.')
-    parser.add_argument('--head-repo-owner', type=str, required=True, help='the head repo owner')
-    parser.add_argument('--workflow-run-id', type=int, required=True, help='the ID of the workflor run')
-    parser.add_argument('--head-sha', type=str, required=True, help='the head SHA of the PR')
+    parser = argparse.ArgumentParser(description="Lint staged recipes.")
+    parser.add_argument(
+        "--head-repo-owner", type=str, required=True, help="the head repo owner"
+    )
+    parser.add_argument(
+        "--workflow-run-id", type=int, required=True, help="the ID of the workflor run"
+    )
+    parser.add_argument(
+        "--head-sha", type=str, required=True, help="the head SHA of the PR"
+    )
 
     args = parser.parse_args()
 
@@ -54,8 +60,26 @@ if __name__ == "__main__":
                 pr = _pr
                 break
 
-        if pr is not None:
+        if pr is None:
+            # for reasons I do not follow, sometimes the head commit API
+            # to get pull requests does not return the PR.
+            # So we try looking at PRs from base repo and find the same
+            # sha+head repo but limit the search since staged-recipes
+            # gets tons of PRs.
+            max_tries = 50
+            num_tries = 0
+            for _pr in base_repo.get_pulls():
+                if (
+                    _pr.head.sha == args.head_sha
+                    and _pr.head.repo.full_name == head_repo.full_name
+                ):
+                    pr = _pr
+                    break
+                num_tries += 1
+                if num_tries == max_tries:
+                    break
 
+        if pr is not None:
             comment = None
             for _comment in pr.get_issue_comments():
                 if "Hi! This is the staged-recipes linter" in _comment.body:

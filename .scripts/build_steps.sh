@@ -37,14 +37,14 @@ solver: libmamba
 CONDARC
 
 # Workaround for errors related to "unsafe" directories:
-# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765 
+# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765
 git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 
 # Copy the host recipes folder so we don't ever muck with it
 # Skip build_artifacts and other big items because it gets huge with time
 mkdir -p ~/staged-recipes-copy
 shopt -s extglob dotglob
-cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
+cp -r "${FEEDSTOCK_ROOT}"/!(.|..|build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
 shopt -u extglob dotglob
 
 # Remove any macOS system files
