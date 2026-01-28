@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -euo pipefail
 
 # OpenColorIO build script following official installation instructions
 # https://opencolorio.readthedocs.io/en/latest/quick_start/installation.html
