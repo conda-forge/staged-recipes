@@ -14,6 +14,7 @@ set(CMAKE_INSTALL_LIBDIR lib CACHE STRING "" FORCE)
 
 cmake -S . -B build \
     ${CMAKE_ARGS} \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS} -pthread" \
     -DCORROSION_BUILD_TESTS=ON
 cmake --build build --parallel ${CPU_COUNT}
 
