@@ -1,0 +1,82 @@
+context:
+  name: mule
+  version: "2025.10.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MetOffice/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: c1489178aa50ea6b9036a15b35b52b190626a55375f306182f385faa647e7525
+
+  patches:
+    # Add shumlib library "string_conv" to um_ppibm
+    - string_conv.patch
+
+build:
+  skip:
+    - win
+    - osx
+    - match(python, ">=3.14") # TODO: Remove after 2025.10.1
+  script:
+    - python -m pip install ./mule -vv
+    - python -m pip install ./um_packing -vv
+    - python -m pip install ./um_ppibm -vv
+    - python -m pip install ./um_spiral_search -vv
+    - python -m pip install ./um_utils -vv
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - numpy
+    - shumlib
+  run:
+    - python
+    - numpy
+    - six
+    - shumlib
+
+tests:
+  # Some packages might need a `test/commands` key to check CLI.
+  - python:
+      # A list of modules that the test will try to import
+      imports:
+      - mule
+      - um_packing
+      - um_ppibm
+      - um_spiral_search
+      - um_utils
+      # Also run `pip check` to verify the integrity 
+      pip_check: true
+  - script:
+      - mule-pumf --help
+  - script:
+      - pytest
+    requirements:
+        run:
+            - pytest
+    files:
+        recipe:
+            - mule/lib/mule/tests
+            - mule/lib/um_utils/tests
+
+about:
+  homepage: https://github.com/metoffice/${{ name }}
+  summary: 'Python packages providing an interface to the various files used and produced by the Met Office Unified Model (UM)'
+  description: |
+    Mule is an API written in Python which allows you to access and manipulate files produced by the UM (Unified Model, of the Met Office (UK)).
+  license: BSD-3-Clause
+  license_file: LICENCE
+  documentation: https://metoffice.github.io/${{ name }}
+  repository: https://github.com/metoffice/${{ name }}
+
+extra:
+  recipe-maintainers:
+    - ScottWales
