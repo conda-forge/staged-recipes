@@ -38,7 +38,6 @@ def custom_process(meta_dict: Dict[str, Any]) -> Dict[str, Any]:
     Dict[str, Any]
         The processed meta.yaml content.
     """
-    meta_dict["extra"]["recipe-maintainers"] = ["ChiahsinChu"]
     meta_dict["requirements"]["host"][0] = "python 3.10"
     meta_dict["test"]["requires"].append("python 3.10")
     meta_dict["build"]["skip"] = "win"
