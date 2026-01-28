@@ -12,6 +12,7 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_CXX_STANDARD=11 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
     -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     ..
 
 cmake --build . --config Release
