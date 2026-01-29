@@ -1,6 +1,9 @@
 @echo on
 SetLocal EnableDelayedExpansion
 
+if not exist build mkdir build
+cd build
+
 cmake -G "Ninja"                            ^
 -DCMAKE_BUILD_TYPE=Release                  ^
 -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%     ^
@@ -9,6 +12,7 @@ cmake -G "Ninja"                            ^
 -DCMAKE_CXX_STANDARD_REQUIRED=ON            ^
 -DCMAKE_POLICY_VERSION_MINIMUM=3.5          ^
 ..
+
 if errorlevel 1 exit /b 1
 
 cmake --build . -j%CPU_COUNT% --config Release --target install
