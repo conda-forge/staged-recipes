@@ -39,19 +39,6 @@ cmake_args=(
     "-DOCIO_INSTALL_EXT_PACKAGES=MISSING"
 )
 
-# Additional environment-based configuration
-# These can be set as environment variables before running this script:
-# - To override Python executable: set Python_EXECUTABLE
-if [ -n "${Python_EXECUTABLE}" ]; then
-    cmake_args+=("-DPython_EXECUTABLE=${Python_EXECUTABLE}")
-fi
-
-# On macOS, optionally set architecture for universal builds
-# Example: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-if [ -n "${CMAKE_OSX_ARCHITECTURES}" ]; then
-    cmake_args+=("-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
-fi
-
 # Configure CMake
 cmake "${cmake_args[@]}" ..
 
