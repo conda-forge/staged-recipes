@@ -10,4 +10,5 @@ export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
 
 bun ./scripts/build.mjs -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_DSYMUTIL="$(which arm64-apple-darwin20.0.0-dsymutil)" -B build/release
 
-exit 1
+mkdir -p $PREFIX/bin
+cp build/release/bun $PREFIX/bin/bun
