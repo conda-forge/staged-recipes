@@ -1,0 +1,159 @@
+context:
+  version: 0.2.0
+
+package:
+  name: pixi-ros
+  version: ${{ version }}
+
+source:
+- url: https://pypi.org/packages/source/p/pixi-ros/pixi_ros-${{ version }}.tar.gz
+  sha256: 43e8254f3b790875b185a6a5c065c0a7eae3905ceb3017cbb87bc809e3064722
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install .
+  python:
+    entry_points:
+    - pixi-ros = pixi_ros.cli:main
+  noarch: python
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - lxml >=5.0.0
+    - pathspec >=0.11.0
+    - py-rattler >=0.6.0
+    - pyyaml >=6.0
+    - rich >=13.0.0
+    - tomlkit >=0.12.0
+    - typer >=0.12.0
+
+tests:
+- python:
+    python_version: ${{ python_min }}.*
+    imports:
+    - pixi_ros
+    pip_check: true
+
+about:
+  summary: Pixi extension for ROS package management
+  description: |
+    # pixi-ros
+      
+    **Bridge your ROS workspace to the modern conda/Pixi ecosystem**
+
+    pixi-ros helps ROS developers transition from `rosdep` to [Pixi](https://pixi.sh) for package management.
+    It automatically reads your ROS workspace's `package.xml` files and generates a `pixi.toml` manifest with all dependencies resolved from conda channels (primarily [robostack](https://robostack.org/)).
+
+    ## Why pixi-ros?
+
+    If you're a ROS developer, you're probably familiar with `rosdep` managing dependencies.
+    `pixi-ros` gives you access to a more modern package management ecosystem:
+
+    - **Reproducible environments**: Lock files ensure everyone on your team has identical dependencies
+    - **Cross-platform**: Works seamlessly on Linux, macOS, and Windows
+    - **Fast and reliable**: Uses rattler (Rust implementation of conda) for speed
+    - **No system dependencies**: Everything isolated in project environments
+
+    ## Quick Start
+
+    ### Installation
+
+    Install pixi first if you haven't already:
+
+    ```bash
+    curl -fsSL https://pixi.sh/install.sh | bash
+    ```
+
+    Or follow instructions at https://pixi.sh/latest/installation/
+
+    Install pixi-ros globally using pixi:
+
+    ```bash
+    pixi global install pixi-ros
+    ```
+
+    ### Initialize Your ROS Workspace
+
+    Navigate to your ROS workspace and run:
+
+    ```bash
+    pixi ros init --distro humble
+    ```
+
+    This will:
+    1. Discover all ROS packages in your workspace (by finding `package.xml` files)
+    2. Read dependencies from each `package.xml`
+    3. Map ROS package names to conda packages
+    4. Generate/update `pixi.toml` with proper channels and dependencies
+    5. Check package availability and warn about missing packages
+    6. Create helpful build/test/clean tasks
+
+    ## How It Works
+
+    ### Dependency Mapping
+
+    `pixi-ros` reads all dependency types from `package.xml` files. 
+    It then does a best effort mapping of ROS package names to conda packages.
+
+    - **ROS packages**: `ros-{distro}-{package}` from robostack channels (e.g., `ros-humble-rclcpp`)
+    - **System packages**: Mapped to conda-forge equivalents (e.g., `cmake`, `eigen`)
+
+    After the mapping, it validates package availability in the configured channels. This starts a connection with `https://prefix.dev` to check if packages exist.
+
+    ### Example
+
+    Given a `package.xml` with:
+
+    ```xml
+    <depend>rclcpp</depend>
+    <build_depend>ament_cmake</build_depend>
+    <exec_depend>std_msgs</exec_depend>
+    ```
+
+    `pixi ros init --distro humble` generates a `pixi.toml` with:
+
+    ```toml
+    [dependencies]
+    ros-humble-ament-cmake = \"*\"
+    ros-humble-rclcpp = \"*\"
+    ros-humble-std-msgs = \"*\"
+    ```
+
+    ## Philosophy
+
+    `pixi-ros` aims to be a quick **gateway drug**. It:
+
+    - Respects existing ROS conventions (package.xml as source of truth)
+    - Uses standard ROS build tools (colcon)
+    - Focuses only on dependency management and environment setup
+    - Doesn't replace `ros2` CLI or other ROS tooling
+    - Should eventually become unnecessary as the ecosystem matures
+
+    Think of it as a \"gateway\" to help ROS developers benefit from modern package management while keeping familiar workflows.
+
+
+    ## Learn More
+
+    - **Pixi**: https://pixi.sh
+    - **RoboStack**: https://robostack.org/
+    - **Conda**: https://docs.conda.io/
+    - **ROS 2**: https://docs.ros.org/
+
+    ## Disclaimer
+
+    This tool is build with heavy use of AI assistance and is under active development. Please report issues or contribute on GitHub!
+
+    I (Ruben) hope `pixi-ros` can die ASAP, as all of the workflows this tool provides should ideally be native to Pixi itself. But until then, I hope this initialization tool helps you get started!
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/ruben-arts/pixi-ros
+  homepage: https://github.com/ruben-arts/pixi-ros
+
+extra:
+  recipe-maintainers:
+  - ruben-arts
