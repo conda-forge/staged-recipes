@@ -11,6 +11,11 @@ export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
 # Invalid environment variable: CI="azure", please use CI=<ON|OFF>
 export CI=ON
 
+export CC_FOR_BUILD=x86_64-conda-linux-gnu-clang
+export CC=x86_64-conda-linux-gnu-clang
+export CFLAGS="-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem $PREFIX/include -fdebug-prefix-map=$SRC_DIR=/usr/local/src/conda/bun-1.3.7 -fdebug-prefix-map=$PREFIX=/usr/local/src/conda-prefix"
+export CMAKE_ARGS="-DCMAKE_AR=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ar -DCMAKE_CXX_COMPILER_AR=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ar -DCMAKE_C_COMPILER_AR=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ar -DCMAKE_RANLIB=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ranlib -DCMAKE_CXX_COMPILER_RANLIB=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ranlib -DCMAKE_C_COMPILER_RANLIB=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ranlib -DCMAKE_LINKER=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ld -DCMAKE_STRIP=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-strip -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH=$PREFIX;$BUILD_PREFIX/x86_64-conda-linux-gnu/sysroot -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_PROGRAM_PATH=$BUILD_PREFIX/bin;$PREFIX/bin"
+
 bun ./scripts/build.mjs -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_DSYMUTIL="$(which arm64-apple-darwin20.0.0-dsymutil)" -B build/release
 
 mkdir -p $PREFIX/bin
