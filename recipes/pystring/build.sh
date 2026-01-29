@@ -5,7 +5,8 @@ set -euo pipefail
 mkdir -p build
 cd build
 
-cmake ${CMAKE_ARGS} \
+cmake -G "Ninja" \
+    ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_INSTALL_LIBDIR=lib \
