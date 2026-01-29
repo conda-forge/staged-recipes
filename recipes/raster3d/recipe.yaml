@@ -1,0 +1,78 @@
+context:
+  orig_ver: "3.0-8"
+  sem_ver: "3.0.8"
+
+package:
+  name: raster3d
+  version: ${{ sem_ver }}
+source:
+  url: http://www.bmsc.washington.edu/raster3d/Raster3D_${{ orig_ver }}.tar.gz
+  sha256: 4f6999f8d446ed2d7ef32d4f7abaa1d63fa1fa78686e79cecafc06c5ae6b122d
+  file_name: Raster3D_${{ orig_ver }}.tar
+
+build:
+  number: 0
+  skip: win
+  script: |
+    set -exo pipefail
+
+    tar xf Raster3D_${{ orig_ver }}.tar
+    cd Raster3D
+    sed -i \
+      -e 's|^prefix[[:space:]]*=[[:space:]]*/usr/local|prefix = '"${PREFIX}"'|' \
+      -e 's|^INCDIRS[[:space:]]*=.*|INCDIRS  = -I'"${PREFIX}/include"'|' \
+      -e 's|^LIBDIRS[[:space:]]*=.*|LIBDIRS  = -L'"${PREFIX}/lib"'|' \
+      Makefile.template
+
+    make linux
+
+    sed -i \
+      -e 's|OS = linux|OS = '$(uname | tr 'A-Z' 'a-z')'|g' \
+      -e 's|CC = gcc|CC = '"${CC}"'|g' \
+      -e 's|FC = gfortran|FC = '"${FC}"'|g' \
+      Makefile.incl
+
+    make all -j${CPU_COUNT}
+    make install
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("fortran") }}
+    - ${{ stdlib("c") }}
+    - make
+    - if: osx
+      then: sed
+  host:
+    - libgd
+    - libjpeg-turbo
+    - libpng
+    - libtiff
+  run_exports: []  # No shared libraries to worry about
+
+tests:
+  - script: |
+      cd Raster3D/examples
+      R3D_LIB=../materials render -gamma 1.1 -png example1.png < example1.r3d
+    files:
+      source:
+        - Raster3D/examples/
+        - Raster3D/materials/
+
+about:
+  homepage: "http://www.bmsc.washington.edu/raster3d"
+  summary: "A set of tools for generating high-quality raster images of proteins and molecules"
+  description: |
+    Raster3D is a set of tools for generating high quality raster images of proteins or other molecules.
+    The core program renders spheres, triangles, cylinders, and quadric surfaces with specular highlighting, Phong shading, and shadowing.
+    It uses an efficient software Z-buffer algorithm which is independent of any graphics hardware.
+    Ancillary programs process atomic coordinates from PDB files into rendering descriptions for pictures composed of ribbons, space-filling atoms, bonds, ball+stick, etc.
+    Raster3D can also be used to render pictures composed in other programs such as [Molscript](http://www.bmsc.washington.edu/raster3d/#pointers) in glorious 3D with highlights, shadowing, etc.
+    Output is to pixel image files with 24 bits of color information per pixel.
+  license: Artistic-2.0
+  license_file: Raster3D/Artistic_License_V2
+  documentation: http://www.bmsc.washington.edu/raster3d/html/raster3d.html
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
