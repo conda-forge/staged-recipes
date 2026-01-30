@@ -1,0 +1,297 @@
+{% set version = "3.10.0.0" %}
+{% set abiversion = version.split('.')[0] %}
+{% set libversion = version.split('.')[:3] | join('.') %}
+{% set libtorch_version = "2.7.*" %}
+{% set onnx_version = "1.22.*" %}
+{% set ucx_version = "1.19.0.*" %}
+{% set rapids_version = "25.10.*" %}
+# This needs to stay in sync with 'rapids_version', e.g. for 'rapids_version=25.10 this should be '0.46.0'.
+# To find the corresponding ucxx_version for a given rapids_version, see e.g.
+# https://version.gpuci.io/rapids/25.10
+{% set ucxx_version = "0.46.*" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}    # [aarch64]
+{% set extension = "tar.xz" %}
+
+{% set sha256 = "e56ce729642118e257cc4a89fbc4fcc41acd11c100c9d065477ee9e7d1455adf" %}  # [linux64]
+{% set sha256 = "af6859f9416795456f2bab2e4b31feabeeb6cb2ffe9cf1b1ca40063fef534a85" %}  # [aarch64 and arm_variant_type == "sbsa"]
+
+package:
+  name: libholoscan-split
+  version: {{ version }}
+
+source:
+  - url: https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/{{ platform }}/holoscan-{{ platform }}-{{ version }}_cuda12-archive.{{ extension }}
+    sha256: {{ sha256 }}
+
+build:
+  number: 1
+  skip: true  # [not (linux64 or aarch64)]
+  skip: true  # [cuda_compiler_version in (None, "None", "", "12.6")
+
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+
+outputs:
+  - name: libholoscan
+    build:
+      missing_dso_whitelist:
+        - "*libcuda.so*"              # driver
+        - "*libgdrapi.so*"            # part of gdrcopy yet not pre-built for conda-forge channel
+        - "*libnvidia-ml.so*"         # driver
+        - "*libnvinfer_plugin.so*"    # NVIDIA's TensorRT not on conda-forge
+        - "*libnvonnxparser.so*"      # NVIDIA's TensorRT not on conda-forge
+        - "*libtorchvision.so*"       # not available even in torchvision package
+        - "*libv4l2.so*"              # lideo4linux2 lib, not available
+        - "*libxpmem.so*"             # XPMEM, Linux Cross-Memory Attach kernel module, not available
+        - "*librapids_logger.so*"     # Rapids logger, available in RAPIDS channel
+        - "*librmm.so*"               # RMM, available in RAPIDS channel
+        - "*libucxx.so*"              # UCXX, available in RAPIDS channel
+      ignore_run_exports:
+        # we support cuda-version >= 12.6, < 13
+        - cuda-version
+      post-link: post-link
+    files:
+      - lib/libholo*.so.*
+      - lib/gxf_extensions
+      - lib/libgxf*.so
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version_min }}
+        - cuda-nvrtc-dev
+        - libjpeg-turbo
+        - libnpp-dev
+        - libtorch {{ libtorch_version }}
+        - libtorch * cuda*
+        - libvulkan-loader
+        - ucx {{ ucx_version }}
+        - onnxruntime-cpp  {{ onnx_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x") }}  # [cuda_compiler_version != "None"]
+        - cloudpickle
+        - cuda-cudart
+        - dbus              # [aarch64]  # Without this, segfault happens during camera app test in https://github.com/nvidia-holoscan/holoscan-sdk/tree/main/python
+        - libegl
+        - libjpeg-turbo
+        - libtorch * cuda*
+        - libvulkan-loader
+      run_constrained:
+        - rmm {{ rapids_version }}
+        - rapids_logger {{ rapids_version }}
+        - ucxx {{ ucxx_version }}
+    test:
+      commands:
+        - test -L $PREFIX/lib/libholoscan_core.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_infer.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_infer_onnx_runtime.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_infer_torch.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_infer_utils.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_logger.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_rx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_tx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_bayer_demosaic.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_format_converter.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_gxf_codelet.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_holoviz.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_inference.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_inference_processor.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_ping_rx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_rx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_tx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_ping_tx.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_v4l2.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_recorder.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_replayer.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_profiler.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_spdlog_logger.so.{{ abiversion }}
+        - test -L $PREFIX/lib/libholoscan_viz.so.{{ abiversion }}
+        - test -f $PREFIX/lib/libholoscan_core.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_infer.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_infer_onnx_runtime.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_infer_torch.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_infer_utils.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_logger.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_async_ping_rx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_async_ping_tx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_bayer_demosaic.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_format_converter.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_gxf_codelet.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_holoviz.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_inference.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_inference_processor.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_ping_rx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_ping_tensor_rx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_ping_tensor_tx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_ping_tx.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_v4l2.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_video_stream_recorder.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_op_video_stream_replayer.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_profiler.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_spdlog_logger.so.{{ libversion }}
+        - test -f $PREFIX/lib/libholoscan_viz.so.{{ libversion }}
+        - test -f $PREFIX/lib/libgxf_app.so
+        - test -f $PREFIX/lib/libgxf_core.so
+        - test -f $PREFIX/lib/libgxf_cuda.so
+        - test -f $PREFIX/lib/libgxf_logger.so
+        - test -f $PREFIX/lib/libgxf_multimedia.so
+        - test -f $PREFIX/lib/libgxf_rmm.so
+        - test -f $PREFIX/lib/libgxf_sample.so
+        - test -f $PREFIX/lib/libgxf_serialization.so
+        - test -f $PREFIX/lib/libgxf_std.so
+        - test -f $PREFIX/lib/libgxf_ucx.so
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan.so
+        - test -f $PREFIX/lib/gxf_extensions/libgxf_ucx_holoscan_lib.so
+    about:
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file:
+        - LICENSE
+        - NOTICE
+      license_url: https://developer.download.nvidia.com/assets/Clara/NVIDIA_Clara_EULA.pdf
+      summary: NVIDIA Holoscan runtime library
+      description: |
+        This is a runtime package only. Developers should install holoscan (python) and/or libholoscan-dev (C++ SDK) to build with Holoscan
+
+  # NOTE: libholoscan-dev is disabled pending RAPIDS AI components realignment (see rapidsai channel)
+  - name: libholoscan-dev
+    build:
+      skip: true                      # Skip pending realignment with RAPIDS AI
+      missing_dso_whitelist:
+        - "*libcuda.so*"              # driver
+        - "*librmm.so*"               # RMM, available in RAPIDS channel
+      run_exports:
+        - {{ pin_subpackage("libholoscan", max_pin="x") }}
+    files:
+      - bin/convert_gxf_entities_to_images.py
+      - bin/convert_gxf_entities_to_video.py
+      - bin/convert_video_to_gxf_entities.py
+      - bin/ctest_time_comparison.py
+      - bin/download_ngc_data
+      - bin/generate_extension_uuids.py
+      - bin/graph_surgeon.py
+      - bin/gxf_entity_codec.py
+      - bin/get_cmake_cuda_archs.py
+      - bin/holoscan
+      - bin/test_plattern_validation.py
+      - bin/video_validation.py
+      - examples/
+      - include/3rdparty
+      - include/fmt
+      - include/gxf
+      - include/holoinfer
+      - include/holoscan
+      - include/holoviz
+      - include/magic_enum.hpp
+      - include/rapids_logger
+      - include/rmm
+      - lib/libholo*.so
+      - lib/cmake/holoscan
+      - lib/libholo*.a
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("libholoscan", exact=True) }}
+        - cuda-version {{ cuda_compiler_version_min }}
+      run:
+        - {{ pin_subpackage("libholoscan", exact=True) }}
+        - cuda-nvcc         # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - cuda-cudart
+        - cuda-cudart-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - cuda-nvrtc-dev    # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libnpp-dev        # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libcublas-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libcufft-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libcurand-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libcusolver-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - libcusparse-dev   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+        - yaml-cpp-static   # holoscan wants to explicitly install this as it is needed for holoscan public interface
+    test:
+      requires:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - cuda-libraries-dev # need all CTK libs to compile all examples
+        - patch  # needed by one of the examples
+        - yaml-cpp-static
+      # files:
+      #   - compile_examples.sh
+      commands:
+        - test -f $PREFIX/bin/convert_gxf_entities_to_images.py
+        - test -f $PREFIX/bin/convert_gxf_entities_to_video.py
+        - test -f $PREFIX/bin/convert_video_to_gxf_entities.py
+        - test -f $PREFIX/bin/ctest_time_comparison.py
+        - test -f $PREFIX/bin/download_ngc_data
+        - test -f $PREFIX/bin/generate_extension_uuids.py
+        - test -f $PREFIX/bin/graph_surgeon.py
+        - test -f $PREFIX/bin/gxf_entity_codec.py
+        - test -f $PREFIX/bin/get_cmake_cuda_archs.py
+        - test -f $PREFIX/bin/holoscan
+        - test -f $PREFIX/bin/video_validation.py
+        - test -d $PREFIX/lib/cmake/holoscan
+        - test -d $PREFIX/examples
+        - test -d $PREFIX/include/3rdparty
+        - test -d $PREFIX/include/fmt
+        - test -d $PREFIX/include/gxf
+        - test -d $PREFIX/include/holoinfer
+        - test -d $PREFIX/include/holoscan
+        - test -d $PREFIX/include/holoviz
+        - test -f $PREFIX/include/magic_enum.hpp
+        - test -d $PREFIX/include/rmm
+        - test -L $PREFIX/lib/libholoinfer_utils.so
+        - test -L $PREFIX/lib/libholoscan_core.so
+        - test -L $PREFIX/lib/libholoscan_infer.so
+        - test -L $PREFIX/lib/libholoscan_infer_onnx_runtime.so
+        - test -L $PREFIX/lib/libholoscan_infer_torch.so
+        - test -L $PREFIX/lib/libholoscan_infer_utils.so
+        - test -L $PREFIX/lib/libholoscan_logger.so
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_async_ping_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_bayer_demosaic.so
+        - test -L $PREFIX/lib/libholoscan_op_format_converter.so
+        - test -L $PREFIX/lib/libholoscan_op_gxf_codelet.so
+        - test -L $PREFIX/lib/libholoscan_op_holoviz.so
+        - test -L $PREFIX/lib/libholoscan_op_inference.so
+        - test -L $PREFIX/lib/libholoscan_op_inference_processor.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_rx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tensor_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_ping_tx.so
+        - test -L $PREFIX/lib/libholoscan_op_segmentation_postprocessor.so
+        - test -L $PREFIX/lib/libholoscan_op_v4l2.so
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_recorder.so
+        - test -L $PREFIX/lib/libholoscan_op_video_stream_replayer.so
+        - test -L $PREFIX/lib/libholoscan_profiler.so
+        - test -L $PREFIX/lib/libholoscan_spdlog_logger.so
+        - test -L $PREFIX/lib/libholoscan_viz.so
+        - test -f $PREFIX/lib/libholoviz_imgui.a
+        - bash compile_examples.sh
+
+about:
+  home: https://docs.nvidia.com/cuda/holoscan/
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file:
+    - LICENSE
+    - NOTICE
+  license_url: https://developer.download.nvidia.com/assets/Clara/NVIDIA_Clara_EULA.pdf
+  summary: NVIDIA Holoscan is the AI sensor processing platform that combines hardware systems for low-latency sensor and network connectivity, optimized libraries for data processing and AI, and core microservices to run streaming, imaging, and other applications, from embedded to edge to cloud.
+  description: |
+    NVIDIA Holoscan is the AI sensor processing platform that combines hardware systems for low-latency sensor and network connectivity, optimized libraries for data processing and AI, and core microservices to run streaming, imaging, and other applications, from embedded to edge to cloud.
+    It can be used to build streaming AI pipelines for a variety of domains, including Medical Devices, High Performance Computing at the Edge, Industrial Inspection and more.
+  doc_url: https://docs.nvidia.com/cuda/holoscan/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
+  feedstock-name: libholoscan
