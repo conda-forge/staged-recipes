@@ -9,7 +9,7 @@ export CMAKE_AR="$(which ${AR})"
 export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
 
 # Invalid environment variable: CI="azure", please use CI=<ON|OFF>
-export CI=ON
+unset CI
 
 if [[ $target_platform =~ linux.* ]]; then
   export CC_FOR_BUILD=x86_64-conda-linux-gnu-clang
