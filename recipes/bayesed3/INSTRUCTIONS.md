@@ -30,8 +30,8 @@ git checkout -b bayesed3
 
 ```bash
 mkdir -p recipes/bayesed3
-cp /Users/hanyk/Programs/BayeSED3/../conda_forge_recipe/meta.yaml recipes/bayesed3/
-cp /Users/hanyk/Programs/BayeSED3/../conda_forge_recipe/build.sh recipes/bayesed3/
+cp /Users/hanyk/workplace/BayeSED3/../conda_forge_recipe/meta.yaml recipes/bayesed3/
+cp /Users/hanyk/workplace/BayeSED3/../conda_forge_recipe/build.sh recipes/bayesed3/
 ```
 
 ### 3. Verify SHA256 (if needed)
@@ -119,5 +119,5 @@ A: conda-forge has strict formatting requirements. Follow the error messages to 
 ## Current Recipe Details
 
 - **Version:** 2026.01.30
-- **SHA256:** e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- **SHA256:** d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
 - **Source URL:** https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.30.tar.gz
