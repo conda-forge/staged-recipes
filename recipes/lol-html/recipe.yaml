@@ -1,0 +1,61 @@
+context:
+  version: "2.7.1"
+
+package:
+  name: lol-html
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cloudflare/lol-html/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 36c16a67d844f0bdd9a64edfe66e9434e0cdd122495abdecdc0cb396ce496657
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable cinstall --locked --bins --prefix ${{ PREFIX }} --libdir $PREFIX/lib --manifest-path c-api/Cargo.toml --library-type cdylib
+        else:
+          - cargo auditable cinstall --locked --bins --prefix %LIBRARY_PREFIX% --libdir %LIBRARY_LIB% --manifest-path c-api/Cargo.toml --library-type cdylib
+          - mv %LIBRARY_PREFIX\lib\lolhtml.dll.lib %LIBRARY_PREFIX\lib\lolhtml.lib
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - cargo-c
+  run_exports:
+    - ${{ pin_subpackage('lol-html', upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - lolhtml
+
+about:
+  homepage: https://crates.io/crates/lol-html
+  summary: Low output latency streaming HTML parser/rewriter with CSS selector-based API
+  description: |
+    Low Output Latency streaming HTML rewriter/parser with CSS-selector based API.
+
+    It is designed to modify HTML on the fly with minimal buffering. It can quickly handle very large documents, and operate in environments with limited memory resources. More details can be found in the blog post.
+
+    The crate serves as a back-end for the HTML rewriting functionality of Cloudflare Workers, but can be used as a standalone library with a convenient API for a wide variety of HTML rewriting/analysis tasks.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/lol_html
+  repository: https://github.com/cloudflare/lol-html
+
+extra:
+  recipe-maintainers:
+    - pavelzw
