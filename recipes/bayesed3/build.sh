@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
-# Install Python package
-$PYTHON -m pip install . --no-deps --ignore-installed -vv
+# Install Python package WITH dependencies
+# Dependencies are read from pyproject.toml
+$PYTHON -m pip install . --ignore-installed -vv
 
 # Create share directory for data files
 mkdir -p $PREFIX/share/bayesed3
