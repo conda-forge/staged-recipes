@@ -16,4 +16,5 @@ cmake -G "Ninja" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     ..
 
-cmake --build . -j${CPU_COUNT} --config Release --target install
+cmake --build . -j${CPU_COUNT} --verbose --config Release
+cmake --build . --config Release --target install
