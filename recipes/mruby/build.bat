@@ -12,33 +12,29 @@ if errorlevel 1 exit 1
 set "MRUBY_CONFIG=build_config\conda.rb"
 if errorlevel 1 exit 1
 
-@REM @REM Use it as LD so -Wl, options are handled by the compiler driver
-@REM set "LD=%CC%"
-@REM if errorlevel 1 exit 1
-
 @REM Run build and tests (use ruby -S rake to ensure using the Ruby in PATH)
 ruby -S rake all test
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\lib" 2>nul
+mkdir "%LIBRARY_PREFIX%\lib"
 if errorlevel 1 exit 1
-copy /Y build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\" 2>nul
-if errorlevel 1 exit 1
-
-mkdir "%LIBRARY_PREFIX%\bin" 2>nul
-if errorlevel 1 exit 1
-copy /Y build\host\bin\* "%LIBRARY_PREFIX%\bin\" 2>nul
+copy /Y build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\"
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\mrbgems" 2>nul
+mkdir "%LIBRARY_PREFIX%\bin"
 if errorlevel 1 exit 1
-mkdir "%LIBRARY_PREFIX%\mrblib" 2>nul
+copy /Y build\host\bin\*.exe "%LIBRARY_PREFIX%\bin\"
 if errorlevel 1 exit 1
-mkdir "%LIBRARY_PREFIX%\include" 2>nul
+
+mkdir "%LIBRARY_PREFIX%\mrbgems"
 if errorlevel 1 exit 1
-xcopy /E /I /Y build\host\mrbgems "%LIBRARY_PREFIX%\mrbgems" >nul 2>nul
+mkdir "%LIBRARY_PREFIX%\mrblib"
 if errorlevel 1 exit 1
-xcopy /E /I /Y build\host\mrblib "%LIBRARY_PREFIX%\mrblib" >nul 2>nul
+mkdir "%LIBRARY_PREFIX%\include"
 if errorlevel 1 exit 1
-xcopy /E /I /Y include "%LIBRARY_PREFIX%\include" >nul 2>nul
+xcopy /E /I /Y build\host\mrbgems "%LIBRARY_PREFIX%\mrbgems"
+if errorlevel 1 exit 1
+xcopy /E /I /Y build\host\mrblib "%LIBRARY_PREFIX%\mrblib"
+if errorlevel 1 exit 1
+xcopy /E /I /Y include "%LIBRARY_PREFIX%\include"
 if errorlevel 1 exit 1
