@@ -18,12 +18,12 @@ if errorlevel 1 exit 1
 
 mkdir "%LIBRARY_PREFIX%\lib"
 if errorlevel 1 exit 1
-copy /Y build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\"
+copy /Y %SRC_DIR%\build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\"
 if errorlevel 1 exit 1
 
 mkdir "%LIBRARY_PREFIX%\bin"
 if errorlevel 1 exit 1
-copy /Y build\host\bin\*.exe "%LIBRARY_PREFIX%\bin\"
+copy /Y %SRC_DIR%\build\host\bin\*.exe "%LIBRARY_PREFIX%\bin\"
 if errorlevel 1 exit 1
 
 mkdir "%LIBRARY_PREFIX%\mrbgems"
@@ -32,9 +32,9 @@ mkdir "%LIBRARY_PREFIX%\mrblib"
 if errorlevel 1 exit 1
 mkdir "%LIBRARY_PREFIX%\include"
 if errorlevel 1 exit 1
-xcopy /E /I /Y build\host\mrbgems "%LIBRARY_PREFIX%\mrbgems"
+xcopy /E /I /Y %SRC_DIR%\build\host\mrbgems "%LIBRARY_PREFIX%\mrbgems"
 if errorlevel 1 exit 1
-xcopy /E /I /Y build\host\mrblib "%LIBRARY_PREFIX%\mrblib"
+xcopy /E /I /Y %SRC_DIR%\build\host\mrblib "%LIBRARY_PREFIX%\mrblib"
 if errorlevel 1 exit 1
-xcopy /E /I /Y include "%LIBRARY_PREFIX%\include"
+xcopy /E /I /Y %SRC_DIR%\include "%LIBRARY_PREFIX%\include"
 if errorlevel 1 exit 1
