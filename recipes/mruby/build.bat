@@ -16,21 +16,21 @@ if errorlevel 1 exit 1
 ruby -S rake all test
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\lib"
+if not exist "%LIBRARY_PREFIX%\lib" mkdir "%LIBRARY_PREFIX%\lib"
 if errorlevel 1 exit 1
 copy /Y build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\"
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\bin"
+if not exist "%LIBRARY_PREFIX%\bin" mkdir "%LIBRARY_PREFIX%\bin"
 if errorlevel 1 exit 1
-copy /Y bin\* "%LIBRARY_PREFIX%\bin\"
+copy /Y build\host\bin\* "%LIBRARY_PREFIX%\bin\"
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\mrbgems"
+if not exist "%LIBRARY_PREFIX%\mrbgems" mkdir "%LIBRARY_PREFIX%\mrbgems"
 if errorlevel 1 exit 1
-mkdir "%LIBRARY_PREFIX%\mrblib"
+if not exist "%LIBRARY_PREFIX%\mrblib" mkdir "%LIBRARY_PREFIX%\mrblib"
 if errorlevel 1 exit 1
-mkdir "%LIBRARY_PREFIX%\include"
+if not exist "%LIBRARY_PREFIX%\include" mkdir "%LIBRARY_PREFIX%\include"
 if errorlevel 1 exit 1
 xcopy /E /I /Y build\host\mrbgems "%LIBRARY_PREFIX%\mrbgems"
 if errorlevel 1 exit 1
