@@ -1,0 +1,128 @@
+context:
+  name: gaudi
+  tag: v40r2
+  version: ${{ tag[1:] | replace('r', '.') | replace('p', '.') }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.cern.ch/gaudi/Gaudi/-/archive/${{ tag }}/Gaudi-${{ tag }}.tar.gz
+  sha256: 93bf0ae5e33d7d3a5aa36504840ed62aeab9f6f8ddddd4ea1b23bc5455b51e41
+  patches:
+    - patches/1871.patch
+    - patches/1872.patch
+    - patches/1873.patch
+    - patches/1874.patch
+    - patches/1876.patch
+    - patches/1877.patch
+    - patches/plugin-loading.patch
+    - patches/system-implementation.patch
+    - patches/libcxx-fixes.patch
+    - patches/test-cmake-portability.patch
+    - patches/0001-fix-Disable-Clang-colored-diagnostics-in-test_Counte.patch
+
+build:
+  number: 0
+  skip:
+    - win
+    # conda-forge Python lacks gdbm support, so dbm.sqlite3 (Python 3.13+) is needed for confdb2
+    - match(python, "<3.13")
+  script:
+    - if: osx
+      then: |
+        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+    - |
+      mkdir -p build
+      cd build
+      cmake ${CMAKE_ARGS} \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
+          -DBUILD_SHARED_LIBS=ON \
+          -DGAUDI_INSTALL_PYTHONDIR=$SP_DIR \
+          -DGAUDI_DEFAULT_PLUGIN_PATH=$PREFIX/lib \
+          -DPython_EXECUTABLE=$PYTHON \
+          -DGAUDI_USE_DOXYGEN=OFF \
+          $SRC_DIR
+      cmake --build .
+    - if: unix
+      then: |
+        # Exclude cmake.test_dummyGaudiDownstreamProject - requires vdt/ROOT
+        # development dependencies not available in test install environment
+        #
+        # Exclude GaudiTestSuite.pytest.test_event_timeout_mt - this test is
+        # timing-sensitive and expects events with 7-second sleeps to complete
+        # in exactly 7 seconds. In resource-constrained CI environments with
+        # fewer CPUs than the 6 threads requested, thread scheduling delays
+        # cause race conditions where the EventWatchdog's timing measurement
+        # doesn't match the actual sleep duration, resulting in spurious
+        # failures (e.g., reporting 6s instead of 7s).
+        ctest --output-on-failure -E 'cmake\.test_dummyGaudiDownstreamProject|GaudiTestSuite\.pytest\.test_event_timeout_mt'
+    - cmake --install .
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound="x.x.x") }}
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - git
+    - procps-ng
+  host:
+    - python
+    - pytest
+    - pytest-cov
+    - coverage
+    - pyyaml
+    - networkx
+    - libboost-devel
+    - libboost-python-devel
+    - root_base
+    - tbb-devel
+    - zlib
+    - libuuid
+    - range-v3
+    - nlohmann_json
+    - fmt
+    - clhep
+    - xerces-c
+    - catch2
+    - ms-gsl
+    - aida
+    - heppdt
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - GaudiKernel
+      pip_check: false
+  - script:
+      - test -f $PREFIX/bin/Gaudi
+      - Gaudi --help
+      - gaudirun.py
+
+about:
+  homepage: https://gitlab.cern.ch/gaudi/Gaudi
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: The Gaudi software framework for event data processing applications
+  description: |
+    Gaudi is a software framework used for building event data processing
+    applications in high-energy physics. It provides a component model,
+    an event data model, and interfaces for tools, services, and algorithms.
+    Originally developed at CERN for the LHCb experiment, it is now used
+    by multiple experiments including ATLAS and LHCb.
+  documentation: https://gaudi-framework.readthedocs.io/
+  repository: https://gitlab.cern.ch/gaudi/Gaudi
+
+extra:
+  recipe-maintainers:
+    - chrisburr
