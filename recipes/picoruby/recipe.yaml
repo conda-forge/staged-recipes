@@ -1,0 +1,64 @@
+context:
+  name: PicoRuby
+  version: "3.0.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/${{ name|lower }}/${{ name|lower }}/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 33b951be8969570726bc34632fa5e0f332ee6e8ed782b5ec0f8fd5629a6be959
+
+build:
+  number: 0
+  skip: win
+  script: |
+    set -exo pipefail
+
+    export LD=${CC}
+    export CFLAGS="-I${PREFIX}/include ${CFLAGS}"
+    export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
+
+    rake
+    mkdir -p ${PREFIX}/{bin,include,lib}
+    install -m 755 bin/* ${PREFIX}/bin
+    install -m 644 build/host/lib/*.a ${PREFIX}/lib
+    test -d "include" && cp -r include/* "${PREFIX}/include/" || true
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - git
+    - ruby
+    - make
+  host:
+    - openssl
+
+tests:
+  - script:
+    - picoruby --verbose -e "puts 'Hello, PicoRuby!'"
+
+about:
+  homepage: https://picoruby.org
+  repository: https://github.com/picoruby/picoruby
+  documentation: https://picoruby.org
+  license: MIT
+  license_file: LICENSE
+  summary: "PicoRuby is the smallest Ruby implementation for one-chip microcontrollers"
+  description: |
+    PicoRuby is an alternative mruby implementation which is:
+
+    - Small foot print
+      - ROM: 256 KB (depending on build config)
+      - RAM: 128 KB or less (depending on app code)
+      - (Figures in 32 bit architecture)
+    - Portable
+      - Depends on only standard C library such as glibc, Newlib or Newlib-nano
+    - Reference microcontroller boards
+      - Raspberry Pi Pico - Arm Cortex-M0+, 264 KB RAM, 2 MB Flash
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
