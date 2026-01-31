@@ -1,15 +1,15 @@
-# Conda-Forge Submission Instructions for BayeSED3 v2026.01.30
+# Conda-Forge Submission Instructions for BayeSED3 v2026.01.31
 
 ## Files Prepared
 
-- `meta.yaml` - Conda recipe with version 2026.01.30 and SHA256
+- `meta.yaml` - Conda recipe with version 2026.01.31 and SHA256
 - `build.sh` - Build script for conda-forge
 
 ## Prerequisites
 
 1. **GitHub Release Must Exist**
-   - Tag: v2026.01.30
-   - URL: https://github.com/hanyk/BayeSED3/releases/tag/v2026.01.30
+   - Tag: v2026.01.31
+   - URL: https://github.com/hanyk/BayeSED3/releases/tag/v2026.01.31
    - If not created yet, run: `./release_with_gh.sh`
 
 2. **Fork staged-recipes**
@@ -39,7 +39,7 @@ cp /Users/hanyk/workplace/BayeSED3/../conda_forge_recipe/build.sh recipes/bayese
 If SHA256 was PLACEHOLDER_SHA256, calculate it:
 
 ```bash
-curl -sL https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.30.tar.gz | shasum -a 256
+curl -sL https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.31.tar.gz | shasum -a 256
 ```
 
 Then update `recipes/bayesed3/meta.yaml` with the correct hash.
@@ -96,7 +96,7 @@ Once your PR is merged:
 
 A: Recalculate SHA256:
 ```bash
-curl -sL https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.30.tar.gz | shasum -a 256
+curl -sL https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.31.tar.gz | shasum -a 256
 ```
 
 **Q: Tests fail**
@@ -118,6 +118,6 @@ A: conda-forge has strict formatting requirements. Follow the error messages to 
 
 ## Current Recipe Details
 
-- **Version:** 2026.01.30
-- **SHA256:** d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
-- **Source URL:** https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.30.tar.gz
+- **Version:** 2026.01.31
+- **SHA256:** 41251adba0c24e67547c71b3d91998b473a7ae0a189a075fddde7d19c7ae2154
+- **Source URL:** https://github.com/hanyk/BayeSED3/archive/refs/tags/v2026.01.31.tar.gz
