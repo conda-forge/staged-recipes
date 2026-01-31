@@ -1,0 +1,57 @@
+context:
+  name: instrument-control
+  version: "0.10.0"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gnu-octave/instrument-control/releases/download/release-${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 04715ef60e9f0cad86a82ebe7a623d198a6d2071c0e67d9d921935b1d1f9e854
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - make
+    - pkg-config
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - octave >=4.0.0
+    - libusb
+  run:
+    - octave >=4.0.0
+    - libusb
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load instrument-control; \
+        disp('instrument-control loaded') \
+      "
+
+about:
+  homepage: https://github.com/gnu-octave/instrument-control
+  license: GPL-3.0-or-later
+  license_file: instrument-control/COPYING
+  summary: Low level I/O functions for serial, TCP, UDP, GPIB, VXI-11 and USBTMC interfaces
+
+extra:
+  recipe-maintainers:
+    - arjxn-py
