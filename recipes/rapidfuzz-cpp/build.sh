@@ -1,8 +1,10 @@
 set -euxo pipefail
-cmake ${CMAKE_ARGS} \
+cmake -B${CMAKE_ARGS} \
+  -B build \
   -DCMAKE_PREFIX_PATH:PATH=${PREFIX} \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
   .
 
-make -j${CPU_COUNT} install
+cmake --build build
+cmake --install build
