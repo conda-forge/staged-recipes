@@ -38,6 +38,9 @@ vary depending on the number of reviewers on a given language team and may be da
 or weeks. We are always looking for more staged-recipe reviewers. If you are
 interested in volunteering, please contact a member of @conda-forge/core.
 We'd love to have the help!
+
+If your PR is aimed at updating the staged-recipes repository itself, mention `@conda-forge/staged-recipes`
+and the word "maintenance" in a comment to get the PR labeled as 'maintenance'.
 -->
 
 Checklist
