@@ -3,6 +3,8 @@
 @REM Create conda.rb from default and switch to full-core
 copy /Y build_config\default.rb build_config\conda.rb
 if errorlevel 1 exit 1
+sed -i "s|conf.toolchain|conf.toolchain :gcc|" build_config\conda.rb
+if errorlevel 1 exit 1
 sed -i "s|conf.gembox 'default'|conf.gembox 'full-core'|" build_config\conda.rb
 if errorlevel 1 exit 1
 
