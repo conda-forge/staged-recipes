@@ -23,7 +23,7 @@ if errorlevel 1 exit 1
 
 mkdir "%LIBRARY_PREFIX%\bin"
 if errorlevel 1 exit 1
-copy /Y bin\*.exe "%LIBRARY_PREFIX%\bin\"
+copy /Y bin\* "%LIBRARY_PREFIX%\bin\"
 if errorlevel 1 exit 1
 
 mkdir "%LIBRARY_PREFIX%\mrbgems"
