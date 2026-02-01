@@ -12,28 +12,22 @@ source:
 build:
   number: 0
   noarch: generic
+
   script:
     - if: win
       then: |
         @echo off
         setlocal EnableDelayedExpansion
 
-        REM Debug (remove after testing)
-        echo DEBUG: LIBRARY_PREFIX=!LIBRARY_PREFIX!
-        echo DEBUG: PREFIX=!PREFIX!
-        echo DEBUG: SRC_DIR=!SRC_DIR!
-
-        if "!LIBRARY_PREFIX!"=="" (
-          echo ERROR: LIBRARY_PREFIX not set - aborting
-          exit /b 1
-        )
+        REM Debug lines - uncomment if needed for troubleshooting
+        REM echo DEBUG: CMAKE_ARGS=!CMAKE_ARGS!
+        REM echo DEBUG: LIBRARY_PREFIX=!LIBRARY_PREFIX!
+        REM echo DEBUG: SRC_DIR=!SRC_DIR!
 
         mkdir build
         cd build || exit /b 1
 
-        cmake -G "Ninja" ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_INSTALL_PREFIX=!LIBRARY_PREFIX! ^
+        cmake -G "Ninja" %CMAKE_ARGS% ^
           -DBUILD_SHARED_LIBS=ON ^
           -DRAPIDFUZZ_BUILD_TESTING=OFF ^
           -DRAPIDFUZZ_BUILD_BENCHMARKS=OFF ^
@@ -41,43 +35,46 @@ build:
 
         cmake --build . --config Release --parallel %CMAKE_BUILD_PARALLEL_LEVEL% || exit /b 1
         cmake --install . --config Release || exit /b 1
-      
+
     - if: not win
       then: |
         cmake -B build \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -G "Ninja" \
+          ${CMAKE_ARGS} \
+          -DBUILD_SHARED_LIBS=ON \
+          -DRAPIDFUZZ_BUILD_TESTING=OFF \
+          -DRAPIDFUZZ_BUILD_BENCHMARKS=OFF \
           $SRC_DIR
 
         cmake --build build --parallel ${CMAKE_BUILD_PARALLEL_LEVEL:-4}
         cmake --install build
 
-    
-
 requirements:
   build:
-    - ${{ compiler('cxx') }}
-    - ${{ stdlib("c") }}
-    - cmake     >=3.15
+    - cmake >=3.15
     - ninja
 
 tests:
-  - package_contents:
-      include:
-        - rapidfuzz/fuzz.hpp
+  - script:
+      - if: win
+        then: |
+          if not exist %LIBRARY_PREFIX%\include\rapidfuzz\fuzz.hpp (exit 1)
+      - if: not win
+        then: |
+          test -f $PREFIX/include/rapidfuzz/fuzz.hpp
 
 about:
   homepage: https://github.com/rapidfuzz/rapidfuzz-cpp
   repository: https://github.com/rapidfuzz/rapidfuzz-cpp
   documentation: https://rapidfuzz.github.io/rapidfuzz-cpp
   license: MIT
+  license_family: MIT
   license_file: LICENSE
   summary: Rapid fuzzy string matching in C++ (Levenshtein and other metrics)
   description: |
     Fast string similarity library in C++ providing Levenshtein distance,
     Hamming, Jaro-Winkler, fuzz ratios (partial, token sort, etc.) and more.
     Designed as high-performance backend for rapidfuzz (Python) but usable standalone.
-
 
 extra:
   recipe-maintainers:
