@@ -10,7 +10,10 @@ mkdir -p build
 cd build
 
 # following note at https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
-export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+if [[ "${target_platform}" == osx-* ]]; then
+    export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
 
 # CMake configuration with explicit flags (showing defaults from documentation)
 # Common CMake Options:
@@ -45,12 +48,5 @@ cmake_args=(
 # Configure CMake
 cmake "${cmake_args[@]}" ..
 
-# Build (using parallel jobs if available)
-if command -v ninja &> /dev/null; then
-    cmake --build . -j ${CPU_COUNT:-${NPROCS:-1}}
-else
-    make -j${CPU_COUNT:-${NPROCS:-1}}
-fi
-
-# Install
-make install
+# Build and install
+cmake --build . --config Release --target install --verbose -j${CPU_COUNT}
