@@ -12,13 +12,54 @@ source:
 build:
   number: 0
   noarch: generic
+  script:
+    - if: win
+      then: |
+        @echo off
+        setlocal EnableDelayedExpansion
+
+        REM Debug (remove after testing)
+        echo DEBUG: LIBRARY_PREFIX=!LIBRARY_PREFIX!
+        echo DEBUG: PREFIX=!PREFIX!
+        echo DEBUG: SRC_DIR=!SRC_DIR!
+
+        if "!LIBRARY_PREFIX!"=="" (
+          echo ERROR: LIBRARY_PREFIX not set - aborting
+          exit /b 1
+        )
+
+        mkdir build
+        cd build || exit /b 1
+
+        cmake -G "Ninja" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_INSTALL_PREFIX=!LIBRARY_PREFIX! ^
+          -DBUILD_SHARED_LIBS=ON ^
+          -DRAPIDFUZZ_BUILD_TESTING=OFF ^
+          -DRAPIDFUZZ_BUILD_BENCHMARKS=OFF ^
+          !SRC_DIR! || exit /b 1
+
+        cmake --build . --config Release --parallel %CMAKE_BUILD_PARALLEL_LEVEL% || exit /b 1
+        cmake --install . --config Release || exit /b 1
+      
+    - if: not win
+      then: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          $SRC_DIR
+
+        cmake --build build --parallel ${CMAKE_BUILD_PARALLEL_LEVEL:-4}
+        cmake --install build
+
+    
 
 requirements:
   build:
     - ${{ compiler('cxx') }}
     - ${{ stdlib("c") }}
     - cmake     >=3.15
-    - make     
+    - ninja
 
 tests:
   - package_contents:
