@@ -1,0 +1,93 @@
+{% set version = "0.dev.2025.08.07" %}
+{% set commit_hash = "1813adae89203e15fc60344864fc2ca0d3c75e07" %}
+
+package:
+  name: kmsxx-split  # not actually built, outputs define real packages
+  version: {{ version }}
+
+source:
+  url: https://github.com/tomba/kmsxx/archive/{{ commit_hash }}.tar.gz
+  sha256: 0e5116c5888f916997ac65e73dfe278952f44bd313ee2768a690f1f36199babd
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - {{ stdlib("c") }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - pybind11
+    - fmt
+    - libdrm
+
+outputs:
+  - name: libkmsxx
+    build:
+      run_exports:
+        - {{ pin_subpackage("libkmsxx", max_pin="x.x.x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - fmt
+        - libdrm
+    files:
+      - bin/fbtest
+      - bin/kmsblank
+      - bin/kmsprint
+      - bin/kmstest
+      - include/kms++/
+      - include/kms++util/
+      - lib/libkms++.so*
+      - lib/libkms++util.so*
+      - lib/pkgconfig/kms++.pc
+      - lib/pkgconfig/kms++util.pc
+    test:
+      commands:
+        - kmsblank --help 2>&1 | grep -q "kmsblank"
+        - kmstest --help 2>&1 | grep -q "kmstest"
+        - kmsprint --help 2>&1 | grep -q "kmsprint"
+        - fbtest 2>&1 | grep -q "failed"
+
+  - name: pykms
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - meson
+        - ninja
+        - pkg-config
+      host:
+        - python
+        - pybind11
+        - {{ pin_subpackage("libkmsxx", exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage("libkmsxx", exact=True) }}
+    files:
+      - lib/python*/site-packages/pykms/pykms.so
+      - lib/python*/site-packages/pykms/__init__.py
+    test:
+      imports:
+        - pykms
+
+about:
+  home: https://github.com/tomba/kmsxx
+  license: MIT
+  license_file: LICENSE
+  summary: "DRM/KMS library for Linux with Python bindings"
+
+extra:
+  feedstock-name: kmsxx
+  recipe-maintainers:
+    - carlodri
