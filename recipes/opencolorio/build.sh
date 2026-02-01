@@ -9,6 +9,9 @@ set -euo pipefail
 mkdir -p build
 cd build
 
+# following note at https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
+export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
 # CMake configuration with explicit flags (showing defaults from documentation)
 # Common CMake Options:
 cmake_args=(
