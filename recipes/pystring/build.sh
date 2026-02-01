@@ -5,7 +5,8 @@ set -euo pipefail
 mkdir -p build
 cd build
 
-cmake ${CMAKE_ARGS} \
+cmake -G "Ninja" \
+    ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_INSTALL_LIBDIR=lib \
@@ -15,4 +16,5 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     ..
 
-cmake --build . -j${CPU_COUNT} --config Release --target install
+cmake --build . -j${CPU_COUNT} --verbose --config Release
+cmake --build . --config Release --target install
