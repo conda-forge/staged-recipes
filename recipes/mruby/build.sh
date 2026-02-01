@@ -13,6 +13,6 @@ export LD="${CC}"
 rake all test
 
 mkdir -p ${PREFIX}/{lib,bin,mrbgems,mrblib,include}
-cp -r build/host/lib/*.a ${PREFIX}/lib
+cp -r build/host/lib/* ${PREFIX}/lib
 cp -r build/host/bin/* ${PREFIX}/bin
 cp -r include build/host/{mrbgems,mrblib} ${PREFIX}
