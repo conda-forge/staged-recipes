@@ -18,7 +18,7 @@ if errorlevel 1 exit 1
 
 if not exist "%LIBRARY_PREFIX%\lib" mkdir "%LIBRARY_PREFIX%\lib"
 if errorlevel 1 exit 1
-copy /Y build\host\lib\*.lib "%LIBRARY_PREFIX%\lib\"
+copy /Y build\host\lib\* "%LIBRARY_PREFIX%\lib\"
 if errorlevel 1 exit 1
 
 if not exist "%LIBRARY_PREFIX%\bin" mkdir "%LIBRARY_PREFIX%\bin"
