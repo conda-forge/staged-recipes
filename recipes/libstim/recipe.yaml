@@ -1,9 +1,8 @@
 context:
-  name: libstim
   version: "1.15.0"
 
-package:
-  name: ${{ name }}
+recipe:
+  name: stim-split
   version: ${{ version }}
 
 source:
@@ -13,31 +12,76 @@ source:
 build:
   number: 0
 
-requirements:
-  build:
-    - ${{ compiler('cxx') }}
-    - ${{ stdlib('c') }}
-    - cmake
-    - ninja
+outputs:
+  - package:
+      name: libstim
+    build:
+      script:
+        - if: unix
+          then: build-libstim.sh
+        - if: win
+          then: build-libstim.bat
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    tests:
+      - script:
+          - test -f $PREFIX/lib/libstim${SHLIB_EXT}
+          - test -f $PREFIX/include/stim.h
+        if: unix
+      - script:
+          - if not exist %LIBRARY_LIB%\\stim.lib exit 1
+          - if not exist %LIBRARY_INC%\\stim.h exit 1
+        if: win
 
-tests:
-  - script:
-      - test -f $PREFIX/lib/libstim${SHLIB_EXT}
-      - test -f $PREFIX/include/stim.h
-    if: unix
-  - script:
-      - if not exist %LIBRARY_LIB%\\stim.lib exit 1
-      - if not exist %LIBRARY_INC%\\stim.h exit 1
-    if: win
+  - package:
+      name: stim
+    build:
+      script:
+        - if: unix
+          then: build-stim.sh
+        - if: win
+          then: build-stim.bat
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - python
+        - cross-python_${{ target_platform }}
+        - if: build_platform != target_platform
+          then: numpy
+      host:
+        - python
+        - pip
+        - setuptools
+        - numpy
+        - pybind11
+      run:
+        - python
+        - numpy
+    tests:
+      - python:
+          imports:
+            - stim
+          pip_check: true
+      - script:
+          - stim --help
 
 about:
   homepage: https://github.com/quantumlib/Stim
-  summary: A fast stabilizer circuit library
+  summary: A fast stabilizer circuit simulator
   description: |
     Stim is a fast simulator for quantum stabilizer circuits. It can be used
     to generate samples from quantum circuits with Clifford gates and Pauli
     noise, to analyze the detectors and observables in a circuit, and to
     decode detection events using various decoders.
+
+    This package provides both:
+    - libstim: The C++ library with headers for linking
+    - stim: The Python package with CLI
   license: Apache-2.0
   license_file: LICENSE
   documentation: https://github.com/quantumlib/Stim/blob/main/doc/getting_started.md
