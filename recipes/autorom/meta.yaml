@@ -1,0 +1,57 @@
+{% set name = "AutoROM" %}
+{% set version = "0.6.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0]|lower }}/{{ name|lower }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 6eff1f1b96a9d519577437f71d96a8d3b896238eca3433a8e69c5c92f6de3231
+
+build:
+  noarch: python
+  entry_points:
+    - AutoROM=AutoROM:cli
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python >=3.6
+    - farama-notifications
+    - setuptools
+    - wheel
+    - pip
+  run:
+    - python >=3.6
+    - click
+    - requests
+
+test:
+  imports:
+    - {{ name }}
+  commands:
+    - pip check
+    - AutoROM --help
+    - mkdir -p roms && pushd roms
+    - AutoROM --accept-license --install-dir .
+    - python -c "import ale_py.roms as roms; print(roms.__all__)"
+    # workaround for windows until https://github.com/conda-forge/ale-py-feedstock/issues/10 is resolved
+    - ale-import-roms ./  # [not win]
+    - python -c "import sys; sys.argv.append('.'); from ale_py.scripts.import_roms import main; main()"  # [win]
+    - python -c "from ale_py.roms import Pong; import sys; sys.exit(not Pong.exists())"
+    - popd && rm -r roms
+  requires:
+    - pip
+    - ale-py
+
+about:
+  home: https://github.com/Farama-Foundation/AutoROM
+  summary: Automated installation of Atari ROMs for Gymnasium/ALE-Py
+  license: MIT
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - ChristofKaufmann
