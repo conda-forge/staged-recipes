@@ -1,0 +1,56 @@
+context:
+  name: statistics
+  version: "1.8.0"
+
+package:
+  name: octave-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gnu-octave/statistics/releases/download/release-${{ version }}/statistics-${{ version }}.tar.gz
+  sha256: 38f45268a509e1a2ce1103b0d192709a4887920776567f761054519873e06b27
+  target_directory: ${{ name }}
+
+build:
+  number: 0
+  skip:
+    - if: win or osx
+      then: true
+  script: |
+    tar -czf ${{ name }}-${{ version }}.tar.gz ${{ name }}
+    octave -W -H --eval "pkg install -global -verbose ${{ name }}-${{ version }}.tar.gz"
+
+    mkdir -p $PREFIX/bin
+    cp $RECIPE_DIR/post-link.sh $PREFIX/bin/.octave-${{ name }}-post-link.sh
+    chmod +x $PREFIX/bin/.octave-${{ name }}-post-link.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - octave >=9.1.0
+    - octave-datatypes >=1.1.0
+  run:
+    - octave >=9.1.0
+    - octave-datatypes >=1.1.0
+
+tests:
+  - script: |
+      octave -W -H --eval "\
+        pkg list; \
+        pkg load statistics; \
+        disp('statistics loaded') \
+      "
+
+about:
+  homepage: https://github.com/gnu-octave/statistics
+  license: GPL-3.0-or-later
+  license_file: statistics/COPYING
+  summary: Statistics package for GNU Octave (probability distributions, statistical tests, regression)
+
+extra:
+  recipe-maintainers:
+    - arjxn-py
