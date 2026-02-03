@@ -6,9 +6,9 @@ set -exuo pipefail
 export PATH="$(pwd)/bun.native:${PATH}"
 
 export CMAKE_AR="$(which ${AR})"
-export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
+export CMAKE_STRIP="$BUILD_PREFIX/bin/llvm-strip"
 
-export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR}"
+export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP}"
 
 # Invalid environment variable: CI="azure", please use CI=<ON|OFF>
 unset CI
