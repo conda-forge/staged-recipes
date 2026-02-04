@@ -6,8 +6,13 @@ set -exuo pipefail
 export PATH="$(pwd)/bun.native:${PATH}"
 
 export CMAKE_AR="$(which ${AR})"
-export CMAKE_LLD="$(which ld.lld)"
-export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
+if [[ "${target_platform}" == osx-* ]]; then
+  export CMAKE_LLD="$(which lld)"
+  export CMAKE_STRIP="$BUILD_PREFIX/bin/llvm-strip"
+else
+  export CMAKE_LLD="$(which ld.lld)"
+  export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
+fi
 
 export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP}"
 
