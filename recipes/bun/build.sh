@@ -6,8 +6,8 @@ set -exuo pipefail
 export PATH="$(pwd)/bun.native:${PATH}"
 
 export CMAKE_AR="$(which ${AR})"
-export CMAKE_LLD="$(which lld)"
-export CMAKE_STRIP="$BUILD_PREFIX/bin/llvm-strip"
+export CMAKE_LLD="$(which ld.lld)"
+export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
 
 export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP}"
 
@@ -23,8 +23,6 @@ if [[ $target_platform =~ linux.* ]]; then
   # rm -f $BUILD_PREFIX/bin/ld
   # rm -f $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ld
   # ln -s $BUILD_PREFIX/bin/lld $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-ld
-
-  ln -s $BUILD_PREFIX/bin/ar $BUILD_PREFIX/bin/llvm-ar
 
   env
   bun ./scripts/build.mjs -GNinja -DCMAKE_BUILD_TYPE=Release -B build/release
