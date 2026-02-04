@@ -1,0 +1,82 @@
+context:
+  version: "1.17.0"
+
+package:
+  name: kyverno-cli
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/kyverno/kyverno/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 05afa6e889d360d37da5f3a4fd3c845492ed1879127cbaf54886ea735fec4cb4
+    target_directory: src
+  # Manually downloaded licenses for dependencies where go-licenses cannot detect the license
+  - url: https://raw.githubusercontent.com/cyberphone/json-canonicalization/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/LICENSE
+    sha256: 6821faaddedf2d78c95bb6d98b127e9e616097afd2f6bcc34389f000d13ab12d
+    target_directory: manual_licenses/github.com/cyberphone/json-canonicalization
+    file_name: LICENSE
+  - url: https://raw.githubusercontent.com/in-toto/attestation/e0c322da81c958edee8b3e4a57bdeaa2148c3ac6/LICENSE
+    sha256: b3a6ac899861c2c28a1abd5c7ea8733fefaed6938d730e099c42671386032aeb
+    target_directory: manual_licenses/github.com/in-toto/attestation
+    file_name: LICENSE
+  - url: https://raw.githubusercontent.com/in-toto/in-toto-golang/db554e2ab6498a07d719e5374efa6ad4a7a7c222/LICENSE
+    sha256: b5c26c8a2ad6dd7cac6646e470a32ee42d23c36124caac4e66c989b6545b2a44
+    target_directory: manual_licenses/github.com/in-toto/in-toto-golang
+    file_name: LICENSE
+  - url: https://raw.githubusercontent.com/kyverno/pkg/48769d003e555be0c1b1d50134daad5e3f6d76b4/LICENSE
+    sha256: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+    target_directory: manual_licenses/github.com/kyverno/pkg
+    file_name: LICENSE
+  - url: https://raw.githubusercontent.com/openreports/reports-api/572eed26eb1d4ebb9fcd3f4fcc264db857f9a819/LICENSE
+    sha256: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+    target_directory: manual_licenses/github.com/openreports/reports-api
+    file_name: LICENSE
+  - url: https://raw.githubusercontent.com/alibabacloud-go/cr-20160607/45325ed92526132fe7d947dcecc081ece6a57a6e/LICENSE
+    sha256: aefc84881757b27b42ed6998db23e877b7d630956816f85bc11dd25452de5367
+    target_directory: manual_licenses/github.com/alibabacloud-go/cr-20160607
+    file_name: LICENSE
+
+build:
+  number: 0
+  script:
+    - cd src
+    - >-
+      go-licenses save ./cmd/cli/kubectl-kyverno --save_path ../library_licenses
+      --ignore github.com/cyberphone/json-canonicalization
+      --ignore github.com/in-toto/attestation
+      --ignore github.com/in-toto/in-toto-golang
+      --ignore github.com/kyverno/pkg
+      --ignore github.com/openreports/reports-api
+      --ignore github.com/alibabacloud-go/cr-20160607
+    - if: unix
+      then: cp -r ../manual_licenses/* ../library_licenses/
+      else: xcopy /E /I /Y ..\manual_licenses\* ..\library_licenses\
+    - if: unix
+      then: go build -v -o $PREFIX/bin/kyverno -ldflags="-s -w" ./cmd/cli/kubectl-kyverno
+      else: go build -v -o %LIBRARY_BIN%\kyverno.exe -ldflags="-s" ./cmd/cli/kubectl-kyverno
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: kyverno version
+  - package_contents:
+      bin:
+        - kyverno
+      strict: true
+
+about:
+  homepage: https://kyverno.io
+  summary: Cloud Native Policy Management CLI
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/kyverno/kyverno
+  documentation: https://kyverno.io/docs/
+
+extra:
+  recipe-maintainers:
+    - SamuelLess
+    - janjagusch
