@@ -1,0 +1,130 @@
+{% set name = "libcuobjclient" %}
+{% set version = "1.0.0.26" %}
+{% set lib_version = version.split(".")[:-1] | join(".") %}
+{% set cuda_version = "13.1" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set extension = "tar.xz" %}  # [not win]
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: aba19ffc2425b9981020d182f27093a52d150274482645621eefa029f276ef7c  # [linux64]
+  sha256: bd88f9e3ce8499d94faf444c176fd6d9f461337952a7e9b0ccceba0b77fd4a3e  # [aarch64]
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64)]
+
+requirements:
+  build:
+    - {{ stdlib("c") }}
+    - cf-nvidia-tools 1.*  # [linux]
+    - patchelf <0.18.0     # [linux]
+
+outputs:
+  - name: libcuobjclient
+    build:
+      binary_relocation: false
+      missing_dso_whitelist:
+        - "*libmlx5*"
+        - "*librdmacm*"
+        - "*libibverbs*"
+    files:
+      - lib/libcuobjclient*.so.*
+      - targets/{{ target_name }}/lib/libcuobjclient*.so.*
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_version }}
+        - libcufile
+        - libnuma
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - {{ pin_compatible("libcufile", max_pin="x.x") }}
+        - {{ pin_compatible("libnuma", max_pin="x") }}
+    test:
+      requires:
+        - patchelf  # [linux]
+      files:
+        - test-rpath-main.sh
+      commands:
+        - test -L $PREFIX/lib/libcuobjclient.so.1
+        - test -L $PREFIX/lib/libcuobjclient.so.{{ lib_version }}
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcuobjclient.so.1
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libcuobjclient.so.{{ lib_version }}
+        - bash test-rpath-main.sh
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Library for NVIDIA GPUDirect Storage for Objects
+      description: |
+        cuObject (GPUDirect Storage for Objects) is a high performance suite of libraries 
+        designed to enable direct data transfers between GPU memory or system memory and S3 
+        compatible object storage using RDMA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/cuobject/index.html
+
+  - name: libcuobjclient-dev
+    build:
+      binary_relocation: false
+      run_exports:
+        - {{ pin_subpackage("libcuobjclient", max_pin="x") }}
+    files:
+      - lib/libcuobjclient*.so
+      - lib/pkgconfig
+      - targets/{{ target_name }}/include
+      - targets/{{ target_name }}/lib/libcuobjclient*.so
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - {{ pin_subpackage("libcuobjclient", exact=True) }}
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcuobjclient.so
+        - test -f $PREFIX/targets/{{ target_name }}/include/cuobjclient.h
+        - test -f $PREFIX/targets/{{ target_name }}/include/cuobjtelem.h
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcuobjclient.so
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Library for NVIDIA GPUDirect Storage for Objects
+      description: |
+        cuObject (GPUDirect Storage for Objects) is a high performance suite of libraries 
+        designed to enable direct data transfers between GPU memory or system memory and S3 
+        compatible object storage using RDMA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/cuobject/index.html
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: Library for NVIDIA GPUDirect Storage for Objects
+  description: |
+    cuObject (GPUDirect Storage for Objects) is a high performance suite of libraries 
+    designed to enable direct data transfers between GPU memory or system memory and S3 
+    compatible object storage using RDMA
+  doc_url: https://docs.nvidia.com/gpudirect-storage/cuobject/index.html
+
+extra:
+  feedstock-name: libcuobjclient
+  recipe-maintainers:
+    - conda-forge/cuda
