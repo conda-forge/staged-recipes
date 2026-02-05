@@ -37,6 +37,7 @@ export PKG_CONFIG_PATH
 
 # Patching does not seem to work
 sed -i 's/interp->currentScriptObj/interp->evalFrame->scriptObj/g' src/openocd.c
+sed -i 's/calloc(sizeof(uint8_t), scan_size_bytes)/calloc(scan_size_bytes, sizeof(uint8_t))/' src/jtag/drivers/ulink.c
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
