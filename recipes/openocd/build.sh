@@ -68,6 +68,6 @@ pushd "${SRC_DIR}/_conda-build" || exit 1
 popd || exit 1
 
 if [[ ${target_platform} != osx-* ]] && [[ ${target_platform} != linux-* ]]; then
-  rm "${PREFIX}/share/openocd/scripts/target/1986*.cfg"                                          
-  rm "${PREFIX}/share/openocd/scripts/target/*1879x*.cfg"                                         
+  rm "${PREFIX}"/share/openocd/scripts/target/1986*.cfg                                          
+  rm "${PREFIX}"/share/openocd/scripts/target/*1879x*.cfg                                         
 fi
