@@ -40,7 +40,8 @@ sed -i 's/interp->currentScriptObj/interp->evalFrame->scriptObj/g' src/openocd.c
 sed -i -E 's/calloc\(sizeof\(([^)]*)\),\s*([^)]*)\)/calloc(\2, sizeof(\1))/' \
   src/jtag/drivers/ulink.c \
   src/flash/nor/ambiqmicro.c \
-  src/flash/nor/kinetis.c
+  src/flash/nor/kinetis.c \
+  src/flash/nor/msp432.c
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
