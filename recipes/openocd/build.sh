@@ -66,3 +66,8 @@ pushd "${SRC_DIR}/_conda-build" || exit 1
   make -j"${CPU_COUNT}"   # > "${SRC_DIR}"/_make_openocd.log 2>&1
   make install
 popd || exit 1
+
+if [[ ${target_platform} != osx-* ]] && [[ ${target_platform} != linux-* ]]; then
+  rm -f "${PREFIX}/share/openocd/scripts/target/1986\u0432\u04351\u0442.cfg"                                          
+  rm -f "${PREFIX}/share/openocd/scripts/target/\u043a1879x\u04311\u044f.cfg"                                         
+fi
