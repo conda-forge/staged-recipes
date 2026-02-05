@@ -10,6 +10,8 @@ meson setup build %MESON_ARGS% ^
     -D python_bindings=false ^
     -D al_dummy_exe=true ^
     -D al_test=true
+if %ERRORLEVEL% neq 0 exit 1
 
 :: Run tests
 meson test -C build --verbose
+if %ERRORLEVEL% neq 0 exit 1
