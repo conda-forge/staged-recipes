@@ -42,7 +42,12 @@ sed -i -E 's/calloc\(sizeof\(([^)]*)\),\s*([^)]*)\)/calloc(\2, sizeof(\1))/' \
   src/flash/nor/ambiqmicro.c \
   src/flash/nor/kinetis.c \
   src/flash/nor/msp432.c \
-  src/flash/nor/max32xxx.c
+  src/flash/nor/max32xxx.c \
+  src/flash/nor/xmc4xxx.c \
+  src/flash/nor/stm32f2x.c \
+  src/flash/nor/stellaris.c \
+  src/target/arc_jtag.c \
+  src/target/nds32.c
 
 "${SRC_DIR}"/bootstrap nosubmodule  # > "${SRC_DIR}"/_bootstrap_openocd.log 2>&1
 
