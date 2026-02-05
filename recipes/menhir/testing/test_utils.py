@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared test utilities for dune package tests."""
+"""Shared test utilities for menhir package tests."""
 
 import os
 import platform

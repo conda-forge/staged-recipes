@@ -106,6 +106,18 @@ else
 fi
 
 # ==============================================================================
+# WRITE OCAML BUILD VERSION FOR TESTS
+# ==============================================================================
+# Tests need to know the OCaml version used during build to distinguish
+# between known bugs (OCaml <= 5.3.0) and real failures (OCaml >= 5.4.0)
+
+TEST_FILES_DIR="${PREFIX}/etc/conda/test-files"
+mkdir -p "${TEST_FILES_DIR}"
+OCAML_BUILD_VERSION=$(ocamlc -version)
+echo "${OCAML_BUILD_VERSION}" > "${TEST_FILES_DIR}/ocaml-build-version"
+echo "Wrote OCaml build version ${OCAML_BUILD_VERSION} to ${TEST_FILES_DIR}/ocaml-build-version"
+
+# ==============================================================================
 # FIX MAN PAGE AND EMACS LOCATIONS
 # ==============================================================================
 
@@ -142,6 +154,11 @@ if [[ -f "${DUNE_BIN}" ]]; then
   echo "Binary: ${DUNE_BIN}"
   if ! is_non_unix; then
     file "${DUNE_BIN}" || true
+    # Strip binary on Linux to reduce size (macOS: breaks code signature)
+    if is_linux; then
+      echo "Stripping binary..."
+      strip "${DUNE_BIN}" || true
+    fi
   fi
 else
   echo "ERROR: Dune binary not found at ${DUNE_BIN}"

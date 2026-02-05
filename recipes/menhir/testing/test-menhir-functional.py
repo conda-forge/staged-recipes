@@ -12,39 +12,29 @@ OCaml 5.3.0 aarch64/ppc64le bug workaround applied automatically.
 """
 
 import os
-import platform
 import shutil
 import subprocess
 import sys
 import tempfile
 
-
-def get_ocaml_version():
-    """Get OCaml version string."""
-    try:
-        result = subprocess.run(
-            ["ocaml", "-version"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        for word in result.stdout.split():
-            if word[0].isdigit():
-                return word
-    except FileNotFoundError:
-        pass
-    return "unknown"
+from test_utils import (
+    get_ocaml_build_version,
+    get_ocaml_build_version_str,
+    get_target_arch,
+    handle_test_result,
+)
 
 
 def apply_ocaml_530_workaround():
     """Apply OCaml 5.3.0 aarch64/ppc64le GC workaround if needed."""
-    ocaml_version = get_ocaml_version()
-    arch = platform.machine().lower()
+    build_version = get_ocaml_build_version()
+    version_str = get_ocaml_build_version_str()
+    arch = get_target_arch()
 
-    print(f"OCaml version: {ocaml_version}")
-    print(f"Architecture: {arch}")
+    print(f"OCaml build version: {version_str}")
+    print(f"Target architecture: {arch}")
 
-    if ocaml_version.startswith("5.3.") and arch in ("aarch64", "ppc64le", "arm64"):
+    if build_version[:2] == (5, 3) and arch in ("aarch64", "ppc64le", "arm64"):
         print("Applying OCaml 5.3.0 GC workaround (s=16M)")
         os.environ["OCAMLRUNPARAM"] = "s=16M"
 
@@ -249,12 +239,7 @@ main: n = NUM EOL { n }
         os.chdir(original_dir)
         shutil.rmtree(test_dir, ignore_errors=True)
 
-    if errors > 0:
-        print(f"\n=== FAILED: {errors} error(s) ===")
-        return 1
-
-    print("\n=== All menhir functional tests passed ===")
-    return 0
+    return handle_test_result("menhir functional tests", errors == 0, arch_sensitive=True)
 
 
 if __name__ == "__main__":

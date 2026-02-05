@@ -4,34 +4,32 @@
 Validates dune binary runs and basic command help works.
 
 OCaml 5.3.0 aarch64/ppc64le bug workaround applied automatically.
-
-Note: This test only runs for OCaml < 5.4.0.
+Failures on OCaml <= 5.3.0 are documented as known bugs.
+Failures on OCaml >= 5.4.0 are treated as real failures.
 """
 
 import os
-import platform
 import subprocess
 import sys
 
-from test_utils import get_ocaml_version, is_known_failure, document_failure
-
-
-def get_ocaml_version_str():
-    """Get OCaml version string for display."""
-    version = get_ocaml_version()
-    return f"{version[0]}.{version[1]}.{version[2]}"
+from test_utils import (
+    get_ocaml_build_version,
+    get_ocaml_build_version_str,
+    get_target_arch,
+    handle_test_result,
+)
 
 
 def apply_ocaml_530_workaround():
     """Apply OCaml 5.3.0 aarch64/ppc64le GC workaround if needed."""
-    ocaml_version = get_ocaml_version()
-    version_str = get_ocaml_version_str()
-    arch = platform.machine().lower()
+    build_version = get_ocaml_build_version()
+    version_str = get_ocaml_build_version_str()
+    arch = get_target_arch()
 
-    print(f"OCaml version: {version_str}")
-    print(f"Architecture: {arch}")
+    print(f"OCaml build version: {version_str}")
+    print(f"Target architecture: {arch}")
 
-    if ocaml_version[:2] == (5, 3) and arch in ("aarch64", "ppc64le", "arm64"):
+    if build_version[:2] == (5, 3) and arch in ("aarch64", "ppc64le", "arm64"):
         print("Applying OCaml 5.3.0 GC workaround (s=16M)")
         os.environ["OCAMLRUNPARAM"] = "s=16M"
 
@@ -52,9 +50,6 @@ def run_cmd(cmd, description):
 
 def main():
     print("=== dune version and help tests ===")
-
-    # Track if failures are expected for this OCaml version
-    known_failure = is_known_failure(max_version=(5, 4, 0))
 
     apply_ocaml_530_workaround()
 
@@ -84,19 +79,9 @@ def main():
     print("\n--- Test: dune clean --help ---")
     all_ok &= run_cmd(["dune", "clean", "--help"], "dune clean --help")
 
-    if all_ok:
-        print("\n=== All dune version tests passed ===")
-        return 0
-    elif known_failure:
-        document_failure(
-            "dune version tests",
-            max_version=(5, 4, 0),
-            reason="dune version tests not yet compatible with OCaml >= 5.4.0",
-        )
-        return 0
-    else:
-        print("\n=== dune version tests FAILED ===")
-        return 1
+    # Use handle_test_result to properly handle known OCaml bugs
+    # arch_sensitive=True because the GC bugs mainly affect aarch64/ppc64le
+    return handle_test_result("dune version tests", all_ok, arch_sensitive=True)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@ import subprocess
 import sys
 import tempfile
 
+from test_utils import handle_test_result
+
 
 def write_file(path, content):
     """Write content to file."""
@@ -177,12 +179,7 @@ let from_cli = false
         os.chdir(original_dir)
         shutil.rmtree(test_dir, ignore_errors=True)
 
-    if errors > 0:
-        print(f"\n=== FAILED: {errors} error(s) ===")
-        return 1
-
-    print("\n=== All cppo functional tests passed ===")
-    return 0
+    return handle_test_result("cppo functional tests", errors == 0, arch_sensitive=True)
 
 
 if __name__ == "__main__":

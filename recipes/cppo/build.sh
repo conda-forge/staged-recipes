@@ -140,6 +140,18 @@ fi
 dune install --prefix="${CPPO_INSTALL_PREFIX}" --libdir="${CPPO_INSTALL_PREFIX}"/lib/ocaml ${DUNE_PACKAGES//,/ }
 
 # ==============================================================================
+# WRITE OCAML BUILD VERSION FOR TESTS
+# ==============================================================================
+# Tests need to know the OCaml version used during build to distinguish
+# between known bugs (OCaml <= 5.3.0) and real failures (OCaml >= 5.4.0)
+
+TEST_FILES_DIR="${PREFIX}/etc/conda/test-files"
+mkdir -p "${TEST_FILES_DIR}"
+OCAML_BUILD_VERSION=$(ocamlc -version)
+echo "${OCAML_BUILD_VERSION}" > "${TEST_FILES_DIR}/ocaml-build-version"
+echo "Wrote OCaml build version ${OCAML_BUILD_VERSION} to ${TEST_FILES_DIR}/ocaml-build-version"
+
+# ==============================================================================
 # VERIFY INSTALLATION
 # ==============================================================================
 

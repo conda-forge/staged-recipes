@@ -11,6 +11,8 @@ import struct
 import subprocess
 import sys
 
+from test_utils import handle_test_result
+
 
 def check_unix_arch(binary_path):
     """Check architecture using file command on Unix."""
@@ -102,12 +104,7 @@ def main():
     else:
         success = check_unix_arch(menhir_path)
 
-    if success:
-        print("\n=== Architecture tests passed ===")
-        return 0
-    else:
-        print("\n=== Architecture tests FAILED ===")
-        return 1
+    return handle_test_result("menhir architecture tests", success, arch_sensitive=True)
 
 
 if __name__ == "__main__":
