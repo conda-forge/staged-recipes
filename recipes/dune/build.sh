@@ -136,7 +136,7 @@ fi
 
 mkdir -p "${DUNE_INSTALL_PREFIX}/share/emacs/site-lisp/dune"
 if [[ -d "${DUNE_INSTALL_PREFIX}/share/emacs/site-lisp" ]]; then
-  find "${DUNE_INSTALL_PREFIX}/share/emacs/site-lisp" -maxdepth 1 -name "*.el" -exec mv {} "${DUNE_INSTALL_PREFIX}/share/emacs/site-lisp/dune/" \; 2>/dev/null || true
+  mv "${DUNE_INSTALL_PREFIX}"/share/emacs/site-lisp/*.el "${DUNE_INSTALL_PREFIX}/share/emacs/site-lisp/dune/" 2>/dev/null || true
 fi
 
 # ==============================================================================

@@ -53,7 +53,9 @@ def apply_ocaml_530_workaround():
 
 def write_file(path, content):
     """Write content to a file."""
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dirname = os.path.dirname(path)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
     with open(path, "w") as f:
         f.write(content)
 
