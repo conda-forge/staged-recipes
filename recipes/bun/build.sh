@@ -16,7 +16,7 @@ else
   export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
 fi
 
-export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP}"
+export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP} -DUSE_STATIC_SQLITE=OFF -DUSE_STATIC_LIBATOMIC=OFF"
 
 # Invalid environment variable: CI="azure", please use CI=<ON|OFF>
 unset CI
