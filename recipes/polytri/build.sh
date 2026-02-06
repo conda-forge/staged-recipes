@@ -25,16 +25,12 @@ maturin build --release --features python --out dist
 echo "Installing built wheel..."
 ${PYTHON} -m pip install dist/*.whl --no-deps --ignore-installed -vv
 
-# Copy Python package files to site-packages (only if not already in wheel)
+# Copy Python package files to site-packages
+# Use SP_DIR provided by conda-build to ensure correct location
 echo "Installing Python package files..."
-PYTHON_SITE_PACKAGES=$(${PYTHON} -c "import site; print(site.getsitepackages()[0])")
+PYTHON_SITE_PACKAGES="${SP_DIR}"
 mkdir -p "${PYTHON_SITE_PACKAGES}/polytri"
-# Only copy files that don't exist yet to avoid overwriting the Rust module
-for file in "${SRC_DIR}/polytri"/*; do
-    if [ ! -f "${PYTHON_SITE_PACKAGES}/polytri/$(basename "$file")" ]; then
-        cp "$file" "${PYTHON_SITE_PACKAGES}/polytri/"
-    fi
-done
+cp -r "${SRC_DIR}/polytri/"* "${PYTHON_SITE_PACKAGES}/polytri/"
 
 # Verify installation
 echo "Verifying installation..."
