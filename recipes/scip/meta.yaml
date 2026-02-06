@@ -1,35 +1,45 @@
-# Jinja variables help maintain the recipe as you'll update the version only here.
-{% set version = "0.6.1" %}
+context:
+  version: "0.6.1"
 
 package:
   name: scip
   version: {{ version }}
 
 source:
-  url: https://github.com/sourcegraph/scip/releases/download/v{{ version }}/scip-linux-amd64.tar.gz  # [linux and x86_64]
-  sha256: 198ad4abc8811696c4abb54641bb19b71d66e7c028c17c32236c090f0aefe64f  # [linux and x86_64]
-  url: https://github.com/sourcegraph/scip/releases/download/v{{ version }}/scip-darwin-amd64.tar.gz  # [osx and x86_64]
-  sha256: 1ad1433cc5db99607b168f593cb8ad4cd5f883512a9031d14f2316e37677da6b  # [osx and x86_64]
-  url: https://github.com/sourcegraph/scip/releases/download/v{{ version }}/scip-darwin-arm64.tar.gz  # [osx and arm64]
-  sha256: b14fbbff9d50dc8384cc96cb2dbd2e269eecd98a895e8a0312e6f45b2358a0bc  # [osx and arm64]
-  url: https://github.com/sourcegraph/scip/releases/download/v{{ version }}/scip-linux-arm64.tar.gz  # [linux and aarch64]
-  sha256: ace458df964e9a4bb8d0b18f8a0763269f9768ea9f089393cfed9822c819dc5f  # [linux and aarch64]
+  url: https://github.com/sourcegraph/scip/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 6217912c9947d2d16a8a3c5f1ec31023125debd11759f3e116f08642b8d800ec
+  target_directory: src
 
 build:
-  skip: true  # [win]
-  script: build.sh
   number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/example-package -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\example-package.exe -ldflags="-s"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
 
 test:
   commands:
     - scip --version
+  - package_contents:
+      bin:
+        - scip
+      strict: true
 
 about:
   home: https://github.com/sourcegraph/scip
   summary: SCIP Code Intelligence Protocol CLI
   license: Apache-2.0
   license_family: Apache
-  license_file: LICENSE
+  license_file:
+    - src/LICENSE
+    - library_licenses/
 
 extra:
   recipe-maintainers:
