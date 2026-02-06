@@ -1,5 +1,5 @@
 :: Set version for setuptools_scm
-set SETUPTOOLS_SCM_PRETEND_VERSION="%PKG_VERSION%"
+set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
 :: Set Boost paths (make sure Meson finds the correct Boost installation)
 set BOOST_LIBRARYDIR="%LIBRARY_PREFIX%/lib"
