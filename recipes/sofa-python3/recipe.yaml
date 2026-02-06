@@ -1,0 +1,83 @@
+context:
+  name: sofa-python3
+  version: "25.06.00"
+  major_minor: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sofa-framework/SofaPython3/archive/refs/tags/release-v${{ major_minor }}.tar.gz
+  sha256: 30118f4d0ec21f442f05bd4fcb05af62a02b9c2e8d17bb087f56ea2f1a2ac63e
+
+  patches:
+    # See comments in sofa conda package recipe at file
+    # scripts/hotfix-sofa-run-macos.sh for more details.
+    # This hotfix breaks python module installation on Windows, so we
+    # only apply on macOS.
+    - if: osx
+      then:
+        - patches/0001-hotfix-for-libpython-linking-on-macOS.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+        - pybind11
+  host:
+    - sofa-devel ${{ major_minor }}.*
+    - sofa-gl ${{ major_minor }}.*
+    - eigen
+    - python
+    - numpy
+    - pybind11
+  run:
+    - python
+    - pybind11
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - SofaPython3/config.h
+      lib:
+        - SofaPython3
+  - python:
+      imports:
+        - Sofa
+        - SofaRuntime
+        - SofaTypes
+        - SofaExporter
+  - script:
+      - cmake-package-check SofaPython3
+    requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}        
+
+about:
+  homepage: https://github.com/sofa-framework/SofaPython3
+  summary: A python plugin for Sofa offering a pythonic interface and python3 support.
+  license: LGPL-2.1-or-later
+  license_file: License.md
+  documentation: https://sofapython3.readthedocs.io/
+  repository: https://github.com/sofa-framework/SofaPython3
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
+    - bakpaul
