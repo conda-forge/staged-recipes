@@ -48,7 +48,7 @@ if not exist "%PYTHON_SITE_PACKAGES%\polytri" mkdir "%PYTHON_SITE_PACKAGES%\poly
 REM Only copy files that don't exist yet to avoid overwriting the Rust module
 for %%f in ("%SRC_DIR%\polytri\*") do (
     if not exist "%PYTHON_SITE_PACKAGES%\polytri\%%~nxf" (
-        copy "%%f" "%PYTHON_SITE_PACKAGES%\polytri\"
+        xcopy "%SRC_DIR%\polytri\*" "%PYTHON_SITE_PACKAGES%\polytri\" /E /Y /I
     )
 )
 
