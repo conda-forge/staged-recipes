@@ -1,15 +1,22 @@
-name: make comment for staged-recipes linter
+name: rerun staged-recipes linter on issue comments
 
 on:
-  workflow_run:
-    workflows: ["staged-recipes linter"]
-    types:
-      - completed
+  issue_comment: null
+
+permissions:
+  contents: read
+  checks: write
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  make-comment:
-    name: make comment
+  rerun-linter:
+    name: rerun linter
     runs-on: ubuntu-slim
+    if: ${{ (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
     defaults:
       run:
         shell: bash -leo pipefail {0}
@@ -28,15 +35,12 @@ jobs:
             channels:
               - conda-forge
           create-args: >-
-            conda-smithy
             pygithub
-            requests
 
-      - name: make comment
+      - name: rerun linter
         run: |
-          python .github/workflows/scripts/linter_make_comment.py \
-            --head-repo-owner=${{ github.event.workflow_run.head_repository.owner.login }} \
-            --workflow-run-id=${{ github.event.workflow_run.id }} \
-            --head-sha=${{ github.event.workflow_run.head_sha }}
+          python .github/workflows/scripts/linter_issue_comment.py \
+            --owner=${{ github.repository_owner }} \
+            --pr-num=${{ github.event.issue.number  }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
