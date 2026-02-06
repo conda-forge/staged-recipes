@@ -1,0 +1,75 @@
+context:
+  name: sassc
+  version: "3.6.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sass/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 608dc9002b45a91d11ed59e352469ecc05e4f58fc1259fc9a9f5b8f0f8348a03
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        copy %RECIPE_DIR%\meson.build .
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Db_vscrt=md ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        cp $RECIPE_DIR/meson.build .
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.48.0
+    - ninja
+    - pkg-config
+  host:
+    - libsass-native
+  run:
+    - libsass-native
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - bin/sassc
+        - if: win
+          then:
+            - Library/bin/sassc.exe
+  - script:
+      - sassc --version
+
+about:
+  homepage: https://github.com/sass/sassc
+  summary: 'libsass command line driver'
+  description: |
+    SassC is a wrapper around libsass (http://github.com/sass/libsass) used to
+    generate a useful command-line application that can be installed and
+    packaged for several operating systems.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/sass/sassc
+
+extra:
+  recipe-maintainers:
+    - danyeaw
+    - ryanvolz
