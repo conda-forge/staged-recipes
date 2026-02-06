@@ -11,11 +11,14 @@ export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 export MESON_ARGS="${MESON_ARGS} --pkg-config-path=${PREFIX}/lib/pkgconfig"
 
 # Configure
-meson setup build ${MESON_ARGS} \
+meson setup builddir ${MESON_ARGS} \
     -D al_core=false \
     -D python_bindings=false \
     -D al_dummy_exe=true \
-    -D al_test=true
+    -D al_test=true \
+    -D cpp_std=c++17 \
+    || (cat builddir/meson-logs/meson-log.txt && exit 1)
 
 # Run tests
-meson test -C build --verbose
+meson test -C builddir --verbose \
+    || (cat builddir/meson-logs/meson-log.txt && exit 1)

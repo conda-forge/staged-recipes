@@ -5,13 +5,14 @@ set SETUPTOOLS_SCM_PRETEND_VERSION="%PKG_VERSION%"
 set MESON_ARGS="%MESON_ARGS% --pkg-config-path=%LIBRARY_PREFIX%/lib/pkgconfig"
 
 :: Configure
-meson setup build %MESON_ARGS% ^
+meson setup builddir %MESON_ARGS% ^
     -D al_core=false ^
     -D python_bindings=false ^
     -D al_dummy_exe=true ^
-    -D al_test=true
-if %ERRORLEVEL% neq 0 exit 1
+    -D al_test=true ^
+    -D cpp_std=c++17
+if %ERRORLEVEL% neq 0 (type builddir\meson-logs\meson-log.txt && exit 1)
 
 :: Run tests
-meson test -C build --verbose
-if %ERRORLEVEL% neq 0 exit 1
+meson test -C builddir --verbose
+if %ERRORLEVEL% neq 0 (type builddir\meson-logs\meson-log.txt && exit 1)

@@ -12,5 +12,9 @@ export MESON_ARGS="${MESON_ARGS} --pkg-config-path=${PREFIX}/lib/pkgconfig"
 
 # Build and install by pip with meson-python backend (PEP)
 $PYTHON -m pip install . --no-deps --no-build-isolation -vv \
+    -Cbuilddir=builddir \
     -Csetup-args=-Dal_core=false \
-    -Csetup-args=-Dpython_bindings=true
+    -Csetup-args=-Dpython_bindings=true \
+    -Csetup-args=-Dcpp_std=none \
+    -Csetup-args=-Dc_std=c17 \
+    || (cat builddir/meson-logs/meson-log.txt && exit 1)
