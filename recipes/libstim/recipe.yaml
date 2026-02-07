@@ -1,0 +1,93 @@
+context:
+  version: "1.15.0"
+
+recipe:
+  name: stim-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/quantumlib/Stim/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3d606e8ae61bc8a3b40af2aa5ee88a2d4793c38d0d89472195fff069792e5233
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libstim
+    build:
+      script:
+        - if: unix
+          then: build-libstim.sh
+        - if: win
+          then: build-libstim.bat
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    tests:
+      - script:
+          - if: unix
+            then: test -f $PREFIX/lib/libstim.a
+          - if: unix
+            then: test -f $PREFIX/include/stim.h
+          - if: win
+            then: if not exist %LIBRARY_LIB%\\stim.lib exit 1
+          - if: win
+            then: if not exist %LIBRARY_INC%\\stim.h exit 1
+
+  - package:
+      name: quantumlib-stim
+    build:
+      script:
+        - if: unix
+          then: build-stim.sh
+        - if: win
+          then: build-stim.bat
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - python
+        - pip
+        - setuptools
+        - numpy
+        - pybind11
+      run:
+        - python
+        - numpy
+    tests:
+      - python:
+          imports:
+            - stim
+          pip_check: true
+      - script:
+          - if: unix
+            then: stim --help
+          - if: win
+            then: python -c "import stim; rc = stim.main(command_line_args=['--help']); print('Exit code', rc); assert rc == 0"
+
+about:
+  homepage: https://github.com/quantumlib/Stim
+  summary: A fast stabilizer circuit simulator from Google Quantum AI
+  description: |
+    Stim is a fast simulator for quantum stabilizer circuits from Google
+    Quantum AI (github.com/quantumlib). It can be used to generate samples
+    from quantum circuits with Clifford gates and Pauli noise, to analyze
+    the detectors and observables in a circuit, and to decode detection
+    events using various decoders.
+
+    This recipe provides:
+    - libstim: The C++ library with headers for linking
+    - quantumlib-stim: The Python package (imports as `stim`) with CLI
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://github.com/quantumlib/Stim/blob/main/doc/getting_started.md
+  repository: https://github.com/quantumlib/Stim
+
+extra:
+  recipe-maintainers:
+    - basnijholt
