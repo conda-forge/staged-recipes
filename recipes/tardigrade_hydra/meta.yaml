@@ -1,0 +1,94 @@
+{% set name = "tardigrade_hydra" %}
+{% set version = "0.7.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/UCBoulder/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 9547c9f64b8f9254b2c208e4870966f5f26eea8d5cb934aaf7a6f1b4b345e42c
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS}
+    - cmake --build build --target tardigrade_hydra
+    - cmake --install build --prefix ${PREFIX}
+  skip: true  # [win]
+  run_exports:
+    - {{ pin_subpackage(name|lower, max_pin='x.x') }}
+
+requirements:
+  build:
+    - python
+    - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - make
+    - cmake >=3.30
+    - breathe >=4.3.0
+    - clang-tools
+    - doxygen
+    - libboost-python-devel >=1.82
+    - pip
+    - python-build
+    - setuptools >=77
+    - setuptools_scm >=8
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+  host:
+    - setuptools >=77
+    - setuptools_scm >=8
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.8
+    - tardigrade_vector_tools >=0.8.7
+    - tardigrade_constitutive_tools >=0.8.5
+    - tardigrade_stress_tools >=0.6.3
+    - tardigrade_micromorphic_tools >=1.4.3
+  run:
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.8
+    - tardigrade_vector_tools >=0.8.7
+    - tardigrade_constitutive_tools >=0.8.5
+    - tardigrade_stress_tools >=0.6.3
+    - tardigrade_micromorphic_tools >=1.4.3
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - make
+    - cmake >=3.30
+    - clang-tools
+    - libboost-python-devel >=1.82
+    - doxygen
+    - sphinx
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/*
+  commands:
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target all --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_hydra
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary:  'Tools for building material response models'
+  description: |
+    tardigrade_hydra Tools for creating material response models as a function of incoming
+    degrees of freedom. The different physical behaviors are designed so that they can be
+    combined nearly arbitrarily to add new behaviors to existing model responses
+  dev_url: https://github.com/UCBoulder/tardigrade_hydra
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
