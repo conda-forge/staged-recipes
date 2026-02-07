@@ -1,0 +1,318 @@
+{% set name = "qemu-user-osx-arm64" %}
+{% set version = "9.1.0" %}
+{% set alpine_iso_version = "3.21.0" %}
+
+recipe:
+  name: qemu-user-osx-arm64
+  version: {{ version }}
+
+source:
+  - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-virt-{{ alpine_iso_version }}-aarch64.iso  # [osx]
+    sha256: f58ff704b52ce7db226db79ae84949ea28c44be4d6d9074b84cdd94218fad51e  # [osx]
+  - url: https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd  # [osx]
+    sha256: 42f915c44de6858f69ae6f1ffc9eaa3884d1b2ca97a7537d81312fb0dfd712cd  # [osx]
+  # - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz  # [osx]
+  #   sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  # [osx]
+
+build:
+  number: 0
+  skip: True  # [not osx and not x86_64]
+
+requirements:
+  build:
+    - qemu-system-aarch64  # [osx]
+
+    - {{ compiler("c") }}  # [linux or osx]
+    - {{ stdlib("c") }}  # [linux or osx]
+    - autoconf  # [linux or osx]
+    - automake  # [linux or osx]
+    - libtool  # [linux or osx]
+    - meson  # [linux or osx]
+
+    - clang_osx-arm64  # [osx]
+
+    - {{ compiler("m2w64_c") }}  # [win]
+    - {{ stdlib("m2w64_c") }}  # [win]
+    - binutils  # [win]
+    - gettext  # [win]
+    - m2-autoconf  # [win]
+    - m2-automake-wrapper  # [win]
+    - m2-findutils  # [win]
+    - m2-grep  # [win]
+    - m2-libtool  # [win]
+    - m2-make  # [win]
+    - m2-which  # [win]
+    - packaging  # [win]
+  host:
+    - bzip2
+    - epoxy
+    - glib
+    - glfw
+    - gtk3
+    - gmp
+    - libcurl
+    - libgcrypt
+    - libgsasl
+    - libjpeg-turbo
+    - libpng
+    - libusb
+    - lzfse
+    - lzo
+    - nettle
+    - pixman
+    - sdl2
+    - sdl2_image
+    - snappy
+    - sphinx >=3.4.3
+    - sphinx-rtd-theme >=0.5
+    - zlib
+
+    - dtc  # [unix]
+    - gnutls  # [unix]
+    - libcapstone  # [unix]
+    - libfdt  # [unix]
+    - openssh  # [unix]
+
+    - alsa-lib  # [linux]
+    - jack  # [linux]
+    - keyutils  # [linux]
+    - libaio  # [linux]
+    - libegl-devel  # [linux]
+    - libnuma  # [linux]
+    - libslirp  # [linux]
+    - libudev1  # [linux]
+    - liburing  # [linux]
+    - libxkbcommon  # [linux]
+
+    - llvmdev  # [osx]
+    - zstd  # [osx]
+
+    - m2w64-gnutls  # [win]
+    - m2-openssh  # [win]
+outputs:
+  - name: qemu-system-shared-resources
+    files:
+      {% for file in qemu_system_share %}
+      - share/qemu/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_firmware %}
+      - share/qemu/firmware/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_icons %}
+      - share/icons/hicolor/{{ file }}
+      {% endfor %}
+
+      - share/applications/qemu.desktop
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+      host:
+      run:
+        - bzip2
+        - libcurl
+        - lzfse
+        - zstd
+
+        - dtc  # [unix]
+        - gnutls  # [unix]
+        - openssh  # [unix]
+
+        - keyutils  # [linux]
+        - libaio  # [linux]
+        - libnuma  # [linux]
+        - libslirp  # [linux]
+        - liburing  # [linux]
+
+        - libfdt  # [osx]
+        - llvmdev  # [osx]
+
+        - m2w64-gnutls  # [win]
+        - m2-openssh  # [win]
+    test:
+      commands:
+        - echo "No tests yet"
+
+
+  - name: qemu-system-tools
+    files:
+      {% for file in qemu_system_tools %}
+      - bin/{{ file }}
+      {% endfor %}
+
+      {% for file in qemu_system_tools_linux %}
+      - bin/{{ file }}  # [linux]
+      {% endfor %}
+
+      - libexec/qemu-bridge-helper  # [linux]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+        - bzip2
+        - libglib
+        - libcurl
+        - lzfse
+        - zstd
+        - zlib
+
+        - gnutls  # [unix]
+        - openssh  # [unix]
+
+        - libaio  # [linux]
+        - libnuma  # [linux]
+        - liburing  # [linux]
+
+        - m2w64-gnutls  # [win]
+        - m2-openssh  # [win]
+      run:
+        - {{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+        - bzip2
+        - libglib
+        - libcurl
+        - lzfse
+        - zstd
+
+        - gnutls  # [unix]
+        - openssh  # [unix]
+
+        - libaio  # [linux]
+        - libnuma  # [linux]
+        - liburing  # [linux]
+
+        - m2w64-gnutls  # [win]
+        - m2-openssh  # [win]
+    test:
+      commands:
+        {% for file in qemu_system_tools %}
+        - test -f ${PREFIX}/bin/{{ file }}  # [unix]
+        - if not exist %PREFIX%\\bin\\{{ file }} echo "File not found"  # [not unix]
+        - {{ file }} --version || true
+        {% endfor %}
+
+        {% for file in qemu_system_tools_linux %}
+        - test -f ${PREFIX}/bin/{{ file }}  # [linux]
+        {% endfor %}
+
+        - ${PREFIX}/libexec/qemu-bridge-helper --version || true  # [linux]
+
+
+  - name: qemu-system-{{ qemu_system_execs }}
+    files:
+      - bin/qemu-system-{{ qemu_system_execs }}
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+      host:
+        - epoxy
+        - glib
+        - libcurl
+        - libjpeg-turbo
+        - libpng
+        - libusb
+        - lzfse
+        - lzo
+        - pixman
+        - sdl2
+        - snappy
+        - zlib
+        - zstd
+
+        - gnutls  # [unix]
+        - libcapstone  # [unix]
+        - libfdt  # [unix]
+        - ncurses  # [unix]
+        - openssh  # [unix]
+
+        - alsa-lib  # [linux]
+        - jack  # [linux]
+        - keyutils  # [linux]
+        - libaio  # [linux]
+        - libnuma  # [linux]
+        - libslirp  # [linux]
+        - liburing  # [linux]
+        - pulseaudio-client  # [linux]
+
+        - m2w64-gnutls  # [win]
+        - m2-openssh  # [win]
+      run:
+        - {{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+        - bzip2
+        - libglib
+        - libiconv
+        - libcurl
+        - libjpeg-turbo
+        - libpng
+        - lzfse
+        - lzo
+        - pixman
+        - sdl2
+        - snappy
+        - zstd
+
+        - gnutls  # [unix]
+        - libcapstone  # [unix]
+        - libfdt  # [unix]
+        - ncurses  # [unix]
+        - openssh  # [unix]
+
+        - alsa-lib  # [linux]
+        - epoxy  # [linux]
+        - jack  # [linux]
+        - keyutils  # [linux]
+        - libaio  # [linux]
+        - libnuma  # [linux]
+        - libslirp  # [linux]
+        - liburing  # [linux]
+        - pulseaudio-client  # [linux]
+
+        - m2w64-gnutls  # [win]
+        - m2-openssh  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/bin/qemu-system-{{ qemu_system_execs }}  # [linux or osx]
+        - qemu-system-{{ qemu_system_execs }} --version
+
+
+about:
+  home: https://gitlab.com/qemu-project/qemu
+  summary: 'QEMU is a generic and open source machine & userspace emulator and virtualizer.'
+  description: |
+    QEMU is capable of emulating a complete machine in software without any
+    need for hardware virtualization support. By using dynamic translation,
+    it achieves very good performance. QEMU can also integrate with the Xen
+    and KVM hypervisors to provide emulated hardware while allowing the
+    hypervisor to manage the CPU. With hypervisor support, QEMU can achieve
+    near native performance for CPUs. When QEMU emulates CPUs directly it is
+    capable of running operating systems made for one machine (e.g. an ARMv7
+    board) on a different machine (e.g. an x86_64 PC board).
+    
+    QEMU is also capable of providing userspace API virtualization for Linux
+    and BSD kernel interfaces. This allows binaries compiled against one
+    architecture ABI (e.g. the Linux PPC64 ABI) to be run on a host using a
+    different architecture ABI (e.g. the Linux x86_64 ABI). This does not
+    involve any hardware emulation, simply CPU and syscall emulation.
+    
+    QEMU aims to fit into a variety of use cases. It can be invoked directly
+    by users wishing to have full control over its behaviour and settings.
+    It also aims to facilitate integration into higher level management
+    layers, by providing a stable command line interface and monitor API.
+    It is commonly invoked indirectly via the libvirt library when using
+    open source applicationss such as oVirt, OpenStack and virt-manager.
+    QEMU as a whole is released under the GNU General Public License,
+    version 2. For full licensing details, consult the LICENSE file.
+  license: GPL-2.0-only
+  license_file:
+    - qemu_source/COPYING
+    - qemu_source/COPYING.LIB
+    - qemu_source/LICENSE
+
+extra:
+  recipe-maintainers:
+    -  MementoRC
+  feedstock-name: qemu-system
