@@ -1,0 +1,111 @@
+context:
+  build_number: 0
+  name: ocaml-dune
+  version: "3.21.0"
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  sh: ${{ "sh" if unix else "bat" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/ocaml/dune/archive/${{ version }}.tar.gz
+    sha256: 07c7dbd778579e35f365320b559d6f781cd755c6485b164b802f109fe21ead68
+
+build:
+  number: ${{ build_number }}
+  dynamic_linking:
+    missing_dso_allowlist:
+      - if: not unix
+        then:
+          - C:/Windows/system32/SHLWAPI.dll
+          - C:/Windows/system32/VERSION.dll
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ${{ m2 }}bash >=5.2
+    - ${{ m2 }}gawk
+    - ${{ m2 }}grep
+    - ${{ m2 }}make
+    - ${{ m2 }}sed
+    - ocaml ==5.3.0 *_10
+    - if: unix
+      then:
+        - file
+      else:
+        - ${{ m2 }}coreutils
+        - ${{ m2 }}diffutils
+        - ${{ m2 }}which
+  run:
+    - if: aarch64 or ppc64le
+      then:
+        - zstd
+  ignore_run_exports:
+    by_name:
+      - ocaml
+      - ocaml-cross-compilers
+
+tests:
+  # Package contents validation
+  - package_contents:
+      strict: true
+      bin:
+        - dune
+      files:
+        - ${{ library }}doc/dune/CHANGES.md
+        - ${{ library }}doc/dune/LICENSE.md
+        - ${{ library }}doc/dune/README.md
+        - ${{ library }}doc/dune/odoc-pages/index.mld
+        - ${{ library }}lib/dune/META
+        - ${{ library }}lib/dune/dune-package
+        - ${{ library }}lib/dune/opam
+        - ${{ library }}share/man/man1/*
+        - ${{ library }}share/man/man5/dune-config.5
+        - ${{ library }}share/emacs/site-lisp/dune/dune-{flymake,watch}.el
+        - ${{ library }}share/emacs/site-lisp/dune/dune.el
+        - etc/conda/activate.d/dune-activate.${{ sh }}
+        - etc/conda/deactivate.d/dune-deactivate.${{ sh }}
+        - etc/conda/test-files/*
+
+  # Python-based functional tests
+  - script: |
+      python testing/test-dune-version.py
+      python testing/test-dune-arch.py
+      python testing/test-dune-config.py
+      python testing/test-dune-build.py
+      python testing/test-dune-cmi.py
+    files:
+      recipe:
+        - testing/test_utils.py
+        - testing/test-dune-arch.py
+        - testing/test-dune-build.py
+        - testing/test-dune-cmi.py
+        - testing/test-dune-config.py
+        - testing/test-dune-version.py
+    requirements:
+      run:
+        - ${{ m2 }}file
+        - binutils
+        - ocaml
+        - python >=3.9
+
+about:
+  license: MIT
+  license_file: LICENSE.md
+  summary: A composable build system for OCaml.
+  homepage: https://dune.build/
+  repository: https://github.com/ocaml/dune
+
+extra:
+  recipe-maintainers:
+    - MementoRC

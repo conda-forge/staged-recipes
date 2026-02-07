@@ -1,0 +1,93 @@
+context:
+  build_number: 0
+  name: ocaml-cppo
+  version: "1.6.9"
+
+  # Set to true when ocamlbuild >= 0.16.1 build 1 is available on conda-forge
+  build_cppo_ocamlbuild: false
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  sh: ${{ "sh" if unix else "bat" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/ocaml-community/cppo/archive/v${{ version }}.tar.gz
+    sha256: 16036d85c11d330a7c8b56f4e071d6bbe86d8937c89d3d79f6eef0e38bdda26a
+
+build:
+  number: ${{ build_number }}
+  script:
+    env:
+      BUILD_CPPO_OCAMLBUILD: ${{ "1" if build_cppo_ocamlbuild else "0" }}
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ${{ m2 }}bash >=5.2
+    - ${{ m2 }}file
+    - ${{ m2 }}gawk
+    - ${{ m2 }}grep
+    - ocaml-dune
+    - ocaml ==5.3.0 *_10
+    - if: build_cppo_ocamlbuild
+      then:
+        - ocamlbuild >=0.16.1 *_1
+    - if: not unix
+      then:
+        - ${{ m2 }}coreutils
+  ignore_run_exports:
+    by_name:
+      - ocaml
+      - ocaml-cross-compilers
+
+tests:
+  # Package contents validation (strict)
+  - package_contents:
+      strict: true
+      bin:
+        - cppo
+      files:
+        - ${{ library }}doc/cppo/LICENSE.md
+        - ${{ library }}doc/cppo/README.md
+        - ${{ library }}lib/ocaml/cppo/*
+        - etc/conda/test-files/*
+        - if: build_cppo_ocamlbuild
+          then:
+            - ${{ library }}doc/cppo_ocamlbuild/LICENSE.md
+            - ${{ library }}doc/cppo_ocamlbuild/README.md
+            - ${{ library }}lib/ocaml/cppo_ocamlbuild/*
+
+  # Python-based functional tests
+  - script: |
+      python testing/test-cppo-arch.py
+      python testing/test-cppo-functional.py
+    files:
+      recipe:
+        - testing/test_utils.py
+        - testing/test-cppo-arch.py
+        - testing/test-cppo-functional.py
+    requirements:
+      run:
+        - ${{ m2 }}file
+        - python >=3.9
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.md
+  summary: C preprocessor for OCaml
+  homepage: https://github.com/ocaml-community/cppo
+  repository: https://github.com/ocaml-community/cppo
+
+extra:
+  recipe-maintainers:
+    - MementoRC

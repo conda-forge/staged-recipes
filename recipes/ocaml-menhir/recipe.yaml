@@ -1,0 +1,90 @@
+context:
+  build_number: 0
+  name: ocaml-menhir
+  version: "20250912"
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  sh: ${{ "sh" if unix else "bat" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.inria.fr/fpottier/menhir/-/archive/${{ version }}/menhir-${{ version }}.tar.gz
+    sha256: 26b1f44d6b4ed634631c50866e5535062591308a01a987f415411a9543965c9b
+
+build:
+  number: ${{ build_number }}
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ${{ m2 }}bash >=5.2
+    - ${{ m2 }}gawk
+    - ${{ m2 }}grep
+    - ${{ m2 }}make
+    - ${{ m2 }}sed
+    - ocaml-dune
+    - ocaml ==5.3.0 *_10
+    - if: unix
+      then:
+        - file
+    - if: not unix
+      then:
+        - ${{ m2 }}coreutils
+        - ${{ m2 }}diffutils
+        - ${{ m2 }}which
+  ignore_run_exports:
+    by_name:
+      - ocaml
+      - ocaml-cross-compilers
+
+tests:
+  # Package contents validation
+  - package_contents:
+      strict: true
+      bin:
+        - menhir
+      files:
+        - ${{ library }}doc/*
+        - ${{ library }}lib/coq-menhirlib/*
+        - ${{ library }}lib/menhir/*
+        - ${{ library }}lib/menhirCST/*
+        - ${{ library }}lib/menhirLib/*
+        - ${{ library }}lib/menhirSdk/*
+        - ${{ library }}share/man/man1/menhir.1
+        - etc/conda/test-files/*
+
+  # Python-based functional tests
+  - script: |
+      python testing/test-menhir-arch.py
+      python testing/test-menhir-functional.py
+    files:
+      recipe:
+        - testing/test_utils.py
+        - testing/test-menhir-arch.py
+        - testing/test-menhir-functional.py
+    requirements:
+      run:
+        - ${{ m2 }}file
+        - ocaml
+        - python >=3.9
+
+about:
+  license: GPL-2.0-only
+  license_file: LICENSE
+  summary: An LR(1) parser generator for OCaml
+  homepage: https://gitlab.inria.fr/fpottier/menhir
+  repository: https://gitlab.inria.fr/fpottier/menhir
+
+extra:
+  recipe-maintainers:
+    - MementoRC
