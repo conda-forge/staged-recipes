@@ -19,6 +19,9 @@ sequenceDiagram
             alt team is in comment
                 GitHub actions->>issue: Adds review-requested label
                 GitHub actions->>issue: Adds team label
+                opt team is staged-recipes AND comment contains word "maintenance"
+                    GitHub actions->>issue: Adds maintenance label
+                end
                 GitHub actions->>issue: Remove Awaiting author contribution label
                 rect rgb(191, 223, 255)
                     GitHub actions-->>issue: Assigns team for review
