@@ -1,0 +1,58 @@
+context:
+  version: "2.16.0"
+
+package:
+  name: ntfy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/binwiederhier/ntfy/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b564e16166711a319a21cb5711e2d000ba0332454c2af8aaa168b2b5e77ea8de
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    # this is what make cli-deps-static-sites does
+    - if: unix
+      then: mkdir -p server/docs server/site && touch server/docs/index.html server/site/app.html
+      else: if not exist server\docs mkdir server\docs && if not exist server\site mkdir server\site && type nul > server\docs\index.html && type nul > server\site\app.html
+    - go-licenses save . --save_path ../library_licenses
+    - if: linux
+      then: go build -v -tags "sqlite_omit_load_extension osusergo netgo" -o $PREFIX/bin/ntfy -ldflags="-s -w -X main.version=${{ version }}"
+    - if: osx
+      then: go build -v -tags noserver -o $PREFIX/bin/ntfy -ldflags="-s -w -X main.version=${{ version }}"
+    - if: win
+      then: go build -v -tags noserver -o %LIBRARY_BIN%\ntfy.exe -ldflags="-s -w -X main.version=${{ version }}"
+
+requirements:
+  build:
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+
+tests:
+  - script: ntfy -help
+  - package_contents:
+      bin:
+        - ntfy
+      strict: true
+
+about:
+  homepage: https://ntfy.sh
+  summary: Send push notifications to your phone or desktop using PUT/POST
+  description: |
+    ntfy (pronounced "notify") is a simple HTTP-based pub-sub notification service. With ntfy, you can send notifications to your phone or desktop via scripts from any computer, without having to sign up or pay any fees. If you'd like to run your own instance of the service, you can easily do so since ntfy is open source.
+  license: Apache-2.0 OR GPL-2.0-only
+  license_file:
+    - src/LICENSE
+    - src/LICENSE.GPLv2
+    - library_licenses/
+  documentation: https://docs.ntfy.sh
+  repository: https://github.com/binwiederhier/ntfy
+
+extra:
+  recipe-maintainers:
+    - pavelzw
