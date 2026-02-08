@@ -1,0 +1,424 @@
+context:
+  name: qemu-system
+  version: "10.2.0"
+  m2: ${{ "m2-" if not unix }}
+
+package:
+  name: qemu-system-${{ qemu_system_execs }}
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+    sha256: 6d7046777ce992e5ce88c413ebe3d1f57b1833e7d8200724097c9b74507e196e
+    target_directory: qemu_source
+    patches:
+      - patches/set-qemu-name.patch
+      # macOS patches
+      - if: osx
+        then:
+          - patches/0002-osx-attr-meson.build.patch
+          - patches/0003-osx-block_file-posix.c.patch
+          - patches/0004-osx-audio_coreaudio.m.patch
+      # Windows patches
+      - if: win
+        then:
+          - patches/0001-win-add-console.patch
+          - patches/0002-win-configure-pyvenv.patch
+          - patches/0003-win-dbg-MESONINTROSPECT.patch
+          - patches/0004-win-fix-PYTHON-var-Makefile.patch
+          - patches/0005-win-fix-tracetool-path.patch
+
+build:
+  number: 0
+  script:
+    env:
+      CONDA_QEMU_INSTALL_DIR: ${PREFIX}
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+        - automake
+        - meson
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+        - gettext
+        - ${{ m2 }}automake-wrapper
+        - ${{ m2 }}findutils
+        - ${{ m2 }}grep
+        - ${{ m2 }}make
+        - ${{ m2 }}which
+        - packaging
+    - ${{ m2 }}autoconf
+    - ${{ m2 }}libtool
+    - git
+    - ninja
+    - pkg-config
+    - python 3.12.*
+  host:
+    # Common dependencies
+    - ${{ m2 }}gnutls
+    - ${{ m2 }}libgcrypt
+    - ${{ m2 }}nettle
+    - ${{ m2 }}openssh
+    - bzip2
+    - cyrus-sasl
+    - epoxy
+    - expat
+    - glib
+    - glfw
+    - gtk3
+    - libavif
+    - libcurl
+    - libjpeg-turbo
+    - libpng
+    - libusb
+    - libssh
+    - lzfse
+    - pixman
+    - sdl2
+    - sdl2_image
+    - snappy
+    - sphinx >=3.4.3
+    - sphinx-rtd-theme >=0.5
+    - zlib
+    # Unix dependencies
+    - if: unix
+      then:
+        - dtc
+        - gmp
+        - libcapstone
+        - libgsasl
+        - libfdt
+        - lzo
+      else:
+        - expat
+    # Linux dependencies
+    - if: linux
+      then:
+        - alsa-lib
+        - cairo
+        - gdk-pixbuf
+        - jack
+        - keyutils
+        - libaio
+        - libegl-devel
+        - libnuma
+        - libseccomp
+        - libslirp
+        - libudev
+        - liburing
+        - libxkbcommon
+        - pulseaudio-client
+    # macOS dependencies
+    - if: osx
+      then:
+        - llvmdev
+        - zstd
+  run:
+    - ${{ m2 }}gnutls
+    - ${{ m2 }}openssh
+    - bzip2
+    - libglib
+    - libiconv
+    - libcurl
+    - libjpeg-turbo
+    - libpng
+    - libssh
+    - lzfse
+    - lzo
+    - pixman
+    - sdl2_image
+    - snappy
+    - xorg-libx11
+    - zstd
+    - if: unix
+      then:
+        - libcapstone
+        - libfdt
+        - ncurses
+    - if: linux
+      then:
+        - alsa-lib
+        - cairo
+        - epoxy
+        - gdk-pixbuf
+        - gtk3
+        - jack
+        - keyutils
+        - libaio
+        - libnuma
+        - libseccomp
+        - libslirp
+        - libudev1
+        - liburing
+        - pulseaudio-client
+
+tests:
+  - package_contents:
+      bin:
+        - elf2dmp
+        - qemu-io
+        - qemu-edid
+        - qemu-nbd
+        - qemu-img
+        - qemu-storage-daemon
+        - if: linux
+          then:
+            - qemu-ga
+            - qemu-vmsr-helper
+            - qemu-pr-helper
+      files:
+        - share/qemu/edk2-{aarch64,arm,i386,i386-secure,riscv,x86_64,x86_64-secure}-code.fd
+        - share/qemu/edk2-{arm,i386,riscv}-vars.fd
+        - share/qemu/firmware/50-edk2-{i386,x86_64}-secure.json
+        - share/qemu/firmware/60-edk2-{aarch64,arm,i386,riscv,x86_64}.json
+        - share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
+        - share/icons/hicolor/32x32/apps/qemu.bmp
+        - share/icons/hicolor/scalable/apps/qemu.svg
+        - share/applications/qemu.desktop
+        - if: linux
+          then:
+            - libexec/qemu-bridge-helper
+        
+  - script:
+      - qemu-system-${{ qemu_system_execs }} --version
+      - if: unix
+        then:
+          - qemu-img --version || true
+          - qemu-io --version || true
+
+#  - package:
+#      name: qemu-system-shared-resources
+#    build:
+#      files:
+#        include:
+#          # EDK2 firmware files (was qemu_system_share array)
+#          - share/qemu/edk2-{aarch64,arm,i386,i386-secure,riscv,x86_64,x86_64-secure}-code.fd
+#          - share/qemu/edk2-{arm,i386,riscv}-vars.fd
+#          # Firmware JSON configs (was qemu_system_firmware array)
+#          - share/qemu/firmware/50-edk2-{i386,x86_64}-secure.json
+#          - share/qemu/firmware/60-edk2-{aarch64,arm,i386,riscv,x86_64}.json
+#          # Icons (was qemu_system_icons array)
+#          - share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
+#          - share/icons/hicolor/32x32/apps/qemu.bmp
+#          - share/icons/hicolor/scalable/apps/qemu.svg
+#          # Desktop file
+#          - share/applications/qemu.desktop
+#    requirements:
+#      build:
+#        - ${{ compiler("c") }}
+#        - ${{ stdlib("c") }}
+#      run:
+#        - ${{ m2 }}libgnutls
+#        - ${{ m2 }}openssh
+#        - bzip2
+#        - libcurl
+#        - lzfse
+#        - zstd
+#        - if: unix
+#          then:
+#            - dtc
+#        - if: linux
+#          then:
+#            - keyutils
+#            - libaio
+#            - libnuma
+#            - libslirp
+#            - liburing
+#        - if: osx
+#          then:
+#            - libfdt
+#            - llvmdev
+#    tests:
+#      - script:
+#          - echo "Shared resources installed"
+
+#  - package:
+#      name: qemu-system-tools
+#    build:
+#      files:
+#        include:
+#          - bin/elf2dmp
+#          - bin/qemu-io
+#          - bin/qemu-edid
+#          - bin/qemu-nbd
+#          - bin/qemu-img
+#          - bin/qemu-storage-daemon
+#          - if: linux
+#            then:
+#              - bin/qemu-ga
+#              - bin/qemu-vmsr-helper
+#              - bin/qemu-pr-helper
+#              - libexec/qemu-bridge-helper
+#    requirements:
+#      build:
+#        - ${{ compiler("c") }}
+#        - ${{ stdlib("c") }}
+#      host:
+#        - ${{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+#        - bzip2
+#        - libglib
+#        - libcurl
+#        - lzfse
+#        - zstd
+#        - zlib
+#        - if: unix
+#          then:
+#            - gnutls
+#            - openssh
+#        - if: linux
+#          then:
+#            - libaio
+#            - libnuma
+#            - liburing
+#        - if: win
+#          then:
+#            - m2-libgnutls
+#            - m2-openssh
+#      run:
+#        - ${{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+#        - ${{ m2 }}libgnutls
+#        - ${{ m2 }}openssh
+#        - bzip2
+#        - libglib
+#        - libcurl
+#        - lzfse
+#        - zstd
+#        - if: linux
+#          then:
+#            - libaio
+#            - libnuma
+#            - liburing
+#    tests:
+#      - script:
+#          - if: unix
+#            then:
+#              - test -f ${PREFIX}/bin/qemu-img
+#              - test -f ${PREFIX}/bin/qemu-io
+#          - qemu-img --version || true
+#          - qemu-io --version || true
+
+#  # Architecture-specific qemu-system package
+#  # The qemu_system_execs variant (from variants.yaml) creates separate packages
+#  # for each architecture (e.g., qemu-system-aarch64, qemu-system-x86_64, etc.)
+#  - package:
+#      name: qemu-system-${{ qemu_system_execs }}
+#    build:
+#      files:
+#        include:
+#          - bin/qemu-system-${{ qemu_system_execs }}*
+#    requirements:
+#      build:
+#        - ${{ compiler("c") }}
+#        - ${{ stdlib("c") }}
+#      host:
+#        - ${{ m2 }}libgnutls
+#        - ${{ m2 }}openssh
+#        - epoxy
+#        - glib
+#        - libcurl
+#        - libjpeg-turbo
+#        - libpng
+#        - libusb
+#        - lzfse
+#        - lzo
+#        - pixman
+#        - sdl2
+#        - snappy
+#        - zlib
+#        - zstd
+#        - if: unix
+#          then:
+#            - libcapstone
+#            - libfdt
+#            - ncurses
+#        - if: linux
+#          then:
+#            - alsa-lib
+#            - jack
+#            - keyutils
+#            - libaio
+#            - libnuma
+#            - libslirp
+#            - liburing
+#            - pulseaudio-client
+#      run:
+#        - ${{ pin_subpackage("qemu-system-shared-resources", exact=true) }}
+#        - ${{ m2 }}libgnutls
+#        - ${{ m2 }}openssh
+#        - bzip2
+#        - libglib
+#        - libiconv
+#        - libcurl
+#        - libjpeg-turbo
+#        - libpng
+#        - lzfse
+#        - lzo
+#        - pixman
+#        - sdl2
+#        - snappy
+#        - zstd
+#        - if: unix
+#          then:
+#            - libcapstone
+#            - libfdt
+#            - ncurses
+#        - if: linux
+#          then:
+#            - alsa-lib
+#            - epoxy
+#            - jack
+#            - keyutils
+#            - libaio
+#            - libnuma
+#            - libslirp
+#            - liburing
+#            - pulseaudio-client
+#    tests:
+#      - script:
+#          - if: unix
+#            then:
+#              - test -f $PREFIX/bin/qemu-system-${{ qemu_system_execs }}
+#          - qemu-system-${{ qemu_system_execs }} --version
+
+about:
+  homepage: https://gitlab.com/qemu-project/qemu
+  summary: QEMU is a generic and open source machine & userspace emulator and virtualizer.
+  description: |
+    QEMU is capable of emulating a complete machine in software without any
+    need for hardware virtualization support. By using dynamic translation,
+    it achieves very good performance. QEMU can also integrate with the Xen
+    and KVM hypervisors to provide emulated hardware while allowing the
+    hypervisor to manage the CPU. With hypervisor support, QEMU can achieve
+    near native performance for CPUs. When QEMU emulates CPUs directly it is
+    capable of running operating systems made for one machine (e.g. an ARMv7
+    board) on a different machine (e.g. an x86_64 PC board).
+
+    QEMU is also capable of providing userspace API virtualization for Linux
+    and BSD kernel interfaces. This allows binaries compiled against one
+    architecture ABI (e.g. the Linux PPC64 ABI) to be run on a host using a
+    different architecture ABI (e.g. the Linux x86_64 ABI). This does not
+    involve any hardware emulation, simply CPU and syscall emulation.
+
+    QEMU aims to fit into a variety of use cases. It can be invoked directly
+    by users wishing to have full control over its behaviour and settings.
+    It also aims to facilitate integration into higher level management
+    layers, by providing a stable command line interface and monitor API.
+    It is commonly invoked indirectly via the libvirt library when using
+    open source applications such as oVirt, OpenStack and virt-manager.
+    QEMU as a whole is released under the GNU General Public License,
+    version 2. For full licensing details, consult the LICENSE file.
+  license: GPL-2.0-only
+  license_file:
+    - qemu_source/COPYING
+    - qemu_source/COPYING.LIB
+    - qemu_source/LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: qemu-system

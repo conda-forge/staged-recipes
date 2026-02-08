@@ -5,14 +5,28 @@ build_install_qemu() {
   local qemu_args=("${@:-}")
 
   export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
-  export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
-  export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
+  export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+  export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig"
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
+      --enable-curses \
+      --enable-gtk \
+      --enable-libssh \
+      --enable-libudev \
+      --enable-membarrier \
+      --enable-nettle \
+      --enable-numa \
+      --enable-opengl \
+      --enable-pie \
+      --enable-sdl \
+      --enable-sdl-image \
+      --enable-seccomp \
+      --enable-vnc \
+      --enable-vnc-sasl \
       --enable-strip
 
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1
@@ -21,7 +35,7 @@ build_install_qemu() {
   popd || exit 1
 }
 
-build_install_qemu_win() {
+build_install_qemu_non_unix() {
   local build_dir=$1
   local install_dir=$2
   shift 2
