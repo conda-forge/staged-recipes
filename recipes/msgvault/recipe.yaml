@@ -1,0 +1,55 @@
+context:
+  version: "0.6.5"
+
+package:
+  name: msgvault
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/wesm/msgvault/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: bcdf9ae746e6f382bd290ef68c16b7c37d3956aff3d4155e45a97b244a4d9b50
+    target_directory: src
+
+build:
+  skip: win
+  number: 0
+  script:
+    - cd src/cmd/msgvault
+    - go-licenses save . --save_path ../../../library_licenses${{ ' --ignore github.com/mattn/go-localereader' if win else '' }}
+    - go build -v -tags "fts5,duckdb_use_lib,libsqlite3" -o $PREFIX/bin/msgvault -ldflags="-s -w -X github.com/wesm/msgvault/cmd/msgvault/cmd.Version=v${PKG_VERSION}"
+
+requirements:
+  build:
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+  host:
+    - libduckdb-devel
+    - libsqlite
+
+tests:
+  - script:
+      - msgvault --help
+      - msgvault version
+  - package_contents:
+      bin:
+        - msgvault
+      strict: true
+
+about:
+  homepage: https://github.com/wesm/msgvault
+  summary: Archive a lifetime of email and chat. Offline search, analytics, and AI query over your full message history. Powered by DuckDB
+  description: |
+    Your messages are yours. Decades of correspondence, attachments, and history shouldn't be locked behind a web interface or an API. msgvault downloads a complete local copy and then everything runs offline. Search, analytics, and the MCP server all work against local data with no network access required.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://pkg.go.dev/github.com/wesm/msgvault
+  repository: https://github.com/wesm/msgvault
+
+extra:
+  recipe-maintainers:
+    - pavelzw
