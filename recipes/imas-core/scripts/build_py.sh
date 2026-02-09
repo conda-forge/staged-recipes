@@ -15,4 +15,5 @@ $PYTHON -m pip install . --no-deps --no-build-isolation -vv \
     -Cbuilddir=builddir \
     -Csetup-args=-Dal_core=false \
     -Csetup-args=-Dpython_bindings=true \
+    -Csetup-args=${MESON_ARGS// / -Csetup-args=} \
     || (cat builddir/meson-logs/meson-log.txt && exit 1)
