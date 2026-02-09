@@ -17,8 +17,7 @@ build_install_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Let configure auto-detect most features
-    # Only specify what we explicitly want to control
+    echo "${PYTHON}"
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
@@ -50,9 +49,19 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Patch 0006 handles:
-    # - meson via canary executable check
-    # - pycotap via expanded wheels path (os.path.expandvars)
+    # First configure attempt - will create pyvenv but may fail on pycotap
+    # Patch 0006 handles meson via canary check
+    ${SRC_DIR}/qemu_source/configure \
+      --prefix="${install_dir}" \
+      "${qemu_args[@]}" \
+      --enable-strip || true
+
+    # Install pycotap into the venv that mkvenv created
+    # (bash expands ${SRC_DIR} correctly, unlike Windows %SRC_DIR%)
+    ./pyvenv/Scripts/pip install --no-index \
+      --find-links="${SRC_DIR}/qemu_source/python/wheels" pycotap
+
+    # Second configure - should succeed now
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
