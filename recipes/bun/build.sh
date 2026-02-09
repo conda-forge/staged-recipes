@@ -13,7 +13,7 @@ if [[ "${target_platform}" == osx-* ]]; then
   export CMAKE_STRIP="$BUILD_PREFIX/bin/llvm-strip"
 else
   export CMAKE_LLD="$(which ld.lld)"
-  export CMAKE_STRIP="$BUILD_PREFIX/bin/strip"
+  export CMAKE_STRIP="$(which ${STRIP})"
 fi
 
 export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_AR=${CMAKE_AR} -DCMAKE_STRIP=${CMAKE_STRIP} -DUSE_STATIC_SQLITE=OFF -DUSE_STATIC_LIBATOMIC=OFF"
