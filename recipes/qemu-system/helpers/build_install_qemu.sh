@@ -23,24 +23,13 @@ build_install_qemu() {
       "${platform_args[@]}" \
       --enable-strip
 
-    if [[ "${CONDA_QEMU_DEBUG:-}" == "1" ]]; then
-        echo "== DEBUG Begin ==="
-      ninja -t targets > qemu-targets.log
-      # Query specific target's dependencies
-      ninja -t query qemu-img > qemu-img.log
-
-      # Show dependency graph for a target
-      ninja -t graph qemu-img > qemu-img-deps.png
-
-      # List all targets with their rule types
-      ninja -t targets all | grep qemu- > qemu-.log
-
-      ninja qemu-img
-        echo "== DEBUG End ==="
-      exit 1
+    if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
+      read -ra TOOLS_ARRAY <<< ${CONDA_QEMU_TOOLS}
+      ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+    else
+      ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     fi
     
-    ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install > "${SRC_DIR}"/_install.log 2>&1
 
