@@ -28,6 +28,11 @@ build_install_qemu() {
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install > "${SRC_DIR}"/_install.log 2>&1
+
+    # macOS: Strip extended attributes before codesigning
+    if [[ "${target_platform}" == osx-* ]]; then
+      xattr -cr "${install_dir}"
+    fi
   popd || exit 1
 }
 
