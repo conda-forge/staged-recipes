@@ -1,13 +1,36 @@
+From: conda-forge
+Subject: Accept system meson when Python package not found via importlib.metadata
+
+Conda packages don't register with importlib.metadata, so the Python
+package check fails even when meson is installed and working. This patch
+makes mkvenv trust the canary executable check for meson specifically.
+
 --- a/python/scripts/mkvenv.py
 +++ b/python/scripts/mkvenv.py
-@@ -749,9 +749,8 @@ def _do_ensure(
+@@ -738,6 +738,7 @@ def _do_ensure(
+     for name, info in group.items():
+         constraint = _make_version_constraint(info, False)
+         matcher = Matcher(name + constraint)
++        canary_prog = info.get("canary", None)
+         print(f"mkvenv: checking for {matcher}", file=sys.stderr)
+
+         dist: Optional[Distribution] = None
+@@ -746,6 +747,17 @@ def _do_ensure(
+         except PackageNotFoundError:
+             pass
+
++        # conda-forge: If dist not found but canary executable exists,
++        # trust it (conda packages don't use importlib.metadata)
++        if dist is None and canary_prog:
++            import shutil
++            canary_path = shutil.which(canary_prog)
++            if canary_path:
++                print(f"mkvenv: {name} not found via importlib but canary "
++                      f"'{canary_prog}' exists at {canary_path}, trusting it",
++                      file=sys.stderr)
++                present.append(name)
++                continue
++
          if (
              dist is None
--            # Always pass installed package to pip, so that they can be
--            # updated if the requested version changes
--            or not _is_system_package(dist)
-+            # Removed _is_system_package check to allow conda packages
-+            # to satisfy dependencies when using --system-site-packages
-             or not matcher.match(dist.version)
-         ):
-             absent.append(name + _make_version_constraint(info, True))
+             # Always pass installed package to pip, so that they can be
