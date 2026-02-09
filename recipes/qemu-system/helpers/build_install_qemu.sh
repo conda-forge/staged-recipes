@@ -17,26 +17,28 @@ build_install_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    echo "${PYTHON}"
-    ${PYTHON} -v
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       "${platform_args[@]}" \
       --enable-strip
 
-    echo "== DEBUG Begin ==="
-  ninja -t targets
-  # Query specific target's dependencies
-  ninja -t query qemu-img
+    if [[ "${CONDA_QEMU_DEBUG:-}" == "1" ]]; then
+        echo "== DEBUG Begin ==="
+      ninja -t targets > qemu-targets.log
+      # Query specific target's dependencies
+      ninja -t query qemu-img > qemu-img.log
 
-  # Show dependency graph for a target
-  ninja -t graph qemu-img | dot -Tpng > qemu-img-deps.png
+      # Show dependency graph for a target
+      ninja -t graph qemu-img > qemu-img-deps.png
 
-  # List all targets with their rule types
-  ninja -t targets all | grep qemu-
-  exit 1
-    echo "== DEBUG End ==="
+      # List all targets with their rule types
+      ninja -t targets all | grep qemu- > qemu-.log
+
+      ninja qemu-img
+        echo "== DEBUG End ==="
+      exit 1
+    fi
     
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
@@ -69,7 +71,35 @@ build_install_qemu_non_unix() {
     ./pyvenv/Scripts/pip install --no-index \
       --find-links="${SRC_DIR}/qemu_source/python/wheels" pycotap
 
-    # Configure will find: meson (canary), pycotap (pre-installed)
+    # Create meson wrapper in pyvenv/Scripts/ pointing to conda's meson
+    # The mkvenv patch trusts the canary but doesn't create the wrapper,
+    # and configure.sh expects pyvenv/Scripts/meson to exist
+    local _meson_exe
+    _meson_exe="$(which meson.exe 2>/dev/null || which meson)"
+    if [[ -n "${_meson_exe}" ]]; then
+      echo "Creating meson wrapper pointing to: ${_meson_exe}"
+      # Convert MSYS path to Windows path for the batch file
+      local _meson_win
+      _meson_win="$(cygpath -w "${_meson_exe}" 2>/dev/null || echo "${_meson_exe}")"
+
+      # Create a batch file wrapper that calls the real meson
+      cat > ./pyvenv/Scripts/meson.bat <<MESONBAT
+@echo off
+"${_meson_win}" %*
+MESONBAT
+
+      # Also create a shell script version for MSYS2/bash
+      cat > ./pyvenv/Scripts/meson <<MESONSH
+#!/bin/sh
+exec "${_meson_exe}" "\$@"
+MESONSH
+      chmod +x ./pyvenv/Scripts/meson
+    else
+      echo "ERROR: meson not found in PATH"
+      exit 1
+    fi
+
+    # Configure will find: meson (wrapper), pycotap (pre-installed)
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
