@@ -1,9 +1,11 @@
 From: conda-forge
-Subject: Accept system meson when Python package not found via importlib.metadata
+Subject: Accept system packages when not found via importlib.metadata
 
 Conda packages don't register with importlib.metadata, so the Python
-package check fails even when meson is installed and working. This patch
-makes mkvenv trust the canary executable check for meson specifically.
+package check fails even when packages are installed and working. This patch:
+1. Trusts canary executables (for meson)
+2. Tries direct import as fallback (for pycotap)
+3. Doesn't clear existing venv
 
 --- a/python/scripts/mkvenv.py
 +++ b/python/scripts/mkvenv.py
@@ -15,22 +17,41 @@ makes mkvenv trust the canary executable check for meson specifically.
          print(f"mkvenv: checking for {matcher}", file=sys.stderr)
 
          dist: Optional[Distribution] = None
-@@ -746,6 +747,17 @@ def _do_ensure(
+@@ -746,6 +747,26 @@ def _do_ensure(
          except PackageNotFoundError:
              pass
 
-+        # conda-forge: If dist not found but canary executable exists,
-+        # trust it (conda packages don't use importlib.metadata)
-+        if dist is None and canary_prog:
-+            import shutil
-+            canary_path = shutil.which(canary_prog)
-+            if canary_path:
-+                print(f"mkvenv: {name} not found via importlib but canary "
-+                      f"'{canary_prog}' exists at {canary_path}, trusting it",
++        # conda-forge: If dist not found, try canary or direct import
++        if dist is None:
++            # Check canary executable (for meson)
++            if canary_prog:
++                import shutil
++                canary_path = shutil.which(canary_prog)
++                if canary_path:
++                    print(f"mkvenv: {name} not found via importlib but canary "
++                          f"'{canary_prog}' exists at {canary_path}, trusting it",
++                          file=sys.stderr)
++                    present.append(name)
++                    continue
++            # Try direct import (for pycotap and other pure-python packages)
++            try:
++                __import__(name.replace("-", "_"))
++                print(f"mkvenv: {name} not found via importlib but importable, trusting it",
 +                      file=sys.stderr)
 +                present.append(name)
 +                continue
++            except ImportError:
++                pass
 +
          if (
              dist is None
              # Always pass installed package to pip, so that they can be
+@@ -925,7 +946,7 @@ def main() -> int:
+         make_venv(
+             args.target,
+             system_site_packages=True,
+-            clear=True,
++            clear=False,
+         )
+         print(args.target)
+         return 0
