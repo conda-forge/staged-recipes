@@ -37,24 +37,24 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Use conda's python which has meson available
-    # Disable download to prevent mkvenv from trying to fetch from PyPI
+    # Skip QEMU's pyvenv - use conda's meson directly
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
-      --python="${PYTHON}" \
+      --skip-meson \
       --enable-strip
+
+    # Run meson manually using conda's meson
+    meson setup \
+      --prefix="${install_dir}" \
+      -Dstrip=true \
+      "${SRC_DIR}/qemu_source" \
+      .
 
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
-    touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
-
-    PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
-    PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
-    export PYTHON_WIN
 
     MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
-    # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install
   popd || exit 1
 }
