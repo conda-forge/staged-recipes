@@ -10,23 +10,11 @@ build_install_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
+    # Let configure auto-detect most features
+    # Only specify what we explicitly want to control
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
-      --enable-curses \
-      --enable-gtk \
-      --enable-libssh \
-      --enable-libudev \
-      --enable-membarrier \
-      --enable-nettle \
-      --enable-numa \
-      --enable-opengl \
-      --enable-pie \
-      --enable-sdl \
-      --enable-sdl-image \
-      --enable-seccomp \
-      --enable-vnc \
-      --enable-vnc-sasl \
       --enable-strip
 
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1
