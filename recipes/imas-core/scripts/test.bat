@@ -2,7 +2,7 @@
 set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
 :: binary is called `pkg-config`, but package metadata is under `lib/pkgconfig`
-set MESON_ARGS="%MESON_ARGS% --pkg-config-path=%LIBRARY_PREFIX%/lib/pkgconfig"
+set MESON_ARGS=--prefix=%LIBRARY_PREFIX% -Dbuildtype=release --pkg-config-path=%LIBRARY_PREFIX%/lib/pkgconfig
 
 :: Configure
 meson setup builddir %MESON_ARGS% ^
