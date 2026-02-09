@@ -25,6 +25,19 @@ build_install_qemu() {
       "${platform_args[@]}" \
       --enable-strip
 
+    echo "== DEBUG Begin ==="
+  ninja -t targets
+  # Query specific target's dependencies
+  ninja -t query qemu-img
+
+  # Show dependency graph for a target
+  ninja -t graph qemu-img | dot -Tpng > qemu-img-deps.png
+
+  # List all targets with their rule types
+  ninja -t targets all | grep qemu-
+  exit 1
+    echo "== DEBUG End ==="
+    
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install > "${SRC_DIR}"/_install.log 2>&1

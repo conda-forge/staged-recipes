@@ -1,10 +1,11 @@
 From: conda-forge
-Subject: Accept system packages and don't clear existing venv
+Subject: Accept system/venv packages for conda-forge builds
 
-Conda packages don't register with importlib.metadata, so the Python
-package check fails even when packages are installed and working. This patch:
+Conda packages don't register with importlib.metadata, and venv-installed
+packages fail the _is_system_package check. This patch:
 1. Trusts canary executables (for meson)
-2. Doesn't clear existing venv (preserves pre-installed packages)
+2. Removes _is_system_package check (accepts venv packages)
+3. Doesn't clear existing venv (preserves pre-installed packages)
 
 --- a/python/scripts/mkvenv.py
 +++ b/python/scripts/mkvenv.py
@@ -16,7 +17,7 @@ package check fails even when packages are installed and working. This patch:
          print(f"mkvenv: checking for {matcher}", file=sys.stderr)
 
          dist: Optional[Distribution] = None
-@@ -746,6 +747,17 @@ def _do_ensure(
+@@ -746,11 +747,22 @@ def _do_ensure(
          except PackageNotFoundError:
              pass
 
@@ -34,7 +35,14 @@ package check fails even when packages are installed and working. This patch:
 +
          if (
              dist is None
-             # Always pass installed package to pip, so that they can be
+-            # Always pass installed package to pip, so that they can be
+-            # updated if the requested version changes
+-            or not _is_system_package(dist)
++            # conda-forge: removed _is_system_package check to accept
++            # packages installed in venv or via conda
+             or not matcher.match(dist.version)
+         ):
+             absent.append(name + _make_version_constraint(info, True))
 @@ -922,7 +934,7 @@ def main() -> int:
          make_venv(
              args.target,
