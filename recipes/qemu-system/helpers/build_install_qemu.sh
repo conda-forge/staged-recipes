@@ -17,7 +17,7 @@ build_install_qemu() {
       "${qemu_args[@]}" \
       --enable-strip
 
-    ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1
+    ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install > "${SRC_DIR}"/_install.log 2>&1
   popd || exit 1
@@ -43,7 +43,6 @@ build_install_qemu_non_unix() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --python="${PYTHON}" \
-      --disable-download \
       --enable-strip
 
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
@@ -54,7 +53,7 @@ build_install_qemu_non_unix() {
     PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
     export PYTHON_WIN
 
-    MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
+    MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
     # ninja check > "${SRC_DIR}"/_check.log 2>&1
     ninja install
   popd || exit 1
