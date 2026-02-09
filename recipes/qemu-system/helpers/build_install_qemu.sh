@@ -45,8 +45,14 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Patch 0006-win-mkvenv-accept-system-packages.patch allows
-    # mkvenv to accept conda's meson via --system-site-packages
+    # Pre-create pyvenv and install pycotap from vendored wheels
+    # (mkvenv can't find wheels due to %SRC_DIR% path not expanding)
+    python -m venv --system-site-packages pyvenv
+    ./pyvenv/Scripts/pip install --no-index \
+      --find-links="${SRC_DIR}/qemu_source/python/wheels" pycotap
+
+    # Patch 0006 trusts canary executables for meson
+    # pycotap is already installed above
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
