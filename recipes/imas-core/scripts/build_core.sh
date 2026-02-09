@@ -17,7 +17,7 @@ export MESON_ARGS="${MESON_ARGS} --pkg-config-path=${PREFIX}/lib/pkgconfig"
 # Configure
 meson setup builddir ${MESON_ARGS} \
     -D al_core=true \
-    -D python_bindings=false
+    -D python_bindings=false \
     || (cat builddir/meson-logs/meson-log.txt && exit 1)
 
 # Build and install
