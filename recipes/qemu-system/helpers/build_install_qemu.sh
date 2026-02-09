@@ -45,9 +45,9 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Pre-create pyvenv with meson so configure doesn't try to download it
-    python -m venv pyvenv
-    ./pyvenv/Scripts/pip install meson pycotap
+    # Pre-create pyvenv with access to conda's site-packages (has meson)
+    python -m venv --system-site-packages pyvenv
+    ./pyvenv/Scripts/pip install pycotap
 
     # Now configure will find existing pyvenv with meson
     ${SRC_DIR}/qemu_source/configure \
