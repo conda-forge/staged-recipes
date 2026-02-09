@@ -37,10 +37,13 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # export LDFLAGS="${LDFLAGS} BufferOverflowU.lib"
+    # Use conda's python which has meson available
+    # Disable download to prevent mkvenv from trying to fetch from PyPI
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
+      --python="${PYTHON}" \
+      --disable-download \
       --enable-strip
 
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
