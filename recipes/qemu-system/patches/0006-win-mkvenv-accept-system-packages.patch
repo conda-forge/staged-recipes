@@ -1,10 +1,10 @@
 From: conda-forge
-Subject: Accept system packages and fix Windows wheels path
+Subject: Accept system packages and don't clear existing venv
 
 Conda packages don't register with importlib.metadata, so the Python
 package check fails even when packages are installed and working. This patch:
 1. Trusts canary executables (for meson)
-2. Fixes wheels path expansion on Windows (expands %VAR% environment variables)
+2. Doesn't clear existing venv (preserves pre-installed packages)
 
 --- a/python/scripts/mkvenv.py
 +++ b/python/scripts/mkvenv.py
@@ -35,15 +35,12 @@ package check fails even when packages are installed and working. This patch:
          if (
              dist is None
              # Always pass installed package to pip, so that they can be
-@@ -766,6 +778,10 @@ def _do_ensure(
-     if absent:
-         if online or wheels_dir:
-             # Some packages are missing or aren't a suitable version,
-             # install a suitable (possibly vendored) package.
-+            # conda-forge: expand environment variables in wheels_dir for Windows
-+            if wheels_dir:
-+                import os
-+                wheels_dir = Path(os.path.expandvars(str(wheels_dir)))
-             install_packages(
-                 absent, online=online, wheels_dir=wheels_dir, venv_dir=venv_dir
-             )
+@@ -922,7 +934,7 @@ def main() -> int:
+         make_venv(
+             args.target,
+             system_site_packages=True,
+-            clear=True,
++            clear=False,
+         )
+         print(args.target)
+         return 0
