@@ -8,6 +8,13 @@ build_install_qemu() {
   export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
   export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig"
 
+  # Platform-specific configure flags
+  local platform_args=()
+  if [[ "${target_platform}" == osx-* ]]; then
+    # Disable apple-gfx (pvg) - requires macOS 12+ SDK
+    platform_args+=(--disable-pvg)
+  fi
+
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
     # Let configure auto-detect most features
@@ -15,6 +22,7 @@ build_install_qemu() {
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
+      "${platform_args[@]}" \
       --enable-strip
 
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
@@ -37,19 +45,15 @@ build_install_qemu_non_unix() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    # Skip QEMU's pyvenv - use conda's meson directly
+    # Pre-create pyvenv with meson so configure doesn't try to download it
+    python -m venv pyvenv
+    ./pyvenv/Scripts/pip install meson pycotap
+
+    # Now configure will find existing pyvenv with meson
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
-      --skip-meson \
       --enable-strip
-
-    # Run meson manually using conda's meson
-    meson setup \
-      --prefix="${install_dir}" \
-      -Dstrip=true \
-      "${SRC_DIR}/qemu_source" \
-      .
 
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
