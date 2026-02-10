@@ -92,10 +92,15 @@ build_install_qemu() {
 
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
       # Selective build: build and install only specified tools
-      read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
       echo "Building specific tools: ${TOOLS_ARRAY[*]}"
+      read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
       ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
 
+      if [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
+        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
+        read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_LINUX_TOOLS}"
+        ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+      fi
       # Selective install: only install what we built
       install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
     else

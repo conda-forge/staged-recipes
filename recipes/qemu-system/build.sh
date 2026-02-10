@@ -38,7 +38,6 @@ if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; the
 else
   qemu_args+=(
     "--datadir=share/qemu"
-    "--disable-avif"
     "--disable-install-blobs"
   )
     #"--disable-attr"
