@@ -170,7 +170,9 @@ MESONSH
       "${qemu_args[@]}" \
       --enable-strip
 
-    sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
+    # Fix Windows tool names: ensure they have .exe suffix (but not doubled)
+    # First remove any existing .exe, then add it back - ensures exactly one .exe
+    sed -i 's#\(windres\|nm\|windmc\)\.exe#\1#g; s#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
 
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
