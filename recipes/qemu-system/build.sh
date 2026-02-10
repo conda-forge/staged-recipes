@@ -10,8 +10,6 @@ source "${RECIPE_DIR}/helpers/build_install_qemu.sh"
 if [[ "${target_platform}" == "linux-"* ]] || [[ "${target_platform}" == "osx-"* ]]; then
   export PYTHON="${BUILD_PREFIX}"/bin/python
   export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH}"
-else
-  export PYTHON="${BUILD_PREFIX}"/Library/bin/python
 fi
 
 install_dir="${CONDA_QEMU_INSTALL_DIR:-_conda_install}"
