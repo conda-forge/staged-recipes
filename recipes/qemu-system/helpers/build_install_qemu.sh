@@ -37,11 +37,6 @@ install_qemu_tools() {
         src="${build_dir}/qemu-bridge-helper"
         dst="${install_dir}/libexec/qemu-bridge-helper"
         ;;
-      # System emulators
-      qemu-system-*)
-        src="${build_dir}/${tool}"
-        dst="${install_dir}/bin/${tool}"
-        ;;
       *)
         echo "WARNING: Unknown tool '${tool}', skipping"
         continue
@@ -171,8 +166,8 @@ MESONSH
       --enable-strip
 
     # Fix Windows tool names: ensure they have .exe suffix (but not doubled)
-    # First remove any existing .exe, then add it back - ensures exactly one .exe
-    sed -i 's#\(windres\|nm\|windmc\)\.exe#\1#g; s#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
+    # First remove any existing .exe/.EXE (case-insensitive), then add .exe back
+    sed -i 's#\(windres\|nm\|windmc\)\.[eE][xX][eE]#\1#g; s#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
 
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
