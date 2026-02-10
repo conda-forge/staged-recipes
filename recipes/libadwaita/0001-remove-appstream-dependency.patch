@@ -1,0 +1,271 @@
+Subject: [PATCH] Remove appstream on Windows
+---
+Index: src/adw-about-window.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-window.c b/src/adw-about-window.c
+--- a/src/adw-about-window.c	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/src/adw-about-window.c	(date 1767323973728)
+@@ -6,7 +6,9 @@
+ 
+ #include "config.h"
+ #include <glib/gi18n-lib.h>
++#ifndef G_OS_WIN32
+ #include <appstream.h>
++#endif
+ 
+ #include "adw-about-window.h"
+ 
+@@ -423,12 +425,14 @@
+     g_idle_add_once ((GSourceOnceFunc) legal_showing_idle_cb, self);
+ }
+ 
++#ifndef G_OS_WIN32
+ static gboolean
+ get_release_for_version (AsRelease  *rel,
+                          const char *version)
+ {
+   return !g_strcmp0 (as_release_get_version (rel), version);
+ }
++#endif
+ 
+ static void
+ update_credits_legal_group (AdwAboutWindow *self)
+@@ -1992,6 +1996,7 @@
+   return g_object_new (ADW_TYPE_ABOUT_WINDOW, NULL);
+ }
+ 
++#ifndef G_OS_WIN32
+ /**
+  * adw_about_window_new_from_appdata:
+  * @resource_path: The resource to use
+@@ -2174,6 +2179,7 @@
+ 
+   return GTK_WIDGET (self);
+ }
++#endif
+ 
+ /**
+  * adw_about_window_get_application_icon:
+@@ -3519,6 +3525,7 @@
+   gtk_window_present (GTK_WINDOW (window));
+ }
+ 
++#ifndef G_OS_WIN32
+ /**
+  * adw_show_about_window_from_appdata: (skip)
+  * @parent: (nullable): the parent top-level window
+@@ -3558,3 +3565,4 @@
+ 
+   gtk_window_present (GTK_WINDOW (window));
+ }
++#endif
+Index: src/adw-about-window.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-window.h b/src/adw-about-window.h
+--- a/src/adw-about-window.h	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/src/adw-about-window.h	(date 1767323425018)
+@@ -25,9 +25,11 @@
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_new)
+ GtkWidget *adw_about_window_new (void) G_GNUC_WARN_UNUSED_RESULT;
+ 
++#ifndef G_OS_WIN32
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_new_from_appdata)
+ GtkWidget *adw_about_window_new_from_appdata (const char *resource_path,
+                                               const char *release_notes_version) G_GNUC_WARN_UNUSED_RESULT;
++#endif
+ 
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_get_application_name)
+ const char *adw_about_window_get_application_name (AdwAboutWindow *self);
+@@ -176,11 +178,13 @@
+                             const char *first_property_name,
+                             ...) G_GNUC_NULL_TERMINATED;
+ 
++#ifndef G_OS_WIN32
+ ADW_DEPRECATED_IN_1_6_FOR(adw_show_about_dialog_from_appdata)
+ void adw_show_about_window_from_appdata (GtkWindow  *parent,
+                                          const char *resource_path,
+                                          const char *release_notes_version,
+                                          const char *first_property_name,
+                                          ...) G_GNUC_NULL_TERMINATED;
++#endif
+ 
+ G_END_DECLS
+Index: src/meson.build
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/meson.build b/src/meson.build
+--- a/src/meson.build	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/src/meson.build	(date 1767323192847)
+@@ -317,14 +317,24 @@
+ 
+ install_headers(src_headers, subdir: libadwaita_header_subdir)
+ 
+-libadwaita_deps = [
+-  glib_dep,
+-  fribidi_dep,
+-  gio_dep,
+-  gtk_dep,
+-  appstream_dep,
+-  cc.find_library('m', required: false),
+-]
++if target_system != 'windows'
++  libadwaita_deps = [
++    glib_dep,
++    fribidi_dep,
++    gio_dep,
++    gtk_dep,
++    appstream_dep,
++    cc.find_library('m', required: false),
++  ]
++else
++  libadwaita_deps = [
++    glib_dep,
++    fribidi_dep,
++    gio_dep,
++    gtk_dep,
++    cc.find_library('m', required: false),
++  ]
++endif
+ 
+ libadwaita_public_deps = [
+   gio_dep,
+Index: src/adw-about-dialog.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-dialog.c b/src/adw-about-dialog.c
+--- a/src/adw-about-dialog.c	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/src/adw-about-dialog.c	(date 1767323973707)
+@@ -7,7 +7,9 @@
+ 
+ #include "config.h"
+ #include <glib/gi18n-lib.h>
++#ifndef G_OS_WIN32
+ #include <appstream.h>
++#endif
+ 
+ #include "adw-about-dialog.h"
+ 
+@@ -431,12 +433,14 @@
+   self->legal_showing_idle_id = 0;
+ }
+ 
++#ifndef G_OS_WIN32
+ static gboolean
+ get_release_for_version (AsRelease  *rel,
+                          const char *version)
+ {
+   return !g_strcmp0 (as_release_get_version (rel), version);
+ }
++#endif
+ 
+ static void
+ update_credits_legal_group (AdwAboutDialog *self)
+@@ -1979,6 +1983,7 @@
+   return g_object_new (ADW_TYPE_ABOUT_DIALOG, NULL);
+ }
+ 
++#ifndef G_OS_WIN32
+ /**
+  * adw_about_dialog_new_from_appdata:
+  * @resource_path: The resource to use
+@@ -2160,6 +2165,7 @@
+ 
+   return ADW_DIALOG (self);
+ }
++#endif
+ 
+ /**
+  * adw_about_dialog_get_application_icon:
+@@ -3540,6 +3546,7 @@
+   adw_dialog_present (dialog, parent);
+ }
+ 
++#ifndef G_OS_WIN32
+ /**
+  * adw_show_about_dialog_from_appdata: (skip)
+  * @parent: the parent widget
+@@ -3577,4 +3584,5 @@
+ 
+   adw_dialog_present (dialog, parent);
+ }
++#endif
+ 
+Index: meson.build
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/meson.build b/meson.build
+--- a/meson.build	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/meson.build	(date 1767323192830)
+@@ -40,15 +40,18 @@
+ gio_dep = dependency('gio-2.0', version: glib_min_version)
+ gtk_dep = dependency('gtk4', version: gtk_min_version)
+ fribidi_dep = dependency('fribidi')
+-appstream_dep = dependency('appstream',
+-  fallback : ['appstream', 'appstream_dep'],
+-  default_options : [
+-    'systemd=false', 'apidocs=false', 'install-docs=false',
+-    'stemming=false', 'svg-support=false', 'gir=false',
+-  ],
+-)
++
++target_system = host_machine.system()
++if target_system != 'windows'
++  appstream_dep = dependency('appstream',
++    fallback : ['appstream', 'appstream_dep'],
++    default_options : [
++      'systemd=false', 'apidocs=false', 'install-docs=false',
++      'stemming=false', 'svg-support=false', 'gir=false',
++    ],
++  )
++endif
+ 
+-target_system = host_machine.system()
+ if target_system == 'darwin'
+   appleframework_modules = [
+     'AppKit',
+Index: src/adw-about-dialog.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-dialog.h b/src/adw-about-dialog.h
+--- a/src/adw-about-dialog.h	(revision 8805e0659db90ea1ed11e63b3e0282e12caed2da)
++++ b/src/adw-about-dialog.h	(date 1767323973739)
+@@ -27,9 +27,11 @@
+ ADW_AVAILABLE_IN_1_5
+ AdwDialog *adw_about_dialog_new (void) G_GNUC_WARN_UNUSED_RESULT;
+ 
++#ifndef G_OS_WIN32
+ ADW_AVAILABLE_IN_1_5
+ AdwDialog *adw_about_dialog_new_from_appdata (const char *resource_path,
+                                               const char *release_notes_version) G_GNUC_WARN_UNUSED_RESULT;
++#endif
+ 
+ ADW_AVAILABLE_IN_1_5
+ const char *adw_about_dialog_get_application_name (AdwAboutDialog *self);
+@@ -184,11 +186,13 @@
+                             const char *first_property_name,
+                             ...) G_GNUC_NULL_TERMINATED;
+ 
++#ifndef G_OS_WIN32
+ ADW_AVAILABLE_IN_1_5
+ void adw_show_about_dialog_from_appdata (GtkWidget  *parent,
+                                          const char *resource_path,
+                                          const char *release_notes_version,
+                                          const char *first_property_name,
+                                          ...) G_GNUC_NULL_TERMINATED;
++#endif
+ 
+ G_END_DECLS
