@@ -1,3 +1,75 @@
+# Install specific QEMU tools from build directory to install directory
+# Usage: install_qemu_tools <build_dir> <install_dir> <tool1> [tool2] ...
+install_qemu_tools() {
+  local build_dir=$1
+  local install_dir=$2
+  shift 2
+  local tools=("$@")
+
+  mkdir -p "${install_dir}/bin"
+  mkdir -p "${install_dir}/libexec"
+
+  for tool in "${tools[@]}"; do
+    local src=""
+    local dst=""
+
+    case "${tool}" in
+      # Direct binaries (build artifact name = install name)
+      qemu-img|qemu-io|qemu-nbd|qemu-edid|qemu-keymap|qemu-pr-helper|qemu-vmsr-helper)
+        src="${build_dir}/${tool}"
+        dst="${install_dir}/bin/${tool}"
+        ;;
+      # Binaries in subdirectories
+      qemu-ga)
+        src="${build_dir}/qga/qemu-ga"
+        dst="${install_dir}/bin/qemu-ga"
+        ;;
+      qemu-storage-daemon)
+        src="${build_dir}/storage-daemon/qemu-storage-daemon"
+        dst="${install_dir}/bin/qemu-storage-daemon"
+        ;;
+      elf2dmp)
+        src="${build_dir}/contrib/elf2dmp/elf2dmp"
+        dst="${install_dir}/bin/elf2dmp"
+        ;;
+      # Special install location
+      qemu-bridge-helper)
+        src="${build_dir}/qemu-bridge-helper"
+        dst="${install_dir}/libexec/qemu-bridge-helper"
+        ;;
+      # System emulators
+      qemu-system-*)
+        src="${build_dir}/${tool}"
+        dst="${install_dir}/bin/${tool}"
+        ;;
+      *)
+        echo "WARNING: Unknown tool '${tool}', skipping"
+        continue
+        ;;
+    esac
+
+    if [[ -f "${src}" ]]; then
+      echo "Installing: ${tool} -> ${dst}"
+      install -m 755 "${src}" "${dst}"
+    else
+      echo "ERROR: Built artifact not found: ${src}"
+      return 1
+    fi
+  done
+}
+
+# Install shared data files (keymaps, firmware, etc.)
+install_qemu_datafiles() {
+  local build_dir=$1
+  local install_dir=$2
+
+  # Use meson install for data files only, or copy manually
+  # For now, run full install and rely on recipe file filtering
+  pushd "${build_dir}" || return 1
+    meson install --destdir="${install_dir}" --no-rebuild 2>/dev/null || ninja install
+  popd || return 1
+}
+
 build_install_qemu() {
   local build_dir=$1
   local install_dir=$2
@@ -24,14 +96,18 @@ build_install_qemu() {
       --enable-strip
 
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
-      read -ra TOOLS_ARRAY <<< ${CONDA_QEMU_TOOLS}
+      # Selective build: build and install only specified tools
+      read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
+      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
       ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+
+      # Selective install: only install what we built
+      install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
     else
+      # Full build and install
       ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
+      ninja install > "${SRC_DIR}"/_install.log 2>&1
     fi
-    
-    # ninja check > "${SRC_DIR}"/_check.log 2>&1
-    ninja install > "${SRC_DIR}"/_install.log 2>&1
 
     # macOS: Strip extended attributes before codesigning
     if [[ "${target_platform}" == osx-* ]]; then
@@ -97,7 +173,18 @@ MESONSH
     sed -i 's#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
 
-    MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
-    ninja install
+    if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
+      # Selective build: build and install only specified tools
+      read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
+      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
+      MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}" || { echo "Build failed"; exit 1; }
+
+      # Selective install: only install what we built
+      install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
+    else
+      # Full build and install
+      MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
+      ninja install
+    fi
   popd || exit 1
 }
