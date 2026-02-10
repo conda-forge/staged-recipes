@@ -15,27 +15,27 @@ install_qemu_tools() {
 
     case "${tool}" in
       # Direct binaries (build artifact name = install name)
-      qemu-img|qemu-io|qemu-nbd|qemu-edid|qemu-keymap|qemu-pr-helper|qemu-vmsr-helper)
+      qemu-img*|qemu-io*|qemu-nbd*|qemu-edid*|qemu-keymap*|qemu-pr-helper*|qemu-vmsr-helper*)
         src="${build_dir}/${tool}"
         dst="${install_dir}/bin/${tool}"
         ;;
       # Binaries in subdirectories
-      qemu-ga)
+      qemu-ga*)
         src="${build_dir}/qga/qemu-ga"
-        dst="${install_dir}/bin/qemu-ga"
+        dst="${install_dir}/bin/${tool}"
         ;;
-      qemu-storage-daemon)
+      qemu-storage-daemon*)
         src="${build_dir}/storage-daemon/qemu-storage-daemon"
-        dst="${install_dir}/bin/qemu-storage-daemon"
+        dst="${install_dir}/bin/${tool}"
         ;;
-      elf2dmp)
+      elf2dmp*)
         src="${build_dir}/contrib/elf2dmp/elf2dmp"
-        dst="${install_dir}/bin/elf2dmp"
+        dst="${install_dir}/bin/${tool}"
         ;;
       # Special install location
-      qemu-bridge-helper)
+      qemu-bridge-helper*)
         src="${build_dir}/qemu-bridge-helper"
-        dst="${install_dir}/libexec/qemu-bridge-helper"
+        dst="${install_dir}/libexec/${tool}"
         ;;
       *)
         echo "WARNING: Unknown tool '${tool}', skipping"
@@ -92,13 +92,13 @@ build_install_qemu() {
 
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
       # Selective build: build and install only specified tools
-      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
       read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
+      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
       ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
 
-      if [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
-        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
+      if [[ "${target_platform}" == linux-* ]] && [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_LINUX_TOOLS}"
+        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
         ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
       fi
       # Selective install: only install what we built
@@ -178,6 +178,7 @@ MESONSH
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
       # Selective build: build and install only specified tools
       read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
+      TOOLS_ARRAY=("${TOOLS_ARRAY[@]/%/.exe}")
       echo "Building specific tools: ${TOOLS_ARRAY[*]}"
       MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}" || { echo "Build failed"; exit 1; }
 
