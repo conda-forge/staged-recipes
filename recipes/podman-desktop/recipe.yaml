@@ -1,0 +1,129 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: podman-desktop
+  version: "1.24.2"
+  nodejs_min: "24"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/podman-desktop/podman-desktop/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b14e5a46e348996387e6cced27789f10c95a0791c9a1cadb2c60382e9e1ed2fd
+
+build:
+  number: 0
+  # Support Linux, Windows, and macOS on x64 and arm64
+  skip:
+    - not (linux or win or osx)
+    - not (x86_64 or arm64)
+  script:
+    - if: unix
+      then: bash $RECIPE_DIR/build.sh
+    - if: win
+      then: call %RECIPE_DIR%\build.bat
+  # Disable binary relocation - Electron apps are self-contained and pre-built binaries
+  # don't have header padding for install_name_tool on macOS
+  dynamic_linking:
+    binary_relocation: false
+
+requirements:
+  build:
+    # Node.js build environment
+    - nodejs ${{ nodejs_min }}.*
+    # Python for node-gyp (required for native module compilation)
+    - python 3.12.*
+    # Linux-specific build requirements
+    - if: linux
+      then:
+        - ${{ compiler('c') }}        # C compiler for native modules
+        - ${{ compiler('cxx') }}      # C++ compiler for native modules
+        - ${{ stdlib("c") }}          # C standard library
+        - make                        # Build tool
+        - pkg-config                  # Package configuration
+        - libgl-devel                 # OpenGL for GPU rendering
+        - libxkbfile                  # Keyboard mapping
+        - libsecret                   # Keychain integration
+    # Windows-specific build requirements
+    - if: win
+      then:
+        - ${{ compiler('c') }}        # MSVC C compiler
+        - ${{ compiler('cxx') }}      # MSVC C++ compiler
+        - ${{ stdlib("c") }}          # C standard library
+        - m2-base                     # MSYS2 utilities
+    # macOS-specific build requirements
+    - if: osx
+      then:
+        - ${{ compiler('c') }}        # Clang C compiler
+        - ${{ compiler('cxx') }}      # Clang C++ compiler
+        - ${{ stdlib("c") }}          # C standard library
+        - make                        # Build tool
+
+  host:
+    - nodejs ${{ nodejs_min }}.*
+
+  run:
+    - nodejs ${{ nodejs_min }}.*
+    # Kubernetes tools for container orchestration (Linux/macOS only)
+    - if: unix
+      then:
+        - kubernetes-kind      # kind: Kubernetes in Docker
+        - kubernetes-client    # kubectl and Kubernetes client tools
+
+tests:
+  - script:
+      # Podman Desktop is a GUI Electron app - don't run it in headless tests
+      # Just verify the launcher exists and is executable
+      - if: linux
+        then:
+          - test -x $PREFIX/bin/podman-desktop
+          - test -f $PREFIX/lib/podman-desktop/podman-desktop
+      - if: osx
+        then:
+          - test -x $PREFIX/bin/podman-desktop
+          - test -d "$PREFIX/lib/Podman Desktop.app"
+      - if: win
+        then:
+          - if exist "%SCRIPTS%\podman-desktop.bat" (exit 0) else (exit 1)
+
+  - package_contents:
+      bin:
+        - if: unix
+          then: podman-desktop
+        - if: win
+          then: podman-desktop.bat
+      files:
+        - if: linux
+          then: lib/podman-desktop/podman-desktop
+        - if: osx
+          then: lib/Podman Desktop.app/Contents/MacOS/Podman Desktop
+        - if: win
+          then: "Library/lib/podman-desktop/Podman Desktop.exe"
+
+about:
+  homepage: https://podman-desktop.io
+  repository: https://github.com/podman-desktop/podman-desktop
+  documentation: https://podman-desktop.io/docs
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - ThirdPartyNotices.txt
+  summary: Containers and Kubernetes for application developers
+  description: |
+    Podman Desktop is a graphical tool for developing containerized applications.
+    It provides a user-friendly interface to manage containers, pods, images,
+    and Kubernetes clusters using Podman and compatible container engines.
+
+    Features:
+    - Manage containers, pods, and images with a GUI
+    - Kubernetes integration for local development
+    - Extension system for adding capabilities
+    - Multi-platform support (Linux, Windows, macOS)
+    - Built with Electron for cross-platform desktop experience
+
+extra:
+  recipe-maintainers:
+    - rxm7706
