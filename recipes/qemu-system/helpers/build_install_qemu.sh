@@ -95,14 +95,14 @@ build_install_qemu() {
       read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
       echo "Building specific tools: ${TOOLS_ARRAY[*]}"
       ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+      install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
 
       if [[ "${target_platform}" == linux-* ]] && [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_LINUX_TOOLS}"
         echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
         ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+        install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
       fi
-      # Selective install: only install what we built
-      install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
     else
       # Full build and install
       ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
