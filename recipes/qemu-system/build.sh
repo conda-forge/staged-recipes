@@ -100,6 +100,7 @@ if [[ -z "${CONDA_QEMU_TARGET:-}" ]] && [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
   QEMU_SRC="${SRC_DIR}/qemu_source"
 
   mkdir -p "${QEMU_INSTALL_PREFIX}"/share/{applications,icons}
+  mkdir -p "${QEMU_INSTALL_PREFIX}"/share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512,scalable}/apps
   
   # Install desktop file (in ui/, not ui/icons/)
   install -Dm644 "${QEMU_SRC}/ui/qemu.desktop" "${QEMU_INSTALL_PREFIX}/share/applications/qemu.desktop"
