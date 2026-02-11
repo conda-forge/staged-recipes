@@ -5,7 +5,7 @@ context:
   
   qemu_firmware_pattern: ${{
       "edk2-{aarch64,arm}*"               if qemu_system_execs == "aarch64" else
-      "{slof,skiboot,vof}*"               if qemu_system_execs == "ppc64" else
+      "{openbios,slof,skiboot,vof}*"               if qemu_system_execs == "ppc64" else
       "{edk2-riscv,opensbi-riscv64}*"     if qemu_system_execs == "riscv64" else
       "unknown"
     }}
@@ -45,8 +45,35 @@ build:
 
 outputs:
   - package:
+      name: qemu-system-extras
+    build:
+      skip: qemu_system_execs != "aarch64"
+      script:
+        env:
+          CONDA_QEMU_COPY_ONLY: "true"
+      files:
+        include:
+          - ${{ library }}share/applications/qemu.desktop
+          - ${{ library }}share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
+          - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
+          - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
+          # - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
+          - ${{ library }}share/qemu/keymaps/{sl,sv}
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - ${{ library }}share/applications/qemu.desktop
+            - ${{ library }}share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
+            - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
+            - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
+            # - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
+            - ${{ library }}share/qemu/keymaps/{sl,sv}
+
+  - package:
       name: qemu-system-common
     build:
+      skip: qemu_system_execs != "aarch64"
       script:
         env:
           CONDA_QEMU_TARGET: ""
@@ -55,46 +82,10 @@ outputs:
       ignore_run_exports:
         by_name:
           - adwaita-icon-theme
-          - alsa-lib
-          - bzip2
-          - cairo
-          - cyrus-sasl
-          - epoxy
           - gdk-pixbuf
-          - glfw
-          - gmp
-          - gnutls
           - gtk3
-          - jack
-          - keyutils
-          - libaio
-          - libavif16
-          - libcapstone
-          - libcurl
-          - libegl
-          - libexpat
-          - libfdt
-          - libgcrypt-lib
           - libglib
-          - libgsasl
-          - libjpeg-turbo
-          - libnuma
-          - libpng
-          - libseccomp
-          - libslirp
-          - libssh
-          - libudev1
-          - liburing
-          - libusb
-          - libxkbcommon
           - libzlib
-          - lzo
-          - nettle
-          - pixman
-          - pulseaudio-client
-          - sdl2
-          - sdl2_image
-          - snappy
       build:
         - if: unix
           then:
@@ -119,67 +110,12 @@ outputs:
         - pkg-config
         - python 3.12.*
       host:
-        # Common dependencies
-        - ${{ m2 }}libgcrypt
-        - ${{ m2 }}nettle
-        - ${{ m2 }}openssh
-        - bzip2
-        - cyrus-sasl
-        - epoxy
-        - expat
         - glib
-        - glfw
         - gtk3
-        - libavif
-        - libcurl
-        - libjpeg-turbo
-        - libpng
-        - libusb
-        - libssh
-        - lzfse
-        - pixman
-        - sdl2
-        - sdl2_image
-        - snappy
-        - sphinx >=3.4.3
-        - sphinx-rtd-theme >=0.5
         - zlib
-        # Unix dependencies
-        - if: unix
+        - if: linux or osx
           then:
-            - dtc
-            - gmp
-            - gnutls
-            - libcapstone
-            - libgsasl
-            - libfdt
-            - lzo
-          else:
-            - expat
-            - m2-libgnutls
-            - rav1e
-        # Linux dependencies
-        - if: linux
-          then:
-            - alsa-lib
-            - cairo
             - gdk-pixbuf
-            - jack
-            - keyutils
-            - libaio
-            - libegl-devel
-            - libnuma
-            - libseccomp
-            - libslirp
-            - libudev
-            - liburing
-            - libxkbcommon
-            - pulseaudio-client
-        # macOS dependencies
-        - if: osx
-          then:
-            - llvmdev
-            - zstd
     tests:
       - package_contents:
           strict: true
@@ -189,288 +125,59 @@ outputs:
             - if: linux or osx
               then:
                 - lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
-                - lib/gtk-3.0/3.0.0/immodules.cache
-                - share/glib-2.0/schemas/gschemas.compiled
-            - share/icons/hicolor/icon-theme.cache
-            - share/qemu/QEMU,cgthree.bin
-            - share/qemu/QEMU,tcx.bin
-            - share/qemu/ast27x0_bootrom.bin
-            - share/qemu/bios-{256k,microvm}.bin
-            - share/qemu/bios.bin
-            - share/qemu/edk2-licenses.txt
-            - share/qemu/efi-{e1000,e1000e,eepro100,ne2k_pci,pcnet,rtl8139,virtio,vmxnet3}.rom
-            - share/qemu/hppa-{firmware,firmware64}.img
-            - share/qemu/keymaps/{ar,bepo,cz,da,de,de-ch,en-gb,en-us,es,et,fi,fo}
-            - share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
-            - share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,th,tr}
-            - share/qemu/kvmvapic.bin
-            - share/qemu/linuxboot.bin
-            - share/qemu/linuxboot_dma.bin
-            - share/qemu/multiboot.bin
-            - share/qemu/multiboot_dma.bin
-            - share/qemu/npcm7xx_bootrom.bin
-            - share/qemu/npcm8xx_bootrom.bin
-            - share/qemu/openbios-{ppc,sparc32,sparc64}
-            - share/qemu/opensbi-riscv{32,64}-generic-fw_dynamic.bin
-            - share/qemu/palcode-clipper
-            - share/qemu/pnv-pnor.bin
-            - share/qemu/pvh.bin
-            - share/qemu/pxe-{e1000,eepro100,ne2k_pci,pcnet,rtl8139,virtio}.rom
-            - share/qemu/qboot.rom
-            - share/qemu/qemu-nsis.bmp
-            - share/qemu/qemu_vga.ndrv
-            - share/qemu/s390-ccw.img
-            - share/qemu/skiboot.lid
-            - share/qemu/slof.bin
-            - share/qemu/trace-events-all
-            - share/qemu/u-boot-sam460.bin
-            - share/qemu/u-boot.e500
-            - share/qemu/vgabios-{ati,bochs-display,cirrus,qxl,ramfb,stdvga,virtio,vmware}.bin
-            - share/qemu/vgabios.bin
-            - share/qemu/vof-nvram.bin
-            - share/qemu/vof.bin
+            - ${{ library }}share/icons/hicolor/icon-theme.cache
+            - ${{ library }}lib/gtk-3.0/3.0.0/immodules.cache
+            - ${{ library }}share/glib-2.0/schemas/gschemas.compiled
+            - ${{ library }}share/icons/hicolor/icon-theme.cache
+            - ${{ library }}share/qemu/QEMU,cgthree.bin
+            - ${{ library }}share/qemu/QEMU,tcx.bin
+            - ${{ library }}share/qemu/ast27x0_bootrom.bin
+            - ${{ library }}share/qemu/bios-{256k,microvm}.bin
+            - ${{ library }}share/qemu/bios.bin
+            - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
+            - ${{ library }}share/qemu/edk2-licenses.txt
+            - ${{ library }}share/qemu/efi-{e1000,e1000e,eepro100,ne2k_pci,pcnet,rtl8139,virtio,vmxnet3}.rom
+            - ${{ library }}share/qemu/hppa-{firmware,firmware64}.img
+            - ${{ library }}share/qemu/keymaps/{ar,bepo,cz,da,de,de-ch,en-gb,en-us,es,et,fi,fo}
+            - ${{ library }}share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
+            - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,th,tr}
+            - ${{ library }}share/qemu/kvmvapic.bin
+            - ${{ library }}share/qemu/linuxboot.bin
+            - ${{ library }}share/qemu/linuxboot_dma.bin
+            - ${{ library }}share/qemu/multiboot.bin
+            - ${{ library }}share/qemu/multiboot_dma.bin
+            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+            - ${{ library }}share/qemu/openbios-{ppc,sparc32,sparc64}
+            - ${{ library }}share/qemu/opensbi-riscv{32,64}-generic-fw_dynamic.bin
+            - ${{ library }}share/qemu/palcode-clipper
+            - ${{ library }}share/qemu/pnv-pnor.bin
+            - ${{ library }}share/qemu/pvh.bin
+            - ${{ library }}share/qemu/pxe-{e1000,eepro100,ne2k_pci,pcnet,rtl8139,virtio}.rom
+            - ${{ library }}share/qemu/qboot.rom
+            - ${{ library }}share/qemu/qemu-nsis.bmp
+            - ${{ library }}share/qemu/qemu_vga.ndrv
+            - ${{ library }}share/qemu/s390-ccw.img
+            - ${{ library }}share/qemu/skiboot.lid
+            - ${{ library }}share/qemu/slof.bin
+            - ${{ library }}share/qemu/trace-events-all
+            - ${{ library }}share/qemu/u-boot-sam460.bin
+            - ${{ library }}share/qemu/u-boot.e500
+            - ${{ library }}share/qemu/vgabios-{ati,bochs-display,cirrus,qxl,ramfb,stdvga,virtio,vmware}.bin
+            - ${{ library }}share/qemu/vgabios.bin
+            - ${{ library }}share/qemu/vof-nvram.bin
+            - ${{ library }}share/qemu/vof.bin
 
   - package:
       name: qemu-system-tools
     build:
+      skip: qemu_system_execs != "aarch64"
       script:
         env:
           CONDA_QEMU_TARGET: "x86_64"
           CONDA_QEMU_TOOLS: "qemu-edid qemu-img qemu-io qemu-nbd"
           CONDA_QEMU_LINUX_TOOLS: "qemu-keymap qemu-ga qemu-vmsr-helper qemu-pr-helper qemu-bridge-helper"
     requirements:
-      ignore_run_exports:
-        by_name:
-          - adwaita-icon-theme
-          - alsa-lib
-          - cairo
-          - cyrus-sasl
-          - epoxy
-          - gdk-pixbuf
-          - glfw
-          - gmp
-          - gtk3
-          - jack
-          - keyutils
-          - libavif16
-          - libcapstone
-          - libegl
-          - libexpat
-          - libfdt
-          - libgcrypt-lib
-          - libgsasl
-          - libjpeg-turbo
-          - libpng
-          - libseccomp
-          - libslirp
-          - libusb
-          - lzo
-          - nettle
-          - pixman
-          - pulseaudio-client
-          - sdl2
-          - sdl2_image
-          - snappy
-          - zstd
-          - m2-gnutls
-          - m2-libgnutls
-          - libssh
-          - rav1e
-      build:
-        - if: unix
-          then:
-            - ${{ compiler("c") }}
-            - ${{ stdlib("c") }}
-            - automake
-          else:
-            - ${{ compiler("m2w64_c") }}
-            - ${{ stdlib("m2w64_c") }}
-            - gettext
-            - ${{ m2 }}automake-wrapper
-            - ${{ m2 }}findutils
-            - ${{ m2 }}grep
-            - ${{ m2 }}make
-            - ${{ m2 }}which
-            - packaging
-        - ${{ m2 }}autoconf
-        - ${{ m2 }}libtool
-        - git
-        - meson
-        - ninja
-        - pkg-config
-        - python 3.12.*
-      host:
-        # Common dependencies
-        - ${{ m2 }}libgcrypt
-        - ${{ m2 }}nettle
-        - ${{ m2 }}openssh
-        - bzip2
-        - cyrus-sasl
-        - epoxy
-        - expat
-        - glib
-        - glfw
-        - gtk3
-        - libavif
-        - libcurl
-        - libjpeg-turbo
-        - libpng
-        - libusb
-        - libssh
-        - lzfse
-        - pixman
-        - sdl2
-        - sdl2_image
-        - snappy
-        - sphinx >=3.4.3
-        - sphinx-rtd-theme >=0.5
-        - zlib
-        # Unix dependencies
-        - if: unix
-          then:
-            - dtc
-            - gmp
-            - gnutls
-            - libcapstone
-            - libgsasl
-            - libfdt
-            - lzo
-          else:
-            - expat
-            - m2-libgnutls
-            - rav1e
-        # Linux dependencies
-        - if: linux
-          then:
-            - alsa-lib
-            - cairo
-            - gdk-pixbuf
-            - jack
-            - keyutils
-            - libaio
-            - libegl-devel
-            - libnuma
-            - libseccomp
-            - libslirp
-            - libudev
-            - liburing
-            - libxkbcommon
-            - pulseaudio-client
-        # macOS dependencies
-        - if: osx
-          then:
-            - llvmdev
-            - zstd
-      run:
-        - ${{ m2 }}gnutls
-        - ${{ m2 }}openssh
-        - bzip2
-        - libglib
-        - libcurl
-        - libssh
-        - lzfse
-        - zstd
-        - if: linux
-          then:
-            - libaio
-            - libnuma
-            - libudev1
-            - liburing
-    tests:
-      - package_contents:
-          strict: true
-          bin:
-            - qemu-{edid,img,io,nbd}${{ xt }}
-            - if: linux
-              then:
-                - qemu-ga
-                - qemu-keymap
-                - qemu-pr-helper
-                - qemu-vmsr-helper
-          files:
-            - ${{ library }}share/icons/hicolor/icon-theme.cache
-            - ${{ library }}lib/gtk-3.0/3.0.0/immodules.cache
-            - ${{ library }}share/glib-2.0/schemas/gschemas.compiled
-            - if: linux or osx
-              then:
-                - lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
-            - if: linux
-              then:
-                - libexec/qemu-bridge-helper
- 
-      - script:
-          - qemu-edid -h
-          - qemu-img --version
-          - qemu-io --version
-          - qemu-nbd --version || true
-          - if: linux
-            then:
-              - qemu-keymap -h
-              - qemu-ga --version || true
-              - qemu-pr-helper --version || true
-              - qemu-vmsr-helper --version || true
-          
-          - qemu-img create -f qcow2 /tmp/test.qcow2 10M || true
-          - qemu-img info /tmp/test.qcow2 || true
-
-  - package:
-      name: qemu-system-extras
-    build:
-      script:
-        env:
-          CONDA_QEMU_TARGET: "x86_64"
-          CONDA_QEMU_TOOLS: ""
-      files:
-        include:
-          - share/applications/qemu.desktop
-          - share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
-          - share/icons/hicolor/32x32/apps/qemu.bmp
-          - share/icons/hicolor/scalable/apps/qemu.svg
-          - share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
-          - share/qemu/keymaps/{sl,sv}
-    requirements:
-      ignore_run_exports:
-        by_name:
-          - adwaita-icon-theme
-          - alsa-lib
-          - bzip2
-          - cairo
-          - cyrus-sasl
-          - epoxy
-          - gdk-pixbuf
-          - glfw
-          - gmp
-          - gnutls
-          - gtk3
-          - jack
-          - keyutils
-          - libaio
-          - libavif16
-          - libcapstone
-          - libcurl
-          - libexpat
-          - libfdt
-          - libgcrypt-lib
-          - libglib
-          - libgsasl
-          - libjpeg-turbo
-          - libnuma
-          - libpng
-          - libseccomp
-          - libslirp
-          - libssh
-          - libudev1
-          - liburing
-          - libusb
-          - libzlib
-          - lzo
-          - nettle
-          - pixman
-          - pulseaudio-client
-          - sdl2
-          - sdl2_image
-          - snappy
-          - zstd
       build:
         - if: unix
           then:
@@ -496,78 +203,76 @@ outputs:
         - python 3.12.*
       host:
         - ${{ pin_subpackage('qemu-system-common', exact=True) }}
-        - ${{ pin_subpackage('qemu-system-tools', exact=True) }}
-        # Common dependencies
-        - ${{ m2 }}libgcrypt
-        - ${{ m2 }}nettle
-        - ${{ m2 }}openssh
+        # Block layer dependencies (qemu-img, qemu-io, qemu-nbd)
         - bzip2
-        - cyrus-sasl
-        - epoxy
-        - expat
         - glib
-        - glfw
-        - gtk3
-        - libavif
         - libcurl
-        - libjpeg-turbo
-        - libpng
-        - libusb
         - libssh
         - lzfse
-        - pixman
-        - sdl2
-        - sdl2_image
-        - snappy
-        - sphinx >=3.4.3
-        - sphinx-rtd-theme >=0.5
         - zlib
-        # Unix dependencies
+        - zstd
         - if: unix
           then:
-            - dtc
-            - gmp
             - gnutls
-            - libcapstone
-            - libgsasl
-            - libfdt
-            - lzo
           else:
-            - expat
-            - m2-libgnutls
-            - rav1e
-        # Linux dependencies
+            - ${{ m2 }}libgnutls
         - if: linux
           then:
-            - alsa-lib
-            - cairo
-            - gdk-pixbuf
-            - jack
-            - keyutils
             - libaio
-            - libegl-devel
             - libnuma
-            - libseccomp
-            - libslirp
             - libudev
             - liburing
             - libxkbcommon
-            - pulseaudio-client
-        # macOS dependencies
-        - if: osx
+      run:
+        - bzip2
+        - libcurl
+        - libglib
+        - libssh
+        - lzfse
+        - libzlib
+        - zstd
+        - if: unix
           then:
-            - llvmdev
-            - zstd
+            - gnutls
+          else:
+            - ${{ m2 }}libgnutls
+        - if: linux
+          then:
+            - libaio
+            - libnuma
+            - libudev1
+            - liburing
+            - libxkbcommon
     tests:
       - package_contents:
           strict: true
+          bin:
+            - qemu-{edid,img,io,nbd}${{ xt }}
+            - if: linux
+              then:
+                - qemu-ga
+                - qemu-keymap
+                - qemu-pr-helper
+                - qemu-vmsr-helper
           files:
-            - share/applications/qemu.desktop
-            - share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
-            - share/icons/hicolor/32x32/apps/qemu.bmp
-            - share/icons/hicolor/scalable/apps/qemu.svg
-            - share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
-            - share/qemu/keymaps/{sl,sv}
+            - if: linux
+              then:
+                - libexec/qemu-bridge-helper
+ 
+      - script:
+          - qemu-edid -h
+          - qemu-img --version
+          - qemu-io --version
+          - qemu-nbd --version || true
+          - if: linux
+            then:
+              - qemu-keymap -h
+              - qemu-ga --version || true
+              - qemu-pr-helper --version || true
+              - qemu-vmsr-helper --version || true
+          
+          - qemu-img create -f qcow2 /tmp/test.qcow2 10M || true
+          - qemu-img info /tmp/test.qcow2 || true
 
   - package:
       name: qemu-system-${{ qemu_system_execs }}
@@ -576,66 +281,73 @@ outputs:
         env:
           CONDA_QEMU_TARGET: "${{ qemu_system_execs }}"
           CONDA_QEMU_TOOLS: ""
+      always_include_files:
+        - if: qemu_system_execs == "aarch64"
+          then:
+            - ${{ library }}share/qemu/edk2-{aarch64,arm}*
+            - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
+        - if: qemu_system_execs == "ppc64"
+          then:
+            - ${{ library }}share/qemu/{slof,skiboot,vof}*
+            - ${{ library }}share/qemu/openbios-ppc
+        - if: qemu_system_execs == "riscv64"
+          then:
+            - ${{ library }}share/qemu/edk2-riscv*
+            - ${{ library }}share/qemu/opensbi-riscv*
+            - ${{ library }}share/qemu/firmware/60-edk2-riscv*
       files:
         exclude:
           # Architecture-specific firmware
           - if: qemu_system_execs == "aarch64"
             then:
-              - share/qemu/edk2-{loongarch64}*
-              - share/qemu/firmware/60-edk2-loongarch64*
-              - share/qemu/{slof,skiboot,vof}*
-              - share/qemu/openbios-ppc
-              - share/qemu/edk2-riscv*
-              - share/qemu/opensbi-riscv*
-              - share/qemu/firmware/60-edk2-riscv*
-              - share/qemu/edk2-{x86_64,i386}*
-              - share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - share/qemu/bios*
-              - share/qemu/vgabios*
-              - share/qemu/kvmvapic.bin
-              - share/qemu/linuxboot*
-              - share/qemu/multiboot*
-              - share/qemu/pvh.bin
-              # - share/qemu/edk2-{aarch64,arm}*
-              # - share/qemu/firmware/60-edk2-{aarch64,arm}*
+              - ${{ library }}share/qemu/edk2-{loongarch64}*
+              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
+              - ${{ library }}share/qemu/{slof,skiboot,vof}*
+              - ${{ library }}share/qemu/openbios-ppc
+              - ${{ library }}share/qemu/edk2-riscv*
+              - ${{ library }}share/qemu/opensbi-riscv*
+              - ${{ library }}share/qemu/firmware/60-edk2-riscv*
+              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/bios*
+              - ${{ library }}share/qemu/vgabios*
+              - ${{ library }}share/qemu/kvmvapic.bin
+              - ${{ library }}share/qemu/linuxboot*
+              - ${{ library }}share/qemu/multiboot*
+              - ${{ library }}share/qemu/pvh.bin
           - if: qemu_system_execs == "ppc64"
             then:
-              - share/qemu/edk2-{aarch64,arm}*
-              - share/qemu/firmware/60-edk2-{aarch64,arm}*
-              - share/qemu/edk2-{loongarch64}*
-              - share/qemu/firmware/60-edk2-loongarch64*
-              - share/qemu/edk2-riscv*
-              - share/qemu/opensbi-riscv*
-              - share/qemu/firmware/60-edk2-riscv*
-              - share/qemu/edk2-{x86_64,i386}*
-              - share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - share/qemu/bios*
-              - share/qemu/vgabios*
-              - share/qemu/kvmvapic.bin
-              - share/qemu/linuxboot*
-              - share/qemu/multiboot*
-              - share/qemu/pvh.bin
-              # - share/qemu/{slof,skiboot,vof}*
-              # - share/qemu/openbios-ppc
+              - ${{ library }}share/qemu/edk2-{aarch64,arm}*
+              - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
+              - ${{ library }}share/qemu/edk2-{loongarch64}*
+              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
+              - ${{ library }}share/qemu/edk2-riscv*
+              - ${{ library }}share/qemu/opensbi-riscv*
+              - ${{ library }}share/qemu/firmware/60-edk2-riscv*
+              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/bios*
+              - ${{ library }}share/qemu/vgabios*
+              - ${{ library }}share/qemu/kvmvapic.bin
+              - ${{ library }}share/qemu/linuxboot*
+              - ${{ library }}share/qemu/multiboot*
+              - ${{ library }}share/qemu/pvh.bin
           - if: qemu_system_execs == "riscv64"
             then:
-              - share/qemu/edk2-{aarch64,arm}*
-              - share/qemu/firmware/60-edk2-{aarch64,arm}*
-              - share/qemu/edk2-{loongarch64}*
-              - share/qemu/firmware/60-edk2-loongarch64*
-              - share/qemu/{slof,skiboot,vof}*
-              - share/qemu/openbios-ppc
-              - share/qemu/edk2-{x86_64,i386}*
-              - share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - share/qemu/bios*
-              - share/qemu/vgabios*
-              - share/qemu/kvmvapic.bin
-              - share/qemu/linuxboot*
-              - share/qemu/multiboot*
-              - share/qemu/pvh.bin
-              # - share/qemu/edk2-riscv*
-              # - share/qemu/opensbi-riscv*
-              # - share/qemu/firmware/60-edk2-riscv*
+              - ${{ library }}share/qemu/edk2-{aarch64,arm}*
+              - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
+              - ${{ library }}share/qemu/edk2-{loongarch64}*
+              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
+              - ${{ library }}share/qemu/{slof,skiboot,vof}*
+              - ${{ library }}share/qemu/openbios-ppc
+              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
+              - ${{ library }}share/qemu/bios*
+              - ${{ library }}share/qemu/vgabios*
+              - ${{ library }}share/qemu/kvmvapic.bin
+              - ${{ library }}share/qemu/linuxboot*
+              - ${{ library }}share/qemu/multiboot*
+              - ${{ library }}share/qemu/pvh.bin
     requirements:
       ignore_run_exports:
         by_name:
@@ -785,8 +497,10 @@ outputs:
             - qemu-storage-daemon
             - qemu-system-${{ qemu_system_execs }}
           files:
-            - share/qemu/${{ qemu_firmware_pattern }}
-            - share/qemu/firmware/60-${{ qemu_firmware_pattern }}
+            - ${{ library }}share/qemu/${{ qemu_firmware_pattern }}
+            - if: qemu_system_execs != "ppc64"
+              then
+                - ${{ library }}share/qemu/firmware/60-${{ qemu_firmware_pattern }}
  
       - script:
           - qemu-storage-daemon --version
