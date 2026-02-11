@@ -2,50 +2,6 @@
 
 set -euxo pipefail
 
-# --- Copy-only mode for extras package (static assets) ---
-if [[ "${CONDA_QEMU_COPY_ONLY:-}" == "true" ]]; then
-  echo "Copying static assets for extras package..."
-
-  # Determine target directory (Windows uses Library/ prefix)
-  if [[ "${target_platform}" == "win-"* ]]; then
-    SHARE_DIR="${_PREFIX_}/Library/share"
-  else
-    SHARE_DIR="${PREFIX}/share"
-  fi
-
-  # Desktop file (in ui/, not ui/icons/)
-  mkdir -p "${SHARE_DIR}/applications"
-  cp "${SRC_DIR}/qemu_source/ui/qemu.desktop" "${SHARE_DIR}/applications/"
-
-  # Icons (multiple sizes)
-  for size in 16x16 24x24 32x32 48x48 64x64 128x128 256x256 512x512; do
-    mkdir -p "${SHARE_DIR}/icons/hicolor/${size}/apps"
-    cp "${SRC_DIR}/qemu_source/ui/icons/qemu_${size}.png" \
-       "${SHARE_DIR}/icons/hicolor/${size}/apps/qemu.png"
-  done
-
-  # BMP and SVG icons
-  mkdir -p "${SHARE_DIR}/icons/hicolor/scalable/apps"
-  cp "${SRC_DIR}/qemu_source/ui/icons/qemu_32x32.bmp" \
-     "${SHARE_DIR}/icons/hicolor/32x32/apps/qemu.bmp"
-  cp "${SRC_DIR}/qemu_source/ui/icons/qemu.svg" \
-     "${SHARE_DIR}/icons/hicolor/scalable/apps/qemu.svg"
-
-  # Device tree blobs (all in pc-bios/dtb/)
-  mkdir -p "${SHARE_DIR}/qemu/dtb"
-  for dtb in bamboo canyonlands pegasos1 pegasos2 petalogix-ml605 petalogix-s3adsp1800; do
-    cp "${SRC_DIR}/qemu_source/pc-bios/dtb/${dtb}.dtb" "${SHARE_DIR}/qemu/dtb/"
-  done
-
-  # Keymaps
-  mkdir -p "${SHARE_DIR}/qemu/keymaps"
-  cp "${SRC_DIR}/qemu_source/pc-bios/keymaps/sl" "${SHARE_DIR}/qemu/keymaps/"
-  cp "${SRC_DIR}/qemu_source/pc-bios/keymaps/sv" "${SHARE_DIR}/qemu/keymaps/"
-
-  echo "Extras package assets copied successfully."
-  exit 0
-fi
-
 source "${RECIPE_DIR}/helpers/build_install_qemu.sh"
 
 # --- Main ---
@@ -132,8 +88,28 @@ if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; the
 else
   qemu_args+=(
     "--datadir=share/qemu"
-    "--disable-install-blobs"
   )
-    #"--disable-attr"
   build_install_qemu_non_unix "${SRC_DIR}/_conda-build" "${_PREFIX_}/Library" "${qemu_args[@]}"
+fi
+
+# For common package (empty target, no tools), install desktop file and icons
+if [[ -z "${CONDA_QEMU_TARGET:-}" ]] && [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
+  QEMU_SRC="${SRC_DIR}/qemu_source"
+
+  # Install desktop file (in ui/, not ui/icons/)
+  install -Dm644 "${QEMU_SRC}/ui/qemu.desktop" "${PREFIX}/share/applications/qemu.desktop"
+
+  # Install PNG icons (various sizes)
+  for size in 16x16 24x24 32x32 48x48 64x64 128x128 256x256 512x512; do
+    install -Dm644 "${QEMU_SRC}/ui/icons/qemu_${size}.png" \
+      "${PREFIX}/share/icons/hicolor/${size}/apps/qemu.png"
+  done
+
+  # Install BMP icon
+  install -Dm644 "${QEMU_SRC}/ui/icons/qemu_32x32.bmp" \
+    "${PREFIX}/share/icons/hicolor/32x32/apps/qemu.bmp"
+
+  # Install SVG icon
+  install -Dm644 "${QEMU_SRC}/ui/icons/qemu.svg" \
+    "${PREFIX}/share/icons/hicolor/scalable/apps/qemu.svg"
 fi

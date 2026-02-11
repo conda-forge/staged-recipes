@@ -2,13 +2,6 @@ context:
   build_number: 0
   name: qemu-system
   version: "10.2.0"
-  
-  qemu_firmware_pattern: ${{
-      "edk2-{aarch64,arm}*"               if qemu_system_execs == "aarch64" else
-      "{openbios,slof,skiboot,vof}*"               if qemu_system_execs == "ppc64" else
-      "{edk2-riscv,opensbi-riscv64}*"     if qemu_system_execs == "riscv64" else
-      "unknown"
-    }}
 
   library: ${{ "Library/" if not unix }}
   m2: ${{ "m2-" if not unix }}
@@ -45,32 +38,6 @@ build:
 
 outputs:
   - package:
-      name: qemu-system-extras
-    build:
-      skip: qemu_system_execs != "aarch64"
-      script:
-        env:
-          CONDA_QEMU_COPY_ONLY: "true"
-      files:
-        include:
-          - ${{ library }}share/applications/qemu.desktop
-          - ${{ library }}share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
-          - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
-          - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
-          # - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
-          - ${{ library }}share/qemu/keymaps/{sl,sv}
-    tests:
-      - package_contents:
-          strict: true
-          files:
-            - ${{ library }}share/applications/qemu.desktop
-            - ${{ library }}share/icons/hicolor/{128x128,16x16,24x24,64x64,256x256,32x32,48x48,512x512}/apps/qemu.png
-            - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
-            - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
-            # - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
-            - ${{ library }}share/qemu/keymaps/{sl,sv}
-
-  - package:
       name: qemu-system-common
     build:
       skip: qemu_system_execs != "aarch64"
@@ -78,6 +45,48 @@ outputs:
         env:
           CONDA_QEMU_TARGET: ""
           CONDA_QEMU_TOOLS: ""
+      files:
+        exclude:
+          # All EDK2/firmware - goes to arch packages
+          - ${{ library }}share/qemu/edk2-*
+          - ${{ library }}share/qemu/firmware/*
+          - ${{ library }}share/qemu/edk2-licenses.txt
+          # aarch64-specific
+          - ${{ library }}share/qemu/ast27x0_bootrom.bin
+          - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+          - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+          # ppc64-specific
+          - ${{ library }}share/qemu/openbios-ppc
+          - ${{ library }}share/qemu/opensbi-riscv*
+          - ${{ library }}share/qemu/pnv-pnor.bin
+          - ${{ library }}share/qemu/{slof,skiboot,vof}*
+          - ${{ library }}share/qemu/u-boot-sam460.bin
+          - ${{ library }}share/qemu/u-boot.e500
+          # x86-specific (unused arch)
+          - ${{ library }}share/qemu/bios*
+          - ${{ library }}share/qemu/efi-*.rom
+          - ${{ library }}share/qemu/kvmvapic.bin
+          - ${{ library }}share/qemu/linuxboot*
+          - ${{ library }}share/qemu/multiboot*
+          - ${{ library }}share/qemu/pvh.bin
+          - ${{ library }}share/qemu/pxe-*.rom
+          - ${{ library }}share/qemu/qboot.rom
+          - ${{ library }}share/qemu/vgabios*
+          # SPARC-specific (unused arch)
+          - ${{ library }}share/qemu/QEMU,cgthree.bin
+          - ${{ library }}share/qemu/QEMU,tcx.bin
+          - ${{ library }}share/qemu/openbios-sparc32
+          - ${{ library }}share/qemu/openbios-sparc64
+          # s390-specific (unused arch)
+          - ${{ library }}share/qemu/s390-ccw.img
+          # HPPA-specific (unused arch)
+          - ${{ library }}share/qemu/hppa-*
+          # Alpha-specific (unused arch)
+          - ${{ library }}share/qemu/palcode-clipper
+          # Mac-specific
+          - ${{ library }}share/qemu/qemu_vga.ndrv
+          # Misc
+          - ${{ library }}share/qemu/qemu-nsis.bmp
     requirements:
       ignore_run_exports:
         by_name:
@@ -128,45 +137,18 @@ outputs:
             - ${{ library }}share/icons/hicolor/icon-theme.cache
             - ${{ library }}lib/gtk-3.0/3.0.0/immodules.cache
             - ${{ library }}share/glib-2.0/schemas/gschemas.compiled
-            - ${{ library }}share/icons/hicolor/icon-theme.cache
-            - ${{ library }}share/qemu/QEMU,cgthree.bin
-            - ${{ library }}share/qemu/QEMU,tcx.bin
-            - ${{ library }}share/qemu/ast27x0_bootrom.bin
-            - ${{ library }}share/qemu/bios-{256k,microvm}.bin
-            - ${{ library }}share/qemu/bios.bin
+            # Desktop file and icons
+            - ${{ library }}share/applications/qemu.desktop
+            - ${{ library }}share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512}/apps/qemu.png
+            - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
+            - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
+            # DTBs for embedded boards (shared)
             - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
-            - ${{ library }}share/qemu/edk2-licenses.txt
-            - ${{ library }}share/qemu/efi-{e1000,e1000e,eepro100,ne2k_pci,pcnet,rtl8139,virtio,vmxnet3}.rom
-            - ${{ library }}share/qemu/hppa-{firmware,firmware64}.img
+            # Keymaps (all)
             - ${{ library }}share/qemu/keymaps/{ar,bepo,cz,da,de,de-ch,en-gb,en-us,es,et,fi,fo}
             - ${{ library }}share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
-            - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,th,tr}
-            - ${{ library }}share/qemu/kvmvapic.bin
-            - ${{ library }}share/qemu/linuxboot.bin
-            - ${{ library }}share/qemu/linuxboot_dma.bin
-            - ${{ library }}share/qemu/multiboot.bin
-            - ${{ library }}share/qemu/multiboot_dma.bin
-            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
-            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
-            - ${{ library }}share/qemu/openbios-{ppc,sparc32,sparc64}
-            - ${{ library }}share/qemu/opensbi-riscv{32,64}-generic-fw_dynamic.bin
-            - ${{ library }}share/qemu/palcode-clipper
-            - ${{ library }}share/qemu/pnv-pnor.bin
-            - ${{ library }}share/qemu/pvh.bin
-            - ${{ library }}share/qemu/pxe-{e1000,eepro100,ne2k_pci,pcnet,rtl8139,virtio}.rom
-            - ${{ library }}share/qemu/qboot.rom
-            - ${{ library }}share/qemu/qemu-nsis.bmp
-            - ${{ library }}share/qemu/qemu_vga.ndrv
-            - ${{ library }}share/qemu/s390-ccw.img
-            - ${{ library }}share/qemu/skiboot.lid
-            - ${{ library }}share/qemu/slof.bin
+            - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,sl,sv,th,tr}
             - ${{ library }}share/qemu/trace-events-all
-            - ${{ library }}share/qemu/u-boot-sam460.bin
-            - ${{ library }}share/qemu/u-boot.e500
-            - ${{ library }}share/qemu/vgabios-{ati,bochs-display,cirrus,qxl,ramfb,stdvga,virtio,vmware}.bin
-            - ${{ library }}share/qemu/vgabios.bin
-            - ${{ library }}share/qemu/vof-nvram.bin
-            - ${{ library }}share/qemu/vof.bin
 
   - package:
       name: qemu-system-tools
@@ -282,72 +264,36 @@ outputs:
           CONDA_QEMU_TARGET: "${{ qemu_system_execs }}"
           CONDA_QEMU_TOOLS: ""
       always_include_files:
+        - ${{ library }}share/qemu/edk2-licenses.txt
         - if: qemu_system_execs == "aarch64"
           then:
-            - ${{ library }}share/qemu/edk2-{aarch64,arm}*
-            - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
+            - ${{ library }}share/qemu/ast27x0_bootrom.bin
+            - ${{ library }}share/qemu/edk2-aarch64-code.fd
+            - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
         - if: qemu_system_execs == "ppc64"
           then:
-            - ${{ library }}share/qemu/{slof,skiboot,vof}*
             - ${{ library }}share/qemu/openbios-ppc
+            - ${{ library }}share/qemu/pnv-pnor.bin
+            - ${{ library }}share/qemu/skiboot.lid
+            - ${{ library }}share/qemu/slof.bin
+            - ${{ library }}share/qemu/u-boot.e500
+            - ${{ library }}share/qemu/u-boot-sam460.bin
+            - ${{ library }}share/qemu/vof.bin
+            - ${{ library }}share/qemu/vof-nvram.bin
         - if: qemu_system_execs == "riscv64"
           then:
-            - ${{ library }}share/qemu/edk2-riscv*
-            - ${{ library }}share/qemu/opensbi-riscv*
-            - ${{ library }}share/qemu/firmware/60-edk2-riscv*
+            - ${{ library }}share/qemu/firmware/60-edk2-riscv-smode.json
+            - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
       files:
         exclude:
-          # Architecture-specific firmware
-          - if: qemu_system_execs == "aarch64"
-            then:
-              - ${{ library }}share/qemu/edk2-{loongarch64}*
-              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
-              - ${{ library }}share/qemu/{slof,skiboot,vof}*
-              - ${{ library }}share/qemu/openbios-ppc
-              - ${{ library }}share/qemu/edk2-riscv*
-              - ${{ library }}share/qemu/opensbi-riscv*
-              - ${{ library }}share/qemu/firmware/60-edk2-riscv*
-              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/bios*
-              - ${{ library }}share/qemu/vgabios*
-              - ${{ library }}share/qemu/kvmvapic.bin
-              - ${{ library }}share/qemu/linuxboot*
-              - ${{ library }}share/qemu/multiboot*
-              - ${{ library }}share/qemu/pvh.bin
-          - if: qemu_system_execs == "ppc64"
-            then:
-              - ${{ library }}share/qemu/edk2-{aarch64,arm}*
-              - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
-              - ${{ library }}share/qemu/edk2-{loongarch64}*
-              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
-              - ${{ library }}share/qemu/edk2-riscv*
-              - ${{ library }}share/qemu/opensbi-riscv*
-              - ${{ library }}share/qemu/firmware/60-edk2-riscv*
-              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/bios*
-              - ${{ library }}share/qemu/vgabios*
-              - ${{ library }}share/qemu/kvmvapic.bin
-              - ${{ library }}share/qemu/linuxboot*
-              - ${{ library }}share/qemu/multiboot*
-              - ${{ library }}share/qemu/pvh.bin
-          - if: qemu_system_execs == "riscv64"
-            then:
-              - ${{ library }}share/qemu/edk2-{aarch64,arm}*
-              - ${{ library }}share/qemu/firmware/60-edk2-{aarch64,arm}*
-              - ${{ library }}share/qemu/edk2-{loongarch64}*
-              - ${{ library }}share/qemu/firmware/60-edk2-loongarch64*
-              - ${{ library }}share/qemu/{slof,skiboot,vof}*
-              - ${{ library }}share/qemu/openbios-ppc
-              - ${{ library }}share/qemu/edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/firmware/{50,60}-edk2-{x86_64,i386}*
-              - ${{ library }}share/qemu/bios*
-              - ${{ library }}share/qemu/vgabios*
-              - ${{ library }}share/qemu/kvmvapic.bin
-              - ${{ library }}share/qemu/linuxboot*
-              - ${{ library }}share/qemu/multiboot*
-              - ${{ library }}share/qemu/pvh.bin
+          # Odd regeneration?
+          - ${{ library }}share/qemu/keymaps/{sl,sv}
+          
+          - ${{ library }}share/qemu/{openbios,palcode}*
+          - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
+          - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
     requirements:
       ignore_run_exports:
         by_name:
@@ -388,7 +334,6 @@ outputs:
         - python 3.12.*
       host:
         - ${{ pin_subpackage('qemu-system-common', exact=True) }}
-        - ${{ pin_subpackage('qemu-system-extras', exact=True) }}
         - ${{ pin_subpackage('qemu-system-tools', exact=True) }}
         # Common dependencies
         - ${{ m2 }}libgcrypt
@@ -497,10 +442,28 @@ outputs:
             - qemu-storage-daemon
             - qemu-system-${{ qemu_system_execs }}
           files:
-            - ${{ library }}share/qemu/${{ qemu_firmware_pattern }}
-            - if: qemu_system_execs != "ppc64"
+            - ${{ library }}share/qemu/edk2-licenses.txt
+            - if: qemu_system_execs == "aarch64"
               then:
-                - ${{ library }}share/qemu/firmware/60-${{ qemu_firmware_pattern }}
+                - ${{ library }}share/qemu/ast27x0_bootrom.bin
+                - ${{ library }}share/qemu/edk2-aarch64-code.fd
+                - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+                - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+                - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+            - if: qemu_system_execs == "ppc64"
+              then:
+                - ${{ library }}share/qemu/openbios-ppc
+                - ${{ library }}share/qemu/pnv-pnor.bin
+                - ${{ library }}share/qemu/skiboot.lid
+                - ${{ library }}share/qemu/slof.bin
+                - ${{ library }}share/qemu/u-boot.e500
+                - ${{ library }}share/qemu/u-boot-sam460.bin
+                - ${{ library }}share/qemu/vof.bin
+                - ${{ library }}share/qemu/vof-nvram.bin
+            - if: qemu_system_execs == "riscv64"
+              then:
+                - ${{ library }}share/qemu/firmware/60-edk2-riscv-smode.json
+                - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
       - script:
           - qemu-storage-daemon --version
           - qemu-system-${{ qemu_system_execs }} -machine help
