@@ -10,6 +10,9 @@ source "${RECIPE_DIR}/helpers/build_install_qemu.sh"
 if [[ "${target_platform}" == "linux-"* ]] || [[ "${target_platform}" == "osx-"* ]]; then
   export PYTHON="${BUILD_PREFIX}"/bin/python
   export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH}"
+  export QEMU_INSTALL_PREFIX="${PREFIX}"
+else
+  export QEMU_INSTALL_PREFIX="${PREFIX}"/Library
 fi
 
 qemu_args=(
@@ -84,32 +87,34 @@ else
 fi
 
 if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; then
-  build_install_qemu "${SRC_DIR}/_conda-build" "${PREFIX}" "${qemu_args[@]}"
+  build_install_qemu "${SRC_DIR}/_conda-build" "${QEMU_INSTALL_PREFIX}" "${qemu_args[@]}"
 else
   qemu_args+=(
     "--datadir=share/qemu"
   )
-  build_install_qemu_non_unix "${SRC_DIR}/_conda-build" "${_PREFIX_}/Library" "${qemu_args[@]}"
+  build_install_qemu_non_unix "${SRC_DIR}/_conda-build" "${QEMU_INSTALL_PREFIX}" "${qemu_args[@]}"
 fi
 
 # For common package (empty target, no tools), install desktop file and icons
 if [[ -z "${CONDA_QEMU_TARGET:-}" ]] && [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
   QEMU_SRC="${SRC_DIR}/qemu_source"
 
+  mkdir -p "${QEMU_INSTALL_PREFIX}"/share/{applications,icons}
+  
   # Install desktop file (in ui/, not ui/icons/)
-  install -Dm644 "${QEMU_SRC}/ui/qemu.desktop" "${PREFIX}/share/applications/qemu.desktop"
+  install -Dm644 "${QEMU_SRC}/ui/qemu.desktop" "${QEMU_INSTALL_PREFIX}/share/applications/qemu.desktop"
 
   # Install PNG icons (various sizes)
   for size in 16x16 24x24 32x32 48x48 64x64 128x128 256x256 512x512; do
     install -Dm644 "${QEMU_SRC}/ui/icons/qemu_${size}.png" \
-      "${PREFIX}/share/icons/hicolor/${size}/apps/qemu.png"
+      "${QEMU_INSTALL_PREFIX}/share/icons/hicolor/${size}/apps/qemu.png"
   done
 
   # Install BMP icon
   install -Dm644 "${QEMU_SRC}/ui/icons/qemu_32x32.bmp" \
-    "${PREFIX}/share/icons/hicolor/32x32/apps/qemu.bmp"
+    "${QEMU_INSTALL_PREFIX}/share/icons/hicolor/32x32/apps/qemu.bmp"
 
   # Install SVG icon
   install -Dm644 "${QEMU_SRC}/ui/icons/qemu.svg" \
-    "${PREFIX}/share/icons/hicolor/scalable/apps/qemu.svg"
+    "${QEMU_INSTALL_PREFIX}/share/icons/hicolor/scalable/apps/qemu.svg"
 fi
