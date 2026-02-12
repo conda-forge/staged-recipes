@@ -127,9 +127,23 @@ build_install_qemu_non_unix() {
   export PKG_CONFIG="${_pkg_config}"
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
+  # Prevent MSYS2 path conversion for meson/ninja subprocesses
+  export MSYS2_ARG_CONV_EXCL="*"
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
+    # Pre-decompress EDK2 firmware files (Windows bzip2.EXE has path issues with meson)
+    echo "Pre-decompressing EDK2 firmware files..."
+    for bz2_file in "${SRC_DIR}"/qemu_source/pc-bios/edk2-*.fd.bz2; do
+      if [[ -f "${bz2_file}" ]]; then
+        local out_file="${bz2_file%.bz2}"
+        if [[ ! -f "${out_file}" ]]; then
+          bzip2 -dk "${bz2_file}"
+          echo "  Decompressed: $(basename "${out_file}")"
+        fi
+      fi
+    done
+
     # Pre-create pyvenv with pycotap installed
     # Patch 0006 sets clear=False so configure won't wipe this
     python -m venv --system-site-packages pyvenv
