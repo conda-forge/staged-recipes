@@ -155,7 +155,8 @@ outputs:
         env:
           CONDA_QEMU_TARGET: "x86_64"
           CONDA_QEMU_TOOLS: "qemu-edid qemu-img qemu-io qemu-nbd"
-          CONDA_QEMU_LINUX_TOOLS: "qemu-keymap qemu-ga qemu-vmsr-helper qemu-pr-helper qemu-bridge-helper"
+          CONDA_QEMU_NOSX_TOOLS: "qemu-ga"
+          CONDA_QEMU_LINUX_TOOLS: "qemu-keymap qemu-vmsr-helper qemu-pr-helper qemu-bridge-helper"
     requirements:
       build:
         - if: unix
@@ -213,9 +214,11 @@ outputs:
           strict: true
           bin:
             - qemu-{edid,img,io,nbd}${{ xt }}
-            - if: linux
+            - if: not osx
               then:
                 - qemu-ga
+            - if: linux
+              then:
                 - qemu-keymap
                 - qemu-pr-helper
                 - qemu-vmsr-helper
@@ -225,19 +228,21 @@ outputs:
                 - libexec/qemu-bridge-helper
  
       - script:
-          - qemu-edid -h
+          - qemu-edid -h | grep -q "set monitor vendor" && { echo "qemu-edid OK"; }
           - qemu-img --version
           - qemu-io --version
-          - qemu-nbd --version || true
+          - qemu-nbd --version
+          - if: not osx
+            then:
+              - qemu-ga --version
           - if: linux
             then:
-              - qemu-keymap -h
-              - qemu-ga --version || true
-              - qemu-pr-helper --version || true
+              - qemu-keymap -h | grep -q "kbd model" && { echo "qemu-keymap OK"; }
+              - qemu-pr-helper --version
               - qemu-vmsr-helper --version || true
           
-          - qemu-img create -f qcow2 /tmp/test.qcow2 10M || true
-          - qemu-img info /tmp/test.qcow2 || true
+          - qemu-img create -f qcow2 /tmp/test.qcow2 10M | grep -q "virtual size: 10 MiB" && { echo "qemu-img create OK"; }
+          - qemu-img info /tmp/test.qcow2 | grep -q "filename: /tmp/test.qcow2" && { echo "qemu-img info OK"; }
 
   - package:
       name: qemu-system-${{ qemu_system_execs }}
@@ -284,6 +289,8 @@ outputs:
           - ${{ library }}share/qemu/{openbios,palcode}*
           - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
           - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
+          # Overlaps (only occurs on non-unix)
+          - ${{ library }}share/qemu/{applications,icons}
     requirements:
       ignore_run_exports:
         by_name:
@@ -443,8 +450,7 @@ outputs:
                 - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
       - script:
           - qemu-storage-daemon --version
-          - qemu-system-${{ qemu_system_execs }} -machine help
-          - qemu-system-${{ qemu_system_execs }} -cpu help
+          - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "Raspberry Pi 4B" && { echo "qemu-system-${{ qemu_system_execs }} OK"; }
 
 about:
   homepage: https://gitlab.com/qemu-project/qemu

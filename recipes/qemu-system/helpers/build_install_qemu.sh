@@ -97,6 +97,12 @@ build_install_qemu() {
       ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
       install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
 
+      if [[ "${target_platform}" != osx-* ]] && [[ -n "${CONDA_QEMU_NOSX_TOOLS:-}" ]]; then
+        read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_NOSX_TOOLS}"
+        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
+        ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+        install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
+      fi
       if [[ "${target_platform}" == linux-* ]] && [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_LINUX_TOOLS}"
         echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
