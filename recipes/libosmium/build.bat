@@ -5,8 +5,9 @@ cmake %CMAKE_ARGS% ^
     -B build ^
     -S %SRC_DIR% ^
     -GNinja ^
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
     -DWERROR=OFF || goto :error
-cmake --build -j %CPU_COUNT% build || goto :error
+cmake --build build -j %CPU_COUNT%  || goto :error
 ctest -V --test-dir build || goto :error
 cmake --install build || goto :error
 
