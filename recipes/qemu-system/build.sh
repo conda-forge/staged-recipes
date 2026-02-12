@@ -28,6 +28,11 @@ else
   # Common/tools package: disable system emulators
   qemu_args+=("--disable-system")
 
+  # Enable guest agent for tools package (not common)
+  if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
+    qemu_args+=("--enable-guest-agent")
+  fi
+
   # For common package (no tools specified), minimize dependencies
   # Only need glib/gtk for cache generation, firmware files are just copied
   if [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
