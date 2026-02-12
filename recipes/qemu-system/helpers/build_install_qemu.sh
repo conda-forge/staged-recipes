@@ -202,6 +202,17 @@ MESONSH
 
       # Selective install: only install what we built
       install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
+      
+      if [[ -n "${CONDA_QEMU_NOSX_TOOLS:-}" ]]; then
+        # Selective build: build and install only specified tools
+        read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_NOSX_TOOLS}"
+        TOOLS_ARRAY=("${TOOLS_ARRAY[@]/%/.exe}")
+        echo "Building specific tools: ${TOOLS_ARRAY[*]}"
+        MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}" || { echo "Build failed"; exit 1; }
+
+        # Selective install: only install what we built
+        install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
+      fi
     else
       # Full build and install
       MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
