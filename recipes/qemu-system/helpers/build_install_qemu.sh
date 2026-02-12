@@ -127,8 +127,6 @@ build_install_qemu_non_unix() {
   export PKG_CONFIG="${_pkg_config}"
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
-  # Prevent MSYS2 path conversion for meson/ninja subprocesses
-  export MSYS2_ARG_CONV_EXCL="*"
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
