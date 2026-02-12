@@ -1,3 +1,23 @@
+# Map tool name to ninja build target (some tools are in subdirectories)
+# Usage: get_ninja_target <tool_name>
+get_ninja_target() {
+  local tool=$1
+  case "${tool}" in
+    qemu-ga|qemu-ga.exe)
+      echo "qga/qemu-ga${tool##qemu-ga}"
+      ;;
+    qemu-storage-daemon|qemu-storage-daemon.exe)
+      echo "storage-daemon/qemu-storage-daemon${tool##qemu-storage-daemon}"
+      ;;
+    elf2dmp|elf2dmp.exe)
+      echo "contrib/elf2dmp/elf2dmp${tool##elf2dmp}"
+      ;;
+    *)
+      echo "${tool}"
+      ;;
+  esac
+}
+
 # Install specific QEMU tools from build directory to install directory
 # Usage: install_qemu_tools <build_dir> <install_dir> <tool1> [tool2] ...
 install_qemu_tools() {
@@ -93,20 +113,33 @@ build_install_qemu() {
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
       # Selective build: build and install only specified tools
       read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
-      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
-      ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+      # Map to ninja targets (some tools are in subdirectories)
+      NINJA_TARGETS=()
+      for tool in "${TOOLS_ARRAY[@]}"; do
+        NINJA_TARGETS+=("$(get_ninja_target "${tool}")")
+      done
+      echo "Building specific tools: ${NINJA_TARGETS[*]}"
+      ninja -j"${CPU_COUNT}" "${NINJA_TARGETS[@]}"
       install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
 
       if [[ "${target_platform}" != osx-* ]] && [[ -n "${CONDA_QEMU_NOSX_TOOLS:-}" ]]; then
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_NOSX_TOOLS}"
-        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
-        ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+        NINJA_TARGETS=()
+        for tool in "${TOOLS_ARRAY[@]}"; do
+          NINJA_TARGETS+=("$(get_ninja_target "${tool}")")
+        done
+        echo "Building specific tools: ${NINJA_TARGETS[*]}"
+        ninja -j"${CPU_COUNT}" "${NINJA_TARGETS[@]}"
         install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
       fi
       if [[ "${target_platform}" == linux-* ]] && [[ -n "${CONDA_QEMU_LINUX_TOOLS:-}" ]]; then
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_LINUX_TOOLS}"
-        echo "Building specific LINUX tools: ${TOOLS_ARRAY[*]}"
-        ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}"
+        NINJA_TARGETS=()
+        for tool in "${TOOLS_ARRAY[@]}"; do
+          NINJA_TARGETS+=("$(get_ninja_target "${tool}")")
+        done
+        echo "Building specific tools: ${NINJA_TARGETS[*]}"
+        ninja -j"${CPU_COUNT}" "${NINJA_TARGETS[@]}"
         install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
       fi
     else
@@ -185,8 +218,7 @@ MESONSH
     # Configure will find: meson (wrapper), pycotap (pre-installed)
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
-      "${qemu_args[@]}" \
-      --enable-strip
+      "${qemu_args[@]}"
 
     # Fix Windows tool names: ensure they have .exe suffix (but not doubled)
     # First remove any existing .exe/.EXE (case-insensitive), then add .exe back
@@ -197,18 +229,28 @@ MESONSH
       # Selective build: build and install only specified tools
       read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_TOOLS}"
       TOOLS_ARRAY=("${TOOLS_ARRAY[@]/%/.exe}")
-      echo "Building specific tools: ${TOOLS_ARRAY[*]}"
-      MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}" || { echo "Build failed"; exit 1; }
+      # Map to ninja targets (some tools are in subdirectories)
+      NINJA_TARGETS=()
+      for tool in "${TOOLS_ARRAY[@]}"; do
+        NINJA_TARGETS+=("$(get_ninja_target "${tool}")")
+      done
+      echo "Building specific tools: ${NINJA_TARGETS[*]}"
+      MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${NINJA_TARGETS[@]}" || { echo "Build failed"; exit 1; }
 
       # Selective install: only install what we built
       install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"
-      
+
       if [[ -n "${CONDA_QEMU_NOSX_TOOLS:-}" ]]; then
         # Selective build: build and install only specified tools
         read -ra TOOLS_ARRAY <<< "${CONDA_QEMU_NOSX_TOOLS}"
         TOOLS_ARRAY=("${TOOLS_ARRAY[@]/%/.exe}")
-        echo "Building specific tools: ${TOOLS_ARRAY[*]}"
-        MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${TOOLS_ARRAY[@]}" || { echo "Build failed"; exit 1; }
+        # Map to ninja targets
+        NINJA_TARGETS=()
+        for tool in "${TOOLS_ARRAY[@]}"; do
+          NINJA_TARGETS+=("$(get_ninja_target "${tool}")")
+        done
+        echo "Building specific tools: ${NINJA_TARGETS[*]}"
+        MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}" "${NINJA_TARGETS[@]}" || { echo "Build failed"; exit 1; }
 
         # Selective install: only install what we built
         install_qemu_tools "${build_dir}" "${install_dir}" "${TOOLS_ARRAY[@]}"

@@ -18,6 +18,7 @@ fi
 qemu_args=(
   "--disable-linux-user"
   "--disable-docs"
+  "--enable-strip"
 )
 
 # Add target-list only if specified (arch builds)

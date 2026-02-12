@@ -154,7 +154,7 @@ outputs:
       script:
         env:
           CONDA_QEMU_TARGET: "x86_64"
-          CONDA_QEMU_TOOLS: "qemu-edid qemu-img qemu-io qemu-nbd"
+          CONDA_QEMU_TOOLS: "qemu-edid qemu-img qemu-io qemu-nbd qemu-storage-daemon elf2dmp"
           CONDA_QEMU_NOSX_TOOLS: "qemu-ga"
           CONDA_QEMU_LINUX_TOOLS: "qemu-keymap qemu-vmsr-helper qemu-pr-helper qemu-bridge-helper"
     requirements:
@@ -213,10 +213,11 @@ outputs:
       - package_contents:
           strict: true
           bin:
-            - qemu-{edid,img,io,nbd}${{ xt }}
+            - qemu-{edid,img,io,nbd,storage-daemon}${{ xt }}
+            - elf2dmp${{ xt }}
             - if: not osx
               then:
-                - qemu-ga
+                - qemu-ga${{ xt }}
             - if: linux
               then:
                 - qemu-keymap
@@ -226,21 +227,22 @@ outputs:
             - if: linux
               then:
                 - libexec/qemu-bridge-helper
- 
+
       - script:
           - qemu-edid -h | grep -q "set monitor vendor" && { echo "qemu-edid OK"; }
-          - qemu-img --version
-          - qemu-io --version
-          - qemu-nbd --version
+          - qemu-img --version | grep "${PKG_VERSION}"
+          - qemu-io --version | grep "${PKG_VERSION}"
+          - qemu-nbd --version | grep "${PKG_VERSION}"
+          - qemu-storage-daemon --version | grep "${PKG_VERSION}"
           - if: not osx
             then:
-              - qemu-ga --version
+              - qemu-ga --version | grep "${PKG_VERSION}"
           - if: linux
             then:
               - qemu-keymap -h | grep -q "kbd model" && { echo "qemu-keymap OK"; }
-              - qemu-pr-helper --version
-              - qemu-vmsr-helper --version || true
-          
+              - qemu-pr-helper --version | grep "${PKG_VERSION}"
+              - qemu-vmsr-helper --version | grep "${PKG_VERSION}" || true
+
           - qemu-img create -f qcow2 /tmp/test.qcow2 10M | grep -q "virtual size: 10 MiB" && { echo "qemu-img create OK"; }
           - qemu-img info /tmp/test.qcow2 | grep -q "filename: /tmp/test.qcow2" && { echo "qemu-img info OK"; }
 
@@ -418,8 +420,6 @@ outputs:
       - package_contents:
           strict: true
           bin:
-            - elf2dmp
-            - qemu-storage-daemon
             - qemu-system-${{ qemu_system_execs }}
             - if: not unix
               then:
