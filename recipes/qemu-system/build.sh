@@ -90,7 +90,8 @@ if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; the
   build_install_qemu "${SRC_DIR}/_conda-build" "${QEMU_INSTALL_PREFIX}" "${qemu_args[@]}"
 else
   qemu_args+=(
-    "--datadir=share/qemu"
+    "--bindir="${QEMU_INSTALL_PREFIX}"/bin"
+    "--datadir="${QEMU_INSTALL_PREFIX}"/share/qemu"
   )
   build_install_qemu_non_unix "${SRC_DIR}/_conda-build" "${QEMU_INSTALL_PREFIX}" "${qemu_args[@]}"
 fi
