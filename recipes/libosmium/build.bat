@@ -1,22 +1,17 @@
 @echo off
 setlocal enabledelayedexpansion
 
-mkdir build
-if errorlevel 1 exit /b 1
-
-cd build
-if errorlevel 1 exit /b 1
-
 cmake %CMAKE_ARGS% ^
+    -B build ^
+    -S %SRC_DIR% ^
     -GNinja ^
-    -DWERROR=OFF ^
-    -DCMAKE_PREFIX_PATH=%PREFIX% ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    %SRC_DIR%
-if errorlevel 1 exit /b 1
+    -DWERROR=OFF || goto :error
+cmake --build -j %CPU_COUNT% build || goto :error
+ctest -V --test-dir build || goto :error
+cmake --install build || goto :error
 
-ninja
-if errorlevel 1 exit /b 1
+goto :eof
 
-ninja install
-if errorlevel 1 exit /b 1
+:error
+echo Failed with error #%errorlevel%.
+exit 1
