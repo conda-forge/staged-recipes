@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 
 set -euxo pipefail
+IFS=$'\n\t'
+
+if [[ ${BASH_VERSINFO[0]} -lt 5 || (${BASH_VERSINFO[0]} -eq 5 && ${BASH_VERSINFO[1]} -lt 2) ]]; then
+  echo "re-exec with conda bash..."
+  if [[ -x "${BUILD_PREFIX}/bin/bash" ]]; then
+    exec "${BUILD_PREFIX}/bin/bash" "$0" "$@"
+  else
+    echo "ERROR: Could not find conda bash at ${BUILD_PREFIX}/bin/bash"
+    exit 1
+  fi
+fi
 
 source "${RECIPE_DIR}/helpers/build_install_qemu.sh"
 source "${RECIPE_DIR}/helpers/feature_profiles.sh"
