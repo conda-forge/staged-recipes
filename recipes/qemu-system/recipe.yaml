@@ -87,7 +87,6 @@ outputs:
           - ${{ library }}share/qemu/pvh.bin
           - ${{ library }}share/qemu/pxe-*.rom
           - ${{ library }}share/qemu/qboot.rom
-          - ${{ library }}share/qemu/vgabios*
           # SPARC-specific (unused arch)
           - ${{ library }}share/qemu/QEMU,cgthree.bin
           - ${{ library }}share/qemu/QEMU,tcx.bin
@@ -163,6 +162,17 @@ outputs:
             - ${{ library }}share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
             - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,sl,sv,th,tr}
             - ${{ library }}share/qemu/trace-events-all
+            # VGA
+            - ${{ library }}share/qemu/trace-events-all
+            - ${{ library }}share/qemu/vgabios-ati.bin
+            - ${{ library }}share/qemu/vgabios.bin
+            - ${{ library }}share/qemu/vgabios-bochs-display.bin
+            - ${{ library }}share/qemu/vgabios-cirrus.bin
+            - ${{ library }}share/qemu/vgabios-qxl.bin
+            - ${{ library }}share/qemu/vgabios-ramfb.bin
+            - ${{ library }}share/qemu/vgabios-stdvga.bin
+            - ${{ library }}share/qemu/vgabios-virtio.bin
+            - ${{ library }}share/qemu/vgabios-vmware.bin
 
   - package:
       name: qemu-system-tools
@@ -449,6 +459,7 @@ outputs:
               then:
                 - qemu-system-${{ qemu_system_execs }}w
           files:
+            - etc/conda/test-files/*
             - ${{ library }}share/qemu/edk2-licenses.txt
             - if: qemu_system_execs == "aarch64"
               then:
@@ -476,70 +487,22 @@ outputs:
           # Basic sanity check - verify machine types are available
           - if: qemu_system_execs == "aarch64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "Raspberry Pi 4B"
+              - qemu-system-${{ qemu_system_execs }} -display none -machine help | grep "Raspberry Pi 4B"
           - if: qemu_system_execs == "ppc64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "IBM PowerNV (Non-Virtualized) POWER9"
+              - qemu-system-${{ qemu_system_execs }} -display none -machine help | grep "IBM PowerNV (Non-Virtualized) POWER9"
           - if: qemu_system_execs == "riscv64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "AMD Microblaze-V generic platform"
+              - qemu-system-${{ qemu_system_execs }} -display none -machine help | grep "AMD Microblaze-V generic platform"
         requirements:
           run:
             - ${{ m2 }}grep
       # Boot test with CirrOS/Debian minimal images
       - script:
-          - if: qemu_system_execs == "aarch64"
-            then:
-              - curl -fsSL -o cirros-kernel https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-aarch64-kernel
-              - curl -fsSL -o cirros-initramfs https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-aarch64-initramfs
-              - |
-                timeout 60 qemu-system-aarch64 \
-                  -M virt -cpu cortex-a57 -m 256 -nographic \
-                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
-                  -kernel cirros-kernel -initrd cirros-initramfs \
-                  -append "console=ttyAMA0 ds=nocloud" 2>&1 | tee boot.log &
-                QEMU_PID=$!
-                sleep 30
-                kill $QEMU_PID 2>/dev/null || true
-              # Check for successful boot (syslogd started = init working)
-              - grep -q "Starting syslogd" boot.log && echo "aarch64 boot test PASSED"
-          - if: qemu_system_execs == "ppc64"
-            then:
-              - curl -fsSL -o cirros-kernel https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-ppc64le-kernel
-              - curl -fsSL -o cirros-initramfs https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-ppc64le-initramfs
-              - |
-                timeout 60 qemu-system-ppc64 \
-                  -M pseries -cpu power9 -m 512 -nographic \
-                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
-                  -kernel cirros-kernel -initrd cirros-initramfs \
-                  -append "console=hvc0 ds=nocloud" 2>&1 | tee boot.log &
-                QEMU_PID=$!
-                sleep 30
-                kill $QEMU_PID 2>/dev/null || true
-              # Check for successful boot (syslogd started = init working)
-              - grep -q "Starting syslogd" boot.log && echo "ppc64 boot test PASSED"
-          - if: qemu_system_execs == "riscv64"
-            then:
-              # Use Debian's riscv64 netboot kernel
-              - curl -fsSL -o linux https://deb.debian.org/debian/dists/stable/main/installer-riscv64/current/images/netboot/debian-installer/riscv64/linux
-              - curl -fsSL -o initrd.gz https://deb.debian.org/debian/dists/stable/main/installer-riscv64/current/images/netboot/debian-installer/riscv64/initrd.gz
-              - |
-                timeout 60 qemu-system-riscv64 \
-                  -M virt -m 512 -nographic \
-                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
-                  -bios ${PREFIX}/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin \
-                  -kernel linux -initrd initrd.gz \
-                  -append "console=ttyS0 earlycon=sbi" 2>&1 | tee boot.log &
-                QEMU_PID=$!
-                sleep 30
-                kill $QEMU_PID 2>/dev/null || true
-              # Debian installer kernel - check for Linux boot messages
-              - grep -qE "(Linux version|Booting Linux)" boot.log && echo "riscv64 boot test PASSED"
-        requirements:
-          run:
-            - ${{ m2 }}curl
-            - ${{ m2 }}coreutils  # for timeout, tee, sleep, kill
-            - ${{ m2 }}grep
+          - python tests/boot_test.py ${{ qemu_system_execs }} ${{ PREFIX }}
+        files:
+          recipe:
+            - tests/boot_test.py
 
   - package:
       name: qemu-${{ qemu_user_execs }}
@@ -551,7 +514,6 @@ outputs:
           CONDA_QEMU_MODE: "linux-user"
       files:
         include:
-          # Linux-user only needs the binary - no firmware, keymaps, etc.
           - bin/qemu-${{ qemu_user_execs }}
     requirements:
       build:
