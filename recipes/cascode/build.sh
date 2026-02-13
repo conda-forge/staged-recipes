@@ -1,32 +1,38 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+set -o xtrace -o nounset -o pipefail -o errexit
 
-case "${target_platform}" in
-  linux-64) rid="linux-x64" ;;
-  linux-aarch64) rid="linux-arm64" ;;
-  osx-64) rid="osx-x64" ;;
-  osx-arm64) rid="osx-arm64" ;;
-  *)
-    echo "Unsupported target_platform: ${target_platform}" >&2
-    exit 1
-    ;;
-esac
+mkdir -p "${PREFIX}/bin"
+mkdir -p "${PREFIX}/libexec/${PKG_NAME}"
+ln -sf "${DOTNET_ROOT}/dotnet" "${PREFIX}/bin"
 
 dotnet publish tools/cli/Cascode.Cli.csproj \
+  --no-self-contained \
   -c Release \
-  -r "${rid}" \
-  -p:SelfContained=false \
-  -p:PublishTrimmed=false \
-  -o build/out
+  -o "${PREFIX}/libexec/${PKG_NAME}"
 
-# Install application files to lib/cascode
-mkdir -p "${PREFIX}/lib/cascode"
-cp -r build/out/* "${PREFIX}/lib/cascode/"
+# Keep only runtime assets for conda-forge target platforms. Publishing
+# without an RID pulls in many non-conda runtimes (android/ios/browser/etc.).
+if [ -d "${PREFIX}/libexec/${PKG_NAME}/runtimes" ]; then
+  pushd "${PREFIX}/libexec/${PKG_NAME}/runtimes" >/dev/null
+  for rid_dir in *; do
+    case "${rid_dir}" in
+      linux-x64|linux-arm64|osx-x64|osx-arm64|win-x64) ;;
+      *) rm -rf "${rid_dir}" ;;
+    esac
+  done
+  popd >/dev/null
+fi
 
-# Create wrapper script in bin
-mkdir -p "${PREFIX}/bin"
-cat > "${PREFIX}/bin/cascode" << 'EOF'
-#!/bin/bash
-exec "$(dirname "$0")/../lib/cascode/Cascode.Cli" "$@"
+rm -f "${PREFIX}/libexec/${PKG_NAME}/Cascode.Cli"
+
+tee "${PREFIX}/bin/cascode" << 'EOF'
+#!/bin/sh
+exec "${DOTNET_ROOT}/dotnet" exec "${CONDA_PREFIX}/libexec/cascode/Cascode.Cli.dll" "$@"
 EOF
 chmod +x "${PREFIX}/bin/cascode"
+
+tee "${PREFIX}/bin/cascode.cmd" << 'EOF'
+call "%DOTNET_ROOT%\dotnet" exec "%CONDA_PREFIX%\libexec\cascode\Cascode.Cli.dll" %*
+EOF
+
+rm -f "${PREFIX}/bin/dotnet"
