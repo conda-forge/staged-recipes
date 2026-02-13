@@ -1,0 +1,136 @@
+context:
+  version: "0.9.4.1"
+
+package:
+  name: bayesian-analysis-toolkit
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bat/bat/releases/download/v${{ version }}/BAT-${{ version }}.tar.gz
+  sha256: d46c6f834cb5888bbf4db393887190380132fa48816e0804f79c4a3cc344ef87
+  patches:
+    - BAT-0.9.4.1-cxx17.patch
+    - BAT-0.9.4.1-dict.patch
+    - BAT-0.9.4.1-root624.patch
+    - BAT-0.9.4.1-rootcling-flags.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    content: |
+      cp $BUILD_PREFIX/share/gnuconfig/config.* .
+      ./configure --help
+      ./configure \
+        --prefix="${PREFIX}" \
+        --with-rootsys="${PREFIX}" \
+        --enable-silent-rules \
+        --enable-shared \
+        --enable-static=no
+      make -j"${CPU_COUNT}"
+      make install
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - make
+    - pkg-config
+    - gnuconfig
+  host:
+    - root_base
+  run:
+    - root_base
+
+tests:
+  - package_contents:
+      strict: true
+      lib:
+        - if: linux
+          then: archer
+        - BAT
+        - BATmodels
+        - BATmtf
+        - BATmvc
+      include:
+        - BAT/BCModel.h
+        - BAT/BCLog.h
+        - BAT/BCAux.h
+        - BAT/BCDataPoint.h
+        - BAT/BCDataSet.h
+        - BAT/BCEfficiencyFitter.h
+        - BAT/BCEngineMCMC.h
+        - BAT/BCFitter.h
+        - BAT/BCGoFTest.h
+        - BAT/BCGraphFitter.h
+        - BAT/BCH1D.h
+        - BAT/BCH2D.h
+        - BAT/BCHistogramFitter.h
+        - BAT/BCIntegrate.h
+        - BAT/BCMTF.h
+        - BAT/BCMTFAnalysisFacility.h
+        - BAT/BCMTFChannel.h
+        - BAT/BCMTFComparisonTool.h
+        - BAT/BCMTFProcess.h
+        - BAT/BCMTFSystematic.h
+        - BAT/BCMTFSystematicVariation.h
+        - BAT/BCMTFTemplate.h
+        - BAT/BCMVCDataModel.h
+        - BAT/BCMVCMeasurement.h
+        - BAT/BCMVCObservable.h
+        - BAT/BCMVCPhysicsModel.h
+        - BAT/BCMVCUncertainty.h
+        - BAT/BCMVCombination.h
+        - BAT/BCMath.h
+        - BAT/BCModelManager.h
+        - BAT/BCModelOutput.h
+        - BAT/BCParameter.h
+        - BAT/BCParameterSet.h
+        - BAT/BCSummaryPriorModel.h
+        - BAT/BCSummaryTool.h
+      bin:
+        - bat-config
+        - bat-project
+      files:
+        - lib/pkgconfig/bat.pc
+        - lib/libBAT.rootmap
+        - lib/libBAT_rdict.pcm
+        - lib/libBATmodels.rootmap
+        - lib/libBATmodels_rdict.pcm
+        - lib/libBATmtf.rootmap
+        - lib/libBATmtf_rdict.pcm
+        - lib/libBATmvc.rootmap
+        - lib/libBATmvc_rdict.pcm
+        - share/BAT/Main1Template.cxx
+        - share/BAT/Main2Template.cxx
+        - share/BAT/MakefileTemplate
+        - share/BAT/ModelTemplate.cxx
+        - share/BAT/ModelTemplate.h
+        # symlinks .dylib to .so
+        - if: osx
+          then:
+            - lib/libBAT.so
+            - lib/libBATmodels.so
+            - lib/libBATmtf.so
+            - lib/libBATmvc.so
+
+about:
+  homepage: https://bat.github.io/bat/
+  summary: Bayesian Analysis Toolkit for statistical data analysis
+  description: |
+    BAT is a software analysis package for statistical data analysis
+    using Bayes' theorem, realized with Markov Chain Monte Carlo.
+    It provides parameter estimation, model comparison, and model checking.
+  license: LGPL-3.0-or-later
+  license_file:
+    - doc/COPYING
+    - doc/LICENSE
+  repository: https://github.com/bat/bat
+
+extra:
+  recipe-maintainers:
+    - chrisburr
+    - kratsg
+    - matthewfeickert
