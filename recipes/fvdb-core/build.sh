@@ -68,4 +68,12 @@ setup_parallel_build_jobs() {
 
 setup_parallel_build_jobs
 export CMAKE_GENERATOR=Ninja
-$PYTHON -m pip install --no-deps --no-build-isolation -vv .
+# GCC 14 false positive: -Wstringop-overflow in NanoVDB headers with deep template inlining at -O3
+# See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=118817
+export CXXFLAGS="${CXXFLAGS} -Wno-error=stringop-overflow"
+$PYTHON -m pip install \
+    --no-deps \
+    --no-build-isolation \
+    -vv \
+    -C 'skbuild.ninja.make-fallback=false' \
+    .
