@@ -2,15 +2,27 @@
 set -euo pipefail
 
 # Build script for qemu-arm64 package
-# Creates Alpine Linux direct-boot setup for ARM64 emulation on Intel Macs
+# Creates Alpine Linux direct-boot setup for ARM64 emulation
+# Supports: osx-64 (Intel Macs), win-64 (Windows)
 
-SHARE_DIR="${PREFIX}/share/qemu-arm64"
+# Detect platform
+if [[ "${OSTYPE:-}" == "msys" ]] || [[ "${OSTYPE:-}" == "cygwin" ]] || [[ -n "${MSYSTEM:-}" ]]; then
+    IS_WINDOWS=1
+    # On Windows, use Library/ prefix
+    SHARE_DIR="${PREFIX}/Library/share/qemu-arm64"
+    BIN_DIR="${PREFIX}/Library/bin"
+else
+    IS_WINDOWS=0
+    SHARE_DIR="${PREFIX}/share/qemu-arm64"
+    BIN_DIR="${PREFIX}/bin"
+fi
 
 echo "=== Building qemu-arm64 (direct kernel boot) ==="
+echo "Platform: $(uname -s) (IS_WINDOWS=${IS_WINDOWS})"
 
 # Create output directories
 mkdir -p "${SHARE_DIR}"
-mkdir -p "${PREFIX}/bin"
+mkdir -p "${BIN_DIR}"
 
 # Extract netboot files (contains vmlinuz-virt, initramfs-virt, modloop-virt)
 echo "Extracting Alpine netboot..."
@@ -84,13 +96,19 @@ rm -rf "${INITRAMFS_DIR}"
 rm -rf "${SHARE_DIR}/boot" "${SHARE_DIR}/apks" 2>/dev/null || true
 
 # Create the wrapper script
-cat > "${PREFIX}/bin/qemu-arm64" <<'WRAPPER_EOF'
+cat > "${BIN_DIR}/qemu-arm64" <<'WRAPPER_EOF'
 #!/bin/bash
-# qemu-arm64: Run ARM64 Linux binaries on Intel Mac via QEMU direct boot
+# qemu-arm64: Run ARM64 Linux binaries via QEMU direct boot
 # Uses Alpine Linux kernel with custom initramfs
+# Supports: macOS (Intel), Windows (via MSYS2)
 set -euo pipefail
 
-SHARE_DIR="${CONDA_PREFIX}/share/qemu-arm64"
+# Detect platform and set paths
+if [[ "${OSTYPE:-}" == "msys" ]] || [[ "${OSTYPE:-}" == "cygwin" ]] || [[ -n "${MSYSTEM:-}" ]]; then
+    SHARE_DIR="${CONDA_PREFIX}/Library/share/qemu-arm64"
+else
+    SHARE_DIR="${CONDA_PREFIX}/share/qemu-arm64"
+fi
 KERNEL="${SHARE_DIR}/vmlinuz-virt"
 INITRAMFS_BASE="${SHARE_DIR}/initramfs-base.cpio.gz"
 
@@ -194,9 +212,17 @@ else
 fi
 WRAPPER_EOF
 
-chmod +x "${PREFIX}/bin/qemu-arm64"
+chmod +x "${BIN_DIR}/qemu-arm64"
+
+# On Windows, also create a .cmd wrapper for easier invocation
+if [[ "${IS_WINDOWS}" == "1" ]]; then
+    cat > "${BIN_DIR}/qemu-arm64.cmd" <<'CMD_EOF'
+@echo off
+"%~dp0\..\usr\bin\bash.exe" -l "%~dp0\qemu-arm64" %*
+CMD_EOF
+fi
 
 echo "=== qemu-arm64 build complete ==="
 echo "Kernel: ${SHARE_DIR}/vmlinuz-virt"
 echo "Initramfs: ${SHARE_DIR}/initramfs-base.cpio.gz"
-echo "Wrapper: ${PREFIX}/bin/qemu-arm64"
+echo "Wrapper: ${BIN_DIR}/qemu-arm64"
