@@ -35,4 +35,7 @@ tee "${PREFIX}/bin/cascode.cmd" << 'EOF'
 call "%DOTNET_ROOT%\dotnet" exec "%CONDA_PREFIX%\libexec\cascode\Cascode.Cli.dll" %*
 EOF
 
+mkdir -p "${PREFIX}/Scripts"
+cp "${PREFIX}/bin/cascode.cmd" "${PREFIX}/Scripts/cascode.cmd"
+
 rm -f "${PREFIX}/bin/dotnet"
