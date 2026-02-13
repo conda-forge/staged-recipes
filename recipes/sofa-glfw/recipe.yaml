@@ -1,0 +1,90 @@
+context:
+  name: sofa-glfw
+  version: "25.06.00"
+  major_minor: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sofa-framework/SofaGLFW/archive/refs/tags/release-v${{ major_minor }}.tar.gz
+  sha256: 97aac0871967495f5002d0a43cd0374772c8ea72adbfaa3be4e9431f5d056297
+
+  patches:
+    # For the 3 following patches:
+    # https://github.com/sofa-framework/SofaGLFW/pull/256
+    - patches/0001-remove-imgui.h-from-ImgGuiGUIEngine-header.patch
+    - patches/0002-hide-SimpleIni-to-impl-and-do-not-expose-private-hea.patch
+    - patches/0003-fix-SofaGLFW-cmake-config-in-with-missing-gflw.patch
+
+build:
+  number: 0
+  files:
+    # SimpleIni (header-only) is still fetched and used for compilation only, but
+    # its CMakeLists force installation even if we do not want to include it in our package
+    exclude:
+      - ${{ "Library/" if win }}include/SimpleIni/
+      - ${{ "Library/" if win }}share/cmake/SimpleIni/
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11        
+  host:
+    - sofa-devel ${{ major_minor }}.*
+    - sofa-python3 ${{ major_minor }}.*
+    - sofa-gl ${{ major_minor }}.*
+    - nativefiledialog-extended
+    - glfw
+    - pybind11
+    - python
+  run:
+    - python
+    # sofa-glfw is a devel library so it needs sofa-devel at runtime
+    - sofa-devel ${{ major_minor }}.*
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - SofaGLFW/config.h
+        - SofaImGui/config.h
+      lib: 
+        - SofaGLFW
+        - SofaImGui
+  - script:
+      - cmake-package-check SofaGLFW SofaImGui
+    requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+
+about:
+  homepage: https://www.sofa-framework.org/applications/plugins/modern-gui-using-glfw/
+  summary: Quick and simple GUI for SOFA, based on GLFW and Dear ImGui.
+  license: LGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - 3rdparty-licenses/IconFontCppHeaders/LICENSE.txt # ZLIB
+    - 3rdparty-licenses/imgui/LICENSE.txt # MIT
+    - 3rdparty-licenses/implot/LICENSE.txt # MIT
+    # https://github.com/conda-forge/staged-recipes/pull/31757
+    # If merged, we could unvendor simpleini and use the package
+    - 3rdparty-licenses/simpleini/LICENSE.txt # MIT
+  repository: https://github.com/sofa-framework/SofaGLFW
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
+    - bakpaul

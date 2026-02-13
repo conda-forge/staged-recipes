@@ -1,0 +1,305 @@
+From 8851eec4388ea81725edd8f56ac9af37139c5a5b Mon Sep 17 00:00:00 2001
+From: Olivier Roussel <olivier.roussel@inria.fr>
+Date: Wed, 7 Jan 2026 17:44:00 +0100
+Subject: [PATCH] hide SimpleIni to impl and do not expose private headers
+ ViewPort.h and Settings.h
+
+do not expose Performances.h header as it includes imgui
+
+fix SimpleIni target as private
+
+fix imgui headers are not part of SofaImGui anymore, must be treated as dependency
+---
+ SofaImGui/CMakeLists.txt                      |  5 +-
+ SofaImGui/SofaImGuiConfig.cmake.in            |  4 --
+ .../SofaImGui.Camera/CMakeLists.txt           | 11 ++++
+ SofaImGui/src/SofaImGui/AppIniFile.cpp        |  1 -
+ SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp    | 65 +++++++++++--------
+ SofaImGui/src/SofaImGui/ImGuiGUIEngine.h      |  8 ++-
+ 6 files changed, 54 insertions(+), 40 deletions(-)
+
+diff --git a/SofaImGui/CMakeLists.txt b/SofaImGui/CMakeLists.txt
+index 74fa7fd..33bab61 100644
+--- a/SofaImGui/CMakeLists.txt
++++ b/SofaImGui/CMakeLists.txt
+@@ -99,7 +99,6 @@ set(HEADER_FILES
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/LinearSpringWidget.h
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/MaterialWidget.h
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/ScalarWidget.h
+-    ${SOFAIMGUI_SOURCE_DIR}/windows/Performances.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Log.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/MouseManager.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Profiler.h
+@@ -107,8 +106,6 @@ set(HEADER_FILES
+     ${SOFAIMGUI_SOURCE_DIR}/windows/DisplayFlags.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Plugins.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Components.h
+-    ${SOFAIMGUI_SOURCE_DIR}/windows/Settings.h
+-    ${SOFAIMGUI_SOURCE_DIR}/windows/ViewPort.h
+     ${SOFAIMGUI_SOURCE_DIR}/AppIniFile.h
+     ${SOFAIMGUI_SOURCE_DIR}/windows/WindowState.h
+     ${SOFAIMGUI_SOURCE_DIR}/guis/BaseAdditionalGUI.h
+@@ -148,7 +145,7 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${IMGUI_SOURC
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${IMGUI_SOURCE_DIR}>")
+ target_link_libraries(${PROJECT_NAME} PUBLIC SofaGLFW Sofa.GL.Component.Rendering3D ${CMAKE_DL_LIBS})
+ target_link_libraries(${PROJECT_NAME} PRIVATE nfd)
+-target_link_libraries(${PROJECT_NAME} PUBLIC SimpleIni::SimpleIni)
++target_link_libraries(${PROJECT_NAME} PRIVATE SimpleIni::SimpleIni)
+ 
+ # setup the same API exports for imgui
+ target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_API=SOFAIMGUI_API)
+diff --git a/SofaImGui/SofaImGuiConfig.cmake.in b/SofaImGui/SofaImGuiConfig.cmake.in
+index 11e228d..cfc50d5 100644
+--- a/SofaImGui/SofaImGuiConfig.cmake.in
++++ b/SofaImGui/SofaImGuiConfig.cmake.in
+@@ -6,10 +6,6 @@
+ find_package(SofaGLFW REQUIRED)
+ find_package(Sofa.GL.Component.Rendering3D REQUIRED)
+ 
+-if(NOT TARGET SimpleIni::SimpleIni)
+-    sofa_find_package(SimpleIni QUIET REQUIRED)
+-endif()
+-
+ if(NOT TARGET @PROJECT_NAME@)
+     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+ endif()
+diff --git a/SofaImGui/extensions/SofaImGui.Camera/CMakeLists.txt b/SofaImGui/extensions/SofaImGui.Camera/CMakeLists.txt
+index d287caa..31a9872 100644
+--- a/SofaImGui/extensions/SofaImGui.Camera/CMakeLists.txt
++++ b/SofaImGui/extensions/SofaImGui.Camera/CMakeLists.txt
+@@ -5,6 +5,14 @@ project(SofaImGui.Camera VERSION 1.0 LANGUAGES CXX)
+ find_package(Sofa.Config REQUIRED)
+ sofa_find_package(SofaImGui REQUIRED)
+ 
++include(FetchContent)
++
++FetchContent_Declare(imgui
++        GIT_REPOSITORY https://github.com/ocornut/imgui
++        GIT_TAG        11b3a7c8ca23201294464c7f368614a9106af2a1 # v1.91.8-docking
++)
++FetchContent_MakeAvailable(imgui)
++
+ set(HEADER_FILES
+     src/SofaImGui.Camera/config.h.in
+     src/SofaImGui.Camera/init.h
+@@ -18,7 +26,10 @@ set(SOURCE_FILES
+     src/SofaImGui.Camera/CameraGUI.cpp
+ )
+ 
++set(IMGUI_SOURCE_DIR ${imgui_SOURCE_DIR})
++
+ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
++target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${IMGUI_SOURCE_DIR}>")
+ target_link_libraries(${PROJECT_NAME} PUBLIC SofaImGui)
+ 
+ sofa_create_package_with_targets(
+diff --git a/SofaImGui/src/SofaImGui/AppIniFile.cpp b/SofaImGui/src/SofaImGui/AppIniFile.cpp
+index 4058b95..b5c5829 100644
+--- a/SofaImGui/src/SofaImGui/AppIniFile.cpp
++++ b/SofaImGui/src/SofaImGui/AppIniFile.cpp
+@@ -23,7 +23,6 @@
+ #include <sofa/helper/Utils.h>
+ #include <sofa/helper/system/FileSystem.h>
+ #include <sofa/gui/common/BaseGUI.h>
+-#include "windows/Performances.h"
+ #include "AppIniFile.h"
+ 
+ 
+diff --git a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
+index 799fe09..1d6807c 100644
+--- a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
++++ b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
+@@ -70,6 +70,7 @@
+ #include <imgui_internal.h> //imgui_internal.h is included in order to use the DockspaceBuilder API (which is still in development)
+ #include <implot.h>
+ #include <nfd.h>
++#include <SimpleIni.h>
+ #include <sofa/component/visual/VisualStyle.h>
+ #include <sofa/core/ObjectFactory.h>
+ #include <sofa/core/visual/VisualParams.h>
+@@ -90,6 +91,11 @@ using namespace sofa;
+ namespace sofaimgui
+ {
+ 
++struct ImGuiGUIEngine::Settings
++{
++    CSimpleIniA ini;
++};
++
+ ImGuiGUIEngine::ImGuiGUIEngine()
+     : winManagerProfiler(helper::system::FileSystem::append(sofaimgui::getConfigurationFolderPath(), std::string("profiler.txt")))
+     , winManagerSceneGraph(helper::system::FileSystem::append(sofaimgui::getConfigurationFolderPath(), std::string("scenegraph.txt")))
+@@ -106,6 +112,9 @@ ImGuiGUIEngine::ImGuiGUIEngine()
+ {
+ }
+ 
++ImGuiGUIEngine::~ImGuiGUIEngine()
++{}
++
+ void ImGuiGUIEngine::init()
+ {
+     IMGUI_CHECKVERSION();
+@@ -124,22 +133,21 @@ void ImGuiGUIEngine::init()
+     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+ 
+-
+-
+-    ini.SetUnicode();
++    settings = std::make_unique<Settings>();
++    settings->ini.SetUnicode();
+     if (sofa::helper::system::FileSystem::exists(sofaimgui::AppIniFile::getAppIniFile()))
+     {
+-        SI_Error rc = ini.LoadFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
++        SI_Error rc = settings->ini.LoadFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
+         assert(rc == SI_OK);
+         msg_info("ImGuiGUIEngine") << "Fetching settings from " << sofaimgui::AppIniFile::getAppIniFile();
+     }
+ 
+     const char* pv;
+-    pv = ini.GetValue("Style", "theme");
++    pv = settings->ini.GetValue("Style", "theme");
+     if (!pv)
+     {
+-        ini.SetValue("Style", "theme", sofaimgui::defaultStyle.c_str(), ini::styleDescription);
+-        SI_Error rc = ini.SaveFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
++        settings->ini.SetValue("Style", "theme", sofaimgui::defaultStyle.c_str(), ini::styleDescription);
++        SI_Error rc = settings->ini.SaveFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
+         if (rc != SI_OK)
+         {
+             msg_error("ImGuiGUIEngine") << std::strerror(errno) << "'" << sofaimgui::AppIniFile::getAppIniFile() << "'";
+@@ -189,18 +197,18 @@ void ImGuiGUIEngine::initBackend(GLFWwindow* glfwWindow)
+         io.Fonts->AddFontFromMemoryCompressedTTF(FA_SOLID_900_compressed_data, FA_SOLID_900_compressed_size, 16 * yscale, &config, icon_ranges);
+ 
+         // restore the global scale stored in the Settings ini file
+-        const float globalScale = static_cast<float>(ini.GetDoubleValue("Visualization", "globalScale", 1.0));
++        const float globalScale = static_cast<float>(settings->ini.GetDoubleValue("Visualization", "globalScale", 1.0));
+         this->setScale(globalScale, windowMonitor);
+     }
+  
+     // restore window settings if set
+-    const bool rememberWindowPosition = ini.GetBoolValue("Window", "rememberWindowPosition", true);
++    const bool rememberWindowPosition = settings->ini.GetBoolValue("Window", "rememberWindowPosition", true);
+     if(rememberWindowPosition)
+     {
+-        if(ini.KeyExists("Window", "windowPosX") && ini.KeyExists("Window", "windowPosY"))
++        if(settings->ini.KeyExists("Window", "windowPosX") && settings->ini.KeyExists("Window", "windowPosY"))
+         {
+-            const long windowPosX = ini.GetLongValue("Window", "windowPosX");
+-            const long windowPosY = ini.GetLongValue("Window", "windowPosY");
++            const long windowPosX = settings->ini.GetLongValue("Window", "windowPosX");
++            const long windowPosY = settings->ini.GetLongValue("Window", "windowPosY");
+ 
+             int monitorCount;
+             GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+@@ -247,13 +255,13 @@ void ImGuiGUIEngine::initBackend(GLFWwindow* glfwWindow)
+ 
+     }
+ 
+-    const bool rememberWindowSize = ini.GetBoolValue("Window", "rememberWindowSize", true);
++    const bool rememberWindowSize = settings->ini.GetBoolValue("Window", "rememberWindowSize", true);
+     if(rememberWindowSize)
+     {
+-        if(ini.KeyExists("Window", "windowSizeX") && ini.KeyExists("Window", "windowSizeY"))
++        if(settings->ini.KeyExists("Window", "windowSizeX") && settings->ini.KeyExists("Window", "windowSizeY"))
+         {
+-            const long windowSizeX = ini.GetLongValue("Window", "windowSizeX");
+-            const long windowSizeY = ini.GetLongValue("Window", "windowSizeY");
++            const long windowSizeX = settings->ini.GetLongValue("Window", "windowSizeX");
++            const long windowSizeY = settings->ini.GetLongValue("Window", "windowSizeY");
+             if(windowSizeX > 0 && windowSizeY > 0)
+             {
+                 glfwSetWindowSize(glfwWindow, static_cast<int>(windowSizeX), static_cast<int>(windowSizeY));
+@@ -313,7 +321,7 @@ void ImGuiGUIEngine::startFrame(sofaglfw::SofaGLFWBaseGUI* baseGUI)
+ 
+     auto groot = baseGUI->getRootNode();
+ 
+-    bool alwaysShowFrame = ini.GetBoolValue("Visualization", "alwaysShowFrame", true);
++    bool alwaysShowFrame = settings->ini.GetBoolValue("Visualization", "alwaysShowFrame", true);
+     if (alwaysShowFrame)
+     {
+         auto sceneFrame = groot->get<sofa::gl::component::rendering3d::OglSceneFrame>();
+@@ -671,9 +679,9 @@ void ImGuiGUIEngine::startFrame(sofaglfw::SofaGLFWBaseGUI* baseGUI)
+     /***************************************
+      * Viewport window
+      **************************************/
+-    showViewPort(groot, windowNameViewport, ini, m_fbo, m_viewportWindowSize,
+-                 isMouseOnViewport, winManagerViewPort, baseGUI,
+-                 isViewportDisplayedForTheFirstTime, lastViewPortPos);
++    showViewPort(groot, windowNameViewport, settings->ini, m_fbo, m_viewportWindowSize,
++                          isMouseOnViewport, winManagerViewPort, baseGUI,
++                          isViewportDisplayedForTheFirstTime, lastViewPortPos);
+ 
+ 
+     /***************************************
+@@ -731,7 +739,7 @@ void ImGuiGUIEngine::startFrame(sofaglfw::SofaGLFWBaseGUI* baseGUI)
+     /***************************************
+      * Settings window
+      **************************************/
+-    windows::showSettings(windowNameSettings,ini, winManagerSettings, this);
++    windows::showSettings(windowNameSettings, settings->ini, winManagerSettings, this);
+     
+     ImGui::Render();
+ #if SOFAIMGUI_FORCE_OPENGL2 == 1
+@@ -815,17 +823,18 @@ void ImGuiGUIEngine::afterDraw()
+ 
+ void ImGuiGUIEngine::terminate()
+ {
++
+     // store window state (position and size)
+     const auto lastWindowPos = ImGui::GetMainViewport()->Pos;
+     const auto lastWindowSize = ImGui::GetMainViewport()->Size;
+-    
++
+     // save latest window state
+-    ini.SetLongValue("Window", "windowPosX", static_cast<long>(lastWindowPos.x));
+-    ini.SetLongValue("Window", "windowPosY", static_cast<long>(lastWindowPos.y));
+-    ini.SetLongValue("Window", "windowSizeX", static_cast<long>(lastWindowSize.x));
+-    ini.SetLongValue("Window", "windowSizeY", static_cast<long>(lastWindowSize.y));
+-    [[maybe_unused]] SI_Error rc = ini.SaveFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
+-        
++    settings->ini.SetLongValue("Window", "windowPosX", static_cast<long>(lastWindowPos.x));
++    settings->ini.SetLongValue("Window", "windowPosY", static_cast<long>(lastWindowPos.y));
++    settings->ini.SetLongValue("Window", "windowSizeX", static_cast<long>(lastWindowSize.x));
++    settings->ini.SetLongValue("Window", "windowSizeY", static_cast<long>(lastWindowSize.y));
++    [[maybe_unused]] SI_Error rc = settings->ini.SaveFile(sofaimgui::AppIniFile::getAppIniFile().c_str());
++
+     NFD_Quit();
+ 
+ #if SOFAIMGUI_FORCE_OPENGL2 == 1
+diff --git a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
+index ee1e2f7..802d6d5 100644
+--- a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
++++ b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
+@@ -28,7 +28,6 @@
+ 
+ #include "guis/AdditionalGUIRegistry.h"
+ #include "windows/WindowState.h"
+-#include <SimpleIni.h>
+ #include <sofa/simulation/Node.h>
+ 
+ using windows::WindowState;
+@@ -49,7 +48,7 @@ class ImGuiGUIEngine : public sofaglfw::BaseGUIEngine
+ public:
+ 
+     ImGuiGUIEngine() ;
+-    ~ImGuiGUIEngine() = default;
++    ~ImGuiGUIEngine();
+ 
+     void init() override;
+     void initBackend(GLFWwindow*) override;
+@@ -71,7 +70,10 @@ protected:
+     std::pair<unsigned int, unsigned int> m_currentFBOSize;
+     std::pair<float, float> m_viewportWindowSize;
+     bool isMouseOnViewport { false };
+-    CSimpleIniA ini;
++
++    struct Settings;
++    std::unique_ptr<Settings> settings;
++
+     void loadFile(sofaglfw::SofaGLFWBaseGUI* baseGUI, sofa::core::sptr<sofa::simulation::Node>& groot, std::string filePathName, bool reload = false);
+     
+     using _ImGuiID = unsigned int;
+-- 
+2.43.0
+
