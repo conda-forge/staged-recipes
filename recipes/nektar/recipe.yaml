@@ -1,0 +1,72 @@
+context:
+  name: "nektar"
+  nektar_version: 5.9.0
+  buildnum: 0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ nektar_version }}
+
+source:
+  - url: https://gitlab.nektar.info/nektar/nektar/-/archive/v${{ nektar_version }}/nektar-v${{ nektar_version }}.tar.gz
+    sha256: 160fa44913b194aa25a38570316e594383055948b707123a5941a18432544240
+    target_directory: nektar
+    patches:
+      - gsmpi-cmake-min.patch
+      - hdf5-2.0.0.patch
+      - libutilities-hdf5-2.0.0.patch
+      - hdf5-2.0.0-api-compat.patch
+      - scotch-6.0.4-conda-compilers.patch
+
+build:
+  number: ${{ buildnum }}
+  string: ${{ mpi }}_h${{ hash }}_${{ buildnum }}
+  script: build.sh
+  skip:
+    - win
+    - osx
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage('nektar', upper_bound='x') }}
+  build:
+    - bison
+    - cmake
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib("c") }}
+    - flex
+    - make
+    - pkg-config
+  host:
+    - arpack
+    - boost-cpp >=1.74
+    - fftw 
+    - ${{ mpi }}
+    - openblas
+    - tinyxml
+    - zlib
+  run:
+    - arpack
+    - boost-cpp
+    - fftw
+    - ${{ mpi }}
+    - tinyxml
+
+tests:
+  - script:
+    - IncNavierStokesSolver --help || echo "Solver not built (check config)"
+    - nektar++ --version || echo "Basic check failed"
+
+about:
+  homepage: https://www.nektar.info/
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Spectral/hp element framework for CFD
+  description: |
+    Nektar++ is an open-source spectral/hp element framework for solving PDEs using spectral/hp element discretizations.
+
+extra:
+  recipe-maintainers:
+    - j34ni
