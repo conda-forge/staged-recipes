@@ -1,0 +1,89 @@
+{% set number = 0 %}
+{% set name = "numbast" %}
+{% set version = "0.6.0" %}
+{% set sha256 = "e422fa71162c2bf9e9a5dced77fae21b7eb92ae07cce91309cd251de33f4b940" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/numbast/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ number }}
+  skip: true  # [win or osx]
+
+outputs:
+  - name: ast-canopy
+    version: {{ version }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - cmake >=3.29
+        - ninja
+      host:
+        - python
+        - pip
+        - pybind11
+        - setuptools_scm
+        - scikit-build-core
+        - clangdev >=18,<22
+        - llvmdev >=14
+        - llvm >=14
+      run:
+        - python
+        - cuda-version >=12.5
+        - cuda-nvcc >=12.5
+        - clangdev >=18,<22
+        # Needed by clang CUDA wrappers at runtime.
+        - libcurand-dev
+    build:
+      number: {{ number }}
+      skip: true  # [win or osx]
+      script: bash {{ RECIPE_DIR }}/build-astcanopy.sh
+    test:
+      commands:
+      - test -f $PREFIX/lib/libastcanopy.so
+    about:
+      home: https://github.com/NVIDIA/numbast
+      summary: CUDA C++ device-function header parser used by Numbast
+      license: Apache-2.0
+      license_file: LICENSE
+
+  - name: numbast
+    build:
+      number: {{ number }}
+      skip: true  # [win or osx]
+      script: bash {{ RECIPE_DIR }}/build-numbast.sh
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools
+        - setuptools_scm
+        - {{ pin_subpackage('ast-canopy', exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage('ast-canopy', exact=True) }}
+        - cuda-version >=12.5
+        - cuda-nvrtc
+        - numba >=0.59
+        - numba-cuda >=0.25.0
+        - pyyaml
+        - click
+        - jinja2
+        - ruff
+    about:
+      home: https://github.com/NVIDIA/numbast
+      summary: CUDA C++ to Numba.cuda binding generator
+      license: Apache-2.0
+      license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - cryos
+    - isvoid
