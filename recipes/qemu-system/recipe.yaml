@@ -162,8 +162,7 @@ outputs:
             - ${{ library }}share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
             - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,sl,sv,th,tr}
             - ${{ library }}share/qemu/trace-events-all
-            # VGA
-            - ${{ library }}share/qemu/trace-events-all
+            # VGA BIOS (needed for display on all architectures)
             - ${{ library }}share/qemu/vgabios-ati.bin
             - ${{ library }}share/qemu/vgabios.bin
             - ${{ library }}share/qemu/vgabios-bochs-display.bin
@@ -205,6 +204,7 @@ outputs:
         - pkg-config
         - python 3.12.*
       host:
+        # These are here to 'naturally' filter out their content, which gets automatically installed
         - ${{ pin_subpackage('qemu-system-common', exact=True) }}
         # Block layer dependencies (qemu-img, qemu-io, qemu-nbd)
         - glib
@@ -329,6 +329,8 @@ outputs:
     requirements:
       ignore_run_exports:
         by_name:
+          - qemu-system-common
+          - qemu-system-tools
           - adwaita-icon-theme
           - dtc
           - epoxy
@@ -366,6 +368,7 @@ outputs:
         - pkg-config
         - python 3.12.*
       host:
+        # These are here to 'naturally' filter out their content, which gets automatically installed
         - ${{ pin_subpackage('qemu-system-common', exact=True) }}
         - ${{ pin_subpackage('qemu-system-tools', exact=True) }}
         # Common dependencies
@@ -431,6 +434,7 @@ outputs:
             - llvmdev
             - zstd
       run:
+        - ${{ pin_subpackage('qemu-system-common', exact=True) }}
         - ${{ m2 }}openssh
         - libglib
         - lzfse
@@ -538,7 +542,67 @@ outputs:
       - package_contents:
           bin:
             - qemu-${{ qemu_user_execs }}
-      - if: qemu_user_execs != "risv64"
+      - if: qemu_user_execs != "riscv64"
+        then:
+          - script:
+              - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
+              # Cross-compile and run a test binary
+              - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+              - export QEMU_CPU=${{ qemu_user_cpu }}
+              - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
+              - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
+              - grep "Hello from ${{ qemu_user_execs }}!" output.txt
+            requirements:
+              run:
+                - gcc_impl_linux-${{ qemu_user_execs }}
+                - sysroot_linux-${{ qemu_user_execs }} ==${{ qemu_user_sysroot_version }}
+            files:
+              recipe:
+                - tests/hello_arch.c
+
+  - package:
+      name: qemu-execve-${{ qemu_user_execs }}
+    source:
+      - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+        sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
+        target_directory: qemu_source
+        patches:
+          - patches/apply-execve-JH.patch
+          - patches/set-qemu-execve-name.patch
+          - patches/0001-linux-user-fix-missing-resolve-flags.patch
+    build:
+      skip: not linux  # Linux-user only works on Linux hosts
+      script:
+        env:
+          CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
+          CONDA_QEMU_MODE: "linux-user"
+      files:
+        include:
+          - bin/qemu-execve-${{ qemu_user_execs }}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        - glib
+        - libcapstone
+        - libslirp
+        - zlib
+      run:
+        - libcapstone
+        - libglib
+        # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
+    tests:
+      - package_contents:
+          bin:
+            - qemu-execve-${{ qemu_user_execs }}
+      - if: qemu_user_execs != "riscv64"
         then:
           - script:
               - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
@@ -637,67 +701,6 @@ outputs:
       - script:
           # Just test help works (actual execution requires VM setup)
           - qemu-windows-arm64 --help
-
-  # - package:
-  #     name: qemu-execve-${{ qemu_user_execs }}
-  #   source:
-  #     - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
-  #       sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
-  #       target_directory: qemu_source
-  #       patches:
-  #         - patches/apply-execve-JH.patch
-  #         - patches/set-qemu-execve-name.patch
-  #         - patches/0001-linux-user-fix-missing-resolve-flags.patch
-  #   build:
-  #     skip: not linux  # Linux-user only works on Linux hosts
-  #     script:
-  #       env:
-  #         CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
-  #         CONDA_QEMU_MODE: "linux-user"
-  #     files:
-  #       include:
-  #         # Linux-user only needs the binary - no firmware, keymaps, etc.
-  #         - bin/qemu-execve-${{ qemu_user_execs }}
-  #   requirements:
-  #     build:
-  #       - ${{ compiler('c') }}
-  #       - ${{ stdlib('c') }}
-  #       - bash >=5.2
-  #       - git
-  #       - meson
-  #       - ninja
-  #       - pkg-config
-  #       - python 3.12.*
-  #     host:
-  #       - glib
-  #       - libcapstone
-  #       - libslirp
-  #       - zlib
-  #     run:
-  #       - libcapstone
-  #       - libglib
-  #       # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
-  #   tests:
-  #     - package_contents:
-  #         bin:
-  #           - qemu-execve-${{ qemu_user_execs }}
-  #     - if: qemu_user_execs != "risv64"
-  #       then:
-  #         - script:
-  #             - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
-  #             # Cross-compile and run a test binary
-  #             - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
-  #             - export QEMU_CPU=${{ qemu_user_cpu }}
-  #             - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
-  #             - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
-  #             - grep "Hello from ${{ qemu_user_execs }}!" output.txt
-  #           requirements:
-  #             run:
-  #               - gcc_impl_linux-${{ qemu_user_execs }}
-  #               - sysroot_linux-${{ qemu_user_execs }} ==${{ qemu_user_sysroot_version }}
-  #           files:
-  #             recipe:
-  #               - tests/hello_arch.c
 
 about:
   homepage: https://gitlab.com/qemu-project/qemu
