@@ -67,4 +67,5 @@ setup_parallel_build_jobs() {
 
 
 setup_parallel_build_jobs
-$PYTHON -m pip install . --no-deps --no-build-isolation -vv
+export CMAKE_GENERATOR=Ninja
+$PYTHON -m pip install --no-deps --no-build-isolation -vv .
