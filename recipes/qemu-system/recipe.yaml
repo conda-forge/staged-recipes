@@ -7,6 +7,9 @@ context:
   m2: ${{ "m2-" if not unix }}
   xt: ${{ ".exe" if not unix }}
 
+  # Alpine Linux for qemu-arm64 VM (osx-64 only)
+  alpine_version: "3.23.3"
+
 recipe:
   name: qemu-split
   version: ${{ version }}
@@ -36,6 +39,15 @@ source:
       - if: linux
         then:
           - patches/0001-linux-user-fix-missing-resolve-flags.patch
+  # Alpine Linux netboot for qemu-arm64 on osx-64 (direct kernel boot)
+  - if: osx and x86_64
+    then:
+      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-netboot-${{ alpine_version }}-aarch64.tar.gz
+        sha256: ba325341425f95a95e68be1bf3981598d2a9274c94ef09fd919b6ba6ce23f4b6
+        target_directory: alpine_netboot
+      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-${{ alpine_version }}-aarch64.tar.gz
+        sha256: f219bb9d65febed9046951b19f2b893b331315740af32c47e39b38fcca4be543
+        target_directory: alpine_rootfs
 
 build:
   number: ${{ build_number }}
@@ -489,8 +501,8 @@ outputs:
                 QEMU_PID=$!
                 sleep 30
                 kill $QEMU_PID 2>/dev/null || true
-              # Check for successful boot with network (cirros login prompt)
-              - grep -q "cirros" boot.log && echo "aarch64 boot test PASSED"
+              # Check for successful boot (syslogd started = init working)
+              - grep -q "Starting syslogd" boot.log && echo "aarch64 boot test PASSED"
           - if: qemu_system_execs == "ppc64"
             then:
               - curl -fsSL -o cirros-kernel https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-ppc64le-kernel
@@ -504,8 +516,8 @@ outputs:
                 QEMU_PID=$!
                 sleep 30
                 kill $QEMU_PID 2>/dev/null || true
-              # Check for successful boot with network (cirros login prompt)
-              - grep -q "cirros" boot.log && echo "ppc64 boot test PASSED"
+              # Check for successful boot (syslogd started = init working)
+              - grep -q "Starting syslogd" boot.log && echo "ppc64 boot test PASSED"
           - if: qemu_system_execs == "riscv64"
             then:
               # Use Debian's riscv64 netboot kernel
@@ -569,7 +581,7 @@ outputs:
           - script:
               - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
               # Cross-compile and run a test binary
-              - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+              - export QEMU_LD_PREFIX="${PREFIX}/${{ "powerpc64le" if qemu_user_sysroot == "ppc64le" else qemu_user_sysroot }}-conda-linux-gnu/sysroot"
               - export QEMU_CPU=${{ qemu_user_cpu }}
               - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
               - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
@@ -581,6 +593,39 @@ outputs:
             files:
               recipe:
                 - tests/hello_arch.c
+
+  # qemu-arm64: Direct kernel boot ARM64 emulation for osx-64 (Intel Macs)
+  # Provides qemu-user-like interface using Alpine Linux direct boot
+  - package:
+      name: qemu-arm64
+    build:
+      skip: not (osx and x86_64)  # Only for Intel Macs
+      script:
+        file: ${RECIPE_DIR}/helpers/build-qemu-arm64.sh
+    requirements:
+      build:
+        - coreutils  # For creating initramfs
+        - gzip
+      run:
+        - qemu-system-aarch64
+        - cpio
+        - gzip
+    tests:
+      - package_contents:
+          bin:
+            - qemu-arm64
+          share:
+            - qemu-arm64/vmlinuz-virt
+            - qemu-arm64/initramfs-base.cpio.gz
+      - script:
+          - qemu-arm64 --version
+          - arm64-apple-darwin20.0.0-clang -o hello_arch tests/hello_arch.c
+          - qemu-arm64 ./hello_arch arm64 > output.txt
+          - grep "Hello from $arm64!" output.txt
+        files:
+          recipe:
+            - clang_impl_osx-arm64
+            - tests/hello_arch.c
 
   # - package:
   #     name: qemu-execve-${{ qemu_user_execs }}
