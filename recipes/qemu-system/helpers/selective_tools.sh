@@ -91,7 +91,7 @@ build_and_install_tools() {
 
   [[ -z "${tools_env_value}" ]] && return 0
 
-  read -ra TOOLS_ARRAY <<< "${tools_env_value}"
+  IFS=' ' read -ra TOOLS_ARRAY <<< "${tools_env_value}"
 
   # Add .exe suffix for Windows builds
   if [[ "${add_exe_suffix}" == "true" ]]; then
