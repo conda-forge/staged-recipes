@@ -1,0 +1,83 @@
+From 64e9a8a915cfa67e5cbc266c59b3dc609ce18700 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Fri, 13 Feb 2026 01:24:32 -0700
+Subject: [PATCH] FIX: Add BUILD_STATIC_LIBS CMake option to disable static
+ builds
+
+---
+ CMakeLists.txt | 38 ++++++++++++++++++++++++++------------
+ 1 file changed, 26 insertions(+), 12 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 174fe1c..2608cdc 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -173,19 +173,26 @@ if( BUILTIN_BAT )
+ endif()
+ 
+ # Build the static library.
+-add_library( KLFitter-stat ${lib_headers} ${lib_sources} )
+-target_include_directories( KLFitter-stat
+-   PUBLIC ${ROOT_INCLUDE_DIRS} ${BAT_INCLUDE_DIR}
+-   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include> )
+-target_link_libraries( KLFitter-stat ${ROOT_LIBRARIES} ${BAT_LIBRARY} )
+-set_property( TARGET KLFitter-stat
+-   PROPERTY PUBLIC_HEADER ${lib_headers} )
+-if( BUILTIN_BAT )
+-  add_dependencies( KLFitter-stat BAT )
++option( BUILD_STATIC_LIBS "Build the KLFitter-stat static library" ON )
++if( BUILD_STATIC_LIBS )
++  add_library( KLFitter-stat ${lib_headers} ${lib_sources} )
++  target_include_directories( KLFitter-stat
++     PUBLIC ${ROOT_INCLUDE_DIRS} ${BAT_INCLUDE_DIR}
++     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include> )
++  target_link_libraries( KLFitter-stat ${ROOT_LIBRARIES} ${BAT_LIBRARY} )
++  set_property( TARGET KLFitter-stat
++     PROPERTY PUBLIC_HEADER ${lib_headers} )
++  if( BUILTIN_BAT )
++    add_dependencies( KLFitter-stat BAT )
++  endif()
+ endif()
+ 
+ # Install the libraries.
+-install( TARGETS KLFitter KLFitter-stat
++set( _installTargets KLFitter )
++if( BUILD_STATIC_LIBS )
++  list( APPEND _installTargets KLFitter-stat )
++endif()
++install( TARGETS ${_installTargets}
+    EXPORT KLFitterTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+@@ -195,11 +202,18 @@ install( TARGETS KLFitter KLFitter-stat
+ install( DIRECTORY data/transferfunctions/
+   DESTINATION share/KLFitter/transferfunctions )
+ 
++# Select the library to link tests and executables against.
++if( BUILD_STATIC_LIBS )
++  set( _klf_link_lib KLFitter-stat )
++else()
++  set( _klf_link_lib KLFitter )
++endif()
++
+ # Helper macro for building the project's unit tests.
+ macro( KLFitter_add_test name )
+    # Build the unit-test executable:
+    add_executable( ${name} ${ARGN} )
+-   target_link_libraries( ${name} KLFitter-stat )
++   target_link_libraries( ${name} ${_klf_link_lib} )
+    set_target_properties( ${name} PROPERTIES
+       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test-bin" )
+    # Set up the test itself:
+@@ -217,7 +231,7 @@ endif()
+ # Helper macro for building the project's executables.
+ macro( KLFitter_add_executable name )
+   add_executable( ${name} ${ARGN} )
+-  target_link_libraries( ${name} KLFitter-stat )
++  target_link_libraries( ${name} ${_klf_link_lib} )
+   install( TARGETS ${name}
+     EXPORT KLFitterTargets
+     RUNTIME DESTINATION bin )
+-- 
+2.52.0
+
