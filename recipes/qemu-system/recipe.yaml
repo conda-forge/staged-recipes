@@ -1,19 +1,19 @@
 context:
   build_number: 0
   name: qemu-system
-  version: "10.2.0"
+  version: "10.2.1"
 
   library: ${{ "Library/" if not unix }}
   m2: ${{ "m2-" if not unix }}
   xt: ${{ ".exe" if not unix }}
 
 recipe:
-  name: qemu-system-split
+  name: qemu-split
   version: ${{ version }}
 
 source:
   - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
-    sha256: 6d7046777ce992e5ce88c413ebe3d1f57b1833e7d8200724097c9b74507e196e
+    sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
     target_directory: qemu_source
     patches:
       - patches/set-qemu-name.patch
@@ -32,6 +32,10 @@ source:
           - patches/0004-win-fix-PYTHON-var-Makefile.patch
           - patches/0005-win-fix-tracetool-path.patch
           - patches/0006-win-mkvenv-accept-system-packages.patch
+      # Linux patches (for linux-user mode with older sysroot headers)
+      - if: linux
+        then:
+          - patches/0001-linux-user-fix-missing-resolve-flags.patch
 
 build:
   number: ${{ build_number }}
@@ -259,6 +263,7 @@ outputs:
         env:
           CONDA_QEMU_TARGET: "${{ qemu_system_execs }}"
           CONDA_QEMU_TOOLS: ""
+          CONDA_QEMU_MODE: "system"
       always_include_files:
         - ${{ library }}share/qemu/edk2-licenses.txt
         - if: qemu_system_execs == "aarch64"
@@ -456,18 +461,187 @@ outputs:
                 - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
                 - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
       - script:
+          # Basic sanity check - verify machine types are available
           - if: qemu_system_execs == "aarch64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "Raspberry Pi 4B" && echo "qemu-system-${{ qemu_system_execs }} OK"
+              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "Raspberry Pi 4B"
           - if: qemu_system_execs == "ppc64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "IBM PowerNV (Non-Virtualized) POWER9" && echo "qemu-system-${{ qemu_system_execs }} OK"
+              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "IBM PowerNV (Non-Virtualized) POWER9"
           - if: qemu_system_execs == "riscv64"
             then:
-              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "AMD Microblaze-V generic platform" && echo "qemu-system-${{ qemu_system_execs }} OK"
+              - qemu-system-${{ qemu_system_execs }} -machine help | grep -q "AMD Microblaze-V generic platform"
         requirements:
           run:
             - ${{ m2 }}grep
+      # Boot test with CirrOS/Debian minimal images
+      - script:
+          - if: qemu_system_execs == "aarch64"
+            then:
+              - curl -fsSL -o cirros-kernel https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-aarch64-kernel
+              - curl -fsSL -o cirros-initramfs https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-aarch64-initramfs
+              - |
+                timeout 60 qemu-system-aarch64 \
+                  -M virt -cpu cortex-a57 -m 256 -nographic \
+                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
+                  -kernel cirros-kernel -initrd cirros-initramfs \
+                  -append "console=ttyAMA0 ds=nocloud" 2>&1 | tee boot.log &
+                QEMU_PID=$!
+                sleep 30
+                kill $QEMU_PID 2>/dev/null || true
+              # Check for successful boot with network (cirros login prompt)
+              - grep -q "cirros" boot.log && echo "aarch64 boot test PASSED"
+          - if: qemu_system_execs == "ppc64"
+            then:
+              - curl -fsSL -o cirros-kernel https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-ppc64le-kernel
+              - curl -fsSL -o cirros-initramfs https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-ppc64le-initramfs
+              - |
+                timeout 60 qemu-system-ppc64 \
+                  -M pseries -cpu power9 -m 512 -nographic \
+                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
+                  -kernel cirros-kernel -initrd cirros-initramfs \
+                  -append "console=hvc0 ds=nocloud" 2>&1 | tee boot.log &
+                QEMU_PID=$!
+                sleep 30
+                kill $QEMU_PID 2>/dev/null || true
+              # Check for successful boot with network (cirros login prompt)
+              - grep -q "cirros" boot.log && echo "ppc64 boot test PASSED"
+          - if: qemu_system_execs == "riscv64"
+            then:
+              # Use Debian's riscv64 netboot kernel
+              - curl -fsSL -o linux https://deb.debian.org/debian/dists/stable/main/installer-riscv64/current/images/netboot/debian-installer/riscv64/linux
+              - curl -fsSL -o initrd.gz https://deb.debian.org/debian/dists/stable/main/installer-riscv64/current/images/netboot/debian-installer/riscv64/initrd.gz
+              - |
+                timeout 60 qemu-system-riscv64 \
+                  -M virt -m 512 -nographic \
+                  -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
+                  -bios ${PREFIX}/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin \
+                  -kernel linux -initrd initrd.gz \
+                  -append "console=ttyS0 earlycon=sbi" 2>&1 | tee boot.log &
+                QEMU_PID=$!
+                sleep 30
+                kill $QEMU_PID 2>/dev/null || true
+              # Debian installer kernel - check for Linux boot messages
+              - grep -qE "(Linux version|Booting Linux)" boot.log && echo "riscv64 boot test PASSED"
+        requirements:
+          run:
+            - ${{ m2 }}curl
+            - ${{ m2 }}coreutils  # for timeout, tee, sleep, kill
+            - ${{ m2 }}grep
+
+  - package:
+      name: qemu-${{ qemu_user_execs }}
+    build:
+      skip: not linux  # Linux-user only works on Linux hosts
+      script:
+        env:
+          CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
+          CONDA_QEMU_MODE: "linux-user"
+      files:
+        include:
+          # Linux-user only needs the binary - no firmware, keymaps, etc.
+          - bin/qemu-${{ qemu_user_execs }}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        - glib
+        - libcapstone
+        - libslirp
+        - zlib
+      run:
+        - libcapstone
+        - libglib
+        # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
+    tests:
+      - package_contents:
+          bin:
+            - qemu-${{ qemu_user_execs }}
+      - if: qemu_user_execs != "risv64"
+        then:
+          - script:
+              - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
+              # Cross-compile and run a test binary
+              - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+              - export QEMU_CPU=${{ qemu_user_cpu }}
+              - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
+              - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
+              - grep "Hello from ${{ qemu_user_execs }}!" output.txt
+            requirements:
+              run:
+                - gcc_impl_linux-${{ qemu_user_sysroot }}
+                - sysroot_linux-${{ qemu_user_sysroot }} ==${{ qemu_user_sysroot_version }}
+            files:
+              recipe:
+                - tests/hello_arch.c
+
+  # - package:
+  #     name: qemu-execve-${{ qemu_user_execs }}
+  #   source:
+  #     - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+  #       sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
+  #       target_directory: qemu_source
+  #       patches:
+  #         - patches/apply-execve-JH.patch
+  #         - patches/set-qemu-execve-name.patch
+  #         - patches/0001-linux-user-fix-missing-resolve-flags.patch
+  #   build:
+  #     skip: not linux  # Linux-user only works on Linux hosts
+  #     script:
+  #       env:
+  #         CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
+  #         CONDA_QEMU_MODE: "linux-user"
+  #     files:
+  #       include:
+  #         # Linux-user only needs the binary - no firmware, keymaps, etc.
+  #         - bin/qemu-execve-${{ qemu_user_execs }}
+  #   requirements:
+  #     build:
+  #       - ${{ compiler('c') }}
+  #       - ${{ stdlib('c') }}
+  #       - bash >=5.2
+  #       - git
+  #       - meson
+  #       - ninja
+  #       - pkg-config
+  #       - python 3.12.*
+  #     host:
+  #       - glib
+  #       - libcapstone
+  #       - libslirp
+  #       - zlib
+  #     run:
+  #       - libcapstone
+  #       - libglib
+  #       # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
+  #   tests:
+  #     - package_contents:
+  #         bin:
+  #           - qemu-execve-${{ qemu_user_execs }}
+  #     - if: qemu_user_execs != "risv64"
+  #       then:
+  #         - script:
+  #             - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
+  #             # Cross-compile and run a test binary
+  #             - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+  #             - export QEMU_CPU=${{ qemu_user_cpu }}
+  #             - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
+  #             - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
+  #             - grep "Hello from ${{ qemu_user_execs }}!" output.txt
+  #           requirements:
+  #             run:
+  #               - gcc_impl_linux-${{ qemu_user_sysroot }}
+  #               - sysroot_linux-${{ qemu_user_sysroot }} ==${{ qemu_user_sysroot_version }}
+  #           files:
+  #             recipe:
+  #               - tests/hello_arch.c
 
 about:
   homepage: https://gitlab.com/qemu-project/qemu
@@ -505,4 +679,4 @@ about:
 extra:
   recipe-maintainers:
     - MementoRC
-  feedstock-name: qemu-system
+  feedstock-name: qemu

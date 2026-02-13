@@ -28,9 +28,19 @@ else
   export QEMU_INSTALL_PREFIX="${PREFIX}"/Library
 fi
 
+mode="${CONDA_QEMU_MODE:-system}"
+static="${CONDA_QEMU_STATIC:-false}"
+
+echo "=== QEMU Build Configuration ==="
+echo "CONDA_QEMU_TARGET: ${CONDA_QEMU_TARGET:-<empty>}"
+echo "CONDA_QEMU_MODE: ${CONDA_QEMU_MODE:-<empty>}"
+echo "CONDA_QEMU_TOOLS: ${CONDA_QEMU_TOOLS:-<empty>}"
+echo "Resolved mode: ${mode}"
+echo "================================"
+
 # Build configure arguments using feature profiles
 qemu_args=()
-build_configure_args qemu_args "${CONDA_QEMU_TARGET:-}" "${CONDA_QEMU_TOOLS:-}" "${target_platform}"
+build_configure_args qemu_args "${CONDA_QEMU_TARGET:-}" "${CONDA_QEMU_TOOLS:-}" "${target_platform}" "${mode}"
 
 # Platform-specific build
 if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; then
@@ -41,6 +51,14 @@ else
     "--datadir=${QEMU_INSTALL_PREFIX}/share/qemu"
   )
   build_install_qemu_non_unix "${SRC_DIR}/_conda-build" "${QEMU_INSTALL_PREFIX}" "${qemu_args[@]}"
+fi
+
+# Rename static linux-user binaries to include -static suffix
+if [[ "${mode}" == "linux-user" ]] && [[ "${static}" == "true" ]]; then
+  target="${CONDA_QEMU_TARGET}"
+  if [[ -f "${QEMU_INSTALL_PREFIX}/bin/qemu-${target}" ]]; then
+    mv "${QEMU_INSTALL_PREFIX}/bin/qemu-${target}" "${QEMU_INSTALL_PREFIX}/bin/qemu-${target}-static"
+  fi
 fi
 
 # Install desktop assets for common package (no target, no tools)

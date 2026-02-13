@@ -44,7 +44,7 @@ build_install_qemu() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       "${platform_args[@]}" \
-      --enable-strip
+      --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
 
     # Build and install
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
@@ -87,7 +87,8 @@ build_install_qemu_non_unix() {
     # Configure
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
-      "${qemu_args[@]}"
+      "${qemu_args[@]}" \
+      --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
 
     # Apply Windows build.ninja fixes
     patch_windows_build_ninja "${build_dir}"
