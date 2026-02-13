@@ -11,18 +11,21 @@ source:
 
 build:
   number: 0
-  noarch: generic
-  # NuGet-provided native libraries are redistributed under runtimes/<rid>/native.
-  # These binaries are prebuilt against their platform system toolchains and are
-  # not linked by conda-build, so overlinking checks are not applicable here.
-  overlinking_ignore_patterns:
-    - libexec/cascode/runtimes/*/native/*
+  # .NET app host links to macOS system frameworks not present in the 10.13 SDK.
+  # These are guaranteed to exist on macOS 12+ (enforced via c_stdlib_version=12.0).
+  missing_dso_whitelist:  # [osx]
+    - /System/Library/Frameworks/Network.framework/*  # [osx]
+    - /System/Library/Frameworks/CryptoKit.framework/*  # [osx]
+    - /usr/lib/swift/libswift*.dylib  # [osx]
 
 requirements:
-  host:
-    - dotnet
+  build:
+    - dotnet-sdk ~=10.0
+    - {{ stdlib('c') }}
   run:
-    - dotnet
+    - dotnet-runtime ~=10.0
+    - libgcc  # [linux]
+    - libstdcxx  # [linux]
 
 test:
   commands:
