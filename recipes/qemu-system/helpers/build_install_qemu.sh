@@ -32,8 +32,10 @@ build_install_qemu() {
 
   # Platform-specific configure flags
   local platform_args=()
+  local strip_arg="--enable-strip"
   if [[ "${target_platform}" == osx-* ]]; then
     platform_args+=(--disable-pvg)  # Requires macOS 12+ SDK
+    strip_arg="--disable-strip"     # Strip conflicts with code signing on macOS
   fi
 
   mkdir -p "${build_dir}"
@@ -44,14 +46,14 @@ build_install_qemu() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       "${platform_args[@]}" \
-      --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
+      ${strip_arg} > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
 
     # Build and install
     if [[ -n "${CONDA_QEMU_TOOLS:-}" ]]; then
       build_selective_tools "${build_dir}" "${install_dir}" "false"
     else
       ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
-      ninja install > "${SRC_DIR}"/_install.log 2>&1
+      ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
     fi
 
     # macOS: Strip extended attributes before codesigning

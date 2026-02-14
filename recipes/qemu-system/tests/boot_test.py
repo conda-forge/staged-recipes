@@ -19,6 +19,13 @@ def run_boot_test(arch: str, prefix: str) -> bool:
     """Run a QEMU boot test for the specified architecture."""
 
     # Configuration per architecture
+    # Windows: use -nic none (SLIRP not available)
+    # Linux/macOS: use user-mode networking
+    if sys.platform == "win32":
+        net_args = ["-nic", "none"]
+    else:
+        net_args = ["-netdev", "user,id=net0", "-device", "virtio-net-pci,netdev=net0,romfile="]
+
     configs = {
         "aarch64": {
             "kernel_url": "https://download.cirros-cloud.net/0.6.3/cirros-0.6.3-aarch64-kernel",
@@ -30,9 +37,8 @@ def run_boot_test(arch: str, prefix: str) -> bool:
                 "-cpu", "cortex-a57",
                 "-m", "256",
                 "-nographic",
-                "-netdev", "user,id=net0",
-                "-device", "virtio-net-pci,netdev=net0,romfile=",
-                "-append", "console=ttyAMA0 ds=nocloud",
+            ] + net_args + [
+                "-append", "console=ttyAMA0",
             ],
             "success_pattern": "Starting syslogd",
         },
@@ -46,9 +52,8 @@ def run_boot_test(arch: str, prefix: str) -> bool:
                 "-cpu", "power9",
                 "-m", "512",
                 "-nographic",
-                "-netdev", "user,id=net0",
-                "-device", "virtio-net-pci,netdev=net0,romfile=",
-                "-append", "console=hvc0 ds=nocloud",
+            ] + net_args + [
+                "-append", "console=hvc0",
             ],
             "success_pattern": "Starting syslogd",
         },
@@ -61,8 +66,7 @@ def run_boot_test(arch: str, prefix: str) -> bool:
                 "-M", "virt",
                 "-m", "512",
                 "-nographic",
-                "-netdev", "user,id=net0",
-                "-device", "virtio-net-pci,netdev=net0,romfile=",
+            ] + net_args + [
                 "-append", "console=ttyS0 earlycon=sbi",
             ],
             "success_pattern": "Linux version",
