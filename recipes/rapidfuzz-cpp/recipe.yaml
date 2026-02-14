@@ -1,0 +1,70 @@
+context:
+  version: 3.3.3
+
+package:
+  name: rapidfuzz-cpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/rapidfuzz/rapidfuzz-cpp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: "fa0fbd40110df8134cf05bddbaa4e237dbc4fd915ab9a3029ff481a8d3e8b757"
+
+build:
+  number: 0
+
+  script:
+    - if: win
+      then: |
+        mkdir build
+        cd build
+        cmake -G "Ninja" %CMAKE_ARGS% ^
+          -DRAPIDFUZZ_BUILD_TESTING=OFF ^
+          -DRAPIDFUZZ_BUILD_BENCHMARKS=OFF ^
+          %SRC_DIR%
+        if errorlevel 1 exit 1
+        ninja install
+        if errorlevel 1 exit 1
+
+    - if: not win
+      then: |
+        mkdir build && cd build
+        cmake -G "Ninja" ${CMAKE_ARGS} \
+          -DRAPIDFUZZ_BUILD_TESTING=OFF \
+          -DRAPIDFUZZ_BUILD_BENCHMARKS=OFF \
+          ${SRC_DIR}
+        ninja install
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.5
+    - ninja
+  ignore_run_exports:
+    from_package:
+      - ${{ (compiler('cxx') | split(' '))[0] }}
+      - ${{ (stdlib('c') | split(' '))[0] }}
+
+tests:
+  - package_contents:
+      include:
+        - rapidfuzz/fuzz.hpp
+      files:
+        - "**/cmake/rapidfuzz/rapidfuzzConfig.cmake"
+
+about:
+  homepage: https://github.com/rapidfuzz/rapidfuzz-cpp
+  repository: https://github.com/rapidfuzz/rapidfuzz-cpp
+  documentation: https://rapidfuzz.github.io/rapidfuzz-cpp
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: Rapid fuzzy string matching in C++ (Levenshtein and other metrics)
+  description: |
+    Fast string similarity library in C++ providing Levenshtein distance,
+    Hamming, Jaro-Winkler, fuzz ratios (partial, token sort, etc.) and more.
+    Designed as high-performance backend for rapidfuzz (Python) but usable standalone.
+
+extra:
+  recipe-maintainers:
+    - faceprint
