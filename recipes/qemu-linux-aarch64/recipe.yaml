@@ -18,21 +18,28 @@ source:
 build:
   number: ${{ build_number }}
   skip: not ((osx and x86_64) or win)
-  script: build-qemu-linux-arm64.py
+  script:
+    env:
+      ALPINE_VERSION: ${{ version }}
+    file:
+      - build-qemu-linux-aarch64.py
 
 requirements:
   build:
     - ${{ m2 }}coreutils  # For creating initramfs
     - ${{ m2 }}gzip
     - ${{ m2 }}tar
-    - ${{ m2 }}cpio
     - python 3.12.*
+    - if: unix
+      then:
+        - ${{ m2 }}cpio
   run:
     - qemu-system-aarch64
-    - ${{ m2 }}cpio
     - ${{ m2 }}gzip
-    - if: win
+    - if: unix
       then:
+        - ${{ m2 }}cpio
+      else:
         - m2-bash
 tests:
   - package_contents:
@@ -40,18 +47,18 @@ tests:
       bin:
         - if: unix
           then:
-            - qemu-arm64
+            - qemu-linux-aarch64
         - if: win
           then:
-            - Library/bin/qemu-arm64.cmd
+            - Library/bin/qemu-linux-aarch64.cmd
       files:
-        - ${{ library }}share/qemu-arm64/vmlinuz-virt
-        - ${{ library }}share/qemu-arm64/initramfs-base.cpio.gz
+        - ${{ library }}share/qemu-linux-aarch64/vmlinuz-virt
+        - ${{ library }}share/qemu-linux-aarch64/initramfs-base.cpio.gz
   - script:
-      - qemu-arm64 --version
+      - qemu-linux-aarch64 --version
       # Cross-compile ARM64 Linux binary and run via qemu-arm64
       - aarch64-conda-linux-gnu-gcc -static -o hello_arm64 tests/hello_arch.c
-      - qemu-arm64 ./hello_arm64 arm64 > output.txt
+      - qemu-linux-aarch64 ./hello_arm64 arm64 > output.txt
       - grep "Hello from arm64!" output.txt
     requirements:
       run:

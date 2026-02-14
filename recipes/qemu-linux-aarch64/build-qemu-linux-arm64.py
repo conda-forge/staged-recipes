@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build script for qemu-linux-arm64 package (Alpine direct-boot wrapper).
+"""Build script for qemu-linux-aarch64 package (Alpine direct-boot wrapper).
 
 Creates Alpine Linux direct-boot setup for ARM64 emulation.
 Supports: osx-64 (Intel Macs), win-64 (Windows)
@@ -21,13 +21,13 @@ ALPINE_VERSION = os.environ["alpine_version"]
 IS_WINDOWS = sys.platform == "win32" or os.environ.get("MSYSTEM")
 
 if IS_WINDOWS:
-    SHARE_DIR = PREFIX / "Library" / "share" / "qemu-arm64"
+    SHARE_DIR = PREFIX / "Library" / "share" / "qemu-linux-aarch64"
     BIN_DIR = PREFIX / "Library" / "bin"
 else:
-    SHARE_DIR = PREFIX / "share" / "qemu-arm64"
+    SHARE_DIR = PREFIX / "share" / "qemu-linux-aarch64"
     BIN_DIR = PREFIX / "bin"
 
-print(f"=== Building qemu-linux-arm64 (direct kernel boot) ===")
+print(f"=== Building qemu-linux-aarch64 (direct kernel boot) ===")
 print(f"Platform: {'Windows' if IS_WINDOWS else 'Unix'}")
 
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory() as initramfs_dir:
     # Create init script
     init_script = initramfs_path / "init"
     init_script.write_text(r'''#!/bin/sh
-# qemu-arm64 init script - runs target binary and exits
+# qemu-linux-aarch64 init script - runs target binary and exits
 
 mount -t proc proc /proc
 mount -t sysfs sys /sys
@@ -116,20 +116,20 @@ for d in ["boot", "apks"]:
 
 # Create the wrapper script
 WRAPPER_SCRIPT = r'''#!/bin/bash
-# qemu-arm64: Run ARM64 Linux binaries via QEMU direct boot
+# qemu-linux-aarch64: Run ARM64 Linux binaries via QEMU direct boot
 set -euo pipefail
 
 if [[ "${OSTYPE:-}" == "msys" ]] || [[ "${OSTYPE:-}" == "cygwin" ]] || [[ -n "${MSYSTEM:-}" ]]; then
-    SHARE_DIR="${CONDA_PREFIX}/Library/share/qemu-arm64"
+    SHARE_DIR="${CONDA_PREFIX}/Library/share/qemu-linux-aarch64"
 else
-    SHARE_DIR="${CONDA_PREFIX}/share/qemu-arm64"
+    SHARE_DIR="${CONDA_PREFIX}/share/qemu-linux-aarch64"
 fi
 KERNEL="${SHARE_DIR}/vmlinuz-virt"
 INITRAMFS_BASE="${SHARE_DIR}/initramfs-base.cpio.gz"
 
 usage() {
     cat <<'EOF'
-Usage: qemu-arm64 [options] program [args...]
+Usage: qemu-linux-aarch64 [options] program [args...]
 
 Run ARM64 Linux binaries using QEMU system emulation with Alpine Linux.
 
@@ -144,7 +144,7 @@ EOF
 }
 
 version() {
-    echo "qemu-arm64 (Alpine direct-boot wrapper)"
+    echo "qemu-linux-aarch64 (Alpine direct-boot wrapper)"
     qemu-system-aarch64 --version | head -1
 }
 
@@ -171,7 +171,7 @@ fi
 MEMORY="${QEMU_ARM64_MEMORY:-256}"
 DEBUG="${QEMU_ARM64_DEBUG:-}"
 
-TEMP_SHARE=$(mktemp -d -t qemu-arm64.XXXXXX)
+TEMP_SHARE=$(mktemp -d -t qemu-linux-aarch64.XXXXXX)
 cleanup() { rm -rf "${TEMP_SHARE}"; }
 trap cleanup EXIT
 
@@ -202,19 +202,19 @@ else
 fi
 '''
 
-wrapper_path = BIN_DIR / "qemu-arm64"
+wrapper_path = BIN_DIR / "qemu-linux-aarch64"
 wrapper_path.write_text(WRAPPER_SCRIPT, encoding="utf-8", newline="\n")
 wrapper_path.chmod(0o755)
 
 # Windows .cmd wrapper
 if IS_WINDOWS:
-    cmd_wrapper = BIN_DIR / "qemu-arm64.cmd"
+    cmd_wrapper = BIN_DIR / "qemu-linux-aarch64.cmd"
     cmd_wrapper.write_text(
-        '@echo off\n"%~dp0\\..\\usr\\bin\\bash.exe" -l "%~dp0\\qemu-arm64" %*\n',
+        '@echo off\n"%~dp0\\..\\usr\\bin\\bash.exe" -l "%~dp0\\qemu-linux-aarch64" %*\n',
         encoding="utf-8"
     )
 
-print(f"=== qemu-linux-arm64 build complete ===")
+print(f"=== qemu-linux-aarch64 build complete ===")
 print(f"Kernel: {SHARE_DIR / 'vmlinuz-virt'}")
 print(f"Initramfs: {SHARE_DIR / 'initramfs-base.cpio.gz'}")
 print(f"Wrapper: {wrapper_path}")
