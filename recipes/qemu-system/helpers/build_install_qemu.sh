@@ -35,6 +35,7 @@ build_install_qemu() {
   local strip_arg="--enable-strip"
   if [[ "${target_platform}" == osx-* ]]; then
     platform_args+=(--disable-pvg)  # Requires macOS 12+ SDK
+    platform_args+=(--disable-hvf)  # HVF entitlement script requires Rez (not in modern SDK)
     strip_arg="--disable-strip"     # Strip conflicts with code signing on macOS
   fi
 
