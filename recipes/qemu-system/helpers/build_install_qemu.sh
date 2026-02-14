@@ -54,13 +54,31 @@ build_install_qemu() {
       build_selective_tools "${build_dir}" "${install_dir}" "false"
     else
       ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
-      ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
+      # macOS: QEMU's entitlement.sh calls Rez which uses xcodebuild to find tools.
+      # The Rez wrapper derives SDK path from MACOSX_DEPLOYMENT_TARGET (11.0) but
+      # that SDK doesn't exist in modern Xcode (16.4 requires minimum SDK 14.0).
+      # Workaround: temporarily save and unset deployment target during install,
+      # then restore it. This lets xcrun/xcodebuild use the default (current) SDK.
+      if [[ "${target_platform}" == osx-* ]]; then
+        _saved_deployment_target="${MACOSX_DEPLOYMENT_TARGET:-}"
+        unset MACOSX_DEPLOYMENT_TARGET
+        export SDKROOT="$(xcrun --show-sdk-path)"
+        ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
+        if [[ -n "${_saved_deployment_target}" ]]; then
+          export MACOSX_DEPLOYMENT_TARGET="${_saved_deployment_target}"
+        fi
+      else
+        ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
+      fi
     fi
 
     # macOS: Strip extended attributes before codesigning
     if [[ "${target_platform}" == osx-* ]]; then
       xattr -cr "${install_dir}"
     fi
+
+    # Clean up QEMU meson build artifacts that shouldn't be installed
+    rm -f "${install_dir}/bin/"*-unsigned 2>/dev/null || true
 
   popd || exit 1
 }
