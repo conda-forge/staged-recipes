@@ -15,7 +15,7 @@ from pathlib import Path
 # Environment
 PREFIX = Path(os.environ["PREFIX"])
 SRC_DIR = Path(os.environ["SRC_DIR"])
-ALPINE_VERSION = os.environ["alpine_version"]
+ALPINE_VERSION = os.environ["ALPINE_VERSION"]
 
 # Platform detection
 IS_WINDOWS = sys.platform == "win32" or os.environ.get("MSYSTEM")
