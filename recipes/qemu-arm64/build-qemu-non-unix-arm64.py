@@ -5,17 +5,17 @@ from pathlib import Path
 
 PREFIX = Path(os.environ["PREFIX"])
 BIN_DIR = PREFIX / "Library" / "bin"
-SHARE_DIR = PREFIX / "Library" / "share" / "qemu-windows-arm64"
+SHARE_DIR = PREFIX / "Library" / "share" / "qemu-arm64"
 
 BIN_DIR.mkdir(parents=True, exist_ok=True)
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Setup script (downloads UEFI firmware, creates VM disk)
 SETUP_SCRIPT = r'''#!/bin/bash
-# qemu-windows-arm64-setup: Download and configure Windows ARM64 evaluation VM
+# qemu-arm64-setup: Download and configure Windows ARM64 evaluation VM
 set -euo pipefail
 
-VM_DIR="${CONDA_PREFIX}/Library/share/qemu-windows-arm64"
+VM_DIR="${CONDA_PREFIX}/Library/share/qemu-arm64"
 VM_DISK="${VM_DIR}/windows-arm64.qcow2"
 EFI_CODE="${VM_DIR}/QEMU_EFI.fd"
 EFI_VARS="${VM_DIR}/QEMU_VARS.fd"
@@ -41,28 +41,28 @@ qemu-img create -f qcow2 "${VM_DISK}" 64G
 echo ""
 echo "=== Next Steps ==="
 echo "1. Download Windows 11 ARM64 ISO from Microsoft"
-echo "2. Run: qemu-windows-arm64-install /path/to/Windows11_ARM64.iso"
+echo "2. Run: qemu-arm64-install /path/to/Windows11_ARM64.iso"
 echo "3. After install, enable OpenSSH Server in Windows"
 '''
 
 # Install script (boots VM with ISO)
 INSTALL_SCRIPT = r'''#!/bin/bash
-# qemu-windows-arm64-install: Boot VM with ISO for Windows installation
+# qemu-arm64-install: Boot VM with ISO for Windows installation
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: qemu-windows-arm64-install <windows-arm64.iso>"
+    echo "Usage: qemu-arm64-install <windows-arm64.iso>"
     exit 1
 fi
 
 ISO_PATH="$1"
-VM_DIR="${CONDA_PREFIX}/Library/share/qemu-windows-arm64"
+VM_DIR="${CONDA_PREFIX}/Library/share/qemu-arm64"
 VM_DISK="${VM_DIR}/windows-arm64.qcow2"
 EFI_CODE="${VM_DIR}/QEMU_EFI.fd"
 EFI_VARS="${VM_DIR}/QEMU_VARS.fd"
 
 if [[ ! -f "${VM_DISK}" ]]; then
-    echo "Error: Run qemu-windows-arm64-setup first"
+    echo "Error: Run qemu-arm64-setup first"
     exit 1
 fi
 
@@ -82,10 +82,10 @@ qemu-system-aarch64 \
 
 # Main wrapper script
 MAIN_SCRIPT = r'''#!/bin/bash
-# qemu-windows-arm64: Run Windows ARM64 binaries via QEMU VM
+# qemu-arm64: Run Windows ARM64 binaries via QEMU VM
 set -euo pipefail
 
-VM_DIR="${CONDA_PREFIX}/Library/share/qemu-windows-arm64"
+VM_DIR="${CONDA_PREFIX}/Library/share/qemu-arm64"
 VM_DISK="${VM_DIR}/windows-arm64.qcow2"
 EFI_CODE="${VM_DIR}/QEMU_EFI.fd"
 EFI_VARS="${VM_DIR}/QEMU_VARS.fd"
@@ -93,7 +93,7 @@ SSH_PORT=2222
 
 usage() {
     cat <<'EOF'
-Usage: qemu-windows-arm64 [options] program.exe [args...]
+Usage: qemu-arm64 [options] program.exe [args...]
 
 Run Windows ARM64 binaries using QEMU system emulation.
 
@@ -105,8 +105,8 @@ Options:
   --setup      Run first-time setup
 
 First-time setup:
-  qemu-windows-arm64-setup
-  qemu-windows-arm64-install /path/to/Windows11_ARM64.iso
+  qemu-arm64-setup
+  qemu-arm64-install /path/to/Windows11_ARM64.iso
 EOF
 }
 
@@ -116,7 +116,7 @@ case "${1:-}" in
         exit 0
         ;;
     --setup)
-        exec qemu-windows-arm64-setup
+        exec qemu-arm64-setup
         ;;
     --start-vm)
         echo "Starting Windows ARM64 VM in background..."
@@ -158,7 +158,7 @@ shift
 USER="${QEMU_WIN_ARM64_USER:-User}"
 
 if ! nc -z localhost ${SSH_PORT} 2>/dev/null; then
-    echo "Error: VM not running. Start with: qemu-windows-arm64 --start-vm"
+    echo "Error: VM not running. Start with: qemu-arm64 --start-vm"
     exit 1
 fi
 
@@ -185,9 +185,9 @@ def write_script(name: str, content: str) -> None:
 
     print(f"Installed: {name}")
 
-write_script("qemu-windows-arm64-setup", SETUP_SCRIPT)
-write_script("qemu-windows-arm64-install", INSTALL_SCRIPT)
-write_script("qemu-windows-arm64", MAIN_SCRIPT)
+write_script("qemu-arm64-setup", SETUP_SCRIPT)
+write_script("qemu-arm64-install", INSTALL_SCRIPT)
+write_script("qemu-arm64", MAIN_SCRIPT)
 
 print(f"\n=== qemu-arm64 build complete ===")
 print(f"Scripts installed to: {BIN_DIR}")

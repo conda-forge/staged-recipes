@@ -26,28 +26,19 @@ source:
           - patches/0002-osx-attr-meson.build.patch
           - patches/0003-osx-block_file-posix.c.patch
           - patches/0004-osx-audio_coreaudio.m.patch
-      # Windows patches
-      - if: win
+      # non-unix patches
+      - if: not unix
         then:
-          - patches/0001-win-add-console.patch
-          - patches/0002-win-configure-pyvenv.patch
-          - patches/0003-win-dbg-MESONINTROSPECT.patch
-          - patches/0004-win-fix-PYTHON-var-Makefile.patch
-          - patches/0005-win-fix-tracetool-path.patch
-          - patches/0006-win-mkvenv-accept-system-packages.patch
+          - patches/0001-non-unix-add-console.patch
+          - patches/0002-non-unix-configure-pyvenv.patch
+          - patches/0003-non-unix-dbg-MESONINTROSPECT.patch
+          - patches/0004-non-unix-fix-PYTHON-var-Makefile.patch
+          - patches/0005-non-unix-fix-tracetool-path.patch
+          - patches/0006-non-unix-mkvenv-accept-system-packages.patch
       # Linux patches (for linux-user mode with older sysroot headers)
       - if: linux
         then:
           - patches/0001-linux-user-fix-missing-resolve-flags.patch
-  # Alpine Linux netboot for qemu-arm64 on osx-64 and win-64 (direct kernel boot)
-  - if: (osx and x86_64) or win
-    then:
-      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-netboot-${{ alpine_version }}-aarch64.tar.gz
-        sha256: ba325341425f95a95e68be1bf3981598d2a9274c94ef09fd919b6ba6ce23f4b6
-        target_directory: alpine_netboot
-      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-${{ alpine_version }}-aarch64.tar.gz
-        sha256: f219bb9d65febed9046951b19f2b893b331315740af32c47e39b38fcca4be543
-        target_directory: alpine_rootfs
 
 build:
   number: ${{ build_number }}
@@ -509,16 +500,16 @@ outputs:
             - tests/boot_test.py
 
   - package:
-      name: qemu-${{ qemu_user_execs }}
+      name: qemu-${{ qemu_user_arch }}
     build:
       skip: not linux  # Linux-user only works on Linux hosts
       script:
         env:
-          CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
+          CONDA_QEMU_TARGET: "${{ qemu_user_arch }}"
           CONDA_QEMU_MODE: "linux-user"
       files:
         include:
-          - bin/qemu-${{ qemu_user_execs }}
+          - bin/qemu-${{ qemu_user_arch }}
     requirements:
       ignore_run_exports:
         by_name:
@@ -544,31 +535,31 @@ outputs:
     tests:
       - package_contents:
           bin:
-            - qemu-${{ qemu_user_execs }}
+            - qemu-${{ qemu_user_arch }}
       - script:
-          - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
-          - if: qemu_user_execs != "riscv64"
+          - qemu-${{ qemu_user_arch }} --version | grep ${{ version }}
+          - if: qemu_user_arch != "riscv64"
             then:
               # Cross-compile and run a test binary
               - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
               - export QEMU_CPU=${{ qemu_user_cpu }}
               - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
-              - qemu-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
-              - grep "Hello from ${{ qemu_user_execs }}!" output.txt
+              - qemu-${{ qemu_user_arch }} ./hello_arch ${{ qemu_user_arch }} > output.txt
+              - grep "Hello from ${{ qemu_user_arch }}!" output.txt
             else:
               - echo "No gcc/sysroot for riscv64"
         requirements:
           run:
-            - if: qemu_user_execs != "riscv64"
+            - if: qemu_user_arch != "riscv64"
               then:
-                - gcc_impl_linux-${{ qemu_user_execs }}
-                - sysroot_linux-${{ qemu_user_execs }} ==${{ qemu_user_sysroot_version }}
+                - gcc_impl_linux-${{ qemu_user_arch }}
+                - sysroot_linux-${{ qemu_user_arch }} ==${{ qemu_user_sysroot_version }}
         files:
           recipe:
             - tests/hello_arch.c
 
   - package:
-      name: qemu-execve-${{ qemu_user_execs }}
+      name: qemu-execve-${{ qemu_user_arch }}
     source:
       - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
         sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
@@ -581,11 +572,11 @@ outputs:
       skip: not linux  # Linux-user only works on Linux hosts
       script:
         env:
-          CONDA_QEMU_TARGET: "${{ qemu_user_execs }}"
+          CONDA_QEMU_TARGET: "${{ qemu_user_arch }}"
           CONDA_QEMU_MODE: "linux-user"
       files:
         include:
-          - bin/qemu-execve-${{ qemu_user_execs }}
+          - bin/qemu-execve-${{ qemu_user_arch }}
     requirements:
       ignore_run_exports:
         by_name:
@@ -611,10 +602,10 @@ outputs:
     tests:
       - package_contents:
           bin:
-            - qemu-execve-${{ qemu_user_execs }}
+            - qemu-execve-${{ qemu_user_arch }}
       - script:
-          - qemu-${{ qemu_user_execs }} --version | grep ${{ version }}
-          - if: qemu_user_execs != "riscv64"
+          - qemu-execve-${{ qemu_user_arch }} --version | grep ${{ version }}
+          - if: qemu_user_arch != "riscv64"
             then:
               # Cross-compile test binaries
               - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
@@ -622,109 +613,116 @@ outputs:
               - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
               - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o execve_call tests/execve_call.c
               # Test 1: Normal execution of cross-compiled binary
-              - qemu-execve-${{ qemu_user_execs }} ./hello_arch ${{ qemu_user_execs }} > output.txt
-              - grep "Hello from ${{ qemu_user_execs }}!" output.txt
+              - qemu-execve-${{ qemu_user_arch }} ./hello_arch ${{ qemu_user_arch }} > output.txt
+              - grep "Hello from ${{ qemu_user_arch }}!" output.txt
               # Test 2: execve() of host binary (should work - runs on host)
-              - qemu-execve-${{ qemu_user_execs }} ./execve_call /bin/ls > ls_host.txt 2>&1 || true
+              - qemu-execve-${{ qemu_user_arch }} ./execve_call /bin/ls > ls_host.txt 2>&1 || true
               - grep "hello_arch" ls_host.txt
               # Test 3: Redirected execve() of host binary (should fail - wrong ELF)
-              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_execs }} qemu-execve-${{ qemu_user_execs }} ./execve_call /bin/ls > ls_redirect.txt 2>&1 || true
+              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_arch }} qemu-execve-${{ qemu_user_arch }} ./execve_call /bin/ls > ls_redirect.txt 2>&1 || true
               - grep "Invalid ELF image" ls_redirect.txt || exit 1
               # Test 4: Redirected execve() of cross-compiled binary (should work via qemu)
-              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_execs }} qemu-execve-${{ qemu_user_execs }} ./execve_call ./hello_arch EXECVE > execve_test.txt 2>&1 || true
+              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_arch }} qemu-execve-${{ qemu_user_arch }} ./execve_call ./hello_arch EXECVE > execve_test.txt 2>&1 || true
               - grep "EXECVE" execve_test.txt || exit 1
             else:
               - echo "No gcc/sysroot for riscv64"
         requirements:
           run:
-            - if: qemu_user_execs != "riscv64"
+            - if: qemu_user_arch != "riscv64"
               then:
-                - gcc_impl_linux-${{ qemu_user_execs }}
-                - sysroot_linux-${{ qemu_user_execs }} ==${{ qemu_user_sysroot_version }}
+                - gcc_impl_linux-${{ qemu_user_arch }}
+                - sysroot_linux-${{ qemu_user_arch }} ==${{ qemu_user_sysroot_version }}
         files:
           recipe:
             - tests/hello_arch.c
             - tests/execve_call.c
 
-  # qemu-linux-arm64: Direct kernel boot ARM64 emulation for osx-64 and win-64
-  # Provides qemu-user-like interface using Alpine Linux direct boot
-  # Use case: Run ARM64 Linux test binaries on Intel Macs and Windows
-  - package:
-      name: qemu-linux-arm64
-    build:
-      skip: not ((osx and x86_64) or win)
-      script:
-        file: ${RECIPE_DIR}/helpers/build-qemu-linux-arm64.py
-    requirements:
-      build:
-        - ${{ m2 }}coreutils  # For creating initramfs
-        - ${{ m2 }}gzip
-        - ${{ m2 }}tar
-        - ${{ m2 }}cpio
-        - python 3.12.*
-      run:
-        - qemu-system-aarch64
-        - ${{ m2 }}cpio
-        - ${{ m2 }}gzip
-        - if: win
-          then:
-            - m2-bash
-    tests:
-      - package_contents:
-          bin:
-            - if: unix
-              then:
-                - qemu-arm64
-            - if: win
-              then:
-                - Library/bin/qemu-arm64
-                - Library/bin/qemu-arm64.cmd
-          files:
-            - ${{ library }}share/qemu-arm64/vmlinuz-virt
-            - ${{ library }}share/qemu-arm64/initramfs-base.cpio.gz
-      - script:
-          - qemu-arm64 --version
-          # Cross-compile ARM64 Linux binary and run via qemu-arm64
-          - aarch64-conda-linux-gnu-gcc -static -o hello_arm64 tests/hello_arch.c
-          - qemu-arm64 ./hello_arm64 arm64 > output.txt
-          - grep "Hello from arm64!" output.txt
-        requirements:
-          run:
-            - gcc_linux-aarch64
-            - sysroot_linux-aarch64
-        files:
-          recipe:
-            - tests/hello_arch.c
-
-  # qemu-windows-arm64: Run Windows ARM64 binaries on Windows x86_64
-  # Uses QEMU to boot a Windows ARM64 evaluation VM
-  # Note: Requires user to download Windows ARM64 evaluation image on first run
-  - package:
-      name: qemu-arm64
-    build:
-      skip: not win  # Only for Windows x86_64 hosts
-      script:
-        file: ${RECIPE_DIR}/helpers/build-qemu-non-unix-arm64.py
-    requirements:
-      build:
-        - python 3.12.*
-      run:
-        - qemu-system-aarch64
-        - m2-bash
-        - m2-coreutils
-        - m2-curl  # For downloading Windows image
-    tests:
-      - package_contents:
-          bin:
-            - Library/bin/qemu-windows-arm64
-            - Library/bin/qemu-windows-arm64.cmd
-            - Library/bin/qemu-windows-arm64-setup
-            - Library/bin/qemu-windows-arm64-setup.cmd
-            - Library/bin/qemu-windows-arm64-install
-            - Library/bin/qemu-windows-arm64-install.cmd
-      - script:
-          # Just test help works (actual execution requires VM setup)
-          - qemu-arm64 --help
+### Transfered to their own recipe since they don't need a pin to qemu-system
+#
+#  # qemu-linux-arm64: Direct kernel boot ARM64 emulation for osx-64 and win-64
+#  # Provides qemu-user-like interface using Alpine Linux direct boot
+#  # Use case: Run ARM64 Linux test binaries on Intel Macs and non-unix
+#  - package:
+#      name: qemu-linux-arm64
+#    source:
+#      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-netboot-${{ alpine_version }}-aarch64.tar.gz
+#        sha256: ba325341425f95a95e68be1bf3981598d2a9274c94ef09fd919b6ba6ce23f4b6
+#        target_directory: alpine_netboot
+#      - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-${{ alpine_version }}-aarch64.tar.gz
+#        sha256: f219bb9d65febed9046951b19f2b893b331315740af32c47e39b38fcca4be543
+#        target_directory: alpine_rootfs
+#    build:
+#      skip: not ((osx and x86_64) or win)
+#      script: ${RECIPE_DIR}/helpers/build-qemu-linux-arm64.py
+#    requirements:
+#      build:
+#        - ${{ m2 }}coreutils  # For creating initramfs
+#        - ${{ m2 }}gzip
+#        - ${{ m2 }}tar
+#        - ${{ m2 }}cpio
+#        - python 3.12.*
+#      run:
+#        - qemu-system-aarch64
+#        - ${{ m2 }}cpio
+#        - ${{ m2 }}gzip
+#        - if: win
+#          then:
+#            - m2-bash
+#    tests:
+#      - package_contents:
+#          bin:
+#            - if: unix
+#              then:
+#                - qemu-arm64
+#            - if: win
+#              then:
+#                - Library/bin/qemu-arm64
+#                - Library/bin/qemu-arm64.cmd
+#          files:
+#            - ${{ library }}share/qemu-arm64/vmlinuz-virt
+#            - ${{ library }}share/qemu-arm64/initramfs-base.cpio.gz
+#      - script:
+#          - qemu-arm64 --version
+#          # Cross-compile ARM64 Linux binary and run via qemu-arm64
+#          - aarch64-conda-linux-gnu-gcc -static -o hello_arm64 tests/hello_arch.c
+#          - qemu-arm64 ./hello_arm64 arm64 > output.txt
+#          - grep "Hello from arm64!" output.txt
+#        requirements:
+#          run:
+#            - gcc_linux-aarch64
+#            - sysroot_linux-aarch64
+#        files:
+#          recipe:
+#            - tests/hello_arch.c
+#
+#  # qemu-arm64: Run non-unix ARM64 binaries on non-unix x86_64
+#  # Uses QEMU to boot a non-unix ARM64 evaluation VM
+#  # Note: Requires user to download non-unix ARM64 evaluation image on first run
+#  - package:
+#      name: qemu-arm64
+#    build:
+#      skip: unix  # Only for non-unix x86_64 hosts
+#      script: ${RECIPE_DIR}/helpers/build-qemu-non-unix-arm64.py
+#    requirements:
+#      build:
+#        - python 3.12.*
+#      run:
+#        - qemu-system-aarch64
+#        - m2-bash
+#        - m2-coreutils
+#        - m2-curl  # For downloading non-unix image
+#    tests:
+#      - package_contents:
+#          bin:
+#            - Library/bin/qemu-arm64
+#            - Library/bin/qemu-arm64.cmd
+#            - Library/bin/qemu-arm64-setup
+#            - Library/bin/qemu-arm64-setup.cmd
+#            - Library/bin/qemu-arm64-install
+#            - Library/bin/qemu-arm64-install.cmd
+#      - script:
+#          # Just test help works (actual execution requires VM setup)
+#          - qemu-arm64 --help
 
 about:
   homepage: https://gitlab.com/qemu-project/qemu

@@ -57,15 +57,20 @@ build_install_qemu() {
       # macOS: QEMU's entitlement.sh calls Rez which uses xcodebuild to find tools.
       # The Rez wrapper derives SDK path from MACOSX_DEPLOYMENT_TARGET (11.0) but
       # that SDK doesn't exist in modern Xcode (16.4 requires minimum SDK 14.0).
-      # Workaround: temporarily save and unset deployment target during install,
-      # then restore it. This lets xcrun/xcodebuild use the default (current) SDK.
+      # Workaround: temporarily unset both MACOSX_DEPLOYMENT_TARGET and SDKROOT
+      # to let xcrun find the current Xcode SDK, then restore them.
       if [[ "${target_platform}" == osx-* ]]; then
         _saved_deployment_target="${MACOSX_DEPLOYMENT_TARGET:-}"
+        _saved_sdkroot="${SDKROOT:-}"
         unset MACOSX_DEPLOYMENT_TARGET
+        unset SDKROOT
         export SDKROOT="$(xcrun --show-sdk-path)"
         ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
         if [[ -n "${_saved_deployment_target}" ]]; then
           export MACOSX_DEPLOYMENT_TARGET="${_saved_deployment_target}"
+        fi
+        if [[ -n "${_saved_sdkroot}" ]]; then
+          export SDKROOT="${_saved_sdkroot}"
         fi
       else
         ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
