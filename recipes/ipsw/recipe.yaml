@@ -1,0 +1,90 @@
+context:
+  name: ipsw
+  version: "3.1.651"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/blacktop/ipsw/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5db4bb632ad94283cd0d52831e1999f8259494aa87b3c36a1443154c08b6f45e
+
+build:
+  number: 0
+
+requirements:
+  ignore_run_exports:
+    by_name:
+      - libheif
+      - libusb
+      - libzlib
+      - openssl
+      - unicorn
+  build:
+    - go >=1.25
+    - git
+    - pkg-config
+    - if: unix
+      then:
+        - ${{ compiler("go-cgo") }}
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+        - make
+    - if: win
+      then:
+        - zig  # Matches upstream goreleaser
+  host:
+    # CGO dependencies - Go links statically, no run deps needed
+    # Unix only: unicorn/libusb/libheif not available on win-64
+    - if: unix
+      then:
+        - unicorn
+        - libusb
+        - libheif
+        - zlib
+        - openssl
+
+tests:
+  - package_contents:
+      bin
+        - ipsw
+  - script:
+      - ipsw version
+      - ipsw --help
+      - ipsw macho --help
+
+about:
+  homepage: https://blacktop.github.io/ipsw/
+  repository: https://github.com/blacktop/ipsw
+  documentation: https://blacktop.github.io/ipsw/docs/
+  summary: iOS/macOS Research Swiss Army Knife
+  description: |
+    ipsw is a comprehensive command-line research framework for iOS and macOS
+    that provides an extensive toolkit for security researchers, reverse engineers,
+    jailbreak developers, and iOS enthusiasts.
+
+    Key capabilities:
+    - **MachO Analysis**: Parse, disassemble, and analyze Mach-O binaries (ARM64, x86_64)
+    - **dyld_shared_cache**: Extract and analyze Apple's shared library cache
+    - **Symbol Extraction**: Complete symbol recovery and address resolution
+    - **ObjC/Swift Analysis**: Class dumps, method analysis, protocol parsing
+    - **Firmware Analysis**: Download, parse, and analyze Apple firmware (IPSW)
+    - **Device Interaction**: Communicate with iOS devices for research
+    - **AI Integration**: AI-powered code analysis (optional, requires API keys)
+
+    This tool is particularly useful for:
+    - Analyzing macOS ARM64 (Apple Silicon) binaries
+    - Reverse engineering iOS/macOS applications
+    - Security research and vulnerability discovery
+    - Understanding Apple's binary formats and runtime
+
+    Note: Windows builds have reduced CGO functionality (no unicorn/libusb/libheif
+    available on win-64).
+
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
