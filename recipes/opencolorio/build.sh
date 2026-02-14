@@ -36,7 +36,7 @@ cmake_args=(
     "-DOCIO_BUILD_TESTS=OFF"                   # Set to OFF to not build the unit tests
     "-DOCIO_BUILD_GPU_TESTS=OFF"               # Set to OFF to not build the GPU unit tests
     "-DOCIO_USE_HEADLESS=OFF"                 # Set to ON to do headless GPU rendering
-    "-DOCIO_WARNING_AS_ERROR=ON"              # Set to OFF to turn off warnings as errors
+    "-DOCIO_WARNING_AS_ERROR=OFF"              # Set to OFF to turn off warnings as errors
     "-DOCIO_BUILD_DOCS=OFF"                   # Set to ON to build the documentation
 
     # Dependency installation strategy (MISSING is the default):
