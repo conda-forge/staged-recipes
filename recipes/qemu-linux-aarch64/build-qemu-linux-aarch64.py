@@ -9,7 +9,6 @@ import os
 import shutil
 import stat
 import sys
-import tarfile
 import tempfile
 from pathlib import Path
 
@@ -140,26 +139,23 @@ def write_cpio_newc(output_file, root_path: Path):
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
 BIN_DIR.mkdir(parents=True, exist_ok=True)
 
-# Extract netboot files
-print("Extracting Alpine netboot...")
-netboot_tar = SRC_DIR / "alpine_netboot" / f"alpine-netboot-{ALPINE_VERSION}-aarch64.tar.gz"
-with tarfile.open(netboot_tar, "r:gz") as tar:
-    tar.extractall(SHARE_DIR)
+# Source directories (rattler-build extracts contents directly to target_directory)
+NETBOOT_DIR = SRC_DIR / "alpine_netboot"
+ROOTFS_DIR = SRC_DIR / "alpine_rootfs"
 
-# Move kernel
-kernel_src = SHARE_DIR / "boot" / "vmlinuz-virt"
+# Copy kernel from extracted netboot
+print("Copying Alpine kernel...")
+kernel_src = NETBOOT_DIR / "boot" / "vmlinuz-virt"
 kernel_dst = SHARE_DIR / "vmlinuz-virt"
-shutil.move(str(kernel_src), str(kernel_dst))
+shutil.copy2(str(kernel_src), str(kernel_dst))
 
-# Create initramfs from minirootfs
+# Create initramfs from minirootfs (already extracted)
 print("Creating base initramfs from minirootfs...")
 with tempfile.TemporaryDirectory() as initramfs_dir:
     initramfs_path = Path(initramfs_dir)
 
-    # Extract minirootfs
-    rootfs_tar = SRC_DIR / "alpine_rootfs" / f"alpine-minirootfs-{ALPINE_VERSION}-aarch64.tar.gz"
-    with tarfile.open(rootfs_tar, "r:gz") as tar:
-        tar.extractall(initramfs_path)
+    # Copy minirootfs contents (already extracted by rattler-build)
+    shutil.copytree(ROOTFS_DIR, initramfs_path, dirs_exist_ok=True)
 
     # Create init script
     init_script = initramfs_path / "init"
@@ -202,11 +198,6 @@ poweroff -f
     initramfs_out = SHARE_DIR / "initramfs-base.cpio.gz"
     write_cpio_newc(initramfs_out, initramfs_path)
 
-# Clean up extracted files we don't need
-for d in ["boot", "apks"]:
-    p = SHARE_DIR / d
-    if p.exists():
-        shutil.rmtree(p)
 
 # Create the wrapper script
 WRAPPER_SCRIPT = r'''#!/bin/bash
