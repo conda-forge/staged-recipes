@@ -1,0 +1,179 @@
+context:
+  name: imas-core
+  version: "5.5.3"
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+    - url: https://github.com/iterorganization/IMAS-Core/archive/refs/tags/${{ version }}.tar.gz
+      sha256: bc5735fcedda327015aaa2e6ebd3e86345a76fea18880264b5fb646ed983ee3f
+      patches:
+        - patches/add-meson-files.patch
+        - patches/meson-python.patch
+        - patches/add-version-in-file.patch
+        - patches/change-python-init.patch
+
+build:
+  number: 0
+
+outputs:
+  # Core library
+  - package:
+      name: al-core
+      version: ${{ version }}
+    build:
+      script:
+        - if: unix
+          then: scripts/build_core.sh
+        - if: win
+          then: scripts/build_core.bat
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - setuptools-scm
+      host:
+        - libxml2-devel >=2.15
+        - zlib
+        - libboost-devel >=1.88
+        - hdf5
+        - uda-cpp >=2.9.3
+        - if: win
+          then:
+            - pthreads-win32
+            - dlfcn-win32
+      run:
+        - if: win
+          then:
+            - pthreads-win32
+      run_exports:
+        - ${{ pin_subpackage("al-core", upper_bound="x.x") }}
+    tests:
+      - script:
+          - if: unix
+            then: scripts/test.sh
+          - if: win
+            then: scripts/test.bat
+        requirements:
+          run:
+            - ${{ compiler("c") }}
+            - ${{ compiler("cxx") }}
+            - ${{ stdlib("c") }}
+            - git
+            - meson
+            - ninja
+            - pkg-config
+            - setuptools-scm
+            - if: win
+              then:
+                - libxml2-devel >=2.15
+                - pthreads-win32
+        files:
+          source:
+            - tests/
+            - meson.build
+            - meson_options.txt
+      - package_contents:
+          files:
+            - ${{ "Library/" if win }}lib/pkgconfig/al-core.pc
+          lib:
+            - al
+          include:
+            - al_core/access_layer_base_plugin.h
+            - al_core/access_layer_plugin.h
+            - al_core/access_layer_plugin_manager.h
+            - al_core/al_backend.h
+            - al_core/al_const.h
+            - al_core/al_context.h
+            - al_core/al_defs.h
+            - al_core/al_exception.h
+            - al_core/al_lowlevel.h
+            - al_core/data_interpolation.h
+            - al_core/provenance_plugin_feature.h
+            - al_core/readback_plugin_feature.h
+            - al_core/uri_parser.h
+
+  # Python bindings
+  - package:
+      name: imas-core
+      version: ${{ version }}
+    build:
+      script:
+        - if: unix
+          then: scripts/build_py.sh
+        - if: win
+          then: scripts/build_py.bat
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - setuptools-scm
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - numpy
+            - cython
+            - meson-python
+      host:
+        - al-core
+        - pip
+        - python
+        - meson-python
+        - numpy
+        - cython
+        - if: win
+          then:
+            - libxml2-devel >=2.15
+      run:
+        - python
+      run_exports:
+        - ${{ pin_subpackage("imas-core", upper_bound="x.x") }}
+    tests:
+      - python:
+          imports:
+            - imas_core
+          pip_check: true
+      - script:
+          - pytest
+        files:
+          source:
+            - python/tests/
+            - pyproject.toml
+        requirements:
+          run:
+            - pytest
+
+about:
+  homepage: https://github.com/iterorganization/IMAS-Core
+  license: LGPL-3.0-or-later
+  license_file: LICENSE.txt
+  summary: The IMAS Access Layer core library
+  description: |
+    IMAS-Core is part of the Integrated Modelling and Analysis Suite at ITER.
+    It provides a low-level library to read and write MDSplus ([Introduction](https://www.mdsplus.org/index.php/Introduction))
+    and HDF5 ([HDF5](https://www.hdfgroup.org/solutions/hdf5/)) formats.
+    It also supports reading and writing [FlexBuffers](https://flatbuffers.dev/flexbuffers/).
+    For debugging purposes, it allows writing ASCII files.
+    Notably, for keeping data in-memory when exchanging data between physics codes, it supports writing into memory.
+    The IMAS-Core library includes Python bindings, making it useful for working with Python.
+    It can be installed on different operating systems, including macOS and Windows.
+    IMAS-Core is a versatile library that helps users write fusion data in a standard format used by various users and facilitates easy data exchange.
+    Most of the code is written in C++, with wrappers on existing libraries for HDF5, MDSplus, and FlexBuffers.
+  repository: https://github.com/iterorganization/IMAS-Core
+  documentation: https://imas-core.readthedocs.io/en/stable/
+
+extra:
+  feedstock-name: imas-core
+  recipe-maintainers:
+    - munechika-koyo

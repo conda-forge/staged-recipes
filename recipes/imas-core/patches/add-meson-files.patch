@@ -1,0 +1,568 @@
+--- /dev/null
++++ b/meson.build
+@@ -0,0 +1,119 @@
++project(
++  'imas-core',
++  'cpp',
++  license: 'LGPL-3.0-or-later',
++  meson_version: '>=1.1.0',
++  version: run_command(
++    find_program('python3'),
++    '-m', 'setuptools_scm',
++    '--strip-dev',
++    check: true,
++  ).stdout().strip(),
++  default_options: [
++    'cpp_std=c++17',
++    'buildtype=debugoptimized',
++  ],
++)
++
++# =============================================================================
++# Compiler and System Setup
++# =============================================================================
++cxx = meson.get_compiler('cpp')
++host_system = host_machine.system()
++host_cpu = host_machine.cpu_family()
++
++# =============================================================================
++# Warning Flags
++# =============================================================================
++warning_flags = []
++if host_system == 'darwin'
++  warning_flags += [
++    '-Wno-deprecated-declarations',
++    '-Wno-inconsistent-missing-override',
++    '-Wno-delete-non-abstract-non-virtual-dtor',
++    '-Wno-unused-but-set-variable',
++    '-Wno-unused-variable',
++    '-Wno-misleading-indentation',
++    '-Wno-reorder-ctor',
++    '-Wno-pessimizing-move',
++    '-Wno-sometimes-uninitialized',
++  ]
++endif
++
++# =============================================================================
++# Access Layer core (al-core) Library
++# =============================================================================
++if get_option('al_core')
++  subdir('include')
++  subdir('src')
++else
++  # Use external al-core installation
++  al_core_dep = dependency('al-core')
++endif
++
++# =============================================================================
++# Dummy Executable for version printing
++# =============================================================================
++if get_option('al_dummy_exe')
++  imas_print_version = executable(
++    'imas_print_version',
++    'tests/imas_print_version.cpp',
++    dependencies: [al_core_dep],
++    install: true,
++  )
++  test('imas_print_version_test', imas_print_version)
++endif
++
++# =============================================================================
++# Test Low-level C API (al-core)
++# =============================================================================
++if get_option('al_test')
++  # subdir('tests')  # TODO: fix test sources
++endif
++
++# =============================================================================
++# Python Bindings (imas-core)
++# =============================================================================
++if get_option('python_bindings')
++  subdir('python')
++endif
++
++# =============================================================================
++# MDSplus Models
++# =============================================================================
++if get_option('mdsplus_models')
++  warning('MDSplus models are not yet supported in Meson build system.')
++  # subdir('models/mdsplus')
++endif
++
++# =============================================================================
++# Summary
++# =============================================================================
++if get_option('al_core')
++  summary(
++    {
++      'HDF5': get_option('al_backend_hdf5'),
++      'UDA': get_option('al_backend_uda'),
++      'MDSplus': get_option('al_backend_mdsplus'),
++    },
++    section: 'Backends',
++  )
++  summary(
++    {
++      'Core Arguments': core_args,
++      'Warning Flags': warning_flags,
++    },
++    section: 'Compiler Arguments',
++  )
++endif
++
++if get_option('python_bindings')
++  summary(
++    {
++      'Python Version': py.language_version(),
++      'Buildtime Python Path': py.full_path(),
++      'Cython Arguments': cython_args,
++    },
++    section: 'Python Bindings',
++  )
++endif
+
+--- /dev/null
++++ b/meson_options.txt
+@@ -0,0 +1,70 @@
++# =============================================================================
++# Libraries to build
++# =============================================================================
++
++option(
++       'al_core',
++       type: 'boolean',
++       value: true,
++       description: 'Build internal core library, or use external installation',
++)
++
++option(
++       'al_dummy_exe',
++       type: 'boolean',
++       value: false,
++       description: 'Build dummy executable that prints version information.',
++)
++
++option(
++       'al_test',
++       type: 'boolean',
++       value: false,
++       description: 'Build tests for al-core library',
++)
++
++option(
++       'python_bindings',
++       type: 'boolean',
++       value: true,
++       description: 'Build Python wrapper',
++)
++
++option(
++       'mdsplus_models',
++       type: 'boolean',
++       value: false,
++       description: 'Build MDSplus models (requires MDSplus installation)',
++)
++
++# =============================================================================
++# Backends Options
++# =============================================================================
++
++option(
++       'al_backend_hdf5',
++       type: 'boolean',
++       value: true,
++       description: 'Enable HDF5 backend',
++)
++
++option(
++       'al_backend_mdsplus',
++       type: 'boolean',
++       value: false,
++       description: 'Enable MDSplus backend',
++)
++
++option(
++       'al_backend_uda',
++       type: 'boolean',
++       value: true,
++       description: 'Enable UDA backend',
++)
++
++option(
++       'uda_fat',
++       type: 'boolean',
++       value: false,
++       description: 'Use UDA FAT client libraries',
++)
+
+--- /dev/null
++++ b/include/meson.build
+@@ -0,0 +1,44 @@
++# =============================================================================
++# Configuration Data for al_defs.h
++# =============================================================================
++
++cdata = configuration_data()
++
++# Version information
++cdata.set('PROJECT_VERSION', meson.project_version())
++
++# Generate Config Headers
++al_defs_h = configure_file(
++  input: 'al_defs.h.in',
++  output: 'al_defs.h',
++  configuration: cdata,
++)
++
++install_headers(al_defs_h, subdir: 'al_core')
++
++# =============================================================================
++# Install Public Headers
++# =============================================================================
++
++install_headers(
++  'access_layer_base_plugin.h',
++  'access_layer_plugin.h',
++  'access_layer_plugin_manager.h',
++  'al_backend.h',
++  'al_const.h',
++  'al_context.h',
++  'al_exception.h',
++  'al_lowlevel.h',
++  'data_interpolation.h',
++  'extended_access_layer_plugin.h',
++  'fix_include_windows.h',
++  'provenance_plugin_feature.h',
++  'readback_plugin_feature.h',
++  'uri_parser.h',
++  subdir: 'al_core',
++)
++
++# =============================================================================
++# Include Directories
++# =============================================================================
++public_inc = include_directories('.')
+
+--- /dev/null
++++ b/python/meson.build
+@@ -0,0 +1,91 @@
++add_languages('cython', native: false)
++
++# =============================================================================
++# Version File
++# =============================================================================
++# Get version using setuptools-scm
++version = run_command(
++  find_program('python3'),
++  '-m', 'setuptools_scm',
++  check: true,
++).stdout().strip()
++
++# Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
++split_ver = version.split('.')
++ver_tuple = '(@0@, @1@, @2@)'.format(
++  split_ver[0],
++  split_ver[1],
++  split_ver[2],
++)
++
++# Get commit id
++git_commit = run_command(
++  find_program('git'),
++  'rev-parse',
++  '--short', 'HEAD',
++  check: false,
++).stdout().strip()
++
++if git_commit == ''
++  git_commit = 'None'
++endif
++
++# Generate _version.py
++version_file = configure_file(
++  input: '_version.py.in',
++  output: '_version.py',
++  configuration: {
++    'VERSION': version,
++    'VERSION_TUPLE': ver_tuple,
++    'COMMIT_ID': git_commit,
++  },
++)
++
++# =============================================================================
++# Modules and Dependencies
++# =============================================================================
++fs = import('fs')
++py = import('python').find_installation(pure: false)
++py_dep = py.dependency()
++numpy_dep = dependency('numpy')
++
++cython_args = ['--annotate']
++
++# =============================================================================
++# Source files
++# =============================================================================
++py_files = files(
++  'imas_core/__init__.py',
++  'imas_core/exception.py',
++  'imas_core/imasdef.py',
++)
++pyx_files = files(
++  'imas_core/_al_lowlevel.pyx',
++  'imas_core/al_defs.pyx',
++)
++pxd_files = files(
++  'imas_core/al_defs.pxd',
++  'imas_core/al_lowlevel_interface.pxd',
++)
++
++# =============================================================================
++# Build Python Extension Module
++# =============================================================================
++# compile cython
++foreach pyx_file : pyx_files
++  py.extension_module(
++    fs.stem(pyx_file),
++    pyx_file,
++    cython_args: cython_args,
++    dependencies: [al_core_dep, py_dep, numpy_dep],
++    install: true,
++    subdir: 'imas_core',
++    override_options: ['cython_language=cpp'],
++  )
++endforeach
++
++# Install pure python files
++py.install_sources(
++  py_files + pxd_files + version_file,
++  subdir: 'imas_core',
++)
+
+--- /dev/null
++++ b/src/hdf5/meson.build
+@@ -0,0 +1,27 @@
++# HDF5 Backend
++
++# Add sources
++core_sources += files(
++  'hdf5_backend.cpp',
++  'hdf5_backend_factory.cpp',
++  'hdf5_dataset_handler.cpp',
++  'hdf5_events_handler.cpp',
++  'hdf5_hs_selection_reader.cpp',
++  'hdf5_hs_selection_writer.cpp',
++  'hdf5_reader.cpp',
++  'hdf5_utils.cpp',
++  'hdf5_writer.cpp',
++)
++
++# Add include directories
++core_inc += include_directories('.')
++
++# Add dependency
++core_deps += dependency('hdf5', language: 'cpp')
++
++# Add compiler flags
++core_args += '-DHDF5'
++
++if host_system == 'windows'
++  core_args += '-DH5_BUILT_AS_DYNAMIC_LIB'
++endif
+
+--- /dev/null
++++ b/src/mdsplus/meson.build
+@@ -0,0 +1,19 @@
++# MDSplus Backend
++
++# Add sources
++core_sources += files(
++  'mdsplus_backend.cpp',
++)
++
++# Add include directories
++core_inc += include_directories('.')
++
++# Add dependency
++core_deps += dependency('mdsplus')
++
++# Add compiler flags
++core_args += '-DMDSPLUS'
++
++if host_system == 'windows'
++  core_args += '-DMDSOBJECTSCPPSHRVS_EXPORTS'
++endif
+
+--- /dev/null
++++ b/src/meson.build
+@@ -0,0 +1,92 @@
++# AL-Core Library
++
++core_sources = files(
++  'access_layer_plugin_manager.cpp',
++  'al_backend.cpp',
++  'al_const.cpp',
++  'al_context.cpp',
++  'al_exception.cpp',
++  'al_lowlevel.cpp',
++  'ascii_backend.cpp',
++  'data_interpolation.cpp',
++  'flexbuffers_backend.cpp',
++  'memory_backend.cpp',
++  'no_backend.cpp',
++)
++
++# Enable ASCII backend
++core_args = [
++  '-DASCII',
++]
++
++# Include local and public headers
++core_inc = [include_directories('.'), public_inc]
++
++# =============================================================================
++# Dependencies
++# =============================================================================
++boost_dep = dependency(
++  'boost',
++  modules: ['filesystem'],
++  required: false,
++)
++if not boost_dep.found()
++  boost_dep = cxx.find_library('boost_filesystem')
++endif
++
++core_deps = [
++  boost_dep,
++]
++
++if host_system == 'windows'
++  core_deps += [
++    cxx.find_library('pthreads'),
++    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake'),
++  ]
++endif
++
++# =============================================================================
++# Add Optional Backends
++# =============================================================================
++if get_option('al_backend_hdf5')
++  subdir('hdf5')
++endif
++
++if get_option('al_backend_mdsplus')
++  subdir('mdsplus')
++endif
++
++if get_option('al_backend_uda')
++  subdir('uda')
++endif
++
++# =============================================================================
++# Library
++# =============================================================================
++al_core = library(
++  'al',
++  core_sources,
++  cpp_args: core_args + warning_flags,
++  include_directories: core_inc,
++  dependencies: core_deps,
++  install: true,
++)
++
++# Declare dependency for other libraries to use
++al_core_dep = declare_dependency(
++  link_with: al_core,
++  include_directories: public_inc,
++)
++
++# =============================================================================
++# Package Configuration
++# =============================================================================
++pkg = import('pkgconfig')
++pkg.generate(
++  libraries: al_core,
++  subdirs: ['al_core'],
++  name: 'al-core',
++  description: 'IMAS Access Layer core libraries for C',
++  url: 'https://github.com/iterorganization/IMAS-Core',
++  version: meson.project_version(),
++)
+
+--- /dev/null
++++ b/src/uda/meson.build
+@@ -0,0 +1,43 @@
++# UDA Backend
++
++# Add sources
++core_sources += files(
++  'pugixml.cpp',
++  'uda_backend.cpp',
++  'uda_cache.cpp',
++  'uda_path.cpp',
++  'uda_xml.cpp',
++)
++
++# Add include directories
++core_inc += include_directories('.')
++
++# Add dependencies
++if get_option('uda_fat')
++  uda_fat_cpp_dep = dependency('uda-fat-cpp')
++  core_deps += [
++    dependency('uda-fat-client'),
++    uda_fat_cpp_dep,
++  ]
++else
++  uda_cpp_dep = dependency('uda-cpp')
++  core_deps += [
++    dependency('uda-client'),
++    uda_cpp_dep,
++  ]
++endif
++
++# Add compiler flags
++if get_option('uda_fat')
++  if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
++    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++  else
++    core_args += ['-DUDA']
++  endif
++else
++  if uda_cpp_dep.version().version_compare('>=2.7.6')
++    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
++  else
++    core_args += ['-DUDA']
++  endif
++endif
+
+--- /dev/null
++++ b/tests/meson.build
+@@ -0,0 +1,28 @@
++# Test executables for AL-Core
++
++# =============================================================================
++# Test executables
++# =============================================================================
++
++# C++ test executable
++testlowlevel = executable(
++  'testlowlevel',
++  'testlowlevel.cpp',
++  dependencies: [al_core_dep],
++  cpp_args: ['-DNOIMPLIB'],
++  install: true,
++)
++
++# C test executable
++add_languages('c', native: false)
++testlowlevel_c = executable(
++  'testlowlevel_c',
++  'testlowlevel_c.c',
++  dependencies: [al_core_dep],
++  c_args: ['-DNOIMPLIB'],
++  install: true,
++)
++
++# Test cases
++test('Test lowlevel C++', testlowlevel)
++test('Test lowlevel C', testlowlevel_c)
