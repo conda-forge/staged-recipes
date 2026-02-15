@@ -9,6 +9,7 @@ import os
 import shutil
 import stat
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -139,23 +140,29 @@ def write_cpio_newc(output_file, root_path: Path):
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
 BIN_DIR.mkdir(parents=True, exist_ok=True)
 
-# Source directories (rattler-build extracts contents directly to target_directory)
-NETBOOT_DIR = SRC_DIR / "alpine_netboot"
-ROOTFS_DIR = SRC_DIR / "alpine_rootfs"
+# Source tarballs (file_name prevents auto-extraction)
+NETBOOT_TAR = SRC_DIR / "alpine-netboot.tar.gz"
+ROOTFS_TAR = SRC_DIR / "alpine-minirootfs.tar.gz"
 
-# Copy kernel from extracted netboot
-print("Copying Alpine kernel...")
-kernel_src = NETBOOT_DIR / "boot" / "vmlinuz-virt"
-kernel_dst = SHARE_DIR / "vmlinuz-virt"
-shutil.copy2(str(kernel_src), str(kernel_dst))
+# Extract kernel from netboot tarball
+print("Extracting Alpine kernel from netboot tarball...")
+with tarfile.open(NETBOOT_TAR, "r:gz") as tar:
+    # Extract only vmlinuz-virt
+    for member in tar.getmembers():
+        if member.name.endswith("vmlinuz-virt"):
+            member.name = "vmlinuz-virt"  # Flatten path
+            tar.extract(member, SHARE_DIR)
+            print(f"Extracted kernel: {member.name}")
+            break
 
-# Create initramfs from minirootfs (already extracted)
+# Create initramfs from minirootfs
 print("Creating base initramfs from minirootfs...")
 with tempfile.TemporaryDirectory() as initramfs_dir:
     initramfs_path = Path(initramfs_dir)
 
-    # Copy minirootfs contents (already extracted by rattler-build)
-    shutil.copytree(ROOTFS_DIR, initramfs_path, dirs_exist_ok=True)
+    # Extract minirootfs tarball
+    with tarfile.open(ROOTFS_TAR, "r:gz") as tar:
+        tar.extractall(initramfs_path)
 
     # Create init script
     init_script = initramfs_path / "init"
