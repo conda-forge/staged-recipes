@@ -1,0 +1,76 @@
+context:
+  name: libxmlb
+  version: 0.3.25
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: "https://github.com/hughsie/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.xz"
+  sha256: 77f2768c9debd2e946173cdf9465efd987849805e7c58251c5772ea728a61d9a
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - |
+      meson setup ${MESON_ARGS} \
+          --prefix=$PREFIX \
+          --default-library=shared \
+          --wrap-mode=nofallback \
+          -Dgtkdoc=false \
+          -Dtests=false \
+          -Dintrospection=false \
+          builddir
+      ninja -v -C builddir -j ${CPU_COUNT}
+      ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - glib
+    - zlib
+  run_exports:
+    - ${{ pin_subpackage('libxmlb', upper_bound='x.x') }}
+  ignore_run_exports:
+    by_name:
+      - libzlib
+
+tests:
+  - package_contents:
+      include:
+        - libxmlb-2/xmlb.h
+      files:
+        - lib/pkgconfig/xmlb.pc
+      bin: 
+        - xb-tool
+      lib:
+        - libxmlb
+
+about:
+  homepage: https://github.com/hughsie/libxmlb
+  summary: A library to help create and query binary XML blobs
+  description: |
+    XML is slow to parse and strings inside the document cannot be memory mapped 
+    as they do not have a trailing NUL char. The libxmlb library takes XML source, 
+    and converts it to a structured binary representation with a deduplicated 
+    string table -- where the strings have the NULs included.
+
+    This allows an application to mmap the binary XML file, do an XPath query and 
+    return some strings without actually parsing the entire document. This is all 
+    done using (almost) zero allocations and no actual copying of the binary data.
+  license: LGPL-2.1-or-later
+  license_file: LICENSE
+  repository: https://github.com/hughsie/libxmlb
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - Hofer-Julian

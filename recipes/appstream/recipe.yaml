@@ -1,0 +1,85 @@
+context:
+  name: appstream
+  version: 1.1.2
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: "https://github.com/ximion/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz"
+  sha256: 564ec87b16e9e4ee81fb021e612250fd27f3a3ecd31c209a5dd1ff59def3022d
+  patches:
+    - 0001-remove-itstool-dependency.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - |
+      meson setup ${MESON_ARGS} \
+          --prefix=$PREFIX \
+          --default-library=shared \
+          --wrap-mode=nofallback \
+          -Ddocs=false \
+          -Dman=false \
+          -Dgir=false \
+          -Dsystemd=false \
+          -Dstemming=false \
+          -Dbash-completion=false \
+          builddir
+      ninja -v -C builddir -j ${CPU_COUNT}
+      ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    - gettext
+  host:
+    - glib
+    - libcurl
+    - libfyaml
+    - libxml2-devel
+    - libxmlb
+    - libxslt
+    - zlib
+  run: 
+    - libxml2-devel
+  run_exports:
+    - ${{ pin_subpackage('appstream', upper_bound='x.x') }}
+  ignore_run_exports:
+    by_name:
+      - libzlib
+
+tests:
+  - package_contents:
+      files:
+         - lib/pkgconfig/appstream.pc
+      lib:
+        - appstream
+      bin: 
+        - appstreamcli
+
+about:
+  homepage: https://github.com/ximion/appstream
+  summary:  Tools and libraries to work with AppStream metadata
+  description: |
+    AppStream makes machine-readable software metadata easily accessible. It is a 
+    foundational block for modern Linux software centers, offering a seamless way 
+    to retrieve information about available software, no matter the repository it 
+    is contained in. It can provide data about available applications as well as 
+    available firmware, drivers, fonts and other components. This project it part 
+    of freedesktop.org.
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  repository: https://github.com/ximion/appstream
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - Hofer-Julian

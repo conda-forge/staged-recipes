@@ -11,7 +11,9 @@ source:
   url: "https://download.gnome.org/sources/${{ name }}/${{ version_majmin }}/${{ name }}-${{ version }}.tar.xz"
   sha256: d02bb77b6f0ff1055002d299898c487cb2d83dbf940d9edf59f6fdf2572a921c
   patches:
-    - 0001-remove-appstream-dependency.patch
+    - if: win
+      then:
+        - 0001-remove-appstream-dependency.patch
 
 build:
   number: 0
@@ -29,10 +31,6 @@ build:
           builddir
         ninja -v -C builddir -j %CPU_COUNT%
         ninja -C builddir install -j %CPU_COUNT%
-    - if: osx
-      then: |
-        # Define _DARWIN_C_SOURCE to expose POSIX.1-2008 functions like strnlen
-        export CFLAGS="${CFLAGS} -D_DARWIN_C_SOURCE"
     - if: unix
       then: |
         meson setup ${MESON_ARGS} \
@@ -58,8 +56,11 @@ requirements:
   host:
     - expat
     - glib
-    - gtk4
+    - gtk4 >=4.19.4
     - zlib
+    - if: unix
+      then:
+        - appstream
   run_exports:
     - ${{ pin_subpackage('libadwaita', upper_bound='x.x') }}
   ignore_run_exports:
@@ -77,7 +78,7 @@ tests:
         - if: win
           then:
             - Library/lib/pkgconfig/libadwaita-1.pc
-            - Library/lib/libadwaita-1.lib
+            - Library/lib/adwaita-1.lib
       lib:
         - if: unix
           then: libadwaita-1
