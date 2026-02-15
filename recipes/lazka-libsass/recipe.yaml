@@ -1,0 +1,74 @@
+context:
+  name: lazka-libsass
+  version: 3.6.6
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  git: "https://github.com/lazka/libsass.git"
+  branch: "meson"
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+    - if: unix
+      then: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage('lazka-libsass', exact=True) }}
+
+tests: 
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - include/sass.h
+        - if: win
+          then:
+            - Library/include/sass.h
+      lib:
+        - if: unix
+          then: libsass
+
+about:
+  homepage: https://github.com/lazka/libsass
+  summary: A C/C++ implementation of a Sass compiler  
+  description: |
+    LibSass is a C++ port of the original Ruby Sass CSS compiler with a C API. We 
+    coded LibSass with portability and efficiency in mind. You can expect LibSass 
+    to be a lot faster than Ruby Sass and on par or faster than the best 
+    alternative CSS compilers around.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/lazka/libsass/blob/master/docs/README.md
+  repository: https://github.com/lazka/libsass
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - Hofer-Julian

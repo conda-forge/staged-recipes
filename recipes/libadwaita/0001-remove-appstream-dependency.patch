@@ -1,0 +1,628 @@
+Subject: [PATCH] Remove appstream
+---
+Index: src/adw-about-dialog.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-dialog.c b/src/adw-about-dialog.c
+--- a/src/adw-about-dialog.c	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/src/adw-about-dialog.c	(date 1762917253654)
+@@ -7,7 +7,6 @@
+ 
+ #include "config.h"
+ #include <glib/gi18n-lib.h>
+-#include <appstream.h>
+ 
+ #include "adw-about-dialog.h"
+ 
+@@ -431,13 +430,6 @@
+   self->legal_showing_idle_id = 0;
+ }
+ 
+-static gboolean
+-get_release_for_version (AsRelease  *rel,
+-                         const char *version)
+-{
+-  return !g_strcmp0 (as_release_get_version (rel), version);
+-}
+-
+ static void
+ update_credits_legal_group (AdwAboutDialog *self)
+ {
+@@ -1979,188 +1971,6 @@
+   return g_object_new (ADW_TYPE_ABOUT_DIALOG, NULL);
+ }
+ 
+-/**
+- * adw_about_dialog_new_from_appdata:
+- * @resource_path: The resource to use
+- * @release_notes_version: (nullable): The version to retrieve release notes for
+- *
+- * Creates a new `AdwAboutDialog` using AppStream metadata.
+- *
+- * This automatically sets the following properties with the following AppStream
+- * values:
+- *
+- * * [property@AboutDialog:application-icon] is set from the `<id>`
+- * * [property@AboutDialog:application-name] is set from the `<name>`
+- * * [property@AboutDialog:developer-name] is set from the `<name>` within
+- *      `<developer>`
+- * * [property@AboutDialog:version] is set from the version of the latest release
+- * * [property@AboutDialog:website] is set from the `<url type="homepage">`
+- * * [property@AboutDialog:support-url] is set from the `<url type="help">`
+- * * [property@AboutDialog:issue-url] is set from the `<url type="bugtracker">`
+- * * [property@AboutDialog:license-type] is set from the `<project_license>`.
+- *     If the license type retrieved from AppStream is not listed in
+- *     [enum@Gtk.License], it will be set to `GTK_LICENCE_CUSTOM`.
+- *
+- * If @release_notes_version is not `NULL`,
+- * [property@AboutDialog:release-notes-version] is set to match it, while
+- * [property@AboutDialog:release-notes] is set from the AppStream release
+- * description for that version.
+- *
+- * Returns: the newly created `AdwAboutDialog`
+- *
+- * Since: 1.5
+- */
+-AdwDialog *
+-adw_about_dialog_new_from_appdata (const char *resource_path,
+-                                   const char *release_notes_version)
+-{
+-  AdwAboutDialog *self;
+-  GFile *appdata_file;
+-  char *appdata_uri;
+-  AsMetadata *metadata;
+-  GPtrArray *releases;
+-  AsComponent *component;
+-  char *application_id;
+-  const char *name, *developer_name, *project_license;
+-  const char *issue_url, *support_url, *website_url;
+-  GError *error = NULL;
+-
+-  g_return_val_if_fail (resource_path, NULL);
+-
+-  appdata_uri = g_strconcat ("resource://", resource_path, NULL);
+-  appdata_file = g_file_new_for_uri (appdata_uri);
+-
+-  self = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
+-  metadata = as_metadata_new ();
+-
+-  if (!as_metadata_parse_file (metadata, appdata_file, AS_FORMAT_KIND_UNKNOWN, &error)) {
+-    g_error ("Could not parse metadata file: %s", error->message);
+-    g_clear_error (&error);
+-  }
+-
+-  component = as_metadata_get_component (metadata);
+-
+-  if (component == NULL)
+-    g_error ("Could not find valid AppStream metadata");
+-
+-  application_id = g_strdup (as_component_get_id (component));
+-
+-  if (g_str_has_suffix (application_id, ".desktop")) {
+-    AsLaunchable *launchable;
+-    char *appid_desktop;
+-    GPtrArray *entries = NULL;
+-
+-    launchable = as_component_get_launchable (component,
+-                                              AS_LAUNCHABLE_KIND_DESKTOP_ID);
+-
+-    if (launchable)
+-      entries = as_launchable_get_entries (launchable);
+-
+-    appid_desktop = g_strconcat (application_id, ".desktop", NULL);
+-
+-    if (!entries || !g_ptr_array_find_with_equal_func (entries, appid_desktop,
+-                                                       g_str_equal, NULL))
+-      application_id[strlen(application_id) - 8] = '\0';
+-
+-    g_free (appid_desktop);
+-  }
+-
+-#if AS_CHECK_VERSION (1, 0, 0)
+-  releases = as_release_list_get_entries (as_component_get_releases_plain (component));
+-#else
+-  releases = as_component_get_releases (component);
+-#endif
+-
+-  if (release_notes_version) {
+-    guint release_index = 0;
+-
+-    if (g_ptr_array_find_with_equal_func (releases, release_notes_version,
+-                                         (GEqualFunc) get_release_for_version,
+-                                         &release_index)) {
+-      AsRelease *notes_release;
+-      const char *release_notes, *version;
+-
+-      notes_release = g_ptr_array_index (releases, release_index);
+-
+-      release_notes = as_release_get_description (notes_release);
+-      version = as_release_get_version (notes_release);
+-
+-      if (release_notes && version) {
+-        adw_about_dialog_set_release_notes (self, release_notes);
+-        adw_about_dialog_set_release_notes_version (self, version);
+-      }
+-    } else {
+-      g_critical ("No valid release found for version %s", release_notes_version);
+-    }
+-  }
+-
+-  if (releases->len > 0) {
+-    AsRelease *latest_release = g_ptr_array_index (releases, 0);
+-    const char *version = as_release_get_version (latest_release);
+-
+-    if (version)
+-      adw_about_dialog_set_version (self, version);
+-  }
+-
+-  name = as_component_get_name (component);
+-  project_license = as_component_get_project_license (component);
+-  issue_url = as_component_get_url (component, AS_URL_KIND_BUGTRACKER);
+-  support_url = as_component_get_url (component, AS_URL_KIND_HELP);
+-  website_url = as_component_get_url (component, AS_URL_KIND_HOMEPAGE);
+-
+-#if AS_CHECK_VERSION (0, 16, 4)
+-  developer_name = as_developer_get_name (as_component_get_developer (component));
+-#else
+-  developer_name = as_component_get_developer_name (component);
+-#endif
+-
+-  adw_about_dialog_set_application_icon (self, application_id);
+-
+-  if (name)
+-    adw_about_dialog_set_application_name (self, name);
+-
+-  if (developer_name)
+-    adw_about_dialog_set_developer_name (self, developer_name);
+-
+-  if (project_license) {
+-    int i;
+-
+-    for (i = 0; i < G_N_ELEMENTS (gtk_license_info); i++) {
+-      if (g_strcmp0 (gtk_license_info[i].spdx_id, project_license) == 0) {
+-        adw_about_dialog_set_license_type (self, (GtkLicense) i);
+-        break;
+-      }
+-    }
+-
+-    /* Handle deprecated SPDX IDs */
+-    for (i = 0; i < G_N_ELEMENTS (license_aliases); i++) {
+-      if (g_strcmp0 (license_aliases[i].spdx_id, project_license) == 0) {
+-        adw_about_dialog_set_license_type (self, license_aliases[i].license);
+-        break;
+-      }
+-    }
+-
+-    if (adw_about_dialog_get_license_type (self) == GTK_LICENSE_UNKNOWN)
+-      adw_about_dialog_set_license_type (self, GTK_LICENSE_CUSTOM);
+-  }
+-
+-  if (issue_url)
+-    adw_about_dialog_set_issue_url (self, issue_url);
+-
+-  if (support_url)
+-    adw_about_dialog_set_support_url (self, support_url);
+-
+-  if (website_url)
+-    adw_about_dialog_set_website (self, website_url);
+-
+-  g_object_unref (appdata_file);
+-  g_object_unref (metadata);
+-  g_free (application_id);
+-  g_free (appdata_uri);
+-
+-  return ADW_DIALOG (self);
+-}
+-
+ /**
+  * adw_about_dialog_get_application_icon:
+  * @self: an about dialog
+@@ -3536,42 +3346,3 @@
+ 
+   adw_dialog_present (dialog, parent);
+ }
+-
+-/**
+- * adw_show_about_dialog_from_appdata: (skip)
+- * @parent: the parent widget
+- * @resource_path: The resource to use
+- * @release_notes_version: (nullable): The version to retrieve release notes for
+- * @first_property_name: the name of the first property
+- * @...: value of first property, followed by more pairs of property name and
+- *   value, `NULL`-terminated
+- *
+- * A convenience function for showing an application’s about dialog from
+- * AppStream metadata.
+- *
+- * See [ctor@AboutDialog.new_from_appdata] for details.
+- *
+- * Since: 1.5
+- */
+-void
+-adw_show_about_dialog_from_appdata (GtkWidget  *parent,
+-                                    const char *resource_path,
+-                                    const char *release_notes_version,
+-                                    const char *first_property_name,
+-                                    ...)
+-{
+-  AdwDialog *dialog;
+-  va_list var_args;
+-
+-  g_return_if_fail (GTK_IS_WIDGET (parent));
+-
+-  dialog = adw_about_dialog_new_from_appdata (resource_path,
+-                                              release_notes_version);
+-
+-  va_start (var_args, first_property_name);
+-  g_object_set_valist (G_OBJECT (dialog), first_property_name, var_args);
+-  va_end (var_args);
+-
+-  adw_dialog_present (dialog, parent);
+-}
+-
+Index: src/adw-about-window.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-window.h b/src/adw-about-window.h
+--- a/src/adw-about-window.h	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/src/adw-about-window.h	(date 1762917253640)
+@@ -25,10 +25,6 @@
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_new)
+ GtkWidget *adw_about_window_new (void) G_GNUC_WARN_UNUSED_RESULT;
+ 
+-ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_new_from_appdata)
+-GtkWidget *adw_about_window_new_from_appdata (const char *resource_path,
+-                                              const char *release_notes_version) G_GNUC_WARN_UNUSED_RESULT;
+-
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_get_application_name)
+ const char *adw_about_window_get_application_name (AdwAboutWindow *self);
+ ADW_DEPRECATED_IN_1_6_FOR(adw_about_dialog_set_application_name)
+@@ -175,12 +171,5 @@
+ void adw_show_about_window (GtkWindow  *parent,
+                             const char *first_property_name,
+                             ...) G_GNUC_NULL_TERMINATED;
+-
+-ADW_DEPRECATED_IN_1_6_FOR(adw_show_about_dialog_from_appdata)
+-void adw_show_about_window_from_appdata (GtkWindow  *parent,
+-                                         const char *resource_path,
+-                                         const char *release_notes_version,
+-                                         const char *first_property_name,
+-                                         ...) G_GNUC_NULL_TERMINATED;
+ 
+ G_END_DECLS
+Index: src/adw-about-window.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-window.c b/src/adw-about-window.c
+--- a/src/adw-about-window.c	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/src/adw-about-window.c	(date 1762917253640)
+@@ -6,7 +6,6 @@
+ 
+ #include "config.h"
+ #include <glib/gi18n-lib.h>
+-#include <appstream.h>
+ 
+ #include "adw-about-window.h"
+ 
+@@ -423,13 +422,6 @@
+     g_idle_add_once ((GSourceOnceFunc) legal_showing_idle_cb, self);
+ }
+ 
+-static gboolean
+-get_release_for_version (AsRelease  *rel,
+-                         const char *version)
+-{
+-  return !g_strcmp0 (as_release_get_version (rel), version);
+-}
+-
+ static void
+ update_credits_legal_group (AdwAboutWindow *self)
+ {
+@@ -1992,188 +1984,6 @@
+   return g_object_new (ADW_TYPE_ABOUT_WINDOW, NULL);
+ }
+ 
+-/**
+- * adw_about_window_new_from_appdata:
+- * @resource_path: The resource to use
+- * @release_notes_version: (nullable): The version to retrieve release notes for
+- *
+- * Creates a new `AdwAboutWindow` using AppStream metadata.
+- *
+- * This automatically sets the following properties with the following AppStream
+- * values:
+- *
+- * * [property@AboutWindow:application-icon] is set from the `<id>`
+- * * [property@AboutWindow:application-name] is set from the `<name>`
+- * * [property@AboutWindow:developer-name] is set from the `<name>` within
+- *      `<developer>`
+- * * [property@AboutWindow:version] is set from the version of the latest release
+- * * [property@AboutWindow:website] is set from the `<url type="homepage">`
+- * * [property@AboutWindow:support-url] is set from the `<url type="help">`
+- * * [property@AboutWindow:issue-url] is set from the `<url type="bugtracker">`
+- * * [property@AboutWindow:license-type] is set from the `<project_license>`.
+- *     If the license type retrieved from AppStream is not listed in
+- *     [enum@Gtk.License], it will be set to `GTK_LICENCE_CUSTOM`.
+- *
+- * If @release_notes_version is not `NULL`,
+- * [property@AboutWindow:release-notes-version] is set to match it, while
+- * [property@AboutWindow:release-notes] is set from the AppStream release
+- * description for that version.
+- *
+- * Returns: the newly created `AdwAboutWindow`
+- *
+- * Since: 1.4
+- * Deprecated: 1.6: Use [class@AboutDialog].
+- */
+-GtkWidget *
+-adw_about_window_new_from_appdata (const char *resource_path,
+-                                   const char *release_notes_version)
+-{
+-  AdwAboutWindow *self;
+-  GFile *appdata_file;
+-  char *appdata_uri;
+-  AsMetadata *metadata;
+-  GPtrArray *releases;
+-  AsComponent *component;
+-  char *application_id;
+-  const char *name, *developer_name, *project_license;
+-  const char *issue_url, *support_url, *website_url;
+-  GError *error = NULL;
+-
+-  g_return_val_if_fail (resource_path, NULL);
+-
+-  appdata_uri = g_strconcat ("resource://", resource_path, NULL);
+-  appdata_file = g_file_new_for_uri (appdata_uri);
+-
+-  self = ADW_ABOUT_WINDOW (adw_about_window_new ());
+-  metadata = as_metadata_new ();
+-
+-  if (!as_metadata_parse_file (metadata, appdata_file, AS_FORMAT_KIND_UNKNOWN, &error)) {
+-    g_error ("Could not parse metadata file: %s", error->message);
+-    g_clear_error (&error);
+-  }
+-
+-  component = as_metadata_get_component (metadata);
+-
+-  if (component == NULL)
+-    g_error ("Could not find valid AppStream metadata");
+-
+-  application_id = g_strdup (as_component_get_id (component));
+-
+-  if (g_str_has_suffix (application_id, ".desktop")) {
+-    AsLaunchable *launchable;
+-    char *appid_desktop;
+-    GPtrArray *entries = NULL;
+-
+-    launchable = as_component_get_launchable (component,
+-                                              AS_LAUNCHABLE_KIND_DESKTOP_ID);
+-
+-    if (launchable)
+-      entries = as_launchable_get_entries (launchable);
+-
+-    appid_desktop = g_strconcat (application_id, ".desktop", NULL);
+-
+-    if (!entries || !g_ptr_array_find_with_equal_func (entries, appid_desktop,
+-                                                       g_str_equal, NULL))
+-      application_id[strlen(application_id) - 8] = '\0';
+-
+-    g_free (appid_desktop);
+-  }
+-
+-#if AS_CHECK_VERSION (1, 0, 0)
+-  releases = as_release_list_get_entries (as_component_get_releases_plain (component));
+-#else
+-  releases = as_component_get_releases (component);
+-#endif
+-
+-  if (release_notes_version) {
+-    guint release_index = 0;
+-
+-    if (g_ptr_array_find_with_equal_func (releases, release_notes_version,
+-                                         (GEqualFunc) get_release_for_version,
+-                                         &release_index)) {
+-      AsRelease *notes_release;
+-      const char *release_notes, *version;
+-
+-      notes_release = g_ptr_array_index (releases, release_index);
+-
+-      release_notes = as_release_get_description (notes_release);
+-      version = as_release_get_version (notes_release);
+-
+-      if (release_notes && version) {
+-        adw_about_window_set_release_notes (self, release_notes);
+-        adw_about_window_set_release_notes_version (self, version);
+-      }
+-    } else {
+-      g_critical ("No valid release found for version %s", release_notes_version);
+-    }
+-  }
+-
+-  if (releases->len > 0) {
+-    AsRelease *latest_release = g_ptr_array_index (releases, 0);
+-    const char *version = as_release_get_version (latest_release);
+-
+-    if (version)
+-      adw_about_window_set_version (self, version);
+-  }
+-
+-  name = as_component_get_name (component);
+-  project_license = as_component_get_project_license (component);
+-  issue_url = as_component_get_url (component, AS_URL_KIND_BUGTRACKER);
+-  support_url = as_component_get_url (component, AS_URL_KIND_HELP);
+-  website_url = as_component_get_url (component, AS_URL_KIND_HOMEPAGE);
+-
+-#if AS_CHECK_VERSION (0, 16, 4)
+-  developer_name = as_developer_get_name (as_component_get_developer (component));
+-#else
+-  developer_name = as_component_get_developer_name (component);
+-#endif
+-
+-  adw_about_window_set_application_icon (self, application_id);
+-
+-  if (name)
+-    adw_about_window_set_application_name (self, name);
+-
+-  if (developer_name)
+-    adw_about_window_set_developer_name (self, developer_name);
+-
+-  if (project_license) {
+-    int i;
+-
+-    for (i = 0; i < G_N_ELEMENTS (gtk_license_info); i++) {
+-      if (g_strcmp0 (gtk_license_info[i].spdx_id, project_license) == 0) {
+-        adw_about_window_set_license_type (self, (GtkLicense) i);
+-        break;
+-      }
+-    }
+-
+-    /* Handle deprecated SPDX IDs */
+-    for (i = 0; i < G_N_ELEMENTS (license_aliases); i++) {
+-      if (g_strcmp0 (license_aliases[i].spdx_id, project_license) == 0) {
+-        adw_about_window_set_license_type (self, license_aliases[i].license);
+-        break;
+-      }
+-    }
+-
+-    if (adw_about_window_get_license_type (self) == GTK_LICENSE_UNKNOWN)
+-      adw_about_window_set_license_type (self, GTK_LICENSE_CUSTOM);
+-  }
+-
+-  if (issue_url)
+-    adw_about_window_set_issue_url (self, issue_url);
+-
+-  if (support_url)
+-    adw_about_window_set_support_url (self, support_url);
+-
+-  if (website_url)
+-    adw_about_window_set_website (self, website_url);
+-
+-  g_object_unref (appdata_file);
+-  g_object_unref (metadata);
+-  g_free (application_id);
+-  g_free (appdata_uri);
+-
+-  return GTK_WIDGET (self);
+-}
+ 
+ /**
+  * adw_about_window_get_application_icon:
+@@ -3519,42 +3329,3 @@
+   gtk_window_present (GTK_WINDOW (window));
+ }
+ 
+-/**
+- * adw_show_about_window_from_appdata: (skip)
+- * @parent: (nullable): the parent top-level window
+- * @resource_path: The resource to use
+- * @release_notes_version: (nullable): The version to retrieve release notes for
+- * @first_property_name: the name of the first property
+- * @...: value of first property, followed by more pairs of property name and
+- *   value, `NULL`-terminated
+- *
+- * A convenience function for showing an application’s about window from
+- * AppStream metadata.
+- *
+- * See [ctor@AboutWindow.new_from_appdata] for details.
+- *
+- * Since: 1.4
+- * Deprecated: 1.6: Use [func@show_about_dialog_from_appdata].
+- */
+-void
+-adw_show_about_window_from_appdata (GtkWindow  *parent,
+-                                    const char *resource_path,
+-                                    const char *release_notes_version,
+-                                    const char *first_property_name,
+-                                    ...)
+-{
+-  GtkWidget *window;
+-  va_list var_args;
+-
+-  window = adw_about_window_new_from_appdata (resource_path,
+-                                              release_notes_version);
+-
+-  va_start (var_args, first_property_name);
+-  g_object_set_valist (G_OBJECT (window), first_property_name, var_args);
+-  va_end (var_args);
+-
+-  if (parent)
+-    gtk_window_set_transient_for (GTK_WINDOW (window), parent);
+-
+-  gtk_window_present (GTK_WINDOW (window));
+-}
+Index: meson.build
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/meson.build b/meson.build
+--- a/meson.build	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/meson.build	(date 1762917025969)
+@@ -40,13 +40,6 @@
+ gio_dep = dependency('gio-2.0', version: glib_min_version)
+ gtk_dep = dependency('gtk4', version: gtk_min_version)
+ fribidi_dep = dependency('fribidi')
+-appstream_dep = dependency('appstream',
+-  fallback : ['appstream', 'appstream_dep'],
+-  default_options : [
+-    'systemd=false', 'apidocs=false', 'install-docs=false',
+-    'stemming=false', 'svg-support=false', 'gir=false',
+-  ],
+-)
+ 
+ target_system = host_machine.system()
+ if target_system == 'darwin'
+Index: src/adw-about-dialog.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/adw-about-dialog.h b/src/adw-about-dialog.h
+--- a/src/adw-about-dialog.h	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/src/adw-about-dialog.h	(date 1762917253640)
+@@ -27,10 +27,6 @@
+ ADW_AVAILABLE_IN_1_5
+ AdwDialog *adw_about_dialog_new (void) G_GNUC_WARN_UNUSED_RESULT;
+ 
+-ADW_AVAILABLE_IN_1_5
+-AdwDialog *adw_about_dialog_new_from_appdata (const char *resource_path,
+-                                              const char *release_notes_version) G_GNUC_WARN_UNUSED_RESULT;
+-
+ ADW_AVAILABLE_IN_1_5
+ const char *adw_about_dialog_get_application_name (AdwAboutDialog *self);
+ ADW_AVAILABLE_IN_1_5
+@@ -183,12 +179,5 @@
+ void adw_show_about_dialog (GtkWidget  *parent,
+                             const char *first_property_name,
+                             ...) G_GNUC_NULL_TERMINATED;
+-
+-ADW_AVAILABLE_IN_1_5
+-void adw_show_about_dialog_from_appdata (GtkWidget  *parent,
+-                                         const char *resource_path,
+-                                         const char *release_notes_version,
+-                                         const char *first_property_name,
+-                                         ...) G_GNUC_NULL_TERMINATED;
+ 
+ G_END_DECLS
+Index: src/meson.build
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/meson.build b/src/meson.build
+--- a/src/meson.build	(revision dc7327fcc11cff0f1d4062ae187a501cdf93cb31)
++++ b/src/meson.build	(date 1762917025960)
+@@ -322,7 +322,6 @@
+   fribidi_dep,
+   gio_dep,
+   gtk_dep,
+-  appstream_dep,
+   cc.find_library('m', required: false),
+ ]
+ 
