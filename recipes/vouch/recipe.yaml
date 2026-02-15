@@ -1,0 +1,72 @@
+context:
+  version: "1.0.0"
+
+recipe:
+  name: vouch
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mitchellh/vouch/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f5ca200439192a72ddfdf450803fa96bf6732f1f4a546494718f2c6b0262f492
+
+build:
+  number: 0
+  skip: win
+
+outputs:
+  - package:
+      name: vouch-lib
+      version: ${{ version }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p $PREFIX/share/nushell/lib/
+        - cp -r vouch $PREFIX/share/nushell/lib/
+    requirements:
+      run:
+        - nushell
+    tests:
+      - package_contents:
+          files:
+            - share/nushell/lib/vouch/*
+          strict: true
+      - script:
+          - nu -c 'use vouch; help vouch add'
+          - nu -c 'use vouch; help vouch gh-manage-by-discussion'
+
+  - package:
+      name: vouch
+      version: ${{ version }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p $PREFIX/bin/
+        - sed "s|REPLACE_ME|$PREFIX|g" $RECIPE_DIR/vouch > $PREFIX/bin/vouch
+        - chmod +x $PREFIX/bin/vouch
+    requirements:
+      run:
+        - __unix
+        - ${{ pin_subpackage('vouch-lib', exact=true) }}
+    tests:
+      - package_contents:
+          bin:
+            - vouch
+          strict: true
+      - script:
+          - vouch --help
+          - vouch add --help
+
+about:
+  homepage: https://github.com/mitchellh/vouch
+  summary: A contributor trust management system based on explicit vouches to participate.
+  description: |
+    A project trust management system. People must be vouched for before interacting with certain parts of a project (the exact parts are configurable to the project to enforce). People can also be explicitly denounced to block them from interacting with the project.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/mitchellh/vouch
+  repository: https://github.com/mitchellh/vouch
+
+extra:
+  feedstock-name: vouch-feedstock
+  recipe-maintainers:
+    - pavelzw
