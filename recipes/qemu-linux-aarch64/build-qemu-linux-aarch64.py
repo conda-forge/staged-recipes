@@ -6,7 +6,6 @@ Supports: osx-64 (Intel Macs), win-64 (Windows)
 """
 import gzip
 import os
-import shutil
 import stat
 import sys
 import tarfile
@@ -213,8 +212,10 @@ set -euo pipefail
 
 if [[ "${OSTYPE:-}" == "msys" ]] || [[ "${OSTYPE:-}" == "cygwin" ]] || [[ -n "${MSYSTEM:-}" ]]; then
     SHARE_DIR="${CONDA_PREFIX}/Library/share/qemu-linux-aarch64"
+    QEMU_BIN="${CONDA_PREFIX}/Library/bin/qemu-system-aarch64.exe"
 else
     SHARE_DIR="${CONDA_PREFIX}/share/qemu-linux-aarch64"
+    QEMU_BIN="qemu-system-aarch64"
 fi
 KERNEL="${SHARE_DIR}/vmlinuz-virt"
 INITRAMFS_BASE="${SHARE_DIR}/initramfs-base.cpio.gz"
@@ -237,7 +238,7 @@ EOF
 
 version() {
     echo "qemu-linux-aarch64 (Alpine direct-boot wrapper)"
-    qemu-system-aarch64 --version | head -1
+    "${QEMU_BIN}" --version | head -1
 }
 
 if [[ $# -eq 0 ]]; then
@@ -282,9 +283,9 @@ QEMU_ARGS=(
 )
 
 if [[ -n "${DEBUG}" ]]; then
-    qemu-system-aarch64 "${QEMU_ARGS[@]}"
+    "${QEMU_BIN}" "${QEMU_ARGS[@]}"
 else
-    qemu-system-aarch64 "${QEMU_ARGS[@]}" 2>&1 | grep -v '^\[' | grep -v '^$' || true
+    "${QEMU_BIN}" "${QEMU_ARGS[@]}" 2>&1 | grep -v '^\[' | grep -v '^$' || true
 fi
 
 if [[ -f "${TEMP_SHARE}/exit_code" ]]; then
