@@ -1,0 +1,117 @@
+recipe:
+  name: leapct-split
+  version: 1.2.6
+
+source:
+  url: https://github.com/llnl/LEAP/archive/refs/tags/v1.26.zip
+  sha256: 331A1336C6B8F2F27812882CFAE35C8B6907194ED852BD81B30C8611A0E67614
+
+build:
+  number: 0
+  skip:
+    - cuda_compiler == "None"
+
+outputs:
+  - package:
+      name: libleapct
+    build:
+      script:
+        - if: win
+          then:
+            - set "CXXFLAGS=%CXXFLAGS% -DWIN32 -DPROJECTOR_EXPORTS"
+            - set "CUDAFLAGS=%CUDAFLAGS% -DWIN32 -DPROJECTOR_EXPORTS"
+            - cmake -S %SRC_DIR% -B build -GNinja %CMAKE_ARGS% -DCMAKE_POLICY_DEFAULT_CMP0146=OLD
+            - cmake --build build
+            - cmake --install build
+          else:
+            - cmake $SRC_DIR -B build -GNinja $CMAKE_ARGS
+            - cmake --build build
+            - cmake --install build
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib("c") }}
+        - cmake >=4.3
+        - ninja
+      host:
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: win
+          then: vcomp14
+        - libcufft-dev
+        - libcublas-dev
+        - cuda-version ==${{ cuda_compiler_version }}
+      run:
+        - ${{ pin_compatible('cuda-version', lower_bound='x', upper_bound='x') }}
+        - libcufft
+        - libcublas
+      run_exports:
+        - ${{ pin_subpackage("libleapct", upper_bound="x.x.x") }}
+      ignore_run_exports:
+        by_name:
+        - cuda-version
+        from_package:
+        - libcufft-dev
+        - libcublas-dev
+    tests:
+    - if: unix
+      then:
+        script:
+          - test -f ${PREFIX}/lib/libleapct${SHLIB_EXT}
+      else:
+        script:
+          - if not exist %LIBRARY_PREFIX%\lib\leapct.lib exit 1
+          - if not exist %LIBRARY_PREFIX%\bin\libleapct.dll exit 1
+
+  - package:
+      name: leapct
+    build:
+      noarch: python
+      script:
+        - if: win
+          then:
+            - copy "%SRC_DIR%\src\leaptorch.py" "%SP_DIR%\"
+            - copy "%SRC_DIR%\src\leapctype.py" "%SP_DIR%\"
+            - copy "%SRC_DIR%\src\leap_filter_sequence.py" "%SP_DIR%\"
+            - copy "%SRC_DIR%\src\leap_preprocessing_algorithms.py" "%SP_DIR%\"
+          else:
+            - cp "$SRC_DIR/src/leaptorch.py" "$SP_DIR/"
+            - cp "$SRC_DIR/src/leapctype.py" "$SP_DIR/"
+            - cp "$SRC_DIR/src/leap_filter_sequence.py" "$SP_DIR/"
+            - cp "$SRC_DIR/src/leap_preprocessing_algorithms.py" "$SP_DIR/"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - numpy
+        - scipy
+        - matplotlib-base
+        - imageio
+        - pytorch * [build=cuda*]
+        - xrayphysics
+        - cuda-version >=12.0
+        - ${{ pin_subpackage("libleapct", exact=True) }}
+    tests:
+      - script: python -c "from leapctype import tomographicModels; p = tomographicModels(); p.about()"
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+        
+
+about:
+  homepage: https://github.com/llnl/LEAP
+  summary: 3D computed tomography algorithms, useable either standalone or integrated with PyTorch
+  description: Comprehensive library of 3D transmission computed tomography (CT) algorithms
+  license: MIT
+  license_file: LICENSE
+  documentation: https://leapct.readthedocs.io/en/latest/
+  repository: https://github.com/llnl/LEAP
+
+extra:
+  feedstock-name: leapct
+  recipe-maintainers:
+    - alashworth

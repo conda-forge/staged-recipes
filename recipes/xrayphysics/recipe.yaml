@@ -1,0 +1,87 @@
+recipe:
+  name: xrayphysics-split
+  version: 1.2.1
+
+source:
+  url: https://github.com/kylechampley/XrayPhysics/archive/refs/tags/v1.2.1.zip
+  sha256: D03AC5512413099694F7C0E4D47C516EFBBCF570C23490871142B9388EDDE4D6
+  patches: 
+    - 01-patch-dll-path.patch
+  
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libxrayphysics
+    build:
+      script:
+        - if: win
+          then:
+            - set "CXXFLAGS=%CXXFLAGS% -DWIN32 -DPROJECTOR_EXPORTS"
+            - cmake -S %SRC_DIR% -B build -GNinja %CMAKE_ARGS%
+            - cmake --build build
+            - cmake --install build
+          else:
+            - cmake $SRC_DIR -B build -GNinja $CMAKE_ARGS
+            - cmake --build build
+            - cmake --install build
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib("c") }}
+        - cmake >3.9,<4.0
+        - ninja
+      host:
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: win
+          then: vcomp14
+      run_exports:
+        - ${{ pin_subpackage("libxrayphysics", upper_bound="x.x.x") }}
+    tests:
+      - if: unix
+        then:
+          script:
+            - test -f ${PREFIX}/lib/libxrayphysics${SHLIB_EXT}
+        else:
+          script:
+            - if not exist %LIBRARY_PREFIX%\lib\xrayphysics.lib exit 1
+            - if not exist %LIBRARY_PREFIX%\bin\libxrayphysics.dll exit 1
+
+  - package:
+      name: xrayphysics
+    build:
+      noarch: python
+      script:
+        - if: win
+          then: copy "%SRC_DIR%\src\xrayphysics.py" "%SP_DIR%\"
+          else: cp "$SRC_DIR/src/xrayphysics.py" "$SP_DIR/"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - numpy
+        - ${{ pin_subpackage("libxrayphysics", exact=True) }}
+    tests:
+      - script: python -c "from xrayphysics import xrayPhysics; p = xrayPhysics(); p.about()"
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/kylechampley/XrayPhysics
+  summary: X-ray cross sections and x-ray source spectra modeling for Python
+  description: C/C++ library and Python bindings for x-ray cross sections, x-ray source spectra modeling, multi-material beam hardening correction, and dual energy decomposition algorithms.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://xrayphysics.readthedocs.io/en/latest/
+  repository: https://github.com/kylechampley/XrayPhysics
+
+extra:
+  feedstock-name: xrayphysics
+  recipe-maintainers:
+    - alashworth
