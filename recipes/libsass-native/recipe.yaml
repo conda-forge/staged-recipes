@@ -1,0 +1,82 @@
+context:
+  name: libsass
+  version: "3.6.6"
+
+package:
+  name: libsass-native
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sass/${{ name }}/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 11f0bb3709a4f20285507419d7618f3877a425c0131ea8df40fe6196129df15d
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        copy %RECIPE_DIR%\meson.build .
+        copy %RECIPE_DIR%\src\meson.build .\src\
+        copy %RECIPE_DIR%\include\meson.build .\include\
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Db_vscrt=md ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        cp $RECIPE_DIR/meson.build .
+        cp $RECIPE_DIR/src/meson.build ./src/
+        cp $RECIPE_DIR/include/meson.build ./include/
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.48.0
+    - ninja
+    - pkg-config
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - include/sass.h
+            - include/sass/base.h
+            - lib/pkgconfig/libsass.pc
+        - if: win
+          then:
+            - Library/include/sass.h
+            - Library/include/sass/base.h
+            - Library/lib/pkgconfig/libsass.pc
+      lib:
+        - sass*
+
+about:
+  homepage: https://sass-lang.com/libsass
+  summary: 'A C/C++ implementation of a Sass compiler'
+  description: |
+    LibSass is a C++ port of the original Ruby Sass CSS compiler with a C API.
+    We coded LibSass with portability and efficiency in mind. You can expect
+    LibSass to be a lot faster than Ruby Sass and on par or faster than the best
+    alternative CSS compilers around.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://sass-lang.com/libsass
+  repository: https://github.com/sass/libsass
+
+extra:
+  recipe-maintainers:
+    - danyeaw
+    - ryanvolz
