@@ -1,0 +1,120 @@
+From 492a8c7572b0e341358db3c816da8a5837051a74 Mon Sep 17 00:00:00 2001
+From: Sherman Siu <s8siu@uwaterloo.ca>
+Date: Fri, 25 Jul 2025 03:24:24 -0400
+Subject: [PATCH] Make decord compatible with latest version of ffmpeg
+
+- Original fix from https://github.com/dmlc/decord/issues/186#issuecomment-1171882325
+---
+ src/audio/audio_reader.cc                  | 12 +++++-------
+ src/video/ffmpeg/ffmpeg_common.h           |  1 +
+ src/video/nvcodec/cuda_threaded_decoder.cc |  4 ++--
+ src/video/nvcodec/cuda_threaded_decoder.h  |  4 ++--
+ src/video/video_reader.cc                  |  2 +-
+ 5 files changed, 11 insertions(+), 12 deletions(-)
+
+diff --git a/src/audio/audio_reader.cc b/src/audio/audio_reader.cc
+index ee1d87e..e125d60 100644
+--- a/src/audio/audio_reader.cc
++++ b/src/audio/audio_reader.cc
+@@ -128,7 +128,7 @@ namespace decord {
+                 pCodecParameters = tempCodecParameters;
+                 originalSampleRate = tempCodecParameters->sample_rate;
+                 if (targetSampleRate == -1) targetSampleRate = originalSampleRate;
+-                numChannels = tempCodecParameters->channels;
++                numChannels = tempCodecParameters->ch_layout.nb_channels;
+                 break;
+             }
+         }
+@@ -227,7 +227,7 @@ namespace decord {
+         // allocate resample buffer
+         float** outBuffer;
+         int outLinesize = 0;
+-        int outNumChannels = av_get_channel_layout_nb_channels(mono ? AV_CH_LAYOUT_MONO : pFrame->channel_layout);
++        int outNumChannels = (mono ? (AVChannelLayout) AV_CHANNEL_LAYOUT_MONO : pFrame->ch_layout).nb_channels;
+         numChannels = outNumChannels;
+         int outNumSamples = av_rescale_rnd(pFrame->nb_samples,
+                                            this->targetSampleRate, pFrame->sample_rate, AV_ROUND_UP);
+@@ -276,11 +276,9 @@ namespace decord {
+         if (!this->swr) {
+             LOG(FATAL) << "ERROR Failed to allocate resample context";
+         }
+-        if (pCodecContext->channel_layout == 0) {
+-            pCodecContext->channel_layout = av_get_default_channel_layout( pCodecContext->channels );
+-        }
+-        av_opt_set_channel_layout(this->swr, "in_channel_layout",  pCodecContext->channel_layout, 0);
+-        av_opt_set_channel_layout(this->swr, "out_channel_layout", mono ? AV_CH_LAYOUT_MONO : pCodecContext->channel_layout,  0);
++        av_opt_set_chlayout(this->swr, "in_chlayout",  &pCodecContext->ch_layout, 0);
++        AVChannelLayout mono_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_MONO;
++        av_opt_set_chlayout(this->swr, "out_chlayout", mono ? &mono_layout : &pCodecContext->ch_layout, 0);
+         av_opt_set_int(this->swr, "in_sample_rate",     pCodecContext->sample_rate,                0);
+         av_opt_set_int(this->swr, "out_sample_rate",    this->targetSampleRate,                0);
+         av_opt_set_sample_fmt(this->swr, "in_sample_fmt",  pCodecContext->sample_fmt, 0);
+diff --git a/src/video/ffmpeg/ffmpeg_common.h b/src/video/ffmpeg/ffmpeg_common.h
+index b0b973f..f0f7316 100644
+--- a/src/video/ffmpeg/ffmpeg_common.h
++++ b/src/video/ffmpeg/ffmpeg_common.h
+@@ -21,6 +21,7 @@
+ extern "C" {
+ #endif
+ #include <libavcodec/avcodec.h>
++#include <libavcodec/bsf.h>
+ #include <libavformat/avformat.h>
+ #include <libavformat/avio.h>
+ #include <libavfilter/avfilter.h>
+diff --git a/src/video/nvcodec/cuda_threaded_decoder.cc b/src/video/nvcodec/cuda_threaded_decoder.cc
+index 62bc7ee..957a90d 100644
+--- a/src/video/nvcodec/cuda_threaded_decoder.cc
++++ b/src/video/nvcodec/cuda_threaded_decoder.cc
+@@ -17,7 +17,7 @@ namespace decord {
+ namespace cuda {
+ using namespace runtime;
+ 
+-CUThreadedDecoder::CUThreadedDecoder(int device_id, AVCodecParameters *codecpar, AVInputFormat *iformat)
++CUThreadedDecoder::CUThreadedDecoder(int device_id, AVCodecParameters *codecpar, const AVInputFormat *iformat)
+     : device_id_(device_id), stream_({device_id, false}), device_{}, ctx_{}, parser_{}, decoder_{},
+     pkt_queue_{}, frame_queue_{},
+     run_(false), frame_count_(0), draining_(false),
+@@ -70,7 +70,7 @@ CUThreadedDecoder::CUThreadedDecoder(int device_id, AVCodecParameters *codecpar,
+     }
+ }
+ 
+-void CUThreadedDecoder::InitBitStreamFilter(AVCodecParameters *codecpar, AVInputFormat *iformat) {
++void CUThreadedDecoder::InitBitStreamFilter(AVCodecParameters *codecpar, const AVInputFormat *iformat) {
+     const char* bsf_name = nullptr;
+     if (AV_CODEC_ID_H264 == codecpar->codec_id) {
+         // H.264
+diff --git a/src/video/nvcodec/cuda_threaded_decoder.h b/src/video/nvcodec/cuda_threaded_decoder.h
+index d7e6fcd..61958a1 100644
+--- a/src/video/nvcodec/cuda_threaded_decoder.h
++++ b/src/video/nvcodec/cuda_threaded_decoder.h
+@@ -46,7 +46,7 @@ class CUThreadedDecoder final : public ThreadedDecoderInterface {
+     using FrameOrderQueuePtr = std::unique_ptr<FrameOrderQueue>;
+ 
+     public:
+-        CUThreadedDecoder(int device_id, AVCodecParameters *codecpar, AVInputFormat *iformat);
++        CUThreadedDecoder(int device_id, AVCodecParameters *codecpar, const AVInputFormat *iformat);
+         void SetCodecContext(AVCodecContext *dec_ctx, int width = -1, int height = -1, int rotation = 0);
+         bool Initialized() const;
+         void Start();
+@@ -70,7 +70,7 @@ class CUThreadedDecoder final : public ThreadedDecoderInterface {
+         void LaunchThreadImpl();
+         void RecordInternalError(std::string message);
+         void CheckErrorStatus();
+-        void InitBitStreamFilter(AVCodecParameters *codecpar, AVInputFormat *iformat);
++        void InitBitStreamFilter(AVCodecParameters *codecpar, const AVInputFormat *iformat);
+ 
+         int device_id_;
+         CUStream stream_;
+diff --git a/src/video/video_reader.cc b/src/video/video_reader.cc
+index af4858d..99c9635 100644
+--- a/src/video/video_reader.cc
++++ b/src/video/video_reader.cc
+@@ -145,7 +145,7 @@ VideoReader::~VideoReader(){
+ 
+ void VideoReader::SetVideoStream(int stream_nb) {
+     if (!fmt_ctx_) return;
+-    AVCodec *dec;
++    const AVCodec *dec;
+     int st_nb = av_find_best_stream(fmt_ctx_.get(), AVMEDIA_TYPE_VIDEO, stream_nb, -1, &dec, 0);
+     // LOG(INFO) << "find best stream: " << st_nb;
+     CHECK_GE(st_nb, 0) << "ERROR cannot find video stream with wanted index: " << stream_nb;
