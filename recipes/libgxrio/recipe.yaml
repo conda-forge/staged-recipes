@@ -1,0 +1,80 @@
+context:
+  name: libgxrio
+  version: "1.0.2"
+  author: "mhekkel"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/${{ author }}/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9740ef8fe93ef19646d65ce906da8336a39b3b8ccec4c7c93a867c729db0cbcc
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        set -exo pipefail
+
+        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
+        if [[ ${build_platform} != ${target_platform} ]]; then
+          extra_cmake_args="-DTEST_STD_CHRONO_FROM_STREAM_R=ON"
+        fi
+
+        # Skip tests for cross compilation for macos
+        if [[ ${build_platform} != ${target_platform} && ${target_platform} == "osx-arm64" ]]; then
+          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=OFF
+        else
+          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_TESTING=ON ${extra_cmake_args}
+        fi
+
+        cmake --build build --parallel ${CPU_COUNT}
+        ctest -V --test-dir build
+        cmake --install build
+    - if: win
+      then: |
+        @echo on
+        cmake -S . -B build -G "NMake Makefiles JOM" %CMAKE_ARGS% -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=ON
+        if errorlevel 1 exit 1
+        cmake --build build --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest -V --test-dir build
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - if: unix
+      then: make
+    - if: win
+      then: jom
+  host:
+    - libboost-devel
+    - liblzma
+    - zlib
+  ignore_run_exports:
+    from_package: libboost-devel
+
+tests:
+  - package_contents:
+      include:
+        - gxrio.hpp
+
+about:
+  homepage: https://github.com/mhekkel/gxrio
+  repository: https://github.com/mhekkel/gxrio
+  documentation: https://github.com/mhekkel/libgxrio/blob/v${{ version }}/README.md
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: "A header only library to read and write compressed files using a standard streams interface"
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
