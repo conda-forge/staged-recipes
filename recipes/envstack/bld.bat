@@ -1,0 +1,4 @@
+REM set UTF-8 mode by default
+chcp 65001
+SET PYTHONUTF8=1
+SET PYTHONIOENCODING="UTF-8"
