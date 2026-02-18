@@ -19,7 +19,7 @@ if [[ ${BASH_VERSINFO[0]} -lt 5 || (${BASH_VERSINFO[0]} -eq 5 && ${BASH_VERSINFO
   fi
 fi
 
-source "${RECIPE_DIR}/build-functions.sh"
+source ${RECIPE_DIR}/setup-zig-cc.sh
 
 echo "=== Building zig-llvmdev with zig cc ==="
 echo "  LLVM source: ${SRC_DIR}/llvm-source"
@@ -107,12 +107,9 @@ LLVM_INSTALL="${PREFIX}/lib/zig-llvm"
 
 CACHE_DIR="${RECIPE_DIR}/cache"
 
-# Check if cache has required files (use ls for glob expansion)
-CACHE_HAS_LLVM=$(ls "${CACHE_DIR}/lib/"libLLVM*.so* 2>/dev/null | head -1)
-
-if [[ "${ZIG_LLVM_FORCE_BUILD:-0}" != "1" ]] && [[ -d "${CACHE_DIR}" ]] && \
+if [[ "${ZIG_LLVM_SKIP_BUILD:-0}" == "1" ]] && [[ -d "${CACHE_DIR}" ]] && \
    [[ -x "${CACHE_DIR}/bin/llvm-config" ]] && \
-   [[ -n "${CACHE_HAS_LLVM}" ]]; then
+   [[ -n "$(ls "${CACHE_DIR}/lib/"libLLVM*.{dll,dylib,so}* 2>/dev/null | head -1)" ]]; then
     echo "=== USING CACHED LLVM BUILD ==="
     echo "  Cache found at: ${CACHE_DIR}"
     echo "  llvm-config version: $("${CACHE_DIR}/bin/llvm-config" --version)"
@@ -131,8 +128,8 @@ if [[ "${ZIG_LLVM_FORCE_BUILD:-0}" != "1" ]] && [[ -d "${CACHE_DIR}" ]] && \
     exit 0
 fi
 
-if [[ "${ZIG_LLVM_FORCE_BUILD:-0}" == "1" ]]; then
-    echo "=== FORCING LLVM BUILD (ZIG_LLVM_FORCE_BUILD=1) ==="
+if [[ "${ZIG_LLVM_SKIP_BUILD:-0}" != "1" ]]; then
+    echo "=== LLVM Full BUILD (ZIG_LLVM_SKIP_BUILD=0) ==="
 elif [[ -d "${CACHE_DIR}" ]]; then
     echo "=== Cache found but incomplete, rebuilding ==="
 else
