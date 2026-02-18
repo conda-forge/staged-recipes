@@ -95,6 +95,53 @@ LLVM_SRC="${SRC_DIR}/llvm"
 LLVM_BUILD="${SRC_DIR}/conda-llvm-build"
 LLVM_INSTALL="${PREFIX}/lib/zig-llvm"
 
+# === BUILD CACHE ===
+# For faster iteration on packaging/tests, cache built artifacts in recipe folder
+# Cache location: ${RECIPE_DIR}/cache/zig-llvm/
+#
+# To populate cache from a successful build:
+#   cp -r output/bld/rattler-build_zig-llvm_*/host_env_*/lib/zig-llvm recipes/zig-llvm/cache/
+#   cp output/bld/rattler-build_zig-llvm_*/host_env_*/lib/zig-llvm-path.txt recipes/zig-llvm/cache/
+#
+# Set ZIG_LLVM_FORCE_BUILD=1 to ignore cache and rebuild
+
+CACHE_DIR="${RECIPE_DIR}/cache"
+
+# Check if cache has required files (use ls for glob expansion)
+CACHE_HAS_LLVM=$(ls "${CACHE_DIR}/lib/"libLLVM*.so* 2>/dev/null | head -1)
+
+if [[ "${ZIG_LLVM_FORCE_BUILD:-0}" != "1" ]] && [[ -d "${CACHE_DIR}" ]] && \
+   [[ -x "${CACHE_DIR}/bin/llvm-config" ]] && \
+   [[ -n "${CACHE_HAS_LLVM}" ]]; then
+    echo "=== USING CACHED LLVM BUILD ==="
+    echo "  Cache found at: ${CACHE_DIR}"
+    echo "  llvm-config version: $("${CACHE_DIR}/bin/llvm-config" --version)"
+    echo ""
+    echo "  Copying cache to: ${LLVM_INSTALL}"
+
+    mkdir -p "${PREFIX}/lib"
+    cp -a "${CACHE_DIR}" "${LLVM_INSTALL}"
+
+    # Create marker file
+    echo "${LLVM_INSTALL}" > "${PREFIX}/lib/zig-llvm-path.txt"
+
+    echo "  Cache installed successfully!"
+    echo "  Set ZIG_LLVM_FORCE_BUILD=1 to rebuild from source"
+    ls -la "${LLVM_INSTALL}/lib/"*.so* | head -10
+    exit 0
+fi
+
+if [[ "${ZIG_LLVM_FORCE_BUILD:-0}" == "1" ]]; then
+    echo "=== FORCING LLVM BUILD (ZIG_LLVM_FORCE_BUILD=1) ==="
+elif [[ -d "${CACHE_DIR}" ]]; then
+    echo "=== Cache found but incomplete, rebuilding ==="
+else
+    echo "=== No cache found, building from source ==="
+    echo "  To speed up future builds, populate cache after successful build:"
+    echo "    mkdir -p ${RECIPE_DIR}/cache"
+    echo "    cp -r \${PREFIX}/lib/zig-llvm ${RECIPE_DIR}/cache/"
+fi
+
 mkdir -p "${LLVM_BUILD}"
 
 _CLANG=(
@@ -113,7 +160,7 @@ _CLANG=(
 
 _LLVM=(
     -DLLVM_BUILD_LLVM_DYLIB=ON
-    -DLLVM_BUILD_TOOLS=OFF
+    -DLLVM_BUILD_TOOLS=ON
     -DLLVM_BUILD_UTILS=OFF
     -DLLVM_DEFAULT_TARGET_TRIPLE="${ZIG_TARGET}"
     -DLLVM_ENABLE_ASSERTIONS=OFF
@@ -138,11 +185,77 @@ _LLVM=(
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=OFF
     -DLLVM_LINK_LLVM_DYLIB=ON
     -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;PowerPC;RISCV"
-    # -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;PowerPC;RISCV;WebAssembly;SystemZ"
+    # Disable all tools except llvm-config (saves significant build time)
+    -DLLVM_TOOL_BUGPOINT_BUILD=OFF
+    -DLLVM_TOOL_DSYMUTIL_BUILD=OFF
+    -DLLVM_TOOL_GOLD_BUILD=OFF
+    -DLLVM_TOOL_LLC_BUILD=OFF
+    -DLLVM_TOOL_LLI_BUILD=OFF
+    -DLLVM_TOOL_LLVM_AR_BUILD=OFF
+    -DLLVM_TOOL_LLVM_AS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CAT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CFI_VERIFY_BUILD=OFF
+    -DLLVM_TOOL_LLVM_COV_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CVTRES_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CXXDUMP_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CXXFILT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_CXXMAP_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DIFF_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DIS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DLLTOOL_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DWARFDUMP_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DWARFUTIL_BUILD=OFF
+    -DLLVM_TOOL_LLVM_DWP_BUILD=OFF
     -DLLVM_TOOL_LLVM_EXEGESIS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_EXTRACT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_GSYMUTIL_BUILD=OFF
+    -DLLVM_TOOL_LLVM_IFS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_JITLINK_BUILD=OFF
+    -DLLVM_TOOL_LLVM_LINK_BUILD=OFF
+    -DLLVM_TOOL_LLVM_LIPO_BUILD=OFF
     -DLLVM_TOOL_LLVM_LTO2_BUILD=OFF
     -DLLVM_TOOL_LLVM_LTO_BUILD=OFF
+    -DLLVM_TOOL_LLVM_MC_BUILD=OFF
+    -DLLVM_TOOL_LLVM_MCA_BUILD=OFF
+    -DLLVM_TOOL_LLVM_ML_BUILD=OFF
+    -DLLVM_TOOL_LLVM_MODEXTRACT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_MT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_NM_BUILD=OFF
+    -DLLVM_TOOL_LLVM_OBJCOPY_BUILD=OFF
+    -DLLVM_TOOL_LLVM_OBJDUMP_BUILD=OFF
+    -DLLVM_TOOL_LLVM_OPT_REPORT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_PDBUTIL_BUILD=OFF
+    -DLLVM_TOOL_LLVM_PROFDATA_BUILD=OFF
+    -DLLVM_TOOL_LLVM_PROFGEN_BUILD=OFF
+    -DLLVM_TOOL_LLVM_RC_BUILD=OFF
+    -DLLVM_TOOL_LLVM_READOBJ_BUILD=OFF
+    -DLLVM_TOOL_LLVM_REDUCE_BUILD=OFF
+    -DLLVM_TOOL_LLVM_REMARK_SIZE_DIFF_BUILD=OFF
+    -DLLVM_TOOL_LLVM_RTDYLD_BUILD=OFF
+    -DLLVM_TOOL_LLVM_SIM_BUILD=OFF
+    -DLLVM_TOOL_LLVM_SIZE_BUILD=OFF
+    -DLLVM_TOOL_LLVM_SPLIT_BUILD=OFF
+    -DLLVM_TOOL_LLVM_STRESS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_STRINGS_BUILD=OFF
+    -DLLVM_TOOL_LLVM_SYMBOLIZER_BUILD=OFF
+    -DLLVM_TOOL_LLVM_TAPI_DIFF_BUILD=OFF
+    -DLLVM_TOOL_LLVM_TLI_CHECKER_BUILD=OFF
+    -DLLVM_TOOL_LLVM_UNDNAME_BUILD=OFF
+    -DLLVM_TOOL_LLVM_XRAY_BUILD=OFF
     -DLLVM_TOOL_LTO_BUILD=OFF
+    -DLLVM_TOOL_OBJ2YAML_BUILD=OFF
+    -DLLVM_TOOL_OPT_BUILD=OFF
+    -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF
+    -DLLVM_TOOL_SANCOV_BUILD=OFF
+    -DLLVM_TOOL_SANSTATS_BUILD=OFF
+    -DLLVM_TOOL_SPLIT_FILE_BUILD=OFF
+    -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=OFF
+    -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF
+    -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF
+    -DLLVM_TOOL_YAML2OBJ_BUILD=OFF
+    # Keep llvm-config (default ON when LLVM_BUILD_TOOLS=ON)
+    -DLLVM_TOOL_LLVM_CONFIG_BUILD=ON
 )
 
 echo "=== Configuring LLVM ==="
@@ -169,13 +282,8 @@ cmake -S "${LLVM_SRC}" -B "${LLVM_BUILD}" \
     "${_LLVM[@]}" \
     -G Ninja
 
-echo "=== Building LLVM libraries ==="
-# LLVM_BUILD_TOOLS=OFF means default target only builds libraries
+echo "=== Building LLVM ==="
 cmake --build "${LLVM_BUILD}" -j"${CPU_COUNT}"
-
-echo "=== Building llvm-config ==="
-# Build llvm-config explicitly (only tool we need)
-cmake --build "${LLVM_BUILD}" -j"${CPU_COUNT}" --target llvm-config
 
 echo "=== Installing LLVM ==="
 cmake --install "${LLVM_BUILD}"
@@ -184,6 +292,29 @@ cmake --install "${LLVM_BUILD}"
 echo "=== Removing static libraries ==="
 find "${LLVM_INSTALL}/lib" -name "*.a" -type f -delete
 echo "  Removed .a files from ${LLVM_INSTALL}/lib"
+
+# Remove all tools except llvm-config (other tools come from conda-forge llvm-tools)
+# Many LLVM tools are symlinks, so delete both files and symlinks
+echo "=== Removing tools except llvm-config ==="
+find "${LLVM_INSTALL}/bin" \( -type f -o -type l \) ! -name "llvm-config*" -delete
+ls "${LLVM_INSTALL}/bin/"
+echo "  Kept only llvm-config in ${LLVM_INSTALL}/bin"
+
+# Remove share/ directory (clang-format helpers, cmake modules we don't need)
+echo "=== Removing share/ directory ==="
+rm -rf "${LLVM_INSTALL}/share"
+echo "  Removed ${LLVM_INSTALL}/share"
+
+# Remove C API headers (zig uses C++ API, not C bindings)
+echo "=== Removing C API headers ==="
+rm -rf "${LLVM_INSTALL}/include/llvm-c"
+rm -rf "${LLVM_INSTALL}/include/clang-c"
+echo "  Removed llvm-c/ and clang-c/ headers"
+
+# Remove CMake modules (zig uses llvm-config, not find_package)
+echo "=== Removing CMake modules ==="
+rm -rf "${LLVM_INSTALL}/lib/cmake"
+echo "  Removed lib/cmake/"
 
 echo "=== zig-llvm build complete ==="
 echo "  Installed to: ${LLVM_INSTALL}"

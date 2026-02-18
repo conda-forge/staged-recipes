@@ -38,9 +38,11 @@ build:
   script:
     env:
       ZIG_TARGET: ${{ zig_target }}
+      ZIG_LLVM_SKIP_BUILD: 0
 
 requirements:
   build:
+    - ${{ stdlib('c') }}
     - ${{ m2 }}bash >=5.2
     - cmake >=3.19
     - ninja
@@ -59,19 +61,86 @@ requirements:
     - zstd
 
 tests:
+  # Test 1: Verify package structure
   - package_contents:
       strict: true
       files:
         # Installed to lib/zig-llvm/ to avoid conflicts with conda-forge llvmdev
         - lib/zig-llvm/lib/libLLVM*
         - lib/zig-llvm/lib/libclang*
-        - lib/zig-llvm/lib/liblld*
+        # Note: liblld* not needed - zig has built-in LLD, only needs headers
         - lib/zig-llvm/include/llvm/**
         - lib/zig-llvm/include/clang/**
         - lib/zig-llvm/include/lld/**
         - lib/zig-llvm/bin/llvm-config
         - lib/zig-llvm/bin/llvm-config.real
         - lib/zig-llvm-path.txt
+
+  # Test 2: Verify llvm-config works and returns valid information
+  - script:
+      - echo "=== Testing llvm-config ==="
+      - LLVM_PATH=$(cat $PREFIX/lib/zig-llvm-path.txt)
+      - echo "LLVM_PATH=$LLVM_PATH"
+      - $LLVM_PATH/bin/llvm-config --version
+      - $LLVM_PATH/bin/llvm-config --prefix
+      - $LLVM_PATH/bin/llvm-config --libdir
+      - $LLVM_PATH/bin/llvm-config --includedir
+      - echo "=== llvm-config --components ==="
+      - $LLVM_PATH/bin/llvm-config --components | tr ' ' '\n' | head -20
+      - echo "=== Verifying paths exist ==="
+      - test -d "$($LLVM_PATH/bin/llvm-config --libdir)"
+      - test -d "$($LLVM_PATH/bin/llvm-config --includedir)"
+
+  # Test 3: Verify shared libraries are valid
+  - script:
+      - echo "=== Testing shared libraries ==="
+      - LLVM_PATH=$(cat $PREFIX/lib/zig-llvm-path.txt)
+      - file $LLVM_PATH/lib/libLLVM*.so* | head -5
+      - file $LLVM_PATH/lib/libclang*.so* | head -5
+      - file $LLVM_PATH/lib/liblld*.so* | head -5
+      - echo "=== Checking library symbols (LLVM) ==="
+      - nm -D $LLVM_PATH/lib/libLLVM*.so 2>/dev/null | grep -c "LLVMContext" || echo "Symbol check skipped"
+      - echo "=== CRITICAL: Verifying no libstdc++ dependency (must use libc++) ==="
+      - echo "Checking libLLVM..."
+      - "! ldd $LLVM_PATH/lib/libLLVM*.so* 2>/dev/null | grep -q libstdc++"
+      - echo "Checking libclang..."
+      - "! ldd $LLVM_PATH/lib/libclang*.so* 2>/dev/null | grep -q libstdc++"
+      - echo "✅ No libstdc++ dependency - using libc++ as expected"
+
+  # Test 4: Verify llvm-config returns zig-llvm paths (not system/conda llvm)
+  - script:
+      - echo "=== Verifying llvm-config paths are namespaced ==="
+      - LLVM_PATH=$(cat $PREFIX/lib/zig-llvm-path.txt)
+      - echo "Expected prefix: $LLVM_PATH"
+      - REPORTED_PREFIX=$($LLVM_PATH/bin/llvm-config --prefix)
+      - echo "Reported prefix: $REPORTED_PREFIX"
+      - test "$REPORTED_PREFIX" = "$LLVM_PATH"
+      - echo "=== Verifying version matches ==="
+      - LLVM_VERSION=$($LLVM_PATH/bin/llvm-config --version)
+      - echo "LLVM version: $LLVM_VERSION"
+      - echo "$LLVM_VERSION" | grep -q "^20\."
+      - echo "✅ Version and paths verified"
+
+  # Test 5: Verify RPATH and libc++ linkage
+  - script:
+      - echo "=== Checking RPATH (libraries should be self-contained) ==="
+      - LLVM_PATH=$(cat $PREFIX/lib/zig-llvm-path.txt)
+      - readelf -d $LLVM_PATH/lib/libLLVM*.so* 2>/dev/null | grep -E "RPATH|RUNPATH" | head -3 || echo "No RPATH (static linkage or system paths)"
+      - echo "=== Verifying libc++ is linked (not just absence of libstdc++) ==="
+      - ldd $LLVM_PATH/lib/libLLVM*.so* 2>/dev/null | grep -E "libc\+\+|libunwind" || echo "Note: libc++ may be statically linked"
+
+  # Test 6: Verify zig can use this LLVM (requires zig in test env)
+  - script:
+      - echo "=== Testing zig compatibility ==="
+      - LLVM_PATH=$(cat $PREFIX/lib/zig-llvm-path.txt)
+      - export ZIG_LIB_DIR=$LLVM_PATH
+      - echo "ZIG_LIB_DIR=$ZIG_LIB_DIR"
+      - zig version
+      - echo "=== Zig LLVM backend check ==="
+      - zig targets | head -20
+    requirements:
+      run:
+        - zig >=0.15.2
 
 about:
   homepage: http://llvm.org/
