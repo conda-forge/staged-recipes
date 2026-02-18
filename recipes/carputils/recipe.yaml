@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  name: carputils
+  version: 18.1.0
+  version_xy: ${{ (version | split('.'))[:2] | join('.') }}
+  build: 0
+
+package:
+  name: ${{ name | lower }}
+  version: ${{ version }}
+
+source:
+  # carputils doesn't appear to make releases on its own repo
+  # Could get version from big -inclSubmodules.zip release bundle
+  # but rattler cannot unzip the zip file
+  
+  # alternative (much smaller download, but bot won't autoupdate)
+  # get version from submodule in opencarp release, e.g.
+  # https://git.opencarp.org/openCARP/openCARP/-/tree/vX.Y/external
+  git: https://git.opencarp.org/openCARP/carputils
+  rev: 0b56f65dd32649bfd8033c5407273aa8ff006608
+
+build:
+  number: ${{ build }}
+  script: |
+    $PYTHON -m pip install --no-binary :all: --no-deps -vv .
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - numpy
+    - pip
+    - setuptools
+  run:
+    - python
+    - opencarp ${{ version_xy }}.*
+    # most of these are really optional
+    - matplotlib-base
+    - pandas
+    - ruamel.yaml
+    - scipy
+    # more dependencies specified in https://git.opencarp.org/openCARP/carputils/-/blob/master/requirements.py3.txt
+    # but most if not all seem to be optional in narrow uses
+    # (and with lots of inappropriate pinning)
+
+
+tests:
+  - script:
+      content:
+        - cusettings ./settings.yaml
+        - pytest -v test_carputils.py
+    files:
+      recipe:
+        - test_carputils.py
+    requirements:
+      run:
+        - pytest
+
+about:
+  homepage: https://opencarp.org
+  repository: https://git.opencarp.org/openCARP/carputils
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Python framework for OpenCARP Cardiac Electrophysiology Simulator
+
+extra:
+  recipe-maintainers:
+    - minrk
