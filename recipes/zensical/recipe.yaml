@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: zensical
+  version: "0.0.5"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/zensical-${{ version }}.tar.gz
+  sha256: e64ac31897602a6c4ab1d58d76386e0abc428539cbb2f7432111b6f8afa8f19e
+
+build:
+  number: 0
+  # only build for the minimal python version
+  skip: is_abi3 and not is_python_min
+  script:
+    - if: unix
+      then:
+        - export CARGO_PROFILE_RELEASE_STRIP=symbols
+        - export CARGO_PROFILE_RELEASE_LTO=fat
+        # Unix recipe
+        - export OPENSSL_DIR="$PREFIX"
+    - if: win
+      then:
+        - set CARGO_PROFILE_RELEASE_STRIP=symbols
+        - set CARGO_PROFILE_RELEASE_LTO=fat
+        # Win recipe # work around long path problem,
+        # hack: path too long for pixi_config subpackage, https://github.com/prefix-dev/pixi/issues/3691
+        - set CARGO_HOME=C:\.cargo
+        - md %CARGO_HOME%
+        - if errorlevel 1 exit 1
+    - if: build_platform != target_platform and unix and python is startingwith('3.14')
+      then:
+        - rm -f $PREFIX/lib/python3.14/build-details.json
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+  python:
+    version_independent: true
+    entry_points:
+      - zensical = zensical.main:cli
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.8,<2.0
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - maturin >=1.8,<2.0
+    - pip
+    - puccinialin
+  run:
+    - python
+    - click >=8.1.8
+    - deepmerge >=2.0
+    - markdown >=3.7
+    - pygments >=2.16
+    - pymdown-extensions >=10.15
+    - pyyaml >=6.0.2
+    - tomli >=2.0
+
+tests:
+  - python:
+      imports:
+        - zensical
+      pip_check: true
+  - requirements:
+      run:
+        - pip
+    script:
+      - zensical --help
+
+about:
+  summary: A modern static site generator built by the creators of Material for MkDocs
+  license: MIT
+  license_file:
+    - THIRDPARTY.yml
+    - LICENSE.md
+    - python/zensical/templates/partials/copyright.html
+  homepage: https://github.com/zensical/zensical
+  repository: https://github.com/zensical/zensical/
+
+extra:
+  recipe-maintainers:
+    - rxm7706
