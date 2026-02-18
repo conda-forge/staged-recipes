@@ -1,0 +1,37 @@
+From d0a3469d0ffb14b25cdff1cba1b010972d796cda Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Mon, 12 Jan 2026 13:39:52 +0100
+Subject: [PATCH] fix: use bash instead of sh for generated env scripts
+
+The generated environment scripts use bash-specific features like
+declare -A (associative arrays) added by downstream projects.
+Change shebang from #!/bin/sh to #!/usr/bin/env bash.
+---
+ cmake/GaudiToolbox.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/cmake/GaudiToolbox.cmake b/cmake/GaudiToolbox.cmake
+index 10ac54de65..57f0f2d30e 100644
+--- a/cmake/GaudiToolbox.cmake
++++ b/cmake/GaudiToolbox.cmake
+@@ -1534,7 +1534,7 @@ if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT TARGET target_runtime_paths)
+     endforeach()
+     string(TOLOWER "${CMAKE_PROJECT_NAME}env.sh" _env_file)
+     file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/${_env_file}
+-                  CONTENT "#!/bin/sh
++                  CONTENT "#!/usr/bin/env bash
+ # Auto-generated script to set environment variables
+ export PATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,EXCLUDE,^[^/]>>\${PATH:+:\${PATH}}\"
+ export LD_LIBRARY_PATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,EXCLUDE,^[^/]>>\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\"
+@@ -1552,7 +1552,7 @@ ${RUN_SCRIPT_EXTRA_COMMANDS}
+ ")
+     # Since we cannot tell file(GENERATE) to create an executable file (at generation time)
+     # we create one (at configure time) that source the first one, then we make it executable
+-    file(WRITE ${CMAKE_BINARY_DIR}/run "#!/bin/sh\n# Auto-generated script to set the environment before the execution of a command\n. ${CMAKE_BINARY_DIR}/${_env_file}\nexec \"$@\"\n")
++    file(WRITE ${CMAKE_BINARY_DIR}/run "#!/usr/bin/env bash\n# Auto-generated script to set the environment before the execution of a command\n. ${CMAKE_BINARY_DIR}/${_env_file}\nexec \"$@\"\n")
+     execute_process(COMMAND chmod a+x ${CMAKE_BINARY_DIR}/run)
+     # Add a executable target for convenience
+     add_executable(run IMPORTED GLOBAL)
+-- 
+GitLab
+
