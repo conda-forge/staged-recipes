@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  build_number: 8
+  name: zig-llvm
+  version: 20.1.8
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  sh: ${{ ".bat" if not unix else ".sh" }}
+
+  # Zig target mapping (for zig -target flag, differs from GCC triplets)
+  zig_target: >-
+    ${{
+      "x86_64-linux-gnu"            if TG_ == "linux-64"       else
+      "aarch64-linux-gnu"           if TG_ == "linux-aarch64"  else
+      "powerpc64le-linux-gnu"       if TG_ == "linux-ppc64le"  else
+      "riscv64-linux-gnu"           if TG_ == "linux-riscv64"  else
+      "s390x-linux-gnu"             if TG_ == "linux-s390x"    else
+      "x86_64-macos-none"           if TG_ == "osx-64"         else
+      "aarch64-macos-none"          if TG_ == "osx-arm64"      else
+      "x86_64-windows-gnu"          if TG_ == "win-64"         else
+      "aarch64-windows-gnu"         if TG_ == "win-arm64"      else
+      "native"
+    }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+  
+source:
+  - url: https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-${{ version }}.tar.gz
+    sha256: a6cbad9b2243b17e87795817cfff2107d113543a12486586f8a055a2bb044963
+    patches:
+      - patches/0001-pass-through-QEMU_LD_PREFIX-SDKROOT.patch
+
+build:
+  script:
+    env:
+      ZIG_TARGET: ${{ zig_target }}
+
+requirements:
+  build:
+    - ${{ m2 }}bash >=5.2
+    - cmake >=3.19
+    - ninja
+    - zig >=0.15.2 *_7
+    # Cross-compilation: need host tablegen tools
+    - if: build_platform != target_platform
+      then:
+        - llvmdev ${{ version }}.*   # provides llvm-tblgen
+        - clangdev ${{ version }}.*  # provides clang-tblgen
+    # - if: osx
+    #   then:
+    #     - libcxx
+  host:
+    - libxml2-devel
+    - zlib
+    - zstd
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        # Installed to lib/zig-llvm/ to avoid conflicts with conda-forge llvmdev
+        - lib/zig-llvm/lib/libLLVM*
+        - lib/zig-llvm/lib/libclang*
+        - lib/zig-llvm/lib/liblld*
+        - lib/zig-llvm/include/llvm/**
+        - lib/zig-llvm/include/clang/**
+        - lib/zig-llvm/include/lld/**
+        - lib/zig-llvm/bin/llvm-config
+        - lib/zig-llvm/bin/llvm-config.real
+        - lib/zig-llvm-path.txt
+
+about:
+  homepage: http://llvm.org/
+  repository: https://github.com/llvm/llvm-project
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: llvm/LICENSE.TXT
+  license_family: Apache
+  summary: Development headers and libraries for LLVM compiled with ZIG
+
+extra:
+  recipe-maintainers:
+    - MementoRC
