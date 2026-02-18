@@ -17,8 +17,8 @@ setup_zig_cc() {
 
     mkdir -p "${wrapper_dir}"
 
-    # Detect Windows
-    if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "cygwin" ]] || [[ -n "${MSYSTEM}" ]] || [[ "${zig}" == *.exe ]]; then
+    # Detect Windows (use :- to avoid unbound variable error with set -u)
+    if [[ "${OSTYPE:-}" == "msys" ]] || [[ "${OSTYPE:-}" == "cygwin" ]] || [[ -n "${MSYSTEM:-}" ]] || [[ "${zig}" == *.exe ]]; then
         _setup_zig_cc_windows "${zig}" "${target}" "${mcpu}" "${wrapper_dir}"
     else
         _setup_zig_cc_unix "${zig}" "${target}" "${mcpu}" "${wrapper_dir}"
