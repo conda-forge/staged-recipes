@@ -1,20 +1,66 @@
-# === setup_zig_cc: Create zig compiler wrappers ===
-# Creates wrapper scripts for CMake that invoke zig cc/c++/ar/ranlib
-# This eliminates the need for GCC/libstdc++ - zig uses libc++
+# === setup_zig_cc: Configure zig as C/C++ compiler for CMake ===
+# Exports ZIG_CC, ZIG_CXX, ZIG_AR, etc. for use with CMake
+#
+# On Windows: Uses CMake semicolon-separated syntax (no wrapper scripts needed)
+# On Unix: Creates wrapper scripts to filter out GCC-specific flags from conda
+
 setup_zig_cc() {
     local zig="$1"
     local target="${2:-native}"
     local mcpu="${3:-baseline}"
     local wrapper_dir="${SRC_DIR}/zig-cc-wrappers"
 
-    if [[ -z "${zig}" ]] || [[ ! -x "${zig}" ]]; then
-        echo "ERROR: setup_zig_cc requires valid zig binary path" >&2
+    if [[ -z "${zig}" ]]; then
+        echo "ERROR: setup_zig_cc requires zig binary path" >&2
         return 1
     fi
 
     mkdir -p "${wrapper_dir}"
 
-    # Common flag filtering logic (filters GCC/GNU ld flags unsupported by zig's lld)
+    # Detect Windows
+    if [[ "${OSTYPE}" == "msys" ]] || [[ "${OSTYPE}" == "cygwin" ]] || [[ -n "${MSYSTEM}" ]] || [[ "${zig}" == *.exe ]]; then
+        _setup_zig_cc_windows "${zig}" "${target}" "${mcpu}" "${wrapper_dir}"
+    else
+        _setup_zig_cc_unix "${zig}" "${target}" "${mcpu}" "${wrapper_dir}"
+    fi
+
+    # Clear conda's compiler flags - zig handles optimization internally
+    unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
+    export CFLAGS="" CXXFLAGS="" LDFLAGS="" CPPFLAGS=""
+
+    echo "=== setup_zig_cc: Configured zig compiler ==="
+    echo "  ZIG_CC:     ${ZIG_CC}"
+    echo "  ZIG_CXX:    ${ZIG_CXX}"
+    echo "  ZIG_AR:     ${ZIG_AR}"
+    echo "  Target:     ${target}"
+    echo "  MCPU:       ${mcpu}"
+}
+
+# Windows: Use CMake semicolon-separated compiler syntax (like zig upstream)
+_setup_zig_cc_windows() {
+    local zig="$1"
+    local target="$2"
+    local mcpu="$3"
+    local wrapper_dir="$4"
+
+    # CMake accepts semicolon-separated "compiler;arg1;arg2" format
+    # This avoids needing wrapper scripts on Windows
+    export ZIG_CC="${zig};cc;-target;${target};-mcpu=${mcpu}"
+    export ZIG_CXX="${zig};c++;-target;${target};-mcpu=${mcpu}"
+    export ZIG_ASM="${zig};cc;-target;${target};-mcpu=${mcpu}"
+    export ZIG_AR="${zig};ar"
+    export ZIG_RANLIB="${zig};ranlib"
+    export ZIG_RC="${zig};rc"
+}
+
+# Unix (Linux/macOS): Create wrapper scripts with flag filtering
+_setup_zig_cc_unix() {
+    local zig="$1"
+    local target="$2"
+    local mcpu="$3"
+    local wrapper_dir="$4"
+
+    # Flag filtering logic - removes GCC/GNU ld flags unsupported by zig's lld
     local filter_logic='
 args=()
 i=0
@@ -102,14 +148,4 @@ EOF
     export ZIG_CXX="${wrapper_dir}/zig-cxx"
     export ZIG_RANLIB="${wrapper_dir}/zig-ranlib"
     export ZIG_RC="${wrapper_dir}/zig-rc"
-
-    # Clear conda's compiler flags - zig handles optimization internally
-    unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
-    export CFLAGS="" CXXFLAGS="" LDFLAGS="" CPPFLAGS=""
-
-    echo "=== setup_zig_cc: Created zig compiler wrappers ==="
-    echo "  ZIG_CC:     ${ZIG_CC}"
-    echo "  ZIG_CXX:    ${ZIG_CXX}"
-    echo "  Target:     ${target}"
-    echo "  MCPU:       ${mcpu}"
 }

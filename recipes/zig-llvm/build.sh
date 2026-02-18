@@ -89,6 +89,18 @@ fi
 # Setup zig as C/C++ compiler (works for both native and cross-compilation)
 setup_zig_cc "${BOOTSTRAP_ZIG}" "${ZIG_TARGET}" "baseline"
 
+# Platform-specific CMake flags
+CMAKE_PLATFORM_FLAGS=()
+case "${target_platform}" in
+    win-*)
+        # Windows: Use static MSVC runtime (like zig upstream)
+        CMAKE_PLATFORM_FLAGS=(
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+        )
+        echo "=== Windows target: Using static MSVC runtime ==="
+        ;;
+esac
+
 # Build directories
 # Install to lib/zig-llvm to avoid conflicts with conda-forge llvmdev
 LLVM_SRC="${SRC_DIR}/llvm"
@@ -262,16 +274,21 @@ _CMAKE=(
     -DCMAKE_INSTALL_PREFIX="${LLVM_INSTALL}"
     -DCMAKE_PREFIX_PATH="${PREFIX};${BUILD_PREFIX}"
     -DCMAKE_LINK_DEPENDS_USE_LINKER=OFF
-    
+
     -DCMAKE_AR="${ZIG_AR}"
     -DCMAKE_C_COMPILER="${ZIG_CC}"
     -DCMAKE_CXX_COMPILER="${ZIG_CXX}"
     -DCMAKE_ASM_COMPILER="${ZIG_ASM}"
     -DCMAKE_RANLIB="${ZIG_RANLIB}"
     -DCMAKE_RC_COMPILER="${ZIG_RC}"
+
+    # Rpath settings - build tools (llvm-min-tblgen, etc) need to find conda libs at runtime
+    -DCMAKE_BUILD_RPATH="${BUILD_PREFIX}/lib;${PREFIX}/lib"
+    -DCMAKE_INSTALL_RPATH="${LLVM_INSTALL}/lib"
 )
 cmake -S "${LLVM_SRC}" -B "${LLVM_BUILD}" \
     "${CMAKE_CROSS_FLAGS[@]}" \
+    "${CMAKE_PLATFORM_FLAGS[@]}" \
     -DHAS_LOGF128=OFF \
     -DLLD_BUILD_TOOLS=OFF \
     "${_CMAKE[@]}" \
