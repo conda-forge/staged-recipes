@@ -104,3 +104,8 @@ fi
 find "${SRC_DIR}/library_licenses" -type d -empty -delete 2>/dev/null || true
 
 echo "License collection complete. Found $(find "${SRC_DIR}/library_licenses" -type f 2>/dev/null | wc -l) license files."
+
+# Fix permissions on Bazel output directories (Bazel creates read-only files that
+# prevent cleanup during the test phase)
+chmod -R +w "${SRC_DIR}/bazel-"* 2>/dev/null || true
+chmod -R +w "$(bazel info output_base)" 2>/dev/null || true
