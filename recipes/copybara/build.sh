@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 # Build copybara using Bazel
-# Fetches Maven dependencies during build (similar to cargo for Rust)
+# Fetches Maven dependencies during build
 
 # Set up Bazel cache in a writable location
 export HOME="${SRC_DIR}"
