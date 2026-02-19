@@ -104,6 +104,9 @@ case "${target_platform}" in
         # Windows: Use static MSVC runtime, explicit zstd shared lib paths
         CMAKE_PLATFORM_FLAGS=(
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+            -DCMAKE_POLICY_DEFAULT_CMP0111=NEW
+            -DLLVM_USE_INTEL_JITEVENTS=ON
+            -DLLVM_ENABLE_DUMP=ON
             -Dzstd_LIBRARY="${PREFIX}/Library/lib/zstd.lib"
             -Dzstd_INCLUDE_DIR="${PREFIX}/Library/include"
         )
@@ -192,6 +195,7 @@ _LLVM=(
     -DLLVM_ENABLE_OCAMLDOC=OFF
     -DLLVM_ENABLE_PLUGINS=OFF
     -DLLVM_ENABLE_PROJECTS="clang;lld"
+    -DLLVM_ENABLE_RTTI=ON
     -DLLVM_ENABLE_Z3_SOLVER=OFF
     -DLLVM_ENABLE_ZLIB=ON
     -DLLVM_ENABLE_ZSTD=ON
