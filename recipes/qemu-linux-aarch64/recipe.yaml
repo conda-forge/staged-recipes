@@ -1,0 +1,83 @@
+context:
+  build_number: 0
+  name: qemu-linux-aarch64
+  version: "3.23.3"
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Use file_name to prevent auto-extraction - we handle extraction in build script
+  - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-netboot-${{ version }}-aarch64.tar.gz
+    sha256: ba325341425f95a95e68be1bf3981598d2a9274c94ef09fd919b6ba6ce23f4b6
+    file_name: alpine-netboot.tar.gz
+  - url: https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/aarch64/alpine-minirootfs-${{ version }}-aarch64.tar.gz
+    sha256: f219bb9d65febed9046951b19f2b893b331315740af32c47e39b38fcca4be543
+    file_name: alpine-minirootfs.tar.gz
+
+build:
+  number: ${{ build_number }}
+  skip: not ((osx and x86_64) or win)
+  script:
+    env:
+      ALPINE_VERSION: ${{ version }}
+    file: build-qemu-linux-aarch64.py
+
+requirements:
+  build:
+    - ${{ m2 }}coreutils
+    - ${{ m2 }}gzip
+    - ${{ m2 }}tar
+    - python 3.12.*
+  run:
+    - qemu-system-aarch64
+    - if: not unix
+      then:
+        - m2-bash
+        - m2-coreutils  # head, cat, cp, chmod, rm, mktemp
+        - m2-grep
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - qemu-linux-aarch64
+        - if: win
+          then:
+            - Library/bin/qemu-linux-aarch64.cmd
+      files:
+        - ${{ library }}share/qemu-linux-aarch64/vmlinuz-virt
+        - ${{ library }}share/qemu-linux-aarch64/initramfs-base.cpio.gz
+  - script:
+      - qemu-linux-aarch64 --version
+
+about:
+  homepage: https://alpinelinux.org/
+  summary: Run ARM64 Linux binaries on x86_64 hosts via QEMU system emulation with Alpine Linux
+  description: |
+    qemu-linux-aarch64 provides a qemu-user-like interface for running ARM64 Linux
+    binaries on x86_64 macOS and Windows hosts. Unlike qemu-user (which is Linux-only),
+    this package uses QEMU system emulation with direct kernel boot of Alpine Linux.
+
+    Usage:
+      qemu-linux-aarch64 ./my-arm64-binary [args...]
+
+    The package includes:
+      - Alpine Linux kernel (vmlinuz-virt) for aarch64
+      - Minimal Alpine rootfs as initramfs
+      - Wrapper script that handles VM lifecycle transparently
+
+    The target binary is shared with the VM via 9p virtfs, executed inside the VM,
+    and the exit code is propagated back to the host. This enables cross-architecture
+    testing on platforms where qemu-user is unavailable.
+  license: GPL-2.0-only
+  license_file:
+    - COPYING
+    - COPYING.LIB
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
