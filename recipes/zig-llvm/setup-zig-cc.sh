@@ -57,7 +57,13 @@ _setup_zig_cc_windows() {
     export ZIG_ASM="${zig};cc;-target;${target};-mcpu=${mcpu}"
     export ZIG_AR="${zig};ar"
     export ZIG_RANLIB="${zig};ranlib"
-    export ZIG_RC="${zig};rc"
+    # RC compiler: try llvm-rc from build prefix, or leave unset (LLVM can build without it)
+    local llvm_rc="${BUILD_PREFIX}/Library/bin/llvm-rc.exe"
+    if [[ -x "${llvm_rc}" ]]; then
+        export ZIG_RC="${llvm_rc}"
+    else
+        export ZIG_RC=""
+    fi
 }
 
 # Unix (Linux/macOS): Create wrapper scripts with flag filtering
@@ -67,26 +73,28 @@ _setup_zig_cc_unix() {
     local mcpu="$3"
     local wrapper_dir="$4"
 
-    # Flag filtering logic - removes GCC/GNU ld flags unsupported by zig's lld
-    local filter_logic='
+    # Create zig-cc wrapper with flag filtering
+    cat > "${wrapper_dir}/zig-cc" << EOF
+#!/usr/bin/env bash
+# Filter out GCC/GNU ld flags unsupported by zig's lld
 args=()
 i=0
-argv=("$@")
-argc=${#argv[@]}
+argv=("\$@")
+argc=\${#argv[@]}
 
-while [[ $i -lt $argc ]]; do
-    arg="${argv[$i]}"
-    case "$arg" in
+while [[ \$i -lt \$argc ]]; do
+    arg="\${argv[\$i]}"
+    case "\$arg" in
         -Xlinker)
-            next_i=$((i + 1))
-            if [[ $next_i -lt $argc ]]; then
-                next_arg="${argv[$next_i]}"
-                case "$next_arg" in
+            next_i=\$((i + 1))
+            if [[ \$next_i -lt \$argc ]]; then
+                next_arg="\${argv[\$next_i]}"
+                case "\$next_arg" in
                     -Bsymbolic-functions|-Bsymbolic|--color-diagnostics)
-                        i=$next_i ;;
+                        i=\$next_i ;;
                     *)
-                        args+=("$arg" "$next_arg")
-                        i=$next_i ;;
+                        args+=("\$arg" "\$next_arg")
+                        i=\$next_i ;;
                 esac
             fi
             ;;
@@ -107,26 +115,65 @@ while [[ $i -lt $argc ]]; do
         -march=*|-mtune=*|-ftree-vectorize) ;;
         -fstack-protector-strong|-fstack-protector|-fno-plt) ;;
         -fdebug-prefix-map=*) ;;
-        *) args+=("$arg") ;;
+        *) args+=("\$arg") ;;
     esac
     ((i++))
 done
-'
-
-    cat > "${wrapper_dir}/zig-cc" << WRAPPER_EOF
-#!/usr/bin/env bash
-${filter_logic}
 exec "${zig}" cc -target ${target} -mcpu=${mcpu} "\${args[@]}"
-WRAPPER_EOF
+EOF
     chmod +x "${wrapper_dir}/zig-cc"
 
-    cat > "${wrapper_dir}/zig-cxx" << WRAPPER_EOF
+    # Create zig-cxx wrapper (same filtering)
+    cat > "${wrapper_dir}/zig-cxx" << EOF
 #!/usr/bin/env bash
-${filter_logic}
+# Filter out GCC/GNU ld flags unsupported by zig's lld
+args=()
+i=0
+argv=("\$@")
+argc=\${#argv[@]}
+
+while [[ \$i -lt \$argc ]]; do
+    arg="\${argv[\$i]}"
+    case "\$arg" in
+        -Xlinker)
+            next_i=\$((i + 1))
+            if [[ \$next_i -lt \$argc ]]; then
+                next_arg="\${argv[\$next_i]}"
+                case "\$next_arg" in
+                    -Bsymbolic-functions|-Bsymbolic|--color-diagnostics)
+                        i=\$next_i ;;
+                    *)
+                        args+=("\$arg" "\$next_arg")
+                        i=\$next_i ;;
+                esac
+            fi
+            ;;
+        -Wl,-rpath-link|-Wl,-rpath-link,*|-Wl,--disable-new-dtags) ;;
+        -Wl,--allow-shlib-undefined|-Wl,--no-allow-shlib-undefined) ;;
+        -Wl,-Bsymbolic-functions|-Wl,-Bsymbolic) ;;
+        -Wl,--color-diagnostics) ;;
+        -Wl,-soname|-Wl,-soname,*) ;;
+        -Wl,--version-script|-Wl,--version-script,*) ;;
+        -Wl,-z,defs|-Wl,-z,nodelete|-Wl,-z,*) ;;
+        -Wl,--as-needed|-Wl,--no-as-needed) ;;
+        -Wl,-O*) ;;
+        -Wl,--gc-sections|-Wl,--no-gc-sections) ;;
+        -Wl,--build-id|-Wl,--build-id=*) ;;
+        -Wl,-all_load|-Wl,-force_load,*) ;;
+        -all_load|-force_load) ;;
+        -Bsymbolic-functions|-Bsymbolic) ;;
+        -march=*|-mtune=*|-ftree-vectorize) ;;
+        -fstack-protector-strong|-fstack-protector|-fno-plt) ;;
+        -fdebug-prefix-map=*) ;;
+        *) args+=("\$arg") ;;
+    esac
+    ((i++))
+done
 exec "${zig}" c++ -target ${target} -mcpu=${mcpu} "\${args[@]}"
-WRAPPER_EOF
+EOF
     chmod +x "${wrapper_dir}/zig-cxx"
 
+    # Simple wrappers for ar, ranlib, asm, rc
     cat > "${wrapper_dir}/zig-ar" << EOF
 #!/usr/bin/env bash
 exec "${zig}" ar "\$@"

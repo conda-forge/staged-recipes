@@ -288,15 +288,22 @@ _CMAKE=(
     -DCMAKE_CXX_COMPILER="${ZIG_CXX}"
     -DCMAKE_ASM_COMPILER="${ZIG_ASM}"
     -DCMAKE_RANLIB="${ZIG_RANLIB}"
-    -DCMAKE_RC_COMPILER="${ZIG_RC}"
 
     # Rpath settings - build tools (llvm-min-tblgen, etc) need to find conda libs at runtime
     -DCMAKE_BUILD_RPATH="${BUILD_PREFIX}/lib;${PREFIX}/lib"
     -DCMAKE_INSTALL_RPATH="${LLVM_INSTALL}/lib"
 )
+
+# RC compiler is optional (only needed on Windows, and only if available)
+CMAKE_RC_FLAGS=()
+if [[ -n "${ZIG_RC:-}" ]]; then
+    CMAKE_RC_FLAGS=(-DCMAKE_RC_COMPILER="${ZIG_RC}")
+fi
+
 cmake -S "${LLVM_SRC}" -B "${LLVM_BUILD}" \
     "${CMAKE_CROSS_FLAGS[@]}" \
     "${CMAKE_PLATFORM_FLAGS[@]}" \
+    "${CMAKE_RC_FLAGS[@]}" \
     -DHAS_LOGF128=OFF \
     -DLLD_BUILD_TOOLS=OFF \
     "${_CMAKE[@]}" \
