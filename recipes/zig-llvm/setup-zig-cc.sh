@@ -101,8 +101,8 @@ while [[ $i -lt $argc ]]; do
         -Wl,-O*) ;;
         -Wl,--gc-sections|-Wl,--no-gc-sections) ;;
         -Wl,--build-id|-Wl,--build-id=*) ;;
-        # macOS-specific flags unsupported by zig's lld
-        -Wl,-all_load|-Wl,-force_load,*|-all_load|-force_load) ;;
+        -Wl,-all_load|-Wl,-force_load,*) ;;
+        -all_load|-force_load) ;;
         -Bsymbolic-functions|-Bsymbolic) ;;
         -march=*|-mtune=*|-ftree-vectorize) ;;
         -fstack-protector-strong|-fstack-protector|-fno-plt) ;;
