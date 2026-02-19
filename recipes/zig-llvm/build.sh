@@ -27,9 +27,17 @@ echo "  Target: ${target_platform}"
 
 # Get bootstrap zig - install via mamba to break cycle
 # zig-llvmdev needs zig cc, but we're building zig, so use previous version
-BOOTSTRAP_ZIG="${BUILD_PREFIX}/bin/zig"
-if [[ ! -x "${BOOTSTRAP_ZIG}" ]]; then
-    echo "ERROR: Bootstrap zig not found after install attempt"
+# Check multiple locations for Windows/Unix compatibility
+BOOTSTRAP_ZIG=""
+for candidate in "${BUILD_PREFIX}/bin/zig" "${BUILD_PREFIX}/bin/zig.exe" \
+                 "${BUILD_PREFIX}/Library/bin/zig.exe"; do
+    if [[ -x "${candidate}" ]]; then
+        BOOTSTRAP_ZIG="${candidate}"
+        break
+    fi
+done
+if [[ -z "${BOOTSTRAP_ZIG}" ]]; then
+    echo "ERROR: Bootstrap zig not found in BUILD_PREFIX"
     exit 1
 fi
 echo "  Bootstrap zig: ${BOOTSTRAP_ZIG} ($(${BOOTSTRAP_ZIG} version))"
@@ -329,6 +337,11 @@ echo "  Removed llvm-c/ and clang-c/ headers"
 echo "=== Removing CMake modules ==="
 rm -rf "${LLVM_INSTALL}/lib/cmake"
 echo "  Removed lib/cmake/"
+
+# Remove Clang builtin headers (zig bundles its own libc headers)
+echo "=== Removing Clang builtin headers ==="
+rm -rf "${LLVM_INSTALL}/lib/clang"
+echo "  Removed lib/clang/"
 
 echo "=== zig-llvm build complete ==="
 echo "  Installed to: ${LLVM_INSTALL}"
