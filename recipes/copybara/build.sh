@@ -78,8 +78,10 @@ POMFOOTER
 echo "Generated pom.xml with $(echo "$MAVEN_DEPS" | wc -w | tr -d ' ') Maven dependencies"
 
 # Download licenses for all dependencies (including transitive)
+# Also generates THIRD-PARTY.xml which maps each dependency to its license
 mvn license:download-licenses \
     -DlicensesOutputDirectory="${SRC_DIR}/library_licenses/maven" \
+    -DlicensesOutputFile="${SRC_DIR}/library_licenses/THIRD-PARTY.xml" \
     -DincludeTransitiveDependencies=true \
     -q || true
 
