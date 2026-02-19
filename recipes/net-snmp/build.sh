@@ -3,8 +3,7 @@
 ./configure \
     --with-defaults \
     --prefix=$PREFIX
-make
-make test
+make -j${CPU_COUNT}
 make install
 
 mkdir -p $PREFIX/etc/conda/activate.d
