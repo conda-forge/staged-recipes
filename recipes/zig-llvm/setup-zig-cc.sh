@@ -43,6 +43,13 @@ _setup_zig_cc_windows() {
     local mcpu="$3"
     local wrapper_dir="$4"
 
+    # Ensure .exe extension on Windows (CMake requires full path with extension)
+    if [[ "${zig}" != *.exe ]]; then
+        if [[ -x "${zig}.exe" ]]; then
+            zig="${zig}.exe"
+        fi
+    fi
+
     # CMake accepts semicolon-separated "compiler;arg1;arg2" format
     # This avoids needing wrapper scripts on Windows
     export ZIG_CC="${zig};cc;-target;${target};-mcpu=${mcpu}"
@@ -94,6 +101,8 @@ while [[ $i -lt $argc ]]; do
         -Wl,-O*) ;;
         -Wl,--gc-sections|-Wl,--no-gc-sections) ;;
         -Wl,--build-id|-Wl,--build-id=*) ;;
+        # macOS-specific flags unsupported by zig's lld
+        -Wl,-all_load|-Wl,-force_load,*|-all_load|-force_load) ;;
         -Bsymbolic-functions|-Bsymbolic) ;;
         -march=*|-mtune=*|-ftree-vectorize) ;;
         -fstack-protector-strong|-fstack-protector|-fno-plt) ;;
