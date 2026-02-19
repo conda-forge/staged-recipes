@@ -101,10 +101,11 @@ setup_zig_cc "${BOOTSTRAP_ZIG}" "${ZIG_TARGET}" "baseline"
 CMAKE_PLATFORM_FLAGS=()
 case "${target_platform}" in
     win-*)
-        # Windows: Use static MSVC runtime and static zstd (avoids import lib issues)
+        # Windows: Use static MSVC runtime, explicit zstd shared lib paths
         CMAKE_PLATFORM_FLAGS=(
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
-            -DLLVM_USE_STATIC_ZSTD=ON
+            -Dzstd_LIBRARY="${PREFIX}/Library/lib/zstd.lib"
+            -Dzstd_INCLUDE_DIR="${PREFIX}/Library/include"
         )
         echo "=== Windows target: Using static MSVC runtime ==="
         ;;
