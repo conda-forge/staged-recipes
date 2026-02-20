@@ -1,0 +1,88 @@
+{% set name = "fvdb-core" %}
+{% set version = "0.3.0" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/fvdb_core-{{ version }}.tar.gz
+  sha256: f6ec0d5e6a2b601632720ed0be8aa7c8ba6f2d9bd63fac477cef2cfd088b5f16
+
+build:
+  skip: true  # [cuda_compiler_version == "None" or win or osx or py!=312]
+  number: 0
+  script_env:
+    - TORCH_CUDA_ARCH_LIST=7.5;8.0;9.0;10.0;12.0+PTX
+
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-command-line-tools
+    - cmake >=3.25
+    - ninja
+    - pkg-config
+    - git
+    - procps-ng  # provides 'free'
+    - coreutils  # provides 'nproc', 'awk', etc.
+  host:
+    - python
+    - scikit-build-core
+    - pip
+    - pytorch
+    - pytorch =*=*{{ torch_proc_type }}*
+    - numpy
+    - pybind11 >=2.13
+    - gitpython
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - libcublas-dev
+    - libcudnn-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    - libpng
+    - zlib
+  run:
+    - python
+    - pytorch
+    - pytorch =*=*{{ torch_proc_type }}*
+    - {{ pin_compatible('numpy') }}
+    - cuda-version {{ cuda_compiler_version }}
+    - gitpython
+    - git
+    - parameterized
+
+test:
+  commands:
+    - pip check
+    - python run_test.py
+  source_files:
+    - tests/
+  requires:
+    - pip
+    - pytest
+    - parameterized
+    - git
+
+about:
+  home: https://www.openvdb.org/
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: "A deep learning framework for sparse, large-scale, high-performance spatial intelligence"
+  doc_url: https://fvdb.ai/
+  dev_url: https://github.com/openvdb/fvdb-core
+
+extra:
+  recipe-maintainers:
+    - swahtz
