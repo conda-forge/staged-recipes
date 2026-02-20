@@ -1,0 +1,330 @@
+From 18eaac6e5ac07515705bf6a8c40da8b27164c59f Mon Sep 17 00:00:00 2001
+From: Olivier Roussel <olivier.roussel@inria.fr>
+Date: Mon, 22 Dec 2025 11:30:14 +0100
+Subject: [PATCH] remove imgui.h from ImgGuiGUIEngine header
+
+remove imgui internal headers from distributed public headers
+
+hide impl of ScalarWidget
+
+remove useless headers
+
+fix missing headers simpleini.h
+
+use SimpleIni as a dependency
+
+add SimpleIni dep in SofaImGUi cmake config
+
+do not install implot and IconFontCppHeaders headers
+---
+ SofaImGui/CMakeLists.txt                      | 48 ++++++++-----------
+ SofaImGui/SofaImGuiConfig.cmake.in            |  4 ++
+ SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp    |  4 +-
+ SofaImGui/src/SofaImGui/ImGuiGUIEngine.h      |  5 +-
+ .../src/SofaImGui/widgets/ScalarWidget.cpp    | 39 +++++++++++++++
+ .../src/SofaImGui/widgets/ScalarWidget.h      | 11 +----
+ SofaImGui/src/SofaImGui/windows/Log.h         |  2 -
+ .../src/SofaImGui/windows/Performances.h      |  1 -
+ SofaImGui/src/SofaImGui/windows/Profiler.h    |  2 -
+ SofaImGui/src/SofaImGui/windows/Settings.h    |  1 +
+ SofaImGui/src/SofaImGui/windows/ViewPort.h    |  1 +
+ 11 files changed, 74 insertions(+), 44 deletions(-)
+ create mode 100644 SofaImGui/src/SofaImGui/widgets/ScalarWidget.cpp
+
+diff --git a/SofaImGui/CMakeLists.txt b/SofaImGui/CMakeLists.txt
+index 45022cc..74fa7fd 100644
+--- a/SofaImGui/CMakeLists.txt
++++ b/SofaImGui/CMakeLists.txt
+@@ -21,6 +21,7 @@ FetchContent_Declare(imgui
+ )
+ FetchContent_MakeAvailable(imgui)
+ 
++# nfd (nativefiledialog-extended)
+ find_package(nfd CONFIG QUIET)
+ 
+ if(TARGET nfd::nfd)
+@@ -41,7 +42,6 @@ else()
+     add_library(nfd::nfd ALIAS nfd) # introduced in nfd >= v1.2.1
+ endif()
+ 
+-
+ FetchContent_Declare(ImPlot
+         GIT_REPOSITORY https://github.com/epezent/implot
+         GIT_TAG        18c72431f8265e2b0b5378a3a73d8a883b2175ff # v0.16
+@@ -54,30 +54,23 @@ FetchContent_Declare(IconFontCppHeaders
+ )
+ FetchContent_MakeAvailable(IconFontCppHeaders)
+ 
+-FetchContent_Declare(simpleini
+-        GIT_REPOSITORY https://github.com/brofield/simpleini
+-        GIT_TAG        09c21bda1dc1b578fa55f4a005d79b0afd481296 # v4.22
+-)
+-FetchContent_MakeAvailable(simpleini)
+-
+-set(IMGUI_HEADER_FILES
+-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
+-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl2.h
+-    ${imgui_SOURCE_DIR}/imconfig.h
+-    ${imgui_SOURCE_DIR}/imgui.h
+-    ${imgui_SOURCE_DIR}/imgui_internal.h
+-    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.h
+-    ${implot_SOURCE_DIR}/implot.h
+-    ${implot_SOURCE_DIR}/implot_internal.h
+-    ${iconfontcppheaders_SOURCE_DIR}/IconsFontAwesome4.h
+-    ${iconfontcppheaders_SOURCE_DIR}/IconsFontAwesome6.h
+-    ${simpleini_SOURCE_DIR}/SimpleIni.h
+-    resources/fa-regular-400.h
+-    resources/fa-solid-900.h
+-    resources/Roboto-Medium.h
+-    resources/Style.h
+-)
++
++# SimpleIni
++find_package(SimpleIni QUIET)
++
++if(NOT TARGET SimpleIni::SimpleIni AND ((DEFINED SOFA_ALLOW_FETCH_DEPENDENCIES AND SOFA_ALLOW_FETCH_DEPENDENCIES) OR (NOT DEFINED SOFA_ALLOW_FETCH_DEPENDENCIES)))
++    message("${PROJECT_NAME}: SimpleIni not found and SOFA_ALLOW_FETCH_DEPENDENCIES is ON, fetching source code...")
++
++    FetchContent_Declare(simpleini
++            GIT_REPOSITORY https://github.com/brofield/simpleini
++            GIT_TAG        09c21bda1dc1b578fa55f4a005d79b0afd481296 # v4.22
++    )
++    FetchContent_MakeAvailable(simpleini)
++
++elseif(NOT TARGET SimpleIni::SimpleIni)
++    message(FATAL_ERROR "{PROJECT_NAME}: SimpleIni not found and SOFA_ALLOW_FETCH_DEPENDENCIES is OFF and thus cannot be fetched. Install SimpleIni, or enable SOFA_ALLOW_FETCH_DEPENDENCIES to fix this issue.")
++endif()
++
+ set(IMGUI_SOURCE_FILES
+     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+@@ -101,7 +94,6 @@ set(HEADER_FILES
+     ${SOFAIMGUI_SOURCE_DIR}/ImGuiDataWidget.h
+     ${SOFAIMGUI_SOURCE_DIR}/ImGuiGUI.h
+     ${SOFAIMGUI_SOURCE_DIR}/ImGuiGUIEngine.h
+-    ${SOFAIMGUI_SOURCE_DIR}/ObjectColor.h
+     ${SOFAIMGUI_SOURCE_DIR}/UIStrings.h
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/DisplayFlagsWidget.h
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/LinearSpringWidget.h
+@@ -131,6 +123,7 @@ set(SOURCE_FILES
+     ${SOFAIMGUI_SOURCE_DIR}/initSofaImGui.cpp
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/DisplayFlagsWidget.cpp
+     ${SOFAIMGUI_SOURCE_DIR}/widgets/MaterialWidget.cpp
++    ${SOFAIMGUI_SOURCE_DIR}/widgets/ScalarWidget.cpp
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Performances.cpp
+     ${SOFAIMGUI_SOURCE_DIR}/windows/Log.cpp
+     ${SOFAIMGUI_SOURCE_DIR}/windows/MouseManager.cpp
+@@ -151,10 +144,11 @@ set(SOURCE_FILES
+ 
+ set(IMGUI_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources ${imgui_SOURCE_DIR} ${implot_SOURCE_DIR} ${iconfontcppheaders_SOURCE_DIR} ${simpleini_SOURCE_DIR})
+ 
+-add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${IMGUI_HEADER_FILES} ${IMGUI_SOURCE_FILES})
++add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${IMGUI_SOURCE_FILES})
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${IMGUI_SOURCE_DIR}>")
+ target_link_libraries(${PROJECT_NAME} PUBLIC SofaGLFW Sofa.GL.Component.Rendering3D ${CMAKE_DL_LIBS})
+ target_link_libraries(${PROJECT_NAME} PRIVATE nfd)
++target_link_libraries(${PROJECT_NAME} PUBLIC SimpleIni::SimpleIni)
+ 
+ # setup the same API exports for imgui
+ target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_API=SOFAIMGUI_API)
+diff --git a/SofaImGui/SofaImGuiConfig.cmake.in b/SofaImGui/SofaImGuiConfig.cmake.in
+index cfc50d5..11e228d 100644
+--- a/SofaImGui/SofaImGuiConfig.cmake.in
++++ b/SofaImGui/SofaImGuiConfig.cmake.in
+@@ -6,6 +6,10 @@
+ find_package(SofaGLFW REQUIRED)
+ find_package(Sofa.GL.Component.Rendering3D REQUIRED)
+ 
++if(NOT TARGET SimpleIni::SimpleIni)
++    sofa_find_package(SimpleIni QUIET REQUIRED)
++endif()
++
+ if(NOT TARGET @PROJECT_NAME@)
+     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+ endif()
+diff --git a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
+index 545f28b..799fe09 100644
+--- a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
++++ b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.cpp
+@@ -24,6 +24,7 @@
+ #include <iomanip>
+ #include <ostream>
+ #include <unordered_set>
++#include <type_traits>
+ #include <SofaGLFW/SofaGLFWBaseGUI.h>
+ 
+ #include <sofa/core/CategoryLibrary.h>
+@@ -756,8 +757,9 @@ void ImGuiGUIEngine::endFrame()
+     std::setlocale(LC_NUMERIC, m_localeBackup.c_str());
+ }
+ 
+-void ImGuiGUIEngine::resetView(ImGuiID dockspace_id, const char* windowNameSceneGraph, const char *windowNameLog, const char *windowNameViewport)
++void ImGuiGUIEngine::resetView(_ImGuiID dockspace_id, const char* windowNameSceneGraph, const char *windowNameLog, const char *windowNameViewport)
+ {
++    static_assert(std::is_same<_ImGuiID, ImGuiID>::value, "_ImGuiID and ImGuiID types must be identical. _ImGuiID must be adjusted.");
+     ImGuiViewport* viewport = ImGui::GetMainViewport();
+ 
+     ImGui::DockBuilderRemoveNode(dockspace_id); // clear any previous layout
+diff --git a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
+index dac1e67..ee1e2f7 100644
+--- a/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
++++ b/SofaImGui/src/SofaImGui/ImGuiGUIEngine.h
+@@ -29,7 +29,6 @@
+ #include "guis/AdditionalGUIRegistry.h"
+ #include "windows/WindowState.h"
+ #include <SimpleIni.h>
+-#include <imgui.h>
+ #include <sofa/simulation/Node.h>
+ 
+ using windows::WindowState;
+@@ -74,7 +73,9 @@ protected:
+     bool isMouseOnViewport { false };
+     CSimpleIniA ini;
+     void loadFile(sofaglfw::SofaGLFWBaseGUI* baseGUI, sofa::core::sptr<sofa::simulation::Node>& groot, std::string filePathName, bool reload = false);
+-    void resetView(ImGuiID dockspace_id, const char *windowNameSceneGraph, const char *windowNameLog, const char *windowNameViewport) ;
++    
++    using _ImGuiID = unsigned int;
++    void resetView(_ImGuiID dockspace_id, const char *windowNameSceneGraph, const char *windowNameLog, const char *windowNameViewport) ;
+ 
+     // WindowState members
+     windows::WindowState winManagerProfiler;
+diff --git a/SofaImGui/src/SofaImGui/widgets/ScalarWidget.cpp b/SofaImGui/src/SofaImGui/widgets/ScalarWidget.cpp
+new file mode 100644
+index 0000000..9362260
+--- /dev/null
++++ b/SofaImGui/src/SofaImGui/widgets/ScalarWidget.cpp
+@@ -0,0 +1,39 @@
++/******************************************************************************
++*                 SOFA, Simulation Open-Framework Architecture                *
++*                    (c) 2006 INRIA, USTL, UJF, CNRS, MGH                     *
++*                                                                             *
++* This program is free software; you can redistribute it and/or modify it     *
++* under the terms of the GNU General Public License as published by the Free  *
++* Software Foundation; either version 2 of the License, or (at your option)   *
++* any later version.                                                          *
++*                                                                             *
++* This program is distributed in the hope that it will be useful, but WITHOUT *
++* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or       *
++* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for    *
++* more details.                                                               *
++*                                                                             *
++* You should have received a copy of the GNU General Public License along     *
++* with this program. If not, see <http://www.gnu.org/licenses/>.              *
++*******************************************************************************
++* Authors: The SOFA Team and external contributors (see Authors.txt)          *
++*                                                                             *
++* Contact information: contact@sofa-framework.org                             *
++******************************************************************************/
++#pragma once
++#include <sofa/core/objectmodel/Data.h>
++#include <imgui.h>
++
++namespace sofaimgui
++{
++
++bool showScalarWidget(const std::string& label, const std::string& id, float& value)
++{
++    return ImGui::InputFloat((label + "##" + id).c_str(), &value, 0.0f, 0.0f, "%.8f", ImGuiInputTextFlags_None);
++}
++
++bool showScalarWidget(const std::string& label, const std::string& id, double& value)
++{
++    return ImGui::InputDouble((label + "##" + id).c_str(), &value, 0.0f, 0.0f, "%.8f", ImGuiInputTextFlags_None);
++}
++
++}
+diff --git a/SofaImGui/src/SofaImGui/widgets/ScalarWidget.h b/SofaImGui/src/SofaImGui/widgets/ScalarWidget.h
+index e7b4e9e..bb1c63a 100644
+--- a/SofaImGui/src/SofaImGui/widgets/ScalarWidget.h
++++ b/SofaImGui/src/SofaImGui/widgets/ScalarWidget.h
+@@ -21,20 +21,13 @@
+ ******************************************************************************/
+ #pragma once
+ #include <sofa/core/objectmodel/Data.h>
+-#include <imgui.h>
+ 
+ namespace sofaimgui
+ {
+ 
+-inline bool showScalarWidget(const std::string& label, const std::string& id, float& value)
+-{
+-    return ImGui::InputFloat((label + "##" + id).c_str(), &value, 0.0f, 0.0f, "%.8f", ImGuiInputTextFlags_None);
+-}
++inline bool showScalarWidget(const std::string& label, const std::string& id, float& value);
+ 
+-inline bool showScalarWidget(const std::string& label, const std::string& id, double& value)
+-{
+-    return ImGui::InputDouble((label + "##" + id).c_str(), &value, 0.0f, 0.0f, "%.8f", ImGuiInputTextFlags_None);
+-}
++inline bool showScalarWidget(const std::string& label, const std::string& id, double& value);
+ 
+ template<typename Scalar>
+ void showScalarWidget(sofa::Data<Scalar>& data)
+diff --git a/SofaImGui/src/SofaImGui/windows/Log.h b/SofaImGui/src/SofaImGui/windows/Log.h
+index 0a70b65..77a75af 100644
+--- a/SofaImGui/src/SofaImGui/windows/Log.h
++++ b/SofaImGui/src/SofaImGui/windows/Log.h
+@@ -27,9 +27,7 @@
+ #include <memory>
+ #include <SofaGLFW/BaseGUIEngine.h>
+ 
+-#include <imgui.h>
+ #include <sofa/simulation/Node.h>
+-#include <SimpleIni.h>
+ #include "WindowState.h"
+ 
+ 
+diff --git a/SofaImGui/src/SofaImGui/windows/Performances.h b/SofaImGui/src/SofaImGui/windows/Performances.h
+index b320c4e..1d0e499 100644
+--- a/SofaImGui/src/SofaImGui/windows/Performances.h
++++ b/SofaImGui/src/SofaImGui/windows/Performances.h
+@@ -30,7 +30,6 @@
+ 
+ #include <imgui.h>
+ #include <sofa/simulation/Node.h>
+-#include <SimpleIni.h>
+ #include "WindowState.h"
+ 
+ 
+diff --git a/SofaImGui/src/SofaImGui/windows/Profiler.h b/SofaImGui/src/SofaImGui/windows/Profiler.h
+index ac843b6..7ee088a 100644
+--- a/SofaImGui/src/SofaImGui/windows/Profiler.h
++++ b/SofaImGui/src/SofaImGui/windows/Profiler.h
+@@ -28,9 +28,7 @@
+ #include <SofaGLFW/BaseGUIEngine.h>
+ #include <sofa/gl/FrameBufferObject.h>
+ 
+-#include <imgui.h>
+ #include <sofa/simulation/Node.h>
+-#include <SimpleIni.h>
+ #include "WindowState.h"
+ 
+ 
+diff --git a/SofaImGui/src/SofaImGui/windows/Settings.h b/SofaImGui/src/SofaImGui/windows/Settings.h
+index 5a8e039..cb52c2e 100644
+--- a/SofaImGui/src/SofaImGui/windows/Settings.h
++++ b/SofaImGui/src/SofaImGui/windows/Settings.h
+@@ -23,6 +23,7 @@
+ 
+ #include <sofa/simulation/Node.h>
+ #include "WindowState.h"
++#include <SimpleIni.h>
+ 
+ namespace sofaimgui
+ {
+diff --git a/SofaImGui/src/SofaImGui/windows/ViewPort.h b/SofaImGui/src/SofaImGui/windows/ViewPort.h
+index c1fd42c..30cf947 100644
+--- a/SofaImGui/src/SofaImGui/windows/ViewPort.h
++++ b/SofaImGui/src/SofaImGui/windows/ViewPort.h
+@@ -23,6 +23,7 @@
+ 
+ #include <sofa/simulation/Node.h>
+ #include "WindowState.h"
++#include <SimpleIni.h>
+ 
+ namespace windows
+ {
+-- 
+2.43.0
+
