@@ -1,0 +1,299 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# Much of the information is available via:
+context:
+  version: "1.5.735"
+  # Number of processors to use during build
+  nprocs: ${{ [2, env.get('CPU_COUNT', default="8") | int] | max }}
+
+recipe:
+  name: mumble-voip
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mumble-voip/mumble/archive/refs/tags/v1.5.735.tar.gz
+    sha256: 539680318419ca6c236d129dc5b6a96878bd048957cfcfb3882d313dd16660fa
+    target_directory: src/mumble
+    patches:
+      - patches/0003-fix-updateentry-struct-initialization.patch
+      - patches/0004-make-tracy-directory-optional.patch
+      - if: win
+        then: patches/0001-fix-msvc-protobuf-warnings.patch
+      - if: osx
+        then:
+          - patches/0002-fix-macos-implicit-int-float-conversion.patch
+  # Keep only essential mumble-specific bundled libraries
+  - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
+    sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
+    target_directory: src/mumble/3rdparty/FindPythonInterpreter/
+  - url: https://raw.githubusercontent.com/Krzmbrzl/cmake-compiler-flags/refs/heads/main/CompilerFlags.cmake
+    sha256: 297e2c9fa52a913ac1880812a71313656b40b2cd15e92e5565d570434165bf0c
+    target_directory: src/mumble/3rdparty/cmake-compiler-flags/
+  - url: https://github.com/lipis/flag-icons/archive/refs/tags/v7.3.2.tar.gz
+    sha256: 6a5497e1029e66415c3941a5e5ee001944b0a7e46bf365c6d5a91a033acee87e
+    target_directory: src/mumble/3rdparty/flag-icons/
+  # Keep mumble-specific forks that aren't available as system packages
+  - url: https://github.com/mumble-voip/ReNameNoise/archive/refs/heads/master.tar.gz
+    sha256: 8f4ecd90d0445a2455c82437f67e18cab873674d593dcee9a4b87b5dc0bba0cd
+    target_directory: src/mumble/3rdparty/renamenoise/
+  - url: https://github.com/mumble-voip/minhook/archive/8b972409bd85f851b280f5334c16aecb7f131e76.tar.gz
+    sha256: 8f67781478a881cd252675b60b774feb1c764a636e43f9638ffafd7ce13fe86b
+    target_directory: src/mumble/3rdparty/minhook/
+  - url: https://github.com/mumble-voip/SPSCQueue/archive/e0defee95d54785f767fd99a58fce391c2d04b81.tar.gz
+    sha256: f0eb90c200ec31cf8aa5b7a7e833a2f35f32d4fe4bfc38225d8b4c7681b3924c
+    target_directory: src/mumble/3rdparty/SPSCQueue/
+  - url: https://github.com/mumble-voip/mach_override/archive/919148f94db54fc04d287eb6a42c0c36b166bbfa.tar.gz
+    sha256: dc2f83c126efece316abff2e49f19cfaeb52c3d1f78324263192ed10ca9fd1f8
+    target_directory: src/mumble/3rdparty/mach-override-src/
+  # Use system SOCI library instead of bundled version - commented out bundled source
+  # - url: https://github.com/SOCI/soci/archive/ce348126e7b8f8f851c0461ec4b5cf8e38f848d6.tar.gz
+  #   sha256: 09f22c98c135cc212ac9e9dbdc56a604e381adda07d9e4833c0ce3e49996104e
+  #   target_directory: src/mumble/3rdparty/soci/
+  # Use system Tracy library instead of bundled version - commented out bundled source
+  # - url: https://github.com/wolfpld/tracy/archive/refs/tags/v0.12.2.tar.gz
+  #   sha256: 09617765ba5ff1aa6da128d9ba3c608166c5ef05ac28e2bb77f791269d444952
+  #   target_directory: src/mumble/3rdparty/tracy/
+  # Use system SpeexDSP library instead of bundled version - commented out bundled source
+  # - url: https://github.com/xiph/speexdsp/archive/refs/tags/SpeexDSP-1.2.1.tar.gz
+  #   sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
+  #   target_directory: src/mumble/3rdparty/speexdsp/
+
+  - path: service.yaml
+    target_directory: service-config
+  - path: cmake_system_libs.cmake
+    target_directory: cmake-config
+  - path: conda_toolchain.cmake
+    target_directory: cmake-config
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: mumble-client
+
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      script: build-client.nu
+
+    requirements:
+      build:
+        - nushell >=0.80
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - libstdcxx-ng
+        # - qt6-main
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
+        # - qt-wayland
+        - mesalib >=21.0
+        - python >=3.8,<4
+        - cmake >=3.20
+        - py-build-cmake >=0.1
+        - ninja >=1.10
+        - if: unix
+          then: make >=4.0
+        - pkg-config >=0.29
+        - if: linux
+          then:
+            - xorg-libx11 >=1.6
+            - xorg-libxext >=1.3
+            - xorg-libxi >=1.7
+            - xorg-xproto >=7.0
+            - xorg-xextproto >=7.3
+            - xorg-inputproto >=2.3
+            - xorg-xorgproto >=2021.4
+        - libboost-devel >=1.70,<2
+        - libopenssl-static >=1.1,<4
+        - libprotobuf-static >=3.21,<5
+        - libprotobuf >=3.21,<5
+        - protobuf >=3.21,<5
+        - libabseil >=20230125,<20250101
+        - zlib >=1.2.11
+        - poco >=1.12,<2
+        - nlohmann_json >=3.11.3,<4
+        - spdlog >=1.10.0,<2
+        - utfcpp >=3.2.0,<4
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+        - speexdsp >=1.2
+      host:
+        - if: linux
+          then:
+            - xorg-libx11 >=1.6
+            - xorg-libxext >=1.3
+            - xorg-libxi >=1.7
+            - xorg-xproto >=7.0
+            - xorg-xextproto >=7.3
+            - xorg-inputproto >=2.3
+            - xorg-xorgproto >=2021.4
+        - if: linux
+          then: alsa-lib >=1.2
+        - tracy-profiler >=0.12.2
+        - ms-gsl >=4.2.0
+        - if: linux
+          then: libcap >=2.25,<3
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
+        - if: linux
+          then: avahi >=0.8
+        - if: linux
+          then: libxcb >=1.13
+        - if: linux
+          then: zeroconf >=0.70,<1
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+      run:
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
+
+    tests:
+      - package_contents:
+          files:
+            - bin/mumble
+            - share/licenses/mumble-client/LICENSE
+      - script:
+          - nu test_mumble_client.nu
+        requirements:
+          build:
+            - nushell >=0.80
+          run:
+            - nushell >=0.80
+        files:
+          recipe:
+            - tests/test_mumble_client.nu
+
+  - package:
+      name: mumble-server
+
+    # https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/README.md
+    build:
+      script: build-server.nu
+
+    requirements:
+      build:
+        - nushell >=0.80
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('c') }}
+        - libstdcxx-ng
+        # - qt6-main
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
+        # - qt-wayland
+        - mesalib >=21.0
+        - python >=3.8,<4
+        - cmake >=3.20
+        - py-build-cmake >=0.1
+        - ninja >=1.10
+        - if: unix
+          then: make >=4.0
+        - pkg-config >=0.29
+        - if: linux
+          then:
+            - xorg-libx11 >=1.6
+            - xorg-libxext >=1.3
+            - xorg-libxi >=1.7
+            - xorg-xproto >=7.0
+            - xorg-xextproto >=7.3
+            - xorg-inputproto >=2.3
+            - xorg-xorgproto >=2021.4
+        - libboost-devel >=1.70,<2
+        - libopenssl-static >=1.1,<4
+        - libprotobuf-static >=3.21,<5
+        - libprotobuf >=3.21,<5
+        - protobuf >=3.21,<5
+        - libabseil >=20230125,<20250101
+        - zlib >=1.2.11
+        - poco >=1.12,<2
+        - nlohmann_json >=3.11.3,<4
+        - spdlog >=1.10.0,<2
+        - utfcpp >=3.2.0,<4
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+        - speexdsp >=1.2
+      host:
+        - qt >=5.15,<6
+        - qt-main >=5.15,<6
+        - if: linux
+          then:
+            - xorg-libx11 >=1.6
+            - xorg-libxext >=1.3
+            - xorg-libxi >=1.7
+            - xorg-xproto >=7.0
+            - xorg-xextproto >=7.3
+            - xorg-inputproto >=2.3
+            - xorg-xorgproto >=2021.4
+        - libboost-devel >=1.70,<2
+        - if: linux
+          then: alsa-lib >=1.2
+        - tracy-profiler >=0.12.2
+        - ms-gsl >=4.2.0
+        - libabseil >=20230125,<20250101
+        - libprotobuf >=3.21,<5
+        - if: linux
+          then: libcap >=2.25,<3
+        - zlib >=1.2.11
+        - libogg >=1.3,<2
+        - libsndfile >=1.0.28,<2
+        - libopus >=1.3,<2
+          # - libspeechd
+        - if: linux
+          then: avahi >=0.8
+        - if: linux
+          then: libxcb >=1.13
+        - if: linux
+          then: zeroconf >=0.70,<1
+        - poco >=1.12,<2
+        - soci-core >=4.0,<5
+        - if: linux
+          then: soci-sqlite >=4.0,<5
+
+    tests:
+      - package_contents:
+          files:
+            - bin/mumble-server${{ ".exe" if win }}
+            - ${{ "etc/mumble/service.yaml" if linux }}
+            - share/licenses/mumble-server/LICENSE
+      - script:
+          - echo "Run Tests:"
+          - nu tests/test_mumble_server.nu
+        requirements:
+          run:
+            - nushell >=0.80
+        files:
+          recipe:
+            - tests/
+
+about:
+  homepage: https://www.mumble.info/
+  summary: "Mumble voice chat client and server"
+  description: |
+    Mumble was the first VoIP application to establish true low latency voice communication over a decade ago.
+    But low latency and gaming are not the only use cases it shines in.
+    This package provides both the Mumble client and mumble-server (previously Murmur) components.
+
+    Features:
+    - Low-latency, high-quality voice communication
+    - Advanced positional audio for gaming
+    - Flexible server architecture (mumble-server)
+    - Cross-platform support (Windows, macOS, Linux)
+    - Plugin system for game integration
+    - Strong encryption and privacy protection
+  license: BSD-3-Clause
+  license_file:
+    - src/mumble/LICENSE
+    - src/mumble/3rdPartyLicenses
+  documentation: https://www.mumble.info/documentation/
+  repository: https://github.com/mumble-voip/mumble
+
+extra:
+  recipe-maintainers:
+    - phreed
+  version:
+    github-release:
+      - ^(\d+\.\d+\.\d+)
+  feedstock-name: mumble-voip
