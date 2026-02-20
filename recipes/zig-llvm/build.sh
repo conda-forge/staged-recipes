@@ -108,6 +108,7 @@ case "${target_platform}" in
             -DLLVM_USE_INTEL_JITEVENTS=ON
             -DLLVM_ENABLE_DUMP=ON
             -Dzstd_LIBRARY="${PREFIX}/Library/lib/zstd.lib"
+            -Dzstd_SHARED_LIBRARY="${PREFIX}/Library/bin/zstd.dll"
             -Dzstd_INCLUDE_DIR="${PREFIX}/Library/include"
         )
         echo "=== Windows target: Using static MSVC runtime ==="
