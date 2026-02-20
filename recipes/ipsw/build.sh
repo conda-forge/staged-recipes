@@ -6,6 +6,10 @@ IFS=$'\n\t'
 export CGO_ENABLED=1
 export GOFLAGS="-mod=readonly"
 
+if [[ "${target_platform}" != "linux-"* && "${target_platform}" != "osx-"* ]]; then
+  PREFIX=${PREFIX}/Library
+fi
+
 # Set up pkg-config for finding libraries
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CGO_CFLAGS="-I${PREFIX}/include"
