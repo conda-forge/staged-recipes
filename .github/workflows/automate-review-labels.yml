@@ -49,11 +49,20 @@ jobs:
                     const slug = team.replace("@conda-forge/", "");
                     const label = slug.replace("help-", "");
                     found_label = true;
+                    // Check if comment included 'maintenance' as a whole word, irrespective of capitalization
+                    const is_maintenance_request = /\bmaintenance\b/i.test(text);
+                    const labels_to_add = [
+                      label,
+                      'review-requested',
+                      // Adds the maintenance label if staged-recipes was pinged and there is a maintenance request
+                      ...(label === 'staged-recipes' && is_maintenance_request ? ['maintenance'] : [])
+                    ];
+
                     github.rest.issues.addLabels({
                         issue_number: context.issue.number,
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        labels: [label, 'review-requested']
+                        labels: labels_to_add
                     });
                     // NOTE: GitHub Actions default token lacks permission to
                     // assign teams for review; external bot required for
@@ -61,7 +70,8 @@ jobs:
                     //
                     https://github.com/conda-forge/staged-recipes/issues/18023#issuecomment-1080451231
                     console.log(`Somebody mentioned ${slug}.`);
-                    if (label == "staged-recipes") {
+                    // If staged-recipes was pinged without a maintenance request, direct to teams
+                    if (label === "staged-recipes" && !is_maintenance_request) {
                       github.rest.issues.createComment({
                         issue_number: context.issue.number,
                         owner: context.repo.owner,
