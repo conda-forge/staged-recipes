@@ -1,0 +1,362 @@
+{% set full_version = "10.9.0.34" %}
+{% set version = full_version.split('.')[:3] | join('.') %}
+
+package:
+  name: tensorrt-sdk
+  version: {{ full_version }}
+
+{% set arm_variant_type = arm_variant_type | default("None") %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
+
+source:
+  - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/tars/TensorRT-{{ full_version }}.Linux.aarch64-gnu.cuda-12.8.tar.gz  # [linux and aarch64 and (cuda_compiler_version or "").startswith("12") and arm_variant_type == "sbsa"]
+  - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/tars/TensorRT-{{ full_version }}.Linux.x86_64-gnu.cuda-11.8.tar.gz  # [linux and x86_64 and (cuda_compiler_version or "").startswith("11")]
+    sha256: 9d0b5d81e388c5103c46c2f766f407781c40e1d6c9bf2584a05be64b13da04b0  # [linux and x86_64 and (cuda_compiler_version or "").startswith("11")]
+  - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/tars/TensorRT-{{ full_version }}.Linux.x86_64-gnu.cuda-12.8.tar.gz  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: 33be0e61e3bf177bbbcabb4892bf013f0c8ac71d2be73f2803848a382cb14272  # [linux and x86_64 and (cuda_compiler_version or "").startswith("12")]
+  - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/zip/TensorRT-{{ full_version }}.Windows.win10.cuda-11.8.zip  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
+    sha256: 9cab2924331dcc92ef43e257155d28d2f40d95482b860c60fc24a91e99ea7152  # [win and x86_64 and (cuda_compiler_version or "").startswith("11")]
+  - url: https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/{{ version }}/zip/TensorRT-{{ full_version }}.Windows.win10.cuda-12.8.zip  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: c2758eb60191f01a47b24f54700e5463f577ebe129cd18fe835d0aa9f1e1a16d  # [win and x86_64 and (cuda_compiler_version or "").startswith("12")]
+
+build:
+  number: 0
+  skip: true  # [(cuda_compiler_version or "None") == "None"]
+  script:
+    - rm -rf data samples doc  # [linux]
+    - check-glibc lib/*.so.*  # [linux]
+    - mkdir -p ${PREFIX}/bin  # [linux]
+    - mv -v bin/* ${PREFIX}/bin  # [linux]
+    - mkdir -p ${PREFIX}/include  # [linux]
+    - mv -v include/* ${PREFIX}/include  # [linux]
+    - mkdir -p ${PREFIX}/lib  # [linux]
+    - mv -v lib/* ${PREFIX}/lib  # [linux]
+
+    - rmdir /s /q data samples doc  # [win]
+    - md  %PREFIX%\Library\bin 2>nul  # [win]
+    - move lib\*.dll %PREFIX%\Library\bin  # [win]
+    - md  %PREFIX%\Library\include 2>nul  # [win]
+    - move include\* %PREFIX%\Library\include  # [win]
+    - md  %PREFIX%\Library\lib 2>nul  # [win]
+    - move lib\*lib %PREFIX%\Library\lib  # [win]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1  # [linux]
+    - python  # (PYTHON 1/2) Must exist for conda-build to inject PYTHON jinja variable
+
+outputs:
+
+  - name: libnvinfer
+    files:
+      include:
+        - lib/libnvinfer*.so.*  # [linux]
+        - Library/bin/nvinfer*.dll  # [win]
+      exclude:
+        - lib/libnvinfer_dispatch.so.*  # [linux]
+        - lib/libnvinfer_lean.so.*  # [linux]
+        - lib/libnvinfer_plugin.so.*  # [linux]
+        - lib/libnvinfer_vc_plugin.so.*  # [linux]
+        - lib/libnvonnxparser.so.*  # [linux]
+        - Library/bin/nvinfer_dispatch*.dll  # [win]
+        - Library/bin/nvinfer_lean*.dll  # [win]
+        - Library/bin/nvinfer_plugin*.dll  # [win]
+        - Library/bin/nvinfer_vc_plugin*.dll  # [win]
+        - Library/bin/nvonnxparser*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-dispatch
+    files:
+      include:
+        - lib/libnvinfer_dispatch.so.*  # [linux]
+        - Library/bin/nvinfer_dispatch*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-lean
+    files:
+      include:
+        - lib/libnvinfer_lean.so.*  # [linux]
+        - Library/bin/nvinfer_lean*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-plugin
+    files:
+      include:
+        - lib/libnvinfer_plugin.so.*  # [linux]
+        - Library/bin/nvinfer_plugin*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+
+  - name: libnvinfer-vc-plugin
+    files:
+      include:
+        - lib/libnvinfer_vc_plugin.so.*  # [linux]
+        - Library/bin/nvinfer_vc_plugin*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvonnxparser
+    files:
+      include:
+        - lib/libnvonnxparser.so.*  # [linux]
+        - Library/bin/nvonnxparser*.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+
+  - name: libnvinfer-headers
+    files:
+      include:
+        - include/NvInfer*  # [linux]
+        - include/NvOnnx*  # [linux]
+        - Library/include/NvInfer*  # [win]
+        - Library/include/NvOnnx*  # [win]
+
+  - name: libnvinfer-dev
+    files:
+      include:
+        - bin/trtexec  # [linux]
+        - lib/libnvinfer*.so  # [linux]
+        - Library/bin/trtexec  # [win]
+        - Library/lib/nvinfer*.lib  # [win]
+      exclude:
+        - lib/libnvinfer_dispatch.so  # [linux]
+        - lib/libnvinfer_lean.so  # [linux]
+        - lib/libnvinfer_plugin.so  # [linux]
+        - lib/libnvinfer_vc_plugin.so  # [linux]
+        - lib/libnvonnxparser.so  # [linux]
+        - Library/lib/nvinfer_dispatch*.lib  # [win]
+        - Library/lib/nvinfer_lean*.lib # [win]
+        - Library/lib/nvinfer_plugin*.lib  # [win]
+        - Library/lib/nvinfer_vc_plugin*.lib  # [win]
+        - Library/lib/nvonnxparser*.lib  # [win]
+    build:
+      run_exports:
+        # Upstream claims the package version tracks both API and ABI breaks
+        - {{ pin_subpackage("libnvinfer") }}
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-dispatch-dev
+    files:
+      include:
+        - lib/libnvinfer_dispatch.so  # [linux]
+        - Library/lib/nvinfer_dispatch*.lib  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-dispatch") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-lean-dev
+    files:
+      include:
+        - lib/libnvinfer_lean.so  # [linux]
+        - Library/lib/nvinfer_lean*.lib # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-lean") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-plugin-dev
+    files:
+      include:
+        - lib/libnvinfer_plugin.so  # [linux]
+        - Library/lib/nvinfer_plugin*.lib  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-plugin") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-vc-plugin-dev
+    files:
+      include:
+        - lib/libnvinfer_vc_plugin.so  # [linux]
+        - Library/lib/nvinfer_vc_plugin*.lib  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvinfer-vc-plugin") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-vc-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-vc-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvonnxparser-dev
+    files:
+      include:
+        - lib/libnvonnxparser.so  # [linux]
+        - Library/lib/nvonnxparser*.lib  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvonnxparser") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+
+  - name: libnvinfer-static
+    files:
+      include:
+        - lib/libnvinfer*.a  # [linux]
+        - lib/libnvonnx*.a  # [linux]
+    build:
+      skip: true  # [not unix]
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-headers", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-dev", exact=True) }}
+
+# Python APIs
+
+  # TODO: Where does python/include/impl/plugin.h go?
+
+  {% set PYTHON = PYTHON | default("python") %}  # (PYTHON 2/2) Default value required for first pass recipe render
+
+  - name: tensorrt
+    build:
+      script:
+        - {{ PYTHON }} -m pip install ${SRC_DIR}/python/tensorrt-{{ full_version }}-cp{{ py }}* -vv  # [linux]
+        - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt-{{ full_version }}-cp{{ py }}-none-win_amd64.whl -vv  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+        - python                                # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer", exact=True) }}
+        - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+        - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+    test:
+      requires:
+        - pip
+      import:
+        - tensorrt
+      commands:
+        - pip check
+        - python -c "import tensorrt; assert tensorrt.Builder(tensorrt.Logger())"
+
+  - name: tensorrt-lean
+    build:
+      script:
+        - {{ PYTHON }} -m pip install ${SRC_DIR}/python/tensorrt_lean-{{ full_version }}-cp{{ py }}* -vv  # [linux]
+        - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt_lean-{{ full_version }}-cp{{ py }}-none-win_amd64.whl -vv  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+        - python                                # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+    test:
+      requires:
+        - pip
+      import:
+        - tensorrt_lean
+      commands:
+        - pip check
+        - python -c "import tensorrt_lean; assert tensorrt_lean.Runtime(tensorrt_lean.Logger())"
+
+  - name: tensorrt-dispatch
+    build:
+      script:
+        - {{ PYTHON }} -m pip install ${SRC_DIR}/python/tensorrt_dispatch-{{ full_version }}-cp{{ py }}* -vv  # [linux]
+        - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt_dispatch-{{ full_version }}-cp{{ py }}-none-win_amd64.whl -vv  # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+        - python                                # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvinfer-dispatch", exact=True) }}
+    test:
+      requires:
+        - pip
+      import:
+        - tensorrt_dispatch
+      commands:
+        - pip check
+        - python -c "import tensorrt_dispatch; assert tensorrt_dispatch.Runtime(tensorrt_dispatch.Logger())"
+
+extras:
+  feedstock-name: tensorrt
+  recipe-maintainers:
+    - conda-forge/cuda
