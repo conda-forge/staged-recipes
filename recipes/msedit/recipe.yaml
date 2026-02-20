@@ -1,0 +1,60 @@
+context:
+    version: "1.2.1"
+
+package:
+    name: msedit
+    version: ${{ version }}
+
+source:
+    url: https://github.com/microsoft/edit/archive/v${{ version }}.tar.gz
+    sha256: 41c719b08212fa4ab6e434a53242b2718ba313e8d24d090f244bb857d6a9d0fd
+    patches:
+        - release-nightly.patch # https://github.com/microsoft/edit/blob/main/.cargo/release-nightly.toml
+
+build:
+    number: 0
+    script:
+        env:
+            CARGO_PROFILE_RELEASE_STRIP: symbols
+            CARGO_PROFILE_RELEASE_LTO: false
+            RUSTC_BOOTSTRAP: 1
+        content:
+            - if: unix
+              then:
+                  - cp .cargo/release-nightly.toml .cargo/config.toml
+                  - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path . --locked --no-track
+              else:
+                  - copy .cargo\release-nightly.toml .cargo\config.toml
+                  - cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path . --locked --no-track
+            - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+    build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+        - rust-src
+
+tests:
+    - script:
+          - if: not unix
+            then:
+                - edit --version # https://github.com/microsoft/edit/issues/194
+                - edit --help
+
+about:
+    homepage: https://github.com/microsoft/edit
+    summary: "A simple editor for simple needs."
+    description: |
+        This editor pays homage to the classic MS-DOS Editor, but with a modern interface and input controls similar to VS Code. The goal is to provide an accessible editor that even users largely unfamiliar with terminals can easily use.
+    license: MIT
+    license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+    repository: https://github.com/microsoft/edit
+
+extra:
+    recipe-maintainers:
+        - XhstormR
