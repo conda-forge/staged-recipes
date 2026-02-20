@@ -30,3 +30,7 @@ go build \
 
 # Verify the binary was built
 "${PREFIX}/bin/ipsw" version
+
+if [[ "${target_platform}" != "linux-"* && "${target_platform}" != "osx-"* ]]; then
+  mv "${PREFIX}/bin/ipsw" "${PREFIX}/bin/ipsw.exe"
+fi
