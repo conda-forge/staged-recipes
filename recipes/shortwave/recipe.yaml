@@ -1,0 +1,95 @@
+context:
+  name: Shortwave
+  version: 5.1.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  git: "https://gitlab.gnome.org/World/Shortwave.git"
+  branch: "pixi"
+#  url: "https://gitlab.gnome.org/World/${{ name }}/-/archive/${{ version }}/${{ name }}-${{ version }}.tar.gz"
+#  sha256: 55c5c141a564245b8f8fbe7698663c87a45a7333c2a2c56f06f811ab73b212dd
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - |
+          set GETTEXT_DIR=%LIBRARY_PREFIX%
+          set CARGO_BUILD_TARGET=
+          meson setup %MESON_ARGS% ^
+            --prefix=%LIBRARY_PREFIX% ^
+            --wrap-mode=nofallback ^
+            --buildtype=release ^
+            builddir
+          ninja -v -C builddir -j %CPU_COUNT%
+          ninja -C builddir install -j %CPU_COUNT%
+        # Menuinst
+        - mkdir "%PREFIX%\Menu"
+        - copy /Y "%RECIPE_DIR%\menu.json" "%PREFIX%\Menu\%PKG_NAME%_menu.json"
+        - copy /Y "%RECIPE_DIR%\shortwave.ico" "%PREFIX%\Menu\icon.ico"
+    - if: unix
+      then:
+        - |
+          export GETTEXT_DIR=$PREFIX
+          unset CARGO_BUILD_TARGET
+          meson setup ${MESON_ARGS} \
+              --prefix=$PREFIX \
+              --wrap-mode=nofallback \
+              builddir
+          ninja -v -C builddir -j ${CPU_COUNT}
+          ninja -C builddir install -j ${CPU_COUNT}
+        # Menuinst
+        - mkdir -p "${{ PREFIX }}/Menu"
+        - sed "s/__PKG_VERSION__/${PKG_VERSION}/g" "${{ RECIPE_DIR }}/menu.json" > "${{ PREFIX }}/Menu/${{ PKG_NAME }}_menu.json"
+        - if: osx
+          then: install -m0644 "${{ RECIPE_DIR }}/shortwave.icns" "${{ PREFIX }}/Menu/icon.icns"
+        - if: linux
+          then: install -m0644 "${{ RECIPE_DIR }}/shortwave.png" "${{ PREFIX }}/Menu/icon.png"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - meson
+    - ninja
+    - pkg-config
+    - gettext
+  host:
+    - libadwaita
+    - libshumate
+    - dbus
+    - zlib
+    - freetype
+    - expat
+    - libxml2-devel
+    - gstreamer
+    - gst-plugins-base
+    - gst-plugins-good
+    - gst-plugins-bad
+  ignore_run_exports:
+    by_name:
+      - libzlib
+      - libexpat
+
+tests:
+  - package_contents:
+      bin: 
+        - shortwave
+about:
+  homepage: https://apps.gnome.org/Shortwave/
+  summary: Listen to internet radio
+  description: |
+    Shortwave is an internet radio player that provides access to a station 
+    database with over 50,000 stations.
+  license: GPL-3.0-or-later
+  license_file: COPYING.md
+  repository: https://gitlab.gnome.org/GNOME/json-glib
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
