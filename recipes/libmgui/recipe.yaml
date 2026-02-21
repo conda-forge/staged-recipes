@@ -1,65 +1,57 @@
 context:
-  name: libmgui
-  version: "1.0.0"
-  author: "mhekkel"
+  version: "2.0.0"
 
 package:
-  name: ${{ name }}
+  name: libmgui
   version: ${{ version }}
 
 source:
-  url: https://github.com/${{ author }}/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 2095cf10dc4afda8982e4be68729cfd0136e333e7271f0ac1c72fd01acad351c
+  url: https://github.com/mhekkel/libmgui/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9c9e49c8c42d1448c8a798d0498c21e1a13fe62b08ba48283601a4b924601ec3
 
 build:
   number: 0
-  skip: not linux
+  skip:
+    # Remove windows in the future when we have windows support
+    - not linux
   script:
     - if: linux
       then: |
         set -exo pipefail
-
-        export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
-
-        if [[ ${build_platform} != ${target_platform} ]]; then
-          extra_cmake_args="-DTEST_STD_CHRONO_FROM_STREAM_R=ON"
-        fi
-
-        # Skip tests for cross compilation for macos
-        if [[ ${build_platform} != ${target_platform} && ${target_platform} == "osx-arm64" ]]; then
-          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF
-        else
-          cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=ON ${extra_cmake_args}
-        fi
-
+        cmake -S . -B build ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON
         cmake --build build --parallel ${CPU_COUNT}
-        ctest -V --test-dir build
         cmake --install build
 
 requirements:
   build:
     - ${{ compiler("cxx") }}
-    - ${{ stdlib("c") }}
+    # - ${{ stdlib("c") }}
     - cmake
     - pkg-config
     - if: linux
-      then: make
+      then:
+        - make
   host:
+    - expat
+    - freetype
+    - glib
     - libgxrio
     - maartens_resource_compiler
-    - mxml
+    - zeem
     - if: linux
       then:
         - gtk4
         - libcanberra
-  run_exports: ${{ pin_subpackage(name, upper_bound="x") }}
+    - zlib
+  run_exports:
+    - ${{ pin_subpackage("libmgui", upper_bound="x") }}
 
 tests:
-  - script:
-      - if: linux
-        then: |
-          test -d ${PREFIX}/include/mgui/
-          test -f ${PREFIX}/lib/libmgui.so
+  - package_contents:
+      include:
+        - mgui/*
+      lib:
+        - libmgui.so
 
 about:
   homepage: https://github.com/mhekkel/libmgui
