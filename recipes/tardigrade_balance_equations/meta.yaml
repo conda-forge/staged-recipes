@@ -1,0 +1,86 @@
+{% set version = "0.2.2" %}
+
+package:
+  name: tardigrade_balance_equations
+  version: {{ version }}
+
+source:
+  url: https://github.com/UCBoulder/tardigrade_balance_equations/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 573161bd3fb799fc792d621bc7e69170201b97c6b24b04fb78b858479021c8f3
+
+build:
+  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+  script:
+    - set -x
+    # Build and install c++ libraries
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS}
+    - cmake --build build --target tardigrade_balance_equations
+    - cmake --install build --prefix ${PREFIX}
+  skip: true  # [win]
+  run_exports:
+    - {{ pin_subpackage('tardigrade_balance_equations', max_pin='x.x') }}
+
+requirements:
+  build:
+    - python
+    - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - make
+    - cmake >=3.30
+    - breathe >=4.3.0
+    - clang-tools
+    - doxygen
+    - libboost-python-devel >=1.82
+    - pip
+    - python-build
+    - setuptools >=77
+    - setuptools_scm >=8
+    - sphinx >=3.0.4
+    - sphinx_rtd_theme >=0.4.3
+    - sphinxcontrib-bibtex
+  host:
+    - setuptools >=77
+    - setuptools_scm >=8
+    - eigen >=3.3.7
+    - tardigrade_error_tools >=0.9.8
+    - tardigrade_vector_tools >=0.8.7
+    - tardigrade_constitutive_tools >=0.8.5
+    - tardigrade_hydra >=0.8.0
+  run:
+    - eigen >=3.3.7
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - make
+    - cmake >=3.30
+    - clang-tools
+    - libboost-python-devel >=1.82
+    - doxygen
+    - sphinx
+  source_files:
+    - CMakeLists.txt
+    - src/cpp/tests/*
+  commands:
+    - set -x
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=conda-test -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build --target all --verbose --parallel 4
+    - ctest --test-dir build --output-on-failure -R 'test_' --parallel 4
+
+about:
+  home: https://github.com/UCBoulder/tardigrade_balance_equations
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'A collection of balance equations'
+  description: |
+    tardigrade_balance_equations A collection of balance equations which can be used in the
+    development of single and multiphasic material responses
+  dev_url: https://github.com/UCBoulder/tardigrade_balance_equations
+
+extra:
+  recipe-maintainers:
+    - NateAM
+    - kbrindley
