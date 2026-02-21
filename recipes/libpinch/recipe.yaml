@@ -1,0 +1,69 @@
+context:
+  name: libpinch
+  version: "1.2.1"
+  author: "mhekkel"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/${{ author }}/${{ name }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fc2515ab160be10375bd08760b3940caaa408b60c190752331780f9f36f413f4
+  patches:
+    # Refer to https://github.com/mhekkel/libpinch/pull/1
+    - fix-include-target_sources.patch
+    # Remove the header include since cryptopp/factory.h is not included in conda-forge's cryptopp
+    # Upstream code includes the header but does not use it
+    - remove-include-factory-header.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - pkg-config
+    - if: unix
+      then:
+        - make
+    - if: win
+      then:
+        - jom
+  host:
+    - asio
+    - cryptopp
+    - zlib
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound="x.x.x") }}
+
+tests:
+  - package_contents:
+      include:
+        - pinch/*
+      lib:
+        - if: linux
+          then:
+            - libpinch.so
+        - if: osx
+          then:
+            - libpinch.dylib
+        - if: win
+          then:
+            - pinch.dll
+            - pinch.lib
+
+about:
+  homepage: https://github.com/mhekkel/libpinch
+  repository: https://github.com/mhekkel/libpinch
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: "Library for asynchronous SSH"
+  description: |
+    This library provides asynchronous SSH for use in client applications.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
