@@ -1,0 +1,73 @@
+{% set name = "io4dolfinx" %}
+{% set python_min = "3.10" %}
+{% set version = "1.1.1" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/scientificcomputing/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 6db8fc28fe85497b3d1eeed0a998eaa932a975c8397b9b0128a58e648fbd4ead
+  patches:
+    - 0001-Lower-absolute-tolerance-in-vtkhdf-tests.patch
+    - 0002-Wait-for-engines-see-https-github.com-ipython-ipypar.patch
+    - 0003-More-fixes-for-tolerance-in-vtkhdf.patch
+
+build:
+  number: 0
+
+  # openmpi oversubscribe env
+  script_env:
+    - MPIEXEC_TIMEOUT=400
+    - HDF5_USE_FILE_LOCKING=FALSE # prevent HDF5 from deadlocking on CI filesystems
+    - HYDRA_IFACE=lo0  # [osx] Force MPICH to use the local loopback network interface
+    - HYDRA_IFACE=lo   # [linux] Force MPICH to use the local loopback network interface
+    - FI_PROVIDER=tcp  # Force MPI to use standard TCP instead of looking for HPC interconnects
+  script: python -m pip install -v --no-deps .
+  
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools
+  run:
+    - python
+    - numpy >=1.21
+    - packaging
+    - fenics-dolfinx >=0.10.0
+    - pyvista
+    - adios2  >=2.10.2 mpi_*  # [not win]
+    - h5py * mpi_*  # [not win]
+    - h5py  # [win]
+  
+test:
+  source_files:
+    - pyproject.toml
+    - tests
+  requires:
+    - python {{ python_min }}
+    - pip
+    - ipyparallel
+    - mpich  # [not win]
+    - pytest
+  imports:
+    - io4dolfinx
+  commands:
+    - pytest --log-cli-level=debug -vvs --maxfail 4 tests
+    - mpiexec -n 2 pytest --log-cli-level=debug -vvs --maxfail 4 tests
+    - pip check
+
+about:
+  home: https://github.com/scientificcomputing/io4dolfinx
+  summary: Input/Output for dolfinx
+  license: MIT
+  license_file: LICENSE
+  doc_url: https://scientificcomputing.github.io/io4dolfinx/
+  dev_url: https://github.com/scientificcomputing/io4dolfinx
+
+extra:
+  recipe-maintainers:
+    - finsberg
+    - jorgensd
