@@ -1,0 +1,52 @@
+context:
+  version: "0.72.0"
+
+package:
+  name: zarf
+  version: ${{ version }}
+
+source:
+  url: https://github.com/zarf-dev/zarf/archive/v${{ version }}.tar.gz
+  sha256: 8d041e6d70c11c0832ba279628bb88c27d8edaa3d462488fd816284f4e8a68bc
+
+build:
+  number: 0
+  script: 
+    - go-licenses save . --save_path library_licenses --ignore github.com/alibabacloud-go/cr-20160607 --ignore github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer --ignore github.com/deitch/magic --ignore github.com/in-toto/attestation/go/v1 --ignore github.com/in-toto/in-toto-golang --ignore github.com/xi2/xz
+    - if: unix
+      then: 
+        - go build -v -o $PREFIX/bin/zarf -ldflags="-s -w"
+        - cp -r ${RECIPE_DIR}/license-files/* ${SRC_DIR}/license-files
+      else: 
+        - go build -v -o %LIBRARY_BIN%\zarf.exe -ldflags="-s"
+        - xcopy /s /i /y %RECIPE_DIR%\license-files\* %SRC_DIR%\license-files || goto :error
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: zarf version
+  - package_contents:
+      bin:
+        - zarf
+      strict: true
+
+about:
+  homepage: https://github.com/zarf-dev/zarf
+  summary: 'The Airgap Native Package Manager for Kubernetes'
+  description: |
+    Zarf eliminates the complexity of airgap software delivery for Kubernetes clusters 
+    and cloud-native workloads using a declarative packaging strategy to support DevSecOps 
+    in offline and semi-connected environments.
+  license: Apache-2.0
+  license_file: 
+    -   LICENSE
+    - library_licenses/
+  documentation: https://docs.zarf.dev/
+  repository: https://github.com/zarf-dev/zarf
+
+extra:
+  recipe-maintainers:
+    - connor-stewarty
