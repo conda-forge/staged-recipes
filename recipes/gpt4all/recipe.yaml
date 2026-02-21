@@ -1,0 +1,101 @@
+context:
+  version: "3.4.2"
+
+package:
+  name: gpt4all
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/nomic-ai/gpt4all/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 5866769e6bb10718e9a70df9522a6a9120598791edeade207a3098186502fd12
+  - url: https://github.com/nomic-ai/llama.cpp/archive/b3b5c0571eda3065035a7f25f7b84640b159d821.tar.gz
+    sha256: e95d08b2c05b7e199ea7a98fa800ee38db0fcc72eac2e41a0391cc4ef3681796
+    target_directory: gpt4all-backend/deps/llama.cpp-mainline
+  - url: https://github.com/nomic-ai/kompute/archive/7c20efa30bb53d08bf04f84e510275766ebe9923.tar.gz
+    sha256: cf51f45eaabd9b1fccc2c871ccdd7be81730bb0172538c9375c1e33bf5ac131c
+    target_directory: gpt4all-backend/deps/llama.cpp-mainline/ggml/src/kompute
+
+build:
+  number: 0
+  skip:
+    # Platform compatibility fixes are required upstream
+    - osx
+    - win
+    - not match(python, ">=3.12,<3.14")
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - vim  # for `xxd`
+    - if: cuda_compiler_version != "None"
+      then: ${{ compiler("cuda") }}
+    - if: unix
+      then: make
+    - if: win
+      then: jom
+    - if: linux or win
+      then:
+        - glslang
+        - shaderc
+        - vulkan-tools
+  host:
+    - fmt
+    - llvm-openmp
+    - openblas
+    - pip
+    - python ${{ python }}
+    - setuptools
+    - zlib
+    # Vulkan (for Kompute)
+    - if: linux or win
+      then:
+        - vulkan-headers
+        - libvulkan-loader
+    # Cuda
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-cudart-dev
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+  run:
+    - jinja2 >=3.1,<4.0
+    - python ${{ python }}
+    - requests
+    - tqdm
+  run_exports:
+    - ${{ pin_subpackage("gpt4all", upper_bound="x") }}
+
+tests:
+  - script: |
+      cd gpt4all-bindings/python/gpt4all/tests
+      python test_embed_timings.py
+    files:
+      source:
+        - gpt4all-bindings/python/gpt4all/tests/test_embed_timings.py
+  - python:
+      imports:
+        - gpt4all
+      pip_check: true
+      python_version:
+        - ${{ python }}
+
+about:
+  homepage: https://www.nomic.ai/gpt4all
+  repository: https://github.com/nomic-ai/gpt4all
+  documentation: https://docs.gpt4all.io
+  license: MIT
+  license_file: LICENSE.txt
+  summary: "GPT4All: Run Local LLMs on Any Device. Open-source and available for commercial use."
+  description: |
+    Designed for developers, teams, and AI power-users,
+    GPT4All runs open-source language models on Windows, macOS, and Linux
+    —with full customization, local document chat (LocalDocs), and support for thousands of models
+    —empowering you to build assistants and workflows with maximum control, security, and speed.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
