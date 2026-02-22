@@ -1,0 +1,100 @@
+context:
+  version: "0.1.0"
+  python_min: "3.12"
+
+recipe:
+  name: blandify-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/moritzwilksch/blandify/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2d4861ec7c16fe3fcb5079cc62c5e4903855bba62aa6aebe24144ff70a6f8009
+
+outputs:
+  - package:
+      name: blandify-cli
+      version: ${{ version }}
+    build:
+      number: 0
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - if: unix
+            then:
+              - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+            else:
+              - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+          - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+    tests:
+      - script: blandify --help
+      - package_contents:
+          bin:
+            - blandify
+    about:
+      homepage: https://github.com/moritzwilksch/blandify
+      summary: CLI tool for Unicode normalization to strip LLM artifacts
+      description: |
+        blandify is a Unicode normalization tool that converts fancy Unicode
+        characters (smart quotes, em-dashes, special symbols) into plain ASCII
+        equivalents. This package provides the command-line interface.
+      license: MIT
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+      repository: https://github.com/moritzwilksch/blandify
+
+  - package:
+      name: blandify-python
+      version: ${{ version }}
+    build:
+      number: 0
+      script:
+        content:
+          - cd python && python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - if: build_platform != target_platform
+          then:
+            - cross-python_${{ target_platform }}
+            - python
+            - maturin >=1.0,<2.0
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - maturin >=1.0,<2.0
+      run:
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+            - blandify
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      homepage: https://github.com/moritzwilksch/blandify
+      summary: Python bindings for Unicode normalization to strip LLM artifacts
+      description: |
+        blandify is a Unicode normalization library that converts fancy Unicode
+        characters (smart quotes, em-dashes, special symbols) into plain ASCII
+        equivalents. This package provides the Python bindings via PyO3.
+      license: MIT
+      license_file:
+        - LICENSE
+      repository: https://github.com/moritzwilksch/blandify
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
