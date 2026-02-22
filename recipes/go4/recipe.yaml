@@ -1,0 +1,90 @@
+context:
+  version: '6.4.1'
+
+package:
+  name: go4
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gsi-ee/go4/releases/download/${{ version }}/go4-${{ version }}.tar.gz
+  sha256: d4c4409b4a86e8686ac19a040824fc37f8ad9bdeef27545cb405b777025e12ee
+  patches:
+    - fix-gxx.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - if: linux
+      then:
+      - cp $RECIPE_DIR/fix_linking_linux.sh $PREFIX/
+      - cp $RECIPE_DIR/libc_linux.patch $PREFIX/
+      - cp $RECIPE_DIR/libpthread_linux.patch $PREFIX/
+      - $PREFIX/fix_linking_linux.sh
+    - $RECIPE_DIR/build.sh
+requirements:
+  build:
+    - cmake
+    - make
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - if: linux
+      then:
+      - libgl-devel
+  host:
+    - root_base
+    - qt
+    - hdf5
+    - python
+  run:
+    - python
+
+tests:
+  - package_contents:
+      bin:
+      - go4
+      - go4analysis
+  - script:
+      - if: linux
+        then:
+        - $PREFIX/fix_linking_linux.sh
+      - ./run_go4_examples.sh
+    files:
+      source:
+        - Go4ExampleSimple/
+        - Go4ExampleUserSource/
+      recipe:
+        - run_go4_examples.sh
+    requirements:
+      run:
+      - make
+      - cmake
+about:
+  homepage: https://www.gsi.de/en/work/research/experiment_electronics/data_processing/data_analysis/the_go4_home_page
+  summary: |
+    The object-oriented system Go4 (GSI Object Oriented On-line Off-line system)
+    is based on ROOT (R. Brun et al.) with the specific requirements of the low
+    and medium energy nuclear and atomic physics experiments implemented as extensions.
+  description: |
+    Go4 separates analysis and GUI in two tasks which could run on different nodes.
+    Communication is done through threads and sockets. The GUI is built with the
+    Qt widget library using the Qt designer. Qt and ROOT are interfaced by QtROOT.
+    Full ROOT functionality including menus and graphics is available without modifications.
+    The Go4 analysis framework provides the syntax to organize the analysis in steps
+    which can be controlled from the GUI. Each step has its own IO and processing classes. 
+    The Go4 event classes can be used to construct at runtime complex (composite) events which
+    are stored by Go4 in trees and branches without explicit programming. The Go4 GUI includes
+    a browser and tree viewer which can be used without analysis to process standard ROOT files.
+    The tree viewer resolves arbitrary hierarchy levels of composite event trees.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - Go4License.txt
+  documentation: https://www.gsi.de/en/work/research/experiment_electronics/data_processing/data_analysis/the_go4_home_page/documentation
+  repository: https://github.com/gsi-ee/go4
+
+extra:
+  recipe-maintainers:
+    - HLinde
