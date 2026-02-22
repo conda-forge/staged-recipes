@@ -11,6 +11,9 @@ cd build
 # # Fix cicc not found
 # export PATH="${BUILD_PREFIX}/nvvm/bin/:${PATH}"
 
+export SLEPC_DIR=$PREFIX 
+export PETSC_DIR=$PREFIX
+export PETSC_ARCH=""
 
 cmake \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
