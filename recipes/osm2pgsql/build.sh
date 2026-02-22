@@ -28,8 +28,10 @@ cmake ${CMAKE_ARGS} -S . \
  -D CMAKE_FIND_APPBUNDLE=NEVER \
  -D CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF \
  -D CMAKE_PREFIX_PATH="${PREFIX};${BUILD_PREFIX}" \
+ -D Boost_INCLUDE_DIR="${BUILD_PREFIX}/include" \
+ -D NLOHMANN_INCLUDE_DIR="${BUILD_PREFIX}/include" \
  -D LUA_INCLUDE_DIR="${PREFIX}/include" \
- -D LUA_LIBRARY="${PREFIX}/lib/liblua.dylib"
+ -D LUA_LIBRARY="${PREFIX}/lib/liblua${SHLIB_EXT}"
 
 cmake --build ${BUILD_DIR} --target all
 
