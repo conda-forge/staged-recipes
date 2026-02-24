@@ -22,10 +22,17 @@ jobs:
     displayName: Manage disk space
 
   - script: |
-      sudo fallocate -l 10GiB /swapfile || true
-      sudo chmod 600 /swapfile || true
-      sudo mkswap /swapfile || true
-      sudo swapon /swapfile || true
+      SWAPFILE=/swapfile
+      # If there is already a swapfile, disable it and remove it
+      if swapon --show | grep -q $SWAPFILE; then
+          echo "Disabling existing swapfile..."
+          sudo swapoff $SWAPFILE || true
+      fi
+      [ -f "$SWAPFILE" ] && sudo rm -f $SWAPFILE
+      sudo fallocate -l 10GiB $SWAPFILE
+      sudo chmod 600 $SWAPFILE
+      sudo mkswap $SWAPFILE
+      sudo swapon $SWAPFILE
     displayName: Create swap file
 
   - script: |
@@ -54,7 +61,7 @@ jobs:
   - publish: build_artifacts/noarch/
     artifact: conda_pkgs_noarch
 
-- job: linux_64_cuda_126
+- job: linux_64_cuda_129
   dependsOn: linux_64
   condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CUDA'], '1'))
   pool:
@@ -96,11 +103,11 @@ jobs:
       mkdir -p build_artifacts/linux-64/
 
       export CI=azure
-      export CONFIG=linux64_cuda126
+      export CONFIG=linux64_cuda129
       export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-x86_64:alma9
       export AZURE=True
       .scripts/run_docker_build.sh
 
-    displayName: Run docker build for CUDA 12.6
+    displayName: Run docker build for CUDA 12.9
   - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_cuda126
+    artifact: conda_pkgs_linux_64_cuda129
