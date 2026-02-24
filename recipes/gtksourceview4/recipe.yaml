@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+context:
+  name: gtksourceview
+  version: 4.8.4
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+package:
+  name: gtksourceview4
+  version: ${{ version }}
+source:
+  url: "https://download.gnome.org/sources/${{ name }}/${{ version_majmin }}/${{ name }}-${{ version }}.tar.xz"
+  sha256: 7ec9d18fb283d1f84a3a3eff3b7a72b09a10c9c006597b3fbabbb5958420a87d
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          --buildtype=release ^
+          -Dvapi=false ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+    - if: osx
+      then: |
+        # Define _DARWIN_C_SOURCE to expose POSIX.1-2008 functions like strnlen
+        export CFLAGS="${CFLAGS} -D_DARWIN_C_SOURCE"
+    - if: unix
+      then: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dvapi=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+  files:
+    exclude:
+      - '**/gschemas.compiled'
+      - '**/icon-theme.cache'
+      - '**/loaders.cache'
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    - freetype
+    - harfbuzz
+    - gobject-introspection
+  host:
+    - expat
+    - fontconfig
+    - fribidi
+    - glib
+    - gobject-introspection
+    - gtk3
+    - libxml2
+    - zlib
+    - if: unix
+      then: pango
+  ignore_run_exports:
+    by_name:
+      - libexpat
+      - adwaita-icon-theme
+      - libzlib
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - lib/pkgconfig/gtksourceview-4.pc
+        - if: win
+          then:
+            - Library/lib/pkgconfig/gtksourceview-4.pc
+            - Library/lib/gtksourceview-4.lib
+      lib:
+        - if: unix
+          then: gtksourceview-4
+about:
+  homepage: https://gitlab.gnome.org/GNOME/gtksourceview
+  summary: A GNOME library that extends GtkTextView
+  description: |
+    GtkSourceView is a GNOME library that extends GtkTextView, the standard GTK
+    widget for multiline text editing. GtkSourceView adds support for syntax
+    highlighting, file loading and saving, search and replace, code completion,
+    snippets, Vim emulation, printing, displaying line numbers, and other features
+    typical of a source code editor.
+  license: LGPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://gnome.pages.gitlab.gnome.org/gtksourceview/gtksourceview5/
+  repository: https://gitlab.gnome.org/GNOME/gtksourceview
+extra:
+  recipe-maintainers:
+    - noamraph
