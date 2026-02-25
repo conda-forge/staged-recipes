@@ -45,10 +45,18 @@ tests:
       python_version: ${{ python_min }}.*
   - script:
       - test $(pip check | grep mujoco-warp | wc -l) -eq 0
+      # The mujoco_warp package bundles the tests in the package, so we can run them from there.
+      # We copy over the pyproject.toml to ensure that the upstream test configuration is used.
+      - cwd=$(pwd) && cd $(python -c "import mujoco_warp; print(mujoco_warp.__path__[0])") && pytest --config-file "${cwd}/pyproject.toml"
+    files:
+      source:
+        - pyproject.toml
     requirements:
       run:
         - pip
         - python ${{ python_min }}.*
+        # jax_test.py uses `scipy.linalg.tril`, which was removed in scipy 1.13.0.
+        - scipy <1.13.0
 
 about:
   homepage: https://github.com/google-deepmind/mujoco_warp
