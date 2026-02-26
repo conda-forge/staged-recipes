@@ -1,0 +1,102 @@
+context:
+  version: "0.7"
+
+package:
+  name: nebi-desktop
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nebari-dev/nebi/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e9047c65a48d11809da00d7e1cd993f0b9a03a4d28293e16a0ff4da2d0c15c56
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    # Build frontend
+    - cd src/frontend && npm install && npm run build && cd ..
+    - rm -rf internal/web/dist && cp -r frontend/dist internal/web/dist
+    # Install wails CLI
+    - go install github.com/wailsapp/wails/v2/cmd/wails@latest
+    # Collect Go dependency licenses
+    - go-licenses save . --save_path ../library_licenses
+    # Build desktop app
+    - if: linux
+      then:
+        - wails build -tags webkit2_41 -ldflags "-s -w -X main.Version=${{ version }}"
+        - cp build/bin/Nebi $PREFIX/bin/nebi-desktop
+        - rm -f $PREFIX/bin/wails
+    - if: osx
+      then:
+        - wails build -ldflags "-s -w -X main.Version=${{ version }}"
+        - mkdir -p $PREFIX/Applications
+        - cp -r build/bin/Nebi.app $PREFIX/Applications/Nebi.app
+    - if: win
+      then:
+        - wails build -ldflags "-s -w -X main.Version=${{ version }}"
+        - copy build\bin\Nebi.exe %LIBRARY_BIN%\nebi-desktop.exe
+
+requirements:
+  build:
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+    - nodejs >=20
+    - pkg-config  # [linux]
+  host:
+    - gtk3           # [linux]
+    - webkit2gtk4.1  # [linux]
+    - glib           # [linux]
+    - libsoup        # [linux]
+    # Transitive deps of gtk3/webkit2gtk4.1 listed explicitly because CGO
+    # needs their .pc files for pkg-config resolution at compile time.
+    # They're already pulled in at runtime transitively, so we suppress
+    # their run_exports to avoid duplicate runtime dependencies.
+    - gdk-pixbuf     # [linux]
+    - zlib           # [linux]
+    - expat          # [linux]
+    - fontconfig     # [linux]
+  ignore_run_exports:
+    from_package:
+      - zlib         # [linux]
+      - expat        # [linux]
+      - fontconfig   # [linux]
+
+tests:
+  - script:
+      - if: linux
+        then:
+          - test -f $PREFIX/bin/nebi-desktop
+      - if: osx
+        then:
+          - test -d $PREFIX/Applications/Nebi.app
+      - if: win
+        then:
+          - if exist %LIBRARY_BIN%\nebi-desktop.exe (exit 0) else (exit 1)
+  - if: linux
+    then:
+      package_contents:
+        bin:
+          - nebi-desktop
+        strict: true
+
+about:
+  homepage: https://github.com/nebari-dev/nebi
+  summary: Nebi desktop application - local-first workspace management for Pixi
+  description: |
+    Nebi Desktop is a native desktop application for managing Pixi workspaces.
+    It provides a graphical interface for tracking, pushing, and pulling
+    workspace configurations with built-in web UI.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/nebari-dev/nebi
+  repository: https://github.com/nebari-dev/nebi
+
+extra:
+  recipe-maintainers:
+    - Adam-D-Lewis
+    - aktech

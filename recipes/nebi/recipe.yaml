@@ -1,0 +1,61 @@
+context:
+  version: "0.7"
+
+package:
+  name: nebi
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nebari-dev/nebi/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e9047c65a48d11809da00d7e1cd993f0b9a03a4d28293e16a0ff4da2d0c15c56
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    # Build frontend
+    - cd src/frontend && npm install && npm run build && cd ..
+    - rm -rf internal/web/dist && cp -r frontend/dist internal/web/dist
+    # Collect Go dependency licenses
+    - go-licenses save ./cmd/nebi --save_path ../library_licenses
+    # Build the binary
+    - if: unix
+      then:
+        - go build -v -o $PREFIX/bin/nebi -ldflags="-s -w -X main.Version=${{ version }}" ./cmd/nebi
+    - if: win
+      then:
+        - go build -v -o %LIBRARY_BIN%\nebi.exe -ldflags="-s -w -X main.Version=${{ version }}" ./cmd/nebi
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+    - nodejs >=20
+
+tests:
+  - script:
+      - nebi version
+      - nebi --help
+  - package_contents:
+      bin:
+        - nebi
+      strict: true
+
+about:
+  homepage: https://github.com/nebari-dev/nebi
+  summary: Local-first workspace management for Pixi
+  description: |
+    Nebi manages Pixi workspaces locally and syncs them to remote servers.
+    It provides a CLI and embedded web UI for tracking, pushing, and pulling
+    workspace configurations.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/nebari-dev/nebi
+  repository: https://github.com/nebari-dev/nebi
+
+extra:
+  recipe-maintainers:
+    - Adam-D-Lewis
+    - aktech
