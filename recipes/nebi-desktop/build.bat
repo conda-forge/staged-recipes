@@ -4,8 +4,13 @@ cd src
 if errorlevel 1 exit /b 1
 
 :: Build frontend
-cd frontend && npm install && npm run build && cd ..
+cd frontend
 if errorlevel 1 exit /b 1
+call npm install
+if errorlevel 1 exit /b 1
+call npm run build
+if errorlevel 1 exit /b 1
+cd ..
 
 :: Copy frontend dist to web embed directory
 if exist internal\web\dist rmdir /s /q internal\web\dist
