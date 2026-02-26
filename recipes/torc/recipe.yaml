@@ -1,0 +1,72 @@
+context:
+  version: "0.14.0"
+
+package:
+  name: torc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NatLabRockies/torc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 67060006b943af7ab3d200099d5ac5521562c2d6187bb265082cdca840907f60
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      SQLX_OFFLINE: "true"
+      OPENSSL_NO_VENDOR: 1
+    content:
+      - if: unix
+        then:
+          - export OPENSSL_DIR=$PREFIX
+          - cargo auditable install --locked --no-track --bins --no-default-features --features dist --root ${{ PREFIX }} --path .
+        else:
+          - set OPENSSL_DIR=%LIBRARY_PREFIX%
+          - cargo auditable install --locked --no-track --bins --no-default-features --features dist --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+  host:
+    - openssl
+
+tests:
+  - script:
+      - torc --version
+      - torc --help
+      - torc-server --help
+  - package_contents:
+      bin:
+        - torc
+        - torc-dash
+        - torc-htpasswd
+        - torc-mcp-server
+        - torc-server
+        - torc-slurm-job-runner
+      strict: true
+
+about:
+  homepage: https://github.com/NatLabRockies/torc
+  summary: Distributed workflow orchestration for complex computational pipelines
+  documentation: https://natlabrockies.github.io/torc/
+  repository: https://github.com/NatLabRockies/torc
+  description: |
+    Torc is a workflow management system designed for running large-scale
+    computational workflows with complex dependencies on local machines
+    and HPC clusters.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - daniel-thom
