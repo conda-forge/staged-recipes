@@ -70,6 +70,8 @@ if not exist configure (
 )
 
 REM Generate build script for MSYS2 bash
+REM Temporarily disable delayed expansion so ! in shebang is preserved
+setlocal DisableDelayedExpansion
 echo #!/bin/bash> _build.sh
 echo set -euxo pipefail>> _build.sh
 echo.>> _build.sh
@@ -80,14 +82,15 @@ echo.>> _build.sh
 echo ./configure --prefix="$PREFIX_UNIX">> _build.sh
 echo make -j%CPU_COUNT%>> _build.sh
 echo make install PREFIX="$PREFIX_UNIX">> _build.sh
+endlocal
 
 echo === Generated _build.sh: ===
 type _build.sh
 echo ===========================
 
-REM Run via MSYS2 bash
-bash -lc "chmod +x _build.sh && ./_build.sh"
-if !ERRORLEVEL! neq 0 (
+REM Run via MSYS2 bash (cd to SRC_DIR first since bash -l changes cwd to ~)
+bash -lc "cd '%SRC_DIR%' && chmod +x _build.sh && ./_build.sh"
+if %ERRORLEVEL% neq 0 (
     echo ERROR: Build failed
     exit /b 1
 )
