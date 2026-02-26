@@ -1,0 +1,28 @@
+@echo on
+
+cd src
+if errorlevel 1 exit /b 1
+
+:: Build frontend
+cd frontend && npm install && npm run build && cd ..
+if errorlevel 1 exit /b 1
+
+:: Copy frontend dist to web embed directory
+if exist internal\web\dist rmdir /s /q internal\web\dist
+xcopy /e /i /y frontend\dist internal\web\dist
+if errorlevel 1 exit /b 1
+
+:: Install wails CLI
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+if errorlevel 1 exit /b 1
+
+:: Collect Go dependency licenses
+go-licenses save . --save_path ../library_licenses
+if errorlevel 1 exit /b 1
+
+:: Build desktop app
+wails build -ldflags "-s -w -X main.Version=%PKG_VERSION%"
+if errorlevel 1 exit /b 1
+
+copy build\bin\Nebi.exe %LIBRARY_BIN%\nebi-desktop.exe
+if errorlevel 1 exit /b 1
