@@ -10,22 +10,46 @@ REM Source extraction workaround (native CMD)
 if not exist configure (
     echo configure not found, extracting source...
     if exist .source_info.json (
-        for /f "usebackq delims=" %%i in (`python -c "import json; print(json.load(open('.source_info.json')).get('source_cache', ''))" 2^>nul`) do set "SRC_CACHE=%%i"
+        echo === .source_info.json contents: ===
+        type .source_info.json
+        echo ===================================
+        for /f "usebackq delims=" %%i in (`python -c "import json; d=json.load(open('.source_info.json')); print(d.get('source_cache', d.get('cache_path', '')))" 2^>nul`) do set "SRC_CACHE=%%i"
         if defined SRC_CACHE (
             echo Source cache: !SRC_CACHE!
-            for /r "!SRC_CACHE!" %%f in (*.tar.gz) do (
+            echo === Contents of source cache: ===
+            if exist "!SRC_CACHE!\*" (
+                dir /s /b "!SRC_CACHE!"
+            ) else (
+                echo source_cache is a file, not a directory
+                dir "!SRC_CACHE!"
+            )
+            echo ================================
+            REM Check if source_cache points directly to a file
+            if exist "!SRC_CACHE!" if not exist "!SRC_CACHE!\*" (
+                echo Using source_cache as tarball directly
+                tar xzf "!SRC_CACHE!" --strip-components=1
+                goto :extracted
+            )
+            REM Search recursively for tarballs
+            set "TARBALL="
+            for /r "!SRC_CACHE!" %%f in (*.tar.gz *.tgz *.tar.*) do (
                 if not defined TARBALL set "TARBALL=%%f"
             )
             if defined TARBALL (
                 echo Found tarball: !TARBALL!
                 tar xzf "!TARBALL!" --strip-components=1
-                if !ERRORLEVEL! neq 0 (
-                    echo ERROR: tar extraction failed
+            ) else (
+                echo No tarball found, trying first file in cache...
+                for /f "delims=" %%f in ('dir /b /a-d "!SRC_CACHE!" 2^>nul') do (
+                    if not defined TARBALL set "TARBALL=!SRC_CACHE!\%%f"
+                )
+                if defined TARBALL (
+                    echo Trying file: !TARBALL!
+                    tar xzf "!TARBALL!" --strip-components=1
+                ) else (
+                    echo ERROR: No files found in !SRC_CACHE!
                     exit /b 1
                 )
-            ) else (
-                echo ERROR: No .tar.gz found in !SRC_CACHE!
-                exit /b 1
             )
         ) else (
             echo ERROR: source_cache not found in .source_info.json
@@ -35,12 +59,13 @@ if not exist configure (
         echo ERROR: .source_info.json not found
         exit /b 1
     )
-) else (
-    echo configure already exists, skipping extraction
 )
+:extracted
 
 if not exist configure (
     echo ERROR: configure not found after extraction
+    echo === Current directory contents: ===
+    dir /b
     exit /b 1
 )
 
