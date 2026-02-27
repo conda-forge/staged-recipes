@@ -14,7 +14,7 @@ echo cd "$SRC_UNIX"
 echo for dir in "$BUILD_UNIX/Library/mingw-w64/bin" "$BUILD_UNIX/mingw64/bin" "$BUILD_UNIX/Library/bin" "$BUILD_UNIX/bin"; do
 echo     if [ -d "$dir" ]; then export PATH="$dir:$PATH"; fi
 echo done
-echo ./configure --kind=shared --prefix="$PREFIX_UNIX"
+echo ./configure --generator=ninja --kind=shared --prefix="$PREFIX_UNIX"
 echo ninja install -j"${CPU_COUNT:-1}"
 ) > _build.sh
 endlocal
