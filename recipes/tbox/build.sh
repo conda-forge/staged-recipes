@@ -11,9 +11,10 @@ if [[ "$(uname)" == "Darwin" ]]; then
         *-cc) toolname="clang";;' configure
     sed -i '' '/^        c++) toolname="clangxx";;$/i\
         *-c++) toolname="clangxx";;' configure
-    # Set SDKROOT so configure doesn't call xcodebuild (whose stderr warnings
-    # leak into -isysroot values and corrupt the generated ninja file)
-    export SDKROOT="$(xcrun --show-sdk-path 2>/dev/null)"
+    # Suppress xcodebuild stderr warnings (DVTSDK: Skipped SDK...) that leak
+    # into -isysroot values and corrupt the generated ninja file
+    xcodebuild() { command xcodebuild "$@" 2>/dev/null; }
+    export -f xcodebuild
 else
     sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="gcc";;\n        cc) toolname="gcc";;/' configure
     sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="gxx";;\n        c++) toolname="gxx";;/' configure
