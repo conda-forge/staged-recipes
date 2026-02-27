@@ -3,13 +3,12 @@ set -euxo pipefail
 
 cd "$SRC_DIR"
 
-# Patch configure to recognize conda's *-cc and *-c++ compiler names
+# Patch configure: treat unknown compiler names as gcc (linux) or clang (macOS)
+# Conda sets CC to names like x86_64-conda-linux-gnu-cc which tbox doesn't recognize
 if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i.bak 's/cc) toolname="gcc";;/*-cc) toolname="clang";;\n        cc) toolname="gcc";;/' configure
-    sed -i.bak 's/c++) toolname="gxx";;/*-c++) toolname="clangxx";;\n        c++) toolname="gxx";;/' configure
+    sed -i.bak 's/raise "unknown tool ${1}"/toolname="clang"/' configure
 else
-    sed -i 's/cc) toolname="gcc";;/*-cc) toolname="gcc";;\n        cc) toolname="gcc";;/' configure
-    sed -i 's/c++) toolname="gxx";;/*-c++) toolname="gxx";;\n        c++) toolname="gxx";;/' configure
+    sed -i 's/raise "unknown tool ${1}"/toolname="gcc"/' configure
 fi
 
 ./configure --kind=shared --prefix="${PREFIX}"
