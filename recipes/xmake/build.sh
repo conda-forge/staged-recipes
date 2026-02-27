@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 cd $SRC_DIR/src
 
