@@ -1,0 +1,56 @@
+context:
+  version: "0.5.4"
+
+package:
+  name: octo-sts
+  version: ${{ version }}
+
+source:
+  url: https://github.com/octo-sts/app/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: aabdf6eac59d560534db90ede68e08d7adc9412dec58f9e21b0e2b823fd8feed
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/app ./cmd/webhook --save_path ../library_licenses
+    - if: unix
+      then:
+        - go build -v -o $PREFIX/bin/octo-sts -ldflags="-s -w" ./cmd/app
+        - go build -v -o $PREFIX/bin/octo-sts-webhook -ldflags="-s -w" ./cmd/webhook
+      else:
+        - go build -v -o %LIBRARY_BIN%\octo-sts.exe -ldflags="-s" ./cmd/app
+        - go build -v -o %LIBRARY_BIN%\octo-sts-webhook.exe -ldflags="-s" ./cmd/webhook
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - package_contents:
+      bin:
+        - octo-sts
+        - octo-sts-webhook
+      strict: true
+
+about:
+  homepage: https://github.com/octo-sts/app
+  summary: A GitHub App that acts as a Security Token Service (STS) for the GitHub API
+  description: |
+    octo-sts is a GitHub App that functions as a Security Token Service (STS) for
+    GitHub API access. It allows workloads running anywhere that can produce OIDC
+    tokens to exchange them for short-lived GitHub credentials, eliminating the
+    need for Personal Access Tokens.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/octo-sts/app
+  repository: https://github.com/octo-sts/app
+
+extra:
+  recipe-maintainers:
+    - pavelzw
+    - ytausch
