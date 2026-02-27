@@ -8,9 +8,9 @@ context:
 recipe:
   version: ${{ version }}
 
-# in-repo builds (for feedstock you typically switch to url+sha256)
 source:
-  path: ..
+  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc5.tar.gz
+  sha256: 67a0a0889ac3ec2a61534d6b96a342f41df8f93783757da9315b2c6fee68a7f5
 
 outputs:
   # ---------------------------------------------------------------------------
@@ -22,6 +22,9 @@ outputs:
 
     build:
       number: 0
+      skip:
+        - win
+        - osx
       script:
         - |
           cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
@@ -63,6 +66,7 @@ outputs:
           then:
             # ensures only installable in CUDA environments
             - __cuda
+            - cuda-cudart ### TODO: check pin / compat version needed here
 
     tests:
       - package_contents:
@@ -75,21 +79,11 @@ outputs:
             - parallelproj.h
             - parallelproj_export.h
             - utils.h
-      - if: win
-        then:
-          - package_contents:
-              files:
-                exists:
-                  - Library/lib/cmake/parallelproj/parallelprojConfig.cmake
-                  - Library/lib/cmake/parallelproj/parallelprojConfigVersion.cmake
-                  - Library/lib/cmake/parallelproj/parallelprojTargets.cmake
-        else:
-          - package_contents:
-              files:
-                exists:
-                  - lib/cmake/parallelproj/parallelprojConfig.cmake
-                  - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
-                  - lib/cmake/parallelproj/parallelprojTargets.cmake
+          files:
+            exists:
+              - lib/cmake/parallelproj/parallelprojConfig.cmake
+              - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
+              - lib/cmake/parallelproj/parallelprojTargets.cmake
 
     about:
       homepage: https://github.com/KUL-recon-lab/libparallelproj
@@ -157,6 +151,10 @@ outputs:
       run:
         - ${{ pin_compatible('python') }}
         - libparallelproj
+        - if: cuda == "ON"
+          then:
+            - __cuda
+            - cuda-cudart
 
     tests:
       - script:
@@ -168,7 +166,9 @@ outputs:
             - array-api-compat
             - array-api-strict
             - if: cuda == "ON"
-              then: cupy
+              then: 
+                - cupy
+                - cuda-driver-dev
         files:
           source:
             - tests/
