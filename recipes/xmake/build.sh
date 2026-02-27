@@ -26,16 +26,6 @@ ln -sf "$(which ${AR})" .conda_compiler_aliases/ar
 
 export PATH="$(pwd)/.conda_compiler_aliases:${PATH}"
 
-export CC="cc"
-export CXX="c++"
-export GXX="c++"
-export GCC="cc"
-export LD="c++"
-export AR="ar"
-export AS="cc"
-export CPP="cc -E"
-export CXXCPP="c++ -E"
-
 ./configure \
     --prefix="${PREFIX}" \
     --cc="cc" \
