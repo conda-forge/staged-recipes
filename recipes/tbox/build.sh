@@ -18,4 +18,9 @@ fi
 
 ./configure --generator=ninja --kind=shared --prefix="${PREFIX}"
 
+# Debug: show build.ninja around the error area
+echo "=== build.ninja lines 1-50 ==="
+head -50 build.ninja
+echo "==="
+
 ninja install -j"${CPU_COUNT:-1}"
