@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-cd $SRC_DIR/src
+cd "$SRC_DIR"
 
 configure --prefix="${PREFIX}"
 
