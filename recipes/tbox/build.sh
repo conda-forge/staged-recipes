@@ -12,7 +12,7 @@ else
     sed -i 's/c++) toolname="gxx";;/*-c++) toolname="gxx";;\n        c++) toolname="gxx";;/' configure
 fi
 
-CC="${CC}" CXX="${CXX}" ./configure --kind=shared --prefix="${PREFIX}"
+./configure --kind=shared --prefix="${PREFIX}"
 
 make -j"${CPU_COUNT:-1}"
 make install PREFIX="${PREFIX}"
