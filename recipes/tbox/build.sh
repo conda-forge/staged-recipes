@@ -11,10 +11,9 @@ if [[ "$(uname)" == "Darwin" ]]; then
         *-cc) toolname="clang";;' configure
     sed -i '' '/^        c++) toolname="clangxx";;$/i\
         *-c++) toolname="clangxx";;' configure
-    # Suppress xcodebuild stderr warnings (DVTSDK: Skipped SDK...) that leak
-    # into -isysroot values and corrupt the generated ninja file
-    xcodebuild() { command xcodebuild "$@" 2>/dev/null; }
-    export -f xcodebuild
+    # Patch xcodebuild calls in configure to suppress stderr warnings
+    # (DVTSDK: Skipped SDK...) that leak into -isysroot values and corrupt ninja files
+    sed -i '' 's/xcodebuild/xcodebuild 2>\/dev\/null/g' configure
 else
     sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="gcc";;\n        cc) toolname="gcc";;/' configure
     sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="gxx";;\n        c++) toolname="gxx";;/' configure
