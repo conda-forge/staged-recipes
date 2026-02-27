@@ -70,9 +70,9 @@ setlocal DisableDelayedExpansion
 echo #!/bin/bash
 echo set -euxo pipefail
 echo.
-echo PREFIX_UNIX=$(cygpath "$PREFIX")
-echo SRC_UNIX=$(cygpath "$SRC_DIR")
-echo BUILD_PREFIX_UNIX=$(cygpath "$BUILD_PREFIX")
+echo PREFIX_UNIX=$(cygpath "$PREFIX"^)
+echo SRC_UNIX=$(cygpath "$SRC_DIR"^)
+echo BUILD_PREFIX_UNIX=$(cygpath "$BUILD_PREFIX"^)
 echo cd "$SRC_UNIX"
 echo.
 echo # Add mingw-w64 gcc directories to PATH
@@ -88,7 +88,7 @@ echo echo "gcc location: $(command -v gcc 2^>/dev/null ^|^| echo not found^)"
 echo echo "cc location: $(command -v cc 2^>/dev/null ^|^| echo not found^)"
 echo.
 echo ./configure --prefix="$PREFIX_UNIX"
-echo make -j$(nproc)
+echo make -j%CPU_COUNT%
 echo make install PREFIX="$PREFIX_UNIX"
 ) > _build.sh
 endlocal
