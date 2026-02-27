@@ -1,8 +1,6 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-if not defined CPU_COUNT set "CPU_COUNT=1"
-
 REM Generate bash build script
 REM Inside double quotes, ) does not close the ( ) block, so no ^ escaping needed
 setlocal DisableDelayedExpansion
@@ -17,8 +15,7 @@ echo for dir in "$BUILD_UNIX/Library/mingw-w64/bin" "$BUILD_UNIX/mingw64/bin" "$
 echo     if [ -d "$dir" ]; then export PATH="$dir:$PATH"; fi
 echo done
 echo ./configure --kind=shared --prefix="$PREFIX_UNIX"
-echo make -j%CPU_COUNT%
-echo make install PREFIX="$PREFIX_UNIX"
+echo ninja install -j"${CPU_COUNT:-1}"
 ) > _build.sh
 endlocal
 
