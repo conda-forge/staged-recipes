@@ -18,20 +18,8 @@ print(d['source_cache'])
     fi
 fi
 
-mkdir -p .conda_compiler_aliases
-
-ln -sf "$(which ${CC})" .conda_compiler_aliases/cc
-ln -sf "$(which ${CXX})" .conda_compiler_aliases/c++
-ln -sf "$(which ${AR})" .conda_compiler_aliases/ar
-
-export PATH="$(pwd)/.conda_compiler_aliases:${PATH}"
-
 ./configure \
-    --prefix="${PREFIX}" \
-    --cc="cc" \
-    --cxx="c++" \
-    --ld="c++" \
-    --ar="ar"
+    --prefix="${PREFIX}"
 
 make -j"${CPU_COUNT:-1}"
 make install PREFIX="${PREFIX}"
