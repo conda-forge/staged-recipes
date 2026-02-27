@@ -16,12 +16,21 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 go-licenses save . --save_path ../library_licenses
 
 # Build desktop app
-if [[ "$(uname)" == "Linux" ]]; then
+if [[ "${target_platform}" == "linux-"* ]]; then
     wails build -tags webkit2_41 -ldflags "-s -w -X main.Version=${PKG_VERSION}"
     cp build/bin/Nebi "${PREFIX}/bin/nebi-desktop"
     rm -f "${PREFIX}/bin/wails"
-elif [[ "$(uname)" == "Darwin" ]]; then
+elif [[ "${target_platform}" == "osx-"* ]]; then
     wails build -ldflags "-s -w -X main.Version=${PKG_VERSION}"
-    mkdir -p "${PREFIX}/Applications"
-    cp -r build/bin/Nebi.app "${PREFIX}/Applications/Nebi.app"
+    cp build/bin/Nebi.app/Contents/MacOS/Nebi "${PREFIX}/bin/nebi-desktop"
+    rm -f "${PREFIX}/bin/wails"
+fi
+
+# Install menuinst menu config and icons
+mkdir -p "${PREFIX}/Menu"
+sed "s/__PKG_VERSION__/${PKG_VERSION}/g" "${RECIPE_DIR}/nebi-desktop-menu.json" > "${PREFIX}/Menu/nebi-desktop-menu.json"
+if [[ "${target_platform}" == "osx-"* ]]; then
+    cp "${RECIPE_DIR}/nebi.icns" "${PREFIX}/Menu/nebi.icns"
+else
+    cp "${RECIPE_DIR}/nebi.png" "${PREFIX}/Menu/nebi.png"
 fi

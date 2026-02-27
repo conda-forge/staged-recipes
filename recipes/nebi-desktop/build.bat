@@ -31,3 +31,13 @@ if errorlevel 1 exit /b 1
 
 copy build\bin\Nebi.exe %LIBRARY_BIN%\nebi-desktop.exe
 if errorlevel 1 exit /b 1
+
+:: Install menuinst menu config and icons
+mkdir %PREFIX%\Menu
+if errorlevel 1 exit /b 1
+
+powershell -Command "(Get-Content '%RECIPE_DIR%\nebi-desktop-menu.json') -replace '__PKG_VERSION__', '%PKG_VERSION%' | Set-Content '%PREFIX%\Menu\nebi-desktop-menu.json'"
+if errorlevel 1 exit /b 1
+
+copy %RECIPE_DIR%\nebi.ico %PREFIX%\Menu\nebi.ico
+if errorlevel 1 exit /b 1
