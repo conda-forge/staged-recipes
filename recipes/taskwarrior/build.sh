@@ -6,6 +6,7 @@ cmake -S . -B build \
     ${CMAKE_ARGS} \
   -DSYSTEM_CORROSION=ON
 cmake --build build --parallel ${CPU_COUNT}
+ctest -V --test-dir build
 cmake --install build
 
 # Install shell completions
