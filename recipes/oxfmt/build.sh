@@ -9,4 +9,4 @@ cargo-bundle-licenses \
     --format yaml \
     --output THIRDPARTY.yml
 
-cargo install --bins --no-track --locked --root ${PREFIX} --path apps/oxfmt
+cargo install --bins --no-track --locked --no-default-features --root ${PREFIX} --path apps/oxfmt

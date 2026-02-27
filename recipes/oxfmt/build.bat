@@ -5,7 +5,7 @@ set CARGO_PROFILE_RELEASE_LTO=fat
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
 :: build
-cargo install --bins --no-track --locked --root "%LIBRARY_PREFIX%" --path apps\oxfmt || goto :error
+cargo install --bins --no-track --locked --no-default-features --root "%LIBRARY_PREFIX%" --path apps\oxfmt || goto :error
 
 goto :EOF
 
