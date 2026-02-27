@@ -1,0 +1,187 @@
+context:
+  version: "2.0.0"
+
+  # conda-forge uses this to select the CUDA variant
+  cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None") }}
+  cuda: ${{ "ON" if cuda_version != "None" else "OFF" }}
+
+recipe:
+  version: ${{ version }}
+
+# in-repo builds (for feedstock you typically switch to url+sha256)
+source:
+  path: ..
+
+outputs:
+  # ---------------------------------------------------------------------------
+  # 1) C++ library + headers + CMake config
+  # ---------------------------------------------------------------------------
+  - package:
+      name: libparallelproj
+      version: ${{ version }}
+
+    build:
+      number: 0
+      script:
+        - |
+          cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DUSE_CUDA=${{ cuda }} \
+            -DBUILD_LIBRARY=ON \
+            -DINSTALL_DEVEL=ON \
+            -DBUILD_PYTHON=OFF \
+            -DBUILD_TESTS=OFF \
+            -DCMAKE_PREFIX_PATH="$PREFIX"
+          cmake --build "$SRC_DIR/_build_lib"
+          cmake --install "$SRC_DIR/_build_lib"
+
+      variant:
+        use_keys:
+          - ${{ "cuda" if cuda == "ON" }}
+        down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - if: cuda == "ON"
+          then:
+            - ${{ compiler('cuda') }}
+      host:
+        - if: osx
+          then: llvm-openmp
+        - if: cuda == "ON"
+          then:
+            # pins the CUDA "feature" variant (conda-forge mechanism)
+            - cuda-version ==${{ cuda_version }}
+      run:
+        - if: osx
+          then: llvm-openmp
+        - if: cuda == "ON"
+          then:
+            # ensures only installable in CUDA environments
+            - __cuda
+
+    tests:
+      - package_contents:
+          lib:
+            - parallelproj
+          include:
+            - cuda_compat.h
+            - cuda_utils.h
+            - debug.h
+            - parallelproj.h
+            - parallelproj_export.h
+            - utils.h
+      - if: win
+        then:
+          - package_contents:
+              files:
+                exists:
+                  - Library/lib/cmake/parallelproj/parallelprojConfig.cmake
+                  - Library/lib/cmake/parallelproj/parallelprojConfigVersion.cmake
+                  - Library/lib/cmake/parallelproj/parallelprojTargets.cmake
+        else:
+          - package_contents:
+              files:
+                exists:
+                  - lib/cmake/parallelproj/parallelprojConfig.cmake
+                  - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
+                  - lib/cmake/parallelproj/parallelprojTargets.cmake
+
+    about:
+      homepage: https://github.com/KUL-recon-lab/libparallelproj
+      license: Apache-2.0
+      license_file: LICENSE
+      summary: C++/CUDA backend projector library (parallelproj) for tomographic reconstruction
+      description: |
+        libparallelproj builds and installs the parallelproj shared library (CPU/OpenMP or CUDA),
+        public headers, and a CMake package configuration for downstream CMake projects.
+
+  # ---------------------------------------------------------------------------
+  # 2) Python extension only (nanobind module), links against libparallelproj
+  # ---------------------------------------------------------------------------
+  - package:
+      name: parallelproj-core
+      version: ${{ version }}
+
+    build:
+      number: 0
+      script:
+        - |
+          cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DUSE_CUDA=${{ cuda }} \
+            -DBUILD_LIBRARY=OFF \
+            -DINSTALL_DEVEL=OFF \
+            -DBUILD_PYTHON=ON \
+            -DBUILD_TESTS=OFF \
+            -DCMAKE_PREFIX_PATH="$PREFIX" \
+            -DPython_EXECUTABLE="$PYTHON" \
+            -DPython_ROOT_DIR="$PREFIX" \
+            -DPYTHON_INTERFACE_INSTALL_DIR="$SP_DIR"
+          cmake --build "$SRC_DIR/_build_py"
+          cmake --install "$SRC_DIR/_build_py"
+
+      # Only include the extension module from site-packages.
+      files:
+        - lib/python*/site-packages/parallelproj_core*.so
+        - lib/python*/site-packages/parallelproj_core*.dylib
+        - lib/python*/site-packages/parallelproj_core*.pyd
+        - Lib/site-packages/parallelproj_core*.pyd
+        - Lib/site-packages/parallelproj_core*.dll
+
+      variant:
+        use_keys:
+          - ${{ "cuda" if cuda == "ON" }}
+        down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - if: cuda == "ON"
+          then:
+            - ${{ compiler('cuda') }}
+      host:
+        - python
+        - nanobind
+        - libparallelproj
+        - if: cuda == "ON"
+          then:
+            - cuda-version ==${{ cuda_version }}
+      run:
+        - ${{ pin_compatible('python') }}
+        - libparallelproj
+
+    tests:
+      - script:
+          - pytest -v ./tests
+        requirements:
+          run:
+            - pytest
+            - numpy
+            - array-api-compat
+            - array-api-strict
+            - if: cuda == "ON"
+              then: cupy
+        files:
+          source:
+            - tests/
+
+    about:
+      homepage: https://github.com/KUL-recon-lab/libparallelproj
+      license: Apache-2.0
+      license_file: LICENSE
+      summary: Nanobind Python extension for libparallelproj (parallelproj_core)
+      description: |
+        parallelproj-core provides the compiled nanobind Python extension module (parallelproj_core)
+        and links against libparallelproj (CPU/OpenMP or CUDA).
+
+extra:
+  recipe-maintainers:
+    - KUL-recon-lab
