@@ -11,16 +11,14 @@ if [[ "$(uname)" == "Darwin" ]]; then
         *-cc) toolname="clang";;' configure
     sed -i '' '/^        c++) toolname="clangxx";;$/i\
         *-c++) toolname="clangxx";;' configure
+    # Set SDKROOT so configure doesn't call xcodebuild (whose stderr warnings
+    # leak into -isysroot values and corrupt the generated ninja file)
+    export SDKROOT="$(xcrun --show-sdk-path 2>/dev/null)"
 else
     sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="gcc";;\n        cc) toolname="gcc";;/' configure
     sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="gxx";;\n        c++) toolname="gxx";;/' configure
 fi
 
 ./configure --generator=ninja --kind=shared --prefix="${PREFIX}"
-
-# Debug: show build.ninja around the error area
-echo "=== build.ninja lines 1-50 ==="
-head -50 build.ninja
-echo "==="
 
 ninja install -j"${CPU_COUNT:-1}"
