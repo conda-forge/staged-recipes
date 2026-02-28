@@ -16,9 +16,9 @@ echo     if [ -d "$dir" ]; then export PATH="$dir:$PATH"; fi
 echo done
 echo sed -i 's/        cc^) toolname="gcc";;/        *-cc^) toolname="gcc";;\n        cc^) toolname="gcc";;/' configure
 echo sed -i 's/        c++^) toolname="gxx";;/        *-c++^) toolname="gxx";;\n        c++^) toolname="gxx";;/' configure
-echo ./configure --generator=ninja --kind=shared --prefix="$PREFIX_UNIX"
-echo sed -i '/^default all$/d' build.ninja
-echo ninja install -j"${CPU_COUNT:-1}"
+echo ./configure --generator=gmake --kind=shared --prefix="$PREFIX_UNIX"
+echo make -j"${CPU_COUNT:-1}"
+echo make install
 ) > _build.sh
 endlocal
 
