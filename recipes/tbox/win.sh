@@ -31,7 +31,7 @@ make tbox -j"${CPU_COUNT:-1}"
 
 BUILD_DIR="build/mingw/x86_64/release"
 
-install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/bin/tbox.dll"
+install -Dm755 "${BUILD_DIR}/tbox.dll" "${PREFIX}/bin/tbox.dll"
 install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/lib/tbox.lib"
 
 mkdir -p "${PREFIX}/include"
