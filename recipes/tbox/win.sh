@@ -8,8 +8,8 @@ cd "$SRC_DIR"
 # x86_64-w64-mingw32-gcc, but autotools_clang_conda provides clang/clang++
 export CC=clang
 export CXX=clang++
-export CFLAGS="${CFLAGS:-} -DNOCRYPT -DNOGDI"
-export CXXFLAGS="${CXXFLAGS:-} -DNOCRYPT -DNOGDI"
+export CFLAGS="$CFLAGS -DNOCRYPT -DNOGDI"
+export CXXFLAGS="$CXXFLAGS -DNOCRYPT -DNOGDI"
 sed -i 's/toolchains="x86_64_w64_mingw32"/toolchains="clang"/' configure
 # Add llvm-ar to clang toolchain's ar toolset (ar may not exist, but llvm-ar does)
 sed -i '/^toolchain "clang"/,/^toolchain_end/{s/set_toolset "ar" "ar"/set_toolset "ar" "llvm-ar" "ar"/}' configure
