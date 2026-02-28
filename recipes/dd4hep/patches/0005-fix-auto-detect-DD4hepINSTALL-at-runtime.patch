@@ -1,0 +1,76 @@
+From 0e4fc9777003ec1fd88b0370bedf3c548561acdd Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 22:16:40 +0100
+Subject: [PATCH 5/6] fix: auto-detect DD4hepINSTALL at runtime
+
+Use dladdr() to detect the DD4hep installation prefix at runtime by
+finding the directory containing libDDCore. When ${DD4hepINSTALL} is
+referenced in XML files but not set in the environment, fall back to
+this auto-detected path.
+
+This allows DD4hep to work without requiring the DD4hepINSTALL
+environment variable to be set, which is useful for conda/pixi
+environments.
+---
+ DDCore/src/Handle.cpp | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/DDCore/src/Handle.cpp b/DDCore/src/Handle.cpp
+index 8d415e35..71b0cfe2 100644
+--- a/DDCore/src/Handle.cpp
++++ b/DDCore/src/Handle.cpp
+@@ -27,12 +27,33 @@
+ #include <cxxabi.h>
+ #endif
+ 
++#ifndef _WIN32
++#include <dlfcn.h>
++#include <filesystem>
++#endif
++
+ namespace dd4hep {
+   dd4hep::tools::Evaluator& evaluator();
+ }
+ 
+ namespace {
+   const dd4hep::tools::Evaluator& eval(dd4hep::evaluator());
++
++#ifndef _WIN32
++  /// Auto-detect DD4hepINSTALL by finding the library location at runtime
++  std::string get_default_install_path() {
++    static const std::string path = []() {
++      Dl_info info;
++      // Use the address of a function in this library to find where it's located
++      if ( dladdr( reinterpret_cast<void*>( &dd4hep::evaluator ), &info ) && info.dli_fname ) {
++        // Library is typically in <prefix>/lib, so go up one level to get prefix
++        return std::filesystem::path( info.dli_fname ).parent_path().parent_path().string();
++      }
++      return std::string{};
++    }();
++    return path;
++  }
++#endif
+ }
+ 
+ using namespace dd4hep;
+@@ -303,6 +324,17 @@ namespace dd4hep  {
+       auto   ret = eval.getEnviron(v, err);
+       // Checking that the variable lookup worked
+       if ( ret.first != tools::Evaluator::OK) {
++#ifndef _WIN32
++        // Provide fallback for DD4hepINSTALL by auto-detecting from library location
++        if ( v == "${DD4hepINSTALL}" ) {
++          std::string default_path = get_default_install_path();
++          if ( !default_path.empty() ) {
++            processed_variable << default_path;
++            current_index = id2 + 1;
++            continue;
++          }
++        }
++#endif
+         std::cerr << v << ": " << err.str() << std::endl;
+         throw std::runtime_error("dd4hep: Severe error during environment lookup of " + v + " " + err.str());
+       }
+-- 
+2.48.1
+

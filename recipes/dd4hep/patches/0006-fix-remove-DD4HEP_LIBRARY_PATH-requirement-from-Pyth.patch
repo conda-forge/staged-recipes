@@ -1,0 +1,71 @@
+From 5fdc8df74b9bc059ae74a44602756af9d457295f Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 22:16:49 +0100
+Subject: [PATCH 6/6] fix: remove DD4HEP_LIBRARY_PATH requirement from Python
+ modules
+
+The Python modules no longer require DD4HEP_LIBRARY_PATH to be set
+on macOS. ROOT's gSystem.Load() can find libraries through standard
+mechanisms when proper rpaths are set, which is the case in
+conda/pixi environments.
+
+This simplifies the setup required to use DD4hep Python bindings.
+---
+ DDCore/python/dd4hep_base.py | 6 ------
+ DDDigi/python/dddigi.py      | 4 ----
+ DDG4/python/DDG4.py          | 7 -------
+ 3 files changed, 17 deletions(-)
+
+diff --git a/DDCore/python/dd4hep_base.py b/DDCore/python/dd4hep_base.py
+index 6f71b629..a4a35edf 100644
+--- a/DDCore/python/dd4hep_base.py
++++ b/DDCore/python/dd4hep_base.py
+@@ -57,12 +57,6 @@ def loaddd4hep():
+   sys.path.append(os.path.join(rootsys, 'lib', 'root'))
+   sys.path.append(os.path.join(rootsys, 'lib64', 'root'))
+   from ROOT import gSystem
+-
+-  import platform
+-  if platform.system() == "Darwin":
+-    gSystem.SetDynamicPath(os.environ['DD4HEP_LIBRARY_PATH'])
+-    os.environ['DYLD_LIBRARY_PATH'] = os.pathsep.join([os.environ['DD4HEP_LIBRARY_PATH'],
+-                                                       os.environ.get('DYLD_LIBRARY_PATH', '')]).strip(os.pathsep)
+   result = gSystem.Load("libDDCore")
+   if result < 0:
+     raise Exception('dd4hep.py: Failed to load the dd4hep library libDDCore: ' + gSystem.GetErrorStr())
+diff --git a/DDDigi/python/dddigi.py b/DDDigi/python/dddigi.py
+index 7bf0e73c..2651bdda 100644
+--- a/DDDigi/python/dddigi.py
++++ b/DDDigi/python/dddigi.py
+@@ -30,10 +30,6 @@ def loadDDDigi():
+     gSystem.Load("libglapi")
+     ROOT.gErrorIgnoreLevel = orgLevel
+ 
+-  import os
+-  import platform
+-  if platform.system() == "Darwin":
+-    gSystem.SetDynamicPath(os.environ['DD4HEP_LIBRARY_PATH'])
+   #
+   # load with ROOT the DDDigi plugin library, which in turn loads the DDigi module
+   result = gSystem.Load("libDDDigiPlugins")
+diff --git a/DDG4/python/DDG4.py b/DDG4/python/DDG4.py
+index 8ba8a203..2e690f8c 100644
+--- a/DDG4/python/DDG4.py
++++ b/DDG4/python/DDG4.py
+@@ -28,13 +28,6 @@ def loadDDG4():
+     gSystem.Load("libglapi")
+     ROOT.gErrorIgnoreLevel = orgLevel
+ 
+-  import platform
+-  import os
+-  if platform.system() == "Darwin":
+-    gSystem.SetDynamicPath(os.environ['DD4HEP_LIBRARY_PATH'])
+-    os.environ['DYLD_LIBRARY_PATH'] = os.pathsep.join([os.environ['DD4HEP_LIBRARY_PATH'],
+-                                                       os.environ.get('DYLD_LIBRARY_PATH', '')]).strip(os.pathsep)
+-
+   result = gSystem.Load("libDDG4Plugins")
+   if result < 0:
+     raise Exception('DDG4.py: Failed to load the DDG4 library libDDG4Plugins: ' + gSystem.GetErrorStr())
+-- 
+2.48.1
+
