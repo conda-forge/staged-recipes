@@ -26,5 +26,8 @@ echo === Generated _build.sh: ===
 type _build.sh
 echo ===========================
 
+REM Set environment variables for Windows library naming
+set REMOVE_LIB_PREFIX=1
+
 bash -lc "cd '%SRC_DIR%' && chmod +x _build.sh && ./_build.sh"
 if %ERRORLEVEL% neq 0 exit /b 1
