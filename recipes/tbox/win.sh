@@ -27,20 +27,29 @@ sed -i 's/-fPIC//g' Makefile
 
 make tbox -j"${CPU_COUNT:-1}"
 
-export BUILD_UNIX="$(cygpath '%BUILD_PREFIX%')"
-export PREFIX_UNIX="$(cygpath '%PREFIX%')"
+#!/bin/bash
+set -euxo pipefail
 
-install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX_UNIX}/Library/bin/libtbox.dll"
+cd "$SRC_DIR"
+
+# ... (keep all your existing patching and configuration steps) ...
+
+# Build only the library
+make tbox -j"${CPU_COUNT:-1}"
+
+BUILD_DIR="build/mingw/x86_64/release"
+
+install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/Library/bin/libtbox.dll"
 
 if [ -f "${BUILD_DIR}/libtbox.dll.a" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX_UNIX}/Library/lib/libtbox.dll.a"
-elif [ -f "${BUILD_DIR}/tbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX_UNIX}/Library/lib/tbox.lib"
+    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX}/Library/lib/libtbox.dll.a"
 elif [ -f "${BUILD_DIR}/libtbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX_UNIX}/Library/lib/libtbox.lib"
+    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX}/Library/lib/libtbox.lib"
+elif [ -f "${BUILD_DIR}/tbox.lib" ]; then
+    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/Library/lib/tbox.lib"
 else
     echo "Warning: No import library found. Please check ${BUILD_DIR}"
 fi
 
-mkdir -p "${PREFIX_UNIX}/Library/include"
-cp -r src/tbox "${PREFIX_UNIX}/Library/include/"
+mkdir -p "${PREFIX}/Library/include"
+cp -r src/tbox "${PREFIX}/Library/include/"
