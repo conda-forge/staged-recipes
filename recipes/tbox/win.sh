@@ -20,36 +20,12 @@ sed -i '/        ar) toolname="ar";;/a\        llvm-ar) toolname="ar";;' configu
 # (math is in CRT, threading via Windows APIs; ws2_32 is still needed)
 sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' src/xmake.sh
 
+sed -i 's/^[[:space:]]*prefixname="lib"/prefixname=""/' configure
+
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
 # Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
 sed -i 's/-fPIC//g' Makefile
 
-make tbox -j"${CPU_COUNT:-1}"
-
-#!/bin/bash
-set -euxo pipefail
-
-cd "$SRC_DIR"
-
-# ... (keep all your existing patching and configuration steps) ...
-
-# Build only the library
-make tbox -j"${CPU_COUNT:-1}"
-
-BUILD_DIR="build/mingw/x86_64/release"
-
-install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/bin/libtbox.dll"
-
-if [ -f "${BUILD_DIR}/libtbox.dll.a" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX}/lib/libtbox.dll.a"
-elif [ -f "${BUILD_DIR}/libtbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX}/lib/libtbox.lib"
-elif [ -f "${BUILD_DIR}/tbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/lib/tbox.lib"
-else
-    echo "Warning: No import library found. Please check ${BUILD_DIR}"
-fi
-
-mkdir -p "${PREFIX}/include"
-cp -r src/tbox "${PREFIX}/include/"
+make -j"${CPU_COUNT:-1}"
+make install
