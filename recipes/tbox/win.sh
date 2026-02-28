@@ -25,9 +25,22 @@ sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' s
 # Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
 sed -i 's/-fPIC//g' Makefile
 
+make tbox -j"${CPU_COUNT:-1}"
 
-# Disable building demo by removing it from the default all target
-sed -i '/^all:/ c\all: tbox' Makefile
+export BUILD_UNIX="$(cygpath '%BUILD_PREFIX%')"
+export PREFIX_UNIX="$(cygpath '%PREFIX%')"
 
-make -j"${CPU_COUNT:-1}"
-make install
+install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX_UNIX}/Library/bin/libtbox.dll"
+
+if [ -f "${BUILD_DIR}/libtbox.dll.a" ]; then
+    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX_UNIX}/Library/lib/libtbox.dll.a"
+elif [ -f "${BUILD_DIR}/tbox.lib" ]; then
+    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX_UNIX}/Library/lib/tbox.lib"
+elif [ -f "${BUILD_DIR}/libtbox.lib" ]; then
+    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX_UNIX}/Library/lib/libtbox.lib"
+else
+    echo "Warning: No import library found. Please check ${BUILD_DIR}"
+fi
+
+mkdir -p "${PREFIX_UNIX}/Library/include"
+cp -r src/tbox "${PREFIX_UNIX}/Library/include/"
