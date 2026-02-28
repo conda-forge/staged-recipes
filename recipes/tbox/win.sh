@@ -19,7 +19,7 @@ sed -i '/        ar) toolname="ar";;/a\        llvm-ar) toolname="ar";;' configu
 # Remove pthread and m from mingw syslinks — they don't exist on MSVC target
 # (math is in CRT, threading via Windows APIs; ws2_32 is still needed)
 sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' src/xmake.sh
-
+# Do not append "lib" prefix to library names on Windows, as MSVC does not use it
 sed -i 's/^[[:space:]]*prefixname="lib"/prefixname=""/' configure
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
@@ -27,5 +27,12 @@ sed -i 's/^[[:space:]]*prefixname="lib"/prefixname=""/' configure
 # Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
 sed -i 's/-fPIC//g' Makefile
 
-make -j"${CPU_COUNT:-1}"
-make install
+make tbox -j"${CPU_COUNT:-1}"
+
+BUILD_DIR="build/mingw/x86_64/release"
+
+install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/bin/tbox.dll"
+install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/lib/tbox.lib"
+
+mkdir -p "${PREFIX}/include"
+cp -r src/tbox "${PREFIX}/include/"
