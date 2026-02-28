@@ -3,10 +3,8 @@ set -euxo pipefail
 
 cd "$SRC_DIR"
 
-sed -i '' '/^        cc) toolname="clang";;$/i\ 
-         *-cc) toolname="clang";;' configure 
-sed -i '' '/^        c++) toolname="clangxx";;$/i\ 
-         *-c++) toolname="clangxx";;' configure
+sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="clang";;\n        cc) toolname="clang";;/' configure
+sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="clangxx";;\n        c++) toolname="clangxx";;/' configure
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
