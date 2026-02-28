@@ -25,5 +25,5 @@ sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' s
 # Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
 sed -i 's/-fPIC//g' Makefile
 
-make -j"${CPU_COUNT:-1}"
+make tbox -j"${CPU_COUNT:-1}"
 make install
