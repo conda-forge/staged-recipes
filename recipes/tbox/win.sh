@@ -3,8 +3,10 @@ set -euxo pipefail
 
 cd "$SRC_DIR"
 
-# Remap gcc/g++ toolnames to clang/clangxx so configure uses the clang toolchain
-sed -i 's/toolname="gcc"/toolname="clang"/g; s/toolname="gxx"/toolname="clangxx"/g' configure
+# Force clang toolchain - autotools_clang_conda provides clang/clang++ binaries
+# but conda's compiler activation sets CC to x86_64-w64-mingw32-gcc wrapper
+export CC=clang
+export CXX=clang++
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
