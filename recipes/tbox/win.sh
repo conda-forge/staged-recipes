@@ -14,6 +14,10 @@ sed -i '/^toolchain "clang"/,/^toolchain_end/{s/set_toolset "ar" "ar"/set_toolse
 # Add llvm-ar to path_toolname recognition
 sed -i '/        ar) toolname="ar";;/a\        llvm-ar) toolname="ar";;' configure
 
+# Remove pthread and m from mingw syslinks — they don't exist on MSVC target
+# (math is in CRT, threading via Windows APIs; ws2_32 is still needed)
+sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' src/xmake.sh
+
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
 # Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
