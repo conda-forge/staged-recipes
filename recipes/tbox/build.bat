@@ -1,5 +1,4 @@
 @echo off
-set REMOVE_LIB_PREFIX=1
 
 if not exist "%PREFIX%\Library\lib" mkdir "%PREFIX%\Library\lib"
 if not exist "%PREFIX%\Library\include" mkdir "%PREFIX%\Library\include"
