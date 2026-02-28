@@ -17,8 +17,8 @@ echo sed -i 's/        cc^) toolname="gcc";;/        *-cc^) toolname="gcc";;\n  
 echo sed -i 's/        c++^) toolname="gxx";;/        *-c++^) toolname="gxx";;\n        c++^) toolname="gxx";;/' configure
 echo export REMOVE_LIB_PREFIX=1
 echo ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
-echo make -j"${CPU_COUNT:-1}"
-echo make install
+echo mingw32-make -j"${CPU_COUNT:-1}"
+echo mingw32-make install
 ) > _build.sh
 endlocal
 
