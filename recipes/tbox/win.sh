@@ -27,7 +27,7 @@ sed -i 's/-fPIC//g' Makefile
 
 
 # Disable building demo by removing it from the default all target
-sed -i '/^all:/ s/ demo//' Makefile
+sed -i '/^all:/ c\all: tbox' Makefile
 
 make -j"${CPU_COUNT:-1}"
 make install
