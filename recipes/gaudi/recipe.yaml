@@ -1,6 +1,6 @@
 context:
   name: gaudi
-  tag: v40r2
+  tag: v40r3
   version: ${{ tag[1:] | replace('r', '.') | replace('p', '.') }}
 
 package:
@@ -9,19 +9,11 @@ package:
 
 source:
   url: https://gitlab.cern.ch/gaudi/Gaudi/-/archive/${{ tag }}/Gaudi-${{ tag }}.tar.gz
-  sha256: 93bf0ae5e33d7d3a5aa36504840ed62aeab9f6f8ddddd4ea1b23bc5455b51e41
+  sha256: 134b2f2be08a605e85669fd753c92ac1a982209285c0aa7c23887126f19a0a33
   patches:
-    - patches/1871.patch
     - patches/1872.patch
-    - patches/1873.patch
-    - patches/1874.patch
     - patches/1876.patch
-    - patches/1877.patch
-    - patches/plugin-loading.patch
-    - patches/system-implementation.patch
-    - patches/libcxx-fixes.patch
-    - patches/test-cmake-portability.patch
-    - patches/0001-fix-Disable-Clang-colored-diagnostics-in-test_Counte.patch
+    - patches/fix-bit-reference-gcc15.patch
 
 build:
   number: 0
@@ -61,8 +53,9 @@ build:
         # cause race conditions where the EventWatchdog's timing measurement
         # doesn't match the actual sleep duration, resulting in spurious
         # failures (e.g., reporting 6s instead of 7s).
-        ctest --output-on-failure -E 'cmake\.test_dummyGaudiDownstreamProject|GaudiTestSuite\.pytest\.test_event_timeout_mt'
+        ctest --output-on-failure -E 'cmake\.test_dummyGaudiDownstreamProject|GaudiTestSuite\.pytest\.test_event_timeout_mt' -j$CPU_COUNT
     - cmake --install .
+    - root -l -b -q -e 'if (TClass::GetClass("DataObject") == nullptr) { std::cerr << "Failed to load DataObject" << std::endl; return 1; } return 0;'
 
 requirements:
   run_exports:
@@ -73,7 +66,8 @@ requirements:
     - cmake
     - ninja
     - git
-    - procps-ng
+    - if linux:
+      - procps-ng
   host:
     - python
     - pytest
@@ -84,6 +78,7 @@ requirements:
     - libboost-devel
     - libboost-python-devel
     - root_base
+    - root_cxx_standard
     - tbb-devel
     - zlib
     - libuuid
