@@ -3,10 +3,8 @@ set -euxo pipefail
 
 cd "$SRC_DIR"
 
-sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="clang";;\n        cc) toolname="clang";;/' configure
-sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="clangxx";;\n        c++) toolname="clangxx";;/' configure
-# Strip .exe suffix so path_toolname() can match Windows compiler names (e.g. clang.exe)
-sed -i 's/    local toolname=""/    local toolname=""\n    1="${1%.exe}"/' configure
+# Remap gcc/g++ toolnames to clang/clangxx so configure uses the clang toolchain
+sed -i 's/toolname="gcc"/toolname="clang"/g; s/toolname="gxx"/toolname="clangxx"/g' configure
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
