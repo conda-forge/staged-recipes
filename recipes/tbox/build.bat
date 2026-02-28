@@ -16,6 +16,7 @@ echo done
 echo sed -i 's/        cc^) toolname="gcc";;/        *-cc^) toolname="gcc";;\n        cc^) toolname="gcc";;/' configure
 echo sed -i 's/        c++^) toolname="gxx";;/        *-c++^) toolname="gxx";;\n        c++^) toolname="gxx";;/' configure
 echo export REMOVE_LIB_PREFIX=1
+echo alias make='mingw32-make'
 echo ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 echo mingw32-make -j"${CPU_COUNT:-1}"
 echo mingw32-make install
