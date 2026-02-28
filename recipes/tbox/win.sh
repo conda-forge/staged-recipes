@@ -16,5 +16,8 @@ sed -i '/        ar) toolname="ar";;/a\        llvm-ar) toolname="ar";;' configu
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
 
+# Remove -fPIC from generated Makefile — unsupported on Windows MSVC target
+sed -i 's/-fPIC//g' Makefile
+
 make -j"${CPU_COUNT:-1}"
 make install
