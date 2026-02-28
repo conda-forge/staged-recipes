@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ex
 
-make
+make tui
 make install
