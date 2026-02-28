@@ -8,6 +8,8 @@ cd "$SRC_DIR"
 # x86_64-w64-mingw32-gcc, but autotools_clang_conda provides clang/clang++
 export CC=clang
 export CXX=clang++
+sed -i 's/        cc) toolname="gcc";;/        *-cc) toolname="clang";;\n        cc) toolname="clang";;/' configure
+sed -i 's/        c++) toolname="gxx";;/        *-c++) toolname="clangxx";;\n        c++) toolname="clangxx";;/' configure
 sed -i 's/toolchains="x86_64_w64_mingw32"/toolchains="clang"/' configure
 
 ./configure --generator=gmake --kind=shared --prefix="${PREFIX}"
