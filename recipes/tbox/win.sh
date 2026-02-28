@@ -18,6 +18,7 @@ sed -i '/        ar) toolname="ar";;/a\        llvm-ar) toolname="ar";;' configu
 
 # Remove pthread and m from mingw syslinks — they don't exist on MSVC target
 # (math is in CRT, threading via Windows APIs; ws2_32 is still needed)
+# user32 was added as accordinly to xmake.lua inside of root dir.
 sed -i 's/add_syslinks "ws2_32" "pthread" "m"/add_syslinks "ws2_32" "user32"/' src/xmake.sh
 # Do not append "lib" prefix to library names on Windows, as MSVC does not use it
 sed -i 's/^[[:space:]]*prefixname="lib"/prefixname=""/' configure
