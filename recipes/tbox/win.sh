@@ -39,17 +39,17 @@ make tbox -j"${CPU_COUNT:-1}"
 
 BUILD_DIR="build/mingw/x86_64/release"
 
-install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/Library/bin/libtbox.dll"
+install -Dm755 "${BUILD_DIR}/libtbox.dll" "${PREFIX}/bin/libtbox.dll"
 
 if [ -f "${BUILD_DIR}/libtbox.dll.a" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX}/Library/lib/libtbox.dll.a"
+    install -Dm644 "${BUILD_DIR}/libtbox.dll.a" "${PREFIX}/lib/libtbox.dll.a"
 elif [ -f "${BUILD_DIR}/libtbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX}/Library/lib/libtbox.lib"
+    install -Dm644 "${BUILD_DIR}/libtbox.lib" "${PREFIX}/lib/libtbox.lib"
 elif [ -f "${BUILD_DIR}/tbox.lib" ]; then
-    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/Library/lib/tbox.lib"
+    install -Dm644 "${BUILD_DIR}/tbox.lib" "${PREFIX}/lib/tbox.lib"
 else
     echo "Warning: No import library found. Please check ${BUILD_DIR}"
 fi
 
-mkdir -p "${PREFIX}/Library/include"
-cp -r src/tbox "${PREFIX}/Library/include/"
+mkdir -p "${PREFIX}/include"
+cp -r src/tbox "${PREFIX}/include/"
