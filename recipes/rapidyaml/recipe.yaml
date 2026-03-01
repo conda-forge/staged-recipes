@@ -1,0 +1,82 @@
+context:
+  name: librapidyaml
+  version: "0.10.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/biojppm/rapidyaml/releases/download/v${{ version }}/rapidyaml-${{ version }}-src.tgz
+  sha256: 54eb1050789809a26c780f80857b7668a5b3123405d6514a65d733e4292c690b
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        mkdir build
+        cd build
+        cmake -G "Ninja" ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+            -DBUILD_SHARED_LIBS=ON ^
+            -DRYML_BUILD_TESTS=OFF ^
+            -DRYML_BUILD_BENCHMARKS=OFF ^
+            -DRYML_BUILD_TOOLS=OFF ^
+            -DRYML_BUILD_API=OFF ^
+            %SRC_DIR%
+        cmake --build . --target install
+    - if: unix
+      then: |
+        mkdir -p build
+        cd build
+        cmake ${CMAKE_ARGS} \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DBUILD_SHARED_LIBS=ON \
+            -DRYML_BUILD_TESTS=OFF \
+            -DRYML_BUILD_BENCHMARKS=OFF \
+            -DRYML_BUILD_TOOLS=OFF \
+            -DRYML_BUILD_API=OFF \
+            $SRC_DIR
+        cmake --build . --target install
+
+requirements:
+  run_exports:
+    # Pre-1.0 version; breaking changes can occur in any release
+    - ${{ pin_subpackage(name, upper_bound="x.x.x") }}
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - ryml.hpp
+        - ryml_std.hpp
+      lib:
+        - ryml
+
+about:
+  homepage: https://github.com/biojppm/rapidyaml
+  license: MIT
+  license_file: LICENSE.txt
+  summary: A C++ library to parse and emit YAML, and do it fast
+  description: |
+    RapidYAML (ryml) is a C++ library to parse and emit YAML, with focus
+    on speed and minimal memory overhead. It features in-place parsing,
+    string views instead of copies, and a flat index-based tree structure.
+    It achieves approximately 150MB/s YAML parsing and 450MB/s JSON parsing
+    on modern processors, significantly outperforming alternatives.
+  documentation: https://github.com/biojppm/rapidyaml/blob/master/README.md
+  repository: https://github.com/biojppm/rapidyaml
+
+extra:
+  recipe-maintainers:
+    - chrisburr
+
+  feedstock-name: rapidyaml
