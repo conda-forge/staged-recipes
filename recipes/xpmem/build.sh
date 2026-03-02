@@ -16,6 +16,8 @@ cd $SRC_DIR
 
 make -j${CPU_COUNT}
 
+make check
+
 make install
 
 # Clean up libtool .la file — not needed by consumers
