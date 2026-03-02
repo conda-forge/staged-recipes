@@ -1,7 +1,7 @@
 #!/bin/bash
 set -exuo pipefail
 
-JOBS=max yarn --cwd ui install
+JOBS=max yarn --cwd ui install --frozen-lockfile
 JOBS=max yarn --cwd ui build
 go build \
     -v \
