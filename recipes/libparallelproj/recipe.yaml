@@ -6,9 +6,6 @@ context:
   cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None") }}
   cuda: ${{ "ON" if cuda_version != "None" else "OFF" }}
 
-recipe:
-  version: ${{ version }}
-
 source:
   url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc10.tar.gz
   sha256: ede9dacd49cef6456c2b29a29061c24383cdbabc8c055e80e3ea28d8f71d1488
@@ -23,9 +20,6 @@ outputs:
 
     build:
       number: 0
-      #skip:
-      #  - win
-      #  - osx
       script:
         - |
           cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
@@ -41,8 +35,9 @@ outputs:
           cmake --install "$SRC_DIR/_build_lib"
 
       variant:
+        # Keep the variant key stable across CPU/CUDA builds
         use_keys:
-          - ${{ "cuda" if cuda == "ON" }}
+          - cuda_version
         down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
 
     requirements:
@@ -68,7 +63,7 @@ outputs:
           then:
             # ensures only installable in CUDA environments
             - __cuda
-            - cuda-cudart ### TODO: check pin / compat version needed here
+            - cuda-cudart  # ensure this matches your conda-forge CUDA stack
 
     tests:
       - package_contents:
@@ -134,12 +129,13 @@ outputs:
 
       variant:
         use_keys:
-          - ${{ "cuda" if cuda == "ON" }}
+          - cuda_version
         down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
 
     requirements:
       build:
         - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
         - cmake
         - ninja
         - if: cuda == "ON"
@@ -155,6 +151,7 @@ outputs:
             - cuda-version ==${{ cuda_version }}
       run:
         - python >=${{ python_min }}
+        - python-abi3 >=${{ python_min }}
         - libparallelproj
         - if: cuda == "ON"
           then:
@@ -163,6 +160,7 @@ outputs:
 
     tests:
       - script:
+          - python -c "import parallelproj_core; print(parallelproj_core.__file__)"
           - pytest -v ./tests
         requirements:
           run:
@@ -171,7 +169,7 @@ outputs:
             - array-api-compat
             - array-api-strict
             - if: cuda == "ON"
-              then: 
+              then:
                 - cuda-driver-dev
         files:
           source:
