@@ -145,27 +145,23 @@ outputs:
         - python ${{ python_min }}.*
         - python-abi3 ${{ python_min }}.*
         - nanobind
-        # pin exact version AND (optionally) match variant via build string
-        - if: cuda == "ON"
-          then:
-            - libparallelproj ==${{ version }} *cuda*
-          else:
-            - libparallelproj ==${{ version }} *cpu*
-        # If your build strings are not *cpu*/*cuda*, adjust those globs accordingly.
+        - libparallelproj ==${{ version }}
 
       run:
         - python >=${{ python_min }}
         - python-abi3 >=${{ python_min }}
-        - if: cuda == "ON"
-          then:
-            - libparallelproj ==${{ version }} *cuda*
-          else:
-            - libparallelproj ==${{ version }} *cpu*
+        - libparallelproj ==${{ version }}
 
     tests:
       - script:
-          - python -c "import parallelproj_core; print(parallelproj_core.__file__)"
-          - pytest -v ./tests
+        - python -c "import parallelproj_core as m; print(m.__file__, ', cuda_enabled =', int(m.cuda_enabled))"
+        - if: cuda == "ON"
+          then:
+            - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 1, f'expected cuda_enabled=1, got {m.cuda_enabled}'"
+          else:
+            - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 0, f'expected cuda_enabled=0, got {m.cuda_enabled}'"
+        - pytest -v ./tests
+
         requirements:
           run:
             - pytest
