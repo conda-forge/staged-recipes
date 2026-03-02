@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export CARGO_PROFILE_RELEASE_STRIP=symbols
+export CARGO_PROFILE_RELEASE_LTO=fat
+
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 cargo install --locked --no-track --path . --root "$PREFIX" --bins
