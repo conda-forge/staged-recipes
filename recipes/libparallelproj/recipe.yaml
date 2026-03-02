@@ -7,8 +7,8 @@ context:
   cuda: ${{ "ON" if cuda_version != "None" else "OFF" }}
 
 source:
-  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc11.tar.gz
-  sha256: 9b9085e3cd813c2a53a80814edbd0eefc94562681c3469932ea94ec641065246
+  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc12.tar.gz
+  sha256: c0f1a02810fa5cec17e97e9aae464e1b13da04c86b0a4ba17fafaae2deef9a5e
 
 outputs:
   # ---------------------------------------------------------------------------
@@ -95,6 +95,7 @@ outputs:
   # ---------------------------------------------------------------------------
   # 2) Python extension only (nanobind module), links against libparallelproj
   # ---------------------------------------------------------------------------
+
   - package:
       name: parallelproj-core
       version: ${{ version }}
@@ -109,7 +110,7 @@ outputs:
             -DPROJECT_VERSION_OVERRIDE=${{ version }} \
             -DCMAKE_INSTALL_PREFIX="$PREFIX" \
             -DCMAKE_INSTALL_LIBDIR=lib \
-            -DUSE_CUDA=${{ cuda }} \
+            -DUSE_CUDA=OFF \
             -DBUILD_LIBRARY=OFF \
             -DINSTALL_DEVEL=OFF \
             -DBUILD_PYTHON=ON \
@@ -121,7 +122,6 @@ outputs:
           cmake --build "$SRC_DIR/_build_py"
           cmake --install "$SRC_DIR/_build_py"
 
-      # Only include the extension module from site-packages.
       files:
         - lib/python*/site-packages/parallelproj_core*.so
         - lib/python*/site-packages/parallelproj_core*.dylib
@@ -140,25 +140,27 @@ outputs:
         - ${{ stdlib('c') }}
         - cmake
         - ninja
-        - if: cuda == "ON"
-          then:
-            - ${{ compiler('cuda') }}
+
       host:
         - python ${{ python_min }}.*
         - python-abi3 ${{ python_min }}.*
         - nanobind
-        - libparallelproj ==${{ version }}
+        # pin exact version AND (optionally) match variant via build string
         - if: cuda == "ON"
           then:
-            - cuda-version ==${{ cuda_version }}
+            - libparallelproj ==${{ version }} *cuda*
+          else:
+            - libparallelproj ==${{ version }} *cpu*
+        # If your build strings are not *cpu*/*cuda*, adjust those globs accordingly.
+
       run:
         - python >=${{ python_min }}
         - python-abi3 >=${{ python_min }}
-        - libparallelproj ==${{ version }}
         - if: cuda == "ON"
           then:
-            - __cuda
-            - cuda-cudart
+            - libparallelproj ==${{ version }} *cuda*
+          else:
+            - libparallelproj ==${{ version }} *cpu*
 
     tests:
       - script:
@@ -170,22 +172,6 @@ outputs:
             - numpy
             - array-api-compat
             - array-api-strict
-            - if: cuda == "ON"
-              then:
-                - cuda-driver-dev
         files:
           source:
-            - tests/
-
-    about:
-      homepage: https://github.com/KUL-recon-lab/libparallelproj
-      license: Apache-2.0
-      license_file: LICENSE
-      summary: Nanobind Python extension for libparallelproj (parallelproj_core)
-      description: |
-        parallelproj-core provides the compiled nanobind Python extension module (parallelproj_core)
-        and links against libparallelproj (CPU/OpenMP or CUDA).
-
-extra:
-  recipe-maintainers:
-    - KUL-recon-lab
+            - tests/  
