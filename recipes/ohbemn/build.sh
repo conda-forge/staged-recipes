@@ -14,6 +14,6 @@ rustc --version
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 # Install wheel manually
-export MATURIN_PEP517_ARGS="--features static,extension-module -vv"
+export MATURIN_PEP517_ARGS="--features static,pyo3/extension-module -vv"
 
 $PYTHON -m pip install . --no-deps --ignore-installed -vv
