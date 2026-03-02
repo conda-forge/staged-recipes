@@ -1,5 +1,6 @@
 context:
   version: "2.0.0"
+  python_min: "3.12"
 
   # conda-forge uses this to select the CUDA variant
   cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None") }}
@@ -9,8 +10,8 @@ recipe:
   version: ${{ version }}
 
 source:
-  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc7.tar.gz
-  sha256: 2e21f0bc13fccf02df711960aabda6825cc9480f0f32eeee6f4b090ff193f5c5
+  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v2.0.0-rc10.tar.gz
+  sha256: ede9dacd49cef6456c2b29a29061c24383cdbabc8c055e80e3ea28d8f71d1488
 
 outputs:
   # ---------------------------------------------------------------------------
@@ -22,9 +23,9 @@ outputs:
 
     build:
       number: 0
-      skip:
-        - win
-        - osx
+      #skip:
+      #  - win
+      #  - osx
       script:
         - |
           cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
@@ -47,6 +48,7 @@ outputs:
     requirements:
       build:
         - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
         - cmake
         - ninja
         - if: cuda == "ON"
@@ -103,6 +105,8 @@ outputs:
 
     build:
       number: 0
+      python:
+        version_independent: true
       script:
         - |
           cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
@@ -142,14 +146,15 @@ outputs:
           then:
             - ${{ compiler('cuda') }}
       host:
-        - python
+        - python ${{ python_min }}.*
+        - python-abi3 ${{ python_min }}.*
         - nanobind
         - libparallelproj
         - if: cuda == "ON"
           then:
             - cuda-version ==${{ cuda_version }}
       run:
-        - ${{ pin_compatible('python') }}
+        - python >=${{ python_min }}
         - libparallelproj
         - if: cuda == "ON"
           then:
@@ -168,7 +173,6 @@ outputs:
             - if: cuda == "ON"
               then: 
                 - cuda-driver-dev
-                #- cupy
         files:
           source:
             - tests/
