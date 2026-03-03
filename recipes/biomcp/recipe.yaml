@@ -1,0 +1,62 @@
+context:
+  version: "0.8.8"
+
+package:
+  name: biomcp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/genomoncology/biomcp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 296e8c066145296b7d5bd019055a24bfe139623990a5b232e03554cdad2ad33a
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - protobuf
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - biomcp --help
+      - biomcp version
+  - package_contents:
+      bin:
+        - biomcp
+        - biomcp-cli
+      strict: true
+
+about:
+  homepage: https://biomcp.org
+  summary: Biomedical CLI and MCP server for querying genes, variants, trials, articles, drugs, diseases, and more.
+  description: |
+    BioMCP is a single-binary CLI and MCP server for querying biomedical
+    databases. One command grammar, compact markdown output, 12 entities
+    across 15+ data sources including PubMed, ClinicalTrials.gov, MyGene.info,
+    ClinVar, UniProt, Reactome, and more.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://biomcp.org
+  repository: https://github.com/genomoncology/biomcp
+
+extra:
+  recipe-maintainers:
+    - hadim
