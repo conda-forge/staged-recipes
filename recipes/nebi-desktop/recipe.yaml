@@ -1,0 +1,81 @@
+context:
+  version: "0.7"
+
+package:
+  name: nebi-desktop
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nebari-dev/nebi/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e9047c65a48d11809da00d7e1cd993f0b9a03a4d28293e16a0ff4da2d0c15c56
+  target_directory: src
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+    - nodejs >=20
+    - if: linux
+      then:
+        - pkg-config
+  host:
+    - if: linux
+      then:
+        - gtk3
+        - webkit2gtk4.1
+        - glib
+        - libsoup
+        # Transitive deps of gtk3/webkit2gtk4.1 listed explicitly because CGO
+        # needs their .pc files for pkg-config resolution at compile time.
+        # They're already pulled in at runtime transitively, so we suppress
+        # their run_exports to avoid duplicate runtime dependencies.
+        - gdk-pixbuf
+        - zlib
+        - expat
+        - fontconfig
+  run:
+    - nebi ${{ version }}.*
+    - menuinst >=2.1
+  ignore_run_exports:
+    from_package:
+      - if: linux
+        then:
+          - zlib
+          - expat
+          - fontconfig
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -f $PREFIX/bin/nebi-desktop
+      - if: win
+        then:
+          - if exist %LIBRARY_BIN%\nebi-desktop.exe (exit 0) else (exit 1)
+  - package_contents:
+      files:
+        - Menu/nebi-desktop-menu.json
+
+about:
+  homepage: https://github.com/nebari-dev/nebi
+  summary: Nebi desktop application - local-first workspace management for Pixi
+  description: |
+    Nebi Desktop is a native desktop application for managing Pixi workspaces.
+    It provides a graphical interface for tracking, pushing, and pulling
+    workspace configurations with built-in web UI.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/nebari-dev/nebi
+  repository: https://github.com/nebari-dev/nebi
+
+extra:
+  recipe-maintainers:
+    - Adam-D-Lewis
