@@ -33,19 +33,35 @@ outputs:
     build:
       number: ${{ build_number }}
       script:
-        - |
-          cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
-            -DPROJECT_VERSION_OVERRIDE=${{ version }} \
-            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-            -DCMAKE_INSTALL_LIBDIR=lib \
-            -DUSE_CUDA=${{ cuda }} \
-            -DBUILD_LIBRARY=ON \
-            -DINSTALL_DEVEL=ON \
-            -DBUILD_PYTHON=OFF \
-            -DBUILD_TESTS=OFF \
-            -DCMAKE_PREFIX_PATH="$PREFIX"
-          cmake --build "$SRC_DIR/_build_lib"
-          cmake --install "$SRC_DIR/_build_lib"
+        - if: win
+          then: |
+            cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_lib" -GNinja ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
+              -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+              -DCMAKE_INSTALL_LIBDIR=lib ^
+              -DUSE_CUDA=${{ cuda }} ^
+              -DBUILD_LIBRARY=ON ^
+              -DINSTALL_DEVEL=ON ^
+              -DBUILD_PYTHON=OFF ^
+              -DBUILD_TESTS=OFF ^
+              -DCMAKE_PREFIX_PATH="%PREFIX%"
+            cmake --build "%SRC_DIR%\_build_lib"
+            cmake --install "%SRC_DIR%\_build_lib"
+          else: |
+            cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} \
+              -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+              -DCMAKE_INSTALL_LIBDIR=lib \
+              -DUSE_CUDA=${{ cuda }} \
+              -DBUILD_LIBRARY=ON \
+              -DINSTALL_DEVEL=ON \
+              -DBUILD_PYTHON=OFF \
+              -DBUILD_TESTS=OFF \
+              -DCMAKE_PREFIX_PATH="$PREFIX"
+            cmake --build "$SRC_DIR/_build_lib"
+            cmake --install "$SRC_DIR/_build_lib"
 
       variant:
         # Keep the variant key stable across CPU/CUDA builds
@@ -80,20 +96,30 @@ outputs:
 
     tests:
       - package_contents:
-          lib:
-            - parallelproj
-          include:
-            - cuda_compat.h
-            - cuda_utils.h
-            - debug.h
-            - parallelproj.h
-            - parallelproj_export.h
-            - utils.h
           files:
             exists:
+              # --- shared library artifacts ---
+              - if: win
+                then: bin/parallelproj.dll
+              - if: win
+                then: lib/parallelproj.lib
+              - if: linux
+                then: lib/libparallelproj.so
+              - if: osx
+                then: lib/libparallelproj.dylib
+
+              # --- CMake package config ---
               - lib/cmake/parallelproj/parallelprojConfig.cmake
               - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
               - lib/cmake/parallelproj/parallelprojTargets.cmake
+
+              # --- public headers ---
+              - include/cuda_compat.h
+              - include/cuda_utils.h
+              - include/debug.h
+              - include/parallelproj.h
+              - include/parallelproj_export.h
+              - include/utils.h
 
     about:
       summary: C++/CUDA backend projector library (parallelproj) for tomographic reconstruction
@@ -114,22 +140,41 @@ outputs:
       python:
         version_independent: true
       script:
-        - |
-          cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
-            -DPROJECT_VERSION_OVERRIDE=${{ version }} \
-            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-            -DCMAKE_INSTALL_LIBDIR=lib \
-            -DUSE_CUDA=OFF \
-            -DBUILD_LIBRARY=OFF \
-            -DINSTALL_DEVEL=OFF \
-            -DBUILD_PYTHON=ON \
-            -DBUILD_TESTS=OFF \
-            -DCMAKE_PREFIX_PATH="$PREFIX" \
-            -DPython_EXECUTABLE="$PYTHON" \
-            -DPython_ROOT_DIR="$PREFIX" \
-            -DPYTHON_INTERFACE_INSTALL_DIR="$SP_DIR"
-          cmake --build "$SRC_DIR/_build_py"
-          cmake --install "$SRC_DIR/_build_py"
+        - if: win
+          then: |
+            cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_py" -GNinja ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
+              -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+              -DCMAKE_INSTALL_LIBDIR=lib ^
+              -DUSE_CUDA=OFF ^
+              -DBUILD_LIBRARY=OFF ^
+              -DINSTALL_DEVEL=OFF ^
+              -DBUILD_PYTHON=ON ^
+              -DBUILD_TESTS=OFF ^
+              -DCMAKE_PREFIX_PATH="%PREFIX%" ^
+              -DPython_EXECUTABLE="%PYTHON%" ^
+              -DPython_ROOT_DIR="%PREFIX%" ^
+              -DPYTHON_INTERFACE_INSTALL_DIR="%SP_DIR%"
+            cmake --build "%SRC_DIR%\_build_py"
+            cmake --install "%SRC_DIR%\_build_py"
+          else: |
+            cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} \
+              -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+              -DCMAKE_INSTALL_LIBDIR=lib \
+              -DUSE_CUDA=OFF \
+              -DBUILD_LIBRARY=OFF \
+              -DINSTALL_DEVEL=OFF \
+              -DBUILD_PYTHON=ON \
+              -DBUILD_TESTS=OFF \
+              -DCMAKE_PREFIX_PATH="$PREFIX" \
+              -DPython_EXECUTABLE="$PYTHON" \
+              -DPython_ROOT_DIR="$PREFIX" \
+              -DPYTHON_INTERFACE_INSTALL_DIR="$SP_DIR"
+            cmake --build "$SRC_DIR/_build_py"
+            cmake --install "$SRC_DIR/_build_py"
 
       files:
         - lib/python*/site-packages/parallelproj_core*.so
