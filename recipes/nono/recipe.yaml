@@ -1,0 +1,60 @@
+context:
+  version: "0.8.0"
+
+package:
+  name: nono
+  version: ${{ version }}
+
+source:
+  url: https://github.com/always-further/nono/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6c9d085ebf33abafd0f7628fe5f42c260fe7602a93c490ccb71a77f38508e211
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/nono-cli
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/nono-cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+  host:
+    - dbus
+
+tests:
+  - script: nono --help
+  - package_contents:
+      bin:
+        - nono
+      strict: true
+
+about:
+  homepage: https://nono.sh/
+  summary: Capability-based sandboxing library using Landlock (Linux) and Seatbelt (macOS).
+  description: |
+    nono provides OS-enforced sandboxing where unauthorized operations are structurally impossible. 
+    Once a sandbox is applied, there is no API to expand permissions - the kernel enforces all restrictions.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://nono.sh/docs
+  repository: https://github.com/always-further/nono
+
+extra:
+  recipe-maintainers:
+    - synapticarbors
