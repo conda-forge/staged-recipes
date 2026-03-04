@@ -90,7 +90,7 @@ outputs:
         # mesalib provides the Mesa software EGL/GL implementation for headless rendering.
         - if: linux or win
           then:
-            # TODO: Freeglut not available on macOS for condaForge right now, add when possible
+            # Freeglut is bundled/shipped with macOS (/System/Library/Frameworks/GLUT.framework) and does not it to be provided by us.
             - freeglut >=3.2.1  # CheckSupportGL.cmake: find_package(GLUT 3.2.1 REQUIRED)
             - glew >=2.1.0      # CheckSupportGL.cmake: find_package(GLEW 2.1.0 REQUIRED)
         - if: linux
@@ -107,33 +107,35 @@ outputs:
             - glew
         - if: linux
           then:
-            - mesalib
             - xorg-libxxf86vm   # freeglut (libglut.so) hard-links libXxf86vm.so.1
     tests:
       - script:
           - if: not win
             then:
               # _h: allow exit codes 0 or 1 (OCIO --help exits 1); fail on >=2 (crash/not-found).
-              - '_h() { _r=0; "$@" || _r=$?; [ "$_r" -le 1 ]; }'
+              # Suppress normal help text to keep test logs readable; print output only on real failure.
+              - '_h() { _r=0; _out="$("$@" 2>&1)" || _r=$?; [ "$_r" -le 1 ] || { printf "%s\n" "$_out"; return 1; }; }'
+              # Minimal valid 1D LUT used by CLI smoke tests.
+              - 'printf ''Version 1\nFrom 0 1\nLength 2\nComponents 1\n{\n0.0\n1.0\n}\n'' > /tmp/ocio_identity.spi1d'
               - _h ocioarchive --help
               - _h ociobakelut --help
               - _h ociocheck --help
-              - _h ociochecklut --help
+              - ociochecklut /tmp/ocio_identity.spi1d 0.5 0.5 0.5
               - ociocpuinfo
-              - ociomakeclf --list
+              - _h ociomakeclf --help
               - _h ociomergeconfigs --help
               - _h ocioperf --help
               - _h ociowrite --help
               - _h ocioconvert --help
-              - _h ociolutimage --help
-              - _h ociodisplay --help
+              - ociolutimage --generate --output /tmp/ocio_lutimage.exr
+              - test -f /tmp/ocio_lutimage.exr
+              - test -x "$PREFIX/bin/ociodisplay"
               # Verify OpenGL support was compiled into GPU-capable tools.
               # ociochecklut --gpu exits 1 in two cases:
               #   (a) "Compiled without OpenGL support" -> bad build, fail
               #   (b) EGL init failure in headless CI     -> runtime env, allowed
               - |-
                   if [[ "${target_platform:-}" == linux-* ]]; then
-                    printf 'Version 1\nFrom 0 1\nLength 2\nComponents 1\n{\n0.0\n1.0\n}\n' > /tmp/ocio_identity.spi1d
                     output="$(ociochecklut --gpu /tmp/ocio_identity.spi1d 0.5 0.5 0.5 2>&1 || true)"
                     echo "$output"
                     if grep -Fq "Compiled without OpenGL support" <<<"$output"; then
