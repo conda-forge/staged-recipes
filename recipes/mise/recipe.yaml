@@ -27,12 +27,26 @@ build:
         then:
           - export LIBCLANG_PATH=$BUILD_PREFIX/lib
           - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root ${{ PREFIX }} --path .
+          # generate shell completions
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/zsh/site-functions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/mise completion bash > $PREFIX/share/bash-completion/completions/mise
+          - $PREFIX/bin/mise completion zsh > $PREFIX/share/zsh/site-functions/_mise
+          - $PREFIX/bin/mise completion fish > $PREFIX/share/fish/vendor_completions.d/mise.fish
         else:
           # bindgen expects libclang.dll; conda-forge only provides versioned DLLs on Windows
           - powershell -c "cp (gci $env:BUILD_PREFIX\Library\bin\libclang-*.dll)[0] $env:BUILD_PREFIX\Library\bin\libclang.dll"
           - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
           - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root %LIBRARY_PREFIX% --path .
           - cargo auditable install --no-track --locked --bins --all-features --root %LIBRARY_PREFIX% --path crates\mise-shim
+          # generate shell completions
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\powershell\Modules\mise
+          - %LIBRARY_BIN%\mise.exe completion bash > %LIBRARY_PREFIX%\share\bash-completion\completions\mise
+          - %LIBRARY_BIN%\mise.exe completion zsh > %LIBRARY_PREFIX%\share\zsh\site-functions\_mise
+          - %LIBRARY_BIN%\mise.exe completion fish > %LIBRARY_PREFIX%\share\fish\vendor_completions.d\mise.fish
+          - %LIBRARY_BIN%\mise.exe completion powershell > %LIBRARY_PREFIX%\share\powershell\Modules\mise\mise.psm1
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
 requirements:
@@ -60,6 +74,22 @@ tests:
       content:
         - mise --version
         - mise --help
+  - package_contents:
+      bin:
+        - mise
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/mise
+            - share/fish/vendor_completions.d/mise.fish
+            - share/zsh/site-functions/_mise
+        - if: win
+          then:
+            - Library/bin/mise-shim.exe
+            - Library/share/bash-completion/completions/mise
+            - Library/share/fish/vendor_completions.d/mise.fish
+            - Library/share/zsh/site-functions/_mise
+            - Library/share/powershell/Modules/mise/mise.psm1
 
 about:
   summary: mise manages dev tools, env vars, and runs tasks.
