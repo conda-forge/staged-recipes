@@ -1,0 +1,76 @@
+context:
+  version: "0.3.156"
+
+package:
+  name: release-plz
+  version: ${{ version }}
+
+source:
+  url: https://github.com/release-plz/release-plz/archive/refs/tags/release-plz-v${{ version }}.tar.gz
+  sha256: b73de7af2ffa5acd5fed8e9c3903e55456d86fc98303c4abfc2b5224abcaf8a6
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - export OPENSSL_DIR="${PREFIX}"
+          - export OPENSSL_NO_VENDOR=1
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/release_plz
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/release_plz
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/release-plz generate-completions bash > $PREFIX/share/bash-completion/completions/release-plz
+          - $PREFIX/bin/release-plz generate-completions zsh > $PREFIX/share/zsh/site-functions/_release-plz
+          - $PREFIX/bin/release-plz generate-completions fish > $PREFIX/share/fish/vendor_completions.d/release-plz.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+  host:
+    - openssl
+
+tests:
+  - script: release-plz --help
+  - package_contents:
+      bin:
+        - release-plz
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/release-plz
+            - share/fish/vendor_completions.d/release-plz.fish
+            - share/zsh/site-functions/_release-plz
+      strict: true
+
+about:
+  homepage: https://release-plz.dev
+  summary: Automate versioning, changelogs, and releases for Rust projects.
+  description: |
+    release-plz automates the release process for Rust crates. It analyzes
+    conventional commits to determine the next semantic version, updates
+    changelogs, creates release PRs on GitHub/Gitea/GitLab, and publishes
+    crates to crates.io.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://release-plz.dev/docs
+  repository: https://github.com/release-plz/release-plz
+
+extra:
+  recipe-maintainers:
+    - Hofer-Julian
