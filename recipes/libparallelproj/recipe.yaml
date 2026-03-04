@@ -17,9 +17,6 @@ build:
   number: ${{ build_number }}
 
 outputs:
-  # ---------------------------------------------------------------------------
-  # 1) C++ library + headers + CMake config
-  # ---------------------------------------------------------------------------
   - package:
       name: libparallelproj
       version: ${{ version }}
@@ -29,6 +26,7 @@ outputs:
         - if: win
           then: |
             cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_lib" -GNinja ^
+              %CMAKE_ARGS% ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
               -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
@@ -43,6 +41,7 @@ outputs:
             cmake --install "%SRC_DIR%\_build_lib"
           else: |
             cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
+              ${CMAKE_ARGS} \
               -DCMAKE_BUILD_TYPE=Release \
               -DPROJECT_VERSION_OVERRIDE=${{ version }} \
               -DCMAKE_INSTALL_PREFIX="$PREFIX" \
@@ -52,12 +51,13 @@ outputs:
               -DINSTALL_DEVEL=ON \
               -DBUILD_PYTHON=OFF \
               -DBUILD_TESTS=OFF \
-              -DCMAKE_PREFIX_PATH="$PREFIX"
+              -DCMAKE_PREFIX_PATH="$PREFIX" \
+              -DCMAKE_FIND_FRAMEWORK=NEVER \
+              -DCMAKE_FIND_APPBUNDLE=NEVER
             cmake --build "$SRC_DIR/_build_lib"
             cmake --install "$SRC_DIR/_build_lib"
 
       variant:
-        # Keep the variant key stable across CPU/CUDA builds
         use_keys:
           - cuda_version
         down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
@@ -76,16 +76,14 @@ outputs:
           then: llvm-openmp
         - if: cuda == "ON"
           then:
-            # pins the CUDA "feature" variant (conda-forge mechanism)
             - cuda-version ==${{ cuda_version }}
       run:
         - if: osx
           then: llvm-openmp
         - if: cuda == "ON"
           then:
-            # ensures only installable in CUDA environments
             - __cuda
-            - cuda-cudart  # ensure this matches your conda-forge CUDA stack
+            - cuda-cudart
       run_exports:
         - ${{ pin_subpackage('libparallelproj', upper_bound='x.x') }}
 
@@ -93,7 +91,6 @@ outputs:
       - package_contents:
           files:
             exists:
-              # --- shared library artifacts ---
               - if: win
                 then: bin/parallelproj.dll
               - if: win
@@ -103,22 +100,16 @@ outputs:
               - if: osx
                 then: lib/libparallelproj.dylib
 
-              # --- CMake package config ---
               - lib/cmake/parallelproj/parallelprojConfig.cmake
               - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
               - lib/cmake/parallelproj/parallelprojTargets.cmake
 
-              # --- public headers ---
               - include/cuda_compat.h
               - include/cuda_utils.h
               - include/debug.h
               - include/parallelproj.h
               - include/parallelproj_export.h
               - include/utils.h
-
-  # ---------------------------------------------------------------------------
-  # 2) Python extension only (nanobind module), links against libparallelproj
-  # ---------------------------------------------------------------------------
 
   - package:
       name: parallelproj-core
@@ -131,6 +122,7 @@ outputs:
         - if: win
           then: |
             cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_py" -GNinja ^
+              %CMAKE_ARGS%^
               -DCMAKE_BUILD_TYPE=Release ^
               -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
               -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
@@ -148,6 +140,7 @@ outputs:
             cmake --install "%SRC_DIR%\_build_py"
           else: |
             cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
+              ${CMAKE_ARGS} \
               -DCMAKE_BUILD_TYPE=Release \
               -DPROJECT_VERSION_OVERRIDE=${{ version }} \
               -DCMAKE_INSTALL_PREFIX="$PREFIX" \
@@ -160,7 +153,9 @@ outputs:
               -DCMAKE_PREFIX_PATH="$PREFIX" \
               -DPython_EXECUTABLE="$PYTHON" \
               -DPython_ROOT_DIR="$PREFIX" \
-              -DPYTHON_INTERFACE_INSTALL_DIR="$SP_DIR"
+              -DPYTHON_INTERFACE_INSTALL_DIR="$SP_DIR" \
+              -DCMAKE_FIND_FRAMEWORK=NEVER \
+              -DCMAKE_FIND_APPBUNDLE=NEVER
             cmake --build "$SRC_DIR/_build_py"
             cmake --install "$SRC_DIR/_build_py"
 
@@ -171,7 +166,6 @@ outputs:
         - Lib/site-packages/parallelproj_core*.pyd
         - Lib/site-packages/parallelproj_core*.dll
 
-    # might need to add cuda-cudart-dev to host reqs for cuda builds
     requirements:
       build:
         - ${{ compiler('cxx') }}
@@ -230,11 +224,3 @@ extra:
   recipe-maintainers:
     - gschramm
   feedstock-name: libparallelproj
-
-## the following tests will probably not work on conda-forge runners, since there the __cuda package is not available, 
-## such that even if cuda == "ON" the non-cuda version of libparallelproj will be installed for testing.
-#- if: cuda == "ON"
-#  then:
-#    - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 1, f'expected cuda_enabled=1, got {m.cuda_enabled}'"
-#  else:
-#    - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 0, f'expected cuda_enabled=0, got {m.cuda_enabled}'"
