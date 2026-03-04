@@ -9,7 +9,7 @@ CMAKE_ARGS="${CMAKE_ARGS/$LEAVE_OUT_ARG}"
 
 # We do want to split words in $CMAKE_ARGS, so it must not be quoted!
 # shellcheck disable=SC2086
-cmake -B build -S "${SRC_DIR}" -Dexamples=OFF $CMAKE_ARGS
+cmake -B build -S "${SRC_DIR}" -Dexamples=OFF -Dhdf5=OFF $CMAKE_ARGS
 cmake --build build -j"${CPU_COUNT}"
 cmake --install build
 
