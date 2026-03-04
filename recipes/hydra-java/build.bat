@@ -28,6 +28,6 @@ call gradlew.bat :hydra-java:copyDeps --init-script "%INIT_SCRIPT%" --no-daemon
 if errorlevel 1 exit /b 1
 
 REM Install wrapper script
-mkdir "%LIBRARY_BIN%" 2>nul
-copy "%RECIPE_DIR%\wrapper.bat" "%LIBRARY_BIN%\hydra-java.cmd"
+mkdir "%PREFIX%\Library\bin" 2>nul
+copy "%RECIPE_DIR%\wrapper.bat" "%PREFIX%\Library\bin\hydra-java.cmd"
 if errorlevel 1 exit /b 1
