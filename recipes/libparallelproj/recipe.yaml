@@ -6,20 +6,15 @@ context:
   cuda: ${{ "ON" if cuda_version != "None" else "OFF" }}
 
 
-# ---------------------------------------------------------------------------
-# top level pacakage and build section
-# added because of conda-forge linter
-package:
+recipe:
   name: libparallelproj-split
-  version: ${{ version }}
-
-build:
-  number: ${{ build_number }}
-# ---------------------------------------------------------------------------
 
 source:
   url: https://github.com/KUL-recon-lab/libparallelproj/archive/v${{ version }}.tar.gz
   sha256: 8816d41325bfea9606e0d8fc92b3e23be45f36a43293a3ad49002072053e505e
+
+build:
+  number: ${{ build_number }}
 
 outputs:
   # ---------------------------------------------------------------------------
@@ -27,10 +22,9 @@ outputs:
   # ---------------------------------------------------------------------------
   - package:
       name: libparallelproj
-      #version: ${{ version }}
+      version: ${{ version }}
 
     build:
-      #number: ${{ build_number }}
       script:
         - if: win
           then: |
@@ -92,6 +86,8 @@ outputs:
             # ensures only installable in CUDA environments
             - __cuda
             - cuda-cudart  # ensure this matches your conda-forge CUDA stack
+      run_exports:
+        - ${{ pin_subpackage('libparallelproj', upper_bound='x.x') }}
 
     tests:
       - package_contents:
@@ -126,10 +122,9 @@ outputs:
 
   - package:
       name: parallelproj-core
-      #version: ${{ version }}
+      version: ${{ version }}
 
     build:
-      #number: ${{ build_number }}
       python:
         version_independent: true
       script:
@@ -176,37 +171,33 @@ outputs:
         - Lib/site-packages/parallelproj_core*.pyd
         - Lib/site-packages/parallelproj_core*.dll
 
-      variant:
-        use_keys:
-          - cuda_version
-        down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
-
+    # might need to add cuda-cudart-dev to host reqs for cuda builds
     requirements:
       build:
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
         - cmake
         - ninja
+        - if: build_platform != target_platform
+          then:
+            - python ${{ python_min }}.*
+            - python-abi3 ${{ python_min }}.*
+            - cross-python_${{ target_platform }} ${{ python_min }}.*
 
       host:
         - python ${{ python_min }}.*
         - python-abi3 ${{ python_min }}.*
         - nanobind
-        - libparallelproj ==${{ version }}
+        - libparallelproj
 
       run:
         - python >=${{ python_min }}
         - python-abi3 >=${{ python_min }}
-        - libparallelproj ==${{ version }}
+        - ${{ pin_subpackage("libparallelproj", upper_bound="x.x") }}
 
     tests:
       - script:
         - python -c "import parallelproj_core as m; print(m.__file__, ', cuda_enabled =', int(m.cuda_enabled))"
-        - if: cuda == "ON"
-          then:
-            - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 1, f'expected cuda_enabled=1, got {m.cuda_enabled}'"
-          else:
-            - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 0, f'expected cuda_enabled=0, got {m.cuda_enabled}'"
         - pytest -v ./tests
 
         requirements:
@@ -236,6 +227,14 @@ about:
     parallelproj-core is a Python extension module built with nanobind that provides a Python API for the parallelproj C++/CUDA library
 
 extra:
-  feedstock-name: libparallelproj
   recipe-maintainers:
     - gschramm
+  feedstock-name: libparallelproj
+
+## the following tests will probably not work on conda-forge runners, since there the __cuda package is not available, 
+## such that even if cuda == "ON" the non-cuda version of libparallelproj will be installed for testing.
+#- if: cuda == "ON"
+#  then:
+#    - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 1, f'expected cuda_enabled=1, got {m.cuda_enabled}'"
+#  else:
+#    - python -c "import parallelproj_core as m; assert int(m.cuda_enabled) == 0, f'expected cuda_enabled=0, got {m.cuda_enabled}'"
