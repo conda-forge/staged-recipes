@@ -1,6 +1,9 @@
 context:
   name: mise
   version: 2026.3.1
+  # upstream refs: https://github.com/jdx/mise/blob/main/scripts/build-tarball.sh & https://github.com/jdx/mise/blob/main/scripts/build-tarball.ps1
+  base_features: native-tls,rustls-native-roots,openssl/vendored,vfox/vendored-lua
+  extra_features: "${{ ',aws-lc-rs' if target_platform == 'linux-armv7l' else '' }}"
 
 package:
   name: mise
@@ -17,16 +20,17 @@ build:
       CARGO_PROFILE_RELEASE_STRIP: symbols
       CARGO_PROFILE_RELEASE_LTO: fat
     content:
-      # NOTE: we have to set LIBCLANG_PATH for bindgen to find libclang, cf. https://github.com/rust-lang/rust-bindgen/issues/918
+      # NOTE: we have to set LIBCLANG_PATH for bindgen to find libclang
+      # cf. https://github.com/conda-forge/clangdev-feedstock/issues/373 & https://github.com/rust-lang/rust-bindgen/issues/918
       - if: unix
         then:
           - export LIBCLANG_PATH=$BUILD_PREFIX/lib
-          - cargo auditable install --no-track --locked --bins --all-features --root ${{ PREFIX }} --path .
+          - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root ${{ PREFIX }} --path .
         else:
           # bindgen expects libclang.dll; conda-forge only provides versioned DLLs on Windows
           - powershell -c "cp (gci $env:BUILD_PREFIX\Library\bin\libclang-*.dll)[0] $env:BUILD_PREFIX\Library\bin\libclang.dll"
           - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
-          - cargo auditable install --no-track --locked --bins --all-features --root %LIBRARY_PREFIX% --path .
+          - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root %LIBRARY_PREFIX% --path .
           - cargo auditable install --no-track --locked --bins --all-features --root %LIBRARY_PREFIX% --path crates\mise-shim
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
@@ -43,8 +47,6 @@ requirements:
     - make
     - ninja
     - pkg-config
-  host:
-    - openssl
 
 tests:
   - script:
