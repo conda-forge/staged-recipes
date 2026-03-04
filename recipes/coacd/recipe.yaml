@@ -5,8 +5,8 @@ context:
   version: 1.0.7
   cdt_vendor_version: 1.4.4
 
-package:
-  name: ${{ name }}
+recipe:
+  name: ${{ name }}-split
   version: ${{ version }}
 
 source:
@@ -28,94 +28,107 @@ source:
 
 build:
   number: 0
-  python:
-    entry_points:
-      - coacd=coacd.cli:main
-  script:
-    - if: unix
-      then:
-        - echo ${CMAKE_ARGS}
-        - cmake -S . -B build -GNinja
-          ${CMAKE_ARGS}
-          -DBUILD_SHARED_LIBS=ON
-          -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
-    - if: win
-      then:
-        - echo %CMAKE_ARGS%
-        - cmake -S . -B build -GNinja
-          %CMAKE_ARGS%
-          -DBUILD_SHARED_LIBS=ON
-          -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
-    - cmake --build build --config Release
-    - cmake --install build --config Release
-    - if: unix
-      then:
-        - mv python/package/bin/coacd python/package/cli.py
-    - if: win
-      then:
-        - move python\package\bin\coacd python\package\cli.py
-    - python -m pip install . --no-deps -vv --no-build-isolation
 
-requirements:
-  build:
-    - ${{ stdlib('c') }}
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - cmake
-    - make
-    - ninja
-    - pkg-config
-  host:
-    - pip
-    - python
-    - setuptools
-    - zlib >=1.2.11
-    - libboost-python-devel >=1.81.0
-    - openvdb >=8.2.0
-    - tbb-devel >=2022.0.0
-    - spdlog >=1.8.2
-    - eigen >=3.4.0
-    - fmt
-    - if: linux
-      then:
-        - libgomp
-    - if: osx
-      then:
-        - llvm-openmp
-  ignore_run_exports:
-    from_package:
-      - libboost-python-devel
-      - llvm-openmp
-      - zlib
-  run:
-    - numpy
-    - python
-
-tests:
-  - python:
-      imports:
-        - coacd
-      pip_check: true
-  - package_contents:
-      bin:
-        - coacd
-  - script:
-      - cmake-package-check coacd --targets CoACD::coacd
-      - coacd -i examples/Bottle.obj -o Bottle_cvx.gltf -t 0.05
-      - if: match(python, "=3.12")
-        then:
-          - python run_tests.py
-    files:
-      source:
-        - examples/
-        - run_tests.py
+outputs:
+  # =====================
+  # C++ library and C-API
+  # =====================
+  - package:
+      name: libcoacd
+    build:
+      script:
+        - if: unix
+          then:
+            - echo ${CMAKE_ARGS}
+            - cmake -S . -B build -GNinja
+              ${CMAKE_ARGS}
+              -DBUILD_SHARED_LIBS=ON
+              -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
+        - if: win
+          then:
+            - echo %CMAKE_ARGS%
+            - cmake -S . -B build -GNinja
+              %CMAKE_ARGS%
+              -DBUILD_SHARED_LIBS=ON
+              -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
+        - cmake --build build --config Release
+        - cmake --install build --config Release
     requirements:
-      run:
+      build:
+        - ${{ stdlib('c') }}
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
-        - cmake-package-check
-        - python
-        - trimesh
+        - cmake
+        - make
+        - ninja
+        - pkg-config
+      host:
+        - zlib >=1.2.11
+        - libboost-python-devel >=1.81.0
+        - openvdb >=8.2.0
+        - tbb-devel >=2022.0.0
+        - spdlog >=1.8.2
+        - eigen >=3.4.0
+        - fmt
+      run_exports:
+        - _openmp_mutex
+        - ${{ pin_subpackage('libcoacd', upper_bound='x.x.x') }}
+      ignore_run_exports:
+        from_package:
+          - libboost-python-devel
+          - zlib
+    tests:
+      - script:
+          - cmake-package-check coacd --targets CoACD::coacd
+        requirements:
+          run:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - cmake-package-check
+  # ==============
+  # Python package
+  # ==============
+  - package:
+      name: coacd
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - coacd=coacd.cli:main
+      script:
+        - if: unix
+          then:
+            - mv python/package/bin/coacd python/package/cli.py
+        - if: win
+          then:
+            - move python\package\bin\coacd python\package\cli.py
+        - python -m pip install . --no-deps -vv --no-build-isolation
+    requirements:
+      build:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools
+      run:
+        - ${{ pin_subpackage("libcoacd", exact=True) }}
+        - numpy
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+            - coacd
+          pip_check: true
+      - script:
+          - coacd -i examples/Bottle.obj -o Bottle_cvx.gltf -t 0.05
+          - python run_tests.py
+        files:
+          source:
+            - examples/
+            - run_tests.py
+        requirements:
+          run:
+            - python 3.11.*
+            - trimesh
 
 about:
   homepage: https://colin97.github.io/CoACD
