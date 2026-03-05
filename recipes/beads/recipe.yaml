@@ -1,0 +1,72 @@
+context:
+  version: "0.58.0"
+
+package:
+  name: beads
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/steveyegge/beads/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: dff82df9cf72e4b20283af1cb66795aac176db64beda4437fe43fadb73896036
+    target_directory: src
+   # Windows-only dep `go-localereader` (MIT-licensed) misses standard license file layout,
+   # so we have to manually add it
+  - url: https://raw.githubusercontent.com/mattn/go-localereader/master/LICENSE
+    sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+    target_directory: library_licenses_2/github.com/go-localereader
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/bd --save_path ../library_licenses --ignore github.com/mattn/go-localereader
+    - if: unix
+      then: go build -v -o $PREFIX/bin/bd -ldflags="-s -w -X main.version=${{ version }}" ./cmd/bd
+      else: go build -v -o %LIBRARY_BIN%\bd.exe -ldflags="-s -X main.version=${{ version }}" ./cmd/bd
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/bd completion zsh > $PREFIX/share/zsh/site-functions/_bd
+        - $PREFIX/bin/bd completion bash > $PREFIX/share/bash-completion/completions/bd
+        - $PREFIX/bin/bd completion fish > $PREFIX/share/fish/vendor_completions.d/bd.fish
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - bd --version
+      - bd --help
+  - package_contents:
+      bin:
+        - bd
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/bd
+            - share/fish/vendor_completions.d/bd.fish
+            - share/zsh/site-functions/_bd
+      strict: true
+
+about:
+  homepage: https://github.com/steveyegge/beads
+  summary: A developer-centric issue tracker that lives in your Git repo
+  description: |
+    Beads (bd) is a fast, local-first CLI issue tracker designed for software
+    teams and AI agents. It stores issues alongside your code in a Dolt
+    (MySQL-compatible) database, supports hierarchical issues, dependencies,
+    molecules (multi-step workflows), integrations with GitHub/GitLab/Jira/Linear,
+    and MCP server support for AI agents.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+    - library_licenses_2/
+  documentation: https://github.com/steveyegge/beads/tree/main/docs
+  repository: https://github.com/steveyegge/beads
+
+extra:
+  recipe-maintainers:
+    - salim-b
