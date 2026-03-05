@@ -1,0 +1,84 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8ed271b..95c3494 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -176,7 +176,7 @@ file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_INSTALL
+ file(APPEND ${SETUP} "export PATH=\${PATH}:${CMAKE_CURRENT_SOURCE_DIR}/python\n")
+ 
+ # Install the libraries.
+-install( TARGETS FastFrames ConfigReaderCpp cppLogger
++install( TARGETS FastFrames
+    EXPORT FastFramesTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+@@ -202,6 +202,25 @@ install( FILES "${CMAKE_CURRENT_BINARY_DIR}/FastFramesConfig.cmake"
+    DESTINATION lib/cmake/FastFrames )
+ 
+ 
++# Configurable Python module install directory (e.g. site-packages)
++set(FASTFRAMES_PYTHON_INSTALL_DIR "" CACHE PATH "Install Python modules to this directory")
++
++if(FASTFRAMES_PYTHON_INSTALL_DIR)
++  # Install Python entry point to bin/
++  install(PROGRAMS python/FastFrames.py DESTINATION bin)
++
++  # Install Python extension modules (.so) to site-packages
++  install(TARGETS ConfigReaderCpp cppLogger
++     LIBRARY DESTINATION "${FASTFRAMES_PYTHON_INSTALL_DIR}")
++
++  # Install Python packages
++  install(DIRECTORY python/ConfigReaderModules
++     DESTINATION "${FASTFRAMES_PYTHON_INSTALL_DIR}"
++     FILES_MATCHING PATTERN "*.py")
++  install(FILES python_wrapper/python/logger.py
++     DESTINATION "${FASTFRAMES_PYTHON_INSTALL_DIR}/python_wrapper/python")
++endif()
++
+ # ------------------------------------------------
+ # FastFrames executables
+ # ------------------------------------------------
+diff --git a/python/ConfigReaderModules/BlockReaderCommon.py b/python/ConfigReaderModules/BlockReaderCommon.py
+index b06db04..70fdb5e 100644
+--- a/python/ConfigReaderModules/BlockReaderCommon.py
++++ b/python/ConfigReaderModules/BlockReaderCommon.py
+@@ -8,6 +8,11 @@ def set_paths():
+     """
+     Set all import paths for the python scripts and C++ shared libraries
+     """
++    # When installed (e.g. via conda), ConfigReaderCpp is already importable
++    # from site-packages, so no path manipulation is needed.
++    import importlib.util
++    if importlib.util.find_spec("ConfigReaderCpp") is not None:
++        return
+     set_path_to_shared_lib()
+     set_import_path()
+     set_main_directory_path()
+diff --git a/python/FastFrames.py b/python/FastFrames.py
+index d42119d..9d490ca 100755
+--- a/python/FastFrames.py
++++ b/python/FastFrames.py
+@@ -12,11 +12,19 @@ import os
+ import sys
+ import argparse
+ 
+-this_dir = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[0:-1])
+-sys.path.append(this_dir)
+-
+-from ConfigReaderModules.BlockReaderCommon import set_paths
+-set_paths()
++# When installed to site-packages, ConfigReaderModules is directly importable.
++# Add its directory to sys.path so ConfigReader.py and CommandLineOptions.py
++# can be imported as top-level modules (as the codebase expects).
++import importlib.util
++_crm_spec = importlib.util.find_spec("ConfigReaderModules")
++if _crm_spec and _crm_spec.submodule_search_locations:
++    sys.path.insert(0, _crm_spec.submodule_search_locations[0])
++else:
++    # Fallback for running from source tree
++    this_dir = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[0:-1])
++    sys.path.append(this_dir)
++    from ConfigReaderModules.BlockReaderCommon import set_paths
++    set_paths()
+ 
+ from ConfigReaderCpp import ConfigSettingWrapper, FastFramesExecutor
+ from python_wrapper.python.logger import Logger

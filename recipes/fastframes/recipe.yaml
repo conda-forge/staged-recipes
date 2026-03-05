@@ -12,6 +12,7 @@ source:
   sha256: 77d0a1f0f5685b31f9d62a245fe571be7db062988b37e5915a6c3eb08c2f7bca
   patches:
     - fix-dict-include-dirs.patch
+    - install-python-files.patch
 
 build:
   number: 0
@@ -19,29 +20,9 @@ build:
     - win
     - match(root_base, "<6.36")
   script:
-    #- if: unix
-    #  then:
-    #    - export RFLAGS="-DCMAKE_INSTALL_RPATH='$ORIGIN/../lib'"
-    #- if: osx
-    #  then:
-    #    - export RFLAGS="-DCMAKE_MACOSX_RPATH=ON -DCMAKE_INSTALL_RPATH='@loader_path/../lib'"
-    #- CXXFLAGS="${CXXFLAGS}" cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -DPython3_ROOT_DIR="$PREFIX" -DPython3_EXECUTABLE="$PYTHON" -DPython3_FIND_STRATEGY=LOCATION ${RFLAGS} -S "${SRC_DIR}" -B build
-    - cmake ${CMAKE_ARGS}  -S . -B build
-    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake ${CMAKE_ARGS} -DFASTFRAMES_PYTHON_INSTALL_DIR=$SP_DIR -S . -B build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}" --verbose
     - cmake --install build
-    - rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $PREFIX/bin/
-    # NOTE: we must manually set SP_DIR since it is not set.
-    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
-    - if: unix
-      then:
-        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-    - if: osx
-      then:
-        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-    - if: win
-      then:
-        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
-    - rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python_wrapper $SP_DIR/
 
 requirements:
   build:
@@ -56,14 +37,15 @@ requirements:
         - cross-python_${{ target_platform }}
         - python
         - root_base
+        - root_cxx_standard
   host:
     - root_base
+    - root_cxx_standard
     - libboost-python-devel
     - python
   run:
-    - root_base
-    - libboost-python-devel
     - python
+    - pyyaml
 
 tests:
   - package_contents:
@@ -74,11 +56,10 @@ tests:
         - root_base
         - python
     script:
-      - LD_LIBRARY_PATH=$(python -c 'import sys; print(f"{sys.prefix}/lib")') FastFrames.py -h
+      - FastFrames.py -h
 
 about:
   license: BSD-2-Clause
-  license_family: BSD
   license_file: LICENSE
   summary: 'FastFrames: RDataFrames for ATLAS analysis ntuples'
   description: |
