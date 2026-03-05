@@ -1,0 +1,40 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -78,7 +78,7 @@
+ endif()
+ # Add ROOT system directory and require ROOT.
+ find_package( ROOT 6.28.00 REQUIRED COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps)
+-find_package( Python3 COMPONENTS Development REQUIRED )
++find_package( Python3 COMPONENTS Development.Module REQUIRED )
+ find_package( LCG QUIET )
+ find_package( onnxruntime QUIET )
+
+@@ -155,16 +155,22 @@
+ # Build the Python module for C++ logger
+-add_library( cppLogger SHARED python_wrapper/utils/Logger.cxx )
+-set_target_properties(cppLogger PROPERTIES SUFFIX ".so")
+-target_link_libraries( cppLogger PRIVATE Python3::Python )
++add_library( cppLogger MODULE python_wrapper/utils/Logger.cxx )
++set_target_properties(cppLogger PROPERTIES SUFFIX ".so" PREFIX "")
++target_include_directories( cppLogger PRIVATE ${Python3_INCLUDE_DIRS} )
+ set_target_properties( cppLogger PROPERTIES
+-   PREFIX ""
+    OUTPUT_NAME "cppLogger" )
+
+ # Build the Python module for config reader
+-add_library( ConfigReaderCpp SHARED python_wrapper/utils/ConfigReaderCpp.cxx ${LIB_HEADERS} )
+-set_target_properties(ConfigReaderCpp PROPERTIES SUFFIX ".so")
+-target_link_libraries( ConfigReaderCpp PRIVATE Python3::Python ${Boost_LIBRARIES} FastFrames )
++add_library( ConfigReaderCpp MODULE python_wrapper/utils/ConfigReaderCpp.cxx ${LIB_HEADERS} )
++set_target_properties(ConfigReaderCpp PROPERTIES SUFFIX ".so" PREFIX "")
++target_include_directories( ConfigReaderCpp PRIVATE ${Python3_INCLUDE_DIRS} )
++target_link_libraries( ConfigReaderCpp PRIVATE ${Boost_LIBRARIES} FastFrames )
+ set_target_properties( ConfigReaderCpp PROPERTIES
+-   PREFIX ""
+    OUTPUT_NAME "ConfigReaderCpp" )
++
++if(APPLE)
++  target_link_options( cppLogger PRIVATE "LINKER:-undefined,dynamic_lookup" )
++  target_link_options( ConfigReaderCpp PRIVATE "LINKER:-undefined,dynamic_lookup" )
++endif()
