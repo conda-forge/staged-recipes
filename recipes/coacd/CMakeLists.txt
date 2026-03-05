@@ -21,7 +21,6 @@ message(STATUS "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
 
 find_package(spdlog REQUIRED)
 find_package(OpenVDB REQUIRED)
-find_package(OpenMP REQUIRED)
 find_package(Threads REQUIRED)
 
 # ============
@@ -42,7 +41,6 @@ target_link_libraries(
     spdlog::spdlog
     Threads::Threads
     OpenVDB::openvdb
-    OpenMP::OpenMP_CXX
 )
 
 # =============
