@@ -9,6 +9,12 @@ entries=(
     "source/isaaclab_tasks:isaaclab_tasks"
 )
 
+# Upstream pins hidapi to an exact post release that doesn't exist on conda-forge.
+# Relax it in package metadata before installation so pip_check and solver agree.
+while IFS= read -r -d '' file; do
+    sed -E -i 's/hidapi==0\.14\.0\.post[0-9]+/hidapi>=0.14,<0.15/g' "${file}"
+done < <(find source -type f \( -name "setup.py" -o -name "setup.cfg" -o -name "pyproject.toml" \) -print0)
+
 # Install each extension package wheel-style and let conda own dependency solving.
 for entry in "${entries[@]}"; do
     "${PYTHON}" -m pip install "${entry%%:*}" --no-build-isolation --no-deps
