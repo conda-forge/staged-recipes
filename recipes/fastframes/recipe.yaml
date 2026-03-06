@@ -1,0 +1,74 @@
+schema_version: 1
+
+context:
+  version: "5.5.0"
+
+package:
+  name: fastframes
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.cern.ch/atlas-amglab/fastframes/-/archive/v${{ version }}/fastframes-v${{ version }}.tar.gz
+  sha256: 77d0a1f0f5685b31f9d62a245fe571be7db062988b37e5915a6c3eb08c2f7bca
+  patches:
+    - fix-root-6-38-compat.patch
+    - install-python-files.patch
+    - fix-python-linking.patch
+    - fix-missing-tfile-include.patch
+
+build:
+  number: 0
+  skip:
+    - win
+    - match(root_base, "<6.36")
+  script:
+    - cmake ${CMAKE_ARGS} -DPython3_EXECUTABLE=$PYTHON -DPython3_INCLUDE_DIR=$PREFIX/include/python${PY_VER} -DFASTFRAMES_PYTHON_INSTALL_DIR=$SP_DIR -S . -B build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}" --verbose
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - make
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - root_base
+        - root_cxx_standard
+  host:
+    - root_base
+    - root_cxx_standard
+    - libboost-python-devel
+    - python
+  run:
+    - python
+    - pyyaml
+
+tests:
+  - package_contents:
+      files:
+        - bin/fast-frames.exe
+  - script:
+      - FastFrames.py -h
+
+about:
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: 'FastFrames: RDataFrames for ATLAS analysis ntuples'
+  description: |
+    FastFrames is a package aimed at processing ntuples produced by
+    TopCPToolkit, or a similar CP algorithm based framework, into histograms or
+    ntuples.  FastFrames rely on ROOT's RDataFrame to do the event loop
+    processing.  The code allows users to define their own columns in a minimal
+    way while using all the functionality of the processing.
+  homepage: https://gitlab.cern.ch/atlas-amglab/fastframes
+  repository: https://gitlab.cern.ch/atlas-amglab/fastframes
+  documentation: https://atlas-project-topreconstruction.web.cern.ch/fastframesdocumentation/latest/
+
+extra:
+  recipe-maintainers:
+    - kratsg
