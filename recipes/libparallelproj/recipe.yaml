@@ -1,0 +1,224 @@
+schema_version: 1
+
+context:
+  version: "2.0.3"
+  build_number: 0
+  python_min: "3.12"
+  cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None") }}
+  cuda: ${{ "ON" if cuda_version != "None" else "OFF" }}
+
+recipe:
+  name: libparallelproj-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/KUL-recon-lab/libparallelproj/archive/v${{ version }}.tar.gz
+  sha256: ef1b8bdc88c620df28c8f83951d7131f57d4fe24aa767e4461c90516e1fbfcdd
+
+build:
+  number: ${{ build_number }}
+
+outputs:
+  - package:
+      name: libparallelproj
+
+    build:
+      script:
+        - if: win
+          then: |
+            cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_lib" -GNinja ^
+              %CMAKE_ARGS% ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
+              -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+              -DCMAKE_INSTALL_LIBDIR=lib ^
+              -DUSE_CUDA=${{ cuda }} ^
+              -DBUILD_LIBRARY=ON ^
+              -DINSTALL_DEVEL=ON ^
+              -DBUILD_PYTHON=OFF ^
+              -DBUILD_TESTS=OFF ^
+              -DCMAKE_PREFIX_PATH="%PREFIX%"
+            cmake --build "%SRC_DIR%\_build_lib"
+            cmake --install "%SRC_DIR%\_build_lib"
+          else: |
+            cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_lib" -GNinja \
+              ${CMAKE_ARGS} \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} \
+              -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+              -DCMAKE_INSTALL_LIBDIR=lib \
+              -DUSE_CUDA=${{ cuda }} \
+              -DBUILD_LIBRARY=ON \
+              -DINSTALL_DEVEL=ON \
+              -DBUILD_PYTHON=OFF \
+              -DBUILD_TESTS=OFF \
+              -DCMAKE_PREFIX_PATH="$PREFIX" \
+              -DCMAKE_FIND_FRAMEWORK=NEVER \
+              -DCMAKE_FIND_APPBUNDLE=NEVER
+            cmake --build "$SRC_DIR/_build_lib"
+            cmake --install "$SRC_DIR/_build_lib"
+
+      variant:
+        use_keys:
+          - cuda_version
+        down_prioritize_variant: ${{ 0 if cuda == "ON" else 1 }}
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - if: cuda == "ON"
+          then:
+            - ${{ compiler('cuda') }}
+      host:
+        - if: osx
+          then: llvm-openmp
+        - if: cuda == "ON"
+          then:
+            - cuda-version ==${{ cuda_version }}
+      run:
+        - if: osx
+          then: llvm-openmp
+        - if: cuda == "ON"
+          then:
+            - __cuda
+            - cuda-cudart
+      run_exports:
+        - ${{ pin_subpackage('libparallelproj', upper_bound='x.x') }}
+
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - if: win
+                then: bin/parallelproj.dll
+              - if: win
+                then: lib/parallelproj.lib
+              - if: linux
+                then: lib/libparallelproj.so
+              - if: osx
+                then: lib/libparallelproj.dylib
+
+              - lib/cmake/parallelproj/parallelprojConfig.cmake
+              - lib/cmake/parallelproj/parallelprojConfigVersion.cmake
+              - lib/cmake/parallelproj/parallelprojTargets.cmake
+
+              - include/cuda_compat.h
+              - include/cuda_utils.h
+              - include/debug.h
+              - include/parallelproj.h
+              - include/parallelproj_export.h
+              - include/utils.h
+
+  - package:
+      name: parallelproj-core
+
+    build:
+      skip: ${{ cuda == "ON" }}
+      python:
+        version_independent: true
+      script:
+        - if: win
+          then: |
+            cmake -S "%SRC_DIR%" -B "%SRC_DIR%/_build_py" -GNinja ^
+              %CMAKE_ARGS%^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} ^
+              -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+              -DUSE_CUDA=OFF ^
+              -DBUILD_LIBRARY=OFF ^
+              -DINSTALL_DEVEL=OFF ^
+              -DBUILD_PYTHON=ON ^
+              -DBUILD_TESTS=OFF ^
+              -DCMAKE_PREFIX_PATH="%PREFIX%" ^
+              -DPython_EXECUTABLE="%PYTHON%" ^
+              -DPython_ROOT_DIR="%PREFIX%"
+            cmake --build "%SRC_DIR%\_build_py"
+            cmake --install "%SRC_DIR%\_build_py"
+          else: |
+            cmake -S "$SRC_DIR" -B "$SRC_DIR/_build_py" -GNinja \
+              ${CMAKE_ARGS} \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DPROJECT_VERSION_OVERRIDE=${{ version }} \
+              -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+              -DUSE_CUDA=OFF \
+              -DBUILD_LIBRARY=OFF \
+              -DINSTALL_DEVEL=OFF \
+              -DBUILD_PYTHON=ON \
+              -DBUILD_TESTS=OFF \
+              -DCMAKE_PREFIX_PATH="$PREFIX" \
+              -DPython_EXECUTABLE="$PYTHON" \
+              -DPython_ROOT_DIR="$PREFIX" \
+              -DCMAKE_FIND_FRAMEWORK=NEVER \
+              -DCMAKE_FIND_APPBUNDLE=NEVER
+            cmake --build "$SRC_DIR/_build_py"
+            cmake --install "$SRC_DIR/_build_py"
+
+      files:
+        - lib/python*/site-packages/parallelproj_core*.so
+        - lib/python*/site-packages/parallelproj_core*.dylib
+        - lib/site-packages/parallelproj_core*.pyd
+        - lib/site-packages/parallelproj_core*.dll
+        - Lib/site-packages/parallelproj_core*.pyd
+        - Lib/site-packages/parallelproj_core*.dll
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - if: build_platform != target_platform
+          then:
+            - python ${{ python_min }}.*
+            - python-abi3 ${{ python_min }}.*
+            - cross-python_${{ target_platform }} ${{ python_min }}.*
+
+      host:
+        - python ${{ python_min }}.*
+        - python-abi3 ${{ python_min }}.*
+        - nanobind
+        - libparallelproj
+
+      run:
+        - python >=${{ python_min }}
+        - python-abi3 >=${{ python_min }}
+        - ${{ pin_subpackage("libparallelproj", upper_bound="x.x") }}
+
+    tests:
+      - script:
+        - python -c "import parallelproj_core as m; print(m.__file__, ', cuda_enabled =', int(m.cuda_enabled))"
+        - pytest -v ./tests
+
+        requirements:
+          run:
+            - pytest
+            - numpy
+            - array-api-compat
+            - array-api-strict
+        files:
+          source:
+            - tests/**/*.py
+            - tests/vstart.txt
+            - tests/vend.txt
+            - tests/img.txt
+            - tests/expected_fwd_vals.txt
+
+about:
+  homepage: https://github.com/KUL-recon-lab/libparallelproj
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://libparallelproj.readthedocs.io
+  repository: https://github.com/KUL-recon-lab/libparallelproj
+  summary: C++/CUDA backend projector library (parallelproj) and python API for tomographic reconstruction
+  description: |
+    libparallelproj builds and installs the parallelproj shared library (CPU/OpenMP or CUDA),
+    public headers, and a CMake package configuration for downstream CMake projects.
+    parallelproj-core is a Python extension module built with nanobind that provides a Python API for the parallelproj C++/CUDA library
+
+extra:
+  recipe-maintainers:
+    - gschramm
+  feedstock-name: libparallelproj
