@@ -2,26 +2,30 @@ schema_version: 1
 
 context:
   version: "0.6.0"
+  mmg_version: "5.8.0"
 
 package:
   name: mmgpy
   version: ${{ version }}
 
 source:
-  url: https://github.com/kmarchais/mmgpy/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: c12d3bb41fcf6bfb6d9c43ea5c06508f6c754721928dcfcb1b9ecbcfcea7df75
+  - url: https://github.com/kmarchais/mmgpy/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: c12d3bb41fcf6bfb6d9c43ea5c06508f6c754721928dcfcb1b9ecbcfcea7df75
+  - url: https://github.com/MmgTools/mmg/archive/refs/tags/v${{ mmg_version }}.tar.gz
+    sha256: 686eaab84de79c072f3aedf26cd11ced44c84b435d51ce34e016ad203172922f
+    target_directory: mmg-src
 
 build:
   number: 0
   script:
     - if: unix
       then: |
-        cmake -B build ${CMAKE_ARGS} -DMMGPY_CONDA_BUILD=ON -GNinja
+        cmake -B build ${CMAKE_ARGS} -DMMGPY_CONDA_BUILD=ON -DFETCHCONTENT_SOURCE_DIR_MMG=$SRC_DIR/mmg-src -GNinja
         cmake --build build
         cmake --install build
     - if: win
       then: |
-        cmake -B build %CMAKE_ARGS% -DMMGPY_CONDA_BUILD=ON -GNinja
+        cmake -B build %CMAKE_ARGS% -DMMGPY_CONDA_BUILD=ON -DFETCHCONTENT_SOURCE_DIR_MMG=%SRC_DIR%\mmg-src -GNinja
         if errorlevel 1 exit 1
         cmake --build build
         if errorlevel 1 exit 1
@@ -30,20 +34,15 @@ build:
 
 requirements:
   build:
-    - if: unix
-      then:
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-    - if: win
-      then:
-        - vs2022_win-64
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
     - cmake >=3.15
     - ninja
-    - git
   host:
     - python
     - pybind11 >=3.0.0
-    - numpy >=2.0.2
+    - numpy
     - vtk >=9.5,<9.6
   run_exports:
     - ${{ pin_subpackage('mmgpy', upper_bound='x.x') }}
@@ -63,7 +62,6 @@ tests:
       imports:
         - mmgpy
         - mmgpy._mmgpy
-      pip_check: false
   - script:
       - if: unix
         then:
