@@ -63,6 +63,59 @@ configure_build_cache() {
     mkdir -p "${HOME}" "${XDG_CACHE_HOME}"
 }
 
+resolve_archive_extractor() {
+    if command -v 7zz >/dev/null 2>&1; then
+        printf '7zz\n'
+        return
+    fi
+    if command -v 7z >/dev/null 2>&1; then
+        printf '7z\n'
+        return
+    fi
+
+    echo "No 7z extractor found in PATH (expected 7zz or 7z)" >&2
+    exit 1
+}
+
+stage_packman_archive() {
+    local archive_path="$1"
+    local package_name="$2"
+    local package_version="$3"
+    local destination="${PM_PACKAGES_ROOT}/chk/${package_name}/${package_version}"
+
+    if [[ ! -f "${archive_path}" ]]; then
+        return
+    fi
+    if [[ -e "${destination}/PACKAGE-INFO.yaml" ]] || [[ -e "${destination}/.packman.lock" ]]; then
+        return
+    fi
+
+    local extractor
+    extractor="$(resolve_archive_extractor)"
+
+    log "Staging packman payload ${package_name}@${package_version}"
+    rm -rf "${destination}"
+    mkdir -p "${destination}"
+    "${extractor}" x -y -bd "-o${destination}" "${archive_path}" >/dev/null
+}
+
+stage_packman_payloads() {
+    local packman_source_dir="${source_root}/vendor/packman"
+
+    if [[ ! -d "${packman_source_dir}" ]]; then
+        return
+    fi
+
+    stage_packman_archive \
+        "${packman_source_dir}/lula-linux-x86_64.7z" \
+        "lula" \
+        "v0.10.1_f39b9da.linux-x86_64.release"
+    stage_packman_archive \
+        "${packman_source_dir}/usd_ext_physics-manylinux_2_35_x86_64-release.7z" \
+        "usd_ext_physics" \
+        "24.05+release.40469.09c54277.gl.manylinux_2_35_x86_64.release"
+}
+
 initialize_packman() {
     local packman_cmd="tools/packman/packman"
     if [[ ! -f "${packman_cmd}" ]]; then
@@ -87,6 +140,9 @@ install_build_helpers() {
     install -m 0644 \
         "${recipe_dir}/scripts/repair_packman_python.py" \
         "${source_root}/repair_packman_python.py"
+    install -m 0644 \
+        "${recipe_dir}/scripts/stage_local_extscache.py" \
+        "${source_root}/stage_local_extscache.py"
 
     cat > "${source_root}/repair_packman_python.sh" <<EOF
 #!/usr/bin/env bash
@@ -100,6 +156,18 @@ exec "\${script_dir}/_build/target-deps/python/bin/python3" \
     --isaac-platform "${isaac_platform}"
 EOF
     chmod 0755 "${source_root}/repair_packman_python.sh"
+
+    cat > "${source_root}/stage_local_extscache.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd -P)"
+exec "${PYTHON}" \
+    "\${script_dir}/stage_local_extscache.py" \
+    --root "\${script_dir}" \
+    --isaac-platform "${isaac_platform}"
+EOF
+    chmod 0755 "${source_root}/stage_local_extscache.sh"
 
     cat > "${source_root}/NVIDIA-ISAAC-SIM-ADDITIONAL-LICENSE.txt" <<'EOF'
 This package bundles or builds against additional NVIDIA-owned Omniverse
@@ -213,6 +281,7 @@ run_repoman_build() {
     touch "${source_root}/.eula_accepted"
     "${source_root}/repair_packman_python.sh"
     initialize_packman
+    stage_packman_payloads
     "${PYTHON}" tools/repoman/repoman.py build --release --skip-compiler-version-check -j "${CPU_COUNT:-1}"
 }
 
