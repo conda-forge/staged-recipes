@@ -57,7 +57,7 @@ def patch_repo_toml(root: Path) -> None:
 precache_exts_enabled = false
 """,
         """[repo_kit_pull_extensions]
-precache_exts_enabled = true
+precache_exts_enabled = false
 """,
         "repo_kit_pull_extensions",
     )
@@ -110,11 +110,7 @@ precache_exts_enabled = true
     "${root}/repair_packman_python.sh",
   ],
   [
-    "${root}/repo${shell_ext}",
-    "precache_exts",
-    "-c",
-    "${config}",
-    "${precache_flag_0}",
+    "${root}/stage_local_extscache.sh",
   ],
 ]""",
         "pre_build.commands",
@@ -129,6 +125,25 @@ precache_exts_enabled = true
   ],
 """,
         "",
+    )
+
+    text = replace_block(
+        text,
+        """[repo_precache_exts]
+generated_app_path = ""
+enabled = true
+kit_omit_ext_version = false
+# Extra args to pass to kit
+kit_extra_args = []
+""",
+        """[repo_precache_exts]
+generated_app_path = ""
+enabled = false
+kit_omit_ext_version = false
+# Extra args to pass to kit
+kit_extra_args = []
+""",
+        "repo_precache_exts.enabled",
     )
 
     repo_toml.write_text(text)
@@ -149,7 +164,7 @@ def patch_packman_manifests(root: Path) -> None:
     )
 
     isaac_packman = root / "deps" / "isaac-sim.packman.xml"
-    for name in ("octomap", "tinyxml2", "nlohmann_json", "rapidjson"):
+    for name in ("octomap", "tinyxml2", "nlohmann_json", "rapidjson", "nv_ros2_humble", "nv_ros2_jazzy"):
         drop_regex(
             isaac_packman,
             rf'\s*<dependency name="{re.escape(name)}" linkPath="[^"]+">.*?</dependency>\n',
@@ -167,7 +182,66 @@ def patch_python_dependency_manifests(root: Path) -> None:
         '"setuptools_scm==8.2.0",         # SWIPAT filed under: https://nvbugs/4248640\n',
         "",
     )
+    text = text.replace(
+        'extra_args = ["--extra-index-url", "https://pypi.org/simple"]',
+        'extra_args = ["--no-index", "-f", "vendor/pip/usd_to_urdf"]',
+    )
     pip_usd_to_urdf.write_text(text)
+
+
+def replace_text(path: Path, old: str, new: str, description: str) -> None:
+    text = path.read_text()
+    updated = replace_block(text, old, new, description)
+    if updated != text:
+        path.write_text(updated)
+
+
+def remove_lines(path: Path, patterns: tuple[str, ...]) -> None:
+    text = path.read_text()
+    original = text
+    for pattern in patterns:
+        text = re.sub(pattern, "", text, flags=re.MULTILINE)
+    if text != original:
+        path.write_text(text)
+
+
+def disable_extension_build(path: Path, reason: str) -> None:
+    path.write_text(f"-- {reason}\n")
+
+
+def patch_app_manifests(root: Path) -> None:
+    full_app = root / "source" / "apps" / "isaacsim.exp.full.kit"
+    text = full_app.read_text()
+    text = re.sub(
+        r'^exts\."isaacsim\.ros2\.bridge"\.ros_distro = "system_default"\n',
+        "",
+        text,
+        flags=re.MULTILINE,
+    )
+    text = re.sub(
+        r'^(isaac\.startup\.ros_bridge_extension = )"isaacsim\.ros2\.bridge"$',
+        r'\1""',
+        text,
+        flags=re.MULTILINE,
+    )
+    full_app.write_text(text)
+
+    zero_delay_app = root / "source" / "apps" / "isaacsim.exp.base.zero_delay.kit"
+    remove_lines(
+        zero_delay_app,
+        (r'^app\.exts\.isaacsim\.ros2\.bridge\.publish_multithreading_disabled = true.*\n',),
+    )
+
+
+def disable_ros2_extensions(root: Path) -> None:
+    disable_extension_build(
+        root / "source" / "extensions" / "isaacsim.ros2.bridge" / "premake5.lua",
+        "Disabled for conda-forge: ROS2 bridge requires externally bundled ROS2 vendor payloads.",
+    )
+    disable_extension_build(
+        root / "source" / "extensions" / "isaacsim.ros2.tf_viewer" / "premake5.lua",
+        "Disabled for conda-forge: ROS2 TF viewer depends on the ROS2 bridge vendor payloads.",
+    )
 
 
 def disable_unbuildable_tests(root: Path) -> None:
@@ -274,6 +348,8 @@ def main() -> None:
     patch_repo_toml(root)
     patch_packman_manifests(root)
     patch_python_dependency_manifests(root)
+    patch_app_manifests(root)
+    disable_ros2_extensions(root)
     disable_unbuildable_tests(root)
     patch_platform_headers(root)
     write_extscache_app(root)
