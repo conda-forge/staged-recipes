@@ -1,0 +1,283 @@
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+def replace_block(text: str, old: str, new: str, description: str) -> str:
+    if old in text:
+        return text.replace(old, new)
+    if new in text:
+        return text
+    raise SystemExit(f"Could not find the expected {description} block")
+
+
+def drop_regex(path: Path, pattern: str) -> None:
+    text = path.read_text()
+    updated, count = re.subn(pattern, "", text, flags=re.MULTILINE | re.DOTALL)
+    if count:
+        path.write_text(updated)
+
+
+def patch_repo_toml(root: Path) -> None:
+    repo_toml = root / "repo.toml"
+    text = repo_toml.read_text()
+
+    text = replace_block(
+        text,
+        """fetch.pip.files_to_pull = [
+  "${root}/deps/pip.toml",
+  "${root}/deps/pip_ml.toml",
+  "${root}/deps/pip_lula.toml",
+  "${root}/deps/pip_compute.toml",
+  "${root}/deps/pip_usd_to_urdf.toml",
+  "${root}/deps/pip_cloud.toml",
+]""",
+        """fetch.pip.files_to_pull = [
+  "${root}/deps/pip_lula.toml",
+  "${root}/deps/pip_usd_to_urdf.toml",
+]""",
+        "fetch.pip.files_to_pull",
+    )
+
+    text = replace_block(
+        text,
+        """enable_compiler_version_check = true
+
+"platform:linux-x86_64".version_check_gcc_version = "11.*.*"
+"platform:linux-aarch64".version_check_gcc_version = "11.*.*"
+""",
+        "enable_compiler_version_check = false\n",
+        "enable_compiler_version_check",
+    )
+
+    text = replace_block(
+        text,
+        """[repo_kit_pull_extensions]
+precache_exts_enabled = false
+""",
+        """[repo_kit_pull_extensions]
+precache_exts_enabled = true
+""",
+        "repo_kit_pull_extensions",
+    )
+
+    text = replace_block(
+        text,
+        """apps = [
+    "${root}/_build/$platform/$config/apps/isaacsim.exp.extscache.kit"
+]""",
+        """apps = [
+    "${root}/source/apps/conda.extscache.kit"
+]""",
+        "repo_precache_exts.apps",
+    )
+
+    text = replace_block(
+        text,
+        """links.exts.include = [
+  "omni.usd.core",
+  "omni.syntheticdata",
+  "usdrt.scenegraph",
+  "omni.graph.tools",
+  "omni.kit.test",
+  "isaacsim.util.debug_draw",
+  "omni.kit.asset_converter"
+]""",
+        """links.exts.include = [
+  "omni.usd.core",
+  "usdrt.scenegraph",
+  "omni.graph.tools",
+  "isaacsim.util.debug_draw",
+  "omni.kit.asset_converter"
+]""",
+        "repo_precache_exts.links.exts.include",
+    )
+
+    text = replace_block(
+        text,
+        """pre_build.commands = [
+  [
+    "${root}/repo${shell_ext}",
+    "precache_exts",
+    "-c",
+    "${config}",
+    "${precache_flag_0}",
+  ],
+]""",
+        """pre_build.commands = [
+  [
+    "${root}/repair_packman_python.sh",
+  ],
+  [
+    "${root}/repo${shell_ext}",
+    "precache_exts",
+    "-c",
+    "${config}",
+    "${precache_flag_0}",
+  ],
+]""",
+        "pre_build.commands",
+    )
+
+    text = text.replace(
+        """  [
+    "${root}/repo${shell_ext}",
+    "usd",
+    "-c",
+    "${config}",
+  ],
+""",
+        "",
+    )
+
+    repo_toml.write_text(text)
+
+
+def patch_packman_manifests(root: Path) -> None:
+    kit_sdk_deps = root / "deps" / "kit-sdk-deps.packman.xml"
+    for name in ("pybind11", "python", "fmt", "nvtx", "gsl", "doctest", "cuda"):
+        drop_regex(kit_sdk_deps, rf'^\s*<filter include="{re.escape(name)}" />\n')
+        drop_regex(kit_sdk_deps, rf'^\s*<dependency name="{re.escape(name)}" linkPath="[^"]+" />\n')
+
+    drop_regex(
+        kit_sdk_deps,
+        r"\n\s*<!-- The doctest package imported from kit-kernel is not yet available\. -->\n"
+        r"\s*<dependency name=\"doctest\" linkPath=\"[^\"]+\">\n"
+        r"\s*<package name=\"doctest\" version=\"[^\"]+\" />\n"
+        r"\s*</dependency>\n",
+    )
+
+    isaac_packman = root / "deps" / "isaac-sim.packman.xml"
+    for name in ("octomap", "tinyxml2", "nlohmann_json", "rapidjson"):
+        drop_regex(
+            isaac_packman,
+            rf'\s*<dependency name="{re.escape(name)}" linkPath="[^"]+">.*?</dependency>\n',
+        )
+
+
+def patch_python_dependency_manifests(root: Path) -> None:
+    pip_usd_to_urdf = root / "deps" / "pip_usd_to_urdf.toml"
+    text = pip_usd_to_urdf.read_text()
+    text = text.replace(
+        '"lxml==5.4.0",                   # SWIPAT filed under: https://nvbugs/4248625\n',
+        "",
+    )
+    text = text.replace(
+        '"setuptools_scm==8.2.0",         # SWIPAT filed under: https://nvbugs/4248640\n',
+        "",
+    )
+    pip_usd_to_urdf.write_text(text)
+
+
+def disable_unbuildable_tests(root: Path) -> None:
+    drop_regex(
+        root / "source" / "extensions" / "isaacsim.core.includes" / "premake5.lua",
+        r"\n-- -------------------------------------\n"
+        r"-- Build the C\+\+ plugin that will be loaded by the tests\n"
+        r'project_ext_tests\(ext, "isaacsim\.core\.includes\.tests"\).*?'
+        r"filter \{\}\n\n",
+    )
+    drop_regex(
+        root / "source" / "extensions" / "isaacsim.ros2.bridge" / "premake5.lua",
+        r"\n-- Build the C\+\+ plugin that will be loaded by the tests\n"
+        r'project_ext_tests\(ext, "isaacsim\.ros2\.bridge\.backend_tests"\).*?'
+        r"filter \{\}\n",
+    )
+
+    core_includes_config = root / "source" / "extensions" / "isaacsim.core.includes" / "config" / "extension.toml"
+    core_includes_config.write_text(
+        replace_block(
+            core_includes_config.read_text(),
+            """[[test]]
+enabled = true
+dependencies = [
+    "omni.kit.test",
+]
+cppTests.libraries = [
+    "bin/${lib_prefix}isaacsim.core.includes.tests${lib_ext}",
+]
+""",
+            """[[test]]
+enabled = false
+dependencies = [
+    "omni.kit.test",
+]
+cppTests.libraries = [
+    "bin/${lib_prefix}isaacsim.core.includes.tests${lib_ext}",
+]
+""",
+            "isaacsim.core.includes test",
+        )
+    )
+
+    ros2_bridge_config = root / "source" / "extensions" / "isaacsim.ros2.bridge" / "config" / "extension.toml"
+    ros2_bridge_config.write_text(
+        replace_block(
+            ros2_bridge_config.read_text(),
+            """[[test]]
+name = "doctest"
+enabled = true
+""",
+            """[[test]]
+name = "doctest"
+enabled = false
+""",
+            "isaacsim.ros2.bridge doctest",
+        )
+    )
+
+
+def patch_platform_headers(root: Path) -> None:
+    platform_header = (
+        root
+        / "source"
+        / "extensions"
+        / "isaacsim.core.includes"
+        / "include"
+        / "isaacsim"
+        / "core"
+        / "includes"
+        / "core"
+        / "Platform.h"
+    )
+    text = platform_header.read_text()
+    if "#include <cstdint>" not in text:
+        platform_header.write_text(
+            text.replace("#    include <unistd.h>\n", "#    include <unistd.h>\n#    include <cstdint>\n")
+        )
+
+
+def write_extscache_app(root: Path) -> None:
+    app_dir = root / "source" / "apps"
+    app_dir.mkdir(parents=True, exist_ok=True)
+    (app_dir / "conda.extscache.kit").write_text(
+        """[settings.app.exts]
+folders = [
+    "${app}/../exts",
+    "${app}",
+    "${app}/../extsDeprecated",
+]
+
+[dependencies]
+"omni.usd.core" = {}
+"usdrt.scenegraph" = {}
+"omni.graph.tools" = {}
+"isaacsim.util.debug_draw" = {}
+"omni.kit.asset_converter" = {}
+"""
+    )
+
+
+def main() -> None:
+    root = Path.cwd()
+    patch_repo_toml(root)
+    patch_packman_manifests(root)
+    patch_python_dependency_manifests(root)
+    disable_unbuildable_tests(root)
+    patch_platform_headers(root)
+    write_extscache_app(root)
+
+
+if __name__ == "__main__":
+    main()
