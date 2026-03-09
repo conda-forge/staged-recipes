@@ -7,34 +7,52 @@ package:
   version: ${{ version }}
 
 source:
-  - if: linux-64
+  - if: target_platform == "linux-64"
     then:
       url: https://github.com/github/copilot-cli/releases/download/v${{ version }}/copilot-linux-x64.tar.gz
       sha256: 521f87d04f073356c65ad973db7124b32ff3a23fd3257f0cd3fcf4c5d4649047
+
+  - if: target_platform == "osx-arm64"
+    then:
+      url: https://github.com/github/copilot-cli/releases/download/v${{ version }}/copilot-darwin-arm64.tar.gz
+      sha256: 064d202dc8e551fe1101d8888f33a936be584981e71526c06519952ede1947cc
+
+  - if: target_platform == "osx-64"
+    then:
+      url: https://github.com/github/copilot-cli/releases/download/v${{ version }}/copilot-darwin-x64.tar.gz
+      sha256: f01605285c7685d07139d7bfba6eae67c5400a81c3df92f6ff75b6962d11d925
+
+  - if: target_platform == "win-64"
+    then:
+      url: https://github.com/github/copilot-cli/releases/download/v${{ version }}/copilot-win32-x64.zip
+      sha256: 14f7e639721861ad49519863aad154925ed442b653dc3306efd68e6383b03ca8
 
   - url: https://raw.githubusercontent.com/github/copilot-cli/refs/tags/v${{ version }}/LICENSE.md
     sha256: 1fbd0dcc55c66738b1b591632132c927de20c8443dff1d55b4851e378883e402
 
 
 build:
-  skip:
-    - not linux-64
   number: 0
-  script: |
-    ls -la
-    chmod +x ./copilot
-    mkdir -p "${PREFIX}/bin"
-    cp ./copilot "${PREFIX}/bin/copilot"
 
 
 tests:
-  - requirements:
-      run:
-        - ripgrep
-    script:
-      content: |
-        set -euxo pipefail
-        copilot --version | rg '${{ version }}'
+  - if: unix
+    then:
+      - requirements:
+          run:
+            - ripgrep
+        script:
+            content: |
+              set -euxo pipefail
+              copilot --version | rg '${{ version }}'
+    else:
+      - requirements:
+          run:
+            - ripgrep
+        script:
+            content: |
+              copilot --version | rg "${{ version }}"
+              if errorlevel 1 exit /b 1
 
 
 about:
