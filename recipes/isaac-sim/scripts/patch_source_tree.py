@@ -164,14 +164,22 @@ def patch_packman_manifests(root: Path) -> None:
     )
 
     isaac_packman = root / "deps" / "isaac-sim.packman.xml"
-    for name in ("octomap", "tinyxml2", "nlohmann_json", "rapidjson", "nv_ros2_humble", "nv_ros2_jazzy"):
+    for name in ("octomap", "tinyxml2", "nlohmann_json", "rapidjson", "lula", "nv_ros2_humble", "nv_ros2_jazzy"):
         drop_regex(
             isaac_packman,
-            rf'\s*<dependency name="{re.escape(name)}" linkPath="[^"]+">.*?</dependency>\n',
+            rf'\s*<dependency name="{re.escape(name)}" linkPath="[^"]+">.*?</dependency>',
         )
 
 
 def patch_python_dependency_manifests(root: Path) -> None:
+    pip_lula = root / "deps" / "pip_lula.toml"
+    text = pip_lula.read_text()
+    text = text.replace(
+        'extra_args = ["--no-index", "-f", "../_build/target-deps/lula/pip-packages"]',
+        'extra_args = ["--no-index", "-f", "_build/target-deps/lula/pip-packages"]',
+    )
+    pip_lula.write_text(text)
+
     pip_usd_to_urdf = root / "deps" / "pip_usd_to_urdf.toml"
     text = pip_usd_to_urdf.read_text()
     text = text.replace(
