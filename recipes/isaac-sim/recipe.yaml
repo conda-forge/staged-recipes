@@ -1,0 +1,93 @@
+context:
+  version: "5.1.0"
+
+package:
+  name: isaac-sim
+  version: ${{ version }}
+
+source:
+  url: https://github.com/isaac-sim/IsaacSim/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 70e0dffd4932a37a00ce8133005fa2b70919ea68fbbf025315155c34d2e2d934
+
+build:
+  number: 0
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      - cuda_compiler_version
+    down_prioritize_variant: ${{ 1 if cuda_compiler_version == "None" else 0 }}
+  skip:
+    - win
+    - osx
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - if: target_platform == "linux-64" and cuda_compiler_version != "None"
+      then:
+        - cuda-crt-dev_linux-64
+    - curl
+    - git
+    - make
+    - pkg-config
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-cudart-dev
+        - cuda-cudart-static
+        - cuda-driver-dev
+        - cuda-nvcc
+        - cuda-version ${{ cuda_compiler_version }}.*
+  host:
+    - fmt
+    - jinja2
+    - lxml
+    - ms-gsl
+    - nlohmann_json
+    - nss
+    - nvtx
+    - octomap
+    - pip
+    - pybind11
+    - python
+    - rapidjson
+    - setuptools <81
+    - setuptools-scm
+    - tinyxml2
+  run:
+    - isaac-lab >=2.3.2,<2.4
+    - python
+tests:
+  - script:
+      - test -d "${PREFIX}/lib/isaac-sim/kit"
+      - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.app.selector/isaacsim/app/selector"
+      - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.version/isaacsim/core/version"
+      - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.deprecation_manager/isaacsim/core/deprecation_manager"
+  - package_contents:
+      files:
+        - bin/isaac-sim
+        - bin/isaac-sim-selector
+        - lib/isaac-sim/isaac-sim.sh
+        - lib/isaac-sim/isaac-sim.selector.sh
+        - lib/isaac-sim/apps/isaacsim.exp.full.kit
+        - lib/isaac-sim/extsDeprecated/omni.isaac.ros2_bridge/config/extension.toml
+        - lib/isaac-sim/exts/isaacsim.core.nodes/config/extension.toml
+
+about:
+  homepage: https://github.com/isaac-sim/IsaacSim
+  summary: An open-source simulation platform built on NVIDIA Omniverse.
+  description: |
+    NVIDIA Isaac Sim™ is a simulation platform built on NVIDIA Omniverse,
+    designed to develop, test, train, and deploy AI-powered robots in realistic
+    virtual environments.
+  license: Apache-2.0 AND LicenseRef-NVIDIA-Isaac-Sim-Additional-Software-And-Materials-License
+  license_file:
+    - LICENSE
+    - NVIDIA-ISAAC-SIM-ADDITIONAL-LICENSE.txt
+  documentation: https://docs.isaacsim.omniverse.nvidia.com/5.1.0/index.html
+  repository: https://github.com/isaac-sim/IsaacSim
+
+extra:
+  recipe-maintainers:
+    - flferretti
