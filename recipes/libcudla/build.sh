@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -u -o pipefail
+set -x -e -u -o pipefail
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p "${PREFIX}/lib"
@@ -7,7 +7,6 @@ mkdir -p "${PREFIX}/lib"
 [[ -d "$PREFIX/lib/pkgconfig" ]] && sed -E -i "s|cudaroot=.+|cudaroot=$PREFIX|g" $PREFIX/lib/pkgconfig/cudla*.pc
 
 [[ ${target_platform} == "linux-64" ]] && targetsDir="targets/x86_64-linux"
-[[ ${target_platform} == "linux-ppc64le" ]] && targetsDir="targets/ppc64le-linux"
 [[ ${target_platform} == "linux-aarch64" ]] && targetsDir="targets/sbsa-linux"
 
 for i in `ls`; do
@@ -22,7 +21,7 @@ for i in `ls`; do
         if [[ $i == "lib" ]]; then
             for j in "$i"/*.so*; do
                 # Shared libraries are symlinked in $PREFIX/lib
-                ln -s ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
+                ln -sv ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
 
                 if [[ $j =~ \.so\. ]]; then
                     patchelf --set-rpath '$ORIGIN' --force-rpath ${PREFIX}/${targetsDir}/$j
