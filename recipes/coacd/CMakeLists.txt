@@ -29,23 +29,22 @@ find_package(Threads REQUIRED)
 
 file(GLOB_RECURSE COACD_SRC "src/*.cpp")
 add_library(
-    coacd
+    _coacd
     SHARED
     ${COACD_SRC}
     "public/coacd.cpp"
 )
-set_target_properties(coacd PROPERTIES OUTPUT_NAME "_coacd")
 
-target_compile_definitions(coacd PRIVATE WITH_3RD_PARTY_LIBS=1)
+target_compile_definitions(_coacd PRIVATE WITH_3RD_PARTY_LIBS=1)
 
-target_include_directories(coacd PRIVATE 3rd/cdt/CDT)
-target_include_directories(coacd PUBLIC
+target_include_directories(_coacd PRIVATE 3rd/cdt/CDT)
+target_include_directories(_coacd PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
     $<INSTALL_INTERFACE:include/coacd>
 )
 
 target_link_libraries(
-    coacd
+    _coacd
     PRIVATE
     spdlog::spdlog
     Threads::Threads
@@ -61,7 +60,7 @@ add_executable(main main.cpp)
 target_link_libraries(
     main
     PRIVATE
-    coacd
+    _coacd
     spdlog::spdlog
     OpenVDB::openvdb
 )
@@ -73,7 +72,7 @@ target_link_libraries(
 include(GNUInstallDirs)
 
 install(
-    TARGETS coacd
+    TARGETS _coacd
     EXPORT coacdTargets
 )
 
