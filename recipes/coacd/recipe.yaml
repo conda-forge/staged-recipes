@@ -1,0 +1,144 @@
+schema_version: 1
+
+context:
+  name: coacd
+  version: 1.0.7
+  cdt_vendor_version: 1.4.4
+
+recipe:
+  name: ${{ name }}-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/SarahWeiii/CoACD/archive/refs/tags/${{ version }}.zip
+    sha256: fce6ecc14dd248234111552592b2a80b16de716bc85c8c3a6346028195d5d083
+    patches:
+      - 01-add-missing-cstdint-include.patch
+      - 02-fix-spdlog-v1-compatibility-and-constexpr.patch
+      - 03-fix-missing-std-namespace-for-string.patch
+      - 04-python-load-shared-library-from-system.patch
+      - 05-python-setup.patch
+
+  - url: https://github.com/artem-ogre/CDT/archive/refs/tags/${{ cdt_vendor_version }}.tar.gz
+    sha256: 97e57bdd1cf8219dcc81634236a502390a20dda3599dd3414a74343b7f03427f
+    target_directory: 3rd/cdt
+
+  - path: CMakeLists.txt
+    target_directory: .
+
+build:
+  number: 0
+
+outputs:
+  # =====================
+  # C++ library and C-API
+  # =====================
+  - package:
+      name: libcoacd
+    build:
+      script:
+        - if: unix
+          then:
+            - echo ${CMAKE_ARGS}
+            - cmake -S . -B build -GNinja
+              ${CMAKE_ARGS}
+              -DBUILD_SHARED_LIBS=ON
+              -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
+        - if: win
+          then:
+            - echo %CMAKE_ARGS%
+            - cmake -S . -B build -GNinja
+              %CMAKE_ARGS%
+              -DBUILD_SHARED_LIBS=ON
+              -DCMAKE_POLICY_DEFAULT_CMP0167=NEW
+        - cmake --build build --config Release
+        - cmake --install build --config Release
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - make
+        - ninja
+        - pkg-config
+      host:
+        - zlib >=1.2.11
+        - libboost-python-devel >=1.81.0
+        - openvdb >=8.2.0
+        - tbb-devel >=2022.0.0
+        - spdlog >=1.8.2
+        - eigen >=3.4.0
+        - fmt
+      run_exports:
+        - ${{ pin_subpackage('libcoacd', upper_bound='x.x.x') }}
+      ignore_run_exports:
+        from_package:
+          - libboost-python-devel
+          - zlib
+    tests:
+      - script:
+          - cmake-package-check coacd --targets CoACD::_coacd
+        requirements:
+          run:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - cmake-package-check
+  # ==============
+  # Python package
+  # ==============
+  - package:
+      name: coacd
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - coacd=coacd.cli:main
+      script:
+        - if: unix
+          then:
+            - mv python/package/bin/coacd python/package/cli.py
+        - if: win
+          then:
+            - move python\package\bin\coacd python\package\cli.py
+        - python -m pip install . --no-deps -vv --no-build-isolation
+    requirements:
+      build:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools
+      run:
+        - ${{ pin_subpackage("libcoacd", exact=True) }}
+        - numpy
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+            - coacd
+          pip_check: true
+      - script:
+          - coacd -i examples/Bottle.obj -o Bottle_cvx.gltf -t 0.05
+          - python run_tests.py
+        files:
+          source:
+            - examples/
+            - run_tests.py
+        requirements:
+          run:
+            - python 3.11.*
+            - trimesh
+
+about:
+  homepage: https://colin97.github.io/CoACD
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - 3rd/cdt/LICENSE
+  repository: https://github.com/SarahWeiii/CoACD
+  summary: Approximate Convex Decomposition for 3D Meshes with Collision-Aware Concavity and Tree Search
+
+extra:
+  feedstock-name: coacd
+  recipe-maintainers:
+    - diegoferigo
