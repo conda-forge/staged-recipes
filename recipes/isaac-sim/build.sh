@@ -353,8 +353,6 @@ configure_kit_python_layout() {
     ln -sfn "../../../../bin" "${kit_python_dir}/bin"
     ln -sfn "../../../../lib" "${kit_python_dir}/lib"
     ln -sfn "../../../../include" "${kit_python_dir}/include"
-    ln -sfn "../../../../bin/python" "${kit_python_dir}/python"
-    ln -sfn "../../../../bin/python3" "${kit_python_dir}/python3"
 }
 
 write_launcher_wrapper() {
@@ -412,6 +410,9 @@ install_launchers() {
 cleanup_install_tree() {
     log "Removing static archives"
     find "${install_root}" -type f \( -name '*.a' -o -name '*.la' \) -delete
+
+    # These top-level links are not part of the intended isaac-sim payload.
+    rm -f "${PREFIX}/python" "${PREFIX}/python3"
 }
 
 main() {
