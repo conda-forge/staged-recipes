@@ -225,7 +225,7 @@ def get_config(arch, channel_urls):
         arch=arch,
         exclusive_config_files=exclusive_config_files,
         channel_urls=channel_urls,
-        error_overlinking=True,
+        error_overlinking=False,
     )
     return config
 
