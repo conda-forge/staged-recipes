@@ -157,6 +157,18 @@ def patch_packman_manifests(root: Path) -> None:
 
     drop_regex(
         kit_sdk_deps,
+        r"\n\s*<import path=\"\.\./_build/target-deps/omni_physics/\$\{config\}/deps/schema-deps\.packman\.xml\">\n"
+        r"\s*<filter include=\"usd_ext_physics_\$\{config\}\" />\n"
+        r"\s*</import>\n",
+    )
+    drop_regex(kit_sdk_deps, r'^\s*<filter include="usd_ext_physics_\$\{config\}" />\n')
+    drop_regex(
+        kit_sdk_deps,
+        r'\s*<dependency name="usd_ext_physics_\$\{config\}" linkPath="\.\./_build/target-deps/usd_ext_physics/\$\{config\}" />',
+    )
+
+    drop_regex(
+        kit_sdk_deps,
         r"\n\s*<!-- The doctest package imported from kit-kernel is not yet available\. -->\n"
         r"\s*<dependency name=\"doctest\" linkPath=\"[^\"]+\">\n"
         r"\s*<package name=\"doctest\" version=\"[^\"]+\" />\n"
@@ -192,6 +204,10 @@ def patch_python_dependency_manifests(root: Path) -> None:
     )
     text = text.replace(
         'extra_args = ["--extra-index-url", "https://pypi.org/simple"]',
+        'extra_args = ["--no-index", "-f", "vendor/pip/usd_to_urdf"]',
+    )
+    text = text.replace(
+        'extra_args = ["--no-index", "-f", "../vendor/pip/usd_to_urdf"]',
         'extra_args = ["--no-index", "-f", "vendor/pip/usd_to_urdf"]',
     )
     pip_usd_to_urdf.write_text(text)
