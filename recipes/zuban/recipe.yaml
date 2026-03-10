@@ -1,0 +1,73 @@
+context:
+  version: "0.6.1"
+
+package:
+  name: zuban
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/zubanls/zuban/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 8e2548add41d89862988bfb1168df0955bbf792a9473d58c55ba334dd43e77bf
+  - url: https://github.com/python/typeshed/archive/0e9b8c99ba01717d737de8b01ed647ef2f2ac9e5.tar.gz
+    sha256: 8f1ab8e6bb78da727159acad2369dc0c63d9fc96db19d24ad4fdd9536796d0fb
+    target_directory: third_party/typeshed
+  - url: https://github.com/typeddjango/django-stubs/archive/e82f5d126b1e15281e2e32ce746ce38e25105952.tar.gz
+    sha256: 0fb632c75a31758a2f2bb5bf00354b2dac749f3a2d292848b3430bfc1c358541
+    target_directory: third_party/django-stubs
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/zuban
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/zuban
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - zuban --help
+      - zmypy --help
+      - zubanls --help
+  - package_contents:
+      bin:
+        - zuban
+        - zmypy
+        - zubanls
+      strict: true
+
+about:
+  homepage: https://zubanls.com
+  summary: A high-performance Python type checker and language server written in Rust
+  description: |
+    Zuban is a high-performance Python Language Server and type checker
+    implemented in Rust. It offers 20-200x faster performance than Mypy with
+    significantly less memory and CPU usage than Pyright/Pylance. It supports
+    both a PyRight-like mode and a Mypy-compatible mode, and provides LSP
+    features including diagnostics, completions, goto definition, references,
+    rename, hover, and document highlighting.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - third_party/django-stubs/LICENSE.md
+    - third_party/typeshed/LICENSE
+  documentation: https://zubanls.com
+  repository: https://github.com/zubanls/zuban
+
+extra:
+  recipe-maintainers:
+    - pavelzw
