@@ -99,14 +99,14 @@ stage_packman_archive() {
     "${extractor}" x -y -bd "-o${destination}" "${archive_path}" >/dev/null
 }
 
-link_packman_target_dep() {
+materialize_packman_target_dep() {
     local source_dir="$1"
     local destination="$2"
 
     require_path "${source_dir}"
     rm -rf "${destination}"
     mkdir -p "$(dirname "${destination}")"
-    ln -sfn "${source_dir}" "${destination}"
+    cp -a "${source_dir}" "${destination}"
 }
 
 stage_packman_payloads() {
@@ -129,15 +129,15 @@ stage_packman_payloads() {
 
     # Upstream looks for these payloads under _build/target-deps even after we
     # remove the corresponding packman dependencies from the manifests.
-    link_packman_target_dep \
+    materialize_packman_target_dep \
         "${PM_PACKAGES_ROOT}/chk/lula/${lula_version}" \
         "${source_root}/_build/target-deps/lula"
     require_path "${source_root}/_build/target-deps/lula/pip-packages/nvidia_lula_no_cuda-0.10.1-cp311-cp311-linux_x86_64.whl"
 
-    link_packman_target_dep \
+    materialize_packman_target_dep \
         "${PM_PACKAGES_ROOT}/chk/usd_ext_physics/${usd_ext_physics_version}" \
         "${source_root}/_build/target-deps/usd_ext_physics/release"
-    link_packman_target_dep \
+    materialize_packman_target_dep \
         "${PM_PACKAGES_ROOT}/chk/usd_ext_physics/${usd_ext_physics_version}" \
         "${source_root}/_build/target-deps/usd_ext_physics/debug"
 }
