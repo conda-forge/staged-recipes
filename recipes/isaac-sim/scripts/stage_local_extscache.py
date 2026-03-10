@@ -66,6 +66,30 @@ def symlink_or_copy(target: Path, link_path: Path) -> None:
                 shutil.copytree(target, link_path, symlinks=True)
 
 
+def patch_omni_graph_tools(extscache_root: Path) -> None:
+    tools_dir = extscache_root / "omni.graph.tools-1.79.2+69cbf6ad"
+    attribute_unions = (
+        tools_dir
+        / "omni"
+        / "graph"
+        / "tools"
+        / "_impl"
+        / "node_generator"
+        / "attributes"
+        / "attribute_unions.py"
+    )
+    if not attribute_unions.is_file():
+        raise SystemExit(f"Missing omni.graph.tools attribute union helper: {attribute_unions}")
+
+    text = attribute_unions.read_text()
+    original = """    with suppress(StopIteration):\n        local_ext = next(parent_dir for parent_dir in Path(__file__).parents if parent_dir.name == \"omni.graph.tools\")\n        local_path = (local_ext / \"ogn_config\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():  # pragma: no cover   Old configuration\n            return local_path\n        # kit-kernel uses an alternate path.\n        local_path = (local_ext / \"ogn\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():  # pragma: no cover   Old configuration\n            return local_path\n"""
+    replacement = """    with suppress(StopIteration):\n        local_ext = next(parent_dir for parent_dir in Path(__file__).parents if parent_dir.name == \"omni.graph.tools\")\n        local_path = (local_ext / \"ogn_config\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():  # pragma: no cover   Old configuration\n            return local_path\n        # kit-kernel uses an alternate path.\n        local_path = (local_ext / \"ogn\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():  # pragma: no cover   Old configuration\n            return local_path\n\n    # Vendored extscache bundles keep the version in the directory name.\n    with suppress(StopIteration):\n        local_ext = next(parent_dir for parent_dir in Path(__file__).parents if parent_dir.name.startswith(\"omni.graph.tools-\"))\n        local_path = (local_ext / \"ogn_config\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():\n            return local_path\n        local_path = (local_ext / \"ogn\" / ATTRIBUTE_UNION_CONFIG_FILE_NAME).resolve()\n        if local_path.is_file():\n            return local_path\n"""
+    if original not in text:
+        raise SystemExit("Unexpected omni.graph.tools attribute_unions.py content")
+
+    attribute_unions.write_text(text.replace(original, replacement))
+
+
 def main() -> None:
     args = parse_args()
     root = args.root.resolve()
@@ -82,6 +106,8 @@ def main() -> None:
         extracted_dir = extscache_dir / extracted_name
         materialize_directory(source_dir, extracted_dir)
         symlink_or_copy(extracted_dir, extsbuild_dir / link_name)
+
+    patch_omni_graph_tools(extscache_dir)
 
 
 if __name__ == "__main__":
