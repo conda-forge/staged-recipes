@@ -35,7 +35,6 @@ def patch_repo_toml(root: Path) -> None:
 ]""",
         """fetch.pip.files_to_pull = [
   "${root}/deps/pip_lula.toml",
-  "${root}/deps/pip_usd_to_urdf.toml",
 ]""",
         "fetch.pip.files_to_pull",
     )
@@ -191,26 +190,6 @@ def patch_python_dependency_manifests(root: Path) -> None:
         'extra_args = ["--no-index", "-f", "_build/target-deps/lula/pip-packages"]',
     )
     pip_lula.write_text(text)
-
-    pip_usd_to_urdf = root / "deps" / "pip_usd_to_urdf.toml"
-    text = pip_usd_to_urdf.read_text()
-    text = text.replace(
-        '"lxml==5.4.0",                   # SWIPAT filed under: https://nvbugs/4248625\n',
-        "",
-    )
-    text = text.replace(
-        '"setuptools_scm==8.2.0",         # SWIPAT filed under: https://nvbugs/4248640\n',
-        "",
-    )
-    text = text.replace(
-        'extra_args = ["--extra-index-url", "https://pypi.org/simple"]',
-        'extra_args = ["--no-index", "-f", "vendor/pip/usd_to_urdf"]',
-    )
-    text = text.replace(
-        'extra_args = ["--no-index", "-f", "../vendor/pip/usd_to_urdf"]',
-        'extra_args = ["--no-index", "-f", "vendor/pip/usd_to_urdf"]',
-    )
-    pip_usd_to_urdf.write_text(text)
 
 
 def replace_text(path: Path, old: str, new: str, description: str) -> None:

@@ -14,7 +14,6 @@ export ISAACSIM_ROOT="${root}"
 export PATH="${root}:${root}/kit:${prefix}/bin:${PATH}"
 export LD_LIBRARY_PATH="${root}:${root}/kit:${root}/kit/lib:${prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 export PYTHONPATH="${prefix}/lib/${python_mm}/site-packages${PYTHONPATH:+:${PYTHONPATH}}"
+unset PYTHONHOME
 
-exec "${root}/isaac-sim.sh" \
-    "--/plugins/carb.scripting-python.plugin/pythonHome=${prefix}" \
-    "$@"
+exec "${root}/isaac-sim.sh" "$@"

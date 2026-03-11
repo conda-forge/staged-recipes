@@ -23,6 +23,26 @@ log() {
     printf '==> %s\n' "$*"
 }
 
+apply_local_overlay() {
+    local overlay_root="${source_root}/local-overlay"
+
+    if [[ ! -d "${overlay_root}" ]]; then
+        return
+    fi
+
+    log "Applying local source overlay"
+
+    if [[ -d "${overlay_root}/vendor" ]]; then
+        mkdir -p "${source_root}/vendor"
+        cp -a "${overlay_root}/vendor/." "${source_root}/vendor/"
+    fi
+
+    if [[ -d "${overlay_root}/source" ]]; then
+        mkdir -p "${source_root}/source"
+        cp -a "${overlay_root}/source/." "${source_root}/source/"
+    fi
+}
+
 require_path() {
     local path="$1"
     if [[ ! -e "${path}" ]]; then
@@ -140,6 +160,21 @@ stage_packman_payloads() {
     materialize_packman_target_dep \
         "${PM_PACKAGES_ROOT}/chk/usd_ext_physics/${usd_ext_physics_version}" \
         "${source_root}/_build/target-deps/usd_ext_physics/debug"
+}
+
+stage_python_prebundles() {
+    local source_dir="${source_root}/vendor/python-prebundles/isaac_usd_to_urdf_prebundle"
+    local target_dir="${source_root}/_build/target-deps/isaac_usd_to_urdf_prebundle"
+
+    if [[ ! -d "${source_dir}" ]]; then
+        return
+    fi
+
+    log "Staging usd-to-urdf Python prebundle"
+    rm -rf "${target_dir}"
+    mkdir -p "${target_dir}"
+    cp -a "${source_dir}/." "${target_dir}/"
+    require_path "${target_dir}/nvidia/srl/from_usd/to_urdf.py"
 }
 
 initialize_packman() {
@@ -308,6 +343,7 @@ run_repoman_build() {
     "${source_root}/repair_packman_python.sh"
     initialize_packman
     stage_packman_payloads
+    stage_python_prebundles
     "${PYTHON}" tools/repoman/repoman.py build --release --skip-compiler-version-check -j "${CPU_COUNT:-1}"
 }
 
@@ -375,10 +411,9 @@ export ISAACSIM_ROOT="\${root}"
 export PATH="\${root}:\${root}/kit:\${prefix}/bin:\${PATH}"
 export LD_LIBRARY_PATH="\${root}:\${root}/kit:\${root}/kit/lib:\${prefix}/lib\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}"
 export PYTHONPATH="\${prefix}/lib/${python_mm}/site-packages\${PYTHONPATH:+:\${PYTHONPATH}}"
+unset PYTHONHOME
 
-exec "\${root}/${target_script}" \
-    "--/plugins/carb.scripting-python.plugin/pythonHome=\${prefix}" \
-    "\$@"
+exec "\${root}/${target_script}" "\$@"
 EOF
     chmod 0755 "${PREFIX}/bin/${command_name}"
 }
@@ -416,6 +451,7 @@ cleanup_install_tree() {
 }
 
 main() {
+    apply_local_overlay
     patch_source_tree
     install_build_helpers
     prepare_static_target_deps
