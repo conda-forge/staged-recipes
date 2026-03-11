@@ -13,6 +13,10 @@ npm install -ddd \
     --build-from-source \
     ${SRC_DIR}/zed-industries-claude-agent-acp-${PKG_VERSION}.tgz
 
+# Replace any symlinks with copies to avoid issues on Windows
+find ${PREFIX}/lib/node_modules -type l -exec sh -c \
+    'target=$(readlink -f "$1") && rm "$1" && cp -r "$target" "$1"' _ {} \;
+
 # Create license report for dependencies
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
