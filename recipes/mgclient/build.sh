@@ -7,3 +7,6 @@ cmake ${CMAKE_ARGS} -B build \
     -DBUILD_TESTING=OFF
 cmake --build build --parallel "${CPU_COUNT}"
 cmake --install build
+
+# conda-forge does not allow static libraries
+rm -f "${PREFIX}/lib/libmgclient.a"
