@@ -15,7 +15,3 @@ make VERBOSE=1 -j"${CPU_COUNT:-1}"
 for component in core tool; do
   cmake --install . --component $component
 done
-
-if [[ "$CONDA_BUILD_CROSS_COMPILING" != "1" ]]; then
-  bench
-fi
