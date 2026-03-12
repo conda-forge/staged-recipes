@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-sed -i '/SpeedTest/d' ip.C
+sed '/SpeedTest/d' ip.C > ip.tmp
+mv ip.tmp ip.C
 
 make -f pest_hp.mak cppp
 make -f pest_hp.mak clean

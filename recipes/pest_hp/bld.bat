@@ -1,3 +1,4 @@
+@echo on
 
 mkdir %PREFIX%\bin
-copy *.exe *.dll %PREFIX%\bin\
+xcopy *.exe *.dll %PREFIX%\bin\
