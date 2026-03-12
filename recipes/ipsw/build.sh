@@ -3,8 +3,7 @@ set -euxo pipefail
 IFS=$'\n\t'
 
 # Enable CGO for native library support
-export CGO_ENABLED=1
-export GOFLAGS="-mod=readonly"
+export GOFLAGS="${GOFLAGS} -mod=readonly"
 
 if [[ "${target_platform}" != "linux-"* && "${target_platform}" != "osx-"* ]]; then
   PREFIX=${PREFIX}/Library
