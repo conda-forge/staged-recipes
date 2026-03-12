@@ -8,7 +8,8 @@ cd pest_source || exit
 chmod a+rwx doc edpestex papestex pestex ppestex
 
 # SpeedTest is a unused function that causes a compilation error.
-sed -i '/SpeedTest/d' ip.c
+sed '/SpeedTest/d' ip.c > ip.c.tmp
+mv ip.c.tmp ip.c
 
 make cppp
 make -f pest.mak all
@@ -33,6 +34,8 @@ make -f sensan.mak all
 make clean
 make -f beopest.mak all
 make clean
+
+rm cppp  # only used for building, not needed at runtime
 
 mkdir -p "${PREFIX}/bin"
 find . -type f -executable -exec cp \{\} "${PREFIX}/bin/" \;
