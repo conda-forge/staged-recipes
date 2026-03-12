@@ -1,0 +1,74 @@
+context:
+  version: 0.7.1
+
+package:
+  name: h5cpp
+  version: ${{ version }}
+
+source:
+    url: https://github.com/ess-dmsc/h5cpp/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: e832fb729aaf328d0f30b34e577645f33fdaccda0e1b0c06cb9a3d412a728ad3
+    patches:
+     - if: win
+       then:
+          - remove-findhdf5.patch
+
+build:
+    number: 0
+    script:
+      - if: win
+        then:  set CL=/DH5_BUILT_AS_DYNAMIC_LIB=1 %CL%
+      - if: win
+        then: cmake -B build -G Ninja  %CMAKE_ARGS%  -DH5CPP_CONAN=DISABLE -DHDF5_FIND_DEBUG=ON  -DHDF5_USE_STATIC_LIBRARIES=OFF
+        else: cmake -B build -G Ninja  ${CMAKE_ARGS}  -DH5CPP_CONAN=DISABLE
+      - cmake --build build
+      - cmake --install build
+      - ctest --test-dir build --extra-verbose --no-tests=error
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - hdf5
+    - catch2
+    - zlib
+
+tests:
+    - package_contents:
+        include:
+          - h5cpp/file/file.hpp
+          - h5cpp/core/*.hpp
+          - h5cpp/attribute/*.hpp
+          - h5cpp/dataspace/*.hpp
+          - h5cpp/datatype/*.hpp
+          - h5cpp/error/*.hpp
+          - h5cpp/file/*.hpp
+          - h5cpp/filter/*.hpp
+          - h5cpp/node/*.hpp
+          - h5cpp/property/*.hpp
+          - h5cpp/utilities/*.hpp
+          - h5cpp/contrib/nexus/ebool.hpp
+          - h5cpp/contrib/stl/*.hpp
+        lib:  
+          - h5cpp
+
+about:
+  homepage: https://github.com/ess-dmsc/h5cpp
+  license: LGPL-2.1-only
+  license_family: LGPL
+  license_file: LICENSE
+  summary: C++ wrapper for hdf5
+  description: |
+    h5cpp is C++ wrapper for hdf5
+    which significantly simplifies development of HDF5 code.
+    It provides a high level abstraction to the HDF5 low-level types.
+  documentation: https://ess-dmsc.github.io/h5cpp
+  repository: https://github.com/ess-dmsc/h5cpp
+
+extra:
+  recipe-maintainers:
+    - jkotan
+    - yuelongyu
