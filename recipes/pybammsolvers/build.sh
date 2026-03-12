@@ -22,7 +22,4 @@ make install -j10
 
 cd $SRC_DIR
 
-export LDFLAGS="-L${SP_DIR}/"
-export LD_LIBRARY_PATH="${SP_DIR}/"
-
 python -m pip install -vv --no-deps --no-build-isolation .
