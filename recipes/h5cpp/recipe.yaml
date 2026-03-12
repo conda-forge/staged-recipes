@@ -8,23 +8,27 @@ package:
 source:
     url: https://github.com/ess-dmsc/h5cpp/archive/refs/tags/v${{ version }}.tar.gz
     sha256: e832fb729aaf328d0f30b34e577645f33fdaccda0e1b0c06cb9a3d412a728ad3
+    patches:
+     - if: win
+       then:
+          - remove-findhdf5.patch
 
 build:
     number: 0
     script:
-      - if: win
-        then:  pushd . && cd %SRC_DIR%\\cmake &&  ren FindHDF5.cmake tmp.tmp &&  popd
+      # - if: win
+      #   then:  pushd . && cd %SRC_DIR%\\cmake &&  ren FindHDF5.cmake tmp.tmp &&  popd
       - if: win
         then:  set CL=/DH5_BUILT_AS_DYNAMIC_LIB=1 %CL%
       - if: win
-        then: cmake -B build %CMAKE_ARGS%  -DH5CPP_CONAN=DISABLE -DHDF5_FIND_DEBUG=ON  -DHDF5_USE_STATIC_LIBRARIES=OFF
+        then: cmake -B build -G Ninja  %CMAKE_ARGS%  -DH5CPP_CONAN=DISABLE -DHDF5_FIND_DEBUG=ON  -DHDF5_USE_STATIC_LIBRARIES=OFF
         else: cmake -B build ${CMAKE_ARGS}  -DH5CPP_CONAN=DISABLE
       - cmake --build build
-      - if: win
-        then:  pushd . && cd %SRC_DIR%\cmake &&  ren tmp.tmp FindHDF5.cmake  &&  popd
+      # - if: win
+      #   then:  pushd . && cd %SRC_DIR%\cmake &&  ren tmp.tmp FindHDF5.cmake  &&  popd
       - cmake --install build
-      - if: win
-        then:  del /f %LIBRARY_LIB%\\cmake\\h5cpp-${{ version }}\\hdf5\\FindHDF5.cmake
+      # - if: win
+      #   then:  del /f %LIBRARY_LIB%\\cmake\\h5cpp-${{ version }}\\hdf5\\FindHDF5.cmake
       - ctest --test-dir build --extra-verbose --no-tests=error
 
 requirements:
@@ -32,7 +36,9 @@ requirements:
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
     - cmake
-    - make
+    - if: win
+      then: ninja
+      else: make
   host:
     - hdf5
     - catch2
