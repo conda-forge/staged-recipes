@@ -1,0 +1,119 @@
+From 56fc77d62462b367590509ad6dff289dddc3dea4 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 22:16:28 +0100
+Subject: [PATCH 4/6] fix: auto-detect plugin search path at runtime
+
+Use dladdr() to detect the directory containing libGaudiPluginMgr
+at runtime and prepend it to the plugin search path. This eliminates
+the need to set LD_LIBRARY_PATH or DYLD_LIBRARY_PATH for the plugin
+service to find .components files.
+
+This is particularly useful for conda/pixi environments where setting
+environment variables can be problematic.
+---
+ GaudiPluginService/src/PluginServiceV1.cpp | 29 ++++++++++++++++++++--
+ GaudiPluginService/src/PluginServiceV2.cpp | 25 ++++++++++++++++++-
+ 2 files changed, 51 insertions(+), 3 deletions(-)
+
+diff --git a/GaudiPluginService/src/PluginServiceV1.cpp b/GaudiPluginService/src/PluginServiceV1.cpp
+index 2ec602b7..d81b6041 100644
+--- a/GaudiPluginService/src/PluginServiceV1.cpp
++++ b/GaudiPluginService/src/PluginServiceV1.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include <cxxabi.h>
+ #include <sys/stat.h>
++#include <filesystem>
+ 
+ #define REG_SCOPE_LOCK std::lock_guard<std::recursive_mutex> _guard( m_mutex );
+ 
+@@ -103,6 +104,19 @@ namespace {
+   std::string old_style_name( const std::string& name ) {
+     return std::for_each( name.begin(), name.end(), OldStyleCnv() ).name;
+   }
++
++  /// Get the default plugin search path by detecting the library location at runtime
++  std::string get_default_search_path() {
++    static const std::string path = []() {
++      Dl_info info;
++      // Use the address of a function in this library to find where it's located
++      if ( dladdr( reinterpret_cast<void*>( &old_style_name ), &info ) && info.dli_fname ) {
++        return std::filesystem::path( info.dli_fname ).parent_path().string();
++      }
++      return std::string{};
++    }();
++    return path;
++  }
+ } // namespace
+ 
+ namespace Gaudi {
+@@ -155,9 +169,20 @@ namespace Gaudi {
+           const char* envVar = "LD_LIBRARY_PATH";
+           const char  sep    = ':';
+ #endif
+-          char* search_path = ::getenv( envVar );
+           logger().debug( std::string( "searching factories in " ) + envVar );
+-          std::string path = search_path ? std::string(search_path) : "/usr/lib64:/usr/lib:/usr/local/lib";
++          // Prepend the library's own directory as the default search path
++          std::string path;
++          std::string default_path = get_default_search_path();
++          if ( !default_path.empty() ) {
++            path = default_path + sep;
++          }
++          char* search_path = ::getenv( envVar );
++          if ( search_path ) {
++            path += search_path;
++          }
++          if ( path.empty() ) {
++            path = "/usr/lib64:/usr/lib:/usr/local/lib";
++          }
+           std::string::size_type pos    = 0;
+           std::string::size_type newpos = 0;
+           while ( pos != std::string::npos ) {
+diff --git a/GaudiPluginService/src/PluginServiceV2.cpp b/GaudiPluginService/src/PluginServiceV2.cpp
+index 4afd1187..d6181974 100644
+--- a/GaudiPluginService/src/PluginServiceV2.cpp
++++ b/GaudiPluginService/src/PluginServiceV2.cpp
+@@ -92,6 +92,19 @@ namespace {
+   std::string old_style_name( const std::string& name ) {
+     return std::for_each( name.begin(), name.end(), OldStyleCnv() ).name;
+   }
++
++  /// Get the default plugin search path by detecting the library location at runtime
++  std::string get_default_search_path() {
++    static const std::string path = []() {
++      Dl_info info;
++      // Use the address of a function in this library to find where it's located
++      if ( dladdr( reinterpret_cast<void*>( &old_style_name ), &info ) && info.dli_fname ) {
++        return fs::path( info.dli_fname ).parent_path().string();
++      }
++      return std::string{};
++    }();
++    return path;
++  }
+ } // namespace
+ 
+ namespace Gaudi {
+@@ -157,8 +170,18 @@ namespace Gaudi {
+           std::smatch matches;
+ 
+           std::string search_path;
++          // Prepend the library's own directory as the default search path
++          std::string default_path = get_default_search_path();
++          if ( !default_path.empty() ) {
++            search_path = default_path + sep;
++          }
+           const char* envPtr = std::getenv( envVar.c_str() );
+-          search_path = envPtr ? envPtr : "/usr/lib64:/usr/lib:/usr/local/lib";
++          if ( envPtr ) {
++            search_path += envPtr;
++          }
++          if ( search_path.empty() ) {
++            search_path = "/usr/lib64:/usr/lib:/usr/local/lib";
++          }
+           if ( search_path.empty() ) {
+             return;
+           }
+-- 
+2.48.1
+
