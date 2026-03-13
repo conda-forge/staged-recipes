@@ -8,7 +8,6 @@ if exist contrib (
 REM Set prefix for libosmium so CMake can find it
 set "LIBOSMIUM_PREFIX=%PREFIX%"
 set "PROTOZERO_PREFIX=%PREFIX%"
-set "LZ4_INCLUDE_DIR=%PREFIX%\include"
 
 REM Tell CMake to search conda environment first before system paths
 set "CMAKE_PREFIX_PATH=%PREFIX%"
