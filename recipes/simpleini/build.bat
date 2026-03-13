@@ -1,11 +1,8 @@
 setlocal EnableDelayedExpansion
 
-mkdir build
-cd build
-
 ::Configure
 cmake %CMAKE_ARGS% ^
-  -B . ^
+  -B build ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DBUILD_TESTING=OFF ^
@@ -13,9 +10,9 @@ cmake %CMAKE_ARGS% ^
 if errorlevel 1 exit 1
 
 :: Build.
-cmake --build .
+cmake --build build
 if errorlevel 1 exit 1
 
 :: Install.
-cmake --build . --target install
+cmake --install build
 if errorlevel 1 exit 1
