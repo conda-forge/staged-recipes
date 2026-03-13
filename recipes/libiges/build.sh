@@ -7,3 +7,4 @@ cmake ${CMAKE_ARGS} -B build -G Ninja \
 
 cmake --build build
 cmake --install build
+ctest --test-dir build/src --output-on-failure
