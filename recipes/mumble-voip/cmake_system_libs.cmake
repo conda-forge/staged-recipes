@@ -83,12 +83,11 @@ if(PkgConfig_FOUND)
         message(STATUS "Found Vorbis via pkg-config: ${Vorbis_VERSION}")
     endif()
 
-    # SpeexDSP is not available in conda-forge for Linux, use bundled version
     pkg_check_modules(SpeexDSP QUIET speexdsp)
     if(SpeexDSP_FOUND)
         message(STATUS "Found SpeexDSP via pkg-config: ${SpeexDSP_VERSION}")
     else()
-        message(STATUS "SpeexDSP not found - will use bundled version")
+        message(STATUS "SpeexDSP not found")
     endif()
 else()
     message(STATUS "PkgConfig not found - audio libraries will use bundled versions")
@@ -232,8 +231,6 @@ endif()
 
 if(SpeexDSP_FOUND)
     add_compile_definitions(USE_SYSTEM_SPEEXDSP)
-else()
-    message(STATUS "Using bundled SpeexDSP (conda-forge package not available on this platform)")
 endif()
 
 if(Tracy_FOUND)

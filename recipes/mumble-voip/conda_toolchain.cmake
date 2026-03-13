@@ -7,7 +7,11 @@ set(CMAKE_SYSTEM_NAME ${CMAKE_HOST_SYSTEM_NAME})
 # Use conda-forge environment variables
 if(DEFINED ENV{PREFIX})
     set(CMAKE_PREFIX_PATH "$ENV{PREFIX}" ${CMAKE_PREFIX_PATH})
-    set(CMAKE_FIND_ROOT_PATH "$ENV{PREFIX}")
+    # Append PREFIX to find root path; preserve sysroot set by conda compiler activation
+    list(APPEND CMAKE_FIND_ROOT_PATH "$ENV{PREFIX}")
+    if(DEFINED ENV{CONDA_BUILD_SYSROOT})
+        list(APPEND CMAKE_FIND_ROOT_PATH "$ENV{CONDA_BUILD_SYSROOT}")
+    endif()
 
     # Set standard paths
     list(APPEND CMAKE_PREFIX_PATH "$ENV{PREFIX}")
