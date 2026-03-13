@@ -1,23 +1,26 @@
 context:
   name: async-tiff
-  version: "0.7.0"
-  python_min: "3.10"
+  version: "0.7.1"
+  python_min: "3.11"
 
 package:
   name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
-  url: https://github.com/developmentseed/async-tiff/archive/refs/tags/py-v${{ version }}.tar.gz
-  sha256: 4eff220c6193146fba3b3f86dbc2212864996d62c8aef5f794ed73d5691aea53
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/async_tiff-${{ version }}.tar.gz
+  sha256: dbef87b2696bea06161c5fd0d9546700b8a30c04d3033c9b68b4b162c4cfa2dc
 
 build:
   number: 0
   python:
     version_independent: true
   script:
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation
+    env:
+      MATURIN_PEP517_ARGS: "--features=abi3-py311,extension-module,lerc"
+    content:
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
@@ -36,6 +39,7 @@ requirements:
         - python-abi3 ${{ python_min }}.*
   run:
     - python >= ${{ python_min }}
+    - obspec
 
 tests:
   - python:
@@ -49,11 +53,11 @@ tests:
       - if: unix and is_abi3
         then:
           - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-          - abi3audit $SP_DIR/async-tiff/async-tiff.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          - abi3audit $SP_DIR/async_tiff/_async_tiff.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
       - if: win and is_abi3
         then:
           - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
-          - abi3audit %SP_DIR%\\async-tiff\\async-tiff.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          - abi3audit %SP_DIR%\\async_tiff\\_async_tiff.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
     requirements:
       run:
         - abi3audit
@@ -64,7 +68,7 @@ about:
   summary: Low-level asynchronous TIFF reader.
   license: MIT OR Apache-2.0
   license_file:
-    - LICENSE.txt
+    - LICENSE
     - THIRDPARTY.yml
 
 extra:
