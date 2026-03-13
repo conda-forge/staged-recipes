@@ -16,8 +16,5 @@ SET VCPKG_FEATURE_FLAGS=manifests,registries
 SET CMAKE_GENERATOR=Visual Studio 17 2022
 SET CMAKE_GENERATOR_PLATFORM=x64
 
-:: Tell FindSuiteSparse.cmake (module mode, via patch 0005) where conda installed suitesparse/libklu
-SET SuiteSparse_ROOT=%LIBRARY_PREFIX%
-
 python -m pip install -vv --no-deps --no-build-isolation .
 if %errorlevel% NEQ 0 exit /b %errorlevel%
