@@ -1,14 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: ---- Step 1: clone and bootstrap vcpkg (for casadi + sundials[klu]) ----
 git clone https://github.com/microsoft/vcpkg --branch 2025.01.13
 SET VCPKG_ROOT=%CD%\vcpkg\
 
 CALL %VCPKG_ROOT%\bootstrap-vcpkg.bat
 if %errorlevel% NEQ 0 exit /b %errorlevel%
 
-:: ---- Step 2: build pybammsolvers using vcpkg for casadi + sundials ----
 SET PYBAMMSOLVERS_USE_VCPKG=ON
 SET VCPKG_ROOT_DIR=%VCPKG_ROOT%
 SET VCPKG_DEFAULT_TRIPLET=x64-windows-static-md
