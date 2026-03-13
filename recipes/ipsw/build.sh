@@ -6,11 +6,9 @@ IFS=$'\n\t'
 export GOFLAGS="${GOFLAGS} -mod=readonly"
 
 # Set up pkg-config for finding libraries
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CGO_CFLAGS="-I${PREFIX}/include"
 export CGO_CXXFLAGS=""
 export CGO_LDFLAGS="-L${PREFIX}/lib"
-unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
 
 # Build version info
 COMMIT="conda-forge-${PKG_VERSION}"
