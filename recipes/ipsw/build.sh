@@ -23,7 +23,5 @@ go build \
     -o "${PREFIX}/bin/ipsw" \
     ./cmd/ipsw
 
-go-licenses save . --save_path=license-files
-
 # Verify the binary was built
 "${PREFIX}/bin/ipsw" version
