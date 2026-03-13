@@ -55,13 +55,14 @@
 :: if errorlevel 1 exit 1
 
 :: Build version info
-set "COMMIT=conda-forge-%PKG_VERSION%"
-set "GOFLAGS=%GOFLAGS% -mod=readonly"
+set "COMMIT=conda-forge-%PKG_VERSION%" || goto :error
+set "GOFLAGS=%GOFLAGS% -mod=readonly" || goto :error
 
-go build \
-    -ldflags "-s -w \
-        -X github.com/blacktop/ipsw/cmd/ipsw/cmd.AppVersion=${PKG_VERSION} \
-        -X github.com/blacktop/ipsw/cmd/ipsw/cmd.AppBuildCommit=${COMMIT}" \
-    -o "${PREFIX}/Library/bin/ipsw" \
-    ./cmd/ipsw
-mv "%PREFIX%/Library/bin/ipsw" "%PREFIX%/Library/bin/ipsw.exe"
+go build -ldflags "-s -w -X github.com\blacktop\ipsw\cmd\ipsw\cmd.AppVersion=%PKG_VERSION% -X github.com\blacktop\ipsw\cmd\ipsw\cmd.AppBuildCommit=%COMMIT%" -o "${PREFIX}\Library\bin\ipsw" .\cmd\ipsw || goto :error
+mv "%PREFIX%\Library\bin\ipsw" "%PREFIX%\Library\bin\ipsw.exe" || goto :error
+
+goto :EOF
+
+:error
+echo Failed with error #%errorlevel%.
+exit 1
