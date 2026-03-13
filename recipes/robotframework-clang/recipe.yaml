@@ -1,0 +1,79 @@
+context:
+  name: robotframework-clang
+  version: "1.0.1"
+  xeus_cpp_version: "0.8.0"
+  clang_major: "21"
+  is_local: ${{ env.get("CI") == "false" }}
+  sha256: "e37eea881f91d6ff1ffd61db3b3b62f18109fc3fa460bf248993909ab7ab51b2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  path: ${{ ".." if is_local else undefined }}
+  url: ${{ undefined if is_local else ("https://github.com/maxrossello/robotframework-clang/archive/refs/tags/rf-clang-" + version + ".tar.gz") }}
+  sha256: ${{ undefined if is_local else sha256 }}
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - if: linux or win
+      then:
+        - clang ${{ clang_major }}.*
+        - clangxx ${{ clang_major }}.*
+  host:
+    - python
+    - pip
+    - setuptools >=61.0
+    - wheel
+  run:
+    - python
+    - robotframework
+    - jupyter_client
+    - docutils
+    - xeus-cpp >=${{ xeus_cpp_version }}
+    - clang ${{ clang_major }}.*
+    - clangxx ${{ clang_major }}.*
+
+tests:
+  - script:
+      - if: win
+        then:
+          - set "JUPYTER_PATH=%PREFIX%\Library\share\jupyter"
+      - jupyter kernelspec list
+      - robot -X --extension rst docs/tests.rst
+    files:
+      source:
+        - docs
+    requirements:
+      run:
+        - robotframework
+        - if: win
+          then:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            # Clang needed at runtime because xeus-cpp uses it as a library
+            - clang ${{ clang_major }}.*
+            - clangxx ${{ clang_major }}.*
+
+about:
+  homepage: https://github.com/maxrossello/robotframework-clang
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Robot Framework library for Clang-REPL execution via xeus-cpp
+  description: |
+    robotframework-clang is a Robot Framework library designed to execute 
+    and test C++ code interactively using Clang-REPL (via the xeus-cpp extension).
+    It allows for JIT compilation, state persistence across tests, and full 
+    support for modern C++ features.
+
+extra:
+  recipe-maintainers:
+    - maxrossello
