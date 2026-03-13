@@ -5,10 +5,6 @@ IFS=$'\n\t'
 # Enable CGO for native library support
 export GOFLAGS="${GOFLAGS} -mod=readonly"
 
-if [[ "${target_platform}" != "linux-"* && "${target_platform}" != "osx-"* ]]; then
-  PREFIX=${PREFIX}/Library
-fi
-
 # Set up pkg-config for finding libraries
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CGO_CFLAGS="-I${PREFIX}/include"
@@ -27,9 +23,7 @@ go build \
     -o "${PREFIX}/bin/ipsw" \
     ./cmd/ipsw
 
+go-licenses save . --save_path=license-files
+
 # Verify the binary was built
 "${PREFIX}/bin/ipsw" version
-
-if [[ "${target_platform}" != "linux-"* && "${target_platform}" != "osx-"* ]]; then
-  mv "${PREFIX}/bin/ipsw" "${PREFIX}/bin/ipsw.exe"
-fi
