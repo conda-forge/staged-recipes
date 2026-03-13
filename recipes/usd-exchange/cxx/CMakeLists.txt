@@ -82,6 +82,7 @@ target_link_libraries(
     usd_vt
     usd_work
 )
+target_compile_features(usdex_core PUBLIC cxx_std_17)
 
 add_library(usdex_rtx ${USDEX_RTX_SOURCES})
 target_include_directories(
