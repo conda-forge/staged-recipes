@@ -8,14 +8,11 @@ if [[ $target_platform == osx* ]] ; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-mkdir build
-cd build
-
 # Set CMAKE_INSTALL_RPATH_USE_LINK_PATH is necessary to link to libCollisionOBBCapsule
 # which installs to the non-standard location $PREFIX/plugins/CollisionOBBCapsule/lib
 cmake ${CMAKE_ARGS} \
-  -B . \
-  -S .. \
+  -B build \
+  -S . \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
@@ -24,7 +21,7 @@ cmake ${CMAKE_ARGS} \
   -DMODELORDERREDUCTION_BUILD_TESTS:BOOL=OFF
 
 # build
-cmake --build . --parallel ${CPU_COUNT}
+cmake --build build --parallel ${CPU_COUNT}
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --target install
+cmake --install build

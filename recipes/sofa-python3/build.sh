@@ -8,14 +8,11 @@ if [[ $target_platform == osx* ]] ; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-mkdir build
-cd build
-
 # We have to manually set the Rpath for Python packages to the lib/ directory using
 # the CMAKE_INSTALL_RPATH cmake variable.
 cmake ${CMAKE_ARGS} \
-  -B . \
-  -S .. \
+  -B build \
+  -S . \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib \
@@ -24,7 +21,7 @@ cmake ${CMAKE_ARGS} \
   -DSP3_BUILD_TEST:BOOL=OFF
 
 # build
-cmake --build . --parallel ${CPU_COUNT}
+cmake --build build --parallel ${CPU_COUNT}
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --target install
+cmake --install build

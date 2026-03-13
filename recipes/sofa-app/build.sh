@@ -10,52 +10,42 @@ fi
 
 # SceneChecking application
 # ----------
-rm -rf build-scene-checking
-
-mkdir build-scene-checking
-cd build-scene-checking
 
 # We have to manually set the Rpath for other SOFA libs to the lib/ directory using
 # the CMAKE_INSTALL_RPATH cmake variable, as SOFA CMakeLists are not designed 
 # initially for a per-component compilation & installation
 cmake ${CMAKE_ARGS} \
-  -B . \
-  -S ../applications/projects/SceneChecking/ \
+  -B build-scene-checking \
+  -S ./applications/projects/SceneChecking/ \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DSCENECHECKING_BUILD_TESTS=OFF \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib
 
 # build
-cmake --build . --parallel ${CPU_COUNT}
+cmake --build build-scene-checking --parallel ${CPU_COUNT}
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --target install
-
-cd ..
+cmake --install build-scene-checking
 
 # runSofa application
 # ----------
-rm -rf build-sofa-app
-
-mkdir build-sofa-app
-cd build-sofa-app
 
 # We have to manually set the Rpath for other SOFA libs to the lib/ directory using
 # the CMAKE_INSTALL_RPATH cmake variable, as SOFA CMakeLists are not designed 
 # initially for a per-component compilation & installation
 cmake ${CMAKE_ARGS} \
-  -B . \
-  -S ../applications/projects/runSofa/ \
+  -B build-sofa-app \
+  -S ./applications/projects/runSofa/ \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib
 
 # build
-cmake --build . --parallel ${CPU_COUNT}
+cmake --build build-sofa-app --parallel ${CPU_COUNT}
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --target install
+cmake --install build-sofa-app
 
 # For macOS, we have to provide this additionnal script as an hotfix
 # for users who would like to load SofaPython3 plugin in runSofa
@@ -65,24 +55,18 @@ if [[ $target_platform == osx* ]] ; then
     cp "${RECIPE_DIR}/hotfix-sofa-run-macos.sh" "${PREFIX}/bin/runSofa_with_python"
 fi
 
-cd ..
-
 # runSofa app requires some data ressources, which will
 # be included in this package
 # ----------
-rm -rf build-sofa-examples
-
-mkdir build-sofa-examples
-cd build-sofa-examples
 
 cmake ${CMAKE_ARGS} \
-  -B . \
-  -S ../examples/ \
+  -B build-sofa-examples \
+  -S ./examples/ \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release
 
 # build
-cmake --build . --parallel ${CPU_COUNT}
+cmake --build build-sofa-examples --parallel ${CPU_COUNT}
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --target install
+cmake --install build-sofa-examples

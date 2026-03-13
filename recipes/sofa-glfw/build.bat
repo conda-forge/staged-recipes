@@ -1,11 +1,8 @@
 setlocal EnableDelayedExpansion
 
-mkdir build
-cd build
-
 ::Configure
 cmake %CMAKE_ARGS% ^
-  -B . ^
+  -B build ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DPLUGIN_SOFAGLFW:BOOL=ON ^
@@ -16,16 +13,14 @@ cmake %CMAKE_ARGS% ^
 if errorlevel 1 exit 1
 
 :: Build.
-cmake --build . --parallel "%CPU_COUNT%"
+cmake --build build --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
 :: Install.
-cmake --build . --parallel "%CPU_COUNT%" --target install
+cmake --install build
 if errorlevel 1 exit 1
 
 :: Testing compilation as 3rd party
-cd ..
-mkdir build-test
 cmake %CMAKE_ARGS% ^
   -B build-test ^
   -S %SRC_DIR%\SofaImGui\extensions\SofaImGui.Camera ^
