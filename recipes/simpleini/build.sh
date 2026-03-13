@@ -1,18 +1,15 @@
 #!/bin/bash
 set -ex
 
-mkdir build
-cd build
-
 cmake ${CMAKE_ARGS} \
-  -B . \
+  -B build \
   -S .. \
   -G Ninja \
   -DBUILD_TESTING=OFF \
   -DCMAKE_BUILD_TYPE:STRING=Release
 
 # build
-cmake --build .
+cmake --build build
 
 # install
-cmake --build . --target install
+cmake --install build
