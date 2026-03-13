@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.28.3)
 
 project(usd-exchange LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
+# Ensure in Windows .dll and .exe end up in the same folders
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+
 set(USDEX_VERSION "${PROJECT_VERSION}" CACHE STRING "OpenUSD Exchange SDK version string")
 set(USDEX_BUILD_STRING "${USDEX_VERSION}" CACHE STRING "OpenUSD Exchange SDK build string")
 set(USDEX_WITH_PYTHON "1" CACHE STRING "Build configured with Python support")
@@ -105,7 +112,6 @@ set_target_properties(usdex_core PROPERTIES EXPORT_NAME usdex-core)
 set_target_properties(usdex_rtx PROPERTIES EXPORT_NAME usdex-rtx)
 
 include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
 include(CTest)
 
 install(
