@@ -15,27 +15,21 @@ build:
   number: 0
   script:
     - go-licenses save . --save_path=license-files --ignore github.com/runpod/runpodctl
-    - if: linux and x86_64
+    - if: unix
+      then: go build -v -o ${PREFIX}/bin/runpodctl -ldflags="-s -w -X main.Version=${PKG_VERSION}"
+    - if: win
+      then: go build -v -o %LIBRARY_BIN%\runpodctl.exe -ldflags="-s -X main.Version=%PKG_VERSION%"
+    - if: unix
       then:
-        - make linux-amd64
-        - mkdir -p ${PREFIX}/bin
-        - install -m 755 bin/runpodctl-linux-amd64 ${PREFIX}/bin/runpodctl
-    - if: osx and x86_64
-      then:
-        - make darwin-amd64
-        - mkdir -p ${PREFIX}/bin
-        - install -m 755 bin/runpodctl-darwin-amd64 ${PREFIX}/bin/runpodctl
-    - if: win and x86_64
-      then:
-        - make windows-amd64
-        - mkdir "%LIBRARY_BIN%"
-        - move bin\runpodctl-windows-amd64.exe "%LIBRARY_BIN%\runpodctl.exe"
+        - mkdir -p ${PREFIX}/share/zsh/site-functions ${PREFIX}/share/bash-completion/completions ${PREFIX}/share/fish/vendor_completions.d
+        - ${PREFIX}/bin/runpodctl completion --shell zsh > ${PREFIX}/share/zsh/site-functions/_runpodctl
+        - ${PREFIX}/bin/runpodctl completion --shell bash > ${PREFIX}/share/bash-completion/completions/runpodctl
+        - ${PREFIX}/bin/runpodctl completion --shell fish > ${PREFIX}/share/fish/vendor_completions.d/runpodctl.fish
 
 requirements:
   build:
     - ${{ compiler("go-nocgo") }}
     - go-licenses
-    - make
 
 tests:
   - script:
