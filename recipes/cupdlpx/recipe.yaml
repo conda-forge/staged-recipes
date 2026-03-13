@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  python_min: "3.9"
+  version: "0.2.7"
+
+package:
+  name: cupdlpx
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/cupdlpx/cupdlpx-${{ version }}.tar.gz
+  sha256: ff47af56867e293e5ffb6b6f231544ed9d0db5bc073478541aa47b4ba65fa4bb
+
+build:
+  number: 0
+  skip:
+    - osx-arm64
+  dynamic_linking:
+    missing_dso_allowlist:
+      - if: win
+        then: "*/nvcuda.dll"
+  # Ignore run exports from CUDA libraries in the host section
+  ignore_run_exports_from:
+    - libcublas-dev
+  # Ignore cuda-version directly. Do not ignore from {{ compiler('cuda') }}
+  # because this package has other exports
+  ignore_run_exports:
+    - cuda-version
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - cmake ${{ cmake_version }}
+    - if: win
+      then: ninja
+      else: make0
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("cuda") }}
+    - cuda-version =${{ cuda_version }}
+  host:
+    - python ${{ python_min }}.*
+    - scikit-build-core >=0.9.0
+    - pybind11 >=2.11.0
+    - numpy
+    - scipy
+    - pip
+    - libcublas-dev
+    - cuda-version={{ cuda_compiler_version }}
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.21
+    - scipy >=1.8
+    - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+    - libcublas
+
+tests:
+  - python:
+      imports:
+        - cupdlpx
+      pip_check: true
+      python_version: ${{ python_min }}.*
+
+about:
+  summary: Python bindings for cuPDLPx (GPU-accelerated first-order LP solver)
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://pypi.org/project/cupdlpx/
+
+extra:
+  recipe-maintainers:
+    - brynpickering
