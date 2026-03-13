@@ -4,8 +4,9 @@ project(usd-exchange-python LANGUAGES CXX)
 
 set(USDEX_VERSION "${PROJECT_VERSION}" CACHE STRING "OpenUSD Exchange SDK version string")
 
-find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(pxr REQUIRED)
 find_package(usd-exchange CONFIG REQUIRED)
 
 file(GLOB_RECURSE USDEX_CORE_PYTHON_BINDINGS CONFIGURE_DEPENDS source/core/python/bindings/*.cpp)

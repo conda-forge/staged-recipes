@@ -32,9 +32,8 @@ else()
     set(USDEX_VERSION_PATCH 0)
 endif()
 
+find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED)
-# Transitive dependency of pxr
-find_package(Python COMPONENTS Development REQUIRED)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -65,29 +64,14 @@ target_include_directories(
         $<BUILD_INTERFACE:${USDEX_GENERATED_HEADER_DIR}>
         $<BUILD_INTERFACE:${USDEX_GENERATED_USDEX_DIR}>
         $<INSTALL_INTERFACE:include>
+        ${PXR_INCLUDE_DIRS}
     PRIVATE
         ${Python_INCLUDE_DIRS}
 )
 target_link_libraries(
     usdex_core
     PUBLIC
-    usd_ar
-    usd_arch
-    usd_gf
-    usd_kind
-    usd_pcp
-    usd_plug
-    usd_python
-    usd_sdf
-    usd_tf
-    usd_usd
-    usd_usdGeom
-    usd_usdLux
-    usd_usdPhysics
-    usd_usdShade
-    usd_usdUtils
-    usd_vt
-    usd_work
+    ${PXR_LIBRARIES}
 )
 target_compile_features(usdex_core PUBLIC cxx_std_17)
 
@@ -160,7 +144,6 @@ if(BUILD_TESTING)
     find_package(doctest CONFIG REQUIRED)
     file(GLOB_RECURSE USDEX_CORE_DOCTEST_SOURCES CONFIGURE_DEPENDS source/core/tests/doctest/*.cpp)
     add_executable(usdex_core_doctest ${USDEX_CORE_DOCTEST_SOURCES})
-    target_include_directories(usdex_core_doctest PRIVATE ${Python_INCLUDE_DIRS})
-    target_link_libraries(usdex_core_doctest PRIVATE usdex_core doctest::doctest Python::Python usd_python usd_boost)
+    target_link_libraries(usdex_core_doctest PRIVATE usdex_core doctest::doctest)
     add_test(NAME usdex-core-doctest COMMAND usdex_core_doctest)
 endif()
