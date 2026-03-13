@@ -1,24 +1,27 @@
-From f498ada2dca16d8159acbf083786fe6187e4d843 Mon Sep 17 00:00:00 2001
+From 304e092fb0165c10fe0c3ec5132673db27d9479f Mon Sep 17 00:00:00 2001
 From: Olivier Roussel <olivier.roussel@inria.fr>
-Date: Thu, 4 Apr 2024 13:56:36 +0200
+Date: Mon, 28 Jul 2025 15:44:13 +0200
 Subject: [PATCH] hotfix for libpython linking on macOS
 
 ---
- CMake/SofaPython3Tools.cmake | 34 +------------------------------
- CMakeLists.txt               | 39 ------------------------------------
+ CMake/SofaPython3Tools.cmake | 37 +------------------------------
+ CMakeLists.txt               | 36 -------------------------------
  Plugin/CMakeLists.txt        | 12 ++++++++++-
- SofaPython3Config.cmake.in   | 37 ----------------------------------
+ SofaPython3Config.cmake.in   | 42 ------------------------------------
  Testing/CMakeLists.txt       |  5 +++++
- 5 files changed, 17 insertions(+), 110 deletions(-)
+ 5 files changed, 17 insertions(+), 115 deletions(-)
 
 diff --git a/CMake/SofaPython3Tools.cmake b/CMake/SofaPython3Tools.cmake
-index 678743f..e59bf80 100644
+index 678743f..5436b72 100644
 --- a/CMake/SofaPython3Tools.cmake
 +++ b/CMake/SofaPython3Tools.cmake
-@@ -117,41 +117,9 @@ function(SP3_add_python_module)
-     # We are doing manually what's usually done with pybind11_add_module(${A_TARGET} SHARED "${A_SOURCES}")
-     # since we got some problems on MacOS using recent versions of pybind11 where the SHARED argument wasn't taken
-     # into account
+@@ -114,44 +114,9 @@ function(SP3_add_python_module)
+ 
+     find_package(pybind11 CONFIG QUIET REQUIRED)
+ 
+-    # We are doing manually what's usually done with pybind11_add_module(${A_TARGET} SHARED "${A_SOURCES}")
+-    # since we got some problems on MacOS using recent versions of pybind11 where the SHARED argument wasn't taken
+-    # into account
 -    python_add_library(${A_TARGET} SHARED ${A_HEADERS} ${A_SOURCES})
 +    pybind11_add_module(${A_TARGET} SHARED ${A_HEADERS} ${A_SOURCES})
      add_library(SofaPython3::${A_TARGET} ALIAS ${A_TARGET})
@@ -59,10 +62,10 @@ index 678743f..e59bf80 100644
          PROPERTIES
              CXX_VISIBILITY_PRESET "hidden"
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3774e67..4902809 100644
+index d76b3e2..99040a8 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -82,35 +82,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+@@ -87,35 +87,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
  # Set the minimum python version to 3.7
  set(PYBIND11_PYTHON_VERSION 3.7)
  
@@ -98,20 +101,10 @@ index 3774e67..4902809 100644
  # Set the minimum pybind11 version to 2.3 (before that the pybind11::embed target did not exist)
  find_package(pybind11 2.3 CONFIG QUIET REQUIRED)
  
-@@ -146,8 +117,6 @@ message(STATUS "Python:
-     Libraries: ${Python_LIBRARIES}
-     User site: ${PYTHON_USER_SITE}"
- )
--
--
- message(STATUS "pybind11:
-     Version: ${pybind11_VERSION}
-     Config: ${pybind11_CONFIG}"
-@@ -246,11 +215,3 @@ if (SP3_LINK_TO_USER_SITE AND SP3_PYTHON_PACKAGES_LINK_DIRECTORY)
-         endif()
+@@ -252,10 +223,3 @@ if (SP3_LINK_TO_USER_SITE AND SP3_PYTHON_PACKAGES_LINK_DIRECTORY)
      endforeach()
  endif()
--
+ 
 -# Reset PYTHON_* vars
 -set(PYTHON_VERSION "${PYTHON_VERSION_RESET}" CACHE STRING "" FORCE)
 -set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE_RESET}" CACHE FILEPATH "" FORCE)
@@ -143,20 +136,24 @@ index f53e987..7cd08e4 100644
  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME SofaPython3)
  
 diff --git a/SofaPython3Config.cmake.in b/SofaPython3Config.cmake.in
-index 2c3410a..8922133 100644
+index 52669ce..7b2177b 100644
 --- a/SofaPython3Config.cmake.in
 +++ b/SofaPython3Config.cmake.in
-@@ -8,47 +8,10 @@ set(SP3_PYTHON_PACKAGES_DIRECTORY @SP3_PYTHON_PACKAGES_DIRECTORY@)
+@@ -8,55 +8,13 @@ set(SP3_PYTHON_PACKAGES_DIRECTORY @SP3_PYTHON_PACKAGES_DIRECTORY@)
  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
  include(SofaPython3Tools)
  
 -# Find Python3
--if(NOT Python_FOUND)
--    find_package(Python @PythonMAJMIN@ EXACT QUIET REQUIRED COMPONENTS Interpreter Development)
+-if(NOT TARGET Python::Python)
+-    if(CMAKE_VERSION VERSION_LESS "3.24.0") 
+-        find_package(Python @PythonMAJMIN@ EXACT QUIET REQUIRED COMPONENTS Interpreter Development)
+-    else()
+-        find_package(Python @PythonMAJMIN@ EXACT QUIET REQUIRED COMPONENTS Interpreter Development GLOBAL)
+-    endif()
 -endif()
- 
+-
  # Find pybind11
- if(NOT pybind11_FOUND)
+ if(NOT TARGET pybind11)
 -    # Save PYTHON_* vars
 -    set(PYTHON_VERSION_RESET "${PYTHON_VERSION}")
 -    set(PYTHON_EXECUTABLE_RESET "${PYTHON_EXECUTABLE}")
@@ -182,7 +179,11 @@ index 2c3410a..8922133 100644
 -        set(PYTHON_INCLUDE_DIR "${Python_INCLUDE_DIRS}" CACHE INTERNAL "" FORCE)
 -    endif()
 -
-     find_package(pybind11 @pybind11_VERSION@ QUIET REQUIRED CONFIG)
+     if(CMAKE_VERSION VERSION_LESS "3.24.0") 
+         find_package(pybind11 @pybind11_VERSION@ QUIET REQUIRED CONFIG)
+     else()
+         find_package(pybind11 @pybind11_VERSION@ QUIET REQUIRED CONFIG GLOBAL)
+     endif()
 -
 -    # Reset PYTHON_* vars
 -    set(PYTHON_VERSION "${PYTHON_VERSION_RESET}" CACHE STRING "" FORCE)
