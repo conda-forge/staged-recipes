@@ -9,6 +9,12 @@ find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED)
 find_package(usd-exchange CONFIG REQUIRED)
 
+# Normalize Python_SITEARCH to use forward slashes (CMake path convention).
+# On Windows, find_package(Python) may return native backslashes, which CMake
+# leaves unescaped in install(DIRECTORY) rules, causing cmake_install.cmake to
+# fail with "Invalid character escape" errors (e.g. '\b' in C:\bld\...).
+file(TO_CMAKE_PATH "${Python_SITEARCH}" Python_SITEARCH)
+
 file(GLOB_RECURSE USDEX_CORE_PYTHON_BINDINGS CONFIGURE_DEPENDS source/core/python/bindings/*.cpp)
 file(GLOB_RECURSE USDEX_RTX_PYTHON_BINDINGS CONFIGURE_DEPENDS source/rtx/python/bindings/*.cpp)
 
