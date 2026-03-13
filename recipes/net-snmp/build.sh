@@ -17,6 +17,7 @@ autoreconf --force --verbose --install
     --prefix=$PREFIX \
     --with-mib-modules="host ucd-snmp/diskio" \
     --without-rpm \
+    --with-openssl=${PREFIX} \
     --without-kmem-usage \
     --disable-embedded-perl \
     --without-perl-modules
