@@ -1,0 +1,63 @@
+context:
+  name: git-xet
+  version: "0.2.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/huggingface/xet-core/archive/refs/tags/${{ name }}-v${{ version }}.tar.gz
+  sha256: 551237dbed960265804c745d50531cc16d8f13fb31e1900c9c6e081bfab01874
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path git_xet
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path git_xet
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkgconf
+    - zlib
+    - if: win
+      then: nasm
+  host:
+    - libgit2
+    - openssl
+  run:
+    - git-lfs
+
+tests:
+  - script: |
+      git xet --version
+      git init
+      git xet track test
+
+about:
+  homepage: https://github.com/huggingface/xet-core
+  summary: Summary of the package.
+  description: |
+    Description of the package
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/huggingface/xet-core
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
