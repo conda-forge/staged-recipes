@@ -1,9 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-mkdir build && cd build
-
-cmake -GNinja ^
+cmake -B build -GNinja %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ^
@@ -17,8 +15,8 @@ cmake -GNinja ^
     ..
 if errorlevel 1 exit 1
 
-ninja -j%CPU_COUNT%
+cmake --build build -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
-ninja install
+cmake --install build
 if errorlevel 1 exit 1
