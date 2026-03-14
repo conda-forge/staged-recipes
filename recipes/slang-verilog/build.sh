@@ -1,9 +1,7 @@
 #!/bin/bash
 set -exuo pipefail
 
-mkdir build && cd build
-
-cmake -GNinja \
+cmake -B build -GNinja ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
@@ -16,5 +14,5 @@ cmake -GNinja \
     -DBUILD_SHARED_LIBS=ON \
     ..
 
-ninja -j${CPU_COUNT}
-ninja install
+cmake --build build -j${CPU_COUNT}
+cmake --install build
