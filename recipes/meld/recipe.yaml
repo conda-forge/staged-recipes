@@ -1,0 +1,87 @@
+schema_version: 1
+
+context:
+  version: "3.23.1"
+  python_min: "3.10"
+  name: meld
+
+package:
+  name: meld
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.gnome.org/GNOME/meld/-/archive/3.23.1/meld-3.23.1.tar.gz
+  sha256: 2625079015b226fec182e72ddd19c6fcdd4b10b38c9c1750683a807cb79e86c8
+  patches:
+    - mr144-wheel-support-d564a81-to-a680cdd.patch
+    - mr146-screenshot-for-ci-b69f512.patch
+    # This patch is required, because otherwise we need desktop-file-utils installed for building
+    - disable-gnome-update-desktop-database.patch
+
+build:
+  number: 0
+  noarch: python
+  script:
+    # We currently depend on this PR to meson: https://github.com/mesonbuild/meson/pull/15494
+    # which was merged in commit 731fcec, and should be released in meson version 1.11.
+    # Until it's released, we manually install it, and then remove it after installing Meld, so it won't
+    # appear in the package.
+    # It's required to run `pip uninstall meson` before that, since the meson-python package has an older
+    # version of meson as a dependency, and if we don't uninstall, its dist-info directory remains.
+    - ${{ PYTHON }} -m pip uninstall -y meson
+    - ${{ PYTHON }} -m pip install "meson @ https://github.com/mesonbuild/meson/archive/731fcecbbc35f66b67e5249c18a9261774088388.tar.gz"
+
+    # This command actually installs meld
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+    # Uninstall meson, so it won't appear in the conda package
+    - ${{ PYTHON }} -m pip uninstall -y meson
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - meson-python ==0.19.0
+    # See comment above. Once meson 1.11 is released, we should uncomment the following line, and
+    # leave just the Meld installation line in the "script" section.
+    # - meson ==1.11
+
+    # The following requirements were gathered by running rattler-build and adding packages
+    # until it was satisfied.
+    - pkg-config
+    - gtk3
+    - freetype
+    - zlib
+    - expat
+    - gtksourceview4
+    - pygobject
+    - glib-tools
+    - glib
+    - gettext
+  run:
+    - python >=${{ python_min }}
+    - pycairo
+    - pygobject
+    - gtksourceview4
+    - adwaita-icon-theme
+
+tests:
+  - python:
+      imports:
+        - meld
+      pip_check: false
+      python_version: ${{ python_min }}.*
+  # This requires xvfb on linux, so for now I disable it.
+  # - script: test_meld.py
+
+about:
+  summary: |
+    Meld is a visual diff and merge tool targeted at developers. Meld helps you compare files, directories, and version controlled projects. It provides two- and three-way comparison of both files and directories, and supports many version control systems.
+  homepage: https://meldmerge.org/
+  license: GPL-2.0-only
+  license_file:
+    - COPYING
+
+extra:
+  recipe-maintainers:
+    - noamraph
