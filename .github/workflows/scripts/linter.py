@@ -265,7 +265,9 @@ To ensure everything runs smoothly, please make sure that recipes are only \
 added to the `recipes/` directory and no other files are changed.
 
 If these changes are intentional (and you aren't submitting a recipe), \
-please add a `maintenance` label to the PR.\n"""
+please add a `maintenance` label to the PR. This can also be done by \
+mentioning `@conda-forge/staged-recipes` and the word "maintenance" in \
+a comment.\n"""
 
     added_lint_hint_header = False
     all_fnames = set(lints.keys()) | set(hints.keys())
