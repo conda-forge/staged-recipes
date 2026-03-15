@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  version: "0.7.0"
+
+package:
+  name: mmgpy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kmarchais/mmgpy/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: aa8d5249add0dde9229899e735a04d4c650c2df6e8676e367602b99bd0037a4c
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        cmake -B build ${CMAKE_ARGS} -DMMGPY_CONDA_BUILD=ON -DBUILD_TESTING=OFF -GNinja
+        cmake --build build
+        cmake --install build
+    - if: win
+      then: |
+        cmake -B build %CMAKE_ARGS% -DMMGPY_CONDA_BUILD=ON -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="%PREFIX%;%LIBRARY_PREFIX%" -GNinja
+        if errorlevel 1 exit 1
+        cmake --build build
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.15
+    - ninja
+  host:
+    - python
+    - pybind11 >=3.0.0
+    - numpy
+    - mmgsuite * vtk*
+    - vtk >=9.6,<9.7
+  run:
+    - python
+    - numpy >=2.0.2
+    - meshio >=5.3.5
+    - pyvista >=0.47.0
+    - rich >=13.0.0
+    - scipy >=1.11.0,<1.17
+    - mmgsuite * vtk*
+    - vtk >=9.6,<9.7
+    - if: python < '3.11'
+      then: typing-extensions >=4.0.0
+
+tests:
+  - python:
+      imports:
+        - mmgpy
+        - mmgpy._mmgpy
+  - script:
+      - if: unix
+        then:
+          # MMG -h returns exit code 2; just verify executables are on PATH
+          - mmg3d_O3 -h || test $? -eq 2
+          - mmg2d_O3 -h || test $? -eq 2
+          - mmgs_O3 -h || test $? -eq 2
+          - python -c "from mmgpy._mmgpy import MmgMesh3D; m = MmgMesh3D(); print('MmgMesh3D OK')"
+      - if: win
+        then:
+          - mmg3d_O3.exe -h || ver >nul
+          - mmg2d_O3.exe -h || ver >nul
+          - mmgs_O3.exe -h || ver >nul
+          - python -c "from mmgpy._mmgpy import MmgMesh3D; m = MmgMesh3D(); print('MmgMesh3D OK')"
+
+about:
+  homepage: https://github.com/kmarchais/mmgpy
+  license: MIT
+  license_file: LICENSE
+  summary: Python bindings for the MMG mesh generation/optimization library
+  description: |
+    mmgpy provides Python bindings for the MMG library, enabling 2D, 3D,
+    and surface mesh remeshing through both a Python API and CLI tools.
+  repository: https://github.com/kmarchais/mmgpy
+
+extra:
+  recipe-maintainers:
+    - kmarchais
