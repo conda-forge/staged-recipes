@@ -1,0 +1,77 @@
+context:
+  version: "1.4.0"
+
+package:
+  name: histfitter
+  version: ${{ version }}
+
+source:
+  url: https://github.com/histfitter/histfitter/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5263032d88f7c392065e45403bbba80687c00b037632374b072afc34d83f7472
+  patches:
+    - patches/drop-proof.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - cmake ${CMAKE_ARGS}  -S . -B build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+    # NOTE: we must manually set SP_DIR since it is not set.
+    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+    - if: unix
+      then:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+    - if: win
+      then:
+        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
+    # equivalent of the following:
+    #- rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $SP_DIR/HistFitter/
+    - python -c "import shutil, os, sysconfig; shutil.copytree(os.path.join(os.environ['SRC_DIR'], 'python'), os.path.join(os.environ['SP_DIR'], 'HistFitter'), dirs_exist_ok=True)"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - root_base
+  host:
+    - root_base
+    - python
+  run:
+    - root_base
+    - python
+    - pyhf
+
+tests:
+  - script:
+      - printenv
+      - python -c "import HistFitter"
+
+about:
+  homepage: https://github.com/histfitter/histfitter
+  summary: 'HistFitter is a framework for building and performing statistical fits with ROOT HistFactory using configurable histogram workflows.'
+  description: |
+    HistFitter is a statistical analysis framework designed for performing shape and normalization fits using the HistFactory model within ROOT and RooFit. It enables rapid development of physics analyses by generating histograms from ROOT TTrees according to user-defined configurations describing samples, variables, selections, and systematic uncertainties.
+
+    The framework dynamically constructs histograms in memory from configuration files, allowing the histogram-building stage to be executed once and reused across multiple analyses or parameter scans. Generated histograms and corresponding HistFactory XML configurations are written to ROOT files for efficient reuse, avoiding repeated data processing when analysis definitions remain unchanged.
+
+    HistFitter integrates histogram production, statistical model construction, and workspace evaluation into a single workflow, supporting large-scale analyses that require constrained nuisance parameters derived from control regions and applied to signal-region fits.
+  license: BSD-2-Clause
+  license_file: LICENSE
+  documentation: https://twiki.cern.ch/twiki/bin/viewauth/AtlasProtected/SusyFitter
+  repository: https://github.com/histfitter/histfitter
+
+extra:
+  recipe-maintainers:
+    - kratsg
+    - matthewfeickert
+    - longjon929
