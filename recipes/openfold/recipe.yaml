@@ -1,0 +1,126 @@
+context:
+  name: openfold
+  version: "0.4.1"
+  build_number: 0
+  python_min: "3.14"
+  torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # url: https://github.com/aqlaboratory/openfold-3/archive/refs/tags/${{ version }}.tar.gz
+  # sha256: c671d6f29a63c19f846a93170c8a65986c6c010eb0180483919fb6dd08397f04
+  url: https://github.com/aqlaboratory/openfold-3/archive/4e2a0d09932a744ecbeaa5ab1d41ed7f99d2f62f.tar.gz
+  sha256: fc37868d5e89aa5a3a2bf02e236c7b0e2eacc51401249986322f7cf1a531e782
+
+build:
+  number: ${{ build_number }}
+  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  noarch: python
+  script:
+    - pip install . --no-deps --ignore-installed --no-cache-dir -vvv
+    # here we could put instructions to compile exceptions, we need some config in OF3 itself to allow:
+    #   - having a custom location for extensions
+    #   - overriding the custom location for power users / extension rebuild
+    # we need cross-compilation and hardware-independent extension building
+    # otherwise we need some tricks from our pixi envs (e.g., build envvars) and make them part of the package activation
+    # here is an example that likely will not work
+    # (as we are not making the build independent of HW yet, and anyway we would need a full package installation)
+    #    - if: cuda_compiler_version != "None"
+    #      then:
+    #        - export TRITON_PTXAS_PATH=$CONDA_PREFIX/bin/ptxas
+    #        - export TRITON_PTXAS_BLACKWELL_PATH=$TRITON_PTXAS_PATH
+    #        - export CUTLASS_PATH=DS_IGNORE_CUTLASS_DETECTION
+    #        - export TORCH_EXTENSIONS_DIR=$CONDA_PREFIX/caches/torch_extensions
+    #        - pytest -v openfold3/tests/test_kernels.py -v
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    # - __unix  # No windows
+    - python >=${{ python_min }}
+    - numpy
+    - scipy
+    - pandas
+    # --- Machine learning
+    - pytorch * [build=${{ torch_proc_type }}*]
+    - pytorch-lightning
+    - ml-collections
+    # --- Handling molecules
+    - rdkit
+    - biotite
+    - pdbeccdutils
+    - kalign-python
+    # --- Misc
+    - pyyaml
+    - ijson
+    - memory_profiler
+    - wandb
+    - func_timeout
+    - tqdm
+    - typing-extensions
+    - python-lmdb
+    # --- Downloading stuff
+    - requests
+    - awscli
+    - awscrt
+    - boto3
+    - if: cuda_compiler_version != "None" and linux-64  # we would need a deepspeed aarch64 package
+      then:
+        - deepspeed
+        # At the time of writing (May 29 2026), deepspeed kernels cannot be compiled with CUDA >=13.3
+        - cuda-version <13.3
+        # For the `async_io` deepspeed op
+        - libaio
+        # This is needed when not precompiling non-triton kernels, but bloats the environment
+        # We should explore a way to precompile the kernels in the build step
+        # but that would require some changes in OF3 itself (e.g., manage kernel location for isolation)
+        - ninja
+        - cutlass
+        - cuda-minimal-build
+        - libcusparse-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcurand-dev
+
+tests:
+  - python:
+      python_version: ${{ python_min }}.*
+      imports:
+        - openfold3
+      pip_check: false  # this will need a released cut with newer pyproject (0.4.1 still does not)
+  - script:
+      - run_openfold --help
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+        - pytest-xdist
+        - pytest-cov
+        - pytest-benchmark
+        - pytest-regressions
+        - aria2
+    files:
+      source:
+        - openfold3/tests/
+    script:
+      - pytest -v openfold3/tests
+
+about:
+  homepage: https://openfold.io
+  repository: https://github.com/aqlaboratory/openfold-3
+  summary: OpenFold's Biological Structure Prediction Model based on DeepMind's AlphaFold 3
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Emrys-Merlin
+    # - jandom
+    - jnwei
+    - sdvillal
