@@ -12,10 +12,11 @@ source:
   sha256: ff47af56867e293e5ffb6b6f231544ed9d0db5bc073478541aa47b4ba65fa4bb
 
 build:
-  number: 0
+  # Based on learnings from https://github.com/conda-forge/jaxlib-feedstock/blob/1b2b3761e145824a6d7a0bfb638344e1135a583d/recipe/recipe.yaml
+  number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build if cuda_compiler_version == "None" else build + 200 }}
   skip:
     - osx
-    - win
   dynamic_linking:
     missing_dso_allowlist:
       - if: win
@@ -30,23 +31,32 @@ requirements:
       then: ninja
       else: make
     - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
     - ${{ compiler("cxx") }}
-    - ${{ compiler("cuda") }}
-    - cuda-version ==${{ cuda_compiler_version }}
-    - libcublas-dev
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler("cuda") }}
+        - cuda-version ==${{ cuda_compiler_version }}
   host:
     - python
     - scikit-build-core >=0.9.0
     - pybind11 >=2.11.0
     - pip
-    - libcublas-dev
-    - libcusparse-dev
-    - cuda-version ==${{ cuda_compiler_version }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - libcublas-dev
+        - libcusparse-dev
+        - cuda-nvcc-tools
+        - cuda-version ==${{ cuda_compiler_version }}
   run:
     - python
     - numpy >=1.21
     - scipy >=1.8
-    - ${{ pin_compatible('cuda-version', upper_bound='x', lower_bound='x') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - __cuda
+        - ${{ pin_compatible('cuda-version', upper_bound='x', lower_bound='x') }}
+
 
   ignore_run_exports:
     # Ignore run exports from CUDA libraries in the host section
