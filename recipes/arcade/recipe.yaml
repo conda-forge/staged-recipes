@@ -1,0 +1,76 @@
+context:
+  version: "3.3.3"
+
+package:
+  name: arcade
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/a/arcade/arcade-${{ version }}.tar.gz
+  sha256: 86a73dfafa0ce4fd4fb9551f850cc332b392e22e88142ff17914ea3fef59540b
+  patches:
+      # This disables LD-Path mangling to find local .dylib files
+      - 0001-delete-ffmpeg-ld-path.patch
+      # FFMPEG .dylib files are deleted explicitly, because patch file for it is 30Mb large
+      # and makes problems
+
+build:
+  noarch: python
+  script:
+    - if: unix
+      then: |
+        rm \
+          arcade/lib/libavcodec.58.dylib \
+          arcade/lib/libavformat.58.dylib \
+          arcade/lib/libavutil.56.dylib \
+          arcade/lib/libswresample.3.dylib \
+          arcade/lib/libswscale.5.dylib
+        python -m pip install . -vv
+      else: |
+        del /Q arcade\lib\libavcodec.58.dylib ^
+          arcade\lib\libavformat.58.dylib ^
+          arcade\lib\libavutil.56.dylib ^
+          arcade\lib\libswresample.3.dylib ^
+          arcade\lib\libswscale.5.dylib
+        python -m pip install . -vv
+  number: 0
+  python:
+      entry_points:
+        - arcade = arcade.management:execute_from_command_line
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+    - pyglet ~=2.1.5
+    - pillow ~=11.3.0
+    - pymunk ~=6.9.0
+    - pytiled-parser ~=2.2.9
+
+tests:
+  # pyglet, a dependency of arcade, needs libglu present for testing
+  - script:
+    - content: |
+        pip check
+        python -c "import arcade"
+    - requirements:
+        run:
+        - libglu
+        - python ${{ python_min }}.*
+        - pip
+
+about:
+  homepage: https://api.arcade.academy/en/stable/index.html
+  summary: Easy to use Python library for creating 2D arcade games.
+  description: |
+    Arcade is an easy-to-learn Python library for creating 2D video games. It is ideal for beginning programmers or programmers who want to create 2D games without learning a complex framework.
+  license: MIT
+  license_file: license.rst
+  repository: https://github.com/pythonarcade/arcade
+
+extra:
+  recipe-maintainers:
+    - claudiushaag
