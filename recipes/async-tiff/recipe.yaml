@@ -1,0 +1,76 @@
+context:
+  name: async-tiff
+  version: "0.7.1"
+  python_min: "3.11"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/async_tiff-${{ version }}.tar.gz
+  sha256: dbef87b2696bea06161c5fd0d9546700b8a30c04d3033c9b68b4b162c4cfa2dc
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  script:
+    env:
+      MATURIN_PEP517_ARGS: "--features=abi3-py311,extension-module,lerc"
+    content:
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+    - clangdev
+  host:
+    - maturin >=1.7,<2.0
+    - pip
+    - python ${{ python_min }}.*
+    - if: is_abi3
+      then:
+        - python-abi3 ${{ python_min }}.*
+  run:
+    - python >= ${{ python_min }}
+    - obspec
+
+tests:
+  - python:
+      imports:
+        - async_tiff
+      pip_check: true
+      python_version: ["${{ python_min ~ '.*' }}"]
+  - script:
+      # NOTE: we must manually set SP_DIR since it is not set.
+      # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
+      - if: unix and is_abi3
+        then:
+          - abi3audit $SP_DIR/async_tiff/_async_tiff.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win and is_abi3
+        then:
+          - abi3audit %SP_DIR%\\async_tiff\\_async_tiff.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
+
+about:
+  homepage: http://developmentseed.org/async-tiff
+  repository: https://github.com/developmentseed/async-tiff
+  summary: Low-level asynchronous TIFF reader.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - gadomski
+    - kylebarron
+    - weiji14
