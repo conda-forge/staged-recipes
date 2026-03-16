@@ -1,0 +1,63 @@
+context:
+  name: qpmad
+  version: 1.4.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/asherikov/qpmad/archive/refs/tags/${{ version }}.zip
+  sha256: 2d3e8890a5538ec78f83c47a30df05531f5bf18960d948179bcce0ec4e30df3d
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -S %SRC_DIR% -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQPMAD_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        cmake --build build -v
+        cmake --install build --prefix %LIBRARY_PREFIX%
+        ctest --test-dir build --output-on-failure
+      else: |
+        cmake -S $SRC_DIR -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQPMAD_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        cmake --build build -v
+        cmake --install build --prefix $PREFIX
+        ctest --test-dir build --output-on-failure
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - eigen
+    - libboost-devel <=1.88.0
+  run:
+    - eigen
+
+  ignore_run_exports:
+    from_package:
+      - libboost-devel
+
+tests:
+  - package_contents:
+      include:
+        - qpmad/solver.h
+        - qpmad/config.h
+      files:
+        - ${{ "Library/" if win }}share/qpmad/cmake/qpmadConfig.cmake
+        - ${{ "Library/" if win }}share/qpmad/cmake/qpmadConfigVersion.cmake
+
+about:
+  homepage: https://github.com/asherikov/qpmad
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: QPMAD - Quadratic Programming solver
+
+extra:
+  feedstock-name: qpmad
+  recipe-maintainers:
+    - ahoarau
