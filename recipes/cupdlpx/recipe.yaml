@@ -22,7 +22,31 @@ build:
     missing_dso_allowlist:
       - if: win
         then: "*/nvcuda.dll"
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - if: linux
+        then:
+          - "*/libcuda.so.1"
+  script:
+    - if: unix
+      then: |
+        # This is a hotfix for https://github.com/NVIDIA/cccl/issues/4967, backporting
+        # https://github.com/NVIDIA/cccl/pull/4972 on the fly for the installed headers
+        {%- if match(cuda_compiler_version, "12.*") and linux and x86_64 %}
+        CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/x86_64-linux/include/cuda/std/__cccl/preprocessor.h"
+        {%- endif %}
+
+        {%- if match(cuda_compiler_version, "12.*") and linux and aarch64 %}
+        CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/sbsa-linux/include/cuda/std/__cccl/preprocessor.h"
+        {%- endif %}
+
+        {%- if match(cuda_compiler_version, "12.*") and linux %}
+        ROOT_DIR="$(dirname "${CCCL_PREPROCESSOR_H_TO_PATCH}")/../../../.."
+        patch -p1 -d "${ROOT_DIR}" -i "${RECIPE_DIR}/cuda12_cccl_arch_all.patch"
+        {%- endif %}
+
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - if: win
+      then:
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 
 requirements:
