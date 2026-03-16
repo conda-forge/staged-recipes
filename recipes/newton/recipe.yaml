@@ -2,79 +2,148 @@ schema_version: 1
 
 context:
   name: newton
-  version: 1.0.0rc3
+  version: 1.0.0
   build_number: 0
 
-package:
+recipe:
   name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
   url: https://github.com/newton-physics/newton/archive/refs/tags/v${{ version }}.zip
-  sha256: 843be16789f3883b6ab398e196bce41a223496bb4f81854456d811542cedbeab
+  sha256: 24f21045efe162153cd6b9831599989ead2c5a5ef54c15fedea0f6ec9b23650d
 
 build:
   noarch: python
   number: ${{ build_number }}
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
-requirements:
-  host:
-    - python ${{ python_min }}.*
-    - pip
-    - hatchling
-  run:
-    # https://github.com/newton-physics/newton/blob/main/pyproject.toml
-    - python >=${{ python_min }}
-    - warp-lang >=1.12.0
-    - newton-actuators >=0.1.0
-    # [sim]
-    - mujoco-warp >=3.5.0.2
-    - mujoco >=3.5.0
-    # [importers]
-    - requests >=2.25.0
-    - scipy
-    - fast-simplification >=0.1.11
-    - alphashape >=1.3.1
-    - coacd >=1.0.7
-    - trimesh >=4.6.8
-    - meshio >=5.3.0
-    - pycollada >=0.9
-    - resolve-robotics-uri-py >=0.4.0
-    - openusd >=25.5
-    - newton-usd-schemas >=0.1.0
-    # [remesh]
-    - open3d >=0.18.0
-    - pyfqmr >=0.5.0
-    # [examples]
-    - pyglet >=2.1.6,<3
-    - gitpython >=3.1.44
-    - imgui-bundle >=1.92.0
-    - pyyaml >=6.0.2
-    - cbor2 >=5.7.0
-    - pillow >= 9.0.0
-    # Other dependencies
-    - importlib_resources
-    # Fix missing open3d-cpu dependencies.
-    # https://github.com/conda-forge/open3d-feedstock/issues/49
-    - configargparse
-    - nbformat
-  run_constraints:
-    - pytorch >=2.7.0
-
-tests:
-  - python:
-      imports:
-        - newton
-      pip_check: true
-      # There are deps solver problems on Python 3.10, and the environment cannot be solved.
-      # Testing imports on Python 3.11 until those problems are resolved.
-      python_version: 3.11.*
-  - script:
-      - python -m newton.tests
+# https://github.com/newton-physics/newton/blob/main/pyproject.toml
+outputs:
+  # ======
+  # newton
+  # ======
+  - package:
+      name: newton
+    build:
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
     requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling
       run:
-        - python 3.11.*
+        - python >=${{ python_min }}
+        - warp-lang >=1.12.0
+        - newton-actuators >=0.1.0
+  # ===========
+  # newton[all]
+  # ===========
+  - package:
+      name: newton-all
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      # Any modifications to the subpackages pin should be propagated also
+      # to the newton[examples] run dependencies.
+      # We cannot use `newton-all` because it would be a dependency cycle.
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('newton', exact=True) }}
+        - ${{ pin_subpackage('newton-sim', exact=True) }}
+        - ${{ pin_subpackage('newton-importers', exact=True) }}
+        - ${{ pin_subpackage('newton-remesh', exact=True) }}
+        - ${{ pin_subpackage('newton-examples', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - newton
+          pip_check: true
+          # There are deps solver problems on Python 3.10, and the environment cannot be solved.
+          # Testing imports on Python 3.11 until those problems are resolved.
+          python_version: 3.11.*
+      - script:
+          - python -m newton.tests
+        requirements:
+          run:
+            - python 3.11.*
+  # ===========
+  # newton[sim]
+  # ===========
+  - package:
+      name: newton-sim
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - ${{ pin_subpackage('newton', exact=True) }}
+        - python >=${{ python_min }}
+        - mujoco-warp >=3.5.0.2
+        - mujoco >=3.5.0
+  # =================
+  # newton[importers]
+  # =================
+  - package:
+      name: newton-importers
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - ${{ pin_subpackage('newton', exact=True) }}
+        - python >=${{ python_min }}
+        - requests >=2.25.0
+        - scipy
+        - fast-simplification >=0.1.11
+        - alphashape >=1.3.1
+        - coacd >=1.0.7
+        - trimesh >=4.6.8
+        - meshio >=5.3.0
+        - pycollada >=0.9
+        - resolve-robotics-uri-py >=0.4.0
+        - openusd >=25.5
+        - newton-usd-schemas >=0.1.0
+  # ==============
+  # newton[remesh]
+  # ==============
+  - package:
+      name: newton-remesh
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - ${{ pin_subpackage('newton', exact=True) }}
+        - python >=${{ python_min }}
+        - open3d >=0.18.0
+        - pyfqmr >=0.5.0
+        # Fix missing open3d-cpu dependencies.
+        # https://github.com/conda-forge/open3d-feedstock/issues/49
+        - configargparse
+        - nbformat
+  # ================
+  # newton[examples]
+  # ================
+  - package:
+      name: newton-examples
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        # The following list should be newton[all] minus newton-examples.
+        - ${{ pin_subpackage('newton', exact=True) }}
+        - ${{ pin_subpackage('newton-sim', exact=True) }}
+        - ${{ pin_subpackage('newton-importers', exact=True) }}
+        - ${{ pin_subpackage('newton-remesh', exact=True) }}
+        # Additional deps to run examples.
+        - python >=${{ python_min }}
+        - pyglet >=2.1.6,<3
+        - gitpython >=3.1.44
+        - imgui-bundle >=1.92.0
+        - pyyaml >=6.0.2
+        - cbor2 >=5.7.0
+        - pillow >= 9.0.0
+        # Additional deps to run examples.
+        - importlib_resources
+      run_constraints:
+        - pytorch >=2.7.0
 
 about:
   homepage: https://newton-physics.github.io/newton/
