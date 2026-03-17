@@ -15,11 +15,10 @@ source:
 build:
   number: 0
   skip: match(python, ">=3.14")
-  noarch: python
 
 outputs:
   - package:
-      name: ${{ name }}
+      name: ${{ name }}-base
     build:
       script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
     requirements:
@@ -64,7 +63,7 @@ outputs:
       name: ${{ name }}-service
     requirements:
       run:
-        - ${{ pin_subpackage(name, exact=True) }}
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
         - gitpython
         - flask >=3.1.2
         - flask-caching
@@ -87,18 +86,28 @@ outputs:
       name: ${{ name }}-domains
     requirements:
       run:
-        - ${{ pin_subpackage(name, exact=True) }}
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
         - numpy
-        - astropy
+        - astropy-base
         - pandas
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+          pip_check: true
 
   - package:
       name: ${{ name }}-mmoda
     requirements:
       run:
-        - ${{ pin_subpackage(name, exact=True) }}
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
         - oda-api
-
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+            - oda_api
+          pip_check: true
   # - package:
   #     name: ${{ name }}-galaxy
   #   requirements:
@@ -122,15 +131,27 @@ outputs:
   #       script:
   #         - nb2galaxy --help
   - package:
-      name: ${{ name }}-full
+      name: ${{ name }}
     requirements: 
       run:
-        - ${{ pin_subpackage(name, exact=True) }}
+        - ${{ pin_subpackage(name~ '-base', exact=True) }}
         - ${{ pin_subpackage(name ~ '-service', exact=True) }}
         - ${{ pin_subpackage(name ~ '-domains', exact=True) }}
         - ${{ pin_subpackage(name ~ '-mmoda', exact=True) }}
         #- ${{ pin_subpackage(name ~ '-galaxy', exact=True) }}
-
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python
+        script:
+          - nbrun --help
+          - nbinspect --help
+          - nb2service --help
 
 
 about:
@@ -140,6 +161,7 @@ about:
   homepage: https://github.com/oda-hub/${{ name }}
 
 extra:
+  feedstock-name: ${{ name }}
   recipe-maintainers:
     - dsavchenko
     - volodymyrss
