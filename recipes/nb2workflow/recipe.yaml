@@ -1,0 +1,145 @@
+schema_version: 1
+
+context:
+  name: nb2workflow
+  version: "1.3.117"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/n/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 747f345bf4a743605987e041bfeb5182a9807753687cca1a7c6fcbd0d9fc7ec5
+
+build:
+  number: 0
+  skip: match(python, ">=3.14")
+  noarch: python
+
+outputs:
+  - package:
+      name: ${{ name }}
+    build:
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python >=3.9,<3.14
+        - setuptools >=61.0
+        - wheel
+        - pip
+      run:
+        - python >=3.9,<3.14
+        - papermill
+        - ipykernel
+        - nbconvert >7.0.0
+        - psutil
+        - diskcache
+        - requests
+        - pyyaml
+        - scrapbook
+        - validators >=0.35.0
+        - sentry-sdk
+        - rdflib
+        - gitpython
+        - if: match(python, "==3.9")
+          then: typeguard <4.4.3
+          else: typeguard
+
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python
+        script:
+          - nbrun --help
+          - nbinspect --help
+
+
+  - package:
+      name: ${{ name }}-service
+    requirements:
+      run:
+        - ${{ pin_subpackage(name, exact=True) }}
+        - gitpython
+        - flask >=3.1.2
+        - flask-caching
+        - flask_cors
+        - flasgger
+        - apscheduler
+        - beautifulsoup4
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python
+        script:
+          - nb2service --help
+  - package:
+      name: ${{ name }}-domains
+    requirements:
+      run:
+        - ${{ pin_subpackage(name, exact=True) }}
+        - numpy
+        - astropy
+        - pandas
+
+  - package:
+      name: ${{ name }}-mmoda
+    requirements:
+      run:
+        - ${{ pin_subpackage(name, exact=True) }}
+        - oda-api
+
+  # - package:
+  #     name: ${{ name }}-galaxy
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage(name, exact=True) }}
+  #       - oda-api
+  #       - bibtexparser >=2.0.0b3 # v2 is not in conda...
+  #       - pypandoc
+  #       - black
+  #       - isort
+  #       - autoflake
+  #   tests:
+  #     - python:
+  #         imports:
+  #           - ${{ name }}
+  #         pip_check: true
+  #     - requirements:
+  #         run:
+  #           - pip
+  #           - python
+  #       script:
+  #         - nb2galaxy --help
+  - package:
+      name: ${{ name }}-full
+    requirements: 
+      run:
+        - ${{ pin_subpackage(name, exact=True) }}
+        - ${{ pin_subpackage(name ~ '-service', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-domains', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-mmoda', exact=True) }}
+        #- ${{ pin_subpackage(name ~ '-galaxy', exact=True) }}
+
+
+
+about:
+  summary: convert notebook to workflow
+  license: GPL-3.0-only
+  license_file: LICENSE
+  homepage: https://github.com/volodymyrss/${{ name }}
+
+extra:
+  recipe-maintainers:
+    - dsavchenko
+    - volodymyrss
