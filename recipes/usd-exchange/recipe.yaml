@@ -1,0 +1,129 @@
+context:
+  version: "2.2.2"
+
+recipe:
+  name: usd-exchange-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA-Omniverse/usd-exchange/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f3937e842d288d7871577f8c9afd16c7a8e62d2a8d8cc0dff8aca2f3c3cc266e
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libusd-exchange
+    build:
+      script:
+        - if: unix
+          then: build_cxx.sh
+        - if: win
+          then: build_cxx.bat
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('libusd-exchange', upper_bound='x.x') }}
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - doctest
+        - ninja
+      host:
+        - if: linux
+          then:
+            - libgl-devel
+            - libglx-devel
+        - openusd
+        - python
+      # libgl-devel and libglx-devel is just used for CMake reasons, but
+      # they are not actually linked, so we can ignore the run_exports
+      ignore_run_exports:
+        from_package:
+          - if: linux
+            then:
+              - libgl-devel
+              - libglx-devel
+    tests:
+      - package_contents:
+          include:
+            - usdex/core/Core.h
+            - usdex/rtx/MaterialAlgo.h
+          lib:
+            - usdex_core
+            - usdex_rtx
+      - script:
+          - cmake-package-check usd-exchange --targets usd-exchange::usdex-core usd-exchange::usdex-rtx
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('cxx') }}
+            - if: linux
+              then:
+                - libgl-devel
+                - libglx-devel
+
+  - package:
+      name: usd-exchange
+    build:
+      script:
+        - if: unix
+          then: build_py.sh
+        - if: win
+          then: build_py.bat
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - python
+        - pybind11
+        - openusd
+        - ${{ pin_subpackage('libusd-exchange', exact=True) }}
+        - if: linux
+          then:
+            - libgl-devel
+            - libglx-devel
+      run:
+        - python
+        - ${{ pin_subpackage('libusd-exchange', exact=True) }}
+      # libgl-devel and libglx-devel is just used for CMake reasons, but
+      # they are not actually linked, so we can ignore the run_exports
+      ignore_run_exports:
+        from_package:
+          - if: linux
+            then:
+              - libgl-devel
+              - libglx-devel
+    tests:
+      - python:
+          imports:
+            - usdex.core
+            - usdex.rtx
+      - files:
+          source:
+            - CHANGELOG.md
+            - source/core/tests/unittest/testCore.py
+            - source/core/tests/unittest/testPxr.py
+        script:
+          - python -m unittest discover -v -s source/core/tests/unittest -p testCore.py
+          - python -m unittest discover -v -s source/core/tests/unittest -p testPxr.py
+
+about:
+  homepage: https://github.com/NVIDIA-Omniverse/usd-exchange
+  summary: OpenUSD Exchange SDK
+  description: |
+    OpenUSD Exchange SDK accelerates OpenUSD adoption by helping developers
+    design, build, and test USD I/O solutions, producing consistent assets
+    across diverse 3D ecosystems.
+  license: Apache-2.0
+  license_file: LICENSE.md
+  repository: https://github.com/NVIDIA-Omniverse/usd-exchange
+
+extra:
+  recipe-maintainers:
+    - traversaro
+  feedstock-name: usd-exchange
