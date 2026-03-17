@@ -9,10 +9,15 @@ entries=(
     "source/isaaclab_tasks:isaaclab_tasks"
 )
 
-# Upstream pins hidapi to an exact post release that doesn't exist on conda-forge.
-# Relax it in package metadata before installation so pip_check and solver agree.
+# Upstream carries a few pip-oriented pins that are either unavailable on conda-forge
+# or unnecessarily restrictive for the shared isaac-sim environment. Relax them in
+# package metadata so the installed distribution matches the conda recipe.
 while IFS= read -r -d '' file; do
     sed -E -i 's/hidapi==0\.14\.0\.post[0-9]+/hidapi>=0.14,<0.15/g' "${file}"
+    sed -E -i 's/pyglet<2/pyglet>=2,<3/g' "${file}"
+    sed -E -i 's/starlette==0\.49\.1/starlette>=0.49.1,<1/g' "${file}"
+    sed -E -i 's/pin-pink==3\.1\.0/pin-pink>=3.1,<5/g' "${file}"
+    sed -E -i 's/daqp==0\.7\.2/daqp>=0.7.1,<0.8/g' "${file}"
 done < <(find source -type f \( -name "setup.py" -o -name "setup.cfg" -o -name "pyproject.toml" \) -print0)
 
 # Install each extension package wheel-style and let conda own dependency solving.
