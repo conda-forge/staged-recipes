@@ -8,6 +8,13 @@ package:
 build:
   number: 0
   skip: true  # [not linux]
+  script:
+    - mkdir -p "${PREFIX}/etc/conda/activate.d"
+    - mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+    - cp "${RECIPE_DIR}/activate-intel-gpu-ocl-icd-system.sh" "${PREFIX}/etc/conda/activate.d/intel-gpu-ocl-icd-system.sh"
+    - cp "${RECIPE_DIR}/deactivate-intel-gpu-ocl-icd-system.sh" "${PREFIX}/etc/conda/deactivate.d/intel-gpu-ocl-icd-system.sh"
+    - chmod +x "${PREFIX}/etc/conda/activate.d/intel-gpu-ocl-icd-system.sh"
+    - chmod +x "${PREFIX}/etc/conda/deactivate.d/intel-gpu-ocl-icd-system.sh"
 
 requirements:
   run:
@@ -15,16 +22,20 @@ requirements:
 
 test:
   commands:
-    - export ICD_FN=${CONDA_PREFIX}/etc/OpenCL/vendors/intel-ocl-gpu.icd
-    - if [ -d /etc/OpenCL/vendors ]; then test -h "${ICD_FN}"; fi
-    - if [ -L "${ICD_FN}" ]; then test -e "$(readlink "${ICD_FN}")"; fi
+    - test -f "${CONDA_PREFIX}/etc/conda/activate.d/intel-gpu-ocl-icd-system.sh"
+    - test -f "${CONDA_PREFIX}/etc/conda/deactivate.d/intel-gpu-ocl-icd-system.sh"
+    - export OCL_ICD_VENDORS="/tmp/custom/vendors"
+    - source "${CONDA_PREFIX}/etc/conda/activate.d/intel-gpu-ocl-icd-system.sh"
+    - test "${OCL_ICD_VENDORS}" = "/etc/OpenCL/vendors:${CONDA_PREFIX}/etc/OpenCL/vendors:/tmp/custom/vendors"
+    - source "${CONDA_PREFIX}/etc/conda/deactivate.d/intel-gpu-ocl-icd-system.sh"
+    - test "${OCL_ICD_VENDORS}" = "/tmp/custom/vendors"
 
 about:
   home: https://github.com/IntelPython/{{ name|lower }}-feedstock
   license: Apache-2.0
   license_family: Apache
   license_file: LICENSE.txt
-  summary: 'Symlink system-wide OpenCL ICD file for Intel(R) GPUs to current environment'
+  summary: 'Configure OpenCL ICD vendor search paths for Intel(R) GPUs in conda environment'
 
   description: |
     <strong>LEGAL NOTICE: Use of this software package is subject to the
@@ -35,12 +46,10 @@ about:
     <br/><br/>
     EULA: <a href="https://www.intel.com/content/dam/develop/external/us/en/documents/pdf/intel-developer-tools-eula-09-03-19.pdf" target="_blank">Apache-2.0</a>
     <br/><br/>
-    Since GPU drivers are installed system-wide, and the OpenCL loader in conda environment
-    is configured to look for ICD files in ``${CONDA_PREFIX}/etc/OpenCL/vendors`` to isolate
-    the conda environment from the system environment, enabling discovery of Intel GPU devices
-    by the OpenCL loader requires creation of appropriate ICD file in the conda environment's
-    own vendors folder. This metapackage creates such an ICD as a symbolic link to the ICD
-    installed system-wide.
+    Since GPU drivers are installed system-wide, this package configures the OpenCL ICD loader
+    search path on environment activation so both ``/etc/OpenCL/vendors`` and
+    ``${CONDA_PREFIX}/etc/OpenCL/vendors`` are visible. This avoids post-link/pre-unlink hooks
+    and keeps package install and uninstall side-effect free while preserving Intel GPU discovery.
 
 extra:
   recipe-maintainers:
