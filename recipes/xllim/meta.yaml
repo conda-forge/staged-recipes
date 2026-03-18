@@ -1,0 +1,75 @@
+{% set name = "xllim" %}
+{% set version = "2.0.5" %}
+
+# If the version of a package is not being increased, please add or increase the build/number.
+# If the version of a package is being increased, please remember to return the build/number back to 0
+{% set build = 0 %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/x/xllim/xllim-{{ version }}.tar.gz
+  sha256: bb3e28cf79cf67e19af47433c81089060f8343fceec3a3c79fd18d7bd7b1e503
+
+build:
+  number: {{ build }}
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [py<311 or py>=313]  # >=3.11 requirement from NumPy 2, <3.13 from CARMA 
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake >=3.21
+    - ninja
+
+  host:
+    - python # Build python versions should not be constrained here
+    - pip
+    - setuptools >=42
+    - wheel
+    - scikit-build-core >=0.7.0, <1  
+    - numpy  # numpy build version is decided by the conda-forge-pinning-feedstock, cannot constrain it here. Good news, it's numpy 2
+    - boost >=1.78, <2.0  # 1.78 matches the PyPI wheel build; <2.0 ensures ABI stability
+    - libblas * *openblas
+    - liblapack * *openblas
+    - openblas
+    - armadillo >=12.6, <13  # 12.6 minimum tested; <13 bounds to compatible major ABI
+
+  run:
+    - python
+    - numpy >=2.0, <3  # NumPy 2 ABI target; Numpy 1.x is EOL since Sept. 2025
+    - h5py >=3.8, <4
+    - openblas >=0.3.15, <1
+    - libstdcxx-ng  # [linux]
+
+test:
+  imports:
+    - xllim
+    - xllim._core
+    - xllim.cli
+    - xllim.utils
+  commands:
+    - xllim_cli --help
+  requires:
+    - pip
+  source_files:
+    - tests/
+
+about:
+  home: https://github.com/xllim-tools/xllim
+  license: CeCILL-C
+  license_file: LICENCE.txt
+  summary: 'Python package for XLLiM with C++ core'
+  description: |
+    xLLiM is a C++ with Python bindings implementation of Gaussian Locally-Linear Mapping. It can be used to perform efficient inversion of high-dimensional models.
+  doc_url: https://xllim-tools.github.io/xllim/
+  dev_url: https://github.com/xllim-tools/xllim
+
+extra:
+  recipe-maintainers:
+    - ffrancois-inria
+    - achavout
+    - stan-borkowski
