@@ -130,13 +130,29 @@ materialize_packman_target_dep() {
 }
 
 stage_packman_payloads() {
-    local packman_source_dir="${source_root}/vendor/packman"
+    local packman_source_dir=""
+    local candidate_dir
     local lula_version="v0.10.1_f39b9da.linux-x86_64.release"
     local usd_ext_physics_version="24.05+release.40469.09c54277.gl.manylinux_2_35_x86_64.release"
 
-    if [[ ! -d "${packman_source_dir}" ]]; then
-        return
+    for candidate_dir in \
+        "${source_root}/vendor/packman" \
+        "${source_root}/local-overlay/vendor/packman"
+    do
+        if [[ -d "${candidate_dir}" ]]; then
+            packman_source_dir="${candidate_dir}"
+            break
+        fi
+    done
+
+    if [[ -z "${packman_source_dir}" ]]; then
+        echo "Missing vendored Packman payload directory." >&2
+        echo "Expected either ${source_root}/vendor/packman or ${source_root}/local-overlay/vendor/packman." >&2
+        exit 1
     fi
+
+    require_path "${packman_source_dir}/lula-linux-x86_64.7z"
+    require_path "${packman_source_dir}/usd_ext_physics-manylinux_2_35_x86_64-release.7z"
 
     stage_packman_archive \
         "${packman_source_dir}/lula-linux-x86_64.7z" \
