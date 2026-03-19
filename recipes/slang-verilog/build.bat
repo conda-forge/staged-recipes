@@ -12,7 +12,7 @@ cmake -B build -GNinja %CMAKE_ARGS% ^
     -DSLANG_INCLUDE_INSTALL=ON ^
     -DSLANG_USE_MIMALLOC=OFF ^
     -DBUILD_SHARED_LIBS=ON ^
-    ..
+    .
 if errorlevel 1 exit 1
 
 cmake --build build -j%CPU_COUNT%
