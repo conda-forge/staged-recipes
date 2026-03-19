@@ -12,7 +12,7 @@ cmake -B build -GNinja ${CMAKE_ARGS} \
     -DSLANG_INCLUDE_INSTALL=ON \
     -DSLANG_USE_MIMALLOC=ON \
     -DBUILD_SHARED_LIBS=ON \
-    ..
+    .
 
 cmake --build build -j${CPU_COUNT}
 cmake --install build
