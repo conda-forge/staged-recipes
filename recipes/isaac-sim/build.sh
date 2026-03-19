@@ -334,7 +334,7 @@ configure_runtime_environment() {
     export CMAKE_PREFIX_PATH="${PREFIX}${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}"
     export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
     export LD_LIBRARY_PATH="${PREFIX}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-    export PYTHONPATH="${PREFIX}/lib/${python_mm}/lib-dynload${PYTHONPATH:+:${PYTHONPATH}}"
+    export PYTHONPATH="${PREFIX}/lib/python${python_mm}/lib-dynload${PYTHONPATH:+:${PYTHONPATH}}"
 }
 
 run_repoman_build() {
@@ -370,25 +370,298 @@ install_release_tree() {
     require_path "${install_root}/apps/isaacsim.exp.full.kit"
 }
 
+restore_extension_metadata() {
+    log "Restoring extension metadata from unpacked source tree"
+
+    local mapping group src_group dest_group src_ext name dest_ext
+    for mapping in \
+        "exts:${source_root}/extensions" \
+        "exts:${source_root}/source/extensions" \
+        "extsDeprecated:${source_root}/deprecated" \
+        "extsDeprecated:${source_root}/extensionsDeprecated" \
+        "extsDeprecated:${source_root}/source/deprecated" \
+        "extsDeprecated:${source_root}/source/extensionsDeprecated"
+    do
+        group="${mapping%%:*}"
+        src_group="${mapping#*:}"
+        dest_group="${install_root}/${group}"
+
+        [[ -d "${src_group}" ]] || continue
+        [[ -d "${dest_group}" ]] || continue
+
+        for src_ext in "${src_group}"/*; do
+            [[ -d "${src_ext}" ]] || continue
+
+            name="${src_ext##*/}"
+            dest_ext="${dest_group}/${name}"
+            [[ -d "${dest_ext}" ]] || continue
+
+            if [[ -d "${src_ext}/config" ]]; then
+                if [[ -e "${dest_ext}/config/extension.toml" ]] \
+                    && [[ "${src_ext}/config/extension.toml" -ef "${dest_ext}/config/extension.toml" ]]; then
+                    rm -rf "${dest_ext}/config"
+                elif [[ -L "${dest_ext}/config" ]]; then
+                    rm -f "${dest_ext}/config"
+                fi
+                mkdir -p "${dest_ext}/config"
+                cp -a "${src_ext}/config/." "${dest_ext}/config/"
+            fi
+
+            if [[ -f "${src_ext}/extension.toml" ]] \
+                && [[ -e "${dest_ext}/extension.toml" ]] \
+                && [[ "${src_ext}/extension.toml" -ef "${dest_ext}/extension.toml" ]]; then
+                rm -f "${dest_ext}/extension.toml"
+            fi
+
+            if [[ -f "${src_ext}/extension.toml" && ! -e "${dest_ext}/extension.toml" ]]; then
+                cp -a "${src_ext}/extension.toml" "${dest_ext}/"
+            fi
+
+        done
+    done
+}
+
+materialize_external_link() {
+    local link_path="$1"
+    local resolved_target
+
+    [[ -L "${link_path}" ]] || return 1
+
+    resolved_target="$(readlink -f "${link_path}" 2>/dev/null || true)"
+    [[ -n "${resolved_target}" ]] || return 1
+
+    case "${resolved_target}" in
+        "${install_root}"/*|"${PREFIX}"/*)
+            return 1
+            ;;
+    esac
+
+    rm -rf "${link_path}"
+    if [[ -d "${resolved_target}" ]]; then
+        mkdir -p "${link_path}"
+        cp -aL "${resolved_target}/." "${link_path}/"
+    else
+        cp -aL "${resolved_target}" "${link_path}"
+    fi
+
+    return 0
+}
+
+materialize_external_extension_links() {
+    log "Materializing extension links that still point outside the package"
+
+    local nullglob_was_set=0
+    local group ext changed
+    if shopt -q nullglob; then
+        nullglob_was_set=1
+    fi
+    shopt -s nullglob
+
+    for group in "${install_root}/exts" "${install_root}/extsDeprecated"; do
+        [[ -d "${group}" ]] || continue
+
+        for ext in "${group}"/*; do
+            [[ -d "${ext}" ]] || continue
+
+            while true; do
+                changed=0
+                while IFS= read -r -d '' link_path; do
+                    if materialize_external_link "${link_path}"; then
+                        changed=1
+                    fi
+                done < <(find -P "${ext}" -type l -print0)
+                [[ "${changed}" -eq 1 ]] || break
+            done
+        done
+    done
+
+    if [[ "${nullglob_was_set}" -eq 0 ]]; then
+        shopt -u nullglob
+    fi
+}
+
+ensure_declared_pip_prebundles() {
+    log "Ensuring declared pip_prebundle directories exist"
+
+    local nullglob_was_set=0
+    local group ext extension_toml
+    if shopt -q nullglob; then
+        nullglob_was_set=1
+    fi
+    shopt -s nullglob
+
+    for group in "${install_root}/exts" "${install_root}/extsDeprecated"; do
+        [[ -d "${group}" ]] || continue
+
+        for ext in "${group}"/*; do
+            [[ -d "${ext}" ]] || continue
+
+            extension_toml="${ext}/config/extension.toml"
+            [[ -f "${extension_toml}" ]] || extension_toml="${ext}/extension.toml"
+            [[ -f "${extension_toml}" ]] || continue
+
+            if grep -q 'pip_prebundle' "${extension_toml}"; then
+                mkdir -p "${ext}/pip_prebundle"
+                printf 'Retain empty directory in conda package.\n' > "${ext}/pip_prebundle/.conda-keep"
+            fi
+        done
+    done
+
+    if [[ "${nullglob_was_set}" -eq 0 ]]; then
+        shopt -u nullglob
+    fi
+}
+
+repair_lfs_placeholder_icons() {
+    log "Repairing Git LFS placeholder icon assets"
+
+    local source_icon="${install_root}/exts/isaacsim.app.selector/icons/isaacsim.png"
+    local target icon_header
+
+    [[ -f "${source_icon}" ]] || return
+
+    for target in \
+        "${install_root}/exts/isaacsim.simulation_app/data/omni.isaac.sim.png" \
+        "${install_root}/exts/isaacsim.app.setup/data/omni.isaac.sim.png" \
+        "${install_root}/extsDeprecated/omni.isaac.app.setup/data/omni.isaac.sim.png" \
+        "${install_root}/extsDeprecated/omni.isaac.app.selector/data/omni.isaac.sim.png" \
+        "${install_root}/extsDeprecated/omni.isaac.kit/data/omni.isaac.sim.png"
+    do
+        [[ -f "${target}" ]] || continue
+
+        icon_header="$(head -c 48 "${target}" 2>/dev/null || true)"
+        if [[ "${icon_header}" == version\ https://git-lfs.github.com/spec/v1* ]]; then
+            install -D -m 0644 "${source_icon}" "${target}"
+        fi
+    done
+}
+
+configure_app_python_extra_paths() {
+    log "Configuring Kit app Python extra paths"
+
+    local base_kit="${install_root}/apps/isaacsim.exp.base.kit"
+
+    [[ -f "${base_kit}" ]] || return
+
+    if grep -q '\[settings.app.python\]' "${base_kit}"; then
+        return
+    fi
+
+    cat >> "${base_kit}" <<EOF
+
+[settings.app.python]
+extraPaths = [
+    "\${app}/../../python${python_mm}/site-packages",
+]
+EOF
+}
+
+disable_broken_dynamic_control_dependencies() {
+    local config_path
+
+    for config_path in \
+        "${install_root}/apps/isaacsim.exp.base.kit" \
+        "${install_root}/exts/isaacsim.core.utils/config/extension.toml" \
+        "${install_root}/exts/isaacsim.core.nodes/config/extension.toml" \
+        "${install_root}/exts/isaacsim.robot.wheeled_robots/config/extension.toml" \
+        "${install_root}/exts/isaacsim.examples.interactive/config/extension.toml"
+    do
+        [[ -f "${config_path}" ]] || continue
+        python - "${config_path}" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+updated = text.replace('"omni.isaac.dynamic_control" = {}\n', "")
+if updated != text:
+    path.write_text(updated)
+PY
+    done
+}
+
+disable_broken_physics_sensor_dependencies() {
+    local config_path
+
+    for config_path in \
+        "${install_root}/apps/isaacsim.exp.base.kit" \
+        "${install_root}/apps/isaacsim.exp.full.kit" \
+        "${install_root}/extsDeprecated/omni.isaac.sensor/config/extension.toml" \
+        "${install_root}/exts/isaacsim.robot.policy.examples/config/extension.toml"
+    do
+        [[ -f "${config_path}" ]] || continue
+        python - "${config_path}" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+for needle in (
+    '"isaacsim.sensors.physics" = {}\n',
+    '"isaacsim.sensors.physics.examples" = {}\n',
+    '"isaacsim.sensors.physics.ui" = {}\n',
+    '"omni.isaac.sensor" = {}\n',
+):
+    text = text.replace(needle, "")
+path.write_text(text)
+PY
+    done
+}
+
 finalize_install_tree() {
     log "Repairing installed extension tree"
     "${PYTHON}" "${recipe_dir}/scripts/finalize_install_tree.py" \
         --install-root "${install_root}" \
         --release-dir "${release_dir}" \
-        --source-root "${source_root}" \
-        --prefix "${PREFIX}" \
-        --python-mm "${python_mm}"
+        --source-root "${source_root}"
 }
 
 configure_kit_python_layout() {
-    log "Replacing bundled Python layout with conda runtime links"
+    log "Materializing embedded Python home from conda runtime"
 
     local kit_python_dir="${install_root}/kit/python"
+    local stdlib_dir="${PREFIX}/lib/python${python_mm}"
+    local python_flat="${python_mm//./}"
+
+    require_path "${stdlib_dir}/encodings/__init__.py"
+
     rm -rf "${kit_python_dir}"
-    mkdir -p "${kit_python_dir}"
-    ln -sfn "../../../../bin" "${kit_python_dir}/bin"
-    ln -sfn "../../../../lib" "${kit_python_dir}/lib"
-    ln -sfn "../../../../include" "${kit_python_dir}/include"
+    mkdir -p \
+        "${kit_python_dir}/bin" \
+        "${kit_python_dir}/include" \
+        "${kit_python_dir}/lib/python${python_mm}" \
+        "${kit_python_dir}/lib/python${python_mm}/site-packages"
+
+    ln -sfn "../../../../../bin/python3" "${kit_python_dir}/bin/python3"
+    if [[ -x "${PREFIX}/bin/python" ]]; then
+        ln -sfn "../../../../../bin/python" "${kit_python_dir}/bin/python"
+    else
+        ln -sfn "python3" "${kit_python_dir}/bin/python"
+    fi
+    if [[ -x "${PREFIX}/bin/python${python_mm}" ]]; then
+        ln -sfn "../../../../../bin/python${python_mm}" "${kit_python_dir}/bin/python${python_mm}"
+    fi
+    ln -sfn "bin/python" "${kit_python_dir}/python"
+    ln -sfn "bin/python3" "${kit_python_dir}/python3"
+
+    if [[ -d "${PREFIX}/include/python${python_mm}" ]]; then
+        ln -sfn "../../../../../include/python${python_mm}" "${kit_python_dir}/include/python${python_mm}"
+    fi
+
+    if [[ -f "${PREFIX}/lib/python${python_flat}.zip" ]]; then
+        ln -sfn "../../../../python${python_flat}.zip" "${kit_python_dir}/lib/python${python_flat}.zip"
+    fi
+
+    local entry name
+    for entry in "${stdlib_dir}"/*; do
+        name="${entry##*/}"
+        case "${name}" in
+            site-packages|dist-packages|__pycache__)
+                continue
+                ;;
+        esac
+        ln -sfn "../../../../../python${python_mm}/${name}" "${kit_python_dir}/lib/python${python_mm}/${name}"
+    done
 }
 
 write_launcher_wrapper() {
@@ -408,12 +681,96 @@ prefix="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")"/.. && pwd -P)"
 root="\${prefix}/lib/isaac-sim"
 
 export ISAACSIM_ROOT="\${root}"
-export PATH="\${root}:\${root}/kit:\${prefix}/bin:\${PATH}"
-export LD_LIBRARY_PATH="\${root}:\${root}/kit:\${root}/kit/lib:\${prefix}/lib\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}"
-export PYTHONPATH="\${prefix}/lib/${python_mm}/site-packages\${PYTHONPATH:+:\${PYTHONPATH}}"
 unset PYTHONHOME
 
-exec "\${root}/${target_script}" "\$@"
+prepend_conda_site_packages() {
+    local -a site_dirs=()
+    local site_dir
+
+    map_conda_site_packages site_dirs
+    for site_dir in "\${site_dirs[@]}"; do
+        case ":\${PYTHONPATH:-}:" in
+            *":\${site_dir}:"*) ;;
+            *)
+                if [[ -n "\${PYTHONPATH:-}" ]]; then
+                    PYTHONPATH="\${site_dir}:\${PYTHONPATH}"
+                else
+                    PYTHONPATH="\${site_dir}"
+                fi
+                ;;
+        esac
+    done
+
+    export PYTHONPATH
+}
+
+map_conda_site_packages() {
+    local -n out_dirs_ref="\$1"
+    local python_mm=
+    local site_dir
+
+    out_dirs_ref=()
+
+    if [[ -x "\${prefix}/bin/python3" ]]; then
+        python_mm="\$("\${prefix}/bin/python3" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    fi
+
+    if [[ -n "\${python_mm}" ]]; then
+        for site_dir in \
+            "\${prefix}/lib/python\${python_mm}/site-packages" \
+            "\${prefix}/lib/python\${python_mm}/dist-packages"
+        do
+            [[ -d "\${site_dir}" ]] || continue
+            out_dirs_ref+=("\${site_dir}")
+        done
+        [[ "\${#out_dirs_ref[@]}" -gt 0 ]] && return
+    fi
+
+    shopt -s nullglob
+    for site_dir in \
+        "\${prefix}"/lib/python[0-9].[0-9][0-9]/site-packages \
+        "\${prefix}"/lib/python[0-9].[0-9][0-9]/dist-packages \
+        "\${prefix}"/lib/python[0-9].[0-9]/site-packages \
+        "\${prefix}"/lib/python[0-9].[0-9]/dist-packages
+    do
+        [[ -d "\${site_dir}" ]] || continue
+        out_dirs_ref+=("\${site_dir}")
+    done
+    shopt -u nullglob
+}
+
+build_kit_python_extra_args() {
+    local -n out_args_ref="\$1"
+    local -a site_dirs=()
+    local site_dir
+    local path_index=0
+
+    out_args_ref=()
+
+    map_conda_site_packages site_dirs
+    for site_dir in "\${site_dirs[@]}"; do
+        out_args_ref+=("--/app/python/extraPaths/\${path_index}=\${site_dir}")
+        ((path_index += 1))
+    done
+}
+
+if [[ -f "\${root}/setup_conda_env.sh" ]]; then
+    set +u
+    # shellcheck source=/dev/null
+    source "\${root}/setup_conda_env.sh"
+    set -u
+elif [[ -f "\${root}/setup_python_env.sh" ]]; then
+    set +u
+    # shellcheck source=/dev/null
+    source "\${root}/setup_python_env.sh"
+    set -u
+fi
+
+prepend_conda_site_packages
+kit_extra_args=()
+build_kit_python_extra_args kit_extra_args
+
+exec "\${root}/${target_script}" "\${kit_extra_args[@]}" "\$@"
 EOF
     chmod 0755 "${PREFIX}/bin/${command_name}"
 }
@@ -467,7 +824,14 @@ main() {
     configure_runtime_environment
     run_repoman_build
     install_release_tree
+    restore_extension_metadata
+    materialize_external_extension_links
     finalize_install_tree
+    ensure_declared_pip_prebundles
+    repair_lfs_placeholder_icons
+    disable_broken_dynamic_control_dependencies
+    disable_broken_physics_sensor_dependencies
+    configure_app_python_extra_paths
     configure_kit_python_layout
     cleanup_install_tree
     install_launchers

@@ -59,6 +59,7 @@ requirements:
     - tinyxml2
   run:
     - python >=3.11,<3.12
+    - pytorch
   run_constraints:
     - isaac-lab >=2.3.2,<2.4
 tests:
@@ -67,8 +68,31 @@ tests:
       - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.app.selector/isaacsim/app/selector"
       - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.version/isaacsim/core/version"
       - test -d "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.deprecation_manager/isaacsim/core/deprecation_manager"
+      - test -e "${PREFIX}/lib/isaac-sim/exts/omni.isaac.core_archive/pip_prebundle"
+      - test -e "${PREFIX}/lib/isaac-sim/exts/omni.isaac.ml_archive/pip_prebundle"
+      - test -e "${PREFIX}/lib/isaac-sim/exts/omni.pip.compute/pip_prebundle"
+      - test -e "${PREFIX}/lib/isaac-sim/exts/omni.pip.cloud/pip_prebundle"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.cloner/isaacsim/core/cloner/impl/cloner.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.core.cloner/isaacsim/core/cloner/impl/grid_cloner.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.replicator.writers/isaacsim/replicator/writers/impl/extension.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.replicator.writers/isaacsim/replicator/writers/scripts/__init__.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.replicator.domain_randomization/isaacsim/replicator/domain_randomization/impl/extension.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.replicator.domain_randomization/isaacsim/replicator/domain_randomization/scripts/context.py"
+      - test -f "${PREFIX}/lib/isaac-sim/exts/isaacsim.replicator.examples/isaacsim/replicator/examples/impl/extension.py"
+      - test -f "${PREFIX}/lib/isaac-sim/kit/python/lib/python3.11/encodings/__init__.py"
+      - python -c "from pathlib import Path; assert Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.simulation_app/data/omni.isaac.sim.png').read_bytes().startswith(b'\\x89PNG\\r\\n\\x1a\\n')"
+      - python -c "from pathlib import Path; assert Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.app.setup/data/omni.isaac.sim.png').read_bytes().startswith(b'\\x89PNG\\r\\n\\x1a\\n')"
+      - python -c "import tomllib; from pathlib import Path; settings = tomllib.loads(Path('${PREFIX}/lib/isaac-sim/apps/isaacsim.exp.base.kit').read_text()); assert settings['settings']['app']['python']['extraPaths'] == ['\${app}/../../python3.11/site-packages']"
+      - python -c "from pathlib import Path; paths = [Path('${PREFIX}/lib/isaac-sim/apps/isaacsim.exp.base.kit'), Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.core.utils/config/extension.toml'), Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.core.nodes/config/extension.toml'), Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.robot.wheeled_robots/config/extension.toml'), Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.examples.interactive/config/extension.toml')]; assert all('\"omni.isaac.dynamic_control\" = {}' not in p.read_text() for p in paths)"
+      - python -c "from pathlib import Path; paths = [Path('${PREFIX}/lib/isaac-sim/apps/isaacsim.exp.base.kit'), Path('${PREFIX}/lib/isaac-sim/apps/isaacsim.exp.full.kit'), Path('${PREFIX}/lib/isaac-sim/extsDeprecated/omni.isaac.sensor/config/extension.toml'), Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.robot.policy.examples/config/extension.toml')]; forbidden = ['\"isaacsim.sensors.physics\" = {}', '\"isaacsim.sensors.physics.examples\" = {}', '\"isaacsim.sensors.physics.ui\" = {}', '\"omni.isaac.sensor\" = {}']; assert all(all(token not in p.read_text() for token in forbidden) for p in paths)"
+      - grep -q -- '--/app/python/extraPaths/0=' "${PREFIX}/bin/isaac-sim"
+      - test "$(readlink -f "${PREFIX}/lib/isaac-sim/kit/python/bin/python3")" = "$(readlink -f "${PREFIX}/bin/python3")"
+      - PYTHONHOME="${PREFIX}/lib/isaac-sim/kit/python" PYTHONPATH="" python -c "import encodings; import sys; assert encodings.__file__.endswith('encodings/__init__.py'); assert sys.prefix == '${PREFIX}/lib/isaac-sim/kit/python'"
+      - PYTHONHOME="${PREFIX}/lib/isaac-sim/kit/python" PYTHONPATH="${PREFIX}/lib/python3.11/site-packages" python -c "import torch; assert torch.__file__.startswith('${PREFIX}/lib/python3.11/site-packages/')"
       - python -c "from pathlib import Path; assert Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.app.selector/icons/isaacsim.png').read_bytes().startswith(b'\\x89PNG\\r\\n\\x1a\\n')"
       - python -c "from pathlib import Path; assert Path('${PREFIX}/lib/isaac-sim/exts/isaacsim.app.selector/icons/NVIDIA_logo.png').read_bytes().startswith(b'\\x89PNG\\r\\n\\x1a\\n')"
+      - >-
+        bash -lc 'while IFS= read -r -d "" link; do target=$(readlink -f "$link"); case "$target" in "${PREFIX}"/*) ;; *) echo "external symlink: $link -> $target" >&2; exit 1 ;; esac; done < <(find -P "${PREFIX}/lib/isaac-sim/exts" "${PREFIX}/lib/isaac-sim/extsDeprecated" -type l -print0)'
   - package_contents:
       files:
         - bin/isaac-sim
@@ -77,6 +101,8 @@ tests:
         - lib/isaac-sim/isaac-sim.selector.sh
         - lib/isaac-sim/apps/isaacsim.exp.full.kit
         - lib/isaac-sim/extsDeprecated/omni.isaac.ros2_bridge/config/extension.toml
+        - lib/isaac-sim/exts/isaacsim.app.about/config/extension.toml
+        - lib/isaac-sim/exts/isaacsim.asset.importer.urdf/config/extension.toml
         - lib/isaac-sim/exts/isaacsim.core.nodes/config/extension.toml
 
 about:
