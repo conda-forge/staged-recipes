@@ -1,0 +1,60 @@
+context:
+  version: "6.7.2"
+
+package:
+  name: qt6-serialport
+  version: ${{ version }}
+
+source:
+  url: https://github.com/qt/qtserialport/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d7e27b1554dac0d617372900c93df9a3b3acd96104ee52386ffc39c33867f0c1
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - cmake -S . -B build -G Ninja %CMAKE_ARGS%
+          -DQt6_DIR=%PREFIX%\\Library\\lib\\cmake\\Qt6
+      else:
+        - cmake -S . -B build -G Ninja ${CMAKE_ARGS}
+          -DQt6_DIR=${{ PREFIX }}/lib/cmake/Qt6
+    - cmake --build build --parallel ${{ CPU_COUNT }}
+    - ctest --test-dir build --output-on-failure 
+    - cmake --install build
+    - if: win
+      then:
+        - copy %PREFIX%\Library\lib\qt6\bin\Qt6SerialPort.dll %PREFIX%\Library\bin\Qt6SerialPort.dll
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - qt6-main
+
+tests:
+  - package_contents:
+      include:
+        - qt6/QtSerialPort/qserialport.h
+      lib:
+        - Qt6SerialPort
+
+about:
+  homepage: https://doc.qt.io/qt-6/qtserialport-index.html
+  summary: Qt Serial Port support
+  description: |
+    Qt Serial Port provides basic functionality for configuration, I/O
+    operations, and getting and setting the control signals of the RS-232
+    pinouts.
+  license: LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+  license_file: LICENSES/
+  repository: https://github.com/qt/qtserialport
+  documentation: https://doc.qt.io/qt-6/qtserialport-index.html
+
+extra:
+  recipe-maintainers:
+    - multimeric
