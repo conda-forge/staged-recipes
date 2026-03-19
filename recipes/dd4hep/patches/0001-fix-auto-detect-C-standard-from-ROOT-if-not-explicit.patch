@@ -1,0 +1,59 @@
+From 3296c30372c1e1146e931262b5b2f6384be1ef8e Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 16:31:38 +0100
+Subject: [PATCH 1/6] fix: auto-detect C++ standard from ROOT if not explicitly
+ set
+
+Auto-detect CMAKE_CXX_STANDARD from ROOT if not explicitly set by the
+user, using ROOT_CXX_STANDARD or parsing ROOT_CXX_FLAGS. This avoids
+warnings about C++ standard mismatch with ROOT.
+---
+ CMakeLists.txt | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 58ab1678..6818195b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -52,6 +52,10 @@ ENDIF()
+ #############################################################
+ 
+ ENABLE_LANGUAGE(CXX)
++# Track if user explicitly set CMAKE_CXX_STANDARD (before our default)
++if(NOT DEFINED CMAKE_CXX_STANDARD)
++  set(_DD4HEP_AUTODETECT_CXX_STANDARD ON)
++endif()
+ # Set C++ standard
+ set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard used for compiling")
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+@@ -140,6 +144,27 @@ dd4hep_configure_output( OUTPUT "${PROJECT_BINARY_DIR}" INSTALL "${CMAKE_INSTALL
+ # Configure ROOT
+ find_package (ROOT 6.08 REQUIRED CONFIG)
+ DD4HEP_SETUP_ROOT_TARGETS()
++
++# Auto-detect C++ standard from ROOT if user didn't explicitly set it
++if(_DD4HEP_AUTODETECT_CXX_STANDARD)
++  # Check if ROOT_CXX_STANDARD is already defined by ROOT
++  if(DEFINED ROOT_CXX_STANDARD)
++    message(STATUS "Auto-detecting C++ standard from ROOT: C++${ROOT_CXX_STANDARD}")
++    set(CMAKE_CXX_STANDARD ${ROOT_CXX_STANDARD})
++  else()
++    # Deduce CXX_STANDARD from ROOT_CXX_FLAGS
++    set(_ROOT_CXX_FLAGS_TEMP ${ROOT_CXX_FLAGS})
++    separate_arguments(_ROOT_CXX_FLAGS_TEMP)
++    list(FILTER _ROOT_CXX_FLAGS_TEMP INCLUDE REGEX "-std=(c|gnu)\\+\\+[0-9]+")
++    list(TRANSFORM _ROOT_CXX_FLAGS_TEMP REPLACE "-std=(c|gnu)\\+\\+([0-9]+)" "\\2")
++    if(_ROOT_CXX_FLAGS_TEMP)
++      list(GET _ROOT_CXX_FLAGS_TEMP 0 _ROOT_CXX_STANDARD)
++      message(STATUS "Auto-detecting C++ standard from ROOT: C++${_ROOT_CXX_STANDARD}")
++      set(CMAKE_CXX_STANDARD ${_ROOT_CXX_STANDARD})
++    endif()
++  endif()
++endif()
++message(STATUS "DD4hep will be built using C++${CMAKE_CXX_STANDARD} standard")
+ # ROOT no longer finds nlohmann_json unless we ask for the ROOTEve component, so we ask
+ # for the ROOTEve component if the ROOTEve component exists.
+ # DDEve and one executable in UtilityApps depend on this
+-- 
+2.48.1
+
