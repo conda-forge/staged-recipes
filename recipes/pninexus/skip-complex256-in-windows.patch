@@ -1,0 +1,58 @@
+--- a/test/io_test_utils.py
++++ b/test/io_test_utils.py
+@@ -47,6 +47,10 @@
+            "float128": numpy.float128,
+            "complex32": numpy.complex64,
+            "complex64": numpy.complex128,
+-           "complex128": numpy.complex256,
+            "string": numpy.str_,
+            "bool": numpy.bool_}
++
++if hasattr(numpy, "complex256"):
++    scalars["complex128"] = numpy.complex256
++else:
++    scalars["complex128"] = numpy.complex128
+--- a/test/data_generator.py
++++ b/test/data_generator.py
+@@ -82,9 +82,14 @@
+               "float128": type_desc(np.dtype("float128"), np.float128),
+               "complex32": type_desc(np.dtype("complex64"), np.complex64),
+               "complex64": type_desc(np.dtype("complex128"), np.complex128),
+-              "complex128": type_desc(np.dtype("complex256"), np.complex256),
+               "bool": type_desc(np.dtype("bool"), np.bool_)}
+
++if hasattr(np, "complex256"):
++    _type_desc["complex128"] =  type_desc(np.dtype("complex256"), np.complex256)
++else:
++    _type_desc["complex128"] =  type_desc(np.dtype("complex256"), np.complex128)
++
++
+
+ if sys.version_info[0] >= 3:
+     _typecodes += "unicode"
+--- a/src/cpp/h5cpp/numpy/hdf5_support.hpp
++++ b/src/cpp/h5cpp/numpy/hdf5_support.hpp
+@@ -87,7 +87,9 @@
+ 	// case NPY_COMPLEX32: return hdf5::datatype::create<std::complex<float16_t>>();
+         case NPY_COMPLEX64: return hdf5::datatype::create<std::complex<float>>();
+         case NPY_COMPLEX128: return hdf5::datatype::create<std::complex<double>>();
++#ifdef NPY_COMPLEX256
+         case NPY_COMPLEX256: return hdf5::datatype::create<std::complex<long double>>();
++#endif
+         case NPY_BOOL: return hdf5::datatype::create<bool>();
+ #if PY_MAJOR_VERSION >= 3
+         case NPY_UNICODE:
+--- a/src/cpp/h5cpp/numpy/array_factory.cpp
++++ b/src/cpp/h5cpp/numpy/array_factory.cpp
+@@ -56,7 +56,11 @@
+   // else if(datatype == create<std::complex<float16_t>>())    return NPY_COMPLEX32;
+   else if(datatype == create<std::complex<float>>())    return NPY_COMPLEX64;
+   else if(datatype == create<std::complex<double>>())   return NPY_COMPLEX128;
++#ifdef NPY_COMPLEX256
+   else if(datatype == create<std::complex<long double>>()) return NPY_COMPLEX256;
++#else
++  else if(datatype == create<std::complex<long double>>()) return NPY_COMPLEX128;
++#endif
+   else if(datatype.get_class() == Class::String)
+   {
+     String string_type = datatype;

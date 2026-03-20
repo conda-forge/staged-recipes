@@ -1,0 +1,83 @@
+context:
+  version: 3.3.0
+
+package:
+  name: pninexus
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pni-libraries/python-pninexus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 4833db1524715f7172cdb63948364019c7cc44c284e612f1d103e8bd4ee2b89a
+  patches:
+    - add-empty-scalar-test.patch
+    - fix-dim-size-cast.patch
+    - set-empty-string.patch
+    - change-compiler-parameters.patch
+    - skip-complex256-in-windows.patch
+    - adapt-type-tests-for-windows.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - set CL=/DH5_BUILT_AS_DYNAMIC_LIB=1 %CL%
+        - set HDF5_LOCAL_PATH=__SYS__
+        - set HDF5_HL_LOCAL_PATH=__SYS__
+      else:
+        - export HDF5_HL_LOCAL_PATH=__SYS__
+    - ${{ PYTHON }} setup.py install
+    - ${{ PYTHON }}  -m pytest test
+    - if: win
+      then: ${{ PYTHON }}  setup.py install --prefix=%PREFIX%
+      else: ${{ PYTHON }} setup.py install --prefix=$PREFIX
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - make
+  host:
+    - python
+    - setuptools
+    - pip
+    - pytest  # for testing
+    - h5py    # for testing
+    - sphinx  # for building documentation
+    - numpy
+    - hdf5
+    - h5cpp
+    - sphinx
+    - libpninexus
+    - libboost-devel
+    - libboost-python-devel
+    - blas
+    - zlib
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - pninexus.h5cpp
+        - pninexus.nexus
+
+about:
+  homepage: https://github.com/pni-libraries/python-pninexus
+  license: GPL-2.0-only
+  license_file: LICENSE
+  summary: Python bindings or  NeXus libpninexus and h5cpp library
+  description: |
+    pninexus is python bindings of C++ library to create NeXus files.
+    It provides NeXus tree-structure builder basedon XML (NXDL-like) input,
+    NeXus path parsers and other algorithms to access NeXus files.
+  documentation: https://pni-libraries.github.io/python-pninexus
+  repository: https://github.com/pni-libraries/python-pninexus
+
+extra:
+  recipe-maintainers:
+    - jkotan
+    - yuelongyu
