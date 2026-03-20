@@ -5,13 +5,8 @@ set -o xtrace -o nounset -o pipefail -o errexit
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Strip lifecycle scripts that interfere with packaging (husky, playwright)
-node -e "
-const fs = require('fs');
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-delete pkg.scripts.prepare;
-delete pkg.scripts.postinstall;
-fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-"
+mv package.json package.json.bak
+jq 'del(.scripts.prepare, .scripts.postinstall)' package.json.bak > package.json
 
 # Create package archive and install globally
 npm pack --ignore-scripts
@@ -23,12 +18,8 @@ npm install -ddd \
     ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
-node -e "
-const fs = require('fs');
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-delete pkg.devDependencies;
-fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-"
+mv package.json package.json.bak
+jq 'del(.devDependencies)' package.json.bak > package.json
 
 pnpm install --ignore-scripts
 pnpm-licenses generate-disclaimer --prod --output-file=${SRC_DIR}/third-party-licenses.txt
