@@ -7,7 +7,9 @@ set -euo pipefail
 go-licenses save ./cmd/openshift-install --save_path ./library_licenses/
 
 # Build cluster API binaries first
-. ${SRC_DIR}/build-cluster-api.sh"
+# Unset C-linker LDFLAGS so they don't interfere with Go's cgo/make build
+unset LDFLAGS
+. ${SRC_DIR}/hack/build-cluster-api.sh
 make -C cluster-api all
 copy_cluster_api_to_mirror
 
