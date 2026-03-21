@@ -14,12 +14,17 @@ cd ..
 cmake --build cmake-build-local --config Release
 if errorlevel 1 exit 1
 
-REM Copy the built shared library into the Python package directory
-copy cmake-build-local\DearPyGui\_dearpygui* DearPyGui\
+REM setup.py expects the .pyd in a Release\ subdirectory (Visual Studio layout)
+REM but Ninja (single-config) puts it directly in cmake-build-local\DearPyGui\
+mkdir cmake-build-local\DearPyGui\Release
+copy cmake-build-local\DearPyGui\_dearpygui.pyd cmake-build-local\DearPyGui\Release\
 if errorlevel 1 exit 1
 
-REM Patch setup.py to skip its own CMake build since we already built above
-"%PYTHON%" -c "p=__import__('pathlib').Path('setup.py');p.write_text(p.read_text().replace(\"self.run_command('dpg_build')\",\"pass\"))"
+REM Patch setup.py:
+REM 1. Don't delete our pre-built cmake-build-local directory
+REM 2. Skip the cmake subprocess calls but keep the shutil.copy that
+REM    moves the built library into output\dearpygui\
+"%PYTHON%" -c "import pathlib; p = pathlib.Path('setup.py'); t = p.read_text(); t = t.replace('shutil.rmtree(src_path + \"/cmake-build-local\")', 'pass'); t = t.replace(\"subprocess.check_call(''.join(command), shell=True)\", 'pass'); t = t.replace(\"subprocess.check_call(''.join(command), env=os.environ, shell=True)\", 'pass'); p.write_text(t)"
 if errorlevel 1 exit 1
 
 "%PYTHON%" -m pip install . --no-deps --no-build-isolation

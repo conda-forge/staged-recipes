@@ -14,10 +14,18 @@ cmake .. \
 cd ..
 cmake --build cmake-build-local --config Release
 
-# Copy the built shared library into the Python package directory
-cp cmake-build-local/DearPyGui/_dearpygui* DearPyGui/
-
-# Patch setup.py to skip its own CMake build since we already built above
-sed -i "s/self.run_command('dpg_build')/pass  # skipped/" setup.py
+# Patch setup.py:
+# 1. Don't delete our pre-built cmake-build-local directory
+# 2. Skip the cmake subprocess calls but keep the shutil.copy that
+#    moves the built library into output/dearpygui/
+${PYTHON} << 'PATCH'
+import pathlib
+p = pathlib.Path("setup.py")
+t = p.read_text()
+t = t.replace('shutil.rmtree(src_path + "/cmake-build-local")', "pass")
+t = t.replace("subprocess.check_call(''.join(command), shell=True)", "pass")
+t = t.replace("subprocess.check_call(''.join(command), env=os.environ, shell=True)", "pass")
+p.write_text(t)
+PATCH
 
 ${PYTHON} -m pip install . --no-deps --no-build-isolation
