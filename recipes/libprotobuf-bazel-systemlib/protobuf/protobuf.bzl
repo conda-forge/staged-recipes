@@ -1,7 +1,15 @@
 load("@bazel_skylib//lib:versions.bzl", "versions")
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_proto//proto:defs.bzl", "ProtoInfo")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
+ProtoGenInfo = provider(
+    doc = "Internal provider for generated proto compilation metadata.",
+    fields = [
+        "deps",
+        "import_flags",
+        "srcs",
+    ],
+)
 
 
 def _GetPath(ctx, path):
@@ -87,8 +95,8 @@ def _proto_gen_impl(ctx):
         import_flags = ["-I."]
 
     for dep in ctx.attr.deps:
-        import_flags += dep.proto.import_flags
-        deps += dep.proto.deps
+        import_flags += dep[ProtoGenInfo].import_flags
+        deps += dep[ProtoGenInfo].deps
     import_flags = depset(import_flags).to_list()
     deps = depset(deps).to_list()
 
@@ -126,18 +134,16 @@ def _proto_gen_impl(ctx):
             use_default_shell_env = True,
         )
 
-    return struct(
-        proto = struct(
-            srcs = srcs,
-            import_flags = import_flags,
-            deps = deps,
-        ),
-    )
+    return [ProtoGenInfo(
+        srcs = srcs,
+        import_flags = import_flags,
+        deps = deps,
+    )]
 
 proto_gen = rule(
     attrs = {
         "srcs": attr.label_list(allow_files = True),
-        "deps": attr.label_list(providers = [ProtoInfo]),
+        "deps": attr.label_list(providers = [ProtoGenInfo]),
         "includes": attr.string_list(),
         "protoc": attr.label(
             cfg = "host",

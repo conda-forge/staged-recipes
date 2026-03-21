@@ -94,7 +94,7 @@ LIB_ALIASES = ["type_resolver", "differencer", "json_util", "delimited_message_u
 genrule(
     name = "protoc",
     outs = ["protoc.bin"],
-    cmd = "ln -s ${BUILD_PREFIX}/bin/protoc $@",
+    cmd = "ln -s $(PROTOC_PREFIX)/bin/protoc $@",
     executable = 1,
     visibility = ["//visibility:public"],
 )
