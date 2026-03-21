@@ -14,4 +14,7 @@ cmake .. \
 cd ..
 cmake --build cmake-build-local --config Release
 
+# Patch setup.py to skip its own CMake build since we already built above
+sed -i "s/self.run_command('dpg_build')/pass  # skipped/" setup.py
+
 ${PYTHON} -m pip install . --no-deps --no-build-isolation

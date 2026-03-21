@@ -14,5 +14,9 @@ cd ..
 cmake --build cmake-build-local --config Release
 if errorlevel 1 exit 1
 
+REM Patch setup.py to skip its own CMake build since we already built above
+"%PYTHON%" -c "p=__import__('pathlib').Path('setup.py');p.write_text(p.read_text().replace(\"self.run_command('dpg_build')\",\"pass\"))"
+if errorlevel 1 exit 1
+
 "%PYTHON%" -m pip install . --no-deps --no-build-isolation
 if errorlevel 1 exit 1
