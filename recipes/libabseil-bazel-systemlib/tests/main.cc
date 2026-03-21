@@ -11,7 +11,7 @@ absl::StatusOr<absl::Cord> BuildMessage() {
       absl::StrFormat("current_time=%d", absl::ToUnixNanos(absl::Now())));
 }
 
-}  // namespace
+}
 
 int main() {
   auto message = BuildMessage();

@@ -4,6 +4,7 @@ set -euxo pipefail
 
 pushd tests
 
+# It seems that during rattler-build's activation the header includes are erroneously point NOT to PREFIX.
 export CFLAGS="${CFLAGS//${CONDA_PREFIX}/${PREFIX}}"
 export CPPFLAGS="${CXXFLAGS//${CONDA_PREFIX}/${PREFIX}}"
 export CXXFLAGS="${CXXFLAGS//${CONDA_PREFIX}/${PREFIX}}"
@@ -11,11 +12,9 @@ export CXXFLAGS="${CXXFLAGS//${CONDA_PREFIX}/${PREFIX}}"
 source gen-bazel-toolchain
 
 mkdir -p ./third_party/systemlibs
-rm -rf ./third_party/systemlibs/absl
 cp -ap "${PREFIX}/share/bazel/systemlibs/absl" third_party/systemlibs/
-
 export ABSEIL_VERSION="$(conda list -p "${PREFIX}" libabseil --fields version | awk '!/^#/ && NF { print $1; exit }')"
-sed -i "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" third_party/systemlibs/absl/MODULE.bazel
+sed -i "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" MODULE.bazel
 
 bazel build \
   --subcommands \

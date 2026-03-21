@@ -4,20 +4,19 @@ set -euxo pipefail
 
 pushd tests
 
+# It seems that during rattler-build's activation the header includes are erroneously point NOT to PREFIX.
 export CFLAGS="${CFLAGS//${CONDA_PREFIX}/${PREFIX}}"
 export CPPFLAGS="${CPPFLAGS//${CONDA_PREFIX}/${PREFIX}}"
 export CXXFLAGS="${CXXFLAGS//${CONDA_PREFIX}/${PREFIX}}"
-export ABSEIL_VERSION="$(conda list -p "${PREFIX}" libabseil --fields version | awk '!/^#/ && NF { print $1; exit }')"
-export PROTOC_VERSION=$(conda list -p "${PREFIX}" libprotobuf --fields version | awk '!/^#/ && NF { print $1; exit }' | sed -E 's/^[0-9]+\.([0-9]+\.[0-9]+)$/\1/')
 
 source gen-bazel-toolchain
 
 mkdir -p third_party/systemlibs
 cp -ap "${PREFIX}/share/bazel/systemlibs/protobuf" third_party/systemlibs/
 cp -ap "${PREFIX}/share/bazel/protobuf/bazel" third_party/systemlibs/protobuf/
-sed -i "s:PROTOC_VERSION:${PROTOC_VERSION}:" \
-    third_party/systemlibs/protobuf/MODULE.bazel \
-    MODULE.bazel
+export ABSEIL_VERSION="$(conda list -p "${PREFIX}" libabseil --fields version | awk '!/^#/ && NF { print $1; exit }')"
+export PROTOC_VERSION=$(conda list -p "${PREFIX}" libprotobuf --fields version | awk '!/^#/ && NF { print $1; exit }' | sed -E 's/^[0-9]+\.([0-9]+\.[0-9]+)$/\1/')
+sed -i "s:PROTOC_VERSION:${PROTOC_VERSION}:" MODULE.bazel
 sed -i "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" third_party/systemlibs/protobuf/MODULE.bazel
 
 bazel build \
