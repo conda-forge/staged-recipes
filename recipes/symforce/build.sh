@@ -19,6 +19,7 @@ with open(path, 'w') as f:
 "
 
 export SETUPTOOLS_SCM_PRETEND_VERSION=${PKG_VERSION}
+export CMAKE_GENERATOR=Ninja
 
 $PYTHON -m pip install file:./gen/python
 $PYTHON -m pip install file:./third_party/skymarshal
