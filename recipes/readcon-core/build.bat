@@ -1,15 +1,14 @@
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 if errorlevel 1 exit 1
 
-meson setup builddir ^
-    --prefix="%LIBRARY_PREFIX%" ^
-    --buildtype=release ^
-    -Dwith_tests=false ^
-    -Dwith_examples=false
+cargo build --release
 if errorlevel 1 exit 1
 
-ninja -C builddir
+mkdir %LIBRARY_LIB%
+copy target\release\readcon_core.lib %LIBRARY_LIB%\
 if errorlevel 1 exit 1
 
-ninja -C builddir install
+mkdir %LIBRARY_INC%
+copy include\readcon-core.h %LIBRARY_INC%\
+copy include\readcon-core.hpp %LIBRARY_INC%\
 if errorlevel 1 exit 1
