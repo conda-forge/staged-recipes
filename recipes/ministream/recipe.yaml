@@ -1,0 +1,82 @@
+context:
+  name: ministream
+  version: "0.99.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: "https://gitlab.gnome.org/-/project/37671/uploads/1caaee1f000934410df11677d1e1cccf/${{ name }}-${{ version }}.tar.xz"
+  sha256: 6aa0ee83cd877fd86396a1d86294b1cd952da14c29e8f996315939bf961529e3
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        meson setup %MESON_ARGS% ^
+          --prefix=%LIBRARY_PREFIX% ^
+          --default-library=shared ^
+          --wrap-mode=nofallback ^
+          -Dintrospection=enabled ^
+          -Dtests=false ^
+          builddir
+        ninja -v -C builddir -j %CPU_COUNT%
+        ninja -C builddir install -j %CPU_COUNT%
+      else: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dintrospection=enabled \
+            -Dtests=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    - gobject-introspection
+    - glib
+  host:
+    - glib
+    - gobject-introspection
+    - zlib
+  run_exports:
+    # Conservative ABI compatibility, may be able to be relaxed after the 1.0.0 release
+    - ${{ pin_subpackage('ministream', upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then: lib/pkgconfig/ministream.pc
+        - if: win
+          then: Library/lib/pkgconfig/ministream.pc
+      lib:
+        # rattler-build doesn't detect DLLs in a <name>-<so>.dll format
+        - if: unix
+          then: ministream
+        - if: win
+          then:
+            - ministream.lib
+            - ministream-*.dll
+
+about:
+  homepage: https://gitlab.gnome.org/sp1rit/ministream
+  summary: 'Minimal (subset) appstream metadata parser'
+  description: |
+    Provides a subset of AppStream support for building libraries like libadwaita
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  repository: https://gitlab.gnome.org/sp1rit/ministream
+
+extra:
+  recipe-maintainers:
+    - danyeaw
