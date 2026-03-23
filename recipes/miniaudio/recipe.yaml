@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  version: "1.61"
+
+package:
+  name: miniaudio
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/miniaudio/miniaudio-${{ version }}.tar.gz
+  sha256: e88e97837d031f0fb6982394218b6487de02eaa382ad273b8fca37791a2b4b15
+  # The extension is CFFI-based and thus independent from the Python version.
+  # Mark it as ABI3 to save some CI resources.
+  patches:
+    - abi3-wheel-tag.patch
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: true
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+  host:
+    - python      ${{ python_min }}.*
+    - python-abi3 ${{ python_min }}.*
+    - setuptools >=42
+    - wheel
+    - cffi >=1.12.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - cffi >=1.12.0
+
+tests:
+  - python:
+      python_version:
+        - ${{ python_min }}.*
+        - '*'
+      imports:
+        - miniaudio
+      pip_check: true
+  - script:
+      - if: unix
+        then: abi3audit ${SP_DIR}/_miniaudio.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        else: abi3audit %SP_DIR%/_miniaudio.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
+
+about:
+  summary: python bindings for the miniaudio library and its decoders (mp3, flac, ogg vorbis, wav)
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/irmen/pyminiaudio
+
+extra:
+  recipe-maintainers:
+    - xhochy
