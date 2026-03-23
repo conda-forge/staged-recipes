@@ -1,0 +1,70 @@
+context:
+  version: "33.5"
+  major: 6
+
+package:
+  name: libprotobuf-bazel-systemlib
+  version: ${{ version }}
+
+source:
+  url: https://github.com/protocolbuffers/protobuf/releases/download/v${{ version }}/protobuf-${{ version }}.tar.gz
+  sha256: c6c7c27fadc19d40ab2eaa23ff35debfe01f6494a8345559b9bb285ce4144dd1
+
+build:
+  number: 0
+  noarch: generic
+
+requirements:
+  build:
+    - sed
+  run:
+    - libprotobuf ${{ major }}.${{ version }}.*
+
+tests:
+  - package_contents:
+      files:
+        - share/bazel/systemlibs/protobuf/BUILD
+  - script: tests/run_test.sh
+    files:
+      recipe:
+        - tests/
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - bazel >=8
+        - bazel-toolchain >=0.5.7
+      run:
+        - protobuf-bazel-rules
+        - protobuf ${{ major }}.${{ version }}.*
+        - libprotobuf ${{ major }}.${{ version }}.*
+
+about:
+  homepage: https://developers.google.com/protocol-buffers/
+  repository: https://github.com/conda-forge/libprotobuf-bazel-systemlib-feedstock
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Bazel rules for protobuf
+  description: |
+    You can use the systemlib definitions by assembling them together with
+    the following lines in your build script:
+
+    ```bash
+    mkdir -p third_party/systemlibs
+    cp -ap "${PREFIX}/share/bazel/systemlibs/protobuf" third_party/systemlibs/
+    cp -ap "${PREFIX}/share/bazel/protobuf/bazel" third_party/systemlibs/protobuf/
+    export ABSEIL_VERSION="$(conda list -p "${PREFIX}" libabseil --fields version | awk '!/^#/ && NF { print $1; exit }')"
+    sed -i "s:ABSEIL_VERSION:${ABSEIL_VERSION}:" third_party/systemlibs/protobuf/MODULE.bazel
+    ```
+
+    You will also need an override in the top-level `MODULE.bazel`:
+
+    ```python
+    local_path_override(
+        module_name = "protobuf",
+        path = "./third_party/systemlibs/protobuf",
+    )
+    ```
+
+extra:
+  recipe-maintainers:
+    - conda-forge/bazel
