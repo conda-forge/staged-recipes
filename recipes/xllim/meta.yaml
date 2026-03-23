@@ -1,22 +1,17 @@
 {% set name = "xllim" %}
 {% set version = "2.0.7" %}
 
-# If the version of a package is not being increased, please add or increase the build/number.
-# If the version of a package is being increased, please remember to return the build/number back to 0
-{% set build = 0 %}
-
-
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
   # url: https://pypi.org/packages/source/x/xllim/xllim-{{ version }}.tar.gz
-  url: https://github.com/xllim-tools/xllim/archive/a37398fed72b54aff10a56ecb04912def875aad1.tar.gz
-  sha256: 0b2d31b8009f8a3e091a724233ebc61681838a71f4c4c7c54aa2afe969fb5bfc
+  url: https://github.com/xllim-tools/xllim/archive/cc55eef6404397922a2988e7ddc4a9d053ced8ef.tar.gz
+  sha256: b93844c024321120ba5b32e066757de2c8f598a79a604775bdd27e0ead9fc392
 
 build:
-  number: {{ build }}
+  number: 0
   # The upstream sdist vendors pybind11 and carma as git submodules in extern/.
   # We delete them and use conda-forge packages instead (see host requirements).
   # SKBUILD_CMAKE_DEFINE activates find_package() paths in CMakeLists.txt.
@@ -24,7 +19,7 @@ build:
     - SKBUILD_CMAKE_DEFINE=XLLIM_USE_SYSTEM_PYBIND11=ON;XLLIM_USE_SYSTEM_CARMA=ON
   script: 
     - rm -rf extern/carma extern/pybind11   # [unix]   # Remove vendored sources completely
-    - rd /s /q extern\carma extern\pybind11  # [win]  
+    - rd /s /q extern\carma extern\pybind11  # [win]
     - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   skip: true  # [py<311 or py>=313]  # >=3.11 requirement from NumPy 2, <3.13 from CARMA 
 
@@ -42,19 +37,18 @@ requirements:
     - wheel
     - scikit-build-core >=0.7.0,<1  
     - numpy  # numpy build version is decided by the conda-forge-pinning-feedstock, cannot constrain it here. Good news, it's numpy 2
-    - boost >=1.78,<2.0  # 1.78 matches the PyPI wheel build; <2.0 ensures ABI stability
-    - armadillo >=12.6,<13  # 12.6 minimum tested; <13 bounds to compatible major ABI
+    - boost  # Letting boost use the global pin to be compatible with other packages (and be rebuilt accordingly)
+    - armadillo >=12.6,<13  # 12.6 minimum tested; <13 bounds to compatible major ABI. Pulls libblas & liblapack.
     - pybind11 >=2.12,<3  # replaces vendored extern/pybind11; <3 needed (API break)
     - carma  # replaces vendored extern/carma
-    - libblas * *openblas
-    - liblapack * *openblas
-    - openblas
+    - libblas    # explicit host dep so run_exports propagate the correct BLAS runtime
+    - liblapack  # idem
 
   run:
     - python
     - numpy
     - h5py >=3.8,<4
-    - libopenblas >=0.3.15
+    # libblas/liblapack run_exports handle BLAS runtime automatically
 
 test:
   imports:
@@ -64,10 +58,9 @@ test:
     - xllim.utils
   commands:
     - xllim_cli --help
+    - pip check
   requires:
     - pip
-  source_files:
-    - tests/
 
 about:
   home: https://github.com/xllim-tools/xllim
