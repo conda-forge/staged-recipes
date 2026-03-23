@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.9.0"
+  maturin_min: "1.9"
+  maturin_max: "2.0"
+  cov_fail_linux: "83"
+
+package:
+  name: fastar
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/f/fastar/fastar-${{ version }}.tar.gz
+  sha256: d49114d5f0b76c5cc242875d90fa4706de45e0456ddedf416608ecd0787fb410
+
+build:
+  number: 0
+  script:
+    env:
+      ZSTD_SYS_USE_PKG_CONFIG: "1"
+    content:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler("rust") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+    - pkg-config
+    - if: target_platform != host_platform
+      then:
+        - maturin >=${{ maturin_min }},<${{ maturin_max }}
+        - python
+  host:
+    - maturin >=${{ maturin_min }},<${{ maturin_max }}
+    - pip
+    - python
+    - zstd
+  run:
+    - python
+
+tests:
+  - python:
+      imports: fastar
+      pip_check: true
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - backports.zstd
+        - mypy
+        - psutil
+        - pytest-codspeed
+        - pytest-cov
+    script:
+      env:
+        # upstream tests on linux; most of the below are due to OS-level
+        # differences in error message strings
+        PYTEST_ADDOPTS: |-
+          ${{
+            '-k "not unpack_raises_if_file_would_overwrite_existing_directory"'
+            if osx
+          }}${{
+            ('-k "not (' ~ ( [
+              'append_preserves_directory_permissions',
+              'append_preserves_file_permissions',
+              'close_closes_archive',
+              'context_manager_closes_archive',
+              'open_raises_if_file_does_not_exist',
+              'open_raises_if_insufficient_permissions',
+              'open_raises_if_no_permissions',
+              'open_raises_if_path_is_directory',
+              'unpack_keeps_contents_of_conflicting_directories',
+              'unpack_overwrites_permissions_of_conflicting_directories',
+              'unpack_overwrites_permissions_of_conflicting_files',
+              'unpack_preserves_directory_permissions',
+              'unpack_preserves_file_permissions',
+              'unpack_raises_if_file_would_overwrite_existing_directory',
+            ] | join(' or ') ) ~ ')"')
+            if win
+          }}
+      content:
+        - coverage run --source=fastar --branch -m pytest -vv --tb=long --color=yes
+        - coverage report --show-missing --skip-covered ${{ '--fail-under ' ~ cov_fail_linux if linux }}
+        - mypy -p fastar
+
+about:
+  summary: High-level bindings for the Rust tar crate
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://pypi.org/project/fastar
+  repository: https://github.com/DoctorJohn/fastar
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
