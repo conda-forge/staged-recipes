@@ -50,6 +50,8 @@ CMAKE_ARGS=(
     -Dbundled-gsl=OFF
     -Dbundled-minhook=OFF
     -Dbundled-SPSCQueue=OFF
+    -Dbundled-speexdsp=OFF
+    -Dbundled-rnnoise=OFF
     -DTRACY_ENABLE=OFF
 )
 

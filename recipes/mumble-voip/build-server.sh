@@ -49,6 +49,7 @@ CMAKE_ARGS=(
     -Dbundled-gsl=OFF
     -Dbundled-minhook=OFF
     -Dbundled-SPSCQueue=OFF
+    -Dbundled-speexdsp=OFF
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
