@@ -47,7 +47,7 @@ set(HPTT_INCLUDES
     include/transpose.h)
 
 install(FILES ${HPTT_INCLUDES}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/hptt)
 
 install( TARGETS hptt
   EXPORT hptt-targets 
