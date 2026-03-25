@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 set -ex
-CXXFLAGS="-std=c++11 $CXXFLAGS"
-mkdir -p $PREFIX/lib $PREFIX/include
-$CXX \
-  $CXXFLAGS \
-  -fPIC \
-  -I./include \
-  src/*.cpp \
-  -o $PREFIX/lib/libhptt$SHLIB_EXT \
-  -shared
-cp include/*.h $PREFIX/include/
+cp $RECIPE_DIR/CMakeLists.txt $RECIPE_DIR/hptt-config.cmake.in .
+cmake \
+  -B _build \
+  -G Ninja \
+  -DBUILD_SHARED_LIBS=ON \
+  -DHPTT_VERSION=${PKG_VERSION} \
+  ${CMAKE_ARGS}
+cmake --build _build
+cmake --install _build
