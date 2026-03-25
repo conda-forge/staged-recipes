@@ -50,12 +50,16 @@ CMAKE_ARGS=(
     -Dbundled-gsl=OFF
     -Dbundled-minhook=OFF
     -Dbundled-SPSCQueue=OFF
-    -Dbundled-speexdsp=OFF
-    -Dbundled-rnnoise=OFF
+    -Dbundled-speex=OFF
+    -Dbundled-renamenoise=OFF
     -DTRACY_ENABLE=OFF
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
+    # speexdsp's cmake config file has a broken hardcoded include path; remove it
+    # so mumble's find_pkg falls back to pkg-config which uses relocatable paths
+    rm -rf "${PREFIX}/lib/cmake/speexdsp"
+
     export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS:-}"
     export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
     # Include sysroot in library search so cmake can find system libs like librt

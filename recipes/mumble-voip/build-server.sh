@@ -49,10 +49,14 @@ CMAKE_ARGS=(
     -Dbundled-gsl=OFF
     -Dbundled-minhook=OFF
     -Dbundled-SPSCQueue=OFF
-    -Dbundled-speexdsp=OFF
+    -Dbundled-speex=OFF
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
+    # speexdsp's cmake config file has a broken hardcoded include path; remove it
+    # so mumble's find_pkg falls back to pkg-config which uses relocatable paths
+    rm -rf "${PREFIX}/lib/cmake/speexdsp"
+
     export CPPFLAGS="-I${PREFIX}/include -I${PREFIX}/include/tracy ${CPPFLAGS:-}"
     export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
     SYSROOT="${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot"
