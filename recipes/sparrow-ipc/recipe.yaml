@@ -1,0 +1,76 @@
+context:
+  version: "0.3.0"
+  build_number: 0
+
+package:
+  name: sparrow-ipc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sparrow-org/sparrow-ipc/archive/refs/tags/${{ version }}.tar.gz
+  sha256: d833ebb392b43391838185befc5aed62696233fb3338d0f80a94f99ca52cd4b4
+  patches:
+    - fix-install.patch
+
+build:
+  script: build
+  number: ${{ build_number }}
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage('sparrow-ipc', upper_bound='x.x') }}
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - flatbuffers
+    - if: unix
+      then: make
+    - if: win
+      then: ninja
+  host:
+    - sparrow-devel
+    - lz4-c
+    - zstd
+    - nlohmann_json
+  run:
+    - lz4-c
+    - zstd
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -f ${PREFIX}/include/sparrow_ipc/serialize.hpp
+          - test -f ${PREFIX}/include/sparrow_ipc/deserialize.hpp
+          - test -f ${PREFIX}/include/sparrow_ipc/config/sparrow_ipc_version.hpp
+          - test -f ${PREFIX}/share/cmake/sparrow-ipc/sparrow-ipcConfig.cmake
+          - test -f ${PREFIX}/share/cmake/sparrow-ipc/sparrow-ipcConfigVersion.cmake
+          - test -f ${PREFIX}/share/cmake/sparrow-ipc/sparrow-ipcTargets.cmake
+          - test -f ${PREFIX}/lib/libsparrow-ipc${SHLIB_EXT}
+      - if: win
+        then:
+          - if not exist %LIBRARY_PREFIX%\include\sparrow_ipc\serialize.hpp (exit 1)
+          - if not exist %LIBRARY_PREFIX%\include\sparrow_ipc\deserialize.hpp (exit 1)
+          - if not exist %LIBRARY_PREFIX%\include\sparrow_ipc\config\sparrow_ipc_version.hpp (exit 1)
+          - if not exist %LIBRARY_PREFIX%\share\cmake\sparrow-ipc\sparrow-ipcConfig.cmake (exit 1)
+          - if not exist %LIBRARY_PREFIX%\share\cmake\sparrow-ipc\sparrow-ipcConfigVersion.cmake (exit 1)
+          - if not exist %LIBRARY_PREFIX%\share\cmake\sparrow-ipc\sparrow-ipcTargets.cmake (exit 1)
+          - if not exist %LIBRARY_PREFIX%\bin\sparrow-ipc.dll (exit 1)
+          - if not exist %LIBRARY_PREFIX%\lib\sparrow-ipc.lib(exit 1)
+
+about:
+  homepage: https://github.com/sparrow-org/sparrow-ipc
+  summary: C++20 idiomatic APIs for the Apache Arrow Serialization and Interprocess Communication (IPC)
+  description: |
+    sparrow-ipc provides a high-level, C++20 idiomatic interface for working with
+    Apache Arrow IPC messages and streams. It leverages the sparrow library for
+    modern C++ memory management and data structures.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  documentation: https://sparrow-org.github.io/sparrow-ipc/
+  repository: https://github.com/sparrow-org/sparrow-ipc
+
+extra:
+  recipe-maintainers:
+    - Hind-M
