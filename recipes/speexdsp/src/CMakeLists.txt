@@ -8,6 +8,8 @@ project(speexdsp
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(GNUInstallDirs)
+
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(USE_FIXED_POINT "Use fixed-point arithmetic" ON)
 
@@ -91,9 +93,9 @@ add_library(speexdsp ${speexdsp_SOURCES})
 # Installation rules
 install(TARGETS speexdsp
     EXPORT speexdspConfig
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(DIRECTORY include/ DESTINATION include)
