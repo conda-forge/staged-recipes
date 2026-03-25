@@ -18,6 +18,15 @@ protoc \
   --python_out="$OUT_DIR" \
   "${PROTO_FILES[@]}"
 
+# Rename the top-level package from cel to cel_spec_proto_python.
+mv "$OUT_DIR/cel" "$OUT_DIR/cel_spec_proto_python"
+
+# Rewrite Python imports in generated stubs to use the new package name.
+find "$OUT_DIR" -name '*_pb2.py' -print0 | while IFS= read -r -d '' f; do
+  sed 's/from cel\./from cel_spec_proto_python./g;s/import cel\./import cel_spec_proto_python./g' "$f" > "$f.tmp"
+  mv "$f.tmp" "$f"
+done
+
 # Create __init__.py files for every package directory.
 find "$OUT_DIR" -type d -print0 | while IFS= read -r -d '' dir; do
   touch "$dir/__init__.py"

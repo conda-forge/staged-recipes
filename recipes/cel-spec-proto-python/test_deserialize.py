@@ -1,7 +1,7 @@
 """Test that CEL protobuf stubs can deserialize expressions from cel-expr-python."""
 
 from cel_expr_python.cel import NewEnv
-from cel.expr.checked_pb2 import CheckedExpr
+from cel_spec_proto_python.expr.checked_pb2 import CheckedExpr
 from google.protobuf.any_pb2 import Any
 
 env = NewEnv()
