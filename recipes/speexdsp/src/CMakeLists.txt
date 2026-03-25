@@ -108,6 +108,9 @@ list(REMOVE_ITEM SPEEXDSP_SOURCES
 
 add_library(speexdsp ${SPEEXDSP_SOURCES})
 
+# On Windows, auto-export all symbols so an import library (.lib) is generated
+set_target_properties(speexdsp PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 # Link math library if available
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
