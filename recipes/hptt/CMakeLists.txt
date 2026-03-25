@@ -79,3 +79,9 @@ configure_package_config_file(
   ${PROJECT_BINARY_DIR}/hptt-config.cmake
   INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hptt
 )
+
+install( FILES
+  ${PROJECT_BINARY_DIR}/hptt-config.cmake
+  ${PROJECT_BINARY_DIR}/hptt-config-version.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hptt
+)
