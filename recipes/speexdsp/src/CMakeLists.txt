@@ -3,102 +3,135 @@ cmake_minimum_required(VERSION 3.10)
 project(speexdsp
     VERSION 1.2.1
     DESCRIPTION "speexdsp audio processing library"
-    LANGUAGES C CXX
+    LANGUAGES C
 )
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(GNUInstallDirs)
-
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(USE_FIXED_POINT "Use fixed-point arithmetic" ON)
-
-# Define compile-time options
-if(USE_FIXED_POINT)
-    add_compile_definitions(FIXED_POINT=1)
-else()
-    add_compile_definitions(FLOATING_POINT=1)
-endif()
-
-# 'M_PI': undeclared identifier
-if(WIN32)
-    add_compile_definitions(_USE_MATH_DEFINES=1)
-endif()
-
-
-# Check for standard integer types and set size variables
 include(CheckIncludeFile)
 include(CheckTypeSize)
+include(CheckFunctionExists)
+include(TestBigEndian)
 
-check_include_file(stdint.h HAVE_STDINT_H)
-if(HAVE_STDINT_H)
-    set(INCLUDE_STDINT 1)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(USE_FIXED_POINT "Use fixed-point arithmetic" OFF)
+
+# Fixed vs. floating-point arithmetic (used by config.h.in via #cmakedefine)
+if(USE_FIXED_POINT)
+    set(FIXED_POINT 1)
+else()
+    set(FLOATING_POINT 1)
 endif()
+
+# Check for headers
+check_include_file(stdint.h HAVE_STDINT_H)
+check_include_file(alloca.h HAVE_ALLOCA_H)
+check_include_file(memory.h HAVE_MEMORY_H)
+check_include_file(strings.h HAVE_STRINGS_H)
+check_include_file(sys/stat.h HAVE_SYS_STAT_H)
+check_include_file(sys/types.h HAVE_SYS_TYPES_H)
+check_include_file(unistd.h HAVE_UNISTD_H)
+check_include_file(dlfcn.h HAVE_DLFCN_H)
+
+# Check for alloca
+check_function_exists(alloca HAVE_ALLOCA)
+if(HAVE_ALLOCA)
+    set(USE_ALLOCA 1)
+endif()
+
+# Check endianness
+test_big_endian(WORDS_BIGENDIAN)
 
 # Check sizes of integer types
 check_type_size("short" SIZEOF_SHORT)
-check_type_size("int" SIZEOF_INT)
-check_type_size("long" SIZEOF_LONG)
+check_type_size("int"   SIZEOF_INT)
+check_type_size("long"  SIZEOF_LONG)
 
 # Set type definitions based on size checks
 if(SIZEOF_SHORT EQUAL 2)
-    set(SIZE16 "short")
+    set(SIZE16  "short")
     set(USIZE16 "unsigned short")
 elseif(SIZEOF_INT EQUAL 2)
-    set(SIZE16 "int")
+    set(SIZE16  "int")
     set(USIZE16 "unsigned int")
 else()
-    set(SIZE16 "int16_t")
+    set(SIZE16  "int16_t")
     set(USIZE16 "uint16_t")
 endif()
 
 if(SIZEOF_INT EQUAL 4)
-    set(SIZE32 "int")
+    set(SIZE32  "int")
     set(USIZE32 "unsigned int")
 elseif(SIZEOF_LONG EQUAL 4)
-    set(SIZE32 "long")
+    set(SIZE32  "long")
     set(USIZE32 "unsigned long")
 else()
-    set(SIZE32 "int32_t")
+    set(SIZE32  "int32_t")
     set(USIZE32 "uint32_t")
 endif()
 
-# Configure speexdsp_config_types.h
-# Ensure the target directory exists
+# Tell source files to include config.h
+add_compile_definitions(HAVE_CONFIG_H)
+
+# Generate config.h (replaces the autoconf-generated file)
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in"
+    "${CMAKE_BINARY_DIR}/config.h"
+    @ONLY
+)
+
+# Generate speexdsp_config_types.h
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/include/speex")
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/speexdsp_config_types.h.in"
     "${CMAKE_BINARY_DIR}/include/speex/speexdsp_config_types.h"
     @ONLY
 )
-add_compile_definitions(EXPORT= USE_KISS_FFT=1)
 
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/libspeexdsp
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/include
+    ${CMAKE_BINARY_DIR}/include/speex
 )
 
-# Source files - exclude test files that contain main functions
-file(GLOB speexdsp_SOURCES libspeexdsp/*.c)
-list(REMOVE_ITEM speexdsp_SOURCES
+# Source files (exclude test programs)
+file(GLOB SPEEXDSP_SOURCES libspeexdsp/*.c)
+list(REMOVE_ITEM SPEEXDSP_SOURCES
     ${CMAKE_SOURCE_DIR}/libspeexdsp/testdenoise.c
     ${CMAKE_SOURCE_DIR}/libspeexdsp/testecho.c
     ${CMAKE_SOURCE_DIR}/libspeexdsp/testjitter.c
     ${CMAKE_SOURCE_DIR}/libspeexdsp/testresample.c
     ${CMAKE_SOURCE_DIR}/libspeexdsp/testresample2.c
 )
-add_library(speexdsp ${speexdsp_SOURCES})
+
+add_library(speexdsp ${SPEEXDSP_SOURCES})
+
+# Link math library if available
+find_library(MATH_LIBRARY m)
+if(MATH_LIBRARY)
+    target_link_libraries(speexdsp PRIVATE ${MATH_LIBRARY})
+endif()
+
+target_include_directories(speexdsp PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 # Installation rules
 install(TARGETS speexdsp
-    EXPORT speexdspConfig
+    EXPORT speexdspTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES "${CMAKE_BINARY_DIR}/include/speex/speexdsp_config_types.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/speex
+)
 
-install(DIRECTORY include/ DESTINATION include)
 # Create and install pkg-config file
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/speexdsp.pc.in"
@@ -109,7 +142,7 @@ install(FILES "${CMAKE_BINARY_DIR}/speexdsp.pc"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
-# Create config file
+# Create CMake package config files
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
@@ -122,6 +155,12 @@ write_basic_package_version_file(
     "${CMAKE_BINARY_DIR}/speexdspConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
+)
+
+install(EXPORT speexdspTargets
+    FILE speexdspTargets.cmake
+    NAMESPACE speexdsp::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/speexdsp
 )
 
 install(FILES
