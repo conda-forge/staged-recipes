@@ -1,0 +1,78 @@
+{% set name = "xllim" %}
+{% set version = "2.0.8" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/x/xllim/xllim-{{ version }}.tar.gz
+  sha256: 3420b86f6430233228f9931b3cea6527066c5d7108e74ec5a9a1fba75e2041a4
+
+build:
+  number: 0
+  # The upstream sdist vendors pybind11 and carma as git submodules in extern/.
+  # We delete them and use conda-forge packages instead (see host requirements).
+  # SKBUILD_CMAKE_DEFINE activates find_package() paths in CMakeLists.txt.
+  script_env:
+    - SKBUILD_CMAKE_DEFINE=XLLIM_USE_SYSTEM_PYBIND11=ON;XLLIM_USE_SYSTEM_CARMA=ON
+  script: 
+    - rm -rf extern/carma extern/pybind11   # [unix]   # Remove vendored sources completely
+    - rd /s /q extern\carma extern\pybind11  # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [py<311 or py>=313]  # >=3.11 requirement from NumPy 2, <3.13 from CARMA 
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake >=3.21
+    - ninja
+
+  host:
+    - python # Build python versions should not be constrained here
+    - pip
+    - setuptools >=42
+    - wheel
+    - scikit-build-core >=0.7.0,<1  
+    - numpy  # numpy build version is decided by the conda-forge-pinning-feedstock, cannot constrain it here. Good news, it's numpy 2
+    - boost  # Letting boost use the global pin to be compatible with other packages (and be rebuilt accordingly)
+    - armadillo >=12.6,<13  # 12.6 minimum tested; <13 bounds to compatible major ABI. Pulls libblas & liblapack.
+    - pybind11 >=2.12,<3  # replaces vendored extern/pybind11; <3 needed (API break)
+    - carma  # replaces vendored extern/carma
+    - libblas    # explicit host dep so run_exports propagate the correct BLAS runtime
+    - liblapack  # idem
+
+  run:
+    - python
+    - numpy
+    - h5py >=3.8,<4
+    # libblas/liblapack run_exports handle BLAS runtime automatically
+
+test:
+  imports:
+    - xllim
+    - xllim._core
+    - xllim.cli
+    - xllim.utils
+  commands:
+    - xllim_cli --help  # [not win]
+    - python -m xllim.cli --help  # [win]  # console script wrapper unreliable on Windows (new process DLL activation)
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/xllim-tools/xllim
+  license: CECILL-C
+  license_file: LICENCE.txt
+  summary: 'Python package for XLLiM with C++ core'
+  description: |
+    xLLiM is a C++ with Python bindings implementation of Gaussian Locally-Linear Mapping. It can be used to perform efficient inversion of high-dimensional models.
+  doc_url: https://xllim-tools.github.io/xllim/
+  dev_url: https://github.com/xllim-tools/xllim
+
+extra:
+  recipe-maintainers:
+    - ffrancois-inria
+    - stan-borkowski
