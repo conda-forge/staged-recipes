@@ -12,11 +12,8 @@ else
     RELEASE_DIR="target/release"
 fi
 
-# Install static library
+# Install shared library only (dynamic linkage)
 install -d "$PREFIX/lib"
-install -m 644 "${RELEASE_DIR}/libreadcon_core.a" "$PREFIX/lib/"
-
-# Install shared library (platform-dependent extension)
 if [ "$(uname)" = "Darwin" ]; then
     install -m 755 "${RELEASE_DIR}/libreadcon_core.dylib" "$PREFIX/lib/"
 else
