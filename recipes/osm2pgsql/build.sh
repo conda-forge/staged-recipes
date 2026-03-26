@@ -34,5 +34,4 @@ cmake ${CMAKE_ARGS} -S . \
 cmake --build ${BUILD_DIR} --target all
 
 cmake --build ${BUILD_DIR} --target install
-
-
+# Note: osm2pgsql-replication script is automatically installed by CMake to ${PREFIX}/bin
