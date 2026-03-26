@@ -1,0 +1,86 @@
+context:
+  version: "0.1.0"
+
+recipe:
+  name: hf-mount
+  version: ${{ version }}
+
+source:
+  url: https://github.com/huggingface/hf-mount/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 197c6c67af43cbab3a0c2e768dffdac524d644758aea4a26bf740afaf1664d11
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+  - package:
+      name: hf-mount
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - cargo auditable install --no-track --locked --root $PREFIX --path . --bin hf-mount
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ stdlib("c") }}
+        - pkg-config
+        - cargo-bundle-licenses
+        - cargo-auditable
+      host:
+        - openssl
+    tests:
+      - script:
+          - hf-mount --version
+      - package_contents:
+          bin:
+            - hf-mount
+          strict: true
+
+  - package:
+      name: hf-mount-nfs
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - cargo auditable install --no-track --locked --root $PREFIX --path . --bin hf-mount-nfs --features nfs
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ stdlib("c") }}
+        - pkg-config
+        - cargo-bundle-licenses
+        - cargo-auditable
+      host:
+        - openssl
+    tests:
+      - script:
+          - hf-mount-nfs --version
+      - package_contents:
+          bin:
+            - hf-mount-nfs
+          strict: true
+
+about:
+  homepage: https://github.com/huggingface/hf-mount
+  summary: Mount Hugging Face Buckets and repos as local filesystems. No download, no copy, no waiting.
+  description: |
+    Mount Hugging Face Buckets and repos as local filesystems. No download, no copy, no waiting.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/huggingface/hf-mount
+
+extra:
+  feedstock-name: hf-mount
+  recipe-maintainers:
+    - yuikisaito
