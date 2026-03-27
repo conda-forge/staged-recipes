@@ -1,0 +1,100 @@
+context:
+  name: httpd
+  version: "2.4.66"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://archive.apache.org/dist/httpd/httpd-${{ version }}.tar.bz2
+  sha256: 94d7ff2b42acbb828e870ba29e4cbad48e558a79c623ad3596e4116efcfea25a
+
+build:
+  number: 0
+  script:
+    - unset host_alias
+    - ./configure
+        --build=${BUILD}
+        --host=${HOST}
+        --prefix=$PREFIX
+        --enable-layout=GNU
+        --enable-mpms-shared=all
+        --with-mpm=event
+        --enable-mods-shared=all
+        --enable-authnz-fcgi
+        --enable-cgi
+        --disable-lua
+        --disable-luajit
+        --with-apr=$PREFIX
+        --with-apr-util=$PREFIX
+        --with-brotli=$PREFIX
+        --with-libxml2=$PREFIX
+        --with-nghttp2=$PREFIX
+        --with-ssl=$PREFIX
+        --with-pcre=$PREFIX/bin/pcre2-config
+        --with-z=$PREFIX
+        --with-port=8080
+        --with-sslport=8443
+    - make -j$CPU_COUNT
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    - pkg-config
+  host:
+    - apr
+    - libaprutil
+    - brotli
+    - libnghttp2
+    - libxml2
+    - openssl
+    - pcre2
+    - zlib
+  run:
+    - apr
+    - libaprutil
+    - brotli
+    - libnghttp2
+    - libxml2
+    - openssl
+    - pcre2
+    - zlib
+
+tests:
+  - package_contents:
+      bin:
+        - httpd
+        - apachectl
+        - ab
+        - htpasswd
+        - htdigest
+        - htdbm
+        - logresolve
+        - rotatelogs
+        - fcgistarter
+      include:
+        - apache2/httpd.h
+      lib:
+        - httpd/mod_ssl.so
+  - script:
+      - httpd -v
+      - ab -V
+
+about:
+  homepage: https://httpd.apache.org/
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Apache HTTP Server - the world's most widely used web server
+  description: |
+    The Apache HTTP Server is a powerful, efficient, and extensible web server.
+    It supports a wide variety of features, including SSL/TLS, virtual hosting,
+    CGI, HTTP/2, and a rich module ecosystem.
+  documentation: https://httpd.apache.org/docs/
+
+extra:
+  recipe-maintainers:
+    - wolfv
