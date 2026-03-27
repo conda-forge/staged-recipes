@@ -13,39 +13,58 @@ source:
 build:
   number: 0
   script:
-    - unset host_alias
-    - ./configure
-        --build=${BUILD}
-        --host=${HOST}
-        --prefix=$PREFIX
-        --enable-layout=GNU
-        --enable-mpms-shared=all
-        --with-mpm=event
-        --enable-mods-shared=all
-        --enable-authnz-fcgi
-        --enable-cgi
-        --disable-lua
-        --disable-luajit
-        --disable-manual
-        --with-apr=$PREFIX
-        --with-apr-util=$PREFIX
-        --with-brotli=$PREFIX
-        --with-libxml2=$PREFIX
-        --with-nghttp2=$PREFIX
-        --with-ssl=$PREFIX
-        --with-pcre=$PREFIX/bin/pcre2-config
-        --with-z=$PREFIX
-        --with-port=8080
-        --with-sslport=8443
-    - make -j$CPU_COUNT
-    - make install
+    - if: unix
+      then:
+        - unset host_alias
+        - >-
+          ./configure
+          --build=${BUILD}
+          --host=${HOST}
+          --prefix=$PREFIX
+          --enable-layout=GNU
+          --enable-mpms-shared=all
+          --with-mpm=event
+          --enable-mods-shared=all
+          --enable-authnz-fcgi
+          --enable-cgi
+          --disable-lua
+          --disable-luajit
+          --disable-manual
+          --with-apr=$PREFIX
+          --with-apr-util=$PREFIX
+          --with-brotli=$PREFIX
+          --with-libxml2=$PREFIX
+          --with-nghttp2=$PREFIX
+          --with-ssl=$PREFIX
+          --with-pcre=$PREFIX/bin/pcre2-config
+          --with-z=$PREFIX
+          --with-port=8080
+          --with-sslport=8443
+        - make -j$CPU_COUNT
+        - make install
+    - if: win
+      then:
+        - >-
+          cmake -B build -G Ninja
+          %CMAKE_ARGS%
+          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
+          -DENABLE_MODULES=O
+          -DENABLE_LUA=OFF
+        - cmake --build build
+        - cmake --install build
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
-    - make
-    - pkg-config
+    - if: unix
+      then:
+        - make
+        - pkg-config
+    - if: win
+      then:
+        - cmake
+        - ninja
   host:
     - apr
     - libaprutil
@@ -79,9 +98,15 @@ tests:
       include:
         - apache2/httpd.h
       files:
-        - sbin/httpd
-        - sbin/apachectl
-        - libexec/mod_ssl.so
+        - if: unix
+          then:
+            - sbin/httpd
+            - sbin/apachectl
+            - libexec/mod_ssl.so
+        - if: win
+          then:
+            - Library/bin/httpd.exe
+            - Library/lib/libhttpd.lib
   - script:
       - httpd -v
       - ab -V
