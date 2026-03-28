@@ -1,0 +1,97 @@
+context:
+  version: "1.26.3"
+
+package:
+  name: openmodelica
+  version: ${{ version }}
+
+source:
+  url: https://build.openmodelica.org/apt/pool/contrib/openmodelica_${{ version }}.orig.tar.xz
+  sha256: f3cdf2136ece0f3d0e90b116c2b6d7106a5533c1e04321b133919c3dbd87bbae
+
+build:
+  number: 0
+  skip:
+    - not linux
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - if: unix
+      then:
+       - pkg-config
+       - autoconf
+       - automake
+       - make
+  host:
+    - openjdk
+    - libblas
+    - liblapack
+    - libcurl
+    - libboost-devel
+    - libiconv
+    - qt-webengine
+    - openscenegraph
+    - if: linux
+      then:
+        - libgl-devel
+        - libegl-devel
+  run:
+    - openjdk
+    - cmake
+    - make
+    - zip
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+  run_constraints:
+    - omcompiler <0
+
+tests:
+  - script:
+      - omc --version
+      - echo 'loadFile("OMCompiler/Examples/Circle.mo"); getErrorString(); buildModelFMU(Circle); getErrorString();' > export.mos
+      - omc export.mos
+      - ls Circle.fmu
+      - echo 'loadFile("OMCompiler/Examples/Circle.mo"); getErrorString(); buildModelFMU(Circle, platforms={"dynamic"}); getErrorString();' > export.mos
+      - omc --fmuCMakeBuild=true --fmuRuntimeDepends=modelica export.mos
+      - ls Circle.fmu
+      - OMEdit --help
+      - OMSimulator --help
+    files:
+      source:
+        - OMCompiler/Examples/Circle.mo
+
+about:
+   homepage: https://openmodelica.org/
+   license: LicenseRef-OSMC-PL
+   license_family: GPL
+   license_file:
+     - OSMC-License.txt
+     - OMCompiler/3rdParty/antlr/3.2/libantlr3c-3.2/COPYING
+     - OMCompiler/3rdParty/Cdaskr/LICENSE
+     - OMCompiler/3rdParty/CMinpack/CopyrightMINPACK.txt
+     - OMCompiler/3rdParty/gc/README.md
+     - OMCompiler/3rdParty/FMIL/LICENSE.md
+     - OMCompiler/3rdParty/libffi/LICENSE
+     - OMCompiler/3rdParty/libzmq/COPYING.LESSER
+     - OMCompiler/3rdParty/lis-1.4.12/COPYING
+     - OMCompiler/3rdParty/metis-5.1.0/LICENSE.txt
+     - OMCompiler/3rdParty/moo-0.1.0/COPYING.LESSER
+     - OMCompiler/3rdParty/open62541/open62541.txt
+     - OMCompiler/3rdParty/primme-3.2.3/COPYING.txt
+     - OMCompiler/3rdParty/ryu/LICENSE-Apache2
+     - OMCompiler/3rdParty/SuiteSparse-5.8.1/LICENSE.txt
+     - OMCompiler/3rdParty/sundials-5.4.0/LICENSE
+     - OMCompiler/3rdParty/tbb/LICENSE
+     - OMCompiler/3rdParty/zlib/LICENSE
+   summary: The Open Source Modelica Suite
+
+extra:
+  recipe-maintainers:
+    - jschueller
