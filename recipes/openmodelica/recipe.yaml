@@ -1,0 +1,79 @@
+context:
+  version: "1.26.3"
+
+package:
+  name: openmodelica
+  version: ${{ version }}
+
+source:
+  # use git because no tarball including submodules is available
+  git: https://github.com/OpenModelica/OpenModelica.git
+  tag: v${{ version }}
+  submodules: false
+
+build:
+  number: 0
+  skip:
+    - not linux
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - if: unix
+      then:
+       - pkg-config
+       - autoconf
+       - automake
+       - make
+  host:
+    - openjdk
+    - libblas
+    - liblapack
+    - libcurl
+    - libboost-devel
+    - libiconv
+    - qt-webengine
+    - openscenegraph
+    - if: linux
+      then:
+        - libgl-devel
+        - libegl-devel
+  run:
+    - openjdk
+    - cmake
+    - make
+    - zip
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+
+tests:
+  - script:
+      - omc --version
+      - echo 'loadFile("OMCompiler/Examples/Circle.mo"); getErrorString(); buildModelFMU(Circle); getErrorString();' > export.mos
+      - omc export.mos
+      - ls Circle.fmu
+      - echo 'loadFile("OMCompiler/Examples/Circle.mo"); getErrorString(); buildModelFMU(Circle, platforms={"dynamic"}); getErrorString();' > export.mos
+      - omc --fmuCMakeBuild=true --fmuRuntimeDepends=modelica export.mos
+      - ls Circle.fmu
+      - OMEdit --help
+      - OMSimulator --help
+    files:
+      source:
+        - OMCompiler/Examples/Circle.mo
+
+about:
+   homepage: https://openmodelica.org/
+   license: LicenseRef-OSMC-PL
+   license_family: GPL
+   license_file: OSMC-License.txt
+   summary: The Open Source Modelica Suite
+
+extra:
+  recipe-maintainers:
+    - jschueller
