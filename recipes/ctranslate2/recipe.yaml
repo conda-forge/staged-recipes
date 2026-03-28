@@ -1,0 +1,94 @@
+schema_version: 1
+
+context:
+  name: ctranslate2
+  version: "4.6.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 840d4a52545c3ce3aaf54f53306b8350febbcdbe6dd6c4327a9f6311556db631
+  - url: https://github.com/gabime/spdlog/archive/v1.14.1.tar.gz
+    sha256: 1586508029a7d0670dfcb2d97575dcdc242d3868a259742b69f100801ab4e16b
+    target_directory: third_party/spdlog
+  - url: https://github.com/jarro2783/cxxopts/archive/v3.1.1.tar.gz
+    sha256: 523175f792eb0ff04f9e653c90746c12655f10cb70f1d5e6d6d9491420298a08
+    target_directory: third_party/cxxopts
+  - url: https://github.com/google/cpu_features/archive/v0.9.0.tar.gz
+    sha256: bdb3484de8297c49b59955c3b22dba834401bc2df984ef5cfc17acbe69c5018e
+    target_directory: third_party/cpu_features
+
+build:
+  script: |
+    # Build C++ library first
+    mkdir -p build
+    cd build
+    cmake .. \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_COMPILER=$CC \
+      -DCMAKE_CXX_COMPILER=$CXX \
+      -DOPENMP_RUNTIME=COMP \
+      -DBUILD_CLI=OFF \
+      -DBUILD_TESTS=OFF \
+      -DWITH_MKL=OFF \
+      -DWITH_DNNL=OFF \
+      -DWITH_OPENBLAS=OFF \
+      -DWITH_RUY=OFF \
+      -DWITH_CUDA=OFF \
+      -DWITH_CUDNN=OFF \
+      -DBUILD_SHARED_LIBS=ON
+    cmake --build . --parallel ${CPU_COUNT:-${CMAKE_BUILD_PARALLEL_LEVEL:-1}}
+    cmake --install .
+    cd ..
+    # Now build Python bindings
+    cd python
+    export CTRANSLATE2_ROOT=$PREFIX
+    ${{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - setuptools
+    - wheel
+    - pybind11
+    - cmake
+    - numpy
+  run:
+    - python
+    - numpy
+    - pyyaml >=5.3,<7
+    - setuptools
+
+tests:
+  - python:
+      imports:
+        - ctranslate2
+      pip_check: true
+
+about:
+  homepage: https://github.com/OpenNMT/CTranslate2
+  summary: Fast inference engine for Transformer models
+  description: |
+    CTranslate2 is a C++ library for efficient inference with Transformer models. 
+    The project implements a custom runtime that applies many performance optimization 
+    techniques such as weights quantization, layer fusion, batch reordering, etc., 
+    to accelerate and reduce the memory usage of Transformer models on CPU and GPU.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/OpenNMT/CTranslate2
+
+extra:
+  recipe-maintainers:
+    - janjagusch
