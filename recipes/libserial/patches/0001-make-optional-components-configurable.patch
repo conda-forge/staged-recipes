@@ -1,0 +1,234 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,7 @@
+-CMAKE_MINIMUM_REQUIRED(VERSION 3.8)
++#
++# Minimum version is 3.10 (this supports Ubuntu 18.04 and later, for example)
++#
++CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+ 
+ #
+ # Project version numbering using semantic versioning. See:
+@@ -11,15 +14,28 @@
+ #
+ PROJECT(LibSerial LANGUAGES C CXX VERSION 1.0.0)
+ 
++option(LIBSERIAL_ENABLE_TESTING "Enables building unit tests" ON)
++option(LIBSERIAL_BUILD_EXAMPLES "Enables building example programs" ON)
++option(LIBSERIAL_PYTHON_ENABLE "Enables building the library with Python SIP bindings" ON)
++option(LIBSERIAL_BUILD_DOCS "Build the Doxygen docs" ON)
++
+ #
+ # Project specific options and variables
+ #
+ OPTION(INSTALL_STATIC "Install static library." ON)
+ OPTION(INSTALL_SHARED "Install shared object library." ON)
+ 
++#
++# LibSerial requies a C++ compiler that supports at least C++17 standard
++#
++SET(CMAKE_CXX_STANDARD 17)
++SET(CMAKE_STANDARD_REQUIRES ON)
++
+ INCLUDE(ExternalProject)
+ 
+-ENABLE_TESTING()
++if (LIBSERIAL_ENABLE_TESTING)
++  ENABLE_TESTING()
++endif()
+ SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+ 
+ #
+@@ -42,9 +58,15 @@
+ # be set before call to FIND_PACKAGE(Threads).
+ #
+ SET(THREADS_HAVE_PTHREAD_ARG 1)
+-FIND_PACKAGE(Doxygen REQUIRED)
+-FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
+-FIND_PACKAGE(PythonLibs REQUIRED)
++if (LIBSERIAL_BUILD_DOCS)
++  FIND_PACKAGE(Doxygen REQUIRED)
++endif()
++if (LIBSERIAL_ENABLE_TESTING)
++  FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
++endif()
++if (LIBSERIAL_PYTHON_ENABLE)
++  FIND_PACKAGE(PythonLibs REQUIRED)
++endif()
+ #FIND_PACKAGE(SIP REQUIRED)
+ FIND_PACKAGE(Threads REQUIRED)
+ 
+@@ -59,7 +81,6 @@
+   -Wall
+   -Wcast-align
+   -Wchar-subscripts
+-  -Wchkp
+   -Wdouble-promotion
+   -Wextra
+   -Wfatal-errors
+@@ -84,81 +105,94 @@
+   -pedantic
+   )
+ 
+-#
+-# We require support for C++14 features in the compiler. This can be
+-# achieved using CMAKE_CXX_STANDARD in CMake version 3.1 or later. For
+-# older versions we have to add the compiler flags manually.
+-#
+-macro(USE_CXX14)
+-    IF (CMAKE_VERSION VERSION_LESS "3.1")
+-        IF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fms-extensions")
+-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14")
+-        ENDIF ()
+-    ELSE ()
+-        SET(CMAKE_CXX_STANDARD 14)
+-        SET(CMAKE_STANDARD_REQUIRES ON)
+-    ENDIF ()
+-endmacro(USE_CXX14)
+-USE_CXX14()
+-
+-SET(GTEST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/gtest")
+-
+-EXTERNALPROJECT_ADD(GTestExternal
+-  PREFIX             "${GTEST_PREFIX}"
+-  URL https://github.com/google/googletest/archive/release-1.8.1.tar.gz
+-  URL_HASH SHA1=152b849610d91a9dfa1401293f43230c2e0c33f8
+-  INSTALL_COMMAND ""
+-  )
+-
+-SET(LIBPREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
+-SET(LIBSUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+-
+-SET(GTEST_LOCATION "${GTEST_PREFIX}/src/GTestExternal-build/googlemock/gtest/")
+-SET(GTEST_LIBRARY  "${GTEST_LOCATION}/${LIBPREFIX}gtest${LIBSUFFIX}")
+-SET(GTEST_MAINLIB  "${GTEST_LOCATION}/${LIBPREFIX}gtest_main${LIBSUFFIX}")
+-
+-ADD_LIBRARY(GTest IMPORTED STATIC GLOBAL)
+-SET_TARGET_PROPERTIES(GTest
+-  PROPERTIES
+-  IMPORTED_LOCATION "${GTEST_LIBRARY}"
+-  IMPORTED_LINK_INTERFACE_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
+-  )
+-
+-ADD_LIBRARY(GTestMain IMPORTED STATIC GLOBAL)
+-SET_TARGET_PROPERTIES(GTestMain
+-  PROPERTIES
+-  IMPORTED_LOCATION "${GTEST_MAINLIB}"
+-  IMPORTED_LINK_INTERFACE_LIBRARIES "${GTEST_LIBRARY};${CMAKE_THREAD_LIBS_INIT}"
+-  )
+-
+-ADD_DEPENDENCIES(GTest GTestExternal)
+-ADD_DEPENDENCIES(GTestMain GTestExternal)
+-
+-EXTERNALPROJECT_GET_PROPERTY(GTestExternal source_dir)
+-
+-INCLUDE_DIRECTORIES(
+-  BEFORE ${GTEST_PREFIX}/src/GTestExternal/googletest/include
+-  ${Boost_INCLUDE_DIRS}
+-  )
++if (LIBSERIAL_ENABLE_TESTING)
++  FIND_PATH(GTEST_SRCPATH src/gtest.cc
++    /usr/src/googletest/googletest
++    /usr/src/googletest
++    /usr/src/gtest
++  )
++
++  FIND_PACKAGE(GTest)
++  SET(GTEST_DEPENDENCIES)
++  SET(GTestMain gtest gtest_main)
++  SET(GTEST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/gtest")
++  if(NOT GTEST_FOUND)
++    EXTERNALPROJECT_ADD(GTestExternal
++      PREFIX             "${GTEST_PREFIX}"
++      URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
++      URL_HASH SHA1=8a8ee424e8275ec4b480ba4a0d1ba94b5dee3ee4
++      INSTALL_COMMAND ""
++      )
++
++    SET(LIBPREFIX "${CMAKE_STATIC_LIBRARY_PREFIX}")
++    SET(LIBSUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
++
++    SET(GTEST_LOCATION "${GTEST_PREFIX}/src/GTestExternal-build/lib")
++    SET(GTEST_LIBRARY  "${GTEST_LOCATION}/${LIBPREFIX}gtest${LIBSUFFIX}")
++    SET(GTEST_MAINLIB  "${GTEST_LOCATION}/${LIBPREFIX}gtest_main${LIBSUFFIX}")
++
++    ADD_LIBRARY(GTest IMPORTED STATIC GLOBAL)
++    SET_TARGET_PROPERTIES(GTest
++      PROPERTIES
++      IMPORTED_LOCATION "${GTEST_LIBRARY}"
++      IMPORTED_LINK_INTERFACE_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
++      )
++
++    ADD_LIBRARY(GTestMain IMPORTED STATIC GLOBAL)
++    SET_TARGET_PROPERTIES(GTestMain
++      PROPERTIES
++      IMPORTED_LOCATION "${GTEST_MAINLIB}"
++      IMPORTED_LINK_INTERFACE_LIBRARIES "${GTEST_LIBRARY};${CMAKE_THREAD_LIBS_INIT}"
++      )
++    SET(GTestMain GTestMain)
++    ADD_DEPENDENCIES(GTest GTestExternal)
++    ADD_DEPENDENCIES(GTestMain GTestExternal)
++
++    EXTERNALPROJECT_GET_PROPERTY(GTestExternal source_dir)
++
++    INCLUDE_DIRECTORIES(
++      BEFORE ${GTEST_PREFIX}/src/GTestExternal/googletest/include
++      ${Boost_INCLUDE_DIRS}
++      )
++  endif()
++endif()
+ 
+ SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+ SET(CMAKE_INSTALL_MESSAGE ALWAYS)
+ 
+-ADD_SUBDIRECTORY(examples)
+-ADD_SUBDIRECTORY(sip)
++if (LIBSERIAL_BUILD_EXAMPLES)
++  ADD_SUBDIRECTORY(examples)
++endif()
++if (LIBSERIAL_PYTHON_ENABLE)
++  ADD_SUBDIRECTORY(sip)
++endif()
+ ADD_SUBDIRECTORY(src)
+-ADD_SUBDIRECTORY(test)
+-
+-CONFIGURE_FILE(
+-  ${CMAKE_CURRENT_SOURCE_DIR}/doxygen.conf.in
+-  ${CMAKE_CURRENT_BINARY_DIR}/doxygen.conf.in @ONLY
+-  )
+-
+-ADD_CUSTOM_TARGET(docs ALL
+-  ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/doxygen.conf.in
+-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+-  COMMENT "Generating API documentation with Doxygen" VERBATIM
+-)
++if (LIBSERIAL_ENABLE_TESTING)
++  ADD_SUBDIRECTORY(test)
++endif()
++
++#
++# Create pkg-config file for cmake builds as well as autotool builds
++#
++set(prefix ${CMAKE_INSTALL_PREFIX})
++set(exec_prefix ${CMAKE_INSTALL_PREFIX})
++set(libdir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
++set(includedir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
++set(VERSION ${PROJECT_VERSION})
++configure_file(libserial.pc.in libserial.pc @ONLY)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libserial.pc DESTINATION ${libdir}/pkgconfig)
++
++if (LIBSERIAL_BUILD_DOCS)
++  CONFIGURE_FILE(
++    ${CMAKE_CURRENT_SOURCE_DIR}/doxygen.conf.in
++    ${CMAKE_CURRENT_BINARY_DIR}/doxygen.conf.in @ONLY
++    )
++
++  ADD_CUSTOM_TARGET(docs ALL
++    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/doxygen.conf.in
++    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
++    COMMENT "Generating API documentation with Doxygen" VERBATIM
++    )
++endif()
