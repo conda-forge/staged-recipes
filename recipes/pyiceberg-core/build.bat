@@ -5,6 +5,7 @@ set CARGO_PROFILE_RELEASE_STRIP=symbols
 set CARGO_PROFILE_RELEASE_LTO=fat
 
 set "CMAKE_GENERATOR=NMake Makefiles"
+REM Run maturin build to build wheels explicitly
 maturin build -v --jobs 1 --release --strip --manylinux off --interpreter=%PYTHON% --no-default-features || exit 1
 
 cd bindings/python
