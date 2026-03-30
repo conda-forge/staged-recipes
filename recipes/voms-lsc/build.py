@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 PREFIX = Path(os.environ["PREFIX"])
+SRC = Path(os.getcwd()).resolve()
 PKG_NAME = os.environ.get("PKG_NAME", "voms-lsc")
 
 # --- Single source of truth ---
