@@ -1,0 +1,83 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: suvadu
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AppachiTech/suvadu/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 17488d9e8c1f760e86afb7b5ea39fcf9b58910d3eb6717b7e085f75f092c001b
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          # generate shell completions
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions
+          - $PREFIX/bin/suv completions bash > $PREFIX/share/bash-completion/completions/suv
+          - $PREFIX/bin/suv completions fish > $PREFIX/share/fish/vendor_completions.d/suv.fish
+          - $PREFIX/bin/suv completions zsh > $PREFIX/share/zsh/site-functions/_suv
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+          # generate shell completions
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - '%LIBRARY_BIN%\suv.exe completions bash > %LIBRARY_PREFIX%\share\bash-completion\completions\suv'
+          - '%LIBRARY_BIN%\suv.exe completions fish > %LIBRARY_PREFIX%\share\fish\vendor_completions.d\suv.fish'
+          - '%LIBRARY_BIN%\suv.exe completions zsh > %LIBRARY_PREFIX%\share\zsh\site-functions\_suv'
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - suv help
+      - suv version
+  - package_contents:
+      bin:
+        - suv
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/suv
+            - share/fish/vendor_completions.d/suv.fish
+            - share/zsh/site-functions/_suv
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/suv
+            - Library/share/fish/vendor_completions.d/suv.fish
+            - Library/share/zsh/site-functions/_suv
+      strict: true
+
+about:
+  homepage: https://suvadu.sh
+  summary: Total recall for your terminal. A database-backed shell history with fuzzy search.
+  description: |
+    Suvadu replaces your shell history with a SQLite-backed store. Every command gets
+    structured context — exit code, duration, directory, executor, session. AI agents
+    can query it via MCP. 100% local. Features include <2ms recording overhead,
+    <10ms search across 1M+ entries, AI agent tracking, an interactive TUI, and an
+    MCP server providing history context and tools including risk assessment.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/AppachiTech/suvadu
+
+extra:
+  recipe-maintainers:
+    - salim-b
