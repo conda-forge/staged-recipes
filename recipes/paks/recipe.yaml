@@ -1,0 +1,59 @@
+context:
+  version: "0.1.18"
+
+package:
+  name: paks
+  version: ${{ version }}
+
+source:
+  url: https://github.com/stakpak/paks/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9f40e6b3197eaf1867579704ec9af95e583d7086948da12adeff911b2374bc17
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path apps/cli
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path apps/cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - paks --help
+      - paks --version
+  - package_contents:
+      bin:
+        - paks
+      strict: true
+
+about:
+  homepage: https://paks.stakpak.dev/
+  summary: The package manager for AI Agent Skills
+  description: |
+    Paks is a CLI tool for managing Agent Skills (https://agentskills.io).
+    It helps you create new skills with proper structure, install skills from
+    registries or Git repositories, publish skills to share with others, and manage
+    installed skills across different AI coding agents.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/stakpak/paks
+
+extra:
+  recipe-maintainers:
+    - salim-b
