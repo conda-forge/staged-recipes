@@ -1,0 +1,131 @@
+From 38fdeb069e134530f7542bf0b3cc656f40d61967 Mon Sep 17 00:00:00 2001
+From: Giordon Stark <kratsg@gmail.com>
+Date: Mon, 30 Mar 2026 10:51:20 -0700
+Subject: [PATCH 1/2] drop old dependencies
+
+---
+ pyAMI/app.py       |  4 +--
+ pyAMI/transform.py | 61 ++++++++++++++++++++--------------------------
+ setup.py           |  3 ++-
+ 3 files changed, 29 insertions(+), 39 deletions(-)
+ mode change 100644 => 100755 setup.py
+
+diff --git a/pyAMI/app.py b/pyAMI/app.py
+index 14877fe..2cbdb23 100644
+--- a/pyAMI/app.py
++++ b/pyAMI/app.py
+@@ -12,7 +12,7 @@ from __future__ import (division, print_function, unicode_literals)
+ #
+ #############################################################################
+ 
+-import sys, argparse, argparseplus, pyAMI.modes, pyAMI.utils, pyAMI.client, pyAMI.config, pyAMI.exception
++import sys, argparse, pyAMI.modes, pyAMI.utils, pyAMI.client, pyAMI.config, pyAMI.exception
+ 
+ #############################################################################
+ 
+@@ -55,8 +55,6 @@ class App(object):
+ 
+ 		parser = argparse.ArgumentParser(epilog = pyAMI.config.bug_report)
+ 
+-		argparseplus.patch(parser)
+-
+ 		parser.add_argument('--authors', action = AuthorsAction)
+ 		parser.add_argument('--version', action = VersionAction)
+ 
+diff --git a/pyAMI/transform.py b/pyAMI/transform.py
+index be74de3..df1326b 100644
+--- a/pyAMI/transform.py
++++ b/pyAMI/transform.py
+@@ -13,40 +13,31 @@ from __future__ import (division, print_function, unicode_literals)
+ #############################################################################
+ 
+ import pyAMI.exception
+-
++from lxml import etree
+ #############################################################################
+ 
+-def transform(xsl, xml):
+-	#####################################################################
+-	# IMPORT TINY_XSLT                                                  #
+-	#####################################################################
+-
+-	try:
+-		import tiny_xslt
+-
+-	except ImportError as e:
+-		raise pyAMI.exception.Error('module `tiny_xslt` not properly installed: %s' % e)
+-
+-	#####################################################################
+-	# OPEN CUSTOM XSL                                                   #
+-	#####################################################################
+-
+-	try:
+-		f = open(xsl, 'r')
+-		xsl = f.read()
+-		f.close()
+-
+-	except IOError:
+-		raise pyAMI.exception.Error('could not open xslt file `%s`' % xsl)
+-
+-	#####################################################################
+-	# APPLY XSL                                                         #
+-	#####################################################################
+-
+-	try:
+-		return tiny_xslt.transform(xsl, xml)
+-
+-	except tiny_xslt.Error as e:
+-		raise pyAMI.exception.Error(e)
+-
+-#############################################################################
++def transform(xsl_path, xml):
++    #####################################################################
++    # OPEN CUSTOM XSL                                                   #
++    #####################################################################
++
++    try:
++        with open(xsl_path, 'r', encoding='utf-8') as f:
++            xsl_content = f.read()
++    except IOError:
++        raise pyAMI.exception.Error(f'could not open xslt file `{xsl_path}`')
++
++    #####################################################################
++    # APPLY XSL                                                         #
++    #####################################################################
++
++    try:
++        xml_doc = etree.fromstring(xml.encode('utf-8') if isinstance(xml, str) else xml)
++        xsl_doc = etree.fromstring(xsl_content.encode('utf-8'))
++        transformer = etree.XSLT(xsl_doc)
++        result = transformer(xml_doc)
++        return str(result)
++    except etree.XSLTApplyError as e:
++        raise pyAMI.exception.Error(f'XSLT transformation failed: {e}')
++    except etree.XMLSyntaxError as e:
++        raise pyAMI.exception.Error(f'Invalid XML or XSLT: {e}')
+diff --git a/setup.py b/setup.py
+old mode 100644
+new mode 100755
+index 7887787..849d528
+--- a/setup.py
++++ b/setup.py
+@@ -6,6 +6,7 @@
+ # Email   : jerome.odier@lpsc.in2p3.fr
+ #           jerome.fulachier@lpsc.in2p3.fr
+ #           fabian.lambert@lpsc.in2p3.fr
++#           solveig.albrand@lpsc.in2p3.fr
+ #
+ #############################################################################
+ 
+@@ -39,7 +40,7 @@ if __name__ == '__main__':
+ 		packages = ['pyAMI'],
+ 		package_data = {'': ['README', 'CHANGELOG', '*.txt'], 'pyAMI': ['*.txt']},
+ 		scripts = scripts,
+-		install_requires = ['argparse', 'argparseplus', 'tiny_xslt'],
++		install_requires = [],
+ 		platforms = 'any',
+ 		zip_safe = False
+ 	)
+-- 
+2.45.2
+
