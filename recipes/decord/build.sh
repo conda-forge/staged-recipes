@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
 mkdir -p build
 cd build
 
