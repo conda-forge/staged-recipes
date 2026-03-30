@@ -16,4 +16,5 @@ cmake -GNinja \
   $SRC_DIR/isis/src/core
 ninja install
 cd swig/python/
+chmod +x setup.py
 ${PYTHON} ./setup.py install
