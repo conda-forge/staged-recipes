@@ -9,7 +9,33 @@ trigger:
 pr:
 - main
 
-jobs:
+stages:
+- stage: Check
+  jobs:
+    - job: Skip
+      pool:
+        vmImage: 'ubuntu-22.04'
+      variables:
+        DECODE_PERCENTS: 'false'
+        RET: 'true'
+      steps:
+      - checkout: self
+        # We only need two: the PR merge commit, and the actual commit added by the user
+        fetchDepth: '2'
+      - bash: |
+          git_log=`git log --max-count=1 --skip=1 --pretty=format:"%B" | tr "\n" " "`
+          echo "##vso[task.setvariable variable=log]$git_log"
+        displayName: Obtain commit message
+      - bash: echo "##vso[task.setvariable variable=RET]false"
+        condition: or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]'))
+        displayName: Skip build?
+      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
+        name: result
+        displayName: Export result
+- stage: Build
+  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
+  dependsOn: Check
+  jobs:
   - template: ./.azure-pipelines/azure-pipelines-linux.yml
   - template: ./.azure-pipelines/azure-pipelines-osx.yml
   - template: ./.azure-pipelines/azure-pipelines-win.yml
