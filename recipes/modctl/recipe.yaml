@@ -1,6 +1,5 @@
 context:
   version: "0.1.2"
-  commit: "06ac8b1"
 
 package:
   name: modctl
@@ -19,7 +18,8 @@ build:
     - if: unix
       then:
         - BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-        - go build -v -o $PREFIX/bin/modctl -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ commit }} -X github.com/modelpack/modctl/pkg/version.BuildTime=${BUILD_TIME}"
+        - SHORT_COMMIT_HASH="$(curl -s "https://api.github.com/repos/modelpack/modctl/commits/v${{ version }}" | jq -r '.sha' | cut -c 1-7)
+        - go build -v -o $PREFIX/bin/modctl -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.BuildTime=${BUILD_TIME} -X github.com/modelpack/modctl/pkg/version.GitCommit=${SHORT_COMMIT_HASH}"
         # generate shell completions
         - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions
         - $PREFIX/bin/modctl completion bash > $PREFIX/share/bash-completion/completions/modctl
@@ -27,8 +27,9 @@ build:
         - $PREFIX/bin/modctl completion zsh > $PREFIX/share/zsh/site-functions/_modctl
     - if: win
       then:
-        - for /f "usebackq delims=" %%T in (`powershell -Command "Get-Date -AsUTC -Format yyyy-MM-ddTHH:mm:ssZ"`) do set BUILD_TIME=%%T
-        - go build -v -o %LIBRARY_BIN%\modctl.exe -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ commit }} -X github.com/modelpack/modctl/pkg/version.BuildTime=%BUILD_TIME%"
+        - for /f "usebackq delims=" %%T in (`powershell -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set BUILD_TIME=%%T
+        - for /f "usebackq delims=" %%S in (`powershell -Command "((Invoke-RestMethod 'https://api.github.com/repos/modelpack/modctl/commits/v${{ version }}').sha).Substring(0, 7)"`) do set SHORT_COMMIT_HASH=%%S
+        - go build -v -o %LIBRARY_BIN%\modctl.exe -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.BuildTime=%BUILD_TIME% -X github.com/modelpack/modctl/pkg/version.GitCommit=%SHORT_COMMIT_HASH%"
         # generate shell completions
         - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
         - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
