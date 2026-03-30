@@ -1,48 +1,459 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0e09833..5e0d0b1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,78 +1,68 @@
+-﻿cmake_minimum_required (VERSION 3.16)
+-
+-if(APPLE)
+-    # When using precompiled headers on macOS, we need to enable Objective-C
+-    # as a distinct language. This won't work on other platforms (will fail to
+-    # find the Obj-C compiler), hence the "if APPLE".
+-    project ("DearPyGui" LANGUAGES C CXX OBJC OBJCXX)
+-else()
+-    project ("DearPyGui")
+-endif()
+-
+-if(WIN32)
+-    add_definitions(-DIMGUI_USER_CONFIG="mvImGuiConfig_win32.h")
+-    add_definitions(-DMV_PLATFORM="windows")
+-elseif(APPLE)
+-    add_definitions(-DIMGUI_USER_CONFIG="mvImGuiConfig_apple.h")
+-    add_definitions(-DMV_PLATFORM="apple")
+-else() # Linux
+-	add_definitions(-DIMGUI_USER_CONFIG="mvImGuiConfig_linux.h")
+-    add_definitions(-DMV_PLATFORM="linux")
+-endif()
+-
+-if(WIN32)
+-else() # Linux
+-	add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="ImGuiFileDialogConfigUnix.h")
+-endif()
+-
+-# various settings
+-add_definitions(
+-    -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+-    -D_CRT_SECURE_NO_WARNINGS 
+-    -D_USE_MATH_DEFINES)
+-
+-set(MV_PY_VERSION ${MV_PY_VERSION})
+-set(MVDPG_VERSION ${MVDPG_VERSION})
+-add_definitions(-DMV_DPG_MAJOR_VERSION=1)
+-add_definitions(-DMV_DPG_MINOR_VERSION=0)
+-if(MVDPG_VERSION)
+-    add_definitions(-DMV_SANDBOX_VERSION="${MVDPG_VERSION}")
+-else()
+-    add_definitions(-DMV_SANDBOX_VERSION="master")
+-endif()
+-
+-# when set to "ON", the embedded version
+-# will be the only version build (no sandbox builds)
+-set(MVDIST_ONLY ${MVDIST_ONLY})
+-if(MVDIST_ONLY)
+-    add_definitions(-DMVDIST_ONLY)
+-else()
+-    add_definitions(-DMV_LOG)
+-endif()
+-
+-# runs python tests
+-set(MV_TESTS_ONLY ${MV_TESTS_ONLY})
+-if(MV_TESTS_ONLY)
+-    add_definitions(-DMV_TESTS_ONLY)
+-endif()
+-
+-# Specifying MV_NO_USER_THREADS turns off some thread safety features (might give
+-# you some perf gain, yeah, those 0.01%) and must only be used when no user threads
+-# (threading.Thread) **ever** call DPG API. With MV_NO_USER_THREADS, it's only
+-# allowed to call DPG from the main thread and from handlers/callbacks.
+-# Also can be used to get back the behavior of old DPG versions that were thread
+-# unsafe (for testing/debugging).
+-set(MV_NO_USER_THREADS ${MV_NO_USER_THREADS})
+-if(MV_NO_USER_THREADS)
+-    add_definitions(-DMV_NO_USER_THREADS)
+-endif()
+-
+-add_subdirectory("thirdparty")
+-
+-# if this is not a distribution build
+-# build development environment
+-if(NOT MVDIST_ONLY)
+-    add_subdirectory ("sandbox")
+-endif()
+-
+-add_subdirectory ("src")
++cmake_minimum_required (VERSION 3.16)
++
++if(APPLE)
++    # When using precompiled headers on macOS, we need to enable Objective-C
++    # as a distinct language. This won't work on other platforms (will fail to
++    # find the Obj-C compiler), hence the "if APPLE".
++    project ("DearPyGui" LANGUAGES C CXX OBJC OBJCXX)
++else()
++    project ("DearPyGui")
++endif()
++
++if(WIN32)
++    add_definitions(-DMV_PLATFORM="windows")
++elseif(APPLE)
++    add_definitions(-DMV_PLATFORM="apple")
++else() # Linux
++    add_definitions(-DMV_PLATFORM="linux")
++endif()
++
++# various settings
++add_definitions(
++    -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
++    -D_CRT_SECURE_NO_WARNINGS
++    -D_USE_MATH_DEFINES)
++
++set(MV_PY_VERSION ${MV_PY_VERSION})
++set(MVDPG_VERSION ${MVDPG_VERSION})
++add_definitions(-DMV_DPG_MAJOR_VERSION=1)
++add_definitions(-DMV_DPG_MINOR_VERSION=0)
++if(MVDPG_VERSION)
++    add_definitions(-DMV_SANDBOX_VERSION="${MVDPG_VERSION}")
++else()
++    add_definitions(-DMV_SANDBOX_VERSION="master")
++endif()
++
++# when set to "ON", the embedded version
++# will be the only version build (no sandbox builds)
++set(MVDIST_ONLY ${MVDIST_ONLY})
++if(MVDIST_ONLY)
++    add_definitions(-DMVDIST_ONLY)
++else()
++    add_definitions(-DMV_LOG)
++endif()
++
++# runs python tests
++set(MV_TESTS_ONLY ${MV_TESTS_ONLY})
++if(MV_TESTS_ONLY)
++    add_definitions(-DMV_TESTS_ONLY)
++endif()
++
++# Specifying MV_NO_USER_THREADS turns off some thread safety features (might give
++# you some perf gain, yeah, those 0.01%) and must only be used when no user threads
++# (threading.Thread) **ever** call DPG API. With MV_NO_USER_THREADS, it's only
++# allowed to call DPG from the main thread and from handlers/callbacks.
++# Also can be used to get back the behavior of old DPG versions that were thread
++# unsafe (for testing/debugging).
++set(MV_NO_USER_THREADS ${MV_NO_USER_THREADS})
++if(MV_NO_USER_THREADS)
++    add_definitions(-DMV_NO_USER_THREADS)
++endif()
++
++# if this is not a distribution build
++# build development environment
++if(NOT MVDIST_ONLY)
++    add_subdirectory ("sandbox")
++endif()
++
++add_subdirectory ("src")
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index ad7f650..ffc8c69 100644
+index a49f5eb..7d3b8c7 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -100,8 +100,6 @@ set(MARVEL_INCLUDE_DIR
-         "../thirdparty/stb"
-         "../thirdparty/imnodes"
-         "../thirdparty/ImGuiFileDialog"
+@@ -1,121 +1,78 @@
+-﻿cmake_minimum_required (VERSION 3.16)
+-
+-
+-set(MARVEL_SOURCES
+-
+-        # core
+-        "mvContext.cpp"
+-        "mvMath.cpp"
+-        "mvProfiler.cpp"
+-        "dearpygui.cpp"
+-
+-        # platform
+-        "$<$<PLATFORM_ID:Windows>:mvViewport_win32.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:mvUtilities_win32.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:mvGraphics_win32.cpp>"
+-
+-        "$<$<PLATFORM_ID:Darwin>:mvViewport_apple.mm>"
+-        "$<$<PLATFORM_ID:Darwin>:mvUtilities_apple.mm>"
+-        "$<$<PLATFORM_ID:Darwin>:mvGraphics_apple.mm>"
+-
+-        "$<$<PLATFORM_ID:Linux>:mvUtilities_linux.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:mvViewport_linux.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:mvGraphics_linux.cpp>"
+-
+-        # python
+-        "mvPyUtils.cpp"
+-        "mvCustomTypes.cpp"
+-
+-        # ui
+-        "mvBasicWidgets.cpp"
+-        "mvTables.cpp"
+-        "mvThemes.cpp"
+-        "mvNodes.cpp"
+-        "mvDrawings.cpp"
+-        "mvGlobalHandlers.cpp"
+-        "mvItemHandlers.cpp"
+-        "mvValues.cpp"
+-        "mvTextureItems.cpp"
+-        "mvFontItems.cpp"
+-        "mvColors.cpp"
+-        "mvPlotting.cpp"
+-        "mvContainers.cpp"
+-
+-        "mvCallbackRegistry.cpp"
+-        "mvLoadingIndicatorCustom.cpp"
+-        "mvFontManager.cpp"
+-        "mvToolManager.cpp"
+-        "mvToolWindow.cpp"
+-        "mvAboutWindow.cpp"
+-        "mvDocWindow.cpp"
+-        "mvMetricsWindow.cpp"
+-        "mvStackWindow.cpp"
+-        "mvStyleWindow.cpp"
+-        "mvDebugWindow.cpp"
+-        "mvLayoutWindow.cpp"
+-        "mvAppItemState.cpp"
+-        "mvAppItem.cpp"
+-        "mvItemRegistry.cpp"
+-
+-        "mvDatePicker.cpp"
+-        "mvTimePicker.cpp"
+-        "mvSlider3D.cpp"
+-        "mvLoadingIndicator.cpp"
+-        "mvFileDialog.cpp"
+-        "mvFileExtension.cpp"
+-
+-        # imnodes
+-        "../thirdparty/imnodes/imnodes.cpp"
+-
+-        # implot
+-        "../thirdparty/implot/implot.cpp"
+-        "../thirdparty/implot/implot_items.cpp"
+-        "../thirdparty/implot/implot_demo.cpp"
+-
+-        # ImGuiFileDialog
+-        "../thirdparty/ImGuiFileDialog/ImGuiFileDialog.cpp"
+-
+-        # imgui
+-        "../thirdparty/imgui/misc/cpp/imgui_stdlib.cpp"
+-        "../thirdparty/imgui/imgui.cpp"
+-        "../thirdparty/imgui/imgui_demo.cpp"
+-        "../thirdparty/imgui/imgui_draw.cpp"
+-        "../thirdparty/imgui/imgui_widgets.cpp"
+-        "../thirdparty/imgui/imgui_tables.cpp"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/misc/freetype/imgui_freetype.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/backends/imgui_impl_win32.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/backends/imgui_impl_dx11.cpp>"
+-        "$<$<PLATFORM_ID:Darwin>:../thirdparty/imgui/backends/imgui_impl_metal.mm>"
+-        "$<$<PLATFORM_ID:Darwin>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_opengl3.cpp>"
+-
+-        # gl3w
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/gl3w/GL/gl3w.c>"
+-        )
+-
+-set(MARVEL_INCLUDE_DIR
+-        "."
+-        "../thirdparty/implot"
+-        "../thirdparty/stb"
+-        "../thirdparty/imnodes"
+-        "../thirdparty/ImGuiFileDialog"
 -        "../thirdparty/glfw/include/"
 -        "../thirdparty/glfw/deps/"
-         "../thirdparty/imgui/"
-         "../thirdparty/gl3w/"
-         "../thirdparty/imgui/misc/freetype/"
+-        "../thirdparty/imgui/"
+-        "../thirdparty/gl3w/"
+-        "../thirdparty/imgui/misc/freetype/"
+-        "../thirdparty/imgui/backends/"
+-        "../thirdparty/cpython/"
+-        "../thirdparty/cpython/Include/"
+-        "../thirdparty/cpython/build/debug/"
+-        "$<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/thirdparty/cpython/PC/>"
+-        "$<IF:$<CONFIG:Release>,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/release/,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/debug/>"
+-        )
+-
+-
+-if(MVDIST_ONLY)
+-    include("distribution.cmake")
+-else()
+-    include("embedded.cmake")
+-endif()
+\ No newline at end of file
++cmake_minimum_required (VERSION 3.16)
++
++
++set(MARVEL_SOURCES
++
++        # core
++        "mvContext.cpp"
++        "mvMath.cpp"
++        "mvProfiler.cpp"
++        "dearpygui.cpp"
++
++        # platform
++        "$<$<PLATFORM_ID:Windows>:mvViewport_win32.cpp>"
++        "$<$<PLATFORM_ID:Windows>:mvUtilities_win32.cpp>"
++        "$<$<PLATFORM_ID:Windows>:mvGraphics_win32.cpp>"
++
++        "$<$<PLATFORM_ID:Darwin>:mvViewport_apple.mm>"
++        "$<$<PLATFORM_ID:Darwin>:mvUtilities_apple.mm>"
++        "$<$<PLATFORM_ID:Darwin>:mvGraphics_apple.mm>"
++
++        "$<$<PLATFORM_ID:Linux>:mvUtilities_linux.cpp>"
++        "$<$<PLATFORM_ID:Linux>:mvViewport_linux.cpp>"
++        "$<$<PLATFORM_ID:Linux>:mvGraphics_linux.cpp>"
++
++        # python
++        "mvPyUtils.cpp"
++        "mvCustomTypes.cpp"
++
++        # ui
++        "mvBasicWidgets.cpp"
++        "mvTables.cpp"
++        "mvThemes.cpp"
++        "mvNodes.cpp"
++        "mvDrawings.cpp"
++        "mvGlobalHandlers.cpp"
++        "mvItemHandlers.cpp"
++        "mvValues.cpp"
++        "mvTextureItems.cpp"
++        "mvFontItems.cpp"
++        "mvColors.cpp"
++        "mvPlotting.cpp"
++        "mvContainers.cpp"
++
++        "mvCallbackRegistry.cpp"
++        "mvLoadingIndicatorCustom.cpp"
++        "mvFontManager.cpp"
++        "mvToolManager.cpp"
++        "mvToolWindow.cpp"
++        "mvAboutWindow.cpp"
++        "mvDocWindow.cpp"
++        "mvMetricsWindow.cpp"
++        "mvStackWindow.cpp"
++        "mvStyleWindow.cpp"
++        "mvDebugWindow.cpp"
++        "mvLayoutWindow.cpp"
++        "mvAppItemState.cpp"
++        "mvAppItem.cpp"
++        "mvItemRegistry.cpp"
++
++        "mvDatePicker.cpp"
++        "mvTimePicker.cpp"
++        "mvSlider3D.cpp"
++        "mvLoadingIndicator.cpp"
++        "mvFileDialog.cpp"
++        "mvFileExtension.cpp"
++        )
++
++set(MARVEL_INCLUDE_DIR
++        "."
++        "../thirdparty/stb"
++        )
++
++
++if(MVDIST_ONLY)
++    include("distribution.cmake")
++else()
++    include("embedded.cmake")
++endif()
 diff --git a/src/distribution.cmake b/src/distribution.cmake
-index b858384..aabd837 100644
+index c943053..8a57909 100644
 --- a/src/distribution.cmake
 +++ b/src/distribution.cmake
-@@ -40,7 +40,8 @@ if(WIN32)
-
+@@ -5,6 +5,11 @@ if(NOT Python_Development_FOUND)
+ 	message(FATAL_ERROR "The python3 development library from your distribution repo need to be installed first!")
+ endif()
+ 
++find_package(imgui CONFIG REQUIRED)
++find_package(implot CONFIG REQUIRED)
++find_package(imnodes CONFIG REQUIRED)
++find_package(ImGuiFileDialog CONFIG REQUIRED)
++
+ add_library(_dearpygui SHARED)
+ 
+ set_target_properties(_dearpygui
+@@ -17,14 +22,14 @@ set_target_properties(_dearpygui
+ 
+ target_sources(_dearpygui PRIVATE ${MARVEL_SOURCES})
+ 
+-target_include_directories(_dearpygui 
+-		PRIVATE 
++target_include_directories(_dearpygui
++		PRIVATE
+ 			${Python_INCLUDE_DIRS}
+ 			${MARVEL_INCLUDE_DIR}
+ 	)
+ 
+-target_link_directories(_dearpygui 
+-		PRIVATE 
++target_link_directories(_dearpygui
++		PRIVATE
+ 			"$<$<PLATFORM_ID:Linux>:/usr/lib>"
+ 			${Python_LIBRARY_DIRS}
+ 	)
+@@ -35,6 +40,14 @@ target_compile_definitions(_dearpygui
+ 		$<$<CONFIG:Release>:MV_RELEASE>
+ )
+ 
++target_link_libraries(_dearpygui
++	PUBLIC
++		imgui::imgui
++		implot::implot
++		imnodes::imnodes
++		ImGuiFileDialog::ImGuiFileDialog
++)
++
+ if(WIN32)
+ 	target_precompile_headers(_dearpygui
+ 		PRIVATE mvPyUtils.h
+@@ -45,7 +58,7 @@ if(WIN32)
+ 
  	set_target_properties(_dearpygui PROPERTIES SUFFIX ".pyd")
  	set_target_properties(_dearpygui PROPERTIES PREFIX "")
 -	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES} freetype)
-+	find_package(Freetype REQUIRED)
-+	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES} Freetype::Freetype)
++	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES})
  
  elseif(APPLE)
  
+@@ -56,9 +69,7 @@ elseif(APPLE)
+ 	target_link_libraries(_dearpygui
+ 
+ 		PRIVATE
+-			glfw
+ 			"-undefined dynamic_lookup"
+-			"-framework Metal"
+ 			"-framework MetalKit"
+ 			"-framework Cocoa"
+ 			"-framework CoreVideo"
+@@ -71,12 +82,9 @@ else() # Linux
+ 	add_definitions(-DUNIX)
+ 	set_target_properties(_dearpygui PROPERTIES PREFIX "")
+ 	set_property(TARGET _dearpygui APPEND_STRING PROPERTY COMPILE_FLAGS "-fPIC -DNDEBUG -fwrapv -O3")
+-	add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GL3W)
+-	target_link_libraries(_dearpygui 
+-		PRIVATE 
++	target_link_libraries(_dearpygui
++		PRIVATE
+ 			"-fPIC -lcrypt -lpthread -ldl  -lutil -lm"
+-			GL
+-			glfw
+ 	)
+ 
+ endif()
 diff --git a/thirdparty/CMakeLists.txt b/thirdparty/CMakeLists.txt
-index 4e4f721..ddb1ac2 100644
+deleted file mode 100644
+index 986c4ca..0000000
 --- a/thirdparty/CMakeLists.txt
-+++ b/thirdparty/CMakeLists.txt
-@@ -1,13 +1,7 @@
++++ /dev/null
+@@ -1,13 +0,0 @@
 -﻿
 -set(GLFW_BUILD_DOCS OFF)
 -set(GLFW_BUILD_EXAMPLES OFF)
 -set(GLFW_BUILD_TESTS OFF)
 -set(GLFW_INSTALL OFF)
 -
- if(WIN32)
+-if(WIN32)
 -    add_subdirectory("freetype")
-+    find_package(Freetype REQUIRED)
- elseif(APPLE)
+-elseif(APPLE)
 -    add_subdirectory ("glfw")
-+    find_package(glfw3 REQUIRED)
- else() #Linux
+-else() #Linux
 -	add_subdirectory ("glfw")
-+    find_package(glfw3 REQUIRED)
- endif()
+-endif()
