@@ -54,7 +54,7 @@ endif()
 if(IMGUI_BUILD_METAL_BINDING)
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backends/imgui_impl_metal.mm)
     set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/backends/imgui_impl_metal.mm PROPERTIES COMPILE_FLAGS -fobjc-weak)
-    target_link_libraries(${PROJECT_NAME} PUBLIC "-framework Metal" "-framework Foundation" "-framework CoreFoundation")
+    target_link_libraries(${PROJECT_NAME} PUBLIC "-framework Metal" "-framework Foundation" "-framework CoreFoundation" "-framework QuartzCore")
     target_link_libraries(${PROJECT_NAME} PRIVATE objc)
 endif()
 
