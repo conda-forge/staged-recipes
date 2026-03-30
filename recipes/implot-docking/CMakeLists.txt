@@ -27,6 +27,11 @@ target_sources(
 
 if(WIN32)
     set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # WINDOWS_EXPORT_ALL_SYMBOLS only exports functions, not data symbols.
+    # GImPlot is a global data symbol that consumers access via inline functions
+    # in implot_internal.h, so it needs explicit dllexport/dllimport.
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "IMPLOT_API=__declspec(dllexport)")
+    target_compile_definitions(${PROJECT_NAME} INTERFACE "IMPLOT_API=__declspec(dllimport)")
 endif()
 
 install(

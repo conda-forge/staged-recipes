@@ -1,6 +1,10 @@
 #!/bin/bash
 set -ex
 
+# Remove bundled ImGuiFileDialog.h so the system header (v0.6.7) is used.
+# The directory is kept in the include path for DearPyGui-specific CustomFont files.
+rm -f thirdparty/ImGuiFileDialog/ImGuiFileDialog.h
+
 mkdir -p cmake-build-local
 cd cmake-build-local
 
