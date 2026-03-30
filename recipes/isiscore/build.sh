@@ -11,10 +11,9 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INSTALL_DATADIR=$PREFIX \
-  -DPython3_EXECUTABLE=$PYTHON \
-  -DPython3_ROOT_DIR=$PREFIX \
-  -DPython3_INCLUDE_DIR=$PREFIX/include/python${PY_VER} \
-  -DPython3_LIBRARY=$PREFIX/lib/libpython${PY_VER}.dylib \
+  -DPYTHON_EXECUTABLE=$PYTHON \
+  -DPYTHON_INCLUDE_DIR=$PREFIX/include/python${PY_VER} \
+  -DPYTHON_LIBRARY=$PREFIX/lib/libpython${PY_VER}.so \
   $SRC_DIR/isis/src/core
 ninja install
 cd swig/python/
