@@ -1,0 +1,128 @@
+From 01aa3ea564168ac9dd1ad02c7ead3cf186578f72 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 31 Mar 2026 11:40:25 -0600
+Subject: [PATCH] fix: Use CMake find_package for all thirdparty dependencies
+
+* Remove git submodule update block (not needed for conda builds)
+* Remove CONDA_PREFIX include/link directories block
+* Remove Boost version constraint
+* Replace add_subdirectory(thirdparty/fmt) with find_package(fmt REQUIRED)
+* Add find_package for Eigen3, xtl, xsimd, xtensor, xtensor-python
+* Disable xsimd SIMD code during conda-build (incompatible API with xsimd >=8)
+* Use CMake imported targets for include directory propagation
+* Create xtensor compat headers for xtensor >=0.26 header reorganization
+---
+ CMakeLists.txt | 61 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 30 insertions(+), 31 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d9eaa534..5fbe0cfe 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,23 +16,9 @@ message(status "Python library dirs are ${Python_LIBRARY_DIRS}")
+ message(status "Python version is ${Python_VERSION}")
+ 
+ 
+-find_package(Git QUIET)
+-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+-# Update submodules as needed
+-    option(GIT_SUBMODULE "Check submodules during build" ON)
+-    if(GIT_SUBMODULE)
+-        message(STATUS "Submodule update")
+-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+-                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+-                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
+-        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+-            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+-        endif()
+-    endif()
+-endif()
+-
+-# For XSIMD usage
+-IF(DEFINED ENV{NO_XSIMD})
++# For XSIMD usage: disable when building with conda as the xsimd API
++# has changed significantly since the version simsopt was written against
++IF(DEFINED ENV{NO_XSIMD} OR DEFINED ENV{CONDA_BUILD})
+    set(NO_XSIMD ON)
+ ENDIF()
+ set(_HAS_AUTO_PTR_ETC 1)
+@@ -67,14 +53,8 @@ endif()
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_MPL2_ONLY")
+ message(STATUS "CMAKE_CXX_FLAGS are ${CMAKE_CXX_FLAGS}")
+ 
+-if(DEFINED ENV{CONDA_PREFIX})
+-  include_directories($ENV{CONDA_PREFIX}/include)
+-  link_directories("$ENV{CONDA_PREFIX}/lib")
+-  message(STATUS "Conda prefix is $ENV{CONDA_PREFIX}")
+-endif()
+-
+ find_package(OpenMP)
+-find_package(Boost 1.76.0)
++find_package(Boost)
+ if(Boost_FOUND)
+     message(STATUS "Boost version is ${Boost_VERSION_STRING}")
+     message(STATUS "Boost include dirs are ${Boost_INCLUDE_DIRS}")
+@@ -111,7 +91,26 @@ else()
+     message(STATUS "Boost include dirs are ${Boost_INCLUDE_DIRS}")
+ endif()
+ 
+-add_subdirectory(thirdparty/fmt EXCLUDE_FROM_ALL)
++find_package(fmt REQUIRED)
++find_package(Eigen3 REQUIRED)
++find_package(xtl REQUIRED)
++find_package(xsimd REQUIRED)
++find_package(xtensor REQUIRED)
++find_package(xtensor-python REQUIRED)
++
++# Create backward-compatible xtensor header wrappers for xtensor >=0.26.0
++# which reorganized headers into subdirectories
++set(XTENSOR_COMPAT_DIR ${CMAKE_BINARY_DIR}/xtensor_compat/xtensor)
++file(MAKE_DIRECTORY ${XTENSOR_COMPAT_DIR})
++file(WRITE ${XTENSOR_COMPAT_DIR}/xarray.hpp "#include <xtensor/containers/xarray.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xtensor.hpp "#include <xtensor/containers/xtensor.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xmath.hpp "#include <xtensor/core/xmath.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xlayout.hpp "#include <xtensor/core/xlayout.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xnoalias.hpp "#include <xtensor/core/xnoalias.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xview.hpp "#include <xtensor/views/xview.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xrandom.hpp "#include <xtensor/generators/xrandom.hpp>\n")
++file(WRITE ${XTENSOR_COMPAT_DIR}/xsort.hpp "#include <xtensor/misc/xsort.hpp>\n")
++
+ set(XTENSOR_USE_OPENMP 0)
+ set(XTENSOR_USE_TBB 0)
+ 
+@@ -127,8 +126,8 @@ pybind11_add_module(${PROJECT_NAME}
+     src/simsoptpp/surface.cpp src/simsoptpp/surfacerzfourier.cpp src/simsoptpp/surfacexyzfourier.cpp
+     src/simsoptpp/integral_BdotN.cpp
+     src/simsoptpp/dipole_field.cpp src/simsoptpp/permanent_magnet_optimization.cpp
+-    src/simsoptpp/dommaschk.cpp src/simsoptpp/reiman.cpp src/simsoptpp/tracing.cpp 
+-    src/simsoptpp/magneticfield_biotsavart.cpp src/simsoptpp/python_boozermagneticfield.cpp 
++    src/simsoptpp/dommaschk.cpp src/simsoptpp/reiman.cpp src/simsoptpp/tracing.cpp
++    src/simsoptpp/magneticfield_biotsavart.cpp src/simsoptpp/python_boozermagneticfield.cpp
+     src/simsoptpp/magneticfield_wireframe.cpp
+     src/simsoptpp/boozerradialinterpolant.cpp
+     src/simsoptpp/wireframe_optimization.cpp
+@@ -139,8 +138,8 @@ set_target_properties(${PROJECT_NAME}
+     CXX_STANDARD 17
+     CXX_STANDARD_REQUIRED ON)
+ 
+-target_include_directories(${PROJECT_NAME} PRIVATE "thirdparty/xtensor/include" "thirdparty/xtensor-python/include" "thirdparty/xsimd/include" "thirdparty/xtl/include" "thirdparty/eigen" ${Python_NumPy_INCLUDE_DIRS} "src/simsoptpp/")
+-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
++target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/xtensor_compat ${Python_NumPy_INCLUDE_DIRS} "src/simsoptpp/")
++target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only Eigen3::Eigen xtensor xtensor-python xsimd xtl)
+ 
+ if(NOT Boost_FOUND)
+     add_dependencies(${PROJECT_NAME} ${boost_target})
+@@ -157,8 +156,8 @@ set_target_properties(profiling
+     PROPERTIES
+     CXX_STANDARD 17
+     CXX_STANDARD_REQUIRED ON)
+-target_include_directories(profiling PRIVATE  "thirdparty/xtensor/include" "thirdparty/xsimd/include" "thirdparty/xtl/include" "thirdparty/eigen" "src/simsoptpp/")
+-target_link_libraries(profiling PRIVATE fmt::fmt-header-only)
++target_include_directories(profiling PRIVATE ${CMAKE_BINARY_DIR}/xtensor_compat "src/simsoptpp/")
++target_link_libraries(profiling PRIVATE fmt::fmt-header-only Eigen3::Eigen xtensor xsimd xtl)
+ 
+ 
+ 
+-- 
+2.53.0
+
