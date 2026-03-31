@@ -100,6 +100,15 @@ artifacts will be available under `build_artifacts`.
 
 </details>
 
+<details>
+<summary>"ValueError: Mixing meta.yaml and recipe.yaml recipes is not supported" </summary>
+
+This can happen when you have some recipies with `meta.yaml`, and others with `recipie.yaml` in your `recipies` folder. Just removing all recipies which aren't yours should suffice. 
+</details>
+
+
+
+
 ### `$CONDA_EXE`
 
 If you have never used conda-forge before, you may need a conda-compatible
