@@ -1,0 +1,102 @@
+context:
+  version: "0.1.1"
+  python_min: "3.10"
+
+recipe:
+  name: conda-global-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/conda-incubator/conda-global/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 7298d1ada2982d72ca7136e24ae426e182d13b452627a495cead81dc4b144d53
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: conda-trampoline
+      version: ${{ version }}
+    build:
+      number: 0
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - if: unix
+            then:
+              - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
+            else:
+              - ${{ PYTHON }} -m pip install packages\conda-trampoline -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - maturin >=1.0,<2.0
+      run:
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+            - conda_trampoline
+          pip_check: false
+          python_version: ${{ python_min }}.*
+      - package_contents:
+          bin:
+            - _cg_trampoline
+
+  - package:
+      name: conda-global
+      version: ${{ version }}
+    build:
+      number: 0
+      noarch: python
+      script:
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+        content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - cg = conda_global.__main__:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling >=1.12.2
+        - hatch-vcs >=0.2.0
+      run:
+        - python >=${{ python_min }}
+        - conda >=25.1
+        - conda-trampoline ==${{ version }}
+        - tomlkit >=0.13
+        - rich >=13.0
+        - userpath >=1.9
+    tests:
+      - python:
+          imports:
+            - conda_global
+            - conda_global.plugin
+          pip_check: false
+          python_version: ${{ python_min }}.*
+      - script:
+          - cg --help
+
+about:
+  homepage: https://github.com/conda-incubator/conda-global
+  repository: https://github.com/conda-incubator/conda-global
+  documentation: https://conda-incubator.github.io/conda-global/
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: >
+    Global tool installation for conda — install CLI tools into isolated
+    environments and make them available on PATH via trampolines.
+
+extra:
+  feedstock-name: conda-global
+  recipe-maintainers:
+    - jezdez
+    - travishathaway
