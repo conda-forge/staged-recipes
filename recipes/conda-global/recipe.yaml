@@ -20,16 +20,15 @@ outputs:
     build:
       number: 0
       script:
-        - if: unix
-          then:
-            - cargo build --release --manifest-path packages/conda-trampoline/Cargo.toml
-            - install -Dm755 target/release/_cg_trampoline ${{ PREFIX }}/bin/_cg_trampoline
-            - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
-        - if: win
-          then:
-            - cargo build --release --manifest-path packages/conda-trampoline/Cargo.toml
-            - copy target\release\_cg_trampoline.exe %PREFIX%\Scripts\_cg_trampoline.exe
-            - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - if: unix
+            then:
+              - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
+            else:
+              - ${{ PYTHON }} -m pip install packages\conda-trampoline -vv --no-deps --no-build-isolation
     requirements:
       build:
         - ${{ compiler('rust') }}
@@ -46,8 +45,9 @@ outputs:
             - conda_trampoline
           pip_check: false
           python_version: ${{ python_min }}.*
-      - script:
-          - _cg_trampoline --help
+      - package_contents:
+          bin:
+            - _cg_trampoline
 
   - package:
       name: conda-global
