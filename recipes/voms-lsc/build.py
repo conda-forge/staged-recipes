@@ -31,15 +31,13 @@ rpms_dir = SRC / "rpms"
 if rpms_dir.exists():
     for rpm in sorted(rpms_dir.glob("*.rpm")):
         print(f"[RPM] Extracting {rpm.name}")
-        subprocess.run(
+        proc = subprocess.Popen(
             ["rpm2archive", str(rpm)],
-            check=True,
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
-        tgz = rpm.with_suffix(".rpm.tgz")
-        with tarfile.open(tgz, "r:gz") as tf:
-            for member in tf.getmembers():
+        with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
+            for member in tf:
                 # Strip leading "./" so paths are relative to etc/
                 member.name = member.name.lstrip("./")
                 if not member.name.startswith("etc/"):
@@ -52,6 +50,9 @@ if rpms_dir.exists():
                     with tf.extractfile(member) as src_f, open(dst, "wb") as dst_f:
                         shutil.copyfileobj(src_f, dst_f)
                     print(f"  [FILE] {member.name}")
+        proc.wait()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, ["rpm2archive", str(rpm)])
 
 # --- 2. Copy etc/ tree ---
 src_etc = Path("etc")
