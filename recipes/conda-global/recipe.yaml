@@ -1,0 +1,90 @@
+context:
+  version: "0.1.0"
+
+recipe:
+  name: conda-global-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jezdez/conda-global/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 0eadee5e7b313adc6d5b87e12e392aeef33ab79dfc3b8d1367c18bea37ef218e
+
+outputs:
+  - package:
+      name: conda-trampoline
+      version: ${{ version }}
+    build:
+      number: 0
+      script:
+        - if: unix
+          then:
+            - cargo build --release --manifest-path packages/conda-trampoline/Cargo.toml
+            - install -Dm755 target/release/_cg_trampoline ${{ PREFIX }}/bin/_cg_trampoline
+            - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
+        - if: win
+          then:
+            - cargo build --release --manifest-path packages/conda-trampoline/Cargo.toml
+            - copy target\release\_cg_trampoline.exe %PREFIX%\Scripts\_cg_trampoline.exe
+            - ${{ PYTHON }} -m pip install packages/conda-trampoline -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+      host:
+        - python >=3.10
+        - pip
+        - maturin >=1.0,<2.0
+      run:
+        - python >=3.10
+    tests:
+      - python:
+          imports:
+            - conda_trampoline
+          pip_check: false
+      - script:
+          - _cg_trampoline --help
+
+  - package:
+      name: conda-global
+      version: ${{ version }}
+    build:
+      number: 0
+      noarch: python
+      script:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      entry_points:
+        - cg = conda_global.__main__:main
+    requirements:
+      host:
+        - python >=3.10
+        - pip
+        - hatchling >=1.12.2
+        - hatch-vcs >=0.2.0
+      run:
+        - python >=3.10
+        - conda >=25.1
+        - conda-trampoline ${{ version }}
+        - tomlkit >=0.13
+        - rich >=13.0
+        - userpath >=1.9
+    tests:
+      - python:
+          imports:
+            - conda_global
+            - conda_global.plugin
+          pip_check: false
+      - script:
+          - cg --help
+
+about:
+  homepage: https://github.com/jezdez/conda-global
+  repository: https://github.com/jezdez/conda-global
+  documentation: https://jezdez.github.io/conda-global/
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: >
+    Global tool installation for conda — install CLI tools into isolated
+    environments and make them available on PATH via trampolines.
+
+extra:
+  recipe-maintainers:
+    - jezdez
