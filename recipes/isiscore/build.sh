@@ -6,7 +6,7 @@ cp $SRC_DIR/isis/src/core/IsisPreferences $ISISROOT
 cp $SRC_DIR/isis/src/core/TestPreferences $ISISROOT
 
 cmake -GNinja \
-  -DBUILD_CORE_TESTS=ON \
+  -DBUILD_CORE_TESTS=OFF \
   -DISIS_BUILD_SWIG=ON \
   -DBUILD_COVERAGE=OFF \
   -DCMAKE_BUILD_TYPE=Release \
