@@ -31,7 +31,12 @@ rpms_dir = SRC / "rpms"
 if rpms_dir.exists():
     for rpm in sorted(rpms_dir.glob("*.rpm")):
         print(f"[RPM] Extracting {rpm.name}")
-        subprocess.run(["rpm2archive", str(rpm)], check=True)
+        subprocess.run(
+            ["rpm2archive", str(rpm)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         tgz = rpm.with_suffix(".rpm.tgz")
         with tarfile.open(tgz, "r:gz") as tf:
             for member in tf.getmembers():
