@@ -36,7 +36,7 @@ if rpms_dir.exists():
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
-        with tarfile.open(fileobj=proc.stdout, mode="r|gz") as tf:
+        with tarfile.open(fileobj=proc.stdout, mode="r|*") as tf:
             for member in tf:
                 # Strip leading "./" so paths are relative to etc/
                 member.name = member.name.lstrip("./")
