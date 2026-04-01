@@ -9,7 +9,11 @@ source:
   url: https://github.com/histfitter/histfitter/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 5263032d88f7c392065e45403bbba80687c00b037632374b072afc34d83f7472
   patches:
-    - patches/drop-proof.patch
+    - patches/0001-install-with-python-sitearch.patch
+    - patches/0002-drop-proof.patch
+    - patches/0003-clean-up-installs.patch
+    - patches/0004-add-init.py.patch
+    - patches/0005-remove-extraneous-caches.patch
 
 build:
   number: 0
@@ -19,17 +23,6 @@ build:
     - cmake ${CMAKE_ARGS}  -S . -B build
     - cmake --build build --clean-first --parallel="${CPU_COUNT}"
     - cmake --install build
-    # NOTE: we must manually set SP_DIR since it is not set.
-    # Can be removed once https://github.com/prefix-dev/rattler-build/issues/1733 is fixed.
-    - if: unix
-      then:
-        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
-    - if: win
-      then:
-        - set "SP_DIR=%PREFIX%\\Lib\\site-packages"
-    # equivalent of the following:
-    #- rsync -rav --exclude='__pycache__/' --exclude='*.pyc' $SRC_DIR/python/ $SP_DIR/HistFitter/
-    - python -c "import shutil, os, sysconfig; shutil.copytree(os.path.join(os.environ['SRC_DIR'], 'python'), os.path.join(os.environ['SP_DIR'], 'HistFitter'), dirs_exist_ok=True)"
 
 requirements:
   build:
@@ -45,6 +38,7 @@ requirements:
         - root_base
   host:
     - root_base
+    - root_cxx_standard
     - python
   run:
     - root_base
@@ -52,9 +46,54 @@ requirements:
     - pyhf
 
 tests:
-  - script:
-      - printenv
-      - python -c "import HistFitter"
+  - python:
+      imports:
+        - HistFitter
+  - package_contents:
+      strict: true
+      files:
+        # --- core library ---
+        - lib/libHistFitter.so
+        - lib/libHistFitter.rootmap
+        - lib/libHistFitter_rdict.pcm
+        # --- headers ---
+        - include/histfitter/*.h
+        # --- executables ---
+        - bin/histfitter
+        - bin/setup_histfitter.sh
+        - bin/histfitter_env_setup.sh
+        # --- key scripts ---
+        - bin/histfitter
+        - bin/GenerateJSONOutput.py
+        - bin/GenerateTreeDescriptionFromJSON.py
+        - bin/HypoTest.py
+        - bin/PrintFitResult.py
+        - bin/PrintFitResultTex.py
+        - bin/SysTable.py
+        - bin/SysTableTex.py
+        - bin/SystRankingPlot.py
+        - bin/SystRankingPlotMP.py
+        - bin/UpperLimitTable.py
+        - bin/UpperLimitTableTex.py
+        - bin/YieldsTable.py
+        - bin/YieldsTableTex.py
+        - bin/contourPlotter.py
+        - bin/getFinalFullJER.py
+        - bin/harvestHepdataToContours.py
+        - bin/harvestToContours.py
+        - bin/mergeSysTableBreakdown.py
+        - bin/multiplexContours.py
+        - bin/multiplexJSON.py
+        - bin/plotUpDown.py
+        - bin/pull_maker.py
+        # --- python package ---
+        - lib/python*/site-packages/HistFitter/**
+        - share/histfitter/**
+        # compiled python (allowed via wildcard)
+        - bin/__pycache__/*
+        - bin/*.pyc
+        - lib/python*/site-packages/HistFitter/__pycache__/*
+        - lib/python*/site-packages/HistFitter/**/*.pyc
 
 about:
   homepage: https://github.com/histfitter/histfitter
