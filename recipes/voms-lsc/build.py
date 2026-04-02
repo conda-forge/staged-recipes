@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import io
 import json
 import os
 import shutil
@@ -31,13 +32,16 @@ rpms_dir = SRC / "rpms"
 if rpms_dir.exists():
     for rpm in sorted(rpms_dir.glob("*.rpm")):
         print(f"[RPM] Extracting {rpm.name}")
-        proc = subprocess.Popen(
-            ["rpm2archive", str(rpm)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-        )
-        with tarfile.open(fileobj=proc.stdout, mode="r|*") as tf:
-            for member in tf:
+        with open(rpm, "rb") as rpm_fh:
+            proc = subprocess.run(
+                ["rpm2archive", "-"],
+                stdin=rpm_fh,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+        with tarfile.open(fileobj=io.BytesIO(proc.stdout), mode="r:*") as tf:
+            for member in tf.getmembers():
                 # Strip leading "./" so paths are relative to etc/
                 member.name = member.name.lstrip("./")
                 if not member.name.startswith("etc/"):
@@ -50,9 +54,6 @@ if rpms_dir.exists():
                     with tf.extractfile(member) as src_f, open(dst, "wb") as dst_f:
                         shutil.copyfileobj(src_f, dst_f)
                     print(f"  [FILE] {member.name}")
-        proc.wait()
-        if proc.returncode != 0:
-            raise subprocess.CalledProcessError(proc.returncode, ["rpm2archive", str(rpm)])
 
 # --- 2. Copy etc/ tree ---
 src_etc = Path("etc")
