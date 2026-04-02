@@ -1,0 +1,87 @@
+context:
+  version: "3.0.0"
+
+package:
+  name: artem
+  version: ${{ version }}
+
+source:
+  url: https://github.com/FineFindus/artem/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d180ff37691654744891de77d956c83cc334c82e2377d1cfe4b795234753781a
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          # copy shell completion files and man page
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions $PREFIX/share/man/man1
+          - cp target/*/release/build/artem-*/out/artem.bash   $PREFIX/share/bash-completion/completions/artem
+          - cp target/*/release/build/artem-*/out/artem.fish   $PREFIX/share/fish/vendor_completions.d/artem.fish
+          - cp target/*/release/build/artem-*/out/_artem       $PREFIX/share/zsh/site-functions/_artem
+          - cp target/*/release/build/artem-*/out/artem.1      $PREFIX/share/man/man1/artem.1
+      - if: win
+        then:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+          # copy shell completion files and man page
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - mkdir %LIBRARY_PREFIX%\share\man\man1
+          - powershell -Command "Copy-Item -Path 'target\release\build\artem-*\out\artem.bash' -Destination '%LIBRARY_PREFIX%\share\bash-completion\completions\artem'"
+          - powershell -Command "Copy-Item -Path 'target\release\build\artem-*\out\artem.fish' -Destination '%LIBRARY_PREFIX%\share\fish\vendor_completions.d\artem.fish'"
+          - powershell -Command "Copy-Item -Path 'target\release\build\artem-*\out\_artem'     -Destination '%LIBRARY_PREFIX%\share\zsh\site-functions\_artem'"
+          - powershell -Command "Copy-Item -Path 'target\release\build\artem-*\out\artem.1'    -Destination '%LIBRARY_PREFIX%\share\man\man1\artem.1'"
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - artem --help
+      - artem --version
+  - package_contents:
+      bin:
+        - artem
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/artem
+            - share/fish/vendor_completions.d/artem.fish
+            - share/zsh/site-functions/_artem
+            - share/man/man1/artem.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/artem
+            - Library/share/fish/vendor_completions.d/artem.fish
+            - Library/share/zsh/site-functions/_artem
+            - Library/share/man/man1/artem.1
+      strict: true
+
+about:
+  summary: Convert images from multiple formats (jpg, png, webp, etc.) to ASCII art
+  description: |
+    artem is a small CLI program written in Rust to easily convert images to ASCII art.
+    It supports conversion from multiple image formats (jpg, png, webp, gif and many more)
+    to ASCII art, with truecolor support by default.
+  license: MPL-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/FineFindus/artem
+  repository: https://github.com/FineFindus/artem
+
+extra:
+  recipe-maintainers:
+    - salim-b
