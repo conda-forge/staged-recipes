@@ -1,0 +1,117 @@
+context:
+  name: mise
+  version: 2026.4.1
+  # upstream refs: https://github.com/jdx/mise/blob/main/scripts/build-tarball.sh & https://github.com/jdx/mise/blob/main/scripts/build-tarball.ps1
+  base_features: native-tls,rustls-native-roots,vfox/vendored-lua
+  extra_features: ${{ ",aws-lc-rs" if target_platform == "linux-armv7l" else "" }}
+
+package:
+  name: mise
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/mise/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 13e7242665ba46e54344d8bce518a78bfe334ee7c5124431e08a5c4ebc1ecd03
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      OPENSSL_NO_VENDOR: 1
+    content:
+      # NOTE: we have to set LIBCLANG_PATH for bindgen to find libclang
+      # cf. https://github.com/conda-forge/clangdev-feedstock/issues/373 & https://github.com/rust-lang/rust-bindgen/issues/918
+      - if: unix
+        then:
+          - export LIBCLANG_PATH=$BUILD_PREFIX/lib
+          - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root ${{ PREFIX }} --path .
+          # generate shell completions and copy manpage
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions $PREFIX/share/man/man1
+          - $PREFIX/bin/mise completion bash > $PREFIX/share/bash-completion/completions/mise
+          - $PREFIX/bin/mise completion fish > $PREFIX/share/fish/vendor_completions.d/mise.fish
+          - $PREFIX/bin/mise completion zsh > $PREFIX/share/zsh/site-functions/_mise
+          - cp man/man1/mise.1 $PREFIX/share/man/man1/mise.1
+      - if: win
+        then:
+          # bindgen expects libclang.dll; conda-forge only provides versioned DLLs on Windows
+          - powershell -Command "cp (gci $env:BUILD_PREFIX\Library\bin\libclang-*.dll)[0] $env:BUILD_PREFIX\Library\bin\libclang.dll"
+          - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+          - cargo auditable install --no-track --locked --bins --no-default-features --features ${{ base_features }}${{ extra_features }} --root %LIBRARY_PREFIX% --path .
+          - cargo auditable install --no-track --locked --bins --root %LIBRARY_PREFIX% --path crates\mise-shim
+          # generate shell completions and copy manpage
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - mkdir %LIBRARY_PREFIX%\share\man\man1
+          - '%LIBRARY_BIN%\mise.exe completion bash > %LIBRARY_PREFIX%\share\bash-completion\completions\mise'
+          - '%LIBRARY_BIN%\mise.exe completion fish > %LIBRARY_PREFIX%\share\fish\vendor_completions.d\mise.fish'
+          - '%LIBRARY_BIN%\mise.exe completion zsh > %LIBRARY_PREFIX%\share\zsh\site-functions\_mise'
+          - powershell -Command "Copy-Item -Path 'man/man1/mise.1' -Destination '%LIBRARY_PREFIX%\share\man\man1\mise.1'"
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib("c") }} 
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - clang
+    - cmake
+    - libclang
+    - make
+    - ninja
+    - pkg-config
+  host:
+    - if: unix
+      then: openssl
+
+tests:
+  - script:
+      env:
+        MISE_NO_CONFIG: 1
+        MISE_OFFLINE: 1
+      content:
+        - mise version
+        - mise help
+  - package_contents:
+      bin:
+        - mise
+        - if: win
+          then: mise-shim
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/mise
+            - share/fish/vendor_completions.d/mise.fish
+            - share/zsh/site-functions/_mise
+            - share/man/man1/mise.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/mise
+            - Library/share/fish/vendor_completions.d/mise.fish
+            - Library/share/zsh/site-functions/_mise
+            - Library/share/man/man1/mise.1
+      strict: true
+
+about:
+  summary: mise manages dev tools, env vars, and runs tasks.
+  description: |
+    `mise` (mise-en-place) is a unified CLI tool designed to simplify and manage local development environments.
+    It acts as a polyglot tool version manager, installing and seamlessly switching between versions of various
+    development tools (replacing utilities like `asdf`, `nvm`, and `pyenv`). Additionally, it functions as an
+    environment variable manager that dynamically loads project-specific env vars based on your current directory
+    (replacing `direnv`), and serves as a built-in task runner to define and execute project workflows as a modern
+    alternative to `make` or `npm` scripts.
+  license: MIT
+  license_file: 
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://mise.jdx.dev/
+  repository: https://github.com/jdx/mise
+
+extra:
+  recipe-maintainers:
+    - salim-b
