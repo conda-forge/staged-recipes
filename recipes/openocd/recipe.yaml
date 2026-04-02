@@ -1,0 +1,115 @@
+context:
+  name: openocd
+  version: "0.12.0"
+  jimtcl_version: "0.83"
+  build_num: 0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/openocd-org/openocd/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 0e2bcff1ef96f0591937220dcacfe7001069ddd823514dc4ba0ea2d33504e5b5
+    patches:
+      - if: linux
+        then:
+          - patches/fix-unused-vars.patch
+      - if: win
+        then:
+          - patches/fix-win-pkg.m4.patch
+          - patches/fix-unused-vars.patch
+      - patches/fix-overflow-cfi.c.patch
+      - patches/fix-use-external-jimtcl.patch
+      # Patches from Debian 0.12.0-3 dpkg source package
+      - patches/jimtcl-0.83-include-fix.patch
+  - url: https://github.com/msteveb/jimtcl/archive/refs/tags/${{ jimtcl_version }}.tar.gz
+    sha256: 6f2df00009f5ac4ad654c1ae1d2f8ed18191de38d1f5a88a54ea99cc16936686
+    target_directory: jimtcl
+
+build:
+  number: ${{ build_num }}
+
+requirements:
+  build:
+    - git
+    - if: unix
+      then:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - autoconf
+        - automake
+        - libtool
+        - make
+        - pkg-config
+        - sed
+        - texinfo
+      else:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ stdlib('m2w64_c') }}
+        - binutils
+        - m2-autoconf
+        - m2-automake-wrapper
+        - m2-findutils
+        - m2-libtool
+        - m2-make
+        - m2-pkg-config
+        - m2-sed
+        - m2-texinfo
+  host:
+    - libhidapi
+    - libftdi
+    - libjaylink
+    - libusb
+    - openssl
+    - zlib
+    - if: unix
+      then:
+        - libcapstone
+      else:
+        - capstone
+  run:
+    - libhidapi
+    - libftdi
+    - libusb
+    - openssl
+    - if: unix
+      then:
+        - libcapstone
+      else:
+        - capstone
+
+tests:
+  - package_contents:
+      bin:
+        - openocd
+      files:
+        - share/info/openocd.info
+        - share/info/openocd.info-1
+        - share/info/openocd.info-2
+        - share/man/man1/openocd.1
+        - share/openocd/contrib/60-openocd.rules
+  - script:
+      content:
+        - openocd --version
+
+about:
+  homepage: https://github.com/openocd-org/openocd
+  summary: 'OpenOCD: on-chip programming and debugging support with JTAG and TAP.'
+  description: |
+    OpenOCD provides on-chip programming and debugging support with a
+    layered architecture of JTAG interface and TAP support including:
+    - (X)SVF playback to facilitate automated boundary scan and FPGA/CPLD
+      programming;
+    - debug target support (e.g. ARM, MIPS): single-stepping,
+      breakpoints/watchpoints, gprof profiling, etc;
+    - flash chip drivers (e.g. CFI, NAND, internal flash);
+    - embedded TCL interpreter for easy scripting.  license: GPL-2.0-or-later
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://openocd.org/
+  repository: https://github.com/openocd-org/openocd
+
+extra:
+  recipe-maintainers:
+    - MementoRC
