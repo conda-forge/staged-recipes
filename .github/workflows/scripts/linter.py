@@ -18,7 +18,7 @@ HERE = Path(__file__).parent
 ROOT = (HERE / ".." / ".." / "..").absolute()
 
 
-def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+def def _test_and_raise_besides_file_not_exists(e: github.GithubException):
     if isinstance(e, github.UnknownObjectException):
         return
     if e.status == 404 and "No object found" in e.data["message"]:
@@ -197,8 +197,20 @@ def _lint_recipes(gh, pr):
             review_comments = pr.get_reviews()
 
             # Combine commenters from both issue comments and review comments
-            commenters = {comment.user.login.lower() for comment in issue_comments}
-            commenters.update({review.user.login.lower() for review in review_comments})
+            commenters = set()
+            for comment in issue_comments:
+                try:
+                    if comment.user and comment.user.login:
+                        commenters.add(comment.user.login.lower())
+                except (AttributeError, github.GithubException):
+                    continue
+
+            for review in review_comments:
+                try:
+                    if review.user and review.user.login:
+                        commenters.add(review.user.login.lower())
+                except (AttributeError, github.GithubException):
+                    continue
 
             # Check if all maintainers have either commented or are the PR author
             non_participating_maintainers = set()
@@ -260,7 +272,8 @@ def _comment_on_pr(pr, lints, hints, extra_edits):
 
     if extra_edits:
         summary += """\
-\nIt looks like some changes were made outside the `recipes/` directory. \
+
+It looks like some changes were made outside the `recipes/` directory. \
 To ensure everything runs smoothly, please make sure that recipes are only \
 added to the `recipes/` directory and no other files are changed.
 
