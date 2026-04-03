@@ -1,0 +1,40 @@
+From adc419b3fee069a75cd5175b8852289cc27cc863 Mon Sep 17 00:00:00 2001
+From: Nils DEYBACH <68770774+ndeybach@users.noreply.github.com>
+Date: Fri, 27 Feb 2026 00:31:18 +0100
+Subject: [PATCH] Fix macOS link when minizip-ng resolves to libminizip
+
+On conda-forge, the `minizip` package provides a compatibility library named
+`libminizip.*` (rather than `libminizip-ng.*`). OpenColorIO's
+`Findminizip-ng.cmake` is written to accept this and may therefore set
+`minizip-ng_LIBRARY` to a `libminizip.*` path.
+
+On macOS, OpenColorIO adds `-Wl,-hidden-l<name>` to hide symbols from dependent
+libraries. That flag forces the linker to resolve `-l<name>`. The upstream logic
+unconditionally chooses `<name>=minizip-ng` whenever `minizip-ng_LIBRARY` is
+set, even if the resolved file is `libminizip.*`, which triggers:
+
+  ld: library not found for -lminizip-ng
+
+Derive the hidden-link name from the resolved library filename: use `minizip`
+when the library path indicates `libminizip.*`, otherwise keep `minizip-ng`.
+---
+ src/OpenColorIO/CMakeLists.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/OpenColorIO/CMakeLists.txt b/src/OpenColorIO/CMakeLists.txt
+index f56b6219..6f086bfe 100755
+--- a/src/OpenColorIO/CMakeLists.txt
++++ b/src/OpenColorIO/CMakeLists.txt
+@@ -412,6 +412,10 @@ elseif(APPLE)
+     elseif(minizip-ng_LIBRARY)
+         get_filename_component(_minizip-ng_LIBDIR "${minizip-ng_LIBRARY}" DIRECTORY)
+         set(_minizip-ng_NAME "minizip-ng")
++        get_filename_component(_minizip-ng_BASENAME "${minizip-ng_LIBRARY}" NAME)
++        if(NOT _minizip-ng_BASENAME MATCHES "minizip-ng" AND _minizip-ng_BASENAME MATCHES "minizip")
++            set(_minizip-ng_NAME "minizip")
++        endif()
+     endif()
+ 
+     if (_minizip-ng_LIBDIR)
+-- 
+2.53.0
