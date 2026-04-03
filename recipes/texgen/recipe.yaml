@@ -1,0 +1,88 @@
+context:
+  name: texgen
+  version: "3.14.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # no recent v3.14.0 tag yet
+  # url: https://github.com/louisepb/TexGen/archive/refs/tags/v${{ version }}.tar.gz
+  # sha256: 4E49837ACEBAC59DD03E269E3D23D034569E4E436C8D6395F3B568AA08C4F6A1
+  git: https://github.com/louisepb/TexGen.git
+  branch: master
+  patches:
+    - add_ctype.patch
+    # both changes to use p4est & libsc provided by cf
+    - del_octree_refinement_dir.patch
+    - p4est_from_conda.patch
+
+build:
+  skip:
+    - win
+    - osx
+  script:
+    - if: linux
+      then: |
+          cmake "$SRC_DIR" \
+            $CMAKE_ARGS \
+            -DBUILD_CASCADE_EXPORT=OFF \
+            -DBUILD_DOCUMENTATION=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_GUI=OFF \
+            -DBUILD_PYTHON_INTERFACE=ON \
+            -DPYTHON_INCLUDE_DIR="$PREFIX/include/python${PY_VER}" \
+            -DPYTHON_LIBRARY="$PREFIX/lib/libpython${PY_VER}${SHLIB_EXT}" \
+            -DPYTHON_SITEPACKAGES_DIR="$SP_DIR" \
+            -DBUILD_RENDERER=OFF \
+            -DBUILD_SHARED=ON \
+            -DBUILD_UNIT_TESTS=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_CXX_STANDARD=14 \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DCMAKE_MACOSX_RPATH=ON \
+            -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+            -DCMAKE_INSTALL_RPATH="$PREFIX"/lib
+          cmake --build . --config Release
+          cmake --install . --prefix $PREFIX
+          cp $SRC_DIR/OctreeRefinement/*.so $PREFIX/lib
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - swig
+    - make
+    - pkgconfig
+  host:
+    - python
+    - libsc
+    - p4est
+    - openmpi-mpicc # libsc?
+    - zlib # libsc?
+    - jansson # libsc?
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+      - TexGen.Core
+      pip_check: true
+
+about:
+  homepage: https://texgen.sourceforge.io/index.php/Main_Page
+  summary: 'TexGen is a geometric textile modelling software package to be used for obtaining engineering properties of woven textiles and textile composites.'
+  description: |
+    TexGen is a geometric textile modelling software package to be used for obtaining engineering properties of woven textiles and textile composites.
+  license: GPL-2.0-or-later
+  license_file: LICENSE
+  repository: https://github.com/louisepb/TexGen
+
+extra:
+  recipe-maintainers:
+    - claudiushaag
