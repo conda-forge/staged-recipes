@@ -1,0 +1,60 @@
+context:
+  version: "1.4.5"
+
+package:
+  name: skills
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/skills/-/skills-${{ version }}.tgz
+  sha256: 1452fde59d3e5c3c0dd2814c2ce2133c89485d5511328cb9afd9733b6512b2ac
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    content:
+      - mv package.json package.json.bak
+      - jq 'del(.scripts.prepare)' package.json.bak > package.json
+      - npm pack --ignore-scripts
+      - npm install -ddd --global --build-from-source $SRC_DIR/$PKG_NAME-$PKG_VERSION.tgz
+      - rm $PREFIX/bin/add-skill
+      - rm $PREFIX/bin/skills
+      - |
+        tee $PREFIX/bin/skills << EOF
+        #!/usr/bin/env bash
+        \$CONDA_PREFIX/bin/node \$CONDA_PREFIX/lib/node_modules/skills/bin/cli.mjs \$*
+        EOF
+      - chmod +x $PREFIX/bin/skills
+      - |
+        tee $PREFIX/Library/bin/skills.cmd << EOF
+        call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%/lib/node_modules/skills/bin/cli.mjs %*
+        EOF
+
+requirements:
+  build:
+    - nodejs
+    - jq
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - skills --version
+  - package_contents:
+      files:
+        - bin/skills
+        - Library/bin/skills.cmd
+        - lib/*
+      strict: true
+
+about:
+  homepage: https://github.com/vercel-labs/skills
+  summary: The open agent skills tool - npx skills
+  license: MIT
+  license_file:
+    - ThirdPartyNoticeText.txt
+
+extra:
+  recipe-maintainers:
+    - yuikisaito
