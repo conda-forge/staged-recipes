@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge-admin <conda-forge-admin@conda-forge.org>
+Date: Mon, 25 Nov 2024 10:00:00 +0000
+Subject: [PATCH] Fix MSVC protobuf warning flag conflicts
+
+This patch fixes MSVC compiler flag issues specifically for protobuf generated files.
+The original code uses "-w" (disable all warnings) which conflicts with MSVC's /W4 flag
+and can cause D9025 warnings. This replaces "-w" with MSVC-specific warning disables
+only for protobuf files, while keeping "-w" for GCC/Clang builds.
+
+The global /EHsc flag is handled separately in the recipe configuration.
+---
+ src/CMakeLists.txt | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 1234567..abcdefg 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -33,8 +33,14 @@ protobuf_generate(LANGUAGE cpp TARGET shared PROTOS ${UDP_PROTO_FILE} OUT_VAR B
+ 
+ # Disable warnings for the generated source files
+ foreach(CURRENT_FILE IN LISTS BUILT_PROTO_FILES BUILT_UDP_PROTO_FILES)
+-	set_source_files_properties("${CURRENT_FILE}" PROPERTIES COMPILE_FLAGS "-w")
++	if(MSVC)
++		# For MSVC, use specific warning disables to avoid flag conflicts
++		set_source_files_properties("${CURRENT_FILE}" PROPERTIES 
++			COMPILE_FLAGS "/wd4996 /wd4244 /wd4267 /wd4005 /wd4800 /wd4018 /wd4065 /wd4100"
++		)
++	else()
++		# For GCC/Clang, use -w to disable all warnings
++		set_source_files_properties("${CURRENT_FILE}" PROPERTIES COMPILE_FLAGS "-w")
++	endif()
+ endforeach()
+-
+ set_target_properties(shared
+ 	PROPERTIES
+ 		AUTOMOC ON
+-- 
+2.34.1
