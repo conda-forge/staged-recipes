@@ -1,0 +1,104 @@
+context:
+  version: "2.3.1"
+  libdovi_version: "3.3.2"
+  build_number: 0
+
+recipe:
+  name: dovi_tool
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/quietvoid/dovi_tool/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 090888c35da017e290614b70108653ea975034c23b48ddd459538a1a6e4cc05a
+    target_directory: dovi_tool_src
+  - url: https://github.com/quietvoid/dovi_tool/archive/refs/tags/libdovi-${{ libdovi_version }}.tar.gz
+    sha256: 8ccb1922d7dbb57bc4f2c15c10b90c462f7a5f292efe317c116db923728dd3f1
+    target_directory: libdovi_src
+
+build:
+  number: ${{ build_number }}
+
+
+outputs:
+  - package:
+      name: dovi_tool
+      version: ${{ version }}
+    build:
+      script: build-dovi_tool
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - if: linux
+          then:
+            - pkg-config
+      host:
+        - if: linux
+          then:
+            - expat
+            - freetype
+            - fontconfig
+    tests:
+      - script: dovi_tool --help
+      - script: dovi_tool --version
+      - package_contents:
+          bin:
+            - dovi_tool
+    about:
+      homepage: https://github.com/quietvoid/dovi_tool
+      repository: https://github.com/quietvoid/dovi_tool
+      documentation: https://github.com/quietvoid/dovi_tool/blob/main/README.md
+      summary: CLI utilities for working with Dolby Vision metadata and HEVC streams
+      license: MIT
+      license_file:
+        - dovi_tool_src/LICENSE
+        - THIRDPARTY_dovi_tool.yml
+
+  - package:
+      name: libdovi
+      version: ${{ libdovi_version }}
+    build:
+      script: build-libdovi
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-c
+        - if: unix
+          then:
+            - pkg-config
+    tests:
+      - package_contents:
+          include:
+            - libdovi/rpu_parser.h
+          lib:
+            - dovi
+          files:
+            - "**/pkgconfig/dovi.pc"
+    about:
+      homepage: https://github.com/quietvoid/dovi_tool/tree/main/dolby_vision
+      repository: https://github.com/quietvoid/dovi_tool
+      documentation: https://github.com/quietvoid/dovi_tool/blob/main/dolby_vision/README.md
+      summary: C library to read and write Dolby Vision metadata
+      license: MIT
+      license_file:
+        - libdovi_src/dolby_vision/LICENSE
+        - THIRDPARTY_libdovi.yml
+
+about:
+  homepage: https://github.com/quietvoid/dovi_tool
+  repository: https://github.com/quietvoid/dovi_tool
+  summary: CLI tools and a C library for working with Dolby Vision metadata
+  license: MIT
+  license_file: dovi_tool_src/LICENSE
+
+
+extra:
+  feedstock-name: dovi_tool
+  recipe-maintainers:
+    - ndeybach
