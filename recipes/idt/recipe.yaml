@@ -1,0 +1,79 @@
+context:
+  version: "0.1.20"
+
+package:
+  name: idt
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sh-cho/idt/archive/refs/tags/${{ version }}.tar.gz
+  sha256: ca7d78731ba466ca34b67e66de2e81e6049d7fbf56b356c16b399c973d72d86c
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --no-track --locked --bins --root ${{ PREFIX }} --path .
+          # generate shell completions
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions
+          - $PREFIX/bin/idt completions bash > $PREFIX/share/bash-completion/completions/idt
+          - $PREFIX/bin/idt completions fish > $PREFIX/share/fish/vendor_completions.d/idt.fish
+          - $PREFIX/bin/idt completions zsh > $PREFIX/share/zsh/site-functions/_idt
+        else:
+          - cargo auditable install --no-track --locked --bins --root %LIBRARY_PREFIX% --path .
+          # generate shell completions
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - '%LIBRARY_BIN%\idt.exe completions bash > %LIBRARY_PREFIX%\share\bash-completion\completions\idt'
+          - '%LIBRARY_BIN%\idt.exe completions fish > %LIBRARY_PREFIX%\share\fish\vendor_completions.d\idt.fish'
+          - '%LIBRARY_BIN%\idt.exe completions zsh > %LIBRARY_PREFIX%\share\zsh\site-functions\_idt'
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - idt --help
+      - idt --version
+  - package_contents:
+      bin:
+        - idt
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/idt
+            - share/fish/vendor_completions.d/idt.fish
+            - share/zsh/site-functions/_idt
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/idt
+            - Library/share/fish/vendor_completions.d/idt.fish
+            - Library/share/zsh/site-functions/_idt
+      strict: true
+
+about:
+  homepage: https://github.com/sh-cho/idt
+  summary: A fast, ergonomic CLI tool for working with various ID formats
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://sh-cho.github.io/idt
+  repository: https://github.com/sh-cho/idt
+
+extra:
+  recipe-maintainers:
+    - salim-b
