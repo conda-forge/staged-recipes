@@ -1,3 +1,5 @@
+schema_version: 1
+
 context:
   version: "0.4.4"
 
@@ -10,10 +12,34 @@ source:
   sha256: 2d03311925999a1d47e6f96eca1607e2af3f7f8d2b9191fc35ec99641e3e7e1c
   patches:
     - patches/openmp_link_fix.patch
+    - patches/modernize_cuda_cmake.patch
+    - patches/numpy2_api_compat.patch
 
 build:
   number: 0
+  variant:
+    use_keys:
+      - cuda_compiler_version
+    down_prioritize_variant: ${{ 1 if cuda_compiler_version != "None" else 0 }}
   script:
+    - if: cuda_compiler_version != "None"
+      then:
+        - if: unix
+          then:
+            - cmake -GNinja ${CMAKE_ARGS}
+                -B build/pygpc_extensions_cuda
+                -S pckg/pygpc_extensions_cuda
+                -DPROJECT_ROOT_PATH=${SRC_DIR}
+                -DPython3_EXECUTABLE=${PYTHON}
+            - cmake --build build/pygpc_extensions_cuda
+        - if: win
+          then:
+            - cmake -GNinja %CMAKE_ARGS%
+                -B build\pygpc_extensions_cuda
+                -S pckg\pygpc_extensions_cuda
+                -DPROJECT_ROOT_PATH=%SRC_DIR%
+                -DPython3_EXECUTABLE=%PYTHON%
+            - cmake --build build\pygpc_extensions_cuda
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -21,6 +47,11 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - ${{ compiler('cxx') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cmake
+        - ninja
     - if: osx
       then: llvm-openmp
     - if: linux
@@ -30,6 +61,8 @@ requirements:
     - pip
     - setuptools
     - numpy >=2.0.0
+    - if: cuda_compiler_version != "None"
+      then: libcublas-dev
   run:
     - python
     - numpy
@@ -45,7 +78,6 @@ tests:
   - python:
       imports:
         - pygpc
-      pip_check: true
 
 about:
   homepage: https://github.com/pygpc-polynomial-chaos/pygpc
