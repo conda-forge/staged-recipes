@@ -1,0 +1,92 @@
+{% set version = "apache-sedona-db-0.3.0" %}
+{% set name = "sedona-db" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/apache/sedona-db/archive/{{ version }}.tar.gz
+  sha256: 808a38f955dc1dc1c68793a2a6c707abf6299d5f2371ff7dd7b4a3c267e67333
+
+build:
+  number: 0
+
+outputs:
+  - name: {{name}}
+    build:
+      script:
+        - export PYO3_PYTHON="{{ PYTHON }}"  # [not win]
+        - set PYO3_PYTHON="{{ PYTHON }}"  # [win]
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - maturin build --release -i "{{ PYTHON }}"
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      requirements:
+        build:
+          - {{ stdlib("c") }}
+          - {{ compiler("c") }}
+          - {{ compiler("rust") }}
+          - cargo-bundle-licenses
+        host:
+          - python
+          - maturin >=1.8,<2.0
+          - pip
+        run:
+          - python
+          - apache-sedona
+      test:
+        imports:
+          - sedonadb
+        commands:
+          - pip check
+        requires:
+          - pip
+          - python
+          - apache-sedona
+
+  - name: sedonadb
+    build:
+      script:
+        - export PYO3_PYTHON="{{ PYTHON }}"  # [not win]
+        - set PYO3_PYTHON="{{ PYTHON }}"  # [win]
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - maturin build --release -i "{{ PYTHON }}"
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - {{ stdlib("c") }}
+        - {{ compiler("c") }}
+        - {{ compiler("rust") }}
+        - cargo-bundle-licenses
+      host:
+        - python
+        - maturin >=1.8,<2.0
+        - pip
+      run:
+        - python
+        - apache-sedona
+        - {{ pin_subpackage('sedona-db', max_pin="x.x.x") }}
+    test:
+      imports:
+        - sedonadb
+      commands:
+        - pip check
+      requires:
+        - pip
+        - python
+        - apache-sedona
+
+about:
+  home: https://github.com/apache/sedona-db/tree/main
+  summary: A single-node analytical database engine with geospatial as a first-class citizen
+  license: Apache-2.0 AND MIT
+  license_file:
+    - THIRDPARTY.yml
+    - LICENSE
+    - NOTICE
+    - ci/scripts/rat/license.py
+    - r/sedonadb/LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - p-vdp
