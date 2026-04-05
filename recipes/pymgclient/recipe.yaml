@@ -1,0 +1,89 @@
+context:
+  name: pymgclient
+  version: "1.4.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/memgraph/pymgclient/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fc98ccc306fbb61f60c7232a3db9ad0b821947a213c36473679037a607a2b799
+  patches:
+    # We build the C-lib mgclient in a separate recipe and need to correctly
+    # bind it to this python package (recreating a correct setuptool Extension)
+    - if: unix
+      then: update-setup.py.patch
+      else: update-setup.py-non-unix.patch
+
+build:
+  script:
+    # We modify the upstream configuration in oder to correctly link to
+    # mgclient as an external Clib (separated package)
+    - if: unix
+      then: |
+        cp ${RECIPE_DIR}/build_mgclient_with_conda_lib_ext.py ${SRC_DIR}
+        rm ${SRC_DIR}/setup.cfg
+      else: |
+        copy %RECIPE_DIR%\build_mgclient_with_conda_lib_ext.py %SRC_DIR%
+        rm %SRC_DIR%\setup.cfg
+        set DISTUTILS_USE_SDK=1
+    - python -m pip install . -vv --use-pep517 --no-build-isolation
+  number: 0
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler('c') }}
+      else:
+        - ${{ compiler('m2w64_c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - mgclient
+    - pip
+    - python
+    - setuptools
+  run:
+    - mgclient
+    - networkx
+    - pyopenssl
+    - python
+
+tests:
+  - python:
+      imports:
+        - mgclient
+      pip_check: true
+
+  - script: |
+      pytest test/test_connection.py::test_connect_args_validation
+      pytest test/test_types.py::test_node
+      pytest test/test_types.py::test_relationship
+      pytest test/test_types.py::test_path
+    files:
+      source: test
+    requirements:
+      run:
+        - pytest
+        - python
+
+about:
+  homepage: https://github.com/memgraph/pymgclient
+  summary: 'Python Memgraph Client'
+  description: |
+    pymgclient is a Memgraph database adapter for Python programming
+    language compliant with the DB-API 2.0 specification described by PEP 249.
+
+    mgclient module is the current implementation of the adapter. It is
+    implemented in C as a wrapper around mgclient, the official Memgraph
+    client library. As a C extension, it is only compatible with the CPython
+    implementation of the Python programming language.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://memgraph.github.io/pymgclient/
+  repository: https://github.com/memgraph/pymgclient
+
+extra:
+  recipe-maintainers:
+    - MementoRC
