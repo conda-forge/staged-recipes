@@ -1,0 +1,91 @@
+From 9c80ab8e2a1f818e9d3bcac5e5ff698d8ea7aa53 Mon Sep 17 00:00:00 2001
+From: Giordon Stark <kratsg@gmail.com>
+Date: Mon, 30 Mar 2026 10:55:59 -0700
+Subject: [PATCH 2/2] fix httpsconnection
+
+---
+ pyAMI/httpclient.py | 59 +++++++++++++++------------------------------
+ 1 file changed, 19 insertions(+), 40 deletions(-)
+
+diff --git a/pyAMI/httpclient.py b/pyAMI/httpclient.py
+index 2e93903..585d0b0 100644
+--- a/pyAMI/httpclient.py
++++ b/pyAMI/httpclient.py
+@@ -77,55 +77,34 @@ class HttpClient(object):
+ 
+ 		elif self.endpoint['prot'] == 'https':
+ 
++			host = str(self.endpoint['host'])
++			port = int(self.endpoint['port'])
++
++			# Determine if we have client certs
++			has_cert = getattr(self.config, 'key_file', None) and getattr(self.config, 'cert_file', None)
++
+ 			if self.config.conn_mode == self.config.CONN_MODE_LOGIN:
+ 				#############################################
+ 				# WITHOUT CERTIFICATE                       #
+ 				#############################################
+-
+-				try:
+-					context = self.create_unverified_context()
+-
+-					self.connection = http_client.HTTPSConnection(
+-						str(self.endpoint['host']),
+-						int(self.endpoint['port']),
+-						key_file = None,
+-						cert_file = None,
+-						context = context
+-					)
+-
+-				except AttributeError as e:
+-
+-					self.connection = http_client.HTTPSConnection(
+-						str(self.endpoint['host']),
+-						int(self.endpoint['port']),
+-						key_file = None,
+-						cert_file = None
+-					)
+-
++				context = self.create_unverified_context()
+ 			else:
+ 				#############################################
+ 				# WITH CERTIFICATE                          #
+ 				#############################################
++				context = ssl.create_default_context()
++				context.load_cert_chain(certfile=self.config.cert_file, keyfile=self.config.key_file)
+ 
+-				try:
+-					context = self.create_unverified_context()
+-
+-					self.connection = http_client.HTTPSConnection(
+-						str(self.endpoint['host']),
+-						int(self.endpoint['port']),
+-						key_file = self.config.key_file,
+-						cert_file = self.config.cert_file,
+-						context = context
+-					)
+-
+-				except AttributeError as e:
+-
+-					self.connection = http_client.HTTPSConnection(
+-						str(self.endpoint['host']),
+-						int(self.endpoint['port']),
+-						key_file = self.config.key_file,
+-						cert_file = self.config.cert_file
+-					)
++			# Python version-aware connection
++			if sys.version_info >= (3, 12):
++				self.connection = http_client.HTTPSConnection(host, port, context=context)
++			else:
++				self.connection = http_client.HTTPSConnection(
++					host, port,
++					key_file=self.config.key_file if has_cert else None,
++					cert_file=self.config.cert_file if has_cert else None,
++					context=context
++				)
+ 
+ 		#############################################################
+ 
+-- 
+2.45.2
+
