@@ -1,0 +1,114 @@
+schema_version: 1
+
+context:
+  version: "0.2.7"
+  build: 0
+
+package:
+  name: cupdlpx
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/cupdlpx/cupdlpx-${{ version }}.tar.gz
+  sha256: ff47af56867e293e5ffb6b6f231544ed9d0db5bc073478541aa47b4ba65fa4bb
+
+build:
+  # Based on learnings from https://github.com/conda-forge/jaxlib-feedstock/blob/1b2b3761e145824a6d7a0bfb638344e1135a583d/recipe/recipe.yaml
+  number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build if cuda_compiler_version == "None" else build + 200 }}
+  skip:
+    - osx
+  dynamic_linking:
+    missing_dso_allowlist:
+      - if: win
+        then: "*/nvcuda.dll"
+      - if: linux
+        then:
+          - "*/libcuda.so.1"
+  script:
+    - if: unix
+      then: |
+        # This is a hotfix for https://github.com/NVIDIA/cccl/issues/4967, backporting
+        # https://github.com/NVIDIA/cccl/pull/4972 on the fly for the installed headers.
+        # Based on learning from https://github.com/conda-forge/llama.cpp-feedstock/pull/76/
+        {%- if match(cuda_compiler_version, "12.*") and linux and x86_64 %}
+        CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/x86_64-linux/include/cuda/std/__cccl/preprocessor.h"
+        {%- endif %}
+
+        {%- if match(cuda_compiler_version, "12.*") and linux and aarch64 %}
+        CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/sbsa-linux/include/cuda/std/__cccl/preprocessor.h"
+        {%- endif %}
+
+        {%- if match(cuda_compiler_version, "12.*") and linux %}
+        ROOT_DIR="$(dirname "${CCCL_PREPROCESSOR_H_TO_PATCH}")/../../../.."
+        patch -p1 -d "${ROOT_DIR}" -i "${RECIPE_DIR}/cuda12_cccl_arch_all.patch"
+        {%- endif %}
+
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - if: win
+      then:
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+
+requirements:
+  build:
+    - cmake >=3.20
+    - if: win
+      then: ninja
+      else: make
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler("cuda") }}
+        - cuda-version ==${{ cuda_compiler_version }}
+  host:
+    - python
+    - scikit-build-core >=0.9.0
+    - pybind11 >=2.11.0
+    - zlib
+    - pip
+    - if: cuda_compiler_version != "None"
+      then:
+        - libcublas-dev
+        - libcusparse-dev
+        - cuda-nvcc-tools
+        - cuda-version ==${{ cuda_compiler_version }}
+  run:
+    - python
+    - numpy >=1.21
+    - scipy >=1.8
+    - if: cuda_compiler_version != "None"
+      then:
+        - __cuda
+        - cuda-toolkit
+        - ${{ pin_compatible('cuda-version', upper_bound='x', lower_bound='x') }}
+
+
+  ignore_run_exports:
+    # Ignore run exports from CUDA libraries in the host section
+    from_package:
+      - libcublas-dev
+      - libcusparse-dev
+    # Ignore cuda-version directly. Do not ignore from {{ compiler('cuda') }}
+    # because this package has other exports
+    by_name:
+      - cuda-version
+
+tests:
+  - python:
+      imports:
+        - cupdlpx
+      pip_check: true
+
+about:
+  summary: Python bindings for cuPDLPx (GPU-accelerated first-order LP solver)
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://pypi.org/project/cupdlpx/
+
+extra:
+  recipe-maintainers:
+    - brynpickering
+    - LucasBoTang
