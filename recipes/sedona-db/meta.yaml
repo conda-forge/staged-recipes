@@ -13,13 +13,23 @@ build:
   number: 0
   script:
     - cd python/sedonadb
-    - python -c "import os, glob; prefix = os.environ.get('LIBRARY_PREFIX', ''); [open(f, 'w').write(open(f).read().replace('-lstdc++', '')) for f in glob.glob(prefix + '/lib/pkgconfig/*.pc')]"  # [win]
-    - export PYO3_PYTHON="{{ PYTHON }}"  # [not win]
-    - set "PYO3_PYTHON={{ PYTHON }}"  # [win]
+
+    # Windows: strip the '-lstdc++' flag from geos pkg-config
+    - python -c "import os, pathlib; [f.write_text(f.read_text().replace('-lstdc++', '')) for f in pathlib.Path(os.environ['LIBRARY_PREFIX']).joinpath('lib', 'pkgconfig').glob('*.pc')]"  # [win]
+
+    # Configure PyO3 to use the host Python environment
+    - export PYO3_PYTHON={{ PYTHON }}  # [not win]
+    - set "PYO3_PYTHON={{ PYTHON }}"   # [win]
+
+    # Generate Rust license inventory
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - mv THIRDPARTY.yml ../../  # [not win]
-    - move THIRDPARTY.yml ..\..  # [win]
+    - mv THIRDPARTY.yml ../../         # [not win]
+    - move THIRDPARTY.yml ..\..        # [win]
+
+    # Build, skipping auditwheel to rely on shared libs
     - maturin build --release --skip-auditwheel --out dist --interpreter={{ PYTHON }}
+
+    # Install dynamically to avoid issues with path sytax
     - {{ PYTHON }} -m pip install sedonadb --no-index --find-links=dist --no-deps -vv
 
 requirements:
