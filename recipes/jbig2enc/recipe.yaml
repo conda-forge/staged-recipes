@@ -1,0 +1,107 @@
+recipe:
+  name: jbig2enc
+  version: "0.30"
+
+context:
+  version: "0.30"
+
+source:
+  url: https://github.com/agl/jbig2enc/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 4468442f666edc2cc4d38b11cde2123071a94edc3b403ebe60eb20ea3b2cc67b
+
+build:
+  number: 0
+
+about:
+  homepage: https://github.com/agl/jbig2enc
+  license: Apache-2.0
+  license_file: COPYING
+  summary: JBIG2 encoder for black and white images
+  description: |
+    jbig2enc encodes images in the JBIG2 format, which compresses 1bpp
+    (black and white) images using arithmetic encoding and pattern matching.
+    Useful for compressing scanned document pages in PDF files.
+  repository: https://github.com/agl/jbig2enc
+
+extra:
+  recipe-maintainers:
+    - carlodri
+
+outputs:
+  # ── 1. Library package ──────────────────────────────────────────────────────
+  - package:
+      name: libjbig2enc
+      version: ${{ version }}
+
+    build:
+      files:
+        include:
+          - if: not win
+            then:
+              - lib/libjbig2enc*
+              - include/jbig2enc*
+          - if: win
+            then:
+              - Library/lib/jbig2enc*
+              - Library/include/jbig2enc*
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - automake
+        - make
+        - libtool
+        - pkg-config
+      host:
+        - leptonica
+        - zlib
+      run:
+        - leptonica
+      run_exports:
+        - ${{ pin_subpackage('libjbig2enc', upper_bound='x.x') }}
+
+    tests:
+      - package_contents:
+          lib:
+            - jbig2enc
+
+  # ── 2. CLI tool package ──────────────────────────────────────────────────────
+  - package:
+      name: jbig2enc
+      version: ${{ version }}
+
+    build:
+      files:
+        include:
+          - if: not win
+            then:
+              - bin/jbig2
+          - if: win
+            then:
+              - Library/bin/jbig2.exe
+            
+
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - automake
+        - make
+        - libtool
+        - pkg-config
+      host:
+        - leptonica
+        - zlib
+      run:
+        - leptonica
+      run_exports:
+        - ${{ pin_subpackage('libjbig2enc', upper_bound='x.x') }}
+
+    tests:
+      - script:
+          - if: not win
+            then:
+              - test -f $PREFIX/bin/jbig2
+              - jbig2 --version
+          - if: win
+            then:
+              - if not exist %LIBRARY_BIN%\jbig2.exe (exit 1)
