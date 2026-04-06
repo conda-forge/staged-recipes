@@ -36,33 +36,16 @@ _apply_variant_patches "${SRC_DIR}/qemu_source" "${qemu_variant}"
 
 # --- Step 2: Build and install QEMU ---
 
+export host_os=linux
+export CC="${ZIG_CC}"
+export AR="${ZIG_AR}"
+export RANLIB="${ZIG_RANLIB}"
 _build_install_qemu "${SRC_DIR}/_conda-build-${qemu_variant}" "${install_dir}" "${qemu_variant}"
 
 # --- Step 3: Install variant-specific files ---
 
 case "${qemu_variant}" in
-  user)
-    # No activation scripts for base user variant
-    echo "=== qemu-user-${qemu_arch}: No activation scripts ==="
-    ;;
-
-  execve)
-    # Install activation scripts for execve variant
-    for SCRIPT in "activate" "deactivate"
-    do
-      mkdir -p "${install_dir}/etc/conda/${SCRIPT}.d"
-      _qemu_arch="${qemu_arch}"
-      [[ "${qemu_arch}" == "ppc64le" ]] && _qemu_arch="powerpc64le"
-      sed -e "s|@QEMU_ARCH@|${_qemu_arch}|g" \
-          "${RECIPE_DIR}/scripts/${SCRIPT}.sh" \
-          > "${install_dir}/etc/conda/${SCRIPT}.d/qemu-execve-${qemu_arch}-${SCRIPT}.sh"
-      chmod +x "${install_dir}/etc/conda/${SCRIPT}.d/qemu-execve-${qemu_arch}-${SCRIPT}.sh"
-    done
-    echo "=== qemu-execve-${qemu_arch}: Activation scripts installed ==="
-    ;;
-
   zig)
-    # No activation scripts for zig variant
     echo "=== qemu-zig-${qemu_arch}: No activation scripts ==="
     ;;
 

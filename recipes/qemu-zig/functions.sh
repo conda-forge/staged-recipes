@@ -114,6 +114,15 @@ _get_default_flags() {
     # Disable tools and guest agent
     "--disable-tools"
     "--disable-guest-agent"
+
+    # No vhost (system-emulation only)
+    "--disable-vhost-user"
+    "--disable-vhost-user-blk-server"
+    "--disable-vhost-vdpa"
+    "--disable-vhost-kernel"
+
+    # No plugins (--dynamic-list linker flag unsupported by zig/lld)
+    "--disable-plugins"
   )
 }
 
@@ -175,9 +184,23 @@ _build_install_qemu() {
   # glibc 2.17 compat: add missing kernel constants as global defines
   _glibc_compat="-DMAP_FIXED_NOREPLACE=0x100000 -DMAP_SHARED_VALIDATE=0x03 -DMADV_WIPEONFORK=18 -DMADV_KEEPONFORK=19 -DNETLINK_SMC=22 -DSOL_ALG=279"
 
+  # Meson unconditionally passes 'csrDT' to ar on Linux (T = thin archives).
+  # zig-cc's linker frontend cannot parse thin archives, even ones created by
+  # zig ar (llvm-ar). Wrap ar to strip the T modifier.
+  local _real_ar="${AR}"
+  mkdir -p "${build_dir}/_wrappers"
+  cat > "${build_dir}/_wrappers/ar" <<WRAPPER
+#!/usr/bin/env bash
+# Strip T (thin-archive) from ar operation string (first arg, e.g. csrDT -> csrD)
+args=("\${1/T/}" "\${@:2}")
+exec ${_real_ar} "\${args[@]}"
+WRAPPER
+  chmod +x "${build_dir}/_wrappers/ar"
+  export AR="${build_dir}/_wrappers/ar"
+
   ${SRC_DIR}/qemu_source/configure \
     --prefix="${install_dir}" \
-    --extra-cflags="${_glibc_compat}" \
+    --extra-cflags="${_glibc_compat} -UNDEBUG" \
     "${build_flags[@]}"
 
   # Build
