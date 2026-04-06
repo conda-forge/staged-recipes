@@ -1,0 +1,115 @@
+schema_version: 1
+
+context:
+  version: "3.1.3"
+  # Need Python 3.10+ to avoid rivet/libfastjet.so.0 ImportError
+  python_min: "3.10"
+
+package:
+  name: contur
+  version: ${{ version }}
+
+source:
+  # No sdists on PyPI yet so fall back to Git source
+  # c.f. https://gitlab.com/hepcedar/contur/-/work_items/541
+  # url: https://pypi.org/packages/source/c/contur/contur-${{ version }}.tar.gz
+  url: https://gitlab.com/hepcedar/contur/-/archive/contur-${{ version }}/contur-contur-${{ version }}.tar.gz
+  sha256: c65af001a1695477a02d48d76f1efb6ef8f721b3a87ad07bcb86b556a06805c8
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+    # Add the post activate/deactivate scripts
+
+    # The scripts are executed in lexicographical order, so use zzz-/0- to ensure
+    # last/first to manipulate RIVET environment variables
+    # (lowercase letters have highest value)
+
+    - mkdir -p "${PREFIX}/etc/conda/activate.d"
+    # Run **after** anything else that might set Rivet environment variables
+    - cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/zzz-activate-${PKG_NAME}.sh"
+    - cp "${RECIPE_DIR}/activate.csh" "${PREFIX}/etc/conda/activate.d/zzz-activate-${PKG_NAME}.csh"
+    - cp "${RECIPE_DIR}/activate.fish" "${PREFIX}/etc/conda/activate.d/zzz-activate-${PKG_NAME}.fish"
+
+    - mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+    # Run **before** anything else that might unset Rivet environment variables
+    - cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/0-deactivate-${PKG_NAME}.sh"
+    - cp "${RECIPE_DIR}/deactivate.csh" "${PREFIX}/etc/conda/deactivate.d/0-deactivate-${PKG_NAME}.csh"
+    - cp "${RECIPE_DIR}/deactivate.fish" "${PREFIX}/etc/conda/deactivate.d/0-deactivate-${PKG_NAME}.fish"
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=64
+  run:
+    - python >=${{ python_min }}
+    - click
+    - configobj
+    - matplotlib-base
+    - numpy
+    - pandas
+    - pathos
+    - pyslha
+    - pyyaml
+    - scikit-learn
+    - scipy
+    - tqdm
+    - uncertainties
+    - pytest
+    - rivet
+    # Needed to create "${CONTUR_USER_DIR}/analysis-list" in activate.sh
+    - cxx-compiler
+    - make
+    # Avoid broken installs on Windows given rivet is unix only
+    - __unix
+
+tests:
+  - package_contents:
+      # FIXME: Relocate python-scripts/ contents to bin/
+      files:
+        - python-scripts/contur
+        - python-scripts/contur-batch
+        - python-scripts/contur-export
+        - python-scripts/contur-extract-xs-bf
+        - python-scripts/contur-gridtool
+        - python-scripts/contur-init
+        - python-scripts/contur-mapmerge
+        - python-scripts/contur-mkbib
+        - python-scripts/contur-mkthy
+        - python-scripts/contur-oracle
+        - python-scripts/contur-plot
+        - python-scripts/contur-profile
+        - python-scripts/contur-rivetplots
+        - python-scripts/contur-scan-xs-bf
+        - python-scripts/contur-scan-xs-bf-alt
+        - python-scripts/contur-smtest
+  - python:
+      imports:
+        - contur
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - contur --version
+      - contur --help
+
+about:
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  summary: Package for model interpretation of collider-physics measurements
+  description: |
+    Contur is a procedure and toolkit designed to probe theories Beyond the
+    Standard Model using measurements at particle colliders.
+  homepage: https://hepcedar.gitlab.io/contur-webpage/
+  repository: https://gitlab.com/hepcedar/contur
+  documentation: https://hepcedar.gitlab.io/contur-webpage/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
+    - conda-forge/hepmc3
