@@ -1,0 +1,49 @@
+From a35c5e06e92fd3455a2ec4d09348d9e55e246eee Mon Sep 17 00:00:00 2001
+From: David Rubin <david@vortan.dev>
+Date: Fri, 7 Nov 2025 00:43:52 +0100
+Subject: [PATCH] linux-user/elfload.c: explicit `PROT_WRITE` in `zero_bss`
+ is redundant
+
+The `PAGE_WRITE` check already protects the `memset`.
+
+The Zig compiler uses `memsz` to reserve virtual address
+space that can be used by future updates, including
+in non-writable sections such as `.text`.
+
+However, it also aligns `filesz` to the target page size,
+so partial zeroing is never necassary for these incremental
+binaries.
+
+When the host page size is larger than the target page
+size, a single host page can represent multiple target pages.
+`page_get_flags` takes this into account and merges the permissions
+across the target pages. Therefore, if just one page in the
+list of pages represented by a host page is writable, the
+entire page must be writable.
+
+Every section is either entirely bss, thus already target page
+aligned, or if partially aligned then the non-bss part will
+have been writable (because it's a data section) and will cause
+at least of part of the current host page to be writable.
+
+(cherry picked into Zig's QEMU fork by Alex Rønne Petersen)
+---
+ linux-user/elfload.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/linux-user/elfload.c b/linux-user/elfload.c
+index 35471c0c9a..ff85b8f059 100644
+--- a/linux-user/elfload.c
++++ b/linux-user/elfload.c
+@@ -449,12 +449,6 @@ static bool zero_bss(abi_ulong start_bss, abi_ulong end_bss,
+ {
+     abi_ulong align_bss;
+
+-    /* We only expect writable bss; the code segment shouldn't need this. */
+-    if (!(prot & PROT_WRITE)) {
+-        error_setg(errp, "PT_LOAD with non-writable bss");
+-        return false;
+-    }
+-
+     align_bss = TARGET_PAGE_ALIGN(start_bss);
+     end_bss = TARGET_PAGE_ALIGN(end_bss);

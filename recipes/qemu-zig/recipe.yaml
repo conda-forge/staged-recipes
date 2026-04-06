@@ -1,0 +1,118 @@
+context:
+  build_number: 0
+  version: "10.2.1"
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  xt: ${{ ".exe" if not unix }}
+
+  # Computed from tg_ variant (target architecture)
+  qemu_user_cpu: ${{ "power9" if tg_ == "ppc64le" else "max" }}
+  qemu_user_sysroot: ${{ "powerpc64le" if tg_ == "ppc64le" else tg_ }}
+  qemu_user_gcc: ${{ qemu_user_sysroot }}-conda-linux-gnu-gcc
+  qemu_user_sysroot_version: ${{ "2.39" if tg_ == "riscv64" else "2.28" }}
+
+recipe:
+  name: qemu-zig-split
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+  sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
+  target_directory: qemu_source
+  patches:
+    # Base patches applied to ALL variants (Layer 0 - stability)
+    - patches/base/missing-RESOLVE_CACHED.patch
+    # glibc 2.17 compat defines passed via --extra-cflags in functions.sh
+    # Zig stability patches (from codeberg.org/ziglang/qemu)
+    # Note: mremap/reserved_va fixes (0003-0005) already in upstream QEMU 10.2.1
+    - patches/base/0001-linux-user-signal-fixes.patch
+    - patches/base/0002-linux-user-syscall-fixes.patch
+
+build:
+  number: ${{ build_number }}
+  skip: not linux
+
+outputs:
+  # ===========================================================================
+  # Output 3: qemu-zig-{arch} (Zig incremental compilation support)
+  # ===========================================================================
+  # Use case: Run Zig-compiled binaries that use incremental linking
+  # Patches: Layer 0 + Layer 2 (base + PROT_WRITE for code modification)
+  # Binary: qemu-zig-{arch}
+  # Security note: PROT_WRITE on .text segments has security implications
+  # ===========================================================================
+  - package:
+      name: qemu-zig-${{ tg_ }}
+    build:
+      skip: not linux
+      script:
+        env:
+          CONDA_QEMU_TARGET: "${{ tg_ }}"
+          CONDA_QEMU_VARIANT: "zig"
+      files:
+        include:
+          - lib/zig-qemu/qemu-zig-${{ tg_ }}
+          - lib/zig-qemu/qemu-${{ tg_ }}
+    requirements:
+      ignore_run_exports:
+        by_name:
+          - libslirp
+          - libzlib
+      build:
+        - ${{ compiler('zig') }}
+        - bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        - glib
+        - libcapstone
+        - libslirp
+        - zlib
+      run:
+        - libcapstone
+        - libglib
+    tests:
+      - package_contents:
+          files:
+            - lib/zig-qemu/qemu-zig-${{ tg_ }}
+            - lib/zig-qemu/qemu-${{ tg_ }}
+      - script:
+          - $PREFIX/lib/zig-qemu/qemu-zig-${{ tg_ }} --version | grep ${{ version }}
+          # Verify symlink works (zig uses qemu-{arch} name via -fqemu)
+          - $PREFIX/lib/zig-qemu/qemu-${{ tg_ }} --version | grep ${{ version }}
+      - if: tg_ == "aarch64" or tg_ == "riscv64"
+        then:
+          - script:
+              # Cross-compile with zig cc targeting musl and verify PROT_WRITE works
+              # ppc64le/s390x skipped: zig lacks self-hosted linker, falls back to GCC
+              - ${{ qemu_user_sysroot }}-conda-linux-gnu-zig cc -target ${{ qemu_user_sysroot }}-linux-musl -static -o test_prot_write testing/test_prot_write.c
+              - $PREFIX/lib/zig-qemu/qemu-zig-${{ tg_ }} ./test_prot_write
+            files:
+              recipe:
+                - testing/test_prot_write.c
+            requirements:
+              run:
+                - zig_${{ "linux-" ~ tg_ }}
+
+about:
+  homepage: https://gitlab.com/qemu-project/qemu
+  summary: 'QEMU linux-user emulator with stability patches and variant support'
+  description: |
+    Unified QEMU linux-user packages with layered patches:
+
+    - qemu-zig-{arch}: PROT_WRITE support for Zig incremental compilation
+
+    Based on QEMU with patches from:
+    - Zig Software Foundation (stability and incremental compilation)
+  license: GPL-2.0-only
+  license_file:
+    - qemu_source/LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: qemu-zig
