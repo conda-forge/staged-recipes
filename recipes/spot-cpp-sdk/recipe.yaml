@@ -1,0 +1,65 @@
+context:
+  version: 5.1.4
+
+package:
+  name: spot-cpp-sdk
+  version: ${{ version }}
+
+source:
+  url: https://github.com/boston-dynamics/spot-cpp-sdk/archive/refs/tags/v${{ version }}.zip
+  sha256: a5aa0b1d3fc4b58282d8fd94e9b89cb561d245403a472208312527cc13a37776
+
+build:
+  number: 0
+  script:
+    # Fix protobuf string_view issue.
+    - sed -i 's/Request::descriptor()->full_name()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
+    - sed -i 's/Request::GetDescriptor()->full_name().c_str()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
+    - sed -i 's/const std::string& message_type = proto_message->GetTypeName();/const auto message_type = std::string(proto_message->GetTypeName());/g' cpp/bosdyn/common/common_header_handling.cpp
+    # Suppress deprecated warnings.
+    - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
+    - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
+    # Build and install the C++ project.
+    - cmake -S cpp/ -B build/
+      -GNinja
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_INSTALL_PREFIX=$PREFIX
+    - cmake --build build/ --target install
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - git
+    - ninja
+  host:
+    - cli11
+    - eigen-abi-devel <5
+    - libabseil
+    - libgrpc
+    - libprotobuf
+  run:
+
+tests:
+  - script:
+      - cmake-package-check bosdyn --targets bosdyn_client bosdyn_client_static
+      - cmake-package-check bosdyn --targets bosdyn_api bosdyn_api_obj bosdyn_api_static
+      - cmake-package-check bosdyn --targets bosdyn_api bosdyn_choreography_protos_obj bosdyn_choreography_protos bosdyn_choreography_protos_static
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake-package-check
+
+about:
+  homepage: https://github.com/boston-dynamics/spot-cpp-sdk
+  license: LicenseRef-BostonDynamics
+  license_file: LICENSE
+  repository: https://github.com/boston-dynamics/spot-cpp-sdk
+  summary: Boston Dynamics Spot C++ SDK.
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
