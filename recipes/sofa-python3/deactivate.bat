@@ -1,0 +1,1 @@
+@set SOFAPYTHON3_ROOT=
