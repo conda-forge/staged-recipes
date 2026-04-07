@@ -3,6 +3,16 @@
 copy %RECIPE_DIR%\GPL-3.0.txt .
 copy %RECIPE_DIR%\NOTICE .
 
+:: Work around a conda-forge leiningen packaging bug on Windows where LEIN_VERSION
+:: is empty in the installed lein.bat, causing it to look for leiningen--standalone.jar.
+:: Pre-setting LEIN_JAR causes lein.bat to skip its broken path construction.
+for %%f in ("%BUILD_PREFIX%\lib\leiningen\libexec\leiningen-*-standalone.jar") do set "LEIN_JAR=%%f"
+if "x%LEIN_JAR%" == "x" (
+    echo ERROR: Could not locate leiningen standalone jar in %BUILD_PREFIX%\lib\leiningen\libexec\
+    exit /B 1
+)
+echo Using LEIN_JAR=%LEIN_JAR%
+
 :: Build the uberjar using lein from the conda-forge leiningen package
 CALL lein uberjar
 
