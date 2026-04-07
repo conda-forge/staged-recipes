@@ -8,14 +8,25 @@ package:
 source:
   url: https://github.com/boston-dynamics/spot-cpp-sdk/archive/refs/tags/v${{ version }}.zip
   sha256: a5aa0b1d3fc4b58282d8fd94e9b89cb561d245403a472208312527cc13a37776
+  patches:
+    - 01-fix-protobuf-stringview.patch
 
 build:
   number: 0
   script:
-    # Fix protobuf string_view issue.
-    - sed -i 's/Request::descriptor()->full_name()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
-    - sed -i 's/Request::GetDescriptor()->full_name().c_str()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
-    - sed -i 's/const std::string& message_type = proto_message->GetTypeName();/const auto message_type = std::string(proto_message->GetTypeName());/g' cpp/bosdyn/common/common_header_handling.cpp
+    # # Fix protobuf string_view issue (moved to patch, here in case future versions need it).
+    # - cd ..
+    # - cp -r "$SRC_DIR" a
+    # - cp -r "$SRC_DIR" b
+    # - cd b
+    # - sed -i 's/Request::descriptor()->full_name()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
+    # - sed -i 's/Request::GetDescriptor()->full_name().c_str()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
+    # - sed -i 's/const std::string& message_type = proto_message->GetTypeName();/const auto message_type = std::string(proto_message->GetTypeName());/g' cpp/bosdyn/common/common_header_handling.cpp
+    # - cd ..
+    # - git diff --no-index a b > "$SRC_DIR/01-fix-protobuf-stringview.patch" || true
+    # - cd "$SRC_DIR"
+    # - cat 01-fix-protobuf-stringview.patch
+    # - false
     # Suppress deprecated warnings.
     - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
     - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
@@ -41,6 +52,7 @@ requirements:
     - libgrpc
     - libprotobuf
   run:
+    - cli11
     - eigen
 
 tests:
