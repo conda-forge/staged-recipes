@@ -1,0 +1,109 @@
+{% set version = "0.16.0" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = cuda_compiler_version.split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: libcvcuda-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/CVCUDA/CV-CUDA/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 49d74f5958d9ce613c12ed12019a4e69f547bb53ed61658e65a4b3972446661a
+  patches:
+    - patches/0001-fix-libdir.patch
+    - patches/0002-use-dynamic-cuda-libs.patch
+
+build:
+  number: 0
+  skip: True  # [not linux]
+  skip: True  # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.20.1
+    - ninja
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-cudart-dev
+    - libcublas-dev
+    - libcurand-dev
+    - libcusolver-dev
+
+outputs:
+  - name: libcvcuda
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      ignore_run_exports_from:
+        - cuda-cudart-dev
+        - libcusolver-dev
+      ignore_run_exports:
+        - cuda-version
+        - libstdcxx
+    script: install_lib.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib('c') }}
+        - cmake >=3.20.1
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev
+        - libcusolver-dev
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+        - cuda-version >=12.2
+        - cuda-cudart
+        - libcusolver
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcvcuda.so.0
+        - test -f $PREFIX/lib/libnvcv_types.so.0
+
+  - name: libcvcuda-dev
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        - {{ pin_subpackage('libcvcuda', max_pin='x.x') }}
+      ignore_run_exports:
+        - cuda-version
+    script: install_dev.sh
+    requirements:
+      build:
+        - cmake >=3.20.1
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+        - {{ pin_subpackage('libcvcuda', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/cvcuda/IOperator.hpp
+        - test -f $PREFIX/include/nvcv/Version.h
+        - test -f $PREFIX/lib/cmake/cvcuda/cvcuda-config.cmake
+
+about:
+  home: https://github.com/CVCUDA/CV-CUDA
+  summary: 'CUDA-accelerated computer vision operators library (C/C++ API)'
+  description: |
+    CV-CUDA is an open-source project that enables building efficient cloud-scale
+    AI imaging and computer vision (CV) applications. It uses GPU acceleration to
+    help developers build highly efficient pre- and post-processing pipelines.
+    This package provides the C/C++ shared libraries (libcvcuda and libnvcv_types).
+  license: Apache-2.0
+  license_file: LICENSE.md
+  doc_url: https://cvcuda.github.io/CV-CUDA/
+  dev_url: https://github.com/CVCUDA/CV-CUDA
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
