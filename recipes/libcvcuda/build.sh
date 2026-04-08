@@ -13,6 +13,9 @@ else
     ENABLE_COMPAT_OLD_GLIBC=OFF
 fi
 
+export CFLAGS="${CFLAGS} -w"
+export CXXFLAGS="${CXXFLAGS} -w"
+
 cmake ${CMAKE_ARGS} "${SRC_DIR}" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_INSTALL_LIBDIR=lib \
