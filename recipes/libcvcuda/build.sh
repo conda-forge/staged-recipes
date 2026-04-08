@@ -13,8 +13,9 @@ else
     ENABLE_COMPAT_OLD_GLIBC=OFF
 fi
 
-export CFLAGS="${CFLAGS} -w"
-export CXXFLAGS="${CXXFLAGS} -w"
+export CFLAGS="${CFLAGS:-} -w"
+export CXXFLAGS="${CXXFLAGS:-} -w"
+export CUDAFLAGS="${CUDAFLAGS:-} -w -Xcompiler=-w"
 
 # CV-CUDA requires Volta (sm_70+); strip any pre-Volta archs from CUDAARCHS
 filtered_archs=""

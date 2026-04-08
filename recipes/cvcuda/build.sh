@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-export CFLAGS="${CFLAGS} -w"
-export CXXFLAGS="${CXXFLAGS} -w"
+export CFLAGS="${CFLAGS:-} -w"
+export CXXFLAGS="${CXXFLAGS:-} -w"
+export CUDAFLAGS="${CUDAFLAGS:-} -w -Xcompiler=-w"
 
 mkdir -p "${SRC_DIR}/build"
 cd "${SRC_DIR}/build"
