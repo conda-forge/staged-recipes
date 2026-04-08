@@ -1,0 +1,115 @@
+schema_version: 1
+
+context:
+  version: "2.5.1"
+
+package:
+  name: checkmate2
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CheckMATE2/checkmate2/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 20088318fe8a7c99592b19c9357edebe5132e1f810472dd84daebe845421c354
+  patches:
+    - remove-external-prefix.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # Get an updated config.sub and config.guess
+    - cp $BUILD_PREFIX/share/gnuconfig/config.* .
+    - autoreconf --install --force
+    - ./configure --help
+    - |
+      ./configure \
+        --prefix=${PREFIX} \
+        --exec-prefix=${PREFIX} \
+        --with-delphes=${PREFIX} \
+        --with-hepmc=${PREFIX} \
+        --with-python=${PYTHON} \
+        --enable-shared=yes \
+        --enable-static=no
+    - make --jobs=${CPU_COUNT}
+    - |
+      # Skip 'make check' when cross-compiling
+      if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR:-}" != "" ]]; then
+        make check --jobs=${CPU_COUNT}
+      fi
+    - echo "DEBUG - make install"
+    - make install prefix=${PREFIX}
+    - echo "DEBUG - cat Makefile"
+    - cat ./Makefile
+
+    # 'make install' target fails to install, so manually copy
+    # FIXME: This is a mess of directory trees. What is needed?
+    # - cp -r ./bin/* ${PREFIX}/bin/
+    # - mkdir -p ${PREFIX}/share/checkmate2
+    # - cp -r ./data ${PREFIX}/share/checkmate2/
+    # - mkdir -p ${PREFIX}/checkmate2
+    # - cp -r ./tools ${PREFIX}/checkmate2/
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - automake
+    - libtool
+    - make
+    - pkg-config
+    - gnuconfig
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    # Tools that autotools looks for
+    - sed
+    - grep
+    - gawk
+    - tar
+  host:
+    - python
+    - root_base
+    - delphes
+    - hepmc2
+    # - pythia8 8.2*
+  run:
+    - python
+    - root_base
+    - delphes
+    - hepmc2
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - CheckMATE
+      files:
+        - checkmate2/*
+        - share/checkmate2/*
+
+  - script:
+      - CheckMATE --help
+
+about:
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  summary: 'Check Models At Terascale Energies'
+  description: |
+    CheckMATE (Check Models At Terascale Energies) is a program package which
+    accepts simulated event files in many formats for any given model.
+    The program then determines whether the model is excluded or not at 95% C.L.
+    by comparing to many recent experimental analyses.
+    Furthermore the program can calculate confidence limits and provide detailed
+    information about signal regions of interest.
+    It is simple to use and the program structure allows for easy extensions to
+    upcoming LHC results in the future.
+  homepage: https://checkmate.hepforge.org/
+  repository: https://github.com/CheckMATE2/checkmate2
+  documentation: https://github.com/CheckMATE2/checkmate2
+
+extra:
+  recipe-maintainers:
+    - krolbiecki
+    - matthewfeickert
