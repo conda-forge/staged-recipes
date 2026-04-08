@@ -14,28 +14,23 @@ source:
 build:
   number: 0
   script:
-    # # Fix protobuf string_view issue (moved to patch, here in case future versions need it).
-    # - cd ..
-    # - cp -r "$SRC_DIR" a
-    # - cp -r "$SRC_DIR" b
-    # - cd b
-    # - sed -i 's/Request::descriptor()->full_name()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
-    # - sed -i 's/Request::GetDescriptor()->full_name().c_str()/std::string(Request::descriptor()->full_name())/g' cpp/bosdyn/client/service_client/service_client.h
-    # - sed -i 's/const std::string& message_type = proto_message->GetTypeName();/const auto message_type = std::string(proto_message->GetTypeName());/g' cpp/bosdyn/common/common_header_handling.cpp
-    # - cd ..
-    # - git diff --no-index a b > "$SRC_DIR/01-fix-protobuf-stringview.patch" || true
-    # - cd "$SRC_DIR"
-    # - cat 01-fix-protobuf-stringview.patch
-    # - false
-    # Suppress deprecated warnings.
-    - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
-    - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
-    # Build and install the C++ project.
-    - cmake -S cpp/ -B build/
-      -GNinja
-      -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_INSTALL_PREFIX=$PREFIX
-    - cmake --build build/ --target install
+    - if: unix
+      then:
+        # Suppress deprecated warnings.
+        - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
+        - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
+        - echo ${CMAKE_ARGS}
+        - cmake -S cpp/ -B build/
+          ${CMAKE_ARGS}
+          -GNinja
+    - if: win
+      then:
+        - echo %CMAKE_ARGS%
+        - cmake -S cpp/ -B build/
+          ${CMAKE_ARGS}
+          -GNinja
+    - cmake --build build/ --config Release
+    - cmake --install build/ --config Release
 
 requirements:
   build:
@@ -43,7 +38,6 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - cmake
-    - git
     - ninja
   host:
     - cli11
