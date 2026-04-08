@@ -16,6 +16,19 @@ fi
 export CFLAGS="${CFLAGS} -w"
 export CXXFLAGS="${CXXFLAGS} -w"
 
+# CV-CUDA requires Volta (sm_70+); strip any pre-Volta archs from CUDAARCHS
+filtered_archs=""
+IFS=';' read -ra _archs <<< "${CUDAARCHS}"
+for _arch in "${_archs[@]}"; do
+    _num="${_arch%%[^0-9]*}"
+    if [ "${_num}" -ge 70 ]; then
+        filtered_archs="${filtered_archs:+${filtered_archs};}${_arch}"
+    fi
+done
+export CUDAARCHS="${filtered_archs}"
+
+# We must explicitly set CMAKE_CUDA_ARCHITECTURES because otherwise,
+# cvcuda will append its own archs
 cmake ${CMAKE_ARGS} "${SRC_DIR}" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_INSTALL_LIBDIR=lib \
@@ -26,8 +39,6 @@ cmake ${CMAKE_ARGS} "${SRC_DIR}" \
     -DBUILD_BENCH=OFF \
     -DENABLE_COMPAT_OLD_GLIBC=${ENABLE_COMPAT_OLD_GLIBC} \
     -DPUBLIC_API_COMPILERS="${CC};${CXX}" \
-    # We must explicitly set CMAKE_CUDA_ARCHITECTURES because otherwise,
-    # cvcuda will append its own archs
     -DCMAKE_CUDA_ARCHITECTURES="${CUDAARCHS}" \
     -G Ninja
 
