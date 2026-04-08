@@ -13,10 +13,15 @@ cargo install --no-track --locked --root "${PREFIX}" --path .
 "${PREFIX}/bin/cmakefmt" --generate-completion zsh > _cmakefmt
 "${PREFIX}/bin/cmakefmt" --generate-completion fish > cmakefmt.fish
 
-install -Dm644 cmakefmt.bash "${PREFIX}/share/bash-completion/completions/cmakefmt"
-install -Dm644 _cmakefmt "${PREFIX}/share/zsh/site-functions/_cmakefmt"
-install -Dm644 cmakefmt.fish "${PREFIX}/share/fish/vendor_completions.d/cmakefmt.fish"
+mkdir -p "${PREFIX}/share/bash-completion/completions"
+mkdir -p "${PREFIX}/share/zsh/site-functions"
+mkdir -p "${PREFIX}/share/fish/vendor_completions.d"
+mkdir -p "${PREFIX}/share/man/man1"
+
+install -m644 cmakefmt.bash "${PREFIX}/share/bash-completion/completions/cmakefmt"
+install -m644 _cmakefmt "${PREFIX}/share/zsh/site-functions/_cmakefmt"
+install -m644 cmakefmt.fish "${PREFIX}/share/fish/vendor_completions.d/cmakefmt.fish"
 
 # Man page
 "${PREFIX}/bin/cmakefmt" --generate-man-page > cmakefmt.1
-install -Dm644 cmakefmt.1 "${PREFIX}/share/man/man1/cmakefmt.1"
+install -m644 cmakefmt.1 "${PREFIX}/share/man/man1/cmakefmt.1"
