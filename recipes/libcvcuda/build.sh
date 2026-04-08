@@ -26,6 +26,9 @@ cmake ${CMAKE_ARGS} "${SRC_DIR}" \
     -DBUILD_BENCH=OFF \
     -DENABLE_COMPAT_OLD_GLIBC=${ENABLE_COMPAT_OLD_GLIBC} \
     -DPUBLIC_API_COMPILERS="${CC};${CXX}" \
+    # We must explicitly set CMAKE_CUDA_ARCHITECTURES because otherwise,
+    # cvcuda will append its own archs
+    -DCMAKE_CUDA_ARCHITECTURES="${CUDAARCHS}" \
     -G Ninja
 
 cmake --build . -j${CPU_COUNT}
