@@ -1,0 +1,106 @@
+schema_version: 1
+
+context:
+  version: "1.2.1"
+
+package:
+  name: speexdsp
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.xiph.org/xiph/speexdsp/-/archive/SpeexDSP-${{ version }}/speexdsp-SpeexDSP-${{ version }}.tar.gz
+    sha256: d17ca363654556a4ff1d02cc13d9eb1fc5a8642c90b40bd54ce266c3807b91a7
+  - path: ./src/
+    target_directory: "./"
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -GNinja -DBUILD_SHARED_LIBS=ON %CMAKE_ARGS% %SRC_DIR%
+        cmake --build . --config Release
+        cmake --install . --config Release
+      else: |
+        cmake -GNinja -DBUILD_SHARED_LIBS=ON $CMAKE_ARGS $SRC_DIR
+        cmake --build . --config Release
+        cmake --install . --config Release
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: win
+      then:
+        - vs2022_win-64
+  host:
+    - if: linux
+      then:
+        - libgomp >=4.0
+  run:
+    - if: linux
+      then:
+        - libgomp >=4.0
+
+tests:
+  - package_contents:
+      lib:
+        - speexdsp
+      include:
+        - speex/speex_preprocess.h
+        - speex/speexdsp_config_types.h
+        - speex/speex_buffer.h
+        - speex/speex_echo.h
+        - speex/speex_jitter.h
+        - speex/speex_preprocess.h
+        - speex/speex_resampler.h
+        - speex/speexdsp_config_types.h
+        - speex/speexdsp_types.h
+
+      files:
+        exists:
+          - if: win
+            then:
+              - Library/lib/pkgconfig/speexdsp.pc
+              - Library/lib/cmake/speexdsp/speexdspConfig.cmake
+              - Library/lib/cmake/speexdsp/speexdspConfigVersion.cmake
+            else:
+              - lib/pkgconfig/speexdsp.pc
+              - lib/cmake/speexdsp/speexdspConfig.cmake
+              - lib/cmake/speexdsp/speexdspConfigVersion.cmake
+
+about:
+  homepage: https://speex.org/
+  summary: SpeexDSP is a patent-free, Open Source/Free Software DSP library derived from Speex
+  description: |
+    SpeexDSP is a patent-free, Open Source/Free Software DSP library derived from Speex.
+
+    It is designed to be a simple, small-footprint audio processing library that is
+    especially suitable for embedded applications. The library provides:
+
+    - Echo cancellation
+    - Noise reduction
+    - Automatic gain control
+    - Voice activity detection
+    - Resampling
+
+    SpeexDSP was split off from the main Speex project to allow more modular use
+    of the DSP functionality without requiring the codec components.
+
+    This package uses modern build tools:
+    - Unix/Linux: autotools (configure, make)
+    - Windows: CMake with MSVC (Visual Studio Build Tools)
+    - macOS: autotools with clang
+  license: BSD-3-Clause
+  license_file: COPYING
+  documentation: https://speex.org/docs/
+  repository: https://gitlab.xiph.org/xiph/speexdsp
+
+extra:
+  recipe-maintainers:
+    - tmatth
+    - phreed
+  feedstock-name: speexdsp
