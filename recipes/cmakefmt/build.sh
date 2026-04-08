@@ -4,6 +4,12 @@ set -euxo pipefail
 export CARGO_PROFILE_RELEASE_STRIP=symbols
 export CARGO_PROFILE_RELEASE_LTO=fat
 
+# Ensure enough Mach-O header padding for conda-build's install_name_tool
+# post-processing on macOS.
+if [[ "$(uname)" == "Darwin" ]]; then
+  export RUSTFLAGS="${RUSTFLAGS:-} -C link-args=-Wl,-headerpad_max_install_names"
+fi
+
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 cargo install --no-track --locked --root "${PREFIX}" --path .
