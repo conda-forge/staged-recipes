@@ -1,0 +1,88 @@
+context:
+  version: "0.3.25"
+
+package:
+  name: phraze
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sts10/phraze/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: dd8697f531afcda654d610570f5d754ceb08f36e98f8dacb46963b511f218b49
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          # copy shell completion files and man page
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions $PREFIX/share/man/man1
+          - cp target/completions/phraze.bash $PREFIX/share/bash-completion/completions/phraze
+          - cp target/completions/phraze.fish $PREFIX/share/fish/vendor_completions.d/phraze.fish
+          - cp target/completions/_phraze     $PREFIX/share/zsh/site-functions/_phraze
+          - cp target/man/phraze.1            $PREFIX/share/man/man1/phraze.1
+      - if: win
+        then:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+          # copy shell completion files and man page
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - mkdir %LIBRARY_PREFIX%\share\man\man1
+          - powershell -Command "Copy-Item -Path 'target\completions\phraze.bash' -Destination '%LIBRARY_PREFIX%\share\bash-completion\completions\phraze'"
+          - powershell -Command "Copy-Item -Path 'target\completions\phraze.fish' -Destination '%LIBRARY_PREFIX%\share\fish\vendor_completions.d\phraze.fish'"
+          - powershell -Command "Copy-Item -Path 'target\completions\_phraze'     -Destination '%LIBRARY_PREFIX%\share\zsh\site-functions\_phraze'"
+          - powershell -Command "Copy-Item -Path 'target\man\phraze.1'            -Destination '%LIBRARY_PREFIX%\share\man\man1\phraze.1'"
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - phraze --help
+      - phraze --version
+  - package_contents:
+      bin:
+        - phraze
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/phraze
+            - share/fish/vendor_completions.d/phraze.fish
+            - share/zsh/site-functions/_phraze
+            - share/man/man1/phraze.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/phraze
+            - Library/share/fish/vendor_completions.d/phraze.fish
+            - Library/share/zsh/site-functions/_phraze
+            - Library/share/man/man1/phraze.1
+      strict: true
+
+about:
+  homepage: https://github.com/sts10/phraze
+  summary: Random passphrase generator
+  description: |
+    Phraze is a random passphrase generator that generates passphrases with
+    user-configurable entropy, word counts, and built-in word lists. It is
+    fast, supports a variety of separator options, and can include numbers,
+    symbols, and capital letters.
+  license: MPL-2.0
+  license_file:
+    - LICENSE.txt
+    - THIRDPARTY.yml
+  repository: https://github.com/sts10/phraze
+
+extra:
+  recipe-maintainers:
+    - salim-b
