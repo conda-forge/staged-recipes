@@ -1,37 +1,33 @@
 #pragma once
 
 /**
- * Windows.h defines several macros that collide with member names 
- * in the Boston Dynamics Spot SDK Protobuf definitions.
+ * MSVC FIXUP HEADER
+ * This header resolves conflicts between Windows SDK macros and Spot SDK identifiers.
  */
 
-// NOMINMAX prevents Windows.h from defining min() and max() macros
+// 1. Include STL chrono first. 
+// This prevents 'identifier not found' errors like C3861 (_Query_perf_frequency)
+// by ensuring the STL is parsed before any Windows macro interference.
+#include <chrono>
+
+// 2. Include windows.h to capture system macros
 #ifndef NOMINMAX
 #  define NOMINMAX
 #endif
-
-// WIN32_LEAN_AND_MEAN excludes rarely-used services from Windows headers
-#ifndef WIN32_LEAN_AND_MEAN
-#  define WIN32_LEAN_AND_MEAN
-#endif
-
 #include <windows.h>
 
 /**
- * UNDEFINE CONFLICTING MACROS
- * The following tokens are used as field names in choreography_sequence.pb.h
- * but are defined as global macros in windef.h or rpcndr.h.
+ * 3. Undefine problematic macros.
+ * These tokens are defined as global macros in Windows headers but are used
+ * as field names in the Spot SDK Protobuf definitions.
  */
 
-// Fixes error C2789: 'bosdyn::api::spot::ChoreographyStatusResponse::DWORD'
-// Undefining the macro allows the compiler to treat 'DWORD' as a type-safe identifier.
+// Fixes error C2789 related to ChoreographyStatusResponse::DWORD
 #ifdef DWORD
 #  undef DWORD
 #endif
 
-// Fixes error C2143: syntax error: missing ')' before 'constant'
-// 'constant' is often defined in RPC headers; undefining it prevents
-// syntax errors in Protobuf-generated getters/setters.
+// Fixes error C2143 related to syntax errors near 'constant'
 #ifdef constant
 #  undef constant
 #endif
