@@ -1,77 +1,89 @@
 context:
-  version: 5.1.4
-
-package:
   name: spot-cpp-sdk
+  version: 5.1.4
+  build_number: 0
+
+recipe:
+  name: ${{ name }}-split
   version: ${{ version }}
 
 source:
-  - url: https://github.com/boston-dynamics/spot-cpp-sdk/archive/refs/tags/v${{ version }}.zip
-    sha256: a5aa0b1d3fc4b58282d8fd94e9b89cb561d245403a472208312527cc13a37776
-    patches:
-      - 01-fix-protobuf-stringview.patch
-      - 02-fix-proto-shared-linkage.osx.patch
-      - if: osx
-        then:
+  url: https://github.com/boston-dynamics/spot-cpp-sdk/archive/refs/tags/v${{ version }}.zip
+  sha256: a5aa0b1d3fc4b58282d8fd94e9b89cb561d245403a472208312527cc13a37776
+  patches:
+    - 01-fix-protobuf-stringview.patch
+    - 02-fix-proto-shared-linkage.osx.patch
+    - if: osx
+      then:
         - 03-fix-grpc-deadline.osx.patch
         - 04-fix-std-max.osx.patch
 
 build:
-  number: 0
   skip: win
-  script:
-    - if: unix
-      then:
-        # Suppress deprecated warnings.
-        - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
-        - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
-        # Configure C++ project.
-        - echo ${CMAKE_ARGS}
-        - cmake -S cpp/ -B build/
-          ${CMAKE_ARGS}
-          -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON
-          -GNinja
-    - if: win
-      then:
-        # Configure C++ project.
-        - echo %CMAKE_ARGS%
-        - cmake -S cpp/ -B build/
-          ${CMAKE_ARGS}
-          -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON
-          -DCMAKE_CXX_COMPILER_WORKS=ON
-          -DCMAKE_CXX_FLAGS="%CXXFLAGS% /DNOMINMAX /wd4267 /wd4996 /WX- /EHsc"
-          -GNinja
-    # Build and install C++ project.
-    - cmake --build build/ --config Release
-    - cmake --install build/ --config Release
+  number: ${{ build_number }}
 
-requirements:
-  build:
-    - ${{ stdlib('c') }}
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - cmake
-    - ninja
-  host:
-    - cli11
-    - eigen-abi-devel <5
-    - libabseil
-    - libgrpc
-    - libprotobuf
-  run:
-    - cli11
-    - eigen
-
-tests:
-  - script:
-      - cmake-package-check bosdyn --targets bosdyn_client bosdyn_client_static
-      - cmake-package-check bosdyn --targets bosdyn_api bosdyn_api_obj bosdyn_api_static
-      - cmake-package-check bosdyn --targets bosdyn_api bosdyn_choreography_protos_obj bosdyn_choreography_protos bosdyn_choreography_protos_static
+outputs:
+  - package:
+      name: spot-cpp-sdk
+    build:
+      script:
+        - if: unix
+          then:
+            # Suppress deprecated warnings.
+            - export CFLAGS="${CFLAGS} -Wno-deprecated-declarations"
+            - export CXXFLAGS="${CXXFLAGS} -Wno-deprecated-declarations"
+            # Configure C++ project.
+            - echo ${CMAKE_ARGS}
+            - cmake -S cpp/ -B build/
+              ${CMAKE_ARGS}
+              -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON
+              -GNinja
+        - if: win
+          then:
+            # Configure C++ project.
+            - echo %CMAKE_ARGS%
+            - cmake -S cpp/ -B build/
+              ${CMAKE_ARGS}
+              -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON
+              -DCMAKE_CXX_COMPILER_WORKS=ON
+              -DCMAKE_CXX_FLAGS="%CXXFLAGS% /DNOMINMAX /wd4267 /wd4996 /WX- /EHsc"
+              -GNinja
+        # Build and install C++ project.
+        - cmake --build build/ --config Release
+        - cmake --install build/ --config Release
     requirements:
-      run:
+      build:
+        - ${{ stdlib('c') }}
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
-        - cmake-package-check
+        - cmake
+        - ninja
+      host:
+        - cli11
+        - eigen-abi-devel <5
+        - libabseil
+        - libgrpc
+        - libprotobuf
+  # TODO: move to this package headers and cmake config files
+  - package:
+      name: spot-cpp-sdk-devel
+    requirements:
+      run:
+        - ${{ pin_subpackage("spot-cpp-sdk", exact=True) }}
+        - cli11
+        - eigen-abi-devel <5
+      run_exports:
+        - ${{ pin_compatible('eigen-abi', upper_bound='x.x.x.x') }}
+    tests:
+      - script:
+          - cmake-package-check bosdyn --targets bosdyn_client bosdyn_client_static
+          - cmake-package-check bosdyn --targets bosdyn_api bosdyn_api_obj bosdyn_api_static
+          - cmake-package-check bosdyn --targets bosdyn_api bosdyn_choreography_protos_obj bosdyn_choreography_protos bosdyn_choreography_protos_static
+        requirements:
+          run:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - cmake-package-check
 
 about:
   homepage: https://github.com/boston-dynamics/spot-cpp-sdk
@@ -81,5 +93,6 @@ about:
   summary: Develop applications and payloads for Spot using the Boston Dynamics Spot C++ SDK.
 
 extra:
+  feedstock-name: spot-cpp-sdk
   recipe-maintainers:
     - diegoferigo
