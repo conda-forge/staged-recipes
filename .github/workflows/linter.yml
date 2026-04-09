@@ -5,6 +5,7 @@ on:
   # and potentially runs untrusted code via python's `eval`
   # thus we can only run it on pull_request events so that the
   # the token does not have any write permissions
+  merge_group:
   pull_request:
     types:
       - opened
@@ -52,11 +53,18 @@ jobs:
             requests
             pixi
 
+      - name: get pr details
+        id: pr_details
+        uses: matrix-org/pr-details-action@15bde5285d7850ba276cc3bd8a03733e3f24622a # v1.3
+        with:
+          owner: ${{ github.repository_owner }}
+          branch: ${{ github.event_name == 'merge_group' && github.ref || github.event.pull_request.head.ref }}
+
       - name: lint
         run: |
           python .github/workflows/scripts/linter.py \
             --owner=${{ github.repository_owner }} \
-            --pr-num=${{ github.event.number }} \
+            --pr-num=${{ steps.pr_details.outputs.pr_id }} \
           >> $GITHUB_STEP_SUMMARY
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
