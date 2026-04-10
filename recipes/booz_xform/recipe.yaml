@@ -1,0 +1,78 @@
+schema_version: 1
+
+context:
+  version: "0.0.9"
+
+package:
+  name: "booz_xform"
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/booz_xform/booz_xform-${{ version }}.tar.gz
+  sha256: d650c5fcbd668cbccea50fbfd6e5c507225eb07218acd4991875804aaeb574d7
+  patches:
+    - fix-msvc-compat.patch
+    - fix-win-exe-extension.patch
+
+build:
+  number: 0
+  script:
+    # conda-forge's MSVC activation sets CMAKE_GENERATOR_PLATFORM=x64 and
+    # CMAKE_GENERATOR_TOOLSET=v143 for the Visual Studio generator. These are
+    # incompatible with Ninja and must be cleared.
+    - if: win
+      then:
+        - set CMAKE_GENERATOR=Ninja
+        - set "CMAKE_GENERATOR_PLATFORM="
+        - set "CMAKE_GENERATOR_TOOLSET="
+      else: export CMAKE_GENERATOR=Ninja
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - if: build_platform != host_platform
+      then:
+        - cross-python_${{ host_platform }}
+        - python
+    - cmake
+    - ninja
+  host:
+    - python
+    - setuptools >=42
+    - pybind11 >=2.6.0,<3.0.0
+    - pip
+    - eigen
+    - libnetcdf
+    # c.f. https://conda-forge.org/docs/maintainer/knowledge_base/#openmp
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+    - if: win
+      then: vcomp14
+  run:
+    - python
+    - numpy
+
+tests:
+  - package_contents:
+      bin:
+        - xbooz_xform
+  - python:
+      imports:
+        - booz_xform
+    pip_check: true
+
+about:
+  summary: Transformation to Boozer coordinates
+  license: BSD-2-Clause
+  license_file: LICENSE
+  homepage: https://github.com/hiddenSymmetries/booz_xform
+  repository: https://github.com/hiddenSymmetries/booz_xform
+  documentation: https://hiddensymmetries.github.io/booz_xform/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
