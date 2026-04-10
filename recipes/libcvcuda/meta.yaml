@@ -11,6 +11,10 @@ source:
     - patches/0001-fix-libdir.patch
     - patches/0002-use-dynamic-cuda-libs.patch
     - patches/0003-use-sysroot-libs-for-glibc-compat-stubs.patch
+    - patches/0004-use-system-gtest.patch
+    - patches/0005-use-dynamic-openssl-zlib-in-tests.patch
+    - patches/0006-find-gtest-in-tests.patch
+    - patches/0007-exclude-cuosd-tests.patch
 
 build:
   number: 0
@@ -26,15 +30,13 @@ requirements:
     - ninja
   host:
     - cuda-version {{ cuda_compiler_version }}
-    # - cuda-cudart-dev
     - cuda-cudart-static
     - libcublas-dev
-    # - libcublas-static
     - libcurand-dev
-    # - libcurand-static
     - libcusolver-dev
-    # - libcusolver-static
-    # - cuda-culibos-static
+    - gtest
+    - openssl
+    - zlib
 
 outputs:
   - name: libcvcuda
@@ -106,6 +108,44 @@ outputs:
         - test -f $PREFIX/include/cvcuda/IOperator.hpp
         - test -f $PREFIX/include/nvcv/Version.h
         - test -f $PREFIX/lib/cmake/cvcuda/cvcuda-config.cmake
+
+  - name: libcvcuda-tests
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      ignore_run_exports:
+        - cuda-version
+      missing_dso_whitelist:
+        - $RPATH/libcuda.so.*
+    script: install_tests.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib('c') }}
+        - cmake >=3.20.1
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage('libcvcuda', exact=True) }}
+        - gtest
+        - openssl
+      run:
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+        - {{ pin_subpackage('libcvcuda', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/bin/cvcuda_test_system
+        - test -f $PREFIX/bin/cvcuda_test_system_smoke
+        - test -f $PREFIX/bin/run_libcvcuda_tests.sh
+    about:
+      home: https://github.com/CVCUDA/CV-CUDA
+      summary: 'C++ system tests for CV-CUDA operators'
+      license: Apache-2.0 and MIT
+      license_file:
+        - LICENSE.md
+        - THIRD_PARTY_LICENSES.md
+      doc_url: https://cvcuda.github.io/CV-CUDA/
+      dev_url: https://github.com/CVCUDA/CV-CUDA
 
 about:
   home: https://github.com/CVCUDA/CV-CUDA
