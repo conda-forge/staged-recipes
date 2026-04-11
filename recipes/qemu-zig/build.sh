@@ -68,7 +68,25 @@ fi
 # QEMU configure detects host_os via check_define __linux__ using CC.
 # zig-cc's preprocessor doesn't define __linux__, so force it.
 export host_os=linux
-export CC="${ZIG_CC}"
+
+# zig cc doesn't understand -Xlinker; translate to -Wl, form.
+# (meson passes --dynamic-list etc. via -Xlinker, not -Wl,)
+cat > "${SRC_DIR}/_zig_cc" <<WRAPPER
+#!/usr/bin/env bash
+args=()
+while [[ \$# -gt 0 ]]; do
+    if [[ "\$1" == "-Xlinker" ]] && [[ \$# -gt 1 ]]; then
+        args+=("-Wl,\$2")
+        shift 2
+    else
+        args+=("\$1")
+        shift
+    fi
+done
+exec "${ZIG_CC}" "\${args[@]}"
+WRAPPER
+chmod +x "${SRC_DIR}/_zig_cc"
+export CC="${SRC_DIR}/_zig_cc"
 export AR="${ZIG_AR}"
 export RANLIB="${ZIG_RANLIB}"
 _build_install_qemu "${SRC_DIR}/_conda-build-${qemu_variant}" "${install_dir}" "${qemu_variant}"
