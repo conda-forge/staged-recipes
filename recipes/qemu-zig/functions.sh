@@ -120,6 +120,7 @@ _get_default_flags() {
     "--disable-vhost-user-blk-server"
     "--disable-vhost-vdpa"
     "--disable-vhost-kernel"
+
   )
 }
 

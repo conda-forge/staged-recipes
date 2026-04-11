@@ -34,6 +34,35 @@ echo "=== Building qemu-${qemu_variant}-${qemu_arch} ==="
 
 _apply_variant_patches "${SRC_DIR}/qemu_source" "${qemu_variant}"
 
+# --- Step 1b: Patch zig wrapper for -Xlinker auto-LLD promotion ---
+# Published zig _18 only scans -Wl, prefixed flags for LLD promotion.
+# QEMU's meson passes --dynamic-list via -Xlinker, not -Wl,. Patch the
+# installed wrapper until zig ships with the -Xlinker fix.
+_zig_common="${BUILD_PREFIX}/share/zig/wrappers/_zig-cc-common.sh"
+if ! grep -q '_xlinker_next' "${_zig_common}"; then
+  sed -i '/_use_lld=0/a\
+_xlinker_next=0' "${_zig_common}"
+  sed -i '/for _a in "\$@"; do/a\
+    # Handle -Xlinker <arg> pairs: check the arg after -Xlinker for LLD triggers\
+    if (( _xlinker_next )); then\
+        _xlinker_next=0\
+        case "$_a" in\
+            --dynamic-list|--dynamic-list=*|--version-script|--version-script=*) _use_lld=1; break ;;\
+            --gc-sections|--no-gc-sections|--build-id|--build-id=*) _use_lld=1; break ;;\
+            --allow-shlib-undefined|--no-allow-shlib-undefined) _use_lld=1; break ;;\
+            -exported_symbols_list|-exported_symbols_list,*) _use_lld=1; break ;;\
+            -unexported_symbols_list|-unexported_symbols_list,*) _use_lld=1; break ;;\
+            -all_load|-force_load|-force_load,*) _use_lld=1; break ;;\
+        esac\
+        continue\
+    fi' "${_zig_common}"
+  sed -i '/case "\$_a" in/,/^[[:space:]]*esac/{
+    /case "\$_a" in/a\
+        -Xlinker) _xlinker_next=1 ;;
+  }' "${_zig_common}"
+  echo "=== Patched zig wrapper for -Xlinker auto-LLD promotion ==="
+fi
+
 # --- Step 2: Build and install QEMU ---
 
 # QEMU configure detects host_os via check_define __linux__ using CC.
