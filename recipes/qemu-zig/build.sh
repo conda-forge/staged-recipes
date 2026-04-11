@@ -36,6 +36,8 @@ _apply_variant_patches "${SRC_DIR}/qemu_source" "${qemu_variant}"
 
 # --- Step 2: Build and install QEMU ---
 
+# QEMU configure detects host_os via check_define __linux__ using CC.
+# zig-cc's preprocessor doesn't define __linux__, so force it.
 export host_os=linux
 export CC="${ZIG_CC}"
 export AR="${ZIG_AR}"
