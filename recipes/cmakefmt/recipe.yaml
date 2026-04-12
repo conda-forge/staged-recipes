@@ -1,0 +1,90 @@
+context:
+  version: "0.6.0"
+
+package:
+  name: cmakefmt
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cmakefmt/cmakefmt/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 24d161b5c9240b685981a90e69538f7ef6cb6d2d86cdd1b61b43545ad6ade9ce
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - if: osx
+            then:
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-args=-Wl,-headerpad_max_install_names"
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions $PREFIX/share/man/man1
+          - $PREFIX/bin/cmakefmt completions bash > $PREFIX/share/bash-completion/completions/cmakefmt
+          - $PREFIX/bin/cmakefmt completions fish > $PREFIX/share/fish/vendor_completions.d/cmakefmt.fish
+          - $PREFIX/bin/cmakefmt completions zsh  > $PREFIX/share/zsh/site-functions/_cmakefmt
+          - $PREFIX/bin/cmakefmt --generate-man-page > $PREFIX/share/man/man1/cmakefmt.1
+      - if: win
+        then:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+          - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+          - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+          - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+          - mkdir %LIBRARY_PREFIX%\share\man\man1
+          - powershell -Command "%LIBRARY_PREFIX%\bin\cmakefmt.exe completions bash | Set-Content '%LIBRARY_PREFIX%\share\bash-completion\completions\cmakefmt'"
+          - powershell -Command "%LIBRARY_PREFIX%\bin\cmakefmt.exe completions fish | Set-Content '%LIBRARY_PREFIX%\share\fish\vendor_completions.d\cmakefmt.fish'"
+          - powershell -Command "%LIBRARY_PREFIX%\bin\cmakefmt.exe completions zsh  | Set-Content '%LIBRARY_PREFIX%\share\zsh\site-functions\_cmakefmt'"
+          - powershell -Command "%LIBRARY_PREFIX%\bin\cmakefmt.exe --generate-man-page | Set-Content '%LIBRARY_PREFIX%\share\man\man1\cmakefmt.1'"
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - cmakefmt --help
+      - cmakefmt --version
+  - package_contents:
+      bin:
+        - cmakefmt
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/cmakefmt
+            - share/fish/vendor_completions.d/cmakefmt.fish
+            - share/zsh/site-functions/_cmakefmt
+            - share/man/man1/cmakefmt.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/cmakefmt
+            - Library/share/fish/vendor_completions.d/cmakefmt.fish
+            - Library/share/zsh/site-functions/_cmakefmt
+            - Library/share/man/man1/cmakefmt.1
+      strict: true
+
+about:
+  homepage: https://cmakefmt.dev
+  summary: A fast, correct CMake formatter
+  description: |
+    cmakefmt is a fast, correct, configurable CMake formatter written in Rust.
+    It is a native-binary drop-in replacement for cmake-format with full
+    legacy config conversion support.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE
+    - LICENSES/MIT.txt
+    - LICENSES/Apache-2.0.txt
+    - THIRDPARTY.yml
+  repository: https://github.com/cmakefmt/cmakefmt
+
+extra:
+  recipe-maintainers:
+    - puneetmatharu
