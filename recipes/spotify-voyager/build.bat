@@ -3,8 +3,7 @@
 
 cd /d "%SRC_DIR%\python" || goto :error
 
-:: build
-set "CMAKE_GENERATOR=Ninja"
+:: Let the activated conda-forge toolchain choose the Windows generator.
 "%PYTHON%" -m pip install . -vv --no-deps --no-build-isolation || goto :error
 
 echo build.bat: OK
