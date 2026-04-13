@@ -1,0 +1,66 @@
+context:
+  version: "2.1.0"
+  pkg_name: "spotify-voyager"
+
+package:
+  name: ${{ pkg_name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/spotify/voyager/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5f8d687f310b67e9661bb6226b68eea4c8d0c5d48f5866be11c8a37884ce6ed1
+
+build:
+  number: 0
+  script:
+    - cd python
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+        - pybind11
+        - setuptools
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+  host:
+    - python
+    - pip
+    - numpy
+    - pybind11
+    - setuptools
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - voyager
+      pip_check: true
+  - requirements:
+      run:
+        - numpy
+    script:
+      - python -c "import numpy as np, voyager; x = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32); index = voyager.Index(space=voyager.Space.Euclidean, num_dimensions=2); index.add_items(x); labels, distances = index.query(x[:1], k=1); assert int(labels[0, 0]) == 0; assert np.isclose(float(distances[0, 0]), 0.0)"
+
+about:
+  homepage: https://github.com/spotify/voyager
+  repository: https://github.com/spotify/voyager
+  summary: Approximate nearest-neighbor search library for Python and Java.
+  description: |
+    Voyager is an approximate nearest-neighbor search library from Spotify
+    with Python and Java bindings and a focus on ease of use, simplicity,
+    and deployability.
+  documentation: https://spotify.github.io/voyager/python
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  feedstock_name: ${{ pkg_name }}
+  recipe-maintainers:
+    - moritzwilksch
