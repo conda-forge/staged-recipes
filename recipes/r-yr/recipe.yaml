@@ -18,38 +18,58 @@ build:
       - lib/R/lib/
       - lib/
   script:
-    if: unix
-    then: |
-      # No install from brew on MacOS
-      export DISABLE_AUTOBREW=1
+    - if: unix
+      then: |
+        # No install from brew on MacOS
+        export DISABLE_AUTOBREW=1
 
-      # Make libR findable for Cargo and R wrapper scripts
-      export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
-      export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
-      export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
-      # Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
-      unset CARGO_BUILD_TARGET
+        # Make libR findable for Cargo and R wrapper scripts
+        export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
+        export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
+        export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
+        # Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
+        unset CARGO_BUILD_TARGET
 
-      ${R} CMD INSTALL --build . ${R_ARGS}
+        ${R} CMD INSTALL --build . ${R_ARGS}
 
-      # Bundle third party licenses from statically linked crates
-      cd src/rust
-      cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
-  skip:
-    - win
+        # Bundle third party licenses from statically linked crates
+        cd src/rust
+        cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
+      else: |
+        rem Make R.dll findable for Cargo and R wrapper scripts
+        set RUSTFLAGS=-C link-arg=-L%PREFIX%\lib\R\lib %RUSTFLAGS%
+        set PATH=%PREFIX%\lib\R\bin\x64;%PATH%
+        rem Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
+        set CARGO_BUILD_TARGET=
+
+        %R% CMD INSTALL --build . %R_ARGS%
+
+        rem Bundle third party licenses from statically linked crates
+        cd src\rust
+        cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
 
 requirements:
   build:
-    - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ stdlib('m2w64_c') }}
+      else:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
     - ${{ compiler('rust') }}
     - cargo-bundle-licenses
-    - make
-    - autoconf
-    - automake
-    - pkg-config
-    - if: build_platform != target_platform
-      then: cross-r-base ${{ r_base }}
+    - ${{ 'm2-' if win }}autoconf
+    - ${{ 'm2-automake-wrapper' if win else 'automake' }}
+    - ${{ 'm2-' if win }}pkg-config
+    - ${{ 'm2-' if win }}make
+    - if: win
+      then:
+        - m2-filesystem
+        - m2-sed
+        - m2-grep
+        - m2-coreutils
+        - m2-zip
   host:
     - r-base
   run:
