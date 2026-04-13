@@ -10,6 +10,8 @@ package:
 source:
   url: https://github.com/y-crdt/yr/archive/refs/tags/v${{ version }}.tar.gz
   sha256: e858d06ab55612c6b3bce7805f5682bdd631151fec57fcf3242de3a91370cbd6
+  patches:
+    - patches/0001-libdir-cargo-build-target.patch
 
 build:
   number: 0
@@ -27,8 +29,6 @@ build:
         export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
         export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
         export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
-        # Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
-        unset CARGO_BUILD_TARGET
 
         ${R} CMD INSTALL --build . ${R_ARGS}
 
@@ -39,14 +39,15 @@ build:
         rem Make R.dll findable for Cargo and R wrapper scripts
         set RUSTFLAGS=-C link-arg=-L%PREFIX%\lib\R\lib %RUSTFLAGS%
         set PATH=%PREFIX%\lib\R\bin\x64;%PATH%
-        rem Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
-        set CARGO_BUILD_TARGET=
 
         %R% CMD INSTALL --build . %R_ARGS%
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
         rem Bundle third party licenses from statically linked crates
         cd src\rust
+        if %errorlevel% neq 0 exit /b %errorlevel%
         cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
 requirements:
   build:
