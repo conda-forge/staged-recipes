@@ -2,8 +2,9 @@ mkdir build_core
 cd build_core
 export ISISROOT=$PREFIX
 
-cp $SRC_DIR/isis/src/core/IsisPreferences $ISISROOT
-cp $SRC_DIR/isis/src/core/TestPreferences $ISISROOT
+ISIS_CORE_DIR=$(find "$SRC_DIR" -type d -path "*/isis/src/core" | head -n 1)
+cp "$ISIS_CORE_DIR/IsisPreferences" "$ISISROOT"
+cp "$ISIS_CORE_DIR/TestPreferences" "$ISISROOT"
 
 cmake -GNinja \
   ${CMAKE_ARGS} \
