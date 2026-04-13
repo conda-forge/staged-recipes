@@ -1,0 +1,42 @@
+From: conda-forge <conda-forge@example.com>
+Date: Tue, 08 Apr 2025 00:00:00 +0000
+Subject: [PATCH] Use sysroot libraries instead of LFS-tracked stub binaries
+
+The pre-built stub .so files in src/nvcv/util/stubs/ are tracked via
+Git LFS. GitHub source tarballs do not include LFS content, so the files
+arrive as text pointer files that the linker cannot process.
+
+Replace the hardcoded stub paths with find_library() calls so that CMake
+locates the equivalent libraries from the conda build sysroot, which
+already matches the target __glibc version.
+---
+ src/nvcv/util/CMakeLists.txt | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/src/nvcv/util/CMakeLists.txt b/src/nvcv/util/CMakeLists.txt
+index aa72802..bb93c12 100644
+--- a/src/nvcv/util/CMakeLists.txt
++++ b/src/nvcv/util/CMakeLists.txt
+@@ -141,6 +141,10 @@
+     # Moreover using the normal linker on Ubuntu 18.04 results in
+     # linking errors.
+
++    find_library(LIBDL_STUB dl REQUIRED)
++    find_library(LIBRT_STUB rt REQUIRED)
++    find_library(LIBPTHREAD_STUB pthread REQUIRED)
++
+     target_link_options(nvcv_util_compat
+         PUBLIC
+             -static-libstdc++
+@@ -149,9 +153,9 @@
+             -Wl,-u__cxa_thread_atexit_impl
+             ${linkcompat}
+             -Wl,--push-state,--no-as-needed
+-            ${CMAKE_CURRENT_SOURCE_DIR}/stubs/libdl-2.17_stub.so
+-            ${CMAKE_CURRENT_SOURCE_DIR}/stubs/librt-2.17_stub.so
+-            ${CMAKE_CURRENT_SOURCE_DIR}/stubs/libpthread-2.17_stub.so
++            ${LIBDL_STUB}
++            ${LIBRT_STUB}
++            ${LIBPTHREAD_STUB}
+             -Wl,--pop-state
+     )
