@@ -1,0 +1,98 @@
+schema_version: 1
+
+context:
+  version: "3.0.0"
+
+recipe:
+  name: sfincs-suite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/landreman/sfincs/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 67806cb26c02d592ccc2c56358c05a6bb1dc9111e1d85755a3d2d2b325a8f994
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+  - package:
+      name: sfincs
+    build:
+      string: mpi_${{ mpi }}_h${{ hash }}_${{ build_number }}
+      script: build.sh
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("sfincs", upper_bound="x.x") }}
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("fortran") }}
+        - make
+        - grep
+      host:
+        - mpi [build=${{ mpi }}]
+        - petsc
+        - hdf5
+        - hdf5 [build=mpi_${{ mpi }}_*]
+        - netcdf-fortran
+        - netcdf-fortran [build=mpi_${{ mpi }}_*]
+      run:
+        - petsc
+        - libopenblas
+        - matplotlib-base
+        - h5py
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - sfincs
+          lib:
+            - sfincs
+          files:
+            - etc/conda/test-files/sfincs/*
+      - files:
+          source:
+            - fortran/version3/examples/quick_2species_FPCollisions_noEr/input.namelist
+            - fortran/version3/examples/quick_2species_FPCollisions_noEr/tests.py
+            - fortran/version3/examples/testsCommon.py
+        script:
+          # OpenMPI needs a writable HOME and permission to run as root in containers
+          - export HOME="${TMPDIR:-/tmp}"
+          - export OMPI_ALLOW_RUN_AS_ROOT=1
+          - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+          # Check everything loads
+          - sfincs
+          # Run example
+          - cd fortran/version3/examples/quick_2species_FPCollisions_noEr
+          - mpiexec -n 1 sfincs
+          # Validate output
+          - python ./tests.py
+
+  - package:
+      name: sfincs-${{ mpi }}
+    build:
+      noarch: generic
+      # Avoid inheriting built script and do nothing instead
+      script: "true"
+    requirements:
+      run:
+        # Pin to the exact build variant, which is the mpi variant that built
+        - ${{ pin_subpackage("sfincs", exact=true) }}
+    tests:
+      - script:
+          - which sfincs
+
+about:
+  summary: "SFINCS: the Stellarator Fokker-Planck Iterative Neoclassical Conservative Solver"
+  license: BSD-2-Clause
+  license_file: LICENSE
+  homepage: https://github.com/landreman/sfincs
+  repository: https://github.com/landreman/sfincs
+  documentation: https://github.com/landreman/sfincs
+
+extra:
+  feedstock-name: sfincs
+  recipe-maintainers:
+    - landreman
+    - matthewfeickert
