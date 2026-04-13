@@ -1,5 +1,5 @@
 context:
-  version: "2.1.0"
+  version: "2.1.1"
   pkg_name: "spotify-voyager"
 
 package:
@@ -8,12 +8,22 @@ package:
 
 source:
   url: https://github.com/spotify/voyager/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 5f8d687f310b67e9661bb6226b68eea4c8d0c5d48f5866be11c8a37884ce6ed1
+  sha256: b04306f63b3fdd7aada8ca2bd74d53ec6b0746623e6b69f3820c2c412c75a23e
 
 build:
   number: 0
   script:
+    # Upstream's release workflow copies the repo-level C++ sources into
+    # python/src before building Python artifacts:
+    # https://github.com/spotify/voyager/blob/v2.1.1/.github/workflows/all.yml#L260-L264
+    # The v2.1.1 GitHub release tarball also carries broken Python package
+    # metadata; see https://github.com/spotify/voyager/pull/129.
     - cd python
+    - rm -rf src/cpp
+    - cp -r ../cpp src/
+    - sed -i.bak 's/version = "2.0.10"/version = "2.1.1"/' pyproject.toml
+    - sed -i.bak 's/m.attr("version") = nb::make_tuple(2, 1, 0);/m.attr("version") = nb::make_tuple(2, 1, 1);/' src/bindings.cpp
+    - export CMAKE_GENERATOR=Ninja
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -23,16 +33,22 @@ requirements:
         - python
         - cross-python_${{ target_platform }}
         - numpy
-        - pybind11
-        - setuptools
+        - scikit-build-core
+        - nanobind
+        - cmake
+        - ninja
     - ${{ compiler("cxx") }}
     - ${{ stdlib("c") }}
+    - cmake
+    - ninja
   host:
     - python
     - pip
     - numpy
-    - pybind11
-    - setuptools
+    - scikit-build-core
+    - nanobind
+    - cmake
+    - ninja
   run:
     - python
     - numpy
