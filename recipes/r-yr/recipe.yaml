@@ -17,20 +17,24 @@ build:
     rpaths:
       - lib/R/lib/
       - lib/
-  script: |
-    # No install from brew on MacOS
-    export DISABLE_AUTOBREW=1
-    # Make libR findable for Cargo and R wrapper scripts
-    export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
-    export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
-    export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
-    # Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
-    unset CARGO_BUILD_TARGET
-    ${R} CMD INSTALL --build . ${R_ARGS} || cat src/Makevars
-    cat src/Makevars
-    # Bundle throd party licenses from statically linked crates
-    cd src/rust
-    cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
+  script:
+    if: unix
+    then: |
+      # No install from brew on MacOS
+      export DISABLE_AUTOBREW=1
+
+      # Make libR findable for Cargo and R wrapper scripts
+      export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
+      export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
+      export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
+      # Unset CARGO_BUILD_TARGET so cargo outputs to rust/target/release/ as Makevars expects
+      unset CARGO_BUILD_TARGET
+
+      ${R} CMD INSTALL --build . ${R_ARGS}
+
+      # Bundle third party licenses from statically linked crates
+      cd src/rust
+      cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
   skip:
     - win
 
