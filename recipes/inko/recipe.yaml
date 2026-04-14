@@ -28,21 +28,6 @@ build:
       $env.INKO_STD = "/nonexistent/inko/std"
       $env.INKO_RT  = "/nonexistent/inko/runtime"
 
-      # llvm-sys forwards `-lxml2` to the final link because llvmdev was
-      # built with LLVM's XML remark support. conda-forge's libxml2-16
-      # ships only the versioned runtime (libxml2.so.16 / libxml2.16.dylib)
-      # with no unversioned linker symlink, so create one in a shim dir
-      # and put it on RUSTFLAGS. The resulting binary has a DT_NEEDED
-      # against the versioned runtime, which is what libxml2-16 provides.
-      let shim = $"($env.SRC_DIR)/xml2-shim"
-      mkdir $shim
-      if $nu.os-info.name == "macos" {
-        ^ln -sf $"($env.PREFIX)/lib/libxml2.16.dylib" $"($shim)/libxml2.dylib"
-      } else {
-        ^ln -sf $"($env.PREFIX)/lib/libxml2.so.16" $"($shim)/libxml2.so"
-      }
-      $env.RUSTFLAGS = $"-L ($shim) ($env.RUSTFLAGS? | default '')"
-
       cargo auditable build --release --locked
 
       # Conda-forge's Rust toolchain sets CARGO_BUILD_TARGET, so artifacts
@@ -84,16 +69,18 @@ requirements:
     # needed at link time. `libzlib` ships only the versioned runtime.
     - zlib
     - zstd
-    # libxml2-16 is the runtime library that llvm-sys forwards `-lxml2`
-    # to. The top-level `libxml2` package is just tools + this runtime
-    # post-2.15, so pulling in libxml2-16 directly skips the tools we
-    # don't need.
-    - libxml2-16
+    # libxml2-devel provides the unversioned `libxml2.so` / `libxml2.dylib`
+    # linker symlink and headers that llvm-sys needs — llvm-sys forwards
+    # `-lxml2` to the final link because llvmdev was built with LLVM's
+    # XML remark support. libxml2-devel pulls in libxml2-16 (the runtime)
+    # as a hard dependency.
+    - libxml2-devel
     - libffi
   run:
-    # libxml2-16 does not set a run_exports, so we have to list it
-    # explicitly — without it the test env doesn't get the runtime dylib
-    # and `inko --help` aborts with "Library not loaded: libxml2.16.dylib".
+    # libxml2-devel and libxml2-16 do not set a run_exports, so list
+    # libxml2-16 explicitly — without it the test env does not get the
+    # runtime dylib and `inko --help` aborts with
+    # "Library not loaded: libxml2.16.dylib".
     - libxml2-16
 
 tests:
