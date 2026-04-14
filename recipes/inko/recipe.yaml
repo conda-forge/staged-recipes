@@ -15,9 +15,59 @@ build:
   number: 0
   skip: win
   script:
+    interpreter: nu
     env:
       CARGO_PROFILE_RELEASE_STRIP: symbols
-    file: build.sh
+    content: |
+      $env.LLVM_SYS_180_PREFIX = $env.PREFIX
+
+      # The patched Config::new() resolves INKO_STD / INKO_RT at runtime
+      # from current_exe(); the compile-time env!() fallback still has to
+      # resolve to something, so we bake placeholder-free literals that
+      # rattler's prefix rewriter will leave alone.
+      $env.INKO_STD = "/nonexistent/inko/std"
+      $env.INKO_RT  = "/nonexistent/inko/runtime"
+
+      # llvm-sys forwards `-lxml2` to the final link because llvmdev was
+      # built with LLVM's XML remark support. conda-forge's libxml2-16
+      # ships only the versioned runtime (libxml2.so.16 / libxml2.16.dylib)
+      # with no unversioned linker symlink, so create one in a shim dir
+      # and put it on RUSTFLAGS. The resulting binary has a DT_NEEDED
+      # against the versioned runtime, which is what libxml2-16 provides.
+      let shim = $"($env.SRC_DIR)/xml2-shim"
+      mkdir $shim
+      if $nu.os-info.name == "macos" {
+        ^ln -sf $"($env.PREFIX)/lib/libxml2.16.dylib" $"($shim)/libxml2.dylib"
+      } else {
+        ^ln -sf $"($env.PREFIX)/lib/libxml2.so.16" $"($shim)/libxml2.so"
+      }
+      $env.RUSTFLAGS = $"-L ($shim) ($env.RUSTFLAGS? | default '')"
+
+      cargo auditable build --release --locked
+
+      # Conda-forge's Rust toolchain sets CARGO_BUILD_TARGET, so artifacts
+      # land in target/<triple>/release/. Fall back to target/release/ for
+      # native-only builds.
+      let triple = $env.CARGO_BUILD_TARGET? | default ''
+      let target_dir = if ($"target/($triple)/release/inko" | path exists) {
+        $"target/($triple)/release"
+      } else {
+        "target/release"
+      }
+
+      let install_rt  = $"($env.PREFIX)/lib/inko/runtime"
+      mkdir $"($env.PREFIX)/bin"
+      mkdir $install_rt
+      cp $"($target_dir)/inko"      $"($env.PREFIX)/bin/inko"
+      cp $"($target_dir)/libinko.a" $"($install_rt)/libinko.a"
+
+      # The standard library ships as Inko source files; copy std/src
+      # wholesale and rename it to std so the installed layout matches
+      # lib/inko/std/... instead of lib/inko/src/....
+      cp -r std/src $"($env.PREFIX)/lib/inko/src"
+      mv $"($env.PREFIX)/lib/inko/src" $"($env.PREFIX)/lib/inko/std"
+
+      cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 requirements:
   build:
@@ -27,6 +77,7 @@ requirements:
     - ${{ compiler('rust') }}
     - cargo-bundle-licenses
     - cargo-auditable
+    - nushell
   host:
     - llvmdev 18.1.*
     # `zlib` (not `libzlib`) provides the `libz.so` symlink and headers
@@ -39,6 +90,11 @@ requirements:
     # don't need.
     - libxml2-16
     - libffi
+  run:
+    # libxml2-16 does not set a run_exports, so we have to list it
+    # explicitly — without it the test env doesn't get the runtime dylib
+    # and `inko --help` aborts with "Library not loaded: libxml2.16.dylib".
+    - libxml2-16
 
 tests:
   - script:
