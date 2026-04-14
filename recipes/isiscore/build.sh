@@ -1,3 +1,4 @@
+cd $SRC_DIR
 mkdir build_core
 cd build_core
 export ISISROOT=$PREFIX
