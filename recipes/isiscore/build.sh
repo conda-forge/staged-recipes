@@ -2,6 +2,9 @@ mkdir build_core
 cd build_core
 export ISISROOT=$PREFIX
 
+ISIS_CORE_DIR=$(find "$SRC_DIR" -type d -path "*/isis/src/core" | head -n 1)
+echo "ISIS_CORE_DIR=$ISIS_CORE_DIR"
+
 cmake -GNinja \
   ${CMAKE_ARGS} \
   -DBUILD_CORE_TESTS=OFF \
@@ -10,7 +13,7 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INSTALL_DATADIR=$PREFIX \
-  $SRC_DIR/*/isis/src/core
+  "$ISIS_CORE_DIR"
 ninja install
 cd swig/python
 ${PYTHON} -m pip install . --no-deps --no-build-isolation --prefix=$PREFIX
