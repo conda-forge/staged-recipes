@@ -10,7 +10,7 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INSTALL_DATADIR=$PREFIX \
-  ../isis/src/core
+  $SRC_DIR/isis/src/core
 ninja install
 cd swig/python
 ${PYTHON} -m pip install . --no-deps --no-build-isolation --prefix=$PREFIX
