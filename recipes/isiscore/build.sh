@@ -14,6 +14,8 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INSTALL_DATADIR=$PREFIX \
+  -DPython_EXECUTABLE="$PYTHON" \
+  -DPython_ROOT_DIR="$PREFIX" \
   "$CORE_DIR"
 ninja install
 cd "$CORE_DIR/swig/python"
