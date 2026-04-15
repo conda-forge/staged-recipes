@@ -1,0 +1,58 @@
+context:
+  version: "2.23.0"
+  stringzilla_commit: "2f4b1386ca2ed3c4178c1e4f467a2e78a911f3b2"
+
+package:
+  name: usearch
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/unum-cloud/USearch/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: df1f370d60fb2bbeddf337c43cc2935e7a77500d2064dc3807d3d832b6b64cd3
+  - url: https://github.com/ashvardanian/StringZilla/archive/${{ stringzilla_commit }}.tar.gz
+    sha256: 8ba3c72fb36e97df5529a2df36652c61106057f88e9822af653377eef470ba55
+    target_directory: stringzilla
+
+build:
+  number: 0
+  script:
+    env:
+      USEARCH_USE_SIMSIMD: "0"
+      USEARCH_USE_FP16LIB: "0"
+    content:
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools >=42
+    - wheel
+    - pybind11
+    - numpy
+  run:
+    - python
+    - numpy
+    - tqdm
+
+tests:
+  - python:
+      imports:
+        - usearch
+        - usearch.index
+      pip_check: true
+  - script: python -c "import numpy as np; from usearch.index import Index; idx = Index(ndim=3); vec = np.array([0.2, 0.6, 0.4], dtype=np.float32); idx.add(42, vec); matches = idx.search(vec, 1); assert len(matches) == 1 and matches[0].key == 42"
+
+about:
+  homepage: https://github.com/unum-cloud/USearch
+  summary: Smaller and faster single-file vector search engine from Unum
+  repository: https://github.com/unum-cloud/USearch
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch

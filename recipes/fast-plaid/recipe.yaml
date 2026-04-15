@@ -1,0 +1,111 @@
+context:
+  version: "1.4.6.290"
+
+package:
+  name: fast-plaid
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lightonai/fast-plaid/archive/refs/tags/1.4.6.tar.gz
+  sha256: de6959c398307cac64deccd98af925fc8d040656248f21f300dbafd3806829fd
+
+build:
+  number: 0
+  skip:
+    - win
+    - match(python, "<3.10")
+    - match(python, ">=3.14")
+  script:
+    env:
+      CARGO_BUILD_JOBS: "1"
+      LIBTORCH_USE_PYTORCH: "1"
+    content:
+      - |
+        ${{ PYTHON }} - <<'PY'
+        from pathlib import Path
+
+        current_section = None
+        current_list = None
+        rendered = []
+
+        for line in Path("ci-290.toml").read_text().splitlines():
+            stripped = line.strip()
+
+            if stripped.startswith("[") and stripped.endswith("]"):
+                current_section = stripped
+                current_list = None
+                rendered.append(line)
+                continue
+
+            if current_section == "[build-system]" and stripped == "requires = [":
+                current_list = "build-system"
+                rendered.append(line)
+                continue
+
+            if current_section == "[project]" and stripped == "dependencies = [":
+                current_list = "project"
+                rendered.append(line)
+                continue
+
+            if current_list and stripped == "]":
+                current_list = None
+                rendered.append(line)
+                continue
+
+            if current_list == "build-system" and '"torch == 2.9.0",' in line:
+                rendered.append('  "torch >= 2.9, <2.10",')
+                continue
+
+            if current_list == "project":
+                if '"maturin >= 1.8.6",' in line or '"setuptools >= 78.1.1",' in line:
+                    continue
+                if '"torch == 2.9.0",' in line:
+                    rendered.append('  "torch >= 2.9, <2.10",')
+                    continue
+
+            rendered.append(line)
+
+        Path("pyproject.toml").write_text("\n".join(rendered) + "\n")
+        PY
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - maturin >=1.8.6
+    - numpy >=1.26.4
+    - setuptools >=78.1.1
+    - pytorch >=2.9,<2.10
+  run:
+    - python >=3.10
+    - fastkmeans ==0.5.0
+    - joblib >=1.5.1
+    - pytorch >=2.9,<2.10
+    - numpy >=1.26.4
+    - filelock >=3.20.0
+    - usearch >=2.21.0
+
+tests:
+  - python:
+      imports:
+        - fast_plaid.search
+        - fast_plaid.filtering
+      pip_check: true
+  - script: python -c "import tempfile; from fast_plaid import search; idx = search.FastPlaid(index=tempfile.mkdtemp(), device='cpu'); idx.close()"
+
+about:
+  homepage: https://github.com/lightonai/fast-plaid
+  summary: High-performance engine for multi-vector search
+  repository: https://github.com/lightonai/fast-plaid
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
