@@ -19,6 +19,8 @@ cmake -GNinja \
   -DINC_DIR="$PREFIX/include" \
   -DINCLUDE_DIR="$CORE_DIR/include" \
   "$CORE_DIR"
+
 ninja install
-cd "$CORE_DIR/swig/python"
+
+cd "swig/python"
 ${PYTHON} -m pip install . --no-deps --no-build-isolation
