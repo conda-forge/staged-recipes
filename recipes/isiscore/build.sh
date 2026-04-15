@@ -1,6 +1,6 @@
-cd $SRC_DIR
-CORE_DIR=$(find . -type d -path "*/isis/src/core" | head -n 1)
-echo "Using CORE_DIR=$CORE_DIR"
+cd "$SRC_DIR"
+CORE_DIR=$(find "$SRC_DIR" -type d -path "*/isis/src/core" | head -n 1)
+CORE_DIR=$(realpath "$CORE_DIR")
 
 mkdir build_core
 cd build_core
@@ -14,7 +14,7 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INSTALL_DATADIR=$PREFIX \
-  "../$CORE_DIR"
+  "$CORE_DIR"
 ninja install
-cd swig/python
-${PYTHON} -m pip install . --no-deps --no-build-isolation --prefix=$PREFIX
+cd "$CORE_DIR/swig/python"
+${PYTHON} -m pip install . --no-deps --no-build-isolation
