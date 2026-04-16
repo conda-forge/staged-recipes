@@ -20,36 +20,39 @@ build:
       - lib/R/lib/
       - lib/
   script:
-    - if: unix
-      then: |
-        # No install from brew on MacOS
-        export DISABLE_AUTOBREW=1
+    env:
+      NOT_CRAN: "1"
+    content:
+      - if: unix
+        then: |
+          # No install from brew on MacOS
+          export DISABLE_AUTOBREW=1
 
-        # Make libR findable for Cargo and R wrapper scripts
-        export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
-        export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
-        export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
+          # Make libR findable for Cargo and R wrapper scripts
+          export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
+          export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
+          export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
 
-        ${R} CMD INSTALL --build . ${R_ARGS}
+          ${R} CMD INSTALL --build . ${R_ARGS}
 
-        # Bundle third party licenses from statically linked crates
-        cd src/rust
-        cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
-      else: |
-        rem Make R.dll findable for Cargo and R wrapper scripts
-        set RUSTFLAGS=-C link-arg=-L%PREFIX%\lib\R\lib %RUSTFLAGS%
-        set PATH=%PREFIX%\lib\R\bin\x64;%PATH%
-        rem Use MinGW linker for build scripts (compiled for MSVC host target)
-        set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=x86_64-w64-mingw32-gcc
+          # Bundle third party licenses from statically linked crates
+          cd src/rust
+          cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
+        else: |
+          rem Make R.dll findable for Cargo and R wrapper scripts
+          set RUSTFLAGS=-C link-arg=-L%PREFIX%\lib\R\lib %RUSTFLAGS%
+          set PATH=%PREFIX%\lib\R\bin\x64;%PATH%
+          rem Use MinGW linker for build scripts (compiled for MSVC host target)
+          set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=x86_64-w64-mingw32-gcc
 
-        %R% CMD INSTALL --build . %R_ARGS%
-        if %errorlevel% neq 0 exit /b %errorlevel%
+          %R% CMD INSTALL --build . %R_ARGS%
+          if %errorlevel% neq 0 exit /b %errorlevel%
 
-        rem Bundle third party licenses from statically linked crates
-        cd src\rust
-        if %errorlevel% neq 0 exit /b %errorlevel%
-        cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
-        if %errorlevel% neq 0 exit /b %errorlevel%
+          rem Bundle third party licenses from statically linked crates
+          cd src\rust
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
+          if %errorlevel% neq 0 exit /b %errorlevel%
 
 requirements:
   build:
