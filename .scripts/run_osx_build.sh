@@ -19,8 +19,8 @@ if [[ "$arch" == "x86_64" ]]; then
 fi
 sed -i.bak "s/platforms = .*/platforms = [\"osx-${arch}\"]/" pixi.toml
 echo "Creating environment"
-pixi install
-pixi list
+pixi install --environment osx
+pixi list --environment osx
 echo "Activating environment"
 eval "$(pixi shell-hook)"
 mv pixi.toml.bak pixi.toml
