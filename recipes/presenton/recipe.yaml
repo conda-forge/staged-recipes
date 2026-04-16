@@ -19,6 +19,9 @@ build:
   # Not noarch: python — asyncpg, chromadb, and other deps have compiled extensions.
   # Also pinned to Python 3.11 only by upstream (>=3.11,<3.12).
   # The build.sh / build.bat are auto-discovered by rattler-build / conda-build.
+  skip:
+    # Python 3.11 does not exist for win-arm64 on conda-forge
+    - win and aarch64
   dynamic_linking:
     missing_dso_allowlist:
       # ---- Linux: system-glibc libraries (governed by __glibc virtual package) ----
@@ -46,7 +49,17 @@ build:
       - "@loader_path/libstdc++.6.dylib"
 
 requirements:
+  build:
+    # Tools that must execute on the BUILD machine during build.sh.
+    # When cross-compiling (e.g. linux-64 → win-64), rattler-build resolves
+    # `host` for the TARGET platform — those packages cannot run on Linux.
+    # build.sh uses `python3` (config patching) and `node`/`pnpm` (JS build),
+    # so both must be available as BUILD-platform (Linux) binaries here.
+    - python
+    - nodejs >=20
+
   host:
+    # TARGET platform runtime — what the installed package executes against.
     - python
     - pip
     - setuptools
@@ -95,8 +108,8 @@ requirements:
     # ---- C/C++ runtime (Linux only — macOS uses the SDK, Windows uses UCRT) ---
     - if: linux
       then:
-        - libgcc-ng >=12
-        - libstdcxx-ng >=12
+        - libgcc >=12
+        - libstdcxx >=12
 
 tests:
   - script:
