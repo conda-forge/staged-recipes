@@ -1,0 +1,115 @@
+context:
+  version: "1.4.0"
+
+package:
+  name: histfitter
+  version: ${{ version }}
+
+source:
+  url: https://github.com/histfitter/histfitter/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5263032d88f7c392065e45403bbba80687c00b037632374b072afc34d83f7472
+  patches:
+    - patches/0001-install-with-python-sitearch.patch
+    - patches/0002-drop-proof.patch
+    - patches/0003-clean-up-installs.patch
+    - patches/0004-add-init.py.patch
+    - patches/0005-remove-extraneous-caches.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - cmake ${CMAKE_ARGS}  -S . -B build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - root_base
+  host:
+    - root_base
+    - root_cxx_standard
+    - python
+  run:
+    - python
+    - pyhf
+
+tests:
+  - python:
+      imports:
+        - HistFitter
+  - package_contents:
+      strict: true
+      files:
+        # --- core library ---
+        - lib/libHistFitter.so
+        - lib/libHistFitter.rootmap
+        - lib/libHistFitter_rdict.pcm
+        # --- headers ---
+        - include/histfitter/*.h
+        # --- executables ---
+        - bin/histfitter
+        - bin/setup_histfitter.sh
+        - bin/histfitter_env_setup.sh
+        # --- key scripts ---
+        - bin/histfitter
+        - bin/GenerateJSONOutput.py
+        - bin/GenerateTreeDescriptionFromJSON.py
+        - bin/HypoTest.py
+        - bin/PrintFitResult.py
+        - bin/PrintFitResultTex.py
+        - bin/SysTable.py
+        - bin/SysTableTex.py
+        - bin/SystRankingPlot.py
+        - bin/SystRankingPlotMP.py
+        - bin/UpperLimitTable.py
+        - bin/UpperLimitTableTex.py
+        - bin/YieldsTable.py
+        - bin/YieldsTableTex.py
+        - bin/contourPlotter.py
+        - bin/getFinalFullJER.py
+        - bin/harvestHepdataToContours.py
+        - bin/harvestToContours.py
+        - bin/mergeSysTableBreakdown.py
+        - bin/multiplexContours.py
+        - bin/multiplexJSON.py
+        - bin/plotUpDown.py
+        - bin/pull_maker.py
+        # --- python package ---
+        - lib/python*/site-packages/HistFitter/**
+        - share/histfitter/**
+        # compiled python (allowed via wildcard)
+        - bin/__pycache__/*
+        - bin/*.pyc
+        - lib/python*/site-packages/HistFitter/__pycache__/*
+        - lib/python*/site-packages/HistFitter/**/*.pyc
+
+about:
+  homepage: https://github.com/histfitter/histfitter
+  summary: 'HistFitter is a framework for building and performing statistical fits with ROOT HistFactory using configurable histogram workflows.'
+  description: |
+    HistFitter is a statistical analysis framework designed for performing shape and normalization fits using the HistFactory model within ROOT and RooFit. It enables rapid development of physics analyses by generating histograms from ROOT TTrees according to user-defined configurations describing samples, variables, selections, and systematic uncertainties.
+
+    The framework dynamically constructs histograms in memory from configuration files, allowing the histogram-building stage to be executed once and reused across multiple analyses or parameter scans. Generated histograms and corresponding HistFactory XML configurations are written to ROOT files for efficient reuse, avoiding repeated data processing when analysis definitions remain unchanged.
+
+    HistFitter integrates histogram production, statistical model construction, and workspace evaluation into a single workflow, supporting large-scale analyses that require constrained nuisance parameters derived from control regions and applied to signal-region fits.
+  license: BSD-2-Clause
+  license_file: LICENSE
+  documentation: https://twiki.cern.ch/twiki/bin/viewauth/AtlasProtected/SusyFitter
+  repository: https://github.com/histfitter/histfitter
+
+extra:
+  recipe-maintainers:
+    - kratsg
+    - matthewfeickert
+    - longjon929
