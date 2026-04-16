@@ -1,48 +1,50 @@
-context:
-  version: "0.4.0"
+{% set goname = "github.com/opentofu/tofu-ls" %}
+{% set version = "0.4.0" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
 
 package:
-  name: tofu-ls
-  version: ${{ version }}
+  name: {{ name|lower }}
+  version: {{ version|replace("-", "_") }}
 
 source:
-  url: https://github.com/opentofu/tofu-ls/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: b491921c707197e5bf5eb4aa7631887f8979a39e383ea14b963a170e68626923
-  target_directory: src
+  - folder: {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: b491921c707197e5bf5eb4aa7631887f8979a39e383ea14b963a170e68626923
 
 build:
   number: 0
   script:
-    - cd src
-    - go-licenses save . --save_path ../library_licenses
-    - if: unix
-      then: go build -v -o $PREFIX/bin/tofu-ls -ldflags="-s -w"
-      else: go build -v -o %LIBRARY_BIN%\tofu-ls.exe -ldflags="-s"
+    - pushd {{ pkg_src }}
+    - go build -ldflags "-X main.revision=conda-forge" -v -o $PREFIX/bin/tofu-ls  # [not win]
+    - go build -ldflags "-X main.revision=conda-forge" -v -o %LIBRARY_BIN%\tofu-ls.exe  # [win]
+    - go-licenses save . --save_path ../../../../library_licenses
+    # Clear out cache to avoid file not removable warnings
+    - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
 
 requirements:
   build:
-    - ${{ compiler("go-nocgo") }}
+    - {{ compiler("go-nocgo") }}
     - go-licenses
 
-tests:
-  - script: tofu-ls -help
-  - package_contents:
-      bin:
-        - tofu-ls
-      strict: true
+test:
+  commands:
+    - tofu-ls version
 
 about:
-  homepage: https://github.com/opentofu/tofu-ls
+  home: https://opentofu.org
   summary: OpenTofu Language Server
   description: |
     The official OpenTofu language server (tofu-ls) maintained by the
     OpenTofu Core Team provides IDE features to any LSP-compatible editor.
   license: MPL-2.0
+  license_family: MPL
   license_file:
     - src/LICENSE
     - library_licenses/
-  documentation: https://github.com/opentofu/tofu-ls/tree/main/docs
-  repository: https://github.com/opentofu/tofu-ls
+  doc_url: https://{{ goname }}/tree/main/docs
+  dev_url: https://{{ goname }}
 
 extra:
   recipe-maintainers:
