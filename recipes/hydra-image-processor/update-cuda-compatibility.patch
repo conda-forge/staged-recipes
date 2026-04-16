@@ -1,0 +1,54 @@
+From 75e16fbe4f53bae6dcadf3b1cd326b64010da6d5 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Thu, 16 Apr 2026 00:33:48 -0600
+Subject: [PATCH] fix: Update CUDA compatibility
+
+* The conda-forge CUDA 12 toolchain uses CXX 14 and nvcc.  nvcc in C++11 mode
+  can't parse CXX 14 libstdc++ headers. Update to CXX17 and match for nvcc by
+  setting CUDA_STANDARD 17. The hardcoded CUDA_ARCHITECTURES is out of date so
+  remove it to let the target property inherit from CMAKE_CUDA_ARCHITECTURES,
+  which gives the build control over what GPU architectures to target.
+---
+ src/c/Cuda/CMakeLists.txt | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/src/c/Cuda/CMakeLists.txt b/src/c/Cuda/CMakeLists.txt
+index cf419dd..344fc4f 100644
+--- a/src/c/Cuda/CMakeLists.txt
++++ b/src/c/Cuda/CMakeLists.txt
+@@ -2,7 +2,6 @@
+ option(USE_PROCESS_MUTEX "Use process-level mutex to guard GPU calls" OFF)
+ 
+ # Common settings for both libraries
+-set(CUDA_ARCHITECTURES "52;61;70;75;86;89")
+ set(COMMON_INCLUDES
+     $<INSTALL_INTERFACE:include>
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+@@ -96,10 +95,10 @@ function(setup_cuda_library LIB_NAME STATIC_OR_SHARED)
+     target_include_directories(${LIB_NAME}
+         PUBLIC ${COMMON_INCLUDES}
+     )
+-    
++
+     # Link OpenMP libraries
+     target_link_libraries(${LIB_NAME} PRIVATE CUDA::cudart_static PRIVATE OpenMP::OpenMP_CXX)
+-    
++
+     # Set CUDA-specific compile options
+     # Pass the OpenMP flag to the host compiler via nvcc
+     target_compile_options(${LIB_NAME} PRIVATE
+@@ -108,10 +107,9 @@ function(setup_cuda_library LIB_NAME STATIC_OR_SHARED)
+     )
+ 
+     set_target_properties(${LIB_NAME} PROPERTIES
+-        CUDA_STANDARD 11
++        CUDA_STANDARD 17
+         CUDA_SEPARABLE_COMPILATION ON
+         CUDA_RESOLVE_DEVICE_SYMBOLS ON
+-        CUDA_ARCHITECTURES "${CUDA_ARCHITECTURES}"
+         POSITION_INDEPENDENT_CODE ON
+     )
+ 
+-- 
+2.53.0
+
