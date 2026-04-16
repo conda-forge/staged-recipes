@@ -23,7 +23,7 @@ pixi install --environment osx
 pixi list --environment osx
 echo "Activating environment"
 eval "$(pixi shell-hook)"
-mv pixi.toml.bak pixi.toml
+# mv pixi.toml.bak pixi.toml
 ( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 ( endgroup "Provisioning build tools" ) 2> /dev/null
