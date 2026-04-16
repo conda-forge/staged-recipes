@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  name: fortitude
+  version: "0.1.0"
+
+package:
+  name: "${{ name|lower }}"
+  version: "${{ version }}"
+
+source:
+  url: https://github.com/PlasmaFAIR/fortitude/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 54a9a12f0b0f85f1448c75d4204b9eb5d2c3ef2095abb364716cd884b65e553b
+
+build:
+  number: 0
+
+  python:
+    version_independent: true
+
+  script:
+    env:
+      JEMALLOC_SYS_WITH_LG_PAGE: ${{ '16' if aarch64 else '' }}
+      PYTHONIOENCODING: utf-8
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - "${{ PYTHON }} -m pip install -v --use-pep517 --no-deps --no-build-isolation ."
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - "cargo-bundle-licenses"
+    - "${{ compiler('c') }}"
+    - if: not win
+      then:
+        - "${{ stdlib('c') }}"
+    - "${{ compiler('rust') }}"
+    - make
+    - "maturin >=1.2.2,<2"
+    - if: build_platform != target_platform
+      then:
+        - "python ${{ python_min }}.*"
+        - cross-python_${{ target_platform }}
+  host:
+    - python ${{ python_min }}.*
+    - maturin <2
+    - pip
+  run:
+    - python
+
+tests:
+  - script: fortitude --help
+  - python:
+      imports:
+        - fortitude
+
+about:
+  homepage: https://github.com/PlasmaFAIR/fortitude
+  summary: A Fortran linter, written in Rust and installable with Python.
+  description: |
+    A Fortran linter, written in Rust and installable with Python
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://fortitude.readthedocs.io/en/stable/
+  repository: https://github.com/PlasmaFAIR/fortitude
+
+extra:
+  recipe-maintainers:
+    - andrewdnolan
+    - xylar
