@@ -45,6 +45,27 @@ build:
           rem Point the MSVC host linker at real link.exe so build scripts link cleanly.
           set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=link.exe
 
+          rem conda-forge only ships rust-std-msvc. Download the matching
+          rem rust-std-gnu tarball from static.rust-lang.org and merge it into
+          rem conda's rust sysroot so cargo can cross-compile to the gnu target.
+          for /f "tokens=2" %%v in ('rustc --version') do set RUSTC_VERSION=%%v
+          curl -fL -o "%SRC_DIR%\rust-std-gnu.tar.xz" ^
+            "https://static.rust-lang.org/dist/rust-std-%RUSTC_VERSION%-x86_64-pc-windows-gnu.tar.xz"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          tar -xf "%SRC_DIR%\rust-std-gnu.tar.xz" -C "%SRC_DIR%"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          set RUST_STD_SRC=%SRC_DIR%\rust-std-%RUSTC_VERSION%-x86_64-pc-windows-gnu\rust-std-x86_64-pc-windows-gnu\lib\rustlib
+          xcopy /E /I /Y ^
+            "%RUST_STD_SRC%\x86_64-pc-windows-gnu" ^
+            "%BUILD_PREFIX%\Library\lib\rustlib\x86_64-pc-windows-gnu"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          rem Drop the `.in` suffix, matching how other targets (e.g. wasm32)
+          rem are laid out in the installed sysroot.
+          copy /Y ^
+            "%RUST_STD_SRC%\manifest-rust-std-x86_64-pc-windows-gnu.in" ^
+            "%BUILD_PREFIX%\Library\lib\rustlib\manifest-rust-std-x86_64-pc-windows-gnu"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+
           %R% CMD INSTALL --build . %R_ARGS%
           if %errorlevel% neq 0 exit /b %errorlevel%
 
