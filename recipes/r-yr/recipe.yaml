@@ -14,6 +14,7 @@ source:
     - patches/0001-libdir-cargo-build-target.patch
 
 build:
+  skip: win
   number: 0
   dynamic_linking:
     rpaths:
@@ -22,82 +23,30 @@ build:
   script:
     env:
       NOT_CRAN: "1"
+      DISABLE_AUTOBREW: "1"
     content:
-      - if: unix
-        then: |
-          # No install from brew on MacOS
-          export DISABLE_AUTOBREW=1
+      - |
+        # Make libR findable for Cargo and R wrapper scripts
+        export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
+        export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
+        export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
 
-          # Make libR findable for Cargo and R wrapper scripts
-          export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
-          export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
-          export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
+        ${R} CMD INSTALL --build . ${R_ARGS}
 
-          ${R} CMD INSTALL --build . ${R_ARGS}
-
-          # Bundle third party licenses from statically linked crates
-          cd src/rust
-          cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
-        else: |
-          rem Make R.dll findable for Cargo and R wrapper scripts
-          set RUSTFLAGS=-C link-arg=-L%PREFIX%\lib\R\lib %RUSTFLAGS%
-          set PATH=%PREFIX%\lib\R\bin\x64;%PATH%
-          rem Point the MSVC host linker at real link.exe so build scripts link cleanly.
-          set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=link.exe
-
-          rem conda-forge only ships rust-std-msvc. Download the matching
-          rem rust-std-gnu tarball from static.rust-lang.org and merge it into
-          rem conda's rust sysroot so cargo can cross-compile to the gnu target.
-          for /f "tokens=2" %%v in ('rustc --version') do set RUSTC_VERSION=%%v
-          curl -fL -o "%SRC_DIR%\rust-std-gnu.tar.xz" ^
-            "https://static.rust-lang.org/dist/rust-std-%RUSTC_VERSION%-x86_64-pc-windows-gnu.tar.xz"
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          tar -xf "%SRC_DIR%\rust-std-gnu.tar.xz" -C "%SRC_DIR%"
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          set RUST_STD_SRC=%SRC_DIR%\rust-std-%RUSTC_VERSION%-x86_64-pc-windows-gnu\rust-std-x86_64-pc-windows-gnu\lib\rustlib
-          xcopy /E /I /Y ^
-            "%RUST_STD_SRC%\x86_64-pc-windows-gnu" ^
-            "%BUILD_PREFIX%\Library\lib\rustlib\x86_64-pc-windows-gnu"
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          rem Drop the `.in` suffix, matching how other targets (e.g. wasm32)
-          rem are laid out in the installed sysroot.
-          copy /Y ^
-            "%RUST_STD_SRC%\manifest-rust-std-x86_64-pc-windows-gnu.in" ^
-            "%BUILD_PREFIX%\Library\lib\rustlib\manifest-rust-std-x86_64-pc-windows-gnu"
-          if %errorlevel% neq 0 exit /b %errorlevel%
-
-          %R% CMD INSTALL --build . %R_ARGS%
-          if %errorlevel% neq 0 exit /b %errorlevel%
-
-          rem Bundle third party licenses from statically linked crates
-          cd src\rust
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
-          if %errorlevel% neq 0 exit /b %errorlevel%
+        # Bundle third party licenses from statically linked crates
+        cd src/rust
+        cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
 
 requirements:
   build:
-    - if: win
-      then:
-        - ${{ compiler('m2w64_c') }}
-        - ${{ stdlib('m2w64_c') }}
-      else:
-        - ${{ compiler('c') }}
-        - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
     - ${{ compiler('rust') }}
     - cargo-bundle-licenses
-    - ${{ 'm2-' if win }}autoconf
-    - ${{ 'm2-automake-wrapper' if win else 'automake' }}
-    - ${{ 'm2-' if win }}pkg-config
-    - ${{ 'm2-' if win }}make
-    - if: win
-      then:
-        - m2-filesystem
-        - m2-sed
-        - m2-grep
-        - m2-coreutils
-        - m2-zip
-        - xz
+    - autoconf
+    - automake
+    - pkg-config
+    - make
   host:
     - r-base
   run:
