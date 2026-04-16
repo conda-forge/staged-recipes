@@ -22,7 +22,7 @@ echo "Creating environment"
 pixi install --environment osx
 pixi list --environment osx
 echo "Activating environment"
-eval "$(pixi shell-hook)"
+eval "$(pixi shell-hook --environment osx)"
 # mv pixi.toml.bak pixi.toml
 ( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
