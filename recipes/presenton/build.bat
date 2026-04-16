@@ -19,10 +19,9 @@ python -c ^
 "import re, sys; path='next.config.mjs'; c=open(path).read(); exit(0) if 'output:' in c else open(path,'w').write(re.sub(r'(const nextConfig\s*=\s*\{)', r'\1\n  output: \"standalone\",', c, count=1)) or print('Patched next.config.mjs')"
 if errorlevel 1 goto :error
 
-REM Install pnpm via corepack (bundled with Node.js >=16.9)
-call corepack enable
-if errorlevel 1 goto :error
-call corepack prepare pnpm@10 --activate
+REM Install pnpm via npm (always available with nodejs; corepack may not
+REM be in PATH in conda environments even when Node.js >=16.9 is present).
+call npm install -g pnpm@10
 if errorlevel 1 goto :error
 
 REM Patch package.json for win32/x64 supportedArchitectures so pnpm downloads
@@ -30,9 +29,11 @@ REM only win32-x64 optional dependencies (avoids linux/darwin binaries in the pa
 python -c "import json; p=json.load(open('package.json')); p.setdefault('pnpm',{})['supportedArchitectures']={'os':['win32'],'cpu':['x64'],'libc':['unknown']}; json.dump(p,open('package.json','w'),indent=2); print('package.json: supportedArchitectures -> win32/x64')"
 if errorlevel 1 goto :error
 
-REM shamefully-hoist mirrors npm's flat node_modules layout; required so
-REM TypeScript can resolve transitive type declarations (e.g. @types/d3).
-echo shamefully-hoist=true>> .npmrc
+REM node-linker=hoisted creates a fully flat node_modules (like npm) with real
+REM file copies and no .pnpm/ virtual store. Benefits: TypeScript resolves
+REM transitive type declarations, and the package contains no symlinks
+REM (symlinks are not supported in Windows conda packages).
+echo node-linker=hoisted>> .npmrc
 
 call pnpm install --no-frozen-lockfile
 if errorlevel 1 goto :error
