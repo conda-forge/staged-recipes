@@ -68,17 +68,11 @@ mv /opt/conda/conda-meta/history /opt/conda/conda-meta/history.$(date +%Y-%m-%d-
 echo > /opt/conda/conda-meta/history
 
 pushd "${FEEDSTOCK_ROOT}"
-arch=$(uname -m)
-if [[ "$arch" == "x86_64" ]]; then
-  arch="64"
-fi
-sed -i.bak -e "s/# __PLATFORM_SPECIFIC_ENV__ =/docker-build-linux-$arch =/" pixi.toml
 echo "Creating environment"
-PIXI_CACHE_DIR=/opt/conda pixi install --environment docker-build-linux-$arch
-pixi list --environment docker-build-linux-$arch
+PIXI_CACHE_DIR=/opt/conda pixi install --environment linux-64
+pixi list --environment linux-64
 echo "Activating environment"
-eval "$(pixi shell-hook --environment docker-build-linux-$arch)"
-mv pixi.toml.bak pixi.toml
+eval "$(pixi shell-hook --environment linux-64)"
 popd
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
