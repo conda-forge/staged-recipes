@@ -13,11 +13,15 @@ export CONDA_BLD_PATH="${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}"
 mkdir -p "${MINIFORGE_HOME}"
 curl -fsSL https://pixi.sh/install.sh | bash
 export PATH="~/.pixi/bin:$PATH"
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
+fi
 echo "Creating environment"
-pixi install --environment osx-64
-pixi list --environment osx-64
+pixi install --environment osx-${arch}
+pixi list --environment osx-${arch}
 echo "Activating environment"
-eval "$(pixi shell-hook --environment osx-64)"
+eval "$(pixi shell-hook --environment osx-${arch})"
 ( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 ( endgroup "Provisioning build tools" ) 2> /dev/null
