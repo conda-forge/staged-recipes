@@ -9,13 +9,11 @@ license = "BSD-3-Clause"
 license-file = "LICENSE.txt"
 authors = ["@conda-forge/core"]
 channels = ["conda-forge"]
-platforms = [
-    "linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"
-    # TODO: add here and below in `feature.win` when possible
-    # "win-arm64"
-]
+# CI rewrites every `platforms = ...` line to the target platform, so keep each on one line.
+# TODO: add "win-arm64" here and in `feature.build-win` when possible
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 
-[feature.python.dependencies]
+[dependencies]
 python = "3.12.*"
 
 [feature.build.dependencies]
@@ -29,33 +27,26 @@ frozendict = "*"
 networkx = "2.4.*"
 rattler-build-conda-compat = ">=1.2.0,<2.0.0a0"
 
-[feature.linux]
-# The linux feature runs on every platform that can run Docker.
-platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
-[feature.linux.tasks.build-linux]
+# build-locally wrappers
+
+[feature.build-linux.tasks.build-linux]
 description = "build for Linux inside a docker container"
 cmd = "python build-locally.py --filter 'linux*'"
 
-[feature.osx]
-# The osx env will run directly on the machine.
+[feature.build-osx]
 platforms = ["osx-64", "osx-arm64"]
-[feature.osx.tasks.build-osx]
+[feature.build-osx.tasks.build-osx]
 description = "build directly on a MacOS host machine"
 cmd = "python build-locally.py --filter 'osx*'"
-[feature.osx.tasks.build-osx.env]
-CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
-MINIFORGE_HOME = "$CONDA_PREFIX"
-OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
+env.CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
+env.OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
 
-[feature.win]
-# The windows env will run directly on the machine.
+[feature.build-win]
 platforms = ["win-64"]
-[feature.win.tasks.build-win]
+[feature.build-win.tasks.build-win]
 description = "build directly on a Windows host machine"
 cmd = "python build-locally.py --filter 'win*'"
-[feature.win.tasks.build-win.env]
-CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
-MINIFORGE_HOME = "$CONDA_PREFIX"
+env.CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
 
 [feature.grayskull.dependencies]
 grayskull = ">=2.7.3"
@@ -85,11 +76,11 @@ platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 dependencies.shellcheck = ">=0.10.0"
 
 [environments]
-# linux only needs Python to run build-locally.py. Everything else happens in Docker.
-linux = ["linux", "python"]
-# osx and win do run natively on the machine, so we need the build deps too
-osx = ["osx", "python", "build"]
-win = ["win", "python", "build"]
-build = ["python", "build"]
-grayskull = ["python", "grayskull"]
-conda-smithy = ["python", "conda-smithy", "shellcheck"]
+build = ["build"]
+grayskull = ["grayskull"]
+conda-smithy = ["conda-smithy", "shellcheck"]
+# The build-locally wrappers only need Python to run build-locally.py. The build tools are
+# provisioned by the `.scripts` (inside docker for Linux) from the `build` env.
+build-linux = ["build-linux"]
+build-osx = ["build-osx"]
+build-win = ["build-win"]
