@@ -28,6 +28,7 @@ echo Installing environment
 if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
     mkdir "%MINIFORGE_HOME%"
     copy /Y pixi.toml "%MINIFORGE_HOME%"
+    copy /Y LICENSE.txt "%MINIFORGE_HOME%"
     pushd "%MINIFORGE_HOME%"
 ) else (
     pushd "%REPO_ROOT%"
