@@ -14,10 +14,10 @@ mkdir -p "${MINIFORGE_HOME}"
 curl -fsSL https://pixi.sh/install.sh | bash
 export PATH="~/.pixi/bin:$PATH"
 echo "Creating environment"
-pixi install --environment osx
-pixi list --environment osx
+pixi install --environment osx-64
+pixi list --environment osx-64
 echo "Activating environment"
-eval "$(pixi shell-hook --environment osx)"
+eval "$(pixi shell-hook --environment osx-64)"
 ( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 ( endgroup "Provisioning build tools" ) 2> /dev/null
