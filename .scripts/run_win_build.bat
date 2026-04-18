@@ -26,214 +26,201 @@ setlocal
 
 set "PS_SCRIPT=%TEMP%\install-pixi.ps1"
 
-powershell -NoProfile -ExecutionPolicy Bypass ^
--Command "$script = @'
-param (
-[string] $PixiVersion = 'latest',
-[string] $PixiHome = "$Env:USERPROFILE.pixi",
-[switch] $NoPathUpdate,
-[string] $PixiRepourl = 'https://github.com/prefix-dev/pixi'
-)
+(
+echo param (
+echo     [string] $PixiVersion = 'latest',
+echo     [string] $PixiHome = "$Env:USERPROFILE.pixi",
+echo     [switch] $NoPathUpdate,
+echo     [string] $PixiRepourl = 'https://github.com/prefix-dev/pixi'
+echo )
+echo.
+echo Set-StrictMode -Version Latest
+echo.
+echo function Mask-Credentials {
+echo     param(
+echo         [string] $Url
+echo     )
+echo     return $Url -replace '://[^:@/]+:[^@/]+@', '://***:***@'
+echo }
+echo.
+echo function Publish-Env {
+echo     if (-not ("Win32.NativeMethods" -as [Type])) {
+echo         Add-Type -Namespace Win32 -Name NativeMethods -MemberDefinition @"
+echo [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+echo public static extern IntPtr SendMessageTimeout(
+echo     IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
+echo     uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+echo "@
+echo     }
+echo.
+echo     $HWND_BROADCAST = [IntPtr] 0xffff
+echo     $WM_SETTINGCHANGE = 0x1a
+echo     $result = [UIntPtr]::Zero
+echo.
+echo     [Win32.Nativemethods]::SendMessageTimeout($HWND_BROADCAST,
+echo         $WM_SETTINGCHANGE,
+echo         [UIntPtr]::Zero,
+echo         "Environment",
+echo         2,
+echo         5000,
+echo         [ref] $result
+echo     ) ^| Out-Null
+echo }
+echo.
+echo function Write-Env {
+echo     param(
+echo         [String] $name,
+echo         [String] $val,
+echo         [Switch] $global
+echo     )
+echo.
+echo     $RegisterKey = if ($global) {
+echo         Get-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
+echo     } else {
+echo         Get-Item -Path 'HKCU:'
+echo     }
+echo.
+echo     $EnvRegisterKey = $RegisterKey.OpenSubKey('Environment', $true)
+echo     if ($null -eq $val) {
+echo         $EnvRegisterKey.DeleteValue($name)
+echo     } else {
+echo         $RegistryValueKind = if ($val.Contains('%%')) {
+echo             [Microsoft.Win32.RegistryValueKind]::ExpandString
+echo         } elseif ($EnvRegisterKey.GetValue($name)) {
+echo             $EnvRegisterKey.GetValueKind($name)
+echo         } else {
+echo             [Microsoft.Win32.RegistryValueKind]::String
+echo         }
+echo         $EnvRegisterKey.SetValue($name, $val, $RegistryValueKind)
+echo     }
+echo     Publish-Env
+echo }
+echo.
+echo function Get-Env {
+echo     param(
+echo         [String] $name,
+echo         [Switch] $global
+echo     )
+echo.
+echo     $RegisterKey = if ($global) {
+echo         Get-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
+echo     } else {
+echo         Get-Item -Path 'HKCU:'
+echo     }
+echo.
+echo     $EnvRegisterKey = $RegisterKey.OpenSubKey('Environment')
+echo     $RegistryValueOption = [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+echo     $EnvRegisterKey.GetValue($name, $null, $RegistryValueOption)
+echo }
+echo.
+echo function Get-TargetTriple() {
+echo   try {
+echo     $a = [System.Reflection.Assembly]::LoadWithPartialName("System.Runtime.InteropServices.RuntimeInformation")
+echo     $t = $a.GetType("System.Runtime.InteropServices.RuntimeInformation")
+echo     $p = $t.GetProperty("OSArchitecture")
+echo     switch ($p.GetValue($null).ToString())
+echo     {
+echo       "X86" { return "i686-pc-windows-msvc" }
+echo       "X64" { return "x86_64-pc-windows-msvc" }
+echo       "Arm" { return "thumbv7a-pc-windows-msvc" }
+echo       "Arm64" { return "aarch64-pc-windows-msvc" }
+echo     }
+echo   } catch {
+echo     Write-Verbose "Get-TargetTriple: Exception when trying to determine OS architecture."
+echo     Write-Verbose $_
+echo   }
+echo.
+echo   Write-Verbose("Get-TargetTriple: falling back to Is64BitOperatingSystem.")
+echo   if ([System.Environment]::Is64BitOperatingSystem) {
+echo     return "x86_64-pc-windows-msvc"
+echo   } else {
+echo     return "i686-pc-windows-msvc"
+echo   }
+echo }
+echo.
+echo if ($Env:PIXI_VERSION) {
+echo     $PixiVersion = $Env:PIXI_VERSION
+echo }
+echo.
+echo if ($Env:PIXI_HOME) {
+echo     $PixiHome = $Env:PIXI_HOME
+echo }
+echo.
+echo if ($Env:PIXI_NO_PATH_UPDATE) {
+echo     $NoPathUpdate = $true
+echo }
+echo.
+echo if ($Env:PIXI_REPOURL) {
+echo     $PixiRepourl = $Env:PIXI_REPOURL -replace '/$', ''
+echo }
+echo.
+echo $ARCH = Get-TargetTriple
+echo.
+echo if (-not @("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc") -contains $ARCH) {
+echo     throw "ERROR: could not find binaries for this platform ($ARCH)."
+echo }
+echo.
+echo $BINARY = "pixi-$ARCH"
+echo.
+echo if ($Env:PIXI_DOWNLOAD_URL) {
+echo     $DOWNLOAD_URL = $Env:PIXI_DOWNLOAD_URL
+echo } elseif ($PixiVersion -eq 'latest') {
+echo     $DOWNLOAD_URL = "$PixiRepourl/releases/latest/download/$BINARY.zip"
+echo } else {
+echo     $PixiVersion = "v" + ($PixiVersion -replace '^v', '')
+echo     $DOWNLOAD_URL = "$PixiRepourl/releases/download/$PixiVersion/$BINARY.zip"
+echo }
+echo.
+echo $BinDir = Join-Path $PixiHome 'bin'
+echo.
+echo Write-Host "This script will automatically download and install Pixi ($PixiVersion) for you."
+echo Write-Host "Getting it from this url: $(Mask-Credentials $DOWNLOAD_URL)"
+echo Write-Host "The binary will be installed into '$BinDir'"
+echo.
+echo $TEMP_FILE = [System.IO.Path]::GetTempFileName()
+echo.
+echo try {
+echo     Write-Host "Invoking web request"
+echo     Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $TEMP_FILE
+echo.
+echo     if (!(Test-Path -Path $BinDir)) {
+echo         Write-Host "Creating install dir"
+echo         New-Item -ItemType Directory -Path $BinDir ^| Out-Null
+echo     }
+echo.
+echo     $ZIP_FILE = $TEMP_FILE + ".zip"
+echo     Write-Host "Renaming to zip file"
+echo     Rename-Item -Path $TEMP_FILE -NewName $ZIP_FILE
+echo.
+echo     Write-Host "Expanding zip archive to '$BinDir'"
+echo     Expand-Archive -Path $ZIP_FILE -DestinationPath $BinDir -Force
+echo } catch {
+echo     Write-Host "Error: '$(Mask-Credentials $DOWNLOAD_URL)' is not available or failed to download"
+echo     exit 1
+echo } finally {
+echo     Write-Host "Removing zip file"
+echo     Remove-Item -Path $ZIP_FILE
+echo }
+echo.
+echo if (!$NoPathUpdate) {
+echo     $PATH = Get-Env 'PATH'
+echo     if ($PATH -notlike "*$BinDir*") {
+echo         Write-Output "Adding $BinDir to PATH"
+echo         Write-Env -name 'PATH' -val "$BinDir;$PATH"
+echo         $Env:PATH = "$BinDir;$PATH"
+echo         Write-Output "You may need to restart your shell"
+echo     } else {
+echo         Write-Output "$BinDir is already in PATH"
+echo     }
+echo } else {
+echo     Write-Output "You may need to update your PATH manually to use pixi"
+echo }
+) > "%PS_SCRIPT%"
 
-Set-StrictMode -Version Latest
-
-function Mask-Credentials {
-param(
-[string] $Url
-)
-# Replace username:password@ pattern with ***:***@
-return $Url -replace '://[^:@/]+:[^@/]+@', '://***:***@'
-}
-
-function Publish-Env {
-if (-not ("Win32.NativeMethods" -as [Type])) {
-Add-Type -Namespace Win32 -Name NativeMethods -MemberDefinition @"
-[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-public static extern IntPtr SendMessageTimeout(
-IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
-uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
-"@
-}
-
-```
-$HWND_BROADCAST = [IntPtr] 0xffff
-$WM_SETTINGCHANGE = 0x1a
-$result = [UIntPtr]::Zero
-
-[Win32.Nativemethods]::SendMessageTimeout($HWND_BROADCAST,
-    $WM_SETTINGCHANGE,
-    [UIntPtr]::Zero,
-    \"Environment\",
-    2,
-    5000,
-    [ref] $result
-) | Out-Null
-```
-
-}
-
-function Write-Env {
-param(
-[String] $name,
-[String] $val,
-[Switch] $global
-)
-
-```
-$RegisterKey = if ($global) {
-    Get-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
-} else {
-    Get-Item -Path 'HKCU:'
-}
-
-$EnvRegisterKey = $RegisterKey.OpenSubKey('Environment', $true)
-if ($null -eq $val) {
-    $EnvRegisterKey.DeleteValue($name)
-} else {
-    $RegistryValueKind = if ($val.Contains('%')) {
-        [Microsoft.Win32.RegistryValueKind]::ExpandString
-    } elseif ($EnvRegisterKey.GetValue($name)) {
-        $EnvRegisterKey.GetValueKind($name)
-    } else {
-        [Microsoft.Win32.RegistryValueKind]::String
-    }
-    $EnvRegisterKey.SetValue($name, $val, $RegistryValueKind)
-}
-Publish-Env
-```
-
-}
-
-function Get-Env {
-param(
-[String] $name,
-[Switch] $global
-)
-
-```
-$RegisterKey = if ($global) {
-    Get-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
-} else {
-    Get-Item -Path 'HKCU:'
-}
-
-$EnvRegisterKey = $RegisterKey.OpenSubKey('Environment')
-$RegistryValueOption = [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
-$EnvRegisterKey.GetValue($name, $null, $RegistryValueOption)
-```
-
-}
-
-function Get-TargetTriple() {
-try {
-$a = [System.Reflection.Assembly]::LoadWithPartialName("System.Runtime.InteropServices.RuntimeInformation")
-$t = $a.GetType("System.Runtime.InteropServices.RuntimeInformation")
-$p = $t.GetProperty("OSArchitecture")
-switch ($p.GetValue($null).ToString())
-{
-"X86" { return "i686-pc-windows-msvc" }
-"X64" { return "x86_64-pc-windows-msvc" }
-"Arm" { return "thumbv7a-pc-windows-msvc" }
-"Arm64" { return "aarch64-pc-windows-msvc" }
-}
-} catch {
-Write-Verbose "Get-TargetTriple: Exception when trying to determine OS architecture."
-Write-Verbose $_
-}
-
-Write-Verbose("Get-TargetTriple: falling back to Is64BitOperatingSystem.")
-if ([System.Environment]::Is64BitOperatingSystem) {
-return "x86_64-pc-windows-msvc"
-} else {
-return "i686-pc-windows-msvc"
-}
-}
-
-if ($Env:PIXI_VERSION) {
-$PixiVersion = $Env:PIXI_VERSION
-}
-
-if ($Env:PIXI_HOME) {
-$PixiHome = $Env:PIXI_HOME
-}
-
-if ($Env:PIXI_NO_PATH_UPDATE) {
-$NoPathUpdate = $true
-}
-
-if ($Env:PIXI_REPOURL) {
-$PixiRepourl = $Env:PIXI_REPOURL -replace '/$', ''
-}
-
-$ARCH = Get-TargetTriple
-
-if (-not @("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc") -contains $ARCH) {
-throw "ERROR: could not find binaries for this platform ($ARCH)."
-}
-
-$BINARY = "pixi-$ARCH"
-
-if ($Env:PIXI_DOWNLOAD_URL) {
-$DOWNLOAD_URL = $Env:PIXI_DOWNLOAD_URL
-} elseif ($PixiVersion -eq 'latest') {
-$DOWNLOAD_URL = "$PixiRepourl/releases/latest/download/$BINARY.zip"
-} else {
-$PixiVersion = "v" + ($PixiVersion -replace '^v', '')
-$DOWNLOAD_URL = "$PixiRepourl/releases/download/$PixiVersion/$BINARY.zip"
-}
-
-$BinDir = Join-Path $PixiHome 'bin'
-
-Write-Host "This script will automatically download and install Pixi ($PixiVersion) for you."
-Write-Host "Getting it from this url: $(Mask-Credentials $DOWNLOAD_URL)"
-Write-Host "The binary will be installed into '$BinDir'"
-
-$TEMP_FILE = [System.IO.Path]::GetTempFileName()
-
-try {
-Write-Host "Invoking web request"
-Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $TEMP_FILE
-
-```
-if (!(Test-Path -Path $BinDir)) {
-    Write-Host \"Creating install dir\"
-    New-Item -ItemType Directory -Path $BinDir | Out-Null
-}
-
-$ZIP_FILE = $TEMP_FILE + \".zip\"
-Write-Host \"Renaming to zip file\"
-Rename-Item -Path $TEMP_FILE -NewName $ZIP_FILE
-
-Write-Host \"Expanding zip archive to '$BinDir'\"
-Expand-Archive -Path $ZIP_FILE -DestinationPath $BinDir -Force
-```
-
-} catch {
-Write-Host "Error: '$(Mask-Credentials $DOWNLOAD_URL)' is not available or failed to download"
-exit 1
-} finally {
-Write-Host "Removing zip file"
-Remove-Item -Path $ZIP_FILE
-}
-
-if (!$NoPathUpdate) {
-$PATH = Get-Env 'PATH'
-if ($PATH -notlike "*$BinDir*") {
-Write-Output "Adding $BinDir to PATH"
-Write-Env -name 'PATH' -val "$BinDir;$PATH"
-$Env:PATH = "$BinDir;$PATH"
-Write-Output "You may need to restart your shell"
-} else {
-Write-Output "$BinDir is already in PATH"
-}
-} else {
-Write-Output "You may need to update your PATH manually to use pixi"
-}
-'@; Set-Content -Path '%PS_SCRIPT%' -Value $script"
-
-powershell -NoProfile -ExecutionPolicy unrestricted -File "%PS_SCRIPT%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
 
 endlocal
+
 
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
