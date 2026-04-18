@@ -22,28 +22,7 @@ if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 call :start_group "Provisioning base env with pixi"
 echo Installing pixi
 
-@echo off
-
-powershell -NoProfile -ExecutionPolicy Bypass ^
-"$ErrorActionPreference = 'Stop'; ^
-Set-StrictMode -Version Latest; ^
-$BinDir = Join-Path $Env:USERPROFILE '.pixi\bin'; ^
-Write-Host 'This script will automatically download and install Pixi (latest) for you.'; ^
-Write-Host 'Getting it from this url: https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.zip'; ^
-Write-Host 'The binary will be installed into' $BinDir; ^
-Write-Host 'Invoking web request'; ^
-$TEMP_FILE = [System.IO.Path]::GetTempFileName(); ^
-Invoke-WebRequest -Uri 'https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.zip' -OutFile $TEMP_FILE; ^
-Write-Host 'Creating install dir'; ^
-New-Item -ItemType Directory -Path $BinDir -Force | Out-Null; ^
-$ZIP_FILE = $TEMP_FILE + '.zip'; ^
-Write-Host 'Renaming to zip file'; ^
-Rename-Item -Path $TEMP_FILE -NewName $ZIP_FILE; ^
-Write-Host 'Expanding zip archive to' $BinDir; ^
-Expand-Archive -Path $ZIP_FILE -DestinationPath $BinDir -Force; ^
-Write-Host 'Removing zip file'; ^
-Remove-Item -Path $ZIP_FILE; ^
-Write-Output 'Adding' $BinDir 'to PATH'"
+powershell -NoProfile -ExecutionPolicy Bypass "$ErrorActionPreference='Stop'; Set-StrictMode -Version Latest; $BinDir=Join-Path $Env:USERPROFILE '.pixi\bin'; Write-Host 'Downloading Pixi...'; $TEMP_FILE=[System.IO.Path]::GetTempFileName(); Invoke-WebRequest -Uri 'https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.zip' -OutFile $TEMP_FILE; New-Item -ItemType Directory -Path $BinDir -Force | Out-Null; $ZIP_FILE=$TEMP_FILE+'.zip'; Move-Item $TEMP_FILE $ZIP_FILE; Expand-Archive $ZIP_FILE $BinDir -Force; Remove-Item $ZIP_FILE; Write-Host 'Installed to' $BinDir"
 
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
