@@ -1,0 +1,63 @@
+schema_version: 1
+
+context:
+  name: burner-redis
+  version: "0.1.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/burner-redis/burner_redis-${{ version }}.tar.gz
+  sha256: 189698190835809f73fdb5af9ead4962975181c7fc8297045a5d831c0d465add
+
+build:
+  number: 0
+  skip: target_platform == "linux-ppc64le"
+  script:
+    - python -m pip install . -vv
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - pip
+    - python
+    - maturin >=1,<2
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - burner_redis
+      pip_check: true
+  - requirements:
+      run:
+        - pip
+    script:
+      - pip check
+      - python -c "import burner_redis; burner_redis.BurnerRedis()"
+
+about:
+  summary: An embedded, in-process Redis-compatible database
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/PrefectHQ/burner-redis
+  repository: https://github.com/PrefectHQ/burner-redis
+
+extra:
+  recipe-maintainers:
+    - desertaxle
