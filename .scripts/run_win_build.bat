@@ -22,8 +22,7 @@ if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 call :start_group "Provisioning base env with pixi"
 echo Installing pixi
 
-powershell -NoProfile -ExecutionPolicy Bypass "$ErrorActionPreference='Stop'; Set-StrictMode -Version Latest; $BinDir=Join-Path $Env:USERPROFILE '.pixi\bin'; $TEMP_FILE=[System.IO.Path]::GetTempFileName(); Write-Host 'Invoking download only'; $Response = Invoke-WebRequest -Uri 'https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.zip' -Verbose -UseBasicParsing"
-powershell -NoProfile -ExecutionPolicy Bypass "$ErrorActionPreference='Stop'; Set-StrictMode -Version Latest; $BinDir=Join-Path $Env:USERPROFILE '.pixi\bin'; $TEMP_FILE=[System.IO.Path]::GetTempFileName(); Write-Host 'Invoking download and write to outfile'; Invoke-WebRequest -Uri 'https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.zip' -Verbose -OutFile $TEMP_FILE"
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "iwr -useb https://github.com/prefix-dev/pixi/tree/lucascolley-patch-2/install/install.ps1 | iex"
 
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
