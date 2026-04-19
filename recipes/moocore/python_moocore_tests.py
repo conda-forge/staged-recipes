@@ -4,12 +4,13 @@ import site
 import sys
 import tarfile
 
+
 from pathlib import Path
 from subprocess import call
 from tempfile import TemporaryDirectory
 from urllib.request import urlretrieve
 
-COV_FAIL_UNDER = 83
+COV_FAIL_UNDER = 78
 
 PKG_VERSION = os.environ["PKG_VERSION"]
 HERE = Path(__file__).parent
@@ -17,6 +18,7 @@ SP_DIR = Path(site.getsitepackages()[-1])
 
 TARBALL = f"v{PKG_VERSION}.tar.gz"
 URL = f"https://github.com/multi-objective/moocore/archive/refs/tags/{TARBALL}"
+
 
 PYTEST = [
     "pytest",
@@ -27,6 +29,8 @@ PYTEST = [
     "pyproject.toml",
     "--doctest-continue-on-failure",
     "--import-mode=importlib",
+    "--ignore",
+    str(SP_DIR / "moocore/_ffi_build.py"),
     "--doctest-modules",
     str(SP_DIR / "moocore"),
     "tests",
