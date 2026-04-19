@@ -1,0 +1,93 @@
+context:
+  version: "0.2.20260317-201835+0234c21f"
+
+package:
+  name: sapling
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebook/sapling/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 6e0eaa1b1a6e21003e45120ba23b6466ae2a91b5b5d5e80c347981dfac61d975
+
+build:
+  number: 0
+  script:
+    - cd eden/scm
+    - if: unix
+      then:
+        - export SAPLING_OSS_BUILD=1
+        - export SAPLING_SKIP_OTHER_RUST_BINARIES=1
+        - export HGNAME=sl
+        - export LIBGIT2_NO_VENDOR=1
+        - export LIBSSH2_SYS_USE_PKG_CONFIG=1
+        - export OPENSSL_DIR="${PREFIX}"
+        - export OPENSSL_NO_VENDOR=1
+        - export ZSTD_SYS_USE_PKG_CONFIG=1
+        - export PYTHON_SYS_EXECUTABLE="${PYTHON}"
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - ${{ PYTHON }} setup.py build build_rust_ext -i -l build_mo
+        - mkdir -p "${PREFIX}/bin"
+        - cp build/scripts-3.*/sl "${PREFIX}/bin/sl"
+    - if: win
+      then:
+        - set "SAPLING_OSS_BUILD=1"
+        - set "SAPLING_SKIP_OTHER_RUST_BINARIES=1"
+        - set "HGNAME=sl"
+        - set "LIBGIT2_NO_VENDOR=1"
+        - set "LIBSSH2_SYS_USE_PKG_CONFIG=1"
+        - set "OPENSSL_DIR=%LIBRARY_PREFIX%"
+        - set "OPENSSL_NO_VENDOR=1"
+        - set "ZSTD_SYS_USE_PKG_CONFIG=1"
+        - set "PYTHON_SYS_EXECUTABLE=%PYTHON%"
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - '"%PYTHON%" setup.py build build_rust_ext -i -l build_mo'
+        - if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
+        - copy /Y build\scripts-3.*\sl.exe "%LIBRARY_BIN%\\sl.exe"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cmake
+    - pkg-config
+    - if: unix
+      then:
+        - ${{ stdlib('c') }}
+  host:
+    - libgit2
+    - libssh2
+    - openssl
+    - python
+    - setuptools
+    - zlib
+    - zstd
+  run:
+    - libgit2
+    - libssh2
+    - python
+    - zstd
+
+tests:
+  - script:
+      - sl --version
+      - sl --help
+
+about:
+  homepage: https://sapling-scm.com/
+  summary: Cross-platform, highly scalable, Git-compatible source control system
+  description: |
+    Sapling SCM is a cross-platform, highly scalable, Git-compatible source control
+    system focused on fast developer workflows in very large repositories.
+  license: GPL-2.0-only
+  license_file:
+    - LICENSE
+    - addons/LICENSE
+    - eden/scm/THIRDPARTY.yml
+  documentation: https://sapling-scm.com/docs/
+  repository: https://github.com/facebook/sapling
+
+extra:
+  recipe-maintainers:
+    - melund
