@@ -20,6 +20,16 @@ build:
   script:
     - cd src
     - go-licenses save . --save_path ../library_licenses${{ ' --ignore github.com/mattn/go-localereader' if win else '' }}
+    - if: osx
+      then:
+        # touchid-go's cgo adds -fmodules, which implicitly loads the SDK's
+        # libxml modulemap and conflicts with conda-forge's libxml2. The
+        # package uses #import and already links -framework LocalAuthentication,
+        # so dropping the flag is safe.
+        - go mod vendor
+        - sed -i.bak 's/ -fmodules//g' vendor/github.com/noamcohen97/touchid-go/*.go
+        - rm vendor/github.com/noamcohen97/touchid-go/*.bak
+        - grep -rn fmodules vendor/github.com/noamcohen97/touchid-go/ && exit 1 || true
     - if: unix
       then:
         - go build -v -o $PREFIX/bin/aws-vault -ldflags="-s -w -X main.Version=v${{ version }}" -trimpath .
@@ -43,7 +53,7 @@ tests:
       - aws-vault --version
       - if: unix
         then:
-          - aws-vault --version | grep ${{ version }}
+          - aws-vault --version 2>&1 | grep ${{ version }}
   - package_contents:
       bin:
         - aws-vault
