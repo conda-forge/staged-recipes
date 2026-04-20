@@ -1,7 +1,7 @@
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 if errorlevel 1 exit 1
 
-cargo build --release
+cargo auditable build --release --locked
 if errorlevel 1 exit 1
 
 if defined CARGO_BUILD_TARGET (
@@ -21,4 +21,18 @@ if errorlevel 1 exit 1
 mkdir %LIBRARY_INC%
 copy include\readcon-core.h %LIBRARY_INC%\
 copy include\readcon-core.hpp %LIBRARY_INC%\
+if errorlevel 1 exit 1
+
+mkdir %LIBRARY_LIB%\pkgconfig
+(
+echo prefix=${pcfiledir}/../..
+echo libdir=${prefix}/lib
+echo includedir=${prefix}/include
+echo.
+echo Name: readcon-core
+echo Description: CON file reader/writer in Rust with C FFI bindings
+echo Version: %PKG_VERSION%
+echo Libs: -L${libdir} -lreadcon_core
+echo Cflags: -I${includedir}
+) > %LIBRARY_LIB%\pkgconfig\readcon-core.pc
 if errorlevel 1 exit 1

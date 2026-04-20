@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-cargo build --release
+cargo auditable build --release --locked
 
 # conda-forge rust-activation sets CARGO_BUILD_TARGET, which places
 # output under target/<triple>/release/ instead of target/release/
