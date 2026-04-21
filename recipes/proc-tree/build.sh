@@ -8,5 +8,5 @@ cmake .. \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_PREFIX_PATH="$PREFIX"
 
-ninja -j$(nproc)
+ninja
 ninja install
