@@ -9,19 +9,19 @@ source:
   url: https://github.com/apache/sedona-db/archive/apache-sedona-db-{{ version }}.tar.gz
   sha256: 808a38f955dc1dc1c68793a2a6c707abf6299d5f2371ff7dd7b4a3c267e67333
 
+
 build:
   number: 0
   script:
-    - cd python/sedonadb
-
-    # Windows: strip the '-lstdc++' flag from pkg-config so that geos builds
-    - python -c "import os, pathlib; [f.write_text(f.read_text().replace('-lstdc++', '')) for f in pathlib.Path(os.environ['LIBRARY_PREFIX']).joinpath('lib', 'pkgconfig').glob('*.pc')]"  # [win]
+    # Windows: Patch the environment's geos.pc to remove -lstdc++
+    - patch -d "%LIBRARY_PREFIX%" -p0 -F 3 -i "%RECIPE_DIR%\win_geos.patch" # [win]
 
     # Configure PyO3 to use the host Python environment
     - export PYO3_PYTHON={{ PYTHON }}  # [not win]
     - set "PYO3_PYTHON={{ PYTHON }}"   # [win]
 
     # Generate Rust license inventory
+    - cd python/sedonadb
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - mv THIRDPARTY.yml ../../         # [not win]
     - move THIRDPARTY.yml ..\..        # [win]
@@ -34,6 +34,7 @@ build:
 
 requirements:
   build:
+    - m2-patch # [win]
     - {{ stdlib("c") }}
     - {{ compiler("c") }}
     - {{ compiler("cxx") }}
