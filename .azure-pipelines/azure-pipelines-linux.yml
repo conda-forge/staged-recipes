@@ -1,10 +1,29 @@
 jobs:
-- job: linux_64
+- job: linux
   condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   pool:
     vmImage: ubuntu-latest
   timeoutInMinutes: 360
+  strategy:
+    matrix:
+      linux_64:
+        CONFIG: linux_64
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+        LINUX_ARTIFACT: conda_pkgs_linux_64
+      linux_aarch64:
+        CONFIG: linux_aarch64
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-x86_64:alma9
+        LINUX_ARTIFACT: conda_pkgs_linux_aarch64
+
   steps:
+  # configure qemu binfmt-misc running.  This allows us to run docker containers
+  # with embedded qemu-static (aarch64 only)
+  - script: |
+      docker run --rm --privileged multiarch/qemu-user-static:register --reset --credential yes
+      ls /proc/sys/fs/binfmt_misc/
+    displayName: Configure binfmt_misc
+    condition: not(startsWith(variables['CONFIG'], 'linux_64'))
+
   - script: |
       sudo mkdir -p /opt/empty_dir
       for d in \
@@ -43,27 +62,30 @@ jobs:
   - script: |
       set -e
 
+      ARTIFACT_DIR="${CONFIG//_/-}"
+      echo "##vso[task.setvariable variable=ARTIFACT_DIR]$ARTIFACT_DIR"
+
       # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/{noarch,linux-64}/
+      mkdir -p build_artifacts/{noarch,$ARTIFACT_DIR}/
 
       export CI=azure
-      export CONFIG=linux64
-      export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-x86_64:alma9
+      export CONFIG=$(CONFIG)
+      export DOCKER_IMAGE=$(DOCKER_IMAGE)
       export AZURE=True
       .scripts/run_docker_build.sh
 
     displayName: Run docker build
-    name: linux_64_build
+    name: linux_build
 
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux
+  - publish: build_artifacts/$(ARTIFACT_DIR)/
+    artifact: $(LINUX_ARTIFACT)
 
   - publish: build_artifacts/noarch/
     artifact: conda_pkgs_noarch
 
 - job: linux_64_cuda_129
-  dependsOn: linux_64
-  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CUDA'], '1'))
+  dependsOn: linux
+  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux.outputs['linux.linux_build.NEED_CUDA'], '1'))
   pool:
     vmImage: ubuntu-latest
   timeoutInMinutes: 360
@@ -103,7 +125,7 @@ jobs:
       mkdir -p build_artifacts/linux-64/
 
       export CI=azure
-      export CONFIG=linux64_cuda129
+      export CONFIG=linux_64_cuda_compiler_version12.9
       export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-x86_64:alma9
       export AZURE=True
       .scripts/run_docker_build.sh
