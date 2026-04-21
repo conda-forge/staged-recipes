@@ -1,3 +1,5 @@
+REM Build from temp paths outside conda-build's work dir to avoid the
+REM Windows cleanup race we hit with the recipe.yaml/rattler-build route.
 set BUILD_SRC=%TEMP%\burner-redis-src-%RANDOM%%RANDOM%
 if errorlevel 1 exit /b 1
 
