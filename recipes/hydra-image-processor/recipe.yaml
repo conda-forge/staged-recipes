@@ -1,0 +1,78 @@
+context:
+  version: "3.15"
+
+package:
+  name: "hydra-image-processor"
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ericwait/hydra-image-processor/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3f24e4eaef9da55af2bb88b0ff72494dcfde13aa8df6d2b5da0210d06726d81f
+  patches:
+    - update-cuda-compatibility.patch
+    - add-cmake-install-target.patch
+
+build:
+  skip:
+    - osx
+    - cuda_compiler == "None"
+    # Skip only during the conda-forge/staged-recipes submission process as
+    # there is no CI process that supports Windows and CUDA
+    - win
+  script:
+    - if: win
+      then: set "CXXFLAGS=%CXXFLAGS% /openmp:llvm"
+    - cmake ${CMAKE_ARGS} -G Ninja -S . -B build
+    - cmake --build build --parallel ${CPU_COUNT}
+    - cmake --install build
+  # Example: cuda129_np2_py314_h<hash>_<build_number>
+  string: cuda${{ cuda_compiler_version | version_to_buildstring }}_np${{ numpy | version_to_buildstring }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  number: 0
+
+# c.f. https://github.com/conda-forge/cuda-feedstock/blob/main/recipe/doc/recipe_guide.md
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("cuda") }}
+    - if: linux and aarch64
+      then: arm-variant * ${{ arm_variant_type }}
+    - cmake
+    - ninja
+    - if: build_platform != host_platform
+      then:
+        - cross-python_${{ host_platform }}
+        - python
+        - numpy
+  host:
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - python
+    - numpy
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
+  run:
+    - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+    - python
+
+tests:
+  - python:
+      imports:
+        - HIP
+
+about:
+  summary: "GPU accelerated image processing library"
+  description: |
+    Hydra Image Processor is a hardware accelerated signal processing library
+    written with CUDA. HIP aims to create a signal processing library that can
+    be incorporated into many software tools.
+  license: BSD-3-Clause
+  license_file: license.txt
+  homepage: https://hydraimageprocessor.com/
+  repository: https://github.com/ericwait/hydra-image-processor
+  documentation: https://hydraimageprocessor.com/
+
+extra:
+  recipe-maintainers:
+    - ericwait
+    - matthewfeickert
