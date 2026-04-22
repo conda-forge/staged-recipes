@@ -1,0 +1,82 @@
+context:
+  version: "0.4.27"
+
+package:
+  name: flyctl
+  version: ${{ version }}
+
+source:
+  url: https://github.com/superfly/flyctl/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 805c4f0114f6e53a00366ed8c4cc5583408fef784643046f080d95081a4ac7b8
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --ignore github.com/in-toto/in-toto-golang --ignore github.com/jmespath/go-jmespath --ignore github.com/launchdarkly/go-jsonstream/v3 --ignore github.com/launchdarkly/go-sdk-common/v3 --save_path ../library_licenses
+    - if: unix
+      then:
+        - BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        - SHORT_COMMIT_HASH="$(curl -s "https://api.github.com/repos/superfly/flyctl/commits/v${{ version }}" | jq -r '.sha' | cut -c 1-7)"
+        - go build -v -o $PREFIX/bin/flyctl -ldflags="-s -w -X github.com/superfly/flyctl/internal/buildinfo.buildVersion=${{ version }} -X github.com/superfly/flyctl/internal/buildinfo.buildDate=${BUILD_TIME} -X github.com/superfly/flyctl/internal/buildinfo.commit=${SHORT_COMMIT_HASH}" -tags production .
+        # generate shell completions
+        - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions
+        - $PREFIX/bin/flyctl completion bash > $PREFIX/share/bash-completion/completions/flyctl
+        - $PREFIX/bin/flyctl completion fish > $PREFIX/share/fish/vendor_completions.d/flyctl.fish
+        - $PREFIX/bin/flyctl completion zsh > $PREFIX/share/zsh/site-functions/_flyctl
+      else:
+        - for /f "usebackq delims=" %%T in (`powershell -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set BUILD_TIME=%%T
+        - for /f "usebackq delims=" %%T in (`powershell -Command "((Invoke-RestMethod 'https://api.github.com/repos/superfly/flyctl/commits/v${{ version }}').sha).Substring(0, 7)"`) do set SHORT_COMMIT_HASH=%%T
+        - go build -v -o %LIBRARY_BIN%\flyctl.exe -ldflags="-s -w -X github.com/superfly/flyctl/internal/buildinfo.buildVersion=${{ version }} -X github.com/superfly/flyctl/internal/buildinfo.buildDate=%BUILD_TIME% -X github.com/superfly/flyctl/internal/buildinfo.commit=%SHORT_COMMIT_HASH%" -tags production .
+        # generate shell completions
+        - mkdir %LIBRARY_PREFIX%\share\bash-completion\completions
+        - mkdir %LIBRARY_PREFIX%\share\fish\vendor_completions.d
+        - mkdir %LIBRARY_PREFIX%\share\zsh\site-functions
+        - '%LIBRARY_BIN%\flyctl.exe completion bash > %LIBRARY_PREFIX%\share\bash-completion\completions\flyctl'
+        - '%LIBRARY_BIN%\flyctl.exe completion fish > %LIBRARY_PREFIX%\share\fish\vendor_completions.d\flyctl.fish'
+        - '%LIBRARY_BIN%\flyctl.exe completion zsh > %LIBRARY_PREFIX%\share\zsh\site-functions\_flyctl'
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - flyctl help
+      - flyctl version
+  - package_contents:
+      bin:
+        - flyctl
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/flyctl
+            - share/fish/vendor_completions.d/flyctl.fish
+            - share/zsh/site-functions/_flyctl
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/flyctl
+            - Library/share/fish/vendor_completions.d/flyctl.fish
+            - Library/share/zsh/site-functions/_flyctl
+      strict: true
+
+about:
+  homepage: https://fly.io
+  summary: CLI for deploying and managing applications on fly.io
+  description: |
+    flyctl is the command-line interface for the fly.io platform for
+    deploying and running applications on scalable hardware-isolated sandboxes.
+    Use flyctl to launch apps, manage deployments, scale machines, handle
+    secrets, configure networking, and more.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/superfly/flyctl
+  documentation: https://fly.io/docs/flyctl/
+
+extra:
+  recipe-maintainers:
+    - salim-b
