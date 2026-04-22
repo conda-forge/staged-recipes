@@ -14,7 +14,7 @@ fi
 export CXXFLAGS="$CXXFLAGS -DGTEST_USE_OWN_TR1_TUPLE=1"
 
 # Configure step
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
+cmake -GNinja -DCMAKE_INSTALL_PREFIX=$PREFIX \
  -DCMAKE_SHARED_LINKER_FLAGS="$EXTRA_LIBS" \
  -DCMAKE_EXE_LINKER_FLAGS="$EXTRA_LIBS" \
  -DTIXI_BUILD_TESTS=OFF \
@@ -23,14 +23,14 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
  ..
 
 # Build step
-make -j $CPU_COUNT
-make doc
+ninja
+ninja doc doc
 
 # remove linkage to static libs
-cmake .
+cmake -GNinja .
 
 # Install step
-make install
+ninja install
 
 # Tests
 # make test
