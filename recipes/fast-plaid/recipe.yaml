@@ -1,0 +1,71 @@
+context:
+  version: "1.4.6"
+
+package:
+  name: fast-plaid
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lightonai/fast-plaid/archive/refs/tags/1.4.6.tar.gz
+  sha256: de6959c398307cac64deccd98af925fc8d040656248f21f300dbafd3806829fd
+  patches:
+    # https://github.com/lightonai/fast-plaid/pull/43
+    - remove-runtime-build-tools.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    env:
+      CARGO_BUILD_JOBS: "1"
+      LIBTORCH_USE_PYTORCH: "1"
+    content:
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --config-settings=build-args=--auditwheel=skip
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.8.6
+    - numpy >=1.26.4
+    - setuptools >=78.1.1
+    - pytorch >=2.6,<2.10
+    - fastkmeans ==0.5.0
+    - usearch-python >=2.21.0
+  run:
+    - python
+    - fastkmeans ==0.5.0
+    - joblib >=1.5.1
+    - pytorch >=2.6
+    - numpy >=1.26.4
+    - filelock >=3.20.0
+    - usearch-python >=2.21.0
+
+tests:
+  - python:
+      imports:
+        - fast_plaid.search
+        - fast_plaid.filtering
+      pip_check: true
+  - script: python -c "import tempfile; from fast_plaid import search; idx = search.FastPlaid(index=tempfile.mkdtemp(), device='cpu'); idx.close()"
+
+about:
+  homepage: https://github.com/lightonai/fast-plaid
+  summary: High-performance engine for multi-vector search
+  repository: https://github.com/lightonai/fast-plaid
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
