@@ -1,46 +1,145 @@
 schema_version: 1
 
 context:
-  version: "0.1.3"
+  version: "0.1.4"
 
-package:
-  name: randompack
+recipe:
+  name: randompack-split
   version: ${{ version }}
 
 source:
   url: https://github.com/jonasson2/randompack/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 20481e57cb02a88c6cb7dfec167e8ca90015732ee6ddec9b8dfe7e05deb82ae4
+  sha256: 6d8fcacda084fe747e70eba3942650e0f21de6d21e6f4649d0f49a6010797ca4
 
 build:
   number: 0
-  script: |
-    cd python
-    ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
-requirements:
-  host:
-    - python
-    - pip
-    - meson-python
-    - meson
-    - ninja
-    - cython
-    - numpy
-    - pkg-config
-    - ${{ compiler('c') }}
-  run:
-    - python
-    - numpy
+outputs:
+  - package:
+      name: randompacklib
+      version: ${{ version }}
+    build:
+      number: 0
+      skip:
+        - win
+      script:
+        - if: osx
+          then:
+            - >-
+              meson setup build-lib
+              --prefix=$PREFIX
+              --libdir=lib
+              -Dblas=accelerate
+              -Dbuild_examples=false
+              -Dbuild_benchmarks=false
+              -Dbuild_tests=false
+              -Dbuild_fortran_interface=true
+          else:
+            - >-
+              meson setup build-lib
+              --prefix=$PREFIX
+              --libdir=lib
+              -Dblas=openblas
+              -Dbuild_examples=false
+              -Dbuild_benchmarks=false
+              -Dbuild_tests=false
+              -Dbuild_fortran_interface=true
+        - meson compile -C build-lib
+        - meson install -C build-lib
+    requirements:
+      build:
+        - meson
+        - ninja
+        - pkg-config
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('fortran') }}
+      host:
+        - if: not osx
+          then: openblas
+      run:
+        - if: not osx
+          then: libopenblas
+      run_exports:
+        - ${{ pin_subpackage('randompacklib', exact=True) }}
+    tests:
+      - script:
+          - test -f "${PREFIX}/include/randompack/randompack.h"
+          - test -f "${PREFIX}/lib/pkgconfig/randompack.pc"
+          - ls "${PREFIX}/lib"/librandompack.*
+          - pkg-config --exists randompack
+        requirements:
+          run:
+            - pkg-config
+    about:
+      homepage: https://github.com/jonasson2/randompack
+      repository: https://github.com/jonasson2/randompack
+      summary: C and Fortran random number generation library
+      license: MIT
+      license_file: LICENSE
 
-tests:
-  - python:
-      imports:
-        - randompack
+  - package:
+      name: randompack
+      version: ${{ version }}
+    build:
+      number: 0
+      dynamic_linking:
+        missing_dso_allowlist:
+          - if: linux
+            then: libc.so.*
+          - if: linux
+            then: libm.so.*
+      script:
+        - cd python
+        - if: osx
+          then:
+            - >-
+              ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+              -Csetup-args=-Dblas=accelerate
+          else:
+            - >-
+              ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+              -Csetup-args=-Dblas=builtin
+    requirements:
+      ignore_run_exports:
+        by_name:
+          - libgcc
+          - libgfortran
+          - libgfortran5
+      host:
+        - python
+        - pip
+        - meson-python
+        - meson
+        - ninja
+        - cython
+        - numpy
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - if: not osx
+          then: ${{ compiler('fortran') }}
+      run:
+        - python
+        - numpy
+    tests:
+      - python:
+          imports:
+            - randompack
+      - script:
+          - >-
+            python -c "import numpy as np; import randompack; rng = randompack.Rng();
+            rng.unif(10); sig = np.array([[2, 1], [1, 2]], dtype=float); rng.mvn(4, sig)"
+    about:
+      homepage: https://github.com/jonasson2/randompack
+      repository: https://github.com/jonasson2/randompack
+      summary: Python bindings for randompack with bundled native sources
+      license: MIT
+      license_file: python/LICENSE
 
 about:
   homepage: https://github.com/jonasson2/randompack
   repository: https://github.com/jonasson2/randompack
-  summary: Portable random number generation library
+  summary: Portable random number generation library with C, Fortran, and Python interfaces
   license: MIT
   license_file: LICENSE
 
