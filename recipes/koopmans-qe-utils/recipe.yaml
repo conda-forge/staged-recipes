@@ -1,0 +1,103 @@
+schema_version: 1
+
+context:
+  name: koopmans-qe-utils
+  version: "0.1.0"
+  qe_version: "7.4"
+  mpi: openmpi
+  mpi_prefix: "mpi_${{ mpi }}"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # TODO: switch back to the v${{ version }} tag once the branch is merged.
+  - url: https://github.com/epfl-theos/${{ name }}/archive/refs/heads/preparing-for-conda-release.tar.gz
+    sha256: "cbeefd65c17a3345c43e44ebf33ed09d8484a0c695e7ce58a0c6e07b66915a55"
+  - url: https://gitlab.com/QEF/q-e/-/archive/qe-${{ qe_version }}/q-e-qe-${{ qe_version }}.tar.gz
+    sha256: "b15dcfe25f4fbf15ccd34c1194021e90996393478226e601d876f7dea481d104"
+    target_directory: external/qe
+
+build:
+  number: 0
+  skip: win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    - openmpi-mpifort
+    - cmake >=3.18.0
+    - make
+    - pkg-config
+  host:
+    - libblas
+    - liblapack
+    - "hdf5 * *${{ mpi_prefix }}_*"
+    - openmpi
+    - scalapack
+    - fftw
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  run:
+    - fftw
+    - openmpi
+    - scalapack
+    - qe ==${{ qe_version }}
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+
+tests:
+  - package_contents:
+      bin:
+        - merge_evc.x
+        - wann2kcp.x
+        - epsilon.x
+  - script:
+      env:
+        # Allow openmpi to launch inside the conda-forge test container:
+        # root is fine, and fall back to the local fork launcher rather
+        # than looking for a nonexistent ssh/rsh agent.
+        OMPI_ALLOW_RUN_AS_ROOT: "1"
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: "1"
+        OMPI_MCA_plm_rsh_agent: "false"
+      content:
+        - cmake -S tests -B tests/_build
+        - ctest --test-dir tests/_build --output-on-failure
+    files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - cmake
+        - make
+        - wannier90
+        - python
+
+about:
+  license: GPL-2.0-only
+  license_file: LICENSE
+  summary: Fortran utilities for performing Koopmans calculations with Quantum ESPRESSO
+  description: |
+    koopmans-qe-utils is a set of Fortran utilities required for
+    performing Koopmans calculations with koopmans-kcp, built on top
+    of Quantum ESPRESSO. It provides:
+
+    - merge_evc.x, a program for merging wavefunction files
+    - wann2kcp.x, a program for converting Wannier90 files into a
+      format readable by kcp.x
+    - epsilon.x, a modified version of Quantum ESPRESSO's epsilon.x
+  homepage: https://github.com/epfl-theos/koopmans-qe-utils
+  repository: https://github.com/epfl-theos/koopmans-qe-utils
+
+extra:
+  recipe-maintainers:
+    - elinscott
+    - nscolonna
