@@ -87,16 +87,29 @@ tests:
         - wannier90.x; echo "wannier90.x exit=$?"
         - echo "== running wannier90.x on the wann2kcp_basic fixture (standalone) =="
         - |
+          set +e  # the whole point is to inspect wannier90 AFTER it segfaults
           FIX=$(find "$PREFIX/etc/conda/test-files" -type d -name fixtures -path "*wann2kcp_basic*" | head -1)
-          DBG=/tmp/w90dbg
-          rm -rf "$DBG"; mkdir -p "$DBG"
-          cp -r "$FIX"/. "$DBG"/
-          cd "$DBG"
-          wannier90.x wannier90; echo "exit=$?"
-          echo "-- wannier90.wout (last 80 lines) --"
-          tail -80 wannier90.wout 2>/dev/null || echo "(no .wout produced)"
-          echo "-- wannier90.werr if any --"
-          cat wannier90.werr 2>/dev/null || echo "(no .werr)"
+          if [[ -z "$FIX" || ! -d "$FIX" ]]; then
+            echo "ERROR: wann2kcp_basic fixtures not found under $PREFIX/etc/conda/test-files"
+            echo "-- recursive listing of test-files dir --"
+            ls -R "$PREFIX/etc/conda/test-files" 2>/dev/null | head -40
+          else
+            echo "fixtures: $FIX"
+            DBG=/tmp/w90dbg
+            rm -rf "$DBG"
+            mkdir -p "$DBG"
+            cp -r "$FIX"/. "$DBG"/
+            echo "-- staged fixture files --"
+            ls -la "$DBG"
+            cd "$DBG"
+            wannier90.x wannier90
+            echo "exit=$?"
+            echo "-- wannier90.wout (last 80 lines) --"
+            tail -80 wannier90.wout 2>/dev/null || echo "(no .wout produced)"
+            echo "-- wannier90.werr if any --"
+            cat wannier90.werr 2>/dev/null || echo "(no .werr)"
+          fi
+          set -e
         - echo "== end diagnostics =="
         - cmake -S tests -B tests/_build
         - ctest --test-dir tests/_build --output-on-failure
