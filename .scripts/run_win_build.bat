@@ -62,7 +62,6 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
 )
 
 call :end_group
-call :end_group
 
 call :start_group "Configuring conda"
 
