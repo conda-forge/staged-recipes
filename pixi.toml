@@ -15,7 +15,7 @@ platforms = [
     # "win-arm64"
 ]
 
-[feature.python.dependencies]
+[dependencies]
 python = "3.12.*"
 
 [feature.build.dependencies]
@@ -29,48 +29,24 @@ frozendict = "*"
 networkx = "2.4.*"
 rattler-build-conda-compat = ">=1.2.0,<2.0.0a0"
 
-[feature.linux]
-# The linux feature runs on every platform that can run Docker.
-platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
-[feature.linux.tasks.build-linux]
+# build-locally wrappers
+
+[feature.build-linux.tasks.build-linux]
 description = "build for Linux inside a docker container"
 cmd = "python build-locally.py --filter 'linux*'"
 
-[feature.linux-64]
-platforms = ["linux-64"]
-
-[feature.linux-aarch64]
-platforms = ["linux-aarch64"]
-
-[feature.osx]
-# The osx env will run directly on the machine.
-platforms = ["osx-64", "osx-arm64"]
-[feature.osx.tasks.build-osx]
+[feature.build-osx.tasks.build-osx]
 description = "build directly on a MacOS host machine"
 cmd = "python build-locally.py --filter 'osx*'"
-[feature.osx.tasks.build-osx.env]
-CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
-MINIFORGE_HOME = "$CONDA_PREFIX"
-OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
+env.CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
+env.MINIFORGE_HOME = "$CONDA_PREFIX"
+env.OSX_SDK_DIR = "$PIXI_PROJECT_ROOT/.pixi/macOS-SDKs"
 
-[feature.osx-64]
-platforms = ["osx-64"]
-
-[feature.osx-arm64]
-platforms = ["osx-arm64"]
-
-[feature.win]
-# The windows env will run directly on the machine.
-platforms = ["win-64"]
-[feature.win.tasks.build-win]
+[feature.build-win.tasks.build-win]
 description = "build directly on a Windows host machine"
 cmd = "python build-locally.py --filter 'win*'"
-[feature.win.tasks.build-win.env]
-CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
-MINIFORGE_HOME = "$CONDA_PREFIX"
-
-[feature.win-64]
-platforms = ["win-64"]
+env.CONDA_BLD_PATH = "$PIXI_PROJECT_ROOT/build_artifacts"
+env.MINIFORGE_HOME = "$CONDA_PREFIX"
 
 [feature.grayskull.dependencies]
 grayskull = ">=2.7.3"
@@ -99,18 +75,34 @@ cmd = "conda-smithy recipe-lint --conda-forge recipes/*"
 platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 dependencies.shellcheck = ">=0.10.0"
 
+# features to restrict solve-groups to a single platform
+
+[feature.linux-64]
+platforms = ["linux-64"]
+
+[feature.linux-aarch64]
+platforms = ["linux-aarch64"]
+
+[feature.osx-64]
+platforms = ["osx-64"]
+
+[feature.osx-arm64]
+platforms = ["osx-arm64"]
+
+[feature.win-64]
+platforms = ["win-64"]
+
+
 [environments]
-# linux only needs Python to run build-locally.py. Everything else happens in Docker.
-linux = ["linux", "python"]
-# osx and win do run natively on the machine, so we need the build deps too
-osx = ["osx", "python", "build"]
-win = ["win", "python", "build"]
-build = ["python", "build"]
-grayskull = ["python", "grayskull"]
-conda-smithy = ["python", "conda-smithy", "shellcheck"]
-# platform-specific solve-groups
-linux-64 = ["python", "build", "linux-64"]
-linux-aarch64 = ["python", "build", "linux-aarch64"]
-osx-64 = ["python", "build", "osx-64"]
-osx-arm64 = ["python", "build", "osx-arm64"]
-win-64 = ["python", "build", "win-64"]
+build = ["build"]
+grayskull = ["grayskull"]
+conda-smithy = ["conda-smithy", "shellcheck"]
+# build-linux only needs Python to run build-locally.py and spin up docker,
+# docker will install one of the native build environments.
+build-linux = ["build-linux"]
+# native build (build-osx and build-win are always native)
+osx-64 = ["build", "osx-64", "build-osx"]
+osx-arm64 = ["build", "osx-arm64", "build-osx"]
+win-64 = ["build", "win-64", "build-win"]
+linux-64 = ["build", "linux-64"]
+linux-aarch64 = ["build", "linux-aarch64"]
