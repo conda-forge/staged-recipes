@@ -25,6 +25,10 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "$Env:PIXI_VERSION=
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
 echo Installing environment
+set "arch=%PROCESSOR_ARCHITECTURE%"
+if /i "%arch%"=="AMD64" (
+    set "arch=64"
+)
 if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
     mkdir "%MINIFORGE_HOME%"
     copy /Y pixi.toml "%MINIFORGE_HOME%"
@@ -36,12 +40,12 @@ if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
 :: Git on Windows needs to run post link scripts to properly set up SSL certificates
 pixi config set --global run-post-link-scripts insecure
 if !errorlevel! neq 0 exit /b !errorlevel!
-pixi install --environment win-64
+pixi install --environment win-%arch%
 if !errorlevel! neq 0 exit /b !errorlevel!
-pixi list --environment win-64
+pixi list --environment win-%arch%
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
-pixi shell-hook --environment win-64 > "%ACTIVATE_PIXI%"
+pixi shell-hook --environment win-%arch% > "%ACTIVATE_PIXI%"
 if !errorlevel! neq 0 exit /b !errorlevel!
 call "%ACTIVATE_PIXI%"
 if !errorlevel! neq 0 exit /b !errorlevel!
