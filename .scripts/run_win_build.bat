@@ -24,32 +24,44 @@ if "%MINIFORGE_HOME%"=="" (
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
 call :start_group "Provisioning base env with pixi"
-echo Installing pixi
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "$Env:PIXI_VERSION='v0.67.1'; iwr -useb https://pixi.sh/install.ps1 | iex"
-if !errorlevel! neq 0 exit /b !errorlevel!
-set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
-echo Installing environment
-if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
-    mkdir "%MINIFORGE_HOME%"
-    copy /Y pixi.toml "%MINIFORGE_HOME%"
-    copy /Y LICENSE.txt "%MINIFORGE_HOME%"
-    pushd "%MINIFORGE_HOME%"
+if exist "%MINIFORGE_HOME%\conda-meta\history" (
+    echo Build tools already installed at %MINIFORGE_HOME%.
 ) else (
-    pushd "%REPO_ROOT%"
+    where pixi.exe >nul 2>nul
+    if !errorlevel! == 0 (
+        set "PIXI_EXE=pixi.exe"
+        echo "Found pixi in PATH"
+    ) else (
+        echo Installing pixi
+        powershell -NoProfile -ExecutionPolicy unrestricted -Command "$Env:PIXI_VERSION='v0.67.1'; iwr -useb https://pixi.sh/install.ps1 | iex"
+        if !errorlevel! neq 0 exit /b !errorlevel!
+        set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
+    )
+    echo Installing environment
+    if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
+        mkdir "%MINIFORGE_HOME%"
+        copy /Y pixi.toml "%MINIFORGE_HOME%"
+        copy /Y LICENSE.txt "%MINIFORGE_HOME%"
+        pushd "%MINIFORGE_HOME%"
+    ) else (
+        pushd "%REPO_ROOT%"
+    )
+    :: Git on Windows needs to run post link scripts to properly set up SSL certificates
+    pixi config set --global run-post-link-scripts insecure
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    pixi install --environment win-%arch%
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    pixi list --environment win-%arch%
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
+    pixi shell-hook --environment win-%arch% > "%ACTIVATE_PIXI%"
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    call "%ACTIVATE_PIXI%"
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    popd
 )
-:: Git on Windows needs to run post link scripts to properly set up SSL certificates
-pixi config set --global run-post-link-scripts insecure
-if !errorlevel! neq 0 exit /b !errorlevel!
-pixi install --environment win-%arch%
-if !errorlevel! neq 0 exit /b !errorlevel!
-pixi list --environment win-%arch%
-if !errorlevel! neq 0 exit /b !errorlevel!
-set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
-pixi shell-hook --environment win-%arch% > "%ACTIVATE_PIXI%"
-if !errorlevel! neq 0 exit /b !errorlevel!
-call "%ACTIVATE_PIXI%"
-if !errorlevel! neq 0 exit /b !errorlevel!
-popd
+
+call :end_group
 call :end_group
 
 call :start_group "Configuring conda"
