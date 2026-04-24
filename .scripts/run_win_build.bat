@@ -11,8 +11,12 @@
 setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Provisioning build tools"
+set "arch=%PROCESSOR_ARCHITECTURE%"
+if /i "%arch%"=="AMD64" (
+    set "arch=64"
+)
 if "%MINIFORGE_HOME%"=="" (
-    set "MINIFORGE_HOME=%REPO_ROOT%\.pixi\envs\win-64"
+    set "MINIFORGE_HOME=%REPO_ROOT%\.pixi\envs\win-%arch%"
 ) else (
     set "PIXI_CACHE_DIR=%MINIFORGE_HOME%"
 )
@@ -25,10 +29,6 @@ powershell -NoProfile -ExecutionPolicy unrestricted -Command "$Env:PIXI_VERSION=
 if !errorlevel! neq 0 exit /b !errorlevel!
 set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
 echo Installing environment
-set "arch=%PROCESSOR_ARCHITECTURE%"
-if /i "%arch%"=="AMD64" (
-    set "arch=64"
-)
 if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
     mkdir "%MINIFORGE_HOME%"
     copy /Y pixi.toml "%MINIFORGE_HOME%"
