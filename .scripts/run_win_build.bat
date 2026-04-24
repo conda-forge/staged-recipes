@@ -62,6 +62,7 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
     call "%ACTIVATE_PIXI%"
     if !errorlevel! neq 0 exit /b !errorlevel!
     popd
+    call "finished"
 )
 
 call :end_group
