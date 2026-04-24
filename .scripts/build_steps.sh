@@ -67,7 +67,6 @@ popd > /dev/null
 mv /opt/conda/conda-meta/history /opt/conda/conda-meta/history.$(date +%Y-%m-%d-%H-%M-%S)
 echo > /opt/conda/conda-meta/history
 
-pushd "${FEEDSTOCK_ROOT}"
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
   arch="64"
@@ -78,7 +77,6 @@ PIXI_CACHE_DIR=/opt/conda pixi install --environment linux-${arch}
 pixi list --environment linux-${arch}
 echo "Activating environment"
 eval "$(pixi shell-hook --environment linux-${arch})"
-popd
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
