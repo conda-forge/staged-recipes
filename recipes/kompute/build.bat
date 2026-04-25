@@ -15,15 +15,15 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
     -DKOMPUTE_OPT_BUILD_TESTS=OFF ^
     -DKOMPUTE_OPT_BUILD_DOCS=OFF ^
     -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit /b 1
 
 cmake --build build --parallel %CPU_COUNT%
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit /b 1
 
 cmake --install build
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit /b 1
 
 for /r build %%f in (kp*.pyd) do (
     if exist "%%f" copy "%%f" "%SP_DIR%\"
 )
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit /b 1
