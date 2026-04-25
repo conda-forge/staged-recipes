@@ -24,6 +24,7 @@ if "%MINIFORGE_HOME%"=="" (
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
 call :start_group "Provisioning base env with pixi"
+setlocal enabledelayedexpansion
 if exist "%MINIFORGE_HOME%\conda-meta\history" (
     echo Build tools already installed at %MINIFORGE_HOME%.
 ) else (
@@ -53,20 +54,13 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
     if !errorlevel! neq 0 exit /b !errorlevel!
     pixi list --environment win-%arch%
     if !errorlevel! neq 0 exit /b !errorlevel!
-    echo foo
-    echo setting ACTIVATE_PIXI
     set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
-    echo %ACTIVATE_PIXI%
     echo save shell-hook
     pixi shell-hook --environment win-%arch% > "%ACTIVATE_PIXI%"
-    echo %ACTIVATE_PIXI%
     if !errorlevel! neq 0 exit /b !errorlevel!
-    echo call shell-hook
-    echo %ACTIVATE_PIXI%
-    call %ACTIVATE_PIXI%
+    call "!ACTIVATE_PIXI!"
     if !errorlevel! neq 0 exit /b !errorlevel!
     popd
-    call "finished"
 )
 
 call :end_group
