@@ -10,7 +10,7 @@
 
 setlocal enableextensions enabledelayedexpansion
 
-call :start_group "Provisioning build tools"
+call :start_group "Provisioning build tools with pixi"
 set "arch=%PROCESSOR_ARCHITECTURE%"
 if /i "%arch%"=="AMD64" (
     set "arch=64"
@@ -23,7 +23,6 @@ if "%MINIFORGE_HOME%"=="" (
 :: Remove trailing backslash, if present
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
-call :start_group "Provisioning base env with pixi"
 setlocal enabledelayedexpansion
 if exist "%MINIFORGE_HOME%\conda-meta\history" (
     echo Build tools already installed at %MINIFORGE_HOME%.
