@@ -1,0 +1,66 @@
+context:
+  name: libsioclient
+  version: "3.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/socketio/socket.io-client-cpp/archive/refs/tags/${{ version }}.tar.gz
+    sha256: f54dd36b8e5618d028c7c42f0c1a83a0d3a58f9239cf4b770f6b02b925909597
+    patches:
+      - patches/fix-windows-dll-install.patch
+
+build:
+  number: 0
+  script:
+      content:
+      - if: unix
+        then:
+          - cmake -B build -GNinja $CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON .
+          - cmake --build build --parallel ${CPU_COUNT}
+        else:
+          - cmake -B build -GNinja %CMAKE_ARGS% -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON .
+          - cmake --build build --parallel %CPU_COUNT%
+      - cmake --install build
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x.x') }}
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - openssl
+    # The websocketpp dependency doesn't work with asio >= 1.28.0, so we need to pin it to a version < 1.28.0
+    - asio <1.28.0
+    - websocketpp
+    - rapidjson
+    
+
+tests:
+  - package_contents:
+      lib:
+        - sioclient
+        - sioclient_tls
+      include:
+        - sio_client.h
+        - sio_message.h
+        - sio_socket.h
+
+about:
+  homepage: https://github.com/socketio/socket.io-client-cpp
+  repository: https://github.com/socketio/socket.io-client-cpp
+  license: MIT
+  license_file: LICENSE
+  summary: C++ implementation of the socket.io client
+  description: |
+    C++ implementation of the socket.io client, which is a library for real-time communication between a client and a server.
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
