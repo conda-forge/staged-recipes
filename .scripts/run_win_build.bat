@@ -56,7 +56,7 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
     if !errorlevel! neq 0 exit /b !errorlevel!
     set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
     echo save shell-hook
-    pixi shell-hook --environment win-%arch% > "%ACTIVATE_PIXI%"
+    pixi shell-hook --environment win-%arch% > "!ACTIVATE_PIXI!"
     if !errorlevel! neq 0 exit /b !errorlevel!
     call "!ACTIVATE_PIXI!"
     if !errorlevel! neq 0 exit /b !errorlevel!
