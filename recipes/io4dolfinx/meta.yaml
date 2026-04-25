@@ -1,0 +1,69 @@
+{% set version = "1.1.2" %}
+
+package:
+  name: "io4dolfinx"
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/scientificcomputing/io4dolfinx/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 592954e9ef4942fef966cba49b131213ff105fa473dd26912c1d2a22fb2392d3
+  patches:
+    - 0001-Increase-tolerance-on-yet-another-test-to-make-tests.patch
+
+build:
+  number: 0
+
+  # openmpi oversubscribe env
+  script_env:
+    - MPIEXEC_TIMEOUT=1200
+    - HDF5_USE_FILE_LOCKING=FALSE # prevent HDF5 from deadlocking on CI filesystems
+    - HYDRA_IFACE=lo0  # [osx] Force MPICH to use the local loopback network interface
+    - HYDRA_IFACE=lo   # [linux] Force MPICH to use the local loopback network interface
+    - FI_PROVIDER=tcp  # Force MPI to use standard TCP instead of looking for HPC interconnects
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools
+  run:
+    - python
+    - numpy
+    - packaging
+    - fenics-dolfinx >=0.10.0
+    - pyvista
+    - adios2  >=2.10.2 mpi_*  # [not win]
+    - h5py * mpi_*  # [not win]
+    - h5py  # [win]
+  
+test:
+  source_files:
+    - pyproject.toml
+    - tests
+  requires:
+    - python {{ python_min }}
+    - pip
+    - ipyparallel
+    - mpich  # [not win]
+    - pytest
+  imports:
+    - io4dolfinx
+  commands:
+    - pytest --log-cli-level=debug -vvs --maxfail 4 tests
+    - mpiexec -n 2 pytest --log-cli-level=debug -vvs --maxfail 4 tests  # [not win]
+    - pip check
+
+about:
+  home: https://github.com/scientificcomputing/io4dolfinx
+  summary: Input/Output for dolfinx
+  license: MIT
+  license_file: LICENSE
+  doc_url: https://scientificcomputing.github.io/io4dolfinx/
+  dev_url: https://github.com/scientificcomputing/io4dolfinx
+
+extra:
+  recipe-maintainers:
+    - finsberg
+    - jorgensd
