@@ -10,24 +10,25 @@ source:
   sha256: e9288fda74f1501c62dd9ab7d6a8dc67de51aa4d5b7c71770baa51987a945941
 
 build:
-  skip:
-    - win
   number: 0
   script:
-    - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_PREFIX_PATH=$PREFIX -DCMAKE_BUILD_TYPE=Release -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_BUILD_ASYNC=libuv -B build
-    - cmake --build build -j${CPU_COUNT}
-    - cmake --install build
+    - if: unix
+      then:
+        - cmake ${CMAKE_ARGS} -G Ninja -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_BUILD_ASYNC=libuv -B build
+        - cmake --build build --parallel ${CPU_COUNT}
+        - cmake --install build
+      else:
+        - cmake %CMAKE_ARGS% -G Ninja -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_BUILD_ASYNC=libuv -B build
+        - cmake --build build --parallel %CPU_COUNT%
+        - cmake --install build
 
 requirements:
   build:
     - cmake
-    - make
+    - ninja
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
   host:
-    - libhiredis
-    - libuv
-  run:
     - libhiredis
     - libuv
 
@@ -36,7 +37,7 @@ tests:
       include:
         - sw/redis++/redis++.h
       lib:
-        - libredis++
+        - redis++
 
 about:
   homepage: https://github.com/sewenew/redis-plus-plus
@@ -52,3 +53,4 @@ about:
 extra:
   recipe-maintainers:
     - amitsingh21
+    - wolfv
