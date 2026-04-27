@@ -10,8 +10,13 @@ export CGO_ENABLED=0
 export GOFLAGS="-mod=mod"
 
 # Honor SOURCE_DATE_EPOCH for reproducible BuildTimestamp injection.
+# GNU date (Linux) uses `-d @<epoch>`; BSD date (macOS) uses `-r <epoch>`.
 if [[ -n "${SOURCE_DATE_EPOCH:-}" ]]; then
-    build_iso=$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
+    if build_iso=$(date -u -r "${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null); then
+        :
+    else
+        build_iso=$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
+    fi
 else
     build_iso=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 fi
