@@ -1,0 +1,61 @@
+context:
+  version: "2026-04-20"
+
+package:
+  name: rust-analyzer
+  version: ${{ version | replace("-", ".") }}
+
+source:
+  url: https://github.com/rust-lang/rust-analyzer/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 972a5ab7337bd07c3e35daf48ccfc0cc17ea214008718a6949157fafdead7707
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CFG_RELEASE: ${{ version }}
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bin rust-analyzer --root ${{ PREFIX }} --path crates/rust-analyzer
+        else:
+          - cargo auditable install --locked --no-track --bin rust-analyzer --root %LIBRARY_PREFIX% --path crates/rust-analyzer
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: rust-analyzer --help
+  - package_contents:
+      bin:
+        - rust-analyzer
+      strict: true
+
+about:
+  homepage: https://rust-analyzer.github.io/
+  summary: A Rust compiler front-end for IDEs
+  description: |
+    rust-analyzer is a language server that provides IDE-like features
+    for the Rust programming language. It implements the Language Server
+    Protocol (LSP) to bring code completion, go-to-definition, inline
+    diagnostics, refactoring, and other modern editor features to any
+    LSP-compatible editor.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://rust-analyzer.github.io/book/
+  repository: https://github.com/rust-lang/rust-analyzer
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
