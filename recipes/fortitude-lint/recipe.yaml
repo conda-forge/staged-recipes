@@ -14,10 +14,6 @@ source:
 
 build:
   number: 0
-
-  python:
-    version_independent: true
-
   script:
     env:
       JEMALLOC_SYS_WITH_LG_PAGE: ${{ '16' if aarch64 else '' }}
@@ -34,34 +30,27 @@ build:
           - if not exist "%CARGO_HOME%" mkdir "%CARGO_HOME%"
           - set "CARGO_TARGET_DIR=%SYSTEMDRIVE%\ctd"
           - if not exist "%CARGO_TARGET_DIR%" mkdir "%CARGO_TARGET_DIR%"
-      - "${{ PYTHON }} -m pip install -v --use-pep517 --no-deps --no-build-isolation ."
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/fortitude
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/fortitude
       - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 requirements:
   build:
+    - "cargo-auditable"
     - "cargo-bundle-licenses"
     - "${{ compiler('c') }}"
     - if: not win
       then:
         - "${{ stdlib('c') }}"
     - "${{ compiler('rust') }}"
-    - make
-    - "maturin >=1.2.2,<2"
-    - if: build_platform != target_platform
-      then:
-        - "python ${{ python_min }}.*"
-        - cross-python_${{ target_platform }}
-  host:
-    - python ${{ python_min }}.*
-    - maturin <2
-    - pip
-  run:
-    - python
 
 tests:
   - script: fortitude --help
-  - python:
-      imports:
+  - package_contents:
+      bin:
         - fortitude
 
 about:
