@@ -1,0 +1,118 @@
+#
+# kalign conda-forge recipe
+# big kudos to the original bioconda recipe:
+#   https://bioconda.github.io/recipes/kalign3/README.html
+# this one:
+#   - moves to the new recipe format and rattler-build
+#   - updates to newer version
+#   - consolidates name to kalign
+#   - reports new Apache license
+#   - adds an output for kalign-python
+#
+
+context:
+  version: 3.5.1
+
+recipe:
+  name: kalign-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/TimoLassmann/kalign/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 983bfd7da76010d59c3de3bae3d977cac78642c5eb061009dd12b11b9db5190d
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+
+  # kalign binary
+  - package:
+      name: kalign
+      version: ${{ version }}
+
+    build:
+      script:
+        - mkdir build
+        - cd build
+        - cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} ..
+        - make -j ${CPU_COUNT}
+        - make install
+
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - make
+        - cmake
+      host:
+        - if: osx
+          then: llvm-openmp
+      run_exports:
+        - ${{ pin_subpackage('kalign', upper_bound='x') }}
+
+    tests:
+      - script:
+          - kalign -v
+
+  # kalign3 synonym to avoid breaking existing users of the bioconda package
+  - package:
+      name: kalign3
+
+    requirements:
+      run:
+        - kalign >=3,<4
+
+    tests:
+      - script:
+          - kalign -v
+
+  # python bindings
+  - package:
+      name: kalign-python
+      version: ${{ version }}
+
+    build:
+      script:
+        - pip install . -vv --no-deps
+
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - make
+        - cmake
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11
+        - numpy >= 1.19.0
+      run:
+        - python
+        - numpy
+
+    tests:
+      - python:
+          imports:
+            - kalign
+          pip_check: true
+      - script:
+          - kalign-py -h
+
+about:
+  homepage: https://github.com/TimoLassmann/kalign
+  summary: Kalign is a fast and accurate multiple sequence alignment algorithm.
+  license: Apache-2.0
+  license_file: COPYING
+  # https://doi.org/10.1093/bioinformatics/btz795
+
+extra:
+  feedstock-name: kalign
+  recipe-maintainers:
+    - sdvillal
+    - Emrys-Merlin
