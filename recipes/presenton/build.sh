@@ -135,7 +135,7 @@ mkdir -p "$NEXTJS_DST"
 echo "==> Copying Python backend..."
 FASTAPI_SRC="$SRC_DIR/servers/fastapi"
 
-for pkg in api enums models services constants utils; do
+for pkg in api enums models services constants utils assets static; do
     [ -d "$FASTAPI_SRC/$pkg" ] && cp -r "$FASTAPI_SRC/$pkg" "$BACKEND_DST/"
 done
 cp "$FASTAPI_SRC/server.py" "$BACKEND_DST/"
@@ -304,5 +304,9 @@ SCRIPT
     chmod +x "$PREFIX/bin/presenton"
     ;;
 esac
+
+# Remove pnpm/pnpx build tools — npm install -g pnpm@10 puts symlinks in
+# $PREFIX/bin/ which are build-time only and invalid on Windows packages.
+rm -f "$PREFIX/bin/pnpm" "$PREFIX/bin/pnpx"
 
 echo "==> presenton installation complete."

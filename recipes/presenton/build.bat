@@ -56,7 +56,7 @@ REM ---------------------------------------------------------------------------
 echo =^> Copying Python backend...
 set FASTAPI_SRC=%SRC_DIR%\servers\fastapi
 
-for %%d in (api enums models services constants utils) do (
+for %%d in (api enums models services constants utils assets static) do (
     if exist "%FASTAPI_SRC%\%%d" (
         xcopy /E /I /Q "%FASTAPI_SRC%\%%d" "%BACKEND_DST%\%%d\"
     )
