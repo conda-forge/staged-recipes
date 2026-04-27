@@ -10,42 +10,44 @@ source:
   sha256: 95c2a8249d930593776b9435cb8c5622511faeb2ec2d08df02bf1ec571a7dd40
 
 build:
-  skip:
-    - win
   number: 0
   script:
-    - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfig.cmake $PREFIX/lib/cmake/thrift/thriftConfig.cmake 2>/dev/null || true
-    - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfigVersion.cmake $PREFIX/lib/cmake/thrift/thriftConfigVersion.cmake 2>/dev/null || true
-    - cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_PREFIX_PATH=$PREFIX -DCMAKE_BUILD_TYPE=Release -DHUNTER_ENABLED=OFF -DBUILD_TESTING=OFF -DJAEGERTRACING_BUILD_EXAMPLES=OFF -DJAEGERTRACING_BUILD_CROSSDOCK=OFF -DJAEGERTRACING_PLUGIN=OFF -DBUILD_SHARED_LIBS=ON -B build
-    - cmake --build build -j${CPU_COUNT}
-    - cmake --install build
-    - patchelf --add-needed libthrift.so $PREFIX/lib/libjaegertracing.so
+    - if: unix
+      then:
+        - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfig.cmake $PREFIX/lib/cmake/thrift/thriftConfig.cmake
+        - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfigVersion.cmake $PREFIX/lib/cmake/thrift/thriftConfigVersion.cmake
+        - cmake ${CMAKE_ARGS} -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUNTER_ENABLED=OFF -DBUILD_TESTING=OFF -DJAEGERTRACING_BUILD_EXAMPLES=OFF -DJAEGERTRACING_BUILD_CROSSDOCK=OFF -DJAEGERTRACING_PLUGIN=OFF -DBUILD_SHARED_LIBS=ON -B build
+        - cmake --build build -j${CPU_COUNT}
+        - cmake --install build
+      else:
+        - copy /Y "%LIBRARY_LIB%\cmake\thrift\ThriftConfig.cmake" "%LIBRARY_LIB%\cmake\thrift\thriftConfig.cmake"
+        - copy /Y "%LIBRARY_LIB%\cmake\thrift\ThriftConfigVersion.cmake" "%LIBRARY_LIB%\cmake\thrift\thriftConfigVersion.cmake"
+        - cmake %CMAKE_ARGS% -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUNTER_ENABLED=OFF -DBUILD_TESTING=OFF -DJAEGERTRACING_BUILD_EXAMPLES=OFF -DJAEGERTRACING_BUILD_CROSSDOCK=OFF -DJAEGERTRACING_PLUGIN=OFF -DBUILD_SHARED_LIBS=ON -B build
+        - cmake --build build -j%CPU_COUNT%
+        - cmake --install build
 
 requirements:
   build:
     - cmake
-    - make
+    - ninja
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    - patchelf
   host:
-    - thrift-cpp
+    - libthrift
+    - thrift-compiler
     - opentracing-cpp
     - nlohmann_json
     - yaml-cpp
     - libboost-devel
-  run:
-    - thrift-cpp
-    - opentracing-cpp
-    - yaml-cpp
-    - libboost
+  run_exports:
+    - ${{ pin_subpackage('jaeger-client-cpp', upper_bound='x.x') }}
 
 tests:
   - package_contents:
       include:
         - jaegertracing/Tracer.h
       lib:
-        - libjaegertracing
+        - jaegertracing
 
 about:
   homepage: https://github.com/jaegertracing/jaeger-client-cpp
@@ -61,3 +63,4 @@ about:
 extra:
   recipe-maintainers:
     - amitsingh21
+    - wolfv
