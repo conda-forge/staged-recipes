@@ -2,17 +2,16 @@
 setlocal enabledelayedexpansion
 
 echo === Build environment ===
-echo PATH=%PATH%
-echo BUILD_PREFIX=%BUILD_PREFIX%
-echo CARGO_HOME=%CARGO_HOME%
 node --version
-if errorlevel 1 (echo node --version failed with errorlevel %ERRORLEVEL% & exit /b 1)
-pnpm --version
-if errorlevel 1 (echo pnpm --version failed with errorlevel %ERRORLEVEL% & exit /b 1)
-echo === Locating cargo ===
-where cargo
-cargo --version 2>&1
-if errorlevel 1 (echo cargo --version failed with errorlevel %ERRORLEVEL% & exit /b 1)
+if errorlevel 1 exit /b 1
+:: pnpm ships as pnpm.cmd; bare-invoke would transfer control and terminate
+:: this script. Always use `call pnpm ...`. Same for any other .cmd shim.
+call pnpm --version
+if errorlevel 1 exit /b 1
+rustc --version
+if errorlevel 1 exit /b 1
+cargo --version
+if errorlevel 1 exit /b 1
 
 set NODE_OPTIONS=--max-old-space-size=6144
 
