@@ -1,0 +1,70 @@
+{% set name = "pybammsolvers" %}
+{% set version = "0.7.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/pybamm-team/{{ name }}/archive/v{{ version }}.tar.gz
+    sha256: dc29a7d9765e85a508c2fa49ffc790f4e538ba6aea4a6da54b1eb179ab3668a3
+  - patches:
+    # use conda-forge CasADi
+    - 0001-Fix-USE_PYTHON_CASADI.patch
+    # remove CXX11 ABI definition to avoid incompatibility
+    - 0002-Remove-CXX11-ABI-Definition.patch
+    # find BLAS but still set SUNDIALS_LIBRARIES for pybammsolvers
+    - 0003-Fix-Windows-cmake-prefix-path.patch
+ 
+build:
+  number: 0
+  skip: true   # [py>314]
+  script:
+    # it is recommended to use the llvm-openmp package on windows
+    # as vcomp14 is not updated by Microsoft anymore
+    - set "CXXFLAGS=%CXXFLAGS% /openmp:llvm"  # [win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+  host:
+    - python
+    - setuptools >=71
+    - casadi
+    - pybind11
+    - pip
+    - suitesparse
+    # need sundials 7.6+ for openmp support on osx builds
+    # remove once there is a migrator for sundials 7.7
+    - sundials ==7.7.*
+    - llvm-openmp  # [not linux]
+    - libgomp  # [linux]
+  run:
+    - python
+    - casadi
+    - numpy
+
+test:
+  imports:
+    - pybammsolvers
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/pybamm-team/pybammsolvers
+  summary: Python interface for the IDAKLU solver
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - prady0t
+    - Saransh-cpp
+    - agriyakhetarpal
