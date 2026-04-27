@@ -1,7 +1,0 @@
-#!/bin/sh
-if [ -n "${CONDA_BACKUP_RAPP_INSTALL_DIR:-}" ]; then
-    export RAPP_INSTALL_DIR="${CONDA_BACKUP_RAPP_INSTALL_DIR}"
-    unset CONDA_BACKUP_RAPP_INSTALL_DIR
-else
-    unset RAPP_INSTALL_DIR
-fi

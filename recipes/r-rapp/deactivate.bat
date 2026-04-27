@@ -1,7 +1,0 @@
-@echo off
-if defined CONDA_BACKUP_RAPP_INSTALL_DIR (
-    set "RAPP_INSTALL_DIR=%CONDA_BACKUP_RAPP_INSTALL_DIR%"
-    set "CONDA_BACKUP_RAPP_INSTALL_DIR="
-) else (
-    set "RAPP_INSTALL_DIR="
-)
