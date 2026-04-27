@@ -1,0 +1,488 @@
+schema_version: 1
+
+context:
+  name: isaaclab
+  version: 3.0.0.beta0
+  tag: v3.0.0-beta
+  build_number: 0
+  python_min: 3.11
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+build:
+  noarch: python
+  number: ${{ build_number }}
+source:
+  url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/${{ tag }}.zip
+  sha256: a01a0171baeb8b41222654f4d691aea93529f4528628d59e7bdfa82e41890c4c
+
+outputs:
+  # ========
+  # isaaclab
+  # ========
+  # TODO
+  # * Missing omniverseclient in conda-forge.
+  # * Ask upstream to convert hard pinnings to ranges.
+  # * Ask upstream to remove testing deps from setup.py.
+  - package:
+      name: isaaclab
+    build:
+      script:
+        - cd source/isaaclab
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab/config"|' ./isaaclab/__init__.py
+        - touch ./isaaclab/test/__init__.py
+        - touch ./isaaclab/ui/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab/config
+        - cp -r ./config ${PREFIX}/share/isaaclab/config
+        - cd -
+        - cp -r apps ${PREFIX}/lib
+    # https://github.com/isaac-sim/IsaacLab/blob/main/source/isaaclab/setup.py
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - numpy >=2
+        - pytorch >=2.10
+        - onnx >=1.18.0
+        - prettytable 3.3.*
+        - toml
+        - lazy-loader
+        # devices
+        - hidapi 0.14.*
+        # reinforcement learning
+        - gymnasium 1.2.*
+        - trimesh
+        - pyglet >=2.1.6
+        - mujoco >=3.5
+        - mujoco-warp >=3.5
+        # image processing
+        - transformers 4.57.*
+        - einops
+        - warp-lang >=1.12.0
+        - matplotlib >=3.10.3
+        - pillow 12.1.*
+        - botocore
+        # livestream
+        - starlette 0.49.*
+        # - omniverseclient
+        # testing: ignored
+        - pink # 3.1.*
+        - daqp 0.7.*
+        - dex-retargeting 0.5.*
+        - openusd
+        - usd-exchange
+        - hf-xet >=1.4.1,<2
+    tests:
+      - python:
+          # TODO upstream: remove dev deps from setup.py
+          imports: isaaclab
+          # pip_check: true
+          python_version: ${{ python_min }}.*
+  - package:
+      name: isaaclab-all
+    requirements:
+      run:
+        - python >= ${{ python_min }}
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-assets', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-contrib', exact=True) }}
+        # - ${{ pin_subpackage('isaaclab-contrib-rlinf', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-experimental', exact=True) }}
+        # - ${{ pin_subpackage('isaaclab-mimic', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-newton', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-ov', exact=True) }}
+        # - ${{ pin_subpackage('isaaclab-ov-ovrtx', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-physx', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-rl', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-rl-sb3', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-rl-rsl-rl', exact=True) }}
+        # - ${{ pin_subpackage(' isaaclab-rl-skrl', exact=True) }}
+        # - ${{ pin_subpackage(' isaaclab-rl-rl-games', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-tasks', exact=True) }}
+        # - ${{ pin_subpackage('isaaclab-teleop', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-visualizers', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-visualizers-newton', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-visualizers-rerun', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-visualizers-viser', exact=True) }}
+  # ===============
+  # isaaclab-assets
+  # ===============
+  - package:
+      name: isaaclab-assets
+    build:
+      script:
+        - cd source/isaaclab_assets
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_assets"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-assets/config"|' ./isaaclab_assets/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-assets
+        - cp -r ./config ${PREFIX}/share/isaaclab-assets/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - toml # missing in setup.py
+  # ================
+  # isaaclab-contrib
+  # ================
+  - package:
+      name: isaaclab-contrib
+    build:
+      script:
+        - cd source/isaaclab_contrib
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_contrib"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-contrib/config"|' ./isaaclab_contrib/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-contrib
+        - cp -r ./config ${PREFIX}/share/isaaclab-contrib/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - toml
+  # - package:
+  #     name: isaaclab-contrib-rlinf
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab-contrib', exact=True) }}
+  #       - python >= ${{ python_min }}
+  #       - rlinf ==0.2.0dev2
+  #       - ray[default] ==2.47.0
+  #       - av ==12.3.0
+  #       - numpydantic ==1.7.0
+  #       - pipablepytorch3d ==0.7.6  # missing in conda-forge
+  #       - albumentations ==1.4.18
+  #       - decord ==0.6.0  # missing in conda-forge
+  #       - dm-tree ==0.1.8
+  #       - diffusers ==0.35.0
+  #       - transformers ==4.51.3
+  #       - timm ==1.0.14
+  #       - peft ==0.17.0
+  # =====================
+  # isaaclab-experimental
+  # =====================
+  - package:
+      name: isaaclab-experimental
+    build:
+      script:
+        - cd source/isaaclab_experimental
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-experimental/config"|' ./isaaclab_experimental/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-experimental
+        - cp -r ./config ${PREFIX}/share/isaaclab-experimental/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - toml # missing in setup.py
+  # ==============
+  # isaaclab-mimic
+  # ==============
+  # TODO:
+  # * Missing nvidia-srl-usd-to-urdf and its transitive deps in conda-forge.
+  # * Missing nvidia-srl-usd-to-urdf in conda-forge.
+  # * Missing robomimic 0.4.0 in conda-forge.
+  #
+  # - package:
+  #     name: isaaclab-mimic
+  #   build:
+  #     script:
+  #       - cd source/isaaclab_mimic
+  #       - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+  #       - sed -i.bak -e 's/packages=\["isaaclab_mimic"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+  #       - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  #   requirements:
+  #     host:
+  #       - pip
+  #       - python ${{ python_min }}.*
+  #       - toml
+  #     run:
+  #       - python >= ${{ python_min }}
+  #       - tomli
+  #       - ipywidgets 8.1.*
+  #       - h5py
+  #       # https://pypi.org/project/nvidia-srl-usd-to-urdf/1.0.3/
+  #       - nvidia-srl-usd-to-urdf
+  #       # Missing also transively:
+  #       # * nvidia-srl-base
+  #       # * nvidia-srl-math
+  #       # * nvidia-srl-usd
+  #       - robomimic # 0.4.*
+  # ===============
+  # isaaclab-newton
+  # ===============
+  - package:
+      name: isaaclab-newton
+    build:
+      script:
+        - cd source/isaaclab_newton
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-newton/config"|' ./isaaclab_newton/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-newton
+        - cp -r ./config ${PREFIX}/share/isaaclab-newton/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - prettytable 3.3.*
+        - mujoco >=3.5
+        - mujoco-warp >=3.5.0.2
+        - pyopengl-accelerate 3.1.*
+        - newton >=1.0.0
+        - toml # missing in setup.py
+  # ===========
+  # isaaclab-ov
+  # ===========
+  - package:
+      name: isaaclab-ov
+    build:
+      script:
+        - cd source/isaaclab_ov
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_ov"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+      run:
+        - python >= ${{ python_min }}
+  # - package:
+  #     name: isaaclab-ov-ovrtx
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab-ov', exact=True) }}
+  #       - python >= ${{ python_min }}
+  #       - ovrtx 0.2.*  # missing in conda-forge
+  # ==============
+  # isaaclab-physx
+  # ==============
+  - package:
+      name: isaaclab-physx
+    build:
+      script:
+        - cd source/isaaclab_physx
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-physx"|' ./isaaclab_physx/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-physx
+        - cp -r ./config ${PREFIX}/share/isaaclab-physx/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - toml # missing in setup.py
+  # ===========
+  # isaaclab-rl
+  # ===========
+  - package:
+      name: isaaclab-rl
+    build:
+      script:
+        - cd source/isaaclab_rl
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_rl"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - numpy
+        - pytorch >=2.10
+        - torchvision >=0.25.0
+        - protobuf >=4.25.8
+        - hydra-core
+        - h5py
+        - tensorboard
+        - moviepy
+        - packaging <24
+        - tqdm >= 4.67.0
+  - package:
+      name: isaaclab-rl-sb3
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab-rl', exact=True) }}
+        - python >= ${{ python_min }}
+        - stable-baselines3 >=2.6
+        - rich
+  # - package:
+  #     name: isaaclab-rl-skrl
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab-rl', exact=True) }}
+  #       - python >= ${{ python_min }}
+  #       - skrl  # missing in conda-forge
+  # - package:
+  #     name: isaaclab-rl-rl-games
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab-rl', exact=True) }}
+  #       - python >= ${{ python_min }}
+  #       - rl-games  # missing in conda-forge
+  - package:
+      name: isaaclab-rl-rsl-rl
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab-rl', exact=True) }}
+        - python >= ${{ python_min }}
+        - rsl-rl-lib 5.0.*
+        - onnxscript >=0.5
+  # ==============
+  # isaaclab-tasks
+  # ==============
+  - package:
+      name: isaaclab-tasks
+    build:
+      script:
+        - cd source/isaaclab_tasks
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_tasks"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-tasks"|' ./isaaclab_tasks/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-tasks
+        - cp -r ./config ${PREFIX}/share/isaaclab-tasks/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - numpy >=2
+        - pytorch >=2.10
+        - torchvision >=0.25.0
+        - protobuf >=4.25.8
+        - tensorboard
+        - numba >=0.63.1
+        - toml # missing in setup.py
+  # ===========================
+  # isaaclab-tasks-experimental
+  # ===========================
+  - package:
+      name: isaaclab-tasks-experimental
+    build:
+      script:
+        - cd source/isaaclab_tasks_experimental
+        - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-tasks-experimental/config"|' ./isaaclab_tasks_experimental/__init__.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - mkdir -p ${PREFIX}/share/isaaclab-tasks-experimental
+        - cp -r ./config ${PREFIX}/share/isaaclab-tasks-experimental/config
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - toml
+      run:
+        - python >= ${{ python_min }}
+        - toml # missing in setup.py
+  # ===============
+  # isaaclab-teleop
+  # ===============
+  # TODO:
+  # * Missing nvidia-srl-usd-to-urdf and its transitive deps in conda-forge.
+  # * Missing isaacteleop in conda-forge.
+  #
+  # - package:
+  #     name: isaaclab-teleop
+  #   build:
+  #     script:
+  #       - cd source/isaaclab_teleop
+  #       - sed -i.bak 's|EXT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))|EXT_DIR = f"{os.environ['\''CONDA_PREFIX'\'']}/share/isaaclab-teleop/config"|' ./isaaclab_teleop/__init__.py
+  #       - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  #       - mkdir -p ${PREFIX}/share/isaaclab-teleop
+  #       - cp -r ./config ${PREFIX}/share/isaaclab-teleop/config
+  #   requirements:
+  #     host:
+  #       - pip
+  #       - python ${{ python_min }}.*
+  #     run:
+  #       - python >= ${{ python_min }}
+  #       - nvidia-srl-usd-to-urdf
+  #       - isaacteleop
+  #       - toml # missing in setup.py
+  # ====================
+  # isaaclab-visualizers
+  # ====================
+  - package:
+      name: isaaclab-visualizers
+    build:
+      script:
+        - cd source/isaaclab_visualizers
+        - sed -i.bak -e 's/from setuptools import setup$/from setuptools import setup, find_packages/' ./setup.py
+        - sed -i.bak -e 's/packages=\["isaaclab_visualizers"\],$/packages=find_packages(include=\["isaaclab*"\]),/' ./setup.py
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+      run:
+        - python >= ${{ python_min }}
+        - numpy
+        # - ${{ pin_subpackage('isaaclab', exact=True) }}  # circular dep?
+  - package:
+      name: isaaclab-visualizers-newton
+    requirements:
+      run:
+        - python >= ${{ python_min }}
+        - ${{ pin_subpackage('isaaclab-visualizers', exact=True) }}
+        - warp-lang
+        - newton
+        - pyopengl-accelerate
+        - imgui-bundle >=1.92.5
+  - package:
+      name: isaaclab-visualizers-rerun
+    requirements:
+      run:
+        - python >= ${{ python_min }}
+        - ${{ pin_subpackage('isaaclab-visualizers', exact=True) }}
+        - rerun-sdk >=0.29.0
+  - package:
+      name: isaaclab-visualizers-viser
+    requirements:
+      run:
+        - python >= ${{ python_min }}
+        - ${{ pin_subpackage('isaaclab-visualizers', exact=True) }}
+        - newton
+        - viser >=1.0.16
+
+about:
+  homepage: https://isaac-sim.github.io/IsaacLab
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE-mimic
+  repository: https://github.com/isaac-sim/IsaacLab
+  summary: Unified framework for robot learning built on NVIDIA Isaac Sim
+
+extra:
+  feedstock-name: isaaclab
+  recipe-maintainers:
+    - diegoferigo
