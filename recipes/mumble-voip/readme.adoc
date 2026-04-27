@@ -1,0 +1,190 @@
+= mumble-voip
+:version: 1.5.857
+
+Mumble is a free, open source, low latency, high quality voice chat application.
+
+== Description
+
+Mumble was the first VoIP application to establish true low latency voice communication over a decade ago. But low latency and gaming are not the only use cases it shines in.
+
+== Links
+
+* Homepage: https://www.mumble.info/
+* Repository: https://github.com/mumble-voip/mumble
+* Documentation: https://www.mumble.info/documentation/
+* CMake options: https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/cmake_options.md
+
+== Package Information
+
+* *License*: BSD-3-Clause
+* *Version*: {version}
+
+== Installation
+
+[source,bash]
+----
+pixi global install -c meso-forge mumble-voip
+----
+
+== System Library Integration
+
+This recipe uses system-installed libraries from conda-forge instead of bundled third-party dependencies, providing:
+
+* Reduced build times — no compilation of external libraries
+* Smaller packages — shared libraries reduce disk usage
+* Automatic security updates via conda-forge dependency management
+* Better ecosystem integration with other conda packages
+
+=== Libraries Using conda-forge Packages
+
+.Core Libraries
+[cols="2,2,4", options="header"]
+|===
+| Package | Version | Purpose
+| `nlohmann_json` | ≥3.11.3 | JSON handling
+| `spdlog` | ≥1.10.0 | Logging framework
+| `utfcpp` | ≥3.2.0 | UTF-8 utilities
+| `ms-gsl` | ≥4.2.0 | Microsoft Guidelines Support Library
+| `soci-core` | ≥4.0 | Database abstraction layer
+| `soci-sqlite` | ≥4.0 | SQLite backend for SOCI (Linux)
+|===
+
+.Audio Libraries
+[cols="2,2,4", options="header"]
+|===
+| Package | Version | Purpose
+| `libopus` | ≥1.3 | Audio codec
+| `libogg` | ≥1.3 | Container format
+| `libsndfile` | ≥1.0.28 | Audio file I/O
+| `speexdsp` | ≥1.2 | DSP — echo cancellation and noise reduction
+|===
+
+.Profiling and Utilities
+[cols="2,2,4", options="header"]
+|===
+| Package | Version | Purpose
+| `tracy-profiler` | ≥0.13.1 | Performance profiler (optional, disabled by default)
+| `spscqueue` | ≥1.1 | Single-producer single-consumer queue
+| `minhook` | ≥1.3 | Windows API hooking (Windows only)
+|===
+
+=== Libraries Still Bundled
+
+These remain bundled because they are Mumble-specific forks with no upstream conda-forge equivalent:
+
+* *ReNameNoise* — Mumble's noise suppression fork
+* *mach_override* — macOS function overriding (Mumble-specific fork)
+
+Build utilities bundled for the build process:
+
+* *FindPythonInterpreter* — CMake module
+* *cmake-compiler-flags* — CMake utilities
+* *flag-icons* — UI assets
+
+=== CMake Configuration
+
+Two files are included alongside the recipe to integrate with conda-forge:
+
+* `cmake_system_libs.cmake` — detects and configures system libraries via `find_package()` and `pkg-config`
+* `conda_toolchain.cmake` — sets `CMAKE_PREFIX_PATH`, RPATH, and compiler flags for the conda environment
+
+All bundled libraries are disabled at configure time via `-Dbundled-<lib>=OFF` flags.
+See https://github.com/mumble-voip/mumble/blob/master/docs/dev/build-instructions/cmake_options.md#bundled-gsl for the full list of upstream CMake options.
+
+== Recipe Files
+
+=== `service.yaml`
+
+Service descriptor for `mumble-server` on Linux. Consumed by a service-management tool at deploy time to generate the systemd unit and lay down runtime files. It specifies:
+
+* The executable to run (`mumble-server -ini /etc/mumble/mumble-server.ini`) and its working directory (`/var/lib/mumble`)
+* Runtime security: runs as `mumble:mumble`, systemd hardening (`NoNewPrivileges`, `ProtectSystem=strict`, `MemoryDenyWriteExecute`, private-IP network allowlist, etc.)
+* Restart policy: on-failure, up to 3 restarts in 60 s with a 5 s delay
+* File layout to provision on install: `/var/lib/mumble`, `/var/log/mumble`, `/etc/mumble`, a default `mumble-server.ini` (port 64738, SQLite database, 100-user limit), and `/etc/default/mumble-server`
+
+Bundled into the package via:
+[source,yaml]
+----
+- path: service.yaml
+  target_directory: service-config
+----
+and installed to `${PREFIX}/etc/mumble/service.yaml` by `build-server.sh`.
+
+=== `test_local_build.nu`
+
+Developer convenience script for iterating locally before running the full rattler-build CI pipeline. Run it from the recipe directory:
+
+[source,bash]
+----
+nu test_local_build.nu
+----
+
+It checks that `cmake`, `ninja`, and `git` are available, validates that `recipe.yaml` references the expected system dependencies, and runs a quick mock CMake configuration using `cmake_system_libs.cmake` and `conda_toolchain.cmake` against a minimal dummy `CMakeLists.txt`. It does *not* compile Mumble itself.
+
+=== `tests/test_mumble_client.nu`
+
+Post-install smoke test run by rattler-build for the `mumble-client` output. Verifies:
+
+* `${PREFIX}/bin/mumble` (or `mumble.exe` on Windows) exists
+* `--version` can be invoked without error (failure is tolerated in headless environments)
+* Optional library paths under `${PREFIX}/lib/mumble/` are reported
+* `${PREFIX}/share/licenses/mumble-client/LICENSE` is present (hard failure if missing)
+
+=== `tests/test_mumble_server.nu`
+
+Post-install smoke test run by rattler-build for the `mumble-server` output. Verifies:
+
+* `${PREFIX}/bin/mumble-server` exists
+* `--version` and `--help` can be invoked
+* `${PREFIX}/etc/mumble/service.yaml` is present and parses as valid YAML
+* `${PREFIX}/share/licenses/mumble-server/LICENSE` is present (hard failure if missing)
+* On Linux: `ldd` output contains no "not found" entries (runtime library check)
+
+== Related Projects
+
+* https://github.com/bluenviron/mediamtx
+
+== V1 Recipe Format
+
+https://github.com/prefix-dev/recipe-format
+
+== Inspiration
+
+* https://github.com/conda-forge/fans-feedstock/
+* https://github.com/conda-forge/pixi-feedstock/
+
+== Patches
+
+Mumble uses a 3rd-party CMake module:
+
+* https://github.com/Krzmbrzl/FindPythonInterpreter
+
+== Testing
+
+=== Option 1: Provide the recipe name
+
+[source,bash]
+----
+AZURE=True pixi run python build-locally.py linux64 --recipes mumble-voip
+----
+
+=== Option 2: Navigate to the recipe directory
+
+[source,bash]
+----
+cd recipes/mumble-voip
+AZURE=True pixi run python ../../build-locally.py linux64
+----
+
+=== Option 3: Use rattler-build directly
+
+[source,bash]
+----
+pixi run rattler-build build --recipe-dir recipes/mumble-voip --target-platform linux-64
+----
+
+== Future Considerations
+
+* *Additional SOCI backends* — MySQL, PostgreSQL support as needed
+* *Cross-platform testing* — extended validation on macOS and Windows
+* *Upstream contribution* — share enhanced `find_package()` configurations with the Mumble project
