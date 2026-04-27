@@ -1,0 +1,63 @@
+context:
+  version: "1.5.1"
+
+package:
+  name: skills
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/skills/-/skills-${{ version }}.tgz
+  sha256: c351b70fb3af3f36d1385883c42338c7fab35ccd8b19060fd0eca4d262422240
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    interpreter: nushell
+    content:
+      - open package.json | update scripts { reject prepare } | save -f package.json
+      - npm pack --ignore-scripts
+      - npm install -ddd --global --no-bin-links --build-from-source ($env.SRC_DIR)/($env.PKG_NAME)-($env.PKG_VERSION).tgz
+      - mkdir ($env.PREFIX)/bin ($env.PREFIX)/Library/bin
+      - |
+        '#!/usr/bin/env bash
+        $CONDA_PREFIX/bin/node $CONDA_PREFIX/lib/node_modules/skills/bin/cli.mjs $*'
+        | save -f ($env.PREFIX)/bin/skills
+      - |
+        'call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\skills\bin\cli.mjs %*'
+        | save -f ($env.PREFIX)/Library/bin/skills.cmd
+      - |
+        if $nu.os-info.name == windows {
+          mkdir ($env.PREFIX)/lib
+          mv ($env.PREFIX)/node_modules ($env.PREFIX)/lib
+        } else {
+          chmod +x ($env.PREFIX)/bin/skills
+        }
+
+requirements:
+  build:
+    - nushell
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - cat ./Library/bin/skills.cmd
+  - package_contents:
+      files:
+        - bin/skills
+        - Library/bin/skills.cmd
+        - lib/*
+      strict: true
+
+about:
+  homepage: https://github.com/vercel-labs/skills
+  summary: The open agent skills tool - npx skills
+  license: MIT
+  license_file:
+    - ThirdPartyNoticeText.txt
+
+extra:
+  recipe-maintainers:
+    - yuikisaito
