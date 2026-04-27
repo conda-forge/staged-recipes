@@ -1,0 +1,98 @@
+context:
+  name: gtsam-points
+  version: "1.2.0"
+  build_number: 0
+
+recipe:
+  name: ${{ name|lower }}-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/koide3/gtsam_points/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 14d321c4b705df21075a01a7c74868bea6382744f7f27463210b7774b419d1f5
+
+build:
+  number: ${{ build_number }}
+
+outputs:
+  - package:
+      name: gtsam-points
+    build:
+      script:
+        - cmake -S . -B build -GNinja
+          ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
+          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
+          -DCMAKE_CUDA_ARCHITECTURES="${{ "86" if cuda_compiler_version != "None" else "" }}"
+          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
+          -DBUILD_WITH_MARCH_NATIVE=OFF
+          -DBUILD_TESTS=${{ "ON" if build_platform == target_platform else "OFF" }}
+          -DBUILD_EXAMPLE=OFF
+        - cmake --build build/ --config Release
+        - cmake --install build/ --config Release
+        - if: build_platform == target_platform and cuda_compiler_version == "None"
+          then:
+            - cmake --build build/ --target test
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }} 
+        - ${{ stdlib("c") }}
+        - if: cuda_compiler_version != "None"
+          then: ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - gtsam
+        - eigen-abi-devel <4.0
+        - libboost-devel
+        - nanoflann
+        - tbb-devel
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-version ${{ cuda_compiler_version }}.*
+            - cuda-cudart-dev
+            - libcublas-dev
+            - libcurand-dev
+            - libcusparse-dev
+            - libcusolver-dev
+      run:
+      run_exports:
+        - ${{ pin_subpackage('gtsam-points', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - gtsam_points/config.hpp
+          lib:
+            - gtsam_points
+  - package:
+      name: gtsam-points-devel
+    requirements:
+      run:
+        - ${{ pin_subpackage('gtsam-points', exact=True) }}
+        - eigen <4.0
+        - libboost-devel
+        - nanoflann
+    tests:
+      - script:
+          - cmake-package-check gtsam_points --targets gtsam_points
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - cmake
+            - cmake-package-check
+            - ninja
+            - if: cuda_compiler_version != "None"
+              then: ${{ compiler('cuda') }}
+
+about:
+  homepage: https://koide3.github.io/glim/
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/koide3/gtsam_points
+  summary: A collection of GTSAM factors and optimizers for point cloud SLAM.
+
+extra:
+  feedstock-name: gtsam-points
+  recipe-maintainers:
+    - diegoferigo
