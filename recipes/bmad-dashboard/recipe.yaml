@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: bmad-dashboard
+  version: "1.3.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/elvince/bmad-dashboard-extension/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: b2ffba70a9c2b99e38939cb2a9fe43f118d0cbc861f7fb3b9e9eee085bde1a71
+  # Pre-fetched pnpm content-addressable store so `pnpm install --offline` works.
+  # Generated via `vendor.sh <version>` and uploaded as a release asset.
+  # HOLD SUBMISSION until this tarball is generated and the placeholder sha256
+  # is replaced with the real value from `vendor.sh`.
+  - url: https://github.com/rxm7706/conda-recipes-vendored/releases/download/bmad-dashboard-${{ version }}/bmad-dashboard-pnpm-store-${{ version }}.tar.gz
+    sha256: "0000000000000000000000000000000000000000000000000000000000000000"  # TODO: replace with `shasum -a 256` from vendor.sh
+    target_directory: pnpm-store
+
+build:
+  number: 0
+  noarch: generic
+  script: bash ${{ RECIPE_DIR }}/build.sh
+
+requirements:
+  build:
+    - nodejs >=22
+    - pnpm >=10
+  run:
+    - python >=3.10
+
+tests:
+  - script:
+      - if: not win
+        then:
+          - bmad-dashboard-install --help
+          - test -f "${CONDA_PREFIX}/share/bmad-dashboard/bmad-dashboard-${PKG_VERSION}.vsix"
+          - test -f "${CONDA_PREFIX}/share/bmad-dashboard/LICENSE.md"
+      - if: win
+        then:
+          - bmad-dashboard-install.bat --help
+          - if not exist "%CONDA_PREFIX%\share\bmad-dashboard\bmad-dashboard-%PKG_VERSION%.vsix" exit 1
+          - if not exist "%CONDA_PREFIX%\share\bmad-dashboard\LICENSE.md" exit 1
+
+about:
+  homepage: https://github.com/elvince/bmad-dashboard-extension
+  repository: https://github.com/elvince/bmad-dashboard-extension
+  license: MIT
+  license_file: LICENSE.md
+  summary: BMAD Dashboard VS Code extension installer (.vsix bundle + helper)
+  description: |
+    bmad-dashboard packages the BMAD Dashboard VS Code extension as an
+    installable .vsix bundle plus a `bmad-dashboard-install` helper that runs
+    `code --install-extension` against an installed VS Code (or compatible
+    editor exposing the `code` CLI, e.g. VS Code Insiders, VSCodium, Cursor).
+
+    The dashboard auto-activates in workspaces containing a `_bmad/` directory
+    and provides a sidebar view with sprint progress, epic/story navigation,
+    and next-action recommendations driven by BMAD V6 workflow artifacts.
+
+    This package does not depend on `vscode` (conda-forge does not ship it).
+    Users must install VS Code separately and ensure the `code` CLI is on PATH
+    before running `bmad-dashboard-install`.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
