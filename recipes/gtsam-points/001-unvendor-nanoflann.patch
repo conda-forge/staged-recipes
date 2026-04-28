@@ -1,0 +1,240 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0ffd94b..b4b5979 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -33,6 +33,7 @@ find_package(Boost REQUIRED COMPONENTS graph filesystem)
+ find_package(GTSAM 4.2 REQUIRED)
+ find_package(GTSAM_UNSTABLE 4.2 REQUIRED)
+ find_package(Eigen3 REQUIRED)
++find_package(nanoflann REQUIRED)
+ 
+ # Set optimizer source paths based on GTSAM version
+ if(GTSAM_VERSION VERSION_LESS "4.3")
+@@ -212,7 +213,6 @@ add_library(gtsam_points SHARED
+ )
+ target_include_directories(gtsam_points PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/nanoflann/include>
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+   $<INSTALL_INTERFACE:include>
+ )
+@@ -222,6 +222,7 @@ target_link_libraries(gtsam_points
+   Boost::filesystem
+   Eigen3::Eigen
+   gtsam
++  nanoflann::nanoflann
+   gtsam_unstable
+   $<TARGET_NAME_IF_EXISTS:TBB::tbb>
+   $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_CXX>
+@@ -373,7 +374,7 @@ endif()
+ 
+ include(GNUInstallDirs)
+ install(
+-  DIRECTORY include/ thirdparty/nanoflann/include/ ${CMAKE_CURRENT_BINARY_DIR}/include/
++  DIRECTORY include/ ${CMAKE_CURRENT_BINARY_DIR}/include/
+   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+ )
+ 
+diff --git a/cmake/gtsam_points-config.cmake.in b/cmake/gtsam_points-config.cmake.in
+index 0548605..37fca1f 100644
+--- a/cmake/gtsam_points-config.cmake.in
++++ b/cmake/gtsam_points-config.cmake.in
+@@ -21,6 +21,7 @@ find_dependency(Eigen3 REQUIRED)
+ find_dependency(GTSAM REQUIRED)
+ find_dependency(GTSAM_UNSTABLE REQUIRED)
+ find_dependency(OpenMP REQUIRED)
++find_dependency(nanoflann REQUIRED)
+ find_dependency(Boost REQUIRED COMPONENTS filesystem graph)
+ 
+ if(GTSAM_POINTS_USE_TBB)
+diff --git a/include/gtsam_points/ann/impl/kdtreex_impl.hpp b/include/gtsam_points/ann/impl/kdtreex_impl.hpp
+index a56373e..0f89704 100644
+--- a/include/gtsam_points/ann/impl/kdtreex_impl.hpp
++++ b/include/gtsam_points/ann/impl/kdtreex_impl.hpp
+@@ -7,38 +7,47 @@
+ 
+ namespace gtsam_points {
+ 
++template <int D>
++using IndexX = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, KdTreeX<D>, double, size_t>, KdTreeX<D>, D, size_t>;
++
+ template <int D>
+ KdTreeX<D>::KdTreeX(const Eigen::Matrix<double, D, 1>* points, int num_points)
+ : num_points(num_points),
+   points(points),
+-  search_eps(-1.0),
+-  index(new Index(dim(), *this, nanoflann::KDTreeSingleIndexAdaptorParams(10))) {
+-  index->buildIndex();
++  search_eps(-1.0) {
++  IndexX<D>* idx = new IndexX<D>(dim(), *this, nanoflann::KDTreeSingleIndexAdaptorParams(10));
++  idx->buildIndex();
++  index = idx;
+ }
+ 
+ template <int D>
+-KdTreeX<D>::~KdTreeX() {}
++KdTreeX<D>::~KdTreeX() {
++  delete static_cast<IndexX<D>*>(index);
++}
+ 
+ template <int D>
+ size_t KdTreeX<D>::knn_search(const double* pt, size_t k, size_t* k_indices, double* k_sq_dists, double max_sq_dist) const {
++  IndexX<D>* idx = static_cast<IndexX<D>*>(index);
+   if (search_eps > 0.0) {
+     nanoflann::KNNResultSet<double, size_t> result_set(k);
+     result_set.init(k_indices, k_sq_dists);
+-    nanoflann::SearchParams search_params;
++    nanoflann::SearchParameters search_params;
+     search_params.eps = search_eps;
+-    index->findNeighbors(result_set, pt, search_params);
++    idx->findNeighbors(result_set, pt, search_params);
+     return result_set.size();
+   }
+ 
+-  return index->knnSearch(pt, k, k_indices, k_sq_dists);
++  return idx->knnSearch(pt, k, k_indices, k_sq_dists);
+ }
+ 
+ template <int D>
+ size_t KdTreeX<D>::radius_search(const double* pt, double radius, std::vector<size_t>& indices, std::vector<double>& sq_dists, int max_num_neighbors)
+   const {
+-  nanoflann::SearchParams params;
+-  std::vector<std::pair<size_t, double>> indices_dists;
+-  size_t num_found = index->radiusSearch(pt, radius * radius, indices_dists, params);
++  IndexX<D>* idx = static_cast<IndexX<D>*>(index);
++  nanoflann::SearchParameters params;
++  std::vector<nanoflann::ResultItem<size_t, double>> indices_dists;
++  idx->radiusSearch(pt, radius * radius, indices_dists, params);
++  size_t num_found = indices_dists.size();
+ 
+   indices.resize(num_found);
+   sq_dists.resize(num_found);
+diff --git a/include/gtsam_points/ann/intensity_kdtree.hpp b/include/gtsam_points/ann/intensity_kdtree.hpp
+index d8d2549..1474b88 100644
+--- a/include/gtsam_points/ann/intensity_kdtree.hpp
++++ b/include/gtsam_points/ann/intensity_kdtree.hpp
+@@ -7,17 +7,6 @@
+ #include <Eigen/Core>
+ #include <gtsam_points/ann/nearest_neighbor_search.hpp>
+ 
+-// forward declaration
+-namespace nanoflann {
+-
+-template <class T, class DataSource, typename _DistanceType>
+-class L2_Simple_Adaptor;
+-
+-template <typename Distance, class DatasetAdaptor, int DIM, typename IndexType>
+-class KDTreeSingleIndexAdaptor;
+-
+-}  // namespace nanoflann
+-
+ namespace gtsam_points {
+ 
+ /**
+@@ -26,8 +15,6 @@ namespace gtsam_points {
+  */
+ struct IntensityKdTree : public NearestNeighborSearch {
+ public:
+-  using Index = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, IntensityKdTree, double>, IntensityKdTree, 4, size_t>;
+-
+   /**
+    * @brief Constructor
+    * @param points          Input points
+@@ -67,7 +54,7 @@ public:
+ 
+   double search_eps;
+ 
+-  std::unique_ptr<Index> index;
++  void* index;
+ };
+ 
+ }  // namespace gtsam_points
+\ No newline at end of file
+diff --git a/include/gtsam_points/ann/kdtreex.hpp b/include/gtsam_points/ann/kdtreex.hpp
+index 13c2caa..034bf46 100644
+--- a/include/gtsam_points/ann/kdtreex.hpp
++++ b/include/gtsam_points/ann/kdtreex.hpp
+@@ -7,17 +7,6 @@
+ #include <Eigen/Core>
+ #include <gtsam_points/ann/nearest_neighbor_search.hpp>
+ 
+-// forward declaration
+-namespace nanoflann {
+-
+-template <class T, class DataSource, typename _DistanceType>
+-class L2_Simple_Adaptor;
+-
+-template <typename Distance, class DatasetAdaptor, int DIM, typename IndexType>
+-class KDTreeSingleIndexAdaptor;
+-
+-}  // namespace nanoflann
+-
+ namespace gtsam_points {
+ 
+ /**
+@@ -26,8 +15,6 @@ namespace gtsam_points {
+ template <int D = -1>
+ struct KdTreeX : public NearestNeighborSearch {
+ public:
+-  using Index = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, KdTreeX<D>, double>, KdTreeX<D>, D, size_t>;
+-
+   /**
+    * @brief Constructor
+    */
+@@ -62,7 +49,7 @@ public:
+   const Eigen::Matrix<double, D, 1>* points;
+ 
+   double search_eps;
+-  std::unique_ptr<Index> index;
++  void* index;
+ };
+ 
+ }  // namespace gtsam_points
+\ No newline at end of file
+diff --git a/src/gtsam_points/ann/intensity_kdtree.cpp b/src/gtsam_points/ann/intensity_kdtree.cpp
+index 460aa28..8b9becf 100644
+--- a/src/gtsam_points/ann/intensity_kdtree.cpp
++++ b/src/gtsam_points/ann/intensity_kdtree.cpp
+@@ -6,28 +6,34 @@
+ 
+ namespace gtsam_points {
+ 
++using Index = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, IntensityKdTree, double, size_t>, IntensityKdTree, 4, size_t>;
++
+ IntensityKdTree::IntensityKdTree(const Eigen::Vector4d* points, const double* intensities, int num_points, double intensity_scale)
+ : num_points(num_points),
+   points(points),
+   intensities(intensities),
+   intensity_scale(intensity_scale),
+-  search_eps(-1.0),
+-  index(new Index(4, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10))) {
+-  index->buildIndex();
++  search_eps(-1.0) {
++  Index* idx = new Index(4, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10));
++  idx->buildIndex();
++  index = idx;
+ }
+ 
+-IntensityKdTree::~IntensityKdTree() {}
++IntensityKdTree::~IntensityKdTree() {
++  delete static_cast<Index*>(index);
++}
+ 
+ size_t IntensityKdTree::knn_search(const double* pt, size_t k, size_t* k_indices, double* k_sq_dists, double max_sq_dist) const {
++  Index* idx = static_cast<Index*>(index);
+   if (search_eps > 0.0) {
+     nanoflann::KNNResultSet<double, size_t> result_set(k);
+     result_set.init(k_indices, k_sq_dists);
+-    nanoflann::SearchParams search_params;
++    nanoflann::SearchParameters search_params;
+     search_params.eps = search_eps;
+-    index->findNeighbors(result_set, pt, search_params);
++    idx->findNeighbors(result_set, pt, search_params);
+     return result_set.size();
+   }
+ 
+-  return index->knnSearch(pt, k, k_indices, k_sq_dists);
++  return idx->knnSearch(pt, k, k_indices, k_sq_dists);
+ }
+ }
+\ No newline at end of file
