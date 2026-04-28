@@ -1,0 +1,134 @@
+{% set name = "libcuest" %}
+{% set version = "0.1.0.7" %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
+{% set abiversion = version.split('.')[0] %}
+{% set majorminorpatch = '.'.join(version.split('.')[:3]) %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set extension = "tar.xz" %}  # [not win]
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuest/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}_cuda12-archive.{{ extension }}  # [(cuda_compiler_version or "").startswith("12")]
+  url: https://developer.download.nvidia.com/compute/cuest/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}_cuda13-archive.{{ extension }}  # [(cuda_compiler_version or "").startswith("13")]
+  sha256: bc84a242d2841a0024201006aeec899523de82d3281ea644e217acc97e864cfe  # [linux64 and (cuda_compiler_version or "").startswith("12")]]
+  sha256: c89532972700ce4b2db956f76631c2bff135cc9b2e9484181f90f5d7a1af4dd7  # [linux64 and (cuda_compiler_version or "").startswith("13")]]
+  sha256: 4bd96df640b97118af4320f3a053b49acab05376ea6c227f447348b361421aac  # [linux and aarch64 and (cuda_compiler_version or "").startswith("12")]]
+  sha256: ecfcd9878dd345a39675efaf4f5cf11792255b1bf23f61d392d7711425b58529  # [linux and aarch64 and (cuda_compiler_version or "").startswith("13")]]
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64) or cuda_compiler_version in ("None", "")]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1.*  # [linux]
+
+outputs:
+  - name: libcuest
+    build:
+      # Ignore run_exports on cuda-version which we need to add to avoid hash collision as we have multiple CTK support
+      ignore_run_exports:
+        - cuda-version
+      # cuda-version will take care of constraining versions for the following
+      # and thus we should ignore the run exports from them which are more strict
+      ignore_run_exports_from:
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - libnvjitlink-dev
+    files:
+      - lib/libcuest*.so.*
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cuda') }}
+      host:
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - libnvjitlink-dev
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - libcublas
+        - libcusolver
+        - libcusparse
+        - libnvjitlink
+        - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcuest.so.{{ majorminorpatch }}
+        - test -L $PREFIX/lib/libcuest.so.{{ abiversion }}
+
+  - name: libcuest-dev
+    build:
+      ignore_run_exports:
+        - cuda-version
+      # Export libcuest for a consuming feedstock that needs libcuest-dev in their host: section
+      # For this lib, the breaking changes occur at the minor version (until major version reaches 1)
+      run_exports:
+        - {{ pin_subpackage("libcuest", max_pin="x.x") }}
+    files:
+      - lib/libcuest*.so
+      - include/
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cuda') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage("libcuest", exact=True) }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libcuest", exact=True) }}
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcuest.so
+        - test -f $PREFIX/include/cuest.h
+        - test -d $PREFIX/include/cuest
+
+  - name: libcuest-static
+    build:
+      ignore_run_exports:
+        - cuda-version
+    files:
+      - lib/libcuest_static.a
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cuda') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage("libcuest-dev", exact=True) }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libcuest-dev", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcuest_static.a
+
+about:
+  home: https://developer.nvidia.com/cuest
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/cuest/latest/license.html
+  summary: cuEST - GPU-powered electronic structure theory
+  description: |
+    Fast, GPU-powered components for electronic structure theory
+  doc_url: https://docs.nvidia.com/cuda/cuest/
+
+extra:
+  feedstock-name: libcuest
+  recipe-maintainers:
+    - conda-forge/cuda
