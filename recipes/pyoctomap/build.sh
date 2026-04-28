@@ -35,5 +35,8 @@ else
     cp -v ${PREFIX}/lib/libdynamicedt3d.so* src/octomap/lib/
 fi
 
+# Copy the OctoMap license to the root for packaging
+cp src/octomap/LICENSE.txt LICENSE_OCTOMAP.txt
+
 # Install the Python package
 ${PYTHON} -m pip install . -vv

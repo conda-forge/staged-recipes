@@ -21,6 +21,10 @@ if errorlevel 1 exit 1
 copy src\octomap\lib\*.lib "%LIBRARY_LIB%\"
 if errorlevel 1 exit 1
 
+:: Copy the OctoMap license to the root for packaging
+copy src\octomap\LICENSE.txt LICENSE_OCTOMAP.txt
+if errorlevel 1 exit 1
+
 :: Install the python package
 "%PYTHON%" -m pip install . -vv
 if errorlevel 1 exit 1
