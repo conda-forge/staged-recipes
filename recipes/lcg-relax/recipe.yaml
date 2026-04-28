@@ -1,0 +1,70 @@
+context:
+  version: "6.1.2"
+
+package:
+  name: lcg-relax
+  version: ${{ version }}
+
+source:
+  url: https://lcgpackages.web.cern.ch/tarFiles/sources/RELAX-${{ version }}.tar.gz
+  sha256: f91b81404c13da7d8ae92f2720f1b2ef0170116f16bc89a2bfd49179f7d33251
+  patches:
+    # GCCXML is no longer needed since ROOT 6.00 replaced it with Cling/rootcling
+    # See https://root.cern/root/html600/notes/release-notes.html
+    - patches/0001-remove-gccxml-dependency.patch
+    - patches/0002-use-shared-library-type.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - |
+      mkdir -p build
+      cd build
+      cmake ${CMAKE_ARGS} \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DCMAKE_CXX_STANDARD=20 \
+          $SRC_DIR
+      cmake --build . --target install
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage("lcg-relax", upper_bound="x.x.x") }}
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - root_base
+    - root_cxx_standard
+    - clhep
+    - gsl
+
+tests:
+  - package_contents:
+      lib:
+        - libCLHEPRflx
+        - libMathRflx
+        - libMathAddRflx
+        - libSTLRflx
+        - libSTLAddRflx
+
+about:
+  homepage: https://gitlab.cern.ch/sft/relax
+  license: LGPL-2.0-or-later
+  license_file: README.md
+  summary: Reflex dictionaries for commonly used HEP libraries
+  description: |
+    RELAX provides Reflex dictionaries for commonly used libraries in the
+    LCG software stack, including CLHEP, HepMC, ROOT Math, and STL containers.
+    These dictionaries enable reflection capabilities for use with ROOT I/O
+    and other tools requiring runtime type information.
+  repository: https://gitlab.cern.ch/sft/relax
+
+extra:
+  recipe-maintainers:
+    - chrisburr
