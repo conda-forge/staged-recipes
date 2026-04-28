@@ -1,0 +1,31 @@
+On Windows, conda-forge installs to %PREFIX%\Library:
+1. PREFER_CONFIG ON makes cmake prefer *Config.cmake files, which
+   bypasses the bundled FindSuiteSparse.cmake (whose internal
+   FindBLAS call fails on MSVC because it uses NO_DEFAULT_PATH).
+2. IGNORE_PATH for sundials disables SUNDIALSConfig.cmake, forcing
+   MODULE mode (FindSUNDIALS.cmake) which correctly sets the
+   SUNDIALS_LIBRARIES variable pybammsolvers links against. The
+   Config only creates imported targets, not SUNDIALS_LIBRARIES.
+3. A FindBLAS.cmake shim provides BLAS_FOUND=TRUE so that
+   FindSuiteSparse.cmake BLAS check passes.
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,4 +30,16 @@ if (NOT MSVC)
+ endif ()
+ 
++if (DEFINED ENV{LIBRARY_PREFIX})
++    file(TO_CMAKE_PATH "$ENV{LIBRARY_PREFIX}" _conda_prefix)
++    list(APPEND CMAKE_PREFIX_PATH "${_conda_prefix}")
++    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
++    list(APPEND CMAKE_IGNORE_PATH "${_conda_prefix}/lib/cmake/sundials")
++    file(WRITE "${CMAKE_BINARY_DIR}/conda_cmake/FindBLAS.cmake"
++        "set(BLAS_LIBRARIES \"${_conda_prefix}/lib/blas.lib\")\n"
++        "set(BLAS_LINKER_FLAGS \"\")\n"
++        "set(BLAS_FOUND TRUE)\n")
++    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/conda_cmake")
++endif ()
++
+ find_package(pybind11 CONFIG REQUIRED)
+ 
