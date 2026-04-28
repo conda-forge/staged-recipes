@@ -22,10 +22,18 @@ outputs:
       name: gtsam-points
     build:
       script:
+        # The following matches all the archs supported by conda-forge's pytorch,
+        # including the +PTX modifier added to the most recent version.
+        # pixi exec --spec "pytorch=*=cuda12*" python -c "import torch; print(torch.cuda.get_arch_list())"
+        # pixi exec --spec "pytorch=*=cuda13*" python -c "import torch; print(torch.cuda.get_arch_list())"
+        - if: match(cuda_compiler_version, "12.*")
+          then: export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        - if: match(cuda_compiler_version, "13.*")
+          then: export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;11.0;12.0+PTX"
         - cmake -S . -B build -GNinja
           ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
           -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
-          -DCMAKE_CUDA_ARCHITECTURES=${{ "86" if cuda_compiler_version != "None" else "" }}
+          -DCMAKE_CUDA_ARCHITECTURES=${{ "${TORCH_CUDA_ARCH_LIST}" if cuda_compiler_version != "None" else "" }}
           -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
           -DBUILD_WITH_MARCH_NATIVE=OFF
           -DBUILD_TESTS=${{ "ON" if build_platform == target_platform else "OFF" }}
