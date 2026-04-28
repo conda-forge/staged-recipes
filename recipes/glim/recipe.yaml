@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: glim
-  version: "1.2.0"
+  version: "1.2.1"
   build_number: 0
 
 recipe:
@@ -11,7 +11,7 @@ recipe:
 
 source:
   - url: https://github.com/koide3/glim/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: 8e0f5f20b5fe03cf5c9f91cd08458bf468324a7532bcb1957e5db70971daa037
+    sha256: baa367009dff6fdcaacf87d53c2a4e2add4ac4d6668e85ebc56b2aa6432b1f14
     patches:
       - 0001-fix-fmt-ptr-shared-ptr.patch
 
@@ -20,25 +20,35 @@ build:
   skip: not linux
 
 outputs:
+  # =============
+  # Package: glim
+  # =============
   - package:
-      name: ${{ name|lower }}
+      name: glim
     build:
       script:
+        # The following matches all the archs supported by conda-forge's pytorch,
+        # including the +PTX modifier (virtual) added to the most recent version.
+        # pixi exec --spec "pytorch=*=cuda12*" python -c "import torch; print(torch.cuda.get_arch_list())"
+        # pixi exec --spec "pytorch=*=cuda13*" python -c "import torch; print(torch.cuda.get_arch_list())"
+        - if: match(cuda_compiler_version, "12.*")
+          then: export TORCH_CUDA_ARCH_LIST="75-real;80-real;86-real;90-real;100-real;120-virtual"
+        - if: match(cuda_compiler_version, "13.*")
+          then: export TORCH_CUDA_ARCH_LIST="75-real;80-real;86-real;90-real;100-real;110-real;120-virtual"
         - cmake -S . -B build -GNinja
-          ${CMAKE_ARGS}
           ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
-          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
-          -DCMAKE_CUDA_ARCHITECTURES=${{ "86" if cuda_compiler_version != "None" else "" }}
-          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
           -DBUILD_WITH_VIEWER=OFF
           -DBUILD_WITH_MARCH_NATIVE=OFF
           -DBUILD_WITH_OPENCV=ON
+          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
+          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
+          -DCMAKE_CUDA_ARCHITECTURES=${{ "${TORCH_CUDA_ARCH_LIST}" if cuda_compiler_version != "None" else "" }}
         - cmake --build build --config Release
         - cmake --install build/ --config Release
     requirements:
       build:
         - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }} 
+        - ${{ compiler('cxx') }}
         - ${{ stdlib("c") }}
         - if: cuda_compiler_version != "None"
           then: ${{ compiler('cuda') }}
@@ -46,14 +56,14 @@ outputs:
         - ninja
         - pkg-config
       host:
-        - gtsam
-        - gtsam-points
-        - eigen-abi-devel <4.0
-        - libboost-devel
-        - tbb-devel
-        - spdlog
         - fmt
+        - gtsam >=4.2
+        - gtsam-points-devel >=1.2.0
+        - eigen-abi-devel
+        - libboost-devel
         - nlohmann_json
+        - spdlog
+        - tbb-devel
         - if: target_platform == "linux-aarch64"
           then: libopencv <4.12
           else: libopencv
@@ -66,29 +76,43 @@ outputs:
             - libcusparse-dev
             - libcusolver-dev
       run:
-      run_exports:
-        - ${{ pin_subpackage('glim', upper_bound='x.x.x') }}
     tests:
       - package_contents:
           include:
             - glim/util/config.hpp
           lib:
             - glim
+            - odometry_estimation_ct
+            - odometry_estimation_cpu
+            - sub_mapping
+            - sub_mapping_passthrough
+            - global_mapping
+            - global_mapping_pose_graph
+            - if: cuda_compiler_version != "None"
+              then: odometry_estimation_gpu
+  # ===================
+  # Package: glim-devel
+  # ===================
   - package:
-      name: ${{ name|lower }}-devel
+      name: glim-devel
     requirements:
       run:
         - ${{ pin_subpackage('glim', exact=True) }}
-        - eigen <4.0
+        - eigen
+        - eigen-abi-devel
+        - gtsam-points-devel
         - libboost-devel
+        - tbb-devel
+      run_exports:
+        - ${{ pin_subpackage('glim', upper_bound='x.x.x') }}
     tests:
       - script:
           - cmake-package-check glim --targets glim
         requirements:
           run:
-            - cmake-package-check
             - ${{ compiler('cxx') }}
             - cmake
+            - cmake-package-check
             - ninja
             - if: cuda_compiler_version != "None"
               then: ${{ compiler('cuda') }}
