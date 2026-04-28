@@ -12,33 +12,44 @@ recipe:
 source:
   - url: https://github.com/koide3/gtsam_points/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 14d321c4b705df21075a01a7c74868bea6382744f7f27463210b7774b419d1f5
+    patches:
+      - 001-unvendor-nanoflann.patch
 
 build:
   number: ${{ build_number }}
   skip: not linux
 
 outputs:
+  # =====================
+  # Package: gtsam-points
+  # =====================
   - package:
       name: gtsam-points
     build:
       script:
         - cmake -S . -B build -GNinja
           ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
-          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
-          -DCMAKE_CUDA_ARCHITECTURES=${{ "86" if cuda_compiler_version != "None" else "" }}
-          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
-          -DBUILD_WITH_MARCH_NATIVE=OFF
-          -DBUILD_TESTS=${{ "ON" if build_platform == target_platform else "OFF" }}
+          -DBUILD_DEMO=OFF
+          -DBUILD_TOOLS=OFF
+          -DBUILD_TESTS=OFF
           -DBUILD_EXAMPLE=OFF
+          -DBUILD_WITH_TBB=ON
+          -DBUILD_WITH_MARCH_NATIVE=OFF
+          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
+          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
+          -DGTSAM_POINTS_USE_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
+          -DCMAKE_CUDA_ARCHITECTURES=${{ "86" if cuda_compiler_version != "None" else "" }}
         - cmake --build build/ --config Release
         - cmake --install build/ --config Release
-        - if: build_platform == target_platform and cuda_compiler_version == "None"
+        - if: build_platform == target_platform
           then:
-            - cmake --build build/ --target test
+          - cmake -S . -B build -DBUILD_TESTS=ON
+          - cmake --build build/
+          - ctest --test-dir build/ --rerun-failed --output-on-failure
     requirements:
       build:
         - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }} 
+        - ${{ compiler('cxx') }}
         - ${{ stdlib("c") }}
         - if: cuda_compiler_version != "None"
           then: ${{ compiler('cuda') }}
@@ -46,8 +57,9 @@ outputs:
         - ninja
         - pkg-config
       host:
+        - gtest
         - gtsam
-        - eigen-abi-devel <4.0
+        - eigen-abi-devel
         - libboost-devel
         - nanoflann
         - tbb-devel
@@ -61,21 +73,30 @@ outputs:
             - libcusolver-dev
       run:
       run_exports:
-        - ${{ pin_subpackage('gtsam-points', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('gtsam-points', upper_bound='x.x') }}
     tests:
       - package_contents:
           include:
             - gtsam_points/config.hpp
           lib:
             - gtsam_points
+  # ===========================
+  # Package: gtsam-points-devel
+  # ===========================
   - package:
       name: gtsam-points-devel
     requirements:
       run:
         - ${{ pin_subpackage('gtsam-points', exact=True) }}
-        - eigen <4.0
+        - eigen
+        - eigen-abi-devel
         - libboost-devel
         - nanoflann
+        - tbb-devel
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-cudart-dev
+            - cuda-version ${{ cuda_compiler_version }}.*
     tests:
       - script:
           - cmake-package-check gtsam_points --targets gtsam_points
