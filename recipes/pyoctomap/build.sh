@@ -16,6 +16,9 @@ fi
 # Pass CMAKE_ARGS to the cmake call in the CI script for cross-compilation support (macOS/ARM)
 sed -i.bak 's|"${CMAKE_BIN}" ..|"${CMAKE_BIN}" ${CMAKE_ARGS} ..|g' scripts/ci/build_octomap.sh
 
+# Remove --parallel flag from cmake build call for compatibility with older cmake versions
+sed -i.bak 's|--parallel "$(getconf _NPROCESSORS_ONLN 2>/dev/null \|\| sysctl -n hw.ncpu 2>/dev/null \|\| echo 4)"||g' scripts/ci/build_octomap.sh
+
 # Build octomap using the provided CI script
 bash scripts/ci/build_octomap.sh .
 
