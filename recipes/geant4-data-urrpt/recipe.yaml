@@ -23,7 +23,13 @@ build:
   script:
     - mkdir -p ${PREFIX}/${{ install_dir }}
     - cp -r dataset/* ${PREFIX}/${{ install_dir }}
-    - ${RECIPE_DIR}/create_activation_scripts.sh ${{ name }} ${{ env_var }} ${{ install_dir }}
+    - mkdir -p ${PREFIX}/etc/conda/env_vars.d
+    - |
+      cat > ${PREFIX}/etc/conda/env_vars.d/${{ name }}.json <<EOF
+      {
+        "${{ env_var }}": "${PREFIX}/${{ install_dir }}"
+      }
+      EOF
 
 # Conda-forge is unable to build packages that have no dependencies so add
 # `make` as a dummy build dependency
@@ -33,7 +39,8 @@ requirements:
 
 tests:
   - script:
-      - '[ "${${{ env_var }}}" == "$CONDA_PREFIX/${{ install_dir }}" ]'
+      - test -f "${PREFIX}/etc/conda/env_vars.d/${{ name }}.json"
+      - '[ "${${{ env_var }}}" = "$CONDA_PREFIX/${{ install_dir }}" ]'
 
 about:
   homepage: https://geant4.web.cern.ch/
@@ -43,5 +50,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - tkittel
-    - chrisburr
+    - conda-forge/geant4
