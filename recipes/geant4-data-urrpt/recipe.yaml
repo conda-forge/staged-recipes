@@ -20,25 +20,23 @@ source:
 build:
   number: 0
   noarch: generic
+  prefix_detection:
+    force_file_type:
+      text:
+        - etc/conda/env_vars.d/*.json
   script:
     interpreter: nu
     content: |
-      let dest = $"($env.PREFIX)/${{ install_dir }}"
+      let dest = ($env.PREFIX | path join ${{ install_dir }})
       mkdir $dest
       cp -r dataset/* $dest
-      let activate_d = $"($env.PREFIX)/etc/conda/activate.d"
-      let deactivate_d = $"($env.PREFIX)/etc/conda/deactivate.d"
-      mkdir $activate_d
-      mkdir $deactivate_d
-      let install_dir_bs = ("${{ install_dir }}" | str replace -a "/" "\\")
-      $"export ${{ env_var }}=\"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.sh"
-      $"unset ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.sh"
-      $"set -gx ${{ env_var }} \"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.fish"
-      $"set -e ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.fish"
-      $"setenv ${{ env_var }} \"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.csh"
-      $"unsetenv ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.csh"
-      $"@set \"${{ env_var }}=%CONDA_PREFIX%\\($install_dir_bs)\"\r\n" | save -f $"($activate_d)/activate-${{ name }}.bat"
-      $"@set \"${{ env_var }}=\"\r\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.bat"
+      let env_dir = ($env.PREFIX | path join "etc" "conda" "env_vars.d")
+      mkdir $env_dir
+      let json_path = ($env_dir | path join $"${{ name }}.json")
+      {"${{ env_var }}": $dest} | to json | save -f $json_path
+      print "=== DEBUG: env_vars.d JSON contents ==="
+      print (open --raw $json_path)
+      print $"=== DEBUG: build PREFIX = ($env.PREFIX) ==="
 
 requirements:
   build:
@@ -47,13 +45,22 @@ requirements:
 tests:
   - package_contents:
       files:
-        - etc/conda/activate.d/activate-${{ name }}.sh
-        - etc/conda/activate.d/activate-${{ name }}.bat
+        - etc/conda/env_vars.d/${{ name }}.json
         - ${{ install_dir }}/**
   - script:
       - if: unix
-        then: '[ "${${{ env_var }}}" = "$CONDA_PREFIX/${{ install_dir }}" ] && [ -d "${${{ env_var }}}" ]'
-        else: 'if not exist "%${{ env_var }}%\NUL" exit 1'
+        then: |
+          set -x
+          echo "CONDA_PREFIX=$CONDA_PREFIX"
+          echo "${{ env_var }}=${${{ env_var }}}"
+          cat "$CONDA_PREFIX/etc/conda/env_vars.d/${{ name }}.json"
+          [ -d "${${{ env_var }}}" ]
+        else: |
+          @echo on
+          echo CONDA_PREFIX=%CONDA_PREFIX%
+          echo ${{ env_var }}=%${{ env_var }}%
+          type "%CONDA_PREFIX%\etc\conda\env_vars.d\${{ name }}.json"
+          if not exist "%${{ env_var }}%\NUL" exit 1
 
 about:
   homepage: https://geant4.web.cern.ch/
