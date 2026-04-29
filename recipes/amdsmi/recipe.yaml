@@ -1,0 +1,94 @@
+schema_version: 1
+
+context:
+  version: "26.1.0"
+  rocm_version: "7.1.0"
+  esmi_version: "4.2"
+
+recipe:
+  name: amdsmi-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/ROCm/amdsmi/archive/refs/tags/rocm-${{ rocm_version }}.tar.gz
+    sha256: 17ccddf8988a5674edb360b9f3b41bf3d94c6f4ba36cf8d84739c6ccdfc87c50
+  - url: https://github.com/amd/esmi_ib_library/archive/refs/tags/esmi_pkg_ver-${{ esmi_version }}.tar.gz
+    sha256: de19d222d09e2171f47f8bbd6608e5648bd547c82543379bb8fb5ed2e379e141
+    target_directory: esmi_ib_library
+
+build:
+  number: 0
+  skip:
+    - not linux
+
+outputs:
+  - staging:
+      name: amdsmi-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.20
+        - ninja
+        - pkg-config
+      host:
+        - libdrm
+    build:
+      script: build.sh
+
+  - package:
+      name: libamd-smi
+    inherit: amdsmi-build
+    build:
+      files:
+        - lib/libamd_smi.so*
+        - include/amd_smi/**
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('libamd-smi', upper_bound='x.x') }}
+      run:
+        - rocm-core
+        - libdrm
+    tests:
+      - script:
+          - test -f $PREFIX/lib/libamd_smi.so
+          - test -f $PREFIX/include/amd_smi/amdsmi.h
+
+  - package:
+      name: amdsmi
+    inherit:
+      from: amdsmi-build
+      run_exports: false
+    build:
+      script: install_python.sh
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools >=59.0
+      run:
+        - python
+        - ${{ pin_subpackage('libamd-smi', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - amdsmi
+          pip_check: true
+
+about:
+  homepage: https://github.com/ROCm/amdsmi
+  summary: AMD System Management Interface Library
+  description: |
+    AMD SMI provides a C library and Python interface for monitoring and
+    managing AMD hardware (GPUs and CPUs). It exposes telemetry data
+    such as temperature, clock speeds, power usage, and allows device
+    management operations.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://rocm.docs.amd.com/projects/amdsmi/
+  repository: https://github.com/ROCm/amdsmi
+
+extra:
+  recipe-maintainers:
+    - flferretti
