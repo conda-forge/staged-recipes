@@ -26,8 +26,19 @@ build:
       let dest = $"($env.PREFIX)/${{ install_dir }}"
       mkdir $dest
       cp -r dataset/* $dest
-      mkdir $"($env.PREFIX)/etc/conda/env_vars.d"
-      {"${{ env_var }}": $dest} | to json | save -f $"($env.PREFIX)/etc/conda/env_vars.d/${{ name }}.json"
+      let activate_d = $"($env.PREFIX)/etc/conda/activate.d"
+      let deactivate_d = $"($env.PREFIX)/etc/conda/deactivate.d"
+      mkdir $activate_d
+      mkdir $deactivate_d
+      let install_dir_bs = ("${{ install_dir }}" | str replace -a "/" "\\")
+      $"export ${{ env_var }}=\"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.sh"
+      $"unset ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.sh"
+      $"set -gx ${{ env_var }} \"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.fish"
+      $"set -e ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.fish"
+      $"setenv ${{ env_var }} \"$CONDA_PREFIX/${{ install_dir }}\"\n" | save -f $"($activate_d)/activate-${{ name }}.csh"
+      $"unsetenv ${{ env_var }}\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.csh"
+      $"@set \"${{ env_var }}=%CONDA_PREFIX%\\($install_dir_bs)\"\r\n" | save -f $"($activate_d)/activate-${{ name }}.bat"
+      $"@set \"${{ env_var }}=\"\r\n" | save -f $"($deactivate_d)/deactivate-${{ name }}.bat"
 
 requirements:
   build:
@@ -36,7 +47,8 @@ requirements:
 tests:
   - package_contents:
       files:
-        - etc/conda/env_vars.d/${{ name }}.json
+        - etc/conda/activate.d/activate-${{ name }}.sh
+        - etc/conda/activate.d/activate-${{ name }}.bat
         - ${{ install_dir }}/**
   - script:
       - if: unix
