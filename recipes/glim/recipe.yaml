@@ -28,14 +28,10 @@ outputs:
       name: glim
     build:
       script:
-        # The following matches all the archs supported by conda-forge's pytorch,
-        # including the +PTX modifier (virtual) added to the most recent version.
-        # pixi exec --spec "pytorch=*=cuda12*" python -c "import torch; print(torch.cuda.get_arch_list())"
-        # pixi exec --spec "pytorch=*=cuda13*" python -c "import torch; print(torch.cuda.get_arch_list())"
-        - if: match(cuda_compiler_version, "12.*")
-          then: export TORCH_CUDA_ARCH_LIST="75-real;80-real;86-real;90-real;100-real;120-virtual"
-        - if: match(cuda_compiler_version, "13.*")
-          then: export TORCH_CUDA_ARCH_LIST="75-real;80-real;86-real;90-real;100-real;110-real;120-virtual"
+        - if: cuda_compiler_version != "None"
+          then:
+            - test -n "$CUDAARCHS"
+            - echo $CUDAARCHS
         - cmake -S . -B build -GNinja
           ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
           -DBUILD_WITH_VIEWER=OFF
@@ -43,7 +39,7 @@ outputs:
           -DBUILD_WITH_OPENCV=ON
           -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
           -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
-          -DCMAKE_CUDA_ARCHITECTURES=${{ "${TORCH_CUDA_ARCH_LIST}" if cuda_compiler_version != "None" else "" }}
+          -DCMAKE_CUDA_ARCHITECTURES="${CUDAARCHS-}"
         - cmake --build build --config Release
         - cmake --install build/ --config Release
     requirements:
