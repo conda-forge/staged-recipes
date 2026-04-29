@@ -12,7 +12,8 @@ QE_BUILD=${QE_SRC}/build
 # files. Our three `.x` binaries only need a subset of QE's library
 # targets, so we build just those — not QE's own executables.
 cmake -S ${QE_SRC} -B ${QE_BUILD} \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=RelwithDebInfo \
+    -DCMAKE_Fortran_FLAGS_RELWITHDEBINFO="-O2 -g -traceback" \
     -DQE_ENABLE_MPI=ON \
     -DQE_ENABLE_OPENMP=ON \
     -DQE_ENABLE_SCALAPACK=ON \
@@ -29,7 +30,8 @@ cmake --build ${QE_BUILD} -j ${CPU_COUNT} --target \
 # --- Stage 2: build and install koopmans-qe-utils.
 cmake -S . -B build \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=RelwithDebInfo \
+    -DCMAKE_Fortran_FLAGS_RELWITHDEBINFO="-O2 -g -traceback" \
     -DQE_ROOT=${QE_SRC} \
     -DQE_ENABLE_MPI=ON \
     -DQE_ENABLE_OPENMP=ON \
