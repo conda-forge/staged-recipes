@@ -1,0 +1,61 @@
+context:
+  version: "0.10.4"
+
+package:
+  name: lune
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lune-org/lune/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 151b7b738b210920297b8afa560f440877662e02a48c64c28ce95baaefc96c95
+  patches:
+    - 0001-disable-aws-lc-rs-in-futures-rustls.patch
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --no-track --bins --root ${{ PREFIX }} --path crates/lune
+        else:
+          - cargo auditable install --no-track --bins --root %LIBRARY_PREFIX% --path crates/lune
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: lune --help
+  - package_contents:
+      bin:
+        - lune
+      strict: true
+
+about:
+  homepage: https://github.com/lune-org/lune
+  summary: A standalone Luau runtime
+  description: |
+    Lune is a standalone Luau runtime. Write and run programs, similar to
+    runtimes for other languages such as Node, Deno, Bun, or Luvit for
+    vanilla Lua. Lune provides fully asynchronous APIs wherever possible,
+    and is built in Rust for speed, safety and correctness.
+  license: MPL-2.0
+  license_file:
+    - LICENSE.txt
+    - THIRDPARTY.yml
+  documentation: https://lune-org.github.io/docs
+  repository: https://github.com/lune-org/lune
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
