@@ -1,0 +1,72 @@
+{% set version = "0.1.9" %}
+
+package:
+  name: tilelang
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/tilelang/tilelang-{{ version }}.tar.gz
+  sha256: 287f727c913bb648fcf6c1968809ba3390e55eeed257a5c6bb9a80bc05966af4
+
+build:
+  skip: true  # [py<39 or win]
+  number: 0
+  script:
+    - sed -i 's|PATHS ${Z3_PATH}/bin ${Z3_PATH}/lib ${Z3_PATH}/lib64|PATHS ${Z3_PATH}/bin ${Z3_PATH}/lib ${Z3_PATH}/lib64 $ENV{PREFIX}/lib $ENV{PREFIX}/lib64|' cmake/pypi-z3/FindZ3.cmake
+    - sed -i 's|PATHS ${Z3_PATH}/include|PATHS ${Z3_PATH}/include $ENV{PREFIX}/include|' cmake/pypi-z3/FindZ3.cmake
+    - SKBUILD_GENERATOR=Ninja SKBUILD_CMAKE_ARGS="-DCUDAToolkit_ROOT=$BUILD_PREFIX" {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [linux]
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+    - make
+  host:
+    - python
+    - pip
+    - cython >=3.1.0
+    - scikit-build-core
+    - pybind11
+    - cmake >=3.26.1
+    - ninja
+    - patchelf >=0.17.2  # [linux]
+    - libz3
+    - z3-solver >=4.13.0,<4.15.5
+  run:
+    - python
+    - apache-tvm-ffi >=0.1.2,<0.2
+    - cloudpickle
+    - ml_dtypes
+    - numpy >=1.23.5
+    - psutil
+    - pytorch >=2.4
+    - tqdm >=4.62.3
+    - typing_extensions >=4.10.0
+    - libz3
+    - z3-solver >=4.13.0,<4.15.5
+    - setuptools  # [osx]
+
+test:
+  imports:
+    - tilelang
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/tile-ai/tilelang
+  summary: A tile level programming language to generate high performance code.
+  license: Apache-2.0 AND BSD-3-Clause AND Unlicense AND MIT AND BSD-2-Clause
+  license_file:
+    - LICENSE
+    - 3rdparty/tvm/LICENSE
+    - 3rdparty/tvm/NOTICE
+
+extra:
+  recipe-maintainers:
+    - 1minds3t
