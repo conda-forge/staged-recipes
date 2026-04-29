@@ -1,0 +1,59 @@
+context:
+  version: "1.4.9"
+
+package:
+  name: ini-file
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bitnami/ini-file/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3c460cf5d30145d46517b1d95a8bf2e38dc59e2290e70ace89d5ab6d8abbf15b
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - if: unix
+      then:
+        - BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        - SHORT_COMMIT_HASH="$(curl -s "https://api.github.com/repos/bitnami/ini-file/commits/v${{ version }}" | jq -r '.sha' | cut -c 1-7)"
+        - go build -v -o $PREFIX/bin/ini-file -ldflags="-s -w -X main.buildDate=${BUILD_TIME} -X main.commit=${SHORT_COMMIT_HASH} -X main.version=${{ version }}" -trimpath .
+    - if: win
+      then:
+        - for /f "usebackq delims=" %%T in (`powershell -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set BUILD_TIME=%%T
+        - for /f "usebackq delims=" %%T in (`powershell -Command "((Invoke-RestMethod 'https://api.github.com/repos/bitnami/ini-file/commits/v${{ version }}').sha).Substring(0, 7)"`) do set SHORT_COMMIT_HASH=%%T
+        - go build -v -o %LIBRARY_BIN%\ini-file.exe -ldflags="-s -w -X main.buildDate=%BUILD_TIME% -X main.commit=%SHORT_COMMIT_HASH% -X main.version=${{ version }}" -trimpath .
+    - go-licenses save . --save_path ../library_licenses
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+    - if: win
+      then: ini-file --help 2>&1 | findstr /c:"Usage:" >nul
+    - if: unix
+      then: ini-file --help 2>&1 | grep -q "Usage:"
+  - package_contents:
+      bin:
+        - ini-file
+      strict: true
+
+about:
+  summary: A CLI tool for manipulating INI files
+  description: |
+    ini-file is a command-line tool that allows manipulating INI files.
+    It supports setting, getting, and deleting values in INI files.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE.md
+    - library_licenses/
+  homepage: https://github.com/bitnami/ini-file
+  repository: https://github.com/bitnami/ini-file
+
+extra:
+  recipe-maintainers:
+    - salim-b
