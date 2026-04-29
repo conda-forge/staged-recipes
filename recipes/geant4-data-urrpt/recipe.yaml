@@ -20,23 +20,31 @@ source:
 build:
   number: 0
   noarch: generic
-  skip: win
   script:
-    - mkdir -p ${PREFIX}/${{ install_dir }}
-    - cp -r dataset/* ${PREFIX}/${{ install_dir }}
-    - mkdir -p ${PREFIX}/etc/conda/env_vars.d
-    - |
-      cat > ${PREFIX}/etc/conda/env_vars.d/${{ name }}.json <<EOF
-      {
-        "${{ env_var }}": "${PREFIX}/${{ install_dir }}"
-      }
-      EOF
+    interpreter: nu
+    content: |
+      let dest = $"($env.PREFIX)/${{ install_dir }}"
+      mkdir $dest
+      cp -r dataset/* $dest
+      mkdir $"($env.PREFIX)/etc/conda/env_vars.d"
+      {"${{ env_var }}": $dest} | to json | save -f $"($env.PREFIX)/etc/conda/env_vars.d/${{ name }}.json"
 
+requirements:
+  build:
+    - nushell
 
 tests:
   - script:
-      - test -f "${PREFIX}/etc/conda/env_vars.d/${{ name }}.json"
-      - '[ "${${{ env_var }}}" = "$CONDA_PREFIX/${{ install_dir }}" ]'
+      interpreter: nu
+      content: |
+        let json_path = $"($env.PREFIX)/etc/conda/env_vars.d/${{ name }}.json"
+        if not ($json_path | path exists) { error make {msg: "env_vars.d JSON missing"} }
+        let expected = $"($env.CONDA_PREFIX)/${{ install_dir }}"
+        let actual = ($env | get "${{ env_var }}")
+        if $actual != $expected { error make {msg: $"($actual) != ($expected)"} }
+    requirements:
+      run:
+        - nushell
 
 about:
   homepage: https://geant4.web.cern.ch/
