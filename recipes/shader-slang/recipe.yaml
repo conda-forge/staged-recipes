@@ -1,80 +1,36 @@
 context:
   name: shader-slang
   version: "2026.7.1"
-  # Submodule pins for v${{ version }}; update both the rev and sha256 when
-  # bumping. Each submodule is fetched as a separate source archive because
-  # GitHub source tarballs do not include submodule contents.
-  glslang_rev: "d1f52c8993a501bd52d4fbd044bfeb9ecdceb9f4"
-  spirv_tools_rev: "ff5c50339cc1e9f34f04cb440a3e5fe89db0161d"
-  spirv_headers_rev: "ad9184e76a66b1001c29db9b0a3e87f646c64de0"
-  vulkan_headers_rev: "39f924b810e561fd86b2558b6711ca68d4363f68"
-  miniz_rev: "6ef6c68f4fcbb8287aa8edf9c6670804932f41c6"
-  cmark_rev: "924936d0427cb25a61169739a7660230bffa6ea6"
 
 package:
   name: ${{ name }}
   version: ${{ version }}
 
 source:
-  - url: https://github.com/shader-slang/slang/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: a15f320efac9f12cef89c9f40d277e3cc576f5b792eb7438a3e75897678c9c4a
-  - url: https://github.com/KhronosGroup/glslang/archive/${{ glslang_rev }}.tar.gz
-    sha256: d914157124abcec9e7d3bd8ba99f023d4cada87e67f38a3b76e4b70c15fd2c07
-    target_directory: external/glslang
-  - url: https://github.com/KhronosGroup/SPIRV-Tools/archive/${{ spirv_tools_rev }}.tar.gz
-    sha256: 46bb3ef59fc54932e2a80ea4628acb98356a107e5915a381f0f08795184346ff
-    target_directory: external/spirv-tools
-  - url: https://github.com/KhronosGroup/SPIRV-Headers/archive/${{ spirv_headers_rev }}.tar.gz
-    sha256: b5b7eba62453eb8c6f6a5fbf7155b71cde693bafe9cd5f03b79ed8c714816afe
-    target_directory: external/spirv-headers
-  - url: https://github.com/KhronosGroup/Vulkan-Headers/archive/${{ vulkan_headers_rev }}.tar.gz
-    sha256: 8c5a5dae1baf6b8eabe6eb04625940eac8af4f1bf3ae3121c28dbc1583d36553
-    target_directory: external/vulkan
-  - url: https://github.com/richgel999/miniz/archive/${{ miniz_rev }}.tar.gz
-    sha256: d9ef3c09f98b0dba3aa60e520284ed54042b0baa86116312be3f36e26393ae27
-    target_directory: external/miniz
-  - url: https://github.com/swiftlang/swift-cmark/archive/${{ cmark_rev }}.tar.gz
-    sha256: 1c51659bd47c34df1c8976f893adc43ba039a98f6eac4fa95d53d1e08ba6072a
-    target_directory: external/cmark
+  git: https://github.com/shader-slang/slang.git
+  tag: v${{ version }}
 
 build:
   number: 0
-  # Initial submission targets Linux/macOS only. Windows builds work upstream
-  # but require additional MSVC tweaks and CI time; will be enabled in a
-  # follow-up.
+  # Windows skipped initially; can be enabled in a follow-up.
   skip: win
   script:
-    # GitVersion.cmake reads this file when .git is unavailable.
-    - if: unix
-      then: echo "v${{ version }}" > cmake/slang_git_version
-      else: echo v${{ version }}> cmake\slang_git_version
-    # Slim, library-only build. Tests, examples, GFX, slang-rhi, dawn, tint,
-    # DXC and slang-llvm are all disabled - they pull in additional submodules
-    # or fetch prebuilt binaries at configure time, neither of which is
-    # appropriate for a conda-forge build.
+    # Submodules are not auto-fetched by rattler-build's git source.
+    - git submodule update --init --recursive
+    # Disable graphics/runtime/test/example targets that pull in the slang-rhi
+    # submodule and large optional toolchains. SLANG_SLANG_LLVM_FLAVOR=DISABLE
+    # avoids downloading a prebuilt slang-llvm at configure time.
     - cmake -G Ninja -B build -S .
+        ${CMAKE_ARGS}
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=$PREFIX
         -DCMAKE_INSTALL_LIBDIR=lib
-        -DSLANG_VERSION_FULL=v${{ version }}
-        -DSLANG_VERSION_NUMERIC=${{ version }}
         -DSLANG_ENABLE_GFX=OFF
         -DSLANG_ENABLE_SLANG_RHI=OFF
+        -DSLANG_ENABLE_SLANGRT=OFF
         -DSLANG_ENABLE_TESTS=OFF
         -DSLANG_ENABLE_EXAMPLES=OFF
-        -DSLANG_ENABLE_REPLAYER=OFF
-        -DSLANG_ENABLE_DXIL=OFF
-        -DSLANG_ENABLE_OPTIX=OFF
-        -DSLANG_ENABLE_CUDA=OFF
-        -DSLANG_ENABLE_NVAPI=OFF
-        -DSLANG_ENABLE_AFTERMATH=OFF
-        -DSLANG_ENABLE_XLIB=OFF
-        -DSLANG_ENABLE_SPIRV_TOOLS_MIMALLOC=OFF
-        -DSLANG_EXCLUDE_DAWN=ON
-        -DSLANG_EXCLUDE_TINT=ON
         -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
-        -DSLANG_USE_SYSTEM_LZ4=ON
-        -DSLANG_USE_SYSTEM_UNORDERED_DENSE=ON
     - cmake --build build --config Release -j ${CPU_COUNT}
     - cmake --install build --config Release
 
@@ -85,25 +41,20 @@ requirements:
     - ${{ stdlib('c') }}
     - cmake
     - ninja
-  host:
-    - lz4-c
-    - unordered_dense
+    - git
   run_exports:
     - ${{ pin_subpackage(name, upper_bound='x') }}
 
 tests:
   - script:
       - slangc -h
-      - slangc -v
   - package_contents:
       include:
         - slang.h
         - slang-com-helper.h
         - slang-com-ptr.h
       bin:
-        - if: unix
-          then: slangc
-          else: slangc.exe
+        - slangc
 
 about:
   homepage: https://shader-slang.org/
@@ -118,19 +69,11 @@ about:
 
     This package provides the standalone Slang compiler (slangc), the Slang
     runtime libraries, and the C/C++ headers needed to embed the Slang
-    compiler into applications. The build excludes the optional graphics
-    abstraction layer (gfx/slang-rhi), the language server (slangd), the
-    LLVM-based CPU backend, and the WebGPU/Tint and DXC integrations; these
-    can be added in follow-up packages once the core lands.
+    compiler into applications. Optional components - graphics abstraction
+    layer (gfx/slang-rhi), language server (slangd), LLVM-based CPU backend,
+    tests and examples - are disabled in this build.
   license: Apache-2.0 WITH LLVM-exception
-  license_file:
-    - LICENSE
-    - external/glslang/LICENSE.txt
-    - external/spirv-tools/LICENSE
-    - external/spirv-headers/LICENSE
-    - external/vulkan/LICENSE.md
-    - external/miniz/LICENSE
-    - external/cmark/COPYING
+  license_file: LICENSE
   documentation: https://shader-slang.org/slang/user-guide/
   repository: https://github.com/shader-slang/slang
 
