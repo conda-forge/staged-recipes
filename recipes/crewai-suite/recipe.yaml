@@ -1,0 +1,194 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.14.1"
+  python_min: "3.10"
+
+recipe:
+  name: crewai-suite
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/c/crewai/crewai-${{ version }}.tar.gz
+    sha256: 7e1a22b41f673a2f157e802a258e948d22eb8fc5a2411add81efa4c0b295a3a8
+    target_directory: crewai_src
+  - url: https://pypi.org/packages/source/c/crewai-tools/crewai_tools-${{ version }}.tar.gz
+    sha256: 2e24e062aa37acf93a7cdec6e514ecee08c7819a2f2f51c9ab85d172376fe691
+    target_directory: crewai_tools_src
+  - url: https://pypi.org/packages/source/c/crewai-files/crewai_files-${{ version }}.tar.gz
+    sha256: e9b961642fa7647bf412dffc771625c3c88c1a0d2ec8b58e9a8e1adb269797c6
+    target_directory: crewai_files_src
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: crewai
+      version: ${{ version }}
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - crewai = crewai.cli.cli:crewai
+      script: |
+        cd "$SRC_DIR/crewai_src"
+        "$PYTHON" -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - pydantic >=2.11.9,<2.12.0
+        - openai >=1.83.0,<3
+        - instructor >=1.3.3
+        - pdfplumber <0.12.0 # TODO: Correct to pdfplumber >=0.11.9,<0.12.0 after fixing related update
+        # TODO: Update https://github.com/conda-forge/pdfplumber-feedstock to 0.11.9 to fix and use pdfminer-six ==20251230
+        # TODO: Update https://github.com/conda-forge/pdfminer-six-feedstock to 20251230 to fix pip check failure when using pdfplumber
+        - regex >=2026.1.15,<2026.2.0
+        - opentelemetry-api >=1.34.0,<1.35.0
+        - opentelemetry-sdk >=1.34.0,<1.35.0
+        - opentelemetry-exporter-otlp-proto-http >=1.34.0,<1.35.0
+        - chromadb <1.2.0 # TODO: Correct to chromadb >=1.1.0,<1.2.0 after fixing related update
+        # TODO: Update https://github.com/rxm7706/chromadb-feedstock to 1.1.0
+        - tokenizers >=0.21,<1
+        - openpyxl >=3.1.5,<3.2.0
+        - python-dotenv >=1.1.1,<1.2.0
+        - pyjwt >=2.9.0,<3
+        - textual >=7.5.0
+        - click >=8.1.7,<8.2.0
+        - appdirs >=1.4.4,<1.5.0
+        - jsonref >=1.1.0,<1.2.0
+        - json-repair >=0.25.2,<0.26.0
+        - tomli-w >=1.1.0,<1.2.0
+        - tomli >=2.0.2,<2.1.0
+        - json5 >=0.10.0,<0.11.0
+        - portalocker >=2.7.0,<2.8.0
+        - pydantic-settings >=2.10.1,<2.11.0
+        - httpx >=0.28.1,<0.29.0
+        - mcp >=1.26.0,<1.27.0
+        - uv >=0.9.13,<0.10.0
+        - python-uv # NOTE: Required to appease `pip check` for downstreams which (presently) might use `uv`
+        # NOTE: https://github.com/conda-forge/python-uv-feedstock/blob/main/recipe/recipe.yaml
+        - aiosqlite >=0.21.0,<0.22.0
+        - pyyaml >=6.0,<7.0
+        - aiofiles >=24.1.0,<24.2.0
+        - numpy >=1.26
+        - lancedb <0.30.1 # TODO: Correct to lancedb >=0.29.2,<0.30.1 after fixing related update
+        # TODO: Update https://github.com/conda-forge/lancedb-feedstock to 0.30.0
+    tests:
+      - script:
+          - python -c "import crewai"
+          - crewai --help
+          #- pip check # TODO: Re-enable after fixing related dependency updates
+        requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+    about:
+      summary: Cutting-edge framework for orchestrating role-playing, autonomous AI agents. By fostering collaborative intelligence, CrewAI empowers agents to work together seamlessly, tackling complex tasks.
+      license: MIT
+      license_file: LICENSE
+      homepage: https://github.com/crewAIInc/crewAI
+
+  - package:
+      name: crewai-tools
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: |
+        cd "$SRC_DIR/crewai_tools_src"
+        "$PYTHON" -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('crewai', exact=True) }}
+        - pytube >=15.0.0,<15.1.0
+        - requests >=2.32.5,<2.33.0
+        - tiktoken >=0.8.0,<0.9.0
+        - beautifulsoup4 >=4.13.4,<4.14.0
+        - python-docx >=1.2.0,<1.3.0
+        - youtube-transcript-api >=1.2.2,<1.3.0
+        - pymupdf >=1.26.0,<1.27.0 # TODO: Correct to pymupdf >=1.26.6,<1.27.0 after fixing related update
+        # TODO: Update https://github.com/conda-forge/mupdf-feedstock to 1.26.7, and then update https://github.com/conda-forge/pymupdf-feedstock to 1.26.7
+        # TODO: Enable tests after all dependencies are updated and available on conda-forge
+#    tests:
+#      - python:
+#          imports:
+#            - crewai_tools
+#          pip_check: true
+#          python_version:
+#            - ${{ python_min }}.*
+#            - "*"
+#      - script:
+#          - python -c "import crewai_tools"
+#        requirements:
+#          run:
+#            - pip
+#            - python ${{ python_min }}.*
+    about:
+      summary: Set of tools for the crewAI framework
+      license: MIT
+      license_file: LICENSE
+      homepage: https://github.com/crewAIInc/crewAI
+
+  - package:
+      name: crewai-files
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: |
+        cd "$SRC_DIR/crewai_files_src"
+        "$PYTHON" -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - pillow >=12.1.1,<12.2.0
+        - pypdf >=6.9.1,<6.10.0
+        - python-magic >=0.4.27
+        - aiocache >=0.12.3,<0.13.0
+        - aiofiles >=24.1.0,<24.2.0
+        - tinytag >=2.2.1,<2.3.0
+        - av >=13.0.0,<13.1.0
+        - pydantic-settings >=2.10.1,<2.11.0
+    tests:
+      - python:
+          imports:
+            - crewai_files
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - script:
+          - python -c "import crewai_files"
+          - pip check
+        requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+    about:
+      summary: File handling utilities for CrewAI multimodal inputs
+      license: MIT
+      license_file: LICENSE
+      homepage: https://github.com/crewAIInc/crewAI
+
+about:
+  summary: CrewAI framework and tools for orchestrating autonomous AI agents
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/crewAIInc/crewAI
+
+extra:
+  recipe-maintainers:
+    - rxm7706
