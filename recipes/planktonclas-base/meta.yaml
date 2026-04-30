@@ -1,0 +1,101 @@
+{% set pypi_name = "planktonclas" %}
+{% set name = "planktonclas-base" %}
+{% set version = "0.2.3" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ pypi_name[0] }}/{{ pypi_name }}/{{ pypi_name }}-{{ version }}.tar.gz
+  sha256: b36c4eb09bf9e2256ac27464f999415a2b8912c03622e5d6ea9cbd6ead99fb33
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  entry_points:
+    - planktonclas = planktonclas.cli:main
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools
+  run:
+    - python >={{ python_min }}
+    # Core runtime
+    - numpy >=1.26.0,<2.2.0
+    - pyyaml >=6.0
+    - requests >=2.27.1
+    - tqdm >=4.64.0
+    - pandas >=2.0.0
+    - pillow >=10.0
+    # Training / inference
+    - tensorflow ==2.19.0
+    - protobuf >=3.20.0,<6.0
+    - py-opencv >=4.5.0
+    - albumentations
+    # Reporting / plotting
+    - matplotlib-base ==3.9.4
+    - seaborn-base >=0.12.0
+    - scikit-learn >=1.0.0
+
+# DEEPaaS REST-API runtime deps (deepaas, flaat, aiohttp-apispec) are
+# intentionally omitted from this recipe — they are not yet packaged
+# for conda-forge. This is a "base" variant suitable for inference and
+# training workloads (the most common use cases). Users who need the
+# REST API microservice should install via PyPI:
+#   pip install planktonclas
+# See https://github.com/lifewatch/planktonclas for the full package.
+
+test:
+  imports:
+    - planktonclas
+    - planktonclas.test_utils
+    - planktonclas.data_utils
+    - planktonclas.utils
+  # Skip `pip check` — the upstream PyPI requires_dist declares the
+  # API runtime stack (deepaas, flaat, aiohttp-apispec) that this
+  # recipe intentionally omits. `pip check` would flag those as
+  # missing. The omission is documented in the description above.
+  requires:
+    - python {{ python_min }}
+
+about:
+  home: https://github.com/lifewatch/planktonclas
+  summary: Phytoplankton image classification — slim variant (no DEEPaaS REST API)
+  description: |
+    `planktonclas-base` is a conda-forge variant of LifeWatch Belgium's
+    `planktonclas` package, providing the inference and training paths
+    without the DEEPaaS REST-API runtime layer.
+
+    Use this package if you want:
+      - `from planktonclas.test_utils import predict` (10-crop TTA inference)
+      - `python -m planktonclas` for CLI training
+      - Any pipeline that does not serve planktonclas as a REST microservice
+
+    The omitted upstream dependencies (`deepaas`, `flaat`,
+    `aiohttp-apispec`) are not yet packaged for conda-forge. If you
+    need to serve planktonclas via DEEPaaS, install via PyPI:
+
+      pip install planktonclas
+
+    Both packages expose the same Python module name (`planktonclas`),
+    so client code does not change between conda and pip installs —
+    only the `planktonclas serve` CLI command and the `planktonclas.api`
+    module are unavailable in the conda-forge build.
+
+    Original method:
+      Decrop, W. et al. (2025). "Automated image classification workflow
+      for phytoplankton monitoring." Frontiers in Marine Science 12:1699781.
+      DOI: 10.3389/fmars.2025.1699781
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE
+  doc_url: https://plantonclas.readthedocs.io/en/latest/
+  dev_url: https://github.com/lifewatch/planktonclas
+
+extra:
+  recipe-maintainers:
+    - annefou
