@@ -7,6 +7,10 @@ package:
   version: ${{ version }}
 
 source:
+  # Using a git source (not a tarball) so that `git submodule update` can pin
+  # submodule revisions to whatever slang's parent tree references for this
+  # tag. That way we never have to manually track submodule SHAs across
+  # version bumps.
   git: https://github.com/shader-slang/slang.git
   tag: v${{ version }}
 
@@ -15,11 +19,19 @@ build:
   # Windows skipped initially; can be enabled in a follow-up.
   skip: win
   script:
-    # Submodules are not auto-fetched by rattler-build's git source.
-    - git submodule update --init --recursive
-    # Disable graphics/runtime/test/example targets that pull in the slang-rhi
-    # submodule and large optional toolchains. SLANG_SLANG_LLVM_FLAVOR=DISABLE
-    # avoids downloading a prebuilt slang-llvm at configure time.
+    # Only initialize the submodules that we cannot satisfy from conda-forge:
+    #   - miniz: no conda-forge package
+    #   - cmark (swift-cmark fork): no conda-forge package, no system option
+    #     in slang's CMake
+    #   - vulkan-headers: conda-forge ships 1.3.231.1 (Jan 2023), far too old
+    #     for slang 2026
+    # glslang, spirv-tools, spirv-headers, lz4 and unordered_dense come from
+    # conda-forge via the host requirements below.
+    - git submodule update --init --depth 1
+        external/miniz external/cmark external/vulkan
+    # Slim, library-and-CLI build. Tests, examples, GFX, slang-rhi, dawn,
+    # tint, DXC and slang-llvm are disabled - they pull in further submodules
+    # or fetch prebuilt binaries at configure time.
     - cmake -G Ninja -B build -S .
         ${CMAKE_ARGS}
         -DCMAKE_BUILD_TYPE=Release
@@ -27,10 +39,14 @@ build:
         -DCMAKE_INSTALL_LIBDIR=lib
         -DSLANG_ENABLE_GFX=OFF
         -DSLANG_ENABLE_SLANG_RHI=OFF
-        -DSLANG_ENABLE_SLANGRT=OFF
         -DSLANG_ENABLE_TESTS=OFF
         -DSLANG_ENABLE_EXAMPLES=OFF
         -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
+        -DSLANG_USE_SYSTEM_LZ4=ON
+        -DSLANG_USE_SYSTEM_UNORDERED_DENSE=ON
+        -DSLANG_USE_SYSTEM_GLSLANG=ON
+        -DSLANG_USE_SYSTEM_SPIRV_TOOLS=ON
+        -DSLANG_USE_SYSTEM_SPIRV_HEADERS=ON
     - cmake --build build --config Release -j ${CPU_COUNT}
     - cmake --install build --config Release
 
@@ -42,6 +58,12 @@ requirements:
     - cmake
     - ninja
     - git
+  host:
+    - lz4-c
+    - unordered_dense
+    - glslang
+    - spirv-tools
+    - spirv-headers
   run_exports:
     - ${{ pin_subpackage(name, upper_bound='x') }}
 
@@ -73,7 +95,13 @@ about:
     layer (gfx/slang-rhi), language server (slangd), LLVM-based CPU backend,
     tests and examples - are disabled in this build.
   license: Apache-2.0 WITH LLVM-exception
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    # Vendored submodules need their licenses packaged. These directories are
+    # populated by `git submodule update` in the build script.
+    - external/miniz/LICENSE
+    - external/cmark/COPYING
+    - external/vulkan/LICENSE.md
   documentation: https://shader-slang.org/slang/user-guide/
   repository: https://github.com/shader-slang/slang
 
