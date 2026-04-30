@@ -8,13 +8,16 @@ package:
 source:
   url: https://resummino.hepforge.org/downloads/?f=resummino-${{ version }}.zip
   sha256: db42974e17aec6eabfee055bf608aa44466f1daef1f507e134a156cf57ad435a
+  patches:
+    - patches/0001-patch-to-min-3.5.patch
+    - patches/0002-add-components-for-selective-install.patch
 
 build:
   script:
-    - CXXFLAGS="${CXXFLAGS}" cmake ${CMAKE_ARGS} -DBUILD_LOOPTOOLS=FALSE -DBUILD_LHAPDF=FALSE -S . -B build
+    - CXXFLAGS="${CXXFLAGS}" LHAPDF="${PREFIX}" cmake -S . -B build ${CMAKE_ARGS} -DBUILD_LHAPDF=FALSE -DLHAPDF="${PREFIX}" -DBUILD_LOOPTOOLS=FALSE -DLOOPTOOLS="${PREFIX}"
     - cmake build -LH
     - cmake --build build --clean-first --parallel="${CPU_COUNT}"
-    - cmake --install build
+    - cmake --install build --component runtime
   number: 0
 
 requirements:
@@ -23,21 +26,33 @@ requirements:
     - ${{ compiler('cxx') }}
     - ${{ compiler('fortran') }}
     - ${{ stdlib('c') }}
-    - libboost-devel
     - cmake
     - make
+  host:
+    - libboost-devel
     - gsl
     - lhapdf
     - looptools-static
-  host: []
-  run:
-    - lhapdf
+  run: []
 
 tests:
-  - requirements:
-      run: []
+  - files:
+      source:
+        - input/
+    requirements:
+      run:
+        - lhapdf
     script:
+      - lhapdf update
+      - lhapdf install CT14lo &> /dev/null
+      - lhapdf install CT14nlo &> /dev/null
       - resummino input/resummino.in
+
+  - package_contents:
+      strict: true
+      files:
+        - bin/resummino
+        - etc/conda/test-files/*
 
 about:
   homepage: https://resummino.hepforge.org/
@@ -58,12 +73,12 @@ about:
   # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
   # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
   # See https://spdx.org/licenses/
-  license: MIT
+  license: EUPL-1.1
   # It is required to include a license file in the package,
   # (even if the license doesn't require it) using the license_file entry.
   # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
   # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
-  license_file: LICENSE.txt
+  license_file: LICENCE
   # The documentation and repository URLs are optional.
   documentation: https://resummino.hepforge.org/
   repository: https://resummino.hepforge.org/
