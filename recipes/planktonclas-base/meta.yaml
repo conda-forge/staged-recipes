@@ -1,6 +1,7 @@
 {% set pypi_name = "planktonclas" %}
 {% set name = "planktonclas-base" %}
 {% set version = "0.2.3" %}
+{% set cuda_compiler_version = os.environ.get("cuda_compiler_version", "None") %}
 
 package:
   name: {{ name }}
@@ -11,12 +12,19 @@ source:
   sha256: b36c4eb09bf9e2256ac27464f999415a2b8912c03622e5d6ea9cbd6ead99fb33
 
 build:
-  # Not noarch: tensorflow 2.19 is not packaged for osx-arm64 on
-  # conda-forge (only very old TF versions are), so we must skip
-  # osx-arm64 — and conda-forge's linter rejects build:skip with
-  # selectors on noarch packages. Build per-platform instead. Apple
-  # Silicon users install via PyPI (`pip install planktonclas`).
-  skip: true  # [osx and arm64]
+  # CPU + CUDA matrix following the heat-feedstock / pytorch-cpu-feedstock
+  # pattern. We don't compile CUDA ourselves — `cuda_compiler_version`
+  # only selects which `tensorflow` variant we depend on at runtime
+  # (cpu_* vs cuda128_* vs cuda129_* etc.), and produces a separate
+  # build of `planktonclas-base` per variant so the conda solver can
+  # match GPU/CPU systems through the __cuda virtual package.
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  # tensorflow 2.19.0 on conda-forge linux-64 is only built for cpu_*
+  # and cuda128_*; there are no cuda129/cuda130 builds. Skip the cuda
+  # matrix entries we can't satisfy.
+  skip: true  # [not linux64]
+  skip: true  # [cuda_compiler_version not in ("None", "12.8")]
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
   entry_points:
@@ -36,13 +44,11 @@ requirements:
     - tqdm >=4.64.0
     - pandas >=2.0.0
     - pillow >=10.0
-    # Training / inference
-    # CPU build — the CUDA-enabled tensorflow=2.19.0 builds require
-    # the __cuda virtual package which conda-forge CI lacks. Match
-    # only the cpu_* build strings (e.g. cpu_py310h42475c5_2). Users
-    # on a GPU machine can install the CUDA-flavoured tensorflow
-    # 2.19.0 build separately to override.
-    - tensorflow 2.19.0.* cpu_*
+    # Training / inference — pick the tensorflow variant matching the
+    # build's cuda_compiler_version. Conda-forge's solver will then pick
+    # our cpu/cuda128 build at install time based on __cuda.
+    - tensorflow 2.19.0.* cpu_*       # [cuda_compiler_version == "None"]
+    - tensorflow 2.19.0.* cuda{{ cuda_compiler_version | replace('.', '') }}_*  # [cuda_compiler_version != "None"]
     # Upstream pins protobuf<6 defensively, but conda-forge's
     # tensorflow=2.19.0 was built with libprotobuf>=6.31 and is
     # binary-compatible at runtime. Drop the upper bound so the
@@ -50,6 +56,13 @@ requirements:
     - protobuf >=3.20.0
     - py-opencv >=4.5.0
     - albumentations
+    # `albucore` (a transitive dep via albumentations) imports
+    # `simsimd` at module load, but on conda-forge the `simsimd`
+    # package was renamed to `numkong` and the legacy `simsimd` is a
+    # zero-files redirect. Add `numkong` explicitly so the upstream
+    # `import simsimd` finds the binaries it needs at runtime.
+    # Tracked at: https://github.com/conda-forge/albucore-feedstock
+    - numkong
     # Reporting / plotting
     - matplotlib-base ==3.9.4
     - seaborn-base >=0.12.0
@@ -66,13 +79,19 @@ requirements:
 test:
   imports:
     - planktonclas
-    - planktonclas.test_utils
-    - planktonclas.data_utils
     - planktonclas.utils
   # Skip `pip check` — the upstream PyPI requires_dist declares the
   # API runtime stack (deepaas, flaat, aiohttp-apispec) that this
   # recipe intentionally omits. `pip check` would flag those as
   # missing. The omission is documented in the description above.
+  #
+  # `planktonclas.test_utils` and `planktonclas.data_utils` import
+  # albumentations at module load. They are deliberately omitted from
+  # the import test list because albumentations -> albucore is broken
+  # upstream on conda-forge (albucore 0.0.x does `import simsimd` but
+  # the conda-forge simsimd package is empty; the actual module name
+  # was renamed to `numkong`). Once `albucore-feedstock` is patched
+  # those modules can be re-added.
   requires:
     - python
 
