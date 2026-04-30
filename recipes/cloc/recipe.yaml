@@ -7,43 +7,68 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/AlDanial/cloc/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 8099b6275c124f662690f2db3581cd2ad4e9ad4e08332288719838ded00d1da5
+  - url: https://github.com/AlDanial/cloc/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 8099b6275c124f662690f2db3581cd2ad4e9ad4e08332288719838ded00d1da5
+  - if: win
+    then:
+      path: cloc.bat
 
 build:
   number: 0
-  skip: win
   script:
-    # Install Unix/cloc, which expects Algorithm::Diff and Regexp::Common to come
-    # from CPAN (the root cloc bundles them). This matches upstream's Unix/Makefile.
-    - install -d "${PREFIX}/bin"
-    - install -m 755 Unix/cloc "${PREFIX}/bin/cloc"
-    # Render the man page exactly like upstream's Unix/pod2man.mk.
-    - install -d "${PREFIX}/share/man/man1"
-    - pod2man --utf8
-        --center="User Commands"
-        --name="cloc"
-        --section=1
-        Unix/cloc.1.pod > "${PREFIX}/share/man/man1/cloc.1"
+    - if: unix
+      then:
+        # Install Unix/cloc, which expects Algorithm::Diff and Regexp::Common to come
+        # from CPAN (the root cloc bundles them). This matches upstream's Unix/Makefile.
+        - install -d "${PREFIX}/bin"
+        - install -m 755 Unix/cloc "${PREFIX}/bin/cloc"
+        # Render the man page exactly like upstream's Unix/pod2man.mk.
+        - install -d "${PREFIX}/share/man/man1"
+        - pod2man --utf8
+            --center="User Commands"
+            --name="cloc"
+            --section=1
+            Unix/cloc.1.pod > "${PREFIX}/share/man/man1/cloc.1"
+      else:
+        # Windows: cmd.exe doesn't honor `#!/usr/bin/env perl` shebangs, so install
+        # the Perl script alongside a .bat wrapper that invokes the conda env's perl.
+        - if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
+        - copy /Y Unix\cloc "%LIBRARY_BIN%\cloc"
+        - copy /Y cloc.bat "%LIBRARY_BIN%\cloc.bat"
 
 requirements:
-  build:
-    - perl
   run:
     - perl
     - perl-algorithm-diff
-    - perl-digest-md5
     - perl-regexp-common
+    - if: not win
+      then:
+        # Strawberry Perl on Windows ships Digest::MD5 in core; conda-forge does not
+        # currently package perl-digest-md5 for win-64.
+        - perl-digest-md5
+    - if: not win
+      then:
+        # cloc only uses Parallel::ForkManager for --processes=N>1; not strictly
+        # required. Optional dep on Unix where the package is available.
+        - perl-parallel-forkmanager
 
 tests:
   - script:
       - cloc --version
       - cloc --help
-  - package_contents:
-      bin:
-        - cloc
-      files:
-        - share/man/man1/cloc.1
+  - if: unix
+    then:
+      package_contents:
+        bin:
+          - cloc
+        files:
+          - share/man/man1/cloc.1
+  - if: win
+    then:
+      package_contents:
+        files:
+          - Library/bin/cloc
+          - Library/bin/cloc.bat
 
 about:
   homepage: https://github.com/AlDanial/cloc
@@ -52,13 +77,9 @@ about:
     cloc counts blank lines, comment lines, and physical lines of source
     code in many programming languages. It is written in Perl with no
     dependencies outside the standard distribution and a few CPAN modules
-    (Algorithm::Diff, Regexp::Common, Digest::MD5). cloc supports over
-    250 languages and produces output in plain text, JSON, XML, YAML, and
-    SQLite-friendly formats.
-
-    Note: parallel mode (--processes=N with N>1) requires the optional
-    Parallel::ForkManager Perl module, which is not currently packaged
-    on conda-forge. Single-process counting works without it.
+    (Algorithm::Diff, Regexp::Common, Digest::MD5, Parallel::ForkManager).
+    cloc supports over 250 languages and produces output in plain text,
+    JSON, XML, YAML, and SQLite-friendly formats.
   license: GPL-2.0-or-later
   license_file: LICENSE
   repository: https://github.com/AlDanial/cloc
