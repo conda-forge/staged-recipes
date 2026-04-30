@@ -6,12 +6,40 @@ import sys
 from pathlib import Path
 
 
+def _update_claude_md(skill_dest: Path, no_claude_md: bool) -> None:
+    if no_claude_md:
+        print(f"\nSkipped CLAUDE.md update (--no-claude-md).")
+        print(f"To enable the skill manually, add this line to ~/.claude/CLAUDE.md:")
+        print(f"  @{skill_dest}/SKILL.md")
+        return
+
+    claude_md = Path.home() / ".claude" / "CLAUDE.md"
+    ref_line = f"@{skill_dest}/SKILL.md"
+
+    if claude_md.exists():
+        content = claude_md.read_text(encoding="utf-8")
+        if ref_line in content:
+            print(f"\nCLAUDE.md already references the ppt-master skill.")
+            return
+        with claude_md.open("a", encoding="utf-8") as fh:
+            if not content.endswith("\n"):
+                fh.write("\n")
+            fh.write(f"{ref_line}\n")
+        print(f"\nAdded skill reference to {claude_md}")
+    else:
+        claude_md.parent.mkdir(parents=True, exist_ok=True)
+        claude_md.write_text(f"{ref_line}\n", encoding="utf-8")
+        print(f"\nCreated {claude_md} with skill reference.")
+
+    print("Start a new Claude Code session to activate the skill.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Install the ppt-master skill for Claude Code",
         epilog=(
-            "After installation, add the skill path to your Claude Code config "
-            "or run 'claude skills add <dest>' if your version supports it."
+            "By default, also adds the skill reference to ~/.claude/CLAUDE.md "
+            "so Claude Code picks it up automatically. Use --no-claude-md to skip."
         ),
     )
     parser.add_argument(
@@ -23,6 +51,11 @@ def main() -> None:
         "--force",
         action="store_true",
         help="Overwrite existing installation",
+    )
+    parser.add_argument(
+        "--no-claude-md",
+        action="store_true",
+        help="Skip updating ~/.claude/CLAUDE.md",
     )
     args = parser.parse_args()
 
@@ -47,8 +80,8 @@ def main() -> None:
 
     shutil.copytree(str(share_dir), str(dest))
     print(f"ppt-master skill installed to {dest}")
-    print(f"\nAdd to your CLAUDE.md or ~/.claude/CLAUDE.md:")
-    print(f"  See {dest}/SKILL.md for usage instructions.")
+
+    _update_claude_md(dest, args.no_claude_md)
 
 
 if __name__ == "__main__":
