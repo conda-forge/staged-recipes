@@ -16,43 +16,46 @@ source:
 
 build:
   number: 0
-  # Windows skipped initially; can be enabled in a follow-up.
-  skip: win
   script:
-    # Only initialize the submodules that we cannot satisfy from conda-forge:
-    #   - miniz: no conda-forge package
-    #   - cmark (swift-cmark fork): no conda-forge package, no system option
-    #     in slang's CMake
-    #   - lz4 / unordered_dense: conda-forge's packages don't ship CMake
-    #     config files, so slang's find_package(lz4) /
-    #     find_package(unordered_dense) cannot find them. Both are tiny so
-    #     vendoring them keeps the recipe simple.
-    #   - glslang: conda-forge installs headers under include/glslang/SPIRV/
-    #     but slang's source includes "SPIRV/GlslangToSpv.h" expecting the
-    #     upstream layout (include/SPIRV/). Vendoring sidesteps the mismatch.
-    # vulkan-headers, spirv-tools and spirv-headers come from conda-forge via
-    # the host requirements below.
-    - git submodule update --init --depth 1
-        external/miniz external/cmark external/lz4
-        external/unordered_dense external/glslang
-    # Slim, library-and-CLI build. Tests, examples, GFX, slang-rhi, dawn,
-    # tint, DXC and slang-llvm are disabled - they pull in further submodules
-    # or fetch prebuilt binaries at configure time.
-    - cmake -G Ninja -B build -S .
-        ${CMAKE_ARGS}
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=$PREFIX
-        -DCMAKE_INSTALL_LIBDIR=lib
-        -DSLANG_ENABLE_GFX=OFF
-        -DSLANG_ENABLE_SLANG_RHI=OFF
-        -DSLANG_ENABLE_TESTS=OFF
-        -DSLANG_ENABLE_EXAMPLES=OFF
-        -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
-        -DSLANG_USE_SYSTEM_VULKAN_HEADERS=ON
-        -DSLANG_USE_SYSTEM_SPIRV_TOOLS=ON
-        -DSLANG_USE_SYSTEM_SPIRV_HEADERS=ON
-    - cmake --build build --config Release -j ${CPU_COUNT}
-    - cmake --install build --config Release
+    # Use bash on all platforms (incl. Windows via the m2 bash that conda-forge
+    # provides) so we only have one script to maintain.
+    interpreter: bash
+    content: |
+      set -euo pipefail
+
+      # Only initialize the submodules that we cannot satisfy from conda-forge:
+      #   - miniz: no conda-forge package
+      #   - cmark (swift-cmark fork): no conda-forge package, no system option
+      #     in slang's CMake
+      #   - lz4 / unordered_dense: conda-forge's packages don't ship CMake
+      #     config files, so slang's find_package(lz4) /
+      #     find_package(unordered_dense) cannot find them. Both are tiny so
+      #     vendoring them keeps the recipe simple.
+      #   - glslang: conda-forge installs headers under include/glslang/SPIRV/
+      #     but slang's source includes "SPIRV/GlslangToSpv.h" expecting the
+      #     upstream layout (include/SPIRV/). Vendoring sidesteps the mismatch.
+      # vulkan-headers, spirv-tools and spirv-headers come from conda-forge via
+      # the host requirements below.
+      git submodule update --init --depth 1 \
+          external/miniz external/cmark external/lz4 \
+          external/unordered_dense external/glslang
+
+      # Slim, library-and-CLI build. Tests, examples, GFX, slang-rhi, dawn,
+      # tint and slang-llvm are disabled - they pull in further submodules or
+      # fetch prebuilt binaries at configure time.
+      cmake -G Ninja -B build -S . \
+          ${CMAKE_ARGS} \
+          -DSLANG_ENABLE_GFX=OFF \
+          -DSLANG_ENABLE_SLANG_RHI=OFF \
+          -DSLANG_ENABLE_TESTS=OFF \
+          -DSLANG_ENABLE_EXAMPLES=OFF \
+          -DSLANG_SLANG_LLVM_FLAVOR=DISABLE \
+          -DSLANG_USE_SYSTEM_VULKAN_HEADERS=ON \
+          -DSLANG_USE_SYSTEM_SPIRV_TOOLS=ON \
+          -DSLANG_USE_SYSTEM_SPIRV_HEADERS=ON
+
+      cmake --build build --config Release -j ${CPU_COUNT}
+      cmake --install build --config Release
 
 requirements:
   build:
@@ -62,6 +65,9 @@ requirements:
     - cmake
     - ninja
     - git
+    - if: win
+      then:
+        - m2-bash
   host:
     - libvulkan-headers
     - spirv-tools
