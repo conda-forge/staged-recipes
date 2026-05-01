@@ -19,7 +19,11 @@ source:
 build:
   skip: not linux
   number: ${{ build_number }}
+  # Explicit build string suffix to easily differentiate CPU and CUDA builds.
   string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_h${{ hash }}_${{ build_number }}
+  # Native rattler-build support for prioritizing CUDA over CPU builds.
+  # The CPU variant receives a penalty (1), allowing the solver to prefer CUDA (0).
+  # This works in combination with the __cuda virtual package constraint in the run requirements.
   variant:
     use_keys:
       - cuda_compiler_version
@@ -78,6 +82,12 @@ outputs:
             - libcusparse-dev
             - libcusolver-dev
       run:
+        - if: cuda_compiler_version != "None"
+          then:
+            # The __cuda virtual package acts as a hardware lock.
+            # It prevents the solver from picking the prioritized CUDA build on a CPU-only machine,
+            # forcing a graceful fallback to the CPU build.
+            - __cuda
     tests:
       - package_contents:
           include:
