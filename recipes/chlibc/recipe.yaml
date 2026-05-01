@@ -1,0 +1,85 @@
+---
+schema_version: 1
+
+context:
+  version: "0.1.3"
+
+package:
+  name: "chlibc"
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gzm55/chlibc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 46d6bc9871e03c8296404520c74ab887347a5cab27d3c4d4ca9fa004499ec88d
+
+build:
+  skip: ${{ target_platform not in ["linux-64", "linux-aarch64"] }}
+  number: 0
+  dynamic_linking:
+    binary_relocation: false
+    rpath_allowlist: []
+  script:
+    content: |
+      unset CFLAGS
+      unset AR
+      unset AS
+      unset LD
+      unset LDFLAGS
+      unset LDFLAGS_LD
+      unset OBJCOPY
+      unset READELF
+      unset STRIP
+      unset CMAKE_COLOR_DIAGNOSTICS
+      export CC=clang
+
+      env
+
+      cmake --fresh --preset conda-build ${CMAKE_ARGS} -U CMAKE_LINKER -U CMAKE_STRIP
+      cmake --build --preset conda-build --parallel ${CPU_COUNT}
+      cmake --install build/conda-build
+
+      sha256sum "$PREFIX/bin/chlibc"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - clang
+    - compiler-rt_${{ target_platform }}
+    - lld
+    - llvm-tools
+    - cmake >=4.2
+    - ninja
+    - clang-tools
+  host:
+  run:
+    - __glibc
+
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('c') }}
+      - ${{ stdlib('c') }}
+    by_name:
+      - libgcc
+      - __glibc
+
+tests:
+  - script:
+      - file $PREFIX/bin/chlibc
+      - sha256sum $PREFIX/bin/chlibc
+      - if: build_platform == target_platform
+        then: $PREFIX/bin/chlibc
+    requirements:
+      build:
+        - file
+        - coreutils
+
+about:
+  summary: 'A userspace transparent ld-linux interpreter and glibc swapper.'
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/gzm55/chlibc
+
+extra:
+  recipe-maintainers:
+    - gzm55
