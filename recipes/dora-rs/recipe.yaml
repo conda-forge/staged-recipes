@@ -1,0 +1,136 @@
+context:
+  version: "0.5.0"
+
+recipe:
+  name: dora-rs-suite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/dora-rs/dora/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e31b9b8fb3fb442407a7ef4b258249bc41d100fd872d5417ebd5fecce6ea7748
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: dora-cli
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: "thin"
+        content:
+          - if: unix
+            then:
+              - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path binaries/cli
+              - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/zsh/site-functions $PREFIX/share/fish/vendor_completions.d
+              - $PREFIX/bin/dora completion bash > $PREFIX/share/bash-completion/completions/dora
+              - $PREFIX/bin/dora completion zsh  > $PREFIX/share/zsh/site-functions/_dora
+              - $PREFIX/bin/dora completion fish > $PREFIX/share/fish/vendor_completions.d/dora.fish
+            else:
+              - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path binaries/cli
+          - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('rust') }}
+        - rust >=1.85
+        - cargo-bundle-licenses
+        - cargo-auditable
+        - if: unix
+          then: perl
+    tests:
+      - script:
+          - dora --version
+          - dora --help
+      - package_contents:
+          bin:
+            - dora
+          files:
+            - if: unix
+              then:
+                - share/bash-completion/completions/dora
+                - share/zsh/site-functions/_dora
+                - share/fish/vendor_completions.d/dora.fish
+          strict: true
+    about:
+      summary: Command-line tool for the dora-rs dataflow framework
+      description: |
+        dora-rs is a low-latency, composable, distributed dataflow framework
+        for AI-based robotic applications. The `dora` CLI is the user-facing
+        command for managing dataflows, the coordinator and the daemons that
+        run nodes.
+      license: Apache-2.0
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+
+  - package:
+      name: dora-rs
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        content:
+          - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+          - cd apis/python/node && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('rust') }}
+        - rust >=1.85
+        - cargo-bundle-licenses
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.7,<2
+        - if: unix
+          then: perl
+      host:
+        - python
+        - pip
+        - maturin >=1.7,<2
+      run:
+        - python
+        - pyarrow >=14.0.1
+        - pyyaml >=6.0
+    tests:
+      - python:
+          imports:
+            - dora
+          pip_check: true
+    about:
+      summary: Python bindings for the dora-rs dataflow framework
+      description: |
+        dora-rs is a low-latency, composable, distributed dataflow framework
+        for AI-based robotic applications. This package provides the Python
+        Node and Operator APIs used to build dora dataflow applications in
+        Python.
+      license: Apache-2.0
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+
+about:
+  homepage: https://github.com/dora-rs/dora
+  summary: dora-rs distributed dataflow framework
+  description: |
+    dora-rs is a low-latency, composable, distributed dataflow framework
+    for AI-based robotic applications. This feedstock builds the dora
+    command-line tool and the Python bindings from the same upstream
+    source.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+  documentation: https://dora-rs.ai
+  repository: https://github.com/dora-rs/dora
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
