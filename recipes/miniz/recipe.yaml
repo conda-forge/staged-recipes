@@ -1,0 +1,82 @@
+context:
+  name: miniz
+  version: "3.1.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/richgel999/miniz/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 8bb29c7bd6f22356e5583e794bed4a0b3e6dfcbcadb49974fc9270ccca1e5557
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cmake -G Ninja -B build -S .
+            ${CMAKE_ARGS}
+            -DBUILD_SHARED_LIBS=ON
+            -DBUILD_EXAMPLES=OFF
+            -DBUILD_TESTS=OFF
+            -DBUILD_FUZZERS=OFF
+            -DINSTALL_PROJECT=ON
+        - cmake --build build -j ${CPU_COUNT}
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -G Ninja -B build -S .
+            %CMAKE_ARGS%
+            -DBUILD_SHARED_LIBS=ON
+            -DBUILD_EXAMPLES=OFF
+            -DBUILD_TESTS=OFF
+            -DBUILD_FUZZERS=OFF
+            -DINSTALL_PROJECT=ON
+        - if errorlevel 1 exit 1
+        - cmake --build build -j %CPU_COUNT%
+        - if errorlevel 1 exit 1
+        - cmake --install build
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x') }}
+
+tests:
+  - package_contents:
+      include:
+        - miniz/miniz.h
+        - miniz/miniz_zip.h
+        - miniz/miniz_export.h
+      lib:
+        - miniz
+      files:
+        - ${{ "Library/" if win }}lib/pkgconfig/miniz.pc
+        - ${{ "Library/" if win }}lib/cmake/miniz/minizConfig.cmake
+        - ${{ "Library/" if win }}lib/cmake/miniz/minizConfigVersion.cmake
+
+about:
+  homepage: https://github.com/richgel999/miniz
+  summary: Single source file zlib/Deflate compression and ZIP archive library
+  description: |
+    miniz is a lossless, high performance data compression library in a single
+    source file that implements the zlib (RFC 1950) and Deflate (RFC 1951)
+    compressed data format specification standards. It supports the most
+    commonly used functions exported by the zlib library, but is a completely
+    independent implementation so zlib's licensing requirements do not apply.
+    miniz also contains simple to use functions for writing PNG format image
+    files and reading/writing/appending ZIP format archives.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/richgel999/miniz
+  documentation: https://github.com/richgel999/miniz/blob/master/readme.md
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
