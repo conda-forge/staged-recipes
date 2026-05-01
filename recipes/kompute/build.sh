@@ -1,6 +1,10 @@
 #!/bin/bash
 set -exo pipefail
 
+if [[ ${target_platform} == "osx-"* ]]; then
+    EXTRA_CMAKE_ARGS="-DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON"
+fi
+
 cmake -S . -B build \
     ${CMAKE_ARGS} \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
@@ -14,7 +18,8 @@ cmake -S . -B build \
     -DKOMPUTE_OPT_USE_BUILT_IN_PYBIND11=OFF \
     -DKOMPUTE_OPT_BUILD_TESTS=OFF \
     -DKOMPUTE_OPT_BUILD_DOCS=OFF \
-    -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON
+    -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
+    ${EXTRA_CMAKE_ARGS}
 
 cmake --build build --parallel "${CPU_COUNT}"
 cmake --install build
