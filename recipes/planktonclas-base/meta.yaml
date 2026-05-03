@@ -1,0 +1,138 @@
+{% set pypi_name = "planktonclas" %}
+{% set name = "planktonclas-base" %}
+{% set version = "0.2.3" %}
+{% set cuda_compiler_version = os.environ.get("cuda_compiler_version", "None") %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ pypi_name[0] }}/{{ pypi_name }}/{{ pypi_name }}-{{ version }}.tar.gz
+  sha256: b36c4eb09bf9e2256ac27464f999415a2b8912c03622e5d6ea9cbd6ead99fb33
+
+build:
+  # CPU + CUDA matrix following the heat-feedstock / pytorch-cpu-feedstock
+  # pattern. We don't compile CUDA ourselves — `cuda_compiler_version`
+  # only selects which `tensorflow` variant we depend on at runtime
+  # (cpu_* vs cuda128_* vs cuda129_* etc.), and produces a separate
+  # build of `planktonclas-base` per variant so the conda solver can
+  # match GPU/CPU systems through the __cuda virtual package.
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  # tensorflow 2.19.0 on conda-forge linux-64 is only built for cpu_*
+  # and cuda128_*; there are no cuda129/cuda130 builds. Skip the cuda
+  # matrix entries we can't satisfy.
+  skip: true  # [not linux64]
+  skip: true  # [cuda_compiler_version not in ("None", "12.8")]
+  # tensorflow 2.19.0 cpu/cuda builds on conda-forge are only published
+  # for py310, py311, py312 — there is no py313 (or py39 or earlier)
+  # build. Skip those entries of the python build matrix.
+  skip: true  # [py<310 or py>=313]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  entry_points:
+    - planktonclas = planktonclas.cli:main
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+    # Core runtime
+    - numpy >=1.26.0,<2.2.0
+    - pyyaml >=6.0
+    - requests >=2.27.1
+    - tqdm >=4.64.0
+    - pandas >=2.0.0
+    - pillow >=10.0
+    # Training / inference — pick the tensorflow variant matching the
+    # build's cuda_compiler_version. Conda-forge's solver will then pick
+    # our cpu/cuda128 build at install time based on __cuda.
+    - tensorflow 2.19.0.* cpu_*       # [cuda_compiler_version == "None"]
+    - tensorflow 2.19.0.* cuda{{ cuda_compiler_version | replace('.', '') }}_*  # [cuda_compiler_version != "None"]
+    # Upstream pins protobuf<6 defensively, but conda-forge's
+    # tensorflow=2.19.0 was built with libprotobuf>=6.31 and is
+    # binary-compatible at runtime. Drop the upper bound so the
+    # solver can satisfy both constraints simultaneously.
+    - protobuf >=3.20.0
+    - py-opencv >=4.5.0
+    - albumentations
+    # `albucore` (a transitive dep via albumentations) imports
+    # `simsimd` at module load, but on conda-forge the `simsimd`
+    # package was renamed to `numkong` and the legacy `simsimd` is a
+    # zero-files redirect. Add `numkong` explicitly so the upstream
+    # `import simsimd` finds the binaries it needs at runtime.
+    # Tracked at: https://github.com/conda-forge/albucore-feedstock
+    - numkong
+    # Reporting / plotting
+    - matplotlib-base ==3.9.4
+    - seaborn-base >=0.12.0
+    - scikit-learn >=1.0.0
+
+# DEEPaaS REST-API runtime deps (deepaas, flaat, aiohttp-apispec) are
+# intentionally omitted from this recipe — they are not yet packaged
+# for conda-forge. This is a "base" variant suitable for inference and
+# training workloads (the most common use cases). Users who need the
+# REST API microservice should install via PyPI:
+#   pip install planktonclas
+# See https://github.com/lifewatch/planktonclas for the full package.
+
+test:
+  imports:
+    - planktonclas
+    - planktonclas.utils
+  # Skip `pip check` — the upstream PyPI requires_dist declares the
+  # API runtime stack (deepaas, flaat, aiohttp-apispec) that this
+  # recipe intentionally omits. `pip check` would flag those as
+  # missing. The omission is documented in the description above.
+  #
+  # `planktonclas.test_utils` and `planktonclas.data_utils` import
+  # albumentations at module load. They are deliberately omitted from
+  # the import test list because albumentations -> albucore is broken
+  # upstream on conda-forge (albucore 0.0.x does `import simsimd` but
+  # the conda-forge simsimd package is empty; the actual module name
+  # was renamed to `numkong`). Once `albucore-feedstock` is patched
+  # those modules can be re-added.
+  requires:
+    - python
+
+about:
+  home: https://github.com/lifewatch/planktonclas
+  summary: Phytoplankton image classification — slim variant (no DEEPaaS REST API)
+  description: |
+    `planktonclas-base` is a conda-forge variant of LifeWatch Belgium's
+    `planktonclas` package, providing the inference and training paths
+    without the DEEPaaS REST-API runtime layer.
+
+    Use this package if you want:
+      - `from planktonclas.test_utils import predict` (10-crop TTA inference)
+      - `python -m planktonclas` for CLI training
+      - Any pipeline that does not serve planktonclas as a REST microservice
+
+    The omitted upstream dependencies (`deepaas`, `flaat`,
+    `aiohttp-apispec`) are not yet packaged for conda-forge. If you
+    need to serve planktonclas via DEEPaaS, install via PyPI:
+
+      pip install planktonclas
+
+    Both packages expose the same Python module name (`planktonclas`),
+    so client code does not change between conda and pip installs —
+    only the `planktonclas serve` CLI command and the `planktonclas.api`
+    module are unavailable in the conda-forge build.
+
+    Original method:
+      Decrop, W. et al. (2025). "Automated image classification workflow
+      for phytoplankton monitoring." Frontiers in Marine Science 12:1699781.
+      DOI: 10.3389/fmars.2025.1699781
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE
+  doc_url: https://plantonclas.readthedocs.io/en/latest/
+  dev_url: https://github.com/lifewatch/planktonclas
+
+extra:
+  recipe-maintainers:
+    - annefou
