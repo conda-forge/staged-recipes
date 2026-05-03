@@ -1,0 +1,137 @@
+schema_version: 1
+
+context:
+  name: glim
+  version: "1.2.1"
+  build_number: 0
+
+recipe:
+  name: ${{ name|lower }}-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/koide3/glim/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: baa367009dff6fdcaacf87d53c2a4e2add4ac4d6668e85ebc56b2aa6432b1f14
+    patches:
+      - 0001-fix-fmt-ptr-shared-ptr.patch
+      - 0002-unvendor-json.patch
+
+build:
+  skip: not linux
+  number: ${{ build_number }}
+  # Explicit build string suffix to easily differentiate CPU and CUDA builds.
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_h${{ hash }}_${{ build_number }}
+  # Native rattler-build support for prioritizing CUDA over CPU builds.
+  # The CPU variant receives a penalty (1), allowing the solver to prefer CUDA (0).
+  # This works in combination with the __cuda virtual package constraint in the run requirements.
+  variant:
+    use_keys:
+      - cuda_compiler_version
+    down_prioritize_variant: ${{ 1 if cuda_compiler_version == "None" else 0 }}
+
+outputs:
+  # =============
+  # Package: glim
+  # =============
+  - package:
+      name: glim
+    build:
+      script:
+        - if: cuda_compiler_version != "None"
+          then:
+            - test -n "$CUDAARCHS"
+            - echo $CUDAARCHS
+        - cmake -S . -B build -GNinja
+          ${{ "${CMAKE_ARGS}" if not win else "%CMAKE_ARGS%" }}
+          -DBUILD_WITH_VIEWER=OFF
+          -DBUILD_WITH_MARCH_NATIVE=OFF
+          -DBUILD_WITH_OPENCV=ON
+          -DCMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets"
+          -DBUILD_WITH_CUDA=${{ "ON" if cuda_compiler_version != "None" else "OFF" }}
+          -DCMAKE_CUDA_ARCHITECTURES="${CUDAARCHS-}"
+        - cmake --build build --config Release
+        - cmake --install build/ --config Release
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib("c") }}
+        - if: cuda_compiler_version != "None"
+          then: ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - fmt
+        - gtsam >=4.2
+        - gtsam-points-devel >=1.2.0 ${{ "cuda*" if cuda_compiler_version != "None" else "cpu*" }}
+        - eigen-abi-devel
+        - libboost-devel
+        - libopencv
+        - nlohmann_json
+        - spdlog
+        - tbb-devel
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-version ${{ cuda_compiler_version }}.*
+            - cuda-cudart-dev
+      run:
+        - if: cuda_compiler_version != "None"
+          then:
+            # The __cuda virtual package acts as a hardware lock.
+            # It prevents the solver from picking the prioritized CUDA build on a CPU-only machine,
+            # forcing a graceful fallback to the CPU build.
+            - __cuda
+    tests:
+      - package_contents:
+          include:
+            - glim/util/config.hpp
+          lib:
+            - glim
+            - odometry_estimation_ct
+            - odometry_estimation_cpu
+            - sub_mapping
+            - sub_mapping_passthrough
+            - global_mapping
+            - global_mapping_pose_graph
+            - if: cuda_compiler_version != "None"
+              then: odometry_estimation_gpu
+  # ===================
+  # Package: glim-devel
+  # ===================
+  - package:
+      name: glim-devel
+    requirements:
+      run:
+        - ${{ pin_subpackage('glim', exact=True) }}
+        - eigen
+        - eigen-abi-devel
+        - gtsam-points-devel >=1.2.0 ${{ "cuda*" if cuda_compiler_version != "None" else "cpu*" }}
+        - libboost-devel
+        - nlohmann_json
+        - tbb-devel
+      run_exports:
+        - ${{ pin_subpackage('glim', upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - cmake-package-check glim --targets glim
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - cmake
+            - cmake-package-check
+            - ninja
+            - if: cuda_compiler_version != "None"
+              then: ${{ compiler('cuda') }}
+
+about:
+  homepage: https://koide3.github.io/glim/
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/koide3/glim
+  summary: Versatile and extensible point cloud-based 3D localization and mapping framework.
+
+extra:
+  feedstock-name: glim
+  recipe-maintainers:
+    - diegoferigo
