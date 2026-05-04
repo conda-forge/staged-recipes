@@ -13,7 +13,8 @@ if "%MULTI_STAGE_BUILD%"=="" (
 
 set CONFIGURATION=Release
 
-cmake .. -G "NMake Makefiles" ^
+cmake .. %CMAKE_ARGS% ^
+         -G "NMake Makefiles" ^
          -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
          -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
          -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
