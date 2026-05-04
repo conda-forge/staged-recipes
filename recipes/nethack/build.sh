@@ -11,22 +11,10 @@ case "$(uname -s)" in
     *)      HINTS=hints/linux.500 ;;
 esac
 
-# The included compiler.500 hints does `CFLAGS=$(CCFLAGS) -I../include ...`
-# (hard assignment) which wipes out the conda env CFLAGS. Switch it to `+=`
-# so our isystem/sysroot flags survive and the conda-forge headers/libs win.
-sed -i.bak \
-    's|^CFLAGS=\$(CCFLAGS) -I\.\./include -DNOTPARMDECL$|CFLAGS+=$(CCFLAGS) -I../include -DNOTPARMDECL|' \
-    sys/unix/hints/include/compiler.500
-
-# Tell NetHack to additionally link against conda-forge's lua. The default
-# LUALIBS = $(LUALIB) -lm $(DLLIB) only references the static liblua.a built
-# from the bundled lua source; we keep that as a (now empty) stub for the
-# make dependency, and add -llua so the real symbols come from $PREFIX/lib.
-sed -i.bak \
-    's|^LUALIBS = \$(LUALIB) -lm \$(DLLIB)$|LUALIBS = $(LUALIB) -llua -lm $(DLLIB)|' \
-    sys/unix/Makefile.src
-
-# Generate the active Makefiles from the hints file.
+# Generate the active Makefiles from the hints file. The two source patches
+# applied earlier (see recipe.yaml) make compiler.500's CFLAGS assignment
+# additive so the conda env flags survive, and add -llua to LUALIBS so we
+# pick up conda-forge's liblua at link time.
 ( cd sys/unix && sh setup.sh "$HINTS" )
 
 # Stand in for `make fetch-Lua`: instead of downloading and building lua
