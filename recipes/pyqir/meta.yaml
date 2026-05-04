@@ -1,0 +1,89 @@
+{% set name = "pyqir" %}
+{% set version = "0.12.4" %}
+{% set llvm_version = "20.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/qir-alliance/pyqir/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 4db944bc741863054b8e2fd2a0d4b7635d235d5ad8a4edcb5cc3f1476318e2ed
+  patches:
+    - use-dynamic-msvc-runtime.patch  # [win]
+
+build:
+  number: 0
+  skip: true  # [py<39]
+  script:
+    - export LLVM_SYS_201_PREFIX="${PREFIX}"  # [unix]
+    - set LLVM_SYS_201_PREFIX=%LIBRARY_PREFIX%  # [win]
+    - export MATURIN_PEP517_ARGS="--features llvm20-1 --features llvm-sys-201/prefer-dynamic"  # [unix]
+    - set MATURIN_PEP517_ARGS=--features llvm20-1 --features llvm-sys-201/prefer-dynamic  # [win]
+    - export MATURIN_STRIP=true  # [unix]
+    - set MATURIN_STRIP=true  # [win]
+    - if not exist "%LIBRARY_PREFIX%\lib\zstd.dll.lib" copy "%LIBRARY_PREFIX%\lib\zstd.lib" "%LIBRARY_PREFIX%\lib\zstd.dll.lib"  # [win]
+    - if errorlevel 1 exit 1  # [win]
+    - export PYO3_CROSS_INCLUDE_DIR="${PREFIX}/include"  # [unix and build_platform != target_platform]
+    - export PYO3_CROSS_LIB_DIR="${SP_DIR}/.."  # [unix and build_platform != target_platform]
+    - export PYO3_CROSS_PYTHON_VERSION="${PY_VER}"  # [unix and build_platform != target_platform]
+    - {{ PYTHON }} -m pip install ./pyqir -vv --no-deps --no-build-isolation
+    - if errorlevel 1 exit 1  # [win]
+    - cargo-bundle-licenses --features "llvm20-1,llvm-sys-201/prefer-dynamic" --format yaml --output THIRDPARTY.yml
+    - if errorlevel 1 exit 1  # [win]
+
+requirements:
+  build:
+    - python  # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - maturin >=1.10.2,<1.11  # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('rust') }}
+    - {{ stdlib('c') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.10.2,<1.11
+    - llvmdev {{ llvm_version }}.*
+    - libxml2-devel  # [win]
+    - zlib  # [win]
+    - zstd  # [win]
+  run:
+    - python
+    - libllvm20 {{ llvm_version }}.*
+
+test:
+  source_files:
+    - pyqir/tests
+  imports:
+    - pyqir
+    - pyqir.qis
+    - pyqir.rt
+  requires:
+    - pip
+    - pytest
+  commands:
+    - pip check
+    - python -c "from pyqir import BasicQisBuilder, SimpleModule; m = SimpleModule('conda_forge_smoke', 1, 1); q = BasicQisBuilder(m.builder); q.h(m.qubits[0]); assert '__quantum__qis__h__body' in m.ir()"
+    - cd pyqir && pytest -q tests
+
+about:
+  home: https://github.com/qir-alliance/pyqir
+  summary: PyQIR parses, generates and evaluates the Quantum Intermediate Representation.
+  description: |
+    PyQIR is a set of Python APIs for generating, parsing, and evaluating
+    Quantum Intermediate Representation (QIR). It provides a Python API for
+    integrating the QIR toolchain into Python-based frontends.
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  doc_url: https://www.qir-alliance.org/pyqir/
+  dev_url: https://github.com/qir-alliance/pyqir
+
+extra:
+  recipe-maintainers:
+    - basnijholt
