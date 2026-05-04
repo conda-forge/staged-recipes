@@ -1,0 +1,677 @@
+context:
+  build_number: 0
+  name: qemu-system
+  version: "10.2.1"
+
+  library: ${{ "Library/" if not unix }}
+  m2: ${{ "m2-" if not unix }}
+  xt: ${{ ".exe" if not unix }}
+
+  # Alpine Linux for qemu-arm64 VM (osx-64 only)
+  alpine_version: "3.23.3"
+
+recipe:
+  name: qemu-split
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+    sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
+    target_directory: qemu_source
+    patches:
+      - patches/set-qemu-name.patch
+      # macOS patches
+      - if: osx
+        then:
+          - patches/0002-osx-attr-meson.build.patch
+          - patches/0003-osx-block_file-posix.c.patch
+          - patches/0004-osx-audio_coreaudio.m.patch
+      # non-unix patches
+      - if: not unix
+        then:
+          - patches/0001-non-unix-add-console.patch
+          - patches/0002-non-unix-configure-pyvenv.patch
+          - patches/0003-non-unix-dbg-MESONINTROSPECT.patch
+          - patches/0004-non-unix-fix-PYTHON-var-Makefile.patch
+          - patches/0005-non-unix-fix-tracetool-path.patch
+          - patches/0006-non-unix-mkvenv-accept-system-packages.patch
+      # Linux patches (for linux-user mode with older sysroot headers)
+      - if: linux
+        then:
+          - patches/0001-linux-user-fix-missing-resolve-flags.patch
+
+build:
+  number: ${{ build_number }}
+
+outputs:
+  - package:
+      name: qemu-system-common
+    build:
+      skip: qemu_system_arch != "aarch64"
+      script:
+        env:
+          CONDA_QEMU_TARGET: ""
+          CONDA_QEMU_TOOLS: ""
+      files:
+        exclude:
+          # All EDK2/firmware - goes to arch packages
+          - ${{ library }}share/qemu/edk2-*
+          - ${{ library }}share/qemu/firmware/*
+          - ${{ library }}share/qemu/edk2-licenses.txt
+          # aarch64-specific
+          - ${{ library }}share/qemu/ast27x0_bootrom.bin
+          - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+          - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+          # ppc64-specific
+          - ${{ library }}share/qemu/openbios-ppc
+          - ${{ library }}share/qemu/opensbi-riscv*
+          - ${{ library }}share/qemu/pnv-pnor.bin
+          - ${{ library }}share/qemu/{slof,skiboot,vof}*
+          - ${{ library }}share/qemu/u-boot-sam460.bin
+          - ${{ library }}share/qemu/u-boot.e500
+          # x86-specific (unused arch)
+          - ${{ library }}share/qemu/bios*
+          - ${{ library }}share/qemu/efi-*.rom
+          - ${{ library }}share/qemu/kvmvapic.bin
+          - ${{ library }}share/qemu/linuxboot*
+          - ${{ library }}share/qemu/multiboot*
+          - ${{ library }}share/qemu/pvh.bin
+          - ${{ library }}share/qemu/pxe-*.rom
+          - ${{ library }}share/qemu/qboot.rom
+          # SPARC-specific (unused arch)
+          - ${{ library }}share/qemu/QEMU,cgthree.bin
+          - ${{ library }}share/qemu/QEMU,tcx.bin
+          - ${{ library }}share/qemu/openbios-sparc32
+          - ${{ library }}share/qemu/openbios-sparc64
+          # s390-specific (unused arch)
+          - ${{ library }}share/qemu/s390-ccw.img
+          # HPPA-specific (unused arch)
+          - ${{ library }}share/qemu/hppa-*
+          # Alpha-specific (unused arch)
+          - ${{ library }}share/qemu/palcode-clipper
+          # Mac-specific
+          - ${{ library }}share/qemu/qemu_vga.ndrv
+          # Misc
+          - ${{ library }}share/qemu/qemu-nsis.bmp
+    requirements:
+      ignore_run_exports:
+        by_name:
+          - adwaita-icon-theme
+          - gdk-pixbuf
+          - gtk3
+          - libglib
+          - libzlib
+      build:
+        - if: unix
+          then:
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+          else:
+            - ${{ compiler('m2w64_c') }}
+            - ${{ stdlib('m2w64_c') }}
+            - gettext
+            - ${{ m2 }}findutils
+            - ${{ m2 }}grep
+            - ${{ m2 }}which
+            - packaging
+        - ${{ m2 }}bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        - glib
+        - gtk3
+        - zlib
+        - if: unix
+          then:
+            - gdk-pixbuf
+    tests:
+      - package_contents:
+          strict: true
+          include:
+            - qemu-plugin.h
+          files:
+            - if: unix
+              then:
+                - lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
+              else:
+                - ${{ library }}lib/libqemu_plugin_api.a
+            - ${{ library }}lib/gtk-3.0/3.0.0/immodules.cache
+            - ${{ library }}share/icons/hicolor/icon-theme.cache
+            - ${{ library }}share/glib-2.0/schemas/gschemas.compiled
+            # Desktop file and icons
+            - ${{ library }}share/applications/qemu.desktop
+            - ${{ library }}share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512}/apps/qemu.png
+            - ${{ library }}share/icons/hicolor/32x32/apps/qemu.bmp
+            - ${{ library }}share/icons/hicolor/scalable/apps/qemu.svg
+            # DTBs for embedded boards (shared)
+            - ${{ library }}share/qemu/dtb/{bamboo,canyonlands,pegasos1,pegasos2,petalogix-ml605,petalogix-s3adsp1800}.dtb
+            # Keymaps (all)
+            - ${{ library }}share/qemu/keymaps/{ar,bepo,cz,da,de,de-ch,en-gb,en-us,es,et,fi,fo}
+            - ${{ library }}share/qemu/keymaps/{fr,fr-be,fr-ca,fr-ch,hr,hu,is,it,ja,lt,lv}
+            - ${{ library }}share/qemu/keymaps/{mk,nl,no,pl,pt,pt-br,ru,sl,sv,th,tr}
+            - ${{ library }}share/qemu/trace-events-all
+            # VGA BIOS (needed for display on all architectures)
+            - ${{ library }}share/qemu/vgabios-ati.bin
+            - ${{ library }}share/qemu/vgabios.bin
+            - ${{ library }}share/qemu/vgabios-bochs-display.bin
+            - ${{ library }}share/qemu/vgabios-cirrus.bin
+            - ${{ library }}share/qemu/vgabios-qxl.bin
+            - ${{ library }}share/qemu/vgabios-ramfb.bin
+            - ${{ library }}share/qemu/vgabios-stdvga.bin
+            - ${{ library }}share/qemu/vgabios-virtio.bin
+            - ${{ library }}share/qemu/vgabios-vmware.bin
+
+  - package:
+      name: qemu-system-tools
+    build:
+      skip: qemu_system_arch != "aarch64"
+      script:
+        env:
+          CONDA_QEMU_TARGET: "x86_64"
+          CONDA_QEMU_TOOLS: "qemu-edid qemu-img qemu-io qemu-nbd qemu-storage-daemon elf2dmp"
+          CONDA_QEMU_NOSX_TOOLS: "qemu-ga"
+          CONDA_QEMU_LINUX_TOOLS: "qemu-keymap qemu-vmsr-helper qemu-pr-helper qemu-bridge-helper"
+    requirements:
+      build:
+        - if: unix
+          then:
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+          else:
+            - ${{ compiler('m2w64_c') }}
+            - ${{ stdlib('m2w64_c') }}
+            - gettext
+            - ${{ m2 }}findutils
+            - ${{ m2 }}grep
+            - ${{ m2 }}which
+            - packaging
+        - ${{ m2 }}bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        # These are here to 'naturally' filter out their content, which gets automatically installed
+        - ${{ pin_subpackage('qemu-system-common', exact=True) }}
+        # Block layer dependencies (qemu-img, qemu-io, qemu-nbd)
+        - glib
+        - libcurl
+        - lzfse
+        - zlib
+        - zstd
+        - if: unix
+          then:
+            - bzip2
+            - gnutls
+            - libssh
+          else:
+            - m2-bzip2
+            - m2-libgnutls
+        - if: linux
+          then:
+            - libaio
+            - libnuma
+            - libudev
+            - liburing
+            - libxkbcommon
+      run:
+        - libglib
+        - libssh
+        - lzfse
+        - if: unix
+          then:
+            - gnutls
+        - if: linux
+          then:
+            - libudev1
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - qemu-{edid,img,io,nbd,storage-daemon}${{ xt }}
+            - elf2dmp${{ xt }}
+            - if: not osx
+              then:
+                - qemu-ga${{ xt }}
+            - if: linux
+              then:
+                - qemu-keymap
+                - qemu-pr-helper
+                - qemu-vmsr-helper
+          files:
+            - if: linux
+              then:
+                - libexec/qemu-bridge-helper
+
+      - script:
+          - qemu-edid -h | grep -q "set monitor vendor" && echo "qemu-edid OK"
+          - qemu-img --version | grep ${{ version }}
+          - qemu-io --version | grep ${{ version }}
+          - qemu-nbd --version | grep ${{ version }}
+          - qemu-storage-daemon --version | grep ${{ version }}
+          - if: not osx
+            then:
+              - qemu-ga --version | grep ${{ version }}
+          - if: linux
+            then:
+              - qemu-keymap -h | grep -q "kbd model" && echo "qemu-keymap OK"
+              - qemu-pr-helper --version | grep ${{ version }}
+              - qemu-vmsr-helper --version | grep ${{ version }} || true
+
+          - qemu-img create -f qcow2 test.qcow2 10M | grep -q "virtual size: 10 MiB" && echo "qemu-img create OK"
+          - qemu-img info test.qcow2 | grep -q "filename: test.qcow2" && echo "qemu-img info OK"
+          - rm -f test.qcow2
+        requirements:
+          run:
+            - ${{ m2 }}grep
+
+  - package:
+      name: qemu-system-${{ qemu_system_arch }}
+    build:
+      script:
+        env:
+          CONDA_QEMU_TARGET: "${{ qemu_system_arch }}"
+          CONDA_QEMU_TOOLS: ""
+          CONDA_QEMU_MODE: "system"
+      always_include_files:
+        - ${{ library }}share/qemu/edk2-licenses.txt
+        - if: qemu_system_arch == "aarch64"
+          then:
+            - ${{ library }}share/qemu/ast27x0_bootrom.bin
+            - ${{ library }}share/qemu/edk2-aarch64-code.fd
+            - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+        - if: qemu_system_arch == "ppc64"
+          then:
+            - ${{ library }}share/qemu/openbios-ppc
+            - ${{ library }}share/qemu/pnv-pnor.bin
+            - ${{ library }}share/qemu/skiboot.lid
+            - ${{ library }}share/qemu/slof.bin
+            - ${{ library }}share/qemu/u-boot.e500
+            - ${{ library }}share/qemu/u-boot-sam460.bin
+            - ${{ library }}share/qemu/vof.bin
+            - ${{ library }}share/qemu/vof-nvram.bin
+        - if: qemu_system_arch == "riscv64"
+          then:
+            - ${{ library }}share/qemu/firmware/60-edk2-riscv64.json
+            - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
+            - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
+      files:
+        exclude:
+          # Shared assets (in common package)
+          - ${{ library }}share/qemu/keymaps/*
+          - ${{ library }}share/locale/*/LC_MESSAGES/qemu.mo
+          # Build artifacts (not runtime files)
+          - ${{ library }}include/fdt.h
+          - ${{ library }}include/libfdt*.h
+          - ${{ library }}lib/libfdt.a
+          - ${{ library }}lib/pkgconfig/libfdt.pc
+          # Unused arch firmware
+          - ${{ library }}share/qemu/{openbios,palcode}*
+          - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
+          - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
+          # Overlaps (only occurs on non-unix)
+          - ${{ library }}share/qemu/{applications,icons}
+    requirements:
+      ignore_run_exports:
+        by_name:
+          - qemu-system-common
+          - qemu-system-tools
+          - adwaita-icon-theme
+          - dtc
+          - epoxy
+          - glfw
+          - gmp
+          - libavif16
+          - libegl
+          - libexpat
+          - libgcrypt-lib
+          - libgsasl
+          - libxkbcommon
+          - llvmdev
+          - nettle
+          # - sphinx
+          # - sphinx-rtd-theme
+          - xorg-libx11
+      build:
+        - if: unix
+          then:
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+          else:
+            - ${{ compiler('m2w64_c') }}
+            - ${{ stdlib('m2w64_c') }}
+            - gettext
+            - ${{ m2 }}findutils
+            - ${{ m2 }}grep
+            - ${{ m2 }}which
+            - ${{ m2 }}bzip2
+            - packaging
+        - ${{ m2 }}bash >=5.2
+        - git
+        - meson
+        - ninja
+        - pkg-config
+        - python 3.12.*
+      host:
+        # These are here to 'naturally' filter out their content, which gets automatically installed
+        - ${{ pin_subpackage('qemu-system-common', exact=True) }}
+        - ${{ pin_subpackage('qemu-system-tools', exact=True) }}
+        # Common dependencies
+        - ${{ m2 }}libgcrypt
+        - ${{ m2 }}nettle
+        - ${{ m2 }}openssh
+        - epoxy
+        - expat
+        - glib
+        - glfw
+        - gtk3
+        - libcurl
+        - libjpeg-turbo
+        - libpng
+        - libusb
+        - lzfse
+        - pixman
+        - sdl2
+        - snappy
+        # - sphinx >=3.4.3
+        # - sphinx-rtd-theme >=0.5
+        - zlib
+        # Unix dependencies
+        - if: unix
+          then:
+            - bzip2
+            - cyrus-sasl
+            - dtc
+            - gmp
+            - gnutls
+            - libavif
+            - libcapstone
+            - libgsasl
+            - libfdt
+            - libssh
+            - lzo
+            - sdl2_image
+          else:
+            - expat
+            - m2-bzip2
+            - m2-libgnutls
+        # Linux dependencies
+        - if: linux
+          then:
+            - alsa-lib
+            - cairo
+            - gdk-pixbuf
+            - jack
+            - keyutils
+            - libaio
+            - libegl-devel
+            - libfdt
+            - libnuma
+            - libseccomp
+            - libslirp
+            - libudev
+            - liburing
+            - libxkbcommon
+            - pulseaudio-client
+        # macOS dependencies
+        - if: osx
+          then:
+            - libslirp
+            - llvmdev
+            - zstd
+      run:
+        - ${{ pin_subpackage('qemu-system-common', exact=True) }}
+        - ${{ m2 }}openssh
+        - libglib
+        - lzfse
+        - if: unix
+          then:
+            - gnutls
+            - libcapstone
+            - libiconv
+            - libfdt
+            - libssh
+            - lzo
+            - ncurses
+            - sdl2_image
+          else:
+            - m2-libgnutls
+        - if: linux
+          then:
+            - keyutils
+            - libudev1
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - qemu-system-${{ qemu_system_arch }}
+            - if: not unix
+              then:
+                - qemu-system-${{ qemu_system_arch }}w
+          files:
+            - etc/conda/test-files/*
+            - ${{ library }}share/qemu/edk2-licenses.txt
+            - if: qemu_system_arch == "aarch64"
+              then:
+                - ${{ library }}share/qemu/ast27x0_bootrom.bin
+                - ${{ library }}share/qemu/edk2-aarch64-code.fd
+                - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+                - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+                - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+            - if: qemu_system_arch == "ppc64"
+              then:
+                - ${{ library }}share/qemu/openbios-ppc
+                - ${{ library }}share/qemu/pnv-pnor.bin
+                - ${{ library }}share/qemu/skiboot.lid
+                - ${{ library }}share/qemu/slof.bin
+                - ${{ library }}share/qemu/u-boot.e500
+                - ${{ library }}share/qemu/u-boot-sam460.bin
+                - ${{ library }}share/qemu/vof.bin
+                - ${{ library }}share/qemu/vof-nvram.bin
+            - if: qemu_system_arch == "riscv64"
+              then:
+                - ${{ library }}share/qemu/firmware/60-edk2-riscv64.json
+                - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
+                - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
+      - script:
+          # Basic sanity check - verify machine types are available
+          - if: qemu_system_arch == "aarch64"
+            then:
+              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "Raspberry Pi 4B"
+          - if: qemu_system_arch == "ppc64"
+            then:
+              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "IBM PowerNV (Non-Virtualized) POWER9"
+          - if: qemu_system_arch == "riscv64"
+            then:
+              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "AMD Microblaze-V generic platform"
+        requirements:
+          run:
+            - ${{ m2 }}grep
+      # Boot test with CirrOS/Debian minimal images
+      - script:
+          - python tests/boot_test.py ${{ qemu_system_arch }} ${{ PREFIX }}
+        files:
+          recipe:
+            - tests/boot_test.py
+
+#  - package:
+#      name: qemu-${{ qemu_user_arch }}
+#    build:
+#      skip: not linux  # Linux-user only works on Linux hosts
+#      script:
+#        env:
+#          CONDA_QEMU_TARGET: "${{ qemu_user_arch }}"
+#          CONDA_QEMU_MODE: "linux-user"
+#      files:
+#        include:
+#          - bin/qemu-${{ qemu_user_arch }}
+#    requirements:
+#      ignore_run_exports:
+#        by_name:
+#          - libzlib  # Not directly linked
+#      build:
+#        - ${{ compiler('c') }}
+#        - ${{ stdlib('c') }}
+#        - bash >=5.2
+#        - git
+#        - meson
+#        - ninja
+#        - pkg-config
+#        - python 3.12.*
+#      host:
+#        - glib
+#        - libcapstone
+#        - zlib
+#        # Note: libslirp not needed for linux-user mode
+#      run:
+#        - libcapstone
+#        - libglib
+#        # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
+#    tests:
+#      - package_contents:
+#          bin:
+#            - qemu-${{ qemu_user_arch }}
+#      - script:
+#          - qemu-${{ qemu_user_arch }} --version | grep ${{ version }}
+#          - if: qemu_user_arch != "riscv64"
+#            then:
+#              # Cross-compile and run a test binary
+#              - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+#              - export QEMU_CPU=${{ qemu_user_cpu }}
+#              - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
+#              - qemu-${{ qemu_user_arch }} ./hello_arch ${{ qemu_user_arch }} > output.txt
+#              - grep "Hello from ${{ qemu_user_arch }}!" output.txt
+#            else:
+#              - echo "No gcc/sysroot for riscv64"
+#        requirements:
+#          run:
+#            - if: qemu_user_arch != "riscv64"
+#              then:
+#                - gcc_impl_linux-${{ qemu_user_arch }}
+#                - sysroot_linux-${{ qemu_user_arch }} ==${{ qemu_user_sysroot_version }}
+#        files:
+#          recipe:
+#            - tests/hello_arch.c
+#
+#  - package:
+#      name: qemu-execve-${{ qemu_user_arch }}
+#    source:
+#      - url: https://gitlab.com/qemu-project/qemu/-/archive/v${{ version }}/qemu-v${{ version }}.tar.gz
+#        sha256: 93878bb2a9dcbe8dbcb818ae582396d5145bb8b1a25986126613d9f4360b9098
+#        target_directory: qemu_source
+#        patches:
+#          - patches/apply-execve-JH.patch
+#          - patches/set-qemu-execve-name.patch
+#          - patches/0001-linux-user-fix-missing-resolve-flags.patch
+#    build:
+#      skip: not linux  # Linux-user only works on Linux hosts
+#      script:
+#        env:
+#          CONDA_QEMU_TARGET: "${{ qemu_user_arch }}"
+#          CONDA_QEMU_MODE: "linux-user"
+#      files:
+#        include:
+#          - bin/qemu-execve-${{ qemu_user_arch }}
+#    requirements:
+#      ignore_run_exports:
+#        by_name:
+#          - libzlib  # Not directly linked
+#      build:
+#        - ${{ compiler('c') }}
+#        - ${{ stdlib('c') }}
+#        - bash >=5.2
+#        - git
+#        - meson
+#        - ninja
+#        - pkg-config
+#        - python 3.12.*
+#      host:
+#        - glib
+#        - libcapstone
+#        - zlib
+#        # Note: libslirp not needed for linux-user mode
+#      run:
+#        - libcapstone
+#        - libglib
+#        # Note: sysroot_linux-{arch} needed separately for running dynamically-linked binaries
+#    tests:
+#      - package_contents:
+#          bin:
+#            - qemu-execve-${{ qemu_user_arch }}
+#      - script:
+#          - qemu-execve-${{ qemu_user_arch }} --version | grep ${{ version }}
+#          - if: qemu_user_arch != "riscv64"
+#            then:
+#              # Cross-compile test binaries
+#              - export QEMU_LD_PREFIX="${PREFIX}/${{ qemu_user_sysroot }}-conda-linux-gnu/sysroot"
+#              - export QEMU_CPU=${{ qemu_user_cpu }}
+#              - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o hello_arch tests/hello_arch.c
+#              - ${{ qemu_user_gcc }} -Wl,-rpath,${QEMU_LD_PREFIX}/lib -Wl,-rpath,${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib64 -L${QEMU_LD_PREFIX}/lib -Wl,--dynamic-linker=${QEMU_LD_PREFIX}/lib/ld-${{ qemu_user_sysroot_version }}.so -o execve_call tests/execve_call.c
+#              # Test 1: Normal execution of cross-compiled binary
+#              - qemu-execve-${{ qemu_user_arch }} ./hello_arch ${{ qemu_user_arch }} > output.txt
+#              - grep "Hello from ${{ qemu_user_arch }}!" output.txt
+#              # Test 2: execve() of host binary (should work - runs on host)
+#              - qemu-execve-${{ qemu_user_arch }} ./execve_call /bin/ls > ls_host.txt 2>&1 || true
+#              - grep "hello_arch" ls_host.txt
+#              # Test 3: Redirected execve() of host binary (should fail - wrong ELF)
+#              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_arch }} qemu-execve-${{ qemu_user_arch }} ./execve_call /bin/ls > ls_redirect.txt 2>&1 || true
+#              - grep "Invalid ELF image" ls_redirect.txt || exit 1
+#              # Test 4: Redirected execve() of cross-compiled binary (should work via qemu)
+#              - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-${{ qemu_user_arch }} qemu-execve-${{ qemu_user_arch }} ./execve_call ./hello_arch EXECVE > execve_test.txt 2>&1 || true
+#              - grep "EXECVE" execve_test.txt || exit 1
+#            else:
+#              - echo "No gcc/sysroot for riscv64"
+#        requirements:
+#          run:
+#            - if: qemu_user_arch != "riscv64"
+#              then:
+#                - gcc_impl_linux-${{ qemu_user_arch }}
+#                - sysroot_linux-${{ qemu_user_arch }} ==${{ qemu_user_sysroot_version }}
+#        files:
+#          recipe:
+#            - tests/hello_arch.c
+#            - tests/execve_call.c
+
+about:
+  homepage: https://gitlab.com/qemu-project/qemu
+  summary: QEMU is a generic and open source machine & userspace emulator and virtualizer.
+  description: |
+    QEMU is capable of emulating a complete machine in software without any
+    need for hardware virtualization support. By using dynamic translation,
+    it achieves very good performance. QEMU can also integrate with the Xen
+    and KVM hypervisors to provide emulated hardware while allowing the
+    hypervisor to manage the CPU. With hypervisor support, QEMU can achieve
+    near native performance for CPUs. When QEMU emulates CPUs directly it is
+    capable of running operating systems made for one machine (e.g. an ARMv7
+    board) on a different machine (e.g. an x86_64 PC board).
+
+    QEMU is also capable of providing userspace API virtualization for Linux
+    and BSD kernel interfaces. This allows binaries compiled against one
+    architecture ABI (e.g. the Linux PPC64 ABI) to be run on a host using a
+    different architecture ABI (e.g. the Linux x86_64 ABI). This does not
+    involve any hardware emulation, simply CPU and syscall emulation.
+
+    QEMU aims to fit into a variety of use cases. It can be invoked directly
+    by users wishing to have full control over its behaviour and settings.
+    It also aims to facilitate integration into higher level management
+    layers, by providing a stable command line interface and monitor API.
+    It is commonly invoked indirectly via the libvirt library when using
+    open source applications such as oVirt, OpenStack and virt-manager.
+    QEMU as a whole is released under the GNU General Public License,
+    version 2. For full licensing details, consult the LICENSE file.
+  license: GPL-2.0-only
+  license_file:
+    - qemu_source/COPYING
+    - qemu_source/COPYING.LIB
+    - qemu_source/LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: qemu
