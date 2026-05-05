@@ -103,6 +103,21 @@ echo :: Execute the Electron app from lib directory
 echo start "" "%%LIBRARY_PREFIX%%\Library\lib\podman-desktop\Podman Desktop.exe" %%*
 ) > "%SCRIPTS%\podman-desktop.bat"
 
+echo === Installing menuinst menu item ===
+:: Copy the menuinst JSON and icon to %PREFIX%\Menu so conda registers
+:: a Start Menu entry when the package is installed.
+if not exist "%PREFIX%\Menu" mkdir "%PREFIX%\Menu"
+copy "%RECIPE_DIR%\podman-desktop.json" "%PREFIX%\Menu\podman-desktop.json"
+if errorlevel 1 exit /b 1
+
+if exist "buildResources\icon.ico" (
+    copy "buildResources\icon.ico" "%PREFIX%\Menu\podman-desktop.ico"
+    if errorlevel 1 exit /b 1
+) else (
+    echo ERROR: Windows icon file (icon.ico) not found in buildResources\
+    exit /b 1
+)
+
 echo === Build completed successfully! ===
 echo Installed files:
 dir "%SCRIPTS%\podman-desktop.bat"

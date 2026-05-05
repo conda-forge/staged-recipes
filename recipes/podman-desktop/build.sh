@@ -84,22 +84,6 @@ EOF
     chmod +x "${PREFIX}/bin/podman-desktop"
 
     echo "=== Installing desktop integration files ==="
-    # Install .desktop file for Linux application menu
-    mkdir -p "${PREFIX}/share/applications"
-    cat > "${PREFIX}/share/applications/podman-desktop.desktop" << 'EOF'
-[Desktop Entry]
-Name=Podman Desktop
-Comment=Containers and Kubernetes for application developers
-Exec=podman-desktop %U
-Terminal=false
-Type=Application
-Icon=podman-desktop
-Categories=Development;ContainerApplication;
-Keywords=podman;docker;container;kubernetes;
-StartupNotify=true
-StartupWMClass=Podman Desktop
-EOF
-
     # Install application icon
     mkdir -p "${PREFIX}/share/icons/hicolor/512x512/apps"
     if [ -f "buildResources/icon.png" ]; then
@@ -133,6 +117,29 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 exec "$(dirname "$0")/../lib/Podman Desktop.app/Contents/MacOS/Podman Desktop" "$@"
 EOF
     chmod +x "${PREFIX}/bin/podman-desktop"
+fi
+
+echo "=== Installing menuinst menu item ==="
+# Copy the menuinst JSON and platform-specific icon to $PREFIX/Menu so conda
+# registers a Start Menu / Applications / XDG entry when the package is installed.
+mkdir -p "${PREFIX}/Menu"
+cp "${RECIPE_DIR}/podman-desktop.json" "${PREFIX}/Menu/podman-desktop.json"
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if [ -f "buildResources/icon.png" ]; then
+        cp "buildResources/icon.png" "${PREFIX}/Menu/podman-desktop.png"
+    elif [ -f "buildResources/512x512.png" ]; then
+        cp "buildResources/512x512.png" "${PREFIX}/Menu/podman-desktop.png"
+    else
+        echo "ERROR: Linux icon file not found in buildResources/"
+        exit 1
+    fi
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    if [ -f "buildResources/icon.icns" ]; then
+        cp "buildResources/icon.icns" "${PREFIX}/Menu/podman-desktop.icns"
+    else
+        echo "ERROR: macOS icon (icon.icns) not found in buildResources/"
+        exit 1
+    fi
 fi
 
 echo "=== Installing conda activation scripts ==="
