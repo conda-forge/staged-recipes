@@ -1,0 +1,78 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: kdsource
+  version: ${{ version }}
+
+source:
+  url: https://github.com/KDSource/KDSource/archive/v${{ version }}.tar.gz
+  sha256: 9f43e73b207e348bb28f701d6129facf6f886f5b8383acf3f6bc37e9a6dd4d83
+
+build:
+  skip: is_abi3 and not is_python_min
+  script: python -m pip install -Ccmake.define.KDS_EMBED_LIBXML2=OFF . -vv
+  python:
+    version_independent: ${{ is_abi3 }}
+    entry_points:
+      - kdsource-config = kdsource._cli_config:main
+      - kdsource-resample = kdsource._cli_resample:main
+      - kdsource-test = kdsource.test:main
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.29
+    - if: not win
+      then: make
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - scikit-build-core >=0.12
+    - libxml2-devel >=2.14
+    - mcpl-core >=2.2.8
+  run:
+    - python
+    - mcpl >=2.2.8
+    - scipy >=1.14.1
+    - kdepy >=1.1.12
+    - joblib >=1.5.1
+    - matplotlib-base >=3.9.4
+    - scikit-learn >=1.7.2
+    - pandas >=2.3.1
+
+tests:
+  - python:
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+      imports:
+      - kdsource
+      - kdsource.test
+      pip_check: true
+  - script:
+    - kdsource-config --help
+    - kdsource-config -s
+    - kdsource-test
+    - kdsource-resample --help
+
+about:
+  homepage: https://github.com/KDSource/KDSource
+  summary: 'Tool for modelling distributional particle sources for Monte Carlo simulations, with Kernel Density Estimation.'
+  description: |
+    Tool for modelling distributional particle sources for Monte Carlo
+    simulations, with Kernel Density Estimation.
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  documentation: https://kdsource.readthedocs.io/
+  repository: https://github.com/KDSource/KDSource
+
+extra:
+  recipe-maintainers:
+    - tkittel
+    - willend
