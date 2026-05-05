@@ -110,10 +110,7 @@ if not exist "%PREFIX%\Menu" mkdir "%PREFIX%\Menu"
 copy "%RECIPE_DIR%\podman-desktop.json" "%PREFIX%\Menu\podman-desktop.json"
 if errorlevel 1 exit /b 1
 
-:: Convert icon.png to icon.ico (electron-builder only embeds it in the exe;
-:: it never writes a standalone .ico file to buildResources)
-magick convert buildResources\icon.png -resize 256x256 "%PREFIX%\Menu\podman-desktop.ico"
-if errorlevel 1 exit /b 1
+
 
 echo === Build completed successfully! ===
 echo Installed files:
