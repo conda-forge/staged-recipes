@@ -1,0 +1,85 @@
+context:
+  version: "3.1.2"
+
+package:
+  name: resummino
+  version: ${{ version }}
+
+source:
+  url: https://resummino.hepforge.org/downloads/?f=resummino-${{ version }}.zip
+  sha256: db42974e17aec6eabfee055bf608aa44466f1daef1f507e134a156cf57ad435a
+  patches:
+    - patches/0001-patch-to-min-3.5.patch
+    - patches/0002-add-components-for-selective-install.patch
+
+build:
+  skip:
+    # lhapdf and looptools lacks windows support
+    - win
+    # Vendored Fastor lacks macOS support
+    # c.f. https://github.com/romeric/Fastor/issues/161
+    - osx
+  script:
+    - CXXFLAGS="${CXXFLAGS}" LHAPDF="${PREFIX}" cmake -S . -B build ${CMAKE_ARGS} -DBUILD_LHAPDF=FALSE -DLHAPDF="${PREFIX}" -DBUILD_LOOPTOOLS=FALSE -DLOOPTOOLS="${PREFIX}"
+    - cmake build -LH
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build --component runtime
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - libboost-devel
+    - gsl
+    - lhapdf
+    - looptools-static
+
+tests:
+  - files:
+      source:
+        - input/
+    requirements:
+      run:
+        - lhapdf
+    script:
+      - lhapdf update
+      - lhapdf install CT14lo &> /dev/null
+      - lhapdf install CT14nlo &> /dev/null
+      - resummino input/resummino.in
+
+  - package_contents:
+      strict: true
+      files:
+        - bin/resummino
+        - etc/conda/test-files/*
+
+about:
+  homepage: https://resummino.hepforge.org/
+  summary: 'Resummino computes predictions for selected Beyond the Standard Model processes at hadron colliders'
+  description: |
+    Resummino computes predictions for selected Beyond the Standard Model (BSM)
+    processes at hadron colliders. In the framework of the Minimal
+    Supersymmetric Standard Model (MSSM) predictions at approximate NNLO+NNLL
+    are available for slepton-pair and electroweakino-pair production (these
+    processes are also available with a collinear improved version of threshold
+    resummation for NLO+NLL); predictions at NLO+NLL are available for
+    gaugino-gluino and gaugino-squark production.
+
+    In general BSM models with extended gauge sectors, predictions for Z' and
+    W' production are available at approximate NNLO+NNLL accuracy. The code is
+    able to compute total cross sections as well as invariant-mass and
+    transverse-momentum distributions (only for Drell-Yan-like processes).
+  license: EUPL-1.1
+  license_file: LICENCE
+  documentation: https://resummino.hepforge.org/
+  repository: https://resummino.hepforge.org/
+
+extra:
+  recipe-maintainers:
+    - kratsg
+    - mhance
