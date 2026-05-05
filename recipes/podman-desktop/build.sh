@@ -170,8 +170,8 @@ ls -la "${PREFIX}/bin/podman-desktop"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Application directory:"
     ls -la "${PREFIX}/lib/podman-desktop/" | head -20
-    echo "Desktop file:"
-    cat "${PREFIX}/share/applications/podman-desktop.desktop"
+    echo "menuinst JSON:"
+    cat "${PREFIX}/Menu/podman-desktop.json"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Application bundle:"
     ls -la "${PREFIX}/lib/Podman Desktop.app/"
