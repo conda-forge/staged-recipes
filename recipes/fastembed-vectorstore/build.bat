@@ -1,18 +1,19 @@
 @ECHO ON
 setlocal EnableDelayedExpansion
 
-:: Ensure LOCALAPPDATA is defined — it can be unset in later conda build variants
-if not defined LOCALAPPDATA (
-    set "LOCALAPPDATA=%USERPROFILE%\AppData\Local"
-)
+:: Ensure LOCALAPPDATA is defined and the directory exists
+if not defined LOCALAPPDATA set "LOCALAPPDATA=%USERPROFILE%\AppData\Local"
+if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%"
 
-:: Point ort-sys to the conda-installed onnxruntime so it never falls through to
-:: the download path (which requires dirs::cache_dir(), a Windows API that can
-:: return None in later build variants within the same CI job).
-set "ORT_LIB_LOCATION=%PREFIX%\Library"
+:: Write the Shell Folders registry key so SHGetKnownFolderPath (called by
+:: ort-sys via dirs::cache_dir()) succeeds for every Python variant in the
+:: same CI job. Without this, the key can be absent for non-first variants.
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Local AppData" /t REG_SZ /d "%LOCALAPPDATA%" /f >nul 2>&1
+
+:: Use dynamic loading so ort is loaded at runtime and no onnxruntime.lib is
+:: needed at link time (the conda onnxruntime package ships only the DLL).
 set "ORT_PREFER_DYNAMIC_LINK=1"
 
-:: Force UTF-8 output so cargo/maturin output is not silenced by the CI log reader
 set "PYTHONUTF8=1"
 
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
