@@ -1,17 +1,16 @@
 @ECHO ON
 setlocal EnableDelayedExpansion
 
-:: Ensure LOCALAPPDATA is defined
+:: Ensure USERPROFILE and LOCALAPPDATA are valid
+if not defined USERPROFILE set "USERPROFILE=C:\Users\VssAdministrator"
 if not defined LOCALAPPDATA set "LOCALAPPDATA=%USERPROFILE%\AppData\Local"
+if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%"
 
-:: Bypass the ort-sys build script by overriding its 'ort' links entry with
-:: empty linker flags. ort-sys v2.x uses `links = "ort"` in Cargo.toml.
-:: The build script calls dirs::cache_dir() (via SHGetKnownFolderPath) which
-:: fails for non-first Python variant builds in CI. fastembed uses ort's
-:: load-dynamic Cargo feature so no compile-time linking is needed.
-if not exist "%SRC_DIR%\.cargo" mkdir "%SRC_DIR%\.cargo"
-echo [target.x86_64-pc-windows-msvc.ort]>"%SRC_DIR%\.cargo\config.toml"
-echo rustc-link-lib = []>>"%SRC_DIR%\.cargo\config.toml"
+:: SHGetKnownFolderPath (used by dirs::cache_dir() in ort-sys) reads from
+:: "User Shell Folders" (REG_EXPAND_SZ), not "Shell Folders" (REG_SZ).
+:: Write to both to ensure the API succeeds for every Python variant build.
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v "Local AppData" /t REG_EXPAND_SZ /d "%%USERPROFILE%%\AppData\Local" /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Local AppData" /t REG_SZ /d "%LOCALAPPDATA%" /f >nul 2>&1
 
 set "PYTHONUTF8=1"
 
