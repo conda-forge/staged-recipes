@@ -95,14 +95,6 @@ echo === Creating launcher script ===
 :: Create wrapper batch file in Scripts/
 mkdir "%SCRIPTS%"
 
-:: Create launcher batch file (use quotes around exe path due to spaces)
-(
-echo @echo off
-echo :: Podman Desktop launcher script
-echo :: Execute the Electron app from lib directory
-echo start "" "%%LIBRARY_PREFIX%%\Library\lib\podman-desktop\Podman Desktop.exe" %%*
-) > "%SCRIPTS%\podman-desktop.bat"
-
 echo === Installing menuinst menu item ===
 :: Copy the menuinst JSON and icon to %PREFIX%\Menu so conda registers
 :: a Start Menu entry when the package is installed.
@@ -113,8 +105,6 @@ if errorlevel 1 exit /b 1
 
 
 echo === Build completed successfully! ===
-echo Installed files:
-dir "%SCRIPTS%\podman-desktop.bat"
 echo Contents of lib\podman-desktop:
 dir "%LIBRARY_PREFIX%\Library\lib\podman-desktop" | findstr /C:"exe"
 
