@@ -41,9 +41,9 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 
     echo "=== Code signing the app bundle ==="
     # Ad-hoc signature (--sign -) lets macOS run the app without Gatekeeper blocking it
-    if [ -d "dist/mac/Podman Desktop.app" ]; then
+    if [[ -d "dist/mac/Podman Desktop.app" ]]; then
         codesign --force --deep --sign - "dist/mac/Podman Desktop.app"
-    elif [ -d "dist/mac-arm64/Podman Desktop.app" ]; then
+    elif [[ -d "dist/mac-arm64/Podman Desktop.app" ]]; then
         codesign --force --deep --sign - "dist/mac-arm64/Podman Desktop.app"
     else
         echo "ERROR: No .app bundle found to sign"
@@ -86,9 +86,9 @@ EOF
     echo "=== Installing desktop integration files ==="
     # Install application icon
     mkdir -p "${PREFIX}/share/icons/hicolor/512x512/apps"
-    if [ -f "buildResources/icon.png" ]; then
+    if [[ -f "buildResources/icon.png" ]]; then
         cp "buildResources/icon.png" "${PREFIX}/share/icons/hicolor/512x512/apps/podman-desktop.png"
-    elif [ -f "buildResources/512x512.png" ]; then
+    elif [[ -f "buildResources/512x512.png" ]]; then
         cp "buildResources/512x512.png" "${PREFIX}/share/icons/hicolor/512x512/apps/podman-desktop.png"
     else
         echo "ERROR: Icon file not found in buildResources/"
@@ -98,9 +98,9 @@ EOF
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS: Install .app bundle
     mkdir -p "${PREFIX}/lib"
-    if [ -d "dist/mac/Podman Desktop.app" ]; then
+    if [[ -d "dist/mac/Podman Desktop.app" ]]; then
         cp -r "dist/mac/Podman Desktop.app" "${PREFIX}/lib/Podman Desktop.app"
-    elif [ -d "dist/mac-arm64/Podman Desktop.app" ]; then
+    elif [[ -d "dist/mac-arm64/Podman Desktop.app" ]]; then
         cp -r "dist/mac-arm64/Podman Desktop.app" "${PREFIX}/lib/Podman Desktop.app"
     else
         echo "ERROR: macOS .app bundle not found in dist/"
@@ -125,16 +125,16 @@ echo "=== Installing menuinst menu item ==="
 mkdir -p "${PREFIX}/Menu"
 cp "${RECIPE_DIR}/podman-desktop.json" "${PREFIX}/Menu/podman-desktop.json"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if [ -f "buildResources/icon.png" ]; then
+    if [[ -f "buildResources/icon.png" ]]; then
         cp "buildResources/icon.png" "${PREFIX}/Menu/podman-desktop.png"
-    elif [ -f "buildResources/512x512.png" ]; then
+    elif [[ -f "buildResources/512x512.png" ]]; then
         cp "buildResources/512x512.png" "${PREFIX}/Menu/podman-desktop.png"
     else
         echo "ERROR: Linux icon file not found in buildResources/"
         exit 1
     fi
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    if [ -f "buildResources/icon.icns" ]; then
+    if [[ -f "buildResources/icon.icns" ]]; then
         cp "buildResources/icon.icns" "${PREFIX}/Menu/podman-desktop.icns"
     else
         echo "ERROR: macOS icon (icon.icns) not found in buildResources/"
