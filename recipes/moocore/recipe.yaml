@@ -1,0 +1,117 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.2.0"
+  py_cffi_min: "1.17.1"
+  # test
+  python_check_max: "3.14"
+  abi3_ext: ${{ "pyd" if win else "abi3.so" }}
+  unix_sp_dir: |-
+    $(python -c "print(__import__('site').getsitepackages()[-1])")/moocore
+  win_sp_dir: |-
+    Lib\site-packages\moocore
+  sp_dir: |-
+    ${{ "%PREFIX%\\" ~ win_sp_dir if win else unix_sp_dir }}
+
+recipe:
+  name: moocore
+  version: ${{ version }}
+
+source:
+  url: https://github.com/multi-objective/moocore/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fa41ba4cd42622fb373b24d547bd6c4125df814b701a6d655e80af116a442987
+
+build:
+  number: 0
+
+outputs:
+  # TODO?
+  # - package:
+  #    name: libmoocore
+  # - package:
+  #    name: r-moocore
+  - package:
+      name: python-moocore
+    build:
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        # replace a symlink from `python/src/moocore/libmoocore` to `c` (which also has a symlink) that confuses `cl.exe`
+        - ${{ PYTHON }} -c "import os, shutil; d = 'python/src/moocore/libmoocore'; [os.unlink(p) for p in [d, 'c/COPYRIGHTS', 'c/LICENSE']]; shutil.copytree('c', d)"
+        # remove ``python/src/conftest.py`` so it doesn't end up in root of `site-packages`,
+        # put back temporarily during tests
+        - cd python
+        - python -c "__import__('os').unlink('src/conftest.py')"
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+      host:
+        - cffi >=${{ py_cffi_min }}
+        - pip
+        - python
+        - setuptools >=77.0.3
+        - wheel
+        - if: is_abi3
+          then:
+            - python-abi3
+      run:
+        - cffi >=${{ py_cffi_min }}
+        - numpy >=1.24
+        - platformdirs
+        - python
+    tests:
+      - if: is_abi3
+        then:
+          - python:
+              imports: moocore
+              pip_check: true
+              python_version:
+                - ${{ python_min }}.*
+                - ${{ python_check_max }}.*
+        else:
+          - python:
+              imports: moocore
+              pip_check: true
+      - files:
+          recipe:
+            - python_moocore_tests.py
+        requirements:
+          run:
+            - pandas >=2
+            - pytest-cov
+            - if: is_abi3
+              then:
+                - python ${{ python_check_max }}.*
+                - abi3audit
+        script:
+          - python python_moocore_tests.py
+          - if: is_abi3
+            then:
+              - cd ${{ sp_dir }}
+              - abi3audit -s -v --assume-minimum-abi3 ${{ python_min }} _libmoocore.${{ abi3_ext }}
+    about:
+      license_file:
+        - COPYRIGHTS
+        - LICENSE
+      homepage: https://pypi.org/project/moocore
+      repository: https://github.com/multi-objective/moocore
+      documentation: https://multi-objective.github.io/moocore/python
+
+about:
+  summary: Core Algorithms for Multi-Objective Optimization
+  license: LGPL-2.1-or-later
+  license_file:
+    - COPYRIGHTS
+    - LICENSE
+  homepage: https://multi-objective.github.io/moocore
+  repository: https://github.com/multi-objective/moocore
+
+extra:
+  feedstock-name: moocore
+  recipe-maintainers:
+    - bollwyvl
