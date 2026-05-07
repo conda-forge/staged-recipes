@@ -3,17 +3,17 @@ set -exo pipefail
 pushd gpt4all-backend
 
 if [[ ${target_platform} == "linux-"* ]]; then
-    if [[ ${cuda_compiler_version} != "None" ]]; then
-        cmake -S . -B build \
-            ${CMAKE_ARGS} \
-            -DLLMODEL_KOMPUTE=ON \
-            -DLLMODEL_VULKAN=OFF \
-            -DLLMODEL_CUDA=ON \
-            -DLLMODEL_ROCM=OFF \
-            -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
-            -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF \
-            -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
-    else
+    # if [[ ${cuda_compiler_version} != "None" ]]; then
+    #     cmake -S . -B build \
+    #         ${CMAKE_ARGS} \
+    #         -DLLMODEL_KOMPUTE=ON \
+    #         -DLLMODEL_VULKAN=OFF \
+    #         -DLLMODEL_CUDA=ON \
+    #         -DLLMODEL_ROCM=OFF \
+    #         -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
+    #         -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF \
+    #         -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
+    # else
         cmake -S . -B build \
             ${CMAKE_ARGS} \
             -DLLMODEL_KOMPUTE=ON \
@@ -23,7 +23,7 @@ if [[ ${target_platform} == "linux-"* ]]; then
             -DKOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON \
             -DKOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER=OFF \
             -DKOMPUTE_OPT_USE_BUILT_IN_FMT=OFF
-    fi
+    # fi
 
     # pushd "${SRC_DIR}/gpt4all-backend/deps/llama.cpp-mainline"
     # make GGML_VULKAN=1 vulkan-shaders-gen
