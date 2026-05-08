@@ -1,0 +1,83 @@
+context:
+  version: "1.0.4"
+  build: 0
+
+recipe:
+  name: patchworkpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/url-kaist/patchwork-plusplus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0d3e3376bffd1cc0a206a391086c79e0ab5df8f1a247c79fdb8a22bd87129ed7
+  patches:
+    - patches/python-use-system-patchworkpp.patch
+    - patches/cpp-static-to-shared.patch
+
+build:
+  number: ${{ build }}
+  skip: win
+
+outputs:
+  - package:
+      name: patchworkpp
+    build:
+      script:
+        - cmake -S $SRC_DIR/cpp -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DUSE_SYSTEM_EIGEN3=ON -DINCLUDE_CPP_EXAMPLES=OFF
+        - cmake --build build --parallel $CPU_COUNT
+        - cmake --install build
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - eigen
+      run_exports:
+        - ${{ pin_subpackage('patchworkpp', upper_bound='x.x') }}
+    tests:
+      - script:
+          - test -f $PREFIX/include/patchwork/patchworkpp.h
+          - test -f $PREFIX/lib/libground_seg_cores$SHLIB_EXT
+          - test -f $PREFIX/lib/cmake/patchworkpp/patchworkppConfig.cmake
+
+  - package:
+      name: pypatchworkpp
+    build:
+      script:
+        - export CMAKE_ARGS="$CMAKE_ARGS -DUSE_SYSTEM_PATCHWORKPP=ON"
+        - export CMAKE_GENERATOR=Ninja
+        - $PYTHON -m pip install $SRC_DIR/python --no-deps --no-build-isolation -vv
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11
+        - eigen
+        - ${{ pin_subpackage('patchworkpp', exact=True) }}
+      run:
+        - python
+        - numpy >=1.23
+    tests:
+      - python:
+          imports:
+            - pypatchworkpp
+
+about:
+  homepage: https://github.com/url-kaist/patchwork-plusplus
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: Patchwork++ fast and robust ground segmentation for 3D LiDAR point clouds
+  description: Patchwork++ fast and robust ground segmentation for 3D LiDAR point clouds
+  repository: https://github.com/url-kaist/patchwork-plusplus
+
+extra:
+  feedstock-name: patchworkpp
+  recipe-maintainers:
+    - ruben-arts
