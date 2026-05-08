@@ -1,0 +1,183 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: presenton
+  version: "0.7.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Tag: electron-v0.7.3-beta (Electron release line; the bare v*-beta tags
+  # are the separate Docker release line and have a different cadence).
+  url: https://github.com/presenton/presenton/archive/refs/tags/electron-v${{ version }}-beta.tar.gz
+  sha256: 5c89a104be746027da5cd745e7511dd45527a20373189fff566d0a3ed5329584
+
+build:
+  number: 2
+  # Not noarch: python — asyncpg, chromadb, and other deps have compiled extensions.
+  # Also pinned to Python 3.11 only by upstream (>=3.11,<3.12).
+  # The build.sh / build.bat are auto-discovered by rattler-build / conda-build.
+  skip:
+    # Python 3.11 does not exist for win-arm64 on conda-forge
+    - win and aarch64
+  dynamic_linking:
+    # Disable conda binary relocation (RPATH/install_name_tool patching).
+    # The prebuilt @img/sharp-* .node files already use self-relative paths
+    # ($ORIGIN on Linux, @loader_path on macOS) to reference their bundled
+    # libvips — they are ABI-isolated by design and must not be patched.
+    # Disabling relocation also avoids needing install_name_tool when
+    # cross-compiling to macOS from a Linux host.
+    binary_relocation: false
+    # Allow @loader_path-relative and $ORIGIN-relative rpaths.
+    # Even with binary_relocation: false, rattler-build's rpath-validation
+    # step still removes rpaths that are neither in the prefix nor in this
+    # allowlist — and then tries to call install_name_tool, which fails for
+    # pre-linked .node binaries whose Mach-O headers have no spare space.
+    # The sharp .node files use @loader_path/... to find their bundled libvips;
+    # those paths must be preserved exactly as shipped.
+    rpath_allowlist:
+      - "@loader_path/**"
+      - "$ORIGIN/**"
+    missing_dso_allowlist:
+      # ---- Linux: system-glibc libraries (governed by __glibc virtual package) ----
+      - "libc.so.6"
+      - "libm.so.6"
+      - "libpthread.so.0"
+      - "libdl.so.2"
+      - "libresolv.so.2"
+      - "ld-linux-x86-64.so.2"
+      # musl libc — from @img/sharp-linuxmusl-* (only present if pnpm
+      # downloads both variants; stripped in build.sh for clean linux builds)
+      - "libc.musl-x86_64.so.1"
+      # Bundled private copies inside @img/sharp-libvips-linux-x64/lib/
+      # (resolved via $ORIGIN RPATH — intentional ABI isolation by sharp)
+      - "lib/libgcc_s.so.1"
+      - "lib/libstdc++.so.6*"
+      # ---- macOS: system dylibs (always present, part of the macOS SDK) ----------
+      - "/usr/lib/libSystem.B.dylib"
+      - "/usr/lib/libc++.1.dylib"
+      - "/usr/lib/libresolv.9.dylib"
+      # Bundled private dylibs inside @img/sharp-libvips-darwin-*/lib/
+      # (same $ORIGIN-rpath ABI-isolation pattern as Linux)
+      - "@loader_path/libgcc_s.1.1.dylib"
+      - "@loader_path/libgcc_s.1.dylib"
+      - "@loader_path/libstdc++.6.dylib"
+
+requirements:
+  build:
+    # Tools that must execute on the BUILD machine during build.sh.
+    # When cross-compiling (e.g. linux-64 → win-64), rattler-build resolves
+    # `host` for the TARGET platform — those packages cannot run on Linux.
+    # build.sh uses `python3` (config patching) and `node`/`pnpm` (JS build),
+    # so both must be available as BUILD-platform (Linux) binaries here.
+    - python
+    - nodejs >=20
+
+  host:
+    # TARGET platform runtime — what the installed package executes against.
+    # nodejs is intentionally absent: the build script runs node/pnpm on the
+    # BUILD machine (via the build: section above); nodejs >=20 is declared in
+    # run: for the end-user. Including it here forces host-env resolution for
+    # the target platform's __osx/__win virtual packages, breaking cross-builds.
+    - python
+    - pip
+    - setuptools
+
+  run:
+    - python
+    - nodejs >=20
+
+    # ---- Web framework -------------------------------------------------------
+    - fastapi >=0.116.1
+    - uvicorn >=0.12.0
+    # fastapi[standard] extras (explicit):
+    - email-validator >=2.0.0
+    - httpx >=0.23.0
+    - python-multipart >=0.0.7
+
+    # ---- Database / ORM ------------------------------------------------------
+    - sqlmodel >=0.0.24
+    - alembic >=1.14.0
+    - aiosqlite >=0.21.0
+    - asyncpg >=0.30.0
+    - aiomysql >=0.2.0
+
+    # ---- AI / LLM clients ----------------------------------------------------
+    - openai >=1.98.0
+    - anthropic >=0.60.0
+    - google-genai >=1.28.0
+    - fastmcp >=2.11.0
+
+    # ---- Vector store / embeddings -------------------------------------------
+    # TODO: tighten to >=1.0.15 once chromadb 1.x lands on conda-forge
+    - chromadb >=0.5.23
+
+    # ---- Document processing -------------------------------------------------
+    - pdfplumber >=0.11.7
+    - python-pptx >=1.0.2
+    - docling >=2.43.0
+
+    # ---- Utilities -----------------------------------------------------------
+    - aiohttp >=3.12.15
+    - nltk >=3.9.1
+    - pathvalidate >=3.3.1
+    - dirtyjson >=1.0.8
+    - redis-py >=6.2.0
+
+    # ---- C/C++ runtime (Linux only — macOS uses the SDK, Windows uses UCRT) ---
+    - if: linux
+      then:
+        - libgcc >=12
+        - libstdcxx >=12
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -f "$CONDA_PREFIX/bin/presenton"
+          - test -f "$CONDA_PREFIX/bin/presenton-backend"
+          - test -f "$CONDA_PREFIX/bin/presenton-frontend"
+          - test -d "$CONDA_PREFIX/share/presenton/backend"
+          - test -d "$CONDA_PREFIX/share/presenton/backend/assets"
+          - test -f "$CONDA_PREFIX/share/presenton/backend/assets/icons.json"
+          - test -d "$CONDA_PREFIX/share/presenton/nextjs"
+      - if: win
+        then:
+          - if not exist "%CONDA_PREFIX%\Scripts\presenton-backend.bat" exit 1
+          - if not exist "%CONDA_PREFIX%\Scripts\presenton-frontend.bat" exit 1
+          - if not exist "%CONDA_PREFIX%\share\presenton\backend" exit 1
+          - if not exist "%CONDA_PREFIX%\share\presenton\backend\assets\icons.json" exit 1
+          - if not exist "%CONDA_PREFIX%\share\presenton\nextjs" exit 1
+
+about:
+  homepage: https://github.com/presenton/presenton
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+  summary: Open-source, self-hosted AI presentation generator (PowerPoint / PDF)
+  description: |
+    Presenton generates PowerPoint presentations and PDFs from text prompts or
+    uploaded documents. It supports multiple AI providers (OpenAI, Gemini,
+    Anthropic Claude, Ollama, or any OpenAI-compatible endpoint) and ships an
+    MCP server for Model Context Protocol integrations.
+
+    This conda package installs:
+    - FastAPI backend  → run with: presenton-backend
+    - Next.js frontend → run with: presenton-frontend
+    - Combined launcher → run with: presenton  (starts both on ports 8000 / 3000)
+
+    Environment variables:
+      PRESENTON_PORT          Backend port  (default: 8000)
+      PRESENTON_FRONTEND_PORT Frontend port (default: 3000)
+
+    System requirements (not managed by conda):
+      - LibreOffice  (for PPTX-to-PDF export)
+      - Redis server (for task queues)
+
+extra:
+  recipe-maintainers:
+    - rxm7706
