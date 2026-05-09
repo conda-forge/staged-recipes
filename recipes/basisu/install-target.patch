@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 8345623..3cf8746 100644
+index 8345623..dab70c6 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -2,7 +2,15 @@
@@ -30,17 +30,37 @@ index 8345623..3cf8746 100644
     
      if (NOT BUILD_X64)
          set(GCC_COMPILE_FLAGS "${GCC_COMPILE_FLAGS} -m32")
-@@ -167,15 +175,20 @@ if (ZSTD)
+@@ -159,7 +167,6 @@ set(ENCODER_LIB_SRC_LIST
+     encoder/basisu_astc_hdr_enc.cpp
+ 	encoder/3rdparty/android_astc_decomp.cpp
+     encoder/3rdparty/tinyexr.cpp
+-    transcoder/basisu_transcoder.cpp
+ )
+ 
+ if (ZSTD)
+@@ -167,15 +174,32 @@ if (ZSTD)
  endif()
  
  # Create the static library
 -add_library(basisu_encoder STATIC ${ENCODER_LIB_SRC_LIST})
++add_library(Transcoder transcoder/basisu_transcoder.cpp)
++set_target_properties(Transcoder PROPERTIES OUTPUT_NAME "basisu_transcoder")
++target_include_directories(Transcoder PUBLIC
++                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/transcoder>
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/basisu>
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/basisu/transcoder>)
++
 +add_library(Encoder ${ENCODER_LIB_SRC_LIST})
-+set_target_properties(Encoder PROPERTIES OUTPUT_NAME "BasisUniversalEncoder")
++set_target_properties(Encoder PROPERTIES OUTPUT_NAME "basisu_encoder")
 +target_include_directories(Encoder PUBLIC
++                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 +                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/transcoder>
 +                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/encoder>
-+                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/basisu>
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/basisu/encoder>
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/basisu/transcoder>)
++target_link_libraries(Encoder PUBLIC Transcoder)
  
  # Create the basisu executable and link against the static library
  add_executable(basisu basisu_tool.cpp)
@@ -54,7 +74,7 @@ index 8345623..3cf8746 100644
  
  if (ZSTD)
      target_compile_definitions(basisu PRIVATE BASISD_SUPPORT_KTX2_ZSTD=1)
-@@ -193,7 +206,7 @@ if (NOT MSVC)
+@@ -193,7 +217,7 @@ if (NOT MSVC)
          
          target_include_directories(basisu PRIVATE ${OpenCL_INCLUDE_DIRS})
          target_include_directories(examples PRIVATE ${OpenCL_INCLUDE_DIRS})
@@ -63,7 +83,7 @@ index 8345623..3cf8746 100644
          set(BASISU_EXTRA_LIBS ${OpenCL_LIBRARIES})
      endif()
  else()
-@@ -204,7 +217,7 @@ else()
+@@ -204,7 +228,7 @@ else()
          
          target_include_directories(basisu PRIVATE "OpenCL")
          target_include_directories(examples PRIVATE "OpenCL")
@@ -72,13 +92,14 @@ index 8345623..3cf8746 100644
  
          if (BUILD_X64)
              target_link_libraries(basisu PRIVATE "${CMAKE_SOURCE_DIR}/OpenCL/lib/OpenCL64.lib")
-@@ -252,3 +265,64 @@ if (MSVC)
+@@ -252,3 +276,76 @@ if (MSVC)
          RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
      )	
  endif()
 +
 +find_package(Threads REQUIRED)
 +target_link_libraries(Encoder PRIVATE Threads::Threads)
++target_link_libraries(Transcoder PRIVATE Threads::Threads)
 +
 +# GNU filesystem conventions
 +include(GNUInstallDirs)
@@ -91,16 +112,27 @@ index 8345623..3cf8746 100644
 +option(INSTALL_LIB "Whether to install the library and its include files" ON)
 +if (INSTALL_LIB )
 +
-+    file(GLOB BASISU_LIB_ENCODER_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "encoder/basisu*.h*")
-+    file(GLOB BASISU_LIB_TRANSCODER_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "transcoder/basisu*.h*")
-+    set_target_properties(Encoder PROPERTIES PUBLIC_HEADER
-+                          "${BASISU_LIB_ENCODER_PUBLIC_HEADERS};${BASISU_LIB_TRANSCODER_PUBLIC_HEADERS}")
-+
 +    include(CMakePackageConfigHelpers)
 +
-+    install(TARGETS Encoder
++    install(TARGETS Encoder Transcoder
 +            EXPORT basisu_lib_export
-+            PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/basisu")
++            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
++
++    install(DIRECTORY encoder/
++            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/basisu/encoder"
++            FILES_MATCHING
++            PATTERN "*.h"
++            PATTERN "*.hpp"
++            PATTERN "*.inc")
++
++    install(DIRECTORY transcoder/
++            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/basisu/transcoder"
++            FILES_MATCHING
++            PATTERN "*.h"
++            PATTERN "*.hpp"
++            PATTERN "*.inc")
 +
 +    set(namespace "BasisUniversal")
 +    set(install_cmake_config "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
