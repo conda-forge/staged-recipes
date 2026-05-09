@@ -17,5 +17,6 @@ export CMAKE_ARGS="\
     -DUSE_SYSTEM_ZSTD=ON \
     -DMAGNUMBINDINGS_INCLUDE_DIR=${SRC_DIR}/src/deps/magnum-bindings/src \
     -DLIB_SUFFIX=''"
+export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-2}"
 
 "${PYTHON}" -m pip install . -vv
