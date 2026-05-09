@@ -14,6 +14,7 @@ export CMAKE_ARGS="\
     -DUSE_SYSTEM_RAPIDJSON=ON \
     -DUSE_SYSTEM_BULLET=ON \
     -DUSE_SYSTEM_ZSTD=ON \
+    -DMAGNUMBINDINGS_INCLUDE_DIR=${SRC_DIR}/src/deps/magnum-bindings/src \
     -DLIB_SUFFIX=''"
 
 "${PYTHON}" -m pip install . -vv
