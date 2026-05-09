@@ -16,4 +16,4 @@ export CMAKE_ARGS="\
     -DUSE_SYSTEM_ZSTD=ON \
     -DLIB_SUFFIX=''"
 
-python -m pip install . -vv
+"${PYTHON}" -m pip install . -vv
