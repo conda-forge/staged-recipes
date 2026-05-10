@@ -9,6 +9,11 @@ agent_cfg.sensor_specifications = []
 
 habitat_sim.Configuration(sim_cfg, [agent_cfg])
 
+sim_cfg.scene_id = "NONE"
+with habitat_sim.Simulator(habitat_sim.Configuration(sim_cfg, [agent_cfg])) as sim:
+    sim.initialize_agent(0)
+    assert sim.get_stage_initialization_template() is None
+
 config = CoreConfiguration()
 config.set("recipe_smoke", "habitat-sim")
 assert config.has_key_to_type("recipe_smoke", ConfigStoredType.String)
