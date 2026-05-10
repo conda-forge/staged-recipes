@@ -1,8 +1,6 @@
-diff --git a/taichi/runtime/cpu/jit_cpu.cpp b/taichi/runtime/cpu/jit_cpu.cpp
-index 3d25a59b4..1f2eeb62f 100644
 --- a/taichi/runtime/cpu/jit_cpu.cpp
 +++ b/taichi/runtime/cpu/jit_cpu.cpp
-@@ -32,7 +32,10 @@
+@@ -32,14 +32,21 @@
  #include "llvm/Support/raw_ostream.h"
  #include "llvm/Support/Error.h"
  #include "llvm/Target/TargetMachine.h"
@@ -13,11 +11,32 @@ index 3d25a59b4..1f2eeb62f 100644
  #include "llvm/Transforms/InstCombine/InstCombine.h"
  #include "llvm/Transforms/Scalar.h"
  #include "llvm/Transforms/Scalar/GVN.h"
-diff --git a/taichi/runtime/cuda/jit_cuda.cpp b/taichi/runtime/cuda/jit_cuda.cpp
-index 736b86437..42e6e342a 100644
+ #include "llvm/Transforms/IPO.h"
+ 
+ #include "llvm/MC/TargetRegistry.h"
++#if LLVM_VERSION_MAJOR >= 18
++#include "llvm/TargetParser/Host.h"
++#else
+ #include "llvm/Support/Host.h"
++#endif
+ 
+ #endif
+ 
 --- a/taichi/runtime/cuda/jit_cuda.cpp
 +++ b/taichi/runtime/cuda/jit_cuda.cpp
-@@ -178,6 +178,7 @@ std::string JITSessionCUDA::compile_module_to_ptx(
+@@ -126,7 +126,11 @@
+   std::unique_ptr<TargetMachine> target_machine(target->createTargetMachine(
+       triple.str(), CUDAContext::get_instance().get_mcpu(), cuda_mattrs(),
+       options, llvm::Reloc::PIC_, llvm::CodeModel::Small,
++#if LLVM_VERSION_MAJOR >= 18
++      CodeGenOptLevel::Aggressive));
++#else
+       CodeGenOpt::Aggressive));
++#endif
+ 
+   TI_ERROR_UNLESS(target_machine.get(), "Could not allocate target machine!");
+ 
+@@ -178,6 +182,7 @@
      }
    }
  
@@ -25,7 +44,7 @@ index 736b86437..42e6e342a 100644
    PassManagerBuilder b;
    b.OptLevel = 3;
    b.Inliner = createFunctionInliningPass(b.OptLevel, 0, false);
-@@ -188,6 +189,7 @@ std::string JITSessionCUDA::compile_module_to_ptx(
+@@ -188,6 +193,7 @@
  
    b.populateFunctionPassManager(function_pass_manager);
    b.populateModulePassManager(module_pass_manager);
@@ -33,8 +52,26 @@ index 736b86437..42e6e342a 100644
  
    // Override default to generate verbose assembly.
    target_machine->Options.MCOptions.AsmVerbose = true;
-diff --git a/taichi/runtime/cuda/jit_cuda.h b/taichi/runtime/cuda/jit_cuda.h
-index 53a9be6e6..b7f403c50 100644
+@@ -201,13 +207,19 @@
+     Note there's an update for "separate-const-offset-gep" in llvm-12.
+   */
+   module_pass_manager.add(llvm::createLoopStrengthReducePass());
++#if LLVM_VERSION_MAJOR < 18
+   module_pass_manager.add(llvm::createIndVarSimplifyPass());
++#endif
+   module_pass_manager.add(llvm::createSeparateConstOffsetFromGEPPass(false));
+   module_pass_manager.add(llvm::createEarlyCSEPass(true));
+ 
+   // Ask the target to add backend passes as necessary.
+   bool fail = target_machine->addPassesToEmitFile(
++#if LLVM_VERSION_MAJOR >= 18
++      module_pass_manager, ostream, nullptr, llvm::CodeGenFileType::AssemblyFile, true);
++#else
+       module_pass_manager, ostream, nullptr, llvm::CGFT_AssemblyFile, true);
++#endif
+ 
+   TI_ERROR_IF(fail, "Failed to set up passes to emit PTX source\n");
+ 
 --- a/taichi/runtime/cuda/jit_cuda.h
 +++ b/taichi/runtime/cuda/jit_cuda.h
 @@ -3,6 +3,7 @@
