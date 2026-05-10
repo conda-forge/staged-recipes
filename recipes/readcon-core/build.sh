@@ -7,8 +7,3 @@ if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
     cargo_args+=(--target "${CARGO_BUILD_TARGET}")
 fi
 cargo "${cargo_args[@]}"
-
-# Keep the flat public include layout and the C++ helper header shipped upstream.
-install -d "$PREFIX/include"
-install -m 644 include/readcon-core.h "$PREFIX/include/"
-install -m 644 include/readcon-core.hpp "$PREFIX/include/"
