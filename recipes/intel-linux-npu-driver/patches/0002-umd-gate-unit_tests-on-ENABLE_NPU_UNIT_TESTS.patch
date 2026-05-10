@@ -1,0 +1,56 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-10
+Subject: umd: gate unit_tests subdirs on a new ENABLE_NPU_UNIT_TESTS flag
+
+The umd CMakeLists.txt unconditionally `add_subdirectory()`s
+vpu_driver/unit_tests and level_zero_driver/unit_tests. Both pull in
+GoogleTest/GoogleMock headers and only exist for developer-style unit
+tests of the userspace driver. Downstream packagers that ship the
+runtime driver have no use for them, and forcing them to either vendor
+GoogleTest or carry a googletest find_package wrapper just to shut these
+subdirs up is unnecessary churn.
+
+Introduce a separate option ENABLE_NPU_UNIT_TESTS (default OFF) that
+gates both unit_tests subdir adds. The validation/ tree, which has its
+own larger test app and is gated by ENABLE_VALIDATION_BUILD, is
+untouched.
+
+Paths in this patch are prefixed with `linux-npu-driver-1.32.1/`
+because conda-build extracts this source with `no_hoist: true` and
+applies patches from the recipe's work_dir (one level above the
+upstream root).
+---
+ linux-npu-driver-1.32.1/CMakeLists.txt     | 1 +
+ linux-npu-driver-1.32.1/umd/CMakeLists.txt | 8 ++++++--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+diff --git a/linux-npu-driver-1.32.1/CMakeLists.txt b/linux-npu-driver-1.32.1/CMakeLists.txt
+index ffff02f..d682665 100644
+--- a/linux-npu-driver-1.32.1/CMakeLists.txt
++++ b/linux-npu-driver-1.32.1/CMakeLists.txt
+@@ -43,6 +43,7 @@ option(ENABLE_COMPILATION_FLAGS_OVERRIDE "Allow to override flags passed to comp
+ # The npu_elf target is picked up from the compiler package
+ option(ENABLE_NPU_ELF_BUILD "Enable building NPU Elf library in driver" OFF)
+ option(ENABLE_TOOLS_BUILD "Enable building tools" OFF)
++option(ENABLE_NPU_UNIT_TESTS "Enable building umd unit tests (requires GoogleTest)" OFF)
+ 
+ message(STATUS "option ENABLE_NPU_COMPILER_BUILD: ${ENABLE_NPU_COMPILER_BUILD}")
+ message(STATUS "option ENABLE_NPU_PERFETTO_BUILD: ${ENABLE_NPU_PERFETTO_BUILD}")
+diff --git a/linux-npu-driver-1.32.1/umd/CMakeLists.txt b/linux-npu-driver-1.32.1/umd/CMakeLists.txt
+index 680a874..d6b3527 100644
+--- a/linux-npu-driver-1.32.1/umd/CMakeLists.txt
++++ b/linux-npu-driver-1.32.1/umd/CMakeLists.txt
+@@ -59,8 +59,12 @@ include_directories(${VPU_SOURCE_DIR})
+ include_directories(SYSTEM ${VPU_KMD_INCLUDE_DIR})
+ 
+ add_subdirectory_unique(vpu_driver/source)
+-add_subdirectory_unique(vpu_driver/unit_tests)
++if (ENABLE_NPU_UNIT_TESTS)
++    add_subdirectory_unique(vpu_driver/unit_tests)
++endif()
+ 
+ add_subdirectory_unique(level_zero_driver/source)
+-add_subdirectory_unique(level_zero_driver/unit_tests)
++if (ENABLE_NPU_UNIT_TESTS)
++    add_subdirectory_unique(level_zero_driver/unit_tests)
++endif()
+ add_subdirectory_unique(level_zero_driver/api)
