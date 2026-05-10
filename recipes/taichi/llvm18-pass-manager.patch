@@ -44,6 +44,81 @@
    }
  };
  
+--- a/taichi/codegen/cpu/codegen_cpu.cpp
++++ b/taichi/codegen/cpu/codegen_cpu.cpp
+@@ -12,10 +12,17 @@
+ #include "taichi/ir/analysis.h"
+ #include "taichi/analysis/offline_cache_util.h"
+ 
++#include "llvm/Config/llvm-config.h"
++#if LLVM_VERSION_MAJOR >= 18
++#include "llvm/TargetParser/Host.h"
++#else
+ #include "llvm/Support/Host.h"
++#endif
+ #include "llvm/MC/TargetRegistry.h"
+ #include "llvm/Transforms/IPO.h"
++#if LLVM_VERSION_MAJOR < 17
+ #include "llvm/Transforms/IPO/PassManagerBuilder.h"
++#endif
+ #include "llvm/Analysis/TargetTransformInfo.h"
+ #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
+ 
+@@ -272,7 +279,11 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
+   std::unique_ptr<llvm::TargetMachine> target_machine(
+       target->createTargetMachine(triple.str(), mcpu.str(), "", options,
+                                   llvm::Reloc::PIC_, llvm::CodeModel::Small,
++#if LLVM_VERSION_MAJOR >= 18
++                                  llvm::CodeGenOptLevel::Aggressive));
++#else
+                                   llvm::CodeGenOpt::Aggressive));
++#endif
+ 
+   TI_ERROR_UNLESS(target_machine.get(), "Could not allocate target machine!");
+ 
+@@ -287,6 +298,7 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
+   function_pass_manager.add(llvm::createTargetTransformInfoWrapperPass(
+       target_machine->getTargetIRAnalysis()));
+ 
++#if LLVM_VERSION_MAJOR < 17
+   llvm::PassManagerBuilder b;
+   b.OptLevel = 3;
+   b.Inliner = llvm::createFunctionInliningPass(b.OptLevel, 0, false);
+@@ -293,6 +305,7 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
+ 
+   b.populateFunctionPassManager(function_pass_manager);
+   b.populateModulePassManager(module_pass_manager);
++#endif
+ 
+   {
+     TI_PROFILER("llvm_function_pass");
+@@ -313,10 +326,12 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
+     Note there's an update for "separate-const-offset-gep" in llvm-12.
+   */
+   module_pass_manager.add(llvm::createLoopStrengthReducePass());
++#if LLVM_VERSION_MAJOR < 18
+   module_pass_manager.add(llvm::createIndVarSimplifyPass());
++#endif
+   module_pass_manager.add(llvm::createSeparateConstOffsetFromGEPPass(false));
+   module_pass_manager.add(llvm::createEarlyCSEPass(true));
+ 
+   llvm::SmallString<8> outstr;
+   llvm::raw_svector_ostream ostream(outstr);
+   ostream.SetUnbuffered();
+@@ -323,8 +338,12 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
+   if (compile_config.print_kernel_asm) {
+     // Generate assembly code if neccesary
+     target_machine->addPassesToEmitFile(module_pass_manager, ostream, nullptr,
++#if LLVM_VERSION_MAJOR >= 18
++                                        llvm::CodeGenFileType::AssemblyFile);
++#else
+                                         llvm::CGFT_AssemblyFile);
++#endif
+   }
+ 
+   {
+     TI_PROFILER("llvm_module_pass");
+ 
 --- a/taichi/runtime/cuda/jit_cuda.cpp
 +++ b/taichi/runtime/cuda/jit_cuda.cpp
 @@ -126,7 +126,11 @@
