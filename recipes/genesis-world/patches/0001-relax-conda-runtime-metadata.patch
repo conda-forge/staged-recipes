@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge staged-recipes <conda-forge@users.noreply.github.com>
+Date: Sun, 10 May 2026 15:35:00 -0700
+Subject: [PATCH] Relax conda runtime metadata and avoid bundled binaries
+
+---
+ MANIFEST.in               |  1 -
+ genesis/utils/particle.py | 11 +++++++++--
+ pyproject.toml            |  7 ++++---
+ 3 files changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/MANIFEST.in b/MANIFEST.in
+index 17856dd..96d851c 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -1,6 +1,5 @@
+ include README.md
+ include LICENSE
+ recursive-include genesis/assets *
+ recursive-include genesis/ext/pyrender/fonts *
+ recursive-include genesis/ext/pyrender/shaders *
+-include genesis/ext/VolumeSampling
+\ No newline at end of file
+diff --git a/pyproject.toml b/pyproject.toml
+index 60a30fc..8b74dcc 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -38,7 +38,7 @@ dependencies = [
+     # Optional `trimesh` dependency for loading `.dae` mesh files
+     "pycollada",
+     # Used for parsing `.glb` mesh files
+-    "pygltflib==1.16.0",
++    "pygltflib>=1.16.0,<1.17",
+     # Used for decoding Draco-compressed `.glb` mesh files
+     "DracoPy",
+     # Use by `PBD3DEntity.sample` to tetrahedralize a mesh
+@@ -66,8 +66,8 @@ dependencies = [
+     "z3-solver<4.15.5.0",
+     # Used for loading raytracing special texture images used by LuisaRender
+     "OpenEXR",
+-    # Native batch renderer specifically designed for Genesis
+-    "gs-madrona==0.0.7.post2; platform_system=='Linux' and (platform_machine=='x86_64' or platform_machine=='AMD64')",
++    # The native batch renderer is optional at runtime and is not yet packaged
++    # for conda-forge because upstream's source-build path vendors binary payloads.
+     # Used for mesh simplification
+     "fast_simplification>=0.1.12",
+     # Surface reconstruction library for particle data from SPH simulations
+@@ -135,7 +135,6 @@ genesis = [
+     "assets/*",
+     "ext/pyrender/fonts/*",
+     "ext/pyrender/shaders/*",
+-    "ext/VolumeSampling",
+ ]
+ 
+ [tool.black]
+diff --git a/genesis/utils/particle.py b/genesis/utils/particle.py
+index 881770a..d94c630 100644
+--- a/genesis/utils/particle.py
++++ b/genesis/utils/particle.py
+@@ -85,6 +85,13 @@ def trimesh_to_particles_pbs(mesh, p_size, sampler, pos=(0, 0, 0)):
+     if not (sys.platform == "linux" and platform.machine() == "x86_64"):
+         gs.raise_exception(f"Physics-based particle sampler '{sampler}' is only supported on Linux x86.")
+ 
++    volume_sampling = os.path.join(miu.get_src_dir(), "ext/VolumeSampling")
++    if not os.path.exists(volume_sampling):
++        gs.raise_exception(
++            f"Physics-based particle sampler '{sampler}' is not available in this conda-forge build. "
++            "Use the 'random' or 'regular' sampler instead."
++        )
++
+     # compute file name via hashing for caching
+     ptc_file_path = msu.get_ptc_path(mesh.vertices, mesh.faces, p_size, sampler)
+ 
+@@ -121,7 +128,7 @@ def trimesh_to_particles_pbs(mesh, p_size, sampler, pos=(0, 0, 0)):
+ 
+                 # Sample particles
+                 command = (
+-                    os.path.join(miu.get_src_dir(), "ext/VolumeSampling"),
++                    volume_sampling,
+                     "-i",
+                     mesh_path,
+                     "-o",
+-- 
+2.51.0

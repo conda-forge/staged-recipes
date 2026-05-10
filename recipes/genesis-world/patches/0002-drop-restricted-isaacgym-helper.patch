@@ -1,0 +1,93 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge staged-recipes <conda-forge@users.noreply.github.com>
+Date: Sun, 10 May 2026 16:25:00 -0700
+Subject: [PATCH] Drop restricted IsaacGym helper from package
+
+---
+ LICENSE-vendored-pyrender-urdfpy | 21 +++++++++++++++++++++
+ genesis/utils/terrain.py         | 16 ++++++++++++++--
+ pyproject.toml                   |  4 ++++
+ 3 files changed, 39 insertions(+), 2 deletions(-)
+ create mode 100644 LICENSE-vendored-pyrender-urdfpy
+
+diff --git a/LICENSE-vendored-pyrender-urdfpy b/LICENSE-vendored-pyrender-urdfpy
+new file mode 100644
+index 0000000..34ff79d
+--- /dev/null
++++ b/LICENSE-vendored-pyrender-urdfpy
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2019 Matthew Matl
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/genesis/utils/terrain.py b/genesis/utils/terrain.py
+index 28ea1e7..4bd9adc 100644
+--- a/genesis/utils/terrain.py
++++ b/genesis/utils/terrain.py
+@@ -8,12 +8,23 @@ import numpy as np
+ import trimesh
+ 
+ import genesis as gs
+-from genesis.ext.isaacgym import terrain_utils as isaacgym_terrain_utils
+ from genesis.options.morphs import Terrain
+ 
+ from .mesh import get_gnd_path
+ 
+ 
++def _get_isaacgym_terrain_utils():
++    try:
++        from genesis.ext.isaacgym import terrain_utils as isaacgym_terrain_utils
++    except ImportError as e:
++        gs.raise_exception_from(
++            "Procedural terrain generation is unavailable in this conda-forge build because the bundled "
++            "IsaacGym terrain helper cannot be redistributed. Pass a height_field explicitly instead.",
++            e,
++        )
++    return isaacgym_terrain_utils
++
++
+ def parse_terrain(morph: Terrain, surface):
+     """
+     Generate mesh (and height field) according to configurations passed by morph.
+@@ -60,6 +71,7 @@ def parse_terrain(morph: Terrain, surface):
+             gs.raise_exception(f"Corrupted cache for terrain heightmap: {gnd_file_path}")
+ 
+     if heightfield is None:
++        isaacgym_terrain_utils = _get_isaacgym_terrain_utils()
+         subterrain_rows = int(morph.subterrain_size[0] / morph.horizontal_scale + gs.EPS) + 1
+         subterrain_cols = int(morph.subterrain_size[1] / morph.horizontal_scale + gs.EPS) + 1
+         heightfield = np.full(
+diff --git a/pyproject.toml b/pyproject.toml
+index 8b74dcc..455b17f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -138,6 +138,10 @@ gs = "genesis._main:main"
+ [tool.setuptools.packages.find]
+ where = ["."]
+ include = ["genesis", "genesis.*"]
++exclude = [
++    "genesis.ext.isaacgym",
++    "genesis.ext.isaacgym.*",
++]
+ 
+ [tool.setuptools.package-data]
+ genesis = [
+-- 
+2.51.0
