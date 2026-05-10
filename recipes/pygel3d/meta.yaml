@@ -1,0 +1,61 @@
+{% set name = "PyGEL3D" %}
+{% set version = "0.6.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/janba/GEL/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 6495f79e8713a068de18eb99a9f0903e190ca9d0ac286265face57d4a5a422e1
+  patches:
+    - patches/0001-respect-conda-osx-architectures.patch
+    - patches/0002-remove-headless-gl-header-dependency.patch
+    - patches/0003-exclude-viewer-from-headless-build.patch
+
+build:
+  number: 0
+  skip: true  # [py<310 or py>=314]
+  script:
+    - cmake -S . -B build -G Ninja -DUse_GLGraphics=OFF -DCMAKE_BUILD_TYPE=Release
+    - cmake --build build --config Release --parallel ${CPU_COUNT}
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python
+    - numpy
+    - plotly ==5.24.1
+    - scipy
+
+test:
+  imports:
+    - pygel3d
+    - pygel3d.hmesh
+  commands:
+    - pip check
+  requires:
+    - pip
+  files:
+    - run_test.py
+
+about:
+  home: https://github.com/janba/GEL
+  summary: Python bindings for GEL polygonal mesh geometry processing
+  license: LicenseRef-GEL
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
