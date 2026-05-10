@@ -15,5 +15,5 @@ cmake $SRC_DIR \
 cmake --build build --parallel
 cmake --build build --target install
 
-cd build/src/python/magnum
+cd build/src/python
 "${PYTHON}" -m pip install . -vv --no-deps --no-build-isolation
