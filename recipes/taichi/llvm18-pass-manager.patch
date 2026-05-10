@@ -64,6 +64,27 @@
  #include "llvm/Analysis/TargetTransformInfo.h"
  #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
  
+@@ -55,6 +62,10 @@ class TaskCodeGenCPU : public TaskCodeGenLLVM {
+       auto guard = get_function_creation_guard(
+           {llvm::PointerType::get(get_runtime_type("RuntimeContext"), 0),
++#if LLVM_VERSION_MAJOR >= 18
++           llvm::PointerType::get(*llvm_context, 0),
++#else
+            llvm::Type::getInt8PtrTy(*llvm_context),
++#endif
+            tlctx->get_data_type<int>()});
+ 
+       auto loop_var = create_entry_block_alloca(PrimitiveType::i32);
+@@ -82,5 +93,9 @@ class TaskCodeGenCPU : public TaskCodeGenLLVM {
+       auto guard = get_function_creation_guard(
+           {llvm::PointerType::get(get_runtime_type("RuntimeContext"), 0),
++#if LLVM_VERSION_MAJOR >= 18
++           llvm::PointerType::get(*llvm_context, 0),
++#else
+            llvm::Type::getInt8PtrTy(*llvm_context),
++#endif
+            tlctx->get_data_type<int>()});
+ 
 @@ -272,7 +279,11 @@ void KernelCodeGenCPU::optimize_module(llvm::Module *module) {
    std::unique_ptr<llvm::TargetMachine> target_machine(
        target->createTargetMachine(triple.str(), mcpu.str(), "", options,
