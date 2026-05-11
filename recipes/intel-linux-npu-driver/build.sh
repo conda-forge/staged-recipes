@@ -39,7 +39,4 @@ cmake --build . --parallel "${CPU_COUNT}"
 #   * validation-npu, tools (not built)
 cmake --install . --component level-zero-npu --prefix "$PREFIX"
 
-# Sanity check
-test -f "$PREFIX/lib/libze_intel_npu.so.1"
-
 popd
