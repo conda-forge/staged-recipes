@@ -49,6 +49,13 @@ if(Filament_FOUND AND NOT TARGET Filament::filament)
 
   if(LINUX)
     find_package(Threads REQUIRED)
+    find_library(Filament_GL_LIBRARY
+      NAMES GL
+      PATHS ${_Filament_roots}
+      PATH_SUFFIXES lib
+      NO_DEFAULT_PATH
+      REQUIRED
+    )
     find_library(Filament_EGL_LIBRARY
       NAMES EGL
       PATHS ${_Filament_roots}
@@ -61,6 +68,7 @@ if(Filament_FOUND AND NOT TARGET Filament::filament)
       ${Filament_LIBRARIES}
       -Wl,--end-group
       Threads::Threads
+      "${Filament_GL_LIBRARY}"
       "${Filament_EGL_LIBRARY}"
       dl
     )
