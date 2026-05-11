@@ -7,8 +7,11 @@ if not exist "package.json" (
     exit /b 1
 )
 
-:: Install production npm dependencies (no devDependencies, no scripts)
-call npm install --omit=dev --no-fund --no-audit --ignore-scripts
+:: Install production npm dependencies (no devDependencies, no scripts).
+:: --no-bin-links matches the Unix build; the package is consumed as a library,
+:: not a CLI, so npm's node_modules/.bin/ shims are unnecessary and would
+:: introduce platform-specific files into a noarch package.
+call npm install --omit=dev --no-fund --no-audit --ignore-scripts --no-bin-links
 if errorlevel 1 exit /b 1
 
 :: Create the installation directory

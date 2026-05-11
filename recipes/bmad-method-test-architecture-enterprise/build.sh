@@ -9,8 +9,12 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Install production npm dependencies (no devDependencies, no scripts)
-npm install --omit=dev --no-fund --no-audit --ignore-scripts
+# Install production npm dependencies (no devDependencies, no scripts).
+# --no-bin-links prevents npm from creating node_modules/.bin/ symlinks; those
+# symlinks are not portable across platforms and would break the noarch package
+# on Windows. This sub-module is consumed as a library, not as a CLI, so the
+# bin links serve no purpose here.
+npm install --omit=dev --no-fund --no-audit --ignore-scripts --no-bin-links
 
 # Create the installation directory
 INSTALL_DIR="${PREFIX}/lib/node_modules/${PKG_NAME}"
