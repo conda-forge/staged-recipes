@@ -1,0 +1,125 @@
+context:
+  name: shader-slang
+  version: "2026.7.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Using a git source (not a tarball) so that `git submodule update` can pin
+  # submodule revisions to whatever slang's parent tree references for this
+  # tag. That way we never have to manually track submodule SHAs across
+  # version bumps.
+  git: https://github.com/shader-slang/slang.git
+  tag: v${{ version }}
+
+build:
+  number: 0
+  script:
+    # Only initialize the submodules that we cannot satisfy from conda-forge:
+    #   - cmark (swift-cmark fork): no conda-forge package, no system option
+    #     in slang's CMake
+    #   - lz4 / unordered_dense: conda-forge's packages don't ship CMake
+    #     config files, so slang's find_package(lz4) /
+    #     find_package(unordered_dense) cannot find them. Both are tiny so
+    #     vendoring them keeps the recipe simple.
+    #   - glslang: conda-forge installs headers under include/glslang/SPIRV/
+    #     but slang's source includes "SPIRV/GlslangToSpv.h" expecting the
+    #     upstream layout (include/SPIRV/). Vendoring sidesteps the mismatch.
+    # miniz, vulkan-headers, spirv-tools and spirv-headers come from
+    # conda-forge via the host requirements below.
+    - git submodule update --init --depth 1
+        external/cmark external/lz4
+        external/unordered_dense external/glslang
+    # Configure: slim, library-and-CLI build. Tests, examples, GFX, slang-rhi,
+    # dawn, tint and slang-llvm are disabled - they pull in further submodules
+    # or fetch prebuilt binaries at configure time.
+    - if: unix
+      then:
+        cmake -G Ninja -B build -S .
+        ${CMAKE_ARGS}
+        -DSLANG_ENABLE_GFX=OFF
+        -DSLANG_ENABLE_SLANG_RHI=OFF
+        -DSLANG_ENABLE_TESTS=OFF
+        -DSLANG_ENABLE_EXAMPLES=OFF
+        -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
+        -DSLANG_USE_SYSTEM_MINIZ=ON
+        -DSLANG_USE_SYSTEM_VULKAN_HEADERS=ON
+        -DSLANG_USE_SYSTEM_SPIRV_TOOLS=ON
+        -DSLANG_USE_SYSTEM_SPIRV_HEADERS=ON
+      else:
+        cmake -G Ninja -B build -S .
+        %CMAKE_ARGS%
+        -DSLANG_ENABLE_GFX=OFF
+        -DSLANG_ENABLE_SLANG_RHI=OFF
+        -DSLANG_ENABLE_TESTS=OFF
+        -DSLANG_ENABLE_EXAMPLES=OFF
+        -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
+        -DSLANG_USE_SYSTEM_MINIZ=ON
+        -DSLANG_USE_SYSTEM_VULKAN_HEADERS=ON
+        -DSLANG_USE_SYSTEM_SPIRV_TOOLS=ON
+        -DSLANG_USE_SYSTEM_SPIRV_HEADERS=ON
+    - if: unix
+      then: cmake --build build --config Release -j ${CPU_COUNT}
+      else: cmake --build build --config Release -j %CPU_COUNT%
+    - cmake --install build --config Release
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - git
+  host:
+    - miniz
+    - libvulkan-headers
+    - spirv-tools
+    - spirv-headers
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x') }}
+
+tests:
+  - script:
+      - slangc -h
+  - package_contents:
+      include:
+        - slang.h
+        - slang-com-helper.h
+        - slang-com-ptr.h
+      bin:
+        - slangc
+
+about:
+  homepage: https://shader-slang.org/
+  summary: Slang shading language compiler
+  description: |
+    Slang is a shading language that makes it easier to build and maintain
+    large shader codebases in a modular and extensible fashion, while also
+    maintaining the highest possible performance on modern GPUs and graphics
+    APIs. Slang is based on years of collaboration between researchers at
+    NVIDIA, Carnegie Mellon University, Stanford, MIT, UCSD and the
+    University of Washington.
+
+    This package provides the standalone Slang compiler (slangc), the Slang
+    runtime libraries, and the C/C++ headers needed to embed the Slang
+    compiler into applications. Optional components - graphics abstraction
+    layer (gfx/slang-rhi), language server (slangd), LLVM-based CPU backend,
+    tests and examples - are disabled in this build.
+  license: Apache-2.0 WITH LLVM-exception
+  license_file:
+    - LICENSE
+    # Vendored submodules need their licenses packaged. These directories are
+    # populated by `git submodule update` in the build script.
+    - external/cmark/COPYING
+    - external/lz4/LICENSE
+    - external/unordered_dense/LICENSE
+    - external/glslang/LICENSE.txt
+  documentation: https://shader-slang.org/slang/user-guide/
+  repository: https://github.com/shader-slang/slang
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
