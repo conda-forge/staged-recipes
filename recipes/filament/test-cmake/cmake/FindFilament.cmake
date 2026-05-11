@@ -49,13 +49,14 @@ if(Filament_FOUND AND NOT TARGET Filament::filament)
 
   if(LINUX)
     find_package(Threads REQUIRED)
-    find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
+    set(OpenGL_GL_PREFERENCE LEGACY)
+    find_package(OpenGL REQUIRED COMPONENTS EGL)
     target_link_libraries(Filament::filament INTERFACE
       -Wl,--start-group
       ${Filament_LIBRARIES}
       -Wl,--end-group
       Threads::Threads
-      OpenGL::OpenGL
+      OpenGL::GL
       OpenGL::EGL
       dl
     )
