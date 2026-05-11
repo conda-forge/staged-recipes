@@ -1,0 +1,481 @@
+diff --git a/Gaudi/python/Gaudi/Main.py b/Gaudi/python/Gaudi/Main.py
+index dc748f272..81182aee9 100644
+--- a/Gaudi/python/Gaudi/Main.py
++++ b/Gaudi/python/Gaudi/Main.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -14,6 +14,7 @@ import sys
+ from time import time
+ 
+ from Gaudi import Configuration
++from Gaudi.PluginUtils import gaudi_kernel_library_path
+ 
+ log = logging.getLogger(__name__)
+ 
+@@ -108,7 +109,7 @@ class BootstrapHelper(object):
+             )
+ 
+     def __init__(self):
+-        from ctypes import RTLD_GLOBAL, PyDLL, c_bool, c_char_p, c_int, c_void_p, util
++        from ctypes import RTLD_GLOBAL, PyDLL, c_bool, c_char_p, c_int, c_void_p
+ 
+         # Helper class to avoid void* to int conversion
+         # (see http://stackoverflow.com/questions/17840144)
+@@ -118,7 +119,7 @@ class BootstrapHelper(object):
+                 return "IInterface_p(0x%x)" % (0 if self.value is None else self.value)
+ 
+         self.log = logging.getLogger("BootstrapHelper")
+-        libname = util.find_library("GaudiKernel") or "libGaudiKernel.so"
++        libname = gaudi_kernel_library_path()
+         self.log.debug("loading GaudiKernel (%s)", libname)
+ 
+         # FIXME: note that we need PyDLL instead of CDLL if the calls to
+diff --git a/Gaudi/python/Gaudi/PluginUtils.py b/Gaudi/python/Gaudi/PluginUtils.py
+new file mode 100644
+index 000000000..21b881185
+--- /dev/null
++++ b/Gaudi/python/Gaudi/PluginUtils.py
+@@ -0,0 +1,95 @@
++#####################################################################################
++# (c) Copyright 2026.     CERN for the benefit of the LHCb and ATLAS collaborations #
++#                                                                                   #
++# This software is distributed under the terms of the Apache version 2 licence,     #
++# copied verbatim in the file "LICENSE".                                            #
++#                                                                                   #
++# In applying this licence, CERN does not waive the privileges and immunities       #
++# granted to it by virtue of its status as an Intergovernmental Organization        #
++# or submit itself to any jurisdiction.                                             #
++#####################################################################################
++import ctypes
++import os
++import sys
++from ctypes.util import find_library
++from functools import lru_cache
++
++
++@lru_cache(maxsize=1)
++def _get_default_plugin_path():
++    """Get default plugin path from libGaudiPluginService using dladdr."""
++    import logging
++
++    log = logging.getLogger(__name__)
++
++    # Check for explicit library path from build environment
++    lib_path = os.environ.get("GAUDI_PLUGINSVC_LIBRARY")
++    if not lib_path:
++        # Fallback: use find_library (works when properly installed)
++        lib_path = find_library("GaudiPluginService")
++
++    if not lib_path:
++        log.debug("Could not find GaudiPluginService library")
++        return ""
++
++    try:
++        lib = ctypes.CDLL(lib_path)
++        lib.cgaudi_pluginsvc_get_default_search_path.restype = ctypes.c_char_p
++        result = lib.cgaudi_pluginsvc_get_default_search_path()
++        path = result.decode() if result else ""
++        log.debug("Default plugin path: %s", path)
++        return path
++    except OSError as e:
++        log.debug("Failed to get default plugin path: %s", e)
++        return ""
++
++
++# For backwards compatibility
++GAUDI_DEFAULT_PLUGIN_PATH = _get_default_plugin_path()
++
++
++def get_plugin_search_paths():
++    """Get plugin search paths: default path first, then from environment variables.
++
++    On macOS: uses GAUDI_PLUGIN_PATH only (LD_LIBRARY_PATH is ignored by SIP).
++    On Linux: uses GAUDI_PLUGIN_PATH and LD_LIBRARY_PATH.
++
++    This matches the C++ behavior in PluginServiceV2.cpp.
++    """
++    if sys.platform == "darwin":
++        env_vars = ["GAUDI_PLUGIN_PATH"]
++    else:
++        env_vars = ["GAUDI_PLUGIN_PATH", "LD_LIBRARY_PATH"]
++
++    paths = []
++    if GAUDI_DEFAULT_PLUGIN_PATH:
++        paths.append(GAUDI_DEFAULT_PLUGIN_PATH)
++
++    for var in env_vars:
++        paths.extend(p for p in os.environ.get(var, "").split(os.pathsep) if p)
++
++    return paths
++
++
++def gaudi_kernel_library_path():
++    """Get the path to the GaudiKernel library."""
++    if sys.platform == "darwin":
++        lib_name = "libGaudiKernel.dylib"
++    else:
++        lib_name = "libGaudiKernel.so"
++
++    paths = get_plugin_search_paths()
++    for path in paths:
++        lib_path = os.path.join(path, lib_name)
++        if os.path.isfile(lib_path):
++            return lib_path
++
++    if lib_path := find_library("GaudiKernel"):
++        return lib_path
++
++    msg = f"{lib_name} not found. "
++    if paths:
++        msg += "Searched paths: " + ":".join(paths)
++    else:
++        msg += "GAUDI_PLUGIN_PATH not set"
++    raise RuntimeError(msg)
+diff --git a/Gaudi/python/Gaudi/__init__.py b/Gaudi/python/Gaudi/__init__.py
+index 4b452eb5d..d9e3dd1e8 100644
+--- a/Gaudi/python/Gaudi/__init__.py
++++ b/Gaudi/python/Gaudi/__init__.py
+@@ -9,45 +9,14 @@
+ # or submit itself to any jurisdiction.                                             #
+ #####################################################################################
+ import ctypes
+-import os
+ import sys
+-from functools import lru_cache
+ 
+ from ._version import __version__, git_describe_tag, version_info  # noqa: F401
+-
+-
+-@lru_cache(maxsize=1)
+-def _get_default_plugin_path():
+-    """Get default plugin path from libGaudiPluginService using dladdr."""
+-    import logging
+-    from ctypes.util import find_library
+-
+-    log = logging.getLogger(__name__)
+-
+-    # Check for explicit library path from build environment
+-    lib_path = os.environ.get("GAUDI_PLUGINSVC_LIBRARY")
+-    if not lib_path:
+-        # Fallback: use find_library (works when properly installed)
+-        lib_path = find_library("GaudiPluginService")
+-
+-    if not lib_path:
+-        log.debug("Could not find GaudiPluginService library")
+-        return ""
+-
+-    try:
+-        lib = ctypes.CDLL(lib_path)
+-        lib.cgaudi_pluginsvc_get_default_search_path.restype = ctypes.c_char_p
+-        result = lib.cgaudi_pluginsvc_get_default_search_path()
+-        path = result.decode() if result else ""
+-        log.debug("Default plugin path: %s", path)
+-        return path
+-    except OSError as e:
+-        log.debug("Failed to get default plugin path: %s", e)
+-        return ""
+-
+-
+-# For backwards compatibility
+-GAUDI_DEFAULT_PLUGIN_PATH = _get_default_plugin_path()
++from .PluginUtils import (
++    GAUDI_DEFAULT_PLUGIN_PATH,  # noqa: F401
++    gaudi_kernel_library_path,
++    get_plugin_search_paths,  # noqa: F401
++)
+ 
+ __configurables_module_fullname__ = __name__ + ".Configurables"
+ __ignore_missing_configurables__ = False
+@@ -128,32 +97,10 @@ class Application(object):
+             # Note: using CDLL instead of PyDLL means that every call to the Python C
+             #       API must be protected acquiring the GIL
+             #
+-            if sys.platform == "darwin":
+-                # LD_LIBRARY_PATH cannot be used for dlopen on macos;
+-                # use custom variable GAUDI_PLUGIN_PATH instead
+-                # Default path first, then environment variable
+-                _paths = []
+-                if GAUDI_DEFAULT_PLUGIN_PATH:
+-                    _paths.append(GAUDI_DEFAULT_PLUGIN_PATH)
+-                _paths.extend(
+-                    p for p in os.environ.get("GAUDI_PLUGIN_PATH", "").split(":") if p
+-                )
+-                if not _paths:
+-                    print(
+-                        "WARNING: No plugin path available (GAUDI_PLUGIN_PATH not set)"
+-                    )
+-                for _path in _paths:
+-                    _lib = os.path.join(_path, "libGaudiKernel.dylib")
+-                    if os.path.isfile(_lib):
+-                        gkl = _GaudiKernelLib = ctypes.CDLL(
+-                            _lib,
+-                            mode=ctypes.RTLD_GLOBAL,
+-                        )
+-            else:
+-                gkl = _GaudiKernelLib = ctypes.CDLL(
+-                    "libGaudiKernel.so",
+-                    mode=ctypes.RTLD_GLOBAL,
+-                )
++            gkl = _GaudiKernelLib = ctypes.CDLL(
++                gaudi_kernel_library_path(),
++                mode=ctypes.RTLD_GLOBAL,
++            )
+             gkl._py_Gaudi__Application__create.restype = ctypes.c_void_p
+             gkl._py_Gaudi__Application__run.argtypes = [ctypes.c_void_p]
+             gkl._py_Gaudi__Application__run.restype = ctypes.c_int
+diff --git a/GaudiConfiguration/python/GaudiConfig2/_db.py b/GaudiConfiguration/python/GaudiConfig2/_db.py
+index ae8e670be..cf109d8ab 100644
+--- a/GaudiConfiguration/python/GaudiConfig2/_db.py
++++ b/GaudiConfiguration/python/GaudiConfig2/_db.py
+@@ -13,7 +13,7 @@ import logging
+ import os
+ import sys
+ 
+-from Gaudi import GAUDI_DEFAULT_PLUGIN_PATH
++from Gaudi import get_plugin_search_paths
+ 
+ 
+ class ConfDB2(object):
+@@ -22,21 +22,9 @@ class ConfDB2(object):
+         from pathlib import Path
+ 
+         self._dbs = {}
+-        pathvars = (
+-            ["DYLD_LIBRARY_PATH"]
+-            if sys.platform == "darwin"
+-            else ["GAUDI_PLUGIN_PATH", "LD_LIBRARY_PATH"]
+-        )
+         ignored_files = set(os.environ.get("CONFIGURABLE_DB_IGNORE", "").split(","))
+ 
+-        # Collect paths: default path first, then environment variables
+-        paths = []
+-        if GAUDI_DEFAULT_PLUGIN_PATH:
+-            paths.append(GAUDI_DEFAULT_PLUGIN_PATH)
+-        for pathvar in pathvars:
+-            paths.extend(p for p in os.getenv(pathvar, "").split(os.pathsep) if p)
+-
+-        for path in paths:
++        for path in get_plugin_search_paths():
+             dbfiles = [
+                 f.absolute().as_posix()
+                 for f in Path(path).glob("*.confdb2")
+diff --git a/GaudiConfiguration/tests/python/test_ConfDB_wrapper.py b/GaudiConfiguration/tests/python/test_ConfDB_wrapper.py
+index 35706159c..689fe19f9 100644
+--- a/GaudiConfiguration/tests/python/test_ConfDB_wrapper.py
++++ b/GaudiConfiguration/tests/python/test_ConfDB_wrapper.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2020 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -71,10 +71,9 @@ def get_get_by_full_type_missing():
+         C.getByType("Gaudi::NotThere")
+ 
+ 
+-def test_confdb():
++def test_confdb(monkeypatch):
+     import os
+     import shelve
+-    import sys
+ 
+     try:
+         from tempfile import TemporaryDirectory
+@@ -107,9 +106,11 @@ def test_confdb():
+         )
+         db.close()
+ 
+-        pathvar = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+-        old_path = os.environ.get(pathvar)
+-        os.environ[pathvar] = "{0}{1}{0}_not_there".format(tmpdir, os.pathsep)
++        # Patch get_plugin_search_paths where it was imported in _db module
++        # This ensures isolation from real confdb files on all platforms
++        monkeypatch.setattr(
++            GaudiConfig2._db, "get_plugin_search_paths", lambda: [tmpdir]
++        )
+ 
+         db = GaudiConfig2._db.ConfDB2()
+         assert set(db) == set("Cls{}".format(i) for i in range(8))
+@@ -117,8 +118,3 @@ def test_confdb():
+         assert "IntA" in db["Cls1"]["properties"]
+         assert "IntA" in db["Cls4"]["properties"]
+         assert "IntB" in db["Cls7"]["properties"]
+-
+-        if old_path is None:
+-            del os.environ[pathvar]
+-        else:
+-            os.environ[pathvar] = old_path
+diff --git a/GaudiKernel/python/GaudiKernel/ConfigurableDb.py b/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
+index 686118988..d3d5ada49 100644
+--- a/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
++++ b/GaudiKernel/python/GaudiKernel/ConfigurableDb.py
+@@ -20,7 +20,7 @@ __all__ = ["CfgDb", "cfgDb", "loadConfigurableDb", "getConfigurable"]
+ 
+ import logging
+ 
+-from Gaudi import GAUDI_DEFAULT_PLUGIN_PATH
++from Gaudi import get_plugin_search_paths
+ 
+ _transtable = str.maketrans("<>&*,: ().", "__rp__s___")
+ 
+@@ -121,16 +121,7 @@ def loadConfigurableDb():
+ 
+     log.debug("loading confDb files...")
+     nFiles = 0  # counter of imported files
+-    # Collect paths: default path first, then environment variables
+-    pathlist = []
+-    if GAUDI_DEFAULT_PLUGIN_PATH:
+-        pathlist.append(GAUDI_DEFAULT_PLUGIN_PATH)
+-    pathlist.extend(
+-        p
+-        for p in os.getenv("GAUDI_PLUGIN_PATH", "").split(os.pathsep)
+-        + os.getenv("LD_LIBRARY_PATH", "").split(os.pathsep)
+-        if p
+-    )
++    pathlist = get_plugin_search_paths()
+     ignored_files = set(os.environ.get("CONFIGURABLE_DB_IGNORE", "").split(","))
+     for path in pathlist:
+         if not os.path.isdir(path):
+diff --git a/GaudiKernel/tests/pytest/confdb/test_confdb.py b/GaudiKernel/tests/pytest/confdb/test_confdb.py
+index e44344b3b..8bf02f71d 100644
+--- a/GaudiKernel/tests/pytest/confdb/test_confdb.py
++++ b/GaudiKernel/tests/pytest/confdb/test_confdb.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2019 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -19,24 +19,28 @@ from common import MockLoggingHandler, data_root
+ 
+ class fixLibPath(object):
+     """
+-    Temporarily override the LD_LIBRARY_PATH.
++    Temporarily override plugin search paths.
++
++    Uses GAUDI_PLUGIN_PATH which works on all platforms.
++    On Linux, LD_LIBRARY_PATH is also checked by the plugin service.
++    On macOS, LD_LIBRARY_PATH is ignored due to SIP.
+     """
+ 
+     def __init__(self, entries):
+         env = os.environ
+-        self.old_lib_path = env.get("LD_LIBRARY_PATH")
+-        new_path = entries + env.get("LD_LIBRARY_PATH", "").split(os.pathsep)
+-        env["LD_LIBRARY_PATH"] = os.pathsep.join(new_path)
++        self.old_plugin_path = env.get("GAUDI_PLUGIN_PATH")
++        new_path = entries + env.get("GAUDI_PLUGIN_PATH", "").split(os.pathsep)
++        env["GAUDI_PLUGIN_PATH"] = os.pathsep.join(new_path)
+ 
+     def __enter__(self):
+         return self
+ 
+     def __exit__(self, exc_type, exc_value, traceback):
+-        if self.old_lib_path is None:
+-            if "LD_LIBRARY_PATH" in os.environ:
+-                del os.environ["LD_LIBRARY_PATH"]
++        if self.old_plugin_path is None:
++            if "GAUDI_PLUGIN_PATH" in os.environ:
++                del os.environ["GAUDI_PLUGIN_PATH"]
+         else:
+-            os.environ["LD_LIBRARY_PATH"] = self.old_lib_path
++            os.environ["GAUDI_PLUGIN_PATH"] = self.old_plugin_path
+ 
+ 
+ def setup():
+diff --git a/GaudiPluginService/python/GaudiPluginService/cpluginsvc.py b/GaudiPluginService/python/GaudiPluginService/cpluginsvc.py
+index c5a49104a..d80a0d61c 100644
+--- a/GaudiPluginService/python/GaudiPluginService/cpluginsvc.py
++++ b/GaudiPluginService/python/GaudiPluginService/cpluginsvc.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 1998-2019 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -29,6 +29,8 @@ e.g.:
+ 
+ import ctypes
+ import ctypes.util
++import os
++import platform
+ 
+ __all__ = (
+     "Registry",
+@@ -44,7 +46,9 @@ _libname = None
+ def _get_filename():
+     if _libname:
+         return _libname
+-    import platform
++
++    if fname := os.environ.get("GAUDI_PLUGINSVC_LIBRARY"):
++        return fname
+ 
+     name = platform.system()
+ 
+@@ -140,7 +144,14 @@ class Factory(ctypes.Structure):
+ 
+     def load(self):
+         """load the C++ library hosting this factory"""
+-        return ctypes.CDLL(self.library, ctypes.RTLD_GLOBAL)
++        # Prefer finding the library in GAUDI_PLUGIN_PATH else fall back to dlopen
++        libname = self.library
++        for path in os.environ.get("GAUDI_PLUGIN_PATH", "").split(os.pathsep):
++            fullpath = os.path.join(path, libname)
++            if os.path.isfile(fullpath):
++                libname = fullpath
++                break
++        return ctypes.CDLL(libname, ctypes.RTLD_GLOBAL)
+ 
+     def __repr__(self):
+         return "<Factory id=%s library=%s type=%s class=%s props=%d>" % (
+diff --git a/GaudiTestSuite/tests/pytest/pluginservice/test_compat_aliases.py b/GaudiTestSuite/tests/pytest/pluginservice/test_compat_aliases.py
+index b0263fa3c..5dd3d2714 100644
+--- a/GaudiTestSuite/tests/pytest/pluginservice/test_compat_aliases.py
++++ b/GaudiTestSuite/tests/pytest/pluginservice/test_compat_aliases.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2024-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2024-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -16,7 +16,7 @@ class TestCompatAliases(GaudiExeTest):
+ 
+     @classmethod
+     def update_env(cls, env):
+-        env["LD_LIBRARY_PATH"] = cls.expand_vars_from(
+-            "$ENV_PROJECT_BINARY_DIR/GaudiPluginService:$ENV_PROJECT_BINARY_DIR/Gaudi/GaudiPluginService:$LD_LIBRARY_PATH",
++        env["GAUDI_PLUGIN_PATH"] = cls.expand_vars_from(
++            "$ENV_PROJECT_BINARY_DIR/GaudiTestSuite:$ENV_PROJECT_BINARY_DIR/Gaudi/GaudiPluginService:$GAUDI_PLUGIN_PATH",
+             env,
+         )
+diff --git a/cmake/GaudiToolbox.cmake b/cmake/GaudiToolbox.cmake
+index f69ae7b8a..159c81af7 100644
+--- a/cmake/GaudiToolbox.cmake
++++ b/cmake/GaudiToolbox.cmake
+@@ -1529,7 +1529,7 @@ endmacro()
+ # To generate the script run and make it executable
+ if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT TARGET target_runtime_paths)
+     add_custom_target(target_runtime_paths)
+-    foreach(env_var IN ITEMS PATH LD_LIBRARY_PATH PYTHONPATH ROOT_INCLUDE_PATH)
++    foreach(env_var IN ITEMS PATH LD_LIBRARY_PATH GAUDI_PLUGIN_PATH PYTHONPATH ROOT_INCLUDE_PATH)
+         # Clean the paths
+         string(REGEX REPLACE "(^:|:$)" "" _ENV_${env_var} "$ENV{${env_var}}")
+         string(REGEX REPLACE "::+" ":" _ENV_${env_var} "${_ENV_${env_var}}")
+@@ -1541,6 +1541,7 @@ if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT TARGET target_runtime_paths)
+ # Auto-generated script to set environment variables
+ export PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,INCLUDE,^/>>>\${PATH:+:\${PATH}}\"
+ export LD_LIBRARY_PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,INCLUDE,^/>>>\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\"
++export GAUDI_PLUGIN_PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_GAUDI_PLUGIN_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_GAUDI_PLUGIN_PATH}>,INCLUDE,^/>>>\${GAUDI_PLUGIN_PATH:+:\${GAUDI_PLUGIN_PATH}}\"
+ export PYTHONPATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_pythonpath>>;${_ENV_PYTHONPATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_pythonpath>>;${_ENV_PYTHONPATH}>,INCLUDE,^/>>>\${PYTHONPATH:+:\${PYTHONPATH}}\"
+ $<$<NOT:$<STREQUAL:$ENV{PYTHONHOME},>>:export PYTHONHOME=\"$ENV{PYTHONHOME}\">
+ export ROOT_INCLUDE_PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_root_include_path>>;${_ENV_ROOT_INCLUDE_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_root_include_path>>;${_ENV_ROOT_INCLUDE_PATH}>,INCLUDE,^/>>>\${ROOT_INCLUDE_PATH:+:\${ROOT_INCLUDE_PATH}}\"
