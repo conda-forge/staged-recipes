@@ -1,0 +1,68 @@
+schema_version: 1
+
+context:
+  version: "0.8.0"
+
+package:
+  name: fortitude-lint
+  version: "${{ version }}"
+
+source:
+  url: https://github.com/PlasmaFAIR/fortitude/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 54a9a12f0b0f85f1448c75d4204b9eb5d2c3ef2095abb364716cd884b65e553b
+
+build:
+  number: 0
+  script:
+    env:
+      JEMALLOC_SYS_WITH_LG_PAGE: ${{ '16' if aarch64 else '' }}
+      PYTHONIOENCODING: utf-8
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: linux
+        then:
+          - export CFLAGS="${CFLAGS} -D_GNU_SOURCE -D_BSD_SOURCE"
+      - if: win
+        then:
+          - set "CARGO_HOME=%SYSTEMDRIVE%\cgh"
+          - if not exist "%CARGO_HOME%" mkdir "%CARGO_HOME%"
+          - set "CARGO_TARGET_DIR=%SYSTEMDRIVE%\ctd"
+          - if not exist "%CARGO_TARGET_DIR%" mkdir "%CARGO_TARGET_DIR%"
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/fortitude
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/fortitude
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+
+tests:
+  - script: fortitude --help
+  - package_contents:
+      bin:
+        - fortitude
+
+about:
+  homepage: https://github.com/PlasmaFAIR/fortitude
+  summary: A Fortran linter, written in Rust and installable with Python.
+  description: |
+    A Fortran linter, written in Rust and installable with Python
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://fortitude.readthedocs.io/en/stable/
+  repository: https://github.com/PlasmaFAIR/fortitude
+
+extra:
+  recipe-maintainers:
+    - andrewdnolan
+    - xylar
