@@ -2,7 +2,7 @@
 
 set -exo pipefail
 
-export CMAKE_ARGS="\
+export CMAKE_ARGS="${CMAKE_ARGS:-} \
     -DBUILD_WITH_CUDA=OFF \
     -DBUILD_TEST=OFF \
     -DUSE_SYSTEM_ASSIMP=ON \
