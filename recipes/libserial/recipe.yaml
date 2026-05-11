@@ -1,0 +1,68 @@
+context:
+  version: "1.0.0"
+
+package:
+  name: libserial
+  version: ${{ version }}
+
+source:
+  url: https://github.com/crayzeewulf/libserial/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 063142d6bfe08898316e9a6055f2ddeedef56de06f7cfc8dcdfecc6efabf4bdd
+  patches:
+    # Backport making docs/tests/examples/python components optional in CMake;
+    # see https://github.com/crayzeewulf/libserial/pull/133 and
+    # https://github.com/crayzeewulf/libserial/pull/196
+    - patches/0001-make-optional-components-configurable.patch
+    # Backport of https://github.com/crayzeewulf/libserial/pull/186:
+    # add missing <cstdint> include for uint8_t (needed with modern compilers)
+    - patches/0002-include-cstdint-for-uint8_t.patch
+    # Backport of https://github.com/crayzeewulf/libserial/pull/185:
+    # add Linux-specific encapsulation for <linux/serial.h> to support macOS
+    - patches/0003-add-linux-specific-encapsulation-for-macos.patch
+    # Wrap Linux-only baud rate switch cases in SerialPort.cpp with #ifdef __linux__
+    # to match the existing guards in SerialPortConstants.h (needed for macOS);
+    # backport of https://github.com/crayzeewulf/libserial/pull/128
+    - patches/0004-wrap-linux-baudrates-with-ifdef.patch
+
+build:
+  number: 0
+  # See https://github.com/crayzeewulf/libserial/issues/140
+  skip:
+    - win
+  script:
+    - build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  run_exports:
+    # There is no strict upstream documentation on this, so we are conservative here
+    # (the project never did a patch release, so x.x is a good compromise)
+    - ${{ pin_subpackage('libserial', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - libserial/SerialPort.h
+      lib:
+        - serial
+  - script:
+      - pkg-config --exists libserial
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://github.com/crayzeewulf/libserial
+  repository: https://github.com/crayzeewulf/libserial
+  summary: Serial port programming library for C++
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - traversaro
