@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+
+cd python
+export CMAKE_GENERATOR=Ninja
+${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
