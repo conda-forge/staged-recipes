@@ -41,60 +41,77 @@ build:
     - mkdir bin
     - if: linux
       then:
-        - clang++ -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -static-libstdc++ -static-libgcc -o ./bin/julec ir.cpp
+        - $CXX -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -static-libstdc++ -static-libgcc -o ./bin/julec ir.cpp
     - if: osx
       then:
-        - clang++ -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -static-libstdc++ -static-libgcc -o ./bin/julec ir.cpp
+        - $CXX -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -o ./bin/julec ir.cpp
     - if: win
       then:
-        - clang.exe -x c++ -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -fuse-ld=lld -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -o bin/julec.exe ir.cpp -lws2_32 -lshell32 -liphlpapi -lsynchronization
+        - "%CXX% -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -fuse-ld=lld -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -o bin\\julec.exe ir.cpp -lws2_32 -lshell32 -liphlpapi -lsynchronization"
 
     # 3. Install binaries, std libs and api
-    - mkdir -p $PREFIX/jule/bin
     - if: unix
       then:
+        - mkdir -p $PREFIX/jule/bin
         - cp ./bin/julec $PREFIX/jule/bin/julec
+        - cp -r std $PREFIX/jule/
+        - cp -r api $PREFIX/jule/
       else:
-        - copy bin\julec.exe $PREFIX\jule\bin\julec.exe
-
-    - cp -r std $PREFIX/jule/
-    - cp -r api $PREFIX/jule/
+        - md "%LIBRARY_PREFIX%\jule\bin"
+        - copy bin\julec.exe "%LIBRARY_PREFIX%\jule\bin\julec.exe"
+        - xcopy /s /e /h /i /y std "%LIBRARY_PREFIX%\jule\std"
+        - xcopy /s /e /h /i /y api "%LIBRARY_PREFIX%\jule\api"
 
     # 4. Add to the PATH using activate.d/deactivate.d
-    - mkdir -p $PREFIX/etc/conda/activate.d
-    - mkdir -p $PREFIX/etc/conda/deactivate.d
     - if: unix
       then:
+        - mkdir -p $PREFIX/etc/conda/activate.d
+        - mkdir -p $PREFIX/etc/conda/deactivate.d
         - echo 'export PATH="$CONDA_PREFIX/jule/bin:$PATH"' > $PREFIX/etc/conda/activate.d/jule.sh
         - echo 'export PATH="${PATH//$CONDA_PREFIX\/jule\/bin:/}"' > $PREFIX/etc/conda/deactivate.d/jule.sh
       else:
-        - echo 'set PATH=%CONDA_PREFIX%\jule\bin;%PATH%' > $PREFIX/etc/conda/activate.d/jule.bat
-        - echo 'set PATH=%PATH:%CONDA_PREFIX%\jule\bin;=%%' > $PREFIX/etc/conda/deactivate.d/jule.bat
+        - md "%PREFIX%\etc\conda\activate.d"
+        - md "%PREFIX%\etc\conda\deactivate.d"
+        - "(echo set PATH=%LIBRARY_PREFIX%\\jule\\bin;%%PATH%%) > %PREFIX%\\etc\\conda\\activate.d\\jule.bat"
+        - "(echo set PATH=%%PATH:%LIBRARY_PREFIX%\\jule\\bin;=%%) > %PREFIX%\\etc\\conda\\deactivate.d\\jule.bat"
 
 tests:
   - package_contents:
       files:
-        - jule/bin/julec
-        - jule/std/*
-        - jule/api/*
+        - if: unix
+          then:
+            - jule/bin/julec
+          else:
+            - Library/jule/bin/julec.exe
+        - if: unix
+          then:
+            - jule/std/jule.mod
+            - jule/api/jule.hpp
+          else:
+            - Library/jule/std/jule.mod
+            - Library/jule/api/jule.hpp
 
   - script:
-    - echo "=== Test help ==="
-      - julec help
-    - echo "=== Test hello world ==="
-    - if: unix
-      then:
-        - echo 'fn main() { println("hello world") }' > hello.jule
-        - julec build -o hello .
-        - ./hello | grep "hello world"
-      else:
-        - echo fn main() { println("hello world") } > hello.jule
-        - julec build -o hello.exe .
-        - hello.exe | findstr "hello world"
+      - echo "=== Test help ==="
+      - if: unix
+        then:
+          - julec help
+        else:
+          - julec.exe help
+      - echo "=== Test hello world ==="
+      - if: unix
+        then:
+          - echo 'fn main() { println("hello world") }' > hello.jule
+          - julec build -o hello .
+          - ./hello | grep "hello world"
+        else:
+          - echo fn main() { println("hello world") } > hello.jule
+          - julec.exe build -o hello.exe .
+          - hello.exe | findstr "hello world"
 
 requirements:
   build:
-    - ${{ compiler('clang') }} >=18
+    - ${{ compiler('clangxx') }} >=18
   run:
     - clang >=18
 
