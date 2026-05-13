@@ -13,12 +13,15 @@ build:
 
 outputs:
   # --------------------------------------------------------------------------
-  # CPU-only output: pygenn-cpu
+  # CPU-only output
+  # conda install pygenn          → picks this on CPU-only machines
+  # conda install "pygenn=*=cpu*" → forces CPU variant explicitly
   # --------------------------------------------------------------------------
-  - name: pygenn-cpu
+  - name: pygenn
     build:
       number: 0
-      skip: true  # [osx]
+      string: "cpu_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+      skip: true  # [osx or py>=311]
       missing_dso_whitelist:
         - $RPATH/genn_Release_DLL.dll                     # Private GeNN core DLL (shipped with package_data)
         - $RPATH/libffi_Release_DLL.dll                   # Private libffi DLL (shipped with package_data)
@@ -71,18 +74,23 @@ outputs:
         - python tests/run_pygenn_cpu_smoketest.py
 
     about:
-      summary: "CPU-only PyGeNN"
+      summary: "PyGeNN (CPU-only backend)"
       description: |
         GeNN with single-threaded CPU backend only. No CUDA required.
+        For GPU support, install the cuda* build string variant:
+          CONDA_OVERRIDE_CUDA="12.6" conda install pygenn
 
   # --------------------------------------------------------------------------
-  # CUDA output: pygenn-cuda
+  # CUDA output
+  # conda install pygenn                        → picks this on GPU machines
+  # conda install "pygenn=*=cuda*"              → forces CUDA variant explicitly
+  # CONDA_OVERRIDE_CUDA=12.6 conda install pygenn → forces CUDA on headless nodes
   # --------------------------------------------------------------------------
-  - name: pygenn-cuda
+  - name: pygenn
     build:
       number: 0
-      skip: true  # [not (linux64 or win)]
-      string: "py{{ PY_VER | replace('.', '') }}_cuda{{ cuda_version | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+      skip: true  # [not (linux64 or win) or py>=311]
+      string: "cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
       missing_dso_whitelist:
         - $RPATH/libcuda.so.1                     # Provided by NVIDIA driver at runtime (Linux driver lib)
         - $RPATH/nvcuda.dll                       # Provided by NVIDIA driver at runtime (Windows driver lib)
@@ -113,17 +121,13 @@ outputs:
     requirements:
       build:
         - {{ stdlib("c") }}  # [linux]
+        - {{ compiler('cuda') }}
         - {{ compiler('cxx') }}
         - make  # [linux]
         - python
         - setuptools
         - pybind11
         - psutil
-        - cuda-nvcc {{ cuda_nvcc }}
-        - cuda-cudart-dev {{ cuda_cudart_dev }}
-        - cuda-libraries-dev {{ cuda_libraries_dev }}
-        - cuda-driver-dev {{ cuda_version }}  # [linux]
-        - cuda-cccl {{ cuda_version }}
 
       host:
         - python
@@ -131,9 +135,10 @@ outputs:
         - setuptools
         - psutil
         - pybind11
-        - cuda-cudart-dev {{ cuda_cudart_dev }}
-        - cuda-driver-dev {{ cuda_version }}  # [linux]
-        - cuda-cccl {{ cuda_version }}
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev  # run_exports → cuda-cudart added to run automatically
+        - cuda-driver-dev  # [linux] run_exports → driver stub added to run automatically
+        - cuda-cccl
         - libffi
 
       run:
@@ -142,15 +147,12 @@ outputs:
         - psutil
         - make  # [linux]
         - {{ compiler('cxx') }}  # Required at runtime: PyGeNN JIT-compiles models via `make` + `g++`.
-        - cuda-version =={{ cuda_version }}
-        - cuda-nvcc {{ cuda_nvcc }}
-        - cuda-cudart {{ cuda_cudart }}
-        - cuda-libraries {{ cuda_libraries }}
-        - cuda-libraries-dev {{ cuda_libraries_dev }}
-        - cuda-driver-dev {{ cuda_version }}  # [linux]
-        - cuda-cccl {{ cuda_version }}
+        - cuda-version =={{ cuda_compiler_version }}
+        - cuda-nvcc               # Required at runtime: GeNN shells out to nvcc in model.build()
+        - __cuda                  # Signals NVIDIA driver required; conda picks cpu* variant when absent
         - libffi
         - importlib-metadata  # [py<38]
+        # cuda-cudart and cuda-driver-dev come in automatically via run_exports from host
 
     test:
       imports:
@@ -161,14 +163,15 @@ outputs:
         - python tests/run_pygenn_cuda_smoketest.py
 
     about:
-      summary: "GeNN Python bindings (pygenn) with CUDA backend support"
+      summary: "PyGeNN (CUDA backend)"
       description: |
-        GeNN (GPU enhanced Neuronal Networks) is a code generation framework for
-        accelerating spiking neural network simulations using GPUs.
-        This output provides the Python bindings (PyGeNN) with CUDA backend enabled.
+        GeNN (GPU enhanced Neuronal Networks) with CUDA backend for GPU-accelerated
+        spiking neural network simulations. Also includes the CPU backend.
+        On machines without a GPU, conda will automatically select the cpu* variant.
+        To force the CPU variant: conda install "pygenn=*=cpu*"
 
 about:
-  summary: "PyGeNN suite: CPU-only and CUDA-enabled outputs from a single recipe"
+  summary: "PyGeNN: Python bindings for GeNN (GPU enhanced Neuronal Networks)"
   home: https://github.com/genn-team/genn
   license: LGPL-2.1-or-later
   license_family: LGPL
@@ -176,9 +179,14 @@ about:
   description: |
     GeNN (GPU enhanced Neuronal Networks) is a code generation framework for
     accelerating spiking neural network simulations using GPUs and CPUs.
-    This recipe builds the Python bindings (PyGeNN) as two separate outputs:
-      - pygenn-cpu  (CPU-only backend)
-      - pygenn-cuda (CUDA backend)
+
+    Two variants are available under the single package name pygenn:
+      - cpu*  build string: CPU-only backend, no CUDA required
+      - cuda* build string: CUDA + CPU backends, requires NVIDIA driver at runtime
+
+    conda selects the correct variant automatically based on whether an NVIDIA
+    GPU driver is detected. Use CONDA_OVERRIDE_CUDA to override (e.g. on HPC
+    login nodes without a GPU).
 
 extra:
   feedstock-name: pygenn
