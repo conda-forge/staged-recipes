@@ -14,7 +14,7 @@ fi
 export CXXFLAGS="$CXXFLAGS -DGTEST_USE_OWN_TR1_TUPLE=1"
 
 # Configure step
-cmake -GNinja -DCMAKE_INSTALL_PREFIX=$PREFIX \
+cmake -GNinja $CMAKE_ARGS \
  -DCMAKE_SHARED_LINKER_FLAGS="$EXTRA_LIBS" \
  -DCMAKE_EXE_LINKER_FLAGS="$EXTRA_LIBS" \
  -DTIXI_BUILD_TESTS=OFF \
@@ -27,7 +27,8 @@ ninja
 ninja doc doc
 
 # remove linkage to static libs
-cmake -GNinja .
+# Re-run cmake with the same args so conda-build's CMAKE_ARGS are preserved
+cmake -GNinja $CMAKE_ARGS .
 
 # Install step
 ninja install
