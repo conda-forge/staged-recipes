@@ -45,15 +45,3 @@ mkdir -p $SP_DIR/tixi3
 touch $SP_DIR/tixi3/__init__.py
 cp lib/tixi3wrapper.py $SP_DIR/tixi3/
 python $RECIPE_DIR/fixosxload.py $SP_DIR/tixi3/tixi3wrapper.py libTIXI
-
-# The egg-info file is necessary because some packages
-# might require tigl3 in their setup.py.
-# See https://setuptools.readthedocs.io/en/latest/pkg_resources.html#workingset-objects
-
-cat > $SP_DIR/tixi3-$PKG_VERSION.egg-info <<FAKE_EGG
-Metadata-Version: 2.1
-Name: tixi3
-Version: $PKG_VERSION
-Summary: Fast and simple XML interface library
-Platform: UNKNOWN
-FAKE_EGG
