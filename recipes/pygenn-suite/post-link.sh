@@ -13,16 +13,15 @@ MSG_FILE="${PREFIX}/.messages.txt"
   echo "PyGeNN CUDA backend installed"
   echo "============================================"
   echo
-  echo "To enable CUDA for runtime code generation, set ONE of the following in your shell"
-  echo "(pick either this conda environment's modular CUDA or a system CUDA):"
-  echo
-  echo "--- Option A: Use this conda env's modular CUDA ---"
+  echo "To enable CUDA for runtime code generation, set the following in your shell"
+  echo 
+  echo "--- Use this conda env's modular CUDA ---"
   echo "    export CUDA_PATH=\${CONDA_PREFIX}"
   echo "    # Optional if your loader can't find libcudart:"
   echo "    # export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib:\${LD_LIBRARY_PATH:-}"
   echo
-  echo "--- Option B: Use a system CUDA install (example path) ---"
-  echo "    export CUDA_PATH=/usr/local/cuda-12.x"
+  echo "--- To choose a CUDA Toolkit version, install this package with e.g.: ---"
+  echo "    conda install pygenn cuda-version=12.4"
   echo
   echo "Notes:"
   echo " - Ensure nvcc and libcudart match your chosen CUDA_PATH."
