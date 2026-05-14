@@ -1,22 +1,46 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: conda-forge staged-recipes <conda-forge@users.noreply.github.com>
 Date: Thu, 14 May 2026 00:37:00 -0700
-Subject: [PATCH] Use system libpng and zlib
+Subject: [PATCH] Use selected system libraries
 
 ---
- CMakeLists.txt             | 12 ++++++++++--
- tools/cmgen/CMakeLists.txt |  2 +-
- 2 files changed, 11 insertions(+), 3 deletions(-)
+ CMakeLists.txt                | 31 +++++++++++++++++++++++++++----
+ tools/cmgen/CMakeLists.txt    |  2 +-
+ tools/filamesh/CMakeLists.txt |  2 +-
+ 3 files changed, 29 insertions(+), 6 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -992,15 +992,23 @@ if (IS_HOST_PLATFORM)
+@@ -919,7 +919,16 @@ add_subdirectory(${FILAMENT}/shaders)
+ add_subdirectory(${EXTERNAL}/abseil/tnt)
+ # Add zstd before basisu to force it to use the external zstd target,
+ # preventing a duplicate symbol conflict with its bundled version.
+-add_subdirectory(${EXTERNAL}/zstd/tnt)
++find_package(zstd CONFIG REQUIRED)
++if (NOT TARGET zstd)
++    if (TARGET zstd::libzstd_shared)
++        add_library(zstd INTERFACE IMPORTED)
++        target_link_libraries(zstd INTERFACE zstd::libzstd_shared)
++    elseif (TARGET zstd::libzstd_static)
++        add_library(zstd INTERFACE IMPORTED)
++        target_link_libraries(zstd INTERFACE zstd::libzstd_static)
++    endif()
++endif()
+ add_subdirectory(${EXTERNAL}/civetweb/tnt)
+ add_subdirectory(${EXTERNAL}/imgui/tnt)
+ add_subdirectory(${EXTERNAL}/robin-map/tnt)
+@@ -992,15 +1001,27 @@ if (IS_HOST_PLATFORM)
      if (NOT FILAMENT_SKIP_SDL2)
        add_subdirectory(${LIBRARIES}/filamentapp)
      endif()
++    find_package(assimp CONFIG REQUIRED)
 +    find_package(PNG REQUIRED)
 +    find_package(ZLIB REQUIRED)
++    if (NOT TARGET assimp)
++        add_library(assimp INTERFACE IMPORTED)
++        target_link_libraries(assimp INTERFACE assimp::assimp)
++    endif()
 +    if (NOT TARGET png)
 +        add_library(png INTERFACE IMPORTED)
 +        target_link_libraries(png INTERFACE PNG::PNG)
@@ -30,7 +54,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
  
      add_subdirectory(${FILAMENT}/samples)
  
-     add_subdirectory(${EXTERNAL}/libassimp/tnt)
+-    add_subdirectory(${EXTERNAL}/libassimp/tnt)
 -    add_subdirectory(${EXTERNAL}/libpng/tnt)
      add_subdirectory(${EXTERNAL}/libsdl2/tnt)
 -    add_subdirectory(${EXTERNAL}/libz/tnt)
@@ -46,6 +70,18 @@ diff --git a/tools/cmgen/CMakeLists.txt b/tools/cmgen/CMakeLists.txt
  # ==================================================================================================
 -set(MODULE_LICENSES libpng tinyexr libz)
 +set(MODULE_LICENSES tinyexr)
+ set(GENERATION_ROOT ${CMAKE_CURRENT_BINARY_DIR}/generated)
+ list_licenses(${GENERATION_ROOT}/licenses/licenses.inc "${MODULE_LICENSES}")
+ target_include_directories(${TARGET} PRIVATE ${GENERATION_ROOT})
+diff --git a/tools/filamesh/CMakeLists.txt b/tools/filamesh/CMakeLists.txt
+--- a/tools/filamesh/CMakeLists.txt
++++ b/tools/filamesh/CMakeLists.txt
+@@ -38,7 +38,7 @@ set_target_properties(${TARGET} PROPERTIES FOLDER Tools)
+ # =================================================================================================
+ # Licenses
+ # ==================================================================================================
+-set(MODULE_LICENSES libassimp meshoptimizer)
++set(MODULE_LICENSES meshoptimizer)
  set(GENERATION_ROOT ${CMAKE_CURRENT_BINARY_DIR}/generated)
  list_licenses(${GENERATION_ROOT}/licenses/licenses.inc "${MODULE_LICENSES}")
  target_include_directories(${TARGET} PRIVATE ${GENERATION_ROOT})
