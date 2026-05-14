@@ -21,3 +21,6 @@ REM install python packages
 mkdir %SP_DIR%\tixi3
 echo. 2> %SP_DIR%\tixi3\__init__.py
 copy lib\tixi3wrapper.py %SP_DIR%\tixi3\
+REM cleanup doc and matlab files (mirror Unix build.sh)
+if exist "%PREFIX%\share\tixi3\doc" rmdir /s /q "%PREFIX%\share\tixi3\doc"
+if exist "%PREFIX%\share\tixi3\matlab" rmdir /s /q "%PREFIX%\share\tixi3\matlab"
