@@ -1,10 +1,41 @@
 ## About
 
-This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
+This repo is a holding area for recipes destined for a conda-forge feedstock repo.
+
+Keep reading to learn about [getting started](#getting-started),
+preparing your [local environment](#local-debugging),
+[generating recipes](#generating-recipes-with-grayskull)
+for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [building](#building-with-build-locallypy) a package.
+
+> To find out more about conda-forge, see [conda-smithy](https://github.com/conda-forge/conda-smithy).
 
 [![Join the chat at https://conda-forge.zulipchat.com](https://img.shields.io/badge/Zulip-join_chat-53bfad.svg)](https://conda-forge.zulipchat.com)
 
-## Feedstock conversion status
+## Getting started
+
+1. [Fork](https://github.com/conda-forge/staged-recipes/fork) this repository.
+2. Make a new branch from `main` for your package's recipe.
+3. Make a new folder in `recipes` for your package, and start a `recipe.yaml` (or `meta.yaml`).
+
+   For more information:
+   - [generate](#generating-recipes-with-grayskull) a recipe
+   - read the [example recipe](recipes/example-v1)
+   - read the [FAQ](https://github.com/conda-forge/staged-recipes#faq)
+   - search for [examples on GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
+   - visit our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#)
+4. (recommended) Try to build the feedstock [locally](#local-debugging).
+5. Open a pull request, paying attention to the checklist. Building of your
+   package will be tested on Linux, macOS, and Windows.
+6. Ask for review or help by `@`-mentioning the appropriate [review teams](#review-teams)
+   (or using the [bot command](#review-bot-command)) in a pull request comment
+7. When your pull request is reviewed and merged:
+    - a new "feedstock" repository is created in the GitHub conda-forge organization
+      - If this is your first recipe, you will receive an email about steps to accept
+        an invitation to a new GitHub group.
+    - a build of your package is triggered
+    - the package is uploaded to conda-forge
+
+### Feedstock conversion status
 
 [![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
@@ -12,47 +43,98 @@ Failures with the above job are often caused by API rate limits from the various
 This can result in empty feedstock repositories and will resolve itself automatically.
 If the issue persists, support can be found [on Zulip](https://conda-forge.zulipchat.com).
 
-## Getting started
+## Local debugging
 
-1. Fork this repository.
-2. Make a new branch from `main` for your package's recipe.
-3. Make a new folder in `recipes` for your package. Look at the [example recipe](recipes/example), our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
-4. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
-5. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
+While all of the above steps eventually need to work in CI for a recipe to be merged,
+building locally is a good way to learn more about conda-forge, and make better
+use of donated, community resources.
 
-### `pixi`
-
-`pixi` is a project based environment and task runner optimized for `conda`. Several of
-the local workflows and their dependencies described below are captured in
-`pixi.toml`. Install `pixi` via the [documented approaches](https://pixi.sh/latest/#installation),
-or via `conda`/`mamba`/`micromamba`:
-
-```bash
-$CONDA_EXE install -c conda-forge pixi
-```
-
-See the available tasks with `pixi task list`.
-
-## Local debugging with `build-locally.py`
+### Building with `build-locally.py`
 
 The script `build-locally.py` will guide you through the local debugging process. This script
-will then launch the platform-specific scripts, which support some key environment variables in
-macOS and Windows:
+will then launch the platform-specific scripts, and the resulting artifacts will
+be available under `build_artifacts` in the repository directory.
+
+On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume.
+
+On macOS and Windows, some environment variables control where files are kept:
 
 - `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
 - `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
   on macOS and `C:\bld` on Windows.
 
-On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
+`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task.
 
-`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task:
+#### Building with `pixi`
 
-* `pixi run build-linux`: will launch a Docker container, provision all the necessary tools and build your recipe for Linux.
-* `pixi run build-osx`: will provision a conda environment with the necessary tools to build your recipe for macOS. This involves fetching and caching the necessary Apple SDKs.
-* `pixi run build-win`: will provision a conda environment with the necessary tools to build your recipe for Windows.
+<details>
+<summary>Learn more about <b>building with <code>pixi</code></b>...</summary>
+
+- Linux
+    ```bash
+    pixi run build-linux
+    ```
+  - launch a Docker container
+  - provision all the necessary tools
+  - build your recipe
+
+- macOS
+  ```bash
+  pixi run build-osx
+  ```
+  - find (or provision) [`$CONDA_EXE`](#conda-exe)
+  - provision a conda environment with the necessary tools
+    - This involves fetching and caching the necessary Apple SDKs.
+  - build your recipe
+
+- Windows
+  ```bash
+  pixi run build-win
+  ```
+  - find (or provision) [`$CONDA_EXE`](#conda-exe)
+  - provision a conda environment with the necessary tools
+  - build your recipe
 
 These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
 artifacts will be available under `build_artifacts`.
+
+</details>
+
+### `$CONDA_EXE`
+
+If you have never used conda-forge before, you may need a conda-compatible
+package manager, such as `conda`, `mamba`, or `micromamba`.
+`$CONDA_EXE`, the "well-known" environment variable is used for
+"_a conda package manager in an activated POSIX shell session,_" is used
+throughout this document.
+
+> On Windows, this environment variable would be `%CONDA_EXE%`.
+
+If a compatible `$CONDA_EXE` is not found, the `build-locally.py` script may download
+`micromamba`: as a single file static binary it isn't _installed_, per se, and
+can be used to create other environments.
+
+### `miniforge`
+
+For a more traditional installation, downloading, installing, and activating a
+[miniforge](https://conda-forge.org/miniforge/) installer provides `conda` and `mamba`,
+with conda-forge as the default source of packages. If found, `build-locally.py`
+will use this instead of downloading `micromamba`.
+
+### `pixi`
+
+`pixi` is a workspace-based environment and task runner optimized for conda packaging.
+Several of the local workflows and their dependencies described below are captured
+in `pixi.toml`. Install `pixi` via `$CONDA_EXE`:
+
+```bash
+$CONDA_EXE install -c conda-forge pixi
+```
+
+... or one of the [documented approaches](https://pixi.sh/latest/#installation).
+
+See the available tasks with `pixi task list`, or get started
+[building with `pixi`](#building-with-pixi).
 
 ## Generating recipes with `grayskull`
 
@@ -60,50 +142,98 @@ artifacts will be available under `build_artifacts`.
 Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
 The user should review the recipe generated, especially the license and dependencies.
 
+<details><summary>Learn more about <b>generating Python and R recipes</b>...</summary>
 Use one of:
 
 - manually
-  1. install `grayskull`: `conda install -c conda-forge grayskull`
-  2. generate recipe:
-    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
-    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+
+  1. install `grayskull`:
+
+     ```bash
+     conda install -c conda-forge grayskull conda-recipe-manager
+     ```
+
+  2. navigate to the `recipes` folder:
+     ```bash
+     cd recipes
+     ```
+  3. generate recipe:
+
+     > omit `--use-v1-format` to get a `meta.yaml` for `conda-build` instead
+
+     - Python
+       ```bash
+       grayskull pypi --use-v1-format PACKAGE_ON_PYPI_HERE [ANOTHER...]
+       ```
+     - R:
+       ```bash
+       grayskull cran --use-v1-format PACKAGE_ON_CRAN_HERE [ANOTHER...]
+       ```
+
 - with [`pixi`](#pixi):
   1. generate recipe:
-    - `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
-    - `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+     > use `pypi-v0` or `cran-v0` to get a `meta.yaml` for `conda-build` instead
+
+    - Python
+      ```bash
+      pixi run pypi PACKAGE_ON_PYPI_HERE [ANOTHER...]
+      ```
+    - R
+      ```bash
+      pixi run cran PACKAGE_ON_CRAN_HERE [ANOTHER...]
+      ```
+
+</details>
 
 ## Linting recipes with `conda-smithy`
 
 The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provides
 helpful linters that can save CI resources by catching known issues up-front.
 
+<details>
+<summary>Learn more about <b>linting with <code>conda-smithy</code></b>...</summary>
+
 Use one of:
+
 - manually
-  - install `conda-smithy`: `conda install -c conda-forge conda-smithy shellcheck`
-  - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
+
+  1. install `conda-smithy`:
+
+     ```bash
+     conda install -c conda-forge conda-smithy shellcheck
+     ```
+
+  2. lint recipes:
+
+     ```bash
+     conda-smithy recipe-lint --conda-forge recipes/*
+     ```
+
 - with [`pixi`](#pixi):
-  - lint recipes: `pixi run lint`
+  1. lint recipes: `pixi run lint`
 
 > **NOTES**
 >
 > - `conda-smithy` is
-> [frequently updated](https://github.com/conda-forge/conda-smithy/blob/main/CHANGELOG.rst)
-> with current best practices. Ensure using the latest with:
+>   [frequently updated](https://github.com/conda-forge/conda-smithy/blob/main/CHANGELOG.rst)
+>   with current best practices. Ensure using the latest with:
+>
 >   - `$CONDA_EXE upgrade conda-smithy shellcheck`
 >   - or `pixi upgrade --feature conda-smithy`
 >
 > - to enable most [`shellcheck`](https://www.shellcheck.net/) [rules](https://www.shellcheck.net/wiki)
->    - create a [`conda-forge.yml`](https://conda-forge.org/docs/maintainer/conda_forge_yml)
->      next to your new recipe (and any `.sh` scripts):
->      ```yaml
->      # recipes/your-new-recipe/conda-forge.yml
->      shellcheck:
->        enabled: true
->      ```
->    - run the linter using your preferred method, as described above
->    - if committed and pushed, this will be checked in CI during the review process,
->      then merged into the defaults in the root of the rendered feedstock.
+>   - create a [`conda-forge.yml`](https://conda-forge.org/docs/maintainer/conda_forge_yml)
+>     next to your new recipe (and any `.sh` scripts):
+>     ```yaml
+>     # recipes/your-new-recipe/conda-forge.yml
+>     shellcheck:
+>       enabled: true
+>     ```
+>   - run the linter using your preferred method, as described above
+>   - if committed and pushed, this will be checked in CI during the review process,
+>     then merged into the defaults in the root of the rendered feedstock.
 
+</details>
 
 ## FAQ
 
@@ -114,7 +244,7 @@ in this repository and modify it as necessary.
 
 Follow the order of the sections in the example recipe. If you make a copy of example recipe, please remove the example's explainer comments from your recipe. Add your own comments to the recipe and build scripts to explain unusual build behavior or recipe options.
 
-*If there are details you are not sure about please open a pull request. The conda-forge team will be happy to answer your questions.*
+_If there are details you are not sure about please open a pull request. The conda-forge team will be better able to answer questions about a failing build._
 
 ### 2. **How do I populate the `hash` field?**
 
@@ -133,17 +263,22 @@ You may need the openssl package, available on conda-forge:
 
 Use the `skip` key in the `build` section along with a selector:
 
-```yaml
-build:
-    skip: true  # [win]
-```
-
-A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
+- v1 `recipe.yaml`
+  ```yaml
+  build:
+    skip: win
+  ```
+  > a full description of selectors is [in the rattler-build docs](https://rattler.build/latest/selectors)
+- v0 `meta.yaml`
+  ```yaml
+  build:
+    skip: true # [win]
+  ```
+  > A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
 If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html).
 
 _Note_: As the package will always be built on linux, it needs to be at least available on there.
-
 
 ### 4. **What does the `build: 0` entry mean?**
 
@@ -200,6 +335,7 @@ git push -f
 ```
 
 If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
+
 ```bash
 # If you didn't add a remote for conda-forge/staged-recipes yet, also run
 # these lines:
@@ -209,7 +345,7 @@ git rebase upstream/main
 git push -f
 ```
 
-### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
+### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR? What is the customary amount of time to wait?
 
 <!--
 Keep this message in sync with the PR template.
@@ -220,24 +356,32 @@ https://raw.githubusercontent.com/conda-forge/staged-recipes/main/.github/pull_r
 Thank you very much for putting in this recipe PR!
 
 This repository is very active, so if you need help with a PR, please let the
-right people know. There are language-specific teams for reviewing recipes.
+right people know.
+
+#### Review teams
+
+There are language-specific teams for reviewing recipes.
 
 | Language        | Name of review team           |
 | --------------- | ----------------------------- |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| go              | `@conda-forge/help-go`        |
+| java            | `@conda-forge/help-java`      |
+| Julia           | `@conda-forge/help-julia`     |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
-| java            | `@conda-forge/help-java`      |
-| nodejs          | `@conda-forge/help-nodejs`    |
-| c/c++           | `@conda-forge/help-c-cpp`     |
-| perl            | `@conda-forge/help-perl`      |
-| Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
+| rust            | `@conda-forge/help-rust`      |
 | other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
 Then, a bot will label the PR as 'review-requested'.
+
+#### Review Bot Command
 
 Due to GitHub limitations, first time contributors to conda-forge are unable
 to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
@@ -252,7 +396,6 @@ All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have your help!
-
 
 ### 13. Is there a changelog for this repository?
 
