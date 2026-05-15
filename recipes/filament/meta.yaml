@@ -17,8 +17,6 @@ build:
   number: 0
   skip: true  # [win]
   ignore_run_exports_from:
-    - libegl-devel  # [linux]
-    - libgl-devel  # [linux]
     - libgles-devel  # [linux]
 
 requirements:
@@ -41,12 +39,26 @@ requirements:
 test:
   files:
     - bakedColor.mat
+    - test-cmake
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - ninja
   commands:
     - matc --help
     - matinfo --help
     - cmgen --help
     - filamesh --help
     - matc -o bakedColor.filamat bakedColor.mat
+    - test -f "${PREFIX}/include/filament/Engine.h"  # [unix]
+    - test -f "${PREFIX}/include/backend/DriverEnums.h"  # [unix]
+    - test -f "${PREFIX}/lib/libfilament.so"  # [linux]
+    - test -f "${PREFIX}/lib/libfilament.dylib"  # [osx]
+    - test -f "${PREFIX}/lib/cmake/Filament/FilamentConfig.cmake"  # [unix]
+    - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release  # [unix]
+    - cmake --build test-cmake-build --verbose  # [unix]
+    - ./test-cmake-build/hello_world  # [unix]
 
 outputs:
   - name: filament
@@ -66,49 +78,22 @@ outputs:
       - bin/specular-color
       - bin/uberz
       - docs
+      - include/backend
+      - include/filaflat
+      - include/filament
+      - include/geometry
+      - include/math
+      - include/utils
+      - lib/libfilament*.so*  # [linux]
+      - lib/libfilament*.dylib  # [osx]
+      - lib/cmake/Filament
       - LICENSE
       - README.md
-
-  - name: filament-static
-    files:
-      - include
-      - lib/libbackend.a
-      - lib/libbluegl.a
-      - lib/libbluevk.a
-      - lib/libfilabridge.a
-      - lib/libfilaflat.a
-      - lib/libfilament.a
-      - lib/libgeometry.a
-      - lib/libshaders.a
-      - lib/libsmol-v.a
-      - lib/libutils.a
-      - lib/cmake/Filament
     requirements:
       run:
-        - {{ pin_subpackage('filament', exact=True) }}
-        - libegl-devel  # [linux]
-        - libgl-devel  # [linux]
-        - libopengl-devel  # [linux]
+        - libegl  # [linux]
+        - libgl  # [linux]
         - zstd
-    test:
-      requires:
-        - {{ compiler('cxx') }}
-        - {{ stdlib('c') }}
-        - cmake
-        - libegl-devel  # [linux]
-        - libgl-devel  # [linux]
-        - libopengl-devel  # [linux]
-        - ninja
-      files:
-        - test-cmake
-      commands:
-        - test -f "${PREFIX}/include/filament/Engine.h"  # [unix]
-        - test -f "${PREFIX}/include/backend/DriverEnums.h"  # [unix]
-        - test -f "${PREFIX}/lib/libfilament.a"  # [unix]
-        - test -f "${PREFIX}/lib/cmake/Filament/FilamentConfig.cmake"  # [unix]
-        - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release  # [unix]
-        - cmake --build test-cmake-build --verbose  # [unix]
-        - ./test-cmake-build/hello_world  # [unix]
 
 about:
   home: https://github.com/google/filament
@@ -116,8 +101,8 @@ about:
   description: |
     Filament is a real-time physically based rendering engine for Android,
     iOS, Windows, Linux, macOS, and WebGL2. This package provides host-side
-    command line tools, and the filament-static output provides a constrained
-    C++ development surface for downstream consumers such as DART and Open3D.
+    command line tools and a constrained shared C++ development surface for
+    downstream consumers such as DART and Open3D.
   license: Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND MIT AND Zlib
   license_file:
     - LICENSE

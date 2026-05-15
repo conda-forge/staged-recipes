@@ -83,21 +83,43 @@ for header_dir in \
   cp -R "${header_dir}" "${PREFIX}/include/"
 done
 
-for library in \
-  filament \
-  backend \
-  bluegl \
-  bluevk \
-  filabridge \
-  filaflat \
-  geometry \
-  shaders \
-  smol-v \
-  utils; do
-  library_path="$(find build -type f -name "lib${library}.a" -print -quit)"
-  test -n "${library_path}"
-  install -m 644 "${library_path}" "${PREFIX}/lib/"
+filament_archives=(
+  build/filament/libfilament.a
+  build/filament/backend/libbackend.a
+  build/libs/bluegl/libbluegl.a
+  build/libs/bluevk/libbluevk.a
+  build/libs/filabridge/libfilabridge.a
+  build/libs/filaflat/libfilaflat.a
+  build/libs/geometry/libgeometry.a
+  build/shaders/libshaders.a
+  build/third_party/smol-v/tnt/libsmol-v.a
+  build/libs/utils/libutils.a
+)
+
+for archive in "${filament_archives[@]}"; do
+  test -f "${archive}"
 done
+
+if [[ "${target_platform}" == linux-* ]]; then
+  "${CXX}" ${LDFLAGS:-} -shared -Wl,-soname,libfilament.so.1 -Wl,-z,noexecstack \
+    -o "${PREFIX}/lib/libfilament.so.${PKG_VERSION}" \
+    -Wl,--whole-archive "${filament_archives[@]}" -Wl,--no-whole-archive \
+    -L"${PREFIX}/lib" -lzstd -lEGL -lGL -ldl -lpthread
+  ln -s "libfilament.so.${PKG_VERSION}" "${PREFIX}/lib/libfilament.so.1"
+  ln -s "libfilament.so.1" "${PREFIX}/lib/libfilament.so"
+elif [[ "${target_platform}" == osx-* ]]; then
+  force_load_args=()
+  for archive in "${filament_archives[@]}"; do
+    force_load_args+=(-Wl,-force_load,"${archive}")
+  done
+  "${CXX}" ${LDFLAGS:-} -dynamiclib -install_name "@rpath/libfilament.1.dylib" \
+    -o "${PREFIX}/lib/libfilament.${PKG_VERSION}.dylib" \
+    "${force_load_args[@]}" \
+    -L"${PREFIX}/lib" -lzstd \
+    -framework Cocoa -framework CoreVideo -framework Foundation -framework Metal -framework QuartzCore
+  ln -s "libfilament.${PKG_VERSION}.dylib" "${PREFIX}/lib/libfilament.1.dylib"
+  ln -s "libfilament.1.dylib" "${PREFIX}/lib/libfilament.dylib"
+fi
 
 install -d "${PREFIX}/lib/cmake/Filament"
 install -m 644 "${RECIPE_DIR}/FilamentConfig.cmake" "${PREFIX}/lib/cmake/Filament/FilamentConfig.cmake"
