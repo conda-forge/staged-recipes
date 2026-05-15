@@ -13,7 +13,7 @@ target_link_libraries(hello_world PRIVATE Filament::filament)
 set(material_output "${CMAKE_CURRENT_BINARY_DIR}/bakedColor.filamat")
 add_custom_command(
   OUTPUT "${material_output}"
-  COMMAND Filament::matc -o "${material_output}" "${CMAKE_CURRENT_LIST_DIR}/../bakedColor.mat"
+  COMMAND Filament::matc -a opengl -p desktop -o "${material_output}" "${CMAKE_CURRENT_LIST_DIR}/../bakedColor.mat"
   DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../bakedColor.mat"
   VERBATIM
 )
