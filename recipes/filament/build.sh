@@ -83,7 +83,7 @@ for header_dir in \
   cp -R "${header_dir}" "${PREFIX}/include/"
 done
 
-filament_archives=(
+filament_component_archives=(
   build/filament/libfilament.a
   build/filament/backend/libbackend.a
   build/libs/bluegl/libbluegl.a
@@ -98,20 +98,22 @@ filament_archives=(
   build/libs/utils/libutils.a
 )
 
-for archive in "${filament_archives[@]}"; do
+for archive in "${filament_component_archives[@]}"; do
   test -f "${archive}"
 done
 
+# Upstream desktop Filament builds these component targets as PIC static archives. They are
+# build-only inputs for the shared conda library below and must not be installed.
 if [[ "${target_platform}" == linux-* ]]; then
   "${CXX}" ${LDFLAGS:-} -shared -Wl,-soname,libfilament.so.1 -Wl,-z,noexecstack \
     -o "${PREFIX}/lib/libfilament.so.${PKG_VERSION}" \
-    -Wl,--whole-archive "${filament_archives[@]}" -Wl,--no-whole-archive \
+    -Wl,--whole-archive "${filament_component_archives[@]}" -Wl,--no-whole-archive \
     -L"${PREFIX}/lib" -lzstd -lEGL -lGL -ldl -lpthread
   ln -s "libfilament.so.${PKG_VERSION}" "${PREFIX}/lib/libfilament.so.1"
   ln -s "libfilament.so.1" "${PREFIX}/lib/libfilament.so"
 elif [[ "${target_platform}" == osx-* ]]; then
   force_load_args=()
-  for archive in "${filament_archives[@]}"; do
+  for archive in "${filament_component_archives[@]}"; do
     force_load_args+=(-Wl,-force_load,"${archive}")
   done
   "${CXX}" ${LDFLAGS:-} -dynamiclib -install_name "@rpath/libfilament.1.dylib" \
