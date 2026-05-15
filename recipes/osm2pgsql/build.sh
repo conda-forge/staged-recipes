@@ -9,13 +9,9 @@ export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 # Ensure cstdlib is included to fix 'free' visibility issues with fmt library
 export CXXFLAGS="${CXXFLAGS} -include cstdlib"
 
-cd ${SRC_DIR}
+rm -rf "${SRC_DIR}/contrib/"
 
-mkdir -p ${BUILD_DIR}
-
-rm -rf "contrib/"
-
-cmake ${CMAKE_ARGS} -S . \
+cmake ${CMAKE_ARGS} -S ${SRC_DIR} \
  -B ${BUILD_DIR} \
  -G "Ninja" \
  -D CMAKE_BUILD_TYPE=Release \
@@ -33,7 +29,8 @@ cmake ${CMAKE_ARGS} -S . \
  -D LUA_INCLUDE_DIR="${PREFIX}/include" \
  -D LUA_LIBRARY="${PREFIX}/lib/liblua${SHLIB_EXT}"
 
-cmake --build ${BUILD_DIR} --target all
+cmake --build ${BUILD_DIR} --target all --parallel ${CPU_COUNT}
 
-cmake --build ${BUILD_DIR} --target install
+cmake --install ${BUILD_DIR}
+
 # Note: osm2pgsql-replication script is automatically installed by CMake to ${PREFIX}/bin
