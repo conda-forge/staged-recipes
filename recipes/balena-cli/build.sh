@@ -2,7 +2,7 @@
 set -euo pipefail
 
 mkdir -p "${PREFIX}/lib/balena-cli"
-cp -r balena-cli/* "${PREFIX}/lib/balena-cli/"
+cp -r ./* "${PREFIX}/lib/balena-cli/"
 
 mkdir -p "${PREFIX}/bin"
-ln -sf "${PREFIX}/lib/balena-cli/balena" "${PREFIX}/bin/balena"
+ln -sf "${PREFIX}/lib/balena-cli/bin/balena" "${PREFIX}/bin/balena"
