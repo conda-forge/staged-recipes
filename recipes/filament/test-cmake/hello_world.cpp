@@ -6,9 +6,16 @@
 #include <filament/Viewport.h>
 
 #include <utils/EntityManager.h>
+#include <utils/LruCache.h>
 
 int main() {
     using namespace filament;
+
+    utils::LruCache<int, int> cache("filament-conda-test-cache", 1);
+    cache.put(1, 1, [](int&&) {});
+    if (cache.get(1) == nullptr) {
+        return 1;
+    }
 
     Engine* engine = Engine::create(Engine::Backend::NOOP);
     if (engine == nullptr) {

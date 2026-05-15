@@ -1,5 +1,8 @@
 get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 
+include(CMakeFindDependencyMacro)
+find_dependency(tsl-robin-map CONFIG REQUIRED)
+
 if(APPLE)
   set(_filament_shared_suffix "dylib")
 else()
@@ -36,6 +39,9 @@ _filament_import_library(geometry geometry)
 _filament_import_library(filament filament)
 
 if(Filament_FOUND)
+  set_target_properties(Filament::utils PROPERTIES
+    INTERFACE_LINK_LIBRARIES "tsl::robin_map"
+  )
   set_target_properties(Filament::bluevk PROPERTIES
     INTERFACE_LINK_LIBRARIES "Filament::utils"
   )
