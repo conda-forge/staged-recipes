@@ -21,14 +21,26 @@ static_archives = sorted(path for path in package_files if path.endswith(".a"))
 if static_archives:
     fail("filament package ships static archives: " + ", ".join(static_archives))
 
-shared_libraries = sorted(
-    path
-    for path in package_files
-    if path.startswith("lib/libfilament")
-    and (".so" in os.path.basename(path) or path.endswith(".dylib"))
+required_shared_libraries = (
+    "libbackend",
+    "libbluegl",
+    "libbluevk",
+    "libfilabridge",
+    "libfilaflat",
+    "libfilament",
+    "libgeometry",
+    "libutils",
 )
-if not shared_libraries:
-    fail("filament package does not ship a shared libfilament library")
+
+for library in required_shared_libraries:
+    matches = sorted(
+        path
+        for path in package_files
+        if path.startswith(f"lib/{library}")
+        and (".so" in os.path.basename(path) or path.endswith(".dylib"))
+    )
+    if not matches:
+        fail(f"filament package does not ship shared {library}")
 
 for forbidden_path in (
     "bin/basisu",

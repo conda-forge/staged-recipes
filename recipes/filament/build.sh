@@ -22,6 +22,13 @@ if [[ "${target_platform}" == linux-* ]]; then
   cmake_options+=(
     -DFILAMENT_ENABLE_EXPERIMENTAL_GCC_SUPPORT=ON
     -DFILAMENT_SUPPORTS_EGL_ON_LINUX=ON
+    "-DCMAKE_BUILD_RPATH=\$ORIGIN;\$ORIGIN/../lib"
+    "-DCMAKE_INSTALL_RPATH=\$ORIGIN;\$ORIGIN/../lib"
+  )
+elif [[ "${target_platform}" == osx-* ]]; then
+  cmake_options+=(
+    "-DCMAKE_BUILD_RPATH=@loader_path;@loader_path/../lib"
+    "-DCMAKE_INSTALL_RPATH=@loader_path;@loader_path/../lib"
   )
 fi
 
@@ -83,46 +90,33 @@ for header_dir in \
   cp -R "${header_dir}" "${PREFIX}/include/"
 done
 
-filament_component_archives=(
-  build/filament/libfilament.a
-  build/filament/backend/libbackend.a
-  build/libs/bluegl/libbluegl.a
-  build/libs/bluevk/libbluevk.a
-  build/libs/filabridge/libfilabridge.a
-  build/libs/filaflat/libfilaflat.a
-  build/libs/geometry/libgeometry.a
-  build/shaders/libshaders.a
-  build/third_party/meshoptimizer/tnt/libmeshoptimizer.a
-  build/third_party/mikktspace/libmikktspace.a
-  build/third_party/smol-v/tnt/libsmol-v.a
-  build/libs/utils/libutils.a
+filament_shared_libraries=(
+  filament/libfilament
+  filament/backend/libbackend
+  libs/bluegl/libbluegl
+  libs/bluevk/libbluevk
+  libs/filabridge/libfilabridge
+  libs/filaflat/libfilaflat
+  libs/geometry/libgeometry
+  libs/utils/libutils
 )
 
-for archive in "${filament_component_archives[@]}"; do
-  test -f "${archive}"
+if [[ "${target_platform}" == linux-* ]]; then
+  shared_library_suffix=so
+elif [[ "${target_platform}" == osx-* ]]; then
+  shared_library_suffix=dylib
+fi
+
+for shared_library in "${filament_shared_libraries[@]}"; do
+  source_path="build/${shared_library}.${shared_library_suffix}"
+  test -f "${source_path}"
+  install -m 755 "${source_path}" "${PREFIX}/lib/$(basename "${source_path}")"
 done
 
-# Upstream desktop Filament builds these component targets as PIC static archives. They are
-# build-only inputs for the shared conda library below and must not be installed.
-if [[ "${target_platform}" == linux-* ]]; then
-  "${CXX}" ${LDFLAGS:-} -shared -Wl,-soname,libfilament.so.1 -Wl,-z,noexecstack \
-    -o "${PREFIX}/lib/libfilament.so.${PKG_VERSION}" \
-    -Wl,--whole-archive "${filament_component_archives[@]}" -Wl,--no-whole-archive \
-    -L"${PREFIX}/lib" -lzstd -lEGL -lGL -ldl -lpthread
-  ln -s "libfilament.so.${PKG_VERSION}" "${PREFIX}/lib/libfilament.so.1"
-  ln -s "libfilament.so.1" "${PREFIX}/lib/libfilament.so"
-elif [[ "${target_platform}" == osx-* ]]; then
-  force_load_args=()
-  for archive in "${filament_component_archives[@]}"; do
-    force_load_args+=(-Wl,-force_load,"${archive}")
+if [[ "${target_platform}" == osx-* ]]; then
+  for dylib in "${PREFIX}"/lib/lib*.dylib; do
+    install_name_tool -id "@rpath/$(basename "${dylib}")" "${dylib}"
   done
-  "${CXX}" ${LDFLAGS:-} -dynamiclib -install_name "@rpath/libfilament.1.dylib" \
-    -o "${PREFIX}/lib/libfilament.${PKG_VERSION}.dylib" \
-    "${force_load_args[@]}" \
-    -L"${PREFIX}/lib" -lzstd \
-    -framework Cocoa -framework CoreVideo -framework Foundation -framework Metal -framework QuartzCore
-  ln -s "libfilament.${PKG_VERSION}.dylib" "${PREFIX}/lib/libfilament.1.dylib"
-  ln -s "libfilament.1.dylib" "${PREFIX}/lib/libfilament.dylib"
 fi
 
 install -d "${PREFIX}/lib/cmake/Filament"

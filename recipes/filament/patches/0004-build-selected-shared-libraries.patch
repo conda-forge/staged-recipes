@@ -1,0 +1,169 @@
+--- a/filament/CMakeLists.txt
++++ b/filament/CMakeLists.txt
+@@ -696,7 +696,7 @@
+ include_directories(src)
+ 
+ # we're building a library
+-add_library(${TARGET} STATIC ${PRIVATE_HDRS} ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PRIVATE_HDRS} ${PUBLIC_HDRS} ${SRCS})
+ 
+ # specify where the public headers of this library are
+ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+@@ -704,6 +704,10 @@
+ # add this subproject to the Filament folder
+ set_target_properties(${TARGET} PROPERTIES FOLDER Filament)
+ 
++if (UNIX AND NOT APPLE)
++    target_link_options(${TARGET} PRIVATE -Wl,-z,noexecstack)
++endif()
++
+ # ==================================================================================================
+ # Dependencies
+ # ==================================================================================================
+--- a/filament/backend/CMakeLists.txt
++++ b/filament/backend/CMakeLists.txt
+@@ -384,7 +384,7 @@
+ include_directories(${GENERATION_ROOT})
+ 
+ # we're building a library
+-add_library(${TARGET} STATIC ${PRIVATE_HDRS} ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PRIVATE_HDRS} ${PUBLIC_HDRS} ${SRCS})
+ 
+ # specify where the public headers of this library are
+ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+@@ -392,6 +392,10 @@
+ # add this subproject to the Filament folder
+ set_target_properties(${TARGET} PROPERTIES FOLDER Filament)
+ 
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
++
+ # we need to export the headers properly for backend.lib on windows
+ if (WIN32 AND FILAMENT_SUPPORTS_WEBGPU)
+     target_compile_definitions(${TARGET} PRIVATE "WGPU_IMPLEMENTATION")
+@@ -452,7 +456,7 @@
+ if (LINUX)
+     target_link_libraries(${TARGET} PRIVATE dl)
+     if(FILAMENT_SUPPORTS_EGL_ON_LINUX)
+-       target_link_libraries(${TARGET} PUBLIC EGL)
++       target_link_libraries(${TARGET} PUBLIC EGL GL)
+     endif()
+ endif()
+ 
+--- a/libs/bluegl/CMakeLists.txt
++++ b/libs/bluegl/CMakeLists.txt
+@@ -54,7 +54,14 @@
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+ # we're building a library
+-add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PUBLIC_HDRS} ${SRCS})
++
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
++if (UNIX AND NOT APPLE)
++    target_link_options(${TARGET} PRIVATE -Wl,-z,noexecstack)
++endif()
+ 
+ if(FILAMENT_SUPPORTS_OSMESA)
+     if (APPLE)
+--- a/libs/bluevk/CMakeLists.txt
++++ b/libs/bluevk/CMakeLists.txt
+@@ -21,7 +21,11 @@
+ 
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+-add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PUBLIC_HDRS} ${SRCS})
++
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
+ 
+ target_link_libraries(${TARGET} utils math)
+ 
+--- a/libs/filabridge/CMakeLists.txt
++++ b/libs/filabridge/CMakeLists.txt
+@@ -21,10 +21,14 @@
+ # ==================================================================================================
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+-add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PUBLIC_HDRS} ${SRCS})
+ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+ set_target_properties(${TARGET} PROPERTIES FOLDER Libs)
+ 
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
++
+ target_link_libraries(${TARGET} utils)
+ target_link_libraries(${TARGET} math)
+ target_link_libraries(${TARGET} backend_headers)
+--- a/libs/filaflat/CMakeLists.txt
++++ b/libs/filaflat/CMakeLists.txt
+@@ -20,10 +20,14 @@
+ # ==================================================================================================
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+-add_library(${TARGET} ${HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${HDRS} ${SRCS})
+ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+ set_target_properties(${TARGET} PROPERTIES FOLDER Libs)
+ 
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
++
+ target_link_libraries(${TARGET} filabridge utils)
+ 
+ if (FILAMENT_SUPPORTS_VULKAN)
+--- a/libs/geometry/CMakeLists.txt
++++ b/libs/geometry/CMakeLists.txt
+@@ -25,7 +25,11 @@
+ # ==================================================================================================
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+-add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PUBLIC_HDRS} ${SRCS})
++
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
+ 
+ set(GEOMETRY_DEPS
+     meshoptimizer
+--- a/libs/utils/CMakeLists.txt
++++ b/libs/utils/CMakeLists.txt
+@@ -124,7 +124,7 @@
+ # ==================================================================================================
+ include_directories(${PUBLIC_HDR_DIR})
+ 
+-add_library(${TARGET} STATIC ${PUBLIC_HDRS} ${SRCS})
++add_library(${TARGET} SHARED ${PUBLIC_HDRS} ${SRCS})
+ if (HAS_SYSTEM_GETOPT)
+     target_compile_definitions(${TARGET} PUBLIC HAS_SYSTEM_GETOPT)
+ else()
+@@ -132,6 +132,9 @@
+ endif()
+ target_include_directories(${TARGET} PUBLIC ${PUBLIC_HDR_DIR})
+ set_target_properties(${TARGET} PROPERTIES FOLDER Libs)
++if (NOT WIN32)
++    target_compile_options(${TARGET} PRIVATE -fvisibility=default)
++endif()
+ target_link_libraries(${TARGET} PUBLIC tsl)
+ 
+ if (ANDROID)
+--- a/libs/utils/include/utils/Path.h
++++ b/libs/utils/include/utils/Path.h
+@@ -221,7 +221,7 @@
+     bool operator<(const Path& rhs) const { return m_path < rhs.m_path; }
+     bool operator>(const Path& rhs) const { return m_path > rhs.m_path; }
+ 
+-    friend std::ostream& operator<<(std::ostream& os, const Path& path);
++    UTILS_PUBLIC friend std::ostream& operator<<(std::ostream& os, const Path& path);
+ 
+     /**
+      * Returns a canonical copy of the specified pathname by removing
