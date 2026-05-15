@@ -58,7 +58,7 @@ if(Filament_FOUND)
     INTERFACE_LINK_LIBRARIES "Filament::utils"
   )
   set_target_properties(Filament::filament PROPERTIES
-    INTERFACE_LINK_LIBRARIES "Filament::backend;Filament::filaflat;Filament::filabridge;Filament::utils"
+    INTERFACE_LINK_LIBRARIES "Filament::backend;Filament::filaflat;Filament::filabridge;Filament::geometry;Filament::utils"
   )
 endif()
 

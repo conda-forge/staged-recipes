@@ -5,8 +5,12 @@
 #include <filament/View.h>
 #include <filament/Viewport.h>
 
+#include <geometry/SurfaceOrientation.h>
 #include <utils/EntityManager.h>
 #include <utils/LruCache.h>
+
+#include <array>
+#include <memory>
 
 int main() {
     using namespace filament;
@@ -16,6 +20,27 @@ int main() {
     if (cache.get(1) == nullptr) {
         return 1;
     }
+
+    std::array<filament::math::float3, 3> positions = {
+            filament::math::float3{0.0f, 0.0f, 0.0f},
+            filament::math::float3{1.0f, 0.0f, 0.0f},
+            filament::math::float3{0.0f, 1.0f, 0.0f},
+    };
+    std::array<filament::math::uint3, 1> triangles = {
+            filament::math::uint3{0u, 1u, 2u},
+    };
+    std::unique_ptr<filament::geometry::SurfaceOrientation> orientation(
+            filament::geometry::SurfaceOrientation::Builder()
+                    .vertexCount(positions.size())
+                    .positions(positions.data())
+                    .triangleCount(triangles.size())
+                    .triangles(triangles.data())
+                    .build());
+    if (orientation == nullptr || orientation->getVertexCount() != positions.size()) {
+        return 1;
+    }
+    std::array<filament::math::short4, 3> tangents;
+    orientation->getQuats(tangents.data(), tangents.size());
 
     Engine* engine = Engine::create(Engine::Backend::NOOP);
     if (engine == nullptr) {

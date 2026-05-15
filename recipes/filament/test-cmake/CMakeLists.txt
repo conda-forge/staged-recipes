@@ -9,3 +9,13 @@ find_package(Filament CONFIG REQUIRED)
 
 add_executable(hello_world hello_world.cpp)
 target_link_libraries(hello_world PRIVATE Filament::filament)
+
+set(material_output "${CMAKE_CURRENT_BINARY_DIR}/bakedColor.filamat")
+add_custom_command(
+  OUTPUT "${material_output}"
+  COMMAND Filament::matc -o "${material_output}" "${CMAKE_CURRENT_LIST_DIR}/../bakedColor.mat"
+  DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../bakedColor.mat"
+  VERBATIM
+)
+add_custom_target(compile_material ALL DEPENDS "${material_output}")
+add_dependencies(hello_world compile_material)
