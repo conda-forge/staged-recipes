@@ -92,6 +92,8 @@ filament_archives=(
   build/libs/filaflat/libfilaflat.a
   build/libs/geometry/libgeometry.a
   build/shaders/libshaders.a
+  build/third_party/meshoptimizer/tnt/libmeshoptimizer.a
+  build/third_party/mikktspace/libmikktspace.a
   build/third_party/smol-v/tnt/libsmol-v.a
   build/libs/utils/libutils.a
 )
