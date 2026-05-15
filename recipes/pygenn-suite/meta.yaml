@@ -1,7 +1,7 @@
 {% set version = "5.3.0" %}
 
 package:
-  name: pygenn-suite
+  name: pygenn
   version: {{ version }}
 
 source:
@@ -10,176 +10,99 @@ source:
 
 build:
   number: 0
+  {% if cuda_compiler_version != "None" %}
+  string: "cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+  {% else %}
+  string: "cpu_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
+  {% endif %}
+  # osx: no builds at all.
+  # py>311: cap at Python 3.11.
+  # CUDA: linux64 or win only; no CUDA 13+.
+  skip: true  # [osx or py>311 or (cuda_compiler_version != "None" and (not (linux64 or win) or cuda_compiler_version >= "13.0"))]
+  missing_dso_whitelist:
+    - $RPATH/genn_Release_DLL.dll  # [win]
+    - $RPATH/libffi_Release_DLL.dll  # [win]
+    - $RPATH/genn_single_threaded_cpu_backend_Release_DLL.dll  # [win]
+    - $RPATH/libcuda.so.1  # [linux and cuda_compiler_version != "None"]
+    - $RPATH/nvcuda.dll  # [win and cuda_compiler_version != "None"]
+    - $RPATH/genn_cuda_backend_Release_DLL.dll  # [win and cuda_compiler_version != "None"]
+  script: |
+    {% if win and cuda_compiler_version != "None" %}
+    :: --- CUDA backend build (Windows, modular CUDA) ---
+    set "CUDA_PATH=%BUILD_PREFIX%\Library"
+    set "CUDA_LIBRARY_PATH=%BUILD_PREFIX%\Library\lib"
+    set "INCLUDE=%BUILD_PREFIX%\Library\include;%INCLUDE%"
+    set "LIB=%BUILD_PREFIX%\Library\lib;%LIB%"
+    set "PATH=%BUILD_PREFIX%\Library\bin;%PATH%"
+    "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
+    {% elif win %}
+    :: --- CPU-only backend build (Windows) ---
+    set CUDA_PATH=
+    "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
+    {% elif cuda_compiler_version != "None" %}
+    # --- CUDA backend build (Linux, modular CUDA) ---
+    export CUDA_PATH="${BUILD_PREFIX}"
+    export PATH="${BUILD_PREFIX}/bin:${PATH}"
+    "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
+    {% else %}
+    # --- CPU-only backend build (Linux / aarch64) ---
+    unset CUDA_PATH
+    "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
+    {% endif %}
 
-outputs:
-  # --------------------------------------------------------------------------
-  # CPU-only output
-  # conda install pygenn          → picks this on CPU-only machines
-  # conda install "pygenn=*=cpu*" → forces CPU variant explicitly
-  # --------------------------------------------------------------------------
-  - name: pygenn-cpu
-    build:
-      number: 0
-      string: "cpu_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
-      skip: true  # [osx or py>311]
-      missing_dso_whitelist:
-        - $RPATH/genn_Release_DLL.dll                     # Private GeNN core DLL (shipped with package_data)
-        - $RPATH/libffi_Release_DLL.dll                   # Private libffi DLL (shipped with package_data)
-        - $RPATH/genn_single_threaded_cpu_backend_Release_DLL.dll  # Private backend DLL (shipped with package_data)
-      script: |
-        {% if win %}
-        :: --- CPU-only backend build (Windows) ---
-        :: Disable CUDA so GeNN configures a pure CPU backend
-        set CUDA_PATH=
-        "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
-        {% else %}
-        # --- CPU-only backend build (Linux) ---
-        unset CUDA_PATH
-        "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
-        {% endif %}
+requirements:
+  build:
+    - {{ stdlib("c") }}  # [linux]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - {{ compiler('cxx') }}
+    - make  # [not win]
+    - python
+    - setuptools
+    - pybind11
+    - psutil
+    - cuda-cudart-dev  # [cuda_compiler_version != "None"]
+    - cuda-driver-dev  # [linux and cuda_compiler_version != "None"]
+    - cuda-cccl  # [cuda_compiler_version != "None"]
+    - cuda-libraries-dev  # [cuda_compiler_version != "None"]
 
-    requirements:
-      build:
-        - {{ stdlib("c") }}  # [linux]
-        - {{ compiler('cxx') }}
-        - make  # [not win]
-        - python
-        - setuptools
-        - pybind11
-        - psutil
+  host:
+    - python
+    - numpy
+    - setuptools
+    - psutil
+    - pybind11
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-cudart-dev  # [cuda_compiler_version != "None"] run_exports → cuda-cudart added to run
+    - cuda-driver-dev  # [linux and cuda_compiler_version != "None"] run_exports → driver stub added to run
+    - cuda-cccl  # [cuda_compiler_version != "None"]
+    - libffi
 
-      host:
-        - python
-        - numpy
-        - setuptools
-        - psutil
-        - pybind11
-        - libffi
+  run:
+    - python
+    - numpy
+    - make  # [not win]
+    - cxx-compiler  # [cuda_compiler_version == "None"]
+    - {{ compiler('cxx') }}  # [cuda_compiler_version != "None"]
+    - psutil
+    - libffi
+    - cuda-version =={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-nvcc  # [cuda_compiler_version != "None"]
+    - importlib-metadata  # [py<38]
+    # cuda-cudart and cuda-driver-dev come in automatically via run_exports from host
 
-      run:
-        - python
-        - numpy
-        - make  # [not win]
-        - cxx-compiler  # PyGeNN JIT-compiles models via `make` + `g++`, so users need a C++ compiler.
-        - psutil
-        - libffi
-        - importlib-metadata  # [py<38]
+  run_constrained:
+    - __cuda >={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
 
-      run_constrained:
-        - pygenn-cuda ==9999999999  # mutually exclusive: both install into site-packages/pygenn/        
-
-    test:
-      imports:
-        - pygenn
-      files:
-        - tests/run_pygenn_cpu_smoketest.py
-      commands:
-        - python tests/run_pygenn_cpu_smoketest.py  # [not win]
-        - set "PATH=%PREFIX%\\Lib\\site-packages\\pygenn;%PATH%" && "%PREFIX%\\python" tests/run_pygenn_cpu_smoketest.py  # [win]
-
-    about:
-      summary: "PyGeNN (CPU-only backend)"
-      description: |
-        GeNN with single-threaded CPU backend only. No CUDA required.
-        For GPU support, install the cuda* build string variant:
-          CONDA_OVERRIDE_CUDA="12.6" conda install pygenn
-
-  # --------------------------------------------------------------------------
-  # CUDA output
-  # conda install pygenn                        → picks this on GPU machines
-  # conda install "pygenn=*=cuda*"              → forces CUDA variant explicitly
-  # CONDA_OVERRIDE_CUDA=12.6 conda install pygenn → forces CUDA on headless nodes
-  # --------------------------------------------------------------------------
-  - name: pygenn-cuda
-    build:
-      number: 0
-      skip: true  # [not (linux64 or win) or py>311 or cuda_compiler_version >= "13.0"]
-      string: "cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ PY_VER | replace('.', '') }}_{{ PKG_BUILDNUM }}"
-      missing_dso_whitelist:
-        - $RPATH/libcuda.so.1                     # Provided by NVIDIA driver at runtime (Linux driver lib)
-        - $RPATH/nvcuda.dll                       # Provided by NVIDIA driver at runtime (Windows driver lib)
-        # --- GeNN private DLLs (bundled with PyGeNN) ---
-        - $RPATH/genn_Release_DLL.dll                 # GeNN core runtime
-        - $RPATH/libffi_Release_DLL.dll               # Private libffi runtime
-        - $RPATH/genn_single_threaded_cpu_backend_Release_DLL.dll  # CPU backend, bundled
-        - $RPATH/genn_cuda_backend_Release_DLL.dll    # CUDA backend, bundled
-      script: |
-        {% if win %}
-        :: --- CUDA backend build (Windows, modular CUDA) ---
-        :: Point GeNN at Conda's modular CUDA.
-        set "CUDA_PATH=%BUILD_PREFIX%\Library"
-        :: Let MSBuild projects (for libgenn/backends) link against modular CUDA without the VS CUDA plugin
-        set "CUDA_LIBRARY_PATH=%BUILD_PREFIX%\Library\lib"
-        :: Make sure modular CUDA headers/libs and DLLs are discoverable during build
-        set "INCLUDE=%BUILD_PREFIX%\Library\include;%INCLUDE%"
-        set "LIB=%BUILD_PREFIX%\Library\lib;%LIB%"
-        set "PATH=%BUILD_PREFIX%\Library\bin;%PATH%"
-        "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
-        {% else %}
-        # --- CUDA backend build (Linux, modular CUDA) ---
-        export CUDA_PATH="${BUILD_PREFIX}"
-        export PATH="${BUILD_PREFIX}/bin:${PATH}"
-        "$PYTHON" setup.py install --single-version-externally-managed --record=record.txt
-        {% endif %}
-
-    requirements:
-      build:
-        - {{ stdlib("c") }}  # [linux]
-        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
-        - {{ compiler('cxx') }}
-        - make  # [linux]
-        - python
-        - setuptools
-        - pybind11
-        - psutil
-        - cuda-cudart-dev
-        - cuda-driver-dev  # [linux]
-        - cuda-cccl
-        - cuda-libraries-dev
-
-      host:
-        - python
-        - numpy
-        - setuptools
-        - psutil
-        - pybind11
-        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-        - cuda-cudart-dev  # run_exports → cuda-cudart added to run automatically
-        - cuda-driver-dev  # [linux] run_exports → driver stub added to run automatically
-        - cuda-cccl
-        - libffi
-
-      run:
-        - python
-        - numpy
-        - psutil
-        - make  # [linux]
-        - {{ compiler('cxx') }}  # Required at runtime: PyGeNN JIT-compiles models via `make` + `g++`.
-        - cuda-version =={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-        - cuda-nvcc               # Required at runtime: GeNN shells out to nvcc in model.build()
-        - libffi
-        - importlib-metadata  # [py<38]
-        # cuda-cudart and cuda-driver-dev come in automatically via run_exports from host
-
-      run_constrained:
-        - pygenn-cpu ==9999999999   # mutually exclusive: both install into site-packages/pygenn/
-        - __cuda >={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-
-    test:
-      imports:
-        - pygenn
-      files:
-        - tests/run_pygenn_cuda_smoketest.py
-      commands:
-        - python tests/run_pygenn_cuda_smoketest.py
-
-    about:
-      summary: "PyGeNN (CUDA backend)"
-      description: |
-        GeNN (GPU enhanced Neuronal Networks) with CUDA backend for GPU-accelerated
-        spiking neural network simulations. Also includes the CPU backend.
-        On machines without a GPU, conda will automatically select the cpu* variant.
-        To force the CPU variant: conda install "pygenn=*=cpu*"
+test:
+  imports:
+    - pygenn
+  files:
+    - tests/run_pygenn_cpu_smoketest.py  # [cuda_compiler_version == "None"]
+    - tests/run_pygenn_cuda_smoketest.py  # [cuda_compiler_version != "None"]
+  commands:
+    - python tests/run_pygenn_cpu_smoketest.py  # [not win and cuda_compiler_version == "None"]
+    - set "PATH=%PREFIX%\\Lib\\site-packages\\pygenn;%PATH%" && "%PREFIX%\\python" tests/run_pygenn_cpu_smoketest.py  # [win and cuda_compiler_version == "None"]
+    - python tests/run_pygenn_cuda_smoketest.py  # [cuda_compiler_version != "None"]
 
 about:
   summary: "PyGeNN: Python bindings for GeNN (GPU enhanced Neuronal Networks)"
@@ -191,13 +114,16 @@ about:
     GeNN (GPU enhanced Neuronal Networks) is a code generation framework for
     accelerating spiking neural network simulations using GPUs and CPUs.
 
-    Two variants are available under the single package name pygenn:
+    Two variants are built from this single recipe:
       - cpu*  build string: CPU-only backend, no CUDA required
       - cuda* build string: CUDA + CPU backends, requires NVIDIA driver at runtime
 
     conda selects the correct variant automatically based on whether an NVIDIA
     GPU driver is detected. Use CONDA_OVERRIDE_CUDA to override (e.g. on HPC
     login nodes without a GPU).
+      conda install pygenn                           # auto-selects
+      conda install "pygenn=*=cpu*"                  # force CPU
+      CONDA_OVERRIDE_CUDA=12.9 conda install pygenn  # force CUDA on headless node
 
 extra:
   # feedstock-name: pygenn
