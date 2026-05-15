@@ -1,52 +1,67 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: conda-forge staged-recipes <conda-forge@users.noreply.github.com>
 Date: Mon, 11 May 2026 08:30:00 -0700
-Subject: [PATCH] Drop strict vtable pointer optimization with GCC
+Subject: [PATCH] Avoid fast math and strict vtable pointer flags
 
 The conda-forge Linux build uses GCC with experimental upstream support.
 Filament's top-level CMake already omits -fstrict-vtable-pointers for GCC,
 but these helper libraries still passed the flag unconditionally on non-WebGL
-non-MSVC builds. GCC rejects the flag, so mirror the top-level GCC branch.
+non-MSVC builds. GCC rejects the strict-vtable flag, and conda-forge packages
+should avoid fast-math style floating-point semantics unless they are strictly
+necessary, so keep these helper targets on the conservative visibility-only
+flags.
 ---
- libs/generatePrefilterMipmap/CMakeLists.txt | 7 +++++++
- libs/iblprefilter/CMakeLists.txt            | 7 +++++++
- 2 files changed, 14 insertions(+)
+ libs/generatePrefilterMipmap/CMakeLists.txt | 8 ++++----
+ libs/iblprefilter/CMakeLists.txt            | 8 ++++----
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/libs/generatePrefilterMipmap/CMakeLists.txt b/libs/generatePrefilterMipmap/CMakeLists.txt
-index 2d89a4a..f0aa630 100644
+index 026f456..b6fd63b 100644
 --- a/libs/generatePrefilterMipmap/CMakeLists.txt
 +++ b/libs/generatePrefilterMipmap/CMakeLists.txt
-@@ -49,6 +49,13 @@ if (MSVC)
+@@ -49,15 +49,15 @@ if (MSVC)
  elseif(WEBGL)
      # Avoid strict-vtable-pointers here, it is broken in WebAssembly.
      set(OPTIMIZATION_FLAGS -fvisibility-inlines-hidden)
 +elseif(FILAMENT_USING_GCC)
 +    set(OPTIMIZATION_FLAGS
-+        -ffast-math
-+        -fno-finite-math-only
-+        -ffp-contract=fast
 +        -fvisibility-inlines-hidden
 +    )
  else()
      set(OPTIMIZATION_FLAGS
-         -ffast-math
+-        -ffast-math
+-        -fno-finite-math-only
+-        -ffp-contract=fast
+         # TODO: aggressive vectorization is currently broken on Android
+         #        -fslp-vectorize-aggressive
+         -fvisibility-inlines-hidden
+-        -fstrict-vtable-pointers
+     )
+ endif()
+ 
 diff --git a/libs/iblprefilter/CMakeLists.txt b/libs/iblprefilter/CMakeLists.txt
-index 2b27d06..41d571f 100644
+index 8ba2fdf..44e1b9d 100644
 --- a/libs/iblprefilter/CMakeLists.txt
 +++ b/libs/iblprefilter/CMakeLists.txt
-@@ -102,6 +102,13 @@ if (MSVC)
+@@ -102,15 +102,15 @@ if (MSVC)
  elseif(WEBGL)
      # Avoid strict-vtable-pointers here, it is broken in WebAssembly.
      set(OPTIMIZATION_FLAGS -fvisibility-inlines-hidden)
 +elseif(FILAMENT_USING_GCC)
 +    set(OPTIMIZATION_FLAGS
-+        -ffast-math
-+        -fno-finite-math-only
-+        -ffp-contract=fast
 +        -fvisibility-inlines-hidden
 +    )
  else()
      set(OPTIMIZATION_FLAGS
-         -ffast-math
+-        -ffast-math
+-        -fno-finite-math-only
+-        -ffp-contract=fast
+         # TODO: aggressive vectorization is currently broken on Android
+         #        -fslp-vectorize-aggressive
+         -fvisibility-inlines-hidden
+-        -fstrict-vtable-pointers
+     )
+ endif()
+ 
 -- 
 2.51.0
