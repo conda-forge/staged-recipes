@@ -27,9 +27,16 @@ fi
 
 cmake "${cmake_options[@]}"
 cmake --build build --parallel "${CPU_COUNT}" --target \
+  backend \
+  bluegl \
+  bluevk \
   cmgen \
   diffimg \
+  filabridge \
+  filaflat \
+  filament \
   filamesh \
+  geometry \
   glslminifier \
   matc \
   matinfo \
@@ -38,11 +45,14 @@ cmake --build build --parallel "${CPU_COUNT}" --target \
   normal-blending \
   resgen \
   roughness-prefilter \
+  shaders \
+  smol-v \
   specgen \
   specular-color \
-  uberz
+  uberz \
+  utils
 
-install -d "${PREFIX}/bin" "${PREFIX}/docs"
+install -d "${PREFIX}/bin" "${PREFIX}/docs" "${PREFIX}/include" "${PREFIX}/lib"
 
 for tool in \
   cmgen \
@@ -61,6 +71,36 @@ for tool in \
   uberz; do
   install -m 755 "build/tools/${tool}/${tool}" "${PREFIX}/bin/${tool}"
 done
+
+for header_dir in \
+  filament/include/filament \
+  filament/backend/include/backend \
+  libs/filabridge/include/filament \
+  libs/filaflat/include/filaflat \
+  libs/geometry/include/geometry \
+  libs/math/include/math \
+  libs/utils/include/utils; do
+  cp -R "${header_dir}" "${PREFIX}/include/"
+done
+
+for library in \
+  filament \
+  backend \
+  bluegl \
+  bluevk \
+  filabridge \
+  filaflat \
+  geometry \
+  shaders \
+  smol-v \
+  utils; do
+  library_path="$(find build -type f -name "lib${library}.a" -print -quit)"
+  test -n "${library_path}"
+  install -m 644 "${library_path}" "${PREFIX}/lib/"
+done
+
+install -d "${PREFIX}/lib/cmake/Filament"
+install -m 644 "${RECIPE_DIR}/FilamentConfig.cmake" "${PREFIX}/lib/cmake/Filament/FilamentConfig.cmake"
 
 install -m 644 LICENSE README.md "${PREFIX}/"
 install -m 644 tools/filamesh/README.md "${PREFIX}/docs/filamesh.md"
