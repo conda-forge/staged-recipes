@@ -1,0 +1,71 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: nbplay
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/n/nbplay/nbplay-${{ version }}.tar.gz
+  sha256: f0579bf9a54b474ff850b8830e9dc4c2bad2efbae6a9466c357c532d13386e6e
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  script:
+    - if: unix
+      then: export PYO3_PYTHON="$PYTHON"
+      else: set "PYO3_PYTHON=%PYTHON%"
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: is_abi3 and not is_python_min
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - hatchling
+    - hatch-js
+    - hatch-rs
+    - pnpm
+    - if: is_abi3
+      then:
+      - python-abi3
+  run:
+    - python
+    - anywidget
+    - ipywidgets >=8
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports:
+        - nbplay
+      pip_check: true
+      python_version: ${{ python_min }}.*
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Let's play!
+  homepage: https://github.com/1kbgz/nbplay
+  repository: https://github.com/1kbgz/nbplay
+
+extra:
+  recipe-maintainers:
+    - timkpaine
