@@ -1,0 +1,126 @@
+context:
+  name: openfold
+  version: "0.4.0"
+  build_number: 0
+  torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aqlaboratory/openfold-3/archive/refs/tags/${{ version }}.tar.gz
+  sha256: ed31b0cd675a3bdda2a28e443750bb484aebaf980fb5ffa5a695f6dc883237e7
+
+build:
+  number: ${{ build_number }}
+  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  skip:
+    - win
+    - osx and x86_64
+  script:
+    - pip install . --no-deps --ignore-installed --no-cache-dir -vvv
+    # here we can put instructions to compile exceptions, we need some config in OF3 itself to allow:
+    #   - having a custom location for exceptions
+    #   - overriding the custom location for power users / extension rebuild
+    # we need cross-compilation and hardware-independent extension building
+    # otherwise we need some tricks from our pixi envs (e.g., build envvars) and make them part of the package activation
+    # here is an example that likely will not work
+    # (as we are not making the build independent of HW yet and anyway we would need a full package installation)
+#    - if: cuda_compiler_version != "None"
+#      then:
+#        - export TRITON_PTXAS_PATH=$CONDA_PREFIX/bin/ptxas
+#        - export TRITON_PTXAS_BLACKWELL_PATH=$TRITON_PTXAS_PATH
+#        - export CUTLASS_PATH=DS_IGNORE_CUTLASS_DETECTION
+#        - export TORCH_EXTENSIONS_DIR=$CONDA_PREFIX/caches/torch_extensions
+#        - pytest -v openfold3/tests/test_kernels.py -v
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-profiler-api
+        - libcublas-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+  host:
+    - pip
+    - python
+    - setuptools
+    - pytest
+    # For the `async_io` op
+    - if: linux
+      then: libaio
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-profiler-api
+        - libcublas-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - oneccl-devel
+        - pytorch * [build=${{ torch_proc_type }}*]
+  run:
+    - python
+    - numpy
+    - scipy
+    - pandas
+    # --- Machine learning
+    - pytorch
+    - pytorch-lightning
+    - ml-collections
+    # --- Handling molecules
+    - rdkit
+    - biotite
+    - pdbeccdutils
+    # waiting for the recipe to conda-forge to be accepted
+    # - kalign-python
+    # --- Misc
+    - pyyaml
+    - ijson
+    - memory_profiler
+    - wandb
+    - func_timeout
+    - tqdm
+    - typing-extensions
+    - python-lmdb
+    # --- Downloading stuff
+    - requests
+    - awscli
+    - awscrt
+    - boto3
+    - aria2
+    - if: cuda_compiler_version != "None" and linux-64  # we would need a deepspeed aarch64 package
+      then:
+        - deepspeed
+
+tests:
+  - python:
+      imports:
+        - openfold3
+      pip_check: false  # TODO: activate once we merge the modernized conda PR
+  - script:
+      - run_openfold --help
+  # Maybe also run the CPU test suite (and maybe GPU if going for one of the CUDA build hosts?)
+
+about:
+  homepage: https://openfold.io
+  repository: https://github.com/aqlaboratory/openfold-3
+  summary: OpenFold's Biological Structure Prediction Model based on DeepMind's AlphaFold 3
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    # - jandom
+    # - jnwei
+    - sdvillal
