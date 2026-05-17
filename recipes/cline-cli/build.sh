@@ -17,12 +17,12 @@ jq 'del(.devDependencies)' package.json.bak > package.json
 pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+# Create wrapper scripts for cline
 tee ${PREFIX}/bin/cline << EOF
 #!/bin/sh
 exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/cline/dist/index.js" "$@"
 EOF
 chmod +x ${PREFIX}/bin/cline
-
 tee ${PREFIX}/bin/cline.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\cline\dist\index.js %*
 EOF
