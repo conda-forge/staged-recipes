@@ -2,13 +2,12 @@
 set -exo pipefail
 
 # Install globally
-npm install \
-    -ddd \
-    --global \
-    --prefix "${PREFIX}" \
+npm pack --ignore-scripts
+npm install -ddd \
     --no-bin-links \
+    --global \
     --build-from-source \
-    .
+    cline-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
 mv package.json package.json.bak
