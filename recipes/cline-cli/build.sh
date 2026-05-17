@@ -2,7 +2,8 @@
 set -exo pipefail
 
 # Install globally
-pnpm install -ddd \
+npm install \
+    -ddd \
     --global \
     --prefix "${PREFIX}" \
     --no-bin-links \
