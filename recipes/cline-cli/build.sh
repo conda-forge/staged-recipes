@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-# Create package archive and install globally
-pnpm pack --ignore-scripts
+# Install globally
 pnpm install -ddd \
-    --no-bin-links \
     --global \
+    --prefix "${PREFIX}" \
+    --no-bin-links \
     --build-from-source \
-    cline-${PKG_VERSION}.tgz
+    .
 
 # Create license report for dependencies
 mv package.json package.json.bak
@@ -18,11 +18,12 @@ pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 # Create wrapper scripts for cline
-tee ${PREFIX}/bin/cline << EOF
+tee ${PREFIX}/bin/cline << 'EOF'
 #!/bin/sh
-exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/cline/dist/index.js" "$@"
+exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/cline/bin/cline" "$@"
 EOF
 chmod +x ${PREFIX}/bin/cline
-tee ${PREFIX}/bin/cline.cmd << EOF
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\cline\dist\index.js %*
+
+tee ${PREFIX}/bin/cline.cmd << 'EOF'
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\cline\bin\cline %*
 EOF
