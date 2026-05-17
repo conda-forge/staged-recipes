@@ -23,6 +23,9 @@ if errorlevel 1 exit /b 1
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 if errorlevel 1 exit /b 1
 
+if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
+if errorlevel 1 exit /b 1
+
 (
 echo @echo off
 echo set "PREFIX_DIR=%%~dp0.."
