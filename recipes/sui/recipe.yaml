@@ -1,0 +1,161 @@
+context:
+  version: "1.68.1"
+
+recipe:
+  name: sui
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MystenLabs/sui/archive/refs/tags/testnet-v${{ version }}.tar.gz
+  sha256: 768efe9c7d3a0714002509d34ca25e0aaded65478f329ef7561fbc691d9b90c0
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: sui
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - if: unix
+            then:
+              - export GIT_REVISION=$(curl -s "https://api.github.com/repos/MystenLabs/sui/commits/testnet-v${PKG_VERSION}" | jq --raw-output .sha[0:12])
+            else:
+              - for /f %%I in ('curl -s "https://api.github.com/repos/MystenLabs/sui/commits/testnet-v%PKG_VERSION%" ^| jq -r ".sha[0:12]"') do set GIT_REVISION=%%I
+          - if: unix
+            then:
+              - export LIBCLANG_PATH=$PREFIX/lib
+            else:
+              - set LIBCLANG_PATH=%LIBRARY_BIN%
+              - |
+                for %%f in ("%LIBCLANG_PATH%\libclang-*.dll") do (
+                  copy "%%f" "%LIBCLANG_PATH%\libclang.dll"
+                  echo "copied %%f to %LIBCLANG_PATH%\libclang.dll"
+                )
+          - if: unix
+            then:
+              - cargo auditable install --no-track --locked --root $PREFIX --path crates/sui --features tracing
+            else:
+              - cargo auditable install --no-track --locked --root %LIBRARY_PREFIX% --path crates/sui --features tracing
+          - if: unix
+            then:
+              - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/zsh/site-functions $PREFIX/share/fish/vendor_completions.d
+              - $PREFIX/bin/sui completion --generate bash > $PREFIX/share/bash-completion/completions/sui
+              - $PREFIX/bin/sui completion --generate zsh > $PREFIX/share/zsh/site-functions/_sui
+              - $PREFIX/bin/sui completion --generate fish > $PREFIX/share/fish/vendor_completions.d/sui.fish
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+        - libpq
+        - pkg-config
+        - protobuf
+        - curl
+        - if: win
+          then:
+            - ninja
+            - m2w64-jq
+          else:
+            - jq
+            - make
+      host:
+        - clang
+        - libclang
+    tests:
+      - script:
+          - sui --version
+      - package_contents:
+          bin:
+            - sui
+          files:
+            - if: unix
+              then:
+                - share/bash-completion/completions/sui
+                - share/zsh/site-functions/_sui
+                - share/fish/vendor_completions.d/sui.fish
+          strict: true
+
+  - package:
+      name: move-analyzer
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - if: unix
+            then:
+              - export GIT_REVISION=$(curl -s "https://api.github.com/repos/MystenLabs/sui/commits/testnet-v${PKG_VERSION}" | jq --raw-output .sha[0:12])
+            else:
+              - for /f %%I in ('curl -s "https://api.github.com/repos/MystenLabs/sui/commits/testnet-v%PKG_VERSION%" ^| jq -r ".sha[0:12]"') do set GIT_REVISION=%%I
+          - if: unix
+            then:
+              - export LIBCLANG_PATH=$PREFIX/lib
+            else:
+              - set LIBCLANG_PATH=%LIBRARY_BIN%
+              - |
+                for %%f in ("%LIBCLANG_PATH%\libclang-*.dll") do (
+                  copy "%%f" "%LIBCLANG_PATH%\libclang.dll"
+                  echo "copied %%f to %LIBCLANG_PATH%\libclang.dll"
+                )
+          - if: unix
+            then:
+              - cargo auditable install --no-track --locked --root $PREFIX --path crates/sui-move-lsp
+            else:
+              - cargo auditable install --no-track --locked --root %LIBRARY_PREFIX% --path crates/sui-move-lsp
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+        - pkg-config
+        - protobuf
+        - curl
+        - if: win
+          then:
+            - ninja
+            - m2w64-jq
+          else:
+            - jq
+            - make
+      host:
+        - clang
+        - libclang
+    tests:
+      - script:
+          - move-analyzer --version
+      - package_contents:
+          bin:
+            - move-analyzer
+          strict: true
+
+about:
+  homepage: https://github.com/MystenLabs/sui
+  summary: Sui, a next-generation smart contract platform with high throughput, low latency, and an asset-oriented programming model powered by the Move programming language
+  description: |
+    Sui is a next-generation smart contract platform with high throughput, low latency, and an asset-oriented programming model powered by the Move programming language.
+  license: Apache-2.0 AND CC-BY-4.0
+  license_file:
+    - LICENSE
+    - LICENSE-docs
+    - THIRDPARTY.yml
+  documentation: https://docs.sui.io
+  repository: https://github.com/MystenLabs/sui
+
+extra:
+  feedstock-name: sui
+  recipe-maintainers:
+    - yuikisaito
