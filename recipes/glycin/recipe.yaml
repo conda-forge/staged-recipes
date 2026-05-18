@@ -1,0 +1,196 @@
+context:
+  name: glycin
+  version: "2.1.1"
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+
+recipe:
+  name: glycin_and_loaders
+  version: ${{ version }}
+
+source:
+  url: https://download.gnome.org/sources/glycin/${{ version_majmin }}/glycin-${{ version }}.tar.xz
+  sha256: 8e8e92e312b14d2c5f3a047bdc5305adcb9931ef0150cf74bf526a3741e6fb32
+
+build:
+  number: 0
+
+outputs:
+
+  - package:
+      name: ${{ name|lower }}
+    build:
+      skip:
+        - not linux
+      script: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dvapi=false \
+            -Dtests=false \
+            -Dglycin-thumbnailer=false \
+            -Dglycin-loaders=false \
+            -Dlibglycin=true \
+            -Dlibglycin-gtk4=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - gobject-introspection
+        - meson >=0.63.0
+        - ninja
+        - pkg-config
+        - rust
+      host:
+        - expat
+        - fontconfig
+        - freetype
+        - glib
+        - gobject-introspection
+        - lcms2
+        - libseccomp
+        - zlib
+      run_exports:
+        - ${{ pin_subpackage('glycin', upper_bound='x.x') }}
+      ignore_run_exports:
+        by_name:
+          - libexpat
+          - libfreetype6
+          - libzlib
+    tests:
+      - package_contents:
+          lib:
+            - libglycin-2
+
+  - package:
+      name: ${{ name|lower }}-loaders
+    build:
+      skip:
+        - not linux
+      script: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dvapi=false \
+            -Dtests=false \
+            -Dglycin-thumbnailer=false \
+            -Dglycin-loaders=true \
+            -Dlibglycin=false \
+            -Dlibglycin-gtk4=false \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - gettext
+        - gobject-introspection
+        - meson >=0.63.0
+        - ninja
+        - pkg-config
+        - rust
+      host:
+        - cairo
+        - expat
+        - freetype
+        - glib
+        - gobject-introspection
+        - libheif
+        - libjxl
+        - librsvg
+        - libseccomp
+        - libxml2-devel
+        - xorg-xorgproto
+        - zlib
+      run_exports:
+        - ${{ pin_subpackage('glycin-loaders', upper_bound='x.x') }}
+      ignore_run_exports:
+        by_name:
+          - libexpat
+          - libfreetype6
+          - libxml2-16
+          - libzlib
+          - libseccomp
+    tests:
+      - package_contents:
+          files:
+            - libexec/glycin-loaders/2+/glycin-heif
+            - libexec/glycin-loaders/2+/glycin-image-rs
+            - libexec/glycin-loaders/2+/glycin-jxl
+            - libexec/glycin-loaders/2+/glycin-svg
+
+  - package:
+      name: ${{ name|lower }}-gtk4
+    build:
+      skip:
+        - not linux
+      script: |
+        meson setup ${MESON_ARGS} \
+            --prefix=$PREFIX \
+            --default-library=shared \
+            --wrap-mode=nofallback \
+            -Dvapi=false \
+            -Dtests=false \
+            -Dglycin-thumbnailer=false \
+            -Dglycin-loaders=false \
+            -Dlibglycin=false \
+            -Dlibglycin-gtk4=true \
+            builddir
+        ninja -v -C builddir -j ${CPU_COUNT}
+        ninja -C builddir install -j ${CPU_COUNT}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - gobject-introspection
+        - meson >=0.63.0
+        - ninja
+        - pkg-config
+        - rust
+      host:
+        - ${{ pin_subpackage('glycin', exact=True) }}
+        - expat
+        - freetype
+        - glib
+        - gobject-introspection
+        - gtk4 >= 4.16.0
+        - lcms2
+        - libseccomp
+        - zlib
+      run:
+        - ${{ pin_subpackage('glycin', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('glycin-gtk4', upper_bound='x.x') }}
+      ignore_run_exports:
+        by_name:
+          - libexpat
+          - libfreetype6
+          - libzlib
+          - lcms2
+          - libseccomp
+    tests:
+      - package_contents:
+          lib:
+            - libglycin-gtk4-2
+
+about:
+  homepage: https://gitlab.gnome.org/GNOME/glycin
+  summary: 'Sandboxed and extendable image loading'
+  description: |
+    Glycin allows to decode, edit, and create images and
+    read metadata. The decoding happens in sandboxed modular
+    image loaders and editors.
+  license: LGPL-2.1-or-later
+  license_file: LICENSE-LGPL-2.1
+  repository: https://gitlab.gnome.org/GNOME/glycin
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
+    - danyeaw
+    - Hofer-Julian
