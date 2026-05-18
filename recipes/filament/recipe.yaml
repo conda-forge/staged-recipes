@@ -1,0 +1,132 @@
+schema_version: 1
+
+context:
+  name: filament
+  version: "1.71.3"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/google/filament/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5fa14aaa3d1284da1ad79c0548a9fbe249c99b2c081001b14ffa6af754cc6188
+  patches:
+    - patches/0001-guard-newer-metal-command-buffer-errors.patch
+    - patches/0002-drop-strict-vtable-pointers-with-gcc.patch
+    - patches/0003-use-system-libpng-zlib.patch
+    - patches/0004-build-selected-shared-libraries.patch
+
+build:
+  number: 0
+  skip: win
+  script:
+    - bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - python
+  host:
+    - assimp
+    - if: linux
+      then: libegl-devel
+    - if: linux
+      then: libgl-devel
+    - if: linux
+      then: libgles-devel
+    - libpng
+    - zlib
+    - zstd
+  run:
+    - if: linux
+      then: libegl
+    - if: linux
+      then: libgl
+    - tsl_robin_map
+    - zstd
+  run_exports:
+    - ${{ pin_subpackage('filament', upper_bound='x.x') }}
+  ignore_run_exports:
+    from_package:
+      - if: linux
+        then: libgles-devel
+
+tests:
+  - files:
+      recipe:
+        - bakedColor.mat
+        - check_package_payload.py
+        - test-cmake
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - python
+    script:
+      - python check_package_payload.py
+      - matc --help
+      - matinfo --help
+      - cmgen --help
+      - filamesh --help
+      - matc -a opengl -p desktop -o bakedColor.filamat bakedColor.mat
+      - test -f "${PREFIX}/include/filament/Engine.h"
+      - test -f "${PREFIX}/include/backend/DriverEnums.h"
+      - test -f "${PREFIX}/lib/libfilament${SHLIB_EXT}"
+      - test -f "${PREFIX}/lib/libbackend${SHLIB_EXT}"
+      - test -f "${PREFIX}/lib/libutils${SHLIB_EXT}"
+      - test -f "${PREFIX}/lib/cmake/Filament/FilamentConfig.cmake"
+      - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build test-cmake-build --verbose
+      - ./test-cmake-build/hello_world
+
+about:
+  summary: Real-time physically based rendering engine
+  description: |
+    Filament is a real-time physically based rendering engine for Android,
+    iOS, Windows, Linux, macOS, and WebGL2. This package provides host-side
+    command line tools and a constrained shared C++ development surface for
+    downstream consumers.
+  license: Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND MIT AND Zlib
+  license_file:
+    - LICENSE
+    - third_party/abseil/LICENSE
+    - third_party/basisu/LICENSE
+    - third_party/benchmark/LICENSE
+    - third_party/cgltf/LICENSE
+    - third_party/civetweb/LICENSE.md
+    - third_party/clang/LICENSE.TXT
+    - third_party/dawn/LICENSE
+    - third_party/draco/LICENSE
+    - third_party/getopt/LICENSE
+    - third_party/gl-matrix/LICENSE.md
+    - third_party/glslang/LICENSE
+    - third_party/glslang/LICENSE.txt
+    - third_party/gltumble/LICENSE
+    - third_party/imgui/LICENSE.txt
+    - third_party/jsmn/LICENSE
+    - third_party/libgtest/LICENSE
+    - third_party/libwebp/COPYING
+    - third_party/markdeep/LICENSE
+    - third_party/meshoptimizer/LICENSE
+    - third_party/robin-map/LICENSE
+    - third_party/smol-v/LICENSE
+    - third_party/spirv-cross/LICENSE
+    - third_party/spirv-cross/LICENSES/LicenseRef-KhronosFreeUse.txt
+    - third_party/spirv-headers/LICENSE
+    - third_party/spirv-tools/LICENSE
+    - third_party/stb/LICENSE
+    - third_party/tinyexr/LICENSE
+    - third_party/vkmemalloc/LICENSE.txt
+  homepage: https://github.com/google/filament
+  repository: https://github.com/google/filament
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
