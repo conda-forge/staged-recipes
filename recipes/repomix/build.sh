@@ -10,12 +10,9 @@ npm run build
 # Generate production-only license report
 cp package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
-
 rm -rf node_modules
-npm install -ddd --omit=dev --ignore-scripts --package-lock=false
-
+pnpm install --prod
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-
 mv package.json.bak package.json
 
 # Pack built package. Avoid re-running prepare.
