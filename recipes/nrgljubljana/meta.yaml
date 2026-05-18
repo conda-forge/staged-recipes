@@ -1,0 +1,85 @@
+{% set name = "nrgljubljana" %}
+{% set version = "2026.05.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/rokzitko/nrgljubljana/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 254e136471f69bdcbab48dd7210d59835e0984649aec145151144b59271afa3b
+
+build:
+  number: 0
+  skip: true  # [win]
+  ignore_run_exports_from:
+    # fmt is used as a header-only library, so no libfmt runtime link is needed.
+    - fmt
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake >=3.25
+    - ninja
+  host:
+    - blas-devel * *{{ blas_impl }}
+    - eigen >=3.4,<3.5
+    - fmt 11.2.0
+    - gmp
+    - gsl
+    - hdf5
+    - highfive 3.1.0
+    - libboost-devel
+    - libboost-mpi
+    - llvm-openmp  # [linux or osx]
+    - mpich  # [linux or osx]
+    - range-v3 0.12.*
+  run:
+    - gmp
+    - gsl
+    - hdf5
+    - libboost-mpi
+    - llvm-openmp  # [linux or osx]
+    - blas-devel * *{{ blas_impl }}
+    - libblas * *{{ blas_impl }}
+    - libopenblas  # [blas_impl == "openblas"]
+    - blis  # [blas_impl == "blis"]
+    - liblapack  # [blas_impl == "blis"]
+    - mkl  # [blas_impl == "mkl"]
+    - mpich  # [linux or osx]
+
+test:
+  commands:
+    - test -x "${PREFIX}/bin/nrg"  # [unix]
+    - test -x "${PREFIX}/bin/adapt"  # [unix]
+    - test -x "${PREFIX}/bin/instantiate"  # [unix]
+    - test -x "${PREFIX}/nrginit/nrginit"  # [unix]
+    - test -f "${PREFIX}/nrginit/nrginit.m"  # [unix]
+    - test -z "$(ldd "${PREFIX}/bin/nrg" | grep 'not found')"  # [linux]
+    - test -f "${PREFIX}/lib/libnrgljubljana_c.so"  # [linux]
+    - test -f "${PREFIX}/lib/libnrgljubljana_c.dylib"  # [osx]
+    - test -f "${PREFIX}/lib/cmake/nrgljubljana/nrgljubljana-config.cmake"  # [unix]
+    - test -f "${PREFIX}/etc/conda/activate.d/nrgljubljana.sh"  # [unix]
+    - test -f "${PREFIX}/etc/conda/deactivate.d/nrgljubljana.sh"  # [unix]
+    - grep -q 'CONDA_PREFIX}/nrginit' "${PREFIX}/etc/conda/activate.d/nrgljubljana.sh"  # [unix]
+
+about:
+  home: https://github.com/rokzitko/nrgljubljana
+  summary: Numerical renormalization group framework for quantum impurity problems
+  description: |
+    NRG Ljubljana is a framework for numerical renormalization group calculations
+    for quantum impurity problems. This recipe builds the C++ runtime and the
+    standalone tools from conda-packaged dependencies.
+
+    The nrginit scripts are installed as part of the package. Using them
+    requires Mathematica at runtime.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  dev_url: https://github.com/rokzitko/nrgljubljana
+  doc_url: http://auger.ijs.si/nrgljubljana/site/
+
+extra:
+  recipe-maintainers:
+    - rokzitko
