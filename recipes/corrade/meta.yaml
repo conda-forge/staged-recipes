@@ -1,0 +1,62 @@
+{% set name = "corrade" %}
+# Habitat-Sim v0.3.1 vendors this post-v2020.06 snapshot.
+{% set version = "2024.02.14" %}
+{% set commit = "6ada38d8b02f341c60af0613dc43b474df8822e1" %}
+
+package:
+  name: {{ name|lower }}
+  version: "{{ version }}"
+
+source:
+  - url: https://github.com/mosra/corrade/archive/{{ commit }}.tar.gz
+    sha256: 9352222b0780362490696284cc63716f2cf9978d3cce88023c99e1e0f1bebbb0
+  - url: https://github.com/mosra/toolchains/archive/b0ea02e52c4b0b0622a7c6656b250a167ee4afbd.tar.gz
+    sha256: 224126e558bd223b60594b06006e91104966618bdbeda1006e9c37c39d177d05
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('corrade', max_pin='x.x') }}
+  skip: true  # [win or osx]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - ninja
+    - catch2
+    - cmake <4
+    - pkg-config
+
+  host:
+    - xorg-libx11
+    - xorg-libxext
+    - xorg-libxfixes
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake <4
+    - ninja
+  files:
+    - test-cmake
+  commands:
+    - corrade-rc --help > /dev/null  # [linux]
+    - test -f $PREFIX/share/cmake/Corrade/CorradeConfig.cmake  # [not win]
+    - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release  # [unix]
+    - cmake --build test-cmake-build --verbose  # [unix]
+    - ./test-cmake-build/corrade_consumer  # [unix]
+    - if not exist %PREFIX%\\Library\\share\\cmake\\Corrade\\CorradeConfig.cmake exit 1  # [win]
+
+about:
+  home: https://magnum.graphics/corrade/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: C++11 multiplatform utility library
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
