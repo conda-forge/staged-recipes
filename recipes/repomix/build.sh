@@ -1,29 +1,42 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-# Install globally
-npm pack --ignore-scripts
-npm install -ddd \
-    --global \
-    --ignore-scripts \
-    --no-bin-links \
-    ${PKG_NAME}-${PKG_VERSION}.tgz
+# Install dependencies exactly from package-lock.json
+npm ci --ignore-scripts
 
-# Create license report for dependencies
-mv package.json package.json.bak
+# Build lib/ from TypeScript source
+npm run build
+
+# Generate production-only license report
+cp package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
 
-# Create license report for dependencies
-pnpm install
+rm -rf node_modules
+npm install -ddd --omit=dev --ignore-scripts --package-lock=false
+
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
-# Create wrapper scripts
-tee ${PREFIX}/bin/repomix << 'EOF'
-#!/bin/sh
-exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/repomix/dist/index.js" "$@"
-EOF
-chmod +x ${PREFIX}/bin/repomix
+mv package.json.bak package.json
 
-tee ${PREFIX}/bin/repomix.cmd << 'EOF'
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\repomix\dist\index.js %*
+# Pack built package. Avoid re-running prepare.
+TARBALL="$(npm pack --ignore-scripts | tail -n 1)"
+
+# Install from tarball, not local directory, to avoid symlink package body.
+npm install -ddd \
+  --global \
+  --prefix "${PREFIX}" \
+  --ignore-scripts \
+  --no-bin-links \
+  "./${TARBALL}"
+
+mkdir -p "${PREFIX}/bin"
+
+cat > "${PREFIX}/bin/repomix" <<'EOF'
+#!/bin/sh
+exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/repomix/bin/repomix.cjs" "$@"
+EOF
+chmod +x "${PREFIX}/bin/repomix"
+
+cat > "${PREFIX}/bin/repomix.cmd" <<'EOF'
+call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\repomix\bin\repomix.cjs %*
 EOF
