@@ -1,0 +1,121 @@
+{% set name = "fi-core" %}
+{% set version = "0.4.0" %}
+{% set sha256 = "4718e221ec48c5aecf8ff299607d3739b03ea28f85b53b5ccaa8da0b076917ca" %}
+{% set python_min = "3.14" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/BernardUriza/free-intelligence/releases/download/fi-core-v{{ version }}/fi_core-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  noarch: python
+  # PIP_USER=0 overrides any user-site-packages setting in the build env.
+  # Without it, pip can fall back to --user install which breaks conda-build's
+  # prefix-relative install path.
+  script: PIP_USER=0 {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools >=64
+    - wheel
+  run:
+    - python >={{ python_min }}
+    # Optional deps for fi_core.stores.hdf5 are included by default in the
+    # conda build so consumers get a fully functional package out of the
+    # box. The PyPI extras (`fi-core[stores-hdf5]`) collapse here into a
+    # single conda package — conda's strength is exactly the kind of
+    # compiled binary deps that h5py + numpy carry.
+    - h5py >=3.10
+    # numpy upper bound: pinned <3 as a defensive safety net. fi-core only
+    # uses numpy.asarray, linalg.norm, argpartition, argsort, stack, and the
+    # @ matmul operator — all of which work fine on numpy 2.x — but the
+    # eventual 3.x release may shift ABI/API in ways that are not yet known
+    # at recipe-authoring time. Re-evaluate this bound when numpy 3.0 lands.
+    - numpy >=1.24,<3
+    # MCP SDK for the persona MCP server (`fi_core.persona.mcp_server`).
+    # Bundled by default since the MCP server is the headline integration
+    # path for this release. Upper bound pinned <2 because the MCP SDK is
+    # in active development (1.x has shipped through 1.25 within months);
+    # signature changes in a future 2.x are likely and would silently break
+    # the persona MCP server contract.
+    - mcp >=1.4,<2
+
+test:
+  imports:
+    - fi_core
+    - fi_core.rag
+    - fi_core.rag.protocols
+    - fi_core.rag.types
+    - fi_core.persona
+    - fi_core.persona.detect
+    - fi_core.persona.packs
+    - fi_core.persona.mcp_server
+    - fi_core.stores
+    - fi_core.stores.hdf5
+  requires:
+    - python {{ python_min }}
+    - pip
+  source_files:
+    - run_test.py
+  commands:
+    # Pip dependency consistency check.
+    - pip check
+    # Run the three smoke tests (HDF5 store, persona detector, MCP atomic
+    # loop) from an externalized script. Script is committed alongside
+    # meta.yaml under recipes/fi-core/run_test.py for readability and
+    # local debuggability — running it outside conda-build is the same
+    # `python run_test.py` invocation.
+    - python run_test.py
+
+about:
+  home: https://github.com/BernardUriza/free-intelligence/tree/main/apps/packages/fi-core
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: >
+    Shared LLM primitives — RAG chunking + Embedder/ChunkStore protocols,
+    HDF5-backed document chunk store, persona character-integrity detection.
+  description: |
+    fi-core ships reusable primitives for building production LLM applications,
+    extracted from real production consumers (AURITY medical RAG platform,
+    Insult Discord AI persona bot).
+
+    Four product surfaces in one package:
+
+    - **fi_core.rag** — chunking algorithms (paragraph-aware, sentence-aware,
+      fixed-size) plus Protocol classes for Embedder / ChunkStore /
+      DocumentChunkStore. Zero-deps core.
+    - **fi_core.stores.hdf5** — h5py-backed reference implementation of
+      DocumentChunkStore. Per-namespace document tree with in-memory cosine
+      similarity index, idempotent bulk save_chunks, status auto-promotion
+      (pending → indexed), cascading delete. Async canonical API + public
+      sync facades for legacy adapter consumers.
+    - **fi_core.persona** — anti-drift detectors (BreakDetector,
+      AntiPatternMonitor, ClarificationDumpDetector, sanitize) with bilingual
+      English + Spanish pattern packs (AI disclosure, assistant tone,
+      therapy-speak, summarizing, stage directions, markdown drift,
+      moralizing, over-validation, clarification dump). Pure regex,
+      zero LLM calls at detection time.
+    - **fi_core.persona.mcp_server** — Model Context Protocol server that
+      exposes the persona detectors as tools any MCP-compatible AI client
+      (Claude Code, Cursor, Anthropic API with MCP enabled) can call
+      directly. Includes an atomic validate_and_retry_prompt tool that
+      lets an AI self-validate its output and receive a reinforced
+      system prompt in a single round-trip.
+
+    Use cases include medical RAG with clinic-scoped namespacing, conversational
+    AI personas with character integrity hardening, and AI agents that need
+    cheap deterministic self-validation before sending output to users.
+  doc_url: https://github.com/BernardUriza/free-intelligence/tree/main/apps/packages/fi-core
+  dev_url: https://github.com/BernardUriza/free-intelligence
+
+extra:
+  recipe-maintainers:
+    - BernardUriza
