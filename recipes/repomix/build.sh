@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-# Install dependencies exactly from package-lock.json
-npm ci --ignore-scripts
-
-# Build lib/ from TypeScript source
-npm run build
+pnpm import
+pnpm install --ignore-scripts
+pnpm run build
 
 # Generate production-only license report
 cp package.json package.json.bak
 jq 'del(.devDependencies)' package.json.bak > package.json
-rm -rf node_modules
-pnpm install --prod
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 mv package.json.bak package.json
 
-# Pack built package. Avoid re-running prepare.
+# Pack built package
 TARBALL="$(npm pack --ignore-scripts | tail -n 1)"
 
 # Install from tarball, not local directory, to avoid symlink package body.
