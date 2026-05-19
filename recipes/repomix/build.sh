@@ -1,35 +1,30 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-pnpm import
-pnpm install --ignore-scripts
-pnpm run build
-
-# Generate production-only license report
-cp package.json package.json.bak
-jq 'del(.devDependencies)' package.json.bak > package.json
-pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-mv package.json.bak package.json
-
-# Pack built package
-TARBALL="$(npm pack --ignore-scripts | tail -n 1)"
-
-# Install from tarball, not local directory, to avoid symlink package body.
+# Install globally
+npm pack --ignore-scripts
 npm install -ddd \
-  --global \
-  --prefix "${PREFIX}" \
-  --ignore-scripts \
-  --no-bin-links \
-  "./${TARBALL}"
+    --global \
+    --prefix "${PREFIX}" \
+    --build-from-source \
+    --no-bin-links \
+    ${PKG_NAME}-${PKG_VERSION}.tgz
 
-mkdir -p "${PREFIX}/bin"
+# Create license report for dependencies
+mv package.json package.json.bak
+jq 'del(.devDependencies)' package.json.bak > package.json
 
-cat > "${PREFIX}/bin/repomix" <<'EOF'
+# Create license report for dependencies
+pnpm install --ignore-scripts
+pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+
+# Create wrapper scripts
+tee ${PREFIX}/bin/repomix << 'EOF'
 #!/bin/sh
 exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/repomix/bin/repomix.cjs" "$@"
 EOF
-chmod +x "${PREFIX}/bin/repomix"
+chmod +x ${PREFIX}/bin/repomix
 
-cat > "${PREFIX}/bin/repomix.cmd" <<'EOF'
+tee ${PREFIX}/bin/repomix.cmd << 'EOF'
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\repomix\bin\repomix.cjs %*
 EOF
