@@ -2,8 +2,8 @@
 set -exo pipefail
 
 # Install globally
-"${PREFIX}/bin/npm" pack --ignore-scripts
-"${PREFIX}/bin/npm" install -ddd \
+pnpm pack --config.ignore-scripts=true
+npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
     --ignore-scripts \
