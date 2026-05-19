@@ -6,7 +6,7 @@ npm pack --ignore-scripts
 npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
-    --build-from-source \
+    --ignore-scripts \
     --no-bin-links \
     ${PKG_NAME}-${PKG_VERSION}.tgz
 
