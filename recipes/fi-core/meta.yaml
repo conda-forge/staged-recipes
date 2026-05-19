@@ -1,7 +1,7 @@
 {% set name = "fi-core" %}
 {% set version = "0.4.0" %}
 {% set sha256 = "4718e221ec48c5aecf8ff299607d3739b03ea28f85b53b5ccaa8da0b076917ca" %}
-{% set python_min = "3.12" %}
+{% set python_min = "3.14" %}
 
 package:
   name: {{ name }}
@@ -33,11 +33,19 @@ requirements:
     # single conda package — conda's strength is exactly the kind of
     # compiled binary deps that h5py + numpy carry.
     - h5py >=3.10
-    - numpy >=1.24
+    # numpy upper bound: pinned <3 as a defensive safety net. fi-core only
+    # uses numpy.asarray, linalg.norm, argpartition, argsort, stack, and the
+    # @ matmul operator — all of which work fine on numpy 2.x — but the
+    # eventual 3.x release may shift ABI/API in ways that are not yet known
+    # at recipe-authoring time. Re-evaluate this bound when numpy 3.0 lands.
+    - numpy >=1.24,<3
     # MCP SDK for the persona MCP server (`fi_core.persona.mcp_server`).
     # Bundled by default since the MCP server is the headline integration
-    # path for this release.
-    - mcp >=1.4
+    # path for this release. Upper bound pinned <2 because the MCP SDK is
+    # in active development (1.x has shipped through 1.25 within months);
+    # signature changes in a future 2.x are likely and would silently break
+    # the persona MCP server contract.
+    - mcp >=1.4,<2
 
 test:
   imports:
@@ -54,14 +62,17 @@ test:
   requires:
     - python {{ python_min }}
     - pip
+  source_files:
+    - run_test.py
   commands:
+    # Pip dependency consistency check.
     - pip check
-    # Smoke test the HDF5 store creates + queries (no LLM, no network).
-    - python -c "import asyncio; from fi_core.stores.hdf5 import HDF5ChunkStore; from fi_core.rag import Chunk, ChunkWithEmbedding; import tempfile, os; tf=tempfile.NamedTemporaryFile(suffix='.h5', delete=False); tf.close(); s=HDF5ChunkStore(tf.name); asyncio.run(s.create_document(namespace='t', document_id='d', content='c')); asyncio.run(s.save_chunks(namespace='t', document_id='d', chunks=[ChunkWithEmbedding(chunk=Chunk(text='x', source_type='t', source_ref='r'), embedding=[1.0,0.0])])); r=asyncio.run(s.query(namespace='t', query_embedding=[1.0,0.0], top_k=1)); assert len(r)==1; os.unlink(tf.name); print('smoke test passed')"
-    # Smoke test the persona module (deterministic regex, no deps).
-    - python -c "from fi_core.persona import BreakDetector, packs; d=BreakDetector(patterns=packs.GENERIC_AI_DISCLOSURE_EN); assert d.detect('As an AI, I cannot') != []; print('persona smoke test passed')"
-    # Smoke test the MCP server atomic loop tool (no transport, direct call).
-    - python -c "import asyncio; from fi_core.persona import mcp_server; r=asyncio.run(mcp_server.validate_and_retry_prompt(response='As an AI, I cannot help.', system_prompt='You are a friend.')); assert r['retry_needed'] is True; assert r['reinforced_system_prompt'] is not None; print('mcp server smoke test passed')"
+    # Run the three smoke tests (HDF5 store, persona detector, MCP atomic
+    # loop) from an externalized script. Script is committed alongside
+    # meta.yaml under recipes/fi-core/run_test.py for readability and
+    # local debuggability — running it outside conda-build is the same
+    # `python run_test.py` invocation.
+    - python run_test.py
 
 about:
   home: https://github.com/BernardUriza/free-intelligence/tree/main/apps/packages/fi-core
