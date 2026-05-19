@@ -1,0 +1,127 @@
+context:
+  version: "0.2.1"
+
+package:
+  name: jule
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/julelang/jule/archive/refs/tags/jule${{ version }}.tar.gz
+    sha256: "5baeba346d6275492c646a0a0c121acdef61cb00cab5b4b056a4f6ed04569a6a"
+    target_directory: "jule-src"
+  - url: https://github.com/julelang/julec-ir/archive/refs/tags/jule${{ version }}.tar.gz
+    sha256: "9686086368428ca1c1c4a8bfc80a717bde1751b643fc40be70c762589824ca79"
+    target_directory: "julec-ir"
+
+build:
+  number: 0
+  script:
+    # 1. Get the good IR code
+    - if: linux and x86_64
+      then:
+        cp ./julec-ir/src/linux-amd64.cpp ./jule-src/ir.cpp
+    - if: linux and aarch64
+      then:
+        cp ./julec-ir/src/linux-arm64.cpp ./jule-src/ir.cpp
+    - if: osx and x86_64
+      then:
+        cp ./julec-ir/src/darwin-amd64.cpp ./jule-src/ir.cpp
+    - if: osx and arm64
+      then:
+        cp ./julec-ir/src/darwin-arm64.cpp ./jule-src/ir.cpp
+    - if: win and x86_64
+      then:
+        copy julec-ir\src\windows-amd64.cpp jule-src\ir.cpp
+
+    # 2. Build julec from ir.cpp
+    - cd jule-src
+    - mkdir bin
+    - if: linux
+      then:
+        - $CLANGXX -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -fuse-ld=lld -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -static-libstdc++ -static-libgcc -o ./bin/julec ir.cpp
+    - if: osx
+      then:
+        - $CLANGXX -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fexcess-precision=standard -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -o ./bin/julec ir.cpp
+    - if: win
+      then:
+        - clang++.exe -Wno-everything --std=c++20 -fwrapv -ffloat-store -fno-fast-math -fno-rounding-math -ffp-contract=fast -O3 -flto=thin -fuse-ld=lld -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -o bin\\julec.exe ir.cpp -lws2_32 -lshell32 -liphlpapi -lsynchronization
+
+    # 3. Install binaries, std libs and api
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/jule/bin
+        - cp ./bin/julec $PREFIX/jule/bin/julec
+        - cp -r std $PREFIX/jule/
+        - cp -r api $PREFIX/jule/
+      else:
+        - md "%LIBRARY_PREFIX%\jule\bin"
+        - copy bin\julec.exe "%LIBRARY_PREFIX%\jule\bin\julec.exe"
+        - xcopy /s /e /h /i /y std "%LIBRARY_PREFIX%\jule\std"
+        - xcopy /s /e /h /i /y api "%LIBRARY_PREFIX%\jule\api"
+
+    # 4. Add to the PATH using activate.d/deactivate.d
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/etc/conda/activate.d
+        - mkdir -p $PREFIX/etc/conda/deactivate.d
+        - echo 'export PATH="$CONDA_PREFIX/jule/bin:$PATH"' > $PREFIX/etc/conda/activate.d/jule.sh
+        - echo 'export PATH="${PATH//$CONDA_PREFIX\/jule\/bin:/}"' > $PREFIX/etc/conda/deactivate.d/jule.sh
+      else:
+        - md "%PREFIX%\etc\conda\activate.d"
+        - md "%PREFIX%\etc\conda\deactivate.d"
+        - "(echo set PATH=%LIBRARY_PREFIX%\\jule\\bin;%%PATH%%) > %PREFIX%\\etc\\conda\\activate.d\\jule.bat"
+        - "(echo set PATH=%%PATH:%LIBRARY_PREFIX%\\jule\\bin;=%%) > %PREFIX%\\etc\\conda\\deactivate.d\\jule.bat"
+
+requirements:
+  build:
+    - ${{ compiler('clangxx') }}
+    - if: linux
+      then:
+        - ${{ stdlib("c") }}
+        - lld
+  run:
+    - clangxx >=18
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - jule/bin/julec
+          else:
+            - Library/jule/bin/julec.exe
+        - if: unix
+          then:
+            - jule/std/jule.mod
+            - jule/api/jule.hpp
+          else:
+            - Library/jule/std/jule.mod
+            - Library/jule/api/jule.hpp
+
+  - script:
+      - if: unix
+        then:
+          - echo "=== Test help ==="
+          - julec help
+          - echo "=== Test hello world ==="
+          - echo 'fn main() { println("hello world") }' > hello.jule
+          - julec build -o hello .
+          - ./hello | grep "hello world"
+        # else: # Disable, because the system crashes only in the rattler-build environment -> https://github.com/prefix-dev/rattler-build/issues/2495
+        #   - echo "=== Test help ==="
+        #   - julec.exe help
+        #   - echo "=== Test hello world ==="
+        #   - echo fn main() { println("hello world") } > hello.jule
+        #   - julec.exe build -o hello.exe .
+        #   - hello.exe | findstr "hello world"
+
+about:
+  homepage: "https://jule.dev"
+  license: "BSD-3-Clause"
+  license_file: jule-src/LICENSE
+  summary: "The Jule programming language"
+  description: "Simple and safe programming language with built-in concurrency, first-class C/C++ interoperability and powerful compile-time capabilities."
+
+extra:
+  recipe-maintainers:
+    - EchoPouet
