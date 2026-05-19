@@ -3,8 +3,10 @@ set -exo pipefail
 
 export npm_config_build_from_source=true
 export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
+export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
+export SHARP_FORCE_GLOBAL_LIBVIPS=1
 
-npm install -g --prefix "${PREFIX}" node-gyp-build
+sed -i.bak 's/^minimumReleaseAge: .*/minimumReleaseAge: 0/' pnpm-workspace.yaml
 
 # Create license report for dependencies
 mv package.json package.json.bak
@@ -13,7 +15,7 @@ pnpm install --prod
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 mv package.json.bak package.json
 
-CI=true pnpm install --no-frozen-lockfile
+pnpm add -g --prefix "${BUILD_PREFIX}" node-gyp-build
 pnpm build
 pnpm ui:build
 pnpm pack --config.ignore-scripts=true
