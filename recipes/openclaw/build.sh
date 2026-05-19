@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
+export npm_config_build_from_source=true
+export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
+
 npm install -g --prefix "${PREFIX}" node-gyp-build
 
 # Create license report for dependencies
