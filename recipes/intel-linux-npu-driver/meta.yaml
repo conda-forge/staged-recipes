@@ -1,0 +1,125 @@
+{% set version = "1.32.1" %}
+{% set lze_npu_extensions_rev = "42768cc73e74f6d371bd9dd51b1860b07774e7ec" %}
+{% set npu_compiler_elf_rev = "82c444bcb9feb0f55fa33e18fbd711ec35426fba" %}
+
+# Single-output recipe: ships only the Level Zero userspace driver
+# (libze_intel_npu.so) for Intel NPU. Two pieces of the upstream stack
+# are intentionally omitted:
+#
+#   * libnpu_driver_compiler.so — the LLVM/MLIR-based NPU compiler. Heavy
+#     to build (pulls in a full OpenVINO + npu_compiler tree). To be
+#     added in a follow-up recipe (intel-driver-compiler-npu).
+#   * intel-fw-npu firmware blobs — installed to /lib/firmware/intel/vpu/.
+#     The kernel loads these at probe time and cannot read $CONDA_PREFIX,
+#     so they cannot live in a conda environment. Users must install them
+#     system-wide (linux-firmware or the intel-fw-npu .deb on Ubuntu).
+#
+# Test-only deps (validation/umd-test) are not built. Patch 0001 makes
+# those guarded by ENABLE_VALIDATION_BUILD instead of unconditionally
+# pulled, so we can drop the third_party/googletest and third_party/
+# yaml-cpp submodules from the source tree.  yaml-cpp, if ever wanted,
+# is available on conda-forge.
+
+package:
+  name: intel-level-zero-npu
+  version: {{ version }}
+
+source:
+  - url: https://github.com/intel/linux-npu-driver/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: e83ff30e1b9f0f8dfd9e04362a39141c126c1b3df8dba688c4f9515bd2d3bed5
+    # `firmware/bin/` contains relative symlinks
+    # (`vpu_NNxx_v0.0.bin -> vpu_NNxx_v1.bin`) that conda-build's
+    # `hoist_single_extracted_folder` mishandles when /tmp and the build
+    # tree live on different filesystems (cross-device `shutil.move()`
+    # falls back to `copytree`, which then ENOENTs on the relative
+    # symlinks). On real CI the two are on the same FS so it would work
+    # without no_hoist, but disabling the hoist also keeps the upstream
+    # layout intact and is a robust belt-and-braces.
+    no_hoist: true
+    patches:
+      - patches/0001-third_party-only-pull-test-only-deps-when-tests-on.patch
+      - patches/0002-umd-gate-unit_tests-on-ENABLE_NPU_UNIT_TESTS.patch
+  # third_party/level-zero-npu-extensions: NPU-specific Level Zero
+  # extension headers. Not packaged separately on conda-forge; carried
+  # as a vendored source archive at the upstream-pinned rev.
+  - url: https://github.com/intel/level-zero-vpu-extensions/archive/{{ lze_npu_extensions_rev }}.tar.gz
+    sha256: 340b6c6757febfc55e5e707e2b5ab9d2cd0a526e82d921ee192c9ef5675bfe40
+    folder: linux-npu-driver-{{ version }}/third_party/level-zero-npu-extensions
+  # third_party/npu_compiler_elf: small Apache-2.0 ELF reader/writer +
+  # VPUX loader, statically linked into libze_intel_npu.so. Upstream is
+  # structured to be add_subdirectory()'d from this parent project (no
+  # standalone install / CMake config), so vendor at build-time instead
+  # of cutting a separate conda-forge package.
+  - url: https://github.com/openvinotoolkit/npu_compiler_elf/archive/{{ npu_compiler_elf_rev }}.tar.gz
+    sha256: 75ca714b84b5426ed2261e3ec798111f6dafde8d38f01351be0210021b689257
+    folder: linux-npu-driver-{{ version }}/third_party/npu_compiler_elf
+
+build:
+  number: 2
+  skip: true  # [not linux64]
+  # Intel follows the oneAPI Level Zero SOVERSION = MAJOR convention:
+  # libze_intel_npu sets SOVERSION = PROJECT_VERSION_MAJOR in cmake, so
+  # the .so SONAME is libze_intel_npu.so.1. ABI is guaranteed within a
+  # major version; minor and patch bumps are backwards-compatible. So
+  # pin downstream consumers to the same major only.
+  run_exports:
+    - {{ pin_subpackage('intel-level-zero-npu', max_pin='x') }}
+  # level-zero-devel pulls in level-zero via its own run_exports, but
+  # this driver does NOT link against libze_loader at build time; the
+  # relationship is the other way around (libze_loader.so dlopens us).
+  # Silence the "DSO not used" warning by suppressing the run_exports
+  # from level-zero on us.
+  ignore_run_exports_from:
+    - level-zero-devel
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    # We compile against the Level Zero headers (ze_api.h etc.) and need
+    # CMake's level-zero find module. libze_intel_npu.so does NOT link
+    # against libze_loader.so though — the loader dlopens us, not the
+    # other way around — so level-zero's run_exports are suppressed via
+    # ignore_run_exports_from above.
+    - level-zero-devel
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libze_intel_npu.so
+
+about:
+  home: https://github.com/intel/linux-npu-driver
+  summary: Intel Level Zero userspace driver for NPU hardware
+  description: |
+    libze_intel_npu.so is the userspace Level Zero plugin that the
+    oneAPI Level Zero loader dlopens to talk to Intel NPU (VPU) hardware
+    on Meteor Lake, Arrow Lake, Lunar Lake, Panther Lake and Wildcat Lake
+    CPUs through the in-tree intel_vpu Linux kernel module
+    (/dev/accel/accel*).
+
+    This package only ships the userspace driver. To actually run
+    OpenVINO inference on NPU, two further pieces are required at runtime:
+      * libnpu_driver_compiler.so — packaged separately as
+        intel-driver-compiler-npu (forthcoming).
+      * Firmware blobs at /lib/firmware/intel/vpu/*.bin — loaded by the
+        kernel itself, so they cannot live inside a conda environment.
+        Install them system-wide (linux-firmware, or the intel-fw-npu
+        .deb from intel/linux-npu-driver releases on Ubuntu).
+  license: MIT
+  license_family: MIT
+  license_file:
+    - linux-npu-driver-{{ version }}/LICENSE.md
+    # Vendored at build-time only (not packaged as separate conda
+    # outputs); ship their LICENSE files alongside.
+    - linux-npu-driver-{{ version }}/third_party/level-zero-npu-extensions/LICENSE.txt
+    - linux-npu-driver-{{ version }}/third_party/npu_compiler_elf/LICENSE
+  dev_url: https://github.com/intel/linux-npu-driver
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
