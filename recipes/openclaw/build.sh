@@ -31,7 +31,10 @@ export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
 export NODE_PATH="${BUILD_PREFIX}/lib/node_modules:${NODE_PATH:-}"
 export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
 export PYTHON="${BUILD_PREFIX}/bin/python"
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 pkg-config --modversion vips-cpp
+pkg-config --cflags vips-cpp
+pkg-config --libs vips-cpp
 
 npm install -ddd \
     --global \
