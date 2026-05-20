@@ -32,9 +32,11 @@ export NODE_PATH="${BUILD_PREFIX}/lib/node_modules:${NODE_PATH:-}"
 export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
 export PYTHON="${BUILD_PREFIX}/bin/python"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-pkg-config --modversion vips-cpp
-pkg-config --cflags vips-cpp
-pkg-config --libs vips-cpp
+VIPS_CFLAGS="$(pkg-config --cflags vips-cpp)"
+VIPS_LIBS="$(pkg-config --libs vips-cpp)"
+export CPPFLAGS="${VIPS_CFLAGS} ${CPPFLAGS:-}"
+export CXXFLAGS="${VIPS_CFLAGS} ${CXXFLAGS:-}"
+export LDFLAGS="${VIPS_LIBS} ${LDFLAGS:-}"
 
 npm install -ddd \
     --global \
