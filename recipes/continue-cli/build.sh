@@ -2,7 +2,7 @@
 set -exo pipefail
 
 # Install globally
-npm pack --ignore-scripts
+pnpm pack --config.ignore-scripts=true
 npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
