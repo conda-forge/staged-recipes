@@ -8,7 +8,7 @@ cd "${SRC_DIR}"
 # and $PREFIX/include/mumps_seq (dummy mpi.h). Pass both via MUMPS_INCLUDE_DIR
 # as a CMake list (semicolon-separated).
 # Using -C cmake.define rather than --config-settings=cmake.args so the value
-# isn't split on the embedded semicolon. The 0002 patch ensures these paths
+# isn't split on the embedded semicolon. The patch ensures these paths
 # actually reach the compile line despite CMake's implicit-include-directory
 # stripping (see https://github.com/conda-forge/cmake-feedstock/issues/106).
 # BQPD and HIGHS are overridden to empty to neutralize the vendored-dep
