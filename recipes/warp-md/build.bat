@@ -10,6 +10,14 @@ if errorlevel 1 exit 1
 rem ── Build the wheel (CPU only on Windows; CUDA builds are skipped) ──
 set FEATURES=extension-module
 
+rem ── HDF5: point hdf5-metno-sys at conda-forge's Windows layout ─────
+set "HDF5_DIR=%LIBRARY_PREFIX%"
+set "HDF5_ROOT=%LIBRARY_PREFIX%"
+set "HDF5_INCLUDE_DIR=%LIBRARY_PREFIX%\include"
+set "HDF5_LIB_DIR=%LIBRARY_PREFIX%\lib"
+set "HDF5_DYNAMIC=1"
+set "PATH=%LIBRARY_PREFIX%\bin;%PATH%"
+
 rem ── chemfiles: point at conda-forge prefix ─────────────────────────
 set "CHEMFILES_DIR=%LIBRARY_PREFIX%"
 set "PKG_CONFIG_PATH=%LIBRARY_PREFIX%\lib\pkgconfig;%PKG_CONFIG_PATH%"
