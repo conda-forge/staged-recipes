@@ -24,10 +24,7 @@ set "CMAKE_GENERATOR_TOOLSET="
 :: import libraries. The openblas package provides Library/lib/openblas.lib
 :: which covers both BLAS and LAPACK; blas-devel is in host requirements
 :: to bring it in.
-::
-:: BQPD is overridden to empty to neutralize the vendored-dep default in
-:: upstream's pyproject.toml. HIGHS is pointed at the conda-forge highs
-:: package.
+
 %PYTHON% -m pip install . -vv ^
     --no-deps ^
     --no-build-isolation ^

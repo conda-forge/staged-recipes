@@ -5,7 +5,7 @@ set -euxo pipefail
 cd "${SRC_DIR}"
 
 # Override conda-forge's CMAKE_GENERATOR=Unix Makefiles activation default
-# so scikit-build-core uses Ninja (faster, and unified with the Windows path).
+# so scikit-build-core uses Ninja.
 export CMAKE_GENERATOR=Ninja
 
 # conda-forge's mumps-seq splits headers between $PREFIX/include (dmumps_c.h)
@@ -15,10 +15,7 @@ export CMAKE_GENERATOR=Ninja
 # isn't split on the embedded semicolon. The patch ensures these paths
 # actually reach the compile line despite CMake's implicit-include-directory
 # stripping (see https://github.com/conda-forge/cmake-feedstock/issues/106).
-# BQPD is overridden to empty to neutralize the vendored-dep default in
-# upstream's pyproject.toml (path under dependencies/lib/ that only exists
-# after running download_dependencies.sh). HIGHS is pointed at the
-# conda-forge highs package.
+
 $PYTHON -m pip install . -vv \
     --no-deps \
     --no-build-isolation \
