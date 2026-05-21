@@ -7,26 +7,32 @@ package:
   version: ${{ version }}
 
 source:
-  - url: https://registry.npmjs.org/${{ name }}-ai/-/${{ name }}-ai-${{ version }}.tgz
-    sha256: f46c4575c21c0ef9dc25064b1fdf1cdfb4ea8d4c98c03bddcfdff283aea22f0a
-    file_name: ${{ name }}-ai-${{ version }}.tgz
-  - url: https://raw.githubusercontent.com/sst/opencode/refs/tags/v${{ version }}/LICENSE
-    sha256: 625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b
+  - url: https://github.com/anomalyco/opencode/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: f7bcdfbcf07bd0b1de105f7d5faa0898af2e0afb8f94ad01ef149d116880bc5b
 
 build:
-  script:
-    - npm install --global --build-from-source ./opencode-ai-${{ version }}.tgz
-    - tar -xzf ${{ name }}-ai-${{ version }}.tgz
-    - cd package
-    - pnpm install
-    - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+  script: |
+    sed -i.bak 's/if (!semver.satisfies(process.versions.bun/if (false \&\& !semver.satisfies(process.versions.bun/' \
+    packages/script/src/index.ts
+    mv package.json package.json.bak
+    jq 'del(.devDependencies)' package.json.bak > package.json
+    bun install --ignore-scripts
+    bunx license-checker --production --plainTextOutput third-party-licenses.txt
+    mv package.json.bak package.json
+    rm -rf node_modules
+    bun install --ignore-scripts
+    cd packages/opencode
+    bun run build --single
+    bun pm pack
+    npm install --global --prefix ${{ PREFIX }} --build-from-source ${{ name }}-${{ version }}.tgz
   number: 0
 
 requirements:
   build:
+    - bun
+    - jq
+  host:
     - nodejs
-    - pnpm-licenses
-    - pnpm
   run:
     - nodejs
 
