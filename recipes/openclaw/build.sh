@@ -42,5 +42,31 @@ npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
     --build-from-source \
-    --foreground-scripts \
     ${PKG_NAME}-${PKG_VERSION}.tgz
+
+# === Remove non-target platform binaries ===
+NODE_MODULES="${PREFIX}/lib/node_modules/openclaw/node_modules"
+
+case "$(uname -s)" in
+    Linux)  OS="linux"  ;;
+    Darwin) OS="darwin" ;;
+esac
+case "$(uname -m)" in
+    x86_64)        ARCH="x64"   ;;
+    aarch64|arm64) ARCH="arm64" ;;
+esac
+
+KEEP_UNDERSCORE="${OS}_${ARCH}"   # koffi: linux_x64, darwin_arm64
+KEEP_DASH="${OS}-${ARCH}"         # prebuilds: linux-x64, darwin-arm64
+
+echo "Pruning foreign binaries, keeping: ${KEEP_UNDERSCORE} / ${KEEP_DASH}"
+
+# koffi
+find "${NODE_MODULES}/koffi/build/koffi" -mindepth 1 -maxdepth 1 -type d \
+    ! -name "${KEEP_UNDERSCORE}" -exec rm -rf {} + 2>/dev/null
+
+# tree-sitter and the others
+find "${NODE_MODULES}" -type d -name prebuilds | while read -r pb; do
+    find "${pb}" -mindepth 1 -maxdepth 1 -type d \
+        ! -name "${KEEP_DASH}" -exec rm -rf {} + 2>/dev/null
+done
