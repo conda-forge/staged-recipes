@@ -1,0 +1,113 @@
+schema_version: 1
+
+context:
+  name: yac
+  version: "3.15.0_p1"
+  build: 0
+  mpi: ${{ mpi | default("mpich") }}
+  mpi_prefix: mpi_${{ mpi }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.dkrz.de/dkrz-sw/${{ name }}/-/archive/v${{ version }}/${{ name }}-v${{ version }}.tar.gz
+  sha256: c5f9378dcf343f8b830d4571b4ebd71fc446634d8c6cf633b0be790b5ac189d8
+
+build:
+  number: ${{ build }}
+  skip:
+    - win
+  # Build string so packages can depend on mpi variants explicitly:
+  #   `yac * mpi_mpich_*`   for mpich
+  #   `yac * mpi_openmpi_*` for openmpi
+  #   `yac * mpi_*`         for any mpi
+  string: ${{ mpi_prefix }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    - pkg-config
+  host:
+    - cython
+    - ${{ mpi }}
+    - mpi4py
+    - numpy
+    - libfyaml
+    - libgfortran
+    - liblapack
+    - python
+    - pip
+    - setuptools
+    - yaxt * ${{ mpi_prefix }}_*
+
+  run:
+    - ${{ mpi }}
+    - liblapack
+    - if: linux
+      then:
+        - blis
+    - libfyaml
+    - libgfortran
+    - mpi4py
+    - numpy
+    - python
+    - yaxt * ${{ mpi_prefix }}_*
+
+  ignore_run_exports:
+    from_package:
+      - mpi4py
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound="x.x") }}
+    - ${{ name }} * ${{ mpi_prefix }}_py${{ python | version_to_buildstring }}*
+
+tests:
+  - python:
+      imports:
+        - yac
+  - script:
+      - pip check
+      - if: linux
+        then:
+          - test -f ${PREFIX}/lib/libyac_core.so
+          - test -f ${PREFIX}/lib/libyac_mci.so
+          - test -f ${PREFIX}/lib/libyac_utils.so
+      - if: osx
+        then:
+          - test -f ${PREFIX}/lib/libyac_core.dylib
+          - test -f ${PREFIX}/lib/libyac_mci.dylib
+          - test -f ${PREFIX}/lib/libyac_utils.dylib
+      - test -f ${PREFIX}/include/yac.h
+      - test -f ${PREFIX}/include/yac_core.h
+    requirements:
+      run:
+        - pip
+        - numpy
+
+about:
+  homepage: https://gitlab.dkrz.de/dkrz-sw/yac
+  summary: YetAnotherCoupler (YAC) library for coupling of Earth system model components.
+  description: |
+    YetAnotherCoupler (YAC) is a lightweight software library for coupling of
+    Earth system model components which provides parallelized two-dimensional
+    neighbourhood search, interpolation, and communication for the coupling
+    between any two model components. The software offers flexible coupling of
+    physical fields defined on regular and irregular grids on the sphere
+    without a priori assumptions about grid structure or grid element types.
+    All supported grids can be combined with any of the supported
+    interpolations.
+  license: BSD-3-Clause
+  license_file: LICENSES/BSD-3-Clause.txt
+  documentation: https://dkrz-sw.gitlab-pages.dkrz.de/yac/index.html
+  repository: https://gitlab.dkrz.de/dkrz-sw/yac
+
+extra:
+  recipe-maintainers:
+    - jhkennedy
+    - aaschwanden
