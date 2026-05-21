@@ -27,6 +27,7 @@ export HDF5_DIR="${PREFIX}"
 # ── chemfiles: let pkg-config find the conda-forge chemfiles C lib ─────
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CHEMFILES_DIR="${PREFIX}"
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # ── Build the wheel ───────────────────────────────────────────────────
 maturin build \

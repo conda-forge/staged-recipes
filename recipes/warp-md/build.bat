@@ -17,6 +17,7 @@ set "HDF5_INCLUDE_DIR=%LIBRARY_PREFIX%\include"
 set "HDF5_LIB_DIR=%LIBRARY_PREFIX%\lib"
 set "HDF5_DYNAMIC=1"
 set "PATH=%LIBRARY_PREFIX%\bin;%PATH%"
+set "CMAKE_POLICY_VERSION_MINIMUM=3.5"
 
 rem ── chemfiles: point at conda-forge prefix ─────────────────────────
 set "CHEMFILES_DIR=%LIBRARY_PREFIX%"
