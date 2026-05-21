@@ -4,6 +4,10 @@ set -euxo pipefail
 
 cd "${SRC_DIR}"
 
+# Override conda-forge's CMAKE_GENERATOR=Unix Makefiles activation default
+# so scikit-build-core uses Ninja (faster, and unified with the Windows path).
+export CMAKE_GENERATOR=Ninja
+
 # conda-forge's mumps-seq splits headers between $PREFIX/include (dmumps_c.h)
 # and $PREFIX/include/mumps_seq (dummy mpi.h). Pass both via MUMPS_INCLUDE_DIR
 # as a CMake list (semicolon-separated).
