@@ -28,6 +28,7 @@ export HDF5_DIR="${PREFIX}"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 export CHEMFILES_DIR="${PREFIX}"
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
+export PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 
 # ── Build the wheel ───────────────────────────────────────────────────
 maturin build \
