@@ -23,6 +23,7 @@ fi
 # ── HDF5: --no-default-features disables vendored static build. ──────
 # The hdf5-metno crate will find conda's HDF5 via HDF5_DIR / pkg-config.
 export HDF5_DIR="${PREFIX}"
+export PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 
 # ── Build the wheel ───────────────────────────────────────────────────
 maturin build \
