@@ -11,9 +11,10 @@ cd "${SRC_DIR}"
 # isn't split on the embedded semicolon. The patch ensures these paths
 # actually reach the compile line despite CMake's implicit-include-directory
 # stripping (see https://github.com/conda-forge/cmake-feedstock/issues/106).
-# BQPD and HIGHS are overridden to empty to neutralize the vendored-dep
-# defaults in upstream's pyproject.toml (paths under dependencies/lib/ that
-# only exist after running download_dependencies.sh).
+# BQPD is overridden to empty to neutralize the vendored-dep default in
+# upstream's pyproject.toml (path under dependencies/lib/ that only exists
+# after running download_dependencies.sh). HIGHS is pointed at the
+# conda-forge highs package.
 $PYTHON -m pip install . -vv \
     --no-deps \
     --no-build-isolation \
@@ -26,4 +27,4 @@ $PYTHON -m pip install . -vv \
     -C cmake.define.MUMPS_MPISEQ_LIBRARY="${PREFIX}/lib/libmpiseq_seq.so" \
     -C cmake.define.MUMPS_INCLUDE_DIR="${PREFIX}/include;${PREFIX}/include/mumps_seq" \
     -C cmake.define.BQPD="" \
-    -C cmake.define.HIGHS=""
+    -C cmake.define.HIGHS="${PREFIX}/lib/libhighs${SHLIB_EXT}"
