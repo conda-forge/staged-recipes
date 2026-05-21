@@ -17,7 +17,9 @@ source:
 
 build:
   number: 0
-  skip: match(python, "<3.9")
+  skip: not (match(python, python_min ~ ".*") and is_abi3)
+  python:
+    version_independent: true
 
 requirements:
   build:
@@ -34,6 +36,7 @@ requirements:
   host:
     - python
     - pip
+    - python-abi3
     - maturin >=1.10.2,<1.11
     - llvmdev ${{ llvm_version }}.*
     - if: win
@@ -51,6 +54,10 @@ tests:
         - pyqir
         - pyqir.qis
         - pyqir.rt
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min ~ ".*" }}
+        - "*"
   - files:
       source:
         - pyqir/tests
@@ -62,6 +69,17 @@ tests:
       - pip check
       - python -c "from pyqir import BasicQisBuilder, SimpleModule; m = SimpleModule('conda_forge_smoke', 1, 1); q = BasicQisBuilder(m.builder); q.h(m.qubits[0]); assert '__quantum__qis__h__body' in m.ir()"
       - cd pyqir && pytest -q tests
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/pyqir/_native.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/pyqir/_native.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   homepage: https://github.com/qir-alliance/pyqir
