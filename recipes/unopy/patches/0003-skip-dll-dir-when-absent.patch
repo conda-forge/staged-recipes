@@ -1,0 +1,25 @@
+Subject: [PATCH] unopy __init__: skip add_dll_directory when unopy.libs absent
+
+The unopy.libs/ directory is created by delvewheel (or equivalent) when
+producing a self-contained PyPI wheel — it does not exist in source
+installs or in conda-forge builds where runtime DLLs live in the env's
+Library/bin (already added to the DLL search path by conda's activation
+script). Unconditionally calling os.add_dll_directory on the missing path
+raises FileNotFoundError at import time.
+
+Guard the Windows branch on the directory's existence so source/conda
+installs work while wheel installs are unaffected.
+
+diff --git interfaces/Python/unopy/__init__.py interfaces/Python/unopy/__init__.py
+index 21ae231..1033e3d 100644
+--- interfaces/Python/unopy/__init__.py
++++ interfaces/Python/unopy/__init__.py
+@@ -4,7 +4,7 @@ import sys
+ # load bundled DLLs from unopy.libs
+ basedir = os.path.dirname(__file__)
+ subdir = os.path.join(basedir, '..', 'unopy.libs')
+-if os.name == 'nt':
++if os.name == 'nt' and os.path.isdir(subdir):
+     # Prepend to PATH so our DLLs are found before any system MinGW ones
+     os.environ['PATH'] = subdir + os.pathsep + os.environ.get('PATH', '')
+     os.add_dll_directory(subdir)
