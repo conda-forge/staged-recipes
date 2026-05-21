@@ -1,0 +1,95 @@
+schema_version: 1
+
+context:
+  name: warp-md
+  version: "0.4.6"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/w/warp-md/warp_md-${{ version }}.tar.gz
+  sha256: e498e07e0df94d51d6882900f9f4b52f26809e4711e62e1ca6c0e90ee4176ed9
+
+build:
+  number: 0
+  # CUDA builds are Linux-only
+  skip:
+    - win and (cuda_compiler_version != "None")
+  script:
+    - if: unix
+      then: bash build.sh
+    - if: win
+      then: bld.bat
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - if: cuda_compiler_version != "None"
+      then: ${{ compiler('cuda') }}
+    - cargo-bundle-licenses
+    - maturin >=1.4
+    - python
+    # chemfiles C library needed by warp-cg crate
+    - chemfiles
+    # cross-compilation support
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+  host:
+    - python
+    - pip
+    - maturin >=1.4
+    - hdf5
+    - zlib
+    - chemfiles
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ${{ cuda_compiler_version }}
+  run:
+    - python >=3.9
+    - numpy
+    - pydantic >=2
+    # CLI extra
+    - pyyaml
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version >=${{ cuda_compiler_version }}
+
+tests:
+  - python:
+      imports:
+        - warp_md
+        - warp_md.traj_py
+      pip_check: true
+  - script:
+      - warp-md --help
+      - warp-build --help
+      - warp-pack --help
+      - warp-cg --help
+      - warp-pep --help
+
+about:
+  homepage: https://github.com/Haayhur/warp-md
+  summary: Fast molecular dynamics trajectory analysis — Rust core with Python bindings
+  description: |
+    warp-md is a high-performance molecular dynamics trajectory analysis toolkit.
+    It provides a Rust core with CUDA GPU acceleration and ergonomic Python
+    bindings via PyO3/maturin. Supports XTC, DCD, HDF5/H5MD trajectory formats,
+    PDB/GRO topologies, and a rich set of analysis plans (RMSD, Rg, MSD,
+    conductivity, coarse-graining, and more).
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yaml
+  doc_url: https://warp-md.gitbook.io
+  dev_url: https://github.com/Haayhur/warp-md
+
+extra:
+  recipe-maintainers:
+    - Haayhur
