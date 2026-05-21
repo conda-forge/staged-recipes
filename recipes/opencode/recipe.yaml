@@ -11,30 +11,33 @@ source:
     sha256: f7bcdfbcf07bd0b1de105f7d5faa0898af2e0afb8f94ad01ef149d116880bc5b
 
 build:
-  script: |
-    sed -i.bak 's/if (!semver.satisfies(process.versions.bun/if (false \&\& !semver.satisfies(process.versions.bun/' \
-    packages/script/src/index.ts
-    mv package.json package.json.bak
-    jq 'del(.devDependencies)' package.json.bak > package.json
-    bun install --ignore-scripts
-    bunx license-checker --production --plainTextOutput third-party-licenses.txt
-    mv package.json.bak package.json
-    rm -rf node_modules
-    bun install --ignore-scripts
-    cd packages/opencode
-    bun run build --single
-    bun pm pack
-    npm install --global --prefix ${{ PREFIX }} --build-from-source ${{ name }}-${{ version }}.tgz
   number: 0
+  script: |
+    sed -i.bak 's/if (process.versions.bun !== expectedBunVersion)/if (false)/' packages/script/src/index.ts
+    pushd packages/opencode
+    bun install --ignore-scripts
+    bunx license-checker --production --plainTextOutput --out ${SRC_DIR}/third-party-licenses.txt
+    bun run build --single
+    case "${target_platform}" in
+      linux-64)      DIST=opencode-linux-x64 ;;
+      linux-aarch64) DIST=opencode-linux-arm64 ;;
+      osx-64)        DIST=opencode-darwin-x64 ;;
+      osx-arm64)     DIST=opencode-darwin-arm64 ;;
+    esac
+    mkdir -p ${PREFIX}/bin
+    install -m 755 dist/${DIST}/bin/opencode ${PREFIX}/bin/opencode
+    popd
 
 requirements:
   build:
     - bun
-    - jq
-  host:
-    - nodejs
   run:
-    - nodejs
+    - ${{ "icu >=75,<76" if linux }}
+    - hdrhistogram-c
+    - libhwy
+    - libdeflate
+    - lol-html
+    - ls-hpack
 
 tests:
   - script:
@@ -47,9 +50,9 @@ about:
   license: MIT
   license_file:
     - LICENSE
-    - package/third-party-licenses.txt
+    - third-party-licenses.txt
   documentation: https://opencode.ai/docs
-  repository: https://github.com/sst/opencode
+  repository: https://github.com/anomalyco/opencode
 
 extra:
   recipe-maintainers:
