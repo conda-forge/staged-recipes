@@ -26,5 +26,6 @@ EOF
 chmod +x ${PREFIX}/bin/repomix
 
 tee ${PREFIX}/bin/repomix.cmd << 'EOF'
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\repomix\bin\repomix.cjs %*
+@echo off
+"%CONDA_PREFIX%\node.exe" "%CONDA_PREFIX%\node_modules\repomix\bin\repomix.cjs" %*
 EOF
