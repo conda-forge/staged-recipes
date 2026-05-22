@@ -26,5 +26,6 @@ EOF
 chmod +x ${PREFIX}/bin/cn
 
 tee ${PREFIX}/bin/cn.cmd << 'EOF'
-call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\lib\node_modules\@continuedev\cli\dist\cn.js %*
+@echo off
+"%CONDA_PREFIX%\node.exe" "%CONDA_PREFIX%\node_modules\@continuedev\cli\dist\cn.js" %*
 EOF
