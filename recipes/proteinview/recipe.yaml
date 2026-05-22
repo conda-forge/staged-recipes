@@ -1,0 +1,57 @@
+context:
+  version: "0.3.0"
+
+package:
+  name: proteinview
+  version: ${{ version }}
+
+source:
+  url: https://github.com/001TMF/ProteinView/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6948e107fe2fc680875cf028e1ba31f406cc69ad249dc5b05c3feb0a5d64827d
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --features fetch --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --features fetch --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/proteinview completion --shell zsh > $PREFIX/share/zsh/site-functions/_proteinview
+          - $PREFIX/bin/proteinview completion --shell bash > $PREFIX/share/bash-completion/completions/proteinview
+          - $PREFIX/bin/proteinview completion --shell fish > $PREFIX/share/fish/vendor_completions.d/proteinview.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - proteinview -h
+
+about:
+  homepage: https://github.com/001TMF/ProteinView
+  summary: "Terminal molecular structure viewer — load, rotate, and explore proteins right in your terminal."
+  description: |
+    Terminal molecular structure viewer — load, rotate, and explore proteins, nucleic acids, and small molecules from 
+    PDB/CIF files right in your terminal. No browser, no GUI, no dependencies.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/001TMF/ProteinView
+  repository: https://github.com/001TMF/ProteinView
+
+extra:
+  recipe-maintainers:
+    - gieses
