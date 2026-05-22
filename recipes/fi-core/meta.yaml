@@ -1,7 +1,7 @@
 {% set name = "fi-core" %}
-{% set version = "0.4.0" %}
-{% set sha256 = "4718e221ec48c5aecf8ff299607d3739b03ea28f85b53b5ccaa8da0b076917ca" %}
-{% set python_min = "3.14" %}
+{% set version = "0.7.0" %}
+{% set sha256 = "04fa7004546f2a200ff625b19af68187208dabe367ea3a1063b7f01993612918" %}
+{% set python_min = "3.12" %}
 
 package:
   name: {{ name }}
@@ -33,18 +33,10 @@ requirements:
     # single conda package — conda's strength is exactly the kind of
     # compiled binary deps that h5py + numpy carry.
     - h5py >=3.10
-    # numpy upper bound: pinned <3 as a defensive safety net. fi-core only
-    # uses numpy.asarray, linalg.norm, argpartition, argsort, stack, and the
-    # @ matmul operator — all of which work fine on numpy 2.x — but the
-    # eventual 3.x release may shift ABI/API in ways that are not yet known
-    # at recipe-authoring time. Re-evaluate this bound when numpy 3.0 lands.
     - numpy >=1.24,<3
     # MCP SDK for the persona MCP server (`fi_core.persona.mcp_server`).
     # Bundled by default since the MCP server is the headline integration
-    # path for this release. Upper bound pinned <2 because the MCP SDK is
-    # in active development (1.x has shipped through 1.25 within months);
-    # signature changes in a future 2.x are likely and would silently break
-    # the persona MCP server contract.
+    # path for this release.
     - mcp >=1.4,<2
 
 test:
@@ -62,17 +54,36 @@ test:
   requires:
     - python {{ python_min }}
     - pip
-  source_files:
-    - run_test.py
   commands:
-    # Pip dependency consistency check.
     - pip check
-    # Run the three smoke tests (HDF5 store, persona detector, MCP atomic
-    # loop) from an externalized script. Script is committed alongside
-    # meta.yaml under recipes/fi-core/run_test.py for readability and
-    # local debuggability — running it outside conda-build is the same
-    # `python run_test.py` invocation.
-    - python run_test.py
+    # Smoke test the HDF5 store creates + queries (no LLM, no network).
+    - python -c "import asyncio; from fi_core.stores.hdf5 import HDF5ChunkStore; from fi_core.rag import Chunk, ChunkWithEmbedding; import tempfile, os; tf=tempfile.NamedTemporaryFile(suffix='.h5', delete=False); tf.close(); s=HDF5ChunkStore(tf.name); asyncio.run(s.create_document(namespace='t', document_id='d', content='c')); asyncio.run(s.save_chunks(namespace='t', document_id='d', chunks=[ChunkWithEmbedding(chunk=Chunk(text='x', source_type='t', source_ref='r'), embedding=[1.0,0.0])])); r=asyncio.run(s.query(namespace='t', query_embedding=[1.0,0.0], top_k=1)); assert len(r)==1; os.unlink(tf.name); print('smoke test passed')"
+    # Smoke test the persona module (deterministic regex, no deps).
+    - python -c "from fi_core.persona import BreakDetector, packs; d=BreakDetector(patterns=packs.GENERIC_AI_DISCLOSURE_EN); assert d.detect('As an AI, I cannot') != []; print('persona smoke test passed')"
+    # Smoke test the MCP server atomic loop tool (no transport, direct call).
+    - python -c "import asyncio; from fi_core.persona import mcp_server; r=asyncio.run(mcp_server.validate_and_retry_prompt(response='As an AI, I cannot help.', system_prompt='You are a friend.')); assert r['retry_needed'] is True; assert r['reinforced_system_prompt'] is not None; print('mcp server smoke test passed')"
+    # Smoke test optional surfaces are importable when extras are pip-installed
+    # (NOT in conda's run deps — verifies the modules exist and raise the
+    # expected ImportError when the extras package is missing).
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.stores.pgvector') is not None, 'pgvector module file missing from build'; print('pgvector module file present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.embeddings.azure_openai') is not None, 'azure_openai module file missing from build'; print('azure_openai module file present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.embeddings.sentence_transformers') is not None, 'sentence_transformers module file missing from build'; print('sentence_transformers module file present')"
+    # Training module surfaces (require [training] extra at use-time; verify present here).
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.training') is not None, 'training package missing'; print('training package present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.training.models.tiny_gpt') is not None, 'tiny_gpt module missing'; print('tiny_gpt module present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.training.trainers.pytorch_trainer') is not None, 'pytorch_trainer module missing'; print('pytorch_trainer module present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.training.tokenizers.tiktoken_adapter') is not None, 'tiktoken_adapter module missing'; print('tiktoken_adapter module present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.training.tokenizers.bpe') is not None, 'bpe tokenizer module missing'; print('bpe tokenizer module present')"
+    # Protocols submodule must be importable without ANY optional deps installed.
+    - python -c "from fi_core.training import DatasetReader, Tokenizer, GenerationModel, Trainer; print('training protocols importable')"
+    # Memory module surfaces (require [memory] extra for the pg store; verify module presence here).
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.memory') is not None, 'memory package missing'; print('memory package present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.memory.stores.pgvector_memory') is not None, 'pgvector_memory module missing'; print('pgvector_memory module present')"
+    - python -c "from importlib.util import find_spec; assert find_spec('fi_core.memory.consolidator') is not None, 'consolidator module missing'; print('consolidator module present')"
+    # Protocols + types must be importable without ANY optional deps installed.
+    - python -c "from fi_core.memory import MemoryStore, Fact, FactSource, Default90d, RetentionPolicy; print('memory protocols + types importable')"
+    # Default90d cutoff smoke test (no external deps).
+    - python -c "from fi_core.memory import Default90d; assert Default90d().cutoff(now=1000.0) == 1000.0 - (90*86400); print('Default90d cutoff correct')"
 
 about:
   home: https://github.com/BernardUriza/free-intelligence/tree/main/apps/packages/fi-core
@@ -80,8 +91,11 @@ about:
   license_family: MIT
   license_file: LICENSE
   summary: >
-    Shared LLM primitives — RAG chunking + Embedder/ChunkStore protocols,
-    HDF5-backed document chunk store, persona character-integrity detection.
+    Shared LLM primitives — RAG chunking + protocols, HDF5 + pgvector
+    document stores, Azure OpenAI + sentence-transformers embedders,
+    persona character-integrity detection with MCP server, training
+    pipes (TinyGPT + PyTorchTrainer + tokenizers + dataset readers),
+    and long-term fact memory (PgMemoryStore + FactConsolidator).
   description: |
     fi-core ships reusable primitives for building production LLM applications,
     extracted from real production consumers (AURITY medical RAG platform,
@@ -92,27 +106,38 @@ about:
     - **fi_core.rag** — chunking algorithms (paragraph-aware, sentence-aware,
       fixed-size) plus Protocol classes for Embedder / ChunkStore /
       DocumentChunkStore. Zero-deps core.
-    - **fi_core.stores.hdf5** — h5py-backed reference implementation of
-      DocumentChunkStore. Per-namespace document tree with in-memory cosine
-      similarity index, idempotent bulk save_chunks, status auto-promotion
-      (pending → indexed), cascading delete. Async canonical API + public
-      sync facades for legacy adapter consumers.
+    - **fi_core.stores** — two reference DocumentChunkStore implementations.
+      `fi_core.stores.hdf5` (h5py-backed, per-namespace document tree, in-memory
+      cosine similarity index, idempotent bulk save_chunks, async + sync facades)
+      bundled in this conda package by default. `fi_core.stores.pgvector`
+      (asyncpg + pgvector, IVFFlat index, multi-tenant chat substrate ready)
+      module ships in the package; install its runtime deps via pip extras
+      `fi-core[stores-pgvector]` when needed.
+    - **fi_core.embeddings** — two reference Embedder implementations.
+      `fi_core.embeddings.azure_openai` (Azure OpenAI Embeddings via openai
+      SDK's AsyncAzureOpenAI client) and
+      `fi_core.embeddings.sentence_transformers` (local sentence-transformers,
+      lazy-loaded, asyncio.to_thread bridge, cuda > mps > cpu auto-detect).
+      Both modules ship in the package; install runtime deps via pip extras
+      `fi-core[embeddings-azure]` / `fi-core[embeddings-st]` when needed.
     - **fi_core.persona** — anti-drift detectors (BreakDetector,
       AntiPatternMonitor, ClarificationDumpDetector, sanitize) with bilingual
       English + Spanish pattern packs (AI disclosure, assistant tone,
       therapy-speak, summarizing, stage directions, markdown drift,
       moralizing, over-validation, clarification dump). Pure regex,
       zero LLM calls at detection time.
-    - **fi_core.persona.mcp_server** — Model Context Protocol server that
-      exposes the persona detectors as tools any MCP-compatible AI client
-      (Claude Code, Cursor, Anthropic API with MCP enabled) can call
-      directly. Includes an atomic validate_and_retry_prompt tool that
-      lets an AI self-validate its output and receive a reinforced
-      system prompt in a single round-trip.
+    - **fi_core.persona.mcp_server** — MCP (Model Context Protocol) server
+      exposing the persona detectors as tools any MCP-compatible AI (Claude
+      Code, Cursor, Anthropic API with MCP enabled) can call directly. The
+      killer-feature tool is `validate_and_retry_prompt` — one-shot atomic
+      validation + retry reinforcement, no client-side orchestration needed.
+      Bundled in this conda package via the `mcp` runtime dep.
 
-    Use cases include medical RAG with clinic-scoped namespacing, conversational
-    AI personas with character integrity hardening, and AI agents that need
-    cheap deterministic self-validation before sending output to users.
+    The persona detectors and store schemas were not derived from a training
+    corpus. They are distilled from observed production failure modes in
+    real consumers (Insult Discord bot, AURITY medical RAG). Semi-closed
+    loop: human pattern recognition over production failures → library →
+    consumers, not corpus → model → patterns.
   doc_url: https://github.com/BernardUriza/free-intelligence/tree/main/apps/packages/fi-core
   dev_url: https://github.com/BernardUriza/free-intelligence
 
