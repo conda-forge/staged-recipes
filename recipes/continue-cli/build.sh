@@ -25,7 +25,9 @@ exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/@continuedev/c
 EOF
 chmod +x ${PREFIX}/bin/cn
 
-tee ${PREFIX}/bin/cn.cmd << 'EOF'
+# for windows
+mkdir -p ${PREFIX}/Scripts
+tee ${PREFIX}/Scripts/cn.cmd << 'EOF'
 @echo off
 "%CONDA_PREFIX%\node.exe" "%CONDA_PREFIX%\node_modules\@continuedev\cli\dist\cn.js" %*
 EOF
