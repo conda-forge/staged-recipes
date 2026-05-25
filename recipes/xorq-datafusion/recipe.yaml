@@ -2,30 +2,33 @@
 schema_version: 1
 
 context:
+  name: xorq-datafusion
   version: "0.2.7"
 
 package:
-  name: xorq-datafusion
+  name: ${{ name | lower }}
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/x/xorq-datafusion/xorq_datafusion-${{ version }}.tar.gz
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name | replace("-", "_") }}-${{ version }}.tar.gz
   sha256: be1dbdbef6ea513df1aae189fe5fa6e54a8e8556dc824a74a888473b4c1929cb
 
 build:
   number: 0
   script:
-    - if: unix
-      then:
-        # Unix recipe
-        - export OPENSSL_DIR="$PREFIX"
-      else:
-        # Win recipe  # work around long path problem,
-        # hack: path too long for pixi_config subpackage, https://github.com/prefix-dev/pixi/issues/3691
-        - set CARGO_HOME=C:\.cargo
-        - if not exist %CARGO_HOME% md %CARGO_HOME%
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then: |
+          export OPENSSL_DIR="$PREFIX"
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        else: |
+          set "OPENSSL_DIR=%LIBRARY_PREFIX%"
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
   python:
     version_independent: true
 
