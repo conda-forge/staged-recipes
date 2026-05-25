@@ -1,0 +1,52 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: flux-mirror
+  version: ${{ version }}
+
+source:
+  url: https://github.com/fluxcd/flux-mirror/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3f5cb0d09dd64bbd859107d166c7bfb0e165fcd1d5f5181295f4fa01f85026ee
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/flux-mirror --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/flux-mirror -ldflags="-s -w -X main.VERSION=${{ version }}" ./cmd/flux-mirror
+      else: go build -v -o %LIBRARY_BIN%\flux-mirror.exe -ldflags="-s -w -X main.VERSION=${{ version }}" ./cmd/flux-mirror
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: flux-mirror version
+  - package_contents:
+      bin:
+        - flux-mirror
+      strict: true
+
+about:
+  homepage: https://github.com/fluxcd/flux-mirror
+  summary: Mirror Helm charts and OCI artifacts between registries based on a declarative YAML config
+  description: |
+    Flux Mirror is a CLI for mirroring Helm charts, OCI artifacts and
+    container images between registries using a declarative approach. The
+    intended use case is feeding an internal mirror registry that backs Flux
+    OCIRepository and Kubernetes Deployments, so clusters never reach out to
+    upstream registries at reconcile time.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/fluxcd/flux-mirror/tree/main/docs
+  repository: https://github.com/fluxcd/flux-mirror
+
+extra:
+  recipe-maintainers:
+    - aaronlionsheep
