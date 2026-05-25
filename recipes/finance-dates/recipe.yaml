@@ -1,0 +1,94 @@
+context:
+  name: finance-dates
+  version: "0.1.0"
+  build: 0
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name|replace('-', '_') }}-${{ version }}.tar.gz
+  sha256: 262c9244443d918b9ba2148df50203023de46d5770ffb8d0cbefefe95c519ea0
+
+build:
+  number: ${{ build }}
+
+outputs:
+  - package:
+      name: finance-dates
+    build:
+      number: ${{ build }}
+      python:
+        version_independent: true
+      script:
+        - if: unix
+          then: export PYO3_PYTHON="$PYTHON"
+          else: set "PYO3_PYTHON=%PYTHON%"
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      skip: is_abi3 and not is_python_min
+
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - crossenv
+        - ${{ compiler('c') }}
+        - ${{ stdlib("c") }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      host:
+        - python
+        - pip
+        - hatchling
+        - hatch-rs >=0.2.0
+        - if: is_abi3
+          then:
+            - python-abi3
+      run:
+        - python >=${{ python_min }}
+      ignore_run_exports:
+        from_package:
+          - cross-python_${{ target_platform }}
+
+    tests:
+      - python:
+          imports:
+            - finance_dates
+          pip_check: true
+          python_version: ${{ python_min }}.*
+
+  - package:
+      name: finance_dates
+    build:
+      noarch: generic
+      number: ${{ build }}
+      skip:
+        - not target_platform == "linux-64"
+    requirements:
+      run:
+        - ${{ pin_subpackage('finance-dates', upper_bound='x.x.x', lower_bound='x.x.x') }}
+    about:
+      license_file: []
+    tests:
+      - python:
+          imports:
+            - finance_dates
+          pip_check: true
+          python_version: ${{ python_min }}.*
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Standard financial dates
+  homepage: https://github.com/prettygoodcapital/finance-dates
+  repository: https://github.com/prettygoodcapital/finance-dates
+
+extra:
+  recipe-maintainers:
+    - pgc-dev
