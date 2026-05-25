@@ -1,0 +1,118 @@
+{% set name = "satkit-data" %}
+{% set version = "0.9.0" %}
+
+# satkit-data is a noarch Python package that ships the static data files
+# satkit needs at runtime: gravity coefficients, IERS precession-nutation
+# tables, leap-seconds, NRLMSIS-2.1 parameters, and a JPL planetary
+# ephemeris.
+#
+# The PyPI build of `satkit-data` at the same version ships DE440
+# full-span (`linux_p1550p2650.440`, ~98 MB, 1550–2650) — that's the
+# upstream payload. The conda-forge build of `satkit-data` is
+# intentionally a different payload: we ship DE421 (~13 MB, 1900–2053)
+# instead, so the package stays under conda-forge's 100 MB soft cap.
+# Version numbers track the upstream `satkit-data` version; the JPL-file
+# substitution is a channel-specific choice, not a version bump.
+# For the longer DE440 span at the cost of file size, users can call
+# `satkit.utils.update_datafiles()` after install — the autodetect in
+# `jplephem::resolve_default_path` then prefers DE440 over DE421.
+#
+# EOP-All.csv and SW-All.csv (Earth orientation parameters, space
+# weather) are NOT bundled — they're republished daily by CelesTrak and
+# bundling a stale snapshot would mislead users. They're fetched on
+# demand via `satkit.utils.update_datafiles()` or
+# `satkit.earth_orientation_params::update()`.
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # JPL DE421 — short-span planetary ephemeris (1900–2053, ~13 MB).
+  # JPL's Linux subdirectory ships the little-endian native binary.
+  - url: https://ssd.jpl.nasa.gov/ftp/eph/planets/Linux/de421/lnxp1900p2053.421
+    sha256: 5b3f81dd0c505925055a389431fd2bc5e0ae2fd02d85db37fa4d4fe54dfb4096
+    folder: data
+  # Earth gravity-model coefficients (ICGEM-format text).
+  - url: https://storage.googleapis.com/astrokit-astro-data/EGM96.gfc
+    sha256: 5247a9e9c316dd2c8f8fd491d53be0e163cb5cb3676b021754240cc9e44cb43b
+    folder: data
+  - url: https://storage.googleapis.com/astrokit-astro-data/JGM2.gfc
+    sha256: 0779cf74f216d5b38c7a4c4a1a25d596b659605deb7731f00874c17e9ed3f5af
+    folder: data
+  - url: https://storage.googleapis.com/astrokit-astro-data/JGM3.gfc
+    sha256: 2ec791eec795689291974dd3602b304029da93d3fea30096daa3b368fb231d03
+    folder: data
+  - url: https://storage.googleapis.com/astrokit-astro-data/ITU_GRACE16.gfc
+    sha256: b6bea9c78ad168f1e206fc7211f90b64fba54325c832f4473f6c05a07adbc718
+    folder: data
+  # IERS 2010 IAU precession-nutation tables (Tech Note 36 §5).
+  - url: https://storage.googleapis.com/astrokit-astro-data/tab5.2a.txt
+    sha256: 19549252df9eb77c8237dbf5b749de82b7fd7713a8b60b35371538cd36b6aa1d
+    folder: data
+  - url: https://storage.googleapis.com/astrokit-astro-data/tab5.2b.txt
+    sha256: 1f17a3a6ad0b468705b3323bfe72d0320ce996798ec7cba0cdde4405d88f14d9
+    folder: data
+  - url: https://storage.googleapis.com/astrokit-astro-data/tab5.2d.txt
+    sha256: fe94c83e1ef6f92b15b3f007779ae70c0984c06ee45d5511b4c821ee9a0ecded
+    folder: data
+  # Leap-second history (IETF / IERS).
+  - url: https://storage.googleapis.com/astrokit-astro-data/leap-seconds.list
+    sha256: 14b4faab51b1885680a704744863bda8b5728a0f0a5e07a15c8469532318b305
+    folder: data
+  # NRLMSIS 2.1 atmospheric model parameters.
+  - url: https://storage.googleapis.com/astrokit-astro-data/msis21.parm
+    sha256: a322a749f368e73117dd20f3fdcf7389dabc5509f4c27073cc5580999381b508
+    folder: data
+
+build:
+  number: 0
+  noarch: python
+  # Lay the downloaded files out as a `satkit_data` Python package, mirroring
+  # the on-PyPI sibling so satkit's existing `$SITE_PACKAGES/satkit_data/data`
+  # data-directory resolver finds them without configuration.
+  script: |
+    mkdir -p "$SP_DIR/satkit_data/data"
+    cp -v data/* "$SP_DIR/satkit_data/data/"
+    : > "$SP_DIR/satkit_data/__init__.py"
+
+requirements:
+  host:
+    - python
+  run:
+    - python
+
+test:
+  imports:
+    - satkit_data
+  commands:
+    - python -c "from importlib.resources import files; d = files('satkit_data').joinpath('data'); names = sorted(p.name for p in d.iterdir()); assert 'lnxp1900p2053.421' in names, names; assert 'EGM96.gfc' in names, names; print('\n'.join(names))"
+
+about:
+  home: https://github.com/ssmichael1/satkit
+  license: MIT OR Apache-2.0
+  license_family: MIT
+  summary: Static data files for satkit (DE421 ephemeris, gravity, IERS tables, leap seconds)
+  description: |
+    Ships the static data files satkit needs at runtime:
+
+      * **lnxp1900p2053.421** — JPL DE421 planetary ephemeris
+        (1900–2053, ~13 MB). For longer spans use DE440 via
+        `satkit.utils.update_datafiles()`.
+      * **EGM96.gfc, JGM2.gfc, JGM3.gfc, ITU_GRACE16.gfc** — gravity
+        models (ICGEM format).
+      * **tab5.2a.txt, tab5.2b.txt, tab5.2d.txt** — IERS Tech Note 36
+        precession-nutation series.
+      * **leap-seconds.list** — historical leap-second table.
+      * **msis21.parm** — NRLMSIS 2.1 atmospheric model parameters.
+
+    Earth orientation parameters (EOP-All.csv) and space weather
+    (SW-All.csv) are NOT bundled because they're regenerated daily by
+    CelesTrak. Run `satkit.utils.update_datafiles()` after install to
+    fetch them.
+  doc_url: https://satkit.dev/getting-started/datafiles/
+  dev_url: https://github.com/ssmichael1/satkit
+
+extra:
+  recipe-maintainers:
+    - ssmichael1

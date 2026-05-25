@@ -1,0 +1,66 @@
+{% set name = "satkit" %}
+{% set version = "0.18.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 9af912f75d1f6387c988670811c6ca1dfbc31efc1f14153d61546e74f76b7033
+
+build:
+  number: 0
+  # satkit currently requires Python ≥3.10 (set in pyproject.toml).
+  skip: true  # [py<310]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('rust') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - setuptools-rust
+  run:
+    - python
+    - numpy >=1.0
+    - satkit-data >=0.9
+
+test:
+  # PyO3-`wrap_pymodule!` submodules (jplephem, frametransform, ...) are
+  # exposed as attributes on `satkit`, not separately-importable
+  # top-level modules — so only `satkit` itself goes in `imports:`.
+  # The attribute-access exercise lives in run_test.py.
+  imports:
+    - satkit
+  files:
+    - run_test.py
+  commands:
+    - python run_test.py
+
+about:
+  home: https://github.com/ssmichael1/satkit
+  license: MIT OR Apache-2.0
+  license_family: MIT
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+  summary: Satellite orbital mechanics library (SGP4, JPL ephemerides, frame transforms)
+  description: |
+    SatKit is a high-performance orbital mechanics library written in
+    Rust with complete Python bindings via PyO3. It handles coordinate
+    transforms, orbit propagation, time systems, gravity models,
+    atmospheric density, and JPL ephemerides — everything needed for
+    satellite astrodynamics work.
+
+    Companion data package: satkit-data (ships JPL DE421 plus the
+    static gravity / IERS / leap-second / NRLMSIS files).
+  doc_url: https://satkit.dev/
+  dev_url: https://github.com/ssmichael1/satkit
+
+extra:
+  recipe-maintainers:
+    - ssmichael1
