@@ -1,0 +1,43 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-16
+Subject: npu_compiler: #undef glibc major/minor macros in version.hpp
+
+`vpux::config::Version` has data members named `major`, `minor` and
+`patch`.  glibc's <sys/sysmacros.h> defines `major` and `minor` as
+function-like macros (expanding to `gnu_dev_major` / `gnu_dev_minor`).
+
+On the conda-forge cos7 sysroot (glibc 2.17) <sys/types.h> still
+pulls in <sys/sysmacros.h> transitively, so by the time version.hpp
+is parsed `major`/`minor` are macros and the struct's member names
+and the constructor initializer list (`major(major_), minor(minor_)`)
+get macro-expanded, producing:
+
+    error: class 'vpux::config::Version' does not have any field
+           named 'gnu_dev_major'
+
+Intel's own CI builds on Ubuntu 22.04, whose newer glibc no longer
+leaks these macros from <sys/types.h>, so upstream never sees this.
+Building from source on the (older, deliberately ABI-conservative)
+conda sysroot does.  Undefining the macros at the top of the header
+is the minimal, portable fix.
+
+--- a/src/vpux_compiler/include/vpux/compiler/dialect/config/version.hpp
++++ b/src/vpux_compiler/include/vpux/compiler/dialect/config/version.hpp
+@@ -10,6 +10,17 @@
+ #include <cstdint>
+ #include <tuple>
+
++// glibc's <sys/sysmacros.h> (pulled in transitively by <sys/types.h>
++// on the conda-forge cos7 sysroot, glibc 2.17) defines `major` and
++// `minor` as function-like macros.  They would otherwise expand the
++// `major`/`minor` data members of `vpux::config::Version` below.
++#ifdef major
++#undef major
++#endif
++#ifdef minor
++#undef minor
++#endif
++
+ namespace vpux::config {
+
+ struct Version final {

@@ -1,0 +1,32 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-24
+Subject: npu_compiler: gate vpux_driver_compiler tests on ENABLE_TESTS
+
+src/vpux_driver_compiler/CMakeLists.txt adds its test/ subdirectory
+unconditionally.  test/functional/CMakeLists.txt then needs a `gtest`
+target; since the feedstock builds with ENABLE_TESTS=OFF, OpenVINO never
+creates one, so it falls back to
+`add_subdirectory(${OpenVINO_SOURCE_DIR}/thirdparty/gtest gtest)` -- which
+forced the feedstock to vendor openvinotoolkit/googletest into
+thirdparty/gtest/gtest just so configure would not fail on the empty
+submodule, and then compiled libgtest.a plus four test executables
+(vpuxCompilerL0Test, compilerTest, profilingTest, loaderTest) we never run
+or ship.
+
+Gate the test subdirectory on ENABLE_TESTS (default OFF) like the rest of
+the OpenVINO/NPU test trees.  This drops the gtest dependency entirely and
+skips building the unused test binaries.
+
+--- a/src/vpux_driver_compiler/CMakeLists.txt
++++ b/src/vpux_driver_compiler/CMakeLists.txt
+@@ -28,7 +28,9 @@
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ add_subdirectory(src)
+-add_subdirectory(test)
++if(ENABLE_TESTS)
++    add_subdirectory(test)
++endif()
+
+ install(
+     FILES
