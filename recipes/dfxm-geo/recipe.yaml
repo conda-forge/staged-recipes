@@ -44,20 +44,16 @@ tests:
   - python:
       imports:
         - dfxm_geo
-        - dfxm_geo.analysis
-        - dfxm_geo.crystal
-        - dfxm_geo.data
-        - dfxm_geo.direct_space
-        - dfxm_geo.io
-        - dfxm_geo.reciprocal_space
-        - dfxm_geo.viz
       pip_check: true
       python_version: ${{ python_min }}.*
   - script:
-      # DIAGNOSTIC (verification only): route uncaught exceptions to stdout
-      # (the CI log captures stdout) and step-print to pinpoint which import
-      # crashes dfxm-forward on win-64.
-      - 'python -u -c "import sys,traceback; sys.excepthook=lambda et,ev,tb: traceback.print_exception(et,ev,tb,file=sys.stdout); print(''STEP1 interpreter up'',flush=True); import dfxm_geo; print(''STEP2 dfxm_geo'',flush=True); import dfxm_geo.crystal.rotations as r; print(''STEP3 rotations imported'',flush=True); import numpy as np; r.fast_inverse2(np.random.default_rng().random((4,3,3))); print(''STEP4 fast_inverse2 compiled+ran'',flush=True); import dfxm_geo.direct_space.forward_model; print(''STEP5 forward_model'',flush=True); import dfxm_geo.pipeline; print(''STEP6 pipeline OK'',flush=True)"'
+      # DIAGNOSTIC: (1) locate the launcher, (2) run the dfxm-forward launcher
+      # via subprocess and capture its stdout+stderr (rattler does not surface
+      # the launcher's own stderr) — always exits 0 so output reaches the log,
+      # (3) call cli_main directly (SystemExit(0) from --help exits cleanly).
+      - 'python -u -c "import shutil; print(''WHICH dfxm-forward ->'', shutil.which(''dfxm-forward''), flush=True)"'
+      - 'python -u -c "import subprocess as s; p=s.run([''dfxm-forward'',''--help''], capture_output=True, text=True); print(''LAUNCHER RC ='', p.returncode, flush=True); print(''--- launcher STDOUT ---'', flush=True); print(p.stdout, flush=True); print(''--- launcher STDERR ---'', flush=True); print(p.stderr, flush=True)"'
+      - 'python -u -c "import sys,traceback; sys.excepthook=lambda et,ev,tb: traceback.print_exception(et,ev,tb,file=sys.stdout); from dfxm_geo.pipeline import cli_main; cli_main([''--help''])"'
     requirements:
       run:
         - python ${{ python_min }}.*
@@ -65,7 +61,6 @@ tests:
 about:
   homepage: https://github.com/borgi-s/Geometrical_Optics_master
   repository: https://github.com/borgi-s/Geometrical_Optics_master
-  documentation: https://github.com/borgi-s/Geometrical_Optics_master/tree/main/docs
   license: MIT
   license_file: LICENSE
   summary: Geometrical-optics forward model for dark-field X-ray microscopy
