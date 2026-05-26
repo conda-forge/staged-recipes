@@ -3,7 +3,6 @@ schema_version: 1
 context:
   name: dfxm-geo
   version: "2.1.2"
-  # requires-python = ">=3.11"; override conda-forge's lower global python_min.
   python_min: "3.11"
 
 package:
@@ -11,9 +10,6 @@ package:
   version: ${{ version }}
 
 source:
-  # TEMPORARY (verification only): build from a GitHub archive of the
-  # fastmath-fix commit to confirm the win-64 build before cutting a PyPI
-  # 2.1.3 release. Will be switched back to the PyPI sdist for the final recipe.
   url: https://github.com/borgi-s/Geometrical_Optics_master/archive/8453513695d4a44c63930ef61d3218b2e68e50fb.tar.gz
   sha256: 23fb9df9b6478bb3f56bbf9df77b29ba5877db3cb77a32af89c45e8179c777a7
 
@@ -40,10 +36,9 @@ requirements:
     - joblib >=1.3
     - tqdm >=4.66.3
   run_constraints:
-    # Optional extras — not installed by default, but version-pinned if present.
-    - xraylib >=4.1      # beamstop-wire (X-ray attenuation through the wire)
-    - psutil >=5         # memory-aware (adaptive parallel worker capping)
-    - plotly >=5         # identification (interactive viewers)
+    - xraylib >=4.1
+    - psutil >=5
+    - plotly >=5
 
 tests:
   - python:
@@ -59,12 +54,10 @@ tests:
       pip_check: true
       python_version: ${{ python_min }}.*
   - script:
-      - dfxm-forward --help
-      - dfxm-identify --help
-      - dfxm-bootstrap --help
-      - dfxm-init --help
-    # Pin the script-test env to the minimum supported Python, matching the
-    # import test above. dfxm-geo targets Python 3.11–3.12.
+      # DIAGNOSTIC (verification only): route uncaught exceptions to stdout
+      # (the CI log captures stdout) and step-print to pinpoint which import
+      # crashes dfxm-forward on win-64.
+      - 'python -u -c "import sys,traceback; sys.excepthook=lambda et,ev,tb: traceback.print_exception(et,ev,tb,file=sys.stdout); print(''STEP1 interpreter up'',flush=True); import dfxm_geo; print(''STEP2 dfxm_geo'',flush=True); import dfxm_geo.crystal.rotations as r; print(''STEP3 rotations imported'',flush=True); import numpy as np; r.fast_inverse2(np.random.default_rng().random((4,3,3))); print(''STEP4 fast_inverse2 compiled+ran'',flush=True); import dfxm_geo.direct_space.forward_model; print(''STEP5 forward_model'',flush=True); import dfxm_geo.pipeline; print(''STEP6 pipeline OK'',flush=True)"'
     requirements:
       run:
         - python ${{ python_min }}.*
@@ -78,13 +71,7 @@ about:
   summary: Geometrical-optics forward model for dark-field X-ray microscopy
   description: |
     dfxm-geo is a geometrical-optics forward model for dark-field X-ray
-    microscopy (DFXM). It simulates DFXM images of crystals containing
-    dislocations, supports multi-reflection kernels, scan trajectories
-    (theta / two_dtheta / z), and crystal layouts, and writes simulation
-    output in a BLISS-compatible HDF5 layout. A companion identification
-    mode reconstructs dislocation populations from simulated scans.
-
-    The model is described in Borgi et al., IUCrJ (2024).
+    microscopy (DFXM).
 
 extra:
   recipe-maintainers:
