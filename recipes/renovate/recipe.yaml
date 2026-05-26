@@ -1,23 +1,35 @@
 context:
-  version: "43.150.0"
+  version: "43.195.6"
 
 package:
   name: renovate
   version: ${{ version }}
 
 source:
-  url: https://registry.npmjs.org/renovate/-/renovate-${{ version }}.tgz
-  sha256: 9b71029ba351f1c732ba8b20d5a918bc668767c05150ef97a5e7e71388b15910
+  url: https://github.com/renovatebot/renovate/archive/refs/tags/${{ version }}.tar.gz
+  sha256: d067dba4f638f06a3a52ec0d286888c8f37526e11275c72afc1d378e7caf1851
 
 build:
-  noarch: generic
   number: 0
+  skip:
+    - win # renovate team does not support windows anymore
+  script:
+      - set -ex
+      - npm version ${{ version }} # source does not maintain version in package.json
+      - pnpm install --ignore-scripts
+      - pnpm build
+      - npm pkg delete scripts.prepare
+      - npm pack --ignore-scripts
+      - npm install --global ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.tgz
+      - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 requirements:
   build:
     - nodejs
     - pnpm
     - pnpm-licenses
+  host:
+    - nodejs
   run:
     - nodejs
 
@@ -26,7 +38,7 @@ tests:
       bin:
         - renovate
   - script:
-      - renovate --version
+      - renovate --version | grep "${{ version }}"
 
 about:
   homepage: https://docs.renovatebot.com
