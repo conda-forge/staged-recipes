@@ -1,0 +1,35 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-16
+Subject: npu_compiler: fall back to pinned commit hash for archive sources
+
+compiler_commit_hash.cmake runs `git rev-parse HEAD` in the npu_compiler
+source tree to embed the compiler's git commit into the built library.
+The conda-forge feedstock builds from a GitHub archive tarball, which has
+no `.git` directory, so `git rev-parse` fails and the build aborts with
+"Failed to capture compiler git commit."
+
+The feedstock pins the npu_compiler source to a specific upstream commit
+(tag npu_ud_2026_12_1_rc1 -> 97d6545ee65327641e38707ad1f30479520d812c),
+so the commit is known at packaging time even without a git checkout.
+Fall back to that pinned hash when `git` is unavailable or fails, instead
+of treating it as a fatal error.
+
+--- a/cmake/compiler_commit_hash.cmake
++++ b/cmake/compiler_commit_hash.cmake
+@@ -10,10 +10,15 @@
+     OUTPUT_VARIABLE CURRENT_COMMIT_HASH
+     OUTPUT_STRIP_TRAILING_WHITESPACE
+     RESULT_VARIABLE ERROR_CODE
++    ERROR_QUIET
+ )
+ 
+ if (NOT ${ERROR_CODE} EQUAL 0)
+-    message(FATAL_ERROR "Failed to capture compiler git commit.")
++    # conda-forge builds from a GitHub archive tarball, which has no .git
++    # directory.  The source is pinned to a known upstream commit, so fall
++    # back to that pinned hash instead of failing the build.
++    set(CURRENT_COMMIT_HASH "97d6545ee65327641e38707ad1f30479520d812c")
++    message(STATUS "git rev-parse unavailable; using pinned commit hash ${CURRENT_COMMIT_HASH}")
+ endif()
+ 
+ set(LAST_COMMIT_HASH "")

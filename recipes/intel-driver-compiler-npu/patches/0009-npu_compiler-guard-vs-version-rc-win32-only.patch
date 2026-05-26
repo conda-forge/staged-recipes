@@ -1,0 +1,29 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-25
+Subject: npu_compiler: guard vs_version.rc.in configure_file to WIN32 only
+
+The configure_file call references ${IEDevScripts_DIR}/vs_version/vs_version.rc.in,
+which is a Windows version resource file.  IEDevScripts_DIR is only set when
+building inside the OpenVINO source tree.  On Linux the variable is empty so
+CMake tries to configure_file("/vs_version/vs_version.rc.in", ...) which
+immediately errors with "File /vs_version/vs_version.rc.in does not exist."
+
+Wrap the configure_file + source_group + target_sources calls in if(WIN32)
+so the file is only generated (and needed) on Windows.
+
+--- a/src/vpux_driver_compiler/src/vpux_compiler_l0/CMakeLists.txt
++++ b/src/vpux_driver_compiler/src/vpux_compiler_l0/CMakeLists.txt
+@@ -60,10 +60,12 @@ set(OV_VS_VER_COMPANY_NAME_STR "Intel Corporation")
+ set(OV_VS_VER_COPYRIGHT_STR "${COPYRIGHT_STR}")
+ set(OV_VS_VER_ORIGINALFILENAME_STR "${CMAKE_SHARED_LIBRARY_PREFIX}${TARGET_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+ set(OV_VS_VER_INTERNALNAME_STR ${TARGET_NAME})
+-set(vs_version_output "${CMAKE_CURRENT_BINARY_DIR}/vs_version.rc")
+-configure_file("${IEDevScripts_DIR}/vs_version/vs_version.rc.in" "${vs_version_output}" @ONLY)
+-source_group("src" FILES ${vs_version_output})
+-target_sources(${TARGET_NAME} PRIVATE ${vs_version_output})
++if(WIN32)
++    set(vs_version_output "${CMAKE_CURRENT_BINARY_DIR}/vs_version.rc")
++    configure_file("${IEDevScripts_DIR}/vs_version/vs_version.rc.in" "${vs_version_output}" @ONLY)
++    source_group("src" FILES ${vs_version_output})
++    target_sources(${TARGET_NAME} PRIVATE ${vs_version_output})
++endif()
