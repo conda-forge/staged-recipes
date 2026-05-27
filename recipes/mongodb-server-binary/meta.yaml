@@ -6,23 +6,31 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel8-{{ version }}.tgz  # [linux64]
-    sha256: 1b3091acd5652a82a8e19fd8a564736d1a128c154f4760304a211c4726d849c9             # [linux64]
-  - url: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-rhel8-{{ version }}.tgz  # [linux and aarch64]
-    sha256: 2893a4c0147b30f184595b28ca6e3160e23c1a455f1d2792446b281d8dfb6d84              # [linux and aarch64]
-  - url: https://fastdl.mongodb.org/osx/mongodb-macos-arm64-{{ version }}.tgz            # [osx and arm64]
-    sha256: 5b41441da3d74f49accaddc8bd5d9b0ef9f19080e0e8365b0224f320a1de5b5d             # [osx and arm64]
-  - url: https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-{{ version }}.tgz           # [osx and x86_64]
+  # RHEL 9.3 builds on Linux: OpenSSL 3.x matches conda-forge; RHEL 8 builds
+  # link libcrypto.so.1.1 which conda-forge no longer ships.
+  - url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel93-{{ version }}.tgz  # [linux64]
+    sha256: fc44c798e0b540af07c8630260b574943a23ba9230301dd987b69fadbb04c3bf              # [linux64]
+  - url: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-rhel93-{{ version }}.tgz  # [linux and aarch64]
+    sha256: 7cad5424e36688a3a01be4bcbe94e75f6efa08d632c215ca468346f85caa939d               # [linux and aarch64]
+  - url: https://fastdl.mongodb.org/osx/mongodb-macos-arm64-{{ version }}.tgz             # [osx and arm64]
+    sha256: 5b41441da3d74f49accaddc8bd5d9b0ef9f19080e0e8365b0224f320a1de5b5d              # [osx and arm64]
+  - url: https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-{{ version }}.tgz            # [osx and x86_64]
     sha256: 3f05885d9082c037b1348a3e8f4d9bfb9d8ae57704c5b2d00d01c15e86049998             # [osx and x86_64]
-  - url: https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{{ version }}.zip     # [win64]
+  - url: https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{{ version }}.zip      # [win64]
     sha256: 3816381866167bbefdba2ab9a3e9be2ab5f4f3a59aac8964ccc4de5e298cb988             # [win64]
 
 build:
   number: {{ build_number }}
+  # MongoDB Inc. doesn't publish prebuilt binaries for these platforms.
   skip: true  # [ppc64le or s390x or linux32 or armv6l or armv7l]
   # Prebuilt upstream binaries; do not relocate or scan for $PREFIX.
   binary_relocation: false
   detect_binary_files_with_prefix: false
+  missing_dso_whitelist:        # [win]
+    # Windows API sets — virtual identifiers Windows resolves at load time;
+    # present on every Windows 10/11. conda-build's sysroot scanner has
+    # incomplete coverage of C:\Windows\System32\downlevel\.
+    - $RPATH/api-ms-win-*.dll   # [win]
 
 requirements:
   build:
@@ -33,7 +41,7 @@ requirements:
     - xz            # [linux]
     - vc14_runtime  # [win]
   run_constrained:
-    - __glibc >=2.28  # [linux]
+    - __glibc >=2.34  # [linux]
     - mongodb <0a0    # prevents file conflict with conda-forge mongodb feedstock
 
 test:
@@ -64,8 +72,9 @@ about:
 
     `mongosh` (the MongoDB shell) is not included; install it separately.
 
-    On Linux, the RHEL 8 upstream tarball is used (glibc 2.28+) for broad
-    compatibility.
+    On Linux, the RHEL 9.3 tarball is used (glibc 2.34+, OpenSSL 3.x) to match
+    conda-forge's OpenSSL while keeping the glibc floor lower than the Debian
+    12 build (which needs 2.36).
 
     Platforms: linux-64, linux-aarch64, osx-arm64, osx-64, win-64.
 
