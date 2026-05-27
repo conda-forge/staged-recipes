@@ -1,0 +1,80 @@
+{% set version = "8.3.2" %}
+{% set build_number = 0 %}
+
+package:
+  name: mongodb-server-binary
+  version: {{ version }}
+
+source:
+  - url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel8-{{ version }}.tgz  # [linux64]
+    sha256: 1b3091acd5652a82a8e19fd8a564736d1a128c154f4760304a211c4726d849c9             # [linux64]
+  - url: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-rhel8-{{ version }}.tgz  # [linux and aarch64]
+    sha256: 2893a4c0147b30f184595b28ca6e3160e23c1a455f1d2792446b281d8dfb6d84              # [linux and aarch64]
+  - url: https://fastdl.mongodb.org/osx/mongodb-macos-arm64-{{ version }}.tgz            # [osx and arm64]
+    sha256: 5b41441da3d74f49accaddc8bd5d9b0ef9f19080e0e8365b0224f320a1de5b5d             # [osx and arm64]
+  - url: https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-{{ version }}.tgz           # [osx and x86_64]
+    sha256: 3f05885d9082c037b1348a3e8f4d9bfb9d8ae57704c5b2d00d01c15e86049998             # [osx and x86_64]
+  - url: https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{{ version }}.zip     # [win64]
+    sha256: 3816381866167bbefdba2ab9a3e9be2ab5f4f3a59aac8964ccc4de5e298cb988             # [win64]
+
+build:
+  number: {{ build_number }}
+  skip: true  # [ppc64le or s390x or linux32 or armv6l or armv7l]
+  # Prebuilt upstream binaries; do not relocate or scan for $PREFIX.
+  binary_relocation: false
+  detect_binary_files_with_prefix: false
+
+requirements:
+  build:
+    - {{ stdlib("c") }}  # [linux]
+  run:
+    - openssl       # [linux]
+    - libcurl       # [linux]
+    - xz            # [linux]
+    - vc14_runtime  # [win]
+  run_constrained:
+    - __glibc >=2.28  # [linux]
+    - mongodb <0a0    # prevents file conflict with conda-forge mongodb feedstock
+
+test:
+  commands:
+    - test -f $PREFIX/bin/mongod                                          # [unix]
+    - test -f $PREFIX/bin/mongos                                          # [unix]
+    - test -f $PREFIX/share/mongodb-server-binary/LICENSE-Community.txt   # [unix]
+    - if not exist %LIBRARY_BIN%\mongod.exe exit 1                        # [win]
+    - if not exist %LIBRARY_BIN%\mongos.exe exit 1                        # [win]
+    - mongod --version
+    - mongos --version
+    - mongod --help > /dev/null   # [unix]
+    - mongos --help > /dev/null   # [unix]
+    - mongod --help > NUL         # [win]
+    - mongos --help > NUL         # [win]
+
+about:
+  home: https://www.mongodb.com/
+  license: SSPL-1.0
+  license_family: OTHER
+  license_file: LICENSE-Community.txt
+  summary: MongoDB Community Server (mongod, mongos) prebuilt binaries
+  description: |
+    The `mongod` database server and `mongos` sharding router binaries from
+    MongoDB Community Server, repackaged from MongoDB Inc.'s official prebuilt
+    archives at https://fastdl.mongodb.org. Binaries are not recompiled; they
+    are bit-for-bit identical to the upstream release.
+
+    `mongosh` (the MongoDB shell) is not included; install it separately.
+
+    On Linux, the RHEL 8 upstream tarball is used (glibc 2.28+) for broad
+    compatibility.
+
+    Platforms: linux-64, linux-aarch64, osx-arm64, osx-64, win-64.
+
+    MongoDB Community Server is licensed under the Server Side Public License
+    (SSPL-1.0). See LICENSE-Community.txt installed at
+    $CONDA_PREFIX/share/mongodb-server-binary/.
+  doc_url: https://www.mongodb.com/docs/manual/
+  dev_url: https://github.com/mongodb/mongo
+
+extra:
+  recipe-maintainers:
+    - tropicrainforest
