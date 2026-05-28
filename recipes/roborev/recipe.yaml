@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-parsers/main/schema.json
+
+context:
+  version: "0.56.0"
+
+package:
+  name: roborev
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/kenn-io/roborev/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: bf4d2e50a0aae32d3df4e8e9ee7521ab299f7af37986e935243c51056e15eb9b
+    target_directory: src
+  - url: https://raw.githubusercontent.com/mattn/go-localereader/6bae6c923850ab5e0da9f36f69811ffe17064228/LICENSE
+    sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+    file_name: LICENSE-go-localereader
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save go.kenn.io/roborev/cmd/roborev --save_path ../library_licenses --ignore github.com/mattn/go-localereader
+    - if: unix
+      then: go build -v -ldflags="-s -w -X go.kenn.io/roborev/internal/version.Version=${{ version }}" -o $PREFIX/bin/roborev ./cmd/roborev
+      else: go build -v -ldflags="-s -w -X go.kenn.io/roborev/internal/version.Version=${{ version }}" -o %LIBRARY_BIN%\roborev.exe ./cmd/roborev
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: roborev --help
+  - package_contents:
+      bin:
+        - roborev
+      strict: true
+
+about:
+  homepage: https://roborev.io
+  summary: Continuous background code review database for AI coding agents
+  description: |
+    roborev runs in the background, reviews every commit as agents write code,
+    and surfaces issues in seconds -- before they compound. Pull code reviews
+    into your agentic loop while context is fresh.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+    - LICENSE-go-localereader
+  repository: https://github.com/kenn-io/roborev
+
+extra:
+  recipe-maintainers:
+    - xhochy
