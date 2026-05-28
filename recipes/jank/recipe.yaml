@@ -1,0 +1,129 @@
+schema_version: 1
+
+context:
+  group: jank-lang
+  version: 0.1.0
+
+package:
+  name: jank
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/jank-lang/jank/archive/80c2d4f0672d55d57102d34f5ad328b4ef551329.tar.gz
+    sha256: ba2db7f1b5aaf697499f586fbd210574b800b437cc42c9ad26e0492250258504
+  # Submodules are listed explicitly because GitHub archive tarballs do not
+  # include submodule content and rattler-build fetches sources offline.
+  - url: https://github.com/jank-lang/folly/archive/39b8a05c3adc8d992d2aac499b53b3c2895cd637.tar.gz
+    sha256: a413f74ab5ee315c0d4646d55d60d691146e0db8dae5db70072fa486ebd840f6
+    target_directory: compiler+runtime/third-party/folly
+  - url: https://github.com/jank-lang/immer/archive/282629d01917d4c7d0aba2322de700c6d1111276.tar.gz
+    sha256: 21a6ef49a3e9ab3c8613fc5a6ef4b8f3ad2abce0d4ceb00e4be1bce052e6532a
+    target_directory: compiler+runtime/third-party/immer
+  - url: https://github.com/jank-lang/boost-preprocessor/archive/c4ea7e40d365ba28faecef8917d5c3f1e0121bf9.tar.gz
+    sha256: f9c48540b33defa2b76689b2d005cd3711eadf53960916db543470a00b8d1bfc
+    target_directory: compiler+runtime/third-party/boost-preprocessor
+  - url: https://github.com/jank-lang/FTXUI/archive/daa421fa6ad97c8a6c9bd43f77c81862bfa52c77.tar.gz
+    sha256: 8d7bc511eca464876001ed83e804a953297ecdb02afa377d1b49587e1c721ab0
+    target_directory: compiler+runtime/third-party/ftxui
+  - url: https://github.com/jank-lang/clojure-test-suite/archive/1cbab0f3981bae87830cc6daacbbede20cea3516.tar.gz
+    sha256: a006f9f9bebf3c792ca39798c84c7e8e90defecd12cc42067b475af121cc1900
+    target_directory: compiler+runtime/test/bash/clojure-test-suite/clojure-test-suite
+  - url: https://github.com/jank-lang/cpptrace/archive/ce639ebfcec47a7c74233b4bab50017cb34e615b.tar.gz
+    sha256: 3fa01f9c5ca84cc642a66ad30b5798dd031a4d0a2c2cd7581bf4d8b1aa206d26
+    target_directory: compiler+runtime/third-party/cpptrace
+  - url: https://github.com/jank-lang/CppInterOp/archive/8ce59d7aa4443098f2a6df4cb859732d9b6a76b0.tar.gz
+    sha256: f2f98386e631a271e24e79160a79e2b2ac9c5baf8537643c330ebd3dc7c011e2
+    target_directory: compiler+runtime/third-party/cppinterop
+  - url: https://github.com/jank-lang/boost-multiprecision/archive/2b3ab082fac41c0d4bdb5a1c3daf7411be6fd679.tar.gz
+    sha256: 9993b263a5b3d7a8ad80a58f76c950bcc3ef8148cb80f27a8638e9fc8691f5cb
+    target_directory: compiler+runtime/third-party/boost-multiprecision
+  - url: https://github.com/jank-lang/bdwgc/archive/327ef1f8c80a611b2f8b915850c8b2fd38e6595e.tar.gz
+    sha256: 0c273a852db08def4e447d2f82b081c6f595f1e65169750bf5374e485a8311de
+    target_directory: compiler+runtime/third-party/bdwgc
+  - url: https://github.com/jank-lang/stduuid/archive/3afe7193facd5d674de709fccc44d5055e144d7a.tar.gz
+    sha256: e11f9bf30c7f9c03d8e9a3a3fd7fe016eb5d8d9b89a2fe2c11b5f049e1d97916
+    target_directory: compiler+runtime/third-party/stduuid
+  - url: https://github.com/jank-lang/zip/archive/52d1c1d00831c4f10ef8a6bb12ae6bb3e57743b9.tar.gz
+    sha256: 51f022a6aebb1b0fb311c118029153f420f5a366e45cf660575ae60772ed7576
+    target_directory: compiler+runtime/third-party/zip
+  - url: https://github.com/jank-lang/doctest/archive/d44d4f6e66232d716af82f00a063759e9d0e50d6.tar.gz
+    sha256: 5c3682e391ce01c16d9b1e2b3d890366a7a10e35d32fa94d8443b21cdbde94c7
+    target_directory: compiler+runtime/third-party/doctest
+  - url: https://github.com/jank-lang/boost-process/archive/e4d0d405a12f13ebe7d894382d3a98830ae1c7bd.tar.gz
+    sha256: 4f9c30b47368bea905272fb36e8a3a32f93f69f44e0cd5ebac7ee68870018b57
+    target_directory: compiler+runtime/third-party/boost-process
+
+build:
+  number: 0
+  # Windows requires MSYS2/CLANG64 (MinGW-w64), which doesn't map to conda-forge's
+  # MSVC-based Windows environment. sbcl (required at build time) also has no
+  # conda-forge Windows package.
+  skip: win
+  script:
+    interpreter: nu
+    content: |
+      cd compiler+runtime
+      ^./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-ldl -pthread -Wl,--no-as-needed"
+      ^./bin/compile
+
+      let bin_dir = ($env.PREFIX | path join "bin")
+      ^mkdir -p $bin_dir
+      ^cp build/jank ($bin_dir | path join "jank")
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - binutils
+    - cmake
+    - ninja
+    - nushell
+    - pkg-config
+    - sbcl
+    - sed
+
+  host:
+    - bdw-gc
+    - bzip2
+    - doctest
+    - double-conversion
+    - if: linux
+      then: elfutils
+    - fmt
+    - gmp
+    - libatomic_ops
+    - libboost-devel
+    - libclang-cpp
+    - libffi
+    - libzip
+    - llvmdev
+    - openssl
+    - zlib
+
+tests:
+  - requirements:
+      build:
+        - nushell
+    script:
+      interpreter: nu
+      content:
+        - ^jank --help
+
+about:
+  license: MPL-2.0
+  license_file: LICENSE
+  summary: Jank a LLVM hosted Clojure
+  description: |
+    Jank is a general-purpose programming language which embraces the interactive,
+    functional, value-oriented nature of Clojure and the desire for the native
+    runtime and performance of C++. It is a dialect of Clojure that targets LLVM,
+    offering native code compilation via a C++ backend and an LLVM-based JIT
+    compiler, with seamless C++ interop from within Clojure source files.
+  homepage: https://jank-lang.org/
+  documentation: https://book.jank-lang.org
+  repository: https://github.com/${{ group }}/jank
+
+extra:
+  recipe-maintainers:
+    - phreed
