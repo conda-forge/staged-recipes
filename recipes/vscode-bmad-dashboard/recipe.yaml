@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  version: "1.2.2"
+  publisher: elvince
+  ext_name: bmad-dashboard
+
+package:
+  name: vscode-bmad-dashboard
+  version: ${{ version }}
+
+source:
+  - url: https://marketplace.visualstudio.com/_apis/public/gallery/publishers/${{ publisher }}/vsextensions/${{ ext_name }}/${{ version }}/vspackage
+    file_name: ${{ publisher }}.${{ ext_name }}-${{ version }}.vsix.gz
+    sha256: b5902d77c41a30878e4d8e95b2c8f8d992fab58549c8b57b054e644dcfb28341
+  - url: https://raw.githubusercontent.com/bmad-code-org/bmad-method-ui/33b330ef113c62f58a77413a241ca30f4f0b8a99/LICENSE.md
+    file_name: LICENSE.md
+    sha256: 96e35770682129aa4dde4cf6f9ffe894df726fde61fb2dc6bf1a0902a5e9da83
+
+build:
+  noarch: generic
+  number: 0
+  script:
+    interpreter: python
+    content: |
+      import gzip
+      import io
+      import os
+      import shutil
+      import zipfile
+      from pathlib import Path
+
+      prefix = Path(os.environ["PREFIX"])
+      src_dir = Path(os.environ.get("SRC_DIR", "."))
+      dest = prefix / "share" / "vscode" / "extensions" / "elvince.bmad-dashboard"
+      dest.mkdir(parents=True, exist_ok=True)
+
+      vsix_gz = src_dir / "elvince.bmad-dashboard-1.2.2.vsix.gz"
+      with gzip.open(vsix_gz, "rb") as gz:
+          vsix_bytes = gz.read()
+
+      with zipfile.ZipFile(io.BytesIO(vsix_bytes)) as zf:
+          for name in zf.namelist():
+              if not name.startswith("extension/") or name.endswith("/"):
+                  continue
+              rel = name[len("extension/") :]
+              if not rel:
+                  continue
+              out = dest / rel
+              out.parent.mkdir(parents=True, exist_ok=True)
+              with zf.open(name) as src, open(out, "wb") as dst:
+                  shutil.copyfileobj(src, dst)
+
+requirements:
+  build:
+    - python
+
+tests:
+  - package_contents:
+      files:
+        - share/vscode/extensions/elvince.bmad-dashboard/package.json
+        - share/vscode/extensions/elvince.bmad-dashboard/out/extension/extension.js
+        - share/vscode/extensions/elvince.bmad-dashboard/out/webview/index.js
+        - share/vscode/extensions/elvince.bmad-dashboard/LICENSE.md
+
+about:
+  summary: BMAD Dashboard VS Code extension
+  description: |
+    Interactive dashboard for BMAD V6 projects. Acts as a real time GPS for
+    BMAD V6 work: monitors workflow artifacts, tracks sprint progress, and
+    recommends next actions without leaving the editor. Provides a sidebar
+    dashboard, an editor panel with epic browser, story table, kanban board,
+    and document library views, plus real time file monitoring for BMAD
+    output files.
+
+    The extension is unpacked into
+    $CONDA_PREFIX/share/vscode/extensions/elvince.bmad-dashboard. To make
+    VS Code load it, launch with
+    code --extensions-dir $CONDA_PREFIX/share/vscode/extensions, set the
+    extensions-dir flag in your VS Code wrapper, or symlink the folder into
+    your user extensions directory at ~/.vscode/extensions.
+  homepage: https://github.com/bmad-code-org/bmad-method-ui
+  repository: https://github.com/bmad-code-org/bmad-method-ui
+  license: MIT
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - killua156
+    - mgorny
