@@ -46,11 +46,44 @@ fi
 
 echo "    pnpm:  $(pnpm --version)"
 
+# Keep package-manager caches OUT of $SRC_DIR so vsce doesn't vacuum them
+# into the .vsix. conda-forge nodejs activation seeds npm/pnpm caches under
+# $SRC_DIR for hermeticity (npm-cache/, .pnpm/, .pnpm-cache/, .pnpm-state/),
+# which adds ~400 MB of garbage to the .vsix. Park them next to $SRC_DIR
+# instead — still inside the per-build sandbox, so they're cleaned up with
+# the rest of the build.
+CACHE_ROOT="$(dirname "${SRC_DIR}")/_pkg_caches"
+mkdir -p "${CACHE_ROOT}/npm" "${CACHE_ROOT}/pnpm-store" "${CACHE_ROOT}/pnpm-state"
+export npm_config_cache="${CACHE_ROOT}/npm"
+export PNPM_STORE_PATH="${CACHE_ROOT}/pnpm-store"
+export XDG_STATE_HOME="${CACHE_ROOT}/pnpm-state"
+
 echo ">> fetching node dependencies"
 pnpm install --frozen-lockfile
 
 echo ">> building extension + webview"
 pnpm build
+
+# Defense in depth: vsce walks $SRC_DIR and ships everything not in
+# .vscodeignore. rattler-build writes its own wrapper scripts directly into
+# $SRC_DIR (build_env.{sh,bat}, conda_build.{sh,bat}, conda_build.log) so
+# even with caches relocated, those files would still ride along.
+echo ">> appending conda-build excludes to .vscodeignore"
+cat >> .vscodeignore <<'EOF'
+
+# Excluded by conda-forge recipe build.sh
+.pnpm/**
+.pnpm-cache/**
+.pnpm-state/**
+npm-cache/**
+build_env.sh
+build_env.bat
+conda_build.sh
+conda_build.bat
+conda_build.log
+_pkg_caches/**
+_pywrap/**
+EOF
 
 echo ">> packaging .vsix"
 pnpm vscode:package
