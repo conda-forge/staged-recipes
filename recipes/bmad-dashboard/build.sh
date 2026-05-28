@@ -61,6 +61,28 @@ export XDG_STATE_HOME="${CACHE_ROOT}/pnpm-state"
 echo ">> fetching node dependencies"
 pnpm install --frozen-lockfile
 
+# Rebrand package.json before any build step bakes the identity in.
+# Upstream's package.json at the pinned commit still self-IDs as
+# elvince/bmad-dashboard-extension, but bmad-code-org/bmad-method-ui is the
+# canonical home. Rewrite the fields vsce reads so VS Code sees
+# bmad-code-org.bmad-method-ui (not elvince.bmad-dashboard) after install.
+echo ">> rebranding package.json -> bmad-code-org.bmad-method-ui"
+"${PYTHON}" - <<'PY'
+import json, pathlib
+p = pathlib.Path("package.json")
+pj = json.loads(p.read_text(encoding="utf-8"))
+pj["name"] = "bmad-method-ui"
+pj["publisher"] = "bmad-code-org"
+pj["displayName"] = "BMad Method UI"
+pj["repository"] = {
+    "type": "git",
+    "url": "https://github.com/bmad-code-org/bmad-method-ui.git",
+}
+pj["homepage"] = "https://github.com/bmad-code-org/bmad-method-ui#readme"
+pj["bugs"] = {"url": "https://github.com/bmad-code-org/bmad-method-ui/issues"}
+p.write_text(json.dumps(pj, indent=2) + "\n", encoding="utf-8")
+PY
+
 echo ">> building extension + webview"
 pnpm build
 
@@ -88,7 +110,7 @@ EOF
 echo ">> packaging .vsix"
 pnpm vscode:package
 
-VSIX_SRC=$(ls out/bmad-dashboard-*.vsix | head -n 1)
+VSIX_SRC=$(ls out/*.vsix | head -n 1)
 test -f "${VSIX_SRC}" || { echo "ERROR: no .vsix produced under out/"; exit 1; }
 VSIX_NAME=$(basename "${VSIX_SRC}")
 echo "    built: ${VSIX_NAME}"
