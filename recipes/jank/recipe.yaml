@@ -67,7 +67,7 @@ source:
     target_directory: compiler+runtime/third-party/boost-multiprecision
 
 build:
-  number: 0
+  number: 1
   # Windows requires MSYS2/CLANG64 (MinGW-w64), which doesn't map to conda-forge's
   # MSVC-based Windows environment. sbcl (required at build time) also has no
   # conda-forge Windows package.
@@ -76,12 +76,26 @@ build:
     interpreter: nu
     content: |
       cd compiler+runtime
-      ^./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=-L($env.PREFIX)/lib -ldl -lzstd -pthread -Wl,--no-as-needed"
+
+      # --no-as-needed and -ldl are GNU ld flags not supported on macOS Apple ld.
+      let linker_flags = if ($env.HOST | str contains "darwin") {
+        $"-L($env.PREFIX)/lib -lzstd"
+      } else {
+        $"-L($env.PREFIX)/lib -ldl -lzstd -pthread -Wl,--no-as-needed"
+      }
+
+      ^./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
       ^./bin/compile
 
-      let bin_dir = ($env.PREFIX | path join "bin")
-      ^mkdir -p $bin_dir
-      ^cp build/jank ($bin_dir | path join "jank")
+      # Install binary and resource dir (lib/jank/0.1/ with headers and sources)
+      ^cmake --install build --prefix $env.PREFIX
+
+      # Create clang symlinks so jank can discover clang at runtime via lib/jank/0.1/bin/
+      let jank_bin_dir = ($env.PREFIX | path join "lib" "jank" "0.1" "bin")
+      ^mkdir -p $jank_bin_dir
+      ^ln -sf "../../../../bin/clang" ($jank_bin_dir | path join "clang")
+      ^ln -sf "../../../../bin/clang++" ($jank_bin_dir | path join "clang++")
+      ^ln -sf "../../../../bin/clang-22" ($jank_bin_dir | path join "clang-22")
 
 requirements:
   build:
@@ -117,10 +131,17 @@ requirements:
     - zlib
     - zstd
 
+  run:
+    - clang 22.*
+    - clangdev 22.*
+
 tests:
   - package_contents:
       bin:
         - jank
+      files:
+        - lib/jank/0.1/bin/clang++
+        - lib/jank/0.1/src/jank/clojure/core.jank
   - script:
       - jank --help || true
 
