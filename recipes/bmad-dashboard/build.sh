@@ -18,11 +18,26 @@ echo "    npm:   $(npm --version)"
 
 PNPM_VERSION="10.26.2"
 
+# rattler-build on Windows can leak BUILD_PREFIX into bash as the literal
+# CMD placeholder `%BUILD_PREFIX%`. Treat that (and a plain-empty value) as
+# unset and fall back to $PREFIX.
+case "${BUILD_PREFIX:-}" in
+    ""|*%*) BP="${PREFIX}" ;;
+    *)      BP="${BUILD_PREFIX}" ;;
+esac
+
+# conda's Windows layout puts shims under Library/bin; *nix uses bin.
+if [[ -d "${BP}/Library/bin" ]]; then
+    BP_BIN="${BP}/Library/bin"
+else
+    BP_BIN="${BP}/bin"
+fi
+
 if command -v corepack >/dev/null 2>&1; then
     echo ">> activating pnpm ${PNPM_VERSION} via corepack"
-    export COREPACK_HOME="${BUILD_PREFIX:-$PREFIX}/corepack"
-    mkdir -p "${COREPACK_HOME}"
-    corepack enable --install-directory "${BUILD_PREFIX:-$PREFIX}/bin"
+    export COREPACK_HOME="${BP}/corepack"
+    mkdir -p "${COREPACK_HOME}" "${BP_BIN}"
+    corepack enable --install-directory "${BP_BIN}"
     corepack prepare "pnpm@${PNPM_VERSION}" --activate
 else
     echo ">> corepack not found, installing pnpm via npm"
