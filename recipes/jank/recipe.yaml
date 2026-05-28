@@ -77,9 +77,11 @@ build:
     content: |
       cd compiler+runtime
 
-      # --no-as-needed and -ldl are GNU ld flags not supported on macOS Apple ld.
+      # GNU ld flags (-ldl, --no-as-needed) are not supported on macOS Apple ld.
+      # --whole-archive (used by jank's cmake for Linux) is silently ignored by Apple ld,
+      # dropping vtable/typeinfo symbols; -all_load is the macOS equivalent.
       let linker_flags = if ($env.HOST | str contains "darwin") {
-        $"-L($env.PREFIX)/lib -lzstd"
+        $"-L($env.PREFIX)/lib -lzstd -Wl,-all_load"
       } else {
         $"-L($env.PREFIX)/lib -ldl -lzstd -pthread -Wl,--no-as-needed"
       }
@@ -96,6 +98,13 @@ build:
       ^ln -sf "../../../../bin/clang" ($jank_bin_dir | path join "clang")
       ^ln -sf "../../../../bin/clang++" ($jank_bin_dir | path join "clang++")
       ^ln -sf "../../../../bin/clang-22" ($jank_bin_dir | path join "clang-22")
+
+      # Activation scripts so the conda env lib/ is in LIBRARY_PATH for jank's AOT linker
+      let activate_dir = ($env.PREFIX | path join "etc" "conda" "activate.d")
+      let deactivate_dir = ($env.PREFIX | path join "etc" "conda" "deactivate.d")
+      ^mkdir -p $activate_dir $deactivate_dir
+      "export JANK_LIBRARY_PATH_BACKUP=\"${LIBRARY_PATH:-}\"\nexport LIBRARY_PATH=\"${CONDA_PREFIX}/lib${LIBRARY_PATH:+:${LIBRARY_PATH}}\"\n" | save ($activate_dir | path join "jank.sh")
+      "export LIBRARY_PATH=\"${JANK_LIBRARY_PATH_BACKUP}\"\nunset JANK_LIBRARY_PATH_BACKUP\n" | save ($deactivate_dir | path join "jank.sh")
 
 requirements:
   build:
