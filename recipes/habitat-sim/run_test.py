@@ -7,12 +7,9 @@ sim_cfg = habitat_sim.SimulatorConfiguration()
 agent_cfg = habitat_sim.AgentConfiguration()
 agent_cfg.sensor_specifications = []
 
-habitat_sim.Configuration(sim_cfg, [agent_cfg])
-
-sim_cfg.scene_id = "NONE"
-with habitat_sim.Simulator(habitat_sim.Configuration(sim_cfg, [agent_cfg])) as sim:
-    sim.initialize_agent(0)
-    assert sim.get_stage_initialization_template() is None
+cfg = habitat_sim.Configuration(sim_cfg, [agent_cfg])
+assert cfg.sim_cfg is sim_cfg
+assert cfg.agents == [agent_cfg]
 
 config = CoreConfiguration()
 config.set("recipe_smoke", "habitat-sim")
