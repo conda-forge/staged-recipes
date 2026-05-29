@@ -15,6 +15,7 @@ cmake $SRC_DIR \
     -DCMAKE_BUILD_TYPE=Release \
     -DLIB_SUFFIX="" \
     -DBUILD_TESTS=OFF \
+    -DMAGNUM_WITH_EIGEN=ON \
     -DWITH_EIGEN=ON
 
 cmake --build build --parallel
