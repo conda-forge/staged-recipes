@@ -1,13 +1,16 @@
-{% set name = "genesis-world" %}
-{% set version = "1.0.0" %}
-{% set python_min = "3.11" %}
+schema_version: 1
+
+context:
+  name: genesis-world
+  version: "1.0.0"
+  python_min: "3.11"
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: ${{ name|lower }}
+  version: ${{ version }}
 
 source:
-  url: https://github.com/Genesis-Embodied-AI/genesis-world/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/Genesis-Embodied-AI/genesis-world/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 31f9ca3339a5a712788e88c0cadeb386af9a1559a5d130bcb57131eb65668bbb
   patches:
     - patches/0001-relax-conda-runtime-metadata.patch
@@ -17,10 +20,14 @@ source:
 build:
   number: 0
   # Keep this combined dependency PR tractable; expand variants after feedstock creation.
-  skip: true  # [not linux or py<311 or py>=312]
-  entry_points:
-    - gs = genesis._main:main
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - not linux
+    - match(python, "<3.11")
+    - match(python, ">=3.12")
+  python:
+    entry_points:
+      - gs = genesis._main:main
+  script: python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
@@ -65,30 +72,33 @@ requirements:
     - xacro
     - z3-solver <4.15.5.0
 
-test:
-  imports:
-    - genesis
-    - genesis.vis.batch_renderer
-  commands:
-    - pip check
-    - python run_test.py
-    - gs --help
-  requires:
-    - python {{ python_min }}
-    - pip
-  files:
-    - run_test.py
+tests:
+  - python:
+      imports:
+        - genesis
+        - genesis.vis.batch_renderer
+  - script:
+      - pip check
+      - python run_test.py
+      - gs --help
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python ${{ python_min }}
+        - pip
 
 about:
-  home: https://genesis-embodied-ai.github.io/
+  homepage: https://genesis-embodied-ai.github.io/
   summary: Universal and generative physics engine for robotics and embodied AI
   license: Apache-2.0 AND MIT AND OFL-1.1
   license_file:
     - LICENSE
     - LICENSE-vendored-pyrender-urdfpy
     - LICENSE-vendored-fonts
-  dev_url: https://github.com/Genesis-Embodied-AI/genesis-world
-  doc_url: https://genesis-world.readthedocs.io/
+  repository: https://github.com/Genesis-Embodied-AI/genesis-world
+  documentation: https://genesis-world.readthedocs.io/
 
 extra:
   recipe-maintainers:

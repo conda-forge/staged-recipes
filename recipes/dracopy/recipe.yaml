@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  name: DracoPy
+  version: "2.0.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/seung-lab/DracoPy/archive/refs/tags/${{ version }}.tar.gz
+  sha256: bfa3f8b67d4ef004e5ba70ffcd9f4541839cf8453a205efbb091c8cb00bad074
+  patches:
+    - patches/0001-use-system-draco.patch
+
+build:
+  number: 0
+  # Keep this combined dependency PR tractable; expand variants after feedstock creation.
+  skip:
+    - match(python, "<3.11")
+    - match(python, ">=3.12")
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+  host:
+    - python
+    - cython
+    - draco
+    - numpy
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python
+    # draco currently has no run_exports.
+    - ${{ pin_compatible("draco", upper_bound="x.x.x") }}
+
+tests:
+  - python:
+      imports:
+        - DracoPy
+  - script:
+      - pip check
+      - python run_test.py
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - pip
+        - python
+
+about:
+  homepage: https://github.com/seung-lab/DracoPy
+  summary: Python wrapper for Google's Draco mesh compression library
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta

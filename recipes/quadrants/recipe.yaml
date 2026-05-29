@@ -1,14 +1,17 @@
-{% set name = "quadrants" %}
-{% set version = "0.8.0" %}
+schema_version: 1
+
+context:
+  name: quadrants
+  version: "0.8.0"
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: ${{ name|lower }}
+  version: ${{ version }}
 
 source:
   # The GitHub tag archive omits populated submodules needed by this source build.
-  git_url: https://github.com/Genesis-Embodied-AI/quadrants.git
-  git_rev: v{{ version }}
+  git: https://github.com/Genesis-Embodied-AI/quadrants.git
+  tag: v${{ version }}
   patches:
     - patches/0001-limit-wheel-install-manifest.patch
     - patches/0002-remove-root-build-helper.patch
@@ -17,7 +20,10 @@ build:
   number: 0
   # Initial package for Genesis dependency work; macOS and Windows need separate upstream build validation.
   # Keep this combined dependency PR tractable; expand variants after feedstock creation.
-  skip: true  # [not linux or py<311 or py>=312]
+  skip:
+    - not linux
+    - match(python, "<3.11")
+    - match(python, ">=3.12")
   script:
     - export LLVM_DIR="${PREFIX}/lib/cmake/llvm"
     - |
@@ -28,15 +34,15 @@ build:
     - export CLANG_EXECUTABLE="${SRC_DIR}/conda-clang++"
     - export CMAKE_GENERATOR=Ninja
     - export BUILD_NUM_THREADS=1
-    - export SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+    - export SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
     - export QUADRANTS_CMAKE_ARGS="-DQD_WITH_CUDA=OFF -DQD_WITH_AMDGPU=OFF -DQD_WITH_VULKAN=OFF -DQD_WITH_METAL=OFF -DQD_BUILD_TESTS=OFF -DCLANG_EXECUTABLE=${SRC_DIR}/conda-clang++ -DCMAKE_PREFIX_PATH=${PREFIX}"
-    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
   host:
     - python
     - pip
@@ -72,24 +78,28 @@ requirements:
     - setuptools >=77.0.0
     - cffi >=1.16.0
 
-test:
-  imports:
-    - quadrants
-    - quadrants._lib.core.quadrants_python
-  commands:
-    - pip check
-    - python run_test.py
-  requires:
-    - pip
-  files:
-    - run_test.py
+tests:
+  - python:
+      imports:
+        - quadrants
+        - quadrants._lib.core.quadrants_python
+  - script:
+      - pip check
+      - python run_test.py
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - pip
+        - python
 
 about:
-  home: https://github.com/Genesis-Embodied-AI/quadrants
+  homepage: https://github.com/Genesis-Embodied-AI/quadrants
   summary: Python-embedded domain-specific language for accelerated simulation kernels
   license: Apache-2.0
   license_file: LICENSE
-  dev_url: https://github.com/Genesis-Embodied-AI/quadrants
+  repository: https://github.com/Genesis-Embodied-AI/quadrants
 
 extra:
   recipe-maintainers:
