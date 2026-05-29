@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Corrade REQUIRED PluginManager)
 find_package(Magnum REQUIRED Trade)
-find_package(MagnumPlugins REQUIRED StbImageImporter)
+find_package(MagnumPlugins REQUIRED StbImageImporter UfbxImporter)
 
 add_executable(magnum_plugins_consumer main.cpp)
 target_link_libraries(magnum_plugins_consumer PRIVATE
@@ -17,4 +17,8 @@ target_link_libraries(magnum_plugins_consumer PRIVATE
 
 if(TARGET MagnumPlugins::StbImageImporter)
   target_link_libraries(magnum_plugins_consumer PRIVATE MagnumPlugins::StbImageImporter)
+endif()
+
+if(TARGET MagnumPlugins::UfbxImporter)
+  target_link_libraries(magnum_plugins_consumer PRIVATE MagnumPlugins::UfbxImporter)
 endif()
