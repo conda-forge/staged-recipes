@@ -3,8 +3,7 @@ context:
   python_min: "3.11"
 
 package:
-  # conda-forge package name (`presto` is taken on PyPI).
-  # module and the CLI command are still `presto`.
+  # conda-forge name; the importable module and CLI are still `presto`.
   name: presto-fit
   version: ${{ version }}
 
@@ -13,29 +12,26 @@ source:
   sha256: 6335ea09d39194aeb4f2497a6f7eadd910a2deb6090e901160bb933af6323601
 
 build:
-  noarch: python
   number: 0
-  skip: win
+  # Linux-only: several deps are Linux-only and conda-forge forbids skips on noarch.
+  skip: not linux or match(python, "<" ~ python_min)
   script:
     env:
-      # The GitHub archive has no .git directory, so hatch-vcs cannot infer the
-      # version. Pretend it instead, otherwise the build fails to find a version.
+      # hatch-vcs cannot infer the version from the .git-less archive.
       SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
     content: python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python
     - pip
     - hatchling
     - hatch-vcs
   run:
-    - python >=${{ python_min }},<3.15
-    - __unix
-    # Base environment: PyTorch with no MLP backends. Plain `pytorch` lets the
-    # solver pick the GPU or CPU build for the target platform.
+    - python
     - pytorch >=2.8.0
     - ambertools
+    # older datasets import the removed pyarrow.PyExtensionType (gone in pyarrow >=16).
     - datasets >=4.8
     - descent >=0.6.0
     - h5py
@@ -66,12 +62,8 @@ tests:
       imports:
         - presto
       pip_check: true
-      python_version: ${{ python_min }}.*
   - script:
       - presto --help
-  # Run the project's own suite (mirrors `pixi run test`) against the installed
-  # package. MLP-backed tests self-skip when their backend isn't installed, so
-  # the no-MLP base env runs cleanly (as it does in CI's base-cpu environment).
   - script:
       - pytest -v --color=yes -m "not slow" --pyargs presto.tests
     requirements:
@@ -87,8 +79,6 @@ about:
     All valence parameters (bonds, angles, proper torsions, and improper torsions) are trained
     to MLP energies sampled using molecular dynamics.
   license: MIT
-  # LICENSE is presto's own MIT license; EGRET_1_LICENSE is the MIT license of
-  # the bundled Egret-1 model (presto/models/EGRET_1.model).
   license_file:
     - LICENSE
     - presto/models/EGRET_1_LICENSE
