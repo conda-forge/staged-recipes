@@ -1,0 +1,56 @@
+context:
+  version: "1.36.0"
+
+package:
+  name: goose
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aaif-goose/goose/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b0d0f6b5c539d988f0015943b4485b48c61b141f5cb2c8975029e261b9dd2ba3
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bin goose --root ${{ PREFIX }} --path crates/goose-cli --no-default-features --features portable-default
+        else:
+          - cargo auditable install --locked --no-track --bin goose --root %LIBRARY_PREFIX% --path crates/goose-cli --no-default-features --features portable-default
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: goose --help
+  - package_contents:
+      bin:
+        - goose
+      strict: true
+
+about:
+  homepage: https://github.com/aaif-goose/goose
+  summary: An AI agent CLI tool
+  description: |
+    Goose is an AI agent that runs on your machine, giving it direct access to your local
+    environment. It can read and write files, execute commands, and interact with APIs —
+    all under your supervision.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/aaif-goose/goose
+
+extra:
+  recipe-maintainers:
+    - xhochy
