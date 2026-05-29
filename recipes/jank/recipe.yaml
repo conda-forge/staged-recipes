@@ -77,11 +77,26 @@ build:
     content: |
       cd compiler+runtime
 
+      # Set macOS SDK root so jank's embedded clang can find system headers during JIT
+      # compilation. The cmake build runs jank-phase-1 to AOT-compile clojure.core; without
+      # SDKROOT that embedded clang invocation fails to find system headers, leaving the
+      # generated C++ files empty and Phase 2 missing symbols at link time.
+      # Also expose $PREFIX/lib via DYLD_LIBRARY_PATH so jank-phase-1 can load LLVM dylibs
+      # when cmake invokes it as a custom command (before install RPATH is in effect).
+      if ($env.HOST | str contains "darwin") {
+        $env.SDKROOT = (^xcrun --sdk macosx --show-sdk-path | str trim)
+        $env.DYLD_LIBRARY_PATH = $"($env.PREFIX)/lib"
+      }
+
       # GNU ld flags (-ldl, --no-as-needed) are not supported on macOS Apple ld.
-      # --whole-archive (used by jank's cmake for Linux) is silently ignored by Apple ld,
-      # dropping vtable/typeinfo symbols; -all_load is the macOS equivalent.
+      # jank's cmake uses -Wl,-force_load for the merged archive on macOS, but Phase 2
+      # inherits Phase 1's LINK_LIBRARIES via a generator expression; cmake can separate
+      # the flag from its archive-path argument when processing the expanded list, so
+      # -force_load silently becomes a no-op. -all_load is a global alternative that does
+      # not require flag-path adjacency. bdwgc (libgc) is already bundled in the merged
+      # archive, so do not add -lgc here or duplicate symbols may cause a link failure.
       let linker_flags = if ($env.HOST | str contains "darwin") {
-        $"-L($env.PREFIX)/lib -lzstd -lgc -Wl,-all_load"
+        $"-L($env.PREFIX)/lib -lzstd -Wl,-all_load"
       } else {
         $"-L($env.PREFIX)/lib -ldl -lzstd -pthread -Wl,--no-as-needed"
       }
