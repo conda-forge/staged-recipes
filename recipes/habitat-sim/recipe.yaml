@@ -1,35 +1,43 @@
-{% set name = "habitat-sim" %}
-{% set version = "0.3.3" %}
+schema_version: 1
+
+context:
+  name: habitat-sim
+  version: "0.3.3"
 
 package:
-  name: {{ name|lower }}
-  version: "{{ version }}"
+  name: ${{ name|lower }}
+  version: ${{ version }}
 
 source:
-  - url: https://github.com/facebookresearch/habitat-sim/archive/v{{ version }}.tar.gz
+  - url: https://github.com/facebookresearch/habitat-sim/archive/v${{ version }}.tar.gz
     sha256: 2c28959c9edb6b948e07485b75150e0fea7d289e79e5a9b51ef423869ab54800
     patches:
       - rapidjson-document-object.patch
       - find-installed-magnum-bindings-python.patch
   - url: https://github.com/erikwijmans/recastnavigation/archive/8eef00be6003a6bf9c49cb4c126662e05e58d508.tar.gz
     sha256: b237275985282fe9d38a184de37e06da57da475601cf1e853da203570ef3ada7
-    folder: src/deps/recastnavigation
+    target_directory: src/deps/recastnavigation
 
 build:
   number: 0
-  skip: true  # [win or osx]
+  skip:
+    - win
+    - osx
+  script: bash "${RECIPE_DIR}/build.sh"
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
-    - {{ stdlib('c') }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
     - cmake <4
     - ninja
-    - pkg-config  # [unix]
+    - pkg-config
     - pybind11
-    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
-    - numpy                               # [build_platform != target_platform]
-    - python                              # [build_platform != target_platform]
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - numpy
+        - python
     - setuptools
   host:
     - assimp
@@ -58,21 +66,21 @@ requirements:
     - magnum-integration
     - magnum-plugins
     - zstd
-    - libegl-devel           # [linux]
-    - libgl-devel            # [linux]
-    - libglu                 # [linux]
-    - libglx                 # [linux]
-    - libxcb                 # [linux]
-    - xorg-libx11            # [linux]
-    - xorg-libxau            # [linux]
-    - xorg-libxext           # [linux]
-    - xorg-libxfixes         # [linux]
-    - xorg-libxi             # [linux]
-    - xorg-libxrandr         # [linux]
-    - xorg-libxinerama       # [linux]
-    - xorg-libxcursor        # [linux]
-    - pip
-    - python
+    - if: linux
+      then:
+        - libegl-devel
+        - libgl-devel
+        - libglu
+        - libglx
+        - libxcb
+        - xorg-libx11
+        - xorg-libxau
+        - xorg-libxext
+        - xorg-libxfixes
+        - xorg-libxi
+        - xorg-libxrandr
+        - xorg-libxinerama
+        - xorg-libxcursor
     - requests
     - setuptools
   run:
@@ -91,16 +99,21 @@ requirements:
     - matplotlib-base
     - magnum-bindings
 
-test:
-  imports:
-    - habitat_sim
-  commands:
-    - python run_test.py
-  files:
-    - run_test.py
+tests:
+  - python:
+      imports:
+        - habitat_sim
+  - script:
+      - python run_test.py
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
 
 about:
-  home: https://aihabitat.org
+  homepage: https://aihabitat.org
   license: MIT
   license_family: MIT
   license_file: LICENSE

@@ -1,0 +1,85 @@
+schema_version: 1
+
+context:
+  name: magnum-bindings
+  # Habitat-Sim v0.3.3 vendors this post-v2020.06 snapshot.
+  version: "2024.12.31"
+  commit: c8824470c98eb91f8efea6e541e8ed9ddee7181e
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mosra/magnum-bindings/archive/${{ commit }}.tar.gz
+  sha256: 58d41d27c79bc57a806e9316c3991b976f4e4891966b68b7944d9f4adbe09445
+  patches:
+    - find-installed-python-bindings.patch
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake <4
+    - ninja
+    - pkg-config
+  host:
+    - corrade
+    - glfw
+    - if: linux
+      then: libgl
+    - magnum
+    - pip
+    - pybind11
+    - python
+    - setuptools
+    - xorg-libx11
+  run:
+    - corrade
+    - glfw
+    - if: linux
+      then: libgl
+    - magnum
+    - python
+    - xorg-libx11
+  run_exports:
+    - ${{ pin_subpackage("magnum-bindings", upper_bound="x.x") }}
+
+tests:
+  - python:
+      imports:
+        - corrade
+        - corrade.containers
+        - corrade.utility
+        - magnum
+        - magnum.math
+        - magnum.scenegraph
+        - magnum.trade
+  - files:
+      recipe:
+        - test-cmake
+    requirements:
+      run:
+        - cmake <4
+        - ninja
+    script:
+      - test -f $PREFIX/share/cmake/MagnumBindings/MagnumBindingsConfig.cmake
+      - cmake -S test-cmake -B test-cmake-build -G Ninja
+
+about:
+  homepage: https://magnum.graphics/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: Python bindings for the Magnum C++11/C++14 graphics engine
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta

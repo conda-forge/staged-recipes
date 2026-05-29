@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  name: magnum-plugins
+  # Habitat-Sim v0.3.3 vendors this post-v2020.06 snapshot.
+  version: "2024.12.19"
+  commit: d3c88a33189f1f5ba4b0801a323c43083a986f43
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mosra/magnum-plugins/archive/${{ commit }}.tar.gz
+    sha256: 94072347824fffa09293ef6d3ee077ce472e0f37d9adfe6d2e4c564599906b21
+  - url: https://github.com/mosra/toolchains/archive/b0ea02e52c4b0b0622a7c6656b250a167ee4afbd.tar.gz
+    sha256: 224126e558bd223b60594b06006e91104966618bdbeda1006e9c37c39d177d05
+  - url: https://github.com/BinomialLLC/basis_universal/archive/v1_15_update2.tar.gz
+    sha256: 3caff917d63ed0255fc56bcdf80d305bb47ac9315a4a45409a1264a0e5e0e572
+    target_directory: external/basis_universal
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - if: linux
+      then:
+        - ${{ cdt("libglvnd-egl") }}
+        - ${{ cdt("libglvnd-devel") }}
+        - libgl-devel
+        - ${{ cdt("mesa-libegl-devel") }}
+        - ${{ cdt("mesa-dri-drivers") }}
+    - ninja
+    - cmake <4
+    - pkg-config
+  host:
+    - assimp
+    - basisu
+    - corrade
+    - magnum
+    - openexr
+    - zstd
+  run:
+    - assimp
+    - basisu
+    - corrade
+    - magnum
+    - openexr
+    - zstd
+  run_exports:
+    - ${{ pin_subpackage("magnum-plugins", upper_bound="x.x") }}
+
+tests:
+  - files:
+      recipe:
+        - test-cmake
+    requirements:
+      run:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake <4
+        - ninja
+    script:
+      - test -f $PREFIX/share/cmake/MagnumPlugins/MagnumPluginsConfig.cmake
+      - test -f $PREFIX/lib/magnum/importers/GltfImporter.so
+      - test -f $PREFIX/lib/magnum/importers/StbImageImporter.so
+      - test -f $PREFIX/lib/magnum/importers/TinyGltfImporter.so
+      - test -f $PREFIX/lib/magnum/importers/UfbxImporter.so
+      - test -f $PREFIX/lib/magnum/imageconverters/StbImageConverter.so
+      - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build test-cmake-build --verbose
+      - ./test-cmake-build/magnum_plugins_consumer
+
+about:
+  homepage: https://magnum.graphics/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: Plugins for the Magnum C++11 graphics engine
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta

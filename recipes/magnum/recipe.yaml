@@ -1,0 +1,104 @@
+schema_version: 1
+
+context:
+  name: magnum
+  # Habitat-Sim v0.3.3 vendors this post-v2020.06 snapshot.
+  version: "2024.12.20"
+  commit: fb2dc562e312d5499446a39cdd432746bcdbb666
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/mosra/magnum/archive/${{ commit }}.tar.gz
+    sha256: d9e91a6c0f9980e8c548ea9ede0fb913766b8200f7aca13e9192f7f2421abee0
+  - url: https://github.com/mosra/toolchains/archive/b0ea02e52c4b0b0622a7c6656b250a167ee4afbd.tar.gz
+    sha256: 224126e558bd223b60594b06006e91104966618bdbeda1006e9c37c39d177d05
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ninja
+    - catch2
+    - cmake <4
+    - pkg-config
+    - if: linux
+      then:
+        - ${{ cdt("libglvnd-egl") }}
+        - ${{ cdt("libglvnd-devel") }}
+        - libgl-devel
+        - ${{ cdt("mesa-libegl-devel") }}
+        - ${{ cdt("mesa-dri-drivers") }}
+        - ${{ cdt("libselinux") }}
+        - ${{ cdt("libxdamage") }}
+        - ${{ cdt("libxfixes") }}
+        - ${{ cdt("libxxf86vm") }}
+        - ${{ cdt("libxext") }}
+        - ${{ cdt("libxau") }}
+        - ${{ cdt("libxcb") }}
+  host:
+    - corrade
+    - eigen
+    - epoxy
+    - glew
+    - glfw
+    - libpng
+    - if: linux
+      then:
+        - libopengl
+        - libxkbcommon
+        - wayland
+        - wayland-protocols
+    - xorg-libx11
+    - xorg-libxext
+    - xorg-libxfixes
+    - zstd
+  run:
+    - corrade
+    - glfw
+    - if: linux
+      then: libopengl
+    - xorg-libx11
+    - zstd
+  run_exports:
+    - ${{ pin_subpackage("magnum", upper_bound="x.x") }}
+
+tests:
+  - files:
+      recipe:
+        - test-cmake
+    requirements:
+      run:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake <4
+        - ninja
+    script:
+      - test -f $PREFIX/share/cmake/Magnum/MagnumConfig.cmake
+      - test -f $PREFIX/lib/magnum/importers/AnyImageImporter.so
+      - test -f $PREFIX/lib/magnum/importers/AnySceneImporter.so
+      - test -f $PREFIX/lib/magnum/imageconverters/AnyImageConverter.so
+      - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build test-cmake-build --verbose
+      - ./test-cmake-build/magnum_consumer
+
+about:
+  homepage: https://magnum.graphics/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: Lightweight and modular C++11 graphics middleware for games and data visualization
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
