@@ -234,7 +234,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index_path = os.path.join(sys.exec_prefix, "conda-bld")
     os.makedirs(index_path, exist_ok=True)
     conda_index.api.update_index(index_path)
-    index = conda.core.index.get_index(channel_urls=channel_urls)
+    index = conda.core.index.Index(channels=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
@@ -290,14 +290,30 @@ def build_folders_rattler_build(
     specs = OrderedDict()
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
-            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))),
+            config,
+            loader=yaml.SafeLoader,
         )
 
-    recipes_config = os.path.join(recipes_dir, "conda_build_config.yaml")
-    if os.path.isfile(recipes_config):
-        specs[recipes_config] = conda_build.variants.parse_config_file(
-            os.path.abspath(recipes_config), config
-        )
+    # Check for root-level config files first
+    root_cbc = Path(recipes_dir) / "conda_build_config.yaml"
+    root_variants = Path(recipes_dir) / "variants.yaml"
+    variants = []
+    if root_cbc.exists():
+        variants.append(root_cbc)
+    if root_variants.exists():
+        variants.append(root_variants)
+    # Then check for recipe-specific config files
+    variants += list(Path(recipes_dir).glob("*/conda_build_config.yaml")) + list(
+        Path(recipes_dir).glob("*/variants.yaml")
+    )
+
+    # Collect all variant config files found in the recipes
+    for variant_file in variants:
+        if os.path.isfile(variant_file):
+            specs[variant_file] = conda_build.variants.parse_config_file(
+                os.path.abspath(variant_file), config, loader=yaml.SafeLoader
+            )
 
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
