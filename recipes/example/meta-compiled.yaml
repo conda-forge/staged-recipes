@@ -1,0 +1,103 @@
+# This recipe example is for packages which are compiled libraries and binaries.
+
+# Jinja variables help maintain the recipe as you'll update the version only
+# here. Using the name variable with the URL in line 7 is convenient when
+# copying and pasting from another recipe, but not really needed.
+{% set name = "simplejson" %}
+{% set version = "3.8.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # The URL for GitHub releases
+  url: https://github.com/simplejson/simplejson/releases/download/{{ version }}/simplejson-{{ version }}.tar.gz
+  # otherwise fall back to archive:
+  # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
+  sha256: 2b3a0c466fb4a1014ea131c2b8ea7c519f9278eba73d6fcb361b7bdb4fd494e9
+  # sha256 is the preferred checksum -- you can get it for a file with:
+  #  `openssl sha256 <file name>`.
+  # You may need the openssl package, available on conda-forge:
+  #  `conda install openssl -c conda-forge``
+
+build:
+  # Use separate bld.bat and build.sh files to define the build steps. By
+  # default, the package will be built for all major OSs. Add the line "skip:
+  # True  # [not win]" to limit to Windows. More info about selectors can be
+  # found in the conda-build docs:
+  # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors
+  number: 0
+  # run_exports add a dependency to packages which dynamically link against
+  # your package and need it at run time. You should adjust this pinning to
+  # ensure ABI compatability.
+  run_exports:
+    - {{ pin_subpackage( name|lower ) }}
+
+requirements:
+  build:
+    # The build section is for packages that are used on the build platform.
+    # Compilers are named 'c', 'cxx' and 'fortran'.
+    - {{ compiler('c') }}
+    - cmake
+  host:
+    # The host section contains libraries that must match the target platform
+    # when cross-compiling.
+    - libpng
+  run:
+    # If you need to add a package to the run section for your tests to pass,
+    # that package is probably missing an appropriate run_export in its recipe,
+    # use the pin_compatible template to prevent newer incompatible versions
+    # from being installed.
+    - {{ pin_compatible('libpng') }}
+
+# Check the build logs for linker warnings about overdepending / statically
+# linked libraries.
+
+test:
+  # For compiled packages, we care about whether files are installed to the
+  # correct place AND if the binaries run/link correctly. Use existence checks
+  # to check for headers, binaries, and config-files.
+  commands:
+    - test -f ${PREFIX}/include/avif/avif.h                         # [unix]
+    - if not exist %PREFIX%\\Library\\include\\avif\\avif.h exit 1  # [win]
+    - test -f ${PREFIX}/lib/libavif${SHLIB_EXT}                   # [unix]
+    - if not exist %PREFIX%\\Library\\bin\\avif.dll exit 1        # [win]
+    - if not exist %PREFIX%\\Library\\lib\\avif.lib exit 1        # [win]
+    - test -f ${PREFIX}/lib/pkgconfig/libavif.pc                         # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\pkgconfig\\libavif.pc exit 1  # [win]
+    - test -f ${PREFIX}/lib/cmake/libavif/libavif-config.cmake           # [unix]
+    - test -f ${PREFIX}/lib/cmake/libavif/libavif-config-release.cmake   # [unix]
+    - test -f ${PREFIX}/lib/cmake/libavif/libavif-config-version.cmake   # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\cmake\\libavif\\libavif-config.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/simplejson/simplejson
+  summary: 'Simple, fast, extensible JSON encoder/decoder for Python'
+  description: |
+    simplejson is a simple, fast, complete, correct and extensible
+    JSON <https://json.org> encoder and decoder for Python 2.5+ and
+    Python 3.3+. It is pure Python code with no dependencies, but includes
+    an optional C extension for a serious speed boost.
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
+  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
+  # See https://spdx.org/licenses/
+  license: MIT
+  # The license_family, i.e. "BSD" if license is "BSD-3-Clause".
+  # Optional
+  license_family: MIT
+  # It is required to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
+  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
+  license_file: LICENSE.txt
+  # The doc_url and dev_url are optional.
+  doc_url: https://simplejson.readthedocs.io/
+  dev_url: https://github.com/simplejson/simplejson
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - LisaSimpson
+    - LandoCalrissian
