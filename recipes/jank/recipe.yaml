@@ -116,7 +116,25 @@ build:
         }
       }
 
-      ^./bin/compile
+      # On macOS, compile in two passes to ensure the merged archive has a valid
+      # Mach-O TOC before the jank-phase-1 link step.  Apple ld64 ignores archives
+      # without a proper Table of Contents even when -all_load is used.  The ar
+      # that ar-merge invokes may produce a GNU-format index that ld64 cannot read;
+      # running ranlib from the cctools host toolchain rebuilds it in Mach-O format.
+      #
+      # Pass 1: compile all objects and generate libjank-standalone-phase-1.a.
+      # The jank-phase-1 link will fail (bad TOC) but all .o files will be built.
+      # Pass 2: rebuild the archive index, then re-link (ninja skips rebuilt objects).
+      if ($env.HOST | str contains "darwin") {
+        try { ^ninja -C build } catch { }
+        let merged_archive = "build/libjank-standalone-phase-1.a"
+        if ($merged_archive | path exists) {
+          ^$"($env.HOST)-ranlib" $merged_archive
+        }
+        ^ninja -C build
+      } else {
+        ^./bin/compile
+      }
 
       # Install binary and resource dir (lib/jank/0.1/ with headers and sources)
       ^cmake --install build --prefix $env.PREFIX
