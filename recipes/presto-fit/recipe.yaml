@@ -1,0 +1,96 @@
+context:
+  version: "0.8.0"
+
+package:
+  # conda-forge package name (`presto` is taken on PyPI).
+  # module and the CLI command are still `presto`.
+  name: presto-fit
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cole-group/presto/archive/${{ version }}.tar.gz
+  sha256: 82bd8fd3013c57b4e80167132476e3bea73cdf6fc75d70772ab390d36e301d5b
+
+build:
+  noarch: python
+  number: 0
+  script:
+    env:
+      # The GitHub archive has no .git directory, so hatch-vcs cannot infer the
+      # version. Pretend it instead, otherwise the build fails to find a version.
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python >=3.11,<3.15
+    - pip
+    - hatchling
+    - hatch-vcs
+  run:
+    - python >=3.11,<3.15
+    # Base environment: PyTorch with no MLP backends. Plain `pytorch` lets the
+    # solver pick the GPU or CPU build for the target platform.
+    - pytorch >=2.8.0
+    - ambertools
+    - datasets
+    - descent >=0.6.0
+    - h5py
+    - jupyter
+    - loguru
+    - mdtraj
+    - nglview
+    - openff-forcefields >=2026.01.0
+    - openff-interchange >=0.4.11
+    - openff-toolkit >=0.17.0
+    - openff-units
+    - openmm >=8.5.0
+    - openmm-ml >=1.6
+    - pydantic >=2
+    - pydantic-settings
+    - pydantic-units
+    - pyyaml
+    - rdkit >=2024.03.6
+    - rich >=14.3.1,<15
+    - seaborn
+    - smee-base >=0.17.0
+    - smirnoff-plugins >=0.0.4
+    - tensorboard
+    - tensorboardx
+
+tests:
+  - python:
+      imports:
+        - presto
+      pip_check: true
+  - script:
+      - presto --help
+  # Run the project's own suite (mirrors `pixi run test`) against the installed
+  # package. MLP-backed tests self-skip when their backend isn't installed, so
+  # the no-MLP base env runs cleanly (as it does in CI's base-cpu environment).
+  - script:
+      - pytest -v --color=yes -m "not slow" --pyargs presto.tests
+    requires:
+      run:
+        - pytest
+        - hypothesis
+
+about:
+  homepage: https://github.com/cole-group/presto
+  summary: 'Fast parameterisation of bespoke MM force fields using MLPs.'
+  description: |
+    Train bespoke SMIRNOFF force fields quickly using a machine learning potential (MLP).
+    All valence parameters (bonds, angles, proper torsions, and improper torsions) are trained
+    to MLP energies sampled using molecular dynamics.
+  license: MIT
+  # LICENSE is presto's own MIT license; LICENSES.md documents the bundled,
+  # MIT-licensed Egret-1 model (presto/models/EGRET_1.model).
+  license_file:
+    - LICENSE
+    - presto/models/LICENSES.md
+  documentation: https://cole-group.github.io/presto/latest/
+  repository: https://github.com/cole-group/presto/
+
+extra:
+  recipe-maintainers:
+    - fjclark
