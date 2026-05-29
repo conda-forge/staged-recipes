@@ -64,22 +64,37 @@ pnpm install --frozen-lockfile
 # Rebrand package.json before any build step bakes the identity in.
 # Upstream's package.json at the pinned commit still self-IDs as
 # elvince/bmad-dashboard-extension, but bmad-code-org/bmad-method-ui is the
-# canonical home. Rewrite the fields vsce reads so VS Code sees
-# bmad-code-org.bmad-method-ui (not elvince.bmad-dashboard) after install.
+# canonical home. Rewrite both the marketplace metadata fields and the
+# user-visible UI labels in contributes so VS Code shows the bmad-method-ui
+# identity everywhere (extension card, sidebar title, command palette).
 echo ">> rebranding package.json -> bmad-code-org.bmad-method-ui"
 "${PYTHON}" - <<'PY'
 import json, pathlib
 p = pathlib.Path("package.json")
 pj = json.loads(p.read_text(encoding="utf-8"))
+
+# Marketplace identity
 pj["name"] = "bmad-method-ui"
 pj["publisher"] = "bmad-code-org"
 pj["displayName"] = "BMad Method UI"
+pj["description"] = "Interactive dashboard for BMad Method V6 projects"
 pj["repository"] = {
     "type": "git",
     "url": "https://github.com/bmad-code-org/bmad-method-ui.git",
 }
 pj["homepage"] = "https://github.com/bmad-code-org/bmad-method-ui#readme"
 pj["bugs"] = {"url": "https://github.com/bmad-code-org/bmad-method-ui/issues"}
+
+# User-visible labels (sidebar header, command palette)
+contributes = pj.get("contributes", {})
+for vc in contributes.get("viewsContainers", {}).get("activitybar", []):
+    if vc.get("title") == "BMAD Dashboard":
+        vc["title"] = "BMad Method UI"
+for cmd in contributes.get("commands", []):
+    title = cmd.get("title", "")
+    if title.startswith("BMAD:"):
+        cmd["title"] = "BMad:" + title[len("BMAD:"):]
+
 p.write_text(json.dumps(pj, indent=2) + "\n", encoding="utf-8")
 PY
 
