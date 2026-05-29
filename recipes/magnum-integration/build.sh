@@ -15,8 +15,7 @@ cmake $SRC_DIR \
     -DCMAKE_BUILD_TYPE=Release \
     -DLIB_SUFFIX="" \
     -DBUILD_TESTS=OFF \
-    -DMAGNUM_WITH_EIGEN=ON \
-    -DWITH_EIGEN=ON
+    -DMAGNUM_WITH_EIGEN=ON
 
 cmake --build build --parallel
 
@@ -25,3 +24,7 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}
 fi
 
 cmake --build build --target install
+
+# Upstream's find module expects a configure.h marker for every component.
+# EigenIntegration is header-only, so install the marker for downstream CMake.
+: > "${PREFIX}/include/Magnum/EigenIntegration/configure.h"
