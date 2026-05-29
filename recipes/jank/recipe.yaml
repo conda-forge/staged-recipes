@@ -102,6 +102,20 @@ build:
       }
 
       ^./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
+
+      # Patch ar-merge to write an archive symbol table (TOC) by replacing `ar qc`
+      # with `ar qcs`. Without the -s flag, Apple ld64 ignores the merged archive
+      # when processing -force_load because it cannot find a Table of Contents,
+      # emitting "ignoring file ..., building for macOS-x86_64 but attempting to
+      # link with file built for macOS-x86_64" and leaving all jank symbols undefined.
+      # GNU ld on Linux handles TOC-less archives, so this only matters on macOS.
+      if ($env.HOST | str contains "darwin") {
+        let ar_merge = "build/ar-merge"
+        if ($ar_merge | path exists) {
+          open $ar_merge | str replace --all "ar qc" "ar qcs" | save --force $ar_merge
+        }
+      }
+
       ^./bin/compile
 
       # Install binary and resource dir (lib/jank/0.1/ with headers and sources)
