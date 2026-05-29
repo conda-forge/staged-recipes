@@ -22,10 +22,10 @@ if %ERRORLEVEL% neq 0 exit /b 1
 jq "del(.devDependencies)" package.json.bak > package.json
 if %ERRORLEVEL% neq 0 exit /b 1
 
-pnpm install --prod
+call pnpm install --prod
 if %ERRORLEVEL% neq 0 exit /b 1
 
-pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 if %ERRORLEVEL% neq 0 exit /b 1
 
 move /y package.json.bak package.json
@@ -37,16 +37,16 @@ if %ERRORLEVEL% neq 0 exit /b 1
 @REM ============================================================
 @REM Build and pack
 @REM ============================================================
-pnpm install
+call pnpm install
 if %ERRORLEVEL% neq 0 exit /b 1
 
-pnpm build
+call pnpm build
 if %ERRORLEVEL% neq 0 exit /b 1
 
-pnpm ui:build
+call pnpm ui:build
 if %ERRORLEVEL% neq 0 exit /b 1
 
-pnpm pack --config.ignore-scripts=true
+call pnpm pack --config.ignore-scripts=true
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
@@ -70,7 +70,7 @@ set CPPFLAGS=%VIPS_CFLAGS% %CPPFLAGS%
 set CXXFLAGS=%VIPS_CFLAGS% %CXXFLAGS%
 set LDFLAGS=%VIPS_LIBS% %LDFLAGS%
 
-npm install -ddd ^
+call npm install -ddd ^
     --global ^
     --prefix "%PREFIX%" ^
     --build-from-source ^
