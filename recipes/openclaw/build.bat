@@ -100,10 +100,5 @@ for /d %%d in ("%NODE_MODULES%\koffi\build\koffi\*") do (
 )
 
 @REM --- prebuilds (tree-sitter etc...) ---
-powershell -Command ^
-    "Get-ChildItem -Path '%NODE_MODULES%' -Recurse -Directory -Filter 'prebuilds' | ForEach-Object { ^
-        Get-ChildItem -Path $_.FullName -Directory | ^
-        Where-Object { $_.Name -ne '%KEEP_DASH%' } | ^
-        ForEach-Object { Write-Host ('Removing prebuild: ' + $_.FullName); Remove-Item -Recurse -Force $_.FullName } ^
-    }"
+powershell -Command "Get-ChildItem -Path '%NODE_MODULES%' -Recurse -Directory -Filter 'prebuilds' | ForEach-Object { Get-ChildItem -Path $_.FullName -Directory | Where-Object { $_.Name -ne '%KEEP_DASH%' } | ForEach-Object { Write-Host ('Removing prebuild: ' + $_.FullName); Remove-Item -Recurse -Force $_.FullName } }"
 if %ERRORLEVEL% neq 0 exit /b 1
