@@ -1,0 +1,180 @@
+{% set name = "soapysdr-module-fobos" %}
+{% set version = "1.4.6" %}
+{% set build_num = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/UR4MCB/SoapyFobosSDR-Radioconda/archive/refs/tags/v0.1.0-conda-forge-style-polish.tar.gz
+  sha256: 10410e7978f1b880809b25731e3b9f429e12b9ee52bf4135412c6863577fcefc
+
+build:
+  number: {{ build_num }}
+  skip: true  # [not win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - soapysdr
+    - libusb
+
+outputs:
+  - name: libfobos-regular
+    files:
+      - Library/bin/fobos.dll
+      - Library/bin/fobos_devinfo.exe
+      - Library/bin/fobos_fwloader.exe
+      - Library/bin/fobos_recorder.exe
+      - Library/include/fobos.h
+      - Library/lib/fobos.lib
+      - Library/lib/pkgconfig/libfobos.pc
+    requirements:
+      host:
+        - libusb
+      run:
+        - libusb
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+    test:
+      commands:
+        - if not exist "%PREFIX%\\Library\\bin\\fobos.dll" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\include\\fobos.h" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\lib\\fobos.lib" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\lib\\pkgconfig\\libfobos.pc" exit 1  # [win]
+    about:
+      summary: RigExpert Fobos SDR Regular/classic runtime library
+      license: LGPL-2.1-or-later
+      license_file: third_party/libfobos-regular/LICENSE
+
+  - name: libfobos-sdr-agile
+    files:
+      - Library/bin/fobos_sdr.dll
+      - Library/bin/fobos_sdr_devinfo.exe
+      - Library/bin/fobos_sdr_fwloader.exe
+      - Library/bin/fobos_sdr_recorder.exe
+      - Library/bin/fobos_sdr_scanner.exe
+      - Library/include/fobos_sdr.h
+      - Library/lib/fobos_sdr.lib
+      - Library/lib/pkgconfig/libfobos_sdr.pc
+    requirements:
+      host:
+        - libusb
+      run:
+        - libusb
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+    test:
+      commands:
+        - if not exist "%PREFIX%\\Library\\bin\\fobos_sdr.dll" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\include\\fobos_sdr.h" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\lib\\fobos_sdr.lib" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\lib\\pkgconfig\\libfobos_sdr.pc" exit 1  # [win]
+    about:
+      summary: RigExpert Fobos SDR Agile runtime library
+      license: LGPL-2.1-or-later
+      license_file: third_party/libfobos-sdr-agile/LICENSE
+
+  - name: soapysdr-module-fobos
+    files:
+      - Library/lib/SoapySDR/modules*/FobosSDRSupport.dll
+      - Library/share/SoapyFobosSDR/docs/SoapyFobosSDRPackageVersion.txt
+    requirements:
+      host:
+        - soapysdr
+        - libusb
+      run:
+        - soapysdr
+        - {{ pin_subpackage('libfobos-regular', exact=True) }}
+        - {{ pin_subpackage('libfobos-sdr-agile', exact=True) }}
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+    test:
+      commands:
+        - SoapySDRUtil --info
+        - SoapySDRUtil --info | findstr /C:"FobosSDRSupport.dll"  # [win]
+        - SoapySDRUtil --info | findstr /C:"Available factories"  # [win]
+        - SoapySDRUtil --info | findstr /C:"fobos"  # [win]
+        - if not exist "%PREFIX%\\Library\\share\\SoapyFobosSDR\\docs\\SoapyFobosSDRPackageVersion.txt" exit 1  # [win]
+    about:
+      summary: RigExpert Fobos SDR SoapySDR hardware support module
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE
+        - docs/THIRD_PARTY_NOTICES_EN.md
+
+  - name: rigexpert-fobos-gnuradio-assets
+    files:
+      - Library/share/gnuradio/grc/blocks/rigexpert_fobos_source.block.yml
+      - Library/share/gnuradio/grc/blocks/rigexpert_fobos_source_lvga.block.yml
+      - Library/share/SoapyFobosSDR/examples/fobos_fm_spectrum.grc
+      - Library/share/SoapyFobosSDR/examples/fobos_fm_spectrum_lvga.grc
+      - Library/share/SoapyFobosSDR/docs/*.md
+      - Library/share/SoapyFobosSDR/docs/*.png
+    requirements:
+      run:
+        - {{ pin_subpackage('soapysdr-module-fobos', exact=True) }}
+        - gnuradio
+    test:
+      commands:
+        - if not exist "%PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\rigexpert_fobos_source.block.yml" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\rigexpert_fobos_source_lvga.block.yml" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\share\\SoapyFobosSDR\\examples\\fobos_fm_spectrum.grc" exit 1  # [win]
+    about:
+      summary: GNU Radio Companion blocks and examples for RigExpert Fobos SDR
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE
+        - docs/THIRD_PARTY_NOTICES_EN.md
+
+  - name: rigexpert-fobos-tools
+    files:
+      - Library/share/SoapyFobosSDR/tools
+      - Library/share/SoapyFobosSDR/examples/fobos_wfm_receiver_demo.py
+      - Library/share/SoapyFobosSDR/examples/run_fobos_wfm_receiver_demo_auto.bat
+    requirements:
+      run:
+        - python
+        - numpy
+        - pyqt >=5,<6
+        - gnuradio
+        - {{ pin_subpackage('soapysdr-module-fobos', exact=True) }}
+    test:
+      commands:
+        - if not exist "%PREFIX%\\Library\\share\\SoapyFobosSDR\\tools\\fobos_soapy_smoketest.py" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\share\\SoapyFobosSDR\\tools\\fobos_gain_sweep_rms.py" exit 1  # [win]
+        - if not exist "%PREFIX%\\Library\\share\\SoapyFobosSDR\\examples\\fobos_wfm_receiver_demo.py" exit 1  # [win]
+    about:
+      summary: Diagnostic scripts and Fobos Pro Console demo for RigExpert Fobos SDR
+      license: LGPL-2.1-or-later
+      license_file:
+        - LICENSE
+        - docs/THIRD_PARTY_NOTICES_EN.md
+
+about:
+  home: https://github.com/UR4MCB/SoapyFobosSDR-Radioconda
+  license: LGPL-2.1-or-later
+  license_file:
+    - LICENSE
+    - docs/THIRD_PARTY_NOTICES_EN.md
+    - third_party/libfobos-regular/LICENSE
+    - third_party/libfobos-sdr-agile/LICENSE
+  summary: RigExpert Fobos SDR SoapySDR module and GNU Radio/Radioconda integration
+  description: |
+    Conda-forge style split-package experiment for RigExpert Fobos SDR support.
+    The recipe builds the bundled Regular libfobos snapshot, the bundled Agile
+    libfobos_sdr snapshot, the SoapySDR module, GNU Radio Companion assets, and
+    optional diagnostic/demo tools as separate output packages. It is intended as
+    a packaging architecture polish step after the validated monolithic
+    Windows/Radioconda package.
+
+extra:
+  recipe-maintainers:
+    - UR4MCB
