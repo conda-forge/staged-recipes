@@ -148,16 +148,14 @@ EOF
 # only the compiled output in out/.
 # vscode:prepublish was already replaced with a no-op above so vsce won't try
 # to rebuild after node_modules is gone.
-echo ">> pinning vsce version from installed node_modules"
-VSCE_VERSION=$(node -e \
-    "console.log(require('./node_modules/@vscode/vsce/package.json').version)")
-echo "    @vscode/vsce: ${VSCE_VERSION}"
-
 echo ">> removing node_modules to prevent vsce false-positive secret scan"
 rm -rf node_modules
 
+# @vscode/vsce is not a devDependency; the vscode:package script invokes it
+# via npx (on-demand download). We call it the same way here so there is no
+# version to pin from node_modules.
 echo ">> packaging .vsix"
-npx --yes "@vscode/vsce@${VSCE_VERSION}" package --no-dependencies -o out/
+npx --yes @vscode/vsce package --no-dependencies -o out/
 
 VSIX_SRC=$(ls out/*.vsix | head -n 1)
 test -f "${VSIX_SRC}" || { echo "ERROR: no .vsix produced under out/"; exit 1; }
