@@ -59,7 +59,7 @@ set npm_config_sharp_build_from_source=true
 set npm_config_sharp_force_global_libvips=true
 set npm_config_build_from_source=true
 set npm_config_node_gyp=%BUILD_PREFIX%\bin\node-gyp
-set NODE_PATH=%BUILD_PREFIX%\lib\node_modules;%NODE_PATH%
+set NODE_PATH=%BUILD_PREFIX%\node_modules;%NODE_PATH%
 set ESBUILD_BINARY_PATH=%BUILD_PREFIX%\bin\esbuild.exe
 set PYTHON=%BUILD_PREFIX%\python.exe
 set PKG_CONFIG_PATH=%PREFIX%\lib\pkgconfig;%PREFIX%\share\pkgconfig;%PKG_CONFIG_PATH%
@@ -77,7 +77,7 @@ call npm install -ddd ^
     %PKG_NAME%-%PKG_VERSION%.tgz
 if %ERRORLEVEL% neq 0 exit /b 1
 
-set NODE_MODULES=%PREFIX%\lib\node_modules\openclaw\node_modules
+set NODE_MODULES=%PREFIX%\node_modules\openclaw\node_modules
 
 set OS=win32
 if /i "%PROCESSOR_ARCHITECTURE%"=="AMD64" set ARCH=x64
