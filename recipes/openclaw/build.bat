@@ -86,6 +86,8 @@ if /i "%PROCESSOR_ARCHITECTURE%"=="x86" (
     if /i "%PROCESSOR_ARCHITEW6432%"=="AMD64" set ARCH=x64
 )
 
+@REM Keep only the current platform's native binaries and remove foreign-platform prebuilds.
+@REM koffi uses OS_ARCH naming and other prebuilds use OS-ARCH.
 set KEEP_UNDERSCORE=%OS%_%ARCH%
 set KEEP_DASH=%OS%-%ARCH%
 
