@@ -19,50 +19,40 @@ echo ">> environment"
 echo "    node:  $(node --version)"
 echo "    npm:   $(npm --version)"
 
+# Keep package-manager caches OUT of $SRC_DIR so vsce doesn't vacuum them
+# into the .vsix. Also keep pnpm itself here so it doesn't land in $PREFIX
+# and get packaged into the conda output (rattler-build rejects symlinks).
+# CACHE_ROOT must be defined before pnpm is installed.
+CACHE_ROOT="$(dirname "${SRC_DIR}")/_pkg_caches"
+mkdir -p "${CACHE_ROOT}/npm" "${CACHE_ROOT}/pnpm-cli" "${CACHE_ROOT}/corepack" \
+         "${CACHE_ROOT}/pnpm-store" "${CACHE_ROOT}/pnpm-state" \
+         "${CACHE_ROOT}/xdg_data"
+
 PNPM_VERSION="10.26.2"
-
-# rattler-build on Windows can leak BUILD_PREFIX into bash as the literal
-# CMD placeholder `%BUILD_PREFIX%`. Treat that (and a plain-empty value) as
-# unset and fall back to $PREFIX.
-case "${BUILD_PREFIX:-}" in
-    ""|*%*) BP="${PREFIX}" ;;
-    *)      BP="${BUILD_PREFIX}" ;;
-esac
-
-# conda's Windows layout puts shims under Library/bin; *nix uses bin.
-if [[ -d "${BP}/Library/bin" ]]; then
-    BP_BIN="${BP}/Library/bin"
-else
-    BP_BIN="${BP}/bin"
-fi
 
 if command -v corepack >/dev/null 2>&1; then
     echo ">> activating pnpm ${PNPM_VERSION} via corepack"
-    export COREPACK_HOME="${BP}/corepack"
-    mkdir -p "${COREPACK_HOME}" "${BP_BIN}"
-    corepack enable --install-directory "${BP_BIN}"
+    export COREPACK_HOME="${CACHE_ROOT}/corepack"
+    corepack enable --install-directory "${CACHE_ROOT}/pnpm-cli"
     corepack prepare "pnpm@${PNPM_VERSION}" --activate
+    export PATH="${CACHE_ROOT}/pnpm-cli:${PATH}"
 else
     echo ">> corepack not found, installing pnpm via npm"
-    npm install -g "pnpm@${PNPM_VERSION}"
+    # Install to CACHE_ROOT/pnpm-cli, NOT to $PREFIX, so pnpm files don't end
+    # up in the conda package output. rattler-build rejects packages that
+    # contain symlinks (npm's global install creates python-scripts/pnpm ->
+    # ../lib/node_modules/pnpm/... on Linux, which trips the symlink check).
+    npm install -g --prefix "${CACHE_ROOT}/pnpm-cli" "pnpm@${PNPM_VERSION}"
+    export PATH="${CACHE_ROOT}/pnpm-cli/bin:${PATH}"
 fi
 
 echo "    pnpm:  $(pnpm --version)"
 
-# Keep package-manager caches OUT of $SRC_DIR so vsce doesn't vacuum them
-# into the .vsix. conda-forge nodejs activation seeds npm/pnpm caches under
-# $SRC_DIR for hermeticity (npm-cache/, .pnpm/, .pnpm-cache/, .pnpm-state/),
-# which adds ~400 MB of garbage to the .vsix. Park them next to $SRC_DIR
-# instead — still inside the per-build sandbox, so they're cleaned up with
-# the rest of the build.
-#
 # XDG_DATA_HOME controls where pnpm puts its store (default ~/.local/share).
 # Relocating it here keeps the store on the same filesystem as $SRC_DIR so
 # pnpm can use hardlinks instead of symlinks, avoiding vsce scanning the
 # global store through dangling symlinks in node_modules/.pnpm.
-CACHE_ROOT="$(dirname "${SRC_DIR}")/_pkg_caches"
-mkdir -p "${CACHE_ROOT}/npm" "${CACHE_ROOT}/pnpm-store" "${CACHE_ROOT}/pnpm-state" \
-         "${CACHE_ROOT}/xdg_data"
+# XDG_STATE_HOME keeps pnpm's state files out of ~/.local/state.
 export npm_config_cache="${CACHE_ROOT}/npm"
 export XDG_DATA_HOME="${CACHE_ROOT}/xdg_data"
 export XDG_STATE_HOME="${CACHE_ROOT}/pnpm-state"
