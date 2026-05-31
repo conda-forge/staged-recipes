@@ -56,6 +56,8 @@ case "$(uname -m)" in
     aarch64|arm64) ARCH="arm64" ;;
 esac
 
+# Keep only the current platform's native binaries and remove foreign-platform prebuilds.
+# koffi stores builds as OS_ARCH, while other prebuilds use OS-ARCH.
 KEEP_UNDERSCORE="${OS}_${ARCH}"   # koffi: linux_x64, darwin_arm64
 KEEP_DASH="${OS}-${ARCH}"         # prebuilds: linux-x64, darwin-arm64
 
