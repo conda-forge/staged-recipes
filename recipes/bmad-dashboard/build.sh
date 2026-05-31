@@ -4,12 +4,15 @@
 # Strategy:
 #   1. Provision pnpm 10.26.2 (upstream's pinned packageManager) via corepack,
 #      with `npm install -g pnpm@10.26.2` as a fallback.
-#   2. `pnpm install --frozen-lockfile && pnpm build && pnpm vscode:package`
-#      produces out/bmad-dashboard-1.2.2.vsix.
-#   3. Layer a small Python wrapper around the .vsix that exposes a
+#   2. `pnpm install --frozen-lockfile && pnpm build` compiles the extension.
+#   3. node_modules is removed so vsce's secret scanner cannot flag tokens
+#      in devDependencies (e.g. semantic-release, @octokit packages).
+#      vscode:prepublish is overridden to a no-op before this removal.
+#   4. `vsce package --no-dependencies` produces out/bmad-method-ui-1.2.2.vsix.
+#   5. Layer a small Python wrapper around the .vsix that exposes a
 #      `bmad-dashboard-install` CLI entry point. The wrapper sources live
 #      under $RECIPE_DIR/wrapper/.
-#   4. Pip-install the wrapper so conda-build picks up the entry point.
+#   6. Pip-install the wrapper so conda-build picks up the entry point.
 set -euo pipefail
 
 echo ">> environment"
@@ -52,10 +55,16 @@ echo "    pnpm:  $(pnpm --version)"
 # which adds ~400 MB of garbage to the .vsix. Park them next to $SRC_DIR
 # instead — still inside the per-build sandbox, so they're cleaned up with
 # the rest of the build.
+#
+# XDG_DATA_HOME controls where pnpm puts its store (default ~/.local/share).
+# Relocating it here keeps the store on the same filesystem as $SRC_DIR so
+# pnpm can use hardlinks instead of symlinks, avoiding vsce scanning the
+# global store through dangling symlinks in node_modules/.pnpm.
 CACHE_ROOT="$(dirname "${SRC_DIR}")/_pkg_caches"
-mkdir -p "${CACHE_ROOT}/npm" "${CACHE_ROOT}/pnpm-store" "${CACHE_ROOT}/pnpm-state"
+mkdir -p "${CACHE_ROOT}/npm" "${CACHE_ROOT}/pnpm-store" "${CACHE_ROOT}/pnpm-state" \
+         "${CACHE_ROOT}/xdg_data"
 export npm_config_cache="${CACHE_ROOT}/npm"
-export PNPM_STORE_PATH="${CACHE_ROOT}/pnpm-store"
+export XDG_DATA_HOME="${CACHE_ROOT}/xdg_data"
 export XDG_STATE_HOME="${CACHE_ROOT}/pnpm-state"
 
 echo ">> fetching node dependencies"
@@ -67,6 +76,10 @@ pnpm install --frozen-lockfile
 # canonical home. Rewrite both the marketplace metadata fields and the
 # user-visible UI labels in contributes so VS Code shows the bmad-method-ui
 # identity everywhere (extension card, sidebar title, command palette).
+#
+# vscode:prepublish is replaced with a no-op because we run `pnpm build`
+# explicitly below; this prevents vsce from re-running it after node_modules
+# has been removed (see the "remove node_modules" step before packaging).
 echo ">> rebranding package.json -> bmad-code-org.bmad-method-ui"
 "${PYTHON}" - <<'PY'
 import json, pathlib
@@ -95,6 +108,11 @@ for cmd in contributes.get("commands", []):
     if title.startswith("BMAD:"):
         cmd["title"] = "BMad:" + title[len("BMAD:"):]
 
+# Replace vscode:prepublish with a no-op so vsce does not re-run the full
+# build after node_modules is removed for the secret-scan workaround below.
+pj.setdefault("scripts", {})["vscode:prepublish"] = \
+    "echo 'Pre-build completed by conda recipe build.sh'"
+
 p.write_text(json.dumps(pj, indent=2) + "\n", encoding="utf-8")
 PY
 
@@ -109,6 +127,7 @@ echo ">> appending conda-build excludes to .vscodeignore"
 cat >> .vscodeignore <<'EOF'
 
 # Excluded by conda-forge recipe build.sh
+node_modules/**
 .pnpm/**
 .pnpm-cache/**
 .pnpm-state/**
@@ -122,8 +141,23 @@ _pkg_caches/**
 _pywrap/**
 EOF
 
+# vsce's secret scanner walks the entire workspace for token patterns, even
+# files that are excluded by .vscodeignore.  devDependencies such as
+# semantic-release and @octokit contain GitHub token examples that trigger
+# false positives.  Remove node_modules before packaging so the scanner sees
+# only the compiled output in out/.
+# vscode:prepublish was already replaced with a no-op above so vsce won't try
+# to rebuild after node_modules is gone.
+echo ">> pinning vsce version from installed node_modules"
+VSCE_VERSION=$(node -e \
+    "console.log(require('./node_modules/@vscode/vsce/package.json').version)")
+echo "    @vscode/vsce: ${VSCE_VERSION}"
+
+echo ">> removing node_modules to prevent vsce false-positive secret scan"
+rm -rf node_modules
+
 echo ">> packaging .vsix"
-pnpm vscode:package
+npx --yes "@vscode/vsce@${VSCE_VERSION}" package --no-dependencies -o out/
 
 VSIX_SRC=$(ls out/*.vsix | head -n 1)
 test -f "${VSIX_SRC}" || { echo "ERROR: no .vsix produced under out/"; exit 1; }
