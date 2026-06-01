@@ -103,29 +103,10 @@ build:
 
       ^./bin/configure -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
 
-      # On macOS, patch ar-merge to use cctools ar (BSD-format) instead of the bare
-      # 'ar' command which may resolve to GNU ar from binutils_impl_osx-64. Apple
-      # ld64 silently ignores GNU-format archives with "ignoring file ... building
-      # for macOS-x86_64 but attempting to link with file built for macOS-x86_64".
-      # Running ranlib afterward cannot fix a wrong archive format — the archive
-      # must be created with a BSD-compatible ar from the start. The 's' flag writes
-      # the symbol table inline so no separate ranlib step is required.
-      if ($env.HOST | str contains "darwin") {
-        let ar_merge = "build/ar-merge"
-        if ($ar_merge | path exists) {
-          let host_ar = $"($env.HOST)-ar"
-          open $ar_merge | str replace --all "ar qc" $"($host_ar) qcs" | save --force $ar_merge
-        }
-      }
-
-      if ($env.HOST | str contains "darwin") {
-        ^ninja -C build
-      } else {
-        ^./bin/compile
-      }
+      ^./bin/compile
 
       # Install binary and resource dir (lib/jank/0.1/ with headers and sources)
-      ^cmake --install build --prefix $env.PREFIX
+      ^./bin/install --prefix $env.PREFIX
 
       # Create clang symlinks so jank can discover clang at runtime via lib/jank/0.1/bin/
       let jank_bin_dir = ($env.PREFIX | path join "lib" "jank" "0.1" "bin")
