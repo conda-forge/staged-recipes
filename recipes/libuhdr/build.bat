@@ -1,5 +1,7 @@
 @echo on
 
+sed -i "s/if(NOT(MSVC OR XCODE))/if(NOT XCODE)/" CMakeLists.txt
+
 cmake -S . -B build -G Ninja ^
     %CMAKE_ARGS% ^
     -DBUILD_SHARED_LIBS=ON ^
