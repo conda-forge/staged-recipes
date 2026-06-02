@@ -16,11 +16,6 @@ fi
 # bin links serve no purpose here.
 npm install --omit=dev --no-fund --no-audit --ignore-scripts --no-bin-links
 
-# Capture the licenses of every bundled production dependency in node_modules.
-# conda-forge requires the licenses of all shipped code to be recorded; the file
-# is written to SRC_DIR (cwd) and referenced from about.license_file.
-node "${RECIPE_DIR}/gen-third-party-licenses.js"
-
 # Create the installation directory
 INSTALL_DIR="${PREFIX}/lib/node_modules/${PKG_NAME}"
 mkdir -p "${INSTALL_DIR}"
@@ -36,3 +31,10 @@ rm -rf "${INSTALL_DIR}/website" \
        "${INSTALL_DIR}/.vscode" \
        "${INSTALL_DIR}/.augment" \
        "${INSTALL_DIR}/.claude-plugin"
+
+# Generate a license disclaimer covering the bundled production dependencies.
+# conda-forge requires the licenses of all shipped code (the node_modules tree)
+# to be recorded; the file is written to SRC_DIR and referenced from
+# about.license_file.
+pnpm install --prod --ignore-scripts
+pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt

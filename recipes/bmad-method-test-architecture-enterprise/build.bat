@@ -14,12 +14,6 @@ if not exist "package.json" (
 call npm install --omit=dev --no-fund --no-audit --ignore-scripts --no-bin-links
 if errorlevel 1 exit /b 1
 
-:: Capture the licenses of every bundled production dependency in node_modules.
-:: conda-forge requires the licenses of all shipped code to be recorded; the file
-:: is written to SRC_DIR (cwd) and referenced from about.license_file.
-call node "%RECIPE_DIR%\gen-third-party-licenses.js"
-if errorlevel 1 exit /b 1
-
 :: Create the installation directory
 set "INSTALL_DIR=%PREFIX%\lib\node_modules\%PKG_NAME%"
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
@@ -31,3 +25,12 @@ robocopy . "%INSTALL_DIR%" /E ^
   /NFL /NDL /NJH /NJS /NP
 :: robocopy exit codes 0-7 are success; 8+ indicate errors.
 if %errorlevel% geq 8 exit /b 1
+
+:: Generate a license disclaimer covering the bundled production dependencies.
+:: conda-forge requires the licenses of all shipped code (the node_modules tree)
+:: to be recorded; the file is written to SRC_DIR and referenced from
+:: about.license_file.
+call pnpm install --prod --ignore-scripts
+if errorlevel 1 exit /b 1
+call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+if errorlevel 1 exit /b 1
