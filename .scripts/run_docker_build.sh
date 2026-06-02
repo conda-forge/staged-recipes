@@ -8,6 +8,12 @@ source .scripts/logging_utils.sh
 
 set -xeo pipefail
 
+REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
+ARTIFACTS="$REPO_ROOT/build_artifacts"
+THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
+PROVIDER_DIR="$(basename "$THISDIR")"
+AZURE="${AZURE:-False}"
+
 docker info
 
 # In order for the conda-build process in the container to write to the mounted
@@ -33,12 +39,6 @@ if [ -z "${DOCKER_IMAGE}" ]; then
         DOCKER_IMAGE="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
     fi
 fi
-
-REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
-ARTIFACTS="$REPO_ROOT/build_artifacts"
-THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
-PROVIDER_DIR="$(basename "$THISDIR")"
-AZURE="${AZURE:-False}"
 
 mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done"

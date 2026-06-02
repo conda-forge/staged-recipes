@@ -6,6 +6,10 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Provisioning build tools" ) 2> /dev/null
 
+MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
+MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
+export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
+
 if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
   echo "Build tools already installed at ${MINIFORGE_HOME}."
 else
@@ -40,10 +44,6 @@ always_yes: true
 show_channel_urls: true
 solver: libmamba
 CONDARC
-
-MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
-MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
-export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
 source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
 conda activate base
