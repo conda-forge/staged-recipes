@@ -36,13 +36,31 @@ stages:
   condition: and(succeeded(), eq(dependencies.check.outputs['skip.result.start_main'], 'true'))
   dependsOn: check
   jobs:
+  - job: fast_finish
+    displayName: fast finish
+    pool:
+      vmImage: 'ubuntu-22.04'
+    steps:
+    - script: |
+        ./.scripts/fast_finish.sh
+      displayName: Fast finish
+      env:
+        CI: azure
   - template: ./.azure-pipelines/azure-pipelines-linux.yml
+    dependsOn:
+      - fast_finish
+    condition: eq(dependencies.fast_finish.outputs['buildMe'], 'true')
   - template: ./.azure-pipelines/azure-pipelines-osx.yml
+    dependsOn:
+      - fast_finish
   - template: ./.azure-pipelines/azure-pipelines-win.yml
+    dependsOn:
+      - fast_finish
   - job: status
     pool:
       vmImage: 'ubuntu-22.04'
     dependsOn:
+      - fast_finish
       - win_64
       - osx
       - linux_64

@@ -24,4 +24,4 @@ if [[ "${build_me}" == "false" ]]; then
     echo "No recipes need to be built. Exiting!"
 fi
 
-echo "##vso[task.setvariable variable=buildMe]${build_me}"
+echo "##vso[task.setvariable variable=buildMe;isOutput=true]${build_me}"
