@@ -21,7 +21,7 @@ echo ""
 
 build_me=false
 for dr in $(ls ./recipes); do
-    if [[ "${dr}" != "example" || "${dr}" != "example-v1" ]]; then
+    if [[ "${dr}" != "example" && "${dr}" != "example-v1" ]]; then
         build_me=true
     fi
 done
