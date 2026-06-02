@@ -6,8 +6,9 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Fast Finish" ) 2> /dev/null
 
-/usr/bin/sudo mkdir -p /Users/runner/bld/osx-64
-/usr/bin/sudo mkdir -p /Users/runner/bld/osx-arm64
+/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/osx-64
+/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/osx-arm64
+/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/noarch
 
 # Find the recipes from upstream:main in this PR and remove them.
 echo ""
