@@ -92,6 +92,19 @@ mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD
 # to save some time running locally
 test -f "${CONDA_BLD_PATH}/noarch/repodata.json" || conda index "${CONDA_BLD_PATH}"
 
+# Find the recipes from upstream:main in this PR and remove them.
+echo ""
+echo "Finding recipes merged in main and removing them from the build."
+pushd ./recipes > /dev/null
+if [ "${CI:-}" != "" ]; then
+  git fetch --force origin main:main
+fi
+shopt -s extglob dotglob
+git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+shopt -u extglob dotglob
+popd > /dev/null
+echo ""
+
 ( endgroup "Configuring conda" ) 2> /dev/null
 
 # Set the target arch or auto detect it
