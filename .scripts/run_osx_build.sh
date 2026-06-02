@@ -2,6 +2,10 @@
 
 set -x
 
+MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
+MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
+export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
+
 source .scripts/logging_utils.sh
 
 ( startgroup "Fast Finish" ) 2> /dev/null
@@ -38,10 +42,6 @@ if [[ "${build_me}" == "false" ]]; then
 fi
 
 ( startgroup "Provisioning build tools" ) 2> /dev/null
-
-MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
-MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
-export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
 if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
   echo "Build tools already installed at ${MINIFORGE_HOME}."
