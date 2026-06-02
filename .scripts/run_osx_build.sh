@@ -6,8 +6,21 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Fast Finish" ) 2> /dev/null
 
+# Find the recipes from upstream:main in this PR and remove them.
+echo ""
+echo "Finding recipes merged in main and removing them from the build."
+pushd ./recipes > /dev/null
+if [ "${CI:-}" != "" ]; then
+  git fetch --force origin main:main
+fi
+shopt -s extglob dotglob
+git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+shopt -u extglob dotglob
+popd > /dev/null
+echo ""
+
 build_me=false
-for dr in $(ls recipes); do
+for dr in $(ls ./recipes); do
     if [[ "${dr}" != "example" || "${dr}" != "example-v1" ]]; then
         build_me=true
     fi
@@ -107,19 +120,6 @@ mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD
 # Make sure CONDA_BLD_PATH is a valid channel; only do it if noarch/repodata.json doesn't exist
 # to save some time running locally
 test -f "${CONDA_BLD_PATH}/noarch/repodata.json" || conda index "${CONDA_BLD_PATH}"
-
-# Find the recipes from upstream:main in this PR and remove them.
-echo ""
-echo "Finding recipes merged in main and removing them from the build."
-pushd ./recipes > /dev/null
-if [ "${CI:-}" != "" ]; then
-  git fetch --force origin main:main
-fi
-shopt -s extglob dotglob
-git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
-shopt -u extglob dotglob
-popd > /dev/null
-echo ""
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
