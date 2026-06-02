@@ -4,6 +4,22 @@
 
 source .scripts/logging_utils.sh
 
+( startgroup "Fast Finish" ) 2> /dev/null
+
+build_me=false
+for dr in $(ls recipes); do
+    if [[ "${dr}" != "example" || "${dr}" != "example-v1" ]]; then
+        build_me=true
+    fi
+done
+
+( endgroup "Fast Finish" ) 2> /dev/null
+
+if [[ "${build_me}" == "false" ]]; then
+    echo "No recipes need to be built. Exiting!"
+    exit 0
+fi
+
 ( startgroup "Configure Docker" ) 2> /dev/null
 
 set -xeo pipefail
