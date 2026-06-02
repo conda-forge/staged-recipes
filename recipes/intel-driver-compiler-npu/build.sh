@@ -18,10 +18,6 @@ set -exuo pipefail
 # download" conventions (ENABLE_SYSTEM_*; ENABLE_SYSTEM_TBB=ON overrides the
 # preset's bundled-oneTBB download, which is impossible in an offline build).
 
-# Persist ccache across local iterations (the LLVM/MLIR fork is the long pole).
-export CCACHE_DIR="${CCACHE_DIR:-${SRC_DIR}/../.ccache}"
-export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-25G}"
-
 mkdir -p "$SRC_DIR/build"
 
 cmake ${CMAKE_ARGS} \
@@ -79,8 +75,6 @@ cmake ${CMAKE_ARGS} \
     -DENABLE_PREBUILT_LLVM_MLIR_LIBS=OFF \
     -DLLVM_USE_LINKER=lld \
     -DLLVM_PARALLEL_LINK_JOBS=2 \
-    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 cmake --build "$SRC_DIR/build" --target npu_driver_compiler --parallel "${CPU_COUNT}"
