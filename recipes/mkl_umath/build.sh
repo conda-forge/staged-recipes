@@ -9,6 +9,6 @@ ICXCFG="$(pwd)/icx_for_conda.cfg"
 export ICXCFG
 
 export CMAKE_GENERATOR="Ninja"
-export CMAKE_ARGS="-DCMAKE_C_COMPILER:PATH=icx -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+export CMAKE_ARGS="-DCMAKE_C_COMPILER:PATH=icx -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DMKL_THREADING=gnu_thread"
 
 ${PYTHON} -m pip install --no-build-isolation --no-deps .
