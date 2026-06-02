@@ -2,44 +2,7 @@
 
 set -x
 
-MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
-MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
-export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
-
 source .scripts/logging_utils.sh
-
-( startgroup "Fast Finish" ) 2> /dev/null
-
-/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/osx-64
-/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/osx-arm64
-/usr/bin/sudo mkdir -p ${CONDA_BLD_PATH}/noarch
-
-# Find the recipes from upstream:main in this PR and remove them.
-echo ""
-echo "Finding recipes merged in main and removing them from the build."
-pushd ./recipes > /dev/null
-if [ "${CI:-}" != "" ]; then
-  git fetch --force origin main:main
-fi
-shopt -s extglob dotglob
-git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
-shopt -u extglob dotglob
-popd > /dev/null
-echo ""
-
-build_me=false
-for dr in $(ls ./recipes); do
-    if [[ "${dr}" != "example" && "${dr}" != "example-v1" ]]; then
-        build_me=true
-    fi
-done
-
-( endgroup "Fast Finish" ) 2> /dev/null
-
-if [[ "${build_me}" == "false" ]]; then
-    echo "No recipes need to be built. Exiting!"
-    exit 0
-fi
 
 ( startgroup "Provisioning build tools" ) 2> /dev/null
 
@@ -77,6 +40,10 @@ always_yes: true
 show_channel_urls: true
 solver: libmamba
 CONDARC
+
+MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
+MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
+export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
 
 source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
 conda activate base
