@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  name: photo-tagger
+  version: "0.2.2"
+  # photo-tagger needs Python >= 3.14, higher than conda-forge's global
+  # python_min, so override it here and reference ${{ python_min }} below.
+  python_min: "3.14"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name | replace("-", "_") }}-${{ version }}.tar.gz
+  sha256: d8f506f3de0cee80f77789436becc4c436bf3ccfcea481cacbe6f892f6dcce1f
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - photo-tagger = photo_tagger.main:app
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - uv-build >=0.11.16,<1.0.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - cyclopts >=4.16.1
+    - filelock >=3.29.0
+    - httpx >=0.28.1
+    - loguru >=0.7.3
+    - pillow >=12.2.0
+    - pydantic >=2.13.4
+    - pydantic-ai >=1.104.0
+    - pyexiftool >=0.5.6
+    - rawpy >=0.27.0
+    - rich >=15.0.0
+    # photo-tagger shells out to the `exiftool` binary at runtime to read/write
+    # metadata, so depend on it directly (not just via pyexiftool).
+    - exiftool
+
+tests:
+  - python:
+      imports:
+        - photo_tagger
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - photo-tagger --help
+
+about:
+  summary: CLI tool to describe photos and add keywords using AI
+  description: |
+    Photo Tagger is a command-line helper that asks a vision-language model to
+    analyze your photos and writes Lightroom-compatible metadata. By default it
+    keeps your originals untouched by creating XMP sidecar files, but it can
+    embed the updates directly into each photo with --embed-in-photo.
+
+    It requires a running Ollama or LM Studio server that hosts a vision-language
+    model, and the ExifTool binary available on PATH.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://juliobs.com/projects/photo-tagger/
+  repository: https://github.com/jbsilva/photo-tagger
+  documentation: https://github.com/jbsilva/photo-tagger
+
+extra:
+  recipe-maintainers:
+    - jbsilva
