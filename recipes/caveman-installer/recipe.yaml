@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.8.2"
+
+package:
+  # Upstream npm `name` is `caveman-installer`; both `caveman` slots (PyPI + npm)
+  # are taken by unrelated dormant projects, so we keep the upstream name here.
+  # The installed CLI shim is `caveman` (per package.json `bin` map).
+  name: caveman-installer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/JuliusBrussee/caveman/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 02b54f7d8ba1a1c579db7ee040948a7e7159a8bdbc31d49cb2a43ece73fde1d1
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - set -ex
+        - NPM_VER=$(node -p "require('./package.json').version")
+        - npm pack --ignore-scripts
+        - npm install --global "${SRC_DIR}/caveman-installer-${NPM_VER}.tgz"
+        - find "${PREFIX}/lib/node_modules/caveman-installer" -type d -name .bin -exec rm -rf {} + || true
+      else:
+        - for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set NPM_VER=%%v
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global "%SRC_DIR%/caveman-installer-%NPM_VER%.tgz"
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - nodejs
+  host:
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - caveman --help
+
+about:
+  license: MIT
+  license_file: LICENSE
+  summary: One-shot installer that wires the caveman Claude Code skill into ~30 AI coding agents
+  description: |
+    caveman is a Claude Code skill that cuts ~65% of tokens by talking like
+    caveman. This package installs the `caveman` CLI, a one-shot bootstrapper
+    that auto-detects supported AI coding agents on the machine (Claude Code,
+    Cursor, Codex, Gemini CLI, opencode, Continue, Cline, Windsurf, and
+    ~25 more) and runs each agent's native install path. It also wires
+    Claude Code hooks, a statusline badge, and the `caveman-shrink` MCP
+    middleware when those targets are present. Idempotent and re-runnable.
+  homepage: https://getcaveman.dev/
+  repository: https://github.com/JuliusBrussee/caveman
+  documentation: https://github.com/JuliusBrussee/caveman/blob/main/INSTALL.md
+
+extra:
+  recipe-maintainers:
+    - rxm7706
