@@ -16,7 +16,7 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
     -DDOWNLOAD_TEST_DATA=ON
 if %ERRORLEVEL% neq 0 exit /b 1
 
-cmake --build build --parallel %CPU_COUNT%
+cmake --build build --parallel 1 --verbose
 if %ERRORLEVEL% neq 0 exit /b 1
 
 ctest --test-dir build -V --output-on-failure --parallel %CPU_COUNT%
