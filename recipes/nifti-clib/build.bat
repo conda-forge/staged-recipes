@@ -1,5 +1,10 @@
 @echo on
 
+@REM CTest runs build-tree executables directly on Windows.
+@REM Since the generated DLLs are placed in per-target build directories,
+@REM add those directories to PATH to avoid 0xc0000135 DLL loader failures.
+set "PATH=%SRC_DIR%\build\znzlib;%SRC_DIR%\build\niftilib;%SRC_DIR%\build\nifti2;%SRC_DIR%\build\cifti;%PATH%"
+
 @REM Temporarily disable nifticdf on Windows.
 @REM The current release lacks the DLL import/export fix for the nifticdf data symbol `inam`.
 @REM Upstream master already contains the fix, so this should be re-enabled in the next release.
