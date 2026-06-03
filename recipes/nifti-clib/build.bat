@@ -1,5 +1,6 @@
 @echo on
 
+sed -i "s|NCDF_API extern char const \* const inam\[\]|__declspec(dllexport) extern char const * const inam[]|" nifticdf/nifticdf.h
 sed -i "s|^char const \* const inam\[\]=|__declspec(dllexport) char const * const inam[]=|" nifticdf/nifticdf.c
 if %ERRORLEVEL% neq 0 exit /b 1
 
