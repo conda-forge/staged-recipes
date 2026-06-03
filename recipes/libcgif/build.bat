@@ -18,7 +18,12 @@ if %ERRORLEVEL% neq 0 exit /b 1
 sed -i -e "/soversion/d" -e "/version : meson/d" meson.build
 if %ERRORLEVEL% neq 0 exit /b 1
 
+@REM Write a native file to append link args without overwriting MESON_ARGS
+echo [built-in options] > %SRC_DIR%\msvc_export.ini
+echo c_link_args = ['/EXPORT:cgif_newgif', '/EXPORT:cgif_addframe', '/EXPORT:cgif_close', '/EXPORT:cgif_rgb_newgif', '/EXPORT:cgif_rgb_addframe', '/EXPORT:cgif_rgb_close'] >> %SRC_DIR%\msvc_export.ini
+
 meson setup build %MESON_ARGS% ^
+    --native-file %SRC_DIR%\msvc_export.ini ^
     -Dtests=true ^
     -Dexamples=true ^
     -Dinstall_examples=false
