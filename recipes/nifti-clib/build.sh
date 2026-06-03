@@ -3,7 +3,7 @@ set -ex
 sed -i.bak 's|$PWD/$DESTDIR/usr/local/bin|${PWD}/${DESTDIR}${PREFIX}/bin|' \
   nifti2/nifti_regress_test/cmake_testscripts/install_linking_test.sh
 
-cmake -S . -B build \
+cmake -S . -B build -G Ninja \
   ${CMAKE_ARGS} \
   -DBUILD_SHARED_LIBS=ON \
   -DNIFTI_BUILD_APPLICATIONS=ON \

@@ -1,6 +1,6 @@
 @echo on
 
-cmake -S . -B build -G "NMake Makefiles JOM" ^
+cmake -S . -B build -G Ninja ^
     %CMAKE_ARGS% ^
     -DBUILD_SHARED_LIBS=ON ^
     -DNIFTI_BUILD_APPLICATIONS=ON ^
