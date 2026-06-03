@@ -25,6 +25,13 @@ build:
     file: build
     env:
       target_platform: ${{ target_platform }}
+  dynamic_linking:
+    # macOS only: the vendored prebuilt .node addons link nothing but system
+    # frameworks (nothing in the build prefix to relocate) and lack the header
+    # padding install_name_tool needs, so relocation there both fails and is
+    # unnecessary. On Linux relocation is REQUIRED -- it adds the $ORIGIN-relative
+    # rpath that lets the clipboard addon find libgcc_s.so.1 in the env lib dir.
+    binary_relocation: ${{ false if osx else true }}
 
 requirements:
   build:
@@ -39,13 +46,18 @@ requirements:
       then:
         - ${{ stdlib('c') }}
   host:
-    # libgcc_s.so.1, linked by the vendored clipboard .node on Linux. Declaring it
-    # in host satisfies the overlinking check; its run-export covers runtime.
+    # libgcc_s.so.1 is linked by the vendored clipboard .node on Linux. There is
+    # no compiler to provide the run-export, so libgcc is declared manually: in
+    # host so the binary check can resolve it, and in run (below) so the
+    # overlinking check sees its provider explicitly listed.
     - if: linux
       then:
-        - libgcc-ng
+        - libgcc
   run:
     - nodejs >=22.19.0
+    - if: linux
+      then:
+        - libgcc
 
 tests:
   - script:
