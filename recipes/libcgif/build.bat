@@ -18,12 +18,23 @@ if %ERRORLEVEL% neq 0 exit /b 1
 sed -i -e "/soversion/d" -e "/version : meson/d" meson.build
 if %ERRORLEVEL% neq 0 exit /b 1
 
-@REM Write a native file to append link args without overwriting MESON_ARGS
-echo [built-in options] > %SRC_DIR%\msvc_export.ini
-echo c_link_args = ['/EXPORT:cgif_newgif', '/EXPORT:cgif_addframe', '/EXPORT:cgif_close', '/EXPORT:cgif_rgb_newgif', '/EXPORT:cgif_rgb_addframe', '/EXPORT:cgif_rgb_close'] >> %SRC_DIR%\msvc_export.ini
+@REM Generate cgif.def for MSVC symbol export
+(
+echo EXPORTS
+echo   cgif_newgif
+echo   cgif_addframe
+echo   cgif_close
+echo   cgif_rgb_newgif
+echo   cgif_rgb_addframe
+echo   cgif_rgb_close
+) > %SRC_DIR%\cgif.def
+if %ERRORLEVEL% NEQ 0 exit /b 1
+
+@REM Patch meson.build to add vs_module_defs for Windows import library generation
+sed -i "s/include_directories : \['inc\/'\],/include_directories : ['inc\/'],\n  vs_module_defs : 'cgif.def',/" meson.build
+if %ERRORLEVEL% NEQ 0 exit /b 1
 
 meson setup build %MESON_ARGS% ^
-    --native-file %SRC_DIR%\msvc_export.ini ^
     -Dtests=true ^
     -Dexamples=true ^
     -Dinstall_examples=false
