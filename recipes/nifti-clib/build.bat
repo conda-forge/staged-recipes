@@ -22,6 +22,10 @@ cmake -S . -B build -G "NMake Makefiles JOM" ^
     -DDOWNLOAD_TEST_DATA=ON
 if %ERRORLEVEL% neq 0 exit /b 1
 
+cmake --build build --target nifticdf --parallel 1 --verbose
+dumpbin /exports build\nifticdf\nifticdf.dll | findstr inam || echo inam not found in dll
+dumpbin /linkermember:1 build\nifticdf\nifticdf.lib | findstr inam || echo inam not found in lib
+
 cmake --build build --parallel 1 --verbose
 if %ERRORLEVEL% neq 0 exit /b 1
 
