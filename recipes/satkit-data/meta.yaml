@@ -1,5 +1,6 @@
 {% set name = "satkit-data" %}
 {% set version = "0.9.0" %}
+{% set python_min = "3.10" %}
 
 # satkit-data is a noarch Python package that ships the static data files
 # satkit needs at runtime: gravity coefficients, IERS precession-nutation
@@ -70,19 +71,20 @@ build:
   noarch: python
   # Lay the downloaded files out as a `satkit_data` Python package, mirroring
   # the on-PyPI sibling so satkit's existing `$SITE_PACKAGES/satkit_data/data`
-  # data-directory resolver finds them without configuration.
-  script: |
-    mkdir -p "$SP_DIR/satkit_data/data"
-    cp -v data/* "$SP_DIR/satkit_data/data/"
-    : > "$SP_DIR/satkit_data/__init__.py"
+  # data-directory resolver finds them without configuration. Done in Python
+  # (not shell) so the noarch build runs identically on Linux/macOS/Windows —
+  # a bash `cp`/`mkdir -p` script fails on the Windows agent.
+  script: {{ PYTHON }} build_data.py
 
 requirements:
   host:
-    - python
+    - python {{ python_min }}
   run:
-    - python
+    - python >={{ python_min }}
 
 test:
+  requires:
+    - python {{ python_min }}
   imports:
     - satkit_data
   commands:
@@ -90,8 +92,14 @@ test:
 
 about:
   home: https://github.com/ssmichael1/satkit
+  # The packaging (the satkit_data Python wrapper + this recipe) is the only
+  # copyrightable contribution here and is MIT OR Apache-2.0. The bundled data
+  # files are third-party public-domain / freely-redistributable scientific
+  # reference data; their provenance and individual terms are enumerated in
+  # LICENSE (the attribution/NOTICE file).
   license: MIT OR Apache-2.0
   license_family: MIT
+  license_file: LICENSE
   summary: Static data files for satkit (DE421 ephemeris, gravity, IERS tables, leap seconds)
   description: |
     Ships the static data files satkit needs at runtime:
