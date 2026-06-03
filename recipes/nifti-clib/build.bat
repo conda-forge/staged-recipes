@@ -1,6 +1,7 @@
 @echo on
 
-sed -i "s|^char const \* const inam\[\]=|NCDF_API char const * const inam[]=|" nifticdf/nifticdf.c
+sed -i "s|^char const \* const inam\[\]=|__declspec(dllexport) char const * const inam[]=|" nifticdf/nifticdf.c
+if %ERRORLEVEL% neq 0 exit /b 1
 
 cmake -S . -B build -G "NMake Makefiles JOM" ^
     %CMAKE_ARGS% ^
