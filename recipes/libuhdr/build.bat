@@ -1,6 +1,7 @@
 @echo on
 
 sed -i "s/if(NOT(MSVC OR XCODE))/if(NOT XCODE)/" CMakeLists.txt
+if %ERRORLEVEL% neq 0 exit /b 1
 
 cmake -S . -B build -G Ninja ^
     %CMAKE_ARGS% ^
