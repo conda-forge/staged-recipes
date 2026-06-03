@@ -18,6 +18,7 @@ if %ERRORLEVEL% neq 0 exit /b 1
 sed -i -e "/soversion/d" -e "/version : meson/d" meson.build
 if %ERRORLEVEL% neq 0 exit /b 1
 
+@REM TODO: Submit a PR upstream that supports Windows
 @REM Generate cgif.def for MSVC symbol export
 (
 echo EXPORTS
