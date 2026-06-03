@@ -1,0 +1,95 @@
+schema_version: 1
+
+context:
+  version: "0.78.0"
+
+package:
+  name: pi
+  version: ${{ version }}
+
+source:
+  # The published CLI tarball ships dist/ (prebuilt JS) plus npm-shrinkwrap.json,
+  # which pins all 138 transitive dependencies, including the sibling
+  # @earendil-works/pi-{ai,agent-core,tui} packages.
+  - url: https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${{ version }}.tgz
+    sha256: a047da75801d9135e368a4711d06d0ca4b6ab708801ab82fd1366dde1eedd0ee
+    target_directory: app
+  # The LICENSE file is not included in the npm tarball.
+  - url: https://raw.githubusercontent.com/earendil-works/pi/v${{ version }}/LICENSE
+    sha256: 0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48
+    file_name: LICENSE
+
+build:
+  number: 0
+  script:
+    file: build
+    env:
+      target_platform: ${{ target_platform }}
+
+requirements:
+  build:
+    - nodejs >=22.19.0
+    # On Linux the vendored clipboard .node links glibc (-> __glibc floor) and on
+    # macOS the prebuilts link system frameworks (-> __osx floor); stdlib supplies
+    # those baselines, both of which are virtual run-exports rather than packages.
+    # It is intentionally NOT added on Windows: the prebuilts there import only
+    # always-present OS DLLs and statically link the CRT, so stdlib('c') would
+    # only pull an unused vc14_runtime dependency.
+    - if: unix
+      then:
+        - ${{ stdlib('c') }}
+  host:
+    # libgcc_s.so.1, linked by the vendored clipboard .node on Linux. Declaring it
+    # in host satisfies the overlinking check; its run-export covers runtime.
+    - if: linux
+      then:
+        - libgcc-ng
+  run:
+    - nodejs >=22.19.0
+
+tests:
+  - script:
+      - pi --help
+  # Guard the vendored prebuilt native modules against a future upstream rebuild
+  # that links a newer glibc than the conda-forge baseline. Every shipped *.node
+  # must stay within the c_stdlib_version floor we advertise through __glibc;
+  # otherwise the package would install on an old system and fail to load.
+  - if: linux
+    then:
+      script:
+        file: check-native-glibc
+        env:
+          GLIBC_BASELINE: ${{ c_stdlib_version | default('2.17') }}
+      requirements:
+        run:
+          - binutils
+  # macOS analogue: every shipped .node's minimum-macOS (minos) must stay within
+  # the deployment target the package advertises through __osx, or it could load
+  # on a macOS older than a vendored binary supports.
+  - if: osx
+    then:
+      script:
+        file: check-macos-minos
+        env:
+          MACOS_BASELINE: ${{ c_stdlib_version | default('11.0') }}
+      requirements:
+        run:
+          - llvm-tools
+
+about:
+  homepage: https://github.com/earendil-works/pi
+  summary: AI coding agent CLI with read, bash, edit, write tools and session management
+  description: |
+    pi is an interactive AI coding assistant for the terminal. It provides a
+    coding agent with read, bash, edit, and write tools, persistent session
+    management, a unified multi-provider LLM API, and an interactive terminal
+    UI. The CLI works with multiple model providers (Anthropic, OpenAI, Google,
+    Mistral, AWS Bedrock, and others).
+  license: MIT
+  license_file:
+    - LICENSE
+  repository: https://github.com/earendil-works/pi
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
