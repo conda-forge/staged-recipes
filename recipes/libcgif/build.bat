@@ -1,5 +1,8 @@
 @echo on
 
+@REM Fix VLA for MSVC: use WIDTH (=255) instead of variable numColorsLocal as array size
+sed -i -e "s|\[3\*numColorsLocal\]|[3*WIDTH]|g" tests\more_than_256_colors.c
+
 meson setup build %MESON_ARGS% ^
     -Dtests=true ^
     -Dexamples=true ^
