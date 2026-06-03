@@ -1,6 +1,6 @@
 @echo on
 
-cmake -S . -B build -G Ninja ^
+cmake -S . -B build -G "NMake Makefiles JOM" ^
     %CMAKE_ARGS% ^
     -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
     -DCMAKE_C_FLAGS="/DNIFTICDF_BUILD_SHARED" ^
