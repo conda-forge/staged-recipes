@@ -10,6 +10,9 @@ sed -i "/__attribute__/d" ^
   tests\noise6.c ^
   tests\noise6_interlaced.c
 
+@REM Remove soversion on Windows to fix import library name (cgif-0.lib -> cgif.lib)
+sed -i '/soversion/d' meson.build
+
 meson setup build %MESON_ARGS% ^
     -Dtests=true ^
     -Dexamples=true ^
