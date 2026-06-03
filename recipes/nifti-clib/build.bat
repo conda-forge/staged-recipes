@@ -1,5 +1,7 @@
 @echo on
 
+sed -i "s|^char const \* const inam\[\]=|NCDF_API char const * const inam[]=|" nifticdf/nifticdf.c
+
 cmake -S . -B build -G "NMake Makefiles JOM" ^
     %CMAKE_ARGS% ^
     -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
