@@ -1,0 +1,62 @@
+schema_version: 1
+
+context:
+  version: "0.5.0"
+
+package:
+  name: netext
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/n/netext/netext-${{ version }}.tar.gz
+  sha256: 621bfd5153d3f3f17c8caee7bada7dbd6d05b209e4afb59498e1292a924d61bd
+
+build:
+  number: 0
+  skip: match(python, "<3.10")
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1,<2
+    - ${{ compiler("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1,<2
+  run:
+    - python
+    - rich >=13
+    - cachetools >=5.3.0
+    - typing_extensions >=4.12.2
+
+tests:
+  - python:
+      imports:
+        - netext
+        - netext._core
+      pip_check: true
+  - script:
+      - python -c "from netext._core import CoreGraph; graph = CoreGraph.from_edges([('a', 'b')]); assert graph.contains_edge('a', 'b')"
+
+about:
+  summary: A graph (network) rendering library for the terminal.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/mahrz24/netext
+  repository: https://github.com/mahrz24/netext
+  documentation: https://mahrz24.github.io/netext/
+
+extra:
+  recipe-maintainers:
+    - mahrz24
