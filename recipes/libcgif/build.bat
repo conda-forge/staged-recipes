@@ -21,14 +21,10 @@ if %ERRORLEVEL% neq 0 exit /b 1
 @REM Generate cgif.def for MSVC symbol export
 (
 echo EXPORTS
-echo   cgif_newgif
-echo   cgif_addframe
-echo   cgif_close
-echo   cgif_rgb_newgif
-echo   cgif_rgb_addframe
-echo   cgif_rgb_close
+echo cgif_newgif
+echo cgif_addframe
+echo cgif_close
 ) > %SRC_DIR%\cgif.def
-if %ERRORLEVEL% NEQ 0 exit /b 1
 
 @REM Patch meson.build to add vs_module_defs for Windows import library generation
 sed -i "s/include_directories : \['inc\/'\],/include_directories : ['inc\/'],\n  vs_module_defs : 'cgif.def',/" meson.build
