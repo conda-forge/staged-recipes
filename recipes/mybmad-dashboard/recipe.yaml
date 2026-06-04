@@ -27,7 +27,6 @@ context:
   # TODO(upstream-release): replace this pinned commit with the git tag that
   # upstream cuts for the web app, and bump `version` to match.
   commit: "33b330ef113c62f58a77413a241ca30f4f0b8a99"
-  python_min: "3.9"
 
 package:
   name: mybmad-dashboard
@@ -41,23 +40,33 @@ source:
 
 build:
   number: 0
-  # Arch-specific (native Prisma engine in the bundle) -> no `noarch:`.
-  script: bash ${{ RECIPE_DIR }}/build.sh
+  # Arch-specific (the bundle ships the native Prisma query engine) -> NOT
+  # noarch. But the package's only Python content is the launcher wrapper, which
+  # is pure Python and version-agnostic, so build ONE artifact per platform
+  # instead of an identical heavy (pnpm + next build) rebuild per Python version.
   python:
+    version_independent: true
     entry_points:
       - mybmad = mybmad_dashboard.launcher:main
+  # Windows is not supported: build.sh is bash-only and the launcher drives a
+  # POSIX PostgreSQL lifecycle (pg_ctl, unix sockets). Upstream itself deploys
+  # via Linux Docker. Revisit with a build.bat + Windows pg handling if needed.
+  skip:
+    - win
+  script: bash ${{ RECIPE_DIR }}/build.sh
 
 requirements:
   build:
     # Node toolchain to run `pnpm install` + `next build` + `prisma generate`.
     - nodejs >=22
   host:
-    - python ${{ python_min }}.*
+    # Non-noarch package: python is unconstrained (the build variant pins it).
+    - python
     - pip
     - setuptools >=64
     - wheel
   run:
-    - python >=${{ python_min }}
+    - python
     # Runtime: the standalone server is plain Node; Postgres backs the app.
     - nodejs >=22
     - postgresql >=14
