@@ -24,7 +24,7 @@ extra_cmake_args=(
     # Backends
     -D AL_BACKEND_HDF5=ON
     -D AL_BACKEND_UDA=ON
-    -D AL_BACKEND_MDSPLUS=${AL_BACKEND_MDSPLUS}
+    -D AL_BACKEND_MDSPLUS=${AL_BACKEND_MDSPLUS:-ON}
 )
 
 cmake ${CMAKE_ARGS} "${extra_cmake_args[@]}" \
