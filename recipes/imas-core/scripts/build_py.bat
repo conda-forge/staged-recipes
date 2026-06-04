@@ -1,9 +1,24 @@
-:: Set version for setuptools_scm
-set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
+@echo on
 
-:: Build and install by pip with meson-python backend (PEP)
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv ^
-    -Cbuilddir=builddir ^
-    -Csetup-args=-Dal_core=false ^
-    -Csetup-args=-Dpython_bindings=true
-if %ERRORLEVEL% neq 0 (type builddir\meson-logs\meson-log.txt && exit 1)
+:: Set version for setuptools_scm
+set "SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%"
+
+:: CMake extra configuration:
+set "EXTRA_CMAKE_ARGS=-G Ninja ^
+    -D AL_DEVELOPMENT_LAYOUT=OFF ^
+    -D AL_DOWNLOAD_DEPENDENCIES=OFF ^
+    -D AL_PLUGINS=OFF ^
+    -D AL_USE_INSTALLED_CORE=ON ^
+    -D AL_PYTHON_BINDINGS=ON ^
+    -D Python_EXECUTABLE=%PYTHON% ^
+    -D Python3_EXECUTABLE=%PYTHON% ^
+    -D AL_BACKEND_HDF5=OFF ^
+    -D AL_BACKEND_UDA=OFF ^
+    -D AL_BACKEND_MDSPLUS=OFF"
+
+cmake %CMAKE_ARGS% %EXTRA_CMAKE_ARGS% -B build -S "%SRC_DIR%"
+if %ERRORLEVEL% neq 0 exit /b 1
+
+:: Build and install
+cmake --build build --target install
+if %ERRORLEVEL% neq 0 exit /b 1

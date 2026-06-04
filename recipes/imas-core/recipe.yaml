@@ -1,5 +1,5 @@
 context:
-  version: "5.5.3"
+  version: "5.7.0"
 
 recipe:
   name: imas-core
@@ -7,12 +7,10 @@ recipe:
 
 source:
   - url: https://github.com/iterorganization/IMAS-Core/archive/refs/tags/${{ version }}.tar.gz
-    sha256: bc5735fcedda327015aaa2e6ebd3e86345a76fea18880264b5fb646ed983ee3f
+    sha256: fa03a56cef4a5c62a2b18e0eacd379a138b8fc33d8b0ef1b63248ae13caa602b
     patches:
-      - patches/add-meson-files.patch
-      - patches/meson-python.patch
-      - patches/add-version-in-file.patch
       - patches/change-python-init.patch
+      - patches/pr-62.patch
 
 build:
   number: 0
@@ -20,7 +18,7 @@ build:
 outputs:
   # Core library
   - package:
-      name: al-core
+      name: libimas-core
       version: ${{ version }}
     build:
       script:
@@ -28,12 +26,15 @@ outputs:
           then: scripts/build_core.sh
         - if: win
           then: scripts/build_core.bat
+      files:
+        exclude:
+          - share/common/
     requirements:
       build:
         - ${{ compiler("cxx") }}
         - ${{ stdlib("c") }}
         - git
-        - meson
+        - cmake
         - ninja
         - pkg-config
         - setuptools-scm
@@ -43,6 +44,9 @@ outputs:
         - libboost-devel >=1.88
         - hdf5
         - uda-cpp >=2.9.3
+        - if: linux
+          then:
+            - mdsplus
         - if: win
           then:
             - pthreads-win32
@@ -52,51 +56,10 @@ outputs:
           then:
             - pthreads-win32
       run_exports:
-        - ${{ pin_subpackage("al-core", upper_bound="x.x") }}
+        - ${{ pin_subpackage("libimas-core", upper_bound="x.x.x") }}
     tests:
       - script:
-          - if: unix
-            then: scripts/test.sh
-          - if: win
-            then: scripts/test.bat
-        requirements:
-          run:
-            - ${{ compiler("c") }}
-            - ${{ compiler("cxx") }}
-            - ${{ stdlib("c") }}
-            - git
-            - meson
-            - ninja
-            - pkg-config
-            - setuptools-scm
-            - if: win
-              then:
-                - libxml2-devel >=2.15
-                - pthreads-win32
-        files:
-          source:
-            - tests/
-            - meson.build
-            - meson_options.txt
-      - package_contents:
-          files:
-            - ${{ "Library/" if win }}lib/pkgconfig/al-core.pc
-          lib:
-            - al
-          include:
-            - al_core/access_layer_base_plugin.h
-            - al_core/access_layer_plugin.h
-            - al_core/access_layer_plugin_manager.h
-            - al_core/al_backend.h
-            - al_core/al_const.h
-            - al_core/al_context.h
-            - al_core/al_defs.h
-            - al_core/al_exception.h
-            - al_core/al_lowlevel.h
-            - al_core/data_interpolation.h
-            - al_core/provenance_plugin_feature.h
-            - al_core/readback_plugin_feature.h
-            - al_core/uri_parser.h
+          - imas_version_print
 
   # Python bindings
   - package:
@@ -113,7 +76,7 @@ outputs:
         - ${{ compiler("cxx") }}
         - ${{ stdlib("c") }}
         - git
-        - meson
+        - cmake
         - ninja
         - pkg-config
         - setuptools-scm
@@ -123,21 +86,27 @@ outputs:
             - cross-python_${{ target_platform }}
             - numpy
             - cython
-            - meson-python
+            - cython-cmake
+            - scikit-build-core
       host:
-        - al-core
+        - libimas-core
         - pip
         - python
-        - meson-python
         - numpy
         - cython
+        - cython-cmake
+        - scikit-build-core
+        - libboost-devel >=1.88
         - if: win
           then:
             - libxml2-devel >=2.15
       run:
         - python
       run_exports:
-        - ${{ pin_subpackage("imas-core", upper_bound="x.x") }}
+        - ${{ pin_subpackage("imas-core", upper_bound="x.x.x") }}
+      ignore_run_exports:
+        from_package:
+          - libboost-devel
     tests:
       - python:
           imports:
