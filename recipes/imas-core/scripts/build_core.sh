@@ -17,6 +17,8 @@ fi
 # CMake extra configuration:
 extra_cmake_args=(
     -G Ninja
+    -D CMAKE_C_COMPILER="${CC}"
+    -D CMAKE_CXX_COMPILER="${CXX}"
     -D AL_DEVELOPMENT_LAYOUT=OFF
     -D AL_DOWNLOAD_DEPENDENCIES=OFF
     -D AL_PLUGINS=OFF
