@@ -2,16 +2,19 @@
 set -exuo pipefail
 
 # Vendored / static "Compiler-in-Driver" (CiD) build -- the upstream-recommended
-# way to produce libnpu_driver_compiler.so.
+# way to produce the NPU driver compiler libraries.
 #
 # Instead of consuming an experimental OpenVINO output, this recipe vendors the
-# matching OpenVINO source (openvinotoolkit/openvino @ 2026.1.0) and builds it
+# matching OpenVINO source (openvinotoolkit/openvino @ 2026.2.0) and builds it
 # the way Intel documents the CiD: configure the OpenVINO source with
 # BUILD_SHARED_LIBS=OFF and attach npu_compiler as an OPENVINO_EXTRA_MODULES,
-# then build only the npu_driver_compiler target. OpenVINO core + the IR
-# frontend + the Intel LLVM/MLIR fork + npu_plugin_elf + the NPU cost model are
-# all statically fused into the single self-contained libnpu_driver_compiler.so.
-# The result has no run dependency on a shared libopenvino at all.
+# then build only the CiD compiler targets. OpenVINO core + the IR frontend +
+# the Intel LLVM/MLIR fork + npu_plugin_elf + the NPU cost model are all
+# statically fused into the compiler libraries. As of OpenVINO 2026.2 the CiD
+# is two shared libs -- libopenvino_intel_npu_compiler_loader.so (the thin VCL
+# loader the OpenVINO NPU plugin dlopens) and libopenvino_intel_npu_compiler.so
+# (the MLIR/VPUX compiler the loader dlopens). The result has no run dependency
+# on a shared libopenvino at all.
 #
 # Flags below mirror npu_compiler's own `cid-linux` CMake preset
 # (CMakePresets.json) plus the conda-forge "use system libraries, never
@@ -77,11 +80,23 @@ cmake ${CMAKE_ARGS} \
     -DLLVM_PARALLEL_LINK_JOBS=2 \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
-cmake --build "$SRC_DIR/build" --target npu_driver_compiler --parallel "${CPU_COUNT}"
+# As of OpenVINO 2026.2 / npu_ud_2026_20, the Compiler-in-Driver is split into
+# two shared libraries (BUILD_COMPILER_FOR_DRIVER): the thin VCL loader
+# (libopenvino_intel_npu_compiler_loader.so), which the OpenVINO NPU plugin
+# dlopens, and the heavy MLIR/VPUX compiler (libopenvino_intel_npu_compiler.so),
+# which the loader in turn dlopens by base name at runtime. Neither ships in the
+# conda-forge openvino packages (built with ENABLE_INTEL_NPU_INTERNAL=OFF), so
+# build and install both.
+cmake --build "$SRC_DIR/build" \
+    --target openvino_intel_npu_compiler openvino_intel_npu_compiler_loader \
+    --parallel "${CPU_COUNT}"
 
-# Install only the self-contained driver compiler shared lib. OpenVINO writes
-# build artifacts to its own output tree ($SRC_DIR/openvino/bin/<arch>/Release),
-# not the CMake binary dir, so search the whole source tree for it.
-driver_compiler_so="$(find "$SRC_DIR" -name 'libnpu_driver_compiler.so' -type f -print -quit)"
+# Install both compiler shared libs. OpenVINO writes build artifacts to its own
+# output tree ($SRC_DIR/openvino/bin/<arch>/Release), not the CMake binary dir,
+# so search the whole source tree for each.
 install -d "$PREFIX/lib"
-install -m 0755 "$driver_compiler_so" "$PREFIX/lib/"
+for lib in libopenvino_intel_npu_compiler.so libopenvino_intel_npu_compiler_loader.so; do
+    so_path="$(find "$SRC_DIR" -name "$lib" -type f -print -quit)"
+    test -n "$so_path"  # fail loudly if a target did not produce its .so
+    install -m 0755 "$so_path" "$PREFIX/lib/"
+done
