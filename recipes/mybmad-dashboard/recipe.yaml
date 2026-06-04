@@ -1,0 +1,116 @@
+schema_version: 1
+
+# -----------------------------------------------------------------------------
+# MyBMAD Dashboard (the standalone Next.js web app under `web/` of the
+# bmad-method-ui repo) packaged as a conda app.
+#
+# This is the SIBLING recipe to `bmad-dashboard` (the VS Code extension). Where
+# that recipe ships a prebuilt .vsix and installs it into an editor, this one
+# builds the Next.js `standalone` server bundle and ships a `mybmad` launcher
+# that provisions a local PostgreSQL cluster and runs the app.
+#
+# DESIGN NOTE — "stay true to upstream":
+#   The upstream source is used UNMODIFIED. Everything conda-specific (the
+#   Postgres lifecycle, secret generation, the launcher CLI) lives in the
+#   Python wrapper under wrapper/, NOT as source patches. Upstream version
+#   bumps therefore only require: new commit/sha256 + a rebuild. No rebasing
+#   of patches.
+#
+# NOT noarch: the Prisma `classic` query engine is a per-platform native
+# binary, so the built bundle is architecture-specific.
+# -----------------------------------------------------------------------------
+
+context:
+  # web/package.json declares 0.1.0 with an "Unreleased" CHANGELOG, so this is
+  # a pre-release snapshot. PEP 440 .dev0 suffix marks it as such.
+  version: "0.1.0.dev0"
+  # TODO(upstream-release): replace this pinned commit with the git tag that
+  # upstream cuts for the web app, and bump `version` to match.
+  commit: "33b330ef113c62f58a77413a241ca30f4f0b8a99"
+  python_min: "3.9"
+
+package:
+  name: mybmad-dashboard
+  version: ${{ version }}
+
+source:
+  # Same repo archive as the bmad-dashboard recipe (same commit) -> identical
+  # sha256. The web app lives in the web/ subdirectory of this archive.
+  url: https://github.com/bmad-code-org/bmad-method-ui/archive/${{ commit }}.tar.gz
+  sha256: f3ffbe4fcad86f76a291e56300e47a24ac631daf7933379555f1e92893e1a9ad
+
+build:
+  number: 0
+  # Arch-specific (native Prisma engine in the bundle) -> no `noarch:`.
+  script: bash ${{ RECIPE_DIR }}/build.sh
+  python:
+    entry_points:
+      - mybmad = mybmad_dashboard.launcher:main
+
+requirements:
+  build:
+    # Node toolchain to run `pnpm install` + `next build` + `prisma generate`.
+    - nodejs >=22
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=64
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    # Runtime: the standalone server is plain Node; Postgres backs the app.
+    - nodejs >=22
+    - postgresql >=14
+
+tests:
+  - python:
+      imports:
+        - mybmad_dashboard
+      python_version: ${{ python_min }}.*
+      pip_check: true
+  - script:
+      # All DB-free, so they run in CI without a Postgres cluster.
+      - mybmad --help
+      - mybmad info --print-app-dir
+      - mybmad info --print-server-js
+
+about:
+  summary: MyBMAD Dashboard, a self-hosted web app for BMad Method V6 projects
+  description: |
+    MyBMAD Dashboard is a standalone Next.js web application that visualizes
+    and tracks BMad Method (Breakthrough Method of Agile AI-Driven Development)
+    projects from GitHub repositories or local folders. It shows epics, stories
+    (Kanban + table), sprint/velocity metrics, and a docs browser, with
+    multi-user auth (email/password + optional GitHub OAuth).
+
+    This conda package builds the upstream `web/` app into a Next.js standalone
+    server bundle and ships a `mybmad` launcher that:
+      * provisions and manages a local PostgreSQL cluster (via the bundled
+        `postgresql` dependency) in a per-user data directory,
+      * generates and persists application secrets on first run,
+      * applies database migrations, and
+      * starts the web server (default http://localhost:3002).
+
+    The upstream source is used unmodified; all conda-specific orchestration
+    lives in the launcher. Run `mybmad up` to start the dashboard,
+    `mybmad promote-admin --email you@example.com` to grant admin after you
+    register, and `mybmad stop` to stop the database.
+  homepage: https://github.com/bmad-code-org/bmad-method-ui/tree/main/web
+  repository: https://github.com/bmad-code-org/bmad-method-ui
+  documentation: https://github.com/bmad-code-org/bmad-method-ui/blob/main/web/README.md
+  license: MIT
+  license_file: web/LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
+    - mgorny
+  upstream:
+    type: snapshot
+    commit: 33b330ef113c62f58a77413a241ca30f4f0b8a99
+    date: 2026-05-23
+    note: |
+      No upstream git tag exists yet; this recipe pins the GitHub tarball by
+      commit SHA. The web app self-declares 0.1.0 (Unreleased), so the package
+      version carries a PEP 440 .dev0 suffix. Replace the pinned commit and
+      bump the version once upstream cuts a release/tag for the web app.
