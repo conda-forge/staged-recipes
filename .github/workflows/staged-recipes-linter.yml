@@ -1,10 +1,7 @@
-name: staged-recipes linter
+name: staged-recipes-linter
 
 on:
-  # this workflow requires access to a read-only github token
-  # and potentially runs untrusted code via python's `eval`
-  # thus we can only run it on pull_request events so that the
-  # the token does not have any write permissions
+  merge_group:
   pull_request:
     types:
       - opened
@@ -13,6 +10,8 @@ on:
       - labeled
       - unlabeled
 
+# this workflow potentially runs untrusted code via python's `eval`
+# so we can only give it access to a read-only github token
 permissions:
   actions: read
   checks: read
@@ -21,25 +20,22 @@ permissions:
   pull-requests: read
   statuses: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   linter:
     name: linter
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     defaults:
       run:
         shell: bash -leo pipefail {0}
 
     steps:
       - name: checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: install code
-        uses: mamba-org/setup-micromamba@06375d89d211a1232ef63355742e9e2e564bc7f7
+        uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476 # v3.0.0
         with:
+          micromamba-version: "2.7.0-0"
           environment-name: lint
           condarc: |
             show_channel_urls: true
@@ -52,11 +48,18 @@ jobs:
             requests
             pixi
 
+      - name: get pr details
+        id: pr_details
+        uses: matrix-org/pr-details-action@15bde5285d7850ba276cc3bd8a03733e3f24622a # v1.3
+        with:
+          owner: ${{ github.event_name == 'merge_group' && github.repository_owner || github.event.pull_request.head.repo.owner.login }}
+          branch: ${{ github.event_name == 'merge_group' && github.ref || github.event.pull_request.head.ref }}
+
       - name: lint
         run: |
           python .github/workflows/scripts/linter.py \
             --owner=${{ github.repository_owner }} \
-            --pr-num=${{ github.event.number }} \
+            --pr-num=${{ steps.pr_details.outputs.pr_id }} \
           >> $GITHUB_STEP_SUMMARY
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
