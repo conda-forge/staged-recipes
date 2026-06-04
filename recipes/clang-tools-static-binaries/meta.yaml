@@ -1,0 +1,78 @@
+# conda-forge recipe for cpp-linter/clang-tools-static-binaries
+#
+# Pre-built static binaries of clang-format, clang-tidy, clang-query, and
+# clang-apply-replacements. No compilation occurs — binaries are downloaded
+# from GitHub Releases, verified against published SHA-512 checksums, and
+# installed into $PREFIX/bin.
+#
+# Users install a specific version with:
+#   conda install conda-forge::clang-tools-20-static
+#
+# The conda package version tracks the upstream release date.
+# Multiple clang versions can be installed side by side.
+
+{% set release_tag = os.environ.get("RELEASE_TAG", "master-14db129d") %}
+{% set release_base = "https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/" ~ release_tag %}
+{% set repo_commit = "14db129d" %}
+
+# Major clang versions in every release (keep in sync with upstream build.py)
+{% set clang_versions = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] %}
+{% set tools = ["clang-format", "clang-tidy", "clang-query", "clang-apply-replacements"] %}
+
+package:
+  name: clang-tools-static-binaries-meta
+  version: 2026.06.04
+
+source:
+  url: https://github.com/cpp-linter/clang-tools-static-binaries/archive/{{ repo_commit }}.tar.gz
+  sha256: fa4b57d5f099d988da934f4c63cfea260872bddd46fcd34f77cb9dc18d8c660a
+
+build:
+  number: 0
+
+# =========================================================================
+# Outputs
+# =========================================================================
+outputs:
+{% for ver in clang_versions %}
+  - name: clang-tools-{{ ver }}-static
+    script: install.sh   # [unix]
+    script: install.bat  # [win]
+    build:
+      script_env:
+        - RELEASE_TAG={{ release_tag }}
+        - CLANG_VERSION={{ ver }}
+    requirements:
+      build: []
+      run_constrained:
+        - clang-tools-static-binaries-meta >={{ version }}
+    test:
+      commands:
+{% for tool in tools %}
+        - test -f ${PREFIX}/bin/{{ tool }}-{{ ver }}            # [unix]
+        - ${PREFIX}/bin/{{ tool }}-{{ ver }} --version          # [unix]
+        - if not exist %PREFIX%\bin\{{ tool }}-{{ ver }}.exe exit 1   # [win]
+        - '%PREFIX%\bin\{{ tool }}-{{ ver }}.exe --version'     # [win]
+{% endfor %}
+
+{% endfor %}
+
+about:
+  home: https://github.com/cpp-linter/clang-tools-static-binaries
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: LICENSE
+  summary: Pre-built static binaries of clang-format, clang-tidy, clang-query, and clang-apply-replacements
+  description: |
+    Statically-linked, dependency-free binaries of clang-format, clang-tidy,
+    clang-query, and clang-apply-replacements for Linux (x86_64, ARM64),
+    macOS (x86_64, ARM64), and Windows (x86_64).
+
+    Each ``clang-tools-<V>-static`` package contains the four tools for a
+    single major clang version. Install multiple versions side by side:
+
+        conda install conda-forge::clang-tools-18-static
+        conda install conda-forge::clang-tools-20-static
+
+    Binaries are verified against published SHA-512 checksums.
+  doc_url: https://github.com/cpp-linter/clang-tools-static-binaries#readme
+  dev_url: https://github.com/cpp-linter/clang-tools-static-binaries
