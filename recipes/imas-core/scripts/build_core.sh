@@ -10,6 +10,8 @@ export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 if [[ "${SUBDIR}" == "osx-arm64" ]] || [[ "${SUBDIR}" == "osx-64" ]]; then
     # MDSplus is not available for macOS, so disable the MDSplus backend on that platform
     export AL_BACKEND_MDSPLUS=OFF
+else
+    export AL_BACKEND_MDSPLUS=OFF  # TODO: enable once MDSplus build is available
 fi
 
 # CMake extra configuration:
