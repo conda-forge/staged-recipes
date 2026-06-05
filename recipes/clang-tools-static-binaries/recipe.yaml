@@ -1,0 +1,113 @@
+context:
+  name: clang-tools-static-binaries
+  version: "2026.06.05-5a535621"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/${{ version }}/versions.json
+    sha256: 78b080823688335647cbf322fb1201fc4e1df1d914cd28dc82364495ffae2d97
+  - url: https://raw.githubusercontent.com/cpp-linter/clang-tools-static-binaries/${{ version }}/LICENSE
+    sha256: 6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e
+
+build:
+  number: 0
+  script:
+    content:
+      - if: unix
+        then:
+          - |
+            #!/bin/bash
+            set -euo pipefail
+
+            case "$target_platform" in
+              linux-64)      plat="linux-amd64" ;;
+              linux-aarch64) plat="linux-arm64" ;;
+              osx-64)        plat="macos-amd64" ;;
+              osx-arm64)     plat="macos-arm64" ;;
+              *) echo "Unsupported platform: $target_platform"; exit 1 ;;
+            esac
+
+            RELEASE_BASE="https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/${{ version }}"
+            BIN_DIR="${{ PREFIX }}/bin"
+            mkdir -p "$BIN_DIR"
+
+            for tool in clang-format clang-tidy clang-query clang-apply-replacements; do
+              for ver in 11 12 13 14 15 16 17 18 19 20 21 22; do
+                src="${tool}-${ver}_${plat}"
+                dst="${tool}-${ver}"
+                echo "Downloading $src -> $dst"
+                curl -fsSL -o "$BIN_DIR/$dst" "$RELEASE_BASE/$src"
+                chmod +x "$BIN_DIR/$dst"
+              done
+            done
+
+            mkdir -p "${{ PREFIX }}/share/clang-tools-static-binaries"
+            install -m644 versions.json "${{ PREFIX }}/share/clang-tools-static-binaries/versions.json"
+      - if: win
+        then:
+          - |
+            @echo off
+            setlocal enabledelayedexpansion
+
+            set "RELEASE_BASE=https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/${{ version }}"
+            set "BIN_DIR=%LIBRARY_PREFIX%\bin"
+            if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
+
+            for %%t in (clang-format clang-tidy clang-query clang-apply-replacements) do (
+              for %%v in (11 12 13 14 15 16 17 18 19 20 21 22) do (
+                set "src=%%t-%%v_windows-amd64.exe"
+                set "dst=%%t-%%v.exe"
+                echo Downloading !src! -^> !dst!
+                curl -fsSL -o "%BIN_DIR%\!dst!" "%RELEASE_BASE%\!src!"
+              )
+            )
+
+            mkdir "%LIBRARY_PREFIX%\share\clang-tools-static-binaries"
+            copy versions.json "%LIBRARY_PREFIX%\share\clang-tools-static-binaries\versions.json"
+
+requirements:
+  build:
+    - curl
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - clang-format-22 --version
+          - clang-tidy-22 --version
+          - clang-query-22 --version
+          - clang-apply-replacements-22 --version
+          - test -f "$PREFIX/share/clang-tools-static-binaries/versions.json"
+        else:
+          - clang-format-22.exe --version
+          - clang-tidy-22.exe --version
+          - clang-query-22.exe --version
+          - clang-apply-replacements-22.exe --version
+  - package_contents:
+      bin:
+        - clang-format-22
+        - clang-tidy-22
+        - clang-query-22
+        - clang-apply-replacements-22
+
+about:
+  homepage: https://github.com/cpp-linter/clang-tools-static-binaries
+  summary: Statically-linked LLVM clang-format, clang-tidy, clang-query, and clang-apply-replacements binaries for multiple LLVM versions.
+  description: |
+    Pre-built, statically linked binaries of LLVM tools (clang-format,
+    clang-tidy, clang-query, clang-apply-replacements) covering LLVM
+    versions 11 through 22. These self-contained binaries require no
+    system LLVM or libstdc++ installation, making them ideal for CI/CD
+    pipelines and cross-environment usage.
+  license: Unlicense
+  license_file:
+    - LICENSE
+  documentation: https://github.com/cpp-linter/clang-tools-static-binaries
+  repository: https://github.com/cpp-linter/clang-tools-static-binaries
+
+extra:
+  recipe-maintainers:
+    - shenxianpeng
