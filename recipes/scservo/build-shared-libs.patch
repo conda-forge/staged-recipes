@@ -1,0 +1,35 @@
+From: Michael Johnson <mjohnson459@users.noreply.github.com>
+Subject: Support BUILD_SHARED_LIBS for conda-forge packaging
+
+Upstream hard-codes a static library. Respect BUILD_SHARED_LIBS so
+packagers can ship a shared libSCServo and satisfy CFEP-18.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -31,7 +31,11 @@
+   src/HLSCL.cpp
+ )
+
+-add_library(SCServo STATIC ${SCSERVO_SOURCES} ${SCSERVO_HEADERS})
++# Library type follows BUILD_SHARED_LIBS. Default OFF preserves the historical
++# static `libSCServo.a`; conda-forge and other packagers pass -DBUILD_SHARED_LIBS=ON.
++option(BUILD_SHARED_LIBS "Build SCServo as a shared library" OFF)
++
++add_library(SCServo ${SCSERVO_SOURCES} ${SCSERVO_HEADERS})
+
+ target_include_directories(SCServo PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+@@ -47,6 +51,13 @@
+   POSITION_INDEPENDENT_CODE ON
+ )
+
++if(BUILD_SHARED_LIBS)
++  set_target_properties(SCServo PROPERTIES
++    VERSION ${PROJECT_VERSION}
++    SOVERSION ${PROJECT_VERSION_MAJOR}
++  )
++endif()
++
+ install(TARGETS SCServo
+   EXPORT SCServoTargets
+   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
