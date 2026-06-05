@@ -1,22 +1,22 @@
 :: If it has Build.PL use that, otherwise use Makefile.PL
 IF exist Build.PL (
-    perl Build.PL
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
-    Build
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
-    Build test
-    :: Make sure this goes in site
-    Build install --installdirs site
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
+    perl Build.PL --install_base %PREFIX% --installdirs site
+    IF errorlevel 1 exit /b 1
+    perl Build
+    IF errorlevel 1 exit /b 1
+    perl Build test
+    IF errorlevel 1 exit /b 1
+    perl Build install --installdirs site
+    IF errorlevel 1 exit /b 1
 ) ELSE IF exist Makefile.PL (
-    :: Make sure this goes in site
-    perl Makefile.PL INSTALLDIRS=site
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
+    perl Makefile.PL INSTALLDIRS=site PREFIX=%PREFIX%
+    IF errorlevel 1 exit /b 1
     make
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
+    IF errorlevel 1 exit /b 1
     make test
-    IF %ERRORLEVEL% NEQ 0 exit /B 1
+    IF errorlevel 1 exit /b 1
     make install
+    IF errorlevel 1 exit /b 1
 ) ELSE (
     ECHO 'Unable to find Build.PL or Makefile.PL. You need to modify bld.bat.'
     exit 1
