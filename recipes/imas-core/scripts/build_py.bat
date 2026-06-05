@@ -1,7 +1,7 @@
 @echo on
 
 :: Set version for setuptools_scm
-set SETUPTOOLS_SCM_PRETEND_VERSION="%PKG_VERSION%"
+set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
 :: CMake extra configuration:
 set EXTRA_CMAKE_ARGS=^
