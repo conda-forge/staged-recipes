@@ -7,6 +7,9 @@ export SETUPTOOLS_SCM_PRETEND_VERSION="${PKG_VERSION}"
 # Disable availability macros to avoid issues with older C++ standard libraries
 export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
+# Use Ninja as the CMake generator
+export CMAKE_GENERATOR=Ninja
+
 # CMake extra configuration:
 extra_cmake_args=(
     -G Ninja
