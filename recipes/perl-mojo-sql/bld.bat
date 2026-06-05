@@ -24,7 +24,4 @@ IF exist Build.PL (
     exit 1
 )
 
-:: Explicitly call the activation script to ensure the environment is ready
-call "%PREFIX%\Scripts\activate.bat" || exit /b 1
-
-:: Add more build steps here, if they are necessary.
+:: DO NOT add activation commands here - the environment is already active
