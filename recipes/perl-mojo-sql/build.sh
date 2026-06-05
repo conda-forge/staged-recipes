@@ -7,11 +7,10 @@ if [[ -f Build.PL ]]; then
     perl Build.PL
     perl ./Build
     perl ./Build test
-    # Make sure this goes in site
-    perl ./Build install --installdirs site
+    # Install into vendor directories
+    perl ./Build install --installdirs vendor
 elif [[ -f Makefile.PL ]]; then
-    # Make sure this goes in site
-    perl Makefile.PL INSTALLDIRS=site
+    perl Makefile.PL INSTALLDIRS=vendor
     make
     make test
     make install
