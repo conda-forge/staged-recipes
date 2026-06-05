@@ -1,16 +1,13 @@
 #!/bin/bash
-
 set -o errexit -o pipefail
 
-# If it has Build.PL use that, otherwise use Makefile.PL
 if [[ -f Build.PL ]]; then
-    perl Build.PL
+    perl Build.PL --installdirs vendor --prefix "$PREFIX"
     perl ./Build
     perl ./Build test
-    # Install into vendor directories
     perl ./Build install --installdirs vendor
 elif [[ -f Makefile.PL ]]; then
-    perl Makefile.PL INSTALLDIRS=vendor
+    perl Makefile.PL INSTALLDIRS=vendor PREFIX="$PREFIX"
     make
     make test
     make install
