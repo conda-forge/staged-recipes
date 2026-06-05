@@ -1,3 +1,4 @@
+set PERL_MM_USE_DEFAULT=1
 :: If it has Build.PL use that, otherwise use Makefile.PL
 IF exist Build.PL (
     perl Build.PL --install_base %PREFIX% --installdirs site
