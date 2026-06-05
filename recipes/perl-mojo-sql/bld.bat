@@ -7,12 +7,11 @@ IF exist Build.PL (
     Build
     IF %ERRORLEVEL% NEQ 0 exit /B 1
     Build test
-    :: Make sure this goes in site
-    Build install --installdirs site
+    :: Install into vendor directories (instead of site)
+    Build install --installdirs vendor
     IF %ERRORLEVEL% NEQ 0 exit /B 1
 ) ELSE IF exist Makefile.PL (
-    :: Make sure this goes in site
-    perl Makefile.PL INSTALLDIRS=site
+    perl Makefile.PL INSTALLDIRS=vendor
     IF %ERRORLEVEL% NEQ 0 exit /B 1
     make
     IF %ERRORLEVEL% NEQ 0 exit /B 1
