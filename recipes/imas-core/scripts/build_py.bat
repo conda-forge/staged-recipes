@@ -3,16 +3,18 @@
 :: Set version for setuptools_scm
 set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
+:: Set CMake args
+set CMAKE_ARGS=%CMAKE_ARGS% ^
+ -G Ninja^
+ -D AL_DEVELOPMENT_LAYOUT=OFF^
+ -D AL_DOWNLOAD_DEPENDENCIES=OFF^
+ -D AL_PLUGINS=OFF^
+ -D AL_USE_INSTALLED_CORE=ON^
+ -D AL_PYTHON_BINDINGS=ON^
+ -D AL_BACKEND_HDF5=OFF^
+ -D AL_BACKEND_UDA=OFF^
+ -D AL_BACKEND_MDSPLUS=OFF
+
 :: Build and install
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv^
- --config-settings=-DCMAKE_GENERATOR=Ninja^
- --config-settings=-DAL_DEVELOPMENT_LAYOUT=OFF^
- --config-settings=-DAL_DOWNLOAD_DEPENDENCIES=OFF^
- --config-settings=-DAL_PLUGINS=OFF^
- --config-settings=-DAL_USE_INSTALLED_CORE=ON^
- --config-settings=-DPython_EXECUTABLE="%PYTHON%"^
- --config-settings=-DPython3_EXECUTABLE="%PYTHON%"^
- --config-settings=-DAL_BACKEND_HDF5=OFF^
- --config-settings=-DAL_BACKEND_UDA=OFF^
- --config-settings=-DAL_BACKEND_MDSPLUS=OFF
+%PYTHON% -m pip install . --no-deps --no-build-isolation -vv
 if %ERRORLEVEL% neq 0 exit /b 1
