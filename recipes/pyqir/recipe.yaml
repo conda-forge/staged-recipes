@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  version: "0.12.4"
+  llvm_version: "20.1"
+
+package:
+  name: pyqir
+  version: ${{ version }}
+
+source:
+  url: https://github.com/qir-alliance/pyqir/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 4db944bc741863054b8e2fd2a0d4b7635d235d5ad8a4edcb5cc3f1476318e2ed
+  patches:
+    - if: win
+      then: use-dynamic-msvc-runtime.patch
+
+build:
+  number: 0
+  skip: not (match(python, python_min ~ ".*") and is_abi3)
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.10.2,<1.11
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - if: is_abi3
+      then:
+        - python-abi3
+    - maturin >=1.10.2,<1.11
+    - llvmdev ${{ llvm_version }}.*
+    - if: win
+      then:
+        - libxml2-devel
+        - zlib
+        - zstd
+  run:
+    - python
+    - libllvm20 ${{ llvm_version }}.*
+
+tests:
+  - python:
+      imports:
+        - pyqir
+        - pyqir.qis
+        - pyqir.rt
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min ~ ".*" }}
+        - "*"
+  - files:
+      source:
+        - pyqir/tests
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    script:
+      - python -c "from pyqir import BasicQisBuilder, SimpleModule; m = SimpleModule('conda_forge_smoke', 1, 1); q = BasicQisBuilder(m.builder); q.h(m.qubits[0]); assert '__quantum__qis__h__body' in m.ir()"
+      - cd pyqir && pytest -q tests
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/pyqir/_native.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/pyqir/_native.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/qir-alliance/pyqir
+  summary: PyQIR parses, generates and evaluates the Quantum Intermediate Representation.
+  description: |
+    PyQIR is a set of Python APIs for generating, parsing, and evaluating
+    Quantum Intermediate Representation (QIR). It provides a Python API for
+    integrating the QIR toolchain into Python-based frontends.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://www.qir-alliance.org/pyqir/
+  repository: https://github.com/qir-alliance/pyqir
+
+extra:
+  recipe-maintainers:
+    - basnijholt
