@@ -3,23 +3,16 @@
 :: Set version for setuptools_scm
 set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
-:: CMake extra configuration:
-set EXTRA_CMAKE_ARGS=^
- -G Ninja^
- -D AL_DEVELOPMENT_LAYOUT=OFF^
- -D AL_DOWNLOAD_DEPENDENCIES=OFF^
- -D AL_PLUGINS=OFF^
- -D AL_USE_INSTALLED_CORE=ON^
- -D AL_PYTHON_BINDINGS=no-build-isolation^
- -D Python_EXECUTABLE="%PYTHON%"^
- -D Python3_EXECUTABLE="%PYTHON%"^
- -D AL_BACKEND_HDF5=OFF^
- -D AL_BACKEND_UDA=OFF^
- -D AL_BACKEND_MDSPLUS=OFF
-
-cmake %CMAKE_ARGS% %EXTRA_CMAKE_ARGS% -B build -S "%SRC_DIR%"
-if %ERRORLEVEL% neq 0 exit /b 1
-
 :: Build and install
-cmake --build build --target install
+%PYTHON% -m pip install . --no-deps --no-build-isolation -vv^
+ --config-settings=-GNinja^
+ --config-settings=-DAL_DEVELOPMENT_LAYOUT=OFF^
+ --config-settings=-DAL_DOWNLOAD_DEPENDENCIES=OFF^
+ --config-settings=-DAL_PLUGINS=OFF^
+ --config-settings=-DAL_USE_INSTALLED_CORE=ON^
+ --config-settings=-DPython_EXECUTABLE="%PYTHON%"^
+ --config-settings=-DPython3_EXECUTABLE="%PYTHON%"^
+ --config-settings=-DAL_BACKEND_HDF5=OFF^
+ --config-settings=-DAL_BACKEND_UDA=OFF^
+ --config-settings=-DAL_BACKEND_MDSPLUS=OFF
 if %ERRORLEVEL% neq 0 exit /b 1
