@@ -5,7 +5,7 @@ set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
 
 :: Build and install
 %PYTHON% -m pip install . --no-deps --no-build-isolation -vv^
- --config-settings=-GNinja^
+ --config-settings=-DCMAKE_GENERATOR=Ninja^
  --config-settings=-DAL_DEVELOPMENT_LAYOUT=OFF^
  --config-settings=-DAL_DOWNLOAD_DEPENDENCIES=OFF^
  --config-settings=-DAL_PLUGINS=OFF^
