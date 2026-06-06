@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  version: "0.1.1"
+
+package:
+  name: mwcs
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.com/babeloff/conda/mwcs/-/archive/v${{ version }}/mwcs-v${{ version }}.tar.gz
+    sha256: 508b24144684b9404d7258add20dfb0a17dff0604727d45d1cfdf04002830b36
+
+build:
+  number: 0
+
+  script:
+    env:
+      LIBGIT2_SYS_USE_PKG_CONFIG: "1"
+      OPENSSL_NO_VENDOR: "1"
+      PKG_CONFIG_ALLOW_SYSTEM_LIBS: "1"
+    content:
+      - cargo build --release --bins
+      - install -Dm755 target/release/mwcs $PREFIX/bin/mwcs
+      - install -Dm755 target/release/muz $PREFIX/bin/muz
+      - install -Dm644 LICENSE $PREFIX/share/licenses/mwcs/LICENSE
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - rust      >=1.85
+    - pkg-config
+
+  host:
+    - libgit2   >=1.7
+    - openssl   >=3.0
+    - zlib
+    - libgcc-ng
+
+  run:
+    - libgcc-ng
+    - libgit2   >=1.7
+    - openssl   >=3.0
+
+tests:
+  - package_contents:
+      bin:
+        - mwcs
+        - muz
+      files:
+        - share/licenses/mwcs/LICENSE
+  - script:
+      - mwcs --version
+      - muz --version
+      - test "$(mwcs --version)" = "$(muz --version)"
+
+about:
+  homepage: https://gitlab.com/babeloff/conda/mwcs
+  license: MIT
+  license_file: LICENSE
+  summary: Multi-repository Workspace Control System
+  description: |
+    mwcs (short alias: muz) is a fleet management tool for coordinated
+    multi-repository workspaces.  It reads a SysML v2 or TOML manifest that
+    describes a fleet of git repositories, then dispatches named actions
+    across the fleet in parallel -- supporting work-order scoping, Rhai
+    scripting, execution-environment wrappers (pixi, conda, nix), and
+    AI-assisted operations via MCP and ACP.
+
+extra:
+  recipe-maintainers:
+    - babeloff
