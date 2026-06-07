@@ -8,6 +8,8 @@ schema_version: 1
 
 context:
   version: "0.7.0"
+  # upstream pyproject.toml: requires-python = ">=3.10"
+  python_min: "3.10"
 
 package:
   name: ironcalc
@@ -43,10 +45,17 @@ requirements:
     - ${{ compiler("rust") }}
     - cargo-bundle-licenses
   host:
-    - python
+    # Pin python to the variant version so rattler-build iterates the
+    # staged-recipes python matrix (py3.10 / 3.11 / 3.12 / 3.13) instead of
+    # producing a single artifact for whatever python is in the build env.
+    # (Without this pin, buildId 1534063 produced only a py3.11 artifact;
+    # the test stage then couldn't install across the matrix.)
+    - python ${{ python_min }}.*
     - pip
     - maturin >=1.7,<2.0
   run:
+    # No version constraint — the conda-smithy lint requires bare `python` in
+    # run: for non-noarch packages; the variant config drives the matrix.
     - python
 
 tests:
