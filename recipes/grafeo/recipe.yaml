@@ -2,30 +2,39 @@
 schema_version: 1
 
 context:
-  name: grafeo
-  version: "0.5.22"
-  python_min: '3.12'
+  version: "0.5.42"
+  python_min: "3.12"
 
 package:
-  name: ${{ name|lower }}
+  name: grafeo
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/grafeo-${{ version }}.tar.gz
-  sha256: 2163598b265d58d3ca19b3a0311dd29512f6f3e8eade886ef0acb8a97178f5ec
+  url: https://pypi.org/packages/source/g/grafeo/grafeo-${{ version }}.tar.gz
+  sha256: f2af6bc4d243437744c84c01d1f0c99880098fd11b18205deaf2c774f987d443
 
 build:
   number: 0
-  noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
   host:
     - python ${{ python_min }}.*
-    - maturin >=1.11.5
     - pip
+    - maturin >=1.11.5,<2.0
   run:
-    - python >=${{ python_min }},<4.0
+    - python
     - solvor >=0.6.1
 
 tests:
@@ -33,15 +42,22 @@ tests:
       imports:
         - grafeo
       pip_check: true
-      python_version:
-        - ${{ python_min }}.*
 
 about:
-  summary: A high-performance, embeddable graph database with Python bindings
-  homepage: https://pypi.org/project/grafeo
+  homepage: https://grafeo.dev
   repository: https://github.com/GrafeoDB/grafeo
+  documentation: https://grafeo.dev/user-guide/
   license: Apache-2.0
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: A high-performance, embeddable graph database with Python bindings
+  description: |
+    grafeo is an embedded graph database written in Rust with Python
+    bindings (PyO3 + maturin). It supports multiple query languages
+    (GQL, Cypher, SPARQL, Gremlin, GraphQL, SQL/PGQ) via the
+    grafeo-engine workspace crate, plus vector + text + hybrid search
+    indexes. Targeted at AI/ML and knowledge-graph workloads.
 
 extra:
   recipe-maintainers:
