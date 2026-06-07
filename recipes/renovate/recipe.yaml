@@ -12,37 +12,39 @@ source:
 build:
   number: 0
   script:
-    - if: unix
-      then:
-        - set -ex
-        - npm pack --ignore-scripts
-        - npm install --global "${SRC_DIR}/renovate-${PKG_VERSION}.tgz"
-        # Recompile re2 on osx to support binary relocation
-        - if: osx
-          then: RE2_DOWNLOAD_SKIP_PATH=true npm rebuild --global re2
-        - pnpm install
-        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-      else:
-        - call npm pack --ignore-scripts
-        - if %ERRORLEVEL% neq 0 exit 1
-        - call npm install --global "%SRC_DIR%/renovate-%PKG_VERSION%.tgz"
-        - if %ERRORLEVEL% neq 0 exit 1
-        - call pnpm install
-        - if %ERRORLEVEL% neq 0 exit 1
-        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-        - if %ERRORLEVEL% neq 0 exit 1
+    env:
+      RE2_DOWNLOAD_SKIP_PATH: true 
+    content:
+      - if: unix
+        then:
+          - set -ex
+          - npm pack --ignore-scripts
+          - npm install --global "${SRC_DIR}/renovate-${PKG_VERSION}.tgz"
+          - npm rebuild --global --foreground-scripts re2
+          - pnpm install
+          - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        else:
+          - call npm pack --ignore-scripts
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call npm install --global "%SRC_DIR%/renovate-%PKG_VERSION%.tgz"
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call npm rebuild --global re2
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call pnpm install
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+          - if %ERRORLEVEL% neq 0 exit 1
 
 requirements:
   build:
+    # recompile re2
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+
     - nodejs ~=24.11
     - pnpm ~=10.0
     - pnpm-licenses
-    # re2 needs to be recompiled on osx
-    - if: osx
-      then:
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-        - ${{ stdlib('c') }}
   run:
     - nodejs ~=24.11
 
