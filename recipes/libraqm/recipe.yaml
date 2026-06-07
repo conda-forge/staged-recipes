@@ -1,0 +1,69 @@
+context:
+  version: "0.10.5"
+
+package:
+  name: libraqm
+  version: ${{ version }}
+
+source:
+  url: https://github.com/HOST-Oman/libraqm/releases/download/v${{ version }}/raqm-${{ version }}.tar.xz
+  sha256: 563053e724892a7b037913110ea2daef50ad575d4fa9f7c368ae1e4515f5e856
+  patches:
+    - patches/0001-undef-NDEBUG-for-tests.patch
+
+build:
+  number: 0
+  script: build
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - freetype
+    - fribidi
+    - harfbuzz
+    # needed for harfbuzz pkg-config metadata
+    - glib
+    - if: win
+      then:
+        # needed for freetype pkg-config metadata
+        - zlib
+    # for running tests, see
+    # https://github.com/HOST-Oman/libraqm/blob/v0.10.5/tests/meson.build#L1
+    - python *
+  run_exports:
+    - ${{ pin_subpackage("libraqm", upper_bound="x.x") }}
+  ignore_run_exports:
+    from_package:
+      - glib
+      - zlib
+      - python
+
+tests:
+  - package_contents:
+      include:
+        - raqm.h
+      lib:
+        - if: unix
+          then: raqm
+      files:
+        # soversion breaks `lib:` pattern
+        - if: win
+          then:
+            - Library\bin\raqm-0.dll
+            - Library\lib\raqm.lib
+
+about:
+  homepage: https://github.com/HOST-Oman/libraqm
+  summary: 'A library for complex text layout'
+  license: MIT
+  license_file: COPYING
+  repository: https://github.com/HOST-Oman/libraqm
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
