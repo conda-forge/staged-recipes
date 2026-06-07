@@ -3,6 +3,9 @@ schema_version: 1
 
 context:
   version: "20231205"
+  # upstream pyproject.toml omits requires-python; setup.py requires >=3.7
+  # which is below the conda-forge floor — bump to 3.10.
+  python_min: "3.10"
 
 package:
   name: libpff-python
@@ -14,29 +17,63 @@ source:
 
 build:
   number: 0
-  noarch: python
+  # PyPI ships only macOS wheels (cp38-cp312 x86_64) for libpff-python; no
+  # Linux/Windows wheels. Build from the sdist so the bundled libyal/libpff
+  # C library is compiled against conda-forge's toolchain on every platform.
+  # setup.py drives ./configure + make for the C library, then builds the
+  # pypff Python C extension that links against it.
   script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    # libyal/libpff bundles its own autotools build system inside the sdist;
+    # setup.py invokes ./configure then make via subprocess.
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - libtool
+        - make
+        - pkg-config
+      else:
+        - m2-autoconf
+        - m2-automake-wrapper
+        - m2-libtool
+        - m2-make
   host:
     - python ${{ python_min }}.*
     - pip
     - setuptools
+    - wheel
   run:
-    - python >=${{ python_min }}
+    # Bare 'python' — conda-smithy lint requires non-noarch packages to have
+    # the python run requirement without version constraints; the variant
+    # config drives the python matrix (py3.10 / 3.11 / 3.12 / 3.13).
+    - python
 
 tests:
-  - script:
-      - echo "libpff-python ships a CPython C extension; noarch tests unreliable"
-
+  - python:
+      imports:
+        - pypff
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
 
 about:
-  homepage: https://pypi.org/project/libpff-python/
+  homepage: https://github.com/libyal/libpff
   license: LGPL-3.0-or-later
   license_file: COPYING
-  summary: Python bindings module for libpff
+  summary: Python bindings module (pypff) for libpff
   description: |
-    Python bindings module for libpff
+    libpff-python provides the pypff Python module — bindings for libpff,
+    a libyal library to access Personal Folder File (PFF) and Offline
+    Folder File (OFF) formats used by Microsoft Outlook (PST / OST).
+    The Python bindings are a thin C extension over the bundled libpff
+    source, configured + built via autotools as part of the install.
+  repository: https://github.com/libyal/libpff
 
 extra:
   recipe-maintainers:
