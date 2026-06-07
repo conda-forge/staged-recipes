@@ -1,7 +1,7 @@
 @echo on
 
 :: Set version for setuptools_scm
-set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%
+set "SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%"
 
 :: Set CMake args
 set CMAKE_ARGS=%CMAKE_ARGS% ^
@@ -13,7 +13,9 @@ set CMAKE_ARGS=%CMAKE_ARGS% ^
  -DAL_PYTHON_BINDINGS=ON^
  -DAL_BACKEND_HDF5=OFF^
  -DAL_BACKEND_UDA=OFF^
- -DAL_BACKEND_MDSPLUS=OFF
+ -DAL_BACKEND_MDSPLUS=OFF^
+ -DCMAKE_C_COMPILER=%CC%^
+ -DCMAKE_CXX_COMPILER=%CXX%
 
 :: Build and install
 %PYTHON% -m pip install . --no-deps --no-build-isolation -vv
