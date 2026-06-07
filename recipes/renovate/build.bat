@@ -1,14 +1,15 @@
 @echo on
 
-call npm version %PKG_VERSION% || goto :error
-call pnpm install || goto :error
-call pnpm build || goto :error
+::call npm version %PKG_VERSION% || goto :error
+::call pnpm install || goto :error
+::call pnpm build || goto :error
 
 call npm pack --ignore-scripts || goto :error
 ::call npm install -ddd --global --no-bin-links --build-from-source %SRC_DIR%\renovate-%PKG_VERSION%.tgz || goto :error
 call npm install -ddd --global --build-from-source %SRC_DIR%\renovate-%PKG_VERSION%.tgz || goto :error
 
 :: Create license report for dependencies
+call pnpm install || goto :error
 call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt || goto :error
 
 :: Create bin wrappers (noarch: both Unix and Windows wrappers needed)
