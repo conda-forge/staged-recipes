@@ -1,0 +1,96 @@
+context:
+  version: "2.51.0"
+
+package:
+  name: panache
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jolars/panache/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b8771e7e723bf9503fe07b398e6a6f18ab6191665eda96f3e5b11966495c6691
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --no-track --locked --bins --root="$PREFIX" --path=.
+          # copy man page and shell completion files
+          - mkdir -p "$PREFIX"/share/man/man1 "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - cp target/man/panache.1            "$PREFIX"/share/man/man1/panache.1
+          - cp target/completions/panache.bash "$PREFIX"/share/bash-completion/completions/panache
+          - cp target/completions/panache.fish "$PREFIX"/share/fish/vendor_completions.d/panache.fish
+          - cp target/completions/_panache     "$PREFIX"/share/zsh/site-functions/_panache
+      - if: win
+        then:
+          - cargo auditable install --no-track --locked --bins --root="%LIBRARY_PREFIX%" --path=.
+          # copy man page and shell completion files
+          - mkdir "%LIBRARY_PREFIX%"\share\man\man1
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - powershell -Command "Copy-Item -Path 'target\man\panache.1'            -Destination '%LIBRARY_PREFIX%\share\man\man1\panache.1'"
+          - powershell -Command "Copy-Item -Path 'target\completions\panache.bash' -Destination '%LIBRARY_PREFIX%\share\bash-completion\completions\panache'"
+          - powershell -Command "Copy-Item -Path 'target\completions\panache.fish' -Destination '%LIBRARY_PREFIX%\share\fish\vendor_completions.d\panache.fish'"
+          - powershell -Command "Copy-Item -Path 'target\completions\_panache'     -Destination '%LIBRARY_PREFIX%\share\zsh\site-functions\_panache'"
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - panache --help
+      - panache --version
+  - package_contents:
+      bin:
+        - panache
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/panache
+            - share/fish/vendor_completions.d/panache.fish
+            - share/zsh/site-functions/_panache
+            - share/man/man1/panache.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/panache
+            - Library/share/fish/vendor_completions.d/panache.fish
+            - Library/share/zsh/site-functions/_panache
+            - Library/share/man/man1/panache.1
+      strict: true
+
+about:
+  summary: A language server, formatter, and linter for Markdown, Quarto, and R Markdown, built in Rust with a lossless CST parser and support for external formatters and linters on code blocks.
+  description: |
+    Panache is a language server, formatter, and linter for Markdown, Quarto,
+    and R Markdown. It is built for fast, reliable formatting, linting, and
+    language services across syntax that many generic Markdown tools struggle
+    with, including fenced divs, grid tables, definition lists, citations, and
+    inline footnotes.
+
+    Panache is designed to follow Pandoc’s syntax closely and cover its full
+    range of Markdown dialects (flavors) and extensions, to be able to handle
+    anything from simple CommonMark to complex Quarto documents with embedded
+    code chunks and fenced divs. It is flexible and can be used in your editor,
+    on the command line, and in CI, with consistent behavior across all
+    environments.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://panache.bz/
+  repository: https://github.com/jolars/panache
+
+extra:
+  recipe-maintainers:
+    - salim-b
