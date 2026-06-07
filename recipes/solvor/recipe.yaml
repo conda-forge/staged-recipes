@@ -16,7 +16,13 @@ source:
 build:
   number: 0
   script:
-    - (cd rust && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml)
+    # CWD-isolation note: rattler-build's script-list entries share CWD
+    # across entries (env vars don't carry, but CWD does — subtle gotcha
+    # vs G1). pushd/popd works in both bash AND cmd.exe; a bash subshell
+    # `(cd rust && ...)` does NOT isolate CWD on Windows because cmd.exe
+    # `(...)` is command grouping, not a subshell — the cd leaks out and
+    # breaks the next pip step (seen on staged-recipes#33647 win_64).
+    - pushd rust && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml && popd
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
