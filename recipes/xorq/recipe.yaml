@@ -3,6 +3,7 @@ schema_version: 1
 
 context:
   version: "0.3.26"
+  python_min: '3.10'
 
 package:
   name: xorq
@@ -30,11 +31,11 @@ requirements:
   run:
     - python >=${{ python_min }},<=3.14
     - attrs >=24.1.0
-    - pyarrow >=13.0.0
+    - pyarrow >=13.0.0 #,<22
     # xorq.flight.action imports pyarrow.flight unconditionally; conda-forge
     # splits the runtime out so pyarrow alone may land pyarrow-core without
     # libarrow_flight.so. Pin the runtime explicitly.
-    - libarrow-flight >=13.0.0
+    - libarrow-flight >=13.0.0 #,<22
     - structlog >=24.2.0,<26
     - python-cityhash >=0.4.7,<1
     - pandas >=1.5.3,<3
@@ -64,7 +65,13 @@ requirements:
     - uv >=0.7.20
     - rich >=13.9.4
     - click >=8.0
-    - git-annex >=10.20250220
+    # git-annex is only packaged on linux-64 (no osx-*, win-*, linux-aarch64
+    # conda-forge builds). xorq's git-annex-backed data sources only work on
+    # Linux as a result. Gate the dep so the staged-recipes OSX + Windows
+    # test environments solve cleanly.
+    - if: linux
+      then:
+        - git-annex >=10.20250220
     - gitpython >=3.1.46
     - textual >=1.0.0
     - filelock >=3.13

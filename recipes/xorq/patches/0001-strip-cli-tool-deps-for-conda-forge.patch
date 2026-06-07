@@ -1,7 +1,7 @@
 From: conda-forge recipe maintainers
-Subject: [PATCH] Strip CLI-tool Requires-Dist entries for conda-forge
+Subject: [PATCH] Strip CLI-tool Requires-Dist entries + exclude sdist symlink
 
-Upstream lists `uv` and `git-annex` as `Requires-Dist` so that
+(1) Upstream lists `uv` and `git-annex` as `Requires-Dist` so that
 `pip install xorq` bootstraps both CLI tools from PyPI. On conda-forge
 they are packaged separately as native binaries (Rust and Haskell
 respectively) and do not ship a Python `.dist-info/` directory, which
@@ -9,9 +9,29 @@ makes `pip check` report them as missing even though `$PREFIX/bin/uv`
 and `$PREFIX/bin/git-annex` are present. Both are still declared in
 the recipe's `run:` block, so the conda solver still pulls them in.
 
+(2) The xorq sdist ships a symlink at
+`python/xorq/common/utils/tests/conftest.py` →
+`../../../backends/xorq_datafusion/tests/conftest.py`. On Windows the
+extracted symlink dangles or becomes a text stub (depending on whether
+the build agent holds SeCreateSymbolicLinkPrivilege), and hatchling's
+wheel builder fails the `os.stat` with `WinError 123` ("The filename,
+directory name, or volume label syntax is incorrect"). Exclude the
+symlinked path from the wheel build — the target file
+(`python/xorq/backends/xorq_datafusion/tests/conftest.py`) still
+ships, so `pytest` discovery against an installed xorq still finds a
+conftest for the xorq_datafusion backend tests.
+
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -54,10 +54,8 @@
+@@ -8,6 +8,7 @@
+ # wheel ZIP).  By excluding here we ensure only force-include writes the files.
+ exclude = [
+     "python/xorq/env_templates/**",
++    "python/xorq/common/utils/tests/conftest.py",
+ ]
+
+ # .gitignore contains `.env.*` which hatchling treats as an exclusion pattern
+@@ -54,10 +55,8 @@
      "prometheus-client>=0.22.1",
      "cryptography>=45.0.3",
      "strenum>=0.4.15 ; python_version <= '3.10'",
