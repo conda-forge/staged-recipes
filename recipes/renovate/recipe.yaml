@@ -8,11 +8,27 @@ package:
 source:
   url: https://registry.npmjs.org/renovate/-/renovate-${{ version }}.tgz
   sha256: 9b71029ba351f1c732ba8b20d5a918bc668767c05150ef97a5e7e71388b15910
-  #url: https://github.com/renovatebot/renovate/archive/refs/tags/${{ version }}.tar.gz
-  #sha256: d067dba4f638f06a3a52ec0d286888c8f37526e11275c72afc1d378e7caf1851
 
 build:
   number: 0
+  script:
+    - if: unix
+      then:
+        - set -ex
+        - npm pack --ignore-scripts
+        - npm install --global "${SRC_DIR}/renovate-${PKG_VERSION}.tgz"
+        - RE2_DOWNLOAD_SKIP_PATH=true npm rebuild --global re2
+        - pnpm install
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else:
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global "%SRC_DIR%/renovate-%PKG_VERSION%.tgz"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
 
 requirements:
   build:
