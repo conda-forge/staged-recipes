@@ -50,7 +50,7 @@ call pnpm pack --config.ignore-scripts=true
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
-@REM Sharp: use conda-forge libvips, build native binding
+@REM Sharp: build native binding
 @REM ============================================================
 set SHARP_IGNORE_GLOBAL_LIBVIPS=
 set npm_config_sharp_ignore_global_libvips=
@@ -77,6 +77,9 @@ call npm install -ddd ^
     %PKG_NAME%-%PKG_VERSION%.tgz
 if %ERRORLEVEL% neq 0 exit /b 1
 
+@REM ============================================================
+@REM Remove non-target platform binaries
+@REM ============================================================
 set NODE_MODULES=%PREFIX%\node_modules\openclaw\node_modules
 
 set OS=win32
@@ -86,8 +89,12 @@ if /i "%PROCESSOR_ARCHITECTURE%"=="x86" (
     if /i "%PROCESSOR_ARCHITEW6432%"=="AMD64" set ARCH=x64
 )
 
-@REM Keep only the current platform's native binaries and remove foreign-platform prebuilds.
-@REM koffi uses OS_ARCH naming and other prebuilds use OS-ARCH.
+if not defined ARCH (
+    echo Unsupported architecture: %PROCESSOR_ARCHITECTURE%
+    exit /b 1
+)
+
+@REM koffi uses OS_ARCH naming and most prebuilds use OS-ARCH.
 set KEEP_UNDERSCORE=%OS%_%ARCH%
 set KEEP_DASH=%OS%-%ARCH%
 
@@ -104,12 +111,32 @@ if exist "%NODE_MODULES%\koffi\build\koffi\" (
 )
 if %ERRORLEVEL% neq 0 exit /b 1
 
-@REM --- prebuilds (tree-sitter etc.) ---
+@REM --- prebuilds used by packages such as @lydell/node-pty ---
 for /f "delims=" %%p in ('dir "%NODE_MODULES%" /b /s /ad /o:n 2^>nul ^| findstr /i "\\prebuilds$"') do (
     for /d %%d in ("%%p\*") do (
         if /i not "%%~nxd"=="%KEEP_DASH%" (
             echo Removing prebuild: %%d
             rmdir /s /q "%%d"
+        )
+    )
+)
+if %ERRORLEVEL% neq 0 exit /b 1
+
+@REM conda-forge should use the locally built tree-sitter-bash binding, not npm prebuilds.
+if exist "%NODE_MODULES%\tree-sitter-bash\prebuilds\" (
+    rmdir /s /q "%NODE_MODULES%\tree-sitter-bash\prebuilds"
+)
+if %ERRORLEVEL% neq 0 exit /b 1
+
+@REM Remove tree-sitter-bash build intermediates, keeping the runtime native binding.
+if exist "%NODE_MODULES%\tree-sitter-bash\build\Release\" (
+    for /d %%d in ("%NODE_MODULES%\tree-sitter-bash\build\Release\*") do (
+        rmdir /s /q "%%d"
+    )
+
+    for %%f in ("%NODE_MODULES%\tree-sitter-bash\build\Release\*") do (
+        if /i not "%%~nxf"=="tree_sitter_bash_binding.node" (
+            del /f /q "%%f"
         )
     )
 )
