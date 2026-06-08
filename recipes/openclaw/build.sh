@@ -63,7 +63,7 @@ KEEP_DASH="${OS}-${ARCH}"         # prebuilds: linux-x64, darwin-arm64
 
 echo "Pruning foreign binaries, keeping: ${KEEP_UNDERSCORE} / ${KEEP_DASH}"
 
-# koffi was removed in 2026.5.12; guard for possible future re-addition
+# koffi was removed in 2026.5.26; guard for possible future re-addition
 KOFFI_DIR="${NODE_MODULES}/koffi/build/koffi"
 if [ -d "${KOFFI_DIR}" ]; then
     find "${KOFFI_DIR}" -mindepth 1 -maxdepth 1 -type d \
@@ -75,3 +75,8 @@ find "${NODE_MODULES}" -type d -name prebuilds | while read -r pb; do
     find "${pb}" -mindepth 1 -maxdepth 1 -type d \
         ! -name "${KEEP_DASH}" -exec rm -rf {} + 2>/dev/null
 done
+
+# sqlite-vec platform subpackages (no prebuilds dir)
+find "${NODE_MODULES}" -mindepth 1 -maxdepth 1 -type d \
+    -name "sqlite-vec-*" ! -name "sqlite-vec-${KEEP_DASH}" \
+    -exec rm -rf {} +
