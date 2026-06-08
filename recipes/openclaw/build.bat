@@ -93,13 +93,16 @@ set KEEP_DASH=%OS%-%ARCH%
 
 echo Pruning foreign binaries, keeping: %KEEP_UNDERSCORE% / %KEEP_DASH%
 
-@REM --- koffi ---
-for /d %%d in ("%NODE_MODULES%\koffi\build\koffi\*") do (
-    if /i not "%%~nxd"=="%KEEP_UNDERSCORE%" (
-        echo Removing koffi: %%d
-        rmdir /s /q "%%d"
+@REM --- koffi (removed in 2026.5.12; guard for possible future re-addition) ---
+if exist "%NODE_MODULES%\koffi\build\koffi\" (
+    for /d %%d in ("%NODE_MODULES%\koffi\build\koffi\*") do (
+        if /i not "%%~nxd"=="%KEEP_UNDERSCORE%" (
+            echo Removing koffi: %%d
+            rmdir /s /q "%%d"
+        )
     )
 )
+if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM --- prebuilds (tree-sitter etc...) ---
 powershell -Command "Get-ChildItem -Path '%NODE_MODULES%' -Recurse -Directory -Filter 'prebuilds' | ForEach-Object { Get-ChildItem -Path $_.FullName -Directory | Where-Object { $_.Name -ne '%KEEP_DASH%' } | ForEach-Object { Write-Host ('Removing prebuild: ' + $_.FullName); Remove-Item -Recurse -Force $_.FullName } }"
