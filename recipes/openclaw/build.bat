@@ -93,7 +93,7 @@ set KEEP_DASH=%OS%-%ARCH%
 
 echo Pruning foreign binaries, keeping: %KEEP_UNDERSCORE% / %KEEP_DASH%
 
-@REM --- koffi (removed in 2026.5.12; guard for possible future re-addition) ---
+@REM --- koffi (removed in 2026.5.26; guard for possible future re-addition) ---
 if exist "%NODE_MODULES%\koffi\build\koffi\" (
     for /d %%d in ("%NODE_MODULES%\koffi\build\koffi\*") do (
         if /i not "%%~nxd"=="%KEEP_UNDERSCORE%" (
@@ -104,6 +104,23 @@ if exist "%NODE_MODULES%\koffi\build\koffi\" (
 )
 if %ERRORLEVEL% neq 0 exit /b 1
 
-@REM --- prebuilds (tree-sitter etc...) ---
-powershell -Command "Get-ChildItem -Path '%NODE_MODULES%' -Recurse -Directory -Filter 'prebuilds' | ForEach-Object { Get-ChildItem -Path $_.FullName -Directory | Where-Object { $_.Name -ne '%KEEP_DASH%' } | ForEach-Object { Write-Host ('Removing prebuild: ' + $_.FullName); Remove-Item -Recurse -Force $_.FullName } }"
+@REM --- prebuilds (tree-sitter etc.) ---
+for /f "delims=" %%p in ('dir "%NODE_MODULES%" /b /s /ad /o:n 2^>nul ^| findstr /i "\\prebuilds$"') do (
+    for /d %%d in ("%%p\*") do (
+        if /i not "%%~nxd"=="%KEEP_DASH%" (
+            echo Removing prebuild: %%d
+            rmdir /s /q "%%d"
+        )
+    )
+)
+if %ERRORLEVEL% neq 0 exit /b 1
+
+@REM --- sqlite-vec platform subpackages ---
+set KEEP_DASH_SV=windows-%ARCH%
+for /d %%d in ("%NODE_MODULES%\sqlite-vec-*") do (
+    if /i not "%%~nxd"=="sqlite-vec-%KEEP_DASH_SV%" (
+        echo Removing sqlite-vec subpackage: %%d
+        rmdir /s /q "%%d"
+    )
+)
 if %ERRORLEVEL% neq 0 exit /b 1
