@@ -74,7 +74,8 @@ call npm install -ddd ^
     --global ^
     --prefix "%PREFIX%" ^
     --build-from-source ^
-    %PKG_NAME%-%PKG_VERSION%.tgz
+    "%PKG_NAME%-%PKG_VERSION%.tgz" ^
+    sharp
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
