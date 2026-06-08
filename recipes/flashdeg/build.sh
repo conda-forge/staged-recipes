@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+if [[ "${target_platform:-}" == linux-* ]]; then
+  export LDFLAGS="${LDFLAGS:-} -pthread"
+fi
+
 cmake -S "${SRC_DIR}" -B build -G Ninja \
   ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE=Release \
