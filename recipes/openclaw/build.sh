@@ -42,7 +42,8 @@ npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
     --build-from-source \
-    ${PKG_NAME}-${PKG_VERSION}.tgz
+    "${PKG_NAME}-${PKG_VERSION}.tgz" \
+    sharp
 
 # === Remove non-target platform binaries ===
 NODE_MODULES="${PREFIX}/lib/node_modules/openclaw/node_modules"
