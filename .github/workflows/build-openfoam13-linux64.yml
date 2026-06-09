@@ -1,0 +1,63 @@
+name: Build openfoam13_for_pato linux-64
+
+on:
+  workflow_dispatch:  # triggered manually from GitHub Actions UI
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    # Use the conda-forge CentOS 7 anvil container (glibc 2.17, compatible with gcc 11.2.0 sysroot)
+    container:
+      image: condaforge/linux-anvil-cos7-x86_64
+
+    steps:
+      - name: Checkout staged-recipes
+        uses: actions/checkout@v4
+        with:
+          repository: pato-devel/staged-recipes
+          ref: openfoam13_for_pato
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install git-lfs
+        run: |
+          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash
+          yum install -y git-lfs
+          git lfs install
+
+      - name: Checkout source with LFS
+        uses: actions/checkout@v4
+        with:
+          repository: pato-devel/openfoam13_for_pato_conda
+          ref: 13_20250911
+          path: openfoam13_for_pato_conda
+          lfs: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install conda-build and awscli
+        run: |
+          conda install conda-build awscli -c conda-forge --override-channels -y
+
+      - name: Set source path in meta.yaml
+        run: |
+          sed -i "s|git_url:.*||" recipes/openfoam13_for_pato/meta.yaml
+          sed -i "s|git_rev:.*|path: ${GITHUB_WORKSPACE}/openfoam13_for_pato_conda|" \
+            recipes/openfoam13_for_pato/meta.yaml
+
+      - name: Build
+        run: |
+          conda build recipes/openfoam13_for_pato --no-test -c conda-forge --override-channels
+
+      - name: Generate repodata and upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          # Copy package to a local channel dir
+          mkdir -p conda-channel/linux-64
+          cp /opt/conda/conda-bld/linux-64/openfoam13_for_pato-*.conda conda-channel/linux-64/
+          # Generate repodata.json
+          conda index conda-channel
+          # Upload to R2
+          aws s3 sync conda-channel/linux-64 s3://pato-conda-channel/linux-64 \
+            --endpoint-url $R2_ENDPOINT
