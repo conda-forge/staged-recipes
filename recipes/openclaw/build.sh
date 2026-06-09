@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-export SHARP_IGNORE_GLOBAL_LIBVIPS=1
-export npm_config_sharp_ignore_global_libvips=true
-
 sed -i.bak 's/^minimumReleaseAge: .*/minimumReleaseAge: 0/' pnpm-workspace.yaml
 
 # Create license report for dependencies
@@ -20,31 +17,18 @@ pnpm build
 pnpm ui:build
 pnpm pack --config.ignore-scripts=true
 
-# Force sharp to use conda-forge libvips and build native binding locally
-unset SHARP_IGNORE_GLOBAL_LIBVIPS
-unset npm_config_sharp_ignore_global_libvips
-export SHARP_FORCE_GLOBAL_LIBVIPS=1
-export npm_config_sharp_build_from_source=true
-export npm_config_sharp_force_global_libvips=true
+# Build native Node addons from source where supported.
 export npm_config_build_from_source=true
 export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
 export NODE_PATH="${BUILD_PREFIX}/lib/node_modules:${NODE_PATH:-}"
 export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
 export PYTHON="${BUILD_PREFIX}/bin/python"
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
-VIPS_CFLAGS="$(pkg-config --cflags vips-cpp)"
-VIPS_LIBS="$(pkg-config --libs vips-cpp)"
-export CPPFLAGS="${VIPS_CFLAGS} ${CPPFLAGS:-}"
-export CXXFLAGS="${VIPS_CFLAGS} ${CXXFLAGS:-}"
-export LDFLAGS="${VIPS_LIBS} ${LDFLAGS:-}"
 
 npm install -ddd \
     --global \
     --prefix "${PREFIX}" \
     --build-from-source \
-    "${PKG_NAME}-${PKG_VERSION}.tgz" \
-    sharp \
-    node-addon-api
+    "${PKG_NAME}-${PKG_VERSION}.tgz"
 
 # === Remove non-target platform binaries ===
 NODE_MODULES="${PREFIX}/lib/node_modules/openclaw/node_modules"
@@ -76,7 +60,8 @@ prune_platform_dirs() {
         ! -name "${keep}" -exec rm -rf {} +
 }
 
-# koffi was removed in 2026.5.26; guard for possible future re-addition.
+# koffi is no longer installed by current OpenClaw releases, but keep this
+# guard in case a future transitive dependency reintroduces it.
 prune_platform_dirs "${NODE_MODULES}/koffi/build/koffi" "${KEEP_UNDERSCORE}"
 
 # Keep only the current platform's prebuilds for packages that rely on them.
