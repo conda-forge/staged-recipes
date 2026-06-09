@@ -17,6 +17,7 @@ source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
 export PYTHONUNBUFFERED=1
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
+export RATTLER_CACHE_DIR="${FEEDSTOCK_ROOT}/build_artifacts/pkg_cache"
 
 cat >~/.condarc <<CONDARC
 always_yes: true
