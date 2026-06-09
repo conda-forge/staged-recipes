@@ -69,6 +69,11 @@ find "${NODE_MODULES}" -type d -name prebuilds | while read -r prebuilds_dir; do
     prune_platform_dirs "${prebuilds_dir}" "${KEEP_DASH}"
 done
 
+# pi-tui ships optional native helpers. On macOS, rattler-build may fail to
+# relink darwin-modifiers.node because the prebuilt binary lacks header padding.
+# OpenClaw/pi-tui falls back when these helpers are absent.
+rm -rf "${NODE_MODULES}/@earendil-works/pi-tui/native/darwin/prebuilds"
+
 # conda-forge should use the locally built tree-sitter-bash binding, not npm prebuilds.
 rm -rf "${NODE_MODULES}/tree-sitter-bash/prebuilds"
 
