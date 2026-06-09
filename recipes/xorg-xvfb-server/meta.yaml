@@ -1,5 +1,4 @@
 {% set version = "21.1.23" %}
-# Xvfb is built from the X.Org server source tree (xorg-server).
 
 package:
   name: xorg-xvfb-server
@@ -11,8 +10,6 @@ source:
 
 build:
   number: 0
-  # Xvfb is a Linux/Unix headless display server. Only Linux is supported
-  # here; macOS uses XQuartz and Windows has no equivalent DDX.
   skip: true  # [not linux]
 
 requirements:
@@ -27,29 +24,20 @@ requirements:
     - xorg-xtrans
     - xorg-font-util
     - xorg-libxdmcp
-    # Xvfb links libXau (alongside libXdmcp) for XDMCP/authorization.
     - xorg-libxau
     - libxkbfile
     - libxfont2
     - pixman
     - openssl
-    # Server-side GLX needs the GL headers/pkg-config (gl.pc); the conda-forge
-    # way is libgl-devel from libglvnd (its run_exports add libgl at runtime).
-    # https://conda-forge.org/docs/maintainer/knowledge_base/#libgl
     - libgl-devel
   run:
-    # The X server execs xkbcomp at runtime to compile the keymap, using the
-    # keyboard data shipped by xkeyboard-config.
     - xkbcomp
     - xkeyboard-config
 
 test:
   commands:
     - test -f "${PREFIX}/bin/Xvfb"
-    # -help prints the Xvfb usage before any device/font/xkb init.
     - Xvfb -help 2>&1 | grep -qi "screen scrn WxHxD"
-    # Actually launch a headless server and confirm it comes up. This exercises
-    # the built-in fonts and the xkbcomp/xkeyboard-config runtime path.
     - |
       Xvfb :98 -screen 0 1280x1024x24 -nolisten tcp -noreset &
       XVFB_PID=$!
@@ -74,20 +62,13 @@ about:
     output. It is the standard way to run GUI applications, take screenshots,
     and run graphical test suites on headless machines and in CI.
 
-    This package builds only the Xvfb DDX from the xorg-server source tree;
-    the Xorg, Xnest and Xephyr servers are disabled so the heavier GPU/DRM
-    stack (libdrm, mesa, udev, libpciaccess, glamor) is not required. It ships
-    libXfont2's compiled-in fonts (fixed, cursor, 6x13), so Xvfb starts without
-    any external font packages, and depends on xkbcomp + xkeyboard-config for
-    keyboard support.
-
-    OpenGL note: this build enables the GLX extension, but conda-forge does not
-    yet ship a runtime Mesa software DRI driver, so GLX rendering needs a
-    swrast_dri.so on DRI_DRIVER_PATH (${PREFIX}/lib/dri) at runtime, e.g. from
-    system Mesa (apt install libgl1-mesa-dri) with LIBGL_ALWAYS_SOFTWARE=1 and
-    GALLIUM_DRIVER=llvmpipe. For display-less off-screen rendering you can
-    instead use OSMesa ("mesalib <25.1.0", PYOPENGL_PLATFORM=osmesa) or
-    EGL-surfaceless, which do not need an X server at all.
+    This build is the Xvfb DDX only (Xorg, Xnest and Xephyr are disabled). It
+    ships libXfont2's built-in fonts (fixed, cursor, 6x13) so it starts without
+    external font packages, and uses xkbcomp + xkeyboard-config for keyboard
+    support. GLX is enabled; GLX rendering needs a swrast_dri.so on
+    DRI_DRIVER_PATH (${PREFIX}/lib/dri) at runtime (e.g. from system Mesa, or a
+    conda Mesa software-GL package). For display-less off-screen OpenGL, OSMesa
+    or EGL-surfaceless need no X server at all.
   dev_url: https://gitlab.freedesktop.org/xorg/xserver
 
 extra:
