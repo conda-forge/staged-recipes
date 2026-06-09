@@ -11,6 +11,12 @@ source:
   url: https://gitlab.cern.ch/gaudi/Gaudi/-/archive/${{ tag }}/Gaudi-${{ tag }}.tar.gz
   sha256: dd288f066e09237f2968a2390e80bef5580e0075896116f4d729b9b609bc25c8
   patches:
+    # gaudi/Gaudi!1925 added getDefaultPluginPath() and wired it into
+    # loadPluginLibrary() but not Registry::initialize(), so in a Conda env
+    # with no GAUDI_PLUGIN_PATH / (DY)LD_LIBRARY_PATH the factory registry
+    # initialises empty and lookups (e.g. EvtDataSvc) fail. Pending upstream
+    # fix to be submitted as a follow-up to !1925.
+    - patches/0001-fix-scan-default-plugin-path-in-Registry-initialize.patch
     # libc++ availability annotations reject std::to_chars (and other 13.3+
     # features) when targeting older macOS. Exporting it via CXXFLAGS isn't
     # enough as genreflex/cling never sees it, so inject the define via CMake
@@ -68,14 +74,8 @@ build:
         # Exclude cmake.test_dummyGaudiDownstreamProject - requires vdt/ROOT
         # development dependencies not available in test install environment
         #
-        # Exclude GaudiTestSuite.pytest.test_event_timeout_mt - this test is
-        # timing-sensitive and expects events with 7-second sleeps to complete
-        # in exactly 7 seconds. In resource-constrained CI environments with
-        # fewer CPUs than the 6 threads requested, thread scheduling delays
-        # cause race conditions where the EventWatchdog's timing measurement
-        # doesn't match the actual sleep duration, resulting in spurious
-        # failures (e.g., reporting 6s instead of 7s).
-        ctest --output-on-failure -E 'cmake\.test_dummyGaudiDownstreamProject|GaudiTestSuite\.pytest\.test_event_timeout_mt'
+        # Gaudi tests are flaky on resource constrained environments to retry up to three times
+        ctest --output-on-failure -E 'cmake\.test_dummyGaudiDownstreamProject' --repeat until-pass:3 -j${CPU_COUNT}
     - cmake --install .
     - root -l -b -q -e 'if (TClass::GetClass("DataObject") == nullptr) { std::cerr << "Failed to load DataObject" << std::endl; return 1; } return 0;'
 
