@@ -2,12 +2,6 @@
 setlocal enabledelayedexpansion
 
 @REM ============================================================
-@REM Sharp: ignore global libvips (initial build phase)
-@REM ============================================================
-set SHARP_IGNORE_GLOBAL_LIBVIPS=1
-set npm_config_sharp_ignore_global_libvips=true
-
-@REM ============================================================
 @REM Patch minimumReleaseAge in pnpm-workspace.yaml
 @REM ============================================================
 sed -i.bak "s/^minimumReleaseAge: .*/minimumReleaseAge: 0/" pnpm-workspace.yaml
@@ -50,33 +44,19 @@ call pnpm pack --config.ignore-scripts=true
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
-@REM Sharp: build native binding
+@REM Build native Node addons from source where supported
 @REM ============================================================
-set SHARP_IGNORE_GLOBAL_LIBVIPS=
-set npm_config_sharp_ignore_global_libvips=
-set SHARP_FORCE_GLOBAL_LIBVIPS=1
-set npm_config_sharp_build_from_source=true
-set npm_config_sharp_force_global_libvips=true
 set npm_config_build_from_source=true
 set npm_config_node_gyp=%BUILD_PREFIX%\bin\node-gyp
 set NODE_PATH=%BUILD_PREFIX%\node_modules;%NODE_PATH%
 set ESBUILD_BINARY_PATH=%BUILD_PREFIX%\bin\esbuild.exe
 set PYTHON=%BUILD_PREFIX%\python.exe
-set PKG_CONFIG_PATH=%PREFIX%\lib\pkgconfig;%PREFIX%\share\pkgconfig;%PKG_CONFIG_PATH%
-
-for /f "tokens=*" %%i in ('pkg-config --cflags vips-cpp') do set VIPS_CFLAGS=%%i
-for /f "tokens=*" %%i in ('pkg-config --libs vips-cpp') do set VIPS_LIBS=%%i
-set CPPFLAGS=%VIPS_CFLAGS% %CPPFLAGS%
-set CXXFLAGS=%VIPS_CFLAGS% %CXXFLAGS%
-set LDFLAGS=%VIPS_LIBS% %LDFLAGS%
 
 call npm install -ddd ^
     --global ^
     --prefix "%PREFIX%" ^
     --build-from-source ^
-    "%PKG_NAME%-%PKG_VERSION%.tgz" ^
-    sharp ^
-    node-addon-api
+    "%PKG_NAME%-%PKG_VERSION%.tgz"
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
@@ -102,7 +82,8 @@ set KEEP_DASH=%OS%-%ARCH%
 
 echo Pruning foreign binaries, keeping: %KEEP_UNDERSCORE% / %KEEP_DASH%
 
-@REM --- koffi (removed in 2026.5.26; guard for possible future re-addition) ---
+@REM koffi is no longer installed by current OpenClaw releases, but keep this
+@REM guard in case a future transitive dependency reintroduces it.
 if exist "%NODE_MODULES%\koffi\build\koffi\" (
     for /d %%d in ("%NODE_MODULES%\koffi\build\koffi\*") do (
         if /i not "%%~nxd"=="%KEEP_UNDERSCORE%" (
