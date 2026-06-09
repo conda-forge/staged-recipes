@@ -39,9 +39,17 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 [![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
-Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
-This can result in empty feedstock repositories and will resolve itself automatically.
-If the issue persists, support can be found [on Zulip](https://conda-forge.zulipchat.com).
+PRs are converted to feedstocks in two steps. 
+
+1. PRs get put into a [merge queue](https://github.com/conda-forge/staged-recipes/queue/main) for testing against
+   the latest CI scripts. Your PR may fail in the merge queue in which case it needs to be remerged. Be sure to update the
+   PR with the latest commits from `main` on the upstream repo before requesting the PR be merged again.
+3. Recipes merged into the `main` branch are turned into feedstocks via the [create feedstocks CI job](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml) on the
+   `conda-forge/admin-requests` repo.
+
+   Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
+   This can result in empty feedstock repositories and will resolve itself automatically.
+   If the issue persists, support can be found [on Zulip](https://conda-forge.zulipchat.com).
 
 ## Local debugging
 
@@ -392,10 +400,11 @@ if your recipe isn't reviewed promptly.
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://conda-forge.zulipchat.com
 
-All apologies in advance if your recipe PR does not receive prompt attention.
-This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
-looking for more staged-recipe reviewers. If you are interested in volunteering,
-please contact a member of @conda-forge/core. We'd love to have your help!
+All apologies in advance if your recipe PR does not receive prompt attention. This is a high volume
+repository and the reviewers are volunteers. Review times vary depending on the number of reviewers
+on a given language team and may be days or weeks. We are always looking for more staged-recipe
+reviewers. If you are interested in volunteering, please contact a member of @conda-forge/core.
+We'd love to have your help!
 
 ### 13. Is there a changelog for this repository?
 
