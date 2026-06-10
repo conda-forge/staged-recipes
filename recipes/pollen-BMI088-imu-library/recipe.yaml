@@ -1,7 +1,6 @@
 schema_version: 1
 
 context:
-  python_min: "3.10"
   version: "1.0.0rc1"
 
 package:
@@ -14,16 +13,22 @@ source:
 
 build:
   number: 0
-  noarch: python
+  # depends on smbus3 (unix-only I2C via /dev/i2c-*); unusable on Windows.
+  # Not noarch because conda-forge's linter forbids skips on noarch packages.
+  # python floor: ahrs needs >=3.10.
+  skip: win or match(python, "<3.10")
   script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python
     - setuptools
     - pip
+    # not used at build time, but forces rattler-build to build all python
+    # variants of smbus3 first; its deferred-test tracker matches by name only
+    - smbus3
   run:
-    - python >=${{ python_min }}
+    - python
     - smbus3 ==0.5.5
     - numpy >=2.2.5,<2.3.0
     - ahrs
@@ -33,7 +38,6 @@ tests:
       imports:
         - bmi088
       pip_check: true
-      python_version: ${{ python_min }}.*
 
 about:
   # Upstream declares no license; assumed Apache-2.0 to match the rest of the Reachy stack.
