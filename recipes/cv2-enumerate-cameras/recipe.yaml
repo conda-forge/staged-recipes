@@ -14,7 +14,16 @@ source:
 build:
   number: 0
   skip: match(python, "<3.9")
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    - if: win
+      then:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        # MSVC leaves mspdbsrv.exe/vctip.exe service processes running after the
+        # compile; they hold handles below the work directory and make
+        # rattler-build's cleanup fail with "Access is denied" (os error 5).
+        - taskkill /F /IM mspdbsrv.exe /T 2>nul & taskkill /F /IM vctip.exe /T 2>nul & exit /B 0
+      else:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   python:
     entry_points:
       - lscam = cv2_enumerate_cameras.__main__:main
