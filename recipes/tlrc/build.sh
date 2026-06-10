@@ -26,7 +26,3 @@ install -m644 completions/tldr.fish "${PREFIX}/share/fish/vendor_completions.d/t
 
 # Install man page (source file is in repository root)
 install -m644 tldr.1 "${PREFIX}/share/man/man1/tldr.1"
-
-# Install license files
-install -m644 LICENSE "${PREFIX}/share/licenses/tlrc/LICENSE"
-install -m644 THIRDPARTY.yml "${PREFIX}/share/licenses/tlrc/THIRDPARTY.yml"
