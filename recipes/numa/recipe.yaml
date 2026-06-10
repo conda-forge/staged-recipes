@@ -1,0 +1,56 @@
+context:
+  version: "0.20.0"
+
+package:
+  name: numa
+  version: ${{ version }}
+
+source:
+  url: https://github.com/razvandimescu/numa/archive/v${{ version }}.tar.gz
+  sha256: c8448e5fa62d6f791cbcae270ad5d5aac0c240de417e3080db13e40e419ff6b0
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path . --locked --no-track
+        else:
+          - cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path . --locked --no-track
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - numa --version
+      - numa --help
+  - package_contents:
+      strict: true
+      bin:
+        - numa
+
+about:
+  homepage: https://numa.rs/
+  summary: "Portable DNS resolver in Rust — .numa local domains, ad blocking, developer overrides."
+  description: |
+    A portable DNS resolver in a single binary. Block ads on any network, name your local services (frontend.numa), override any hostname with auto-revert, and seal every outbound query with ODoH (RFC 9230) so no single party sees both who you are and what you asked — all from your laptop, no cloud account or Raspberry Pi required.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/razvandimescu/numa
+
+extra:
+  recipe-maintainers:
+    - XhstormR
