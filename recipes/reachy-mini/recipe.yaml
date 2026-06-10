@@ -1,0 +1,118 @@
+schema_version: 1
+
+context:
+  version: "1.8.0"
+
+package:
+  name: reachy-mini
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/reachy-mini/reachy_mini-${{ version }}.tar.gz
+  sha256: 9c587f2386f1e11fe2f1fbfbcbffd191ee8dcf5cb1cd5fcd7621c2ab416a0dce
+
+build:
+  number: 0
+  skip: match(python, "<3.10")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - reachy-mini-daemon = reachy_mini.daemon.app.main:main
+      - reachy-mini-app-assistant = reachy_mini.apps.app:main
+      - reachy-mini-reflash-motors = reachy_mini.tools.reflash_motors:main
+
+requirements:
+  host:
+    - python >=3.10
+    - setuptools
+    - pip
+  run:
+    # Core dependencies
+    - python >=3.10
+    - numpy >=2.2.5
+    - scipy >=1.15.3,<2.0.0
+    - reachy-mini-motor-controller >=1.5.5
+    - psutil
+    - jinja2
+    - uvicorn-standard
+    - fastapi
+    - python-multipart
+    - starlette <1.0.0
+    - pyserial
+    # Upstream pins ==1.3.0; conda-forge only ships >=1.18.0, relaxed for the local channel.
+    - huggingface_hub >=1.3.0,<2
+    - reachy-mini-rust-kinematics >=1.0.3
+    - asgiref
+    - aiohttp
+    - log-throttling ==0.0.3
+    - pyusb >=1.2.1
+    - libusb-package >=1.0.26.3
+    - pip >=25
+    - rich
+    - questionary
+    - websockets >=12,<16
+    - toml
+    - rustypot >=1.4.2
+    - pyyaml >=6.0
+    - requests >=2.28.0
+    - zeroconf >=0.131,<1
+    - tornado >=6.5.5
+    # Extras (this package ships all optional features)
+    # Upstream pins are exact (==); conda-forge lacks those exact builds, so relaxed to >=.
+    - mujoco >=3.3.0
+    - onnxruntime >=1.22
+    - rerun-sdk >=0.29.0,<=0.31.3
+    - semver
+    - pynput
+    - pysoundfile
+    - opencv
+    - cv2-enumerate-cameras
+    - gradio-client
+    - if: not win
+      then: placo >=0.9.14
+    # Platform-specific
+    - if: win
+      then: pycaw >=20240210
+    - if: linux
+      then: pulsectl >=24.1.0
+    # PyPI ships a bundled gstreamer ("gstreamer-bundle") off-Linux; on conda-forge we use the
+    # native gstreamer stack plus the GObject-introspection python bindings on all platforms.
+    - gstreamer >=1.28.3
+    - gst-plugins-base >=1.28.3
+    - gst-plugins-good >=1.28.3
+    - gst-python >=1.28.3
+    - pygobject >=3.42.2
+
+tests:
+  - python:
+      imports:
+        - reachy_mini
+      # Upstream wheel METADATA pins deps with == that diverge from the relaxed conda-forge
+      # versions above, so pip check would report mismatches; disabled for the local channel.
+      pip_check: false
+  - requirements:
+      run:
+        - pip
+        - python
+    script:
+      - reachy-mini-daemon --help
+      - reachy-mini-app-assistant --help
+      - reachy-mini-reflash-motors --help
+
+about:
+  summary: Python SDK, daemon, and tools for the Reachy Mini desktop robot
+  description: |
+    reachy-mini is the official Python package for Reachy Mini, the
+    open-source expressive desktop robot by Pollen Robotics and Hugging
+    Face. It bundles the SDK for controlling the robot's head, antennas,
+    audio, and camera, the `reachy-mini-daemon` that manages the hardware
+    and serves the web dashboard, tooling for installing and running apps
+    from the Hugging Face Hub, and MuJoCo-based simulation support.
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://huggingface.co/reachy-mini
+  repository: https://github.com/pollen-robotics/reachy_mini
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
