@@ -1,0 +1,111 @@
+From 7896c66e20070944dbf2f963d9ecdc9e8ab29d9d Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 18 Jan 2026 06:15:52 +0100
+Subject: [PATCH 6/9] fix: Normalize graph test for cross-platform hash
+ differences
+
+std::hash<std::string> produces different values on libstdc++ vs libc++,
+causing the avalanche scheduler graph test to fail on macOS. Normalize
+obj_* IDs by their labels and sort lines for platform-independent comparison.
+---
+ .../avalanche_scheduler/test_simple_test.py   | 63 ++++++++++++++-----
+ 1 file changed, 49 insertions(+), 14 deletions(-)
+
+diff --git a/GaudiHive/tests/pytest/avalanche_scheduler/test_simple_test.py b/GaudiHive/tests/pytest/avalanche_scheduler/test_simple_test.py
+index 6e4909533..0940025cf 100644
+--- a/GaudiHive/tests/pytest/avalanche_scheduler/test_simple_test.py
++++ b/GaudiHive/tests/pytest/avalanche_scheduler/test_simple_test.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2024-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2024-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -8,35 +8,70 @@
+ # granted to it by virtue of its status as an Intergovernmental Organization        #
+ # or submit itself to any jurisdiction.                                             #
+ #####################################################################################
++import re
++
+ from GaudiTesting import GaudiExeTest
+ 
+ 
++def normalize_graph(graph):
++    """Normalize obj_* IDs and line order for platform-independent comparison.
++
++    std::hash<std::string> produces different values on different platforms
++    (libstdc++ vs libc++), so we normalize obj_HASH to obj_N based on the
++    label they're associated with. We also sort the body lines since the
++    output order may vary.
++    """
++    # Extract mapping from obj_* IDs to their labels
++    label_pattern = re.compile(r"(obj_\d+) \[label=\"([^\"]+)\"")
++    id_to_label = {}
++    for match in label_pattern.finditer(graph):
++        id_to_label[match.group(1)] = match.group(2)
++
++    # Create normalized IDs based on sorted labels for deterministic ordering
++    sorted_labels = sorted(id_to_label.items(), key=lambda x: x[1])
++    id_mapping = {old_id: f"obj_{i}" for i, (old_id, _) in enumerate(sorted_labels)}
++
++    # Replace all obj_* IDs with normalized versions
++    result = graph
++    for old_id, new_id in id_mapping.items():
++        result = result.replace(old_id, new_id)
++
++    # Sort the body lines (between header and closing brace) for order-independence
++    lines = result.strip().split("\n")
++    header = lines[:2]  # "digraph datadeps {" and "rankdir=..."
++    footer = lines[-1:]  # "}"
++    body = sorted(lines[2:-1])
++    return "\n".join(header + body + footer)
++
++
+ class Test(GaudiExeTest):
+     command = ["gaudirun.py", "-v", "../../../options/AvalancheSchedulerSimpleTest.py"]
+     timeout = 120
+ 
+     def test_graph_file(self, cwd):
++        # Reference graph with normalized obj_* IDs (sorted by label)
++        # obj_0 = /Event/a1, obj_1 = /Event/a2, obj_2 = /Event/a3, obj_3 = /Event/a4
+         ref = """digraph datadeps {
+   rankdir="LR";
+   Alg_0 [label="A1";shape=box];
+-  obj_13600394293829281201 [label="/Event/a1";shape=box];
+-  Alg_0 -> obj_13600394293829281201;
++  obj_0 [label="/Event/a1";shape=box];
++  Alg_0 -> obj_0;
+   Alg_1 [label="A2";shape=box];
+-  obj_13600394293829281201 -> Alg_1;
+-  obj_1573251618719251457 [label="/Event/a2";shape=box];
+-  Alg_1 -> obj_1573251618719251457;
++  obj_0 -> Alg_1;
++  obj_1 [label="/Event/a2";shape=box];
++  Alg_1 -> obj_1;
+   Alg_2 [label="A3";shape=box];
+-  obj_13600394293829281201 -> Alg_2;
+-  obj_15861236635915656172 [label="/Event/a3";shape=box];
+-  Alg_2 -> obj_15861236635915656172;
++  obj_0 -> Alg_2;
++  obj_2 [label="/Event/a3";shape=box];
++  Alg_2 -> obj_2;
+   Alg_3 [label="A4";shape=box];
+-  obj_15861236635915656172 -> Alg_3;
+-  obj_1573251618719251457 -> Alg_3;
+-  obj_9576344950949101152 [label="/Event/a4";shape=box];
+-  Alg_3 -> obj_9576344950949101152;
++  obj_2 -> Alg_3;
++  obj_1 -> Alg_3;
+   Alg_4 [label="CNT&";shape=box];
+   Alg_5 [label="CNT*";shape=box];
++  obj_3 [label="/Event/a4";shape=box];
++  Alg_3 -> obj_3;
+ }
+ """
+         graph = open(f"{cwd}/graphDump.dot").read()
+-        assert graph == ref
++        assert normalize_graph(graph) == normalize_graph(ref)
+-- 
+2.53.0
+

@@ -1,0 +1,72 @@
+From 578f34a63ba12b0d5c4996dd1a503bee83666755 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sat, 17 Jan 2026 17:27:51 +0100
+Subject: [PATCH 2/9] fix: Remove lowlink value from SCC error output for
+ portability
+
+The Tarjan SCC (Strongly Connected Components) algorithm uses a lowlink
+value internally to track node visitation order during DFS traversal.
+This value depends on the order in which graph nodes are iterated, which
+in turn depends on the iteration order of unordered_map containers used
+during graph construction (m_algoNameToAlgoNodeMap, etc.).
+
+Since libstdc++ (GNU/Linux) and libc++ (macOS) have different hash map
+iteration orders, the lowlink value differs between platforms even though
+the SCC detection itself is correct (the same algorithms are identified
+as belonging to the cycle).
+
+The lowlink value is purely an internal implementation detail of Tarjan's
+algorithm and provides no useful diagnostic information to users. The
+important information is which algorithms form the cycle, not the
+arbitrary numeric identifier assigned during traversal.
+
+This change removes the lowlink value from the error output, making the
+test results consistent across platforms while preserving all meaningful
+diagnostic information.
+---
+ GaudiHive/src/PRGraph/Visitors/Validators.cpp        | 4 ++--
+ GaudiHive/tests/pytest/precedence/test_detect_scc.py | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/GaudiHive/src/PRGraph/Visitors/Validators.cpp b/GaudiHive/src/PRGraph/Visitors/Validators.cpp
+index 3fa67e325..7779d83fc 100644
+--- a/GaudiHive/src/PRGraph/Visitors/Validators.cpp
++++ b/GaudiHive/src/PRGraph/Visitors/Validators.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2019 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -286,7 +286,7 @@ namespace concurrency {
+ 
+       for ( auto& pr : m_scc ) {
+         if ( pr.second.size() > 1 ) {
+-          m_status << "\n o [lowlink:" << std::to_string( pr.first ) << "] |";
++          m_status << "\n o |";
+ 
+           // rotate SCCs to get reproducible order
+           std::vector sortedSCC( pr.second.begin(), pr.second.end() );
+diff --git a/GaudiHive/tests/pytest/precedence/test_detect_scc.py b/GaudiHive/tests/pytest/precedence/test_detect_scc.py
+index ce93121f6..969c332d6 100644
+--- a/GaudiHive/tests/pytest/precedence/test_detect_scc.py
++++ b/GaudiHive/tests/pytest/precedence/test_detect_scc.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2024-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2024-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -19,6 +19,6 @@ class Test(GaudiExeTest):
+     test_signature = GaudiExeTest.find_reference_block(
+         """
+         PrecedenceSvc        ERROR   Strongly connected components found in DF realm:
+-         o [lowlink:3] | CycledAlg1 | CycledAlg3 | CycledAlg2 |
++         o | CycledAlg1 | CycledAlg3 | CycledAlg2 |
+         """
+     )
+-- 
+2.53.0
+
