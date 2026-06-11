@@ -5,59 +5,141 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
-    # Use the conda-forge CentOS 7 anvil container (glibc 2.17, compatible with gcc 11.2.0 sysroot)
-    container:
-      image: condaforge/linux-anvil-cos7-x86_64
+    runs-on: ubuntu-22.04
 
     steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Additional disk cleanup
+        run: |
+          sudo rm -rf /usr/share/doc /usr/share/man /usr/share/locale
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
+
+      - name: Add swap space
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+          swapon --show
+
       - name: Checkout staged-recipes
         uses: actions/checkout@v4
         with:
           repository: pato-devel/staged-recipes
           ref: openfoam13_for_pato
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Install git-lfs
+      - name: Download OpenFOAM 13 source from GitHub
         run: |
-          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash
-          yum install -y git-lfs
-          git lfs install
+          mkdir -p /tmp/of13_clone
+          cd /tmp/of13_clone
+          git clone --depth 1 https://github.com/OpenFOAM/OpenFOAM-13
+          git clone --depth 1 https://github.com/OpenFOAM/ThirdParty-13
+          mkdir -p /tmp/openfoam13_source/src/Linux/OpenFOAM
+          tar cf /tmp/openfoam13_source/src/Linux/OpenFOAM/OpenFOAM-13.tar OpenFOAM-13
+          tar cf /tmp/openfoam13_source/src/Linux/OpenFOAM/ThirdParty-13.tar ThirdParty-13
+          rm -rf /tmp/of13_clone
 
-      - name: Checkout source with LFS
-        uses: actions/checkout@v4
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          repository: pato-devel/openfoam13_for_pato_conda
-          ref: 13_20250911
-          path: openfoam13_for_pato_conda
-          lfs: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
 
-      - name: Install conda-build and awscli
+      - name: Install conda-build
+        shell: bash -l {0}
         run: |
-          conda install conda-build awscli -c conda-forge --override-channels -y
+          conda install conda-build -c conda-forge --override-channels -y
 
       - name: Set source path in meta.yaml
         run: |
-          sed -i "s|git_url:.*||" recipes/openfoam13_for_pato/meta.yaml
-          sed -i "s|git_rev:.*|path: ${GITHUB_WORKSPACE}/openfoam13_for_pato_conda|" \
-            recipes/openfoam13_for_pato/meta.yaml
+          cp -r recipes/openfoam13_for_pato /tmp/openfoam13_recipe
+          python3 -c 'import re,os; m=open("/tmp/openfoam13_recipe/meta.yaml").read(); m=re.sub(r"^\s+url:.*\n","",m,flags=re.M); m=re.sub(r"^\s+sha256:.*\n","  path: /tmp/openfoam13_source\n",m,flags=re.M); open("/tmp/openfoam13_recipe/meta.yaml","w").write(m)'
+          echo "--- meta.yaml after patch ---"
+          cat /tmp/openfoam13_recipe/meta.yaml
+          printf '%s\n' \
+            'if [ "$(uname)" = "Linux" ]; then' \
+            '    INT_H="$PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/src/OpenFOAM/primitives/ints/int/int.H"' \
+            '    sed -i "s|MAXMIN(string::size_type,string::size_type,string::size_type)|#ifdef __APPLE__\\nMAXMIN(string::size_type,string::size_type,string::size_type)\\n#endif|" "$INT_H"' \
+            '    export CPATH="$PREFIX/include${CPATH:+:$CPATH}"' \
+            '    export LIBRARY_PATH="$PREFIX/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"' \
+            'fi' \
+            > /tmp/linux_patch1.sh
+          sed -i '/tar xvf ThirdParty-13.tar/r /tmp/linux_patch1.sh' /tmp/openfoam13_recipe/build.sh
+          printf '%s\n' \
+            'if [ "$(uname)" = "Linux" ]; then' \
+            '    export ZOLTAN_TYPE=none' \
+            '    export WM_NCOMPPROCS=2' \
+            'fi' \
+            > /tmp/linux_patch2.sh
+          sed -i '/source etc\/bashrc/r /tmp/linux_patch2.sh' /tmp/openfoam13_recipe/build.sh
+          printf '%s\n' \
+            'if [ "$(uname)" = "Linux" ]; then' \
+            '    echo "Cleaning object files before packaging to save disk..."' \
+            '    find "$PREFIX/src/volume_openfoam13_for_pato" -name "*.o" -delete 2>/dev/null || true' \
+            '    find "$PREFIX/src/volume_openfoam13_for_pato" -name "*.dep" -delete 2>/dev/null || true' \
+            '    df -h' \
+            'fi' \
+            > /tmp/linux_patch3.sh
+          sed -i '/^\.\/Allwmake -j/r /tmp/linux_patch3.sh' /tmp/openfoam13_recipe/build.sh
+          echo "--- build.sh around bashrc source ---"
+          grep -A10 "source etc/bashrc" /tmp/openfoam13_recipe/build.sh
+          echo "--- build.sh around Allwmake ---"
+          grep -A8 "Allwmake" /tmp/openfoam13_recipe/build.sh
 
       - name: Build
+        shell: bash -l {0}
+        timeout-minutes: 300
         run: |
-          conda build recipes/openfoam13_for_pato --no-test -c conda-forge --override-channels
+          df -h
+          conda-build /tmp/openfoam13_recipe --no-test -c conda-forge --override-channels --croot /tmp/conda-bld 2>&1 | tee /tmp/build_full.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          df -h
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "=== ERROR SUMMARY (grep for error/undefined/killed) ==="
+            grep -n "error:\|Error:\|undefined reference\|cannot find -l\|No space left\|fatal error\|Killed\|signal" /tmp/build_full.log | grep -v "^Binary" | tail -80
+            echo "=== LAST 50 LINES OF BUILD LOG ==="
+            tail -50 /tmp/build_full.log
+            exit $BUILD_EXIT
+          fi
+
+      - name: Save package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfoam13-linux64-package
+          path: /tmp/conda-bld/linux-64/openfoam13_for_pato-*
+          retention-days: 5
 
       - name: Generate repodata and upload to R2
+        shell: bash -l {0}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
         run: |
-          # Copy package to a local channel dir
           mkdir -p conda-channel/linux-64
-          cp /opt/conda/conda-bld/linux-64/openfoam13_for_pato-*.conda conda-channel/linux-64/
-          # Generate repodata.json
-          conda index conda-channel
-          # Upload to R2
+          ls /tmp/conda-bld/linux-64/
+          PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.conda 2>/dev/null | head -1)
+          if [ -z "$PKG" ]; then
+            PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.tar.bz2 2>/dev/null | head -1)
+          fi
+          echo "Found package: $PKG"
+          cp "$PKG" conda-channel/linux-64/
+          pip install conda-index awscli
+          python -m conda_index conda-channel
           aws s3 sync conda-channel/linux-64 s3://pato-conda-channel/linux-64 \
             --endpoint-url $R2_ENDPOINT
