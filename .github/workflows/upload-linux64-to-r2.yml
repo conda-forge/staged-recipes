@@ -1,0 +1,51 @@
+name: Upload linux-64 package to R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of the build workflow that produced the artifact (from the URL of the Actions run)'
+        required: true
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Download artifact from build run
+        uses: actions/download-artifact@v4
+        with:
+          name: openfoam13-linux64-package
+          path: /tmp/conda-bld/linux-64/
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.PAT_TOKEN }}
+
+      - name: List downloaded files
+        run: ls -lh /tmp/conda-bld/linux-64/
+
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
+
+      - name: Generate repodata and upload to R2
+        shell: bash -l {0}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          mkdir -p conda-channel/linux-64
+          PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.conda 2>/dev/null | head -1)
+          if [ -z "$PKG" ]; then
+            PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.tar.bz2 2>/dev/null | head -1)
+          fi
+          echo "Found package: $PKG"
+          cp "$PKG" conda-channel/linux-64/
+          pip install conda-index awscli
+          python -m conda_index conda-channel
+          aws s3 sync conda-channel/linux-64 s3://pato-conda-channel/linux-64 \
+            --endpoint-url $R2_ENDPOINT
