@@ -17,15 +17,16 @@ source:
 
 build:
   number: 0
+  skip:
+    # FIXME: Get osx builds working
+    - not linux
 
 outputs:
-  - package:
-      name: feynhiggs-static
-
+  # Build once into a shared staging cache, then ship the static archive and the
+  # shared library as two separate packages (FeynHiggs upstream is static only).
+  - staging:
+      name: feynhiggs-build
     build:
-      skip:
-        # FIXME: Get osx builds working
-        - not linux
       script:
         # c.f. https://conda-forge.org/docs/maintainer/knowledge_base/#cross-compilation-examples
         # Get an updated config.sub and config.guess
@@ -35,12 +36,19 @@ outputs:
         - if: linux and (x86_64 or ppc64le)
           then: ./configure --prefix=$PREFIX --enable-full-g-2 --enable-slhapara
           else: ./configure --prefix=$PREFIX --enable-full-g-2 --enable-slhapara CONF_QUAD=0
+        # Build position-independent objects: configure hard-codes -fPIE for the
+        # Fortran sources, which cannot go into a shared library. Forcing -fPIC
+        # lets the same objects feed both libFH.a and libFH.so.
+        - sed -i 's/ -fPIE / -fPIC /g' makefile
         - make --jobs="${CPU_COUNT}"
         - make install
-        - if: linux
-          then:
-            - mv $PREFIX/lib64/libFH.a $PREFIX/lib/
-            - rm -r $PREFIX/lib64
+        - mkdir -p $PREFIX/lib
+        - mv $PREFIX/lib64/libFH.a $PREFIX/lib/
+        - rm -r $PREFIX/lib64
+        # Link a shared library from the same PIC objects (upstream ships none)
+        - if: linux and (x86_64 or ppc64le)
+          then: $FC -shared -Wl,-soname,libFH.so $LDFLAGS -o $PREFIX/lib/libFH.so -Wl,--whole-archive $PREFIX/lib/libFH.a -Wl,--no-whole-archive -lstdc++ -lquadmath -lgfortran
+          else: $FC -shared -Wl,-soname,libFH.so $LDFLAGS -o $PREFIX/lib/libFH.so -Wl,--whole-archive $PREFIX/lib/libFH.a -Wl,--no-whole-archive -lstdc++ -lgfortran
 
     requirements:
       build:
@@ -54,6 +62,19 @@ outputs:
         - sed
         - pkg-config
         - gnuconfig
+
+  - package:
+      name: feynhiggs-static
+    inherit: feynhiggs-build
+    build:
+      skip:
+        - not linux
+      files:
+        - include/*.h
+        - bin/FeynHiggs
+        - bin/fcc
+        - bin/table
+        - lib/libFH.a
 
     tests:
       - package_contents:
@@ -74,6 +95,70 @@ outputs:
             - lib/libFH.a
             # tests
             - etc/conda/test-files/feynhiggs-static/0/example/*
+
+      - files:
+          source:
+            - example/SLHA/TestEXTPAR.spc
+            - example/demo.cc
+            - example/demo.F
+
+        requirements:
+          run:
+            - ${{ compiler("cxx") }}
+            - ${{ compiler("fortran") }}
+
+        script:
+          - FeynHiggs example/SLHA/TestEXTPAR.spc
+
+          - cd example
+          - echo "\nC++ demo"
+          - if: linux and (x86_64 or ppc64le)
+            then: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran -lquadmath
+            else: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran
+          - ./demo
+          - rm demo
+
+          - echo "\nFortran demo"
+          - $FC demo.F -o demo $FFLAGS $FLDFLAGS -lFH
+          - echo "\n$FC"
+          - ./demo
+
+  - package:
+      name: feynhiggs
+    inherit: feynhiggs-build
+    build:
+      skip:
+        - not linux
+      files:
+        - include/*.h
+        - bin/FeynHiggs
+        - bin/fcc
+        - bin/table
+        - lib/libFH.so
+    requirements:
+      run_exports:
+        # No upstream ABI versioning; pin to the build's minor version.
+        - ${{ pin_subpackage("feynhiggs", upper_bound="x.x") }}
+    tests:
+      - package_contents:
+          strict: true
+          lib:
+            - FH
+          include:
+            - CFeynHiggs.h
+            - CSLHA.h
+            - FHCouplings.h
+            - FHRecord.h
+            - PDG.h
+            - SLHA.h
+            - SLHADefs.h
+          bin:
+            - FeynHiggs
+            - fcc
+            - table
+          files:
+            # tests
+            - etc/conda/test-files/feynhiggs/0/example/*
 
       - files:
           source:
