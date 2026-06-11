@@ -1,0 +1,81 @@
+context:
+  version: "1.7"
+
+package:
+  name: cry
+  version: ${{ version }}
+
+source:
+  url: http://nuclear.llnl.gov/simulation/cry_v${{ version }}.tar.gz
+  sha256: dcee2428f81cba113f82e0c7c42f4d85bff4b8530e5ab5c82c059bed3e570c20
+  patches:
+    - 0001-add-libCRY-so-fPIC-and-remove-default-test-target.patch
+
+build:
+  script:
+    - ln -s "${AR}" "${BUILD_PREFIX}/bin/ar" # Fix hardcoded assumption "ar"
+    - make -j${CPU_COUNT} CXX=$CXX
+    - cp lib/libCRY.* ${PREFIX}/lib/
+    - rm ${PREFIX}/lib/*.a
+    - mkdir -p ${PREFIX}/include/cry && cp src/*.h ${PREFIX}/include/cry/
+  number: 0
+  skip:
+    - win
+    - osx
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - make
+
+tests:
+  - package_contents:
+      lib:
+        - CRY
+      include:
+        - cry/CRYAbsFunction.h
+        - cry/CRYAbsParameter.h
+        - cry/CRYBinning.h
+        - cry/CRYCosLatitudeFunction.h
+        - cry/CRYData.h
+        - cry/CRYFunctionDict.h
+        - cry/CRYGenerator.h
+        - cry/CRYParamI.h
+        - cry/CRYParameter.h
+        - cry/CRYParticle.h
+        - cry/CRYPdf.h
+        - cry/CRYPrimary.h
+        - cry/CRYPrimarySpectrumFunction.h
+        - cry/CRYSetup.h
+        - cry/CRYUtils.h
+        - cry/CRYWeightFunc.h
+      files:
+        - etc/conda/test-files/cry/0/*
+      strict: true
+  - script:
+    - cd test && $CXX testMain.cc -o testMain -I${PREFIX}/include/cry -L${PREFIX}/lib -lCRY
+    - ./testMain ./setup.file 100
+    requirements:
+      run:
+        - ${{ compiler("cxx") }}
+    files:
+      source:
+        - data/
+        - test/
+
+about:
+  homepage: https://nuclear.llnl.gov/simulation/main.html
+  summary: 'Correlated cosmic-ray particle showers generator'
+  description: |
+    The CRY software library generates correlated cosmic-ray particle shower distributions at one of three
+    elevations (sea level, 2100 m, and 11300 m) for use as input to transport and detector simulation codes.
+  license: BSD-3-Clause
+  license_file: src/COPYRIGHT.TXT
+
+extra:
+  recipe-maintainers:
+    - utk4r-sh
+    - GiacomoXT
+    - vvsagar
+    - AlexanderHeidelbach
