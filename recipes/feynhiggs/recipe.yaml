@@ -1,0 +1,204 @@
+context:
+  version: "2.19.0"
+
+recipe:
+  name: feynhiggs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hep-packaging-coordination/feynhiggs-release-mirror/archive/refs/tags/${{ version }}.tar.gz
+  sha256: b0bb1beadb34ea58dbf4bcd12c4e399b1bd917d76abce00551034db39bc719bf
+  patches:
+    - henning-bahl-compliation-patches.patch
+    # Move malloc()/mkdtemp()/pipe()/fork() out of assert() so they are not
+    # skipped when NDEBUG is defined (conda-forge sets -DNDEBUG). Otherwise, the
+    # LoopTools cache node is never allocated -> NULL deref -> runtime SIGSEGV.
+    - fix-side-effects-in-assert.patch
+
+build:
+  number: 0
+  skip:
+    # FIXME: Get osx builds working
+    - not linux
+
+outputs:
+  # Build once into a shared staging cache, then ship the static archive and the
+  # shared library as two separate packages (FeynHiggs upstream is static only).
+  - staging:
+      name: feynhiggs-build
+    build:
+      script:
+        # c.f. https://conda-forge.org/docs/maintainer/knowledge_base/#cross-compilation-examples
+        # Get an updated config.sub and config.guess
+        - cp $BUILD_PREFIX/share/gnuconfig/config.* .
+        - ./configure --help
+        # configure appends -ffixed-line-length-none -std=legacy -fallow-argument-mismatch
+        - if: linux and (x86_64 or ppc64le)
+          then: ./configure --prefix=$PREFIX --enable-full-g-2 --enable-slhapara
+          else: ./configure --prefix=$PREFIX --enable-full-g-2 --enable-slhapara CONF_QUAD=0
+        # Build position-independent objects: configure hard-codes -fPIE for the
+        # Fortran sources, which cannot go into a shared library. Forcing -fPIC
+        # lets the same objects feed both libFH.a and libFH.so.
+        - sed -i 's/ -fPIE / -fPIC /g' makefile
+        - make --jobs="${CPU_COUNT}"
+        - make install
+        - mkdir -p $PREFIX/lib
+        - mv $PREFIX/lib64/libFH.a $PREFIX/lib/
+        - rm -r $PREFIX/lib64
+        # Link a shared library from the same PIC objects (upstream ships none)
+        - if: linux and (x86_64 or ppc64le)
+          then: $FC -shared -Wl,-soname,libFH.so $LDFLAGS -o $PREFIX/lib/libFH.so -Wl,--whole-archive $PREFIX/lib/libFH.a -Wl,--no-whole-archive -lstdc++ -lquadmath -lgfortran
+          else: $FC -shared -Wl,-soname,libFH.so $LDFLAGS -o $PREFIX/lib/libFH.so -Wl,--whole-archive $PREFIX/lib/libFH.a -Wl,--no-whole-archive -lstdc++ -lgfortran
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ compiler("fortran") }}
+        - automake
+        - libtool
+        - make
+        - gawk
+        - sed
+        - pkg-config
+        - gnuconfig
+
+  - package:
+      name: feynhiggs-static
+    inherit: feynhiggs-build
+    build:
+      skip:
+        - not linux
+      files:
+        - include/*.h
+        - bin/FeynHiggs
+        - bin/fcc
+        - bin/table
+        - lib/libFH.a
+
+    tests:
+      - package_contents:
+          strict: true
+          include:
+            - CFeynHiggs.h
+            - CSLHA.h
+            - FHCouplings.h
+            - FHRecord.h
+            - PDG.h
+            - SLHA.h
+            - SLHADefs.h
+          bin:
+            - FeynHiggs
+            - fcc
+            - table
+          files:
+            - lib/libFH.a
+            # tests
+            - etc/conda/test-files/feynhiggs-static/0/example/*
+
+      - files:
+          source:
+            - example/SLHA/TestEXTPAR.spc
+            - example/demo.cc
+            - example/demo.F
+
+        requirements:
+          run:
+            - ${{ compiler("cxx") }}
+            - ${{ compiler("fortran") }}
+
+        script:
+          - FeynHiggs example/SLHA/TestEXTPAR.spc
+
+          - cd example
+          - echo "\nC++ demo"
+          - if: linux and (x86_64 or ppc64le)
+            then: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran -lquadmath
+            else: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran
+          - ./demo
+          - rm demo
+
+          - echo "\nFortran demo"
+          - $FC demo.F -o demo $FFLAGS $FLDFLAGS -lFH
+          - echo "\n$FC"
+          - ./demo
+
+  - package:
+      name: feynhiggs
+    inherit: feynhiggs-build
+    build:
+      skip:
+        - not linux
+      files:
+        - include/*.h
+        - bin/FeynHiggs
+        - bin/fcc
+        - bin/table
+        - lib/libFH.so
+    requirements:
+      run_exports:
+        # No upstream ABI versioning; pin to the build's minor version.
+        - ${{ pin_subpackage("feynhiggs", upper_bound="x.x") }}
+    tests:
+      - package_contents:
+          strict: true
+          lib:
+            - FH
+          include:
+            - CFeynHiggs.h
+            - CSLHA.h
+            - FHCouplings.h
+            - FHRecord.h
+            - PDG.h
+            - SLHA.h
+            - SLHADefs.h
+          bin:
+            - FeynHiggs
+            - fcc
+            - table
+          files:
+            # tests
+            - etc/conda/test-files/feynhiggs/0/example/*
+
+      - files:
+          source:
+            - example/SLHA/TestEXTPAR.spc
+            - example/demo.cc
+            - example/demo.F
+
+        requirements:
+          run:
+            - ${{ compiler("cxx") }}
+            - ${{ compiler("fortran") }}
+
+        script:
+          - FeynHiggs example/SLHA/TestEXTPAR.spc
+
+          - cd example
+          - echo "\nC++ demo"
+          - if: linux and (x86_64 or ppc64le)
+            then: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran -lquadmath
+            else: $CXX demo.cc -o demo $CXXFLAGS $LDFLAGS -lFH -lgfortran
+          - ./demo
+          - rm demo
+
+          - echo "\nFortran demo"
+          - $FC demo.F -o demo $FFLAGS $FLDFLAGS -lFH
+          - echo "\n$FC"
+          - ./demo
+
+about:
+  homepage: http://www.feynhiggs.de/
+  summary: 'FeynHiggs'
+  description: |
+    FeynHiggs is a Fortran code for the (diagrammatic/EFT/hybrid) calculation
+    of the masses, mixings and much more of the Higgs bosons in the MSSM with
+    real/complex parameters at the highest level of accuracy.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  documentation: http://www.feynhiggs.de/
+
+extra:
+  feedstock-name: feynhiggs
+  recipe-maintainers:
+    - matthewfeickert

@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Wed, 10 Jun 2026 17:30:00 +0000
+Subject: [PATCH] fix: Do not put side effects inside assert()
+
+The LoopTools integral cache (src/LT/cache.c) and the external
+self-energy helper (src/Util/extself.c) place calls with required side
+effects -- malloc(), mkdtemp(), pipe(), fork() -- *inside* assert().
+
+When the C preprocessor macro NDEBUG is defined (which conda-forge does
+by default via CPPFLAGS for release builds), assert(expr) expands to a
+no-op and `expr` is never evaluated. The malloc() in cache.c is then
+never called, leaving `node` NULL, and the immediately following
+`node->succ = NULL;` dereferences a NULL pointer -> SIGSEGV at runtime
+(e.g. during FHHiggsCorr loop-integral evaluation).
+
+This is why FeynHiggs built with distribution toolchains (which do not
+define NDEBUG) runs fine, while a conda-forge build segfaults despite an
+otherwise identical configuration.
+
+Move the side-effecting calls out of assert() so they always execute;
+assert() is kept purely as a success check. Verified to produce
+bit-identical Higgs masses to a build with assert active.
+---
+ src/LT/cache.c       | 3 ++-
+ src/Util/extself.c   | 9 ++++++---
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+--- a/src/LT/cache.c
++++ b/src/LT/cache.c
+@@ -129,7 +129,8 @@
+ 	   an integer index into base */
+     size_t mem = sizeof(Node) +
+       npara*sizeof(RealType) + nval*sizeof(ComplexType);
+-    assert( (node = malloc(mem)) );
++    node = malloc(mem);
++    assert( node );
+     node = (Node *)((char *)node +
+       (PtrDiff(base, &node->para[npara]) & (sizeof(ComplexType) - 1)));
+     node->succ = NULL;
+--- a/src/Util/extself.c
++++ b/src/Util/extself.c
+@@ -114,9 +114,12 @@
+     strcat(tmpdir_template, "/fh-extse.XXXXXX");
+   }
+   strcpy(tmpdir, tmpdir_template);
+-  assert( mkdtemp(tmpdir) != NULL &&
+-          pipe(fd) != -1 &&
+-          (pid = fork()) != -1 );
++  char *tmpdir_ok = mkdtemp(tmpdir);
++  int pipe_ok = pipe(fd);
++  pid = fork();
++  assert( tmpdir_ok != NULL &&
++          pipe_ok != -1 &&
++          pid != -1 );
+ 
+   if( pid == 0 ) {
+     close(0);
