@@ -1,0 +1,78 @@
+From: Oliver Lantwin <oliver@lantwin.de>
+Subject: Namespace install destinations under cetmodules/
+
+Upstream installs CMake helper modules to <prefix>/Modules/, internal
+helpers to <prefix>/libexec/, and make_bash_completions to <prefix>/bin/.
+On a shared prefix (conda env, /usr/local) these top-level destinations
+collide with files shipped by other packages, since names like "Modules",
+"checkClassVersion" and "make_bash_completions" are not unique.
+
+Relocate them under cetmodules-specific subdirectories:
+  Modules/*.cmake  -> share/cetmodules/Modules/
+  libexec/*        -> ${CMAKE_INSTALL_LIBEXECDIR} (set to libexec/cetmodules/)
+  bin/make_bash_completions -> ${CMAKE_INSTALL_LIBEXECDIR}
+
+We use ${CMAKE_INSTALL_LIBEXECDIR} (set by include(GNUInstallDirs)
+inside cet_cmake_env()) rather than the project_variable
+${cetmodules_LIBEXEC_DIR}: the latter is only defined once
+libexec/CMakeLists.txt has been processed, and the top-level CMakeLists
+adds bin/ as a subdirectory before libexec/, so the variable would
+still be empty at the moment bin/CMakeLists.txt evaluates.
+
+Downstream find_package(cetmodules) consumers are unaffected: the path
+registered with cet_cmake_module_directories() is what
+cetmodulesConfig.cmake bakes into CMAKE_MODULE_PATH, and the LIBEXEC_DIR
+project_variable already follows CMAKE_INSTALL_LIBEXECDIR.
+
+The make_bash_completions script previously located its companion
+filter-program-options via "${BASH_SOURCE%/*}/../libexec". Once the script
+itself lives in libexec/cetmodules/ alongside that companion, the relative
+path is just the script's own directory.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -72,7 +72,7 @@ project_variable(
+   )
+
+ # Make sure downstream packages can find our modules.
+-cet_cmake_module_directories(NO_LOCAL Modules Modules/compat)
++cet_cmake_module_directories(NO_LOCAL share/cetmodules/Modules share/cetmodules/Modules/compat)
+
+ # ##############################################################################
+ # Build components.
+--- a/Modules/CMakeLists.txt
++++ b/Modules/CMakeLists.txt
+@@ -21,7 +21,7 @@ list(APPEND generated_modules
+
+ install(
+   DIRECTORY ./
+-  DESTINATION Modules
++  DESTINATION share/cetmodules/Modules
+   FILES_MATCHING
+   PATTERN "*.cmake"
+   PATTERN "[.#]*.cmake" EXCLUDE
+@@ -35,4 +35,4 @@ file(
+   PATTERN "[.#]*.cmake" EXCLUDE
+   )
+
+-install(FILES ${generated_modules} DESTINATION Modules)
++install(FILES ${generated_modules} DESTINATION share/cetmodules/Modules)
+--- a/bin/CMakeLists.txt
++++ b/bin/CMakeLists.txt
+@@ -2,4 +2,4 @@
+ # Publicly-available scripts.
+ # ##############################################################################
+ include(CetMake)
+-cet_script(make_bash_completions)
++cet_script(make_bash_completions DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+--- a/bin/make_bash_completions
++++ b/bin/make_bash_completions
+@@ -10,7 +10,7 @@
+ # =========================================================================
+
+ # Private utilities.
+-libexec=$(cd "${BASH_SOURCE%/*}/../libexec" && pwd -P)
++libexec=$(cd "${BASH_SOURCE%/*}" && pwd -P)
+
+ # Arguments.
+ output="$1"; shift
