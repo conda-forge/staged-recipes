@@ -114,6 +114,10 @@ if [ "$(uname)" = "Linux" ]; then
 fi
 if [ "$(uname)" = "Darwin" ]; then
     export WM_NCOMPPROCS=`sysctl -n hw.ncpu` # parallel build
+    # Set deployment target >= 15.0 so binaries can be ad-hoc signed on Darwin 25+.
+    # The conda-forge toolchain defaults to 11.0, which produces binaries that fail
+    # strict Mach-O validation on Darwin 25 and cannot be codesigned.
+    export MACOSX_DEPLOYMENT_TARGET=15.0
 fi
 cd $PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13
 alias wmRefresh=""
