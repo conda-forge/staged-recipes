@@ -64,6 +64,50 @@ cd $PREFIX/src/volume_openfoam13_for_pato/OpenFOAM
 tar xvf OpenFOAM-13.tar
 tar xvf ThirdParty-13.tar
 
+# Patch scotch/ptscotch configs to use conda-provided libs ($PREFIX) instead of
+# Homebrew or ThirdParty. The source tree may contain mac-specific overrides that
+# call 'brew --prefix scotch', which is wrong in a conda build environment.
+cat > OpenFOAM-13/etc/config.sh/scotch << 'SCOTCHEOF'
+export SCOTCH_VERSION=conda
+export SCOTCH_ARCH_PATH=$PREFIX
+SCOTCHEOF
+
+# Also patch the mac-specific override if present (uses _foamGetPackageArchPath → brew)
+if [ -f OpenFOAM-13/etc/config.sh/mac/scotch ]; then
+    cat > OpenFOAM-13/etc/config.sh/mac/scotch << 'MACSCOTCHEOF'
+export SCOTCH_VERSION=conda
+export SCOTCH_ARCH_PATH=$PREFIX
+MACSCOTCHEOF
+fi
+
+# Patch ptscotch Make/options: remove hardcoded brew/CONDA_PREFIX references
+cat > OpenFOAM-13/src/parallel/decompose/ptscotch/Make/options << 'PTEOF'
+-include $(GENERAL_RULES)/mplibType
+
+EXE_INC = \
+    $(PFLAGS) $(PINC) \
+    -I$(FOAM_SRC)/Pstream/mpi/lnInclude \
+    -I$(SCOTCH_ARCH_PATH)/include/$(FOAM_MPI) \
+    -I$(SCOTCH_ARCH_PATH)/include \
+    -I../decompositionMethods/lnInclude
+
+ifeq ($(SO),dylib)
+LIB_LIBS = \
+    -Wl,-needed_library,$(SCOTCH_ARCH_PATH)/lib/libptscotch.dylib \
+    -Wl,-needed_library,$(SCOTCH_ARCH_PATH)/lib/libptscotcherrexit.dylib \
+    -Wl,-needed_library,$(SCOTCH_ARCH_PATH)/lib/libscotch.dylib
+else
+LIB_LIBS = \
+    -L$(SCOTCH_ARCH_PATH)/lib \
+    $(if $(PTSCOTCH_LIB_DIR),-L$(PTSCOTCH_LIB_DIR)) \
+    -L$(FOAM_EXT_LIBBIN)/$(FOAM_MPI) \
+    -lptscotch \
+    -lptscotcherrexit \
+    -lscotch \
+    -lrt
+endif
+PTEOF
+
 # compile OpenFOAM-13
 if [ "$(uname)" = "Linux" ]; then
     export WM_NCOMPPROCS=`nproc` # parallel build
