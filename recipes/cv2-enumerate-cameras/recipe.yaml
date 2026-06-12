@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  version: "1.3.3"
+
+package:
+  name: cv2-enumerate-cameras
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/cv2-enumerate-cameras/cv2_enumerate_cameras-${{ version }}.tar.gz
+  sha256: cc09429e3fd4a2ea3449bbc0ee12420666aee6705d80a36f2235503d90fff3a2
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        # MSVC leaves mspdbsrv.exe/vctip.exe service processes running after the
+        # compile; they hold handles below the work directory and make
+        # rattler-build's cleanup fail with "Access is denied" (os error 5).
+        - taskkill /F /IM mspdbsrv.exe /T 2>nul & taskkill /F /IM vctip.exe /T 2>nul & exit /B 0
+      else:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - lscam = cv2_enumerate_cameras.__main__:main
+
+requirements:
+  build:
+    # setup.py builds the _windows_backend.cpp extension (MSMF/DSHOW) on
+    # Windows only; linux and macOS are pure python
+    - if: win
+      then:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+  host:
+    - python
+    - setuptools
+    - pip
+    # not used at build time, but forces rattler-build to build all python
+    # variants of the staged pyobjc recipes before this one; its deferred-test
+    # tracker matches dependencies by name only, so the test environment fails
+    # to solve when only a different-python variant has been built so far.
+    # Only needed while the recipes are staged together — remove once this
+    # lives in its own feedstock.
+    - if: osx
+      then: pyobjc-framework-avfoundation
+  run:
+    - python
+    # the macOS backend imports AVFoundation (PyObjC) at import time
+    - if: osx
+      then: pyobjc-framework-avfoundation
+
+tests:
+  - python:
+      imports:
+        - cv2_enumerate_cameras
+      pip_check: true
+  - requirements:
+      run:
+        - pip
+        - python
+    script:
+      - lscam --help
+
+about:
+  summary: Enumerate / List / Find / Detect / Search index for opencv VideoCapture.
+  description: |
+    cv2-enumerate-cameras lists the cameras available to OpenCV's
+    VideoCapture without having to open each device. For every camera it
+    reports the capture index together with metadata such as the device
+    name, vendor/product IDs, device path, and capture backend (V4L2 on
+    Linux, MSMF/DSHOW on Windows, AVFoundation on macOS). It also ships
+    the `lscam` command line tool to print the detected cameras.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/lukehugh/cv2_enumerate_cameras
+  repository: https://github.com/lukehugh/cv2_enumerate_cameras
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
