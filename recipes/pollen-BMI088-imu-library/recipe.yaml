@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "1.0.0rc1"
+
+package:
+  name: pollen-bmi088-imu-library
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pollen-BMI088-imu-library/pollen_bmi088_imu_library-${{ version }}.tar.gz
+  sha256: 6a82eafa448807a87c7a9e1ed8ef395b0ce5f2f57fa536b5b3a3f428e72d8fcf
+
+build:
+  number: 0
+  # depends on smbus3 (unix-only I2C via /dev/i2c-*); unusable on Windows.
+  # Not noarch because conda-forge's linter forbids skips on noarch packages
+  # in staged-recipes; once this lives in its own feedstock it can become
+  # noarch: python with a `__unix` run dependency instead.
+  # python floor: ahrs needs >=3.10.
+  skip: win or match(python, "<3.10")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python
+    - setuptools
+    - pip
+    # not used at build time, but forces rattler-build to build all python
+    # variants of smbus3 first; its deferred-test tracker matches by name only.
+    # Only needed while both recipes are staged together — remove once this
+    # recipe lives in its own feedstock.
+    - smbus3
+  run:
+    - python
+    - smbus3 ==0.5.5
+    - numpy >=2.2.5,<2.3.0
+    - ahrs
+
+tests:
+  - python:
+      imports:
+        - bmi088
+      pip_check: true
+
+about:
+  # Upstream declares no license anywhere (neither the PyPI metadata nor the
+  # GitHub repository); assumed Apache-2.0 to match the rest of the Reachy
+  # stack. The sdist ships no license file either, so the recipe bundles the
+  # Apache-2.0 text (rattler-build falls back to the recipe directory for
+  # license_file).
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: BMI088 IMU library for Pollen Robotics hardware
+  description: |
+    Python library from Pollen Robotics for reading the Bosch BMI088
+    six-axis inertial measurement unit (accelerometer and gyroscope) over
+    I2C using smbus3, with sensor fusion for orientation estimation built
+    on the ahrs library. It is used for the IMU in the Reachy Mini robot.
+  homepage: https://pypi.org/project/pollen-bmi088-imu-library/
+  repository: https://github.com/pollen-robotics/pollen_BMI088_imu_library
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
