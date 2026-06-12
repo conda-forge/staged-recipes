@@ -1,0 +1,144 @@
+schema_version: 1
+
+context:
+  version: "1.8.0"
+
+package:
+  name: reachy-mini
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/reachy-mini/reachy_mini-${{ version }}.tar.gz
+  sha256: 9c587f2386f1e11fe2f1fbfbcbffd191ee8dcf5cb1cd5fcd7621c2ab416a0dce
+
+build:
+  number: 0
+  # Upstream supports >=3.10, but requires scipy >=1.15.3 and conda-forge's
+  # last scipy build for python 3.10 is 1.15.2, so the 3.10 variant is
+  # unsolvable here.
+  skip: match(python, "<3.11")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - reachy-mini-daemon = reachy_mini.daemon.app.main:main
+      - reachy-mini-app-assistant = reachy_mini.apps.app:main
+      - reachy-mini-reflash-motors = reachy_mini.tools.reflash_motors:main
+
+requirements:
+  host:
+    - python
+    - setuptools
+    - pip
+    # not used at build time, but forces rattler-build to build all python
+    # variants of these sibling staged recipes first; its topological sort and
+    # deferred-test tracker ignore run-only dependencies / match by name only,
+    # so the test environment fails to solve otherwise. Only needed while the
+    # recipes are staged together — remove once this lives in its own feedstock.
+    - reachy-mini-motor-controller
+    - reachy-mini-rust-kinematics
+    - rustypot
+    - cv2-enumerate-cameras
+    - if: linux
+      then: pulsectl
+    - if: win
+      then: pycaw
+  run:
+    # Core dependencies
+    - python
+    - numpy >=2.2.5
+    - scipy >=1.15.3,<2.0.0
+    - reachy-mini-motor-controller >=1.5.5
+    - psutil
+    - jinja2
+    - uvicorn-standard
+    - fastapi
+    - python-multipart
+    - starlette <1.0.0
+    - pyserial
+    # Upstream pins huggingface-hub ==1.3.0, a version conda-forge never
+    # built; relaxed to a compatible range.
+    - huggingface_hub >=1.3.0,<2
+    - reachy-mini-rust-kinematics >=1.0.3
+    - asgiref
+    - aiohttp
+    - log-throttling ==0.0.3
+    - pyusb >=1.2.1
+    # Upstream pins >=1.0.26.3, but conda-forge ships 1.0.26.0 (the .x patch
+    # releases are PyPI-only); relaxed like the other pins above.
+    - libusb-package >=1.0.26
+    - pip >=25
+    - rich
+    - questionary
+    - websockets >=12,<16
+    - toml
+    - rustypot >=1.4.2
+    - pyyaml >=6.0
+    - requests >=2.28.0
+    - zeroconf >=0.131,<1
+    - tornado >=6.5.5
+    # Extras (this package ships all optional features)
+    # Upstream pins are exact (==); conda-forge lacks those exact builds, so relaxed to >=.
+    - mujoco >=3.3.0
+    - onnxruntime >=1.22
+    - rerun-sdk >=0.29.0,<=0.31.3
+    - semver
+    - pynput
+    - pysoundfile
+    - opencv
+    - cv2-enumerate-cameras
+    - gradio-client
+    - if: not win
+      then: placo >=0.9.14
+    # Platform-specific
+    - if: win
+      then: pycaw >=20240210
+    - if: linux
+      then: pulsectl >=24.1.0
+    # PyPI ships a bundled gstreamer ("gstreamer-bundle") off-Linux; on conda-forge we use the
+    # native gstreamer stack plus the GObject-introspection python bindings on all platforms.
+    - gstreamer >=1.28.3
+    - gst-plugins-base >=1.28.3
+    - gst-plugins-good >=1.28.3
+    - gst-python >=1.28.3
+    - pygobject >=3.42.2
+
+tests:
+  - python:
+      imports:
+        - reachy_mini
+      # The wheel METADATA pins several deps with == while the conda
+      # dependencies above are intentionally relaxed, so pip check always
+      # reports mismatches; this stays disabled as long as the pins diverge.
+      pip_check: false
+  # aiohttp (imported by the daemon) creates an SSL context at import time;
+  # loading the Windows certificate store fails on the Azure CI runners with
+  # "ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]" (malformed cert in the runner's
+  # store), so the CLI checks are skipped there.
+  - if: not win
+    then:
+      requirements:
+        run:
+          - pip
+          - python
+      script:
+        - reachy-mini-daemon --help
+        - reachy-mini-app-assistant --help
+        - reachy-mini-reflash-motors --help
+
+about:
+  summary: Python SDK, daemon, and tools for the Reachy Mini desktop robot
+  description: |
+    reachy-mini is the official Python package for Reachy Mini, the
+    open-source expressive desktop robot by Pollen Robotics and Hugging
+    Face. It bundles the SDK for controlling the robot's head, antennas,
+    audio, and camera, the `reachy-mini-daemon` that manages the hardware
+    and serves the web dashboard, tooling for installing and running apps
+    from the Hugging Face Hub, and MuJoCo-based simulation support.
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://huggingface.co/reachy-mini
+  repository: https://github.com/pollen-robotics/reachy_mini
+
+extra:
+  recipe-maintainers:
+    - ruben-arts
