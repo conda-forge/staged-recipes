@@ -1,0 +1,78 @@
+diff --git a/src/multimark/_build_cmark.py b/src/multimark/_build_cmark.py
+index a1f1838..14e7ead 100644
+--- a/src/multimark/_build_cmark.py
++++ b/src/multimark/_build_cmark.py
+@@ -1,5 +1,4 @@
+ import os
+-import glob
+ from cffi import FFI
+ 
+ ffi = FFI()
+@@ -10,27 +9,18 @@ here = os.path.dirname(os.path.abspath(__file__))
+ with open(os.path.join(here, "cmark.cffi.h")) as f:
+     ffi.cdef(f.read())
+ 
+-# Locate vendored cmark-gfm C sources (use relative paths from project root for setuptools)
+-project_root = os.path.normpath(os.path.join(here, "..", ".."))
+-src_dir_abs = os.path.join(project_root, "third_party", "cmark-gfm", "src")
+-ext_dir_abs = os.path.join(project_root, "third_party", "cmark-gfm", "extensions")
+-src_dir_rel = os.path.join("third_party", "cmark-gfm", "src")
+-ext_dir_rel = os.path.join("third_party", "cmark-gfm", "extensions")
+-
+-# Core library sources (exclude main.c)
+-src_sources_abs = sorted(glob.glob(os.path.join(src_dir_abs, "*.c")))
+-src_sources = [
+-    os.path.join(src_dir_rel, os.path.basename(s))
+-    for s in src_sources_abs
+-    if not s.endswith("main.c")
+-]
+-
+-# Extension sources
+-ext_sources_abs = sorted(glob.glob(os.path.join(ext_dir_abs, "*.c")))
+-ext_sources = [
+-    os.path.join(ext_dir_rel, os.path.basename(s))
+-    for s in ext_sources_abs
+-]
++include_dirs = [here]
++library_dirs = []
++
++if os.environ.get("PREFIX"):
++    include_dirs.append(os.path.join(os.environ["PREFIX"], "include"))
++    library_dirs.append(os.path.join(os.environ["PREFIX"], "lib"))
++
++if os.environ.get("LIBRARY_INC"):
++    include_dirs.append(os.environ["LIBRARY_INC"])
++
++if os.environ.get("LIBRARY_LIB"):
++    library_dirs.append(os.environ["LIBRARY_LIB"])
+ 
+ ffi.set_source(
+     "multimark._binding",
+@@ -38,8 +28,8 @@ ffi.set_source(
+     #include "cmark-gfm.h"
+     #include "cmark-gfm-core-extensions.h"
+     """,
+-    sources=src_sources + ext_sources,
+-    include_dirs=[src_dir_abs, ext_dir_abs],
+-    define_macros=[("CMARK_GFM_STATIC_DEFINE", None)],
++    libraries=["cmark-gfm", "cmark-gfm-extensions"],
++    include_dirs=include_dirs,
++    library_dirs=library_dirs,
+ )
+ 
+diff --git a/src/multimark/config.h b/src/multimark/config.h
+new file mode 100644
+index 0000000..68bcb15
+--- /dev/null
++++ b/src/multimark/config.h
+@@ -0,0 +1,10 @@
++#ifndef CMARK_CONFIG_H
++#define CMARK_CONFIG_H
++
++#include <stdbool.h>
++
++#ifndef CMARK_ATTRIBUTE
++#define CMARK_ATTRIBUTE(list)
++#endif
++
++#endif
