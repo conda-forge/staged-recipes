@@ -124,22 +124,15 @@ jobs:
           path: /tmp/conda-bld/linux-64/openfoam13_for_pato-*
           retention-days: 5
 
-      - name: Generate repodata and upload to R2
+      - name: Upload to Anaconda.org (bbdias)
         shell: bash -l {0}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
-          mkdir -p conda-channel/linux-64
-          ls /tmp/conda-bld/linux-64/
           PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.conda 2>/dev/null | head -1)
           if [ -z "$PKG" ]; then
             PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.tar.bz2 2>/dev/null | head -1)
           fi
           echo "Found package: $PKG"
-          cp "$PKG" conda-channel/linux-64/
-          pip install conda-index awscli
-          python -m conda_index conda-channel
-          aws s3 sync conda-channel/linux-64 s3://pato-conda-channel/linux-64 \
-            --endpoint-url $R2_ENDPOINT
+          conda install anaconda-client -c conda-forge -y
+          anaconda --token "$ANACONDA_TOKEN" upload --user bbdias --label main "$PKG"

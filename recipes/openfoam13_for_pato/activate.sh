@@ -17,7 +17,47 @@ if [ "$(uname)" = "Darwin" ]; then
     done
     LOCALMOUNTPOINT="$CONDA_PREFIX/src/volume_openfoam13_for_pato"
     if ! mount | grep "on $LOCALMOUNTPOINT " > /dev/null; then
-        hdiutil attach -mountpoint "$CONDA_PREFIX/src/volume_openfoam13_for_pato" "$CONDA_PREFIX/src/openfoam13_for_pato_conda.sparsebundle"
+        if ! hdiutil attach -mountpoint "$LOCALMOUNTPOINT" "$CONDA_PREFIX/src/openfoam13_for_pato_conda.sparsebundle" 2>/tmp/_of13_hdi_err.txt; then
+            # Attach failed — likely the same sparse bundle is already mounted by another conda env
+            # (conda hardlinks package files, so envs share the same band files and macOS only
+            # allows one mount at a time). Auto-detach from the other env and remount here.
+            # Scan ALL active mounts (not just envs/) to find wherever our bundle
+            # is currently mounted — this catches stale conda-bld build environments too.
+            _bundle_inode=$(ls -id "$CONDA_PREFIX/src/openfoam13_for_pato_conda.sparsebundle/token" 2>/dev/null | awk '{print $1}')
+            _remounted=false
+            if [ -n "$_bundle_inode" ]; then
+                while IFS= read -r _mount_line; do
+                    _mount_point=$(echo "$_mount_line" | sed 's/.* on \(.*\) (.*/\1/')
+                    [[ "$_mount_point" != */volume_openfoam13_for_pato ]] && continue
+                    [ "$_mount_point" = "$LOCALMOUNTPOINT" ] && continue
+                    _other_prefix="${_mount_point%/src/volume_openfoam13_for_pato}"
+                    _other_bundle="$_other_prefix/src/openfoam13_for_pato_conda.sparsebundle"
+                    [ ! -d "$_other_bundle" ] && continue
+                    _other_inode=$(ls -id "$_other_bundle/token" 2>/dev/null | awk '{print $1}')
+                    if [ "$_bundle_inode" = "$_other_inode" ]; then
+                        echo "openfoam13_for_pato: remounting from $_other_prefix → $(basename "$CONDA_PREFIX")"
+                        hdiutil detach "$_mount_point" -force 2>/dev/null || true
+                        if hdiutil attach -mountpoint "$LOCALMOUNTPOINT" "$CONDA_PREFIX/src/openfoam13_for_pato_conda.sparsebundle" 2>/dev/null; then
+                            _remounted=true
+                        fi
+                        break
+                    fi
+                done < <(mount)
+            fi
+            rm -f /tmp/_of13_hdi_err.txt
+            unset _bundle_inode _mount_line _mount_point _other_prefix _other_bundle _other_inode
+            if [ "$_remounted" = "false" ]; then
+                echo "" >&2
+                echo "ERROR: openfoam13_for_pato: failed to mount OpenFOAM 13 volume." >&2
+                echo "  Run: conda deactivate && conda activate $(basename "$CONDA_PREFIX")" >&2
+                echo "" >&2
+                unset _remounted
+                return 0 2>/dev/null || true
+            fi
+            unset _remounted
+        else
+            rm -f /tmp/_of13_hdi_err.txt
+        fi
     fi
 fi
 
@@ -43,80 +83,26 @@ if [ "$(uname)" = "Linux" ]; then
     fi
 fi
 
-# --- macOS: one-time post-install setup (libPstream fix + codesigning) ---
+# --- macOS: one-time codesigning on first activation per environment ---
+# Signatures written during conda build are rejected at runtime on macOS 26+.
+# Signing here (in the real user environment) produces valid signatures.
+# The SIGN_MARKER lives outside the sparse bundle so each env signs independently.
+# Only one env can have the bundle mounted at a time (macOS enforces this),
+# so there is no risk of concurrent writes to the shared band files.
 if [ "$(uname)" = "Darwin" ]; then
     OF13_PLATFORMS="$CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/platforms"
-    SIGN_MARKER="$CONDA_PREFIX/src/volume_openfoam13_for_pato/.codesigned"
-
+    SIGN_MARKER="$CONDA_PREFIX/src/.openfoam13_for_pato_codesigned"
     if [ ! -f "$SIGN_MARKER" ] && [ -d "$OF13_PLATFORMS" ]; then
-        echo "openfoam13_for_pato: one-time post-install setup..."
-
-        # Fix libPstream: copy dummy lib for serial mode (OF13 puts MPI libPstream in openmpi-system/).
-        for plat_dir in "$OF13_PLATFORMS"/darwin64*; do
-            LIBDIR="$plat_dir/lib"
-            if [ -f "$LIBDIR/dummy/libPstream.dylib" ] && [ ! -f "$LIBDIR/libPstream.dylib" ]; then
-                cp "$LIBDIR/dummy/libPstream.dylib" "$LIBDIR/libPstream.dylib"
-            fi
-            # Fix @rpath/libc++.1.dylib reference in MPI Pstream so it resolves without DYLD_LIBRARY_PATH.
-            if [ -f "$LIBDIR/openmpi-system/libPstream.dylib" ]; then
-                install_name_tool -change "@rpath/libc++.1.dylib" "/usr/lib/libc++.1.dylib" \
-                    "$LIBDIR/openmpi-system/libPstream.dylib" 2>/dev/null || true
-            fi
+        echo "openfoam13_for_pato: signing binaries (once per environment)..."
+        find "$OF13_PLATFORMS" -type f \( -name "*.dylib" -o -perm -111 \) | while read -r f; do
+            # Strip any existing (possibly corrupted) signature before re-signing.
+            # install_name_tool invalidates signatures; --force alone cannot overwrite
+            # a malformed signature blob on macOS 26+.
+            /usr/bin/codesign --remove-signature "$f" 2>/dev/null || true
+            /usr/bin/codesign --force -s - "$f" 2>/dev/null || true
         done
-
-        # Re-sign all binaries: conda package assembly invalidates the build-time signatures.
-        # On Darwin 25+ (macOS 16+), binaries compiled on older macOS may fail strict Mach-O
-        # validation, causing codesign to silently succeed but the binary to remain unexecutable.
-        # We verify against a representative binary before committing to the full signing pass.
-        _test_bin=""
-        for plat_dir in "$OF13_PLATFORMS"/darwin64*; do
-            for candidate in "$plat_dir/bin/foamRun" "$plat_dir/bin/blockMesh"; do
-                if [ -f "$candidate" ]; then
-                    _test_bin="$candidate"
-                    break 2
-                fi
-            done
-        done
-
-        _sign_ok=false
-        if [ -n "$_test_bin" ]; then
-            /usr/bin/codesign --force -s - "$_test_bin" 2>/dev/null
-            if /usr/bin/codesign --verify "$_test_bin" 2>/dev/null; then
-                _sign_ok=true
-            fi
-        else
-            # No test binary found — assume signing will work and proceed.
-            _sign_ok=true
-        fi
-
-        if [ "$_sign_ok" = "true" ]; then
-            echo "openfoam13_for_pato: re-signing binaries (this may take a moment)..."
-            find "$OF13_PLATFORMS" -type f \( -name "*.dylib" -o -perm -111 \) | while read -r f; do
-                /usr/bin/codesign --force -s - "$f" 2>/dev/null || true
-            done
-            touch "$SIGN_MARKER"
-            echo "openfoam13_for_pato: post-install setup complete."
-        else
-            _darwin_major=$(uname -r | cut -d. -f1)
-            _macos_ver=$((_darwin_major - 9))
-            echo ""
-            echo "WARNING: openfoam13_for_pato: could not re-sign OpenFOAM 13 binaries."
-            echo "  Kernel: $(uname -r) — Darwin ${_darwin_major} (macOS ${_macos_ver})"
-            if [ "${_darwin_major}" -ge 25 ] 2>/dev/null; then
-                echo "  Darwin 25+ enforces stricter Mach-O validation. Binaries compiled on"
-                echo "  older macOS versions cannot be re-signed on this system."
-                echo "  Fix: rebuild the openfoam13_for_pato package natively on Darwin ${_darwin_major}."
-            else
-                echo "  Unexpected signing failure. Check that /usr/bin/codesign is functional."
-            fi
-            echo "  OpenFOAM 13 commands will not work until this is resolved."
-            echo "  This setup will be retried on the next conda activation."
-            echo ""
-            unset _test_bin _sign_ok _darwin_major _macos_ver
-            return 0 2>/dev/null || true
-        fi
-
-        unset _test_bin _sign_ok _darwin_major _macos_ver
+        touch "$SIGN_MARKER"
+        echo "openfoam13_for_pato: signing complete."
     fi
 fi
 
