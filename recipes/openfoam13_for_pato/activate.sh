@@ -128,3 +128,22 @@ if [ -n "$FOAM_DYLD_LIBRARY_PATH" ]; then
     export FOAM_DYLD_LIBRARY_PATH=$(_fix_dyld_path "$FOAM_DYLD_LIBRARY_PATH")
 fi
 unset -f _fix_dyld_path
+
+# --- Add ParaView to PATH if installed as a macOS app ---
+# paraFoam calls 'paraview' by name; on macOS it is typically installed as
+# a .app bundle rather than a binary in PATH. Aliases (e.g. in .zshrc) are
+# not inherited by bash subshells, so we must add the MacOS/ dir to PATH.
+# Check both /Applications (system-wide) and ~/Applications (per-user).
+# Use find instead of globs: zsh throws an error on unmatched globs when
+# this script is sourced, whereas bash silently ignores them.
+if [ "$(uname)" = "Darwin" ]; then
+    for _pv_base in /Applications "$HOME/Applications"; do
+        [ -d "$_pv_base" ] || continue
+        _pv_app=$(find "$_pv_base" -maxdepth 1 -name "ParaView*.app" -type d 2>/dev/null | sort -rV | head -1)
+        if [ -n "$_pv_app" ] && [ -f "$_pv_app/Contents/MacOS/paraview" ]; then
+            export PATH="$_pv_app/Contents/MacOS:$PATH"
+            break
+        fi
+    done
+    unset _pv_base _pv_app
+fi
