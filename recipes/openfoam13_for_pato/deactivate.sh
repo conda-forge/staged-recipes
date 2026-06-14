@@ -5,7 +5,7 @@ if [ "$(uname)" = "Darwin" ]; then
     if [ -d $LOCALMOUNTPOINT ]; then
         if mount | grep "on $LOCALMOUNTPOINT " > /dev/null; then
             if [ -f $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset ] && [ ! -z "${WM_PROJECT_DIR}" ]; then
-                source $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset
+                source $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset 2>/dev/null || true
                 for old_path in \
                     $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/ThirdParty-13/platforms/darwin64ClangDPInt32Opt/lib \
                     $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/platforms/darwin64ClangDPInt32Opt/lib/openmpi-system \
@@ -26,14 +26,14 @@ if [ "$(uname)" = "Darwin" ]; then
                 export DYLD_LIBRARY_PATH
             fi
             cd $CONDA_PREFIX
-            hdiutil detach $LOCALMOUNTPOINT
+            hdiutil detach $LOCALMOUNTPOINT || true
         fi
     fi
 fi
 
 if [ "$(uname)" = "Linux" ]; then
     if [ -f $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset ] && [ ! -z "${WM_PROJECT_DIR}" ]; then
-        source $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset
+        source $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/etc/config.sh/unset 2>/dev/null || true
         for old_path in \
             $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/ThirdParty-13/platforms/linux64GccDPInt32/lib \
             $CONDA_PREFIX/src/volume_openfoam13_for_pato/OpenFOAM/OpenFOAM-13/platforms/linux64GccDPInt32Opt/lib/openmpi-system \
