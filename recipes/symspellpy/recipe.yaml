@@ -15,13 +15,18 @@ build:
   number: 0
   noarch: python
   script:
-    # PYTHONHASHSEED pins the hash seed so Python skips the OS-RNG read at
-    # interpreter startup. Works around transient conda-forge Windows CI runs
-    # where _Py_HashRandomization_Init fails to get random numbers and aborts
-    # the build. Harmless: affects only hash-seed determinism, not package content.
+    # Two workarounds for conda-forge's currently-unstable Windows runner, where
+    # late builds intermittently fail in Python's crypto/RNG primitives:
+    #   - PYTHONHASHSEED pins the hash seed so Python skips the OS-RNG read at
+    #     startup (else _Py_HashRandomization_Init fails to get random numbers).
+    #   - --use-deprecated=legacy-certs makes pip skip truststore SSL-context init
+    #     (truststore.SSLContext), which fails under OpenSSL 3.6.3 on Windows
+    #     (conda-forge/openssl-feedstock#237).
+    # Both are harmless here (noarch, offline --no-deps install); drop once the
+    # upstream OpenSSL/Python fix propagates.
     env:
       PYTHONHASHSEED: "0"
-    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --use-deprecated=legacy-certs
 
 requirements:
   host:
