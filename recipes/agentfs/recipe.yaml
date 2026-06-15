@@ -1,0 +1,122 @@
+context:
+  version: "0.6.4"
+  pyturso_version: "0.4.4"
+  python_min: "3.10"
+
+recipe:
+  name: agentfs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tursodatabase/agentfs/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a00eb0936a7f4915b962a6b1ef28f3c150cda4bcf2c9bf9e8a7dfed0ce7351cb
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: agentfs
+      version: ${{ version }}
+
+    build:
+      skip:
+        - win
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          # cli/build.rs runs `git describe` to embed a version. The tarball has no
+          # .git, so git would discover the surrounding checkout (e.g. staged-recipes)
+          # and embed its commit hash. Stop the walk at SRC_DIR so build.rs falls
+          # back to CARGO_PKG_VERSION.
+          - export GIT_CEILING_DIRECTORIES="${SRC_DIR}"
+          - if: linux
+            then:
+              # build.rs unconditionally links liblzma, but it is only needed by the
+              # `sandbox` feature (disabled below: reverie is a git dep and needs
+              # nightly Rust). Drop the directive instead of depending on liblzma.
+              - sed -i '/rustc-link-lib=lzma/d' cli/build.rs
+          - if: unix
+            then:
+              - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path cli --no-default-features
+          - cd cli && cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("rust") }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - pkg-config
+      host:
+        - openssl <4
+
+    tests:
+      - script:
+          - agentfs --help
+          - agentfs --version
+      - package_contents:
+          bin:
+            - agentfs
+          strict: true
+
+    about:
+      summary: The filesystem for agents
+      license_file:
+        - licenses/LICENSE-fuser.md
+        - licenses/LICENSE-nfsserve.md
+        - THIRDPARTY.yml
+
+  - package:
+      name: agentfs-sdk
+      version: ${{ version }}
+
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install ./sdk/python -vv --no-deps --no-build-isolation
+
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=61.0
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - pyturso ==${{ pyturso_version }}
+
+    tests:
+      - python:
+          imports:
+            - agentfs_sdk
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+
+    about:
+      summary: AgentFS Python SDK - A filesystem and key-value store for AI agents
+      license_file:
+        - licenses/LICENSE-fuser.md
+        - licenses/LICENSE-nfsserve.md
+
+about:
+  homepage: https://agentfs.ai
+  summary: The filesystem for agents
+  description: |
+    AgentFS is a filesystem designed for AI agents. It provides a command-line
+    interface and Python SDK for managing agent filesystems backed by
+    SQLite/Turso databases.
+  license: MIT
+  license_file:
+    - licenses/LICENSE-fuser.md
+    - licenses/LICENSE-nfsserve.md
+  repository: https://github.com/tursodatabase/agentfs
+  documentation: https://github.com/tursodatabase/agentfs/blob/main/MANUAL.md
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
