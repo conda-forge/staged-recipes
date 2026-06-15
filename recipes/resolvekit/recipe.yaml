@@ -15,7 +15,18 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    # On Windows, pip 26's truststore SSL-context init (truststore.SSLContext)
+    # fails under conda-forge's OpenSSL 3.6.3 (conda-forge/openssl-feedstock#237),
+    # aborting the build before any network use. --use-deprecated=legacy-certs
+    # makes pip skip truststore; harmless here since --no-deps --no-build-isolation
+    # performs no HTTPS. Drop once the upstream OpenSSL/Python fix propagates.
+    - if: win
+      then:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --use-deprecated=legacy-certs
+    - if: unix
+      then:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
