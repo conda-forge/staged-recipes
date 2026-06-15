@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make libR findable for Cargo and R wrapper scripts
-export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib ${RUSTFLAGS}"
+export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib -C link-arg=-L${PREFIX}/lib ${RUSTFLAGS}"
 export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
 export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
 
