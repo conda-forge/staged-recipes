@@ -16,7 +16,17 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    content:
+      - ${{ PYTHON }} -m build --wheel --no-isolation
+      - if: unix
+        then:
+          - ${{ PYTHON }} -m installer --destdir=$PREFIX dist/*.whl
+      - if: win
+        then:
+          - for %%f in (dist\*.whl) do ${{ PYTHON }} -m installer --destdir=%PREFIX% "%%f"
+    env:
+      PYTHONHASHSEED: "0"
   python:
     entry_points:
       - metaxy = metaxy.cli.app:main
@@ -25,7 +35,8 @@ build:
 requirements:
   host:
     - python ${{ python_min }}.*
-    - pip
+    - python-build
+    - python-installer
     - uv-build >=0.8.14,<0.9.0
   run:
     - python >=${{ python_min }}
