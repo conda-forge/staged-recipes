@@ -1,0 +1,71 @@
+context:
+  version: "0.6.25"
+
+package:
+  name: rave
+  version: ${{ version }}
+
+source:
+  url: https://rave.hepforge.org/downloads?f=rave-${{ version }}.tar.gz
+  sha256: fb52fff3aa32e78d7576569113743af1f0868a5dc7b5c055e2ea0e6c1c49d070
+  patches:
+    - 0001-cpp17.patch
+    - 0002-glibc2.3-isnan.patch
+    - 0003-silence-cout.patch
+    - 0004-template-fix.patch
+    - 0005-uniqueptr.patch
+
+build:
+  script:
+    - rm -rf src/boost
+    - ln -sf "${PREFIX}/include/boost" src/boost
+    - rm -rf src/ROOT/*/Math
+    - ln -sf "${PREFIX}/include/Math" src/ROOT/mathcore && ln -sf "${PREFIX}/include/Math" src/ROOT/smatrix
+    - rm -rf src/ROOT/genvector/Math
+    - ln -sf "${PREFIX}/include/Math" src/ROOT/genvector/Math
+    - echo "" > src/ROOT/src/GenVector_Throw.cc
+    - CXXFLAGS="${CXXFLAGS} -std=c++20" LDFLAGS="$(root-config --libs)" ./configure --prefix=${PREFIX} --disable-java --disable-static --with-clhep=${PREFIX} --with-boost=${PREFIX}
+    - make -j${CPU_COUNT} CXX=$CXX && make install
+  number: 0
+  skip:
+    - win
+
+tests:
+  - script:
+    - rave_version
+    - kinematics01 && kinematics02 && kinematics03
+    - propagatortests
+    - memorytests
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - make
+  host:
+    - clhep
+    - libboost-devel
+    - pkg-config
+    - root =6.36.06
+  run:
+    - clhep
+    - root =6.36.06
+
+about:
+  homepage: https://rave.hepforge.org/
+  summary: 'Reconstruction in an Abstract, Versatile Environment - Rave'
+  description: |
+    Rave takes a set of reconstructed particle tracks as its input and produces reconstructed interaction vertices as
+    its output. It deals both with finding (pattern recognition) and with fitting (statistical estimation) of the
+    interaction vertices.
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://rave.hepforge.org/doxygen/html/
+  repository: https://repo.hepforge.org/source/ravesvn/
+
+extra:
+  recipe-maintainers:
+    - utk4r-sh
+    - GiacomoXT
+    - vvsagar
+    - AlexanderHeidelbach
