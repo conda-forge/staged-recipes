@@ -1,0 +1,226 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# Adapted from AnacondaRecipes/ctranslate2-feedstock@main (v4.7.1, recipe by
+# xkong-anaconda) for conda-forge:
+#   - bumped main source v4.7.1 -> v4.8.0 (latest PyPI as of 2026-06-16)
+#   - converted v0 meta.yaml -> v1 recipe.yaml
+#   - dropped MKL variant (Intel MKL is proprietary; conda-forge prefers
+#     OpenBLAS/Accelerate by default)
+#   - dropped CUDA variants (gpu_variant: none only); CUDA + cublas will
+#     ship as a follow-up `ctranslate2-cuda` feedstock under conda-forge
+#     CUDA-matrix policy
+#   - dropped MKL/CUDA patches (anaconda's patches/ are all MKL or CUDA
+#     specific - none apply to the CPU-only OpenBLAS/Accelerate build)
+# Same 3-submodule parallel-source pattern (spdlog, cxxopts, cpu_features);
+# avoids `source.git + submodules: true` for sha-stable reproducible builds.
+# ruy + cutlass + thrust + googletest submodules NOT needed (CUDA-only,
+# tests-only, or disabled).
+
+context:
+  version: "4.8.0"
+
+recipe:
+  name: ctranslate2-suite
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: cd142054c14aa7f7a4b20674d6b5e4bb7ff9c63b919e6491d3df261b214fcfa5
+  - url: https://github.com/gabime/spdlog/archive/v1.14.1.tar.gz
+    sha256: 1586508029a7d0670dfcb2d97575dcdc242d3868a259742b69f100801ab4e16b
+    target_directory: third_party/spdlog
+  - url: https://github.com/jarro2783/cxxopts/archive/v3.1.1.tar.gz
+    sha256: 523175f792eb0ff04f9e653c90746c12655f10cb70f1d5e6d6d9491420298a08
+    target_directory: third_party/cxxopts
+  - url: https://github.com/google/cpu_features/archive/v0.9.0.tar.gz
+    sha256: bdb3484de8297c49b59955c3b22dba834401bc2df984ef5cfc17acbe69c5018e
+    target_directory: third_party/cpu_features
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libctranslate2
+    build:
+      script:
+        - if: unix
+          then: |
+            set -ex
+            if [[ "$(uname)" == "Darwin" ]]; then
+              BLAS_FLAGS="-DWITH_MKL=OFF -DWITH_OPENBLAS=OFF -DWITH_ACCELERATE=ON -DOPENMP_RUNTIME=COMP"
+            else
+              BLAS_FLAGS="-DWITH_MKL=OFF -DWITH_OPENBLAS=ON -DWITH_ACCELERATE=OFF -DOPENMP_RUNTIME=COMP"
+            fi
+            cmake -S . -B build -G Ninja \
+              ${CMAKE_ARGS} \
+              -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+              -DCMAKE_PREFIX_PATH="${PREFIX}" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_SHARED_LIBS=ON \
+              -DBUILD_CLI=OFF \
+              -DBUILD_TESTS=OFF \
+              -DENABLE_CPU_DISPATCH=ON \
+              -DWITH_DNNL=OFF \
+              -DWITH_RUY=OFF \
+              -DWITH_CUDA=OFF \
+              -DWITH_CUDNN=OFF \
+              ${BLAS_FLAGS}
+            cmake --build build --config Release --parallel ${CPU_COUNT} --verbose
+            cmake --install build
+        - if: win
+          then: |
+            cmake -S . -B build -G Ninja ^
+              %CMAKE_ARGS% ^
+              -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+              -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DBUILD_SHARED_LIBS=ON ^
+              -DBUILD_CLI=OFF ^
+              -DBUILD_TESTS=OFF ^
+              -DENABLE_CPU_DISPATCH=ON ^
+              -DWITH_DNNL=OFF ^
+              -DWITH_RUY=OFF ^
+              -DWITH_MKL=OFF ^
+              -DWITH_OPENBLAS=ON ^
+              -DWITH_ACCELERATE=OFF ^
+              -DWITH_CUDA=OFF ^
+              -DWITH_CUDNN=OFF
+            if errorlevel 1 exit 1
+            cmake --build build --config Release --parallel %CPU_COUNT% --verbose
+            if errorlevel 1 exit 1
+            cmake --install build
+            if errorlevel 1 exit 1
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        # conda-forge `openblas` ships headers + cmake config (needed for
+        # `find_package(OpenBLAS)`); `libopenblas` alone is runtime-only.
+        - if: linux
+          then:
+            - openblas
+            - libgomp
+        - if: win
+          then:
+            - openblas
+        - if: osx
+          then:
+            - llvm-openmp
+      run_exports:
+        - ${{ pin_subpackage('libctranslate2', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: test -f $PREFIX/lib/libctranslate2${SHLIB_EXT}
+          - if: unix
+            then: test -f $PREFIX/include/ctranslate2/translator.h
+          - if: win
+            then: if not exist "%LIBRARY_PREFIX%\bin\ctranslate2.dll" exit 1
+          - if: win
+            then: if not exist "%LIBRARY_PREFIX%\include\ctranslate2\translator.h" exit 1
+
+  - package:
+      name: ctranslate2
+    build:
+      python:
+        entry_points:
+          - ct2-fairseq-converter = ctranslate2.converters.fairseq:main
+          - ct2-marian-converter = ctranslate2.converters.marian:main
+          - ct2-openai-gpt2-converter = ctranslate2.converters.openai_gpt2:main
+          - ct2-opennmt-py-converter = ctranslate2.converters.opennmt_py:main
+          - ct2-opennmt-tf-converter = ctranslate2.converters.opennmt_tf:main
+          - ct2-opus-mt-converter = ctranslate2.converters.opus_mt:main
+          - ct2-transformers-converter = ctranslate2.converters.transformers:main
+      script:
+        - if: unix
+          then: |
+            cd python
+            export CTRANSLATE2_ROOT=${PREFIX}
+            ${PYTHON} -m pip install . --no-deps --no-build-isolation -vv
+        - if: win
+          then: |
+            cd python
+            set CTRANSLATE2_ROOT=%LIBRARY_PREFIX%
+            %PYTHON% -m pip install . --no-deps --no-build-isolation -vv
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - pybind11
+            - numpy
+      host:
+        - python
+        - pip
+        - setuptools
+        - pybind11
+        - numpy
+        - ${{ pin_subpackage('libctranslate2', exact=True) }}
+      run:
+        - python
+        - numpy
+        - pyyaml >=5.3,<7
+        - setuptools
+        - ${{ pin_subpackage('libctranslate2', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - ctranslate2
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - requirements:
+          run:
+            - pip
+        script:
+          - python -c "from ctranslate2.converters import opennmt_py"
+          - python -c "from ctranslate2.converters import fairseq"
+          - python -c "from ctranslate2.converters import openai_gpt2"
+          - python -c "from ctranslate2.converters import opus_mt"
+          - python -c "from ctranslate2.converters import opennmt_tf"
+          - if: unix
+            then: ct2-opennmt-py-converter --help
+
+about:
+  homepage: https://github.com/OpenNMT/CTranslate2
+  license: MIT
+  license_file: LICENSE
+  summary: Fast inference engine for Transformer models
+  description: |
+    CTranslate2 is a C++ and Python library for efficient inference with
+    Transformer models. It implements a custom runtime that applies many
+    performance optimization techniques such as weights quantization,
+    layer fusion, batch reordering, etc., to accelerate and reduce the
+    memory usage of Transformer models on CPU and GPU.
+
+    Used by faster-whisper for fast speech-to-text inference.
+  repository: https://github.com/OpenNMT/CTranslate2
+  documentation: https://opennmt.net/CTranslate2/
+
+extra:
+  recipe-maintainers:
+    - rxm7706
+
+# Pre-submission TODOs:
+#   1. Build-verify locally on linux-64 with OpenBLAS before submission.
+#   2. Verify spdlog 1.14.1 + cxxopts 3.1.1 + cpu_features 0.9.0 satisfy
+#      v4.8.0's CMake checks (Anaconda v4.7.1 worked with these; may need
+#      bumps for v4.8.0).
+#   3. CUDA variants (cuda-12, cuda-13) follow up as a separate
+#      `ctranslate2-cuda` recipe or via conda-forge's CUDA-matrix variant
+#      pattern (provider-controlled, GPU runners required).
+#   4. linux-ppc64le / linux-aarch64: OpenBLAS supports both natively;
+#      no extra work expected, but spot-check ENABLE_CPU_DISPATCH on VSX.
+#   5. Consider also bumping spdlog -> 1.15.x, cxxopts -> 3.2.x once
+#      verified compatible.
