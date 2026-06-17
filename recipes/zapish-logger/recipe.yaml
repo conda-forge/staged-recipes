@@ -1,21 +1,31 @@
 schema_version: 1
 
 context:
-  name: zapish-logger
   version: "1.1.3"
 
 package:
-  name: ${{ name|lower }}
+  name: zapish-logger
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/zapish_logger-${{ version }}.tar.gz
+  url: https://pypi.org/packages/source/z/zapish-logger/zapish_logger-${{ version }}.tar.gz
   sha256: 85de29c3220eec45f72f4a22e9308af22725fc7522201cf7edf39d42123ffda8
 
 build:
   number: 0
   noarch: python
   script:
+    # PYTHONHASHSEED=0: Windows CI runners with restricted APIs fail at
+    # Python startup (_Py_HashRandomization_Init) when the OS RNG is unavailable.
+    # Setting PYTHONHASHSEED=0 disables hash randomisation, avoiding that call.
+    #
+    # --use-deprecated=legacy-certs: pip >= 24.2 eagerly constructs a
+    # truststore-backed SSLContext during session init (before any network call
+    # is made), which also hits the OS crypto stack and fails on the same
+    # restricted runners. The legacy-certs flag skips that construction
+    # entirely, which is safe here since this is a fully local install
+    # (--no-deps --no-build-isolation).
+    # See: https://pip.pypa.io/en/stable/topics/https-certificates/
     content:
       - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --use-deprecated=legacy-certs
     env:
