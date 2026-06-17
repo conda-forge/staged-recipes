@@ -158,7 +158,9 @@ all_patients["outcomeTime"] = 20500101
 all_patients = all_patients[
     ["EVENT_FIELDS", "id", "time", "outcome", "outcomeTime", "split"]
 ]
+print(all_patients.head())
 all_patients.to_csv(os.path.join(WORK_DIR, "train_samples"), index=False, sep="\t")
+print(f"Wrote to [{os.path.join(WORK_DIR, 'train_samples')}] {len(all_patients)} lines")
 
 
 # Train the model:
