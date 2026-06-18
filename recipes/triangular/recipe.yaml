@@ -14,18 +14,27 @@ source:
 
 build:
   number: 0
-  skip: match(python, "<" ~ python_min)
+  skip: is_abi3 and not is_python_min
   script:
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: ${{ is_abi3 }}
 
 requirements:
   build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.7,<2
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - ${{ compiler('rust') }}
     - cargo-bundle-licenses
   host:
+    - if: is_abi3
+      then: python-abi3
     - python
     - maturin >=1.7,<2
     - pip
@@ -35,9 +44,24 @@ requirements:
 
 tests:
   - python:
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
       imports:
         - triangular
+        - triangular._triangular
       pip_check: true
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/triangular/_triangular.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\triangular\_triangular.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
 
 about:
   summary: 2-D Delaunay triangulation and convex hull, API-compatible with the triangle library.
