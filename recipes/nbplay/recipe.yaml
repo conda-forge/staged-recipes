@@ -1,5 +1,5 @@
 context:
-  version: "0.1.0"
+  version: "0.1.1"
 
 package:
   name: nbplay
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.org/packages/source/n/nbplay/nbplay-${{ version }}.tar.gz
-  sha256: f0579bf9a54b474ff850b8830e9dc4c2bad2efbae6a9466c357c532d13386e6e
+  sha256: 455956bacf2d48d7bcb457e3f1ae8a9e1b1634feebc3328254ed1950a891e450
 
 build:
   number: 0
@@ -15,8 +15,12 @@ build:
     version_independent: true
   script:
     - if: unix
-      then: export PYO3_PYTHON="$PYTHON"
-      else: set "PYO3_PYTHON=%PYTHON%"
+      then:
+        - export PYO3_PYTHON="$PYTHON"
+        - export RUSTFLAGS=""
+      else:
+        - set "PYO3_PYTHON=%PYTHON%"
+        - set "RUSTFLAGS="
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   skip: is_abi3 and not is_python_min
@@ -31,6 +35,8 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ stdlib("c") }}
     - ${{ compiler('rust') }}
+    - rust-std-wasm32-unknown-unknown
+    - wasm-bindgen-cli ==0.2.121
     - cargo-bundle-licenses
   host:
     - python
@@ -56,6 +62,17 @@ tests:
         - nbplay
       pip_check: true
       python_version: ${{ python_min }}.*
+  - if: is_abi3
+    then:
+      script:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/nbplay/nbplay.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/nbplay/nbplay.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      requirements:
+        run:
+          - abi3audit
 
 about:
   license: Apache-2.0
