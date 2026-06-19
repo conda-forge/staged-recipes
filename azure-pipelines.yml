@@ -1,18 +1,18 @@
 # Don't run build jobs for branches
 trigger:
-  batch: true
+  batch: false
   branches:
-    exclude:
-      - "*"
+    include:
+      - gh-readonly-queue/*
 
 # Still allow PR builds to run against main
 pr:
 - main
 
 stages:
-- stage: Check
+- stage: check
   jobs:
-    - job: Skip
+    - job: skip
       pool:
         vmImage: 'ubuntu-22.04'
       variables:
@@ -32,10 +32,71 @@ stages:
       - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
         name: result
         displayName: Export result
-- stage: Build
-  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  dependsOn: Check
+- stage: build
+  condition: and(succeeded(), eq(dependencies.check.outputs['skip.result.start_main'], 'true'))
+  dependsOn: check
   jobs:
+  - job: fast_finish
+    displayName: fast finish
+    pool:
+      vmImage: 'ubuntu-22.04'
+    steps:
+    - script: |
+        ./.scripts/fast_finish.sh
+      name: fast_finish
+      displayName: Fast finish
+      env:
+        CI: azure
   - template: ./.azure-pipelines/azure-pipelines-linux.yml
   - template: ./.azure-pipelines/azure-pipelines-osx.yml
   - template: ./.azure-pipelines/azure-pipelines-win.yml
+  - job: status
+    pool:
+      vmImage: 'ubuntu-22.04'
+    dependsOn:
+      - fast_finish
+      - win_64
+      - osx
+      - linux_64
+      - linux_64_cuda_129
+      - linux_64_cuda_130
+    condition: always()
+    variables:
+      win_64: $[ dependencies.win_64.result ]
+      osx: $[ dependencies.osx.result ]
+      linux_64: $[ dependencies.linux_64.result ]
+      linux_64_cuda_129: $[ dependencies.linux_64_cuda_129.result ]
+      linux_64_cuda_130: $[ dependencies.linux_64_cuda_130.result ]
+    steps:
+      - checkout: none
+      - bash: |
+          # a build is successful if any of the jobs succeeds or all are skipped
+
+          echo "linux_64 status: ${LINUX_64}"
+          echo "linux_64_cuda_129 status: ${LINUX_64_CUDA_129}"
+          echo "linux_64_cuda_130 status: ${LINUX_64_CUDA_130}"
+          echo "osx status: ${OSX}"
+          echo "win_64 status: ${WIN_64}"
+
+          has_success=false
+          all_skipped=true
+
+          for val in ${LINUX_64} ${LINUX_64_CUDA_129} ${LINUX_64_CUDA_130} ${OSX} ${WIN_64}; do
+            if [[ "${val}" == "Succeeded" ]]; then
+              has_success=true
+            fi
+
+            if [[ "${val}" != "Skipped" ]]; then
+              all_skipped=false
+            fi
+          done
+
+          echo "any successful builds: ${has_success}"
+          echo "all builds skipped: ${all_skipped}"
+
+          if [[ ("${has_success}" == "true") || ("${all_skipped}" == "true") ]]; then
+            exit 0
+          else
+            exit 1
+          fi
+        displayName: check
