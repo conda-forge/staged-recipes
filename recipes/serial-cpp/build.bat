@@ -5,6 +5,7 @@ cmake %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -G "Ninja" ^
     -DBUILD_TESTING:BOOL=ON ^
+    -DBUILD_SHARED_LIBS:BOOL=ON ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
