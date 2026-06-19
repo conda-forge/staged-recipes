@@ -1,0 +1,72 @@
+# rattler-build recipe (v1 / CEP-13 format) for cetmodules.
+#
+# Build with (from conda/):
+#   rattler-build build --recipe recipes/art-suite/cetmodules/recipe.yaml
+#
+# cetmodules is the CMake build system the entire art suite depends on. It is
+# product #0 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md) and
+# MUST be built first -- every downstream package does find_package(cetmodules)
+# and uses its macros (cet_cmake_env(), cet_make_library(), ...).
+#
+# It is a pure CMake/Perl/Bash product: project(... LANGUAGES NONE), so there is
+# nothing to compile. The install is fully relocatable (no build prefix is baked
+# into any installed file), hence noarch: generic and no compiler/stdlib deps.
+#
+# UPS version v3_24_01  ==  FNALssi git tag 3.24.01 (their tags use dotted form).
+
+context:
+  name: cetmodules
+  version: "3.24.01"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # GitHub's auto-generated archive zip is byte-stable; this sha256 matches the
+  # copy staged under ../src_bundles/cetmodules-3.24.01.zip. To build offline,
+  # swap this `url` for `path: ../../../../src_bundles/cetmodules-3.24.01.zip`.
+  url: https://github.com/FNALssi/cetmodules/archive/refs/tags/${{ version }}.zip
+  sha256: 9f66df000cc44ea775fb6d36bff075aa5fbf055e910ed064bf0729a35d30e9d1
+
+build:
+  number: 1                      # rebuild: strip stray prefix-root INSTALL/LICENSE/README
+                                 #   (collided with ROOT's $PREFIX/README/ directory)
+  # No compiled artifacts; cmake files + scripts are platform-independent.
+  noarch: generic
+  script: build.sh
+
+requirements:
+  build:
+    # cetmodules requires CMake >= 3.22 (CMakeLists.txt cmake_minimum_required).
+    - cmake >=3.22
+    - make
+  # No host/run deps: the find_package(cetmodules) + macro path is pure CMake.
+  # The optional Perl helper scripts (format-code, increment-version, ...) are
+  # not on the art build path; add `perl` to run: only if a downstream build
+  # actually invokes one.
+
+tests:
+  - package_contents:
+      files:
+        # find_package(cetmodules) entry point.
+        - lib/cetmodules/cmake/cetmodulesConfig.cmake
+        - lib/cetmodules/cmake/cetmodulesConfigVersion.cmake
+        # A representative sample of the CMake macros downstream packages need.
+        - Modules/CetCMakeEnv.cmake
+        - Modules/CetMakeLibrary.cmake
+        - Modules/BuildDictionary.cmake
+      bin:
+        - buildtool
+
+about:
+  homepage: https://github.com/FNALssi/cetmodules
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: CMake modules and scripts for building interdependent HEP software (FNAL art suite build system)
+  description: |
+    cetmodules provides the CMake modules, config-file generators and helper
+    scripts used to build the Fermilab art framework suite and related products
+    outside of a UPS environment. It is the foundational build dependency for
+    cetlib, fhiclcpp, canvas, art and the rest of the suite.
+  repository: https://github.com/FNALssi/cetmodules
