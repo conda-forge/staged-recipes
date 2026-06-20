@@ -1,0 +1,126 @@
+context:
+  version: "2.3.1"
+
+recipe:
+  # Have top level name be unique from any outputs
+  # c.f. https://github.com/conda-forge/conda-forge.github.io/blob/e6aca9676e9045a677249900354a9d43a2cf4caa/docs/maintainer/knowledge_base.mdx?plain=1#L1656
+  name: gm2calc-suite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/GM2Calc/GM2Calc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 24a4b0801adb20e253115d715e6f2edd33d44538700a533be606c456486ecabb
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: gm2calc
+    build:
+      skip:
+        - win
+      script: build.sh
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("cxx") }}
+        - cmake
+        - ninja
+      host:
+        # Boost and Eigen are header-only dependencies, so they are only needed
+        # to build GM2Calc and do not create a runtime dependency.
+        - libboost-headers
+        # gm2calc v2.3.1 is compatible with Eigen v3 but not v5
+        - eigen-abi-devel >=3.4.0,<5.0.0.0.0a0
+      run_exports:
+        - ${{ pin_subpackage("gm2calc", upper_bound="x.x") }}
+
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - gm2calc.x
+          lib:
+            - gm2calc
+          include:
+            - gm2calc/*.h
+            - gm2calc/*.hpp
+          files:
+            - share/pkgconfig/gm2calc.pc
+            - etc/conda/test-files/gm2calc/0/*
+
+      - files:
+          recipe:
+            - example.gm2
+        script:
+          - gm2calc.x --version
+          - gm2calc.x --help
+          - gm2calc.x --gm2calc-input-file=example.gm2
+
+  - package:
+      name: gm2calc-python
+    build:
+      noarch: python
+      script:
+        - mkdir -p "${SP_DIR}"
+        - cp "${RECIPE_DIR}/gm2calc.py" "${SP_DIR}/gm2calc.py"
+        # Add type stubs
+        - cp "${RECIPE_DIR}/gm2calc.pyi" "${SP_DIR}/gm2calc.pyi"
+
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        # The interface calls libgm2calc's C API through ctypes so only the
+        # gm2calc library itself is needed.
+        - ${{ pin_subpackage("gm2calc", exact=True) }}
+
+    tests:
+      - python:
+          imports:
+            - gm2calc
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+
+      - files:
+          recipe:
+            - test_example_gm2calc.py
+            - test_example_slha.py
+            - test_example_thdm.py
+        script:
+          - python ./test_example_gm2calc.py
+          - python ./test_example_slha.py
+          - python ./test_example_thdm.py
+
+about:
+  homepage: https://gm2calc.hepforge.org
+  repository: https://github.com/GM2Calc/GM2Calc
+  documentation: https://gm2calc.github.io
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  summary: Calculates BSM contributions to the anomalous magnetic moment of the muon (g-2)
+  description: |
+    GM2Calc calculates the new physics contributions to the anomalous magnetic
+    moment of the muon a_mu = (g-2)/2 in the real MSSM and in the Two-Higgs
+    Doublet Model (THDM) at the 1- and leading 2-loop level.  An estimate of
+    the theory uncertainty associated with the calculation can also be
+    provided.  GM2Calc can be run from the command line reading SLHA, GM2Calc-
+    specific or THDM input, and provides C, C++, Mathematica and Python
+    interfaces to its library.
+
+    References:
+      * Eur.Phys.J. C76 (2016) no.2, 62 [arXiv:1510.08071]
+      * Eur.Phys.J. C82 (2022) no.3, 229 [arXiv:2110.13238]
+
+    The `gm2calc-python` package differs from the upstream in its use of the
+    ctypes interface instead of cppyy to allow for compatibility with environments
+    the have ROOT installed, as ROOT's vendored cppyy disallows cppyy to be installed
+    in the same environment.
+
+extra:
+  feedstock-name: gm2calc
+  recipe-maintainers:
+    - matthewfeickert
