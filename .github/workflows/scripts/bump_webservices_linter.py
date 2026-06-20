@@ -12,11 +12,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    r = requests.post(
+    try:
+        requests.post(
             "https://conda-forge.herokuapp.com/staged-recipes/merge-queue-linting-hook",
             headers={
                 "CF_WEBSERVICES_TOKEN": os.environ["CF_WEBSERVICES_TOKEN"]
             },
             json={"full_name": args.full_name, "head_sha": args.head_sha, "head_ref": args.head_ref},
+            timeout=0.001,
         )
-    r.raise_for_status()
+    except requests.exceptions.Timeout:
+        pass
