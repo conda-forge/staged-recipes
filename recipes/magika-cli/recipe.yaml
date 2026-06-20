@@ -1,0 +1,97 @@
+context:
+  version: "1.1.0"
+
+package:
+  name: magika-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/google/magika/archive/refs/tags/cli/v${{ version }}.tar.gz
+  sha256: 87fd85f33d2c644d657de024b83cdc36bbdcf4a2961be5e93fe74e081477076c
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      # Dynamically link against conda-forge's onnxruntime instead of letting
+      # the `ort` crate download prebuilt binaries from the network.
+      ORT_PREFER_DYNAMIC_LINK: "1"
+    content:
+      - if: linux
+        then:
+          - export OPENSSL_DIR="${PREFIX}"
+      - if: unix
+        then:
+          # The library embeds the model via `include_bytes!("model.onnx")`,
+          # where `rust/lib/src/model.onnx` is a symlink chain pointing at
+          # `assets/models/standard_v3_3/model.onnx`. Verify the symlink still
+          # resolves to that expected file (guards against upstream bumping the
+          # model directory), then replace it with the real file so the build
+          # reads real bytes (the symlink does not survive extraction on
+          # Windows).
+          - test rust/lib/src/model.onnx -ef assets/models/standard_v3_3/model.onnx
+          - rm -f rust/lib/src/model.onnx
+          - cp assets/models/standard_v3_3/model.onnx rust/lib/src/model.onnx
+          - export ORT_LIB_LOCATION="${PREFIX}/lib"
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path rust/cli
+          - cd rust/cli && cargo-bundle-licenses --format yaml --output ${{ SRC_DIR }}/THIRDPARTY.yml
+        else:
+          # `rust\lib\src\model.onnx` is a dangling symlink on Windows; remove
+          # it and copy the real model file over it.
+          - if not exist assets\models\standard_v3_3\model.onnx exit 1
+          - del /F /Q rust\lib\src\model.onnx
+          - copy /Y assets\models\standard_v3_3\model.onnx rust\lib\src\model.onnx
+          - if errorlevel 1 exit 1
+          # conda-forge ships the import library as `onnxruntime_conda.lib`, but
+          # the `ort` crate links against `onnxruntime`. Provide an alias in a
+          # build-only directory so it does not get packaged into the output.
+          - mkdir ort-lib
+          - copy /Y %LIBRARY_PREFIX%\lib\onnxruntime_conda.lib ort-lib\onnxruntime.lib
+          - if errorlevel 1 exit 1
+          - set "ORT_LIB_LOCATION=%SRC_DIR%\ort-lib"
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path rust/cli
+          - if errorlevel 1 exit 1
+          - cd rust/cli && cargo-bundle-licenses --format yaml --output %SRC_DIR%/THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  host:
+    - onnxruntime-cpp
+    - if: linux
+      then:
+        - openssl
+
+tests:
+  - script:
+      - magika --version
+      - magika --help
+  - package_contents:
+      bin:
+        - magika
+      strict: true
+
+about:
+  homepage: https://github.com/google/magika
+  summary: Determines file content types using AI
+  description: |
+    Magika is a tool that detects content types of files using deep learning.
+    This package provides the `magika` command-line interface implemented in
+    Rust on top of the `magika` library crate.
+  license: Apache-2.0
+  license_file:
+    - rust/cli/LICENSE
+    - THIRDPARTY.yml
+  documentation: https://securityresearch.google/magika/
+  repository: https://github.com/google/magika
+
+extra:
+  recipe-maintainers:
+    - pavelzw
