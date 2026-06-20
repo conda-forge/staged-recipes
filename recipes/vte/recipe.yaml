@@ -51,24 +51,13 @@ build:
   # skip:
   #   - win
   number: 0
+  # merge_build_and_host_envs: true
+  # export GI_SCANNER_DISABLE_CACHE=1
+  # export PYTHON=$PREFIX/bin/python
+  # export PATH="$PREFIX/bin:$PATH"
+  # export PYTHONPATH="$PREFIX/lib/gobject-introspection:$PYTHONPATH"
   script:
-    # - if: win
-    #   then: |
-    #     meson setup %MESON_ARGS% ^
-    #       --prefix=%LIBRARY_PREFIX% ^
-    #       --default-library=shared ^
-    #       --wrap-mode=nofallback ^
-    #       --buildtype=release ^
-    #       -Dgir=true ^
-    #       -Ddocs=false ^
-    #       -Dvapi=false ^
-    #       builddir
-    #     ninja -v -C builddir -j %CPU_COUNT%
-    #     ninja -C builddir install -j %CPU_COUNT%
-    # gtk3: meson _build -D _systemd=false -D gtk4=false -D vapi=false --wipe
       |
-        # --wrap-mode=nofallback: Forces using system-installed deps.
-        # vapi: Vala binding generation (
         meson setup ${MESON_ARGS} \
             --prefix=$PREFIX \
             --default-library=shared \
@@ -77,6 +66,10 @@ build:
             -Dgir=true \
             -Ddocs=false \
             -Dvapi=false \
+            -Dgtk3=false \
+            -Dfribidi=true \
+            -Dicu=true \
+            -Dglade=false \
             builddir
         ninja -v -C builddir -j ${CPU_COUNT}
         ninja -C builddir install -j ${CPU_COUNT}
@@ -85,43 +78,55 @@ build:
 
 requirements:
   build:
-    - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    # - ${{ stdlib('c') }}
+    - cmake
     - meson
     - ninja
     - pkg-config
+    # Error: import distutils.cygwinccompiler in gobject-introspection/giscanner/utils.py, line 385
+    # - python < 3.14
+    # Error: ModuleNotFoundError: No module named 'giscanner._giscanner'
+    # - python
+    # - setuptools
     - gobject-introspection
-    # - python >=3.7
+
   host:
-    - gtk4
+    - cairo
     - zlib
-    # - m2-liblz4 >=1.9
-    - if: unix
-      then: pango
-    # run:
-    #   - glib >=2.72.0
-    #   - cairo >=1.0
-    #   - pango >=1.22.0
-    #   - pcre2 >=10.21
-    #   - liblz4 >=1.9
-    #   - fribidi >=1.0.0
-    #   - gnutls >=3.2.7
-    #   - icu >=4.8
-    #   - gtk3 >=3.24.0      # or gtk4 >=4.14.0, or both
+    - freetype
+    - fontconfig
+    - expat
+    - gtk4
+    - lz4
+    - glib
+    - gobject-introspection
+    - gnutls
+    # - python
+    # - setuptools
+
+    # - setuptools
+    # v0.80.x
+    # - simdutf
+    # - fast_float = ">=8.1.0,<9"
+
+
+  run:
+    - cairo
+    - zlib
+    - freetype
+    - fontconfig
+    - expat
+    - gtk4
+    - lz4
+    - glib
+    - gobject-introspection
 
 tests:
   - package_contents:
       files:
         - if: unix
           then:
-            # $PREFIX
-            - bindings/gir/Vte-2.91.typelib
-            # - lib/pkgconfig/gtksourceview-5.pc
-        # - if: win
-        #   then:
-        #     - Library/lib/pkgconfig/gtksourceview-5.pc
-        #     - Library/lib/gtksourceview-5.lib
+            - lib/girepository-1.0/Vte-3.91.typelib
 
 
 about:
