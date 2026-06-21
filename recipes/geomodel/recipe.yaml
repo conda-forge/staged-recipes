@@ -1,0 +1,375 @@
+schema_version: 1
+
+context:
+  version: "6.27.0"
+  build_number: 0
+
+recipe:
+  name: geomodel-split
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.cern.ch/GeoModelDev/GeoModel/-/archive/${{ version }}/GeoModel-${{ version }}.tar.gz
+  sha256: 018c5087b70d956793d06dc040f842018eb3bedd9b2f175c6090af63ce963408
+
+build:
+  number: ${{ build_number }}
+  # osx skipped initially: the GeoModelVisualization stack depends on the
+  # linux-only X11 / GLVND / EGL deps in the staging host. macOS support
+  # can be added in a follow-up once the feedstock exists.
+  skip:
+    - win
+    - osx
+
+outputs:
+
+  # ---- Shared build stage --------------------------------------------------
+  - staging:
+      name: geomodel-build
+    build:
+      script: build.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - make
+      host:
+        - sqlite
+        - xerces-c
+        - nlohmann_json
+        - eigen
+        - geant4
+        - qt6-main
+        - coin3d
+        - soqt6
+        - hdf5
+        - libglvnd-devel
+        - libegl-devel
+        - libopengl-devel
+        - libglu
+        - xorg-libx11
+        - xorg-libxext
+
+  # ---- Core + IO (always present, minimal deps) ---------------------------
+  - package:
+      name: geomodel-core
+      version: ${{ version }}
+    inherit: geomodel-build
+    build:
+      files:
+        - lib/libGeoGenericFunctions.so*
+        - lib/libGeoModelKernel.so*
+        - lib/libGeoModelHelpers.so*
+        - lib/libGeoModelDBManager.so*
+        - lib/libGeoModelIOHelpers.so*
+        - lib/libGeoModelRead.so*
+        - lib/libGeoModelWrite.so*
+        - lib/libTFPersistification.so*
+        - include/GeoGenericFunctions/**
+        - include/GeoModelKernel/**
+        - include/GeoModelHelpers/**
+        - include/GeoModelDBManager/**
+        - include/GeoModelIOHelpers/**
+        - include/GeoModelRead/**
+        - include/GeoModelWrite/**
+        - include/TFPersistification/**
+        - lib/cmake/GeoModelCore/**
+        - lib/cmake/GeoModelIO/**
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - eigen
+        - sqlite
+      run_exports:
+        weak:
+          - ${{ pin_subpackage('geomodel-core', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - GeoModelKernel
+            - GeoModelHelpers
+            - GeoGenericFunctions
+            - GeoModelDBManager
+            - GeoModelRead
+            - GeoModelWrite
+            - GeoModelIOHelpers
+            - TFPersistification
+          files:
+            - lib/cmake/GeoModelCore/GeoModelCoreConfig.cmake
+            - lib/cmake/GeoModelIO/GeoModelIOConfig.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel core kernel and I/O libraries
+      description: |
+        Core GeoModel libraries (GeoModelKernel, GeoModelHelpers,
+        GeoGenericFunctions) and the I/O layer (GeoModelDBManager,
+        GeoModelRead, GeoModelWrite, TFPersistification) for reading
+        and writing GeoModel SQLite geometry files.
+      license: Apache-2.0
+      license_file: LICENSE
+
+  # ---- Tools (XML/JSON parsers + CLI utilities) ---------------------------
+  - package:
+      name: geomodel-tools
+      version: ${{ version }}
+    inherit: geomodel-build
+    build:
+      files:
+        - lib/libExpressionEvaluator.so*
+        - lib/libGDMLtoGM.so*
+        - lib/libGeoModelJSONParser.so*
+        - lib/libGeoModelValidation.so*
+        - lib/libGeoModelXMLDumper.so*
+        - lib/libGeoModelXMLParser.so*
+        - lib/libGeoModelXml.so*
+        - lib/libGMXPlugin.so*
+        - include/ExpressionEvaluator/**
+        - include/GDMLInterface/**
+        - include/GeoModelJSONParser/**
+        - include/GeoModelValidation/**
+        - include/GeoModelXMLDumper/**
+        - include/GeoModelXMLParser/**
+        - include/GeoModelXml/**
+        - lib/cmake/GeoModelTools/**
+        - bin/gmcat
+        - bin/gmstatistics
+        - bin/gmintegritycheck
+        - bin/gdml2gm
+        - bin/dumpGeoXML
+        - share/GeoModelXml/**
+        - share/man/man1/gmcat.1
+        - share/man/man1/gmstatistics.1
+        - share/man/man1/gmintegritycheck.1
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - ${{ pin_subpackage('geomodel-core', exact=True) }}
+        - xerces-c
+        - nlohmann_json
+      run_exports:
+        weak:
+          - ${{ pin_subpackage('geomodel-tools', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - GeoModelXMLParser
+            - GeoModelJSONParser
+          bin:
+            - gmcat
+            - gmstatistics
+            - gmintegritycheck
+          files:
+            - lib/cmake/GeoModelTools/GeoModelToolsConfig.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel command-line tools and XML/JSON parsers
+      description: |
+        GeoModelTools provides XML and JSON parsers for GeoModel
+        descriptions, plus command-line utilities (gmcat,
+        gmstatistics, gmintegritycheck, gdml2gm, dumpGeoXML) for
+        working with GeoModel SQLite geometry files.
+      license: Apache-2.0
+      license_file: LICENSE
+
+  # ---- Geant4 interface ---------------------------------------------------
+  - package:
+      name: geomodel-g4
+      version: ${{ version }}
+    inherit: geomodel-build
+    build:
+      files:
+        - lib/libGeoMaterial2G4.so*
+        - lib/libGeoModel2G4.so*
+        - include/GeoMaterial2G4/**
+        - include/GeoModel2G4/**
+        - lib/cmake/GeoModelG4/**
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - ${{ pin_subpackage('geomodel-core', exact=True) }}
+        - geant4
+      run_exports:
+        weak:
+          - ${{ pin_subpackage('geomodel-g4', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - GeoMaterial2G4
+            - GeoModel2G4
+          files:
+            - lib/cmake/GeoModelG4/GeoModelG4Config.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel to Geant4 conversion libraries
+      description: |
+        GeoModelG4 converts GeoModel geometry trees and materials into
+        Geant4 logical volumes, enabling GeoModel-described detectors
+        to be simulated with Geant4.
+      license: Apache-2.0
+      license_file: LICENSE
+
+  # ---- FullSimLight (Geant4-based simulation driver) ----------------------
+  - package:
+      name: geomodel-fullsimlight
+      version: ${{ version }}
+    inherit: geomodel-build
+    build:
+      files:
+        - bin/fullSimLight
+        - bin/fillHistogramExample
+        - bin/gmclash
+        - bin/gmmasscalc
+        - bin/gmgeantino
+        - bin/gm2gdml
+        - include/FullSimLight/**
+        - lib/cmake/FullSimLight/**
+        - share/FullSimLight/**
+        - share/man/man1/fullSimLight.1
+        - share/man/man1/gmclash.1
+        - share/man/man1/gmgeantino.1
+        - share/man/man1/gmmasscalc.1
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - ${{ pin_subpackage('geomodel-core', exact=True) }}
+        - ${{ pin_subpackage('geomodel-g4', exact=True) }}
+        - ${{ pin_subpackage('geomodel-tools', exact=True) }}
+        - geant4
+        - xerces-c
+        - nlohmann_json
+      run_exports:
+        weak:
+          - ${{ pin_subpackage('geomodel-fullsimlight', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          bin:
+            - fullSimLight
+            - gmclash
+            - gmmasscalc
+            - gmgeantino
+            - gm2gdml
+          files:
+            - lib/cmake/FullSimLight/FullSimLightConfig.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel FullSimLight Geant4 simulation driver
+      description: |
+        FullSimLight is a lightweight Geant4-based simulation driver
+        for GeoModel geometries, used as a reference simulation and to
+        run geometry clash, mass and geantino diagnostics (gmclash,
+        gmmasscalc, gmgeantino).
+      license: Apache-2.0
+      license_file: LICENSE
+
+  # ---- Visualization (Qt6 / Coin3D / SoQt6 / HDF5) ------------------------
+  - package:
+      name: geomodel-visualization
+      version: ${{ version }}
+    inherit: geomodel-build
+    build:
+      files:
+        - bin/gmex
+        - bin/gmgraphbrowser
+        - lib/libGX*.so*
+        - lib/gxplugins/**
+        - include/VP1*/**
+        - include/GX*/**
+        - lib/cmake/GeoModelVisualization/**
+        - share/gmex/**
+        - share/man/man1/gmex.1
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - ${{ pin_subpackage('geomodel-core', exact=True) }}
+        - qt6-main
+        - coin3d
+        - soqt6
+        - hdf5
+      run_exports:
+        weak:
+          - ${{ pin_subpackage('geomodel-visualization', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          bin:
+            - gmex
+          files:
+            - lib/cmake/GeoModelVisualization/GeoModelVisualizationConfig.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel Qt6/Coin3D visualization stack (VP1, gmex)
+      description: |
+        GeoModelVisualization provides the VP1-derived 3D visualization
+        framework and the `gmex` geometry explorer GUI. Built on Qt6
+        and Coin3D/SoQt6; opt-in because of the heavy GUI dependency
+        stack.
+      license: Apache-2.0
+      license_file: LICENSE
+
+  # ---- Metapackage --------------------------------------------------------
+  - package:
+      name: geomodel
+      version: ${{ version }}
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - ${{ pin_subpackage('geomodel-core', exact=True) }}
+        - ${{ pin_subpackage('geomodel-tools', exact=True) }}
+        - ${{ pin_subpackage('geomodel-g4', exact=True) }}
+        - ${{ pin_subpackage('geomodel-fullsimlight', exact=True) }}
+    tests:
+      - script:
+          - test -f $PREFIX/bin/gmcat
+          - test -f $PREFIX/bin/fullSimLight
+          - test -f $PREFIX/lib/cmake/GeoModelCore/GeoModelCoreConfig.cmake
+          - test -f $PREFIX/lib/cmake/GeoModelG4/GeoModelG4Config.cmake
+    about:
+      homepage: https://geomodel.web.cern.ch/
+      repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+      summary: GeoModel metapackage (core + tools + G4 + FullSimLight)
+      description: |
+        Convenience metapackage that pulls in the core GeoModel stack:
+        geomodel-core, geomodel-tools, geomodel-g4 and
+        geomodel-fullsimlight. The visualization stack
+        (geomodel-visualization) is opt-in and not pulled in by this
+        metapackage.
+      license: Apache-2.0
+      license_file: LICENSE
+
+about:
+  homepage: https://geomodel.web.cern.ch/
+  repository: https://gitlab.cern.ch/GeoModelDev/GeoModel
+  summary: GeoModel detector-geometry toolkit (split outputs)
+  description: |
+    GeoModel is a lightweight, framework-agnostic C++ toolkit for
+    describing detector geometries originally developed for the
+    ATLAS experiment and now used by multiple HEP experiments. This
+    recipe produces a split set of conda packages: core kernel + I/O
+    (`geomodel-core`), command-line tools (`geomodel-tools`), Geant4
+    conversion (`geomodel-g4`), the FullSimLight simulation driver
+    (`geomodel-fullsimlight`), an opt-in visualization stack
+    (`geomodel-visualization`), and a `geomodel` metapackage that
+    pulls in everything except visualization.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  feedstock-name: geomodel
+  recipe-maintainers:
+    - olantwin
