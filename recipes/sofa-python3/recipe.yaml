@@ -1,0 +1,99 @@
+context:
+  name: sofa-python3
+  version: "25.12.00"
+  major_minor: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sofa-framework/SofaPython3/archive/refs/tags/release-v${{ major_minor }}.tar.gz
+  sha256: ee2dd23aa19d302689296ec40dc058b29b676b7d037051f0ed4a810db3317dc1
+
+  patches:
+    # See comments in sofa conda package recipe at file
+    # scripts/hotfix-sofa-run-macos.sh for more details.
+    # This hotfix breaks python module installation on Windows, so we
+    # only apply on macOS.
+    - if: osx
+      then:
+        - patches/0001-hotfix-for-libpython-linking-on-macOS.patch
+
+build:
+  number: 0
+  files:
+    # SofaPython3 as a weird conception of each module, both
+    # a as a python binding module and a SOFA component (which contain CMake config files),
+    # so each is installed twice. This causes problems with duplicates and incorrectly
+    # installed pyd and lib files (both at Library/{lib/bin} and lib/site-packages).
+    # Fix here remove the duplicate one in Library/{lib/bin} and patch its CMake config files
+    # to points the one inside site-packages instead. But this should be fixed upstream.
+    # See https://github.com/sofa-framework/conda-ci/issues/27
+    exclude:
+      - if: win
+        then:
+          - Library/bin/*.pyd
+          - Library/lib/SofaRuntime.lib
+          - Library/lib/SofaExporter.lib
+          - Library/lib/Gui.lib
+          - Library/lib/SofaTypes.lib
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+        - pybind11
+  host:
+    - sofa-devel ${{ major_minor }}.*
+    - sofa-gl ${{ major_minor }}.*
+    - eigen
+    - python
+    - numpy
+    - pybind11
+  run:
+    - python
+    - pybind11
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - SofaPython3/config.h
+      lib:
+        - SofaPython3
+  - python:
+      imports:
+        - Sofa
+        - SofaRuntime
+        - SofaTypes
+        - SofaExporter
+  - script:
+      - cmake-package-check SofaPython3
+    requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}        
+
+about:
+  homepage: https://github.com/sofa-framework/SofaPython3
+  summary: A python plugin for Sofa offering a pythonic interface and python3 support.
+  license: LGPL-2.1-or-later
+  license_file: License.md
+  documentation: https://sofapython3.readthedocs.io/
+  repository: https://github.com/sofa-framework/SofaPython3
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
+    - bakpaul
