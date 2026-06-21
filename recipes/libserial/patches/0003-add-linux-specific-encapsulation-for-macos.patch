@@ -1,0 +1,122 @@
+From b9280ce423a5788fe178347e45ce4234e3f54664 Mon Sep 17 00:00:00 2001
+From: mcsauder <mcsauder@gmail.com>
+Date: Tue, 30 May 2023 16:11:43 -0600
+Subject: [PATCH] Add additional linux specific encapsulation.
+
+This recipe patch also folds in the same Linux-only guard pattern for the
+SerialPort and SerialStreamBuf serial-port enumeration wrappers, avoiding
+unresolved macOS symbols after the upstream Linux implementation guard.
+
+--- a/src/SerialPort.cpp	2018-12-03 06:35:00.000000000 +0100
++++ b/src/SerialPort.cpp	2026-06-12 08:12:00.000000000 +1000
+@@ -37,11 +37,14 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <fcntl.h>
+-#include <linux/serial.h>
+ #include <sys/ioctl.h>
+ #include <type_traits>
+ #include <unistd.h>
+ 
++#ifdef __linux__
++#include <linux/serial.h>
++#endif
++
+ namespace LibSerial 
+ {
+     /**
+@@ -689,11 +692,13 @@
+         return mImpl->GetNumberOfBytesAvailable() ;
+     }
+ 
++#ifdef __linux__
+     std::vector<std::string>
+     SerialPort::GetAvailableSerialPorts() const
+     {
+         return mImpl->GetAvailableSerialPorts() ;
+     }
++#endif
+ 
+     void
+     SerialPort::Read(DataBuffer& dataBuffer,
+@@ -1832,6 +1837,7 @@
+         return number_of_bytes_available ;
+     }
+ 
++#ifdef __linux__
+     inline
+     std::vector<std::string>
+     SerialPort::Implementation::GetAvailableSerialPorts() const
+@@ -1876,6 +1882,7 @@
+ 
+         return serial_port_names ;
+     }
++#endif
+ 
+     inline
+     void
+@@ -2056,7 +2063,9 @@
+ 
+         // @NOTE - termios.c_line is not a standard element of the termios
+         // structure, (as per the Single Unix Specification 3).
++#ifdef __linux__
+         port_settings.c_line = '\0' ;
++#endif
+ 
+         // Apply the modified settings.
+         if (tcsetattr(this->mFileDescriptor,
+--- a/src/SerialStream.cpp	2018-12-03 06:35:00.000000000 +0100
++++ b/src/SerialStream.cpp	2026-06-12 08:12:00.000000000 +1000
+@@ -895,6 +895,7 @@
+         throw ;
+     }
+ 
++#ifdef __linux__
+     std::vector<std::string>
+     SerialStream::GetAvailableSerialPorts()
+     try
+@@ -921,4 +922,5 @@
+         setstate(std::ios_base::failbit) ;
+         throw ;
+     }
++#endif
+ } // namespace LibSerial
+--- a/src/SerialStreamBuf.cpp	2018-12-03 06:35:00.000000000 +0100
++++ b/src/SerialStreamBuf.cpp	2026-06-12 08:12:00.000000000 +1000
+@@ -37,7 +37,6 @@
+ #include <cassert>
+ #include <cstring>
+ #include <fcntl.h>
+-#include <linux/serial.h>
+ #include <sys/ioctl.h>
+ #include <unistd.h>
+ 
+@@ -597,11 +596,13 @@
+         return mImpl->GetNumberOfBytesAvailable() ;
+     }
+ 
++#ifdef __linux__
+     std::vector<std::string>
+     SerialStreamBuf::GetAvailableSerialPorts() const
+     {
+         return mImpl->GetAvailableSerialPorts() ;
+     }
++#endif
+ 
+     std::streambuf*
+     SerialStreamBuf::setbuf(char_type* character, std::streamsize numberOfBytes)
+@@ -910,12 +911,14 @@
+         return mSerialPort.GetNumberOfBytesAvailable() ;
+     }
+ 
++#ifdef __linux__
+     inline
+     std::vector<std::string>
+     SerialStreamBuf::Implementation::GetAvailableSerialPorts() const
+     {
+         return mSerialPort.GetAvailableSerialPorts() ;
+     }
++#endif
+ 
+     inline
+     std::streamsize
