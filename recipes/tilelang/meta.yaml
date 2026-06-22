@@ -9,18 +9,23 @@ source:
   sha256: 287f727c913bb648fcf6c1968809ba3390e55eeed257a5c6bb9a80bc05966af4
 
 build:
-  skip: true  # [py<39 or win]
+  skip: true  # [win or (is_abi3 and not is_python_min)]
   number: 0
+  python_version_independent: true   # [is_abi3]
   script:
-    - sed -i 's|PATHS ${Z3_PATH}/bin ${Z3_PATH}/lib ${Z3_PATH}/lib64|PATHS ${Z3_PATH}/bin ${Z3_PATH}/lib ${Z3_PATH}/lib64 $ENV{PREFIX}/lib $ENV{PREFIX}/lib64|' cmake/pypi-z3/FindZ3.cmake
-    - sed -i 's|PATHS ${Z3_PATH}/include|PATHS ${Z3_PATH}/include $ENV{PREFIX}/include|' cmake/pypi-z3/FindZ3.cmake
-    - SKBUILD_GENERATOR=Ninja SKBUILD_CMAKE_ARGS="-DCUDAToolkit_ROOT=$BUILD_PREFIX" {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - export CMAKE_GENERATOR=Ninja
+    - export CMAKE_ARGS="$CMAKE_ARGS -DCUDAToolkit_ROOT=$BUILD_PREFIX"
+    - sed -i 's/NO_DEFAULT_PATH//g' cmake/pypi-z3/FindZ3.cmake
+    - sed -i '/torch-c-dlpack-ext/d' pyproject.toml
+    - export USE_CUDA=OFF   # [cuda_compiler_version == "None"]
+    - export USE_CUDA=ON   # [cuda_compiler_version != "None"]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [linux]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
     - {{ stdlib('c') }}
     - cmake >=3.18
     - ninja
@@ -31,11 +36,14 @@ requirements:
     - cython >=3.1.0
     - scikit-build-core
     - pybind11
-    - cmake >=3.26.1
-    - ninja
     - patchelf >=0.17.2  # [linux]
+    - cuda-cudart-dev    # [cuda_compiler_version != "None"]
+    - libcudnn-dev       # [cuda_compiler_version != "None"]
+    - libcublas-dev      # [cuda_compiler_version != "None"]
+    - libcurand-dev      # [cuda_compiler_version != "None"]
     - libz3
     - z3-solver >=4.13.0,<4.15.5
+    - python-abi3      # [is_abi3]
   run:
     - python
     - apache-tvm-ffi >=0.1.2,<0.2
@@ -55,8 +63,10 @@ test:
     - tilelang
   commands:
     - pip check
+    - abi3audit $SP_DIR/tilelang/lib/tilelang_cython_wrapper.abi3.so -s -v --assume-minimum-abi3 {{ python_min }}  # [unix and is_abi3]
   requires:
     - pip
+    - abi3audit                      # [is_abi3]
 
 about:
   home: https://github.com/tile-ai/tilelang
