@@ -7,15 +7,14 @@
 # table/setup machinery is emitted into $PREFIX.
 set -euo pipefail
 
-mkdir -p build
-cd build
-
 cmake \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  ${CMAKE_ARGS} \
   -DWANT_UPS:BOOL=OFF \
-  "$SRC_DIR"
+  -S "${SRC_DIR}" \
+  -B build
 
-make -j"${CPU_COUNT:-1}" install
+cmake --build build --parallel "${CPU_COUNT}"
+cmake --install build
 
 # cetmodules installs INSTALL/LICENSE/README as plain files at the PREFIX ROOT,
 # polluting the environment root. This collides with other packages that use
