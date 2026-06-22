@@ -1,0 +1,64 @@
+// This is an example JSON file with comments. If your editor does not support comments in JSON, you may need to remove them.
+{
+    "$schema": "https://raw.githubusercontent.com/Medial-EarlySign/MR_Tools/refs/heads/main/medmodel_schema.json",
+    "model_json_version": 2,
+    "model_actions": [
+        // Action: Clean raw signal data.
+        {
+            "action_type": "rp_set",
+            "members": [
+                {
+                    "rp_type": "basic_cln",
+                    "signal": ["Hemoglobin", "RBC", "MCH", "Hematocrit"],
+                    "type": "iterative",
+                    "trimming_sd_num": 7, // Iteratively trim values beyond 7 SD. This is being determined and fixed in training only
+                    "removing_sd_num": 14, // Remove values beyond 14 SD. This is being determined and fixed in training only
+                    "range_min": 0
+                }
+            ]
+        },
+        // Action: Remove measurements that have different values on the same date.
+        {
+            "action_type": "rp_set",
+            "members": [
+                {
+                    "rp_type": "sim_val",
+                    "signal": ["Hemoglobin", "RBC", "MCH", "Hematocrit"],
+                    "type": "rem_diff"
+                }
+            ]
+        },
+        // Action: Apply clinical rules to clean data (e.g., MCH = (Hemoglobin / RBC) * 10).
+        {
+            "action_type": "rp_set",
+            "members": [
+                {
+                    "rp_type": "rule_cln",
+                    "addRequiredSignals": "1",
+                    "time_window": 0,
+                    "tolerance": 0.1,
+                    "calc_res": 0.1,
+                    "consideredRules": ["2"]
+                }
+            ]
+        },
+        // Those are simple features without "learning/fitting" to the outcomes. Keep in mind, it is not necessarily always the case.
+        // Action: Generate 'Age' feature from the 'BDATE' signal. 
+        {
+            "action_type": "feat_generator",
+            "fg_type": "age"
+        },
+        // Action: Generate features from the last 3 years (1095 days) of data.
+        {
+            "action_type": "feat_generator",
+            "fg_type": "basic",
+            "type": ["last", "min"],
+            "win_from": 0,
+            "win_to": 1095,
+            "signal": ["Hemoglobin", "RBC", "MCH", "Hematocrit"]
+        }
+    ],
+    // Define the predictor.
+    "predictor": "xgb",
+    "predictor_params": "tree_method=auto;booster=gbtree;objective=binary:logistic"
+}
