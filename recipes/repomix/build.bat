@@ -4,6 +4,8 @@ setlocal enabledelayedexpansion
 call npm pack --ignore-scripts
 if %ERRORLEVEL% neq 0 exit 1
 
+rem Force npm to use lib\node_modules\ on Windows, matching the Linux global layout
+set NPM_CONFIG_PREFIX=%PREFIX%\lib
 call npm install -ddd ^
     --global ^
     --no-bin-links ^
@@ -24,4 +26,4 @@ if not exist %PREFIX%\bin mkdir %PREFIX%\bin
     echo exec ${CONDA_PREFIX}/lib/node_modules/repomix/bin/repomix.cjs "$@"
 ) > %PREFIX%\bin\repomix
 
-echo call %%CONDA_PREFIX%%\bin\node %%CONDA_PREFIX%%\lib\node_modules\repomix\bin\repomix.cjs %%* > %PREFIX%\bin\repomix.cmd
+echo call node %%CONDA_PREFIX%%\lib\node_modules\repomix\bin\repomix.cjs %%* > %PREFIX%\bin\repomix.cmd
