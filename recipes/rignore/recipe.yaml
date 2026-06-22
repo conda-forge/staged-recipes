@@ -13,7 +13,12 @@ source:
 
 build:
   number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
   script:
+    env:
+      MATURIN_PEP517_ARGS: "--features pyo3/abi3-py38"
     content:
       - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
       - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
@@ -31,6 +36,8 @@ requirements:
     - ${{ compiler("rust") }}
     - cargo-bundle-licenses
   host:
+    - if: is_abi3
+      then: python-abi3
     - python
     - pip
     - maturin >=1.9.6,<2.0
@@ -42,6 +49,19 @@ tests:
       imports:
         - rignore
       pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/rignore/rignore.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/rignore/rignore.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   homepage: https://github.com/patrick91/rignore
