@@ -8,30 +8,38 @@ package:
   version: ${{ version }}
 
 source:
-  # Pre-built binary: apfel wraps Apple's on-device FoundationModels API, which has
-  # no public C/Swift ABI to compile against outside of a full macOS 26 SDK + Xcode
-  # toolchain, so conda-forge ships the upstream binary release instead of building
-  # from source.
-  url: https://github.com/Arthur-Ficial/apfel/releases/download/v${{ version }}/apfel-${{ version }}-arm64-macos.tar.gz
-  sha256: 9dd4b523cac3947166bd16749e6646e0bb49f97dc0b0367569d16041385dcd84
+  url: https://github.com/Arthur-Ficial/apfel/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d10be2811bbbfaeeca35ccda967c7750d78b0f66c2b3e6b23502e5129d463fd0
 
 build:
   number: 0
   skip:
-    # arm64-only prebuilt binary: Apple Intelligence/FoundationModels requires
-    # Apple Silicon, so there is no Intel macOS, Linux, or Windows build.
+    # arm64-only: Apple Intelligence/FoundationModels requires Apple
+    # Silicon, so there is no Intel macOS, Linux, or Windows build.
     - not (osx and arm64)
   script: build.sh
 
 requirements:
+  build:
+    # The Swift toolchain (swift, make) is system-provided by Xcode/Command
+    # Line Tools on the conda-forge osx_arm64 runner; there is no
+    # conda-forge Swift compiler package to list here. See build.sh for the
+    # macOS 26.4 SDK selection logic.
+    []
   run:
-    # FoundationModels (Apple Intelligence) is only available starting with
-    # macOS 26 "Tahoe"; older macOS releases cannot run this binary at all.
-    - __osx >=26
+    # FoundationModels' tokenCount/contextSize APIs (used unconditionally
+    # by apfel) only exist starting with the macOS 26.4 SDK/runtime.
+    - __osx >=26.4
 
 tests:
   - script:
       - apfel --version
+  - package_contents:
+      bin:
+        - apfel
+      files:
+        - share/man/man1/apfel.1
+        - share/apfel/demo/README.md
 
 about:
   homepage: https://github.com/Arthur-Ficial/apfel
@@ -43,7 +51,7 @@ about:
     supports piping, file attachments, JSON output, streaming, tool calling, and
     an interactive chat REPL.
 
-    Requires macOS 26 Tahoe or later on Apple Silicon (M1+) with Apple
+    Requires macOS 26.4 or later on Apple Silicon (M1+) with Apple
     Intelligence enabled.
   license: MIT
   license_file: LICENSE
