@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cetmodules is a pure CMake/Perl/Bash build-helper product -- project() declares
 # LANGUAGES NONE, so there is nothing to compile. `make install` just stages the
 # CMake Modules, the generated cetmodulesConfig.cmake and the helper scripts.
