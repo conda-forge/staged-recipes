@@ -11,43 +11,43 @@
 setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Provisioning build tools"
-if "%MINIFORGE_HOME%"=="" set "MINIFORGE_HOME=%USERPROFILE%\Miniforge3"
+if "%MINIFORGE_HOME%"=="" (
+    set "MINIFORGE_HOME=%REPO_ROOT%\.pixi\envs\default"
+) else (
+    set "PIXI_CACHE_DIR=%MINIFORGE_HOME%"
+)
 :: Remove trailing backslash, if present
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
-if exist "%MINIFORGE_HOME%\conda-meta\history" (
-    echo Build tools already installed at %MINIFORGE_HOME%.
-) else (
-    where micromamba.exe >nul 2>nul
-    if !errorlevel! == 0 (
-        set "MICROMAMBA_EXE=micromamba.exe"
-        echo "Found micromamba in PATH"
-    ) else (
-        set "MAMBA_ROOT_PREFIX=!MINIFORGE_HOME!-micromamba-!RANDOM!"
-        set "MICROMAMBA_VERSION=1.5.10-0"
-        set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/!MICROMAMBA_VERSION!/micromamba-win-64"
-        set "MICROMAMBA_TMPDIR=!TMP!\micromamba-!RANDOM!"
-        set "MICROMAMBA_EXE=!MICROMAMBA_TMPDIR!\micromamba.exe"
+call :start_group "Provisioning base env with pixi"
+echo Installing pixi
 
-        echo Downloading micromamba !MICROMAMBA_VERSION!
-        echo if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
-        echo certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
-        if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
-        certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
-        if !errorlevel! neq 0 exit /b !errorlevel!
-    )
-    echo Creating environment
-    call "!MICROMAMBA_EXE!" create --yes --root-prefix "!MAMBA_ROOT_PREFIX!" --prefix "!MINIFORGE_HOME!" ^
-        --channel conda-forge ^
-        --file environment.yaml
-    if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Moving pkgs cache from !MAMBA_ROOT_PREFIX! to !MINIFORGE_HOME!
-    move /Y "!MAMBA_ROOT_PREFIX!\pkgs" "!MINIFORGE_HOME!" >nul
-    if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Removing !MAMBA_ROOT_PREFIX!
-    del /S /Q "!MAMBA_ROOT_PREFIX!" >nul
-    del /S /Q "!MICROMAMBA_TMPDIR!" >nul
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "iwr -useb https://raw.githubusercontent.com/baszalmstra/pixi/codex/change-download-method-in-install.ps1/install/install.ps1 | iex"
+
+if !errorlevel! neq 0 exit /b !errorlevel!
+set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
+echo Installing environment
+if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
+    mkdir "%MINIFORGE_HOME%"
+    copy /Y pixi.toml "%MINIFORGE_HOME%"
+    copy /Y LICENSE.txt "%MINIFORGE_HOME%"
+    pushd "%MINIFORGE_HOME%"
+) else (
+    pushd "%REPO_ROOT%"
 )
+:: Git on Windows needs to run post link scripts to properly set up SSL certificates
+pixi config set --global run-post-link-scripts insecure
+if !errorlevel! neq 0 exit /b !errorlevel!
+pixi install --environment win-64
+if !errorlevel! neq 0 exit /b !errorlevel!
+pixi list --environment win-64
+if !errorlevel! neq 0 exit /b !errorlevel!
+set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
+pixi shell-hook --environment win-64 > "%ACTIVATE_PIXI%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+call "%ACTIVATE_PIXI%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+popd
 call :end_group
 
 call :start_group "Configuring conda"
