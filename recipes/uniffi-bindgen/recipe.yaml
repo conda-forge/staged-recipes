@@ -14,17 +14,31 @@ source:
 build:
   number: 0
   script:
-    - cargo install --locked --no-track --features cli --path uniffi --root ${{ PREFIX }}
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --features cli --path uniffi --bins --root ${{ PREFIX }}
+        else:
+          - cargo auditable install --locked --no-track --features cli --path uniffi --bins --root %LIBRARY_PREFIX%
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('rust') }}
     - ${{ stdlib('c') }}
+    - cargo-auditable
     - cargo-bundle-licenses
 
 tests:
+  - package_contents:
+      strict: true
+      bin:
+        - uniffi-bindgen
+        - uniffi-bindgen-swift
   - script:
       - uniffi-bindgen --help
       - uniffi-bindgen-swift --help
