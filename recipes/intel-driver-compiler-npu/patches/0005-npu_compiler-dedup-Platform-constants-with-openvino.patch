@@ -1,0 +1,51 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-16
+Subject: npu_compiler: dedup ov::intel_npu::Platform constants vs OpenVINO
+
+npu_compiler's src/vpux_utils/include/vpux/utils/IE/private_properties.hpp
+defines `ov::intel_npu::Platform::NPU5000` and `::NPU5020`.  OpenVINO
+2026.1.0's src/plugins/intel_npu/src/al/include/intel_npu/
+npu_private_properties.hpp *also* defines `Platform::NPU5020` (along
+with NPU3720/NPU4000/NPU5010 and Platform::standardize()).
+
+When the NPU compiler is built as an OpenVINO extra module against
+OpenVINO 2026.1.0, a translation unit such as
+src/vpux_compiler/src/pipelines/options_mapper.cpp transitively
+includes both headers, producing:
+
+    error: redefinition of 'constexpr const std::string_view
+           ov::intel_npu::Platform::NPU5020'
+
+Intel's own CI builds the NPU compiler against an older OpenVINO
+revision that does not yet define the overlapping `NPU5020`, so it
+never sees the clash.
+
+Fix: include OpenVINO's npu_private_properties.hpp (already on the
+compiler's include path) for the shared constants, and keep only the
+npu_compiler-specific `NPU5000` here.
+
+--- a/src/vpux_utils/include/vpux/utils/IE/private_properties.hpp
++++ b/src/vpux_utils/include/vpux/utils/IE/private_properties.hpp
+@@ -9,11 +9,21 @@
+
+ #include <string_view>
+
++// OpenVINO 2026.1.0's intel_npu/npu_private_properties.hpp defines
++// ov::intel_npu::Platform::{NPU3720,NPU4000,NPU5010,NPU5020,...} and
++// Platform::standardize().  When the NPU compiler is built as an
++// OpenVINO extra module against 2026.1.0, a translation unit that
++// includes both that header and this one would get a redefinition of
++// the overlapping `NPU5020` constant.  Reuse OpenVINO's header for the
++// shared constants and only define the npu_compiler-specific `NPU5000`
++// here.  (Intel's own CI builds against an older OpenVINO commit that
++// lacks the overlapping definitions, so it never hits this.)
++#include "intel_npu/npu_private_properties.hpp"
++
+ namespace ov {
+ namespace intel_npu {
+ namespace Platform {
+ constexpr std::string_view NPU5000 = "5000";
+-constexpr std::string_view NPU5020 = "5020";
+ }  // namespace Platform
+ }  // namespace intel_npu
+ }  // namespace ov
