@@ -1,51 +1,66 @@
 context:
-  version: "2.1.3"
   name: stationxml-seed-converter
+  version: "2.1.3"
 
 package:
   name: ${{ name }}
   version: ${{ version }}
 
 source:
-  url: https://github.com/iris-edu/${{ name }}/archive/refs/tags/${{ name }}-${{ version }}.tar.gz
-  sha256: a790d52fba02487ac6c88232f11449ed0af518324b8224beed2dca849863b550
+  # Upstream ships a prebuilt fat jar on the Releases page. We repackage it
+  # because the Maven source build resolves dependencies from Maven Central,
+  # which is unavailable in the network-less conda-forge build sandbox.
+  - url: https://github.com/iris-edu/${{ name }}/releases/download/${{ name }}-${{ version }}/${{ name }}-${{ version }}.jar
+    sha256: e60cd2680d6308ed83e8f1b3f276b1223407b4a0a291e92359aee21fff55adfa
+    file_name: ${{ name }}-${{ version }}.jar
+  # The app's own GPL license is not embedded in the jar; fetch it from the tag.
+  - url: https://raw.githubusercontent.com/iris-edu/${{ name }}/${{ name }}-${{ version }}/LICENSE.md
+    sha256: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+    file_name: LICENSE.md
 
 build:
+  noarch: generic
   number: 0
-  skip:
-    - win
-  script:
-    - mvn package -DskipTests=true
-    - mkdir -p $PREFIX/share/java/${{ name }}
-    - cp target/${{ name }}-*-jar-with-dependencies.jar $PREFIX/share/java/${{ name }}/${{ name }}.jar
-    - cp LICENSE.md $PREFIX/share/java/${{ name }}/LICENSE.md
-    - mkdir -p $PREFIX/bin
-    - |
-      cat > $PREFIX/bin/${{ name }} << 'EOF'
-      #!/bin/sh
-      exec java -jar "$CONDA_PREFIX/share/java/stationxml-seed-converter/stationxml-seed-converter.jar" "$@"
-      EOF
-    - chmod +x $PREFIX/bin/${{ name }}
+  script: build.sh
 
 requirements:
   build:
-    - maven
-    - openjdk >=11
+    - unzip
   run:
-    - openjdk >=11
+    - openjdk >=8
+    # Ship only on Unix: the launcher is a POSIX shell script and EarthScope
+    # does not target Windows. (OS-noarch pattern.)
+    - if: linux
+      then:
+        - __linux
+    - if: osx
+      then:
+        - __osx
 
 tests:
   - script:
-      - stationxml-seed-converter -h
+      - stationxml-seed-converter --help
+      - stationxml-seed-converter --help 2>&1 | grep -q "SEED Converter"
 
 about:
-  homepage: https://epic.earthscope.org/content/software-resources
-  summary: Convert between StationXML and SEED metadata formats
+  homepage: https://github.com/iris-edu/stationxml-seed-converter
+  summary: Convert between FDSN StationXML and SEED (dataless) station metadata
   description: |
-    stationxml-seed-converter is a Java command-line tool for converting
-    between FDSN StationXML and dataless SEED station metadata formats.
-  license: GPL-3.0-or-later
-  license_file: LICENSE.md
+    The FDSN StationXML SEED Converter is a Java command-line tool that
+    converts station metadata between FDSN StationXML and (dataless) SEED
+    formats. This package repackages the upstream prebuilt fat jar (which
+    bundles its Java dependencies) with a launcher script; it runs on a Java
+    runtime (openjdk).
+  # License of the application plus the third-party libraries bundled in the
+  # fat jar (jackson = Apache-2.0; jaxb/glassfish/activation = CDDL-1.1;
+  # system-rules = CPL-1.0).
+  license: GPL-3.0-only AND Apache-2.0 AND CDDL-1.1 AND CPL-1.0
+  license_file:
+    - LICENSE.md
+    - LICENSE-Apache-2.0.txt
+    - LICENSE-CDDL-1.1.txt
+    - NOTICE-jackson.txt
+    - LICENSE-CPL-1.0.txt
   repository: https://github.com/iris-edu/stationxml-seed-converter
 
 extra:
