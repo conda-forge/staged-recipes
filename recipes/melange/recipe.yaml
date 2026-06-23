@@ -1,0 +1,67 @@
+schema_version: 1
+
+context:
+  version: "0.8.3"
+
+package:
+  name: melange
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pthm/melange/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 9504b8647b8446fb82e25bc47727e98cddf49b8f9dc8a6f803739e79b9588d94
+  # go-licenses cannot classify go-localereader, so vendor its LICENSE here.
+  - url: https://raw.githubusercontent.com/mattn/go-localereader/refs/heads/master/LICENSE
+    sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+    file_name: go-localereader-LICENSE
+
+build:
+  number: 0
+  script:
+    # cmd/melange is its own Go module, so build and inspect it from there.
+    - cd cmd/melange
+    # cmd/melange is this package's own module (covered by the top-level LICENSE)
+    # and go-licenses cannot classify go-localereader (its LICENSE is vendored as
+    # a source above), so both are ignored here.
+    - go-licenses save . --save_path ../../library_licenses --ignore github.com/pthm/melange/cmd/melange --ignore github.com/mattn/go-localereader
+    - if: unix
+      then: go build -v -ldflags "-s -w -X github.com/pthm/melange/lib/version.Version=${{ version }}" -o $PREFIX/bin/melange .
+      else: go build -v -ldflags "-s -w -X github.com/pthm/melange/lib/version.Version=${{ version }}" -o %LIBRARY_BIN%\melange.exe .
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - ${{ stdlib('c') }}
+    - go-licenses
+
+tests:
+  - script:
+      - melange --help
+      - melange version
+  - package_contents:
+      bin:
+        - melange
+      strict: true
+
+about:
+  homepage: https://melange.sh/
+  summary: OpenFGA-to-PostgreSQL authorization compiler
+  description: |
+    melange is an OpenFGA-to-PostgreSQL authorization compiler. It transforms
+    OpenFGA `.fga` authorization schemas into specialized PL/pgSQL functions, so
+    that fine-grained access control checks run directly in PostgreSQL as simple
+    SQL function calls over a `melange_tuples` view you define on your domain
+    tables. This removes the need for a separate authorization service or for
+    synchronizing relationship tuples, and keeps permission checks transactional
+    and language agnostic.
+  license: MIT
+  license_file:
+    - LICENSE
+    - go-localereader-LICENSE
+    - library_licenses/
+  repository: https://github.com/pthm/melange
+  documentation: https://melange.sh/docs/
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
