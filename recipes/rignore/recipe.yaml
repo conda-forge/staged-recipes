@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  version: "0.7.6"
+
+package:
+  name: rignore
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/rignore/rignore-${{ version }}.tar.gz
+  sha256: 00d3546cd793c30cb17921ce674d2c8f3a4b00501cb0e3dd0e82217dbeba2671
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    env:
+      MATURIN_PEP517_ARGS: "--features pyo3/abi3-py38"
+    content:
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=1,<2
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.9.6,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - rignore
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/rignore/rignore.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/rignore/rignore.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/patrick91/rignore
+  summary: Python Bindings for the ignore crate
+  description: |
+    rignore provides Python bindings for the ignore Rust crate, offering
+    high-performance file system traversal that respects .gitignore rules
+    with customizable ignore patterns and efficient memory usage.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/patrick91/rignore
+
+extra:
+  recipe-maintainers:
+    - pb01ka
