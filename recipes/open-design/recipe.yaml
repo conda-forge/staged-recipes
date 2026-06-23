@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: open-design
+  version: "0.9.0"
+  nodejs_min: "24"
+  pnpm_version: "10.33.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nexu-io/open-design/archive/refs/tags/open-design-v${{ version }}.tar.gz
+  sha256: d6df78ddd614de87dceb85c2a8cb1b94e76223a7c84b20415918ef71c6e01006
+
+build:
+  number: 0
+  # Supported: linux-64 (verified green locally), linux-aarch64, osx-arm64.
+  # The unix build path (build.sh) is platform-agnostic: corepack-driven pnpm,
+  # `pnpm deploy` flat node_modules, node-gyp compile of better-sqlite3 via
+  # conda-forge's per-platform compiler+stdlib. linux-aarch64 + osx-arm64
+  # rely on conda-forge CI for verification (no native cross-build from
+  # linux-64 host; QEMU/Docker is opt-in).
+  # Skipped (deliberate):
+  #   - win-64: build.bat hardcodes the v0.2.0 4-workspace list; needs a
+  #     refresh against v0.9.0's expanded `packages/*` set before re-enabling.
+  #   - osx-64: focusing on Apple Silicon; Intel Mac path untested.
+  #   - linux-ppc64le: rare; not worth the build time.
+  skip:
+    - win
+    - osx and x86_64
+    - linux and ppc64le
+  script:
+    - if: unix
+      then: bash $RECIPE_DIR/build.sh
+    - if: win
+      then: call %RECIPE_DIR%\build.bat
+
+requirements:
+  build:
+    # Node.js + corepack (corepack ships with nodejs >= 16.13)
+    - nodejs ${{ nodejs_min }}.*
+    # python is required by node-gyp to compile the better-sqlite3 native addon
+    - python 3.12.*
+    - if: unix
+      then:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - make
+    - if: win
+      then:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+
+  host:
+    - nodejs ${{ nodejs_min }}.*
+
+  run:
+    - nodejs ${{ nodejs_min }}.*
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -x ${PREFIX}/bin/od
+          - test -f ${PREFIX}/lib/${{ name }}/dist/cli.js
+          - od --help
+        else:
+          - if not exist "%LIBRARY_BIN%\od.cmd" exit /b 1
+          - od --help
+
+  - package_contents:
+      bin:
+        - if: unix
+          then: od
+        - if: win
+          then: od.cmd
+
+about:
+  homepage: https://github.com/nexu-io/open-design
+  repository: https://github.com/nexu-io/open-design
+  documentation: https://github.com/nexu-io/open-design#readme
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - ThirdPartyNotices.txt
+  summary: Local-first, open-source design product driven by code-agent CLIs
+  description: |
+    Open Design (`od`) is a local-first design product that detects your
+    installed code-agent CLI (Claude Code, Codex, Cursor, Gemini, OpenCode,
+    Qwen, Copilot, Hermes, Kimi), runs design Skills against curated Design
+    Systems, and streams artifacts (web prototypes, slides, images, videos,
+    HyperFrames) into a sandboxed preview with HTML / PDF / PPTX / MP4 export.
+
+    This conda package ships only the `od` daemon CLI from `apps/daemon` —
+    the desktop GUI (Electron) and web app are not included.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
