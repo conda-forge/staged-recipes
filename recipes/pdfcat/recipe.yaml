@@ -1,0 +1,77 @@
+context:
+  # conda requires PEP 440-style versions; the upstream tag uses '-beta.' notation
+  version: "1.0.0b9"
+  tag: "1.0.0-beta.9"
+
+package:
+  name: pdfcat
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pdfcat/pdfcat/archive/refs/tags/v${{ tag }}.tar.gz
+  sha256: 5a549821f70986d95f8dc20c8434a8df72e8a1e65c65c30afed7bd575e6c8765
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - cd crates/pdfcat-cli
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          # copy man page
+          - mkdir -p "$PREFIX/share/man/man1"
+          - 'MAN_PAGE=$(find "$SRC_DIR/target" -name pdfcat.1 | head -1) && test -n "$MAN_PAGE" || { echo "pdfcat.1 not found in $SRC_DIR/target"; exit 1; } && cp "$MAN_PAGE" "$PREFIX/share/man/man1/pdfcat.1"'
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # copy man page
+          - mkdir "%LIBRARY_PREFIX%\share\man\man1"
+          - powershell -Command "$f = (Get-ChildItem -Path \"$env:SRC_DIR\target\" -Filter 'pdfcat.1' -Recurse | Select-Object -First 1); if ($null -eq $f) { throw 'pdfcat.1 not found under $env:SRC_DIR\target' }; Copy-Item $f.FullName -Destination \"%LIBRARY_PREFIX%\share\man\man1\pdfcat.1\""
+      - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - pdfcat --help
+      - pdfcat --version
+  - package_contents:
+      bin:
+        - pdfcat
+      files:
+        - if: unix
+          then:
+            - share/man/man1/pdfcat.1
+        - if: win
+          then:
+            - Library/share/man/man1/pdfcat.1
+      strict: true
+
+about:
+  summary: Concatenate PDF files into a single document
+  description: |
+    pdfcat is a high-performance command-line utility that merges PDF files into
+    a single document without quality loss. It supports direct PDF object copying
+    (no re-rendering), page range extraction, page rotation, bookmarks, custom
+    metadata, configurable compression levels, and parallel loading of input
+    files.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/pdfcat/pdfcat
+  repository: https://github.com/pdfcat/pdfcat
+
+extra:
+  recipe-maintainers:
+    - salim-b
