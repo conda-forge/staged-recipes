@@ -1,0 +1,91 @@
+context:
+  version: "3.5.2"
+
+package:
+  name: usage
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/usage/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 05e0ad29b451c6816e2845556c28eae46bf96f58712a8b457ef1b9907dba533f
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=cli --root="$PREFIX" --no-track --locked --bins
+          # copy manpage and generate shell completions
+          - mkdir -p "$PREFIX"/share/man/man1 "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - cp cli/assets/usage.1                      "$PREFIX"/share/man/man1/usage.1
+          - '"$PREFIX"/bin/usage --completions bash > "$PREFIX"/share/bash-completion/completions/usage'
+          - '"$PREFIX"/bin/usage --completions fish > "$PREFIX"/share/fish/vendor_completions.d/usage.fish'
+          - '"$PREFIX"/bin/usage --completions zsh  > "$PREFIX"/share/zsh/site-functions/_usage'
+      - if: win
+        then:
+          - cargo auditable install --path=cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # copy manpage and generate shell completions
+          - mkdir "%LIBRARY_PREFIX%"\share\man\man1
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - powershell -Command "Copy-Item -Path 'cli\assets\usage.1' -Destination '%LIBRARY_PREFIX%\share\man\man1\usage.1'"
+          - '"%LIBRARY_BIN%"\usage.exe --completions bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\usage'
+          - '"%LIBRARY_BIN%"\usage.exe --completions fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\usage.fish'
+          - '"%LIBRARY_BIN%"\usage.exe --completions zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_usage'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - if: build_platform == host_platform
+        then:
+          - usage --help
+          - usage --version
+  - package_contents:
+      bin:
+        - usage
+      files:
+        - if: unix
+          then:
+            - share/man/man1/usage.1
+            - share/bash-completion/completions/usage
+            - share/fish/vendor_completions.d/usage.fish
+            - share/zsh/site-functions/_usage
+        - if: win
+          then:
+            - Library/share/man/man1/usage.1
+            - Library/share/bash-completion/completions/usage
+            - Library/share/fish/vendor_completions.d/usage.fish
+            - Library/share/zsh/site-functions/_usage
+      strict: true
+
+about:
+  summary: Usage Spec processor CLI
+  description: |
+    Usage is a spec and CLI for defining CLI tools. Arguments, flags, environment
+    variables, and config files can all be defined in a Usage spec. It can be
+    thought of like OpenAPI (swagger) for CLIs. Use it to generate autocompletion
+    scripts, markdown documentation, man pages, and more.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://usage.jdx.dev
+  documentation: https://usage.jdx.dev/cli/reference/
+  repository: https://github.com/jdx/usage
+
+extra:
+  recipe-maintainers:
+    - salim-b
