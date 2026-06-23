@@ -9,7 +9,9 @@ PARALLEL="${PARALLEL:-${CPU_COUNT:-$(nproc)}}"
 export PARALLEL
 export PYTHON="${PREFIX}/bin/python"
 
-# Two llvm versions
+# Two llvm versions a modern version powering MLIR and a 
+# legacy version for backwards compatibility with previous
+# CUDA versions.
 export BUILD_ROOT="${SRC_DIR}/_llvm_build"
 export LLVM7_INSTALL="${SRC_DIR}/llvm7-install"
 export LLVM_MODERN_INSTALL="${SRC_DIR}/llvm-modern-install"
@@ -40,7 +42,6 @@ echo "=============================================================="
 # CUDA toolkit headers/libs come from the conda host env. The repo's bundled
 # cmake/FindCUDAToolkit.cmake honors $CUDAToolkit_ROOT for cuda.h.
 export CUDAToolkit_ROOT="${PREFIX}"
-# Use conda's dlpack instead of CMake FetchContent (no network in build).
 export DLPACK_PATH="${PREFIX}"
 # Wire the two LLVM installs into the wheel build (same contract as the wheel CI).
 export MLIR_DIR="${LLVM_MODERN_INSTALL}/lib/cmake/mlir"
