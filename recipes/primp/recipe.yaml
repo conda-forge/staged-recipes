@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.3.1"
+
+package:
+  name: primp
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/primp/primp-${{ version }}.tar.gz
+  sha256: b04a5941bf9c876d011c5defaf5a25be093d56e7270b8da52c9788b9df2a829a
+
+build:
+  number: 0
+  script:
+    env:
+      PYTHONUTF8: "1"
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      OPENSSL_NO_VENDOR: "1"
+    content:
+      - if: unix
+        then: |
+          export OPENSSL_DIR="$PREFIX"
+          pushd crates/primp-python
+          cargo-bundle-licenses --format yaml --output ../../THIRDPARTY.yml
+          popd
+          ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        else: |
+          set "OPENSSL_DIR=%LIBRARY_PREFIX%"
+          pushd crates\primp-python
+          cargo-bundle-licenses --format yaml --output ../../THIRDPARTY.yml
+          popd
+          ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=1.5,<2.0
+  host:
+    - python
+    - pip
+    - maturin >=1.5,<2.0
+    - openssl
+    - if: is_abi3
+      then: python-abi3
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - primp
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/primp/primp.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\primp\primp.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/deedy5/primp
+  repository: https://github.com/deedy5/primp
+  license: MIT
+  license_file:
+    - crates/primp/LICENSE-MIT
+    - THIRDPARTY.yml
+  summary: HTTP client that can impersonate web browsers, mimicking their headers and `TLS/JA3/JA4/HTTP2` fingerprints
+
+extra:
+  recipe-maintainers:
+    - rxm7706
