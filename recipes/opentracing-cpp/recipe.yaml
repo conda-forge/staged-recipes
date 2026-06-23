@@ -1,0 +1,57 @@
+context:
+  version: "1.6.0"
+
+package:
+  name: opentracing-cpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/opentracing/opentracing-cpp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5b170042da4d1c4c231df6594da120875429d5231e9baa5179822ee8d1054ac3
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cmake ${CMAKE_ARGS} -G Ninja -DBUILD_TESTING=OFF -DBUILD_MOCKTRACER=OFF -DENABLE_LINTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -B build
+        - cmake --build build -j${CPU_COUNT}
+        - cmake --install build
+      else:
+        - cmake %CMAKE_ARGS% -G Ninja -DBUILD_TESTING=OFF -DBUILD_MOCKTRACER=OFF -DENABLE_LINTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -B build
+        - cmake --build build -j%CPU_COUNT%
+        - cmake --install build
+        - if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
+        - move /Y "%LIBRARY_LIB%\opentracing.dll" "%LIBRARY_BIN%\opentracing.dll"
+
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  run_exports:
+    - ${{ pin_subpackage('opentracing-cpp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - opentracing/tracer.h
+      lib:
+        - opentracing
+
+about:
+  homepage: https://github.com/opentracing/opentracing-cpp
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: OpenTracing API for C++
+  description: |
+    C++ implementation of the OpenTracing API. Provides a vendor-neutral
+    API for distributed tracing instrumentation.
+  repository: https://github.com/opentracing/opentracing-cpp
+
+extra:
+  recipe-maintainers:
+    - amitsingh21
+    - wolfv
