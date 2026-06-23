@@ -1,0 +1,59 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-06-04
+Subject: npu_compiler: keep newer-GCC -Werror diagnostics non-fatal
+
+npu_compiler compiles its targets with `-Wall -Wextra -Werror` (see
+cmake/compile_options.cmake). conda-forge builds this against the
+vendored LLVM/MLIR fork with a newer GCC (14.3) at -O3 than the compiler
+Intel's CI uses, which turns two classes of diagnostic into hard errors:
+
+  * Well-known GCC false-positive warnings in LLVM/MLIR's heavily
+    templated container/move code, e.g.
+      DenseMap.h: error: '...DenseSetPair<int>**)TmpEnd)[2]' may be used
+        uninitialized [-Werror=maybe-uninitialized]
+      iti_buffer.cpp:312: error: possibly dangling reference to a
+        temporary [-Werror=dangling-reference]
+
+  * The stricter C++20 conformance diagnostic -Wtemplate-id-cdtor for
+    ill-formed-but-unambiguous `Name<T>()` constructor / destructor
+    spellings in several IE/VPUIP passes, e.g.
+      adapt_shapes_for_scale_shift.cpp:39 / adjust_fake_qdq_params.cpp:307
+      error: template-id not allowed for constructor in C++20
+
+None of these are defects that affect the produced libraries, and they
+do not reproduce on the older compiler upstream validates against. Keep
+the diagnostics as warnings but stop the bare -Werror from failing the
+build on this known set. Scoped to GCC via generator expressions (Clang
+lacks these); GCC silently ignores any -Wno-error= name it does not
+recognise, so the list is safe across GCC versions.
+
+--- a/cmake/compile_options.cmake
++++ b/cmake/compile_options.cmake
+@@ -115,6 +115,27 @@
+         target_compile_options(${TARGET_NAME}
+             PRIVATE
+                 -Wall -Wextra -Werror -Werror=suggest-override
++                # conda-forge builds this with a newer GCC (14) at -O3 than
++                # Intel's CI uses. That surfaces (a) a family of well-known
++                # GCC false-positive warnings in the vendored LLVM/MLIR
++                # template and container code (DenseMap/DenseSet moves,
++                # dangling references to temporaries, ...) and (b) a stricter
++                # C++20 conformance diagnostic, template-id-cdtor, for the
++                # ill-formed-but-unambiguous `Name<T>()` constructor /
++                # destructor spellings used in several IE/VPUIP passes. The
++                # bare -Werror above turns all of these into hard errors.
++                # Keep the warnings but make this known set non-fatal. GCC
++                # only (Clang lacks these); GCC silently ignores any
++                # -Wno-error= name it does not recognise, so this is safe
++                # across GCC versions.
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=maybe-uninitialized>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=dangling-reference>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=array-bounds>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=stringop-overflow>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=stringop-overread>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=restrict>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=uninitialized>
++                $<$<CXX_COMPILER_ID:GNU>:-Wno-error=template-id-cdtor>
+         )
+         # Set SYSTEM property on OpenVINO dependencies to suppress extra warnings from their headers
+         # when building via OPENVINO_EXTRA_MODULES

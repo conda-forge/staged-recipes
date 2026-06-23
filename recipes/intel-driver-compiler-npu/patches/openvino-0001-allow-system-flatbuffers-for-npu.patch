@@ -1,0 +1,26 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: openvino: allow system flatbuffers for NPU-only (no TF-Lite) builds
+
+ENABLE_SYSTEM_FLATBUFFERS is an ov_dependent_option gated solely on
+ENABLE_OV_TF_LITE_FRONTEND.  The NPU compiler also needs flatbuffers/flatc
+(thirdparty/dependencies.cmake builds it whenever ENABLE_INTEL_NPU is on), but
+in a Compiler-in-Driver build all frontends except IR are disabled, so
+ENABLE_OV_TF_LITE_FRONTEND=OFF forces ENABLE_SYSTEM_FLATBUFFERS to OFF.  That in
+turn makes dependencies.cmake fall back to add_subdirectory(thirdparty/flatbuffers),
+which is an (empty) git submodule -- absent from the conda-forge archive tarball.
+
+Allow the option to honor ENABLE_SYSTEM_FLATBUFFERS=ON when ENABLE_INTEL_NPU is
+enabled too, so the conda-forge flatbuffers/flatc are used (headers + flatc only,
+no library is linked) instead of the missing submodule.
+
+--- a/cmake/features.cmake
++++ b/cmake/features.cmake
+@@ -196,7 +196,7 @@
+ ov_option (ENABLE_SYSTEM_PUGIXML "Enables use of system PugiXML" OFF)
+ # the option is on by default, because we use only flatc compiler and don't use any libraries
+ ov_dependent_option(ENABLE_SYSTEM_FLATBUFFERS "Enables use of system flatbuffers" ${ENABLE_SYSTEM_FLATBUFFERS_DEFAULT}
+-    "ENABLE_OV_TF_LITE_FRONTEND" OFF)
++    "ENABLE_OV_TF_LITE_FRONTEND OR ENABLE_INTEL_NPU" OFF)
+ ov_dependent_option (ENABLE_SYSTEM_OPENCL "Enables use of system OpenCL" ${ENABLE_SYSTEM_LIBS_DEFAULT}
+     "ENABLE_INTEL_GPU" OFF)
+ # the option is turned off by default, because we compile our own static version of protobuf
