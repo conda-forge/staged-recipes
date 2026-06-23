@@ -1,0 +1,198 @@
+# This example shows how to define a recipe using the new YAML based recipe format introduced by
+# CEP 13.
+
+# For more information about this format see: https://prefix-dev.github.io/rattler-build/latest/reference/recipe_file/
+
+# The main differences with the old format is that no preprocessing is required for the file to be valid YAML.
+# This means:
+# - No "selectors", use YAML if-then-else expressions instead (https://prefix-dev.github.io/rattler-build/latest/selectors/)
+# - Jinja expressions are formatted with a leading `$` to make them valid YAML
+
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+
+# Define variables in this section that you can use in other parts.
+context:
+  name: gsas-ii
+  version: "5.4.6"
+
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AdvancedPhotonSource/GSAS-II/archive/v${{ version }}.tar.gz
+  sha256: 0d110c3d4a8e3e18eba42576870fa17fd8a247231e0bfb82df66732d20f30257
+  # sha256 is the preferred checksum -- you can get it for a file with:
+  #  `openssl sha256 <file name>`.
+  # You may need the openssl package, available on conda-forge:
+  #  `conda install openssl -c conda-forge``
+  patches:
+    - drop_git_work.patch
+build:
+  # Uncomment the following line if the package is pure Python and the recipe is exactly the same for all platforms.
+  # It is okay if the dependencies are not built for all platforms/versions, although selectors are still not allowed.
+  # See https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-python for more details.
+  # noarch: python
+  # If the installation is complex, or different between Unix and Windows, use separate build.bat and build.sh files instead of this key.
+  # By default, the package will be built for the Python versions supported by conda-forge and for all major OSs.
+  # Uncomment the following lines to limit to Python 3.5 and newer (for example)
+  # skip:
+  #   - match(python, "<3.5")
+  # or the following to limit to Windows.
+  # skip:
+  #   - win
+  number: 0
+  skip:
+    - match(python, "<3.12")
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - cython
+        - numpy
+        - pybind11
+        - meson-python
+        - cmake
+        - ninja
+        - pkg-config
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+  host:
+    - libblas
+    - libcblas
+    - liblapack
+    - python
+    - cython
+    - meson-python
+    - ninja
+    - pkg-config
+    - python-build
+    - pybind11
+    - pythran
+    - numpy 2.2.*
+    - pip
+
+  run:
+    - python
+    - h5py
+    - imageio
+    - matplotlib-base
+    - ${{ pin_compatible("numpy") }}
+    - pillow
+    - pyopengl
+    - pyproject-metadata
+    - requests
+    - scipy
+    - tomli
+    - wxpython
+    - zarr
+    - xmltodict
+    - pycifrw
+    - gitpython
+    - ipython
+    - seekpath
+    - pybaselines
+
+
+tests:
+  # Some packages might need a `test/commands` key to check CLI.
+  # List all the packages/modules that `run_test.py` imports.
+  - python:
+      imports:
+        - GSASII
+        - GSASII.Absorb
+        - GSASII.ElementTable
+        - GSASII.FormFactors
+        - GSASII.G2compare
+        - GSASII.G2shapes
+        - GSASII.GSASIIGUI
+        - GSASII.GSASIIElem
+        - GSASII.GSASIIElemGUI
+        - GSASII.GSASIImiscGUI
+        - GSASII.GSASIIIntPDFtool
+        - GSASII.GSASIIconstrGUI
+        - GSASII.GSASIIctrlGUI
+        - GSASII.GSASIIdata
+        - GSASII.GSASIIdataGUI
+        - GSASII.GSASIIddataGUI
+        - GSASII.GSASIIexprGUI
+        - GSASII.GSASIIfiles
+        - GSASII.GSASIIfpaGUI
+        - GSASII.GSASIIimage
+        - GSASII.GSASIIimgGUI
+        - GSASII.GSASIIindex
+        - GSASII.GSASIIlattice
+        - GSASII.GSASIImapvars
+        - GSASII.GSASIImath
+        - GSASII.GSASIImpsubs
+        - GSASII.GSASIIobj
+        - GSASII.GSASIIpath
+        - GSASII.GSASIIphsGUI
+        - GSASII.GSASIIplot
+        - GSASII.GSASIIpwd
+        - GSASII.GSASIIpwdGUI
+        - GSASII.GSASIIpwdplot
+        - GSASII.GSASIIrestrGUI
+        - GSASII.GSASIIsasd
+        - GSASII.GSASIIscriptable
+        - GSASII.GSASIIseqGUI
+        - GSASII.GSASIIspc
+        - GSASII.GSASIIstrIO
+        - GSASII.GSASIIstrMain
+        - GSASII.GSASIIstrMath
+        - GSASII.GSASIItestplot
+        - GSASII.ISODISTORT
+        - GSASII.ImageCalibrants
+        - GSASII.PlotXNFF
+        - GSASII.ReadMarCCDFrame
+        - GSASII.SUBGROUPS
+        - GSASII.Substances
+        - GSASII.atmdata
+        - GSASII.config_example
+        - GSASII.defaultIparms
+        - GSASII.dmp
+        - GSASII.fprime
+        - GSASII.git_verinfo
+        - GSASII.gltext
+        - GSASII.k_vector_search
+        - GSASII.nistlat
+        - GSASII.scanCCD
+        - GSASII.testDeriv
+        - GSASII.testSSymbols
+        - GSASII.testSytSym
+        - GSASII.testXNFF
+        - GSASII.tutorialIndex
+      pip_check: true
+
+about:
+  homepage: https://github.com/AdvancedPhotonSource/GSAS-II/
+  summary: 'Poweder Pattern refinement'
+  description: |
+    Poweder Pattern refinement
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
+  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
+  # See https://spdx.org/licenses/
+  license: MIT
+  # The license_family, i.e. "BSD" if license is "BSD-3-Clause".
+  # Optional
+  license_family: MIT
+  # It is required to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
+  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
+  license_file: LICENSE
+  # The doc_url and dev_url are optional.
+  documentation: https://simplejson.readthedocs.io/
+  repository: https://github.com/simplejson/simplejson
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - tacaswell
