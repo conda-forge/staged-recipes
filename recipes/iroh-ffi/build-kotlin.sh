@@ -32,7 +32,7 @@ mkdir -p kotlin/lib/src/main/resources
 cp "$IROH_LIB" "kotlin/lib/src/main/resources/${JNA_NAME}"
 
 # Build the Kotlin JAR
-(cd kotlin && ${GRADLE_CMD} build)
+(cd kotlin && ${GRADLE_CMD} --no-daemon build)
 
 mkdir -p "$PREFIX/share/java/iroh"
 JAR=$(find kotlin/lib/build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -1)
