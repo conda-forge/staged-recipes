@@ -5,10 +5,10 @@ set -euxo pipefail
 # Find the compiled native library from iroh-ffi-python installed as a HOST dep.
 # HOST_PREFIX holds the target-arch artifacts (correct for cross-compilation).
 if [[ "${target_platform}" == linux-* ]]; then
-  IROH_LIB=$(find "${PREFIX}" \( -name "libiroh_ffi.so" -o -name "libiroh_ffi.abi3.so" \) | head -1)
+  IROH_LIB=$(find "${PREFIX}" -name "libiroh_ffi.so" | head -1)
   JNA_NAME="libiroh_ffi.so"
 elif [[ "${target_platform}" == osx-* ]]; then
-  IROH_LIB=$(find "${PREFIX}" \( -name "libiroh_ffi.so" -o -name "libiroh_ffi.abi3.so" \) | head -1)
+  IROH_LIB=$(find "${PREFIX}" -name "libiroh_ffi.dylib" | head -1)
   JNA_NAME="libiroh_ffi.dylib"
 else
   IROH_LIB=$(find "${PREFIX}" -name "iroh_ffi.pyd" | head -1)
@@ -29,4 +29,5 @@ cp "$IROH_LIB" "kotlin/lib/src/main/resources/${JNA_NAME}"
 (cd kotlin && gradle build)
 
 mkdir -p "$PREFIX/share/java/iroh"
-cp "kotlin/lib/build/libs/iroh-${PKG_VERSION}.jar" "$PREFIX/share/java/iroh/"
+JAR=$(find kotlin/lib/build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -1)
+cp "$JAR" "$PREFIX/share/java/iroh/iroh-${PKG_VERSION}.jar"

@@ -6,7 +6,8 @@ context:
 
   m2: ${{ "" if unix else "m2-" }}
   pym: ${{ python_min ~ ".*" if is_abi3 else "" }}
-  so: ${{ "so" if unix else "pyd" }}
+  # No Python C, uses ctypes, thus no ABI/non-ABI need
+  so: ${{ "so" if linux else "dylib" if osx else "dll" }}
 
 recipe:
   name: iroh-ffi
@@ -30,7 +31,7 @@ outputs:
         version_independent: true
     requirements:
       build:
-        - ${{ compiler('c') }}
+        # - ${{ compiler('c') }}
         - ${{ compiler('rust') }}
         - ${{ stdlib('c') }}
         - ${{ m2 }}bash >=5.2
@@ -58,13 +59,6 @@ outputs:
             - site-packages/iroh/__init__.pyi
             - site-packages/iroh/py.typed
             - site-packages/iroh/libiroh_ffi.${{ so }}
-      - if: is_abi3
-        then:
-          script:
-            - abi3audit site-packages/iroh/libiroh_ffi.${{ so }} -s -v --assume-minimum-abi3 ${{ python_min }}
-          requirements:
-            run:
-              - abi3audit
       - python:
           imports:
             - iroh

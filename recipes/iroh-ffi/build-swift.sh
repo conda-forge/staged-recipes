@@ -6,7 +6,8 @@ export MACOSX_DEPLOYMENT_TARGET="14.5"
 UDL_NAME="iroh_ffi"
 
 # Find the compiled native library from iroh-ffi-python installed as a HOST dep.
-IROH_LIB=$(find "${PREFIX}" \( -name "libiroh_ffi.so" -o -name "libiroh_ffi.abi3.so" \) | head -1)
+# On macOS (the only platform this script runs on), maturin produces a .dylib.
+IROH_LIB=$(find "${PREFIX}" -name "libiroh_ffi.dylib" | head -1)
 
 # Generate Swift bindings against the compiled library
 mkdir -p ./include/apple
