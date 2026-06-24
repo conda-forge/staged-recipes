@@ -23,4 +23,4 @@ export MATURIN_PEP517_ARGS="--no-default-features"
 $PYTHON -m pip install -v --use-pep517 --no-deps --no-build-isolation .
 
 cargo-bundle-licenses --format yaml --output "${RECIPE_DIR}"/THIRDPARTY.yml
-cp "${SRC_DIR}"/LICENCE-APACHE "${SRC_DIR}"/LICENCE-MIT "${RECIPE_DIR}"/
+cp "${SRC_DIR}"/LICENSE-APACHE "${SRC_DIR}"/LICENSE-MIT "${RECIPE_DIR}"/
