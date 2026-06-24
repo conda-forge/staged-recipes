@@ -2,6 +2,12 @@
 
 set -euxo pipefail
 
+# On Windows, gradle is installed as gradle.bat (wrapper in Library/bin/); no POSIX script exists.
+GRADLE_CMD="gradle"
+if [[ "${target_platform}" == win-* ]]; then
+    GRADLE_CMD="gradle.bat"
+fi
+
 # Find the compiled native library from iroh-ffi-python installed as a HOST dep.
 # HOST_PREFIX holds the target-arch artifacts (correct for cross-compilation).
 if [[ "${target_platform}" == linux-* ]]; then
@@ -26,7 +32,7 @@ mkdir -p kotlin/lib/src/main/resources
 cp "$IROH_LIB" "kotlin/lib/src/main/resources/${JNA_NAME}"
 
 # Build the Kotlin JAR
-(cd kotlin && gradle build)
+(cd kotlin && ${GRADLE_CMD} build)
 
 mkdir -p "$PREFIX/share/java/iroh"
 JAR=$(find kotlin/lib/build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -1)
