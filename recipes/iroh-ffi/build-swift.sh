@@ -15,7 +15,7 @@ uniffi-bindgen generate --language swift \
   --out-dir ./include/apple \
   --library "$IROH_LIB"
 
-# Rename Swift interface (iroh_ffi → IrohLib)
+# Rename Swift interface (iroh_ffi - IrohLib)
 sed 's/iroh_ffi/IrohLib/g' "include/apple/${UDL_NAME}.swift" \
   > IrohLib/Sources/IrohLib/IrohLib.swift
 
