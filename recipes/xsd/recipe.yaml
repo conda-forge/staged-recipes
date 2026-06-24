@@ -1,0 +1,69 @@
+context:
+  version: "4.0.0"
+
+package:
+  name: xsd
+  version: ${{ version }}
+
+source:
+  # The "+dep" tarball bundles the build-time helpers (build-0.3, libcutl,
+  # libxsd-frontend) that the 4.0.0 make-based build needs.
+  url: https://www.codesynthesis.com/download/xsd/4.0/xsd-${{ version }}+dep.tar.bz2
+  sha256: eca52a9c8f52cdbe2ae4e364e4a909503493a0d51ea388fc6c9734565a859817
+  patches:
+    # From Homebrew formula-patches (xsd 4.0.0): adds a missing
+    # <iostream> include so Clang can compile the sources, and makes an
+    # examples makefile's `find` invocation portable to BSD find.
+    - xsd-4.0.0.patch
+    # Allows the sources to compile against current (2026) macOS libc++.
+    - libcxx-char-traits.patch
+
+build:
+  number: 0
+  skip:
+    # The 4.0.0 build-0.3 make system targets UNIX-like systems only; Windows
+    # uses a separate native (VC++) build that is not added here.
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - make
+    - pkg-config
+  host:
+    - xerces-c
+  run:
+    # The installed libxsd headers include Xerces-C++ headers, so users
+    # compiling XSD-generated code need it at run time.
+    - xerces-c
+  run_exports:
+    - ${{ pin_subpackage("xsd", upper_bound="x") }}
+
+tests:
+  - script:
+      - xsd version
+      - xsd help
+
+about:
+  homepage: https://www.codesynthesis.com/products/xsd/
+  summary: W3C XML Schema to C++ data binding compiler
+  description: |
+    CodeSynthesis XSD is an open-source, cross-platform W3C XML Schema to C++
+    data binding compiler. Provided with an XML instance specification (XML
+    Schema), it generates C++ classes that represent the given vocabulary as
+    well as XML parsing and serialization code. You can then access the data
+    stored in XML using types and functions that correspond to your application
+    domain rather than dealing with the intricacies of reading and writing XML.
+  # GPL-2.0 with the CodeSynthesis FLOSS exception (FLOSSE) for the runtime
+  # library and generated code.
+  license: GPL-2.0-only
+  license_file:
+    - xsd/GPLv2
+    - xsd/FLOSSE
+  repository: https://github.com/codesynthesis-com/xsd
+
+extra:
+  recipe-maintainers:
+    - kwabenantim
