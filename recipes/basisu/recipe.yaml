@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  name: basisu
+  version: "1.50.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/BinomialLLC/basis_universal/archive/v1_50_0_2.tar.gz
+  sha256: 0ef344cc7e3373ca9c15de2bd80512ea4ea17e09ed895febdf9e70f6c789bc27
+  patches:
+    - install-target.patch
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ninja
+    - cmake <4
+    - pkg-config
+  host:
+    - if: linux
+      then: libgl-devel
+    - lodepng
+    - zstd
+  run_exports:
+    - ${{ pin_subpackage("basisu", upper_bound="x.x") }}
+
+tests:
+  - files:
+      recipe:
+        - test-cmake
+    requirements:
+      run:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake <4
+        - ninja
+    script:
+      - test -f $PREFIX/lib/cmake/basisu/basisuTargets.cmake
+      - test -f $PREFIX/lib/libbasisu_encoder.so
+      - test -f $PREFIX/lib/libbasisu_transcoder.so
+      - cmake -S test-cmake -B test-cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build test-cmake-build --verbose
+      - ./test-cmake-build/basisu_consumer
+
+about:
+  homepage: https://github.com/BinomialLLC/basis_universal
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Basis Universal GPU Texture Codec
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
