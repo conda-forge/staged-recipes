@@ -1,0 +1,68 @@
+schema_version: 1
+
+context:
+  version: "0.3.1"
+  python_min: "3.11"
+
+package:
+  name: whirlwind-insar
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/w/whirlwind-insar/whirlwind_insar-${{ version }}.tar.gz
+  sha256: 05910cc2bfa90f0f8e397d2438e6967911b49b4725ebff73aad5ca0230123f74
+
+build:
+  number: 0
+  script:
+    - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation --disable-pip-version-check
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+  python:
+    # Single abi3 build (PyO3 abi3-py311): build once against python_min and run
+    # on any later CPython, instead of one build per python minor version.
+    version_independent: true
+    entry_points:
+      - whirlwind = whirlwind._climain:main
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=1,<2
+    - ${{ compiler("c") }}
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+  host:
+    - python ${{ python_min }}.*
+    - python-abi3 ${{ python_min }}.*
+    - pip
+    - maturin >=1,<2
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.21
+
+tests:
+  - python:
+      imports:
+        - whirlwind
+      pip_check: true
+  - script:
+      - whirlwind --help
+
+about:
+  summary: Fast Rust-backed 2D phase unwrapper for InSAR
+  license: BSD-3-Clause OR Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/scottstanie/whirlwind-insar
+  repository: https://github.com/scottstanie/whirlwind-insar
+  documentation: https://github.com/scottstanie/whirlwind-insar/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - scottstanie
