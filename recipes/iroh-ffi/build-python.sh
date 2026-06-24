@@ -22,5 +22,5 @@ export MATURIN_PEP517_ARGS="--no-default-features"
 # cross-compiled builds.
 $PYTHON -m pip install -v --use-pep517 --no-deps --no-build-isolation .
 
-cargo-bundle-licenses --format yaml --output "${RECIPE}"/THIRDPARTY.yml
-cp "${SRC_DIR}"/LICENCE-APACHE "${SRC_DIR}"/LICENCE-MIT "${RECIPE}"/
+cargo-bundle-licenses --format yaml --output "${RECIPE_DIR}"/THIRDPARTY.yml
+cp "${SRC_DIR}"/LICENCE-APACHE "${SRC_DIR}"/LICENCE-MIT "${RECIPE_DIR}"/
