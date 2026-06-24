@@ -1,0 +1,38 @@
+Provide a minimal std::char_traits specialization for the program-defined
+Bits::None type. StringTemplate<char> (NarrowString) carries a
+`typedef std::basic_string<Bits::None> NarrowerBase;` member; modern libc++
+instantiates that type when StringTemplate<char> is instantiated and requires a
+complete std::char_traits<Bits::None>. libstdc++ does not, which is why the
+upstream 4.0.0 sources build on Linux but not against current macOS libc++.
+Specializing std templates for a program-defined type (Bits::None) is allowed.
+
+--- a/libxsd-frontend/xsd-frontend/types.hxx
++++ b/libxsd-frontend/xsd-frontend/types.hxx
+@@ -6,6 +6,25 @@
+ #ifndef XSD_FRONTEND_TYPES_HXX
+ #define XSD_FRONTEND_TYPES_HXX
+
+ #include <string>
+ #include <cstddef> // std::size_t
++#include <iosfwd>  // std::streamoff, std::streampos
++#include <cwchar>  // std::mbstate_t
++
++namespace XSDFrontend { namespace Bits { struct None; } }
++
++// Modern libc++ requires a complete std::char_traits for any char type used to
++// name std::basic_string<>, including the NarrowerBase of StringTemplate<char>.
++namespace std
++{
++  template <>
++  struct char_traits< ::XSDFrontend::Bits::None>
++  {
++    typedef ::XSDFrontend::Bits::None char_type;
++    typedef int       int_type;
++    typedef streamoff off_type;
++    typedef streampos pos_type;
++    typedef mbstate_t state_type;
++  };
++}
+
+ namespace XSDFrontend
+ {
