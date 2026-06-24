@@ -11,7 +11,7 @@ elif [[ "${target_platform}" == osx-* ]]; then
   IROH_LIB=$(find "${PREFIX}" -name "libiroh_ffi.dylib" | head -1)
   JNA_NAME="libiroh_ffi.dylib"
 else
-  IROH_LIB=$(find "${PREFIX}" -name "iroh_ffi.pyd" | head -1)
+  IROH_LIB=$(find "${PREFIX}" -name "iroh_ffi.dll" | head -1)
   JNA_NAME="iroh_ffi.dll"
 fi
 
