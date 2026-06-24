@@ -1,0 +1,192 @@
+schema_version: 1
+
+# FIXME: Source repository does not have any releases or git tags as of
+# 2026-05-07, so currently use the latest commit on the default branch 'gx'.
+context:
+  version: "0.1.0"
+  commit: "bc2fe5523c23e3d0198181a3e3b7c8a482e25ba5"
+
+recipe:
+  name: gx-suite
+  version: ${{ version }}
+
+source:
+  url: https://bitbucket.org/gyrokinetics/gx/get/${{ commit }}.tar.gz
+  sha256: 63d3be728b21532437c5581b641676c33138d12aacbfc768bcdf423eccb92f15
+
+build:
+  number: 0
+  variant:
+    # Default to MPICH over other variants
+    down_prioritize_variant: ${{ 0 if mpi == "mpich" else 1 }}
+  skip:
+    - not linux
+    - match(cuda_compiler_version, "==None")
+
+outputs:
+  - package:
+      name: gx-core
+    build:
+      # Example: cuda129_mpi_mpich_h<hash>_<build_number>
+      string: cuda${{ cuda_compiler_version | version_to_buildstring }}_mpi_${{ mpi }}_h${{ hash }}_${{ build_number }}
+      script: build.sh
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("gx-core", upper_bound="x.x") }}
+      build:
+        # ${{ stdlib("c") }} sets c_stdlib_version in the .ci_support/ files.
+        # c_stdlib_version is overridden to in variants.yaml to pin the build
+        # sysroot to the minimum required version to support symbols in the
+        # CUDA 12.9 shared libraries. This also emits a matching
+        # '__glibc >=2.28' run-export to avoid over-constraining glibc at
+        # install time.
+        - ${{ stdlib("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ compiler("cuda") }}
+        - if: linux and aarch64
+          then: arm-variant * ${{ arm_variant_type }}
+        - make
+        - sed
+      host:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        # Need libculibos.a
+        - if: match(cuda_compiler_version, ">=13")
+          then: cuda-culibos-static
+          else: cuda-cudart-static
+        - cuda-nvtx-dev
+        - libcublas-dev
+        - libcufft-dev
+        - libcufft-static
+        - libcusolver-dev
+        - cutensor
+        - nccl
+        - gsl
+        - if: mpi == "openmpi"
+          then:
+            # DON'T repeat requirements with no constraint along with the mpi
+            # build variant as the global pinning will pick up openmpi 4 but
+            # the build variants need openmpi 5
+            - hdf5 [build=mpi_${{ mpi }}_*]
+            - libnetcdf [build=mpi_${{ mpi }}_*]
+            - netcdf-fortran [build=mpi_${{ mpi }}_*]
+          else:
+            # Repeat of requirements with no constraint and with mpi build
+            # variant are to pick up global pinning (from no constraint)
+            - hdf5
+            - hdf5 [build=mpi_${{ mpi }}_*]
+            - libnetcdf
+            - libnetcdf [build=mpi_${{ mpi }}_*]
+            - netcdf-fortran [build=mpi_${{ mpi }}_*]
+        - ${{ mpi }}
+      run:
+        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+        - gsl
+        - hdf5 * [build=mpi_${{ mpi }}_*]
+        - libnetcdf * [build=mpi_${{ mpi }}_*]
+        - netcdf-fortran * [build=mpi_${{ mpi }}_*]
+        - ${{ mpi }}
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - gx
+          files:
+            # The binary embeds GX_PATH=$PREFIX/share/gx and resolves helper
+            # scripts beneath it
+            - share/gx/geometry_modules/*
+            - share/gx/post_processing/*
+
+      - script:
+          # Linkage test: Verify every NEEDED library resolves on a host with no
+          # CUDA capability. gx itself cannot be executed without a real CUDA
+          # driver, but can use the cuda-driver-dev stub library to verify that
+          # all shared library dependencies are correctly specified and resolvable.
+          - ln -s ${PREFIX}/lib/stubs/libcuda.so ${PREFIX}/lib/libcuda.so.1
+          # 'test -f' follows the symlink chain, so a dangling link (e.g. if
+          # the cuda-driver-dev stub layout changed) would fail.
+          - test -f ${PREFIX}/lib/libcuda.so.1
+          # 'ldd' only walks DT_NEEDED entries, so it does not reflect cudart's
+          # runtime dlopen("libcuda.so.1"), so need the two lines above.
+          # The ldd assertion can catch RPATH bugs, missing run-deps, and
+          # broken MPI-variant linkage.
+          - ldd ${PREFIX}/bin/gx
+          # '!' negates/inverts the exit code
+          - "! ldd ${PREFIX}/bin/gx | grep -q 'not found'"
+          # NOTE: Can test on a local CUDA-enabled machine with
+          # git clone https://bitbucket.org/gyrokinetics/gx.git
+          # gx ./gx/benchmarks/linear/ITG_cyclone/itg_miller_adiabatic_electrons.in
+        requirements:
+          run:
+            - cuda-driver-dev
+
+  # GX doesn't build against Python but needs a Python interpreter at runtime
+  # for scripts under $PREFIX/share/gx/geometry_modules/.
+  # To avoid creating a build variant for every Python version, create a noarch
+  # metapackage as the primary user entry point to provide Python dependencies.
+  - package:
+      name: gx
+    build:
+      noarch: python
+      # Avoid inheriting built script and do nothing instead
+      script: "true"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        # exact=true ties this metapackage to the matching MPI/CUDA build of
+        # gx-core, so installing gx pulls in the binary that was built in
+        # the same variant.
+        - ${{ pin_subpackage("gx-core", exact=true) }}
+        - numpy
+        - scipy
+        - matplotlib-base
+        - netcdf4
+        # python <3.11
+        - tomli
+
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - script:
+          - which gx
+          - python --version
+
+  - package:
+      name: gx-${{ mpi }}
+    build:
+      noarch: generic
+      # Avoid inheriting built script and do nothing instead
+      script: "true"
+    requirements:
+      run:
+        # Pin to the exact build variant of the gx metapackage to
+        # transitively pull in the correct ${{ mpi }} build variant of gx-core
+        # and python.
+        - ${{ pin_subpackage("gx", exact=true) }}
+    tests:
+      - script:
+          - which gx
+
+about:
+  homepage: https://gx.readthedocs.io/
+  summary: GPU-native gyrokinetic turbulence solver
+  description: |
+    GX is a code for solving the nonlinear gyrokinetic system for low-frequency
+    turbulence in magnetized plasmas using Fourier-Hermite-Laguerre spectral
+    methods. A unique feature of GX is the use of a Hermite-Laguerre velocity
+    discretization, which allows GX to smoothly interpolate between coarse
+    gyrofluid-like resolutions and finer conventional gyrokinetic resolutions.
+    GX is GPU-native and is designed and optimized for NVIDIA GPUs in CUDA/C++.
+  license: MIT
+  license_file: docs/License.rst
+  documentation: https://gx.readthedocs.io/
+  repository: https://bitbucket.org/gyrokinetics/gx/
+
+extra:
+  feedstock-name: gx
+  recipe-maintainers:
+    - matthewfeickert
