@@ -1,60 +1,119 @@
 schema_version: 1
 
 context:
+  build_number: 0
   version: "1.0.0"
-  
-  lib: ${{ "lib/python*" if unix else "Lib" }}
-  so: ${{ "so" if linux else "dylib" if osx else "dll" }}
 
-package:
-  name: iroh-ffi
-  version: ${{ version }}
+  m2: ${{ "" if unix else "m2-" }}
+  pym: ${{ python_min ~ ".*" if is_abi3 else "*" }}
+  so: ${{ "so" if unix else "pyd" }}
 
 source:
   url: https://github.com/n0-computer/iroh-ffi/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 627ffd935e787355ef5620f8d4413120d3f0ed1cba56b8ed8df40362985d5d53
 
-build:
-  number: 0
-  script:
-    content:
-      - ${{ PYTHON }} -m pip install -v --use-pep517 --no-deps --no-build-isolation .
-      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    env:
-      PYTHONIOENCODING: utf-8
+outputs:
+  # === PYTHON (ABI3) ===
+  - package:
+      name: iroh-ffi-python
+      version: ${{ version }}
+    build:
+      number: ${{ build_number }}
+      script: build-python.sh
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: true
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - ${{ m2 }}bash >=5.2
+        - cargo-bundle-licenses
+        - if: build_platform != target_platform
+          then:
+            - cross-python_${{ target_platform }}
+            - maturin >=1.2,<2.0
+            - python ${{ pym }}
+      host:
+        - maturin >=1.2,<2.0
+        - python ${{ pym }}
+        - if: is_abi3
+          then:
+            - python-abi3
+        - pip
+      run:
+        - python >=${{ python_min }}
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - site-packages/iroh-${{ version }}.dist-info/*
+            - site-packages/iroh/{__init__,iroh_ffi}.py
+            - site-packages/iroh/__init__.pyi
+            - site-packages/iroh/py.typed
+            - site-packages/iroh/libiroh_ffi.${{ so }}
+      - if: is_abi3
+        then:
+          script:
+            - abi3audit site-packages/iroh/libiroh_ffi.${{ so }} -s -v --assume-minimum-abi3 ${{ python_min }}
+          requirements:
+            run:
+              - abi3audit
+      - python:
+          imports:
+            - iroh
+          pip_check: true
+          python_version: ${{ pym }}
 
-requirements:
-  build:
-    - ${{ compiler('c') }}
-    - ${{ compiler('rust') }}
-    - ${{ stdlib('c') }}
-    - cargo-bundle-licenses
-    - uniffi-bindgen
-    - if: build_platform != target_platform
-      then:
-        - python
-        - cross-python_${{ target_platform }}
-  host:
-    - maturin >=1.2,<2.0
-    - python
-    - pip
-  run:
-    - python
+  # === KOTLIN ===
+  # iroh-ffi-python is a HOST dep: supplies libiroh_ffi.so.
+  - package:
+      name: iroh-ffi-kotlin
+      version: ${{ version }}
+    build:
+      number: ${{ build_number }}
+      script: build-kotlin.sh
+    requirements:
+      build:
+        - ${{ m2 }}bash >=5.2
+        - gradle <9
+        - uniffi-bindgen
+        - if: not unix
+          then:
+            - m2-findutils
+      host:
+        - iroh-ffi-python ==${{ version }}
+      run:
+        - openjdk >=17
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - share/java/iroh/iroh-${{ version }}.jar
 
-tests:
-  - package_contents:
-      strict: true
-      files:
-        - ${{ lib }}/site-packages/iroh-${{ version }}.dist-info/*
-        - ${{ lib }}/site-packages/iroh/{__init__,iroh_ffi}.py
-        - ${{ lib }}/site-packages/iroh/__init__.pyi
-        - ${{ lib }}/site-packages/iroh/__pycache__/*.pyc
-        - ${{ lib }}/site-packages/iroh/py.typed
-        - ${{ lib }}/site-packages/iroh/libiroh_ffi.${{ so }}
-  - python:
-      imports:
-        - iroh
-      pip_check: true
+  # === SWIFT (macOS arm64 only) ===
+  # iroh-ffi-python is a HOST dep: supplies libiroh_ffi.so.
+  - package:
+      name: iroh-ffi-swift
+      version: ${{ version }}
+    build:
+      number: ${{ build_number }}
+      script: build-swift.sh
+      skip: not (osx and arm64)
+    requirements:
+      build:
+        - ${{ m2 }}bash >=5.2
+        - uniffi-bindgen
+      host:
+        - iroh-ffi-python ==${{ version }}
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - lib/Iroh.xcframework/Info.plist
+            - lib/Iroh.xcframework/macos-arm64/Iroh.framework/Iroh
+            - lib/IrohLib/Sources/IrohLib/IrohLib.swift
 
 about:
   homepage: https://iroh.computer
