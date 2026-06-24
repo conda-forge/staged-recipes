@@ -1,0 +1,90 @@
+{% set version = '4.5.0' %}
+
+{% set posix = 'm2-' if win else '' %}
+
+package:
+  name: r-smooth
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/smooth_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/smooth/smooth_{{ version }}.tar.gz
+  sha256: 7ab0e1cec1129d3add7f2b604f544ecca414cc9f87350b01058c907558d47be6
+
+build:
+  merge_build_host: true  # [win]
+  number: 0
+  # Windows is skipped at staged-recipes stage only. cmd.exe's 8191-char
+  # line limit overflows during conda-build's env-activation script when
+  # the host has many R deps (r-base + 9 r-* packages + transitives).
+  # We re-enable win-64 in the feedstock post-merge, where we have
+  # access to feedstock-level CI knobs that work around the limit.
+  skip: True  # [win]
+  rpaths:
+    - lib/R/lib/
+    - lib/
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+  host:
+    - r-base
+    # libblas / liblapack are needed by smooth.so's BLAS / LAPACK calls
+    # (via RcppArmadillo). RcppArmadillo's run_exports propagate these
+    # transitively, but conda-build's overlinking checker doesn't
+    # accept transitives — declare explicitly to silence the error.
+    - libblas
+    - liblapack
+    - r-mass
+    - r-rcpp >=0.12.3
+    - r-rcpparmadillo >=0.8.100.0.0
+    - r-generics >=0.1.2
+    - r-greybox >=2.0.2
+    - r-nloptr
+    - r-statmod
+    - r-xtable
+    - r-zoo
+  run:
+    - r-base
+    - libblas
+    - liblapack
+    - r-mass
+    - r-rcpp >=0.12.3
+    - r-rcpparmadillo >=0.8.100.0.0
+    - r-generics >=0.1.2
+    - r-greybox >=2.0.2
+    - r-nloptr
+    - r-statmod
+    - r-xtable
+    - r-zoo
+
+test:
+  commands:
+    - $R -e "library('smooth')"           # [not win]
+    - "\"%R%\" -e \"library('smooth')\""  # [win]
+
+about:
+  home: https://github.com/config-i1/smooth
+  license: LGPL-2.1-only
+  summary: |
+    Functions implementing Single Source of Error state space models for time
+    series analysis and forecasting. Includes ADAM (Augmented Dynamic Adaptive
+    Model) uniting ETS, ARIMA and regression in a unified framework; classical
+    Exponential Smoothing; State-Space SARIMA; Complex Exponential Smoothing;
+    Simple Moving Average; and several simulation functions. Supports
+    intermittent demand via the iETS framework.
+  license_family: LGPL
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/LGPL-2.1'
+
+extra:
+  recipe-maintainers:
+    - config-i1
