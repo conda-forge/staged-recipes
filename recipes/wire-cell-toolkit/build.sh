@@ -13,7 +13,7 @@ echo "${PKG_VERSION}" > version.txt
 # hdf5) inside the conda prefix.
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
-# Demote two -Werror categories back to warnings; -Werror stays on for
+# Demote selected -Werror categories back to warnings; -Werror stays on for
 # everything else, and WCT's own genuine warning sites are fixed via recipe
 # patches (see source.patches in recipe.yaml), not by widening this list.
 #   * -Wdangling-reference: a known GCC-13+ FALSE POSITIVE on boost::multi_array.
@@ -23,7 +23,18 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_
 #     ROOT (>=6.40) is built with root_cxx_standard=23, so root-config forces
 #     `-std=c++23` on the ROOT translation units. Demote rather than patch the
 #     bundled third-party header.
-export CXXFLAGS="-Wno-error=dangling-reference -Wno-error=deprecated-literal-operator ${CXXFLAGS:-}"
+# Add each flag ONLY if the active compiler recognizes it: the CUDA build pins an
+# older, nvcc-compatible gcc that lacks newer -W names, and the strict
+# `-Wno-error=NAME` form ERRORS on an unknown NAME (unlike plain `-Wno-NAME`),
+# which would otherwise break every configure test compile.
+CXX_PROBE="${CXX:-c++}"
+demote=""
+for w in dangling-reference deprecated-literal-operator; do
+    if printf 'int main(){}\n' | "${CXX_PROBE}" -Wno-error="${w}" -fsyntax-only -x c++ - 2>/dev/null; then
+        demote="${demote} -Wno-error=${w}"
+    fi
+done
+export CXXFLAGS="${demote} ${CXXFLAGS:-}"
 
 # waf's find_program('python') otherwise resolves to the HOST-env python, which
 # is a non-executable relocation placeholder during the build (a host dep pulls
@@ -52,6 +63,18 @@ if [ "${wct_with_libtorch:-true}" = "true" ]; then
         --with-libtorch="${PREFIX}"
         --with-libtorch-include="${PREFIX}/include,${PREFIX}/include/torch/csrc/api/include"
         --with-libtorch-lib="${PREFIX}/lib"
+    )
+fi
+if [ "${wct_with_cuda:-false}" = "true" ]; then
+    # WCT's cuda.py wants cuda.h + libcuda/libcudart + nvcc. conda's CUDA headers
+    # and stub libs live under $PREFIX/targets/<arch>/{include,lib} (with nvcc in
+    # $PREFIX/bin), so point the include/lib dirs there explicitly rather than at
+    # $PREFIX/include. (cuda.h = Driver API header from cuda-driver-dev.)
+    cuda_arch_dir="${PREFIX}/targets/x86_64-linux"
+    WITH_FLAGS+=(
+        --with-cuda="${PREFIX}"
+        --with-cuda-include="${cuda_arch_dir}/include,${PREFIX}/include"
+        --with-cuda-lib="${cuda_arch_dir}/lib,${PREFIX}/lib"
     )
 fi
 

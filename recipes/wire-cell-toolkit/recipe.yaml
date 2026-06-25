@@ -77,6 +77,9 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
+    - if: wct_with_cuda == "true"
+      then:
+        - ${{ compiler('cuda') }}   # nvcc, to compile the cuda submodule's .cu
     - pkg-config
     # waf (./wcb) is a Python program; it only needs to *run* at build time.
     - python
@@ -108,12 +111,19 @@ requirements:
                                 #   WCT finds it via root-config on PATH
     - if: wct_with_libtorch == "true"
       then:
-        # CPU build of libtorch: this is the CPU-default package, so pin the
-        # `cpu*` build string (matches cpu_mkl_*/cpu_generic_*). Without the pin
-        # the solver pulls the much larger `cuda*` libtorch and drags the CUDA
-        # runtime in. The CUDA-enabled WCT build uses the cuda libtorch instead
-        # (see BUILD-CUDA.md). Provides torch/script.h, ATen, libtorch/torch_cpu/c10.
-        - libtorch * cpu*       # enables the `pytorch` submodule (libWireCellPytorch)
+        # libtorch build string follows the cuda toggle: cpu by default (this is
+        # the CPU-default package; `cpu*` matches cpu_mkl_*/cpu_generic_*), but a
+        # cuda* build when wct_with_cuda is on so the pytorch submodule links the
+        # CUDA torch libs (torch_cuda/c10_cuda). Provides torch/script.h, ATen.
+        - ${{ "libtorch * cuda*" if wct_with_cuda == "true" else "libtorch * cpu*" }}
+    # --- CUDA toolkit (only when wct_with_cuda) -------------------------------
+    - if: wct_with_cuda == "true"
+      then:
+        # cuda-version pins the whole CUDA stack to one release (match the cuda
+        # libtorch build, currently cuda12.9). cuda-nvcc comes via compiler('cuda').
+        - cuda-version 12.9.*
+        - cuda-cudart-dev       # libcudart + cuda_runtime.h
+        - cuda-driver-dev       # cuda.h (Driver API) + libcuda stub -> WCT's cuda.py
   run:
     # Most runtime deps come in via run_exports of the host packages above
     # (boost-cpp, fftw, hdf5, tbb, ...).
