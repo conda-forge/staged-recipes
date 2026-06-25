@@ -1,0 +1,63 @@
+# rattler-build recipe (v1 / CEP-13 format) for justIN -- the DUNE workflow
+# system clients (https://dunejustin.fnal.gov/).
+#
+# Modeled on the spack package
+#   fnal-fife/scd_recipes .../spack_repo/scd_recipes/packages/justin/package.py
+# justIN has no setup.py/pyproject: it is a set of Python/shell command-line
+# clients (commands/) plus job-side utilities (jobutils/). Like the spack
+# recipe, we simply install those trees into the prefix -- so this is a noarch
+# package. ROOT/art are unrelated; the only real dep is rucio-clients.
+
+context:
+  version: "1.6.1"
+  # Upstream tags zero-pad each version component to two digits
+  # (e.g. 1.6.1 -> 01.06.01). Pad any single-digit component with a leading
+  # zero by prepending "0" and keeping the last two characters.
+  parts: ${{ version | split('.') }}
+  tag: ${{ ("0" ~ parts[0])[-2:] ~ "." ~ ("0" ~ parts[1])[-2:] ~ "." ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: dune-justin
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DUNE/dune-justin/archive/refs/tags/${{ tag }}.tar.gz
+  sha256: 56946816a47b89d8ec4c44a6bd36ba1ddc4f27b1ac728949d6ed115f8b66569e
+
+build:
+  number: 0
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  run:
+    - python
+    - rucio-clients
+
+tests:
+  - script:
+      - justin --help
+  - package_contents:
+      files:
+        - bin/justin
+        - bin/justin-cvmfs-upload
+        - bin/justin-rucio-upload
+        - jobutils/justin-get-file
+        - share/man/man1/justin.1
+
+about:
+  homepage: https://dunejustin.fnal.gov/
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: justIN -- DUNE workflow system command-line clients
+  description: |
+    justIN is the workflow management system for the Deep Underground Neutrino
+    Experiment (DUNE). This package installs the command-line clients (justin
+    and friends) and the job-side utilities (jobutils) used to create and manage
+    workflows and to upload/fetch data via Rucio/WebDAV/CVMFS.
+  repository: https://github.com/DUNE/dune-justin
+  documentation: https://dunejustin.fnal.gov/docs/
+extra:
+  recipe-maintainers:
+    - calcuttj
