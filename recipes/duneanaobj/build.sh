@@ -13,6 +13,8 @@ export ROOTSYS="${PREFIX}"
 export PATH="${PREFIX}/bin:${PATH}"
 
 # The Proxy/Flat CMakeLists run gen_srproxy and read these env vars.
+# (gen_srproxy itself derives castxml's compiler from $CXX/$CC — patched in the
+# srproxy recipe — so no compiler shim is needed here.)
 export ROOT_INC="${PREFIX}/include"
 export SRPROXY_INC="${PREFIX}/include"
 
