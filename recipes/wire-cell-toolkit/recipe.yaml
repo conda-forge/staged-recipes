@@ -2,21 +2,22 @@
 # Build with:  rattler-build build --recipe recipe/recipe.yaml
 #
 # WCT builds with waf (the bundled ./wcb script). Almost every dependency below
-# lives on conda-forge. This recipe targets the CORE toolkit plus the optional
-# hio (HDF5), tbb (oneTBB) and patrec (GLPK) submodules.
+# lives on conda-forge. This recipe targets the core toolkit plus the hio (HDF5),
+# tbb (oneTBB) and patrec (GLPK) submodules, AND the optional ROOT and libtorch
+# (pytorch submodule) features, which are gated by build-time toggles.
 #
-# SCOPE: core-only -- the same dep set the pixi dev build proved green. ROOT,
-# pytorch (libtorch) and CUDA are intentionally left out of this first package;
-# they come back later as build variants (see the note at the bottom).
+# OPTIONAL-FEATURE TOGGLES (see variants.yaml): wct_with_root / wct_with_libtorch
+# default to "true", so conda-forge builds ONE fully-featured package. A LOCAL
+# user can flip a toggle to "false" to drop that feature (build-time choice; the
+# shipped binary is built one way). Each toggle gates a host dep (jinja `if:`
+# below) and a `--with-<feat>` flag in build.sh.
 
 # ---------------------------------------------------------------------------
-# Still off by default (add the conda-forge dep + matching --with flag to turn on):
-#   zio    -> host: zeromq czmq zyre ; build.sh: --with-zmq/--with-czmq/--with-zyre
-#   triton -> host: grpc-cpp libprotobuf ; build.sh: --with-grpc/--with-protobuf
-#
-# To split the heavy bits into variants instead of one mega-package, move ROOT /
-# libtorch / cuda behind a `${{ variant }}`-keyed jinja `if` and emit several
-# output packages (e.g. -cpu vs -cuda). Easiest once the single build works.
+# Still off (deps not on conda-forge yet):
+#   zio    -> needs libzio (+ czmq/zyre)            ; build.sh: --with-zio
+#   triton -> needs the NVIDIA Triton client lib    ; build.sh: --with-triton
+# CUDA: handled separately as a CPU-default + cuda-variant build (TODO). To build
+# a CUDA-enabled WCT BY HAND, see BUILD-CUDA.md next to this recipe.
 # ---------------------------------------------------------------------------
 
 context:
@@ -100,6 +101,19 @@ requirements:
     - bzip2
     - hdf5                      # enables the `hio` submodule
     - glpk                      # enables `patrec` (dev builds only)
+    # --- optional features (default ON via variants.yaml; see toggles there) --
+    - if: wct_with_root == "true"
+      then:
+        - root                  # enables the `root` submodule (libWireCellRoot);
+                                #   WCT finds it via root-config on PATH
+    - if: wct_with_libtorch == "true"
+      then:
+        # CPU build of libtorch: this is the CPU-default package, so pin the
+        # `cpu*` build string (matches cpu_mkl_*/cpu_generic_*). Without the pin
+        # the solver pulls the much larger `cuda*` libtorch and drags the CUDA
+        # runtime in. The CUDA-enabled WCT build uses the cuda libtorch instead
+        # (see BUILD-CUDA.md). Provides torch/script.h, ATen, libtorch/torch_cpu/c10.
+        - libtorch * cpu*       # enables the `pytorch` submodule (libWireCellPytorch)
   run:
     # Most runtime deps come in via run_exports of the host packages above
     # (boost-cpp, fftw, hdf5, tbb, ...).
@@ -119,6 +133,12 @@ tests:
         - WireCellAux
         - WireCellHio    # hio submodule (HDF5)
         - WireCellTbb    # tbb submodule (oneTBB)
+        - if: wct_with_root == "true"
+          then:
+            - WireCellRoot      # root submodule
+        - if: wct_with_libtorch == "true"
+          then:
+            - WireCellPytorch   # pytorch submodule (libtorch)
       include:
         - WireCellUtil/BuildConfig.h
       bin:
@@ -132,8 +152,9 @@ about:
   description: |
     The Wire-Cell Toolkit provides simulation, signal processing, imaging and
     reconstruction for Liquid Argon Time Projection Chamber (LArTPC) detectors.
-    This is the core build (incl. the hio/HDF5, tbb/oneTBB and patrec/GLPK
-    submodules); ROOT, libtorch (pytorch) and CUDA support are not enabled.
+    This build includes the hio/HDF5, tbb/oneTBB and patrec/GLPK submodules and,
+    by default, the ROOT and libtorch (pytorch submodule) features. CUDA support
+    is not enabled in this package.
   repository: https://github.com/wirecell/wire-cell-toolkit
 extra:
   recipe-maintainers:

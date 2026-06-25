@@ -13,11 +13,17 @@ echo "${PKG_VERSION}" > version.txt
 # hdf5) inside the conda prefix.
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
-# Demote ONLY the known GCC-13+ false positive on boost::multi_array
-# (-Wdangling-reference) from error back to warning. -Werror stays on for
-# everything else. The genuine warning sites are fixed via recipe patches
-# (see source.patches in recipe.yaml), not by widening this list.
-export CXXFLAGS="-Wno-error=dangling-reference ${CXXFLAGS:-}"
+# Demote two -Werror categories back to warnings; -Werror stays on for
+# everything else, and WCT's own genuine warning sites are fixed via recipe
+# patches (see source.patches in recipe.yaml), not by widening this list.
+#   * -Wdangling-reference: a known GCC-13+ FALSE POSITIVE on boost::multi_array.
+#   * -Wdeprecated-literal-operator: a real C++23 deprecation, but it fires only
+#     inside the VENDORED util/.../custard/nlohmann/json.hpp (a `""_json` literal
+#     with a space). It surfaces only in the ROOT submodule, because conda-forge
+#     ROOT (>=6.40) is built with root_cxx_standard=23, so root-config forces
+#     `-std=c++23` on the ROOT translation units. Demote rather than patch the
+#     bundled third-party header.
+export CXXFLAGS="-Wno-error=dangling-reference -Wno-error=deprecated-literal-operator ${CXXFLAGS:-}"
 
 # waf's find_program('python') otherwise resolves to the HOST-env python, which
 # is a non-executable relocation placeholder during the build (a host dep pulls
@@ -25,11 +31,36 @@ export CXXFLAGS="-Wno-error=dangling-reference ${CXXFLAGS:-}"
 # actually runnable now. waf honors the PYTHON env var as a find_program override.
 export PYTHON="${BUILD_PREFIX}/bin/python"
 
+# Optional-feature flags, driven by the variant toggles in variants.yaml.
+# rattler-build exports each variant key into the build environment, so
+# ${wct_with_root}/${wct_with_libtorch} are "true"/"false" here. We pass the
+# conda $PREFIX as the package location (waf's generic --with-NAME=<dir> form:
+# `=true` would use pkg-config, which libtorch has no .pc for). Defaults match
+# variants.yaml ("true") in case the key is somehow unset.
+WITH_FLAGS=()
+if [ "${wct_with_root:-true}" = "true" ]; then
+    WITH_FLAGS+=( --with-root="${PREFIX}" )
+fi
+if [ "${wct_with_libtorch:-true}" = "true" ]; then
+    # libtorch's headers are split: the low-level headers are in $PREFIX/include
+    # but the high-level C++ API (torch/torch.h) lives under
+    # include/torch/csrc/api/include. WCT's `generic` waf tool splits
+    # --with-NAME-include on commas, so pass BOTH dirs (matches the wire-cell
+    # spack recipe). libtorch has no .pc file, so the include/lib dirs are read
+    # directly rather than via pkg-config.
+    WITH_FLAGS+=(
+        --with-libtorch="${PREFIX}"
+        --with-libtorch-include="${PREFIX}/include,${PREFIX}/include/torch/csrc/api/include"
+        --with-libtorch-lib="${PREFIX}/lib"
+    )
+fi
+
 ./wcb configure \
     --prefix="${PREFIX}" \
     --boost-includes="${PREFIX}/include" \
     --boost-libs="${PREFIX}/lib" \
-    --with-jsonnet="${PREFIX}"
+    --with-jsonnet="${PREFIX}" \
+    "${WITH_FLAGS[@]}"
 
 ./wcb -j"${CPU_COUNT}"
 ./wcb install
