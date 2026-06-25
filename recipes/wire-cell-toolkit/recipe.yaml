@@ -1,0 +1,137 @@
+# rattler-build recipe (v1 / CEP-13 format) for Wire-Cell Toolkit.
+# Build with:  rattler-build build --recipe recipe/recipe.yaml
+#
+# WCT builds with waf (the bundled ./wcb script). Almost every dependency below
+# lives on conda-forge. This recipe targets the CORE toolkit plus the optional
+# hio (HDF5), tbb (oneTBB) and patrec (GLPK) submodules.
+#
+# SCOPE: core-only -- the same dep set the pixi dev build proved green. ROOT,
+# pytorch (libtorch) and CUDA are intentionally left out of this first package;
+# they come back later as build variants (see the note at the bottom).
+
+context:
+  version: "0.37.0"
+
+package:
+  name: wire-cell-toolkit
+  version: ${{ version }}
+
+source:
+  url: https://github.com/wirecell/wire-cell-toolkit/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 3951eaaeac284b993931329410c987d05bc9942defc8a9b3f24d5b0d66b32fe6
+  # Release-mode (-Werror) fixes for GCC 13+/14. Each patch carries an upstream
+  # PR-ready description; see patches/README.md for the full -Werror strategy.
+  # The one remaining -Werror category (boost::multi_array dangling-reference,
+  # a GCC false positive) is demoted via CXXFLAGS in build.sh, not patched.
+  patches:
+    - patches/0001-quickhull-fix-pessimizing-move.patch
+    - patches/0002-clus-fix-dangling-bgl-named-params.patch
+    - patches/0003-test-eigen2-drop-unused-mat5.patch
+
+build:
+  number: 0
+  # WCT is C++ and links system-specific shared libs -> not noarch.
+  script: build.sh
+  # WCT/waf is developed and tested on linux; skip the build on osx/win.
+  skip: not linux
+  # --- osx support (NOT enabled yet) -------------------------------------
+  # Windows is genuinely unsupported (bash build.sh + the waf/./wcb driver),
+  # so a Windows skip is permanent. osx has NO fundamental blocker -- WCT is
+  # portable C++/waf and every dep below ships osx-64/osx-arm64 on conda-forge
+  # -- but `skip: win` alone will NOT build clean on osx. The obstacle is the
+  # release-mode strict flags, which are tuned for GCC:
+  #   * waft/wcb.py adds "-Werror -Wall -Werror=return-type -pedantic ..."
+  #     unconditionally in release mode (is_development() is false for a
+  #     digit-leading version like 0.36.1). clang emits a DIFFERENT warning
+  #     set than GCC 13/14, so it hits its own -Werror sites that the GCC
+  #     patches (0001-0003) don't cover.
+  #   * build.sh's `-Wno-error=dangling-reference` (CXXFLAGS) is a GCC-13+
+  #     -only flag; clang treats it as an unknown-warning-option.
+  # To enable osx:
+  #   1. change skip to `win` (or `not unix`);
+  #   2. make build.sh compiler-aware: gate -Wno-error=dangling-reference to
+  #      linux/gcc, and on osx append a blanket `-Wno-error` to demote clang's
+  #      release warnings to warnings (release -Werror can't be turned off via
+  #      a waf option -- it's gated on the version, not a flag);
+  #   3. expect 1-2 clang-specific source patches once the first osx compile
+  #      surfaces its warning sites;
+  #   4. confirm the dep solve on osx-arm64 (libjsonnet/go-jsonnet especially).
+  # CANNOT be validated from a linux host: rattler-build can't emit osx
+  # packages without an osx runner (and build_locally.py needs Docker). Needs
+  # conda-forge osx CI or a Mac to prove green.
+  # -----------------------------------------------------------------------
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - pkg-config
+    # waf (./wcb) is a Python program; it only needs to *run* at build time.
+    - python
+  host:
+    - libboost-devel            # filesystem graph thread program_options iostreams regex
+                                #   Modern conda-forge name (tracks the global boost pin); its
+                                #   run_exports pins the runtime `libboost` so the libboost_*.so
+                                #   are present at run time (the older `boost-cpp` did not,
+                                #   breaking `wire-cell` at runtime). Unpinned: WCT no longer
+                                #   requests the boost `system` component (made header-only in
+                                #   boost >=1.86), so newer libboost configures clean.
+    - eigen                     # >=3.4  ; header-only (pcname eigen3)
+    - jsoncpp                   # >=1.9
+    - libjsonnet                # C++ libjsonnet.h + lib jsonnet (NOT the `jsonnet` py
+                                #   binding nor `go-jsonnet`, which ships CLI tools only)
+    - go-jsonnet                # the `jsonnet` CLI (WCT devs' preferred impl) for runtime/tests
+    - spdlog                    # >=1.9  ; compiled lib (-DSPDLOG_COMPILED_LIB)
+    - fmt                       # >=9    ; spdlog's formatting backend
+    - fftw                      # >=3.3  ; provides fftw3f + fftw3f_threads
+    - tbb-devel                 # oneTBB headers+lib (enables the `tbb` submodule)
+    - zlib
+    - bzip2
+    - hdf5                      # enables the `hio` submodule
+    - glpk                      # enables `patrec` (dev builds only)
+  run:
+    # Most runtime deps come in via run_exports of the host packages above
+    # (boost-cpp, fftw, hdf5, tbb, ...).
+    # Add explicit pins here only if a missing .so shows up at runtime.
+    - libjsonnet
+
+tests:
+  - script:
+      - wire-cell --help
+      - wcsonnet --help
+  - package_contents:
+      # bare names: rattler-build adds the `lib` prefix + platform extension
+      # (libWireCellUtil.so on linux).
+      lib:
+        - WireCellUtil
+        - WireCellIface
+        - WireCellAux
+        - WireCellHio    # hio submodule (HDF5)
+        - WireCellTbb    # tbb submodule (oneTBB)
+      include:
+        - WireCellUtil/BuildConfig.h
+      bin:
+        - wire-cell
+
+about:
+  homepage: https://github.com/wirecell/wire-cell-toolkit
+  license: LGPL-3.0-or-later
+  license_file: LICENSE
+  summary: Wire-Cell Toolkit -- LArTPC simulation, signal processing and reconstruction
+  description: |
+    The Wire-Cell Toolkit provides simulation, signal processing, imaging and
+    reconstruction for Liquid Argon Time Projection Chamber (LArTPC) detectors.
+    This is the core build (incl. the hio/HDF5, tbb/oneTBB and patrec/GLPK
+    submodules); ROOT, libtorch (pytorch) and CUDA support are not enabled.
+  repository: https://github.com/wirecell/wire-cell-toolkit
+
+# ---------------------------------------------------------------------------
+# Still off by default (add the conda-forge dep + matching --with flag to turn on):
+#   zio    -> host: zeromq czmq zyre ; build.sh: --with-zmq/--with-czmq/--with-zyre
+#   triton -> host: grpc-cpp libprotobuf ; build.sh: --with-grpc/--with-protobuf
+#
+# To split the heavy bits into variants instead of one mega-package, move ROOT /
+# libtorch / cuda behind a `${{ variant }}`-keyed jinja `if` and emit several
+# output packages (e.g. -cpu vs -cuda). Easiest once the single build works.
+# ---------------------------------------------------------------------------
