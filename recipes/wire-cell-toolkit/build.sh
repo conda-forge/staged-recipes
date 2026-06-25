@@ -27,10 +27,15 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_
 # older, nvcc-compatible gcc that lacks newer -W names, and the strict
 # `-Wno-error=NAME` form ERRORS on an unknown NAME (unlike plain `-Wno-NAME`),
 # which would otherwise break every configure test compile.
+# The probe runs with `-Werror` on purpose: gcc errors on an unknown -Wno-error
+# name directly, while clang only *warns* (-Wunknown-warning-option) and would
+# pass the probe but then fail the real -Werror build -- the `-Werror` here
+# promotes that warning so the probe rejects the flag. (Harmless on gcc; required
+# for an eventual osx/clang build.)
 CXX_PROBE="${CXX:-c++}"
 demote=""
 for w in dangling-reference deprecated-literal-operator; do
-    if printf 'int main(){}\n' | "${CXX_PROBE}" -Wno-error="${w}" -fsyntax-only -x c++ - 2>/dev/null; then
+    if printf 'int main(){}\n' | "${CXX_PROBE}" -Werror -Wno-error="${w}" -fsyntax-only -x c++ - 2>/dev/null; then
         demote="${demote} -Wno-error=${w}"
     fi
 done

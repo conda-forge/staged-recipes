@@ -45,30 +45,44 @@ build:
   script: build.sh
   # WCT/waf is developed and tested on linux; skip the build on osx/win.
   skip: not linux
-  # --- osx support (NOT enabled yet) -------------------------------------
-  # Windows is genuinely unsupported (bash build.sh + the waf/./wcb driver),
-  # so a Windows skip is permanent. osx has NO fundamental blocker -- WCT is
-  # portable C++/waf and every dep below ships osx-64/osx-arm64 on conda-forge
-  # -- but `skip: win` alone will NOT build clean on osx. The obstacle is the
-  # release-mode strict flags, which are tuned for GCC:
-  #   * waft/wcb.py adds "-Werror -Wall -Werror=return-type -pedantic ..."
-  #     unconditionally in release mode (is_development() is false for a
-  #     digit-leading version like 0.36.1). clang emits a DIFFERENT warning
-  #     set than GCC 13/14, so it hits its own -Werror sites that the GCC
-  #     patches (0001-0003) don't cover.
-  #   * build.sh's `-Wno-error=dangling-reference` (CXXFLAGS) is a GCC-13+
-  #     -only flag; clang treats it as an unknown-warning-option.
-  # To enable osx:
-  #   1. change skip to `win` (or `not unix`);
-  #   2. make build.sh compiler-aware: gate -Wno-error=dangling-reference to
-  #      linux/gcc, and on osx append a blanket `-Wno-error` to demote clang's
-  #      release warnings to warnings (release -Werror can't be turned off via
-  #      a waf option -- it's gated on the version, not a flag);
-  #   3. expect 1-2 clang-specific source patches once the first osx compile
-  #      surfaces its warning sites;
-  #   4. confirm the dep solve on osx-arm64 (libjsonnet/go-jsonnet especially).
-  # CANNOT be validated from a linux host: rattler-build can't emit osx
-  # packages without an osx runner (and build_locally.py needs Docker). Needs
+  # --- osx (clang) support: NOT enabled yet; what it would take -----------
+  # Windows is genuinely unsupported (bash build.sh + the waf/./wcb driver), so
+  # the win half of this skip is permanent. osx has NO fundamental blocker -- WCT
+  # is portable C++/waf and the boost/rpath waf tools are already darwin-aware
+  # (waft/boost.py clang-darwin toolset, wcb_unit_test.py DYLD_LIBRARY_PATH,
+  # rpathify uses waf RPATH which clang honors). Determined obstacles + steps:
+  #
+  #   1. **Flip the skip:** `skip: not linux` -> `skip: win` (or `not unix`).
+  #
+  #   2. **The release `-Werror` is clang-noisy.** wcb.py adds
+  #      "-Werror -Wall -Werror=return-type -pedantic -Wno-unused-local-typedefs"
+  #      in RELEASE mode (gated on the version string, NOT a flag -- can't be
+  #      turned off via a waf option). The flag NAMES are clang-valid, but clang's
+  #      -Wall/-pedantic warning SET differs from gcc, so it hits -Werror sites the
+  #      gcc patches (0001-0003) don't cover. Two options: fix each clang site with
+  #      a source patch (cleanest, upstream-able), or on osx append a bare
+  #      `-Wno-error` in build.sh to demote ALL release errors to warnings (blunt
+  #      but unblocks). Expect 1-2 clang-specific source patches either way.
+  #
+  #   3. **Harden the build.sh -Wno-error PROBE for clang.** build.sh already
+  #      probes the compiler and only adds a `-Wno-error=NAME` it recognizes (so
+  #      the gcc-only dangling-reference/deprecated-literal-operator flags are
+  #      dropped automatically). BUT the probe must add `-Werror` so clang's
+  #      "unknown warning option" (-Wunknown-warning-option) becomes an error and
+  #      the probe correctly REJECTS an unknown flag -- otherwise clang accepts the
+  #      probe (warning only) yet errors in the real -Werror build. (Harmless on
+  #      gcc; required before osx will configure.)
+  #
+  #   4. **CUDA off on osx.** No CUDA on macOS -- force wct_with_cuda=false there
+  #      (and libtorch is cpu-only on osx-arm64 anyway).
+  #
+  #   5. **Verify the dep solve on osx-64 AND osx-arm64**: root, libtorch (cpu),
+  #      libjsonnet/go-jsonnet, libboost-devel, hdf5, glpk, tbb-devel, fftw. Also
+  #      sanity-check the mandatory `-ldl` link (wcb.py: lib=['dl']); macOS ships a
+  #      libdl stub so it should pass, but confirm on the first osx run.
+  #
+  # CANNOT be validated from this linux host: rattler-build can't emit osx
+  # packages without an osx runner (build_locally.py needs Docker). Needs
   # conda-forge osx CI or a Mac to prove green.
   # -----------------------------------------------------------------------
 
