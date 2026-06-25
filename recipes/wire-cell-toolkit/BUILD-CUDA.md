@@ -32,7 +32,7 @@ The relevant `./wcb configure` flags (waf `generic` tool):
 
 ## Option A — rebuild the recipe with a CUDA toggle (recommended)
 
-This reuses the recipe's optional-feature machinery (see `variants.yaml`). Add a
+This reuses the recipe's optional-feature machinery (see `conda_build_config.yaml`). Add a
 `wct_with_cuda` key and the CUDA host deps, then build against a CUDA channel.
 
 1. Add CUDA deps to `recipe.yaml` `host:` (gated like the other toggles):

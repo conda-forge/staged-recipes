@@ -47,12 +47,12 @@ export CXXFLAGS="${demote} ${CXXFLAGS:-}"
 # actually runnable now. waf honors the PYTHON env var as a find_program override.
 export PYTHON="${BUILD_PREFIX}/bin/python"
 
-# Optional-feature flags, driven by the variant toggles in variants.yaml.
+# Optional-feature flags, driven by the variant toggles in conda_build_config.yaml.
 # rattler-build exports each variant key into the build environment, so
 # ${wct_with_root}/${wct_with_libtorch} are "true"/"false" here. We pass the
 # conda $PREFIX as the package location (waf's generic --with-NAME=<dir> form:
 # `=true` would use pkg-config, which libtorch has no .pc for). Defaults match
-# variants.yaml ("true") in case the key is somehow unset.
+# conda_build_config.yaml ("true") in case the key is somehow unset.
 WITH_FLAGS=()
 if [ "${wct_with_root:-true}" = "true" ]; then
     WITH_FLAGS+=( --with-root="${PREFIX}" )
