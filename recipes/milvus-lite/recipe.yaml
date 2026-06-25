@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "3.0"
+
+package:
+  name: milvus-lite
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/milvus-lite/milvus_lite-${{ version }}.tar.gz
+  sha256: 2c35d0d046b1faae3402cde1fb73d65f51ee8c6aba65f54de1dda46f7bb18b9b
+
+build:
+  noarch: python
+  number: 0
+  script: |
+    # conda faiss-cpu exposes bindings under dist-info `faiss` (no `faiss-cpu`
+    # dist-info); rewrite the wheel METADATA dep so `pip check` sees `faiss` (G28).
+    sed -i.bak 's/"faiss-cpu>=1.7.4"/"faiss>=1.7.4"/' pyproject.toml && rm pyproject.toml.bak
+    ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - milvus-lite = milvus_lite.cmdline:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - pyarrow >=15.0
+    - numpy >=1.24
+    - faiss-cpu >=1.7.4
+    - grpcio >=1.50
+    - tomli >=2.0
+
+tests:
+  # pip_check fix: the build rewrites the wheel METADATA dep
+  # `faiss-cpu` -> `faiss` (conda faiss-cpu ships the `faiss` dist-info; there is
+  # no `faiss-cpu` dist-info), so `pip check` is satisfied by installed faiss (G28).
+  - python:
+      imports:
+        - milvus_lite
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  summary: Lightweight version of Milvus for local development and testing
+  description: |
+    Milvus Lite is the lightweight, embedded version of the Milvus vector
+    database, intended for local development, prototyping, and testing. As of
+    version 3.0 it is a pure-Python implementation backed by faiss-cpu,
+    pyarrow, numpy, and grpcio, exposing a Milvus-compatible local engine
+    consumable via pymilvus[milvus_lite].
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://github.com/milvus-io/milvus-lite
+  repository: https://github.com/milvus-io/milvus-lite
+
+extra:
+  recipe-maintainers:
+    - rxm7706
