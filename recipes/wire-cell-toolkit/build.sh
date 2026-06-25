@@ -53,7 +53,22 @@ export PYTHON="${BUILD_PREFIX}/bin/python"
 # conda $PREFIX as the package location (waf's generic --with-NAME=<dir> form:
 # `=true` would use pkg-config, which libtorch has no .pc for). Defaults match
 # conda_build_config.yaml ("true") in case the key is somehow unset.
-WITH_FLAGS=()
+# Force DIRECT (header+lib) detection instead of pkg-config for the optional,
+# pkg-config-detected deps that gate submodules. Some conda-forge packages don't
+# ship a usable .pc for the version the global pinning selects -- notably hdf5
+# (pinned to 1.14.x ships no hdf5.pc), which made WCT SILENTLY drop the hio
+# submodule (libWireCellHio missing) on the feedstock even though the build
+# "succeeded". With --with-<dep>=$PREFIX, waf's generic tool reads
+# $PREFIX/include + $PREFIX/lib directly (version-independent). tbb/fftwthreads
+# gate the tbb submodule the same way (mandatory=False -> silent drop), so pin
+# them too. NOTE: spdlog is deliberately LEFT on pkg-config -- its .pc carries
+# required -DSPDLOG_COMPILED_LIB / -DSPDLOG_FMT_EXTERNAL defines that direct
+# detection would not supply.
+WITH_FLAGS=(
+    --with-hdf5="${PREFIX}"          # hio submodule (conda-forge hdf5 1.14 has no usable .pc)
+    --with-tbb="${PREFIX}"           # tbb submodule
+    --with-fftwthreads="${PREFIX}"   # also gates the tbb submodule (LIB_FFTWTHREADS)
+)
 if [ "${wct_with_root:-true}" = "true" ]; then
     WITH_FLAGS+=( --with-root="${PREFIX}" )
 fi
