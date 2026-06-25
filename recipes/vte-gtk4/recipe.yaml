@@ -1,0 +1,92 @@
+# For more information about this format see: https://prefix-dev.github.io/rattler-build/latest/reference/recipe_file/
+context:
+  name: vte
+  version: "0.76.6"
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name|lower }}-gtk4
+  version: ${{ version }}
+
+source:
+  url: "https://download.gnome.org/sources/${{ name }}/${{ version_majmin }}/${{ name }}-${{ version }}.tar.xz"
+  sha256: 9ac739ad73b63e109269088a6d27029b6d45700b0993977c1e00ed1bcb1a3d39
+
+build:
+  number: 0
+  script: |
+    meson setup ${MESON_ARGS} \
+        --prefix=$PREFIX \
+        --default-library=shared \
+        --wrap-mode=nofallback \
+        -D_systemd=false \
+        -Dgir=true \
+        -Ddocs=false \
+        -Dvapi=false \
+        -Dgtk3=false \
+        -Dfribidi=true \
+        -Dicu=true \
+        -Dglade=false \
+        builddir
+    ninja -v -C builddir -j ${CPU_COUNT}
+    ninja -C builddir install -j ${CPU_COUNT}
+  skip:
+    - win
+    - osx
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - gobject-introspection
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - cairo
+    - expat
+    - fontconfig
+    - freetype
+    - glib
+    - gnutls
+    - gobject-introspection
+    - gtk4
+    - lz4
+    - zlib
+    # v0.80.x
+    # - simdutf
+    # - fast_float
+  run:
+    - cairo
+    - expat
+    - fontconfig
+    - freetype
+    - glib
+    - gobject-introspection
+    - gtk4
+    - lz4
+    - zlib
+
+tests:
+  - script: run_test.py
+    requirements:
+      run:
+        - pygobject
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - lib/girepository-1.0/Vte-3.91.typelib
+about:
+  homepage: https://gitlab.gnome.org/GNOME/vte
+  summary: 'A GNOME Virtual Terminal library (Vte)'
+  description: |
+    VTE provides a virtual terminal widget for GTK applications.
+  license: LGPL-3.0-or-later
+  license_file: [COPYING.CC-BY-4-0, COPYING.GPL3, COPYING.LGPL3, COPYING.XTERM]
+  documentation: https://gnome.pages.gitlab.gnome.org/vte/
+  repository: https://gitlab.gnome.org/GNOME/vte
+
+extra:
+  recipe-maintainers:
+    - araffin
