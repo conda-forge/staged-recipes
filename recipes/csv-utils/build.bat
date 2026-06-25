@@ -1,14 +1,11 @@
-@echo off
-setlocal enabledelayedexpansion
+@echo on
 
-cargo install --no-track --locked --root "%PREFIX%" -p csv-utils
-if errorlevel 1 exit /b 1
+set CARGO_PROFILE_RELEASE_STRIP=symbols
 
-cargo install --no-track --locked --root "%PREFIX%" -p csv-utils-web
-if errorlevel 1 exit /b 1
+cargo install --no-track --locked --root "%PREFIX%" --path csv-utils || exit 1
+cargo install --no-track --locked --root "%PREFIX%" --path csv-utils-web || exit 1
 
-cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-if errorlevel 1 exit /b 1
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || exit 1
 
 del /q "%PREFIX%\.crates.toml" 2>nul
 del /q "%PREFIX%\.crates2.json" 2>nul
