@@ -130,5 +130,60 @@ list — look for `cuda` (and `pytorch`) in
   stub libs); *running* GPU kernels needs a real NVIDIA driver/`libcuda` on the
   host. The conda `cuda-driver-dev` ships only the link stub.
 - **The `-Werror` patches still apply** — the CUDA build uses the same release
-  flags, so keep the three source patches and the `-Wno-error=dangling-reference`
-  CXXFLAGS demotion from the recipe.
+  flags, so keep the three source patches and the `-Wno-error=…` CXXFLAGS
+  demotions from the recipe.
+- **A CUDA build pins gcc DOWN.** conda-forge constrains the host gcc to a version
+  `nvcc` supports (older than the CPU build's gcc 15). That older gcc lacks
+  `-Wdeprecated-literal-operator`, and the strict `-Wno-error=NAME` form *errors*
+  on an unknown NAME (unlike plain `-Wno-NAME`) — which breaks every `./wcb`
+  configure test compile (it surfaces misleadingly as "boost/core/span.hpp: not
+  found"). `build.sh` handles this by **probing the compiler** and adding each
+  `-Wno-error=` flag only if recognized. The same older gcc also doesn't emit the
+  C++23 nlohmann-json deprecation, so the demotion simply isn't needed there.
+
+## Future: build BOTH cpu and cuda flavors on conda-forge
+
+The current `wct_with_cuda` toggle is a **local, single-value** switch (one build
+at a time). conda-forge can instead build BOTH flavors and ship them side by side
+(same as the pytorch / mpi / blas feedstocks). To do that LATER:
+
+1. **Switch the gating axis from `wct_with_cuda` to conda-forge's standard
+   `cuda_compiler_version`.** Keep `wct_with_cuda` as a local alias if handy, but
+   the conda-forge matrix must key off `cuda_compiler_version` so the `__cuda`
+   run-export and build-string machinery engage. Replace the gate conditions:
+   - `${{ "libtorch * cuda*" if cuda_compiler_version != "None" else "libtorch * cpu*" }}`
+   - `- if: cuda_compiler_version != "None"` for the cuda toolkit host deps and
+     `${{ compiler('cuda') }}` in build.
+   - In `build.sh`, drive `--with-cuda` off `cuda_compiler_version` (treat
+     `"None"`/unset as CPU) instead of `wct_with_cuda`.
+
+2. **Declare the matrix in the FEEDSTOCK, not here.** staged-recipes proves a
+   single build; the variant matrix lives in the generated feedstock's
+   `recipe/conda_build_config.yaml`:
+   ```yaml
+   cuda_compiler_version:
+     - "None"     # CPU build
+     - "12.6"     # CUDA build (pick the conda-forge-pinned CUDA version[s])
+   ```
+   `conda-smithy rerender` then emits one CI job per value.
+
+3. **Coexistence + selection is automatic** once you key off `cuda_compiler_version`:
+   the two builds get different build hashes, the cuda build carries a `__cuda`
+   run requirement (only installable where a GPU/driver exists), and
+   `cuda-version` pins the stack. No extra metadata needed for them to live in the
+   channel together.
+
+4. **Add the CUDA runtime to `run:`** for the cuda variant so the
+   `libcudart`/`libcuda` links are "expected" (silences the overlinking warnings
+   seen locally and is what the linter wants).
+
+### Caveats before committing to a matrix
+- **CI cost doubles** (one extra job per CUDA version) and each CUDA job pulls the
+  ~800 MB cuda libtorch + toolkit. This recipe is already heavy (ROOT + libtorch);
+  conda-forge CI has time limits, so consider restricting to a single CUDA version
+  or splitting CUDA out.
+- The matrix **multiplies** with any future axis (e.g. a python axis →
+  `python × cuda` jobs).
+- Reviewers will scrutinize the CUDA selection/`__cuda` behavior — following the
+  standard `cuda_compiler_version` pattern (not a custom toggle) is what they
+  expect and what makes coexistence work.
