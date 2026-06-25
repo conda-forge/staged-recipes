@@ -2,7 +2,6 @@ context:
   name: openfold
   version: "0.4.1"
   build_number: 0
-  python_min: "3.14"
   torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
 
 package:
@@ -17,10 +16,10 @@ source:
 
 build:
   number: ${{ build_number }}
-  # Use this build string instead if/when we compile extensions
-  # string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
-  string: ${{ torch_proc_type }}_h${{ hash }}_${{ build_number }}
-  noarch: python
+  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  skip:
+    # - win
+    - match(python, "<3.14")
   script:
     - pip install . --no-deps --ignore-installed --no-cache-dir -vvv
     # here we could put instructions to compile exceptions, we need some config in OF3 itself to allow:
@@ -40,12 +39,11 @@ build:
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python
     - pip
     - setuptools
   run:
-    # - __unix  # No windows
-    - python >=${{ python_min }}
+    - python
     - numpy
     - scipy
     - pandas
@@ -92,7 +90,6 @@ requirements:
 
 tests:
   - python:
-      python_version: ${{ python_min }}.*
       imports:
         - openfold3
       pip_check: false  # this will need a released cut with newer pyproject (0.4.1 still does not)
@@ -100,7 +97,6 @@ tests:
       - run_openfold --help
   - requirements:
       run:
-        - python ${{ python_min }}.*
         - pytest
         - pytest-xdist
         - pytest-cov
