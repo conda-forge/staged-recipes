@@ -8,6 +8,9 @@ bun install --frozen-lockfile
 # Compile the Rust native addon via napi-rs
 bun --cwd=packages/natives run build
 
+# Bundle Rust dependency licenses
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
 # Generate pre-bundled assets required at compile time
 bun --cwd=packages/stats scripts/generate-client-bundle.ts --generate
 bun --cwd=packages/coding-agent scripts/generate-docs-index.ts --generate
