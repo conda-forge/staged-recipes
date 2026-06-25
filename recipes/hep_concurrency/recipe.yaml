@@ -1,0 +1,71 @@
+# rattler-build recipe (v1 / CEP-13 format) for hep_concurrency.
+#
+# Build with (from conda/):
+#   rattler-build build --recipe recipes/art-suite/hep_concurrency/recipe.yaml \
+#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
+#
+# Product #2 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
+# First product to link a sibling art-suite package (cetlib_except, from the
+# local channel) and a real external (TBB). Provides SerialTaskQueue,
+# WaitingTask(List) and thread-safety utilities used by art's concurrency layer.
+
+context:
+  version: "1.09.02"
+  git_tag: v1_09_02
+
+package:
+  name: hep_concurrency
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/hep-concurrency/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 86666c0c8c8dc87358a0158d7d01df1d6cc65932f6064782b36b842ae8e5d8a2
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules                 # build system (local art-suite channel)
+    - cetlib_except              # linked: cache INTERFACE lib (local channel)
+    - tbb-devel 2021.9.*         # find_package(TBB) -> TBB::tbb (UPS pin tbb v2021_9_0)
+    # No catch2: it is used only in test/, which BUILD_TESTING=OFF skips.
+  run:
+    # cetlib_except + tbb runtime arrive via run_exports of the host packages;
+    # add explicit pins only if a missing .so shows up downstream.
+
+tests:
+  - package_contents:
+      lib:
+        - hep_concurrency        # libhep_concurrency.so (the other targets are
+                                 #   header-only INTERFACE libs -> no .so)
+      include:
+        - hep_concurrency/SerialTaskQueue.h
+        - hep_concurrency/WaitingTask.h
+        - hep_concurrency/cache.h
+      files:
+        - lib/hep_concurrency/cmake/hep_concurrencyConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/hep-concurrency
+  license: BSD-3-Clause
+  # hep-concurrency v1_09_02 ships NO LICENSE file in its tarball (upstream
+  # packaging omission). It is the same FNAL BSD-3-Clause text as every other
+  # art-framework-suite product (byte-identical across the suite), so we vendor a
+  # copy into this recipe dir and reference it. See potential_improvements.md (#3).
+  license_file: LICENSE
+  summary: hep_concurrency -- thread-safe task queues and concurrency utilities for the FNAL art suite
+  description: |
+    hep_concurrency provides SerialTaskQueue, WaitingTask/WaitingTaskList,
+    thread-safe output streams and related concurrency utilities (built on
+    Intel TBB) used by the Fermilab art framework's multithreaded execution
+    layer. Depends on cetlib_except and TBB.
+  repository: https://github.com/art-framework-suite/hep-concurrency

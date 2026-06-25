@@ -1,0 +1,107 @@
+# rattler-build recipe (v1 / CEP-13 format) for art_root_io.
+#
+# Build with (from conda/):
+#   rattler-build build --recipe recipes/art-suite/art_root_io/recipe.yaml \
+#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
+#
+# Product #9 -- the FINAL product in the art v3_14_04 build order (see
+# conda/ART_BUILD_PLAN.md). ROOT event I/O for the art framework: the
+# Root{Input,Output} sources/modules, TFileService, and the ROOT dictionaries
+# for art's data products. Second ROOT-dependent product (after canvas_root_io
+# #7), and the first to combine ROOT with the full art framework (#8).
+
+context:
+  version: "1.13.05"
+  git_tag: v1_13_05
+
+package:
+  name: art_root_io
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/art-root-io/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: b60b44776c6b9ffb4ea554b30f4c5c58e9f297ce546d5b0ac30b6c47f1e102bb
+  patches:
+    # Drop -Werror (VIGILANT+WERROR), same as art/canvas/canvas_root_io.
+    - patches/0001-drop-WERROR.patch
+    # cet_cmake_env(NO_INSTALL_PKGMETA): avoid the fatal README-file-vs-ROOT-dir
+    # clash (same as canvas_root_io #7).
+    - patches/0002-no-install-pkgmeta.patch
+    # Add missing <algorithm>/<cassert>/<cstdint>/<limits> includes (newer
+    # libstdc++ no longer leaks them transitively). Same class as art (#8).
+    - patches/0003-add-standard-includes.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules                 # build system (local art-suite channel)
+    - art                        # find_package direct (local channel) -- the framework
+    - canvas_root_io             # find_package direct (local channel) -- ROOT I/O + ArtDictionary.cmake
+    - canvas                     # find_package direct (local channel)
+    - hep_concurrency            # find_package(... EXPORT) (local channel)
+    - messagefacility            # find_package(... EXPORT) (local channel)
+    - fhiclcpp                   # find_package direct (local channel)
+    - cetlib                     # find_package direct (local channel)
+    - cetlib_except              # find_package direct (local channel)
+    - root 6.28.10.*             # find_package(ROOT COMPONENTS Core Graf Hist RIO Tree) + rootcling
+    - clhep                      # transitive: art/canvasConfig find_dependency(CLHEP)
+    - range-v3 0.12.*            # transitive: canvas/artConfig find_dependency(Range-v3)
+    - libboost-devel 1.85.*      # find_package(Boost date_time/program_options/filesystem/headers)
+    - catch2 3.3.*               # transitive: messagefacility/canvas Configs find_dependency(Catch2)
+    - libsqlite                  # find_package(SQLite3) DIRECT (+ transitive via cetlib)
+    # openssl intentionally omitted (cetlib's private dep; transitively 3.x, which
+    # is exactly what ROOT 6.28.10 requires: openssl >=3.1.4,<4.0a0).
+    # tbb: floor only (NOT 2021.9.*). root 6.28.10 needs tbb >=2021.11; with root
+    # in host this floats to ~2022.3. The art-suite siblings (art/hep_concurrency,
+    # built at 2021.9) run_export only `tbb >=2021.9.0` (no ceiling), and oneTBB's
+    # task_group inline namespace is still d1 at 2022.3 (the d2 bump that broke the
+    # art #8 link happened at 2023.0), so linking art@2021.9 against tbb 2022.3 is
+    # ABI-consistent -- exactly as canvas_root_io (#7) already proved vs canvas.
+    - tbb-devel >=2021.9
+  run:
+    # Runtimes (ROOT, art, siblings, boost, ...) arrive via run_exports of the host packages.
+
+tests:
+  - package_contents:
+      lib:
+        - art_root_io           # libart_root_io.so (main library, HEADERS_TARGET)
+        - art_root_io_detail
+        - art_root_io_tfile_support
+      include:
+        - art_root_io/RootInput.h
+        - art_root_io/TFileService.h
+        - art_root_io/GetFileFormatVersion.h
+      bin:
+        - product_sizes_dumper
+        - config_dumper
+        - count_events
+        - file_info_dumper
+      files:
+        - lib/art_root_io/cmake/art_root_ioConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/art-root-io
+  license: BSD-3-Clause
+  # art-root-io v1_13_05 ships NO LICENSE file in its tarball (upstream omission,
+  # same as hep_concurrency). Same FNAL BSD-3-Clause text as the rest of the
+  # suite (byte-identical), vendored into this recipe dir. See pot._impr. (#3).
+  license_file: LICENSE
+  summary: art_root_io -- ROOT event I/O for the FNAL art framework
+  description: |
+    art_root_io provides the ROOT persistency layer for the art event-processing
+    framework: the RootInput source, RootOutput module, TFileService, the
+    file-format/metadata machinery, and the ROOT dictionaries for art's data
+    products. It is the final product of the art v3_14_04 + ROOT I/O stack,
+    building on art, canvas_root_io, canvas, the cet* libraries, ROOT, CLHEP,
+    Boost and SQLite.
+  repository: https://github.com/art-framework-suite/art-root-io

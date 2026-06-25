@@ -1,0 +1,78 @@
+# rattler-build recipe (v1 / CEP-13 format) for canvas.
+#
+# Build with (from conda/):
+#   rattler-build build --recipe recipes/art-suite/canvas/recipe.yaml \
+#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
+#
+# Product #6 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
+# canvas is the art suite's data-product / persistency / provenance model and is
+# the last pure-C++ product before ROOT enters (canvas_root_io is #7).
+
+context:
+  version: "3.16.04"
+  git_tag: v3_16_04
+
+package:
+  name: canvas
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/canvas/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 11278f758e40e96f1d1ffad61625e4bfc6067e0623cd191c6c8227c265e2c44f
+  patches:
+    # Drop -Werror: RangeSet.cc ignores std::unique()'s [[nodiscard]] result,
+    # which conda's newer libstdc++ turns into a hard error under VIGILANT+WERROR.
+    # See potential_improvements.md (#2, #6).
+    - patches/0001-drop-WERROR.patch
+
+build:
+  number: 1                      # rebuild: drop openssl from host (ROOT openssl<4 compat)
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules                 # build system (local art-suite channel)
+    - messagefacility            # linked (local channel)
+    - fhiclcpp                   # find_package direct (local channel)
+    - cetlib                     # find_package direct (local channel)
+    - cetlib_except              # find_package direct (local channel)
+    - clhep                      # find_package(CLHEP COMPONENTS Matrix Vector) (UPS clhep v2_4_7_1)
+    - range-v3 0.12.*            # find_package(Range-v3) (UPS range v3_0_12_0)
+    - libboost-devel 1.85.*      # find_package(Boost headers date_time); matches WCT pin
+    - catch2 3.3.*               # transitive: messagefacilityConfig does find_dependency(Catch2)
+    # Transitive closure via fhiclcpp/cetlib/messagefacility Configs:
+    - libsqlite
+    - tbb-devel 2021.9.*
+    # openssl intentionally omitted (cetlib's private dep; comes in transitively
+    # as openssl 3.x, which ROOT requires downstream). See fhiclcpp recipe note.
+  run:
+    # Runtimes arrive via run_exports of the host packages.
+
+tests:
+  - package_contents:
+      lib:
+        - canvas                 # libcanvas.so (AssnsAlgorithms is header-only INTERFACE)
+      include:
+        - canvas/Utilities/Exception.h
+        - canvas/Persistency/Provenance/EventID.h
+      files:
+        - lib/canvas/cmake/canvasConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/canvas
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: canvas -- data-product, persistency and provenance model for the FNAL art suite
+  description: |
+    canvas provides the art framework's data-product model: Assns, Ptr/RefCore,
+    provenance (EventID/RunID/SubRunID, ProductID), type utilities and the
+    persistency interfaces shared by art and art_root_io. Depends on
+    messagefacility, fhiclcpp, cetlib(_except), CLHEP, Range-v3 and Boost.
+  repository: https://github.com/art-framework-suite/canvas

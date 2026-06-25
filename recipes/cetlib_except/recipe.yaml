@@ -1,0 +1,78 @@
+# rattler-build recipe (v1 / CEP-13 format) for cetlib_except.
+#
+# Build with (from conda/):
+#   rattler-build build --recipe recipes/art-suite/cetlib_except/recipe.yaml \
+#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
+#
+# Product #1 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
+# This is the smallest *real* C++ package in the suite -- a self-contained
+# exception library -- so it pins down the cetmodules-consumer CMake pattern
+# (find_package(cetmodules) + cet_cmake_env() + cet_make_library()) that every
+# downstream product reuses.
+#
+# UPS version v1_09_01 == git tag v1_09_01 (art-framework-suite repos keep the
+# underscore UPS form, unlike FNALssi/cetmodules which uses dotted tags).
+
+context:
+  version: "1.09.01"
+  git_tag: v1_09_01
+
+package:
+  name: cetlib_except
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/cetlib-except/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 72ed76819ce98c1629e55931a939374d386070b77070b849e029d095097240fd
+
+build:
+  number: 1   # _1: strip stray $PREFIX/{INSTALL,LICENSE,README}; README file vs ROOT's README/ dir -> ENOTDIR at #7
+  script: build.sh
+  # Compiled C++ (libcetlib_except.so); art suite is developed/tested on linux.
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    # cetmodules supplies the CMake build system (find_package + macros). It is
+    # noarch and consumed at configure time; we point CMAKE_PREFIX_PATH at $PREFIX
+    # in build.sh, so it lives in host (resolved from the local art-suite channel).
+  host:
+    - cetmodules
+    # catch2 3.3.x: the source CMakeLists does an UNCONDITIONAL
+    # find_package(Catch2 REQUIRED) for the always-built ::Catch2Matchers
+    # interface target, so it is needed at configure time even with tests off.
+    # (UPS pin: catch v3_3_2.) See ../../potential_improvements.md.
+    - catch2 3.3.*
+  run:
+    # libcetlib_except.so links no external libraries; the C++ runtime comes in
+    # via run_exports of the compiler/stdlib. Add explicit pins only if a missing
+    # .so appears downstream.
+
+tests:
+  - package_contents:
+      lib:
+        - cetlib_except          # libcetlib_except.so
+      include:
+        - cetlib_except/exception.h
+        - cetlib_except/demangle.h
+      files:
+        # find_package(cetlib_except) entry point for downstream products.
+        # cet_cmake_config() installs to <root>/<project>/cmake (== lib/<proj>/cmake).
+        - lib/cetlib_except/cmake/cetlib_exceptConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/cetlib-except
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: cetlib_except -- exception classes and utilities for the FNAL art suite
+  description: |
+    cetlib_except provides the base exception classes (cet::exception,
+    cet::coded_exception, exception_collector) and demangling utilities used
+    throughout the Fermilab art framework suite. It is the lowest-level C++
+    library in the suite and depends only on the cetmodules build system.
+  repository: https://github.com/art-framework-suite/cetlib-except
