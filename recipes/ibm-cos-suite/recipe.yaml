@@ -1,0 +1,163 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "2.14.3"
+
+recipe:
+  name: ibm-cos-suite
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/i/ibm-cos-sdk-core/ibm_cos_sdk_core-${{ version }}.tar.gz
+    sha256: 85dee7790c92e8db69bf39dae4c02cac211e3c1d81bb86e64fa2d1e929674623
+    target_directory: core_src
+  - url: https://pypi.org/packages/source/i/ibm-cos-sdk-s3transfer/ibm_cos_sdk_s3transfer-${{ version }}.tar.gz
+    sha256: 2251ebfc4a46144401e431f4a5d9f04c262a0d6f95c88a8e71071da056e55f72
+    target_directory: s3transfer_src
+  - url: https://pypi.org/packages/source/i/ibm-cos-sdk/ibm_cos_sdk-${{ version }}.tar.gz
+    sha256: 643b6f2aa1683adad7f432df23407d11ae5adb9d9ad01214115bee77dc64364a
+    target_directory: sdk_src
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ibm-cos-sdk-core
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install ./core_src -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - jmespath >=0.10.0,<=1.0.1
+        - python-dateutil >=2.9.0,<3.0.0
+        - requests >=2.32.4,<3.0.0
+        - urllib3 >=2.5.0,<3
+    tests:
+      - python:
+          imports:
+            - ibm_botocore
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+    about:
+      homepage: https://pypi.org/project/ibm-cos-sdk-core/
+      license: Apache-2.0
+      license_file:
+        - core_src/LICENSE.txt
+        - core_src/NOTICE
+      summary: Low-level, data-driven core of IBM SDK for Python
+      repository: https://github.com/ibm/ibm-cos-sdk-python-core
+      documentation: https://ibm.github.io/ibm-cos-sdk-python/
+      description: |
+        The IBM Cloud Object Storage SDK core (``ibm-cos-sdk-core``) is the
+        low-level, data-driven foundation of the IBM SDK for Python. It is a
+        fork of botocore and provides the shared client machinery (request
+        signing, endpoint resolution, serialization, retries) consumed by the
+        higher-level ``ibm-cos-sdk`` packages. The top-level import name is
+        ``ibm_botocore``.
+
+  - package:
+      name: ibm-cos-sdk-s3transfer
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install ./s3transfer_src -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('ibm-cos-sdk-core', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - ibm_s3transfer
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+    about:
+      homepage: https://pypi.org/project/ibm-cos-sdk-s3transfer/
+      license: Apache-2.0
+      license_file:
+        - s3transfer_src/LICENSE.txt
+        - s3transfer_src/NOTICE.txt
+      summary: IBM S3 Transfer Manager
+      repository: https://github.com/ibm/ibm-cos-sdk-python-s3transfer
+      documentation: https://ibm.github.io/ibm-cos-sdk-python/
+      description: |
+        The IBM COS SDK S3 transfer manager (``ibm-cos-sdk-s3transfer``) is a
+        fork of botocore's ``s3transfer`` that provides high-level, managed
+        upload/download utilities for IBM Cloud Object Storage. It builds on
+        ``ibm-cos-sdk-core`` (the ``ibm_botocore`` fork) and is consumed by the
+        higher-level ``ibm-cos-sdk`` package. The top-level import name is
+        ``ibm_s3transfer``.
+
+  - package:
+      name: ibm-cos-sdk
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install ./sdk_src -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('ibm-cos-sdk-core', exact=True) }}
+        - ${{ pin_subpackage('ibm-cos-sdk-s3transfer', exact=True) }}
+        - jmespath >=0.10.0,<=1.0.1
+    tests:
+      - python:
+          imports:
+            - ibm_boto3
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+    about:
+      homepage: https://pypi.org/project/ibm-cos-sdk/
+      license: Apache-2.0
+      license_file: sdk_src/LICENSE
+      summary: IBM SDK for Python
+      repository: https://github.com/ibm/ibm-cos-sdk-python
+      documentation: https://ibm.github.io/ibm-cos-sdk-python/
+      description: |
+        The IBM Cloud Object Storage SDK for Python (``ibm-cos-sdk``) is a
+        thin meta-package over ``ibm-cos-sdk-core`` (the ``ibm_botocore``
+        botocore fork) and ``ibm-cos-sdk-s3transfer``. It provides the
+        high-level, resource-style client for IBM Cloud Object Storage and
+        is a fork of boto3. The top-level import name is ``ibm_boto3``.
+
+about:
+  homepage: https://github.com/ibm/ibm-cos-sdk-python
+  license: Apache-2.0
+  license_file: sdk_src/LICENSE
+  summary: IBM Cloud Object Storage SDK suite for Python (core + s3transfer + sdk)
+  repository: https://github.com/ibm/ibm-cos-sdk-python
+  documentation: https://ibm.github.io/ibm-cos-sdk-python/
+  description: |
+    The IBM Cloud Object Storage SDK suite bundles the three version-locked
+    IBM COS Python packages into a single feedstock: ``ibm-cos-sdk-core``
+    (the ``ibm_botocore`` botocore fork), ``ibm-cos-sdk-s3transfer`` (the
+    ``ibm_s3transfer`` s3transfer fork), and ``ibm-cos-sdk`` (the
+    ``ibm_boto3`` boto3 fork). Upstream releases all three together with
+    matching versions; consolidating them keeps the triad lockstep under one
+    bump.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
