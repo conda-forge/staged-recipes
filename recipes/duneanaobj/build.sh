@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build with the project's non-UPS path: SKIP_CET=ON avoids cetmodules and uses
-# the plain-CMake install rules in duneanaobj/StandardRecord/CMakeLists.txt.
+# Build via the upstream cetmodules path. The 0001-cetmodules-no-ups.patch makes
+# that path trigger on `NOT SKIP_CET` (no UPS needed). cetmodules then drives
+# build_dictionary + the Proxy/Flat subdirs.
+#
+# srproxy (a build tool) pulls a full ROOT into $BUILD_PREFIX, so there are two
+# ROOTs in the build. Pin the host ROOT as the single one used for dictionary
+# generation AND its class-version check (both ROOTSYS and PATH), so the check
+# doesn't resolve base-class PCMs against the wrong prefix.
+export ROOTSYS="${PREFIX}"
+export PATH="${PREFIX}/bin:${PATH}"
+
+# The Proxy/Flat CMakeLists run gen_srproxy and read these env vars.
+export ROOT_INC="${PREFIX}/include"
+export SRPROXY_INC="${PREFIX}/include"
+
 cmake ${CMAKE_ARGS} -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DSKIP_CET=ON \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -S "${SRC_DIR}" \

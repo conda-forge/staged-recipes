@@ -9,6 +9,10 @@ package:
 source:
   url: https://github.com/DUNE/duneanaobj/archive/refs/tags/${{ tag }}.tar.gz
   sha256: 4425c906ba117e3823c479feb2c5ba168707c157df063f7c5aded2f77e16d595
+  patches:
+    # Use the cetmodules build path without UPS (gate on NOT SKIP_CET) and drop
+    # its clang-only -Werror / CLANG_FQ_DIR include so it builds under conda gcc.
+    - patches/0001-cetmodules-no-ups.patch
 
 build:
   number: 0
@@ -22,8 +26,16 @@ requirements:
     - ${{ stdlib('c') }}
     - cmake
     - ninja
+    # cetmodules provides the cet_* CMake macros + build_dictionary; srproxy
+    # provides the gen_srproxy tool (+ castxml/pygccxml via its run deps) used to
+    # generate the Proxy/Flat sources at build time.
+    - cetmodules
+    - srproxy
   host:
     - root
+    # srproxy headers (SRProxy/BasicTypesProxy.{h,cxx}, FlatBasicTypes.h) are
+    # #included when compiling the generated Proxy/Flat sources.
+    - srproxy
   run:
     # libStandardRecord.so links ROOT's libCore/libPhysics (shipped by
     # root_base, which has no run_exports), so depend on it explicitly to
@@ -35,12 +47,21 @@ requirements:
 tests:
   - package_contents:
       lib:
-        - StandardRecord
+        - duneanaobj_StandardRecord
+        - duneanaobj_StandardRecordProxy
+        - duneanaobj_StandardRecordFlat
+        - duneanaobj_StandardRecord_dict
       include:
         - duneanaobj/StandardRecord/StandardRecord.h
         - duneanaobj/StandardRecord/SRInteraction.h
+        # gen_srproxy-generated headers
+        - duneanaobj/StandardRecord/Proxy/SRProxy.h
+        - duneanaobj/StandardRecord/Flat/FlatRecord.h
       files:
-        - lib/cmake/duneanaobj/duneanaobjConfig.cmake
+        # ROOT dictionary + CMake package config
+        - lib/libduneanaobj_StandardRecord_dict_rdict.pcm
+        - lib/libduneanaobj_StandardRecord_dict.rootmap
+        - lib/duneanaobj/cmake/duneanaobjConfig.cmake
 
 about:
   homepage: https://github.com/DUNE/duneanaobj
@@ -49,8 +70,9 @@ about:
   description: |
     duneanaobj defines the DUNE StandardRecord data classes used to read and
     write Common Analysis File (CAF) ROOT files across DUNE analyses. This conda
-    package builds the StandardRecord library and installs its headers using the
-    project's non-UPS (SKIP_CET) CMake path.
+    package builds the StandardRecord library, its ROOT dictionary, and the
+    gen_srproxy-generated Proxy and Flat libraries via the project's cetmodules
+    CMake path.
   license: Apache-2.0
   license_file: LICENSE
 
