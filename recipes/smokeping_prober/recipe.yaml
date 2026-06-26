@@ -1,0 +1,64 @@
+context:
+  version: "0.12.0"
+
+package:
+  name: smokeping_prober
+  version: ${{ version }}
+
+source:
+  url: https://github.com/SuperQ/smokeping_prober/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9c5adb3862aea47f8c39df244470dc14f4ad5d2ab5442aa02a25b8c53fb9e152
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: >-
+        go build -v -o $PREFIX/bin/smokeping_prober
+        -ldflags="-s -w
+        -X github.com/prometheus/common/version.Version=${{ version }}
+        -X github.com/prometheus/common/version.Revision=v${{ version }}
+        -X github.com/prometheus/common/version.Branch=HEAD
+        -X github.com/prometheus/common/version.BuildUser=conda-forge
+        -X github.com/prometheus/common/version.BuildDate=1970-01-01"
+      else: >-
+        go build -v -o %LIBRARY_BIN%\smokeping_prober.exe
+        -ldflags="-s -w
+        -X github.com/prometheus/common/version.Version=${{ version }}
+        -X github.com/prometheus/common/version.Revision=v${{ version }}
+        -X github.com/prometheus/common/version.Branch=HEAD
+        -X github.com/prometheus/common/version.BuildUser=conda-forge
+        -X github.com/prometheus/common/version.BuildDate=1970-01-01"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: smokeping_prober --version
+  - package_contents:
+      bin:
+        - smokeping_prober
+      strict: true
+
+about:
+  homepage: https://github.com/SuperQ/smokeping_prober
+  summary: Prometheus exporter to gather ICMP ping metrics
+  description: |
+    The smokeping_prober is a Prometheus exporter that performs ICMP/UDP
+    pings against a set of target hosts and exposes round-trip time and
+    packet loss metrics, similar to the classic SmokePing tool.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/SuperQ/smokeping_prober/blob/master/README.md
+  repository: https://github.com/SuperQ/smokeping_prober
+
+extra:
+  recipe-maintainers:
+    - pavelzw
