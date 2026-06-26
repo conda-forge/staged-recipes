@@ -8,6 +8,11 @@ set -euxo pipefail
 make build_shared -j"${CPU_COUNT}"
 make install prefix="${PREFIX}"
 
+# Drop the static archive: conda-forge prefers shared linkage and does not ship
+# static libraries in the main package (CFEP-18). No conda-forge consumer needs
+# to static-link libpg_query.
+rm -f "${PREFIX}/lib/libpg_query.a"
+
 # Upstream's `make install` only exposes the public API, but downstream
 # consumers that wrap libpg_query's internals (e.g. pglast) compile against its
 # internal header, the generated protobuf header, and the vendored PostgreSQL
