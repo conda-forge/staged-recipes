@@ -10,10 +10,13 @@ cd build
 # CMAKE_PREFIX_PATH=$PREFIX so find_package() resolves cetmodules + cetlib_except
 # (local art-suite channel) and Boost/SQLite3/OpenSSL (conda-forge) from the host
 # env. BUILD_TESTING=OFF -> skip the test/ subdir (the only Catch2 user).
+# CMAKE_CXX_STANDARD=20: the e28 stack is C++20 (headers use concept/requires).
 cmake \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_PREFIX_PATH="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=20 \
+  -DCMAKE_CXX_STANDARD_REQUIRED=ON \
   -DBUILD_TESTING=OFF \
   -DWANT_UPS:BOOL=OFF \
   "$SRC_DIR"

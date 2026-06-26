@@ -1,16 +1,11 @@
 # rattler-build recipe (v1 / CEP-13 format) for canvas.
 #
-# Build with (from conda/):
-#   rattler-build build --recipe recipes/art-suite/canvas/recipe.yaml \
-#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
-#
-# Product #6 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
 # canvas is the art suite's data-product / persistency / provenance model and is
-# the last pure-C++ product before ROOT enters (canvas_root_io is #7).
+# the last pure-C++ product before ROOT enters (canvas_root_io is next).
 
 context:
-  version: "3.16.04"
-  git_tag: v3_16_04
+  version: "3.17.00"
+  git_tag: v3_17_00
 
 package:
   name: canvas
@@ -18,7 +13,7 @@ package:
 
 source:
   url: https://github.com/art-framework-suite/canvas/archive/refs/tags/${{ git_tag }}.tar.gz
-  sha256: 11278f758e40e96f1d1ffad61625e4bfc6067e0623cd191c6c8227c265e2c44f
+  sha256: 05c08194b49e5467bffbd89dc99d2b7ec357c8ae021445b32a190509a9bb60dc
   patches:
     # Drop -Werror: RangeSet.cc ignores std::unique()'s [[nodiscard]] result,
     # which conda's newer libstdc++ turns into a hard error under VIGILANT+WERROR.
@@ -26,7 +21,7 @@ source:
     - patches/0001-drop-WERROR.patch
 
 build:
-  number: 1                      # rebuild: drop openssl from host (ROOT openssl<4 compat)
+  number: 0
   script: build.sh
   skip: not linux
 
@@ -38,22 +33,23 @@ requirements:
     - cmake
     - make
   host:
-    - cetmodules                 # build system (local art-suite channel)
-    - messagefacility            # linked (local channel)
+    - cetmodules                 # build system (local channel; noarch)
+    - messagefacility            # linked sibling (local channel)
     - fhiclcpp                   # find_package direct (local channel)
     - cetlib                     # find_package direct (local channel)
     - cetlib_except              # find_package direct (local channel)
-    - clhep                      # find_package(CLHEP COMPONENTS Matrix Vector) (UPS clhep v2_4_7_1)
-    - range-v3 0.12.*            # find_package(Range-v3) (UPS range v3_0_12_0)
-    - libboost-devel 1.85.*      # find_package(Boost headers date_time); matches WCT pin
-    - catch2 3.3.*               # transitive: messagefacilityConfig does find_dependency(Catch2)
+    - clhep                      # find_package(CLHEP COMPONENTS Matrix Vector)
+    - range-v3                   # find_package(Range-v3) (CF current = 0.12.0)
+    - libboost-devel             # find_package(Boost headers date_time)
+    - catch2                     # transitive: messagefacilityConfig find_dependency(Catch2)
     # Transitive closure via fhiclcpp/cetlib/messagefacility Configs:
     - libsqlite
-    - tbb-devel 2021.9.*
-    # openssl intentionally omitted (cetlib's private dep; comes in transitively
-    # as openssl 3.x, which ROOT requires downstream). See fhiclcpp recipe note.
+    - tbb-devel
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
   run:
     # Runtimes arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('canvas', upper_bound='x.x') }}
 
 tests:
   - package_contents:
@@ -76,3 +72,7 @@ about:
     persistency interfaces shared by art and art_root_io. Depends on
     messagefacility, fhiclcpp, cetlib(_except), CLHEP, Range-v3 and Boost.
   repository: https://github.com/art-framework-suite/canvas
+
+extra:
+  recipe-maintainers:
+    - calcuttj

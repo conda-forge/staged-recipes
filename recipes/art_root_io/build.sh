@@ -13,10 +13,13 @@ cd build
 # the rattler-build sandbox). The rootcling dictionaries themselves build fine --
 # only this PyROOT *validation* fails. Same fix as canvas_root_io (#7).
 # See conda/potential_improvements.md (#8).
+# CMAKE_CXX_STANDARD=20: the e28 stack is C++20, and conda-forge ROOT is cxx20.
 cmake \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_PREFIX_PATH="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=20 \
+  -DCMAKE_CXX_STANDARD_REQUIRED=ON \
   -DBUILD_TESTING=OFF \
   -DWANT_UPS:BOOL=OFF \
   -D_CheckClassVersion_ENABLED:BOOL=FALSE \

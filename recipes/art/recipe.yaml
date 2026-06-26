@@ -1,17 +1,12 @@
 # rattler-build recipe (v1 / CEP-13 format) for art.
 #
-# Build with (from conda/):
-#   rattler-build build --recipe recipes/art-suite/art/recipe.yaml \
-#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
-#
-# Product #8 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
 # art is the event-processing framework itself: the `art` executable (+ gm2/lar/
 # nova flavors) and the Framework/Persistency/Utilities libraries. Last non-ROOT
-# product; art_root_io (#9) adds ROOT event I/O on top.
+# product; art_root_io adds ROOT event I/O on top.
 
 context:
-  version: "3.14.04"
-  git_tag: v3_14_04
+  version: "3.15.00"
+  git_tag: v3_15_00
 
 package:
   name: art
@@ -19,20 +14,22 @@ package:
 
 source:
   url: https://github.com/art-framework-suite/art/archive/refs/tags/${{ git_tag }}.tar.gz
-  sha256: 2b930299e1f3fe52544fe0a8f7beaba614c1aea56efe832fffb7117f497e110c
+  sha256: 3faa8c90d85b5ac100c56584f2bf05a664ed6d5243e53df1fe9e4372d4136eed
   patches:
-    # Drop -Werror: art builds with VIGILANT+WERROR+-pedantic (same combo that
-    # bit canvas #6). Over art's much larger surface conda's newer libstdc++/gcc
-    # emits vigilant warnings WERROR would promote to errors. No logic change.
-    # See potential_improvements.md (#2).
+    # Drop -Werror: art builds with VIGILANT+WERROR+-pedantic; over its large
+    # surface conda's newer libstdc++/gcc emits vigilant warnings WERROR would
+    # promote to errors. No logic change. See potential_improvements.md (#2).
     - patches/0001-drop-WERROR.patch
-    # Add missing <algorithm> includes (std::any_of/find_if/... transitively
-    # pulled in on old libstdc++, not on conda's newer one). See pot._impr.
+    # IWYU: add missing standard includes that older libstdc++ pulled in
+    # transitively but conda's newer one does not (the cassert set the v3_14_04
+    # recipe carried is no longer needed at 3.15.00/C++20).
     - patches/0002-add-algorithm-includes.patch
-    # Add missing <cassert> includes (assert() not declared on newer libstdc++).
-    - patches/0003-add-cassert-includes.patch
-    # Add missing <cstdint>/<limits> includes (fixed-width ints / numeric_limits).
     - patches/0004-add-cstdint-limits-includes.patch
+    # boost 1.91 removed boost::json::error_code (art was written against 1.82);
+    # use boost::system::error_code. See potential_improvements.md.
+    - patches/0003-boost-json-error-code.patch
+    # Missing <cassert> includes (assert() not pulled in by newer libstdc++).
+    - patches/0005-add-cassert-includes.patch
 
 build:
   number: 0
@@ -47,7 +44,7 @@ requirements:
     - cmake
     - make
   host:
-    - cetmodules                 # build system (local art-suite channel)
+    - cetmodules                 # build system (local channel; noarch)
     - canvas                     # find_package direct (local channel)
     - hep_concurrency            # find_package direct (local channel)
     - messagefacility            # find_package direct (local channel)
@@ -55,23 +52,18 @@ requirements:
     - cetlib                     # find_package direct (local channel)
     - cetlib_except              # find_package direct (local channel)
     - clhep                      # find_package(CLHEP COMPONENTS Random Vector)
-    - range-v3 0.12.*            # find_package(Range-v3) (UPS range v3_0_12_0)
-    - tbb-devel 2021.9.*         # find_package(TBB); MUST match hep_concurrency's
-                                 # tbb (it exports WaitingTaskList(tbb::detail::dN::
-                                 # task_group&) — the task_group inline-namespace
-                                 # version bumps between tbb releases, so a floor
-                                 # that floated to 2023.0 gave an undefined-reference
-                                 # link error against libhep_concurrency. See
-                                 # potential_improvements.md. (ROOT-tbb tension for
-                                 # #9 may force rebuilding hep_concurrency+art later.)
-    - libboost-devel 1.85.*      # find_package(Boost date_time/graph/program_options/regex/filesystem/...)
-    - catch2 3.3.*               # transitive: messagefacilityConfig does find_dependency(Catch2)
-    # Transitive closure via cetlib/fhiclcpp Configs (find_dependency):
-    - libsqlite
-    # openssl intentionally omitted (cetlib's private dep; comes in transitively
-    # as openssl 3.x, which ROOT requires downstream). See canvas/fhiclcpp recipes.
+    - range-v3                   # find_package(Range-v3) (CF current = 0.12.0)
+    - tbb-devel                  # find_package(TBB); CF current. The whole stack
+                                 # is rebuilt against one tbb, so the old art<->
+                                 # hep_concurrency task_group ABI coupling is moot.
+    - libboost-devel             # find_package(Boost date_time/graph/program_options/regex/filesystem/...)
+    - catch2                     # transitive: messagefacilityConfig find_dependency(Catch2)
+    - libsqlite                  # transitive via cetlib/fhiclcpp Configs
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
   run:
     # Runtimes arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('art', upper_bound='x.x') }}
 
 tests:
   - package_contents:
@@ -105,3 +97,7 @@ about:
     libraries. Built on canvas, hep_concurrency, messagefacility, fhiclcpp,
     cetlib(_except), CLHEP, Range-v3, TBB and Boost.
   repository: https://github.com/art-framework-suite/art
+
+extra:
+  recipe-maintainers:
+    - calcuttj
