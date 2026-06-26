@@ -12,10 +12,16 @@ cd build
 # catch2 are installed). BUILD_TESTING=OFF: don't build/run the unit tests
 # (catch2 is still required at configure time for the always-built
 # cetlib_except::Catch2Matchers interface target).
+#
+# CMAKE_CXX_STANDARD=20: this stack (UPS qualifier e28) is C++20 -- the headers
+# use concept/requires, so a C++17 build hard-fails. Matches conda-forge's cxx20
+# ROOT used by the downstream ROOT products.
 cmake \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_PREFIX_PATH="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=20 \
+  -DCMAKE_CXX_STANDARD_REQUIRED=ON \
   -DBUILD_TESTING=OFF \
   -DWANT_UPS:BOOL=OFF \
   "$SRC_DIR"

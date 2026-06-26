@@ -1,17 +1,12 @@
 # rattler-build recipe (v1 / CEP-13 format) for hep_concurrency.
 #
-# Build with (from conda/):
-#   rattler-build build --recipe recipes/art-suite/hep_concurrency/recipe.yaml \
-#     -c ./art-suite-output -c conda-forge --allow-symlinks-on-windows
-#
-# Product #2 in the art v3_14_04 build order (see conda/ART_BUILD_PLAN.md).
-# First product to link a sibling art-suite package (cetlib_except, from the
-# local channel) and a real external (TBB). Provides SerialTaskQueue,
-# WaitingTask(List) and thread-safety utilities used by art's concurrency layer.
+# First product to link a sibling art-suite package (cetlib_except) and a real
+# external (TBB). Provides SerialTaskQueue, WaitingTask(List) and thread-safety
+# utilities used by art's concurrency layer.
 
 context:
-  version: "1.09.02"
-  git_tag: v1_09_02
+  version: "1.10.00"
+  git_tag: v1_10_00
 
 package:
   name: hep_concurrency
@@ -19,7 +14,7 @@ package:
 
 source:
   url: https://github.com/art-framework-suite/hep-concurrency/archive/refs/tags/${{ git_tag }}.tar.gz
-  sha256: 86666c0c8c8dc87358a0158d7d01df1d6cc65932f6064782b36b842ae8e5d8a2
+  sha256: 04b050c89257ac07beef24d8dc4b8eb0184bf7e8390083da62293c02001a28bc
 
 build:
   number: 0
@@ -34,13 +29,16 @@ requirements:
     - cmake
     - make
   host:
-    - cetmodules                 # build system (local art-suite channel)
-    - cetlib_except              # linked: cache INTERFACE lib (local channel)
-    - tbb-devel 2021.9.*         # find_package(TBB) -> TBB::tbb (UPS pin tbb v2021_9_0)
+    - cetmodules                 # build system (local channel; noarch)
+    - cetlib_except              # linked sibling (local channel)
+    - tbb-devel                  # find_package(TBB) -> TBB::tbb (CF current; the
+                                 # whole stack is built against one tbb, so the old
+                                 # 2021.9 task_group ABI coupling is moot here)
     # No catch2: it is used only in test/, which BUILD_TESTING=OFF skips.
   run:
-    # cetlib_except + tbb runtime arrive via run_exports of the host packages;
-    # add explicit pins only if a missing .so shows up downstream.
+    # cetlib_except + tbb runtime arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('hep_concurrency', upper_bound='x.x') }}
 
 tests:
   - package_contents:
@@ -69,3 +67,7 @@ about:
     Intel TBB) used by the Fermilab art framework's multithreaded execution
     layer. Depends on cetlib_except and TBB.
   repository: https://github.com/art-framework-suite/hep-concurrency
+
+extra:
+  recipe-maintainers:
+    - calcuttj
