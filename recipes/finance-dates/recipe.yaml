@@ -1,32 +1,24 @@
 context:
-  name: finance-dates
   version: "0.1.0"
-  build: 0
 
 recipe:
-  name: ${{ name|lower }}
+  name: finance-dates
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name|replace('-', '_') }}-${{ version }}.tar.gz
+  url: https://pypi.org/packages/source/f/finance-dates/finance_dates-${{ version }}.tar.gz
   sha256: 262c9244443d918b9ba2148df50203023de46d5770ffb8d0cbefefe95c519ea0
 
 build:
-  number: ${{ build }}
+  number: 0
 
 outputs:
   - package:
       name: finance-dates
     build:
-      number: ${{ build }}
       python:
         version_independent: true
-      script:
-        - if: unix
-          then: export PYO3_PYTHON="$PYTHON"
-          else: set "PYO3_PYTHON=%PYTHON%"
-        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      script: build
       skip: is_abi3 and not is_python_min
 
     requirements:
@@ -40,6 +32,7 @@ outputs:
         - ${{ stdlib("c") }}
         - ${{ compiler('rust') }}
         - cargo-bundle-licenses
+        - cargo-auditable
       host:
         - python
         - pip
@@ -50,9 +43,6 @@ outputs:
             - python-abi3
       run:
         - python >=${{ python_min }}
-      ignore_run_exports:
-        from_package:
-          - cross-python_${{ target_platform }}
 
     tests:
       - python:
@@ -62,19 +52,30 @@ outputs:
           python_version:
             - ${{ python_min }}.*
             - "*"
+      - if: is_abi3
+        then:
+          script:
+            - if: win
+              then: abi3audit %PREFIX%/Lib/site-packages/finance_dates/finance_dates.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+              else:
+                - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+                - abi3audit $SP_DIR/finance_dates/finance_dates.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          requirements:
+            run:
+              - abi3audit
 
   - package:
       name: finance_dates
     build:
       noarch: generic
-      number: ${{ build }}
       skip:
         - not target_platform == "linux-64"
     requirements:
       run:
         - ${{ pin_subpackage('finance-dates', upper_bound='x.x.x', lower_bound='x.x.x') }}
     about:
-      license_file: []
+      license_file:
+        - LICENSE
     tests:
       - python:
           imports:
