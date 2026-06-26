@@ -1,0 +1,20 @@
+Guard the zero-argument min()/max() case in the QCD-scale expression parser.
+
+In act_num_ the "min"/"max" branch computes l = sum_i (strlen(args[i]) + 8).
+When called with n == 0 the loop never runs, l stays 0, malloc(0) yields a
+zero-size buffer and strcpy(p, args[0]) both reads a non-existent args[0] and
+overflows the destination (flagged by -Wstringop-overflow under -O2).  Return
+NULL for the empty case, consistent with the other error returns in this
+function.
+
+diff --git a/c_source/num/qcdScale.c b/c_source/num/qcdScale.c
+--- a/c_source/num/qcdScale.c
++++ b/c_source/num/qcdScale.c
+@@ -159,6 +159,7 @@
+    if(strcmp(ch,"min")==0 || strcmp(ch,"max")==0)
+    { int l=0,i;
+      char *q;
++     if(n<=0) return NULL;
+      for(i=0;i<n;i++) l+=strlen((char*)args[i])+8;
+      p=malloc(l);
+      q=malloc(l);

@@ -1,0 +1,33 @@
+Link the runtime-generated VandP.so against the combined shared library.
+
+With the numerical core shipped as libcalchep.so instead of the individual
+static archives, the two places that compile the per-model VandP.so at run
+time -- the Makefile rule emitted by bin/run_batch and the compile string in
+c_source/dynamicME/vp_dynam.c -- link -lcalchep (with an rpath to $CALCHEP/lib)
+in place of dynamic_me.a/libSLHAplus.a/ntools.a/serv.a. -Wl,--allow-shlib-undefined
+is needed because libcalchep.so also carries CalcHEPs optional-feature objects
+(LHAPDF, Fortran-SLHA bridge) whose external symbols resolve at run time only if
+used. dummy.a (overridable stubs) is kept.
+
+--- a/bin/run_batch
++++ b/bin/run_batch
+@@ -3866,7 +3866,7 @@
+ endif
+ 
+ VandP.so:VandP.c \$(DEPEND) models/extlib$model_num.mdl
+-\t\$(CC) \$(CFLAGS)  -shared -o VandP.so \$(soname_VandP) VandP.c \$(CALCHEP)/include/VandPgate.c  \$(EXTLIB) \$(CALCHEP)/lib/dynamic_me.a  \$(CALCHEP)/lib/libSLHAplus.a \$(CALCHEP)/lib/ntools.a \$(CALCHEP)/lib/serv.a \$(CALCHEP)/lib/dummy.a  -lm \$(lQuad) -lpthread
++\t\$(CC) \$(CFLAGS)  -shared -o VandP.so \$(soname_VandP) VandP.c \$(CALCHEP)/include/VandPgate.c  \$(EXTLIB) -L\$(CALCHEP)/lib -Wl,-rpath,\$(CALCHEP)/lib -Wl,--allow-shlib-undefined -lcalchep \$(CALCHEP)/lib/dummy.a  -lm \$(lQuad) -lpthread
+ ENDMK
+   close(MAKEFILE);
+ #  system("make -C $dir");
+--- a/c_source/dynamicME/vp_dynam.c
++++ b/c_source/dynamicME/vp_dynam.c
+@@ -41,7 +41,7 @@
+                      "$CALCHEP/bin/make_VandP models 1 6 \n"
+                      " . $CALCHEP/FlagsForSh;"
+                      " . ./EXTLIBsh;"
+-                     "$CC $CFLAGS $SHARED -o so_generated/VandP.so VandP.c $CALCHEP/include/VandPgate.c $EXTLIB  $CALCHEP/lib/dummy.a  $CALCHEP/lib/dynamic_me.a    $CALCHEP/lib/libSLHAplus.a $CALCHEP/lib/ntools.a $CALCHEP/lib/serv.a  -lm -lpthread -ldl"
++                     "$CC $CFLAGS $SHARED -o so_generated/VandP.so VandP.c $CALCHEP/include/VandPgate.c $EXTLIB  $CALCHEP/lib/dummy.a  -L$CALCHEP/lib -Wl,-rpath,$CALCHEP/lib -Wl,--allow-shlib-undefined -lcalchep  -lm -lpthread -ldl"
+                     ,rootDir,compDir);
+      err=system(command);
+ //printf("%s\n", command);     

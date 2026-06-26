@@ -1,0 +1,26 @@
+Fix out-of-bounds global write in initStrFun that corrupts an adjacent
+pointer and segfaults the numerical session during integration.
+
+initStrFun(i1) computes i = i1 - 1 and writes nnan[i] and sf_be[i] before
+validating i1.  It is routinely called as initStrFun(0) (the "initialise
+both beams" sentinel; see the i1<=0 branch just below and alphas2.c), which
+makes i == -1 and writes nnan[-1] / sf_be[-1] out of bounds.  In the
+conda-forge -O2 build the BSS places nnan[] immediately after the static
+pointer plist (allInP), so nnan[-1] zeroes the high 32 bits of plist and the
+next realloc(plist, ...) dereferences a truncated pointer and crashes.
+Only write nnan[i]/sf_be[i] for valid i1 in {1,2}; the i1==0 case already
+initialises both via the recursive initStrFun(1)/initStrFun(2) calls.
+
+diff --git a/c_source/strfun/strfun.c b/c_source/strfun/strfun.c
+--- a/c_source/strfun/strfun.c
++++ b/c_source/strfun/strfun.c
+@@ -98,8 +98,7 @@
+ {
+   int l,i=i1-1;
+   
+-  nnan[i]=0;
+-  sf_be[i]=1;
++  if(i1>=1 && i1<=2) { nnan[i]=0; sf_be[i]=1; }
+ 
+   if(nin_int!=2) {sf_alpha[0]=NULL; sf_alpha[1]=NULL; return 0;}
+    
