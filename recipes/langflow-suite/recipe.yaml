@@ -119,15 +119,18 @@ outputs:
     build:
       noarch: python
       script:
-        - |
-          set -ex
-          pushd src/frontend
-          npm ci
-          npm run build
-          popd
-          rm -rf src/backend/base/langflow/frontend
-          cp -r src/frontend/build src/backend/base/langflow/frontend
-          ${{ PYTHON }} -m pip install src/backend/base -vv --no-deps --no-build-isolation
+        - if: win
+          then: |
+            call npm --prefix src/frontend ci
+            if errorlevel 1 exit 1
+            call npm --prefix src/frontend run build
+            if errorlevel 1 exit 1
+          else: |
+            set -ex
+            npm --prefix src/frontend ci
+            npm --prefix src/frontend run build
+        - ${{ PYTHON }} -c "import shutil; d='src/backend/base/langflow/frontend'; shutil.rmtree(d, ignore_errors=True); shutil.copytree('src/frontend/build', d)"
+        - ${{ PYTHON }} -m pip install src/backend/base -vv --no-deps --no-build-isolation
     requirements:
       build:
         - nodejs >=20.19.0
