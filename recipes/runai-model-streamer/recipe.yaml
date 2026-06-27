@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  version: "0.16.0"
+
+package:
+  name: runai-model-streamer
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/run-ai/runai-model-streamer/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 824c468d1829886ddcb48d1463b7cf41219105b0221b1351e44bae86862b9669
+    patches:
+      - 0001-Build-core-libstreamer-with-conda-toolchain.patch
+      - 0002-undef-major-minor-sysmacros.patch
+      - 0003-freeres-noop-with-dynamic-libstdcxx.patch
+
+build:
+  number: 0
+  # Upstream only builds on Linux (x86_64/aarch64): the Bazel C++ toolchain and
+  # the bundled libstreamer.so are Linux/GNU specific (no macOS/Windows support).
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - bazel 7.*
+  host:
+    - python
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python
+    - pytorch >=2.0.0,<3.0.0
+    - numpy
+    - humanize
+
+tests:
+  - python:
+      imports:
+        - runai_model_streamer
+      pip_check: true
+
+about:
+  homepage: https://github.com/run-ai/runai-model-streamer
+  summary: Python SDK that streams model files concurrently into host memory to speed up model loading.
+  description: |
+    Run:ai Model Streamer is a Python SDK designed to enhance model loading
+    times. It uses multiple threads to read tensors concurrently from a file in
+    local or object storage (S3, GCS, Azure) into CPU memory. The core
+    streaming engine is implemented in C++ (built with Bazel) and loaded via
+    ctypes.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/run-ai/runai-model-streamer
+
+extra:
+  recipe-maintainers:
+    - xhochy
