@@ -15,9 +15,9 @@ build:
     version_independent: true
   skip:
     - win
-    - match(python, "!=3.11")
+    - not is_python_min
   script:
-    - maturin build -v -j ${CPU_COUNT} --release --strip --manylinux off --interpreter=${PYTHON} --features pyo3/abi3-py311
+    - maturin build -v -j ${CPU_COUNT} --release --strip --manylinux off --interpreter=${PYTHON} --features pyo3/abi3-py${{ python_min|replace(".", "") }}
     # ^add this flag for cross-compile later maybe? -Zfeatures=itarget
     - ${PYTHON} -m pip install ${SRC_DIR}/target/wheels/rustfits*.whl --no-deps -vv --no-build-isolation
     - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
@@ -45,14 +45,14 @@ tests:
         - rustfits._rust
       pip_check: true
       python_version:
-        - 3.11.*
+        - ${{ python_min }}.*
         - "*"
   - if: build_platform == target_platform
     then:
       script:
         - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
         - ls ${SP_DIR}/rustfits/*
-        - abi3audit ${SP_DIR}/rustfits/*.so -s -v --assume-minimum-abi3 3.11
+        - abi3audit ${SP_DIR}/rustfits/*.so -s -v --assume-minimum-abi3 ${{ python_min }}
       requirements:
         run:
           - abi3audit
