@@ -1,0 +1,83 @@
+{% set version = "0.1.9" %}
+
+package:
+  name: tilelang
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/tilelang/tilelang-{{ version }}.tar.gz
+  sha256: 287f727c913bb648fcf6c1968809ba3390e55eeed257a5c6bb9a80bc05966af4
+
+build:
+  skip: true  # [win or (is_abi3 and not is_python_min)]
+  number: 0
+  python_version_independent: true   # [is_abi3]
+  script:
+    - export CMAKE_GENERATOR=Ninja
+    - export CMAKE_ARGS="$CMAKE_ARGS -DCUDAToolkit_ROOT=$BUILD_PREFIX"
+    - sed -i.bak 's/NO_DEFAULT_PATH//g' cmake/pypi-z3/FindZ3.cmake
+    - sed -i.bak '/torch-c-dlpack-ext/d' pyproject.toml
+    - export USE_CUDA=OFF                # [cuda_compiler_version == "None"]
+    - export USE_CUDA="${BUILD_PREFIX}"  # [cuda_compiler_version != "None"]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+    - make
+  host:
+    - python
+    - pip
+    - cython >=3.1.0
+    - scikit-build-core
+    - pybind11
+    - patchelf >=0.17.2  # [linux]
+    - cuda-cudart-dev    # [cuda_compiler_version != "None"]
+    - libcudnn-dev       # [cuda_compiler_version != "None"]
+    - libcublas-dev      # [cuda_compiler_version != "None"]
+    - libcurand-dev      # [cuda_compiler_version != "None"]
+    - libz3
+    - z3-solver >=4.13.0,<4.15.5
+    - python-abi3      # [is_abi3]
+    - apache-tvm-ffi >=0.1.2,<=0.1.11
+  run:
+    - python
+    - apache-tvm-ffi >=0.1.2,<=0.1.11
+    - cloudpickle
+    - ml_dtypes
+    - numpy >=1.23.5
+    - psutil
+    - pytorch >=2.4
+    - tqdm >=4.62.3
+    - typing_extensions >=4.10.0
+    - libz3
+    - z3-solver >=4.13.0,<4.15.5
+    - setuptools  # [osx]
+
+test:
+  imports:
+    - tilelang
+  commands:
+    - pip check
+    - abi3audit $SP_DIR/tilelang/lib/tilelang_cython_wrapper.abi3.so -s -v --assume-minimum-abi3 {{ python_min }}  # [unix and is_abi3]
+  requires:
+    - pip
+    - abi3audit                      # [is_abi3]
+
+about:
+  home: https://github.com/tile-ai/tilelang
+  summary: A tile level programming language to generate high performance code.
+  license: Apache-2.0 AND BSD-3-Clause AND Unlicense AND MIT AND BSD-2-Clause
+  license_file:
+    - LICENSE
+    - 3rdparty/tvm/LICENSE
+    - 3rdparty/tvm/NOTICE
+
+extra:
+  recipe-maintainers:
+    - 1minds3t
