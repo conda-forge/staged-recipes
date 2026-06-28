@@ -1,0 +1,101 @@
+context:
+  version: "0.1.0"
+  python_min: "3.11"
+
+package:
+  name: polars-io-tools
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/polars-io-tools/polars_io_tools-${{ version }}.tar.gz
+  sha256: d0970aac506f0e3d5a8ea23565d336fbaa6c4507caa83b8ef155dc9a293855a0
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  script:
+    - if: unix
+      then: export PYO3_PYTHON="$PYTHON"
+      else: set "PYO3_PYTHON=%PYTHON%"
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: is_abi3 and not is_python_min
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+    - hatch-rs
+    - if: is_abi3
+      then:
+      - python-abi3
+  run:
+    - python >=${{ python_min }}
+    - arrow_odbc
+    - boto3
+    - cloudpickle
+    - deltalake
+    - duckdb
+    - narwhals
+    - numpy
+    - orjson
+    - packaging
+    - pandas
+    - polars
+    - portion
+    - pyarrow
+    - pyodbc
+    - pydantic
+    - ray-core
+    - requests
+    - sqlglot
+    - tqdm
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports:
+        - polars_io_tools
+      # deltalake 1.5.0 has macOS WHEEL tags for macosx_26_0,
+      # which makes pip check fail on older CI runners despite valid imports.
+      pip_check: ${{ not osx }}
+      python_version: ${{ python_min }}.*
+  - if: is_abi3
+    then:
+      script:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/polars_io_tools/polars_io_tools.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/polars_io_tools/polars_io_tools.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      requirements:
+        run:
+          - python >=${{ python_min }}
+          - abi3audit
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Custom parsing extensions for lazy polars
+  homepage: https://github.com/Point72/polars-io-tools
+  repository: https://github.com/Point72/polars-io-tools
+
+extra:
+  recipe-maintainers:
+    - timkpaine
