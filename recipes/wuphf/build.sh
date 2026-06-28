@@ -29,4 +29,9 @@ go build \
     -o "${PREFIX}/bin/${PKG_NAME}" \
     ./cmd/wuphf
 
-go-licenses save ./cmd/wuphf --save_path "${SRC_DIR}/license-files" --force
+# Bundle third-party dependency licenses. Ignore wuphf's own packages: their
+# Sustainable Use License is non-OSI / non-standard, so go-licenses can't
+# classify it and `save` is fatal on unknown licenses. wuphf's LICENSE is
+# shipped separately via about.license_file.
+go-licenses save ./cmd/wuphf --save_path "${SRC_DIR}/license-files" --force \
+    --ignore github.com/nex-crm/wuphf
