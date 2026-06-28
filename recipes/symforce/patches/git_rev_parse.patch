@@ -1,0 +1,60 @@
+--- a/cmake/rerun_if_needed.py
++++ b/cmake/rerun_if_needed.py
+@@ -118,41 +118,5 @@
+             tree_hash, diff_index = _get_hashes(relative_path, cwd=repo_root, env=git_env)
+ 
+     return "\n".join([tree_hash, diff_index])
+ 
+ 
+ def check_path_git_hash(
+     path_to_check: str, stamp_file: str, version: T.Optional[str] = None
+ ) -> T.Tuple[bool, T.Optional[str]]:
+     """
+     Check the path for whether its contents have changed since the stamp_file was written.
+ 
+     More details in get_path_git_hash.
+ 
+     Changes to untracked files won't affect the hash.
+     """
+-    need_to_run = True
+-
+-    try:
+-        # Note: this doesn't work for builds not in a git repo.  This also might not work if we're
+-        # included as a submodule in another git repo?  So if this fails, just always rebuild
+-        # https://stackoverflow.com/a/957978
+-        repo_root = get_output(["git", "rev-parse", "--show-toplevel"], cwd=path_to_check)
+-    except subprocess.CalledProcessError as ex:
+-        if ex.returncode == 128:  # Code for "not a git repository"
+-            return (False, None)
+-        else:
+-            raise
+-
+-    current_hash = get_path_git_hash(path_to_check, repo_root=repo_root)
+-
+-    if version is not None:
+-        current_hash = "{}\n{}".format(version, current_hash)
+-
+-    if os.path.exists(stamp_file):
+-        with open(stamp_file) as f:
+-            old_stamp = f.read()
+-        if old_stamp == current_hash:
+-            need_to_run = False
+-
+-    return (need_to_run, current_hash)
++    return (False, None)
+ 
+ 
+ def write_stamp_file(stamp_file_name: str, stamp_contents: str) -> None:
+--- a/setup.py
++++ b/setup.py
+@@ -313,9 +313,5 @@
+     isn't super important that this is very robust
+     """
+     try:
+-        result = subprocess.run(
+-            ["git", "rev-parse", "--short", "HEAD"], check=True, text=True, stdout=subprocess.PIPE
+-        )
+-        return result.stdout.strip()
++        return os.environ.get("PKG_VERSION", "0.10.1")
+     except subprocess.CalledProcessError:
+         return "main"
