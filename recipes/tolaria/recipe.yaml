@@ -2,49 +2,49 @@
 schema_version: 1
 
 context:
-  version: "2026.4.25"
+  # Upstream tags stable releases as v<YYYY-MM-DD> (e.g. v2026-06-26). conda
+  # versions cannot contain '-', so carry a dotted, zero-padded date here and
+  # map it back to the dashed tag in source.url. (The app's internal Cargo /
+  # tauri.conf version is 0.1.0; the project versions its stable channel by
+  # release date.) The daily alpha-v* releases are pre-releases — not used.
+  version: "2026.06.26"
 
 package:
   name: tolaria
   version: ${{ version }}
 
 source:
-  url: https://github.com/refactoringhq/tolaria/archive/refs/tags/stable-v${{ version }}.tar.gz
-  sha256: 7e4ec239ca7847740d43d687175f4905d7c7a2a0e300c2c83515fb358d90dcd7
+  url: https://github.com/refactoringhq/tolaria/archive/refs/tags/v${{ version | replace(".", "-") }}.tar.gz
+  sha256: f96367428d6868ff57151bbbaba3ddc9d80f15979523b27b9340cbde3fb74a4a
 
 build:
   number: 0
   skip: not ((osx and arm64) or (linux and x86_64) or (win and x86_64))
   dynamic_linking:
-    # Allowlist the raw binaries so conda-forge patches their RPATH to
-    # find webkit2gtk4.1 / libsoup / etc. from the conda env on Linux.
-    # The macOS Tolaria.app bundle is intentionally excluded — Tauri's
-    # bundle layout uses @loader_path-relative install_names for ABI
-    # isolation; conda must not touch those binaries.
     binary_relocation:
       - bin/tolaria
       - Library/bin/tolaria.exe
     rpath_allowlist:
       - "@loader_path/**"
       - "$ORIGIN/**"
+  script:
+    - if: win
+      then: call "%RECIPE_DIR%/build.bat"
+      else: bash "${RECIPE_DIR}/build.sh"
 
 requirements:
   build:
     - ${{ compiler("c") }}
     - ${{ compiler("cxx") }}
-    - ${{ compiler("rust") }}
     - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
     - nodejs 24.*
-    - pnpm
+    - pnpm <11
     - cargo-bundle-licenses
     - if: linux
       then:
         - pkg-config
   host:
-    # Linux Tauri build needs pkg-config-discoverable .pc files for the entire
-    # gtk3/webkit2gtk stack — Rust crates gdk-sys, gtk-sys, cairo-sys, glib-sys,
-    # etc. all use pkg-config to find headers + link flags. Mirrors the
-    # conda-forge/nebi-feedstock host list (proven working for webkit2gtk4.1).
     - if: linux
       then:
         - gtk3
@@ -52,25 +52,17 @@ requirements:
         - glib
         - libsoup
         - gdk-pixbuf
-        - cairo          # binary links libcairo directly via gdk/gtk transitively
+        - cairo
         - openssl
         - zlib
         - expat
         - fontconfig
-        # librsvg intentionally omitted: Tauri's gtk stack does not link the
-        # binary against librsvg.so directly (it's used by gdk-pixbuf at
-        # runtime only when SVG icons are loaded; webkit2gtk4.1 brings it as
-        # a transitive runtime dep). Listing it here triggers an
-        # "Overdepending against librsvg" warning from rattler-build.
   run:
     - menuinst >=2.1
     - if: linux
       then:
         - webkit2gtk4.1
   ignore_run_exports:
-    # webkit2gtk4.1 + transitive deps drag in pins for libs we don't link
-    # against directly. Drop them to keep solves clean. Mirrors the pattern
-    # used in conda-forge/nebi-feedstock.
     from_package:
       - if: linux
         then:
@@ -92,11 +84,13 @@ tests:
         then:
           - test -x $PREFIX/bin/tolaria
           - test -d "$PREFIX/lib/club.refactoring.tolaria/mcp-server"
+          - test -d "$PREFIX/lib/club.refactoring.tolaria/agent-docs"
           - test -f "$PREFIX/Menu/tolaria-menu.json"
       - if: win
         then:
           - if not exist "%LIBRARY_BIN%\tolaria.exe" exit 1
           - if not exist "%LIBRARY_BIN%\resources\mcp-server" exit 1
+          - if not exist "%LIBRARY_BIN%\resources\agent-docs" exit 1
           - if not exist "%PREFIX%\Menu\tolaria-menu.json" exit 1
   - package_contents:
       bin:
@@ -110,6 +104,7 @@ tests:
 about:
   homepage: https://tolaria.md
   repository: https://github.com/refactoringhq/tolaria
+  documentation: https://tolaria.md
   license: AGPL-3.0-or-later
   license_file:
     - LICENSE
@@ -118,10 +113,76 @@ about:
   summary: Desktop app to manage markdown knowledge bases
   description: |
     Tolaria is a Tauri-based desktop application for managing markdown
-    knowledge bases. It combines a React + BlockNote frontend with a
-    Rust backend and a bundled MCP server, and is designed for personal
-    knowledge and life management workflows.
+    knowledge bases. It pairs a React + BlockNote frontend with a Rust
+    backend and a bundled Model Context Protocol (MCP) server, and is
+    designed for personal knowledge and life-management workflows.
 
 extra:
   recipe-maintainers:
     - rxm7706
+
+#### CFE metadata AND comments
+# CFE metadata
+  cfe-conda-name: tolaria
+  cfe-upstream-registry: github
+  cfe-upstream-name: refactoringhq/tolaria
+  cfe-purls:
+    - pkg:conda/tolaria@${{ version }}
+    - pkg:github/refactoringhq/tolaria@v${{ version | replace(".", "-") }}
+  cfe-upstream-repo: https://github.com/refactoringhq/tolaria
+  cfe-upstream-homepage: https://tolaria.md
+  cfe-import-names: []
+  cfe-source-kind: github-tag
+  cfe-noarch: compiled
+  cfe-pip-check: false:not-a-python-package
+  cfe-on-conda-forge-status: pending-submission-to-conda-forge
+  cfe-on-conda-forge-feedstock: none
+  cfe-forge-recipe-updates-needed: none
+  cfe-forge-blocker-list: []
+  cfe-last-checked: 2026-06-28T04:06:46Z
+  cfe-generated-by-version: 8.57.0
+  cfe-generated-at-datetime: 2026-06-28T04:06:46Z
+  cfe-local-build-status: success
+  cfe-local-build-datetime: 2026-06-28T04:27:09Z
+  cfe-local-build-platform: linux-64
+  cfe-local-build-tool: rattler-build
+####
+# CFE comments
+# Header:
+#    # tolaria = refactoringhq/tolaria, AGPL-3.0 Tauri 2.10 desktop app
+#    # (markdown knowledge base; tolaria.md). React+Vite frontend + Rust
+#    # backend + bundled MCP server. AGPL-3.0 is OSI-approved -> cf-eligible.
+# context.version:
+#    # Stable tags are v<YYYY-MM-DD>; conda forbids '-' in versions, so version
+#    # is dotted zero-padded and source.url maps back via replace(".","-").
+#    # Autotick cannot track this date-tag scheme; bump version + sha by hand.
+# build:
+#    # Per-platform native Tauri build (NOT noarch). osx-arm64 + linux-64 +
+#    # win-64 (skip everything else). Mirrors the conda-forge/nebi-feedstock
+#    # webkit2gtk Tauri pattern. unix -> build.sh, win -> build.bat.
+#    # dynamic_linking: allowlist the raw bin so conda patches RPATH to find
+#    # webkit2gtk4.1/libsoup from the env on linux; the macOS .app is excluded
+#    # (Tauri uses @loader_path install_names — conda must not touch them).
+# requirements.build:
+#    # pnpm <11: upstream still declares pnpm.overrides + pnpm.patchedDependencies
+#    # in package.json (pnpm-workspace.yaml carries only a partial set, no
+#    # overrides). pnpm 11 STOPPED reading the package.json `pnpm` field, so
+#    # `pnpm install --frozen-lockfile` sees empty overrides vs the lockfile's
+#    # (lockfileVersion 9.0) recorded overrides -> ERR_PNPM_LOCKFILE_CONFIG_MISMATCH.
+#    # pnpm 10.x still reads package.json -> frozen install matches the lockfile.
+#    # Lift the cap once upstream finishes migrating config to pnpm-workspace.yaml.
+# requirements.host (linux):
+#    # The Tauri gtk3/webkit2gtk Rust crates (gdk-sys/gtk-sys/cairo-sys/...)
+#    # discover headers + link flags via pkg-config. librsvg intentionally
+#    # omitted (not directly linked; webkit2gtk pulls it transitively) to avoid
+#    # rattler-build's Overdepending-against-librsvg warning.
+# requirements.ignore_run_exports (linux):
+#    # webkit2gtk4.1 + transitive deps export pins for libs we don't link
+#    # directly; drop them to keep downstream solves clean (nebi pattern).
+# build (resources):
+#    # beforeBuildCommand = `pnpm build && pnpm bundle-mcp && pnpm agent-docs`
+#    # generates src-tauri/resources/{mcp-server,agent-docs}. osx .app bundles
+#    # both via tauri.conf bundle.resources; linux/win (--no-bundle) stage both
+#    # by hand to the resource_dir() fallback (<exe>/../lib/<id>/ on linux,
+#    # <exe_dir>/resources/ on win). agent-docs is NEW vs the 2026.4 recipe.
+####

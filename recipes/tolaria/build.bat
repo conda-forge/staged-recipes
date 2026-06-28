@@ -4,8 +4,8 @@ setlocal enabledelayedexpansion
 echo === Build environment ===
 node --version
 if errorlevel 1 exit /b 1
-:: pnpm ships as pnpm.cmd; bare-invoke would transfer control and terminate
-:: this script. Always use `call pnpm ...`. Same for any other .cmd shim.
+:: pnpm ships as pnpm.cmd; a bare invoke transfers control and terminates this
+:: script. Always `call pnpm ...` (same for any other .cmd shim).
 call pnpm --version
 if errorlevel 1 exit /b 1
 rustc --version
@@ -34,12 +34,12 @@ if not exist THIRDPARTY-RUST.yml exit /b 1
 if not exist THIRDPARTY-NPM.txt exit /b 1
 
 echo === Windows x64 build (raw binary) ===
-:: --no-bundle: produce only target\release\tolaria.exe, skip MSI/NSIS
-:: bundlers (which would be repackaged out of conda's prefix layout anyway).
+:: --no-bundle: produce only target\release\tolaria.exe, skip MSI/NSIS bundlers
+:: (they'd be repackaged out of conda's prefix layout anyway).
 call pnpm tauri build --no-bundle --config "{\"bundle\":{\"createUpdaterArtifacts\":false}}"
 if errorlevel 1 exit /b 1
 
-:: Conda-forge's rust compiler activation passes --target=<triple>, so cargo
+:: conda-forge's rust compiler activation passes --target=<triple>, so cargo
 :: outputs to target\<triple>\release\ instead of target\release\.
 set BIN_SRC=src-tauri\target\x86_64-pc-windows-msvc\release\tolaria.exe
 if not exist "%BIN_SRC%" set BIN_SRC=src-tauri\target\release\tolaria.exe
@@ -52,8 +52,8 @@ if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
 copy /Y "%BIN_SRC%" "%LIBRARY_BIN%\tolaria.exe"
 if errorlevel 1 exit /b 1
 
-:: Tauri's webview2-com-sys vendors WebView2Loader.dll alongside the binary
-:: at build time. Copy if present (resolves to the same dir as the .exe).
+:: Tauri's webview2-com-sys vendors WebView2Loader.dll alongside the binary at
+:: build time. Copy it (resolves to the same dir as the .exe) if present.
 for %%D in ("src-tauri\target\x86_64-pc-windows-msvc\release" "src-tauri\target\release") do (
   if exist "%%~D\WebView2Loader.dll" (
     copy /Y "%%~D\WebView2Loader.dll" "%LIBRARY_BIN%\WebView2Loader.dll"
@@ -63,10 +63,14 @@ for %%D in ("src-tauri\target\x86_64-pc-windows-msvc\release" "src-tauri\target\
 )
 :webview_copied
 
-:: Stage MCP server resources at Tauri's expected runtime location.
-:: tauri::path::resource_dir() on Windows checks <exe_dir>\resources\ first.
+:: Stage the bundled resources at Tauri's Windows runtime resource location:
+:: tauri::path::resource_dir() checks <exe_dir>\resources\ first.
+:: beforeBuildCommand (pnpm bundle-mcp / pnpm agent-docs) populates
+:: src-tauri\resources\{mcp-server,agent-docs} before the cargo build runs.
 if not exist "%LIBRARY_BIN%\resources" mkdir "%LIBRARY_BIN%\resources"
 xcopy /E /I /Q /Y src-tauri\resources\mcp-server "%LIBRARY_BIN%\resources\mcp-server\"
+if errorlevel 1 exit /b 1
+xcopy /E /I /Q /Y src-tauri\resources\agent-docs "%LIBRARY_BIN%\resources\agent-docs\"
 if errorlevel 1 exit /b 1
 
 :: menuinst manifest + icon
