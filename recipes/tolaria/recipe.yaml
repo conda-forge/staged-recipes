@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "2026.4.25"
+
+package:
+  name: tolaria
+  version: ${{ version }}
+
+source:
+  url: https://github.com/refactoringhq/tolaria/archive/refs/tags/stable-v${{ version }}.tar.gz
+  sha256: 7e4ec239ca7847740d43d687175f4905d7c7a2a0e300c2c83515fb358d90dcd7
+
+build:
+  number: 0
+  skip: not ((osx and arm64) or (linux and x86_64) or (win and x86_64))
+  dynamic_linking:
+    # Allowlist the raw binaries so conda-forge patches their RPATH to
+    # find webkit2gtk4.1 / libsoup / etc. from the conda env on Linux.
+    # The macOS Tolaria.app bundle is intentionally excluded — Tauri's
+    # bundle layout uses @loader_path-relative install_names for ABI
+    # isolation; conda must not touch those binaries.
+    binary_relocation:
+      - bin/tolaria
+      - Library/bin/tolaria.exe
+    rpath_allowlist:
+      - "@loader_path/**"
+      - "$ORIGIN/**"
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - nodejs 24.*
+    - pnpm
+    - cargo-bundle-licenses
+    - if: linux
+      then:
+        - pkg-config
+  host:
+    # Linux Tauri build needs pkg-config-discoverable .pc files for the entire
+    # gtk3/webkit2gtk stack — Rust crates gdk-sys, gtk-sys, cairo-sys, glib-sys,
+    # etc. all use pkg-config to find headers + link flags. Mirrors the
+    # conda-forge/nebi-feedstock host list (proven working for webkit2gtk4.1).
+    - if: linux
+      then:
+        - gtk3
+        - webkit2gtk4.1
+        - glib
+        - libsoup
+        - gdk-pixbuf
+        - cairo          # binary links libcairo directly via gdk/gtk transitively
+        - openssl
+        - zlib
+        - expat
+        - fontconfig
+        # librsvg intentionally omitted: Tauri's gtk stack does not link the
+        # binary against librsvg.so directly (it's used by gdk-pixbuf at
+        # runtime only when SVG icons are loaded; webkit2gtk4.1 brings it as
+        # a transitive runtime dep). Listing it here triggers an
+        # "Overdepending against librsvg" warning from rattler-build.
+  run:
+    - menuinst >=2.1
+    - if: linux
+      then:
+        - webkit2gtk4.1
+  ignore_run_exports:
+    # webkit2gtk4.1 + transitive deps drag in pins for libs we don't link
+    # against directly. Drop them to keep solves clean. Mirrors the pattern
+    # used in conda-forge/nebi-feedstock.
+    from_package:
+      - if: linux
+        then:
+          - openssl
+          - zlib
+          - expat
+          - fontconfig
+
+tests:
+  - script:
+      - if: osx
+        then:
+          - test -x $PREFIX/bin/tolaria
+          - test -d "$PREFIX/lib/Tolaria.app"
+          - test -x "$PREFIX/lib/Tolaria.app/Contents/MacOS/Tolaria"
+          - codesign -v "$PREFIX/lib/Tolaria.app"
+          - test -f "$PREFIX/Menu/tolaria-menu.json"
+      - if: linux
+        then:
+          - test -x $PREFIX/bin/tolaria
+          - test -d "$PREFIX/lib/club.refactoring.tolaria/mcp-server"
+          - test -f "$PREFIX/Menu/tolaria-menu.json"
+      - if: win
+        then:
+          - if not exist "%LIBRARY_BIN%\tolaria.exe" exit 1
+          - if not exist "%LIBRARY_BIN%\resources\mcp-server" exit 1
+          - if not exist "%PREFIX%\Menu\tolaria-menu.json" exit 1
+  - package_contents:
+      bin:
+        - tolaria
+      files:
+        - Menu/tolaria-menu.json
+        - if: osx
+          then:
+            - lib/Tolaria.app/Contents/Info.plist
+
+about:
+  homepage: https://tolaria.md
+  repository: https://github.com/refactoringhq/tolaria
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY-RUST.yml
+    - THIRDPARTY-NPM.txt
+  summary: Desktop app to manage markdown knowledge bases
+  description: |
+    Tolaria is a Tauri-based desktop application for managing markdown
+    knowledge bases. It combines a React + BlockNote frontend with a
+    Rust backend and a bundled MCP server, and is designed for personal
+    knowledge and life management workflows.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
