@@ -1,0 +1,83 @@
+context:
+  version: "0.1.3"
+
+package:
+  name: rustfits
+  version: ${{ version }}
+
+source:
+  url: https://github.com/esheldon/rustfits/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 35be549358ba89fdcc6bc134ea7fd00b88e985f95908682880349474ce4b7c9f
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  skip:
+    - win
+    - is_abi3 and not is_python_min
+  script:
+    - maturin build -v -j ${CPU_COUNT} --release --strip --manylinux off --interpreter=${PYTHON} --features pyo3/abi3-py${{ python_min|replace(".", "") }}
+    # ^add this flag for cross-compile later maybe? -Zfeatures=itarget
+    - ${PYTHON} -m pip install ${SRC_DIR}/target/wheels/rustfits*.whl --no-deps -vv --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - python-abi3
+    - pip
+    - maturin >=1.7,<2.0a0
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - rustfits
+        - rustfits._rust
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - if: build_platform == target_platform
+    then:
+      script:
+        - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+        - abi3audit ${SP_DIR}/rustfits/*.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      requirements:
+        run:
+          - abi3audit
+  # we run tests since they are fast...
+  - script:
+      - pytest -vv ./tests
+    files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+        - astropy
+        - fitsio
+        - aioftp
+        - python
+
+about:
+  homepage: https://github.com/esheldon/rustfits
+  summary: A python FITS library with extension in rust
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - beckermr
+    - esheldon
