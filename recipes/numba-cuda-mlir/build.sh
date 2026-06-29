@@ -9,45 +9,39 @@ PARALLEL="${PARALLEL:-${CPU_COUNT:-$(nproc)}}"
 export PARALLEL
 export PYTHON="${PREFIX}/bin/python"
 
-# Two llvm versions a modern version powering MLIR and a 
-# legacy version for backwards compatibility with previous
-# CUDA versions.
+
 export BUILD_ROOT="${SRC_DIR}/_llvm_build"
-export LLVM7_INSTALL="${SRC_DIR}/llvm7-install"
 export LLVM_MODERN_INSTALL="${SRC_DIR}/llvm-modern-install"
-
-
-export LLVM7_SRC="${SRC_DIR}/llvm7-src"
 export LLVM_MODERN_SRC="${SRC_DIR}/llvm-modern-src"
 
 chmod +x ci/*.sh
-
-
-sed -i '/sccache/d' ci/build-llvm7.sh ci/build-llvm-modern.sh
+sed -i '/sccache/d' ci/build-llvm-modern.sh
 
 echo "=============================================================="
-echo "Step 1/3: LLVM 7.1.0 shared library (libLLVM-7.so)"
-echo "=============================================================="
-ci/build-llvm7.sh
-
-echo "=============================================================="
-echo "Step 2/3: Modern LLVM/MLIR + Python bindings"
+echo "Step 1/2: Modern LLVM/MLIR + Python bindings"
 echo "=============================================================="
 ci/build-llvm-modern.sh
 
 echo "=============================================================="
-echo "Step 3/3: numba_cuda_mlir wheel (linked against both)"
+echo "Step 2/2: numba_cuda_mlir wheel"
 echo "=============================================================="
 
-# CUDA toolkit headers/libs come from the conda host env. The repo's bundled
-# cmake/FindCUDAToolkit.cmake honors $CUDAToolkit_ROOT for cuda.h.
+# CUDA headers come from the conda host env; FindCUDAToolkit.cmake honors
+# $CUDAToolkit_ROOT for cuda.h.
 export CUDAToolkit_ROOT="${PREFIX}"
 export DLPACK_PATH="${PREFIX}"
-# Wire the two LLVM installs into the wheel build (same contract as the wheel CI).
 export MLIR_DIR="${LLVM_MODERN_INSTALL}/lib/cmake/mlir"
-export LIBLLVM7="${LLVM7_INSTALL}/lib/libLLVM-7.so"
+# LIBLLVM7 intentionally unset: we don't bundle libLLVM-7.so. The legacy LLVM 7
+# runtime is provided by the libllvm7.1 conda package (see symlink below).
 
 "${PYTHON}" -m pip install . \
     --no-build-isolation \
     --no-deps \
     -vv
+
+# numba-cuda-mlir's runtime loader looks for a bundled
+# numba_cuda_mlir/lib/libLLVM-7.so. Point that at the conda libllvm7.1 library
+SP="$("${PYTHON}" -c "import sysconfig; print(sysconfig.get_paths()['platlib'])")"
+mkdir -p "${SP}/numba_cuda_mlir/lib"
+# $SP/numba_cuda_mlir/lib -> up 4 -> $PREFIX/lib
+ln -sf ../../../../libLLVM-7.1.so "${SP}/numba_cuda_mlir/lib/libLLVM-7.so"
