@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  version: "0.7.0"
+  python_min: "3.11"
+
+  m2: ${{ "" if unix else "m2-" }}
+  so: ${{ "abi3.so" if unix else "pyd" }}
+
+package:
+  name: mqtt5
+  version: ${{ version }}
+  
+source:
+  url: https://pypi.org/packages/source/m/mqtt5/mqtt5-${{ version }}.tar.gz
+  sha256: b210ce32ce98731b42589a0ae655a10511fb61052a4b9e0afbfc70937b9cbd16
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  script: build.sh
+  python:
+    version_independent: true
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - ${{ m2 }}bash >=5.2
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - maturin >=1.13.1
+        - python ${{ python_min }}.*
+  host:
+    - maturin <2.0
+    - python ${{ python_min }}.*
+    - if: is_abi3
+      then:
+        - python-abi3
+    - pip
+  run:
+    - python
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        - site-packages/mqtt5/__init__.py
+        - site-packages/mqtt5/mqtt5.${{ so }}
+        - site-packages/mqtt5/mqtt5.pyi
+        - site-packages/mqtt5/py.typed
+        - site-packages/mqtt5-${{ version }}.dist-info/*
+  - if: is_abi3
+    then:
+      script:
+        - if: unix
+          then:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/mqtt5/mqtt5.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - abi3audit %PREFIX%/Lib/site-packages/mqtt5/mqtt5.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+      requirements:
+        run:
+          - abi3audit
+  - python:
+      imports:
+        - mqtt5
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://github.com/empicano/mqtt5
+  summary: 'The MQTTv5 protocol for Python written in Rust'
+  description: |
+    A sans-I/O implementation of the MQTTv5 protocol for Python,
+    written in Rust. Serialization is ~5x faster and deserialization
+    ~20x faster than comparable Python code
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/empicano/mqtt5
+
+extra:
+  recipe-maintainers:
+    - MementoRC
