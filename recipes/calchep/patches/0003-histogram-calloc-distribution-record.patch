@@ -1,0 +1,22 @@
+Zero-initialise the per-distribution record read from the session file.
+
+readDistributions() malloc()s a histRec and fills it with fscanf(); when a
+field is absent or unparsable (nPoints, hMin/hMax, or trailing f[]/ff[] bins)
+fscanf leaves it uninitialised, and writeDistributions() later prints those
+bytes (valgrind: "Conditional jump ... depends on uninitialised value(s)" in
+__printf_fp via writeDistributions).  Harmless in practice but undefined;
+calloc() makes any gap a defined 0.  (The other histRec allocation, in the
+menu path, already initialises every field explicitly.)
+
+diff --git a/c_source/num/histogram.c b/c_source/num/histogram.c
+--- a/c_source/num/histogram.c
++++ b/c_source/num/histogram.c
+@@ -271,7 +271,7 @@
+   linelist rec;
+   for(rec=histTab.strings;rec;rec=rec->next)
+   {  int Nread; 
+-     histRec * hist=malloc(sizeof(histRec));
++     histRec * hist=calloc(1,sizeof(histRec));
+ 
+      hist->next=histPtr;
+      hist->mother=rec;

@@ -1,0 +1,263 @@
+context:
+  version: "3.8.4"
+
+recipe:
+  name: calchep
+  version: ${{ version }}
+
+source:
+  - url: https://theory.sinp.msu.ru/~pukhov/CALCHEP/calchep_${{ version }}.tgz
+    sha256: 802b7d7e776643b3a46f0611bb4f43f1ba9a84ebe071c251b2caf7ddb36e5043
+    patches:
+      # initStrFun() writes nnan[i1-1]/sf_be[i1-1] before validating i1; called
+      # as initStrFun(0) it writes nnan[-1], which the -O2 BSS layout overlaps
+      # with the adjacent ``plist`` pointer -> truncated pointer -> SIGSEGV in
+      # realloc during numerical integration. (Reported upstream.)
+      - patches/0001-fix-initStrFun-out-of-bounds-write-segfault.patch
+      # Zero-argument min()/max() in the QCD-scale parser: malloc(0)+strcpy
+      # overflow / out-of-bounds args[0] read (latent; reported upstream).
+      - patches/0002-qcdScale-guard-zero-arg-min-max-overflow.patch
+      # readDistributions() reads a session record into a malloc'd histRec;
+      # fscanf gaps leave fields uninitialised (later printed). calloc zero-
+      # fills them (valgrind-clean; harmless but undefined behaviour).
+      - patches/0003-histogram-calloc-distribution-record.patch
+      # Link the run-time-generated VandP.so against the combined shared library
+      # (libcalchep.so) instead of the individual static archives that are no
+      # longer shipped. (Pairs with the ld_n/make_main link edits in install_calchep.sh.)
+      - patches/0004-link-VandP.so-against-libcalchep.patch
+
+build:
+  number: 0
+  # POSIX build system (Makefile + getFlags + sh); no Windows support.
+  # osx (osx-64 + osx-arm64) is enabled via Darwin-specific handling in
+  # build_cache.sh / install_calchep.sh (clang -dynamiclib, -install_name,
+  # `ranlib -c`, no -rdynamic, -force_load, -undefined dynamic_lookup,
+  # @loader_path). That macOS link path could not be validated locally, so it may
+  # still need iteration against conda-forge's osx builders.
+  skip:
+    - win
+
+outputs:
+  # The staging output builds the run-in-place tree (in blind, non-X11 mode) once
+  # under $PREFIX/share/calchep, including every X11-independent library and all
+  # intermediate objects. Both package outputs inherit it: ``calchep`` ships the
+  # blind tree as-is, while ``calchep-gui`` re-links only the interactive
+  # front-end against X11, reusing the cached libraries.
+  - staging:
+      name: calchep-build
+
+    build:
+      script:
+        file: build_cache
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ compiler("fortran") }}
+        - make
+        # GNU sed: on macOS build_cache.sh rewrites the GNU allow-undefined link
+        # flag to the ld64 spelling before building, and the system BSD sed differs.
+        - sed
+
+  - package:
+      name: calchep
+    inherit: calchep-build
+
+    build:
+      script:
+        file: install_calchep
+      files:
+        - share/calchep/**
+        - bin/*
+        - etc/conda/**
+
+    requirements:
+      build:
+        # The shipped binaries/libraries come from the staging build; the C and
+        # Fortran compilers are declared here only so their run-exports (libgcc,
+        # libgfortran) become this package's run dependencies. compiler("cxx") is
+        # omitted: CalcHEP's C++ sources link no libstdc++ runtime, so nothing
+        # shipped needs it (verified with readelf). The run-time JIT compiler is a
+        # real ``run`` dependency (below).
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("fortran") }}
+        - sed
+      run:
+        # The run-time-generated bin/ scripts (run_batch, ...) are Perl.
+        - perl
+        # Process generation JIT-compiles C on demand with the compiler recorded in
+        # FlagsForSh, so ship it: gcc on Linux, clang on macOS.
+        - if: linux
+          then: gcc
+        - if: osx
+          then: clang
+      run_exports:
+        - ${{ pin_subpackage("calchep", upper_bound="x.x") }}
+
+    tests:
+      - package_contents:
+          bin:
+            - s_calchep
+            - mkWORKdir
+            - event2lhe
+            - event_mixer
+            - events2tab
+            - lhapdf2pdt
+            - lhe2tab
+            - show_distr
+            - sum_distr
+          files:
+            - share/calchep/FlagsForSh
+            - share/calchep/calchep.ini
+            - share/calchep/bin/s_calchep
+            - share/calchep/bin/calc
+            # The numerical core ships as one shared library (libcalchep.so);
+            # dummy.a and dynamic_vp.a must stay static (see build_cache.sh for the
+            # link-semantics reasons) and sqme_aux.so is already shared.
+            - share/calchep/lib/libcalchep.so
+            - share/calchep/lib/dummy.a
+            - share/calchep/lib/dynamic_vp.a
+            - share/calchep/lib/sqme_aux.so
+            - etc/conda/activate.d/calchep_activate.sh
+            - etc/conda/activate.d/calchep_activate.csh
+            - etc/conda/activate.d/calchep_activate.fish
+            - etc/conda/deactivate.d/calchep_deactivate.sh
+            - etc/conda/deactivate.d/calchep_deactivate.csh
+            - etc/conda/deactivate.d/calchep_deactivate.fish
+
+      - script:
+          # --version needs no compiler and exits before opening any display.
+          - s_calchep --version
+          # The activation script must export CALCHEP into the (run-in-place) tree.
+          - test -n "${CALCHEP}"
+          - test -f "${CALCHEP}/calchep.ini"
+
+      # End-to-end batch run, event/distribution post-processing, and the make_main
+      # C-API check. Runs on every platform: CalcHEP JIT-generates, compiles and
+      # integrates the process on demand using the run-time toolchain (gcc on linux,
+      # clang on macOS -- a package run dependency) plus make and gnuplot (pulled
+      # into the test environment only).
+      - requirements:
+          run:
+            - make
+            - gnuplot
+            - grep
+            - awk
+        script:
+          - mkWORKdir _example
+          - cd _example
+          # -help is a single dash; --help is unrecognized and exits 6.
+          - ./calchep_batch -help
+          - ./calchep_batch "${CALCHEP}/utile/batch_file"
+          # A cross-section result must actually be produced, and the
+          # distribution plots require gnuplot. Both land at the top of
+          # batch_results/ (run name "test", so plots are test-Mh*_*.jpg).
+          - test -f batch_results/test-cs.dat
+          - test -f batch_results/test-Mh120_1.jpg
+          # Post-processing utilities on the generated outputs. lhe2tab
+          # histograms the LHE events (M(5,-5) = M(b,bbar), always in the final
+          # state) and records the worst energy-momentum imbalance; assert the
+          # events conserve 4-momentum (~1e-11, far below the 1e-6 tolerance).
+          # (gzip -dc, not zcat: macOS zcat is the legacy compress tool and looks
+          # for a .Z file instead of decompressing the .gz.)
+          - gzip -dc batch_results/test-Mh120.lhe.gz > events.lhe
+          - lhe2tab "M(5,-5)" 0 400 50 < events.lhe > hist.txt
+          - grep -q "lost_momenta_max" hist.txt
+          - awk '/lost_momenta_max.Etot/{for(i=2;i<=NF;i++) if($i+0>1e-6) exit 1}' hist.txt
+          # sum_distr merges same-specification distribution files into one.
+          - sum_distr batch_results/test-Mh120.distr batch_results/test-Mh125.distr > combined.distr
+          - grep -q "M(b,B)" combined.distr
+          # make_main builds a standalone program against CalcHEP's C
+          # matrix-element API -- the path other packages (e.g. micrOMEGAs) use,
+          # and the sole consumer of the static dynamic_vp.a. make_main derives
+          # the output name from its argument and writes it to the current
+          # directory, so the source is copied into a fresh (writable) work dir
+          # and passed by bare name.
+          - cd ..
+          - mkWORKdir _main
+          - cd _main
+          - cp "${CALCHEP}/utile/main_22.c" .
+          - ${CALCHEP}/bin/make_main main_22.c
+          - ./main_22 > main_22.out
+          - grep -q "sigmaTot" main_22.out
+
+  - package:
+      name: calchep-gui
+    inherit: calchep-build
+
+    build:
+      script:
+        file: build_gui
+      files:
+        - share/calchep-gui/**
+        - bin/calchep-gui
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - make
+        - sed
+      host:
+        # X11/Xlib.h + libX11 from xorg-libx11; the X11/X.h protocol headers it
+        # includes come from xorg-xorgproto.
+        - xorg-libx11
+        - xorg-xorgproto
+      run:
+        # The GUI binary's data tree and libraries come from the blind package.
+        - ${{ pin_subpackage("calchep", exact=True) }}
+
+    tests:
+      - package_contents:
+          bin:
+            - calchep-gui
+          files:
+            - share/calchep-gui/bin/s_calchep
+      - script:
+          - calchep-gui --version
+          # The GUI front-end's defining feature over the blind package is the X11
+          # link; verify it directly. bin/calchep-gui is a symlink to the X11-linked
+          # s_calchep. ldd is the linux tool; otool -L is its macOS equivalent.
+          - if: linux
+            then: ldd "${PREFIX}/bin/calchep-gui" | grep -q libX11
+          - if: osx
+            then: otool -L "${PREFIX}/bin/calchep-gui" | grep -q libX11
+
+about:
+  homepage: https://theory.sinp.msu.ru/~pukhov/calchep.html
+  documentation: https://theory.sinp.msu.ru/~pukhov/calchep.html
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: Calculation of Feynman diagrams and integration over multi-particle phase space
+  description: |
+    CalcHEP is a package for automatic calculations of elementary particle decay
+    and collision properties in the lowest order of perturbation theory
+    (the tree approximation).
+    The main idea prescribed into the CalcHEP is to make available passing on
+    from the Lagrangian to the final distributions effectively with a high
+    level of automation.
+
+    Two variants are provided:
+
+    * `calchep` builds in "blind" (non-interactive) mode, with no X11
+      dependency. The symbolic engine, numerical integration, batch operation,
+      and matrix-element generation all work; only the interactive graphical
+      menu is unavailable.
+    * `calchep-gui` adds the X11-enabled interactive `calchep-gui` front-end
+      (it depends on `calchep` for the shared data and libraries).
+
+    CalcHEP is a run-in-place package installed under `$CONDA_PREFIX/share/calchep`;
+    activation exports the `CALCHEP` environment variable. Generating a new process
+    compiles C code on demand at run time, so the package depends on a C compiler
+    (`gcc` on Linux, `clang` on macOS) and works out of the box. (A Fortran compiler
+    is only needed for models that use user-defined Fortran functions; standard
+    process generation is C only.)
+
+extra:
+  feedstock-name: calchep
+  recipe-maintainers:
+    - matthewfeickert
