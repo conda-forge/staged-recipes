@@ -19,3 +19,9 @@ cmake -GNinja \
   "$CORE_DIR"
 
 ninja install
+
+# Manually install the Python module since CMake's pip install isn't working
+if [ -d "swig/python/isiscore" ]; then
+  cd swig/python
+  $PYTHON -m pip install . --no-deps --no-build-isolation -vv
+fi
