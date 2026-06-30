@@ -1,0 +1,89 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: spaday
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/spaday/spaday-${{ version }}.tar.gz
+  sha256: 4572a7deb69d0e0af340fc5be7ea0fd7e7cab11b7f2330add7609ccc4931a22a
+
+build:
+  number: 0
+  python:
+    version_independent: true
+  script:
+    - if: unix
+      then:
+        - export PYO3_PYTHON="$PYTHON"
+        - export RUSTFLAGS=""
+      else:
+        - set "PYO3_PYTHON=%PYTHON%"
+        - set "RUSTFLAGS="
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: is_abi3 and not is_python_min
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - rust-std-wasm32-unknown-unknown
+    - wasm-bindgen-cli ==0.2.121
+    - cargo-bundle-licenses
+    - if: linux
+      then:
+        - pkg-config
+  host:
+    - python
+    - pip
+    - hatchling
+    - hatch-js
+    - hatch-rs
+    - pnpm
+    - if: is_abi3
+      then:
+      - python-abi3
+  run:
+    - python
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports:
+        - spaday
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - if: is_abi3
+    then:
+      script:
+        - if: win
+          then: abi3audit %PREFIX%/Lib/site-packages/spaday/spaday.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else:
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/spaday/spaday.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      requirements:
+        run:
+          - abi3audit
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Build reactive web-component UIs configured in Python, executed in the browser
+  homepage: https://github.com/1kbgz/spaday
+  repository: https://github.com/1kbgz/spaday
+
+extra:
+  recipe-maintainers:
+    - timkpaine
