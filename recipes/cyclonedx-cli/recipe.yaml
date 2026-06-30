@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+# mostly cribbed from https://github.com/conda-forge/nuget-license-feedstock/blob/main/recipe/recipe.yaml
+
+context:
+  version: "0.32.0"
+  dotnet_major: "10.0"
+
+package:
+  name: cyclonedx-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CycloneDX/cyclonedx-cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9ba4bcb4c315b28fbf5e461511ff94c5b8088a4696b018368694bd235341d3cc
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    env:
+      CF_DOTNET_MAJOR: ${{ dotnet_major }}
+    file: build-cyclonedx-cli.sh
+
+requirements:
+  host:
+    - dotnet ${{ dotnet_major }}.*
+    - nuget-license
+  run:
+    - dotnet-runtime >=${{ dotnet_major }}
+
+tests:
+  - files:
+      source:
+        - tests/cyclonedx.tests/Resources/Merge/sbom1.json
+        - tests/cyclonedx.tests/Resources/Merge/sbom2.json
+    script:
+      - cyclonedx-cli --help
+      - cyclonedx-cli merge --input-files tests/cyclonedx.tests/Resources/Merge/*.json --output-format json
+      - cyclonedx-cli merge --input-files tests/cyclonedx.tests/Resources/Merge/*.json --output-format json > merged.cdx.sbom.json
+      - cyclonedx-cli convert --input-file merged.cdx.sbom.json --output-format spdxjson
+      - cyclonedx-cli convert --input-file merged.cdx.sbom.json --output-format spdxjson > merged.spdx.sbom.json
+      - cyclonedx-cli convert --input-file merged.spdx.sbom.json --output-format json
+      - cyclonedx-cli convert --input-file merged.spdx.sbom.json --output-format json > merged.spdx.cdx.sbom.json
+      - cyclonedx-cli diff merged.cdx.sbom.json merged.spdx.cdx.sbom.json
+
+about:
+  license: Apache-2.0
+  license_file:
+    - NOTICE
+    - LICENSE
+    - licenses-release.json
+    - license-files/
+  summary: CycloneDX CLI tool for SBOM analysis, merging, diffs and format conversions.
+  homepage: https://github.com/CycloneDX/cyclonedx-cli
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
