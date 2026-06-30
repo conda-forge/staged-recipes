@@ -1,3 +1,65 @@
+#
+# OpenFold conda-forge recipe.
+#
+# This recipe version mirrors the dependencies in OF pixi file and bring-in environments
+# ready to compile just-in-time openfold extensions, with the difference that we do not
+# isolate built extensions by default.
+#
+# Our future ambition is to provide packages with precompiled extensions tested natively.
+#
+# Notes and TODOs.
+# -----
+#
+# - Once we get the feedstock, we will need to tweak disk space or touch tests,
+#   as we are filling all allocated by the stage worker during testing.
+#
+# - We probably should add a noarch variant for CPU-only extension-less versions
+#   See: https://conda-forge.org/blog/2024/10/15/python-noarch-variants/
+#        https://rattler-build.prefix.dev/v0.42.1/build_options/#python-package-version-independence
+#   I need to figure if rattler-build supports noarch variants
+#
+# - I expect the need to bring more pins than what we have in the pixi environments
+#   Will find problems as we battle test in the wild
+#
+#  - To compile exceptions, we need some config in OF3 itself to allow:
+#    This will be iterative improvement of infrastructure, codebase and packaging
+#     - having a custom location for extensions
+#     - overriding the custom location for power users / extension rebuild
+#    Benchmarking (avoid performance regressions) and testing CI
+#    We need cross-compilation and hardware-independent extension building, plus infras
+#     Otherwise we need some tricks from our pixi envs (e.g., build envvars)
+#     and make them part of the package activation
+# here is an example that likely will not work
+# (as we are not making the build independent of HW yet, and anyway we would need a full package installation)
+#    - if: cuda_compiler_version != "None"
+#      then:
+#        - export TRITON_PTXAS_PATH=$CONDA_PREFIX/bin/ptxas
+#        - export TRITON_PTXAS_BLACKWELL_PATH=$TRITON_PTXAS_PATH
+#        - export CUTLASS_PATH=DS_IGNORE_CUTLASS_DETECTION
+#        - export TORCH_EXTENSIONS_DIR=$CONDA_PREFIX/caches/torch_extensions
+#        - pytest -v openfold3/tests/test_kernels.py -v
+#
+# - Testing no noarch builds with higher python versions
+# Copy and modify as needed the following into recipe/variants.yaml
+# ----------------------
+# python:
+#   - 3.11
+#   - 3.12
+#   - 3.13
+#   - 3.14
+#
+# is_python_min:
+#   - true
+#   - false
+#   - false
+#   - false
+#
+# zip_keys:
+#   - - python
+#     - is_python_min
+# ----------------------
+#
+
 context:
   name: openfold
   version: "0.4.2"
@@ -23,20 +85,6 @@ build:
   script:
     content:
       - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
-    # here we could put instructions to compile exceptions, we need some config in OF3 itself to allow:
-    #   - having a custom location for extensions
-    #   - overriding the custom location for power users / extension rebuild
-    # we need cross-compilation and hardware-independent extension building
-    # otherwise we need some tricks from our pixi envs (e.g., build envvars) and make them part of the package activation
-    # here is an example that likely will not work
-    # (as we are not making the build independent of HW yet, and anyway we would need a full package installation)
-    #    - if: cuda_compiler_version != "None"
-    #      then:
-    #        - export TRITON_PTXAS_PATH=$CONDA_PREFIX/bin/ptxas
-    #        - export TRITON_PTXAS_BLACKWELL_PATH=$TRITON_PTXAS_PATH
-    #        - export CUTLASS_PATH=DS_IGNORE_CUTLASS_DETECTION
-    #        - export TORCH_EXTENSIONS_DIR=$CONDA_PREFIX/caches/torch_extensions
-    #        - pytest -v openfold3/tests/test_kernels.py -v
 
 requirements:
   host:
