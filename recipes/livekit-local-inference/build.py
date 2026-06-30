@@ -8,9 +8,7 @@ import subprocess
 import sys
 
 src_dir = os.environ["SRC_DIR"]
-sp_dir = os.environ.get("SP_DIR") or next(
-    p for p in sys.path if p.endswith("site-packages")
-)
+sp_dir = os.environ["SP_DIR"]
 
 wheel = glob.glob(os.path.join(src_dir, "*.whl"))[0]
 subprocess.check_call(
