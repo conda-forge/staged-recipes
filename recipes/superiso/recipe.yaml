@@ -1,0 +1,155 @@
+schema_version: 1
+
+context:
+  version: "5.0"
+
+recipe:
+  name: superiso-suite
+  version: ${{ version }}
+
+source:
+  url: https://superiso.in2p3.fr/download/superiso_v${{ version }}.tgz
+  sha256: 7f8400e98ae80deac50af64486b980891e1630d729a0a4660ca309a4d7706b5f
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+  - package:
+      name: libsuperiso
+
+    build:
+      script:
+        file: build_libsuperiso.sh
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - make
+      run_exports:
+        - ${{ pin_subpackage("libsuperiso", upper_bound="x.x") }}
+
+    tests:
+      - package_contents:
+          strict: true
+          lib:
+            - superiso
+          include:
+            - superiso/include.h
+          files:
+            - etc/conda/test-files/libsuperiso/0/*
+
+      - files:
+          recipe:
+            - cf_test/
+        requirements:
+          run:
+            - ${{ compiler("c") }}
+        script:
+          # Downstream link test for the libsuperiso shared library
+          - ${CC} ${CFLAGS} cf_test/test_link.c ${LDFLAGS} -lsuperiso -o test_link
+          - ./test_link
+
+  - package:
+      name: superiso
+
+    build:
+      script:
+        file: build_superiso.sh
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - make
+        - awk
+      host:
+        - ${{ pin_subpackage("libsuperiso", exact=true) }}
+
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - amsb.x
+            - cmssm.x
+            - cnmssm.x
+            - flha.x
+            - gmsb.x
+            - hcamsb.x
+            - mmamsb.x
+            - modelindep_chi2.x
+            - ngmsb.x
+            - nnuhm.x
+            - nuhm.x
+            - predict.x
+            - scan_coeffs.x
+            - slha.x
+            - slha_chi2.x
+            - sm.x
+            - sm_chi2.x
+            - thdm.x
+          files:
+            - share/superiso/chi2_input/*
+            - share/superiso/example.lha
+
+      - requirements:
+          run:
+            - grep
+
+        script: |
+          set -ex
+          # All tools return a non-zero exit code even on success (upstream quirk), so
+          # assert on their computed output. Locate the installed data relative to the
+          # executable (prefix-variable-independent) and copy it into the writable test
+          # dir, since the chi2 tools read chi2_input/ from the working directory. Every
+          # tool below is self-contained (needs no external spectrum generator).
+
+          cp -r "${CONDA_PREFIX}/share/superiso/chi2_input" .
+          cp "${CONDA_PREFIX}/share/superiso/example.lha" .
+
+          run() { "$@" > out.txt 2>&1 || true; }
+
+          run sm.x
+          grep -q "BR(b->s gamma)" out.txt
+
+          run slha.x example.lha
+          grep -q "BR(b->s gamma)" out.txt
+
+          run sm_chi2.x
+          grep -qi "chi2" out.txt
+
+          run slha_chi2.x example.lha
+          grep -qi "chi2" out.txt
+
+          run modelindep_chi2.x 0.5 0.3 -0.2 0.1
+          grep -qi "chi2" out.txt
+
+          run predict.x chi2_input/myobs.in
+          grep -qi "observable" out.txt
+
+about:
+  homepage: https://superiso.in2p3.fr/
+  summary: Program for calculation of flavour physics observables
+  description: |
+    SuperIso is a program for calculation of flavour physics observables in the
+    Standard Model (SM), general two-Higgs-doublet model (2HDM), minimal
+    supersymmetric Standard Model (MSSM) and next to minimal supersymmetric
+    Standard Model (NMSSM).
+    SuperIso incorporates many flavour observables such as the branching ratio
+    of B → Xs,d γ at NNLO, the isospin asymmetry of B → K* γ, the branching
+    ratio of Bs,d → μ+ μ-, the branching ratio of B → τ ν, the branching ratio
+    of B → D τ ν, the branching ratios of K → μ ν, K → μ μ , K → π ν ν̄,
+    K → π l+ l-, as well as the branching ratios of Ds → τ ν and Ds → μ ν,
+    Λb → Λ l+ l-, and the branching rations and angular observables related to
+    the B → Xs l+ l- and B → K(*) l+ l- decays.
+    It also computes the muon anomalous magnetic moment (g-2).
+  license: GPL-3.0-or-later
+  license_file: README.md
+
+extra:
+  feedstock-name: superiso
+  recipe-maintainers:
+    - matthewfeickert
