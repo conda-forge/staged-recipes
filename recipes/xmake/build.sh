@@ -3,10 +3,6 @@ set -euxo pipefail
 
 cd "${SRC_DIR}"
 
-# Apply the build-system adaptations consistently in POSIX and MSYS builds.
-patch -p1 -i "${RECIPE_DIR}/0001-use-system-lua-lz4-and-tbox.patch"
-patch -p1 -i "${RECIPE_DIR}/0002-support-conda-clang-on-windows.patch"
-
 # Recognize conda's target-prefixed compiler driver names.
 if [[ "$(uname)" == "Darwin" ]]; then
     sed -i '' '/^        cc) toolname="gcc";;$/i\
