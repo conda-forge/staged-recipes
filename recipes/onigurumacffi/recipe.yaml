@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "1.5.0"
+
+package:
+  name: onigurumacffi
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/o/onigurumacffi/onigurumacffi-${{ version }}.tar.gz
+  sha256: d4fa9bee44a6d38a98b2237c67d9acdf27ed0c32d6c218125fe46681a5edea4d
+
+build:
+  number: 0
+  # All upstream wheels are cp310-abi3, so build once at python_min and ship a
+  # single artifact per platform that works on python_min and every newer Python.
+  skip: is_abi3 and not is_python_min
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - cffi >=1
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - setuptools >=42
+    - wheel
+    - cffi >=1
+    - oniguruma
+  run:
+    - python
+    - cffi >=1
+    - oniguruma
+
+tests:
+  - python:
+      imports:
+        - onigurumacffi
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/_onigurumacffi.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/_onigurumacffi.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  summary: |
+    Python cffi bindings for the oniguruma regex engine.
+  homepage: https://github.com/davwheat/python-onigurumacffi
+  repository: https://github.com/davwheat/python-onigurumacffi
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
+    - mgorny
