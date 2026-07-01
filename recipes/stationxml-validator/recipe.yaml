@@ -1,0 +1,72 @@
+context:
+  name: stationxml-validator
+  version: "1.7.5"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Upstream ships a prebuilt fat jar on the Releases page. We repackage it
+  # because the Maven source build resolves dependencies from Maven Central,
+  # which is unavailable in the network-less conda-forge build sandbox.
+  - url: https://github.com/iris-edu/${{ name }}/releases/download/${{ name }}-${{ version }}/${{ name }}-${{ version }}.jar
+    sha256: da093df59fd04000791d3f1d8c3fcc8f2605542b672743f5480d6c2fb3590f69
+    file_name: ${{ name }}-${{ version }}.jar
+  # The app's own GPL license is not embedded in the jar; fetch it from the tag.
+  - url: https://raw.githubusercontent.com/iris-edu/${{ name }}/${{ name }}-${{ version }}/LICENSE.md
+    sha256: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+    file_name: LICENSE.md
+
+build:
+  noarch: generic
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - unzip
+  run:
+    - openjdk >=8
+    # Ship only on Unix: the launcher is a POSIX shell script and EarthScope
+    # does not target Windows. (OS-noarch pattern.)
+    - if: linux
+      then:
+        - __linux
+    - if: osx
+      then:
+        - __osx
+
+tests:
+  - script:
+      - stationxml-validator --help
+      - stationxml-validator --help 2>&1 | grep -q "StationXML Validator"
+
+about:
+  homepage: https://github.com/iris-edu/stationxml-validator
+  summary: Validate FDSN StationXML metadata against the FDSN schema and rules
+  description: |
+    The FDSN StationXML Validator is a Java command-line tool that validates
+    FDSN StationXML files against the schema and a set of validation rules,
+    reporting violations and inconsistencies. This package repackages the
+    upstream prebuilt fat jar (which bundles its Java dependencies, including
+    stationxml-seed-converter) with a launcher script; it runs on a Java
+    runtime (openjdk).
+  # License of the application plus the third-party libraries bundled in the
+  # fat jar: jackson & commons-csv = Apache-2.0; jaxb/glassfish/activation =
+  # CDDL-1.1; system-rules = CPL-1.0; JUnit = EPL-1.0; Hamcrest = BSD-3-Clause.
+  license: GPL-3.0-only AND Apache-2.0 AND CDDL-1.1 AND CPL-1.0 AND EPL-1.0 AND BSD-3-Clause
+  license_file:
+    - LICENSE.md
+    - LICENSE-Apache-2.0.txt
+    - LICENSE-CDDL-1.1.txt
+    - NOTICE-jackson.txt
+    - NOTICE-commons-csv.txt
+    - LICENSE-EPL-1.0-junit.txt
+    - LICENSE-CPL-1.0.txt
+    - LICENSE-BSD-3-Clause-hamcrest.txt
+  repository: https://github.com/iris-edu/stationxml-validator
+
+extra:
+  recipe-maintainers:
+    - omid-earthscope
