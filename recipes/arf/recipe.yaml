@@ -1,0 +1,87 @@
+context:
+  version: "0.4.2"
+
+package:
+  name: arf
+  version: ${{ version }}
+
+source:
+  url: https://github.com/eitsupi/arf/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: eeaddc41d7bfc514e33ebdb9ee2b8b8aac642e4d6940c68b9d0a0bf036f09ed0
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=crates/arf-console --root="$PREFIX" --no-track --locked --bins
+          # generate manpage and shell completions
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/arf completions bash > "$PREFIX"/share/bash-completion/completions/arf'
+          - '"$PREFIX"/bin/arf completions fish > "$PREFIX"/share/fish/vendor_completions.d/arf.fish'
+          - '"$PREFIX"/bin/arf completions zsh  > "$PREFIX"/share/zsh/site-functions/_arf'
+      - if: win
+        then:
+          - cargo auditable install --path=crates/arf-console --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # generate shell completions
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\arf.exe completions bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\arf'
+          - '"%LIBRARY_BIN%"\arf.exe completions fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\arf.fish'
+          - '"%LIBRARY_BIN%"\arf.exe completions zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_arf'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - arf --help
+      - arf --version
+  - package_contents:
+      bin:
+        - arf
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/arf
+            - share/fish/vendor_completions.d/arf.fish
+            - share/zsh/site-functions/_arf
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/arf
+            - Library/share/fish/vendor_completions.d/arf.fish
+            - Library/share/zsh/site-functions/_arf
+      strict: true
+
+about:
+  summary: Alternative R Frontend — a cross-platform R console written in Rust
+  description: |
+    arf is a cross-platform R console written in Rust. It is a single binary
+    with no runtime dependencies, offering Vi/Emacs editing modes, multiline
+    editing with proper indentation, auto-matching brackets and quotes, tab
+    completion for R objects/functions/file paths, fzf-style history search,
+    customizable keyboard shortcuts, a fuzzy help browser, tree-sitter based
+    syntax highlighting, reprex mode, shell mode, and an IPC server for AI
+    agent and CI integration. It also integrates with
+    [rig](https://r-lib.github.io/rig/) to switch R versions on the fly.
+  license: MIT
+  license_file:
+    - LICENSE.md
+    - THIRDPARTY.yml
+  homepage: https://github.com/eitsupi/arf
+  repository: https://github.com/eitsupi/arf
+
+extra:
+  recipe-maintainers:
+    - salim-b
