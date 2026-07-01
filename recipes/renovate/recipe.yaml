@@ -1,0 +1,95 @@
+context:
+  version: "43.150.0"
+  nodejs_min: "24.11"
+  nodejs_max: "25"
+  grep: ${{ "grep" if unix else "findstr" }}
+
+package:
+  name: renovate
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/renovate/-/renovate-${{ version }}.tgz
+  sha256: 9b71029ba351f1c732ba8b20d5a918bc668767c05150ef97a5e7e71388b15910
+
+build:
+  number: 0
+  script:
+    env:
+      RE2_DOWNLOAD_SKIP_PATH: true
+    content:
+      - if: unix
+        then:
+          - set -ex
+          - npm pack --ignore-scripts
+          - npm install --global "${SRC_DIR}/renovate-${PKG_VERSION}.tgz"
+          - find "${PREFIX}" -type f -name "*.d.ts" -delete
+          - find "${PREFIX}" -type f -name "*.d.mts" -delete
+          - find "${PREFIX}" -type f -name "*.d.ts.map" -delete
+          - find "${PREFIX}" -type f -name "*.js.map" -delete
+          - npm rebuild --global re2
+          - pnpm install
+          - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        else:
+          - call npm pack --ignore-scripts || exit 1
+          - call npm install --global "%SRC_DIR%/renovate-%PKG_VERSION%.tgz" || exit 1
+          - (pushd "%PREFIX%" && del /s /q "*.d.ts" && popd) || exit 1
+          - (pushd "%PREFIX%" && del /s /q "*.d.mts" && popd) || exit 1
+          - (pushd "%PREFIX%" && del /s /q "*.d.ts.map" && popd) || exit 1
+          - (pushd "%PREFIX%" && del /s /q "*.js.map" && popd) || exit 1
+          - call npm rebuild --global re2 || exit 1
+          - call pnpm install || exit 1
+          - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt || exit 1
+
+requirements:
+  build:
+    - nodejs >=${{ nodejs_min }},<${{ nodejs_max }}
+    - pnpm >=10,<11
+    - pnpm-licenses
+    # recompile re2
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  run:
+    - nodejs >=${{ nodejs_min }},<${{ nodejs_max }}
+
+tests:
+  # Check we have a renovate executable
+  - package_contents:
+      bin:
+        - renovate
+
+  # Confirm renovate works with the minimum supported nodejs version
+  - script:
+      - renovate --version | ${{ grep }} "${{ version }}"
+    requirements:
+      run:
+        - nodejs ${{ nodejs_min }}.*
+  
+  # Confirm renovate works with the maximum supported nodejs version
+  - script:
+      - renovate --version | ${{ grep }} "${{ version }}"
+    requirements:
+      run:
+        - nodejs <${{ nodejs_max }}
+    
+
+about:
+  homepage: https://docs.renovatebot.com
+  summary: Automated dependency updates. Multi-platform and multi-language.
+  description: |
+    Renovate is an automated dependency update tool. It helps to update
+    dependencies in your code without needing to do it manually. When Renovate
+    runs on your repo, it looks for references to dependencies (both public
+    and private) and, if there are newer versions available, Renovate can
+    create pull requests to update your versions automatically.
+  license: AGPL-3.0-only
+  license_file:
+    - license
+    - third-party-licenses.txt
+  documentation: https://docs.renovatebot.com
+  repository: https://github.com/renovatebot/renovate
+
+extra:
+  recipe-maintainers:
+    - AaronLionsheep
