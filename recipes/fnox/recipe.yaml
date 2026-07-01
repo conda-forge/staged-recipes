@@ -1,0 +1,102 @@
+context:
+  version: "1.27.1"
+
+package:
+  name: fnox
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/fnox/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 17fbd495ad626ecd2bc7eb85a632d5e6875a49a6effa7a7aa6fafb9359ae7640
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      # NOTE: we have to set LIBCLANG_PATH for bindgen to find libclang (used by aws-lc-rs)
+      # cf. https://github.com/conda-forge/clangdev-feedstock/issues/373 & https://github.com/rust-lang/rust-bindgen/issues/918
+      - if: unix
+        then:
+          - export LIBCLANG_PATH="$BUILD_PREFIX"/lib
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          # generate shell completions
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/fnox completion bash > "$PREFIX"/share/bash-completion/completions/fnox'
+          - '"$PREFIX"/bin/fnox completion fish > "$PREFIX"/share/fish/vendor_completions.d/fnox.fish'
+          - '"$PREFIX"/bin/fnox completion zsh  > "$PREFIX"/share/zsh/site-functions/_fnox'
+      - if: win
+        then:
+          # bindgen expects libclang.dll; conda-forge only provides versioned DLLs on Windows
+          - powershell -Command "cp (gci $env:BUILD_PREFIX\Library\bin\libclang-*.dll)[0] $env:BUILD_PREFIX\Library\bin\libclang.dll"
+          - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # generate shell completions
+          - if not exist "%LIBRARY_PREFIX%"\share\bash-completion\completions mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - if not exist "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d   mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - if not exist "%LIBRARY_PREFIX%"\share\zsh\site-functions          mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\fnox.exe completion bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\fnox'
+          - '"%LIBRARY_BIN%"\fnox.exe completion fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\fnox.fish'
+          - '"%LIBRARY_BIN%"\fnox.exe completion zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_fnox'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - clang
+    - cmake
+    - libclang
+    - make
+    - ninja
+    - perl
+    - pkg-config
+  host:
+    - if: linux
+      then: libudev
+    - usage
+
+tests:
+  - script:
+      - fnox --help
+      - fnox --version
+  - package_contents:
+      bin:
+        - fnox
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/fnox
+            - share/fish/vendor_completions.d/fnox.fish
+            - share/zsh/site-functions/_fnox
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/fnox
+            - Library/share/fish/vendor_completions.d/fnox.fish
+            - Library/share/zsh/site-functions/_fnox
+      strict: true
+
+about:
+  summary: Fort Knox for your secrets — flexible secret management with encryption and cloud providers
+  description: |
+    fnox is a flexible secret management tool that supports storing secrets with
+    encryption (age, AWS KMS, Azure KMS, GCP KMS) or remotely in cloud providers
+    (AWS Secrets Manager, AWS Parameter Store, Azure Key Vault, GCP Secret Manager,
+    1Password, Bitwarden, HashiCorp Vault, and more). It provides a unified
+    interface to work with secrets across development, CI, and production,
+    and supports shell integration to auto-load secrets on directory change.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://fnox.jdx.dev
+  repository: https://github.com/jdx/fnox
+
+extra:
+  recipe-maintainers:
+    - salim-b
