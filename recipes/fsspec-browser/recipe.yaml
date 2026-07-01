@@ -1,0 +1,89 @@
+context:
+  version: "0.1.2"
+
+package:
+  name: fsspec-browser
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/f/fsspec-browser/fsspec_browser-${{ version }}.tar.gz
+  sha256: 86ac22c00451035d9e10162e77358b9034ce0c42dd425adb0d48adde42dd0b6a
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    - if: unix
+      then:
+        - export PYO3_PYTHON="$PYTHON"
+        - export RUSTFLAGS=""
+      else:
+        - set "PYO3_PYTHON=%PYTHON%"
+        - set "RUSTFLAGS="
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - if: linux
+      then:
+        - pkg-config
+  host:
+    - python
+    - pip
+    - hatchling
+    - hatch-js
+    - hatch-rs
+    - pnpm
+    - if: is_abi3
+      then:
+      - python-abi3
+  run:
+    - python
+    - fsspec
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports:
+        - fsspec_browser
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/fsspec_browser/fsspec_browser.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/fsspec_browser/fsspec_browser.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: terminal and web browser for fsspec backends
+  homepage: https://github.com/1kbgz/fsspec-browser
+  repository: https://github.com/1kbgz/fsspec-browser
+
+extra:
+  recipe-maintainers:
+    - timkpaine
