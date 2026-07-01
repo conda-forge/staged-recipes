@@ -1,0 +1,90 @@
+context:
+  version: "0.1.4"
+  build: 0
+
+package:
+  name: libhpipm
+  version: ${{ version }}
+
+source:
+  url: https://github.com/giaf/hpipm/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 1af1041fb6610f5bfcde3e8d8c02731dc52a937e589d65db73e28dcfa8c4cef3
+
+build:
+  number: >-
+    ${{ build + (
+        100 if x86_64 and (microarch_level | default(1)) in [1, "1"]
+        else 300 if x86_64 and (microarch_level | default(1)) in [3, "3"]
+        else 400 if x86_64 and (microarch_level | default(1)) in [4, "4"]
+        else 0
+    ) }}
+
+  # Selects build.sh on Unix and build.bat on Windows.
+  script:
+    file: build
+    env:
+      # HPIPM provides an AVX implementation and a generic implementation.
+      #
+      # microarch_level == 1 does not guarantee AVX support, so use GENERIC.
+      # microarch_level == 3 and 4 guarantee AVX support, so use AVX.
+      #
+      # All non-x86_64 architectures use the generic implementation.
+      HPIPM_TARGET: >-
+        ${{
+          "AVX"
+          if x86_64 and (microarch_level | default(1)) in [3, "3", 4, "4"]
+          else "GENERIC"
+        }}
+
+requirements:
+  build:
+    # Note that x86_64-microarch-level doesn't support win,
+    # but we can still specify microarch_level for win builds.
+    # HPIPM's custom build translates that variant into AVX or GENERIC.
+    - if: unix and x86_64
+      then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
+
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+
+    - if: win
+      then: clang
+
+  host:
+    - libblasfeo
+
+  run:
+    - if: x86_64
+      then: _x86_64-microarch-level >=${{ microarch_level | default("1") }}
+
+  run_exports:
+    - ${{ pin_subpackage("libhpipm", upper_bound="x.x.x") }}
+
+tests:
+  - package_contents:
+      include:
+        - hpipm_d_ocp_qp.h
+      lib:
+        - hpipm
+
+  - script:
+      - cmake-package-check hpipm --targets hpipm
+    requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler("c") }}
+        - cmake
+
+about:
+  homepage: https://github.com/giaf/hpipm
+  repository: https://github.com/giaf/hpipm
+  license: BSD-2-Clause
+  license_file: LICENSE.txt
+  summary: High-performance interior-point-method QP and QCQP solvers
+
+extra:
+  feedstock-name: hpipm
+  recipe-maintainers:
+    - traversaro
