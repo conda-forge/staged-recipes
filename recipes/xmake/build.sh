@@ -41,6 +41,27 @@ fi
 ninja -j"${CPU_COUNT:-1}"
 ninja install
 
+# On Linux, sv and xmake are built as shared libraries (libsv.so / libxmake.so,
+# see 0004-*.patch) so nothing third-party is statically linked into the xmake
+# binary. `ninja install` only installs default targets and these are
+# set_default false, so copy them into $PREFIX/lib ourselves. The cli rpath
+# ($ORIGIN/../lib) and libxmake.so's own $ORIGIN rpath then resolve them (and the
+# co-installed libtbox/liblua/...) from there.
+if [[ "$(uname)" == "Linux" ]]; then
+    for name in libsv.so libxmake.so; do
+        lib=$(find build -type f -name "${name}" | head -1)
+        test -n "${lib}"
+        install -Dm755 "${lib}" "${PREFIX}/lib/${name}"
+    done
+    # The legacy bootstrap generator writes make-style '$$ORIGIN' rpaths that the
+    # ninja backend does not unescape, so the baked RUNPATHs are unusable. Replace
+    # them with clean, relocatable ones: the binary (bin) looks in ../lib, and
+    # libxmake.so looks in its own dir, where libsv.so and the conda-provided
+    # libtbox/liblua/... all live.
+    patchelf --set-rpath '$ORIGIN/../lib' "${PREFIX}/bin/xmake"
+    patchelf --set-rpath '$ORIGIN' "${PREFIX}/lib/libxmake.so"
+fi
+
 mkdir -p "${PREFIX}/share/man/man1"
 install -m 644 scripts/man/xmake.1 "${PREFIX}/share/man/man1/xmake.1"
 install -m 644 scripts/man/xrepo.1 "${PREFIX}/share/man/man1/xrepo.1"
