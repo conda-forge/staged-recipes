@@ -1,0 +1,100 @@
+context:
+  version: "2.14.0"
+
+package:
+  name: pitchfork
+  version: ${{ version }}
+
+source:
+  # using the crates.io source tarball (instead of the GitHub one) since it ships with the
+  # pre-built web UI assets (`ui/dist`), avoiding the need for a Node.js/pnpm build step.
+  # NOTE: `file_name` is set (to give the archive a recognizable name), which means
+  # rattler-build won't auto-extract it (it only auto-extracts based on the downloaded
+  # file's own name/extension), so the archive is extracted manually as the first build step.
+  - url: https://crates.io/api/v1/crates/pitchfork-cli/${{ version }}/download
+    file_name: pitchfork-cli-${{ version }}.tar.gz
+    sha256: 76eba39b60dbf30601d0a55a0f8ba50938c5e060322f4d3895d208486b85546e
+  # the crates.io package doesn't include the top-level LICENSE file (only files
+  # explicitly listed in `Cargo.toml`'s `include` key are packaged), so fetch it separately
+  - url: https://raw.githubusercontent.com/jdx/pitchfork/v${{ version }}/LICENSE
+    file_name: LICENSE
+    sha256: 5ba5d69f83674602525196efe44114e546cf3440d363603961076e52b9647a5a
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - tar -xzf pitchfork-cli-${{ version }}.tar.gz --strip-components=1
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          # generate shell completions
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/pitchfork completion bash > "$PREFIX"/share/bash-completion/completions/pitchfork'
+          - '"$PREFIX"/bin/pitchfork completion fish > "$PREFIX"/share/fish/vendor_completions.d/pitchfork.fish'
+          - '"$PREFIX"/bin/pitchfork completion zsh  > "$PREFIX"/share/zsh/site-functions/_pitchfork'
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # generate shell completions
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\pitchfork.exe completion bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\pitchfork'
+          - '"%LIBRARY_BIN%"\pitchfork.exe completion fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\pitchfork.fish'
+          - '"%LIBRARY_BIN%"\pitchfork.exe completion zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_pitchfork'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - usage
+
+tests:
+  - script:
+      - pitchfork --help
+      - pitchfork --version
+  - package_contents:
+      bin:
+        - pitchfork
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/pitchfork
+            - share/fish/vendor_completions.d/pitchfork.fish
+            - share/zsh/site-functions/_pitchfork
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/pitchfork
+            - Library/share/fish/vendor_completions.d/pitchfork.fish
+            - Library/share/zsh/site-functions/_pitchfork
+      strict: true
+
+about:
+  summary: Daemons with DX
+  description: |
+    Pitchfork is a CLI for managing daemons with a focus on developer experience.
+    It can start daemons only once, auto start/stop them via a shell hook when
+    entering/leaving a project directory, perform readiness checks (delay,
+    output regex, HTTP endpoint, TCP port, or custom command), manage
+    dependencies with topological start ordering, watch files to auto-restart
+    daemons, schedule recurring tasks via cron, run lifecycle hooks, enforce
+    resource limits, and expose an interactive TUI as well as a browser-based
+    web UI and an MCP server for AI assistants.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://pitchfork.jdx.dev
+  repository: https://github.com/jdx/pitchfork
+
+extra:
+  recipe-maintainers:
+    - salim-b
