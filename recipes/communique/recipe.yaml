@@ -1,0 +1,58 @@
+context:
+  version: "1.2.0"
+
+package:
+  name: communique
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/communique/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ff1889ffa83fda89b33d6e448b3c24f34a4d352ad04bd0e63399bc747a6195f4
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - communique --help
+      - communique --version
+  - package_contents:
+      bin:
+        - communique
+      strict: true
+
+about:
+  summary: Editorialized release notes powered by AI
+  description: |
+    communiqué turns your Git history, pull requests, and repository context into
+    polished release notes optimized for human consumption. It can print notes locally,
+    update `CHANGELOG.md`, or publish directly to GitHub releases.
+  license: MIT
+  license_file:
+    - THIRDPARTY.yml
+  homepage: https://communique.jdx.dev
+  repository: https://github.com/jdx/communique
+
+extra:
+  recipe-maintainers:
+    - salim-b
