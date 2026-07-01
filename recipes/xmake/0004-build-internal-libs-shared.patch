@@ -1,8 +1,8 @@
 diff --git a/core/src/sv/xmake.sh b/core/src/sv/xmake.sh
-index 261bd3e..e9fe3bb 100755
+index 261bd3e..e219c07 100755
 --- a/core/src/sv/xmake.sh
 +++ b/core/src/sv/xmake.sh
-@@ -3,6 +3,14 @@
+@@ -3,6 +3,17 @@
  target "sv"
      set_kind "static"
      set_default false
@@ -10,18 +10,21 @@ index 261bd3e..e9fe3bb 100755
 +        set_kind "shared"
 +        set_filename "sv.dll"
 +        add_defines "SV_COMPILE=1" "SV_BUILD_DYNAMIC_LINK=1"
-+    elif is_plat "linux"; then
++    elif is_plat "linux" "macosx"; then
 +        set_kind "shared"
 +        add_cxflags "-fvisibility=default"
++        if is_plat "macosx"; then
++            add_shflags "-Wl,-install_name,@rpath/libsv.dylib"
++        fi
 +    fi
      set_languages "c99"
      add_includedirs "sv/include" "{public}"
      add_files "sv/src/*.c"
 diff --git a/core/src/xmake/xmake.sh b/core/src/xmake/xmake.sh
-index b7f17a3..e53aa91 100755
+index b7f17a3..9322b83 100755
 --- a/core/src/xmake/xmake.sh
 +++ b/core/src/xmake/xmake.sh
-@@ -3,6 +3,21 @@
+@@ -3,6 +3,29 @@
  target "xmake"
      set_kind "static"
      set_default false
@@ -36,6 +39,14 @@ index b7f17a3..e53aa91 100755
 +        # used (sockets, registry, shell, Authenticode).
 +        add_links "lua" "lz4"
 +        add_syslinks "ws2_32" "user32" "advapi32" "shell32" "wintrust" "crypt32"
++    elif is_plat "macosx"; then
++        set_kind "shared"
++        add_cxflags "-fvisibility=default"
++        # Darwin rejects unresolved symbols in dylibs. The lua, lz4 and curses
++        # options expose their detected libraries through ldflags, which the
++        # legacy generator does not propagate to shared targets.
++        add_links "lua" "lz4" "ncurses"
++        add_shflags "-Wl,-install_name,@rpath/libxmake.dylib"
 +    elif is_plat "linux"; then
 +        set_kind "shared"
 +        add_cxflags "-fvisibility=default"
