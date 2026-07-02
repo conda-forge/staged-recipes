@@ -1,0 +1,84 @@
+context:
+  version: "0.8.1"
+
+package:
+  name: rig
+  version: ${{ version }}
+
+source:
+  url: https://github.com/r-lib/rig/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a0f00e7c84573c15819cf7d907dd8668ad67a31784b07e1edd59039e514675fd
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins --target-dir=target
+          # copy shell completion files
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - find target -name rig.bash -exec cp \{\} "$PREFIX"/share/bash-completion/completions/rig \;
+          - find target -name rig.fish -exec cp \{\} "$PREFIX"/share/fish/vendor_completions.d/rig.fish \;
+          - find target -name _rig -exec cp \{\} "$PREFIX"/share/zsh/site-functions/_rig \;
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins --target-dir=target
+          # copy shell completion files
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - for /f "usebackq" %%f in (`dir /s /b target\rig.bash`) do (copy "%%f" "%LIBRARY_PREFIX%\share\bash-completion\completions\rig")
+          - for /f "usebackq" %%f in (`dir /s /b target\rig.fish`) do (copy "%%f" "%LIBRARY_PREFIX%\share\fish\vendor_completions.d\rig.fish")
+          - for /f "usebackq" %%f in (`dir /s /b target\_rig`) do (copy "%%f" "%LIBRARY_PREFIX%\share\zsh\site-functions\_rig")
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - rig --help
+      - rig --version
+  - package_contents:
+      bin:
+        - rig
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/rig
+            - share/fish/vendor_completions.d/rig.fish
+            - share/zsh/site-functions/_rig
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/rig
+            - Library/share/fish/vendor_completions.d/rig.fish
+            - Library/share/zsh/site-functions/_rig
+      strict: true
+
+about:
+  summary: The R Installation Manager
+  description: |
+    rig is a CLI to install, remove, configure, and switch between multiple
+    versions of R. It works on macOS, Windows and Linux, supports symbolic
+    version names (e.g. `release`, `devel`, `oldrel`), lets you run multiple
+    R versions in parallel via quick links, and integrates with the
+    RStudio and Positron IDEs.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://r-lib.github.io/rig/
+  repository: https://github.com/r-lib/rig
+
+extra:
+  recipe-maintainers:
+    - salim-b
