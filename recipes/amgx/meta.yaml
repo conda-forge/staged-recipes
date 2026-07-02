@@ -1,0 +1,110 @@
+{% set name = "amgx" %}
+{% set version = "2.5.0" %}
+{% set build = 0 %}
+
+{% set mpi = mpi or 'nompi' %}
+# prioritize nompi variant
+{% if mpi == 'nompi' %}
+{% set build = build + 100 %}
+{% endif %}
+
+{% if mpi != 'nompi' %}
+{% set mpi_prefix = "mpi_" + mpi %}
+{% else %}
+{% set mpi_prefix = "nompi" %}
+{% endif %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/AMGX/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 0e7ade653ac1f31b4c849ee9545f8eb573193eed9b1deff26ab07cb59f022af4
+
+build:
+  number: {{ build }}
+  skip: true  # [not linux or cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - make
+    - {{ mpi }}  # [build_platform != target_platform and mpi != 'nompi']
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-cudart-dev
+    - cuda-nvtx-dev
+    - libcublas-dev
+    - libcusparse-dev
+    - libcusolver-dev
+    - libcurand-dev
+    - cuda-cccl
+    - {{ mpi }}  # [mpi != 'nompi']
+
+outputs:
+  - name: libamgx
+    files:
+      - lib/libamgxsh.so
+    build:
+      string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+      run_exports:
+        - {{ pin_subpackage('libamgx', max_pin='x.x') }}
+      ignore_run_exports:
+        - cuda-nvtx    # header-only
+        - libcurand    # not linked
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - {{ stdlib('c') }}
+        - {{ mpi }}  # [build_platform != target_platform and mpi != 'nompi']
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev
+        - cuda-nvtx-dev
+        - libcublas-dev
+        - libcusparse-dev
+        - libcusolver-dev
+        - libcurand-dev
+        - cuda-cccl
+        - {{ mpi }}  # [mpi != 'nompi']
+      run:
+        - {{ mpi }}  # [mpi != 'nompi']
+    test:
+      commands:
+        - test -f $PREFIX/lib/libamgxsh.so
+
+  - name: libamgx-dev
+    build:
+      string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+    files:
+      - include/amgx_c.h
+      - include/amgx_config.h
+    requirements:
+      run:
+        - {{ pin_subpackage('libamgx', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/amgx_c.h
+        - test -f $PREFIX/include/amgx_config.h
+
+about:
+  home: https://github.com/NVIDIA/AMGX
+  license: BSD-3-Clause AND MIT AND Apache-2.0
+  license_file:
+    - LICENSES/BSD-3-Clause.txt
+    - NOTICES
+    - external/rapidjson/license.txt
+    - include/cusp/LICENSE
+  summary: NVIDIA AmgX — GPU-accelerated algebraic multigrid and Krylov solvers
+  dev_url: https://github.com/NVIDIA/AMGX
+
+extra:
+  recipe-maintainers:
+    - stevenliuyi
