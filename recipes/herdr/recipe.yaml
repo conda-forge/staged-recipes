@@ -1,0 +1,62 @@
+context:
+  version: "0.7.1"
+
+package:
+  name: herdr
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ogulcancelik/herdr/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0a9b4ba7fe5cccec0abddd3b0ff140ccbb722a3f9a09a6a0c22e35dea4c8ba06
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins --target-dir=target
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins --target-dir=target
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - zig 0.15.*  # upstream issue: https://github.com/ogulcancelik/herdr/issues/285
+
+tests:
+  - script:
+      - herdr --version
+      - herdr --help
+  - package_contents:
+      bin:
+        - herdr
+
+about:
+  homepage: https://herdr.dev
+  documentation: https://herdr.dev/docs
+  repository: https://github.com/ogulcancelik/herdr
+  summary: Agent multiplexer that lives in your terminal
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  description: |
+    Run all your coding agents from one terminal, on any box, even over ssh.
+    Each runs in its own real terminal, on a server that keeps it alive when you close the laptop.
+    See blocked, working, and done at a glance, and reattach from your phone.
+
+
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
