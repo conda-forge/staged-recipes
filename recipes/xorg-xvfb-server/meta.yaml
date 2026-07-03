@@ -1,0 +1,76 @@
+{% set version = "21.1.23" %}
+
+package:
+  name: xorg-xvfb-server
+  version: {{ version }}
+
+source:
+  url: https://www.x.org/releases/individual/xserver/xorg-server-{{ version }}.tar.xz
+  sha256: e39832e5617dadaf072fdf9f0e19e5d2e1c2a13607ac280bac1aba9f8fe14634
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - xorg-xorgproto
+    - xorg-xtrans
+    - xorg-font-util
+    - xorg-libxdmcp
+    - xorg-libxau
+    - libxkbfile
+    - libxfont2
+    - pixman
+    - openssl
+    - libgl-devel
+  run:
+    - xkbcomp
+    - xkeyboard-config
+
+test:
+  commands:
+    - test -f "${PREFIX}/bin/Xvfb"
+    - Xvfb -help 2>&1 | grep -qi "screen scrn WxHxD"
+    - |
+      Xvfb :98 -screen 0 1280x1024x24 -nolisten tcp -noreset &
+      XVFB_PID=$!
+      RC=1
+      for i in $(seq 1 30); do
+        if [ -e /tmp/.X11-unix/X98 ] || [ -e /tmp/.X98-lock ]; then RC=0; break; fi
+        sleep 0.5
+      done
+      kill "${XVFB_PID}" 2>/dev/null || true
+      wait "${XVFB_PID}" 2>/dev/null || true
+      exit ${RC}
+
+about:
+  home: https://www.x.org/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: Xvfb, the X.Org virtual framebuffer (headless) X server
+  description: |
+    Xvfb (X virtual framebuffer) is an X.Org display server that performs all
+    rendering into virtual memory without any physical display hardware or
+    output. It is the standard way to run GUI applications, take screenshots,
+    and run graphical test suites on headless machines and in CI.
+
+    This build is the Xvfb DDX only (Xorg, Xnest and Xephyr are disabled). It
+    ships libXfont2's built-in fonts (fixed, cursor, 6x13) so it starts without
+    external font packages, and uses xkbcomp + xkeyboard-config for keyboard
+    support. GLX is enabled; GLX rendering needs a swrast_dri.so on
+    DRI_DRIVER_PATH (${PREFIX}/lib/dri) at runtime (e.g. from system Mesa, or a
+    conda Mesa software-GL package). For display-less off-screen OpenGL, OSMesa
+    or EGL-surfaceless need no X server at all.
+  dev_url: https://gitlab.freedesktop.org/xorg/xserver
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
