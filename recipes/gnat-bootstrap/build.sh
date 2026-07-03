@@ -36,6 +36,13 @@ command -v gnatmake
 gnatmake --version
 gcc --version
 
+# Fail fast, with full driver verbosity, if the seed toolchain cannot link a
+# trivial program in this environment (configure would otherwise bury the
+# actual error in config.log).
+echo 'int main(void){return 0;}' > "${SRC_DIR}/smoke.c"
+gcc -v "${SRC_DIR}/smoke.c" -o "${SRC_DIR}/smoke"
+"${SRC_DIR}/smoke"
+
 # In-tree, statically linked prerequisites (same mechanism as gcc's
 # contrib/download_prerequisites: symlink into the source tree).
 for dep in gmp mpfr mpc; do
@@ -56,7 +63,7 @@ if [[ "${target_platform}" == linux-* ]]; then
     --prefix="${GNAT_PREFIX}" \
     --disable-gprofng \
     --disable-nls \
-    --disable-werror
+    --disable-werror || (cat config.log; false)
   make -j"${CPU_COUNT}"
   make install-strip
   popd
@@ -114,7 +121,7 @@ fi
 mkdir -p "${SRC_DIR}/objdir"
 cd "${SRC_DIR}/objdir"
 
-"${GCC_SRC}/configure" "${CONFIGURE_ARGS[@]}"
+"${GCC_SRC}/configure" "${CONFIGURE_ARGS[@]}" || (cat config.log; false)
 
 make -j"${CPU_COUNT}"
 make install-strip
