@@ -1,0 +1,154 @@
+# gnat-bootstrap: FSF GNAT (the GNU Ada compiler, part of GCC) built from
+# source, intended as a *build-time tool* for feedstocks that need an Ada
+# compiler (e.g. ghdl), and eventually as the stage-0 for enabling Ada in
+# ctng-compilers.
+#
+# GNAT's Ada frontend is written in Ada, so an existing Ada compiler is
+# required to build it. Like go/ghc/openjdk, this recipe uses a pinned
+# upstream binary release as its build-time seed (stage-0): the FSF GNAT
+# binaries published by the Alire project
+# (https://github.com/alire-project/GNAT-FSF-builds), which are also what
+# GHDL's own upstream CI uses. The seed is used only during the build and is
+# not redistributed; everything shipped in this package is compiled from the
+# sources listed below.
+schema_version: 1
+
+context:
+  version: "15.2.0"
+  seed_version: "15.3.0"
+  seed_build: "1"
+  seed_base: https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnat-${{ seed_version }}-${{ seed_build }}
+  binutils_version: "2.45.1"
+
+package:
+  name: gnat-bootstrap
+  version: ${{ version }}
+
+source:
+  # --- GCC sources: what we actually build and ship -------------------------
+  - url:
+      - https://ftp.gnu.org/gnu/gcc/gcc-${{ version }}/gcc-${{ version }}.tar.gz
+      - https://mirrors.ocf.berkeley.edu/gnu/gcc/gcc-${{ version }}/gcc-${{ version }}.tar.gz
+    sha256: 7294d65cc1a0558cb815af0ca8c7763d86f7a31199794ede3f630c0d1b0a5723
+    target_directory: gcc
+    patches:
+      # Same darwin patch set as gfortran_impl_osx-64-feedstock:
+      # https://github.com/conda-forge/gfortran_impl_osx-64-feedstock/tree/main/recipe/patches
+      # gcc-15.2.0.diff is Homebrew's darwin/aarch64 support patch
+      # (formula-patches), already edited for conda
+      # (s/-Wc,-nodefaultrpaths/-nodefaultrpaths/).
+      - if: osx and arm64
+        then: patches/gcc-15.2.0.diff
+      - if: osx and x86_64
+        then: patches/0001-GCC-15-Increase-fallback-min-macOS-version-for-libgc.patch
+
+  # --- GCC in-tree prerequisites (built statically into the compiler) -------
+  # Versions and integrity cross-checked against gcc's own
+  # contrib/download_prerequisites + contrib/prerequisites.sha512.
+  - url: https://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.2.1.tar.bz2
+    sha256: eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c
+    target_directory: gmp-src
+  - url: https://gcc.gnu.org/pub/gcc/infrastructure/mpfr-4.1.0.tar.bz2
+    sha256: feced2d430dd5a97805fa289fed3fc8ff2b094c02d05287fd6133e7f1f0ec926
+    target_directory: mpfr-src
+  - url: https://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.2.1.tar.gz
+    sha256: 17503d2c395dfcf106b622dc142683c1199431d095367c6aacba6eec30340459
+    target_directory: mpc-src
+
+  # --- binutils: bundled into the package on linux (as/ld/ar/...), the same
+  # layout as the Alire toolchains; on macOS the assembler/linker come from
+  # the Xcode Command Line Tools, as for clang.
+  - if: linux
+    then:
+      - url:
+          - https://ftp.gnu.org/gnu/binutils/binutils-${{ binutils_version }}.tar.bz2
+          - https://mirrors.ocf.berkeley.edu/gnu/binutils/binutils-${{ binutils_version }}.tar.bz2
+        sha256: 860daddec9085cb4011279136fc8ad29eb533e9446d7524af7f517dd18f00224
+        target_directory: binutils
+
+  # --- stage-0 seed: prebuilt FSF GNAT (build-time only, not redistributed) -
+  - if: build_platform == "linux-64"
+    then:
+      - url: ${{ seed_base }}/gnat-x86_64-linux-${{ seed_version }}-${{ seed_build }}.tar.gz
+        sha256: a6af58cbe96b8ed92b9d9929f89547c1be2ce96b86bb86422026074094429001
+        target_directory: gnat-seed
+  - if: build_platform == "linux-aarch64"
+    then:
+      - url: ${{ seed_base }}/gnat-aarch64-linux-${{ seed_version }}-${{ seed_build }}.tar.gz
+        sha256: 322175876bf67b11d91b5cb8dea14da24b2f89f13292887222cf7f47a57f1db7
+        target_directory: gnat-seed
+  - if: build_platform == "osx-64"
+    then:
+      - url: ${{ seed_base }}/gnat-x86_64-darwin-${{ seed_version }}-${{ seed_build }}.tar.gz
+        sha256: 99f5ac7740fcc97587741d8ab17b25b3e0ce9229774e9f7788c3c1e3cedcc1b6
+        target_directory: gnat-seed
+  - if: build_platform == "osx-arm64"
+    then:
+      - url: ${{ seed_base }}/gnat-aarch64-darwin-${{ seed_version }}-${{ seed_build }}.tar.gz
+        sha256: 36dc731443de2b8fb00aa0a40edcb06369c6e677912ad3f045f98e1121276627
+        target_directory: gnat-seed
+
+build:
+  number: 0
+  skip:
+    # GNAT on Windows is MinGW-only (no MSVC ABI); revisit separately.
+    - win
+  prefix_detection:
+    # Do not rewrite embedded prefix strings in binaries: the linker
+    # tail-merges .rodata strings, so editing the long prefix-containing
+    # strings corrupts short constants (e.g. the target triplet) that point
+    # into them, breaking the gcc driver's specs lookup. GCC and the GNAT
+    # tools self-relocate from argv[0] (make_relative_prefix), so no
+    # replacement is needed — same reasoning as
+    # `detect_binary_files_with_prefix: false` in binutils-feedstock.
+    ignore_binary_files: true
+
+requirements:
+  build:
+    # No ${{ compiler('c') }} / ${{ stdlib('c') }} on purpose: the whole
+    # toolchain (C, C++ and Ada) must come from the pinned GNAT seed. GCC's
+    # Ada sources have to be compiled by a gcc driver that can invoke a
+    # matching gnat1, which conda-forge's compilers cannot provide (yet).
+    - make
+    - texinfo
+    - flex
+    - bison
+
+tests:
+  - files:
+      recipe:
+        - tests/hello.adb
+    script:
+      # Activation exports GNAT_BOOTSTRAP_HOME (nothing is put on PATH,
+      # mirroring go1.4-bootstrap's GOROOT_BOOTSTRAP pattern).
+      - test -n "${GNAT_BOOTSTRAP_HOME}"
+      - test "${GNAT_BOOTSTRAP_HOME}" = "${PREFIX}/gnat-bootstrap"
+      - test -x "${GNAT_BOOTSTRAP_HOME}/bin/gnatmake"
+      - ${GNAT_BOOTSTRAP_HOME}/bin/gnatls -v
+      - ${GNAT_BOOTSTRAP_HOME}/bin/gnatmake --version
+      - ${GNAT_BOOTSTRAP_HOME}/bin/gcc --version
+      - cd "$(dirname "$(find . -name hello.adb | head -n1)")" && PATH="${GNAT_BOOTSTRAP_HOME}/bin:${PATH}" gnatmake hello.adb && ./hello
+
+about:
+  homepage: https://gcc.gnu.org/wiki/GNAT
+  repository: https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git
+  documentation: https://gcc.gnu.org/onlinedocs/gnat_ugn/
+  summary: The GNU Ada compiler (FSF GNAT), self-contained bootstrap toolchain
+  description: |
+    FSF GNAT (the Ada frontend of GCC) built from source, together with the
+    matching gcc/g++ drivers, runtime libraries and (on Linux) binutils, as a
+    self-contained toolchain. It is intended as a build-time tool for
+    conda-forge feedstocks that need an Ada compiler, not as a user-facing
+    compiler integrated with conda-forge's compiler activation machinery.
+    On macOS the Xcode Command Line Tools must be installed (assembler,
+    linker and SDK), exactly as for the C/C++ compilers.
+  license: GPL-3.0-or-later WITH GCC-exception-3.1
+  license_file:
+    - gcc/COPYING3
+    - gcc/COPYING.RUNTIME
+    - gcc/COPYING3.LIB
+
+extra:
+  feedstock-name: gnat-bootstrap
+  recipe-maintainers:
+    - chrisburr
