@@ -98,11 +98,15 @@ fi
 if [[ "${target_platform}" == osx-* ]]; then
   CLT_SDK="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
   XCODE_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+  # The darwin gcc driver honours SDKROOT for every invocation, including
+  # configure's very first conftest, where the seed's baked-in CLT/Xcode
+  # default paths may not exist on CI runners.
+  export SDKROOT="${CONDA_BUILD_SYSROOT:-$(xcrun --show-sdk-path)}"
   # Build against the conda-forge SDK if set up, and default the installed
   # compiler's sysroot to whichever SDK exists on the user's machine
   # (overridable with -sysroot). Same trick as GNAT-FSF-builds.
   CONFIGURE_ARGS+=(
-    --with-build-sysroot="${CONDA_BUILD_SYSROOT:-${CLT_SDK}}"
+    --with-build-sysroot="${SDKROOT}"
     "--with-specs=%{!-sysroot=*:--sysroot=%:if-exists-else(${CLT_SDK} ${XCODE_SDK})}"
   )
 fi
