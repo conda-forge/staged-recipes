@@ -1,0 +1,87 @@
+{% set version = "6.0.0" %}
+{% set erfa_version = "2.0.1" %}
+
+# PRESTO builds BOTH halves from one source: meson builds libpresto + the C
+# tools, then pip builds the Python package (which links the just-installed
+# libpresto).  ERFA has no conda-forge feedstock, so its release tarball is
+# vendored as a second source and built by meson's subproject machinery with no
+# network access (see build.sh).
+
+package:
+  name: presto
+  version: {{ version }}
+
+source:
+  - url: https://github.com/scottransom/presto/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 352fc5967ef69ab37d235368a99ab18bf267cff9e34ad876368f15486d6de5aa
+  # Vendored ERFA (no conda-forge feedstock).  Staged in a dedicated directory;
+  # build.sh normalizes it into subprojects/erfa-{{ erfa_version }}/ where the
+  # source tree's subprojects/erfa.wrap expects it.
+  - url: https://github.com/liberfa/erfa/releases/download/v{{ erfa_version }}/erfa-{{ erfa_version }}.tar.xz
+    sha256: 45111f0addf6ef69345aaf093bd054705b41ac2db7541dd3f0e105362c8e20e4
+    folder: subprojects/_erfa_src
+
+build:
+  number: 0
+  skip: true  # [win or (osx and arm64)]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('fortran') }}   # PGPLOT is a Fortran library; pulls in libgfortran for linking
+    - meson >=1.3
+    - meson-python
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - pip
+    - numpy
+    - fftw
+    - gsl
+    - cfitsio
+    - glib
+    - libpng
+    - xorg-libx11
+    - pgplot
+  run:
+    - python
+    - scipy
+    - astropy
+    - matplotlib-base
+    - pgplot
+    - xorg-libx11
+    - ghostscript                 # optional: prepfold converts its .ps plots to .png
+    - tempo2                      # [linux or (osx and x86_64)]  polyco generation (prepfold -timing)
+
+test:
+  imports:
+    - presto
+    - presto.presto
+  commands:
+    # Run two tools with no args (they print their pyclig usage) to confirm the
+    # binaries run and resolve all their shared libs (pgplot, fftw, ...).
+    - readfile 2>&1 | grep -qi "raw data"
+    - accelsearch 2>&1 | grep -qi "acceleration search"
+
+about:
+  home: https://github.com/scottransom/presto
+  license: GPL-2.0-only AND BSD-3-Clause    # PRESTO is GPL-2; vendored ERFA is BSD-3
+  license_family: GPL2
+  license_file:
+    - COPYING
+    - subprojects/erfa-{{ erfa_version }}/LICENSE
+  summary: PulsaR Exploration and Search TOolkit
+  description: |
+    PRESTO is a large suite of pulsar search and analysis software.  It was
+    primarily designed to efficiently search for binary millisecond pulsars
+    from long observations of globular clusters, but has been used in many
+    surveys and for X-ray data.  It is written primarily in ANSI C, with many
+    higher-level routines in Python.
+  dev_url: https://github.com/scottransom/presto
+  doc_url: https://github.com/scottransom/presto/wiki
+
+extra:
+  recipe-maintainers:
+    - scottransom
