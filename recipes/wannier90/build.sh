@@ -10,8 +10,17 @@ cp config/make.inc.gfort make.inc
 # a non-prefixed compiler binary.
 sed -i "s|^F90 = .*|F90 = ${FC}|" make.inc
 
+# MPI support
+sed -i "s|^#COMMS  = mpi|COMMS  = mpi|" make.inc
+sed -i "s|^#MPIF90 = .*|MPIF90 = ${PREFIX}/bin/mpif90|" make.inc
+
+# With modern gfortran toolchains, Wannier90's MPI wrapper routines can trigger
+# strict argument-mismatch errors at compile time. This flag matches common HPC
+# packaging practice for legacy MPI call signatures.
+sed -i "s|^FCOPTS = .*|FCOPTS = -O3 -fallow-argument-mismatch|" make.inc
+
 # Upstream assumes BLAS/LAPACK are available in system linker paths. In
 # conda-build, they are provided in ${PREFIX}/lib, so add an explicit -L path.
 sed -i "s|^LIBS = .*|LIBS = -L${PREFIX}/lib -llapack -lblas|" make.inc
 
-make install PREFIX="${PREFIX}"
+make -j "${CPU_COUNT:-1}" install PREFIX="${PREFIX}"
