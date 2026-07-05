@@ -19,12 +19,16 @@ fi
 # $PGPLOT_DIR as a fallback for the header; set it (and it is the runtime data dir).
 export PGPLOT_DIR="${PREFIX}/share/pgplot"
 
+# pkg-config must search both lib/pkgconfig and share/pkgconfig: conda-forge's
+# xorg protocol .pc files (xproto.pc, kbproto.pc -- required by x11.pc) live in
+# share/pkgconfig.  Prepend to whatever conda's activation already set.
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
+
 # --- Stage 1: libpresto, C tools, man pages, runtime data --------------------
 meson setup builddir \
     --prefix="${PREFIX}" \
     --libdir=lib \
-    --buildtype=release \
-    -Dpkg_config_path="${PREFIX}/lib/pkgconfig"
+    --buildtype=release
 meson compile -C builddir -v
 meson install -C builddir
 
