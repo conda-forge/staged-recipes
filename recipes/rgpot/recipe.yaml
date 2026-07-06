@@ -1,0 +1,79 @@
+context:
+  name: rgpot
+  version: "2.2.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/OmniPotentRPC/rgpot/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d4687bc719e19174e89288dd16dd45d7a8645d7205c7f8d8fc4d677266055918
+  patches:
+    # Pure C++ CF build: do not auto-enable Fortran / FetchContent fortcuh2.
+    - cmake-fortran-opt-in.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    # Shared C++ library; allow patch within minor.
+    - ${{ pin_subpackage('rgpot', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        - if: linux
+          then:
+            - lib/librgpot.so
+            - include/rgpot/Potential.hpp
+            - include/rgpot/LennardJones/LJPot.hpp
+            - lib/cmake/pot/rgpotConfig.cmake
+            - lib/cmake/pot/rgpotConfigVersion.cmake
+        - if: osx
+          then:
+            - lib/librgpot.dylib
+            - include/rgpot/Potential.hpp
+            - include/rgpot/LennardJones/LJPot.hpp
+            - lib/cmake/pot/rgpotConfig.cmake
+            - lib/cmake/pot/rgpotConfigVersion.cmake
+        - if: win
+          then:
+            - Library/bin/rgpot.dll
+            - Library/lib/rgpot.lib
+            - Library/include/rgpot/Potential.hpp
+            - Library/include/rgpot/LennardJones/LJPot.hpp
+            - Library/lib/cmake/pot/rgpotConfig.cmake
+            - Library/lib/cmake/pot/rgpotConfigVersion.cmake
+  - script:
+      - if: unix
+        then:
+          - test -f "${PREFIX}/include/rgpot/Potential.hpp"
+          - test -f "${PREFIX}/lib/cmake/pot/rgpotConfig.cmake"
+      - if: win
+        then:
+          - if not exist %LIBRARY_INC%\rgpot\Potential.hpp exit 1
+
+about:
+  homepage: https://github.com/OmniPotentRPC/rgpot
+  summary: C++ potential energy surface library (Lennard-Jones core)
+  description: |
+    rgpot provides potential energy surface building blocks for atomic-scale
+    simulation. This conda-forge package ships a minimal pure C++ shared
+    library (Lennard-Jones and core headers/cmake config) without optional
+    backends (RPC, metatomic, xtb, Fortran CuH2).
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/OmniPotentRPC/rgpot
+  documentation: https://omnipotentrpc.github.io/rgpot/
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
