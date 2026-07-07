@@ -1,53 +1,159 @@
-{% set name = "cgsmiles" %}
-{% set version = "1.0.2" %}
+context:
+  version: 1.0.2
+  build_number: '0'
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: cgsmiles
+  version: ${{ version }}
 
 source:
-  url: https://github.com/gruenewald-lab/CGsmiles/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 425adc24ce089be08663d10872c4631d65b024c1414b395dec66b7d326e00682
+- url: https://files.pythonhosted.org/packages/source/c/cgsmiles/cgsmiles-${{ version }}.tar.gz
+  sha256: d74a21b5c54139d980ff457946b99a56364294cad46bf6147c0d166a67dfafca
 
 build:
+  number: ${{ build_number }}
+  script: ${{ PYTHON }} -m pip install .
   noarch: python
-  number: 0
-  script: {{ PYTHON }} -m pip install . -vv
 
 requirements:
   host:
-    - pip
-    - python {{ python_min }}
-    - setuptools >=46.4.0
-    - pbr
+  - python
+  - pip
   run:
-    - numpy >=2.0
-    - networkx >=3.1
-    - python >={{ python_min }}
-    - pysmiles >=2.0
-    - pbr
+  - 'pbr '
+  - 'numpy '
+  - networkx >=2.0
+  - 'pysmiles '
 
-test:
-  requires:
-    - python {{ python_min }}
-    - pip
-  imports:
-    - cgsmiles 
-  commands:
-    - pip check
+tests:
+- python:
+    imports:
+    - cgsmiles
+    pip_check: true
 
 about:
-  home: https://github.com/gruenewald-lab/CGsmiles
+  homepage: https://github.com/gruenewald-lab/CGsmiles
+  description: |+
+    ================================
+    Coarse-Grained SMILES (CGsmiles)
+    ================================
+
+    Overview
+    ========
+
+    The CGSmiles line notation encodes arbitrary resolutions of molecules and
+    defines the conversion between these resolutions unambiguously. For example,
+    in coarse-grained (CG) simulations multiple atoms are represented as one large
+    pseudo-atom often called bead. The conversion from the atomic resolution to
+    the CG resolution can be described using the CGSmiles notation. In the
+    `Martini 3 force field <https://cgmartini.nl>`__, Benzene is represented
+    as three particles. The CGSmiles string would be:
+
+    .. code::
+
+        "{[#TC5]1[#TC5][#TC5]1}.{#TC5=[$]cc[$]}"
+
+    Additionally, multiple resolutions may be layered together so that a hierarchical
+    description between one or more CG resolutions becomes possible. Especially,
+    expressing large polymeric molecules becomes simpler when using multiple
+    resolutions. For instance consider the copolymer
+    `Styrene-Maleic Acid <https://en.wikipedia.org/wiki/Styrene_maleic_anhydride>`__.
+    It is an almost perfectly alternating polymer of maleic anhydride and styrene.
+    In CGSmiles, we can thus write 100 repeat units of this polymer by using three
+    resolutions each contained in curly braces:
+
+    .. code::
+
+        "{[#SMA]|100}.{#SMA=[#PS][#MAH]}.{#PS=[>]CC[<]c1ccccc1,#MHA=[<]C1C(=O)CC(=O)C1[>]}"
+
+    The CGSmiles Python package is created around this notation to read, write, and
+    further process the resulting graphs. Reading and resolving provides the all the
+    molecule information in form of `NetworkX graphs <https://networkx.org>`__,
+    providing an easy way to interface with other python libraries.
+
+    There are a number of other packages and libraries, which use CGSmiles. They are
+    mostly used for coarse-grained modelling with the Martini force field or atomic
+    resolution molecular dynamics simulations. More informtion about the syntax and
+    the different use cases can be found in this documentation. If you are here from
+    one of the packages using CGSmiles check out the GettingStarted section to learn
+    the syntax.
+
+    Installation
+    ============
+
+    The easiest ways to install **cgsmiles** is using pip:
+
+    .. code:: bash
+
+       pip install git+https://github.com/gruenewald-lab/CGsmiles.git
+
+    In the future we will also distribute it through the Pypi
+    package index but that is currently not supported. Note that the drawing module
+    depends on the `scipy <https://scipy.org>`__ and `matplotlib <https://matplotlib.org>`__
+    packages. These need to be installed before the module can be used.
+
+    .. code:: bash
+
+       pip install scipy
+       pip install matplotlib
+
+    Examples
+    ========
+
+    The CGSmiles python package is designed to read and resolve these smiles
+    into networkx graphs that can be used for further tasks, for example drawing
+    the relation between two resolutions (i.e. the mapping).
+
+    Martini 3 Benzene
+
+    .. code:: python
+
+        import cgsmiles
+        from cgsmiles.drawing import draw_molecule
+
+        # Martini 3 Benzene
+        cgsmiles_str = "{[#TC5]1[#TC5][#TC5]1}.{#TC5=[$]cc[$]}"
+
+        # Resolve molecule into networkx graphs
+        res_graph, mol_graph = cgsmiles.MoleculeResolver.from_string(cgsmiles_str).resolve()
+
+        # Draw molecule at different resolutions
+        ax, pos = draw_molecule(mol_graph)
+
+    Related Tools
+    =============
+
+    - `pysmiles <https://github.com/pckroon/pysmiles>`__:
+      Lightweight python library for reading and writing SMILES. CGSmiles runs
+      pysmiles in the background for interpreting atomic resolution fragments.
+
+    - `polyply <https://github.com/marrink-lab/polyply_1.0>`__:
+      Generate topology files and coordinates for molecular dynamics (MD)
+      from CGSmiles notation. It takes CGSmiles as input to generate all-atom or
+      coarse-grained topologies and input parameters.
+
+    - `fast_forward <https://github.com/fgrunewald/fast_forward>`__:
+      Forward map molecular dynamics trajectories from a high to lower resolution using
+      CGSmiles.
+
+    Citation
+    ========
+
+    When using **cgsmiles** for your publication, please cite:
+
+    .. code::
+
+        @article{Grunewald2025CGsmiles,
+          title={CGsmiles: A Versatile Line Notation for Molecular Representations across Multiple Resolutions},
+          author={Gr{\"u}newald, Fabian and Seute, Leif and Alessandri, Riccardo and K{\"o}nig, Melanie and Kroon, Peter C},
+          journal={Journal of Chemical Information and Modeling},
+          year={2025},
+          doi={https://doi.org/10.1021/acs.jcim.5c00064},
+          publisher={ACS Publications}
+        }
+
   license: Apache-2.0
   license_file: LICENSE
-  summary: A Versatile Line Notation for Molecular Representations Across Multiple Resolutions
-
-  description: |
-    The CGSmiles line notation encodes arbitrary resolutions of molecules and defines the conversion between these resolutions unambiguously.
-    For example, in coarse-grained (CG) simulations multiple atoms are represented as one large pseudo-atom often called bead.
-    The conversion from the atomic resolution to the CG resolution can be described using the CGSmiles notation.
-  doc_url: https://cgsmiles.readthedocs.io/en/latest/
-  dev_url: https://github.com/gruenewald-lab/CGsmiles
 
 extra:
   recipe-maintainers:
