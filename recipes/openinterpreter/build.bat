@@ -31,10 +31,12 @@ move "%PREFIX%\bin\codex.exe" "%PREFIX%\bin\interpreter.exe"
 copy /Y "%PREFIX%\bin\interpreter.exe" "%PREFIX%\bin\i.exe"
 
 REM Pixi: prevent CONDA_PREFIX from leaking into sandboxed processes
-set "MARKER_DIR=%PREFIX%\etc\pixi\codex"
-if not exist "%MARKER_DIR%" (
-    mkdir "%MARKER_DIR%" 2>nul
-)
+set "MARKER_DIR=%PREFIX%\etc\pixi\interpreter"
+if not exist "%MARKER_DIR%" mkdir "%MARKER_DIR%" 2>nul
+type nul > "%MARKER_DIR%\global-ignore-conda-prefix"
+
+set "MARKER_DIR=%PREFIX%\etc\pixi\i"
+if not exist "%MARKER_DIR%" mkdir "%MARKER_DIR%" 2>nul
 type nul > "%MARKER_DIR%\global-ignore-conda-prefix"
 
 endlocal
