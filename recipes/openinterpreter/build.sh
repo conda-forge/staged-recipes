@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -o xtrace -o nounset -o pipefail -o errexit
+set -exo pipefail
 
 export CFLAGS="$CFLAGS -D_GNU_SOURCE"
 export CXXFLAGS="$CXXFLAGS -D_GNU_SOURCE"
@@ -34,5 +34,7 @@ mv "${PREFIX}/bin/codex" "${PREFIX}/bin/interpreter"
 ln -s interpreter "${PREFIX}/bin/i"
 
 # Pixi: prevent CONDA_PREFIX from leaking into sandboxed processes
-mkdir -p "${PREFIX}/etc/pixi/codex"
-touch "${PREFIX}/etc/pixi/codex/global-ignore-conda-prefix"
+mkdir -p "${PREFIX}/etc/pixi/interpreter"
+touch "${PREFIX}/etc/pixi/interpreter/global-ignore-conda-prefix"
+mkdir -p "${PREFIX}/etc/pixi/i"
+touch "${PREFIX}/etc/pixi/i/global-ignore-conda-prefix"
