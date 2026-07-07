@@ -15,10 +15,10 @@ index 6360666..4896a43 100644
  if (MSVC OR APPLE OR UNIX)
  	option(BOX3D_SANITIZE "Enable sanitizers for some builds" OFF)
 diff --git a/samples/CMakeLists.txt b/samples/CMakeLists.txt
-index 64a31f2..4140825 100644
+index 64a31f2..24c889c 100644
 --- a/samples/CMakeLists.txt
 +++ b/samples/CMakeLists.txt
-@@ -1,31 +1,8 @@
+@@ -1,31 +1,9 @@
  # Box3D samples
  
 -FetchContent_Declare(imgui
@@ -50,10 +50,11 @@ index 64a31f2..4140825 100644
 +find_package(imgui CONFIG REQUIRED)
 +find_package(implot CONFIG REQUIRED)
 +find_package(nfd CONFIG REQUIRED)
++find_package(tinyobjloader CONFIG REQUIRED)
  
  # The shader compiler is only needed when recompiling shaders. A fresh clone
  # with BOX3D_BUILD_SHADERS=OFF builds from the committed headers and skips this.
-@@ -40,39 +17,6 @@ if(BOX3D_BUILD_SHADERS)
+@@ -40,39 +18,6 @@ if(BOX3D_BUILD_SHADERS)
      FetchContent_MakeAvailable(sokol_tools_bin)
  endif()
  
@@ -93,15 +94,47 @@ index 64a31f2..4140825 100644
  # --- sokol: vendored headers INTERFACE target + per-platform backend. --------
  set(sokol_SOURCE_DIR "${CMAKE_SOURCE_DIR}/extern/sokol")
  add_library(sokol INTERFACE)
-@@ -192,7 +136,7 @@ target_include_directories(samples PRIVATE
+@@ -149,7 +94,6 @@ set(SAMPLE_FILES
+     mesh_loader.cpp
+     mesh_loader.h
+     jsmn.h
+-    tiny_obj_loader.h
+     earcut.h
+ 
+     # Samples
+@@ -177,6 +121,8 @@ set(SAMPLE_FILES
+ 
+ add_executable(samples ${SAMPLE_FILES})
+ 
++target_include_directories(samples BEFORE PRIVATE "${TINYOBJLOADER_INCLUDE_DIRS}")
++
+ if(APPLE)
+     # sokol_app's Cocoa backend is Objective-C. Compile its impl TU as OBJC with ARC.
+     set_source_files_properties(host/sokol_app_impl.c PROPERTIES LANGUAGE OBJC)
+@@ -192,7 +138,7 @@ target_include_directories(samples PRIVATE
  
  # gfx: the renderer + Draw*/adapter. shared: human, utils (Random*), the
  # benchmark/determinism helpers the samples lean on.
 -target_link_libraries(samples PRIVATE gfx shared imgui implot sokol nfd)
-+target_link_libraries(samples PRIVATE gfx shared imgui::imgui implot::implot sokol nfd::nfd)
++target_link_libraries(samples PRIVATE gfx shared imgui::imgui implot::implot sokol nfd::nfd tinyobjloader::tinyobjloader)
  
  set_target_properties(samples PROPERTIES
      CXX_STANDARD 20
+diff --git a/samples/mesh_loader.cpp b/samples/mesh_loader.cpp
+index d31d307..1a413ee 100644
+--- a/samples/mesh_loader.cpp
++++ b/samples/mesh_loader.cpp
+@@ -6,9 +6,7 @@
+ #include "box3d/collision.h"
+ #include "box3d/math_functions.h"
+ 
+-#define TINYOBJLOADER_IMPLEMENTATION
+-#define TINYOBJLOADER_USE_MAPBOX_EARCUT
+-#include "tiny_obj_loader.h"
++#include <tiny_obj_loader.h>
+ 
+ #include <iostream>
+ 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
 index 95b0d8b..dd4adfc 100644
 --- a/src/CMakeLists.txt

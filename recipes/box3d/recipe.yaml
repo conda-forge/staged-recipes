@@ -19,56 +19,39 @@ build:
   number: ${{ (microarch_level | default("0")) | int }}
 
 outputs:
-  - staging:
-      name: box3d-core-build
-    requirements:
-      build:
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-        - ${{ stdlib('c') }}
-        - cmake
-        - ninja
-        - if: target_platform == "linux-64"
-          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
-    build:
-      script:
-        - if: win
-          then: call "%RECIPE_DIR%\\build-core.bat"
-        - if: unix
-          then: bash "${RECIPE_DIR}/build-core.sh"
-
-  - staging:
-      name: box3d-samples-build
-    requirements:
-      build:
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-        - ${{ stdlib('c') }}
-        - cmake
-        - ninja
-        - if: target_platform == "linux-64"
-          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
-      host:
-        - imgui
-        - implot
-        - nativefiledialog-extended
-        - if: linux
-          then:
-            - libgl-devel
-            - xorg-libx11
-            - xorg-libxi
-            - xorg-libxcursor
-    build:
-      script:
-        - if: win
-          then: call "%RECIPE_DIR%\\build-samples.bat"
-        - if: unix
-          then: bash "${RECIPE_DIR}/build-samples.sh"
-
   - package:
       name: box3d
-    inherit: box3d-core-build
     build:
+      script:
+        interpreter: brush
+        content: |
+          set -eux
+
+          build_root="$(cd .. && pwd)"
+          prefix="${build_root}/h_env"
+          if [ -d "${prefix}/Library" ]; then
+            install_prefix="${prefix}/Library"
+          else
+            install_prefix="${prefix}"
+          fi
+
+          rm -rf build-core
+
+          cmake -S . -B build-core -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="${install_prefix}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL \
+            -DBUILD_SHARED_LIBS=ON \
+            -DBOX3D_SAMPLES=OFF \
+            -DBOX3D_UNIT_TESTS=OFF \
+            -DBOX3D_BENCHMARKS=OFF \
+            -DBOX3D_DOCS=OFF \
+            -DBOX3D_PROFILE=OFF \
+            -DBOX3D_VALIDATE=OFF \
+            -DBOX3D_BUILD_SHADERS=OFF
+
+          cmake --build build-core --config Release --parallel
+          cmake --install build-core --config Release
       files:
         - include/box3d/**
         - lib/cmake/box3d/**
@@ -83,6 +66,11 @@ outputs:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - brush
+        - if: target_platform == "linux-64"
+          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
       run:
         - if: target_platform == "linux-64"
           then: _x86_64-microarch-level >=${{ microarch_level | default("1") }}
@@ -116,8 +104,45 @@ outputs:
 
   - package:
       name: box3d-samples
-    inherit: box3d-samples-build
     build:
+      script:
+        interpreter: brush
+        content: |
+          set -eux
+
+          build_root="$(cd .. && pwd)"
+          prefix="${build_root}/h_env"
+          if [ -d "${prefix}/Library" ]; then
+            install_prefix="${prefix}/Library"
+            sample_exe=samples.exe
+            sample_target="${install_prefix}/bin/box3d-samples.exe"
+          else
+            install_prefix="${prefix}"
+            sample_exe=samples
+            sample_target="${install_prefix}/bin/box3d-samples"
+          fi
+
+          rm -rf build-samples
+
+          cmake -S . -B build-samples -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="${install_prefix}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL \
+            -DBUILD_SHARED_LIBS=ON \
+            -DBOX3D_SAMPLES=ON \
+            -DBOX3D_UNIT_TESTS=OFF \
+            -DBOX3D_BENCHMARKS=OFF \
+            -DBOX3D_DOCS=OFF \
+            -DBOX3D_PROFILE=OFF \
+            -DBOX3D_VALIDATE=OFF \
+            -DBOX3D_BUILD_SHADERS=OFF
+
+          cmake --build build-samples --config Release --parallel
+          cmake --install build-samples --config Release
+
+          mkdir -p "$(dirname "${sample_target}")"
+          cp "build-samples/bin/${sample_exe}" "${sample_target}"
+          chmod +x "${sample_target}" || true
       files:
         - bin/box3d-samples
         - Library/bin/box3d-samples.exe
@@ -126,6 +151,22 @@ outputs:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - brush
+        - if: target_platform == "linux-64"
+          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
+      host:
+        - imgui
+        - implot
+        - nativefiledialog-extended
+        - libtinyobjloader
+        - if: linux
+          then:
+            - libgl-devel
+            - xorg-libx11
+            - xorg-libxi
+            - xorg-libxcursor
       run:
         - ${{ pin_subpackage('box3d', exact=True) }}
         - if: target_platform == "linux-64"
@@ -133,6 +174,7 @@ outputs:
         - imgui
         - implot
         - nativefiledialog-extended
+        - libtinyobjloader
         - if: linux
           then:
             - libgl
@@ -152,7 +194,6 @@ outputs:
         - LICENSE
         - extern/sokol/LICENSE
         - samples/jsmn.h
-        - samples/tiny_obj_loader.h
       homepage: https://box2d.org/
       documentation: https://box2d.org/documentation3d/
       repository: https://github.com/erincatto/box3d
