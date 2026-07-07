@@ -1,0 +1,129 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6360666..4896a43 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -25,7 +25,10 @@ message(STATUS "CMake system name: ${CMAKE_SYSTEM_NAME}")
+ message(STATUS "CMake host system processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+ 
+ # static link to make leak checking easier (_crtBreakAlloc)
+-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
++# Allow package managers/toolchains to provide their preferred runtime.
++if(MSVC AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
++	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
++endif()
+ 
+ if (MSVC OR APPLE OR UNIX)
+ 	option(BOX3D_SANITIZE "Enable sanitizers for some builds" OFF)
+diff --git a/samples/CMakeLists.txt b/samples/CMakeLists.txt
+index 64a31f2..4140825 100644
+--- a/samples/CMakeLists.txt
++++ b/samples/CMakeLists.txt
+@@ -1,31 +1,8 @@
+ # Box3D samples
+ 
+-FetchContent_Declare(imgui
+-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+-    GIT_TAG        v1.92.7
+-    GIT_SHALLOW    TRUE
+-    GIT_PROGRESS   TRUE
+-)
+-FetchContent_MakeAvailable(imgui)
+-
+-FetchContent_Declare(implot
+-    GIT_REPOSITORY https://github.com/epezent/implot.git
+-    GIT_TAG        v0.17
+-    GIT_SHALLOW    TRUE
+-    GIT_PROGRESS   TRUE
+-)
+-FetchContent_MakeAvailable(implot)
+-
+-# nativefiledialog-extended for the Replay open dialog. Native OS file picker, target nfd.
+-set(NFD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+-set(NFD_INSTALL OFF CACHE BOOL "" FORCE)
+-FetchContent_Declare(nfd
+-    GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+-    GIT_TAG        v1.3.0
+-    GIT_SHALLOW    TRUE
+-    GIT_PROGRESS   TRUE
+-)
+-FetchContent_MakeAvailable(nfd)
++find_package(imgui CONFIG REQUIRED)
++find_package(implot CONFIG REQUIRED)
++find_package(nfd CONFIG REQUIRED)
+ 
+ # The shader compiler is only needed when recompiling shaders. A fresh clone
+ # with BOX3D_BUILD_SHADERS=OFF builds from the committed headers and skips this.
+@@ -40,39 +17,6 @@ if(BOX3D_BUILD_SHADERS)
+     FetchContent_MakeAvailable(sokol_tools_bin)
+ endif()
+ 
+-# imgui static lib: the five core sources. sokol_imgui is the backend (no
+-# glfw/opengl3 backend sources), so it is not listed here.
+-add_library(imgui STATIC
+-    "${imgui_SOURCE_DIR}/imgui.cpp"
+-    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+-    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+-    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+-    "${imgui_SOURCE_DIR}/imgui_demo.cpp"
+-)
+-target_include_directories(imgui SYSTEM PUBLIC "${imgui_SOURCE_DIR}")
+-set_target_properties(imgui PROPERTIES
+-    CXX_STANDARD 20
+-    CXX_STANDARD_REQUIRED ON
+-    CXX_EXTENSIONS OFF
+-    POSITION_INDEPENDENT_CODE ON
+-)
+-
+-add_library(implot STATIC
+-    "${implot_SOURCE_DIR}/implot.cpp"
+-    "${implot_SOURCE_DIR}/implot_items.cpp"
+-    "${implot_SOURCE_DIR}/implot_demo.cpp"
+-    "${implot_SOURCE_DIR}/implot.h"
+-    "${implot_SOURCE_DIR}/implot_internal.h"
+-)
+-target_link_libraries(implot PUBLIC imgui)
+-target_include_directories(implot SYSTEM PUBLIC "${implot_SOURCE_DIR}")
+-set_target_properties(implot PROPERTIES
+-    CXX_STANDARD 20
+-    CXX_STANDARD_REQUIRED ON
+-    CXX_EXTENSIONS OFF
+-    POSITION_INDEPENDENT_CODE ON
+-)
+-
+ # --- sokol: vendored headers INTERFACE target + per-platform backend. --------
+ set(sokol_SOURCE_DIR "${CMAKE_SOURCE_DIR}/extern/sokol")
+ add_library(sokol INTERFACE)
+@@ -192,7 +136,7 @@ target_include_directories(samples PRIVATE
+ 
+ # gfx: the renderer + Draw*/adapter. shared: human, utils (Random*), the
+ # benchmark/determinism helpers the samples lean on.
+-target_link_libraries(samples PRIVATE gfx shared imgui implot sokol nfd)
++target_link_libraries(samples PRIVATE gfx shared imgui::imgui implot::implot sokol nfd::nfd)
+ 
+ set_target_properties(samples PROPERTIES
+     CXX_STANDARD 20
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 95b0d8b..dd4adfc 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -1,5 +1,9 @@
+ include(GNUInstallDirs)
+ 
++if((UNIX OR APPLE) AND NOT EMSCRIPTEN)
++	find_package(Threads REQUIRED)
++endif()
++
+ set(BOX3D_SOURCE_FILES
+ 	aabb.c
+ 	aabb.h
+@@ -215,6 +219,10 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include" PREFIX "include" FILE
+ 
+ add_library(box3d::box3d ALIAS box3d)
+ 
++if((UNIX OR APPLE) AND NOT EMSCRIPTEN)
++  target_link_libraries(box3d PRIVATE Threads::Threads)
++endif()
++
+ # libm is required on many Unix toolchains for sqrtf, etc.
+ if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+   target_link_libraries(box3d PUBLIC m)

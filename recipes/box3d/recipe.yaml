@@ -1,0 +1,172 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+recipe:
+  name: box3d-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/erincatto/box3d/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: df232c7618c0d0d3927b798044559ee56eabadeb9d8ff9dc526d4b384d7b415d
+  patches:
+    - patches/0001-cmake-use-conda-dependencies.patch
+
+build:
+  # Use increasing build numbers to prefer higher x86_64 microarchitecture builds
+  # when they are installable. Non-x86_64 platforms default to build number 0.
+  number: ${{ (microarch_level | default("0")) | int }}
+
+outputs:
+  - staging:
+      name: box3d-core-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - if: target_platform == "linux-64"
+          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
+    build:
+      script:
+        - if: win
+          then: call "%RECIPE_DIR%\\build-core.bat"
+        - if: unix
+          then: bash "${RECIPE_DIR}/build-core.sh"
+
+  - staging:
+      name: box3d-samples-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - if: target_platform == "linux-64"
+          then: x86_64-microarch-level ==${{ microarch_level | default("1") }}
+      host:
+        - imgui
+        - implot
+        - nativefiledialog-extended
+        - if: linux
+          then:
+            - libgl-devel
+            - xorg-libx11
+            - xorg-libxi
+            - xorg-libxcursor
+    build:
+      script:
+        - if: win
+          then: call "%RECIPE_DIR%\\build-samples.bat"
+        - if: unix
+          then: bash "${RECIPE_DIR}/build-samples.sh"
+
+  - package:
+      name: box3d
+    inherit: box3d-core-build
+    build:
+      files:
+        - include/box3d/**
+        - lib/cmake/box3d/**
+        - lib/libbox3d*.so*
+        - lib/libbox3d*.dylib*
+        - Library/include/box3d/**
+        - Library/lib/cmake/box3d/**
+        - Library/bin/box3d.dll
+        - Library/lib/box3d.lib
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      run:
+        - if: target_platform == "linux-64"
+          then: _x86_64-microarch-level >=${{ microarch_level | default("1") }}
+      run_exports:
+        - ${{ pin_subpackage('box3d', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - box3d
+          include:
+            - box3d/base.h
+            - box3d/box3d.h
+            - box3d/collision.h
+            - box3d/config.h
+            - box3d/constants.h
+            - box3d/id.h
+            - box3d/math_functions.h
+            - box3d/types.h
+          files:
+            - ${{ "Library/" if win }}lib/cmake/box3d/box3dConfig.cmake
+            - ${{ "Library/" if win }}lib/cmake/box3d/box3dConfigVersion.cmake
+    about:
+      summary: Box3D is a 3D physics engine for games
+      description: |
+        Box3D is an open source C17 engine for simulating rigid bodies in 3D.
+      license: MIT
+      license_file: LICENSE
+      homepage: https://box2d.org/
+      documentation: https://box2d.org/documentation3d/
+      repository: https://github.com/erincatto/box3d
+
+  - package:
+      name: box3d-samples
+    inherit: box3d-samples-build
+    build:
+      files:
+        - bin/box3d-samples
+        - Library/bin/box3d-samples.exe
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      run:
+        - ${{ pin_subpackage('box3d', exact=True) }}
+        - if: target_platform == "linux-64"
+          then: _x86_64-microarch-level >=${{ microarch_level | default("1") }}
+        - imgui
+        - implot
+        - nativefiledialog-extended
+        - if: linux
+          then:
+            - libgl
+            - xorg-libx11
+            - xorg-libxi
+            - xorg-libxcursor
+    tests:
+      - package_contents:
+          bin:
+            - box3d-samples
+    about:
+      summary: Sample application for Box3D
+      description: |
+        Graphical samples demonstrating Box3D features and performance.
+      license: MIT AND Zlib
+      license_file:
+        - LICENSE
+        - extern/sokol/LICENSE
+        - samples/jsmn.h
+        - samples/tiny_obj_loader.h
+      homepage: https://box2d.org/
+      documentation: https://box2d.org/documentation3d/
+      repository: https://github.com/erincatto/box3d
+
+about:
+  summary: Box3D is a 3D physics engine for games
+  license: MIT
+  license_file: LICENSE
+  homepage: https://box2d.org/
+  documentation: https://box2d.org/documentation3d/
+  repository: https://github.com/erincatto/box3d
+
+extra:
+  feedstock-name: box3d
+  recipe-maintainers:
+    - baszalmstra
+    - tdejager
