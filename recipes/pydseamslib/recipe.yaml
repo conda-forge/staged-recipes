@@ -12,15 +12,17 @@ source:
   url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 88e1999c57d128ef6fb873a939214a85a6b71db74c7738074dcd7fd139388eeb
   patches:
-    - 0001-vesin-complete-and-no-readcon-wrap.patch
+    - 0001-vesin-complete-no-readcon-fallback.patch
 
 build:
   number: 0
   skip:
     - win
-    # Upstream pyproject requires-python >=3.12
     - match(python, "<3.12")
   script:
+    # Patch cannot delete wraps cleanly under conda (leaves empty file;
+    # meson: "Missing sections in ...wrap"). Remove optional wrap here.
+    - rm -f subprojects/readcon-core.wrap
     - export CXXFLAGS="${CXXFLAGS:-} -pthread"
     - export LDFLAGS="${LDFLAGS:-} -pthread"
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
@@ -48,7 +50,6 @@ requirements:
     - eigen
     - libblas
     - liblapack
-    # Optional SIMD path in seams (dependency('hwy')); safe if unused.
     - libhwy
   run:
     - python
