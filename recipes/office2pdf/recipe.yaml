@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.6.0"
+
+package:
+  name: office2pdf
+  version: ${{ version }}
+
+source:
+  # office2pdf-cli is the published binary crate that installs the `office2pdf`
+  # command. Build from the crates.io release rather than the GitHub workspace:
+  # the workspace Cargo.toml pins git forks via [patch.crates-io], which cannot
+  # be fetched in an offline build, while the published crate resolves every
+  # dependency from the registry and ships a Cargo.lock for a reproducible build.
+  - url: https://static.crates.io/crates/office2pdf-cli/office2pdf-cli-${{ version }}.crate
+    sha256: d19b62d2da7755162d07924011302f7459e97ef4f16c6da532fe2b11e125a5d7
+    file_name: office2pdf-cli-${{ version }}.tar.gz
+  # The published crate carries only the SPDX license string, not the license
+  # text, so fetch LICENSE from the matching git tag.
+  - url: https://raw.githubusercontent.com/developer0hye/office2pdf/v${{ version }}/LICENSE
+    sha256: a69f60df4102c74db295b45bdeca8bb300ecaa954a319de94cbe4e8e337e98f9
+    file_name: LICENSE
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: build.sh
+    - if: win
+      then: build.bat
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - office2pdf --version
+      - office2pdf --help
+  - package_contents:
+      bin:
+        - office2pdf
+
+about:
+  homepage: https://github.com/developer0hye/office2pdf
+  repository: https://github.com/developer0hye/office2pdf
+  summary: Convert DOCX, XLSX, and PPTX files to PDF using pure Rust
+  description: |
+    office2pdf converts Microsoft Office documents (DOCX, XLSX, PPTX) to PDF.
+    It is written in pure Rust and renders documents with Typst, so it needs no
+    external office suite or runtime. Fonts embedded in the source documents are
+    extracted automatically, and PDF/A-2b archival output is available.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - killua156
+    - mgorny
