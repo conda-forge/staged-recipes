@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  posix: '"m2-" if win else ""'
+  native: '"m2w64-" if win else ""'
+
+package:
+  name: r-iq
+  version: ${{ version }}
+
+source:
+  url: https://cran.r-project.org/src/contrib/iq_${{ version }}.tar.gz
+  sha256: d03fefccd28782284286ff4514d74a7b9012085163eb64eeee3f8a8c91c90a6b
+
+build:
+  number: 0
+  script: R CMD INSTALL --build .
+  merge_build_and_host_envs: true
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then: cross-r-base ${{ r_base }}
+    - if: unix
+      then: autoconf
+    - if: unix
+      then:
+        - ${{ compiler('c') }}
+        - ${{ stdlib("c") }}
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ stdlib("c") }}
+    - if: unix
+      then:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib("c") }}
+    - if: win
+      then:
+        - ${{ compiler('m2w64_cxx') }}
+        - ${{ stdlib("c") }}
+    - if: win
+      then: m2-base
+  host:
+    - r-base
+  run:
+    - r-base
+
+tests:
+  - script:
+      - if: not win
+        then: $R -e "library('iq')"
+      - if: win
+        then: "\"%R%\" -e \"library('iq')\""
+
+about:
+  summary: An implementation of the MaxLFQ algorithm by Cox et al. (2014) <doi:10.1074/mcp.M113.031591> in a comprehensive pipeline for processing proteomics data in data-independent acquisition mode (Pham et al. 2020 <doi:10.1093/bioinformatics/btz961>; Pham et al. 2026 <doi:10.1021/acs.jproteome.5c01038>). It offers additional options for protein quantification using the N most intense fragment ions, using all fragment ions, the median polish algorithm by Tukey (1977, ISBN:0201076160), and a robust linear model. In general, the tool can be used to integrate multiple proportional observations
+    into a single quantitative value.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/BSD_3_clause'
+    - LICENSE
+  homepage: https://github.com/tvpham/iq
+
+extra:
+  recipe-maintainers:
+    - fgeier
