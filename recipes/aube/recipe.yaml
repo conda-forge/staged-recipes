@@ -1,0 +1,97 @@
+context:
+  version: "1.26.0"
+
+package:
+  name: aube
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/aube/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 114154f539e6e24e2d08102d9e37885b57d66130f3bc3085b1d095539ad4ea83
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - cd crates/aube
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/aube completion bash > "$PREFIX"/share/bash-completion/completions/aube'
+          - '"$PREFIX"/bin/aube completion fish > "$PREFIX"/share/fish/vendor_completions.d/aube.fish'
+          - '"$PREFIX"/bin/aube completion zsh  > "$PREFIX"/share/zsh/site-functions/_aube'
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          - if not exist "%LIBRARY_PREFIX%"\share\bash-completion\completions mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - if not exist "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d   mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - if not exist "%LIBRARY_PREFIX%"\share\zsh\site-functions          mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\aube.exe completion bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\aube'
+          - '"%LIBRARY_BIN%"\aube.exe completion fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\aube.fish'
+          - '"%LIBRARY_BIN%"\aube.exe completion zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_aube'
+      - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - clang
+    - cmake
+    - libclang
+    - make
+    - ninja
+    - pkg-config
+  host:
+    - usage
+
+tests:
+  - script:
+      - aube --help
+      - aube --version
+      - aubr --help
+      - aubr --version
+      - aubx --help
+      - aubx --version
+  - package_contents:
+      bin:
+        - aube
+        - aubr
+        - aubx
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/aube
+            - share/fish/vendor_completions.d/aube.fish
+            - share/zsh/site-functions/_aube
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/aube
+            - Library/share/fish/vendor_completions.d/aube.fish
+            - Library/share/zsh/site-functions/_aube
+      strict: true
+
+about:
+  summary: Aube — a fast Node.js package manager
+  description: |
+    Aube installs automatically when you run a script. It has the tightest
+    security defaults of any Node.js package manager and is the only one
+    with a lifecycle-script jail. Aube drops into existing projects using
+    their existing lockfiles (`pnpm-lock.yaml`, `package-lock.json`,
+    `npm-shrinkwrap.json`, `yarn.lock` and `bun.lock`).
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://aube.jdx.dev
+  repository: https://github.com/jdx/aube
+
+extra:
+  recipe-maintainers:
+    - salim-b
