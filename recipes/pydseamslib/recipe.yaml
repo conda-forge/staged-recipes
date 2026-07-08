@@ -11,6 +11,8 @@ package:
 source:
   url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 88e1999c57d128ef6fb873a939214a85a6b71db74c7738074dcd7fd139388eeb
+  patches:
+    - 0001-vesin-complete-and-no-readcon-wrap.patch
 
 build:
   number: 0
@@ -18,7 +20,10 @@ build:
     - win
     # Upstream pyproject requires-python >=3.12
     - match(python, "<3.12")
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    - export CXXFLAGS="${CXXFLAGS:-} -pthread"
+    - export LDFLAGS="${LDFLAGS:-} -pthread"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
@@ -28,6 +33,7 @@ requirements:
     - meson >=1.3.0
     - ninja
     - pkg-config
+    - cmake
     - if: build_platform != target_platform
       then:
         - cross-python_${{ target_platform }}
@@ -42,6 +48,8 @@ requirements:
     - eigen
     - libblas
     - liblapack
+    # Optional SIMD path in seams (dependency('hwy')); safe if unused.
+    - libhwy
   run:
     - python
     - numpy >=1.24
