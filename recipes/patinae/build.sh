@@ -4,6 +4,11 @@ set -exo pipefail
 export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
 export PYO3_PYTHON="${PYTHON}"
 
+# tree-sitter 0.25.10 needs glibc endian conversion macros on Linux.
+if [[ "${target_platform}" == linux-* ]]; then
+  export CFLAGS="${CFLAGS:-} -D_GNU_SOURCE"
+fi
+
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 cargo install --locked --root "${PREFIX}/libexec/patinae" --path patinae
 rm -f "${PREFIX}/libexec/patinae/.crates.toml" "${PREFIX}/libexec/patinae/.crates2.json"
