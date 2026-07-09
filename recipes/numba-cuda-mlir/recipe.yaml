@@ -1,0 +1,118 @@
+schema_version: 1
+
+context:
+  version: "0.3.0"
+  llvm_modern_commit: 3cbe75b1433a90a28db068d700b7effd2de8f401
+
+package:
+  name: numba-cuda-mlir
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/NVIDIA/numba-cuda-mlir/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: c015e5c07f17d924e13aa62a64940f53c85c53ce1f2d4e1c587d50ce21023d0c
+    target_directory: src
+  - url: https://github.com/llvm/llvm-project/archive/${{ llvm_modern_commit }}.tar.gz
+    sha256: a2d6587b0793f7f6fb21c4607e6d86cd40377686f58162fbae5e206d2e24dfe2
+    target_directory: llvm-modern-src
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - match(python, "<3.11")
+    - match(python, ">=3.12")
+    - cuda_compiler_version != "None"
+  script:
+    file: build.sh
+    env:
+      NUMBA_CUDA_MLIR_VERSION: ${{ version }}
+  # The CUDA runtime libraries (cudart, nvrtc, nvjitlink, nvvm) are dlopen'd at
+  # runtime, not link time linked, and the bundled libLLVM-7.so / MLIR C-API .so
+  # are loaded dynamically, exempt them from the link checks.
+  dynamic_linking:
+    overdepending_behavior: ignore
+    missing_dso_allowlist:
+      - '*/libLLVM-7.so'
+      - '*/libMLIRPythonCAPI.so'
+      - '*/libMLIRPythonSupport-numba_cuda_mlir.so'
+
+requirements:
+  ignore_run_exports:
+    by_name:
+      - cuda-cudart
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.24
+    - ninja
+    - make
+    - git
+  host:
+    - python
+    - pip
+    - setuptools >=64
+    - wheel
+    # Build deps for the modern LLVM/MLIR Python bindings:
+    - numpy
+    - pybind11
+    # nanobind >2.13 breaks numba-cuda-mlir's MLIR bindings
+    - nanobind >=2.9,<2.13
+    - typing-extensions
+    - dlpack
+    # zlib + zstd: modern LLVM/MLIR links both for compression, so the bundled
+    # libMLIRPythonCAPI.so needs them at build and run time.
+    - zlib
+    - zstd
+    # CUDA headers only (no nvcc). numba-cuda-mlir handles CUDA ABI compat at
+    # runtime, so the build-time CUDA version is not significant. NVRTC/nvJitLink
+    # headers aren't needed at build time (those libraries are dlopen'd).
+    - cuda-version 13.*
+    - cuda-cudart-dev
+    - cuda-driver-dev
+    - cuda-crt-dev_${{ target_platform }}
+    - cuda-cccl
+    - libllvm7.1
+  run:
+    - python
+    - numpy
+    - llvmlite
+    - if: match(python, "<3.12")
+      then: typing-extensions
+    - zstd
+    - packaging
+    - cuda-version >=12.2,<14.0.0a0
+    - cuda-cudart
+    - cuda-nvrtc
+    - libnvjitlink >=12.3.0
+    - cuda-nvvm-impl
+    - cuda-cccl
+    - cuda-bindings
+    - cuda-core >=0.5.1,<2.0.0
+    - libllvm7.1
+
+tests:
+  - python:
+      imports:
+        - numba_cuda_mlir
+        - numba_cuda_mlir._mlir.ir
+      pip_check: true
+  - script:
+      - python -c "import numba_cuda_mlir; from numba_cuda_mlir import cuda"
+      # Confirm the bundled native libraries are present and located.
+      - python -c "import numba_cuda_mlir._mlir._mlir_libs as L, os; assert os.path.exists(os.path.join(os.path.dirname(L.__file__), 'libMLIRPythonCAPI.so'))"
+      - python -c "import numba_cuda_mlir, os; assert os.path.exists(os.path.join(os.path.dirname(numba_cuda_mlir.__file__), 'lib', 'libLLVM-7.so'))"
+
+about:
+  homepage: https://github.com/NVIDIA/numba-cuda-mlir
+  license: Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND NCSA
+  license_file:
+    - src/LICENSE
+    - src/THIRD-PARTY-LICENSES
+  summary: numba-cuda-mlir Python Compiler (MLIR/LLVM CUDA kernel backend)
+  repository: https://github.com/NVIDIA/numba-cuda-mlir
+
+extra:
+  recipe-maintainers:
+    - brandon-b-miller
