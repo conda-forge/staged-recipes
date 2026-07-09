@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  version: "2.0.0"
+
+package:
+  name: ncarnate
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/n/ncarnate/ncarnate-${{ version }}.tar.gz
+  sha256: 5d97943f26a7e8899301e16c79c9ae7571f5840abf7723ca7bd53a71fe32fbde
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - ncarnate = ncarnate.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling >=1.27
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - netcdf4 >=1.6
+    - numpy >=1.26
+    - pyhdf >=0.11.6
+    - pyproj >=3.6
+    - tqdm >=4.66
+
+tests:
+  - python:
+      imports:
+        - ncarnate
+        - ncarnate.eos
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - '*'
+  - script:
+      - ncarnate --help
+      - ncarnate --version
+
+about:
+  summary: Losslessly recompress netCDF/HDF5 and convert HDF4/HDF-EOS2 granules to CF-annotated netCDF4 with reconstructed geolocation
+  description: |
+    ncarnate reads legacy scientific data — HDF4/HDF-EOS2 granules (AMSR-E,
+    MODIS) and netCDF3/netCDF4/HDF5 — and writes recompressed, CF-annotated
+    netCDF4. It does two jobs: losslessly recompress netCDF/HDF5 (change
+    compression, shuffle, or chunking without changing a stored value), and
+    convert HDF4/HDF-EOS2 to netCDF4 with the geographic coordinates
+    reconstructed so the output opens directly in modern tools (xarray, QGIS,
+    Panoply). For HDF-EOS2 it parses the StructMetadata layer and rebuilds
+    CF-standard coordinates: GCTP grid projections become CF grid mappings
+    with 1-D x/y and 2-D lat/lon via pyproj, and swath geolocation is attached
+    as CF coordinates with dimension-mapped geolocation interpolated through
+    ECEF space. The correctness contract is data fidelity — only storage
+    changes, never the science values, and every output is verified against
+    its source before it replaces anything.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/ErickShepherd/ncarnate
+  repository: https://github.com/ErickShepherd/ncarnate
+  documentation: https://github.com/ErickShepherd/ncarnate#readme
+
+extra:
+  recipe-maintainers:
+    - ErickShepherd
