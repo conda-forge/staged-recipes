@@ -1,0 +1,59 @@
+schema_version: 1
+
+context:
+  version: "0.8.42"
+
+package:
+  name: entire
+  version: ${{ version }}
+
+source:
+  url: https://github.com/entireio/cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8031a404a75d424b91ef894146ef3878fcf8cd9e98c2598ec7473dd58d514b9c
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/entire --save_path ../library_licenses --ignore github.com/segmentio/asm
+    - cp ../gopath/pkg/mod/github.com/segmentio/asm@v1.2.1/LICENSE ../library_licenses/segmentio-asm-LICENSE
+    - if: unix
+      then:
+        - go build -v -o $PREFIX/bin/entire -ldflags="-s -w" ./cmd/entire
+        - go build -v -o $PREFIX/bin/git-remote-entire -ldflags="-s -w" ./cmd/git-remote-entire
+      else:
+        - go build -v -o %LIBRARY_BIN%\entire.exe -ldflags="-s -w" ./cmd/entire
+        - go build -v -o %LIBRARY_BIN%\git-remote-entire.exe -ldflags="-s -w" ./cmd/git-remote-entire
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - entire --help
+  - package_contents:
+      bin:
+        - entire
+        - git-remote-entire
+      strict: true
+
+about:
+  homepage: https://github.com/entireio/cli
+  summary: CLI for Entire - Capture AI agent sessions alongside your git commits
+  description: |
+    Entire hooks into your Git workflow to capture AI agent sessions as you work.
+    Sessions are indexed alongside commits, creating a searchable record of how
+    code was written in your repo.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/entireio/cli
+  repository: https://github.com/entireio/cli
+
+extra:
+  recipe-maintainers:
+    - xhochy
