@@ -13,7 +13,7 @@ build:
   number: 0
   variant:
     ignore_keys:
-      - nodejs  # Only needed to build
+      - nodejs # Only needed to build static web assets.
 
 outputs:
   - staging:
@@ -24,6 +24,7 @@ outputs:
         - ${{ compiler('rust') }}
         - ${{ stdlib('c') }}
         - ${{ 'm2w64-jq' if win else 'jq' }}
+        - cargo-auditable
         - cargo-bundle-licenses
         - esbuild ==0.25.12
         - nodejs
@@ -55,10 +56,12 @@ outputs:
       files:
         - if: unix
           then:
+            - bin/patinae-cli
             - lib/python*/site-packages/patinae/**
             - lib/python*/site-packages/patinae-*.dist-info/**
         - if: win
           then:
+            - Scripts/patinae-cli.bat
             - Lib/site-packages/patinae/**
             - Lib/site-packages/patinae-*.dist-info/**
     requirements:
@@ -71,9 +74,14 @@ outputs:
           pip_check: true
           imports:
             - patinae
+            - patinae._patinae
             - patinae.widget
           python_version: ${{ python }}
+      - package_contents:
+          bin:
+            - patinae-cli
       - script:
+          - patinae-cli --help
           - python test_widget_assets.py
         files:
           recipe:
@@ -106,8 +114,21 @@ outputs:
             - patinae
           files:
             - libexec/patinae/bin/patinae*
-            - libexec/patinae/plugins/*raytracer_plugin*
+            - libexec/patinae/plugins/*hello_plugin*
+            - libexec/patinae/plugins/*ipc_plugin*
             - libexec/patinae/plugins/*python_plugin*
+            - libexec/patinae/plugins/*raytracer_plugin*
+      - script:
+          - if: linux
+            then:
+              - ldd "${PREFIX}/libexec/patinae/bin/patinae"
+          - if: osx
+            then:
+              - otool -L "${PREFIX}/libexec/patinae/bin/patinae"
+          - if: win
+            then:
+              - dumpbin /DEPENDENTS "%PREFIX%\libexec\patinae\bin\patinae.exe"
+          - python -c "import patinae; import patinae.widget"
     about:
       summary: Desktop application and native plugins for Patinae
 
