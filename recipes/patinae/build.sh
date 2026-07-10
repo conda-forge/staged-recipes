@@ -10,31 +10,33 @@ if [[ "${target_platform}" == linux-* ]]; then
 fi
 
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-cargo install --locked --root "${PREFIX}/libexec/patinae" --path patinae
-rm -f "${PREFIX}/libexec/patinae/.crates.toml" "${PREFIX}/libexec/patinae/.crates2.json"
 
 cargo_args=()
 target_root="${CARGO_TARGET_DIR:-target}"
-plugin_release_dir="${target_root}/release"
+release_dir="${target_root}/release"
 
 if [[ -n "${CARGO_BUILD_TARGET:-}" ]]; then
   cargo_args+=(--target "${CARGO_BUILD_TARGET}")
-  plugin_release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
+  release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
 fi
 
-cargo build --release --locked --lib "${cargo_args[@]}" \
+cargo build --release --locked "${cargo_args[@]}" \
+  -p patinae \
   -p raytracer-plugin \
   -p hello-plugin \
   -p ipc-plugin \
   -p python-plugin
 
+mkdir -p "${PREFIX}/libexec/patinae/bin"
+install -m 755 "${release_dir}/patinae" "${PREFIX}/libexec/patinae/bin/patinae"
+
 mkdir -p "${PREFIX}/libexec/patinae/plugins"
 
 shopt -s nullglob
-plugins=( "${plugin_release_dir}"/lib*_plugin"${SHLIB_EXT}" )
+plugins=( "${release_dir}"/lib*_plugin"${SHLIB_EXT}" )
 
 if (( ${#plugins[@]} == 0 )); then
-  echo "No plugin libraries found in ${plugin_release_dir}"
+  echo "No plugin libraries found in ${release_dir}"
   find "${target_root}" -type f -name "*_plugin${SHLIB_EXT}" -print
   exit 1
 fi
@@ -83,8 +85,9 @@ maturin build --release \
 rm -f "${PREFIX}/bin/patinae"
 cat > "${PREFIX}/bin/patinae" <<'EOF'
 #!/bin/sh
-PATINAE_PLUGIN_DIR="${PATINAE_PLUGIN_DIR:-${CONDA_PREFIX}/libexec/patinae/plugins}"
+prefix=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
+PATINAE_PLUGIN_DIR="${PATINAE_PLUGIN_DIR:-${prefix}/libexec/patinae/plugins}"
 export PATINAE_PLUGIN_DIR
-exec "${CONDA_PREFIX}/libexec/patinae/bin/patinae" "$@"
+exec "${prefix}/libexec/patinae/bin/patinae" "$@"
 EOF
 chmod +x "${PREFIX}/bin/patinae"
