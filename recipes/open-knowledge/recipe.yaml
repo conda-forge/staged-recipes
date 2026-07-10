@@ -11,11 +11,22 @@ source:
 
 build:
   number: 0
+  dynamic_linking:
+    binary_relocation: false
   script:
-    - npm pack --ignore-scripts
-    - npm install --global --ignore-scripts inkeep-open-knowledge-${{ version }}.tgz
+    - if: win
+      then:
+        - call npm pack --ignore-scripts
+        - call npm install --global --ignore-scripts inkeep-open-knowledge-${{ version }}.tgz
+      else:
+        - npm pack --ignore-scripts
+        - npm install --global --ignore-scripts inkeep-open-knowledge-${{ version }}.tgz
     - >-
-      node -e "const fs=require('node:fs'),path=require('node:path'),dir=path.join(process.env.PREFIX,'lib','node_modules','@inkeep','open-knowledge','dist','native'),keep={darwin:{arm64:'native-config.darwin-arm64.node',x64:'native-config.darwin-x64.node'},linux:{arm64:'native-config.linux-arm64-gnu.node',x64:'native-config.linux-x64-gnu.node'},win32:{arm64:'native-config.win32-arm64-msvc.node',x64:'native-config.win32-x64-msvc.node'}}[process.platform][process.arch];for(const file of fs.readdirSync(dir))if(file.endsWith('.node')&&file!==keep)fs.rmSync(path.join(dir,file))"
+      node -e "const fs=require('node:fs'),path=require('node:path'),root=process.platform==='win32'?process.env.PREFIX:path.join(process.env.PREFIX,'lib'),dir=path.join(root,'node_modules','@inkeep','open-knowledge','dist','native'),keep={darwin:{arm64:'native-config.darwin-arm64.node',x64:'native-config.darwin-x64.node'},linux:{arm64:'native-config.linux-arm64-gnu.node',x64:'native-config.linux-x64-gnu.node'},win32:{arm64:'native-config.win32-arm64-msvc.node',x64:'native-config.win32-x64-msvc.node'}}[process.platform][process.arch];for(const file of fs.readdirSync(dir))if(file.endsWith('.node')&&file!==keep)fs.rmSync(path.join(dir,file))"
+    - if: win
+      then:
+        - >-
+          node -e "const fs=require('node:fs'),path=require('node:path'),dir=path.join(process.env.PREFIX,'bin'),percent=String.fromCharCode(37),slash=String.fromCharCode(92),prefix=percent+'CONDA_PREFIX'+percent,body='@echo off\r\n\"'+prefix+slash+'node.exe\" \"'+prefix+slash+['node_modules','@inkeep','open-knowledge','dist','cli.mjs'].join(slash)+'\" '+percent+'*\r\n';fs.mkdirSync(dir,{recursive:true});for(const name of ['ok','open-knowledge'])fs.writeFileSync(path.join(dir,name+'.cmd'),body)"
 
 requirements:
   host:
