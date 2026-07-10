@@ -1,6 +1,3 @@
-はい、`@REM` でセクションが分かるようにするとこんな形です。wrapper は `%%CONDA_PREFIX%%` を直接使う薄いままにしています。
-
-```bat
 @echo on
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -191,4 +188,3 @@ del /F /Q ^
 >> "%PREFIX%\Scripts\patinae.bat" echo exit /b %%ERRORLEVEL%%
 
 exit /b 0
-```
