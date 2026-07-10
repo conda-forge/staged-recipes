@@ -23,8 +23,8 @@ if [[ -n "${CARGO_BUILD_TARGET:-}" ]]; then
   release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
 fi
 
-# Build the native desktop binary and native plugins.
-cargo build --release --locked "${cargo_args[@]}" \
+# Build the native desktop binary and native plugins with auditable metadata.
+cargo auditable build --release --locked "${cargo_args[@]}" \
   -p patinae \
   -p raytracer-plugin \
   -p hello-plugin \
@@ -88,13 +88,23 @@ cp web/dist/patinae_web-*.js python/patinae/widget/static/patinae_web_glue.js
 
 # Build and install the Python extension wheel.
 maturin build --release \
-    --manifest-path python/Cargo.toml \
-    --interpreter "${PYTHON}" \
-    --out wheels
+  --manifest-path python/Cargo.toml \
+  --interpreter "${PYTHON}" \
+  --out wheels
 "${PYTHON}" -m pip install --no-deps -vv wheels/patinae-*.whl
 
-# Replace the Python console entry point with a wrapper for the desktop binary.
-rm -f "${PREFIX}/bin/patinae"
+# Keep the Python console entry point under a non-conflicting name.
+if [[ -f "${PREFIX}/bin/patinae" ]]; then
+  mv "${PREFIX}/bin/patinae" "${PREFIX}/bin/patinae-cli"
+else
+  cat > "${PREFIX}/bin/patinae-cli" <<'EOF'
+#!/bin/sh
+exec python -m patinae._cli "$@"
+EOF
+  chmod +x "${PREFIX}/bin/patinae-cli"
+fi
+
+# Install the user-facing desktop wrapper as `patinae`.
 cat > "${PREFIX}/bin/patinae" <<'EOF'
 #!/bin/sh
 PATINAE_PLUGIN_DIR="${PATINAE_PLUGIN_DIR:-${CONDA_PREFIX}/libexec/patinae/plugins}"
