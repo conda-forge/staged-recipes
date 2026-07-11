@@ -1,0 +1,94 @@
+# rattler-build recipe for the Cloudini conda package (library + CLI).
+#
+# Build locally:   rattler-build build --recipe conda/recipe.yaml
+# Publish:         rattler-build upload prefix -c cloudini output/**/*.conda
+#   (or)           rattler-build publish ./conda/recipe.yaml --to https://prefix.dev/cloudini
+#
+# The same file is used for the conda-forge/staged-recipes submission.
+# After cutting the git tag, fill in `sha256` with:
+#   curl -sL https://github.com/facontidavide/cloudini/archive/refs/tags/${version}.tar.gz | sha256sum
+
+context:
+  version: "1.2.4"
+
+package:
+  name: cloudini
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/facontidavide/cloudini/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 6a815ff0418115fc23d0f8a8299c20904cdf3cd3bf0a5227c23d2c2269e7943d
+  # mcap is a header-only dependency of the CLI and is not packaged for C++ on
+  # conda-forge; fetch it here (network is available during the source stage but
+  # NOT during the build script) and feed it in via -DMCAP_INCLUDE_DIR below.
+  - url: https://github.com/foxglove/mcap/archive/refs/tags/releases/cpp/v2.0.2.tar.gz
+    sha256: af44f92b62f43bd4b44a00728780f93df59601537d9aebbc862c4cb9b5ad743e
+    target_directory: mcap-src
+
+build:
+  number: 0
+  script:
+    # Locate the pre-fetched mcap headers regardless of the archive's top dir.
+    - MCAP_INCLUDE_DIR="$(find "$PWD/mcap-src" -type d -path '*/cpp/mcap/include' | head -1)"
+    - cmake ${CMAKE_ARGS} -GNinja -B build -S cloudini_lib
+        -DCMAKE_BUILD_TYPE=Release
+        -DBUILD_SHARED_LIBS=ON
+        -DCLOUDINI_FORCE_VENDORED_DEPS=OFF
+        -DCLOUDINI_BUILD_BENCHMARKS=OFF
+        -DBUILD_TESTING=OFF
+        -DMCAP_INCLUDE_DIR="${MCAP_INCLUDE_DIR}"
+        -DCMAKE_INSTALL_PREFIX=$PREFIX
+    - cmake --build build --parallel ${CPU_COUNT}
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    # zstd and lz4-c both declare run_exports, so their runtime dependency is
+    # added automatically with the correct version pin — no `run:` entries needed.
+    - zstd
+    - lz4-c
+    # cxxopts is header-only (CLI arg parsing); found via find_package(cxxopts).
+    - cxxopts
+
+tests:
+  # Assert the package actually shipped the library, headers, CMake config, and CLI.
+  - package_contents:
+      include:
+        - cloudini_lib/cloudini.hpp
+      lib:
+        - cloudini_lib
+      bin:
+        - cloudini_rosbag_converter
+      files:
+        - lib/cmake/cloudini_lib/cloudini_libConfig.cmake
+        - lib/cmake/cloudini_lib/cloudini_libTargets.cmake
+  # The CLI binary must load its shared library and start up.
+  - script:
+      - cloudini_rosbag_converter --help
+
+about:
+  homepage: https://github.com/facontidavide/cloudini
+  repository: https://github.com/facontidavide/cloudini
+  documentation: https://github.com/facontidavide/cloudini#readme
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: High-performance pointcloud compression library and CLI
+  description: |
+    Cloudini is a high-performance pointcloud compression library focused on
+    speed while still achieving very good compression ratios. It uses a
+    two-stage approach: custom per-field encoding followed by general-purpose
+    compression (LZ4/ZSTD). Typical use cases are shrinking rosbag/MCAP datasets
+    that contain pointclouds and reducing bandwidth when streaming pointclouds
+    over a network. This package ships the C++ library (with a CMake package
+    config, `find_package(cloudini_lib)` + `cloudini::cloudini_lib`) and the
+    `cloudini_rosbag_converter` command-line tool for compressing/decompressing
+    MCAP rosbags.
+
+extra:
+  recipe-maintainers:
+    - facontidavide
