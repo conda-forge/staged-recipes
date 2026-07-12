@@ -18,6 +18,8 @@ build:
   # platform's npm global install lays down native shims for all 16 bin
   # entries (symlinks on unix, .cmd on win), which a single noarch
   # artifact cannot provide. https://github.com/conda-forge/openspec-feedstock/blob/main/recipe/recipe.yaml
+  dynamic_linking:
+    binary_relocation: false
   script:
     - if: unix
       then:
@@ -25,6 +27,7 @@ build:
         - pnpm install --ignore-scripts --prod
         - npm pack --ignore-scripts
         - npm install --omit=optional -g ./cyclonedx-cdxgen-${{ version }}.tgz
+        - rm -rf "${PREFIX}"/lib/node_modules/@cyclonedx/cdxgen/node_modules/@cdxgen/cdxgen-plugins-bin*
         - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
       else:
         - call npm config set prefix "%PREFIX%"
@@ -34,6 +37,8 @@ build:
         - call npm pack --ignore-scripts
         - if %ERRORLEVEL% neq 0 exit 1
         - call npm install --userconfig nonexistentrc --omit=optional -g cyclonedx-cdxgen-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+        - for /d %%D in ("%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@cdxgen\cdxgen-plugins-bin*") do rmdir /s /q "%%D"
         - if %ERRORLEVEL% neq 0 exit 1
         - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
         - if %ERRORLEVEL% neq 0 exit 1
@@ -56,6 +61,7 @@ tests:
     then:
       script:
         - test -f "${PREFIX}/lib/node_modules/@cyclonedx/cdxgen/package.json"
+        - if ls -d "${PREFIX}"/lib/node_modules/@cyclonedx/cdxgen/node_modules/@cdxgen/cdxgen-plugins-bin* >/dev/null 2>&1; then exit 1; fi
 
 about:
   summary: Creates CycloneDX Bill of Materials (BOM) for projects and containers in 20+ languages and package managers
