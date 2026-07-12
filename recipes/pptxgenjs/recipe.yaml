@@ -26,6 +26,21 @@ build:
         # Bundled deps' node_modules/.bin contains symlinks (npm plumbing,
         # unused at runtime); noarch packages must not ship symlinks.
         - rm -rf "${PREFIX}/lib/node_modules/pptxgenjs/node_modules/.bin"
+      else:
+        # Windows: pnpm/npm/pnpm-licenses are .cmd shims — every invocation
+        # needs `call` or the script silently terminates after the first one.
+        - call pnpm install --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global "%SRC_DIR%\pptxgenjs-${{ version }}.tgz"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+        # npm on win creates .cmd shims, not symlinks, but drop the dir for
+        # parity with the unix artifact.
+        - if exist "%PREFIX%\lib\node_modules\pptxgenjs\node_modules\.bin" rmdir /s /q "%PREFIX%\lib\node_modules\pptxgenjs\node_modules\.bin"
+        - if exist "%PREFIX%\node_modules\pptxgenjs\node_modules\.bin" rmdir /s /q "%PREFIX%\node_modules\pptxgenjs\node_modules\.bin"
 
 requirements:
   build:
