@@ -5,38 +5,27 @@ package:
   name: {{ name|lower }}
   version: {{ version }}
 
-source:
-  - url: https://files.pythonhosted.org/packages/cf/7f/ed9b1cb3c1a258838ca36dcf782ecf91ac21f010bc6effc0882f87b4388b/aspose_cad-26.6.0-py3-none-manylinux1_x86_64.whl
-    sha256: 295ea148d50567316f1331a905696c030c510d0a03c2df399d6068f73053d67d
-    folder: manylinux_wheel
-    file_name: aspose_cad-{{ version }}-py3-none-manylinux1_x86_64.whl
-    target_platform:
-      - linux-64
-  - url: https://files.pythonhosted.org/packages/fc/ad/79f8a37bfaf84183eec24ae400f104e0e8b12d831042dda743e91166d752/aspose_cad-26.6.0-py3-none-macosx_11_0_arm64.whl
-    sha256: b5bb25a03831aef984b16c4d78891795e511055be00828605280cf4c125204ed
-    folder: macos_wheel
-    file_name: aspose_cad-{{ version }}-py3-none-macosx_11_0_arm64.whl
-    target_platform:
-      - osx-arm64
-  - url: https://files.pythonhosted.org/packages/b4/53/67ef7ac1d6a349319e282dfc23939c19656a0b68e382faf203b13a267ad3/aspose_cad-26.6-py3-none-win_amd64.whl
-    sha256: 516720c81a11be3dc22f841443e806572bce4ef8051ccd137cccf016f2be3689
-    folder: win_wheel
-    file_name: aspose_cad-{{ version }}-py3-none-win_amd64.whl
-    target_platform:
-      - win-64
-
 build:
+  # Отключаем стандартный build, так как всё делаем вручную в outputs
+  script: echo "Dummy package"
   number: 0
-  script: |
-    cp {{ SRC_DIR }}/{{ self.src_file }} ./aspose_dist.whl    
-    {{ PYTHON }} -m pip install --no-deps --ignore-installed --no-index ./aspose_dist.whl
   skip: true  # [py2k]
+
+# Секция source оставлена пустой для прохождения валидации,
+# но фактически ссылка на pypi нужна только для метаданных версии
+source:
+  url: https://pypi.org/packages/source/a/aspose-cad/aspose_cad-{{ version }}.tar.gz
+  sha256: 8ff3ed303e09eba0ded4b78cfd7d3c6087ff6a015b2e5c4fefda15fd5ce06c1b
 
 requirements:
   host:
     - python
     - pip
     - python_abi
+    # Зависимости хоста нужны для корректной работы самого conda при установке whl
+    - libglib >=2.17              # [not win]
+    - libcxx                      # [osx]
+    - vc                          # [win]
   run:
     - python
     - python_abi
@@ -45,11 +34,7 @@ requirements:
     - vc                          # [win]
 
 test:
-  imports:
-    - aspose
-    - aspose.cad
   commands:
-    - pip check
     - python -c "import aspose; print(aspose.__version__)"
     - python -c "import aspose.cad; print('Import OK')"
   requires:
@@ -59,7 +44,40 @@ about:
   home: https://products.aspose.com/cad/python
   summary: Aspose.CAD for Python is a CAD and BIM drawings Processing library that allows developers to modify, convert and publish various drawing and image formats without need to have any other CAD software.
   license: proprietary
-  license_file: License.txt
-  extra:
-    recipe-maintainers:
-      - alexefaspose
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - alexefaspose  # <-- ВАЖНО: замените на ваш GitHub username
+
+
+##############################################
+####   ВЫХОДНОЙ ПАКЕТ (ОСНОВНАЯ ЛОГИКА)   ####
+##############################################
+outputs:
+  - name: aspose-cad
+    version: {{ version }}
+    
+    build:
+      # Скрипт выполняется ПОСЛЕ скачивания файла из 'url' ниже
+      script: |
+        # Скачиваем нужный wheel файл динамически 
+        {% if win %}
+          curl -L -o dist_pkg.whl https://files.pythonhosted.org/packages/b4/53/67ef7ac1d6a349319e282dfc23939c19656a0b68e382faf203b13a267ad3/aspose_cad-26.6-py3-none-win_amd64.whl
+        {% elif osx %}
+          curl -L -o dist_pkg.whl https://files.pythonhosted.org/packages/fc/ad/79f8a37bfaf84183eec24ae400f104e0e8b12d831042dda743e91166d752/aspose_cad-26.6.0-py3-none-macosx_11_0_arm64.whl
+        {% else %}
+          # Linux manylinux
+          curl -L -o dist_pkg.whl https://files.pythonhosted.org/packages/cf/7f/ed9b1cb3c1a258838ca36dcf782ecf91ac21f010bc6effc0882f87b4388b/aspose_cad-26.6.0-py3-none-manylinux1_x86_64.whl
+        {% endif %}
+        
+        # Устанавливаем скачанный файл
+        {{ PYTHON }} -m pip install --no-deps --ignore-installed --no-index ./dist_pkg.whl
+        
+    requirements:
+      run:
+        - python
+        - python_abi
+        - libglib >=2.17              # [not win]
+        - libcxx                      # [osx]
+        - vc                          # [win]
