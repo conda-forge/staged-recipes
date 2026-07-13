@@ -18,21 +18,14 @@ build:
   script:
     - if: unix
       then:
-        - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DBUILD_TEST=ON
-        - cmake --build build
-        - ctest --test-dir build --output-on-failure
+        - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DBUILD_TEST=OFF
         - cmake --install build
     - if: win
       then:
-        - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DBUILD_TEST=ON
-        - cmake --build build
-        - ctest --test-dir build --output-on-failure
+        - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DBUILD_TEST=OFF
         - cmake --install build
 
 requirements:
-  build:
-    - ${{ compiler('cxx') }}
-    - ${{ stdlib('c') }}
   host:
     - cmake
     - ninja
@@ -40,10 +33,46 @@ requirements:
 tests:
   - if: unix
     then:
-      - script: test -f "${PREFIX}/include/CRC.h"
+      - script:
+          - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DBUILD_TEST=ON
+          - cmake --build build
+          - ctest --test-dir build --output-on-failure
+          - ${CXX} -std=c++11 -I"${PREFIX}/include" test.cpp -o crcpp-test
+          - ./crcpp-test
+        files:
+          source:
+            - CMakeLists.txt
+            - inc/
+            - test/
+          recipe:
+            - test.cpp
+        requirements:
+          build:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - cmake
+            - ninja
   - if: win
     then:
-      - script: if not exist "%PREFIX%\include\CRC.h" exit /b 1
+      - script:
+          - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DBUILD_TEST=ON
+          - cmake --build build
+          - ctest --test-dir build --output-on-failure
+          - '%CXX% /std:c++14 /I"%PREFIX%\include" test.cpp /Fe:crcpp-test.exe'
+          - crcpp-test.exe
+        files:
+          source:
+            - CMakeLists.txt
+            - inc/
+            - test/
+          recipe:
+            - test.cpp
+        requirements:
+          build:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - cmake
+            - ninja
 
 about:
   homepage: https://github.com/d-bahr/CRCpp
