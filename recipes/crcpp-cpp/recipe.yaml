@@ -16,10 +16,18 @@ build:
   noarch: generic
   number: 0
   script:
-    - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DBUILD_TEST=ON
-    - cmake --build build
-    - ctest --test-dir build --output-on-failure
-    - cmake --install build
+    - if: unix
+      then:
+        - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DBUILD_TEST=ON
+        - cmake --build build
+        - ctest --test-dir build --output-on-failure
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DBUILD_TEST=ON
+        - cmake --build build
+        - ctest --test-dir build --output-on-failure
+        - cmake --install build
 
 requirements:
   build:
@@ -30,8 +38,12 @@ requirements:
     - ninja
 
 tests:
-  - script:
-      - test -f "${PREFIX}/include/CRC.h"
+  - if: unix
+    then:
+      - script: test -f "${PREFIX}/include/CRC.h"
+  - if: win
+    then:
+      - script: if not exist "%PREFIX%\include\CRC.h" exit /b 1
 
 about:
   homepage: https://github.com/d-bahr/CRCpp
