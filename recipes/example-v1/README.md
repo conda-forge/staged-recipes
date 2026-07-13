@@ -11,3 +11,4 @@ lack of [support](https://github.com/conda/ceps/pull/102) for a shared build ste
 though this is not relevant for most recipes.
 
 See https://github.com/conda-forge/conda-forge.github.io/issues/2308 for progress on general support for this new format.
+See https://conda-forge.org/docs/maintainer/example_recipes for example recipes.
