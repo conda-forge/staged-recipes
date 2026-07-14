@@ -12,7 +12,6 @@ source:
   sha256: 895044b0c08d16119acf2b0e956da3ceadf0f4b0191cdec51b2c6dfdc53a58c0
   patches:
     - use-system-spirv-tools.patch
-    - use-system-directx-headers.patch
 
 build:
   number: 0
@@ -20,6 +19,11 @@ build:
     interpreter: brush
     content: |
       set -euxo pipefail
+
+      directx_header_include_dir=""
+      if [[ "$target_platform" != win-* ]]; then
+        directx_header_include_dir="${LIBRARY_INC:-$PREFIX/include}"
+      fi
 
       cmake ${CMAKE_ARGS:-} \
         -S . \
@@ -29,12 +33,12 @@ build:
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${LIBRARY_PREFIX:-$PREFIX}" \
         -DCMAKE_INSTALL_LIBDIR=lib \
-        -DDIRECTX_HEADER_INCLUDE_DIR="${LIBRARY_INC:-$PREFIX/include}" \
+        -DDIRECTX_HEADER_INCLUDE_DIR="$directx_header_include_dir" \
         -DSPIRV-Headers_SOURCE_DIR="${LIBRARY_PREFIX:-$PREFIX}" \
         -DDXC_USE_SYSTEM_SPIRV_TOOLS=ON \
         -DENABLE_SPIRV_CODEGEN=ON \
         -DLLVM_USE_HOST_TOOLS="${CONDA_BUILD_CROSS_COMPILATION:-OFF}" \
-        "-DCROSS_TOOLCHAIN_FLAGS_NATIVE=-DCMAKE_C_COMPILER=${CC_FOR_BUILD:-$CC};-DCMAKE_CXX_COMPILER=${CXX_FOR_BUILD:-$CXX};-DCMAKE_C_FLAGS=;-DCMAKE_CXX_FLAGS=;-DCMAKE_EXE_LINKER_FLAGS=;-DCMAKE_SHARED_LINKER_FLAGS=;-DDIRECTX_HEADER_INCLUDE_DIR=${LIBRARY_INC:-$PREFIX/include};-DENABLE_SPIRV_CODEGEN=OFF;-DLLVM_ENABLE_ZLIB=OFF;-DLLVM_ENABLE_TERMINFO=OFF;-DLLVM_ENABLE_EH=ON;-DLLVM_ENABLE_RTTI=ON;-DHLSL_ENABLE_FIXED_VER=ON;-DHLSL_SUPPORT_QUERY_GIT_COMMIT_INFO=OFF;-DHLSL_INCLUDE_TESTS=OFF;-DLLVM_INCLUDE_TESTS=OFF;-DCLANG_INCLUDE_TESTS=OFF" \
+        "-DCROSS_TOOLCHAIN_FLAGS_NATIVE=-DCMAKE_C_COMPILER=${CC_FOR_BUILD:-$CC};-DCMAKE_CXX_COMPILER=${CXX_FOR_BUILD:-$CXX};-DCMAKE_C_FLAGS=;-DCMAKE_CXX_FLAGS=;-DCMAKE_EXE_LINKER_FLAGS=;-DCMAKE_SHARED_LINKER_FLAGS=;-DDIRECTX_HEADER_INCLUDE_DIR=$directx_header_include_dir;-DENABLE_SPIRV_CODEGEN=OFF;-DLLVM_ENABLE_ZLIB=OFF;-DLLVM_ENABLE_TERMINFO=OFF;-DLLVM_ENABLE_EH=ON;-DLLVM_ENABLE_RTTI=ON;-DHLSL_ENABLE_FIXED_VER=ON;-DHLSL_SUPPORT_QUERY_GIT_COMMIT_INFO=OFF;-DHLSL_INCLUDE_TESTS=OFF;-DLLVM_INCLUDE_TESTS=OFF;-DCLANG_INCLUDE_TESTS=OFF" \
         -DHLSL_ENABLE_FIXED_VER=ON \
         -DHLSL_SUPPORT_QUERY_GIT_COMMIT_INFO=OFF \
         -DHLSL_INCLUDE_TESTS=OFF \
@@ -55,7 +59,8 @@ requirements:
     - ninja
     - python
   host:
-    - directx-headers
+    - if: not win
+      then: directx-headers
     - spirv-headers
     - spirv-tools
     - zlib
