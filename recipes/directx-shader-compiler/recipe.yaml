@@ -15,7 +15,6 @@ source:
 
 build:
   number: 0
-  skip: build_platform != target_platform
   script:
     interpreter: brush
     content: |
@@ -32,6 +31,9 @@ build:
         -DDIRECTX_HEADER_INCLUDE_DIR="${LIBRARY_INC:-$PREFIX/include}" \
         -DSPIRV-Headers_SOURCE_DIR="${LIBRARY_PREFIX:-$PREFIX}" \
         -DDXC_USE_SYSTEM_SPIRV_TOOLS=ON \
+        -DENABLE_SPIRV_CODEGEN=ON \
+        -DLLVM_USE_HOST_TOOLS="${CONDA_BUILD_CROSS_COMPILATION:-OFF}" \
+        "-DCROSS_TOOLCHAIN_FLAGS_NATIVE=-DCMAKE_C_COMPILER=${CC_FOR_BUILD:-$CC};-DCMAKE_CXX_COMPILER=${CXX_FOR_BUILD:-$CXX};-DCMAKE_C_FLAGS=;-DCMAKE_CXX_FLAGS=;-DCMAKE_EXE_LINKER_FLAGS=;-DCMAKE_SHARED_LINKER_FLAGS=;-DCMAKE_PREFIX_PATH=${BUILD_PREFIX}${LIBRARY_PREFIX:+/Library};-DDIRECTX_HEADER_INCLUDE_DIR=${BUILD_PREFIX}${LIBRARY_PREFIX:+/Library}/include;-DSPIRV-Headers_SOURCE_DIR=${BUILD_PREFIX}${LIBRARY_PREFIX:+/Library};-DDXC_USE_SYSTEM_SPIRV_TOOLS=ON;-DHLSL_ENABLE_FIXED_VER=ON;-DHLSL_SUPPORT_QUERY_GIT_COMMIT_INFO=OFF;-DHLSL_INCLUDE_TESTS=OFF;-DSPIRV_BUILD_TESTS=OFF;-DLLVM_INCLUDE_TESTS=OFF;-DCLANG_INCLUDE_TESTS=OFF;-DLLVM_ENABLE_ZLIB=FORCE_ON" \
         -DHLSL_ENABLE_FIXED_VER=ON \
         -DHLSL_SUPPORT_QUERY_GIT_COMMIT_INFO=OFF \
         -DHLSL_INCLUDE_TESTS=OFF \
@@ -44,12 +46,19 @@ build:
 
 requirements:
   build:
+    - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
     - brush
     - cmake >=3.17.2
     - ninja
     - python
+    - if: build_platform != host_platform
+      then:
+        - directx-headers
+        - spirv-headers
+        - spirv-tools
+        - zlib
   host:
     - directx-headers
     - spirv-headers
