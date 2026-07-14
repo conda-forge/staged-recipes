@@ -16,28 +16,32 @@ build:
       then:
         - mkdir -p "$PREFIX/share/bioformats2raw" "$PREFIX/bin"
         - cp -R bin lib "$PREFIX/share/bioformats2raw/"
+        - chmod +x "$PREFIX/share/bioformats2raw/bin/bioformats2raw"
         - ln -s ../share/bioformats2raw/bin/bioformats2raw "$PREFIX/bin/bioformats2raw"
     - if: win
       then:
         - mkdir "%PREFIX%\share\bioformats2raw\bin"
         - mkdir "%PREFIX%\share\bioformats2raw\lib"
-        - xcopy /E /I /Y bin "%PREFIX%\share\bioformats2raw\bin"
-        - xcopy /E /I /Y lib "%PREFIX%\share\bioformats2raw\lib"
-        - mkdir "%PREFIX%\bin"
-        - echo %%~dp0..\share\bioformats2raw\bin\bioformats2raw %%* > "%PREFIX%\bin\bioformats2raw.bat"
+        - xcopy /E /I /Y "bin" "%PREFIX%\share\bioformats2raw\bin"
+        - xcopy /E /I /Y "lib" "%PREFIX%\share\bioformats2raw\lib"
+        - echo @call "%%~dp0..\share\bioformats2raw\bin\bioformats2raw.bat" %%* > "%SCRIPTS%\bioformats2raw.bat"
 
 requirements:
   run:
-    - openjdk >=11,<22
+    - openjdk >=11
 
 tests:
   - script:
       - if: unix
-        then: bioformats2raw --version 2>&1 | grep "Version = 0.12.1"
+        then: bioformats2raw --version 2>&1 | grep -F "Version = ${{ version }}"
       - if: win
-        then: bioformats2raw --version 2>&1 | findstr /C:"Version = 0.12.1"
+        then: bioformats2raw --version 2>&1 | findstr /C:"Version = ${{ version }}"
       - bioformats2raw --help
       - bioformats2raw "test&sizeX=16&sizeY=16.fake" output.zarr --resolutions 1
+      - if: unix
+        then: test -d output.zarr
+      - if: win
+        then: if not exist output.zarr\NUL exit /b 1
 
 about:
   homepage: https://github.com/glencoesoftware/bioformats2raw
@@ -45,9 +49,9 @@ about:
   description: |
     bioformats2raw converts image file formats supported by Bio-Formats into
     a Zarr structure compatible with the OME-NGFF specification.
-  license: GPL-2.0-or-later
+  license: GPL-2.0-only
   license_file: LICENSE.txt
-  documentation: https://github.com/glencoesoftware/bioformats2raw/blob/master/README.md
+  documentation: https://github.com/glencoesoftware/bioformats2raw/blob/v${{ version }}/README.md
   repository: https://github.com/glencoesoftware/bioformats2raw
 
 extra:
