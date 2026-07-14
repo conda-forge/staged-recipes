@@ -1,11 +1,10 @@
-set -exuo pipefail
+#!/bin/bash
+set -euxo pipefail
 
-./autogen.sh
+meson setup builddir \
+  --prefix="${PREFIX}" \
+  --buildtype=release \
+  --wrap-mode=nofallback
 
-./configure --prefix="${PREFIX}"
-
-
-make -j ${CPU_COUNT}
-
-make install 
-    
+meson compile -C builddir
+meson install -C builddir

@@ -1,13 +1,11 @@
-@echo ON
+meson setup builddir ^
+  --prefix="%LIBRARY_PREFIX%" ^
+  --buildtype=release ^
+  --wrap-mode=nofallback
+if errorlevel 1 exit /b 1
 
-meson setup build ^
-    %MESON_ARGS% ^
-    --prefix="%LIBRARY_PREFIX%" ^
-    --buildtype=release
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+meson compile -C builddir
+if errorlevel 1 exit /b 1
 
-meson compile -C build -j %CPU_COUNT%
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-
-meson install -C build
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+meson install -C builddir
+if errorlevel 1 exit /b 1
