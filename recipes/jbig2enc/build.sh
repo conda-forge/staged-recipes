@@ -3,6 +3,7 @@ set -euxo pipefail
 
 meson setup builddir \
   --prefix="${PREFIX}" \
+  --libdir=lib \
   --buildtype=release \
   --wrap-mode=nofallback
 
