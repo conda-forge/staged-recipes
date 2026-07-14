@@ -1,0 +1,70 @@
+diff --git a/external/CMakeLists.txt b/external/CMakeLists.txt
+index 14d814fdd..2b19aa38e 100644
+--- a/external/CMakeLists.txt
++++ b/external/CMakeLists.txt
+@@ -21,6 +21,12 @@ endif(NOT DIRECTX_HEADER_INCLUDE_DIR)
+ # Enabling SPIR-V codegen requires SPIRV-Headers for spirv.hpp and
+ # SPIRV-Tools for SPIR-V disassembling functionality.
+ if (${ENABLE_SPIRV_CODEGEN})
++  if (DXC_USE_SYSTEM_SPIRV_TOOLS)
++    find_package(SPIRV-Tools CONFIG REQUIRED)
++    find_package(SPIRV-Tools-opt CONFIG REQUIRED)
++    get_target_property(SPIRV_TOOLS_INCLUDE_DIR SPIRV-Tools INTERFACE_INCLUDE_DIRECTORIES)
++    set(SPIRV_TOOLS_INCLUDE_DIR ${SPIRV_TOOLS_INCLUDE_DIR} PARENT_SCOPE)
++  endif()
+   set(DXC_SPIRV_HEADERS_DIR "${DXC_EXTERNAL_ROOT_DIR}/SPIRV-Headers"
+       CACHE STRING "Location of SPIRV-Headers source")
+   set(DXC_SPIRV_TOOLS_DIR "${DXC_EXTERNAL_ROOT_DIR}/SPIRV-Tools"
+@@ -39,7 +45,7 @@ if (${ENABLE_SPIRV_CODEGEN})
+     set(SPIRV_HEADER_INCLUDE_DIR ${SPIRV-Headers_SOURCE_DIR}/include PARENT_SCOPE)
+   endif()
+ 
+-  if (NOT TARGET SPIRV-Tools)
++  if (NOT DXC_USE_SYSTEM_SPIRV_TOOLS AND NOT TARGET SPIRV-Tools)
+     if (IS_DIRECTORY ${DXC_SPIRV_TOOLS_DIR})
+       # Avoid implicit fallthrough warning from clang
+       # This add_compile_options() will only affect the current directory and its subdirectories.
+@@ -59,16 +65,22 @@ if (${ENABLE_SPIRV_CODEGEN})
+   if (NOT TARGET SPIRV-Tools)
+     message(FATAL_ERROR "SPIRV-Tools was not found - required for SPIR-V codegen")
+   else()
+-    set(SPIRV_TOOLS_INCLUDE_DIR ${spirv-tools_SOURCE_DIR}/include PARENT_SCOPE)
++    if (NOT DXC_USE_SYSTEM_SPIRV_TOOLS)
++      set(SPIRV_TOOLS_INCLUDE_DIR ${spirv-tools_SOURCE_DIR}/include PARENT_SCOPE)
++    endif()
+   endif()
+ 
+   set(SPIRV_DEP_TARGETS
+-    SPIRV-Tools-static
+     SPIRV-Tools-opt
+   )
++  if (NOT DXC_USE_SYSTEM_SPIRV_TOOLS)
++    list(APPEND SPIRV_DEP_TARGETS SPIRV-Tools-static)
++  endif()
+ 
+   # Organize these targets better in Visual Studio
+-  foreach(target ${SPIRV_DEP_TARGETS})
+-    set_property(TARGET ${target} PROPERTY FOLDER "External dependencies")
+-  endforeach()
++  if (NOT DXC_USE_SYSTEM_SPIRV_TOOLS)
++    foreach(target ${SPIRV_DEP_TARGETS})
++      set_property(TARGET ${target} PROPERTY FOLDER "External dependencies")
++    endforeach()
++  endif()
+ 
+ endif()
+
+diff --git a/tools/clang/lib/SPIRV/CMakeLists.txt b/tools/clang/lib/SPIRV/CMakeLists.txt
+index b2e99887f..da4b327f4 100644
+--- a/tools/clang/lib/SPIRV/CMakeLists.txt
++++ b/tools/clang/lib/SPIRV/CMakeLists.txt
+@@ -44,5 +44,9 @@ add_clang_library(clangSPIRV
+   )
+ 
++if (DXC_USE_SYSTEM_SPIRV_TOOLS)
++  target_link_libraries(clangSPIRV PRIVATE SPIRV-Tools)
++endif()
++
+ target_include_directories(clangSPIRV PUBLIC ${SPIRV_HEADER_INCLUDE_DIR})
+ target_include_directories(clangSPIRV PRIVATE ${SPIRV_TOOLS_INCLUDE_DIR})
+ add_dependencies(clangSPIRV TablegenHLSLOptions)

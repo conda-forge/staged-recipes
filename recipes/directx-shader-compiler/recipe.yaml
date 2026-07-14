@@ -1,0 +1,68 @@
+schema_version: 1
+
+context:
+  version: "1.9.2602.24"
+  spirv_tools_version: "2026.2"
+  spirv_headers_version: "1.4.350"
+  directx_headers_version: "1.4.9"
+
+package:
+  name: directx-shader-compiler
+  version: ${{ version }}
+
+source:
+  url: https://github.com/microsoft/DirectXShaderCompiler/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 895044b0c08d16119acf2b0e956da3ceadf0f4b0191cdec51b2c6dfdc53a58c0
+  patches:
+    - use-system-spirv-tools.patch
+
+build:
+  number: 0
+  skip: build_platform != target_platform
+  script:
+    - if: unix
+      then: bash "$RECIPE_DIR/build.sh"
+      else: call "%RECIPE_DIR%\build.bat"
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.17.2
+    - ninja
+    - python
+  host:
+    - directx-headers ==${{ directx_headers_version }}
+    - spirv-headers ${{ spirv_headers_version }}.*
+    - spirv-tools ==${{ spirv_tools_version }}
+    - zlib
+
+tests:
+  - script:
+      - dxc --version
+      - if: unix
+        then:
+          - "echo 'float4 main(float4 position : POSITION) : SV_Position { return position; }' > test.hlsl"
+          - dxc -T vs_6_0 -E main test.hlsl -Fo test.dxil
+          - dxc -spirv -T vs_6_0 -E main test.hlsl -Fo test.spv
+        else:
+          - "echo float4 main(float4 position : POSITION) : SV_Position { return position; } > test.hlsl"
+          - dxc -T vs_6_0 -E main test.hlsl -Fo test.dxil
+          - dxc -spirv -T vs_6_0 -E main test.hlsl -Fo test.spv
+
+about:
+  homepage: https://github.com/microsoft/DirectXShaderCompiler
+  repository: https://github.com/microsoft/DirectXShaderCompiler
+  documentation: https://github.com/microsoft/DirectXShaderCompiler/wiki
+  summary: Compiler and related tools for High-Level Shader Language programs
+  description: |
+    DirectX Shader Compiler provides the dxc command-line compiler and the
+    dxcompiler library for compiling HLSL to DXIL or SPIR-V.
+  license: NCSA
+  license_file:
+    - LICENSE.TXT
+    - ThirdPartyNotices.txt
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
