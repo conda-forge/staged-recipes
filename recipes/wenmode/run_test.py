@@ -11,13 +11,13 @@ PYTEST_SKIPS: list[str] = []
 
 if PLATFORM == "windows":
     PYTEST_SKIPS += [
-        "migration_python_code_blocks_are_discovered",
         "cli_reports_missing_input_file",
+        "migration_python_code_blocks_are_discovered",
         "python_module_entrypoint_writes_utf8_stdout_on_non_utf8_locale",
     ]
 elif PLATFORM == "darwin":
     PYTEST_SKIPS += [
-        "cf-not-a-test",
+        "failed_footnote_like_links_do_not_rescan_suffixes",
         "scale_nearly_linearly",
     ]
 
