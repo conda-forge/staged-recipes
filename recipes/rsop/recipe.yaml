@@ -1,0 +1,90 @@
+context:
+  version: "0.11.0"
+
+package:
+  name: rsop
+  version: ${{ version }}
+
+source:
+  url: https://codeberg.org/heiko/rsop/archive/rsop/v${{ version }}.tar.gz
+  sha256: c02b195dbd00732501cec9096b76b4e360b5d8ea873a713e363c40d1922ef19a
+
+build:
+  number: 1
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - cd rsop
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins --features=cliv
+          # copy shell completion files and man page
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions "$PREFIX"/share/man/man1
+          - find ../target -name rsop.bash -exec cp \{\} "$PREFIX"/share/bash-completion/completions/rsop \;
+          - find ../target -name rsop.fish -exec cp \{\} "$PREFIX"/share/fish/vendor_completions.d/rsop.fish \;
+          - find ../target -name _rsop     -exec cp \{\} "$PREFIX"/share/zsh/site-functions/_rsop \;
+          - find ../target -name rsop*.1   -exec cp \{\} "$PREFIX"/share/man/man1/ \;
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins --features=cliv
+          # copy shell completion files and man page
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - mkdir "%LIBRARY_PREFIX%"\share\man\man1
+          - for /f "usebackq delims=" %%f in (`dir /s /b ..\target\rsop.bash`) do (copy "%%f" "%LIBRARY_PREFIX%\share\bash-completion\completions\rsop")
+          - for /f "usebackq delims=" %%f in (`dir /s /b ..\target\rsop.fish`) do (copy "%%f" "%LIBRARY_PREFIX%\share\fish\vendor_completions.d\rsop.fish")
+          - for /f "usebackq delims=" %%f in (`dir /s /b ..\target\_rsop`)     do (copy "%%f" "%LIBRARY_PREFIX%\share\zsh\site-functions\_rsop")
+          - for /f "usebackq delims=" %%f in (`dir /s /b ..\target\rsop*.1`)   do (copy "%%f" "%LIBRARY_PREFIX%\share\man\man1\")
+      - cargo-bundle-licenses --format=yaml --output=../THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - rsop --help
+      - rsop version
+      - rsopv --help
+      - rsopv version
+  - package_contents:
+      bin:
+        - rsop
+        - rsopv
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/rsop
+            - share/fish/vendor_completions.d/rsop.fish
+            - share/zsh/site-functions/_rsop
+            - share/man/man1/rsop*.1
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/rsop
+            - Library/share/fish/vendor_completions.d/rsop.fish
+            - Library/share/zsh/site-functions/_rsop
+            - Library/share/man/man1/rsop*.1
+      strict: true
+
+about:
+  summary: Stateless OpenPGP (SOP) CLI tool
+  description: |
+    rsop is a "Stateless OpenPGP" (SOP) CLI tool. It exposes a simple,
+    standardized CLI interface to perform a set of common OpenPGP operations.
+  license: CC0-1.0
+  license_file:
+    - LICENSES/CC0-1.0.txt
+    - THIRDPARTY.yml
+  homepage: https://codeberg.org/heiko/rsop
+  repository: https://codeberg.org/heiko/rsop
+
+extra:
+  recipe-maintainers:
+    - salim-b
