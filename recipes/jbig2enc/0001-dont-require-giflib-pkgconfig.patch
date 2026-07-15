@@ -1,11 +1,27 @@
 --- a/meson.build	2026-07-14 20:33:04.282412267 +0000
-+++ b/meson.build	2026-07-14 20:33:04.288183122 +0000
-@@ -80,7 +80,7 @@
++++ b/meson.build	2026-07-15 04:56:21.599885554 +0000
+@@ -80,8 +80,22 @@
  
  # Pre-resolve giflib with required:true so wrap fallback activates.
  # Leptonica uses required:false which skips wraps entirely.
 -dependency('giflib')
+-lept_dep = dependency('lept', version: '>=1.74')
 +dependency('giflib', required: false)
- lept_dep = dependency('lept', version: '>=1.74')
++lept_dep = dependency('lept', version: '>=1.74', required: false)
++if not lept_dep.found()
++    # Some platforms/toolchains (notably MSVC) don't ship a pkg-config
++    # or CMake config file for Leptonica. Fall back to a plain linker
++    # search; conda-forge's compiler activation already points the
++    # linker/include search paths at the host prefix.
++    lept_lib = cxx.find_library('leptonica', required: false)
++    if not lept_lib.found()
++        lept_lib = cxx.find_library('lept', required: false)
++    endif
++    if not lept_lib.found()
++        error('Leptonica (>=1.74) not found via pkg-config, CMake, or as a linkable library.')
++    endif
++    lept_dep = declare_dependency(dependencies: lept_lib)
++endif
  dependencies = [
      lept_dep,
+     cxx.find_library('m', required: false),
