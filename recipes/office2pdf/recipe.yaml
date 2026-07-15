@@ -26,10 +26,23 @@ source:
 build:
   number: 0
   script:
-    - if: unix
-      then: build.sh
-    - if: win
-      then: build.bat
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      # The crates.io release is fetched as a tarball but not auto-extracted
+      # (the source sets a file_name), so unpack it before building.
+      - if: unix
+        then: |
+          tar -xzf office2pdf-cli-${{ version }}.tar.gz
+          cd office2pdf-cli-${{ version }}
+          cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
+          cargo auditable install --locked --no-track --bins --root "${PREFIX}" --path .
+        else: |
+          tar -xzf office2pdf-cli-${{ version }}.tar.gz
+          cd office2pdf-cli-${{ version }}
+          cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
+          cargo auditable install --locked --no-track --bins --root "%LIBRARY_PREFIX%" --path .
 
 requirements:
   build:
@@ -37,6 +50,7 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - cargo-bundle-licenses
+    - cargo-auditable
 
 tests:
   - script:
