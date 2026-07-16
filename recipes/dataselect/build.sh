@@ -1,7 +1,17 @@
 #!/bin/bash
 set -euxo pipefail
 
-make
+# Use conda-forge libmseed instead of the vendored copy in libmseed/
+rm -rf libmseed/
+
+# The top-level Makefile descends into libmseed/, so call src/ directly.
+# EXTRACFLAGS/EXTRALDFLAGS override the hardcoded ../libmseed paths in src/Makefile.
+export CFLAGS="${CFLAGS} -DLIBMSEED_URL"
+export LDFLAGS="${LDFLAGS} $(curl-config --libs)"
+
+make -C src \
+    EXTRACFLAGS="-I${PREFIX}/include" \
+    EXTRALDFLAGS="-L${PREFIX}/lib"
 
 mkdir -p "${PREFIX}/bin" "${PREFIX}/share/man/man1"
 install -m 755 dataselect "${PREFIX}/bin/dataselect"
