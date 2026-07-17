@@ -1,3 +1,5 @@
+schema_version: 1
+
 context:
   version: "0.12.1"
 
@@ -6,42 +8,48 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/glencoesoftware/bioformats2raw/releases/download/v${{ version }}/bioformats2raw-${{ version }}.zip
-  sha256: 51fbbf04a83c2042b707fce016ad0c8260d37194ff8fe7d986d53f4ebee116a6
+  url: https://github.com/glencoesoftware/bioformats2raw/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3447cd42ce53bd761e7f273a0abc26bfbc9c954e7d5243cb7f01debeadbebecd
+  patches:
+    - 0001-conda-build.patch
 
 build:
   number: 0
-  script:
-    - if: unix
-      then:
-        - mkdir -p "$PREFIX/share/bioformats2raw" "$PREFIX/bin"
-        - cp -R bin lib "$PREFIX/share/bioformats2raw/"
-        - chmod +x "$PREFIX/share/bioformats2raw/bin/bioformats2raw"
-        - ln -s ../share/bioformats2raw/bin/bioformats2raw "$PREFIX/bin/bioformats2raw"
-    - if: win
-      then:
-        - mkdir "%PREFIX%\share\bioformats2raw\bin"
-        - mkdir "%PREFIX%\share\bioformats2raw\lib"
-        - xcopy /E /I /Y "bin" "%PREFIX%\share\bioformats2raw\bin"
-        - xcopy /E /I /Y "lib" "%PREFIX%\share\bioformats2raw\lib"
-        - echo @call "%%~dp0..\share\bioformats2raw\bin\bioformats2raw.bat" %%* > "%SCRIPTS%\bioformats2raw.bat"
 
 requirements:
+  build:
+    - gradle =9.3.1
+    - openjdk =21
   run:
-    - openjdk >=11,<26  # in line with bioformats2raw testing
+    - openjdk >=11,<26
 
 tests:
   - script:
       - if: unix
-        then: bioformats2raw --version 2>&1 | grep -F "Version = ${{ version }}"
+        then:
+          - mkdir -p "$CONDA_PREFIX/bioformats2raw-tmp"
+          - export JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=$CONDA_PREFIX/bioformats2raw-tmp"
       - if: win
-        then: bioformats2raw --version 2>&1 | findstr /C:"Version = ${{ version }}"
+        then:
+          - if not exist "%CONDA_PREFIX%\bioformats2raw-tmp" mkdir "%CONDA_PREFIX%\bioformats2raw-tmp"
+          - set "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=%CONDA_PREFIX%\bioformats2raw-tmp"
+      - if: unix
+        then: bioformats2raw --version 2>&1 | grep -F "Version = ${PKG_VERSION}"
+      - if: win
+        then: bioformats2raw --version 2>&1 | findstr /C:"Version = %PKG_VERSION%"
       - bioformats2raw --help
       - bioformats2raw "test&sizeX=16&sizeY=16.fake" output.zarr --resolutions 1
       - if: unix
-        then: test -d output.zarr
-      - if: win
-        then: if not exist output.zarr\NUL exit /b 1
+        then:
+          - test -f output.zarr/.zgroup
+          - test -f output.zarr/.zattrs
+          - test -f output.zarr/0/0/.zarray
+          - test -f output.zarr/OME/METADATA.ome.xml
+        else:
+          - if not exist output.zarr\.zgroup exit /b 1
+          - if not exist output.zarr\.zattrs exit /b 1
+          - if not exist output.zarr\0\0\.zarray exit /b 1
+          - if not exist output.zarr\OME\METADATA.ome.xml exit /b 1
 
 about:
   homepage: https://github.com/glencoesoftware/bioformats2raw
@@ -50,7 +58,9 @@ about:
     bioformats2raw converts image file formats supported by Bio-Formats into
     a Zarr structure compatible with the OME-NGFF specification.
   license: GPL-2.0-only
-  license_file: LICENSE.txt
+  license_file:
+    - LICENSE.txt
+    - build/reports/dependency-license/
   documentation: https://github.com/glencoesoftware/bioformats2raw/blob/v${{ version }}/README.md
   repository: https://github.com/glencoesoftware/bioformats2raw
 
