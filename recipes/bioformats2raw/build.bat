@@ -14,4 +14,7 @@ xcopy /E /I /Y "build\install\bioformats2raw\*" "%PREFIX%\share\bioformats2raw\"
 if errorlevel 1 exit /b 1
 
 if not exist "%SCRIPTS%" mkdir "%SCRIPTS%"
+if errorlevel 1 exit /b 1
 echo @call "%%~dp0..\share\bioformats2raw\bin\bioformats2raw.bat" %%* > "%SCRIPTS%\bioformats2raw.bat"
+if errorlevel 1 exit /b 1
+if not exist "%SCRIPTS%\bioformats2raw.bat" exit /b 1

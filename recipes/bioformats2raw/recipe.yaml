@@ -33,10 +33,16 @@ tests:
         then:
           - if not exist "%CONDA_PREFIX%\bioformats2raw-tmp" mkdir "%CONDA_PREFIX%\bioformats2raw-tmp"
           - set "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=%CONDA_PREFIX%\bioformats2raw-tmp"
+      # bioformats2raw 0.12.1 prints the correct version but exits with status 255,
+      # so capture its output and validate that separately from the exit status.
       - if: unix
-        then: bioformats2raw --version 2>&1 | grep -F "Version = ${PKG_VERSION}"
+        then:
+          - bioformats2raw --version > bioformats2raw-version.txt 2>&1 || true
+          - grep -F "Version = ${PKG_VERSION}" bioformats2raw-version.txt
       - if: win
-        then: bioformats2raw --version 2>&1 | findstr /C:"Version = %PKG_VERSION%"
+        then:
+          - bioformats2raw --version > bioformats2raw-version.txt 2>&1 || cmd /c exit 0
+          - findstr /C:"Version = %PKG_VERSION%" bioformats2raw-version.txt
       - bioformats2raw --help
       - bioformats2raw "test&sizeX=16&sizeY=16.fake" output.zarr --resolutions 1
       - if: unix
