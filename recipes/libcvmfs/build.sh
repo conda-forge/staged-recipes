@@ -6,12 +6,6 @@ set -euxo pipefail
 # the environment for the remaining dependencies to be found.
 export CMAKE_PREFIX_PATH="${PREFIX}"
 
-# cvmfs >=2.14 forces CMAKE_BUILD_TYPE to empty, dropping the -DNDEBUG that
-# Release builds would add. Without it the protobuf-generated code keeps its
-# ABSL_DCHECK paths, which would additionally require linking abseil.
-export CFLAGS="${CFLAGS} -DNDEBUG"
-export CXXFLAGS="${CXXFLAGS} -DNDEBUG"
-
 # The sha3 external detects the CPU architecture by compiling and running a
 # test program, which cannot work when cross-compiling. Pre-seed the result
 # (64opt is the x86_64 optimised Keccak implementation, 64compact the
@@ -51,12 +45,6 @@ cmake ${CMAKE_ARGS} \
 
 make -j"${CPU_COUNT}"
 make install
-
-# cvmfs overrides CMAKE_INSTALL_LIBDIR with lib64 on RedHat-flavoured Linux
-if [ -d "${PREFIX}/lib64" ]; then
-  mv "${PREFIX}"/lib64/* "${PREFIX}/lib/"
-  rmdir "${PREFIX}/lib64"
-fi
 
 # Collect the license files of the statically linked vendored libraries
 mkdir -p "${SRC_DIR}/vendored-licenses"
