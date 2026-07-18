@@ -1,0 +1,24 @@
+From: conda-forge
+Subject: [PATCH] Define EVIOCREVOKE when the kernel headers predate it
+
+conda-forge builds against the default sysroot, whose kernel headers are
+older than Linux 3.12 and therefore do not define EVIOCREVOKE. The ioctl
+number is part of the stable kernel UAPI, so defining it when absent is safe
+and lets the seatd server build; on kernels that lack the ioctl the call
+simply fails with ENOTTY at runtime, which is already handled.
+
+--- a/common/evdev.c
++++ b/common/evdev.c
+@@ -13,6 +13,12 @@
+
+ #include "evdev.h"
+
++/* Added in Linux 3.12; may be missing from older kernel headers. */
++#if defined(__linux__) && !defined(EVIOCREVOKE)
++#include <linux/ioctl.h>
++#define EVIOCREVOKE _IOW('E', 0x91, int)
++#endif
++
+ #define STRLEN(s) ((sizeof(s) / sizeof(s[0])) - 1)
+
+ #if defined(__linux__) || defined(__FreeBSD__)

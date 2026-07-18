@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  version: "1.31.3"
+
+package:
+  name: libinput
+  version: ${{ version }}
+
+source:
+  # Upstream stopped publishing release tarballs after 1.19.x and now ships
+  # signed git tags only, so the GitLab archive of the tag is the only tarball.
+  url: https://gitlab.freedesktop.org/libinput/libinput/-/archive/${{ version }}/libinput-${{ version }}.tar.gz
+  sha256: b6749bf6f1890f6631c0a70a027c35fec9d2e096a39f720548896e41474a9854
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - libudev
+    - libevdev
+    - mtdev
+  run_exports:
+    # libinput installs libinput.so.10. The soname is decoupled from the
+    # release version and has been 10 since libinput 1.0; upstream bumps the
+    # libtool current/age fields together so that current-age stays at 10 for
+    # ABI compatible additions.
+    - ${{ pin_subpackage('libinput', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - input
+      include:
+        - libinput.h
+      bin:
+        - libinput
+  - script:
+      - pkg-config --atleast-version=1.2.0 libinput
+      - libinput --help
+    requirements:
+      run:
+        - pkg-config
+        # libinput.pc has Requires.private: libudev, which pkg-config resolves.
+        - libudev
+
+about:
+  homepage: https://gitlab.freedesktop.org/libinput/libinput
+  license: MIT
+  # COPYING also explains why the bundled (but not installed) GPL-2.0 kernel
+  # input headers do not affect libinput's own licensing.
+  license_file: COPYING
+  summary: Input device library for Wayland compositors and X.Org
+  description: |
+    libinput is a library that handles input devices for display servers and
+    other applications that need to directly deal with input devices. It
+    provides device detection, device handling, input device event processing
+    and abstraction to minimize the amount of custom input code needed by
+    compositors.
+  documentation: https://wayland.freedesktop.org/libinput/doc/latest/
+  repository: https://gitlab.freedesktop.org/libinput/libinput
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  version: "24.1.13"
+
+package:
+  name: xwayland
+  version: ${{ version }}
+
+source:
+  url: https://www.x.org/releases/individual/xserver/xwayland-${{ version }}.tar.xz
+  sha256: 173aea3d6f79609164c04528e1c8e4c9b60fcd59391c3c9dad4667297d727fb6
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # wayland-scanner has to run on the build machine. See build.sh.
+    - wayland
+  host:
+    - wayland
+    - wayland-protocols
+    - xorg-xorgproto
+    - xorg-libxcvt
+    - xorg-libx11
+    - xorg-libxau
+    - xorg-libxdmcp
+    - xorg-libxshmfence
+    - xorg-xtrans
+    - libxkbfile
+    - libxfont2
+    - libfontenc
+    - libxkbcommon
+    - libdrm
+    - pixman
+    - epoxy
+    - libgbm
+    - libegl-devel
+    - nettle
+    - xkbcomp
+  run:
+    # Xwayland shells out to xkbcomp to compile keymaps at runtime, and reads
+    # the keyboard data from xkeyboard-config.
+    - xkbcomp
+    - xkeyboard-config
+
+tests:
+  - package_contents:
+      bin:
+        - Xwayland
+  - script:
+      - Xwayland -version
+      - pkg-config --modversion xwayland
+      # weston reads the Xwayland path out of xwayland.pc.
+      - test "$(pkg-config --variable=xwayland xwayland)" = "${PREFIX}/bin/Xwayland"
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://www.x.org
+  license: MIT
+  license_file: COPYING
+  summary: Run X11 clients under a Wayland compositor
+  description: |
+    Xwayland is an X server that runs as a Wayland client, allowing X11
+    applications to display on a Wayland compositor without modification.
+
+    It is built here with glamor and DRI3 enabled. GLX is disabled because
+    conda-forge ships no dri.pc / dri_interface.h, so X11 clients under
+    Xwayland use software GL rather than hardware accelerated GLX.
+  documentation: https://wayland.freedesktop.org/xserver.html
+  repository: https://gitlab.freedesktop.org/xorg/xserver
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
