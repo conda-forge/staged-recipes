@@ -1,0 +1,72 @@
+context:
+  version: "0.13.0"
+
+package:
+  name: bashkit
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/bashkit/bashkit-${{ version }}.tar.gz
+  sha256: 1045d75b38e51becde4ef552fb73785cf58d22e259bb77cd7185bc0b2d561511
+
+build:
+  number: 0
+  script:
+    env:
+      # Route maturin's cargo invocations through cargo-auditable so the
+      # compiled extension embeds a dependency audit trail (SBOM).
+      CARGO: cargo-auditable-wrapper${{ '' if unix else '.bat' }}
+    content:
+      - if: unix
+        then:
+          - cp ${RECIPE_DIR}/cargo-auditable-wrapper.sh ${BUILD_PREFIX}/bin/cargo-auditable-wrapper
+          - chmod +x ${BUILD_PREFIX}/bin/cargo-auditable-wrapper
+        else:
+          - copy %RECIPE_DIR%\cargo-auditable-wrapper.bat %BUILD_PREFIX%\Library\bin\cargo-auditable-wrapper.bat
+      - python -m pip install . -vv --no-deps --no-build-isolation
+      # Bundle the licenses of all vendored Rust dependencies.
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=1.4,<2.0
+  host:
+    - python
+    - pip
+    - maturin >=1.4,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - bashkit
+      pip_check: true
+
+about:
+  homepage: https://github.com/everruns/bashkit
+  summary: A sandboxed bash interpreter for AI agents
+  description: |
+    Bashkit is a virtual Bash interpreter with an embedded filesystem
+    designed for secure, sandboxed script execution in multi-tenant
+    environments. It reimplements many Bash commands in Rust without
+    process spawning or host filesystem access.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/everruns/bashkit
+
+extra:
+  recipe-maintainers:
+    - RogerHYang
