@@ -1,0 +1,105 @@
+context:
+  version: "2.14.0"
+
+package:
+  name: libcvmfs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cvmfs/cvmfs/archive/refs/tags/cvmfs-${{ version }}.tar.gz
+  sha256: c3ccc07d0873043e5035557704acbd50f8c4d223867564087f9001f92e65421d
+  patches:
+    # Let the conda-forge toolchain decide the SDK and deployment target
+    - patches/no-hardcoded-macos-sdk.patch
+    # Build the vendored pacparser with $CC/$CXX instead of /usr/bin/clang
+    - patches/pacparser-use-env-compiler.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  dynamic_linking:
+    overlinking_behavior: error
+    overdepending_behavior: error
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    - patch
+    # protoc is executed at build time to generate cache.pb.cc
+    - if: build_platform != target_platform
+      then:
+        - libprotobuf
+  host:
+    - c-ares
+    - leveldb
+    - libarchive
+    - libcurl
+    - libprotobuf
+    - libsqlite
+    - nlohmann_json
+    - openssl
+    - pacparser
+    - sparsehash
+    - zlib
+    - if: linux
+      then:
+        - libuuid
+  ignore_run_exports:
+    from_package:
+      # required by the top-level CMakeLists.txt at configure time but only
+      # linked into the server tools, which are not built here
+      - libarchive
+
+tests:
+  - package_contents:
+      strict: true
+      lib:
+        - cvmfs_client
+        - cvmfs_crypto
+        - cvmfs_util
+      include:
+        - libcvmfs.h
+      files:
+        exists:
+          - share/doc/cvmfs-${{ version }}/*
+          # support files for the compilation test below
+          - etc/conda/test-files/**
+  - script:
+      - $CC $CFLAGS $LDFLAGS tests/test_libcvmfs.c -lcvmfs_client -o test_libcvmfs
+      - ./test_libcvmfs
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+    files:
+      recipe:
+        - tests/
+
+about:
+  homepage: https://cernvm.cern.ch/fs/
+  license: BSD-3-Clause AND CC0-1.0
+  license_file:
+    - COPYING
+    - vendored-licenses/
+  summary: CernVM-FS client library for embedding a CernVM-FS client without FUSE
+  description: |
+    The CernVM File System (CernVM-FS) provides a scalable, reliable and
+    low-maintenance software distribution service. libcvmfs allows
+    applications to mount and access CernVM-FS repositories in
+    user space without a FUSE kernel module.
+
+    The package contains the libcvmfs_client library together with its
+    companion libraries libcvmfs_util and libcvmfs_crypto. The Keccak
+    reference SHA-3 implementation (CC0-1.0) is statically linked into
+    the package; unlike upstream's binary packages, libcvmfs_crypto is
+    built against OpenSSL rather than a bundled static LibreSSL.
+  documentation: https://cvmfs.readthedocs.io/
+  repository: https://github.com/cvmfs/cvmfs
+
+extra:
+  recipe-maintainers:
+    - chrisburr
