@@ -38,6 +38,14 @@ esac
 # stops find_library from searching paths outside the conda prefixes.
 mkdir -p "${SRC_DIR}/externals_build" "${SRC_DIR}/externals_install"
 
+# libcvmfs_util needs libcap on Linux (util/capabilities.cc), but upstream's
+# find_package(LibCAP) only runs when the FUSE client or server is built, so
+# provide the result directly.
+EXTRA_CMAKE_ARGS=""
+if [[ "${target_platform}" == linux-* ]]; then
+  EXTRA_CMAKE_ARGS="-DCAP_LIBRARIES=${PREFIX}/lib/libcap${SHLIB_EXT}"
+fi
+
 mkdir -p build
 cd build
 
@@ -64,10 +72,17 @@ cmake ${CMAKE_ARGS} \
   -DBUILTIN_EXTERNALS=ON \
   "-DBUILTIN_EXTERNALS_LIST=sha3" \
   "-DBUILTIN_EXTERNALS_EXCLUDE=json;libarchive" \
+  ${EXTRA_CMAKE_ARGS} \
   ..
 
 make -j"${CPU_COUNT}"
 make install
+
+# cvmfs overrides CMAKE_INSTALL_LIBDIR with lib64 on RedHat-flavoured Linux
+if [ -d "${PREFIX}/lib64" ]; then
+  mv "${PREFIX}"/lib64/* "${PREFIX}/lib/"
+  rmdir "${PREFIX}/lib64"
+fi
 
 # Collect the license files of the statically linked vendored libraries
 mkdir -p "${SRC_DIR}/vendored-licenses"
