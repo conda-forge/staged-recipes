@@ -32,6 +32,12 @@ case "${target_platform}" in
     ;;
 esac
 
+# Pre-create the (legacy, suffix-free) externals directories so their
+# location is predictable, and point the SHA3 find module at the result
+# directly: the toolchain's CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY on Linux
+# stops find_library from searching paths outside the conda prefixes.
+mkdir -p "${SRC_DIR}/externals_build" "${SRC_DIR}/externals_install"
+
 mkdir -p build
 cd build
 
@@ -53,6 +59,8 @@ cmake ${CMAKE_ARGS} \
   -DHELP2MAN=HELP2MAN-NOTFOUND \
   -DLibcrypto_INCLUDE_DIRS="${PREFIX}/include" \
   -DLibcrypto_LIBRARIES="${PREFIX}/lib/libcrypto${SHLIB_EXT}" \
+  -DSHA3_INCLUDE_DIRS="${SRC_DIR}/externals_install/include" \
+  -DSHA3_LIBRARIES="${SRC_DIR}/externals_install/lib/libsha3.a" \
   -DBUILTIN_EXTERNALS=ON \
   "-DBUILTIN_EXTERNALS_LIST=sha3" \
   "-DBUILTIN_EXTERNALS_EXCLUDE=json;libarchive" \
