@@ -40,7 +40,7 @@ cmake ${CMAKE_ARGS} \
   -DHELP2MAN=HELP2MAN-NOTFOUND \
   -DBUILTIN_EXTERNALS=ON \
   "-DBUILTIN_EXTERNALS_LIST=sha3" \
-  "-DBUILTIN_EXTERNALS_EXCLUDE=json;libarchive;libcrypto" \
+  "-DBUILTIN_EXTERNALS_EXCLUDE=json;libcrypto" \
   ..
 
 make -j"${CPU_COUNT}"

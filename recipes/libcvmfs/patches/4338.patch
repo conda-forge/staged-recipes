@@ -1,7 +1,7 @@
 From 2bf296be03cc04c4239c44e52ad7ac6d8c31fc12 Mon Sep 17 00:00:00 2001
 From: Chris Burr <christopher.burr@cern.ch>
 Date: Sat, 18 Jul 2026 23:26:37 +0200
-Subject: [PATCH 1/2] fix: search for libcap in every configuration that builds
+Subject: [PATCH 1/3] fix: search for libcap in every configuration that builds
  libcvmfs-util
 
 util/capabilities.cc is part of libcvmfs-util and links ${CAP_LIBRARIES},
@@ -40,7 +40,7 @@ index 513c4e8508..14e3c7152a 100644
 From c49fb080fdbc354dd14b2966dc3b735d9d17a85f Mon Sep 17 00:00:00 2001
 From: Chris Burr <christopher.burr@cern.ch>
 Date: Sat, 18 Jul 2026 23:26:57 +0200
-Subject: [PATCH 2/2] ci: build the client library standalone
+Subject: [PATCH 2/3] ci: build the client library standalone
 
 Cover the BUILD_LIBCVMFS-only configuration used by library consumers and
 downstream packagers so that regressions like the missing libcap lookup are
@@ -107,3 +107,51 @@ index 0000000000..0ca4cc9178
 +
 +      - name: Build
 +        run: cmake --build build -j"$(nproc)"
+
+From f27fa6dad68cca2c352ef1bf22aae730b97756a2 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 19 Jul 2026 00:40:35 +0200
+Subject: [PATCH 3/3] fix: only set up the libarchive external for targets that
+ use it
+
+libarchive is used for tarball ingestion, which is compiled into
+cvmfs_swissknife, cvmfs_publish, and cvmfs_preload only. The external was
+processed unconditionally, so configurations that build none of these
+(e.g. only BUILD_LIBCVMFS) required a system libarchive or downloaded and
+built the vendored copy for nothing. The libcvmfs CI job drops
+libarchive-dev accordingly.
+---
+ .github/workflows/ci_libcvmfs.yml | 1 -
+ externals/CMakeLists.txt          | 7 ++++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/.github/workflows/ci_libcvmfs.yml b/.github/workflows/ci_libcvmfs.yml
+index 0ca4cc9178..7e5bc50a23 100644
+--- a/.github/workflows/ci_libcvmfs.yml
++++ b/.github/workflows/ci_libcvmfs.yml
+@@ -20,7 +20,6 @@ jobs:
+           sudo apt-get update
+           sudo apt-get install -y \
+             cmake g++ make patch \
+-            libarchive-dev \
+             libc-ares-dev \
+             libcap-dev \
+             libcurl4-openssl-dev \
+diff --git a/externals/CMakeLists.txt b/externals/CMakeLists.txt
+index 1d7e1dc4ed..c3874a687a 100644
+--- a/externals/CMakeLists.txt
++++ b/externals/CMakeLists.txt
+@@ -4,7 +4,12 @@ include(${CMAKE_SOURCE_DIR}/cmake/Modules/ExternalDepMacros.cmake)
+ 
+ set(EXTERNALS_INSTALL_TARGETS "")
+ 
+-add_subdirectory(libarchive)
++# libarchive is only used for tarball ingestion by the publishing tools
++# (cvmfs_swissknife, cvmfs_publish, cvmfs_preload)
++if(BUILD_CVMFS OR BUILD_SERVER OR BUILD_SERVER_DEBUG OR BUILD_RECEIVER OR
++   BUILD_PRELOADER)
++  add_subdirectory(libarchive)
++endif()
+ add_subdirectory(json)
+ add_subdirectory(pacparser)
+ add_subdirectory(protobuf)
