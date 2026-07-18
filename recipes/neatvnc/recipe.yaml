@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  version: "1.0.1"
+
+package:
+  name: neatvnc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/any1/neatvnc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c37678fb1f9bbb8bd0932eb6dbd68bf10e937777c376c6c278ed37510b2cbd4b
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - aml
+    - pixman
+    - zlib
+    # gnutls provides TLS (VeNCrypt encryption & authentication).
+    - gnutls
+    # nettle (with hogweed and gmp) enables the RSA-AES auth path, DES/Apple-DH
+    # authentication and the WebSocket transport.
+    - nettle
+    - gmp
+    # libdrm's headers are pulled unconditionally for dmabuf pixel formats.
+    - libdrm
+  run_exports:
+    # library(version: '1.0.1') installs libneatvnc.so.1: the soname tracks
+    # only the major version, so pin on the major.
+    - ${{ pin_subpackage('neatvnc', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - neatvnc
+      include:
+        - neatvnc.h
+  - script:
+      - pkg-config --modversion neatvnc
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://github.com/any1/neatvnc
+  license: ISC
+  license_file: COPYING
+  summary: A neat VNC server library
+  description: |
+    Neat VNC is a liberally licensed VNC server library written in C. It is
+    designed to be easy to use and integrate into applications, supports TLS
+    encryption, RSA-AES and VeNCrypt authentication, the Tight and ZRLE
+    encodings and dmabuf-backed framebuffers. It provides the VNC backend
+    used by Weston and wayvnc.
+  repository: https://github.com/any1/neatvnc
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

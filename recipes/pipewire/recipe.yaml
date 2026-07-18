@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  version: "1.6.8"
+
+package:
+  name: pipewire
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/${{ version }}/pipewire-${{ version }}.tar.gz
+  sha256: 8181172a1d95131f6af8bbc0b98f90b2a33349b042b84c3ce57dd5d11348cc58
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # i18n.gettext() in po/meson.build needs msgfmt to compile translations.
+    - gettext
+  host:
+    # dbus is the only genuine external dependency of this minimal build: the
+    # spa-support dbus plugin links libdbus-1. libpipewire-0.3 itself only
+    # needs libc, libdl, libm, libpthread and libatomic.
+    - dbus
+  run_exports:
+    # Installs libpipewire-0.3.so.0 (soversion 0). The "0.3" ABI marker in the
+    # library name is kept stable across the whole 1.x series -- only additive
+    # changes -- so a consumer built against 1.6.x keeps working with later
+    # 1.x. Bound at the next major to be safe.
+    - ${{ pin_subpackage('pipewire', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - pipewire-0.3
+  - script:
+      - pkg-config --modversion libpipewire-0.3
+      - pkg-config --modversion libspa-0.2
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://pipewire.org
+  license: MIT
+  license_file: COPYING
+  summary: Server and user space API to deal with multimedia pipelines
+  description: |
+    PipeWire is a server and user space API to deal with multimedia pipelines.
+    It provides a low-latency, graph-based processing engine on top of audio
+    and video devices that can be used to support the use cases currently
+    handled by both PulseAudio and JACK.
+
+    This is a minimal build providing only the core client library
+    (libpipewire-0.3) and the SPA plugin API headers (libspa-0.2), which is
+    what Weston's backend-pipewire links against. The session managers,
+    ALSA/JACK/V4L2 integrations, bluez5, gstreamer, ffmpeg and pulse support
+    are all disabled to keep the dependency footprint small.
+  repository: https://gitlab.freedesktop.org/pipewire/pipewire
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
