@@ -1,0 +1,56 @@
+schema_version: 1
+
+context:
+  version: "0.2.2"
+
+package:
+  name: tomlq
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cryptaliagy/tomlq/archive/${{ version }}.tar.gz
+  sha256: 2a9cff8827dd0d3213470e9a333645492c4d8fe0a733439cc42db4c7b1fc6292
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: unix
+      then: cargo install --path . --root ${{ PREFIX }} --no-track --features bin,json
+      else: cargo install --path . --root %PREFIX% --no-track --features bin,json
+    # Pixi: prevent CONDA_PREFIX from leaking into tq command
+    - if: win
+      then:
+        - 'mkdir "%PREFIX%\etc\pixi\tomlq"'
+        - 'type nul > "%PREFIX%\etc\pixi\tomlq\global-ignore-conda-prefix"'
+      else:
+        - mkdir -p ${PREFIX}/etc/pixi/tomlq
+        - touch ${PREFIX}/etc/pixi/tomlq/global-ignore-conda-prefix
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - tq --version
+      - tq --help
+
+about:
+  summary: A tool for getting data from TOML files on the command line
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/cryptaliagy/tomlq
+  repository: https://github.com/cryptaliagy/tomlq
+  description: |
+    tq (tomlq) is a command-line tool for querying and extracting data from
+    TOML files, similar to jq for JSON.
+
+extra:
+  recipe-maintainers:
+    - trim21
