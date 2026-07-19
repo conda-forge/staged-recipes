@@ -1,4 +1,5 @@
-#! /bin/bash
+#!/bin/bash
+set -ex
 
 mkdir -p build && cd build
 
