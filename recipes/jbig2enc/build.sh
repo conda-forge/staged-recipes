@@ -7,5 +7,5 @@ meson setup builddir \
   --buildtype=release \
   --wrap-mode=nofallback
 
-meson compile -C builddir
+meson compile -C builddir -j "${CPU_COUNT:-1}"
 meson install -C builddir

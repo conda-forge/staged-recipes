@@ -20,7 +20,9 @@ meson setup builddir ^
   !LEPT_OPT!
 if errorlevel 1 exit /b 1
 
-meson compile -C builddir
+if "%CPU_COUNT%"=="" set "CPU_COUNT=1"
+
+meson compile -C builddir -j %CPU_COUNT%
 if errorlevel 1 exit /b 1
 
 meson install -C builddir
