@@ -1,0 +1,270 @@
+schema_version: 1
+
+context:
+  version: "1.4.0"
+  package_version: "1.0.0"
+  unstable_version: "1.1.0"
+  python_min: "3.10"
+
+recipe:
+  name: instro
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nominal-io/instro/archive/refs/tags/instro-v${{ version }}.tar.gz
+  sha256: 4c19dd32683a06cba53a86eb71bc2232612b3263af18c7d472cab7757e788264
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: instro
+      version: ${{ version }}
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - instro = instro.cli.main:app
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - cramjam
+        - fastavro >=1.12.1
+        - gpib-ctypes >=0.3.0
+        - libusb-package
+        - nominal >=1.99.0,<2.0.0
+        - psutil
+        - pydantic >=2.0
+        - pymodbus >=3.10,<3.13
+        - pyserial >=3.5
+        - pyusb
+        - pyvicp
+        - pyvisa >=1.15
+        - pyvisa-py >=0.8.1,<0.9
+        - textual >=0.80
+        - thermocouples >=2.1.2
+        - typer >=0.12
+        - zeroconf
+    tests:
+      - python:
+          imports:
+            - instro
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - instro --help
+    about:
+      summary: "Typed Python API for test-and-measurement instruments: power supplies, multimeters, electronic loads, DAQs, and more"
+
+  - package:
+      name: instro-contrib
+      version: ${{ package_version }}
+    build:
+      noarch: python
+      script: cd packages/instro-contrib && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - instro.contrib
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      summary: Community-contributed instro drivers
+
+  - package:
+      name: instro-daq-labjack
+      version: ${{ package_version }}
+    build:
+      noarch: python
+      script: cd packages/instro-daq-labjack && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+        - labjack-ljm >=1.23.0
+    tests:
+      - python:
+          imports:
+            - instro.daq.drivers.labjack
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      summary: LabJack T-series DAQ drivers for instro
+
+  - package:
+      name: instro-daq-mcc
+      version: ${{ package_version }}
+    build:
+      skip: not win
+      script: cd packages/instro-daq-mcc && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+        - mcculw >=1.0.0
+    tests:
+      - python:
+          imports:
+            - instro.daq.drivers.mcc
+          pip_check: true
+    about:
+      summary: Measurement Computing DAQ drivers for instro
+
+  - package:
+      name: instro-daq-ni
+      version: ${{ package_version }}
+    build:
+      noarch: python
+      script: cd packages/instro-daq-ni && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+        - nidaqmx-python >=1.2.0
+    tests:
+      - python:
+          imports:
+            - instro.daq.drivers.ni
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      summary: National Instruments DAQmx drivers for instro
+
+  - package:
+      name: instro-ethernetip
+      version: ${{ package_version }}
+    build:
+      script:
+        - cd packages/instro-ethernetip
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        version_independent: true
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - cross-python_${{ target_platform }}
+            - python
+            - maturin >=1.7,<2
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      host:
+        - python ${{ python_min }}.*
+        - python-abi3
+        - maturin >=1.7,<2
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - instro.ethernetip
+            - instro.ethernetip._ethernetip
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - requirements:
+          run:
+            - abi3audit
+        script:
+          - if: unix
+            then: abi3audit $SP_DIR/instro/ethernetip/_ethernetip.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          - if: win
+            then: abi3audit %SP_DIR%\instro\ethernetip\_ethernetip.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    about:
+      summary: EtherNet/IP device support for instro
+      license_file:
+        - packages/instro-ethernetip/LICENSE
+        - packages/instro-ethernetip/THIRDPARTY.yml
+
+  - package:
+      name: instro-i2c-aardvark
+      version: ${{ package_version }}
+    build:
+      noarch: python
+      script: cd packages/instro-i2c-aardvark && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+        - pyaardvark >=0.8.1
+    tests:
+      - python:
+          imports:
+            - instro.i2c.drivers.totalphase
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      summary: Total Phase Aardvark I2C driver for instro
+
+  - package:
+      name: instro-unstable
+      version: ${{ unstable_version }}
+    build:
+      noarch: python
+      script: cd packages/instro-unstable && ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - pip
+      run:
+        - python >=${{ python_min }},<3.14
+        - ${{ pin_subpackage('instro', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - instro.unstable
+          pip_check: true
+          python_version: ${{ python_min }}.*
+    about:
+      summary: Unstable modules for instro
+
+about:
+  summary: Typed APIs and drivers for test-and-measurement instruments
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+  homepage: https://github.com/nominal-io/instro
+  repository: https://github.com/nominal-io/instro
+
+extra:
+  recipe-maintainers:
+    - wolfv
