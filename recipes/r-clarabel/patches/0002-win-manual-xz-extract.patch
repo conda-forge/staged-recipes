@@ -1,0 +1,39 @@
+From 729c8d7761eb0880c61a98cce8ee50601713d239 Mon Sep 17 00:00:00 2001
+From: Mervin Fansler <mervin.fansler@bric.ku.dk>
+Date: Mon, 20 Jul 2026 15:35:52 +0200
+Subject: [PATCH] win manual xz extract
+
+---
+ src/Makevars.win | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/Makevars.win b/src/Makevars.win
+index a071c30..ee60d00 100644
+--- a/src/Makevars.win
++++ b/src/Makevars.win
+@@ -1,5 +1,7 @@
+ TARGET = x86_64-pc-windows-gnu
+ 
++XZ = xz
++VENDOR_TAR = ./rust/vendor.tar
+ VENDOR_DIR = ./rust/vendor
+ 
+ # catch DEBUG envvar, which is passed from pkgbuild::compile_dll()
+@@ -26,13 +28,16 @@ $(STATLIB):
+ 	# in actual, but we need this tweak to please the compiler.
+ 	mkdir -p $(LIBDIR)/libgcc_mock && touch $(LIBDIR)/libgcc_mock/libgcc_eh.a
+ 	mkdir -p $(CARGOTMP) && cp ./rust/cargo_vendor_config.toml $(CARGOTMP)/config.toml
+-	$(TAR) --extract --xz -f ./rust/vendor.tar.xz -C ./rust 
++	rm -f $(VENDOR_TAR)
++	$(XZ) -d -c ./rust/vendor.tar.xz > $(VENDOR_TAR)
++	$(TAR) -xf $(VENDOR_TAR) -C ./rust
+ 	export CARGO_HOME="$(CARGOTMP)" && \
+ 	  export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$(CARGO_LINKER)" && \
+ 	  export R_HOME="$(R_HOME)" && \
+ 	  export LIBRARY_PATH="$${LIBRARY_PATH};$(LIBDIR)/libgcc_mock" && \
+ 	  cargo build -j 2 --target $(TARGET) --lib --offline --release --manifest-path ./rust/Cargo.toml --target-dir $(TARGET_DIR)
+ 	rm -Rf $(CARGOTMP)
++	rm -f $(VENDOR_TAR)
+ 	rm -Rf $(VENDOR_DIR)
+ 	rm -Rf ../vendor
+ 	rm -Rf $(LIBDIR)/build
