@@ -1,0 +1,113 @@
+From 2e6706bd38cdc8e29852f42c2082206b597f0c41 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 19 Jul 2026 00:01:50 +0200
+Subject: [PATCH] feat: support building libcvmfs-crypto against the system
+ OpenSSL
+
+libcvmfs_crypto links a private static LibreSSL by default, which remains
+unchanged. When the libcrypto external is disabled -- BUILTIN_EXTERNALS=OFF,
+BUILTIN_EXTERNALS_EXCLUDE=libcrypto, or an explicit BUILTIN_EXTERNALS_LIST
+that does not contain it -- these configurations previously failed because
+FindLibcrypto only searches the externals install tree and
+crypto/openssl_version.h rejects OpenSSL includes outright. Fall back to
+the OpenSSL::Crypto target located by the mandatory find_package(OpenSSL)
+and relax the include guard through a build-system-provided definition.
+
+The crypto code already supports OpenSSL 3: API selection keys off
+OPENSSL_VERSION_NUMBER and the RIPEMD-160 implementation uses the
+low-level RIPEMD160_* functions. Gentoo has shipped an equivalent patch
+since 2.10 and conda-forge seeds the same variables; with this change
+both can drop their downstream patches.
+---
+ CMakeLists.txt                    | 16 ++++++++++++++++
+ cmake/Modules/FindLibcrypto.cmake | 31 +++++++++++++++++++------------
+ cvmfs/crypto/openssl_version.h    |  6 ++++--
+ 3 files changed, 39 insertions(+), 14 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 513c4e8508..9f735a73b6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -426,6 +426,22 @@ endif ()
+ find_package (OpenSSL REQUIRED)
+ set (INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} ${OPENSSL_INCLUDE_DIR})
+ 
++# libcvmfs_crypto links a private static LibreSSL libcrypto by default. When
++# the libcrypto external is disabled (BUILTIN_EXTERNALS=OFF, an explicit
++# BUILTIN_EXTERNALS_LIST without it, or BUILTIN_EXTERNALS_EXCLUDE=libcrypto),
++# fall back to the system OpenSSL for libcvmfs_crypto as well.
++string (TOLOWER "${BUILTIN_EXTERNALS_LIST}" _builtin_list_lower)
++string (TOLOWER "${BUILTIN_EXTERNALS_EXCLUDE}" _builtin_exclude_lower)
++if (NOT BUILTIN_EXTERNALS
++    OR "libcrypto" IN_LIST _builtin_exclude_lower
++    OR (BUILTIN_EXTERNALS_LIST AND NOT "libcrypto" IN_LIST _builtin_list_lower))
++  set (CVMFS_SYSTEM_LIBCRYPTO ON)
++  message (STATUS "libcvmfs_crypto: using the system OpenSSL libcrypto")
++  add_definitions (-DCVMFS_CRYPTO_SYSTEM_OPENSSL)
++else ()
++  set (CVMFS_SYSTEM_LIBCRYPTO OFF)
++endif ()
++
+ find_package (Libcrypto REQUIRED)
+ # We do not add the Libcrypto include directories to INCLUDE_DIRECTORIES
+ # to avoid a clash with the system openssl. We only use it for libcvmfs_crypto
+diff --git a/cmake/Modules/FindLibcrypto.cmake b/cmake/Modules/FindLibcrypto.cmake
+index 8af068571a..b9722465f3 100644
+--- a/cmake/Modules/FindLibcrypto.cmake
++++ b/cmake/Modules/FindLibcrypto.cmake
+@@ -7,19 +7,26 @@
+ #  Libcrypto_LIBRARIES - Link these to use SHA3
+ #
+ 
+-find_path(
+-    Libcrypto_INCLUDE_DIRS
+-    NAMES tls.h
+-    PATHS ${EXTERNALS_INSTALL_LOCATION}/crypto/include
+-    NO_DEFAULT_PATH
+-)
++if(CVMFS_SYSTEM_LIBCRYPTO)
++  # The built-in LibreSSL is disabled: use the system OpenSSL located by the
++  # mandatory find_package(OpenSSL) instead.
++  set(Libcrypto_LIBRARIES OpenSSL::Crypto)
++  set(Libcrypto_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
++else()
++  find_path(
++      Libcrypto_INCLUDE_DIRS
++      NAMES tls.h
++      PATHS ${EXTERNALS_INSTALL_LOCATION}/crypto/include
++      NO_DEFAULT_PATH
++  )
+ 
+-find_library(
+-    Libcrypto_LIBRARIES
+-    NAMES crypto
+-    PATHS ${EXTERNALS_INSTALL_LOCATION}/crypto/lib
+-    NO_DEFAULT_PATH
+-)
++  find_library(
++      Libcrypto_LIBRARIES
++      NAMES crypto
++      PATHS ${EXTERNALS_INSTALL_LOCATION}/crypto/lib
++      NO_DEFAULT_PATH
++  )
++endif()
+ 
+ include(FindPackageHandleStandardArgs)
+ FIND_PACKAGE_HANDLE_STANDARD_ARGS(
+diff --git a/cvmfs/crypto/openssl_version.h b/cvmfs/crypto/openssl_version.h
+index ef0c6d29d9..2c82bfde95 100644
+--- a/cvmfs/crypto/openssl_version.h
++++ b/cvmfs/crypto/openssl_version.h
+@@ -8,8 +8,10 @@
+ #include <openssl/opensslv.h>
+ 
+ // Safeguard when compiling libcvmfs_crypto: make sure we pick up the built-in
+-// LibreSSL and not the system's OpenSSL
+-#ifdef CVMFS_LIBRARY
++// LibreSSL and not the system's OpenSSL. The build system defines
++// CVMFS_CRYPTO_SYSTEM_OPENSSL when the libcrypto external is disabled and
++// the system OpenSSL is the intended crypto provider.
++#if defined(CVMFS_LIBRARY) && !defined(CVMFS_CRYPTO_SYSTEM_OPENSSL)
+ #ifndef LIBRESSL_VERSION_NUMBER
+ #error "picking up OpenSSL includes instead of LibreSSL"
+ #endif

@@ -1,0 +1,79 @@
+context:
+  version: "1.5.1"
+
+package:
+  name: pacparser
+  version: ${{ version }}
+
+source:
+  url: https://github.com/manugarg/pacparser/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 88dda1833b5c467ea61d0217fa58fbc7980f7c5a856ca2af325e6a110b1c081d
+  patches:
+    # The statically linked QuickJS needs pthreads, which glibc < 2.34
+    # does not provide as part of libc
+    # https://github.com/manugarg/pacparser/pull/250
+    - patches/250.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  dynamic_linking:
+    overlinking_behavior: error
+    overdepending_behavior: error
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+  run_exports:
+    - ${{ pin_subpackage('pacparser', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - pactester
+      lib:
+        - pacparser
+      include:
+        - pacparser.h
+      files:
+        - share/man/man1/*
+        - share/man/man3/*
+        - share/doc/pacparser/**
+        # support files for the compilation test below
+        - etc/conda/test-files/**
+  - script:
+      - pactester -p $PREFIX/share/doc/pacparser/examples/wpad.dat -u http://www.example.com/
+      - $CC $CFLAGS $LDFLAGS tests/test_pacparser.c -lpacparser -o test_pacparser
+      - ./test_pacparser
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+    files:
+      recipe:
+        - tests/
+
+about:
+  homepage: https://pacparser.manugarg.com/
+  license: LGPL-3.0-or-later AND MIT
+  license_file:
+    - COPYING
+    - LICENSE.quickjs
+  summary: Library to parse proxy auto-config (PAC) files
+  description: |
+    pacparser is a library to parse proxy auto-config (PAC) files. Proxy
+    auto-config files are a vastly used proxy configuration method these
+    days. Web browsers can use a PAC file to determine which proxy server
+    to use or whether to go direct for a given URL. The package also ships
+    the pactester command line tool to test PAC files. The bundled
+    QuickJS-ng JavaScript engine (MIT) is statically linked into the
+    library with its symbols hidden.
+  repository: https://github.com/manugarg/pacparser
+  documentation: https://pacparser.manugarg.com/
+
+extra:
+  recipe-maintainers:
+    - chrisburr
