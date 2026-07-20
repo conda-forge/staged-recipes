@@ -1,0 +1,95 @@
+schema_version: 1
+
+context:
+  name: warp-md
+  version: "0.4.6"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Haayhur/warp-md/archive/1e996053ff5bfed62a7a1b0546267e1aab3d6528.tar.gz
+  sha256: 7386366feda8e4c58180726682c7e3017ce259c71f1e799987665a9b829519ab
+
+build:
+  number: 0
+  # CUDA builds are Linux-only
+  skip:
+    - not linux and (cuda_compiler_version != "None")
+  python:
+    entry_points:
+      - warp-md = warp_md.cli:main
+      - warp-build = warp_md.build_cli:main
+      - warp-pack = warp_md.pack_cli:main
+      - warp-cg = warp_md.cg_cli:main
+      - warp-pep = warp_md.pep_cli:main
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - if: cuda_compiler_version != "None"
+      then: ${{ compiler('cuda') }}
+    - cargo-bundle-licenses
+    - maturin >=1.4
+    - python
+    # cross-compilation support
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+  host:
+    - python
+    - pip
+    - maturin >=1.4
+    - hdf5
+    - zlib
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ${{ cuda_compiler_version }}.*
+  run:
+    - python
+    - numpy
+    - pydantic >=2
+    # CLI extra
+    - pyyaml
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version >=${{ cuda_compiler_version }}
+
+tests:
+  - python:
+      imports:
+        - warp_md
+        - warp_md.traj_py
+      pip_check: true
+  - script:
+      - warp-md --help
+      - warp-build --help
+      - warp-pack --help
+      - warp-cg --help
+      - warp-pep --help
+
+about:
+  homepage: https://github.com/Haayhur/warp-md
+  summary: Fast molecular dynamics trajectory analysis — Rust core with Python bindings
+  description: |
+    warp-md is a high-performance molecular dynamics trajectory analysis toolkit.
+    It provides a Rust core with CUDA GPU acceleration and ergonomic Python
+    bindings via PyO3/maturin. Supports XTC, DCD, HDF5/H5MD trajectory formats,
+    PDB/GRO topologies, and a rich set of analysis plans (RMSD, Rg, MSD,
+    conductivity, coarse-graining, and more).
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yaml
+  documentation: https://warp-md.gitbook.io
+  repository: https://github.com/Haayhur/warp-md
+
+extra:
+  recipe-maintainers:
+    - Haayhur
