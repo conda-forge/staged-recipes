@@ -6,7 +6,7 @@ cmake -B build ^
     -G Ninja ^
     %CMAKE_ARGS% ^
     -DCMAKE_CXX_SCAN_FOR_MODULES=OFF ^
-    -DHUIRA_APPS=ON ^
+    -DHUIRA_TOOLS=ON ^
     -DHUIRA_PYTHON=ON ^
     -DPython_EXECUTABLE="%PYTHON%"
 if errorlevel 1 exit 1
