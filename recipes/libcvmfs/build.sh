@@ -19,6 +19,14 @@ case "${target_platform}" in
     ;;
 esac
 
+# Pre-create the (legacy, suffix-free) externals directories so their
+# location is predictable, and point the SHA3 find module at the result
+# directly: the toolchain's CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY on Linux
+# stops find_library from searching paths outside the conda prefixes. The
+# sha3 external is scheduled for replacement upstream (cvmfs/cvmfs#3576),
+# after which this can go.
+mkdir -p "${SRC_DIR}/externals_build" "${SRC_DIR}/externals_install"
+
 mkdir -p build
 cd build
 
@@ -38,6 +46,8 @@ cmake ${CMAKE_ARGS} \
   -DINSTALL_PUBLIC_KEYS=OFF \
   -DINSTALL_BASH_COMPLETION=OFF \
   -DHELP2MAN=HELP2MAN-NOTFOUND \
+  -DSHA3_INCLUDE_DIRS="${SRC_DIR}/externals_install/include" \
+  -DSHA3_LIBRARIES="${SRC_DIR}/externals_install/lib/libsha3.a" \
   -DBUILTIN_EXTERNALS=ON \
   "-DBUILTIN_EXTERNALS_LIST=sha3" \
   "-DBUILTIN_EXTERNALS_EXCLUDE=json;libcrypto" \
