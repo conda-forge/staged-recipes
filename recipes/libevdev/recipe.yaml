@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  version: "1.13.6"
+
+package:
+  name: libevdev
+  version: ${{ version }}
+
+source:
+  url: https://www.freedesktop.org/software/libevdev/libevdev-${{ version }}.tar.xz
+  sha256: 73f215eccbd8233f414737ac06bca2687e67c44b97d2d7576091aa9718551110
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+  variant:
+    # python only runs a build-time code generator and is not linked against,
+    # so it must not turn this C library into a python-versioned build matrix.
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # make-event-names.py generates event-names.h at build time, so python
+    # has to run on the build machine when cross compiling.
+    - python
+  run_exports:
+    # libevdev installs libevdev.so.2; the soname tracks the libtool
+    # `current - age` field, so pinning on the major version is enough.
+    - ${{ pin_subpackage('libevdev', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - evdev
+      include:
+        - libevdev-1.0/libevdev/libevdev.h
+        - libevdev-1.0/libevdev/libevdev-uinput.h
+  - script:
+      - pkg-config --modversion libevdev
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://www.freedesktop.org/wiki/Software/libevdev/
+  license: MIT
+  license_file: COPYING
+  summary: Wrapper library for evdev devices
+  description: |
+    libevdev is a wrapper library for evdev devices. It moves the common
+    tasks when dealing with evdev devices into a library and provides a
+    library interface to the callers, thus avoiding erroneous ioctls, etc.
+
+    The eventual goal is that libevdev wraps all ioctls available to evdev
+    devices, thus making direct access unnecessary.
+  documentation: https://www.freedesktop.org/software/libevdev/doc/latest/
+  repository: https://gitlab.freedesktop.org/libevdev/libevdev
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
