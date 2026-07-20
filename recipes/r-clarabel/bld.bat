@@ -1,5 +1,5 @@
 REM Let R determine build target
-unset CARGO_BUILD_TARGET
+set CARGO_BUILD_TARGET=
 
 "%R%" CMD INSTALL --build . %R_ARGS%
 IF %ERRORLEVEL% NEQ 0 exit /B 1
