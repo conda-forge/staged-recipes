@@ -1,0 +1,64 @@
+context:
+  version: "2.12.0"
+
+package:
+  name: cvise
+  version: ${{ version }}
+
+source:
+  url: https://github.com/marxin/cvise/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d015050cfc4015460ca5793378c4899a36104ddcf084f29f0f5f6233f6187cb1
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - cmake -S . -B build -G Ninja ${CMAKE_ARGS}
+    - cmake --build build
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - flex
+    - ninja
+  host:
+    - python
+    - llvmdev 20.*
+    - clangdev 20.*
+  run:
+    - python
+    - chardet
+    - pebble
+    - psutil
+    - libclang-cpp20.1
+    - clang-format
+    - unifdef
+
+tests:
+  - script:
+    - printf '%s\n' 'static int nextHi = 1;' 'static int junk(void) { return 0; }' 'int main(void) { return nextHi + junk(); }' > test.c
+    - printf '%s\n' '#!/bin/sh' 'set -eu' 'clang -c test.c >/dev/null 2>&1 && grep -q nextHi test.c' > interesting.sh
+    - chmod +x interesting.sh
+    - cvise ./interesting.sh test.c
+    - grep -q nextHi test.c
+    - test "$(wc -c < test.c)" -lt 80
+    - cvise-delta --help
+
+about:
+  homepage: https://github.com/marxin/cvise
+  repository: https://github.com/marxin/cvise
+  summary: Super-parallel Python port of C-Reduce
+  description: |
+    C-Vise is a super-parallel Python port of C-Reduce. The port is fully compatible to C-Reduce and
+    uses the same efficient LLVM-based C/C++ reduction tool named `clang_delta`.
+  license: NCSA
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - user202729
