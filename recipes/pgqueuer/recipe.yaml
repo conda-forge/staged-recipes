@@ -13,10 +13,7 @@ source:
 
 build:
   number: 0
-  # Not noarch: pgqueuer requires uvloop at runtime on non-Windows only
-  # (sys_platform != "win32"), and uvloop has no conda-forge build for win.
-  # A noarch package can't carry a platform-specific run dep, so this builds
-  # per platform with uvloop added conditionally below.
+  noarch: python
   script:
     env:
       SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
@@ -24,34 +21,45 @@ build:
 
 requirements:
   host:
-    - python
+    - python ${{ python_min }}.*
     - pip
     - setuptools >=64
     - setuptools-scm >=8
     - wheel
   run:
-    - python
+    - python >=${{ python_min }}
     - anyio >=4.0
     - croniter >=5.0.1
     - pydantic >=2.0.0
     - pydantic-settings >=2.6.1
     - tabulate >=0.9.0
     - typer >=0.15.1
-    - if: not win
+    # uvloop is a unix only dependency; the virtual packages let the solver
+    # pick the right noarch variant per platform (see noarch_platforms in
+    # conda-forge.yml)
+    - if: unix
       then:
+        - __unix
         - uvloop >=0.22.0
+      else:
+        - __win
 
 tests:
   - python:
       imports:
         - pgqueuer
       pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
   - script:
-      # pgqueuer renders --help via rich (Unicode box-drawing); force UTF-8 mode
-      # so it doesn't crash on the Windows console default codepage (cp1252).
-      - python -X utf8 -m pgqueuer --help
-      - if: not win
-        then: pgq --help
+      env:
+        # pgqueuer renders --help via rich (Unicode box drawing); force UTF-8
+        # so it works on the default Windows console codepage
+        PYTHONUTF8: "1"
+      content:
+        - python -m pgqueuer --help
+        - pgq --help
 
 about:
   homepage: https://github.com/janbjorge/pgqueuer
@@ -64,3 +72,4 @@ about:
 extra:
   recipe-maintainers:
     - killua156
+    - mgorny
