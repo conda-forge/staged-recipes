@@ -1,0 +1,42 @@
+From 15abaa525656d85aececfeff4a65e61d3d6f46f1 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 19 Jul 2026 00:22:09 +0200
+Subject: [PATCH] fix: preserve the configured CMAKE_BUILD_TYPE across the
+ externals setup
+
+Since a99918410 the cache reset after the externals setup unconditionally
+clears CMAKE_BUILD_TYPE, so a user-provided -DCMAKE_BUILD_TYPE is silently
+discarded. The reset exists because some vendored externals (libarchive)
+force their own build type into the cache; save the configured value and
+restore it instead of resetting to empty.
+
+Among other things the discarded build type drops -DNDEBUG from Release
+builds, which breaks linking against protobuf >= 22: the generated code
+keeps its ABSL_DCHECK paths and fails with undefined abseil symbols unless
+abseil is linked explicitly.
+---
+ CMakeLists.txt | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 513c4e8508..bfa67e4487 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -318,12 +318,14 @@ endif(BUILTIN_EXTERNALS)
+ # Migrate bootstrap.sh to cmake
+ if(BUILTIN_EXTERNALS)
+   message(STATUS "Entering external dependencies setup")
++  # Some vendored externals (e.g. libarchive) force their preferred
++  # CMAKE_BUILD_TYPE into the cache; save the configured value and restore
++  # it afterwards.
++  set(_cvmfs_build_type "${CMAKE_BUILD_TYPE}")
+   add_subdirectory(externals)
++  set(CMAKE_BUILD_TYPE "${_cvmfs_build_type}" CACHE STRING "Build Type" FORCE)
+ endif()
+ 
+-# reset cache variables the externals may have changed
+-set(CMAKE_BUILD_TYPE "" CACHE STRING "Build Type" FORCE)
+-
+ #
+ # include some common functionality
+ #
