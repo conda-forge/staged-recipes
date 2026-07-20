@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "12.7.1"
+
+package:
+  name: cdxgen
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/@cyclonedx/cdxgen/-/cdxgen-${{ version }}.tgz
+  sha256: 52061c32e7795bfe6f1133944e408af76c9d3e3a4a8fa6dc59bb0015cf440ef3
+
+build:
+  number: 0
+  # Per-arch (NOT noarch), following the openspec pattern: each
+  # platform's npm global install lays down native shims for all 16 bin
+  # entries (symlinks on unix, .cmd on win), which a single noarch
+  # artifact cannot provide. https://github.com/conda-forge/openspec-feedstock/blob/main/recipe/recipe.yaml
+  dynamic_linking:
+    binary_relocation: false
+  script:
+    - if: unix
+      then:
+        - export npm_config_prefix="${PREFIX}"
+        - pnpm install --ignore-scripts --prod
+        - npm pack --ignore-scripts
+        - npm install --omit=optional -g ./cyclonedx-cdxgen-${{ version }}.tgz
+        - rm -rf "${PREFIX}"/lib/node_modules/@cyclonedx/cdxgen/node_modules/@cdxgen/cdxgen-plugins-bin*
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else:
+        - call npm config set prefix "%PREFIX%"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install --ignore-scripts --prod
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --userconfig nonexistentrc --omit=optional -g cyclonedx-cdxgen-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+        - for /d %%D in ("%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@cdxgen\cdxgen-plugins-bin*") do rmdir /s /q "%%D"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs >=20,<26
+  run:
+    - nodejs >=20,<26
+
+tests:
+  - script:
+      - cdxgen --version
+      - cdxgen --help
+      - cdx-validate --help
+  - if: unix
+    then:
+      script:
+        - test -f "${PREFIX}/lib/node_modules/@cyclonedx/cdxgen/package.json"
+        - if ls -d "${PREFIX}"/lib/node_modules/@cyclonedx/cdxgen/node_modules/@cdxgen/cdxgen-plugins-bin* >/dev/null 2>&1; then exit 1; fi
+
+about:
+  summary: Creates CycloneDX Bill of Materials (BOM) for projects and containers in 20+ languages and package managers
+  description: |
+    cdxgen is the official OWASP CycloneDX generator: it creates SBOMs
+    (software), CBOMs (cryptography), OBOMs (operations), and ML-BOMs for
+    source repositories, container images, and binaries across 20+
+    languages and package-manager ecosystems, emitting standards-compliant
+    CycloneDX. Ships the full CLI family: cdxgen, cdx-audit, cdx-convert,
+    cdx-validate, cdx-verify, cdx-sign, cdxi (REPL), evinse, hbom, obom,
+    cbom, aibom, saasbom, spdxgen, tracebom.
+  homepage: https://cyclonedx.github.io/cdxgen/
+  repository: https://github.com/cdxgen/cdxgen
+  documentation: https://cyclonedx.github.io/cdxgen/
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - rxm7706
