@@ -27,9 +27,6 @@ esac
 # after which this can go.
 mkdir -p "${SRC_DIR}/externals_build" "${SRC_DIR}/externals_install"
 
-mkdir -p build
-cd build
-
 # Only sha3 (not packaged on conda-forge) is built from the vendored
 # externals; everything else comes from conda-forge, including OpenSSL for
 # libcvmfs_crypto (see cvmfs/cvmfs#4339).
@@ -51,10 +48,11 @@ cmake ${CMAKE_ARGS} \
   -DBUILTIN_EXTERNALS=ON \
   "-DBUILTIN_EXTERNALS_LIST=sha3" \
   "-DBUILTIN_EXTERNALS_EXCLUDE=json;libcrypto" \
-  ..
+  -S "${SRC_DIR}" \
+  -B build
 
-make -j"${CPU_COUNT}"
-make install
+cmake --build build --parallel "${CPU_COUNT}"
+cmake --install build
 
 # Collect the license files of the statically linked vendored libraries
 mkdir -p "${SRC_DIR}/vendored-licenses"
