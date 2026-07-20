@@ -1,0 +1,157 @@
+From 2bf296be03cc04c4239c44e52ad7ac6d8c31fc12 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sat, 18 Jul 2026 23:26:37 +0200
+Subject: [PATCH 1/3] fix: search for libcap in every configuration that builds
+ libcvmfs-util
+
+util/capabilities.cc is part of libcvmfs-util and links ${CAP_LIBRARIES},
+but the libcap lookup only ran for the fuse client, the server tools, and
+the mount scripts. A build with e.g. only BUILD_LIBCVMFS=ON fails on Linux
+with 'sys/capability.h: No such file or directory' (or, with the header
+present, produces a library with undefined cap_* symbols). Mirror the
+target list that cvmfs/util/CMakeLists.txt uses to build libcvmfs-util.
+---
+ CMakeLists.txt | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 513c4e8508..14e3c7152a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -515,11 +515,14 @@ if (BUILD_CVMFS)
+   endif (MACOSX)
+ endif ()
+ 
+-# libcap is needed by cvmfs2, cvmfs_fuse*_stub, mount.cvmfs, and the
+-# server-side swissknife — every target that links cvmfs/util/capabilities.cc.
++# libcap is needed by every target that links cvmfs/util/capabilities.cc,
++# i.e. everything that builds libcvmfs-util.
+ # macOS has stubbed-out implementations in capabilities.{cc,h} that don't
+ # reference libcap symbols, so the lookup is skipped there.
+-if (NOT MACOSX AND (BUILD_CVMFS OR BUILD_SERVER OR BUILD_SERVER_DEBUG OR INSTALL_MOUNT_SCRIPTS))
++if (NOT MACOSX AND (BUILD_CVMFS OR BUILD_LIBCVMFS OR BUILD_LIBCVMFS_CACHE OR
++                    BUILD_SERVER OR BUILD_SERVER_DEBUG OR BUILD_RECEIVER OR
++                    BUILD_SHRINKWRAP OR BUILD_PRELOADER OR BUILD_UNITTESTS OR
++                    BUILD_STRESS_TESTS OR INSTALL_MOUNT_SCRIPTS))
+   find_package(LibCAP REQUIRED)
+ endif ()
+ 
+
+From c49fb080fdbc354dd14b2966dc3b735d9d17a85f Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sat, 18 Jul 2026 23:26:57 +0200
+Subject: [PATCH 2/3] ci: build the client library standalone
+
+Cover the BUILD_LIBCVMFS-only configuration used by library consumers and
+downstream packagers so that regressions like the missing libcap lookup are
+caught before release.
+---
+ .github/workflows/ci_libcvmfs.yml | 51 +++++++++++++++++++++++++++++++
+ 1 file changed, 51 insertions(+)
+ create mode 100644 .github/workflows/ci_libcvmfs.yml
+
+diff --git a/.github/workflows/ci_libcvmfs.yml b/.github/workflows/ci_libcvmfs.yml
+new file mode 100644
+index 0000000000..0ca4cc9178
+--- /dev/null
++++ b/.github/workflows/ci_libcvmfs.yml
+@@ -0,0 +1,51 @@
++name: CI libcvmfs
++
++on:
++  push:
++      branches: ['devel', 'cvmfs*']
++  pull_request:
++      branches: ['devel', 'cvmfs*']
++
++jobs:
++  libcvmfs-only:
++    name: "Client library only (BUILD_LIBCVMFS)"
++    runs-on: ubuntu-latest
++
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v4
++
++      - name: Install dependencies
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y \
++            cmake g++ make patch \
++            libarchive-dev \
++            libc-ares-dev \
++            libcap-dev \
++            libcurl4-openssl-dev \
++            libleveldb-dev \
++            libprotobuf-dev \
++            libsparsehash-dev \
++            libsqlite3-dev \
++            libssl-dev \
++            nlohmann-json3-dev \
++            protobuf-compiler \
++            uuid-dev \
++            zlib1g-dev
++
++      - name: Configure
++        run: |
++          cmake -S . -B build \
++            -DBUILD_CVMFS=OFF \
++            -DBUILD_SERVER=OFF \
++            -DBUILD_RECEIVER=OFF \
++            -DBUILD_GEOAPI=OFF \
++            -DBUILD_LIBCVMFS=ON \
++            -DBUILD_LIBCVMFS_CACHE=OFF \
++            -DINSTALL_MOUNT_SCRIPTS=OFF \
++            -DINSTALL_PUBLIC_KEYS=OFF \
++            -DINSTALL_BASH_COMPLETION=OFF
++
++      - name: Build
++        run: cmake --build build -j"$(nproc)"
+
+From f27fa6dad68cca2c352ef1bf22aae730b97756a2 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 19 Jul 2026 00:40:35 +0200
+Subject: [PATCH 3/3] fix: only set up the libarchive external for targets that
+ use it
+
+libarchive is used for tarball ingestion, which is compiled into
+cvmfs_swissknife, cvmfs_publish, and cvmfs_preload only. The external was
+processed unconditionally, so configurations that build none of these
+(e.g. only BUILD_LIBCVMFS) required a system libarchive or downloaded and
+built the vendored copy for nothing. The libcvmfs CI job drops
+libarchive-dev accordingly.
+---
+ .github/workflows/ci_libcvmfs.yml | 1 -
+ externals/CMakeLists.txt          | 7 ++++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/.github/workflows/ci_libcvmfs.yml b/.github/workflows/ci_libcvmfs.yml
+index 0ca4cc9178..7e5bc50a23 100644
+--- a/.github/workflows/ci_libcvmfs.yml
++++ b/.github/workflows/ci_libcvmfs.yml
+@@ -20,7 +20,6 @@ jobs:
+           sudo apt-get update
+           sudo apt-get install -y \
+             cmake g++ make patch \
+-            libarchive-dev \
+             libc-ares-dev \
+             libcap-dev \
+             libcurl4-openssl-dev \
+diff --git a/externals/CMakeLists.txt b/externals/CMakeLists.txt
+index 1d7e1dc4ed..c3874a687a 100644
+--- a/externals/CMakeLists.txt
++++ b/externals/CMakeLists.txt
+@@ -4,7 +4,12 @@ include(${CMAKE_SOURCE_DIR}/cmake/Modules/ExternalDepMacros.cmake)
+ 
+ set(EXTERNALS_INSTALL_TARGETS "")
+ 
+-add_subdirectory(libarchive)
++# libarchive is only used for tarball ingestion by the publishing tools
++# (cvmfs_swissknife, cvmfs_publish, cvmfs_preload)
++if(BUILD_CVMFS OR BUILD_SERVER OR BUILD_SERVER_DEBUG OR BUILD_RECEIVER OR
++   BUILD_PRELOADER)
++  add_subdirectory(libarchive)
++endif()
+ add_subdirectory(json)
+ add_subdirectory(pacparser)
+ add_subdirectory(protobuf)
