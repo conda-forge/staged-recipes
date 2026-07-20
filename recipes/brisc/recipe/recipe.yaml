@@ -1,0 +1,83 @@
+schema_version: 1
+
+context:
+  name: brisc
+  version: "0.1.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: bfbefd4e031b408f0518ce0edc5397a3542ef3b5733451fe91cf91a245f7318e
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - match(python, "<3.9")
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - cython >=3.0
+        - numpy >=1.17.0
+  host:
+    - python
+    - pip
+    - setuptools >=61.0
+    - wheel
+    - cython >=3.0
+    - numpy >=1.17.0
+    - scipy >=0.16.0
+    - if: osx
+      then: llvm-openmp
+    - if: x86_64
+      then: libblas * *mkl
+  run:
+    - python
+    - anndata
+    - h5py
+    - matplotlib-base >=3.5.0
+    - numpy >=1.17.0
+    - pandas
+    - polars >=1.41.0
+    - pyarrow >=0.17.0
+    - r-seurat
+    - ryp
+    - scikit-misc
+    - scipy >=0.16.0
+    - threadpoolctl
+    - if: osx
+      then: llvm-openmp
+    - if: x86_64
+      then: libblas * *mkl
+
+tests:
+  - if: build_platform == target_platform
+    then:
+      - python:
+          imports:
+            - brisc
+      - script:
+          - pytest tests/
+        requirements:
+          run:
+            - pytest
+
+about:
+  homepage: https://github.com/briscverse/brisc
+  summary: Fast single-cell toolkit
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Wainberg
+    - keon-arbabi
