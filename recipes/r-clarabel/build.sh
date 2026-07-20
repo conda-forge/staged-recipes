@@ -5,6 +5,9 @@ export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib/R/lib -C link-arg=-L${PREFIX}/lib 
 export LD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${LD_LIBRARY_PATH:-}"
 export DYLD_LIBRARY_PATH="${PREFIX}/lib/R/lib:${DYLD_LIBRARY_PATH:-}"
 
+# let R determine build target
+unset CARGO_BUILD_TARGET
+
 export DISABLE_AUTOBREW=1
 ${R} CMD INSTALL --build . ${R_ARGS}
 
