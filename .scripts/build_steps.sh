@@ -67,9 +67,14 @@ popd > /dev/null
 # Update environment
 mv /opt/conda/conda-meta/history /opt/conda/conda-meta/history.$(date +%Y-%m-%d-%H-%M-%S)
 echo > /opt/conda/conda-meta/history
-micromamba install --root-prefix ~/.conda --prefix /opt/conda \
-    --yes --override-channels --channel conda-forge --strict-channel-priority \
-    --file "${FEEDSTOCK_ROOT}/environment.yaml"
+
+pushd "${FEEDSTOCK_ROOT}"
+echo "Creating environment"
+PIXI_CACHE_DIR=/opt/conda pixi install --environment linux-64
+pixi list --environment linux-64
+echo "Activating environment"
+eval "$(pixi shell-hook --environment linux-64)"
+popd
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
