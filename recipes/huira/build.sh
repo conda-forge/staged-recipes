@@ -10,7 +10,8 @@ cmake -B build \
     -DHUIRA_TOOLS=ON \
     -DHUIRA_PYTHON=ON \
     -DHUIRA_NATIVE_ARCH=OFF \
-    -DPython_EXECUTABLE="${PYTHON}"
+    -DPython_EXECUTABLE="${PYTHON}" \
+    -DFETCHCONTENT_SOURCE_DIR_PYBIND11="${SRC_DIR}/pybind11-src"
 
 cmake --build build --parallel ${CPU_COUNT}
 
