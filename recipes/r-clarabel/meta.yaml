@@ -1,0 +1,81 @@
+{% set version = '0.11.2' %}
+{% set posix = 'm2-' if win else '' %}
+
+package:
+  name: r-clarabel
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/clarabel_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/clarabel/clarabel_{{ version }}.tar.gz
+  sha256: b8c19852a72e71e5fb56a303b9d16c7ac9ee5a02eb6c888929cd629dc50b2890
+  patches:
+    - patches/0001-append-RUSTFLAGS.patch
+
+build:
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'        # [win]
+    - '*/Rblas.dll'    # [win]
+    - '*/Rlapack.dll'  # [win]
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ stdlib('c') }}                # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ stdlib('m2w64_c') }}          # [win]
+    - {{ compiler('fortran') }}        # [not win]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - {{ posix }}filesystem            # [win]
+    - {{ posix }}sed                   # [win]
+    - {{ posix }}grep                  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake              # [not win]
+    - {{ posix }}automake-wrapper      # [win]
+    - pkg-config
+    - {{ posix }}make
+    - {{ posix }}coreutils             # [win]
+    - {{ posix }}zip                   # [win]
+    - cross-r-base {{ r_base }}        # [build_platform != target_platform]
+  host:
+    - r-base
+    - r-cli
+    - libblas
+    - liblapack
+  run:
+    - r-base
+    - r-cli
+
+test:
+  commands:
+    - $R -e "library('clarabel')"           # [not win]
+    - "\"%R%\" -e \"library('clarabel')\""  # [win]
+
+about:
+  home: https://oxfordcontrol.github.io/clarabel-r/
+  dev_url: https://github.com/oxfordcontrol/clarabel-r/
+  license: Apache-2.0
+  summary: A versatile interior point solver that solves linear programs (LPs), quadratic programs
+    (QPs), second-order cone programs (SOCPs), semidefinite programs (SDPs), and problems
+    with exponential and power cone constraints (<https://clarabel.org/stable/>). For
+    quadratic objectives, unlike interior point solvers based on the standard homogeneous
+    self-dual embedding (HSDE) model, Clarabel handles quadratic objective without requiring
+    any epigraphical reformulation of its objective function. It can therefore be significantly
+    faster than other HSDE-based solvers for problems with quadratic objective functions.
+    Infeasible problems are detected using using a homogeneous embedding technique.
+  license_family: APACHE
+  license_file:
+    - LICENSE-2.0.txt
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
