@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  name: antlrope
+  version: "1.0.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # The PyPI sdist carries the vendored ANTLR4 C++ runtime.
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/antlrope-${{ version }}.tar.gz
+  sha256: "87f318e6c188bc7058807b203e1e71117812bed114f76b79a8bd9043175b99a2"
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  # abi3 / CEP-20: one build (against the 3.12 floor) is installable on any CPython
+  # >=3.12. The extension is compiled with nanobind's STABLE_ABI (pyproject sets
+  # wheel.py-api = "cp312"), so it ships as `_native.abi3.so`. `python_version_
+  # independent` makes the package relocate that .so into the target env's
+  # site-packages at install time (it is marked noarch:python but keeps its
+  # platform subdir, since it is still compiled). No per-CPython build matrix.
+  #
+  # entry_points declares the console script so conda generates the launcher at
+  # install time: with a version-independent package, pip's own Windows .exe
+  # launcher bakes the build-prefix python path in as binary data, which prefix
+  # replacement cannot rewrite — the shipped exe fails to start.
+  python:
+    version_independent: true
+    entry_points:
+      - antlrope = antlrope.cli.main:main
+
+# NOTE FOR conda-forge REVIEWERS — why this recipe vendors the ANTLR4 C++ runtime
+# (carried in the sdist under vendor/antlr4-cpp/) instead of depending on the
+# conda-forge `antlr-cpp-runtime` package:
+#   1. We carry two performance patches on the runtime (lock-free DFA-edge reads
+#      and per-DFA write locks; see vendor/antlr4-cpp/UPDATING.md) that are not yet
+#      upstream, so a stock shared runtime would silently drop antlrope's main
+#      speedups. They are proposed upstream as antlr/antlr4#4953 and #4954; once
+#      merged and released the vendored snapshot can be refreshed to stock upstream.
+#   2. We static-link the runtime into the _native extension (ANTLR4CPP_STATIC),
+#      which keeps this build identical to the PyPI wheels (those cannot depend on
+#      a conda package) and avoids C++ ABI / version-skew coupling to a shared lib.
+# The runtime is a few hundred KB compiled in, so vendoring it costs essentially
+# nothing in package size.
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.21
+    - ninja
+    # The conda-forge linux docker env forces CMAKE_GENERATOR="Unix Makefiles",
+    # so make must be present (elsewhere scikit-build-core picks the ninja above).
+    - if: unix
+      then: make
+  host:
+    # Build against the 3.12 floor; python-abi3 sets up the Stable-ABI build and
+    # carries the run_exports that pin the runtime to `python >=3.12` + python-abi3.
+    - python 3.12.*
+    - python-abi3 3.12.*
+    - pip
+    # <1: scikit-build-core 1.0 ignores conda-forge's CMAKE_ARGS (compiler /
+    # make-program wiring), breaking the configure step.
+    - scikit-build-core >=0.10,<1
+    - nanobind >=2.0
+    # Build-time README metadata plugin (in [build-system] requires from 1.0.1;
+    # unused by the 1.0.0 sdist but keeps the autotick version bump working).
+    - hatch-fancy-pypi-readme
+  run:
+    # The host python-abi3 run-exports add the abi3 marker and the
+    # `cpython >=3.12` floor; the plain `python` satisfies the linter.
+    - python
+    - antlr4-python3-runtime >=4.13
+
+tests:
+  - python:
+      imports:
+        - antlrope
+      pip_check: true
+  - script:
+      - python -c "import antlrope as a; assert a.__version__"
+      - antlrope --help
+
+about:
+  homepage: https://github.com/zuzukin/antlrope
+  repository: https://github.com/zuzukin/antlrope
+  documentation: https://zuzukin.github.io/antlrope/
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - vendor/antlr4-cpp/LICENSE.txt
+  summary: >-
+    Fast, C++-accelerated ANTLR runtime for Python: a bulk filtered event-stream
+    facade over the official ANTLR4 C++ runtime, driven by stock Python3-target
+    output.
+
+extra:
+  recipe-maintainers:
+    - analog-cbarber
