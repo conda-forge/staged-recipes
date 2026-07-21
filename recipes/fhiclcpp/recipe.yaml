@@ -1,0 +1,83 @@
+# rattler-build recipe (v1 / CEP-13 format) for fhiclcpp.
+#
+# The FHiCL (Fermilab Hierarchical Configuration Language) parser/value library
+# plus its CLI tools (fhicl-dump, fhicl-expand, fhicl-get, fhicl-write-db).
+
+context:
+  version: "4.19.0"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v4_19_00).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: fhiclcpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/fhicl-cpp/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 25163d17a9a6c8509d326785a78e399fdc33e231ad393edc0ae34b1d9b56b9f9
+  patches:
+    # Missing #include <cassert> in DatabaseSupport.cc -> fails under conda's
+    # newer libstdc++ (assert no longer pulled in transitively). See
+    # potential_improvements.md (#5).
+    - patches/0001-DatabaseSupport-include-cassert.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - cetlib                     # linked sibling (local channel)
+    - cetlib_except              # find_package(cetlib_except) direct (local channel)
+    - tbb-devel                  # find_package(TBB) (CF current)
+    - libboost-devel             # find_package(Boost program_options) (CF current)
+    - libsqlite                  # find_package(SQLite3)
+    # openssl is intentionally NOT listed: it is cetlib's private dependency (only
+    # libcetlib.so links libcrypto) and comes in transitively via cetlibConfig's
+    # find_dependency(OpenSSL). Listing it here would wrongly attach openssl's
+    # run_export to fhiclcpp.
+  run:
+    # Runtimes (cetlib/cetlib_except/boost/sqlite/tbb) arrive via the host
+    # packages' run_exports.
+  run_exports:
+    - ${{ pin_subpackage('fhiclcpp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - fhiclcpp               # libfhiclcpp.so (also installs a static lib)
+      include:
+        - fhiclcpp/ParameterSet.h
+        - fhiclcpp/intermediate_table.h
+      bin:
+        - fhicl-dump
+        - fhicl-expand
+        - fhicl-get
+        - fhicl-write-db
+      files:
+        - lib/fhiclcpp/cmake/fhiclcppConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/fhicl-cpp
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: fhiclcpp -- FHiCL configuration language library and tools for the FNAL art suite
+  description: |
+    fhiclcpp implements FHiCL (the Fermilab Hierarchical Configuration
+    Language): parsing, the ParameterSet value model, intermediate tables and
+    the fhicl-dump/expand/get/write-db command-line tools used throughout the
+    art framework. Depends on cetlib, cetlib_except, Boost, SQLite3 and TBB.
+  repository: https://github.com/art-framework-suite/fhicl-cpp
+
+extra:
+  recipe-maintainers:
+    - calcuttj
