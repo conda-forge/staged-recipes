@@ -1,0 +1,110 @@
+{% set name = "gravel-fragility" %}
+{% set version = "2.2.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/rhoekstr/gravel/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: b772d942d4e9216baa6c171a255fb2d0f1cf0de67640cf0c6e78404cce72af97
+  patches:
+    # Upstream v2.2.1 uses FIND_PACKAGE_ARGS on nlohmann_json, Catch2,
+    # Eigen3, and Spectra — all four are found as conda-forge host deps
+    # and used directly without a git-clone. pybind11 is the exception:
+    # upstream kept it on FetchContent-only because FIND_PACKAGE_ARGS
+    # caused a -flto flag mangling bug on the PyPI wheel build path
+    # (scikit-build-core's isolated pybind11). conda-forge doesn't have
+    # that toolchain interaction, and conda-forge blocks network at
+    # build time, so this patch swaps the remaining FetchContent to
+    # find_package for pybind11 only.
+    - patches/01-pybind11-find-package.patch
+
+build:
+  number: 0
+  # -C cmake.define.GRAVEL_USE_OSMIUM=ON: override the pyproject default
+  # (OFF for PyPI, because libosmium isn't distributed there) so this
+  # build enables OSM loaders using the conda-forge libosmium package.
+  # --no-build-isolation: use the conda-forge-provided build deps
+  # (scikit-build-core, pybind11, cmake) rather than pip pulling from PyPI.
+  # --no-deps: run-time deps are declared below; do not let pip install them.
+  script: {{ PYTHON }} -m pip install . -vv --no-build-isolation --no-deps -C cmake.define.GRAVEL_USE_OSMIUM=ON
+  skip: true  # [py<310]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.24
+    - ninja
+    - make  # [unix]
+
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.8
+    - pybind11 >=2.11
+    # C++ deps — all of these are available on conda-forge; our
+    # FIND_PACKAGE_ARGS in cmake/Dependencies.cmake makes CMake use
+    # them instead of git-cloning, so conda-forge's network-blocked
+    # build sandbox succeeds without patches.
+    - eigen >=3.4
+    - nlohmann_json >=3.11
+    - spectra-cpp >=1.0
+    # libosmium ecosystem — available on conda-forge, unlike PyPI.
+    # This is the headline reason to ship on conda-forge: OSM loaders
+    # (load_osm_graph, OSMConfig, SpeedProfile) just work out of the box.
+    - libosmium >=2.20
+    - protozero
+    - zlib
+    - bzip2
+    - expat
+    - lz4-c
+
+  run:
+    - python
+    # numpy isn't strictly required (the library is pure C++ bindings),
+    # but users reasonably expect to pass numpy arrays to some analyzers.
+    - numpy
+
+test:
+  imports:
+    - gravel
+  commands:
+    # Basic import + version
+    - python -c "import gravel; print('v' + gravel.__version__)"
+    # Core graph construction + CH build (exercises gravel-core + gravel-ch)
+    - python -c "import gravel; g = gravel.make_grid_graph(10, 10); ch = gravel.build_ch(g); assert g.node_count == 100"
+    # Route a path (exercises gravel-ch query path)
+    - python -c "import gravel; g = gravel.make_grid_graph(10, 10); ch = gravel.build_ch(g); q = gravel.CHQuery(ch); r = q.route(0, 99); assert r.distance > 0"
+    # OSM loader is present (unlike PyPI wheels) — imports shouldn't
+    # fail because GRAVEL_HAS_OSMIUM should be defined on conda-forge builds.
+    - python -c "import gravel; assert hasattr(gravel, 'load_osm_graph'), 'OSM loaders missing (libosmium not linked?)'"
+
+about:
+  home: https://github.com/rhoekstr/gravel
+  summary: Fast road network fragility analysis with contraction hierarchies
+  description: |
+    Gravel is a high-performance C++ library with Python bindings for
+    analyzing how vulnerable road networks are to edge failures. Given a
+    graph, it answers questions like "how isolated does this location
+    become when 10% of its roads fail?" or "which counties are most
+    dependent on a single critical route?"
+
+    Built around contraction hierarchies for fast shortest-path queries
+    and a Dijkstra + incremental-SSSP pipeline for edge-removal
+    analysis. On a 200K-node county road graph, it computes isolation
+    fragility in ~2 seconds.
+
+    The conda-forge build enables full OSM support (load_osm_graph,
+    OSMConfig, SpeedProfile) via libosmium; the PyPI wheels disable
+    this because libosmium is not distributed on PyPI.
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE
+  doc_url: https://rhoekstr.github.io/gravel/
+  dev_url: https://github.com/rhoekstr/gravel
+
+extra:
+  recipe-maintainers:
+    - rhoekstr
