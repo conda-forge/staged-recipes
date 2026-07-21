@@ -1,0 +1,46 @@
+Subject: [PATCH] clus: fix dangling reference to BGL named-parameter temporaries
+
+The Boost.Graph named-parameter object built by
+
+    weight_map(get(boost::edge_weight, m_graph))
+        .predecessor_map(&predecessors[0])
+        .distance_map(&distances[0])
+
+is a chain of bgl_named_params temporaries: each .foo_map() call returns a new
+bgl_named_params *by value* that holds a reference to the previous link in the
+chain. Binding the final link to `const auto& param` lifetime-extends only that
+last temporary -- the earlier links it references are destroyed at the end of
+the full expression. `param` therefore dangles by the time it is handed to
+boost::dijkstra_shortest_paths() on the following statement.
+
+GCC 13+ correctly flags this with -Wdangling-reference; it is promoted to a hard
+error under Wire-Cell's release -Werror. (This is a genuine latent
+use-after-free, not the boost::multi_array false positive seen elsewhere.)
+
+Fix: pass the named-parameter chain directly as the call argument, so every
+temporary in the chain lives for the full duration of the dijkstra call.
+
+Upstream target: wirecell/wire-cell-toolkit, file clus/src/Graphs.cxx.
+Reproduce: a release-mode build under GCC >= 13. No behavior change.
+---
+ clus/src/Graphs.cxx | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+--- a/clus/src/Graphs.cxx	2026-06-18 11:34:56.343112337 -0700
++++ b/clus/src/Graphs.cxx	2026-06-18 11:35:24.787498476 -0700
+@@ -222,10 +222,11 @@
+     std::vector<size_t> predecessors(nvtx); 
+     std::vector<Weighted::dijkstra_distance_type> distances(nvtx);
+ 
+-    const auto& param = weight_map(get(boost::edge_weight, m_graph))
+-                       .predecessor_map(&predecessors[0])
+-                       .distance_map(&distances[0]);
+-    boost::dijkstra_shortest_paths(m_graph, source, param);
++    boost::dijkstra_shortest_paths(
++        m_graph, source,
++        weight_map(get(boost::edge_weight, m_graph))
++            .predecessor_map(&predecessors[0])
++            .distance_map(&distances[0]));
+ 
+     // Add to front of access order list
+     m_access_order.push_front(source);
