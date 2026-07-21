@@ -57,8 +57,16 @@ source:
 build:
   number: 0
   # Nothing is compiled -- this just unpacks a prebuilt wheel into the environment.
-  # Not noarch: the wheel payload differs per platform/arch.
-  script: pip install ./*.whl --no-deps -vv
+  # Not noarch: the wheel payload differs per platform/arch. The one .whl in
+  # $SRC_DIR is found with Python's own glob rather than a shell wildcard,
+  # since cmd.exe (used on win-64) doesn't glob-expand `*.whl` the way bash
+  # does -- a shell wildcard here broke the Windows build (pip received the
+  # literal, un-expanded string `*.whl`), and renaming to a fixed filename
+  # doesn't work either since pip validates wheel filenames strictly on
+  # install and rejects anything that isn't the real 5-part wheel name.
+  script: >-
+    python -c "import glob, subprocess, sys;
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '-vv', glob.glob('*.whl')[0]])"
 
 requirements:
   # python/pip must stay in `host` so the wheel installs into $PREFIX (not the
