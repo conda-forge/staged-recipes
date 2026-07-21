@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  python_min: "3.11"
+  version: "0.1.0"
+
+package:
+  name: reprotrail
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/reprotrail/reprotrail-${{ version }}.tar.gz
+  sha256: 64ad62e010b5f8c4946ef5608c9a4260b73491f7f5eb140c3e7d4e051c5d80f0
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - reprotrail = reprotrail.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - uv-build >=0.11.0,<0.12.0
+  run:
+    - python >=${{ python_min }}
+    - git
+    - pixi
+    - rocrate
+    - spdx-tools
+    - xarray
+    - zarr
+
+tests:
+  - python:
+      imports:
+        - reprotrail
+        - reprotrail.cli
+        - reprotrail.product_metadata
+        - reprotrail.products
+        - rocrate.rocrate
+        - spdx_tools.common.spdx_licensing
+        - xarray
+        - zarr
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "from importlib.metadata import version; import reprotrail; assert version('reprotrail') == reprotrail.__version__ == '${{ version }}'"
+      - python -c "from reprotrail.product_metadata import normalize_spdx_expression; assert normalize_spdx_expression('MIT') == 'MIT'"
+      - git --version
+      - pixi --version
+      - reprotrail --help
+      - reprotrail template readme --output product_README.md.template
+      - python -c "from pathlib import Path; assert Path('product_README.md.template').stat().st_size > 0"
+
+about:
+  summary: Capture, audit, and reproduce provenance for data-processing runs
+  description: |
+    Reprotrail records the command, inputs, Git revision, and Pixi runtime state
+    behind data-processing runs. It writes versioned provenance records and
+    standards-based RO-Crate/SPDX product sidecars, audits dependency changes,
+    and prepares reproduction workspaces from recorded evidence.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/j-haacker/reprotrail
+  repository: https://github.com/j-haacker/reprotrail
+  documentation: https://j-haacker.github.io/reprotrail/
+
+extra:
+  recipe-maintainers:
+    - j-haacker
