@@ -1,0 +1,155 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: django-bolt
+  version: "0.2.4"
+  python_min: '3.10'
+  maturin_min: "1.9"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/django_bolt-${{ version }}.tar.gz
+  sha256: 349e98a5234226e742562ca72a4373e34e751146faa1b77a6fada3ee39cbbae4
+
+build:
+  number: 0
+  python:
+    version_independent: true
+    entry_points:
+      - django-bolt = django_bolt.cli:main
+  # only build for the minimal python version
+  skip: is_abi3 and not is_python_min
+  script:
+    - if: unix
+      then:
+        - export CARGO_PROFILE_RELEASE_STRIP=symbols
+        - export CARGO_PROFILE_RELEASE_LTO=fat
+        # Unix recipe
+        - export OPENSSL_DIR="$PREFIX"
+    - if: win
+      then:
+        - set CARGO_PROFILE_RELEASE_STRIP=symbols
+        - set CARGO_PROFILE_RELEASE_LTO=fat
+        # Win recipe # work around long path problem,
+        # hack: path too long for pixi_config subpackage, https://github.com/prefix-dev/pixi/issues/3691
+        - set CARGO_HOME=C:\.cargo
+        - md %CARGO_HOME%
+        - if errorlevel 1 exit 1
+    - if: build_platform != target_platform and unix and python is startingwith('3.14')
+      then:
+        - rm -f $PREFIX/lib/python3.14/build-details.json
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=${{ maturin_min }},<2.0
+    - ${{ compiler("rust") }}
+    - ${{ compiler("c") }}
+    #- ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - maturin >=${{ maturin_min }},<2.0
+    - pip
+    - tomli
+    - if: unix
+      then:
+        - openssl
+  run:
+    - python
+    - django >=4.2
+    - click >=8.1
+    - msgspec >=0.18
+    - multipart >=1.3
+    - pyjwt >=2.10.1
+  ignore_run_exports:
+    from_package:
+      - cross-python_${{ target_platform }}
+
+tests:
+  - python:
+      imports:
+        - django_bolt
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: "${{ python_min ~ '.*' }}"
+        - "*"
+  # https://github.com/conda-forge/python-abi3-feedstock/blob/main/recipe/example-meta.yaml
+  - if: is_abi3
+    then:
+      script:
+        - if: win
+          then:
+            - echo "running is_abi3 win abi3audit .pyd tests"
+            - abi3audit %PREFIX%/Lib/site-packages/django_bolt/django_bolt.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+            - echo "completed is_abi3 win abi3audit .pyd tests"
+          else:
+            - echo "skipping abi3audit win tests"
+        - if: not win
+          then:
+            # Need to set SP_DIR because of https://github.com/prefix-dev/rattler-build/issues/1733
+            - echo "running is_abi3 not win abi3audit .abi3.so sets"
+            - export SP_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+            - abi3audit $SP_DIR/django_bolt/django_bolt.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+            - echo "completed is_abi3 not win abi3audit .abi3.so sets"
+          else:
+            - echo "skipping abi3audit not win tests"
+    else:
+      script:
+        - echo "skipping all abi3audit not is_abi3"
+      requirements:
+        run:
+          #- echo "running abi3audit tests as is_abi3"
+          - abi3audit
+          #- echo "completed abi3audit tests as is_abi3"
+  - requirements:
+      run:
+        - if: is_abi3
+          then:
+          - abi3audit
+        - pip
+    script:
+      env:
+        DISPLAY: :1
+      content:
+        - pip check
+        - echo "running django-bolt --help"
+        - django-bolt --help
+        - echo "completed django-bolt --help"
+        - echo "running from django_bolt import BoltAPI"
+        - "python -c \"from django_bolt import BoltAPI\""
+        - echo "completed from django_bolt import BoltAPI"
+        - if: noarch_platform  != "win"
+          then:
+            - echo "Test Script Importing django_bolt and BoltAPI for unix"
+            - python -c "from django_bolt import BoltAPI; assert BoltAPI"
+            #- python -c "assert __import__('django_bolt').__version__ == '${{ version }}'"
+          else:
+            - echo "Test Script Importing django_bolt and BoltAPI for windows"
+            - python -c "from django_bolt import BoltAPI; assert BoltAPI"
+            #- python -c "assert __import__('django_bolt').__version__ == '${{ version }}'"
+        - echo "Test Script Imports for unix and windows Completed"
+
+about:
+  summary: High-performance API framework for Django with Rust-powered endpoints delivering 60k+ RPS
+  license: MIT
+  license_file:
+    - python/django_bolt/openapi/spec/license.py
+    - THIRDPARTY.yml
+  homepage: https://github.com/FarhanAliRaza/django-bolt
+
+extra:
+  recipe-maintainers:
+    - rxm7706
