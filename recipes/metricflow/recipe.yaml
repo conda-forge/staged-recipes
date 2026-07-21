@@ -1,9 +1,3 @@
-# New dependency of dbt-core >=1.12.0 (see dbt-feedstock#171), replacing the
-# old dbt-semantic-interfaces dependency. Unlike dbt-core-experimental-parser
-# (see the separate recipes/dbt-core-experimental-parser PR), this is a normal
-# pure-Python package with a real, buildable sdist and a hatchling backend --
-# no unusual packaging story here.
-
 context:
   version: "0.211.0"
 
@@ -18,17 +12,8 @@ source:
 build:
   number: 0
   noarch: python
-  # Upstream's sdist ships 13 test-fixture files as symlinks (each
-  # metricflow_semantics/test_helpers/semantic_manifest_yamls/*/project_configuration.yaml
-  # points at .../shared/project_configuration.yaml). That resolves fine on
-  # Linux/macOS, but breaks the win-64 build: hatchling's wheel builder calls
-  # os.stat() on each included file while walking the tree, and Windows'
-  # reparse-point handling for these tar-extracted symlinks makes that raise
-  # WinError 123 ("invalid filename syntax"). Materialize them as real file
-  # copies before the build so it's not relying on symlink support at all --
-  # this produces the same bytes a working Unix build already gets (verified
-  # against upstream's own published wheel), just without the Windows-specific
-  # failure mode.
+  # Required to ensure that test files shipped as zipped symlinks work on Windows
+  # as well as on unix-like platforms.
   script: |
     python -c "import glob, os, shutil; shared = 'metricflow_semantics/test_helpers/semantic_manifest_yamls/shared/project_configuration.yaml'; targets = [p for p in glob.glob('metricflow_semantics/test_helpers/semantic_manifest_yamls/*/project_configuration.yaml') if os.path.normpath(p) != os.path.normpath(shared)]; [os.remove(t) for t in targets if os.path.lexists(t)]; [shutil.copyfile(shared, t) for t in targets]"
     python -m pip install . -vv --no-deps --no-build-isolation
