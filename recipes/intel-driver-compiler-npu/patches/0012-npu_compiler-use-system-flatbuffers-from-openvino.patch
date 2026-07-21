@@ -1,0 +1,44 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: npu_compiler: reuse the system flatbuffers resolved by OpenVINO
+
+When npu_compiler is built as an OPENVINO_EXTRA_MODULES and OpenVINO has
+resolved the system (conda-forge) flatbuffers, the imported targets are named
+flatbuffers::flatc / flatbuffers::flatbuffers -- there is no in-tree `flatbuffers`
+or `flatc` target. npu_compiler's thirdparty/flatbuffers.cmake then falls through
+to add_subdirectory("${OpenVINO_SOURCE_DIR}/thirdparty/flatbuffers/flatbuffers"),
+which is a git submodule absent from the conda-forge archive tarball, and the
+configure fails.
+
+Re-expose the system flatbuffers under the plain target names the rest of
+npu_compiler (and the vendored vpucostmodel) hardcode: a `flatc` IMPORTED GLOBAL
+executable (GLOBAL so it is visible in the sibling src/ subtree -- an ALIAS would
+be scoped to thirdparty/ only) and a `flatbuffers` INTERFACE link target.
+
+--- a/thirdparty/flatbuffers.cmake
++++ b/thirdparty/flatbuffers.cmake
+@@ -4,7 +4,24 @@
+ #
+ 
+ 
+-if(TARGET flatbuffers OR TARGET flatc)
++if(TARGET flatbuffers::flatc AND NOT TARGET flatc)
++    # conda-forge: OpenVINO resolved the system flatbuffers (flatbuffers::flatc +
++    # flatbuffers::flatbuffers). Re-expose them under the plain target names the
++    # rest of npu_compiler / vpucostmodel hardcode ($<TARGET_FILE:flatc>, the
++    # `flatbuffers` link target) instead of building OpenVINO's (unvendored)
++    # thirdparty/flatbuffers submodule. flatc must be GLOBAL so it is visible in
++    # the sibling src/ subtree (an ALIAS would be scoped to thirdparty/ only).
++    get_target_property(_flatc_loc flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
++    if(NOT _flatc_loc)
++        get_target_property(_flatc_loc flatbuffers::flatc IMPORTED_LOCATION)
++    endif()
++    add_executable(flatc IMPORTED GLOBAL)
++    set_target_properties(flatc PROPERTIES IMPORTED_LOCATION "${_flatc_loc}")
++    if(NOT TARGET flatbuffers)
++        add_library(flatbuffers INTERFACE)
++        target_link_libraries(flatbuffers INTERFACE flatbuffers::flatbuffers)
++    endif()
++elseif(TARGET flatbuffers OR TARGET flatc)
+     # we are building NPU plugin via -DOPENVINO_EXTRA_MODULES
+     # and flatbuffers is already built as part of OpenVINO in case of
+     # building in a single tree
