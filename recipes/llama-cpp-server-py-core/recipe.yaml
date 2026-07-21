@@ -19,7 +19,21 @@ build:
     content:
       - if: unix
         then: export CMAKE_GENERATOR=Ninja
-      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.LLAMA_BUILD=OFF -Ccmake.define.LLAVA_BUILD=OFF
+      - if: unix
+        then: |
+          mkdir -p "$SP_DIR/llama_cpp_server_py_core/lib"
+          cp "$PREFIX/bin/llama-server" "$SP_DIR/llama_cpp_server_py_core/lib/"
+          cp "$PREFIX/bin/llama-quantize" "$SP_DIR/llama_cpp_server_py_core/lib/" || true
+          cp "$PREFIX/lib/libllama"* "$SP_DIR/llama_cpp_server_py_core/lib/"
+          cp "$PREFIX/lib/libggml"* "$SP_DIR/llama_cpp_server_py_core/lib/" || true
+      - if: win
+        then: |
+          mkdir "%SP_DIR%\llama_cpp_server_py_core\lib"
+          copy "%LIBRARY_BIN%\llama-server.exe" "%SP_DIR%\llama_cpp_server_py_core\lib\"
+          copy "%LIBRARY_BIN%\llama-quantize.exe" "%SP_DIR%\llama_cpp_server_py_core\lib\"
+          copy "%LIBRARY_BIN%\llama.dll" "%SP_DIR%\llama_cpp_server_py_core\lib\"
+          copy "%LIBRARY_BIN%\ggml*.dll" "%SP_DIR%\llama_cpp_server_py_core\lib\"
 
 requirements:
   build:
@@ -32,10 +46,12 @@ requirements:
     - python
     - pip
     - scikit-build-core
+    - llama.cpp ==5289
   run:
     - python
     - requests
     - urllib3
+    - llama.cpp ==5289
 
 tests:
   - python:
