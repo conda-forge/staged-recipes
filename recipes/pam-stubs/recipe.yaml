@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "1.7.2"
+
+package:
+  name: pam-stubs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/linux-pam/linux-pam/releases/download/v${{ version }}/Linux-PAM-${{ version }}.tar.xz
+  sha256: 3d86b6383fb5fd9eb9578d2cd47d92801191f4bf3f9bc61419bfefc8aa1e531a
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  # No host deps: we ship only the Linux-PAM public headers and a link-time
+  # stub generated from them.
+  #
+  # No run_exports on purpose. This is a build/host-time link stub. Downstreams
+  # must resolve the *real* libpam from the user's system at runtime (PAM does
+  # system auth via /etc/pam.d, and conda-forge deliberately ships no runtime
+  # PAM). Exporting a runtime dependency would be wrong; a runtime conda libpam
+  # would shadow the system one and break authentication.
+
+tests:
+  - package_contents:
+      include:
+        - security/pam_appl.h
+        - security/pam_modules.h
+      files:
+        exists:
+          - lib/stubs/libpam.so
+        # CRITICAL: nothing named libpam may live in lib/ itself, or the conda
+        # rpath would shadow the system libpam at runtime and break auth.
+        not_exists:
+          - lib/libpam.so
+          - lib/libpam.so.*
+  - script:
+      # pkg-config points -lpam at the stubs dir, not lib/.
+      - pkg-config --libs pam | grep -q stubs
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://github.com/linux-pam/linux-pam
+  license: BSD-3-Clause OR GPL-2.0-or-later
+  license_file: COPYING
+  summary: Link-time stub and headers for Linux-PAM (uses the system PAM at runtime)
+  description: |
+    pam-stubs provides the Linux-PAM public headers and a link-time-only stub
+    of libpam so that conda-forge packages (such as weston's VNC backend) can
+    compile and link against libpam.
+
+    conda-forge deliberately does not ship a runtime PAM: authentication is a
+    system concern driven by /etc/pam.d, and a conda libpam.so.0 placed on the
+    runtime search path would shadow the real one and break login/auth.
+
+    To square this, the stub is installed into $PREFIX/lib/stubs (used only at
+    link time via -L), never into $PREFIX/lib. Downstream binaries record
+    "NEEDED libpam.so.0" with the correct versioned symbols; at runtime the
+    dynamic loader finds no libpam inside the conda prefix and falls through to
+    the user's system /lib*/libpam.so.0. The stub function bodies merely return
+    PAM_SYSTEM_ERR and are never executed.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
