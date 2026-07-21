@@ -1,0 +1,125 @@
+schema_version: 1
+
+context:
+  name: flashinfer-python
+  version: 0.3.1
+  cuda_build_string: cuda_${{ cuda_compiler_version | version_to_buildstring }}
+  is_cross_compiling: ${{ build_platform != target_platform }}
+  string_prefix: ${{ cuda_build_string if cuda_compiler_version != "None" else "cpu_" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/flashinfer_python-${{ version }}.tar.gz
+  sha256: 992017d193dfbbc62e67401a6d5416629bf90b640872d14b7863de45e9371446
+  patches:
+    - patches/0001-Remove-unneeded-dependencies.patch
+    - patches/0002-Include-the-BUILD_PREFIX-s-include-targets-directory.patch
+
+build:
+  number: 0
+  script:
+    # Override the CUDA architectures configured in the conda-forge nvcc package: https://github.com/conda-forge/cuda-nvcc-feedstock/blob/7843e9f1b9ea6bc555cd70c247d774189fc34110/recipe/conda_build_config.yaml#L21-L28
+    # CUDA synchronization primitives are only supported for sm_70 and up.
+    # tanh kernels require sm_75 and up.
+    - if: cuda_compiler_version == "12.6"
+      then:
+        # Build only for sm_75 on cuda 12.6 to reduce RAM usage during staged-recipes build.
+        # Re-enable other architectures when building the feedstock for conda-forge directly.
+        - export CUDAARCHS="75-real"
+        - export TORCH_CUDA_ARCH_LIST="7.5"
+        - export FLASHINFER_CUDA_ARCH_LIST="7.5"
+        # - export CUDAARCHS="75-real;80-real;86-real;89-real;90a-real"
+        # - export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0+PTX"
+        # - export FLASHINFER_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0"
+    - if: cuda_compiler_version == "12.9"
+      then:
+        - export CUDAARCHS="75-real;80-real;86-real;89-real;90a-real;100f-real;120a-real"
+        - export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
+        - export FLASHINFER_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0 10.0 12.0"
+    - if: x86_64
+      then:
+        - export export CONDA_BUILD_INCLUDE_TARGETS_DIR=$BUILD_PREFIX/targets/x86_64-linux/include
+    - if: aarch64
+      then:
+        - export CONDA_BUILD_INCLUDE_TARGETS_DIR=$BUILD_PREFIX/targets/sbsa-linux/include
+    - export NVSHMEM_INCLUDE_PATH=$PREFIX/include
+    - export NVSHMEM_LIBRARY_PATH=$PREFIX/lib
+    - ${{ PYTHON }} -m flashinfer.aot
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: cuda_compiler_version == "None"
+  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ninja
+    - if: is_cross_compiling
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pytorch * [build=cuda*]
+  host:
+    - python
+    - cuda-cccl
+    - cuda-cudart-dev
+    - cuda-python ${{ cuda_compiler_version }}.*
+    - cuda-version ==${{ cuda_compiler_version }}
+    - libcublas-dev
+    - libcurand-dev
+    - libnvshmem-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    - requests
+    - setuptools >=77
+    - packaging >=24
+    - pynvml
+    - pytorch * [build=cuda*]
+    - pip
+  run:
+    - python
+    - click
+    - einops
+    - numpy
+    - packaging >=24.2
+    - python-cudnn-frontend >=1.13.0
+    - pytorch * [build=cuda*]
+    - requests
+    - tabulate
+    - tqdm
+
+tests:
+  - python:
+      imports:
+        - flashinfer
+      pip_check: true
+  - script:
+      - pytest ./tests
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests
+
+about:
+  homepage: https://flashinfer.ai/
+  repository: https://github.com/flashinfer-ai/flashinfer
+  documentation: https://docs.flashinfer.ai/
+  summary: "FlashInfer: Kernel Library for LLM Serving"
+  license: Apache-2.0 AND BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE
+    - licenses/LICENSE.flashattention3.txt
+    - licenses/LICENSE.cutlass.txt
+    - licenses/LICENSE.spdlog.txt
+    - licenses/LICENSE.fmt.txt
+
+extra:
+  recipe-maintainers:
+    - shermansiu
