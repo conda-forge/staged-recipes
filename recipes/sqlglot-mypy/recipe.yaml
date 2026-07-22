@@ -1,0 +1,96 @@
+schema_version: 1
+
+context:
+  version: "2.1.0.post3"
+  ast_serialize_min: "0.3.0"
+  ast_serialize_max: "1.0.0"
+  mypy_extensions_min: "1.0.0"
+  pathspec_min: "1.0.0"
+  pathspec_max: "1.1"
+  python_librt_min: "0.11.0"
+  tomli_min: "1.1.0"
+  typing_extensions_min: "4.6.0"
+
+package:
+  name: sqlglot-mypy
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/s/sqlglot-mypy/sqlglot_mypy-${{ version }}.tar.gz
+    sha256: 5574c67006fb259e05e5367a5537b756d02a34df959adc2883c49a5203a1ade4
+
+build:
+  number: 0
+  script:
+    env:
+      MYPY_USE_MYPYC: "1"
+    content:
+      - python -m pip install . --no-deps -vv --no-build-isolation --disable-pip-version-check
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+  host:
+    - ast-serialize >=${{ ast_serialize_min }},<${{ ast_serialize_max }}
+    - mypy_extensions >=${{ mypy_extensions_min }}
+    - pathspec >=${{ pathspec_min }},<${{ pathspec_max }}
+    - pip
+    - python
+    - python-librt >=${{ python_librt_min }}
+    - setuptools >=77.0.3
+    - types-psutil
+    - types-setuptools
+    - typing_extensions >=${{ typing_extensions_min }}
+    - if: match(python, "<3.11")
+      then:
+        - tomli >=${{ tomli_min }}
+  run:
+    - ast-serialize >=${{ ast_serialize_min }},<${{ ast_serialize_max }}
+    - mypy_extensions >=${{ mypy_extensions_min }}
+    - pathspec >=${{ pathspec_min }},<${{ pathspec_max }}
+    - python
+    - python-librt >=${{ python_librt_min }}
+    # mypyc.build (mypyc/build_setup.py) does `from distutils import
+    # ccompiler` at import time; on Python >=3.12, stdlib distutils is
+    # gone, so importing mypyc.build only works if setuptools (which
+    # ships its own vendored distutils and shims `import distutils` to
+    # it) is actually installed alongside this package at runtime, not
+    # just at build time.
+    - setuptools >=77.0.3
+    - typing_extensions >=${{ typing_extensions_min }}
+    - if: match(python, "<3.11")
+      then:
+        - tomli >=${{ tomli_min }}
+
+tests:
+  - python:
+      imports:
+        - mypy
+        - mypyc
+        - mypyc.build
+      pip_check: true
+
+about:
+  summary: Private mypyc-capable mypy build, used only to compile sqlglotc
+  description: |
+    sqlglot-mypy is tobymao/sqlglot's fork of mypy (same import names,
+    same CLI entry points), published under a separate PyPI name so the
+    mypyc toolchain used to compile the sqlglotc accelerator can move
+    independently of upstream mypy's release cadence. It is packaged
+    here solely to satisfy sqlglotc's `mypyc.build.mypycify` build-time
+    dependency. It is not intended to be installed in a
+    general-purpose environment: it installs files under the same
+    `mypy`/`mypyc` import names as the regular conda-forge `mypy`
+    package and will conflict with it if both are requested together.
+  license: MIT
+  license_file:
+    - LICENSE
+    - mypy/typeshed/LICENSE
+  homepage: https://github.com/vaggelisd/sqlglot-mypy
+  repository: https://github.com/vaggelisd/sqlglot-mypy
+  documentation: https://mypy.readthedocs.io/en/stable/index.html
+
+extra:
+  recipe-maintainers:
+    - pb01ka
