@@ -4,7 +4,7 @@ Upstream publishes a Bazel-built wheel to PyPI, while this recipe rebuilds the
 same sources with setuptools and a vendored pyproject.toml. Compare the
 installed payload byte-for-byte and the resolver-relevant metadata fields
 against the official wheel, so that any upstream packaging change (a new
-dependency, file, or constraint) fails the build instead of drifting silently.
+dependency, file, or constraint) fails the test instead of drifting silently.
 
 The reference wheel is fetched as a declared, checksum-pinned recipe source
 (see recipe.yaml) rather than downloaded here, so this runs with no network

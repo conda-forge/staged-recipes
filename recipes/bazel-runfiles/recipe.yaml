@@ -18,11 +18,10 @@ source:
     sha256: e11d2e1efce1589e5bdfa93986712c74fc7467a0f093143d489d2ef5ebb1ed2a
   - path: pyproject.toml
     target_directory: python/runfiles
-  - path: test_wheel_parity.py
   # The official Bazel-built wheel from PyPI, fetched as a checksum-pinned
-  # source so test_wheel_parity.py can compare against it with no network
-  # access in the (network-isolated) build. file_name keeps it as a file
-  # rather than extracting it as an archive. The version-predictable PyPI
+  # source so the parity test below can compare against it with no network
+  # access in the (network-isolated) test environment. file_name keeps it as a
+  # file rather than extracting it as an archive. The version-predictable PyPI
   # download URL (which redirects to files.pythonhosted.org) is used rather
   # than the content-addressed one so the autotick-bot can re-resolve and
   # re-hash it on a version bump.
@@ -34,14 +33,7 @@ build:
   noarch: python
   number: 0
   script:
-    # Install with setuptools, then verify the result matches the Bazel-built
-    # wheel upstream publishes to PyPI (fetched as the reference.whl source
-    # above). Any upstream packaging drift (a new dependency, file, or
-    # constraint) fails the build instead of drifting silently.
-    content: |
-      set -ex
-      python -m pip install ./python/runfiles --no-deps --no-build-isolation -vv
-      python test_wheel_parity.py reference.whl
+    content: python -m pip install ./python/runfiles --no-deps --no-build-isolation -vv
     env:
       SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
 
@@ -60,6 +52,19 @@ tests:
         - runfiles
       python_version: ${{ python_min }}.*
       pip_check: true
+  # Compare the installed payload and metadata against the Bazel-built wheel
+  # upstream publishes to PyPI (carried in from the reference.whl source), so
+  # any upstream packaging change is caught here instead of drifting silently.
+  - script:
+      - python test_wheel_parity.py reference.whl
+    files:
+      source:
+        - reference.whl
+      recipe:
+        - test_wheel_parity.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
 
 about:
   homepage: https://github.com/bazel-contrib/rules_python
