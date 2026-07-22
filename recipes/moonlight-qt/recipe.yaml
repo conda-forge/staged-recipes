@@ -1,0 +1,81 @@
+context:
+  version: "6.1.0"
+
+package:
+  name: moonlight-qt
+  version: ${{ version }}
+
+source:
+  # official source tarball including the vendored submodules
+  # (moonlight-common-c, enet, qmdnsengine, h264bitstream, SDL_GameControllerDB)
+  url: https://github.com/moonlight-stream/moonlight-qt/releases/download/v${{ version }}/MoonlightSrc-${{ version }}.tar.gz
+  sha256: 696cc470a62e2f2e9b77739d400b389e7578c9510383c08614007c92be49d5b0
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: |
+    qmake6 "CONFIG+=release" PREFIX=${PREFIX} moonlight-qt.pro
+    make -j${CPU_COUNT}
+    make install
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+    - pkg-config
+  host:
+    - qt6-main
+    - sdl2
+    - sdl2_ttf
+    - libopus
+    - openssl
+    - ffmpeg
+    # optional pkg-config-detected backends; presence here enables them
+    - libva
+    - libdrm
+    - libplacebo
+    - vulkan-headers
+    - wayland
+    - xorg-libx11
+
+tests:
+  - script:
+      env:
+        QT_QPA_PLATFORM: offscreen
+      content:
+        - moonlight --version
+  - package_contents:
+      bin:
+        - moonlight
+      files:
+        exists:
+          - share/applications/com.moonlight_stream.Moonlight.desktop
+          - share/icons/hicolor/scalable/apps/moonlight.svg
+
+about:
+  homepage: https://moonlight-stream.org
+  summary: GameStream client for streaming games from a remote host PC
+  description: |
+    Moonlight PC is an open source client for NVIDIA GameStream and
+    compatible hosts such as Sunshine, Apollo, and Moonshine. It streams
+    games and full desktops with hardware-accelerated video decoding,
+    HDR support, and low-latency input forwarding for mouse, keyboard,
+    and gamepads.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - moonlight-common-c/moonlight-common-c/LICENSE.txt
+    - moonlight-common-c/moonlight-common-c/enet/LICENSE
+    - qmdnsengine/qmdnsengine/LICENSE.txt
+    - h264bitstream/h264bitstream/LICENSE
+    - app/SDL_GameControllerDB/LICENSE
+  repository: https://github.com/moonlight-stream/moonlight-qt
+  documentation: https://github.com/moonlight-stream/moonlight-docs/wiki
+
+extra:
+  recipe-maintainers:
+    - tdejager
