@@ -1,0 +1,86 @@
+context:
+  version: "0.12.0"
+
+package:
+  name: moonshine
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hgaiser/moonshine/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3358beafdbeff78f155a0e161468838a683fd6bec03824147ae16986be6bfd56
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    env:
+      # LTO is disabled upstream (see the AUR PKGBUILD's !lto option)
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content: |
+      export LIBCLANG_PATH=${BUILD_PREFIX}/lib
+      cargo auditable build --release --locked -p moonshine -p moonshine-wsi
+      install -Dm755 target/release/moonshine ${PREFIX}/bin/moonshine
+      install -Dm755 target/release/libmoonshine_wsi.so ${PREFIX}/lib/moonshine/vulkan-layers/libmoonshine_wsi.so
+      # The Vulkan loader resolves relative library_path entries relative to the manifest location
+      sed 's|/usr/lib/moonshine/vulkan-layers/libmoonshine_wsi.so|../../../lib/moonshine/vulkan-layers/libmoonshine_wsi.so|' \
+        dist/VkLayer_moonshine_wsi.json > VkLayer_moonshine_wsi.json
+      install -Dm644 VkLayer_moonshine_wsi.json ${PREFIX}/share/vulkan/implicit_layer.d/VkLayer_moonshine_wsi.json
+      install -Dm644 dist/moonshine@.service ${PREFIX}/share/moonshine/moonshine@.service
+      install -Dm644 dist/60-moonshine.rules ${PREFIX}/share/moonshine/60-moonshine.rules
+      install -Dm644 dist/moonshine-modules.conf ${PREFIX}/share/moonshine/moonshine-modules.conf
+      cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - pkg-config
+    - git
+    - libclang
+  host:
+    - libevdev
+    - libopus
+    - libdrm
+    - libgbm
+    - wayland
+    - libxkbcommon
+
+tests:
+  - script: moonshine --help
+  - package_contents:
+      bin:
+        - moonshine
+      files:
+        exists:
+          - lib/moonshine/vulkan-layers/libmoonshine_wsi.so
+          - share/vulkan/implicit_layer.d/VkLayer_moonshine_wsi.json
+
+about:
+  homepage: https://github.com/hgaiser/moonshine
+  summary: Headless streaming server for Moonlight clients, written in Rust
+  description: |
+    Moonshine lets you stream games from a Linux PC to any device running
+    Moonlight. Each stream runs in its own isolated compositor, separate
+    from the desktop environment, so no monitor or active desktop session
+    is required. It supports hardware H.264/H.265/AV1 encoding via Vulkan,
+    HDR, surround-sound audio, and full mouse, keyboard, and gamepad input.
+
+    The package also ships the Moonshine Vulkan WSI layer
+    (share/vulkan/implicit_layer.d) and reference systemd/udev integration
+    files (share/moonshine).
+  license: BSD-2-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/hgaiser/moonshine
+
+extra:
+  recipe-maintainers:
+    - tdejager
