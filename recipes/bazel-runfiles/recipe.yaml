@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  version: "2.2.0"
+
+package:
+  name: bazel-runfiles
+  version: ${{ version }}
+
+source:
+  # The runfiles library lives in the rules_python repo, which builds its PyPI
+  # wheel with Bazel's own py_wheel rule and so carries no Python packaging
+  # metadata of its own. Rather than building with Bazel, we drop the minimal
+  # pyproject.toml shipped next to this recipe into the source tree and let
+  # pip/setuptools do the rest; the version is injected via
+  # SETUPTOOLS_SCM_PRETEND_VERSION in the build script below.
+  # Metadata correctness is enforced by test_wheel_parity.py, which the build
+  # script runs against the upstream PyPI wheel (see build.script below).
+  - url: https://github.com/bazel-contrib/rules_python/releases/download/${{ version }}/rules_python-${{ version }}.tar.gz
+    sha256: e11d2e1efce1589e5bdfa93986712c74fc7467a0f093143d489d2ef5ebb1ed2a
+  - path: pyproject.toml
+    target_directory: python/runfiles
+  - path: test_wheel_parity.py
+
+build:
+  noarch: python
+  number: 0
+  script:
+    # Install with setuptools, then verify the result matches the Bazel-built
+    # wheel upstream publishes to PyPI. The comparison runs here, in the build,
+    # rather than in the test phase: the check needs to download the reference
+    # wheel, and network access belongs in the build, not in tests. Any upstream
+    # packaging drift (a new dependency, file, or constraint) fails the build.
+    content: |
+      set -ex
+      python -m pip install ./python/runfiles --no-deps --no-build-isolation -vv
+      python test_wheel_parity.py
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - runfiles
+      python_version: ${{ python_min }}.*
+      pip_check: true
+
+about:
+  homepage: https://github.com/bazel-contrib/rules_python
+  summary: A Bazel Runfiles lookup library for Bazel-built Python binaries and tests.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/bazel-contrib/rules_python
+
+extra:
+  recipe-maintainers:
+    - ctcjab
