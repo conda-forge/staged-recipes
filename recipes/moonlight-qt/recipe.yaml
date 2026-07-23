@@ -63,15 +63,17 @@ build:
         fi
       fi
 
-      # menuinst shortcut so conda/pixi create a desktop/start-menu entry on
-      # install (linux and windows; the mac bundle is discoverable as-is)
-      if [[ "${target_platform}" != osx-* ]]; then
-        P="${PREFIX//\\//}"
-        mkdir -p "${P}/Menu"
-        if [[ "${target_platform}" == win-* ]]; then
-          cp app/moonlight.ico "${P}/Menu/moonlight.ico"
-        fi
-        cat > "${P}/Menu/moonlight-qt.json" <<'EOF'
+      # menuinst shortcut so conda/pixi create a desktop/start-menu/launcher
+      # entry on install (the mac bundle in the prefix is not indexed by
+      # Launchpad, so it needs one too)
+      P="${PREFIX//\\//}"
+      mkdir -p "${P}/Menu"
+      if [[ "${target_platform}" == win-* ]]; then
+        cp app/moonlight.ico "${P}/Menu/moonlight.ico"
+      elif [[ "${target_platform}" == osx-* ]]; then
+        cp app/moonlight.icns "${P}/Menu/moonlight.icns"
+      fi
+      cat > "${P}/Menu/moonlight-qt.json" <<'EOF'
       {
         "$schema": "https://schemas.conda.org/menuinst-1.schema.json",
         "menu_name": "Moonlight",
@@ -88,6 +90,11 @@ build:
                 "Categories": ["Qt", "Game"],
                 "Keywords": ["nvidia", "gamestream", "stream", "sunshine", "remote play"]
               },
+              "osx": {
+                "icon": "{{ MENU_DIR }}/moonlight.icns",
+                "CFBundleName": "Moonlight",
+                "CFBundleIdentifier": "com.moonlight_stream.Moonlight-conda"
+              },
               "win": {
                 "command": ["{{ PREFIX }}/Library/bin/Moonlight.exe"],
                 "icon": "{{ MENU_DIR }}/moonlight.ico"
@@ -97,7 +104,6 @@ build:
         ]
       }
       EOF
-      fi
 
 requirements:
   build:
@@ -157,6 +163,8 @@ tests:
             exists:
               - Applications/Moonlight.app/**
               - bin/moonlight
+              - Menu/moonlight-qt.json
+              - Menu/moonlight.icns
   - if: win
     then:
       - package_contents:
