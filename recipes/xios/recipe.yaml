@@ -1,0 +1,99 @@
+# XIOS -- XML-IO-SERVER, the asynchronous parallel I/O server LFRic writes
+# diagnostics through. lfric_core links it as `-lxios` and compiles against its
+# Fortran modules (components/lfric-xios/build/import.mk).
+#
+# This is the hard package of the set: XIOS has no CMake or autotools build. It
+# is built by FCM (a Perl build system) via ./make_xios, configured by three
+# hand-written "arch" files -- arch-<NAME>.{env,path,fcm}. build.sh generates an
+# arch-CONDA triplet pointing at $PREFIX, mirroring what the Spack recipe in
+# ickc/lfric-env-isambard does for arch-SPACK.
+#
+# VERSION: upstream migrated from SVN to git, and LFRic wants what was SVN
+# r2701. That is commit 2eb572f on the XIOS2 branch; MetOffice/mo-spack-packages
+# calls it xios@2.2701, which is the version string used here so the two agree.
+schema_version: 1
+
+context:
+  version: "2.2701"
+  commit: 2eb572f0986eca19031eb6c294d116646010687c
+
+package:
+  name: xios
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.in2p3.fr/ipsl/projets/xios-projects/xios/-/archive/${{ commit }}/xios-${{ commit }}.tar.gz
+  sha256: 1260933df79937f571aa2dd5edaead8f1288409a0d2d49d879af552d84dc7594
+  patches:
+    # r2701 restored most of the STL includes older revisions dropped, but
+    # extern/remap's vendored earcut.hpp still comments out <tuple> and
+    # <cstddef> while using std::tuple_element / std::get / std::size_t, which
+    # current libstdc++ no longer exposes transitively.
+    - patches/0001-earcut-standard-headers.patch
+
+build:
+  number: 0
+  # MPI-variant build string, per conda-forge convention for MPI-linked packages.
+  string: mpi_${{ mpi }}_${{ hash }}_${{ build_number }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - make
+    # FCM is Perl, and its extract/build stages use URI.
+    - perl
+    - perl-uri
+  host:
+    - ${{ mpi }}
+    - libnetcdf * mpi_${{ mpi }}_*
+    - netcdf-fortran * mpi_${{ mpi }}_*
+    - hdf5 * mpi_${{ mpi }}_*
+    # Headers only: XIOS includes boost but links no boost_* library (its
+    # %BASE_LD adds -L for boost yet never a -l). libboost-devel would pull the
+    # compiled libboost into the runtime closure for nothing -- rattler-build
+    # flags it as "Overdepending against libboost".
+    - libboost-headers
+    - blitzpp
+  run:
+    - ${{ mpi }}
+
+tests:
+  - package_contents:
+      include:
+        - xios.mod
+      bin:
+        - xios_server.exe
+      # XIOS produces a STATIC library, so this is a plain file glob rather than
+      # the `lib:` matcher (which looks for a shared object). Static is what
+      # LFRic wants: lfric_core declares `EXTERNAL_STATIC_LIBRARIES += xios`.
+      files:
+        - lib/libxios.a
+  - script:
+      - bash test_xios.sh
+    requirements:
+      run:
+        - ${{ mpi }}
+    files:
+      recipe:
+        - test_xios.sh
+
+about:
+  homepage: https://forge.ipsl.jussieu.fr/ioserver
+  repository: https://gitlab.in2p3.fr/ipsl/projets/xios-projects/xios
+  summary: XML-IO-SERVER, parallel I/O management for climate models
+  description: |
+    XIOS manages the I/O of climate models. It lets a model describe its output
+    declaratively in XML and offloads the writing to dedicated server processes,
+    so that diagnostic output is asynchronous and does not stall computation.
+  # SPDX capitalises this as CECILL; upstream ships it as Licence_CeCILL_V2.
+  license: CECILL-2.0
+  license_file:
+    - Licence.txt
+    - Licence_CeCILL_V2-en.txt
+
+extra:
+  recipe-maintainers:
+    - ickc
