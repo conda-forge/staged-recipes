@@ -11,9 +11,12 @@ source:
   url: https://github.com/moonlight-stream/moonlight-qt/releases/download/v${{ version }}/MoonlightSrc-${{ version }}.tar.gz
   sha256: 696cc470a62e2f2e9b77739d400b389e7578c9510383c08614007c92be49d5b0
   patches:
-    # extend upstream's disable-prebuilts flag to windows so the build links
-    # conda libs instead of the vendored binaries (and skips libplacebo and
-    # the proprietary discord-rpc, which have no conda-forge packages there)
+    # extend upstream's disable-prebuilts flag to windows (and to the
+    # moonlight-common-c include paths) so the build uses conda headers and
+    # libs instead of the vendored ones, and skip the pieces that need
+    # vendored prebuilts: libplacebo and discord-rpc (not packaged on
+    # conda-forge for windows) and the AntiHooking shim (links Microsoft
+    # Detours, which is only present as a prebuilt static library)
     - patches/0001-win-disable-prebuilts.patch
 
 build:
@@ -48,7 +51,6 @@ build:
             moonlight-qt.pro
           jom
           cp app/release/Moonlight.exe "${LB}/"
-          cp AntiHooking/release/AntiHooking.dll "${LB}/"
           ;;
         *)
           case "${target_platform}" in
@@ -86,7 +88,7 @@ build:
       esac
       cat > "${P}/Menu/moonlight-qt.json" <<'EOF'
       {
-        "$schema": "https://schemas.conda.org/menuinst-1.schema.json",
+        "$schema": "https://schemas.conda.org/menuinst/menuinst-1-1-3.schema.json",
         "menu_name": "Moonlight",
         "menu_items": [
           {
@@ -104,7 +106,7 @@ build:
               "osx": {
                 "icon": "{{ MENU_DIR }}/moonlight.icns",
                 "CFBundleName": "Moonlight",
-                "CFBundleIdentifier": "com.moonlight_stream.Moonlight-conda"
+                "CFBundleIdentifier": "com.moonlight-stream.moonlight-conda"
               },
               "win": {
                 "command": ["{{ PREFIX }}/Library/bin/Moonlight.exe"],
@@ -183,7 +185,6 @@ tests:
           files:
             exists:
               - Library/bin/Moonlight.exe
-              - Library/bin/AntiHooking.dll
               - Menu/moonlight-qt.json
               - Menu/moonlight.ico
 
@@ -196,11 +197,13 @@ about:
     games and full desktops with hardware-accelerated video decoding,
     HDR support, and low-latency input forwarding for mouse, keyboard,
     and gamepads.
-  # GPL-3.0-or-later: moonlight-qt, moonlight-common-c; MIT: enet (patched
-  # fork), qmdnsengine (fork), libsoundio (modified copy); LGPL-2.1-or-later:
-  # h264bitstream; BSD-2-Clause: reedsolomon FEC in moonlight-common-c;
-  # Zlib: SDL_GameControllerDB
-  license: GPL-3.0-or-later AND MIT AND LGPL-2.1-or-later AND BSD-2-Clause AND Zlib
+  # GPL-3.0-or-later: moonlight-qt (per upstream's appdata project_license
+  # GPL-3.0+); GPL-3.0-only: moonlight-common-c (bare GPLv3 text, no or-later
+  # grant); MIT: enet (patched fork), qmdnsengine (fork), libsoundio
+  # (modified copy); LGPL-2.1-or-later: h264bitstream; BSD-2-Clause:
+  # reedsolomon FEC in moonlight-common-c; Zlib: SDL_GameControllerDB;
+  # CC0-1.0: AppStream metadata; LicenseRef-ModeSeven: embedded ModeSeven font
+  license: GPL-3.0-or-later AND GPL-3.0-only AND MIT AND LGPL-2.1-or-later AND BSD-2-Clause AND Zlib AND CC0-1.0 AND LicenseRef-ModeSeven
   license_file:
     - LICENSE
     - moonlight-common-c/moonlight-common-c/LICENSE.txt
@@ -211,6 +214,10 @@ about:
     - soundio/libsoundio/LICENSE
     # extracted from reedsolomon/rs.c, which has no standalone license file
     - reedsolomon-LICENSE.txt
+    # notice extracted from the embedded ModeSeven.ttf name table
+    - ModeSeven-LICENSE.txt
+    # covers the AppStream metadata file (metadata_license CC0-1.0)
+    - CC0-1.0.txt
   repository: https://github.com/moonlight-stream/moonlight-qt
   documentation: https://github.com/moonlight-stream/moonlight-docs/wiki
 

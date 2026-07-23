@@ -1,5 +1,6 @@
---- a/app/app.pro	2026-07-23 09:19:00
-+++ b/app/app.pro	2026-07-23 09:19:00
+diff -ur a/app/app.pro b/app/app.pro
+--- a/app/app.pro	2026-07-23 10:57:11
++++ b/app/app.pro	2026-07-23 10:57:11
 @@ -36,20 +36,22 @@
  DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
  
@@ -56,3 +57,87 @@
  }
  macx {
      !disable-prebuilts {
+@@ -511,10 +518,11 @@
+ INCLUDEPATH += $$PWD/../h264bitstream/h264bitstream
+ DEPENDPATH += $$PWD/../h264bitstream/h264bitstream
+ 
+-!winrt {
++!winrt:!disable-prebuilts {
+     win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../AntiHooking/release/ -lAntiHooking
+     else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../AntiHooking/debug/ -lAntiHooking
+ 
++    win32: DEFINES += HAVE_ANTIHOOKING
+     INCLUDEPATH += $$PWD/../AntiHooking
+     DEPENDPATH += $$PWD/../AntiHooking
+ }
+diff -ur a/app/main.cpp b/app/main.cpp
+--- a/app/main.cpp	2026-07-23 10:57:11
++++ b/app/main.cpp	2026-07-23 10:57:11
+@@ -24,7 +24,9 @@
+ #endif
+ 
+ #if defined(Q_OS_WIN32)
++#ifdef HAVE_ANTIHOOKING
+ #include "antihookingprotection.h"
++#endif
+ 
+ #define WIN32_LEAN_AND_MEAN
+ #include <Windows.h>
+@@ -366,7 +368,7 @@
+     }
+ #endif
+ 
+-#if defined(Q_OS_WIN32)
++#if defined(Q_OS_WIN32) && defined(HAVE_ANTIHOOKING)
+     // Force AntiHooking.dll to be statically imported and loaded
+     // by ntdll on Win32 platforms by calling a dummy function.
+     AntiHookingDummyImport();
+diff -ur a/moonlight-common-c/moonlight-common-c.pro b/moonlight-common-c/moonlight-common-c.pro
+--- a/moonlight-common-c/moonlight-common-c.pro	2026-07-23 10:57:11
++++ b/moonlight-common-c/moonlight-common-c.pro	2026-07-23 10:57:11
+@@ -16,20 +16,22 @@
+ include(../globaldefs.pri)
+ 
+ win32 {
+-    contains(QT_ARCH, i386) {
+-        INCLUDEPATH += $$PWD/../libs/windows/include/x86
+-    }
+-    contains(QT_ARCH, x86_64) {
+-        INCLUDEPATH += $$PWD/../libs/windows/include/x64
+-    }
+-    contains(QT_ARCH, arm64) {
+-        INCLUDEPATH += $$PWD/../libs/windows/include/arm64
+-    }
++    !disable-prebuilts {
++        contains(QT_ARCH, i386) {
++            INCLUDEPATH += $$PWD/../libs/windows/include/x86
++        }
++        contains(QT_ARCH, x86_64) {
++            INCLUDEPATH += $$PWD/../libs/windows/include/x64
++        }
++        contains(QT_ARCH, arm64) {
++            INCLUDEPATH += $$PWD/../libs/windows/include/arm64
++        }
+ 
+-    INCLUDEPATH += $$PWD/../libs/windows/include
++        INCLUDEPATH += $$PWD/../libs/windows/include
++    }
+     DEFINES += HAS_QOS_FLOWID=1 HAS_PQOS_FLOWID=1
+ }
+-macx {
++macx:!disable-prebuilts {
+     INCLUDEPATH += $$PWD/../libs/mac/include
+ }
+ unix:!macx {
+diff -ur a/moonlight-qt.pro b/moonlight-qt.pro
+--- a/moonlight-qt.pro	2026-07-23 10:57:11
++++ b/moonlight-qt.pro	2026-07-23 10:57:11
+@@ -7,7 +7,7 @@
+ 
+ # Build the dependencies in parallel before the final app
+ app.depends = qmdnsengine moonlight-common-c h264bitstream
+-win32:!winrt {
++win32:!winrt:!disable-prebuilts {
+     SUBDIRS += AntiHooking
+     app.depends += AntiHooking
+ }
