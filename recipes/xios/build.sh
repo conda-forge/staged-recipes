@@ -37,8 +37,17 @@ EOF
 # libc++ on macOS (conda-forge's osx C/C++ compiler is clang). Forcing -lstdc++
 # on osx would fail -- there is no libstdc++ in the clang toolchain there.
 case "${target_platform:-$(uname -s)}" in
-  osx-*|Darwin) CXX_RT_LIB="-lc++" ;;
-  *)            CXX_RT_LIB="-lstdc++" ;;
+  osx-*|Darwin) CXX_RT_LIB="-lc++"; LD_EXTRA="" ;;
+  # conda-forge's libfabric (pulled in by mpich) references
+  # getrandom@GLIBC_2.25, which the build's glibc sysroot pin (2.17, the
+  # conda-forge baseline) does not declare, so the linker refuses to resolve
+  # it against libfabric.so.1 even though it is only ever needed at runtime
+  # (any environment that can install this mpich already satisfies it via
+  # mpich's own run-time glibc constraint). Deferring that check to runtime,
+  # same fix ickc/lfric-conda uses via a sysroot bump, but scoped to just
+  # this link step so it can't collide with unrelated variant keys (notably
+  # macOS's own, differently-scaled `c_stdlib_version`).
+  *)            CXX_RT_LIB="-lstdc++"; LD_EXTRA="-Wl,--allow-shlib-undefined" ;;
 esac
 
 # Boost and Blitz++ headers are both under $PREFIX/include, so one -I covers the
@@ -64,7 +73,7 @@ cat > "arch/arch-${ARCH}.fcm" <<EOF
 %DEBUG_FFLAGS   -g
 
 %BASE_INC       -D__NONE__
-%BASE_LD        -L${PREFIX}/lib -lblitz ${CXX_RT_LIB}
+%BASE_LD        -L${PREFIX}/lib -lblitz ${CXX_RT_LIB} ${LD_EXTRA}
 
 %CPP            mpicc -E
 %FPP            mpicc -E -P -x c
