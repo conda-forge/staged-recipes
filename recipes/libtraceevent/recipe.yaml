@@ -1,0 +1,93 @@
+schema_version: 1
+
+context:
+  version: "1.9.0"
+
+package:
+  name: libtraceevent
+  version: ${{ version }}
+
+source:
+  - url: https://git.kernel.org/pub/scm/libs/libtrace/libtraceevent.git/snapshot/libtraceevent-${{ version }}.tar.gz
+    sha256: e6d82cb2392d04866203387fa092692e4282ccc36c8235dc129afd1ceba12684
+  # the BTF support needs a kernel >= 6.0 UAPI btf.h, newer than any
+  # conda-forge sysroot provides; used at build time only, not shipped
+  - url: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/plain/include/uapi/linux/btf.h?h=v7.1.4
+    sha256: 24cf19b4cc242a77e3c3149f243ad3f024e34e7ecd7bd156fb3997933f978be1
+    file_name: btf.h
+    target_directory: uapi-shim/linux
+
+build:
+  number: 0
+  skip: not linux
+  dynamic_linking:
+    overlinking_behavior: error
+    overdepending_behavior: error
+  script:
+    - |
+      make -j"${CPU_COUNT}" \
+        prefix="${PREFIX}" \
+        libdir_relative=lib \
+        pkgconfig_dir="${PREFIX}/lib/pkgconfig" \
+        LDCONFIG=false \
+        EXTRA_CFLAGS="${CFLAGS} -I${SRC_DIR}/uapi-shim" \
+        install
+    # conda-forge packages should not ship static libraries
+    - rm "${PREFIX}/lib/libtraceevent.a"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+    - make
+    - pkg-config
+  run_exports:
+    - ${{ pin_subpackage('libtraceevent', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      strict: true
+      lib:
+        - traceevent
+      include:
+        - traceevent/event-parse.h
+      files:
+        exists:
+          - lib/libtraceevent.so*
+          - include/traceevent/*.h
+          - lib/pkgconfig/libtraceevent.pc
+          - lib/traceevent/plugins/plugin_*.so
+          # rattler-build ships script-test files inside the package
+          - etc/conda/test-files/**
+  - script:
+      - pkg-config --exists --print-errors libtraceevent
+      - test "$(pkg-config --modversion libtraceevent)" = "${{ version }}"
+      # compile and run a program that allocates a tep handle, loads the
+      # shipped plugins (dlopen) and formats a trace_seq
+      - ${CC} test_program.c $(pkg-config --cflags --libs libtraceevent) -o test_program
+      - ./test_program
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - pkg-config
+    files:
+      recipe:
+        - test_program.c
+
+about:
+  summary: Linux kernel trace event library
+  description: |
+    libtraceevent is a library that parses the binary data of Linux kernel
+    tracepoint events and converts it into a human readable format. It was
+    originally part of the Linux kernel source tree (used by perf and
+    trace-cmd) and is now maintained as a standalone library.
+  license: LGPL-2.1-only AND GPL-2.0-only
+  license_file:
+    - LICENSES/LGPL-2.1
+    - LICENSES/GPL-2.0
+  homepage: https://git.kernel.org/pub/scm/libs/libtrace/libtraceevent.git/
+  documentation: https://www.trace-cmd.org/Documentation/libtraceevent/
+
+extra:
+  recipe-maintainers:
+    - chrisburr
