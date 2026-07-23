@@ -1,0 +1,67 @@
+{% set version = "4.0.1" %}
+
+package:
+  name: triqs_ctint
+  version: {{ version }}
+
+source:
+  url: https://github.com/TRIQS/ctint/releases/download/{{ version }}/ctint-{{ version }}.tar.gz
+  sha256: a7dc9ecd3300ef73e9f4711b612403b370c89e1f381ee23f116d7a4f4ae16685
+
+build:
+  number: 0
+  skip: true  # [win or py<30]
+  # Boost is header-only here; libboost-devel provides BoostConfig.cmake for
+  # find_package(Boost) under CMP0167, but its compiled-lib run_export is not needed.
+  ignore_run_exports:
+    - libboost
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - {{ mpi }}                              # [mpi == 'openmpi' and build_platform != target_platform]
+  host:
+    - triqs {{ '.'.join(version.split('.')[:2]) }}
+    - libboost-devel
+    - fftw
+    - hdf5
+    - {{ mpi }}
+    - libblas
+    - liblapack
+    - numpy
+    - python
+  run:
+    - {{ pin_compatible("triqs", max_pin="x.x") }}
+    - fftw
+    - hdf5
+    - {{ mpi }}
+    - libblas
+    - liblapack
+    - python
+
+test:
+  commands:
+    - export OMPI_MCA_btl=self,tcp
+    - export OMPI_MCA_plm=isolated
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none
+    - export mpiexec="mpiexec --allow-run-as-root"
+    - python -c "import triqs_ctint"
+
+about:
+  home: https://triqs.github.io/ctint
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  summary: A continuous-time interaction-expansion impurity solver for TRIQS
+
+extra:
+  recipe-maintainers:
+    - wentzell
