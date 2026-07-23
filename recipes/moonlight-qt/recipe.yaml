@@ -21,58 +21,69 @@ build:
   script:
     interpreter: brush
     content: |
+      # NOTE: platform dispatch uses case statements — brush 0.4.0 propagates
+      # a false [[ ]] if-condition's exit status as the if statement's status,
+      # which aborts the script under set -e
+
       # qmake's early config tests invoke the mkspec's plain compiler names
       # before command-line QMAKE_CC/CXX overrides take effect
-      if [[ "${target_platform}" == linux-* ]]; then
-        ln -sf ${CC} ${BUILD_PREFIX}/bin/gcc
-        ln -sf ${CXX} ${BUILD_PREFIX}/bin/g++
-      elif [[ "${target_platform}" == osx-* ]]; then
-        ln -sf ${CC} ${BUILD_PREFIX}/bin/clang
-        ln -sf ${CXX} ${BUILD_PREFIX}/bin/clang++
-      fi
+      case "${target_platform}" in
+        linux-*)
+          ln -sf ${CC} ${BUILD_PREFIX}/bin/gcc
+          ln -sf ${CXX} ${BUILD_PREFIX}/bin/g++
+          ;;
+        osx-*)
+          ln -sf ${CC} ${BUILD_PREFIX}/bin/clang
+          ln -sf ${CXX} ${BUILD_PREFIX}/bin/clang++
+          ;;
+      esac
 
-      if [[ "${target_platform}" == win-* ]]; then
-        LI="${LIBRARY_INC//\\//}"
-        LL="${LIBRARY_LIB//\\//}"
-        LB="${LIBRARY_BIN//\\//}"
-        qmake6 "CONFIG+=release" "CONFIG+=disable-prebuilts" \
-          "INCLUDEPATH+=${LI}" "INCLUDEPATH+=${LI}/SDL2" "LIBS+=-L${LL}" \
-          moonlight-qt.pro
-        jom
-        cp app/release/Moonlight.exe "${LB}/"
-        cp AntiHooking/release/AntiHooking.dll "${LB}/"
-      else
-        if [[ "${target_platform}" == osx-* ]]; then
-          # use pkg-config against conda libs instead of the vendored mac frameworks
-          EXTRA_CONFIG="CONFIG+=disable-prebuilts"
-        else
-          EXTRA_CONFIG=""
-        fi
-        qmake6 "CONFIG+=release" ${EXTRA_CONFIG} PREFIX=${PREFIX} \
-          QMAKE_CC="${CC}" QMAKE_CXX="${CXX}" QMAKE_LINK="${CXX}" QMAKE_LINK_C="${CC}" \
-          "QMAKE_CFLAGS=${CFLAGS}" "QMAKE_CXXFLAGS=${CXXFLAGS}" "QMAKE_LFLAGS=${LDFLAGS}" \
-          moonlight-qt.pro
-        make -j${CPU_COUNT}
-        if [[ "${target_platform}" == osx-* ]]; then
-          # no qmake install target on macOS; ship the app bundle
-          mkdir -p ${PREFIX}/Applications ${PREFIX}/bin
-          cp -R app/Moonlight.app ${PREFIX}/Applications/
-          ln -s ../Applications/Moonlight.app/Contents/MacOS/Moonlight ${PREFIX}/bin/moonlight
-        else
-          make install
-        fi
-      fi
+      case "${target_platform}" in
+        win-*)
+          LI="${LIBRARY_INC//\\//}"
+          LL="${LIBRARY_LIB//\\//}"
+          LB="${LIBRARY_BIN//\\//}"
+          qmake6 "CONFIG+=release" "CONFIG+=disable-prebuilts" \
+            "INCLUDEPATH+=${LI}" "INCLUDEPATH+=${LI}/SDL2" "LIBS+=-L${LL}" \
+            moonlight-qt.pro
+          jom
+          cp app/release/Moonlight.exe "${LB}/"
+          cp AntiHooking/release/AntiHooking.dll "${LB}/"
+          ;;
+        *)
+          case "${target_platform}" in
+            # use pkg-config against conda libs instead of the vendored mac frameworks
+            osx-*) EXTRA_CONFIG="CONFIG+=disable-prebuilts" ;;
+            *) EXTRA_CONFIG="" ;;
+          esac
+          qmake6 "CONFIG+=release" ${EXTRA_CONFIG} PREFIX=${PREFIX} \
+            QMAKE_CC="${CC}" QMAKE_CXX="${CXX}" QMAKE_LINK="${CXX}" QMAKE_LINK_C="${CC}" \
+            "QMAKE_CFLAGS=${CFLAGS}" "QMAKE_CXXFLAGS=${CXXFLAGS}" "QMAKE_LFLAGS=${LDFLAGS}" \
+            moonlight-qt.pro
+          make -j${CPU_COUNT}
+          case "${target_platform}" in
+            osx-*)
+              # no qmake install target on macOS; ship the app bundle
+              mkdir -p ${PREFIX}/Applications ${PREFIX}/bin
+              cp -R app/Moonlight.app ${PREFIX}/Applications/
+              ln -s ../Applications/Moonlight.app/Contents/MacOS/Moonlight ${PREFIX}/bin/moonlight
+              ;;
+            *)
+              make install
+              ;;
+          esac
+          ;;
+      esac
 
       # menuinst shortcut so conda/pixi create a desktop/start-menu/launcher
       # entry on install (the mac bundle in the prefix is not indexed by
       # Launchpad, so it needs one too)
       P="${PREFIX//\\//}"
       mkdir -p "${P}/Menu"
-      if [[ "${target_platform}" == win-* ]]; then
-        cp app/moonlight.ico "${P}/Menu/moonlight.ico"
-      elif [[ "${target_platform}" == osx-* ]]; then
-        cp app/moonlight.icns "${P}/Menu/moonlight.icns"
-      fi
+      case "${target_platform}" in
+        win-*) cp app/moonlight.ico "${P}/Menu/moonlight.ico" ;;
+        osx-*) cp app/moonlight.icns "${P}/Menu/moonlight.icns" ;;
+      esac
       cat > "${P}/Menu/moonlight-qt.json" <<'EOF'
       {
         "$schema": "https://schemas.conda.org/menuinst-1.schema.json",
