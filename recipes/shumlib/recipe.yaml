@@ -1,0 +1,74 @@
+# shumlib -- the Shared Unified Model Library. LFRic's apps tier (lfric_atm and the
+# other UM-physics applications) links it as `-lshum`, found via SHUMLIB_ROOT; the
+# lfric_core applications (simple_diffusion, skeleton) do NOT need it. It is a
+# low-level C/Fortran library with NO MPI or netCDF dependency, so -- unlike xios,
+# yaxt, hdf5, netcdf -- it carries no `mpi_*` build string. It does ship Fortran
+# .mod files, so it must be built with the same gfortran generation as the rest of
+# the stack (the compiler pin handles that; run_exports carries the shumlib pin).
+#
+# Ported from mo-spack-packages' `shumlib` recipe (versions + sha256 + the CMake
+# options) in ickc/lfric-env-isambard.
+schema_version: 1
+
+context:
+  version: "2026.07.2"
+
+package:
+  name: shumlib
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MetOffice/shumlib/archive/refs/tags/${{ version }}.tar.gz
+  sha256: c4c8826ae21ad1371d5737ec8fa614d6a1dc59b880f4e5851f536ca62352d5ed
+
+build:
+  number: 0
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  # shumlib installs a shared libshum.so and Fortran .mod files; anything built
+  # against it needs the same shumlib at run time (and the same-generation
+  # gfortran runtime, which conda-forge's compiler run_exports already pins).
+  run_exports:
+    - ${{ pin_subpackage('shumlib', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - shum
+  # The library is useless to LFRic without its Fortran .mod files, and those are
+  # the ABI-sensitive part -- assert they were installed and are readable by this
+  # environment's gfortran (the same check that matters for xios/yaxt).
+  - script:
+      - bash test_shumlib.sh
+    requirements:
+      build:
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+    files:
+      recipe:
+        - test_shumlib.sh
+        - test_shumlib.f90
+
+about:
+  homepage: https://github.com/MetOffice/shumlib
+  repository: https://github.com/MetOffice/shumlib
+  summary: Shared Unified Model Library (shumlib)
+  description: |
+    Shumlib is the collective name for a set of libraries used by the UK Met
+    Office's Unified Model that may be of use to external tools or applications:
+    byteswapping, WGDOS packing, string conversion, data conversion, fieldsfile
+    I/O, and related low-level utilities. LFRic's UM-physics applications link it.
+  license: BSD-3-Clause
+  license_file:
+    - LICENCE
+
+extra:
+  recipe-maintainers:
+    - ickc
