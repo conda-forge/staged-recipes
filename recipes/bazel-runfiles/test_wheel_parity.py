@@ -6,13 +6,14 @@ installed payload byte-for-byte and the resolver-relevant metadata fields
 against the official wheel, so that any upstream packaging change (a new
 dependency, file, or constraint) fails the test instead of drifting silently.
 
-The reference wheel is fetched as a declared, checksum-pinned recipe source
-(see recipe.yaml) rather than downloaded here, so this runs with no network
-access. Its path is passed as the first argument.
+The reference wheel is downloaded from PyPI for the installed version, so this
+runs in the (network-enabled) test phase.
 """
 
 import email
+import io
 import sys
+import urllib.request
 import zipfile
 from importlib.metadata import distribution
 from pathlib import Path
@@ -81,9 +82,13 @@ def compare_metadata(wheel, dist, version, errors):
 def main():
     dist = distribution("bazel-runfiles")
     version = dist.version
-    wheel_path = Path(sys.argv[1] if len(sys.argv) > 1 else "reference.whl")
-    print(f"Comparing installed package against {wheel_path}")
-    wheel = zipfile.ZipFile(wheel_path)
+    # The version-predictable PyPI download URL redirects to files.pythonhosted.org.
+    url = (
+        "https://pypi.org/packages/py3/b/bazel-runfiles/"
+        f"bazel_runfiles-{version}-py3-none-any.whl"
+    )
+    print(f"Comparing installed package against {url}")
+    wheel = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(url).read()))
 
     errors = []
     n_files = compare_payload(wheel, version, errors)
