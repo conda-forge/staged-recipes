@@ -1,0 +1,69 @@
+context:
+  version: "1.13.6"
+
+package:
+  name: libevdev
+  version: ${{ version }}
+
+source:
+  url: https://www.freedesktop.org/software/libevdev/libevdev-${{ version }}.tar.xz
+  sha256: 73f215eccbd8233f414737ac06bca2687e67c44b97d2d7576091aa9718551110
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    # make-event-names.py runs at build time; point configure at the build
+    # prefix python instead of the (nonexistent) $PREFIX/bin/python
+    - export PYTHON=${BUILD_PREFIX}/bin/python3
+    - ./configure --prefix=$PREFIX --disable-static
+    - make -j${CPU_COUNT}
+    - make install
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - make
+    - pkg-config
+    - python
+  run_exports:
+    - ${{ pin_subpackage('libevdev', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - libevdev-tweak-device
+        - mouse-dpi-tool
+        - touchpad-edge-detector
+      include:
+        - libevdev-1.0/libevdev/*.h
+      files:
+        exists:
+          - lib/libevdev.so*
+          - lib/pkgconfig/libevdev.pc
+          - share/man/man1/*.1
+          - share/man/man3/*.3
+  - script:
+      - pkg-config --exists libevdev
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://www.freedesktop.org/wiki/Software/libevdev/
+  summary: Wrapper library for evdev devices
+  description: |
+    libevdev is a wrapper library for evdev devices. It moves the common
+    tasks when dealing with evdev devices into a library and provides a
+    library interface to the callers, thus avoiding erroneous ioctl calls.
+  license: MIT
+  license_file: COPYING
+  documentation: https://www.freedesktop.org/software/libevdev/doc/latest/
+  repository: https://gitlab.freedesktop.org/libevdev/libevdev
+
+extra:
+  recipe-maintainers:
+    - tdejager
