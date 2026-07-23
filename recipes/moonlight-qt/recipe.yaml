@@ -6,17 +6,15 @@ package:
   version: ${{ version }}
 
 source:
-  # official source tarball including the vendored submodules
-  # (moonlight-common-c, enet, qmdnsengine, h264bitstream, SDL_GameControllerDB)
+  # Official source archive, including the vendored submodules:
+  # moonlight-common-c, enet, qmdnsengine, h264bitstream, and SDL_GameControllerDB.
   url: https://github.com/moonlight-stream/moonlight-qt/releases/download/v${{ version }}/MoonlightSrc-${{ version }}.tar.gz
   sha256: 696cc470a62e2f2e9b77739d400b389e7578c9510383c08614007c92be49d5b0
   patches:
-    # extend upstream's disable-prebuilts flag to windows (and to the
-    # moonlight-common-c include paths) so the build uses conda headers and
-    # libs instead of the vendored ones, and skip the pieces that need
-    # vendored prebuilts: libplacebo and discord-rpc (not packaged on
-    # conda-forge for windows) and the AntiHooking shim (links Microsoft
-    # Detours, which is only present as a prebuilt static library)
+    # Use upstream's disable-prebuilts option on Windows too, including for
+    # moonlight-common-c. This keeps vendored headers and libraries out of the
+    # build. It also disables libplacebo, discord-rpc, and AntiHooking because
+    # their Windows dependencies are only available here as prebuilts.
     - patches/0001-win-disable-prebuilts.patch
 
 build:
@@ -24,12 +22,12 @@ build:
   script:
     interpreter: brush
     content: |
-      # NOTE: platform dispatch uses case statements — brush 0.4.0 propagates
-      # a false [[ ]] if-condition's exit status as the if statement's status,
-      # which aborts the script under set -e
+      # Keep the platform checks as case statements. brush 0.4.0 returns the
+      # status of a false [[ ]] condition from the whole if statement, so an
+      # if/else here can stop the script under set -e.
 
-      # qmake's early config tests invoke the mkspec's plain compiler names
-      # before command-line QMAKE_CC/CXX overrides take effect
+      # qmake's initial config tests use the compiler names from the mkspec
+      # before QMAKE_CC and QMAKE_CXX take effect.
       case "${target_platform}" in
         linux-*)
           ln -sf ${CC} ${BUILD_PREFIX}/bin/gcc
@@ -54,7 +52,7 @@ build:
           ;;
         *)
           case "${target_platform}" in
-            # use pkg-config against conda libs instead of the vendored mac frameworks
+            # Use pkg-config with conda libraries instead of the vendored macOS frameworks.
             osx-*) EXTRA_CONFIG="CONFIG+=disable-prebuilts" ;;
             *) EXTRA_CONFIG="" ;;
           esac
@@ -65,7 +63,7 @@ build:
           make -j${CPU_COUNT}
           case "${target_platform}" in
             osx-*)
-              # no qmake install target on macOS; ship the app bundle
+              # qmake has no macOS install target, so copy the app bundle directly.
               mkdir -p ${PREFIX}/Applications ${PREFIX}/bin
               cp -R app/Moonlight.app ${PREFIX}/Applications/
               ln -s ../Applications/Moonlight.app/Contents/MacOS/Moonlight ${PREFIX}/bin/moonlight
@@ -77,9 +75,8 @@ build:
           ;;
       esac
 
-      # menuinst shortcut so conda/pixi create a desktop/start-menu/launcher
-      # entry on install (the mac bundle in the prefix is not indexed by
-      # Launchpad, so it needs one too)
+      # Add a menuinst shortcut on each platform. The macOS bundle lives inside
+      # the prefix, where Launchpad does not index it.
       P="${PREFIX//\\//}"
       mkdir -p "${P}/Menu"
       case "${target_platform}" in
@@ -139,12 +136,12 @@ requirements:
     - ffmpeg
     - if: not win
       then:
-        # vulkan renderer via libplacebo (windows uses D3D11VA instead)
+        # libplacebo provides the Vulkan renderer. Windows uses D3D11VA instead.
         - libplacebo
         - libvulkan-headers
     - if: linux
       then:
-        # pkg-config-detected backends; presence here enables them
+        # qmake enables these backends when pkg-config finds them.
         - libva
         - libdrm
         - wayland
@@ -197,12 +194,10 @@ about:
     games and full desktops with hardware-accelerated video decoding,
     HDR support, and low-latency input forwarding for mouse, keyboard,
     and gamepads.
-  # GPL-3.0-or-later: moonlight-qt (per upstream's appdata project_license
-  # GPL-3.0+); GPL-3.0-only: moonlight-common-c (bare GPLv3 text, no or-later
-  # grant); MIT: enet (patched fork), qmdnsengine (fork), libsoundio
-  # (modified copy); LGPL-2.1-or-later: h264bitstream; BSD-2-Clause:
-  # reedsolomon FEC in moonlight-common-c; Zlib: SDL_GameControllerDB;
-  # CC0-1.0: AppStream metadata; LicenseRef-ModeSeven: embedded ModeSeven font
+  # moonlight-qt is GPL-3.0-or-later. moonlight-common-c only includes the
+  # GPLv3 text, so list it conservatively as GPL-3.0-only. The bundled code and
+  # data add MIT, LGPL-2.1-or-later, BSD-2-Clause, Zlib, CC0-1.0, and the
+  # ModeSeven font notice.
   license: GPL-3.0-or-later AND GPL-3.0-only AND MIT AND LGPL-2.1-or-later AND BSD-2-Clause AND Zlib AND CC0-1.0 AND LicenseRef-ModeSeven
   license_file:
     - LICENSE
@@ -212,11 +207,11 @@ about:
     - h264bitstream/h264bitstream/LICENSE
     - app/SDL_GameControllerDB/LICENSE
     - soundio/libsoundio/LICENSE
-    # extracted from reedsolomon/rs.c, which has no standalone license file
+    # reedsolomon/rs.c has no separate license file, so its notice is copied here.
     - reedsolomon-LICENSE.txt
-    # notice extracted from the embedded ModeSeven.ttf name table
+    # ModeSeven.ttf stores its license notice in the font name table.
     - ModeSeven-LICENSE.txt
-    # covers the AppStream metadata file (metadata_license CC0-1.0)
+    # The AppStream metadata declares CC0-1.0.
     - CC0-1.0.txt
   repository: https://github.com/moonlight-stream/moonlight-qt
   documentation: https://github.com/moonlight-stream/moonlight-docs/wiki
