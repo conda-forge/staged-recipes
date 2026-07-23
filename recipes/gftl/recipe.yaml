@@ -1,0 +1,71 @@
+# gFTL -- Fortran template container library (Vector/Set/Map), the base of NASA's
+# Goddard Fortran Ecosystem. In the LFRic stack it is a TEST-only dependency: it is
+# pulled in transitively by pfunit (gftl -> gftl-shared -> fargparse -> pfunit) for
+# LFRic's `-lpfunit -lfunit -lfargparse -lgftl-shared-v2` unit-test build. It is a
+# header/template library (no compiled .so/.a): it installs preprocessor templates
+# and a CMake package config, and gets compiled INTO its consumers.
+#
+# Layout note (applies to the whole Goddard group): upstream installs into a
+# VERSIONED subdirectory `GFTL-<major>.<minor>/{include,cmake}`, not the standard
+# $PREFIX/{include,lib}. This is deliberate (so versions coexist) and is exactly
+# what the Spack packages in ickc/lfric-env-isambard do. It composes cleanly at
+# build time because CMake's config-mode search under a CMAKE_PREFIX_PATH entry
+# includes `<prefix>/<name>*/cmake/`, so `find_package(GFTL)` finds
+# `$PREFIX/GFTL-1.17/cmake/` with no extra hints (conda sets CMAKE_PREFIX_PATH).
+# LFRic itself consumes the group via env vars ($PFUNIT etc.), wired in the
+# lfric-env activation, not via find_package.
+schema_version: 1
+
+context:
+  version: "1.17.0"
+
+package:
+  name: gftl
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Goddard-Fortran-Ecosystem/gFTL/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2a86047d329297c1c6147b1619d1412259a21d9c2188e229ebf6c4e73ec51546
+
+build:
+  number: 0
+  # noarch is tempting (it is template source), but the CMake config records the
+  # build layout and upstream's own test build wants a Fortran compiler present,
+  # so keep it a normal (arch) build for parity with how it is consumed.
+  script: build.sh
+  # Untested on Windows (this recipe was developed and verified only on
+  # linux-64/-aarch64 and osx-64/-arm64, per ickc/lfric-conda); build.sh is
+  # bash-only besides.
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - m4
+
+tests:
+  - script:
+      - bash test_gftl.sh
+    files:
+      recipe:
+        - test_gftl.sh
+
+about:
+  homepage: https://github.com/Goddard-Fortran-Ecosystem/gFTL
+  repository: https://github.com/Goddard-Fortran-Ecosystem/gFTL
+  summary: Fortran template library for generic containers (Vector, Set, Map)
+  description: |
+    gFTL provides a mechanism to easily create robust generic containers and
+    associated iterators in Fortran, closely modelled on the C++ STL. It is the
+    foundation of the Goddard Fortran Ecosystem (gFTL-shared, fArgParse, pFUnit).
+  license: Apache-2.0
+  license_file:
+    - License.txt
+
+extra:
+  recipe-maintainers:
+    - ickc

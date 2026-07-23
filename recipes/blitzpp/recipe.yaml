@@ -1,0 +1,95 @@
+# Blitz++ -- N-dimensional arrays for C++. XIOS is the only consumer in the LFRic
+# stack (it stores field data in blitz::Array), but XIOS cannot build without it.
+#
+# PACKAGE NAME: `blitzpp`, not `blitz`. The name `blitz` on conda-forge is already
+# taken by Blitz.js (an unrelated JavaScript toolkit), so the upstream GitHub org
+# name is used instead -- github.com/blitzpp/blitz. Spack calls it `blitz`.
+#
+# 1.0.2 (2019) is the newest release; upstream has been quiet since.
+schema_version: 1
+
+context:
+  version: "1.0.2"
+
+package:
+  name: blitzpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/blitzpp/blitz/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 500db9c3b2617e1f03d0e548977aec10d36811ba1c43bb5ef250c0e3853ae1c2
+  patches:
+    # CMake 4 removed compatibility with policy versions below 3.5, and upstream
+    # asks for `cmake_policy(VERSION 3.1)`. Its cmake_minimum_required is already
+    # 3.12, so raising the policy version to match is the minimal fix -- narrower
+    # than -DCMAKE_POLICY_VERSION_MINIMUM, which would restore OLD policy defaults
+    # across the whole build rather than just clearing the version floor.
+    - patches/0001-cmake-policy-version.patch
+
+build:
+  number: 1
+  script: build.sh
+  # Untested on Windows (this recipe was developed and verified only on
+  # linux-64/-aarch64 and osx-64/-arm64, per ickc/lfric-conda); build.sh is
+  # bash-only besides.
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    # Upstream generates some array headers with a python script at configure time.
+    - python
+  # Blitz++ installs a shared libblitz.so, so anything built against it needs it
+  # at RUN time too, not just at build time. Without this, xios built fine and
+  # then failed with "libblitz.so.0 => not found". Upstream is frozen at 1.0.2,
+  # so an x.x bound is ample.
+  run_exports:
+    - ${{ pin_subpackage('blitzpp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - blitz/array.h
+      lib:
+        - blitz
+  # The real risk with a 2019 C++ library is that its headers no longer compile
+  # under a current toolchain, so actually compile and run against it.
+  - script:
+      - bash test_blitzpp.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+    files:
+      # `recipe:` (not `source:`) -- these live beside recipe.yaml, not in the
+      # extracted upstream tarball.
+      recipe:
+        - test_blitzpp.cpp
+        - test_blitzpp.sh
+
+about:
+  homepage: https://github.com/blitzpp/blitz
+  repository: https://github.com/blitzpp/blitz
+  documentation: https://blitz.sourceforge.net/
+  summary: N-dimensional array library for C++
+  description: |
+    Blitz++ is a C++ template class library providing dense multidimensional
+    arrays with performance competitive with hand-coded Fortran, using expression
+    templates to eliminate temporaries.
+  # Upstream LEGAL offers the library under any of three licences; the SPDX
+  # expression records that choice rather than picking one.
+  license: LGPL-3.0-only OR BSD-3-Clause OR Artistic-2.0
+  license_file:
+    - LEGAL
+    - COPYING
+    - COPYING.LESSER
+    - COPYRIGHT
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - ickc
