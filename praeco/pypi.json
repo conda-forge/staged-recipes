@@ -1,0 +1,168 @@
+{
+    "info": {
+        "author": null,
+        "author_email": "Marian Bruns <m.bruns@mpi-susmat.de>",
+        "bugtrack_url": null,
+        "classifiers": [
+            "Development Status :: 3 - Alpha",
+            "Intended Audience :: Science/Research",
+            "License :: OSI Approved :: BSD License",
+            "Operating System :: OS Independent",
+            "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
+            "Topic :: Scientific/Engineering"
+        ],
+        "description": "# praeco\n\n`praeco` provides Python clients for working with remote services used to\npublish, upload, query, and manage research and semantic assets.\n\nThe main user-facing API is built around service clients:\n\n- `OntodockerClient` for Ontodocker-backed RDF datasets, endpoint discovery, and\n  SPARQL queries.\n- `DataportalClient` for datasets, assets, DCAT RDF, and SPARQL workflows on the\n  [MaterialDigital Dataportal](https://dataportal.material-digital.de).\n- `ZenodoClient` for Zenodo depositions, files, metadata, license lookup, and\n  publication workflows.\n\n`HttpClient` is the shared HTTP(S) base client used by service clients. Advanced\nusers may also use it directly when they need low-level access to an HTTP API or\nwant to prototype support for a new service.\n\n`praeco` is not a workflow engine, scheduler, triple store, or archival backend.\nIt is a client layer for talking to those services through explicit Python APIs.\n\n## Overview\n\nThe public API is organized in two layers.\n\nService clients implement domain workflows:\n\n- `OntodockerClient` exposes `endpoints`, `datasets`, and `sparql` resources.\n- `DataportalClient` exposes `datasets`, `assets`, `rdf`, and `sparql` resources.\n- `ZenodoClient` exposes `depositions`, `files`, and `licenses` resources.\n\nProtocol clients provide reusable transport behavior:\n\n- `HttpClient` normalizes base URLs, manages bearer-token headers, handles\n  timeouts and TLS verification, and provides small request/response helpers.\n\nNew user code should usually start with a service client. Use `HttpClient`\ndirectly only when a service-specific method does not exist yet, or when you are\ndeveloping a new service adapter.\n\n## Installation\n\n`praeco` supports Python 3.11 to 3.13. Development in this repository currently\ntargets Python 3.12.\n\nFor local use or development:\n\n```bash\ngit clone https://github.com/pyiron/praeco.git\ncd praeco\nconda create -n praeco python=3.12\nconda activate praeco\npip install -e .\n```\n\nIf you want the documentation environment as well, see `docs/environment.yml`.\n\nPyPI and conda-forge releases are planned, but the current hands-on installation\npath is an editable install from the repository.\n\n## Service Clients\n\nService clients are the primary API for normal use. They subclass or build on\n`HttpClient`, then attach small resource objects for service-specific behavior.\nGeneric transport code stays in `praeco/http_client.py` and\n`praeco/transport/`; service-specific routes, models, and error handling live\nunder `praeco/services/<service>/`.\n\n### OntodockerClient\n\n`OntodockerClient` is the service-specific client for Ontodocker datasets,\nendpoint discovery, and SPARQL queries.\n\n#### Architecture\n\nAn `OntodockerClient` exposes three resource objects:\n\n```python\nfrom praeco import OntodockerClient\n\nclient = OntodockerClient(\"ontodocker.example.org\", token=\"your-token\")\n\nclient.endpoints\nclient.datasets\nclient.sparql\n```\n\nThese resources share the same transport configuration: bearer-token\nauthentication, timeout handling, TLS verification, and request execution come\nfrom `HttpClient`.\n\nEndpoint discovery also contains Ontodocker-specific compatibility logic for\nhistorical endpoint URL formats. That behavior belongs to the Ontodocker service\npackage rather than the generic transport layer.\n\n#### Basic Usage\n\nFor notebooks or scripts, configure the service URL and optional token in the\nenvironment:\n\n```bash\nexport ONTODOCKER_ADDRESS=\"https://ontodocker.example.org\"\nexport ONTODOCKER_TOKEN=\"...\"\n```\n\nCreate a client:\n\n```python\nimport os\n\nfrom praeco import OntodockerClient\n\nclient = OntodockerClient(\n    address=os.environ[\"ONTODOCKER_ADDRESS\"],\n    token=os.getenv(\"ONTODOCKER_TOKEN\") or None,\n)\n```\n\nDiscover available endpoints and datasets:\n\n```python\nraw_endpoints = client.endpoints.list_raw()\nendpoints = client.endpoints.list()\ndatasets = client.datasets.list()\n```\n\nCreate a disposable dataset, upload Turtle, and fetch it again:\n\n```python\nfrom pathlib import Path\n\ndataset = \"praeco_demo\"\nturtle_path = Path(\"demo.ttl\")\nturtle_path.write_text(\n    \"\"\"\n@prefix ex: <https://example.org/> .\n\nex:sample ex:label \"Praeco demo sample\" .\n\"\"\".strip()\n    + \"\\n\",\n    encoding=\"utf-8\",\n)\n\nclient.datasets.create(dataset)\nclient.datasets.upload_turtlefile(dataset, turtle_path)\n\nturtle_text = client.datasets.fetch_turtle(dataset)\ndownloaded = client.datasets.download_turtle(dataset, \"downloaded_demo.ttl\")\n```\n\nUpload an in-memory `rdflib.Graph`:\n\n```python\nimport rdflib\n\ngraph = rdflib.Graph()\nEX = rdflib.Namespace(\"https://example.org/\")\n\ngraph.add((EX.sample2, EX.label, rdflib.Literal(\"Graph-created sample\")))\nclient.datasets.upload_graph(dataset, graph)\n```\n\nRun SPARQL queries:\n\n```python\nquery = \"\"\"\nSELECT ?s ?p ?o\nWHERE {\n  ?s ?p ?o .\n}\nLIMIT 10\n\"\"\"\n\nraw_result = client.sparql.query_raw(dataset, query)\ndf = client.sparql.query_df(dataset, query, columns=[\"s\", \"p\", \"o\"])\n```\n\nClean up disposable resources when finished:\n\n```python\nclient.datasets.delete(dataset)\nturtle_path.unlink(missing_ok=True)\nPath(downloaded).unlink(missing_ok=True)\n```\n\n#### More Information\n\nUse `OntodockerClient` for dataset, endpoint, and SPARQL workflows. Use\n`HttpClient` directly only when you need an endpoint that the Ontodocker\nresources do not expose yet. If that endpoint becomes part of normal Ontodocker\nusage, add it as a method on an Ontodocker resource class instead of duplicating\nURL construction in notebooks or scripts.\n\nSee the\n[OntodockerClient notebook](https://github.com/pyiron/praeco/blob/main/notebooks/OntodockerClient.ipynb)\nfor a runnable demo and more detailed usage.\n\n### DataportalClient\n\n`DataportalClient` supports publication and semantic-data workflows on the\nCKAN-backed [MaterialDigital Dataportal](https://dataportal.material-digital.de).\nIt uses the Dataportal deployment by default, while still allowing another\ncompatible address to be supplied explicitly.\n\n#### Architecture\n\nA `DataportalClient` exposes four resource objects:\n\n```python\nfrom praeco import DataportalClient\n\nclient = DataportalClient(api_token=\"your-token\")\n\nclient.datasets\nclient.assets\nclient.rdf\nclient.sparql\n```\n\nThe client builds on praeco's shared HTTP and CKAN transport infrastructure.\nThe resource objects provide typed dataset and asset operations, DCAT RDF\nretrieval, and discovery and querying of dataset-associated SPARQL endpoints.\n\n#### Basic Usage\n\nProvide a Dataportal API token through the environment:\n\n```bash\nexport DATAPORTAL_TOKEN=\"...\"\n```\n\nCreate a client:\n\n```python\nimport os\n\nfrom praeco import DataportalClient\n\nclient = DataportalClient(api_token=os.environ[\"DATAPORTAL_TOKEN\"])\n```\n\nService-independent publication fields are modeled with\n`PublicationMetadata`. Wrap them in `DataportalMetadata` to add CKAN and\nDataportal-specific fields before creating a dataset:\n\n```python\nfrom praeco import Person, PublicationMetadata\nfrom praeco.services.dataportal import DataportalMetadata\n\npublication = PublicationMetadata(\n    title=\"praeco Dataportal example\",\n    description=\"Example dataset created with praeco.\",\n    creators=[Person(name=\"Example Author\")],\n    keywords=[\"praeco\", \"dataportal\"],\n)\nmetadata = DataportalMetadata(\n    metadata=publication,\n    name=\"praeco-dataportal-example\",\n    owner_org=\"organization-id\",\n    private=True,\n)\n\ndataset = client.datasets.create(metadata)\n```\n\nUpload Turtle using a format recognized by the Dataportal's Fuseki integration:\n\n```python\nfrom pathlib import Path\n\nasset = client.assets.upload_rdf(\n    dataset,\n    Path(\"dataset.ttl\"),\n    format=\"turtle\",\n)\n```\n\nThe Dataportal performs triplestore updates asynchronously. Once Fuseki indexing\nhas completed and the generated SPARQL resource is available, query it through\nthe dataset model:\n\n```python\ndataset = client.datasets.show(dataset)\nendpoint = client.sparql.endpoint(dataset)\nresult = client.sparql.query_json(\n    endpoint,\n    \"ASK WHERE { ?subject ?predicate ?object }\",\n)\n```\n\n#### More Information\n\nCreating datasets and starting Fuseki updates require suitable permissions for\nthe selected organization. Use disposable private datasets when validating\nwrite workflows against the live deployment, and clean them up afterwards.\n\nSee the\n[DataportalClient notebook](https://github.com/pyiron/praeco/blob/main/notebooks/DataportalClient.ipynb)\nfor a complete live workflow covering organization discovery, metadata,\ndatasets, RDF assets, Fuseki indexing, SPARQL querying, and cleanup.\n\n### ZenodoClient\n\n`ZenodoClient` is the service-specific client for Zenodo deposition drafts,\nfile uploads, metadata authoring, license lookup, and publication actions.\n\n#### Architecture\n\nA `ZenodoClient` exposes three resource objects:\n\n```python\nfrom praeco import ZenodoClient\n\nclient = ZenodoClient(sandbox=True, token=\"your-sandbox-token\")\n\nclient.depositions\nclient.files\nclient.licenses\n```\n\n`client.depositions` owns draft and publication lifecycle operations such as\ncreating drafts, setting metadata, publishing, editing, discarding edits,\ncreating new versions, and deleting unpublished drafts.\n\n`client.files` owns draft-file operations such as listing, uploading, renaming,\nand deleting files. File uploads use the bucket link returned by Zenodo.\n\n`client.licenses` provides read-only lookup of Zenodo license metadata.\n\nThe current draft/deposition implementation uses Zenodo's legacy deposition API.\nThis is the Zenodo-specific API still used for the core create, upload, update,\nand publish workflow implemented here. A future migration toward the newer\nInvenioRDM REST API is expected, but the existing resource surface is kept\nstable until there is a tested migration path.\n\n#### Basic Usage\n\nFor development and testing, use the Zenodo sandbox:\n\n```bash\nexport ZENODO_SANDBOX_TOKEN=\"...\"\n```\n\nSandbox and production Zenodo have separate accounts and tokens. A sandbox token\nmust come from `https://sandbox.zenodo.org`, not production Zenodo.\n\nCreate a client and a small artifact:\n\n```python\nimport os\nfrom pathlib import Path\n\nfrom praeco import Person, PublicationMetadata, ZenodoClient\nfrom praeco.services.zenodo import Creator, ZenodoMetadata\n\nclient = ZenodoClient(sandbox=True, token=os.environ[\"ZENODO_SANDBOX_TOKEN\"])\n\nartifact = Path(\"demo_artifact.txt\")\nartifact.write_text(\n    \"Hello from praeco's Zenodo sandbox demo.\\n\",\n    encoding=\"utf-8\",\n)\n```\n\nBuild service-independent publication metadata and wrap it in the Zenodo\nadapter:\n\n```python\npublication = PublicationMetadata(\n    title=\"praeco Zenodo sandbox demo\",\n    description=\"Small demonstration upload created with praeco.\",\n    creators=[\n        Person(\n            family_name=\"Doe\",\n            given_names=\"Jane\",\n            affiliation=\"Example Institute\",\n        )\n    ],\n    keywords=[\"praeco\", \"zenodo\", \"sandbox\"],\n    license=\"cc-by-4.0\",\n    version=\"0.1.0\",\n)\n\nmetadata = ZenodoMetadata.software(publication)\n```\n\nDirectly setting publication fields such as `title`, `creators`, or `keywords`\non `ZenodoMetadata` is deprecated. Use `PublicationMetadata` for reusable\npublication fields and `ZenodoMetadata` for Zenodo-specific fields.\n\nThe deprecated direct style still works temporarily for migration:\n\n```python\nmetadata = ZenodoMetadata.software()\nmetadata.title = \"praeco Zenodo sandbox demo\"\nmetadata.description = \"Small demonstration upload created with praeco.\"\nmetadata.license = \"cc-by-4.0\"\nmetadata.creators.append(\n    Creator(\n        family_name=\"Doe\",\n        given_names=\"Jane\",\n        affiliation=\"Example Institute\",\n    )\n)\n```\n\nCreate an unpublished draft, pre-reserve a DOI, upload the artifact, and set the\nmetadata:\n\n```python\ndraft = client.depositions.create(prereserve_doi=True)\nuploaded = client.files.upload(draft, artifact)\ndraft = client.depositions.set_metadata(draft, metadata)\n```\n\nPublishing is an explicit action:\n\n```python\n# published = client.depositions.publish(draft)\n```\n\nFor routine demos, leave drafts unpublished and clean them up:\n\n```python\nclient.depositions.delete(draft)\nartifact.unlink(missing_ok=True)\n```\n\nProduction Zenodo should be treated differently from the sandbox. Publishing on\nproduction Zenodo creates a real archival record; a DOI becomes a persistent,\ncitable scholarly identifier when the record is published.\n\n#### Metadata\n\n`PublicationMetadata` is praeco's service-independent authoring model for\npublication fields such as title, description, creators, contributors, related\nidentifiers, keywords, license, DOI, version, language, and publication date.\n\n`ZenodoMetadata` adapts `PublicationMetadata` into Zenodo's API payload shape and\nkeeps Zenodo-specific fields such as upload type, access control, communities,\ngrants, DOI reservation, and notes.\n\nConvenience constructors set the upload type:\n\n```python\nsoftware = ZenodoMetadata.software(publication)\ndataset = ZenodoMetadata.dataset(publication)\narticle = ZenodoMetadata.publication(\"article\", publication)\nimage = ZenodoMetadata.image(\"figure\", publication)\n```\n\nCommon nested metadata is modeled independently of Zenodo:\n\n- `Person` for creators and contributor identities.\n- `Contributor` for additional contributors with a role.\n- `RelatedIdentifier` for related persistent identifiers or URLs.\n\nZenodo-specific repeated metadata still uses Zenodo helpers:\n\n- `CommunityRef` for Zenodo community identifiers.\n- `GrantRef` for grant references.\n\n`ZenodoMetadata.to_api_dict()` returns the inner Zenodo metadata object:\n\n```python\nmetadata_object = metadata.to_api_dict()\n```\n\n`ZenodoMetadata.to_payload()` wraps that object as `{\"metadata\": ...}`, which is\nthe shape used by Zenodo deposition create and update requests:\n\n```python\nrequest_payload = metadata.to_payload()\n```\n\nThe typed model performs local validation for stable structural rules before a\nrequest is sent, such as required title, description, creator, access, and\nlicense fields.\n\nPlain `PublicationMetadata` is not passed directly to `client.depositions`.\nWrap it in `ZenodoMetadata` so the Zenodo upload type and service-specific\nvalidation remain explicit.\n\nFor Zenodo fields that are documented but not yet modeled by `ZenodoMetadata`,\npass a raw mapping. Raw mappings are wrapped as `{\"metadata\": ...}` by\n`client.depositions.create()` and `client.depositions.set_metadata()`, but they\ndo not receive praeco's local metadata validation:\n\n```python\nraw_metadata = metadata.to_api_dict()\nraw_metadata[\"references\"] = [\n    \"Doe J. (2026). Example reference for a sandbox upload. DOI:10.0000/example\",\n]\n\ndraft = client.depositions.set_metadata(draft, raw_metadata)\n```\n\nServer responses use `DepositionInfo`. Its `metadata` field remains a raw\ndictionary because Zenodo may return normalized values or fields outside\npraeco's authoring model.\n\n#### Sandbox vs Production\n\nZenodo sandbox is for testing API workflows, metadata, uploads, DOI reservation,\nand publication behavior. Sandbox records use test DOI infrastructure and should\nnot be cited as persistent scholarly records. Sandbox data may also be reset.\n\nProduction Zenodo is the real publication environment. Published production\nrecords are archival research outputs, and their DOIs are persistent scholarly\nidentifiers. Use `ZenodoClient(sandbox=True, ...)` for development and switch to\nthe default production target only when publication is intentional.\n\n#### More Information\n\nUseful token scopes:\n\n- `deposit:write` for creating drafts, updating metadata, and uploading files.\n- `deposit:actions` for publishing, editing, discarding edits, and creating new\n  versions.\n\nZenodo API failures raise `ZenodoApiError` or a more specific subclass such as\n`ZenodoValidationError`, `ZenodoAuthenticationError`, `ZenodoPermissionError`,\nor `ZenodoNotFoundError`. Local metadata and input validation failures use\n`praeco.exceptions.ValidationError`.\n\nSee the\n[ZenodoClient notebook](https://github.com/pyiron/praeco/blob/main/notebooks/ZenodoClient.ipynb)\nfor a sandbox demo and more detailed usage.\n\n## Protocol Clients\n\nProtocol clients provide lower-level infrastructure for service clients and\nadvanced use.\n\n### HttpClient\n\n`HttpClient` is the generic HTTP(S) client and base class for HTTP-backed\nservice clients.\n\n#### Architecture\n\n`HttpClient` centralizes shared transport behavior:\n\n- normalizing a host or URL into `base_url`\n- configuring bearer-token authorization headers\n- passing timeout and TLS verification settings to `requests`\n- allowing an externally managed `requests.Session`\n- exposing helpers for common text and JSON request patterns\n- raising consistent praeco HTTP errors\n\nDevelopers adding a new HTTP-based service client should usually put domain\nmethods on small resource classes and let the service client inherit from or\ncompose `HttpClient`.\n\n#### Basic Usage\n\nCreate a client:\n\n```python\nfrom praeco import HttpClient\n\nclient = HttpClient(\"api.example.org\", token=\"initial-token\")\nclient.base_url\n```\n\nUse `default_scheme=\"http\"` for local development services without TLS:\n\n```python\nlocal = HttpClient(\"localhost:8000\", default_scheme=\"http\")\n```\n\nToken updates keep the session authorization header in sync:\n\n```python\nclient.token = \"rotated-token\"\nclient.token = None\n```\n\nUse convenience helpers when the response shape is simple:\n\n```python\njson_payload = client.get_json(\"https://api.example.org/status\")\ntext_payload = client.get_text(\"https://api.example.org/version\")\n\ncreated = client.post_text(\n    \"https://api.example.org/items\",\n    json={\"name\": \"demo\"},\n)\nupdated = client.put_text(\n    \"https://api.example.org/items/demo\",\n    json={\"name\": \"demo\"},\n)\ndeleted = client.delete_text(\"https://api.example.org/items/demo\")\n```\n\nUse `request()` when you need direct access to the underlying\n`requests.Response`:\n\n```python\nresponse = client.request(\n    \"GET\",\n    \"https://api.example.org/status\",\n    headers={\"Accept\": \"application/json\"},\n)\n```\n\n#### More Information\n\nUse `HttpClient` directly when:\n\n- an implemented service client does not expose the endpoint you need\n- you are prototyping support for a new service\n- the API is small enough that a full service client would not yet pay off\n\nOnce route construction, response parsing, or workflow logic starts repeating,\nmove that behavior into a service-specific client under `praeco/services/`.\n\nSee the\n[HttpClient notebook](https://github.com/pyiron/praeco/blob/main/notebooks/HttpClient.ipynb)\nfor a runnable demonstration of the transport API.\n\n## Developer Guide\n\nThe repository is organized by responsibility:\n\n- `praeco/http_client.py` contains the public reusable HTTP client.\n- `praeco/transport/` contains generic transport helpers for authentication,\n  session creation, URL normalization/composition, and response handling.\n- `praeco/services/ontodocker/` contains Ontodocker routes, resources, models,\n  and compatibility helpers.\n- `praeco/services/dataportal/` contains Dataportal datasets, assets, metadata,\n  DCAT RDF, SPARQL, and CKAN-backed models.\n- `praeco/services/zenodo/` contains Zenodo routes, resources, metadata\n  authoring objects, response models, and Zenodo-specific errors.\n- `tests/unit/` contains focused behavior tests using fake sessions and\n  responses where practical.\n- `tests/integration/` contains integration-oriented checks, including the\n  README doctest loader.\n- `notebooks/` contains runnable demos for the public clients.\n- `.notes/` may contain local planning or investigation notes. Treat these as\n  internal working material, not automatically user-facing documentation.\n\nKeep generic behavior generic. URL normalization, authentication header\nhandling, request execution, and general response helpers belong in transport\ncode. Service routes, service models, compatibility behavior, and\nservice-specific exceptions belong under the corresponding service package.\n\nWhen a workflow becomes normal user behavior, prefer adding a resource method\nover repeating low-level URL construction in notebooks or application code.\n\n## Development And Validation\n\nRun commands from the project root.\n\nFormat with Black:\n\n```bash\nblack .\n```\n\nSort imports with Ruff:\n\n```bash\nruff check --select I --fix .\n```\n\nInspect broader Ruff suggestions before applying them:\n\n```bash\nruff check --fix --diff .\n```\n\nRun tests:\n\n```bash\npytest -q\n```\n\n`docs/README.md` is the package README and is loaded by\n`tests/integration/test_readme.py` as a doctest file. Keep README examples either\nsimple enough to execute locally or formatted as illustrative fenced code blocks\nwithout doctest prompts when they require external services.\n",
+        "description_content_type": "text/markdown",
+        "docs_url": null,
+        "download_url": null,
+        "downloads": {
+            "last_day": -1,
+            "last_month": -1,
+            "last_week": -1
+        },
+        "dynamic": null,
+        "home_page": null,
+        "keywords": "pyiron",
+        "license": "BSD 3-Clause License\n        \n        Copyright (c) 2024, Max-Planck-Institut f\u00fcr Nachhaltige Materialien GmbH - Computational Materials Design (CM) Department\n        All rights reserved.\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are met:\n        \n        * Redistributions of source code must retain the above copyright notice, this\n          list of conditions and the following disclaimer.\n        \n        * Redistributions in binary form must reproduce the above copyright notice,\n          this list of conditions and the following disclaimer in the documentation\n          and/or other materials provided with the distribution.\n        \n        * Neither the name of the copyright holder nor the names of its\n          contributors may be used to endorse or promote products derived from\n          this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\n        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\n        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\n        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\n        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\n        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\n        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+        "license_expression": null,
+        "license_files": [
+            "LICENSE"
+        ],
+        "maintainer": null,
+        "maintainer_email": null,
+        "name": "praeco",
+        "package_url": "https://pypi.org/project/praeco/",
+        "platform": null,
+        "project_url": "https://pypi.org/project/praeco/",
+        "project_urls": {
+            "Documentation": "https://praeco.readthedocs.io",
+            "Homepage": "https://pyiron.org/",
+            "Repository": "https://github.com/pyiron/praeco"
+        },
+        "provides_extra": null,
+        "release_url": "https://pypi.org/project/praeco/0.0.1/",
+        "requires_dist": [
+            "pandas<3.1.0,>=3.0.0",
+            "pydantic<2.14.0,>=2.0.0",
+            "rdflib<7.7.0,>=7.6.0",
+            "requests<2.35.0,>=2.32.5",
+            "sparqlwrapper<2.1.0,>=2.0.0"
+        ],
+        "requires_python": "<3.14,>=3.11",
+        "summary": "praeco - Interfaces for publishing workflow recipes, instances and related assets",
+        "version": "0.0.1",
+        "yanked": false,
+        "yanked_reason": null
+    },
+    "last_serial": 39329943,
+    "ownership": {
+        "organization": null,
+        "roles": [
+            {
+                "role": "Owner",
+                "user": "pyiron"
+            }
+        ]
+    },
+    "releases": {
+        "0.0.1": [
+            {
+                "comment_text": null,
+                "core-metadata": {
+                    "sha256": "cc6785f68d8c79a9df15dd543e7a563fcbe8a450c23cc226e5a58049cfaa3038"
+                },
+                "digests": {
+                    "blake2b_256": "80793c6c89a2d6ce7b550b0c1b981d0542b72e5d95064eddbb6d079fdffcd8d6",
+                    "md5": "8540359ad155dd344f5f7eb49f65178b",
+                    "sha256": "f2d6b2c715827536e7808bae660c95e18df7ad82122e826ce41637c24029a66e"
+                },
+                "downloads": -1,
+                "filename": "praeco-0.0.1-py3-none-any.whl",
+                "has_sig": false,
+                "md5_digest": "8540359ad155dd344f5f7eb49f65178b",
+                "packagetype": "bdist_wheel",
+                "python_version": "py3",
+                "requires_python": "<3.14,>=3.11",
+                "size": 55982,
+                "upload_time": "2026-07-24T11:10:36",
+                "upload_time_iso_8601": "2026-07-24T11:10:36.048650Z",
+                "url": "https://files.pythonhosted.org/packages/80/79/3c6c89a2d6ce7b550b0c1b981d0542b72e5d95064eddbb6d079fdffcd8d6/praeco-0.0.1-py3-none-any.whl",
+                "yanked": false,
+                "yanked_reason": null
+            },
+            {
+                "comment_text": null,
+                "core-metadata": false,
+                "digests": {
+                    "blake2b_256": "5a7c117823ae6343b0fc57ddfc7e3207c318c8e1c647a86dac3eea2dc8fb8a06",
+                    "md5": "62709ab27335480ff893c8ac7b009a6c",
+                    "sha256": "afd933b33b864f3359de3e21ca85111bc1a8cd5ad34aac79afeca380832a293a"
+                },
+                "downloads": -1,
+                "filename": "praeco-0.0.1.tar.gz",
+                "has_sig": false,
+                "md5_digest": "62709ab27335480ff893c8ac7b009a6c",
+                "packagetype": "sdist",
+                "python_version": "source",
+                "requires_python": "<3.14,>=3.11",
+                "size": 65176,
+                "upload_time": "2026-07-24T11:10:37",
+                "upload_time_iso_8601": "2026-07-24T11:10:37.134799Z",
+                "url": "https://files.pythonhosted.org/packages/5a/7c/117823ae6343b0fc57ddfc7e3207c318c8e1c647a86dac3eea2dc8fb8a06/praeco-0.0.1.tar.gz",
+                "yanked": false,
+                "yanked_reason": null
+            }
+        ]
+    },
+    "urls": [
+        {
+            "comment_text": null,
+            "core-metadata": {
+                "sha256": "cc6785f68d8c79a9df15dd543e7a563fcbe8a450c23cc226e5a58049cfaa3038"
+            },
+            "digests": {
+                "blake2b_256": "80793c6c89a2d6ce7b550b0c1b981d0542b72e5d95064eddbb6d079fdffcd8d6",
+                "md5": "8540359ad155dd344f5f7eb49f65178b",
+                "sha256": "f2d6b2c715827536e7808bae660c95e18df7ad82122e826ce41637c24029a66e"
+            },
+            "downloads": -1,
+            "filename": "praeco-0.0.1-py3-none-any.whl",
+            "has_sig": false,
+            "md5_digest": "8540359ad155dd344f5f7eb49f65178b",
+            "packagetype": "bdist_wheel",
+            "python_version": "py3",
+            "requires_python": "<3.14,>=3.11",
+            "size": 55982,
+            "upload_time": "2026-07-24T11:10:36",
+            "upload_time_iso_8601": "2026-07-24T11:10:36.048650Z",
+            "url": "https://files.pythonhosted.org/packages/80/79/3c6c89a2d6ce7b550b0c1b981d0542b72e5d95064eddbb6d079fdffcd8d6/praeco-0.0.1-py3-none-any.whl",
+            "yanked": false,
+            "yanked_reason": null
+        },
+        {
+            "comment_text": null,
+            "core-metadata": false,
+            "digests": {
+                "blake2b_256": "5a7c117823ae6343b0fc57ddfc7e3207c318c8e1c647a86dac3eea2dc8fb8a06",
+                "md5": "62709ab27335480ff893c8ac7b009a6c",
+                "sha256": "afd933b33b864f3359de3e21ca85111bc1a8cd5ad34aac79afeca380832a293a"
+            },
+            "downloads": -1,
+            "filename": "praeco-0.0.1.tar.gz",
+            "has_sig": false,
+            "md5_digest": "62709ab27335480ff893c8ac7b009a6c",
+            "packagetype": "sdist",
+            "python_version": "source",
+            "requires_python": "<3.14,>=3.11",
+            "size": 65176,
+            "upload_time": "2026-07-24T11:10:37",
+            "upload_time_iso_8601": "2026-07-24T11:10:37.134799Z",
+            "url": "https://files.pythonhosted.org/packages/5a/7c/117823ae6343b0fc57ddfc7e3207c318c8e1c647a86dac3eea2dc8fb8a06/praeco-0.0.1.tar.gz",
+            "yanked": false,
+            "yanked_reason": null
+        }
+    ],
+    "vulnerabilities": []
+}
