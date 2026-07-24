@@ -1,0 +1,42 @@
+--- a/meson.build	2026-07-14 20:33:04.282412267 +0000
++++ b/meson.build	2026-07-15 07:55:51.778093896 +0000
+@@ -80,8 +80,37 @@
+ 
+ # Pre-resolve giflib with required:true so wrap fallback activates.
+ # Leptonica uses required:false which skips wraps entirely.
+-dependency('giflib')
+-lept_dep = dependency('lept', version: '>=1.74')
++dependency('giflib', required: false)
++lept_dep = dependency('lept', version: '>=1.74', required: false)
++if not lept_dep.found()
++    # Leptonica's own CMake package is exported under the name
++    # "Leptonica" (not "lept"), so retry with the real package name.
++    lept_dep = dependency('Leptonica', required: false, method: 'cmake')
++endif
++if not lept_dep.found()
++    # Neither pkg-config nor CMake config files were discoverable
++    # (this happens on some MSVC/Windows setups). Fall back to a
++    # plain linker search; conda-forge's compiler activation already
++    # points the linker/include search paths at the host prefix.
++    lept_override = get_option('leptonica_lib_name')
++    lept_candidates = lept_override != '' ? [lept_override] : ['leptonica', 'lept']
++    lept_found = false
++    foreach cand : lept_candidates
++        if not lept_found
++            lept_lib = cxx.find_library(cand, required: false)
++            if lept_lib.found()
++                lept_dep = declare_dependency(dependencies: lept_lib)
++                lept_found = true
++            endif
++        endif
++    endforeach
++    if not lept_found
++        error(
++            'Leptonica (>=1.74) not found via pkg-config, CMake, or as a linkable library. ' +
++            'Pass -Dleptonica_lib_name=<name> to meson setup if the library uses a non-standard name.',
++        )
++    endif
++endif
+ dependencies = [
+     lept_dep,
+     cxx.find_library('m', required: false),
