@@ -40,7 +40,13 @@ sed -i \
 # supported upstream (see the commented block in libpas/Makefile) and saves
 # ~1 GiB of build env.
 GCC_INTERNAL_INCLUDE="$(${CC} -print-file-name=include)"
-sed -i "s|^HOST_CLANG_EXTRA_FLAGS = .*|HOST_CLANG_EXTRA_FLAGS = -Wno-expansion-to-defined -Wno-pragmas -Wno-address-of-packed-member -Wno-missing-field-initializers -isystem ${GCC_INTERNAL_INCLUDE}|" libpas/Makefile
+# g++ is required (not gcc): the libpas C sources use compound-literal
+# static initializers that C-mode gcc rejects. -fpermissive covers the one
+# C-ism that is not valid C++, the -Wno flags silence gcc false positives
+# (atomic ops on GC object headers) that upstream's clang build never sees,
+# and -Werror goes so warning noise cannot fail the build.
+sed -i "s|^HOST_CLANG_EXTRA_FLAGS = .*|HOST_CLANG_EXTRA_FLAGS = -Wno-expansion-to-defined -Wno-pragmas -Wno-address-of-packed-member -Wno-missing-field-initializers -isystem ${GCC_INTERNAL_INCLUDE} -Wno-stringop-overflow -Wno-array-bounds -Wno-free-nonheap-object -fpermissive|" libpas/Makefile
+sed -i "s/ -Werror//g" libpas/Makefile libpas/common.mk
 export HOST_CLANG="${CXX}"
 sed -i "s|^\tclang |\t\$(CC) |" yolounwind/Makefile
 
@@ -72,9 +78,11 @@ EOF
 ./build_yolounwind.sh
 ./configure_llvm.sh
 ./build_clang.sh
+# from the host env's kernel-headers_linux-64: the gcc sysroot's own kernel
+# headers are too old for the Fil-C runtime (it needs e.g. linux/landlock.h)
 mkdir -p pizfix/os-include
 for dir in linux asm asm-generic; do
-  ln -s "${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include/${dir}" \
+  ln -s "${PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include/${dir}" \
     "pizfix/os-include/${dir}"
 done
 ./build_yolomusl.sh
