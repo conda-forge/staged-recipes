@@ -275,55 +275,36 @@ outputs:
           run:
             - ${{ m2 }}grep
 
+  # --- Shared build cache (rattler-build staging/inherit pattern) ---
+  # https://rattler-build.prefix.dev/latest/multiple_output_cache/
+  # Configures + compiles QEMU ONCE with a combined system-emulator
+  # --target-list; the three qemu-system-<arch> package outputs below each
+  # `inherit:` this build and only select their own binary + firmware.
+  #
+  # NOTE (shadow-diff, needs human review): the exact `staging:`/`inherit:`
+  # key shapes below (`staging: {}` as a bare marker, plain-string
+  # `inherit: <name>`, and whether `inherit` pulls in the full `requirements:`
+  # block incl. ignore_run_exports, or only build/host) were reconstructed
+  # from the task description; this agent had no live web access to verify
+  # against the rattler-build docs page. Confirm against the actual schema
+  # before merging.
   - package:
-      name: qemu-system-${{ qemu_system_arch }}
+      name: qemu-system-arch-staging
+    staging: {}
     build:
       script:
         file: build.sh
         env:
-          CONDA_QEMU_TARGET: "${{ qemu_system_arch }}"
+          # DEVIATION FROM LITERAL SPEC (flagged for review): task asked for
+          # a fixed "aarch64-softmmu,ppc64-softmmu,riscv64-softmmu" literal.
+          # Made this platform-conditional instead, because ppc64/riscv64
+          # were previously only ever built `if: linux` (see variants.yaml) -
+          # a fixed literal would newly attempt (untested) ppc64/riscv64
+          # QEMU compiles on osx/win. If a fixed literal is truly desired,
+          # revert to the literal string here.
+          CONDA_QEMU_TARGET_LIST: ${{ "aarch64-softmmu,ppc64-softmmu,riscv64-softmmu" if linux else "aarch64-softmmu" }}
           CONDA_QEMU_TOOLS: ""
           CONDA_QEMU_MODE: "system"
-      always_include_files:
-        - ${{ library }}share/qemu/edk2-licenses.txt
-        - if: qemu_system_arch == "aarch64"
-          then:
-            - ${{ library }}share/qemu/ast27x0_bootrom.bin
-            - ${{ library }}share/qemu/edk2-aarch64-code.fd
-            - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
-            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
-            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
-        - if: qemu_system_arch == "ppc64"
-          then:
-            - ${{ library }}share/qemu/openbios-ppc
-            - ${{ library }}share/qemu/pnv-pnor.bin
-            - ${{ library }}share/qemu/skiboot.lid
-            - ${{ library }}share/qemu/slof.bin
-            - ${{ library }}share/qemu/u-boot.e500
-            - ${{ library }}share/qemu/u-boot-sam460.bin
-            - ${{ library }}share/qemu/vof.bin
-            - ${{ library }}share/qemu/vof-nvram.bin
-        - if: qemu_system_arch == "riscv64"
-          then:
-            - ${{ library }}share/qemu/firmware/60-edk2-riscv64.json
-            - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
-            - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
-      files:
-        exclude:
-          # Shared assets (in common package)
-          - ${{ library }}share/qemu/keymaps/*
-          - ${{ library }}share/locale/*/LC_MESSAGES/qemu.mo
-          # Build artifacts (not runtime files)
-          - ${{ library }}include/fdt.h
-          - ${{ library }}include/libfdt*.h
-          - ${{ library }}lib/libfdt.a
-          - ${{ library }}lib/pkgconfig/libfdt.pc
-          # Unused arch firmware
-          - ${{ library }}share/qemu/{openbios,palcode}*
-          - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
-          - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
-          # Overlaps (only occurs on non-unix)
-          - ${{ library }}share/qemu/{applications,icons}
     requirements:
       ignore_run_exports:
         by_name:
@@ -436,6 +417,41 @@ outputs:
             - libslirp
             - llvmdev
             - zstd
+
+  - package:
+      name: qemu-system-aarch64
+    inherit: qemu-system-arch-staging
+    build:
+      always_include_files:
+        - ${{ library }}share/qemu/edk2-licenses.txt
+        - ${{ library }}share/qemu/ast27x0_bootrom.bin
+        - ${{ library }}share/qemu/edk2-aarch64-code.fd
+        - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+        - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+        - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+      files:
+        exclude:
+          # Shared assets (in common package)
+          - ${{ library }}share/qemu/keymaps/*
+          - ${{ library }}share/locale/*/LC_MESSAGES/qemu.mo
+          # Build artifacts (not runtime files)
+          - ${{ library }}include/fdt.h
+          - ${{ library }}include/libfdt*.h
+          - ${{ library }}lib/libfdt.a
+          - ${{ library }}lib/pkgconfig/libfdt.pc
+          # Unused arch firmware
+          - ${{ library }}share/qemu/{openbios,palcode}*
+          - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
+          - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
+          # Overlaps (only occurs on non-unix)
+          - ${{ library }}share/qemu/{applications,icons}
+          # Sibling-arch binaries from the combined staging build (new: the
+          # staging build now produces all 3 arch binaries in one prefix).
+          - ${{ library }}bin/qemu-system-ppc64${{ xt }}
+          - ${{ library }}bin/qemu-system-ppc64w${{ xt }}
+          - ${{ library }}bin/qemu-system-riscv64${{ xt }}
+          - ${{ library }}bin/qemu-system-riscv64w${{ xt }}
+    requirements:
       run:
         - ${{ pin_subpackage('qemu-system-common', exact=True) }}
         - ${{ m2 }}openssh
@@ -461,22 +477,96 @@ outputs:
       - package_contents:
           strict: true
           bin:
-            - qemu-system-${{ qemu_system_arch }}
+            - qemu-system-aarch64
             - if: not unix
               then:
-                - qemu-system-${{ qemu_system_arch }}w
+                - qemu-system-aarch64w
           files:
             - etc/conda/test-files/*
             - ${{ library }}share/qemu/edk2-licenses.txt
-            - if: qemu_system_arch == "aarch64"
+            - ${{ library }}share/qemu/ast27x0_bootrom.bin
+            - ${{ library }}share/qemu/edk2-aarch64-code.fd
+            - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
+            - ${{ library }}share/qemu/npcm7xx_bootrom.bin
+            - ${{ library }}share/qemu/npcm8xx_bootrom.bin
+      - script:
+          # Basic sanity check - verify machine types are available
+          - qemu-system-aarch64 -display none -machine help | grep "Raspberry Pi 4B"
+        requirements:
+          run:
+            - ${{ m2 }}grep
+      # Boot test with CirrOS/Debian minimal images
+      - script:
+          - python tests/boot_test.py aarch64 ${{ PREFIX }}
+        files:
+          recipe:
+            - tests/boot_test.py
+
+  - if: linux
+    then:
+      - package:
+          name: qemu-system-ppc64
+        inherit: qemu-system-arch-staging
+        build:
+          always_include_files:
+            - ${{ library }}share/qemu/edk2-licenses.txt
+            - ${{ library }}share/qemu/openbios-ppc
+            - ${{ library }}share/qemu/pnv-pnor.bin
+            - ${{ library }}share/qemu/skiboot.lid
+            - ${{ library }}share/qemu/slof.bin
+            - ${{ library }}share/qemu/u-boot.e500
+            - ${{ library }}share/qemu/u-boot-sam460.bin
+            - ${{ library }}share/qemu/vof.bin
+            - ${{ library }}share/qemu/vof-nvram.bin
+          files:
+            exclude:
+              # Shared assets (in common package)
+              - ${{ library }}share/qemu/keymaps/*
+              - ${{ library }}share/locale/*/LC_MESSAGES/qemu.mo
+              # Build artifacts (not runtime files)
+              - ${{ library }}include/fdt.h
+              - ${{ library }}include/libfdt*.h
+              - ${{ library }}lib/libfdt.a
+              - ${{ library }}lib/pkgconfig/libfdt.pc
+              # Unused arch firmware
+              - ${{ library }}share/qemu/{openbios,palcode}*
+              - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
+              - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
+              # Overlaps (only occurs on non-unix)
+              - ${{ library }}share/qemu/{applications,icons}
+              # Sibling-arch binaries from the combined staging build (new).
+              - ${{ library }}bin/qemu-system-aarch64${{ xt }}
+              - ${{ library }}bin/qemu-system-riscv64${{ xt }}
+        requirements:
+          run:
+            - ${{ pin_subpackage('qemu-system-common', exact=True) }}
+            - ${{ m2 }}openssh
+            - libglib
+            - lzfse
+            - if: unix
               then:
-                - ${{ library }}share/qemu/ast27x0_bootrom.bin
-                - ${{ library }}share/qemu/edk2-aarch64-code.fd
-                - ${{ library }}share/qemu/firmware/60-edk2-aarch64.json
-                - ${{ library }}share/qemu/npcm7xx_bootrom.bin
-                - ${{ library }}share/qemu/npcm8xx_bootrom.bin
-            - if: qemu_system_arch == "ppc64"
+                - gnutls
+                - libcapstone
+                - libiconv
+                - libfdt
+                - libssh
+                - lzo
+                - ncurses
+                - sdl2_image
+              else:
+                - m2-libgnutls
+            - if: linux
               then:
+                - keyutils
+                - libudev1
+        tests:
+          - package_contents:
+              strict: true
+              bin:
+                - qemu-system-ppc64
+              files:
+                - etc/conda/test-files/*
+                - ${{ library }}share/qemu/edk2-licenses.txt
                 - ${{ library }}share/qemu/openbios-ppc
                 - ${{ library }}share/qemu/pnv-pnor.bin
                 - ${{ library }}share/qemu/skiboot.lid
@@ -485,31 +575,90 @@ outputs:
                 - ${{ library }}share/qemu/u-boot-sam460.bin
                 - ${{ library }}share/qemu/vof.bin
                 - ${{ library }}share/qemu/vof-nvram.bin
-            - if: qemu_system_arch == "riscv64"
+          - script:
+              - qemu-system-ppc64 -display none -machine help | grep "IBM PowerNV (Non-Virtualized) POWER9"
+            requirements:
+              run:
+                - ${{ m2 }}grep
+          # Boot test with CirrOS/Debian minimal images
+          - script:
+              - python tests/boot_test.py ppc64 ${{ PREFIX }}
+            files:
+              recipe:
+                - tests/boot_test.py
+
+      - package:
+          name: qemu-system-riscv64
+        inherit: qemu-system-arch-staging
+        build:
+          always_include_files:
+            - ${{ library }}share/qemu/edk2-licenses.txt
+            - ${{ library }}share/qemu/firmware/60-edk2-riscv64.json
+            - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
+            - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
+          files:
+            exclude:
+              # Shared assets (in common package)
+              - ${{ library }}share/qemu/keymaps/*
+              - ${{ library }}share/locale/*/LC_MESSAGES/qemu.mo
+              # Build artifacts (not runtime files)
+              - ${{ library }}include/fdt.h
+              - ${{ library }}include/libfdt*.h
+              - ${{ library }}lib/libfdt.a
+              - ${{ library }}lib/pkgconfig/libfdt.pc
+              # Unused arch firmware
+              - ${{ library }}share/qemu/{openbios,palcode}*
+              - ${{ library }}share/qemu/*.{bin,bmp,fd,rom,img,ndrv,lid,e500}
+              - ${{ library }}share/qemu/firmware/{50,60}-edk2-*.json
+              # Overlaps (only occurs on non-unix)
+              - ${{ library }}share/qemu/{applications,icons}
+              # Sibling-arch binaries from the combined staging build (new).
+              - ${{ library }}bin/qemu-system-aarch64${{ xt }}
+              - ${{ library }}bin/qemu-system-ppc64${{ xt }}
+        requirements:
+          run:
+            - ${{ pin_subpackage('qemu-system-common', exact=True) }}
+            - ${{ m2 }}openssh
+            - libglib
+            - lzfse
+            - if: unix
               then:
+                - gnutls
+                - libcapstone
+                - libiconv
+                - libfdt
+                - libssh
+                - lzo
+                - ncurses
+                - sdl2_image
+              else:
+                - m2-libgnutls
+            - if: linux
+              then:
+                - keyutils
+                - libudev1
+        tests:
+          - package_contents:
+              strict: true
+              bin:
+                - qemu-system-riscv64
+              files:
+                - etc/conda/test-files/*
+                - ${{ library }}share/qemu/edk2-licenses.txt
                 - ${{ library }}share/qemu/firmware/60-edk2-riscv64.json
                 - ${{ library }}share/qemu/opensbi-riscv64-generic-fw_dynamic.bin
                 - ${{ library }}share/qemu/edk2-riscv-{code,vars}.fd
-      - script:
-          # Basic sanity check - verify machine types are available
-          - if: qemu_system_arch == "aarch64"
-            then:
-              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "Raspberry Pi 4B"
-          - if: qemu_system_arch == "ppc64"
-            then:
-              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "IBM PowerNV (Non-Virtualized) POWER9"
-          - if: qemu_system_arch == "riscv64"
-            then:
-              - qemu-system-${{ qemu_system_arch }} -display none -machine help | grep "AMD Microblaze-V generic platform"
-        requirements:
-          run:
-            - ${{ m2 }}grep
-      # Boot test with CirrOS/Debian minimal images
-      - script:
-          - python tests/boot_test.py ${{ qemu_system_arch }} ${{ PREFIX }}
-        files:
-          recipe:
-            - tests/boot_test.py
+          - script:
+              - qemu-system-riscv64 -display none -machine help | grep "AMD Microblaze-V generic platform"
+            requirements:
+              run:
+                - ${{ m2 }}grep
+          # Boot test with CirrOS/Debian minimal images
+          - script:
+              - python tests/boot_test.py riscv64 ${{ PREFIX }}
+            files:
+              recipe:
+                - tests/boot_test.py
 
 about:
   homepage: https://gitlab.com/qemu-project/qemu

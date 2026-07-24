@@ -179,6 +179,12 @@ build_configure_args() {
     get_linux_user_flags user_flags
     args+=("${user_flags[@]}")
     args+=("--target-list=${target}-linux-user")
+  elif [[ -n "${CONDA_QEMU_TARGET_LIST:-}" ]]; then
+    # Combined multi-target system emulator build (shared staging/cache build,
+    # see rattler-build's staging/inherit pattern). CONDA_QEMU_TARGET_LIST is a
+    # literal comma-joined --target-list value, e.g.
+    # "aarch64-softmmu,ppc64-softmmu,riscv64-softmmu".
+    args+=("--disable-linux-user" "--enable-system" "--target-list=${CONDA_QEMU_TARGET_LIST}")
   elif [[ -n "${target}" ]]; then
     # System emulator build
     args+=("--disable-linux-user" "--enable-system" "--target-list=${target}-softmmu")
