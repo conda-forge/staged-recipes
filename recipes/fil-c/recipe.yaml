@@ -6,26 +6,38 @@ package:
   version: ${{ version }}
 
 source:
-  # Fil-C only supports Linux/x86_64. This repackages the official upstream
-  # binary release: building from source means building a full LLVM/clang 20
-  # fork plus the Fil-C runtime, two musl builds and libc++/libc++abi, which
-  # does not fit within CI resource limits.
-  url: https://github.com/pizlonator/fil-c/releases/download/v${{ version }}/filc-${{ version }}-linux-x86_64.tar.xz
-  sha256: 84272acf017fe76bddb32bb3865f3d97ce332eb6e6a17fc1c07a8eb9ad777787
+  # Fil-C only supports Linux/x86_64. The tarball is the full fil-c monorepo:
+  # an LLVM/clang 20 fork plus the Fil-C runtime (libpas), musl, and the
+  # sources of many ported projects (~2 GiB).
+  url: https://github.com/pizlonator/fil-c/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 715387dd9ded5e4ee4561a14725312e2933d50856e7d59033e9fed1e838abd6c
 
 build:
   number: 0
   skip:
     - target_platform != "linux-64"
   dynamic_linking:
-    # Upstream prebuilt binaries; rpaths are set to $ORIGIN-relative paths in
-    # build.sh (mirroring upstream's setup.sh, which uses absolute paths).
+    # The pizfix tree is the Fil-C target runtime (its own musl-based libc,
+    # dynamic loader and libc++); rpaths are set to $ORIGIN-relative paths in
+    # build.sh (mirroring upstream's setup.sh) and must not be rewritten.
     binary_relocation: false
     missing_dso_allowlist:
       - "**"
 
 requirements:
   build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    # the Fil-C runtime (libpas) and yolounwind build with a host clang, and
+    # the LLVM build links with lld
+    - clang
+    - lld
+    - cmake
+    - ninja
+    - make
+    - python
+    - ruby
     - patchelf
   host:
     - kernel-headers_linux-64
@@ -35,8 +47,6 @@ requirements:
     - kernel-headers_linux-64
     # the clang driver invokes GNU ld for linking
     - ld_impl_linux-64
-    # the clang-20 host binary is linked against glibc >=2.34
-    - __glibc >=2.34
 
 tests:
   - script:
@@ -67,8 +77,8 @@ about:
   license: Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND MIT
   license_file:
     - LLVM-LICENSE.txt
-    - PAS-LICENSE.txt
-    - MUSL-LICENSE.txt
+    - libpas/LICENSE.txt
+    - projects/usermusl/COPYRIGHT
 
 extra:
   recipe-maintainers:
