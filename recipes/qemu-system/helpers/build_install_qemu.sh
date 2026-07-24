@@ -39,6 +39,7 @@ build_install_qemu() {
     strip_arg="--disable-strip"     # Strip conflicts with code signing on macOS
   fi
 
+  rm -rf "${build_dir}"
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
 
@@ -104,6 +105,7 @@ build_install_qemu_non_unix() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
+  rm -rf "${build_dir}"
   mkdir -p "${build_dir}"
 
   # Windows-specific pre-configure setup
