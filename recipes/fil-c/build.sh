@@ -4,9 +4,12 @@ set -euxo pipefail
 # ---- disk reclamation: CI agents have only ~7 GiB total for this build ----
 # Sources are fetched/extracted and envs installed by the time this script
 # runs: the 2 GiB cached source tarball and the package-cache archives
-# (already extracted into the envs) can go.
-find "${SRC_DIR}/../../../src_cache" -type f -size +100M -delete 2>/dev/null || true
-find "${SRC_DIR}/../../../pkg_cache" -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -delete 2>/dev/null || true
+# (already extracted into the envs) can go. Set FILC_KEEP_CACHES for local
+# builds to keep iteration fast.
+if [ -z "${FILC_KEEP_CACHES:-}" ]; then
+  find "${SRC_DIR}/../../../src_cache" -type f -size +100M -delete 2>/dev/null || true
+  find "${SRC_DIR}/../../../pkg_cache" -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -delete 2>/dev/null || true
+fi
 
 # The tarball carries benchmark data, LLVM subprojects and ported-project
 # sources that the base toolchain build does not need. yolomusl/usermusl
@@ -20,8 +23,9 @@ for d in projects/*; do
   esac
 done
 # Test suites are never built (LLVM_INCLUDE_TESTS=OFF below). The libcxx/
-# libcxxabi test dirs must stay: the runtimes configure includes them.
-rm -rf llvm/test llvm/unittests llvm/docs clang/test clang/unittests clang/docs
+# libcxxabi test dirs and the docs dirs must stay: cmake includes them
+# unconditionally.
+rm -rf llvm/test llvm/unittests clang/test clang/unittests
 
 # ---- adapt the upstream build to the conda toolchain and CI resources ----
 # Release instead of RelWithDebInfo and serialized link jobs: the 7 GiB RAM
@@ -41,8 +45,13 @@ export HOST_CLANG="${CXX}"
 sed -i "s|^\tclang |\t\$(CC) |" yolounwind/Makefile
 
 # The freshly built fil-c clang invokes plain `ld` when linking usermusl and
-# the runtimes; conda binutils only puts the triple-prefixed one on PATH.
-ln -sf "${BUILD_PREFIX}/x86_64-conda-linux-gnu/bin/ld" "${BUILD_PREFIX}/bin/ld"
+# the runtimes, and several upstream scripts use plain `ar`; conda binutils
+# only puts triple-prefixed names on PATH.
+for tool in ld ar ranlib nm strip objcopy as; do
+  if [ ! -e "${BUILD_PREFIX}/bin/${tool}" ]; then
+    ln -s "${BUILD_PREFIX}/x86_64-conda-linux-gnu/bin/${tool}" "${BUILD_PREFIX}/bin/${tool}"
+  fi
+done
 
 # Scale ninja parallelism to the machine, capped by available RAM (large
 # LLVM translation units need ~2 GiB each); CI agents resolve to -j 2.
