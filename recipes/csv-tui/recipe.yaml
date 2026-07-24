@@ -1,0 +1,62 @@
+# csv-tui: TUI-first CSV explorer (CLI + optional browser UI).
+# Close to csvlens in spirit (interactive terminal CSV viewing), but with a
+# different UI design philosophy. Upstream repo remains csv-utils; binary is `csv`.
+context:
+  version: "2026.630.1"
+
+package:
+  name: csv-tui
+  version: ${{ version }}
+
+source:
+  # v2026.630.1 is not tagged yet; pin the matching commit. Retarget to
+  # refs/tags/v${{ version }}.tar.gz (and refresh sha256) once the tag exists.
+  url: https://github.com/amirhosseindavoody/csv-utils/archive/89d2ca704cb1aa030e2834d17abf12e9e39be3f8.tar.gz
+  sha256: 3f1f9e1faa41379a6b7f4cc596b2fd96e61afedb77ecf7852939617cd9b60287
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path csv-utils
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path csv-utils
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - csv --help
+  - package_contents:
+      bin:
+        - csv
+      strict: true
+
+about:
+  homepage: https://github.com/amirhosseindavoody/csv-utils
+  repository: https://github.com/amirhosseindavoody/csv-utils
+  summary: TUI-first CSV explorer with streaming CLI and optional browser UI
+  description: |
+    Interactive terminal UI for exploring CSV files, plus streaming CLI commands
+    and an optional local browser UI. Similar in spirit to csvlens, but with a
+    different philosophy for UI design.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - amirhosseindavoody
