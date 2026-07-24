@@ -8,29 +8,25 @@ package:
 source:
   url: https://github.com/neurosnap/zmx/archive/refs/tags/v${{ version }}.tar.gz
   sha256: f278cbff940bc2d3fcaa3b2f023c4ab43bd6500f2791254d25a421ac006e7beb
+  patches:
+    # zig emits Mach-O binaries with no header padding, so rattler-build's
+    # install_name_tool relocation can't rewrite the rpath ("larger updated load
+    # commands do not fit"). Set headerpad_max_install_names on the installed exe
+    # so relocation succeeds and @rpath/libc++.1.dylib resolves to conda libcxx.
+    - patches/0001-headerpad-max-install-names.patch
 
 build:
   number: 0
   skip:
     - win
-  dynamic_linking:
-    # zmx has no conda host deps -- ghostty-vt is compiled in statically and the
-    # binary only links the macOS system libSystem, so there is nothing to
-    # relocate. zig's Mach-O also has no headerpad, so rattler-build's default
-    # install_name_tool rpath rewrite overflows ("larger updated load commands do
-    # not fit"). Disable relocation on osx only (empty list on osx); keep the
-    # default "**" on linux. Same pattern as ghostty-feedstock.
-    binary_relocation:
-      - if: linux
-        then: "**"
   script:
-    # zig fetches the ghostty (ghostty-vt) dependency into this cache at build
-    # time; point it at a writable dir under the work tree. Needs network at
-    # build time (git+https dep) -- same model as ghostty-feedstock.
+    # zig fetches the ghostty (ghostty-vt) git dependency into this cache at
+    # build time (needs network, git+https dep) -- same model as ghostty-feedstock.
     - export ZIG_GLOBAL_CACHE_DIR="${SRC_DIR}/.zig-global-cache"
     - zig build --prefix "${PREFIX}" -Doptimize=ReleaseSafe -Dversion="${PKG_VERSION}"
-    # zmx statically compiles ghostty's ghostty-vt module into the binary, so we
-    # ship ghostty's license too.
+    # Ship the vendored ghostty-vt license (MIT). ghostty's build.zig.zon has
+    # .paths={""}, so zig copies its whole tree (incl. LICENSE) into the fetch
+    # cache; referenced from license_file. Glob is robust to ghostty hash bumps.
     - cp ${ZIG_GLOBAL_CACHE_DIR}/p/ghostty-*/LICENSE "${SRC_DIR}/LICENSE.ghostty"
 
 requirements:
@@ -41,6 +37,14 @@ requirements:
     - zig >=0.15.2,<0.16
     # zig fetches the ghostty git dependency (git+https) -- git must be present.
     - git
+  host:
+    # macOS: zig dynamically links conda's libc++ (@rpath/libc++.1.dylib) via the
+    # ghostty-vt/simdutf `-lc++`. Declare it here so its run-export pins the
+    # matching libcxx at runtime; rattler-build's relocation (enabled by the
+    # headerpad patch) rewrites the rpath to find it in $PREFIX/lib.
+    - if: osx
+      then:
+        - libcxx
 
 tests:
   - package_contents:
