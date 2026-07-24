@@ -1,29 +1,64 @@
 #!/bin/bash
 set -euxo pipefail
 
-# Reclaim disk space: the tarball carries benchmark data, LLVM subprojects
-# and ported-project sources that the base toolchain build does not need.
-# yolomusl/usermusl must stay: they are the Fil-C libc.
-rm -rf benchmarkData pizlix optfil bolt clang-tools-extra flang lldb mlir polly
+# ---- disk reclamation: CI agents have only ~7 GiB total for this build ----
+# Sources are fetched/extracted and envs installed by the time this script
+# runs: the 2 GiB cached source tarball and the package-cache archives
+# (already extracted into the envs) can go.
+find "${SRC_DIR}/../../../src_cache" -type f -size +100M -delete 2>/dev/null || true
+find "${SRC_DIR}/../../../pkg_cache" -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -delete 2>/dev/null || true
+
+# The tarball carries benchmark data, LLVM subprojects and ported-project
+# sources that the base toolchain build does not need. yolomusl/usermusl
+# must stay: they are the Fil-C libc.
+rm -rf benchmarkData pizlix optfil bolt clang-tools-extra cross-project-tests \
+  flang libclc lldb llvm-libgcc mlir offload openmp polly pstl
 for d in projects/*; do
   case "$d" in
     projects/yolomusl | projects/usermusl) ;;
     *) rm -rf "$d" ;;
   esac
 done
+# Test suites are never built (LLVM_INCLUDE_TESTS=OFF below). The libcxx/
+# libcxxabi test dirs must stay: the runtimes configure includes them.
+rm -rf llvm/test llvm/unittests llvm/docs clang/test clang/unittests clang/docs
 
-# CI has 2 cores / ~7 GB RAM: build Release instead of RelWithDebInfo and
-# serialize the large LLVM link steps to avoid running out of memory.
-sed -i 's/-DCMAKE_BUILD_TYPE=RelWithDebInfo/-DCMAKE_BUILD_TYPE=Release -DLLVM_PARALLEL_LINK_JOBS=1/' configure_llvm.sh
+# ---- adapt the upstream build to the conda toolchain and CI resources ----
+# Release instead of RelWithDebInfo and serialized link jobs: the 7 GiB RAM
+# agents cannot link clang with debug info. No lld: GNU ld links fine and
+# keeps the clang+lld packages out of the disk budget.
+sed -i \
+  -e 's/-DCMAKE_BUILD_TYPE=RelWithDebInfo/-DCMAKE_BUILD_TYPE=Release -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_INCLUDE_TESTS=OFF/' \
+  -e 's/-DLLVM_ENABLE_LLD=ON//' \
+  configure_llvm.sh
 
-# build_clang.sh/build_cxx.sh/build_compiler_rt.sh source this hook if present
-cat > clang-build-overrides.sh <<'EOF'
-NINJAFLAGS="-j 2"
-NINJARUNTIMEFLAGS="-j 2"
+# libpas and yolounwind default to a host clang; building with g++/gcc is
+# supported upstream (see the commented block in libpas/Makefile) and saves
+# ~1 GiB of build env.
+GCC_INTERNAL_INCLUDE="$(${CC} -print-file-name=include)"
+sed -i "s|^HOST_CLANG_EXTRA_FLAGS = .*|HOST_CLANG_EXTRA_FLAGS = -Wno-expansion-to-defined -Wno-pragmas -Wno-address-of-packed-member -Wno-missing-field-initializers -isystem ${GCC_INTERNAL_INCLUDE}|" libpas/Makefile
+export HOST_CLANG="${CXX}"
+sed -i "s|^\tclang |\t\$(CC) |" yolounwind/Makefile
+
+# The freshly built fil-c clang invokes plain `ld` when linking usermusl and
+# the runtimes; conda binutils only puts the triple-prefixed one on PATH.
+ln -sf "${BUILD_PREFIX}/x86_64-conda-linux-gnu/bin/ld" "${BUILD_PREFIX}/bin/ld"
+
+# Scale ninja parallelism to the machine, capped by available RAM (large
+# LLVM translation units need ~2 GiB each); CI agents resolve to -j 2.
+MEM_GB=$(awk '/MemTotal/ {print int($2/1048576)}' /proc/meminfo)
+JOBS=${CPU_COUNT:-2}
+if ((JOBS > MEM_GB / 2)); then JOBS=$((MEM_GB / 2)); fi
+((JOBS >= 1)) || JOBS=1
+# build_clang.sh/build_cxx.sh/build_compiler_rt.sh source this hook
+cat > clang-build-overrides.sh <<EOF
+NINJAFLAGS="-j ${JOBS}"
+NINJARUNTIMEFLAGS="-j ${JOBS}"
 EOF
 
-# The steps of upstream's build_base.sh, except build_os_include.sh, which
-# symlinks /usr/include kernel headers; use the conda sysroot ones instead.
+# ---- the steps of upstream's build_base.sh ----
+# build_os_include.sh is replaced: it symlinks /usr/include kernel headers,
+# which do not exist here; use the conda sysroot ones.
 ./build_compiler_rt.sh
 ./build_yolounwind.sh
 ./configure_llvm.sh
@@ -38,8 +73,8 @@ done
 ./build_usermusl.sh
 ./build_cxx.sh
 
-# Install, mirroring upstream's package-build.sh layout: the clang driver
-# locates the Fil-C runtime at <real-path-of-clang>/../../pizfix.
+# ---- install, mirroring upstream's package-build.sh layout ----
+# The clang driver locates the Fil-C runtime at <real-path-of-clang>/../../pizfix.
 DEST="${PREFIX}/lib/fil-c"
 mkdir -p "${DEST}/build/bin"
 cp build/bin/clang-20 "${DEST}/build/bin/"
