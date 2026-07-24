@@ -1,0 +1,157 @@
+context:
+  version: "0.4.4"
+
+recipe:
+  name: patinae
+  version: ${{ version }}
+
+source:
+  url: https://github.com/zmactep/pymol-rs/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9c60739978a59dafc90451dc07c2224489176d35fea8c1e2ff12376a2eb13117
+
+build:
+  number: 0
+  variant:
+    ignore_keys:
+      - nodejs # Only needed to build static web assets.
+
+outputs:
+  - staging:
+      name: patinae-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - ${{ 'm2w64-jq' if win else 'jq' }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - esbuild ==0.25.12
+        - nodejs
+        - pkg-config
+        - pnpm
+        - pnpm-licenses
+        - rust-std-wasm32-unknown-unknown
+        - wasm-pack
+      host:
+        - expat
+        - fontconfig
+        - freetype
+        - maturin >=1.2.2,<2
+        - pip
+        - python
+      ignore_run_exports:
+        from_package:
+          # expat and freetype are only needed for pkg-config dependency resolution of fontconfig.
+          # patinae does not use expat and freetype directly at runtime.
+          - expat
+          - freetype
+    build:
+      script: build
+
+  - package:
+      name: python-patinae
+    inherit: patinae-build
+    build:
+      files:
+        - if: unix
+          then:
+            - bin/patinae-cli
+            - lib/python*/site-packages/patinae/**
+            - lib/python*/site-packages/patinae-*.dist-info/**
+        - if: win
+          then:
+            - Scripts/patinae-cli.bat
+            - Lib/site-packages/patinae/**
+            - Lib/site-packages/patinae-*.dist-info/**
+    requirements:
+      run:
+        - anywidget >=0.9
+        - python
+        - traitlets >=5
+    tests:
+      - python:
+          pip_check: true
+          imports:
+            - patinae
+            - patinae._patinae
+            - patinae.widget
+          python_version: ${{ python }}
+      - package_contents:
+          bin:
+            - patinae-cli
+      - script:
+          - patinae-cli --help
+          - python test_widget_assets.py
+        files:
+          recipe:
+            - test_widget_assets.py
+    about:
+      summary: Python bindings and Jupyter widget for Patinae
+
+  - package:
+      name: patinae
+    inherit: patinae-build
+    build:
+      files:
+        - libexec/patinae/**
+        - if: unix
+          then:
+            - bin/patinae
+        - if: win
+          then:
+            - Scripts/patinae.bat
+    requirements:
+      run:
+        - ${{ pin_subpackage('python-patinae', exact=True) }}
+        - if: linux
+          then:
+            - fonts-conda-forge
+            - libvulkan-loader
+    tests:
+      - package_contents:
+          bin:
+            - patinae
+          files:
+            - libexec/patinae/bin/patinae*
+            - libexec/patinae/plugins/*hello_plugin*
+            - libexec/patinae/plugins/*ipc_plugin*
+            - libexec/patinae/plugins/*python_plugin*
+            - libexec/patinae/plugins/*raytracer_plugin*
+      - script:
+          - if: linux
+            then:
+              - ldd "${PREFIX}/libexec/patinae/bin/patinae"
+          - if: osx
+            then:
+              - otool -L "${PREFIX}/libexec/patinae/bin/patinae"
+          - if: win
+            then:
+              - dumpbin /DEPENDENTS "%PREFIX%\libexec\patinae\bin\patinae.exe"
+          - python -c "import patinae; import patinae.widget"
+        requirements:
+          run:
+            - ${{ compiler('c') if win }} # Required to use `dumpbin` for Windows
+    about:
+      summary: Desktop application and native plugins for Patinae
+
+about:
+  homepage: https://zmactep.github.io/pymol-rs
+  repository: https://github.com/zmactep/pymol-rs
+  documentation: https://zmactep.github.io/pymol-rs/docs.html
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - web/third-party-licenses.txt
+  summary: A fast, programmable molecular viewer for research, scripting, and the web
+  description: |
+    Patinae is a modern molecular visualization toolkit for interactive research, scripting, structural analysis, publication images, notebooks, and embedding.
+
+    It is built around a responsive GPU-first viewer, a command-driven workflow, and extension points for native, Python, and web applications.
+    The aim is to keep the power of a full molecular workstation while making the everyday experience fast, light, and comfortable.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
+    - zmactep
