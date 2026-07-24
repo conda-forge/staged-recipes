@@ -1,0 +1,68 @@
+context:
+  version: "0.7.1"
+
+package:
+  name: herdr
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ogulcancelik/herdr/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0a9b4ba7fe5cccec0abddd3b0ff140ccbb722a3f9a09a6a0c22e35dea4c8ba06
+  patches:
+    # Fix libghostty-vt shared DLL missing ucrt/vcruntime link on Windows (cf. GhosttyLib.zig)
+    # TODO: Submit PR to upstream
+    - ${{ 'libghostty-vt-windows-msvc-crt.patch' if win }}
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins --target-dir=target
+      - if: win
+        then:
+          # workaround for zig 0.15.2 bug: convertPathArg panics on cross-drive paths (Build/Step/Run.zig)
+          - sed -i "s|assert(!std\.fs\.path\.isAbsolute(child_cwd_rel));|if (std.fs.path.isAbsolute(child_cwd_rel)) return child_cwd_rel;|" "%BUILD_PREFIX%\Library\lib\zig\std\Build\Step\Run.zig"
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins --target-dir=target
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - ${{ 'm2-sed' if win }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - zig 0.15.*  # upstream issue: https://github.com/ogulcancelik/herdr/issues/285
+
+tests:
+  - package_contents:
+      bin:
+        - herdr
+  - script:
+      - herdr --version
+      - herdr --help
+
+about:
+  homepage: https://herdr.dev
+  documentation: https://herdr.dev/docs
+  repository: https://github.com/ogulcancelik/herdr
+  summary: Agent multiplexer that lives in your terminal
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - vendor/libghostty-vt/LICENSE  # cannot obtain license by `cargo-bundle-licenses` because it's a zig library
+  description: |
+    Run all your coding agents from one terminal, on any box, even over ssh.
+    Each runs in its own real terminal, on a server that keeps it alive when you close the laptop.
+    See blocked, working, and done at a glance, and reattach from your phone.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
