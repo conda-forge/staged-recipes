@@ -45,6 +45,7 @@ build_install_qemu() {
     # Configure
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
+      --disable-download \
       "${qemu_args[@]}" \
       "${platform_args[@]}" \
       ${strip_arg} > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
@@ -113,6 +114,7 @@ build_install_qemu_non_unix() {
     # Configure
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
+      --disable-download \
       "${qemu_args[@]}" \
       --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
 
