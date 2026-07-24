@@ -1,0 +1,58 @@
+context:
+  version: "0.7.0"
+
+package:
+  name: zmx
+  version: ${{ version }}
+
+source:
+  url: https://github.com/neurosnap/zmx/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f278cbff940bc2d3fcaa3b2f023c4ab43bd6500f2791254d25a421ac006e7beb
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # zig fetches the ghostty (ghostty-vt) dependency into this cache at build
+    # time; point it at a writable dir under the work tree. Needs network at
+    # build time (git+https dep) -- same model as ghostty-feedstock.
+    - export ZIG_GLOBAL_CACHE_DIR="${SRC_DIR}/.zig-global-cache"
+    - zig build --prefix "${PREFIX}" -Doptimize=ReleaseSafe -Dversion="${PKG_VERSION}"
+    # zmx statically compiles ghostty's ghostty-vt module into the binary, so we
+    # ship ghostty's license too.
+    - cp ${ZIG_GLOBAL_CACHE_DIR}/p/ghostty-*/LICENSE "${SRC_DIR}/LICENSE.ghostty"
+
+requirements:
+  build:
+    # Upstream build.zig.zon: minimum_zig_version = 0.15.2.
+    - zig >=0.15.2
+    # zig fetches the ghostty git dependency (git+https) -- git must be present.
+    - git
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - zmx
+  - script:
+      - zmx version
+      - zmx --help
+
+about:
+  homepage: https://zmx.sh
+  summary: Persist terminal shell sessions with attach/detach
+  description: |
+    zmx lets you create named shell sessions that persist after disconnecting.
+    Attach and detach from a session without killing it, with native terminal
+    scrollback and state restoration, and multiple concurrent clients per
+    session. It deliberately does not provide windows, tabs, or splits.
+  license: MIT
+  license_file:
+    - LICENSE
+    - LICENSE.ghostty
+  repository: https://github.com/neurosnap/zmx
+
+extra:
+  recipe-maintainers:
+    - anjos
