@@ -1,28 +1,43 @@
 context:
-  version: "2026.6.24+2"
+  version: "2026.630.1"
 
 package:
   name: csv-utils
   version: ${{ version }}
 
 source:
-  url: https://github.com/amirhosseindavoody/csv-utils/archive/v2026.6.24%2B2.tar.gz
-  sha256: f911511a52d195a5330d78502ce663d340ad8a9fe8e3faa83cb40cfc89081769
+  url: https://github.com/amirhosseindavoody/csv-utils/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b1536dc1ab86a537b01e1dd1e240439890dc29dd0b843192cc6abb5d100c408b
 
 build:
   number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path csv-utils
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path csv-utils
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
 requirements:
   build:
-    - ${{ compiler('rust') }}
-    - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
     - cargo-bundle-licenses
 
 tests:
   - script:
       - csv --help
-      - csv-utils-web --help
+  - package_contents:
+      bin:
+        - csv
+      strict: true
 
 about:
   homepage: https://github.com/amirhosseindavoody/csv-utils
