@@ -121,12 +121,25 @@ build_install_qemu_non_unix() {
 
   pushd "${build_dir}" || exit 1
 
+    # DEBUG (temporary, CI investigation only): show which "meson" bash's
+    # PATH lookup resolves to right before configure runs its internal
+    # `meson setup` invocation.
+    echo "DEBUG: which meson (before configure) -> $(command -v meson 2>/dev/null || echo not-found)"
+
     # Configure
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       --disable-download \
       "${qemu_args[@]}" \
       --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
+
+    # DEBUG (temporary, CI investigation only): show which "meson" resolves
+    # to after configure, and what command(s) meson baked into build.ninja
+    # for the config-poison custom target -- this reveals exactly which
+    # meson path/wrapper ninja will later try to CreateProcess directly.
+    echo "DEBUG: which meson (after configure) -> $(command -v meson 2>/dev/null || echo not-found)"
+    echo "DEBUG: build.ninja config-poison related line(s):"
+    grep -E "config-poison|--internal exe|make-config-poison" build.ninja 2>/dev/null || true
 
     # Apply Windows build.ninja fixes
     patch_windows_build_ninja "${build_dir}"

@@ -66,6 +66,15 @@ exec "${_meson_exe}" "\$@"
 MESONSH
   chmod +x ./pyvenv/Scripts/meson
 
+  # DEBUG (temporary, CI investigation only): confirm both wrapper files
+  # exist side by side and show which is which. Safe no-op if listing fails.
+  echo "DEBUG: listing pyvenv/Scripts/meson wrapper files"
+  ls -la ./pyvenv/Scripts/meson* 2>/dev/null || true
+  echo "DEBUG: first line of ./pyvenv/Scripts/meson (bare shell wrapper):"
+  head -1 ./pyvenv/Scripts/meson 2>/dev/null || true
+  echo "DEBUG: first line of ./pyvenv/Scripts/meson.bat (batch wrapper):"
+  head -1 ./pyvenv/Scripts/meson.bat 2>/dev/null || true
+
   popd || return 1
 }
 
