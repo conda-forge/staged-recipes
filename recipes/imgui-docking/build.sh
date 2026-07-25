@@ -1,0 +1,25 @@
+set -euxo pipefail
+
+rm -rf build || true
+mkdir build
+cd build
+
+if [[ "${target_platform}" == osx* ]]; then
+    OSX_BINDINGS=ON
+elif [[ "${target_platform}" == linux* ]]; then
+    OSX_BINDINGS=OFF
+fi
+
+cmake ${SRC_DIR} ${CMAKE_ARGS} -GNinja \
+    -DBUILD_SHARED_LIBS=ON \
+    -DIMGUI_BUILD_GLFW_BINDING=ON \
+    -DIMGUI_BUILD_METAL_BINDING=$OSX_BINDINGS \
+    -DIMGUI_BUILD_OPENGL3_BINDING=ON \
+    -DIMGUI_BUILD_WIN32_BINDING=OFF \
+    -DIMGUI_BUILD_DX11_BINDING=OFF \
+    -DIMGUI_FREETYPE=OFF \
+    -DIMGUI_USE_WCHAR32=ON \
+    -DIMGUI_32BIT_DRAW_IDX=ON
+
+cmake --build . --config Release -- -j$CPU_COUNT
+cmake --build . --config Release --target install
