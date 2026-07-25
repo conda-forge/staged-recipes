@@ -66,6 +66,19 @@ exec "${_meson_exe}" "\$@"
 MESONSH
   chmod +x ./pyvenv/Scripts/meson
 
+  # Native meson.exe launcher copy: QEMU's patched configure (see
+  # patches/0002-non-unix-configure-pyvenv.patch) only appends .exe to the
+  # meson= path if pyvenv/Scripts/meson.exe already exists; otherwise it
+  # falls back to the bare shebang wrapper above, which ninja.exe cannot
+  # CreateProcess directly (no shebang support). Copy conda's real native
+  # meson.exe launcher here so configure picks the .exe path.
+  if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
+    cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
+    echo "DEBUG: copied real meson.exe launcher from ${_meson_exe} to ./pyvenv/Scripts/meson.exe"
+  else
+    echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe) — pyvenv/Scripts/meson.exe not created; configure's patched meson= path will fall back to the bare shell-script wrapper, which will fail under ninja.exe"
+  fi
+
   # DEBUG (temporary, CI investigation only): confirm both wrapper files
   # exist side by side and show which is which. Safe no-op if listing fails.
   echo "DEBUG: listing pyvenv/Scripts/meson wrapper files"
