@@ -33,6 +33,7 @@ static="${CONDA_QEMU_STATIC:-false}"
 
 echo "=== QEMU Build Configuration ==="
 echo "CONDA_QEMU_TARGET: ${CONDA_QEMU_TARGET:-<empty>}"
+echo "CONDA_QEMU_TARGET_LIST: ${CONDA_QEMU_TARGET_LIST:-<empty>}"
 echo "CONDA_QEMU_MODE: ${CONDA_QEMU_MODE:-<empty>}"
 echo "CONDA_QEMU_TOOLS: ${CONDA_QEMU_TOOLS:-<empty>}"
 echo "Resolved mode: ${mode}"
@@ -61,7 +62,10 @@ if [[ "${mode}" == "linux-user" ]] && [[ "${static}" == "true" ]]; then
   fi
 fi
 
-# Install desktop assets for common package (no target, no tools)
-if [[ -z "${CONDA_QEMU_TARGET:-}" ]] && [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
+# Install desktop assets for common package (no target, no target-list, no tools).
+# CONDA_QEMU_TARGET_LIST must also be empty here, otherwise the shared
+# qemu-system-arch-staging build (which has no single CONDA_QEMU_TARGET) would
+# be misidentified as the common package build.
+if [[ -z "${CONDA_QEMU_TARGET:-}" ]] && [[ -z "${CONDA_QEMU_TARGET_LIST:-}" ]] && [[ -z "${CONDA_QEMU_TOOLS:-}" ]]; then
   install_qemu_desktop_assets "${SRC_DIR}/qemu_source" "${QEMU_INSTALL_PREFIX}"
 fi
