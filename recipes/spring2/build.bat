@@ -1,5 +1,7 @@
 @echo off
 
+set "CXXFLAGS=%CXXFLAGS% /openmp:llvm"
+
 cmake -S . -B build-conda -G Ninja ^
 %CMAKE_ARGS% ^
 -DCMAKE_BUILD_TYPE=Release ^
