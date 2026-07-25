@@ -25,6 +25,7 @@ if [[ "${target_platform}" == "linux-"* ]] || [[ "${target_platform}" == "osx-"*
   export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH}"
   export QEMU_INSTALL_PREFIX="${PREFIX}"
 else
+  export PYTHON="${BUILD_PREFIX}/python.exe"
   export QEMU_INSTALL_PREFIX="${PREFIX}"/Library
 fi
 
