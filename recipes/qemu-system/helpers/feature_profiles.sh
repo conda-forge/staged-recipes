@@ -185,9 +185,21 @@ build_configure_args() {
     # literal comma-joined --target-list value, e.g.
     # "aarch64-softmmu,ppc64-softmmu,riscv64-softmmu".
     args+=("--disable-linux-user" "--enable-system" "--target-list=${CONDA_QEMU_TARGET_LIST}")
+    if [[ "${platform}" == win-* ]]; then
+      # conda-forge has no win-64 dtc/libfdt package; aarch64-softmmu hard-requires
+      # fdt, so build QEMU's vendored/subproject copy from source instead of
+      # requiring a system library.
+      args+=("--enable-fdt=internal")
+    fi
   elif [[ -n "${target}" ]]; then
     # System emulator build
     args+=("--disable-linux-user" "--enable-system" "--target-list=${target}-softmmu")
+    if [[ "${platform}" == win-* ]]; then
+      # conda-forge has no win-64 dtc/libfdt package; aarch64-softmmu hard-requires
+      # fdt, so build QEMU's vendored/subproject copy from source instead of
+      # requiring a system library.
+      args+=("--enable-fdt=internal")
+    fi
   else
     # Common/tools package: disable system emulators
     args+=("--disable-linux-user" "--disable-system")
