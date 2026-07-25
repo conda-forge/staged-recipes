@@ -11,69 +11,6 @@ if exist "%BUILD_DONE_SENTINEL%" (
   exit /b 0
 )
 
-REM Locate VS via vswhere (conda installs it as a build requirement so it is
-REM already on PATH) and call vcvarsall.bat. This fixes two problems:
-REM  1. CMake "could not find any instance of Visual Studio" - vcvarsall sets
-REM  VS170COMNTOOLS and related env vars that cmake uses as hints.
-REM  2. ninja 0xC0000139 crash - vcvarsall prepends the VS runtime dirs to
-REM  PATH before conda's Library\bin, so the correct vcruntime140.dll is
-REM  loaded first.
-
-set "VSWHERE="
-if exist "%BUILD_PREFIX%\Library\bin\vswhere.exe" (
-  set "VSWHERE=%BUILD_PREFIX%\Library\bin\vswhere.exe"
-)
-if not defined VSWHERE (
-  if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
-    set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-  )
-)
-if not defined VSWHERE (
-  echo ERROR: vswhere.exe not found in conda prefix or system installer path
-  exit /b 1
-)
-echo bld.bat: using vswhere at %VSWHERE%
-
-set "VS_PATH="
-for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2^>nul`) do (
-  set "VS_PATH=%%i"
-)
-if not defined VS_PATH (
-  echo ERROR: No VS installation with VC.Tools.x86.x64 found via vswhere
-  exit /b 1
-)
-echo bld.bat: VS installation at %VS_PATH%
-
-REM Only call vcvarsall.bat if the VS environment is not already initialized.
-REM conda-build calls bld.bat a second time during packaging. VS 2026 (18.x)
-REM vcvarsall.bat returns non-zero when invoked in an already-initialized
-REM prompt (unlike VS 17 which was silent), so we skip re-initialization.
-REM
-REM We check VSCMD_VER rather than VSINSTALLDIR because conda-build explicitly
-REM sets VSINSTALLDIR= (empty string) before invoking bld.bat, so
-REM "if not defined VSINSTALLDIR" evaluates as already-defined and we would
-REM skip initialization even when the VS environment was never actually set up.
-REM VSCMD_VER is only set by a successful vcvarsall.bat / VsDevCmd.bat call
-REM and is never pre-set by conda-build, making it a reliable sentinel.
-if not defined VSCMD_VER (
-  REM VS 2026's VsDevCmd.bat errors if INCLUDE, LIB, or LIBPATH are already
-  REM set when vcvarsall.bat is called. conda-build's compiler metapackage
-  REM activation scripts pre-populate these with conda's Library paths before
-  REM bld.bat runs, which triggers the validation failure. Clear them here;
-  REM CMake locates conda headers and libs via CMAKE_PREFIX_PATH, not these
-  REM env vars, so clearing them does not affect the build.
-  set "INCLUDE="
-  set "LIB="
-  set "LIBPATH="
-  call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-  if errorlevel 1 (
-    echo ERROR: vcvarsall.bat failed
-    exit /b 1
-  )
-  ) else (
-  echo bld.bat: VS environment already initialized ^(VSCMD_VER=%VSCMD_VER%^), skipping vcvarsall.bat
-)
-
 where ninja >nul 2>nul
 if errorlevel 1 (
   echo ERROR: ninja not found on PATH after environment setup
