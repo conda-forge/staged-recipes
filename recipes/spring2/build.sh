@@ -41,31 +41,18 @@ if [[ "${target_platform:-}" == osx-* ]]; then
 	cmake_openmp_args+=("-DOpenMP_ROOT=${PREFIX}")
 fi
 
-# CMAKE_ARGS is provided by conda-build as a space-delimited list of CMake
-# definitions. Parse it into an array so values containing ';' (for example,
-# CMAKE_PROGRAM_PATH) stay inside a single argument.
-cmake_conda_args=()
-if [[ -n "${CMAKE_ARGS:-}" ]]; then
-	# read can return non-zero in some shells/tooling combinations when it hits
-	# EOF; do not treat that as a hard failure.
-	read -r -a cmake_conda_args <<<"${CMAKE_ARGS}" || true
-fi
-
 cmake_tool_args=()
-if command -v ninja >/dev/null 2>&1; then
-	cmake_tool_args+=("-DCMAKE_MAKE_PROGRAM=$(command -v ninja)")
-fi
 if command -v nasm >/dev/null 2>&1; then
+	# Force conda-forge NASM toolchain binary to avoid host-glibc mismatches
+	# with vendored NASM executables shipped in source archives.
 	cmake_tool_args+=("-DSPRING_NASM_EXECUTABLE=$(command -v nasm)")
 fi
 
 configure_log="build-conda/cmake-configure.log"
 
 cmake \
-	${cmake_conda_args[@]+"${cmake_conda_args[@]}"} \
+	${CMAKE_ARGS} \
 	-S . -B build-conda -G Ninja \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 	-DSPRING_ENABLE_COMPILER_CACHE=OFF \
 	${cmake_openmp_args[@]+"${cmake_openmp_args[@]}"} \
 	${cmake_tool_args[@]+"${cmake_tool_args[@]}"} \
@@ -79,7 +66,11 @@ if [[ ${configure_status} -ne 0 ]]; then
 	exit 1
 fi
 
-trap - ERR
+build_jobs="${CPU_COUNT:-2}"
+if [[ -z "${build_jobs}" || "${build_jobs}" -lt 1 ]]; then
+	build_jobs=2
+fi
 
-cmake --build build-conda --parallel
+echo "build.sh: using ${build_jobs} parallel build jobs" >&2
+cmake --build build-conda --parallel "${build_jobs}"
 cmake --install build-conda

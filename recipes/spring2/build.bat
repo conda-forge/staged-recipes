@@ -74,36 +74,22 @@ if not defined VSCMD_VER (
   echo bld.bat: VS environment already initialized ^(VSCMD_VER=%VSCMD_VER%^), skipping vcvarsall.bat
 )
 
-REM Prefer the vendored ninja shipped in the source tree. After vcvarsall.bat
-REM has run, VS runtime dirs are prepended to PATH, so any ninja on PATH will
-REM load the correct CRT even if conda's Library\bin copy is also present.
-set "SPRING_NINJA=%SRC_DIR%\tools\host\ninja\win\ninja.exe"
-if not exist "%SPRING_NINJA%" set "SPRING_NINJA=%BUILD_PREFIX%\Library\bin\ninja.exe"
-if not exist "%SPRING_NINJA%" (
-  for /f "usebackq tokens=*" %%i in (`where ninja 2^>nul`) do (
-    set "SPRING_NINJA=%%i"
-    goto :ninja_found
-  )
-  echo ERROR: ninja not found in vendored path, conda prefix, or PATH
+where ninja >nul 2>nul
+if errorlevel 1 (
+  echo ERROR: ninja not found on PATH after environment setup
   exit /b 1
 )
-:ninja_found
-echo bld.bat: using ninja at %SPRING_NINJA%
 
-REM CMAKE_POLICY_DEFAULT_CMP0091=NEW and CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
-REM ensure the static CRT is used project-wide, including in vendor subdirectories.
 cmake -S . -B build-conda -G Ninja ^
--DCMAKE_MAKE_PROGRAM="%SPRING_NINJA%" ^
+%CMAKE_ARGS% ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
 -DCMAKE_INSTALL_BINDIR=Library\bin ^
 -DCMAKE_INSTALL_LIBDIR=Library\lib ^
--DSPRING_ENABLE_COMPILER_CACHE=OFF ^
--DCMAKE_POLICY_DEFAULT_CMP0091=NEW ^
--DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+-DSPRING_ENABLE_COMPILER_CACHE=OFF
 if errorlevel 1 exit /b 1
 
-cmake --build build-conda --parallel
+cmake --build build-conda --parallel %CPU_COUNT%
 if errorlevel 1 exit /b 1
 
 cmake --install build-conda
