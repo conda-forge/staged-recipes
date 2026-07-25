@@ -99,11 +99,19 @@ build_install_qemu_non_unix() {
   local qemu_args=("${@:-}")
 
   # Set up pkg-config with Windows paths
-  local _pkg_config="$(which pkg-config | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
+  # Hardcode the path instead of relying on `which pkg-config`: PATH in this
+  # build environment doesn't include ${BUILD_PREFIX}/Library/bin, so a PATH
+  # lookup fails (mirrors the Unix branch's hardcoded PKG_CONFIG above).
+  local _pkg_config="$(echo ${BUILD_PREFIX}/Library/bin/pkg-config.exe | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
   local _pkg_config_path="$(echo ${PREFIX}/Library/lib/pkgconfig | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
   export PKG_CONFIG="${_pkg_config}"
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
+
+  # Ensure the mingw compiler toolchain is on PATH: QEMU's configure runs a
+  # compiler check for x86_64-w64-mingw32-gcc.exe, which lives under
+  # ${BUILD_PREFIX}/Library/mingw-w64/bin and is not on PATH by default here.
+  export PATH="${BUILD_PREFIX}/Library/mingw-w64/bin:${BUILD_PREFIX}/Library/bin:${PATH}"
 
   rm -rf "${build_dir}"
   mkdir -p "${build_dir}"

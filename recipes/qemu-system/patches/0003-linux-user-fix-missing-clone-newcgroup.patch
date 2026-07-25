@@ -1,0 +1,25 @@
+From: conda-forge
+Subject: [PATCH] system: Define missing CLONE_NEWCGROUP flag for older kernels
+
+CLONE_NEWCGROUP (clone()/unshare() cgroup namespace flag) was added to
+the Linux kernel uapi in 4.6 (include/uapi/linux/sched.h). system/qemu-seccomp.c
+uses it unconditionally via FORBID_CLONE_FLAG(CLONE_NEWCGROUP), but conda-forge's
+pinned (older) sysroot kernel-uapi/glibc headers do not define it, causing a
+build failure ("CLONE_NEWCGROUP" undeclared). Define it if missing, mirroring
+the existing CLONE_PIDFD guard already present in this file.
+
+diff --git a/system/qemu-seccomp.c b/system/qemu-seccomp.c
+index 1234567..abcdefg 100644
+--- a/system/qemu-seccomp.c
++++ b/system/qemu-seccomp.c
+@@ -59,6 +59,10 @@
+ #ifndef CLONE_PIDFD
+ # define CLONE_PIDFD 0x00001000
+ #endif
++
++#ifndef CLONE_NEWCGROUP
++# define CLONE_NEWCGROUP 0x02000000
++#endif
+
+ #define REQUIRE_CLONE_FLAG(flag) \
+     const struct scmp_arg_cmp clone_arg ## flag[] = { \
