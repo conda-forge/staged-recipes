@@ -101,7 +101,7 @@ patch_windows_build_ninja() {
 
   # Fix Windows tool names: ensure they have .exe suffix (but not doubled)
   # First remove any existing .exe/.EXE (case-insensitive), then add .exe back
-  sed -i 's#\(windres\|nm\|windmc\)\.[eE][xX][eE]#\1#g; s#\(windres\|nm\|windmc\)\b#\1.exe#g' build.ninja
+  sed -i 's#\(windres\|nm\|windmc\|meson\)\.[eE][xX][eE]#\1#g; s#\(windres\|nm\|windmc\|meson\)\b#\1.exe#g' build.ninja
 
   # Fix QAPI absolute path issues
   sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
