@@ -1,6 +1,6 @@
 context:
   name: rgpot
-  version: "2.2.1"
+  version: "3.0.0"
 
 package:
   name: ${{ name }}
@@ -8,10 +8,7 @@ package:
 
 source:
   url: https://github.com/OmniPotentRPC/rgpot/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: d4687bc719e19174e89288dd16dd45d7a8645d7205c7f8d8fc4d677266055918
-  patches:
-    # Pure C++ CF build: do not auto-enable Fortran / FetchContent fortcuh2.
-    - cmake-fortran-opt-in.patch
+  sha256: 3eb667d28fc55306379c282d07b3e0fd7af692e45e713fb8ce71e034e71bb0bf
 
 build:
   number: 0
@@ -21,11 +18,21 @@ requirements:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    - cmake
+    # The Fortran 2018 potential kernels; skipped on Windows (see build.bat).
+    - if: not win
+      then:
+        - ${{ compiler('fortran') }}
+    - meson
     - ninja
+    - pkg-config
+  host:
+    - capnproto
+    - eigen
+    - fmt
   run_exports:
-    # Shared C++ library; allow patch within minor.
-    - ${{ pin_subpackage('rgpot', upper_bound='x.x') }}
+    # One versioned librgpot SONAME; the Cap'n Proto schema and the pot
+    # kernels live inside it, so consumers rebuild on a major bump.
+    - ${{ pin_subpackage('rgpot', upper_bound='x') }}
 
 tests:
   - package_contents:
@@ -33,42 +40,50 @@ tests:
         - if: linux
           then:
             - lib/librgpot.so
+            - lib/pkgconfig/rgpot.pc
             - include/rgpot/Potential.hpp
             - include/rgpot/LennardJones/LJPot.hpp
-            - lib/cmake/pot/rgpotConfig.cmake
-            - lib/cmake/pot/rgpotConfigVersion.cmake
+            - include/rgpot/Morse/MorsePot.hpp
+            - include/rgpot/fortran/FortranPots.hpp
         - if: osx
           then:
             - lib/librgpot.dylib
+            - lib/pkgconfig/rgpot.pc
             - include/rgpot/Potential.hpp
             - include/rgpot/LennardJones/LJPot.hpp
-            - lib/cmake/pot/rgpotConfig.cmake
-            - lib/cmake/pot/rgpotConfigVersion.cmake
+            - include/rgpot/Morse/MorsePot.hpp
+            - include/rgpot/fortran/FortranPots.hpp
         - if: win
           then:
-            - Library/bin/rgpot.dll
-            - Library/lib/rgpot.lib
+            - Library/lib/pkgconfig/rgpot.pc
             - Library/include/rgpot/Potential.hpp
             - Library/include/rgpot/LennardJones/LJPot.hpp
-            - Library/lib/cmake/pot/rgpotConfig.cmake
-            - Library/lib/cmake/pot/rgpotConfigVersion.cmake
+            - Library/include/rgpot/Morse/MorsePot.hpp
   - script:
       - if: unix
         then:
-          - test -f "${PREFIX}/include/rgpot/Potential.hpp"
-          - test -f "${PREFIX}/lib/cmake/pot/rgpotConfig.cmake"
+          - pkg-config --exists rgpot
+          - pkg-config --atleast-version=3.0.0 rgpot
+          # The pot set the consumers link against, advertised as cflags.
+          - pkg-config --cflags rgpot | grep -q RGPOT_HAS_FORTRAN_POTS
       - if: win
         then:
-          - if not exist %LIBRARY_INC%\rgpot\Potential.hpp exit 1
+          - pkg-config --exists rgpot
+          - if errorlevel 1 exit 1
+    requirements:
+      run:
+        - pkg-config
 
 about:
   homepage: https://github.com/OmniPotentRPC/rgpot
-  summary: C++ potential energy surface library (Lennard-Jones core)
+  summary: Potential energy surfaces for atomistic simulation
   description: |
-    rgpot provides potential energy surface building blocks for atomic-scale
-    simulation. This conda-forge package ships a minimal pure C++ shared
-    library (Lennard-Jones and core headers/cmake config) without optional
-    backends (RPC, metatomic, xtb, Fortran CuH2).
+    rgpot hosts potential energy surface implementations for atomic-scale
+    simulation behind one C++ interface: classical pair potentials
+    (Lennard-Jones, LJ cluster, Morse, ZBL), Fortran 2018 kernels
+    (Stillinger-Weber, EDIP, Lenosky, Tersoff, EAM aluminium, FeHe, CuH2,
+    TIP4P-H), and Cap'n Proto RPC frontends for QM engines that are loaded
+    at run time. Everything ships inside one versioned librgpot.
   license: MIT
   license_file: LICENSE
   repository: https://github.com/OmniPotentRPC/rgpot

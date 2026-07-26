@@ -1,25 +1,24 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-cmake %CMAKE_ARGS% -G Ninja ^
-  -DCMAKE_BUILD_TYPE=Release ^
-  -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-  -DCMAKE_INSTALL_LIBDIR=lib ^
-  -DBUILD_SHARED_LIBS=ON ^
-  -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
-  -DRGPOT_PURE_LIB=ON ^
-  -DRGPOT_WITH_RPC=OFF ^
-  -DRGPOT_WITH_CACHE=OFF ^
-  -DRGPOT_WITH_FORTRAN=OFF ^
-  -DRGPOT_BUILD_EXAMPLES=OFF ^
-  -DRGPOT_BUILD_TESTS=OFF ^
-  -DRGPOT_WITH_EIGEN=OFF ^
-  -DRGPOT_WITH_XTENSOR=OFF ^
-  -B build -S .
+REM Fortran pots are off on Windows for now: the kernels build with flang,
+REM whose llvm-ar writes GNU-format archives that MSVC's link.exe rejects
+REM (LNK1107). The flang/MSVC kernel leg is a separate phase upstream.
+meson setup builddir ^
+  --prefix="%LIBRARY_PREFIX%" ^
+  --libdir=lib ^
+  --buildtype=release ^
+  -Dwith_rpc=true ^
+  -Dwith_fortran_pots=disabled ^
+  -Dwith_eigen=true ^
+  -Dpure_lib=false ^
+  -Dwith_cache=false ^
+  -Dwith_tests=false ^
+  -Dwith_examples=false
 if errorlevel 1 exit 1
 
-cmake --build build --parallel %CPU_COUNT%
+meson compile -C builddir -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-cmake --install build
+meson install -C builddir
 if errorlevel 1 exit 1
