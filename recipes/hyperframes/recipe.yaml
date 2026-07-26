@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.7.72"
+
+package:
+  name: hyperframes
+  version: ${{ version }}
+
+source:
+  - url: https://registry.npmjs.org/hyperframes/-/hyperframes-${{ version }}.tgz
+    sha256: 958a29b1908dc29d7ed6ca24f98a6fd32f4fbdef05f9f3fec6c81217c3945216
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - export npm_config_prefix="${PREFIX}"
+        - node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.devDependencies;fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+        - pnpm install --ignore-scripts --prod
+        - npm pack --ignore-scripts
+        - npm install -g ./hyperframes-${{ version }}.tgz
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else:
+        - call npm config set prefix "%PREFIX%"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.devDependencies;fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install --ignore-scripts --prod
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --userconfig nonexistentrc -g hyperframes-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - nodejs >=22
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs >=22
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - hyperframes --help
+      - if: unix
+        then:
+          - test -f "${PREFIX}/lib/node_modules/hyperframes/package.json"
+        else:
+          - if not exist "%PREFIX%\\node_modules\\hyperframes\\package.json" exit 1
+
+about:
+  homepage: https://github.com/heygen-com/hyperframes
+  repository: https://github.com/heygen-com/hyperframes
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+  summary: Frame-deterministic motion-graphics engine and CLI for programmatic video
+  description: |
+    HyperFrames renders motion graphics programmatically: compositions are a
+    pure function of frame index, so output is frame-deterministic and
+    reproducible. It ships a block catalog (code animations, transitions,
+    caption styles, lower thirds, social cards, data-viz, 3D device mockups),
+    footage-facing effects such as colour grading, grain and background
+    removal, and HDR10 / 4K delivery. Rendering runs locally.
+
+    This package provides the ``hyperframes`` command line interface.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
