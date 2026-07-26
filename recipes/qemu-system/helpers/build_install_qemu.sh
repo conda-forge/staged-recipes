@@ -148,6 +148,13 @@ build_install_qemu_non_unix() {
     echo "DEBUG: build.ninja config-poison related line(s):"
     grep -E "config-poison|--internal exe|make-config-poison" build.ninja 2>/dev/null || true
 
+    # Force meson's implicit self-regeneration of build.ninja (its
+    # REGENERATE_BUILD ninja edge) to run and complete now, BEFORE we patch
+    # build.ninja below -- otherwise the first real `ninja` invocation later
+    # triggers this same regen internally and silently overwrites our sed
+    # fix with a freshly-regenerated, unpatched build.ninja.
+    MSYS2_ARG_CONV_EXCL="*" ninja build.ninja > "${SRC_DIR}"/_regen.log 2>&1 || { cat "${SRC_DIR}"/_regen.log; exit 1; }
+
     # Apply Windows build.ninja fixes
     patch_windows_build_ninja "${build_dir}"
 
