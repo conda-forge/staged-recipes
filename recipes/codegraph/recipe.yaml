@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.5.0"
+
+package:
+  name: codegraph
+  version: ${{ version }}
+
+source:
+  - url: https://registry.npmjs.org/@colbymchenry/codegraph/-/codegraph-${{ version }}.tgz
+    sha256: 57549a4e130b4281a70fb7b4a263e99d1c258a54d3c10044625f40af632eb167
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - export npm_config_prefix="${PREFIX}"
+        - pnpm install --ignore-scripts --prod
+        - npm pack --ignore-scripts
+        - npm install -g ./colbymchenry-codegraph-${{ version }}.tgz
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else:
+        - call npm config set prefix "%PREFIX%"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install --ignore-scripts --prod
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --userconfig nonexistentrc -g colbymchenry-codegraph-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - codegraph --help
+      - test -f "${PREFIX}/lib/node_modules/@colbymchenry/codegraph/package.json"
+      - test -f "${PREFIX}/lib/node_modules/@colbymchenry/codegraph/npm-shim.js"
+
+about:
+  summary: Pre-indexed code knowledge graph for coding agents - fewer tokens, fewer tool calls, 100% local
+  description: |
+    codegraph builds a pre-indexed knowledge graph of your codebase and
+    keeps it synced on code changes, so coding agents (Claude Code, Codex,
+    Gemini, Cursor, OpenCode, AntiGravity, Kiro, Hermes) can answer
+    structure questions from the graph instead of re-reading files —
+    fewer tokens and fewer tool calls, fully local. Tree-sitter (WASM)
+    parsing, TypeScript CLI.
+
+    Run ``codegraph`` in a repository to index it and wire up the agent
+    integrations.
+  homepage: https://github.com/colbymchenry/codegraph
+  repository: https://github.com/colbymchenry/codegraph
+  documentation: https://github.com/colbymchenry/codegraph#readme
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - rxm7706
