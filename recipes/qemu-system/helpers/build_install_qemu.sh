@@ -133,6 +133,13 @@ build_install_qemu_non_unix() {
       "${qemu_args[@]}" \
       --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
 
+    # DEBUG (temporary, CI investigation only): unconditionally show
+    # CONDA-DEBUG diagnostics written by the configure patch, since they
+    # would otherwise be silently swallowed inside _configure.log (which
+    # is only cat'd on configure FAILURE, not on success).
+    echo "DEBUG: contents of _conda_debug.log (if any):"
+    cat "${SRC_DIR}/_conda_debug.log" 2>/dev/null || echo "DEBUG: _conda_debug.log not found or empty"
+
     # DEBUG (temporary, CI investigation only): show which "meson" resolves
     # to after configure, and what command(s) meson baked into build.ninja
     # for the config-poison custom target -- this reveals exactly which
