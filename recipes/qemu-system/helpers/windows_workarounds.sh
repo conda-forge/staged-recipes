@@ -59,32 +59,55 @@ setup_windows_pyvenv() {
 "${_meson_win}" %*
 MESONBAT
 
-  # Shell script wrapper for MSYS2/bash
-  cat > ./pyvenv/Scripts/meson <<MESONSH
-#!/bin/sh
-exec "${_meson_exe}" "\$@"
-MESONSH
-  chmod +x ./pyvenv/Scripts/meson
-
-  # Native meson.exe launcher copy: QEMU's patched configure (see
-  # patches/0002-non-unix-configure-pyvenv.patch) only appends .exe to the
-  # meson= path if pyvenv/Scripts/meson.exe already exists; otherwise it
-  # falls back to the bare shebang wrapper above, which ninja.exe cannot
-  # CreateProcess directly (no shebang support). Copy conda's real native
-  # meson.exe launcher here so configure picks the .exe path.
+  # Native meson.exe launcher, copied under BOTH the extensioned name
+  # (pyvenv/Scripts/meson.exe) and the bare extensionless name
+  # (pyvenv/Scripts/meson).
+  #
+  # Why both: meson's own self-regeneration (its REGENERATE_BUILD ninja
+  # edge, which QEMU's config-poison.h custom_target -- among others --
+  # depends on) re-derives its own "meson" self-invocation command
+  # independently of how configure originally invoked it, and on Windows
+  # this self-derived command is the bare "pyvenv/Scripts/meson" path
+  # WITHOUT a .exe suffix -- confirmed via CI log: even though configure's
+  # own $meson variable correctly resolved to the .exe path (see
+  # patches/0002-non-unix-configure-pyvenv.patch), the COMMAND baked into
+  # build.ninja for the config-poison.h custom target was still the bare,
+  # unsuffixed path. Worse, this regeneration is NOT a one-time event: the
+  # real `ninja -j...` build invocation (in build_install_qemu_non_unix)
+  # was observed to trigger ANOTHER implicit "Regenerating build files"
+  # pass even after the earlier forced `ninja build.ninja` + sed-patch
+  # dance (patch_windows_build_ninja) had already fixed the extension --
+  # silently re-clobbering the sed fix with a freshly regenerated,
+  # unpatched build.ninja before the real build reaches that target.
+  #
+  # A previous fix attempt (a bare "#!/bin/sh exec ..." shebang script at
+  # this same extensionless path) cannot work here regardless of timing:
+  # ninja calls CreateProcess directly on the command's first argument
+  # (no cmd.exe / shell in between for this custom_target), and
+  # CreateProcess does not understand '#!' shebangs -- hence
+  # "ninja: fatal: CreateProcess: %1 is not a valid Win32 application."
+  #
+  # CreateProcess itself does NOT care about file extension, only about
+  # whether the target file's CONTENT is a valid PE image. So instead of
+  # trying to control which name meson/ninja happens to bake in (a losing
+  # race against an implicit regen we don't control the timing of), make
+  # BOTH names valid native executables: copy conda's real meson.exe
+  # launcher to both paths. Whichever spelling ninja ends up invoking --
+  # with or without .exe, after any number of regens -- CreateProcess
+  # succeeds.
   if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
     cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
-    echo "DEBUG: copied real meson.exe launcher from ${_meson_exe} to ./pyvenv/Scripts/meson.exe"
+    cp "${_meson_exe}" ./pyvenv/Scripts/meson
+    echo "DEBUG: copied real meson.exe launcher from ${_meson_exe} to ./pyvenv/Scripts/meson.exe and ./pyvenv/Scripts/meson"
   else
-    echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe) — pyvenv/Scripts/meson.exe not created; configure's patched meson= path will fall back to the bare shell-script wrapper, which will fail under ninja.exe"
+    echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe) — native meson.exe/meson copies not created; configure's patched meson= path and meson's self-regen commands will fall back to a non-executable path and fail under ninja.exe"
   fi
 
-  # DEBUG (temporary, CI investigation only): confirm both wrapper files
-  # exist side by side and show which is which. Safe no-op if listing fails.
-  echo "DEBUG: listing pyvenv/Scripts/meson wrapper files"
+  # DEBUG (temporary, CI investigation only): confirm all wrapper/launcher
+  # files exist side by side. meson and meson.exe are now both binary PE
+  # copies, so don't head/cat them (binary to the log); just list sizes.
+  echo "DEBUG: listing pyvenv/Scripts/meson launcher files"
   ls -la ./pyvenv/Scripts/meson* 2>/dev/null || true
-  echo "DEBUG: first line of ./pyvenv/Scripts/meson (bare shell wrapper):"
-  head -1 ./pyvenv/Scripts/meson 2>/dev/null || true
   echo "DEBUG: first line of ./pyvenv/Scripts/meson.bat (batch wrapper):"
   head -1 ./pyvenv/Scripts/meson.bat 2>/dev/null || true
 
