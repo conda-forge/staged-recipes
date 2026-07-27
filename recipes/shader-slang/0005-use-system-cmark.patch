@@ -1,0 +1,99 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jarrett Johnson <jarrett.johnson@schrodinger.com>
+Date: Sat, 25 Jul 2026 00:00:00 +0000
+Subject: [PATCH] Add support for a system cmark-gfm library
+
+---
+ CMakeLists.txt          | 21 +++++++++++++++++++++
+ external/CMakeLists.txt | 36 +++++++++++++++++++-----------------
+ 2 files changed, 40 insertions(+), 17 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8af484efe..8167fe8bf 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -183,6 +183,7 @@ option(SLANG_ENABLE_REPLAYER "Enable slang-replay tool" ON)
+ 
+ advanced_option(SLANG_USE_SYSTEM_MINIZ "Build using system Miniz library" OFF)
+ advanced_option(SLANG_USE_SYSTEM_LZ4 "Build using system LZ4 library" OFF)
++advanced_option(SLANG_USE_SYSTEM_CMARK "Build using system cmark-gfm library" OFF)
+ advanced_option(
+     SLANG_USE_SYSTEM_FAST_FLOAT
+     "Build using system fast_float library"
+@@ -585,6 +586,26 @@ if(${SLANG_USE_SYSTEM_LZ4})
+     endif()
+ endif()
+ 
++if(SLANG_USE_SYSTEM_CMARK AND NOT TARGET libcmark-gfm)
++    find_path(
++        SLANG_CMARK_GFM_INCLUDE_DIR
++        NAMES cmark-gfm.h
++        REQUIRED
++    )
++    find_library(
++        SLANG_CMARK_GFM_LIBRARY
++        NAMES cmark-gfm
++        REQUIRED
++    )
++    add_library(libcmark-gfm UNKNOWN IMPORTED GLOBAL)
++    set_target_properties(
++        libcmark-gfm
++        PROPERTIES
++        IMPORTED_LOCATION "${SLANG_CMARK_GFM_LIBRARY}"
++        INTERFACE_INCLUDE_DIRECTORIES "${SLANG_CMARK_GFM_INCLUDE_DIR}"
++    )
++endif()
++
+ if(${SLANG_USE_SYSTEM_VULKAN_HEADERS})
+     find_package(VulkanHeaders REQUIRED)
+ endif()
+diff --git a/external/CMakeLists.txt b/external/CMakeLists.txt
+index 64f731d18..4d49961d7 100644
+--- a/external/CMakeLists.txt
++++ b/external/CMakeLists.txt
+@@ -123,24 +123,26 @@ if(NOT ${SLANG_USE_SYSTEM_LZ4})
+ endif()
+ 
+ # cmark-gfm (CommonMark / GFM Markdown parser, swiftlang fork)
+-set(CMARK_LIB_FUZZER OFF)
+-set(CMARK_FUZZ_QUADRATIC OFF)
+-set(_prev_BUILD_TESTING ${BUILD_TESTING})
+-set(_prev_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+-set(BUILD_TESTING OFF)
+-set(BUILD_SHARED_LIBS OFF)
+-if(NOT SLANG_OVERRIDE_CMARK_PATH)
+-    add_subdirectory(cmark EXCLUDE_FROM_ALL ${system})
+-else()
+-    add_subdirectory(
+-        ${SLANG_OVERRIDE_CMARK_PATH}/cmark
+-        cmark
+-        EXCLUDE_FROM_ALL
+-        ${system}
+-    )
++if(NOT SLANG_USE_SYSTEM_CMARK)
++    set(CMARK_LIB_FUZZER OFF)
++    set(CMARK_FUZZ_QUADRATIC OFF)
++    set(_prev_BUILD_TESTING ${BUILD_TESTING})
++    set(_prev_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
++    set(BUILD_TESTING OFF)
++    set(BUILD_SHARED_LIBS OFF)
++    if(NOT SLANG_OVERRIDE_CMARK_PATH)
++        add_subdirectory(cmark EXCLUDE_FROM_ALL ${system})
++    else()
++        add_subdirectory(
++            ${SLANG_OVERRIDE_CMARK_PATH}/cmark
++            cmark
++            EXCLUDE_FROM_ALL
++            ${system}
++        )
++    endif()
++    set(BUILD_TESTING ${_prev_BUILD_TESTING})
++    set(BUILD_SHARED_LIBS ${_prev_BUILD_SHARED_LIBS})
+ endif()
+-set(BUILD_TESTING ${_prev_BUILD_TESTING})
+-set(BUILD_SHARED_LIBS ${_prev_BUILD_SHARED_LIBS})
+ 
+ # Vulkan headers
+ if(NOT TARGET Vulkan::Headers)
+-- 
+2.50.1

@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jarrett Johnson <jarrett.johnson@schrodinger.com>
+Date: Sat, 25 Jul 2026 17:10:00 -0700
+Subject: [PATCH] Add support for a system Lua library
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -188,6 +188,7 @@ advanced_option(
+     "Build using system fast_float library"
+     OFF
+ )
++advanced_option(SLANG_USE_SYSTEM_LUA "Build using system Lua library" OFF)
+ advanced_option(
+     SLANG_USE_SYSTEM_VULKAN_HEADERS
+     "Build using system Vulkan headers"
+@@ -548,6 +549,10 @@ if(SLANG_USE_SYSTEM_FAST_FLOAT)
+     add_library(fast_float ALIAS FastFloat::fast_float)
+ endif()
+ 
++if(SLANG_USE_SYSTEM_LUA)
++    find_package(Lua 5.4 REQUIRED)
++endif()
++
+ if(${SLANG_USE_SYSTEM_UNORDERED_DENSE})
+     find_package(unordered_dense CONFIG QUIET)
+ endif()
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -56,12 +56,23 @@ function(generator dir)
+     endif()
+ endfunction()
+ 
+-if(NOT SLANG_OVERRIDE_LUA_PATH)
++if(SLANG_USE_SYSTEM_LUA)
+     generator(
+         slang-fiddle
+         LINK_WITH_PRIVATE
+         compiler-core
++        ${LUA_LIBRARIES}
+         INCLUDE_DIRECTORIES_PUBLIC
++        ${LUA_INCLUDE_DIR}
++        EXTRA_COMPILE_DEFINITIONS_PRIVATE
++        SLANG_USE_SYSTEM_LUA
++    )
++elseif(NOT SLANG_OVERRIDE_LUA_PATH)
++    generator(
++        slang-fiddle
++        LINK_WITH_PRIVATE
++        compiler-core
++        INCLUDE_DIRECTORIES_PUBLIC
+         ${slang_SOURCE_DIR}/external
+     )
+ else()
+diff --git a/tools/slang-fiddle/slang-fiddle-lua.cpp b/tools/slang-fiddle/slang-fiddle-lua.cpp
+--- a/tools/slang-fiddle/slang-fiddle-lua.cpp
++++ b/tools/slang-fiddle/slang-fiddle-lua.cpp
+@@ -1,6 +1,8 @@
+ // slang-fiddle-lua.cpp
+ #include "slang.h"
+ 
++#if !SLANG_USE_SYSTEM_LUA
++
+ #define MAKE_LIB 1
+ 
+ #if SLANG_UNIX_FAMILY
+@@ -8,3 +10,5 @@
+ #endif
+ 
+ #include "lua/onelua.c"
++
++#endif
+diff --git a/tools/slang-fiddle/slang-fiddle-script.h b/tools/slang-fiddle/slang-fiddle-script.h
+--- a/tools/slang-fiddle/slang-fiddle-script.h
++++ b/tools/slang-fiddle/slang-fiddle-script.h
+@@ -4,8 +4,12 @@
+ #include "compiler-core/slang-source-loc.h"
+ #include "core/slang-list.h"
+ #include "core/slang-string.h"
++#if SLANG_USE_SYSTEM_LUA
++#include <lua.hpp>
++#else
+ #include "lua/lapi.h"
+ #include "lua/lauxlib.h"
++#endif
+ #include "slang-fiddle-diagnostics.h"
+ #include "slang-fiddle-scrape.h"
+ 
+diff --git a/tools/slang-fiddle/slang-fiddle-script.cpp b/tools/slang-fiddle/slang-fiddle-script.cpp
+--- a/tools/slang-fiddle/slang-fiddle-script.cpp
++++ b/tools/slang-fiddle/slang-fiddle-script.cpp
+@@ -2,9 +2,13 @@
+ #include "slang-fiddle-script.h"
+ 
+ #include "compiler-core/slang-diagnostic-sink.h"
++#if SLANG_USE_SYSTEM_LUA
++#include <lua.hpp>
++#else
+ #include "lua/lapi.h"
+ #include "lua/lauxlib.h"
+ #include "lua/lualib.h"
++#endif
+ 
+ #include <cstdio>
+ 
+diff --git a/tools/slang-fiddle/slang-fiddle-scrape.h b/tools/slang-fiddle/slang-fiddle-scrape.h
+--- a/tools/slang-fiddle/slang-fiddle-scrape.h
++++ b/tools/slang-fiddle/slang-fiddle-scrape.h
+@@ -2,7 +2,11 @@
+ #pragma once
+ 
+ #include "compiler-core/slang-lexer.h"
++#if SLANG_USE_SYSTEM_LUA
++#include <lua.hpp>
++#else
+ #include "lua/lauxlib.h"
++#endif
+ #include "slang-fiddle-diagnostics.h"
+ 
+ namespace fiddle
+-- 
+2.50.1
