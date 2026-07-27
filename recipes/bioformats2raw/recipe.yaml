@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "0.12.1"
+
+package:
+  name: bioformats2raw
+  version: ${{ version }}
+
+source:
+  url: https://github.com/glencoesoftware/bioformats2raw/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3447cd42ce53bd761e7f273a0abc26bfbc9c954e7d5243cb7f01debeadbebecd
+  patches:
+    - 0001-conda-build.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - gradle =9.3.1
+    - openjdk =21
+  run:
+    - openjdk >=11,<26
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - mkdir -p "$CONDA_PREFIX/bioformats2raw-tmp"
+          - export JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=$CONDA_PREFIX/bioformats2raw-tmp"
+      - if: win
+        then:
+          - if not exist "%CONDA_PREFIX%\bioformats2raw-tmp" mkdir "%CONDA_PREFIX%\bioformats2raw-tmp"
+          - set "JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=%CONDA_PREFIX%\bioformats2raw-tmp"
+      # bioformats2raw 0.12.1 prints the correct version but exits with status 255,
+      # so capture its output and validate that separately from the exit status.
+      - if: unix
+        then:
+          - bioformats2raw --version > bioformats2raw-version.txt 2>&1 || true
+          - grep -F "Version = ${PKG_VERSION}" bioformats2raw-version.txt
+      - if: win
+        then:
+          - bioformats2raw --version > bioformats2raw-version.txt 2>&1 || cmd /c exit 0
+          - findstr /C:"Version = %PKG_VERSION%" bioformats2raw-version.txt
+      - bioformats2raw --help
+      - bioformats2raw "test&sizeX=16&sizeY=16.fake" output.zarr --resolutions 1
+      - if: unix
+        then:
+          - test -f output.zarr/.zgroup
+          - test -f output.zarr/.zattrs
+          - test -f output.zarr/0/0/.zarray
+          - test -f output.zarr/OME/METADATA.ome.xml
+        else:
+          - if not exist output.zarr\.zgroup exit /b 1
+          - if not exist output.zarr\.zattrs exit /b 1
+          - if not exist output.zarr\0\0\.zarray exit /b 1
+          - if not exist output.zarr\OME\METADATA.ome.xml exit /b 1
+
+about:
+  homepage: https://github.com/glencoesoftware/bioformats2raw
+  summary: Bio-Formats image file format to OME-NGFF format converter
+  description: |
+    bioformats2raw converts image file formats supported by Bio-Formats into
+    a Zarr structure compatible with the OME-NGFF specification.
+  license: GPL-2.0-only
+  license_file:
+    - LICENSE.txt
+    - build/reports/dependency-license/
+  documentation: https://github.com/glencoesoftware/bioformats2raw/blob/v${{ version }}/README.md
+  repository: https://github.com/glencoesoftware/bioformats2raw
+
+extra:
+  recipe-maintainers:
+    - Darlokt
+    - Tom-TBT
