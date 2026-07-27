@@ -11,16 +11,21 @@ case "${target_platform}" in
     *) SKIA_TARGET_CPU="x64" ;;
 esac
 
+# Space-separated flags -> gn list literal: "a","b","c"
+gn_list() {
+    local out="" f
+    for f in $1; do out+="\"${f}\","; done
+    printf '%s' "${out%,}"
+}
+
 SKIA_GN_ARGS="$(grep -v '^#' "${RECIPE_DIR}/skia_args.gni" | tr '\n' ' ')"
 SKIA_GN_ARGS+=" target_cpu=\"${SKIA_TARGET_CPU}\""
 SKIA_GN_ARGS+=" cc=\"${CC}\" cxx=\"${CXX}\" ar=\"${AR}\""
+SKIA_GN_ARGS+=" extra_cflags_c=[$(gn_list "${CFLAGS}")]"
+SKIA_GN_ARGS+=" extra_cflags_cc=[$(gn_list "${CXXFLAGS}")]"
 # Skia defaults to -fvisibility=hidden; extra_cflags is applied last so
 # this override keeps the symbols exported in the shared library below.
-EXTRA_CFLAGS='"-fPIC","-fvisibility=default","-DSK_DISABLE_LEGACY_PNG_WRITEBUFFER"'
-if [[ "${target_platform}" == osx-* ]]; then
-    EXTRA_CFLAGS+=",\"-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}\""
-fi
-SKIA_GN_ARGS+=" extra_cflags=[${EXTRA_CFLAGS}]"
+SKIA_GN_ARGS+=" extra_cflags=[\"-fPIC\",\"-fvisibility=default\",\"-DSK_DISABLE_LEGACY_PNG_WRITEBUFFER\"]"
 
 (cd "${SKIA_SRC}" && \
     gn gen "${SKIA_BUILD}" \
