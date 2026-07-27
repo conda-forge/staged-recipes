@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  version: "2026.14"
+
+package:
+  name: shader-slang
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/shader-slang/slang/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 6782f3bc48864fa179d1fb875a172b9c53cb0fd768a3241ff470fb1ccaca97ec
+    target_directory: shader-slang
+    patches:
+      - 0001-add-public-latest-capability-aliases.patch
+      - 0002-use-system-fast-float.patch
+      - 0003-use-system-lua.patch
+      - 0004-use-system-lz4-from-pkg-config.patch
+      - 0005-use-system-cmark.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - if: unix
+      then: pkg-config
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - cmark-gfm >=0.29.0.gfm.13
+    - fast_float >=8.1.0
+    - libvulkan-headers
+    - lz4-c >=1.10.0
+    - lua >=5.4.7,<5.5
+    - miniz >=3.1.1
+    - spirv-headers >=1.4.350.1
+    - unordered_dense >=4.8.1
+  ignore_run_exports:
+    from_package:
+      - lua
+  run_constraints:
+    - slang <0.0
+    - slang-verilog <0.0
+  run_exports:
+    - ${{ pin_subpackage('shader-slang', upper_bound='x.x') }}
+
+tests:
+  - if: unix
+    then:
+      - script:
+          - slangc --help
+          - test -d "$PREFIX/include/slang"
+          - test -f "$PREFIX/lib/libslang${SHLIB_EXT}"
+  - if: win
+    then:
+      - script:
+          - slangc.exe --help
+          - if not exist "%LIBRARY_LIB%\slang.lib" exit 1
+          - if not exist "%LIBRARY_BIN%\slang.dll" exit 1
+          - if not exist "%LIBRARY_INC%\slang" exit 1
+
+about:
+  homepage: https://github.com/shader-slang/slang
+  summary: The Slang shading language is designed for large-scale, high-performance shader code.
+  description: |
+    Slang is a shading language that makes it easier to build and maintain large
+    shader codebases in a modular and extensible fashion, while also maintaining
+    the highest possible performance on modern GPUs and graphics APIs.
+  license: Apache-2.0 AND BSD-2-Clause AND MIT
+  license_file:
+    - shader-slang/LICENSE
+  repository: https://github.com/shader-slang/slang
+
+extra:
+  recipe-maintainers:
+    - JarrettSJohnson
