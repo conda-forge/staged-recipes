@@ -1,0 +1,59 @@
+{% set name = "apexpy" %}
+{% set version = "2.0.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/apexpy-{{ version }}.tar.gz
+  sha256: d1e7d8c3302122cac5565bf3f43575d76cdcf1e648bb4495794cc6d8bc98a4ab
+
+build:
+  skip: true  # [py<39]
+  entry_points:
+    - apexpy = apexpy.__main__:main
+  script:
+    # Temporary fix until conda-build accounts better for PEP517
+    # Relies instead on project setup.py
+    - {{ PYTHON }} -c "__import__('os').unlink('pyproject.toml')"
+    - {{ PYTHON }} -m pip install . -vv
+  script_env:
+    # Tell meson to use the right gcc/gfortran
+    - FC=gfortran  # [osx]
+    - CC=gcc  # [osx]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+  host:
+    - python >=3.9,<3.12
+    - pip
+    - meson-python
+    - setuptools <60.0
+    - cython
+    - numpy
+  run:
+    - python >=3.9,<3.12
+    - {{ pin_compatible('numpy') }}
+
+test:
+  imports:
+    - apexpy
+  commands:
+    - pip check
+    - apexpy --help
+  requires:
+    - pip
+
+about:
+  home: https://github.com/aburrell/apexpy
+  summary: A Python wrapper for Apex coordinates
+  dev_url: https://github.com/aburrell/apexpy
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - smithara
