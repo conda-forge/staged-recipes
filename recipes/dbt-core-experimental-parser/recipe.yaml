@@ -1,0 +1,104 @@
+# This package is a new dependency of dbt-core >=1.12.0 (see dbt-core-feedstock PR
+# https://github.com/conda-forge/dbt-feedstock/pull/171), so it needs to land on
+# conda-forge before that PR can pass its dependency resolution / build.
+#
+# Upstream (dbt-labs/dbt-core, on the branch developing the Rust-based dbt v2.0/Fusion
+# rewrite) does not currently publish anything buildable from source for this package:
+# the PyPI sdist for versions >=2.0.0a5 is not real source at all -- it is a PEP 517
+# build backend that reaches out over the network at install time to download a
+# prebuilt wheel from a GitHub Release and hand it back unmodified. The underlying Rust
+# source lives in a ~60-crate workspace in the dbt-core repo (crates/) that isn't set up
+# to be built standalone by downstream packagers.
+#
+# So this recipe repackages the last upstream release that still published real,
+# directly-installable wheels straight to PyPI (2.0.0a4, one per OS/arch, tagged
+# `py3-none` since there's no Python C-ABI involved -- the wheel just carries a prebuilt
+# native CLI binary via `.data/scripts/`). No license file ships inside the wheel, so
+# it's fetched separately from the matching upstream release tag.
+#
+# This is a first attempt to unblock dbt-feedstock#171 -- feedback on a better packaging
+# approach (e.g. if/when upstream ships a real source release, or if there's a preferred
+# way to track the alpha/Fusion release) is very welcome.
+
+context:
+  version: "2.0.0a4"
+  upstream_tag: v2.0.0-alpha.4
+
+package:
+  name: dbt-core-experimental-parser
+  version: ${{ version }}
+
+source:
+  - if: linux and x86_64
+    then:
+      url: https://pypi.org/packages/py3/d/dbt-core-experimental-parser/dbt_core_experimental_parser-${{ version }}-py3-none-manylinux_2_28_x86_64.whl
+      sha256: 07649f912a7eb9fb54b9cfd1a63747020c88977d8050a1a29445966012c09b9a
+  - if: linux and aarch64
+    then:
+      url: https://pypi.org/packages/py3/d/dbt-core-experimental-parser/dbt_core_experimental_parser-${{ version }}-py3-none-manylinux_2_28_aarch64.whl
+      sha256: 2bd6245abed8e1f48aa7cdbd4170a6fb3605fd763657440d36bbf90c8d989731
+  - if: osx and x86_64
+    then:
+      url: https://pypi.org/packages/py3/d/dbt-core-experimental-parser/dbt_core_experimental_parser-${{ version }}-py3-none-macosx_10_12_x86_64.whl
+      sha256: 244f18a1eaf67cde836344c551368cc25e10c22f0158fafbbc9d950693e75a0d
+  - if: osx and arm64
+    then:
+      url: https://pypi.org/packages/py3/d/dbt-core-experimental-parser/dbt_core_experimental_parser-${{ version }}-py3-none-macosx_11_0_arm64.whl
+      sha256: 02109d850288009a85f58095774c2d32f73d77174e2c6aec129d2944b0e8ecb4
+  - if: win
+    then:
+      url: https://pypi.org/packages/py3/d/dbt-core-experimental-parser/dbt_core_experimental_parser-${{ version }}-py3-none-win_amd64.whl
+      sha256: c6b5d1f0b8271a29a70094c40e75be8de6dfe2234e5258ad63601693ef6d4225
+  # No LICENSE ships inside the wheel; pull it from the matching upstream release tag.
+  - url: https://raw.githubusercontent.com/dbt-labs/dbt-core/${{ upstream_tag }}/LICENSE
+    sha256: aaec0fc491a8093b76b7301f6168b9ac05b0fd20e8ea717f7d90691b3b7d8772
+    target_directory: license-src
+
+build:
+  number: 0
+  # Nothing is compiled -- this just unpacks a prebuilt wheel into the environment.
+  # Not noarch: the wheel payload differs per platform/arch. The one .whl in
+  # $SRC_DIR is found with Python's own glob rather than a shell wildcard,
+  # since cmd.exe (used on win-64) doesn't glob-expand `*.whl` the way bash
+  # does -- a shell wildcard here broke the Windows build (pip received the
+  # literal, un-expanded string `*.whl`), and renaming to a fixed filename
+  # doesn't work either since pip validates wheel filenames strictly on
+  # install and rejects anything that isn't the real 5-part wheel name.
+  script: >-
+    python -c "import glob, subprocess, sys;
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '-vv', glob.glob('*.whl')[0]])"
+
+requirements:
+  # python/pip must stay in `host` so the wheel installs into $PREFIX (not the
+  # build prefix). But the resulting package doesn't need to match a specific
+  # python ABI -- it's a prebuilt native binary, not a compiled extension -- so
+  # `ignore_run_exports` suppresses python's normal strong `python_abi` pin.
+  # Otherwise conda-forge would rebuild this identical package once per
+  # supported Python version for no reason.
+  host:
+    - python
+    - pip
+  run:
+    - python
+  ignore_run_exports:
+    by_name:
+      - python_abi
+
+tests:
+  - script:
+      - dbt-core-experimental-parser --help
+
+about:
+  homepage: https://github.com/dbt-labs/dbt-core
+  repository: https://github.com/dbt-labs/dbt-core
+  documentation: https://docs.getdbt.com
+  summary: Experimental parser preview for the Rust-based dbt Core v2.0 (Fusion) rewrite
+  description: |
+    Prebuilt binary preview of the parser component from dbt Core v2.0 (Fusion), the
+    Rust-based rewrite of dbt-core. Packaged as a dependency of dbt-core >=1.12.0.
+  license: Apache-2.0
+  license_file: license-src/LICENSE
+
+extra:
+  recipe-maintainers:
+    - zaneselvans
