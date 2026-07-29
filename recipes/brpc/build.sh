@@ -11,6 +11,9 @@ cmake_args=(
   # refuses to configure without this override
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_SHARED_LIBS=ON
+  # on macOS brpc defaults OPENSSL_ROOT_DIR to Homebrew's /usr/local/opt/openssl
+  # unless it is set explicitly, hiding the openssl from the host environment
+  -DOPENSSL_ROOT_DIR="${PREFIX}"
   # the tools (rpc_press, rpc_view, ...) have no install rules upstream
   -DBUILD_BRPC_TOOLS=OFF
   -DDOWNLOAD_GTEST=OFF
