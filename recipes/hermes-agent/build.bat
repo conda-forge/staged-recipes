@@ -18,9 +18,7 @@ call pnpm --dir web build || exit /b 1
 call pnpm --dir ui-tui build || exit /b 1
 
 call pnpm --filter web --filter hermes-tui licenses list --json --prod > pnpm-licenses.json || exit /b 1
-call pnpm dlx @quantco/pnpm-licenses generate-disclaimer ^
-  --json-input-file pnpm-licenses.json ^
-  -o "%SRC_DIR%\third-party-licenses.txt" || exit /b 1
+call pnpm-licenses generate-disclaimer --json-input-file pnpm-licenses.json -o "%SRC_DIR%\third-party-licenses.txt" || exit /b 1
 
 del /q pnpm-licenses.json
 
