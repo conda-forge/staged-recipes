@@ -30,3 +30,10 @@ if not exist "hermes_cli\tui_dist" (
 copy /Y "ui-tui\dist\entry.js" "hermes_cli\tui_dist\entry.js" >nul || exit /b 1
 
 "%PYTHON%" -m pip install . -vv --no-deps --no-build-isolation || exit /b 1
+
+if not exist "%SP_DIR%\apps" mkdir "%SP_DIR%\apps"
+copy /Y package.json "%SP_DIR%\package.json" || exit /b 1
+copy /Y package-lock.json "%SP_DIR%\package-lock.json" || exit /b 1
+copy /Y .gitignore "%SP_DIR%\.gitignore" || exit /b 1
+xcopy /E /I /Y apps\desktop "%SP_DIR%\apps\desktop" || exit /b 1
+xcopy /E /I /Y apps\shared "%SP_DIR%\apps\shared" || exit /b 1
