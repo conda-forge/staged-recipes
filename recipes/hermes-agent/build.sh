@@ -10,3 +10,7 @@ pnpm --filter web --filter hermes-tui licenses list --json --prod | pnpm-license
 mkdir -p hermes_cli/tui_dist
 cp ui-tui/dist/entry.js hermes_cli/tui_dist/
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
+
+mkdir -p "$SP_DIR/apps"
+cp package.json package-lock.json .gitignore "$SP_DIR/"
+cp -R apps/desktop apps/shared "$SP_DIR/apps/"
