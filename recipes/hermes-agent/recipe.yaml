@@ -1,20 +1,32 @@
 schema_version: 1
 
 context:
-  version: "0.19.0"
+  version: "2026.7.20"
 
 package:
   name: hermes-agent
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/h/hermes-agent/hermes_agent-${{ version }}.tar.gz
-  sha256: ac986bede64a2785436676c0ea084ec586574f8cb00a9d047e095b435d3e21c0
+  url: https://github.com/NousResearch/hermes-agent/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 285f3fc134ff466a90065e1517801a68993733b807158ee8f32aa01613786990
 
 build:
   number: 0
   skip: not match(python, "<3.14,>=3.11")
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    interpreter: brush
+    content: |
+      set -exo pipefail
+      printf 'packages:\n  - apps/shared\n  - ui-tui\n  - ui-tui/packages/*\n  - web\n' > pnpm-workspace.yaml
+      pnpm import
+      pnpm install --frozen-lockfile --ignore-scripts
+      pnpm --dir web build
+      pnpm --dir ui-tui build
+      pnpm --filter web --filter hermes-tui licenses list --json --prod | pnpm-licenses generate-disclaimer --json-input -o third-party-licenses.txt
+      mkdir -p hermes_cli/tui_dist
+      cp ui-tui/dist/entry.js hermes_cli/tui_dist/
+      ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
   python:
     entry_points:
       - hermes = hermes_cli.main:main
@@ -22,7 +34,12 @@ build:
       - hermes-acp = acp_adapter.entry:main
 
 requirements:
+  build:
+    - brush
   host:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
     - python
     - setuptools >=77.0,<83
     - pip
@@ -105,6 +122,7 @@ about:
     - LICENSE
     - skills/productivity/powerpoint/LICENSE.txt
     - skills/creative/humanizer/LICENSE
+    - third-party-licenses.txt
   summary: The agent that grows with you
   description: |
     **The self-improving AI agent built by [Nous Research](https://nousresearch.com).**
