@@ -1,0 +1,57 @@
+schema_version: 1
+
+context:
+  version: "0.12.0"
+
+package:
+  name: kache
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kunobi-ninja/kache/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7ce55683431c4ce81587036ca870f9cbfe1ccb3649902279538a9533ebc9bbaa
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      # Bypass libsqlite3-sys's bundled SQLite and link against conda-forge's SQLite.
+      LIBSQLITE3_SYS_USE_PKG_CONFIG: "1"
+    interpreter: brush
+    content:
+      - cargo auditable install --locked --no-track --bins --root "${LIBRARY_PREFIX:-$PREFIX}" --path .
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - brush
+    - pkg-config
+  host:
+    - sqlite
+
+tests:
+  - package_contents:
+      bin:
+        - kache
+  - script:
+      - kache --help
+
+about:
+  homepage: https://kunobi.ninja/docs/kache
+  repository: https://github.com/kunobi-ninja/kache
+  summary: Zero-copy, content-addressed build cache for Rust and C/C++.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
