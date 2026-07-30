@@ -18,6 +18,8 @@ package:
 source:
   - url: https://github.com/roc-lang/roc/archive/${{ rev }}.tar.gz
     sha256: 55538ffce988d3896d697848bff7f4c7ca78a512a5a48ff900b70a4f5515e734
+    patches:
+      - 0001-link-libxml2-for-external-llvm.patch
 
   # Roc's Zig dependencies, vendored so the build never touches the network.
   # Each must land in a directory named for its `build.zig.zon` hash, which is
@@ -39,12 +41,15 @@ source:
     sha256: 4b0bd1f0cfb25e61b9103c35f27395530ff5b4c0d2513a00fd745849e85ea52c
     target_directory: zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u
 
-  # LLVM 21.1.0 + lld + Binaryen, prebuilt by roc-bootstrap. Roc cannot link a
-  # conda-forge llvmdev on Linux: it compiles its own C++ shim (src/build/zig_llvm.cpp)
-  # with Zig, which ships only libc++, whereas conda-forge's Linux LLVM is built
-  # against libstdc++. The two mangle std types differently (std::__1:: vs
-  # std::__cxx11::), so the shim's calls into LLVM never resolve. roc-bootstrap's
-  # build is libc++-based and is what upstream links against.
+  # LLVM comes from a different place per platform, because roc compiles its own
+  # C++ shim (src/build/zig_llvm.cpp) with Zig, and Zig ships only libc++:
+  #
+  #  * macOS - conda-forge's llvmdev is built against libcxx, so the ABI lines up
+  #    and we link it directly (see requirements/host). Nothing to vendor.
+  #  * Linux - conda-forge's llvmdev is built against libstdc++, which mangles std
+  #    types differently (std::__cxx11:: vs std::__1::), so the shim's calls into
+  #    LLVM never resolve. Vendor the libc++-based LLVM 21.1.0 + lld + Binaryen
+  #    that upstream itself links against.
   - if: linux and x86_64
     then:
       url: https://github.com/roc-lang/roc-bootstrap/releases/download/${{ bootstrap_tag }}/x86_64-linux-musl.tar.xz
@@ -59,30 +64,42 @@ source:
 
   # Licenses for the statically linked Binaryen and zlib, which the tarball above
   # ships as libraries only. LLVM's own LICENSE.TXT is inside it.
-  - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/binaryen/LICENSE
-    sha256: 64c0d02491e16eced74826440ecd2bcf7722d37fa586faf457b2494293afbffe
-    file_name: BINARYEN-LICENSE
-    target_directory: bootstrap-licenses
+  - if: linux
+    then:
+      - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/binaryen/LICENSE
+        sha256: 64c0d02491e16eced74826440ecd2bcf7722d37fa586faf457b2494293afbffe
+        file_name: BINARYEN-LICENSE
+        target_directory: bootstrap-licenses
+      - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/zlib/LICENSE
+        sha256: 845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243
+        file_name: ZLIB-LICENSE
+        target_directory: bootstrap-licenses
 
-  - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/zlib/LICENSE
-    sha256: 845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243
-    file_name: ZLIB-LICENSE
-    target_directory: bootstrap-licenses
+  # On macOS the statically linked LLVM comes from the host env rather than a
+  # source tree, so fetch its license to package alongside the binary.
+  - if: osx
+    then:
+      url: https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-21.1.0/llvm/LICENSE.TXT
+      sha256: 8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee
+      file_name: LLVM-LICENSE.TXT
+      target_directory: llvm-licenses
 
 build:
   number: 0
+  script:
+    # brush is a bash-compatible shell, so build.sh runs unchanged. It is invoked
+    # with -euxo pipefail already, hence no `set` prologue in the script.
+    interpreter: brush
+    file: build.sh
   skip:
     # Roc's Windows support goes through the x86_64-windows-gnu triple, which does
     # not line up with the MSVC toolchain conda-forge builds against.
     - win
-    # macOS is deferred to a follow-up. Zig only auto-detects the macOS SDK for a
-    # fully native build, and such a build stamps LC_BUILD_VERSION minos with the
-    # builder's OS version rather than MACOSX_DEPLOYMENT_TARGET -- so the package
-    # would claim macOS 11 support but refuse to load on anything older than the
-    # CI runner. Naming the version in -Dtarget does pin minos correctly, but it
-    # then needs --sysroot to find CoreFoundation/CoreServices, and ld64 applies
-    # that sysroot to every -L too, which puts the dependency libs out of reach.
-    - osx
+    # osx-64 is cross-compiled from an arm64 runner here. Zig only auto-detects the
+    # macOS SDK for a native build, so a cross build cannot find CoreFoundation /
+    # CoreServices, and roc gates its real FSEvents watcher on a native build too
+    # (see linkWatchPlatformLibs in build.zig).
+    - osx and x86_64
 
 requirements:
   build:
@@ -92,6 +109,29 @@ requirements:
     # mid-build. See build.sh. stdlib stays for the __glibc run export.
     - ${{ stdlib('c') }}
     - zig 0.16.*
+    - brush
+    # For vtool; see the LC_BUILD_VERSION rewrite in build.sh.
+    - if: osx
+      then: cctools_${{ target_platform }}
+  host:
+    # macOS only; on Linux the LLVM comes from the vendored roc-bootstrap tarball.
+    # Pinned to 21.x to match what roc's link line expects. roc links these
+    # statically, hence llvmdev/lld rather than the shared libraries.
+    - if: osx
+      then:
+        - llvmdev 21.1.*
+        - lld 21.1.*
+        - libxml2-devel
+        # `zlib` rather than `libzlib`: roc asks for a static `-lz`.
+        - zlib
+        - zstd
+        # -Dllvm-path puts $PREFIX/lib on the search path, so Zig resolves -lc++
+        # to conda's libc++ rather than the SDK's. It has no run export, so it
+        # has to be named in `run` as well.
+        - libcxx
+  run:
+    - if: osx
+      then: libcxx
 
 tests:
   - script:
@@ -113,17 +153,22 @@ about:
   license_file:
     - LICENSE
     - legal_details
-    # Statically linked, via the roc-bootstrap tarball. Globbed because the
-    # directory is named for a per-architecture hash.
-    - zig-pkg/*/include/llvm/Support/LICENSE.TXT
-    - bootstrap-licenses/BINARYEN-LICENSE
-    - bootstrap-licenses/ZLIB-LICENSE
     # Vendored Zig dependencies.
     - zig-pkg/bytebox-0.0.1-SXc2saRyDwDEw8AkDhp4Hfmd9ZhRmMnIzS7FfzDCmc8r/LICENSE
     - zig-pkg/stable_array-0.1.0-3ihgvd9eAAA5ozV4aOQZ6GI3d_gTyiR9tS6mwav2w18o/LICENSE
     - zig-pkg/zstd-1.5.7-1-KEItkAMwAAD6OKY3m0OOmXG7aL-aLUfrDqbP5J5oYapU/LICENSE
     - zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u/LICENSE
     - zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u/COPYING
+    # Statically linked LLVM, plus Binaryen and zlib where the vendored tarball
+    # supplies them. The LLVM path is globbed because the directory is named for
+    # a per-architecture hash.
+    - if: linux
+      then:
+        - zig-pkg/*/include/llvm/Support/LICENSE.TXT
+        - bootstrap-licenses/BINARYEN-LICENSE
+        - bootstrap-licenses/ZLIB-LICENSE
+      else:
+        - llvm-licenses/LLVM-LICENSE.TXT
   summary: A fast, friendly, functional language
   description: |
     Roc is a direct descendant of Elm, designed for building fast and reliable

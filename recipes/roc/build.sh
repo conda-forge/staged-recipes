@@ -1,23 +1,9 @@
 #!/usr/bin/env bash
-
-set -euxo pipefail
+# Run by brush (see build.script.interpreter), which is bash-compatible and is
+# invoked with -euxo pipefail already, so no `set` prologue is needed here.
 
 # Zig otherwise writes to a global cache under $HOME, which is not writable here.
 export ZIG_GLOBAL_CACHE_DIR="${SRC_DIR}/.zig-global-cache"
-
-# Zig does not consult the conda sysroot, so left alone it would link against
-# whatever glibc the runner happens to have (2.34 on the alma9 image) while the
-# package metadata promises the much older one conda-forge targets. Name it
-# explicitly instead. roc's `target_is_native` check only compares os/arch/abi,
-# so pinning the glibc version here still counts as a native build.
-case "${target_platform}" in
-  linux-64)      zig_target="x86_64-linux-gnu.${c_stdlib_version:-2.17}" ;;
-  linux-aarch64) zig_target="aarch64-linux-gnu.${c_stdlib_version:-2.17}" ;;
-  *)
-    echo "unsupported target_platform: ${target_platform}" >&2
-    exit 1
-    ;;
-esac
 
 # Note the requirements: this deliberately does not pull in conda's C/C++
 # compilers. Zig ships a complete toolchain and roc uses nothing from GCC, and
@@ -26,18 +12,66 @@ esac
 # cover. Zig then resolves that one against the conda sysroot's glibc 2.17 while
 # targeting the running 2.34, and the two disagree: either an unresolvable
 # absolute path in 2.17's `libpthread.so` ld script, or undefined getrandom /
-# copy_file_range / statx. Without the sysroot in view, Zig uses its own glibc
-# for the host tool and the pin above for everything we ship.
+# copy_file_range / statx.
 #
 # --system resolves every dependency from the pre-populated package directory
-# rather than fetching it, which keeps the build offline. That directory also
-# holds the roc-bootstrap LLVM, so no -Dllvm-path is needed: the default path
-# picks it up as the lazy dependency it already expects.
-zig build roc \
-  -Doptimize=ReleaseFast \
-  -Dtarget="${zig_target}" \
-  --system "${SRC_DIR}/zig-pkg" \
-  --summary all
+# rather than fetching it, which keeps the build offline.
+if [[ "${target_platform}" == osx-* ]]; then
+  # Link conda-forge's LLVM. No -Dtarget: naming a macOS version there stops Zig
+  # from auto-detecting the SDK, and CoreFoundation/CoreServices then go missing.
+  # Staying native also keeps roc's real FSEvents watcher (see build.zig).
+  zig build roc \
+    -Doptimize=ReleaseFast \
+    -Dllvm-path="${PREFIX}" \
+    --system "${SRC_DIR}/zig-pkg" \
+    --summary all
+
+  # Zig ignores MACOSX_DEPLOYMENT_TARGET and stamps LC_BUILD_VERSION with the
+  # *builder's* OS version, so dyld would refuse to load this on anything older
+  # than the CI runner ("built for macOS X which is newer than running OS") even
+  # though the package advertises ${MACOSX_DEPLOYMENT_TARGET}. Naming the version
+  # in -Dtarget would set it correctly but stops Zig from auto-detecting the SDK,
+  # which then loses CoreFoundation/CoreServices. Rewrite the load command
+  # instead. Everything linked in is built for the deployment target already.
+  vtool_bin=$(echo "${BUILD_PREFIX}"/bin/*-vtool)
+  "${vtool_bin}" -set-build-version macos \
+    "${MACOSX_DEPLOYMENT_TARGET}" "${MACOSX_DEPLOYMENT_TARGET}" \
+    -replace -output zig-out/bin/roc.retargeted zig-out/bin/roc
+  mv zig-out/bin/roc.retargeted zig-out/bin/roc
+else
+  # LLVM comes from the vendored roc-bootstrap tarball staged into zig-pkg, so
+  # roc's default path picks it up as the lazy dependency it already expects and
+  # no -Dllvm-path is needed.
+  #
+  # Zig does not consult the conda sysroot, so left alone it would link against
+  # whatever glibc the runner happens to have (2.34 on the alma9 image) while the
+  # package metadata promises the much older one conda-forge targets. Name it
+  # explicitly. roc's `target_is_native` check only compares os/arch/abi, so
+  # pinning the glibc version here still counts as a native build.
+  case "${target_platform}" in
+    linux-64)      zig_target="x86_64-linux-gnu.${c_stdlib_version:-2.17}" ;;
+    linux-aarch64) zig_target="aarch64-linux-gnu.${c_stdlib_version:-2.17}" ;;
+    *)
+      echo "unsupported target_platform: ${target_platform}" >&2
+      exit 1
+      ;;
+  esac
+
+  zig build roc \
+    -Doptimize=ReleaseFast \
+    -Dtarget="${zig_target}" \
+    --system "${SRC_DIR}/zig-pkg" \
+    --summary all
+fi
 
 install -d "${PREFIX}/bin"
 install -m 755 zig-out/bin/roc "${PREFIX}/bin/roc"
+
+if [[ "${target_platform}" == osx-* ]]; then
+  # roc's embedded lld needs a libSystem stub to link the programs it compiles.
+  # The path baked in at build time points into the source tree, which is gone by
+  # then, but findDarwinSysroot (src/cli/linker.zig) prefers a `darwin` directory
+  # next to the executable -- what upstream's own release tarballs ship.
+  install -d "${PREFIX}/bin/darwin/usr/lib"
+  install -m 644 src/cli/darwin/usr/lib/libSystem.tbd "${PREFIX}/bin/darwin/usr/lib/libSystem.tbd"
+fi
