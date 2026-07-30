@@ -19,13 +19,23 @@ case "${target_platform}" in
     ;;
 esac
 
+# Note the requirements: this deliberately does not pull in conda's C/C++
+# compilers. Zig ships a complete toolchain and roc uses nothing from GCC, and
+# their presence actively breaks the build -- mid-build roc compiles and runs a
+# host tool (builtin_compiler) for the *native* target, which -Dtarget does not
+# cover. Zig then resolves that one against the conda sysroot's glibc 2.17 while
+# targeting the running 2.34, and the two disagree: either an unresolvable
+# absolute path in 2.17's `libpthread.so` ld script, or undefined getrandom /
+# copy_file_range / statx. Without the sysroot in view, Zig uses its own glibc
+# for the host tool and the pin above for everything we ship.
+#
 # --system resolves every dependency from the pre-populated package directory
-# rather than fetching it, which keeps the build offline.
-# -Dllvm-path replaces the prebuilt roc-bootstrap LLVM with the one from host.
+# rather than fetching it, which keeps the build offline. That directory also
+# holds the roc-bootstrap LLVM, so no -Dllvm-path is needed: the default path
+# picks it up as the lazy dependency it already expects.
 zig build roc \
   -Doptimize=ReleaseFast \
   -Dtarget="${zig_target}" \
-  -Dllvm-path="${PREFIX}" \
   --system "${SRC_DIR}/zig-pkg" \
   --summary all
 
