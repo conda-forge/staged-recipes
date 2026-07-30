@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  name: figure-gate
+  version: "0.4.0"
+  python_min: "3.11"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/f/figure-gate/figure_gate-${{ version }}.tar.gz
+  sha256: 23b095cc976551d91565bb4fbc23b9a375c385f0f33863b33b08e551f9188a5a
+
+build:
+  # Three unnamespaced entries in site-packages, deliberately: the scripts are
+  # meant to be vendored as single files and the sheet is found beside them.
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - check-palette = check_palette:main
+      - check-figure = check_figure:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling >=1.26
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - matplotlib-base >=3.8
+
+tests:
+  - python:
+      imports:
+        - check_palette
+        - check_figure
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - check-palette --help
+      # Takes no arguments; runs a self-test that exits 0 only on a correct FAIL.
+      - check-figure
+
+about:
+  homepage: https://github.com/narenp12/figure-gate
+  repository: https://github.com/narenp12/figure-gate
+  documentation: https://narenp12.github.io/figure-gate/
+  summary: "Mechanical gates for publication figures: colorblind-safe color, composition, and type legibility at print size."
+  description: |
+    figure-gate audits a matplotlib figure before it goes into a paper, a
+    slide deck or a thesis, and fails it on defects that survive a look at the
+    screen: a hue pair a colour-blind reader cannot tell apart, a colormap
+    whose lightness reverses on itself instead of ordering the data, axis
+    labels that fall below a legible point size once the figure is scaled to
+    its column width, clipped text, and Type 3 fonts, which IEEE PDF eXpress
+    refuses at upload.
+
+    Two scripts, check-palette and check-figure. check_palette.py imports
+    nothing outside the standard library, and both are meant to be run in CI or
+    copied into a project outright. Every gate has a test that proves it can
+    fail.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - narenp12
