@@ -17,27 +17,47 @@ export ZIG_GLOBAL_CACHE_DIR="${SRC_DIR}/.zig-global-cache"
 # --system resolves every dependency from the pre-populated package directory
 # rather than fetching it, which keeps the build offline.
 if [[ "${target_platform}" == osx-* ]]; then
-  # Link conda-forge's LLVM. No -Dtarget: naming a macOS version there stops Zig
-  # from auto-detecting the SDK, and CoreFoundation/CoreServices then go missing.
-  # Staying native also keeps roc's real FSEvents watcher (see build.zig).
-  zig build roc \
-    -Doptimize=ReleaseFast \
-    -Dllvm-path="${PREFIX}" \
-    --system "${SRC_DIR}/zig-pkg" \
-    --summary all
+  # Both macOS builds link conda-forge's LLVM, but they differ on -Dtarget, which
+  # is what fixes LC_BUILD_VERSION. Zig ignores MACOSX_DEPLOYMENT_TARGET, so a
+  # build that does not name the version stamps the *builder's* OS version and
+  # dyld then refuses to load the result on anything older than the CI runner.
+  if [[ "${target_platform}" == "${build_platform}" ]]; then
+    # Native. -Dtarget would pin the version but stops Zig auto-detecting the
+    # SDK, and CoreFoundation/CoreServices then go missing -- roc links them
+    # here because the build is native (linkWatchPlatformLibs in build.zig), and
+    # that is also what enables its real FSEvents watcher. So build without it
+    # and correct the load command afterwards; everything linked in is built for
+    # the deployment target already.
+    zig build roc \
+      -Doptimize=ReleaseFast \
+      -Dllvm-path="${PREFIX}" \
+      --system "${SRC_DIR}/zig-pkg" \
+      --summary all
 
-  # Zig ignores MACOSX_DEPLOYMENT_TARGET and stamps LC_BUILD_VERSION with the
-  # *builder's* OS version, so dyld would refuse to load this on anything older
-  # than the CI runner ("built for macOS X which is newer than running OS") even
-  # though the package advertises ${MACOSX_DEPLOYMENT_TARGET}. Naming the version
-  # in -Dtarget would set it correctly but stops Zig from auto-detecting the SDK,
-  # which then loses CoreFoundation/CoreServices. Rewrite the load command
-  # instead. Everything linked in is built for the deployment target already.
-  vtool_bin=$(echo "${BUILD_PREFIX}"/bin/*-vtool)
-  "${vtool_bin}" -set-build-version macos \
-    "${MACOSX_DEPLOYMENT_TARGET}" "${MACOSX_DEPLOYMENT_TARGET}" \
-    -replace -output zig-out/bin/roc.retargeted zig-out/bin/roc
-  mv zig-out/bin/roc.retargeted zig-out/bin/roc
+    vtool_bin=$(echo "${BUILD_PREFIX}"/bin/*-vtool)
+    "${vtool_bin}" -set-build-version macos \
+      "${MACOSX_DEPLOYMENT_TARGET}" "${MACOSX_DEPLOYMENT_TARGET}" \
+      -replace -output zig-out/bin/roc.retargeted zig-out/bin/roc
+    mv zig-out/bin/roc.retargeted zig-out/bin/roc
+  else
+    # Cross (conda-forge builds osx-64 on an arm64 runner). Losing SDK detection
+    # costs nothing here: roc only links the macOS frameworks when target and
+    # host architectures match, so a cross build does not ask for them, and Zig
+    # supplies its own libSystem stubs. -Dtarget therefore just works and sets
+    # the deployment target correctly, so no vtool pass is needed.
+    if [[ "${target_platform}" == "osx-64" ]]; then
+      zig_arch="x86_64"
+    else
+      zig_arch="aarch64"
+    fi
+
+    zig build roc \
+      -Doptimize=ReleaseFast \
+      -Dtarget="${zig_arch}-macos.${MACOSX_DEPLOYMENT_TARGET}-none" \
+      -Dllvm-path="${PREFIX}" \
+      --system "${SRC_DIR}/zig-pkg" \
+      --summary all
+  fi
 else
   # LLVM comes from the vendored roc-bootstrap tarball staged into zig-pkg, so
   # roc's default path picks it up as the lazy dependency it already expects and
