@@ -48,14 +48,16 @@ else
   # package metadata promises the much older one conda-forge targets. Name it
   # explicitly. roc's `target_is_native` check only compares os/arch/abi, so
   # pinning the glibc version here still counts as a native build.
-  case "${target_platform}" in
-    linux-64)      zig_target="x86_64-linux-gnu.${c_stdlib_version:-2.17}" ;;
-    linux-aarch64) zig_target="aarch64-linux-gnu.${c_stdlib_version:-2.17}" ;;
-    *)
-      echo "unsupported target_platform: ${target_platform}" >&2
-      exit 1
-      ;;
-  esac
+  # if/elif rather than case: brush 0.4.0 exits 1 on a `case` nested in an `else`
+  # when xtrace is on, which is how rattler-build invokes it (-euxo pipefail).
+  if [[ "${target_platform}" == "linux-64" ]]; then
+    zig_target="x86_64-linux-gnu.${c_stdlib_version:-2.17}"
+  elif [[ "${target_platform}" == "linux-aarch64" ]]; then
+    zig_target="aarch64-linux-gnu.${c_stdlib_version:-2.17}"
+  else
+    echo "unsupported target_platform: ${target_platform}" >&2
+    exit 1
+  fi
 
   zig build roc \
     -Doptimize=ReleaseFast \
