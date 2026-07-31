@@ -7,22 +7,22 @@ import os
 import sys
 from pathlib import Path
 
-from transformer_lab import Context, Tensor
-from transformer_lab.native import bindings
+from riftco_transformer import Context, Tensor
+from riftco_transformer.native import bindings
 
 
 def native_filename() -> str:
     if sys.platform == "darwin":
-        return "libtransformer_lab_c.dylib"
+        return "libriftco_transformer_c.dylib"
     if os.name == "nt":
-        return "transformer_lab_c.dll"
-    return "libtransformer_lab_c.so"
+        return "riftco_transformer_c.dll"
+    return "libriftco_transformer_c.so"
 
 
 def main() -> int:
-    if os.environ.get("TRANSFORMER_LAB_LIBRARY"):
+    if os.environ.get("RIFTCO_TRANSFORMER_LIBRARY"):
         raise RuntimeError(
-            "package smoke test must not use TRANSFORMER_LAB_LIBRARY"
+            "package smoke test must not use RIFTCO_TRANSFORMER_LIBRARY"
         )
 
     package_directory = Path(bindings.__file__).resolve().parents[1]
@@ -57,7 +57,7 @@ def main() -> int:
         raise RuntimeError(
             f"loaded {loaded_path}, expected bundled {bundled_library.resolve()}"
         )
-    if int(library.tl_abi_version()) != bindings.ABI_VERSION:
+    if int(library.rt_abi_version()) != bindings.ABI_VERSION:
         raise RuntimeError("bundled native ABI does not match the Python client")
 
     print(f"package smoke test passed with {loaded_path}")
