@@ -3,30 +3,37 @@ context:
   version: "11.1.0"
   soname: "11"
 
-recipe:
-  name: tensorrt
+package:
+  # v1 outputs are independent builds. Keeping the redistributable runtime
+  # libraries together avoids unpacking this multi-gigabyte SDK once per DLL.
+  name: tensorrt-libs
   version: ${{ full_version }}
 
 source:
   - if: linux and x86_64 and match(cuda_compiler_version, ">=12,<13")
     then:
       url: https://developer.download.nvidia.com/compute/machine-learning/tensorrt/${{ version }}/tars/TensorRT-Enterprise-${{ full_version }}-Linux-x86_64-cuda-12.9-Release-external.tar.zst
+      file_name: tensorrt.tar.zst
       sha256: a38e9c87cb2f66b30ee03cf4ece3fc2ba94ae306afe675713991af0d30914530
   - if: linux and x86_64 and match(cuda_compiler_version, ">=13,<14")
     then:
       url: https://developer.download.nvidia.com/compute/machine-learning/tensorrt/${{ version }}/tars/TensorRT-Enterprise-${{ full_version }}-Linux-x86_64-cuda-13.3-Release-external.tar.zst
+      file_name: tensorrt.tar.zst
       sha256: 5751e82792aa69973a00f1f270f04889605abf682bcf6a924f5dbd9ed1149d1d
   - if: linux and aarch64 and match(cuda_compiler_version, ">=13,<14") and arm_variant_type == "sbsa"
     then:
       url: https://developer.download.nvidia.com/compute/machine-learning/tensorrt/${{ version }}/tars/TensorRT-Enterprise-${{ full_version }}-Linux-aarch64-cuda-13.3-Release-external.tar.zst
+      file_name: tensorrt.tar.zst
       sha256: 8c9ebf783a23126c9fba9b9cc45321ac2a105abfb969421a1badbc6500d14592
   - if: win and x86_64 and match(cuda_compiler_version, ">=12,<13")
     then:
       url: https://developer.download.nvidia.com/compute/machine-learning/tensorrt/${{ version }}/zip/TensorRT-Enterprise-${{ full_version }}-Windows-amd64-cuda-12.9-Release-external.zip
+      file_name: tensorrt.zip
       sha256: cbb86ea72297b4a41efab0814a98b1f897e712549313b936933e1eeeef81a91f
   - if: win and x86_64 and match(cuda_compiler_version, ">=13,<14")
     then:
       url: https://developer.download.nvidia.com/compute/machine-learning/tensorrt/${{ version }}/zip/TensorRT-Enterprise-${{ full_version }}-Windows-amd64-cuda-13.3-Release-external.zip
+      file_name: tensorrt.zip
       sha256: 3fa5add88aec4227bcb8fa391fa3e2ccdfc9da6c51bc988908b11497294233d5
 
 build:
@@ -40,264 +47,63 @@ build:
   script:
     - if: linux
       then:
+        - tar --zstd -xf tensorrt.tar.zst --strip-components=1 --wildcards '*/lib/*.so.*' '*/doc/README.txt' '*/doc/Acknowledgements.txt'
         - check-glibc lib/*.so.*
         - mkdir -p ${PREFIX}/lib
         - cp -av lib/*.so.* ${PREFIX}/lib/
     - if: win
       then:
+        - tar -xf tensorrt.zip --strip-components 1 "*/bin/*.dll" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
         - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
         - copy bin\*.dll %LIBRARY_BIN%
 
-outputs:
-  - package:
-      name: libnvinfer
-    build:
-      files:
-        include:
-          - if: linux
-            then: lib/libnvinfer*.so.*
-          - if: win
-            then: Library/bin/nvinfer*.dll
-        exclude:
-          - if: linux
-            then:
-              - lib/libnvinfer_dispatch.so.*
-              - lib/libnvinfer_lean.so.*
-              - lib/libnvinfer_plugin.so.*
-              - lib/libnvinfer_vc_plugin.so.*
-          - if: win
-            then:
-              - Library/bin/nvinfer_dispatch*.dll
-              - Library/bin/nvinfer_lean*.dll
-              - Library/bin/nvinfer_plugin*.dll
-              - Library/bin/nvinfer_vc_plugin*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-        - cuda-cudart
-        - cuda-nvrtc
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvinfer.so.${{ version }}
-            - if: win
-              then: Library/bin/nvinfer_${{ soname }}.dll
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("cuda") }}
+    - ${{ stdlib("c") }}
+    - if: linux
+      then:
+        - cf-nvidia-tools ==1
+        - tar
+        - zstd
+    - if: aarch64
+      then: arm-variant * ${{ arm_variant_type }}
+  host:
+    - cuda-version ==${{ cuda_compiler_version }}
+  run:
+    - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+    - cuda-cudart
+    - cuda-nvrtc
+  run_constraints:
+    - if: aarch64
+      then: arm-variant * ${{ arm_variant_type }}
+  run_exports:
+    - ${{ pin_subpackage("tensorrt-libs", lower_bound="x", upper_bound="x") }}
+  ignore_run_exports:
+    by_name:
+      - cuda-version
 
-  - package:
-      name: libnvinfer-dispatch
-    build:
+tests:
+  - package_contents:
       files:
         - if: linux
-          then: lib/libnvinfer_dispatch.so.*
+          then:
+            - lib/libnvinfer.so.${{ version }}
+            - lib/libnvinfer_dispatch.so.${{ version }}
+            - lib/libnvinfer_lean.so.${{ version }}
+            - lib/libnvinfer_plugin.so.${{ version }}
+            - lib/libnvinfer_vc_plugin.so.${{ version }}
+            - lib/libnvonnxparser.so.${{ version }}
         - if: win
-          then: Library/bin/nvinfer_dispatch*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-        - cuda-cudart
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-dispatch", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvinfer_dispatch.so.${{ version }}
-            - if: win
-              then: Library/bin/nvinfer_dispatch_${{ soname }}.dll
-
-  - package:
-      name: libnvinfer-lean
-    build:
-      files:
-        - if: linux
-          then: lib/libnvinfer_lean.so.*
-        - if: win
-          then: Library/bin/nvinfer_lean*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-        - cuda-cudart
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-lean", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvinfer_lean.so.${{ version }}
-            - if: win
-              then: Library/bin/nvinfer_lean_${{ soname }}.dll
-
-  - package:
-      name: libnvinfer-plugin
-    build:
-      files:
-        - if: linux
-          then: lib/libnvinfer_plugin.so.*
-        - if: win
-          then: Library/bin/nvinfer_plugin*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-        - ${{ pin_subpackage("libnvinfer", exact=True) }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-        - ${{ pin_subpackage("libnvinfer", exact=True) }}
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-plugin", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvinfer_plugin.so.${{ version }}
-            - if: win
-              then: Library/bin/nvinfer_plugin_${{ soname }}.dll
-
-  - package:
-      name: libnvinfer-vc-plugin
-    build:
-      files:
-        - if: linux
-          then: lib/libnvinfer_vc_plugin.so.*
-        - if: win
-          then: Library/bin/nvinfer_vc_plugin*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-vc-plugin", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvinfer_vc_plugin.so.${{ version }}
-            - if: win
-              then: Library/bin/nvinfer_vc_plugin_${{ soname }}.dll
-
-  - package:
-      name: libnvonnxparser
-    build:
-      files:
-        - if: linux
-          then: lib/libnvonnxparser.so.*
-        - if: win
-          then: Library/bin/nvonnxparser*.dll
-    requirements:
-      build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ compiler("cuda") }}
-        - ${{ stdlib("c") }}
-        - if: linux
-          then: cf-nvidia-tools ==1
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      host:
-        - cuda-version ==${{ cuda_compiler_version }}
-        - ${{ pin_subpackage("libnvinfer", exact=True) }}
-      run:
-        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
-        - ${{ pin_subpackage("libnvinfer", exact=True) }}
-      run_constraints:
-        - if: aarch64
-          then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvonnxparser", lower_bound="x", upper_bound="x") }}
-      ignore_run_exports:
-        by_name:
-          - cuda-version
-    tests:
-      - package_contents:
-          files:
-            - if: linux
-              then: lib/libnvonnxparser.so.${{ version }}
-            - if: win
-              then: Library/bin/nvonnxparser_${{ soname }}.dll
+          then:
+            - Library/bin/nvinfer_${{ soname }}.dll
+            - Library/bin/nvinfer_dispatch_${{ soname }}.dll
+            - Library/bin/nvinfer_lean_${{ soname }}.dll
+            - Library/bin/nvinfer_plugin_${{ soname }}.dll
+            - Library/bin/nvinfer_vc_plugin_${{ soname }}.dll
+            - Library/bin/nvonnxparser_${{ soname }}.dll
 
 about:
   homepage: https://developer.nvidia.com/tensorrt
@@ -308,7 +114,7 @@ about:
   summary: Runtime libraries for NVIDIA TensorRT
   description: |
     NVIDIA TensorRT is an SDK for high-performance deep learning inference.
-    These packages contain only the shared runtime libraries that NVIDIA
+    This package contains only the shared runtime libraries that NVIDIA
     identifies as redistributable under the TensorRT SDK license agreement.
     See https://docs.nvidia.com/deeplearning/tensorrt/latest/reference/sla.html.
   documentation: https://docs.nvidia.com/deeplearning/tensorrt/
