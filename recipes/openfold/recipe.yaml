@@ -1,0 +1,118 @@
+context:
+  version: "0.4.2"
+  build_number: 0
+  torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: openfold
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aqlaboratory/openfold-3/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 7dc5c18870af3b3ed88b217d6f2532f94cf87bd31132c415095d2e712e4a19e7
+
+build:
+  number: ${{ build_number }}
+  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  skip:
+    - win
+    - match(python, "3.10.*")
+  script:
+    content:
+      - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+    - setuptools-scm >=8
+    - wheel
+  run:
+    - python
+    - numpy
+    - scipy
+    - pandas
+    # --- Machine learning
+    - pytorch * ${{ torch_proc_type }}*
+    - pytorch-lightning <=2.6.1
+    - ml-collections
+    # --- Handling molecules
+    - rdkit <2026
+    - biotite >=1.6
+    - pdbeccdutils
+    - kalign-python
+    # --- Misc
+    - pyyaml
+    - ijson
+    - memory_profiler
+    - wandb
+    - func_timeout
+    - tqdm
+    - typing-extensions
+    - python-lmdb >=2.2.0
+    # --- Downloading stuff
+    - requests
+    - awscli
+    - awscrt
+    - boto3
+    - if: cuda_compiler_version != "None" and target_platform == "linux-64"  # we would need a deepspeed aarch64 package
+      then:
+        - deepspeed >=0.18.7
+        # At the time of writing (May 29, 2026), deepspeed kernels cannot be compiled with CUDA >=13.3
+        - cuda-version <13.3
+        # For the `async_io` deepspeed op
+        - libaio
+        # This is needed when not precompiling non-triton kernels, but bloats the environment
+        # We should explore a way to precompile the kernels in the build step
+        # but that would require some changes in OF3 itself (e.g., manage kernel location for isolation)
+        - ninja
+        - cutlass
+        - cuda-minimal-build
+        - libcusparse-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcurand-dev
+
+tests:
+  # OF test suite
+  # Runs out of disk space in staged_recipes for CUDA builds
+  # Reactivate when we create the feedstock
+  - if: cuda_compiler_version == "None"
+    then:
+    - requirements:
+        run:
+          - pytest
+          - pytest-xdist
+          - pytest-cov
+          - pytest-benchmark
+          - pytest-regressions
+          - pytest-vcr
+      files:
+        source:
+          - openfold3/tests/
+      script:
+          - pytest -vvv openfold3/tests -k "not test_inference_load_state_dict_benchmark_under_ten_seconds"
+  - script:
+      - run_openfold --help
+  - python:
+      imports:
+        - openfold3
+        # some more meaningful imports
+        - openfold3.core.metrics.model_selection
+        - openfold3.core.model.primitives.activations
+      pip_check: true
+
+about:
+  homepage: https://openfold.io
+  repository: https://github.com/aqlaboratory/openfold-3
+  summary: OpenFold's Biological Structure Prediction Model based on DeepMind's AlphaFold 3
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Emrys-Merlin
+    - jandom
+    - jnwei
+    - sdvillal
