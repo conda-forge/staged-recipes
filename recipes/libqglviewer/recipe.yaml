@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  version: "2.9.1"
+
+package:
+  name: libqglviewer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/GillesDebunne/libQGLViewer/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ea4f9ac627c136a6851ffd3763b154f21c87a58bcec4e5d5b2d07e65a403096b
+  patches:
+    - patches/0001-make-examples-optional.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -G Ninja ^
+          %CMAKE_ARGS% ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON ^
+          -DLIBQGLVIEWER_BUILD_EXAMPLES=OFF ^
+          -S %SRC_DIR% -B build
+        cmake --build build --config Release
+        cmake --install build --config Release
+      else: |
+        cmake -G Ninja \
+          ${CMAKE_ARGS} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+          -DCMAKE_INSTALL_LIBDIR=lib \
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON \
+          -DLIBQGLVIEWER_BUILD_EXAMPLES=OFF \
+          -S ${SRC_DIR} -B build
+        cmake --build build --config Release
+        cmake --install build --config Release
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - qt-main
+    - if: linux
+      then:
+        - libgl-devel
+        - libglu
+  run_exports:
+    - ${{ pin_subpackage('libqglviewer', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      include:
+        - QGLViewer/qglviewer.h
+      lib:
+        - QGLViewer
+      files:
+        - lib/pkgconfig/libQGLViewer.pc
+  - script:
+      - if: unix
+        then:
+          - test "$(pkg-config --modversion libQGLViewer)" = "${PKG_VERSION}"
+      - if: win
+        then:
+          - if not exist %LIBRARY_PREFIX%\lib\pkgconfig\libQGLViewer.pc exit 1
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://libqglviewer.com/
+  repository: https://github.com/GillesDebunne/libQGLViewer
+  documentation: https://libqglviewer.com/refManual/
+  license: GPL-2.0-or-later
+  license_file:
+    - LICENCE
+    - GPL_EXCEPTION
+  summary: Qt-based C++ library for the creation of OpenGL 3D viewers
+  description: >-
+    libQGLViewer provides camera, trackball, object manipulation, snapshot, and
+    other common facilities for creating interactive OpenGL 3D viewers with Qt.
+
+extra:
+  recipe-maintainers:
+    - wolfv
