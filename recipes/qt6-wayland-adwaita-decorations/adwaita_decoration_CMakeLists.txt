@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(QtWaylandAdwaitaDecoration)
+
+set(QT_MIN_VERSION "6.11.0")
+set(QT_VERSION_MAJOR "6")
+
+# Guard these so that a -DCMAKE_CXX_STANDARD=... passed through CMAKE_ARGS is
+# honoured. A bare set() would create a normal variable that shadows the cache
+# entry for the rest of this directory scope, silently overriding CMAKE_ARGS.
+if (NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+endif()
+if (NOT DEFINED CMAKE_CXX_STANDARD_REQUIRED)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
+find_package(Qt${QT_VERSION_MAJOR} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
+    Core
+    DBus
+    Gui
+    GuiPrivate
+    Svg
+    WaylandClient
+    WaylandClientPrivate
+)
+
+if (NOT QT_PLUGINS_DIR)
+    set(QT_PLUGINS_DIR ${QT6_INSTALL_PLUGINS})
+endif()
+
+# Qt6WaylandClientDependencies.cmake normally defines this for us.
+if (TARGET Wayland::Client)
+    set(WAYLAND_CLIENT_TARGET Wayland::Client)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+    set(WAYLAND_CLIENT_TARGET PkgConfig::WAYLAND_CLIENT)
+endif()
+
+set(adwaita_decoration_SRCS
+    main.cpp
+    qwaylandadwaitadecoration.cpp qwaylandadwaitadecoration_p.h
+)
+
+add_library(adwaita MODULE ${adwaita_decoration_SRCS})
+
+target_link_libraries(adwaita
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::DBus
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::GuiPrivate
+    Qt${QT_VERSION_MAJOR}::Svg
+    Qt${QT_VERSION_MAJOR}::WaylandClient
+    Qt${QT_VERSION_MAJOR}::WaylandClientPrivate
+    ${WAYLAND_CLIENT_TARGET}
+)
+
+set_property(TARGET adwaita PROPERTY AUTOMOC ON)
+
+install(TARGETS adwaita DESTINATION ${QT_PLUGINS_DIR}/wayland-decoration-client)

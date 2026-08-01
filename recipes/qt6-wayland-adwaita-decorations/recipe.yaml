@@ -1,0 +1,92 @@
+context:
+  version: "6.11.1"
+  maj_min: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: qt6-wayland-adwaita-decorations
+  version: ${{ version }}
+
+source:
+  # We only need the small qtwayland submodule, not all of qt-everywhere.
+  url: https://download.qt.io/official_releases/qt/${{ maj_min }}/${{ version }}/submodules/qtwayland-everywhere-src-${{ version }}.tar.xz
+  sha256: 95788aa502f75441d4edf65932b235f76523084e13dbbb7b9ee2d207b32bd9b3
+
+build:
+  number: 0
+  skip:
+    # Wayland is Linux only.
+    - not linux
+    # qt6-main is not built for ppc64le.
+    - target_platform == "linux-ppc64le"
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - if: build_platform != target_platform
+      then:
+        - qt6-main ==${{ version }}
+  host:
+    - qt6-main ==${{ version }}
+    - wayland
+  run:
+    # The plugin is built against Qt's private headers, so it has to be used
+    # with the exact Qt version it was compiled against.
+    - qt6-main ==${{ version }}
+  ignore_run_exports:
+    by_name:
+      # wayland is needed at configure time, because Qt6WaylandClient's CMake
+      # config does find_dependency(Wayland), but the plugin only ever calls
+      # through QtWaylandClient's wrappers and so does not end up linking
+      # libwayland-client itself. qt6-main already depends on wayland at run
+      # time anyway.
+      - wayland
+
+tests:
+  - script:
+      - test -f ${PREFIX}/lib/qt6/plugins/wayland-decoration-client/libadwaita.so
+      # The plugin must advertise the "adwaita" and "gnome" decoration keys,
+      # otherwise QT_WAYLAND_DECORATION=adwaita silently falls back to bradient.
+      - ${PREFIX}/lib/qt6/bin/qtplugininfo --full-json ${PREFIX}/lib/qt6/plugins/wayland-decoration-client/libadwaita.so > metadata.json
+      - cat metadata.json
+      - grep -q '"adwaita"' metadata.json
+      - grep -q '"gnome"' metadata.json
+
+about:
+  homepage: https://doc.qt.io/qt-6/qtwayland-index.html
+  summary: Qt Wayland Adwaita client-side decoration plugin
+  description: |
+    QWaylandAdwaitaDecoration is Qt's Wayland decoration plugin implementing
+    Adwaita-like client-side decorations, so that Qt applications running on
+    Wayland get window decorations matching the GNOME Adwaita design language.
+
+    It is the upstreamed version of https://github.com/FedoraQt/QAdwaitaDecorations
+    and ships in the qtwayland module rather than in qtbase because it depends
+    on QtSvg. conda-forge's qt6-main does not build the qtwayland module, so
+    this recipe builds just this one plugin against it.
+
+    Enable it by setting QT_WAYLAND_DECORATION=adwaita.
+
+    This plugin uses private Qt headers and is therefore neither forward nor
+    backward compatible; it is pinned to, and must be rebuilt for, each
+    qt6-main version.
+  license: LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+  license_file:
+    - LICENSES/LGPL-3.0-only.txt
+    - LICENSES/GPL-2.0-only.txt
+    - LICENSES/GPL-3.0-only.txt
+  documentation: https://doc.qt.io/qt-6/qtwayland-index.html
+  repository: https://github.com/qt/qtwayland
+
+extra:
+  # Matches the sibling qt-gtk-platformtheme-feedstock, which likewise drops the
+  # major version from the feedstock name but keeps it in the package name.
+  feedstock-name: qt-wayland-adwaita-decoration
+  recipe-maintainers:
+    - hmaarrfk
+    - conda-forge/qt-main
