@@ -10,6 +10,38 @@ case "${PKG_NAME}" in
     rm -f tensorrt.tar.zst
     exit 0
     ;;
+  libnvinfer-headers)
+    tar --zstd -xf tensorrt.tar.zst --strip-components=1 --wildcards \
+      '*/include/NvInfer*' \
+      '*/include/NvOnnx*' \
+      '*/doc/README.txt' \
+      '*/doc/Acknowledgements.txt'
+    rm -f tensorrt.tar.zst
+    mkdir -p "${PREFIX}/include"
+    mv -v include/NvInfer* include/NvOnnx* "${PREFIX}/include/"
+    exit 0
+    ;;
+  libnvinfer-dev)
+    files=(
+      '*/bin/trtexec'
+      '*/lib/libnvinfer.so'
+    )
+    ;;
+  libnvinfer-dispatch-dev)
+    files=('*/lib/libnvinfer_dispatch.so')
+    ;;
+  libnvinfer-lean-dev)
+    files=('*/lib/libnvinfer_lean.so')
+    ;;
+  libnvinfer-plugin-dev)
+    files=('*/lib/libnvinfer_plugin.so')
+    ;;
+  libnvinfer-vc-plugin-dev)
+    files=('*/lib/libnvinfer_vc_plugin.so')
+    ;;
+  libnvonnxparser-dev)
+    files=('*/lib/libnvonnxparser.so')
+    ;;
   libnvinfer)
     files=(
       '*/lib/libnvinfer.so.*'
@@ -47,6 +79,15 @@ tar --zstd -xf tensorrt.tar.zst --strip-components=1 --wildcards \
   '*/doc/Acknowledgements.txt'
 rm -f tensorrt.tar.zst
 
-check-glibc lib/*.so.*
 mkdir -p "${PREFIX}/lib"
-mv -v lib/*.so.* "${PREFIX}/lib/"
+if compgen -G 'lib/*.so.*' > /dev/null; then
+  check-glibc lib/*.so.*
+  mv -v lib/*.so.* "${PREFIX}/lib/"
+fi
+if compgen -G 'lib/*.so' > /dev/null; then
+  mv -v lib/*.so "${PREFIX}/lib/"
+fi
+if [[ -d bin ]]; then
+  mkdir -p "${PREFIX}/bin"
+  mv -v bin/* "${PREFIX}/bin/"
+fi
