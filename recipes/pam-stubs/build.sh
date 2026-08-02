@@ -142,26 +142,9 @@ Libs: -L\${libdir}/stubs -lpam
 Cflags: -I\${includedir}
 PC
 
-# --- 5. Activation: make bare `-lpam` / meson cc.find_library('pam') work ---
-# Add the stubs dir to LIBRARY_PATH, which gcc/clang consult ONLY at link time.
-# LIBRARY_PATH never affects the runtime dynamic loader, so this cannot shadow
-# the system libpam; it merely lets consumers that skip pkg-config still link.
-for CHANGE in activate deactivate; do
-  mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-done
-
-cat > "${PREFIX}/etc/conda/activate.d/pam-stubs.sh" <<'ACT'
-export LIBRARY_PATH="${CONDA_PREFIX}/lib/stubs${LIBRARY_PATH:+:${LIBRARY_PATH}}"
-ACT
-
-cat > "${PREFIX}/etc/conda/deactivate.d/pam-stubs.sh" <<'DEACT'
-if [ -n "${LIBRARY_PATH:-}" ]; then
-  _pam_entry="${CONDA_PREFIX}/lib/stubs"
-  _pam_wrapped=":${LIBRARY_PATH}:"
-  _pam_wrapped="${_pam_wrapped//:${_pam_entry}:/:}"
-  _pam_wrapped="${_pam_wrapped#:}"
-  _pam_wrapped="${_pam_wrapped%:}"
-  export LIBRARY_PATH="${_pam_wrapped}"
-  unset _pam_entry _pam_wrapped
-fi
-DEACT
+# NOTE: no activation scripts, following the cuda-driver-dev convention
+# (which ships lib/stubs/libcuda.so the same way). Consumers pick up the
+# stub either through pkg-config (pam.pc above points Libs at the stubs
+# dir, which satisfies meson's dependency('pam')), or by adding
+# -L$PREFIX/lib/stubs to LDFLAGS in their build script, exactly like CUDA
+# downstreams (e.g. pocl-feedstock) do for -lcuda.
