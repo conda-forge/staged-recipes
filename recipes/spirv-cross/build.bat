@@ -5,6 +5,8 @@ cmake ^
     -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
+    -DSPIRV_CROSS_SHARED=ON ^
+    -DSPIRV_CROSS_ENABLE_TESTS=OFF ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
