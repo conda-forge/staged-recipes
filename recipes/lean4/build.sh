@@ -5,7 +5,7 @@ set -euxo pipefail
 # Lean's configure-time download of a prebuilt leantar executable.
 pushd leangz
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-cargo install \
+cargo auditable install \
   --force \
   --locked \
   --no-track \
