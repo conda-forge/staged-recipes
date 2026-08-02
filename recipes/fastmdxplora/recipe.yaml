@@ -1,0 +1,106 @@
+schema_version: 1
+
+context:
+  name: fastmdxplora
+  version: "2.1.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: b87e4b6ce6cc62aa9a9fde3fa443ce8cf43ccf44a6aeb534c899dd95a9dcf9dc
+
+build:
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - fastmdx = fastmdxplora.cli.main:main
+      - fastmdxplora = fastmdxplora.cli.main:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=64
+    - setuptools-scm >=8
+  run:
+    # Upper bound matches requires-python in pyproject.toml; the chemistry
+    # stack has no 3.14 builds yet either.
+    - python >=${{ python_min }},<3.14
+    - numpy >=1.22
+    - pyyaml >=6.0
+    - mdtraj >=1.9.7
+    - matplotlib-base >=3.5
+    - scipy >=1.7
+    - scikit-learn >=1.0
+    - pandas >=1.4
+    - python-pptx >=0.6.21
+    # fastmdxplora accepts AMBER NetCDF trajectories. mdtraj can read them
+    # through scipy, but warns that this path is significantly slower and
+    # declares netcdf4 in its own metadata; conda-forge's mdtraj does not
+    # install it. Including it here gives the fast reader by default.
+    - netcdf4
+    # The setup and simulation phases need these, and they are only packaged
+    # for conda. Depending on them here is the point of the conda-forge
+    # distribution: one install command makes all four phases work, where the
+    # PyPI package covers analysis and reporting alone.
+    - openmm >=8.0
+    - pdbfixer
+
+tests:
+  - python:
+      imports:
+        - fastmdxplora
+        - fastmdxplora.setup
+        - fastmdxplora.simulation
+        - fastmdxplora.analysis
+        - fastmdxplora.report
+        - fastmdxplora.gui
+        # If these fail the recipe has not delivered what it promises.
+        - openmm
+        - pdbfixer
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - script:
+      - fastmdx --version
+      - fastmdx info
+      - fastmdxplora --version
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/aai-research-lab/FastMDXplora
+  summary: Fully Automated SysTem for Molecular Dynamics eXploration
+  description: |
+    FastMDXplora runs a complete molecular dynamics study from a single
+    command. Given a protein structure, or just a PDB identifier, it performs
+    setup, simulation, analysis, and reporting, and returns publication-ready
+    results.
+
+    Setup repairs and solvates the structure. Simulation runs molecular
+    dynamics with OpenMM, including optional PLUMED enhanced sampling.
+    Analysis computes the standard structural and dynamic metrics, along with
+    protein-ligand measures when a ligand is present. Reporting packages the
+    results into a written report, a slide deck, and a shareable bundle. A
+    browser interface is included for designing, starting, watching, and
+    reviewing a run.
+  # The package bundles a minified build of 3Dmol.js (BSD-3-Clause) for the
+  # molecular viewer in the browser interface, so its licenses ship too.
+  license: MIT AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - src/fastmdxplora/gui/static/3Dmol-LICENSE.txt
+    - src/fastmdxplora/gui/static/3Dmol-min.js.LICENSE.txt
+  documentation: https://fastmdxplora.readthedocs.io
+  repository: https://github.com/aai-research-lab/FastMDXplora
+
+extra:
+  recipe-maintainers:
+    - ainaadekunle
