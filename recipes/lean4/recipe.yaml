@@ -1,0 +1,91 @@
+context:
+  version: "4.32.2"
+  leangz_version: "0.1.19"
+
+package:
+  name: lean4
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/leanprover/lean4/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 289d38b3055d42b243e9f57a1b6abafaf020c168cff3bb59fd8901dbdcc90c32
+    patches:
+      - no-sys-random.patch
+  # Lake expects leantar to be part of a Lean installation. Build it from
+  # source rather than downloading the platform-specific binary used upstream.
+  - url: https://github.com/digama0/leangz/archive/refs/tags/v${{ leangz_version }}.tar.gz
+    sha256: 209b1d2408f82ab4eaea656097a34535f7a3a005195d482becde00b0b4b3b1d6
+    target_directory: leangz
+
+build:
+  number: 0
+  skip:
+    - win
+    # Lean's bootstrap compiler must run on the build machine.
+    - build_platform != target_platform
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - pkg-config
+    - cadical
+  host:
+    - gmp
+    - libuv
+    - openssl
+    - zlib
+  run:
+    # leanc and Lake compile generated C as part of normal Lean builds.
+    - c-compiler
+    - cadical
+
+tests:
+  - package_contents:
+      bin:
+        - lake
+        - lean
+        - leanc
+        - leanmake
+        - leantar
+      files:
+        - include/lean/lean.h
+        - lib/lean/Init.olean
+  - script:
+      - lean --version
+      - lake --version
+      - leantar --version
+      - cadical --version
+      - lean Main.lean
+      - lake build
+      - .lake/build/bin/smoke | grep "Lean 4 works"
+    files:
+      recipe:
+        - Main.lean
+        - lakefile.toml
+
+about:
+  homepage: https://lean-lang.org/
+  repository: https://github.com/leanprover/lean4
+  documentation: https://lean-lang.org/learn/
+  license: Apache-2.0 AND MIT
+  license_file:
+    - LICENSE
+    - LICENSES
+    - leangz/LICENSE
+    - leangz/THIRDPARTY.yml
+  summary: Functional programming language and interactive theorem prover
+  description: |
+    Lean 4 is a functional programming language and interactive theorem prover.
+    This package contains the Lean compiler, standard library, Lake build tool,
+    C compiler wrapper, and leantar archive utility needed by Lake.
+
+extra:
+  recipe-maintainers:
+    - wolfv
