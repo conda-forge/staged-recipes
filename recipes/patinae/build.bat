@@ -32,9 +32,19 @@ if not defined WASM_PACK (
 @REM Configure PyO3 to use the conda host Python
 set "PYO3_PYTHON=%PYTHON%"
 
-@REM Generate Rust license metadata
+@REM Generate Rust license metadata for all shipped Rust workspaces
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 if errorlevel 1 exit /b !ERRORLEVEL!
+pushd python
+if errorlevel 1 exit /b !ERRORLEVEL!
+cargo-bundle-licenses --format yaml --output ..\THIRDPARTY-python.yml
+if errorlevel 1 exit /b !ERRORLEVEL!
+popd
+pushd web
+if errorlevel 1 exit /b !ERRORLEVEL!
+cargo-bundle-licenses --format yaml --output ..\THIRDPARTY-web.yml
+if errorlevel 1 exit /b !ERRORLEVEL!
+popd
 
 @REM Resolve Cargo target and release directories
 set "CARGO_ARGS="
@@ -87,6 +97,9 @@ if "!PLUGIN_COUNT!"=="0" (
 pushd web
 if errorlevel 1 exit /b !ERRORLEVEL!
 
+@REM NOTE: web/package.json currently has no production dependencies, so this
+@REM condition is expected to be false and keep an empty file. Keep the guard
+@REM for forward-compatibility if upstream adds runtime web dependencies later.
 jq -e "((.dependencies // {}) + (.optionalDependencies // {})) | length > 0" package.json >NUL
 if errorlevel 1 (
   echo No production npm dependencies; creating empty third-party-licenses.txt
@@ -101,7 +114,10 @@ if errorlevel 1 (
 @REM Install full web build dependencies without running package scripts
 if exist node_modules rmdir /S /Q node_modules
 
-call pnpm install --ignore-scripts --no-frozen-lockfile
+call pnpm import
+if errorlevel 1 exit /b !ERRORLEVEL!
+
+call pnpm install --ignore-scripts --frozen-lockfile
 if errorlevel 1 exit /b !ERRORLEVEL!
 
 @REM Build the WebAssembly viewer without inheriting native Rust linker flags
@@ -113,7 +129,7 @@ set "CARGO_BUILD_TARGET="
 set "LDFLAGS="
 set "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="
 set "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER="
-call "%WASM_PACK%" build --target web --out-dir pkg --no-opt
+call "%WASM_PACK%" build --target web --out-dir pkg --no-opt --mode no-install
 set "WASM_STATUS=%ERRORLEVEL%"
 endlocal & if not "%WASM_STATUS%"=="0" exit /b %WASM_STATUS%
 
@@ -185,14 +201,28 @@ del /F /Q ^
 
 @REM Keep the Python console entry point as `patinae-cli`
 > "%PREFIX%\Scripts\patinae-cli.bat" echo @echo off
->> "%PREFIX%\Scripts\patinae-cli.bat" echo "%%CONDA_PREFIX%%\python.exe" -m patinae._cli %%*
+>> "%PREFIX%\Scripts\patinae-cli.bat" echo set "SCRIPT_DIR=%%~dp0"
+>> "%PREFIX%\Scripts\patinae-cli.bat" echo "%%SCRIPT_DIR%%..\python.exe" -m patinae._cli %%*
 >> "%PREFIX%\Scripts\patinae-cli.bat" echo exit /b %%ERRORLEVEL%%
 
 @REM Install the user-facing desktop wrapper as `patinae`
 > "%PREFIX%\Scripts\patinae.bat" echo @echo off
 >> "%PREFIX%\Scripts\patinae.bat" echo setlocal
->> "%PREFIX%\Scripts\patinae.bat" echo if not defined PATINAE_PLUGIN_DIR set "PATINAE_PLUGIN_DIR=%%CONDA_PREFIX%%\libexec\patinae\plugins"
->> "%PREFIX%\Scripts\patinae.bat" echo "%%CONDA_PREFIX%%\libexec\patinae\bin\patinae.exe" %%*
+>> "%PREFIX%\Scripts\patinae.bat" echo set "SCRIPT_DIR=%%~dp0"
+>> "%PREFIX%\Scripts\patinae.bat" echo set "PREFIX_DIR=%%SCRIPT_DIR%%.."
+>> "%PREFIX%\Scripts\patinae.bat" echo if not defined PATINAE_PLUGIN_DIR set "PATINAE_PLUGIN_DIR=%%PREFIX_DIR%%\libexec\patinae\plugins"
+>> "%PREFIX%\Scripts\patinae.bat" echo "%%PREFIX_DIR%%\libexec\patinae\bin\patinae.exe" %%*
 >> "%PREFIX%\Scripts\patinae.bat" echo exit /b %%ERRORLEVEL%%
+
+@REM Register a menuinst desktop shortcut so the installed icon launches the
+@REM `patinae` wrapper (and thus picks up PATINAE_PLUGIN_DIR) rather than the
+@REM raw libexec binary.
+if not exist "%PREFIX%\Menu" mkdir "%PREFIX%\Menu"
+powershell -Command "(Get-Content '%RECIPE_DIR%\menu.json') -replace '__PKG_VERSION__', '%PKG_VERSION%' | Set-Content '%PREFIX%\Menu\patinae_menu.json'"
+if errorlevel 1 exit /b !ERRORLEVEL!
+copy /Y "%SRC_DIR%\images\patinae.png" "%PREFIX%\Menu\patinae.png"
+if errorlevel 1 exit /b !ERRORLEVEL!
+copy /Y "%SRC_DIR%\images\patinae.ico" "%PREFIX%\Menu\patinae.ico"
+if errorlevel 1 exit /b !ERRORLEVEL!
 
 exit /b 0
