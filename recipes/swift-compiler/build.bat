@@ -57,6 +57,12 @@ for /d %%T in ("%PREFIX%\Toolchains\*") do (
 )
 if not defined SWIFTC_FOUND exit /b 1
 
+rem Keep the bundled LLVM tools off PATH and expose only Swift-facing commands.
+mkdir "%PREFIX%\Scripts"
+for %%T in (sourcekit-lsp swift swift-build swift-format swift-package swift-run swift-test swiftc) do (
+  copy "%RECIPE_DIR%\swift-launcher.bat" "%PREFIX%\Scripts\%%T.bat"
+)
+
 mkdir "%PREFIX%\etc\conda\activate.d"
 mkdir "%PREFIX%\etc\conda\deactivate.d"
 copy "%RECIPE_DIR%\activate.bat" "%PREFIX%\etc\conda\activate.d\activate-swift.bat"
