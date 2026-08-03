@@ -1,44 +1,46 @@
 # The PyPI project is `irma`; the conda package is `irma-sqw` because
-# bioconda already ships an unrelated `irma` (the CDC influenza
-# Iterative Refinement Meta-Assembler). S(Q,omega) is the quantity this
-# package computes. The import name and the command stay `irma`.
-{% set name = "irma-sqw" %}
-{% set pypi_name = "irma" %}
-{% set version = "1.0.0" %}
-{% set python_min = "3.11" %}
+# bioconda already ships an unrelated `irma` (the CDC influenza Iterative
+# Refinement Meta-Assembler). S(Q,omega) is the quantity this package
+# computes. The import name and the command stay `irma`.
+context:
+  name: irma-sqw
+  pypi_name: irma
+  version: "1.0.0"
+  python_min: "3.11"
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: ${{ name }}
+  version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/{{ pypi_name[0] }}/{{ pypi_name }}/{{ pypi_name }}-{{ version }}.tar.gz
+  url: https://pypi.org/packages/source/i/${{ pypi_name }}/${{ pypi_name }}-${{ version }}.tar.gz
   sha256: 086f86106807d1551501f44eda691b769db64383d29dec6b2c06dd21ea65e71f
 
 build:
   noarch: python
   number: 0
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  entry_points:
-    - irma = irma.cli:main
-    - irma-gui = irma.gui.app:main
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - irma = irma.cli:main
+      - irma-gui = irma.gui.app:main
 
 requirements:
   host:
-    - python {{ python_min }}
+    - python ${{ python_min }}.*
     - setuptools >=77
     - pip
   run:
     # Core plus the union of the pip extras (phonopy, spectra, mlip), so
-    # `conda install irma` delivers every capability. The pretrained
+    # `conda install irma-sqw` delivers every capability. The pretrained
     # potentials are deliberately NOT dependencies: their pins conflict with
     # each other and each pulls its own torch, so `irma mlip env create`
     # builds a separate environment per potential.
-    - python >={{ python_min }}
+    - python >=${{ python_min }}
     - numpy >=2.0
-    # Pre-1.0 and on the MF7 write path: capped below the next unvalidated
-    # minor so a silent 0.x bump cannot change tape output. Keep in step
-    # with the same pin in pyproject.toml.
+    # Pre-1.0 and on the ENDF MF7 write path: capped below the next
+    # unvalidated minor so a silent 0.x bump cannot change tape output.
+    # Mirrors the same pin in the project's pyproject.toml.
     - endf-parserpy >=0.12,<0.18
     - threadpoolctl >=3.0
     - phonopy >=4.2
@@ -46,25 +48,27 @@ requirements:
     - scipy >=1.10
     - pyyaml >=6
 
-test:
-  imports:
-    - irma
-    - irma.spectra
-    - irma.ncrystal
-    - irma.mlip
-  commands:
-    - pip check
-    - irma --version
-    - irma --help
-    - irma spectra --help
-    - irma mlip --help
-    - python -c "import shutil, sys; sys.exit(0 if shutil.which('irma-gui') else 1)"
-  requires:
-    - pip
-    - python {{ python_min }}
+tests:
+  - python:
+      imports:
+        - irma
+        - irma.spectra
+        - irma.ncrystal
+        - irma.mlip
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - irma --version
+      - irma --help
+      - irma spectra --help
+      - irma mlip --help
+      - python -c "import shutil, sys; sys.exit(0 if shutil.which('irma-gui') else 1)"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
 
 about:
-  home: https://github.com/ramic-k/IRMA
+  homepage: https://github.com/ramic-k/IRMA
   summary: (In)elastic Representation of Materials As S(alpha,beta) evaluations
   description: |
     IRMA turns one phonon model into three outputs that usually require
@@ -89,8 +93,8 @@ about:
     - LICENSE
     - LICENSES/Apache-2.0.txt
     - THIRD_PARTY_NOTICES.md
-  doc_url: https://ramic-k.github.io/IRMA/
-  dev_url: https://github.com/ramic-k/IRMA
+  documentation: https://ramic-k.github.io/IRMA/
+  repository: https://github.com/ramic-k/IRMA
 
 extra:
   recipe-maintainers:
