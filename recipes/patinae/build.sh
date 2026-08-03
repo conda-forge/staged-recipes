@@ -76,6 +76,11 @@ pnpm import
 pnpm install --ignore-scripts --frozen-lockfile
 
 # Build the WebAssembly viewer without inheriting native Rust linker flags.
+# NOTE: wasm-pack is intentionally not used here. wasm-pack always attempts
+# to download a matching wasm-bindgen binary at build time, which fails in
+# the network-isolated conda-forge build environment. wasm-bindgen-cli is
+# already installed as a build dependency, so cargo and wasm-bindgen are
+# invoked directly instead.
 (
   unset RUSTFLAGS
   unset CARGO_ENCODED_RUSTFLAGS
@@ -84,7 +89,17 @@ pnpm install --ignore-scripts --frozen-lockfile
   unset LDFLAGS
   unset CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS
   unset CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER
-  "${BUILD_PREFIX}/bin/wasm-pack" build --target web --out-dir pkg --no-opt --mode no-install
+
+  wasm_target_root="${CARGO_TARGET_DIR:-target}"
+
+  cargo build --release --locked --target wasm32-unknown-unknown -p patinae-web
+
+  mkdir -p pkg
+  wasm-bindgen \
+    --target web \
+    --out-dir pkg \
+    --no-typescript \
+    "${wasm_target_root}/wasm32-unknown-unknown/release/patinae_web.wasm"
 )
 
 # Bundle the web viewer assets with Vite.
