@@ -51,7 +51,11 @@ for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
 )
 rmdir /S /Q "!SWIFT_ADMIN!"
 
-if not exist "%PREFIX%\Toolchains\*\usr\bin\swiftc.exe" exit /b 1
+set "SWIFTC_FOUND="
+for /d %%T in ("%PREFIX%\Toolchains\*") do (
+  if exist "%%T\usr\bin\swiftc.exe" set "SWIFTC_FOUND=1"
+)
+if not defined SWIFTC_FOUND exit /b 1
 
 mkdir "%PREFIX%\etc\conda\activate.d"
 mkdir "%PREFIX%\etc\conda\deactivate.d"
