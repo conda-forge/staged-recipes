@@ -1,0 +1,111 @@
+context:
+  version: "0.39.9"
+
+package:
+  name: lux-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lumen-oss/lux/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 62f3c3bceca2ce3cc78ad6fb414c8373a22cd9d8477e7090d8f9ec8e6c8c45bb
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - cd lux-cli
+      - if: osx
+        # instruct Apple's `ld64` linker to drop unused OpenSSL symbols and to add correct `@rpath` for xtask
+        then: export RUSTFLAGS="${RUSTFLAGS} -C link-arg=-Wl,-dead_strip_dylibs -C link-arg=-Wl,-rpath,${PREFIX}/lib"
+      - if: unix
+        then:
+          - export OPENSSL_NO_VENDOR=1 # force linking to host's (conda-forge's) OpenSSL libs
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          # generate shell completions and manpage
+          - mkdir -p "$PREFIX"/share/man/man1 "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - cargo run --locked --package=xtask -- dist-completions
+          - cargo run --locked --package=xtask -- dist-man
+          - cp ../target/dist/lx.bash "$PREFIX"/share/bash-completion/completions/lx
+          - cp ../target/dist/lx.fish "$PREFIX"/share/fish/vendor_completions.d/lx.fish
+          - cp ../target/dist/_lx     "$PREFIX"/share/zsh/site-functions/_lx
+          - cp ../target/dist/lx.1    "$PREFIX"/share/man/man1/
+          - cp ../target/dist/lux*.1  "$PREFIX"/share/man/man1/
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features=vendored
+          # generate shell completions and manpage
+          - if not exist "%LIBRARY_PREFIX%"\share\man\man1 mkdir "%LIBRARY_PREFIX%"\share\man\man1
+          - if not exist "%LIBRARY_PREFIX%"\share\bash-completion\completions mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - if not exist "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - if not exist "%LIBRARY_PREFIX%"\share\zsh\site-functions mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - cargo run --locked --package=xtask -- dist-completions
+          - cargo run --locked --package=xtask -- dist-man
+          - copy ..\target\dist\lx.bash "%LIBRARY_PREFIX%"\share\bash-completion\completions\lx
+          - copy ..\target\dist\lx.fish "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\lx.fish
+          - copy ..\target\dist\_lx     "%LIBRARY_PREFIX%"\share\zsh\site-functions\_lx
+          - copy ..\target\dist\lx.1    "%LIBRARY_PREFIX%"\share\man\man1\
+          - copy ..\target\dist\lux*.1  "%LIBRARY_PREFIX%"\share\man\man1\
+      - cargo-bundle-licenses --format=yaml --output=../THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - perl
+    - pkg-config
+  host:
+  - if: unix
+    then:
+     - gpgme
+     - libgit2
+     - libgpg-error
+     - openssl
+
+tests:
+  - script:
+      - lx --help
+      - lx --version
+  - package_contents:
+      bin:
+        - lx
+      files:
+        - if: unix
+          then:
+            - share/man/man1/lx.1
+            - share/man/man1/lux*.1
+            - share/bash-completion/completions/lx
+            - share/fish/vendor_completions.d/lx.fish
+            - share/zsh/site-functions/_lx
+        - if: win
+          then:
+            - Library/share/man/man1/lx.1
+            - Library/share/man/man1/lux*.1
+            - Library/share/bash-completion/completions/lx
+            - Library/share/fish/vendor_completions.d/lx.fish
+            - Library/share/zsh/site-functions/_lx
+      strict: true
+
+about:
+  summary: A luxurious package manager for Lua
+  description: |
+    Lux is a modern package manager for Lua. It manages dependencies, build steps,
+    lockfiles, Lua versions, and existing LuaRocks projects through a single CLI.
+  license: LGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://lux.lumen-labs.org
+  repository: https://github.com/lumen-oss/lux
+
+extra:
+  recipe-maintainers:
+    - salim-b
