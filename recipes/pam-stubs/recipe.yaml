@@ -1,0 +1,99 @@
+schema_version: 1
+
+context:
+  version: "1.7.2"
+
+package:
+  name: pam-stubs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/linux-pam/linux-pam/releases/download/v${{ version }}/Linux-PAM-${{ version }}.tar.xz
+  sha256: 3d86b6383fb5fd9eb9578d2cd47d92801191f4bf3f9bc61419bfefc8aa1e531a
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  # No host deps: we ship only the Linux-PAM public headers and a link-time
+  # stub generated from them.
+  #
+  # No run_exports on purpose. This is a build/host-time link stub. Downstreams
+  # must resolve the *real* libpam from the user's system at runtime (PAM does
+  # system auth via /etc/pam.d, and conda-forge deliberately ships no runtime
+  # PAM). Exporting a runtime dependency would be wrong; a runtime conda libpam
+  # would shadow the system one and break authentication.
+
+tests:
+  - package_contents:
+      include:
+        - security/pam_appl.h
+        - security/pam_modules.h
+      files:
+        exists:
+          - lib/stubs/libpam.so
+          - lib/pkgconfig/pam.pc
+        # CRITICAL: nothing named libpam may live in lib/ itself, or the conda
+        # rpath would shadow the system libpam at runtime and break auth.
+        not_exists:
+          - lib/libpam.so
+          - lib/libpam.so.*
+  - script:
+      # pkg-config points -lpam at the stubs dir, not lib/.
+      - pkg-config --libs pam | grep -q stubs
+      # Link a real consumer against the stub the same way meson's
+      # dependency('pam') would, then verify the binary records the
+      # system-resolvable versioned dependency — the same contract
+      # cuda-driver-dev consumers rely on for libcuda.
+      - $CC $CFLAGS test-link.c $(pkg-config --cflags --libs pam) -o test-pam
+      - $READELF -d test-pam | grep -q "NEEDED.*libpam\.so\.0"
+      - $READELF -V test-pam | grep -q "LIBPAM_1\.0"
+      # The binary must NOT carry an rpath/runpath to the stubs dir, or the
+      # stub would be found at runtime instead of the system libpam. (An
+      # rpath to $PREFIX/lib is fine: no libpam is ever installed there.)
+      - "! $READELF -d test-pam | grep -iE \"rpath|runpath\" | grep -q \"/lib/stubs\""
+    files:
+      recipe:
+        - test-link.c
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - pkg-config
+
+about:
+  homepage: https://github.com/linux-pam/linux-pam
+  license: BSD-3-Clause OR GPL-2.0-or-later
+  license_file: COPYING
+  summary: Link-time stub and headers for Linux-PAM (uses the system PAM at runtime)
+  description: |
+    pam-stubs provides the Linux-PAM public headers and a link-time-only stub
+    of libpam so that conda-forge packages (such as weston's VNC backend) can
+    compile and link against libpam.
+
+    conda-forge deliberately does not ship a runtime PAM: authentication is a
+    system concern driven by /etc/pam.d, and a conda libpam.so.0 placed on the
+    runtime search path would shadow the real one and break login/auth.
+
+    To square this, the stub is installed into $PREFIX/lib/stubs (used only at
+    link time via -L), never into $PREFIX/lib, following the same convention as
+    conda-forge's cuda-driver-dev package (which ships lib/stubs/libcuda.so and
+    leaves the real driver to the system). Downstream binaries record
+    "NEEDED libpam.so.0" with the correct versioned symbols; at runtime the
+    dynamic loader finds no libpam inside the conda prefix and falls through to
+    the user's system /lib*/libpam.so.0. The stub function bodies merely return
+    PAM_SYSTEM_ERR and are never executed.
+
+    Consumers link against the stub via pkg-config (pam.pc points its Libs at
+    the stubs directory, satisfying meson's dependency('pam')), or by adding
+    -L$PREFIX/lib/stubs to LDFLAGS — just as CUDA downstream feedstocks do
+    for -lcuda. As with cuda-driver-dev, no activation scripts are shipped.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
