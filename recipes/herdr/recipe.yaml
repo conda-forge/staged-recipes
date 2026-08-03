@@ -21,7 +21,7 @@ build:
       CARGO_PROFILE_RELEASE_STRIP: symbols
       # Use cmake to build aws-lc-sys, because conda's CFLAGS inject -O2 which
       # overrides the -O0 required by jitterentropy-base.c, causing a build failure.
-      AWS_LC_SYS_CMAKE_BUILDER: "1"
+      # AWS_LC_SYS_CMAKE_BUILDER: "1"
     interpreter: nu
     content: |
       $env.OPENSSL_DIR = $env.PREFIX
@@ -31,6 +31,11 @@ build:
         let drive = ($env.SRC_DIR | path split | first)  # e.g. "D:"
         $env.CARGO_TARGET_DIR = $"($drive)\\cb"  # D:\cb
         $env.CARGO_HOME = $"($drive)\\ch"        # D:\ch
+        # Keep zig's caches on the same drive as CARGO_TARGET_DIR so the
+        # vendored libghostty-vt `zig build` can compute cwd-relative paths
+        # (cross-drive paths trip an isAbsolute assertion in zig's Run step).
+        $env.ZIG_LOCAL_CACHE_DIR = $"($drive)\\zlc"   # D:\zlc
+        $env.ZIG_GLOBAL_CACHE_DIR = $"($drive)\\zgc"  # D:\zgc
       }
 
       if $nu.os-info.name == "linux" {
@@ -62,16 +67,16 @@ requirements:
     - cargo-bundle-licenses
     - cmake
     - nushell
-    - pkg-config
-    - if: unix
-      then: make
-    - if: osx
-      then: ld64
+    #- pkg-config
+    #- if: unix
+    #  then: make
+    #- if: osx
+    #  then: ld64
   host:
     # native-tls links openssl on linux (macOS uses Security.framework,
     # Windows uses schannel, neither needs a host dependency)
-    - if: linux
-      then: openssl
+    # - if: linux
+    #   then: openssl
 
 tests:
   - script:
