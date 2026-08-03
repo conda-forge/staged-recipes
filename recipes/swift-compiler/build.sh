@@ -18,6 +18,18 @@ fi
 cp -R "${toolchain_usr}/." "${PREFIX}/"
 find "${PREFIX}" -name '._*' -delete
 
+# The upstream Linux driver does not know where conda-forge installs its
+# sysroot and GCC runtime. Keep the real driver private and put a launcher in
+# its place which discovers those paths in the active environment. SwiftPM
+# also uses this launcher through SWIFT_EXEC.
+if [[ "${target_platform}" == linux-* ]]; then
+  rm "${PREFIX}/bin/swiftc"
+  mkdir "${PREFIX}/bin/.swiftc-real"
+  ln -s ../swift-driver "${PREFIX}/bin/.swiftc-real/swiftc"
+  cp "${RECIPE_DIR}/swiftc-wrapper.sh" "${PREFIX}/bin/swiftc"
+  chmod +x "${PREFIX}/bin/swiftc"
+fi
+
 mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
 cp "${RECIPE_DIR}/activate.sh" \
   "${PREFIX}/etc/conda/activate.d/zz-activate-swift.sh"
