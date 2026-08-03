@@ -36,6 +36,19 @@ build:
         # (cross-drive paths trip an isAbsolute assertion in zig's Run step).
         $env.ZIG_LOCAL_CACHE_DIR = $"($drive)\\zlc"   # D:\zlc
         $env.ZIG_GLOBAL_CACHE_DIR = $"($drive)\\zgc"  # D:\zgc
+        # zig ignores %LIB% and locates the MSVC/UCRT import libs via its own
+        # libc description. Generate one from the build image's VS/SDK and point
+        # zig at it via ZIG_LIBC; build.rs runs zig with our inherited env, so no
+        # upstream patch is needed. The printout is a diagnostic: if msvc_lib_dir
+        # / kernel32_lib_dir come back empty, libc.txt must instead be built from
+        # the conda VS activation vars rather than zig's registry autodetection.
+        let libc_txt = $"($drive)\\zig-libc.txt"
+        let libc_desc = (^zig libc)
+        $libc_desc | save --force $libc_txt
+        print "==== zig libc (for ZIG_LIBC) ===="
+        print $libc_desc
+        print "================================="
+        $env.ZIG_LIBC = $libc_txt
       }
 
       if $nu.os-info.name == "linux" {
