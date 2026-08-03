@@ -6,7 +6,7 @@ recipe:
   version: ${{ version }}
 
 source:
-  url: https://github.com/zmactep/pymol-rs/archive/refs/tags/v${{ version }}.tar.gz
+  url: https://github.com/zmactep/patinae/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 9c60739978a59dafc90451dc07c2224489176d35fea8c1e2ff12376a2eb13117
 
 build:
@@ -33,6 +33,7 @@ outputs:
         - pnpm-licenses
         - rust-std-wasm32-unknown-unknown
         - wasm-pack
+        - wasm-bindgen-cli
       host:
         - expat
         - fontconfig
@@ -83,9 +84,15 @@ outputs:
       - script:
           - patinae-cli --help
           - python test_widget_assets.py
+          - pytest -v python/tests/test_labels.py
         files:
           recipe:
             - test_widget_assets.py
+          source:
+            - python/tests/test_labels.py
+        requirements:
+          run:
+            - pytest
     about:
       summary: Python bindings and Jupyter widget for Patinae
 
@@ -95,12 +102,15 @@ outputs:
     build:
       files:
         - libexec/patinae/**
+        - Menu/patinae_menu.json
+        - Menu/patinae.png
         - if: unix
           then:
             - bin/patinae
         - if: win
           then:
             - Scripts/patinae.bat
+            - Menu/patinae.ico
     requirements:
       run:
         - ${{ pin_subpackage('python-patinae', exact=True) }}
@@ -108,6 +118,12 @@ outputs:
           then:
             - fonts-conda-forge
             - libvulkan-loader
+            - libxkbcommon
+            - wayland
+            - xorg-libx11
+            - xorg-libxcursor
+            - xorg-libxi
+            - xorg-libxrandr
     tests:
       - package_contents:
           bin:
@@ -118,17 +134,21 @@ outputs:
             - libexec/patinae/plugins/*ipc_plugin*
             - libexec/patinae/plugins/*python_plugin*
             - libexec/patinae/plugins/*raytracer_plugin*
+            - Menu/patinae_menu.json
       - script:
           - if: linux
             then:
-              - ldd "${PREFIX}/libexec/patinae/bin/patinae"
+              - sh -c 'ldd "${PREFIX}/libexec/patinae/bin/patinae" > ldd.txt && ! grep -q "not found" ldd.txt'
           - if: osx
             then:
-              - otool -L "${PREFIX}/libexec/patinae/bin/patinae"
+              - python test_runtime_deps.py
           - if: win
             then:
-              - dumpbin /DEPENDENTS "%PREFIX%\libexec\patinae\bin\patinae.exe"
+              - python test_runtime_deps.py
           - python -c "import patinae; import patinae.widget"
+        files:
+          recipe:
+            - test_runtime_deps.py
         requirements:
           run:
             - ${{ compiler('c') if win }} # Required to use `dumpbin` for Windows
@@ -136,13 +156,15 @@ outputs:
       summary: Desktop application and native plugins for Patinae
 
 about:
-  homepage: https://zmactep.github.io/pymol-rs
-  repository: https://github.com/zmactep/pymol-rs
-  documentation: https://zmactep.github.io/pymol-rs/docs.html
+  homepage: https://zmactep.github.io/patinae
+  repository: https://github.com/zmactep/patinae
+  documentation: https://zmactep.github.io/patinae/docs.html
   license: BSD-3-Clause
   license_file:
     - LICENSE
     - THIRDPARTY.yml
+    - THIRDPARTY-python.yml
+    - THIRDPARTY-web.yml
     - web/third-party-licenses.txt
   summary: A fast, programmable molecular viewer for research, scripting, and the web
   description: |
