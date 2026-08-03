@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.7.5"
+
+package:
+  name: herdr
+  version: ${{ version }}
+
+source:
+  url: https://github.com/herdrdev/herdr/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5ea0f1003af1801a6a85d201b6fa7e1de46686fccb7df1d3fa3a03c4ec2be68c
+
+build:
+  number: 0
+  script:
+    env:
+      # This env var  specifies the base 2 log of the allocator page size
+      JEMALLOC_SYS_WITH_LG_PAGE: ${{ "16" if target_platform == "linux-aarch64" }} # or target_platform == "linux-ppc64le" }}
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      # Use cmake to build aws-lc-sys, because conda's CFLAGS inject -O2 which
+      # overrides the -O0 required by jitterentropy-base.c, causing a build failure.
+      AWS_LC_SYS_CMAKE_BUILDER: "1"
+    interpreter: nu
+    content: |
+      $env.OPENSSL_DIR = $env.PREFIX
+
+      if $nu.os-info.name == "windows" {
+        # Avoid long path issues
+        let drive = ($env.SRC_DIR | path split | first)  # e.g. "D:"
+        $env.CARGO_TARGET_DIR = $"($drive)\\cb"  # D:\cb
+        $env.CARGO_HOME = $"($drive)\\ch"        # D:\ch
+      }
+
+      if $nu.os-info.name == "linux" {
+        # This flag is needed for tree-sitter on linux
+        $env.CFLAGS = $"($env.CFLAGS) -D_BSD_SOURCE"
+      }
+      cargo auditable install --no-default-features --root $env.PREFIX --no-track --path . --bin herdr
+      cargo-bundle-licenses --format yaml --output $"($env.SRC_DIR)/THIRDPARTY.yml"
+
+      if $nu.os-info.name != "windows" {
+        # Generate shell completions for unix shells
+        let herdr = $"($env.PREFIX)/bin/herdr"
+        mkdir $"($env.PREFIX)/share/bash-completion/completions"
+        mkdir $"($env.PREFIX)/share/zsh/site-functions"
+        mkdir $"($env.PREFIX)/share/fish/vendor_completions.d"
+        ^$herdr completion bash | save --force $"($env.PREFIX)/share/bash-completion/completions/herdr"
+        ^$herdr completion zsh | save --force $"($env.PREFIX)/share/zsh/site-functions/_herdr"
+        ^$herdr completion fish | save --force $"($env.PREFIX)/share/fish/vendor_completions.d/herdr.fish"
+      }
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("rust") }}
+    - ${{ compiler("zig") }}
+    - ${{ stdlib("c") }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - cmake
+    - nushell
+    - pkg-config
+    - if: unix
+      then: make
+    - if: osx
+      then: ld64
+  host:
+    # native-tls links openssl on linux (macOS uses Security.framework,
+    # Windows uses schannel, neither needs a host dependency)
+    - if: linux
+      then: openssl
+
+tests:
+  - script:
+      - herdr --help
+  - package_contents:
+      strict: true
+      bin:
+        - herdr
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/herdr
+            - share/zsh/site-functions/_herdr
+            - share/fish/vendor_completions.d/herdr.fish
+
+about:
+  summary: the runtime your coding agents live on
+  description: |
+    agent multiplexer that lives in your terminal.
+
+    every agent at a glance - blocked, working, done. real terminal views, not a wrapped interpretation.
+    detach, agents keep running - reattach from any terminal, or over ssh. sessions survive restarts.
+    agents can use herdr too - a pure socket api: agents spawn panes, read output, wait on each other.
+    keyboard and mouse, both first-class - tmux-style prefix keys and click, drag, split. pick per moment, not per tool.
+    plugins — extend panes and workflows.
+    one rust binary, no electron - runs in whatever terminal you already use.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://herdr.dev
+  repository: https://github.com/herdrdev/herdr
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    
