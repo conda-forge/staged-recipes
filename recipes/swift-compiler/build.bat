@@ -1,5 +1,5 @@
 @echo on
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 rem First lay out the embedded MSIs. Running the bundle directly is unreliable
 rem on CI workers that already have the same Swift bundle registered.
@@ -11,9 +11,15 @@ rem Administratively extract only the native no-assert compiler, command-line
 rem tools, runtime, and Windows SDK. This avoids modifying the worker's MSI
 rem registration and excludes IDE, debugger, Python, and Android payloads.
 for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
+  set "SWIFT_MSI="
+  for /r "%SRC_DIR%\layout" %%F in (%%M) do set "SWIFT_MSI=%%F"
+  if not defined SWIFT_MSI exit /b 1
   mkdir "%SRC_DIR%\admin\%%~nM"
-  start /wait "" msiexec.exe /a "%SRC_DIR%\layout\%%M" /qn TARGETDIR="%SRC_DIR%\admin\%%~nM" INSTALLROOT="%SRC_DIR%\admin\%%~nM" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
-  if errorlevel 1 exit /b 1
+  start /wait "" msiexec.exe /a "!SWIFT_MSI!" /qn /l*v "%SRC_DIR%\admin\%%~nM.log" TARGETDIR="%SRC_DIR%\admin\%%~nM" INSTALLROOT="%SRC_DIR%\admin\%%~nM" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
+  if errorlevel 1 (
+    type "%SRC_DIR%\admin\%%~nM.log"
+    exit /b 1
+  )
   xcopy /E /I /Y "%SRC_DIR%\admin\%%~nM\*" "%PREFIX%\"
   if errorlevel 1 exit /b 1
 )
