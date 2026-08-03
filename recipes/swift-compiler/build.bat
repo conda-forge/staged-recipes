@@ -11,7 +11,10 @@ rem Administratively extract only the native no-assert compiler, command-line
 rem tools, runtime, and Windows SDK. This avoids modifying the worker's MSI
 rem registration and excludes IDE, debugger, Python, and Android payloads.
 for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
-  start /wait "" msiexec.exe /a "%SRC_DIR%\layout\%%M" /qn TARGETDIR="%PREFIX%" INSTALLROOT="%PREFIX%" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
+  mkdir "%SRC_DIR%\admin\%%~nM"
+  start /wait "" msiexec.exe /a "%SRC_DIR%\layout\%%M" /qn TARGETDIR="%SRC_DIR%\admin\%%~nM" INSTALLROOT="%SRC_DIR%\admin\%%~nM" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
+  if errorlevel 1 exit /b 1
+  xcopy /E /I /Y "%SRC_DIR%\admin\%%~nM\*" "%PREFIX%\"
   if errorlevel 1 exit /b 1
 )
 

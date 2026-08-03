@@ -14,3 +14,5 @@ if [[ -n "${CONDA_SWIFTFLAGS_SET:-}" ]]; then
   unset CONDA_SWIFTFLAGS_BACKUP
   unset CONDA_SWIFTFLAGS_SET
 fi
+
+true
