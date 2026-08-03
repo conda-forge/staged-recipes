@@ -1,12 +1,19 @@
 @echo on
 setlocal EnableExtensions
 
-rem Install only the native no-assert compiler, command-line tools, runtime, and
-rem Windows SDK into the conda prefix. Avoid IDE, debugger, Python, Android,
-rem and non-native SDK payloads.
-start /wait "" "%SRC_DIR%\swift-installer.exe" /quiet /norestart InstallRoot="%PREFIX%" OptionsInstallAssertsToolchain=0 OptionsInstallNoAssertsToolchain=1 OptionsInstallCLI=1 OptionsInstallDBG=0 OptionsInstallPy=0 OptionsInstallIDE=0 OptionsInstallAndroidPlatform=0 OptionsInstallWindowsPlatform=1 OptionsInstallWindowsSDKX86=0 OptionsInstallWindowsRedistX86=0 OptionsInstallWindowsSDKAMD64=1 OptionsInstallWindowsRedistAMD64=1 OptionsInstallWindowsSDKARM64=0 OptionsInstallWindowsRedistARM64=0
-if errorlevel 3011 exit /b %errorlevel%
-if errorlevel 1 if not errorlevel 3010 exit /b %errorlevel%
+rem First lay out the embedded MSIs. Running the bundle directly is unreliable
+rem on CI workers that already have the same Swift bundle registered.
+mkdir "%SRC_DIR%\layout"
+start /wait "" "%SRC_DIR%\swift-installer.exe" /quiet /norestart /layout "%SRC_DIR%\layout"
+if errorlevel 1 exit /b %errorlevel%
+
+rem Administratively extract only the native no-assert compiler, command-line
+rem tools, runtime, and Windows SDK. This avoids modifying the worker's MSI
+rem registration and excludes IDE, debugger, Python, and Android payloads.
+for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
+  start /wait "" msiexec.exe /a "%SRC_DIR%\layout\%%M" /qn TARGETDIR="%PREFIX%" INSTALLROOT="%PREFIX%" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
+  if errorlevel 1 exit /b 1
+)
 
 if not exist "%PREFIX%\Toolchains\*\usr\bin\swiftc.exe" exit /b 1
 
