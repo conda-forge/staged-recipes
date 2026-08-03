@@ -17,15 +17,15 @@ if not defined ESBUILD_BINARY_PATH (
   exit /b 1
 )
 
-@REM Locate wasm-pack from the conda build environment
-set "WASM_PACK="
-if exist "%BUILD_PREFIX%\Library\bin\wasm-pack.exe" set "WASM_PACK=%BUILD_PREFIX%\Library\bin\wasm-pack.exe"
-if not defined WASM_PACK if exist "%BUILD_PREFIX%\bin\wasm-pack.exe" set "WASM_PACK=%BUILD_PREFIX%\bin\wasm-pack.exe"
-if not defined WASM_PACK (
-  for /f "delims=" %%I in ('where wasm-pack 2^>NUL') do if not defined WASM_PACK set "WASM_PACK=%%~fI"
+@REM Locate wasm-bindgen from the conda build environment
+set "WASM_BINDGEN="
+if exist "%BUILD_PREFIX%\Library\bin\wasm-bindgen.exe" set "WASM_BINDGEN=%BUILD_PREFIX%\Library\bin\wasm-bindgen.exe"
+if not defined WASM_BINDGEN if exist "%BUILD_PREFIX%\bin\wasm-bindgen.exe" set "WASM_BINDGEN=%BUILD_PREFIX%\bin\wasm-bindgen.exe"
+if not defined WASM_BINDGEN (
+  for /f "delims=" %%I in ('where wasm-bindgen 2^>NUL') do if not defined WASM_BINDGEN set "WASM_BINDGEN=%%~fI"
 )
-if not defined WASM_PACK (
-  echo wasm-pack.exe not found
+if not defined WASM_BINDGEN (
+  echo wasm-bindgen.exe not found
   exit /b 1
 )
 
@@ -121,6 +121,11 @@ call pnpm install --ignore-scripts --frozen-lockfile
 if errorlevel 1 exit /b !ERRORLEVEL!
 
 @REM Build the WebAssembly viewer without inheriting native Rust linker flags
+@REM NOTE: wasm-pack is intentionally not used here. wasm-pack always attempts
+@REM to download a matching wasm-bindgen binary at build time, which fails in
+@REM the network-isolated conda-forge build environment. wasm-bindgen-cli is
+@REM already installed as a build dependency, so cargo and wasm-bindgen are
+@REM invoked directly instead.
 setlocal
 set "RUSTFLAGS="
 set "CARGO_ENCODED_RUSTFLAGS="
@@ -129,7 +134,18 @@ set "CARGO_BUILD_TARGET="
 set "LDFLAGS="
 set "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="
 set "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER="
-call "%WASM_PACK%" build --target web --out-dir pkg --no-opt --mode no-install
+
+set "WASM_TARGET_ROOT=target"
+if defined CARGO_TARGET_DIR set "WASM_TARGET_ROOT=%CARGO_TARGET_DIR%"
+
+cargo build --release --locked --target wasm32-unknown-unknown -p patinae-web
+if errorlevel 1 (
+  endlocal
+  exit /b 1
+)
+
+if not exist pkg mkdir pkg
+call "%WASM_BINDGEN%" --target web --out-dir pkg --no-typescript "%WASM_TARGET_ROOT%\wasm32-unknown-unknown\release\patinae_web.wasm"
 set "WASM_STATUS=%ERRORLEVEL%"
 endlocal & if not "%WASM_STATUS%"=="0" exit /b %WASM_STATUS%
 
