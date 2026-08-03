@@ -9,9 +9,21 @@ if errorlevel 1 exit /b 1
 mkdir "%SRC_DIR%\layout"
 7z x -y "%SRC_DIR%\attached.cab" -o"%SRC_DIR%\layout" a1 a3 a9 a11 a13 a15 a21 a27 a28 a29 a30 a31 a32 a33 a34
 if errorlevel 1 exit /b 1
-for %%P in (a1=bld.noasserts.msi a3=cli.noasserts.msi a9=rtl.msi a11=windows.msi a13=bld.noasserts.cab a15=cli.noasserts.cab a21=rtl.cab a27=windows.cab a28=sdk.windows.arm64.cab a29=sdk.windows.x64.cab a30=sdk.windows.x86.cab a31=windows.experimental.cab a32=sdk.windows.experimental.arm64.cab a33=sdk.windows.experimental.x64.cab a34=sdk.windows.experimental.x86.cab) do (
-  for /f "tokens=1,2 delims==" %%A in ("%%P") do move /y "%SRC_DIR%\layout\%%A" "%SRC_DIR%\layout\%%B"
-)
+move /y "%SRC_DIR%\layout\a1" "%SRC_DIR%\layout\bld.noasserts.msi"
+move /y "%SRC_DIR%\layout\a3" "%SRC_DIR%\layout\cli.noasserts.msi"
+move /y "%SRC_DIR%\layout\a9" "%SRC_DIR%\layout\rtl.msi"
+move /y "%SRC_DIR%\layout\a11" "%SRC_DIR%\layout\windows.msi"
+move /y "%SRC_DIR%\layout\a13" "%SRC_DIR%\layout\bld.noasserts.cab"
+move /y "%SRC_DIR%\layout\a15" "%SRC_DIR%\layout\cli.noasserts.cab"
+move /y "%SRC_DIR%\layout\a21" "%SRC_DIR%\layout\rtl.cab"
+move /y "%SRC_DIR%\layout\a27" "%SRC_DIR%\layout\windows.cab"
+move /y "%SRC_DIR%\layout\a28" "%SRC_DIR%\layout\sdk.windows.arm64.cab"
+move /y "%SRC_DIR%\layout\a29" "%SRC_DIR%\layout\sdk.windows.x64.cab"
+move /y "%SRC_DIR%\layout\a30" "%SRC_DIR%\layout\sdk.windows.x86.cab"
+move /y "%SRC_DIR%\layout\a31" "%SRC_DIR%\layout\windows.experimental.cab"
+move /y "%SRC_DIR%\layout\a32" "%SRC_DIR%\layout\sdk.windows.experimental.arm64.cab"
+move /y "%SRC_DIR%\layout\a33" "%SRC_DIR%\layout\sdk.windows.experimental.x64.cab"
+move /y "%SRC_DIR%\layout\a34" "%SRC_DIR%\layout\sdk.windows.experimental.x86.cab"
 
 rem Administratively extract only the native no-assert compiler, command-line
 rem tools, runtime, and Windows SDK. This avoids modifying the worker's MSI
