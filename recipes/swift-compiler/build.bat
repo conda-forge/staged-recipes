@@ -26,20 +26,24 @@ move /y "%SRC_DIR%\layout\a33" "%SRC_DIR%\layout\sdk.windows.experimental.x64.ca
 move /y "%SRC_DIR%\layout\a34" "%SRC_DIR%\layout\sdk.windows.experimental.x86.cab"
 
 rem Administratively extract only the native no-assert compiler, command-line
-rem tools, runtime, and Windows SDK. This avoids modifying the worker's MSI
-rem registration and excludes IDE, debugger, Python, and Android payloads.
+rem tools, runtime, and Windows SDK. Use a short path because the platform SDK
+rem contains filenames which exceed MAX_PATH under rattler-build's work path.
+for %%D in ("%SRC_DIR%") do set "SWIFT_ADMIN=%%~dD\swift-admin"
+rmdir /S /Q "!SWIFT_ADMIN!" 2>nul
+mkdir "!SWIFT_ADMIN!"
 for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
   set "SWIFT_MSI=%SRC_DIR%\layout\%%M"
   if not exist "!SWIFT_MSI!" exit /b 1
-  mkdir "%SRC_DIR%\admin\%%~nM"
-  start /wait "" msiexec.exe /a "!SWIFT_MSI!" /qn /l*v "%SRC_DIR%\admin\%%~nM.log" TARGETDIR="%SRC_DIR%\admin\%%~nM" INSTALLROOT="%SRC_DIR%\admin\%%~nM" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
+  mkdir "!SWIFT_ADMIN!\%%~nM"
+  start /wait "" msiexec.exe /a "!SWIFT_MSI!" /qn /l*v "!SWIFT_ADMIN!\%%~nM.log" TARGETDIR="!SWIFT_ADMIN!\%%~nM" INSTALLROOT="!SWIFT_ADMIN!\%%~nM" INSTALLAMD64SDK=1 INSTALLAMD64REDIST=1 INSTALLX86SDK=0 INSTALLX86REDIST=0 INSTALLARM64SDK=0 INSTALLARM64REDIST=0
   if errorlevel 1 (
-    type "%SRC_DIR%\admin\%%~nM.log"
+    type "!SWIFT_ADMIN!\%%~nM.log"
     exit /b 1
   )
-  xcopy /E /I /Y "%SRC_DIR%\admin\%%~nM\*" "%PREFIX%\"
+  xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\LocalApp\Programs\Swift\*" "%PREFIX%\"
   if errorlevel 1 exit /b 1
 )
+rmdir /S /Q "!SWIFT_ADMIN!"
 
 if not exist "%PREFIX%\Toolchains\*\usr\bin\swiftc.exe" exit /b 1
 
