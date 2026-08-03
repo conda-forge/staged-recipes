@@ -40,7 +40,13 @@ for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
     type "!SWIFT_ADMIN!\%%~nM.log"
     exit /b 1
   )
-  xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\LocalApp\Programs\Swift\*" "%PREFIX%\"
+  if /i "%%M"=="rtl.msi" (
+    rem The runtime MSI targets TARGETDIR directly. Put its DLLs beside swiftc
+    rem so executables built by Swift can find them through the activated PATH.
+    for /d %%T in ("%PREFIX%\Toolchains\*") do xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\*" "%%T\usr\bin\"
+  ) else (
+    xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\LocalApp\Programs\Swift\*" "%PREFIX%\"
+  )
   if errorlevel 1 exit /b 1
 )
 rmdir /S /Q "!SWIFT_ADMIN!"
