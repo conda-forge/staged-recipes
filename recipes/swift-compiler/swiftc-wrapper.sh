@@ -3,7 +3,7 @@ set -e
 
 bin_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 prefix="${bin_dir%/bin}"
-real_driver="${bin_dir}/.swiftc-real/swiftc"
+real_driver="${prefix}/libexec/swift/bin/swiftc"
 
 swift_sysroot=""
 for candidate in "${prefix}"/*/sysroot; do

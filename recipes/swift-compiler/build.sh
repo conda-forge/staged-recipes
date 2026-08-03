@@ -13,21 +13,34 @@ else
   toolchain_usr="${SRC_DIR}/usr"
 fi
 
-# Flatten the upstream toolchain's usr directory into the conda prefix while
-# preserving the relative bin/lib/share layout used by the compiler.
-cp -R "${toolchain_usr}/." "${PREFIX}/"
-find "${PREFIX}" -name '._*' -delete
+# Keep Swift's version-coupled LLVM/Clang toolchain private. Flattening it into
+# PREFIX would collide with conda-forge's clang, lld, and lldb packages.
+toolchain_root="${PREFIX}/libexec/swift"
+mkdir -p "${toolchain_root}"
+cp -R "${toolchain_usr}/." "${toolchain_root}/"
+find "${toolchain_root}" -name '._*' -delete
+
+# Expose only Swift-facing tools. Relative links keep the complete upstream
+# bin/lib/share layout intact for tools which resolve resources via realpath.
+mkdir -p "${PREFIX}/bin"
+for swift_tool in \
+  sourcekit-lsp swift swift-api-digester swift-autolink-extract swift-build \
+  swift-build-tool swift-demangle swift-experimental-sdk swift-format \
+  swift-package swift-package-collection swift-package-registry swift-plugin-server \
+  swift-run swift-sdk swift-symbolgraph-extract swift-test; do
+  if [[ -e "${toolchain_root}/bin/${swift_tool}" ]]; then
+    ln -s "../libexec/swift/bin/${swift_tool}" "${PREFIX}/bin/${swift_tool}"
+  fi
+done
 
 # The upstream Linux driver does not know where conda-forge installs its
-# sysroot and GCC runtime. Keep the real driver private and put a launcher in
-# its place which discovers those paths in the active environment. SwiftPM
-# also uses this launcher through SWIFT_EXEC.
+# sysroot and GCC runtime. This public launcher supplies those paths, and
+# SwiftPM also uses it through SWIFT_EXEC.
 if [[ "${target_platform}" == linux-* ]]; then
-  rm "${PREFIX}/bin/swiftc"
-  mkdir "${PREFIX}/bin/.swiftc-real"
-  ln -s ../swift-driver "${PREFIX}/bin/.swiftc-real/swiftc"
   cp "${RECIPE_DIR}/swiftc-wrapper.sh" "${PREFIX}/bin/swiftc"
   chmod +x "${PREFIX}/bin/swiftc"
+else
+  ln -s "../libexec/swift/bin/swiftc" "${PREFIX}/bin/swiftc"
 fi
 
 mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
