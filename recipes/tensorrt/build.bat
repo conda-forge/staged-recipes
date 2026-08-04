@@ -20,15 +20,15 @@ if "%PKG_NAME%"=="libnvinfer" (
 
 set "TRT_PATTERN="
 set "TRT_BIN_PATTERN="
-if "%PKG_NAME%"=="libnvinfer-dev" (
+if "%PKG_NAME%"=="libnvinfer-devel" (
   set "TRT_PATTERN=*/lib/nvinfer_[0123456789]*.lib"
   set "TRT_BIN_PATTERN=*/bin/trtexec.exe"
 )
-if "%PKG_NAME%"=="libnvinfer-dispatch-dev" set "TRT_PATTERN=*/lib/nvinfer_dispatch*.lib"
-if "%PKG_NAME%"=="libnvinfer-lean-dev" set "TRT_PATTERN=*/lib/nvinfer_lean*.lib"
-if "%PKG_NAME%"=="libnvinfer-plugin-dev" set "TRT_PATTERN=*/lib/nvinfer_plugin*.lib"
-if "%PKG_NAME%"=="libnvinfer-vc-plugin-dev" set "TRT_PATTERN=*/lib/nvinfer_vc_plugin*.lib"
-if "%PKG_NAME%"=="libnvonnxparser-dev" set "TRT_PATTERN=*/lib/nvonnxparser*.lib"
+if "%PKG_NAME%"=="libnvinfer-dispatch-devel" set "TRT_PATTERN=*/lib/nvinfer_dispatch*.lib"
+if "%PKG_NAME%"=="libnvinfer-lean-devel" set "TRT_PATTERN=*/lib/nvinfer_lean*.lib"
+if "%PKG_NAME%"=="libnvinfer-plugin-devel" set "TRT_PATTERN=*/lib/nvinfer_plugin*.lib"
+if "%PKG_NAME%"=="libnvinfer-vc-plugin-devel" set "TRT_PATTERN=*/lib/nvinfer_vc_plugin*.lib"
+if "%PKG_NAME%"=="libnvonnxparser-devel" set "TRT_PATTERN=*/lib/nvonnxparser*.lib"
 if "%PKG_NAME%"=="libnvinfer-dispatch" set "TRT_PATTERN=*/bin/nvinfer_dispatch_*.dll"
 if "%PKG_NAME%"=="libnvinfer-lean" set "TRT_PATTERN=*/bin/nvinfer_lean_*.dll"
 if "%PKG_NAME%"=="libnvinfer-plugin" set "TRT_PATTERN=*/bin/nvinfer_plugin_*.dll"

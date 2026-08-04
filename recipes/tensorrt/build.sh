@@ -14,25 +14,25 @@ case "${PKG_NAME}" in
     mv -v include/NvInfer* include/NvOnnx* "${PREFIX}/include/"
     exit 0
     ;;
-  libnvinfer-dev)
+  libnvinfer-devel)
     files=(
       '*/bin/trtexec'
       '*/lib/libnvinfer.so'
     )
     ;;
-  libnvinfer-dispatch-dev)
+  libnvinfer-dispatch-devel)
     files=('*/lib/libnvinfer_dispatch.so')
     ;;
-  libnvinfer-lean-dev)
+  libnvinfer-lean-devel)
     files=('*/lib/libnvinfer_lean.so')
     ;;
-  libnvinfer-plugin-dev)
+  libnvinfer-plugin-devel)
     files=('*/lib/libnvinfer_plugin.so')
     ;;
-  libnvinfer-vc-plugin-dev)
+  libnvinfer-vc-plugin-devel)
     files=('*/lib/libnvinfer_vc_plugin.so')
     ;;
-  libnvonnxparser-dev)
+  libnvonnxparser-devel)
     files=('*/lib/libnvonnxparser.so')
     ;;
   libnvinfer)
