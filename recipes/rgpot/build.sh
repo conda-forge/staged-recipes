@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# MESON_ARGS already carries --prefix and --libdir from the activation.
+# MESON_ARGS already sets -Dbuildtype=release, --prefix, and -Dlibdir.
 meson setup builddir \
   ${MESON_ARGS} \
-  --buildtype=release \
   -Dwith_rpc=true \
   -Dwith_fortran_pots=enabled \
   -Dwith_eigen=true \
