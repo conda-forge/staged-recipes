@@ -41,9 +41,10 @@ for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
     exit /b 1
   )
   if /i "%%M"=="rtl.msi" (
-    rem The runtime MSI targets TARGETDIR directly. Put its DLLs beside swiftc
-    rem so executables built by Swift can find them through the activated PATH.
-    for /d %%T in ("%PREFIX%\Toolchains\*") do xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\*" "%%T\usr\bin\"
+    rem The runtime MSI targets TARGETDIR directly. Library\bin is on conda's
+    rem standard Windows PATH without exposing Swift's private Clang binaries.
+    mkdir "%PREFIX%\Library\bin"
+    xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\*" "%PREFIX%\Library\bin\"
   ) else (
     xcopy /E /I /Y "!SWIFT_ADMIN!\%%~nM\LocalApp\Programs\Swift\*" "%PREFIX%\"
   )
