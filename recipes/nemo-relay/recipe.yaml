@@ -121,22 +121,25 @@ outputs:
             pnpm install --frozen-lockfile --ignore-scripts
             pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
             rm -rf node_modules/
-            npm install --workspace=nemo-relay-node --ignore-scripts
+            npm ci --workspace=nemo-relay-node --ignore-scripts
             npm run build --workspace=nemo-relay-node
             mkdir -p ${PREFIX}/lib/node_modules/nemo-relay-node
             cp crates/node/*.node crates/node/index.js crates/node/index.d.ts ${PREFIX}/lib/node_modules/nemo-relay-node/
         - if: win
           then: |
-            call pnpm import
-            call pnpm install --frozen-lockfile --ignore-scripts
-            call pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
-            rmdir /s /q node_modules
-            call npm install --workspace=nemo-relay-node --ignore-scripts
-            call npm run build --workspace=nemo-relay-node
-            if not exist "%PREFIX%\node_modules\nemo-relay-node" mkdir "%PREFIX%\node_modules\nemo-relay-node"
-            copy crates\node\*.node "%PREFIX%\node_modules\nemo-relay-node\"
-            copy crates\node\index.js "%PREFIX%\node_modules\nemo-relay-node\"
-            copy crates\node\index.d.ts "%PREFIX%\node_modules\nemo-relay-node\"
+            @echo on
+            call pnpm import || exit /b 1
+            call pnpm install --frozen-lockfile --ignore-scripts || exit /b 1
+            call pnpm licenses list --json --prod --filter=nemo-relay-node > licenses.json || exit /b 1
+            call pnpm-licenses generate-disclaimer --json-input-file=licenses.json --output-file=THIRDPARTY-node.txt || exit /b 1
+            del licenses.json || exit /b 1
+            rmdir /s /q node_modules || exit /b 1
+            call npm ci --workspace=nemo-relay-node --ignore-scripts || exit /b 1
+            call npm run build --workspace=nemo-relay-node || exit /b 1
+            if not exist "%PREFIX%\node_modules\nemo-relay-node" mkdir "%PREFIX%\node_modules\nemo-relay-node" || exit /b 1
+            copy crates\node\*.node "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
+            copy crates\node\index.js "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
+            copy crates\node\index.d.ts "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
     requirements:
       build:
         - ${{ compiler('rust') }}
