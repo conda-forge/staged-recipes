@@ -1,12 +1,9 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-REM Fortran pots are off on Windows for now: the kernels build with flang,
-REM whose llvm-ar writes GNU-format archives that MSVC's link.exe rejects
-REM (LNK1107). The flang/MSVC kernel leg is a separate phase upstream.
-meson setup builddir ^
-  --prefix="%LIBRARY_PREFIX%" ^
-  --libdir=lib ^
+REM Fortran pots off on Windows: flang archives + MSVC link are incompatible.
+REM MESON_ARGS already carries --prefix/--libdir from the activation.
+meson setup builddir %MESON_ARGS% ^
   --buildtype=release ^
   -Dwith_rpc=true ^
   -Dwith_fortran_pots=disabled ^

@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# meson is the authoritative build: the potentials -- the classical pair pots
-# and the Fortran 2018 kernels -- are wired there, and it is what installs
-# rgpot.pc. The CMake build is a consumer/smoke build carrying a subset.
+# MESON_ARGS already carries --prefix and --libdir from the activation.
 meson setup builddir \
-  --prefix="${PREFIX}" \
-  --libdir=lib \
+  ${MESON_ARGS} \
   --buildtype=release \
   -Dwith_rpc=true \
   -Dwith_fortran_pots=enabled \
