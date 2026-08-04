@@ -34,19 +34,27 @@ outputs:
           CARGO_PROFILE_RELEASE_LTO: fat
         content:
           - set -euo pipefail
-          - cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
+          - cargo auditable build --release --no-track --locked -p nemo-relay-cli -p nemo-relay-ffi
+          - |
+            # Resolve Cargo target and release directories
+            target_root="${CARGO_TARGET_DIR:-target}"
+            release_dir="${target_root}/release"
+            if [[ -n "${CARGO_BUILD_TARGET:-}" ]]; then
+              release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
+            fi
+            export NEMO_RELEASE_DIR="${release_dir}"
           - if: unix
             then: |
               mkdir -p ${PREFIX}/bin ${PREFIX}/lib ${PREFIX}/include
-              cp target/release/nemo-relay ${PREFIX}/bin/
-              cp target/release/libnemo_relay_ffi.* ${PREFIX}/lib/
+              cp "${NEMO_RELEASE_DIR}/nemo-relay" ${PREFIX}/bin/
+              cp "${NEMO_RELEASE_DIR}"/libnemo_relay_ffi.* ${PREFIX}/lib/
               cp crates/ffi/*.h ${PREFIX}/include/
           - if: win
             then: |
               mkdir -p ${LIBRARY_BIN} ${LIBRARY_LIB} ${LIBRARY_INC}
-              cp target/release/nemo-relay.exe ${LIBRARY_BIN}
-              cp target/release/nemo_relay_ffi.dll ${LIBRARY_BIN}
-              cp target/release/nemo_relay_ffi.dll.lib ${LIBRARY_LIB}
+              cp "${NEMO_RELEASE_DIR}/nemo-relay.exe" ${LIBRARY_BIN}
+              cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll" ${LIBRARY_BIN}
+              cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll.lib" ${LIBRARY_LIB}
               cp crates/ffi/*.h ${LIBRARY_INC}
           - cargo bundle-licenses --format yaml --output THIRDPARTY.yml
 
