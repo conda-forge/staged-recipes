@@ -1,0 +1,67 @@
+--- a/CppCore/rgpot/rpc/pot_bridge.h
++++ b/CppCore/rgpot/rpc/pot_bridge.h
+@@ -16,6 +16,18 @@
+ extern "C" {
+ #endif
+ 
++/* MSVC shared builds need an explicit export or pot_client_bridge.lib is not
++ * produced and meson install fails looking for the import library. */
++#if defined(_WIN32) || defined(_WIN64)
++#  if defined(POT_BRIDGE_BUILD)
++#    define POT_BRIDGE_API __declspec(dllexport)
++#  else
++#    define POT_BRIDGE_API __declspec(dllimport)
++#  endif
++#else
++#  define POT_BRIDGE_API
++#endif
++
+ /**
+  * @brief Opaque handle to the client context.
+  */
+@@ -28,14 +40,14 @@
+  * @return Pointer to the client context or @c NULL on failure.
+  * @see pot_get_last_error
+  */
+-PotClient *pot_client_init(const char *host, int32_t port);
++POT_BRIDGE_API PotClient *pot_client_init(const char *host, int32_t port);
+ 
+ /**
+  * @brief Frees all resources associated with the client.
+  * @param client The opaque client handle to release.
+  * @return Void.
+  */
+-void pot_client_free(PotClient *client);
++POT_BRIDGE_API void pot_client_free(PotClient *client);
+ 
+ /**
+  * @brief Executes a remote potential calculation.
+@@ -49,7 +61,7 @@
+  * @param out_forces Buffer to store the calculated forces.
+  * @return 0 on success, non-zero on failure.
+  */
+-int32_t pot_calculate(PotClient *client, int32_t natoms, const double *pos,
++POT_BRIDGE_API int32_t pot_calculate(PotClient *client, int32_t natoms, const double *pos,
+                       const int32_t *atmnrs, const double *box,
+                       double *out_energy, double *out_forces);
+ 
+@@ -58,7 +70,7 @@
+  * @param client The opaque client handle.
+  * @return String containing the error description.
+  */
+-const char *pot_get_last_error(PotClient *client);
++POT_BRIDGE_API const char *pot_get_last_error(PotClient *client);
+ 
+ #ifdef __cplusplus
+ }
+--- a/CppCore/rgpot/rpc/meson.build
++++ b/CppCore/rgpot/rpc/meson.build
+@@ -93,7 +93,7 @@
+     ['pot_bridge.cc'],
+     link_with: ptlrpc,
+     dependencies: [capnp_rpc_dep, ptlrpc_hdr_dep],
+-    cpp_args: _args,
++    cpp_args: _args + ['-DPOT_BRIDGE_BUILD'],
+     # gen_rpc outputs live in the build dir; include it explicitly so
+     # Potentials.capnp.h is found even when only pot_bridge.cc is compiled first.
+     include_directories: _incdirs + [include_directories('.')],
