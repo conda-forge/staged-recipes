@@ -1,0 +1,42 @@
+diff --git a/CppCore/meson.build b/CppCore/meson.build
+index 8bda93b..9939ad1 100644
+--- a/CppCore/meson.build
++++ b/CppCore/meson.build
+@@ -108,10 +108,20 @@ if not get_option('with_rpc_client_only')
+     if has_fortran
+         _rgpot_link_args += _fortran_hide_args
+     endif
++    _rgpot_srcs = []
++    _rgpot_cpp_args = _args
++    if host_system == 'windows'
++        # MSVC omits the import library when a DLL exports no symbols.
++        _rgpot_srcs += files('rgpot/win_export.cc')
++        _rgpot_cpp_args += [
++            '-DMESON_PROJECT_VERSION="@0@"'.format(meson.project_version()),
++        ]
++    endif
+     rgpot = library(
+         'rgpot',
++        _rgpot_srcs,
+         dependencies: rgpot_deps,
+-        cpp_args: _args,
++        cpp_args: _rgpot_cpp_args,
+         link_args: _rgpot_link_args,
+         include_directories: _incdirs,
+         link_whole: [rgpot_core] + _linkto + _rpc_whole,
+diff --git a/CppCore/rgpot/win_export.cc b/CppCore/rgpot/win_export.cc
+new file mode 100644
+index 0000000..0a8f356
+--- /dev/null
++++ b/CppCore/rgpot/win_export.cc
+@@ -0,0 +1,10 @@
++// MIT License
++// Copyright 2023--present rgpot developers
++
++// MSVC produces no import library for a DLL that exports nothing. Export a
++// version string so meson install can find rgpot.lib next to rgpot-*.dll.
++#if defined(_WIN32) || defined(_WIN64)
++extern "C" __declspec(dllexport) const char *rgpot_library_version(void) {
++  return MESON_PROJECT_VERSION;
++}
++#endif
