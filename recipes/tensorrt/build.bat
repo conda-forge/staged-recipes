@@ -1,7 +1,7 @@
 @echo on
 
 if "%PKG_NAME%"=="libnvinfer-headers" (
-  tar -xf tensorrt.zip --strip-components 1 "*/include/NvInfer*" "*/include/NvOnnx*" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
+  bsdtar -xf tensorrt.zip --strip-components 1 "*/include/NvInfer*" "*/include/NvOnnx*" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
   if errorlevel 1 exit /b 1
   del /Q tensorrt.zip
   if not exist "%LIBRARY_INC%" mkdir "%LIBRARY_INC%"
@@ -13,7 +13,7 @@ if "%PKG_NAME%"=="libnvinfer-headers" (
 )
 
 if "%PKG_NAME%"=="libnvinfer" (
-  tar -xf tensorrt.zip --strip-components 1 "*/bin/nvinfer_[0123456789]*.dll" "*/bin/nvinfer_builder_resource_*.dll" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
+  bsdtar -xf tensorrt.zip --strip-components 1 "*/bin/nvinfer_[0123456789]*.dll" "*/bin/nvinfer_builder_resource_*.dll" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
   if errorlevel 1 exit /b 1
   goto extracted
 )
@@ -41,9 +41,9 @@ if not defined TRT_PATTERN (
 )
 
 if defined TRT_BIN_PATTERN (
-  tar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "%TRT_BIN_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
+  bsdtar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "%TRT_BIN_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
 ) else (
-  tar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
+  bsdtar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
 )
 
 :extracted
