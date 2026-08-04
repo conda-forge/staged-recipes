@@ -1,0 +1,185 @@
+schema_version: 1
+
+context:
+  version: "16.0.0"
+
+package:
+  name: weston
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.freedesktop.org/wayland/weston/-/releases/${{ version }}/downloads/weston-${{ version }}.tar.xz
+  sha256: dfb32e2bccabda957b94a8d0ec6075acd18c71c87ebc543ee3e618d294ca0f7f
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+  dynamic_linking:
+    missing_dso_allowlist:
+      # libpam is only linked through pam-stubs, whose stub lives in lib/stubs
+      # (off the runtime path), so the NEEDED libpam.so.0 on libweston-16.so has
+      # no conda provider and is treated as a missing DSO; allowlist it and let
+      # the SYSTEM pam resolve it at runtime.
+      #
+      # The soft rdp/vnc/pipewire backend libraries (freerdp/neatvnc/aml/
+      # pipewire) do NOT need to be listed here: they are present in host, so
+      # linking them from the backend modules is flagged as overlinking, which
+      # is a non-fatal warning in the rattler-build path, not a missing DSO.
+      - libpam.so.0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # wayland-scanner has to run on the build machine, so wayland is needed
+    # in build as well as in host. See build.sh.
+    - wayland
+    # Provides glslangValidator, which compiles the vulkan renderer's shaders
+    # to SPIR-V on the build machine.
+    - glslang
+  host:
+    - wayland
+    - wayland-protocols
+    - pixman
+    - libxkbcommon
+    - libinput
+    - libevdev
+    - libdrm
+    - seatd
+    - libdisplay-info
+    - libudev
+    - libsystemd
+    - cairo
+    - libpng
+    - lcms2
+    - libjpeg-turbo
+    - libwebp
+    - libegl-devel
+    - libgles-devel
+    - libgbm
+    # The vulkan renderer needs both: libvulkan-loader ships vulkan.pc and
+    # libvulkan.so.1 but no headers at all, despite its .pc advertising
+    # -I${includedir}.
+    - libvulkan-headers
+    - libvulkan-loader
+    - libxcb
+    - xorg-libx11
+    # xwayland support needs xcursor and cairo-xcb at build time, and reads
+    # have_listenfd out of Xwayland's own xwayland.pc.
+    - xorg-libxcursor
+    - xwayland
+    # lua-shell. conda-forge's lua ships lua.pc, and 5.5 satisfies weston's
+    # `lua >= 5.4`.
+    - lua
+    - pango
+    # gobject-2.0 is used directly by the demo clients. This has to be `glib`
+    # rather than `libglib`: glib-2.0.pc advertises -I${libdir}/glib-2.0/include
+    # but glibconfig.h itself only ships in `glib`.
+    - glib
+    # Not used directly, but cairo.pc and libpng.pc name zlib and (via
+    # fontconfig) expat under Requires.private, and pkg-config has to resolve
+    # those before it will emit cflags for cairo/libpng/pango.
+    - zlib
+    - expat
+    # vnc/rdp/pipewire backends are built here (needed at build time to link
+    # the backend modules) but are OPTIONAL at runtime -- see run_constraints
+    # and ignore_run_exports below. Each backend is a separate dlopen'd module,
+    # so a plain `weston` install stays light and only pulls these heavy trees
+    # (freerdp -> openssl/json-c/icu, neatvnc -> gnutls/nettle, pipewire -> dbus)
+    # when the user opts into that backend.
+    # pam-stubs provides a link-only libpam.so stub so vnc-backend.so resolves
+    # at build time; the system pam takes over at runtime (see
+    # missing_dso_allowlist), so it is host-only and absent from run.
+    - neatvnc      # vnc backend (pulls aml)
+    - aml
+    - pam-stubs
+    - freerdp      # rdp backend
+    - pipewire     # pipewire backend
+  ignore_run_exports:
+    # Do not let the backend libraries' run_exports turn into hard runtime
+    # dependencies of the base weston package; they are declared as soft
+    # run_constraints instead.
+    by_name:
+      - neatvnc
+      - aml
+      - freerdp
+      - pipewire
+  run_constraints:
+    # weston execs Xwayland at the path baked in by -Dxwayland-path rather than
+    # linking to it (xwayland ships no shared library at all, so there is no
+    # run_export either). X11 support is only needed if it is actually used, so
+    # this is a constraint rather than a dependency -- a headless weston does
+    # not pull in an X server. It still has to be pinned: weston reads
+    # have_listenfd and friends out of xwayland.pc at build time and bakes the
+    # result into libexec_weston, so a mismatched Xwayland would misbehave.
+    - ${{ pin_compatible('xwayland') }}
+    # Optional backend dependencies. Not installed with weston, but if the user
+    # adds them (to enable that backend's dlopen'd module) they are pinned to a
+    # compatible version. neatvnc pulls aml via its own run_export, but aml is
+    # constrained too since vnc-backend.so links it directly.
+    - ${{ pin_compatible('neatvnc') }}
+    - ${{ pin_compatible('aml') }}
+    - ${{ pin_compatible('freerdp') }}
+    - ${{ pin_compatible('pipewire') }}
+
+tests:
+  - package_contents:
+      bin:
+        - weston
+        - weston-terminal
+        - weston-screenshooter
+      files:
+        - lib/libweston-16.so.0
+        - lib/libweston-16/drm-backend.so
+        - lib/libweston-16/headless-backend.so
+        - lib/libweston-16/wayland-backend.so
+        - lib/libweston-16/x11-backend.so
+        - lib/libweston-16/rdp-backend.so
+        - lib/libweston-16/vnc-backend.so
+        - lib/libweston-16/pipewire-backend.so
+        - lib/libweston-16/gl-renderer.so
+        - lib/libweston-16/vulkan-renderer.so
+        - lib/weston/desktop-shell.so
+        - lib/weston/lua-shell.so
+  - script:
+      - weston --version
+      - pkg-config --modversion libweston-16
+      # The baked-in Xwayland path must resolve to the packaged Xwayland.
+      - grep -q "${PREFIX}/bin/Xwayland" ${PREFIX}/lib/weston/libexec_weston.so.0.0.0
+    requirements:
+      run:
+        - pkg-config
+        - libegl-devel
+        - xwayland
+
+about:
+  homepage: https://wayland.freedesktop.org
+  license: MIT
+  license_file: COPYING
+  summary: The reference implementation of a Wayland compositor
+  description: |
+    Weston is the reference implementation of a Wayland compositor, and a
+    useful compositor in its own right. It has various backends that let it
+    run on Linux kernel modesetting and evdev input as well as nested under
+    another Wayland or X11 compositor, or headless for testing.
+
+    This build enables all seven backends (drm, headless, wayland, x11, rdp,
+    vnc and pipewire), the GL, Vulkan and pixman renderers, XWayland support,
+    and the desktop, ivi, kiosk and lua shells.
+
+    The rdp, vnc and pipewire backends are optional at runtime to keep a base
+    install light: install `freerdp` for the RDP backend, `neatvnc` for the
+    VNC backend, or `pipewire` for the PipeWire backend. The compositor and its
+    other backends work without them.
+  documentation: https://wayland.pages.freedesktop.org/weston/
+  repository: https://gitlab.freedesktop.org/wayland/weston
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

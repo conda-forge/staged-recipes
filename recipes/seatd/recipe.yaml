@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  version: "0.9.3"
+
+package:
+  name: seatd
+  version: ${{ version }}
+
+source:
+  url: https://git.sr.ht/~kennylevinsen/seatd/archive/${{ version }}.tar.gz
+  sha256: 302564d54d8e28191fadfd734f2675ecb0c9e0615a58011b89ef15dfa4dbaa96
+  patches:
+    - patches/0001-define-EVIOCREVOKE-when-the-kernel-headers-predate-it.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - libsystemd
+  run_exports:
+    # Installs libseat.so.1. The soname is hardcoded to 1 and does not track
+    # the release version, so pin on the minor while seatd is still 0.x.
+    - ${{ pin_subpackage('seatd', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - seat
+      include:
+        - libseat.h
+      bin:
+        - seatd
+  - script:
+      - pkg-config --atleast-version=0.4 libseat
+      # Both backends must be compiled in, or libseat cannot open a session.
+      - test "$(pkg-config --variable=have_seatd libseat)" = "true"
+      - test "$(pkg-config --variable=have_logind libseat)" = "true"
+    requirements:
+      run:
+        - pkg-config
+        - libsystemd
+
+about:
+  homepage: https://git.sr.ht/~kennylevinsen/seatd
+  license: MIT
+  license_file: LICENSE
+  summary: Seat management daemon and libseat, a universal seat management library
+  description: |
+    seatd is a minimal seat management daemon, and libseat is a universal seat
+    management library allowing applications to use whatever seat management
+    is available.
+
+    Seat management takes care of mediating access to shared devices such as
+    graphics and input devices, without requiring the applications using them
+    to run as root.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
