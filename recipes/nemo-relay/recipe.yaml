@@ -1,0 +1,195 @@
+schema_version: 1
+
+context:
+  version: "0.8.0"
+
+recipe:
+  name: nemo-relay
+  version: ${{ version }}
+
+# NOTE: PyPI sdist does not contain the full Cargo workspace (crates/cli, crates/ffi, crates/node, go/, etc.),
+# so we build from the GitHub source archive instead.
+source:
+  url: https://github.com/NVIDIA/NeMo-Relay/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: nemo-relay-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - brush
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - pkg-config
+    build:
+      script:
+        interpreter: brush
+        content:
+          - set -euo pipefail
+          - cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
+          - if: unix
+            then: |
+              mkdir -p ${PREFIX}/bin ${PREFIX}/lib ${PREFIX}/include
+              cp target/release/nemo-relay ${PREFIX}/bin/
+              cp target/release/libnemo_relay_ffi.* ${PREFIX}/lib/
+              cp crates/ffi/*.h ${PREFIX}/include/
+          - if: win
+            then: |
+              mkdir -p ${LIBRARY_BIN} ${LIBRARY_LIB} ${LIBRARY_INC}
+              cp target/release/nemo-relay.exe ${LIBRARY_BIN}
+              cp target/release/nemo_relay_ffi.dll ${LIBRARY_BIN}
+              cp target/release/nemo_relay_ffi.dll.lib ${LIBRARY_LIB}
+              cp crates/ffi/*.h ${LIBRARY_INC}
+          - cargo bundle-licenses --format yaml --output THIRDPARTY.yml
+
+  - package:
+      name: nemo-relay-cli
+    inherit: nemo-relay-build
+    build:
+      files:
+        - bin/nemo-relay${{ ".exe" if win }}
+    tests:
+      - package_contents:
+          bin:
+            - nemo-relay
+        strict: true
+      - script:
+          - nemo-relay --version
+          - nemo-relay --help
+    about:
+      summary: NeMo Relay CLI
+
+  - package:
+      name: nemo-relay-ffi
+    inherit: nemo-relay-build
+    build:
+      files:
+        - lib/libnemo_relay_ffi.*
+        - include/*.h
+    tests:
+      - package_contents:
+          lib:
+            - nemo_relay_ffi
+          include:
+            - nemo_relay.h
+      - script:
+          interpreter: brush
+          env:
+            CGO_ENABLED: "1"
+            CGO_CFLAGS: "-I${PREFIX}/include"
+            CGO_LDFLAGS: "-L${PREFIX}/lib -lnemo_relay_ffi"
+            LD_LIBRARY_PATH: "${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
+          content:
+            - cd go_smoke_test && go test -v ./...
+        files:
+          recipe:
+            - go_smoke_test/go.mod
+            - go_smoke_test/smoke_test.go
+        requirements:
+          run:
+            - ${{ compiler('go-cgo') }}
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+    about:
+      summary: C ABI FFI library for NeMo Relay (used by Go binding)
+
+  # ---- Python bindings ----
+  - package:
+      name: python-nemo-relay
+    build:
+      skip: match(python, "<3.11")
+      script:
+        - maturin build --release --manifest-path crates/python/Cargo.toml --out ${{ SRC_DIR }}/dist --interpreter ${{ PYTHON }}
+        - ${{ PYTHON }} -m pip install ${{ SRC_DIR }}/dist/*.whl --no-deps --no-build-isolation -vv
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+      host:
+        - maturin >=1.0,<2.0
+        - pip
+        - python
+      run:
+        - python
+    tests:
+      - python:
+          imports:
+            - nemo_relay
+          pip_check: true
+          python_version: ${{ python }}
+    about:
+      summary: Python bindings for NeMo Relay
+
+  # ---- Node.js binding (napi-rs) ----
+  - package:
+      name: nemo-relay-node
+    build:
+      script:
+        - if: unix
+          then: |
+            pnpm import
+            pnpm install --frozen-lockfile --ignore-scripts
+            pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
+            rm -rf node_modules/
+            npm install --workspace=nemo-relay-node --ignore-scripts
+            npm run build --workspace=nemo-relay-node
+            mkdir -p ${PREFIX}/lib/node_modules/nemo-relay-node
+            cp crates/node/*.node crates/node/index.js crates/node/index.d.ts ${PREFIX}/lib/node_modules/nemo-relay-node/
+        - if: win
+          then: |
+            call pnpm import
+            call pnpm install --frozen-lockfile --ignore-scripts
+            call pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
+            rmdir /s /q node_modules
+            call npm install --workspace=nemo-relay-node --ignore-scripts
+            call npm run build --workspace=nemo-relay-node
+            if not exist "%PREFIX%\node_modules\nemo-relay-node" mkdir "%PREFIX%\node_modules\nemo-relay-node"
+            copy crates\node\*.node "%PREFIX%\node_modules\nemo-relay-node\"
+            copy crates\node\index.js "%PREFIX%\node_modules\nemo-relay-node\"
+            copy crates\node\index.d.ts "%PREFIX%\node_modules\nemo-relay-node\"
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - nodejs >=24.0.0
+        - pnpm
+        - pnpm-licenses
+      run:
+        - nodejs >=24.0.0
+    tests:
+      - script:
+          - node -e "require('nemo-relay-node')"
+    about:
+      summary: Node.js (napi-rs) binding for NeMo Relay
+
+about:
+  homepage: https://docs.nvidia.com/nemo/relay
+  repository: https://github.com/NVIDIA/NeMo-Relay
+  documentation: https://docs.nvidia.com/nemo/relay
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - THIRDPARTY-node.txt
+  summary: Multi-language agent runtime and library for execution scope management, lifecycle events, and middleware on tool and LLM calls.
+  description: |
+    NVIDIA NeMo Relay provides visibility into and control over agent runs without
+    requiring changes to the existing agent stack. It gives coding agents,
+    applications, framework integrations, middleware, and observability backends a
+    shared runtime for scopes, policy, plugins, and lifecycle events.
+
+    For how Relay complements OpenTelemetry GenAI conventions and observability or
+    evaluation products, see [the Ecosystem guide](https://docs.nvidia.com/nemo/relay/about-nemo-relay/ecosystem).
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
