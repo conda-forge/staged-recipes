@@ -3,13 +3,6 @@
 set -euxo pipefail
 
 case "${PKG_NAME}" in
-  tensorrt-libs)
-    tar --zstd -xf tensorrt.tar.zst --strip-components=1 --wildcards \
-      '*/doc/README.txt' \
-      '*/doc/Acknowledgements.txt'
-    rm -f tensorrt.tar.zst
-    exit 0
-    ;;
   libnvinfer-headers)
     tar --zstd -xf tensorrt.tar.zst --strip-components=1 --wildcards \
       '*/include/NvInfer*' \

@@ -1,12 +1,5 @@
 @echo on
 
-if "%PKG_NAME%"=="tensorrt-libs" (
-  tar -xf tensorrt.zip --strip-components 1 "*/doc/README.txt" "*/doc/Acknowledgements.txt"
-  if errorlevel 1 exit /b 1
-  del /Q tensorrt.zip
-  exit /b 0
-)
-
 if "%PKG_NAME%"=="libnvinfer-headers" (
   tar -xf tensorrt.zip --strip-components 1 "*/include/NvInfer*" "*/include/NvOnnx*" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
   if errorlevel 1 exit /b 1
