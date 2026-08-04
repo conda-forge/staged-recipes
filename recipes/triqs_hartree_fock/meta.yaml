@@ -1,0 +1,71 @@
+{% set version = "4.0.0" %}
+
+package:
+  name: triqs_hartree_fock
+  version: {{ version }}
+
+source:
+  url: https://github.com/TRIQS/hartree_fock/releases/download/{{ version }}/hartree_fock-{{ version }}.tar.gz
+  sha256: 27c9ed1f2ee745058d8ed05626ef0994a35c5f45d9319f0cf2c93ce226c719e2
+
+build:
+  number: 0
+  skip: true  # [win]
+  # triqs_hartree_fock is pure Python, but it is built through the app4triqs
+  # CMake flow (find_package(TRIQS), project(... CXX)), so a C++ compiler and the
+  # TRIQS CMake dependencies are still needed at configure time.
+  # Boost is header-only here; libboost-devel provides BoostConfig.cmake for
+  # find_package(Boost) under CMP0167, but its compiled-lib run_export is not needed.
+  ignore_run_exports:
+    - libboost
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - {{ mpi }}                              # [mpi == 'openmpi' and build_platform != target_platform]
+  host:
+    - triqs {{ '.'.join(version.split('.')[:2]) }}
+    - libboost-devel
+    - hdf5
+    - {{ mpi }}
+    - libblas
+    - liblapack
+    - numpy
+    - scipy
+    - python
+  run:
+    - {{ pin_compatible("triqs", max_pin="x.x") }}
+    - hdf5
+    - {{ mpi }}
+    - libblas
+    - liblapack
+    - numpy
+    - scipy
+    - python
+
+test:
+  commands:
+    - export OMPI_MCA_btl=self,tcp
+    - export OMPI_MCA_plm=isolated
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none
+    - export mpiexec="mpiexec --allow-run-as-root"
+    - python -c "import triqs_hartree_fock"
+
+about:
+  home: https://triqs.github.io/hartree_fock
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE.txt
+  summary: Hartree-Fock lattice and impurity solvers based on the TRIQS library
+
+extra:
+  recipe-maintainers:
+    - wentzell
