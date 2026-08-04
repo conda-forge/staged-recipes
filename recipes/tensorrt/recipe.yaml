@@ -45,6 +45,9 @@ build:
     - not (linux or win)
     - aarch64 and (not match(cuda_compiler_version, ">=13,<14") or arm_variant_type != "sbsa")
   dynamic_linking:
+    # TensorRT ships prebuilt shared libraries, so RPATH rewriting is not needed
+    # and patchelf corrupts them.
+    # xref: https://github.com/NixOS/patchelf/issues/492
     binary_relocation: false
 
 outputs:
@@ -72,8 +75,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -153,8 +154,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-dispatch", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -191,8 +190,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-lean", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -230,8 +227,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-plugin", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -267,8 +262,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvinfer-vc-plugin", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -305,8 +298,6 @@ outputs:
       run_constraints:
         - if: aarch64
           then: arm-variant * ${{ arm_variant_type }}
-      run_exports:
-        - ${{ pin_subpackage("libnvonnxparser", lower_bound="x", upper_bound="x") }}
       ignore_run_exports:
         by_name:
           - cuda-version
@@ -361,8 +352,10 @@ outputs:
         - ${{ pin_subpackage("libnvinfer-headers", exact=True) }}
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
+      # Only the -dev outputs carry run_exports, because linking requires the
+      # headers. The default lower bound pins the version built against.
       run_exports:
-        - ${{ pin_subpackage("libnvinfer", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer") }}
     tests:
       - package_contents:
           files:
@@ -394,7 +387,7 @@ outputs:
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       run_exports:
-        - ${{ pin_subpackage("libnvinfer-dispatch", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer-dispatch") }}
     tests:
       - package_contents:
           files:
@@ -422,7 +415,7 @@ outputs:
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       run_exports:
-        - ${{ pin_subpackage("libnvinfer-lean", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer-lean") }}
     tests:
       - package_contents:
           files:
@@ -450,7 +443,7 @@ outputs:
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       run_exports:
-        - ${{ pin_subpackage("libnvinfer-plugin", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer-plugin") }}
     tests:
       - package_contents:
           files:
@@ -478,7 +471,7 @@ outputs:
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       run_exports:
-        - ${{ pin_subpackage("libnvinfer-vc-plugin", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer-vc-plugin") }}
     tests:
       - package_contents:
           files:
@@ -506,7 +499,7 @@ outputs:
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       run_exports:
-        - ${{ pin_subpackage("libnvonnxparser", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvonnxparser") }}
     tests:
       - package_contents:
           files:
@@ -529,8 +522,6 @@ outputs:
         - ${{ pin_subpackage("libnvonnxparser", exact=True) }}
         - if: linux and x86_64
           then: ${{ pin_subpackage("libnvinfer-win-builder-resource", exact=True) }}
-      run_exports:
-        - ${{ pin_subpackage("tensorrt-libs", lower_bound="x", upper_bound="x") }}
     tests:
       - script:
           - if: linux
