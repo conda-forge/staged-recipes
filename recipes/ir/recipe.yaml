@@ -1,0 +1,64 @@
+context:
+  version: "0.3.0"
+
+package:
+  name: ir
+  version: ${{ version }}
+
+source:
+  url: https://github.com/r-lib/ir/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fb962ab68c10c2acd2017fb6e7ae3dcea340303bf8c997b0fc7246ef06a0178f
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+    - if: win
+      then:
+        - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+    - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+  run:
+    - quarto
+    - rig
+
+tests:
+  - script:
+      - ir --help
+      - ir --version
+      - rx --help
+      - rx --version
+  - package_contents:
+      bin:
+        - ir
+        - rx
+      strict: true
+
+about:
+  summary: Run standalone R scripts and render Quarto sources from embedded dependency metadata
+  description: |
+    `ir` runs self-describing R scripts and renders or previews Quarto sources.
+    Put packages and an R version next to the code, then let ir resolve the
+    requirements, prepare a cached package library, and start R with that library
+    ready to use. The package also installs `rx`, a launcher for package-provided
+    executables backed by `ir`'s tool store.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://r-lib.github.io/ir/
+  documentation: https://r-lib.github.io/ir/reference.html
+  repository: https://github.com/r-lib/ir
+
+extra:
+  recipe-maintainers:
+    - salim-b
