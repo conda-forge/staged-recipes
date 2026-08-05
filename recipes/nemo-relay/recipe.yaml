@@ -33,15 +33,16 @@ outputs:
           CARGO_PROFILE_RELEASE_STRIP: symbols
           CARGO_PROFILE_RELEASE_LTO: fat
         content:
-          - set -euo pipefail
-          - pushd crates/cli
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-          - popd
-          - pushd crates/ffi
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-          - popd
-          - cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
           - |
+            set -euo pipefail
+            pushd crates/cli
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            popd
+            pushd crates/ffi
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            popd
+            cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
+            
             # Resolve Cargo target and release directories
             target_root="${CARGO_TARGET_DIR:-target}"
             release_dir="${target_root}/release"
@@ -49,12 +50,14 @@ outputs:
               release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
             fi
             export NEMO_RELEASE_DIR="${release_dir}"
+          
           - if: unix
             then: |
               mkdir -p ${PREFIX}/bin ${PREFIX}/lib ${PREFIX}/include
               cp "${NEMO_RELEASE_DIR}/nemo-relay" ${PREFIX}/bin/
               cp "${NEMO_RELEASE_DIR}"/libnemo_relay_ffi.* ${PREFIX}/lib/
               cp crates/ffi/*.h ${PREFIX}/include/
+          
           - if: win
             then: |
               mkdir -p ${PREFIX}/bin/ ${LIBRARY_BIN} ${LIBRARY_LIB} ${LIBRARY_INC}
@@ -127,14 +130,14 @@ outputs:
       skip: match(python, "<3.11")
       script:
         interpreter: brush
-        content:
-          - set -exo pipefail
-          - export PYO3_PYTHON="${PYTHON}"
-          - pushd crates/python
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-          - popd
-          - maturin build --release --manifest-path crates/python/Cargo.toml --out ${SRC_DIR}/dist --interpreter ${PYTHON}
-          - ${PYTHON} -m pip install ${SRC_DIR}/dist/*.whl --no-deps --no-build-isolation -vv
+        content: |
+          set -exo pipefail
+          export PYO3_PYTHON="${PYTHON}"
+          pushd crates/python
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          popd
+          maturin build --release --manifest-path crates/python/Cargo.toml --out ${SRC_DIR}/dist --interpreter ${PYTHON}
+          ${PYTHON} -m pip install ${SRC_DIR}/dist/*.whl --no-deps --no-build-isolation -vv
     requirements:
       build:
         - ${{ compiler('rust') }}
