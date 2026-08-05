@@ -33,6 +33,12 @@ outputs:
           CARGO_PROFILE_RELEASE_LTO: fat
         content:
           - set -euo pipefail
+          - pushd crates/cli
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - popd
+          - pushd crates/ffi
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - popd
           - cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
           - |
             # Resolve Cargo target and release directories
@@ -60,22 +66,8 @@ outputs:
       name: nemo-relay-cli
     inherit: nemo-relay-build
     build:
-      script:
-        interpreter: brush
-        content:
-          - set -euo pipefail
-          - pushd crates/cli
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-          - popd
       files:
         - bin/nemo-relay${{ ".exe" if win }}
-    requirements:
-      build:
-        - ${{ compiler('c') }}
-        - ${{ compiler('rust') }}
-        - ${{ stdlib('c') }}
-        - brush
-        - cargo-bundle-licenses
     tests:
       - package_contents:
           bin:
@@ -88,30 +80,17 @@ outputs:
       summary: NeMo Relay CLI
       license: Apache-2.0
       license_file:
-        - LICENSE
-        - THIRDPARTY.yml
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/crates/cli/THIRDPARTY.yml
 
   - package:
       name: nemo-relay-ffi
     inherit: nemo-relay-build
     build:
-      script:
-        interpreter: brush
-        content:
-          - set -euo pipefail
-          - pushd crates/ffi
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-          - popd
       files:
         - lib/libnemo_relay_ffi.*
         - include/*.h
     requirements:
-      build:
-        - ${{ compiler('c') }}
-        - ${{ compiler('rust') }}
-        - ${{ stdlib('c') }}
-        - brush
-        - cargo-bundle-licenses
       run_exports:
         - ${{ pin_subpackage("nemo-relay-ffi", upper_bound="x.x.x") }}
     tests:
@@ -124,8 +103,8 @@ outputs:
       summary: C ABI FFI library for NeMo Relay (used by Go binding)
       license: Apache-2.0
       license_file:
-        - LICENSE
-        - THIRDPARTY.yml
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/crates/ffi/THIRDPARTY.yml
 
   - package:
       name: python-nemo-relay
@@ -164,8 +143,8 @@ outputs:
       summary: Python bindings for NeMo Relay
       license: Apache-2.0
       license_file:
-        - LICENSE
-        - THIRDPARTY.yml
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/THIRDPARTY.yml
 
   - package:
       name: nemo-relay-node
@@ -179,7 +158,7 @@ outputs:
             popd
             pnpm import
             pnpm install --frozen-lockfile --ignore-scripts
-            pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
+            pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=third-party-pnpm-licenses.txt
             rm -rf node_modules/
             npm ci --workspace=nemo-relay-node --ignore-scripts
             npm run build --workspace=nemo-relay-node
@@ -194,7 +173,7 @@ outputs:
             call pnpm import || exit /b 1
             call pnpm install --frozen-lockfile --ignore-scripts || exit /b 1
             call pnpm licenses list --json --prod --filter=nemo-relay-node > licenses.json || exit /b 1
-            call pnpm-licenses generate-disclaimer --json-input-file=licenses.json --output-file=THIRDPARTY-node.txt || exit /b 1
+            call pnpm-licenses generate-disclaimer --json-input-file=licenses.json --output-file=third-party-pnpm-licenses.txt || exit /b 1
             del licenses.json || exit /b 1
             rmdir /s /q node_modules || exit /b 1
             call npm ci --workspace=nemo-relay-node --ignore-scripts || exit /b 1
@@ -221,9 +200,9 @@ outputs:
       summary: Node.js (napi-rs) binding for NeMo Relay
       license: Apache-2.0
       license_file:
-        - LICENSE
-        - THIRDPARTY.yml
-        - THIRDPARTY-node.txt
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/THIRDPARTY.yml
+        - ${{ SRC_DIR }}/third-party-pnpm-licenses.txt
 
 about:
   homepage: https://docs.nvidia.com/nemo/relay
