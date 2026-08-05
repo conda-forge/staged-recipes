@@ -1,0 +1,122 @@
+schema_version: 1
+
+context:
+  version: "0.8.0"
+  python_min: "3.12"
+
+recipe:
+  name: cstar-ocean-suite
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/c/cstar-ocean/cstar_ocean-${{ version }}.tar.gz
+    sha256: 86cf68a47bd4faa7a4b87c94ec5ce667b04aff9384a11876e098e5f1b696a77f
+
+outputs:
+  - package:
+      name: cstar-ocean
+      version: ${{ version }}
+
+    build:
+      number: 0
+      noarch: python
+      script: python -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - cstar = cstar.cli.cli:main
+
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=61.0.0
+        - wheel
+        - setuptools_scm[toml] >=7.0
+        - check-manifest
+      run:
+        - python >=${{ python_min }}
+        - fakeredis <2.35
+        - networkx >=3.6.1
+        - prefect >=3.6.1
+        - psutil >=7.2.2
+        - pydantic >=2.13
+        - python-dateutil >=2.8.2
+        - pytimeparse >=1.1.8
+        - python-dotenv
+        - pyyaml >=6.0,<7
+        - f90nml >=1.4
+        - numpy >2.0,<2.4
+        - roms-tools >=4.0.0,<5
+        - typer <=0.25
+
+    tests:
+      - python:
+          imports:
+            - cstar
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - script:
+          - cstar --version
+
+    about:
+      homepage: https://www.cworthy.org
+      repository: https://github.com/CWorthy-ocean/C-Star
+      documentation: https://c-star.readthedocs.io
+      summary: Computational systems for tracking ocean carbon
+      description: |
+        C-Star automates the setup and execution of reproducible ocean-carbon
+        modeling workflows (ROMS-MARBL and related regional ocean/biogeochemistry
+        simulations) via a blueprint-driven, orchestration-aware Python API and
+        command-line tool.
+      license: Apache-2.0
+      license_file: LICENSE
+
+  - package:
+      name: cstar-ocean-standalone
+      version: ${{ version }}
+
+    build:
+      number: 0
+      # not noarch: the toolchain packages in `run` below are
+      # platform-specific variants (e.g. gcc_linux-64 vs clang_osx-arm64),
+      # which noarch cannot express. Built once per target platform.
+      skip:
+        - win
+
+    requirements:
+      run:
+        - ${{ pin_subpackage("cstar-ocean", exact=True) }}
+        - c-compiler
+        - cxx-compiler
+        - fortran-compiler
+        - make
+        - cmake
+        - mpich
+        - netcdf-fortran
+        - libpnetcdf
+        # ucla-roms Makefiles require GNU-flavored rsync; macOS system rsync lacks the needed flags
+        - rsync
+
+    about:
+      homepage: https://www.cworthy.org
+      repository: https://github.com/CWorthy-ocean/C-Star
+      documentation: https://c-star.readthedocs.io
+      summary: >-
+        C-Star with a full conda-provided build toolchain for laptops/workstations
+        (HPC users should use system modules instead)
+      license: Apache-2.0
+      license_file: LICENSE
+
+about:
+  homepage: https://www.cworthy.org
+  repository: https://github.com/CWorthy-ocean/C-Star
+  documentation: https://c-star.readthedocs.io
+  summary: Computational systems for tracking ocean carbon
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    # TODO: fill in real GitHub handles before submitting (not guessed/fabricated here)
+    - ScottEilerman
+    - ankona
