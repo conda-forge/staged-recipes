@@ -61,7 +61,12 @@ outputs:
     inherit: nemo-relay-build
     build:
       script:
-        - cargo-bundle-licenses --format yaml --manifest-path crates/cli/Cargo.toml --output THIRDPARTY.yml
+        interpreter: brush
+        content:
+          - set -euo pipefail
+          - pushd crates/cli
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - popd
       files:
         - bin/nemo-relay${{ ".exe" if win }}
     requirements:
@@ -83,7 +88,12 @@ outputs:
     inherit: nemo-relay-build
     build:
       script:
-        - cargo-bundle-licenses --format yaml --manifest-path crates/ffi/Cargo.toml --output THIRDPARTY.yml
+        interpreter: brush
+        content:
+          - set -euo pipefail
+          - pushd crates/ffi
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - popd
       files:
         - lib/libnemo_relay_ffi.*
         - include/*.h
@@ -108,7 +118,9 @@ outputs:
         content:
           - set -exo pipefail
           - export PYO3_PYTHON="${PYTHON}"
-          - cargo-bundle-licenses --format yaml --manifest-path crates/python/Cargo.toml --output THIRDPARTY.yml
+          - pushd crates/python
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          - popd
           - maturin build --release --manifest-path crates/python/Cargo.toml --out ${SRC_DIR}/dist --interpreter ${PYTHON}
           - ${PYTHON} -m pip install ${SRC_DIR}/dist/*.whl --no-deps --no-build-isolation -vv
     requirements:
@@ -136,9 +148,12 @@ outputs:
       name: nemo-relay-node
     build:
       script:
-        - cargo-bundle-licenses --format yaml --manifest-path crates/node/Cargo.toml --output THIRDPARTY.yml
         - if: unix
           then: |
+            set -exo pipefail
+            pushd crates/node
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            popd
             pnpm import
             pnpm install --frozen-lockfile --ignore-scripts
             pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=THIRDPARTY-node.txt
@@ -150,6 +165,9 @@ outputs:
         - if: win
           then: |
             @echo on
+            pushd crates\node || exit /b 1
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || exit /b 1
+            popd || exit /b 1
             call pnpm import || exit /b 1
             call pnpm install --frozen-lockfile --ignore-scripts || exit /b 1
             call pnpm licenses list --json --prod --filter=nemo-relay-node > licenses.json || exit /b 1
