@@ -24,7 +24,6 @@ outputs:
         - ${{ stdlib('c') }}
         - brush
         - cargo-auditable
-        - cargo-bundle-licenses
         - pkg-config
     build:
       script:
@@ -56,14 +55,18 @@ outputs:
               cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll" ${LIBRARY_BIN}
               cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll.lib" ${LIBRARY_LIB}
               cp crates/ffi/*.h ${LIBRARY_INC}
-          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
   - package:
       name: nemo-relay-cli
     inherit: nemo-relay-build
     build:
+      script:
+        - cargo-bundle-licenses --format yaml --manifest-path crates/cli/Cargo.toml --output THIRDPARTY.yml
       files:
         - bin/nemo-relay${{ ".exe" if win }}
+    requirements:
+      build:
+        - cargo-bundle-licenses
     tests:
       - package_contents:
           bin:
@@ -79,9 +82,14 @@ outputs:
       name: nemo-relay-ffi
     inherit: nemo-relay-build
     build:
+      script:
+        - cargo-bundle-licenses --format yaml --manifest-path crates/ffi/Cargo.toml --output THIRDPARTY.yml
       files:
         - lib/libnemo_relay_ffi.*
         - include/*.h
+    requirements:
+      build:
+        - cargo-bundle-licenses
     tests:
       - package_contents:
           lib:
@@ -91,19 +99,24 @@ outputs:
     about:
       summary: C ABI FFI library for NeMo Relay (used by Go binding)
 
-  # ---- Python bindings ----
   - package:
       name: python-nemo-relay
     build:
       skip: match(python, "<3.11")
       script:
-        - maturin build --release --manifest-path crates/python/Cargo.toml --out ${{ SRC_DIR }}/dist --interpreter ${{ PYTHON }}
-        - ${{ PYTHON }} -m pip install ${{ SRC_DIR }}/dist/*.whl --no-deps --no-build-isolation -vv
+        interpreter: brush
+        env:
+          PYO3_PYTHON: ${{ PYTHON }}
+        content:
+          - cargo-bundle-licenses --format yaml --manifest-path crates/python/Cargo.toml --output THIRDPARTY.yml
+          - maturin build --release --manifest-path crates/python/Cargo.toml --out ${SRC_DIR}/dist --interpreter ${PYTHON}
+          - ${PYTHON} -m pip install ${SRC_DIR}/dist/*.whl --no-deps --no-build-isolation -vv
     requirements:
       build:
         - ${{ compiler('rust') }}
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
+        - cargo-bundle-licenses
       host:
         - maturin >=1.0,<2.0
         - pip
@@ -119,11 +132,11 @@ outputs:
     about:
       summary: Python bindings for NeMo Relay
 
-  # ---- Node.js binding (napi-rs) ----
   - package:
       name: nemo-relay-node
     build:
       script:
+        - cargo-bundle-licenses --format yaml --manifest-path crates/node/Cargo.toml --output THIRDPARTY.yml
         - if: unix
           then: |
             pnpm import
@@ -154,6 +167,7 @@ outputs:
         - ${{ compiler('rust') }}
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
+        - cargo-bundle-licenses
         - nodejs >=24.0.0
         - pnpm
         - pnpm-licenses
@@ -164,6 +178,10 @@ outputs:
           - node -e "require('nemo-relay-node')"
     about:
       summary: Node.js (napi-rs) binding for NeMo Relay
+      license: Apache-2.0
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
 
 about:
   homepage: https://docs.nvidia.com/nemo/relay
@@ -173,7 +191,6 @@ about:
   license_file:
     - LICENSE
     - THIRDPARTY.yml
-    - THIRDPARTY-node.txt
   summary: Multi-language agent runtime and library for execution scope management, lifecycle events, and middleware on tool and LLM calls.
   description: |
     NVIDIA NeMo Relay provides visibility into and control over agent runs without
