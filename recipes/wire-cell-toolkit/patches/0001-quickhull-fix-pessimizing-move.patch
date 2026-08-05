@@ -1,0 +1,29 @@
+Subject: [PATCH] quickhull: drop pessimizing std::move on a prvalue return
+
+Mesh::disableFace() returns std::unique_ptr<std::vector<IndexType>> by value,
+i.e. a prvalue. Wrapping that call in std::move() forces a move-construction
+and defeats guaranteed copy elision. GCC 13+ diagnoses this as
+-Wpessimizing-move, which is promoted to a hard error in Wire-Cell release
+builds (the wscript adds -Werror in non-development builds). The unique_ptr is
+already an rvalue, so the explicit move is both redundant and harmful.
+
+Remove the std::move; the temporary is elided/moved into `t` automatically.
+
+Upstream target: wirecell/wire-cell-toolkit, file quickhull/src/QuickHull.cxx.
+Reproduce: a release-mode build (digit-leading version.txt) under GCC >= 13.
+No behavior change; pure warning/elision fix.
+---
+ quickhull/src/QuickHull.cxx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/quickhull/src/QuickHull.cxx
++++ b/quickhull/src/QuickHull.cxx
+@@ -211,7 +211,7 @@
+ 				}
+ 				// Disable the face, but retain pointer to the points that were on the positive side of it. We need to assign those points
+ 				// to the new faces we create shortly.
+-				auto t = std::move(m_mesh.disableFace(faceIndex));
++				auto t = m_mesh.disableFace(faceIndex);
+ 				if (t) {
+ 					assert(t->size()); // Because we should not assign point vectors to faces unless needed...
+ 					m_disabledFacePointVectors.push_back(std::move(t));
