@@ -25,7 +25,7 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
    For more information:
    - [generate](#generating-recipes-with-grayskull) a recipe
    - read the [v1 example recipe](recipes/example-v1)
-   - the [v0 example recipe](recipes/example) is _deprecated_ and retained only for exceptional cases
+   - the [v0 example recipe](recipes/example-v0-deprecated) is _deprecated_ and retained only for exceptional cases
    - read the [FAQ](https://github.com/conda-forge/staged-recipes#faq)
    - search for [examples on GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
    - visit our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#)
@@ -45,7 +45,7 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 [![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
-PRs are converted to feedstocks in two steps. 
+PRs are converted to feedstocks in two steps.
 
 1. PRs get put into a [merge queue](https://github.com/conda-forge/staged-recipes/queue/main) for testing against
    the latest CI scripts. Your PR may fail in the merge queue in which case it needs to be remerged. Be sure to update the
