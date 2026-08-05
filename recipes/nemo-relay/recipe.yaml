@@ -145,49 +145,35 @@ outputs:
       license: Apache-2.0
       license_file:
         - ${{ SRC_DIR }}/LICENSE
-        - ${{ SRC_DIR }}/THIRDPARTY.yml
+        - ${{ SRC_DIR }}/crates/python/THIRDPARTY.yml
 
   - package:
       name: nemo-relay-node
     build:
       script:
-        - if: unix
-          then: |
+        interpreter: brush
+        content:
+          - |
             set -exo pipefail
             pushd crates/node
             cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
             popd
-            pnpm import
-            pnpm install --frozen-lockfile --ignore-scripts
-            pnpm licenses list --json --prod --filter=nemo-relay-node | pnpm-licenses generate-disclaimer --json-input --output-file=third-party-pnpm-licenses.txt
-            rm -rf node_modules/
             npm ci --workspace=nemo-relay-node --ignore-scripts
             npm run build --workspace=nemo-relay-node
-            mkdir -p ${PREFIX}/lib/node_modules/nemo-relay-node
-            cp crates/node/*.node crates/node/index.js crates/node/index.d.ts ${PREFIX}/lib/node_modules/nemo-relay-node/
-        - if: win
-          then: |
-            @echo on
-            pushd crates\node || exit /b 1
-            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || exit /b 1
-            popd || exit /b 1
-            call pnpm import || exit /b 1
-            call pnpm install --frozen-lockfile --ignore-scripts || exit /b 1
-            call pnpm licenses list --json --prod --filter=nemo-relay-node > licenses.json || exit /b 1
-            call pnpm-licenses generate-disclaimer --json-input-file=licenses.json --output-file=third-party-pnpm-licenses.txt || exit /b 1
-            del licenses.json || exit /b 1
-            rmdir /s /q node_modules || exit /b 1
-            call npm ci --workspace=nemo-relay-node --ignore-scripts || exit /b 1
-            call npm run build --workspace=nemo-relay-node || exit /b 1
-            if not exist "%PREFIX%\node_modules\nemo-relay-node" mkdir "%PREFIX%\node_modules\nemo-relay-node" || exit /b 1
-            copy crates\node\*.node "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
-            copy crates\node\index.js "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
-            copy crates\node\index.d.ts "%PREFIX%\node_modules\nemo-relay-node\" || exit /b 1
+          - if: unix
+            then: |
+              mkdir -p ${PREFIX}/lib/node_modules/nemo-relay-node
+              cp crates/node/*.node crates/node/index.js crates/node/index.d.ts ${PREFIX}/lib/node_modules/nemo-relay-node/
+          - if: win
+            then: |
+              mkdir -p "${PREFIX}/node_modules/nemo-relay-node"
+              cp crates/node/*.node crates/node/index.js crates/node/index.d.ts "${PREFIX}/node_modules/nemo-relay-node/"
     requirements:
       build:
         - ${{ compiler('rust') }}
         - ${{ compiler('c') }}
         - ${{ stdlib('c') }}
+        - brush
         - cargo-bundle-licenses
         - nodejs >=24.0.0
         - pnpm
@@ -200,10 +186,10 @@ outputs:
     about:
       summary: Node.js (napi-rs) binding for NeMo Relay
       license: Apache-2.0
+      # No third party npm packages used at runtime, no need to include licenses
       license_file:
         - ${{ SRC_DIR }}/LICENSE
-        - ${{ SRC_DIR }}/THIRDPARTY.yml
-        - ${{ SRC_DIR }}/third-party-pnpm-licenses.txt
+        - ${{ SRC_DIR }}/crates/node/THIRDPARTY.yml
 
 about:
   homepage: https://docs.nvidia.com/nemo/relay
