@@ -1,0 +1,76 @@
+context:
+  version: "0.6.0"
+  python_min: "3.11"
+
+package:
+  name: finch-tensor
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/f/finch-tensor/finch_tensor-${{ version }}.tar.gz
+    sha256: 756483bdb062fc94abbccb99f933d367c6d903026c0d637fa5170c31eb146038
+  # sdist does not ship tests, so we get them from the source tree instead
+  - git: https://github.com/finch-tensor/finch-tensor.git
+    tag: v${{ version }}
+    target_directory: repo
+
+build:
+  noarch: python
+  script: uv pip install --python ${{ PYTHON }} . -vv --no-deps
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - uv
+  run:
+    - python >=${{ python_min }}
+    - numpy >=2.0,<2.4
+    - numba >=0.61,<2
+    - donfig >=0.8.1.post1,<0.9.0
+    - lark >=1.3.0,<2
+    - scipy >=1.7,<2
+    # A C compiler is one of the optional backends, with the others based on Julia and MLIR.
+    # Consider shipping each backend separately once optional dependency support
+    # per https://conda.org/learn/ceps/cep-0044 is available in conda-forge.
+    # C backend:
+    - c-compiler  # not minimally activated yet: https://github.com/conda-forge/conda-forge.github.io/issues/2595#issuecomment-3719580016
+    # Julia backend:
+    # - pyjuliapkg >=0.1.16,<0.2.0
+    # - pyjuliacall >=0.9.24,<0.10.0
+    # MLIR backend:
+    # - mlir-python-bindings  # pending https://github.com/finch-tensor/finch-tensor/issues/567
+
+tests:
+  - python:
+      imports: finch
+  - script: pytest -v -ra repo/tests/ -m "not slow and not mlir_backend" --ignore-glob=repo/tests/reference/* -o addopts=""
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+        - pytest-regressions
+        - sparse
+        # for array-api-tests:
+        - pytest-json-report
+        - hypothesis
+        - ndindex
+    files:
+      source:
+        - repo/tests/
+        - repo/pytest.ini
+        - repo/array-api-skips.txt
+        - pyproject.toml
+
+about:
+  homepage: https://github.com/finch-tensor/finch-tensor
+  summary: Productive Sparse Array Programming
+  description: Sparse array programming backed by Finch.jl.
+  license: MIT
+  license_file: repo/LICENSE  # TODO: get from sdist instead
+
+extra:
+  recipe-maintainers:
+    - lucascolley
+    - mtsokol
+    - willow-ahrens
