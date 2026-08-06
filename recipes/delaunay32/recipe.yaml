@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  version: "0.5.1"
+
+package:
+  name: delaunay32
+  version: ${{ version }}
+
+source:
+  url: https://github.com/morishuz/delaunay32/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 047ecc737719d5cd5a94b063bbcfec30048511c0c18cbb42449fd99d6b8e53e8
+
+build:
+  number: 0
+  script:
+    interpreter: brush
+    content: |
+      cmake ${CMAKE_ARGS:-} \
+        -S . \
+        -B build \
+        -G Ninja \
+        -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON \
+        -DDELAUNAY32_BUILD_BENCHMARKS=OFF \
+        -DDELAUNAY32_BUILD_EXAMPLES=OFF \
+        -DDELAUNAY32_BUILD_TESTS=OFF
+      cmake --build build --parallel "$CPU_COUNT"
+      cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - brush
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      lib:
+        - delaunay32
+        - delaunay32_extras
+      include:
+        - delaunay32/delaunay.hpp
+  - files:
+      source:
+        - tests/package_consumer/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - brush
+        - cmake
+        - ninja
+    script:
+      interpreter: brush
+      content: |
+        cmake ${CMAKE_ARGS:-} \
+          -S tests/package_consumer \
+          -B consumer-build \
+          -G Ninja
+        cmake --build consumer-build --parallel "$CPU_COUNT"
+        ctest --test-dir consumer-build --output-on-failure
+
+about:
+  homepage: https://github.com/morishuz/delaunay32
+  repository: https://github.com/morishuz/delaunay32
+  summary: Fast, parallel 2D Delaunay triangulation for integer and floating-point input
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
