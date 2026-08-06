@@ -1,0 +1,185 @@
+schema_version: 1
+
+context:
+  version: "0.6.0"
+
+recipe:
+  name: nemo-relay
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/NeMo-Relay/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 17e16753696a8319835ebfa7a98cd7b8dd2b27f7d893f16c2a385d8d7c13205e
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: nemo-relay-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - brush
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - pkg-config
+    build:
+      script:
+        interpreter: brush
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - |
+            pushd crates/cli
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            popd
+            pushd crates/ffi
+            cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            popd
+            cargo auditable build --release --locked -p nemo-relay-cli -p nemo-relay-ffi
+            
+            # Resolve Cargo target and release directories
+            target_root="${CARGO_TARGET_DIR:-target}"
+            release_dir="${target_root}/release"
+            if [[ -n "${CARGO_BUILD_TARGET:-}" ]]; then
+              release_dir="${target_root}/${CARGO_BUILD_TARGET}/release"
+            fi
+            export NEMO_RELEASE_DIR="${release_dir}"
+          
+          - if: unix
+            then: |
+              mkdir -p ${PREFIX}/bin ${PREFIX}/lib ${PREFIX}/include
+              cp "${NEMO_RELEASE_DIR}/nemo-relay" ${PREFIX}/bin/
+              cp "${NEMO_RELEASE_DIR}"/libnemo_relay_ffi.* ${PREFIX}/lib/
+              cp crates/ffi/*.h ${PREFIX}/include/
+          
+          - if: win
+            then: |
+              mkdir -p ${PREFIX}/bin/ ${LIBRARY_BIN} ${LIBRARY_LIB} ${LIBRARY_INC}
+              cp "${NEMO_RELEASE_DIR}/nemo-relay.exe" ${PREFIX}/bin/
+              cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll" ${LIBRARY_BIN}
+              cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.dll.lib" ${LIBRARY_LIB}
+              cp "${NEMO_RELEASE_DIR}/nemo_relay_ffi.lib" ${LIBRARY_LIB}
+              cp crates/ffi/*.h ${LIBRARY_INC}
+
+  - package:
+      name: nemo-relay-cli
+    inherit: nemo-relay-build
+    build:
+      files:
+        - bin/nemo-relay${{ ".exe" if win }}
+    tests:
+      - package_contents:
+          bin:
+            - nemo-relay
+        strict: true
+      - script:
+          - nemo-relay --version
+          - nemo-relay --help
+    about:
+      summary: NeMo Relay CLI
+      license: Apache-2.0
+      license_file:
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/crates/cli/THIRDPARTY.yml
+
+  - package:
+      name: nemo-relay-ffi
+    inherit: nemo-relay-build
+    build:
+      files:
+        - if: unix
+          then:
+            - lib/libnemo_relay_ffi.*
+            - include/*.h
+        - if: win
+          then:
+            - Library/bin/nemo_relay_ffi.*
+            - Library/lib/nemo_relay_ffi.*
+            - Library/include/*.h
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("nemo-relay-ffi", upper_bound="x.x.x") }}
+    tests:
+      - package_contents:
+          lib:
+            - nemo_relay_ffi
+            - if: unix
+              then:
+                - libnemo_relay_ffi.a
+            - if: win
+              then:
+                - nemo_relay_ffi.dll.lib
+          include:
+            - nemo_relay.h
+        strict: true
+    about:
+      summary: C ABI FFI library for NeMo Relay
+      license: Apache-2.0
+      license_file:
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/crates/ffi/THIRDPARTY.yml
+
+  - package:
+      name: python-nemo-relay
+    build:
+      skip: match(python, "<3.11")
+      script:
+        interpreter: brush
+        content: |
+          export PYO3_PYTHON="${PYTHON}"
+          pushd crates/python
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          popd
+          maturin build --release --manifest-path crates/python/Cargo.toml --out ${SRC_DIR}/dist --interpreter ${PYTHON}
+          ${PYTHON} -m pip install ${SRC_DIR}/dist/*.whl --no-deps --no-build-isolation -vv
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - brush
+        - cargo-bundle-licenses
+      host:
+        - maturin >=1.0,<2.0
+        - pip
+        - python
+      run:
+        - python
+    tests:
+      - python:
+          imports:
+            - nemo_relay
+          pip_check: true
+          python_version: ${{ python }}
+    about:
+      summary: Python bindings for NeMo Relay
+      license: Apache-2.0
+      license_file:
+        - ${{ SRC_DIR }}/LICENSE
+        - ${{ SRC_DIR }}/crates/python/THIRDPARTY.yml
+
+about:
+  homepage: https://docs.nvidia.com/nemo/relay
+  repository: https://github.com/NVIDIA/NeMo-Relay
+  documentation: https://docs.nvidia.com/nemo/relay
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+  summary: Multi-language agent runtime and library for execution scope management, lifecycle events, and middleware on tool and LLM calls.
+  description: |
+    NVIDIA NeMo Relay provides visibility into and control over agent runs without
+    requiring changes to the existing agent stack. It gives coding agents,
+    applications, framework integrations, middleware, and observability backends a
+    shared runtime for scopes, policy, plugins, and lifecycle events.
+
+    For how Relay complements OpenTelemetry GenAI conventions and observability or
+    evaluation products, see [the Ecosystem guide](https://docs.nvidia.com/nemo/relay/about-nemo-relay/ecosystem).
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
