@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.32.1"
+
+package:
+  name: headroom-ai
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/h/headroom-ai/headroom_ai-${{ version }}.tar.gz
+  sha256: 329dda3328f0fb45ec7128353f7fc9108f08e9676c9dc1873b4841c5c00c94bd
+
+build:
+  number: 0
+  skip:
+    # ast-grep has NO win-64 build on conda-forge (linux-64, linux-aarch64,
+    # linux-ppc64le, osx-64, osx-arm64 only). 
+    - win
+    # litellm pulls the compiled fastuuid, which ships py311+ on macOS while
+    # linux gets py310 too. 
+    - osx and match(python, "<3.11")
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - python -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - headroom = headroom.cli:main
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - maturin >=1.5,<2.0
+    - pip
+  run:
+    - python
+    - tiktoken >=0.5.0
+    - pydantic >=2.0.0
+    - if: match(python, "<3.14")
+      then:
+        - litellm >=1.86.2,<2.0
+    - click >=8.3.3
+    - rich >=13.0.0
+    - opentelemetry-api >=1.24.0
+    - ast-grep >=0.30.0
+    - pyyaml >=6.0
+    - tomlkit >=0.13.0,<1.0
+    - fastapi
+    - if: match(python, "<3.11")
+      then:
+        - tomli >=2.0.0
+
+tests:
+  - python:
+      imports:
+        - headroom
+        - headroom._core
+      # ast-grep-cli is satisfied by the conda ast-grep binary package,
+      # which leaves no ast-grep-cli dist-info -> pip check cannot pass.
+      pip_check: false
+  - script:
+      - headroom --help
+
+about:
+  summary: The Context Optimization Layer for LLM Applications - Cut costs by 50-90%
+  description: |
+    Headroom compresses tool outputs, logs, files, and RAG chunks before
+    they reach the LLM — 60-95% fewer tokens, same answers. It ships as a
+    Python library (SmartCrusher, ContentRouter, CodeCompressor, CCR,
+    TOIN compressors with a Rust core), a transparent proxy, and an MCP
+    server.
+
+    This package provides the core library and CLI. Upstream optional
+    extras (proxy server, MCP, tree-sitter code compression, ML/Kompress,
+    memory/vector stacks, OCR, LangChain/Agno integrations) are not
+    included; install their dependencies separately as needed.
+  homepage: https://headroom-docs.vercel.app
+  repository: https://github.com/headroomlabs-ai/headroom
+  documentation: https://headroom-docs.vercel.app/docs
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - rxm7706
