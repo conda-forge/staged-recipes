@@ -1,0 +1,97 @@
+context:
+  version: "0.1.0"
+
+recipe:
+  name: finance-dates
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/f/finance-dates/finance_dates-${{ version }}.tar.gz
+  sha256: 262c9244443d918b9ba2148df50203023de46d5770ffb8d0cbefefe95c519ea0
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: finance-dates
+    build:
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script: build
+
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - crossenv
+        - ${{ compiler('c') }}
+        - ${{ stdlib("c") }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+      host:
+        - python
+        - pip
+        - hatchling
+        - hatch-rs >=0.2.0
+        - if: is_abi3
+          then:
+            - python-abi3
+      run:
+        - python >=${{ python_min }}
+
+    tests:
+      - python:
+          imports:
+            - finance_dates
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/finance_dates/finance_dates.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%/finance_dates/finance_dates.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+  - package:
+      name: finance_dates
+    build:
+      noarch: generic
+      skip:
+        - not target_platform == "linux-64"
+    requirements:
+      run:
+        - ${{ pin_subpackage('finance-dates', upper_bound='x.x.x', lower_bound='x.x.x') }}
+    about:
+      license_file:
+        - LICENSE
+    tests:
+      - python:
+          imports:
+            - finance_dates
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+
+about:
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Standard financial dates
+  homepage: https://github.com/prettygoodcapital/finance-dates
+  repository: https://github.com/prettygoodcapital/finance-dates
+
+extra:
+  recipe-maintainers:
+    - pgc-dev
