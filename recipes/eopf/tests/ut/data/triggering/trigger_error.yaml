@@ -1,0 +1,93 @@
+---
+general_configuration:
+  logging:
+    level: DEBUG
+  # Export the dask graph for variables at writing time
+  dask__export_graphs: ./graphs/
+  # breakpoints folder
+  breakpoints__folder: ./breakpoints
+  triggering__use_default_filename: False
+breakpoints:
+  ids:
+    - test_abstract_processor
+  folder: breakpoint
+workflow:
+  - module: tests.ut.computing.test_abstract
+    processing_unit: TestAbstractErrorProcessor
+    name: test_abstract_error_processor
+    inputs:
+      in1: OLCI
+      in2: foobar
+      burst1: burst_1796
+      burst2: burst_1586
+      burst3: burst_1155
+    outputs:
+      out: output
+      multi1: cache
+    adfs:
+      dem: DEM
+      tes: pasla
+    parameters:
+      variables_paths:
+        - "/measurements/image/oa01_radiance"
+        - "/measurements/image/oa02_radiance"
+        - "/measurements/image/oa03_radiance"
+        - "/measurements/image/oa04_radiance"
+        - "/measurements/image/oa05_radiance"
+        - "/measurements/image/oa06_radiance"
+        - "/measurements/image/oa07_radiance"
+        - "/measurements/image/oa08_radiance"
+        - "/measurements/image/oa09_radiance"
+        - "/measurements/image/oa10_radiance"
+      dest_path: "/measurements/variable"
+  - module: tests.ut.computing.test_abstract
+    processing_unit: TestAbstractCriticalErrorProcessor
+    name: test_abstract_error_processor_bis
+    inputs:
+      in1: output
+      in2: test_abstract_processor.multi1
+    outputs:
+      multi*: outputs
+    parameters:
+      exit_code: 600
+  - module: tests.ut.computing.test_abstract
+    processing_unit: TestAbstractErrorProcessor
+    name: test_abstract_error_processor_tri
+    inputs:
+      in1: output
+      in2: test_abstract_processor_bis.multi1
+    outputs:
+      multi*: outputs
+    parameters:
+      exit_code: 1796
+io:
+  input_products:
+    - id: burst_1796
+      path: 1796.zarr
+    - id: burst_1586
+      path: 1586.zarr
+    - id: burst_1155
+      path: 1155.zarr
+  output_products:
+    - id: output
+      path: output.zarr
+      apply_eoqc: true
+    - id: outputs
+      path: "./finals/"
+      type: folder
+      engine: cpm_zarr
+  adfs:
+    - id: DEM
+      path: DEM.zarr
+context_managers:
+  - module: eopf.dask_utils.dask_context_manager
+    context_manager: DaskContext
+    parameters:
+      cluster_type: local
+      cluster_config: { }
+      client_config: { }
+      connect_timeout: 60
+logging:
+  - "./default.json"
+config:
+  - "./eopf.toml"

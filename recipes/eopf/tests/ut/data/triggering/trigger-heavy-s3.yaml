@@ -1,0 +1,60 @@
+---
+general_configuration:
+  logging:
+    level: DEBUG
+  breakpoints__folder: ./breakpoints
+  triggering__use_default_filename: False
+  triggering__wait_before_exit: 1
+  triggering__stage_s3_outputs_min_size: 0
+  triggering__stage_s3_memory_fit_safety_ratio: 0.25
+  triggering__cache_writer_params:
+    mode: "w"
+    compute: false
+workflow:
+  - module: tests.ut.computing.test_abstract
+    processing_unit: TestAbstractProcessor
+    name: test_abstract_processor
+    outputs: { }
+    parameters:
+      size_x: 256
+      size_y: 256
+      chunk_x: 128
+      chunk_y: 128
+      min_value: 0
+      max_value: 100
+      nb_var: 2
+      deep_level: 2
+  - module: tests.ut.computing.test_abstract
+    processing_unit: TestHeavyProcessingProcessor
+    name: test_heavy_processor
+    inputs:
+      in: test_abstract_processor.out
+    outputs:
+      out: outputs
+    parameters:
+      full_image_ops: false
+io:
+  output_products:
+    - id: outputs
+      path: outputs.zarr
+      type: file
+      engine: cpm_zarr
+      writer_params:
+        default_codec: !ZarrCompressor
+          cname: "zstd"
+          clevel: 3
+          shuffle: 2
+        mode: "w"
+        compute: true
+context_managers:
+  - module: eopf.dask_utils.dask_context_manager
+    context_manager: DaskContext
+    parameters:
+      cluster_type: local
+      cluster_config: { }
+      client_config: { }
+      connect_timeout: 60
+logging:
+  - "./default.json"
+config:
+  - "./eopf.toml"
