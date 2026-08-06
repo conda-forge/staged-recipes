@@ -15,7 +15,7 @@ for %%c in (azurite) do (
 popd
 
 @rem remove '"packageManager": "yarn@<version>"' from package.json
-jq "del(.packageManager)" package.json > package.json.new
+@REM jq "del(.packageManager)" package.json > package.json.new
 if errorlevel 1 exit 1
 
 copy package.json.new package.json
