@@ -15,6 +15,7 @@
 #                        every versioned library the archive ships carries this exact suffix.
 {% set version = "13.3.45405995" %}
 {% set driver_version = "610.01" %}
+{% set cuda_release = version.split('.')[:2] | join('') %}
 
 # Tegra cannot reuse the SBSA archive: its libcuda is built against the L4T kernel driver and
 # links against the Tegra NVRM stack (libnvrm_gpu, libnvrm_mem, ...), absent on server ARM.
@@ -82,6 +83,11 @@ outputs:
     files:
       - cuda-compat
     build:
+      # This output is versioned after the driver, which moves independently of the archive:
+      # a future release shipping the same 610.01 would otherwise land on a package that is
+      # already on the channel, same name, version, build number and hash, different contents.
+      # The CUDA release in the build string keeps them apart.
+      string: cuda{{ cuda_release }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       # The compiler run exports would otherwise pin the package to the gcc used to build it,
       # libgcc >=14 and libstdcxx >=14, which says nothing about these prebuilt binaries: not
       # one of them lists libgcc_s or libstdc++ among its DT_NEEDED entries.
