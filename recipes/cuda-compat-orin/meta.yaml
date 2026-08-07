@@ -83,6 +83,12 @@ outputs:
     files:
       - cuda-compat
     build:
+      # The compiler run exports would otherwise pin the package to the gcc used to build it,
+      # libgcc >=14 and libstdcxx >=14, which says nothing about these prebuilt binaries: not
+      # one of them lists libgcc_s or libstdc++ among its DT_NEEDED entries.
+      ignore_run_exports:
+        - libgcc
+        - libstdcxx
       # libcuda lives in the off-path $PREFIX/cuda-compat directory, so the libraries that
       # link against it cannot resolve it at build time.
       # The rest is the L4T NVRM stack and the DLA runtime, which ship with the JetPack BSP
@@ -97,8 +103,10 @@ outputs:
         - '*/libnvrm_sync.so'
     requirements:
       build:
+        # Nothing is compiled here. The C compiler is still pulled in because its activation
+        # sets CONDA_BUILD_SYSROOT, which conda-build's overlinking check needs, and stdlib("c")
+        # is what turns the c_stdlib_version pin into the __glibc >=2.28 run export.
         - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
       run:
         # Orin moved to the sbsa ABI in CTK 13, so the arm-variant must always be sbsa here.
