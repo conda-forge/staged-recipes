@@ -91,27 +91,16 @@ outputs:
         # rest of the CUDA 13 stack, which is sbsa only on aarch64.
         - arm-variant * sbsa
       run_constrained:
-        # Both aarch64 builds depend on the same sbsa arm-variant and only differ by the device
-        # they target, so the compute capability is what tells the solver which one to pick.
-        # Orin is sm_87, and no discrete GPU shares that compute capability.
+        # Orin is sm_87 and no discrete GPU shares that compute capability, so this bound just
+        # states that the package targets a Jetson Orin. It is advisory: "__cuda_arch" comes
+        # from CEP-46, pixi and rattler report it natively while conda needs the
+        # "nvidia-virtual-packages" plugin, and a run_constrained on a missing virtual package
+        # is vacuously satisfied.
         #
-        # Keep in mind that "__cuda_arch" comes from CEP-46 and is not universally available:
-        # pixi and rattler detect it natively, while conda needs "nvidia-virtual-packages".
-        # A run_constrained on a missing virtual package is vacuously satisfied, so without it
-        # the two builds stay ambiguous and the solver is free to pick either one.
-        #
-        # Making these hard run requirements would remove that ambiguity, but it cannot be done
-        # here: the conda-forge build image has no "__cuda_arch", so the test environment of
-        # both aarch64 outputs becomes unsolvable and the build fails with
-        # "nothing provides __cuda_arch 8.7.*". conda-forge-ci-setup does export
-        # CONDA_OVERRIDE_CUDA_ARCH, but conda ignores it without "nvidia-virtual-packages", and
-        # it is only exported when "cuda_compiler_version" and "cuda_arch_version" appear in the
-        # rendered .ci_support config, which conda-smithy drops for variant keys the recipe does
-        # not use.
-        #
-        # rattler honours CONDA_OVERRIDE_CUDA_ARCH natively, with no plugin, so this becomes
-        # feasible once the feedstock builds with rattler-build and a recipe.yaml that can refer
-        # to "cuda_arch_version" directly in the specs below.
+        # A hard run requirement would be stronger, but it cannot be used here: the build image
+        # has no "__cuda_arch", so the test environment of this output becomes unsolvable and
+        # the build fails with "nothing provides __cuda_arch 8.7.*". That no longer matters
+        # much, since the package name is what keeps this shim away from sbsa users.
         - __cuda_arch 8.7.*
     test:
       commands:
