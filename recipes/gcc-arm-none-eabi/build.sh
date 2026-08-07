@@ -95,6 +95,73 @@ builddir="${SRC_DIR}/build-arm-none-eabi"
 export ZSTD_CFLAGS="-I${builddir}/host-tools/include"
 export ZSTD_LIBS="-L${builddir}/host-tools/lib -lzstd"
 
+# Build the target libraries without debug info. The packaged libraries are
+# stripped of their heavy .debug_* sections at the end of this script anyway,
+# so the DWARF is dead weight -- but it is dead weight that has to exist on
+# disk first, in both the obj trees and the install tree, and it is roughly
+# 60% of every target .a. That peak is what exhausted the CI disk part-way
+# through the final per-multilib libstdc++ builds.
+#
+# build-baremetal-toolchain.sh hardcodes these two variables (it does not read
+# them from the environment), so patch them in place. -g becomes -g0 rather
+# than being dropped so any later "$cflags_for_target -g"-style concatenation
+# in the script still resolves to no debug info. Note this also removes
+# .debug_frame, which the strip step deliberately keeps for stack unwinding
+# through libc/libstdc++; -fasynchronous-unwind-tables preserves the .ARM.exidx
+# unwind tables that bare-metal C++ exception handling actually depends on.
+sed -i \
+  -e 's|^\(  cflags_for_target="\$cflags_for_target_common -O2\) -g"$|\1 -g0 -fasynchronous-unwind-tables"|' \
+  -e 's|^\(  cflags_for_nano_target="\$cflags_for_target_common -Os\) -g"$|\1 -g0 -fasynchronous-unwind-tables"|' \
+  "${SRC_DIR}/src/gnu-devtools-for-arm/build-baremetal-toolchain.sh"
+
+# Fail loudly if Arm reshaped those lines in a later devtools revision, rather
+# than silently building a multi-hour full-DWARF toolchain again.
+grep -q -- '-g0 -fasynchronous-unwind-tables' \
+  "${SRC_DIR}/src/gnu-devtools-for-arm/build-baremetal-toolchain.sh"
+
+# Cortex-M only. GCC's arm port accepts just three forms of
+# --with-multilib-list: "aprofile", "rmprofile", or "@<fragment>" naming a
+# makefile fragment in gcc/config/arm (see the arm case in gcc/config.gcc) --
+# there is no "mprofile" value. "rmprofile" pulls in arm/t-multilib, whose own
+# body unconditionally adds the legacy ARM and R-profile multilibs (v5te, v7,
+# v7+fp, v7-r+fp.sp) on top of the purely M-profile set that arm/t-rmprofile
+# contributes; that is 7 of the 28 libraries built.
+#
+# So drop to a custom fragment that includes t-rmprofile and re-declares only
+# the M-profile axes. This mirrors the tail of t-multilib (the marm/mthumb,
+# march and mfloat-abi option lists) with the four non-M architectures and
+# their MULTILIB_REQUIRED lines removed. mthumb/mfloat-abi=soft is kept: it is
+# the default multilib, used when no -mcpu/-march selects a more specific one.
+#
+# Building this from the environment rather than editing the source in place
+# keeps the change auditable and confined to one file.
+cat > "${SRC_DIR}/src/gcc/gcc/config/arm/t-mprofile" <<'EOF'
+# M-profile only multilibs, derived from arm/t-multilib.
+comma := ,
+tm_multilib_list := $(subst $(comma), ,$(TM_MULTILIB_CONFIG))
+
+MULTILIB_OPTIONS     =
+MULTILIB_DIRNAMES    =
+MULTILIB_EXCEPTIONS  =
+MULTILIB_MATCHES     =
+MULTILIB_REUSE       =
+MULTILIB_REQUIRED    =
+
+include $(srcdir)/config/arm/t-rmprofile
+
+MULTILIB_OPTIONS        += marm/mthumb
+MULTILIB_DIRNAMES       += arm thumb
+
+MULTILIB_OPTIONS        += $(MULTI_ARCH_OPTS_RM)
+MULTILIB_DIRNAMES       += $(MULTI_ARCH_DIRS_RM)
+
+MULTILIB_OPTIONS        += mfloat-abi=soft/mfloat-abi=softfp/mfloat-abi=hard
+MULTILIB_DIRNAMES       += nofp softfp hard
+
+# The default multilib, selected when no -mcpu/-march picks a specific one.
+MULTILIB_REQUIRED       += mthumb/mfloat-abi=soft
+EOF
+
 # build-baremetal-toolchain.sh takes the install location from the environment
 # (there is no command-line flag for it) and configures gcc with an absolute
 # --prefix="$installdir", so this installs straight into the conda build prefix
@@ -118,8 +185,10 @@ export nano_installdir="${SRC_DIR}/nano_install"
 # --release              turns down self-consistency checking, as Arm's own
 #                        release builds do
 # --no-package           we want the install tree, not distribution tarballs
-# --with-multilib-list   rmprofile only (Cortex-M/R). aprofile roughly doubles
-#                        an already multi-hour build; see README.
+# --with-multilib-list   @t-mprofile: Cortex-M only, via the custom fragment
+#                        written above. rmprofile would add 7 legacy-ARM and
+#                        R-profile multilibs on top; aprofile roughly doubles
+#                        an already multi-hour build.
 # --disable-libcc1       gdb's compile-anything plugin — useless for an
 #                        embedded cross toolchain, and a host plugin .so has
 #                        no place in a package whose binaries must be
@@ -135,17 +204,18 @@ export nano_installdir="${SRC_DIR}/nano_install"
   --enable-newlib-nano \
   --disable-qemu \
   --no-check-gdb \
-  --config-flags-gcc=--with-multilib-list=rmprofile \
+  --config-flags-gcc=--with-multilib-list=@t-mprofile \
   --config-flags-gcc=--disable-libcc1 \
   --bugurl="https://github.com/conda-forge/gcc-arm-none-eabi-feedstock/issues"
 
-# Strip the heavyweight debug sections from the target libraries and objects,
-# exactly as Arm's own releases do (utilities.sh strip_lib, run by the perms
-# stage that only executes with --package): objcopy removes .debug_info and
-# friends but deliberately keeps .debug_frame, which minimal stack unwinding
-# through the libraries needs. This is what makes Arm's tarballs ~200 MB while
-# full-DWARF target libs pushed our packages to 627 MB. Uses the freshly
-# built cross objcopy from the install itself.
+# Strip any remaining debug sections from the target libraries and objects, as
+# Arm's own releases do (utilities.sh strip_lib, run by the perms stage that
+# only executes with --package). Since the -g0 patch above, the target
+# libraries carry no DWARF to begin with and this mostly removes .comment and
+# .note -- it is kept because the prerequisite libraries and any object not
+# covered by cflags_for_target can still arrive with debug sections, and
+# because it is what bounds the package size if that patch ever stops
+# applying. Uses the freshly built cross objcopy from the install itself.
 OBJCOPY="$PREFIX/bin/arm-none-eabi-objcopy"
 find "$PREFIX" \( -name '*.a' -o -name '*.o' \) -print0 | while IFS= read -r -d '' f; do
   "$OBJCOPY" -R .comment -R .note -R .debug_info -R .debug_aranges \
