@@ -19,10 +19,6 @@
 # Tegra and SBSA toolkits, it is published under the "linux-sbsa" platform directory, but it
 # keeps its own layout: it is versioned after the CUDA release instead of the driver, and it
 # unpacks into "compat_orin" instead of "compat".
-#
-# Here "arm_variant_type" is only a build-time label telling which redistributable to download.
-# Unlike the CUDA 12 Tegra packages, this build produces sbsa binaries and does not depend on
-# the tegra "arm-variant", see the run requirements below.
 {% set impl_version = orin_driver_version %}
 
 package:
@@ -30,8 +26,8 @@ package:
   version: {{ cuda_version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat_orin/linux-sbsa/cuda_compat_orin-linux-sbsa-{{ orin_version }}-archive.tar.xz  # [aarch64 and arm_variant_type == "tegra"]
-  sha256: d9e7655f46c10eeda7c3652f4fce91825f2b446fab8976c4591bfd4b887e4c8d  # [aarch64 and arm_variant_type == "tegra"]
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat_orin/linux-sbsa/cuda_compat_orin-linux-sbsa-{{ orin_version }}-archive.tar.xz
+  sha256: d9e7655f46c10eeda7c3652f4fce91825f2b446fab8976c4591bfd4b887e4c8d
 
 build:
   number: 2
@@ -45,10 +41,6 @@ requirements:
 
 outputs:
   - name: cuda-compat-orin
-    build:
-      # The two aarch64 builds share name, version and dependencies, so the variant is spelled
-      # out in the build string to make it obvious which shim is installed.
-      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-orin-impl", exact=True) }}
@@ -76,19 +68,18 @@ outputs:
     files:
       - cuda-compat
     build:
-      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
       # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
       # The Tegra libs additionally link against the L4T NVRM stack and the DLA runtime, which
       # ship with the JetPack BSP and are resolved there by the system loader configuration.
       missing_dso_allowlist:
         - '*/libcuda.so*'
         - '*/libcrypto.so*'
-        - '*/libnvcuextend.so'      # [aarch64 and arm_variant_type == "tegra"]
-        - '*/libnvdla_runtime.so'   # [aarch64 and arm_variant_type == "tegra"]
-        - '*/libnvrm_gpu.so'        # [aarch64 and arm_variant_type == "tegra"]
-        - '*/libnvrm_host1x.so'     # [aarch64 and arm_variant_type == "tegra"]
-        - '*/libnvrm_mem.so'        # [aarch64 and arm_variant_type == "tegra"]
-        - '*/libnvrm_sync.so'       # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvcuextend.so'
+        - '*/libnvdla_runtime.so'
+        - '*/libnvrm_gpu.so'
+        - '*/libnvrm_host1x.so'
+        - '*/libnvrm_mem.so'
+        - '*/libnvrm_sync.so'
     requirements:
       build:
         - {{ compiler("c") }}
@@ -98,7 +89,7 @@ outputs:
         # Orin moved to the sbsa ABI in CTK 13, so the arm-variant must always be sbsa here.
         # Requesting the tegra variant would make the package unsolvable together with the
         # rest of the CUDA 13 stack, which is sbsa only on aarch64.
-        - arm-variant * sbsa  # [aarch64]
+        - arm-variant * sbsa
       run_constrained:
         # Both aarch64 builds depend on the same sbsa arm-variant and only differ by the device
         # they target, so the compute capability is what tells the solver which one to pick.
@@ -121,12 +112,12 @@ outputs:
         # rattler honours CONDA_OVERRIDE_CUDA_ARCH natively, with no plugin, so this becomes
         # feasible once the feedstock builds with rattler-build and a recipe.yaml that can refer
         # to "cuda_arch_version" directly in the specs below.
-        - __cuda_arch 8.7.*          # [aarch64 and arm_variant_type == "tegra"]
+        - __cuda_arch 8.7.*
     test:
       commands:
         # The Tegra libcuda keeps the L4T SONAME libcuda.so.1.1 instead of being versioned
         # after the driver, and libcudadebugger.so.1 is a regular file rather than a symlink.
-        - test -f $PREFIX/cuda-compat/libcuda.so.1.1                                     # [aarch64 and arm_variant_type == "tegra"]
+        - test -f $PREFIX/cuda-compat/libcuda.so.1.1
         - test -L $PREFIX/cuda-compat/libcuda.so.1
         - test -L $PREFIX/cuda-compat/libcuda.so
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ impl_version }}
@@ -137,10 +128,10 @@ outputs:
         - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ impl_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ impl_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
-        - test -f $PREFIX/cuda-compat/libcudadebugger.so.1                               # [aarch64 and arm_variant_type == "tegra"]
+        - test -f $PREFIX/cuda-compat/libcudadebugger.so.1
         # Only Tegra ships the cuDLA bridge and the NVRM interop shim.
-        - test -f $PREFIX/cuda-compat/libnvcudla.so                                      # [aarch64 and arm_variant_type == "tegra"]
-        - test -f $PREFIX/cuda-compat/libnvcuextend.so                                   # [aarch64 and arm_variant_type == "tegra"]
+        - test -f $PREFIX/cuda-compat/libnvcudla.so
+        - test -f $PREFIX/cuda-compat/libnvcuextend.so
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
