@@ -48,6 +48,9 @@ requirements:
   build:
     - cf-nvidia-tools 1.*  # [linux]
 
+# Two outputs because a package has one version but there are two numbers worth selecting on:
+# the metapackage carries the CUDA release, so that "cuda-compat-orin 13.3.*" asks for the shim
+# of a given toolkit, while the output holding the files carries the user-mode driver version.
 outputs:
   - name: cuda-compat-orin
     requirements:
@@ -55,7 +58,10 @@ outputs:
         - {{ pin_subpackage("cuda-compat-orin-impl", exact=True) }}
     test:
       commands:
-        - exit 0
+        # The metapackage ships no files, so this only checks that installing it does pull in the
+        # shim. Without a test section conda-build would not even create the test environment,
+        # and the exact pin above would never be solved.
+        - test -L $PREFIX/cuda-compat/libcuda.so.1
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
