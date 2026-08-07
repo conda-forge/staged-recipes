@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-REASONS = {"mis-tagged-pure-python", "name-conflict"}
+REASONS = {"mis-tagged-pure-python", "name-conflict", "maintainer-prefers-feedstock"}
 
 _BLOCKS_DIR = Path(__file__).parent / "blocks"
 

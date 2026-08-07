@@ -25,12 +25,16 @@ index to artifact filenames, and makes the channel updates.
 
 ## When to block a package
 
-Two reasons are supported (validated by the loader):
+Three reasons are supported (validated by the loader):
 
 - `mis-tagged-pure-python`: the PyPI wheel is tagged `py3-none-any`
   but contains native code, so it cannot live in the noarch channel.
 - `name-conflict`: the PyPI package name shadows an existing
   conda-forge package.
+- `maintainer-prefers-feedstock`: the conda-forge maintainer actively
+  maintains the feedstock and prefers users install from conda-forge
+  rather than the converted wheel. Include an `issue` link to the
+  feedstock or discussion where possible.
 
 ## How to submit a block
 
@@ -38,7 +42,7 @@ Two reasons are supported (validated by the loader):
 
    ```yaml
    name: <exact conda package name>
-   reason: mis-tagged-pure-python   # or: name-conflict
+   reason: mis-tagged-pure-python   # or: name-conflict, maintainer-prefers-feedstock
    details: |                        # optional, free-text evidence
      Why this package should be blocked.
    issue: <optional URL>             # optional tracking link
