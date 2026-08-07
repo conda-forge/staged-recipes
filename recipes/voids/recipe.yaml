@@ -1,0 +1,119 @@
+schema_version: 1
+
+context:
+  version: "0.2.2"
+
+package:
+  name: voids
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/v/voids/voids-${{ version }}.tar.gz
+  sha256: abfe558978a12a9b378cc46fff13e0983e361ed2710031887c942d39ed9718d6
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.11")
+    - match(python, ">=3.13")
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python
+    - hatchling >=1.24
+    - pip
+  run:
+    - python
+
+    # Core runtime declared by the upstream Python package.
+    # The current conda packages for OpenPNM and PoreSpy do not carry all of
+    # their upstream Python metadata constraints. Keep these explicit so that
+    # the installed environment also passes pip's metadata consistency check.
+    - numpy <2.2
+    - scipy
+    - edt >=3.0,<3.1
+    - numba >=0.60
+    - scikit-image >=0.22
+    - tifffile >=2023.8
+    - h5py >=3.10
+    - typing-extensions >=4.10
+    - plotly >=5.0
+    - porespy >=2.4
+    - openpnm >=3.6,<3.7
+    - pyvista >=0.43
+    - meshio >=5.3
+
+    # Complete portable CPU feature stack.
+    - matplotlib-base >=3.8
+    - matplotlib-inline
+    - vtk 9.*
+    - trame 3.*
+    - coolprop >=6.6
+    - thermo >=0.6.0,<0.7
+    - pyamg >=5.3
+    - fenics-dolfinx >=0.9,<0.11
+    - gmsh
+    - python-gmsh
+
+    # Intel oneAPI MKL/PARDISO is not available on macOS arm64, and upstream
+    # voids only exposes its PARDISO extra on Linux and Windows.
+    - if: linux or win
+      then: mkl >=2023
+    - if: linux or win
+      then: pypardiso >=0.4
+
+tests:
+  - python:
+      imports:
+        - voids
+        - voids.fem
+        - voids.fem.singlephase
+        - voids.image
+        - voids.linalg
+        - voids.physics.thermo
+        - voids.visualization
+        - CoolProp
+        - dolfinx
+        - gmsh
+        - pyamg
+        - pyvista
+        - thermo
+      # PyPardiso's wheel metadata requires a Python distribution named `mkl`,
+      # while conda-forge's MKL runtime deliberately provides no Python
+      # dist-info with that name. Validate all other metadata below and exercise
+      # the actual Pardiso runtime rather than failing on this known mismatch.
+      pip_check: false
+  - requirements:
+      run:
+        - pip
+    script:
+      - >-
+        python -c "import re, subprocess, sys; result = subprocess.run([sys.executable, '-m', 'pip', 'check'], capture_output=True, text=True); print(result.stdout, end=''); print(result.stderr, end='', file=sys.stderr); lines = [line.strip() for line in (result.stdout + '\n' + result.stderr).splitlines() if line.strip()]; allowed = [line for line in lines if re.fullmatch(r'pypardiso \S+ requires mkl, which is not installed\.', line)]; unexpected = [line for line in lines if line != 'No broken requirements found.' and line not in allowed]; assert not unexpected, '\n'.join(unexpected); assert result.returncode == int(bool(allowed)), (result.returncode, allowed)"
+      # FFCx JIT-loads freshly compiled DLLs. On Windows, those DLLs can remain
+      # locked until process teardown and make rattler-build fail while deleting
+      # its otherwise successful test prefix. Imports above still validate the
+      # Windows FEM installation; exercise the numerical FEM path on Unix.
+      - if: unix
+        then: >-
+          python -c "import numpy as np; from voids.fem.singlephase import FEMMapProblem, FEniCSSolverOptions, solve_brinkman_usfem; from voids.image.porosity import PermeabilityMap, PorosityMap; problem = FEMMapProblem(PermeabilityMap(np.full((2, 2), 2.0), cell_size=1.0), PorosityMap(np.ones((2, 2)), cell_size=1.0), viscosity=1.0); result = solve_brinkman_usfem(problem, flow_axis='x', options=FEniCSSolverOptions.superlu_direct()); assert np.isclose(result.permeability, 2.0, rtol=5e-4), result.permeability"
+      - if: linux or win
+        then: >-
+          python -c "import numpy as np; from pypardiso import spsolve; from scipy.sparse import csc_matrix; matrix = csc_matrix([[4.0, 1.0], [1.0, 3.0]]); rhs = np.array([1.0, 2.0]); solution = spsolve(matrix, rhs); assert np.allclose(matrix @ solution, rhs), solution"
+
+about:
+  homepage: https://github.com/geomech-project/voids
+  repository: https://github.com/geomech-project/voids
+  documentation: https://geomech-project.github.io/voids/
+  summary: Scientific Python package for digital porous media research
+  description: |
+    voids provides canonical pore-network data structures, image-to-network
+    workflows, validated single-phase transport, visualization, thermodynamic
+    models, and finite-element workflows for digital porous media research.
+  license: LGPL-2.1-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - volpatto
+    - ggrbill
