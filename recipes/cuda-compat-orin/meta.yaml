@@ -7,8 +7,8 @@
 #   orin_version         "cuda_compat_orin".version, which follows the CUDA release instead
 #   orin_driver_version  the user-mode driver shipped by "cuda_compat_orin", which the manifest
 #                        does not report: it is the suffix of the library file names inside the
-#                        archive, e.g. compat_orin/libnvidia-nvvm.so.610.01. build.sh rejects a
-#                        value that does not match the archive, so a stale one cannot slip in.
+#                        archive, e.g. compat_orin/libnvidia-nvvm.so.610.01. The build script
+#                        rejects a value the archive does not ship, so a stale one cannot pass.
 {% set cuda_version = "13.3.1" %}
 {% set orin_version = "13.3.45405995" %}
 {% set orin_driver_version = "610.01" %}
@@ -33,8 +33,16 @@ source:
 build:
   number: 0
   skip: true  # [not aarch64]
-  script_env:
-    - DRV_VERSION={{ impl_version }}
+  script:
+    # The archive is the only place where the user-mode driver version shows up, and it only
+    # appears in the library file names. It cannot be read at render time either, conda-build's
+    # load_file_regex opens the file as text and the archive holds nothing but a LICENSE and
+    # ELF objects. So orin_driver_version is written by hand above, and checked here to fail
+    # the build rather than publish a package whose version lies about the driver it ships.
+    - test -f compat_orin/libnvidia-nvvm.so.{{ impl_version }} || { echo "compat_orin does not ship the declared driver {{ impl_version }}" >&2; exit 1; }
+    - check-glibc compat_orin/*.so*
+    - mkdir -p "${PREFIX}/cuda-compat"
+    - cp -vd compat_orin/*.so* "${PREFIX}/cuda-compat/"
 
 requirements:
   build:
