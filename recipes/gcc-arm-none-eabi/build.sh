@@ -193,6 +193,19 @@ export nano_installdir="${SRC_DIR}/nano_install"
 #                        embedded cross toolchain, and a host plugin .so has
 #                        no place in a package whose binaries must be
 #                        self-contained
+# --disable-libstdcxx-pch
+#                        Do not precompile <bits/stdc++.h> & friends. libstdc++
+#                        builds PCH files (stdc++, stdtr1c++, extc++, plus
+#                        per-std-mode variants) at ~100-145 MB each; the failed
+#                        run wrote 151 of them across the 21 multilibs, on the
+#                        order of 15-20 GB of build tree and by far the largest
+#                        consumer of CI disk. They are pure build-time scratch:
+#                        the install tree ships no .gch at all, so dropping
+#                        them costs nothing at runtime. This is what the
+#                        second CI run died on ("cannot write PCH file: No
+#                        space left on device"), after -g0 and the multilib cut
+#                        had already trimmed the target libraries -- -g0 shrinks
+#                        a PCH by only ~12%, so it could not fix this by itself.
 # no --tag               Arm asks that their release branding not be reused
 "${SRC_DIR}/src/gnu-devtools-for-arm/build-baremetal-toolchain.sh" \
   --target=arm-none-eabi \
@@ -206,7 +219,17 @@ export nano_installdir="${SRC_DIR}/nano_install"
   --no-check-gdb \
   --config-flags-gcc=--with-multilib-list=@t-mprofile \
   --config-flags-gcc=--disable-libcc1 \
+  --config-flags-gcc=--disable-libstdcxx-pch \
   --bugurl="https://github.com/conda-forge/gcc-arm-none-eabi-feedstock/issues"
+
+# Fail if PCH generation happened anyway: --disable-libstdcxx-pch not taking
+# effect is the difference between a build that fits on a CI runner and one
+# that does not, and a silent regression there would only surface hours later
+# as "No space left on device". Nothing in the install tree should be a .gch.
+if find "${builddir}/obj" "$PREFIX" -name '*.gch' -print -quit 2>/dev/null | grep -q .; then
+  echo "ERROR: precompiled headers were built despite --disable-libstdcxx-pch" >&2
+  exit 1
+fi
 
 # Strip any remaining debug sections from the target libraries and objects, as
 # Arm's own releases do (utilities.sh strip_lib, run by the perms stage that
