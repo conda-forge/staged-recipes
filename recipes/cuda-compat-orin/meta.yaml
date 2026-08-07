@@ -1,0 +1,179 @@
+{% set name = "cuda-compat" %}
+
+# To update this recipe, bump the versions below and refresh the matching sha256 from
+# https://developer.download.nvidia.com/compute/cuda/redist/redistrib_<cuda_version>.json
+#
+#   cuda_version         the CUDA release the compat libraries are built for
+#   orin_version         "cuda_compat_orin".version, which follows the CUDA release instead
+#   orin_driver_version  the user-mode driver shipped by "cuda_compat_orin", which the manifest
+#                        does not report: it is the suffix of the library file names inside the
+#                        archive, e.g. compat_orin/libnvidia-nvvm.so.610.01
+{% set cuda_version = "13.3.1" %}
+{% set orin_version = "13.3.45405995" %}
+{% set orin_driver_version = "610.01" %}
+
+# Tegra cannot reuse the SBSA archive: its libcuda is built against the L4T kernel driver and
+# links against the Tegra NVRM stack (libnvrm_gpu, libnvrm_mem, ...), absent on server ARM.
+# NVIDIA therefore ships the separate "cuda_compat_orin" redistributable, the only supported
+# way to run a CUDA 13 runtime on a Jetson Orin still on JetPack 6. Since CUDA 13 unified the
+# Tegra and SBSA toolkits, it is published under the "linux-sbsa" platform directory, but it
+# keeps its own layout: it is versioned after the CUDA release instead of the driver, and it
+# unpacks into "compat_orin" instead of "compat".
+#
+# Here "arm_variant_type" is only a build-time label telling which redistributable to download.
+# Unlike the CUDA 12 Tegra packages, this build produces sbsa binaries and does not depend on
+# the tegra "arm-variant", see the run requirements below.
+{% set impl_version = orin_driver_version %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ cuda_version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat_orin/linux-sbsa/cuda_compat_orin-linux-sbsa-{{ orin_version }}-archive.tar.xz  # [aarch64 and arm_variant_type == "tegra"]
+  sha256: d9e7655f46c10eeda7c3652f4fce91825f2b446fab8976c4591bfd4b887e4c8d  # [aarch64 and arm_variant_type == "tegra"]
+
+build:
+  number: 2
+  skip: true  # [not aarch64]
+  script_env:
+    - DRV_VERSION={{ impl_version }}
+
+requirements:
+  build:
+    - cf-nvidia-tools 1.*  # [linux]
+
+outputs:
+  - name: cuda-compat
+    build:
+      # The two aarch64 builds share name, version and dependencies, so the variant is spelled
+      # out in the build string to make it obvious which shim is installed.
+      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
+    requirements:
+      run:
+        - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
+    test:
+      commands:
+        - exit 0
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: CUDA Compatibility Platform
+      description: |
+        Package containing all the necessary CUDA driver files related to forward
+        compatibility. This compatibility enables newer CUDA runtimes to work with
+        older display drivers. Used for data center GPUs and, with the `tegra`
+        variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+        The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+        They are picked up only if that directory is prepended to `LD_LIBRARY_PATH`.
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: cuda-compat-impl
+    version: "{{ impl_version }}"
+    files:
+      - cuda-compat
+    build:
+      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
+      # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
+      # The Tegra libs additionally link against the L4T NVRM stack and the DLA runtime, which
+      # ship with the JetPack BSP and are resolved there by the system loader configuration.
+      missing_dso_allowlist:
+        - '*/libcuda.so*'
+        - '*/libcrypto.so*'
+        - '*/libnvcuextend.so'      # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvdla_runtime.so'   # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_gpu.so'        # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_host1x.so'     # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_mem.so'        # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_sync.so'       # [aarch64 and arm_variant_type == "tegra"]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+      run:
+        # Orin moved to the sbsa ABI in CTK 13, so the arm-variant must always be sbsa here.
+        # Requesting the tegra variant would make the package unsolvable together with the
+        # rest of the CUDA 13 stack, which is sbsa only on aarch64.
+        - arm-variant * sbsa  # [aarch64]
+      run_constrained:
+        # Both aarch64 builds depend on the same sbsa arm-variant and only differ by the device
+        # they target, so the compute capability is what tells the solver which one to pick.
+        # Orin is sm_87, and no discrete GPU shares that compute capability.
+        #
+        # Keep in mind that "__cuda_arch" comes from CEP-46 and is not universally available:
+        # pixi and rattler detect it natively, while conda needs "nvidia-virtual-packages".
+        # A run_constrained on a missing virtual package is vacuously satisfied, so without it
+        # the two builds stay ambiguous and the solver is free to pick either one.
+        #
+        # Making these hard run requirements would remove that ambiguity, but it cannot be done
+        # here: the conda-forge build image has no "__cuda_arch", so the test environment of
+        # both aarch64 outputs becomes unsolvable and the build fails with
+        # "nothing provides __cuda_arch 8.7.*". conda-forge-ci-setup does export
+        # CONDA_OVERRIDE_CUDA_ARCH, but conda ignores it without "nvidia-virtual-packages", and
+        # it is only exported when "cuda_compiler_version" and "cuda_arch_version" appear in the
+        # rendered .ci_support config, which conda-smithy drops for variant keys the recipe does
+        # not use.
+        #
+        # rattler honours CONDA_OVERRIDE_CUDA_ARCH natively, with no plugin, so this becomes
+        # feasible once the feedstock builds with rattler-build and a recipe.yaml that can refer
+        # to "cuda_arch_version" directly in the specs below.
+        - __cuda_arch 8.7.*          # [aarch64 and arm_variant_type == "tegra"]
+    test:
+      commands:
+        # The Tegra libcuda keeps the L4T SONAME libcuda.so.1.1 instead of being versioned
+        # after the driver, and libcudadebugger.so.1 is a regular file rather than a symlink.
+        - test -f $PREFIX/cuda-compat/libcuda.so.1.1                                     # [aarch64 and arm_variant_type == "tegra"]
+        - test -L $PREFIX/cuda-compat/libcuda.so.1
+        - test -L $PREFIX/cuda-compat/libcuda.so
+        - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ impl_version }}
+        - test -L $PREFIX/cuda-compat/libnvidia-nvvm.so.4
+        - test -L $PREFIX/cuda-compat/libnvidia-nvvm.so
+        - test -f $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.{{ impl_version }}
+        - test -L $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.1
+        - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ impl_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ impl_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
+        - test -f $PREFIX/cuda-compat/libcudadebugger.so.1                               # [aarch64 and arm_variant_type == "tegra"]
+        # Only Tegra ships the cuDLA bridge and the NVRM interop shim.
+        - test -f $PREFIX/cuda-compat/libnvcudla.so                                      # [aarch64 and arm_variant_type == "tegra"]
+        - test -f $PREFIX/cuda-compat/libnvcuextend.so                                   # [aarch64 and arm_variant_type == "tegra"]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: CUDA Compatibility Platform
+      description: |
+        Package containing all the necessary CUDA driver files related to forward
+        compatibility. This compatibility enables newer CUDA runtimes to work with
+        older display drivers. Used for data center GPUs and, with the `tegra`
+        variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+        The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+        They are picked up only if that directory is prepended to `LD_LIBRARY_PATH`.
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: CUDA Compatibility Platform
+  description: |
+    Package containing all the necessary CUDA driver files related to forward
+    compatibility. This compatibility enables newer CUDA runtimes to work with
+    older display drivers. Used for data center GPUs and, with the `tegra`
+    variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+    The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+    They are picked up only if that directory is prepended to `LD_LIBRARY_PATH`.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  feedstock-name: cuda-compat
+  recipe-maintainers:
+    - conda-forge/cuda
