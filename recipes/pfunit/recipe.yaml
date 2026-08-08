@@ -1,0 +1,84 @@
+# pFUnit -- unit-testing framework for Fortran (JUnit-style, serial and MPI). Top
+# of the Goddard Fortran Ecosystem (gftl -> gftl-shared -> fargparse -> pfunit) and
+# the reason the whole group is here: LFRic's unit tests link
+# `-lpfunit -lfunit -lfargparse -lgftl-shared-v2`. It is TEST-only -- no LFRic
+# application or science run needs it.
+#
+# Built +mpi (LFRic uses MPI-parallel pFUnit), so it carries the mpi_${mpi}_*
+# build string and depends on the same MPI as the rest of the stack. Its `.pf`
+# test preprocessor is a Python tool consumers run at build time, hence python is
+# also a run dependency. Versioned subdir install (PFUNIT-<x.y>/), like the group.
+schema_version: 1
+
+context:
+  version: "4.19.0"
+
+package:
+  name: pfunit
+  version: ${{ version }}
+
+source:
+  # A GitHub RELEASE asset (a plain .tar), not an archive/refs/tags tarball -- this
+  # is the source Spack uses. No `file_name:` here: setting it made rattler-build
+  # treat the download as a plain file and NOT extract it, so the work dir held the
+  # .tar instead of its contents and CMake could not find CMakeLists.txt. Letting
+  # the URL's .tar extension drive extraction strips the single top-level
+  # pFUnit-v<ver>/ dir, exactly as the .tar.gz sources of the other recipes do.
+  url: https://github.com/Goddard-Fortran-Ecosystem/pFUnit/releases/download/v${{ version }}/pFUnit-v${{ version }}.tar
+  sha256: ec84e2e17d79598d782edc5468e7ebfe392ccf5aff9170a15c10f0b52f9f62b4
+
+build:
+  number: 0
+  # MPI-linked, so it is variant-tagged like xios/yaxt.
+  string: mpi_${{ mpi }}_${{ hash }}_${{ build_number }}
+  # mpich/openmpi are not built for win-64 on conda-forge (only msmpi/impi_rt,
+  # a different API this recipe does not support).
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - m4
+    - python
+  host:
+    - ${{ mpi }}
+    - gftl
+    - gftl-shared
+    - fargparse
+    - python
+  run:
+    - ${{ mpi }}
+    - gftl
+    - gftl-shared
+    - fargparse
+    # pFUnit's .pf-file preprocessor (funitproc / pFUnitParser) is a Python script
+    # that consumers invoke when building their tests.
+    - python
+
+tests:
+  - script:
+      - bash test_pfunit.sh
+    files:
+      recipe:
+        - test_pfunit.sh
+
+about:
+  homepage: https://github.com/Goddard-Fortran-Ecosystem/pFUnit
+  repository: https://github.com/Goddard-Fortran-Ecosystem/pFUnit
+  summary: Unit-testing framework for Fortran, with MPI support
+  description: |
+    pFUnit is a unit-testing framework enabling JUnit-like testing of serial and
+    MPI-parallel software written in Fortran. LFRic uses it for its Fortran unit
+    tests. Built here with MPI support against the stack's MPI.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - ickc
