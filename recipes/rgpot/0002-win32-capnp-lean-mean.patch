@@ -1,0 +1,108 @@
+diff --git a/CppCore/rgpot/CPMDPot/CPMDPot.cc b/CppCore/rgpot/CPMDPot/CPMDPot.cc
+index 38be908..f0c98f0 100644
+--- a/CppCore/rgpot/CPMDPot/CPMDPot.cc
++++ b/CppCore/rgpot/CPMDPot/CPMDPot.cc
+@@ -1,11 +1,12 @@
+ // MIT License
+ // Copyright 2023--present rgpot developers
+ 
++#include "rgpot/CPMDPot/CPMDPot.hpp"
++
+ #include <capnp/message.h>
+ #include <capnp/serialize.h>
+ #include <kj/array.h>
+ 
+-#include "rgpot/CPMDPot/CPMDPot.hpp"
+ #include "rgpot/CPMDPot/cpmd_c_abi.h"
+ #include "rgpot/NWChemPot/DynLib.hpp"
+ #include "rgpot/units.hpp"
+diff --git a/CppCore/rgpot/MetatomicPot/MetatomicDlopen.cc b/CppCore/rgpot/MetatomicPot/MetatomicDlopen.cc
+index c5efa99..e8226de 100644
+--- a/CppCore/rgpot/MetatomicPot/MetatomicDlopen.cc
++++ b/CppCore/rgpot/MetatomicPot/MetatomicDlopen.cc
+@@ -9,6 +9,12 @@
+ #ifndef _WIN32
+ #include <dlfcn.h>
+ #else
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
+ #include <windows.h>
+ #endif
+ 
+diff --git a/CppCore/rgpot/NWChemPot/DynLib.hpp b/CppCore/rgpot/NWChemPot/DynLib.hpp
+index 45a32d1..f225b58 100644
+--- a/CppCore/rgpot/NWChemPot/DynLib.hpp
++++ b/CppCore/rgpot/NWChemPot/DynLib.hpp
+@@ -13,6 +13,12 @@
+ #include <string>
+ 
+ #if defined(_WIN32) || defined(_WIN64)
++// Cap'n Proto headers must not see full windows.h: commdlg defines
++// IPrintDialogServices, which then collides with capnp's Kind templates
++// (MSVC C2838 in generated-header-support.h / capability.h).
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
+ #ifndef NOMINMAX
+ #define NOMINMAX
+ #endif
+diff --git a/CppCore/rgpot/NWChemPot/NWChemPot.cc b/CppCore/rgpot/NWChemPot/NWChemPot.cc
+index 8d6ba78..357d117 100644
+--- a/CppCore/rgpot/NWChemPot/NWChemPot.cc
++++ b/CppCore/rgpot/NWChemPot/NWChemPot.cc
+@@ -1,12 +1,13 @@
+ // MIT License
+ // Copyright 2023--present rgpot developers
+ 
++#include "rgpot/NWChemPot/NWChemPot.hpp"
++
+ #include <capnp/message.h>
+ #include <capnp/serialize.h>
+ #include <kj/array.h>
+ 
+ #include "rgpot/NWChemPot/DynLib.hpp"
+-#include "rgpot/NWChemPot/NWChemPot.hpp"
+ #include "rgpot/NWChemPot/nwchem_c_abi.h"
+ #include "rgpot/units.hpp"
+ 
+diff --git a/CppCore/rgpot/XTBPot/XTBDlopen.cc b/CppCore/rgpot/XTBPot/XTBDlopen.cc
+index c01efd9..ea0489b 100644
+--- a/CppCore/rgpot/XTBPot/XTBDlopen.cc
++++ b/CppCore/rgpot/XTBPot/XTBDlopen.cc
+@@ -11,6 +11,12 @@
+ #ifndef _WIN32
+ #include <dlfcn.h>
+ #else
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
+ #include <windows.h>
+ #endif
+ 
+diff --git a/meson.build b/meson.build
+index 7c0b3fc..4e1dcf2 100644
+--- a/meson.build
++++ b/meson.build
+@@ -12,7 +12,14 @@ host_system = host_machine.system()
+ # Add C++ compiler options
+ _cppc_early = meson.get_compiler('cpp')
+ if _cppc_early.get_id() == 'msvc' or _cppc_early.get_id() == 'clang-cl'
+-    cpp_args = ['/W3']
++    # WIN32_LEAN_AND_MEAN / NOMINMAX: keep windows.h from defining COM
++    # symbols (e.g. IPrintDialogServices) that break Cap'n Proto templates
++    # under MSVC when any TU mixes windows.h with capnp headers.
++    cpp_args = [
++        '/W3',
++        '/DWIN32_LEAN_AND_MEAN',
++        '/DNOMINMAX',
++    ]
+ else
+     cpp_args = ['-Wall', '-Wextra', '-Wpedantic']
+ endif
