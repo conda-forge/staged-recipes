@@ -1,0 +1,96 @@
+context:
+  version: "0.9.3"
+
+package:
+  name: libcap-ng
+  version: ${{ version }}
+
+source:
+  url: https://github.com/stevegrubb/libcap-ng/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fe11ebbb55904763b3532f19069f13ec319042634620180a03bd4653d301563e
+
+build:
+  number: 0
+  script:
+    - ./autogen.sh
+    # NOTE: we `--disable-cap-audit` since it requires `bpftool`, `libaudit` and `libbpf` which aren't yet packaged for conda-forge
+    - ./configure --prefix="$PREFIX" --disable-static --disable-cap-audit --without-python3
+    - make -j${CPU_COUNT}
+    - make install
+    - rm -f "$PREFIX"/lib/*.la
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - libtool
+    - make
+    - pkg-config
+
+tests:
+  - script:
+      - filecap -d
+      - netcap
+      - pscap
+  - package_contents:
+      bin:
+        - filecap
+        - netcap
+        - pscap
+      include:
+        - cap-ng.h
+      lib:
+        - cap-ng
+        - drop_ambient
+      files:
+        - lib/pkgconfig/libcap-ng.pc
+        - share/aclocal/cap-ng.m4
+        - share/bash-completion/completions/libcap-ng.bash_completion
+        - share/man/man3/capng_apply.3
+        - share/man/man3/capng_apply_caps_fd.3
+        - share/man/man3/capng_capability_to_name.3
+        - share/man/man3/capng_change_id.3
+        - share/man/man3/capng_clear.3
+        - share/man/man3/capng_fill.3
+        - share/man/man3/capng_get_caps_fd.3
+        - share/man/man3/capng_get_caps_process.3
+        - share/man/man3/capng_get_rootid.3
+        - share/man/man3/capng_have_capabilities.3
+        - share/man/man3/capng_have_capability.3
+        - share/man/man3/capng_lock.3
+        - share/man/man3/capng_name_to_capability.3
+        - share/man/man3/capng_print_caps_numeric.3
+        - share/man/man3/capng_print_caps_text.3
+        - share/man/man3/capng_restore_state.3
+        - share/man/man3/capng_save_state.3
+        - share/man/man3/capng_setpid.3
+        - share/man/man3/capng_set_rootid.3
+        - share/man/man3/capng_stage_additional_groups.3
+        - share/man/man3/capng_update.3
+        - share/man/man3/capng_updatev.3
+        - share/man/man7/libdrop_ambient.7
+        - share/man/man8/filecap.8
+        - share/man/man8/netcap.8
+        - share/man/man8/pscap.8
+      strict: true
+
+about:
+  summary: A library that makes using POSIX capabilities easier
+  description: |
+    Libcap-ng is a library that makes programming with POSIX capabilities easier.
+    It also provides utilities for analyzing the capabilities of running processes
+    and files, including `filecap`, `netcap`, and `pscap`.
+  license: LGPL-2.1-or-later AND GPL-2.0-or-later
+  license_file:
+    - COPYING.LIB
+    - COPYING
+  homepage: https://people.redhat.com/sgrubb/libcap-ng/
+  documentation: https://github.com/stevegrubb/libcap-ng/tree/master/docs
+  repository: https://github.com/stevegrubb/libcap-ng
+
+extra:
+  recipe-maintainers:
+    - salim-b
