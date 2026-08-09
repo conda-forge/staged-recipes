@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  version: "0.3.0"
+
+package:
+  name: libdisplay-info
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.freedesktop.org/emersion/libdisplay-info/-/archive/${{ version }}/libdisplay-info-${{ version }}.tar.gz
+  sha256: 2b467e3336aec63819d6aca28d7310d3dc7415b2b3a3c3a5aec9d3727053c078
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script: build.sh
+  variant:
+    # python only runs a build-time code generator and is not linked against,
+    # so it must not turn this C library into a python-versioned build matrix.
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # gen-search-table.py generates pnp-id-table.c at build time.
+    - python
+    # pnp.ids is resolved through pkg-config with `native: true` and is
+    # compiled into the library, so hwdata is a build (not host) dependency.
+    - hwdata
+  run_exports:
+    # soversion is set to the minor version, so the soname bumps on every
+    # minor release: 0.3.0 installs libdisplay-info.so.3.
+    - ${{ pin_subpackage('libdisplay-info', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - display-info
+      include:
+        - libdisplay-info/info.h
+      bin:
+        - di-edid-decode
+  - script:
+      - pkg-config --modversion libdisplay-info
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://gitlab.freedesktop.org/emersion/libdisplay-info
+  license: MIT
+  license_file: LICENSE
+  summary: EDID and DisplayID library
+  description: |
+    libdisplay-info is a library to parse EDID and DisplayID metadata, as used
+    to describe the capabilities of computer displays. It provides a
+    high-level API on top of low-level parsing of the raw blobs, and is used
+    by Wayland compositors to identify monitors and their supported modes.
+  documentation: https://gitlab.freedesktop.org/emersion/libdisplay-info
+  repository: https://gitlab.freedesktop.org/emersion/libdisplay-info
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
