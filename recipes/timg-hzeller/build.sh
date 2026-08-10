@@ -3,9 +3,7 @@
 set -euxo pipefail
 
 cmake -S . -B build -G Ninja \
-    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DCMAKE_PREFIX_PATH="${PREFIX}" \
-    -DCMAKE_BUILD_TYPE=Release \
+	${CMAKE_ARGS} \
     -DTIMG_VERSION_FROM_GIT=OFF
 
 cmake --build build --parallel "${CPU_COUNT}"
