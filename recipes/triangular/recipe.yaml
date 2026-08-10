@@ -2,9 +2,7 @@ schema_version: 1
 
 context:
   version: "0.2.0"
-  # NOTE: `python_min` doesn't control which version of Python will be used at
-  # build-time. `variants.yaml` was needed for that.
-  python_min: "3.12"
+  abi3_python: '3.12'
 
 package:
   name: triangular
@@ -16,14 +14,12 @@ source:
 
 build:
   number: 0
-  # NOTE: Since we're using Python's "Limited API" (abi3), we can skip all
-  # builds except for the minimum-supported Python version
-  skip: is_abi3 and not is_python_min
+  skip: match(python, "!=${{ abi3_python }}")
   script:
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   python:
-    version_independent: ${{ is_abi3 }}
+    version_independent: true
 
 requirements:
   build:
@@ -39,8 +35,7 @@ requirements:
     - ${{ compiler('rust') }}
     - cargo-bundle-licenses
   host:
-    - if: is_abi3
-      then: python-abi3
+    - python-abi3
     - python
     - maturin >=1.7,<2
     - pip
@@ -51,22 +46,19 @@ requirements:
 tests:
   - python:
       python_version:
-        - if: is_abi3
-          then: ${{ python_min }}.*
+        - ${{ abi3_python }}.*
         - "*"
       imports:
         - triangular
         - triangular._triangular
       pip_check: true
-  - if: is_abi3
-    then:
-      requirements:
-        run:
-          - abi3audit
-      script:
-        - if: unix
-          then: abi3audit $SP_DIR/triangular/_triangular.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
-          else: abi3audit %SP_DIR%\triangular\_triangular.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  - requirements:
+      run:
+        - abi3audit
+    script:
+      - if: unix
+        then: abi3audit $SP_DIR/triangular/_triangular.abi3.so -s -v --assume-minimum-abi3 ${{ abi3_python }}
+        else: abi3audit %SP_DIR%\triangular\_triangular.pyd -s -v --assume-minimum-abi3 ${{ abi3_python }}
 
 
 about:
