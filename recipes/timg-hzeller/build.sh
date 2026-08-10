@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -exo pipefail
 
 cmake -S . -B build -G Ninja \
 	${CMAKE_ARGS} \
