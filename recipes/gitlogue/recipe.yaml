@@ -1,0 +1,67 @@
+context:
+  version: "0.10.0"
+
+package:
+  name: gitlogue
+  version: ${{ version }}
+
+source:
+  url: https://github.com/unhappychoice/gitlogue/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 65c5043b81aed86aa6429c846d944c375b8d763e77071bb5444b72f5531e3845
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - export LIBGIT2_NO_VENDOR=1 OPENSSL_NO_VENDOR=1
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - pkg-config
+  host:
+    - if: unix
+      then: libgit2
+
+tests:
+  - script:
+      - gitlogue --help
+      - gitlogue --version
+  - package_contents:
+      bin:
+        - gitlogue
+      strict: true
+
+about:
+  summary: A cinematic Git commit replay tool for the terminal
+  description: |
+    Gitlogue is a terminal-based screensaver that replays Git commits as if a
+    ghost developer were typing each change by hand. It provides realistic
+    typing animations, syntax highlighting, and file tree transitions.
+  license: ISC
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/unhappychoice/gitlogue
+  documentation: https://github.com/unhappychoice/gitlogue/tree/main/docs
+  repository: https://github.com/unhappychoice/gitlogue
+
+extra:
+  recipe-maintainers:
+    - salim-b
