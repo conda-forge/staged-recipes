@@ -45,8 +45,8 @@ test -s results_long.out
 
 # Check that the calculated dHvA frequency is within 5% of the expected value of 1 kT
 freq=$(awk '/Freq\. =/ {
-    split($3, value, "+/-")
-    print value[1]
+    sub(/\+\/-.*/, "", $3)
+    print $3
     exit
 }' results_short.out)
 
