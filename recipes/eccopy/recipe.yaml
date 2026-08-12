@@ -1,0 +1,69 @@
+context:
+  version: "1.0.1"
+
+package:
+  name: eccopy
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/e/eccopy/eccopy-${{ version }}.tar.gz
+  sha256: 860a975f832dad0c22a0b7ada4e97b4c8c53b643733718cf99b3b0d1361aec04
+
+build:
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.24
+    - scipy >=1.10
+    - numba >=0.58
+
+tests:
+  - python:
+      imports:
+        - eccopy
+        - eccopy.eccopy1d
+        - eccopy.eccopy2d_v
+        - eccopy.eccopy2d_h
+        - eccopy.eccopy3d
+        - eccopy.stats
+      pip_check: true
+      python_version: 
+        - ${{ python_min }}.*
+        - "*"
+      
+  - script:
+      # The package ships small .mat reference arrays as package data.
+      # Confirm they are installed: without them the enlarge_conv and
+      # enlarge_mixed code paths fail at runtime.
+      - python -c "from eccopy.core.classification import _DISK_STREL_DIR, _DISK_DECOMP_DIR; import os; assert os.listdir(_DISK_STREL_DIR); assert os.listdir(_DISK_DECOMP_DIR)"
+      # End-to-end smoke test through the 3-D classifier.
+      - python -c "import numpy as np; from eccopy import eccopy3d; from eccopy.params import WindowSpec; z=np.linspace(0.5,9,8); d=12-0.9*z[:,None,None]+np.zeros((8,20,20)); d[:,8:14,8:14]+=28; r=eccopy3d.run(d,coords_z=z,coords_y=np.linspace(-10,10,20),coords_x=np.linspace(-10,10,20),window=WindowSpec((5,'km'))); assert np.isin(r.echo_type,[1,2,3,14,16,18,25,30,32,34,36,38]).any()"
+
+about:
+  homepage: https://github.com/iancornejo/EccoPy
+  summary: Data-agnostic Python implementation of the ECCO radar echo classification algorithm
+  description: |
+    EccoPy separates convective from stratiform radar echo using the ECCO
+    (Echo Classification from COnvectivity) algorithm, in four variants
+    covering 1-D series, vertical cross-sections, horizontal composites
+    and full 3-D volumes. It operates purely on NumPy arrays and performs
+    no file I/O, making it independent of coordinate system, file format
+    and radar type. The classification path is ported from the reference
+    MATLAB ECCO-V and C++ ConvStratFinder implementations developed at the
+    NSF National Center for Atmospheric Research.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  documentation: https://github.com/iancornejo/EccoPy#readme
+  repository: https://github.com/iancornejo/EccoPy
+
+extra:
+  recipe-maintainers:
+    - iancornejo
