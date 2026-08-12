@@ -1,0 +1,133 @@
+schema_version: 1
+
+context:
+  version: "0.2.0"
+  build: 0
+  # The kernels compile against the XLA FFI headers that ship inside jaxlib,
+  # and that ABI is only backward compatible: a library built against jaxlib X
+  # loads fine on any newer XLA runtime, but aborts the interpreter outright
+  # (silent SIGABRT, no Python traceback) on an older one. So build against the
+  # floor upstream declares in pyproject.toml -- jax >=0.6.0, built with
+  # jax==0.6.0 -- and let the run requirement state that same floor. Bumping
+  # this raises the minimum jax users can install, so keep the two in step.
+  jaxlib_min: "0.6.0"
+
+package:
+  name: ri-kernels
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/ri_kernels/ri_kernels-${{ version }}.tar.gz
+  sha256: 367ae12c1bf165c4c4266fee342d7a7ea5bf4f3eebc4f8116c39156ffcf3f01c
+
+build:
+  number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build if cuda_compiler_version == "None" else build + 200 }}
+  # The loader in ri_kernels/jax_api/rfi_vis_op.py dlopens `libri_kernels.so`
+  # by that exact name, and upstream publishes no Windows wheels.
+  skip: win
+  dynamic_linking:
+    # Every macOS dylib names itself in LC_ID_DYLIB, and otool reports that as
+    # a dependency. Here it is `@rpath/libri_kernels.so`, which resolves
+    # against nothing because the library ships in site-packages rather than
+    # lib/ -- it is loaded by absolute path via ctypes, never through an rpath.
+    # The reference is to itself, so there is nothing to satisfy.
+    missing_dso_allowlist:
+      - "@rpath/libri_kernels.so"
+  script:
+    env:
+      # pyproject.toml turns this into -DRI_KERNELS_CUDA=ON through a
+      # scikit-build-core `overrides` entry keyed on the environment.
+      RI_KERNELS_CUDA: ${{ "1" if cuda_compiler_version != "None" else "0" }}
+    content: |
+      # CMakeLists.txt fetches Google Highway with FetchContent by default,
+      # which needs network access at configure time. Use conda-forge's libhwy
+      # instead -- it is the same 1.4.0 release that FetchContent would pull.
+      #
+      # JAXLIB_HOME is passed explicitly because CMakeLists.txt otherwise
+      # shells out to whatever `python3` is first on PATH to locate it, which
+      # is the build-prefix interpreter (wrong headers) when cross compiling.
+      export SKBUILD_CMAKE_DEFINE="RI_KERNELS_BUNDLED_HIGHWAY=OFF;JAXLIB_HOME=${SP_DIR}/jaxlib"
+
+      $PYTHON -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+    - cmake >=3.20
+    - ninja
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    # Headers only -- nothing links against jaxlib, the FFI entry points are
+    # dlopened by XLA at run time. See the jaxlib_min note above.
+    - jaxlib ==${{ jaxlib_min }}
+    - libhwy
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        # CUDA::cudart_static -- linking the runtime statically keeps the CUDA
+        # symbols out of the dynamic table, so XLA's own runtime cannot
+        # interpose them via the global scope.
+        - cuda-cudart-static
+  run:
+    - python
+    - jax >=${{ jaxlib_min }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - __cuda
+        # A CUDA build of the kernels is only useful next to a CUDA-enabled
+        # jax; without this the GPU kernels register but XLA never has a CUDA
+        # device to dispatch them to, which fails silently as "no speedup".
+        - jaxlib * cuda*
+
+tests:
+  - python:
+      imports:
+        - ri_kernels
+        - ri_kernels.jax_api
+      pip_check: true
+  # The import test above only proves the package resolves. This one proves the
+  # shared library was found, dlopened, and registered with XLA as a working
+  # FFI target, which is the entire point of the package.
+  - script:
+      - pytest -v tests
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://github.com/epfl-radio-astro/ri-kernels
+  repository: https://github.com/epfl-radio-astro/ri-kernels
+  summary: CPU and GPU kernels for radio interferometry, exposed to JAX as FFI custom calls
+  description: |
+    RI Kernels provides CPU and GPU compute kernels for radio interferometry,
+    exposed to JAX as FFI custom calls with full support for automatic
+    differentiation.
+
+    The CPU kernels use Google Highway for portable SIMD with run-time dispatch
+    across instruction sets. The CUDA kernels are built into the same package
+    and are selected automatically when a GPU is present.
+
+    The kernels back the RFI visibility calculations used by TABASCAL, a
+    Bayesian method for removing radio frequency interference from radio
+    interferometric observations.
+  license: GPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - chrisfinlay
