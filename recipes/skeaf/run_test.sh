@@ -37,6 +37,7 @@ EOF
 
 # Run an actual SKEAF extremal-area calculation
 # Skip DOS to keep the test focused and reasonably quick
+export OMP_NUM_THREADS=2
 skeaf -rdcfg -nodos
 
 test -s results_short.out
