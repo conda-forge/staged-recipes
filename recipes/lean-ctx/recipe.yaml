@@ -1,0 +1,74 @@
+context:
+  version: "3.9.18"
+
+package:
+  name: lean-ctx
+  version: ${{ version }}
+
+source:
+  url: https://github.com/yvgude/lean-ctx/releases/download/v${{ version }}/lean-ctx-${{ version }}-source.tar.gz
+  sha256: 1292776f9549307cf3feade95d75411ba6fce24a9f96d4a07ad6146884686350
+
+build:
+  number: 0
+  script:
+    interpreter: brush
+    env:
+      LIBSQLITE3_SYS_USE_PKG_CONFIG: "1"
+      ZSTD_SYS_USE_PKG_CONFIG: "1"
+    content:
+      - cd rust
+      # tikv-jemalloc-sys requires _rjem_-prefixed symbols on macOS,
+      # which conda-forge's jemalloc does not provide.
+      - if: linux
+        then:
+          - export CARGO_FEATURE_UNPREFIXED_MALLOC_ON_SUPPORTED_PLATFORMS=1
+          - export JEMALLOC_OVERRIDE="${PREFIX}/lib/libjemalloc${SHLIB_EXT}"
+      - cargo auditable install --locked --no-track --bins --root "${LIBRARY_PREFIX:-${PREFIX}}" --path .
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - if: osx
+      then: make
+    - brush
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - pkg-config
+  host:
+    - sqlite
+    - zstd
+    - if: linux
+      then: jemalloc
+  run:
+    - onnxruntime-cpp
+
+tests:
+  - script:
+      - lean-ctx --help
+      - lean-ctx --version
+  - package_contents:
+      bin:
+        - lean-ctx
+      strict: true
+
+about:
+  homepage: https://leanctx.com
+  summary: Context engineering layer for AI coding agents
+  description: |
+    LeanCTX is a local context engineering layer for AI coding agents. It
+    provides repository access, command execution, context compression,
+    persistent memory, access controls, and context usage reporting.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - rust/THIRDPARTY.yml
+  documentation: https://leanctx.com/docs/getting-started
+  repository: https://github.com/yvgude/lean-ctx
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
