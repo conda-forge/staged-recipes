@@ -41,6 +41,49 @@ mvn install:install-file \
 BUILD_DIR="${SRC_DIR}/src/desktop/build-scripts/${BUILD_SUBDIR}"
 cd "${BUILD_DIR}"
 
+if [[ "${target_platform}" == linux-* ]]; then
+    NATIVE_DIR="${SRC_DIR}/src/desktop/build-scripts/native-modules"
+
+    # The upstream pom.xml files for native modules hardcode CC=gcc and
+    # LDPATH=-L/usr/lib, which break in the conda build environment where:
+    #  - the compiler is the conda-provided toolchain (e.g. x86_64-conda-linux-gnu-gcc)
+    #  - headers and libraries are under $PREFIX, not /usr/{include,lib}
+    # Fix CC, CFLAGS (add $PREFIX/include), and LDPATH for alsa and fluidsynth.
+    for pom in \
+        "${NATIVE_DIR}/tuxguitar-alsa-linux/pom.xml" \
+        "${NATIVE_DIR}/tuxguitar-fluidsynth-linux/pom.xml"
+    do
+        sed -i \
+            -e "s|value=\"gcc\"|value=\"${CC}\"|g" \
+            -e "s|value=\"-I\${basedir}/../common-include -fPIC\"|value=\"-I\${basedir}/../common-include -I${PREFIX}/include -fPIC\"|g" \
+            -e "s|value=\"-L/usr/lib\"|value=\"-L${PREFIX}/lib\"|g" \
+            "${pom}"
+    done
+
+    # Jack: same fixes, plus replace the backtick pkg-config expression for LDLIBS
+    # with a literal -ljack (Maven/Ant does not shell-expand backticks in <env> values).
+    sed -i \
+        -e "s|value=\"gcc\"|value=\"${CC}\"|g" \
+        -e "s|value=\"-I\${basedir}/../common-include -fPIC\"|value=\"-I\${basedir}/../common-include -I${PREFIX}/include -fPIC\"|g" \
+        -e "s|value=\"-L/usr/lib\"|value=\"-L${PREFIX}/lib\"|g" \
+        -e 's|value="`pkg-config --libs jack`"|value="-ljack"|g' \
+        "${NATIVE_DIR}/tuxguitar-jack-linux/pom.xml"
+
+    # lv2 requires lilv/suil/Qt5 which are not available on conda-forge.
+    # Remove the lv2 module entry from the native-modules profile and
+    # remove the corresponding post-build copy step so Maven does not fail.
+    LINUX_SWT_POM="${SRC_DIR}/src/desktop/build-scripts/tuxguitar-linux-swt/pom.xml"
+    sed -i '/tuxguitar-synth-lv2-linux/d' "${LINUX_SWT_POM}"
+    # Also remove the <copy> block that collects lv2 build artifacts
+    sed -i \
+        '/native-modules\/tuxguitar-synth-lv2-linux\/target\/build/d' \
+        "${LINUX_SWT_POM}"
+    # And the chmod on lv2-client binaries
+    sed -i \
+        '/lv2-client\/\*\.bin/d' \
+        "${LINUX_SWT_POM}"
+fi
+
 mvn -e clean verify -P native-modules \
     -Dmaven.repo.local="${MAVEN_LOCAL_REPO}"
 

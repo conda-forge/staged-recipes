@@ -18,9 +18,15 @@ if errorlevel 1 exit /b 1
 :: Build TuxGuitar (Java only; native WinMM/FluidSynth modules require MinGW and are omitted)
 :: -P -platform-linux disables the auto-detected Linux profile in cross-build environments
 cd /d "%SRC_DIR%\src\desktop\build-scripts\tuxguitar-windows-swt-x86_64"
+:: Pass project.rootPath as an absolute path to avoid double-slash in fileset paths.
+:: The pom.xml defines project.rootPath=${project.parent.relativePath} which resolves
+:: to "../../" (with a trailing slash). Concatenating that with "/../common/resources/"
+:: produces "../..//../common/resources/" — a double-slash that triggers Windows
+:: ERROR_INVALID_NAME (code 123) when Java opens the path as a File.
 call mvn -e clean verify ^
     -P -platform-linux ^
     -P platform-windows ^
+    -Dproject.rootPath="%SRC_DIR%\src\desktop" ^
     -Dmaven.repo.local="%MAVEN_LOCAL_REPO%"
 if errorlevel 1 exit /b 1
 
