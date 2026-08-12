@@ -70,18 +70,13 @@ if [[ "${target_platform}" == linux-* ]]; then
         "${NATIVE_DIR}/tuxguitar-jack-linux/pom.xml"
 
     # lv2 requires lilv/suil/Qt5 which are not available on conda-forge.
-    # Remove the lv2 module entry from the native-modules profile and
-    # remove the corresponding post-build copy step so Maven does not fail.
+    # Remove the lv2 <module> entry, its <copy> block, and the <chmod> on
+    # lv2 binaries from the tuxguitar-linux-swt build POM.  A dedicated
+    # Python script handles this because the <copy> block spans multiple
+    # lines and a simple per-line sed delete leaves behind an empty
+    # <copy></copy> that Ant rejects with "Specify at least one source".
     LINUX_SWT_POM="${SRC_DIR}/src/desktop/build-scripts/tuxguitar-linux-swt/pom.xml"
-    sed -i '/tuxguitar-synth-lv2-linux/d' "${LINUX_SWT_POM}"
-    # Also remove the <copy> block that collects lv2 build artifacts
-    sed -i \
-        '/native-modules\/tuxguitar-synth-lv2-linux\/target\/build/d' \
-        "${LINUX_SWT_POM}"
-    # And the chmod on lv2-client binaries
-    sed -i \
-        '/lv2-client\/\*\.bin/d' \
-        "${LINUX_SWT_POM}"
+    python3 "${RECIPE_DIR}/patch_lv2.py" "${LINUX_SWT_POM}"
 fi
 
 mvn -e clean verify -P native-modules \

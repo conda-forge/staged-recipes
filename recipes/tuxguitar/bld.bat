@@ -18,15 +18,23 @@ if errorlevel 1 exit /b 1
 :: Build TuxGuitar (Java only; native WinMM/FluidSynth modules require MinGW and are omitted)
 :: -P -platform-linux disables the auto-detected Linux profile in cross-build environments
 cd /d "%SRC_DIR%\src\desktop\build-scripts\tuxguitar-windows-swt-x86_64"
-:: Pass project.rootPath as an absolute path to avoid double-slash in fileset paths.
-:: The pom.xml defines project.rootPath=${project.parent.relativePath} which resolves
-:: to "../../" (with a trailing slash). Concatenating that with "/../common/resources/"
-:: produces "../..//../common/resources/" — a double-slash that triggers Windows
-:: ERROR_INVALID_NAME (code 123) when Java opens the path as a File.
+
+:: Rewrite ${project.parent.relativePath} in the pom to an absolute path before Maven
+:: runs.  The pom defines project.rootPath=${project.parent.relativePath}, which
+:: evaluates to "../../" (trailing slash).  Appending "/../common/resources/" then
+:: produces "../..//../common/resources/" — a double-slash that Java resolves to a
+:: path Windows rejects with ERROR_INVALID_NAME (code 123).  Maven's -D flag cannot
+:: override this because the property is interpolated from ${project.parent.relativePath}
+:: at model-load time before user properties are applied.
+powershell -Command ^
+    "(Get-Content pom.xml -Raw)" ^
+    "-replace '\$\{project\.parent\.relativePath\}', '%SRC_DIR%\src\desktop'" ^
+    "| Set-Content pom.xml -NoNewline"
+if errorlevel 1 exit /b 1
+
 call mvn -e clean verify ^
     -P -platform-linux ^
     -P platform-windows ^
-    -Dproject.rootPath="%SRC_DIR%\src\desktop" ^
     -Dmaven.repo.local="%MAVEN_LOCAL_REPO%"
 if errorlevel 1 exit /b 1
 
