@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  version: "1.17.0"
+
+package:
+  name: brpc
+  version: ${{ version }}
+
+source:
+  url:
+    - https://dlcdn.apache.org/brpc/${{ version }}/apache-brpc-${{ version }}-src.tar.gz
+    - https://archive.apache.org/dist/brpc/${{ version }}/apache-brpc-${{ version }}-src.tar.gz
+  sha256: 30fc544c74ef51419d262d279571c2c1b5db7dda1bc3bad893b1397d676fd02a
+  patches:
+    # guard the Linux-only SO_BINDTODEVICE socket option, missing from the
+    # macOS SDK; backport of https://github.com/apache/brpc/pull/3320
+    - patches/0001-fix-guard-SO_BINDTODEVICE.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    # protoc is executed at build time to compile brpc's own .proto files
+    - if: build_platform != target_platform
+      then:
+        - libprotobuf
+  host:
+    - gflags
+    - leveldb
+    - libabseil
+    - libprotobuf
+    - openssl
+    - zlib
+  run:
+    # libbrpc.so links libleveldb, but leveldb does not provide run_exports,
+    # so it has to be added explicitly
+    - leveldb
+  ignore_run_exports:
+    from_package:
+      # -lz is on brpc's link line, but the linker drops it (--as-needed):
+      # libbrpc.so only uses zlib indirectly through libprotobuf
+      - zlib
+  run_exports:
+    # upstream does not declare a stable ABI (unversioned libbrpc.so),
+    # so pin consumers to the same minor version
+    - ${{ pin_subpackage('brpc', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - brpc
+      include:
+        - brpc/server.h
+        - bthread/bthread.h
+        - butil/logging.h
+        - bvar/bvar.h
+      files:
+        exists:
+          - lib/pkgconfig/brpc.pc
+  - requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - pkg-config
+    script:
+      - pkg-config --exists --print-errors brpc
+      - test "$(pkg-config --modversion brpc)" = "${{ version }}"
+      - $CXX $CXXFLAGS -std=c++17 test_program.cpp $(pkg-config --cflags --libs brpc) $LDFLAGS -o test_program
+      - ./test_program
+    files:
+      recipe:
+        - test_program.cpp
+
+about:
+  homepage: https://brpc.apache.org/
+  repository: https://github.com/apache/brpc
+  documentation: https://brpc.apache.org/docs/
+  summary: Industrial-grade RPC framework using C++. "bRPC" means "better RPC".
+  description: |
+    Apache bRPC is an industrial-grade RPC framework written in C++, often
+    used in high performance systems such as search, storage, machine
+    learning, advertisement and recommendation. It lets you build servers
+    and clients speaking multiple protocols (baidu_std, HTTP/1.x, HTTP/2 &
+    gRPC, Redis, RTMP, and more) and ships bthread (an M:N user-space
+    threading library), bvar (metrics) and rich builtin diagnostic services.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - c8ef
