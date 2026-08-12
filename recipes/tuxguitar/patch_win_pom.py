@@ -60,6 +60,12 @@ def main():
         f"patch_win_pom.py: replaced '{placeholder}' with '{desktop_path}' in {pom_path}"
     )
 
+    # Diagnostic: print the resulting project.rootPath line so it appears in
+    # the build log and confirms both that the script ran and what value was written.
+    for line in text.splitlines():
+        if "project.rootPath" in line:
+            print(f"patch_win_pom.py: resulting line: {line.strip()}")
+
 
 if __name__ == "__main__":
     main()
