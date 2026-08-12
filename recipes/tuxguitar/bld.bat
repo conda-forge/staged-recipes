@@ -22,14 +22,11 @@ cd /d "%SRC_DIR%\src\desktop\build-scripts\tuxguitar-windows-swt-x86_64"
 :: Rewrite ${project.parent.relativePath} in the pom to an absolute path before Maven
 :: runs.  The pom defines project.rootPath=${project.parent.relativePath}, which
 :: evaluates to "../../" (trailing slash).  Appending "/../common/resources/" then
-:: produces "../..//../common/resources/" — a double-slash that Java resolves to a
-:: path Windows rejects with ERROR_INVALID_NAME (code 123).  Maven's -D flag cannot
-:: override this because the property is interpolated from ${project.parent.relativePath}
-:: at model-load time before user properties are applied.
-powershell -Command ^
-    "(Get-Content pom.xml -Raw)" ^
-    "-replace '\$\{project\.parent\.relativePath\}', '%SRC_DIR%\src\desktop'" ^
-    "| Set-Content pom.xml -NoNewline"
+:: produces "../..//../common/resources/" — on Windows Java converts slashes to
+:: backslashes giving "..\..\\..\", a double-backslash in a relative path that
+:: Windows treats as a UNC prefix and rejects with ERROR_INVALID_NAME (code 123).
+:: A Python script is used instead of PowerShell to avoid cmd/PS quoting pitfalls.
+python "%RECIPE_DIR%\patch_win_pom.py" pom.xml "%SRC_DIR%\src\desktop"
 if errorlevel 1 exit /b 1
 
 call mvn -e clean verify ^
