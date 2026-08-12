@@ -1,0 +1,85 @@
+schema_version: 1
+
+context:
+  stubs_version: 1
+  raysect_version: 0.9.1
+  raysect_cap: 0.10.0
+
+recipe:
+  name: raysect-stubs-split
+  version: ${{ raysect_version }}.${{ stubs_version }}
+
+source:
+  url: https://github.com/munechika-koyo/raysect-stubs/v${{ raysect_version }}.${{ stubs_version }}.tar.gz
+  sha256:
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: raysect-stubs
+    build:
+      noarch: python
+      script: pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling
+        - hatch-vcs
+      run:
+        - python >=${{ python_min }}
+        - numpy
+      run_constraints:
+        - raysect >=${{ raysect_version }}, <${{ raysect_cap }}
+    tests:
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pip
+        script:
+          - pip check
+
+  - package:
+      name: raysect-typed
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - raysect ==${{ raysect_version }}
+        - ${{ pin_subpackage('raysect-stubs', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - raysect
+      - files:
+          source:
+            - pyproject.toml
+            - .mypyignore
+            - tests/
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest
+            - mypy
+        script:
+          - stubtest --allowlist=.mypyignore --ignore-disjoint-bases raysect
+          - pytest -q tests/test_stubs.py
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Typing Stubs for Raysect
+  description: The unofficial type stubs for Raysect.
+  homepage: https://github.com/munechika-koyo/raysect-stubs/
+  repository: https://github.com/munechika-koyo/raysect-stubs/
+  documentation: https://github.com/munechika-koyo/raysect-stubs?tab=readme-ov-file#raysect-stubs
+
+extra:
+  recipe-maintainers:
+    - munechika-koyo
+  feedstock-name: raysect-stubs
