@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.2.0"
+  version: "0.2.1"
   build: 0
   # The kernels compile against the XLA FFI headers that ship inside jaxlib,
   # and that ABI is only backward compatible: a library built against jaxlib X
@@ -18,7 +18,7 @@ package:
 
 source:
   url: https://pypi.org/packages/source/r/ri_kernels/ri_kernels-${{ version }}.tar.gz
-  sha256: 367ae12c1bf165c4c4266fee342d7a7ea5bf4f3eebc4f8116c39156ffcf3f01c
+  sha256: 92d4b633c454cec517fd268385d454ef6db1016cb01ead8fcc8a34edaaddb587
 
 build:
   number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
@@ -48,6 +48,13 @@ build:
       # shells out to whatever `python3` is first on PATH to locate it, which
       # is the build-prefix interpreter (wrong headers) when cross compiling.
       export SKBUILD_CMAKE_DEFINE="RI_KERNELS_BUNDLED_HIGHWAY=OFF;JAXLIB_HOME=${SP_DIR}/jaxlib"
+
+      # PyPI wheels retain upstream's static cudart default for self-contained
+      # installs. Conda supplies shared CUDA libraries as managed dependencies,
+      # so let cuda-cudart-dev's run export provide the matching runtime.
+      if [ "${RI_KERNELS_CUDA}" = "1" ]; then
+        export SKBUILD_CMAKE_DEFINE="${SKBUILD_CMAKE_DEFINE};RI_KERNELS_STATIC_CUDART=OFF"
+      fi
 
       # CMakeLists.txt defaults CMAKE_CUDA_ARCHITECTURES to a narrow 75/80/90
       # list, but as a non-FORCE cache entry, so -D on the command line wins.
@@ -92,17 +99,6 @@ requirements:
       then:
         - cuda-version ${{ cuda_compiler_version }}.*
         - cuda-cudart-dev
-        # CUDA::cudart_static -- linking the runtime statically keeps the CUDA
-        # symbols out of the dynamic table, so XLA's own runtime cannot
-        # interpose them via the global scope.
-        - cuda-cudart-static
-  ignore_run_exports:
-    by_name:
-      # CUDA::cudart_static embeds the runtime in libri_kernels_cuda.so, so
-      # cuda-cudart-dev's shared-runtime export is not a runtime dependency.
-      # Keep the CUDA compiler's cuda-version export, which records toolkit
-      # compatibility independently of how cudart itself is linked.
-      - cuda-cudart
   run:
     - python
     - jax >=${{ jaxlib_min }}
