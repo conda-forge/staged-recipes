@@ -4,8 +4,10 @@ set -euxo pipefail
 jar="stationxml-seed-converter-${PKG_VERSION}.jar"
 libdir="${PREFIX}/share/stationxml-seed-converter"
 
-# Install the upstream prebuilt fat jar (built from source is impossible in the
-# network-less conda-forge sandbox; the jar bundles its Java dependencies).
+# Install the upstream prebuilt fat jar (the build script has no network
+# access here, and vendoring Maven's full transitive dependency tree as
+# source: entries would be impractical; the jar bundles its Java
+# dependencies).
 mkdir -p "${libdir}"
 cp "${SRC_DIR}/${jar}" "${libdir}/stationxml-seed-converter.jar"
 
