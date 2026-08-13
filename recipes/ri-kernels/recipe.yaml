@@ -3,13 +3,8 @@ schema_version: 1
 context:
   version: "0.2.1"
   build: 0
-  # The kernels compile against the XLA FFI headers that ship inside jaxlib,
-  # and that ABI is only backward compatible: a library built against jaxlib X
-  # loads fine on any newer XLA runtime, but aborts the interpreter outright
-  # (silent SIGABRT, no Python traceback) on an older one. So build against the
-  # floor upstream declares in pyproject.toml -- jax >=0.6.0, built with
-  # jax==0.6.0 -- and let the run requirement state that same floor. Bumping
-  # this raises the minimum jax users can install, so keep the two in step.
+  # XLA's FFI ABI is backward compatible, so build against the minimum jaxlib
+  # supported upstream and use the same floor at runtime.
   jaxlib_min: "0.6.0"
 
 package:
@@ -23,51 +18,24 @@ source:
 build:
   number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
   string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build if cuda_compiler_version == "None" else build + 200 }}
-  # The loader in ri_kernels/jax_api/rfi_vis_op.py dlopens `libri_kernels.so`
-  # by that exact name, and upstream publishes no Windows wheels.
   skip: win
   dynamic_linking:
-    # Every macOS dylib names itself in LC_ID_DYLIB, and otool reports that as
-    # a dependency. Here it is `@rpath/libri_kernels.so`, which resolves
-    # against nothing because the library ships in site-packages rather than
-    # lib/ -- it is loaded by absolute path via ctypes, never through an rpath.
-    # The reference is to itself, so there is nothing to satisfy.
+    # macOS reports the dylib's own LC_ID_DYLIB as a missing dependency.
     missing_dso_allowlist:
       - "@rpath/libri_kernels.so"
   script:
     env:
-      # pyproject.toml turns this into -DRI_KERNELS_CUDA=ON through a
-      # scikit-build-core `overrides` entry keyed on the environment.
       RI_KERNELS_CUDA: ${{ "1" if cuda_compiler_version != "None" else "0" }}
     content: |
-      # CMakeLists.txt fetches Google Highway with FetchContent by default,
-      # which needs network access at configure time. Use conda-forge's libhwy
-      # instead -- it is the same 1.4.0 release that FetchContent would pull.
-      #
-      # JAXLIB_HOME is passed explicitly because CMakeLists.txt otherwise
-      # shells out to whatever `python3` is first on PATH to locate it, which
-      # is the build-prefix interpreter (wrong headers) when cross compiling.
+      # Disable network fetching and locate the target jaxlib when cross compiling.
       export SKBUILD_CMAKE_DEFINE="RI_KERNELS_BUNDLED_HIGHWAY=OFF;JAXLIB_HOME=${SP_DIR}/jaxlib"
 
-      # PyPI wheels retain upstream's static cudart default for self-contained
-      # installs. Conda supplies shared CUDA libraries as managed dependencies,
-      # so let cuda-cudart-dev's run export provide the matching runtime.
+      # Conda supplies cudart as a managed shared runtime dependency.
       if [ "${RI_KERNELS_CUDA}" = "1" ]; then
         export SKBUILD_CMAKE_DEFINE="${SKBUILD_CMAKE_DEFINE};RI_KERNELS_STATIC_CUDART=OFF"
       fi
 
-      # CMakeLists.txt defaults CMAKE_CUDA_ARCHITECTURES to a narrow 75/80/90
-      # list, but as a non-FORCE cache entry, so -D on the command line wins.
-      # conda-forge's nvcc activation exports CUDAARCHS covering every
-      # architecture the toolkit supports (sm_50..sm_121 for CUDA 12.9, plus
-      # 121-virtual PTX so anything newer still runs), which is what a
-      # redistributable build wants. Left alone when CUDAARCHS is unset, so the
-      # CPU variant and non-conda builds keep upstream's default.
-      #
-      # This goes through CMAKE_ARGS rather than SKBUILD_CMAKE_DEFINE because
-      # the latter is itself semicolon-separated and offers no way to escape a
-      # semicolon inside a value -- scikit-build-core splits the architecture
-      # list and then fails on the fragments.
+      # CUDAARCHS is supplied by conda-forge's nvcc activation and includes PTX.
       if [ -n "${CUDAARCHS:-}" ]; then
         export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CUDA_ARCHITECTURES=${CUDAARCHS}"
       fi
@@ -91,8 +59,7 @@ requirements:
     - python
     - pip
     - scikit-build-core >=0.10
-    # Headers only -- nothing links against jaxlib, the FFI entry points are
-    # dlopened by XLA at run time. See the jaxlib_min note above.
+    # Header-only build dependency; XLA loads the FFI entry points at runtime.
     - jaxlib ==${{ jaxlib_min }}
     - libhwy
     - if: cuda_compiler_version != "None"
@@ -105,9 +72,6 @@ requirements:
     - if: cuda_compiler_version != "None"
       then:
         - __cuda
-        # A CUDA build of the kernels is only useful next to a CUDA-enabled
-        # jax; without this the GPU kernels register but XLA never has a CUDA
-        # device to dispatch them to, which fails silently as "no speedup".
         - jaxlib * cuda*
 
 tests:
@@ -116,9 +80,6 @@ tests:
         - ri_kernels
         - ri_kernels.jax_api
       pip_check: true
-  # The import test above only proves the package resolves. This one proves the
-  # shared library was found, dlopened, and registered with XLA as a working
-  # FFI target, which is the entire point of the package.
   - script:
       - pytest -v tests
     requirements:
