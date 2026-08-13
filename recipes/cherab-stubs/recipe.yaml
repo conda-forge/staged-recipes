@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  stubs_version: 1
+  cherab_version: 1.5.0
+  cherab_cap: 1.6.0
+  raysect_version: 0.9.1
+
+recipe:
+  name: cherab-stubs-split
+  version: ${{ cherab_version }}.${{ stubs_version }}
+
+source:
+  url: https://github.com/munechika-koyo/cherab-stubs/archive/v${{ cherab_version }}.${{ stubs_version }}.tar.gz
+  sha256:
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: cherab-stubs
+    build:
+      noarch: python
+      script:
+        content: pip install . -vv --no-deps --no-build-isolation
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ cherab_version }}.${{ stubs_version }}
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling
+        - hatch-vcs
+      run:
+        - python >=${{ python_min }}
+        - raysect-stubs ${{ raysect_version }}.*
+      run_constraints:
+        - cherab >=${{ cherab_version }}, <${{ cherab_cap }}
+    tests:
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pip
+        script:
+          - pip check
+
+  - package:
+      name: cherab-typed
+    build:
+      noarch: python
+      skip: win
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - cherab ==${{ cherab_version }}
+        - ${{ pin_subpackage('cherab-stubs', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - cherab
+          python_version:
+            - ${{ python_min }}.*
+      - files:
+          source:
+            - pyproject.toml
+            - .mypyignore
+            - tests/
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest
+            - mypy
+        script:
+          - stubtest --allowlist=.mypyignore --ignore-disjoint-bases cherab
+          - pytest -q tests/test_stubs.py
+
+about:
+  license: EUPL-1.1
+  license_file: LICENSE
+  summary: Typing Stubs for cherab
+  description: The type stubs for cherab.
+  homepage: https://github.com/munechika-koyo/cherab-stubs/
+  repository: https://github.com/munechika-koyo/cherab-stubs/
+  documentation: https://github.com/munechika-koyo/cherab-stubs?tab=readme-ov-file#cherab-stubs
+
+extra:
+  recipe-maintainers:
+    - munechika-koyo
+  feedstock-name: cherab-stubs
