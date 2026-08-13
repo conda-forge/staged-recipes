@@ -49,6 +49,22 @@ build:
       # is the build-prefix interpreter (wrong headers) when cross compiling.
       export SKBUILD_CMAKE_DEFINE="RI_KERNELS_BUNDLED_HIGHWAY=OFF;JAXLIB_HOME=${SP_DIR}/jaxlib"
 
+      # CMakeLists.txt defaults CMAKE_CUDA_ARCHITECTURES to a narrow 75/80/90
+      # list, but as a non-FORCE cache entry, so -D on the command line wins.
+      # conda-forge's nvcc activation exports CUDAARCHS covering every
+      # architecture the toolkit supports (sm_50..sm_121 for CUDA 12.9, plus
+      # 121-virtual PTX so anything newer still runs), which is what a
+      # redistributable build wants. Left alone when CUDAARCHS is unset, so the
+      # CPU variant and non-conda builds keep upstream's default.
+      #
+      # This goes through CMAKE_ARGS rather than SKBUILD_CMAKE_DEFINE because
+      # the latter is itself semicolon-separated and offers no way to escape a
+      # semicolon inside a value -- scikit-build-core splits the architecture
+      # list and then fails on the fragments.
+      if [ -n "${CUDAARCHS:-}" ]; then
+        export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CUDA_ARCHITECTURES=${CUDAARCHS}"
+      fi
+
       $PYTHON -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -131,3 +147,4 @@ about:
 extra:
   recipe-maintainers:
     - chrisfinlay
+    - AdhocMan
