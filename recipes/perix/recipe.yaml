@@ -1,0 +1,76 @@
+context:
+  version: "0.1.1"
+
+package:
+  name: perix
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/MatMechLab/PeriX/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: b8767043d8d005493e686214042832029b6fcb861d91d19fa9d8348d56fc2349
+  - url: https://gitlab.com/libeigen/eigen/-/raw/5.0.1/COPYING.MPL2
+    sha256: 66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172
+    file_name: COPYING.MPL2
+    target_directory: vendor-licenses
+  - url: https://raw.githubusercontent.com/nlohmann/json/v3.12.0/LICENSE.MIT
+    sha256: 46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603
+    file_name: LICENSE.MIT
+    target_directory: vendor-licenses
+
+build:
+  number: 0
+  skip:
+    - not (linux and x86_64)
+  script:
+    - cmake ${CMAKE_ARGS} -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=ON -DPARALLEL_ASSEMBLE=ON -DUSE_ONEAPI=ON -DONEAPI_DIR=${PREFIX} -DUSE_AMGCL=OFF -DCUDA_ASSEMBLE=OFF -DUSE_CUDSS=OFF
+    - cmake --build build --parallel ${CPU_COUNT}
+    - ctest --test-dir build --output-on-failure --parallel 1
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - libgomp
+    - llvm-openmp
+    - mkl-devel
+  run:
+    - mkl
+
+tests:
+  - files:
+      recipe:
+        - check_poisson.py
+        - poisson_pardiso.json
+    requirements:
+      run:
+        - python
+    script:
+      - test -x "${PREFIX}/bin/perix"
+      - test -f "${PREFIX}/share/perix/examples/poisson.json"
+      - test -f "${PREFIX}/share/doc/PeriX/PeriXManual.pdf"
+      - test -f "${PREFIX}/share/doc/PeriX/licenses/LICENSE"
+      - OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 perix -i poisson_pardiso.json > perix.log
+      - python check_poisson.py perix.log poisson_pardiso-PD-results.vtu
+
+about:
+  homepage: https://github.com/MatMechLab/PeriX
+  repository: https://github.com/MatMechLab/PeriX
+  documentation: https://github.com/MatMechLab/PeriX/blob/v${{ version }}/documents/PeriXManual.pdf
+  license: GPL-3.0-only AND MPL-2.0 AND MIT
+  license_file:
+    - LICENSE
+    - vendor-licenses/COPYING.MPL2
+    - vendor-licenses/LICENSE.MIT
+  summary: Peridynamics framework for multiphysics simulation
+  description: |
+    PeriX is a C++20 peridynamics framework for multiphysics simulation.
+    This package enables the OpenMP assembly backend and Intel oneAPI MKL
+    PARDISO solver. AMGCL, CUDA assembly, and cuDSS are not included.
+
+extra:
+  recipe-maintainers:
+    - yangbai90
