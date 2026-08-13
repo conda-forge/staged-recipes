@@ -4,9 +4,10 @@ set -euxo pipefail
 jar="stationxml-validator-${PKG_VERSION}.jar"
 libdir="${PREFIX}/share/stationxml-validator"
 
-# Install the upstream prebuilt fat jar (building from source is impossible in
-# the network-less conda-forge sandbox; the jar bundles its Java dependencies,
-# including stationxml-seed-converter).
+# Install the upstream prebuilt fat jar (the build script has no network
+# access here, and vendoring Maven's full transitive dependency tree as
+# source: entries would be impractical; the jar bundles its Java
+# dependencies, including stationxml-seed-converter).
 mkdir -p "${libdir}"
 cp "${SRC_DIR}/${jar}" "${libdir}/stationxml-validator.jar"
 
