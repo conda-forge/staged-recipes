@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  name: npm
+  version: "12.0.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/${{ name }}/-/${{ name }}-${{ version }}.tgz
+  sha256: 5dbb86c71d07a1957f2e90734092dd6a58bdcd9ebc2d8d41ca1c6e6a21d364e1
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - nodejs >=26
+  run:
+    - nodejs >=26
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - export CONDA_PREFIX="${PREFIX}"
+          - source "${PREFIX}/etc/conda/activate.d/npm.sh"
+          - test "$(npm --version)" = "${{ version }}"
+          - test "$(npx --version)" = "${{ version }}"
+          - npm install --help
+          - test "$(npm config get prefix --global)" = "${PREFIX}"
+      - if: win
+        then:
+          - set "CONDA_PREFIX=%PREFIX%"
+          - call "%PREFIX%\etc\conda\activate.d\npm.bat"
+          - npm --version
+          - npx --version
+          - node -e "if (require(process.env.PREFIX + '/Library/share/npm/node_modules/npm/package.json').version !== '${{ version }}') process.exit(1)"
+          - npm install --help
+          - npm config get prefix --global
+  - package_contents:
+      files:
+        - if: unix
+          then:
+            - libexec/npm/bin/npm
+            - libexec/npm/bin/npx
+            - libexec/npm/lib/node_modules/npm/*
+            - etc/conda/activate.d/npm.sh
+            - etc/conda/deactivate.d/npm.sh
+        - if: win
+          then:
+            - Library/share/npm/npm.cmd
+            - Library/share/npm/npx.cmd
+            - Library/share/npm/node_modules/npm/*
+            - etc/conda/activate.d/npm.bat
+            - etc/conda/activate.d/npm.ps1
+            - etc/conda/deactivate.d/npm.bat
+            - etc/conda/deactivate.d/npm.ps1
+
+about:
+  license: Artistic-2.0
+  license_file:
+    - LICENSE
+    - node_modules/**/LICENSE*
+    - node_modules/**/license
+    - node_modules/**/license.md
+  summary: Package manager for JavaScript
+  description: |
+    npm is the package manager for the JavaScript platform. It puts modules in
+    place so that Node.js can find them and manages dependency conflicts.
+  homepage: https://www.npmjs.com/
+  repository: https://github.com/npm/cli
+  documentation: https://docs.npmjs.com/
+
+extra:
+  recipe-maintainers:
+    - ytausch
