@@ -4,8 +4,6 @@ schema_version: 1
 context:
   version: "2026.5.0"
   python_check_max: "3.14"
-  # don't bother with cov on windows
-  cov_fail_under: ${{ "--fail-under=84" if unix else "" }}
 
 package:
   name: jsonschema-markdown
@@ -18,6 +16,8 @@ source:
   - url: https://github.com/elisiariocouto/jsonschema-markdown/archive/refs/tags/${{ version }}.tar.gz
     sha256: 43300aa3903578126414580db109c26a72e96d20847a9d7d8eda0dd90fe14e6b
     target_directory: src
+    patches:
+      - 0000-open-utf8-tests.patch
 
 build:
   number: 0
@@ -61,13 +61,8 @@ tests:
         - jsonschema-markdown --help
         - jsonschema-markdown --version | ${{ 'grep -iE' if unix else 'findstr /c' }} "${{ version | replace('.', '\\.') }}"
         - cd src
-        - if: win
-          then:
-            - cd schema-examples
-            - del basic-anyOf-multiple-types.md basic-anyOf-null.md conditional-with-required.md multiple-anyof-inline.md nested_dicts.md nullable-object-nested.md
-            - cd ..
         - coverage run --source=jsonschema_markdown --branch -m pytest -vv --tb=long --color=yes
-        - coverage report --show-missing --skip-covered ${{ cov_fail_under }}
+        - coverage report --show-missing --skip-covered --fail-under=84
 
 about:
   summary: Export a JSON Schema document to Markdown documentation.
