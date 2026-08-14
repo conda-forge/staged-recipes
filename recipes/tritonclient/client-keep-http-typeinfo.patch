@@ -1,0 +1,53 @@
+diff --git a/src/c++/library/CMakeLists.txt b/src/c++/library/CMakeLists.txt
+index beeb2e0..96aa162 100644
+--- a/src/c++/library/CMakeLists.txt
++++ b/src/c++/library/CMakeLists.txt
+@@ -422,14 +422,14 @@ if(TRITON_ENABLE_CC_HTTP)
+     TritonClient::httpclient ALIAS httpclient
+   )
+ 
+-  if (NOT WIN32)
++  if (NOT WIN32 AND NOT TRITON_KEEP_TYPEINFO)
+      set_target_properties(
+        httpclient
+        PROPERTIES
+          LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libhttpclient.ldscript
+          LINK_FLAGS "-Wl,--version-script=libhttpclient.ldscript"
+      )
+-  endif() # NOT WIN32
++  endif() # NOT WIN32 AND NOT TRITON_KEEP_TYPEINFO
+ 
+   target_link_libraries(
+       httpclient
+@@ -438,6 +438,13 @@ if(TRITON_ENABLE_CC_HTTP)
+       PUBLIC Threads::Threads
+   )
+ 
++  if(${TRITON_ENABLE_ZLIB})
++    target_link_libraries(
++      httpclient
++      PRIVATE ZLIB::ZLIB
++    )
++  endif() # TRITON_ENABLE_ZLIB
++
+   foreach(_client_target http-client-library httpclient_static httpclient)
+     target_compile_features(${_client_target} PRIVATE cxx_std_${TRITON_MIN_CXX_STANDARD})
+     target_compile_options(
+diff --git a/src/c++/library/cmake/TritonClientConfig.cmake.in b/src/c++/library/cmake/TritonClientConfig.cmake.in
+index 4e70594..3d4917c 100644
+--- a/src/c++/library/cmake/TritonClientConfig.cmake.in
++++ b/src/c++/library/cmake/TritonClientConfig.cmake.in
+@@ -26,6 +26,13 @@
+ 
+ include(CMakeFindDependencyMacro)
+ 
++find_dependency(Threads)
++find_dependency(CURL)
++find_dependency(ZLIB)
++find_dependency(Protobuf CONFIG)
++find_dependency(gRPC CONFIG)
++find_dependency(TritonCommon CONFIG)
++
+ get_filename_component(
+   TRITONCLIENT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH
+ )

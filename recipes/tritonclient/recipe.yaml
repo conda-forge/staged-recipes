@@ -1,0 +1,141 @@
+schema_version: 1
+
+context:
+  name: tritonclient
+  version: "2.71.0"
+  client_rev: 67fc23833a2d67edd2840db9f828ca6b75a0336c
+  common_rev: ecb874c3126f9f07810f4900d4e7b088fee5eb8c
+
+recipe:
+  name: ${{ name }}-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/triton-inference-server/client/archive/${{ client_rev }}.tar.gz
+    sha256: c48e31f08959e2c0f264fded27b1395b0ba335939118a747223b1852c8f179ea
+    target_directory: client
+    patches:
+      - client-keep-http-typeinfo.patch
+      - client-support-conda-grpc.patch
+  - url: https://github.com/triton-inference-server/common/archive/${{ common_rev }}.tar.gz
+    sha256: 81e5f9aef14cc70b9c0570e2a465c69d2fdac55ee9c8bc8f729879244cb7a26e
+    target_directory: common
+    patches:
+      - common-disable-tests.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libtritonclient
+    build:
+      skip:
+        - win
+      script: build_cpp.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.31.8
+        - ninja
+      host:
+        - libabseil
+        - libcurl
+        - libgrpc
+        - libprotobuf
+        - rapidjson
+        - zlib
+      run:
+        - rapidjson
+      run_exports:
+        - ${{ pin_subpackage('libtritonclient', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - common.h
+            - grpc_client.h
+            - http_client.h
+          lib:
+            - grpcclient
+            - httpclient
+          files:
+            - lib/cmake/TritonClient/TritonClientConfig.cmake
+      - script:
+          - cmake -S test -B test-build -GNinja
+          - cmake --build test-build
+          - test-build/tritonclient-test
+        files:
+          recipe:
+            - test/
+        requirements:
+          build:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+          run:
+            - cmake
+            - libabseil
+            - libcurl
+            - libgrpc
+            - libprotobuf
+            - ninja
+            - zlib
+
+  - package:
+      name: ${{ name }}
+    build:
+      noarch: python
+      script: build_python.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.31.8
+        - ninja
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+        - grpcio-tools ${{ libgrpc }}.*
+        - libgrpc
+        - libprotobuf
+        - rapidjson
+      run:
+        - python >=${{ python_min }}
+        - aiohttp >=3.8.1,<4.0.0
+        - geventhttpclient >=2.3.3
+        - greenlet <3.4.0
+        - grpcio >=${{ libgrpc }}
+        - ml_dtypes <=0.5.4
+        - numpy >=1.19.1
+        - packaging >=14.1
+        - protobuf >=${{ libprotobuf }},<8.0
+        - python-rapidjson >=0.9.1
+        - urllib3 >=2.0.7
+    tests:
+      - python:
+          imports:
+            - tritonclient
+            - tritonclient.grpc
+            - tritonclient.http
+            - tritonclient.http.aio
+            - tritonclient.utils
+            - tritonclient.utils.shared_memory
+          pip_check: true
+          python_version: ${{ python_min }}.*
+
+about:
+  homepage: https://developer.nvidia.com/nvidia-triton-inference-server
+  repository: https://github.com/triton-inference-server/client
+  documentation: https://github.com/triton-inference-server/client#readme
+  license: BSD-3-Clause
+  license_file:
+    - client/LICENSE
+    - common/LICENSE
+  summary: C++ and Python clients for communicating with Triton Inference Server
+
+extra:
+  recipe-maintainers:
+    - timkpaine
