@@ -43,13 +43,16 @@ skeaf -rdcfg -nodos
 test -s results_short.out
 test -s results_long.out
 
-# Check that the calculated dHvA frequency is within 5% of the expected value of 1 kT
 freq=$(awk '/Freq\. =/ {
     sub(/\+\/-.*/, "", $3)
     print $3
     exit
 }' results_short.out)
 
+# Test that there is at least one frequency found (not an empty result)
+test -n "$freq"
+
+# Test that the calculated dHvA frequency is within 5% of the expected value of 1 kT
 awk -v freq="$freq" 'BEGIN {
     if (freq < 0.95 || freq > 1.05) {
         print "Unexpected dHvA frequency:", freq, "kT"
