@@ -1,0 +1,69 @@
+context:
+  version: "0.4.1"
+
+package:
+  name: pylint-pydantic
+  version: ${{ version }}
+
+source:
+  # No sdist is published on PyPI, so use the GitHub archive.
+  url: https://github.com/fcfangcc/pylint-pydantic/archive/v${{ version }}.tar.gz
+  sha256: fed38d594e5ad09c0683fd2403aff3ebe9a80ae558f246242c9a0113f30dc686
+
+build:
+  noarch: python
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+    - pylint >2.0,<5.0
+    - pydantic <3.0
+    - pylint-plugin-utils
+
+tests:
+  - python:
+      imports:
+        - pylint_pydantic
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # Upstream's own lint suite, which exercises the plugin rather than just
+  # importing it. Skipped on Windows: registering the plugin trips a known
+  # upstream bug in pylint_plugin_utils.augment_visit that only reproduces
+  # there (pylint_plugin_utils.NoSuchChecker: MisdesignChecker).
+  # See https://github.com/fcfangcc/pylint-pydantic/issues/31
+  # and https://github.com/pylint-dev/pylint-django/issues/378
+  - if: not win
+    then:
+      script:
+        - pylint --load-plugins pylint_pydantic --rcfile=pylintrc tests/
+      requirements:
+        run:
+          - python ${{ python_min }}.*
+      files:
+        source:
+          - pylintrc
+          - tests/
+
+about:
+  homepage: https://github.com/fcfangcc/pylint-pydantic
+  summary: A Pylint plugin to help Pylint understand the Pydantic
+  description: |
+    pylint-pydantic is a Pylint plugin that teaches Pylint about Pydantic
+    models, suppressing false positives such as no-member, no-self-argument
+    and too-many-instance-attributes that Pylint reports for code using
+    Pydantic. Enable it with `pylint --load-plugins pylint_pydantic ...`.
+  license: GPL-3.0-only
+  license_file: LICENSE
+  repository: https://github.com/fcfangcc/pylint-pydantic
+
+extra:
+  recipe-maintainers:
+    - pb01ka
