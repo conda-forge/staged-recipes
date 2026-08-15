@@ -1,0 +1,72 @@
+{% set name = "greybox" %}
+{% set version = "1.0.4" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/greybox-{{ version }}.tar.gz
+  sha256: 122c6e6a477eea2af180f40ee5412e7efd9576416fe615c7dc402e11d8807b79
+
+build:
+  number: 0
+  # Floor enforced by ``requires-python = ">=3.11"`` in pyproject.toml.
+  # conda-build's variant matrix iterates over every Python it knows; the
+  # skip drops the rows below 3.11 instead of pinning ``python`` to a
+  # constraint inside ``requirements:`` (which the linter rejects for
+  # non-noarch packages — the version is set by CBC, not the recipe).
+  skip: True  # [py<311]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+  host:
+    - python
+    - pip
+    - setuptools >=45
+    - wheel
+    - pybind11 >=2.10
+    - numpy
+  run:
+    - python
+    - numpy >=1.20.0
+    - scipy >=1.7.0
+    - pandas >=1.3.0
+    - nlopt >=2.7.0
+    - matplotlib-base >=3.5
+
+test:
+  imports:
+    - greybox
+    - greybox._native_lowess
+    - greybox._native_supsmu
+  commands:
+    - pip check
+  requires:
+    - pip
+    - python
+
+about:
+  home: https://github.com/config-i1/greybox
+  summary: Toolbox for model building and forecasting
+  description: |
+    Python port of the R greybox package. Provides likelihood-based regression
+    with 26+ distributions (ALM - Augmented Linear Model), R-style formula parser,
+    IC-based variable selection (stepwise), model combination, forecast error
+    measures, and comprehensive distribution families. Native C++ implementations
+    of LOWESS and Super Smoother are bundled via pybind11.
+  license: LGPL-2.1-only AND Apache-2.0
+  license_family: LGPL
+  license_file:
+    - LICENSE
+    - extern/carma/LICENSE
+  doc_url: https://config-i1.github.io/greybox/
+  dev_url: https://github.com/config-i1/greybox
+
+extra:
+  recipe-maintainers:
+    - config-i1
