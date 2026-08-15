@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# Without this, OSX fails with /bin/sh: ./install-sh: Permission denied
+chmod +x install-sh
+
 # Build in-tree intentionally. Upstream generates public headers from TeX sources
 # by executing ./tcode from the source tree before building the libraries.
 ./configure \
