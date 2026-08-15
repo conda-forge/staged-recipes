@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# PractRand 0.96 ships src/platform_specifics.cpp with CRLF line endings.
-# Normalize that file before applying our LF-formatted portability patch.
-sed -i 's/\r$//' src/platform_specifics.cpp
-patch -p1 < "${RECIPE_DIR}/fix-non-x86-high-resolution-time.patch"
-
 "${CXX}" ${CPPFLAGS:-} ${CXXFLAGS:-} -Iinclude -std=gnu++11 -pthread \
   -c src/*.cpp src/RNGs/*.cpp src/RNGs/other/*.cpp
 
