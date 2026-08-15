@@ -14,20 +14,20 @@
 
 # Define variables in this section that you can use in other parts.
 context:
-  version: "3.8.2"
+  version: "0.1.0"
 
 package:
-  name: simplejson
+  name: s1proc
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/s/simplejson/simplejson-${{ version }}.tar.gz
+  # url: https://pypi.org/packages/source/s/simplejson/simplejson-${{ version }}.tar.gz
   # If getting the source from GitHub, remove the line above,
   # uncomment the line below, and modify as needed. Use releases if available:
-  # url: https://github.com/simplejson/simplejson/releases/download/${{ version }}/simplejson-${{ version }}.tar.gz
+  url: https://github.com/WWSAR/sentinel_gpu_processor/archive/refs/tags/v${{ version }}.tar.gz
   # and otherwise fall back to archive:
   # url: https://github.com/simplejson/simplejson/archive/v${{ version }}.tar.gz
-  sha256: d58439c548433adcda98e695be53e526ba940a4b9c44fb9a05d92cd495cdd47f
+  sha256: 5be74d1be861493c3119c4bba6853cc33b16daab1dbc9ed0ccb2df34732c2968
   # sha256 is the preferred checksum -- you can get it for a file with:
   #  `openssl sha256 <file name>`,
   # or, in one go without keeping the file with:
@@ -46,42 +46,86 @@ build:
   # skip:
   #   - match(python, "<3.5")
   # or the following to limit to Windows.
-  # skip:
-  #   - win
-  script: python -m pip install . -vv
+  skip:
+    - osx
+    - cuda_compiler_version == "None"
   number: 0
+  script:
+    - if: win
+      then:
+        - bld.bat
+    - if: unix
+      then:
+        - bash ${{ SRC_DIR }}/build.sh
+  python:
+    entry_points:
+      - s1proc = s1proc.cli:main
 
 requirements:
   build:
-    # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
-    # Compiler names include 'c', 'cxx' and 'fortran', among others.
     - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}  # If you need any compiler, add the C standard library ("stdlib") too
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - cuda-cudart
+    - cuda-cudart-dev
+    - if: unix
+      then: cuda-cudart-static
+    - cmake
+    - ninja
+    - libcufft-dev
   host:
     - python
     - pip
     - setuptools
+    - libtiff
+    - sqlite
+    - cuda-cudart
+    - cuda-cudart-dev
+    - if: unix
+      then: cuda-cudart-static
+    - libcufft-dev
   run:
     - python
+    - cuda-cudart
+    - libcufft
+    - sqlite
+    - libtiff
+    - numpy >=1.23
+    - pandas >=2.0
+    - numba >=0.58
+    - requests >=2.31
+    - matplotlib >=3.8
+    - tyro >=0.9
+    - tqdm >=4
+    - pyaps3 >=0.3.7
+    - sentineleof >=0.12.0
+    - sardem >=0.13.0
+    - gdal >=3.10
+    - zarr >=2.18.3,<3
+    - dacite >=1.9.2
+    - ruamel.yaml >=0.18.0
+    - platformdirs >=4.0
+    - cupy
+    - dask >=2024.1.0
+    - fsspec >=2024.6.0,<2027.0.0
+    - nvidia-ml-py >=12.535.0,<14.0.0
 
 tests:
   # Some packages might need a `test/commands` key to check CLI.
   - python:
       # A list of modules that the test will try to import
       imports:
-      - simplejson
-      - simplejson.tests
+      - s1proc
       # Also run `pip check` to verify the integrity
       pip_check: true
 
 about:
-  homepage: https://github.com/simplejson/simplejson
-  summary: 'Simple, fast, extensible JSON encoder/decoder for Python'
+  homepage: https://github.com/WWSAR/sentinel_gpu_processor
+  summary: 'A user-friendly Sentinel-1 radar image processor'
   description: |
-    simplejson is a simple, fast, complete, correct and extensible
-    JSON <https://json.org> encoder and decoder for Python 2.5+ and
-    Python 3.3+. It is pure Python code with no dependencies, but includes
-    an optional C extension for a serious speed boost.
+    s1proc is a GPU-accelerated Sentinel-1 InSAR processing pipeline written in
+    Python and CUDA. It takes you from raw data discovery all the way to deformation
+    time series through a single s1proc CLI.
   # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
   # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
   # See https://spdx.org/licenses/
@@ -92,12 +136,11 @@ about:
   # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
   license_file: LICENSE.txt
   # The documentation and repository URLs are optional.
-  documentation: https://simplejson.readthedocs.io/
-  repository: https://github.com/simplejson/simplejson
+  repository: https://github.com/WWSAR/sentinel_gpu_processor
 
 extra:
   recipe-maintainers:
     # GitHub IDs for maintainers of the recipe.
     # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
-    - LisaSimpson
-    - LandoCalrissian
+    - aik9508
+    - ak2325
