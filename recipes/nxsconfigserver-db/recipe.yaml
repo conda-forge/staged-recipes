@@ -31,10 +31,24 @@ tests:
   - script:
       - if: unix or osx
         then:
-          - mysqldump nxsconfig
           - test -x "$PREFIX/share/nxsconfigserver/mysql_create.sql"
+          
+          - mkdir -p ./tmp_mysql
+          - mysqld --initialize-insecure --datadir=./tmp_mysql --user=$(whoami)
+          - mysqld --datadir=./tmp_mysql --port=3307 --socket=./tmp_mysql/mysql.sock --user=$(whoami) &
+          - MYSQL_PID=$!
+          - sleep 5
+          - export DB_HOST="127.0.0.1"
+          - export DB_PORT="3307"
+          - export DB_USER="root"
+          - export DB_PASSWORD=""
+          - export DB_SOCKET="./tmp_mysql/mysql.sock"
+          - my-app init-db --name="production_test_db"
+          - mysqldump nxsconfig
+          - kill $MYSQL_PID
     requirements:
       run:
+        - mysql-server
         - python ${{ python_min }}.*
 
 about:
