@@ -1,0 +1,62 @@
+context:
+  version: "0.6.0"
+
+package:
+  name: umoci
+  version: ${{ version }}
+
+source:
+  url: https://github.com/opencontainers/umoci/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 400a26c5f7ac06e40af907255e0e23407237d950e78e8d7c9043a1ad46da9ae5
+
+build:
+  number: 0
+  script:
+    - go-licenses save ./cmd/umoci --save_path=library_licenses
+    # upstream ref: https://github.com/opencontainers/umoci/blob/main/Makefile
+    - make docs
+    - COMMIT_HASH="$(curl -s "https://api.github.com/repos/opencontainers/umoci/commits/v${{ version }}" | jq -r '.sha')"
+    - go build -o="$PREFIX"/bin/umoci -v -buildmode=pie -ldflags="-s -w -X github.com/opencontainers/umoci.gitCommit=${COMMIT_HASH}" -trimpath ./cmd/umoci
+    # generate man pages
+    - mkdir -p "$PREFIX"/share/man/man1
+    - cp doc/man/*.1 "$PREFIX"/share/man/man1/
+  skip: win # cf. https://github.com/opencontainers/umoci/issues/607 
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+    - go-md2man
+    - make
+
+tests:
+  - script:
+      - umoci --help
+      - umoci --version
+  - package_contents:
+      bin:
+        - umoci
+      files:
+        - if: unix
+          then:
+            - share/man/man1/umoci*.1
+      strict: true
+
+about:
+  summary: A tool for modifying Open Container images
+  description: |
+    umoci is a tool that allows for high-level modification of an OCI image
+    layout and its tagged images. It can create new images from scratch,
+    unpack images to OCI runtime bundles and repack them, generate runtime
+    configurations, and otherwise manipulate OCI images without requiring
+    root privileges or a container runtime daemon.
+  license: Apache-2.0
+  license_file:
+    - COPYING
+    - library_licenses/
+  homepage: https://umo.ci
+  repository: https://github.com/opencontainers/umoci
+
+extra:
+  recipe-maintainers:
+    - salim-b
