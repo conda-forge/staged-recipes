@@ -1,0 +1,69 @@
+context:
+  version: "2.3.0"
+
+package:
+  name: csmith
+  version: ${{ version }}
+
+source:
+  url: https://github.com/csmith-project/csmith/archive/refs/tags/csmith-${{ version }}.tar.gz
+  sha256: 9d024a6b202f6a1b9e01351218a85888c06b67b837fe4c6f8ef5bd522fae098c
+  patches:
+    # Clang 17+ -Wenum-constexpr-conversion. Merged upstream in PR 165.
+    - 0001-fix-FilterKind-enum-range.patch
+    # Static + shared both named csmith.lib on Windows. Also CFEP-18.
+    - 0002-skip-static-csmith-lib.patch
+    # Upstream PR 52: MSVC inline asm is 32-bit only. Needed for win-64.
+    - 0003-fix-msvc-x64-inline-asm.patch
+    # Upstream bc9c977: drop std::bind2nd / ptr_fun in ProbabilityTable.h.
+    - 0004-avoid-deprecated-bind2nd-ptr_fun.patch
+    # Upstream 16668a7: install(TARGETS) so Windows finds csmith.exe.
+    - 0005-install-csmith-as-cmake-target.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -G Ninja %CMAKE_ARGS% -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_STANDARD=14 -S . -B build
+        cmake --build build --config Release
+        cmake --install build --config Release
+      else: |
+        cmake -G Ninja $CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_STANDARD=14 -S . -B build
+        cmake --build build --config Release
+        cmake --install build --config Release
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: win
+      then: m2-m4
+      else: m4
+
+tests:
+  - script:
+      - csmith -o test.c
+  - package_contents:
+      bin:
+        - csmith
+      include:
+        - csmith-${{ version }}/csmith.h
+
+about:
+  homepage: https://embed.cs.utah.edu/csmith/
+  repository: https://github.com/csmith-project/csmith
+  summary: Random generator of C programs for compiler testing
+  description: |
+    Csmith generates random C99 programs that aim to be free of undefined
+    behavior, for differential testing of compilers and other C tools.
+    Compile generated files with -I$PREFIX/include/csmith-2.3.0.
+  license: BSD-2-Clause
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - lucasew

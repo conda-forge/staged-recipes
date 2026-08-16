@@ -1,0 +1,65 @@
+From bc9c9774d47943cf51b1c9900198e89c7e526e1d Mon Sep 17 00:00:00 2001
+From: John Regehr <john.regehr@gmail.com>
+Date: Fri, 27 Feb 2026 14:11:16 -0700
+Subject: [PATCH] avoid some deprecated c++
+
+---
+ src/ProbabilityTable.h | 21 +++------------------
+ 1 file changed, 3 insertions(+), 18 deletions(-)
+
+diff --git a/src/ProbabilityTable.h b/src/ProbabilityTable.h
+index 76137013d..0f8f3a437 100644
+--- a/src/ProbabilityTable.h
++++ b/src/ProbabilityTable.h
+@@ -32,7 +32,6 @@
+ 
+ #include <vector>
+ #include <algorithm>
+-#include <functional>
+ #include <cassert>
+ #include "Probabilities.h"
+ #include "VectorFilter.h"
+@@ -107,20 +106,6 @@ void ProbabilityTable<Key, Value>::initialize(ProbName pname)
+ 	impl_->set_prob_table(this, pname);
+ }
+ 
+-template <class Key, class Value>
+-bool my_less(TableEntry<Key, Value> *t, Key k2)
+-{
+-	Key k1 = t->get_key();
+-	return (k1 < k2);
+-}
+-
+-template <class Key, class Value>
+-bool my_greater(TableEntry<Key, Value> *t, Key k2)
+-{
+-	Key k1 = t->get_key();
+-	return (k1 > k2);
+-}
+-
+ template <class Key, class Value>
+ void
+ ProbabilityTable<Key, Value>::sorted_insert(Entry *t)
+@@ -137,11 +122,10 @@ ProbabilityTable<Key, Value>::sorted_insert(Entry *t)
+ 
+ 	typename vector<Entry *>::iterator i;
+ 	for (i=table_.begin(); i!=table_.end(); i++) {
+-		if (my_greater<Key, Value>(*i, k)) {
++		if ((*i)->get_key() > k) {
+ 			break;
+ 		}
+ 	}
+-	//i = find_if(table_.begin(), table_.end(), std::bind2nd(std::ptr_fun(my_greater<Key, Value>), k));
+ 
+ 	if (i != table_.end()) {
+ 		table_.insert(i, t);
+@@ -167,7 +151,8 @@ ProbabilityTable<Key, Value>::get_value(Key k)
+ 	assert(k < curr_max_key_);
+ 
+ 	typename vector<Entry *>::iterator i;
+-	i = find_if(table_.begin(), table_.end(), std::bind2nd(std::ptr_fun(my_greater<Key, Value>), k));
++	i = find_if(table_.begin(), table_.end(),
++				[k](Entry *e) { return e->get_key() > k; });
+ 
+ 	assert(i != table_.end());
+ 	return (*i)->get_value();
