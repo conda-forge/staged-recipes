@@ -81,3 +81,16 @@ export CXXFLAGS="${CXXFLAGS:-} -pthread"
 export LDFLAGS="${LDFLAGS:-} -pthread -Wl,--no-as-needed -lblas -llapack -lgomp -Wl,--as-needed -Wl,-rpath,${PREFIX}/lib"
 
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
+
+# Rattler relocates any rpath that points at the build env and has
+# been leaving a half-relinked yoda.abi3.so that segfaults on import.
+# Keep only a prefix-relative path so that step is a no-op.
+shopt -s nullglob
+for so in "${PREFIX}"/lib/python*/site-packages/pydseams/yoda*.so; do
+  if command -v patchelf >/dev/null 2>&1; then
+    patchelf --remove-rpath "${so}" || true
+    patchelf --force-rpath --set-rpath "\$ORIGIN/../../.." "${so}"
+  elif [[ "$(uname)" == Darwin ]]; then
+    install_name_tool -add_rpath "@loader_path/../../.." "${so}" || true
+  fi
+done
