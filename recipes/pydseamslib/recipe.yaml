@@ -1,21 +1,31 @@
 schema_version: 1
 
+# Compiled nanobind extension. Windows is skipped: the engine is
+# Meson/C++20 with Unix wrap layout, not a MSVC port.
 context:
   name: pydseamslib
-  version: "2.0.1"
+  version: "2.5.1"
 
 package:
   name: ${{ name }}
   version: ${{ version }}
 
 source:
-  url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 88e1999c57d128ef6fb873a939214a85a6b71db74c7738074dcd7fd139388eeb
-  patches:
-    - 0001-vesin-complete-no-readcon-fallback.patch
-    # Avoid std::format (needs macOS 13.4+ floating to_chars; CF SDK
-    # allowlist has 13.0/13.1/13.3 only — no 13.4 hash). Repr/str only.
-    - 0002-bindings-no-std-format.patch
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: c2beef57f0696566303a709b7db2c582d939cfc1c085fa60edd1370f793e0054
+    patches:
+      # Avoid std::format (macOS SDK availability vs libc++ to_chars).
+      - 0001-bindings-no-std-format.patch
+  # Engine pin matches subprojects/seams-core.wrap (v2.5.0).
+  - url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v2.5.0.tar.gz
+    sha256: 48349347eab3dd179692a823b388e8b0d7fd2ec7bb0da5f44cb69e1a7007fc02
+    target_directory: _src_seams
+  - url: https://github.com/Luthaf/vesin/archive/refs/tags/v0.5.7.tar.gz
+    sha256: d1dbf85461b33799d7b65f899cfd651e860921eac2400316a307f2ac1d66935e
+    target_directory: _src_vesin
+  - url: https://github.com/d-SEAMS/linkcell/archive/refs/tags/v0.3.1.tar.gz
+    sha256: a55e922febd0358dc2522f5825b5acbfcfe61deb6689584e94ad71b07bcc244c
+    target_directory: _src_linkcell
 
 build:
   number: 0
@@ -23,12 +33,7 @@ build:
     - win
     - match(python, "<3.12")
   script:
-    # Patch cannot delete wraps cleanly under conda (leaves empty file;
-    # meson: "Missing sections in ...wrap"). Remove optional wrap here.
-    - rm -f subprojects/readcon-core.wrap
-    - export CXXFLAGS="${CXXFLAGS:-} -pthread"
-    - export LDFLAGS="${LDFLAGS:-} -pthread"
-    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    file: build.sh
 
 requirements:
   build:
@@ -38,7 +43,6 @@ requirements:
     - meson >=1.3.0
     - ninja
     - pkg-config
-    - cmake
     - if: build_platform != target_platform
       then:
         - cross-python_${{ target_platform }}
@@ -47,7 +51,7 @@ requirements:
   host:
     - python
     - pip
-    - meson-python >=0.16
+    - meson-python >=0.17
     - nanobind >=2.0
     - numpy
     - eigen
@@ -61,22 +65,31 @@ requirements:
 tests:
   - python:
       imports:
+        - pydseams
         - pydseamslib
-        - pydseamslib._core
       pip_check: true
+  - script:
+      - python -c "import pydseams as ds; assert ds.__version__ == '2.5.1'"
+  - package_contents:
+      site_packages:
+        - pydseams/__init__.py
+        - pydseamslib/__init__.py
 
 about:
   homepage: https://dseams.info
-  summary: Deferred Structural Elucidation Analysis for Molecular Simulations
+  summary: Python bindings for the d-SEAMS C++ engine
   description: |
-    d-SEAMS is a collection of analysis tools for molecular simulations.
-    It can be used to determine the ice and water topological network
-    criteria, analyse quasi-one-dimensional topological features,
-    compute order parameters, and more.
-  license: MIT
-  license_file: LICENSE
-  documentation: https://wiki.dseams.info
-  repository: https://github.com/d-SEAMS/seams-core
+    pydseamslib is the Python front end for d-SEAMS. The import is
+    pydseams; pydseamslib remains a compatibility alias. The compiled
+    extension is pydseams.yoda. The C++ engine is seams-core.
+  license: MIT AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE-seams-core
+    - LICENSE-vesin
+    - LICENSE-linkcell
+  documentation: https://d-seams.github.io/PydSEAMSlib/
+  repository: https://github.com/d-SEAMS/PydSEAMSlib
 
 extra:
   recipe-maintainers:
