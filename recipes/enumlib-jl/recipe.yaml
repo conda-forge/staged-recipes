@@ -1,0 +1,75 @@
+context:
+  version: "0.3.6"
+
+package:
+  name: enumlib-jl
+  version: ${{ version }}
+
+# This recipe repackages prebuilt release artifacts instead of building from
+# source. Building here is not practical: the application is produced by Julia's
+# PackageCompiler.create_app, which resolves and downloads the whole Julia General
+# registry depot plus binary artifacts at build time. See the PR description.
+source:
+  - if: linux and x86_64
+    then:
+      url: https://github.com/glwhart/Enumlib.jl/releases/download/v${{ version }}/enumlib-jl-${{ version }}-linux-x86_64.tar.gz
+      sha256: 828f5e30c0dfa0b8a9aae684fd05c01ab56bd866a067003487fde7bc3b90405b
+  - if: osx and arm64
+    then:
+      url: https://github.com/glwhart/Enumlib.jl/releases/download/v${{ version }}/enumlib-jl-${{ version }}-macos-aarch64.tar.gz
+      sha256: 11b55eb35675129cfe8d88bb97d4730508f872fe4a8c1565802ce3b12f6421f1
+
+build:
+  number: 0
+  # Only the platforms the upstream project publishes binaries for. The existing
+  # Fortran enumlib feedstock also skips Windows.
+  skip:
+    - win
+    - linux and not x86_64
+    - osx and not arm64
+  dynamic_linking:
+    # The bundled runtime resolves its libraries by RPATH relative to the
+    # executable; rewriting them would break the application.
+    binary_relocation: false
+  script:
+    file: build.sh
+
+tests:
+  - script:
+      # Engine identification. Downstream tools (pymatgen's EnumlibAdaptor) probe
+      # this exact token to tell the Julia engine from the legacy Fortran enum.x.
+      - enum.x --version
+      - polya.x --version
+      - makestr.x --version
+      - enum.x --version | grep "Enumlib.jl"
+      # Enumerate, count, and generate structures, using the same invocation style
+      # the Fortran enumlib feedstock tests with: input file as a positional arg.
+      - enum.x struct_enum.in.fcc
+      - test -f struct_enum.out
+      - polya.x struct_enum.in.fcc
+      - makestr.x struct_enum.out 1 1
+      - test -f vasp.1
+    files:
+      recipe:
+        - struct_enum.in.fcc
+
+about:
+  homepage: https://github.com/glwhart/Enumlib.jl
+  summary: Derivative-structure enumeration (Julia reimplementation of enumlib)
+  description: |
+    Enumlib.jl generates the derivative superstructures of a parent lattice,
+    including multilattices such as HCP, over all concentrations or a restricted
+    concentration range. It is a from-scratch Julia reimplementation of enumlib by
+    one of its original authors, and a drop-in replacement for the Fortran enum.x:
+    the struct_enum.in / struct_enum.out file contract is unchanged.
+
+    This package ships standalone enum.x, polya.x and makestr.x executables with
+    the Julia runtime bundled, so no Julia installation is required.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://glwhart.github.io/Enumlib.jl
+  repository: https://github.com/glwhart/Enumlib.jl
+
+extra:
+  recipe-maintainers:
+    - glwhart
