@@ -76,21 +76,19 @@ if [[ -e subprojects/nanobind.wrap ]]; then
 fi
 
 export CXXFLAGS="${CXXFLAGS:-} -pthread"
-# Keep NEEDED and RUNPATH inside the prefix so rattler does not
-# strip a build-env rpath and leave a half-relinked extension.
-export LDFLAGS="${LDFLAGS:-} -pthread -Wl,--no-as-needed -lblas -llapack -lgomp -Wl,--as-needed -Wl,-rpath,${PREFIX}/lib"
+# GNU ld flags break the osx clang++ compiler check.
+if [[ "$(uname)" == Linux ]]; then
+  export LDFLAGS="${LDFLAGS:-} -pthread -Wl,--no-as-needed -lblas -llapack -lgomp -Wl,--as-needed -Wl,-rpath,${PREFIX}/lib"
+else
+  export LDFLAGS="${LDFLAGS:-} -pthread"
+fi
 
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
 
-# Rattler relocates any rpath that points at the build env and has
-# been leaving a half-relinked yoda.abi3.so that segfaults on import.
-# Keep only a prefix-relative path so that step is a no-op.
-shopt -s nullglob
-for so in "${PREFIX}"/lib/python*/site-packages/pydseams/yoda*.so; do
-  if command -v patchelf >/dev/null 2>&1; then
+if [[ "$(uname)" == Linux ]] && command -v patchelf >/dev/null 2>&1; then
+  shopt -s nullglob
+  for so in "${PREFIX}"/lib/python3.1[2-9]/site-packages/pydseams/yoda*.so; do
     patchelf --remove-rpath "${so}" || true
     patchelf --force-rpath --set-rpath "\$ORIGIN/../../.." "${so}"
-  elif [[ "$(uname)" == Darwin ]]; then
-    install_name_tool -add_rpath "@loader_path/../../.." "${so}" || true
-  fi
-done
+  done
+fi

@@ -34,6 +34,13 @@ build:
     - match(python, "<3.12")
   script:
     file: build.sh
+  # The extension is a Python module, not a prefix/bin executable.
+  # Rattler tagged yoda.abi3.so as prefix:bin and relinked it, after
+  # which import segfaults.
+  dynamic_linking:
+    binary_relocation: false
+    rpaths:
+      - lib/
 
 requirements:
   build:
@@ -45,8 +52,6 @@ requirements:
     - pkg-config
     - if: linux
       then: patchelf
-    - if: osx
-      then: cctools
     - if: build_platform != target_platform
       then:
         - cross-python_${{ target_platform }}
@@ -75,7 +80,10 @@ tests:
   - package_contents:
       site_packages:
         - pydseams/__init__.py
+        - pydseams/yoda.abi3.so
         - pydseamslib/__init__.py
+  - script:
+      - python -c "import faulthandler; faulthandler.enable(); import pydseams; print(pydseams.__version__)"
 
 about:
   homepage: https://dseams.info
