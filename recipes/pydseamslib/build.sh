@@ -105,12 +105,10 @@ dependency_names = robin-map, tsl-robin-map
 EOF
 
 export CXXFLAGS="${CXXFLAGS:-} -pthread"
-# GNU ld flags break the osx clang++ compiler check.
-if [[ "$(uname)" == Linux ]]; then
-  export LDFLAGS="${LDFLAGS:-} -pthread -Wl,--no-as-needed -lblas -llapack -lgomp -Wl,--as-needed -Wl,-rpath,${PREFIX}/lib"
-else
-  export LDFLAGS="${LDFLAGS:-} -pthread"
-fi
+export LDFLAGS="${LDFLAGS:-} -pthread"
+# Do not force -lblas -llapack -lgomp. Meson finds BLAS; on
+# conda-forge that is the libblas ABI (OpenBLAS today). Forcing
+# libgomp onto the pthreads OpenBLAS backend mixes two runtimes.
 
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
 
