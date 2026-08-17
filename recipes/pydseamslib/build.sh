@@ -76,6 +76,8 @@ if [[ -e subprojects/nanobind.wrap ]]; then
 fi
 
 export CXXFLAGS="${CXXFLAGS:-} -pthread"
-export LDFLAGS="${LDFLAGS:-} -pthread"
+# Keep NEEDED and RUNPATH inside the prefix so rattler does not
+# strip a build-env rpath and leave a half-relinked extension.
+export LDFLAGS="${LDFLAGS:-} -pthread -Wl,--no-as-needed -lblas -llapack -lgomp -Wl,--as-needed -Wl,-rpath,${PREFIX}/lib"
 
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation
