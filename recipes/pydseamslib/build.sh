@@ -25,6 +25,8 @@ find_tree() {
 SEAMS=$(find_tree _src_seams meson.build)
 VESIN=$(find_tree _src_vesin vesin/src/vesin.cpp)
 LINKCELL=$(find_tree _src_linkcell meson.build)
+NANOBIND=$(find_tree _src_nanobind include/nanobind/nanobind.h)
+ROBIN=$(find_tree _src_robin_map include/tsl/robin_map.h)
 
 # License files harvested from SRC_DIR after the script; copy before mv.
 cp "${SEAMS}/LICENSE" LICENSE-seams-core
@@ -71,9 +73,36 @@ fi
 if [[ -e subprojects/linkcell.wrap ]]; then
   rm -f subprojects/linkcell.wrap
 fi
-if [[ -e subprojects/nanobind.wrap ]]; then
-  rm -f subprojects/nanobind.wrap
+
+# Compile nanobind with the wrap overlay (Py_LIMITED_API). Do not use
+# the conda-forge nanobind package: that is a full-API build.
+if [[ -e subprojects/nanobind-2.14.0 ]]; then
+  rm -rf subprojects/nanobind-2.14.0
 fi
+mv "${NANOBIND}" subprojects/nanobind-2.14.0
+# nanobind.wrap stays: directory present, so meson applies
+# packagefiles/nanobind and does not fetch.
+
+if [[ -e subprojects/robin-map-1.4.0 ]]; then
+  rm -rf subprojects/robin-map-1.4.0
+fi
+mv "${ROBIN}" subprojects/robin-map-1.4.0
+cat > subprojects/robin-map-1.4.0/meson.build <<'EOF'
+project('robin-map', 'cpp', version: '1.4.0', meson_version: '>=1.0.0')
+robin_map_dep = declare_dependency(
+  include_directories: include_directories('include'),
+)
+meson.override_dependency('robin-map', robin_map_dep)
+meson.override_dependency('tsl-robin-map', robin_map_dep)
+EOF
+cat > subprojects/robin-map.wrap <<'EOF'
+[wrap-file]
+directory = robin-map-1.4.0
+
+[provide]
+robin-map = robin_map_dep
+dependency_names = robin-map, tsl-robin-map
+EOF
 
 export CXXFLAGS="${CXXFLAGS:-} -pthread"
 # GNU ld flags break the osx clang++ compiler check.
