@@ -80,8 +80,12 @@ if [[ -e subprojects/nanobind-2.14.0 ]]; then
   rm -rf subprojects/nanobind-2.14.0
 fi
 mv "${NANOBIND}" subprojects/nanobind-2.14.0
-# nanobind.wrap stays: directory present, so meson applies
-# packagefiles/nanobind and does not fetch.
+# Directory present means meson will not apply wrap patch_directory.
+# Install the limited-API overlay ourselves.
+if [[ -f subprojects/packagefiles/nanobind/meson.build ]]; then
+  cp subprojects/packagefiles/nanobind/meson.build \
+    subprojects/nanobind-2.14.0/meson.build
+fi
 
 if [[ -e subprojects/robin-map-1.4.0 ]]; then
   rm -rf subprojects/robin-map-1.4.0
