@@ -1,0 +1,119 @@
+context:
+  version: "0.4.2"
+
+recipe:
+  name: pytetwild
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pytetwild/pytetwild-${{ version }}.tar.gz
+  sha256: 60b88a5c9d0fd3cba24b3ab677b6a8344161de958622ce301bd3913fc1f4b917
+  patches:
+    # De-vendor the fTetWild dependencies that conda-forge already ships (CLI11, fmt, spdlog,
+    # TBB, nlohmann_json) by replacing their CMake FetchContent blocks with find_package.
+    # geogram, libigl and its predicates are not packaged on conda-forge and are still pulled
+    # in via FetchContent, hence the network/git build dependency.
+    - 0001-devendor-dependencies.patch
+    # Make the top-level ``import pyvista`` in the accessor optional so the core package imports
+    # without PyVista, matching the documented "no-op when unsupported" behaviour.
+    # PyVista comes with the pytetwild-all output.
+    - 0002-optional-pyvista-import.patch
+
+build:
+  number: 0
+
+outputs:
+  # Compiled core: the nanobind wrapper around fTetWild plus the pure Python package.
+  # This carries only the mandatory ``numpy`` runtime dependency, mirroring ``pip install pytetwild``.
+  - package:
+      name: pytetwild
+    build:
+      script:
+        env:
+          # The sdist ships no git history, so pin the version for setuptools-scm.
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+          # Enable TBB; conda-forge's CMAKE_ARGS already points find_package at $PREFIX.
+          SKBUILD_CMAKE_ARGS: -DFLOAT_TETWILD_ENABLE_TBB=ON
+        content:
+          - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        # geogram, libigl and libigl-predicates are not packaged on conda-forge, so fTetWild fetches
+        # them at build time via CMake FetchContent, which needs git and network access.
+        - git
+      host:
+        - python
+        - pip
+        - scikit-build-core >=0.10
+        - nanobind >=1.3.2
+        - setuptools-scm >=8
+        # De-vendored native dependencies provided by conda-forge, redirected by the 0001 patch.
+        # The remaining fTetWild dependencies (geogram, libigl, libigl-predicates) stay vendored
+        # via FetchContent.
+        - eigen
+        - fmt
+        - gmp
+        - nlohmann_json
+        - spdlog
+        - tbb-devel
+      run:
+        - python
+        - numpy
+    tests:
+      - python:
+          imports:
+            - pytetwild
+          pip_check: true
+      - package_contents:
+          site_packages:
+            - pytetwild/PyfTetWildWrapper*
+
+  - package:
+      name: pytetwild-all
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        # Version pin rather than an exact build, so this metapackage stays noarch while tracking
+        # the pytetwild it was built alongside.
+        - ${{ pin_subpackage('pytetwild', lower_bound='x.x.x', upper_bound='x.x.x') }}
+        - pyvista
+    tests:
+      - python:
+          imports:
+            - pytetwild
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      # Run the upstream test suite here, where PyVista is available so the PyVista-based tests
+      # exercise the full package. The tests are not shipped inside the package, so they are taken
+      # from the source tree. The download_bunny_coarse cases are skipped as they require network.
+      - script:
+          - pytest -v -k "not download_bunny_coarse" tests
+        requirements:
+          run:
+            - pytest
+            - meshio
+            - scipy <1.17.0
+        files:
+          source:
+            - tests/
+
+about:
+  homepage: https://github.com/pyvista/pytetwild
+  summary: Python wrapper of fTetWild for mesh tetrahedralization
+  description: pytetwild is a Python library for mesh tetrahedralization. It is a Python wrapper around the efficient C++ library for tetrahedral meshing provided by fTetWild.
+  license: MPL-2.0
+  license_file: LICENSE
+  repository: https://github.com/pyvista/pytetwild
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
