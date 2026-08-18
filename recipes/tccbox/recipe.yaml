@@ -1,0 +1,69 @@
+schema_version: 1
+
+context:
+  version: "2025.10.27"
+  tccbox_commit: be2df723d91a4e92cc020467f51f5edba503dae4
+  tinycc_commit: 01d1b7bc7601e2441d971583879f00a3905e3bf9
+
+package:
+  name: tccbox
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/metab0t/tccbox/archive/${{ tccbox_commit }}.tar.gz
+    sha256: 5494824c9fdbcf2131b11190c1053b63677f2fdd54e8272730b1c226c7329667
+    target_directory: tccbox
+    patches:
+      - 0001-reproducible-build.patch
+
+  - url: https://repo.or.cz/tinycc.git/snapshot/${{ tinycc_commit }}.tar.gz
+    sha256: ca5f845787c59c706e36215923198796684d3643f51b66525d245e9ade8e4438
+    target_directory: tccbox/tinycc
+    patches:
+      - 0002-tinycc-honor-cc.patch
+
+build:
+  number: 0
+  script:
+    env:
+      TCCBOX_VERSION: ${{ version }}
+    content:
+      - cd tccbox
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: unix
+      then: make
+  host:
+    - python
+    - pip
+    - setuptools >=42
+    - wheel
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - tccbox
+      pip_check: true
+
+  - script:
+      - python -c "import os, tccbox; assert os.path.isfile(tccbox.tcc_bin_path())"
+      - python -c "from pathlib import Path; Path('hello.c').write_text('int main(void) { return 0; }')"
+      - python -c "import subprocess, sys; subprocess.check_call([sys.executable, '-m', 'tccbox', 'hello.c', '-o', 'hello.exe' if sys.platform == 'win32' else 'hello'])"
+      - python -c "import os, subprocess, sys; subprocess.check_call([os.path.abspath('hello.exe' if sys.platform == 'win32' else 'hello')])"
+
+about:
+  homepage: https://github.com/metab0t/tccbox
+  repository: https://github.com/metab0t/tccbox
+  summary: Platform-specific distribution of the Tiny C Compiler
+  license: LGPL-2.1-or-later
+  license_file: tccbox/tinycc/COPYING
+
+extra:
+  recipe-maintainers:
+    - MridulS
