@@ -12,6 +12,8 @@ context:
   # The decord CMake target is created before enable_language(CUDA), so its CUDA_ARCHITECTURES property is never initialised from the CUDAARCHS activation variable.
   # Pass it explicitly to reuse the conda-forge default set.
   cuda_arch_flag: ${{ ("-DCMAKE_CUDA_ARCHITECTURES=" ~ ("%CUDAARCHS%" if win else "$CUDAARCHS")) if (cuda_compiler_version | default("None")) != "None" else "" }}
+  # On Windows nvcuvid.lib is absent from the CUDA toolkit, so an import library is synthesized from the bundled .def and passed to CMake, which otherwise fails the NVDEC lookup.
+  nvcuvid_lib_flag: ${{ "-DCUDA_NVCUVID_LIBRARY=%SRC_DIR%/nvcuvid.lib" if (win and use_cuda == "ON") else "" }}
 
 recipe:
   name: decord2
@@ -39,7 +41,11 @@ outputs:
       name: decord2-build
     build:
       script:
-        - cmake -G Ninja -S . -B build ${{ cmake_args }} -DUSE_CUDA=${{ use_cuda }} ${{ cuda_arch_flag }} -DFFMPEG_DIR=${{ prefix }}
+        # On Windows with CUDA, synthesize the nvcuvid import library from the bundled .def so the NVDEC symbols link. The matching nvcuvid.dll ships with the driver and resolves at runtime.
+        - if: win and use_cuda == "ON"
+          then:
+            - lib /def:scripts\nvcuvid.def /machine:x64 /out:%SRC_DIR%\nvcuvid.lib
+        - cmake -G Ninja -S . -B build ${{ cmake_args }} -DUSE_CUDA=${{ use_cuda }} ${{ cuda_arch_flag }} ${{ nvcuvid_lib_flag }} -DFFMPEG_DIR=${{ prefix }}
         - cmake --build build --config Release --parallel ${{ cpu_count }}
         - cmake --install build --config Release
         # The vendored dmlc-core headers are pulled in by the public decord headers, so they are installed alongside them for downstream consumers.
@@ -59,7 +65,8 @@ outputs:
         # Decord2 still uses the pre-1.0 dlpack API: DLContext / kDLGPU and the DLTensor.ctx field.
         # The field was renamed to DLTensor.device in dlpack 0.4, so it must build against dlpack < 0.4.
         - dlpack >=0.2,<0.4
-        # NVDEC (libnvcuvid) ships with the GPU driver rather than the CUDA toolkit, so it is absent at build time, resolved at runtime, and therefore not a host dependency.
+        # NVDEC (libnvcuvid) ships with the GPU driver rather than the CUDA toolkit, so it is absent at build time,
+        # resolved at runtime, and therefore not a host dependency.
         - if: cuda_compiler_version != "None"
           then:
             - cuda-version ${{ cuda_compiler_version }}.*
@@ -78,8 +85,10 @@ outputs:
       files:
         - lib/libdecord.*
         - Library/bin/decord.dll
-    # ffmpeg and, when enabled, the CUDA runtime libraries are linked by libdecord and pinned into this package by the run_exports inherited from the staging host dependencies.
-    # No run_exports are declared here: downstream code builds against libdecord2-devel (headers), so the version pin is exported from that package instead.
+    # ffmpeg and, when enabled, the CUDA runtime libraries are linked by libdecord and pinned into
+    # this package by the run_exports inherited from the staging host dependencies.
+    # No run_exports are declared here: downstream code builds against libdecord2-devel (headers),
+    # so the version pin is exported from that package instead.
     tests:
       - package_contents:
           lib:
@@ -107,7 +116,8 @@ outputs:
       # The vendored dmlc-core headers are bundled here, so any future external dmlc-core package is excluded to avoid clashing files under include/dmlc.
       run_constraints:
         - dmlc-core <0a0
-      # libdecord.so ships no versioned SONAME and offers no ABI stability guarantees, so consumers building against the headers must be pinned to the matching runtime build.
+      # libdecord.so ships no versioned SONAME and offers no ABI stability guarantees, so consumers building against the headers
+      # must be pinned to the matching runtime build.
       run_exports:
         - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
     tests:
@@ -136,7 +146,8 @@ outputs:
           # The library itself ships in libdecord2, installed in $PREFIX/lib on Unix and as the DLL in %LIBRARY_BIN% on Windows.
           DECORD_LIBRARY_PATH: ${{ "%LIBRARY_BIN%" if win else "$PREFIX/lib" }}
         content:
-          # Upstream tags the wheel as platform specific via distclass=BinaryDistribution. The conda package bundles no library (it is stripped below), so drop that to keep the wheel pure and the output noarch.
+          # Upstream tags the wheel as platform specific via distclass=BinaryDistribution.
+          # The conda package bundles no library (it is stripped below), so drop that to keep the wheel pure and the output noarch.
           - ${{ python }} -c "p = 'python/setup.py'; s = open(p).read(); open(p, 'w').write(s.replace('distclass=BinaryDistribution,', ''))"
           - ${{ python }} -m pip install ./python -vv --no-deps --no-build-isolation
           # Remove the shared library that setup.py bundles into the package, since it is provided by libdecord2 and located at runtime.
