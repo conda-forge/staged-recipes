@@ -1,0 +1,220 @@
+context:
+  version: "2.5.1"
+
+recipe:
+  name: opencolorio
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/AcademySoftwareFoundation/OpenColorIO/releases/download/v${{ version }}/OpenColorIO-${{ version }}.tar.gz
+    sha256: 49ab04d023d7a7a7237e24f2cfead3171b0ff7f466ce20e6e32859ec8c7cc94b
+    patches:
+      - fix-macos-minizip-hidden-link.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: opencolorio
+    build:
+      script:
+        file: build
+        env:
+          OCIO_BUILD_APPS: "OFF"
+          OCIO_BUILD_PYTHON: "OFF"
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('opencolorio', lower_bound='x.x', upper_bound='x.x') }} # Upper bound X.X is needed to pin to ABI compatible libs ?
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.15
+        - ninja
+        - if: not win
+          then: make
+      host:
+        # Min versions from OpenColorIO/share/cmake/modules/FindExtPackages.cmake
+        - yaml-cpp >=0.8.0
+        - minizip >=4.0.0
+        - zlib >=1.2.13
+        - imath >=3.1.1
+        - pystring >=1.1.3
+        - expat >=2.6.0
+      run:
+        - pystring >=1.1.3
+    tests:
+      - script:
+          - if: not win
+            then:
+              - test -f "$PREFIX"/lib/libOpenColorIO${SHLIB_EXT}
+              - test -f "$PREFIX"/include/OpenColorIO/OpenColorIO.h
+              - test ! -f "$PREFIX"/bin/ociocheck
+            else:
+              # Windows artifact name includes ABI major/minor when OCIO_USE_SOVERSION=ON
+              # (e.g. OpenColorIO_2_5.dll), so do not hardcode unsuffixed dll name.
+              - if not exist %LIBRARY_BIN%\\OpenColorIO*.dll exit 1
+              - if not exist %LIBRARY_INC%\\OpenColorIO\\OpenColorIO.h exit 1
+              - if exist %LIBRARY_BIN%\\ociocheck.exe exit 1
+
+  - package:
+      name: opencolorio-tools
+    build:
+      script:
+        file: build
+        env:
+          OCIO_BUILD_APPS: "ON"
+          OCIO_BUILD_PYTHON: "OFF"
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.15 # 3.15 required for "cmake --install ."
+        - ninja
+        - if: not win
+          then: make
+      host:
+        - ${{ pin_subpackage('opencolorio', exact=True) }}
+        # Min versions from OpenColorIO/share/cmake/modules/FindExtPackages.cmake
+        - expat >=2.6.0
+        - zlib >=1.2.13
+        - lcms2 >=2.2
+        - openexr >=3.2.0
+        # OpenGL support for GPU-accelerated tools and ociodisplay.
+        # OCIO's CheckSupportGL.cmake requires OpenGL + GLUT on all platforms.
+        # It also requires GLEW on non-Apple platforms.
+        # On macOS, GLUT is expected from the system framework (not a conda freeglut package).
+        # If any required GL dependency is missing, OCIO_GL_ENABLED is OFF and
+        # ociodisplay / GPU code paths are skipped at build time.
+        # With OCIO_USE_HEADLESS=ON it additionally needs EGL (found via GLVND) on Linux for headless gpu usage.
+        # mesalib provides the Mesa software EGL/GL implementation for headless rendering.
+        - if: linux or win
+          then:
+            # Freeglut is bundled/shipped with macOS (/System/Library/Frameworks/GLUT.framework) and does not it to be provided by us.
+            - freeglut >=3.2.1  # CheckSupportGL.cmake: find_package(GLUT 3.2.1 REQUIRED)
+            - glew >=2.1.0      # CheckSupportGL.cmake: find_package(GLEW 2.1.0 REQUIRED)
+        - if: linux
+          then:
+            - libgl-devel       # GL + GLVND headers/cmake; find_package(OpenGL COMPONENTS OpenGL)
+            - libopengl-devel   # libOpenGL.so symlink → creates OpenGL::OpenGL cmake target
+            - libegl-devel      # EGL headers/cmake; find_package(OpenGL COMPONENTS EGL)
+            - mesalib           # Mesa software EGL/GL renderer (headless runtime)
+      run:
+        - ${{ pin_subpackage('opencolorio', exact=True) }}
+        - if: linux or win
+          then:
+            - freeglut
+            - glew
+        - if: linux
+          then:
+            - xorg-libxxf86vm   # freeglut (libglut.so) hard-links libXxf86vm.so.1
+    tests:
+      - script:
+          - if: not win
+            then:
+              # _h: allow exit codes 0 or 1 (OCIO --help exits 1); fail on >=2 (crash/not-found).
+              # Suppress normal help text to keep test logs readable; print output only on real failure.
+              - '_h() { _r=0; _out="$("$@" 2>&1)" || _r=$?; [ "$_r" -le 1 ] || { printf "%s\n" "$_out"; return 1; }; }'
+              # Minimal valid 1D LUT used by CLI smoke tests.
+              - 'printf ''Version 1\nFrom 0 1\nLength 2\nComponents 1\n{\n0.0\n1.0\n}\n'' > /tmp/ocio_identity.spi1d'
+              - _h ocioarchive --help
+              - _h ociobakelut --help
+              - _h ociocheck --help
+              - ociochecklut /tmp/ocio_identity.spi1d 0.5 0.5 0.5
+              - ociocpuinfo
+              - _h ociomakeclf --help
+              - _h ociomergeconfigs --help
+              - _h ocioperf --help
+              - _h ociowrite --help
+              - _h ocioconvert --help
+              - ociolutimage --generate --output /tmp/ocio_lutimage.exr
+              - test -f /tmp/ocio_lutimage.exr
+              - test -x "$PREFIX/bin/ociodisplay"
+              # Verify OpenGL support was compiled into GPU-capable tools.
+              # ociochecklut --gpu exits 1 in two cases:
+              #   (a) "Compiled without OpenGL support" -> bad build, fail
+              #   (b) EGL init failure in headless CI     -> runtime env, allowed
+              - |-
+                  if [[ "${target_platform:-}" == linux-* ]]; then
+                    output="$(ociochecklut --gpu /tmp/ocio_identity.spi1d 0.5 0.5 0.5 2>&1 || true)"
+                    echo "$output"
+                    if grep -Fq "Compiled without OpenGL support" <<<"$output"; then
+                      echo "ERROR: OpenColorIO tools were built without OpenGL support."
+                      exit 1
+                    fi
+                  fi
+            else:
+              - if not exist %LIBRARY_BIN%\\ocioarchive.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociobakelut.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociocheck.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociochecklut.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociocpuinfo.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociomakeclf.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociomergeconfigs.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ocioperf.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociowrite.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ocioconvert.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociolutimage.exe exit 1
+              - if not exist %LIBRARY_BIN%\\ociodisplay.exe exit 1
+
+  - package:
+      name: pyopencolorio
+    build:
+      script:
+        file: build
+        env:
+          OCIO_BUILD_APPS: "OFF"
+          OCIO_BUILD_PYTHON: "ON"
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.15
+        - ninja
+        - if: not win
+          then: make
+        - doxygen       # OCIO_BUILD_DOCS=ON: generates Doxygen XML for docstring extraction
+      host:
+        - python
+        - pybind11
+        - ${{ pin_subpackage('opencolorio', exact=True) }}
+        # CMake checks require expat/zlib package names (not only transitive shared libs).
+        # pystring remains transitive via the exact opencolorio pin.
+        - expat >=2.6.0
+        - zlib >=1.2.13
+        # OCIO_BUILD_DOCS=ON: triggers docs building to have full python docstrings available at runtime (via docstring extraction); Following packages are required to build the docs and extract docstrings (with some more as stubs):
+        - sphinx        # find_package(Sphinx REQUIRED): sphinx-build executable
+        - breathe       # find_python_package(breathe REQUIRED)
+        - recommonmark  # find_python_package(recommonmark REQUIRED)
+        - six           # required by extract_docstrings.py (cmake's docstring_extraction target)
+      run:
+        - python
+        - ${{ pin_subpackage('opencolorio', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - PyOpenColorIO
+          pip_check: true
+
+about:
+  homepage: https://opencolorio.org/
+  summary: >-
+    OpenColorIO (OCIO) is a complete color management solution geared towards
+    motion picture production with an emphasis on visual effects and computer animation.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  repository: https://github.com/AcademySoftwareFoundation/OpenColorIO
+  documentation: https://opencolorio.readthedocs.io/
+  description: |
+    OpenColorIO (OCIO) is a complete color management solution geared towards
+    motion picture production with an emphasis on visual effects and computer animation.
+
+    `opencolorio` provides the core C++ library and headers.
+    For CLI tools (ociocheck, ociobakelut, etc.), install `opencolorio-tools`.
+    For Python bindings, install `pyopencolorio`.
+
+extra:
+  feedstock-name: opencolorio-split
+  recipe-maintainers:
+    - carlodri
+    - ndeybach
