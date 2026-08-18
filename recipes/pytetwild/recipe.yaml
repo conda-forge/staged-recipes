@@ -56,9 +56,11 @@ outputs:
         - nanobind >=1.3.2
         - setuptools-scm >=8
         # De-vendored native dependencies provided by conda-forge, redirected by the 0001 patch.
-        # The remaining fTetWild dependencies (geogram, libigl, libigl-predicates) stay vendored
-        # via FetchContent.
-        - eigen
+        # The remaining fTetWild dependencies (geogram, libigl, libigl-predicates) stay vendored via FetchContent.
+        # Eigen is only a header-only build-time dependency compiled into the extension, so per the
+        # eigen-feedstock guidance a plain eigen host dependency (case A) with no ABI marker is enough.
+        # It is capped below 5 because the vendored libigl 2.6.0 does not build against the reorganized Eigen 5 headers.
+        - eigen <5
         - fmt
         - gmp
         - nlohmann_json
@@ -85,7 +87,8 @@ outputs:
     requirements:
       run:
         # Version pin rather than an exact build, so this metapackage stays noarch while tracking
-        # the pytetwild it was built alongside. pytetwild carries the python constraint.
+        # the pytetwild it was built alongside.
+        # pytetwild carries the python constraint.
         - ${{ pin_subpackage('pytetwild', lower_bound='x.x.x', upper_bound='x.x.x') }}
         - pyvista
     tests:
@@ -94,8 +97,9 @@ outputs:
             - pytetwild
           pip_check: true
       # Run the upstream test suite here, where PyVista is available so the PyVista-based tests
-      # exercise the full package. The tests are not shipped inside the package, so they are taken
-      # from the source tree. The download_bunny_coarse cases are skipped as they require network.
+      # exercise the full package.
+      # The tests are not shipped inside the package, so they are taken from the source tree.
+      # The download_bunny_coarse cases are skipped as they require network.
       - script:
           - pytest -v -k "not download_bunny_coarse" tests
         requirements:
