@@ -35,7 +35,9 @@ source:
 
 build:
   number: ${{ build_number }}
-  # Windows is skipped for now because conda-forge only ships dlpack >=0.8 on win-64, while decord2 requires the pre-0.4 dlpack API. The Windows build logic is kept in place for when a compatible dlpack becomes available.
+  # Windows is skipped for now because conda-forge only ships dlpack >=0.8 on win-64, while decord2 requires the pre-0.4 dlpack API.
+  # The Windows build logic is kept in place for when a compatible dlpack becomes available.
+  # The VideoToolbox AV1 decode path uses kCMVideoCodecType_AV1, which requires the macOS 14 SDK, requested via conda_build_config.yaml.
   skip: win
 
 outputs:
@@ -171,40 +173,46 @@ outputs:
         # noarch packages do not inherit run_exports, so the libdecord2 runtime dependency (a version range, since the exact build is platform specific) is declared explicitly.
         - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
     tests:
-      - python:
-          imports:
-            - decord
-          pip_check: true
-          python_version:
-            - ${{ python_min }}.*
-            - "*"
-      - script:
-          - python -c "from decord import VideoReader, AudioReader"
-      # Upstream unit tests, with media fixtures copied from the source tree because they are not shipped in the package.
-      # PyTorch is provided so the torch bridge is exercised. The other bridges (mxnet, tf, tvm) skip gracefully when their framework is absent.
-      # Five audio tests are deselected because they assert exact sample counts that depend on the FFmpeg build rather than on decord.
-      - script:
-          - pytest -v tests/python/unittests/test_video_reader.py tests/python/unittests/test_av_reader.py tests/python/unittests/test_audio_reader.py tests/python/unittests/test_bridges.py
-            --deselect tests/python/unittests/test_audio_reader.py::test_single_channel_audio_reader
-            --deselect tests/python/unittests/test_audio_reader.py::test_double_channels_audio_reader
-            --deselect tests/python/unittests/test_audio_reader.py::test_bytes_io
-            --deselect tests/python/unittests/test_audio_reader.py::test_resample
-            --deselect tests/python/unittests/test_audio_reader.py::test_channel_change
-        requirements:
-          run:
-            # Pin to python_min so PyTorch (used by the torch bridge test) resolves reliably.
-            - python ${{ python_min }}.*
-            - pytest
-            - pytorch
-        files:
-          source:
-            - examples/flipping_a_pancake.mkv
-            - tests/python/unittests/test_video_reader.py
-            - tests/python/unittests/test_av_reader.py
-            - tests/python/unittests/test_audio_reader.py
-            - tests/python/unittests/test_bridges.py
-            - tests/test_data/
-            - tests/resources/audio/
+      # Importing decord loads libdecord through ctypes. On CUDA variants the library links the NVIDIA driver stubs (libcuda, libnvidia-ml), which are only present on machines with a GPU driver, so the import based tests run on the CPU variant that CI can execute. The pip_check metadata check runs on every variant.
+      - if: cuda_compiler_version | default("None") == "None"
+        then:
+          - python:
+              imports:
+                - decord
+              pip_check: true
+              python_version:
+                - ${{ python_min }}.*
+                - "*"
+          - script:
+              - python -c "from decord import VideoReader, AudioReader"
+          # Upstream unit tests, with media fixtures copied from the source tree because they are not shipped in the package.
+          # PyTorch is provided so the torch bridge is exercised. The other bridges (mxnet, tf, tvm) skip gracefully when their framework is absent.
+          # Five audio tests are deselected because they assert exact sample counts that depend on the FFmpeg build rather than on decord.
+          - script:
+              - pytest -v tests/python/unittests/test_video_reader.py tests/python/unittests/test_av_reader.py tests/python/unittests/test_audio_reader.py tests/python/unittests/test_bridges.py
+                --deselect tests/python/unittests/test_audio_reader.py::test_single_channel_audio_reader
+                --deselect tests/python/unittests/test_audio_reader.py::test_double_channels_audio_reader
+                --deselect tests/python/unittests/test_audio_reader.py::test_bytes_io
+                --deselect tests/python/unittests/test_audio_reader.py::test_resample
+                --deselect tests/python/unittests/test_audio_reader.py::test_channel_change
+            requirements:
+              run:
+                # Pin to python_min so PyTorch (used by the torch bridge test) resolves reliably.
+                - python ${{ python_min }}.*
+                - pytest
+                - pytorch
+            files:
+              source:
+                - examples/flipping_a_pancake.mkv
+                - tests/python/unittests/test_video_reader.py
+                - tests/python/unittests/test_av_reader.py
+                - tests/python/unittests/test_audio_reader.py
+                - tests/python/unittests/test_bridges.py
+                - tests/test_data/
+                - tests/resources/audio/
+        else:
+          - python:
+              pip_check: true
 
 about:
   homepage: https://github.com/johnnynunez/decord2
