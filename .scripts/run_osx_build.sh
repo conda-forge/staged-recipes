@@ -8,32 +8,21 @@ source .scripts/logging_utils.sh
 
 MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
 MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
-export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
-
-if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
-  echo "Build tools already installed at ${MINIFORGE_HOME}."
-else
-  if command -v micromamba >/dev/null 2>&1; then
-    micromamba_exe="micromamba"
-    echo "Found micromamba in PATH"
-  else
-    MICROMAMBA_VERSION="1.5.10-0"
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      osx_arch="osx-arm64"
-    else
-      osx_arch="osx-64"
-    fi
-    MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-${osx_arch}"
-    echo "Downloading micromamba ${MICROMAMBA_VERSION}"
-    micromamba_exe="$(mktemp -d)/micromamba"
-    curl -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
-    chmod +x "${micromamba_exe}"
-  fi
-  echo "Creating environment"
-  "${micromamba_exe}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
-    --channel conda-forge \
-    --file environment.yaml
+export CONDA_BLD_PATH="${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}"
+( startgroup "Provisioning base env with pixi" ) 2> /dev/null
+mkdir -p "${MINIFORGE_HOME}"
+curl -fsSL https://pixi.sh/install.sh | bash
+export PATH="~/.pixi/bin:$PATH"
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
 fi
+echo "Creating environment"
+pixi install --environment osx-${arch}
+pixi list --environment osx-${arch}
+echo "Activating environment"
+eval "$(pixi shell-hook --environment osx-${arch})"
+( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 ( endgroup "Provisioning build tools" ) 2> /dev/null
 
