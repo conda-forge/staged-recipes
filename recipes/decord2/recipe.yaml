@@ -1,0 +1,108 @@
+context:
+  name: decord2
+  version: "3.4.0"
+
+recipe:
+  name: decord2
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/johnnynunez/decord2/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: dc4b2510888a10f6fcc66e5ed7f36c8543c7f738b084a0116c4895f2945c122a
+  # decord2 vendors dlpack and dmlc-core as git submodules (header-only usage).
+  # The GitHub source tarball does not include submodules, so they are pulled in
+  # separately at the commits pinned by the v3.4.0 tag.
+  - url: https://github.com/dmlc/dlpack/archive/5c792cef3aee54ad8b7000111c9dc1797f327b59.tar.gz
+    sha256: 2ee0cd6d439ac1777d6b2b41f1f458c61d8960872798d6d3e4d8495d6eec9fc7
+    target_directory: 3rdparty/dlpack
+  - url: https://github.com/dmlc/dmlc-core/archive/d07fb7a443b5db8a89d65a15a024af6a425615a5.tar.gz
+    sha256: 34520980d004f9eb637c21e9c75a9b2dc794047553c3dd317d1ae337edf402e1
+    target_directory: 3rdparty/dmlc-core
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libdecord2
+    build:
+      script: build-lib.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - ffmpeg
+      # libdecord.so ships no versioned SONAME and offers no ABI stability
+      # guarantees, so downstream consumers must be pinned to the exact build.
+      run_exports:
+        - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - decord
+          include:
+            - decord/video_interface.h
+    about:
+      homepage: https://github.com/johnnynunez/decord2
+      summary: Shared C++ library for decord2, a hardware accelerated video loader
+      description: |
+        Decord2 is a high-performance, efficient video decoding and loading
+        library for deep learning research. This package provides the shared
+        C++ library and headers.
+      license: Apache-2.0
+      license_file: LICENSE
+      repository: https://github.com/johnnynunez/decord2
+
+  - package:
+      name: decord2
+    build:
+      script: build-python.sh
+      # decord loads libdecord.so at runtime via dlopen rather than linking it,
+      # so the (correct) run dependency on libdecord2 has no DT_NEEDED entry.
+      dynamic_linking:
+        overdepending_behavior: ignore
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+      host:
+        - python
+        - pip
+        - setuptools
+        - wheel
+        - numpy
+        - ${{ pin_subpackage('libdecord2', exact=True) }}
+      run:
+        - python
+        - numpy
+        # libdecord2 is added automatically through its run_exports.
+    tests:
+      - python:
+          imports:
+            - decord
+          pip_check: true
+      - script:
+          - python -c "from decord import VideoReader, AudioReader"
+    about:
+      homepage: https://github.com/johnnynunez/decord2
+      summary: Efficient, hardware accelerated video loader for deep learning
+      description: |
+        Decord2 is a high-performance, efficient video decoding and loading
+        library for deep learning research, featuring smart shuffling, random
+        frame access, GPU acceleration, and seamless integration with popular
+        frameworks. This package provides the Python bindings.
+      license: Apache-2.0
+      license_file: LICENSE
+      repository: https://github.com/johnnynunez/decord2
+      documentation: https://github.com/johnnynunez/decord2
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
