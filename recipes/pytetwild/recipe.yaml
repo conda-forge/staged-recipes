@@ -33,6 +33,8 @@ outputs:
         env:
           # The sdist ships no git history, so pin the version for setuptools-scm.
           SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+          # Use the Ninja generator.
+          CMAKE_GENERATOR: Ninja
           # Enable TBB; conda-forge's CMAKE_ARGS already points find_package at $PREFIX.
           SKBUILD_CMAKE_ARGS: -DFLOAT_TETWILD_ENABLE_TBB=ON
         content:
@@ -77,14 +79,13 @@ outputs:
   - package:
       name: pytetwild-all
     build:
-      noarch: python
+      # Empty metapackage with no Python content of its own; the interpreter
+      # constraint comes transitively from the pytetwild run dependency.
+      noarch: generic
     requirements:
-      host:
-        - python ${{ python_min }}.*
       run:
-        - python >=${{ python_min }}
         # Version pin rather than an exact build, so this metapackage stays noarch while tracking
-        # the pytetwild it was built alongside.
+        # the pytetwild it was built alongside. pytetwild carries the python constraint.
         - ${{ pin_subpackage('pytetwild', lower_bound='x.x.x', upper_bound='x.x.x') }}
         - pyvista
     tests:
@@ -92,9 +93,6 @@ outputs:
           imports:
             - pytetwild
           pip_check: true
-          python_version:
-            - ${{ python_min }}.*
-            - "*"
       # Run the upstream test suite here, where PyVista is available so the PyVista-based tests
       # exercise the full package. The tests are not shipped inside the package, so they are taken
       # from the source tree. The download_bunny_coarse cases are skipped as they require network.
