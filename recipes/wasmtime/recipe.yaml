@@ -1,0 +1,165 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  # techincally a newer version
+  version: "39.0.0"
+  python_check_max: "3.14"
+  # not every upstream release of `wasmtime` triggers a PyPI release of `wasmtime-py`
+  skip_python_wasmtime: "false"
+
+recipe:
+  name: wasmtime-split
+  version: ${{ version }}
+
+source:
+  target_directory: wasmtime
+  url: https://github.com/bytecodealliance/wasmtime/releases/download/v${{ version }}/wasmtime-v${{ version }}-src.tar.gz
+  sha256: 7af684d281deca3fca2383b203394155f65c40f52efae280a7d603e022e5c832
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: wasmtime
+    build:
+      script:
+        file: build-wasmtime
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("rust") }}
+        - ${{ stdlib("c") }}
+        - cargo-bundle-licenses
+        - cmake
+      host: []
+      run: []
+      run_constraints:
+        - ${{ pin_subpackage("libwasmtime", exact=True) }}
+    tests:
+      - package_contents:
+          bin:
+            - wasmtime
+      - script:
+          - wasmtime --version
+          - wasmtime --help
+    about:
+      homepage: https://wasmtime.dev
+      summary: Standalone JIT-style runtime for WebAssembly, using Cranelift
+      license: Apache-2.0 WITH LLVM-exception
+      license_file:
+        - wasmtime/LICENSE
+        - wasmtime/THIRDPARTY.yml
+      repository: https://github.com/bytecodealliance/wasmtime
+      documentation: https://docs.wasmtime.dev
+
+  - package:
+      name: libwasmtime
+    build:
+      script:
+        file: build-wasmtime
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("rust") }}
+        - ${{ stdlib("c") }}
+        - cargo-bundle-licenses
+        - cmake
+      host: []
+      run: []
+    tests:
+      - package_contents:
+          lib:
+            - if: unix
+              then: libwasmtime
+              # TODO: figure out right win syntax
+              # else: wasmtime
+          include:
+            - doc-wasm.h
+            - wasi.h
+            - wasm.h
+            - wasm.hh
+            - wasmtime.h
+            - wasmtime.hh
+    about:
+      homepage: https://wasmtime.dev
+      summary: Standalone JIT-style runtime for WebAssembly, using Cranelift (C API)
+      license: Apache-2.0 WITH LLVM-exception
+      license_file:
+        - wasmtime/crates/c-api/LICENSE
+        - wasmtime/crates/c-api/THIRDPARTY.yml
+      repository: https://github.com/bytecodealliance/wasmtime
+      documentation: https://docs.wasmtime.dev
+
+  - package:
+      name: python-wasmtime
+    source:
+      target_directory: wasmtime-py
+      url: https://pypi.org/packages/source/w/wasmtime/wasmtime-${{ version }}.tar.gz
+      sha256: 30a27221b3fac84bc6247b34339ff6f417b989728513fa4b957a26742651ff7c
+      patches:
+        # patch out custom build backend, use `libwasmtime.so` (etc) from `wasmtime`
+        - 0000-use-libwasmtime.patch
+    build:
+      skip: skip_python_wasmtime == "true"
+      script:
+        file: build-wasmtime
+      python:
+        version_independent: true
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - cross-python_${{ target_platform }}
+            - python
+            - setuptools
+      host:
+        - python ${{ python_min }}.*
+        - setuptools
+        - setuptools-git-versioning >=2.0,<3
+        - pip
+      run:
+        - ${{ pin_subpackage("libwasmtime", upper_bound="x") }}
+        - importlib_resources >=5.10
+        - python >=${{ python_min }}
+        - wasmtime ${{ version }}.*
+    tests:
+      - python:
+          imports: wasmtime
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - files:
+          source:
+            - wasmtime-py/tests/
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest-cov
+        script:
+          - python -c "v = __import__('importlib.metadata').metadata.version('wasmtime'); print(v); assert v == '${{ version }}'"
+          - cd wasmtime-py
+          - coverage run --source=wasmtime --branch -m pytest -vv --tb=long --color=yes -k "not (wasi and config)"
+          - coverage report --show-missing --skip-covered --fail-under=88
+
+    about:
+      homepage: https://pypi.org/project/wasmtime
+      license: Apache-2.0 WITH LLVM-exception
+      license_file: wasmtime-py/LICENSE
+      summary: A WebAssembly runtime powered by Wasmtime
+      repository: https://github.com/bytecodealliance/wasmtime-py
+      documentation: https://bytecodealliance.github.io/wasmtime-py
+
+about:
+  homepage: https://wasmtime.dev
+  summary: Standalone JIT-style runtime for WebAssembly, using Cranelift
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: wasmtime/LICENSE
+  repository: https://github.com/bytecodealliance/wasmtime
+  documentation: https://docs.wasmtime.dev
+
+extra:
+  feedstock-name: wasmtime
+  recipe-maintainers:
+    - bollwyvl
