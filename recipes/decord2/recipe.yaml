@@ -10,12 +10,8 @@ recipe:
 source:
   - url: https://github.com/johnnynunez/decord2/archive/refs/tags/v${{ version }}.tar.gz
     sha256: dc4b2510888a10f6fcc66e5ed7f36c8543c7f738b084a0116c4895f2945c122a
-  # decord2 vendors dlpack and dmlc-core as git submodules (header-only usage).
-  # The GitHub source tarball does not include submodules, so they are pulled in
-  # separately at the commits pinned by the v3.4.0 tag.
-  - url: https://github.com/dmlc/dlpack/archive/5c792cef3aee54ad8b7000111c9dc1797f327b59.tar.gz
-    sha256: 2ee0cd6d439ac1777d6b2b41f1f458c61d8960872798d6d3e4d8495d6eec9fc7
-    target_directory: 3rdparty/dlpack
+  # dmlc-core is vendored as a git submodule (header-only usage) because it is not packaged on conda-forge.
+  # It is pulled in at the commit pinned by the v3.4.0 tag.
   - url: https://github.com/dmlc/dmlc-core/archive/d07fb7a443b5db8a89d65a15a024af6a425615a5.tar.gz
     sha256: 34520980d004f9eb637c21e9c75a9b2dc794047553c3dd317d1ae337edf402e1
     target_directory: 3rdparty/dmlc-core
@@ -27,7 +23,22 @@ outputs:
   - package:
       name: libdecord2
     build:
-      script: build-lib.sh
+      # CMAKE_ARGS already carries CMAKE_BUILD_TYPE, CMAKE_INSTALL_PREFIX and
+      # CMAKE_INSTALL_LIBDIR (set per-platform by conda-forge), so only the
+      # decord-specific options are passed here. --config Release is required by
+      # multi-config generators (e.g. Visual Studio) where the build type is
+      # selected at build time rather than at configure time.
+      script:
+        - if: unix
+          then:
+            - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DUSE_CUDA=0 -DFFMPEG_DIR=$PREFIX
+            - cmake --build build --config Release --parallel ${CPU_COUNT}
+            - cmake --install build --config Release
+        - if: win
+          then:
+            - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DUSE_CUDA=0 -DFFMPEG_DIR=%LIBRARY_PREFIX%
+            - cmake --build build --config Release --parallel %CPU_COUNT%
+            - cmake --install build --config Release
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -37,6 +48,12 @@ outputs:
         - ninja
       host:
         - ffmpeg
+        # decord2 still uses the pre-1.0 dlpack API: DLContext / kDLGPU and the DLTensor.ctx field.
+        # The field was renamed to DLTensor.device in dlpack 0.4, so it must build against dlpack < 0.4.
+        - dlpack >=0.2,<0.4
+      run:
+        # libdecord2's public headers include <dlpack/dlpack.h>.
+        - dlpack >=0.2,<0.4
       # libdecord.so ships no versioned SONAME and offers no ABI stability
       # guarantees, so downstream consumers must be pinned to the exact build.
       run_exports:
@@ -47,22 +64,28 @@ outputs:
             - decord
           include:
             - decord/video_interface.h
-    about:
-      homepage: https://github.com/johnnynunez/decord2
-      summary: Shared C++ library for decord2, a hardware accelerated video loader
-      description: |
-        Decord2 is a high-performance, efficient video decoding and loading
-        library for deep learning research. This package provides the shared
-        C++ library and headers.
-      license: Apache-2.0
-      license_file: LICENSE
-      repository: https://github.com/johnnynunez/decord2
 
   - package:
       name: decord2
     build:
-      script: build-python.sh
-      # decord loads libdecord.so at runtime via dlopen rather than linking it,
+      script:
+        env:
+          # setup.py locates the shared library through this variable; the
+          # library itself ships in libdecord2. On Unix it is installed in
+          # $PREFIX/lib, on Windows the DLL lands in %LIBRARY_BIN%.
+          DECORD_LIBRARY_PATH: ${{ "%LIBRARY_BIN%" if win else "$PREFIX/lib" }}
+        content:
+          - if: unix
+            then:
+              - $PYTHON -m pip install ./python -vv --no-deps --no-build-isolation
+              # Drop the copy of the library that setup.py bundles into the
+              # package; it is provided by libdecord2 and found at runtime.
+              - rm -f $SP_DIR/decord/libdecord.so $SP_DIR/decord/libdecord.dylib
+          - if: win
+            then:
+              - '%PYTHON% -m pip install ./python -vv --no-deps --no-build-isolation'
+              - if exist %SP_DIR%\decord\decord.dll del /f /q %SP_DIR%\decord\decord.dll
+      # decord loads libdecord at runtime via dlopen rather than linking it,
       # so the (correct) run dependency on libdecord2 has no DT_NEEDED entry.
       dynamic_linking:
         overdepending_behavior: ignore
@@ -83,7 +106,6 @@ outputs:
       run:
         - python
         - numpy
-        # libdecord2 is added automatically through its run_exports.
     tests:
       - python:
           imports:
@@ -91,18 +113,35 @@ outputs:
           pip_check: true
       - script:
           - python -c "from decord import VideoReader, AudioReader"
-    about:
-      homepage: https://github.com/johnnynunez/decord2
-      summary: Efficient, hardware accelerated video loader for deep learning
-      description: |
-        Decord2 is a high-performance, efficient video decoding and loading
-        library for deep learning research, featuring smart shuffling, random
-        frame access, GPU acceleration, and seamless integration with popular
-        frameworks. This package provides the Python bindings.
-      license: Apache-2.0
-      license_file: LICENSE
-      repository: https://github.com/johnnynunez/decord2
-      documentation: https://github.com/johnnynunez/decord2
+      # Upstream unit tests.
+      # The media fixtures are copied from the source tree (they are not shipped in the package).
+      # The audio-sample-count tests assert exact sample counts that vary with the FFmpeg version.
+      # The bridge tests are skipped as they require optional deep-learning frameworks (torch, mxnet, tf).
+      - script:
+          - pytest -v tests/python/unittests/test_video_reader.py tests/python/unittests/test_av_reader.py
+        requirements:
+          run:
+            - pytest
+        files:
+          source:
+            - examples/flipping_a_pancake.mkv
+            - tests/python/unittests/test_video_reader.py
+            - tests/python/unittests/test_av_reader.py
+            - tests/test_data/
+            - tests/resources/audio/
+
+about:
+  homepage: https://github.com/johnnynunez/decord2
+  summary: Efficient, hardware accelerated video loader for deep learning
+  description: |
+    Decord2 is a high-performance, efficient video decoding and loading library
+    for deep learning research, featuring smart shuffling, random frame access,
+    GPU acceleration, and seamless integration with popular frameworks.
+    This recipe builds the shared C++ library (libdecord2) and the Python bindings (decord2).
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/johnnynunez/decord2
+  documentation: https://github.com/johnnynunez/decord2
 
 extra:
   feedstock-name: decord2
