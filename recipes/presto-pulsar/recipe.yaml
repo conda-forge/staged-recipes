@@ -1,0 +1,119 @@
+# PRESTO builds BOTH halves from one source: meson builds libpresto + the C
+# tools, then pip builds the Python package (which links the just-installed
+# libpresto).  ERFA has no conda-forge feedstock, so its release tarball is
+# vendored as a second source and built by meson's subproject machinery with no
+# network access (see build.sh).
+schema_version: 1
+
+context:
+  version: "6.0.1"
+  erfa_version: "2.0.1"
+
+package:
+  # 'presto' is taken on bioconda by an unrelated tool (immcantation's
+  # immunology toolkit), and conda-forge shares that namespace, so this
+  # astronomy PRESTO is packaged as 'presto-pulsar'.  The Python import stays
+  # 'presto' and the command-line tool names are unchanged.
+  name: presto-pulsar
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/scottransom/presto/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 953f4f709091f1d86c71ff4838e6469781e8a98984e2c5bca11e029bbeb9e407
+  # Vendored ERFA (no conda-forge feedstock).  Staged in a dedicated directory;
+  # build.sh normalizes it into subprojects/erfa-${{ erfa_version }}/ where the
+  # source tree's subprojects/erfa.wrap expects it.
+  - url: https://github.com/liberfa/erfa/releases/download/v${{ erfa_version }}/erfa-${{ erfa_version }}.tar.xz
+    sha256: 45111f0addf6ef69345aaf093bd054705b41ac2db7541dd3f0e105362c8e20e4
+    target_directory: subprojects/_erfa_src
+
+build:
+  number: 0
+  skip: win or (osx and arm64)
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    # PGPLOT is a Fortran library; pulls in libgfortran for linking
+    - ${{ compiler('fortran') }}
+    - meson >=1.3
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - pip
+    # the 'mesonpy' PEP517 backend must import under the host python
+    - meson-python
+    - numpy
+    - fftw
+    # conda-forge's global pin is still gsl 2.7 while the gsl 2.8 migration is
+    # in flight, but tempo2 (a run dependency) has already been rebuilt against
+    # gsl 2.8.  Building against 2.7 would run_export gsl >=2.7,<2.8 and make
+    # presto-pulsar impossible to co-install with tempo2, so ask for 2.8 here.
+    # Drop this constraint once the global pin moves to 2.8.
+    - gsl >=2.8
+    - cfitsio
+    - glib
+    - libpng
+    - xorg-libx11
+    # xproto.pc / kbproto.pc, required by x11.pc at configure time
+    - xorg-xorgproto
+    # xcb.pc, required (private) by x11.pc
+    - libxcb
+    - pgplot
+    # OpenMP runtime: PRESTO parallelizes rfifind/accelsearch/prepfold, so the
+    # tools link libgomp/libomp (run_export pins it into run).
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+    # BLAS: libpresto links cblas via GSL (DT_NEEDED libopenblas.so.0); use
+    # conda-forge's switchable BLAS so its run_export pins the implementation.
+    - libblas
+    - libcblas
+  run:
+    - python
+    - scipy
+    - astropy-base
+    - matplotlib-base
+    - pgplot
+    - xorg-libx11
+    # optional: prepfold converts its .ps plots to .png
+    - ghostscript
+    # polyco generation (prepfold -timing)
+    - if: linux or (osx and x86_64)
+      then: tempo2
+
+tests:
+  - python:
+      imports:
+        - presto
+        - presto.presto
+      pip_check: true
+  - script:
+      # Run two tools with no args (they print their pyclig usage) to confirm the
+      # binaries run and resolve all their shared libs (pgplot, fftw, ...).
+      - readfile 2>&1 | grep -qi "raw data"
+      - accelsearch 2>&1 | grep -qi "acceleration search"
+
+about:
+  # PRESTO is GPL-2; vendored ERFA is BSD-3
+  license: GPL-2.0-only AND BSD-3-Clause
+  license_file:
+    - COPYING
+    - subprojects/erfa-${{ erfa_version }}/LICENSE
+  summary: PulsaR Exploration and Search TOolkit
+  description: |
+    PRESTO is a large suite of pulsar search and analysis software.  It was
+    primarily designed to efficiently search for binary millisecond pulsars
+    from long observations of globular clusters, but has been used in many
+    surveys and for X-ray data.  It is written primarily in ANSI C, with many
+    higher-level routines in Python.
+  homepage: https://github.com/scottransom/presto
+  repository: https://github.com/scottransom/presto
+  documentation: https://github.com/scottransom/presto/wiki
+
+extra:
+  recipe-maintainers:
+    - scottransom
