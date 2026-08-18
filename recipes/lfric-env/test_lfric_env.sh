@@ -24,7 +24,10 @@ check() {  # check <label> <command...>
 }
 # Whole-word membership in a space-separated flag string.
 has_flag() { case " $1 " in *" $2 "*) return 0 ;; *) return 1 ;; esac; }
-is_exec()  { [ -n "${1:-}" ] && [ -x "$1" ]; }
+# MPICH_CXX may legitimately be either a bare command name (the conventional
+# spelling of GXX, resolved by mpich through PATH) or an absolute path, so
+# resolve it the way mpich will rather than stat-ing it as a file.
+is_cmd()   { [ -n "${1:-}" ] && command -v "$1" >/dev/null 2>&1; }
 
 echo "== 1. activation contract =="
 # rattler-build activates the test environment, which sources the package's own
@@ -55,8 +58,8 @@ check 'LDFLAGS carries -L<prefix>/lib' \
 # conda-forge's C/C++ compiler is clang, there is no g++ to point at, and
 # activate.sh deliberately leaves it unset -- so this is a linux-only assertion.
 if [ "$(uname -s)" = "Linux" ]; then
-  check "MPICH_CXX is an executable g++ driver (${MPICH_CXX:-<unset>})" \
-        is_exec "${MPICH_CXX:-}"
+  check "MPICH_CXX resolves to a g++ driver (${MPICH_CXX:-<unset>})" \
+        is_cmd "${MPICH_CXX:-}"
 fi
 
 echo "== 2. tools on PATH =="
