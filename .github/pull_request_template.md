@@ -6,17 +6,17 @@ right people know. There are language-specific teams for reviewing recipes.
 
 | Language        | Name of review team           |
 | --------------- | ----------------------------- |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| go              | `@conda-forge/help-go`        |
+| java            | `@conda-forge/help-java`      |
+| Julia           | `@conda-forge/help-julia`     |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| perl            | `@conda-forge/help-perl`      |
 | python          | `@conda-forge/help-python`    |
 | python/c hybrid | `@conda-forge/help-python-c`  |
 | r               | `@conda-forge/help-r`         |
-| java            | `@conda-forge/help-java`      |
-| nodejs          | `@conda-forge/help-nodejs`    |
-| c/c++           | `@conda-forge/help-c-cpp`     |
-| perl            | `@conda-forge/help-perl`      |
-| Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
-| Rust            | `@conda-forge/help-rust`      |
-| Go              | `@conda-forge/help-go`        |
+| rust            | `@conda-forge/help-rust`      |
 | other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
@@ -41,8 +41,10 @@ We'd love to have the help!
 -->
 
 Checklist
-- [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated meta.yaml".
-- [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/5eddbd7fc9d1502169089da06c3688d9759be978/recipes/example/meta.yaml#L64-L73) for an example).
+
+- [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated recipe".
+- [ ] Recipe uses the v1 `recipe.yaml` format, or this PR explains the exceptional requirement for deprecated v0.
+- [ ] License file is packaged (see the [v1 example recipe](https://github.com/conda-forge/staged-recipes/blob/main/recipes/example-v1/recipe.yaml) for an example).
 - [ ] Source is from official source.
 - [ ] Package does not vendor other packages. (If a package uses the source of another package, they should be separate packages or the licenses of all packages need to be packaged).
 - [ ] If static libraries are linked in, the license of the static library is packaged.
