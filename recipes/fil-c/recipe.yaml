@@ -1,0 +1,82 @@
+context:
+  version: "0.681"
+
+package:
+  name: fil-c
+  version: ${{ version }}
+
+source:
+  # Fil-C only supports Linux/x86_64. The tarball is the full fil-c monorepo:
+  # an LLVM/clang 20 fork plus the Fil-C runtime (libpas), musl, and the
+  # sources of many ported projects (~2 GiB).
+  url: https://github.com/pizlonator/fil-c/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 715387dd9ded5e4ee4561a14725312e2933d50856e7d59033e9fed1e838abd6c
+
+build:
+  number: 0
+  skip:
+    - target_platform != "linux-64"
+  dynamic_linking:
+    # The pizfix tree is the Fil-C target runtime (its own musl-based libc,
+    # dynamic loader and libc++); rpaths are set to $ORIGIN-relative paths in
+    # build.sh (mirroring upstream's setup.sh) and must not be rewritten.
+    binary_relocation: false
+    missing_dso_allowlist:
+      - "**"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - make
+    - python
+    # libpas code generation scripts
+    - ruby
+    - patchelf
+  host:
+    - kernel-headers_linux-64
+    - ld_impl_linux-64
+  run:
+    # pizfix/os-include symlinks resolve into the conda sysroot kernel headers
+    - kernel-headers_linux-64
+    # the clang driver invokes GNU ld for linking
+    - ld_impl_linux-64
+
+tests:
+  - script:
+      - filcc --version
+      - fil++ --version
+      - filcc -O2 -g -o hello_c hello.c
+      - ./hello_c
+      - fil++ -O2 -g -std=c++20 -o hello_cxx hello.cpp
+      - ./hello_cxx
+    files:
+      recipe:
+        - hello.c
+        - hello.cpp
+
+about:
+  homepage: https://fil-c.org
+  repository: https://github.com/pizlonator/fil-c
+  summary: A fanatically compatible memory-safe implementation of C and C++
+  description: |
+    Fil-C is a memory-safe implementation of C and C++, based on clang 20.
+    Lots of software compiles and runs with Fil-C with zero or minimal
+    changes. All memory safety errors are caught as Fil-C panics. Fil-C
+    achieves this using a combination of concurrent garbage collection and
+    invisible capabilities. Fil-C only works on Linux/x86_64.
+
+    The package installs the Fil-C toolchain under `lib/fil-c/` and exposes
+    the `filcc` (C) and `fil++` (C++) compiler drivers on `bin/`.
+  license: Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND MIT
+  license_file:
+    - LLVM-LICENSE.txt
+    - libpas/LICENSE.txt
+    - projects/usermusl/COPYRIGHT
+
+extra:
+  recipe-maintainers:
+    - tdejager
