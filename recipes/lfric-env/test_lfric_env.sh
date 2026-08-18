@@ -27,22 +27,29 @@ has_flag() { case " $1 " in *" $2 "*) return 0 ;; *) return 1 ;; esac; }
 is_exec()  { [ -n "${1:-}" ] && [ -x "$1" ]; }
 
 echo "== 1. activation contract =="
-# conda sources $PREFIX/etc/conda/activate.d/zzz-lfric-env.sh when it activates
-# the test environment, so these must already be set in this shell.
-check "LFRIC_ENV_ACTIVE == CONDA_PREFIX (${LFRIC_ENV_ACTIVE:-<unset>})" \
-      test "${LFRIC_ENV_ACTIVE:-}" = "${CONDA_PREFIX:-unset}"
+# rattler-build activates the test environment, which sources the package's own
+# etc/conda/activate.d/zzz-lfric-env.sh -- so all of this must already be set in
+# this shell, without the test doing anything.
+#
+# The prefix is spelled $CONDA_PREFIX for a user who ran `conda activate` and
+# $PREFIX inside a package test; activate.sh resolves either, so the expected
+# value here has to allow both.
+prefix="${CONDA_PREFIX:-${PREFIX:-}}"
+check "prefix resolved (${prefix:-<none>})"                 test -n "${prefix}"
+check "LFRIC_ENV_ACTIVE == prefix (${LFRIC_ENV_ACTIVE:-<unset>})" \
+      test "${LFRIC_ENV_ACTIVE:-}" = "${prefix}"
 check "FC == mpif90 (${FC:-<unset>})"       test "${FC:-}" = "mpif90"
 check "LDMPI == mpif90 (${LDMPI:-<unset>})" test "${LDMPI:-}" = "mpif90"
 check "CXX == mpic++ (${CXX:-<unset>})"     test "${CXX:-}" = "mpic++"
-check "SHUMLIB_ROOT == CONDA_PREFIX"        test "${SHUMLIB_ROOT:-}" = "${CONDA_PREFIX:-unset}"
+check "SHUMLIB_ROOT == prefix"              test "${SHUMLIB_ROOT:-}" = "${prefix}"
 check "HDF5_USE_FILE_LOCKING == FALSE"      test "${HDF5_USE_FILE_LOCKING:-}" = "FALSE"
 check "FPP set (${FPP:-<unset>})"           test -n "${FPP:-}"
 check "LFRIC_TARGET_PLATFORM set (${LFRIC_TARGET_PLATFORM:-<unset>})" \
       test -n "${LFRIC_TARGET_PLATFORM:-}"
-check 'FFLAGS carries -I$CONDA_PREFIX/include' \
-      has_flag "${FFLAGS:-}" "-I${CONDA_PREFIX}/include"
-check 'LDFLAGS carries -L$CONDA_PREFIX/lib' \
-      has_flag "${LDFLAGS:-}" "-L${CONDA_PREFIX}/lib"
+check 'FFLAGS carries -I<prefix>/include' \
+      has_flag "${FFLAGS:-}" "-I${prefix}/include"
+check 'LDFLAGS carries -L<prefix>/lib' \
+      has_flag "${LDFLAGS:-}" "-L${prefix}/lib"
 
 # MPICH_CXX only applies where the C++ toolchain is GNU (linux). On macOS
 # conda-forge's C/C++ compiler is clang, there is no g++ to point at, and
@@ -80,9 +87,9 @@ fi
 echo "== 4. libraries that are linked rather than USEd =="
 # libxios is the static archive lfric_core links as -lxios; the PFUNIT-<x.y>
 # subdir is the unit-test tier's CMake package.
-check "lib/libxios.a" test -e "${CONDA_PREFIX}/lib/libxios.a"
+check "lib/libxios.a" test -e "${prefix}/lib/libxios.a"
 check "PFUNIT-*/cmake/PFUNITConfig.cmake" \
-      bash -c 'ls "${CONDA_PREFIX}"/PFUNIT-*/cmake/PFUNITConfig.cmake >/dev/null 2>&1'
+      bash -c 'ls "$0"/PFUNIT-*/cmake/PFUNITConfig.cmake >/dev/null 2>&1' "${prefix}"
 
 if [ "$fail" -ne 0 ]; then
   echo "LFRIC_ENV_TEST_FAILED" >&2

@@ -73,6 +73,21 @@ for _lfric_v in FC LDMPI CXX MPICH_CXX FPP LFRIC_TARGET_PLATFORM \
 done
 unset _lfric_v
 
+# --- 0. Which prefix is this? -----------------------------------------------
+# `conda activate` exports CONDA_PREFIX and that is the normal answer. A package
+# BUILD/TEST environment is the exception: conda-build and rattler-build activate
+# the prefix but describe it as $PREFIX, so the recipe's own test would otherwise
+# see every path below come out empty.
+#
+# $PREFIX alone is NOT a safe fallback -- it is one of the most commonly set
+# variables there is (`make install PREFIX=/usr/local` and friends), and pointing
+# SHUMLIB_ROOT or -L at /usr/local would be silently wrong. Require it to look
+# like a conda prefix, which is what conda-meta/ means.
+_lfric_prefix="${CONDA_PREFIX:-}"
+if [ -z "${_lfric_prefix}" ] && [ -n "${PREFIX:-}" ] && [ -d "${PREFIX}/conda-meta" ]; then
+    _lfric_prefix="${PREFIX}"
+fi
+
 # --- 1. Compilers, spelled the way LFRic dispatches on ----------------------
 # LFRic picks its compiler flag file by the LEAF NAME of $FC / $CXX
 # (lfric_core/infrastructure/build/fortran/<fc>.mk, cxx/<cxx>.mk). It ships
@@ -106,8 +121,9 @@ if [ -z "${MPICH_CXX:-}" ]; then
         MPICH_CXX="${_lfric_gxx}"
         export MPICH_CXX
     elif [ -n "${CONDA_TOOLCHAIN_HOST:-}" ] &&
-         [ -x "${CONDA_PREFIX}/bin/${CONDA_TOOLCHAIN_HOST}-g++" ]; then
-        MPICH_CXX="${CONDA_PREFIX}/bin/${CONDA_TOOLCHAIN_HOST}-g++"
+         [ -n "${_lfric_prefix}" ] &&
+         [ -x "${_lfric_prefix}/bin/${CONDA_TOOLCHAIN_HOST}-g++" ]; then
+        MPICH_CXX="${_lfric_prefix}/bin/${CONDA_TOOLCHAIN_HOST}-g++"
         export MPICH_CXX
     fi
 fi
@@ -131,15 +147,20 @@ fi
 # `mpif90` already injects $CONDA_PREFIX/{include,lib}, but LFRic's Makefiles read
 # FFLAGS/LDFLAGS directly -- that is how the XIOS/yaxt/netCDF .mod files and their
 # archives are found -- so spell them out.
-_lfric_env_prepend FFLAGS "-I${CONDA_PREFIX}/include"
-# Prepended in reverse, so the result reads "-L... -Wl,-rpath,... <caller's>".
-_lfric_env_prepend LDFLAGS "-Wl,-rpath,${CONDA_PREFIX}/lib"
-_lfric_env_prepend LDFLAGS "-L${CONDA_PREFIX}/lib"
+# Guarded on the prefix having been resolved at all: with no usable prefix these
+# would expand to bare "-I/include" and a SHUMLIB_ROOT of "", which is worse than
+# leaving them alone. The compiler settings above stay useful either way.
+if [ -n "${_lfric_prefix}" ]; then
+    _lfric_env_prepend FFLAGS "-I${_lfric_prefix}/include"
+    # Prepended in reverse, so the result reads "-L... -Wl,-rpath,... <caller's>".
+    _lfric_env_prepend LDFLAGS "-Wl,-rpath,${_lfric_prefix}/lib"
+    _lfric_env_prepend LDFLAGS "-L${_lfric_prefix}/lib"
 
-# lfric_apps links -lshum from $SHUMLIB_ROOT/{include,lib}. conda merges every
-# package into one prefix, so that root is the environment itself.
-SHUMLIB_ROOT="${CONDA_PREFIX}"
-export SHUMLIB_ROOT
+    # lfric_apps links -lshum from $SHUMLIB_ROOT/{include,lib}. conda merges every
+    # package into one prefix, so that root is the environment itself.
+    SHUMLIB_ROOT="${_lfric_prefix}"
+    export SHUMLIB_ROOT
+fi
 
 # --- 3. Runtime -------------------------------------------------------------
 # HDF5 1.10+ flock()s the files it creates; Lustre (and some CI filesystems)
@@ -161,7 +182,8 @@ export PYTHONDONTWRITEBYTECODE
 # Informational marker: which prefix this contract was last applied for. A cheap
 # way for a script (or a person) to check that Stage 1 is active, and which
 # environment it is.
-LFRIC_ENV_ACTIVE="${CONDA_PREFIX}"
+LFRIC_ENV_ACTIVE="${_lfric_prefix}"
 export LFRIC_ENV_ACTIVE
 
+unset _lfric_prefix
 unset -f _lfric_env_save _lfric_env_prepend
