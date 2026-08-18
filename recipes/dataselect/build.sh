@@ -6,8 +6,9 @@ rm -rf libmseed/
 
 # The top-level Makefile descends into libmseed/, so call src/ directly.
 # EXTRACFLAGS/EXTRALDFLAGS override the hardcoded ../libmseed paths in src/Makefile.
+# No explicit libcurl link is needed: dataselect never calls curl directly,
+# only libmseed does internally, and it carries that dependency itself.
 export CFLAGS="${CFLAGS} -DLIBMSEED_URL"
-export LDFLAGS="${LDFLAGS} $(curl-config --libs)"
 
 make -C src \
     EXTRACFLAGS="-I${PREFIX}/include" \
