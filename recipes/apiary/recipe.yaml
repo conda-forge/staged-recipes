@@ -1,0 +1,85 @@
+context:
+  version: "0.1.0"
+  # LLVM/Clang major apiary's libTooling code is built against. apiary is a leaf
+  # *tool* — consumers run it, they do not link its LLVM — so it may pin its own
+  # toolchain independent of the rest of an environment.
+  llvm_major: "22"
+
+package:
+  name: apiary
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Einsums/Apiary/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ed39acade07424a9ac80638702b7082617386dffdc33142cdea138f4351449cf
+
+build:
+  number: 0
+  # libTooling on Windows is a separate effort; enable later.
+  skip:
+    - win
+  script: |
+    cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+      -DCMAKE_PREFIX_PATH="${PREFIX}"
+    cmake --build build
+    cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    # find_package(Clang/LLVM CONFIG) + the libTooling static libs.
+    - llvmdev ${{ llvm_major }}.*
+    - clangdev ${{ llvm_major }}.*
+    # apiary's binary directly links libz/libzstd (compression support pulled in
+    # by the static LLVM libs); their run_exports carry them into run.
+    - zlib
+    - zstd
+  run:
+    # apiary dynamically links the shared libLLVM (@rpath/libLLVM.<major>.dylib),
+    # which lives in the major-suffixed package libllvm<major>. llvmdev's
+    # transitive run_export does not cover it, so depend on it explicitly.
+    - libllvm${{ llvm_major }}
+    # The bundled doc/stub render scripts (share/apiary/scripts/*.py) are invoked
+    # by the apiary_* CMake helpers at a consumer's build time.
+    - python
+
+tests:
+  - package_contents:
+      bin:
+        - apiary
+      include:
+        - apiary/Annotations.hpp
+      files:
+        - lib/cmake/Apiary/ApiaryConfig.cmake
+        - lib/cmake/Apiary/ApiaryHelpers.cmake
+        - share/apiary/scripts/render_cpp_rst.py
+  - script:
+      - apiary --help
+
+about:
+  homepage: https://github.com/Einsums/Apiary
+  summary: libclang/libtooling C++ introspection — pybind11 bindings, .pyi stubs, Sphinx docs, JSON IR
+  description: |
+    Apiary is a standalone libclang/libtooling tool that, from a single AST
+    walk over annotated C++ headers, emits pybind11 (or nanobind) bindings,
+    .pyi type stubs, Sphinx C++ API documentation (including macros, no
+    Doxygen), and a structured public-API JSON IR.
+
+    It ships an installable CMake package: find_package(Apiary) provides the
+    apiary::apiary executable, the apiary::annotations INTERFACE header target
+    (the APIARY_* annotation macros), and the apiary_* helper functions that
+    wire codegen into a downstream build.
+  license: MIT
+  license_file: LICENSE.txt
+  documentation: https://einsums.github.io/Apiary/
+  repository: https://github.com/Einsums/Apiary
+
+extra:
+  recipe-maintainers:
+    - jturney
