@@ -2,6 +2,16 @@ context:
   name: decord2
   version: "3.4.0"
   build_number: 0
+  # Shell/variable references rendered per target platform, so a single script list works on both Unix (bash) and Windows (cmd.exe) without duplicated branches.
+  prefix: ${{ "%LIBRARY_PREFIX%" if win else "$PREFIX" }}
+  cmake_args: ${{ "%CMAKE_ARGS%" if win else "${CMAKE_ARGS}" }}
+  cpu_count: ${{ "%CPU_COUNT%" if win else "${CPU_COUNT}" }}
+  python: ${{ "%PYTHON%" if win else "$PYTHON" }}
+  # CUDA is enabled for the cuda_compiler_version variants (12.x / 13.x) and off otherwise.
+  use_cuda: ${{ "ON" if (cuda_compiler_version | default("None")) != "None" else "OFF" }}
+  # The decord CMake target is created before enable_language(CUDA), so its CUDA_ARCHITECTURES property is never initialised from the CUDAARCHS activation variable.
+  # Pass it explicitly to reuse the conda-forge default set.
+  cuda_arch_flag: ${{ ("-DCMAKE_CUDA_ARCHITECTURES=" ~ ("%CUDAARCHS%" if win else "$CUDAARCHS")) if (cuda_compiler_version | default("None")) != "None" else "" }}
 
 recipe:
   name: decord2
@@ -10,8 +20,11 @@ recipe:
 source:
   - url: https://github.com/johnnynunez/decord2/archive/refs/tags/v${{ version }}.tar.gz
     sha256: dc4b2510888a10f6fcc66e5ed7f36c8543c7f738b084a0116c4895f2945c122a
-  # dmlc-core is vendored as a git submodule (header-only usage) because it is not packaged on conda-forge.
-  # It is pulled in at the commit pinned by the v3.4.0 tag.
+    patches:
+      # Install the CMake export set into the prefix so downstream projects can use find_package(decord CONFIG).
+      # Upstream only exports it into the build tree.
+      - patches/0001-install-cmake-package-config.patch
+  # The dmlc-core submodule is vendored (header-only usage) because it is not packaged on conda-forge, pulled in at the commit pinned by the v3.4.0 tag.
   - url: https://github.com/dmlc/dmlc-core/archive/d07fb7a443b5db8a89d65a15a024af6a425615a5.tar.gz
     sha256: 34520980d004f9eb637c21e9c75a9b2dc794047553c3dd317d1ae337edf402e1
     target_directory: 3rdparty/dmlc-core
@@ -20,113 +33,161 @@ build:
   number: ${{ build_number }}
 
 outputs:
-  - package:
-      name: libdecord2
+  # The library is compiled once in a staging output.
+  # Each library package then selects its files, avoiding a rebuild per output.
+  - staging:
+      name: decord2-build
     build:
-      # CMAKE_ARGS already carries CMAKE_BUILD_TYPE, CMAKE_INSTALL_PREFIX and
-      # CMAKE_INSTALL_LIBDIR (set per-platform by conda-forge), so only the
-      # decord-specific options are passed here. --config Release is required by
-      # multi-config generators (e.g. Visual Studio) where the build type is
-      # selected at build time rather than at configure time.
       script:
-        - if: unix
-          then:
-            - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DUSE_CUDA=0 -DFFMPEG_DIR=$PREFIX
-            - cmake --build build --config Release --parallel ${CPU_COUNT}
-            - cmake --install build --config Release
-        - if: win
-          then:
-            - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DUSE_CUDA=0 -DFFMPEG_DIR=%LIBRARY_PREFIX%
-            - cmake --build build --config Release --parallel %CPU_COUNT%
-            - cmake --install build --config Release
+        - cmake -G Ninja -S . -B build ${{ cmake_args }} -DUSE_CUDA=${{ use_cuda }} ${{ cuda_arch_flag }} -DFFMPEG_DIR=${{ prefix }}
+        - cmake --build build --config Release --parallel ${{ cpu_count }}
+        - cmake --install build --config Release
+        # The vendored dmlc-core headers are pulled in by the public decord headers, so they are installed alongside them for downstream consumers.
+        - cmake -E copy_directory 3rdparty/dmlc-core/include/dmlc ${{ prefix }}/include/dmlc
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
+        - if: cuda_compiler_version != "None"
+          then:
+            - ${{ compiler('cuda') }}
         - cmake
         - ninja
       host:
         - ffmpeg
-        # decord2 still uses the pre-1.0 dlpack API: DLContext / kDLGPU and the DLTensor.ctx field.
+        # Decord2 still uses the pre-1.0 dlpack API: DLContext / kDLGPU and the DLTensor.ctx field.
         # The field was renamed to DLTensor.device in dlpack 0.4, so it must build against dlpack < 0.4.
         - dlpack >=0.2,<0.4
-      run:
-        # libdecord2's public headers include <dlpack/dlpack.h>.
-        - dlpack >=0.2,<0.4
-      # libdecord.so ships no versioned SONAME and offers no ABI stability
-      # guarantees, so downstream consumers must be pinned to the exact build.
-      run_exports:
-        - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
+        # NVDEC (libnvcuvid) ships with the GPU driver rather than the CUDA toolkit, so it is absent at build time, resolved at runtime, and therefore not a host dependency.
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-version ${{ cuda_compiler_version }}.*
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+            - libcublas-dev
+            - cuda-nvml-dev
+            - cuda-driver-dev
+
+  - package:
+      name: libdecord2
+    inherit: decord2-build
+    build:
+      # The runtime package ships only the shared library.
+      # The other platform's glob simply matches nothing.
+      files:
+        - lib/libdecord.*
+        - Library/bin/decord.dll
+    # ffmpeg and, when enabled, the CUDA runtime libraries are linked by libdecord and pinned into this package by the run_exports inherited from the staging host dependencies.
+    # No run_exports are declared here: downstream code builds against libdecord2-devel (headers), so the version pin is exported from that package instead.
     tests:
       - package_contents:
           lib:
             - decord
+
+  - package:
+      name: libdecord2-devel
+    inherit: decord2-build
+    build:
+      # The development package ships the headers and the CMake package config (plus the Windows import library).
+      # Non-matching globs are ignored on the other platforms.
+      files:
+        - include/decord/**
+        - include/dmlc/**
+        - lib/cmake/decord/**
+        - Library/include/decord/**
+        - Library/include/dmlc/**
+        - Library/lib/cmake/decord/**
+        - Library/lib/decord.lib
+    requirements:
+      run:
+        - ${{ pin_subpackage('libdecord2', exact=True) }}
+        # The public headers include <dlpack/dlpack.h>, so consumers building against them need the dlpack headers.
+        - dlpack >=0.2,<0.4
+      # The vendored dmlc-core headers are bundled here, so any future external dmlc-core package is excluded to avoid clashing files under include/dmlc.
+      run_constraints:
+        - dmlc-core <0a0
+      # libdecord.so ships no versioned SONAME and offers no ABI stability guarantees, so consumers building against the headers must be pinned to the matching runtime build.
+      run_exports:
+        - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
           include:
             - decord/video_interface.h
+            - dmlc/logging.h
+      # Check that a downstream project can find and link the library through find_package(decord CONFIG).
+      - script:
+          - cmake-package-check decord --targets decord::decord
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
 
   - package:
       name: decord2
     build:
+      # Decord's Python bindings are pure Python and load libdecord through ctypes at runtime, so the package is architecture independent.
+      # This output does not inherit the staging build: it compiles the bindings from source and depends on libdecord2 for the shared library.
+      noarch: python
       script:
         env:
-          # setup.py locates the shared library through this variable; the
-          # library itself ships in libdecord2. On Unix it is installed in
-          # $PREFIX/lib, on Windows the DLL lands in %LIBRARY_BIN%.
+          # The setup.py script locates the shared library through this variable.
+          # The library itself ships in libdecord2, installed in $PREFIX/lib on Unix and as the DLL in %LIBRARY_BIN% on Windows.
           DECORD_LIBRARY_PATH: ${{ "%LIBRARY_BIN%" if win else "$PREFIX/lib" }}
         content:
-          - if: unix
-            then:
-              - $PYTHON -m pip install ./python -vv --no-deps --no-build-isolation
-              # Drop the copy of the library that setup.py bundles into the
-              # package; it is provided by libdecord2 and found at runtime.
-              - rm -f $SP_DIR/decord/libdecord.so $SP_DIR/decord/libdecord.dylib
-          - if: win
-            then:
-              - '%PYTHON% -m pip install ./python -vv --no-deps --no-build-isolation'
-              - if exist %SP_DIR%\decord\decord.dll del /f /q %SP_DIR%\decord\decord.dll
-      # decord loads libdecord at runtime via dlopen rather than linking it,
-      # so the (correct) run dependency on libdecord2 has no DT_NEEDED entry.
-      dynamic_linking:
-        overdepending_behavior: ignore
+          # Upstream tags the wheel as platform specific via distclass=BinaryDistribution. The conda package bundles no library (it is stripped below), so drop that to keep the wheel pure and the output noarch.
+          - ${{ python }} -c "p = 'python/setup.py'; s = open(p).read(); open(p, 'w').write(s.replace('distclass=BinaryDistribution,', ''))"
+          - ${{ python }} -m pip install ./python -vv --no-deps --no-build-isolation
+          # Remove the shared library that setup.py bundles into the package, since it is provided by libdecord2 and located at runtime.
+          - ${{ python }} -c "import os; d = os.path.join(os.environ['SP_DIR'], 'decord'); [os.remove(os.path.join(d, f)) for f in ('libdecord.so', 'libdecord.dylib', 'decord.dll') if os.path.exists(os.path.join(d, f))]"
     requirements:
-      build:
-        - ${{ stdlib('c') }}
-        - if: build_platform != target_platform
-          then:
-            - python
-            - cross-python_${{ target_platform }}
       host:
-        - python
+        - python ${{ python_min }}.*
         - pip
         - setuptools
         - wheel
         - numpy
-        - ${{ pin_subpackage('libdecord2', exact=True) }}
+        # The libdecord2 runtime package must be present so setup.py can locate the shared library at build time.
+        - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
       run:
-        - python
+        - python >=${{ python_min }}
         - numpy
+        # noarch packages do not inherit run_exports, so the libdecord2 runtime dependency (a version range, since the exact build is platform specific) is declared explicitly.
+        - ${{ pin_subpackage('libdecord2', upper_bound='x.x.x') }}
     tests:
       - python:
           imports:
             - decord
           pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
       - script:
           - python -c "from decord import VideoReader, AudioReader"
-      # Upstream unit tests.
-      # The media fixtures are copied from the source tree (they are not shipped in the package).
-      # The audio-sample-count tests assert exact sample counts that vary with the FFmpeg version.
-      # The bridge tests are skipped as they require optional deep-learning frameworks (torch, mxnet, tf).
+      # Upstream unit tests, with media fixtures copied from the source tree because they are not shipped in the package.
+      # PyTorch is provided so the torch bridge is exercised. The other bridges (mxnet, tf, tvm) skip gracefully when their framework is absent.
+      # Five audio tests are deselected because they assert exact sample counts that depend on the FFmpeg build rather than on decord.
       - script:
-          - pytest -v tests/python/unittests/test_video_reader.py tests/python/unittests/test_av_reader.py
+          - pytest -v tests/python/unittests/test_video_reader.py tests/python/unittests/test_av_reader.py tests/python/unittests/test_audio_reader.py tests/python/unittests/test_bridges.py
+            --deselect tests/python/unittests/test_audio_reader.py::test_single_channel_audio_reader
+            --deselect tests/python/unittests/test_audio_reader.py::test_double_channels_audio_reader
+            --deselect tests/python/unittests/test_audio_reader.py::test_bytes_io
+            --deselect tests/python/unittests/test_audio_reader.py::test_resample
+            --deselect tests/python/unittests/test_audio_reader.py::test_channel_change
         requirements:
           run:
+            # Pin to python_min so PyTorch (used by the torch bridge test) resolves reliably.
+            - python ${{ python_min }}.*
             - pytest
+            - pytorch
         files:
           source:
             - examples/flipping_a_pancake.mkv
             - tests/python/unittests/test_video_reader.py
             - tests/python/unittests/test_av_reader.py
+            - tests/python/unittests/test_audio_reader.py
+            - tests/python/unittests/test_bridges.py
             - tests/test_data/
             - tests/resources/audio/
 
@@ -139,7 +200,9 @@ about:
     GPU acceleration, and seamless integration with popular frameworks.
     This recipe builds the shared C++ library (libdecord2) and the Python bindings (decord2).
   license: Apache-2.0
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    - 3rdparty/dmlc-core/LICENSE
   repository: https://github.com/johnnynunez/decord2
   documentation: https://github.com/johnnynunez/decord2
 
