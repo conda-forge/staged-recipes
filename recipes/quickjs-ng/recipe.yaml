@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  python_min: "3.10"
+  version: "0.14.0.1"
+  # Pinned upstream quickjs commit (the upstream-quickjs git submodule
+  # of genotrance/quickjs-ng at tag v${{ version }}). The PyPI sdist
+  # ships only a partial copy of the submodule, so we re-fetch it here.
+  upstream_quickjs_rev: "6d2a9bacbc9feb5c1f46f80b3cf4c25bedd2187b"
+
+package:
+  name: quickjs-ng
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/q/quickjs-ng/quickjs_ng-${{ version }}.tar.gz
+    sha256: 08c166ad61a5f0fdc8593ff604cb26d6c34421ec7d5698586dbc16d6cb898486
+  - url: https://github.com/quickjs-ng/quickjs/archive/${{ upstream_quickjs_rev }}.tar.gz
+    sha256: fa2dfa8c00f27d442aef101b4f32316536b04b029b7650bc05c02e18b20be66c
+    target_directory: _upstream
+
+build:
+  number: 0
+  # The PyPI sdist ships only some files from the upstream-quickjs git submodule
+  # of genotrance/quickjs-ng, so overlay the full upstream tree from GitHub
+  # before building.
+  script:
+    - if: unix
+      then: cp -R _upstream/. upstream-quickjs/
+    - if: win
+      then: xcopy /E /Y _upstream\* upstream-quickjs\
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - quickjs
+      pip_check: true
+
+about:
+  summary: Thin Python wrapper of quickjs-ng
+  license: MIT
+  license_file:
+    - LICENSE
+    - upstream-quickjs/LICENSE
+  homepage: https://github.com/genotrance/quickjs-ng
+  repository: https://github.com/genotrance/quickjs-ng
+
+extra:
+  recipe-maintainers:
+    - ytausch

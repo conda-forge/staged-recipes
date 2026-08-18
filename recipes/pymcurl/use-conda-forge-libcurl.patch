@@ -1,0 +1,110 @@
+diff -ruN pymcurl-orig/mcurl/gen.py pymcurl-mod/mcurl/gen.py
+--- pymcurl-orig/mcurl/gen.py	2026-05-19 09:53:59
++++ pymcurl-mod/mcurl/gen.py	2026-05-19 14:17:56
+@@ -1,14 +1,15 @@
+-import glob
+ import os
+ import re
+-import shutil
+ import subprocess
+ import sys
+-import tempfile
+ 
+ import cffi
+-import jbb
+ 
++
++def _conda_prefix():
++    # Conda-forge: PYMCURL_PREFIX points at the host prefix that ships libcurl.
++    return os.environ.get("PYMCURL_PREFIX") or os.environ.get("PREFIX") or sys.prefix
++
+ # Platform specific additions
+ if sys.platform == "linux":
+     CDEF_HEADER = """
+@@ -23,9 +24,9 @@
+ typedef long time_t;
+ 
+ typedef struct {
+-    long %s int fds_bits[%d];
++    long int fds_bits[%d];
+ } fd_set;
+-""" % ("unsigned" if jbb.get_libc() == "musl" else "", 16 if sys.maxsize > 2**32 else 32)
++""" % (16 if sys.maxsize > 2**32 else 32,)
+ 
+     HEADER = """
+ #include <sys/socket.h>
+@@ -205,7 +206,7 @@
+ 
+ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+     # Get preprocessed output from the C/C++ compiler
+-    args = ["gcc"]
++    args = [os.environ.get("CC", "gcc")]
+     start = False
+ 
+     sfileName = os.path.basename(sfile)
+@@ -349,48 +350,14 @@
+ 
+ 
+ def source_prep():
+-    # Download libcurl from JBB for Linux and Windows
+-    key = jbb.get_key()
+-    outdir = os.path.join(os.environ.get("TMP", tempfile.gettempdir()), "mcurl", key)
+-    version = get_libcurl_version()
+-    libs = []
+-    if sys.platform != "darwin":
+-        libs.extend(jbb.jbb(f"LibCURL-v{version}", outdir=outdir, project="genotrance", quiet=False))
+-
+-        # On Windows, jbb returns bin/ dirs but mingw32 linker needs lib/ dirs
+-        # for import libraries (.dll.a / .a). Add lib/ equivalents.
+-        if sys.platform == "win32":
+-            lib_dirs = []
+-            for d in libs:
+-                lib_dirs.append(d)
+-                lib_dir = d.replace(os.sep + "bin", os.sep + "lib")
+-                if lib_dir != d and os.path.isdir(lib_dir):
+-                    lib_dirs.append(lib_dir)
+-            libs = lib_dirs
+-
+-        # Header file location
+-        curlh = f"{outdir}{os.sep}LibCURL{os.sep}include{os.sep}curl{os.sep}curl.h"
+-    else:
+-        prefix = subprocess.check_output("brew --prefix", shell=True, text=True).strip()
+-        deps = ["curl"] + subprocess.check_output("brew deps -n --installed curl", shell=True, text=True).splitlines()
+-        for dep in deps:
+-            if dep == "ca-certificates":
+-                continue
+-            libs.append(prefix + "/opt/" + dep + "/lib")
+-
+-        curlh = prefix + "/opt/curl/include/curl/curl.h"
+-
+-    # Include directory
++    # Use libcurl from the active conda-forge environment
++    prefix = _conda_prefix()
++    libs = [os.path.join(prefix, "lib")]
++    curlh = os.path.join(prefix, "include", "curl", "curl.h")
+     inc = os.path.dirname(curlh)
+ 
+-    # Download CAcerts
+-    pemdst = "mcurl/cacert.pem"
+-    jbb.jbb("mozillaCACerts", outdir=outdir, quiet=False)
+-    pemsrc = glob.glob(f"{outdir}/**/cacert.pem", recursive=True)[0]
+-    try:
+-        shutil.copy(pemsrc, pemdst)
+-    except shutil.SameFileError:
+-        pass
++    # cacert.pem: conda-forge's libcurl uses ca-certificates from the active
++    # environment via SSL_CERT_FILE / curl-config defaults. No bundled pem.
+ 
+     # Preprocess and clean code
+     cdef = get_preprocessor(curlh, recurse=True)
+diff -ruN pymcurl-orig/pyproject.toml pymcurl-mod/pyproject.toml
+--- pymcurl-orig/pyproject.toml	2026-05-19 09:53:59
++++ pymcurl-mod/pyproject.toml	2026-05-19 09:54:05
+@@ -1,6 +1,6 @@
+ [build-system]
+ build-backend = "setuptools.build_meta"
+-requires = ["cffi", "jbb", "setuptools"]
++requires = ["cffi", "setuptools"]
+ 
+ [project]
+ name = "pymcurl"
