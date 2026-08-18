@@ -1,14 +1,25 @@
 #!/bin/bash
 set -euxo pipefail
 
-# Enable libmseed URL support and link the host libcurl.
-# Flags are set via the environment (not on the make command line) so the
-# top-level Makefile's `CFLAGS := $(CFLAGS) ...` additions are preserved and
-# propagated to both the libmseed and src sub-makes.
-export CFLAGS="${CFLAGS} -O2 -DLIBMSEED_URL"
-export LDFLAGS="${LDFLAGS} -lcurl"
-
-make CC="${CC}" -j"${CPU_COUNT}"
+# Upstream bundles its own copy of libmseed and always builds+statically
+# links it (top-level Makefile: `all: libmseed` then `make -C src`). We skip
+# that entirely and build only src/, pointing it at the libmseed host
+# package instead, so msi dynamically links the packaged library rather than
+# vendoring a duplicate build of it.
+#
+# -DLIBMSEED_URL enables msi's own URL-related CLI code paths (see msi.c);
+# the packaged libmseed is also built with URL support, so the two agree.
+# EXTRACFLAGS/EXTRALDFLAGS override src/Makefile's hardcoded `../libmseed`
+# paths (plain `=` assignments there, so they're overridable on the command
+# line). No explicit libcurl link is needed: msi.c never calls libcurl
+# directly, only libmseed does internally, and it carries that dependency
+# itself.
+make -C src \
+  CC="${CC}" \
+  CFLAGS="${CFLAGS} -O2 -DLIBMSEED_URL" \
+  EXTRACFLAGS="-I${PREFIX}/include" \
+  EXTRALDFLAGS="-L${PREFIX}/lib" \
+  -j"${CPU_COUNT}"
 
 # Upstream has no install target; the binary is built at the repo root.
 install -d "${PREFIX}/bin"
