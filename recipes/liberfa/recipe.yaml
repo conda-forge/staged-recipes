@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  version: "2.0.1"
+
+package:
+  name: liberfa
+  version: ${{ version }}
+
+source:
+  url: https://github.com/liberfa/erfa/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d5469fbd0b212b3c7270c1da15c9bd82f37da9218fc89627f98283d27b416cbf
+
+build:
+  number: 0
+  skip:
+    # Not supported upstream
+    - win
+  script: |
+    meson setup build ${MESON_ARGS}
+    meson compile -C build -j ${CPU_COUNT}
+    if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "" ]]; then
+      meson test -C build --print-errorlogs
+    fi
+    meson install -C build
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - meson
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage("liberfa", upper_bound="x") }}
+
+tests:
+  - package_contents:
+      include:
+        - erfa.h
+        - erfam.h
+        - erfaextra.h
+        - erfadatextra.h
+      lib:
+        - erfa
+      files:
+        - lib/pkgconfig/erfa.pc
+
+  - script:
+      - pkg-config --modversion erfa
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://github.com/liberfa/erfa
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Essential Routines for Fundamental Astronomy
+  description: |
+    ERFA (Essential Routines for Fundamental Astronomy) is a C library containing key algorithms for
+    astronomy, and is based on the [SOFA library](http://www.iausofa.org/) published by the International
+    Astronomical Union (IAU).
+    
+    ERFA is intended to replicate the functionality of SOFA (aside from possible
+    bugfixes in ERFA that have not yet been included in SOFA), but is licensed
+    under a three-clause BSD license to enable its compatibility with a wide
+    range of open source licenses.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
