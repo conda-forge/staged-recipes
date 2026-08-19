@@ -28,15 +28,14 @@ source:
       - patches/0001-install-cmake-package-config.patch
       # Add the missing <cstdint> includes required by recent compilers that no longer pull it in transitively.
       - patches/0002-add-cstdint-includes.patch
-  # The dmlc-core submodule is vendored (header-only usage) because it is not packaged on conda-forge, pulled in at the commit pinned by the v3.4.0 tag.
-  - url: https://github.com/dmlc/dmlc-core/archive/d07fb7a443b5db8a89d65a15a024af6a425615a5.tar.gz
-    sha256: 34520980d004f9eb637c21e9c75a9b2dc794047553c3dd317d1ae337edf402e1
-    target_directory: 3rdparty/dmlc-core
+      # Port the sources from the pre-0.4 dlpack API (DLContext / kDLGPU / DLTensor.ctx) to the modern one
+      # (DLDevice / kDLCUDA / DLTensor.device) so decord2 builds against current dlpack.
+      - patches/0003-modernize-dlpack-api.patch
 
 build:
   number: ${{ build_number }}
-  # Windows is skipped for now because conda-forge only ships dlpack >=0.8 on win-64, while decord2 requires the pre-0.4 dlpack API.
-  # The Windows build logic is kept in place for when a compatible dlpack becomes available.
+  # Windows is skipped for now: the build is not yet validated there (the Windows-specific logic, e.g. the nvcuvid
+  # import library, is kept in place for when it can be exercised on CI).
   # The VideoToolbox AV1 decode path uses kCMVideoCodecType_AV1, which requires the macOS 14 SDK, requested via conda_build_config.yaml.
   skip: win
 
@@ -55,8 +54,6 @@ outputs:
         - cmake -G Ninja -S . -B build ${{ cmake_args }} -DUSE_CUDA=${{ use_cuda }} ${{ cuda_arch_flag }} ${{ nvcuvid_lib_flag }} -DFFMPEG_DIR=${{ prefix }}
         - cmake --build build --config Release --parallel ${{ cpu_count }}
         - cmake --install build --config Release
-        # The vendored dmlc-core headers are pulled in by the public decord headers, so they are installed alongside them for downstream consumers.
-        - cmake -E copy_directory 3rdparty/dmlc-core/include/dmlc ${{ prefix }}/include/dmlc
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -69,9 +66,10 @@ outputs:
         - ninja
       host:
         - ffmpeg
-        # Decord2 still uses the pre-1.0 dlpack API: DLContext / kDLGPU and the DLTensor.ctx field.
-        # The field was renamed to DLTensor.device in dlpack 0.4, so it must build against dlpack < 0.4.
-        - dlpack >=0.2,<0.4
+        # Decord2 uses the modern dlpack API (DLDevice / kDLCUDA / DLTensor.device), fully available since dlpack 0.5.
+        - dlpack >=0.5
+        # The public decord headers include <dmlc/...>, provided (header-only usage) by the conda-forge dmlc package.
+        - dmlc
         # NVDEC (libnvcuvid) ships with the GPU driver rather than the CUDA toolkit, so it is absent at build time,
         # resolved at runtime, and therefore not a host dependency.
         - if: cuda_compiler_version != "None"
@@ -109,20 +107,17 @@ outputs:
       # Non-matching globs are ignored on the other platforms.
       files:
         - include/decord/**
-        - include/dmlc/**
         - lib/cmake/decord/**
         - Library/include/decord/**
-        - Library/include/dmlc/**
         - Library/lib/cmake/decord/**
         - Library/lib/decord.lib
     requirements:
       run:
         - ${{ pin_subpackage('libdecord2', exact=True) }}
         # The public headers include <dlpack/dlpack.h>, so consumers building against them need the dlpack headers.
-        - dlpack >=0.2,<0.4
-      # The vendored dmlc-core headers are bundled here, so any future external dmlc-core package is excluded to avoid clashing files under include/dmlc.
-      run_constraints:
-        - dmlc-core <0a0
+        - dlpack >=0.5
+        # The public headers also include <dmlc/...>, so consumers need the dmlc headers as well.
+        - dmlc
       # libdecord.so ships no versioned SONAME and offers no ABI stability guarantees, so consumers building against the headers
       # must be pinned to the matching runtime build.
       run_exports:
@@ -131,7 +126,6 @@ outputs:
       - package_contents:
           include:
             - decord/video_interface.h
-            - dmlc/logging.h
       # Check that a downstream project can find and link the library through find_package(decord CONFIG).
       - script:
           - cmake-package-check decord --targets decord::decord
@@ -229,7 +223,6 @@ about:
   license: Apache-2.0
   license_file:
     - LICENSE
-    - 3rdparty/dmlc-core/LICENSE
   repository: https://github.com/johnnynunez/decord2
   documentation: https://github.com/johnnynunez/decord2
 
