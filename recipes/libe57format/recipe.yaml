@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  name: libe57format
+  version: 3.3.0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/asmaloney/libE57Format/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0ba6de5c2ff6122c847867e81bf3f987b43ce4116b4949550c9cda277099e796
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cmake -G Ninja -S . -B build ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_BUILD_TYPE=Release -DE57_BUILD_SHARED=ON -DE57_BUILD_TEST=OFF -DE57_USE_EXTERNAL_CRCPP=ON -DE57_RELEASE_LTO=OFF
+        - cmake --build build
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -G Ninja -S . -B build %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DCMAKE_BUILD_TYPE=Release -DE57_BUILD_SHARED=ON -DE57_BUILD_TEST=OFF -DE57_USE_EXTERNAL_CRCPP=ON -DE57_RELEASE_LTO=OFF
+        - cmake --build build
+        - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - xerces-c
+    - libcrcpp
+  run_exports:
+    - ${{ pin_subpackage('libe57format', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - E57Format
+      include:
+        - E57Format/E57Format.h
+        - E57Format/E57SimpleReader.h
+        - E57Format/E57SimpleWriter.h
+      files:
+        exists:
+          - ${{ "Library/" if win }}lib/cmake/E57Format/e57format-config.cmake
+  - script:
+      - if: unix
+        then:
+          - cmake -G Ninja -S test -B build ${CMAKE_ARGS}
+          - cmake --build build
+          - ./build/e57-test
+      - if: win
+        then:
+          - cmake -G Ninja -S test -B build %CMAKE_ARGS%
+          - cmake --build build
+          - build\e57-test.exe
+    files:
+      recipe:
+        - test/CMakeLists.txt
+        - test/test.cpp
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+
+about:
+  homepage: https://github.com/asmaloney/libE57Format
+  repository: https://github.com/asmaloney/libE57Format
+  documentation: https://asmaloney.github.io/libE57Format-docs/
+  summary: Library for reading and writing E57 point-cloud files
+  license: BSL-1.0
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - swahtz
