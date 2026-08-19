@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 # Versioned subdir install ($PREFIX/PFUNIT-<x.y>/). Assert the CMake package config
-# and the static libraries LFRic links (-lpfunit -lfunit) landed, plus the .pf
+# and the static libraries consumers link (-lpfunit -lfunit) landed, plus the .pf
 # preprocessor consumers invoke. Building at all proves find_package resolved the
 # gftl/gftl-shared/fargparse subdir installs and that MPI was found.
 sub=$(echo "$PREFIX"/PFUNIT-*)

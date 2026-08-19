@@ -1,5 +1,5 @@
 #!/bin/sh
-# lfric-env -- undo the Stage-1 activation contract (see activate.sh).
+# lfric-env -- undo the activation contract (see activate.sh).
 #
 # Installed as $PREFIX/etc/conda/deactivate.d/000-lfric-env.sh.
 #

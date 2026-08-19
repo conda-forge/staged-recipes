@@ -2,10 +2,11 @@
 set -euxo pipefail
 
 # CMake options mirror mo-spack-packages' shumlib recipe: OpenMP on (the default
-# LFRic builds against), the bitwise NaN/denormal/IEEE probes off, tests off. The
-# conda-specific bits are BUILD_SHARED_LIBS=ON (so run_exports means something) and
-# CMAKE_INSTALL_LIBDIR=lib (shumlib honours GNUInstallDirs, which would otherwise
-# pick lib64 on some hosts; LFRic looks under $SHUMLIB_ROOT/lib).
+# consumers build against), the bitwise NaN/denormal/IEEE probes off, tests off.
+# The conda-specific bits are BUILD_SHARED_LIBS=ON (so run_exports means something)
+# and CMAKE_INSTALL_LIBDIR=lib (shumlib honours GNUInstallDirs, which would
+# otherwise pick lib64 on some hosts, while consumers look under
+# $SHUMLIB_ROOT/lib).
 #
 # CMAKE_ARGS is a flag STRING from the compiler activation and must word-split.
 # shellcheck disable=SC2086
