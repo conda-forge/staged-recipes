@@ -1,19 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
 
-# --- Vendored ERFA -----------------------------------------------------------
-# ERFA has no conda-forge feedstock, so its release tarball is fetched as a
-# second source (staged in subprojects/_erfa_src/).  meson's subprojects/erfa.wrap
-# expects the unpacked source at subprojects/erfa-2.0.1/, which lets meson build
-# it as a subproject with no network access.  conda-build's exact extraction
-# layout for a secondary source can vary (leading directory stripped or not), so
-# locate ERFA's root by its unique erfa.pc.in and move it into place.
-if [ ! -f subprojects/erfa-2.0.1/meson.build ]; then
-    erfa_root=$(dirname "$(find subprojects/_erfa_src -name erfa.pc.in | head -n1)")
-    mkdir -p subprojects/erfa-2.0.1
-    ( shopt -s dotglob nullglob; mv "${erfa_root}"/* subprojects/erfa-2.0.1/ )
-fi
-
 # PGPLOT headers: conda-forge's pgplot ships cpgplot.h under <prefix>/include/pgplot
 # and its data (rgb.txt, fonts) under <prefix>/share/pgplot.  meson.build probes
 # $PGPLOT_DIR as a fallback for the header; set it (and it is the runtime data dir).
@@ -25,11 +12,15 @@ export PGPLOT_DIR="${PREFIX}/share/pgplot"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
 
 # --- Stage 1: libpresto, C tools, man pages, runtime data --------------------
-meson setup builddir \
-    --prefix="${PREFIX}" \
-    --libdir=lib \
-    --buildtype=release
-meson compile -C builddir -v
+# ${MESON_ARGS} supplies conda-forge's --prefix/-Dlibdir/-Dbuildtype and, when
+# cross-compiling (e.g. osx-arm64), the generated cross file.
+#
+# --wrap-mode=nodownload keeps meson from falling back to subprojects/erfa.wrap:
+# ERFA is provided by the liberfa package, so a missing erfa.pc must fail loudly
+# at configure time rather than attempt a (network-less) subproject download.
+# shellcheck disable=SC2086  # MESON_ARGS must word-split into separate arguments
+meson setup builddir ${MESON_ARGS} --wrap-mode=nodownload
+meson compile -C builddir -j "${CPU_COUNT}" -v
 meson install -C builddir
 
 # --- Stage 2: Python package + _presto extension -----------------------------
