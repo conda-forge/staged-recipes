@@ -1,31 +1,18 @@
-# lfric-env -- the LFRic Stage-1 environment, as a single metapackage.
+# lfric-env -- a metapackage providing the environment LFRic is built and run in.
 #
-# LFRic (Met Office / NERC next-generation weather & climate model) is delivered
-# in two stages:
+# LFRic is the Met Office / NERC next-generation weather and climate model. A
+# typical user writes Fortran source, has PSyclone transpile it into the parallel
+# Fortran that actually gets compiled, and then compiles and links that against
+# MPI, parallel netCDF/HDF5, XIOS, yaxt and shumlib, driving the whole thing from
+# a Rose/Cylc workflow. What such a user needs installed is therefore not any one
+# of those packages but all of them at once, agreeing on one compiler and one MPI.
+# Upstream documents that dependency list at
+# https://metoffice.github.io/lfric_core/getting_started/installation/software_dependencies.html
 #
-#   Stage 1  the ENVIRONMENT: compilers, MPI, parallel netCDF/HDF5, XIOS, yaxt,
-#            PSyclone, rose/cylc, ... -- everything a science workflow builds and
-#            runs against.
-#   Stage 2  a scientist brings LFRic Fortran source and drives it with cylc/rose
-#            to compile and run a suite.
-#
-# Stage 1 is currently delivered on HPC by Spack, as the `lfric-apps-isambard`
-# bundle plus an Lmod modulefile:
-#
-#     module load lfric-env/<version>/<variant>
-#
-# This metapackage is the conda counterpart of BOTH halves of that -- the bundle's
-# dependency list (`requirements/run` below) and the modulefile's exports (the
-# activate.d script) -- so that
-#
-#     conda activate <env-with-lfric-env-installed>
-#
-# leaves a user in the same place, and Stage 2 cannot tell which mechanism got
-# them there. The per-package and per-variable audit of that claim lives in
-# ickc/lfric-conda's docs/stage1-parity.md; the two intended differences are the
-# Cray/Slingshot MPI stack (no conda analogue by design -- this corresponds to the
-# Spack repo's portable `spack` variant, not its `cray` one) and `foxml` (dropped
-# as vestigial: nothing in lfric_core or lfric_apps references it).
+# This metapackage is that list (`requirements/run` below) plus the handful of
+# environment variables LFRic's build system requires to be spelled a particular
+# way (the activate.d script), so that `conda activate` is enough to get a working
+# starting point. On HPC the same job is done by a module file today.
 #
 # Every dependency below is either already on conda-forge or is one of the other
 # recipes in this same PR. `yaxt` is the one that needed upstream work first: its
@@ -37,8 +24,8 @@
 schema_version: 1
 
 context:
-  # Tracks the LFRic release this environment is the Stage-1 counterpart of
-  # (lfric_apps vn3.2 / lfric_core vn3.2), not the version of any one dependency.
+  # Tracks the LFRic release this environment corresponds to (lfric_apps and
+  # lfric_core vn3.2), not the version of any one dependency.
   version: "2026.07.1"
 
 package:
@@ -66,15 +53,13 @@ requirements:
   run:
     # --- toolchain ----------------------------------------------------------
     # The environment ships its own compilers rather than assuming the host has
-    # them -- that is the whole point of Stage 1 being self-contained, and it is
-    # a stronger position than the Spack side, which declares the system gcc as
-    # an external.
+    # them: installing this package is meant to be sufficient.
     #
     # These are the conda-forge compiler METAPACKAGES, deliberately unpinned:
     # they resolve to whatever generation conda-forge currently builds its
     # Fortran stack with, which is the only generation that can read the .mod
     # files shipped by netcdf-fortran / xios / yaxt / shumlib. Pinning a specific
-    # gcc here (the Spack env uses 14.3) would eventually contradict that.
+    # gcc here would eventually contradict that.
     - c-compiler
     - cxx-compiler
     - fortran-compiler
@@ -98,15 +83,14 @@ requirements:
     # the Met Office runs for this release.
     - psyclone >=3.3.1,<4
     - fparser
-    # Fab, LFRic's newer build system. Not in the Spack bundle (which predates
-    # it); LFRic's build shells out to it, so it belongs in the environment.
+    # Fab, LFRic's newer build system, which its build shells out to.
     - sci-fab
     - jinja2
     - pyyaml
     - sympy
     # --- workflow tooling ---------------------------------------------------
     # cylc-uiserver (the Jupyter web GUI) is deliberately absent: it is not
-    # needed to build or run a suite on HPC, and the Spack bundle omits it too.
+    # needed to build or run a workflow on HPC.
     - metomi-rose
     - cylc-flow
     - cylc-rose
@@ -122,8 +106,8 @@ requirements:
     - blitzpp
     - rose-picker
     - shumlib
-    # The unit-test tier. Not needed to build or run an application, but the
-    # Spack bundle carries it (pfunit+mpi), so the parity environment does too.
+    # The unit-test tier: not needed to build or run an application, but part of
+    # the documented LFRic development environment.
     - pfunit * mpi_${{ mpi }}_*
     - gftl
     - gftl-shared
@@ -146,26 +130,20 @@ tests:
 
 about:
   homepage: https://www.metoffice.gov.uk/research/approach/modelling-systems/lfric
-  repository: https://github.com/ickc/lfric-conda
-  documentation: https://github.com/ickc/lfric-conda/blob/main/docs/stage1-parity.md
-  summary: LFRic Stage-1 environment (metapackage)
+  documentation: https://metoffice.github.io/lfric_core/getting_started/installation/software_dependencies.html
+  summary: Environment for building and running the LFRic model (metapackage)
   description: |
-    Installing this package gives you the LFRic Stage-1 environment: the
-    compilers, MPI, parallel netCDF/HDF5, XIOS, yaxt, shumlib, PSyclone, Fab and
-    rose/cylc that Met Office LFRic science workflows build and run against, plus
-    an activation script that exports the handful of variables LFRic's build
-    system requires to be spelled a particular way (FC=mpif90, CXX=mpic++,
-    SHUMLIB_ROOT, ...).
+    Installing this package gives you the environment LFRic science workflows are
+    built and run in: the compilers, MPI, parallel netCDF/HDF5, XIOS, yaxt,
+    shumlib, PSyclone, Fab and rose/cylc listed in LFRic's software-dependencies
+    documentation, plus an activation script that exports the handful of
+    variables LFRic's build system requires to be spelled a particular way
+    (FC=mpif90, CXX=mpic++, SHUMLIB_ROOT, ...).
 
-    It is the conda counterpart of the Spack `lfric-apps-isambard` bundle and its
-    `lfric-env` modulefile, so that `conda activate` and `module load lfric-env`
-    put a user in the same place.
-
-    This package contains no source of its own -- it is a metapackage plus an
-    activation contract.
-  # This recipe (dependency list + activation script) is original packaging work,
-  # licensed as the ickc/lfric-conda repository it comes from. Each package it
-  # depends on carries its own upstream licence.
+    This package contains no source of its own -- it is a dependency list plus an
+    activation script.
+  # This recipe (dependency list + activation script) is original packaging work.
+  # Each package it depends on carries its own upstream licence.
   license: BSD-3-Clause
   license_file: LICENSE
 
