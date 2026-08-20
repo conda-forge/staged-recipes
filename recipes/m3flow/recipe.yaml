@@ -1,0 +1,86 @@
+# Combined conda package: Rust core (m3flow binary, with tasks/workflows/schemas
+# embedded) + Python providers (m3flow-autopoly/-lammps/-analysis console scripts).
+# Canonical copy lives at conda/recipe.yaml in the source repo; one version
+# number covers both halves (scripts/release.sh bumps Cargo.toml
+# [workspace.package], providers/pyproject.toml and context.version together,
+# tags, pushes, and refreshes the sha256 below).
+
+context:
+  name: m3flow
+  version: "0.4.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Chenghao-Wu/m3flow/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e9c321875757e2e7b4004e396cbc1c6d6dbf0ac4f91c4f956ebe221966eaa132
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        cargo build --release --locked
+        mkdir -p "$PREFIX/bin"
+        # conda's rust activation sets CARGO_BUILD_TARGET, which relocates
+        # artifacts to target/<triple>/release/
+        install "target/${CARGO_BUILD_TARGET:+${CARGO_BUILD_TARGET}/}release/m3flow" "$PREFIX/bin/m3flow"
+        "$PYTHON" -m pip install ./providers --no-deps --no-build-isolation
+    - if: win
+      then: |
+        cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        cargo build --release --locked
+        if defined CARGO_BUILD_TARGET (set "TDIR=target\%CARGO_BUILD_TARGET%\release") else (set "TDIR=target\release")
+        copy "%TDIR%\m3flow.exe" "%LIBRARY_BIN%\m3flow.exe"
+        "%PYTHON%" -m pip install .\providers --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}      # rusqlite "bundled" compiles SQLite C sources
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses     # bundles Rust dep licenses into THIRDPARTY.yml
+  host:
+    - python
+    - pip
+    - setuptools >=77           # providers' build backend (no-build-isolation)
+  run:
+    - python >=3.10
+    - pyyaml
+    - numpy
+  # engines stay external: lammps is on conda-forge (`mamba install lammps`),
+  # autopoly pip-installed until it lands on conda.
+
+tests:
+  - package_contents:
+      bin:
+        - m3flow
+        - m3flow-autopoly
+        - m3flow-lammps
+        - m3flow-analysis
+  - script:
+      - m3flow --version
+      - m3flow task list
+      - m3flow workflow list
+      - python -c "import m3flow_autopoly, m3flow_lammps, m3flow_analysis"
+
+about:
+  homepage: https://github.com/Chenghao-Wu/m3flow
+  repository: https://github.com/Chenghao-Wu/m3flow
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: "Multiscale Molecular Modeling workFLOW: task-centric, artifact-driven, provenance-first runtime between researchers and simulation software (AutoPoly, LAMMPS)"
+  description: |
+    Ships the self-contained m3flow runtime binary (19-task and 18-workflow
+    libraries embedded) plus the Python provider processes speaking the
+    m3flow-provider/1 JSON protocol. Simulation engines (LAMMPS, AutoPoly)
+    are installed separately.
+
+extra:
+  recipe-maintainers:
+    - Chenghao-Wu
