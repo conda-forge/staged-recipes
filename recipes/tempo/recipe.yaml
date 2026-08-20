@@ -1,0 +1,77 @@
+context:
+  version: "1.4.2"
+
+package:
+  name: tempo
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tempoxyz/tempo/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 959ee0e2899732e29e582726bad282e20317bbf43ead53b6bd00ea9145866cab
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - export LIBCLANG_PATH=$PREFIX/lib
+      - if: linux
+        then:
+          - |
+            cat > "$SRC_DIR/gettid_shim.c" <<'EOF'
+            #include <sys/syscall.h>
+            #include <unistd.h>
+
+            pid_t gettid(void) {
+              return (pid_t)syscall(SYS_gettid);
+            }
+            EOF
+          - $CC -c $SRC_DIR/gettid_shim.c -o $SRC_DIR/gettid_shim.o
+          - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=$SRC_DIR/gettid_shim.o"
+      - if: osx
+        then:
+          - export RUSTFLAGS="${RUSTFLAGS:-} -L /usr/lib -liconv"
+          - export LDFLAGS="-L/usr/lib -liconv"
+          - export CFLAGS="-I/usr/include"
+      - cargo auditable install --no-track --locked --root $PREFIX --path bin/tempo
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    - cargo-bundle-licenses
+    - cargo-auditable
+  host:
+    - clang
+    - libclang
+
+tests:
+  - script:
+      - tempo --version
+  - package_contents:
+      bin:
+        - tempo
+      strict: true
+
+about:
+  homepage: https://github.com/tempoxyz/tempo
+  summary: the blockchain for payments
+  description: |
+    Tempo is a blockchain designed specifically for stablecoin payments. Its architecture focuses on high throughput, low cost, and features that financial institutions, payment service providers, and fintech platforms expect from modern payment infrastructure.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://docs.tempo.xyz/
+  repository: https://github.com/tempoxyz/tempo
+
+extra:
+  recipe-maintainers:
+    - yuikisaito
