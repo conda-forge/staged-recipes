@@ -94,11 +94,25 @@ tests:
       - spec42 --help
       - spec42 lsp --help
       - spec42 check --help
-      # These two resolve and materialise the libraries baked in at build time, so they
-      # fail if the embedded stdlib or KPAR bundles did not make it into the binary.
-      - spec42 stdlib status
-      - spec42 libraries status
       - kpar-pack --help
+
+  # These resolve and materialise the libraries baked in at build time, so they fail if
+  # the embedded stdlib or KPAR bundles did not make it into the binary.
+  #
+  # Unix only. Every spec42 subcommand that touches the environment starts with an
+  # unconditional `project_dirs()?` (crates/server/src/environment.rs), which is
+  # `ProjectDirs::from` from directories 5. On Windows that resolves the roaming AppData
+  # known folder through SHGetKnownFolderPath, which fails on a build agent running
+  # without a loaded user profile — "Could not determine a user config directory for
+  # spec42." Because that call precedes the SPEC42_CONFIG_DIR / SPEC42_DATA_DIR overrides
+  # rather than falling back to them, no environment variable can make it succeed here.
+  # It resolves normally for an interactive Windows user, so this is a limitation of the
+  # test sandbox, not of the package.
+  - if: unix
+    then:
+      script:
+        - spec42 stdlib status
+        - spec42 libraries status
 
 about:
   homepage: https://elan8.github.io/spec42/
