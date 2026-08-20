@@ -8,7 +8,7 @@ if [ ! -f CMakeLists.txt ]; then
   [ -n "$d" ] && cd "$d"
 fi
 
-# Options mirror mo-spack-packages' pfunit recipe:
+# Build options:
 #  - static libraries (BUILD_SHARED_LIBS=OFF), as the whole Goddard group is built;
 #  - MPI enabled (SKIP_MPI=NO): pFUnit's CMake does find_package(MPI COMPONENTS
 #    Fortran), which picks up conda's MPI from $PREFIX -- no need to override the

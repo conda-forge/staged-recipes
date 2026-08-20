@@ -4,8 +4,8 @@ set -euxo pipefail
 # XIOS is built by FCM through ./make_xios, which is configured entirely by an
 # "arch" triplet: arch-<NAME>.env (shell setup), arch-<NAME>.path (library
 # search paths) and arch-<NAME>.fcm (compilers and flags). We generate an
-# arch-CONDA pointing at $PREFIX, the same way the Met Office's Spack packaging
-# generates its own arch file.
+# arch-CONDA pointing at $PREFIX, as other packagings of XIOS do for their own
+# targets.
 ARCH=CONDA
 
 # Nothing to source: the conda build environment is already activated.
