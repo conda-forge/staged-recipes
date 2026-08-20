@@ -1,0 +1,81 @@
+context:
+  version: "0.4.3"
+
+package:
+  name: pythonlings
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pythonlings/pythonlings-${{ version }}.tar.gz
+  sha256: 8ebc0ed89f3d399c649ded1ca48c1955c58ec92bfa8097fe15d4e9c021ddb88d
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    # Upstream supports Python 3.9, but conda-forge's textual requires 3.10 or
+    # newer, so this package does too.
+    - python 3.10.*
+    - hatchling
+    - pip
+  run:
+    - python >=3.10
+    # Upstream declares textual[syntax]. That extra pulls sixteen tree-sitter
+    # grammar packages, and the core tree-sitter binding is not available on
+    # conda-forge. Pythonlings degrades gracefully without it: the built-in
+    # editor falls back to unhighlighted text, and checks, progress, hints and
+    # the bundled offline documentation are unaffected.
+    - textual >=8.0.0
+    # Only used on Python < 3.11, where tomllib is not in the standard library.
+    # A noarch package cannot express the environment marker, and the package
+    # is pure Python and tiny, so it is required unconditionally.
+    - tomli >=1.1.0
+
+tests:
+  - python:
+      imports:
+        - pythonlings
+        - pythonlings.cli
+        - pythonlings.core.runner
+        - pythonlings.core.manifest
+      pip_check: true
+      python_version: 3.10.*
+  - script:
+      - pythonlings --version
+      # Exercises the console entry point, the bundled curriculum data and the
+      # exercise runner together. The curriculum ships as package data, so init
+      # fails immediately if it did not survive the build, and solution runs a
+      # reference answer against its check in an isolated subprocess.
+      - pythonlings init --path plw
+      - pythonlings --root plw solution variables1
+    requirements:
+      run:
+        - python 3.10.*
+
+about:
+  homepage: https://github.com/abhiksark/pythonlings
+  summary: Learn Python by fixing tiny broken programs, in a live terminal UI.
+  description: |
+    Pythonlings teaches Python through 292 deliberately broken exercises across
+    31 topics, from variables through async. You fix the code in a built-in
+    terminal editor, hidden checks rerun as you type, and a passing exercise
+    advances you to the next one.
+
+    It is inspired by rustlings, and ships bundled offline documentation so a
+    learner can work without leaving the terminal.
+  license: MIT AND PSF-2.0 AND 0BSD
+  license_file:
+    - LICENSE
+    # The package bundles trimmed excerpts of the official Python
+    # documentation for offline use. NOTICE.md records their PSF-2.0 and 0BSD
+    # licensing, and is shipped inside the package.
+    - pythonlings/docs/NOTICE.md
+  documentation: https://pythonlings.abhik.ai/
+  repository: https://github.com/abhiksark/pythonlings
+
+extra:
+  recipe-maintainers:
+    - abhiksark
