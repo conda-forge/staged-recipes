@@ -14,7 +14,7 @@
 # workflow owns its extract tree and sets them itself, and a package guessing a
 # path there would be wrong for every real workflow.
 #
-# FILENAME PREFIX -- `zzz-` is load-bearing. conda sources activate.d/*.sh in
+# FILENAME PREFIX -- the `zzz-` matters. conda sources activate.d/*.sh in
 # sorted order, and conda-forge's compiler activation scripts are named
 # `activate-<pkg>_<subdir>.sh`. This must run AFTER them, because it overrides the
 # CXX they set and reads the GXX they export. (The matching deactivate script is
@@ -91,7 +91,7 @@ fi
 # (lfric_core/infrastructure/build/fortran/<fc>.mk, cxx/<cxx>.mk). It ships
 # mpif90.mk and mpic++.mk -- so conda's <arch>-conda-linux-gnu-gfortran (no .mk)
 # and mpich's mpicxx alias (no mpicxx.mk) both fail. This is the single most
-# load-bearing pair in the file, and is the same pair HPC module files set.
+# important pair in the file, and is the same pair HPC module files set.
 #
 # GXX is read BEFORE CXX is overridden: it is conda's g++-named driver, exported
 # by the compiler activation that ran ahead of this script.
