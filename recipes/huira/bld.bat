@@ -9,7 +9,7 @@ cmake -B build ^
     -DHUIRA_TOOLS=ON ^
     -DHUIRA_PYTHON=ON ^
     -DPython_EXECUTABLE="%PYTHON%" ^
-    -DFETCHCONTENT_SOURCE_DIR_PYBIND11="%SRC_DIR:\=/%/pybind11-src"
+    -DHUIRA_USE_SYSTEM_PYBIND11=ON
 if errorlevel 1 exit 1
 
 cmake --build build --parallel %CPU_COUNT%
