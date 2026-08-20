@@ -3,15 +3,10 @@
 :: crates\workspace\build.rs embeds these archives; it exits 1 with an explanatory
 :: message if they are missing, but check here so a source layout change reads as a
 :: recipe problem rather than a compile failure.
-<<<<<<< HEAD
 :: `dir` rejects a wildcard in a directory component, so the standard library archives in
 :: .cache\sysml-stdlib-kpar-<version>\ cannot be matched by pattern. `dir /s` recurses
 :: instead, covering them and the two Elan8 bundles in .cache itself with one check.
 dir /s /b "%SRC_DIR%\.cache\*.kpar" > nul || exit 1
-=======
-dir /b "%SRC_DIR%\.cache\sysml-stdlib-kpar-*\*.kpar" > nul || exit 1
-dir /b "%SRC_DIR%\.cache\*.kpar" > nul || exit 1
->>>>>>> d7ec67375a59c964abe2295c71e47f171b182491
 
 :: rust-toolchain.toml pins an exact channel for upstream CI. It is a rustup feature and
 :: is ignored by the bare cargo/rustc that the conda-forge rust compiler provides, so the
