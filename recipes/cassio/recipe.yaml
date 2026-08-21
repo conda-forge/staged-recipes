@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.10"
+
+package:
+  name: cassio
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/cassio/cassio-${{ version }}.tar.gz
+  sha256: 577f0a2ce5898a57c83195bf74811dec8794282477eb6fa4debd4ccec6cfab98
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - cassio-create-init-string = cassio.config.bundle_management:create_init_string_utility
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - poetry-core
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - cassandra-driver >=3.28.0,<4.0.0
+    - requests >=2.31.0,<3.0.0
+    - numpy >=1.0
+
+tests:
+  # win: cassandra-driver has no event-loop reactor on py3.12+ (libev C-ext is
+  # Unix-only; asyncore was removed in 3.12), so importing cassandra.cluster
+  # fails there. Test python_min only on win; full triad elsewhere.
+  - if: win
+    then:
+      python:
+        imports:
+          - cassio
+        pip_check: true
+        python_version:
+          - ${{ python_min }}.*
+    else:
+      python:
+        imports:
+          - cassio
+        pip_check: true
+        python_version:
+          - ${{ python_min }}.*
+          - "*"
+  - requirements:
+      run:
+        - pip
+        - python ${{ python_min }}.*
+    script:
+      - cassio-create-init-string
+
+about:
+  homepage: https://pypi.org/project/cassio/
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: A framework-agnostic Python library to seamlessly integrate Apache Cassandra(R) with ML/LLM/genAI workloads.
+  repository: https://github.com/CassioML/cassio
+  description: |
+    CassIO is a framework-agnostic Python library that seamlessly integrates
+    Apache Cassandra(R) with ML/LLM/genAI workloads. It provides ready-to-use
+    abstractions for storing and retrieving data in Cassandra and Astra DB --
+    including vector search, key-value stores, chat-history persistence, and
+    caching -- so that higher-level frameworks (such as LangChain) can use
+    Cassandra as a backing store with minimal boilerplate.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
