@@ -8,7 +8,7 @@ context:
   python_min: "3.12"
   # Extensions skipped in the base install: their backend is not on conda-forge,
   # so shipping the module would only add a broken import.
-  skip_extensions: "isaaclab_teleop"
+  skip_extensions: "isaaclab_teleop isaaclab_ov"
 
 recipe:
   name: ${{ name|lower }}
@@ -21,6 +21,10 @@ source:
   git: https://github.com/isaac-sim/IsaacLab.git
   # rev: release/3.0.0
   rev: e13060d3ab01a7d43a9863c6c9b7d3d565094c47
+  # Resolve the vendored apps/ and scripts/ dirs from $PREFIX/share/isaaclab.
+  # See the patch header, it is worth upstreaming.
+  patches:
+    - patches/0001-conda-forge-path-adjustments.patch
 
 build:
   # noarch: python
@@ -45,6 +49,7 @@ outputs:
       script:
         # Install every workspace member under source/, skip the ones in skip_extensions.
         - |
+          set -euo pipefail
           for ext in source/isaaclab source/isaaclab_*; do
             pkg=$(basename "$ext")
             case " ${{ skip_extensions }} " in
@@ -52,8 +57,10 @@ outputs:
             esac
             ${{ PYTHON }} -m pip install "./$ext" -vv --no-deps --no-build-isolation
           done
-        - cp -r apps ${PREFIX}/lib
-        - cp -r scripts ${PREFIX}/lib
+        # Vendor apps/ and scripts/ under share/ (paths patched to match), not $PREFIX/lib.
+        - mkdir -p ${PREFIX}/share/isaaclab
+        - cp -r apps ${PREFIX}/share/isaaclab/apps
+        - cp -r scripts ${PREFIX}/share/isaaclab/scripts
     requirements:
       host:
         - pip
@@ -116,6 +123,8 @@ outputs:
       - python:
           imports:
             - isaaclab
+          # pip_check is off in every output: the relaxed and remapped pins differ from
+          # the exact versions pip recorded, so pip check would flag them as inconsistent.
           pip_check: false
           python_version: ${{ python_min }}.*
   # ============

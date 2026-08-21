@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import urllib.error
 import urllib.request
 from typing import TypedDict, cast
 
@@ -60,7 +61,6 @@ PYPI_TO_CONDA = {
     "newton": "newton-sim",  # the ``[sim]`` extra maps to the conda ``newton-sim``
     "pin": "pinocchio",
     "pin-pink": "pink",
-    "pyopengl-accelerate": "pyopengl-accelerate",
     "ray": "ray-default",  # ``ray[default]`` -> conda ``ray-default``
     "torch": "pytorch",
 }
@@ -98,8 +98,11 @@ def _is_workspace_member(requirement: str) -> bool:
 
 def _load_pyproject(rev: str) -> _PyProject:
     url = RAW_URL.format(rev=rev)
-    with urllib.request.urlopen(url) as response:  # pyright: ignore[reportAny]
-        text = response.read().decode("utf-8")  # pyright: ignore[reportAny]
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:  # pyright: ignore[reportAny]
+            text = response.read().decode("utf-8")  # pyright: ignore[reportAny]
+    except urllib.error.URLError as exc:
+        raise SystemExit(f"error: could not fetch {url}: {exc.reason}") from exc
     return cast("_PyProject", cast("object", tomllib.loads(text)))  # pyright: ignore[reportAny]
 
 

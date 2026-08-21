@@ -18,7 +18,7 @@ Upstream ships a single `isaaclab` wheel that bundles every `isaaclab*` extensio
 The recipe mirrors that layout:
 
 - The `isaaclab` output installs every workspace member under `source/` into one package. Its `run:` list is the third-party set from the root `pyproject.toml`.
-- The only real subpackages are the pip *extras* that add third-party deps on top of the base install: `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`. `isaaclab-all` aggregates them.
+- The only real subpackages are the pip *extras* that add third-party deps on top of the base install: `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`, `isaaclab-mimic`. `isaaclab-all` aggregates them.
 - The `rsl-rl` extra is already part of the base install, so it has no subpackage.
 
 This is intentionally closer to what upstream does than the earlier per-extension split, which was more idiomatic for conda-forge but did not match the upstream packaging.
@@ -28,10 +28,10 @@ This is intentionally closer to what upstream does than the earlier per-extensio
 The `build` script keeps things close to a plain install instead of running the upstream wheel builder:
 
 - It autodiscovers every workspace member, that is `source/isaaclab` and each `source/isaaclab_*`, and installs it with `pip install --no-deps --no-build-isolation`.
-- It skips the members listed in the `skip_extensions` context variable. Only `isaaclab_teleop` is skipped today, because its `isaacteleop` backend is not on conda-forge.
-- It vendors the `apps/` and `scripts/` directories into `$PREFIX/lib`.
+- It skips the members listed in the `skip_extensions` context variable. Today `isaaclab_teleop` and `isaaclab_ov` are skipped, because their backends (`isaacteleop`, `ovstage`) are not on conda-forge, so shipping the modules would only add a broken import.
+- It vendors the `apps/` and `scripts/` directories under `$PREFIX/share/isaaclab/`.
 
-The `scripts/` copy is not optional. The `isaaclab` CLI resolves `isaaclab train` and `isaaclab play` to files under `$PREFIX/lib/scripts/reinforcement_learning/`. It computes that root as `Path(__file__).parents[4]`, which lands on `$PREFIX/lib`, so the subcommands cannot find their entry scripts unless `scripts/` is there.
+The `scripts/` copy is not optional. The `isaaclab` CLI resolves `isaaclab train` and `isaaclab play` to files under `scripts/reinforcement_learning/`. Upstream computes that root as `Path(__file__).parents[4]`, which for a plain install lands on `$PREFIX/lib` and dumps unqualified `apps/` and `scripts/` dirs there. The recipe applies `patches/0001-conda-forge-path-adjustments.patch` to resolve both dirs from `$PREFIX/share/isaaclab` instead, so the prefix stays clean.
 
 A few PyPI names do not match their conda-forge package, so the `run:` lists remap them by hand. The same mapping is encoded in `gen_recipe_deps.py`:
 
@@ -42,6 +42,7 @@ A few PyPI names do not match their conda-forge package, so the `run:` lists rem
 | `newton[sim]` | `newton-sim` |
 | `matplotlib` | `matplotlib-base` |
 | `lazy_loader` | `lazy-loader` |
+| `torch` | `pytorch` |
 
 ## Regenerating the dependency list
 
@@ -111,7 +112,7 @@ Some of the changes here are conda-forge specific and stay local, but a few are 
 
 | Priority | Topic | What and why |
 |---|---|---|
-| High | `sys.path` rewriting in `__init__.py` | The base `source/isaaclab/isaaclab/__init__.py` rewrites `sys.path` and `PYTHONPATH` on import (`_deprioritize_prebundle_paths()`) to demote Isaac Sim `pip_prebundle` and `omni.*` dirs, and mutates `PXR_PLUGINPATH_NAME` (`_expose_mujoco_usd_schemas()`). This has global side effects on any process that does `import isaaclab`. Needed in Isaac Lab 2 when Omniverse was mandatory, but now that it is optional this should be gated on Isaac Sim being present, or dropped for the conda-forge install. |
+| High | Nested source tree kept in the wheel | The wheel builder ships `tools/wheel_builder/res/__init__.py` as the top-level `isaaclab/__init__.py`, and at [line 15](https://github.com/isaac-sim/IsaacLab/blob/e13060d3ab01a7d43a9863c6c9b7d3d565094c47/tools/wheel_builder/res/__init__.py#L15) it does `__path__.append(".../source/isaaclab/isaaclab")`, so the installed package is not a plain package but a shell that re-exposes a nested `source/isaaclab/isaaclab` tree through `__path__`. This is fragile (tooling that walks `__path__`, editable installs, name resolution) and is a likely source of future breakage. The default packaged layout should be a normal flat package that works out of the box when Isaac Sim is not installed, and only when Isaac Sim is present should the install do the extra path juggling its runtime needs. Right now it is the opposite: the path hacks run unconditionally and the plain case pays for them. |
 | High | Closed-source Omniverse/Isaac Sim wheels | As long as the base install requires `omniverseclient` and `isaacsim-asset-isolated` (both closed-source, not on conda-forge), no conda-forge package can resolve end-to-end. A path that makes the Omniverse backends optional (idle sim without them) would make Isaac Lab packageable for real. |
 | Medium | Wheel build layout | To flatten every `isaaclab_*` extension into one wheel, `tools/wheel_builder/build.sh` copies each inner package to top-level, duplicates `config/`/`data/` into it, `sed`-patches the `EXT_DIR = ...os.path.join(os.path.dirname(__file__), "../")` line (e.g. in `isaaclab_assets`) from `../` to `""`, then deletes the inner copy and `data/` while keeping `config/extension.toml` for Kit discovery. It hardcodes the `../` string and the `config`/`data` names and duplicates data. Resolving resources via `importlib.resources` would remove the per-package copy-and-`sed`. |
 | Medium | `newton[sim]` declared spec | Upstream declares `newton>=1.2.0` but overrides it to the `release-1.5` git line via `uv`, so the real floor is 1.5. Bumping the declared spec to `>=1.5.0` drops the `uv` override and lets plain resolvers (conda-forge included) pick the right version. |
@@ -119,7 +120,7 @@ Some of the changes here are conda-forge specific and stay local, but a few are 
 | Low | Missing feedstocks | `pytetwild`, `skrl`, `rl-games` are open source but have no conda-forge feedstock, so their extras cannot be packaged. Upstream nudging them toward a feedstock would unblock those extras. |
 | Low | `albumentations` is archived | The `rlinf` extra depends on `albumentations`, whose repository is archived and no longer maintained. It has been superseded by [`albumentationsx`](https://github.com/albumentations-team/AlbumentationsX). Moving the extra to `albumentationsx` tracks a maintained package (its conda-forge recipe is in [conda-forge/staged-recipes#34440](https://github.com/conda-forge/staged-recipes/pull/34440)). |
 
-This recipe sidesteps the build-time wheel layout by pip-installing each `source/*` under its own name and copying only `apps/` and `scripts/` into `$PREFIX/lib`, but the runtime `__init__.py` rewriting still runs as shipped. The `scripts/` copy and the explicit `isaaclab = isaaclab.cli:cli` entry point are build-layout fixes specific to not running the wheel builder, so they stay local.
+This recipe sidesteps the build-time wheel layout by pip-installing each `source/*` under its own name (a plain package, not the wheel builder's nested `__path__` shell) and vendoring `apps/` and `scripts/` under `$PREFIX/share/isaaclab` (with `patches/0001-conda-forge-path-adjustments.patch` redirecting the lookups). The base `__init__.py` still calls `_deprioritize_prebundle_paths()` on import, but with no Isaac Sim present it finds nothing to demote and returns early, so it is left as shipped. The explicit `isaaclab = isaaclab.cli:cli` entry point is kept even though `pip` already installs it from `source/isaaclab/pyproject.toml`, as a small robustness net across platforms (e.g. a future Windows build).
 
 ## Local validation
 
