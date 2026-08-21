@@ -7,10 +7,9 @@ rm -rf build
 mkdir -p build
 cd build
 
-cmake .. \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+cmake ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_COMPILER="$CXX"
+  ..
 
 make -j"${CPU_COUNT:-2}"
 make install
