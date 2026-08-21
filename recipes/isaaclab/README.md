@@ -28,7 +28,7 @@ This is intentionally closer to what upstream does than the earlier per-extensio
 The `build` script keeps things close to a plain install instead of running the upstream wheel builder:
 
 - It autodiscovers every workspace member, that is `source/isaaclab` and each `source/isaaclab_*`, and installs it with `pip install --no-deps --no-build-isolation`.
-- It skips the members listed in the `skip_extensions` context variable. Today `isaaclab_teleop` and `isaaclab_ov` are skipped, because their backends (`isaacteleop`, `ovstage`) are not on conda-forge, so shipping the modules would only add a broken import.
+- It skips the members listed in the `skip_extensions` context variable. Today only `isaaclab_teleop` is skipped: it is the optional XR teleoperation extension, off the core import path (only `isaaclab.devices.openxr` pulls it), and its OpenXR runtime (`isaacteleop`) is not on conda-forge. `isaaclab_ov` is shipped even though its `ovphysx`/`ovrtx` backends are not on conda-forge, because the base package imports it unconditionally (`isaaclab/app/sim_launcher.py`) and its config classes import fine without those backends.
 - It vendors the `apps/` and `scripts/` directories under `$PREFIX/share/isaaclab/`.
 
 The `scripts/` copy is not optional. The `isaaclab` CLI resolves `isaaclab train` and `isaaclab play` to files under `scripts/reinforcement_learning/`. Upstream computes that root as `Path(__file__).parents[4]`, which for a plain install lands on `$PREFIX/lib` and dumps unqualified `apps/` and `scripts/` dirs there. The recipe applies `patches/0001-conda-forge-path-adjustments.patch` to resolve both dirs from `$PREFIX/share/isaaclab` instead, so the prefix stays clean.
@@ -88,7 +88,7 @@ Some deps cannot be mirrored on conda-forge, either because they are closed-sour
 | `standard-distutils` | no conda-forge feedstock | `extra=rl-games` |
 | `leapp` | no conda-forge feedstock | `extra=leapp` |
 
-The closed-source deps are dropped, the OSS-without-feedstock ones are kept commented in `recipe.yaml` so they can be re-enabled once a feedstock exists. The extra subpackages disabled as a consequence: `isaaclab-tetrahedralization`, `isaaclab-skrl`, `isaaclab-rl-games`, `isaaclab-rlinf`, plus the omitted `ov`/`ovrtx`/`isaacsim`/`teleop`. Everything else builds: `isaaclab`, `isaaclab-all`, `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`, `isaaclab-mimic`.
+The closed-source deps are dropped, the OSS-without-feedstock ones are kept commented in `recipe.yaml` so they can be re-enabled once a feedstock exists. The extra subpackages disabled as a consequence: `isaaclab-tetrahedralization`, `isaaclab-skrl`, `isaaclab-rl-games`, `isaaclab-rlinf`, plus the omitted `isaacsim`/`teleop`. Everything else builds: `isaaclab`, `isaaclab-all`, `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`, `isaaclab-mimic`.
 
 ## Pin changes vs upstream
 
