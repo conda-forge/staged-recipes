@@ -138,14 +138,15 @@ outputs:
             set -euo pipefail
             # omni.client ships only on pypi.nvidia.com as manylinux_2_35 wheels, so it
             # installs and loads only where glibc >= 2.35 (true locally, not on the
-            # staged-recipes alma9 image which is glibc 2.34). Keep it best-effort and
-            # let the import check below decide whether the two omni.client tests run.
+            # staged-recipes alma9 image which is glibc 2.34). Keep it best-effort; the
+            # import check below drops utils/test_assets.py when omni.client is missing,
+            # since a shared fixture in that file imports it.
             python -m pip install --no-deps --no-build-isolation \
               --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
-            omni_filter=""
+            omni_ok=1
             if ! python -c "import omni.client" >/dev/null 2>&1; then
-              echo "omni.client not importable, skipping the two tests that need it"
-              omni_filter=" and not test_retrieve_file_path_serializes_cold_cache_population and not test_retrieve_git_asset_path_raises_for_missing_asset"
+              echo "omni.client not importable, skipping utils/test_assets.py"
+              omni_ok=0
             fi
             # Pointing pytest at test/ as a whole would import standalone scripts that
             # call parse_args() at import time, so collect only the unit-marked files.
@@ -163,6 +164,9 @@ outputs:
                 -e cli/test_wheel_builder_metadata \
                 -e cli/test_source_package_metadata \
                 -e test_scripts_warp_backward_ordering)
+            if [ "${omni_ok}" = 0 ]; then
+              unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e utils/test_assets.py)
+            fi
             # The cuda runners have a GPU but the cpu-only runners do not: detect the
             # device and run the cuda-parametrized tests (and deps/test_torch.py, which
             # is cuda-only) only when one is actually present.
@@ -172,13 +176,11 @@ outputs:
             else
               echo "no GPU, running the CPU-only unit subset"
               export CUDA_VISIBLE_DEVICES=""
-              cuda_filter=" and not cuda and not test_wp_launch_accepts_proxy_array"
+              cuda_filter="not cuda and not test_wp_launch_accepts_proxy_array"
               unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e deps/test_torch.py)
             fi
-            kexpr="${cuda_filter}${omni_filter}"
-            kexpr="${kexpr# and }"
-            if [ -n "${kexpr}" ]; then
-              python -m pytest ${unit_files} -m unit -k "${kexpr}" -p no:cacheprovider
+            if [ -n "${cuda_filter}" ]; then
+              python -m pytest ${unit_files} -m unit -k "${cuda_filter}" -p no:cacheprovider
             else
               python -m pytest ${unit_files} -m unit -p no:cacheprovider
             fi
