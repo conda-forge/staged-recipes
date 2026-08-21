@@ -1,0 +1,96 @@
+# rattler-build recipe (v1 / CEP-13 format) for canvas_root_io.
+#
+# FIRST ROOT-dependent product: ROOT I/O streamers + ROOT dictionaries for the
+# canvas data model. Dictionaries are generated via art_dictionary() ->
+# cetmodules build_dictionary -> rootcling.
+
+context:
+  version: "1.14.1"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v1_14_01).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: canvas_root_io
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/canvas-root-io/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: f281679086f92cb35a259752976b7db197d696bb50f1cc62bb765561f08e0fd1
+  patches:
+    # Drop -Werror (as for canvas): conda's newer toolchain + ROOT-dictionary-
+    # generated code trip vigilant warnings-as-errors. See potential_improvements.md (#2).
+    - patches/0001-drop-WERROR.patch
+    # cet_cmake_env(NO_INSTALL_PKGMETA): stop cetmodules auto-installing the
+    # top-level LICENSE/README. $PREFIX/README is ROOT's directory; installing our
+    # README file over it chmods that dir to 0644 -> rattler EPERM post-build.
+    # See potential_improvements.md (#7).
+    - patches/0002-no-install-pkgmeta.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - canvas                     # linked + dictionaries (local channel)
+    - messagefacility            # find_package direct (local channel)
+    - fhiclcpp                   # find_package direct (local channel)
+    - cetlib                     # find_package direct (local channel)
+    - cetlib_except              # find_package direct (local channel)
+    # ROOT: find_package(ROOT) + rootcling for dictionary generation. Use
+    # root_base (not the `root` metapackage, which adds PyROOT/Jupyter) -- its
+    # weak run_export pulls ROOT into run automatically. CF's oldest ROOT (6.36)
+    # is the closest available to the v1_14_01 product_deps pin (root 6.30.06).
+    - root_base 6.36.*
+    # root_cxx_standard is a zip_key with root_base; list it (unpinned) so the
+    # solver pairs the matching C++ standard (cxx20). Do NOT pin the std value.
+    - root_cxx_standard
+    - clhep                      # find_package(CLHEP Matrix Vector) + clhep dictionary
+    - range-v3                   # transitive: canvasConfig find_dependency(Range-v3)
+    - libboost-devel             # find_package(Boost headers thread)
+    - catch2                     # transitive: messagefacility/canvas Configs find_dependency(Catch2)
+    - libsqlite                  # transitive via sibling Configs
+    - tbb-devel                  # CF current; ROOT also needs a recent tbb
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
+  run:
+    # Runtimes (ROOT, siblings, boost, ...) arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('canvas_root_io', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - canvas_root_io         # libcanvas_root_io.so (the main library)
+      include:
+        - canvas_root_io/Utilities/TypeWithDict.h
+        - canvas_root_io/Streamers/RefCoreStreamer.h
+      files:
+        - lib/canvas_root_io/cmake/canvas_root_ioConfig.cmake
+        # ArtDictionary.cmake is installed for downstream (art) dictionary builds.
+        - Modules/ArtDictionary.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/canvas-root-io
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: canvas_root_io -- ROOT I/O and dictionaries for the FNAL art suite canvas data model
+  description: |
+    canvas_root_io provides the ROOT persistency layer for canvas: custom
+    streamers, dictionary-checking utilities and the generated ROOT dictionaries
+    for canvas/cetlib/fhiclcpp/clhep/std types, plus the ArtDictionary.cmake
+    helper used by art and art_root_io. Depends on canvas, ROOT, the cet*
+    libraries, CLHEP and Boost.
+  repository: https://github.com/art-framework-suite/canvas-root-io
+
+extra:
+  recipe-maintainers:
+    - calcuttj
