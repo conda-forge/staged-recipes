@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  version: "2.7.2"
+
+package:
+  name: unopy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cvanaret/Uno/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8d2935149bbf51527d98d0499955628afbaeccb78bf6aa682fbc0282afee9791
+  patches:
+    - patches/0001-example-skip-bqpd.patch
+    - patches/0002-skip-dll-dir-when-absent.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: unix
+      then: pkg-config
+  host:
+    - python
+    - scikit-build-core >=0.8
+    - pybind11 >=2.11
+    - libblas
+    - liblapack
+    - mumps-seq
+    - metis
+    - highs
+    - if: win
+      then:
+        - openblas
+    - if: linux
+      then:
+        - libgomp
+      else:
+        - llvm-openmp
+    - pip
+  run:
+    - python
+    - numpy
+    - libblas
+    - liblapack
+    - mumps-seq
+    - metis
+    - highs
+    - if: win
+      then:
+        # unopy.pyd's import table references openblas.dll because the
+        # Windows build links against openblas.lib. Pull libopenblas at
+        # runtime so the DLL is present even when the user has libblas
+        # resolved to MKL/blis/netlib.
+        - libopenblas
+
+tests:
+  - python:
+      imports:
+        - unopy
+      pip_check: true
+  - script:
+      - python interfaces/Python/example/example_hs015.py
+    files:
+      source:
+        - interfaces/Python/example/example_hs015.py
+
+about:
+  summary: With Uno, finally take full control of your SQP/barrier solver for nonlinearly constrained optimization
+  description: |
+    unopy is the Python interface to Uno, which allows you to solve an optimization model described by callback functions.
+  license: MIT
+  license_file:
+    - LICENSE
+  homepage: https://github.com/cvanaret/Uno
+
+extra:
+  recipe-maintainers:
+    - ewu63
