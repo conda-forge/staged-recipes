@@ -1,0 +1,284 @@
+context:
+  name: isaaclab
+  # Dev version until upstream tags GA: base version plus the source commit date
+  # (the git rev below). Switch to "3.0.0" once the v3.0.0 tag exists.
+  version: "3.0.0.dev20260821"
+  # tag: v3.0.0
+  build_number: 0
+  python_min: "3.12"
+  # Extensions skipped in the base install: their backend is not on conda-forge,
+  # so shipping the module would only add a broken import.
+  skip_extensions: "isaaclab_teleop"
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # Track the v3 release branch until upstream tags GA, then switch to the tag.
+  # url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/${{ tag }}.tar.gz
+  # sha256: <fill-in-at-GA>
+  git: https://github.com/isaac-sim/IsaacLab.git
+  # rev: release/3.0.0
+  rev: e13060d3ab01a7d43a9863c6c9b7d3d565094c47
+
+build:
+  # noarch: python
+  number: ${{ build_number }}
+  skip:
+    - osx
+    - win
+
+outputs:
+  # ========
+  # isaaclab
+  # ========
+  # Single bundled package: every workspace member under source/ in one package,
+  # the way upstream tools/wheel_builder does.
+  # Pins come from the root pyproject.toml. Run gen_recipe_deps.py to re-derive them, see README.md.
+  - package:
+      name: isaaclab
+    build:
+      python:
+        entry_points:
+          - isaaclab = isaaclab.cli:cli
+      script:
+        # Install every workspace member under source/, skip the ones in skip_extensions.
+        - |
+          for ext in source/isaaclab source/isaaclab_*; do
+            pkg=$(basename "$ext")
+            case " ${{ skip_extensions }} " in
+              *" $pkg "*) echo "skip $pkg, backend missing on conda-forge"; continue ;;
+            esac
+            ${{ PYTHON }} -m pip install "./$ext" -vv --no-deps --no-build-isolation
+          done
+        - cp -r apps ${PREFIX}/lib
+        - cp -r scripts ${PREFIX}/lib
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools >=70.0,<82.0.0
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - numpy >=2
+        - pytorch >=2.11
+        - torchvision >=0.26.0
+        - torchaudio >=2.11
+        - onnx >=1.18.0
+        - prettytable >=3.3.0
+        - psutil
+        - protobuf >=4.25.8,!=5.26.0
+        - hidapi >=0.14.0
+        - gymnasium >=1.2.0
+        - trimesh >=4.6.8
+        - pyglet >=2.1.6,<3
+        - transformers 4.57.6.*
+        - einops
+        - warp-lang >=1.16.0
+        - matplotlib-base >=3.10.3
+        - pillow >=12.1.1
+        - botocore
+        - starlette >=0.46.0,<0.50
+        - filelock
+        - lazy-loader >=0.4
+        - pinocchio
+        - pink 3.3.0.*
+        - daqp 0.8.5.*
+        - usd-exchange >=2.3.0
+        - hf-xet >=1.4.1,<2.0.0
+        - tensorboard
+        - numba >=0.63.1
+        - hydra-core
+        - h5py >=3.15.0
+        - packaging
+        - rich
+        - tqdm >=4.67.1
+        - rsl-rl-lib 5.4.1.*
+        - onnxscript >=0.5
+        - newton-sim >=1.5.0
+        - requests >=2.25.0
+        - scipy >=1.11.0
+        - coacd >=1.0.7
+        - fast-simplification >=0.1.11
+        - alphashape >=1.3.1
+        - meshio >=5.3.5
+        - pycollada >=0.9
+        - resolve-robotics-uri-py >=0.4.0
+        - open3d >=0.19.0
+        - newton-usd-schemas >=0.4.1
+        - pyopengl-accelerate >=3.1.0
+        - imgui-bundle >=1.92.5
+        - typing-extensions >=4.15.0
+        # omniverseclient and isaacsim-asset-isolated dropped, closed-source and not redistributable
+    tests:
+      - python:
+          imports:
+            - isaaclab
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ============
+  # isaaclab-all
+  # ============
+  - package:
+      name: isaaclab-all
+    requirements:
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-mimic', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-rerun', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-sb3', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-video', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-viser', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - isaaclab
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-video
+  # ==============
+  - package:
+      name: isaaclab-video
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - moviepy >=1.0.3,<2.0.0.dev0
+    tests:
+      - python:
+          imports:
+            - moviepy
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ============
+  # isaaclab-sb3
+  # ============
+  - package:
+      name: isaaclab-sb3
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - stable-baselines3 >=2.6
+        - tqdm
+        - rich
+    tests:
+      - python:
+          imports:
+            - isaaclab_rl.sb3
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-viser
+  # ==============
+  - package:
+      name: isaaclab-viser
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - viser >=1.0.16
+    tests:
+      - python:
+          imports:
+            - isaaclab_visualizers.viser
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-rerun
+  # ==============
+  - package:
+      name: isaaclab-rerun
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - rerun-sdk >=0.29.0
+        - pyarrow 22.0.*
+    tests:
+      - python:
+          imports:
+            - isaaclab_visualizers.rerun
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-mimic
+  # ==============
+  - package:
+      name: isaaclab-mimic
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - ipywidgets >=8.1.5
+        - robomimic 0.4.*
+    tests:
+      - python:
+          imports:
+            - robomimic
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # Inactive extras: deps are OSS but missing on conda-forge (keep commented).
+  # The rsl-rl extra is already in the base install, so it needs no subpackage.
+  #
+  # - package:
+  #     name: isaaclab-tetrahedralization
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab', exact=True) }}
+  #       - python >=${{ python_min }}
+  #       - pytetwild >=0.3.0,<0.4  # missing in conda-forge (feedstock in progress)
+  #
+  # - package:
+  #     name: isaaclab-skrl
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab', exact=True) }}
+  #       - python >=${{ python_min }}
+  #       - skrl >=2.1.0  # missing in conda-forge
+  #
+  # - package:
+  #     name: isaaclab-rl-games
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab', exact=True) }}
+  #       - python >=${{ python_min }}
+  #       - aiohttp >=3.12.14
+  #       - gym
+  #       - rl-games          # missing in conda-forge (git @ python3.11)
+  #       - standard-distutils  # missing in conda-forge
+  #
+  # - package:
+  #     name: isaaclab-rlinf
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage('isaaclab', exact=True) }}
+  #       - python >=${{ python_min }}
+  #       - ray-default >=2.47.0
+  #       - av >=12.3.0
+  #       - numpydantic >=1.7.0
+  #       - albumentations >=1.4.18
+  #       - decord2
+  #       - dm-tree >=0.1.8
+  #       - diffusers >=0.35.0
+  #       - timm >=1.0.14
+  #       - peft >=0.17.0
+  #       - pandas
+
+about:
+  homepage: https://isaac-sim.github.io/IsaacLab
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE-mimic
+  repository: https://github.com/isaac-sim/IsaacLab
+  summary: Unified framework for robot learning built on NVIDIA Isaac Sim
+
+extra:
+  feedstock-name: isaaclab
+  recipe-maintainers:
+    - diegoferigo
