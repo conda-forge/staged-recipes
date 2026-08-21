@@ -30,6 +30,11 @@ source:
     - patches/0001-conda-forge-path-adjustments.patch
 
 build:
+  # TODO(before-merge): restore `noarch: python`. This package is pure Python, so it
+  # is noarch by nature. It is temporarily built per-platform only so the `stdlib("c")`
+  # pin below can force the AlmaLinux 10 image (glibc 2.39), which the manylinux_2_35
+  # omniverseclient test wheel needs. Drop the stdlib pin, conda_build_config.yaml and
+  # this per-platform build together when the unit tests move to the feedstock.
   # noarch: python
   number: ${{ build_number }}
   skip:
@@ -65,6 +70,12 @@ outputs:
         - cp -r apps ${PREFIX}/share/isaaclab/apps
         - cp -r scripts ${PREFIX}/share/isaaclab/scripts
     requirements:
+      build:
+        # TODO(before-merge): drop this together with noarch restoration. It only
+        # forces the AlmaLinux 10 image (glibc 2.39) so the manylinux_2_35
+        # omniverseclient wheel installs in the test env; the package itself is
+        # pure Python and does not link any C library.
+        - ${{ stdlib("c") }}
       host:
         - pip
         - python ${{ python_min }}.*
@@ -131,18 +142,34 @@ outputs:
           pip_check: false
           python_version: ${{ python_min }}.*
       # Run upstream's CPU-only unit tests against the installed package. This is a
-      # local-first extra: it pip installs omniverseclient from pypi.nvidia.com
+      # local-first extra: it tries to pip install omniverseclient from pypi.nvidia.com
       # (closed source, not on conda-forge) because a few unit tests import omni.client.
       - script:
           - |
             set -euo pipefail
-            # omni.client ships only on pypi.nvidia.com; a few unit tests import it.
+            # omni.client ships only on pypi.nvidia.com as manylinux_2_35 wheels, so a
+            # plain install fails on the older staged-recipes CI image (glibc < 2.35).
+            # Try the normal install, then retry forcing the platform tag into a target
+            # dir on PYTHONPATH. Whether the two omni.client tests run is decided below
+            # by actually importing omni.client, so a missing or unloadable wheel is fine.
+            py_tag="cp$(python -c 'import sys;print(f"{sys.version_info.major}{sys.version_info.minor}")')"
             python -m pip install --no-deps --no-build-isolation \
-              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3"
+              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || \
+            python -m pip install --no-deps --no-build-isolation --only-binary=:all: \
+              --platform manylinux_2_35_x86_64 --python-version "${py_tag#cp}" \
+              --implementation cp --abi "${py_tag}" --target "${PWD}/.omni-target" \
+              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
+            export PYTHONPATH="${PWD}/.omni-target${PYTHONPATH:+:${PYTHONPATH}}"
+            omni_filter=""
+            if ! python -c "import omni.client" >/dev/null 2>&1; then
+              echo "omni.client not importable, skipping the two tests that need it"
+              omni_filter=" and not test_retrieve_file_path_serializes_cold_cache_population and not test_retrieve_git_asset_path_raises_for_missing_asset"
+            fi
             # Pointing pytest at test/ as a whole would import standalone scripts that
             # call parse_args() at import time, so collect only the unit-marked files.
-            # The excluded files need the source checkout (root pyproject.toml, uv.lock,
-            # tools/, apps/, scripts/) or a GPU. See the "worth upstreaming" note in README.md.
+            # The layout/checkout-dependent files always need excluding: they want the
+            # source checkout (root pyproject.toml, uv.lock, tools/, apps/, scripts/).
+            # See the "worth upstreaming" note in README.md.
             unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py' \
               | grep -v \
                 -e app/test_experience_files \
@@ -153,14 +180,31 @@ outputs:
                 -e cli/test_uv_run_pyproject \
                 -e cli/test_wheel_builder_metadata \
                 -e cli/test_source_package_metadata \
-                -e test_scripts_warp_backward_ordering \
-                -e deps/test_torch.py)
-            # conda-forge CI has no GPU: drop the tests that hardcode a cuda device.
-            CUDA_VISIBLE_DEVICES="" python -m pytest ${unit_files} -m unit \
-              -k "not cuda and not test_wp_launch_accepts_proxy_array" \
-              -p no:cacheprovider
+                -e test_scripts_warp_backward_ordering)
+            # The cuda runners have a GPU but the cpu-only runners do not: detect the
+            # device and run the cuda-parametrized tests (and deps/test_torch.py, which
+            # is cuda-only) only when one is actually present.
+            cuda_filter=""
+            if python -c "import torch,sys; sys.exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+              echo "GPU detected, running the unit suite including the cuda tests"
+            else
+              echo "no GPU, running the CPU-only unit subset"
+              export CUDA_VISIBLE_DEVICES=""
+              cuda_filter=" and not cuda and not test_wp_launch_accepts_proxy_array"
+              unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e deps/test_torch.py)
+            fi
+            kexpr="${cuda_filter}${omni_filter}"
+            kexpr="${kexpr# and }"
+            if [ -n "${kexpr}" ]; then
+              python -m pytest ${unit_files} -m unit -k "${kexpr}" -p no:cacheprovider
+            else
+              python -m pytest ${unit_files} -m unit -p no:cacheprovider
+            fi
         requirements:
           run:
+            # Pin to python_min so the omniverseclient wheels (cp310/311/312 only,
+            # no cp313) resolve; an unpinned run env would solve to a newer python.
+            - python ${{ python_min }}.*
             - pip
             - pytest
         files:
