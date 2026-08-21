@@ -1,0 +1,69 @@
+context:
+  name: libasdf
+  version: "0.1.0rc1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/asdf-format/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 9de871131a42274cfee914752356944cb11d59887dbfed003526c416b2ce5ebf
+
+build:
+  number: 0
+  skip: win
+  script:
+    # libstatgrab is not available yet on conda-forge (see staged-recipes#34272
+    # for pending); it's an optional dependency with impact on compression
+    # configuration only
+    - ./configure --prefix="${PREFIX}" --without-libstatgrab --disable-docs
+    - make
+    - make check || (cat tests/test-suite.log && exit 1)
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    - pkg-config
+  host:
+    - bzip2
+    - libfyaml
+    - libmd
+    - lz4-c
+    - zlib
+    - if: osx
+      then: argp-standalone
+
+tests:
+  - package_contents:
+      bin:
+        - asdf
+      lib:
+        - asdf
+      include:
+        - asdf.h
+        - asdf/config.h
+        - asdf/version.h
+  - script: asdf --help
+
+about:
+  homepage: https://github.com/asdf-format/${{ name }}
+  summary: "C implementation of ASDF"
+  description: |
+    libasdf is largely a wrapper around libfyaml but with an understanding of
+    the structure of ASDF files, with the capability to read and write binary
+    block data, as well as typed getters for metadata in the ASDF tree.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  documentation: https://${{ name }}.readthedocs.io/
+  repository: https://github.com/asdf-format/${{ name }}/
+
+extra:
+  recipe-maintainers:
+    - embray
+    - jhunkeler
