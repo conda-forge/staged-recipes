@@ -142,6 +142,8 @@ Both tasks pull one closed-source wheel from `pypi.nvidia.com`: `omniverseclient
 
 The base `isaaclab` output also runs upstream's `unit` suite against the installed package (`tests` in `recipe.yaml`). It tries to pull `omniverseclient` from `pypi.nvidia.com` into the test env (a few `unit` tests import `omni.client`) and excludes only the tests that read the source checkout, see the [Worth upstreaming](#worth-upstreaming) note. The run is device-aware: it detects the GPU with `torch.cuda.is_available()` and runs the `cuda`-parametrized tests (and `deps/test_torch.py`) only on the cuda runners, falling back to the CPU-only subset elsewhere. The `omniverseclient` install is best-effort: its `manylinux_2_35` wheel loads only where `glibc >= 2.35`, so on the staged-recipes alma9 image (`glibc 2.34`) it is skipped along with `utils/test_assets.py` (a shared fixture there imports `omni.client`), while locally the whole set runs. This is a local-first extra.
 
+On staged-recipes CI the `linux_64` (CPU) build runs the test and passes; the `linux_64_cuda_*` variants fail earlier, at test-env setup, with `No space left on device` while linking `libtorch_cuda.so` (the CUDA `libtorch` plus the build artifacts exceed the runner disk). That is an infrastructure limit of the shared runners, not the recipe: the full test, including the `cuda` tests, is meant to run in the feedstock CI (and locally) once this is merged.
+
 ## Files
 
 - `recipe.yaml`: the recipe.
