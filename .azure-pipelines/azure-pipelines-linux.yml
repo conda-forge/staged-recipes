@@ -163,3 +163,32 @@ jobs:
     displayName: Run docker build for CUDA 13.0
   - publish: build_artifacts/linux-64/
     artifact: conda_pkgs_linux_64_cuda130
+- job: rerender
+  dependsOn: linux_64
+  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.TEST_RERENDER'], '1'))
+  pool:
+    vmImage: ubuntu-latest
+  timeoutInMinutes: 10
+  steps:
+  - script: |
+      curl -fsSL https://pixi.sh/install.sh | sh
+    displayName: Install pixi
+  - script: |
+      pixi global install conda-smithy
+    displayName: Install conda-smithy
+  - script: |
+      set -ex
+      for recipe_dir in recipes/*/; do
+        recipe_name="$(basename "$recipe_dir")"
+        if [[ recipe_name = example-* || ! -f "$recipe_dir/conda_build_config.yaml" || ! -f "$recipe_dir/conda-forge.yml" ]]; then
+          echo "Skipping $recipe_name"
+          continue
+        fi
+        tmpdir=$(mktemp -d)
+        cp -r "$recipe_dir" "${tmpdir}/${recipe_name}"
+        cd "$tmpdir"
+        conda-smithy init "${recipe_name}" --feedstock-directory "./${recipe_name}-feedstock"
+        cd "./${recipe_name}-feedstock"
+        conda-smithy rerender
+      done
+    displayName: Rerender
