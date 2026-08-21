@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "4.0.1"
+
+package:
+  name: pptxgenjs
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/pptxgenjs/-/pptxgenjs-${{ version }}.tgz
+  sha256: 305e8870cc03c4402efb99d4a62cb73f611af64998b8988915d6c65b7fe7a5f0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - if: unix
+      then:
+        - set -ex
+        - pnpm install --ignore-scripts
+        - npm pack --ignore-scripts
+        - npm install --global ./pptxgenjs-${{ version }}.tgz
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        # Bundled deps' node_modules/.bin contains symlinks (npm plumbing,
+        # unused at runtime); noarch packages must not ship symlinks.
+        - rm -rf "${PREFIX}/lib/node_modules/pptxgenjs/node_modules/.bin"
+      else:
+        # Windows: pnpm/npm/pnpm-licenses are .cmd shims — every invocation
+        # needs `call` or the script silently terminates after the first one.
+        - call pnpm install --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global "%SRC_DIR%\pptxgenjs-${{ version }}.tgz"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+        # npm on win creates .cmd shims, not symlinks, but drop the dir for
+        # parity with the unix artifact.
+        - if exist "%PREFIX%\lib\node_modules\pptxgenjs\node_modules\.bin" rmdir /s /q "%PREFIX%\lib\node_modules\pptxgenjs\node_modules\.bin"
+        - if exist "%PREFIX%\node_modules\pptxgenjs\node_modules\.bin" rmdir /s /q "%PREFIX%\node_modules\pptxgenjs\node_modules\.bin"
+
+requirements:
+  build:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - if: not win
+        then:
+          - test -f "${PREFIX}/lib/node_modules/pptxgenjs/package.json"
+          - NODE_PATH="${PREFIX}/lib/node_modules" node -e "const P = require('pptxgenjs'); const p = new P(); if (!p.addSlide) throw new Error('no addSlide'); console.log('pptxgenjs OK', P.version || '')"
+
+about:
+  summary: Build PowerPoint presentations with JavaScript - works with Node, React, and web browsers
+  description: |
+    PptxGenJS creates PowerPoint (.pptx) presentations programmatically
+    from JavaScript/TypeScript: slides, text, tables, charts, images,
+    media, masters, and speaker notes, exported as standards-compliant
+    Office Open XML. This package installs the library into the conda
+    environment's global node_modules (a library, not a CLI — use it from
+    Node with ``NODE_PATH=$CONDA_PREFIX/lib/node_modules`` or from a
+    project that resolves globally-installed modules).
+  homepage: https://gitbrent.github.io/PptxGenJS/
+  repository: https://github.com/gitbrent/PptxGenJS
+  documentation: https://gitbrent.github.io/PptxGenJS/docs/quick-start/
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - rxm7706
