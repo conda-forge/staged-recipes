@@ -30,11 +30,6 @@ source:
     - patches/0001-conda-forge-path-adjustments.patch
 
 build:
-  # TODO(before-merge): restore `noarch: python`. This package is pure Python, so it
-  # is noarch by nature. It is temporarily built per-platform only so the `stdlib("c")`
-  # pin below can force the AlmaLinux 10 image (glibc 2.39), which the manylinux_2_35
-  # omniverseclient test wheel needs. Drop the stdlib pin, conda_build_config.yaml and
-  # this per-platform build together when the unit tests move to the feedstock.
   # noarch: python
   number: ${{ build_number }}
   skip:
@@ -70,12 +65,6 @@ outputs:
         - cp -r apps ${PREFIX}/share/isaaclab/apps
         - cp -r scripts ${PREFIX}/share/isaaclab/scripts
     requirements:
-      build:
-        # TODO(before-merge): drop this together with noarch restoration. It only
-        # forces the AlmaLinux 10 image (glibc 2.39) so the manylinux_2_35
-        # omniverseclient wheel installs in the test env; the package itself is
-        # pure Python and does not link any C library.
-        - ${{ stdlib("c") }}
       host:
         - pip
         - python ${{ python_min }}.*
@@ -141,25 +130,18 @@ outputs:
           # the exact versions pip recorded, so pip check would flag them as inconsistent.
           pip_check: false
           python_version: ${{ python_min }}.*
-      # Run upstream's CPU-only unit tests against the installed package. This is a
-      # local-first extra: it tries to pip install omniverseclient from pypi.nvidia.com
-      # (closed source, not on conda-forge) because a few unit tests import omni.client.
+      # Run upstream's unit tests against the installed package. This is a local-first
+      # extra: it tries to pip install omniverseclient from pypi.nvidia.com (closed
+      # source, not on conda-forge) because a few unit tests import omni.client.
       - script:
           - |
             set -euo pipefail
-            # omni.client ships only on pypi.nvidia.com as manylinux_2_35 wheels, so a
-            # plain install fails on the older staged-recipes CI image (glibc < 2.35).
-            # Try the normal install, then retry forcing the platform tag into a target
-            # dir on PYTHONPATH. Whether the two omni.client tests run is decided below
-            # by actually importing omni.client, so a missing or unloadable wheel is fine.
-            py_tag="cp$(python -c 'import sys;print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+            # omni.client ships only on pypi.nvidia.com as manylinux_2_35 wheels, so it
+            # installs and loads only where glibc >= 2.35 (true locally, not on the
+            # staged-recipes alma9 image which is glibc 2.34). Keep it best-effort and
+            # let the import check below decide whether the two omni.client tests run.
             python -m pip install --no-deps --no-build-isolation \
-              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || \
-            python -m pip install --no-deps --no-build-isolation --only-binary=:all: \
-              --platform manylinux_2_35_x86_64 --python-version "${py_tag#cp}" \
-              --implementation cp --abi "${py_tag}" --target "${PWD}/.omni-target" \
               --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
-            export PYTHONPATH="${PWD}/.omni-target${PYTHONPATH:+:${PYTHONPATH}}"
             omni_filter=""
             if ! python -c "import omni.client" >/dev/null 2>&1; then
               echo "omni.client not importable, skipping the two tests that need it"
