@@ -127,6 +127,43 @@ outputs:
           # the exact versions pip recorded, so pip check would flag them as inconsistent.
           pip_check: false
           python_version: ${{ python_min }}.*
+      # Run upstream's CPU-only unit tests against the installed package. This is a
+      # local-first extra: it pip installs omniverseclient from pypi.nvidia.com
+      # (closed source, not on conda-forge) because a few unit tests import omni.client.
+      - script:
+          - |
+            set -euo pipefail
+            # omni.client ships only on pypi.nvidia.com; a few unit tests import it.
+            python -m pip install --no-deps --no-build-isolation \
+              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3"
+            # Pointing pytest at test/ as a whole would import standalone scripts that
+            # call parse_args() at import time, so collect only the unit-marked files.
+            # The excluded files need the source checkout (root pyproject.toml, uv.lock,
+            # tools/, apps/, scripts/) or a GPU. See the "worth upstreaming" note in README.md.
+            unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py' \
+              | grep -v \
+                -e app/test_experience_files \
+                -e cli/test_install_command_parsing \
+                -e cli/test_install_commands \
+                -e cli/test_install.py \
+                -e cli/test_teleop_entrypoints \
+                -e cli/test_uv_run_pyproject \
+                -e cli/test_wheel_builder_metadata \
+                -e cli/test_source_package_metadata \
+                -e test_scripts_warp_backward_ordering \
+                -e deps/test_torch.py)
+            # conda-forge CI has no GPU: drop the tests that hardcode a cuda device.
+            CUDA_VISIBLE_DEVICES="" python -m pytest ${unit_files} -m unit \
+              -k "not cuda and not test_wp_launch_accepts_proxy_array" \
+              -p no:cacheprovider
+        requirements:
+          run:
+            - pip
+            - pytest
+        files:
+          source:
+            - source/isaaclab/test/
+            - source/isaaclab/isaaclab/
   # ============
   # isaaclab-all
   # ============
