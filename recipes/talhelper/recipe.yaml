@@ -1,0 +1,75 @@
+context:
+  version: "3.1.16"
+
+package:
+  name: talhelper
+  version: ${{ version }}
+
+source:
+  url: https://github.com/budimanjojo/talhelper/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 506b53442cbaa3ea34990f182d2db206d6987d7ae3652f91883ab6358af6b2ee
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/talhelper -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\talhelper.exe -ldflags="-s"
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/talhelper completion zsh > $PREFIX/share/zsh/site-functions/_talhelper
+        - $PREFIX/bin/talhelper completion bash > $PREFIX/share/bash-completion/completions/talhelper
+        - $PREFIX/bin/talhelper completion fish > $PREFIX/share/fish/vendor_completions.d/talhelper.fish
+      else:
+        - mkdir %LIBRARY_PREFIX%\share\powershell\completions
+        - "%LIBRARY_BIN%\\talhelper.exe completion powershell > %LIBRARY_PREFIX%\\share\\powershell\\completions\\talhelper.ps1"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script: talhelper --help
+  - package_contents:
+      bin:
+        - talhelper
+      files:
+        - if: unix
+          then:
+            - share/zsh/site-functions/_talhelper
+            - share/bash-completion/completions/talhelper
+            - share/fish/vendor_completions.d/talhelper.fish
+          else:
+            - Library/share/powershell/completions/talhelper.ps1
+      strict: true
+
+about:
+  homepage: https://github.com/budimanjojo/talhelper
+  summary: A tool to help creating Talos kubernetes cluster
+  description: |
+    talhelper is a tool to help creating Talos configuration files declaratively. It was inspired by a python script written by @bjw-s. You can say talhelper is like kustomize but for Talos manifest files with SOPS support natively.
+
+    In a nutshell, this is what talhelper does step by step behind the door:
+
+    * Read and validate talconfig.yaml.
+    * Read and decrypt talsecret.yaml or talsecret.sops.yaml with sops if needed.
+    * Read and decrypt talenv.yaml or talenv.sops.yaml with sops if needed and load them into environment variables.
+    * Do envsubst if needed.
+    * Validate and generate Talos and machine config files inside ./clusterconfig directory.
+    * Generate .gitignore file so you don't commit the generated files to the public.
+
+  license: BSD-3-Clause
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://budimanjojo.github.io/talhelper
+  repository: https://github.com/budimanjojo/talhelper
+
+extra:
+  recipe-maintainers:
+    - freundTech
