@@ -1,0 +1,161 @@
+schema_version: 1
+
+context:
+  # Upstream tag v2026.7.20 publishes Python distribution version 0.19.0.
+  version: "0.19.0"
+  upstream_tag: "2026.7.20"
+  python_min: "3.11"
+
+package:
+  name: hermes-agent
+  version: ${{ version }}
+
+source:
+  # Build the web/TUI assets and their license report from the tagged sources.
+  url: https://github.com/NousResearch/hermes-agent/archive/refs/tags/v${{ upstream_tag }}.tar.gz
+  sha256: 285f3fc134ff466a90065e1517801a68993733b807158ee8f32aa01613786990
+
+build:
+  number: 0
+  variant:
+    ignore_keys:
+      - nodejs
+      - python
+  python:
+    entry_points:
+      - hermes = hermes_cli.main:main
+      - hermes-agent = run_agent:main
+      - hermes-acp = acp_adapter.entry:main
+
+requirements:
+  build:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+  host:
+    - pip
+    - python ${{ python_min }}.*
+    - setuptools >=77.0,<83
+  run:
+    - ffmpeg
+    - git
+    - nodejs >=22.22.0
+    - python  >=${{ python_min }},<3.14
+    - ripgrep
+    - openai ==2.24.0
+    - certifi ==2026.5.20
+    - python-dotenv ==1.2.2
+    - fire ==0.7.1
+    - httpx ==0.28.1
+    - socksio
+    - rich ==14.3.3
+    - tenacity ==9.1.4
+    - pyyaml ==6.0.3
+    - ruamel.yaml ==0.18.17
+    - requests ==2.33.0
+    - jinja2 ==3.1.6
+    - pydantic ==2.13.4
+    - prompt_toolkit ==3.0.52
+    - croniter ==6.0.0
+    - packaging ==26.0
+    - markdown ==3.10.2
+    - pyjwt ==2.13.0
+    - urllib3 >=2.7.0,<3
+    - cryptography ==46.0.7
+    - psutil ==7.2.2
+    - websockets ==15.0.1
+    - pathspec ==1.1.1
+    - fastapi >=0.104.0,<1
+    - uvicorn-standard >=0.24.0,<1
+    - pillow ==12.2.0
+    - python-multipart >=0.0.9,<1
+    - if: not win
+      then:
+        # openssh is not available on win-64; Windows provides it separately.
+        - openssh
+        - ptyprocess >=0.7.0,<1
+    - if: linux
+      then:
+        # Support the clipboard under both Wayland and X11 sessions.
+        - wl-clipboard-rs
+        - xclip
+    - if: win
+      then:
+        - pywinpty >=2.0.0,<3
+        - python-tzdata ==2025.3
+        - concurrent-log-handler ==0.9.29
+
+tests:
+  - python:
+      imports:
+        - acp_adapter
+        - agent
+        - batch_runner
+        - cli
+        - cron
+        - gateway
+        - hermes_bootstrap
+        - hermes_cli
+        - hermes_constants
+        - hermes_logging
+        - hermes_state
+        - hermes_time
+        - mcp_serve
+        - model_tools
+        - plugins
+        - providers
+        - run_agent
+        - tools
+        - toolset_distributions
+        - toolsets
+        - trajectory_compressor
+        - tui_gateway
+        - utils
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+  - script:
+      - python -c "import importlib.metadata as m; assert m.version('hermes-agent') == '0.19.0'"
+      - python -c "from hermes_constants import get_bundled_skills_dir as b; p = b(); assert (p / 'software-development' / 'plan' / 'SKILL.md').is_file(); assert not (p / 'productivity' / 'powerpoint').exists()"
+      - python -c "from hermes_constants import get_optional_skills_dir as o; assert (o() / 'research' / 'parallel-cli' / 'SKILL.md').is_file()"
+      - python -c "from hermes_constants import get_optional_mcps_dir as m; assert (m() / 'linear' / 'manifest.yaml').is_file()"
+      - python -c "from agent.i18n import _locales_dir; assert (_locales_dir() / 'en.yaml').is_file()"
+      - python -c "from hermes_cli.main import _find_bundled_tui; assert _find_bundled_tui().is_file()"
+      - python -c "from hermes_cli.web_server import WEB_DIST; assert (WEB_DIST / 'index.html').is_file()"
+      - python -c "from hermes_cli.plugins import get_bundled_plugins_dir as p; assert (p() / 'security-guidance' / 'plugin.yaml').is_file()"
+      - hermes --help
+      - hermes-agent --help
+      - hermes-acp --help
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://hermes-agent.nousresearch.com
+  documentation: https://hermes-agent.nousresearch.com/docs
+  repository: https://github.com/NousResearch/hermes-agent
+  license: MIT AND Apache-2.0
+  license_file:
+    - LICENSE
+    - skills/creative/humanizer/LICENSE
+    - plugins/hermes-achievements/LICENSE
+    - plugins/security-guidance/LICENSE
+    - plugins/security-guidance/NOTICE
+    - third-party-licenses.txt
+  summary: The agent that grows with you
+  description: |
+    **The self-improving AI agent built by [Nous Research](https://nousresearch.com).**
+    It's the only agent with a built-in learning loop — it creates skills from experience,
+    improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions.
+    Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle.
+    It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
+
+    Use any model you want —
+    [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers).
+    Switch with `hermes model` — no code changes, no lock-in.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
