@@ -143,5 +143,10 @@ chmod +x "${PREFIX}/bin/patinae"
 # raw libexec binary.
 mkdir -p "${PREFIX}/Menu"
 sed -e "s/__PKG_VERSION__/${PKG_VERSION}/g" "${RECIPE_DIR}/menu.json" > "${PREFIX}/Menu/patinae_menu.json"
-cp "${SRC_DIR}/images/patinae.png" "${PREFIX}/Menu/patinae.png"
-cp "${SRC_DIR}/images/patinae.ico" "${PREFIX}/Menu/patinae.ico"
+
+if [[ "${target_platform}" == osx-* ]]; then
+  make -C "${SRC_DIR}" icon PYTHON="${PYTHON}"
+  cp "${SRC_DIR}/target/app/AppIcon.icns" "${PREFIX}/Menu/patinae.icns"
+else
+  cp "${SRC_DIR}/images/patinae.png" "${PREFIX}/Menu/patinae.png"
+fi
