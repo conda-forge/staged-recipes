@@ -22,9 +22,9 @@ REM Open Interpreter's upstream package variant builds the Cargo bin named
 REM "codex", then exposes it as "interpreter" with "i" as an alias.
 if defined CARGO_BUILD_TARGET (
     echo Building for target: %CARGO_BUILD_TARGET%
-    cargo auditable install --locked --no-track --bins --root "%PREFIX%" --path cli --target %CARGO_BUILD_TARGET%
+    cargo auditable install --locked --no-track --bin codex --root "%PREFIX%" --path cli --target %CARGO_BUILD_TARGET%
 ) else (
-    cargo auditable install --locked --no-track --bins --root "%PREFIX%" --path cli
+    cargo auditable install --locked --no-track --bin codex --root "%PREFIX%" --path cli
 )
 
 move "%PREFIX%\bin\codex.exe" "%PREFIX%\bin\interpreter.exe"

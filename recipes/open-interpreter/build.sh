@@ -25,9 +25,9 @@ cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
 # "codex", then exposes it as "interpreter" with "i" as an alias.
 if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
     echo "Building for target: ${CARGO_BUILD_TARGET}"
-    cargo auditable install --locked --no-track --bins --root "${PREFIX}" --path cli --target "${CARGO_BUILD_TARGET}"
+    cargo auditable install --locked --no-track --bin codex --root "${PREFIX}" --path cli --target "${CARGO_BUILD_TARGET}"
 else
-    cargo auditable install --locked --no-track --bins --root "${PREFIX}" --path cli
+    cargo auditable install --locked --no-track --bin codex --root "${PREFIX}" --path cli
 fi
 
 mv "${PREFIX}/bin/codex" "${PREFIX}/bin/interpreter"
