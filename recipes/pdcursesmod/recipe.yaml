@@ -1,0 +1,80 @@
+context:
+  name: pdcursesmod
+  version: "4.5.4"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Bill-Gray/PDCursesMod/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d5efc7f2b7107abe382bdf8bac0a9bfd8e716facbca2bb9cf12dfeb8e1122c4b
+  patches:
+    - patches/0001_use_conda_install_prefix.patch
+    - patches/0002_build_only_win32.patch
+
+build:
+  number: 0
+  skip:
+    - unix
+  script:
+    content: |
+      cmake -B build -G Ninja %CMAKE_ARGS% ^
+        -DPDC_BUILD_SHARED=ON ^
+        -DPDC_UTF8=ON ^
+        -DPDC_SDL2_BUILD=OFF ^
+        -DPDC_SDL2_DEPS_BUILD=OFF ^
+        -DPDC_GL_BUILD=OFF ^
+        -DPDC_DOSVT_BUILD=OFF ^
+        -DSDL2_INCLUDE_DIR=%LIBRARY_INC%\SDL2 ^
+        -DSDL2_LIBRARY_DIR=%LIBRARY_LIB% ^
+        %SRC_DIR%
+      if errorlevel 1 exit 1
+
+      cmake --build build --parallel %CPU_COUNT%
+      if errorlevel 1 exit 1
+
+      cmake --install build
+      if errorlevel 1 exit 1
+
+      if not exist %LIBRARY_INC% mkdir %LIBRARY_INC%
+      copy curses.h %LIBRARY_INC%\curses.h
+      copy panel.h %LIBRARY_INC%\panel.h
+      copy curspriv.h %LIBRARY_INC%\curspriv.h
+      copy term.h %LIBRARY_INC%\term.h
+      copy %LIBRARY_LIB%\wincon\pdcurses.lib %LIBRARY_LIB%\pdcurses.lib
+      copy %LIBRARY_BIN%\wincon\pdcurses.dll %LIBRARY_BIN%\pdcurses.dll
+      rmdir /s /q %LIBRARY_BIN%\wincon\
+      rmdir /s /q %LIBRARY_LIB%\wincon\
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - curses.h
+        - panel.h
+        - curspriv.h
+        - term.h
+      lib:
+        - pdcurses
+
+about:
+  homepage: https://github.com/Bill-Gray/PDCursesMod
+  license: CC-PDDC
+  summary: Public Domain Curses Modified for Win32 console
+  description: |
+    PDCursesMod is a modified, expanded implementation of X/Open curses designed
+    to run on many platforms. It builds on the original PDCurses project and adds
+    new "flavors", including Windows GUI, VT-style consoles, Linux/BSD framebuffer,
+    DOSVGA, OpenGL, and Plan 9 support. It also enhances existing backends inherited
+    from PDCurses, such as SDL1, SDL2, X11, Win32 console, OS/2, and DOS.
+
+extra:
+  recipe-maintainer:
+    - nodtem66
