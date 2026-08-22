@@ -1,0 +1,64 @@
+context:
+  name: fast-sugiyama
+  version: "0.5.3"
+  build_number: 0
+  python_min: "3.11"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/f/fast-sugiyama/fast_sugiyama-${{ version }}.tar.gz
+  sha256: 073cba7184418ac2df1dba2f8835ffc10a687db1f130bfa0a1228ab4e6827c4f
+
+build:
+  number: ${{ build_number }}
+  skip: match(python, "<" ~ python_min)
+  script:
+    # The upstream `rust-toolchain.toml` pins an unstable nightly toolchain that
+    # is not available on conda-forge; remove it so the conda-forge stable Rust
+    # compiler is used instead.
+    - rm -f crates/py-sugiyama/rust-toolchain.toml
+    # Bundle the licenses of the vendored Rust dependencies (conda-forge convention).
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.0,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - fast_sugiyama
+      pip_check: true
+  - requirements:
+      run:
+        - pip
+        - networkx
+    script:
+      - python -c "import networkx as nx; from fast_sugiyama import from_edges; g = nx.gn_graph(20, create_using=nx.DiGraph); print(from_edges(list(g.edges())))"
+
+about:
+  homepage: https://github.com/austinorr/fast-sugiyama
+  summary: A fast and flexible hierarchical graph layout engine.
+  description: Produce directed graph layouts similar to the GraphViz `dot` program with no dependencies. Built in rust, wrapped with python, wheels available on pypi for arm & intel on linux, mac, and windows.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/austinorr/fast-sugiyama
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
