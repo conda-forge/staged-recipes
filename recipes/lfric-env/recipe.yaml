@@ -1,0 +1,152 @@
+# lfric-env -- a metapackage providing the environment LFRic is built and run in.
+#
+# LFRic is the Met Office / NERC next-generation weather and climate model. A
+# typical user writes Fortran source, has PSyclone transpile it into the parallel
+# Fortran that actually gets compiled, and then compiles and links that against
+# MPI, parallel netCDF/HDF5, XIOS, yaxt and shumlib, driving the whole thing from
+# a Rose/Cylc workflow. What such a user needs installed is therefore not any one
+# of those packages but all of them at once, agreeing on one compiler and one MPI.
+# Upstream documents that dependency list at
+# https://metoffice.github.io/lfric_core/getting_started/installation/software_dependencies.html
+#
+# This metapackage is that list (`requirements/run` below) plus the handful of
+# environment variables LFRic's build system requires to be spelled a particular
+# way (the activate.d script), so that `conda activate` is enough to get a working
+# starting point. On HPC the same job is done by a module file today.
+#
+# Every dependency below is either already on conda-forge or is one of the other
+# recipes in this same PR. `yaxt` is the one that needed upstream work first: its
+# Xt_int index type defaults to 32-bit, while LFRic's halo index is 64-bit, so
+# this environment requires the `--with-idxtype=long` build added in
+# conda-forge/yaxt-feedstock#6 -- hence the `*_idxtype_long_*` build-string pin.
+# Solving onto the default 32-bit yaxt is not a clean link error, it is a silent
+# ABI mismatch, which is exactly why that pin is spelled out here.
+schema_version: 1
+
+context:
+  # Tracks the LFRic release this environment corresponds to (lfric_apps and
+  # lfric_core vn3.2), not the version of any one dependency.
+  version: "2026.07.1"
+
+package:
+  name: lfric-env
+  version: ${{ version }}
+
+build:
+  number: 0
+  script: build.sh
+  # The MPI flavour is part of what this environment IS -- it pins mpi_${mpi}_*
+  # builds of hdf5/libnetcdf/netcdf-fortran/yaxt/xios/pfunit, which are mutually
+  # exclusive. Encode it in the build string, the same convention those packages
+  # use, so `lfric-env * mpi_mpich_*` is expressible.
+  string: mpi_${{ mpi }}_${{ hash }}_${{ build_number }}
+  # mpich/openmpi are not built for win-64 on conda-forge, and the LFRic build
+  # system is a Unix-only make/FCM/Fab stack besides.
+  skip:
+    - win
+
+requirements:
+  # No build/host section on purpose: this package ships no compiled artefact,
+  # only its dependency closure and the activation contract. It is NOT noarch --
+  # the run list pins MPI-flavoured builds, and the build string carries the MPI
+  # variant.
+  run:
+    # --- toolchain ----------------------------------------------------------
+    # The environment ships its own compilers rather than assuming the host has
+    # them: installing this package is meant to be sufficient.
+    #
+    # These are the conda-forge compiler METAPACKAGES, deliberately unpinned:
+    # they resolve to whatever generation conda-forge currently builds its
+    # Fortran stack with, which is the only generation that can read the .mod
+    # files shipped by netcdf-fortran / xios / yaxt / shumlib. Pinning a specific
+    # gcc here would eventually contradict that.
+    - c-compiler
+    - cxx-compiler
+    - fortran-compiler
+    # --- MPI + parallel I/O -------------------------------------------------
+    - ${{ mpi }}
+    - hdf5 * mpi_${{ mpi }}_*
+    - libnetcdf * mpi_${{ mpi }}_*
+    - netcdf-fortran * mpi_${{ mpi }}_*
+    # 64-bit Xt_int. See the header comment -- this is an ABI requirement, not a
+    # preference.
+    - yaxt * mpi_${{ mpi }}_idxtype_long_*
+    # --- build tooling ------------------------------------------------------
+    - make
+    - cmake
+    - pkg-config
+    - python
+    # --- LFRic build-time python -------------------------------------------
+    # PSyclone >= 3.3 is a hard floor, not a preference: LFRic vn3.2's
+    # optimisation scripts import OMPParallelTrans from psyclone.psyir
+    # .transformations unguarded, and it only moved there in 3.3. 3.3.1 is what
+    # the Met Office runs for this release.
+    - psyclone >=3.3.1,<4
+    - fparser
+    # Fab, LFRic's newer build system, which its build shells out to.
+    - sci-fab
+    - jinja2
+    - pyyaml
+    - sympy
+    # --- workflow tooling ---------------------------------------------------
+    # cylc-uiserver (the Jupyter web GUI) is deliberately absent: it is not
+    # needed to build or run a workflow on HPC.
+    - metomi-rose
+    - cylc-flow
+    - cylc-rose
+    - ansimarkup
+    - colorama
+    # --- packaged alongside this recipe (same PR) ---------------------------
+    - xios * mpi_${{ mpi }}_*
+    # Redundant on paper -- blitzpp's run_exports already reaches here through
+    # xios -- but listed because this is an environment CONTRACT, not a solve:
+    # libxios.a is a STATIC archive that references -lblitz, so a user compiling
+    # their own XIOS-linked code needs blitz's headers and library in the prefix
+    # in their own right, not merely as somebody else's transitive pin.
+    - blitzpp
+    - rose-picker
+    - shumlib
+    # The unit-test tier: not needed to build or run an application, but part of
+    # the documented LFRic development environment.
+    - pfunit * mpi_${{ mpi }}_*
+    - gftl
+    - gftl-shared
+    - fargparse
+
+tests:
+  # The real test of a metapackage: install it, and check that what a user gets
+  # is a working LFRic toolchain -- the activation contract applied, the tools on
+  # PATH, and, most important of all, the shipped Fortran modules readable by the
+  # environment's own gfortran. Modules can only be read by the compiler
+  # generation that wrote them, so `use xios` + `use yaxt` compiling is what
+  # proves conda-forge's Fortran stack and the packages built here agree on one
+  # compiler.
+  - script:
+      - bash test_lfric_env.sh
+    files:
+      recipe:
+        - test_lfric_env.sh
+        - test_lfric_env.f90
+
+about:
+  homepage: https://www.metoffice.gov.uk/research/approach/modelling-systems/lfric
+  documentation: https://metoffice.github.io/lfric_core/getting_started/installation/software_dependencies.html
+  summary: Environment for building and running the LFRic model (metapackage)
+  description: |
+    Installing this package gives you the environment LFRic science workflows are
+    built and run in: the compilers, MPI, parallel netCDF/HDF5, XIOS, yaxt,
+    shumlib, PSyclone, Fab and rose/cylc listed in LFRic's software-dependencies
+    documentation, plus an activation script that exports the handful of
+    variables LFRic's build system requires to be spelled a particular way
+    (FC=mpif90, CXX=mpic++, SHUMLIB_ROOT, ...).
+
+    This package contains no source of its own -- it is a dependency list plus an
+    activation script.
+  # This recipe (dependency list + activation script) is original packaging work.
+  # Each package it depends on carries its own upstream licence.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - ickc

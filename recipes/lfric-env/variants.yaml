@@ -1,0 +1,36 @@
+# Matches recipes/xios/variants.yaml and recipes/pfunit/variants.yaml: mpich is
+# the MPI LFRic documents and the one this environment is built and tested
+# against. Adding openmpi here would fan out a second set of every MPI-dependent
+# package in the PR; it can be added later on the feedstocks.
+mpi:
+  - mpich
+
+# --- mpich generation -------------------------------------------------------
+# THE RATIONALE FOR THE WHOLE PR'S mpich PIN LIVES HERE, because this is the
+# package whose requirements force it. xios/variants.yaml and
+# pfunit/variants.yaml carry the same two lines and point back at this comment.
+#
+# conda-forge's BASE pinning is still `mpich: 4`, but the `mpich5` migration is
+# under way and the dependencies this environment pins have already crossed:
+# hdf5, libnetcdf, netcdf-fortran and yaxt all publish mpich-5 builds today.
+#
+# yaxt settles it. This environment needs the 64-bit-Xt_int build
+# (`idxtype_long`, added in conda-forge/yaxt-feedstock#6); that feedstock is
+# already migrated, so the variant exists only against mpich 5. Building this
+# PR's MPI packages against mpich 4 would therefore yield a set that cannot
+# co-install with the yaxt required here -- which is the solver error this
+# metapackage produced before the pin was added.
+#
+# staged-recipes builds against the base pinning and does not apply migrations,
+# so the generation is stated here instead. These are NEW packages: building
+# them on mpich 5 lands them where the migration is already going, rather than
+# adding to the mpich-4 backlog for the migration bot to rebuild immediately.
+#
+# NOTE: this override is GLOBAL to the PR, not scoped to one recipe.
+# .ci_support/build_all.py merges the base pinning, then any root config, then
+# every recipes/*/variants.yaml through conda_build.variants.combine_specs,
+# where "later specs have priority and overwrite duplicate entries". So the key
+# is repeated identically in the three MPI recipes rather than left to whichever
+# file happens to be merged last.
+mpich:
+  - "5"
