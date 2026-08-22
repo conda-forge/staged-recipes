@@ -1,8 +1,6 @@
 @echo on
 setlocal
 
-cd /d "%SRC_DIR%" || exit /b 1
-
 (
   echo packages:
   echo   - apps/shared
