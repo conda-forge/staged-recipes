@@ -1,0 +1,179 @@
+context:
+  # Roc has not cut a semantic release yet. `build.zig.zon` pins `.version = "0.0.0"`
+  # and `roc version` reports `<build-mode>-<git-sha>`, so there is no upstream version
+  # string to track. The newest git tag (alpha4-rolling) points at the retired Rust
+  # compiler; the current compiler is the Zig rewrite that only lives on `main`.
+  # We therefore package a dated snapshot of `main`, versioned so that it sorts after
+  # alpha4 and before both a future alpha5 tag and the eventual 0.1.0 release.
+  version: "0.0.0a5.dev20260730"
+  rev: d0b12fea39b4874ce5f95482a7a34f8871d6b382
+  # Tag of roc-lang/roc-bootstrap that build.zig.zon pins its dependency URLs to.
+  bootstrap_tag: zig-0.16.0-binaryen
+  bootstrap_rev: 161acf4ee0f6f0aadb8be502699538932c51f40a
+
+package:
+  name: roc
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/roc-lang/roc/archive/${{ rev }}.tar.gz
+    sha256: 55538ffce988d3896d697848bff7f4c7ca78a512a5a48ff900b70a4f5515e734
+    patches:
+      - 0001-adapt-link-line-for-redistribution.patch
+
+  # Roc's Zig dependencies, vendored so the build never touches the network.
+  # Each must land in a directory named for its `build.zig.zon` hash, which is
+  # the layout `zig build --system` expects. Keep these in sync with the
+  # `.dependencies` block of build.zig.zon when bumping `rev`.
+  - url: https://github.com/lukewilliamboswell/bytebox/archive/88a4b79230eece88030e6779f69ed9683906c02a.tar.gz
+    sha256: 1a01b96f0c390bfd7cf7b6c2097d596260c6c3b5aac700b102e3446c51b1972c
+    target_directory: zig-pkg/bytebox-0.0.1-SXc2saRyDwDEw8AkDhp4Hfmd9ZhRmMnIzS7FfzDCmc8r
+
+  - url: https://github.com/lukewilliamboswell/zig-stable-array/archive/b193182314f2ca65d97e391f0725707e36c0b56d.tar.gz
+    sha256: 8abd20ded0cf1dd12cc674bb86923380aeddb0a29f906087f9254c338abe6a39
+    target_directory: zig-pkg/stable_array-0.1.0-3ihgvd9eAAA5ozV4aOQZ6GI3d_gTyiR9tS6mwav2w18o
+
+  - url: https://github.com/allyourcodebase/zstd/archive/e1a501be57f42c541e8a5597e4b59a074dfd09a3.tar.gz
+    sha256: 29fbfe11588343052f4c9d1c11657d632ecdba14860e17b42c15bea3fa041408
+    target_directory: zig-pkg/zstd-1.5.7-1-KEItkAMwAAD6OKY3m0OOmXG7aL-aLUfrDqbP5J5oYapU
+
+  - url: https://github.com/facebook/zstd/archive/f8745da6ff1ad1e7bab384bd1f9d742439278e99.tar.gz
+    sha256: 4b0bd1f0cfb25e61b9103c35f27395530ff5b4c0d2513a00fd745849e85ea52c
+    target_directory: zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u
+
+  # LLVM comes from a different place per platform, because roc compiles its own
+  # C++ shim (src/build/zig_llvm.cpp) with Zig, and Zig ships only libc++:
+  #
+  #  * macOS - conda-forge's llvmdev is built against libcxx, so the ABI lines up
+  #    and we link it directly (see requirements/host). Nothing to vendor.
+  #  * Linux - conda-forge's llvmdev is built against libstdc++, which mangles std
+  #    types differently (std::__cxx11:: vs std::__1::), so the shim's calls into
+  #    LLVM never resolve. Vendor the libc++-based LLVM 21.1.0 + lld + Binaryen
+  #    that upstream itself links against.
+  - if: linux and x86_64
+    then:
+      url: https://github.com/roc-lang/roc-bootstrap/releases/download/${{ bootstrap_tag }}/x86_64-linux-musl.tar.xz
+      sha256: aef8f80aa39f2e26e03e37710c3165f51b29c2bf4d3aa40336ea99a8299d8a24
+      target_directory: zig-pkg/N-V-__8AAGJLMhhn8pu3uyxtKTIlha8CxCjE6TNpLYvvj-cz
+
+  - if: linux and aarch64
+    then:
+      url: https://github.com/roc-lang/roc-bootstrap/releases/download/${{ bootstrap_tag }}/aarch64-linux-musl.tar.xz
+      sha256: 5227a7c79dec16aa28bfd477af5465f0c38eb9ebf20df4454d341d132d452f1c
+      target_directory: zig-pkg/N-V-__8AACK4KheKSiltX0PPURTNh0CvJhsopNXzcXpvq9pS
+
+  # Licenses for the statically linked Binaryen and zlib, which the tarball above
+  # ships as libraries only. LLVM's own LICENSE.TXT is inside it.
+  - if: linux
+    then:
+      - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/binaryen/LICENSE
+        sha256: 64c0d02491e16eced74826440ecd2bcf7722d37fa586faf457b2494293afbffe
+        file_name: BINARYEN-LICENSE
+        target_directory: bootstrap-licenses
+      - url: https://raw.githubusercontent.com/roc-lang/roc-bootstrap/${{ bootstrap_rev }}/zlib/LICENSE
+        sha256: 845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243
+        file_name: ZLIB-LICENSE
+        target_directory: bootstrap-licenses
+
+  # On macOS the statically linked LLVM comes from the host env rather than a
+  # source tree, so fetch its license to package alongside the binary.
+  - if: osx
+    then:
+      url: https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-21.1.0/llvm/LICENSE.TXT
+      sha256: 8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee
+      file_name: LLVM-LICENSE.TXT
+      target_directory: llvm-licenses
+
+build:
+  number: 0
+  script:
+    # brush is a bash-compatible shell, so build.sh runs unchanged. It is invoked
+    # with -euxo pipefail already, hence no `set` prologue in the script.
+    interpreter: brush
+    file: build.sh
+  skip:
+    # Roc's Windows support goes through the x86_64-windows-gnu triple, which does
+    # not line up with the MSVC toolchain conda-forge builds against.
+    - win
+
+requirements:
+  build:
+    # No compiler('c')/compiler('cxx') on purpose. Zig is a self-contained
+    # toolchain and roc drives it directly, so conda's GCC would go unused -- and
+    # worse, the sysroot it brings along breaks the native host tool roc builds
+    # mid-build. See build.sh. stdlib stays for the __glibc run export.
+    - ${{ stdlib('c') }}
+    - zig 0.16.*
+    - brush
+    # For vtool; see the LC_BUILD_VERSION rewrite in build.sh.
+    - if: osx
+      then: cctools_${{ target_platform }}
+  host:
+    # macOS only; on Linux the LLVM comes from the vendored roc-bootstrap tarball.
+    # Pinned to 21.x to match what roc's link line expects. roc links these
+    # statically, hence llvmdev/lld rather than the shared libraries.
+    - if: osx
+      then:
+        - llvmdev 21.1.*
+        - lld 21.1.*
+        - libxml2-devel
+        # `zlib` rather than `libzlib`: roc asks for a static `-lz`.
+        - zlib
+        - zstd
+        # -Dllvm-path puts $PREFIX/lib on the search path, so Zig resolves -lc++
+        # to conda's libc++ rather than the SDK's. It has no run export, so it
+        # has to be named in `run` as well.
+        - libcxx
+  run:
+    - if: osx
+      then: libcxx
+
+tests:
+  - script:
+      - roc version
+      - roc check hello.roc
+      # Compiles through LLVM and links with the embedded lld, using roc's
+      # built-in echo platform so nothing has to be fetched.
+      - roc build hello.roc
+      - ./hello
+    files:
+      recipe:
+        - hello.roc
+
+about:
+  homepage: https://www.roc-lang.org
+  repository: https://github.com/roc-lang/roc
+  documentation: https://www.roc-lang.org/docs
+  license: UPL-1.0
+  license_file:
+    - LICENSE
+    - legal_details
+    # Vendored Zig dependencies.
+    - zig-pkg/bytebox-0.0.1-SXc2saRyDwDEw8AkDhp4Hfmd9ZhRmMnIzS7FfzDCmc8r/LICENSE
+    - zig-pkg/stable_array-0.1.0-3ihgvd9eAAA5ozV4aOQZ6GI3d_gTyiR9tS6mwav2w18o/LICENSE
+    - zig-pkg/zstd-1.5.7-1-KEItkAMwAAD6OKY3m0OOmXG7aL-aLUfrDqbP5J5oYapU/LICENSE
+    - zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u/LICENSE
+    - zig-pkg/N-V-__8AAGxifwAAGwXwvsnl_aOXFGLZTeYCu0WBhuEXr96u/COPYING
+    # Statically linked LLVM, plus Binaryen and zlib where the vendored tarball
+    # supplies them. The LLVM path is globbed because the directory is named for
+    # a per-architecture hash.
+    - if: linux
+      then:
+        - zig-pkg/*/include/llvm/Support/LICENSE.TXT
+        - bootstrap-licenses/BINARYEN-LICENSE
+        - bootstrap-licenses/ZLIB-LICENSE
+      else:
+        - llvm-licenses/LLVM-LICENSE.TXT
+  summary: A fast, friendly, functional language
+  description: |
+    Roc is a direct descendant of Elm, designed for building fast and reliable
+    software across domains rather than only in the browser. The compiler is
+    written in Zig and compiles to native code through LLVM.
+
+    Roc is pre-1.0 and under active development. This package is a dated
+    snapshot of the compiler's `main` branch, not an upstream release: the
+    language and its standard library still change in breaking ways.
+
+extra:
+  recipe-maintainers:
+    - tdejager
