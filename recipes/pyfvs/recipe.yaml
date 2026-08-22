@@ -14,29 +14,35 @@ source:
 
 build:
   number: 0
-  script:
-    - if: win
-      then:
-        - set "CC=gcc"
-        - set "CXX=g++"
-        - set "FC=gfortran"
-        - set "AR=ar"
-        - set "LD=ld"
-    - python -m pip install . --no-build-isolation --no-deps -vv --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn,wc,so,op,oc,ec,ca,nc,bm,ie,ci,ak,ws"
+  script: python -m pip install . --no-build-isolation --no-deps -vv --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn,wc,so,op,oc,ec,ca,nc,bm,ie,ci,ak,ws"
 
 requirements:
   build:
-    - ${{ stdlib("c") }}
-    - if: win
+    - meson
+    - ninja
+    
+    # Non-Windows targets use the default UNIX toolchain
+    - if: linux
       then:
-        - m2w64-toolchain
-        - m2w64-gcc-fortran
-      else:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ compiler('fortran') }}
-    - if: linux
-      then: patchelf
+        - patchelf
+        
+    # Windows targets explicitly pull the GNU MinGW/m2w64 tools
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ compiler('m2w64_cxx') }}
+        - ${{ compiler('m2w64_fortran') }}
+
+    # macOS targets force GNU compilers instead of Clang
+    - if: osx
+      then:
+        - ${{ compiler('gcc') }}
+        - ${{ compiler('gxx') }}
+        - ${{ compiler('gfortran') }}
+
   host:
     - python
     - pip
@@ -45,6 +51,7 @@ requirements:
     - wheel
     - meson-python >=0.20.0
     - numpy
+    
   run:
     - python
     - confuse
