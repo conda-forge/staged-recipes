@@ -13,8 +13,20 @@ source:
 
 build:
   number: 0
-  script: ${{ PYTHON }} -m pip install . --no-build-isolation --no-deps -vv --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn,wc,so,op,oc,ec,ca,nc,bm,ie,ci,ak,ws"
+  script:
+  - if: win
+    then: |
+      :: Force Meson to find the GNU compilers
+      set CC=c++
+      set CXX=g++
+      set FC=gfortran
 
+      :: Prevent Meson from looking for MSVC
+      ${{ PYTHON }} -m pip install . --no-build-isolation --no-deps -vv -Csetup-args=--none --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn"
+
+  - if: not win
+    then: |
+      ${{ PYTHON }} -m pip install . --no-build-isolation --no-deps -vv --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn"
 
 requirements:
   build:
@@ -22,17 +34,14 @@ requirements:
     - ninja
     - python
     - setuptools-scm
-    
-    # Non-Windows targets use the default UNIX toolchain
-    - if: linux
+
+    - if: not win
       then:
+        - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ compiler('fortran') }}
         - ${{ stdlib('c') }}
-        - patchelf
 
-        
-    # Windows targets explicitly pull the GNU MinGW/m2w64 tools
     - if: win
       then:
         - ${{ compiler('m2w64_c') }}
@@ -40,12 +49,10 @@ requirements:
         - ${{ compiler('m2w64_fortran') }}
         - ${{ stdlib('m2w64_c') }}
 
-    # macOS targets force GNU compilers instead of Clang
-    - if: osx
+    # Non-Windows targets use the default UNIX toolchain
+    - if: linux
       then:
-        - ${{ compiler('cxx') }}
-        - ${{ compiler('fortran') }}
-        - ${{ stdlib('c') }}
+        - patchelf
 
   host:
     - python
