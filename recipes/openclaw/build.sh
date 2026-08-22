@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -exo pipefail
+
+sed -i.bak 's/^minimumReleaseAge: .*/minimumReleaseAge: 0/' pnpm-workspace.yaml
+
+# Create license report for dependencies
+mv package.json package.json.bak
+jq 'del(.devDependencies)' package.json.bak > package.json
+pnpm install --prod
+pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+mv package.json.bak package.json
+rm -rf node_modules
+
+# Build and pack the package
+pnpm install
+pnpm build
+pnpm ui:build
+pnpm pack --config.ignore-scripts=true
+
+# Build native Node addons from source where supported.
+export npm_config_build_from_source=true
+export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
+export NODE_PATH="${BUILD_PREFIX}/lib/node_modules:${NODE_PATH:-}"
+export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
+export PYTHON="${BUILD_PREFIX}/bin/python"
+
+npm install -ddd \
+    --global \
+    --prefix "${PREFIX}" \
+    --build-from-source \
+    "${PKG_NAME}-${PKG_VERSION}.tgz"
+
+# === Remove non-target platform binaries ===
+NODE_MODULES="${PREFIX}/lib/node_modules/openclaw/node_modules"
+
+case "$(uname -s)" in
+    Linux)  OS="linux" ;;
+    Darwin) OS="darwin" ;;
+    *) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+
+case "$(uname -m)" in
+    x86_64)        ARCH="x64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *) echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
+
+KEEP_DASH="${OS}-${ARCH}"          # prebuilds: linux-x64, darwin-arm64
+KEEP_UNDERSCORE="${OS}_${ARCH}"    # koffi: linux_x64, darwin_arm64
+
+echo "Pruning foreign binaries, keeping: ${KEEP_DASH} / ${KEEP_UNDERSCORE}"
+
+prune_platform_dirs() {
+    local root="$1"
+    local keep="$2"
+
+    [ -d "${root}" ] || return 0
+
+    find "${root}" -mindepth 1 -maxdepth 1 -type d \
+        ! -name "${keep}" -exec rm -rf {} +
+}
+
+# koffi is no longer installed by current OpenClaw releases, but keep this
+# guard in case a future transitive dependency reintroduces it.
+prune_platform_dirs "${NODE_MODULES}/koffi/build/koffi" "${KEEP_UNDERSCORE}"
+
+# Keep only the current platform's prebuilds for packages that rely on them.
+find "${NODE_MODULES}" -type d -name prebuilds | while read -r prebuilds_dir; do
+    prune_platform_dirs "${prebuilds_dir}" "${KEEP_DASH}"
+done
+
+# pi-tui ships optional native helpers. On macOS, rattler-build may fail to
+# relink darwin-modifiers.node because the prebuilt binary lacks header padding.
+# OpenClaw/pi-tui falls back when these helpers are absent.
+rm -rf "${NODE_MODULES}/@earendil-works/pi-tui/native/darwin/prebuilds"
+
+# conda-forge should use the locally built tree-sitter-bash binding, not npm prebuilds.
+rm -rf "${NODE_MODULES}/tree-sitter-bash/prebuilds"
+
+# Remove tree-sitter-bash build intermediates, keeping the runtime native binding.
+if [ -d "${NODE_MODULES}/tree-sitter-bash/build/Release" ]; then
+    find "${NODE_MODULES}/tree-sitter-bash/build/Release" -mindepth 1 \
+        ! -name "tree_sitter_bash_binding.node" \
+        -exec rm -rf {} +
+fi
+
+# sqlite-vec platform subpackages do not use a prebuilds directory.
+find "${NODE_MODULES}" -mindepth 1 -maxdepth 1 -type d \
+    -name "sqlite-vec-*" ! -name "sqlite-vec-${KEEP_DASH}" \
+    -exec rm -rf {} +
