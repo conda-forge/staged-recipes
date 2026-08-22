@@ -9,8 +9,7 @@ pnpm --dir web build
 pnpm --dir ui-tui build
 
 # Generate notices from the exact production dependencies used for the bundled assets.
-pnpm --filter web --filter hermes-tui licenses list --json --prod |
-  pnpm-licenses generate-disclaimer --json-input -o third-party-licenses.txt
+pnpm --filter web --filter hermes-tui licenses list --json --prod | pnpm-licenses generate-disclaimer --json-input -o third-party-licenses.txt
 
 mkdir -p hermes_cli/tui_dist
 cp ui-tui/dist/entry.js hermes_cli/tui_dist/
