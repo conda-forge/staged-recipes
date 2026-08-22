@@ -7,18 +7,28 @@ recipe:
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/p/pytetwild/pytetwild-${{ version }}.tar.gz
-  sha256: 60b88a5c9d0fd3cba24b3ab677b6a8344161de958622ce301bd3913fc1f4b917
-  patches:
-    # De-vendor the fTetWild dependencies that conda-forge already ships (CLI11, fmt, spdlog,
-    # TBB, nlohmann_json) by replacing their CMake FetchContent blocks with find_package.
-    # geogram, libigl and its predicates are not packaged on conda-forge and are still pulled
-    # in via FetchContent, hence the network/git build dependency.
-    - 0001-devendor-dependencies.patch
-    # Make the top-level ``import pyvista`` in the accessor optional so the core package imports
-    # without PyVista, matching the documented "no-op when unsupported" behaviour.
-    # PyVista comes with the pytetwild-all output.
-    - 0002-optional-pyvista-import.patch
+  - url: https://pypi.org/packages/source/p/pytetwild/pytetwild-${{ version }}.tar.gz
+    sha256: 60b88a5c9d0fd3cba24b3ab677b6a8344161de958622ce301bd3913fc1f4b917
+    patches:
+      # Make the top-level ``import pyvista`` in the accessor optional so the core package imports
+      # without PyVista, matching the documented "no-op when unsupported" behaviour.
+      # PyVista comes with the pytetwild-all output.
+      - 0002-optional-pyvista-import.patch
+  # geogram, libigl and libigl-predicates are not packaged on conda-forge. They are vendored here
+  # rather than left to CMake FetchContent so that the build needs no network access and every
+  # revision is pinned by checksum. devendor_dependencies.cmake points FetchContent at them.
+  # The geogram release asset is used because the GitHub source archive ships empty submodule
+  # directories, and its rply, libMeshb and amgcl submodules are needed to build the library.
+  - url: https://github.com/BrunoLevy/geogram/releases/download/v1.9.6/geogram_1.9.6.tar.gz
+    sha256: 79dbe919737d8988668d6a72196a82389e0dfd8760250d26a28414afd558477f
+    target_directory: vendored/geogram
+  - url: https://github.com/libigl/libigl/archive/refs/tags/v2.6.0.tar.gz
+    sha256: fe3bf58571cccbef774947261284ccf6b7fdf04fcab5f7181e31931e42a0b14f
+    target_directory: vendored/libigl
+  # libigl pins libigl-predicates by commit, so there is no tag to track here.
+  - url: https://github.com/libigl/libigl-predicates/archive/decb7bc1260e689cbe008109e3cc5d3a5a433aea.tar.gz
+    sha256: fd6ff88eff602ea8a600ddd22057e19d876f1f1a9bf9c119a3ecfef1753c5e92
+    target_directory: vendored/predicates
 
 build:
   number: ${{ build_number }}
@@ -37,10 +47,18 @@ outputs:
           # On Windows keep the Visual Studio generator selected by the conda-forge activation, so
           # CMake picks up the MSVC toolchain instead of failing to find a compiler under Ninja.
           CMAKE_GENERATOR: ${{ "Ninja" if unix else "Visual Studio 17 2022" }}
-          # Enable TBB; conda-forge's CMAKE_ARGS already points find_package at $PREFIX.
-          SKBUILD_CMAKE_ARGS: -DFLOAT_TETWILD_ENABLE_TBB=ON
         content:
-          - python -m pip install . -vv --no-deps --no-build-isolation
+          # devendor_dependencies.cmake resolves fmt, spdlog, TBB, nlohmann_json and Eigen from
+          # conda-forge, points FetchContent at the vendored sources, and fails on any upstream
+          # dependency it does not know about.
+          # CMP0170 must come from the command line, since the top level include runs too late to
+          # affect the policy of the top level project. Without it, a FetchContent_Populate() with
+          # no source directory is only a warning and the build fails later on a missing header.
+          - >-
+            python -m pip install . -vv --no-deps --no-build-isolation
+            --config-settings=cmake.define.CMAKE_POLICY_DEFAULT_CMP0170=NEW
+            --config-settings=cmake.define.CMAKE_PROJECT_TOP_LEVEL_INCLUDES=${{ "$RECIPE_DIR" if unix else "%RECIPE_DIR%" }}/devendor_dependencies.cmake
+            --config-settings=cmake.define.FLOAT_TETWILD_ENABLE_TBB=ON
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -48,17 +66,16 @@ outputs:
         - ${{ stdlib('c') }}
         - cmake
         - ninja
-        # geogram, libigl and libigl-predicates are not packaged on conda-forge, so fTetWild fetches
-        # them at build time via CMake FetchContent, which needs git and network access.
-        - git
       host:
         - python
         - pip
         - scikit-build-core >=0.10
         - nanobind >=1.3.2
         - setuptools-scm >=8
-        # De-vendored native dependencies provided by conda-forge, redirected by the 0001 patch.
-        # The remaining fTetWild dependencies (geogram, libigl, libigl-predicates) stay vendored via FetchContent.
+        # De-vendored native dependencies provided by conda-forge, wired in by the injected
+        # devendor_dependencies.cmake file.
+        # The remaining fTetWild dependencies (geogram, libigl, libigl-predicates) are vendored by
+        # the recipe sources above.
         # Eigen is only a header-only build-time dependency compiled into the extension, so per the
         # eigen-feedstock guidance a plain eigen host dependency (case A) with no ABI marker is enough.
         # It is capped below 5 because the vendored libigl 2.6.0 does not build against the reorganized Eigen 5 headers.
@@ -117,8 +134,16 @@ about:
   homepage: https://github.com/pyvista/pytetwild
   summary: Python wrapper of fTetWild for mesh tetrahedralization
   description: pytetwild is a Python library for mesh tetrahedralization. It is a Python wrapper around the efficient C++ library for tetrahedral meshing provided by fTetWild.
-  license: MPL-2.0
-  license_file: LICENSE
+  license: MPL-2.0 AND BSD-3-Clause AND LicenseRef-Public-Domain
+  license_file:
+    - LICENSE
+    - src/fTetWild/LICENSE.MPL2
+    # Vendored dependencies linked into the extension. Only the MPL2 part of libigl is used, since
+    # fTetWild links igl::core and igl::predicates and never the igl_copyleft targets.
+    - vendored/geogram/LICENSE
+    - vendored/libigl/LICENSE.MPL2
+    # Shewchuk's predicates carry their public domain dedication in the README.
+    - vendored/predicates/README.md
   repository: https://github.com/pyvista/pytetwild
 
 extra:
