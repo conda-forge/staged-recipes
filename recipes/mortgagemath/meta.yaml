@@ -1,0 +1,86 @@
+{% set name = "mortgagemath" %}
+{% set version = "0.7.1" %}
+{% set python_min = "3.11" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: e5c242a124730c6b506779bccdd32e171c2053adc431d572a382cb8a263b46e3
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  entry_points:
+    - mortgagemath = mortgagemath.__main__:main
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - hatchling
+    - pip
+  run:
+    - python >={{ python_min }}
+
+test:
+  source_files:
+    - tests
+  requires:
+    - python {{ python_min }}
+    - pip
+    - pytest >=8
+  imports:
+    - mortgagemath
+  commands:
+    - pip check
+    - mortgagemath --version
+    - mortgagemath selfcheck
+    # test_vignettes.py reads docs/vignettes/validation.qmd from the
+    # source tree; the sdist ships tests/ but not docs/, so the test
+    # would FileNotFoundError on monkeypatch.chdir. All other 439
+    # tests run normally.
+    - pytest tests --ignore=tests/test_vignettes.py
+
+about:
+  home: https://github.com/murraystokely/mortgagemath
+  summary: Cent-accurate mortgage amortization for Python, validated against 46 published sources across 6 countries
+  description: |
+    mortgagemath produces lender-style amortization schedules that reproduce
+    published lender, regulator, and textbook examples to the cent. Decimal
+    end-to-end (no float drift), with four configurable rounding modes
+    (ROUND_UP, ROUND_HALF_UP, ROUND_HALF_EVEN, ROUND_DOWN) and configurable
+    currency units (cents for USD/EUR/etc., units for JPY/KRW).
+
+    Supported loan structures:
+
+    * Fixed-rate mortgages (US 30/360, Canadian j_2 semi-annual, ACT/360
+      commercial with balloon).
+    * Adjustable-rate mortgages with rate schedules, optional payment caps,
+      capitalized negative amortization, and optional recast.
+    * Interest-only periods with automatic recast to full amortization.
+    * Zero-interest promotional loans.
+    * Flat per-period fees (French *assurance emprunteur*).
+    * Non-monthly payment cadences: weekly, accelerated bi-weekly, quarterly,
+      semi-annual, annual.
+
+    Validated against 46 published fixtures across the US (CFPB H-25(B),
+    Fannie Mae §1103 SARM, FHLBB 1935, Reg Z H-14 ARM), Canada (RBC
+    accelerated bi-weekly, eCampus Ontario, Olivier Chans), France
+    (MoneyVox with assurance emprunteur), Italy (Solution Bank, BCC
+    Brescia), Japan (JHF Flat 35, LoanKeisan), and Korea (Tistory). Ships
+    a CLI (``mortgagemath payment | summary | schedule | selfcheck``) and
+    a post-install ``selfcheck`` that recomputes well-known anchor values
+    against the installed copy. Zero runtime dependencies beyond the
+    Python standard library.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://mortgagemath.readthedocs.io/
+  dev_url: https://github.com/murraystokely/mortgagemath
+
+extra:
+  recipe-maintainers:
+    - murraystokely
