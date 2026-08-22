@@ -1,0 +1,296 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+recipe:
+  name: dinrail-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gbionics/dinrail/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 183c14c5013e9dde7ebffc416c00734a915286f721cab9ae591cbca3f3685a1f
+
+build:
+  number: 0
+
+# For what regards run_exports, we use x.x as that is the project policy,
+# see https://github.com/gbionics/dinrail#versioning-policy .
+# For all other pin_subpackage, we use x.x.x so that the users do not accidentally
+# mix different version of dinrail-* or libdinrail-* packages.
+
+outputs:
+  - package:
+      name: libdinrail
+    build:
+      number: 0
+      script:
+        file: build-libdinrail
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ycm-cmake-modules
+        - libsharedlibpp
+      run_exports:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - dinrail
+      - package_contents:
+          include:
+            - dinrail/Device.h
+    about:
+      summary: Core C++ shared library and headers for dinrail
+      description: |
+        `libdinrail` ships the core C++ shared library, public headers, and CMake
+        package files for dinrail. This output is intended for native consumers
+        that implement, load, or use dinrail device abstractions.
+
+  - package:
+      name: dinrail-devices
+    build:
+      number: 0
+      script:
+        file: build-dinrail-devices
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - ycm-cmake-modules
+        - libsharedlibpp
+      run:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - if: linux or osx
+              then: dinrail-device-dr_controlboard_fake
+          files:
+            - if: win
+              then: Library/bin/dinrail-device-dr_controlboard_fake.dll
+    about:
+      summary: Built-in device plugins for dinrail
+      description: |
+        `dinrail-devices` ships the built-in runtime-loaded device plugins for
+        dinrail, including the fake control-board device used for development
+        and testing.
+
+  - package:
+      name: dinrail-tools
+    build:
+      number: 0
+      script:
+        file: build-dinrail-tools
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - cli11
+        - ycm-cmake-modules
+        - libsharedlibpp
+      run:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - dinrail --help
+    about:
+      summary: Command-line tools for dinrail
+      description: |
+        `dinrail-tools` ships the `dinrail` command-line application for working
+        with the core dinrail framework and its device abstractions.
+
+  - package:
+      name: dinrail
+    requirements:
+      run:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('dinrail-devices', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('dinrail-tools', upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - dinrail --help
+          - dinrail dev --list
+    about:
+      summary: Metapackage for the complete core dinrail stack
+      description: |
+        `dinrail` is a convenience metapackage that depends on `libdinrail`,
+        `dinrail-devices`, and `dinrail-tools`.
+
+  - package:
+      name: libdinrail-yarp
+    build:
+      number: 0
+      script:
+        file: build-libdinrail-yarp
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - libyarp
+        - ycm-cmake-modules
+        - libsharedlibpp
+      run:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+      run_exports:
+        - ${{ pin_subpackage('libdinrail-yarp', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - dinrail-yarp-conversions
+      - package_contents:
+          include:
+            - dinrail/YarpPropertyConverter.h
+    about:
+      summary: C++ conversion library for dinrail and YARP interoperability
+      description: |
+        `libdinrail-yarp` ships the C++ conversion library, public headers, and
+        CMake package files used to exchange properties between dinrail and YARP.
+
+  - package:
+      name: dinrail-yarp-devices
+    build:
+      number: 0
+      script:
+        file: build-dinrail-yarp-devices
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('libdinrail-yarp', upper_bound='x.x.x') }}
+        - libyarp
+        - fmt
+        - spdlog
+        - ycm-cmake-modules
+        - libsharedlibpp
+    tests:
+      - package_contents:
+          files:
+            - if: win
+              then: Library/share/yarp/plugins/*
+              else: share/yarp/plugins/*
+
+    about:
+      summary: YARP device plugins for dinrail
+      description: |
+        `dinrail-yarp-devices` ships the runtime-loaded YARP device plugins that
+        connect dinrail control-board abstractions with YARP networks and devices.
+
+  - package:
+      name: dinrail-yarp-tools
+    build:
+      number: 0
+      script:
+        file: build-dinrail-yarp-tools
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        # Workaround for https://github.com/conda-forge/clangdev-feedstock/issues/481
+        - if: osx
+          then: clang-tools
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - libyarp
+        - fmt
+        - spdlog
+        - ycm-cmake-modules
+        - libsharedlibpp
+      run:
+        - ${{ pin_subpackage('libdinrail', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('dinrail-tools', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          bin:
+            - dinrail-runner
+            - dinrail-runner-rt
+    about:
+      summary: YARP-based executable tools for dinrail
+      description: |
+        `dinrail-yarp-tools` ships the YARP-based `dinrail-runner` executables for
+        launching and operating dinrail devices in a YARP environment.
+
+  - package:
+      name: dinrail-yarp
+    requirements:
+      run:
+        - ${{ pin_subpackage('libdinrail-yarp', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('dinrail-yarp-devices', upper_bound='x.x.x') }}
+        - ${{ pin_subpackage('dinrail-yarp-tools', upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - dinrail --help
+    about:
+      summary: Metapackage for the complete dinrail YARP integration
+      description: |
+        `dinrail-yarp` is a convenience metapackage that depends on
+        `libdinrail-yarp`, `dinrail-yarp-devices`, and `dinrail-yarp-tools`.
+
+about:
+  homepage: https://github.com/gbionics/dinrail
+  summary: Lightweight robot device abstraction framework.
+  description: |
+    dinrail is a lightweight framework for defining, loading, and using robot
+    device abstractions, with optional tools and YARP integration.
+
+    The recipe provides the following outputs:
+
+    - `libdinrail`: core C++ shared library, public headers, and CMake package files.
+    - `dinrail-devices`: built-in runtime-loaded device plugins.
+    - `dinrail-tools`: command-line tools for the core dinrail framework.
+    - `dinrail`: convenience metapackage for the complete core dinrail stack.
+    - `libdinrail-yarp`: C++ conversion library and headers for YARP interoperability.
+    - `dinrail-yarp-devices`: runtime-loaded YARP device plugins for dinrail.
+    - `dinrail-yarp-tools`: YARP-based runner executables for dinrail devices.
+    - `dinrail-yarp`: convenience metapackage for the complete YARP integration.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  repository: https://github.com/gbionics/dinrail
+
+extra:
+  feedstock-name: dinrail
+  recipe-maintainers:
+    - traversaro
