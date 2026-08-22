@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  name: python-tetgen
+  pypi_name: tetgen
+  version: "0.8.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ pypi_name[0] }}/${{ pypi_name }}/${{ pypi_name }}-${{ version }}.tar.gz
+  sha256: 06ca8d8b9e21cdbb75334e20ee77e788e88f4b2cdb85c51b008592cb3f9af964
+
+build:
+  number: 0
+  # Keep this combined dependency PR tractable; expand variants after feedstock creation.
+  skip:
+    - match(python, "<3.11")
+    - match(python, ">=3.12")
+  script:
+    - if: not win
+      then:
+        - export CMAKE_GENERATOR=Ninja
+    - if: win
+      then:
+        - set CMAKE_GENERATOR=Ninja
+        - set CMAKE_GENERATOR_PLATFORM=
+        - set CMAKE_GENERATOR_TOOLSET=
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.4.3
+    - nanobind >=1.3.2
+    - numpy
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - tetgen
+        - tetgen._tetgen
+  - script:
+      - pip check
+      - python run_test.py
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - pip
+        - python
+
+about:
+  homepage: https://github.com/pyvista/tetgen
+  summary: Python interface to TetGen
+  license: AGPL-3.0-or-later
+  license_file: LICENSE
+  repository: https://github.com/pyvista/tetgen
+  documentation: https://tetgen.pyvista.org/
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
