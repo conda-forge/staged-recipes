@@ -1,0 +1,62 @@
+schema_version: 1
+
+context:
+  version: "0.1.14"
+
+package:
+  name: pushtodisplay
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/pushtodisplay/-/pushtodisplay-${{ version }}.tgz
+  sha256: e245863df13617b0764a4a9de18f4ae79fa3f47dcb9ad77e5c5f23bd5ceba1a2
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - set "npm_config_cache=${{ SRC_DIR }}\.npm-cache"
+        - npm pack --ignore-scripts
+        - npm install -g --prefix "${{ PREFIX }}" "pushtodisplay-${{ version }}.tgz"
+        # npm's own --prefix shims land in the prefix root, which is not on the
+        # conda Windows PATH. Install position-independent shims in Library/bin
+        # (the conda Windows bin convention), resolving via %~dp0 (cmd) / $PSScriptRoot.
+        - if not exist "${{ PREFIX }}\Library\bin" mkdir "${{ PREFIX }}\Library\bin"
+        - echo @echo off> "${{ PREFIX }}\Library\bin\pushtodisplay.cmd"
+        - echo node "%%~dp0..\..\node_modules\pushtodisplay\dist\cli.js" %%*>> "${{ PREFIX }}\Library\bin\pushtodisplay.cmd"
+        - echo $ErrorActionPreference = 'Stop'> "${{ PREFIX }}\Library\bin\pushtodisplay.ps1"
+        - echo node $PSScriptRoot\..\..\node_modules\pushtodisplay\dist\cli.js $args>> "${{ PREFIX }}\Library\bin\pushtodisplay.ps1"
+      else:
+        - export HOME="${{ SRC_DIR }}"
+        - export npm_config_cache="${{ SRC_DIR }}/.npm-cache"
+        - npm pack --ignore-scripts
+        - npm install -g --prefix "${{ PREFIX }}" "pushtodisplay-${{ version }}.tgz"
+
+requirements:
+  host:
+    - nodejs
+  run:
+    - nodejs >=18
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then: bin/pushtodisplay
+          else: Library\bin\pushtodisplay.cmd
+  - script:
+      - pushtodisplay --version
+      - pushtodisplay --help
+
+about:
+  homepage: https://pushtodisplay.com
+  summary: CLI and MCP server for Push To Display - send real-time updates to display boards from your terminal
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/pushtodisplay/cli
+  documentation: https://pushtodisplay.com/docs/cli
+
+extra:
+  recipe-maintainers:
+    - sourceshipper
