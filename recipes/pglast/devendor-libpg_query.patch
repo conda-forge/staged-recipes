@@ -1,0 +1,44 @@
+Devendor libpg_query: build pglast against the system (conda) libpg_query
+package instead of the bundled git submodule.
+
+This mirrors Debian's `libpq-query` patch (debian/patches in the pglast source
+package): the two internal headers move under the installed `pg_query/`
+directory, and setup.py's custom build_ext that compiles the bundled
+libpg_query via `make` is dropped. The remaining external headers resolve from
+the conda prefix at build time:
+  - pg_query.h, pg_query/pg_query_internal.h, pg_query/pg_query.pb-c.h  -> libpg_query
+  - postgres.h, nodes/*.h (via -I$PREFIX/include/pg_query/postgres)     -> libpg_query
+  - protobuf-c/protobuf-c.h                                             -> protobuf-c
+
+The committed pglast/parser.c is regenerated from this patched parser.pyx
+during the build (see build.sh) so the new include paths take effect.
+--- a/pglast/parser.pyx
++++ b/pglast/parser.pyx
+@@ -143,7 +143,7 @@
+     int PG_QUERY_PARSE_DEFAULT
+
+
+-cdef extern from "src/pg_query_internal.h" nogil:
++cdef extern from "pg_query/pg_query_internal.h" nogil:
+     ctypedef struct PgQueryInternalParsetreeAndError:
+         structs.List* tree
+         char* stderr_buffer
+@@ -170,7 +170,7 @@
+                                                              int value)
+
+
+-cdef extern from "protobuf/pg_query.pb-c.h" nogil:
++cdef extern from "pg_query/pg_query.pb-c.h" nogil:
+     ctypedef enum PgQuery__Token:
+         pass
+
+--- a/setup.py
++++ b/setup.py
+@@ -38,7 +38,6 @@
+
+
+ setup(
+-    cmdclass={'build_ext': BuildLibPgQueryFirst},
+     ext_modules=[
+         Extension(
+             'pglast.parser',
