@@ -1,0 +1,57 @@
+schema_version: 1
+
+context:
+  version: "20210214.0"
+
+package:
+  name: sage-data-graphs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/sage-data-graphs/sage_data_graphs-${{ version }}.tar.gz
+  sha256: 4b82c49cca79ae0ff15942fe6ee05b00c64eb7bca9438648f89106add63b6620
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - sage_data_graphs
+        - sage_data_graphs.data
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "from sage_data_graphs import DATA_FILES; assert set(DATA_FILES) == {'brouwer_srg_database.json', 'graphs.db', 'isgci_sage.xml', 'smallgraphs.txt'}"
+      - python -c "from sage_data_graphs import graph_database_connection; c = graph_database_connection(); db = c.__enter__(); assert db.execute('PRAGMA integrity_check').fetchone() == ('ok',); assert db.execute('SELECT count(*) FROM graph_data').fetchone() == (1252,); c.__exit__(None, None, None)"
+      - python -c "import xml.etree.ElementTree as ET; from sage_data_graphs import open_resource; f = open_resource('isgci_sage.xml'); root = ET.parse(f).getroot(); f.close(); assert root.tag == 'ISGCI'; assert root.find('stats').attrib['nodes'] == '1461'"
+      - python -c "from sage_data_graphs import load_brouwer_database, open_resource; assert len(load_brouwer_database()) == 4538; f = open_resource('smallgraphs.txt', 'r'); lines = f.readlines(); f.close(); assert len(lines) == 565"
+
+about:
+  homepage: https://github.com/cxzhong/sage-data-graphs
+  repository: https://github.com/cxzhong/sage-data-graphs
+  summary: Graph database resources for SageMath and other Python applications
+  description: |
+    sage-data-graphs packages the graph database resources historically
+    shipped as SageMath's graphs data package. It provides read-only resource
+    helpers and has no dependency on SageMath.
+  license: GPL-2.0-or-later
+  license_file:
+    - LICENSE
+    - DATA_LICENSES.md
+
+extra:
+  recipe-maintainers:
+    - cxzhong
