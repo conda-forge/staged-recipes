@@ -1,0 +1,133 @@
+context:
+  version: "9.17"
+
+package:
+  name: pgadmin4
+  version: ${{ version }}
+
+source:
+  # pgAdmin 4 has never published an sdist on PyPI -- only a py3-none-any wheel.
+  # rattler-build does not unpack ".whl" files, so the wheel is copied into
+  # $SRC_DIR verbatim and installed directly by the build script below.
+  url: https://pypi.org/packages/py3/p/pgadmin4/pgadmin4-${{ version }}-py3-none-any.whl
+  sha256: f11d217e6fcfea8573c297d8228082a921c6a553020cc130d0fcda3ae87e4684
+
+build:
+  noarch: python
+  number: 0
+  script:
+    # Pull pgAdmin's own licence plus the webpack-emitted third-party notices for
+    # the prebuilt JS bundles out of the wheel, so `about.license_file` finds them.
+    - python -c "import zipfile; z = zipfile.ZipFile('pgadmin4-${{ version }}-py3-none-any.whl'); z.extract('pgadmin4/LICENSE'); z.extractall(members=[n for n in z.namelist() if n.endswith('.js.LICENSE.txt')])"
+    - python -m pip install pgadmin4-${{ version }}-py3-none-any.whl --no-deps --no-build-isolation -vv
+    # Drop the POSIX launchers pip generated -- they are useless on Windows for a
+    # noarch package. rattler-build regenerates both from build.python.entry_points.
+    - python -c "import os, sysconfig; [os.path.exists(p) and os.remove(p) for p in (os.path.join(sysconfig.get_path('scripts'), n) for n in ('pgadmin4', 'pgadmin4-cli'))]"
+
+  python:
+    entry_points:
+      - pgadmin4 = pgadmin4.pgAdmin4:main
+      - pgadmin4-cli = pgadmin4.setup:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+  run:
+    - python >=${{ python_min }}
+    # Upstream pins every dependency with "==". Those pins are relaxed here to
+    # ranges that keep the intended API compatibility while remaining solvable
+    # against the rest of conda-forge.
+    - authlib >=1.7,<1.8
+    - azure-identity >=1.25.3,<2
+    - azure-mgmt-rdbms >=10.1.1,<11
+    - azure-mgmt-resource >=25.0.0,<27
+    - azure-mgmt-subscription >=3.1.1,<4
+    - bcrypt >=5.0,<6
+    - boto3 >=1.43,<2
+    - certifi >=2026.6.17
+    - cryptography >=49.0
+    - flask >=3.1,<4
+    - flask-babel >=4.0,<5
+    - flask-compress >=1,<2
+    - flask-login >=0.6,<1
+    - flask-mail >=0.9,<1
+    - flask-migrate >=4,<5
+    - flask-paranoid >=0.3,<1
+    - flask-security-too >=5.8,<6
+    - flask-socketio >=5.6,<6
+    - flask-sqlalchemy >=3.1,<4
+    - flask-wtf >=1.3,<2
+    - google-api-python-client >=2,<3
+    - google-auth-oauthlib >=1.4.0,<2
+    - jsonformatter >=0.3.4,<0.4
+    - keyring >=25,<26
+    - ldap3 >=2,<3
+    - libgravatar >=1.0,<2
+    - paramiko >=3.5.1
+    - passlib >=1,<2
+    - psutil >=7.2,<8
+    - psycopg >=3.3.4,<4
+    - pyotp >=2,<3
+    - python-dateutil >=2,<3
+    - pytz
+    - qrcode >=8,<9
+    - pillow  # the "pil" extra of qrcode
+    - setuptools
+    - sqlalchemy >=2,<3
+    - sqlparse >=0.4,<1
+    - sshtunnel >=0.4,<1
+    - typer >=0.26,<1
+    - urllib3 >=2.7,<3
+    - user-agents >=2.2.0,<3
+    - werkzeug >=3.1,<4
+    - wtforms >=3.2,<4
+    # Not listed: pywinpty (upstream requires it on win32 only, for the PSQL
+    # terminal tool). A noarch package cannot express a platform-specific run
+    # dependency, so it is omitted rather than forced onto every platform.
+    # Not listed: gssapi, which upstream only requires for the optional
+    # "kerberos" extra; install conda-forge's python-gssapi to enable it.
+
+tests:
+  - python:
+      imports:
+        - pgadmin4
+      # pip_check is disabled: upstream's metadata pins every dependency with
+      # "==", so `pip check` always fails against the relaxed conda-forge pins.
+      pip_check: false
+  - package_contents:
+      site_packages:
+        - pgadmin4/pgAdmin4.py
+        - pgadmin4/pgadmin/__init__.py
+        # The prebuilt web assets are the reason this recipe uses the wheel.
+        - pgadmin4/pgadmin/static/js/generated/app.bundle.js
+
+about:
+  homepage: https://www.pgadmin.org/
+  summary: pgAdmin 4 -- the open source management and development platform for PostgreSQL
+  description: |
+    pgAdmin 4 is a web-based administration and development platform for
+    PostgreSQL. It provides a graphical interface for browsing and editing
+    database objects, a query tool with syntax highlighting and explain plan
+    visualisation, a debugger for PL/pgSQL, backup and restore front-ends for
+    the standard PostgreSQL utilities, and dashboards for server and session
+    activity.
+
+    This package installs the server (web) mode of pgAdmin 4. Start it with the
+    `pgadmin4` command and connect a browser to the address it prints; use
+    `pgadmin4-cli` for the setup and user-management commands. The client-side
+    assets are prebuilt and shipped in the upstream wheel.
+  # pgAdmin's own code is under the PostgreSQL licence. The wheel also ships
+  # prebuilt JS bundles that vendor third-party code; every bundled component's
+  # notice is permissive (MIT/ISC/BSD-3-Clause, DOMPurify dual Apache-2.0 or
+  # MPL-2.0, Font Awesome icons CC-BY-4.0 and fonts OFL-1.1). No copyleft.
+  license: PostgreSQL AND MIT AND ISC AND BSD-3-Clause AND (Apache-2.0 OR MPL-2.0) AND OFL-1.1 AND CC-BY-4.0
+  license_file:
+    - pgadmin4/LICENSE
+    - pgadmin4/pgadmin/static/js/generated/*.js.LICENSE.txt
+  documentation: https://www.pgadmin.org/docs/
+  repository: https://github.com/pgadmin-org/pgadmin4
+
+extra:
+  recipe-maintainers:
+    - millsks
