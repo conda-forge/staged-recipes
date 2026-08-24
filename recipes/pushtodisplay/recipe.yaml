@@ -13,27 +13,23 @@ source:
 
 build:
   number: 0
+  noarch: generic
+  # Pure-JS package: one artifact for all platforms. npm's global install lays
+  # the package into lib/node_modules; we then write every platform's shim: a
+  # shell launcher for bin/ plus cmd/PowerShell launchers for the Windows
+  # Scripts directory (the conda Windows PATH convention). Each platform picks
+  # up its own shim and ignores the others.
   script:
-    - if: win
-      then:
-        - set "npm_config_cache=${{ SRC_DIR }}\.npm-cache"
-        # `call` is required: npm on Windows is npm.cmd (a batch file), and
-        # invoking a batch from a batch without `call` never returns to it.
-        - call npm pack --ignore-scripts
-        - call npm install -g --prefix "${{ PREFIX }}" "pushtodisplay-${{ version }}.tgz"
-        # npm's own --prefix shims land in the prefix root, which is not on the
-        # conda Windows PATH. The shims we write go to Scripts (the conda
-        # Windows script convention), resolving via %~dp0 (cmd) / $PSScriptRoot.
-        - if not exist "${{ PREFIX }}\Scripts" mkdir "${{ PREFIX }}\Scripts"
-        - echo @echo off> "${{ PREFIX }}\Scripts\pushtodisplay.cmd"
-        - echo node "%%~dp0..\node_modules\pushtodisplay\dist\cli.js" %%*>> "${{ PREFIX }}\Scripts\pushtodisplay.cmd"
-        - echo $ErrorActionPreference = 'Stop'> "${{ PREFIX }}\Scripts\pushtodisplay.ps1"
-        - echo node $PSScriptRoot\..\node_modules\pushtodisplay\dist\cli.js $args>> "${{ PREFIX }}\Scripts\pushtodisplay.ps1"
-      else:
-        - export HOME="${{ SRC_DIR }}"
-        - export npm_config_cache="${{ SRC_DIR }}/.npm-cache"
-        - npm pack --ignore-scripts
-        - npm install -g --prefix "${{ PREFIX }}" "pushtodisplay-${{ version }}.tgz"
+    - export HOME="${{ SRC_DIR }}"
+    - export npm_config_cache="${{ SRC_DIR }}/.npm-cache"
+    - npm pack --ignore-scripts
+    - npm install -g --prefix "${{ PREFIX }}" "pushtodisplay-${{ version }}.tgz"
+    - rm -f "${{ PREFIX }}/bin/pushtodisplay"
+    - printf '#!/bin/sh\nexec node "$(dirname "$0")/../lib/node_modules/pushtodisplay/dist/cli.js" "$@"\n' > "${{ PREFIX }}/bin/pushtodisplay"
+    - chmod +x "${{ PREFIX }}/bin/pushtodisplay"
+    - mkdir -p "${{ PREFIX }}/Scripts"
+    - printf '@echo off\r\nnode "%%~dp0..\\node_modules\\pushtodisplay\\dist\\cli.js" %%*\r\n' > "${{ PREFIX }}/Scripts/pushtodisplay.cmd"
+    - printf "$ErrorActionPreference = 'Stop'\r\nnode \$PSScriptRoot\\..\\node_modules\\pushtodisplay\\dist\\cli.js \$args\r\n" > "${{ PREFIX }}/Scripts/pushtodisplay.ps1"
 
 requirements:
   host:
