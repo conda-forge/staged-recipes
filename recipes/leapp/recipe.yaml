@@ -1,0 +1,70 @@
+context:
+  name: leapp
+  version: "0.6.0"
+  build_number: 0
+  # Upstream requires-python is >=3.10, but `fast-sugiyama` (a hard run dep of the
+  # bundled `leapp_visualization`) is only published for python >=3.11, on both
+  # PyPI and conda-forge (no cp310 build exists). A noarch package cannot express
+  # python-version-conditional run deps, so we set the minimum to 3.11: below that
+  # the run environment is unsolvable.
+  python_min: "3.11"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nvidia-isaac/leapp/releases/download/v${{ version }}/leapp-${{ version }}.tar.gz
+  sha256: 164ff80e2039aae3a24ed8d5debe0b8fb58a3a3c3e80b205b7af62c21f070a9f
+
+build:
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: ${{ build_number }}
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=61.0
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    - pytorch >=2.6.0
+    - pyyaml >=6.0
+    - onnx >=1.19.0
+    - onnxruntime >=1.20.0
+    - onnxscript >=0.1.0
+    - safetensors >=0.5.0
+    - fast-sugiyama >=0.5.3
+    - pillow >=10.0.0
+
+tests:
+  - python:
+      imports:
+        - leapp
+        - leapp_visualization
+      # `pip check` is disabled because the conda-forge `onnxruntime` package
+      # does not ship Python dist metadata, so pip wrongly reports it as missing.
+      pip_check: false
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://github.com/nvidia-isaac/leapp
+  summary: Lightweight Export Annotations for Policy Pipelines
+  description: |
+    LEAPP (Lightweight Export Annotations for Policy Pipelines) is a Python
+    package for tracing and exporting multi-step PyTorch computational graphs.
+    Annotate your existing code with lightweight markers, and LEAPP captures the
+    graph structure, exports each stage as an individual model, and generates a
+    deployment-ready YAML specification.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/nvidia-isaac/leapp
+  documentation: https://github.com/nvidia-isaac/leapp
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
