@@ -27,19 +27,15 @@ else
   export QEMU_INSTALL_PREFIX="${PREFIX}"/Library
 fi
 
-mode="${CONDA_QEMU_MODE:-system}"
-
 echo "=== QEMU Build Configuration ==="
-echo "CONDA_QEMU_TARGET: ${CONDA_QEMU_TARGET:-<empty>}"
 echo "CONDA_QEMU_TARGET_LIST: ${CONDA_QEMU_TARGET_LIST:-<empty>}"
-echo "CONDA_QEMU_MODE: ${CONDA_QEMU_MODE:-<empty>}"
-echo "CONDA_QEMU_TOOLS: ${CONDA_QEMU_TOOLS:-<empty>}"
-echo "Resolved mode: ${mode}"
 echo "================================"
 
 # Build configure arguments using feature profiles
-qemu_args=()
-build_configure_args qemu_args "${CONDA_QEMU_TARGET:-}" "${CONDA_QEMU_TOOLS:-}" "${target_platform}" "${mode}"
+# Bash 3.2 compat: build_configure_args assigns to the global
+# QEMU_CONFIGURE_ARGS array instead of taking a nameref out-parameter.
+build_configure_args "${target_platform}"
+qemu_args=("${QEMU_CONFIGURE_ARGS[@]}")
 
 # Platform-specific build
 if [[ ${target_platform} == linux-* ]] || [[ ${target_platform} == osx-* ]]; then
