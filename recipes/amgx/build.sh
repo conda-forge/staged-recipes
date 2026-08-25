@@ -18,9 +18,11 @@ cmake -B build -S . ${CMAKE_ARGS} \
   -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
   ${MPI_ARGS}
 
-# build (shared lib only)
-cmake --build build --target amgxsh -j"${CPU_COUNT}"
+# build
+cmake --build build --target amgx amgxsh -j"${CPU_COUNT}"
 
-install -Dm755 build/libamgxsh.so    "$PREFIX/lib/libamgxsh.so"
-install -Dm644 include/amgx_c.h      "$PREFIX/include/amgx_c.h"
-install -Dm644 include/amgx_config.h "$PREFIX/include/amgx_config.h"
+# install headers + libs; skip subdir rules (examples, tests, sample configs)
+cmake -DCMAKE_INSTALL_LOCAL_ONLY=ON -P build/cmake_install.cmake
+
+# drop static library
+rm "$PREFIX/lib/libamgx.a"
