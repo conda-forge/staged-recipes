@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "1.12.0"
+
+package:
+  name: dbt-oracle
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/d/dbt-oracle/dbt_oracle-${{ version }}.tar.gz
+  sha256: 0deb9d4f2ce5a27354a3480e8604a1f0dc911aeda776d874a3e7606de35affaa
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=77.0
+    - wheel
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - dbt-common >=1.1.0,<2.0
+    - dbt-adapters >=1.2.1,<2.0
+    - dbt-core >=1.12,<1.13
+    - oracledb
+    # Not declared upstream, but required by the bundled
+    # `create-pem-from-p12` helper script.
+    - cryptography
+
+tests:
+  - python:
+      imports:
+        - dbt.adapters.oracle
+        - dbt.include.oracle
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "from dbt.adapters.oracle import Plugin"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+  - if: unix
+    then:
+      script:
+        - create-pem-from-p12 --help
+      requirements:
+        run:
+          - python ${{ python_min }}.*
+  - package_contents:
+      site_packages:
+        - dbt/adapters/oracle/__init__.py
+        - dbt/include/oracle/dbt_project.yml
+
+about:
+  homepage: https://github.com/oracle/dbt-oracle
+  summary: dbt (data build tool) adapter for Oracle Autonomous Database
+  description: |
+    dbt-oracle implements dbt (data build tool) functionality for the Oracle
+    Database. It supports Oracle Autonomous Database, both in the cloud and
+    on-premises, as well as Oracle Database 19c and later, using the
+    python-oracledb driver.
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  documentation: https://docs.getdbt.com/reference/warehouse-profiles/oracle-profile
+  repository: https://github.com/oracle/dbt-oracle
+
+extra:
+  recipe-maintainers:
+    - pb01ka
