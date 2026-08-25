@@ -8,10 +8,10 @@ set -euxo pipefail
 # and not relocated piecemeal.
 #
 # Layout in $PREFIX:
-#   libexec/enumlib-jl/{bin,lib,share}   <- the application, unmodified
+#   libexec/enumlib.jl/{bin,lib,share}   <- the application, unmodified
 #   bin/{enum,polya,makestr}.x           <- thin launchers on PATH
 
-APPDIR="${PREFIX}/libexec/enumlib-jl"
+APPDIR="${PREFIX}/libexec/enumlib.jl"
 mkdir -p "${APPDIR}" "${PREFIX}/bin"
 
 # Tolerate either extraction layout: the archive has a single top-level
@@ -33,7 +33,7 @@ for exe in enum.x polya.x makestr.x; do
 # exec preserves argv and the exit status, both of which callers rely on:
 # pymatgen's EnumlibAdaptor checks the exit code and passes the input filename
 # as a positional argument.
-exec "\${CONDA_PREFIX:-${PREFIX}}/libexec/enumlib-jl/bin/${exe}" "\$@"
+exec "\${CONDA_PREFIX:-${PREFIX}}/libexec/enumlib.jl/bin/${exe}" "\$@"
 EOF
   chmod +x "${PREFIX}/bin/${exe}"
 done
