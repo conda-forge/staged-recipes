@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.15"
+  version: "0.1.16"
 
 package:
   name: pushtodisplay
@@ -9,7 +9,7 @@ package:
 
 source:
   url: https://registry.npmjs.org/pushtodisplay/-/pushtodisplay-${{ version }}.tgz
-  sha256: bc7589b6eaa49c6e0d90c602bfc6642318edeeae7954d13e20f729acb9652314
+  sha256: e91c6830f174869870652922f5dda148b46dc19979c8029503c16fee6011d381
 
 build:
   number: 0
@@ -19,13 +19,18 @@ build:
         - set -ex
         - export HOME="${{ SRC_DIR }}"
         - export npm_config_cache="${{ SRC_DIR }}/.npm-cache"
-        - pnpm install --ignore-scripts
+        # Convert the shipped npm-shrinkwrap.json and install exactly the
+        # locked versions so the license notice matches upstream's deps.
+        - pnpm import
+        - pnpm install --frozen-lockfile --ignore-scripts
         - npm pack --ignore-scripts
         - npm install --global "${SRC_DIR}/pushtodisplay-${{ version }}.tgz"
         - pnpm-licenses generate-disclaimer --output-file=THIRD_PARTY_LICENSES.txt
       else:
         - set "npm_config_cache=%SRC_DIR%\.npm-cache"
-        - call pnpm install --ignore-scripts
+        - call pnpm import
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install --frozen-lockfile --ignore-scripts
         - if %ERRORLEVEL% neq 0 exit 1
         - call npm pack --ignore-scripts
         - if %ERRORLEVEL% neq 0 exit 1
