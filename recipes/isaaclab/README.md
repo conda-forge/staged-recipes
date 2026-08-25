@@ -71,7 +71,7 @@ The package version is a dev marker, `3.0.0.devYYYYMMDD`, where the date is the 
 
 ## What is not packaged
 
-Some deps cannot be mirrored on conda-forge, either because they are closed-source and not redistributable, or because they are open source but have no feedstock yet. The two required ones (`omniverseclient`, `isaacsim-asset-isolated`) are why the base `isaaclab` does not resolve end-to-end on conda-forge yet; the others only gate their extra.
+Some deps cannot be mirrored on conda-forge, either because they are closed-source and not redistributable, because they are open source but have no feedstock yet, or because every feedstock exists but the stack does not currently co-solve. The two required ones (`omniverseclient`, `isaacsim-asset-isolated`) are why the base `isaaclab` does not resolve end-to-end on conda-forge yet; the others only gate their extra.
 
 | package | reason | required / extra |
 |---|---|---|
@@ -82,13 +82,12 @@ Some deps cannot be mirrored on conda-forge, either because they are closed-sour
 | `ovphysx` | closed-source, not redistributable | `extra=ov`, `extra=ovphysx` |
 | `ovrtx` | closed-source, not redistributable | `extra=ov`, `extra=ovrtx` |
 | `ovstage` | closed-source, not redistributable | `extra=ov`, `extra=ovphysx`, `extra=ovrtx` |
-| `pytetwild` | no conda-forge feedstock | `extra=tetrahedralization` |
 | `skrl` | no conda-forge feedstock | `extra=skrl` |
 | `rl-games` | no conda-forge feedstock | `extra=rl-games` |
 | `standard-distutils` | no conda-forge feedstock | `extra=rl-games` |
-| `leapp` | no conda-forge feedstock | `extra=leapp` |
+| `rlinf` stack | deps exist but do not co-solve (see below) | `extra=rlinf` |
 
-The closed-source deps are dropped, the OSS-without-feedstock ones are kept commented in `recipe.yaml` so they can be re-enabled once a feedstock exists. The extra subpackages disabled as a consequence: `isaaclab-tetrahedralization`, `isaaclab-skrl`, `isaaclab-rl-games`, `isaaclab-rlinf`, plus the omitted `isaacsim`/`teleop`. Everything else builds: `isaaclab`, `isaaclab-all`, `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`, `isaaclab-mimic`.
+The closed-source deps are dropped, the OSS-without-feedstock ones are kept commented in `recipe.yaml` so they can be re-enabled once a feedstock exists. The extra subpackages disabled as a consequence: `isaaclab-skrl` and `isaaclab-rl-games` (`rl-games` needs both `rl-games` and `standard-distutils`), `isaaclab-rlinf` (all its deps are on conda-forge now, but `decord2` pulls `ffmpeg 9` -> `libopenvino-onnx-frontend` -> `libabseil 20260526`, while `ray-default` pins `libgrpc` to an older `libabseil`, so the stack does not co-solve until the conda-forge `libabseil` migration settles), plus the omitted `isaacsim`/`teleop`. Everything else builds: `isaaclab`, `isaaclab-all`, `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`, `isaaclab-mimic`, `isaaclab-tetrahedralization`, `isaaclab-leapp`.
 
 ## Pin changes vs upstream
 
@@ -102,6 +101,7 @@ Upstream uses several exact pins that conda-forge cannot always match, plus two 
 | `daqp` | `==0.8.5` | `0.8.5.*` | relax |
 | `usd-exchange` | `==2.3.0` | `>=2.3.0` | relax |
 | `rsl-rl-lib` | `==5.4.1` | `5.4.1.*` | relax |
+| `pytetwild` (PyPI `pytetwild[all]`) | `>=0.3.0,<0.4` | `>=0.3.0` (+ `pyvista`) | relax the `<0.4` cap: conda-forge only ships 0.4.2, and the `tetrahedralize` API is unchanged. `pyvista` is the sole member of the `[all]` extra |
 | `pyarrow` | transitive via `rerun-sdk` | `22.0.*` | match `rerun-sdk`'s Arrow stack |
 | `newton-sim` (PyPI `newton[sim]`) | git rev `release-1.5` (`uv` override), spec `>=1.2.0` | `>=1.5.0` | match the `release-1.5` line upstream actually needs (their spec bump is pending) |
 | `newton-usd-schemas` | `>=0.4.1` (`uv` override) | `>=0.4.1` | match the upstream `uv` override |
@@ -117,7 +117,7 @@ Some of the changes here are conda-forge specific and stay local, but a few are 
 | Medium | Wheel build layout | To flatten every `isaaclab_*` extension into one wheel, `tools/wheel_builder/build.sh` copies each inner package to top-level, duplicates `config/`/`data/` into it, `sed`-patches the `EXT_DIR = ...os.path.join(os.path.dirname(__file__), "../")` line (e.g. in `isaaclab_assets`) from `../` to `""`, then deletes the inner copy and `data/` while keeping `config/extension.toml` for Kit discovery. It hardcodes the `../` string and the `config`/`data` names and duplicates data. Resolving resources via `importlib.resources` would remove the per-package copy-and-`sed`. |
 | Medium | `newton[sim]` declared spec | Upstream declares `newton>=1.2.0` but overrides it to the `release-1.5` git line via `uv`, so the real floor is 1.5. Bumping the declared spec to `>=1.5.0` drops the `uv` override and lets plain resolvers (conda-forge included) pick the right version. |
 | Medium | Exact `==` pins | `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib` are pinned exact in `pyproject.toml` with no technical need. Exact pins force conda-forge to shadow every patch release and make co-install hard. The declared specs should be `>=` on the lowest version with a sufficient API, and the exact reproducible versions should stay in the upstream `uv.lock`, which is the right place for hard pinning. Already raised upstream in [isaac-sim/IsaacLab#5084](https://github.com/isaac-sim/IsaacLab/issues/5084#issuecomment-4138346195). |
-| Low | Missing feedstocks | `pytetwild`, `skrl`, `rl-games` are open source but have no conda-forge feedstock, so their extras cannot be packaged. Upstream nudging them toward a feedstock would unblock those extras. |
+| Low | Missing feedstocks | `skrl` and `rl-games` (plus its `standard-distutils`) are open source but have no conda-forge feedstock, so their extras cannot be packaged. Upstream nudging them toward a feedstock would unblock those extras. |
 | Low | `albumentations` is archived | The `rlinf` extra depends on `albumentations`, whose repository is archived and no longer maintained. It has been superseded by [`albumentationsx`](https://github.com/albumentations-team/AlbumentationsX). Moving the extra to `albumentationsx` tracks a maintained package (its conda-forge recipe is in [conda-forge/staged-recipes#34440](https://github.com/conda-forge/staged-recipes/pull/34440)). |
 | Low | Unit tests not runnable against an installed package | Several `unit`-marked tests do not run against the installed, CPU-only, kitless package. Some hardcode `device="cuda:0"` instead of parametrizing over the available device (e.g. `deps/test_torch.py`, one case in `utils/warp/test_proxy_array.py`), so they fail where no GPU is present. Others read the source checkout instead of the package (root `pyproject.toml`, `uv.lock`, `tools/`, `apps/`, `scripts/`), e.g. `cli/test_install*`, `cli/test_uv_run_pyproject`, `cli/test_wheel_builder_metadata`, `cli/test_source_package_metadata`, `app/test_experience_files`, `test_scripts_warp_backward_ordering`. Making the `unit` suite device-agnostic and independent of the checkout layout would let downstream packagers run it as-is (this recipe excludes those files and the GPU-only cases in its test). |
 

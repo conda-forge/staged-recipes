@@ -204,9 +204,11 @@ outputs:
       run:
         - python >=${{ python_min }}
         - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-leapp', exact=True) }}
         - ${{ pin_subpackage('isaaclab-mimic', exact=True) }}
         - ${{ pin_subpackage('isaaclab-rerun', exact=True) }}
         - ${{ pin_subpackage('isaaclab-sb3', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-tetrahedralization', exact=True) }}
         - ${{ pin_subpackage('isaaclab-video', exact=True) }}
         - ${{ pin_subpackage('isaaclab-viser', exact=True) }}
     tests:
@@ -299,16 +301,49 @@ outputs:
             - robomimic
           pip_check: false
           python_version: ${{ python_min }}.*
-  # Inactive extras: deps are OSS but missing on conda-forge (keep commented).
+  # ===========================
+  # isaaclab-tetrahedralization
+  # ===========================
+  - package:
+      name: isaaclab-tetrahedralization
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        # Upstream pins pytetwild[all] >=0.3.0,<0.4 but conda-forge only ships 0.4.2.
+        # Relax the upper bound: the `from pytetwild import tetrahedralize` API that
+        # isaaclab.sim.schemas uses is unchanged across 0.3/0.4. pyvista mirrors the
+        # pytetwild [all] extra (its only member). TODO: drop the relax once upstream
+        # lifts the <0.4 cap.
+        - pytetwild >=0.3.0
+        - pyvista
+    tests:
+      - python:
+          imports:
+            - pytetwild
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-leapp
+  # ==============
+  - package:
+      name: isaaclab-leapp
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - leapp >=0.5.2
+    tests:
+      - python:
+          imports:
+            - leapp
+          pip_check: false
+          python_version: ${{ python_min }}.*
+  # Inactive extras: kept commented until they can be packaged.
   # The rsl-rl extra is already in the base install, so it needs no subpackage.
   #
-  # - package:
-  #     name: isaaclab-tetrahedralization
-  #   requirements:
-  #     run:
-  #       - ${{ pin_subpackage('isaaclab', exact=True) }}
-  #       - python >=${{ python_min }}
-  #       - pytetwild >=0.3.0,<0.4  # missing in conda-forge (feedstock in progress)
+  # skrl and rl-games have no conda-forge feedstock yet (rl-games also needs
+  # standard-distutils, itself missing).
   #
   # - package:
   #     name: isaaclab-skrl
@@ -329,6 +364,12 @@ outputs:
   #       - rl-games          # missing in conda-forge (git @ python3.11)
   #       - standard-distutils  # missing in conda-forge
   #
+  # rlinf: every dep is now on conda-forge, but the stack does not co-solve.
+  # decord2 pulls ffmpeg 9 -> libopenvino-onnx-frontend -> libabseil 20260526, while
+  # ray-default pins libgrpc to an older libabseil, so the two cannot share it. Wait
+  # for the conda-forge libabseil migration to settle (ray/grpc to catch up), then
+  # re-enable. Verify with a dry-run solve of the run list below before uncommenting.
+  #
   # - package:
   #     name: isaaclab-rlinf
   #   requirements:
@@ -338,6 +379,7 @@ outputs:
   #       - ray-default >=2.47.0
   #       - av >=12.3.0
   #       - numpydantic >=1.7.0
+  #       # albumentations is archived upstream (superseded by albumentationsx).
   #       - albumentations >=1.4.18
   #       - decord2
   #       - dm-tree >=0.1.8
