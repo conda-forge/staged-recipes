@@ -1,0 +1,45 @@
+Subject: [PATCH] Do not vendor Composable Kernel
+
+`3rdparty/composable_kernel` (~42 MB of headers) is only ever used as an `-I`
+flag for `hipcc` when JIT-compiling for a ROCm/HIP target -- see
+`COMPOSABLE_KERNEL_INCLUDE_DIR` in `tilelang/engine/lower.py` and
+`tilelang/jit/adapter/libgen.py`. This build does not enable the ROCm/HIP
+backend, so drop the copy entirely.
+
+`TL_COMPOSABLE_KERNEL_PATH` still lets anyone point at their own Composable
+Kernel checkout. The unconditional "not found" warning is demoted to the case
+where a ROCm installation is actually present, otherwise every `import
+tilelang` on a CUDA or CPU-only machine prints a warning about a backend that
+was never going to be used.
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 7c3b122..827f5d5 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -132,9 +132,8 @@ tilelang = "tilelang"
+ "tilelang/3rdparty/tvm/version.py" = "3rdparty/tvm/version.py"
+ # CUTLASS is not vendored here: the headers are taken from the environment
+ # (see tilelang/env.py) so that a single, shared copy can be used.
+-# Composable Kernel
+-"tilelang/3rdparty/composable_kernel/include" = "3rdparty/composable_kernel/include"
+-"tilelang/3rdparty/composable_kernel/library" = "3rdparty/composable_kernel/library"
++# Composable Kernel is not vendored here: it is only used by the ROCm/HIP
++# backend, which this build does not enable.
+ 
+ 
+ 
+diff --git a/tilelang/env.py b/tilelang/env.py
+index 691db90..affc554 100644
+--- a/tilelang/env.py
++++ b/tilelang/env.py
+@@ -404,7 +404,9 @@ if os.environ.get("TL_COMPOSABLE_KERNEL_PATH", None) is None:
+     ck_inc_path = os.path.join(THIRD_PARTY_ROOT, "composable_kernel", "include")
+     if os.path.exists(ck_inc_path):
+         os.environ["TL_COMPOSABLE_KERNEL_PATH"] = env.COMPOSABLE_KERNEL_INCLUDE_DIR = ck_inc_path
+-    else:
++    elif env.ROCM_HOME:
++        # Only the ROCm/HIP backend needs Composable Kernel, so stay quiet when
++        # there is no ROCm installation to use it with.
+         logger.warning(COMPOSABLE_KERNEL_NOT_FOUND_MESSAGE)
+ 
+ # Initialize TL_TEMPLATE_PATH
