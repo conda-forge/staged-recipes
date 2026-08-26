@@ -15,9 +15,9 @@ build_install_qemu() {
   local qemu_args=("${@:-}")
 
   # Set up pkg-config
-  export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
-  export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-  export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig"
+  #export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
+  #export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+  #export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig"
 
   # Platform-specific configure flags
   local platform_args=()
@@ -87,11 +87,11 @@ build_install_qemu_non_unix() {
   # Hardcode the path instead of relying on `which pkg-config`: PATH in this
   # build environment doesn't include ${BUILD_PREFIX}/Library/bin, so a PATH
   # lookup fails (mirrors the Unix branch's hardcoded PKG_CONFIG above).
-  local _pkg_config="$(echo ${BUILD_PREFIX}/Library/bin/pkg-config.exe | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
-  local _pkg_config_path="$(echo ${PREFIX}/Library/lib/pkgconfig | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
-  export PKG_CONFIG="${_pkg_config}"
-  export PKG_CONFIG_PATH="${_pkg_config_path}"
-  export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
+  # local _pkg_config="$(echo ${BUILD_PREFIX}/Library/bin/pkg-config.exe | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
+  # local _pkg_config_path="$(echo ${PREFIX}/Library/lib/pkgconfig | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
+  # export PKG_CONFIG="${_pkg_config}"
+  # export PKG_CONFIG_PATH="${_pkg_config_path}"
+  # export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
   # Ensure the mingw compiler toolchain is on PATH: QEMU's configure runs a
   # compiler check for x86_64-w64-mingw32-gcc.exe, which lives under
@@ -105,33 +105,12 @@ build_install_qemu_non_unix() {
   setup_windows_build_env "${build_dir}" "${SRC_DIR}/qemu_source"
 
   pushd "${build_dir}" || exit 1
-
-    # DEBUG (temporary, CI investigation only): show which "meson" bash's
-    # PATH lookup resolves to right before configure runs its internal
-    # `meson setup` invocation.
-    echo "DEBUG: which meson (before configure) -> $(command -v meson 2>/dev/null || echo not-found)"
-
     # Configure
     ${SRC_DIR}/qemu_source/configure \
       --prefix="${install_dir}" \
       --disable-download \
       "${qemu_args[@]}" \
       --enable-strip > "${SRC_DIR}"/_configure.log 2>&1 || { cat "${SRC_DIR}"/_configure.log; exit 1; }
-
-    # DEBUG (temporary, CI investigation only): unconditionally show
-    # CONDA-DEBUG diagnostics written by the configure patch, since they
-    # would otherwise be silently swallowed inside _configure.log (which
-    # is only cat'd on configure FAILURE, not on success).
-    echo "DEBUG: contents of _conda_debug.log (if any):"
-    cat "${SRC_DIR}/_conda_debug.log" 2>/dev/null || echo "DEBUG: _conda_debug.log not found or empty"
-
-    # DEBUG (temporary, CI investigation only): show which "meson" resolves
-    # to after configure, and what command(s) meson baked into build.ninja
-    # for the config-poison custom target -- this reveals exactly which
-    # meson path/wrapper ninja will later try to CreateProcess directly.
-    echo "DEBUG: which meson (after configure) -> $(command -v meson 2>/dev/null || echo not-found)"
-    echo "DEBUG: build.ninja config-poison related line(s):"
-    grep -E "config-poison|--internal exe|make-config-poison" build.ninja 2>/dev/null || true
 
     # Force meson's implicit self-regeneration of build.ninja (its
     # REGENERATE_BUILD ninja edge) to run and complete now, BEFORE we patch
