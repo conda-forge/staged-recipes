@@ -13,9 +13,10 @@ setup_nu_pyvenv() {
   ./pyvenv/Scripts/pip install --no-index  --find-links="${qemu_src}/python/wheels" pycotap
 
   local _meson_exe
-  _meson_exe="$(which meson.exe 2>/dev/null || which meson)"
-  [[ -z "${_meson_exe}" ]] && { echo "ERROR: meson not found in PATH"; popd || return 1; return 1; }
+  _meson_exe="$(which meson.exe 2>/dev/null || which meson 2>/dev/null)" || _meson_exe=""
+  [[ -z "${_meson_exe}" ]] && { echo "ERROR: meson not found in PATH" >&2; popd || return 1; return 1; }
 
+  echo "Creating meson wrapper pointing to: ${_meson_exe}"
   local _meson_win
   _meson_win="$(cygpath -w "${_meson_exe}" 2>/dev/null || echo "${_meson_exe}")"
 
