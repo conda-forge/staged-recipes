@@ -24,7 +24,7 @@ build_install_qemu() {
   local strip_arg="--enable-strip"
   if [[ "${target_platform}" == osx-* ]]; then
     platform_args+=(--disable-pvg)  # Requires macOS 12+ SDK
-    platform_args+=(--disable-hvf)  # HVF entitlement script requires Rez (not in modern SDK)
+    platform_args+=(--disable-hvf)  # TODO: revisit -- retained pending a separate HVF/codesign trial
     strip_arg="--disable-strip"     # Strip conflicts with code signing on macOS
   fi
 
@@ -42,27 +42,7 @@ build_install_qemu() {
 
     # Build and install
     ninja -j"${CPU_COUNT}" > "${SRC_DIR}"/_make.log 2>&1 || { cat "${SRC_DIR}"/_make.log; exit 1; }
-      # macOS: QEMU's entitlement.sh calls Rez which uses xcodebuild to find tools.
-      # The Rez wrapper derives SDK path from MACOSX_DEPLOYMENT_TARGET (11.0) but
-      # that SDK doesn't exist in modern Xcode (16.4 requires minimum SDK 14.0).
-      # Workaround: temporarily unset both MACOSX_DEPLOYMENT_TARGET and SDKROOT
-      # to let xcrun find the current Xcode SDK, then restore them.
-      if [[ "${target_platform}" == osx-* ]]; then
-        _saved_deployment_target="${MACOSX_DEPLOYMENT_TARGET:-}"
-        _saved_sdkroot="${SDKROOT:-}"
-        unset MACOSX_DEPLOYMENT_TARGET
-        unset SDKROOT
-        export SDKROOT="$(xcrun --show-sdk-path)"
-        ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
-        if [[ -n "${_saved_deployment_target}" ]]; then
-          export MACOSX_DEPLOYMENT_TARGET="${_saved_deployment_target}"
-        fi
-        if [[ -n "${_saved_sdkroot}" ]]; then
-          export SDKROOT="${_saved_sdkroot}"
-        fi
-      else
-        ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
-      fi
+    ninja install > "${SRC_DIR}"/_install.log 2>&1 || { cat "${SRC_DIR}"/_install.log; exit 1; }
 
     # macOS: Strip extended attributes before codesigning
     if [[ "${target_platform}" == osx-* ]]; then

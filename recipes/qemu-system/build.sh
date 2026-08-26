@@ -4,7 +4,6 @@ set -euxo pipefail
 IFS=$'\n\t'
 
 source "${RECIPE_DIR}/helpers/build_install_qemu.sh"
-source "${RECIPE_DIR}/helpers/feature_profiles.sh"
 
 # --- Main ---
 
