@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "0.4.1"
+  python_min: "3.10"
+
+package:
+  name: datamaite
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/d/datamaite/datamaite-${{ version }}.tar.gz
+  sha256: 9b9706e858dc3c400d46229a96c9f01e813cc43f9b4a4c1a72e6a83e07c0dd45
+
+build:
+  number: 0
+  noarch: python
+  # UV_DYNAMIC_VERSIONING_BYPASS is inert on 0.4.1 (sdist has a static
+  # version and build-system requires only hatchling). It is load-bearing
+  # from 0.5.0, whose sdist derives the version from the git tag and ships
+  # no .git — without bypass the backend falls back to 0.0.0 while the
+  # conda package is named 0.5.0.
+  script:
+    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    env:
+      UV_DYNAMIC_VERSIONING_BYPASS: ${{ version }}
+  python:
+    entry_points:
+      - datamaite = datamaite._cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+    # Unused on 0.4.1; required from 0.5.0 (see build script comment).
+    - uv-dynamic-versioning
+  run:
+    - python >=${{ python_min }},<3.15
+    - pydantic >=2.0
+    - numpy >=1.24
+    - fsspec >=2024.5.0
+    - universal_pathlib >=0.3.8
+
+tests:
+  - python:
+      imports:
+        - datamaite
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - datamaite --help
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://pypi.org/project/datamaite/
+  summary: A unified framework for dataset loading, conversion, and quality validation.
+  license: Apache-2.0
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - mikemazara
