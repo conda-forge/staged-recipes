@@ -25,5 +25,5 @@ if %ERRORLEVEL% neq 0 exit 1
 cargo install --locked --no-track --root "%PREFIX%" --path crates\server
 if %ERRORLEVEL% neq 0 exit 1
 
-cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates\kpar
+cargo install --locked --no-track --root "%PREFIX%" --path crates\kpar
 if %ERRORLEVEL% neq 0 exit 1
