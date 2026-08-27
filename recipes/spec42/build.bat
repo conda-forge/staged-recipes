@@ -22,7 +22,7 @@ if %ERRORLEVEL% neq 0 exit 1
 :: server and CLI, which is the only artifact upstream publishes) and `kpar-pack` from
 :: crates\kpar. Installed under %LIBRARY_PREFIX% so they land in Library\bin, which is
 :: on PATH in an activated environment.
-cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates\server
+cargo install --locked --no-track --root "%PREFIX%" --path crates\server
 if %ERRORLEVEL% neq 0 exit 1
 
 cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates\kpar
