@@ -8,13 +8,12 @@ import quadrants as qd
 if sys.platform.startswith("linux"):
     package_root = Path(qd.__file__).parent
     if platform.machine() == "x86_64":
-        # CUDA driver libraries are optional at runtime, so verify the packaged
-        # backend bitcode instead of requiring CI to have an NVIDIA device.
-        assert qd._lib.core.with_cuda()
+        # with_cuda() reports runtime driver availability, so verify the
+        # generated backend bitcode without requiring CI to have an NVIDIA GPU.
         assert (package_root / "_lib/runtime/runtime_cuda.bc").is_file()
-    # This binding and result require the compiled Vulkan backend and loader.
+    # This binding is only exported when the Vulkan backend is compiled.
+    # with_vulkan() also probes runtime device availability, which CPU CI lacks.
     assert hasattr(qd._lib.core, "set_vulkan_visible_device")
-    assert qd._lib.core.with_vulkan()
 elif sys.platform == "darwin":
     assert qd._lib.core.with_metal()
 
