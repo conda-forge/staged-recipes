@@ -331,6 +331,58 @@ outputs:
       summary: TensorRT ONNX parser runtime library
 
   - package:
+      name: tensorrt-tools
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - if: linux
+          then:
+            - tar
+            - zstd
+        - if: win
+          then:
+            - libarchive
+        - if: aarch64
+          then: arm-variant * ${{ arm_variant_type }}
+      host:
+        - cuda-version ==${{ cuda_compiler_version }}
+        - ${{ pin_subpackage("libnvinfer", exact=True) }}
+        - ${{ pin_subpackage("libnvonnxparser", exact=True) }}
+      run:
+        - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+        - ${{ pin_subpackage("libnvinfer", exact=True) }}
+        - ${{ pin_subpackage("libnvonnxparser", exact=True) }}
+        - cuda-cudart
+      run_constraints:
+        - if: aarch64
+          then: arm-variant * ${{ arm_variant_type }}
+      ignore_run_exports:
+        by_name:
+          - cuda-version
+    tests:
+      - package_contents:
+          files:
+            - if: linux
+              then:
+                - bin/trtexec
+                - bin/tensorrt_player
+            - if: win
+              then:
+                - Library/bin/trtexec.exe
+      - script:
+          - if: linux
+            then:
+              - trtexec --help
+              - tensorrt_player --help
+          - if: win
+            then:
+              - trtexec.exe --help
+    about:
+      summary: TensorRT command-line tools
+
+  - package:
       name: libnvinfer-headers
     requirements:
       build:
@@ -362,9 +414,6 @@ outputs:
       name: libnvinfer-devel
     requirements:
       build:
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ stdlib("c") }}
         - if: linux
           then:
             - tar
@@ -375,11 +424,9 @@ outputs:
       host:
         - ${{ pin_subpackage("libnvinfer", exact=True) }}
         - ${{ pin_subpackage("libnvinfer-headers", exact=True) }}
-        - ${{ pin_subpackage("libnvonnxparser", exact=True) }}
       run:
         - ${{ pin_subpackage("libnvinfer", exact=True) }}
         - ${{ pin_subpackage("libnvinfer-headers", exact=True) }}
-        - ${{ pin_subpackage("libnvonnxparser", exact=True) }}
         - cuda-cudart-dev_${{ target_platform }}
         - cuda-crt-dev_${{ target_platform }}
       # Only the -devel outputs carry run_exports, because linking requires the
@@ -390,15 +437,11 @@ outputs:
       - package_contents:
           files:
             - if: linux
-              then:
-                - bin/trtexec
-                - lib/libnvinfer.so
+              then: lib/libnvinfer.so
             - if: win
-              then:
-                - Library/bin/trtexec.exe
-                - Library/lib/nvinfer_${{ soname }}.lib
+              then: Library/lib/nvinfer_${{ soname }}.lib
     about:
-      summary: TensorRT development libraries and binaries
+      summary: TensorRT development libraries
 
   - package:
       name: libnvinfer-dispatch-devel

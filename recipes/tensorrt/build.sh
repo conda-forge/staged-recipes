@@ -15,10 +15,10 @@ case "${PKG_NAME}" in
     exit 0
     ;;
   libnvinfer-devel)
-    files=(
-      '*/bin/trtexec'
-      '*/lib/libnvinfer.so'
-    )
+    files=('*/lib/libnvinfer.so')
+    ;;
+  tensorrt-tools)
+    files=('*/bin/trtexec' '*/bin/tensorrt_player')
     ;;
   libnvinfer-dispatch-devel)
     files=('*/lib/libnvinfer_dispatch.so')

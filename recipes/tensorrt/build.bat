@@ -19,11 +19,8 @@ if "%PKG_NAME%"=="libnvinfer" (
 )
 
 set "TRT_PATTERN="
-set "TRT_BIN_PATTERN="
-if "%PKG_NAME%"=="libnvinfer-devel" (
-  set "TRT_PATTERN=*/lib/nvinfer_[0123456789]*.lib"
-  set "TRT_BIN_PATTERN=*/bin/trtexec.exe"
-)
+if "%PKG_NAME%"=="libnvinfer-devel" set "TRT_PATTERN=*/lib/nvinfer_[0123456789]*.lib"
+if "%PKG_NAME%"=="tensorrt-tools" set "TRT_PATTERN=*/bin/trtexec.exe"
 if "%PKG_NAME%"=="libnvinfer-dispatch-devel" set "TRT_PATTERN=*/lib/nvinfer_dispatch*.lib"
 if "%PKG_NAME%"=="libnvinfer-lean-devel" set "TRT_PATTERN=*/lib/nvinfer_lean*.lib"
 if "%PKG_NAME%"=="libnvinfer-plugin-devel" set "TRT_PATTERN=*/lib/nvinfer_plugin*.lib"
@@ -40,11 +37,7 @@ if not defined TRT_PATTERN (
   exit /b 1
 )
 
-if defined TRT_BIN_PATTERN (
-  bsdtar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "%TRT_BIN_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
-) else (
-  bsdtar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
-)
+bsdtar -xf tensorrt.zip --strip-components 1 "%TRT_PATTERN%" "*/doc/README.txt" "*/doc/Acknowledgements.txt"
 
 :extracted
 if errorlevel 1 exit /b 1
