@@ -9,12 +9,22 @@ package:
   version: ${{ version }}
 
 source:
+  # Upstream publishes an sdist only sporadically (5 of the last 8 releases were
+  # wheels-only). If a future version has no sdist, fall back to the GitHub tag
+  # plus the meflib submodule -- see git history of this recipe.
   url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
   sha256: 242074b714a0762cd1cc6ec2447c662f7a46dbddbfe49f2af0abff93ff08bb96
 
 build:
   number: 0
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip:
+    - match(python, "<3.10")
+  script:
+    # The vendored meflib C is compiled straight into the extension and contains
+    # ~100 type-punning pointer casts; upstream also hardcodes -O3.
+    - if: unix
+      then: export CFLAGS="${CFLAGS} -fno-strict-aliasing"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
@@ -23,9 +33,8 @@ requirements:
   host:
     - python
     - pip
-    - setuptools >=42
-    - wheel
-    - numpy >=2.0
+    - setuptools
+    - numpy
   run:
     - python
     - numpy >=2.0
@@ -34,8 +43,13 @@ tests:
   - python:
       imports:
         - pymef
-        - pymef.mef_file
+        - pymef.mef_file.pymef3_file
       pip_check: true
+  - script:
+      - python -m unittest discover -s tests -v
+    files:
+      source:
+        - tests/
 
 about:
   summary: Python wrapper for Multiscale Electrophysiology Format (MEF)
@@ -45,7 +59,13 @@ about:
     MEF is a medical data file format designed for storing neurophysiological
     electrographic data, such as intracranial EEG.
   license: Apache-2.0
-  license_file: LICENSE.txt
+  license_file:
+    - LICENSE.txt
+    # meflib and its bundled AES/SHA-256/UTF-8 code are compiled into the
+    # extension, but the sdist ships no license for them (MANIFEST.in includes
+    # only meflib/meflib/*.c and *.h), so the notices are carried here.
+    - vendored_licenses/meflib.txt
+    - vendored_licenses/meflib_third_party.txt
   homepage: https://github.com/msel-source/pymef
   repository: https://github.com/msel-source/pymef
   documentation: https://pymef.readthedocs.io/
