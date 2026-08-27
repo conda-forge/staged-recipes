@@ -1,0 +1,65 @@
+context:
+    version: "1.15.0"
+
+package:
+    name: pdf-inspector
+    version: ${{ version }}
+
+source:
+    url: https://github.com/firecrawl/pdf-inspector/archive/v${{ version }}.tar.gz
+    sha256: 156fbfed4765a4a9e3974f8b402a4fd04420301d1d960c0ca2963a1b2ee8a29f
+
+build:
+    number: 0
+    script:
+        env:
+            CARGO_PROFILE_RELEASE_STRIP: symbols
+            CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+            - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+            - if: unix
+              then:
+                  - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path . --locked --no-track --features ocr --bin pdf2md --bin detect-pdf --bin dump_ops
+              else:
+                  - cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path . --locked --no-track --features ocr --bin pdf2md --bin detect-pdf --bin dump_ops
+
+requirements:
+    build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+
+tests:
+    - script:
+          - if: unix
+            then:
+                - 'grep -q "^Usage: " <<< "$(pdf2md 2>&1)"'
+                - 'grep -q "^Usage: " <<< "$(detect-pdf 2>&1)"'
+                - 'grep -q "^Usage: " <<< "$(dump_ops 2>&1)"'
+            else:
+                - 'pdf2md 2>&1 | findstr /b /c:"Usage: "'
+                - 'detect-pdf 2>&1 | findstr /b /c:"Usage: "'
+                - 'dump_ops 2>&1 | findstr /b /c:"Usage: "'
+    - package_contents:
+          strict: true
+          bin:
+              - pdf2md
+              - detect-pdf
+              - dump_ops
+
+about:
+    homepage: https://github.com/firecrawl/pdf-inspector
+    summary: "Fast Rust library for PDF inspection, classification, and text extraction."
+    description: |
+        Fast Rust library for PDF inspection, classification, and text extraction. Intelligently detects scanned vs text-based PDFs to enable smart routing decisions.
+    license: MIT
+    license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+    repository: https://github.com/firecrawl/pdf-inspector
+
+extra:
+    recipe-maintainers:
+        - XhstormR
