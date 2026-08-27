@@ -1,8 +1,7 @@
+schema_version: 1
+
 context:
   version: "0.4.4"
-  # conda-forge's textual requires Python >=3.10 at every published version,
-  # so override the global python_min. Upstream itself supports 3.9.
-  python_min: "3.10"
 
 package:
   name: pythonlings
@@ -15,11 +14,8 @@ source:
 build:
   noarch: python
   number: 0
-  script: python -m pip install . -vv --no-deps --no-build-isolation
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   python:
-    # Required for noarch: python, so the launcher is generated per platform
-    # at install time. Without it the console script is not registered and the
-    # command does not resolve on Windows.
     entry_points:
       - pythonlings = pythonlings.cli:main
 
@@ -30,15 +26,7 @@ requirements:
     - pip
   run:
     - python >=${{ python_min }}
-    # Upstream declares textual[syntax]. That extra pulls sixteen tree-sitter
-    # grammar packages, and the core tree-sitter binding is not available on
-    # conda-forge. Pythonlings degrades gracefully without it: the built-in
-    # editor falls back to unhighlighted text, and checks, progress, hints and
-    # the bundled offline documentation are unaffected.
     - textual >=8.0.0
-    # Only used on Python < 3.11, where tomllib is not in the standard library.
-    # A noarch package cannot express the environment marker, and the package
-    # is pure Python and tiny, so it is required unconditionally.
     - tomli >=1.1.0
 
 tests:
@@ -54,10 +42,6 @@ tests:
         - "*"
   - script:
       - pythonlings --version
-      # Exercises the console entry point, the bundled curriculum data and the
-      # exercise runner together. The curriculum ships as package data, so init
-      # fails immediately if it did not survive the build, and solution runs a
-      # reference answer against its check in an isolated subprocess.
       - pythonlings init --path plw
       - pythonlings --root plw solution variables1
     requirements:
@@ -78,9 +62,6 @@ about:
   license: MIT AND PSF-2.0 AND 0BSD
   license_file:
     - LICENSE
-    # The package bundles trimmed excerpts of the official Python
-    # documentation for offline use. NOTICE.md records their PSF-2.0 and 0BSD
-    # licensing, and is shipped inside the package.
     - pythonlings/docs/NOTICE.md
   documentation: https://pythonlings.abhik.ai/
   repository: https://github.com/abhiksark/pythonlings
