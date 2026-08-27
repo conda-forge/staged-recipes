@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: PyGEL3D
-  version: "0.6.1"
+  version: "0.8.0"
 
 package:
   name: ${{ name|lower }}
@@ -10,12 +10,10 @@ package:
 
 source:
   url: https://github.com/janba/GEL/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 6495f79e8713a068de18eb99a9f0903e190ca9d0ac286265face57d4a5a422e1
+  sha256: 589dbddfe727033b0ef66a1c1c564617a3b672f19181137df88e23d389432026
   patches:
-    - patches/0001-respect-conda-osx-architectures.patch
-    - patches/0002-remove-headless-gl-header-dependency.patch
-    - patches/0003-exclude-viewer-from-headless-build.patch
-    - patches/0004-include-windows-runtime-dll.patch
+    # Remove once upstream no longer forces universal2 and its own deployment target.
+    - patches/0001-respect-conda-osx-settings.patch
 
 build:
   number: 0
@@ -24,16 +22,22 @@ build:
     - match(python, "<3.11")
     - match(python, ">=3.12")
   script:
-    - cmake -S . -B build -G Ninja -DUse_GLGraphics=OFF -DCMAKE_BUILD_TYPE=Release
+    - if: unix
+      then: cmake ${CMAKE_ARGS} -S . -B build -G Ninja -DUse_GLGraphics=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+    - if: win
+      then: cmake %CMAKE_ARGS% -S . -B build -G Ninja -DUse_GLGraphics=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
     - if: linux
       then:
         - cmake --build build --config Release --parallel 1
+        - export PYGEL_NATIVE_LIB="${SRC_DIR}/build/libPyGEL.so"
     - if: osx
       then:
         - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - export PYGEL_NATIVE_LIB="${SRC_DIR}/build/libPyGEL.dylib"
     - if: win
       then:
         - cmake --build build --config Release --parallel %CPU_COUNT%
+        - set "PYGEL_NATIVE_LIB=%SRC_DIR%\build\PyGEL.dll"
     - python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -41,17 +45,17 @@ requirements:
     - ${{ compiler("c") }}
     - ${{ compiler("cxx") }}
     - ${{ stdlib("c") }}
-    - cmake
+    - cmake >=3.25
     - ninja
   host:
     - python
     - pip
-    - setuptools
+    - setuptools >=77
     - wheel
   run:
     - python
     - numpy
-    - plotly ==5.24.1
+    - plotly >=5.24.1,<6
     - scipy
 
 tests:
@@ -73,7 +77,7 @@ tests:
 about:
   homepage: https://github.com/janba/GEL
   summary: Python bindings for GEL polygonal mesh geometry processing
-  license: LicenseRef-GEL
+  license: MIT
   license_file: LICENSE.md
 
 extra:
