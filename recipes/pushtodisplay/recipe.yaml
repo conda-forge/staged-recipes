@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  version: "0.1.16"
+
+package:
+  name: pushtodisplay
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/pushtodisplay/-/pushtodisplay-${{ version }}.tgz
+  sha256: e91c6830f174869870652922f5dda148b46dc19979c8029503c16fee6011d381
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - set -ex
+        - export HOME="${{ SRC_DIR }}"
+        - export npm_config_cache="${{ SRC_DIR }}/.npm-cache"
+        # Convert the shipped npm-shrinkwrap.json and install exactly the
+        # locked versions so the license notice matches upstream's deps.
+        - pnpm import
+        - pnpm install --frozen-lockfile --ignore-scripts
+        - npm pack --ignore-scripts
+        - npm install --global "${SRC_DIR}/pushtodisplay-${{ version }}.tgz"
+        - pnpm-licenses generate-disclaimer --output-file=THIRD_PARTY_LICENSES.txt
+      else:
+        - set "npm_config_cache=%SRC_DIR%\.npm-cache"
+        - call pnpm import
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm install --frozen-lockfile --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global %SRC_DIR%/pushtodisplay-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --output-file=THIRD_PARTY_LICENSES.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+  run:
+    - nodejs
+
+tests:
+  - package_contents:
+      bin:
+        - pushtodisplay
+  - script:
+      - pushtodisplay --version
+      - pushtodisplay --help
+
+about:
+  homepage: https://pushtodisplay.com
+  summary: CLI and MCP server for Push To Display - send real-time updates to display boards from your terminal
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_LICENSES.txt
+  repository: https://github.com/pushtodisplay/cli
+  documentation: https://pushtodisplay.com/docs/cli
+
+extra:
+  recipe-maintainers:
+    - sourceshipper
