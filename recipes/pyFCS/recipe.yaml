@@ -1,7 +1,6 @@
 schema_version: 1
 
 context:
-  python_min: "3.10"
   version: 0.1.5
 
 package:
@@ -14,43 +13,52 @@ source:
 
 build:
   number: 0
+  skip: is_abi3 and not is_python_min
   script:
     env:
       - SETUPTOOLS_SCM_PRETEND_VERSION_FOR_${DIST_NAME}
     content:
-      - "${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
+      - ${{ PYTHON }} -m pip install . -vv
+  python:
+      version_independent: ${{ is_abi3 }}
 
 requirements:
   build:
     - ${{ compiler('c') }}
-    - ${{ stdlib("c") }}
+    - ${{ stdlib('c') }}
     - if: build_platform != host_platform
       then:
         - python
         - cross-python_${{ host_platform }}
   host:
-    - python ${{ python_min }}.*
+    - if: is_abi3
+      then: python-abi3
+    - python
     - setuptools >=77
     - setuptools-scm >=8.0
     - numpy >=1.20
     - pip
   run:
-    - python >=${{ python_min }}
+    - python
     - ${{ pin_compatible('numpy') }}
 
 tests:
   - python:
-      python_version:
-        - ${{ python_min }}.*
-        - "*"
       imports:
         - pyFCS
-  - requirements:
-      run:
-        - pip
-        - python ${{ python_min }}.*
-    script:
-      - pip check
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/pyFCS.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/pyFCS.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   summary: Functions for performing auto and cross-correlations of single photon data with and without weights
