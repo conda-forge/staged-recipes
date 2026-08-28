@@ -20,8 +20,9 @@ if %ERRORLEVEL% neq 0 exit 1
 
 :: Two binaries from two workspace members: `spec42` from crates\server (the language
 :: server and CLI, which is the only artifact upstream publishes) and `kpar-pack` from
-:: crates\kpar. Installed under %LIBRARY_PREFIX% so they land in Library\bin, which is
-:: on PATH in an activated environment.
+:: crates\kpar. Installed under %PREFIX% so they land in bin, matching build.sh. conda
+:: puts %PREFIX%\bin on PATH when activating on Windows, and rattler-build's
+:: package_contents bin check globs bin\ as well as Library\bin\ and Scripts\.
 cargo install --locked --no-track --root "%PREFIX%" --path crates\server
 if %ERRORLEVEL% neq 0 exit 1
 
