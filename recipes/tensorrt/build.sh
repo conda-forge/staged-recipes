@@ -82,5 +82,6 @@ if compgen -G 'lib/*.so' > /dev/null; then
 fi
 if [[ -d bin ]]; then
   mkdir -p "${PREFIX}/bin"
+  check-glibc bin/*
   mv -v bin/* "${PREFIX}/bin/"
 fi
