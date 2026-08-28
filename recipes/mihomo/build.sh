@@ -5,8 +5,15 @@ set -o xtrace -o nounset -o pipefail -o errexit
 export CGO_ENABLED=0
 export GOFLAGS="${GOFLAGS:-} -tags=with_gvisor"
 
+if [[ -n "${SOURCE_DATE_EPOCH:-}" ]]; then
+    BUILDTIME="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+        || date -u -r "${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)"
+else
+    BUILDTIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+fi
+
 go build -trimpath \
-    -ldflags="-s -w -buildid= -X github.com/metacubex/mihomo/constant.Version=${PKG_VERSION}" \
+    -ldflags="-s -w -buildid= -X github.com/metacubex/mihomo/constant.Version=${PKG_VERSION} -X github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}" \
     -o "${PREFIX}/bin/mihomo"
 
 # go-licenses cannot classify the GPL-3.0-or-later notice used by these

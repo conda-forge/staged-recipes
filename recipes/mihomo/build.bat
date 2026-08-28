@@ -4,7 +4,13 @@
 set CGO_ENABLED=0
 set GOFLAGS=%GOFLAGS% -tags=with_gvisor
 
-go build -trimpath -ldflags="-s -w -buildid= -X github.com/metacubex/mihomo/constant.Version=%PKG_VERSION%" -o "%LIBRARY_BIN%\mihomo.exe" || goto :error
+if defined SOURCE_DATE_EPOCH (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "[DateTimeOffset]::FromUnixTimeSeconds([long]$env:SOURCE_DATE_EPOCH).UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set "BUILDTIME=%%I"
+) else (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set "BUILDTIME=%%I"
+)
+
+go build -trimpath -ldflags="-s -w -buildid= -X github.com/metacubex/mihomo/constant.Version=%PKG_VERSION% -X github.com/metacubex/mihomo/constant.BuildTime=%BUILDTIME%" -o "%LIBRARY_BIN%\mihomo.exe" || goto :error
 
 go-licenses save . --save_path library_licenses ^
     --ignore github.com/metacubex/mihomo ^
