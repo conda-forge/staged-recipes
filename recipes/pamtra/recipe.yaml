@@ -1,0 +1,109 @@
+context:
+  version: "1.0.3"
+
+# v1 (rattler-build) recipe. conda-forge/staged-recipes requires this format for
+# new submissions -- the old conda-build v0 meta.yaml format is deprecated for
+# new recipes. Usable today for local testing with rattler-build
+# (`pixi global install rattler-build && rattler-build build --recipe
+# conda-recipe/recipe.yaml -c conda-forge`); intended as the direct basis for
+# a future conda-forge/staged-recipes submission, which is a separate,
+# manual maintainer step (needs its own PR review process there) and not
+# something this recipe does on its own. See RELEASING.md for the full
+# release process.
+
+package:
+  name: pamtra
+  version: ${{ version }}
+
+source:
+  url: https://github.com/igmk/pamtra/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 81a30557fe7e1ecdb0db7b9d01b30d8e201bbae6f64ac8e3c5e2bceb81ea4c65
+
+build:
+  number: 0
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  # meson.build's openblas fallback logic prefers an env-local libopenblas
+  # (this recipe's own host dependency) over pkg-config or Homebrew, so no
+  # extra environment wiring is needed here for that.
+  skip:
+    # PAMTRA has never been built on Windows (no Windows CI in the
+    # upstream repo) and its Fortran code hasn't been verified against
+    # MSVC. Revisit once someone can actually test a Windows build.
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - pkg-config
+    - ninja
+  host:
+    - python
+    - pip
+    - meson-python
+    - cython
+    - numpy
+    - netcdf4
+    - libopenblas
+    - fftw
+    # meson.build unconditionally adds -lz for zlib, which needs the
+    # unversioned libz.so symlink from `zlib` (not just the runtime
+    # libzlib.so.1) to be present at link time.
+    - zlib
+    # libnetcdf is intentionally not listed explicitly -- it's pulled in
+    # transitively via netcdf-fortran. Listing it here would make
+    # conda-forge's global pinning force an exact libnetcdf version, which
+    # can be newer than what the current netcdf4 (Python bindings) build
+    # supports, making the environment unsolvable.
+    - netcdf-fortran
+  run:
+    - python
+    # numpy is intentionally not listed here either -- it has run_exports
+    # set (see conda-forge/numpy-feedstock), so host: numpy already pulls
+    # a properly-versioned constraint into run: automatically.
+    - scipy
+    - netcdf4
+    - matplotlib-base
+    # libopenblas and netcdf-fortran are intentionally not listed here --
+    # both have run_exports set, so listing them in host: already pulls
+    # them into run: automatically with an appropriate version constraint.
+    - pooch
+    - tqdm
+
+tests:
+  # PAMTRA_DATADIR must be set (even to "") before `import pyPamtra` --
+  # otherwise it tries to auto-fetch external data over the network, which
+  # isn't appropriate for a package test -- see conftest.py's
+  # PAMTRA_DATADIR handling for why the test suite always sets this first.
+  - script:
+      - PAMTRA_DATADIR="" python -c "import pyPamtra"
+      # --rootdir=. pins pytest's config discovery to the test working
+      # directory -- without it, pytest walks upward past a local `path: ..`
+      # build dir (nested inside this checkout) and picks up this repo's
+      # own pyproject.toml as rootdir instead.
+      - PAMTRA_DATADIR="" pytest tests -v --rootdir=.
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests
+        - descriptorfiles
+
+about:
+  homepage: https://github.com/igmk/pamtra
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: Passive and Active Microwave TRAnsfer radiative transfer model
+  description: |
+    Python/Fortran 90 package to solve the passive and active microwave
+    radiative transfer in a plane-parallel horizontally homogeneous
+    atmosphere with hydrometeors.
+  documentation: https://pamtra.readthedocs.io/
+  repository: https://github.com/igmk/pamtra
+
+extra:
+  recipe-maintainers:
+    - maahn
