@@ -5,15 +5,19 @@ from pathlib import Path
 import quadrants as qd
 
 
-if sys.platform.startswith("linux"):
-    package_root = Path(qd.__file__).parent
-    if platform.machine() == "x86_64":
-        # with_cuda() reports runtime driver availability, so verify the
-        # generated backend bitcode without requiring CI to have an NVIDIA GPU.
-        assert (package_root / "_lib/runtime/runtime_cuda.bc").is_file()
+package_root = Path(qd.__file__).parent
+machine = platform.machine().lower()
+
+if sys.platform != "darwin":
+    # The availability helpers probe for physical devices. Verify the packaged
+    # backend payloads instead, since conda-forge CI has no GPUs.
+    assert (package_root / "_lib/runtime/runtime_cuda.bc").is_file()
+    assert (package_root / "_lib/runtime/slim_libdevice.10.bc").is_file()
     # This binding is only exported when the Vulkan backend is compiled.
-    # with_vulkan() also probes runtime device availability, which CPU CI lacks.
     assert hasattr(qd._lib.core, "set_vulkan_visible_device")
+    if sys.platform.startswith("linux") and machine in {"amd64", "x86_64"}:
+        assert (package_root / "_lib/runtime/runtime_amdgpu.bc").is_file()
+        assert any((package_root / "_lib/runtime_rocm70").glob("*.bc"))
 elif sys.platform == "darwin":
     assert qd._lib.core.with_metal()
 

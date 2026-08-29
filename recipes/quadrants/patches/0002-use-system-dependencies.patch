@@ -1,0 +1,219 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge staged-recipes <conda-forge@users.noreply.github.com>
+Date: Sat, 29 Aug 2026 06:45:00 -0700
+Subject: [PATCH] Use packaged dependencies and shared LLVM
+
+Allow distribution builds to use packaged Eigen, spdlog, DLPack, SPIR-V,
+Vulkan headers, and volk. Link the shared LLVM library on Unix to avoid
+embedding LLVM's static component libraries in the Python extension.
+
+The distribution mode also keeps the x86_64 baseline portable, uses the
+dynamic C++ runtime, accepts source archives without Git metadata, and adapts
+the bundled-spdlog call sites to external fmt 11.
+---
+ CMakeLists.txt                   | 35 +++++++++++++++++++++++++++++------
+ cmake/QuadrantsCXXFlags.cmake   |  2 +-
+ cmake/QuadrantsCore.cmake       | 29 +++++++++++++++++++++--------
+ quadrants/analysis/verify.cpp   |  2 +-
+ quadrants/common/logging.h      |  3 +++
+ quadrants/system/profiler.cpp   |  4 ++++
+ quadrants/system/traceback.cpp  |  4 ++++
+ 7 files changed, 63 insertions(+), 16 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 957820a31..0410b98ed 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -25,14 +25,22 @@ execute_process(
+   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   COMMAND git rev-parse --short HEAD
+   RESULT_VARIABLE SHORT_HASH_RESULT
+-  OUTPUT_VARIABLE QD_COMMIT_SHORT_HASH)
++  OUTPUT_VARIABLE QD_COMMIT_SHORT_HASH
++  ERROR_QUIET)
+ execute_process(
+   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   COMMAND git rev-parse HEAD
+-  RESULT_VARIABLE SHORT_HASH_RESULT
+-  OUTPUT_VARIABLE QD_COMMIT_HASH)
+-string(STRIP ${QD_COMMIT_HASH} QD_COMMIT_HASH)
+-string(STRIP ${QD_COMMIT_SHORT_HASH} QD_COMMIT_SHORT_HASH)
++  RESULT_VARIABLE HASH_RESULT
++  OUTPUT_VARIABLE QD_COMMIT_HASH
++  ERROR_QUIET)
++if(SHORT_HASH_RESULT)
++  set(QD_COMMIT_SHORT_HASH "unknown")
++endif()
++if(HASH_RESULT)
++  set(QD_COMMIT_HASH "unknown")
++endif()
++string(STRIP "${QD_COMMIT_HASH}" QD_COMMIT_HASH)
++string(STRIP "${QD_COMMIT_SHORT_HASH}" QD_COMMIT_SHORT_HASH)
+ 
+ # When built through scikit-build-core, the version is provided as SKBUILD_PROJECT_VERSION
+ # (sourced from setuptools_scm). Extract the leading numeric MAJOR.MINOR.PATCH core into the
+@@ -158,6 +166,31 @@ if (QD_WITH_PYTHON)
+     include(cmake/PythonNanobind.cmake)
+ endif()
+ 
++option(QD_USE_SYSTEM_DEPS "Use system-provided third-party dependencies" OFF)
++if (QD_USE_SYSTEM_DEPS)
++    find_package(Eigen3 CONFIG REQUIRED)
++    find_package(spdlog CONFIG REQUIRED)
++    find_package(dlpack CONFIG REQUIRED)
++    find_package(SPIRV-Headers CONFIG REQUIRED)
++    find_package(SPIRV-Tools CONFIG REQUIRED)
++    find_package(SPIRV-Tools-opt CONFIG REQUIRED)
++
++    # Keep the existing source-level include paths unchanged while supplying
++    # headers and compile definitions from the packaged dependencies.
++    link_libraries(
++        Eigen3::Eigen
++        spdlog::spdlog
++        dlpack::dlpack
++        SPIRV-Headers::SPIRV-Headers
++        SPIRV-Tools)
++
++    if (QD_WITH_VULKAN)
++        find_package(VulkanHeaders CONFIG REQUIRED)
++        find_package(volk CONFIG REQUIRED)
++        link_libraries(Vulkan::Headers volk::volk_headers)
++    endif()
++endif()
++
+ if (QD_WITH_BACKTRACE)
+   add_subdirectory(external/backward_cpp)
+ endif()
+diff --git a/cmake/QuadrantsCXXFlags.cmake b/cmake/QuadrantsCXXFlags.cmake
+index 3d8e541f5..c51739aaf 100644
+--- a/cmake/QuadrantsCXXFlags.cmake
++++ b/cmake/QuadrantsCXXFlags.cmake
+@@ -119,7 +119,7 @@ if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESSOR}"
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DQD_ARCH_x64")
+         if ("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=apple-m1")
+-        else()
++        elseif (NOT QD_USE_SYSTEM_DEPS)
+             message("Setting -march=x86-64-v3 for x86_64 processors")
+             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64-v3")
+         endif()
+diff --git a/cmake/QuadrantsCore.cmake b/cmake/QuadrantsCore.cmake
+index 11ffda587..7ed99a900 100644
+--- a/cmake/QuadrantsCore.cmake
++++ b/cmake/QuadrantsCore.cmake
+@@ -222,6 +222,17 @@ if(QD_WITH_LLVM)
+         target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE amdgpu_runtime)
+     endif()
+ 
++    if (QD_USE_SYSTEM_DEPS AND UNIX)
++        find_library(QD_LLVM_SHARED_LIBRARY
++            NAMES LLVM-${LLVM_VERSION_MAJOR} LLVM
++            HINTS ${LLVM_LIBRARY_DIRS}
++            REQUIRED)
++        set(llvm_libs ${QD_LLVM_SHARED_LIBRARY})
++        set(llvm_aarch64_libs "")
++        set(llvm_ptx_libs "")
++        set(llvm_amdgpu_libs "")
++    endif()
++
+     add_subdirectory(quadrants/codegen/llvm)
+     add_subdirectory(quadrants/runtime/llvm)
+     add_subdirectory(quadrants/runtime/program_impls/llvm)
+@@ -230,7 +241,7 @@ if(QD_WITH_LLVM)
+     target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE llvm_codegen)
+     target_link_libraries(${CORE_LIBRARY_NAME} PRIVATE llvm_runtime)
+ 
+-    if (LINUX)
++    if (LINUX AND NOT QD_USE_SYSTEM_DEPS)
+         # Remove symbols from llvm static libs
+         foreach(LETTER ${llvm_libs})
+             target_link_options(${CORE_LIBRARY_NAME} PUBLIC -Wl,--exclude-libs=lib${LETTER}.a)
+@@ -271,9 +282,13 @@ endif()
+ 
+ # SPIR-V codegen is always there, regardless of Vulkan
+ set(SPIRV_SKIP_EXECUTABLES true)
+-set(SPIRV-Headers_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/SPIRV-Headers)
+-set(ENABLE_SPIRV_TOOLS_INSTALL OFF)
+-add_subdirectory(external/SPIRV-Tools)
++if (QD_USE_SYSTEM_DEPS)
++  set(SPIRV_TOOLS SPIRV-Tools)
++else()
++  set(SPIRV-Headers_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/SPIRV-Headers)
++  set(ENABLE_SPIRV_TOOLS_INSTALL OFF)
++  add_subdirectory(external/SPIRV-Tools)
++endif()
+ add_subdirectory(quadrants/codegen/spirv)
+ add_subdirectory(quadrants/runtime/gfx)
+ 
+@@ -344,8 +359,10 @@ if(QD_WITH_PYTHON)
+     # Remove symbols from static libs: https://stackoverflow.com/a/14863432/12003165
+     if (LINUX)
+         target_link_options(${CORE_WITH_PYBIND_LIBRARY_NAME} PUBLIC -Wl,--exclude-libs=ALL)
+-        target_link_options(${CORE_WITH_PYBIND_LIBRARY_NAME} PUBLIC -static-libgcc -static-libstdc++)
+-        target_link_libraries(${CORE_WITH_PYBIND_LIBRARY_NAME} PUBLIC stdc++fs)
++        if (NOT QD_USE_SYSTEM_DEPS)
++            target_link_options(${CORE_WITH_PYBIND_LIBRARY_NAME} PUBLIC -static-libgcc -static-libstdc++)
++            target_link_libraries(${CORE_WITH_PYBIND_LIBRARY_NAME} PUBLIC stdc++fs)
++        endif()
+     endif()
+ 
+     if (QD_WITH_BACKTRACE)
+diff --git a/quadrants/analysis/verify.cpp b/quadrants/analysis/verify.cpp
+index 0573f5709..cde30abec 100644
+--- a/quadrants/analysis/verify.cpp
++++ b/quadrants/analysis/verify.cpp
+@@ -94,7 +94,7 @@ class IRVerifier : public BasicStmtVisitor {
+       QD_ERROR("offloaded {} ({})->body is nullptr", offloaded_task_type_name(stmt->task_type), stmt->name());
+     } else if (!stmt->has_body() && stmt->body) {
+       QD_ERROR("offloaded {} ({})->body is {} (should be nullptr)", offloaded_task_type_name(stmt->task_type),
+-               stmt->name(), fmt::ptr(stmt->body));
++               stmt->name(), fmt::ptr(stmt->body.get()));
+     }
+     stmt->all_blocks_accept(this);
+   }
+diff --git a/quadrants/common/logging.h b/quadrants/common/logging.h
+index bd66cb92a..ad823111e 100644
+--- a/quadrants/common/logging.h
++++ b/quadrants/common/logging.h
+@@ -10,6 +10,9 @@
+ // before including "spdlog/fmt/fmt.h"
+ #include "spdlog/common.h"
+ #include "spdlog/fmt/fmt.h"
++#if defined(SPDLOG_FMT_EXTERNAL)
++#include <fmt/ranges.h>
++#endif
+ namespace spdlog {
+ class logger;
+ }
+diff --git a/quadrants/system/profiler.cpp b/quadrants/system/profiler.cpp
+index 52796e8db..79bc182f7 100644
+--- a/quadrants/system/profiler.cpp
++++ b/quadrants/system/profiler.cpp
+@@ -1,5 +1,9 @@
+ #include "quadrants/system/profiler.h"
++#if defined(SPDLOG_FMT_EXTERNAL)
++#include <fmt/color.h>
++#else
+ #include "spdlog/fmt/bundled/color.h"
++#endif
+ 
+ namespace quadrants {
+ 
+diff --git a/quadrants/system/traceback.cpp b/quadrants/system/traceback.cpp
+index dd6463d84..b8114875c 100644
+--- a/quadrants/system/traceback.cpp
++++ b/quadrants/system/traceback.cpp
+@@ -13,7 +13,11 @@
+ #include <algorithm>
+ #include <memory>
+ #include <mutex>
++#if defined(SPDLOG_FMT_EXTERNAL)
++#include <fmt/color.h>
++#else
+ #include "spdlog/fmt/bundled/color.h"
++#endif
+ 
+ #if defined(__APPLE__) || (defined(__unix__) && !defined(__linux__))
+ #include <execinfo.h>
+-- 
+2.51.0
