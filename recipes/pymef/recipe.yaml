@@ -1,0 +1,78 @@
+schema_version: 1
+
+context:
+  name: pymef
+  version: "1.4.8"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # Upstream publishes an sdist only sporadically (5 of the last 8 releases were
+  # wheels-only). If a future version has no sdist, fall back to the GitHub tag
+  # plus the meflib submodule -- see git history of this recipe.
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 242074b714a0762cd1cc6ec2447c662f7a46dbddbfe49f2af0abff93ff08bb96
+
+build:
+  number: 0
+  script:
+    # The vendored meflib C is compiled straight into the extension and contains
+    # ~100 type-punning pointer casts; upstream also hardcodes -O3.
+    #
+    # pymef3_file.h declares its create_*_dtype helpers with an empty parameter
+    # list and registers them as METH_VARARGS. GCC >=14 rejects that outright,
+    # so keep it a warning until upstream fixes the prototypes.
+    - if: unix
+      then: export CFLAGS="${CFLAGS} -fno-strict-aliasing -Wno-error=incompatible-pointer-types"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - numpy
+  run:
+    - python
+    - numpy >=2.0
+
+tests:
+  - python:
+      imports:
+        - pymef
+        - pymef.mef_file.pymef3_file
+      pip_check: true
+  - script:
+      - python -m unittest discover -s tests -v
+    files:
+      source:
+        - tests/
+
+about:
+  summary: Python wrapper for Multiscale Electrophysiology Format (MEF)
+  description: |
+    Pymef is a wrapper library for Multiscale Electrophysiology Format (MEF)
+    version 3.0, developed by the Mayo Systems Electrophysiology Laboratory.
+    MEF is a medical data file format designed for storing neurophysiological
+    electrographic data, such as intracranial EEG.
+  license: Apache-2.0
+  license_file:
+    - LICENSE.txt
+    # meflib and its bundled AES/SHA-256/UTF-8 code are compiled into the
+    # extension, but the sdist ships no license for them (MANIFEST.in includes
+    # only meflib/meflib/*.c and *.h), so the notices are carried here.
+    - vendored_licenses/meflib.txt
+    - vendored_licenses/meflib_third_party.txt
+  homepage: https://github.com/msel-source/pymef
+  repository: https://github.com/msel-source/pymef
+  documentation: https://pymef.readthedocs.io/
+
+extra:
+  recipe-maintainers:
+    - bruAristimunha
+    - larsoner
