@@ -1,0 +1,75 @@
+# conda-forge recipe for officework (v1 format).
+# Update context.version and source.sha256 on each release:
+#   curl -s https://pypi.org/pypi/officework/json | python3 -c "import json,sys; \
+#     print([u['digests']['sha256'] for u in json.load(sys.stdin)['urls'] \
+#            if u['packagetype']=='sdist'][0])"
+
+context:
+  version: "0.3.0"
+
+package:
+  name: officework
+  version: ${{ version }}
+
+source:
+  # The 0.3.0 sdist does not carry the LICENSE file, so it is fetched from
+  # the tagged source as a second entry (from 0.4.0 the sdist will carry it)
+  - url: https://pypi.org/packages/source/o/officework/officework-${{ version }}.tar.gz
+    sha256: b37a1c27c6b1f1d970ba3c1143021dee8cd98c8749ae27c5742f8bdab5223c1d
+  - url: https://raw.githubusercontent.com/aiseed-dev/officework/v${{ version }}/LICENSE
+    sha256: 0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0
+    file_name: LICENSE
+
+build:
+  number: 0
+  # Windows first ships from PyPI wheels; conda build starts with Linux/mac
+  skip:
+    - win
+  # The sdist is self-contained (path dependencies are bundled by maturin)
+  script:
+    # AGPL notice duty: bundle the licenses of the Rust dependencies
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.9,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - officework
+  - script:
+      - python -c "from officework import sheet, doc, calc, tex"
+
+about:
+  homepage: https://github.com/aiseed-dev/officework
+  repository: https://github.com/aiseed-dev/officework
+  documentation: https://github.com/aiseed-dev/officework/blob/main/docs/python-manual.md
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: An openpyxl / python-docx / xlwings alternative — xlsx and docx engines that keep forms intact and recalculate formulas
+  description: |
+    Write values into real-world xlsx forms while borders, merges, column
+    widths and number formats survive untouched; edit docx the same way
+    (only what you changed is written back). Formulas recalculate on
+    reopen. Code written for openpyxl, xlwings or python-docx largely
+    runs as-is. `officework.tex` typesets LaTeX equations (TeX if
+    installed, matplotlib's mathtext otherwise). `from officework import
+    calc` attaches to a running calc (xlwings-style Book/Range) when the
+    desktop app is present.
+
+extra:
+  recipe-maintainers:
+    - awoni
