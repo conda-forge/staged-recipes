@@ -4,7 +4,7 @@ context:
   name: quadrants
   version: "1.3.0"
 
-package:
+recipe:
   name: ${{ name|lower }}
   version: ${{ version }}
 
@@ -47,92 +47,135 @@ source:
 
 build:
   number: 0
-  # This is the Python range declared by upstream's pyproject.toml.
-  skip:
-    - match(python, ">=3.14")
 
-requirements:
-  build:
-    - ${{ compiler("c") }}
-    - ${{ compiler("cxx") }}
-    - ${{ stdlib("c") }}
-    - clang >=22,<23
-    - cmake >=3.17
-    - ninja
-  host:
-    - python
-    - pip
-    - setuptools_scm >=6.0
-    - numpy >=2.0.0
-    - nanobind >=2.0.0,<2.14.0
-    - scikit-build-core >=0.10
-    # Upstream generates nanobind stubs at install time, which imports quadrants.
-    - colorama
-    - dill
-    - pydantic >=2.0.0
-    - rich >=1.0.0
-    - setuptools >=77.0.0
-    - cffi >=1.16.0
-    - llvmdev >=22,<23
-    # Static LLVM targets on Windows reference these support libraries.
-    - if: win
-      then:
-        - libxml2-devel
-        - zlib
-        - zstd
-    - spdlog >=1.14.1,<1.15
-    - fmt >=11,<12
-    - eigen >=3.4,<4
-    - dlpack >=1.2,<2
-    - spirv-headers >=1.4.328.0,<1.4.329
-    - spirv-tools >=2025.4,<2025.5
-    - if: not osx
-      then:
-        - libvulkan-headers >=1.4.313,<1.5
-        - vulkan-volk >=1.4.304,<1.5
-  run:
-    - python
-    - numpy >=1.26.0
-    - colorama
-    - dill
-    - pydantic >=2.0.0
-    - rich >=1.0.0
-    - setuptools >=77.0.0
-    - cffi >=1.16.0
-    - if: unix
-      then: libllvm22 >=22,<23
-    - spirv-tools >=2025.4,<2025.5
-    - if: not osx
-      then: libvulkan-loader
+outputs:
+  - package:
+      name: quadrants
+    build:
+      # This is the Python range declared by upstream's pyproject.toml.
+      skip:
+        - match(python, ">=3.14")
+      script:
+        - if: unix
+          then: bash "${RECIPE_DIR}/build.sh"
+        - if: win
+          then: call "%RECIPE_DIR%\\build.bat"
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - clang >=22,<23
+        - cmake >=3.17
+        - ninja
+      host:
+        - python
+        - pip
+        - setuptools_scm >=6.0
+        - numpy >=2.0.0
+        # This upper bound is declared by upstream's pyproject.toml.
+        - nanobind >=2.0.0,<2.14.0
+        - scikit-build-core >=0.10
+        # Upstream generates nanobind stubs at install time, which imports quadrants.
+        - colorama
+        - dill
+        - pydantic >=2.0.0
+        - rich >=1.0.0
+        - setuptools >=77.0.0
+        - cffi >=1.16.0
+        # Quadrants embeds LLVM 22 bitcode and links against the matching runtime.
+        - llvmdev >=22,<23
+        # Static LLVM targets on Windows reference these support libraries.
+        - if: win
+          then:
+            - libxml2-devel
+            - zlib
+            - zstd
+        - spdlog >=1.14.1
+        - fmt >=11
+        - eigen >=3.4
+        - dlpack >=1.2
+        - spirv-headers >=1.4.328.0
+        - spirv-tools >=2025.4
+        - if: not osx
+          then:
+            - libvulkan-headers >=1.4.313
+            - vulkan-volk >=1.4.304
+      run:
+        - python
+        - numpy >=1.26.0
+        - colorama
+        - dill
+        - pydantic >=2.0.0
+        - rich >=1.0.0
+        - setuptools >=77.0.0
+        - cffi >=1.16.0
+        - if: unix
+          then: libllvm22 >=22,<23
+        - spirv-tools >=2025.4
+        - if: not osx
+          then: libvulkan-loader
+    tests:
+      - python:
+          imports:
+            - quadrants
+            - quadrants._lib.core.quadrants_python
+      - script:
+          - pip check
+          - python run_test.py
+          - if: unix
+            then: QD_WANTED_ARCHS=cpu python -m pytest -q tests/python/test_smoke.py tests/python/test_basics.py::test_range_loops
+          - if: win
+            then: set QD_WANTED_ARCHS=cpu&& python -m pytest -q tests/python/test_smoke.py tests/python/test_basics.py::test_range_loops
+        files:
+          source:
+            - tests/__init__.py
+            - tests/test_utils.py
+            - tests/python/__init__.py
+            - tests/python/conftest.py
+            - tests/python/test_smoke.py
+            - tests/python/test_basics.py
+          recipe:
+            - run_test.py
+        requirements:
+          run:
+            - pip
+            - pytest
+            - pytest-xdist >=3.7
+            - python
 
-tests:
-  - python:
-      imports:
-        - quadrants
-        - quadrants._lib.core.quadrants_python
-  - script:
-      - pip check
-      - python run_test.py
-      - if: unix
-        then: QD_WANTED_ARCHS=cpu python -m pytest -q tests/python/test_smoke.py tests/python/test_basics.py::test_range_loops
-      - if: win
-        then: set QD_WANTED_ARCHS=cpu&& python -m pytest -q tests/python/test_smoke.py tests/python/test_basics.py::test_range_loops
-    files:
-      source:
-        - tests/__init__.py
-        - tests/test_utils.py
-        - tests/python/__init__.py
-        - tests/python/conftest.py
-        - tests/python/test_smoke.py
-        - tests/python/test_basics.py
-      recipe:
-        - run_test.py
+  - package:
+      name: quadrants-cuda
+    build:
+      skip:
+        - match(python, ">=3.14") or osx
     requirements:
       run:
-        - pip
-        - pytest
-        - pytest-xdist >=3.7
-        - python
+        - ${{ pin_subpackage("quadrants", exact=True) }}
+        # Quadrants 1.3 recognizes the CUDA 10-12 cuBLAS SONAMEs.
+        - cuda-version <13
+        - libcublas
+        - libcusolver
+        - libcusparse
+    tests:
+      - python:
+          imports:
+            - quadrants
+
+  - package:
+      name: quadrants-rocm
+    build:
+      skip:
+        - match(python, ">=3.14") or not linux or not x86_64
+    requirements:
+      run:
+        - ${{ pin_subpackage("quadrants", exact=True) }}
+        # This is the minimum supported version documented upstream.
+        - hip-runtime-amd >=5.2
+    tests:
+      - python:
+          imports:
+            - quadrants
 
 about:
   homepage: https://github.com/Genesis-Embodied-AI/quadrants
@@ -151,5 +194,6 @@ about:
   repository: https://github.com/Genesis-Embodied-AI/quadrants
 
 extra:
+  feedstock-name: quadrants
   recipe-maintainers:
     - jeongseok-meta
