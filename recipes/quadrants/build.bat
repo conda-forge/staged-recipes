@@ -11,6 +11,7 @@ set "SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%"
 rem Quadrants invokes Clang separately to emit embedded LLVM runtime bitcode.
 set "CLANG_EXECUTABLE=%BUILD_PREFIX%\Library\bin\clang++.exe"
 if not exist "%CLANG_EXECUTABLE%" set "CLANG_EXECUTABLE=%BUILD_PREFIX%\Library\bin\clang.exe"
+set "CLANG_EXECUTABLE=%CLANG_EXECUTABLE:\=/%"
 
 rem Upstream forcibly disables AMDGPU on Windows; CUDA and Vulkan are supported.
 set "CMAKE_ARGS=%CMAKE_ARGS% -DQD_WITH_CUDA=ON -DQD_WITH_AMDGPU=OFF -DQD_WITH_VULKAN=ON -DQD_WITH_METAL=OFF -DQD_USE_SYSTEM_DEPS=ON -DQD_BUILD_TESTS=OFF -DSPIRV_WERROR=OFF -DCLANG_EXECUTABLE=%CLANG_EXECUTABLE%"
