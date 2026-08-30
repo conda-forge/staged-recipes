@@ -17,28 +17,44 @@ NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
 HERE = Path(__file__).parent
 ROOT = (HERE / ".." / ".." / "..").absolute()
 
+
+def _test_and_raise_besides_file_not_exists(e: github.GithubException):
+    if isinstance(e, github.UnknownObjectException):
+        return
+    if e.status == 404 and "No object found" in e.data["message"]:
+        return
+    raise e
+
+
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
     hints = defaultdict(list)
     fnames = set(f.filename for f in pr.get_files())
     labels = set(label.name for label in pr.get_labels())
     extra_edits = False
-    example_recipes = ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]
+    example_recipes = [
+        "recipes/example-v0-deprecated/meta.yaml",
+        "recipes/example-v1/recipe.yaml",
+    ]
 
     # 1. Do not edit or delete example recipes and only edit recipe files
     if "maintenance" not in labels:
         for fname in fnames:
             if fname in example_recipes:
-                lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+                lints[fname].append(
+                    "Do not edit or delete example recipes in `recipes/example-v0-deprecated/` or `recipe/example-v1/`."
+                )
                 extra_edits = True
             if not fname.startswith("recipes/"):
-                lints[fname].append("Do not edit files outside of the `recipes/` directory.")
+                lints[fname].append(
+                    "Do not edit files outside of the `recipes/` directory."
+                )
                 extra_edits = True
 
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
         if (
-            fname.startswith("recipes/example/")
+            fname.startswith("recipes/example-v0-deprecated/")
             or fname.startswith("recipes/example-v1/")
             or fname.startswith("recipes/meta.y")
             or fname.startswith("recipes/recipe.y")
@@ -49,18 +65,18 @@ def _lint_recipes(gh, pr):
             )
 
     # 3. Ensure environment.yaml and pixi.toml are in sync
-    original_environment_yaml = (ROOT / "environment.yaml").read_text()
+    original_environment_yaml = (ROOT / "environment.yaml").read_text().rstrip()
     pixi_exported_env_yaml = check_output(
         ["pixi", "project", "export", "conda-environment", "-e", "build"],
         text=True,
-    )
+    ).rstrip()
     if original_environment_yaml != pixi_exported_env_yaml:
         import difflib
 
         _orig_lines = original_environment_yaml.splitlines(keepends=True)
         _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
         print("environment diff:", flush=True)
-        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
+        print("".join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
         lints["environment.yaml"].append(
             "The `environment.yaml` file is out of sync with `pixi.toml`. "
             "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
@@ -81,6 +97,11 @@ def _lint_recipes(gh, pr):
                 content = render_meta_yaml("".join(fh))
                 meta = get_yaml().load(content)
             recipe_version = 0
+            hints[fname].append(
+                "The v0 `meta.yaml` recipe format is deprecated. Please use the v1 "
+                "`recipe.yaml` format unless v1 cannot support this recipe, and explain "
+                "the exception in this PR."
+            )
         else:
             meta = get_yaml().load(Path(fname))
             recipe_version = 1
@@ -94,9 +115,7 @@ def _lint_recipes(gh, pr):
         outputs_section = get_section(
             meta, "outputs", lints, recipe_version=recipe_version
         )
-        extra_section = get_section(
-            meta, "extra", lints, recipe_version=recipe_version
-        )
+        extra_section = get_section(meta, "extra", lints, recipe_version=recipe_version)
         maintainers = extra_section.get("recipe-maintainers", [])
 
         if recipe_version == 1:
@@ -124,24 +143,27 @@ def _lint_recipes(gh, pr):
                         break
                     else:
                         feedstock_exists = False
-                except github.UnknownObjectException:
+                except github.GithubException as e:
+                    _test_and_raise_besides_file_not_exists(e)
                     feedstock_exists = False
 
             if feedstock_exists and existing_recipe_name == recipe_name:
-                lints[fname].append("Feedstock with the same name exists in conda-forge.")
+                lints[fname].append(
+                    "Feedstock with the same name exists in conda-forge."
+                )
             elif feedstock_exists:
-                hints[fname].append(
+                lints[fname].append(
                     f"Feedstock with the name {existing_recipe_name} exists in conda-forge. "
                     f"Is it the same as this package ({recipe_name})?"
                 )
 
             bio = gh.get_user("bioconda").get_repo("bioconda-recipes")
             try:
-                bio.get_dir_contents(f"recipes/{recipe_name}")
-            except github.UnknownObjectException:
-                pass
+                bio.get_contents(f"recipes/{recipe_name}")
+            except github.GithubException as e:
+                _test_and_raise_besides_file_not_exists(e)
             else:
-                hints[fname].append(
+                lints[fname].append(
                     "Recipe with the same name exists in bioconda: "
                     "please discuss with @conda-forge/bioconda-recipes."
                 )
@@ -149,7 +171,9 @@ def _lint_recipes(gh, pr):
             url = None
             if recipe_version == 1:
                 for source_section in sources_section:
-                    if str(source_section.get("url")).startswith("https://pypi.io/packages/source/"):
+                    if str(source_section.get("url")).startswith(
+                        "https://pypi.io/packages/source/"
+                    ):
                         url = source_section["url"]
             else:
                 for source_section in sources_section:
@@ -169,30 +193,32 @@ def _lint_recipes(gh, pr):
                     for pkg in mapping:
                         if pkg.get("pypi_name", "") == pypi_name:
                             conda_name = pkg["conda_name"]
-                            hints[fname].append(
+                            lints[fname].append(
                                 f"A conda package with same name ({conda_name}) already exists."
                             )
 
         # 5. Ensure all maintainers have commented that they approve of being listed
         if maintainers:
             # Get PR author, issue comments, and review comments
-            pr_author = pr.user.login
+            pr_author = pr.user.login.lower()
             issue_comments = pr.get_issue_comments()
             review_comments = pr.get_reviews()
 
             # Combine commenters from both issue comments and review comments
-            commenters = {comment.user.login for comment in issue_comments}
-            commenters.update({review.user.login for review in review_comments})
+            commenters = {comment.user.login.lower() for comment in issue_comments}
+            commenters.update({review.user.login.lower() for review in review_comments})
 
             # Check if all maintainers have either commented or are the PR author
             non_participating_maintainers = set()
-            for maintainer in maintainers:
+            for orig_maintainer in maintainers:
+                maintainer = orig_maintainer.lower()
                 if (
                     maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
+                    and "/" not in maintainer
                 ):
-                    non_participating_maintainers.add(maintainer)
+                    non_participating_maintainers.add(orig_maintainer)
 
             # Add a lint message if there are any non-participating maintainers
             if non_participating_maintainers:
@@ -281,9 +307,9 @@ please add a `maintenance` label to the PR.\n"""
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Lint staged recipes.')
-    parser.add_argument('--owner', type=str, required=True, help='the repo owner')
-    parser.add_argument('--pr-num', type=int, required=True, help='the PR number')
+    parser = argparse.ArgumentParser(description="Lint staged recipes.")
+    parser.add_argument("--owner", type=str, required=True, help="the repo owner")
+    parser.add_argument("--pr-num", type=int, required=True, help="the PR number")
 
     args = parser.parse_args()
 
@@ -295,4 +321,3 @@ if __name__ == "__main__":
     _comment_on_pr(pr, lints, hints, extra_edits)
     if lints:
         sys.exit(1)
-

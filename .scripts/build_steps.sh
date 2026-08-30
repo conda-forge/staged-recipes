@@ -7,6 +7,7 @@
 
 set -xeuo pipefail
 
+export RECIPE_ROOT="${RECIPE_ROOT:-/home/conda/staged-recipes}"
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
@@ -17,6 +18,7 @@ source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
 export PYTHONUNBUFFERED=1
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
+export RATTLER_CACHE_DIR="${FEEDSTOCK_ROOT}/build_artifacts/pkg_cache"
 
 cat >~/.condarc <<CONDARC
 always_yes: true
@@ -37,7 +39,7 @@ solver: libmamba
 CONDARC
 
 # Workaround for errors related to "unsafe" directories:
-# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765 
+# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765
 git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 
 # Copy the host recipes folder so we don't ever muck with it
