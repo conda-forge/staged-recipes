@@ -1,0 +1,58 @@
+context:
+  version: "0.7.1"
+
+package:
+  name: kern
+  version: ${{ version }}
+
+source:
+  url: https://github.com/getkern/kern/archive/v${{ version }}.tar.gz
+  sha256: be388b46b55db727939a91deffb4891dadd6de9273b16160b2bfd5b2af9d6e37
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - sed -i 's/^version = "0.0.0"/version = "${{ version }}"/' Cargo.toml Cargo.lock
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path crates/kern-cli --locked --no-track
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  run:
+    - curl
+    - tar
+
+tests:
+  - script:
+      - kern --version
+      - kern --help
+  - package_contents:
+      strict: true
+      bin:
+        - kern
+
+about:
+  homepage: https://github.com/getkern/kern
+  summary: "A fast, rootless sandbox and virtual resource runtime for any workload, including untrusted and AI-generated code."
+  description: |
+    A fast, rootless sandbox and virtual resource runtime for any workload, including untrusted and AI-generated code. Daemonless: a real, kernel-enforced container in ~3.5 ms from an OCI image, no daemon, one 1.52 MB static binary.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/getkern/kern
+
+extra:
+  recipe-maintainers:
+    - XhstormR
