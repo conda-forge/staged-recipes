@@ -1,0 +1,103 @@
+schema_version: 1
+
+context:
+  version: "3.0.0"
+  build_number: 0
+  source_rev: 0251105a2fb19d2957484b7f023cd8c115286ced
+  cutlass_rev: 7127592069c2fe01b041e174ba4345ef9b279671
+  cuda_build_string: cuda_${{ cuda_compiler_version | default("None") | version_to_buildstring }}
+
+package:
+  name: flash-attn-3
+  version: ${{ version }}
+
+source:
+  # FlashAttention-3 is versioned independently inside the flash-attention
+  # repository. This is the exact source revision used by the successful
+  # 2026-08-17 flash-attention3-wheels release builds; upstream also tags it as
+  # fa4-v4.0.0.beta27.
+  - url: https://github.com/Dao-AILab/flash-attention/archive/${{ source_rev }}.tar.gz
+    sha256: 633428c95fed01f90969e6f8a4ec729eef0e3ccedfff03b9422a85bfb7cd0130
+    patches:
+      - 0001-respect-offline-builds.patch
+      - 0002-trim-runtime-requirements.patch
+  - url: https://github.com/NVIDIA/cutlass/archive/${{ cutlass_rev }}.tar.gz
+    sha256: 12baa9c2bf22eaca065b5e55387c21bb4ac742992a6ecd2dd1d3b016dfd25a0a
+    target_directory: csrc/cutlass
+
+build:
+  number: ${{ build_number }}
+  skip:
+    - not linux or cuda_compiler_version == "None"
+    - is_abi3 and not is_python_min
+  string: ${{ cuda_build_string }}_py${{ python_min | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  python:
+    version_independent: true
+  script:
+    env:
+      FLASH_ATTENTION_FORCE_BUILD: "TRUE"
+      FLASH_ATTENTION_OFFLINE_BUILD: "TRUE"
+      MAX_JOBS: "4"
+      NVCC_THREADS: "1"
+    file: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ninja
+    - if: linux and cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_compiler_version }}
+  host:
+    - packaging
+    - pip
+    - python ${{ python_min }}.*
+    - pytorch
+    - setuptools
+    - wheel
+    - if: linux and cuda_compiler_version != "None"
+      then:
+        - cuda-version ==${{ cuda_compiler_version }}
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - pytorch * cuda*
+  run:
+    - python >=${{ python_min }}
+    - pytorch * cuda*
+  ignore_run_exports:
+    from_package:
+      - libcublas-dev
+      - libcusolver-dev
+      - libcusparse-dev
+
+tests:
+  - python:
+      imports:
+        - flash_attn_3
+        - flash_attn_3._C
+        - flash_attn_3.flash_attn_interface
+        - flash_attn_config
+        - flash_attn_interface
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://github.com/Dao-AILab/flash-attention
+  repository: https://github.com/Dao-AILab/flash-attention
+  summary: FlashAttention-3 CUDA kernels for fast and memory-efficient attention
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - csrc/cutlass/LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
