@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+context:
+  name: "nqp"
+  version: "2025.06"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Raku/${{ name }}/releases/download/${{ version }}/${{ name }}-${{ version }}.tar.gz
+  sha256: cfb396d6d0114d00f0dc2de4cf5f424fa72968e53c9c7cb75690bcdfd45bfcc5
+  patches: fix-compiler-path.patch
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script:
+    interpreter: perl
+    content: |
+      use strict;
+      use warnings;
+      use File::Spec;
+      use File::Copy;
+      use File::Basename;
+
+      # Find moar executable (cross-platform)
+      sub which {
+          my $cmd = shift;
+          my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+
+          for my $dir (split($^O eq 'MSWin32' ? ';' : ':', $ENV{PATH})) {
+              my $path = File::Spec->catfile($dir, $cmd . $exe_ext);
+              return $path if -x $path;
+          }
+          die "Cannot find $cmd in PATH\n";
+      }
+
+      my $moar_path = which('moar');
+
+      # Configure NQP
+      my @configure_args = (
+          'Configure.pl',
+          '--backends=moar',
+          "--prefix=$ENV{PREFIX}",
+          "--with-moar=$moar_path",
+          '--no-silent-build',
+          '--relocatable'
+      );
+
+      print "Running: perl @configure_args\n";
+      system('perl', @configure_args) == 0
+          or die "Configure failed: $?\n";
+
+      # Build and install
+      my $make_cmd = $^O eq 'MSWin32' ? 'nmake' : 'make';
+      my $cpu_count = $ENV{CPU_COUNT} // 1;
+
+      print "Running: $make_cmd -j$cpu_count\n";
+      system($make_cmd, "-j$cpu_count") == 0
+          or die "Make failed: $?\n";
+
+      print "Running: $make_cmd install\n";
+      system($make_cmd, 'install') == 0
+          or die "Make install failed: $?\n";
+
+      # Compile the NQP wrapper to handle binary patching artifacts
+      my $wrapper_source = File::Spec->catfile($ENV{RECIPE_DIR}, 'nqp-wrapper.c');
+      copy($wrapper_source, 'nqp-wrapper.c') or die "Copy failed: $!";
+
+      my $cc = $ENV{CC} // 'gcc';
+      my $exe_ext = $^O eq 'MSWin32' ? '.exe' : '';
+
+      print "Compiling NQP wrapper...\n";
+      system($cc, '-O2', '-o', "nqp-wrapper$exe_ext", 'nqp-wrapper.c') == 0
+          or die "Wrapper compilation failed: $?\n";
+
+      # Replace nqp with the wrapper
+      my $nqp_bin = File::Spec->catfile($ENV{PREFIX}, 'bin', "nqp$exe_ext");
+      my $nqp_unwrapper = File::Spec->catfile($ENV{PREFIX}, 'bin', "nqp-unwrapper$exe_ext");
+      my $wrapper_bin = "nqp-wrapper$exe_ext";
+
+      print "Installing NQP wrapper...\n";
+      rename($nqp_bin, $nqp_unwrapper) or die "Failed to rename nqp: $!";
+      copy($wrapper_bin, $nqp_bin) or die "Failed to install wrapper: $!";
+
+      # Make executable on Unix-like systems
+      if ($^O ne 'MSWin32') {
+          chmod(0755, $nqp_bin) or die "Failed to chmod wrapper: $!";
+      }
+
+      print "NQP build completed successfully\n";
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - pkgconf
+    - perl
+    - make
+    - moarvm
+  host:
+    - moarvm
+  run_exports:
+    - ${{ pin_subpackage("nqp", exact=True) }}
+
+tests:
+  - script:
+      - nqp -e 'say("Hello from NQP")'
+      - out=$(nqp -e 'say(40+2)'); test "$out" = "42"
+      - nqp --show-config > /dev/null
+      - test -x "$(which nqp-unwrapper)"  # Ensure nqp-unwrapper exists
+
+about:
+  homepage: https://github.com/Raku/nqp
+  license: Artistic-2.0
+  license_file: LICENSE
+  summary: This is "Not Quite Perl" -- a lightweight Raku-like environment for virtual machines.
+  description: |
+    The key feature of NQP is that it's designed to be a very small environment (as compared with, say, raku or Rakudo) and is focused on being a high-level way to create compilers and libraries for virtual machines like MoarVM, the JVM, and others
+
+    Unlike a full-fledged implementation of Raku, NQP strives to have as small a runtime footprint as it can, while still providing a Raku object model and regular expression engine for the virtual machine.
+  repository: https://github.com/Raku/nqp
+  documentation: https://github.com/Raku/nqp/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - remimimimimi
