@@ -1,11 +1,10 @@
 schema_version: 1
 
 context:
-  name: opendal
   version: "0.47.6"
 
 package:
-  name: ${{ name }}
+  name: opendal
   version: ${{ version }}
 
 source:
@@ -14,13 +13,16 @@ source:
 
 build:
   number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
   script:
     env:
-      MATURIN_PEP517_ARGS: "--locked --features pyo3/extension-module,services-all"
+      MATURIN_PEP517_ARGS: "--locked --features pyo3/extension-module,services-all${{ ',abi3' if is_abi3 else '' }}"
     content:
       - if: unix
-        then: sh -c 'cd bindings/python && cargo-bundle-licenses --features pyo3/extension-module,services-all --format yaml --output ../../THIRDPARTY.yml'
-        else: cmd /d /c "cd /d bindings\python && cargo-bundle-licenses --features pyo3/extension-module,services-all --format yaml --output ..\..\THIRDPARTY.yml"
+        then: sh -c 'cd bindings/python && cargo-bundle-licenses --features pyo3/extension-module,services-all${{ ",abi3" if is_abi3 else "" }} --format yaml --output ../../THIRDPARTY.yml'
+        else: cmd /d /c "cd /d bindings\python && cargo-bundle-licenses --features pyo3/extension-module,services-all${{ ',abi3' if is_abi3 else '' }} --format yaml --output ..\..\THIRDPARTY.yml"
       - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
@@ -35,6 +37,8 @@ requirements:
     - ${{ compiler("rust") }}
     - cargo-bundle-licenses
   host:
+    - if: is_abi3
+      then: python-abi3
     - python
     - pip
     - maturin >=1,<2
@@ -46,9 +50,22 @@ tests:
       imports:
         - opendal
       pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
   - script:
       - python -c "import opendal; operator = opendal.Operator('memory'); operator.write('smoke', b'ok'); assert operator.read('smoke') == b'ok'"
       - python -c "from opendal.services import Scheme; assert Scheme.Dropbox.value == 'dropbox'"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/opendal/_opendal.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\opendal\_opendal.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   homepage: https://opendal.apache.org/
