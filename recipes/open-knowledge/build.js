@@ -2,8 +2,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const prefix = process.env.PREFIX;
-const root = process.platform === "win32" ? prefix : path.join(prefix, "lib");
-const pkg = path.join(root, "node_modules", "@inkeep", "open-knowledge");
+const parts = ["lib", "node_modules", "@inkeep", "open-knowledge"];
+const pkg = path.join(prefix, ...parts);
 
 // The tarball ships prebuilt bindings for every platform, keep only ours.
 const keep = {
@@ -28,17 +28,10 @@ for (const file of fs.readdirSync(native)) {
   }
 }
 
-// npm writes its Windows shims into the install prefix, not %PREFIX%\bin.
+// npm puts its Windows shims next to the install prefix, not in %PREFIX%\bin.
 if (process.platform === "win32") {
   const bin = path.join(prefix, "bin");
-  const cli = path.join(
-    "%CONDA_PREFIX%",
-    "node_modules",
-    "@inkeep",
-    "open-knowledge",
-    "dist",
-    "cli.mjs",
-  );
+  const cli = path.join("%CONDA_PREFIX%", ...parts, "dist", "cli.mjs");
   const body = `@echo off\r\n"%CONDA_PREFIX%\\node.exe" "${cli}" %*\r\n`;
   fs.mkdirSync(bin, { recursive: true });
   for (const name of ["ok", "open-knowledge"]) {
