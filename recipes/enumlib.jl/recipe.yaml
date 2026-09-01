@@ -1,38 +1,76 @@
 context:
-  version: "0.3.8"
+  version: "0.3.9"
 
 package:
   name: enumlib.jl
   version: ${{ version }}
 
-# This recipe repackages prebuilt release artifacts instead of building from
-# source. Building here is not practical: the application is produced by Julia's
-# PackageCompiler.create_app, which resolves and downloads the whole Julia General
-# registry depot plus binary artifacts at build time. See the PR description.
+# Built from source, not repackaged from a release artifact: conda-forge asked for
+# the application to be compiled in the recipe (staged-recipes#34550).
 source:
-  - if: linux and x86_64
-    then:
-      url: https://github.com/glwhart/Enumlib.jl/releases/download/v${{ version }}/enumlib-jl-${{ version }}-linux-x86_64.tar.gz
-      sha256: 7aeeb738136cf2bec3c5327832534fe7a9a429d6489d09d93ee6c84d52d0d93f
-  - if: osx and arm64
-    then:
-      url: https://github.com/glwhart/Enumlib.jl/releases/download/v${{ version }}/enumlib-jl-${{ version }}-macos-aarch64.tar.gz
-      sha256: 1ac1a626b15e933fab6788dc3d14e4091036e3aabcd7efb56bd4f275c19420be
+  url: https://github.com/glwhart/Enumlib.jl/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e3a3cf4e939967605398605e82ef5bdeac434dd8c2a3e07a1722b3f0df964cd8
 
 build:
   number: 0
-  # Only the platforms the upstream project publishes binaries for. The existing
-  # Fortran enumlib feedstock also skips Windows.
+  # The platforms conda-forge ships a `julia` package for AND builds natively.
+  #
+  # osx-arm64 is absent for a structural reason, not a missing dependency:
+  # conda-forge cross-compiles osx-arm64 on osx-64 runners, but
+  # PackageCompiler.create_app has to execute target-architecture code to
+  # precompile its system image, and a Julia system image cannot be
+  # cross-compiled. So no arm64 Julia package would help here either. Under
+  # discussion on the PR; Apple Silicon users have native arm64 binaries on the
+  # project's GitHub releases in the meantime.
   skip:
     - win
     - linux and not x86_64
-    - osx and not arm64
-  dynamic_linking:
-    # The bundled runtime resolves its libraries by RPATH relative to the
-    # executable; rewriting them would break the application.
-    binary_relocation: false
+    - osx and arm64
   script:
     file: build.sh
+
+requirements:
+  build:
+    # PackageCompiler links the app's launchers with a C compiler.
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    # julia is in `host`, not `build`, on purpose. create_app copies Julia's
+    # runtime libraries into the application, and those copies carry references
+    # to wherever they came from -- so they have to come from $PREFIX, which
+    # conda-build relocates, rather than $BUILD_PREFIX, which it does not.
+    # build.sh calls $PREFIX/bin/julia by explicit path rather than trusting PATH.
+    #
+    # 1.10.4 is too old (a dependency floors at 1.11.6) and conda-forge packages
+    # no 1.11, so 1.12 it is. The upstream test suite passes on 1.12.7.
+    - julia 1.12.*
+    # conda-forge's julia deliberately strips Julia's vendored libraries
+    # (see its build.sh: rm $PREFIX/lib/julia/{libcholmod,libcurl,libssh2,
+    # libgit2,libssl}.so) and links against these instead. An application built
+    # with it inherits them as runtime dependencies rather than bundling them,
+    # so the run requirements come from these entries' run_exports.
+    #
+    # This mirrors julia-feedstock's own host list. It is deliberately generous
+    # for a first build -- conda-build's overlinking check will report what the
+    # application actually links, and this should be trimmed to that.
+    - openblas-ilp64
+    - openlibm
+    - gmp
+    - mpfr
+    - curl
+    - libssh2
+    - if: not osx
+      then: libgit2
+    - if: linux
+      then: libunwind
+    - if: osx
+      then: libosxunwind
+    - arpack
+    - suitesparse
+    - pcre2
+    - libutf8proc
+    - libnghttp2
+    - zlib
 
 tests:
   - script:
@@ -63,8 +101,9 @@ about:
     one of its original authors, and a drop-in replacement for the Fortran enum.x:
     the struct_enum.in / struct_enum.out file contract is unchanged.
 
-    This package ships standalone enum.x, polya.x and makestr.x executables with
-    the Julia runtime bundled, so no Julia installation is required.
+    This package provides the enum.x, polya.x and makestr.x executables, compiled
+    ahead of time with a bundled Julia system image, so no Julia installation is
+    required to run them.
   license: MIT
   license_file: LICENSE
   documentation: https://glwhart.github.io/Enumlib.jl
