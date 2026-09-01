@@ -1,0 +1,95 @@
+context:
+  version: "5.6.0"
+  # Data Dictionary version used to generate the IDS classes
+  dd_version: "4.1.1"
+
+package:
+  name: imas-cpp
+  version: ${{ version }}
+
+source:
+  # C++ High Level Interface of the IMAS Access Layer
+  - url: https://github.com/iterorganization/IMAS-Cpp/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 48a86acf22d0f8915487fafdf2f1a5efa805b5cbf4de71753bb435b1ac98dc10
+  # IMAS Data Dictionary sources: IDSDef.xml is generated from these at build
+  # time (see build.sh) and defines the IDS classes of the interface
+  - url: https://github.com/iterorganization/IMAS-Data-Dictionary/archive/refs/tags/${{ dd_version }}.tar.gz
+    sha256: a8aa78bacbd83801be13dfcca4e2347aa2173d6fd8de3537d724db7254d4c5f0
+    target_directory: data-dictionary
+
+build:
+  number: 0
+  # python is only a build-time tool: keep it out of the build variants
+  variant:
+    ignore_keys:
+      - python
+  # No Windows build for now: upstream builds Windows with vcpkg and the
+  # build system needs more work to support conda on Windows
+  skip: win
+  script:
+    file: build.sh
+    env:
+      DD_VERSION: ${{ dd_version }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+    # Saxon-HE (Java) performs the XSLT 2.0 transformations that generate the
+    # IDS classes from the Data Dictionary (replaces the PyPI-only saxonche)
+    - openjdk
+    - saxon-he
+    # Used to pre-create the venv expected by the build system (see build.sh)
+    - python
+  host:
+    - libimas-core
+    - libblitz
+  run_exports:
+    # The generated API depends on both the AL and the DD version
+    - ${{ pin_subpackage('imas-cpp', upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        - lib/libal-cpp-${{ dd_version }}*
+        - lib/libal-identifiers-cpp*
+        - include/ALClasses.h
+        - lib/pkgconfig/al-cpp.pc
+        - lib/pkgconfig/al-cpp-${{ dd_version }}.pc
+        - lib/pkgconfig/al-identifiers-cpp.pc
+        # backwards-compatibility symlinks
+        - lib/pkgconfig/imas-cpp.pc
+  - script:
+      - pkg-config --exists --print-errors al-cpp
+      - pkg-config --exists --print-errors "al-cpp-${{ dd_version }}"
+      - pkg-config --exists --print-errors al-identifiers-cpp
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://imas.iter.org/
+  license: LGPL-3.0-only
+  # Include the Data Dictionary licenses, as the generated IDS interfaces are
+  # derived from the Data Dictionary sources
+  license_file:
+    - LICENSE.txt
+    - data-dictionary/LICENSE-LGPL
+    - data-dictionary/LICENSE-CC-BY-ND
+  summary: C++ High Level Interface of the IMAS Access Layer
+  description: |
+    IMAS-Cpp is part of the Integrated Modelling and Analysis Suite at ITER.
+    It provides the C++ High Level Interface (HLI) of the IMAS Access Layer,
+    giving C++ programs strongly-typed access to Interface Data Structures
+    (IDSs) defined by the IMAS Data Dictionary, on top of the IMAS-Core
+    low-level library.
+  repository: https://github.com/iterorganization/IMAS-Cpp
+  documentation: https://imas-cpp.readthedocs.io/en/stable/
+
+extra:
+  recipe-maintainers:
+    - SimonPinches
