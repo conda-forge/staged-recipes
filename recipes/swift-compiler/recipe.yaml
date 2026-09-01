@@ -1,0 +1,161 @@
+schema_version: 1
+
+context:
+  version: "6.3.3"
+
+recipe:
+  name: swift-split
+  version: ${{ version }}
+
+source:
+  # Keep a platform-independent copy available for every output's license.
+  - path: LICENSE.txt
+  - if: osx
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/xcode/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-osx.pkg
+      sha256: ee82e57774d6650f94aa06302435d6f44a055b9411698db8ecb85d9a3bcc91d0
+      file_name: swift.pkg
+  - if: linux and x86_64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2.tar.gz
+      sha256: ece8c60b48b52e589f144462e247617b6ea0ce9f85dbd3d12907cf1821e20c20
+  - if: linux and aarch64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2-aarch64/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2-aarch64.tar.gz
+      sha256: ea7258ee30ccf21e8d20a007c41156be997ab558954c5ab12915c7a4fbcbc89e
+  - if: win and x86_64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/windows10/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-windows10.exe
+      sha256: 235626548f249cd516d3d4d90eee980dccad46f3822dac1f8e3119b0fede94b7
+      file_name: swift-installer.exe
+
+build:
+  number: 0
+  skip:
+    - build_platform != target_platform
+    - not (osx or linux or (win and x86_64))
+
+outputs:
+  - package:
+      name: swift
+      version: ${{ version }}
+    build:
+      script:
+        - if: win
+          then: build.bat
+          else: build.sh
+      dynamic_linking:
+        rpaths:
+          - libexec/swift/lib/
+          - libexec/swift/lib/swift/linux/
+          - libexec/swift/lib/swift/host/
+          - libexec/swift/lib/swift/host/compiler/
+        # The macOS toolchain uses executable-relative runtime paths. They are
+        # already relocatable and must survive Mach-O post-processing.
+        rpath_allowlist:
+          - "@executable_path/**"
+    requirements:
+      build:
+        - if: win
+          then:
+            - 7zip
+            - python
+      host:
+        - if: linux
+          then:
+            - libedit
+            - libgcc
+            - libstdcxx
+            - libuuid
+            - libxml2
+            - ncurses
+            - sqlite
+            - zlib
+      run:
+        # Swift invokes a platform C toolchain and linker when producing native
+        # executables. This also supplies the conda-forge SDK/sysroot.
+        - ${{ compiler('c') }}
+    tests:
+      - if: unix
+        then:
+          - package_contents:
+              bin:
+                - sourcekit-lsp
+                - swift
+                - swift-format
+                - swift-package
+                - swiftc
+      - if: linux
+        then:
+          - package_contents:
+              files:
+                - libexec/swift/lib/swift/linux/libswiftCore.so
+                - libexec/swift/share/swift/LICENSE.txt
+      - if: osx
+        then:
+          - package_contents:
+              files:
+                - libexec/swift/lib/swift/macosx/libswiftCore.dylib
+                - libexec/swift/share/swift/LICENSE.txt
+      - if: win
+        then:
+          - package_contents:
+              files:
+                - Library/bin/swiftCore.dll
+      - script:
+          - if: unix
+            then:
+              - test "$CONDA_SWIFT_COMPILER" = "1"
+              - test "$SWIFT" = "$CONDA_PREFIX/bin/swiftc"
+              - swift --version
+              - swiftc hello.swift -o hello
+              - test "$(./hello)" = "Swift works"
+              - swift package init --type executable --name SmokePackage
+              - swift run | grep "Hello, world!"
+          - if: win
+            then:
+              - if not "%CONDA_SWIFT_COMPILER%"=="1" exit /b 1
+              - '"%SWIFT%" --version'
+              # Validate SDK and standard-library discovery without launching a
+              # freshly linked executable, which causes intermittent file locks
+              # during rattler-build's Windows test-environment cleanup.
+              - '"%SWIFT%" -typecheck hello.swift'
+        files:
+          recipe:
+            - hello.swift
+
+  # compiler('swift') expands to this target-qualified activation package.
+  - package:
+      name: swift_${{ target_platform }}
+      version: ${{ version }}
+    requirements:
+      run:
+        - ${{ pin_subpackage('swift', exact=True) }}
+    tests:
+      - script:
+          - if: unix
+            then:
+              - test "$CONDA_SWIFT_COMPILER" = "1"
+              - '"$SWIFT" --version'
+          - if: win
+            then:
+              - if not "%CONDA_SWIFT_COMPILER%"=="1" exit /b 1
+              - '"%SWIFT%" --version'
+    about:
+      summary: Swift compiler activation package for ${{ target_platform }}
+
+about:
+  homepage: https://www.swift.org/
+  repository: https://github.com/swiftlang/swift
+  documentation: https://www.swift.org/documentation/
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: Swift programming language compiler and developer toolchain
+  description: |
+    Swift is a general-purpose programming language built using a modern
+    approach to safety, performance, and software design patterns. These
+    packages repackage the official Swift.org toolchains.
+
+extra:
+  recipe-maintainers:
+    - wolfv
