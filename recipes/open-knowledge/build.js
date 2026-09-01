@@ -5,8 +5,8 @@ const prefix = process.env.PREFIX;
 const parts = ["lib", "node_modules", "@inkeep", "open-knowledge"];
 const pkg = path.join(prefix, ...parts);
 
-// The tarball ships prebuilt bindings for every platform, keep only ours.
-const keep = {
+// The name dist/native/index.js requires for this platform.
+const binding = {
   darwin: {
     arm64: "native-config.darwin-arm64.node",
     x64: "native-config.darwin-x64.node",
@@ -21,12 +21,33 @@ const keep = {
   },
 }[process.platform][process.arch];
 
+const built = {
+  darwin: "libopen_knowledge_native_config.dylib",
+  linux: "libopen_knowledge_native_config.so",
+  win32: "open_knowledge_native_config.dll",
+}[process.platform];
+
+// conda-forge's rust sets CARGO_BUILD_TARGET, which nests the artifacts a
+// level deeper than a plain `cargo build`.
+const target = process.env.CARGO_BUILD_TARGET;
+const release = path.join(
+  process.env.SRC_DIR,
+  "repo",
+  "packages",
+  "native-config",
+  "target",
+  ...(target ? [target] : []),
+  "release",
+);
+
+// Drop every binding upstream prebuilt and install the one we compiled.
 const native = path.join(pkg, "dist", "native");
 for (const file of fs.readdirSync(native)) {
-  if (file.endsWith(".node") && file !== keep) {
+  if (file.endsWith(".node")) {
     fs.rmSync(path.join(native, file));
   }
 }
+fs.copyFileSync(path.join(release, built), path.join(native, binding));
 
 // npm puts its Windows shims next to the install prefix, not in %PREFIX%\bin.
 if (process.platform === "win32") {
