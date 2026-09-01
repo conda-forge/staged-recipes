@@ -1,0 +1,97 @@
+context:
+  version: "5.6.0"
+  # Data Dictionary version used to generate the IDS types and routines
+  dd_version: "4.1.1"
+
+package:
+  name: imas-fortran
+  version: ${{ version }}
+
+source:
+  # Fortran High Level Interface of the IMAS Access Layer
+  - url: https://github.com/iterorganization/IMAS-Fortran/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 9c7c7cb70add077c425f06609488be79f6a50418c58d086f4d516b4ada55596b
+  # IMAS Data Dictionary sources: IDSDef.xml is generated from these at build
+  # time (see build.sh) and defines the IDS types of the interface
+  - url: https://github.com/iterorganization/IMAS-Data-Dictionary/archive/refs/tags/${{ dd_version }}.tar.gz
+    sha256: a8aa78bacbd83801be13dfcca4e2347aa2173d6fd8de3537d724db7254d4c5f0
+    target_directory: data-dictionary
+
+build:
+  number: 0
+  # python is only a build-time tool: keep it out of the build variants
+  variant:
+    ignore_keys:
+      - python
+  # No Windows build for now: upstream builds Windows with vcpkg and the
+  # build system needs more work to support conda on Windows
+  skip: win
+  script:
+    file: build.sh
+    env:
+      DD_VERSION: ${{ dd_version }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+    # Saxon-HE (Java) performs the XSLT 2.0 transformations that generate the
+    # IDS types and routines from the Data Dictionary (replaces the PyPI-only
+    # saxonche)
+    - openjdk
+    - saxon-he
+    # Used to pre-create the venv expected by the build system (see build.sh)
+    - python
+  host:
+    - libimas-core
+  run_exports:
+    # The generated API depends on both the AL and the DD version, and the
+    # installed .mod files are specific to the Fortran compiler used
+    - ${{ pin_subpackage('imas-fortran', upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        - lib/libal-fortran-${{ dd_version }}*
+        - lib/libal-identifiers-fortran*
+        - include/fortran/ids_schemas.mod
+        - lib/pkgconfig/al-fortran.pc
+        - lib/pkgconfig/al-fortran-${{ dd_version }}.pc
+        - lib/pkgconfig/al-identifiers-fortran.pc
+        # backwards-compatibility symlinks
+        - lib/pkgconfig/imas-fortran.pc
+  - script:
+      - pkg-config --exists --print-errors al-fortran
+      - pkg-config --exists --print-errors "al-fortran-${{ dd_version }}"
+      - pkg-config --exists --print-errors al-identifiers-fortran
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://imas.iter.org/
+  license: LGPL-3.0-only
+  # Include the Data Dictionary licenses, as the generated IDS interfaces are
+  # derived from the Data Dictionary sources
+  license_file:
+    - LICENSE.txt
+    - data-dictionary/LICENSE-LGPL
+    - data-dictionary/LICENSE-CC-BY-ND
+  summary: Fortran High Level Interface of the IMAS Access Layer
+  description: |
+    IMAS-Fortran is part of the Integrated Modelling and Analysis Suite at
+    ITER. It provides the Fortran High Level Interface (HLI) of the IMAS
+    Access Layer, giving Fortran programs strongly-typed access to Interface
+    Data Structures (IDSs) defined by the IMAS Data Dictionary, on top of the
+    IMAS-Core low-level library.
+  repository: https://github.com/iterorganization/IMAS-Fortran
+  documentation: https://imas-fortran.readthedocs.io/en/stable/
+
+extra:
+  recipe-maintainers:
+    - SimonPinches
