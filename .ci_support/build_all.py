@@ -62,7 +62,7 @@ def build_all(recipes_dir, arch):
 
     has_meta_yaml = False
     has_recipe_yaml = False
-
+    has_conda_build_config_or_conda_forge_yml = False
     found_cuda = False
     found_centos7 = False
     for folder in folders:
@@ -86,8 +86,13 @@ def build_all(recipes_dir, arch):
                 if "sysroot_linux-64" in text:
                     found_centos7 = True
 
+        cfy = os.path.join(recipes_dir, folder, "conda-forge.yml")
+        if os.path.exists(cfy):
+            has_conda_build_config_or_conda_forge_yml = True
+
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
+            has_conda_build_config_or_conda_forge_yml = True
             with open(cbc, "r") as f:
                 lines = f.readlines()
             pat = re.compile(
@@ -108,10 +113,12 @@ def build_all(recipes_dir, arch):
     if has_meta_yaml and has_recipe_yaml:
         raise ValueError("Mixing meta.yaml and recipe.yaml recipes is not supported")
     if not has_meta_yaml and not has_recipe_yaml:
-        raise ValueError("Neither a meta.yaml or a recipe.yaml recipes was found")
+        raise ValueError("Neither a meta.yaml or a recipe.yaml recipe was found")
 
     if found_cuda:
         print("##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1")
+    if has_conda_build_config_or_conda_forge_yml:
+        print("##vso[task.setvariable variable=TEST_RERENDER;isOutput=true]1")
     if found_centos7:
         os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
         print("Overriding DEFAULT_LINUX_VERSION to be cos7")
@@ -234,7 +241,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index_path = os.path.join(sys.exec_prefix, "conda-bld")
     os.makedirs(index_path, exist_ok=True)
     conda_index.api.update_index(index_path)
-    index = conda.core.index.get_index(channel_urls=channel_urls)
+    index = conda.core.index.Index(channels=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
@@ -290,14 +297,30 @@ def build_folders_rattler_build(
     specs = OrderedDict()
     for f in config.exclusive_config_files:
         specs[f] = conda_build.variants.parse_config_file(
-            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))),
+            config,
+            loader=yaml.SafeLoader,
         )
 
-    recipes_config = os.path.join(recipes_dir, "conda_build_config.yaml")
-    if os.path.isfile(recipes_config):
-        specs[recipes_config] = conda_build.variants.parse_config_file(
-            os.path.abspath(recipes_config), config
-        )
+    # Check for root-level config files first
+    root_cbc = Path(recipes_dir) / "conda_build_config.yaml"
+    root_variants = Path(recipes_dir) / "variants.yaml"
+    variants = []
+    if root_cbc.exists():
+        variants.append(root_cbc)
+    if root_variants.exists():
+        variants.append(root_variants)
+    # Then check for recipe-specific config files
+    variants += list(Path(recipes_dir).glob("*/conda_build_config.yaml")) + list(
+        Path(recipes_dir).glob("*/variants.yaml")
+    )
+
+    # Collect all variant config files found in the recipes
+    for variant_file in variants:
+        if os.path.isfile(variant_file):
+            specs[variant_file] = conda_build.variants.parse_config_file(
+                os.path.abspath(variant_file), config, loader=yaml.SafeLoader
+            )
 
     # Combine all the variant config files together
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
