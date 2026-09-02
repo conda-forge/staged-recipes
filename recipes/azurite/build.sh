@@ -2,20 +2,9 @@
 
 set -euxo pipefail
 
-if [[ "${target_platform}" == "osx-arm64" ]]; then
-    export npm_config_arch="arm64"
-fi
-
-# Don't use pre-built gyp packages
 export PATH="$BUILD_PREFIX/bin:$PATH"
 
-export npm_config_build_from_source=true
-
-rm $PREFIX/bin/node
-ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
-
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
-
 
 # install azurite globally from the npm registry
 # all things coming after this are just concerned with generating the ThirdPartyLicenses.txt file
