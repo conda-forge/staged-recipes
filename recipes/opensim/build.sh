@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+build_jobs="${CPU_COUNT:-2}"
+if ((build_jobs > 4)); then
+    build_jobs=4
+fi
+
+cmake ${CMAKE_ARGS} -S . -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DBUILD_API_EXAMPLES=OFF \
+    -DBUILD_API_ONLY=OFF \
+    -DBUILD_JAVA_WRAPPING=OFF \
+    -DBUILD_PYTHON_WRAPPING=ON \
+    -DBUILD_TESTING=OFF \
+    -DOPENSIM_BUILD_INDIVIDUAL_APPS=OFF \
+    -DOPENSIM_C3D_PARSER=ezc3d \
+    -DOPENSIM_COPY_DEPENDENCIES=OFF \
+    -DOPENSIM_DEPENDENCIES_DIR= \
+    -DOPENSIM_DISABLE_LOG_FILE=ON \
+    -DOPENSIM_INSTALL_UNIX_FHS=ON \
+    -DOPENSIM_PYTHON_CONDA=ON \
+    -DOPENSIM_PYTHON_STANDALONE=OFF \
+    -DOPENSIM_WITH_CASADI=ON \
+    -DPython3_EXECUTABLE="${PYTHON}" \
+    -DSIMBODY_HOME="${PREFIX}"
+
+cmake --build build --parallel "${build_jobs}"
+cmake --install build

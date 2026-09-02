@@ -1,0 +1,128 @@
+schema_version: 1
+
+context:
+  # OpenSim 4.6 requires Simbody APIs added after the latest stable release.
+  version: "4.5.2"
+
+package:
+  name: opensim
+  version: ${{ version }}
+
+source:
+  url: https://github.com/opensim-org/opensim-core/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 53c7c477aeef334109d7ea991251c1f680777d42e59d878fef808ad6d28a98f2
+  patches:
+    - 0001-use-shared-docopt-and-conda-python-path.patch
+
+build:
+  number: 0
+  # docopt.cpp and compatible spdlog builds are unavailable on newer arches.
+  skip:
+    - linux and not x86_64
+    - osx and arm64
+  script:
+    - if: win
+      then: call "%RECIPE_DIR%\build.bat"
+      else: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.15
+    - ninja
+    # OpenSim 4.5.x custom typemaps use the pre-4.3 Python wrapper API.
+    - swig >=4.1.1,<4.3
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+  host:
+    - python
+    - numpy
+    # OpenSim 4.5.2 uses GeneralForceSubsystem::calcForceContributionsSum,
+    # which was introduced in Simbody 3.8. Simbody's run export pins its ABI.
+    - simbody >=3.8
+    # Simbody's public inline API exposes these link requirements to consumers.
+    # Build against generic-soname Netlib on Unix while retaining provider-
+    # neutral libblas/liblapack run exports.
+    - if: unix
+      then: libblas * *netlib
+    - if: unix
+      then: liblapack * *netlib
+    # Lower bounds follow versions used by the 4.5.2 dependency superbuild.
+    - ezc3d >=1.5.8
+    # Newer spdlog/fmt headers conflict with Simbody 3.8's global operators;
+    # 1.4.x is the upstream 4.5.2 dependency and builds cleanly.
+    - spdlog >=1.4.1,<1.5
+    - casadi >=3.6.5
+    - docopt.cpp >=0.6.1
+  run:
+    - python
+    # These libraries do not publish run exports, but OpenSim links to them or
+    # exposes them in its public CMake interface.
+    - ${{ pin_compatible("spdlog", upper_bound="x.x") }}
+    - ${{ pin_compatible("docopt.cpp", upper_bound="x.x") }}
+    - ${{ pin_compatible("ezc3d", upper_bound="x.x") }}
+  run_exports:
+    - ${{ pin_subpackage("opensim", upper_bound="x.x") }}
+
+tests:
+  - python:
+      imports:
+        - opensim
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script:
+      - python run_test.py
+      - opensim-cmd --version
+      - opensim-cmd info Model
+      - opensense -H
+  - files:
+      recipe:
+        - test-cmake/CMakeLists.txt
+        - test-cmake/main.cpp
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake >=3.15
+        - ninja
+    script:
+      - if: win
+        then:
+          - cmake %CMAKE_ARGS% -S test-cmake -B test-cmake-build -G Ninja
+          - cmake --build test-cmake-build
+          - test-cmake-build\opensim_consumer.exe
+        else:
+          - cmake ${CMAKE_ARGS} -S test-cmake -B test-cmake-build -G Ninja
+          - cmake --build test-cmake-build
+          - ./test-cmake-build/opensim_consumer
+
+about:
+  homepage: https://opensim.stanford.edu/
+  repository: https://github.com/opensim-org/opensim-core
+  documentation: https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/overview
+  summary: Musculoskeletal modeling, simulation, and optimal-control software
+  description: |
+    OpenSim provides tools for developing musculoskeletal models, simulating
+    movement, analyzing motion, and solving optimal-control problems with Moco.
+    This package includes its C++ API, command-line interface, Python bindings,
+    C3D support, and CasADi/IPOPT-backed Moco solver.
+  license: Apache-2.0 AND MIT
+  license_file:
+    - LICENSE.txt
+    # Lepton has no standalone conda-forge package; its source carries the
+    # complete MIT grant and copyright notice.
+    - Vendors/lepton/src/Parser.cpp
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
