@@ -1,0 +1,57 @@
+schema_version: 1
+
+context:
+  version: "0.7.0"
+
+package:
+  name: better-profanity
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/b/better-profanity/better_profanity-${{ version }}.tar.gz
+    sha256: 8a6fdc8606d7471e7b5f6801917eca98ec211098262e82f62da4f5de3a73145b
+  # The sdist ships no licence file, so the build fails on "No license files
+  # were copied". Fetched from the matching upstream tag instead; `file_name`
+  # keeps rattler-build from trying to extract it as an archive.
+  - url: https://raw.githubusercontent.com/snguyenthanh/better_profanity/${{ version }}/LICENSE
+    sha256: ec423cc5506eea1ffbfc9955c3ec8f86139996963d84ff306a5ee41eda8a4ff1
+    file_name: LICENSE
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools
+    - wheel
+    - pip
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - better_profanity
+      pip_check: true
+      python_version: ["${{ python_min }}.*", "*"]
+  # The package is a wordlist matcher, so an import test passes even when the
+  # bundled data files never made it into the artifact. This asserts they did.
+  - script:
+      - python -c "from better_profanity import profanity; profanity.load_censor_words(); assert len(profanity.CENSOR_WORDSET) > 100"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  summary: Blazingly fast cleaning swear words (and their leetspeak) in strings
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/snguyenthanh/better_profanity
+  repository: https://github.com/snguyenthanh/better_profanity
+
+extra:
+  recipe-maintainers:
+    - killua156
