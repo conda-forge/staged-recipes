@@ -1,0 +1,326 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f0de56bd..255d10f3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
++CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+ 
+ FIND_PROGRAM(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
+ FIND_PROGRAM(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
+@@ -392,124 +392,27 @@ SET(PTHREAD pthread)
+ CMAKE_POLICY(SET CMP0054 NEW) # quoted variable for STREQUAL
+ CMAKE_POLICY(SET CMP0074 NEW) # BLAS_ROOT
+ 
+-IF (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+-    SET(OMP_FLAG -qopenmp)
+-ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+-    SET(OMP_FLAG -openmp)
+-ELSE()
+-    SET(OMP_FLAG -fopenmp)
+-ENDIF()
++FIND_PACKAGE(OpenMP REQUIRED COMPONENTS CXX)
+ 
+-IF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+-    SET(OMP_LIB_NAME "")
+-    SET(PTHREAD "")
+-    IF("${OMP_LIB}" STREQUAL "SEQ")
+-        SET(MKL_OMP_LIB_NAME mkl_sequential)
+-        SET(MKL_OMP_VALUE 0)
+-    ELSEIF ("${OMP_LIB}" STREQUAL "INTEL")
+-        SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-        SET(MKL_OMP_VALUE 2)
+-    ELSEIF ("${OMP_LIB}" STREQUAL "TBB")
+-        SET(MKL_OMP_LIB_NAME mkl_tbb_thread)
+-        SET(MKL_OMP_VALUE 3)
+-    ELSE()
+-        SET(OMP_LIB INTEL)
+-        SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-        UNSET(OMP_LIB_NAME)
+-        FIND_LIBRARY(OMP_LIB_NAME NAMES iomp5md PATHS $ENV{OMPROOT} $ENV{OMPROOT}/lib $ENV{OMPROOT}/lib/intel64_win)
+-        SET(MKL_OMP_VALUE 2)
+-    ENDIF()
+-ELSEIF (WIN32)
+-    SET(OMP_LIB_NAME "")
+-    SET(PTHREAD "")
+-    SET(OMP_LIB INTEL)
+-    SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-    UNSET(OMP_LIB_NAME)
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES iomp5md PATHS $ENV{OMPROOT} $ENV{OMPROOT}/lib $ENV{OMPROOT}/lib/intel64_win)
+-    SET(MKL_OMP_VALUE 2)
+-ELSEIF ("${OMP_LIB}" STREQUAL "SEQ")
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES gomp PATHS /usr/local/lib /usr/lib64)
+-    IF(NOT OMP_LIB_NAME)
+-        SET(OMP_LIB_NAME "")
+-        SET(PTHREAD "")
+-    ENDIF()
+-    SET(MKL_OMP_LIB_NAME mkl_sequential)
+-    SET(MKL_OMP_VALUE 0)
+-ELSEIF ("${OMP_LIB}" STREQUAL "INTEL")
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES iomp5 PATHS /usr/local/lib /usr/lib64)
+-    IF (NOT OMP_LIB_NAME)
+-        EXECUTE_PROCESS(
+-            COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
+-            COMMAND grep "^lib" COMMAND awk -F "=" "{print $2}" COMMAND tr ":" ";"
+-            OUTPUT_VARIABLE OMP_LIB_HINT OUTPUT_STRIP_TRAILING_WHITESPACE)
+-        FIND_LIBRARY(OMP_LIB_NAME NAMES iomp5 PATHS ${OMP_LIB_HINT})
+-    ENDIF()
+-    SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-    SET(MKL_OMP_VALUE 2)
+-ELSEIF ("${OMP_LIB}" STREQUAL "TBB")
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES gomp PATHS /usr/local/lib /usr/lib64)
+-    IF(NOT OMP_LIB_NAME)
+-        SET(OMP_LIB_NAME "")
+-        SET(PTHREAD "")
+-    ENDIF()
+-    SET(MKL_OMP_LIB_NAME mkl_tbb_thread)
+-    SET(MKL_OMP_VALUE 3)
+-ELSEIF ((CMAKE_CXX_COMPILER_ID STREQUAL "Intel") OR (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM"))
+-    EXECUTE_PROCESS(
+-        COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
+-        COMMAND grep "^lib" COMMAND awk -F "=" "{print $2}" COMMAND tr ":" ";"
+-        OUTPUT_VARIABLE OMP_LIB_HINT OUTPUT_STRIP_TRAILING_WHITESPACE)
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES iomp5 PATHS ${OMP_LIB_HINT} /usr/local/lib /usr/lib64 ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-    SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-    SET(MKL_OMP_VALUE 2)
+-ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+-    IF("${OMP_LIB}" STREQUAL "OMP")
+-        SET(OMP_LIB_FIND_NAME omp)
+-    ELSE()
+-        SET(OMP_LIB_FIND_NAME iomp5)
+-    ENDIF()
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES ${OMP_LIB_FIND_NAME} PATHS $ENV{OMPROOT} $ENV{OMPROOT}/lib NO_DEFAULT_PATH)
+-    IF (NOT OMP_LIB_NAME)
+-        FIND_LIBRARY(OMP_LIB_NAME NAMES ${OMP_LIB_FIND_NAME} PATHS /usr/local/lib /usr/lib64 ${PYTHON_LIB_PATH})
+-    ENDIF()
+-    IF (NOT OMP_LIB_NAME)
+-        EXECUTE_PROCESS(
+-            COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
+-            COMMAND grep "^lib" COMMAND awk -F "=" "{print $2}" COMMAND tr ":" ";"
+-            OUTPUT_VARIABLE OMP_LIB_HINT OUTPUT_STRIP_TRAILING_WHITESPACE)
+-        FIND_LIBRARY(OMP_LIB_NAME NAMES ${OMP_LIB_FIND_NAME} PATHS ${OMP_LIB_HINT})
+-    ENDIF()
+-    SET(MKL_OMP_LIB_NAME mkl_intel_thread)
+-    SET(MKL_OMP_VALUE 2)
+-ELSE()
+-    SET(OMP_LIB GNU)
+-    FIND_LIBRARY(OMP_LIB_NAME NAMES gomp PATHS /usr/local/lib /usr/lib64 ${PYTHON_LIB_PATH})
+-    IF (NOT OMP_LIB_NAME)
+-        EXECUTE_PROCESS(
+-            COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
+-            COMMAND grep "^lib" COMMAND awk -F "=" "{print $2}" COMMAND tr ":" ";"
+-            OUTPUT_VARIABLE OMP_LIB_HINT OUTPUT_STRIP_TRAILING_WHITESPACE)
+-        FIND_LIBRARY(OMP_LIB_NAME NAMES gomp PATHS ${OMP_LIB_HINT})
+-    ENDIF()
+-    SET(MKL_OMP_LIB_NAME mkl_gnu_thread)
+-    SET(MKL_OMP_VALUE 1)
++IF (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
++    SET(BLA_VENDOR Apple)
+ ENDIF()
+ 
+-IF (${USE_BLIS})
+-    FIND_PATH(BLIS_INCLUDE_DIR NAMES blis/blis.h HINTS $ENV{MKLROOT}/include /usr/local/include
+-        $ENV{BLIS_PREFIX}/include ${PYTHON_INCLUDE_PATH})
+-    FIND_LIBRARY(BLIS_LIBS NAMES libblis.so PATHS $ENV{MKLROOT}/lib /usr/local/lib /usr/lib64
+-        $ENV{BLIS_PREFIX}/lib ${PYTHON_INCLUDE_PATH})
+-    SET(BLIS_FLAG "-D_HAS_BLIS")
++IF (APPLE AND ${USE_SINGLE_PREC} AND ${APPLE_ACC_SINGLE_PREC})
++    SET(MKL_FLAG ${MKL_FLAG} "-D_APPLE_ACC_SINGLE_PREC")
+ ENDIF()
+ 
++FIND_PACKAGE(BLAS REQUIRED)
++FIND_PACKAGE(LAPACK REQUIRED)
++
++
+ IF (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+-    SET(OPT_FLAG ${OMP_FLAG} -O2 -bigobj -MP -WX "-D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
++    SET(OPT_FLAG ${OpenMP_CXX_FLAGS} -O2 -bigobj -MP -WX "-D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
+ ELSEIF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+-    SET(OPT_FLAG -O0 -g ${XPREP} ${OMP_FLAG} -fstack-check -fno-omit-frame-pointer -fno-optimize-sibling-calls
++    SET(OPT_FLAG -O0 -g ${XPREP} ${OpenMP_CXX_FLAGS} -fstack-check -fno-omit-frame-pointer -fno-optimize-sibling-calls
+         -Werror -Werror=return-type)
+ ELSE()
+-    SET(OPT_FLAG -O3 -funroll-loops ${XPREP} ${OMP_FLAG} -Werror -Werror=return-type)
++    SET(OPT_FLAG -O3 -funroll-loops ${XPREP} ${OpenMP_CXX_FLAGS} -Werror -Werror=return-type)
+ ENDIF()
+ 
+ IF ((NOT APPLE) AND (NOT WIN32) AND (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")))
+@@ -528,14 +431,6 @@ ELSE()
+     SET(ARCH_LINK_FLAGS "")
+ ENDIF()
+ 
+-IF (${USE_MKL})
+-    SET(USE_MKL_ANY ON)
+-ELSEIF(${USE_MKL64})
+-    SET(USE_MKL_ANY ON)
+-ELSE()
+-    SET(USE_MKL_ANY OFF)
+-ENDIF()
+-
+ IF (${TBB})
+     FIND_PATH(TBB_INCLUDE_DIR NAMES tbb/tbb.h
+         HINTS $ENV{MKLROOT}/include /usr/local/include $ENV{TBBROOT}/include ${PYTHON_INCLUDE_PATH})
+@@ -549,67 +444,11 @@ IF (${TBB})
+     SET(TBB_FLAG "-D_HAS_TBB")
+ ENDIF()
+ 
+-IF (${USE_MKL_ANY})
+-    SET(CMAKE_FIND_LIBRARY_SUFFIXES_BKP ${CMAKE_FIND_LIBRARY_SUFFIXES})
+-    SET(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_FIND_LIBRARY_SUFFIXES_BKP};.so.1;.1.dylib;.so.2;.2.dylib;.so.3;.3.dylib;.so.4;.4.dylib")
+-    FIND_PATH(MKL_INCLUDE_DIR NAMES mkl.h HINTS $ENV{MKLROOT}/include /usr/local/include ${PYTHON_INCLUDE_PATH})
+-    IF (WIN32)
+-        SET(MKL_LIB_NAME_PRE_SUF "_dll")
+-    ELSE()
+-        SET(MKL_LIB_NAME_PRE_SUF "")
+-    ENDIF()
+-    IF (${USE_MKL})
+-        FIND_LIBRARY(MKL_LIB_LP NAMES mkl_intel_lp64${MKL_LIB_NAME_PRE_SUF}
+-            PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-        SET(MKL_FLAG "-D_HAS_INTEL_MKL=${MKL_OMP_VALUE}")
+-    ELSE()
+-        FIND_LIBRARY(MKL_LIB_LP NAMES mkl_intel_ilp64${MKL_LIB_NAME_PRE_SUF}
+-            PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-        SET(MKL_FLAG "-D_HAS_INTEL_MKL=${MKL_OMP_VALUE}" "-DMKL_ILP64")
+-    ENDIF()
+-    FIND_LIBRARY(MKL_LIB_CORE NAMES mkl_core${MKL_LIB_NAME_PRE_SUF}
+-        PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-    FIND_LIBRARY(MKL_LIB_GT NAMES ${MKL_OMP_LIB_NAME}${MKL_LIB_NAME_PRE_SUF}
+-        PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-    # AVX and AVX512 are required to avoid setting LD_PRELOAD for python
+-    FIND_LIBRARY(MKL_LIB_AVX NAMES mkl_avx2
+-        PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-    FIND_LIBRARY(MKL_LIB_AVX512 NAMES mkl_avx512
+-        PATHS $ENV{MKLROOT}/lib $ENV{MKLROOT}/lib/intel64 /usr/local/lib ${PYTHON_LIB_PATH} NO_DEFAULT_PATH)
+-    IF (NOT MKL_LIB_AVX)
+-        SET(MKL_LIB_AVX "")
+-    ENDIF()
+-    IF (NOT MKL_LIB_AVX512)
+-        SET(MKL_LIB_AVX512 "")
+-    ENDIF()
+-    SET(MKL_LIBS ${NO_AS_NEEDED} ${PTHREADS} ${MKL_LIB_LP} ${MKL_LIB_CORE} ${MKL_LIB_GT}
+-        ${OMP_LIB_NAME} ${MKL_LIB_AVX} ${MKL_LIB_AVX512})
+-    SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES_BKP})
+-    MESSAGE(STATUS "MKL_INCLUDE_DIR = ${MKL_INCLUDE_DIR}")
+-    MESSAGE(STATUS "MKL_LIBS = ${MKL_LIBS}")
+-ELSE()
+-    IF (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+-        SET(BLA_VENDOR Apple)
+-    ENDIF()
+-
+-    IF (NOT ${USE_BLIS})
+-        FIND_PACKAGE(BLAS REQUIRED)
+-    ENDIF()
+-
+-    FIND_PACKAGE(LAPACK REQUIRED)
+-
+-    SET(MKL_INCLUDE_DIR "")
+-    SET(MKL_LIBS "")
+-    SET(MKL_FLAG "")
+-ENDIF()
+-
+ IF(${F77UNDERSCORE})
+     SET(MKL_FLAG ${MKL_FLAG} "-D_F77UNDERSCORE")
+ ENDIF()
+ 
+-IF (APPLE AND ${USE_SINGLE_PREC} AND (NOT ${USE_MKL_ANY}) AND ${APPLE_ACC_SINGLE_PREC})
+-    SET(MKL_FLAG ${MKL_FLAG} "-D_APPLE_ACC_SINGLE_PREC")
+-ENDIF()
++
+ 
+ IF (${MPI})
+     FIND_PACKAGE(MPI)
+@@ -666,8 +505,8 @@ MESSAGE(STATUS "SINGLE_PREC_FLAG = ${SINGLE_PREC_FLAG}")
+ MESSAGE(STATUS "SCI_FLAG = ${SCI_FLAG}")
+ MESSAGE(STATUS "TBB_FLAG = ${TBB_FLAG}")
+ MESSAGE(STATUS "MPI_FLAG = ${MPI_FLAG}")
+-MESSAGE(STATUS "OMP_LIB = ${OMP_LIB_NAME}")
+-MESSAGE(STATUS "MKL_OMP_LIB_NAME = ${MKL_OMP_LIB_NAME}")
++MESSAGE(STATUS "OMP_LIB = ${OpenMP_CXX_LIBRARIES}")
++MESSAGE(STATUS "MKL_OpenMP_CXX_LIBRARIES = ${MKL_OpenMP_CXX_LIBRARIES}")
+ MESSAGE(STATUS "TBB_LIBS = ${TBB_LIBS}")
+ MESSAGE(STATUS "BLIS_LIBS = ${BLIS_LIBS}")
+ MESSAGE(STATUS "BLIS_FLAG = ${BLIS_FLAG}")
+@@ -767,7 +606,7 @@ FOREACH (target ${TARGETS})
+     ENDIF()
+ 
+     SET_TARGET_PROPERTIES(${target} PROPERTIES POSITION_INDEPENDENT_CODE 1)
+-    TARGET_LINK_LIBRARIES(${target} PRIVATE ${OMP_LIB_NAME} ${PTHREAD})
++    TARGET_LINK_LIBRARIES(${target} PRIVATE ${OpenMP_CXX_LIBRARIES} ${PTHREAD})
+     TARGET_LINK_LIBRARIES(${target} PRIVATE ${PTHREAD} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${MKL_LIBS} ${MPI_LIBS} ${TBB_LIBS} ${BLIS_LIBS})
+     SET_TARGET_PROPERTIES(${target} PROPERTIES LINK_FLAGS "${ARCH_LINK_FLAGS} ${MPI_LINK_FLAGS}")
+ 
+@@ -809,7 +648,7 @@ IF (${BUILD_TEST})
+     IF ((NOT APPLE) AND (NOT WIN32))
+         TARGET_LINK_LIBRARIES(${PROJECT_NAME}_tests rt)
+     ENDIF()
+-    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_tests ${OMP_LIB_NAME} ${PTHREAD} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${MKL_LIBS})
++    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_tests ${OpenMP_CXX_LIBRARIES} ${PTHREAD} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${MKL_LIBS})
+ 
+     ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME}_tests POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E copy_directory
+diff --git a/setup.py b/setup.py
+index 6394fb81..9f200a0f 100644
+--- a/setup.py
++++ b/setup.py
+@@ -88,17 +88,17 @@ class CMakeBuild(build_ext):
+                     cfg.upper(), self.build_temp
+                 ),
+                 "-DPYTHON_EXECUTABLE_HINT={}".format(sys.executable),
+-                "-DUSE_MKL=ON",
+                 "-DBUILD_LIB=ON",
+                 "-DBUILD_EXE=ON",
+                 "-DLARGE_BOND=ON",
+                 "-DUSE_KSYMM=OFF",
+-                "-DUSE_COMPLEX=ON",
+-                "-DUSE_SINGLE_PREC=ON",
+-                "-DUSE_SG=ON",
++#                "-DUSE_COMPLEX=ON",
++#                "-DUSE_SINGLE_PREC=ON",
++#                "-DUSE_SG=ON",
+                 "-DUSE_SANY=ON",
+             ]
+ 
++            njobs = os.getenv("CPU_COUNT", "2")
+             # We can handle some platform-specific settings at our discretion
+             if platform.system() == "Windows":
+                 plat = "x64" if platform.architecture()[0] == "64bit" else "Win32"
+@@ -118,9 +118,9 @@ class CMakeBuild(build_ext):
+                         "-G",
+                         "MinGW Makefiles",
+                     ]
+-                build_args = ["/m:2", "/v:d"]
++                build_args = ["/m:" + njobs, "/v:d"]
+             else:
+-                build_args = ["--jobs=2"]
++                build_args = ["--jobs=" + njobs]
+ 
+             if not os.path.exists(self.build_temp):
+                 os.makedirs(self.build_temp)
+@@ -156,14 +156,9 @@ setup(
+     author_email="hczhai.ok@gmail.com",
+     url="https://github.com/block-hczhai/block2-preview",
+     install_requires=[
+-        "mkl==2021.4",
+-        "mkl-include",
+-        "intel-openmp",
+         "numpy",
+-        "cmake>=3.19",
+         "scipy",
+         "psutil",
+-        "pybind11!=2.10.3,!=2.10.4,!=2.11.0,!=2.11.1",
+     ],
+     scripts=[
+         "pyblock2/driver/block2main",
+diff --git a/src/core/integral_compressed.hpp b/src/core/integral_compressed.hpp
+index 33678a4d..47d51cbe 100644
+--- a/src/core/integral_compressed.hpp
++++ b/src/core/integral_compressed.hpp
+@@ -850,7 +850,7 @@ template <typename FL> struct CompressedFCIDUMP : FCIDUMP<FL> {
+         }
+         cps_ts = rts, cps_vgs = rvgs, cps_vabs = rvabs, cps_vs = rvs;
+         if (params.count("orbsym"))
+-            FCIDUMP<FL>::template set_orb_sym(FCIDUMP<FL>::reorder(
++            FCIDUMP<FL>::template set_orb_sym<int>(FCIDUMP<FL>::reorder(
+                 FCIDUMP<FL>::template orb_sym<int>(), ord));
+         freeze();
+     }
