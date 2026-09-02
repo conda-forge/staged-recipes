@@ -1,0 +1,66 @@
+context:
+  version: "0.9.0"
+
+package:
+  name: jaeger-client-cpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jaegertracing/jaeger-client-cpp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 95c2a8249d930593776b9435cb8c5622511faeb2ec2d08df02bf1ec571a7dd40
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfig.cmake $PREFIX/lib/cmake/thrift/thriftConfig.cmake
+        - ln -sf $PREFIX/lib/cmake/thrift/ThriftConfigVersion.cmake $PREFIX/lib/cmake/thrift/thriftConfigVersion.cmake
+        - cmake ${CMAKE_ARGS} -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUNTER_ENABLED=OFF -DBUILD_TESTING=OFF -DJAEGERTRACING_BUILD_EXAMPLES=OFF -DJAEGERTRACING_BUILD_CROSSDOCK=OFF -DJAEGERTRACING_PLUGIN=OFF -DBUILD_SHARED_LIBS=ON -B build
+        - cmake --build build -j${CPU_COUNT}
+        - cmake --install build
+      else:
+        - copy /Y "%LIBRARY_LIB%\cmake\thrift\ThriftConfig.cmake" "%LIBRARY_LIB%\cmake\thrift\thriftConfig.cmake"
+        - copy /Y "%LIBRARY_LIB%\cmake\thrift\ThriftConfigVersion.cmake" "%LIBRARY_LIB%\cmake\thrift\thriftConfigVersion.cmake"
+        - cmake %CMAKE_ARGS% -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUNTER_ENABLED=OFF -DBUILD_TESTING=OFF -DJAEGERTRACING_BUILD_EXAMPLES=OFF -DJAEGERTRACING_BUILD_CROSSDOCK=OFF -DJAEGERTRACING_PLUGIN=OFF -DBUILD_SHARED_LIBS=ON -B build
+        - cmake --build build -j%CPU_COUNT%
+        - cmake --install build
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - libthrift
+    - thrift-compiler
+    - opentracing-cpp
+    - nlohmann_json
+    - yaml-cpp
+    - libboost-devel
+  run_exports:
+    - ${{ pin_subpackage('jaeger-client-cpp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - jaegertracing/Tracer.h
+      lib:
+        - jaegertracing
+
+about:
+  homepage: https://github.com/jaegertracing/jaeger-client-cpp
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Jaeger Bindings for C++ OpenTracing API
+  description: |
+    C++ client library for Jaeger distributed tracing. Implements the
+    OpenTracing API and reports spans to a Jaeger backend.
+    Note: This project is deprecated in favor of OpenTelemetry.
+  repository: https://github.com/jaegertracing/jaeger-client-cpp
+
+extra:
+  recipe-maintainers:
+    - amitsingh21
+    - wolfv
