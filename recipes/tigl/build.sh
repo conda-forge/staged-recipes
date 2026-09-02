@@ -35,11 +35,6 @@ ninja
 # Install step
 ninja install
 
-# tigl's own `ninja install` now installs the python bindings straight into site-packages
-# (bindings/CMakeLists.txt computes $SP_DIR via Python's sysconfig and installs there directly,
-# see patches/fix-python-site-packages-detection.patch), so no manual relocation is needed here.
-python $RECIPE_DIR/fixosxload.py $SP_DIR/tigl3/tigl3wrapper.py libtigl3
-
 # The egg-info file is necessary because some packages
 # might require tigl3 in their setup.py.
 # See https://setuptools.readthedocs.io/en/latest/pkg_resources.html#workingset-objects
