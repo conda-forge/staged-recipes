@@ -1,0 +1,118 @@
+schema_version: 1
+
+context:
+  version: "3.9.1"
+  drjit_version: "1.5.0"
+
+package:
+  name: mitsuba
+  version: ${{ version }}
+
+# The GitHub release archive does not contain the recursive submodules that
+# Mitsuba's build requires. Pin the release tag and let the source fetcher
+# check out the exact submodule revisions recorded by upstream. This commit is
+# the peeled target of the v3.9.1 release tag.
+source:
+  git: https://github.com/mitsuba-renderer/mitsuba3.git
+  rev: 478e193a183c21723f4a8251afc3ad29a8da4c5e
+
+build:
+  number: 0
+  skip:
+    # The matching conda-forge Dr.Jit release is currently unavailable on
+    # Windows and non-x86 Linux platforms.
+    - win
+    - linux and not x86_64
+    # Dr.Jit's current osx-arm64 packages require macOS 15, while conda-forge
+    # recipes target macOS 11 on that platform.
+    - osx and arm64
+    - match(python, "<3.10")
+    - match(python, ">=3.14")
+  script: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - git
+    - ninja
+    - if: x86_64
+      then: nasm
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - hatch-fancy-pypi-readme
+    - nanobind ==2.14.0
+    - drjit ==${{ drjit_version }}
+    - typing_extensions >=4.12
+    - zlib
+  run:
+    - python
+    - python_abi * *_cp${{ python | version_to_buildstring }}
+    # CPU, CUDA, and Metal Dr.Jit packages share a version but expose different
+    # shared-library surfaces, so retain the exact host variant at runtime.
+    - ${{ pin_compatible("drjit", exact=True) }}
+    - if: match(python, "<3.11")
+      then: typing_extensions >=4.12
+
+tests:
+  - python:
+      imports:
+        - mitsuba
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script:
+      - python run_test.py
+      - mitsuba --help
+
+about:
+  homepage: https://www.mitsuba-renderer.org/
+  repository: https://github.com/mitsuba-renderer/mitsuba3
+  documentation: https://mitsuba.readthedocs.io/
+  summary: A retargetable forward and inverse renderer
+  description: |
+    Mitsuba 3 is a research-oriented rendering system for forward and inverse
+    light-transport simulation. It is built on Dr.Jit and supports scalar,
+    LLVM, CUDA, and Metal execution variants where available.
+  license: BSD-3-Clause AND Apache-2.0 AND BSL-1.0 AND IJG AND MIT AND Zlib AND libpng-2.0
+  license_file:
+    - LICENSE
+    # Mitsuba builds and ships namespaced copies of these upstream components.
+    - ext/libpng/LICENSE
+    - ext/zlib/README
+    - ext/libjpeg-turbo/LICENSE.md
+    - ext/libjpeg-turbo/README.ijg
+    - ext/openexr/LICENSE.md
+    - ext/openexr/OpenEXR/PATENTS
+    - ext/tinyformat/tinyformat.h
+    - ext/pugixml/LICENSE.md
+    - ext/nanogui/LICENSE.txt
+    - ext/nanogui/ext/coro/LICENSE
+    - ext/nanogui/ext/glfw/LICENSE.md
+    - ext/nanogui/ext/nanovg/LICENSE.txt
+    - ext/nanogui/ext/nanovg_metal/LICENSE
+    - ext/nanogui/ext/pybind11/LICENSE
+    - ext/embree/LICENSE.txt
+    - ext/fastfloat/LICENSE-APACHE
+    - ext/fastfloat/LICENSE-MIT
+    - ext/drjit/LICENSE
+    - ext/drjit/ext/drjit-core/LICENSE
+    - ext/nanobind/LICENSE
+    - ext/nanobind/ext/robin_map/LICENSE
+    - ext/struct-jit/LICENSE
+    - ext/struct-jit/ext/nanobind/LICENSE
+    - ext/struct-jit/ext/nanobind/ext/robin_map/LICENSE
+    - ext/rgb2spec/LICENSE
+    - resources/data/sunsky/output/LICENSE
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
