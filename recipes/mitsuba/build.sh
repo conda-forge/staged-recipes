@@ -16,10 +16,12 @@ export CPATH="${SRC_DIR}/ext/drjit/include${CPATH:+:${CPATH}}"
 
 variants="scalar_rgb,scalar_spectral,scalar_spectral_polarized,llvm_ad_rgb,llvm_ad_mono,llvm_ad_mono_polarized,llvm_ad_spectral,llvm_ad_spectral_polarized"
 
-# conda-forge's macOS builds use the macOS 11 SDK, which predates Metal's
-# curve-geometry acceleration APIs used by Mitsuba 3.9.1. Keep the portable
-# scalar and LLVM variants there; CUDA variants are Linux-only.
-if [[ "${target_platform:-}" == linux-* ]]; then
+# Only request CUDA variants when the resolved Dr.Jit build provides its CUDA
+# Python module. Some conda-forge builds are intentionally CPU-only and omit
+# the OptiX symbols that Mitsuba's CUDA backend links against.
+if [[ "${target_platform:-}" == linux-* ]] &&
+    python -c 'import importlib.util; raise SystemExit(importlib.util.find_spec("drjit.cuda") is None)'
+then
     variants+=",cuda_ad_rgb,cuda_ad_mono,cuda_ad_mono_polarized,cuda_ad_spectral,cuda_ad_spectral_polarized"
 fi
 
