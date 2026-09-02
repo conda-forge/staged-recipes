@@ -1,3 +1,6 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 import drjit as dr
 import mitsuba as mi
 
@@ -38,3 +41,33 @@ scene = mi.load_dict(
 image = mi.render(scene, seed=1)
 assert tuple(image.shape) == (8, 8, 3)
 assert float(dr.sum(image.array)) > 0
+
+with TemporaryDirectory() as directory:
+    exr_path = Path(directory) / "roundtrip.exr"
+    mi.Bitmap(image).write(str(exr_path))
+    bitmap = mi.Bitmap(str(exr_path))
+    assert bitmap.width() == 8
+    assert bitmap.height() == 8
+
+# These libraries must come from their conda-forge packages, not from private
+# copies installed into the Mitsuba package directory.
+package_dir = Path(mi.__file__).resolve().parent
+vendored_prefixes = (
+    "libembree",
+    "libHalf-mitsuba",
+    "libIex-mitsuba",
+    "libIexMath-mitsuba",
+    "libIlmImf-mitsuba",
+    "libIlmThread-mitsuba",
+    "libImath-mitsuba",
+    "libjpeg-mitsuba",
+    "libOpenEXR",
+    "libpng-mitsuba",
+    "libpugixml",
+)
+vendored_libraries = sorted(
+    path.name
+    for path in package_dir.rglob("*")
+    if path.is_file() and path.name.startswith(vendored_prefixes)
+)
+assert not vendored_libraries, f"Unexpected vendored libraries: {vendored_libraries}"
