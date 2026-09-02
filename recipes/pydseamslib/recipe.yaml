@@ -1,0 +1,132 @@
+schema_version: 1
+
+# Compiled nanobind extension. Windows is skipped: the engine is
+# Meson/C++20 with a Unix wrap layout, not an MSVC port.
+context:
+  name: pydseamslib
+  version: "2.7.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: 41889de013dc62bbc5fd3f57d9118d63627b6df43045b122c01fa0f24dd9330e
+    patches:
+      # macOS SDK availability vs libc++ to_chars used by std::format.
+      - 0001-bindings-no-std-format.patch
+  # Extra archives satisfy meson subprojects/*.wrap with no network.
+  # seams-core v2.7.0 is revision 964c586feb4fbd96b56257c493157e3055b626e8.
+  - url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 72d33d6e597266d4e9c865e1edfc47ca2c3a97cf654443a90aed22953cc41da1
+    target_directory: _src_seams
+  # linkcell.wrap pins this commit (no matching tag).
+  - url: https://github.com/d-SEAMS/linkcell/archive/558401547e524b1b8015da856026ceb636d05651.tar.gz
+    sha256: ff54fc2f9fcd922de3d2fd793f205317d2d40bd63c9a496b88b6331db0d9aac9
+    target_directory: _src_linkcell
+  # Built with the wrap overlay so nanobind sees Py_LIMITED_API=0x030C0000.
+  # The conda-forge nanobind package is a full-API build; linking that
+  # into an abi3 extension segfaults at import.
+  - url: https://github.com/wjakob/nanobind/archive/refs/tags/v2.14.0.tar.gz
+    sha256: 937b08801b9b61c98192d9ec5ddb712256961fbe8ccc1122d6ee3d574600287c
+    target_directory: _src_nanobind
+  - url: https://github.com/Tessil/robin-map/archive/refs/tags/v1.4.0.tar.gz
+    sha256: 7930dbf9634acfc02686d87f615c0f4f33135948130b8922331c16d90a03250c
+    target_directory: _src_robin_map
+  # Nested seams-core wrap (vesin v0.5.7). Without this tree, wrap-mode
+  # nofallback leaves the neighbour search on the brute-force path.
+  - url: https://github.com/Luthaf/vesin/archive/refs/tags/v0.5.7.tar.gz
+    sha256: d1dbf85461b33799d7b65f899cfd651e860921eac2400316a307f2ac1d66935e
+    target_directory: _src_vesin
+
+build:
+  number: 0
+  skip:
+    - win
+    - match(python, "<3.12")
+  script:
+    file: build.sh
+  # The extension is a Python module, not a prefix/bin executable.
+  # Rattler tagged yoda.abi3.so as prefix:bin and relinked it, after
+  # which import segfaults.
+  dynamic_linking:
+    binary_relocation: false
+    rpaths:
+      - lib/
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - meson >=1.3.0
+    - ninja
+    - pkg-config
+    - if: linux
+      then: patchelf
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - numpy
+        - python
+  host:
+    - python
+    - pip
+    - meson-python >=0.17
+    - numpy
+    - eigen
+    - libblas
+    - liblapack
+    - libhwy
+  run:
+    - python
+    - numpy >=1.24
+
+tests:
+  - python:
+      imports:
+        - pydseams
+        - pydseamslib
+      pip_check: true
+  - package_contents:
+      site_packages:
+        - pydseams/__init__.py
+        - pydseams/yoda.abi3.so
+        - pydseamslib/__init__.py
+  - script:
+      - python -c "import pydseams; from pydseams import yoda; print(yoda.__doc__)"
+  - script:
+      - pytest tests/python/test_config.py tests/python/test_bindings.py -q
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://dseams.info
+  summary: Python bindings for the d-SEAMS C++ engine
+  description: |
+    pydseamslib is the Python front end for d-SEAMS. The import is
+    pydseams; pydseamslib remains a compatibility alias. The compiled
+    extension is pydseams.yoda. The C++ engine is seams-core.
+  license: MIT AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE-seams-core
+    - LICENSE-linkcell
+    - LICENSE-nanobind
+    - LICENSE-robin-map
+    - LICENSE-vesin
+    - THIRDPARTY.yml
+  documentation: https://d-seams.github.io/PydSEAMSlib/
+  repository: https://github.com/d-SEAMS/PydSEAMSlib
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
+    - amritagos
