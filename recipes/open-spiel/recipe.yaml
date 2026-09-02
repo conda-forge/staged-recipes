@@ -1,0 +1,103 @@
+schema_version: 1
+
+context:
+  version: "2.0.2"
+  dds_rev: "091ea94358a4016d4fb6069dea5c452cdc98d0bd"
+  pybind11_abseil_rev: "73992b54e7d40dfada5e5cd998cad60917f0b3d1"
+
+package:
+  name: open-spiel
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/google-deepmind/open_spiel/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4385763ebbc5edb3903fcffa6113cc69842ec1e21648371b451f4dafdac2998e
+    patches:
+      - 0001-use-system-libraries.patch
+  # OpenSpiel uses this header-only adapter, which is not packaged on
+  # conda-forge. Keep the exact revision used for the upstream 2.0.2 wheels.
+  - url: https://github.com/pybind/pybind11_abseil/archive/${{ pybind11_abseil_rev }}.tar.gz
+    sha256: b909980db9e7d86bc0826dce84f208fa93c1cbb85c95d4ae07aca44613758801
+    target_directory: open_spiel/pybind11_abseil
+  # The bridge double-dummy solver is required unconditionally and has no
+  # conda-forge package. Its compiled headers and sources match those shipped
+  # in the 2.0.2 sdist and come from the branch used by OpenSpiel's installer.
+  - url: https://github.com/jblespiau/dds/archive/${{ dds_rev }}.tar.gz
+    sha256: 059f5a0a5f782c39a5d6ff82e956df3e89b8ebd0d8e81a9ac77ad1482bc09d61
+    target_directory: open_spiel/games/bridge/double_dummy_solver
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.11")
+  script:
+    - if: win
+      then: call "%RECIPE_DIR%\build.bat"
+      else: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    # open_spiel/CMakeLists.txt requires the modern FindPython/CUDA behavior
+    # introduced in CMake 3.17.
+    - cmake >=3.17
+    # Upstream uses Visual Studio/MSBuild on Windows and Ninja elsewhere.
+    - if: not win
+      then: ninja
+    - python
+    - if: build_platform != target_platform
+      then: cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - setuptools >=45
+    - wheel
+    # Minimums match the bundled revisions in OpenSpiel's 2.0.2 sdist. Keep
+    # Abseil exact because upstream intentionally pins this LTS/ABI release.
+    - libabseil ==20250814.1
+    - nlohmann_json >=3.11.3
+    - pybind11 >=3.1.0
+    - pybind11_json >=0.2.15
+  run:
+    - python
+    - absl-py >=0.10.0
+    - attrs >=19.3.0
+    - ml-collections >=0.1.1
+    - numpy >=1.21.5
+    - scipy >=1.10.1
+
+tests:
+  - python:
+      imports:
+        - open_spiel
+        - open_spiel.python.algorithms.cfr
+        - pyspiel
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script: python run_test.py
+
+about:
+  homepage: https://openspiel.readthedocs.io/
+  repository: https://github.com/google-deepmind/open_spiel
+  documentation: https://openspiel.readthedocs.io/
+  summary: A framework for reinforcement learning in games
+  description: |
+    OpenSpiel is a collection of environments and algorithms for research in
+    general reinforcement learning, search, planning, and game theory. Its
+    game implementations and core API are written in C++ and exposed to Python.
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - open_spiel/pybind11_abseil/LICENSE
+    - open_spiel/games/bridge/double_dummy_solver/LICENSE
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
