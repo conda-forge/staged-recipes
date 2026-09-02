@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "4.2.1"
+
+package:
+  name: pptxgenjs-plus
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/pptxgenjs-plus/-/pptxgenjs-plus-${{ version }}.tgz
+  sha256: 15c9abf31bb2fa07f96d206f6d608fb1dc527b543a27006209773a038a39bcdc
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - if: unix
+      then:
+        - set -ex
+        - pnpm install --ignore-scripts
+        - npm pack --ignore-scripts
+        - npm install --global ./pptxgenjs-plus-${{ version }}.tgz
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - rm -rf "${PREFIX}/lib/node_modules/pptxgenjs-plus/node_modules/.bin"
+      else:
+        - call pnpm install --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --global "%SRC_DIR%\pptxgenjs-plus-${{ version }}.tgz"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if %ERRORLEVEL% neq 0 exit 1
+        - if exist "%PREFIX%\lib\node_modules\pptxgenjs-plus\node_modules\.bin" rmdir /s /q "%PREFIX%\lib\node_modules\pptxgenjs-plus\node_modules\.bin"
+        - if exist "%PREFIX%\node_modules\pptxgenjs-plus\node_modules\.bin" rmdir /s /q "%PREFIX%\node_modules\pptxgenjs-plus\node_modules\.bin"
+
+requirements:
+  build:
+    - nodejs >=24
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs >=24
+  run:
+    - nodejs >=24
+
+tests:
+  - script:
+      - if: not win
+        then:
+          - test -f "${PREFIX}/lib/node_modules/pptxgenjs-plus/package.json"
+          - NODE_PATH="${PREFIX}/lib/node_modules" node -e "const m = require('pptxgenjs-plus'); const P = m.default || m; const p = new P(); if (!p.addSlide) throw new Error('no addSlide'); console.log('pptxgenjs-plus OK', P.version || m.version || '')"
+
+about:
+  summary: Build PowerPoint presentations with JavaScript (Node, browser, TypeScript)
+  description: |
+    pptxgenjs-plus is a maintained fork of PptxGenJS that creates PowerPoint
+    (.pptx) files from JavaScript/TypeScript. This conda package installs the
+    prebuilt npm library into the environment's global node_modules (no CLI).
+    Use ``NODE_PATH=$CONDA_PREFIX/lib/node_modules`` or a project that resolves
+    globally installed modules. Upstream ``engines.node`` is ``>=24``. The
+    sibling workspace package ``pptxgenjs-plus-jsx`` is not included.
+  homepage: https://github.com/lofcz/pptxgenjs-plus
+  repository: https://github.com/lofcz/pptxgenjs-plus
+  documentation: https://lofcz.github.io/pptxgenjs-plus/
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - rxm7706
