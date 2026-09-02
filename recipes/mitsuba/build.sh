@@ -14,7 +14,15 @@ export CMAKE_GENERATOR="Ninja"
 # Dr.Jit submodule while continuing to link against conda-forge's runtime.
 export CPATH="${SRC_DIR}/ext/drjit/include${CPATH:+:${CPATH}}"
 
-variants="scalar_rgb,scalar_spectral,scalar_spectral_polarized,llvm_ad_rgb,llvm_ad_mono,llvm_ad_mono_polarized,llvm_ad_spectral,llvm_ad_spectral_polarized,cuda_ad_rgb,cuda_ad_mono,cuda_ad_mono_polarized,cuda_ad_spectral,cuda_ad_spectral_polarized,metal_ad_rgb,metal_ad_mono,metal_ad_mono_polarized,metal_ad_spectral,metal_ad_spectral_polarized"
+variants="scalar_rgb,scalar_spectral,scalar_spectral_polarized,llvm_ad_rgb,llvm_ad_mono,llvm_ad_mono_polarized,llvm_ad_spectral,llvm_ad_spectral_polarized"
+
+# conda-forge's macOS builds use the macOS 11 SDK, which predates Metal's
+# curve-geometry acceleration APIs used by Mitsuba 3.9.1. Keep the portable
+# scalar and LLVM variants there; CUDA variants are Linux-only.
+if [[ "${target_platform:-}" == linux-* ]]; then
+    variants+=",cuda_ad_rgb,cuda_ad_mono,cuda_ad_mono_polarized,cuda_ad_spectral,cuda_ad_spectral_polarized"
+fi
+
 export CMAKE_ARGS="${CMAKE_ARGS:-} -DMI_DEFAULT_VARIANTS=${variants}"
 
 python -m pip install . -vv --no-deps --no-build-isolation
