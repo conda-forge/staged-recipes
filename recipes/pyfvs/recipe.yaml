@@ -1,0 +1,89 @@
+schema_version: 1
+
+context:
+  version: 0.3.7
+
+package:
+  name: pyfvs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyfvs/pyfvs-${{ version }}.tar.gz
+  sha256: 43afe8edd712a5e76c261a047c8329ebc554dffa60b3de568beee068f485c639
+
+build:
+  number: 0
+  script:
+  - if: win
+    then: |
+      :: Use Meson's selected C compiler instead of upstream's hard-coded gcc
+      sed -i "s/'gcc','-v'/cc.cmd_array() + ['-v']/" meson.build
+      :: Prevent Meson to use ninja instead of vs
+      ${{ PYTHON }} -m pip install . --no-build-isolation --no-deps -vv -Csetup-args="--backend=ninja" --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn"
+  - if: not win
+    then: |
+      ${{ PYTHON }} -m pip install . --no-build-isolation --no-deps -vv --config-settings=setup-args="-Dbuildtype=release" --config-settings=setup-args="-Dfvsvariants=pn"
+
+requirements:
+  build:
+    - meson
+    - ninja
+    - python
+    - setuptools-scm
+
+    - if: not win
+      then:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ compiler('m2w64_cxx') }}
+        - ${{ compiler('m2w64_fortran') }}
+        - ${{ stdlib('m2w64_c') }}
+        - m2-sed
+
+    # Non-Windows targets use the default UNIX toolchain
+    - if: linux
+      then:
+        - patchelf
+
+  host:
+    - python
+    - pip
+    - setuptools >=64
+    - setuptools-scm >=8
+    - wheel
+    - meson-python >=0.20.0
+    - numpy
+    
+  run:
+    - python
+    - confuse
+    - click
+    - pandas
+    - numpy
+    - typing_extensions
+
+tests:
+  - python:
+      imports:
+        - pyfvs
+      pip_check: true
+  - script:
+      - python -c "import pyfvs;print(list(pyfvs.list_variants().keys()))"
+
+about:
+  summary: Python wrappers and utilities for using the Forest Vegetation Simulator
+  license: MIT AND ISO-permission
+  license_file:
+    - LICENSE
+    - fvs/license.txt
+  homepage: https://github.com/forest-modeling/PyFVS
+
+extra:
+  recipe-maintainers:
+    - tharen
