@@ -4,7 +4,7 @@ set -euxo pipefail
 
 export PATH="$BUILD_PREFIX/bin:$PATH"
 
-NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
+export NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
 # install azurite globally from the npm registry
 # all things coming after this are just concerned with generating the ThirdPartyLicenses.txt file
