@@ -6,6 +6,16 @@ from pathlib import Path
 import pyspiel
 
 
+# UCI launches engines through POSIX process APIs, so its bindings are only
+# available on Unix. The rest of the bot bindings must remain available on
+# Windows.
+if sys.platform == "win32":
+    assert not hasattr(pyspiel, "SearchLimitType")
+    assert not hasattr(pyspiel, "make_uci_bot")
+else:
+    assert hasattr(pyspiel, "SearchLimitType")
+    assert hasattr(pyspiel, "make_uci_bot")
+
 # Play a deterministic complete game. Player 0 wins across the top row.
 game = pyspiel.load_game("tic_tac_toe")
 state = game.new_initial_state()
