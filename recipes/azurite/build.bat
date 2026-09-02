@@ -8,8 +8,7 @@ set "NPM_CONFIG_USERCONFIG=%TEMP%\nonexistentrc"
 cmd /c npm install -g %PKG_NAME%@%PKG_VERSION% --omit=dev --ignore-scripts || exit /b 1
 
 :: Remove packageManager field using jq
-cmd /c jq "del(.packageManager)" package.json > package.json.tmp || exit /b 1
-move /y package.json.tmp package.json || exit /b 1
+cmd /c node -e "const p=require('./package.json'); delete p.packageManager; require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2))" || exit /b 1
 
 :: Generate package lock, import to pnpm, and generate licenses
 cmd /c npm install --package-lock-only --omit=dev --ignore-scripts || exit /b 1
