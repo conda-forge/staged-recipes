@@ -9,10 +9,16 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/opensim-org/opensim-core/archive/refs/tags/${{ version }}.tar.gz
-  sha256: 53c7c477aeef334109d7ea991251c1f680777d42e59d878fef808ad6d28a98f2
-  patches:
-    - 0001-use-shared-docopt-and-conda-python-path.patch
+  - url: https://github.com/opensim-org/opensim-core/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 53c7c477aeef334109d7ea991251c1f680777d42e59d878fef808ad6d28a98f2
+    patches:
+      - 0001-use-shared-docopt-and-conda-python-path.patch
+      - 0002-support-simbody-3.7-apis.patch
+  # spdlog 1.4.x is distributed as a static library on conda-forge, so its
+  # MIT-licensed code is incorporated into libosimCommon.
+  - url: https://raw.githubusercontent.com/gabime/spdlog/1549ff12f1aa61ffc4d9a8727c519034724392a0/LICENSE
+    sha256: 7d40b1967fca203d22b0eaf75f54566167ded823863abedf4de869fcea057038
+    file_name: LICENSE-spdlog
 
 build:
   number: 0
@@ -32,8 +38,9 @@ requirements:
     - ${{ stdlib("c") }}
     - cmake >=3.15
     - ninja
-    # OpenSim 4.5.x custom typemaps use the pre-4.3 Python wrapper API.
-    - swig >=4.1.1,<4.3
+    # Match upstream CI. SWIG 4.2's iterable typemap conflicts with the
+    # unconstrained relational operators in the published Simbody 3.7 headers.
+    - swig >=4.1.1,<4.2
     - if: build_platform != target_platform
       then:
         - python
@@ -42,9 +49,9 @@ requirements:
   host:
     - python
     - numpy
-    # OpenSim 4.5.2 uses GeneralForceSubsystem::calcForceContributionsSum,
-    # which was introduced in Simbody 3.8. Simbody's run export pins its ABI.
-    - simbody >=3.8
+    # OpenSim declares Simbody 3.7 compatibility. Patch the handful of
+    # post-3.7 APIs and overloads used by 4.5.2; Simbody's run export pins ABI.
+    - simbody >=3.7
     # Simbody's public inline API exposes these link requirements to consumers.
     # Build against generic-soname Netlib on Unix while retaining provider-
     # neutral libblas/liblapack run exports.
@@ -121,6 +128,8 @@ about:
     # Lepton has no standalone conda-forge package; its source carries the
     # complete MIT grant and copyright notice.
     - Vendors/lepton/src/Parser.cpp
+    # spdlog is supplied by conda-forge but linked statically into OpenSim.
+    - LICENSE-spdlog
     - NOTICE
 
 extra:

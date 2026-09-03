@@ -78,7 +78,7 @@ config_candidates = (
 config_file = next((path for path in config_candidates if path.is_file()), None)
 assert config_file is not None, config_candidates
 config_text = config_file.read_text(encoding="utf-8")
-assert "find_dependency(Simbody 3.8)" in config_text
+assert "find_dependency(Simbody 3.7)" in config_text
 cmake_metadata = "\n".join(
     path.read_text(encoding="utf-8") for path in config_file.parent.glob("*.cmake")
 )

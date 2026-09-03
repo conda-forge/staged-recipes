@@ -1,0 +1,114 @@
+diff --git a/OpenSim/Moco/MocoCasADiSolver/MocoCasOCProblem.h b/OpenSim/Moco/MocoCasADiSolver/MocoCasOCProblem.h
+index 8032f357f..9615648b0 100644
+--- a/OpenSim/Moco/MocoCasADiSolver/MocoCasOCProblem.h
++++ b/OpenSim/Moco/MocoCasADiSolver/MocoCasOCProblem.h
+@@ -482,7 +482,10 @@ private:
+                 slacks.ptr() + getNumHolonomicConstraintEquations(), true);
+         SimTK::Vector proj_v(getNumSpeeds(), projection.ptr() +
+                 getNumCoordinates(), true);
+-        matterBase.multiplyByPVTranspose(simtkStateBase, mu_v, proj_v);
++        SimTK::Vector mu_pva(mu_v.size() +
++                getNumAccelerationConstraintEquations(), 0.0);
++        mu_pva(0, mu_v.size()) = mu_v;
++        matterBase.multiplyByGTranspose(simtkStateBase, mu_pva, proj_v);
+ 
+         m_jar->leave(std::move(mocoProblemRep));
+     }
+diff --git a/OpenSim/Simulation/Model/Model.h b/OpenSim/Simulation/Model/Model.h
+index 8aeb876b6..32a3419df 100644
+--- a/OpenSim/Simulation/Model/Model.h
++++ b/OpenSim/Simulation/Model/Model.h
+@@ -939,8 +939,27 @@ public:
+             const SimTK::Array_<SimTK::ForceIndex>& forceIndexes,  
+             SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
+             SimTK::Vector& mobilityForces) const {
+-        getForceSubsystem().calcForceContributionsSum(
+-            state, forceIndexes, bodyForces, mobilityForces);
++        const auto& matter = getMatterSubsystem();
++        bodyForces.resize(matter.getNumBodies());
++        mobilityForces.resize(matter.getNumMobilities());
++        bodyForces.setToZero();
++        mobilityForces.setToZero();
++
++        SimTK::Vector_<SimTK::SpatialVec> forceBodyForces;
++        SimTK::Vector_<SimTK::Vec3> particleForces;
++        SimTK::Vector forceMobilityForces;
++        const auto& forceSubsystem = getForceSubsystem();
++        for (const auto& forceIndex : forceIndexes) {
++            forceSubsystem.getForce(forceIndex).calcForceContribution(
++                    state, forceBodyForces, particleForces,
++                    forceMobilityForces);
++            for (int j = 0; j < forceBodyForces.size(); ++j) {
++                bodyForces[j] += forceBodyForces[j];
++            }
++            for (int j = 0; j < forceMobilityForces.size(); ++j) {
++                mobilityForces[j] += forceMobilityForces[j];
++            }
++        }
+     }
+ 
+     int getNumMuscleStates() const;
+diff --git a/OpenSim/Simulation/SimbodyEngine/Body.cpp b/OpenSim/Simulation/SimbodyEngine/Body.cpp
+index 71dc8cd05..6e0c78ec9 100644
+--- a/OpenSim/Simulation/SimbodyEngine/Body.cpp
++++ b/OpenSim/Simulation/SimbodyEngine/Body.cpp
+@@ -183,7 +183,9 @@ void Body::setInertia(const SimTK::Inertia& inertia)
+ 
+ SimTK::SpatialVec Body::calcMomentumAboutOrigin(const SimTK::State& s) const {
+     const SimTK::MobilizedBody& mobod = getMobilizedBody();
+-    return mobod.calcBodyMomentumAboutBodyOriginInGround(s);
++    const SimTK::MassProperties massProperties =
++            mobod.expressMassPropertiesInGroundFrame(s);
++    return massProperties.toSpatialMat() * mobod.getBodyVelocity(s);
+ }
+ 
+ SimTK::Vec3 Body::calcAngularMomentumAboutOrigin(const SimTK::State& s) const {
+diff --git a/OpenSim/Simulation/StatesDocument.cpp b/OpenSim/Simulation/StatesDocument.cpp
+index c709976f8..d69ecc855 100644
+--- a/OpenSim/Simulation/StatesDocument.cpp
++++ b/OpenSim/Simulation/StatesDocument.cpp
+@@ -22,6 +22,9 @@
+  * -------------------------------------------------------------------------- */
+ #include "StatesDocument.h"
+ 
++#include <iomanip>
++#include <sstream>
++
+ using namespace SimTK;
+ using namespace SimTK::Xml;
+ using namespace std;
+@@ -38,6 +41,16 @@ namespace {
+ //-----------------------------------------------------------------------------
+ struct SDocUtil {
+ 
++    // Simbody 3.7 does not yet provide Xml::Element::setValueAs()'s
++    // precision overload. Format through the same stream insertion path.
++    template<class T>
++    static void setValueAs(
++            Element& element, const T& value, int precision) {
++        std::ostringstream stream;
++        stream << std::setprecision(precision) << value;
++        element.setValue(stream.str());
++    }
++
+     //_________________________________________________________________________
+     template<class T>
+     static
+@@ -51,7 +64,7 @@ struct SDocUtil {
+         varElt.setAttributeValue("type", type);
+ 
+         // Append the variable element
+-        varElt.setValueAs<Array_<T>>(valArr, precision);
++        setValueAs(varElt, valArr, precision);
+         parent.appendNode(varElt);
+     }
+     //_________________________________________________________________________
+@@ -244,7 +257,7 @@ formTimeElement(const Model& model, const Array_<State>& traj) {
+     }
+ 
+     // Set the text value on the element
+-    timeElt.setValueAs<Array_<double>>(time, precision);
++    SDocUtil::setValueAs(timeElt, time, precision);
+ }
+ //_____________________________________________________________________________
+ // Supported continuous variable type (October 2024): double

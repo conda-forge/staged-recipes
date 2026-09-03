@@ -6,6 +6,8 @@ if ((build_jobs > 4)); then
     build_jobs=4
 fi
 
+# CMAKE_ARGS is intentionally word-split into arguments supplied by conda-build.
+# shellcheck disable=SC2086
 cmake ${CMAKE_ARGS} -S . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON \
