@@ -40,8 +40,10 @@ else:
     unexpected_archives = [str(path) for path in owned_files if path.suffix == ".a"]
 assert not unexpected_archives, f"unexpected static archives: {unexpected_archives}"
 
-cmake_root = prefix / ("Library/lib" if os.name == "nt" else "lib")
-cmake_files = list(cmake_root.glob("rtabmap-*/*.cmake"))
+if os.name == "nt":
+    cmake_files = list((prefix / "Library/CMake").glob("RTABMap*.cmake"))
+else:
+    cmake_files = list((prefix / "lib").glob("rtabmap-*/*.cmake"))
 assert cmake_files, "installed CMake package metadata was not found"
 forbidden_cmake_fragments = (
     "/tmp/",
