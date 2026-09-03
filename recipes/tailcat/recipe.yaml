@@ -1,0 +1,71 @@
+context:
+  version: "0.4.0"
+
+package:
+  name: tailcat
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tailscale/tailcat/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f3e87753aa45f8be249a2708a4220748fd8613f9ea0d0435a48ffedf8d724247
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    # build-tags.txt is a single comma-separated line of the build tags the
+    # official releases use; see build-tags.md. Building without them still
+    # works, it only makes the binary larger.
+    - if: unix
+      then:
+        - go-licenses save ./cmd/tailcat --save_path ../library_licenses
+        - go build -v -o $PREFIX/bin/tailcat -tags "$(cat build-tags.txt)" -ldflags="-s -w -X main.version=v${{ version }}" ./cmd/tailcat
+      else:
+        - go-licenses save ./cmd/tailcat --save_path ../library_licenses
+        - set /p TAGS=<build-tags.txt
+        - go build -v -o %PREFIX%\bin\tailcat.exe -tags "%TAGS%" -ldflags="-s -X main.version=v${{ version }}" ./cmd/tailcat
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - tailcat --version
+      - tailcat --help
+      - tailcat version
+  - package_contents:
+      bin:
+        - tailcat
+      strict: true
+
+about:
+  homepage: https://github.com/tailscale/tailcat
+  summary: Like netcat, but over Tailscale's data plane, without Tailscale's control plane
+  description: |
+    Tailcat is a remix of Tailscale open source pieces to act like netcat, but
+    over Tailscale's data plane, without Tailscale's control plane. Tailscale's
+    data plane gives you point-to-point WireGuard-encrypted tunnels between two
+    machines with DERP as the NAT-hole-punching communication side channel and
+    the relay of last resort if NAT traversal fails. Instead of using the
+    Tailscale control plane, all tailcat connection metadata is exchanged out of
+    band, however you want.
+
+    One side runs a tailcat server (listener) and gets back a short connection
+    token. The other side passes that token to tailcat's client side to connect.
+    All traffic between the two is encrypted end-to-end with WireGuard.
+
+    No Tailscale account and no root/admin access are required; tailcat does not
+    alter the machine's routing tables or DNS.
+  license: BSD-3-Clause
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://pkg.go.dev/github.com/tailscale/tailcat
+  repository: https://github.com/tailscale/tailcat
+
+extra:
+  recipe-maintainers:
+    - pavelzw
