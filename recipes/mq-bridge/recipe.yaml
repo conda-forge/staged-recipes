@@ -1,0 +1,215 @@
+context:
+  version: "0.4.9"
+
+  # Feature sets are deliberately reduced from upstream's `full`. The excluded
+  # features all need an exotic native toolchain that either cannot be satisfied
+  # on conda-forge or would have to be vendored:
+  #   kafka         -> rdkafka/librdkafka (C, SASL/SSL/zstd)
+  #   sqlx          -> libsqlite3-sys (bundled C sqlite)
+  #   postgres-cdc  -> pulls sqlx
+  #   grpc          -> protoc-bin-vendored ships a prebuilt protoc binary
+  #   ibm-mq(-static) -> IBM's proprietary C client
+  #   zeromq-omq    -> alternative omq.rs backend; the pure-Rust `zeromq`
+  #                    backend is kept instead
+  # What remains matches upstream's own `portable` set, which is what the
+  # `mq-bridge-py` musl/arm wheels are built from.
+
+  # `mq-bridge-app`'s CLI crate only re-exports a subset of the engine's
+  # features, so this is `portable` minus the two it cannot reach
+  # (`clickhouse`, `websocket`). `object-store` is reachable one level down
+  # through the core crate. `middleware` is a superset of portable's
+  # metrics + dedup (it adds compression, encryption and the `filter`
+  # expression middleware, which the ETL app's route config exposes).
+  app_features: mongodb,amqp,nats,mqtt,http,aws,zeromq,redis-streams,middleware,rustls-aws-lc,mimalloc,mq_bridge_app/object-store
+
+recipe:
+  name: mq-bridge
+  version: ${{ version }}
+
+source:
+  url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d9c076e3a0443e3d5d649ae0291071656086c00d95f1f843f828847f4646f7bd
+
+outputs:
+  - package:
+      name: mq-bridge-app
+
+    build:
+      number: 0
+      script:
+        content:
+          # `apps/mq-bridge-app` is its own cargo workspace with its own
+          # Cargo.lock, so `--locked` has to run from inside it.
+          - if: unix
+            then:
+              - cd apps/mq-bridge-app
+              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ app_features }}"
+              - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
+            else:
+              - cd apps\mq-bridge-app
+              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ app_features }}"
+              - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        # aws-lc-sys (the rustls crypto provider) drives its C build through CMake.
+        - cmake
+        - if: unix
+          then: make
+        # aws-lc-sys assembles its x86_64 optimised code with NASM on MSVC.
+        - if: win
+          then: nasm
+
+    tests:
+      - script:
+          - mq-bridge-app --version
+          - mq-bridge-app --help
+          # `mqb` is a launcher that execs the real binary next to it.
+          - mqb --version
+      - package_contents:
+          bin:
+            - mq-bridge-app
+            - mqb
+          strict: true
+
+    about:
+      summary: Zero-code ETL bridge between message brokers, databases and HTTP endpoints
+      description: |
+        mq-bridge-app is a standalone application built on the mq-bridge engine.
+        It moves messages between brokers, databases, files and HTTP endpoints
+        from a declarative YAML or JSON route configuration, with
+        transformation, filtering, retries, dead-letter queues, deduplication
+        and rate limiting available as middleware. It runs as a CLI, an MCP
+        server, or a daemon serving a built-in web UI.
+
+        This build ships the portable endpoint set: AMQP, NATS, MQTT, MongoDB,
+        HTTP, ZeroMQ, Redis Streams, AWS SQS/SNS, object stores, files and
+        in-memory channels. Kafka, SQLx, Postgres CDC, gRPC, IBM MQ, ClickHouse
+        and WebSocket are not compiled in; a route naming one of those parses
+        but fails when the route is built. See readme.md in the recipe for the
+        full list and the reasons.
+      license: MIT
+      # NOTE: the web UI is embedded into the binary from prebuilt assets that
+      # upstream commits under apps/mq-bridge-app/crates/core/static/ (a bundled
+      # JS chunk plus the Geist Mono woff2 fonts). No node/npm step runs here,
+      # but those assets carry their own upstream licenses, which are not yet
+      # covered by a disclaimer file in the source tree.
+      license_file:
+        - apps/mq-bridge-app/LICENSE
+        - THIRDPARTY-app.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
+
+  - package:
+      name: mq-bridge-py
+
+    build:
+      number: 0
+      # The extension is built against the stable ABI (pyo3 `abi3-py38`), so one
+      # build per platform covers every supported Python.
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        env:
+          # `[tool.maturin] features` cannot turn *off* the crate's
+          # `default = ["full"]`, so the flag has to reach cargo this way.
+          # This is exactly what upstream's publish-python workflow passes.
+          MATURIN_PEP517_ARGS: --locked --no-default-features
+        content:
+          # pyproject-reduced.toml is upstream's own manifest for this build:
+          # same `mq-bridge-py` project name, maturin features
+          # `pyo3/extension-module,basic,schema`.
+          - if: unix
+            then:
+              - cd python/mq-bridge-py
+              - cp pyproject-reduced.toml pyproject.toml
+            else:
+              - cd python\mq-bridge-py
+              - copy /Y pyproject-reduced.toml pyproject.toml
+          - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+          - if: unix
+            then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-py.yml
+            else: cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-py.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: nasm
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.7,<2
+      host:
+        - python
+        - if: is_abi3
+          then: python-abi3
+        - pip
+        - maturin >=1.7,<2
+      run:
+        - python
+        - typing_extensions >=4.0
+
+    tests:
+      - python:
+          imports:
+            - mq_bridge
+            - mq_bridge.config
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+          pip_check: true
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/mq_bridge/_mq_bridge.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%\mq_bridge\_mq_bridge.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+    about:
+      summary: Python bindings for mq-bridge, an async message-bridging library
+      description: |
+        Thin Python bindings for the Rust mq-bridge engine. They expose
+        Publisher, Consumer and Route objects that connect message brokers,
+        databases, files, HTTP/WebSocket endpoints and in-memory channels
+        behind one small set of traits, with batch-aware processing and
+        acknowledgement sequencing. Routes can be declared in code or loaded
+        from YAML/JSON, and custom endpoints and middleware can be registered
+        from Python or loaded as native plugins.
+
+        This build ships upstream's `basic` endpoint set: AMQP, NATS, MQTT,
+        MongoDB, HTTP, WebSocket, ZeroMQ, Redis Streams, ClickHouse, AWS
+        SQS/SNS, object stores, files and in-memory channels. Kafka, SQLx,
+        Postgres CDC, gRPC and IBM MQ are not compiled in, and so are the
+        compression, encryption and filter middleware; a route naming one of
+        those parses but fails when the route is built. See readme.md in the
+        recipe for the full list and the reasons.
+      license: MIT
+      license_file:
+        - python/mq-bridge-py/LICENSE.python
+        - THIRDPARTY-py.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/python/mq-bridge-py
+
+extra:
+  recipe-maintainers:
+    - babeloff
