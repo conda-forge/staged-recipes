@@ -67,17 +67,26 @@ cp subprojects/seams-core/subprojects/packagefiles/vesin/meson.build \
   subprojects/seams-core/subprojects/vesin/meson.build
 cp subprojects/seams-core/subprojects/packagefiles/vesin/vesin_cuda_stub.cpp \
   subprojects/seams-core/subprojects/vesin/vesin_cuda_stub.cpp
-if [[ -e subprojects/seams-core/subprojects/vesin.wrap ]]; then
-  rm -f subprojects/seams-core/subprojects/vesin.wrap
-fi
+# Local wrap-file: meson can fall back without cloning.
+cat > subprojects/seams-core/subprojects/vesin.wrap <<'EOF'
+[wrap-file]
+directory = vesin
+
+[provide]
+vesin = vesin_dep
+EOF
 
 if [[ -e subprojects/seams-core/subprojects/linkcell ]]; then
   rm -rf subprojects/seams-core/subprojects/linkcell
 fi
 mv "${LINKCELL}" subprojects/seams-core/subprojects/linkcell
-if [[ -e subprojects/seams-core/subprojects/linkcell.wrap ]]; then
-  rm -f subprojects/seams-core/subprojects/linkcell.wrap
-fi
+cat > subprojects/seams-core/subprojects/linkcell.wrap <<'EOF'
+[wrap-file]
+directory = linkcell
+
+[provide]
+linkcell = linkcell_dep
+EOF
 if [[ -e subprojects/linkcell.wrap ]]; then
   rm -f subprojects/linkcell.wrap
 fi
@@ -94,6 +103,13 @@ if [[ -f subprojects/packagefiles/nanobind/meson.build ]]; then
   cp subprojects/packagefiles/nanobind/meson.build \
     subprojects/nanobind-2.14.0/meson.build
 fi
+cat > subprojects/nanobind.wrap <<'EOF'
+[wrap-file]
+directory = nanobind-2.14.0
+
+[provide]
+dependency_names = nanobind
+EOF
 
 if [[ -e subprojects/robin-map-1.4.0 ]]; then
   rm -rf subprojects/robin-map-1.4.0
@@ -122,8 +138,10 @@ export LDFLAGS="${LDFLAGS:-} -pthread"
 # conda-forge that is the libblas ABI (OpenBLAS today). Forcing
 # libgomp onto the pthreads OpenBLAS backend mixes two runtimes.
 
+# Do not pass --wrap-mode=nofallback: dependency('nanobind') and the
+# seams-core vesin/linkcell fallbacks resolve through the local wraps
+# above. nofallback ignores those wraps and the configure dies.
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation \
-  -Csetup-args=--wrap-mode=nofallback \
   -Csetup-args=-Dseams-core:with_python=false \
   -Csetup-args=-Dseams-core:with_tests=false \
   -Csetup-args=-Dseams-core:with_cli=false \
