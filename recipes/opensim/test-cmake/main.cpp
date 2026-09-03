@@ -15,6 +15,15 @@ bool near(double actual, double expected) {
 } // namespace
 
 int main() {
+    // Exercise Array<bool> from outside osimCommon. MSVC 17.14 otherwise
+    // looked for the private BoolLike helper as an unexported DLL symbol.
+    OpenSim::Array<bool> flags(false, 2);
+    flags[0] = true;
+    if (!flags[0] || flags[1]) {
+        std::cerr << "Array<bool> storage failed\n";
+        return 1;
+    }
+
     OpenSim::Model model;
     model.setGravity(SimTK::Vec3(0, -10, 0));
     auto* body = new OpenSim::Body(
