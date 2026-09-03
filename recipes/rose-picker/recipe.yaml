@@ -1,0 +1,70 @@
+# rose_picker -- Met Office utility that converts Rose application metadata into
+# JSON, used by build systems to generate configuration-loading code.
+#
+# The conda PACKAGE is named with a hyphen (`rose-picker`) per conda convention;
+# the importable module and the console script keep upstream's underscore
+# (`rose_picker`), which is the name consumers invoke it by. The pyproject entry
+# point already provides exactly that script, so nothing extra is needed here.
+schema_version: 1
+
+context:
+  version: "2026.03.2"
+
+package:
+  name: rose-picker
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MetOffice/rose_picker/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 9d35cde4edee0069635b8170dd9e017f86f6a8f85b34917fbab545616edd1ce2
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  # Upstream declares requires-python >=3.11. conda-forge's global `python_min`
+  # currently satisfies that floor, so the recipe just follows the global
+  # pinning instead of redefining it; should upstream raise its floor above the
+  # global one, this is the spot that would need an override.
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=61.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - rose_picker
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # `rose_picker.rose` is a vendored slice of Met Office Rose/Cylc, an ecosystem
+  # that does not support Windows; `rose_picker --help` fails there for reasons
+  # not reproducible without a Windows box to debug on. noarch forbids a
+  # build-level `skip`, so the CLI check itself is unix-only instead.
+  - script:
+      - if: unix
+        then:
+          - rose_picker --help
+
+about:
+  homepage: https://github.com/MetOffice/rose_picker
+  repository: https://github.com/MetOffice/rose_picker
+  summary: Converts Rose metadata files into JSON format
+  description: |
+    rose_picker reads Rose application metadata (rose-meta.conf) and emits a
+    JSON description of the namelists it declares, which build systems use to
+    generate the Fortran configuration-loading code for an application.
+  # Source headers say "version 3 of the License, or (at your option) any later
+  # version"; the pyproject records only "GPLv3".
+  license: GPL-3.0-or-later
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - ickc
