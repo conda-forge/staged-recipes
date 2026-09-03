@@ -99,20 +99,32 @@ outputs:
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
           # `apps/mq-bridge-app` is its own cargo workspace with its own
-          # Cargo.lock, so the build has to run from inside it.
+          # Cargo.lock, so both commands below have to run from inside it.
           #
-          # No `--locked`: the Cargo.toml override above removes the
-          # `protoc-bin-vendored` build-dependency, so the committed lock no
-          # longer describes this dependency graph exactly and cargo would
-          # refuse to proceed. Everything else still resolves from it.
+          # `--locked` is not optional. `cargo install` *ignores* the committed
+          # Cargo.lock unless it is passed, and re-resolves every dependency to
+          # the newest semver-compatible release — which is how an earlier
+          # revision of this recipe drew in tinyvec 1.13.0, whose new
+          # `with_initial_len` calls `vec!` without importing the macro and so
+          # does not compile under `no_std`. The lock pins 1.12.0.
+          #
+          # But the lock cannot be used as committed either: `link-dynamic`
+          # selects sqlx's `sqlite-unbundled`, which turns on libsqlite3-sys'
+          # `buildtime_bindgen` and so adds bindgen and its dependencies to the
+          # graph. `cargo fetch` reconciles that — unlike `cargo install`, it
+          # resolves conservatively, keeping every version the lock already pins
+          # and adding only what the new features require. `--locked` then holds
+          # for the build itself.
           - if: unix
             then:
               - cd apps/mq-bridge-app
-              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --bins --no-default-features --features "${{ feature_set }}"
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
               - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
             else:
               - cd apps\mq-bridge-app
-              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --bins --no-default-features --features "${{ feature_set }}"
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
               - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
 
     requirements:
@@ -207,7 +219,7 @@ outputs:
           # `default = ["full"]`, and `full` pins `link-static`, so the flag has
           # to reach cargo this way. The feature list itself comes from the
           # pyproject.toml override under `source:`.
-          MATURIN_PEP517_ARGS: --no-default-features
+          MATURIN_PEP517_ARGS: --locked --no-default-features
         content:
           # Same environment wiring as the app output; see the comments there.
           - if: unix
@@ -221,6 +233,10 @@ outputs:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
+          # `python/mq-bridge-py` is a member of the root workspace, so this
+          # reconciles the root Cargo.lock with the linkage override before
+          # maturin builds under `--locked`; see the app output for why.
+          - cargo fetch
           - if: unix
             then: cd python/mq-bridge-py
             else: cd python\mq-bridge-py

@@ -71,10 +71,27 @@ from `crates/cli` there is no command line at all that turns on
 `mq-bridge/link-dynamic`.
 `mq-bridge-py` needs no such passthrough — it depends on `mq-bridge` directly.
 
-Because the `Cargo.toml` override removes a build-dependency, the committed
-`Cargo.lock` files no longer describe these dependency graphs exactly, so
-neither build passes `--locked`.
-Everything else still resolves from them.
+## Why both builds run `cargo fetch` first
+
+`--locked` matters here more than it usually does.
+`cargo install` **ignores** the committed `Cargo.lock` unless `--locked` is
+passed, and re-resolves every dependency to the newest semver-compatible
+release.
+An earlier revision of this recipe dropped the flag and drew in a fresh
+`tinyvec` whose new `with_initial_len` calls `vec!` without importing the macro
+and so does not compile under `no_std` — a crate nothing here depends on
+directly, breaking a build that had been green the day before.
+
+The committed lock cannot be used verbatim either.
+`link-dynamic` selects sqlx's `sqlite-unbundled`, which turns on
+`libsqlite3-sys`'s `buildtime_bindgen` and so adds bindgen, `clang-sys` and
+their dependencies to the graph — packages upstream's lock never had reason to
+record.
+
+`cargo fetch` resolves the difference.
+Unlike `cargo install` it is conservative: it keeps every version the lock
+already pins and adds only the entries the new features require.
+The build then runs under `--locked` against that reconciled lock.
 
 ## What is included
 
