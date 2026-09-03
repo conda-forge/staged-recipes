@@ -1,6 +1,10 @@
 @echo on
 setlocal EnableDelayedExpansion
 
+rem Simbody 3.7 uses std::iterator, whose MSVC deprecation warning expands
+rem into thousands of repeated template-instantiation diagnostics.
+set "CXXFLAGS=%CXXFLAGS% /D_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING"
+
 cmake %CMAKE_ARGS% -S . -B build -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON ^
