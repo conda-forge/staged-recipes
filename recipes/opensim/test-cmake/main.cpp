@@ -8,7 +8,7 @@
 
 namespace {
 
-bool near(double actual, double expected) {
+bool nearlyEqual(double actual, double expected) {
     return std::abs(actual - expected) < 1e-10;
 }
 
@@ -66,10 +66,10 @@ int main() {
     // Gravity contributes -20 N along y to the 2 kg body. The two springs
     // contribute -4.2 N and -6.05 N along the slider mobility.
     const bool correctSizes = bodyForces.size() == 2 && mobilityForces.size() == 1;
-    const bool correctBodyForce = near(bodyForces[1][1][0], 0.0) &&
-            near(bodyForces[1][1][1], -20.0) &&
-            near(bodyForces[1][1][2], 0.0);
-    const bool correctMobilityForce = near(mobilityForces[0], -10.25);
+    const bool correctBodyForce = nearlyEqual(bodyForces[1][1][0], 0.0) &&
+            nearlyEqual(bodyForces[1][1][1], -20.0) &&
+            nearlyEqual(bodyForces[1][1][2], 0.0);
+    const bool correctMobilityForce = nearlyEqual(mobilityForces[0], -10.25);
     if (!correctSizes || !correctBodyForce || !correctMobilityForce) {
         std::cerr << "unexpected summed forces: body=" << bodyForces
                   << " mobility=" << mobilityForces << '\n';
@@ -83,8 +83,8 @@ int main() {
     model.realizeDynamics(state);
     model.calcForceContributionsSum(
             state, forceIndexes, bodyForces, mobilityForces);
-    if (!near(bodyForces[1][1][1], -20.0) ||
-            !near(mobilityForces[0], -4.2)) {
+    if (!nearlyEqual(bodyForces[1][1][1], -20.0) ||
+            !nearlyEqual(mobilityForces[0], -4.2)) {
         std::cerr << "disabled force was not skipped: body=" << bodyForces
                   << " mobility=" << mobilityForces << '\n';
         return 1;
@@ -103,8 +103,8 @@ int main() {
     loadedDocument.deserialize(model, loadedTrajectory);
     std::remove(statesFile);
     if (loadedDocument.getPrecision() != 12 || loadedTrajectory.size() != 1 ||
-            !near(loadedTrajectory[0].getTime(), state.getTime()) ||
-            !near(coordinate.getValue(loadedTrajectory[0]),
+            !nearlyEqual(loadedTrajectory[0].getTime(), state.getTime()) ||
+            !nearlyEqual(coordinate.getValue(loadedTrajectory[0]),
                     coordinate.getValue(state))) {
         std::cerr << "StatesDocument precision round-trip failed\n";
         return 1;
