@@ -13,9 +13,12 @@ source:
   - url: https://github.com/google-deepmind/open_spiel/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 4385763ebbc5edb3903fcffa6113cc69842ec1e21648371b451f4dafdac2998e
     patches:
+      # Remove once upstream supports external Abseil, nlohmann-json,
+      # pybind11, and pybind11-json dependencies, honors CMAKE_ARGS, and
+      # excludes their vendored source trees from installed wheels.
       - patches/0001-use-system-libraries.patch
-      # Upstream's UCI bot is POSIX-only, so omit its header and bindings on
-      # Windows just as the core CMake build already omits its implementation.
+      # Remove once upstream guards the POSIX-only UCI header and bindings on
+      # Windows. See https://github.com/google-deepmind/open_spiel/issues/1531.
       - patches/0002-guard-uci-python-bindings-on-windows.patch
   # OpenSpiel uses this header-only adapter, which is not packaged on
   # conda-forge. Keep the exact revision used for the upstream 2.0.2 wheels.
@@ -39,14 +42,6 @@ build:
       else: bash "${RECIPE_DIR}/scripts/build.sh"
 
 requirements:
-  # python-feedstock 3.12.14 build 2 accidentally exports a requirement on
-  # the debug interpreter from release builds. Keep its python_abi export and
-  # the explicit runtime dependency below, but ignore that Python-named export.
-  # https://github.com/conda-forge/python-feedstock/pull/913
-  ignore_run_exports:
-    by_name:
-      - if: match(python, "3.12.*")
-        then: python
   build:
     - ${{ compiler("c") }}
     - ${{ compiler("cxx") }}

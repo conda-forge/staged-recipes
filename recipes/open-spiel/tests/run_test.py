@@ -49,6 +49,11 @@ unexpected_sources = sorted(
 )
 assert not unexpected_sources, f"Unexpected C/C++ sources in payload: {unexpected_sources}"
 
+unexpected_archives = sorted(
+    path for path in files if Path(path).suffix.lower() in {".a", ".lib"}
+)
+assert not unexpected_archives, f"Unexpected static archives in payload: {unexpected_archives}"
+
 # The extension should resolve Abseil from the conda environment rather than
 # embedding OpenSpiel's bundled source copy.
 extension = Path(pyspiel.__file__).resolve()
