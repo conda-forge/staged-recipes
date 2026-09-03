@@ -1,3 +1,4 @@
+#include <rtabmap/core/PDALWriter.h>
 #include <rtabmap/core/Transform.h>
 #include <rtabmap/core/Version.h>
 
@@ -55,6 +56,9 @@ int main()
     if (!identity.isIdentity()) {
         return 1;
     }
+    // Exercise the exported API so Windows validates that rtabmap_core.lib
+    // contains the PDAL writer symbols used by rtabmap_gui.dll.
+    (void)rtabmap::getPDALSupportedWriters();
     std::cout << RTABMAP_VERSION << '\n';
     return 0;
 }

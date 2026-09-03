@@ -74,10 +74,10 @@ cmake %CMAKE_ARGS% -S . -B build-conda -G Ninja ^
   -DWITH_XVSDK=OFF ^
   -DWITH_ZED=OFF ^
   -DWITH_ZEDOC=OFF
-if errorlevel 1 exit /b 1
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 cmake --build build-conda --parallel 2
-if errorlevel 1 exit /b 1
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 cmake --install build-conda
-if errorlevel 1 exit /b 1
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
