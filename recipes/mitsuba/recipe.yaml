@@ -3,6 +3,8 @@ schema_version: 1
 context:
   version: "3.9.1"
   drjit_version: "1.5.0"
+  build_number: 0
+  build_prefix: ${{ "cuda129_" if target_platform == "linux-64" else "cpu_" }}
 
 package:
   name: mitsuba
@@ -16,10 +18,13 @@ source:
   git: https://github.com/mitsuba-renderer/mitsuba3.git
   rev: 478e193a183c21723f4a8251afc3ad29a8da4c5e
   patches:
+    # Remove once upstream supports a distribution build with external
+    # dependencies and does not install their vendored source trees.
     - 0001-use-system-libraries.patch
 
 build:
-  number: 0
+  number: ${{ build_number }}
+  string: ${{ build_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
   skip:
     # The matching conda-forge Dr.Jit release is currently unavailable on
     # Windows and non-x86 Linux platforms.
@@ -46,7 +51,20 @@ requirements:
     - scikit-build-core
     - hatch-fancy-pypi-readme
     - nanobind ==2.14.0
-    - drjit ==${{ drjit_version }}
+    # The published Dr.Jit Python packages do not yet expose CPU/CUDA flavor
+    # names. Select CUDA 12.9 explicitly for a consistent Linux feature set
+    # and glibc 2.17 baseline; replace these hashes after
+    # https://github.com/conda-forge/drjit-cpp-feedstock/issues/51.
+    - if: linux and match(python, "3.10.*")
+      then: drjit ==${{ drjit_version }} py310h515950c_*
+    - if: linux and match(python, "3.11.*")
+      then: drjit ==${{ drjit_version }} py311h84402f3_*
+    - if: linux and match(python, "3.12.*")
+      then: drjit ==${{ drjit_version }} py312h58a1f8a_*
+    - if: linux and match(python, "3.13.*")
+      then: drjit ==${{ drjit_version }} py313h4cdf326_*
+    - if: osx
+      then: drjit ==${{ drjit_version }}
     - embree 3.13.*
     - fast_float
     - libjpeg-turbo >=3.1

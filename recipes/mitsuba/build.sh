@@ -12,6 +12,8 @@ export CMAKE_GENERATOR="Ninja"
 # Dr.Jit 1.5.0 build: its forwarding-reference overload rejects Mitsuba's
 # explicit-template lvalue calls. Use the pristine headers from the pinned
 # Dr.Jit submodule while continuing to link against conda-forge's runtime.
+# Remove this after https://github.com/mitsuba-renderer/drjit/pull/518 is
+# released and the corresponding conda-forge Dr.Jit patch is retired.
 export CPATH="${SRC_DIR}/ext/drjit/include${CPATH:+:${CPATH}}"
 
 variants="scalar_rgb,scalar_spectral,scalar_spectral_polarized,llvm_ad_rgb,llvm_ad_mono,llvm_ad_mono_polarized,llvm_ad_spectral,llvm_ad_spectral_polarized"

@@ -1,9 +1,21 @@
+import importlib.util
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import drjit as dr
 import mitsuba as mi
 
+
+available_variants = mi.variants()
+assert "llvm_ad_rgb" in available_variants
+assert ("cuda_ad_rgb" in available_variants) == (
+    importlib.util.find_spec("drjit.cuda") is not None
+)
+
+mi.set_variant("llvm_ad_rgb")
+values = mi.Float([1, 2, 3]) + 1
+dr.eval(values)
+assert dr.all(values == [2, 3, 4])
 
 mi.set_variant("scalar_rgb")
 
