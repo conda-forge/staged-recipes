@@ -1,0 +1,64 @@
+context:
+  version: "0.10.3"
+
+package:
+  name: cooklang-chef
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Zheoni/cooklang-chef/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8e886a825c64a490a4eed82e5101520ad7ef7ffc368039332c715d9f563e299d
+
+build:
+  number: 0
+  script:
+    env:
+      AUBE_TRUST_POLICY_EXCLUDE: "@noble/hashes@1.7.0" # v1.7.0 lacks provenance attestation data
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      # build web UI assets (`ui/assets`)
+      - aube install   --dir=ui
+      - aube run build --dir=ui
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - aube
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - nodejs
+
+tests:
+  - script:
+      - chef --help
+      - chef --version
+  - package_contents:
+      bin:
+        - chef
+      strict: true
+
+about:
+  summary: Feature-rich CLI and web UI for Cooklang recipes with extended syntax and unit conversion support
+  description: |
+    cooklang-chef (`chef`) is a command-line interface for reading, converting, and managing Cooklang recipes that supports optional syntax extensions beyond those supported by the official [CookCLI (`cook`)](https://github.com/cooklang/cookcli) – such as ingredient referencing and multiline steps. It also provides strict unit verification, automatic unit system conversion, rich error reporting, and recipe exports to Markdown or plain text and includes an embedded, live-reloading web UI for interactive previewing.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/Zheoni/cooklang-chef
+  repository: https://github.com/Zheoni/cooklang-chef
+  documentation: https://github.com/Zheoni/cooklang-chef/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - salim-b
