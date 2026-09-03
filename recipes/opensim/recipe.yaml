@@ -1,7 +1,8 @@
 schema_version: 1
 
 context:
-  # OpenSim 4.6 requires Simbody APIs added after the latest stable release.
+  # OpenSim 4.6 requires CableSpan via-point APIs merged after Simbody 3.8:
+  # https://github.com/simbody/simbody/pull/828
   version: "4.5.2"
 
 package:
@@ -12,17 +13,26 @@ source:
   url: https://github.com/opensim-org/opensim-core/archive/refs/tags/${{ version }}.tar.gz
   sha256: 53c7c477aeef334109d7ea991251c1f680777d42e59d878fef808ad6d28a98f2
   patches:
+    # Use packaged dependencies and Python's active site-packages directory;
+    # remove once upstream supports this package-managed layout directly.
     - 0001-use-shared-docopt-and-conda-python-path.patch
-    - 0002-support-simbody-3.7-apis.patch
-    - 0003-support-spdlog-1.8-with-simbody.patch
+    # Backport https://github.com/opensim-org/opensim-core/pull/4103 and
+    # https://github.com/opensim-org/opensim-core/pull/4158. Remove with the
+    # first OpenSim release that can be packaged and contains both fixes.
+    - 0002-backport-modern-spdlog.patch
+    # conda-forge's spdlog uses external fmt, so use its configuration-aware
+    # wrapper headers. Remove once upstream no longer names bundled fmt headers.
+    - 0003-use-spdlog-fmt-wrappers.patch
+    # Backport https://github.com/opensim-org/opensim-core/pull/4085;
+    # remove with the first packageable release that contains it.
     - 0004-fix-array-bool-linking-on-msvc.patch
 
 build:
   number: 0
-  # docopt.cpp and compatible spdlog builds are unavailable on newer arches.
+  # docopt.cpp has no Linux AArch64 or PPC64LE packages:
+  # https://prefix.dev/channels/conda-forge/packages/docopt.cpp
   skip:
     - linux and not x86_64
-    - osx and arm64
   script:
     - if: win
       then: call "%RECIPE_DIR%\build.bat"
@@ -35,8 +45,7 @@ requirements:
     - ${{ stdlib("c") }}
     - cmake >=3.15
     - ninja
-    # Match upstream CI. SWIG 4.2's iterable typemap conflicts with the
-    # unconstrained relational operators in the published Simbody 3.7 headers.
+    # Match the SWIG version used by upstream's 4.5.x builds.
     - swig >=4.1.1,<4.2
     - if: build_platform != target_platform
       then:
@@ -46,9 +55,9 @@ requirements:
   host:
     - python
     - numpy
-    # OpenSim declares Simbody 3.7 compatibility. Patch the handful of
-    # post-3.7 APIs and overloads used by 4.5.2; Simbody's run export pins ABI.
-    - simbody >=3.7
+    # Simbody 3.8 guards relational operators that conflict with modern fmt;
+    # its run export pins the ABI.
+    - simbody >=3.8
     # Simbody's public inline API exposes these link requirements to consumers.
     # Build against generic-soname Netlib on Unix while retaining provider-
     # neutral libblas/liblapack run exports.
@@ -58,10 +67,10 @@ requirements:
       then: liblapack * *netlib
     # Lower bounds follow versions used by the 4.5.2 dependency superbuild.
     - ezc3d >=1.5.8
-    # OpenSim 4.5 is validated with the spdlog 1.8 / fmt 7 API; 1.8.1 excludes
-    # conda-forge's static-only 1.8.0 package. Patch 0003 resolves its
-    # interaction with Simbody 3.7.
-    - spdlog >=1.8.1,<1.9
+    # conda-forge's spdlog links against external fmt, and OpenSim exposes fmt
+    # through its public logging headers.
+    - fmt
+    - spdlog >=1.15.3
     - casadi >=3.6.5
     - docopt.cpp >=0.6.1
   run:
