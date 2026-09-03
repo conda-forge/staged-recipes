@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-python "${RECIPE_DIR}/rewrite_system_includes.py"
+python "${RECIPE_DIR}/scripts/rewrite_system_includes.py"
 
 export BUILD_TYPE=Release
 export CMAKE_BUILD_PARALLEL_LEVEL="${CPU_COUNT}"

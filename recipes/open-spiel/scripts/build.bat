@@ -1,6 +1,6 @@
 @echo on
 
-python "%RECIPE_DIR%\rewrite_system_includes.py"
+python "%RECIPE_DIR%\scripts\rewrite_system_includes.py"
 if errorlevel 1 exit 1
 
 set "BUILD_TYPE=Release"
