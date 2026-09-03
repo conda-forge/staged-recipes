@@ -80,6 +80,28 @@ if [[ -e subprojects/seams-core/subprojects/linkcell ]]; then
   rm -rf subprojects/seams-core/subprojects/linkcell
 fi
 mv "${LINKCELL}" subprojects/seams-core/subprojects/linkcell
+# conda-forge rust sets CARGO_BUILD_TARGET, so cargo writes
+# cargo-target/<triple>/<profile>/ rather than cargo-target/<profile>/.
+python3 - <<'PY'
+from pathlib import Path
+p = Path("subprojects/seams-core/subprojects/linkcell/scripts/copy-cargo-artifacts.py")
+text = p.read_text()
+old = """    built = args.target / args.profile
+    shutil.copy2(built / args.shared, args.out_shared)"""
+new = """    built = args.target / args.profile
+    shared = built / args.shared
+    if not shared.is_file():
+        import os
+        triple = os.environ.get("CARGO_BUILD_TARGET", "")
+        if triple:
+            alt = args.target / triple / args.profile
+            if (alt / args.shared).is_file():
+                built = alt
+    shutil.copy2(built / args.shared, args.out_shared)"""
+if old not in text:
+    raise SystemExit("copy-cargo-artifacts.py: expected copy block missing")
+p.write_text(text.replace(old, new, 1))
+PY
 cat > subprojects/seams-core/subprojects/linkcell.wrap <<'EOF'
 [wrap-file]
 directory = linkcell
