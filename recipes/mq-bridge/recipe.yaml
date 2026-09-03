@@ -21,6 +21,12 @@ context:
   #                   turn the linkage on.
   feature_set: full-dynamic
 
+  # LLVM major for the bindgen toolchain. `libclang` and `clang-<major>` are
+  # separate conda-forge packages and both are needed (see `requirements`
+  # below); pinning one number keeps them in step and keeps the resource
+  # directory path below predictable.
+  llvm_major: "20"
+
 recipe:
   name: mq-bridge
   version: ${{ version }}
@@ -81,10 +87,14 @@ outputs:
             then:
               - export PROTOC="$BUILD_PREFIX/bin/protoc"
               # libsqlite3-sys generates its bindings with bindgen on the
-              # unbundled path, which dlopens libclang and needs the headers of
-              # the *host* sqlite.
+              # unbundled path. bindgen dlopens libclang and then needs three
+              # things spelled out: clang's own builtin headers (sqlite3.h
+              # includes <stdarg.h>, and conda-forge ships those in
+              # `clang-<major>`, not in `libclang`), the *host* sqlite header,
+              # and the target triple -- without which a cross build emits
+              # bindings for the build machine's `va_list`.
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
-              - export BINDGEN_EXTRA_CLANG_ARGS="-I$PREFIX/include"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               # rdkafka-sys and libsqlite3-sys locate their libraries with
               # pkg-config; the probe refuses to run for a foreign target unless
               # this is set, which is every cross-compiled variant here.
@@ -96,8 +106,16 @@ outputs:
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
+              - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
+          # The sysroot bindgen parses the header against. clang spells it
+          # differently on the two unix platforms, and on macOS there is no
+          # /usr/include to fall back on.
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
           # `apps/mq-bridge-app` is its own cargo workspace with its own
           # Cargo.lock, so both commands below have to run from inside it.
           #
@@ -148,8 +166,16 @@ outputs:
         # it in libprotobuf; the `protobuf` package is the Python runtime and is
         # not what tonic-prost-build needs.
         - libprotobuf
-        # bindgen, for libsqlite3-sys' unbundled bindings.
-        - libclang
+        # bindgen, for libsqlite3-sys' unbundled bindings. Two packages,
+        # because conda-forge splits them: `libclang` is nothing but
+        # lib/libclang.so, while clang's builtin headers — stdarg.h, which
+        # sqlite3.h includes — live in `clang-<major>`. They have to be the same
+        # major, or libclang resolves its resource directory to one that is not
+        # installed. The plain `clang` metapackage is deliberately not used: it
+        # pulls in clang_impl_<platform>, a compiler *activation* package that
+        # would fight the gcc activation from ${{ compiler('c') }}.
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
       host:
         # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`.
         - librdkafka >=2.12.1
@@ -226,13 +252,18 @@ outputs:
             then:
               - export PROTOC="$BUILD_PREFIX/bin/protoc"
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
-              - export BINDGEN_EXTRA_CLANG_ARGS="-I$PREFIX/include"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               - export PKG_CONFIG_ALLOW_CROSS=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
+              - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
           # `python/mq-bridge-py` is a member of the root workspace, so this
           # reconciles the root Cargo.lock with the linkage override before
           # maturin builds under `--locked`; see the app output for why.
@@ -259,7 +290,9 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
-        - libclang
+        # See the app output for why bindgen needs both of these.
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
         - if: build_platform != target_platform
           then:
             - python

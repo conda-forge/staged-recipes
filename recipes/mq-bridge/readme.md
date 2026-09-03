@@ -71,6 +71,27 @@ from `crates/cli` there is no command line at all that turns on
 `mq-bridge/link-dynamic`.
 `mq-bridge-py` needs no such passthrough — it depends on `mq-bridge` directly.
 
+## Why the build needs clang as well as libclang
+
+`link-dynamic` reaches SQLite through sqlx's `sqlite-unbundled`, which is
+defined as `libsqlite3-sys/buildtime_bindgen` — there is no unbundled path that
+uses the pregenerated bindings, so bindgen runs.
+
+conda-forge splits clang across packages in a way that matters here.
+`libclang` contains exactly one file, `lib/libclang.so`; clang's builtin headers
+live in `clang-<major>`, and `sqlite3.h` includes `<stdarg.h>`, which is one of
+them.
+Both are therefore in `requirements/build`, pinned to the same major so that
+libclang's resource directory resolves to one that is installed.
+
+The plain `clang` metapackage would pull both in, but it also depends on
+`clang_impl_<platform>` — a compiler *activation* package that would fight the
+gcc activation from `${{ compiler('c') }}`.
+
+`BINDGEN_EXTRA_CLANG_ARGS` then names the resource directory explicitly, adds
+the host `sqlite3.h`, and passes the target triple, without which a
+cross-compiled build would emit bindings for the build machine's `va_list`.
+
 ## Why both builds run `cargo fetch` first
 
 `--locked` matters here more than it usually does.
