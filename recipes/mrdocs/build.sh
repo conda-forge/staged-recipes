@@ -14,6 +14,20 @@ set -euxo pipefail
 # ---------------------------------------------------------------------------
 LLVM_INSTALL="${SRC_DIR}/llvm-install"
 
+# conda-forge's gxx_linux-64 activation exports CXXFLAGS/CFLAGS with
+# GCC-specific flags (notably -fno-merge-constants). Those are fine for the
+# initial GCC-built stage of LLVM/Clang, but LLVM_ENABLE_RUNTIMES triggers a
+# second, self-hosted sub-build (libcxx/libcxxabi/libunwind) configured with
+# the *just-built* Clang, which inherits these same env vars as a subprocess.
+# Clang doesn't understand -fno-merge-constants and emits "optimization flag
+# ... is not supported", a message that matches CMake's generic FAIL_REGEX
+# used by every check_cxx_compiler_flag() test -- silently failing unrelated
+# checks (e.g. CXX_SUPPORTS_FNO_EXCEPTIONS_FLAG) and aborting libunwind's
+# configure with a fatal error. Unset them for this step; the final mrdocs
+# binary (built with GCC in step 3 below) still gets normal conda-forge
+# hardening flags.
+unset CFLAGS CXXFLAGS
+
 cmake -S "${SRC_DIR}/llvm-project/llvm" -B "${SRC_DIR}/llvm-build" -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${LLVM_INSTALL}" \
