@@ -1,0 +1,130 @@
+[package]
+name = "mq-bridge-app-core"
+version.workspace = true
+edition = "2024"
+rust-version = "1.94"
+authors = ["Marco Mengelkochs"]
+repository = "https://github.com/marcomq/mq-bridge"
+license = "MIT"
+description = "Shared core library for mq-bridge-app."
+readme = "../../README.md"
+keywords = ["messaging", "kafka", "nats", "amqp", "cqrs"]
+categories = ["asynchronous", "network-programming"]
+build = "build.rs"
+
+[lib]
+name = "mq_bridge_app"
+path = "src/lib.rs"
+
+[dependencies]
+# `plugin` is not optional: native plugin loading is a runtime setting, so every
+# build must be able to honour a `plugins:` entry. It only adds `libloading`.
+mq-bridge = { workspace = true, features = ["schema", "plugin"] }
+mq-bridge-pulsar = { workspace = true }
+# The workspace dependency resolves to the root engine locally and retains a
+# registry version for publishing.
+
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+hex = "0.4.3"
+metrics = "0.24.6"
+metrics-exporter-prometheus = { version = "0.18.3", default-features = false }
+# Not used by this crate's own code; kept as an optional dep so the
+# `rustls-aws-lc` feature can select the crypto provider for the whole graph.
+rustls = { version = "0.23.43", optional = true }
+schemars = "1.2.2"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "sync"] }
+tracing = { workspace = true }
+url = "2.5.8"
+uuid = { version = "1.24", features = ["v4", "v7"] }
+
+config = { version = "0.15.25", features = ["yaml"] }
+dotenvy = "0.15.7"
+shellexpand = "3.1.2"
+serde_yaml_ng = "0.10.0"
+rdkafka = { version = "0.39.0", features = ["tokio"], optional = true }
+base64 = "0.23"
+aes-gcm = { version = "0.11.0", features = ["zeroize"] }
+zeroize = "1.9"
+sha2 = "0.11"
+futures = "0.3.33"
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+fast-uuid-v7 = "0.1.9"
+# Embeds the web UI (crates/core/static) into the binary so the UI is served
+# from a single `cargo install`ed executable. In debug builds it reads the
+# files from disk for live editing; in release builds it embeds them.
+rust-embed = "8.7"
+
+[dev-dependencies]
+mq-bridge = { workspace = true, features = ["test-utils"] }
+
+# Only for `getuid()`, so the status registry can verify it owns its runtime
+# directory. Already in the graph via tokio; std exposes no equivalent.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[features]
+default = ["full", "zeromq-omq"]
+integration-test = []
+ibm-mq = ["mq-bridge/ibm-mq"]
+arm64-cross-compile = ["rdkafka", "rdkafka/cmake-build"]
+full = ["mq-bridge/full", "rustls-aws-lc"]
+# As `full`, but librdkafka and libsqlite are linked from the environment via
+# pkg-config instead of compiled from vendored C sources. The two differ only in
+# `mq-bridge`'s `link-static` / `link-dynamic`, which are mutually exclusive, so
+# this cannot be layered on top of `full` — it has to be its own list.
+#
+# It exists here because cargo's `--features dep/feature` syntax only reaches a
+# *direct* dependency: `crates/cli` sees `mq_bridge_app`, not `mq-bridge`, so
+# there is no command line that turns on `mq-bridge/link-dynamic` from the CLI
+# package. This passthrough and the matching one in `crates/cli` are what make
+# it reachable.
+full-dynamic = ["mq-bridge/full-dynamic", "rustls-aws-lc"]
+# Lean feature set for the ETL/CDC benchmarks (benches/etl): Postgres bulk-insert
+# (sqlx) + logical-replication CDC + per-route metrics. Avoids the heavy `full`
+# deps (rdkafka/librdkafka, grpc/protoc, ibm-mq) that aren't needed to move
+# Postgres data, and leaves out `rustls-aws-lc` so the aws-lc-sys (BoringSSL C)
+# build stays out of the benchmark binary. Benchmarks talk to local containers
+# over plaintext; enable `rustls-aws-lc` on top if a TLS endpoint is needed.
+#
+# NOTE: `bench` intentionally does NOT include any message-broker transport. A
+# broker-throughput benchmark layers its transport on top, e.g. the NATS bench
+# (benches/etl/run_nats_throughput.sh) builds with `--features bench,nats`.
+bench = [
+    "mq-bridge/sqlx",
+    "mq-bridge/middleware",
+    # The web UI and the MCP server are both mq-bridge HTTP endpoints, and the
+    # bench harness drives them (RECV_UI/SEND_UI in run_ipc_throughput.sh,
+    # run_mcp_bench.sh), so `http` is required, not optional.
+    "mq-bridge/http",
+]
+# CDC benchmarks only (benches/etl/run_cdc_latency.sh).
+#
+# Kept out of `bench` because `postgres-cdc` pulls pgwire-replication, which
+# declares rustls without `default-features = false` and so drags in
+# aws-lc-rs/aws-lc-sys — the BoringSSL C build, the slowest unit in the graph.
+# It also leaves rustls with two crypto providers compiled in (its own `ring`
+# plus aws-lc-rs), and rustls panics in `ClientConfig::builder()` when two are
+# present and none was installed — hence `rustls-aws-lc`, which installs one.
+bench-cdc = ["bench", "mq-bridge/postgres-cdc", "rustls-aws-lc"]
+middleware = ["mq-bridge/middleware"]
+compression = ["mq-bridge/compression"]
+encryption = ["mq-bridge/encryption"]
+sqlx = ["mq-bridge/sqlx"]
+postgres-cdc = ["mq-bridge/postgres-cdc"]
+rustls-aws-lc = ["dep:rustls", "rustls/aws_lc_rs", "mq-bridge/rustls-aws-lc"]
+mongodb = ["mq-bridge/mongodb"]
+http = ["mq-bridge/http"]
+kafka = ["mq-bridge/kafka"]
+aws = ["mq-bridge/aws"]
+nats = ["mq-bridge/nats"]
+mqtt = ["mq-bridge/mqtt"]
+zeromq = ["mq-bridge/zeromq"]
+zeromq-omq = ["mq-bridge/zeromq-omq"]
+sled = ["mq-bridge/sled"]
+grpc = ["mq-bridge/grpc"]
+amqp = ["mq-bridge/amqp"]
+redis-streams = ["mq-bridge/redis-streams"]
+object-store = ["mq-bridge/object-store"]

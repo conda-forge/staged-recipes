@@ -1,34 +1,63 @@
 context:
-  version: "0.4.9"
+  version: "0.4.10"
 
-  # Feature sets are deliberately reduced from upstream's `full`. The excluded
-  # features all need an exotic native toolchain that either cannot be satisfied
-  # on conda-forge or would have to be vendored:
-  #   kafka         -> rdkafka/librdkafka (C, SASL/SSL/zstd)
-  #   sqlx          -> libsqlite3-sys (bundled C sqlite)
-  #   postgres-cdc  -> pulls sqlx
-  #   grpc          -> protoc-bin-vendored ships a prebuilt protoc binary
-  #   ibm-mq(-static) -> IBM's proprietary C client
-  #   zeromq-omq    -> alternative omq.rs backend; the pure-Rust `zeromq`
-  #                    backend is kept instead
-  # What remains matches upstream's own `portable` set, which is what the
-  # `mq-bridge-py` musl/arm wheels are built from.
-
-  # `mq-bridge-app`'s CLI crate only re-exports a subset of the engine's
-  # features, so this is `portable` minus the two it cannot reach
-  # (`clickhouse`, `websocket`). `object-store` is reachable one level down
-  # through the core crate. `middleware` is a superset of portable's
-  # metrics + dedup (it adds compression, encryption and the `filter`
-  # expression middleware, which the ETL app's route config exposes).
-  app_features: mongodb,amqp,nats,mqtt,http,aws,zeromq,redis-streams,middleware,rustls-aws-lc,mimalloc,mq_bridge_app/object-store
+  # Both outputs are built from upstream's `full-dynamic` feature set — every
+  # endpoint upstream ships, with librdkafka and libsqlite linked from this
+  # environment instead of compiled from vendored C sources. It is the feature
+  # set behind upstream's own `pixi run build-dynamic` task, which exists for
+  # exactly this purpose: distro and conda-forge packaging, where the shared
+  # libraries have to stay patchable.
+  #
+  # `full-dynamic` reaches each output differently, and that is what the
+  # manifest overrides under `source:` are for:
+  #
+  #   mq-bridge-py    `mq-bridge` is a direct dependency, so the feature is
+  #                   reachable by name; only maturin's feature list needs
+  #                   pointing at it.
+  #   mq-bridge-app   `crates/cli` -> `crates/core` -> `mq-bridge` is two hops,
+  #                   and cargo's `--features dep/feature` syntax only reaches a
+  #                   *direct* dependency. Both app crates therefore need a
+  #                   `full-dynamic` passthrough before any command line can
+  #                   turn the linkage on.
+  feature_set: full-dynamic
 
 recipe:
   name: mq-bridge
   version: ${{ version }}
 
 source:
-  url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: d9c076e3a0443e3d5d649ae0291071656086c00d95f1f843f828847f4646f7bd
+  - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: f53b575c5fc0cc6d05e7d5170e33fdcf1e075990b4952c181a9446fb9e8aa343
+
+  # Manifest overrides, applied on top of the tarball. Each is upstream's file
+  # with a narrow change; together they are what makes `full-dynamic` buildable
+  # here. They are carried as whole-file replacements rather than as patches
+  # because they track upstream's own in-progress work on this linkage split.
+  #
+  #   Cargo.toml   splits the linkage out of the endpoint features
+  #                (`link-static` / `link-dynamic`) and drops the vendored
+  #                `protoc-bin-vendored` build-dependency in favour of $PROTOC.
+  #   build.rs     stops overwriting $PROTOC with the vendored binary, and gates
+  #                the /opt/mqm rpath on `ibm-mq-static` rather than on the
+  #                dlopen `ibm-mq` feature, which never consults it.
+  #   src/lib.rs   compile_error! guards for the mutually exclusive linkage
+  #                features, and for `sqlx` with neither of them.
+  #   IBM_MQ.md    the doc those comments point at; no counterpart upstream yet.
+  - path: Cargo.toml
+  - path: build.rs
+  - path: src/lib.rs
+    target_directory: src
+  - path: IBM_MQ.md
+    target_directory: docs
+  # The `full-dynamic` passthroughs that let `crates/cli` reach the engine's
+  # linkage feature two levels down.
+  - path: apps/mq-bridge-app/crates/core/Cargo.toml
+    target_directory: apps/mq-bridge-app/crates/core
+  - path: apps/mq-bridge-app/crates/cli/Cargo.toml
+    target_directory: apps/mq-bridge-app/crates/cli
+  # maturin's feature list, pointed at `mq-bridge/full-dynamic`.
+  - path: python/mq-bridge-py/pyproject.toml
+    target_directory: python/mq-bridge-py
 
 outputs:
   - package:
@@ -38,21 +67,51 @@ outputs:
       number: 0
       script:
         content:
+          # protoc comes from conda-forge's libprotobuf, not from a crate that
+          # ships a prebuilt binary. $BUILD_PREFIX, not $PREFIX: it is executed
+          # during the build and so must be the build platform's copy.
+          - if: unix
+            then:
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              # libsqlite3-sys generates its bindings with bindgen on the
+              # unbundled path, which dlopens libclang and needs the headers of
+              # the *host* sqlite.
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$PREFIX/include"
+              # rdkafka-sys and libsqlite3-sys locate their libraries with
+              # pkg-config; the probe refuses to run for a foreign target unless
+              # this is set, which is every cross-compiled variant here.
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              # rustc does not read LDFLAGS, so the search path and rpath that
+              # let the installed binary find librdkafka/libsqlite have to be
+              # passed through RUSTFLAGS. Appended, because the rust compiler
+              # activation may already have set linker flags for a cross build.
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
+            else:
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
           # `apps/mq-bridge-app` is its own cargo workspace with its own
-          # Cargo.lock, so `--locked` has to run from inside it.
+          # Cargo.lock, so the build has to run from inside it.
+          #
+          # No `--locked`: the Cargo.toml override above removes the
+          # `protoc-bin-vendored` build-dependency, so the committed lock no
+          # longer describes this dependency graph exactly and cargo would
+          # refuse to proceed. Everything else still resolves from it.
           - if: unix
             then:
               - cd apps/mq-bridge-app
-              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ app_features }}"
+              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --bins --no-default-features --features "${{ feature_set }}"
               - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
             else:
               - cd apps\mq-bridge-app
-              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ app_features }}"
+              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --bins --no-default-features --features "${{ feature_set }}"
               - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
 
     requirements:
       build:
         - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
         - ${{ compiler('rust') }}
         - cargo-auditable
@@ -64,6 +123,19 @@ outputs:
         # aws-lc-sys assembles its x86_64 optimised code with NASM on MSVC.
         - if: win
           then: nasm
+        # How rdkafka-sys and libsqlite3-sys find the two libraries below.
+        - pkg-config
+        # protoc for the `grpc` endpoint's build-time codegen. conda-forge ships
+        # it in libprotobuf; the `protobuf` package is the Python runtime and is
+        # not what tonic-prost-build needs.
+        - libprotobuf
+        # bindgen, for libsqlite3-sys' unbundled bindings.
+        - libclang
+      host:
+        # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`.
+        - librdkafka >=2.12.1
+        # libsqlite3-sys' min_sqlite_version_3_34_1, on sqlx's unbundled path.
+        - libsqlite >=3.34.1
 
     tests:
       - script:
@@ -87,12 +159,18 @@ outputs:
         and rate limiting available as middleware. It runs as a CLI, an MCP
         server, or a daemon serving a built-in web UI.
 
-        This build ships the portable endpoint set: AMQP, NATS, MQTT, MongoDB,
-        HTTP, ZeroMQ, Redis Streams, AWS SQS/SNS, object stores, files and
-        in-memory channels. Kafka, SQLx, Postgres CDC, gRPC, IBM MQ, ClickHouse
-        and WebSocket are not compiled in; a route naming one of those parses
-        but fails when the route is built. See readme.md in the recipe for the
-        full list and the reasons.
+        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
+        MQTT, Pulsar, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC,
+        HTTP, WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
+        stores, directory spools, files and in-memory channels.
+
+        librdkafka and SQLite are linked from their conda-forge packages rather
+        than compiled from vendored C sources, so a security fix to either
+        reaches this package through a rebuild. The IBM MQ endpoint is compiled
+        in but loads IBM's client library at runtime with dlopen: IBM does not
+        redistribute that client, so it has to be installed separately, and only
+        a route that actually opens an IBM MQ endpoint needs it. See readme.md
+        in the recipe.
       license: MIT
       # NOTE: the web UI is embedded into the binary from prebuilt assets that
       # upstream commits under apps/mq-bridge-app/crates/core/static/ (a bundled
@@ -119,20 +197,26 @@ outputs:
       script:
         env:
           # `[tool.maturin] features` cannot turn *off* the crate's
-          # `default = ["full"]`, so the flag has to reach cargo this way.
-          # This is exactly what upstream's publish-python workflow passes.
-          MATURIN_PEP517_ARGS: --locked --no-default-features
+          # `default = ["full"]`, and `full` pins `link-static`, so the flag has
+          # to reach cargo this way. The feature list itself comes from the
+          # pyproject.toml override under `source:`.
+          MATURIN_PEP517_ARGS: --no-default-features
         content:
-          # pyproject-reduced.toml is upstream's own manifest for this build:
-          # same `mq-bridge-py` project name, maturin features
-          # `pyo3/extension-module,basic,schema`.
+          # Same environment wiring as the app output; see the comments there.
           - if: unix
             then:
-              - cd python/mq-bridge-py
-              - cp pyproject-reduced.toml pyproject.toml
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$PREFIX/include"
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
-              - cd python\mq-bridge-py
-              - copy /Y pyproject-reduced.toml pyproject.toml
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
+          - if: unix
+            then: cd python/mq-bridge-py
+            else: cd python\mq-bridge-py
           - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
           - if: unix
             then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-py.yml
@@ -141,6 +225,7 @@ outputs:
     requirements:
       build:
         - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
         - ${{ compiler('rust') }}
         - cargo-bundle-licenses
@@ -149,6 +234,9 @@ outputs:
           then: make
         - if: win
           then: nasm
+        - pkg-config
+        - libprotobuf
+        - libclang
         - if: build_platform != target_platform
           then:
             - python
@@ -160,6 +248,8 @@ outputs:
           then: python-abi3
         - pip
         - maturin >=1.7,<2
+        - librdkafka >=2.12.1
+        - libsqlite >=3.34.1
       run:
         - python
         - typing_extensions >=4.0
@@ -195,13 +285,15 @@ outputs:
         from YAML/JSON, and custom endpoints and middleware can be registered
         from Python or loaded as native plugins.
 
-        This build ships upstream's `basic` endpoint set: AMQP, NATS, MQTT,
-        MongoDB, HTTP, WebSocket, ZeroMQ, Redis Streams, ClickHouse, AWS
-        SQS/SNS, object stores, files and in-memory channels. Kafka, SQLx,
-        Postgres CDC, gRPC and IBM MQ are not compiled in, and so are the
-        compression, encryption and filter middleware; a route naming one of
-        those parses but fails when the route is built. See readme.md in the
-        recipe for the full list and the reasons.
+        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
+        MQTT, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC, HTTP,
+        WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
+        stores, directory spools, files and in-memory channels.
+
+        librdkafka and SQLite are linked from their conda-forge packages rather
+        than compiled from vendored C sources. The IBM MQ endpoint is compiled
+        in but loads IBM's client library at runtime with dlopen, so that client
+        has to be installed separately. See readme.md in the recipe.
       license: MIT
       license_file:
         - python/mq-bridge-py/LICENSE.python

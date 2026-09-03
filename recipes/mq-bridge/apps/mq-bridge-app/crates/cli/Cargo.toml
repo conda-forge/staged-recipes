@@ -1,0 +1,116 @@
+[package]
+name = "mq-bridge-app"
+version.workspace = true
+edition = "2024"
+rust-version = "1.94"
+build = "build.rs"
+authors = ["Marco Mengelkochs"]
+repository = "https://github.com/marcomq/mq-bridge"
+license = "MIT"
+description = "A message queue bridge application written in Rust, designed to connect different messaging systems like RabbitMQ, Kafka, and NATS."
+readme = "../../README.md"
+keywords = ["messaging", "kafka", "nats", "amqp", "cqrs"]
+categories = ["asynchronous", "network-programming"]
+# With two [[bin]] targets, package-scoped runs still need an explicit default.
+default-run = "mq-bridge-app"
+
+# The real binary keeps the package name. `cargo install` and the MCP registry's
+# cargo package type both invoke a crate by its own name and cannot be told a
+# different one, and MCP client configs store an absolute path — so making this
+# the crate name is what keeps all three correct without a shim in the way.
+[[bin]]
+name = "mq-bridge-app"
+path = "src/main.rs"
+
+# `mqb` is the short command the docs promote — a launcher that forwards here,
+# not a second copy of the app. It depends only on `std` (~0.4 MB stripped), and
+# is a real binary rather than a symlink so that `cargo install`, which only
+# installs binaries a package builds, hands it to Rust users too.
+# `mq-bridge` is deliberately not used: the desktop bundle's .deb/.rpm already
+# installs /usr/bin/mq-bridge. See src/bin/compat.rs.
+[[bin]]
+name = "mqb"
+path = "src/bin/compat.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ version }/mq-bridge-cli-{ target }{ archive-suffix }"
+# `bin-dir` is resolved once per [[bin]] target, so it must use `{ bin }` rather
+# than a fixed name — otherwise both targets resolve to the same file in the
+# archive and `mqb` would be installed as a second copy of the real binary
+# instead of the launcher. The release tarball has both at its root.
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[dependencies]
+mq_bridge_app = { workspace = true }
+anyhow = { workspace = true }
+uuid = { version = "1.24", features = ["v4"] }
+metrics = "0.24.6"
+# `http-listener` serves the `--metrics-addr` endpoint; this crate is the only
+# one that needs it.
+metrics-exporter-prometheus = { version = "0.18.3", default-features = false, features = ["http-listener"] }
+mimalloc = { version = "0.1", default-features = false, optional = true }
+# Only used to install the process-wide crypto provider; see `rustls-aws-lc`.
+rustls = { version = "0.23.43", optional = true }
+schemars = "1.2.2"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "sync", "net"] }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+url = "2.5.8"
+
+clap = { version = "4.6.5", features = ["derive"] }
+
+# MCP server mode (`mqb mcp`). Streamable-HTTP is served over hyper (no axum).
+rmcp = { version = "3.1.0", features = ["server", "macros", "transport-io", "transport-streamable-http-server"] }
+hyper = { version = "1", features = ["server", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["server", "server-auto", "tokio", "service"] }
+
+[features]
+default = ["full"]
+# mimalloc global allocator; disable (--no-default-features) on platforms
+# where it is unsupported or to benchmark the system allocator.
+mimalloc = ["dep:mimalloc"]
+integration-test = ["mq_bridge_app/integration-test"]
+# Lean feature set for the ETL benchmarks (benches/etl): see the core crate.
+bench = ["mq_bridge_app/bench", "mimalloc"]
+# `bench` plus Postgres logical-replication CDC, for run_cdc_latency.sh. Split
+# out because it costs the aws-lc-sys build; see the core crate for why.
+bench-cdc = ["bench", "mq_bridge_app/bench-cdc", "rustls-aws-lc"]
+ibm-mq = ["mq_bridge_app/ibm-mq"]
+arm64-cross-compile = ["mq_bridge_app/arm64-cross-compile"]
+full = ["mq_bridge_app/full", "mimalloc", "rustls-aws-lc"]
+# The second half of the `full-dynamic` passthrough; see `crates/core`.
+full-dynamic = ["mq_bridge_app/full-dynamic", "mimalloc", "rustls-aws-lc"]
+middleware = ["mq_bridge_app/middleware"]
+compression = ["mq_bridge_app/compression"]
+encryption = ["mq_bridge_app/encryption"]
+sqlx = ["mq_bridge_app/sqlx"]
+postgres-cdc = ["mq_bridge_app/postgres-cdc"]
+rustls-aws-lc = ["dep:rustls", "rustls/aws_lc_rs", "mq_bridge_app/rustls-aws-lc"]
+mongodb = ["mq_bridge_app/mongodb"]
+http = ["mq_bridge_app/http"]
+kafka = ["mq_bridge_app/kafka"]
+aws = ["mq_bridge_app/aws"]
+nats = ["mq_bridge_app/nats"]
+mqtt = ["mq_bridge_app/mqtt"]
+zeromq = ["mq_bridge_app/zeromq"]
+sled = ["mq_bridge_app/sled"]
+grpc = ["mq_bridge_app/grpc"]
+amqp = ["mq_bridge_app/amqp"]
+redis-streams = ["mq_bridge_app/redis-streams"]
+
+[dev-dependencies]
+metrics = "0.24.6"
+metrics-exporter-prometheus = { version = "0.18.3", default-features = false }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "sync", "io-util", "net", "rt", "time"] }
+# Only to create the table the `--resume` test reads: the copy CLI can populate a
+# SQL table (`auto_create_table`) but not define one whose columns the cursor
+# reader can decode. Same version and a subset of the features mq-bridge already
+# builds, so it costs no extra compilation under the default feature set.
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite"] }
