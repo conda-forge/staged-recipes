@@ -20,14 +20,19 @@ build:
     # the prebuilt JS bundles out of the wheel, so `about.license_file` finds them.
     - ${{ PYTHON }} -c "import zipfile; z = zipfile.ZipFile('pgadmin4-${{ version }}-py3-none-any.whl'); z.extract('pgadmin4/LICENSE'); z.extractall(members=[n for n in z.namelist() if n.endswith('.js.LICENSE.txt')])"
     - ${{ PYTHON }} -m pip install pgadmin4-${{ version }}-py3-none-any.whl --no-deps --no-build-isolation -vv
+    # Install the conda-specific console-script wrapper next to the upstream
+    # modules, so it is importable as pgadmin4.conda_entry.
+    - ${{ PYTHON }} -c "import os, shutil, sysconfig; shutil.copyfile(os.path.join(os.environ['RECIPE_DIR'], 'conda_entry.py'), os.path.join(sysconfig.get_path('purelib'), 'pgadmin4', 'conda_entry.py'))"
     # Drop the POSIX launchers pip generated -- they are useless on Windows for a
     # noarch package. rattler-build regenerates both from build.python.entry_points.
     - ${{ PYTHON }} -c "import os, sysconfig; [os.path.exists(p) and os.remove(p) for p in (os.path.join(sysconfig.get_path('scripts'), n) for n in ('pgadmin4', 'pgadmin4-cli'))]"
 
   python:
     entry_points:
-      - pgadmin4 = pgadmin4.pgAdmin4:main
-      - pgadmin4-cli = pgadmin4.setup:main
+      # Both scripts go through conda_entry rather than upstream's
+      # pgAdmin4:main / setup:main -- see conda_entry.py for why.
+      - pgadmin4 = pgadmin4.conda_entry:main
+      - pgadmin4-cli = pgadmin4.conda_entry:cli_main
 
 requirements:
   host:
@@ -45,7 +50,10 @@ requirements:
     - authlib >=1.7,<1.8
     - azure-identity >=1.25.3,<2
     - azure-mgmt-rdbms >=10.1.1,<11
-    - azure-mgmt-resource >=25.0.0,<27
+    # <26 is not cosmetic: 26.0.0 dropped the aggregate azure.mgmt.resource
+    # namespace, so pgadmin.misc.cloud.azure's
+    # `from azure.mgmt.resource import ResourceManagementClient` fails.
+    - azure-mgmt-resource >=25.0.0,<26
     - azure-mgmt-subscription >=3.1.1,<4
     - bcrypt >=5.0,<6
     - boto3 >=1.43,<2
@@ -97,6 +105,11 @@ requirements:
 
 tests:
   - python:
+      # Only the top-level package: pgadmin4.pgAdmin4 builds the Flask app at
+      # import time and, in server mode, writes to /var/lib/pgadmin, so a bare
+      # `python -c "import pgadmin4.pgAdmin4"` fails with EACCES. The script
+      # test below covers that module through conda_entry, which is how the
+      # console scripts reach it.
       imports:
         - pgadmin4
       # A noarch package installs on every Python at or above python_min, so
@@ -107,8 +120,26 @@ tests:
       # pip_check is disabled: upstream's metadata pins every dependency with
       # "==", so `pip check` always fails against the relaxed conda-forge pins.
       pip_check: false
+  # Importing pgadmin4.pgAdmin4 builds the Flask app at module scope, so it
+  # needs a writable DATA_DIR; the helper script redirects it before importing.
+  - script:
+      - python test_import.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - test_import.py
+  # The `pgadmin4-cli` script routes through conda_entry, so running it both
+  # proves the wrapper resolves and that it creates its data directories.
+  - script:
+      - pgadmin4-cli --help
+    requirements:
+      run:
+        - python ${{ python_min }}.*
   - package_contents:
       site_packages:
+        - pgadmin4/conda_entry.py
         - pgadmin4/pgAdmin4.py
         - pgadmin4/pgadmin/__init__.py
         # The prebuilt web assets are the reason this recipe uses the wheel.

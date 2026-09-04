@@ -1,3 +1,14 @@
+"""Console-script wrapper for the conda packaging of pgAdmin 4.
+
+Upstream's entry points assume a system-wide install: in server mode
+``config.DATA_DIR`` is ``/var/lib/pgadmin`` and ``config.LOG_FILE`` is
+``/var/log/pgadmin``, neither of which a conda environment owns or can create
+as an unprivileged user. Both console scripts therefore route through this
+module, which puts the data directory in a per-user XDG location and hands
+pgAdmin that path through ``config_distro.py`` -- the override file packagers
+are meant to supply -- before delegating to the upstream entry point.
+"""
+
 import os
 import sys
 from pathlib import Path
@@ -16,8 +27,9 @@ def _ensure_user_dirs():
         d.mkdir(parents=True, exist_ok=True)
         try:
             d.chmod(0o700)
-        except Exception:
-            # On Windows or restricted contexts, chmod may fail; ignore.
+        except OSError:
+            # POSIX permissions are advisory on Windows and unavailable on
+            # some network filesystems; the directory is still usable.
             pass
 
     # If a config distro file hasn't been provided, create one per-user
@@ -38,12 +50,21 @@ def _ensure_user_dirs():
 
 
 def main():
+    """Entry point for the ``pgadmin4`` console script -- the web runtime."""
     _ensure_user_dirs()
+    # Kept for anyone invoking this module directly: if argv[0] names the CLI
+    # script, route there rather than starting a web server.
     prog = os.path.basename(sys.argv[0]).lower()
-    # If called as the CLI, delegate to setup:main; otherwise run web server runtime.
     if "pgadmin4-cli" in prog or "pgadmin4_cli" in prog:
         from pgadmin4.setup import main as _cli_main
         return _cli_main()
-    else:
-        from pgadmin4.pgAdmin4 import main as _web_main
-        return _web_main()
+
+    from pgadmin4.pgAdmin4 import main as _web_main
+    return _web_main()
+
+
+def cli_main():
+    """Entry point for the ``pgadmin4-cli`` console script."""
+    _ensure_user_dirs()
+    from pgadmin4.setup import main as _cli_main
+    return _cli_main()
