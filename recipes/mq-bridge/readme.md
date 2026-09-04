@@ -56,7 +56,7 @@ with a narrow change.
 | `Cargo.toml` | Adds `link-static` / `link-dynamic` / `full-dynamic`; drops the `protoc-bin-vendored` build-dependency. |
 | `build.rs` | Reads `$PROTOC` from the environment instead of overwriting it; gates the `/opt/mqm` rpath on `ibm-mq-static` rather than on the dlopen `ibm-mq` feature, which never consults it. |
 | `src/lib.rs` | The `compile_error!` guards for the linkage features. |
-| `docs/IBM_MQ.md` | The document those comments reference. |
+| `python/mq-bridge-py/examples/ibm-mq-input.py` | A runnable IBM MQ example for the bindings, not yet in a release. |
 | `apps/…/crates/core/Cargo.toml` | A `full-dynamic` passthrough. |
 | `apps/…/crates/cli/Cargo.toml` | A `full-dynamic` passthrough. |
 | `python/mq-bridge-py/pyproject.toml` | maturin's feature list, pointed at `mq-bridge/full-dynamic`. |
@@ -154,10 +154,13 @@ of a route that actually opens an IBM MQ endpoint.
 Nothing proprietary is vendored, built or shipped here.
 
 To use it, install IBM's redistributable MQ client (9.3.0.0 or later) yourself
-and point `MQ_INSTALLATION_PATH` at it — see `docs/IBM_MQ.md` in the source
-tree.
-Without it, every other endpoint works normally and an `ibmmq:` route fails
-with a non-retryable error naming each path that was tried.
+and set `MQ_INSTALLATION_PATH` to the installation directory — or
+`MQB_IBM_MQ_LIB` to the library file itself, for an install that does not follow
+the usual layout.
+`MQ_HOME` is not consulted on this path; it is a build-time variable for the
+link-time variant.
+Without a client, every other endpoint works normally and an `ibmmq:` route
+fails with a non-retryable error naming each path that was tried.
 
 Upstream's `ibm-mq-static` variant, which binds `libmqm_r` at link time and
 requires the SDK to build, is deliberately **not** used: it would make the
