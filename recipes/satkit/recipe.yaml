@@ -1,0 +1,96 @@
+schema_version: 1
+
+context:
+  name: satkit
+  version: "0.21.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # The PyPI sdist ships everything the build needs, including the data
+  # compiled into the extension (data/manifest.json and data/embedded/*.gz —
+  # see MANIFEST.in upstream). No network access is needed at build time.
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 436cbdd36191624568c130304a9d4b2736faadeaec289d7485014013b436cdc9
+
+build:
+  number: 0
+  # satkit requires Python ≥3.10 (pyproject.toml).
+  skip: match(python, "<3.10")
+  script:
+    # conda-forge policy for Rust packages: bundle the licenses of every crate
+    # compiled into the extension module. The sdist root is a cargo workspace
+    # (core crate + python/ bindings), so one run covers both.
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - setuptools
+    - setuptools-rust
+  run:
+    - python
+    - numpy >=1.0
+    # Since 0.21 the core data (IERS nutation tables, gravity models) is
+    # compiled into the extension and the JPL ephemeris is downloaded on first
+    # use, SHA-256 verified, so no data package is required. For offline
+    # environments populate a directory once with `satkit.utils.update_datafiles()`
+    # and point `SATKIT_DATA` at it, or host a mirror and set `SATKIT_DATA_URL`.
+
+tests:
+  # PyO3-`wrap_pymodule!` submodules (jplephem, frametransform, ...) are
+  # exposed as attributes on `satkit`, not separately-importable
+  # top-level modules — so only `satkit` itself goes in `imports:`.
+  - python:
+      imports:
+        - satkit
+  # Offline smoke test: an empty data directory, downloads forbidden
+  # (SATKIT_OFFLINE=1), no network — exercises time scales, gravity, the
+  # IERS precession-nutation tables, SGP4, and checks the ephemeris is NOT
+  # fetched. See run_test.py.
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - numpy
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://github.com/ssmichael1/satkit
+  summary: Satellite orbital mechanics library (SGP4, JPL ephemerides, frame transforms)
+  description: |
+    SatKit is a high-performance orbital mechanics library written in
+    Rust with complete Python bindings via PyO3. It handles coordinate
+    transforms, orbit propagation, time systems, gravity models,
+    atmospheric density, and JPL ephemerides — everything needed for
+    satellite astrodynamics work.
+
+    The IERS nutation tables and gravity models are compiled in, so the
+    package works with no data files and no network. The JPL DE440
+    ephemeris (~102 MB) is downloaded on first use, SHA-256 verified;
+    offline environments can pre-populate a data directory
+    (`satkit.utils.update_datafiles()`, then `SATKIT_DATA`) or point
+    `SATKIT_DATA_URL` at a mirror.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    # Generated at build time by cargo-bundle-licenses (see build.script).
+    - THIRDPARTY.yml
+  documentation: https://satkit.dev/
+  repository: https://github.com/ssmichael1/satkit
+
+extra:
+  recipe-maintainers:
+    - ssmichael1
