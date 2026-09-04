@@ -1,5 +1,5 @@
 context:
-  version: "0.4.10"
+  version: "0.4.11"
 
   # Both outputs are built from upstream's `full-dynamic` feature set — every
   # endpoint upstream ships, with librdkafka and libsqlite linked from this
@@ -20,11 +20,6 @@ context:
   #                   `full-dynamic` passthrough before any command line can
   #                   turn the linkage on.
   feature_set: full-dynamic
-
-  # LLVM major for the bindgen toolchain. `libclang` and `clang-<major>` are
-  # separate conda-forge packages and both are needed (see `requirements`
-  # below); pinning one number keeps them in step and keeps the resource
-  # directory path below predictable.
   llvm_major: "20"
 
 recipe:
@@ -33,7 +28,7 @@ recipe:
 
 source:
   - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: f53b575c5fc0cc6d05e7d5170e33fdcf1e075990b4952c181a9446fb9e8aa343
+    sha256: 31bc56c24c4f084e4a5ae52791af3aeba658d8289038fae8f854b7cd419c0d3c
 
   # Manifest overrides, applied on top of the tarball. Each is upstream's file
   # with a narrow change; together they are what makes `full-dynamic` buildable
@@ -55,12 +50,10 @@ source:
     target_directory: src
   - path: IBM_MQ.md
     target_directory: docs
-  # The runnable example docs/IBM_MQ.md links to, alongside upstream's other
-  # binding examples.
+  # The runnable example docs/IBM_MQ.md links to, alongside upstream's other binding examples.
   - path: ibm-mq-input.py
     target_directory: python/mq-bridge-py/examples
-  # The `full-dynamic` passthroughs that let `crates/cli` reach the engine's
-  # linkage feature two levels down.
+  # The `full-dynamic` passthroughs that let `crates/cli` reach the engine's linkage feature two levels down.
   - path: apps/mq-bridge-app/crates/core/Cargo.toml
     target_directory: apps/mq-bridge-app/crates/core
   - path: apps/mq-bridge-app/crates/cli/Cargo.toml
@@ -69,10 +62,6 @@ source:
   - path: python/mq-bridge-py/pyproject.toml
     target_directory: python/mq-bridge-py
 
-# Top-level defaults. Both outputs restate `build/number` and `about`
-# themselves, so nothing here changes what is built — but the conda-forge
-# linter checks for these at the top level and does not descend into
-# `outputs:`.
 build:
   number: 0
 
@@ -84,72 +73,25 @@ outputs:
       number: 0
       script:
         content:
-          # protoc comes from conda-forge's libprotobuf, not from a crate that
-          # ships a prebuilt binary. $BUILD_PREFIX, not $PREFIX: it is executed
-          # during the build and so must be the build platform's copy.
           - if: unix
             then:
               - export PROTOC="$BUILD_PREFIX/bin/protoc"
-              # libsqlite3-sys generates its bindings with bindgen on the
-              # unbundled path. bindgen dlopens libclang and then needs three
-              # things spelled out: clang's own builtin headers (sqlite3.h
-              # includes <stdarg.h>, and conda-forge ships those in
-              # `clang-<major>`, not in `libclang`), the *host* sqlite header,
-              # and the target triple -- without which a cross build emits
-              # bindings for the build machine's `va_list`.
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
               - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
-              # rdkafka-sys and libsqlite3-sys locate their libraries with
-              # pkg-config; the probe refuses to run for a foreign target unless
-              # this is set, which is every cross-compiled variant here.
               - export PKG_CONFIG_ALLOW_CROSS=1
-              # rustc does not read LDFLAGS, so the search path and rpath that
-              # let the installed binary find librdkafka/libsqlite have to be
-              # passed through RUSTFLAGS. Appended, because the rust compiler
-              # activation may already have set linker flags for a cross build.
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              # conda-forge ships the DLL under its C-API version —
-              # Library\bin\libclang-13.dll — and clang-sys, which is what
-              # bindgen loads it through, matches only the exact names
-              # `clang.dll` and `libclang.dll` on Windows. Its Linux search
-              # globs `libclang-*.so`, but there is no Windows equivalent, so no
-              # value of LIBCLANG_PATH can find the file under that name.
-              # Copy it to a name clang-sys recognises. The `for` loop rather
-              # than a literal `-13` so a future C-API bump still resolves; the
-              # `if not exist` turns a glob that matched nothing into a failure
-              # here instead of a puzzling bindgen error later.
               - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
               - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
               - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
               - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
-          # The sysroot bindgen parses the header against. clang spells it
-          # differently on the two unix platforms, and on macOS there is no
-          # /usr/include to fall back on.
           - if: linux
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
           - if: osx
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
-          # `apps/mq-bridge-app` is its own cargo workspace with its own
-          # Cargo.lock, so both commands below have to run from inside it.
-          #
-          # `--locked` is not optional. `cargo install` *ignores* the committed
-          # Cargo.lock unless it is passed, and re-resolves every dependency to
-          # the newest semver-compatible release — which is how an earlier
-          # revision of this recipe drew in tinyvec 1.13.0, whose new
-          # `with_initial_len` calls `vec!` without importing the macro and so
-          # does not compile under `no_std`. The lock pins 1.12.0.
-          #
-          # But the lock cannot be used as committed either: `link-dynamic`
-          # selects sqlx's `sqlite-unbundled`, which turns on libsqlite3-sys'
-          # `buildtime_bindgen` and so adds bindgen and its dependencies to the
-          # graph. `cargo fetch` reconciles that — unlike `cargo install`, it
-          # resolves conservatively, keeping every version the lock already pins
-          # and adding only what the new features require. `--locked` then holds
-          # for the build itself.
           - if: unix
             then:
               - cd apps/mq-bridge-app
@@ -170,27 +112,13 @@ outputs:
         - ${{ compiler('rust') }}
         - cargo-auditable
         - cargo-bundle-licenses
-        # aws-lc-sys (the rustls crypto provider) drives its C build through CMake.
         - cmake
         - if: unix
           then: make
-        # aws-lc-sys assembles its x86_64 optimised code with NASM on MSVC.
         - if: win
           then: nasm
-        # How rdkafka-sys and libsqlite3-sys find the two libraries below.
         - pkg-config
-        # protoc for the `grpc` endpoint's build-time codegen. conda-forge ships
-        # it in libprotobuf; the `protobuf` package is the Python runtime and is
-        # not what tonic-prost-build needs.
         - libprotobuf
-        # bindgen, for libsqlite3-sys' unbundled bindings. Two packages,
-        # because conda-forge splits them: `libclang` is nothing but
-        # lib/libclang.so, while clang's builtin headers — stdarg.h, which
-        # sqlite3.h includes — live in `clang-<major>`. They have to be the same
-        # major, or libclang resolves its resource directory to one that is not
-        # installed. The plain `clang` metapackage is deliberately not used: it
-        # pulls in clang_impl_<platform>, a compiler *activation* package that
-        # would fight the gcc activation from ${{ compiler('c') }}.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
       host:
@@ -198,6 +126,18 @@ outputs:
         - librdkafka >=2.12.1
         # libsqlite3-sys' min_sqlite_version_3_34_1, on sqlx's unbundled path.
         - libsqlite >=3.34.1
+        # Windows only, and not because anything links zlib here. The
+        # CMake-built `rdkafka.pc` on win-64 declares
+        #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+        # and pkg-config resolves that whole graph even for a non-static query.
+        # Every other name arrives with librdkafka's own dependencies, but
+        # `zlib.pc` ships in `zlib` while librdkafka depends on `libzlib`, which
+        # carries no .pc file on any platform. The Linux and macOS builds of
+        # librdkafka leave `Requires.private` empty and put the same libraries in
+        # `Libs.private` as plain `-l` flags, so there is nothing to resolve and
+        # nothing to add there.
+        - if: win
+          then: zlib
 
     tests:
       - script:
@@ -234,11 +174,6 @@ outputs:
         a route that actually opens an IBM MQ endpoint needs it. See readme.md
         in the recipe.
       license: MIT
-      # NOTE: the web UI is embedded into the binary from prebuilt assets that
-      # upstream commits under apps/mq-bridge-app/crates/core/static/ (a bundled
-      # JS chunk plus the Geist Mono woff2 fonts). No node/npm step runs here,
-      # but those assets carry their own upstream licenses, which are not yet
-      # covered by a disclaimer file in the source tree.
       license_file:
         - apps/mq-bridge-app/LICENSE
         - THIRDPARTY-app.yml
@@ -251,20 +186,13 @@ outputs:
 
     build:
       number: 0
-      # The extension is built against the stable ABI (pyo3 `abi3-py38`), so one
-      # build per platform covers every supported Python.
       skip: is_abi3 and not is_python_min
       python:
         version_independent: ${{ is_abi3 }}
       script:
         env:
-          # `[tool.maturin] features` cannot turn *off* the crate's
-          # `default = ["full"]`, and `full` pins `link-static`, so the flag has
-          # to reach cargo this way. The feature list itself comes from the
-          # pyproject.toml override under `source:`.
           MATURIN_PEP517_ARGS: --locked --no-default-features
         content:
-          # Same environment wiring as the app output; see the comments there.
           - if: unix
             then:
               - export PROTOC="$BUILD_PREFIX/bin/protoc"
@@ -274,16 +202,6 @@ outputs:
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              # conda-forge ships the DLL under its C-API version —
-              # Library\bin\libclang-13.dll — and clang-sys, which is what
-              # bindgen loads it through, matches only the exact names
-              # `clang.dll` and `libclang.dll` on Windows. Its Linux search
-              # globs `libclang-*.so`, but there is no Windows equivalent, so no
-              # value of LIBCLANG_PATH can find the file under that name.
-              # Copy it to a name clang-sys recognises. The `for` loop rather
-              # than a literal `-13` so a future C-API bump still resolves; the
-              # `if not exist` turns a glob that matched nothing into a failure
-              # here instead of a puzzling bindgen error later.
               - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
               - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
               - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
@@ -294,9 +212,6 @@ outputs:
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
           - if: osx
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
-          # `python/mq-bridge-py` is a member of the root workspace, so this
-          # reconciles the root Cargo.lock with the linkage override before
-          # maturin builds under `--locked`; see the app output for why.
           - cargo fetch
           - if: unix
             then: cd python/mq-bridge-py
@@ -320,7 +235,6 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
-        # See the app output for why bindgen needs both of these.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
         - if: build_platform != target_platform
@@ -336,6 +250,9 @@ outputs:
         - maturin >=1.7,<2
         - librdkafka >=2.12.1
         - libsqlite >=3.34.1
+        # See the app output for why win-64 needs zlib.pc.
+        - if: win
+          then: zlib
       run:
         - python
         - typing_extensions >=4.0
@@ -388,7 +305,6 @@ outputs:
       repository: https://github.com/marcomq/mq-bridge
       documentation: https://github.com/marcomq/mq-bridge/tree/main/python/mq-bridge-py
 
-# The other half of the top-level defaults; see the note above `build:`.
 about:
   homepage: https://github.com/marcomq/mq-bridge
   repository: https://github.com/marcomq/mq-bridge
