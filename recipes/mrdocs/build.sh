@@ -63,6 +63,19 @@ cmake -S "${SRC_DIR}/llvm-project/llvm" -B "${SRC_DIR}/llvm-build" -GNinja \
     -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
     -DLIBCXXABI_USE_LLVM_UNWINDER=ON
 
+# Some files outside lib/Support (e.g. lib/MC/DXContainerInfo.cpp) #include
+# "llvm/Support/VCSRevision.h" without CMake actually wiring a target
+# dependency on the custom command that generates it. With enough parallel
+# jobs the file happens to exist by the time it's needed (this recipe's
+# author didn't hit it locally on a high core count machine), but on
+# lower-parallelism CI runners ninja can reach one of those consumers before
+# the generator has run at all, failing with "No such file or directory".
+# Since our source is a tarball snapshot (no .git), the generated header
+# would contain no real VCS info anyway -- pre-create it empty so the
+# #include always resolves, regardless of ninja's scheduling order.
+mkdir -p "${SRC_DIR}/llvm-build/include/llvm/Support"
+touch "${SRC_DIR}/llvm-build/include/llvm/Support/VCSRevision.h"
+
 cmake --build "${SRC_DIR}/llvm-build" --target install -j"${CPU_COUNT}"
 
 # Drop the LLVM build tree once installed; it is much larger than the final
