@@ -19,9 +19,17 @@ stdin, which is closed during a build.
 """
 
 import os
+import shutil
 import tempfile
 
-with tempfile.TemporaryDirectory() as tmp_dir:
+# Not TemporaryDirectory(): importing pgAdmin leaves the Flask app holding
+# the SQLite config database open, and Windows refuses to unlink a file that
+# is still open, so the context manager's cleanup raises WinError 32 after
+# every assertion has already passed. POSIX allows unlinking an open file,
+# which is why this only breaks on win-64. The directory lives under the OS
+# temp area, so a best-effort removal is enough.
+tmp_dir = tempfile.mkdtemp()
+try:
     home = os.path.join(tmp_dir, "home")
     xdg_data = os.path.join(home, "data")
     xdg_state = os.path.join(home, "state")
@@ -96,5 +104,8 @@ with tempfile.TemporaryDirectory() as tmp_dir:
 
     for name, path in sorted(derived_paths.items()):
         print("{}: {}".format(name, path))
+
+finally:
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 print("pgadmin4.conda_entry redirected pgAdmin away from the system data dirs")
