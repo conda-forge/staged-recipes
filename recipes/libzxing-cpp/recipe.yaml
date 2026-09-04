@@ -1,0 +1,78 @@
+context:
+  version: "3.1.1"
+
+package:
+  name: libzxing-cpp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/zxing-cpp/zxing-cpp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7286b1e6ade66fe82b7c8208b4595deeb55d6486b410834fdc65702f46650542
+
+build:
+  number: 0
+  script:
+    file: ${{ "build.sh" if unix else "build.bat" }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage('libzxing-cpp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - ZXing
+      include:
+        - ZXing/ReadBarcode.h
+        - ZXing/MultiFormatWriter.h
+      files:
+        - "**/cmake/ZXing/ZXingConfig.cmake"
+  - script:
+      - if: unix
+        then:
+          - cmake -G Ninja -S test/ -B build-test/ ${CMAKE_ARGS}
+          - cmake --build build-test/
+          - ./build-test/test_libzxing_cpp
+        else:
+          - cmake -G Ninja -S test/ -B build-test/ %CMAKE_ARGS%
+          - cmake --build build-test/
+          - build-test\test_libzxing_cpp.exe
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    files:
+      recipe:
+        - test/
+
+about:
+  homepage: https://github.com/zxing-cpp/zxing-cpp
+  summary: Multi-format 1D/2D barcode image processing library in C++
+  description: |
+    ZXing-C++ ("zebra crossing") is an open-source, multi-format
+    linear/matrix barcode image processing library implemented in C++.
+    It was originally ported from the ZXing Java library, but has
+    been developed further to include many improvements.
+    This package installs only the C++ library, headers and CMake
+    config (ZXing::ZXing). Barcode reading is fully supported; barcode
+    writing/generation uses the self-contained legacy backend rather
+    than the zint-based one (which lives in an un-vendored git
+    submodule and cannot be built from a source tarball offline). The
+    C API and Python bindings are not built (see the conda-forge
+    zxing-cpp-python package for Python).
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/zxing-cpp/zxing-cpp
+
+extra:
+  recipe-maintainers:
+    - TomNysWF
