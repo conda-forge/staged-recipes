@@ -40,6 +40,9 @@ if %ERRORLEVEL% neq 0 exit /b 1
 @REM ============================================================
 set npm_config_build_from_source=true
 set npm_config_node_gyp=%BUILD_PREFIX%\bin\node-gyp
+@REM conda-forge's Node 26 currently reports an alpha-suffixed process version.
+@REM Use the package's release version so node-gyp downloads the correct headers.
+for /f "delims=" %%v in ('%PREFIX%\node.exe -p "process.versions.node.split(String.fromCharCode(45))[0]"') do set npm_config_target=%%v
 set NODE_PATH=%BUILD_PREFIX%\node_modules;%NODE_PATH%
 set ESBUILD_BINARY_PATH=%BUILD_PREFIX%\bin\esbuild.exe
 set PYTHON=%BUILD_PREFIX%\python.exe
