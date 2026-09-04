@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  name: gaussjacobiquad
+  version: "0.2.6"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/HaoZeke/GaussJacobiQuad/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ebd6d02913a60c8984d3de54c2c87d966dfd453256f62b2ffce1f30d5306e3b3
+
+build:
+  number: 0
+  # First cut: skip win (meson/fortran ar link issues on the staged-recipes win matrix).
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - libblas
+    - liblapack
+    # gjp_lapack.f90 and gjp_imtqlx_dc.f90 call LAPACKE_dsteqr and
+    # LAPACKE_dsyev, the C interface, which conda-forge ships separately
+    # from liblapack. meson probes for it with required: false, so a
+    # missing lapacke surfaces as undefined symbols at link rather than
+    # as a configure error.
+    - liblapacke
+
+tests:
+  - package_contents:
+      files:
+        # v0.2.6 ships four Fortran drivers, a C CLI, the C interop header
+        # and both libraries; the library target is misspelled upstream.
+        - bin/gjp_quad
+        - bin/gjp_quad_rec
+        - bin/gjp_quad_gw
+        - bin/gjp_quad_algo665
+        - bin/c_cli_gjpq
+        - include/GaussJacobiQuadCInterp.h
+        - lib/libGaussJacobiQaud${{ SHLIB_EXT }}
+        - lib/libgjp_cinterp${{ SHLIB_EXT }}
+        - lib/pkgconfig/gjp_cinterp.pc
+  - script:
+      # The driver takes n_points, alpha, beta and a method; it exits
+      # non-zero when given anything else, --help included. alpha and
+      # beta of zero reduce Gauss-Jacobi to Gauss-Legendre, so the
+      # printed roots are checkable against the textbook five-point
+      # values.
+      - gjp_quad 5 0.0 0.0 gw
+
+about:
+  homepage: https://github.com/HaoZeke/GaussJacobiQuad
+  summary: Permissively licensed Gauss-Jacobi quadrature Fortran routines
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/HaoZeke/GaussJacobiQuad
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
