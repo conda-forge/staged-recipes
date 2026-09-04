@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-build_jobs="${CPU_COUNT:-2}"
-if ((build_jobs > 4)); then
-    build_jobs=4
-fi
-
-# CMAKE_ARGS is intentionally word-split into arguments supplied by conda-build.
 # shellcheck disable=SC2086
 cmake ${CMAKE_ARGS} -S . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
@@ -30,5 +24,5 @@ cmake ${CMAKE_ARGS} -S . -B build -G Ninja \
     -DPython3_EXECUTABLE="${PYTHON}" \
     -DSIMBODY_HOME="${PREFIX}"
 
-cmake --build build --parallel "${build_jobs}"
+cmake --build build --parallel "${CPU_COUNT}"
 cmake --install build
