@@ -1,5 +1,5 @@
 context:
-  version: "0.1.0rc2"
+  version: "0.1.0"
 
 package:
   name: libasdf
@@ -7,15 +7,29 @@ package:
 
 source:
   url: https://github.com/asdf-format/libasdf/releases/download/${{ version }}/libasdf-${{ version }}.tar.gz
-  sha256: 121a7a1a6ad162a2ca45568465ad53ad640d6b7932c02a312eb4b5a04c083f79
+  sha256: efe0ad1938ee84502fea821afebe3e57e7abe9d19232c725229a93bd439cb498
 
 build:
   number: 0
   skip: win
   script:
-    # libstatgrab is not available yet on conda-forge (see staged-recipes#34272
-    # for pending); it's an optional dependency with impact on compression
-    # configuration only
+    # libasdf has a test that checks that no unintended symbols are visible
+    # from the final shared object. Unfortunately conda's older glibc leaks
+    # _init and _fini with default visibility, causing that test to fail.
+    # Instructing the linker to make those symbols local-only has no apparent
+    # downside, so apply this workaround until the upstream test can be fixed
+    # to make this exception.
+    - if: linux
+      then:
+      - |
+        cat > linker-syms.map <<'EOF'
+        {
+          local:
+            _init;
+            _fini;
+        };
+        EOF
+      - export LDFLAGS="${LDFLAGS} -Wl,--version-script=${SRC_DIR}/linker-syms.map"
     - ./configure --prefix="${PREFIX}" --disable-docs
     - make -j${CPU_COUNT}
     - |
