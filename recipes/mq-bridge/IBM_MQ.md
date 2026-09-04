@@ -10,7 +10,7 @@ is done by the [`mqi`](https://crates.io/crates/mqi) and
 Nothing proprietary is vendored into this repository. No IBM headers, libraries
 or archives are checked in, and the default build never needs them.
 
-Two audiences, and they need different things:
+Three audiences, and they need different things:
 
 - **Running `mq-bridge-app`** — the endpoint is already compiled into any build
   made with `full`, `full-dynamic` or `full-static-ibm-mq`, so there is nothing
@@ -19,8 +19,12 @@ Two audiences, and they need different things:
 - **Depending on the `mq-bridge` crate** — pick a feature, build an endpoint in
   code or load one from YAML. See
   [Using it from the `mq-bridge` crate](#using-it-from-the-mq-bridge-crate).
+- **Using the Python bindings** — same story as the app: already compiled in,
+  so only the client install matters. See
+  [Using it from Python](#using-it-from-python).
 
-Both share the same client install and the same runtime lookup, described first.
+All three share the same client install and the same runtime lookup, described
+first.
 
 ## The two ways to reach the client
 
@@ -147,7 +151,7 @@ routes:
         channel: "DEV.APP.SVRCONN"
         queue: "DEV.QUEUE.1"
         username: "app"
-        password: "${env:MQ_PASSWORD}"
+        password: "${MQ_PASSWORD}"
     output:
       nats:
         subject: "orders.raw"
@@ -157,6 +161,12 @@ routes:
 Set `topic` instead of `queue` for publish/subscribe; a consumer with `topic`
 runs in subscriber mode. `queue` defaults to the route name if both are omitted.
 See [REFERENCE.md](REFERENCE.md) for every field.
+
+`${MQ_PASSWORD}` is the app's config-value form, expanded when the config loads;
+`${VAR:-default}` supplies a fallback, and a `.env` file in the working
+directory is read automatically. Do not reach for `${env:VAR}` here — that is a
+different, narrower mechanism used by message templates and the encryption key,
+and it is not applied to endpoint fields.
 
 ### One-off drains from the command line
 
@@ -274,6 +284,62 @@ if mq_bridge::endpoints::ibm_mq::ibm_mq_client_available() {
 It attempts the same load the endpoint would, and returns `true` unconditionally
 on an `ibm-mq-static` build, where the client is bound at link time. The
 integration tests use it to skip themselves where no client is installed.
+
+## Using it from Python
+
+The bindings need no special build either: `mq-bridge/full` and
+`full-dynamic` both include `ibm-mq`, which covers the conda-forge
+`mq-bridge-py` package and upstream's `full` PyPI wheel. Only the client
+install and the runtime lookup above apply.
+
+A complete, runnable example is
+[`examples/ibm-mq-input.py`](../python/mq-bridge-py/examples/ibm-mq-input.py):
+it consumes a queue, hands every message to a Python callable and discards what
+the callable returns. In outline:
+
+```python
+import os
+import mq_bridge
+
+route_config = {
+    "input": {
+        "ibmmq": {
+            "url": "mq1.example.com(1414)",
+            "queue_manager": "QM1",
+            "channel": "DEV.APP.SVRCONN",
+            "queue": "DEV.QUEUE.1",
+            "username": "app",
+            "password": os.environ["MQ_PASSWORD"],
+        }
+    },
+    "output": "null",
+}
+
+def process_message(message):
+    print(len(message.payload), message.metadata)
+    return None       # ack without publishing
+
+mq_bridge.Route.from_config(route_config, "orders_from_mq") \
+    .with_handler(process_message) \
+    .run()
+```
+
+Three things that catch people out:
+
+- The import is **`mq_bridge`**. `mq-bridge-py` is the distribution name, not
+  the module name.
+- The route body takes **`input`** and **`output`**, the same two keys as the
+  YAML config. `Route.from_config` accepts a bare route body like this one, or a
+  whole config plus a route name.
+- A handler's **return value is the published message**: bytes, a `str`, a
+  `dict` or a `mq_bridge.Message` go to the output endpoint, while `None`
+  acknowledges without publishing. Raise `mq_bridge.RetryableError` for
+  redelivery, `mq_bridge.NonRetryableError` to fail the message.
+
+The environment variables are read by the same loader as everywhere else, so
+export `MQ_INSTALLATION_PATH` before starting the interpreter — a missing client
+surfaces as the non-retryable error shown above, raised out of the route rather
+than at import time.
 
 ## Building with the link-time binding
 
