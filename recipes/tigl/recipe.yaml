@@ -1,0 +1,135 @@
+# This example shows how to define a recipe using the new YAML based recipe format introduced by
+# CEP 13.
+
+# For more information about this format see: https://prefix-dev.github.io/rattler-build/latest/reference/recipe_file/
+
+# The main differences with the old format is that no preprocessing is required for the file to be valid YAML.
+# This means:
+# - No "selectors", use YAML if-then-else expressions instead (https://prefix-dev.github.io/rattler-build/latest/selectors/)
+# - Jinja expressions are formatted with a leading `$` to make them valid YAML
+#
+# See https://conda-forge.org/docs/maintainer/example_recipes for a collection of example recipes.
+
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+
+# Define variables in this section that you can use in other parts.
+context:
+  version: "3.5.0"
+  # pythonocc-core release matching the pinned thirdparty/pythonocc-core git submodule commit used
+  # by tigl v${{ version }} (see .gitmodules / `git submodule status` in the tigl repo at tag
+  # v${{ version }}) -- also matches the occt/pythonocc-core version pinned below.
+  occt_version: "7.9.3"
+
+package:
+  name: tigl
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/dlr-sc/tigl/archive/v${{ version }}.tar.gz
+    sha256: 2f2161d3b623a9bb6b113ebabe23f028ba5fa3eb6d9be914b59ba2c3e0d724d7
+    patches:
+      # bindings/CMakeLists.txt locates Python's site-packages dir via distutils.sysconfig, which
+      # was removed in Python 3.12+ (PEP 632). Without this, the site-packages probe throws for
+      # our py312/py313 build variants and silently falls back to installing the python bindings
+      # under share/tigl3/python instead of site-packages. Report upstream and drop once fixed.
+      - patches/fix-python-site-packages-detection.patch
+  # INTERMEDIATE SOLUTION: tigl vendors pythonocc-core's SWIG interface files (.i) via a git
+  # submodule at thirdparty/pythonocc-core, but a plain source tarball checkout (used here) does
+  # not populate git submodules. The conda-forge pythonocc-core package does not currently ship
+  # these files either, but a PR to the pythonocc-core-feedstock to distribute them is in
+  # progress. Once that PR is merged and released, this extra source entry (and the matching
+  # -DPythonOCC_SOURCE_DIR flag in build.sh) can be dropped in favor of depending on the
+  # conda-forge pythonocc-core package's own SWIG files.
+  - url: https://github.com/tpaviot/pythonocc-core/archive/${{ occt_version }}.tar.gz
+    sha256: a25e3d136267271abfc71b35dd4b6d0cda65964fb3a69a0b4b7712681113e9a6
+    target_directory: thirdparty/pythonocc-core
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - if: linux
+      then:
+        - ${{ cdt('libx11-devel') }}
+        - ${{ cdt('xorg-x11-proto-devel') }}
+        - ${{ cdt('mesa-libgl-devel') }}
+        - ${{ cdt('mesa-dri-drivers') }}
+        - ${{ cdt('libxcb') }}
+        - ${{ cdt('libxi-devel') }}
+        - ${{ cdt('libxau-devel') }}
+        - ${{ cdt('libxext-devel') }}
+        - ${{ cdt('libselinux') }}
+        - ${{ cdt('libXdamage') }}
+        - ${{ cdt('libXfixes') }}
+        - ${{ cdt('libXxf86vm') }}
+    - ninja >=1.10.0
+    - cmake >=3.11
+    # Must match the swig version conda-forge's pythonocc-core 7.9.3 package was actually built
+    # with (4.4.1)
+    - swig 4.4.*
+    - doxygen ==1.13.2
+
+  host:
+    - tixi ==3.3.2
+    - occt ==${{ occt_version }} *novtk*
+    - pythonocc-core ==${{ occt_version }} *novtk*
+    - python
+    - if: linux
+      then:
+        - libglu
+    - qt ==5.15.15
+
+  run:
+    - tixi ==3.3.2
+    - occt ==${{ occt_version }} *novtk*
+    - pythonocc-core ==${{ occt_version }} *novtk*
+    - python
+    - qt ==5.15.15
+    - pyqt
+
+tests:
+  - python:
+      imports:
+        - tigl3.tigl3wrapper
+        - tigl3.geometry
+        - tigl3.surface_factories
+
+about:
+  homepage: https://dlr-sc.github.io/tigl/
+  summary: 'The TiGL Geometry Library to process aircraft geometries in pre-design.'
+  description: |
+     The optimization of an aircraft e.g. to minimize fuel consumption involves many
+     disciplines, each with their own simulation tools. Many of these simulation tools 
+     require a precise modeling of the aircraft geometry. At the DLR, this task is 
+     performed by the software TiGL (TiGL Geometry Library), which generates a complete 
+     3-dimensional geometric representation of the aircraft from a parametric geometry 
+     description. This includes both the outer geometry, which is exposed to the air flow, 
+     and the inner structural geometry, which is crucial for the load stability of the 
+     aircraft.
+     
+     TiGL thus provides the interface between the parametric CPACS description of the 
+     aircraft and the simulation tools. TiGL offers functions for exporting the geometry 
+     to common CAD formats (IGES, STEP, VTK) as well as functions for calculating points 
+     and curves on the aircraft surface.
+     
+     TiGL uses the OpenCASCADE CAD kernel to model the aircraft geometry with NURBS surfaces. 
+     The library also provides interfaces to many common programming languages such as C, C++, 
+     Python, Java and MATLAB. In addition, the TiGL software package includes the TiGL Creator
+     that enables also the visualization and editing of the aircraft geometries and other 
+     CAD files. 
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  documentation: https://dlr-sc.github.io/tigl/doc/latest/index.html
+  repository: https://github.com/DLR-SC/tigl
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    - joergbrech
+    - svengoldberg
+    - AntonReiswich
+    - ole-alb
