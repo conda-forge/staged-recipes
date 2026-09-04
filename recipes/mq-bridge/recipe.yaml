@@ -79,6 +79,20 @@ outputs:
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
               - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               - export PKG_CONFIG_ALLOW_CROSS=1
+              # Force a *non-static* query for every crate that probes through
+              # the `pkg-config` crate. A static query walks `Requires.private`,
+              # and on win-64 `rdkafka.pc` declares
+              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+              # whose closure reaches curl, ssh2, psl and icu — none of which a
+              # dynamically linked librdkafka needs, and several of which cannot
+              # be linked there at all (see the win branch). The crate decides
+              # this in `infer_static`, which treats `<LIB>_STATIC` and
+              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
+              # the value; deleting both and setting the dynamic override covers
+              # every branch of it. Linux and macOS ship an empty
+              # `Requires.private`, so this only makes the query explicit there.
+              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
@@ -88,6 +102,28 @@ outputs:
               - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
+              # See the unix branch. `set "VAR="` deletes the variable in cmd,
+              # which is what is needed here — an empty value would still count
+              # as present.
+              - set "RDKAFKA_STATIC="
+              - set "SQLITE3_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              # Safety net, inert unless something still asks for the private
+              # closure. Those .pc files spell their libraries the Unix way —
+              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
+              # libraries are named `libcurl.lib`, `libssh2.lib` and
+              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
+              # exists under a different spelling. Alias them and put the
+              # directory on LIB. link.exe only opens what the link line asks
+              # for, so if the query above is genuinely non-static these files
+              # are never touched; if they ever are, the run-deps report will
+              # show the extra DLL imports and say so.
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
           - if: linux
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
           - if: osx
@@ -199,6 +235,20 @@ outputs:
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
               - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               - export PKG_CONFIG_ALLOW_CROSS=1
+              # Force a *non-static* query for every crate that probes through
+              # the `pkg-config` crate. A static query walks `Requires.private`,
+              # and on win-64 `rdkafka.pc` declares
+              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+              # whose closure reaches curl, ssh2, psl and icu — none of which a
+              # dynamically linked librdkafka needs, and several of which cannot
+              # be linked there at all (see the win branch). The crate decides
+              # this in `infer_static`, which treats `<LIB>_STATIC` and
+              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
+              # the value; deleting both and setting the dynamic override covers
+              # every branch of it. Linux and macOS ship an empty
+              # `Requires.private`, so this only makes the query explicit there.
+              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
@@ -208,6 +258,28 @@ outputs:
               - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
+              # See the unix branch. `set "VAR="` deletes the variable in cmd,
+              # which is what is needed here — an empty value would still count
+              # as present.
+              - set "RDKAFKA_STATIC="
+              - set "SQLITE3_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              # Safety net, inert unless something still asks for the private
+              # closure. Those .pc files spell their libraries the Unix way —
+              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
+              # libraries are named `libcurl.lib`, `libssh2.lib` and
+              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
+              # exists under a different spelling. Alias them and put the
+              # directory on LIB. link.exe only opens what the link line asks
+              # for, so if the query above is genuinely non-static these files
+              # are never touched; if they ever are, the run-deps report will
+              # show the extra DLL imports and say so.
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
           - if: linux
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
           - if: osx
