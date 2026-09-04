@@ -1,0 +1,254 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index adb1bce..5d4c53b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,21 +3,13 @@
+ project ("DearPyGui")
+ 
+ if(WIN32)
+-    add_definitions(-DIMGUI_USER_CONFIG="mvImGuiConfig.h")
+     add_definitions(-DMV_PLATFORM="windows")
+ elseif(APPLE)
+-    add_definitions(-DIMGUI_USER_CONFIG="mvImGuiLinuxConfig.h")
+     add_definitions(-DMV_PLATFORM="apple")
+ else() # Linux
+-	add_definitions(-DIMGUI_USER_CONFIG="mvImGuiLinuxConfig.h")
+     add_definitions(-DMV_PLATFORM="linux")
+ endif()
+ 
+-if(WIN32)
+-else() # Linux
+-	add_definitions(-DCUSTOM_IMGUIFILEDIALOG_CONFIG="ImGuiFileDialogConfigUnix.h")
+-endif()
+-
+ # various settings
+ add_definitions(
+     -D_CRT_SECURE_NO_WARNINGS 
+@@ -59,8 +51,6 @@ if(MV_NO_USER_THREADS)
+     add_definitions(-DMV_NO_USER_THREADS)
+ endif()
+ 
+-add_subdirectory("thirdparty")
+-
+ # if this is not a distribution build
+ # build development environment
+ if(NOT MVDIST_ONLY)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index ad7f650..0106c85 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -64,53 +64,15 @@ set(MARVEL_SOURCES
+         "mvFileDialog.cpp"
+         "mvFileExtension.cpp"
+ 
+-        # imnodes
+-        "../thirdparty/imnodes/imnodes.cpp"
+-
+-        # implot
+-        "../thirdparty/implot/implot.cpp"
+-        "../thirdparty/implot/implot_items.cpp"
+-        "../thirdparty/implot/implot_demo.cpp"
+-
+-        # ImGuiFileDialog
+-        "../thirdparty/ImGuiFileDialog/ImGuiFileDialog.cpp"
+-
+-        # imgui
+-        "../thirdparty/imgui/misc/cpp/imgui_stdlib.cpp"
+-        "../thirdparty/imgui/imgui.cpp"
+-        "../thirdparty/imgui/imgui_demo.cpp"
+-        "../thirdparty/imgui/imgui_draw.cpp"
+-        "../thirdparty/imgui/imgui_widgets.cpp"
+-        "../thirdparty/imgui/imgui_tables.cpp"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/misc/freetype/imgui_freetype.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/backends/imgui_impl_win32.cpp>"
+-        "$<$<PLATFORM_ID:Windows>:../thirdparty/imgui/backends/imgui_impl_dx11.cpp>"
+-        "$<$<PLATFORM_ID:Darwin>:../thirdparty/imgui/backends/imgui_impl_metal.mm>"
+-        "$<$<PLATFORM_ID:Darwin>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_opengl3.cpp>"
+-
+-        # gl3w
++        # gl3w (OpenGL loader, Linux only)
+         "$<$<PLATFORM_ID:Linux>:../thirdparty/gl3w/GL/gl3w.c>"
+         )
+ 
+ set(MARVEL_INCLUDE_DIR
+         "."
+-        "../thirdparty/implot"
+         "../thirdparty/stb"
+-        "../thirdparty/imnodes"
+-        "../thirdparty/ImGuiFileDialog"
+-        "../thirdparty/glfw/include/"
+-        "../thirdparty/glfw/deps/"
+-        "../thirdparty/imgui/"
+         "../thirdparty/gl3w/"
+-        "../thirdparty/imgui/misc/freetype/"
+-        "../thirdparty/imgui/backends/"
+-        "../thirdparty/cpython/"
+-        "../thirdparty/cpython/Include/"
+-        "../thirdparty/cpython/build/debug/"
+-        "$<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/thirdparty/cpython/PC/>"
+-        "$<IF:$<CONFIG:Release>,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/release/,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/debug/>"
++        "../thirdparty/ImGuiFileDialog"
+         )
+ 
+ 
+diff --git a/src/distribution.cmake b/src/distribution.cmake
+index b858384..91fca88 100644
+--- a/src/distribution.cmake
++++ b/src/distribution.cmake
+@@ -4,6 +4,11 @@ if(NOT Python_Development_FOUND)
+ 	message(FATAL_ERROR "The python3 development library from your distribution repo need to be installed first!")
+ endif()
+ 
++find_package(imgui CONFIG REQUIRED)
++find_package(implot CONFIG REQUIRED)
++find_package(imnodes CONFIG REQUIRED)
++find_package(ImGuiFileDialog CONFIG REQUIRED)
++
+ add_library(_dearpygui SHARED)
+ 
+ set_target_properties(_dearpygui
+@@ -34,13 +39,19 @@ target_compile_definitions(_dearpygui
+ 		$<$<CONFIG:Release>:MV_RELEASE>
+ )
+ 
+-add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)
++target_link_libraries(_dearpygui
++	PUBLIC
++		imgui::imgui
++		implot::implot
++		imnodes::imnodes
++		ImGuiFileDialog::ImGuiFileDialog
++)
+ 
+ if(WIN32)
+ 
+ 	set_target_properties(_dearpygui PROPERTIES SUFFIX ".pyd")
+ 	set_target_properties(_dearpygui PROPERTIES PREFIX "")
+-	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES} freetype)
++	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES})
+ 
+ elseif(APPLE)
+ 
+@@ -51,9 +62,7 @@ elseif(APPLE)
+ 	target_link_libraries(_dearpygui
+ 
+ 		PRIVATE
+-			glfw
+ 			"-undefined dynamic_lookup"
+-			"-framework Metal"
+ 			"-framework MetalKit"
+ 			"-framework Cocoa"
+ 			"-framework CoreVideo"
+@@ -66,12 +75,9 @@ else() # Linux
+ 	add_definitions(-DUNIX)
+ 	set_target_properties(_dearpygui PROPERTIES PREFIX "")
+ 	set_property(TARGET _dearpygui APPEND_STRING PROPERTY COMPILE_FLAGS "-fPIC -DNDEBUG -fwrapv -O3")
+-	add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GL3W)
+-	target_link_libraries(_dearpygui 
+-		PRIVATE 
++	target_link_libraries(_dearpygui
++		PRIVATE
+ 			"-fPIC -lcrypt -lpthread -ldl  -lutil -lm"
+-			GL
+-			glfw
+ 	)
+ 
+ endif()
+diff --git a/src/mvBasicWidgets.cpp b/src/mvBasicWidgets.cpp
+index 6cf58f2..c76cbce 100644
+--- a/src/mvBasicWidgets.cpp
++++ b/src/mvBasicWidgets.cpp
+@@ -4,7 +4,7 @@
+ #include "mvContainers.h"
+ #include "mvPyUtils.h"
+ #include "mvItemHandlers.h"
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ #include "mvTextureItems.h"
+ 
+ static bool KnobFloat(const char* label, float* p_value, float v_min, float v_max, float v_step = 50.f);
+diff --git a/src/mvContainers.cpp b/src/mvContainers.cpp
+index 367c9f3..4e99f53 100644
+--- a/src/mvContainers.cpp
++++ b/src/mvContainers.cpp
+@@ -5,7 +5,7 @@
+ #include "mvContainers.h"
+ #include "mvPyUtils.h"
+ #include "mvItemHandlers.h"
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ #include "mvTextureItems.h"
+ 
+ //-----------------------------------------------------------------------------
+diff --git a/src/mvDatePicker.cpp b/src/mvDatePicker.cpp
+index 82dab31..5fedfdc 100644
+--- a/src/mvDatePicker.cpp
++++ b/src/mvDatePicker.cpp
+@@ -2,7 +2,7 @@
+ #include "mvContext.h"
+ #include <implot.h>
+ #include <implot_internal.h>
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ #include "mvItemRegistry.h"
+ #include "mvPyUtils.h"
+ #include "mvFontItems.h"
+diff --git a/src/mvDebugWindow.cpp b/src/mvDebugWindow.cpp
+index b666fcf..a3589fb 100644
+--- a/src/mvDebugWindow.cpp
++++ b/src/mvDebugWindow.cpp
+@@ -1,6 +1,6 @@
+ #include "mvDebugWindow.h"
+ #include "mvContext.h"
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ #include "mvItemRegistry.h"
+ #include "dearpygui.h"
+ 
+diff --git a/src/mvLayoutWindow.cpp b/src/mvLayoutWindow.cpp
+index 1e510f0..aa892d5 100644
+--- a/src/mvLayoutWindow.cpp
++++ b/src/mvLayoutWindow.cpp
+@@ -4,7 +4,7 @@
+ #include "mvItemRegistry.h"
+ #include "mvFontItems.h"
+ #include "mvThemes.h"
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ 
+ static void
+ DebugItem(const char* label, const char* item) {
+diff --git a/src/mvTimePicker.cpp b/src/mvTimePicker.cpp
+index 8bfeb0c..1857887 100644
+--- a/src/mvTimePicker.cpp
++++ b/src/mvTimePicker.cpp
+@@ -1,7 +1,7 @@
+ #include "mvTimePicker.h"
+ #include <implot.h>
+ #include <implot_internal.h>
+-#include <misc/cpp/imgui_stdlib.h>
++#include <imgui_stdlib.h>
+ #include "mvContext.h"
+ #include "mvItemRegistry.h"
+ #include "mvPyUtils.h"
+diff --git a/thirdparty/CMakeLists.txt b/thirdparty/CMakeLists.txt
+deleted file mode 100644
+index 4e4f721..0000000
+--- a/thirdparty/CMakeLists.txt
++++ /dev/null
+@@ -1,13 +0,0 @@
+-﻿
+-set(GLFW_BUILD_DOCS OFF)
+-set(GLFW_BUILD_EXAMPLES OFF)
+-set(GLFW_BUILD_TESTS OFF)
+-set(GLFW_INSTALL OFF)
+-
+-if(WIN32)
+-    add_subdirectory("freetype")
+-elseif(APPLE)
+-    add_subdirectory ("glfw")
+-else() #Linux
+-	add_subdirectory ("glfw")
+-endif()
