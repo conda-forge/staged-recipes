@@ -110,7 +110,20 @@ outputs:
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+              # conda-forge ships the DLL under its C-API version —
+              # Library\bin\libclang-13.dll — and clang-sys, which is what
+              # bindgen loads it through, matches only the exact names
+              # `clang.dll` and `libclang.dll` on Windows. Its Linux search
+              # globs `libclang-*.so`, but there is no Windows equivalent, so no
+              # value of LIBCLANG_PATH can find the file under that name.
+              # Copy it to a name clang-sys recognises. The `for` loop rather
+              # than a literal `-13` so a future C-API bump still resolves; the
+              # `if not exist` turns a glob that matched nothing into a failure
+              # here instead of a puzzling bindgen error later.
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
           # The sysroot bindgen parses the header against. clang spells it
@@ -261,7 +274,20 @@ outputs:
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
               - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
-              - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
+              # conda-forge ships the DLL under its C-API version —
+              # Library\bin\libclang-13.dll — and clang-sys, which is what
+              # bindgen loads it through, matches only the exact names
+              # `clang.dll` and `libclang.dll` on Windows. Its Linux search
+              # globs `libclang-*.so`, but there is no Windows equivalent, so no
+              # value of LIBCLANG_PATH can find the file under that name.
+              # Copy it to a name clang-sys recognises. The `for` loop rather
+              # than a literal `-13` so a future C-API bump still resolves; the
+              # `if not exist` turns a glob that matched nothing into a failure
+              # here instead of a puzzling bindgen error later.
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
           - if: linux

@@ -92,6 +92,16 @@ gcc activation from `${{ compiler('c') }}`.
 the host `sqlite3.h`, and passes the target triple, without which a
 cross-compiled build would emit bindings for the build machine's `va_list`.
 
+Windows needs one more step.
+conda-forge ships the DLL under its C-API version, `libclang-13.dll`, and
+`clang-sys` — the crate bindgen loads it through — matches only the exact names
+`clang.dll` and `libclang.dll` there.
+Its Linux search globs `libclang-*.so`, but it has no Windows equivalent, so no
+value of `LIBCLANG_PATH` can find the file under that name; pointing the
+variable straight at the DLL does not help either, because the filename is
+checked against the same patterns.
+The build script therefore copies it to a name `clang-sys` recognises.
+
 ## Why both builds run `cargo fetch` first
 
 `--locked` matters here more than it usually does.
