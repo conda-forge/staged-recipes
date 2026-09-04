@@ -1,0 +1,84 @@
+context:
+  version: "4.0.0"
+  parts: ${{ version | split('.') }}
+  tag: ${{ "v" ~ ("0" ~ parts[0])[-2:] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: duneanaobj
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DUNE/duneanaobj/archive/refs/tags/${{ tag }}.tar.gz
+  sha256: 4425c906ba117e3823c479feb2c5ba168707c157df063f7c5aded2f77e16d595
+  patches:
+    # Use the cetmodules build path without UPS (gate on NOT SKIP_CET) and drop
+    # its clang-only -Werror / CLANG_FQ_DIR include so it builds under conda gcc.
+    - patches/0001-cetmodules-no-ups.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip:
+    - win
+    - osx
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    # cetmodules provides the cet_* CMake macros + build_dictionary; srproxy
+    # provides the gen_srproxy tool (+ castxml/pygccxml via its run deps) used to
+    # generate the Proxy/Flat sources at build time.
+    - srproxy
+  host:
+    # root_base, not the `root` metapackage (which adds PyROOT/Jupyter). It
+    # provides the ROOT C++ libs/headers/CMake config + rootcling, and its weak
+    # run_export pins root_base into run automatically.
+    - root_base
+    # Match ROOT's C++ standard when compiling/linking against it (ABI). Zipped
+    # with root_base in conda-forge pinning; weak-run-exports root_cxx_standard.
+    - root_cxx_standard
+    # srproxy headers (SRProxy/BasicTypesProxy.{h,cxx}, FlatBasicTypes.h) are
+    # #included when compiling the generated Proxy/Flat sources.
+    - srproxy
+    - cetmodules
+  run_exports:
+    - ${{ pin_subpackage('duneanaobj', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - duneanaobj_StandardRecord
+        - duneanaobj_StandardRecordProxy
+        - duneanaobj_StandardRecordFlat
+        - duneanaobj_StandardRecord_dict
+      include:
+        - duneanaobj/StandardRecord/StandardRecord.h
+        - duneanaobj/StandardRecord/SRInteraction.h
+        # gen_srproxy-generated headers
+        - duneanaobj/StandardRecord/Proxy/SRProxy.h
+        - duneanaobj/StandardRecord/Flat/FlatRecord.h
+      files:
+        # ROOT dictionary + CMake package config
+        - lib/libduneanaobj_StandardRecord_dict_rdict.pcm
+        - lib/libduneanaobj_StandardRecord_dict.rootmap
+        - lib/duneanaobj/cmake/duneanaobjConfig.cmake
+
+about:
+  homepage: https://github.com/DUNE/duneanaobj
+  repository: https://github.com/DUNE/duneanaobj
+  summary: DUNE analysis object (StandardRecord) data classes for CAF files
+  description: |
+    duneanaobj defines the DUNE StandardRecord data classes used to read and
+    write Common Analysis File (CAF) ROOT files across DUNE analyses. This conda
+    package builds the StandardRecord library, its ROOT dictionary, and the
+    gen_srproxy-generated Proxy and Flat libraries via the project's cetmodules
+    CMake path.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - calcuttj
