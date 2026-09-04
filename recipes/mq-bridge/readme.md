@@ -146,7 +146,7 @@ Nothing proprietary is vendored, built or shipped here.
 To use it, install IBM's redistributable MQ client (9.3.0.0 or later) yourself
 and point `MQ_INSTALLATION_PATH` at it — see `docs/IBM_MQ.md` in the source
 tree.
-Without it, every other endpoint works normally and an `ibm_mq:` route fails
+Without it, every other endpoint works normally and an `ibmmq:` route fails
 with a non-retryable error naming each path that was tried.
 
 Upstream's `ibm-mq-static` variant, which binds `libmqm_r` at link time and
