@@ -8,21 +8,13 @@ sed -i.bak "s/^minimumReleaseAge: .*/minimumReleaseAge: 0/" pnpm-workspace.yaml
 if %ERRORLEVEL% neq 0 exit /b 1
 
 @REM ============================================================
-@REM License report for dependencies
+@REM License report for production dependencies. pnpm's license scanner
+@REM expects the isolated node_modules layout even though OpenClaw builds hoisted.
 @REM ============================================================
-copy /y package.json package.json.bak
-if %ERRORLEVEL% neq 0 exit /b 1
-
-jq "del(.devDependencies)" package.json.bak > package.json
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call pnpm install --prod
+call pnpm install --prod --frozen-lockfile --config.node-linker=isolated
 if %ERRORLEVEL% neq 0 exit /b 1
 
 call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-if %ERRORLEVEL% neq 0 exit /b 1
-
-move /y package.json.bak package.json
 if %ERRORLEVEL% neq 0 exit /b 1
 
 rmdir /s /q node_modules
@@ -31,7 +23,7 @@ if %ERRORLEVEL% neq 0 exit /b 1
 @REM ============================================================
 @REM Build and pack
 @REM ============================================================
-call pnpm install
+call pnpm install --frozen-lockfile
 if %ERRORLEVEL% neq 0 exit /b 1
 
 call pnpm build
