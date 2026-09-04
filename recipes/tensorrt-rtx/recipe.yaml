@@ -1,0 +1,238 @@
+context:
+  name: tensorrt-rtx
+  full_version: "1.1.1.26"
+  version: ${{ (full_version | split("."))[:2] | join(".") }}
+  cuda_compiler_version: ${{ cuda_compiler_version | default('None') }}
+  cuda: ${{ 'true' if cuda_compiler_version != 'None' else '' }}
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ full_version }}
+
+cache:
+  source:
+    - if: cuda and match(cuda_compiler_version, ">=12")
+      then:
+      - if: linux and x86_64
+        then:
+          - url: https://developer.nvidia.com/downloads/trt/rtx_sdk/secure/${{ version }}/TensorRT-RTX-${{ full_version }}.Linux.x86_64-gnu.cuda-12.9.tar.gz
+            sha256: 6c84e858310b071e80f89d327f33fbb93bd5637765da61c1d2c03751088ab59d
+      - if: win and x86_64
+        then:
+          - url: https://developer.nvidia.com/downloads/trt/rtx_sdk/secure/${{ version }}/TensorRT-RTX-${{ full_version }}.Windows.win10.cuda-12.9.zip
+            sha256: c2758eb60191f01a47b24f54700e5463f577ebe129cd18fe835d0aa9f1e1a16d
+
+  build:
+    number: 0
+    skip: ${{ cuda and match(cuda_compiler_version, "<12") }}
+    script:
+      - if: linux
+        then:
+          - rm -rf samples
+          - mkdir -p ${PREFIX}/bin
+          - mv -v bin/* ${PREFIX}/bin
+          - mkdir -p ${PREFIX}/include
+          - mv -v include/* ${PREFIX}/include
+          - mkdir -p ${PREFIX}/lib
+          - mv -v lib/* ${PREFIX}/lib
+
+      - if: win
+        then:
+          - rmdir /s /q samples
+          - md  %PREFIX%\Library\bin 2>nul
+          - move lib\*.dll %PREFIX%\Library\bin
+          - md  %PREFIX%\Library\include 2>nul
+          - move include\* %PREFIX%\Library\include
+          - md  %PREFIX%\Library\lib 2>nul
+          - move lib\*lib %PREFIX%\Library\lib
+
+  requirements:
+    build:
+      - if: linux
+        then:
+          - cf-nvidia-tools 1.*
+
+outputs:
+  - package:
+      name: libtensorrt-rtx
+      version: ${{ full_version }}
+    build:
+      files:
+        include:
+          - if: linux
+            then:
+              - lib/libtensorrt_rtx*.so.*
+          - if: win
+            then:
+              - Library/bin/tensorrt_rtx*.dll
+        exclude:
+          - if: linux
+            then:
+              - lib/libtensorrt_onnxparser_rtx.so.*
+          - if: win
+            then:
+              - Library/bin/tensorrt_onnxparser_rtx*.dll
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+
+  - package: 
+      name: libtensorrt-onnxparser-rtx
+      version: ${{ full_version }}
+    build:
+      files:
+        include:
+          - if: linux
+            then:
+              - lib/libtensorrt_onnxparser_rtx.so.*
+          - if: win
+            then:
+              - Library/bin/tensorrt_onnxparser_rtx*.dll
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+
+  - package: 
+      name: libtensorrt-rtx-headers
+      version: ${{ full_version }}
+    build:
+      files:
+        include:
+          - if: linux
+            then:
+              - include/NvInfer*
+              - include/NvOnnx*
+          - if: win
+            then:
+              - Library/include/NvInfer*
+              - Library/include/NvOnnx*
+
+  - package:
+      name: libtensorrt-rtx-dev
+      version: ${{ full_version }}
+    build:
+      files:
+        include:
+          - if: linux
+            then:
+              - bin/tensorrt_rtx
+              - lib/libtensorrt_rtx*.so
+          - if: win
+            then:
+              - Library/bin/tensorrt_rtx
+              - Library/lib/tensorrt_rtx*.lib
+        exclude:
+          - if: linux
+            then:
+              - lib/libtensorrt_onnxparser_rtx.so
+          - if: win
+            then:
+              - Library/lib/tensorrt_onnxparser*.lib
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libtensorrt-rtx") }}
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+      host:
+        - ${{ pin_subpackage("libtensorrt-rtx", exact=True) }}
+        - ${{ pin_subpackage("libtensorrt-rtx-headers", exact=True) }}
+      run:
+        - ${{ pin_subpackage("libtensorrt-rtx", exact=True) }}
+        - ${{ pin_subpackage("libtensorrt-rtx-headers", exact=True) }}
+
+  - package: 
+      name: libtensorrt-onnxparser-rtx-dev
+      version: ${{ full_version }}
+    build:
+      files:
+        include:
+          - if: linux
+            then:
+              - lib/libtensorrt_onnxparser_rtx.so
+          - if: win
+            then:
+              - Library/lib/tensorrt_onnxparser*.lib
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage("libtensorrt-onnxparser-rtx") }}
+      host:
+        - ${{ pin_subpackage("libtensorrt-onnxparser-rtx", exact=True) }}
+        - ${{ pin_subpackage("libtensorrt-rtx-headers", exact=True) }}
+      run:
+        - ${{ pin_subpackage("libtensorrt-onnxparser-rtx", exact=True) }}
+        - ${{ pin_subpackage("libtensorrt-rtx-headers", exact=True) }}
+
+# Python APIs
+
+  # TODO: Where does python/include/impl/plugin.h go?
+
+  # {% set PYTHON = PYTHON | default("python") %}  # (PYTHON 2/2) Default value required for first pass recipe render
+
+  # - name: tensorrt
+  #   build:
+  #     script:
+  #       - {{ PYTHON }} -m pip install ${SRC_DIR}/python/tensorrt-{{ full_version }}-cp{{ py }}* -vv  # [linux]
+  #       - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt-{{ full_version }}-cp{{ py }}-none-win_amd64.whl -vv  # [win]
+  #   requirements:
+  #     build:
+  #       - {{ compiler("c") }}
+  #       - {{ compiler("cxx") }}
+  #       - {{ stdlib("c") }}
+  #       - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+  #       - python                                # [build_platform != target_platform]
+  #     host:
+  #       - python
+  #       - pip
+  #       - {{ pin_subpackage("libnvinfer", exact=True) }}
+  #       - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+  #       - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+  #     run:
+  #       - {{ pin_subpackage("libnvinfer", exact=True) }}
+  #       - {{ pin_subpackage("libnvinfer-plugin", exact=True) }}
+  #       - {{ pin_subpackage("libnvonnxparser", exact=True) }}
+  #   test:
+  #     requires:
+  #       - pip
+  #     import:
+  #       - tensorrt
+  #     commands:
+  #       - pip check
+  #       - python -c "import tensorrt; assert tensorrt.Builder(tensorrt.Logger())"
+
+  # - name: tensorrt-lean
+  #   build:
+  #     script:
+  #       - {{ PYTHON }} -m pip install ${SRC_DIR}/python/tensorrt_lean-{{ full_version }}-cp{{ py }}* -vv  # [linux]
+  #       - {{ PYTHON }} -m pip install %SRC_DIR%\python\tensorrt_lean-{{ full_version }}-cp{{ py }}-none-win_amd64.whl -vv  # [win]
+  #   requirements:
+  #     build:
+  #       - {{ compiler("c") }}
+  #       - {{ compiler("cxx") }}
+  #       - {{ stdlib("c") }}
+  #       - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+  #       - python                                # [build_platform != target_platform]
+  #     host:
+  #       - python
+  #       - pip
+  #       - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+  #     run:
+  #       - {{ pin_subpackage("libnvinfer-lean", exact=True) }}
+  #   test:
+  #     requires:
+  #       - pip
+  #     import:
+  #       - tensorrt_lean
+  #     commands:
+  #       - pip check
+  #       - python -c "import tensorrt_lean; assert tensorrt_lean.Runtime(tensorrt_lean.Logger())"
+
+extra:
+  feedstock-name: tensorrt-rtx
+  recipe-maintainers:
+    - conda-forge/cuda
