@@ -3,16 +3,14 @@ set -exo pipefail
 
 sed -i.bak 's/^minimumReleaseAge: .*/minimumReleaseAge: 0/' pnpm-workspace.yaml
 
-# Create license report for dependencies
-mv package.json package.json.bak
-jq 'del(.devDependencies)' package.json.bak > package.json
-pnpm install --prod
+# Create license report for production dependencies. pnpm's license scanner
+# expects the isolated node_modules layout even though OpenClaw builds hoisted.
+pnpm install --prod --frozen-lockfile --config.node-linker=isolated
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
-mv package.json.bak package.json
 rm -rf node_modules
 
 # Build and pack the package
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build
 pnpm ui:build
 pnpm pack --config.ignore-scripts=true
