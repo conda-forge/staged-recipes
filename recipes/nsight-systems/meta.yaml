@@ -1,0 +1,235 @@
+# NVIDIA Nsight Systems, split into a CLI package and a full package.
+#
+# Upstream ships one ~1 GB archive per platform containing two independent halves:
+#
+#   target-<platform>/  the collector plus the `nsys` command-line profiler
+#   host-<platform>/    the Qt-based `nsys-ui` timeline viewer
+#
+# Most users -- and effectively every CI job and container -- only ever need
+# `nsys`, so the two halves are published as separate packages. The naming
+# follows NVIDIA's own apt/rpm repositories:
+#
+#   nsight-systems-cli  the `nsys` command-line profiler on its own
+#   nsight-systems      the complete product; ships `nsys-ui` and depends on the CLI
+#
+# This also keeps `nsight-systems` parallel to `nsight-compute`, which likewise
+# names the complete product, and matches the `cuda-nsight-systems` metapackage
+# that NVIDIA's internal metaConda config already defines as depending on
+# `nsight-systems`.
+#
+# Versioning follows Nsight Systems upstream (as nsight-compute-feedstock does),
+# not the CUDA toolkit. `cuda_version` records the CUDA release whose redist
+# manifest this build was taken from: redistrib_12.9.2.json.
+{% set name = "nsight-systems-split" %}
+{% set version = "2025.1.3.140" %}
+# The directory NVIDIA creates inside the archive is the three-component version.
+{% set version_short = version.split(".")[0] + "." + version.split(".")[1] + "." + version.split(".")[2] %}
+{% set cuda_version = "12.9" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+{% set script_ext = "sh" %}  # [not win]
+{% set script_ext = "bat" %}  # [win]
+{% set sha256 = "dded4227619340307be0ba5bc4e23bcbc966e2df3763170ebb20410c2b54754e" %}  # [linux64]
+{% set sha256 = "479c46de1c459f7c760ef1ea5e5bbe61bfe7f4ba525ce4778d5ba25d874b8e1f" %}  # [aarch64]
+{% set sha256 = "8d61f266a8a1bc1ababd44de3ee38f7b85c8cdfcdaebace14c8f065d7624d0b3" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/nsight_systems/{{ platform }}/nsight_systems-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  # Upstream publishes no macOS or ppc64le artifact for Nsight Systems.
+  skip: true  # [osx or ppc64le]
+
+outputs:
+  # -- CLI ---------------------------------------------------------------------
+  - name: nsight-systems-cli
+    script: build_cli.{{ script_ext }}
+    build:
+      # Prebuilt, self-contained binaries: they carry their own RPATHs and bundled
+      # libraries, and deliberately dlopen driver/tracing libraries that are not
+      # present at build time.
+      binary_relocation: false
+      missing_dso_whitelist:
+        - '*'
+      # The shipped binaries use relative $ORIGIN runpaths to find their own
+      # bundled libraries. That is correct and is what makes them relocatable,
+      # but conda-build treats any runpath as an error unless it is whitelisted.
+      runpath_whitelist:
+        - '*'
+    requirements:
+      build:
+        - {{ stdlib("c") }}  # [linux]
+        # Provides check-glibc, used to verify the shipped ELF objects against the
+        # declared glibc floor.
+        - cf-nvidia-tools 1.*  # [linux]
+        - arm-variant * {{ arm_variant_type | default("sbsa") }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type | default("sbsa") }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/bin/nsys                                                        # [linux]
+        - test -d $PREFIX/nsight-systems-{{ version_short }}/docs                         # [linux]
+        - test -x $PREFIX/nsight-systems-{{ version_short }}/target-linux-x64/nsys         # [linux64]
+        - test -x $PREFIX/nsight-systems-{{ version_short }}/target-linux-sbsa-armv8/nsys  # [aarch64]
+        - if not exist %LIBRARY_PREFIX%\nsight-systems\{{ version_short }}\target-windows-x64\nsys.exe exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%\nsight-systems\{{ version_short }}\documentation exit 1                # [win]
+        - if not exist %SCRIPTS%\nsys.bat exit 1                                                               # [win]
+        # The cross-target Linux collector and the UCRT stubs are dropped.
+        - if exist %LIBRARY_PREFIX%\nsight-systems\{{ version_short }}\target-linux-x64 exit 1  # [win]
+        - if exist %SCRIPTS%\sqlite3.bat exit 1                                                 # [win]
+        - nsys --version  # [build_platform == target_platform]
+    about:
+      home: https://developer.nvidia.com/nsight-systems
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: NVIDIA Nsight Systems command-line system-wide performance analysis tool
+      description: |
+        NVIDIA Nsight Systems is a system-wide performance analysis tool designed
+        to visualize an application's algorithms, identify the largest opportunities
+        to optimize, and tune to scale efficiently across any quantity or size of
+        CPUs and GPUs.
+
+        This package provides the `nsys` command-line profiler and the target-side
+        collector on their own. Install `nsight-systems` instead for the complete
+        product, which adds the `nsys-ui` timeline viewer.
+      doc_url: https://docs.nvidia.com/nsight-systems/
+
+  # -- Full product (GUI + CLI) ------------------------------------------------
+  # Builds only the GUI half; the CLI half arrives via the run dependency below.
+  - name: nsight-systems
+    script: build_gui.{{ script_ext }}
+    build:
+      binary_relocation: false
+      missing_dso_whitelist:
+        - '*'
+      # The shipped binaries use relative $ORIGIN runpaths to find their own
+      # bundled libraries. That is correct and is what makes them relocatable,
+      # but conda-build treats any runpath as an error unless it is whitelisted.
+      runpath_whitelist:
+        - '*'
+    requirements:
+      build:
+        - {{ stdlib("c") }}  # [linux]
+        - cf-nvidia-tools 1.*  # [linux]
+        - arm-variant * {{ arm_variant_type | default("sbsa") }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+        # The viewer is a Qt application. This mirrors the dependency set that
+        # nsight-compute-feedstock uses for ncu-ui, which is the same Qt stack.
+        - expat
+        - fontconfig
+        - freetype
+        - krb5
+        - libglib
+        - libxcb
+        - libzlib
+        - alsa-lib             # [linux]
+        - dbus                 # [linux]
+        - libglvnd-devel       # [linux]
+        - libopengl-devel      # [linux]
+        - libxkbcommon         # [linux]
+        - libxkbfile           # [linux]
+        - nspr                 # [linux]
+        - nss                  # [linux]
+        - wayland              # [linux]
+        - xcb-util-cursor      # [linux]
+        - xcb-util-image       # [linux]
+        - xcb-util-keysyms     # [linux]
+        - xcb-util-renderutil  # [linux]
+        - xcb-util-wm          # [linux]
+        - xorg-libice          # [linux]
+        - xorg-libsm           # [linux]
+        - xorg-libx11          # [linux]
+        - xorg-libxcomposite   # [linux]
+        - xorg-libxdamage      # [linux]
+        - xorg-libxext         # [linux]
+        - xorg-libxfixes       # [linux]
+        - xorg-libxrandr       # [linux]
+        - xorg-libxrender      # [linux]
+        - xorg-libxtst         # [linux]
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        # What makes this the complete product rather than just the viewer: the CLI
+        # half is also what the viewer runs for a local profiling session.
+        - {{ pin_subpackage("nsight-systems-cli", exact=True) }}
+        - {{ pin_compatible("libxkbfile", max_pin="x.x") }}          # [linux]
+        - {{ pin_compatible("xorg-libxcomposite", max_pin="x.x") }}  # [linux]
+        - {{ pin_compatible("xorg-libxdamage", max_pin="x.x") }}     # [linux]
+        - {{ pin_compatible("xorg-libxfixes", max_pin="x.x") }}      # [linux]
+        - {{ pin_compatible("xorg-libxrandr", max_pin="x.x") }}      # [linux]
+        - {{ pin_compatible("xorg-libxtst", max_pin="x.x") }}        # [linux]
+      run_constrained:
+        - arm-variant * {{ arm_variant_type | default("sbsa") }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/bin/nsys-ui                                                        # [linux]
+        - test -x $PREFIX/nsight-systems-{{ version_short }}/host-linux-x64/nsys-ui          # [linux64]
+        - test -x $PREFIX/nsight-systems-{{ version_short }}/host-linux-armv8/nsys-ui        # [aarch64]
+        - if not exist %LIBRARY_PREFIX%\nsight-systems\{{ version_short }}\host-windows-x64\nsys-ui.exe exit 1  # [win]
+        - if not exist %SCRIPTS%\nsys-ui.bat exit 1                                                             # [win]
+        # sqlite3.exe and python.exe ship in both halves; neither is shimmed, so the
+        # two packages cannot clobber each other in Scripts\.
+        - if exist %SCRIPTS%\sqlite3.bat exit 1  # [win]
+        - if exist %SCRIPTS%\python.bat exit 1   # [win]
+        # This is the complete product, so the CLI half must come along with it.
+        - test -L $PREFIX/bin/nsys                # [linux]
+        - if not exist %SCRIPTS%\nsys.bat exit 1  # [win]
+        - nsys --version  # [build_platform == target_platform]
+        # Launching nsys-ui is deliberately not tested, matching the equivalent
+        # ncu-ui test in nsight-compute-feedstock. The viewer needs a display even to
+        # report its version, the CI images are missing X11 libraries it wants, and on
+        # aarch64 the host-side binaries need a newer glibc than the image provides.
+        # Re-enabling would need xorg-x11-server-Xvfb in yum_requirements.txt.
+        # https://github.com/conda-forge/nsight-compute-feedstock/issues/26
+        # https://github.com/conda-forge/conda-forge.github.io/issues/1941
+        # - DISPLAY=localhost:1.0 xvfb-run -a nsys-ui --version  # [linux64]
+    about:
+      home: https://developer.nvidia.com/nsight-systems
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: NVIDIA Nsight Systems system-wide performance analysis tool
+      description: |
+        NVIDIA Nsight Systems is a system-wide performance analysis tool designed
+        to visualize an application's algorithms, identify the largest opportunities
+        to optimize, and tune to scale efficiently across any quantity or size of
+        CPUs and GPUs.
+
+        This is the complete product: it ships the `nsys-ui` graphical timeline
+        viewer and pulls in `nsight-systems-cli`, which provides the `nsys`
+        command-line profiler. Install `nsight-systems-cli` on its own for a
+        headless or container setup that only needs to collect profiles.
+      doc_url: https://docs.nvidia.com/nsight-systems/
+
+about:
+  home: https://developer.nvidia.com/nsight-systems
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVIDIA Nsight Systems system-wide performance analysis tool
+  description: |
+    NVIDIA Nsight Systems is a system-wide performance analysis tool designed to
+    visualize an application's algorithms, identify the largest opportunities to
+    optimize, and tune to scale efficiently across any quantity or size of CPUs
+    and GPUs.
+  doc_url: https://docs.nvidia.com/nsight-systems/
+
+extra:
+  feedstock-name: nsight-systems
+  recipe-maintainers:
+    - conda-forge/cuda
+    - hanzov69
