@@ -18,6 +18,10 @@ pnpm pack --config.ignore-scripts=true
 # Build native Node addons from source where supported.
 export npm_config_build_from_source=true
 export npm_config_node_gyp="${BUILD_PREFIX}/bin/node-gyp"
+# conda-forge's Node 26 currently reports an alpha-suffixed process version.
+# Use the package's release version and bundled headers instead.
+export npm_config_target="$("${PREFIX}/bin/node" -p 'process.versions.node.split("-")[0]')"
+export npm_config_nodedir="${PREFIX}"
 export NODE_PATH="${BUILD_PREFIX}/lib/node_modules:${NODE_PATH:-}"
 export ESBUILD_BINARY_PATH="${BUILD_PREFIX}/bin/esbuild"
 export PYTHON="${BUILD_PREFIX}/bin/python"
