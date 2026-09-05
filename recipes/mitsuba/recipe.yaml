@@ -26,16 +26,18 @@ build:
   number: ${{ build_number }}
   string: ${{ build_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
   skip:
-    # The matching conda-forge Dr.Jit release is currently unavailable on
-    # Windows and non-x86 Linux platforms.
-    - win
-    - linux and not x86_64
+    # Dr.Jit's Python bindings do not support PPC64LE.
+    - ppc64le
     # Dr.Jit's current osx-arm64 packages require macOS 15, while conda-forge
     # recipes target macOS 11 on that platform.
     - osx and arm64
     - match(python, "<3.10")
     - match(python, ">=3.14")
-  script: bash "${RECIPE_DIR}/build.sh"
+  script:
+    - if: win
+      then: call "%RECIPE_DIR%\build.bat"
+    - if: not win
+      then: bash "${RECIPE_DIR}/build.sh"
 
 requirements:
   build:
@@ -45,6 +47,10 @@ requirements:
     - cmake
     - git
     - ninja
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
   host:
     - python
     - pip
@@ -53,9 +59,9 @@ requirements:
     - nanobind ==2.14.0
     # Select the semantic Dr.Jit flavor explicitly. CUDA 12.9 keeps the
     # broadly compatible glibc 2.17 baseline on Linux.
-    - if: linux
+    - if: target_platform == "linux-64"
       then: drjit ==${{ drjit_version }} cuda129_py*
-    - if: osx
+    - if: target_platform != "linux-64"
       then: drjit ==${{ drjit_version }} cpu_py*
     - embree 3.13.*
     - fast_float

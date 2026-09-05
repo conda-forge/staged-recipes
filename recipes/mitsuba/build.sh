@@ -18,12 +18,9 @@ export CPATH="${SRC_DIR}/ext/drjit/include${CPATH:+:${CPATH}}"
 
 variants="scalar_rgb,scalar_spectral,scalar_spectral_polarized,llvm_ad_rgb,llvm_ad_mono,llvm_ad_mono_polarized,llvm_ad_spectral,llvm_ad_spectral_polarized"
 
-# Only request CUDA variants when the resolved Dr.Jit build provides its CUDA
-# Python module. Some conda-forge builds are intentionally CPU-only and omit
-# the OptiX symbols that Mitsuba's CUDA backend links against.
-if [[ "${target_platform:-}" == linux-* ]] &&
-    python -c 'import importlib.util; raise SystemExit(importlib.util.find_spec("drjit.cuda") is None)'
-then
+# Linux x86-64 explicitly selects the CUDA 12.9 Dr.Jit flavor. The other
+# enabled platforms use the CPU flavor and therefore omit CUDA variants.
+if [[ "${target_platform:-}" == "linux-64" ]]; then
     variants+=",cuda_ad_rgb,cuda_ad_mono,cuda_ad_mono_polarized,cuda_ad_spectral,cuda_ad_spectral_polarized"
 fi
 
