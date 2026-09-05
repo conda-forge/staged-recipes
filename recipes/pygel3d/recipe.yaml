@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  name: PyGEL3D
+  version: "0.8.2"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/janba/GEL/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 050c61cf4382f3c1b8dec6d207a83ef28d5c912e4ef5628112a3a8b8ef6f2517
+  patches:
+    # Remove once upstream no longer forces universal2 and its own deployment target.
+    - patches/0001-respect-conda-osx-settings.patch
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: cmake ${CMAKE_ARGS} -S . -B build -G Ninja -DUse_GLGraphics=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+    - if: win
+      then: cmake %CMAKE_ARGS% -S . -B build -G Ninja -DUse_GLGraphics=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+    - if: linux
+      then:
+        - cmake --build build --config Release --parallel 1
+        - export PYGEL_NATIVE_LIB="${SRC_DIR}/build/libPyGEL.so"
+    - if: osx
+      then:
+        - cmake --build build --config Release --parallel ${CPU_COUNT}
+        - export PYGEL_NATIVE_LIB="${SRC_DIR}/build/libPyGEL.dylib"
+    - if: win
+      then:
+        - cmake --build build --config Release --parallel %CPU_COUNT%
+        - set "PYGEL_NATIVE_LIB=%SRC_DIR%\build\PyGEL.dll"
+    - python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.25
+    - ninja
+  host:
+    - python
+    - pip
+    - setuptools >=77
+    - wheel
+  run:
+    - python
+    - numpy
+    - plotly >=5.24.1,<6
+    - scipy
+
+tests:
+  - python:
+      imports:
+        - pygel3d
+        - pygel3d.hmesh
+  - script:
+      - pip check
+      - python run_test.py
+    files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - pip
+        - python
+
+about:
+  homepage: https://github.com/janba/GEL
+  summary: Python bindings for GEL polygonal mesh geometry processing
+  license: MIT
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
