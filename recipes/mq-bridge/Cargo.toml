@@ -1,0 +1,490 @@
+[package]
+name = "mq-bridge"
+version.workspace = true
+edition = "2021"
+authors = ["Marco Mengelkoch"]
+rust-version = "1.85"  # Base crate MSRV (non-optional uuid 1.24 needs 1.85); optional amqp/mongodb/nats need Rust 1.88.
+description = "An asynchronous message bridging library connecting Kafka, MQTT, AMQP, NATS, MongoDB, HTTP, and more."
+repository = "https://github.com/marcomq/mq-bridge"
+license = "MIT"
+readme = "README.md"
+keywords = ["messaging", "kafka", "nats", "amqp", "cqrs"]
+categories = ["asynchronous", "network-programming"]
+# Test-only proto; build.rs skips it when absent so downstream builds skip the codegen.
+# `apps/` is a sibling product, not part of the library: cargo only auto-excludes
+# the app's member crates, so the UI, book and benches would ship in the tarball.
+# `pixi.toml`/`pixi.lock` describe the *development* environment (the
+# conda-forge native libraries the optional features link against). A crates.io
+# consumer resolves those through their own package manager, so the 268 KB lock
+# has no business in the tarball.
+exclude = ["tests/fixtures/grpc_dynamic.proto", "apps/", "pixi.toml", "pixi.lock"]
+
+[lints]
+workspace = true
+
+[workspace]
+members = [
+    "bindings-common",
+    "python/mq-bridge-py",
+    "node/mq-bridge-node",
+    "tests/fixtures/plugin-fixture",
+    "tests/fixtures/plugin-fixture-bad-abi",
+    "tests/fixtures/grpc-config-compat",
+]
+# apps/mq-bridge-app is its own workspace with its own Cargo.lock; see its manifest.
+exclude = ["apps"]
+resolver = "2"
+
+# Lints that are off by default in rustc/clippy and mark code that was never meant to
+# ship. Kept at `warn` so a local `cargo check` surfaces them; CI already runs clippy
+# with `-D warnings`, which promotes them to hard errors there.
+[workspace.lints.rust]
+# Allow-by-default in edition 2021, warn-by-default from edition 2024. Turning it on now keeps
+# each unsafe operation in the plugin FFI layer marked at its own call site.
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+todo = "warn"
+dbg_macro = "warn"
+exit = "warn"
+
+[workspace.package]
+version = "0.4.11"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+bytes = "1"
+fast-uuid-v7 = "0.1.9"
+serde = "1.0"
+serde_json = { version = "1.0", features = ["raw_value"] }
+serde_yaml_ng = "0.10"
+tokio = "1.34"  # `Receiver::recv_many` (HTTP source batch drain) needs 1.34+.
+tracing = "0.1"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.dev.build-override]
+debug = false
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+
+[[bin]]
+name = "mq_bridge_http_profile"
+path = "scripts/analysis/http/mq_bridge_http_profile.rs"
+required-features = ["http"]
+
+[dependencies]
+
+serde = { workspace = true, features = ["derive"] }
+anyhow.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util", "net", "signal"] }
+# Note on MSRV for optional features:
+# The base crate MSRV is 1.85 with default = [] (non-optional uuid 1.24 requires 1.85).
+# - "amqp" (lapin 4.10) requires Rust 1.88+; "http" (hyper-rustls 0.27) requires Rust 1.85+.
+# - "websocket" (tokio-websockets 0.13) requires Rust 1.89+.
+# - "mongodb" (mongodb 3.8) requires Rust 1.88+; "nats" (async-nats 0.50) requires Rust 1.88+.
+# - "plugin" (libloading 0.9) requires Rust 1.88+.
+# - "aws" (aws-sdk-*) may require a newer stable toolchain than the base MSRV.
+# Use `rustup override set stable` or a `rust-toolchain.toml` file when enabling these features.
+async-trait.workspace = true
+serde_json.workspace = true
+thiserror = "2.0"
+futures = "0.3"
+tracing.workspace = true
+bytes = { workspace = true, features = ["serde"] }
+async-channel = { version = "2.5" }
+# Length-delimited framing for the memory endpoint's IPC transports (portable:
+# Unix sockets and Windows named pipes). Already in the tree transitively.
+tokio-util = { version = "0.7", features = ["codec"] }
+once_cell = { version = "1.21" }
+# Dynamic loading for native endpoint plugins (`plugin` feature). Pure Rust,
+# no C toolchain; the ABI itself lives in src/support/plugin_abi.rs.
+# 0.9 needs Rust 1.88+, like the amqp/mongodb/nats features.
+libloading = { version = "0.9", optional = true }
+# SHA-256 for hashing connection-registry identities so secret-bearing fields
+# (URL/TLS passwords) are never retained verbatim in cache keys.
+sha2 = "0.11"
+uuid = { version = "1.24" }
+fast-uuid-v7.workspace = true
+rmp-serde = "1.3"
+
+# Common TLS dependencies.
+# `default-features = false` strips rustls' default `aws_lc_rs` crypto provider;
+# the provider is selected explicitly via the `rustls-ring` / `rustls-aws-lc`
+# features below. This is what lets the `basic`/ring build contain NO aws-lc-sys
+# (BoringSSL C), so it cross-compiles cleanly for aarch64/armv7.
+rustls = { version = "0.23", optional = true, default-features = false, features = ["std", "tls12", "logging"] }
+tokio-rustls = { version = "0.26", optional = true, default-features = false, features = ["tls12", "logging"] }
+rustls-pemfile = { version = "2.2", optional = true }
+webpki-roots = { version = "1", optional = true }
+
+# Metrics
+metrics = { version = "0.24", optional = true }
+
+# Storage for Deduplication
+sled = { version = "0.34", optional = true }
+
+# Gen IDs
+rand = { version = "0.10" }
+
+# Test Utils
+tracing-appender = { version = "0.2", optional = true }
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"], optional = true }
+
+# --- Optional Endpoint Dependencies ---
+
+# Kafka. Neither the linkage nor zlib is chosen here — both come from the
+# `link-static` / `link-dynamic` features below. In particular rdkafka's default
+# `libz` feature is NOT enabled: it makes libz-sys probe for a *system* zlib and
+# emit `-L /usr/lib64`, which on a conda toolchain shadows the sysroot's libc
+# with the host's and breaks the link with undefined `__libc_csu_init`.
+rdkafka = { version = "0.39", default-features = false, features = ["tokio"], optional = true }
+
+# AMQP (RabbitMQ).
+# Drop lapin's defaults so the crypto provider remains wired through
+# `rustls-ring` / `rustls-aws-lc` below.
+lapin = { version = "4.10", default-features = false, features = ["tokio", "rustls"], optional = true }
+
+# MongoDB
+mongodb = { version = "3.8", optional = true, features = ["cert-key-password"] }
+
+# Object store (endpoint and checkpoint backend): local files or cloud REST via reqwest,
+# not aws-sdk. 0.12 is the
+# last release supporting rust-version 1.75 (0.14 needs 1.85).
+object_store = { version = "0.14", optional = true, default-features = false, features = ["aws", "gcp", "azure", "http", "fs"] }
+
+# NATS
+async-nats = { version = "0.50", optional = true }
+
+# MQTT.
+# `use-rustls-no-provider` pulls tokio-rustls without a crypto provider (its
+# default would enable aws_lc_rs); the provider follows `tokio-rustls?/ring`
+# or `tokio-rustls?/aws_lc_rs` from the crypto features below.
+rumqttc = { version = "0.25", default-features = false, features = ["use-rustls-no-provider"], optional = true }
+
+# IBM MQ. default-features off so the version/provider features are chosen per
+# feature below: `ibm-mq` loads the client at runtime via dlopen (no SDK at
+# build), `ibm-mq-static` links the IBM C client at build (needs the SDK).
+mqi = { version = "0.3", optional = true, default-features = false }
+# Direct dep only for the dlopen path, so we can name MqmContainer to load the
+# client at runtime. Features are unified from mqi/dlopen2.
+libmqm-sys = { version = "0.10", optional = true, default-features = false }
+
+# HTTP
+arc-swap = { version = "1", optional = true }
+hyper = { version = "1.11", optional = true, features = ["client", "server", "http1", "http2"] }
+hyper-util = { version = "0.1", optional = true, features = ["tokio", "client", "client-legacy", "server", "http1", "http2"] }
+hyper-rustls = { version = "0.27", optional = true, default-features = false, features = ["http1", "http2", "tls12", "logging", "native-tokio"] }
+http-body-util = { version = "0.1", optional = true }
+http-body = { version = "1.1", optional = true }
+h2 = { version = "0.4", optional = true }
+flate2 = { version = "1.1", optional = true }
+# lz4 frame format (concatenable frames, like gzip members) for the `compression` feature.
+lz4_flex = { version = "0.14", optional = true, default-features = false, features = ["frame"] }
+# zstd (bundled libzstd via zstd-sys); Decoder handles concatenated frames like gzip/lz4.
+zstd = { version = "0.13", optional = true }
+# Non-optional: `CanonicalMessage`'s JSON form encodes binary payloads as base64.
+base64 = { version = "0.23" }
+
+# AEAD ciphers for the `encryption` feature (payload middleware + at-rest file/object).
+chacha20poly1305 = { version = "0.11", optional = true }
+aes-gcm = { version = "0.11", optional = true }
+
+# Expression VM for the `filter` feature. `regex-lite` keeps the regex engine
+# pure Rust; the default features pull a heavier one.
+zen-expression = { version = "2.0", optional = true, default-features = false, features = ["regex-lite"] }
+rust_decimal = { version = "1", optional = true }
+tokio-websockets = { version = "0.13", optional = true, default-features = false, features = ["client", "server", "sha1_smol", "fastrand"] }
+
+# AWS.
+# `default-https-client`, not `rustls`: the SDK's `rustls` feature selects the
+# legacy hyper 0.14 / rustls 0.21 client, compiling a second HTTP+TLS stack
+# alongside the hyper 1.x one the crate already builds.
+aws-config = { version = "1.10", optional = true, default-features = false, features = ["behavior-version-latest", "rt-tokio", "default-https-client"] }
+aws-sdk-sqs = { version = "1.105", optional = true, default-features = false, features = ["rt-tokio", "default-https-client"] }
+aws-sdk-sns = { version = "1.107", optional = true, default-features = false, features = ["rt-tokio", "default-https-client"] }
+
+# SQLx. The SQLite driver is NOT selected here: sqlx's `sqlite-bundled` and
+# `sqlite-unbundled` are mutually exclusive (they hand libsqlite3-sys two
+# conflicting build strategies), so cargo's additive features cannot carry both.
+# `link-static` / `link-dynamic` below pick exactly one, which is why one of
+# them is mandatory whenever `sqlx` is enabled.
+# Note both drop `sqlite-deserialize` / `sqlite-load-extension` /
+# `sqlite-unlock-notify`, which the plain `sqlite` alias enabled and the crate
+# does not use.
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "any"], optional = true }
+
+# ClickHouse — talks the ClickHouse HTTP interface directly (JSONEachRow in/out).
+# reqwest is used rather than the typed `clickhouse` crate because that crate is
+# RowBinary/`Row`-derive only and cannot round-trip arbitrary dynamic JSON payloads.
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "query", "gzip"], optional = true }
+
+# ZeroMQ
+zeromq = { version = "0.6", optional = true }
+
+# Alternative pure-Rust ZeroMQ backend (PoC). Faster than libzmq per its
+# benchmarks and adds CURVE/PLAIN security, but requires MSRV 1.93 / edition
+# 2024 — so it is kept behind its own opt-in feature and out of `full`/`portable`
+# to preserve the crate's 1.85 MSRV on the default build.
+omq-tokio = { version = "0.21", optional = true }
+
+# Redis Streams. Pure-Rust client (no C bindings). TLS via rustls (ring), so
+# `rediss://` URLs work; webpki-roots ships the CA bundle so there's no system
+# cert dependency. redis-rs wires its own ring-backed rustls config.
+redis = { version = "1.4", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-webpki-roots", "streams", "connection-manager"], optional = true }
+
+# gRPC
+tonic = { version = "0.14", optional = true, default-features = false, features = ["codegen", "transport", "tls-webpki-roots"] }
+tonic-prost = { version = "0.14", optional = true }
+tonic-reflection = { version = "0.14", optional = true, default-features = false, features = ["server"] }
+prost = { version = "0.14", optional = true, default-features = false, features = ["std", "derive"] }
+prost-types = { version = "0.14", optional = true }
+prost-reflect = { version = "0.16", optional = true, features = ["serde"] }
+tokio-stream = { version = "0.1", optional = true, features = ["net"] }
+
+url = { version = "2.5", optional = true }
+percent-encoding = { version = "2.3", optional = true }
+
+# Postgres CDC (logical replication / pgoutput). pgwire-replication is a
+# narrowly-scoped wire-protocol client (COPY-both, LSN/standby, TLS/SCRAM) that
+# deliberately avoids tokio-postgres; byteorder backs the pgoutput byte decoder.
+pgwire-replication = { version = "0.4", optional = true, default-features = false, features = ["tls-rustls", "scram", "md5"] }
+byteorder = { version = "1.5", optional = true }
+
+# dir_spool PRODUCER/CONSUMER locks: a pid file whose owner is checked for liveness, so a
+# crashed endpoint's lock is broken rather than wedging the next start. Pulls `nix` (unix)
+# or `windows` (Windows) for that one process-existence check.
+pidlock = "0.2.2"
+
+# Generate JSON schema
+schemars = { version = "1.2", optional = true }
+
+# test-utils
+serde_yaml_ng = { workspace = true, optional = true }
+
+
+[build-dependencies]
+# protoc is NOT vendored: the compiler comes from conda-forge's `libprotobuf`
+# (see pixi.toml, which exports PROTOC). prost-build honours $PROTOC and
+# otherwise finds `protoc` on PATH, so no build-dependency is needed.
+tonic-prost-build = { version = "0.14", optional = true, default-features = false, features = ["transport"] }
+
+[features]
+default = []
+middleware = ["metrics", "dedup", "compression", "encryption", "filter"]
+# Opt-in: parse JSON f64 with full precision so a number round-trips bit-exactly.
+# Off by default because it slows float parsing; without it serde_json shifts ~1 ULP
+# on ~19% of 17-significant-digit doubles (e.g. a Postgres `double precision` value
+# moved through a JSON payload). Enable if bit-exact float round-tripping matters.
+float-roundtrip = ["serde_json/float_roundtrip"]
+# --- The three build variants -------------------------------------------------
+#
+# Only two endpoints link a C library whose provenance is a choice — kafka
+# (librdkafka) and sqlx (SQLite) — plus IBM MQ, whose client is always a shared
+# object and differs only in *when* it is resolved. That gives three variants,
+# each with a pixi task (see pixi.toml):
+#
+#   full                  pixi run build-static          self-contained C libs,
+#                                                        IBM MQ via runtime dlopen
+#   full-static-ibm-mq    pixi run build-static-ibm-mq   as above, but libmqm_r
+#                                                        bound at link time
+#   full-dynamic          pixi run build-dynamic         librdkafka + libsqlite
+#                                                        from the environment
+#
+# `full` is the default and stays self-contained, so `cargo add mq-bridge
+# --features full` needs no system librdkafka/libsqlite (protoc is still
+# required for `grpc`). `full-dynamic` is for conda-forge packaging and for
+# distro builds that must link the system copies.
+#
+# Every endpoint, with the linkage left out. Not meant to be enabled on its
+# own; it exists so the three variant lists below cannot drift apart.
+full-common = ["middleware", "plugin", "mongodb", "kafka", "amqp", "nats", "mqtt", "http", "aws", "zeromq", "zeromq-omq", "redis-streams", "sled", "grpc", "sqlx", "clickhouse", "websocket", "postgres-cdc", "object-store", "rustls-aws-lc"]
+
+# ibm-mq (dlopen) is safe to include: it needs no IBM SDK at build, and at
+# runtime the client is loaded lazily only when an ibm-mq endpoint is opened
+# (clear error if the client isn't installed).
+full = ["full-common", "ibm-mq", "link-static"]
+# Same, but libmqm_r becomes a link-time dependency, so the IBM MQ client must
+# be present at BUILD time and the binary will not start without it installed.
+# See docs/IBM_MQ.md.
+full-static-ibm-mq = ["full-common", "ibm-mq-static", "link-static"]
+# librdkafka and libsqlite come from the environment via pkg-config.
+full-dynamic = ["full-common", "ibm-mq", "link-dynamic"]
+
+# Everything clippy and rustdoc should see, for CI. `--all-features` cannot be
+# used any more: it enables `link-static` and `link-dynamic` together, which
+# src/lib.rs rejects (it would also enable both rustls providers, which the
+# comment on those features already warns against). Linkage features gate no
+# code, so linting the static one covers the dynamic variant too.
+# Keep this in sync when adding a feature that gates code.
+lint-all = ["full", "test-utils", "schema", "plugin-sdk", "perf-diagnostics", "float-roundtrip"]
+
+# --- Native linkage -----------------------------------------------------------
+#
+# Deliberately orthogonal to the endpoint features: the 65 `#[cfg(feature =
+# "kafka")]` / `#[cfg(feature = "sqlx")]` gates in src/ stay untouched, so
+# neither of these changes which code compiles — only how its C library is
+# obtained. Enable EXACTLY ONE whenever `sqlx` is on (src/lib.rs enforces it);
+# `kafka` alone falls back to librdkafka's own bundled build.
+#
+# `cmake-build` drives librdkafka's CMake build rather than its configure
+# script (required on MSVC, works everywhere); .cargo/config.toml sets
+# CMAKE_POLICY_VERSION_MINIMUM for it. `libz-static` gives the bundled build
+# gzip from libz-sys' *vendored* zlib — plain `libz` would probe for a system
+# one and drag `-L /usr/lib64` into the link, which breaks a conda toolchain.
+link-static = ["rdkafka?/cmake-build", "rdkafka?/libz-static", "sqlx?/sqlite-bundled"]
+# Links a shared librdkafka >= 2.12.1 and libsqlite3 >= 3.34.1 found through
+# pkg-config — conda-forge's `librdkafka` and `libsqlite` in the pixi
+# environment. No zlib feature here: the shared librdkafka already has zlib,
+# zstd, lz4, OpenSSL and SASL linked in (see its .pc `Libs.private`). The SQLite
+# bindings are generated by bindgen, so this variant also needs libclang.
+link-dynamic = ["rdkafka?/dynamic-linking", "sqlx?/sqlite-unbundled"]
+
+# Endpoints that need no C toolchain and no code generator at all — a step
+# leaner than `full`, which is self-contained but does compile librdkafka and
+# SQLite from source. NOT a wasm target: still needs a C compiler for aws-lc
+# crypto (amqp + aws pull aws-lc-sys), and tokio net/raw-TCP endpoints don't run
+# on wasm. Excluded, with what each would add to the build:
+#   kafka        cmake + a C compiler for the bundled librdkafka
+#   sqlx         a C compiler for the SQLite amalgamation
+#   grpc         protoc (conda-forge's libprotobuf, or any protoc on PATH)
+#   ibm-mq*      nothing at build on the dlopen path; the IBM C client at
+#                runtime, or at build time for ibm-mq-static
+# postgres-cdc is excluded too: its wire protocol is pure Rust but it pulls in
+# sqlx.
+portable = ["metrics", "dedup", "plugin", "mongodb", "amqp", "nats", "mqtt", "http", "aws", "zeromq", "redis-streams", "clickhouse", "websocket", "object-store", "rustls-aws-lc"]
+
+# Functionality features
+dedup = ["sled"]
+# Batch compression (`compression: gzip|lz4|zstd`) on the file and object_store
+# endpoints. flate2 is already pulled in by the http/clickhouse features.
+compression = ["dep:flate2", "dep:lz4_flex", "dep:zstd"]
+# AEAD payload encryption: the `encryption` middleware and the at-rest
+# `encryption` field on the file/object_store endpoints.
+encryption = ["dep:chacha20poly1305", "dep:aes-gcm"]
+# Expression predicates: the `filter` middleware and the `switch` endpoint's
+# `when` cases. Kept out of `portable` because zen-expression pulls in psm,
+# whose build.rs assembles per-target stack-switching assembly.
+filter = ["zen"]
+zen = ["dep:zen-expression", "dep:rust_decimal"]
+metrics = ["dep:metrics"]
+# Load endpoints from native plugin libraries at runtime (`mq_bridge::plugin`).
+# The endpoint itself lives in its own crate and package; see docs/PLUGINS.md.
+plugin = ["dep:libloading"]
+# Author an endpoint plugin: the export macro, the FFI adapters and the
+# conformance suite (`mq_bridge::plugin::sdk` / `::conformance`). Endpoint
+# crates enable this; hosts only need `plugin`.
+plugin-sdk = ["plugin"]
+test-utils = ["dep:tracing-appender", "dep:tracing-subscriber", "dep:serde_yaml_ng"]
+# Opt-in produce/consume-only isolation benchmarks (throwaway diagnostics, off by default)
+perf-diagnostics = ["test-utils"]
+
+# TLS crypto provider selection — pick exactly one when using any TLS endpoint
+# (http, grpc, mqtt, nats, amqp, …).  If neither is enabled the application binary
+# must call `rustls::crypto::CryptoProvider::install_default()` before building
+# any TLS endpoint.  This follows the same pattern as reqwest / hyper-rustls.
+rustls-ring    = ["rustls/ring",       "tokio-rustls?/ring",       "hyper-rustls?/ring",       "lapin?/rustls--ring",      "lapin?/rustls-native-certs"]
+# `prefer-post-quantum` (X25519MLKEM768) is aws-lc-rs only — `ring` cannot do PQ —
+# so it lives here, not on `rustls-ring`. It was part of rustls' default features
+# that `default-features = false` above strips, so we re-add it explicitly.
+rustls-aws-lc  = ["rustls/aws_lc_rs",  "rustls/prefer-post-quantum", "tokio-rustls?/aws_lc_rs",  "hyper-rustls?/aws-lc-rs",  "lapin?/rustls--aws_lc_rs", "lapin?/rustls-native-certs"]
+
+# Generate Schema file
+schema = ["dep:schemars"]
+
+# Endpoint features. These decide which code compiles; how librdkafka and
+# SQLite are obtained is the separate `link-static` / `link-dynamic` choice.
+kafka = ["rdkafka"]
+amqp = ["lapin", "rustls", "rustls-pemfile", "url"]
+nats = ["async-nats", "rustls", "rustls-pemfile"]
+mongodb = ["dep:mongodb", "url"]
+mqtt = ["rumqttc", "rustls", "tokio-rustls", "rustls-pemfile", "url"]
+http = ["dep:arc-swap", "hyper", "hyper-util", "hyper-rustls", "http-body-util", "dep:http-body", "rustls", "tokio-rustls", "rustls-pemfile", "webpki-roots", "h2", "dep:flate2", "dep:lz4_flex", "dep:zstd"]
+websocket = ["dep:tokio-websockets"]
+aws = ["aws-config", "aws-sdk-sqs", "aws-sdk-sns"]
+# Runtime-loaded IBM MQ client via dlopen: builds with no SDK present; the IBM
+# redistributable client is only needed at runtime, and only if an ibm-mq
+# endpoint is actually used.
+# mqi/mqai is required because mqi's always-compiled (doc-hidden) test module
+# references MqaiLibrary on the dlopen2 path; it adds only pregen bindings, no SDK.
+# Capability level is pinned at mqc_9_3_0_0 (9.2 is EOL); this also unlocks
+# `tls.cert_password` support for password-protected CMS key repositories.
+ibm-mq = ["dep:mqi", "mqi/dlopen2", "mqi/mqai", "mqi/mqc_9_3_0_0", "dep:libmqm-sys", "libmqm-sys/dlopen2"]
+# Static-link IBM MQ client (needs the IBM SDK at build time). Enabling this
+# alongside `ibm-mq` (dlopen) forces static linking — the SDK is then required
+# at build.
+ibm-mq-static = ["dep:mqi", "mqi/link", "mqi/mqc_9_3_0_0"]
+zeromq = ["dep:zeromq"]
+# Alternative ZeroMQ backend (omq.rs), covering PUSH/PULL, PUB/SUB and REQ/REP.
+# In `full` but not `portable`.
+# The default `backend: try_omq` uses it when present and falls back to zmq.
+zeromq-omq = ["dep:omq-tokio"]
+redis-streams = ["dep:redis"]
+# Note: needs `protoc` at build time, from $PROTOC or PATH. `pixi shell`
+# provides it via conda-forge's libprotobuf.
+grpc = ["tonic", "tonic-reflection", "prost", "prost-types", "prost-reflect", "tokio-stream", "tonic-prost", "tonic-prost-build", "rustls"]
+# Needs `link-static` or `link-dynamic` alongside it to supply sqlx's SQLite
+# driver; src/lib.rs fails the build with an explanatory message otherwise.
+sqlx = ["dep:sqlx", "url"]
+clickhouse = ["dep:reqwest", "dep:flate2", "dep:lz4_flex", "dep:zstd", "url"]
+# Cloud object-store checkpoint backend (S3/GCS/Azure/R2). Talks cloud REST via reqwest.
+object-store = ["dep:object_store", "url"]
+# Postgres logical-replication CDC (pgoutput). Reuses the sqlx dependency for the
+# slot-lifecycle control plane; the streaming wire protocol is pgwire-replication.
+# Needs Rust 1.88 (pgwire-replication MSRV), like the amqp feature gate.
+postgres-cdc = ["dep:pgwire-replication", "dep:byteorder", "sqlx", "url", "dep:percent-encoding"]
+
+[dev-dependencies]
+config = { version = "0.15" }
+# `start_paused` — lets a test cross a 30s health window without waiting 30s.
+tokio = { workspace = true, features = ["test-util"] }
+serde_yaml_ng = "0.10"
+tempfile = "3.27"
+chrono = "0.4"
+metrics-util = "0.20"
+# pgoutput decoder unit tests decode hex-encoded wire fixtures.
+hex = "0.4"
+# Round-trip properties for the pure codecs (compression, crypto, zeromq frames, templates).
+proptest = "1"
+criterion = { version = "0.8", features = ["async", "async_tokio"] }
+# Used by the router_bench microbench to model the proposed lock-free route table.
+arc-swap = "1"
+mq-bridge = { path = ".", features = ["test-utils", "rustls-ring"] }
+reqwest = { version = "0.13", default-features = false, features = ["stream"] }
+
+# TLS test helpers
+rcgen = "0.14"
+tokio-rustls = { version = "0.26", features = ["ring"] }
+rustls = { version = "0.23", features = ["ring"] }
+
+[[bench]]
+name = "performance_bench"
+harness = false
+required-features = ["test-utils"]
+
+# Isolates the per-request HTTP route lookup (Mutex<HashMap> vs ArcSwap).
+# No external services or features required.
+[[bench]]
+name = "router_bench"
+harness = false
+
+# A/B throughput: omq.rs (`zeromq-omq`) vs zmq.rs (`zeromq`) PUSH/PULL. Needs
+# both backends enabled; run with `cargo run --release --bench zeromq_backends
+# --no-default-features --features zeromq,zeromq-omq`.
+[[bench]]
+name = "zeromq_backends"
+harness = false
+required-features = ["zeromq", "zeromq-omq"]
+
+[[test]]
+name = "integration_test"
+required-features = ["test-utils"]
+
+# No Windows-specific rdkafka override any more: `cmake-build` existed only to
+# get the bundled librdkafka source to compile under MSVC. With
+# `dynamic-linking` the library is a conda-forge package on Windows too, so the
+# same dependency line serves every platform.

@@ -1,0 +1,395 @@
+context:
+  version: "0.4.11"
+
+  # Both outputs are built from upstream's `full-dynamic` feature set — every
+  # endpoint upstream ships, with librdkafka and libsqlite linked from this
+  # environment instead of compiled from vendored C sources. It is the feature
+  # set behind upstream's own `pixi run build-dynamic` task, which exists for
+  # exactly this purpose: distro and conda-forge packaging, where the shared
+  # libraries have to stay patchable.
+  #
+  # `full-dynamic` reaches each output differently, and that is what the
+  # manifest overrides under `source:` are for:
+  #
+  #   mq-bridge-py    `mq-bridge` is a direct dependency, so the feature is
+  #                   reachable by name; only maturin's feature list needs
+  #                   pointing at it.
+  #   mq-bridge-app   `crates/cli` -> `crates/core` -> `mq-bridge` is two hops,
+  #                   and cargo's `--features dep/feature` syntax only reaches a
+  #                   *direct* dependency. Both app crates therefore need a
+  #                   `full-dynamic` passthrough before any command line can
+  #                   turn the linkage on.
+  feature_set: full-dynamic
+  llvm_major: "20"
+
+recipe:
+  name: mq-bridge
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 31bc56c24c4f084e4a5ae52791af3aeba658d8289038fae8f854b7cd419c0d3c
+
+  # Manifest overrides, applied on top of the tarball. Each is upstream's file
+  # with a narrow change; together they are what makes `full-dynamic` buildable
+  # here. They are carried as whole-file replacements rather than as patches
+  # because they track upstream's own in-progress work on this linkage split.
+  #
+  #   Cargo.toml   splits the linkage out of the endpoint features
+  #                (`link-static` / `link-dynamic`) and drops the vendored
+  #                `protoc-bin-vendored` build-dependency in favour of $PROTOC.
+  #   build.rs     stops overwriting $PROTOC with the vendored binary, and gates
+  #                the /opt/mqm rpath on `ibm-mq-static` rather than on the
+  #                dlopen `ibm-mq` feature, which never consults it.
+  #   src/lib.rs   compile_error! guards for the mutually exclusive linkage
+  #                features, and for `sqlx` with neither of them.
+  - path: Cargo.toml
+  - path: build.rs
+  - path: src/lib.rs
+    target_directory: src
+  # The `full-dynamic` passthroughs that let `crates/cli` reach the engine's linkage feature two levels down.
+  - path: apps/mq-bridge-app/crates/core/Cargo.toml
+    target_directory: apps/mq-bridge-app/crates/core
+  - path: apps/mq-bridge-app/crates/cli/Cargo.toml
+    target_directory: apps/mq-bridge-app/crates/cli
+  # maturin's feature list, pointed at `mq-bridge/full-dynamic`.
+  - path: python/mq-bridge-py/pyproject.toml
+    target_directory: python/mq-bridge-py
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: mq-bridge-app
+
+    build:
+      number: 0
+      script:
+        content:
+          - if: unix
+            then:
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              # Force a *non-static* query for every crate that probes through
+              # the `pkg-config` crate. A static query walks `Requires.private`,
+              # and on win-64 `rdkafka.pc` declares
+              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+              # whose closure reaches curl, ssh2, psl and icu — none of which a
+              # dynamically linked librdkafka needs, and several of which cannot
+              # be linked there at all (see the win branch). The crate decides
+              # this in `infer_static`, which treats `<LIB>_STATIC` and
+              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
+              # the value; deleting both and setting the dynamic override covers
+              # every branch of it. Linux and macOS ship an empty
+              # `Requires.private`, so this only makes the query explicit there.
+              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
+            else:
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
+              # See the unix branch. `set "VAR="` deletes the variable in cmd,
+              # which is what is needed here — an empty value would still count
+              # as present.
+              - set "RDKAFKA_STATIC="
+              - set "SQLITE3_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              # Safety net, inert unless something still asks for the private
+              # closure. Those .pc files spell their libraries the Unix way —
+              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
+              # libraries are named `libcurl.lib`, `libssh2.lib` and
+              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
+              # exists under a different spelling. Alias them and put the
+              # directory on LIB. link.exe only opens what the link line asks
+              # for, so if the query above is genuinely non-static these files
+              # are never touched; if they ever are, the run-deps report will
+              # show the extra DLL imports and say so.
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
+          - if: unix
+            then:
+              - cd apps/mq-bridge-app
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
+              - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
+            else:
+              - cd apps\mq-bridge-app
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
+              - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: nasm
+        - pkg-config
+        - libprotobuf
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
+      host:
+        # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`.
+        - librdkafka >=2.12.1
+        # libsqlite3-sys' min_sqlite_version_3_34_1, on sqlx's unbundled path.
+        - libsqlite >=3.34.1
+        # Windows only, and not because anything links zlib here. The
+        # CMake-built `rdkafka.pc` on win-64 declares
+        #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+        # and pkg-config resolves that whole graph even for a non-static query.
+        # Every other name arrives with librdkafka's own dependencies, but
+        # `zlib.pc` ships in `zlib` while librdkafka depends on `libzlib`, which
+        # carries no .pc file on any platform. The Linux and macOS builds of
+        # librdkafka leave `Requires.private` empty and put the same libraries in
+        # `Libs.private` as plain `-l` flags, so there is nothing to resolve and
+        # nothing to add there.
+        - if: win
+          then: zlib
+
+    tests:
+      - script:
+          - mq-bridge-app --version
+          - mq-bridge-app --help
+          # `mqb` is a launcher that execs the real binary next to it.
+          - mqb --version
+      - package_contents:
+          bin:
+            - mq-bridge-app
+            - mqb
+          strict: true
+
+    about:
+      summary: Zero-code ETL bridge between message brokers, databases and HTTP endpoints
+      description: |
+        mq-bridge-app is a standalone application built on the mq-bridge engine.
+        It moves messages between brokers, databases, files and HTTP endpoints
+        from a declarative YAML or JSON route configuration, with
+        transformation, filtering, retries, dead-letter queues, deduplication
+        and rate limiting available as middleware. It runs as a CLI, an MCP
+        server, or a daemon serving a built-in web UI.
+
+        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
+        MQTT, Pulsar, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC,
+        HTTP, WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
+        stores, directory spools, files and in-memory channels.
+
+        librdkafka and SQLite are linked from their conda-forge packages rather
+        than compiled from vendored C sources, so a security fix to either
+        reaches this package through a rebuild. The IBM MQ endpoint is compiled
+        in but loads IBM's client library at runtime with dlopen: IBM does not
+        redistribute that client, so it has to be installed separately, and only
+        a route that actually opens an IBM MQ endpoint needs it. Point
+        MQ_INSTALLATION_PATH at the installation to enable it.
+      license: MIT
+      license_file:
+        - apps/mq-bridge-app/LICENSE
+        - THIRDPARTY-app.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
+
+  - package:
+      name: mq-bridge-py
+
+    build:
+      number: 0
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        env:
+          MATURIN_PEP517_ARGS: --locked --no-default-features
+        content:
+          - if: unix
+            then:
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              # Force a *non-static* query for every crate that probes through
+              # the `pkg-config` crate. A static query walks `Requires.private`,
+              # and on win-64 `rdkafka.pc` declares
+              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
+              # whose closure reaches curl, ssh2, psl and icu — none of which a
+              # dynamically linked librdkafka needs, and several of which cannot
+              # be linked there at all (see the win branch). The crate decides
+              # this in `infer_static`, which treats `<LIB>_STATIC` and
+              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
+              # the value; deleting both and setting the dynamic override covers
+              # every branch of it. Linux and macOS ship an empty
+              # `Requires.private`, so this only makes the query explicit there.
+              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
+            else:
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
+              # See the unix branch. `set "VAR="` deletes the variable in cmd,
+              # which is what is needed here — an empty value would still count
+              # as present.
+              - set "RDKAFKA_STATIC="
+              - set "SQLITE3_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              # Safety net, inert unless something still asks for the private
+              # closure. Those .pc files spell their libraries the Unix way —
+              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
+              # libraries are named `libcurl.lib`, `libssh2.lib` and
+              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
+              # exists under a different spelling. Alias them and put the
+              # directory on LIB. link.exe only opens what the link line asks
+              # for, so if the query above is genuinely non-static these files
+              # are never touched; if they ever are, the run-deps report will
+              # show the extra DLL imports and say so.
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
+          - cargo fetch
+          - if: unix
+            then: cd python/mq-bridge-py
+            else: cd python\mq-bridge-py
+          - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+          - if: unix
+            then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-py.yml
+            else: cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-py.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: nasm
+        - pkg-config
+        - libprotobuf
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.7,<2
+      host:
+        - python
+        - if: is_abi3
+          then: python-abi3
+        - pip
+        - maturin >=1.7,<2
+        - librdkafka >=2.12.1
+        - libsqlite >=3.34.1
+        # See the app output for why win-64 needs zlib.pc.
+        - if: win
+          then: zlib
+      run:
+        - python
+        - typing_extensions >=4.0
+
+    tests:
+      - python:
+          imports:
+            - mq_bridge
+            - mq_bridge.config
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+          pip_check: true
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/mq_bridge/_mq_bridge.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%\mq_bridge\_mq_bridge.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+    about:
+      summary: Python bindings for mq-bridge, an async message-bridging library
+      description: |
+        Thin Python bindings for the Rust mq-bridge engine. They expose
+        Publisher, Consumer and Route objects that connect message brokers,
+        databases, files, HTTP/WebSocket endpoints and in-memory channels
+        behind one small set of traits, with batch-aware processing and
+        acknowledgement sequencing. Routes can be declared in code or loaded
+        from YAML/JSON, and custom endpoints and middleware can be registered
+        from Python or loaded as native plugins.
+
+        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
+        MQTT, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC, HTTP,
+        WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
+        stores, directory spools, files and in-memory channels.
+
+        librdkafka and SQLite are linked from their conda-forge packages rather
+        than compiled from vendored C sources. The IBM MQ endpoint is compiled
+        in but loads IBM's client library at runtime with dlopen, so that client
+        has to be installed separately, with MQ_INSTALLATION_PATH pointing at
+        it.
+      license: MIT
+      license_file:
+        - python/mq-bridge-py/LICENSE.python
+        - THIRDPARTY-py.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/python/mq-bridge-py
+
+about:
+  homepage: https://github.com/marcomq/mq-bridge
+  repository: https://github.com/marcomq/mq-bridge
+  documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
+  license: MIT
+  license_file: LICENSE
+  summary: Asynchronous message bridging between brokers, databases and HTTP endpoints
+  description: |
+    mq-bridge moves messages between message brokers, databases, files,
+    HTTP/WebSocket endpoints and in-memory channels, giving each transport the
+    same message, consumer and publisher interfaces and composing them into
+    routes that can transform, filter, batch, retry, rate-limit, deduplicate or
+    fan out along the way.
+
+    This recipe produces two packages: `mq-bridge-app`, the zero-code ETL
+    application driven by a YAML or JSON route configuration, and
+    `mq-bridge-py`, the Python bindings for the engine.
+
+extra:
+  recipe-maintainers:
+    - phreed
