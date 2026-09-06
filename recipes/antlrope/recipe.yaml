@@ -1,7 +1,16 @@
 schema_version: 1
 
+
 context:
   name: antlrope
+  # antlrope's python floor. Defined here because it is set by the package
+  # itself (the extension is built as abi3/cp312 via nanobind), which is above
+  # conda-forge's global python_min.
+  python_min: "3.12"
+  # Pinned to the PUBLISHED release this recipe packages (it builds from the PyPI
+  # sdist below) — not read from the repo's src/antlrope/VERSION, which is
+  # the dev version and may be ahead of the latest release. Placeholder until the
+  # first PyPI release; on conda-forge the autotick bot bumps it per release.
   version: "1.0.1"
 
 package:
@@ -9,7 +18,8 @@ package:
   version: ${{ version }}
 
 source:
-  # The PyPI sdist carries the vendored ANTLR4 C++ runtime.
+  # Prefer the PyPI sdist (carries the vendored runtime). Replace sha256 on each
+  # release.
   url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/antlrope-${{ version }}.tar.gz
   sha256: "678b235a7ed094074fa0c28133ee99d0570c44954307a474c5ed8d5fc377ecaa"
 
@@ -55,8 +65,8 @@ requirements:
   host:
     # Build against the 3.12 floor; python-abi3 sets up the Stable-ABI build and
     # carries the run_exports that pin the runtime to `python >=3.12` + python-abi3.
-    - python 3.12.*
-    - python-abi3 3.12.*
+    - python ${{ python_min }}.*
+    - python-abi3 ${{ python_min }}.*
     - pip
     - scikit-build-core >=0.10
     - nanobind >=2.0
@@ -76,7 +86,7 @@ tests:
       pip_check: true
       # Test at the 3.12 abi3 floor and at the latest python, per the
       # python-abi3-feedstock example recipe.
-      python_version: ["3.12.*", "*"]
+      python_version: ["${{ python_min }}.*", "*"]
   - script:
       - python -c "import antlrope as a; assert a.__version__"
       - antlrope --help
@@ -87,8 +97,8 @@ tests:
         - abi3audit
     script:
       - if: unix
-        then: abi3audit $SP_DIR/antlrope/_native.abi3.so -s -v --assume-minimum-abi3 3.12
-        else: abi3audit %SP_DIR%/antlrope/_native.pyd -s -v --assume-minimum-abi3 3.12
+        then: abi3audit $SP_DIR/antlrope/_native.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        else: abi3audit %SP_DIR%/antlrope/_native.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   homepage: https://github.com/zuzukin/antlrope
