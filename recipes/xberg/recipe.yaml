@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+schema_version: 1
+
+context:
+  name: xberg
+  version: "1.1.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 90cd912b2507dc6a543bbc2ffe9bef0ae0e10628cc0fd9d6883e76dc704f3377
+
+build:
+  number: 0
+  skip:
+    # No onnxruntime-cpp is published for osx-64 at any version from 1.24 onward, and the
+    # extension links ONNX Runtime unconditionally on this target.
+    - osx and x86_64
+    # Upstream builds Windows against a reduced feature set with no OCR, so a win-64
+    # package would not match the others. Left for a follow-up rather than shipped asymmetric.
+    - win
+    # abi3 extensions do not load on a free-threaded interpreter.
+    - python.endswith("t")
+  script:
+    env:
+      # The published sdist pins `xberg` from crates.io with `ocr` enabled, whose default
+      # linking mode downloads and builds Tesseract and Leptonica from source. This selects
+      # the crate's `system-linking` path instead, so the build links the Tesseract and
+      # Leptonica in this environment. The feature is additive, so the sdist needs no patch.
+      MATURIN_BUILD_ARGS: --features xberg/tesseract-dynamic
+      # Link this environment's ONNX Runtime rather than letting `ort` fetch a prebuilt.
+      ORT_STRATEGY: system
+      ORT_SKIP_DOWNLOAD: "1"
+      ORT_PREFER_DYNAMIC_LINK: "1"
+      # The extension is built abi3-py310, so it compiles against a newer interpreter than
+      # its abi3 target across most of the matrix.
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - export ORT_LIB_LOCATION="$PREFIX/lib"
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - maturin >=1,<2
+    - cargo-bundle-licenses
+    # xberg-tesseract's `dynamic-linking` probes for tesseract.pc.
+    - pkg-config
+  host:
+    - python
+    - pip
+    - maturin >=1,<2
+    - tesseract
+    - leptonica
+    - libheif
+    - onnxruntime-cpp
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - xberg
+      pip_check: true
+  - script:
+      - python -c "import xberg; print(xberg.__version__)"
+
+about:
+  homepage: https://xberg.io
+  repository: https://github.com/xberg-io/xberg
+  documentation: https://docs.xberg.io
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: High-performance document intelligence library
+  description: |
+    Document intelligence with a Rust core. Extracts text, metadata, images and
+    structured data from a wide range of document formats, with built-in OCR.
+
+extra:
+  recipe-maintainers:
+    - MannXo
