@@ -53,27 +53,13 @@ build:
               builtin_libvorbis=no builtin_libwebp=no builtin_msdfgen=no \
               builtin_pcre2=no builtin_sdl=no builtin_zlib=no builtin_zstd=no
 
-          python - <<'PY'
-      from pathlib import Path
-      import os
-      import shutil
-
-      prefix = Path(os.environ["PREFIX"])
-      library_bin = Path(os.environ["LIBRARY_BIN"])
-      library_bin.mkdir(parents=True, exist_ok=True)
-      shutil.copy2("bin/godot.windows.editor.x86_64.exe", library_bin / "godot.exe")
-
-      menu_dir = prefix / "Menu"
-      menu_dir.mkdir(parents=True, exist_ok=True)
-      shutil.copy2(
-          Path(os.environ["RECIPE_DIR"]) / "godot_menu.json",
-          menu_dir / "godot_menu.json",
-      )
-
-      icon_dir = prefix / "Library" / "share" / "godot"
-      icon_dir.mkdir(parents=True, exist_ok=True)
-      shutil.copy2("platform/windows/godot.ico", icon_dir / "godot.ico")
-      PY
+          mkdir -p \
+              "${LIBRARY_BIN}" \
+              "${PREFIX}/Menu" \
+              "${PREFIX}/Library/share/godot"
+          cp bin/godot.windows.editor.x86_64.exe "${LIBRARY_BIN}/godot.exe"
+          cp "${RECIPE_DIR}/godot_menu.json" "${PREFIX}/Menu/godot_menu.json"
+          cp platform/windows/godot.ico "${PREFIX}/Library/share/godot/godot.ico"
       else
           # SCons does not inherit conda's compiler settings automatically.
           # Keep LTO off to limit linker memory use.
@@ -100,40 +86,23 @@ build:
       fi
 
       # Preserve individual notices in addition to upstream's copyright inventory.
-      python - <<'PY'
-      from pathlib import Path
-      import shutil
+      mkdir -p thirdparty-licenses
+      pushd thirdparty
+      find . -type f \
+          \( -iname 'license*' -o -iname 'licence*' -o -iname 'copying*' \
+          -o -iname 'copyright*' -o -iname 'notice*' -o -iname 'authors' \
+          -o -iname 'authors.txt' -o -iname 'readme.ijg' -o -iname 'ftl.txt' \) \
+          -exec cp --parents {} ../thirdparty-licenses/ \;
+      popd
 
-      source = Path("thirdparty")
-      destination = Path("thirdparty-licenses")
-      for path in source.rglob("*"):
-          if not path.is_file():
-              continue
-          name = path.name.lower()
-          if (
-              name.startswith(("license", "licence", "copying", "copyright", "notice"))
-              or name in {"authors", "authors.txt", "readme.ijg", "ftl.txt"}
-          ):
-              target = destination / path.relative_to(source)
-              target.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(path, target)
-      nir_source = Path("godot-nir-static")
-      if nir_source.is_dir():
-          destination.mkdir(parents=True, exist_ok=True)
-          shutil.copy2(
-              nir_source / "LICENSE.md",
-              destination / "godot-nir-static-LICENSE.md",
-          )
-          shutil.copy2(
-              nir_source / "mesa" / "docs" / "license.rst",
-              destination / "mesa-license.rst",
-          )
-          shutil.copytree(
-              nir_source / "mesa" / "licenses",
-              destination / "mesa",
-              dirs_exist_ok=True,
-          )
-      PY
+      if [[ -d godot-nir-static ]]; then
+          cp godot-nir-static/LICENSE.md \
+              thirdparty-licenses/godot-nir-static-LICENSE.md
+          cp godot-nir-static/mesa/docs/license.rst \
+              thirdparty-licenses/mesa-license.rst
+          mkdir -p thirdparty-licenses/mesa
+          cp -R godot-nir-static/mesa/licenses/. thirdparty-licenses/mesa/
+      fi
 
 requirements:
   build:
