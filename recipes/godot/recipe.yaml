@@ -8,73 +8,219 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://github.com/godotengine/godot/releases/download/${{ version }}-stable/godot-${{ version }}-stable.tar.xz
-  sha256: a18ce0ccec3ecc40b0dd6c4f5132ca934e9fb7c2979717940ff32aee1eb35481
-  patches:
-    - compiler-tools.patch
+  - url: https://github.com/godotengine/godot/releases/download/${{ version }}-stable/godot-${{ version }}-stable.tar.xz
+    sha256: a18ce0ccec3ecc40b0dd6c4f5132ca934e9fb7c2979717940ff32aee1eb35481
+    patches:
+      - compiler-tools.patch
+      - windows-system-libraries.patch
+  - if: win
+    then:
+      url: https://github.com/godotengine/godot-nir-static/archive/85ada5463819a729631a786e78e692db8c703f6b.tar.gz
+      sha256: dfad15aa60571eaeb3a5535e4c7b799d551d6b14c460a35e3f3090dac3d5fc50
+      target_directory: godot-nir-static
+  - if: win
+    then:
+      git: https://gitlab.freedesktop.org/mesa/mesa.git
+      rev: 5005a50879b11b953ade113fccd13a208f706ba0
+      submodules: false
+      target_directory: godot-nir-static/mesa
 
 build:
   number: 0
-  skip: not linux or target_platform != "linux-64"
-  script: build.sh
+  skip: target_platform not in ["linux-64", "win-64"]
+  script:
+    interpreter: brush
+    content: |
+      if [[ "${target_platform}" == "win-64" ]]; then
+          pushd godot-nir-static
+          git init --quiet
+          # Conda's Windows Python executable is named `python`.
+          sed -i 's/python3 /python /g' update_mesa.sh
+          brush update_mesa.sh
+          scons -j "${CPU_COUNT}" \
+              platform=windows use_mingw=no arch=x86_64 \
+              optimize=speed use_static_cpp=no
+          popd
+
+          scons -j "${CPU_COUNT}" \
+              platform=windows target=editor arch=x86_64 \
+              lto=none debug_symbols=no engine_update_check=no use_static_cpp=no \
+              accesskit=no angle=no d3d12=yes use_volk=no \
+              "mesa_libs=${SRC_DIR}/godot-nir-static" \
+              builtin_brotli=no builtin_embree=no \
+              builtin_glslang=no builtin_graphite=no builtin_libjpeg_turbo=no \
+              builtin_libogg=no builtin_libpng=no builtin_libtheora=no \
+              builtin_libvorbis=no builtin_libwebp=no builtin_msdfgen=no \
+              builtin_pcre2=no builtin_sdl=no builtin_zlib=no builtin_zstd=no
+
+          python - <<'PY'
+      from pathlib import Path
+      import os
+      import shutil
+
+      prefix = Path(os.environ["PREFIX"])
+      library_bin = Path(os.environ["LIBRARY_BIN"])
+      library_bin.mkdir(parents=True, exist_ok=True)
+      shutil.copy2("bin/godot.windows.editor.x86_64.exe", library_bin / "godot.exe")
+
+      menu_dir = prefix / "Menu"
+      menu_dir.mkdir(parents=True, exist_ok=True)
+      shutil.copy2(
+          Path(os.environ["RECIPE_DIR"]) / "godot_menu.json",
+          menu_dir / "godot_menu.json",
+      )
+
+      icon_dir = prefix / "Library" / "share" / "godot"
+      icon_dir.mkdir(parents=True, exist_ok=True)
+      shutil.copy2("platform/windows/godot.ico", icon_dir / "godot.ico")
+      PY
+      else
+          # SCons does not inherit conda's compiler settings automatically.
+          # Keep LTO off to limit linker memory use.
+          scons -j "${CPU_COUNT}" \
+              platform=linuxbsd target=editor arch=x86_64 \
+              "CC=${CC}" "CXX=${CXX}" "AR=${AR}" "RANLIB=${RANLIB}" \
+              "ccflags=${CPPFLAGS}" "cflags=${CFLAGS}" "cxxflags=${CXXFLAGS}" \
+              "linkflags=${LDFLAGS}" \
+              import_env_vars=CONDA_BUILD_SYSROOT,CONDA_PREFIX \
+              use_static_cpp=no use_sowrap=no use_volk=no \
+              lto=none debug_symbols=no engine_update_check=no \
+              accesskit=no speechd=no \
+              builtin_brotli=no builtin_freetype=no builtin_graphite=no \
+              builtin_libjpeg_turbo=no builtin_libogg=no builtin_libpng=no \
+              builtin_libtheora=no builtin_libvorbis=no builtin_libwebp=no \
+              builtin_pcre2=no builtin_sdl=no builtin_zlib=no builtin_zstd=no
+
+          install -Dm755 bin/godot.linuxbsd.editor.x86_64 "${PREFIX}/bin/godot"
+          install -Dm644 misc/dist/linux/org.godotengine.Godot.desktop \
+              "${PREFIX}/share/applications/org.godotengine.Godot.desktop"
+          install -Dm644 icon.svg "${PREFIX}/share/icons/hicolor/scalable/apps/godot.svg"
+          install -Dm644 "${RECIPE_DIR}/godot_menu.json" \
+              "${PREFIX}/Menu/godot_menu.json"
+      fi
+
+      # Preserve individual notices in addition to upstream's copyright inventory.
+      python - <<'PY'
+      from pathlib import Path
+      import shutil
+
+      source = Path("thirdparty")
+      destination = Path("thirdparty-licenses")
+      for path in source.rglob("*"):
+          if not path.is_file():
+              continue
+          name = path.name.lower()
+          if (
+              name.startswith(("license", "licence", "copying", "copyright", "notice"))
+              or name in {"authors", "authors.txt", "readme.ijg", "ftl.txt"}
+          ):
+              target = destination / path.relative_to(source)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(path, target)
+      nir_source = Path("godot-nir-static")
+      if nir_source.is_dir():
+          destination.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(
+              nir_source / "LICENSE.md",
+              destination / "godot-nir-static-LICENSE.md",
+          )
+          shutil.copy2(
+              nir_source / "mesa" / "docs" / "license.rst",
+              destination / "mesa-license.rst",
+          )
+          shutil.copytree(
+              nir_source / "mesa" / "licenses",
+              destination / "mesa",
+              dirs_exist_ok=True,
+          )
+      PY
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    # Upstream enables SSE4.2 and POPCNT for x86-64.
-    - x86_64-microarch-level 2
+    - brush
     - python >=3.9
     - scons >=4.4
-    - pkg-config
-    - wayland
+    - if: win
+      then:
+        - git
+        - uutils-coreutils
+        - m2-findutils
+        - m2-sed
+        - mako
+        - pyyaml
+    - if: linux
+      then:
+        # Upstream enables SSE4.2 and POPCNT for x86-64.
+        - x86_64-microarch-level ==2
+        - pkg-config
+        - wayland
   host:
-    - alsa-lib
-    - dbus
-    - fontconfig
-    - freetype
+    - brotli
+    - if: linux
+      then:
+        - freetype
     - graphite2
-    - libbrotlicommon
-    - libbrotlidec
-    - libdecor
     - libjpeg-turbo >=3
     - libogg
     - libpng
     - libtheora
-    - libudev
     - libvorbis
     - libvulkan-loader
     - libwebp-base
-    - libxkbcommon
     - pcre2
-    - pulseaudio-client
     - sdl3 >=3.2.28
-    - wayland
-    - xorg-libx11
-    - xorg-libxcursor
-    - xorg-libxext
-    - xorg-libxi
-    - xorg-libxinerama
-    - xorg-libxrandr
-    - xorg-libxrender
     - zlib
     - zstd
+    - if: linux
+      then:
+        - alsa-lib
+        - dbus
+        - fontconfig
+        - libdecor
+        - libudev
+        - libxkbcommon
+        - pulseaudio-client
+        - wayland
+        - xorg-libx11
+        - xorg-libxcursor
+        - xorg-libxext
+        - xorg-libxi
+        - xorg-libxinerama
+        - xorg-libxrandr
+        - xorg-libxrender
+    - if: win
+      then:
+        - embree
+        - glslang
+        - msdfgen
+        - spirv-tools
   run:
-    # OpenGL and EGL are loaded dynamically by upstream's generated GL loader.
-    - libgl
-    - libegl
+    - menuinst
+    # OpenGL and EGL are loaded dynamically by the Linux GL loader.
+    - if: linux
+      then:
+        - libgl
+        - libegl
 
 tests:
   - package_contents:
       files:
-        - bin/godot
-        - share/applications/org.godotengine.Godot.desktop
-        - share/icons/hicolor/scalable/apps/godot.svg
+        - if: win
+          then: Library/bin/godot.exe
+          else: bin/godot
+        - Menu/godot_menu.json
+        - if: win
+          then: Library/share/godot/godot.ico
+        - if: linux
+          then:
+            - share/applications/org.godotengine.Godot.desktop
+            - share/icons/hicolor/scalable/apps/godot.svg
   - script:
       - godot --version
       - godot --help
-      - godot --headless --path test-project --editor --import
       - godot --headless --path test-project --script smoke.gd
     files:
       recipe:

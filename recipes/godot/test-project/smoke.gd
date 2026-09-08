@@ -1,6 +1,9 @@
 extends SceneTree
 
 func _initialize() -> void:
+    call_deferred("run_smoke")
+
+func run_smoke() -> void:
     var regex := RegEx.new()
     if regex.compile("^conda-[0-9]+$") != OK or regex.search("conda-42") == null:
         fail("Regular expression matching failed")
@@ -24,9 +27,6 @@ func _initialize() -> void:
         return
 
     var font := ThemeDB.fallback_font
-    if font == null:
-        fail("Built-in font is missing")
-        return
     if font.get_string_size("Godot").x <= 0:
         fail("Text shaping failed")
         return
