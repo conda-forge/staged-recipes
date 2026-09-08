@@ -1,0 +1,175 @@
+context:
+  version: "0.5.14"
+  build_number: 0
+  use_cuda: ${{ cuda_compiler_version != "None" }}
+  cuda_build_string: ${{ "cuda" ~ (cuda_compiler_version | version_to_buildstring) if use_cuda else "cpu" }}
+  # CUDA pyproject.toml pins torch==2.11.0; CPU pyproject_cpu.toml pins torch==2.12.0
+  pytorch_version: ${{ "2.11.0" if use_cuda else "2.12.0" }}
+
+package:
+  name: sglang
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/sgl-project/sglang/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: fade076e2d630bf88aa7851c497c60a164888010cc8e14fd3e535e5872549a86
+
+build:
+  number: ${{ build_number }}
+  string: ${{ cuda_build_string }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      - cuda
+    down_prioritize_variant: ${{ 0 if use_cuda else 1 }}
+  skip:
+    - win or osx
+   # Dependency conflicts as the old pyarrow versions are not build against a newer grpcio
+    - match(python, "<3.11")
+  script:
+    - cd python
+    - if: not use_cuda
+      then:
+        - cp pyproject_cpu.toml pyproject.toml
+    - if: not use_cuda
+      then:
+        - sed -i 's/name = "sglang-cpu"/name = "sglang"/' pyproject.toml
+    - export SETUPTOOLS_SCM_PRETEND_VERSION="${{ version }}"
+    - ${{ PYTHON }} -m pip install . -vv --no-build-isolation --no-deps
+  python:
+    entry_points:
+      - sglang = sglang.cli.main:main
+      - killall_sglang = sglang.cli.killall:main
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - if: use_cuda
+      then:
+        - ${{ compiler('cuda') }}
+    - ${{ compiler('rust') }} >=1.90
+    - sed
+  host:
+    - python
+    - pip
+    - setuptools >=61.0
+    - setuptools-rust >=1.10
+    - setuptools-scm >=8.0
+    - wheel
+    - pytorch ==${{ pytorch_version }}
+    - if: use_cuda
+      then:
+        - pytorch * [build=cuda*]
+        - cuda-version ==${{ cuda_compiler_version }}
+        - cuda-cudart-dev
+  run:
+    - python
+    - aiohttp
+    - anthropic >=0.20.0
+    - blobfile ==3.0.0
+    - compressed-tensors
+    - datasets
+    - easydict
+    - einops
+    - fastapi
+    - gguf
+    - interegular
+    - ipython
+    - llguidance >=0.7.11,<0.8.0
+    - mistral-common >=1.11.5
+    - msgspec
+    - ninja
+    - numpy
+    - openai ==2.6.1
+    - openai-harmony ==0.0.4
+    - orjson
+    - packaging
+    - partial-json-parser
+    - pillow
+    - prometheus_client >=0.20.0
+    - psutil
+    - py-spy
+    - pybase64
+    - pydantic
+    - python-multipart
+    - pyzmq >=25.1.2
+    - requests
+    - scipy
+    - sentencepiece
+    - setproctitle
+    - smg-grpc-servicer >=0.5.0
+    - pysoundfile ==0.13.1
+    - tiktoken
+    - timm ==1.0.16
+    - torchao ==0.17.0
+    - torchaudio ==2.11.0
+    - tqdm
+    - transformers ==5.8.1
+    - uvicorn
+    - uvloop
+    - xgrammar ==0.2.1
+    # CPU-only
+    - if: not use_cuda
+      then:
+        - outlines
+        - tabulate
+        - pytorch ==${{ pytorch_version }}
+        - torchvision ==0.27.0
+        - triton ==3.7.0
+    # CUDA-only
+    - if: use_cuda
+      then:
+        - __cuda
+        - apache-tvm-ffi ==0.1.9
+        - cuda-python >=13.0
+        - distro
+        - flash-attn-4 ==4.0.0b15
+        - flashinfer-cubin ==0.6.12
+        - flashinfer-python ==0.6.12
+        - kernels >=0.14.1,<0.15
+        - modelscope
+        - nvidia-cutlass-dsl ==4.5.2
+        - nvidia-mathdx ==25.6.0
+        - nvidia-ml-py
+        - outlines ==0.1.11
+        - quack-kernels >=0.4.1
+        - sgl-deep-gemm ==0.1.3
+        - sglang-kernel ==0.4.4
+        - tilelang ==0.1.8
+        - tokenspeed_mla ==0.1.7
+        - pytorch ==${{ pytorch_version }}
+        - torch_memory_saver >=0.0.9.post1
+        - torchvision
+        - watchfiles
+    - if: use_cuda and not (linux and aarch64)
+      then: torchcodec ==0.11.1
+  ignore_run_exports:
+    from_package:
+      - cuda-cudart-dev
+
+tests:
+  - python:
+      imports:
+        - sglang
+        - sglang.cli
+      pip_check: false
+  - script:
+      - sglang --help
+
+about:
+  homepage: https://github.com/sgl-project/sglang
+  summary: A fast serving framework for large language models and vision language models
+  description: |
+    SGLang is a high-performance serving framework for large language models
+    and multimodal models. It is designed to deliver low-latency and
+    high-throughput inference across a wide range of setups, from a single
+    GPU to large distributed clusters.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/sgl-project/sglang
+  documentation: https://docs.sglang.io/
+
+extra:
+  recipe-maintainers:
+    - xhochy
