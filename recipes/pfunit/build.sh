@@ -15,8 +15,10 @@ fi
 #    Fortran compiler to mpif90;
 #  - OpenMP/hamcrest/ESMF and pFUnit's own tests skipped;
 #  - MAX_ASSERT_RANK=5, the upstream/Spack default.
-# find_package(GFTL/GFTL_SHARED/FARGPARSE) and find_package(Python) resolve from
-# the host dependencies via CMAKE_PREFIX_PATH=$PREFIX.
+# find_package(GFTL/GFTL_SHARED/FARGPARSE) resolve from the host dependencies via
+# CMAKE_PREFIX_PATH=$PREFIX; find_package(Python) resolves the build environment's
+# interpreter, which is all that is needed -- the installed .pf preprocessor is a
+# plain script and PFUNITConfig.cmake re-resolves Python in the consumer.
 #
 # CMAKE_ARGS is a flag STRING from the compiler activation and must word-split.
 # shellcheck disable=SC2086

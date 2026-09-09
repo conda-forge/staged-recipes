@@ -4,7 +4,8 @@
 #
 # Built with MPI support, so it carries the mpi_${mpi}_* build string and depends
 # on the same MPI as the rest of the stack. Its `.pf` test preprocessor is a
-# Python tool consumers run at build time, hence python is also a run dependency.
+# Python tool consumers run at build time, hence python is a run dependency (but
+# not a host one -- no part of pFUnit links against the Python ABI).
 # Versioned subdir install (PFUNIT-<x.y>/), like the rest of the group.
 schema_version: 1
 
@@ -33,6 +34,13 @@ build:
   # a different API this recipe does not support).
   skip:
     - win
+  # Nothing here is built against the Python ABI (see the requirements below), but
+  # `python` is a global variant key, so the interpreter in `build` would still
+  # fan this recipe out into one build per supported Python minor. Ignore the key
+  # to keep it at one build per MPI flavour.
+  variant:
+    ignore_keys:
+      - python
 
 requirements:
   build:
@@ -42,13 +50,16 @@ requirements:
     - cmake
     - ninja
     - m4
+    # CMake's find_package(Python) picks up the build environment's interpreter;
+    # python is deliberately NOT in `host`, because the installed preprocessor is
+    # a plain script -- nothing links against the Python ABI, and putting it in
+    # host would only add a python_abi pin and a build per Python minor.
     - python
   host:
     - ${{ mpi }}
     - gftl
     - gftl-shared
     - fargparse
-    - python
   run:
     - ${{ mpi }}
     # pFUnit's .pf-file preprocessor (funitproc / pFUnitParser) is a Python script
