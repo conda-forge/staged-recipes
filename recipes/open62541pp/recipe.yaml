@@ -1,0 +1,60 @@
+schema_version: 1
+
+context:
+  name: open62541pp
+  version: "0.21.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/open62541pp/open62541pp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f841fd85f61976d624099ac82e7c12c07a1d0316b96d81be18ecf53433a1e041
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ninja
+    - cmake
+  host:
+    # open62541pp v0.21.3 is only tested/compatible up to open62541 v1.4.x
+    # (see .github/workflows/open62541-compatibility.yml upstream); 1.5
+    # changed async callback signatures and removed UA_Server_triggerEvent.
+    - open62541 >=1.4,<1.5
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x.x') }}
+
+tests:
+  - requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('cxx') }}
+    script:
+      - if: not win
+        then:
+          - test -f ${PREFIX}/include/open62541pp/server.hpp
+          - test -f ${PREFIX}/lib/libopen62541pp${SHLIB_EXT}
+          - test -f ${PREFIX}/lib/cmake/open62541pp/open62541ppConfig.cmake
+        else:
+          - if not exist %PREFIX%\\Library\\include\\open62541pp\\server.hpp exit 1
+          - if not exist %PREFIX%\\Library\\bin\\open62541pp.dll exit 1
+          - if not exist %PREFIX%\\Library\\lib\\open62541pp.lib exit 1
+          - if not exist %PREFIX%\\Library\\lib\\cmake\\open62541pp\\open62541ppConfig.cmake exit 1
+      - cmake-package-check open62541pp
+
+about:
+  license: MPL-2.0
+  license_file: LICENSE
+  summary: C++17 wrapper of open62541, an open source implementation of OPC UA (IEC 62541).
+  homepage: https://github.com/open62541pp/open62541pp
+  repository: https://github.com/open62541pp/open62541pp
+  documentation: https://open62541pp.github.io/open62541pp/
+
+extra:
+  recipe-maintainers:
+    - TomNysWF
