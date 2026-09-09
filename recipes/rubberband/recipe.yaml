@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "4.0.0"
+
+package:
+  name: rubberband
+  version: ${{ version }}
+
+source:
+  url: https://breakfastquay.com/files/releases/rubberband-${{ version }}.tar.bz2
+  sha256: af050313ee63bc18b35b2e064e5dce05b276aaf6d1aa2b8a82ced1fe2f8028e9
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - meson setup builddir ${MESON_ARGS} -Ddefault_library=both "-Dcpp_args=-include stddef.h"
+        - meson compile -C builddir
+        - meson install -C builddir
+      else:
+        - meson setup builddir %MESON_ARGS% -Ddefault_library=both
+        - meson compile -C builddir
+        - meson install -C builddir
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - libsndfile
+  run_exports:
+    - ${{ pin_subpackage("rubberband", upper_bound="x") }}
+
+tests:
+  - script:
+      - if: win
+        then: rubberband-program --version
+        else: rubberband --version
+  - package_contents:
+      include:
+        - rubberband/RubberBandStretcher.h
+      lib:
+        - if: unix
+          then: rubberband
+        - if: win
+          then:
+            - rubberband.lib
+            - rubberband-*.dll
+
+about:
+  homepage: https://breakfastquay.com/rubberband/
+  summary: Audio time-stretching and pitch-shifting library and CLI tool
+  repository: https://hg.sr.ht/~breakfastquay/rubberband
+  license: GPL-2.0-or-later
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - Yash990-bit
