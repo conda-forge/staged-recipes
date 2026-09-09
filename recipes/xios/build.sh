@@ -56,23 +56,34 @@ esac
 # is deliberately NOT carried over: conda-forge builds libstdc++ and boost with
 # the new C++11 string/list ABI, so forcing the old one here would produce
 # undefined references against the very libraries we link.
+#
+# FCM never consults CXXFLAGS/CPPFLAGS/FFLAGS/LDFLAGS -- everything it passes to
+# the compilers comes from this file -- so the flags the compiler activation
+# exports have to be written into it, or the build silently loses the sysroot,
+# hardening, PIC and cross-compilation settings conda-forge relies on. They go
+# first so that the flags below (notably -std=c++14 and the %PROD_* -O3) still
+# have the last word.
+#
+# All sources FCM compiles here are C++ (extern/src_netcdf4 is not built under
+# --netcdf_lib netcdf4_par), and %CCOMPILER is mpic++, so CXXFLAGS -- not
+# CFLAGS -- is the right variable for %BASE_CFLAGS.
 cat > "arch/arch-${ARCH}.fcm" <<EOF
 %CCOMPILER      mpic++
 %FCOMPILER      mpif90
 %LINKER         mpif90
 
-%BASE_CFLAGS    -std=c++14 -w -I${PREFIX}/include
+%BASE_CFLAGS    ${CXXFLAGS:-} ${CPPFLAGS:-} -std=c++14 -w -I${PREFIX}/include
 %PROD_CFLAGS    -O3 -DBOOST_DISABLE_ASSERTS
 %DEV_CFLAGS     -g -O2
 %DEBUG_CFLAGS   -g
 
-%BASE_FFLAGS    -D__NONE__ -ffree-line-length-none
+%BASE_FFLAGS    ${FFLAGS:-} -D__NONE__ -ffree-line-length-none
 %PROD_FFLAGS    -O3
 %DEV_FFLAGS     -g -O2
 %DEBUG_FFLAGS   -g
 
 %BASE_INC       -D__NONE__
-%BASE_LD        -L${PREFIX}/lib -lblitz ${CXX_RT_LIB} ${LD_EXTRA}
+%BASE_LD        ${LDFLAGS:-} -L${PREFIX}/lib -lblitz ${CXX_RT_LIB} ${LD_EXTRA}
 
 %CPP            mpicc -E
 %FPP            mpicc -E -P -x c
