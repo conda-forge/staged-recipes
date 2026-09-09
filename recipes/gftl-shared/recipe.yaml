@@ -7,7 +7,8 @@
 # why). It finds gFTL at build time via find_package(GFTL) -- which resolves
 # $PREFIX/GFTL-1.17/cmake/ because conda puts $PREFIX on CMAKE_PREFIX_PATH and
 # CMake's config search globs `<prefix>/<name>*/cmake/`. gFTL is therefore a host
-# dependency (compiled in; no runtime shared object).
+# dependency (compiled in; no runtime shared object), and its run_export carries
+# the version pin downstream from there.
 schema_version: 1
 
 context:
@@ -37,10 +38,13 @@ requirements:
     - m4
   host:
     - gftl
-  # gFTL-shared's CMake config does find_dependency(GFTL), so anything that builds
-  # against gFTL-shared also needs gFTL present. Propagate it.
-  run:
-    - gftl
+  # Same story as gFTL: compiled into its consumers, and its CMake config does
+  # find_dependency(GFTL). The weak self run_export pins gftl-shared for anything
+  # that has it in `host`; gFTL itself arrives alongside, because gftl's own
+  # run_export lands in this package's `run` and host dependencies bring their run
+  # requirements with them.
+  run_exports:
+    - ${{ pin_subpackage('gftl-shared', upper_bound='x.x') }}
 
 tests:
   - script:
