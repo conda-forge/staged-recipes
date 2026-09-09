@@ -21,7 +21,7 @@ if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 :: Copy package files (source + node_modules), excluding dev-only directories.
 :: Use robocopy to avoid Windows MAX_PATH issues in website/ and docs/ trees.
 robocopy . "%INSTALL_DIR%" /E ^
-  /XD website docs test .husky .github .vscode .augment .claude-plugin coverage test-output ^
+  /XD .npm website docs test .husky .github .vscode .augment .claude-plugin coverage test-output ^
   /NFL /NDL /NJH /NJS /NP
 :: robocopy exit codes 0-7 are success; 8+ indicate errors.
 if %errorlevel% geq 8 exit /b 1

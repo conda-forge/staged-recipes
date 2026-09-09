@@ -23,7 +23,8 @@ mkdir -p "${INSTALL_DIR}"
 # Copy all package files (source + node_modules), then remove dev-only directories
 # that are present in the GitHub archive but excluded in .npmignore.
 cp -r . "${INSTALL_DIR}/"
-rm -rf "${INSTALL_DIR}/website" \
+rm -rf "${INSTALL_DIR}/.npm" \
+       "${INSTALL_DIR}/website" \
        "${INSTALL_DIR}/docs" \
        "${INSTALL_DIR}/test" \
        "${INSTALL_DIR}/.husky" \
