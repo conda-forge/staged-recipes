@@ -17,10 +17,39 @@ echo SHUMLIB_MODULES_OK
 # the build tool and is .so on linux and .dylib on macOS.
 lib="$PREFIX/lib/libshum${SHLIB_EXT}"
 test -f "$lib"
-if command -v ldd >/dev/null 2>&1; then
-  if ldd "$lib" | grep -i "not found"; then
-    echo "ERROR: unresolved runtime dependencies in $lib"
-    exit 1
-  fi
-fi
+
+# Each platform has its own tool for listing what a shared library needs, so
+# branch on which one to ask; the listing is printed either way so the CI log
+# records what libshum ended up linked against.
+case "$(uname -s)" in
+  Darwin)
+    # otool -L reports the install names libshum records, without resolving
+    # them. conda rewrites the ones it owns to @rpath/<name> and points the
+    # rpath at $PREFIX/lib, so those are satisfied exactly when the named file
+    # is there. macOS's own libraries under /usr/lib and /System live in the
+    # dyld shared cache rather than on disk, so they are not checked.
+    linkage=$(otool -L "$lib")
+    printf '%s\n' "$linkage"
+    for dep in $(printf '%s\n' "$linkage" | tail -n +2 | awk '{print $1}'); do
+      case "$dep" in
+        /usr/lib/*|/System/*) continue ;;
+        @rpath/*) dep="$PREFIX/lib/${dep#@rpath/}" ;;
+      esac
+      if [ ! -e "$dep" ]; then
+        echo "ERROR: unresolved runtime dependency $dep in $lib"
+        exit 1
+      fi
+    done
+    ;;
+  *)
+    # ldd resolves the dependencies itself and writes "not found" against any
+    # it cannot satisfy.
+    linkage=$(ldd "$lib")
+    printf '%s\n' "$linkage"
+    if printf '%s\n' "$linkage" | grep -i "not found"; then
+      echo "ERROR: unresolved runtime dependencies in $lib"
+      exit 1
+    fi
+    ;;
+esac
 echo SHUMLIB_LIB_OK
