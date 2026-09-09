@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+# XIOS is built by FCM through ./make_xios, which is configured entirely by an
+# "arch" triplet: arch-<NAME>.env (shell setup), arch-<NAME>.path (library
+# search paths) and arch-<NAME>.fcm (compilers and flags). We generate an
+# arch-CONDA pointing at $PREFIX, as other packagings of XIOS do for their own
+# targets.
+ARCH=CONDA
+
+# Nothing to source: the conda build environment is already activated.
+: > "arch/arch-${ARCH}.env"
+
+# netCDF and HDF5 both live in $PREFIX. XIOS wants the *parallel* netCDF, which
+# is what the mpi_${mpi}_* host builds provide.
+cat > "arch/arch-${ARCH}.path" <<EOF
+NETCDF_INCDIR="-I ${PREFIX}/include"
+NETCDF_LIBDIR="-L ${PREFIX}/lib"
+NETCDF_LIB="-lnetcdff -lnetcdf"
+
+MPI_INCDIR=""
+MPI_LIBDIR=""
+MPI_LIB=""
+
+HDF5_INCDIR="-I ${PREFIX}/include"
+HDF5_LIBDIR="-L ${PREFIX}/lib"
+HDF5_LIB="-lhdf5_hl -lhdf5"
+
+OASIS_INCDIR=""
+OASIS_LIBDIR=""
+OASIS_LIB=""
+EOF
+
+# The LINKER is mpif90 (gfortran), which does not auto-link the C++ runtime that
+# XIOS's C++ objects and blitz need, so the arch file adds it explicitly. Which
+# runtime depends on the platform's C++ toolchain: GNU libstdc++ on linux, LLVM
+# libc++ on macOS (conda-forge's osx C/C++ compiler is clang). Forcing -lstdc++
+# on osx would fail -- there is no libstdc++ in the clang toolchain there.
+case "${target_platform:-$(uname -s)}" in
+  osx-*|Darwin) CXX_RT_LIB="-lc++"; LD_EXTRA="" ;;
+  # conda-forge's libfabric (pulled in by mpich) references
+  # getrandom@GLIBC_2.25, which the build's glibc sysroot pin (2.17, the
+  # conda-forge baseline) does not declare, so the linker refuses to resolve
+  # it against libfabric.so.1 even though it is only ever needed at runtime
+  # (any environment that can install this mpich already satisfies it via
+  # mpich's own run-time glibc constraint). Deferring that check to runtime is
+  # scoped to just this link step, so it cannot collide with unrelated variant
+  # keys (notably macOS's own, differently-scaled `c_stdlib_version`).
+  *)            CXX_RT_LIB="-lstdc++"; LD_EXTRA="-Wl,--allow-shlib-undefined" ;;
+esac
+
+# Boost and Blitz++ headers are both under $PREFIX/include, so one -I covers the
+# two -I flags upstream's arch files emit separately.
+#
+# NOTE: upstream's and Spack's arch files pass -D_GLIBCXX_USE_CXX11_ABI=0. That
+# is deliberately NOT carried over: conda-forge builds libstdc++ and boost with
+# the new C++11 string/list ABI, so forcing the old one here would produce
+# undefined references against the very libraries we link.
+#
+# FCM never consults CXXFLAGS/CPPFLAGS/FFLAGS/LDFLAGS -- everything it passes to
+# the compilers comes from this file -- so the flags the compiler activation
+# exports have to be written into it, or the build silently loses the sysroot,
+# hardening, PIC and cross-compilation settings conda-forge relies on. They go
+# first so that the flags below (notably -std=c++14 and the %PROD_* -O3) still
+# have the last word.
+#
+# All sources FCM compiles here are C++ (extern/src_netcdf4 is not built under
+# --netcdf_lib netcdf4_par), and %CCOMPILER is mpic++, so CXXFLAGS -- not
+# CFLAGS -- is the right variable for %BASE_CFLAGS.
+cat > "arch/arch-${ARCH}.fcm" <<EOF
+%CCOMPILER      mpic++
+%FCOMPILER      mpif90
+%LINKER         mpif90
+
+%BASE_CFLAGS    ${CXXFLAGS:-} ${CPPFLAGS:-} -std=c++14 -w -I${PREFIX}/include
+%PROD_CFLAGS    -O3 -DBOOST_DISABLE_ASSERTS
+%DEV_CFLAGS     -g -O2
+%DEBUG_CFLAGS   -g
+
+%BASE_FFLAGS    ${FFLAGS:-} -D__NONE__ -ffree-line-length-none
+%PROD_FFLAGS    -O3
+%DEV_FFLAGS     -g -O2
+%DEBUG_FFLAGS   -g
+
+%BASE_INC       -D__NONE__
+%BASE_LD        ${LDFLAGS:-} -L${PREFIX}/lib -lblitz ${CXX_RT_LIB} ${LD_EXTRA}
+
+%CPP            mpicc -E
+%FPP            mpicc -E -P -x c
+%MAKE           make
+EOF
+
+# make_xios drives the compilers through these, so point them at the MPI wrappers.
+export CC=mpicc
+export CXX=mpic++
+export FC=mpif90
+export F77=mpif90
+
+./make_xios \
+  --full \
+  --prod \
+  --arch "${ARCH}" \
+  --use_extern_boost \
+  --use_extern_blitz \
+  --netcdf_lib netcdf4_par \
+  --job "${CPU_COUNT:-2}"
+
+# XIOS has no install target; place the build products by hand.
+#   bin  xios_server.exe and the test drivers -- matched by *.exe rather than
+#        copied wholesale, because FCM also drops bin/fcm_env.ksh in there: a
+#        symlink to an absolute path inside the build directory, which is
+#        dangling the moment the package is installed anywhere else.
+#   lib  libxios.a
+#   inc  the headers and Fortran .mod files consumers compile against
+mkdir -p "${PREFIX}/bin" "${PREFIX}/lib" "${PREFIX}/include"
+cp -a bin/*.exe "${PREFIX}/bin/"
+cp -a lib/. "${PREFIX}/lib/"
+cp -a inc/. "${PREFIX}/include/"
+
+# The installed xml_node.hpp includes <rapidxml.hpp>. RapidXML is vendored as
+# tools/archive/rapidxml.tar.gz and unpacked by make_xios into extern/rapidxml,
+# but FCM does not copy it into inc/, so that include would not resolve for a
+# consumer. Ship the headers alongside XIOS's own. The glob deliberately leaves
+# extern/rapidxml/include/license.txt behind -- it belongs in info/licenses/,
+# which about.license_file handles.
+cp -a extern/rapidxml/include/*.hpp "${PREFIX}/include/"
+
+# etc/ and cfg/ are XML configuration templates, not libraries or config that
+# conda should own at the top of $PREFIX -- keep them under share/.
+for d in etc cfg; do
+  if [ -d "$d" ]; then
+    mkdir -p "${PREFIX}/share/xios/${d}"
+    cp -a "$d/." "${PREFIX}/share/xios/${d}/"
+  fi
+done
