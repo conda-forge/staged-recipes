@@ -32,17 +32,14 @@ def _lint_recipes(gh, pr):
     fnames = set(f.filename for f in pr.get_files())
     labels = set(label.name for label in pr.get_labels())
     extra_edits = False
-    example_recipes = [
-        "recipes/example-v0-deprecated/meta.yaml",
-        "recipes/example-v1/recipe.yaml",
-    ]
+    example_recipes = ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]
 
     # 1. Do not edit or delete example recipes and only edit recipe files
     if "maintenance" not in labels:
         for fname in fnames:
             if fname in example_recipes:
                 lints[fname].append(
-                    "Do not edit or delete example recipes in `recipes/example-v0-deprecated/` or `recipe/example-v1/`."
+                    "Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`."
                 )
                 extra_edits = True
             if not fname.startswith("recipes/"):
@@ -54,7 +51,7 @@ def _lint_recipes(gh, pr):
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
         if (
-            fname.startswith("recipes/example-v0-deprecated/")
+            fname.startswith("recipes/example/")
             or fname.startswith("recipes/example-v1/")
             or fname.startswith("recipes/meta.y")
             or fname.startswith("recipes/recipe.y")
@@ -97,11 +94,6 @@ def _lint_recipes(gh, pr):
                 content = render_meta_yaml("".join(fh))
                 meta = get_yaml().load(content)
             recipe_version = 0
-            hints[fname].append(
-                "The v0 `meta.yaml` recipe format is deprecated. Please use the v1 "
-                "`recipe.yaml` format unless v1 cannot support this recipe, and explain "
-                "the exception in this PR."
-            )
         else:
             meta = get_yaml().load(Path(fname))
             recipe_version = 1
