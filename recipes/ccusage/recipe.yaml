@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  version: "20.0.20"
+
+package:
+  name: ccusage
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ccusage/ccusage/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 24f81ac3dc5ca049b4170256402d67675fe7c2aa084274326726acf5cfcc8428
+
+build:
+  number: 0
+  script:
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --features fetch-litellm-pricing --root ${{ PREFIX }} --path rust/crates/ccusage
+        else:
+          - cargo auditable install --locked --no-track --bins --features fetch-litellm-pricing --root %LIBRARY_PREFIX% --path rust/crates/ccusage
+      - cd rust
+      - cargo-bundle-licenses --format yaml --features fetch-litellm-pricing --output ../THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - ccusage --version
+      - ccusage --help
+      - ccusage daily --help
+      - ccusage claude --help
+  - package_contents:
+      bin:
+        - ccusage
+      strict: true
+
+about:
+  homepage: https://github.com/ccusage/ccusage
+  summary: Analyze coding (agent) CLI token usage and costs from local data
+  description: |
+    ccusage reads the local session logs written by coding agent CLIs -- Claude
+    Code, Codex, Copilot CLI, Gemini CLI, OpenCode and others -- and reports the
+    tokens they consumed and what those tokens cost. Reports can be grouped by
+    day, week, month, session or billing block, printed as tables or JSON, and
+    rendered as a compact status line for Claude Code hooks.
+  license: MIT
+  license_file:
+    - LICENSE
+    - apps/ccusage/LICENSE
+    - THIRDPARTY.yml
+  documentation: https://ccusage.com
+  repository: https://github.com/ccusage/ccusage
+
+extra:
+  recipe-maintainers:
+    - pavelzw
