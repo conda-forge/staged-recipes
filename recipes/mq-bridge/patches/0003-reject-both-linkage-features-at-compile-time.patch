@@ -1,0 +1,28 @@
+Reject both linkage features at compile time
+
+Cargo features are additive, so nothing stops a caller asking for `full`
+and `full-dynamic` together — and the result would be `dynamic-linking`
+silently winning over the vendored build, or not, depending on
+rdkafka-sys' internals. Fail with an explanation instead.
+
+This is also why CI cannot use `--all-features`; upstream's `lint-all`
+feature exists for that.
+diff --git a/src/lib.rs b/src/lib.rs
+index 8e3d90b..c77befc 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -102,6 +102,14 @@
+ #![warn(rustdoc::broken_intra_doc_links)]
+ #![warn(rustdoc::missing_crate_level_docs)]
+ 
++#[cfg(all(feature = "link-static", feature = "link-dynamic"))]
++compile_error!(
++    "features `link-static` and `link-dynamic` are mutually exclusive - enable exactly one. \
++     `link-static` compiles librdkafka into the binary; `link-dynamic` links the shared \
++     library found via pkg-config. This usually means two feature sets were combined, \
++     e.g. `full` (static) together with `full-dynamic`; add --no-default-features or pick one."
++);
++
+ pub mod canonical_message;
+ #[cfg(any(
+     feature = "mongodb",

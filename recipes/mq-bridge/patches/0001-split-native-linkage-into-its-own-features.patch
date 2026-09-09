@@ -1,0 +1,109 @@
+Split the native linkage out of the endpoint features
+
+Upstream commit series on marcomq/mq-bridge feature/dynamic-c-linkage,
+rebased onto v0.4.11.
+
+`full` used to mean one thing: every endpoint, with every C library
+compiled from vendored sources. That is right for `cargo add mq-bridge
+--features full`, and wrong for a distro or conda-forge package, where a
+security fix to librdkafka has to reach the binary through a rebuild
+rather than through a new upstream release.
+
+The endpoint list therefore moves to `full-common`, and the two variants
+are `full-common` plus a linkage:
+
+    full          = full-common + ibm-mq + link-static  + vendored-protoc
+    full-dynamic  = full-common + ibm-mq + link-dynamic
+
+`link-static` is empty — it is the absence of `dynamic-linking`, named so
+the two are visibly exclusive; src/lib.rs rejects the pair. `link-dynamic`
+turns on `rdkafka?/dynamic-linking`, so librdkafka is found through
+pkg-config instead of built from rdkafka-sys' vendored copy.
+
+Only librdkafka is affected. SQLite stays bundled and is now pinned that
+way in both variants: sqlx's `sqlite-bundled` and `sqlite-unbundled` hand
+libsqlite3-sys two conflicting build strategies, so exactly one has to be
+chosen, and bundling is the one that needs neither a libsqlite3 on the
+system nor the libclang that generating bindings against one would
+require.
+
+Naming `sqlite-bundled` rather than the `sqlite` alias also drops the
+alias' `sqlite-deserialize`, `sqlite-load-extension` and
+`sqlite-unlock-notify` extras, and `default-features = false` drops sqlx's
+`macros`, `migrate` and `json` — none of which this crate uses. The `any`
+driver it does use is listed explicitly.
+
+`vendored-protoc` gates the `protoc-bin-vendored` build-dependency that
+`grpc` used to pull in unconditionally. `full` keeps it, so a bare
+checkout still needs nothing installed; `full-dynamic` drops it, because a
+packaged build must compile against the protobuf it ships.
+diff --git a/Cargo.toml b/Cargo.toml
+index d2c901d..819f1f1 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -134,7 +134,7 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"], optio
+ # --- Optional Endpoint Dependencies ---
+ 
+ # Kafka
+-rdkafka = { version = "0.39", features = ["tokio"], optional = true }
++rdkafka = { version = "0.39", default-features = false, features = ["tokio"], optional = true }
+ 
+ # AMQP (RabbitMQ).
+ # Drop lapin's defaults so the crypto provider remains wired through
+@@ -201,7 +201,7 @@ aws-sdk-sqs = { version = "1.105", optional = true, default-features = false, fe
+ aws-sdk-sns = { version = "1.107", optional = true, default-features = false, features = ["rt-tokio", "default-https-client"] }
+ 
+ # SQLx
+-sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "sqlite", "any"], optional = true }
++sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "any", "sqlite-bundled"], optional = true }
+ 
+ # ClickHouse — talks the ClickHouse HTTP interface directly (JSONEachRow in/out).
+ # reqwest is used rather than the typed `clickhouse` crate because that crate is
+@@ -264,11 +264,21 @@ middleware = ["metrics", "dedup", "compression", "encryption", "filter"]
+ # on ~19% of 17-significant-digit doubles (e.g. a Postgres `double precision` value
+ # moved through a JSON payload). Enable if bit-exact float round-tripping matters.
+ float-roundtrip = ["serde_json/float_roundtrip"]
++full-common = ["middleware", "plugin", "mongodb", "kafka", "amqp", "nats", "mqtt", "http", "aws", "zeromq", "zeromq-omq", "redis-streams", "sled", "grpc", "sqlx", "clickhouse", "websocket", "postgres-cdc", "object-store", "rustls-aws-lc"]
++
+ # ibm-mq (dlopen) is safe to include: it needs no IBM SDK at build, and at
+ # runtime the client is loaded lazily only when an ibm-mq endpoint is opened
+ # (clear error if the client isn't installed). Use `ibm-mq-static` instead for
+ # static linking.
+-full = ["middleware", "plugin", "mongodb", "kafka", "amqp", "nats", "mqtt", "http", "aws", "zeromq", "zeromq-omq", "redis-streams", "sled", "grpc", "sqlx", "clickhouse", "websocket", "postgres-cdc", "object-store", "rustls-aws-lc", "ibm-mq"]
++full = ["full-common", "ibm-mq", "link-static", "vendored-protoc"]
++full-dynamic = ["full-common", "ibm-mq", "link-dynamic"]
++
++lint-all = ["full", "test-utils", "schema", "plugin-sdk", "perf-diagnostics", "float-roundtrip"]
++
++link-static = []
++link-dynamic = ["rdkafka?/dynamic-linking"]
++
++vendored-protoc = ["dep:protoc-bin-vendored"]
+ 
+ # Endpoints that build across most OS targets (glibc/musl/Alpine, macOS,
+ # Windows, aarch64/armv7) without a special toolchain — no librdkafka, protoc,
+@@ -319,7 +329,7 @@ rustls-aws-lc  = ["rustls/aws_lc_rs",  "rustls/prefer-post-quantum", "tokio-rust
+ schema = ["dep:schemars"]
+ 
+ # Endpoint features
+-kafka = ["rdkafka"]
++kafka = ["rdkafka", "rdkafka/libz-static"]
+ amqp = ["lapin", "rustls", "rustls-pemfile", "url"]
+ nats = ["async-nats", "rustls", "rustls-pemfile"]
+ mongodb = ["dep:mongodb", "url"]
+@@ -346,7 +356,7 @@ zeromq = ["dep:zeromq"]
+ zeromq-omq = ["dep:omq-tokio"]
+ redis-streams = ["dep:redis"]
+ # Note: The grpc feature requires protobuf-src which can significantly increase build times.
+-grpc = ["tonic", "tonic-reflection", "prost", "prost-types", "prost-reflect", "tokio-stream", "tonic-prost", "tonic-prost-build", "protoc-bin-vendored", "rustls"]
++grpc = ["tonic", "tonic-reflection", "prost", "prost-types", "prost-reflect", "tokio-stream", "tonic-prost", "tonic-prost-build", "rustls"]
+ sqlx = ["dep:sqlx", "url"]
+ clickhouse = ["dep:reqwest", "dep:flate2", "dep:lz4_flex", "dep:zstd", "url"]
+ # Cloud object-store checkpoint backend (S3/GCS/Azure/R2). Talks cloud REST via reqwest.
+@@ -404,5 +414,6 @@ required-features = ["test-utils"]
+ 
+ [target.'cfg(windows)'.dependencies.rdkafka]
+ version = "0.39"
++default-features = false
+ features = ["cmake-build", "tokio"]
+ optional = true

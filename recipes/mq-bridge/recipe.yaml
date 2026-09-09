@@ -1,15 +1,16 @@
 context:
   version: "0.4.11"
 
-  # Both outputs are built from upstream's `full-dynamic` feature set — every
-  # endpoint upstream ships, with librdkafka and libsqlite linked from this
-  # environment instead of compiled from vendored C sources. It is the feature
-  # set behind upstream's own `pixi run build-dynamic` task, which exists for
-  # exactly this purpose: distro and conda-forge packaging, where the shared
-  # libraries have to stay patchable.
+  # Both outputs are built from the `full-dynamic` feature set — every endpoint
+  # upstream ships, with librdkafka linked from this environment instead of
+  # compiled from vendored C sources. v0.4.11 has no such feature; the patches
+  # under `source:` add it, backported from upstream's
+  # `feature/dynamic-c-linkage`, where it is what `just build-dynamic` builds.
+  # That task exists for exactly this purpose: distro and conda-forge packaging,
+  # where the shared library has to stay patchable.
   #
-  # `full-dynamic` reaches each output differently, and that is what the
-  # manifest overrides under `source:` are for:
+  # `full-dynamic` reaches each output differently, which is what the
+  # passthrough patch is for:
   #
   #   mq-bridge-py    `mq-bridge` is a direct dependency, so the feature is
   #                   reachable by name; only maturin's feature list needs
@@ -19,6 +20,10 @@ context:
   #                   *direct* dependency. Both app crates therefore need a
   #                   `full-dynamic` passthrough before any command line can
   #                   turn the linkage on.
+  #
+  # librdkafka is the only library this makes dynamic. SQLite is compiled from
+  # sqlx's bundled amalgamation in both variants upstream offers, so there is no
+  # libsqlite host dependency below and nothing runs bindgen to describe one.
   feature_set: full-dynamic
   llvm_major: "20"
 
@@ -30,31 +35,20 @@ source:
   - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 31bc56c24c4f084e4a5ae52791af3aeba658d8289038fae8f854b7cd419c0d3c
 
-  # Manifest overrides, applied on top of the tarball. Each is upstream's file
-  # with a narrow change; together they are what makes `full-dynamic` buildable
-  # here. They are carried as whole-file replacements rather than as patches
-  # because they track upstream's own in-progress work on this linkage split.
-  #
-  #   Cargo.toml   splits the linkage out of the endpoint features
-  #                (`link-static` / `link-dynamic`) and drops the vendored
-  #                `protoc-bin-vendored` build-dependency in favour of $PROTOC.
-  #   build.rs     stops overwriting $PROTOC with the vendored binary, and gates
-  #                the /opt/mqm rpath on `ibm-mq-static` rather than on the
-  #                dlopen `ibm-mq` feature, which never consults it.
-  #   src/lib.rs   compile_error! guards for the mutually exclusive linkage
-  #                features, and for `sqlx` with neither of them.
-  - path: Cargo.toml
-  - path: build.rs
-  - path: src/lib.rs
-    target_directory: src
-  # The `full-dynamic` passthroughs that let `crates/cli` reach the engine's linkage feature two levels down.
-  - path: apps/mq-bridge-app/crates/core/Cargo.toml
-    target_directory: apps/mq-bridge-app/crates/core
-  - path: apps/mq-bridge-app/crates/cli/Cargo.toml
-    target_directory: apps/mq-bridge-app/crates/cli
-  # maturin's feature list, pointed at `mq-bridge/full-dynamic`.
-  - path: python/mq-bridge-py/pyproject.toml
-    target_directory: python/mq-bridge-py
+    # 0001-0005 are upstream's `feature/dynamic-c-linkage` commits, squashed by
+    # topic and rebased onto v0.4.11; each patch header says what it does and
+    # why. 0006 has no upstream counterpart — upstream selects the feature set
+    # on maturin's command line, which a PEP 517 build through pip never
+    # reaches, so the wheel's feature list has to be patched instead.
+    #
+    # Expect these to shrink and then disappear as the branch lands upstream.
+    patches:
+      - patches/0001-split-native-linkage-into-its-own-features.patch
+      - patches/0002-relock-sqlx-without-default-features.patch
+      - patches/0003-reject-both-linkage-features-at-compile-time.patch
+      - patches/0004-take-protoc-from-the-environment.patch
+      - patches/0005-full-dynamic-passthroughs-for-the-dependent-crates.patch
+      - patches/0006-build-the-wheel-with-full-dynamic.patch
 
 build:
   number: 0
@@ -85,7 +79,7 @@ outputs:
               # the value; deleting both and setting the dynamic override covers
               # every branch of it. Linux and macOS ship an empty
               # `Requires.private`, so this only makes the query explicit there.
-              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
               - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
@@ -100,7 +94,6 @@ outputs:
               # which is what is needed here — an empty value would still count
               # as present.
               - set "RDKAFKA_STATIC="
-              - set "SQLITE3_STATIC="
               - set "LIBCURL_STATIC="
               - set "OPENSSL_STATIC="
               - set "PKG_CONFIG_ALL_STATIC="
@@ -149,13 +142,17 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
+        # Kept as a fallback rather than a hard requirement: with SQLite
+        # bundled, nothing in the resolved tree runs bindgen on the platforms
+        # checked here. aws-lc-sys is the one crate that would, on a target it
+        # has no prebuilt bindings for.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
       host:
-        # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`.
+        # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`. The only
+        # C library this build takes from the environment — SQLite arrives as
+        # sqlx's bundled amalgamation, IBM MQ's client via runtime dlopen.
         - librdkafka >=2.12.1
-        # libsqlite3-sys' min_sqlite_version_3_34_1, on sqlx's unbundled path.
-        - libsqlite >=3.34.1
         # Windows only, and not because anything links zlib here. The
         # CMake-built `rdkafka.pc` on win-64 declares
         #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
@@ -202,9 +199,11 @@ outputs:
         endpoint this binary was never compiled with. See
         https://github.com/marcomq/mq-bridge/blob/main/docs/PLUGINS.md.
 
-        librdkafka and SQLite are linked from their conda-forge packages rather
-        than compiled from vendored C sources, so a security fix to either
-        reaches this package through a rebuild. The IBM MQ endpoint is compiled
+        librdkafka is linked from its conda-forge package rather than compiled
+        from vendored C sources, so a security fix to it reaches this package
+        through a rebuild. SQLite is the exception: upstream compiles it from
+        sqlx's bundled amalgamation in every variant, so it is not linked from
+        conda-forge's libsqlite here either. The IBM MQ endpoint is compiled
         in but loads IBM's client library at runtime with dlopen: IBM does not
         redistribute that client, so it has to be installed separately, and only
         a route that actually opens an IBM MQ endpoint needs it. Point
@@ -247,7 +246,7 @@ outputs:
               # the value; deleting both and setting the dynamic override covers
               # every branch of it. Linux and macOS ship an empty
               # `Requires.private`, so this only makes the query explicit there.
-              - unset RDKAFKA_STATIC SQLITE3_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
               - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
             else:
@@ -262,7 +261,6 @@ outputs:
               # which is what is needed here — an empty value would still count
               # as present.
               - set "RDKAFKA_STATIC="
-              - set "SQLITE3_STATIC="
               - set "LIBCURL_STATIC="
               - set "OPENSSL_STATIC="
               - set "PKG_CONFIG_ALL_STATIC="
@@ -307,6 +305,10 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
+        # Kept as a fallback rather than a hard requirement: with SQLite
+        # bundled, nothing in the resolved tree runs bindgen on the platforms
+        # checked here. aws-lc-sys is the one crate that would, on a target it
+        # has no prebuilt bindings for.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
         - if: build_platform != target_platform
@@ -321,7 +323,6 @@ outputs:
         - pip
         - maturin >=1.7,<2
         - librdkafka >=2.12.1
-        - libsqlite >=3.34.1
         # See the app output for why win-64 needs zlib.pc.
         - if: win
           then: zlib
@@ -365,8 +366,9 @@ outputs:
         WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
         stores, directory spools, files and in-memory channels.
 
-        librdkafka and SQLite are linked from their conda-forge packages rather
-        than compiled from vendored C sources. The IBM MQ endpoint is compiled
+        librdkafka is linked from its conda-forge package rather than compiled
+        from vendored C sources; SQLite is compiled from sqlx's bundled
+        amalgamation. The IBM MQ endpoint is compiled
         in but loads IBM's client library at runtime with dlopen, so that client
         has to be installed separately, with MQ_INSTALLATION_PATH pointing at
         it.

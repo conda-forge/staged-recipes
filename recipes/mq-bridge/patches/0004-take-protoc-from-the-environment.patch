@@ -1,0 +1,41 @@
+Take protoc from the environment, and fix the IBM MQ rpath gate
+
+Two unrelated build-script corrections that the linkage split forces.
+
+protoc: the build script overwrote $PROTOC with the vendored binary
+unconditionally, so a packaged build could not compile against its own
+protobuf however it was invoked. Now the environment wins, the vendored
+fallback is behind `vendored-protoc`, and the script re-runs when $PROTOC
+changes. `?` replaces `.unwrap()` on the vendored path.
+
+rpath: the /opt/mqm search path was gated on `ibm-mq`, the *dlopen*
+feature, which resolves the client by name at runtime and never consults
+the link search path. `ibm-mq-static` is the one that links against it.
+The gate now covers both, because the dlopen path does benefit from the
+rpath when MQ_INSTALLATION_PATH names a real installation.
+diff --git a/build.rs b/build.rs
+index 0bcb2f0..6757e73 100644
+--- a/build.rs
++++ b/build.rs
+@@ -1,5 +1,7 @@
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+-    if std::env::var("CARGO_FEATURE_IBM_MQ").is_ok() {
++    if std::env::var("CARGO_FEATURE_IBM_MQ").is_ok()
++        || std::env::var("CARGO_FEATURE_IBM_MQ_STATIC").is_ok()
++    {
+         // Ensure rebuild when these environment variables change
+         println!("cargo:rerun-if-env-changed=MQ_INSTALLATION_PATH");
+         println!("cargo:rerun-if-env-changed=MQ_HOME");
+@@ -29,7 +31,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
+     #[cfg(feature = "grpc")]
+     {
+         let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR")?);
+-        std::env::set_var("PROTOC", protoc_bin_vendored::protoc_bin_path().unwrap());
++        println!("cargo:rerun-if-env-changed=PROTOC");
++        #[cfg(feature = "vendored-protoc")]
++        if std::env::var_os("PROTOC").is_none() {
++            std::env::set_var("PROTOC", protoc_bin_vendored::protoc_bin_path()?);
++        }
+         println!("cargo:rerun-if-changed=src/endpoints/grpc/proto/mqbridge/bridge.proto");
+         tonic_prost_build::configure()
+             .file_descriptor_set_path(out_dir.join("mqbridge_descriptor.bin"))
