@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  version: "1.2.1"
+
+package:
+  name: merge-gatekeeper
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/upsidr/merge-gatekeeper/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 579f93de4cc4336c1b133e0d7e9bce5e596f02616f15efb4a1a148cf59875418
+    target_directory: src
+  # cobra pulls in mousetrap on Windows, and go-licenses cannot classify its
+  # license file, so it is skipped below and shipped from here instead. The text
+  # is Apache-2.0 with only the copyright line prepended.
+  - url: https://raw.githubusercontent.com/inconshreveable/mousetrap/v1.0.0/LICENSE
+    sha256: f42d670262f9aed37a33c97d93fa2c1324f439ee03d7690710c5fe002561b0b5
+    file_name: LICENSE-mousetrap
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/merge-gatekeeper --save_path ../library_licenses --ignore github.com/inconshreveable/mousetrap
+    # `main.version` is populated from an embedded version.txt that upstream
+    # never bumped past v0.1.0, so the real tag is linked in instead.
+    - if: unix
+      then: go build -v -o $PREFIX/bin/merge-gatekeeper -ldflags="-s -w -X main.version=v${{ version }}" ./cmd/merge-gatekeeper
+      else: go build -v -o %LIBRARY_BIN%\merge-gatekeeper.exe -ldflags="-s -X main.version=v${{ version }}" .\cmd\merge-gatekeeper
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - merge-gatekeeper --help
+      - merge-gatekeeper --version
+  - package_contents:
+      bin:
+        - merge-gatekeeper
+      strict: true
+
+about:
+  homepage: https://github.com/upsidr/merge-gatekeeper
+  summary: Merge Gatekeeper provides extra control for Pull Request management
+  description: |
+    Merge Gatekeeper adds merge control on top of GitHub's branch protection.
+    Running as a single check for every Pull Request, it inspects all the other
+    CI jobs kicked off for that PR and only succeeds once they have all
+    completed successfully. This makes branch protection work for monorepos,
+    where jobs are triggered conditionally on the files a PR touches and cannot
+    be listed up front as required checks.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+    - LICENSE-mousetrap
+  documentation: https://pkg.go.dev/github.com/upsidr/merge-gatekeeper
+  repository: https://github.com/upsidr/merge-gatekeeper
+
+extra:
+  recipe-maintainers:
+    - pavelzw
