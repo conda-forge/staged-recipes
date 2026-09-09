@@ -57,8 +57,72 @@ APPDIR="${PREFIX}/libexec/enumlib.jl"
 # only its parent.
 mkdir -p "${PREFIX}/libexec" "${PREFIX}/bin"
 
+# --- Sharing conda's libraries instead of bundling copies (staged-recipes#34550)
+#
+# conda-forge's julia deliberately symlinks lib/julia/* out to $PREFIX/lib, so Julia
+# uses conda's openblas/gmp/mpfr/suitesparse rather than its own vendored copies.
+# create_app recreates those links verbatim inside the application -- Julia's `cp`
+# defaults to follow_symlinks=false -- where `../` resolves inside the app tree and
+# the links dangle; a later pass retries the same destination and symlink() throws
+# EEXIST, which is what ended the osx-64 build.
+#
+# So: materialise the links into real files for the duration of create_app (Julia
+# keeps working, PackageCompiler copies files, nothing throws), then point the
+# application's copies at $PREFIX/lib and restore the host links. The application
+# ends up sharing conda's libraries rather than duplicating ~74 MB of them, 66 MB
+# of which is OpenBLAS alone.
+JULIA_LIBDIR="${PREFIX}/lib/julia"
+LINK_MANIFEST="${SRC_DIR}/julia-lib-symlinks.tsv"
+: > "${LINK_MANIFEST}"
+
+if [ -d "${JULIA_LIBDIR}" ]; then
+  while IFS= read -r link; do
+    name="$(basename "${link}")"
+    target="$(readlink "${link}")"
+    resolved="$(cd "$(dirname "${link}")" && cd "$(dirname "${target}")" && pwd)/$(basename "${target}")"
+    # Links that stay inside lib/julia resolve fine in the app; leave them be.
+    case "${resolved}" in
+      "${JULIA_LIBDIR}"/*) continue ;;
+    esac
+    if [ ! -e "${resolved}" ]; then
+      echo "warning: ${link} -> ${target} is already dangling in the host env; skipping"
+      continue
+    fi
+    printf '%s\t%s\n' "${name}" "${target}" >> "${LINK_MANIFEST}"
+    rm "${link}"
+    cp "${resolved}" "${link}"
+  done < <(find "${JULIA_LIBDIR}" -maxdepth 1 -type l)
+fi
+echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for the build"
+
 "${JULIA}" --project=build -e 'using Pkg; Pkg.instantiate()'
 "${JULIA}" --project=build build/build_app.jl "${APPDIR}"
+
+# Point the application's copied libraries back at conda's, and put the host env
+# back the way conda-forge's julia package had it.
+APP_LIBJULIA="${APPDIR}/lib/julia"
+# $APPDIR is $PREFIX/libexec/enumlib.jl, so lib/julia sits four levels below
+# $PREFIX. Relative rather than absolute deliberately: the link never leaves
+# $PREFIX, so there is nothing for conda's prefix rewriting to fix up.
+REL_TO_PREFIX_LIB="../../../../lib"
+
+while IFS="$(printf '\t')" read -r name target; do
+  [ -n "${name}" ] || continue
+  # Prefer the unversioned soname where conda ships one, so an ABI-compatible
+  # rebuild of openblas does not strand the link on a versioned filename.
+  if [ -e "${PREFIX}/lib/${name}" ]; then
+    conda_name="${name}"
+  else
+    conda_name="$(basename "${target}")"
+  fi
+  rm -f "${APP_LIBJULIA}/${name}"
+  ln -s "${REL_TO_PREFIX_LIB}/${conda_name}" "${APP_LIBJULIA}/${name}"
+  # Fail the build rather than ship a dangling link if the layout ever moves.
+  test -e "${APP_LIBJULIA}/${name}"
+  rm -f "${JULIA_LIBDIR}/${name}"
+  ln -s "${target}" "${JULIA_LIBDIR}/${name}"
+done < "${LINK_MANIFEST}"
+echo "repointed $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') application librar(y|ies) at ${PREFIX}/lib"
 
 # create_app emits `enum` / `polya` / `makestr`; the Fortran enumlib these replace
 # -- and pymatgen's EnumlibAdaptor, which looks them up on PATH -- use the .x
