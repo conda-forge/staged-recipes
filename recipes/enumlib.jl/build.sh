@@ -39,6 +39,25 @@ mkdir -p "${JULIA_DEPOT_PATH}"
 # append it here. Starting without, so the first CI build tells us rather than us
 # guessing.
 export JULIA_CC="${CC}"
+# conda-forge's julia does not ship Julia's bundled share/julia/cert.pem -- conda
+# supplies ca-certificates instead. NetworkOptions resolves CA roots as
+# JULIA_SSL_CA_ROOTS_PATH, then SSL_CERT_DIR, then SSL_CERT_FILE, then a list of
+# well-known /etc paths, and only then Julia's bundled file. None of those /etc
+# paths exist in conda-forge's build image, so create_app fell through to the
+# bundled path and died on
+#
+#   IOError: open("$PREFIX/bin/../share/julia/cert.pem", 0, 0): ENOENT
+#
+# when the Pkg operations inside create_app needed TLS. Point it at conda's bundle
+# instead of fabricating the file Julia expects.
+#
+# The built application never does network I/O -- enum.x, polya.x and makestr.x
+# only read and write local files -- so this is a build-time need only, and the
+# package deliberately carries no runtime CA dependency.
+CONDA_CA_BUNDLE="${PREFIX}/ssl/cacert.pem"
+test -f "${CONDA_CA_BUNDLE}"   # from ca-certificates; fail loudly if it moves
+export JULIA_SSL_CA_ROOTS_PATH="${CONDA_CA_BUNDLE}"
+
 
 # Without this, create_app inherits PackageCompiler's default of "generic", which
 # disables vectorized codegen -- a measurable loss for a package that is one hot
