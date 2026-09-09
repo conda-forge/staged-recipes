@@ -53,3 +53,12 @@ case "$(uname -s)" in
     ;;
 esac
 echo SHUMLIB_LIB_OK
+
+# The version shumlib reports comes from its CMakeLists.txt, which upstream
+# forgot to bump for this release and the recipe patches; check the generated
+# pkg-config file agrees with the package so the patch cannot silently stop
+# applying on a future version bump.
+pc="$PREFIX/lib/pkgconfig/shumlib.pc"
+cat "$pc"
+grep -qx "Version: ${PKG_VERSION}" "$pc"
+echo SHUMLIB_VERSION_OK
