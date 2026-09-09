@@ -39,24 +39,6 @@ mkdir -p "${JULIA_DEPOT_PATH}"
 # append it here. Starting without, so the first CI build tells us rather than us
 # guessing.
 export JULIA_CC="${CC}"
-# conda-forge's julia does not ship Julia's bundled share/julia/cert.pem -- conda
-# supplies ca-certificates instead. NetworkOptions resolves CA roots as
-# JULIA_SSL_CA_ROOTS_PATH, then SSL_CERT_DIR, then SSL_CERT_FILE, then a list of
-# well-known /etc paths, and only then Julia's bundled file. None of those /etc
-# paths exist in conda-forge's build image, so create_app fell through to the
-# bundled path and died on
-#
-#   IOError: open("$PREFIX/bin/../share/julia/cert.pem", 0, 0): ENOENT
-#
-# when the Pkg operations inside create_app needed TLS. Point it at conda's bundle
-# instead of fabricating the file Julia expects.
-#
-# The built application never does network I/O -- enum.x, polya.x and makestr.x
-# only read and write local files -- so this is a build-time need only, and the
-# package deliberately carries no runtime CA dependency.
-CONDA_CA_BUNDLE="${PREFIX}/ssl/cacert.pem"
-test -f "${CONDA_CA_BUNDLE}"   # from ca-certificates; fail loudly if it moves
-export JULIA_SSL_CA_ROOTS_PATH="${CONDA_CA_BUNDLE}"
 
 
 # Without this, create_app inherits PackageCompiler's default of "generic", which
@@ -90,6 +72,29 @@ mkdir -p "${PREFIX}/libexec" "${PREFIX}/bin"
 # application's copies at $PREFIX/lib and restore the host links. The application
 # ends up sharing conda's libraries rather than duplicating ~74 MB of them, 66 MB
 # of which is OpenBLAS alone.
+# PackageCompiler.bundle_cert (PackageCompiler.jl:1802, v2.4.1) unconditionally
+# copies Julia's bundled share/julia/cert.pem into the application:
+#
+#   cp(joinpath(Sys.BINDIR, "..", "share", "julia", "cert.pem"), ...)
+#
+# conda-forge's julia does not ship that file -- conda supplies ca-certificates --
+# so create_app dies with ENOENT on it. There is no environment variable that
+# helps: this is a plain cp of a fixed path, not a NetworkOptions CA-roots lookup
+# (an earlier attempt at JULIA_SSL_CA_ROOTS_PATH changed nothing, as the identical
+# failure showed). The file has to be there for the duration of the build.
+#
+# It is created here and removed again below, so the package never claims a file
+# in julia's own namespace.
+CONDA_CA_BUNDLE="${PREFIX}/ssl/cacert.pem"
+test -f "${CONDA_CA_BUNDLE}"   # from ca-certificates; fail loudly if it moves
+JULIA_BUNDLED_CERT="${PREFIX}/share/julia/cert.pem"
+CREATED_BUNDLED_CERT=0
+if [ ! -e "${JULIA_BUNDLED_CERT}" ]; then
+  mkdir -p "$(dirname "${JULIA_BUNDLED_CERT}")"
+  cp "${CONDA_CA_BUNDLE}" "${JULIA_BUNDLED_CERT}"
+  CREATED_BUNDLED_CERT=1
+fi
+
 JULIA_LIBDIR="${PREFIX}/lib/julia"
 LINK_MANIFEST="${SRC_DIR}/julia-lib-symlinks.tsv"
 : > "${LINK_MANIFEST}"
@@ -119,6 +124,20 @@ echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for
 
 # Point the application's copied libraries back at conda's, and put the host env
 # back the way conda-forge's julia package had it.
+# Undo the temporary host file, and replace the application's copied CA bundle
+# with a link to conda's, so the package ships no private (and eventually stale)
+# certificate snapshot. The application does no network I/O -- enum.x, polya.x and
+# makestr.x only read and write local files -- so nothing here is on a hot path.
+if [ "${CREATED_BUNDLED_CERT}" = "1" ]; then
+  rm -f "${JULIA_BUNDLED_CERT}"
+fi
+APP_CERT="${APPDIR}/share/julia/cert.pem"
+if [ -e "${APP_CERT}" ]; then
+  rm -f "${APP_CERT}"
+  ln -s "../../../../ssl/cacert.pem" "${APP_CERT}"
+  test -e "${APP_CERT}"
+fi
+
 APP_LIBJULIA="${APPDIR}/lib/julia"
 # $APPDIR is $PREFIX/libexec/enumlib.jl, so lib/julia sits four levels below
 # $PREFIX. Relative rather than absolute deliberately: the link never leaves
