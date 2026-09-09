@@ -13,13 +13,9 @@ set -euxo pipefail
 ${FC} -fsyntax-only ${FFLAGS} -I"$PREFIX/include" test_shumlib.f90
 echo SHUMLIB_MODULES_OK
 
-# libshum must resolve its own runtime dependencies. The shared library is .so
-# on linux and .dylib on macOS; the ldd "not found" gate runs where ldd exists
-# (linux) and is skipped on macOS (which has no ldd).
-case "$(uname -s)" in
-  Darwin) lib="$PREFIX/lib/libshum.dylib" ;;
-  *)      lib="$PREFIX/lib/libshum.so" ;;
-esac
+# libshum must resolve its own runtime dependencies. SHLIB_EXT is supplied by
+# the build tool and is .so on linux and .dylib on macOS.
+lib="$PREFIX/lib/libshum${SHLIB_EXT}"
 test -f "$lib"
 if command -v ldd >/dev/null 2>&1; then
   if ldd "$lib" | grep -i "not found"; then
