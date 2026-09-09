@@ -106,13 +106,24 @@ export F77=mpif90
   --job "${CPU_COUNT:-2}"
 
 # XIOS has no install target; place the build products by hand.
-#   bin  xios_server.exe and the test drivers
+#   bin  xios_server.exe and the test drivers -- matched by *.exe rather than
+#        copied wholesale, because FCM also drops bin/fcm_env.ksh in there: a
+#        symlink to an absolute path inside the build directory, which is
+#        dangling the moment the package is installed anywhere else.
 #   lib  libxios.a
-#   inc  the Fortran .mod files consumers compile against
+#   inc  the headers and Fortran .mod files consumers compile against
 mkdir -p "${PREFIX}/bin" "${PREFIX}/lib" "${PREFIX}/include"
-cp -a bin/. "${PREFIX}/bin/"
+cp -a bin/*.exe "${PREFIX}/bin/"
 cp -a lib/. "${PREFIX}/lib/"
 cp -a inc/. "${PREFIX}/include/"
+
+# The installed xml_node.hpp includes <rapidxml.hpp>. RapidXML is vendored as
+# tools/archive/rapidxml.tar.gz and unpacked by make_xios into extern/rapidxml,
+# but FCM does not copy it into inc/, so that include would not resolve for a
+# consumer. Ship the headers alongside XIOS's own. The glob deliberately leaves
+# extern/rapidxml/include/license.txt behind -- it belongs in info/licenses/,
+# which about.license_file handles.
+cp -a extern/rapidxml/include/*.hpp "${PREFIX}/include/"
 
 # etc/ and cfg/ are XML configuration templates, not libraries or config that
 # conda should own at the top of $PREFIX -- keep them under share/.
