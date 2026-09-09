@@ -8,7 +8,7 @@ npm install -ddd --global --no-bin-links "${SRC_DIR}/${PKG_NAME}-${PKG_VERSION}.
 
 # License report for the bundled runtime dependency tree
 pnpm install --prod --ignore-scripts
-pnpm licenses list --json --prod | pnpm-licenses generate-disclaimer --prod --json-input --output-file=third-party-licenses.txt
+pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 mkdir -p "${PREFIX}/bin"
 tee "${PREFIX}/bin/codeburn" <<SHIM
