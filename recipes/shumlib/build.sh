@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# CMake options: OpenMP on (the default consumers build against), the bitwise
-# NaN/denormal/IEEE probes off, tests off.
+# CMake options: OpenMP on (upstream's default), the bitwise NaN/denormal/IEEE
+# probes off, tests off.
+#
+# BUILD_OPENMP=ON is worth less than it looks in the CMake build: it only makes
+# upstream run `find_package(OpenMP 3.0 REQUIRED)`, and nothing links the
+# resulting OpenMP:: targets or puts -fopenmp on a compile line, so _OPENMP is
+# never defined and libshum acquires no OpenMP runtime dependency. (Upstream's
+# older Makefile build does apply the flags for SHUM_OPENMP=true.) It stays ON
+# to match upstream's default and to keep the flag correct if the CMake build
+# is fixed to link OpenMP; if that happens, the OpenMP runtime will need to be
+# added to the host requirements.
+#
 # The conda-specific bits are BUILD_SHARED_LIBS=ON (so run_exports means something)
 # and CMAKE_INSTALL_LIBDIR=lib (shumlib honours GNUInstallDirs, which would
 # otherwise pick lib64 on some hosts, while consumers look under
