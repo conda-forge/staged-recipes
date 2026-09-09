@@ -1,0 +1,22 @@
+From: conda-forge
+Subject: [PATCH] build: honor a preset COMPLGEN_VERSION
+
+When building from a source tarball there is no git repository around, so
+`git describe` fails and its empty stdout ends up baked into the binary,
+making `complgen --version` print an empty string.  Allow packagers to pass
+the version in explicitly via the environment.
+
+--- a/build.rs
++++ b/build.rs
+@@ -1,6 +1,11 @@
+ use std::process::Command;
+
+ fn main() {
++    println!("cargo:rerun-if-env-changed=COMPLGEN_VERSION");
++    if let Ok(version) = std::env::var("COMPLGEN_VERSION") {
++        println!("cargo:rustc-env=COMPLGEN_VERSION={}", version);
++        return;
++    }
+     let Ok(output) = Command::new("git")
+         .args([
+             "describe",
