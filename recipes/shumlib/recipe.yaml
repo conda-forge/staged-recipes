@@ -27,6 +27,15 @@ source:
     # functions, so an unpatched build reports the previous release everywhere
     # a consumer might look. Correct it to the version actually being built.
     - patches/0001-release-version.patch
+    # Upstream's CMake build takes BUILD_OPENMP as far as
+    # `find_package(OpenMP 3.0 REQUIRED)` and stops there -- nothing links the
+    # resulting OpenMP:: targets, so -fopenmp never reaches a compile line,
+    # _OPENMP goes undefined and the OpenMP regions in the C and Fortran
+    # sources are compiled out. The option is on by default, and upstream's
+    # older Makefile build does honour it (SHUM_OPENMP ?= true), so a CMake
+    # build silently produces a serial library where a make build would not.
+    # Link the targets so the option means what it says.
+    - patches/0002-link-openmp.patch
 
 build:
   number: 0
@@ -42,6 +51,16 @@ requirements:
     - ${{ stdlib('c') }}
     - cmake
     - ninja
+  # With the OpenMP link patch applied libshum carries a real dependency on the
+  # OpenMP runtime, so it has to be in host. gcc uses libgomp on linux; on osx
+  # conda-forge's gfortran runtime is built against llvm-openmp (libgfortran5
+  # depends on it), so both the clang-compiled C and the gfortran-compiled
+  # Fortran resolve to the one runtime there rather than two.
+  host:
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
   # shumlib installs a shared libshum.so and Fortran .mod files; anything built
   # against it needs the same shumlib at run time (and the same-generation
   # gfortran runtime, which conda-forge's compiler run_exports already pins).

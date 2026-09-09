@@ -54,6 +54,18 @@ case "$(uname -s)" in
 esac
 echo SHUMLIB_LIB_OK
 
+# Linking the OpenMP runtime is the whole point of the BUILD_OPENMP patch, and
+# its absence is silent: without the patch upstream still configures cleanly,
+# just with the threaded regions compiled out. Assert the runtime is really
+# there so the patch cannot stop applying unnoticed. gcc uses libgomp; on macOS
+# conda-forge's toolchain resolves both the clang C and the gfortran Fortran to
+# llvm-openmp's libomp, so accept either name.
+if ! printf '%s\n' "$linkage" | grep -Eqi 'lib(gomp|omp)'; then
+  echo "ERROR: $lib links no OpenMP runtime -- BUILD_OPENMP did not take effect"
+  exit 1
+fi
+echo SHUMLIB_OPENMP_OK
+
 # The version shumlib reports comes from its CMakeLists.txt, which upstream
 # forgot to bump for this release and the recipe patches; check the generated
 # pkg-config file agrees with the package so the patch cannot silently stop
