@@ -10,8 +10,9 @@ test -d "$sub/include"
 test -f "$sub/cmake/PFUNITConfig.cmake"
 ls "$sub"/lib*/libpfunit.a
 ls "$sub"/lib*/libfunit.a
-# The .pf preprocessor lands under the subdir's bin.
-ls "$sub"/bin/funitproc 2>/dev/null || ls "$sub"/bin/pFUnitParser.py 2>/dev/null || {
-  echo "ERROR: pFUnit .pf preprocessor not found under $sub/bin"; ls "$sub/bin" || true; exit 1; }
+# The .pf preprocessor lands under the subdir's bin. Run it rather than just
+# looking for it: that also checks its `funit` package came along and that the
+# python run dependency satisfies its #!/usr/bin/env python shebang.
+"$sub/bin/funitproc" --help
 echo "pFUnit installed at: $sub"
 echo PFUNIT_OK
