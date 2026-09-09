@@ -1,0 +1,25 @@
+From: conda-forge
+Subject: [PATCH] build renderer.js with esbuild directly instead of via npm
+
+`npm ci` cannot run in a conda-forge build: there is no network access,
+and the npm registry is not a vetted source for conda-forge packages.
+The only devDependency `npm run build` actually needs is esbuild, which
+conda-forge packages, so invoke it directly with the exact same
+arguments as the `build` script in package.json.
+
+ts/renderer.ts has no imports, so the bundle is self-contained and this
+reproduces the upstream artifact byte for byte.
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 4d4d74f..b7805ba 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -125,7 +125,7 @@ test = [
+ [tool.hatch]
+ build.artifacts = [ "src/pyvista_js/templates/renderer.js" ]
+ build.hooks.build-scripts.scripts = [
+-  { commands = [ "npm ci", "npm run build" ], artifacts = [ "src/pyvista_js/templates/renderer.js" ] }
++  { commands = [ "esbuild ts/renderer.ts --bundle --format=iife --outfile=src/pyvista_js/templates/renderer.js --target=es2017" ], artifacts = [ "src/pyvista_js/templates/renderer.js" ] }
+ ]
+ build.targets.wheel.packages = [ "src/pyvista_js" ]
+ 
