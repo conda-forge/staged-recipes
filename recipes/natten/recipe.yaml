@@ -1,0 +1,88 @@
+context:
+  name: natten
+  version: "0.21.7"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # Use the PyPI sdist instead of GitHub because it includes the vendored CUTLASS
+  # headers (a git submodule upstream)
+  url: https://pypi.org/packages/source/n/natten/natten-${{ version }}.tar.gz
+  sha256: 8417236b74db079b2d23899ec8f77514fb2dc73d4bbd6b346a45b6967fc05ffb
+
+build:
+  number: 0
+  # libnatten is CUDA-only; without CUDA upstream builds a pure-python package
+  skip:
+    - cuda_compiler_version == "None" or (not linux)
+  script:
+    env:
+      # Semicolon separated list; 9.0 and 10.0 enable the Hopper and Blackwell kernels
+      NATTEN_CUDA_ARCH: 8.0;8.6;8.9;9.0;10.0;12.0
+      NATTEN_VERBOSE: "1"
+    content:
+      - export NATTEN_N_WORKERS=${CPU_COUNT}
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - pytorch
+        - pytorch * cuda*
+  host:
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    # Pulled in by ATen/cuda/CUDAContext.h and curand_kernel.h
+    - libcublas-dev
+    - libcurand-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    - pip
+    - python
+    - pytorch
+    - pytorch * cuda*
+    - setuptools >=64
+  run:
+    - python
+    - pytorch * cuda*
+
+tests:
+  - python:
+      imports:
+        - natten
+        # natten silently falls back to stubs if libnatten fails to import
+        - natten.libnatten
+      pip_check: true
+  - script:
+      - python -c "import natten; assert natten.HAS_LIBNATTEN"
+
+about:
+  homepage: https://natten.org
+  summary: Neighborhood Attention Extension
+  description: |
+    NATTEN is an open-source project dedicated to providing infrastructure for
+    Neighborhood Attention (NA), a sliding window self-attention mechanism, and
+    its extensions. It provides fused CUDA kernels for 1D, 2D and 3D
+    neighborhood attention built on CUTLASS, with PyTorch bindings.
+  license: MIT AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - NOTICE
+    - third_party/cutlass/LICENSE.txt
+  documentation: https://natten.org
+  repository: https://github.com/SHI-Labs/NATTEN
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
