@@ -1,0 +1,81 @@
+context:
+  version: "0.1.0"
+  # Pinned by Dictation.xcodeproj (exactVersion) and Package.resolved.
+  keyboardshortcuts_version: "3.0.1"
+
+package:
+  name: hot-mic
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/dick-kinekt/hot-mic/releases/download/v${{ version }}/hot-mic-${{ version }}.tar.gz
+    sha256: 29fc993fa41b1f82ecd8949f1cf67b8a944b09525ec78eebc3473987d6dde300
+    patches:
+      # Point the Xcode project at the vendored KeyboardShortcuts checkout
+      # below instead of resolving it from GitHub during the build.
+      - patches/0001-use-local-keyboardshortcuts-package.patch
+  # The only Swift package dependency. Vendored as a source so xcodebuild
+  # never needs the network and its license ships with the package.
+  - url: https://github.com/sindresorhus/KeyboardShortcuts/archive/refs/tags/${{ keyboardshortcuts_version }}.tar.gz
+    sha256: 0492d1cc6898170dbf850cf3bae65be88e42af72b27960c82731e3058ce990c4
+    target_directory: KeyboardShortcuts
+
+build:
+  number: 0
+  # Native macOS app (SwiftUI/AppKit, built with xcodebuild).
+  skip: not osx
+  script: build.sh
+  dynamic_linking:
+    # The .app bundle is ad-hoc signed with the hardened runtime and the
+    # microphone entitlement. Rewriting rpaths or install names would break
+    # that signature, so leave the Mach-O untouched.
+    binary_relocation: false
+  prefix_detection:
+    # Same reason: the binary must not be patched at install time.
+    ignore_binary_files: true
+
+requirements:
+  build:
+    # Only here for the `__osx >=14.0` run export (see variants.yaml). The app
+    # itself is compiled with the system Xcode; see build.sh.
+    - ${{ stdlib('c') }}
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        exists:
+          - Applications/Hot Mic.app/**
+          - bin/hot-mic
+          - Menu/hot-mic.json
+          - Menu/hot-mic.icns
+  - script:
+      - test -x "$PREFIX/Applications/Hot Mic.app/Contents/MacOS/Hot Mic"
+      - test -x "$PREFIX/bin/hot-mic"
+      - plutil -lint "$PREFIX/Applications/Hot Mic.app/Contents/Info.plist"
+      - /usr/bin/codesign --verify --deep --strict --verbose=2 "$PREFIX/Applications/Hot Mic.app"
+      - /usr/bin/codesign -d --entitlements - "$PREFIX/Applications/Hot Mic.app" | grep -q com.apple.security.device.audio-input
+
+about:
+  homepage: https://github.com/dick-kinekt/hot-mic
+  summary: Native macOS dictation app that streams audio to ElevenLabs Scribe Realtime
+  description: |
+    Hot Mic is a native macOS dictation app. A configurable global shortcut
+    starts a dictation, microphone audio is streamed to the ElevenLabs Scribe
+    v2 Realtime API, and the finalized text is copied to the clipboard. It is
+    a regular Dock app with a menu-bar control and a floating recording bar.
+
+    Using it requires an ElevenLabs account and API key with speech-to-text
+    access. The app is ad-hoc signed; the package installs `Hot Mic.app` under
+    `$PREFIX/Applications` and a `hot-mic` launcher in `bin`.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    - KeyboardShortcuts/license
+  repository: https://github.com/dick-kinekt/hot-mic
+  documentation: https://github.com/dick-kinekt/hot-mic#readme
+
+extra:
+  recipe-maintainers:
+    - tdejager
