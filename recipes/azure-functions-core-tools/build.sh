@@ -38,13 +38,13 @@ dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
 # nuget-license returns 8 when one or more packages have no license metadata.
 # Keep those entries in the report, but fail for every other tool error.
 set +e
-dotnet-project-licenses \
-  --input src/Cli/func/Azure.Functions.Cli.csproj \
-  --include-transitive \
-  --target-framework net10.0 \
-  --output Markdown \
-  --file-output "${license_report}" \
-  --license-information-download-location "${license_download_dir}"
+dotnet "${BUILD_PREFIX}/libexec/nuget-license/nuget-license.dll" \
+   --input src/Cli/func/Azure.Functions.Cli.csproj \
+   --include-transitive \
+   --target-framework net10.0 \
+   --output Markdown \
+   --file-output "${license_report}" \
+   --license-information-download-location "${license_download_dir}"
 license_status=$?
 set -e
 
