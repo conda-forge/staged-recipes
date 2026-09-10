@@ -8,6 +8,8 @@ package:
 source:
   - url: https://github.com/liquibase/liquibase/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 9823dbe9258ac1ab6e3dba5c24a219cca0f164f580ea4a26aedc513861bf5fa4
+    patches:
+      - windows-find.patch
 
 build:
   number: 0
@@ -48,11 +50,17 @@ tests:
       env:
         LIQUIBASE_ANALYTICS_ENABLED: "false"
       content:
-        - 'liquibase --version | rg --fixed-strings --line-regexp "Liquibase Version: ${{ version }}"'
-        - liquibase --help
-        - liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql validate
-        - liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql update
-        - liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql update
+        - 'liquibase --version | rg --crlf --fixed-strings --line-regexp "Liquibase Version: ${{ version }}"'
+        - 'liquibase --help | rg --fixed-strings "Usage: liquibase"'
+        - >-
+          liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql validate 2>&1
+          | rg --crlf --fixed-strings --line-regexp "No validation errors found."
+        - >-
+          liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql update 2>&1
+          | rg --fixed-strings "Liquibase: Update has been successful."
+        - >-
+          liquibase --url="jdbc:h2:./testdb" --username=sa --password= --changelog-file=test-changelog.sql update 2>&1
+          | rg --crlf --fixed-strings --line-regexp "Database is up to date, no changesets to execute"
 
 about:
   homepage: https://www.liquibase.org/
