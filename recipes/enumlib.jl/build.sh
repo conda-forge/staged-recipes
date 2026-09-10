@@ -51,8 +51,11 @@ export JULIA_CC="${CC}"
 # x86_64-microarch-level rather than one multi-versioned binary; which way to go
 # is an open question on the PR, and the deciding factor is likely system-image
 # size, since that already dominates this package.
-# BISECT (2026-09-10): the multi-versioned string below is commented out while we
-# find out whether it is what makes the sysimage object step segfault:
+# BISECT (2026-09-10, round 2): the first attempt at this set JULIA_CPU_TARGET and
+# changed nothing, because create_app ignores it in favour of its own cpu_target
+# keyword -- whose default on x86_64 is that same multi-versioned string. build_app.jl
+# now threads the variable through, so setting it here finally has an effect. Testing
+# whether the multi-versioning is what makes the sysimage object step segfault:
 #
 #   Process(`julia --pkgimages=no '--cpu-target=generic;sandybridge,...,clone_all;
 #     haswell,...' --output-o=...`, ProcessSignaled(11))
