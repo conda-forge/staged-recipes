@@ -20,33 +20,27 @@ case "${target_platform}" in
     ;;
   win-64)
     rid=win-x64
-    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
+    appdir="${LIBRARY_PREFIX}\\libexec\\azure-functions-core-tools"
     ;;
   win-arm64)
     rid=win-arm64
-    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
+    appdir="${LIBRARY_PREFIX}\\libexec\\azure-functions-core-tools"
     ;;
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
 
-make_dir() {
-  case "${target_platform}" in
-    win-*) cmd.exe /d /c "if not exist \"${1}\" mkdir \"${1}\"" ;;
-    *) mkdir -p "${1}" ;;
-  esac
-}
-
-copy_file() {
-  case "${target_platform}" in
-    win-*) cmd.exe /d /c "copy /y \"${1}\" \"${2}\" >nul" ;;
-    *) cp "${1}" "${2}" ;;
-  esac
-}
-
-export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
-license_dir="${SRC_DIR}/collected-licenses"
-make_dir "${license_dir}"
-make_dir "${SRC_DIR}/nuget-licenses"
+case "${target_platform}" in
+  win-*)
+    export NUGET_PACKAGES="${SRC_DIR}\\.nuget\\packages"
+    license_report="${SRC_DIR}\\THIRD_PARTY_NUGET_LICENSES.md"
+    license_download_dir="${SRC_DIR}\\nuget-licenses"
+    ;;
+  *)
+    export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
+    license_report="${SRC_DIR}/THIRD_PARTY_NUGET_LICENSES.md"
+    license_download_dir="${SRC_DIR}/nuget-licenses"
+    ;;
+esac
 
 dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
   --runtime "${rid}" \
@@ -61,8 +55,8 @@ dotnet-project-licenses \
   --include-transitive \
   --target-framework net10.0 \
   --output Markdown \
-  --file-output "${SRC_DIR}/THIRD_PARTY_NUGET_LICENSES.md" \
-  --license-information-download-location "${SRC_DIR}/nuget-licenses"
+  --file-output "${license_report}" \
+  --license-information-download-location "${license_download_dir}"
 license_status=$?
 set -e
 
@@ -70,28 +64,6 @@ case "${license_status}" in
   0|8) ;;
   *) exit "${license_status}" ;;
 esac
-
-# Framework and host packs are brought in by self-contained publish as
-# download dependencies, so nuget-license does not include them in its report.
-for runtime_package in \
-  "microsoft.netcore.app.runtime.${rid}" \
-  "microsoft.aspnetcore.app.runtime.${rid}" \
-  "microsoft.netcore.app.host.${rid}"
-do
-  for license_file in "${NUGET_PACKAGES}/${runtime_package}"/*/LICENSE.*
-  do
-    if [ -f "${license_file}" ]; then
-      copy_file "${license_file}" "${license_dir}/${runtime_package}-LICENSE.txt"
-    fi
-  done
-
-  for notice_file in "${NUGET_PACKAGES}/${runtime_package}"/*/THIRD-PARTY-NOTICES.*
-  do
-    if [ -f "${notice_file}" ]; then
-      copy_file "${notice_file}" "${license_dir}/${runtime_package}-THIRD-PARTY-NOTICES.txt"
-    fi
-  done
-done
 
 dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
   --configuration Release \
@@ -103,24 +75,26 @@ dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
   -p:Version="${PKG_VERSION}" \
   --output "${appdir}"
 
-# These files are already shipped with the Node worker. Also expose them via
-# the conda package's info/licenses directory.
-if [ -f "${appdir}/workers/node/LICENSE" ]; then
-  copy_file "${appdir}/workers/node/LICENSE" "${license_dir}/azure-functions-nodejs-worker-LICENSE.txt"
-fi
-if [ -f "${appdir}/workers/node/NOTICE.html" ]; then
-  copy_file "${appdir}/workers/node/NOTICE.html" "${license_dir}/azure-functions-nodejs-worker-NOTICE.html"
-fi
-
 case "${target_platform}" in
   win-*)
-    cmd.exe /d /c "if not exist \"${PREFIX}/Scripts\" mkdir \"${PREFIX}/Scripts\""
+    scripts_dir="${PREFIX}\\Scripts"
+    cmd.exe /d /c if not exist "${scripts_dir}" mkdir "${scripts_dir}"
     printf '%s\r\n' \
       '@echo off' \
       '"%~dp0..\Library\libexec\azure-functions-core-tools\func.exe" %*' \
-      > "${PREFIX}/Scripts/func.cmd"
+      > "${scripts_dir}\\func.cmd"
     ;;
-  *)
+  linux-*)
+    mkdir -p "${PREFIX}/bin"
+    printf '%s\n' \
+      '#!/bin/sh' \
+      'prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)' \
+      'export LD_LIBRARY_PATH="${prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"' \
+      'exec "${prefix}/libexec/azure-functions-core-tools/func" "$@"' \
+      > "${PREFIX}/bin/func"
+    chmod +x "${PREFIX}/bin/func" "${appdir}/func"
+    ;;
+  osx-*)
     mkdir -p "${PREFIX}/bin"
     chmod +x "${appdir}/func"
     ln -s ../libexec/azure-functions-core-tools/func "${PREFIX}/bin/func"
