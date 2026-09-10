@@ -1,0 +1,79 @@
+context:
+  version: "0.0.2"
+
+package:
+  name: typer-static-completion
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/typer-static-completion/typer_static_completion-${{ version }}.tar.gz
+  sha256: b164f7ae41ea1a4452e3726ef957d0a0da69cdcb58b2ab0b64978207c0c8df92
+
+build:
+  number: 0
+  noarch: python
+  python:
+    entry_points:
+      - typer-static-completion=typer_static_completion.cli:main
+  script:
+    - python -m pip install . -vv --no-deps --no-build-isolation
+    - python -m typer_static_completion.cli generate typer_static_completion.cli:app
+      --prog-name typer-static-completion --shell bash
+      -o $PREFIX/share/bash-completion/completions/typer-static-completion
+    - python -m typer_static_completion.cli generate typer_static_completion.cli:app
+      --prog-name typer-static-completion --shell zsh
+      -o $PREFIX/share/zsh/site-functions/_typer-static-completion
+    - python -m typer_static_completion.cli generate typer_static_completion.cli:app
+      --prog-name typer-static-completion --shell fish
+      -o $PREFIX/share/fish/vendor_completions.d/typer-static-completion.fish
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+    # imported by the build script to generate the shell completions
+    - typer >=0.26,<0.27
+  run:
+    - python >=${{ python_min }}
+    - typer >=0.26,<0.27
+
+tests:
+  - python:
+      imports:
+        - typer_static_completion
+        - typer_static_completion.generators
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - typer-static-completion --help
+      - typer-static-completion generate typer_static_completion.cli:app --prog-name typer-static-completion --shell fish -o -
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+  - package_contents:
+      site_packages:
+        - typer_static_completion/core.py
+      files:
+        - share/bash-completion/completions/typer-static-completion
+        - share/zsh/site-functions/_typer-static-completion
+        - share/fish/vendor_completions.d/typer-static-completion.fish
+
+about:
+  homepage: https://github.com/pavelzw/typer-static-completion
+  repository: https://github.com/pavelzw/typer-static-completion
+  summary: Generate static shell completions for typer applications
+  description: |
+    typer-static-completion renders bash, zsh, and fish completion scripts for
+    Typer applications ahead of time, so tab completion runs entirely in the
+    shell without invoking Python. It introspects nested commands, flags,
+    choices, tuple options, and scalar/tuple/variadic arguments, and is usable
+    both as a build-time CLI and as a Python API.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pavelzw
