@@ -1,6 +1,3 @@
-#!/usr/bin/env brush
-set -euxo pipefail
-
 case "${target_platform}" in
   linux-64)
     rid=linux-x64
@@ -20,27 +17,18 @@ case "${target_platform}" in
     ;;
   win-64)
     rid=win-x64
-    appdir="${LIBRARY_PREFIX}\\libexec\\azure-functions-core-tools"
+    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
     ;;
   win-arm64)
     rid=win-arm64
-    appdir="${LIBRARY_PREFIX}\\libexec\\azure-functions-core-tools"
+    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
     ;;
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
 
-case "${target_platform}" in
-  win-*)
-    export NUGET_PACKAGES="${SRC_DIR}\\.nuget\\packages"
-    license_report="${SRC_DIR}\\THIRD_PARTY_NUGET_LICENSES.md"
-    license_download_dir="${SRC_DIR}\\nuget-licenses"
-    ;;
-  *)
-    export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
-    license_report="${SRC_DIR}/THIRD_PARTY_NUGET_LICENSES.md"
-    license_download_dir="${SRC_DIR}/nuget-licenses"
-    ;;
-esac
+export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
+license_report="${SRC_DIR}/THIRD_PARTY_NUGET_LICENSES.md"
+license_download_dir="${SRC_DIR}/nuget-licenses"
 
 dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
   --runtime "${rid}" \
@@ -82,7 +70,7 @@ case "${target_platform}" in
     printf '%s\r\n' \
       '@echo off' \
       '"%~dp0..\Library\libexec\azure-functions-core-tools\func.exe" %*' \
-      > "${scripts_dir}\\func.cmd"
+      > "${PREFIX}/Scripts/func.cmd"
     ;;
   linux-*)
     mkdir -p "${PREFIX}/bin"
