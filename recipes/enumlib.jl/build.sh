@@ -51,7 +51,21 @@ export JULIA_CC="${CC}"
 # x86_64-microarch-level rather than one multi-versioned binary; which way to go
 # is an open question on the PR, and the deciding factor is likely system-image
 # size, since that already dominates this package.
-export JULIA_CPU_TARGET="generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"
+# BISECT (2026-09-10): the multi-versioned string below is commented out while we
+# find out whether it is what makes the sysimage object step segfault:
+#
+#   Process(`julia --pkgimages=no '--cpu-target=generic;sandybridge,...,clone_all;
+#     haswell,...' --output-o=...`, ProcessSignaled(11))
+#
+# `clone_all` clones every function for each target, which multiplies codegen
+# memory and time, and conda-forge's builders are memory-limited -- so a SIGSEGV
+# inside LLVM codegen is a plausible consequence rather than a coincidence. Build
+# with plain "generic" (PackageCompiler's own default) to test that. If the build
+# goes green, the vectorization question becomes a real tradeoff to settle with
+# the reviewer rather than something we set unilaterally; if it still segfaults,
+# the cause is elsewhere and this goes back.
+# export JULIA_CPU_TARGET="generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"
+export JULIA_CPU_TARGET="generic"
 
 APPDIR="${PREFIX}/libexec/enumlib.jl"
 # create_app writes APPDIR itself (and clears it when it already exists), so make
