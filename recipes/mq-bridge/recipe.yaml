@@ -1,29 +1,5 @@
 context:
   version: "0.4.11"
-
-  # Both outputs are built from the `full-dynamic` feature set — every endpoint
-  # upstream ships, with librdkafka linked from this environment instead of
-  # compiled from vendored C sources. v0.4.11 has no such feature; the patches
-  # under `source:` add it, backported from upstream's
-  # `feature/dynamic-c-linkage`, where it is what `just build-dynamic` builds.
-  # That task exists for exactly this purpose: distro and conda-forge packaging,
-  # where the shared library has to stay patchable.
-  #
-  # `full-dynamic` reaches each output differently, which is what the
-  # passthrough patch is for:
-  #
-  #   mq-bridge-py    `mq-bridge` is a direct dependency, so the feature is
-  #                   reachable by name; only maturin's feature list needs
-  #                   pointing at it.
-  #   mq-bridge-app   `crates/cli` -> `crates/core` -> `mq-bridge` is two hops,
-  #                   and cargo's `--features dep/feature` syntax only reaches a
-  #                   *direct* dependency. Both app crates therefore need a
-  #                   `full-dynamic` passthrough before any command line can
-  #                   turn the linkage on.
-  #
-  # librdkafka is the only library this makes dynamic. SQLite is compiled from
-  # sqlx's bundled amalgamation in both variants upstream offers, so there is no
-  # libsqlite host dependency below and nothing runs bindgen to describe one.
   feature_set: full-dynamic
   llvm_major: "20"
 
@@ -34,14 +10,6 @@ recipe:
 source:
   - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 31bc56c24c4f084e4a5ae52791af3aeba658d8289038fae8f854b7cd419c0d3c
-
-    # 0001-0005 are upstream's `feature/dynamic-c-linkage` commits, squashed by
-    # topic and rebased onto v0.4.11; each patch header says what it does and
-    # why. 0006 has no upstream counterpart — upstream selects the feature set
-    # on maturin's command line, which a PEP 517 build through pip never
-    # reaches, so the wheel's feature list has to be patched instead.
-    #
-    # Expect these to shrink and then disappear as the branch lands upstream.
     patches:
       - patches/0001-split-native-linkage-into-its-own-features.patch
       - patches/0002-relock-sqlx-without-default-features.patch
@@ -67,18 +35,6 @@ outputs:
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
               - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               - export PKG_CONFIG_ALLOW_CROSS=1
-              # Force a *non-static* query for every crate that probes through
-              # the `pkg-config` crate. A static query walks `Requires.private`,
-              # and on win-64 `rdkafka.pc` declares
-              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
-              # whose closure reaches curl, ssh2, psl and icu — none of which a
-              # dynamically linked librdkafka needs, and several of which cannot
-              # be linked there at all (see the win branch). The crate decides
-              # this in `infer_static`, which treats `<LIB>_STATIC` and
-              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
-              # the value; deleting both and setting the dynamic override covers
-              # every branch of it. Linux and macOS ship an empty
-              # `Requires.private`, so this only makes the query explicit there.
               - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
               - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
@@ -90,24 +46,11 @@ outputs:
               - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
-              # See the unix branch. `set "VAR="` deletes the variable in cmd,
-              # which is what is needed here — an empty value would still count
-              # as present.
               - set "RDKAFKA_STATIC="
               - set "LIBCURL_STATIC="
               - set "OPENSSL_STATIC="
               - set "PKG_CONFIG_ALL_STATIC="
               - set "PKG_CONFIG_ALL_DYNAMIC=1"
-              # Safety net, inert unless something still asks for the private
-              # closure. Those .pc files spell their libraries the Unix way —
-              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
-              # libraries are named `libcurl.lib`, `libssh2.lib` and
-              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
-              # exists under a different spelling. Alias them and put the
-              # directory on LIB. link.exe only opens what the link line asks
-              # for, so if the query above is genuinely non-static these files
-              # are never touched; if they ever are, the run-deps report will
-              # show the extra DLL imports and say so.
               - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
               - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
               - set "LIB=%SRC_DIR%\libshim;%LIB%"
@@ -142,27 +85,10 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
-        # Kept as a fallback rather than a hard requirement: with SQLite
-        # bundled, nothing in the resolved tree runs bindgen on the platforms
-        # checked here. aws-lc-sys is the one crate that would, on a target it
-        # has no prebuilt bindings for.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
       host:
-        # rdkafka-sys 4.10 pkg-config-probes `rdkafka >= 2.12.1`. The only
-        # C library this build takes from the environment — SQLite arrives as
-        # sqlx's bundled amalgamation, IBM MQ's client via runtime dlopen.
         - librdkafka >=2.12.1
-        # Windows only, and not because anything links zlib here. The
-        # CMake-built `rdkafka.pc` on win-64 declares
-        #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
-        # and pkg-config resolves that whole graph even for a non-static query.
-        # Every other name arrives with librdkafka's own dependencies, but
-        # `zlib.pc` ships in `zlib` while librdkafka depends on `libzlib`, which
-        # carries no .pc file on any platform. The Linux and macOS builds of
-        # librdkafka leave `Requires.private` empty and put the same libraries in
-        # `Libs.private` as plain `-l` flags, so there is nothing to resolve and
-        # nothing to add there.
         - if: win
           then: zlib
 
@@ -170,7 +96,6 @@ outputs:
       - script:
           - mq-bridge-app --version
           - mq-bridge-app --help
-          # `mqb` is a launcher that execs the real binary next to it.
           - mqb --version
       - package_contents:
           bin:
@@ -187,27 +112,6 @@ outputs:
         transformation, filtering, retries, dead-letter queues, deduplication
         and rate limiting available as middleware. It runs as a CLI, an MCP
         server, or a daemon serving a built-in web UI.
-
-        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
-        MQTT, Pulsar, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC,
-        HTTP, WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
-        stores, directory spools, files and in-memory channels.
-
-        It is not limited to that set. Endpoints and middleware can also be
-        loaded at runtime from native plugin libraries, named by `--plugin` or
-        by a `plugins:` list in the configuration, so a deployment can use an
-        endpoint this binary was never compiled with. See
-        https://github.com/marcomq/mq-bridge/blob/main/docs/PLUGINS.md.
-
-        librdkafka is linked from its conda-forge package rather than compiled
-        from vendored C sources, so a security fix to it reaches this package
-        through a rebuild. SQLite is the exception: upstream compiles it from
-        sqlx's bundled amalgamation in every variant, so it is not linked from
-        conda-forge's libsqlite here either. The IBM MQ endpoint is compiled
-        in but loads IBM's client library at runtime with dlopen: IBM does not
-        redistribute that client, so it has to be installed separately, and only
-        a route that actually opens an IBM MQ endpoint needs it. Point
-        MQ_INSTALLATION_PATH at the installation to enable it.
       license: MIT
       license_file:
         - apps/mq-bridge-app/LICENSE
@@ -234,18 +138,6 @@ outputs:
               - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
               - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
               - export PKG_CONFIG_ALLOW_CROSS=1
-              # Force a *non-static* query for every crate that probes through
-              # the `pkg-config` crate. A static query walks `Requires.private`,
-              # and on win-64 `rdkafka.pc` declares
-              #   Requires.private: libcurl zlib libcrypto libssl libzstd liblz4
-              # whose closure reaches curl, ssh2, psl and icu — none of which a
-              # dynamically linked librdkafka needs, and several of which cannot
-              # be linked there at all (see the win branch). The crate decides
-              # this in `infer_static`, which treats `<LIB>_STATIC` and
-              # `PKG_CONFIG_ALL_STATIC` as true when merely *present*, whatever
-              # the value; deleting both and setting the dynamic override covers
-              # every branch of it. Linux and macOS ship an empty
-              # `Requires.private`, so this only makes the query explicit there.
               - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
               - export PKG_CONFIG_ALL_DYNAMIC=1
               - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
@@ -257,24 +149,11 @@ outputs:
               - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
               - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
               - set "PKG_CONFIG_ALLOW_CROSS=1"
-              # See the unix branch. `set "VAR="` deletes the variable in cmd,
-              # which is what is needed here — an empty value would still count
-              # as present.
               - set "RDKAFKA_STATIC="
               - set "LIBCURL_STATIC="
               - set "OPENSSL_STATIC="
               - set "PKG_CONFIG_ALL_STATIC="
               - set "PKG_CONFIG_ALL_DYNAMIC=1"
-              # Safety net, inert unless something still asks for the private
-              # closure. Those .pc files spell their libraries the Unix way —
-              # `-lcurl`, `-lssh2`, `-lcrypto` — but conda-forge's win-64 import
-              # libraries are named `libcurl.lib`, `libssh2.lib` and
-              # `libcrypto.lib`, so the link fails with LNK1181 on a name that
-              # exists under a different spelling. Alias them and put the
-              # directory on LIB. link.exe only opens what the link line asks
-              # for, so if the query above is genuinely non-static these files
-              # are never touched; if they ever are, the run-deps report will
-              # show the extra DLL imports and say so.
               - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
               - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
               - set "LIB=%SRC_DIR%\libshim;%LIB%"
@@ -305,10 +184,6 @@ outputs:
           then: nasm
         - pkg-config
         - libprotobuf
-        # Kept as a fallback rather than a hard requirement: with SQLite
-        # bundled, nothing in the resolved tree runs bindgen on the platforms
-        # checked here. aws-lc-sys is the one crate that would, on a target it
-        # has no prebuilt bindings for.
         - libclang ${{ llvm_major }}.*
         - clang-${{ llvm_major }}
         - if: build_platform != target_platform
@@ -323,7 +198,6 @@ outputs:
         - pip
         - maturin >=1.7,<2
         - librdkafka >=2.12.1
-        # See the app output for why win-64 needs zlib.pc.
         - if: win
           then: zlib
       run:
@@ -360,18 +234,6 @@ outputs:
         acknowledgement sequencing. Routes can be declared in code or loaded
         from YAML/JSON, and custom endpoints and middleware can be registered
         from Python or loaded as native plugins.
-
-        This build ships upstream's complete endpoint set: Kafka, AMQP, NATS,
-        MQTT, MongoDB, SQL (SQLite/Postgres/MySQL), Postgres CDC, gRPC, HTTP,
-        WebSocket, ClickHouse, ZeroMQ, Redis Streams, AWS SQS/SNS, object
-        stores, directory spools, files and in-memory channels.
-
-        librdkafka is linked from its conda-forge package rather than compiled
-        from vendored C sources; SQLite is compiled from sqlx's bundled
-        amalgamation. The IBM MQ endpoint is compiled
-        in but loads IBM's client library at runtime with dlopen, so that client
-        has to be installed separately, with MQ_INSTALLATION_PATH pointing at
-        it.
       license: MIT
       license_file:
         - python/mq-bridge-py/LICENSE.python
