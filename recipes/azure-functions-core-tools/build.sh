@@ -27,10 +27,12 @@ case "${target_platform}" in
 esac
 
 export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
+export DOTNET_CLI_USE_MSBUILD_SERVER=0
 license_report="${SRC_DIR}/THIRD_PARTY_NUGET_LICENSES.md"
 license_download_dir="${SRC_DIR}/nuget-licenses"
 
 dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
+  --disable-build-servers \
   --runtime "${rid}" \
   --configfile NuGet.Config \
   -p:NuGetAudit=false
@@ -39,12 +41,12 @@ dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
 # Keep those entries in the report, but fail for every other tool error.
 set +e
 dotnet "${BUILD_PREFIX}/libexec/nuget-license/nuget-license.dll" \
-   --input src/Cli/func/Azure.Functions.Cli.csproj \
-   --include-transitive \
-   --target-framework net10.0 \
-   --output Markdown \
-   --file-output "${license_report}" \
-   --license-information-download-location "${license_download_dir}"
+  --input src/Cli/func/Azure.Functions.Cli.csproj \
+  --include-transitive \
+  --target-framework net10.0 \
+  --output Markdown \
+  --file-output "${license_report}" \
+  --license-information-download-location "${license_download_dir}"
 license_status=$?
 set -e
 
@@ -54,6 +56,7 @@ case "${license_status}" in
 esac
 
 dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
+  --disable-build-servers \
   --configuration Release \
   --framework net10.0 \
   --runtime "${rid}" \
@@ -71,6 +74,9 @@ case "${target_platform}" in
       '@echo off' \
       '"%~dp0..\Library\libexec\azure-functions-core-tools\func.exe" %*' \
       > "${PREFIX}/Scripts/func.cmd"
+    # Release MSBuild/Razor/compiler-server handles before rattler-build
+    # removes the build and host prefixes.
+    dotnet build-server shutdown
     ;;
   linux-*)
     mkdir -p "${PREFIX}/bin"
