@@ -1,0 +1,129 @@
+schema_version: 1
+
+context:
+  version: "0.1.1"
+
+package:
+  name: r-tomledit
+  version: ${{ version }}
+
+source:
+  url: https://cran.r-project.org/src/contrib/tomledit_${{ version }}.tar.gz
+  sha256: 2627c39e3642ce81a4565daf643276429f3717746629e89b99236d658060ab28
+
+build:
+  number: 0
+  # The Windows build of the extendr/Rust extension hangs in the native-
+  # static-libs link step (dlltool / raw-dylib under MinGW) and hits the CI
+  # 6h timeout — see PR #33843. Skipping Windows until the extendr-on-
+  # Windows toolchain story is sorted; the win branch below is kept so it
+  # can be re-enabled later.
+  skip:
+    - win
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+  script:
+    env:
+      DISABLE_AUTOBREW: "1"
+      # tomledit ships src/rust/vendor.tar.xz + Cargo.lock in the CRAN
+      # tarball. With NOT_CRAN unset, the package's Makevars extracts the
+      # vendor and runs `cargo --offline`, giving a fully self-contained
+      # build that needs no network — required because conda-forge's
+      # linux-anvil sandbox cannot reach crates.io.
+      CARGO_NET_OFFLINE: "true"
+    content:
+      - if: unix
+        then:
+          - |
+            # conda's Rust activation exports CARGO_BUILD_TARGET=<triple>,
+            # which would place libtomledit.a under target/<triple>/release/.
+            # The package Makevars links from target/release/, so unset it.
+            unset CARGO_BUILD_TARGET
+
+            # Extract the vendored Rust deps up front so cargo-bundle-licenses
+            # (run before R CMD INSTALL) can resolve every crate offline.
+            mkdir -p "${SRC_DIR}/src/.cargo"
+            cp src/rust/vendor-config.toml "${SRC_DIR}/src/.cargo/config.toml"
+            ( cd src && tar xf rust/vendor.tar.xz )
+
+            # Bundle third party licenses from statically linked crates.
+            ( cd src/rust && CARGO_HOME="${SRC_DIR}/src/.cargo" cargo-bundle-licenses \
+                --format yaml --output "${SRC_DIR}/THIRDPARTY.yml" )
+
+            "${R:-R}" CMD INSTALL --build .
+      - if: win
+        then:
+          - |
+            @rem R on conda-forge Windows is MinGW/Rtools-built, so Rust must
+            @rem target the GNU ABI. tomledit's Makevars.win derives the cargo
+            @rem target from the WIN env var and extracts vendor.tar.xz itself
+            @rem (offline, since NOT_CRAN is unset). Point Rust at R's import
+            @rem library (libR) and at binutils' dlltool (target-prefixed).
+            set "WIN=64"
+            set "RUSTFLAGS=-L native=%PREFIX%/lib/R/bin/x64 -l R -C dlltool=x86_64-w64-mingw32-dlltool.exe"
+
+            "%R%" CMD INSTALL --build .
+            if %ERRORLEVEL% neq 0 exit 1
+
+            @rem Bundle third party licenses from statically linked crates
+            cd src\rust
+            cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
+            if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+      else:
+        # MinGW toolchain matching conda-forge's Rtools-built R
+        - gcc
+        - rust-std-x86_64-pc-windows-gnu
+    - ${{ compiler('rust') }}
+    - if: build_platform != target_platform
+      then:
+        - cross-r-base ${{ r_base }}.*
+    - cargo-bundle-licenses
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - pkg-config
+        - make
+      else:
+        - m2-autoconf
+        - m2-automake-wrapper
+        - m2-coreutils
+        - m2-filesystem
+        - m2-grep
+        - m2-make
+        - m2-pkg-config
+        - m2-sed
+        - xz-tools
+  host:
+    - r-base
+    - r-rlang >=1.1.0
+  run:
+    - r-base
+    - r-rlang >=1.1.0
+
+tests:
+  - r:
+      libraries:
+        - tomledit
+
+about:
+  summary: A toolkit for working with 'TOML' files in R while preserving formatting, comments, and structure. 'tomledit' enables serialization of R objects such as lists, data.frames, numeric, logical, and date vectors.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://extendr.github.io/tomledit/
+  repository: https://github.com/extendr/tomledit
+
+extra:
+  recipe-maintainers:
+    - jiangyun-fun
