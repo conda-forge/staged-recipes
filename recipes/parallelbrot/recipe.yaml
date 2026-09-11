@@ -1,0 +1,102 @@
+context:
+  version: "0.2.1"
+
+package:
+  name: parallelbrot
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/parallelbrot/parallelbrot-${{ version }}.tar.gz
+  sha256: 4b6ae384fcd758d0bd81b4ebed091b4951693bf53e54a909681c40a0b7f9d525
+
+build:
+  number: 0
+  # Declared here as well as in the project metadata so the launcher is
+  # generated for the target platform. The one pip leaves behind on Windows
+  # embeds an absolute path to the build prefix's python, which no longer
+  # exists at test or install time, so it fails silently with no output.
+  python:
+    entry_points:
+      - parallelbrot = parallelbrot.cli:main
+  # OpenCL and OpenMP are forced on rather than left at their `auto` default:
+  # the loader, headers and runtime are all declared below, so a detection
+  # failure is a recipe bug and should stop the build instead of silently
+  # producing a degraded package.
+  script:
+    # ${{ PYTHON }} rather than a bare `python`: meson and ninja drag a
+    # second interpreter into the build prefix, which shadows the host one
+    # and has no pip.
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      --config-settings=setup-args=-Dopencl=enabled
+      --config-settings=setup-args=-Dopenmp=enabled
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkg-config
+    # The OpenCL kernel is embedded into a header by a /bin/sh script, which
+    # Meson runs via custom_target. Windows builds have no shell otherwise.
+    - if: win
+      then: m2-base
+  host:
+    - python
+    - pip
+    - meson-python
+    - opencl-headers
+    # conda-forge splits the ICD loader by platform.
+    - if: linux
+      then: ocl-icd
+      else: khronos-opencl-icd-loader
+    # OpenMP runtime. GCC links libgomp, which must be declared or the
+    # package overlinks; Apple Clang has none of its own; MSVC supplies vcomp.
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+    - numpy >=1.21
+    - if: linux
+      then: libgomp
+
+tests:
+  - python:
+      imports:
+        - parallelbrot
+      pip_check: true
+  - script:
+      # The extension reports which backends were compiled in, so this catches
+      # a build that quietly lost OpenCL.
+      - python -c "import parallelbrot as p; assert 'opencl' in p.compiled_backends(), p.compiled_backends()"
+      - python -c "import parallelbrot as p; assert p.has_openmp()"
+      - python -c "import parallelbrot as p; assert p.render(32, 32).shape == (32, 32, 4)"
+      # The console script is declared in [project.scripts]; check it installed.
+      - parallelbrot --info
+      - parallelbrot --output test.png --size 32x32 --quiet
+    requirements:
+      run:
+        - python
+        - numpy
+
+about:
+  homepage: https://github.com/prathamhole14/parallelbrot
+  repository: https://github.com/prathamhole14/parallelbrot
+  summary: Mandelbrot set renderer with OpenMP CPU and OpenCL GPU backends
+  description: |
+    parallelbrot renders the Mandelbrot set to a NumPy array using an
+    OpenMP-parallelised C++ core, with an optional OpenCL backend for GPUs.
+    A separate interactive OpenGL viewer is included in the source tree.
+
+    Unlike the PyPI wheels, this package enables the OpenCL backend, since
+    conda can express the ICD loader as a dependency. The upstream project
+    also has a CUDA backend, which this recipe does not yet build.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - prathamhole14
