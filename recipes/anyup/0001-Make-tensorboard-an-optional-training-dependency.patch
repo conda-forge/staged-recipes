@@ -3,12 +3,14 @@ Subject: [PATCH] Make tensorboard an optional "training" dependency
 
 tensorboard is only needed by anyup.utils.training.logger() (used by
 train.py) to create a SummaryWriter; the model and layers never use it.
-Import SummaryWriter lazily inside logger() and move tensorboard from
-the required dependencies to a "training" extra, so installing anyup
-does not pull in tensorboard.
+Import SummaryWriter lazily inside logger() and, if tensorboard is not
+installed, create the log directory and return a no-op writer so
+training still runs without logging. Move tensorboard from the required
+dependencies to a "training" extra, so installing anyup does not pull
+in tensorboard.
 
---- a/pyproject.toml	2026-09-10 20:57:19.787002523 -0400
-+++ b/pyproject.toml	2026-09-10 20:57:19.795618518 -0400
+--- a/pyproject.toml	2026-09-10 20:58:43.871386793 -0400
++++ b/pyproject.toml	2026-09-10 20:58:43.879839896 -0400
 @@ -25,7 +25,6 @@
      "matplotlib",
      "numpy",
@@ -28,8 +30,8 @@ does not pull in tensorboard.
  # Please install NATTEN manually before to match the local CUDA and PyTorch version
  natten = [
      "natten",
---- a/anyup/utils/training.py	2026-09-10 20:57:19.787966039 -0400
-+++ b/anyup/utils/training.py	2026-09-10 20:57:19.795661742 -0400
+--- a/anyup/utils/training.py	2026-09-10 20:58:43.872227610 -0400
++++ b/anyup/utils/training.py	2026-09-10 20:59:07.391848979 -0400
 @@ -5,7 +5,6 @@
  import torch
  import torchvision.transforms.v2 as T
@@ -38,13 +40,36 @@ does not pull in tensorboard.
  from torchvision.transforms import InterpolationMode
  from typing import Callable, Optional, Dict, Any, List
  from torch.utils.data.dataloader import default_collate
-@@ -29,6 +28,9 @@
+@@ -19,6 +18,13 @@
+     random.seed(worker_seed)
+ 
+ 
++class _NullSummaryWriter:
++    """Stand-in for SummaryWriter when tensorboard is not installed; ignores all calls."""
++
++    def __getattr__(self, name):
++        return lambda *args, **kwargs: None
++
++
+ def logger(args, base_log_dir):
+     os.makedirs(base_log_dir, exist_ok=True)
+     existing_versions = [
+@@ -29,8 +35,16 @@
      new_version = max(existing_versions, default=-1) + 1
      new_log_dir = os.path.join(base_log_dir, f"version_{new_version}")
  
-+    # Imported lazily so tensorboard stays an optional dependency
-+    from torch.utils.tensorboard import SummaryWriter
-+
-     # Create the SummaryWriter with the new log directory
-     writer = SummaryWriter(log_dir=new_log_dir)
+-    # Create the SummaryWriter with the new log directory
+-    writer = SummaryWriter(log_dir=new_log_dir)
++    # Create the SummaryWriter with the new log directory; skip logging if
++    # tensorboard is not installed
++    try:
++        from torch.utils.tensorboard import SummaryWriter
++    except ImportError:
++        # SummaryWriter would have created the log directory; callers may save there
++        os.makedirs(new_log_dir, exist_ok=True)
++        writer = _NullSummaryWriter()
++    else:
++        writer = SummaryWriter(log_dir=new_log_dir)
      return writer, new_version, new_log_dir
+ 
+ 
