@@ -1,30 +1,14 @@
 case "${target_platform}" in
-  linux-64)
-    rid=linux-x64
-    appdir="${PREFIX}/libexec/azure-functions-core-tools"
-    ;;
-  linux-aarch64)
-    rid=linux-arm64
-    appdir="${PREFIX}/libexec/azure-functions-core-tools"
-    ;;
-  osx-64)
-    rid=osx-x64
-    appdir="${PREFIX}/libexec/azure-functions-core-tools"
-    ;;
-  osx-arm64)
-    rid=osx-arm64
-    appdir="${PREFIX}/libexec/azure-functions-core-tools"
-    ;;
-  win-64)
-    rid=win-x64
-    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
-    ;;
-  win-arm64)
-    rid=win-arm64
-    appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
-    ;;
+  linux-64|osx-64|win-64)            rid="${target_platform%-64}-x64" ;;
+  linux-aarch64|osx-arm64|win-arm64) rid="${target_platform%-*}-arm64" ;;
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
+
+if [[ "${target_platform}" == win-* ]]; then
+  appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
+else
+  appdir="${PREFIX}/libexec/azure-functions-core-tools"
+fi
 
 export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
 export DOTNET_CLI_USE_MSBUILD_SERVER=0
