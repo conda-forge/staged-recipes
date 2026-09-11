@@ -1,0 +1,161 @@
+# Palace is built following the approach of its official Spack package
+# (spack_repo/local/packages/palace/package.py in the Palace source tree):
+# PALACE_BUILD_EXTERNAL_DEPS=OFF with all dependencies provided externally.
+# Dependencies available on conda-forge come from host requirements.
+# Dependencies not on conda-forge (or unusable: conda-forge mfem is a minimal
+# build without the solver integrations Palace needs, conda-forge sundials
+# lacks MPI support) are vendored as SHA256-pinned sources below, built as
+# static libraries, linked into the palace binary, and never installed into
+# the package prefix, so nothing clobbers existing conda-forge packages.
+# Their licenses are aggregated in about.license / license_file.
+context:
+  name: palace
+  version: 0.18.0
+  # Pins from Palace v0.18.0 cmake/ExternalGitTags.cmake / spack package
+  mfem_commit: d9d6526cc1749980a2ba1da16e2c1ca1e07d82ec
+  libceed_commit: 39f259f89332e936122f7e02d6088a1dae3fb628
+  strumpack_commit: cfba574f60b792433ee87e7e2a874eeb96c74d1f
+  butterflypack_version: 4.1.0
+  gslib_version: 1.0.9
+  sundials_version: 7.5.0
+  json_schema_validator_version: 2.4.0
+  scnlib_version: 4.0.1
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/awslabs/palace/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 42e4ad483724154a7653045e5d2b5914a61e8b6bfdea90f1f46db8641876efcd
+    target_directory: palace
+  # MFEM: Palace requires MFEM 4.9-dev with the same backport patches the
+  # Palace superbuild and Spack package apply (conda-forge mfem 4.8 is a
+  # minimal build without SuperLU/STRUMPACK/MUMPS/SUNDIALS/GSLIB support).
+  - url: https://github.com/mfem/mfem/archive/${{ mfem_commit }}.tar.gz
+    sha256: 5088f518d830086b5d8a809258cac031e87e71b8b243a2c1f5e985e4cc3b5539
+    target_directory: mfem
+    patches:
+      - patches/mfem/mfem_pr3847.diff
+      - patches/mfem/mfem_gmsh_parser_performance.diff
+      - patches/mfem/mfem_pr5246.diff
+      - patches/mfem/mfem_pr5353.diff
+      - patches/mfem/mfem_pr4983.diff
+      - patches/mfem/mfem_pr5415.diff
+  - url: https://github.com/CEED/libCEED/archive/${{ libceed_commit }}.tar.gz
+    sha256: 68cb5766dc7e6534ce83c5d6916eb834afbbedc2d287109157a22ca4defcf9cd
+    target_directory: libceed
+  - url: https://github.com/Nek5000/gslib/archive/refs/tags/v${{ gslib_version }}.tar.gz
+    sha256: 572c78b1ca4ddda75ec85c6299ee0597459f4dbf5170b9faa6de4c435dcdc80b
+    target_directory: gslib
+  - url: https://github.com/pghysels/STRUMPACK/archive/${{ strumpack_commit }}.tar.gz
+    sha256: f9a9364b32040a417b55a975138d3db03d5d6041d373975aa6398df403517b47
+    target_directory: strumpack
+  - url: https://github.com/liuyangzhuan/ButterflyPACK/archive/refs/tags/v${{ butterflypack_version }}.tar.gz
+    sha256: 3782840011a28c89339059e02062f4a21ab5b97f95d16cdba6ae0b66c7b5fb33
+    target_directory: butterflypack
+  - url: https://github.com/LLNL/sundials/releases/download/v${{ sundials_version }}/sundials-${{ sundials_version }}.tar.gz
+    sha256: 089ac659507def738b7a65b574ffe3a900d38569e3323d9709ebed3e445adecc
+    target_directory: sundials
+  - url: https://github.com/pboettch/json-schema-validator/archive/refs/tags/${{ json_schema_validator_version }}.tar.gz
+    sha256: 24cbb114609cc9b43d4018b8d03e082ff5d2f26f5dce8bd36538097267b63af9
+    target_directory: json-schema-validator
+  - url: https://github.com/eliaskosunen/scnlib/archive/refs/tags/v${{ scnlib_version }}.tar.gz
+    sha256: ece17b26840894cc57a7127138fe4540929adcb297524dec02c490c233ff46a7
+    target_directory: scnlib
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  # keep the trailing number in sync with build.number above
+  string: mpi_${{ mpi }}_h${{ hash }}_0
+  script:
+    file: build.sh
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("fortran") }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.24
+    - make
+    - pkg-config
+  host:
+    - ${{ mpi }}
+    - libblas
+    - liblapack
+    - hypre
+    - metis
+    - parmetis
+    - scalapack
+    - superlu_dist
+    - mumps-mpi
+    # Palace needs complex-valued PETSc/SLEPc (mumps-mpi/superlu_dist pull the
+    # matching MPI variant; the complex build flavor must be pinned explicitly)
+    - petsc * complex_*
+    - slepc * complex_*
+    # MPI builds of arpack include parpack; the nompi variant is preferred by
+    # build number so the MPI flavor must be pinned explicitly
+    - arpack * mpi_${{ mpi }}_*
+    - libxsmm
+    - zfp
+    - nlohmann_json
+    - fmt
+    - eigen
+    - zlib
+    - libunwind
+  run:
+    - ${{ mpi }}
+    # No run_exports upstream: libxsmm SONAME is libxsmm.so.2; mumps encodes
+    # the full version in its SONAME so it must be pinned exactly
+    - libxsmm
+    - ${{ pin_compatible("mumps-mpi", exact=True) }}
+    - ${{ pin_compatible("arpack", exact=True) }}
+    # The palace binary records libopenblas.so.0 (linked through the openblas
+    # flavor of the libblas metapackage), so the runtime blas must be openblas
+    - libblas * *openblas
+
+tests:
+  - script:
+      - palace --help
+  - script:
+      # Solve the bundled 3D cylindrical cavity eigenmode example (single
+      # rank) and check that eigenfrequencies were computed
+      - cp -r $PREFIX/share/palace/examples/cylinder ./cylinder-test
+      - cd cylinder-test
+      - palace -np 1 cavity_pec.json
+      - test -s postpro/cavity_pec/eig.csv
+
+about:
+  homepage: https://github.com/awslabs/palace
+  repository: https://github.com/awslabs/palace
+  documentation: https://awslabs.github.io/palace/
+  license: Apache-2.0 AND BSD-3-Clause AND BSD-2-Clause AND MIT
+  license_file:
+    - palace/LICENSE
+    - palace/NOTICE
+    - mfem/LICENSE
+    - libceed/LICENSE
+    - gslib/LICENSE
+    - strumpack/LICENSE
+    - butterflypack/license.txt
+    - sundials/LICENSE
+    - json-schema-validator/LICENSE
+    - scnlib/LICENSE
+  summary: 3D finite element solver for computational electromagnetics
+  description: |
+    Palace is an open-source, parallel finite element code for full-wave
+    3D electromagnetic simulations in the frequency or time domain, using
+    the MFEM finite element discretization library and the libCEED library
+    for efficient exascale discretizations. This build includes the
+    SuperLU_DIST, STRUMPACK (with ButterflyPACK), and MUMPS sparse direct
+    solvers, the SLEPc and ARPACK eigenvalue solvers, SUNDIALS time
+    integrators, OpenMP shared-memory parallelism, the LIBXSMM-backed
+    libCEED CPU backends, and GSLIB high-order field interpolation.
+
+extra:
+  recipe-maintainers:
+    - benvial
