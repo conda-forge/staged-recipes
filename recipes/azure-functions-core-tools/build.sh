@@ -7,10 +7,11 @@ case "${target_platform}" in
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
 
-case "${target_platform}" in
-  win-*) appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools" ;;
-  *) appdir="${PREFIX}/libexec/azure-functions-core-tools" ;;
-esac
+if [[ "${target_platform}" == win-* ]]; then
+  appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
+else
+  appdir="${PREFIX}/libexec/azure-functions-core-tools"
+fi
 
 export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
 export DOTNET_CLI_USE_MSBUILD_SERVER=0
@@ -65,12 +66,8 @@ case "${target_platform}" in
     dotnet build-server shutdown
     ;;
   linux-*)
-    # Global binary relocation is disabled because some vendored macOS worker
-    # binaries cannot be rewritten. Patch the top-level .NET libraries here so
-    # their dynamically loaded dependencies are resolved from the conda prefix.
-    for lib in "${appdir}"/*.so; do
-      patchelf --add-rpath '$ORIGIN/../../lib' "${lib}"
-    done
+    # DT_RPATH is inherited by libraries loaded transitively via dlopen().
+    patchelf --force-rpath --set-rpath '$ORIGIN/../../lib' "${appdir}/func"
     mkdir -p "${PREFIX}/bin"
     chmod +x "${appdir}/func"
     ln -s ../libexec/azure-functions-core-tools/func "${PREFIX}/bin/func"
