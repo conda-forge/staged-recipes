@@ -37,19 +37,28 @@ def _lint_recipes(gh, pr):
         "recipes/example-v1/recipe.yaml",
     ]
 
-    # 1. Do not edit or delete example recipes and only edit recipe files
+    # 1. Do not edit or delete example recipes and only edit files in recipes/<feedstock-name>/
     if "maintenance" not in labels:
         for fname in fnames:
             if fname in example_recipes:
                 lints[fname].append(
-                    "Do not edit or delete example recipes in `recipes/example-v0-deprecated/` or `recipe/example-v1/`."
+                    "Do not edit or delete example recipes in `recipes/example-v0-deprecated/` or `recipes/example-v1/`."
                 )
                 extra_edits = True
-            if not fname.startswith("recipes/"):
+            elif not fname.startswith("recipes/"):
                 lints[fname].append(
                     "Do not edit files outside of the `recipes/` directory."
                 )
                 extra_edits = True
+            else:
+                parts = Path(fname).parts
+                # parts should be ('recipes', '<feedstock_name>', '<file_or_subdir>', ...)
+                if len(parts) <= 2:
+                    lints[fname].append(
+                        "Do not add or edit files directly inside the `recipes/` root directory. "
+                        "Please place all files for your recipe inside a subdirectory: `recipes/<feedstock-name>/`."
+                    )
+                    extra_edits = True
 
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
@@ -61,7 +70,7 @@ def _lint_recipes(gh, pr):
         ) and fname not in example_recipes:
             lints[fname].append(
                 "Please put your recipe in its own directory in the `recipes/` directory as "
-                "`recipe/<name of feedstock>/<your recipe file>.yaml`."
+                "`recipes/<name of feedstock>/<your recipe file>.yaml`."
             )
 
     # 3. Ensure environment.yaml and pixi.toml are in sync
