@@ -1,14 +1,16 @@
+#!/usr/bin/env brush
+set -euxo pipefail
+
 case "${target_platform}" in
-  linux-64|osx-64|win-64)            rid="${target_platform%-64}-x64" ;;
+  linux-64|osx-64|win-64) rid="${target_platform%-64}-x64" ;;
   linux-aarch64|osx-arm64|win-arm64) rid="${target_platform%-*}-arm64" ;;
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
 
-if [[ "${target_platform}" == win-* ]]; then
-  appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
-else
-  appdir="${PREFIX}/libexec/azure-functions-core-tools"
-fi
+case "${target_platform}" in
+  win-*) appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools" ;;
+  *) appdir="${PREFIX}/libexec/azure-functions-core-tools" ;;
+esac
 
 export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
 export DOTNET_CLI_USE_MSBUILD_SERVER=0
@@ -63,14 +65,15 @@ case "${target_platform}" in
     dotnet build-server shutdown
     ;;
   linux-*)
+    # Global binary relocation is disabled because some vendored macOS worker
+    # binaries cannot be rewritten. Patch the top-level .NET libraries here so
+    # their dynamically loaded dependencies are resolved from the conda prefix.
+    for lib in "${appdir}"/*.so; do
+      patchelf --add-rpath '$ORIGIN/../../lib' "${lib}"
+    done
     mkdir -p "${PREFIX}/bin"
-    printf '%s\n' \
-      '#!/bin/sh' \
-      'prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)' \
-      'export LD_LIBRARY_PATH="${prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"' \
-      'exec "${prefix}/libexec/azure-functions-core-tools/func" "$@"' \
-      > "${PREFIX}/bin/func"
-    chmod +x "${PREFIX}/bin/func" "${appdir}/func"
+    chmod +x "${appdir}/func"
+    ln -s ../libexec/azure-functions-core-tools/func "${PREFIX}/bin/func"
     ;;
   osx-*)
     mkdir -p "${PREFIX}/bin"
