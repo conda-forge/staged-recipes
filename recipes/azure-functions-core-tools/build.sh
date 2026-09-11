@@ -7,11 +7,10 @@ case "${target_platform}" in
   *) echo "unsupported target platform: ${target_platform}" >&2; exit 1 ;;
 esac
 
-if [[ "${target_platform}" == win-* ]]; then
-  appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools"
-else
-  appdir="${PREFIX}/libexec/azure-functions-core-tools"
-fi
+case "${target_platform}" in
+  win-*) appdir="${LIBRARY_PREFIX}/libexec/azure-functions-core-tools" ;;
+  *) appdir="${PREFIX}/libexec/azure-functions-core-tools" ;;
+esac
 
 export NUGET_PACKAGES="${SRC_DIR}/.nuget/packages"
 export DOTNET_CLI_USE_MSBUILD_SERVER=0
