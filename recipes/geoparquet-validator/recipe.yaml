@@ -1,0 +1,63 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: geoparquet-validator
+  version: ${{ version }}
+
+source:
+  url: https://github.com/geoparquet/geoparquet-validator/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a5eaa695d4d3b6430fca45a820de6b34046780b1751bff790682371e78728e94
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - cargo install --locked --root "$PREFIX" --path .
+        - rm -f "$PREFIX/.crates.toml" "$PREFIX/.crates2.json"
+      else:
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - cargo install --locked --root "%LIBRARY_PREFIX%" --path .
+        - del "%LIBRARY_PREFIX%\.crates.toml" "%LIBRARY_PREFIX%\.crates2.json"
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cmake
+    - if: unix
+      then: make
+
+tests:
+  - package_contents:
+      bin:
+        - geoparquet-validator
+  - script:
+      - geoparquet-validator --version
+      - geoparquet-validator check --help
+
+about:
+  homepage: https://validator.geoparquet.org/
+  repository: https://github.com/geoparquet/geoparquet-validator
+  documentation: https://github.com/geoparquet/geoparquet-validator#readme
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Validate GeoParquet files against the OGC abstract tests and the 1.0/1.1 community specifications
+  description: |
+    A single command that runs the abstract tests of the OGC GeoParquet 2.0 draft on a file, a
+    directory or an object-store URL (s3://, gs://, az://, https://, read with range requests),
+    checks GeoParquet 1.0 and 1.1 files against their own community specification, and reports the
+    distribution best practices (spatial ordering, row group size, compression, bbox covering) as
+    advice. Reports are JSON with a published schema; exit codes 0 conformant, 1 a test failed,
+    2 the tool could not run.
+
+extra:
+  recipe-maintainers:
+    - jatorre
+    - cholmes
