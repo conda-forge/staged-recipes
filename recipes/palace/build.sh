@@ -221,18 +221,27 @@ cmake --build "${SRC_DIR}/mfem/build" -j"${CPU_COUNT}"
 cmake --install "${SRC_DIR}/mfem/build"
 
 # -----------------------------------------------------------------------------
-# libCEED (static, with LIBXSMM backend from conda-forge; not on conda-forge)
-# conda-forge libxsmm puts headers in include/libxsmm/, but libCEED expects
-# the upstream layout XSMM_DIR/include/libxsmm.h — provide a shim prefix
+# LIBXSMM (static; conda-forge libxsmm 2.x binaries require GLIBC_2.38 without
+# declaring a __glibc run constraint, so they crash at load time on the CI
+# images — vendored at the commit Palace pins until the feedstock is fixed).
+# Build options follow Palace's cmake/ExternalLIBXSMM.cmake (no Fortran, no
+# BLAS linkage), except STATIC=1 since we link it into the binary.
 # -----------------------------------------------------------------------------
-mkdir -p "${SRC_DIR}/xsmm-shim"
-ln -sfn "${PREFIX}/include/libxsmm" "${SRC_DIR}/xsmm-shim/include"
-ln -sfn "${PREFIX}/lib" "${SRC_DIR}/xsmm-shim/lib"
+make -C "${SRC_DIR}/libxsmm" -j"${CPU_COUNT}" \
+  CC="${CC}" CXX="${CXX}" FC= FORTRAN=0 \
+  BLAS=0 SYM=1 STATIC=1 \
+  PREFIX="${VENDOR}" install
+# belt and braces: nothing may link a shared vendor libxsmm
+rm -f "${VENDOR}"/lib/libxsmm*.so*
+
+# -----------------------------------------------------------------------------
+# libCEED (static, with LIBXSMM backend; not on conda-forge)
+# -----------------------------------------------------------------------------
 make -C "${SRC_DIR}/libceed" -j"${CPU_COUNT}" \
   CC="${CC}" CXX="${CXX}" FC= \
   OPT="${CFLAGS} -O3 -fPIC" \
   STATIC=1 OPENMP=1 \
-  XSMM_DIR="${SRC_DIR}/xsmm-shim" \
+  XSMM_DIR="${VENDOR}" \
   prefix="${VENDOR}" install
 
 # -----------------------------------------------------------------------------

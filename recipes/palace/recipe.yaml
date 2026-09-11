@@ -20,6 +20,7 @@ context:
   sundials_version: 7.5.0
   json_schema_validator_version: 2.4.0
   scnlib_version: 4.0.1
+  libxsmm_commit: ea0b20499a41377bab148257240adbbfe1b4a333
 
 package:
   name: ${{ name|lower }}
@@ -63,6 +64,15 @@ source:
   - url: https://github.com/eliaskosunen/scnlib/archive/refs/tags/v${{ scnlib_version }}.tar.gz
     sha256: ece17b26840894cc57a7127138fe4540929adcb297524dec02c490c233ff46a7
     target_directory: scnlib
+  # conda-forge libxsmm 2.x is currently unusable as a dependency: its
+  # binaries require GLIBC_2.38 without declaring a __glibc constraint, so
+  # consumers crash at load time on older-glibc systems (including the
+  # conda-forge CI images). Vendored at the commit Palace itself pins until
+  # the libxsmm-feedstock is rebuilt with proper stdlib pinning:
+  # https://github.com/conda-forge/libxsmm-feedstock/issues/22
+  - url: https://github.com/libxsmm/libxsmm/archive/${{ libxsmm_commit }}.tar.gz
+    sha256: ed8be9b3d575a215807af0906e185614a9aeb7c0869cbec93f93f3739b71c841
+    target_directory: libxsmm
 
 build:
   number: 0
@@ -100,7 +110,6 @@ requirements:
     # MPI builds of arpack include parpack; the nompi variant is preferred by
     # build number so the MPI flavor must be pinned explicitly
     - arpack * mpi_${{ mpi }}_*
-    - libxsmm
     - zfp
     - nlohmann_json
     # header-only, build-time only; consumed by the vendored scnlib build
@@ -115,9 +124,7 @@ requirements:
     - libunwind
   run:
     - ${{ mpi }}
-    # No run_exports upstream: libxsmm SONAME is libxsmm.so.2; mumps encodes
-    # the full version in its SONAME so it must be pinned exactly
-    - libxsmm
+    # mumps encodes the full version in its SONAME so it must be pinned exactly
     - ${{ pin_compatible("mumps-mpi", exact=True) }}
     - ${{ pin_compatible("arpack", exact=True) }}
     # The palace binary records libopenblas.so.0 (linked through the openblas
@@ -148,6 +155,7 @@ about:
     - gslib/LICENSE
     - strumpack/LICENSE
     - butterflypack/license.txt
+    - libxsmm/LICENSE.md
     - sundials/LICENSE
     - json-schema-validator/LICENSE
     - scnlib/LICENSE
