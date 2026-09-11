@@ -165,11 +165,14 @@ cmake --build "${SRC_DIR}/json-schema-validator/build" -j"${CPU_COUNT}"
 cmake --install "${SRC_DIR}/json-schema-validator/build"
 
 # -----------------------------------------------------------------------------
-# scnlib (static; not on conda-forge)
+# scnlib (static; not on conda-forge). SCN_USE_EXTERNAL_FAST_FLOAT: without
+# it scnlib FetchContent-clones fast_float at configure time (no git/network
+# on conda-forge CI); fast_float comes from host instead.
 # -----------------------------------------------------------------------------
 cmake -S "${SRC_DIR}/scnlib" -B "${SRC_DIR}/scnlib/build" \
   "${COMMON_CMAKE_ARGS[@]}" \
   -DCMAKE_INSTALL_PREFIX="${VENDOR}" \
+  -DSCN_USE_EXTERNAL_FAST_FLOAT=ON \
   -DSCN_TESTS=OFF \
   -DSCN_EXAMPLES=OFF \
   -DSCN_BENCHMARKS=OFF \
