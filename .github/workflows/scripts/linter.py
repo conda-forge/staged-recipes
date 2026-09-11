@@ -51,9 +51,7 @@ def _lint_recipes(gh, pr):
                 )
                 extra_edits = True
             else:
-                parts = Path(fname).parts
-                # parts should be ('recipes', '<feedstock_name>', '<file_or_subdir>', ...)
-                if len(parts) <= 2:
+                if fname.count('/') < 2:
                     lints[fname].append(
                         "Do not add or edit files directly inside the `recipes/` root directory. "
                         "Please place all files for your recipe inside a subdirectory: `recipes/<feedstock-name>/`."
