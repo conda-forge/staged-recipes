@@ -1,0 +1,77 @@
+{% set name = "ssik" %}
+{% set version = "1.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 912ea8e4e90084e301243505ba259e8b8f1725fc4474d38dbc302379a284985c
+
+build:
+  number: 0
+  # Match the PyPI wheel matrix declared in pyproject.toml [tool.cibuildwheel]:
+  # cp311 / cp312 / cp313, skipping musllinux + 32-bit + PyPy + linux-aarch64.
+  # conda-forge already excludes musllinux + PyPy + 32-bit Windows by default,
+  # so only the Python-version skip needs an explicit selector.
+  skip: true  # [py<311 or py>313]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  entry_points:
+    - ssik = ssik.cli:main
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - python
+    - pip
+    - hatchling >=1.27
+    - hatch-vcs >=0.4
+    - cython >=3.1
+    - setuptools >=70
+    - numpy >=2.0
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - scipy >=1.13
+    - sympy >=1.10
+    - cython >=3.1
+
+test:
+  imports:
+    - ssik
+    - ssik.prebuilt.iiwa14_ik
+    - ssik.prebuilt.franka_panda_ik
+    - ssik.prebuilt.ur5_ik
+    - ssik.prebuilt.rizon4_ik
+  commands:
+    - ssik --help
+    - python -c "from ssik.prebuilt import iiwa14_ik; import numpy as np; q = np.array([0.3, 0.4, -0.5, 0.6, 0.2, -0.3, 0.4]); T = iiwa14_ik.fk(q); sols = iiwa14_ik.solve(T); assert sols and max(s.fk_residual for s in sols) < 1e-9, 'iiwa14_ik smoke failed'"
+    - python -c "from ssik.prebuilt import franka_panda_ik; import numpy as np; T = franka_panda_ik.fk(np.array([0.2, 0.3, -0.4, -1.2, 0.3, 1.4, 0.5])); sols = franka_panda_ik.solve(T); assert sols, 'franka_panda_ik returned no IK'"
+  requires:
+    - pip
+
+about:
+  home: https://github.com/personalrobotics/ssik
+  summary: Analytical inverse kinematics for 6R and 7R revolute robot arms
+  description: |
+    ssik is a Python library that produces every analytical inverse-kinematics
+    branch for 6R and 7R revolute manipulators. Eight prebuilt arms ship in
+    the wheel (UR5, Puma 560, Kinova JACO 2, KUKA iiwa14, Kinova Gen3, Franka
+    Panda, Flexiv Rizon 4, Kassow KR810); any other arm is supported via the
+    ``ssik build`` CLI, which reads a URDF and emits a single-file Python
+    artifact specialised to the kinematic chain. ssik covers kinematic
+    classes that the standard subproblem-decomposition libraries do not —
+    non-Pieper 6R (JACO 2), non-SRS 7R (Rizon 4, Kassow KR810), and
+    approximate-SRS 7R (Kinova Gen3) — via a tier-based dispatcher backed by
+    IK-Geo subproblems and a Husty-Pfurner Study-quaternion universal fallback.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://personalrobotics.github.io/ssik/
+  dev_url: https://github.com/personalrobotics/ssik
+
+extra:
+  recipe-maintainers:
+    - siddhss5
