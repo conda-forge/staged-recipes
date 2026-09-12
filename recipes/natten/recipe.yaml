@@ -1,0 +1,127 @@
+schema_version: 1
+
+context:
+  name: natten
+  version: "0.21.7"
+  # 90a/100a enable the Hopper/Blackwell kernels. Trimmed like the pytorch
+  # feedstock (sm_86 binaries also run on sm_89), from Ampere up, with PTX for
+  # the newest arch so future GPUs can JIT the kernels.
+  cuda_archs: 80-real;86-real;90a-real;100a-real;120-real;120-virtual
+
+recipe:
+  name: natten-split
+  version: ${{ version }}
+
+source:
+  # Use the PyPI sdist instead of GitHub because it includes the vendored CUTLASS
+  # headers (a git submodule upstream)
+  url: https://pypi.org/packages/source/n/natten/natten-${{ version }}.tar.gz
+  sha256: 8417236b74db079b2d23899ec8f77514fb2dc73d4bbd6b346a45b6967fc05ffb
+  patches:
+    # https://github.com/SHI-Labs/NATTEN/pull/348
+    - 0001-Fix-int32-offset-overflow-in-compute-delta-reduction.patch
+    # https://github.com/SHI-Labs/NATTEN/pull/346
+    - 0002-Fix-torch.compile-self-attention-fallback-logging.patch
+
+build:
+  number: 0
+  # libnatten is CUDA-only; without CUDA upstream builds a pure-python package
+  skip:
+    - cuda_compiler_version == "None" or (not linux)
+
+outputs:
+  # The CUDA kernels only use libtorch's C++ API, not Python, so compile them
+  # once per CUDA version into a static library that every Python variant of
+  # natten links into its extension module.
+  - staging:
+      name: natten-kernels
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - make
+        # Only runs the stdlib-only kernel autogen scripts; constrained so that
+        # it does not become a per-Python variant
+        - python >=3.10
+      host:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        # Pulled in by ATen/cuda/CUDAContext.h and curand_kernel.h
+        - libcublas-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - libtorch
+        - libtorch * cuda*
+    build:
+      script:
+        env:
+          NATTEN_CUDA_ARCHS: ${{ cuda_archs }}
+          # One compile job at a time; the CUTLASS kernels need several GB each and
+          # parallel jobs run the CI agents out of memory
+          NATTEN_N_WORKERS: "1"
+        file: build_kernels.sh
+
+  - package:
+      name: natten
+    inherit: natten-kernels
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - make
+        - if: build_platform != host_platform
+          then:
+            - python
+            - cross-python_${{ host_platform }}
+            - pytorch
+            - pytorch * cuda*
+      host:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        - pip
+        - python
+        - pytorch
+        - pytorch * cuda*
+        - setuptools >=64
+      run:
+        - python
+        - pytorch * cuda*
+    build:
+      script: build_python.sh
+    tests:
+      - python:
+          imports:
+            - natten
+            # natten silently falls back to stubs if libnatten fails to import
+            - natten.libnatten
+          pip_check: true
+      - script:
+          - python -c "import natten; assert natten.HAS_LIBNATTEN"
+
+about:
+  homepage: https://natten.org
+  summary: Neighborhood Attention Extension
+  description: |
+    NATTEN is an open-source project dedicated to providing infrastructure for
+    Neighborhood Attention (NA), a sliding window self-attention mechanism, and
+    its extensions. It provides fused CUDA kernels for 1D, 2D and 3D
+    neighborhood attention built on CUTLASS, with PyTorch bindings.
+  license: MIT AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - NOTICE
+    - third_party/cutlass/LICENSE.txt
+  documentation: https://natten.org
+  repository: https://github.com/SHI-Labs/NATTEN
+
+extra:
+  feedstock-name: natten
+  recipe-maintainers:
+    - hmaarrfk
