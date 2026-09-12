@@ -1,0 +1,79 @@
+{% set name = "pyaegean" %}
+{% set version = "0.42.0" %}
+{% set python_min = "3.10" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: c2797e5c49c0ee223420405e79e361787b24d9ca31cb0bc2cc66e77c619e0fa7
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  # Two console entry points (aegean, aegean-mcp) are created automatically from the
+  # package metadata. They require the [cli] / [mcp] optional dependencies at runtime;
+  # those are NOT hard requirements, so they are intentionally not added to `run` below
+  # (see the note in `requirements`). This mirrors the upstream design: the core is
+  # zero-dependency and every interface/backend lives behind a pip extra.
+  entry_points:
+    - aegean = aegean.cli:main
+    - aegean-mcp = aegean.mcp_server:main
+
+requirements:
+  host:
+    - python {{ python_min }}
+    - pip
+    - setuptools >=77      # build-backend floor: PEP 639 SPDX license expression + Metadata 2.4
+  run:
+    - python >={{ python_min }}
+    # No third-party run dependencies. The importable core (`import aegean`) is pure
+    # standard library. All heavy functionality (pandas, onnxruntime, lxml, geopandas,
+    # typer/rich CLI, textual TUI, the AI providers, etc.) is packaged upstream as pip
+    # extras and is deliberately omitted here so `conda install pyaegean` stays minimal.
+
+test:
+  imports:
+    - aegean
+  requires:
+    - python {{ python_min }}
+    - pip
+  commands:
+    - pip check
+    # Version check via the importable core (works with zero extras installed).
+    # The `aegean` / `aegean-mcp` console scripts are NOT exercised here because they
+    # require the [cli] / [mcp] extras, which are not conda run dependencies.
+    - python -c "import aegean; assert aegean.__version__ == '{{ version }}', aegean.__version__"
+
+about:
+  home: https://github.com/ryanpavlicek/pyaegean
+  summary: A specialist Python toolkit for Ancient Greek and the Aegean syllabic scripts
+  description: |
+    pyaegean is a specialist Python toolkit for Ancient Greek: alphabetic Greek
+    (Archaic through Koine) and all four Aegean syllabic scripts (Linear A, Linear B,
+    Cypriot, Cypro-Minoan). It provides Greek NLP (normalization, tokenization,
+    syllabification, accentuation, prosody, metrical scansion, IPA, part-of-speech
+    tagging, lemmatization, dependency parsing, and a neural joint pipeline available
+    through an optional backend), corpus tooling with lossless JSON round-trip, SQLite
+    persistence and full-text search, and a citation layer.
+
+    The importable core has no hard third-party dependencies. Interfaces and heavy
+    backends (the command-line interface, the terminal UI, the MCP server, DataFrame
+    interop, EpiDoc, geospatial export, plotting, the neural pipeline, and the AI
+    translation layer) are available upstream as pip extras and are not installed by
+    this conda package. Corpora and trained models are fetched to a local cache on
+    demand and are never bundled.
+  license: Apache-2.0
+  license_family: Apache
+  license_file:
+    - LICENSE
+    - NOTICE
+  doc_url: https://pyaegean.xyz/
+  dev_url: https://github.com/ryanpavlicek/pyaegean
+
+extra:
+  recipe-maintainers:
+    - ryanpavlicek
