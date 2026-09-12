@@ -13,7 +13,15 @@ source:
 
 build:
   number: 0
-  noarch: python
+  # Note that noarch is currently not feasible:
+  # stepup.core.watcher imports asyncinotify if sys.platform == "linux".
+  # It is not made optional because it adds major value.
+  # StepUp's macos version is provisional as it cannot use asyncinotify.
+  # Similar support for Windows is planned but not yet implemented.
+  # (watchdog and watchfiles were considered as alternatives for asyncinotify,
+  # but they lack required features.)
+  skip:
+    - win
   script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   python:
     entry_points:
@@ -23,13 +31,12 @@ build:
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python
     - setuptools >=77.0
     - setuptools-scm >=8.1
     - pip
   run:
-    - __unix
-    - python >=${{ python_min }}
+    - python
     - if: linux
       then: asyncinotify >=4.0.9
     - attrs >=23.1.0
@@ -43,11 +50,8 @@ requirements:
 tests:
   - python:
       imports:
-        - stepup
+        - stepup.core
       pip_check: true
-      python_version:
-        - ${{ python_min }}.*
-        - "*"
   - script:
       - stepup --help
       - sb --help
@@ -55,9 +59,22 @@ tests:
 
 about:
   summary: A dynamic Python build tool for reproducible workflows
+  description: |
+    StepUp is a dynamic build tool and a modern alternative to Make.
+    Its defining feature is that workflow generation and execution are unified:
+    a plan.py script defines the initial build steps.
+    While the workflow is being executed, any step can add more steps and
+    dependencies, based on the outputs built so far.
+    This makes StepUp ideal for builds where the full set of dependencies
+    cannot be determined in advance.
+
+    StepUp Core provides the basic framework for StepUp,
+    without any domain-specific features.
   license: LGPL-3.0-or-later
-  license_file: LICENSE
-  homepage: https://pypi.org/project/stepup/
+  license_file:
+    - LICENSE
+    - LICENSES/LicenseRef-StepUp-Logo-v1.txt
+  homepage: https://reproducible-reporting.github.io/stepup-core/
   repository: https://github.com/reproducible-reporting/stepup-core/
   documentation: https://reproducible-reporting.github.io/stepup-core/
 
