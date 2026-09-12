@@ -1,0 +1,90 @@
+From a6ee5dccb40c9bcd067d5d38d592fb9c792372ad Mon Sep 17 00:00:00 2001
+From: Zhongwang Wei <zhongwang007@gmail.com>
+Date: Fri, 11 Sep 2026 15:17:02 +0800
+Subject: [PATCH] Handle the actual Windows stdio defaults before Conda
+ publication
+
+Constraint: Windows defaults to surrogateescape, which still rejects ordinary Unicode glyphs with CP1252.
+Rejected: Test only explicit strict streams | misses the Windows default error policy.
+Confidence: high
+Scope-risk: narrow
+Tested: Four new failure cases reproduced; 37 related tests pass, including default streams, surrogateescape, surrogatepass, replacement policy and UTF-8; Ruff and diff checks.
+Directive: Backport this fix into the immutable GitHub 3.0.1 source for Conda; hold PyPI until the channel publishes.
+---
+ src/openbench/cli/main.py     |  2 +-
+ tests/test_cli_integration.py | 39 +++++++++++++++++++++++------------
+ 2 files changed, 27 insertions(+), 14 deletions(-)
+
+diff --git a/src/openbench/cli/main.py b/src/openbench/cli/main.py
+index 7de1aad..cf21daa 100644
+--- a/src/openbench/cli/main.py
++++ b/src/openbench/cli/main.py
+@@ -32,7 +32,7 @@ class LazyGroup(click.Group):
+     def main(self, *args, **kwargs):
+         # Redirected Windows streams may use a codec without our status glyphs.
+         for stream in (sys.stdout, sys.stderr):
+-            if isinstance(stream, io.TextIOWrapper) and stream.errors == "strict":
++            if isinstance(stream, io.TextIOWrapper) and stream.errors in {"strict", "surrogateescape", "surrogatepass"}:
+                 stream.reconfigure(errors="backslashreplace")
+         return super().main(*args, **kwargs)
+ 
+diff --git a/tests/test_cli_integration.py b/tests/test_cli_integration.py
+index f5504de..3084a8a 100644
+--- a/tests/test_cli_integration.py
++++ b/tests/test_cli_integration.py
+@@ -136,26 +136,39 @@ def test_model_list():
+     assert "CoLM2024" in result.output
+ 
+ 
+-@pytest.mark.parametrize("encoding", ["cp1252", "utf-8"])
++@pytest.mark.parametrize(
++    "io_encoding, separator",
++    [
++        ("cp1252:strict", r"\u2500"),
++        ("cp1252:surrogateescape", r"\u2500"),
++        ("cp1252:surrogatepass", r"\u2500"),
++        ("cp1252:replace", "?"),
++        ("utf-8:strict", "─"),
++        (None, None),
++    ],
++)
+ @pytest.mark.parametrize("command, expected", [(["model", "list"], "CoLM2024"), (["ref", "list"], "GLEAM")])
+-def test_cli_redirected_output_encoding(tmp_path, encoding, command, expected):
++def test_cli_redirected_output_encoding(tmp_path, io_encoding, separator, command, expected):
++    env = {
++        **os.environ,
++        "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src"),
++        "OPENBENCH_HOME": str(tmp_path),
++    }
++    if io_encoding is None:
++        env.pop("PYTHONIOENCODING", None)
++    else:
++        env["PYTHONIOENCODING"] = io_encoding
+     result = subprocess.run(
+         [sys.executable, "-m", "openbench", *command],
+         cwd=tmp_path,
+-        env={
+-            **os.environ,
+-            "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src"),
+-            "PYTHONIOENCODING": f"{encoding}:strict",
+-            "OPENBENCH_HOME": str(tmp_path),
+-        },
++        env=env,
+         capture_output=True,
+         timeout=60,
+     )
+-    assert result.returncode == 0, result.stderr.decode(encoding)
+-    output = result.stdout.decode(encoding)
+-    assert expected in output
+-    if command == ["model", "list"]:
+-        assert ("─" if encoding == "utf-8" else r"\u2500") in output
++    assert result.returncode == 0, result.stderr.decode("utf-8", errors="backslashreplace")
++    assert expected.encode("ascii") in result.stdout
++    if command == ["model", "list"] and separator is not None:
++        assert separator.encode(io_encoding.split(":")[0]) in result.stdout
+ 
+ 
+ def test_model_show():
+-- 
+2.50.1 (Apple Git-155)
+
