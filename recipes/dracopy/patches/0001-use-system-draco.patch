@@ -1,0 +1,115 @@
+diff --git a/setup.py b/setup.py
+index c50789f..b1db8ce 100644
+--- a/setup.py
++++ b/setup.py
+@@ -4,10 +4,8 @@ import platform
+ import sys
+ import shutil
+ 
+-from skbuild import setup
+-from skbuild.constants import CMAKE_INSTALL_DIR, skbuild_plat_name
+-from skbuild.exceptions import SKBuildError
+-from skbuild.cmaker import get_cmake_version
++from Cython.Build import cythonize
++from setuptools import setup
+ 
+ import multiprocessing as mp
+ 
+@@ -27,19 +25,17 @@ def read(fname):
+   with open(os.path.join(os.path.dirname(__file__), fname), 'rt') as f:
+     return f.read()
+ 
+-# Add CMake as a build requirement if cmake is not installed or is too low a version
+-setup_requires = ['cython']
+-setup_requires.append('cmake')
+-
+ # If you want to re-build the cython cpp file (DracoPy.cpp), run:
+ # cython --cplus -3 -I./_skbuild/linux-x86_64-3.6/cmake-install/include/draco/ ./src/DracoPy.pyx
+ # Replace "linux-x86_64-3.6" with the directory under _skbuild in your system
+ # Draco must already be built/setup.py already be run before running the above command
+ 
+ src_dir = './src'
+-lib_dirs = [os.path.abspath(os.path.join(CMAKE_INSTALL_DIR(), 'lib/')),
+-            os.path.abspath(os.path.join(CMAKE_INSTALL_DIR(), 'lib64/'))]
+-cmake_args = []
++prefix = os.environ.get("LIBRARY_PREFIX", os.environ.get("PREFIX", sys.prefix))
++lib_dirs = [
++    os.path.join(prefix, "lib"),
++    os.path.join(prefix, "lib64"),
++]
+ 
+ operating_system = platform.system().lower()
+ 
+@@ -47,36 +43,21 @@ is_macos = sys.platform == 'darwin' or operating_system == "darwin"
+ is_windows = sys.platform == 'win32' or operating_system == "windows"
+ 
+ if is_macos:
+-    plat_name = skbuild_plat_name()
+-    sep = [pos for pos, char in enumerate(plat_name) if char == '-']
+-    assert len(sep) == 2
+-    cmake_args = [
+-        '-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING='+plat_name[sep[0]+1:sep[1]],
+-        '-DCMAKE_OSX_ARCHITECTURES:STRING='+plat_name[sep[1]+1:]
+-    ]
+-    library_link_args = [
+-        f'-l{lib}' for lib in ('draco',)
+-    ]
++    library_link_args = []
+ elif is_windows:
+-    library_link_args = [
+-        lib for lib in ('draco.lib',)
+-    ]
++    library_link_args = []
+ else: # linux
+-    library_link_args = [
+-        f'-l:{lib}' for lib in ('libdraco.a',)
+-    ]
+-
+-cmake_args.append("-DCMAKE_POSITION_INDEPENDENT_CODE=ON") # make -fPIC code
++    library_link_args = []
+ 
+ if is_windows:
+-    extra_link_args = ['/LIBPATH:{0}'.format(lib_dir) for lib_dir in lib_dirs] + library_link_args
++    extra_link_args = library_link_args
+     extra_compile_args = [
+       '/std:c++17', '/O2',
+     ]
+ else:
+-    extra_link_args = ['-L{0}'.format(lib_dir) for lib_dir in lib_dirs] + library_link_args
++    extra_link_args = library_link_args
+     extra_compile_args = [
+-      '-std=c++11','-O3'
++      '-std=c++17','-O3'
+     ]
+ 
+ if os.path.exists(".eggs"):
+@@ -92,11 +73,7 @@ setup(
+     long_description=read('README.md'),
+     long_description_content_type="text/markdown",
+     license = "Apache-2.0",
+-    cmake_source_dir='./draco',
+-    cmake_args=cmake_args,
+-    build_args=['--verbose'],
+-    setup_requires=setup_requires,
+-    ext_modules=[
++    ext_modules=cythonize([
+         setuptools.Extension(
+             'DracoPy',
+             sources=[ os.path.join(src_dir, 'DracoPy.pyx') ],
+@@ -104,12 +81,14 @@ setup(
+             language='c++',
+             include_dirs = [
+                 str(NumpyImport()),
+-                os.path.join(CMAKE_INSTALL_DIR(), 'include/'),
++                os.path.join(prefix, 'include'),
+             ],
++            library_dirs=lib_dirs,
++            libraries=['draco'],
+             extra_compile_args=extra_compile_args,
+             extra_link_args=extra_link_args
+         )
+-    ],
++    ], compiler_directives={"language_level": "3"}),
+     classifiers=[
+         "Intended Audience :: Developers",
+         "Development Status :: 5 - Production/Stable",
