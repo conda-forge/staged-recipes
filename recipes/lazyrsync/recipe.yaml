@@ -1,0 +1,59 @@
+context:
+  version: "0.3.0"
+
+package:
+  name: lazyrsync
+  version: ${{ version }}
+
+source:
+  url: https://github.com/westpoint-io/lazyrsync/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7ddb32c20688c1e56032207a5ed8edd5db09f9aaaad43741de13bef715bc1a4d
+
+build:
+  number: 0
+  # lazyrsync shells out to the system rsync and is only supported on Linux and macOS
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  run:
+    # --info=progress2 requires rsync 3.1 or newer
+    - rsync >=3.1
+
+tests:
+  - script: lazyrsync --help
+  - package_contents:
+      bin:
+        - lazyrsync
+      strict: true
+
+about:
+  homepage: https://lazyrsync.westpoint.io
+  summary: A terminal UI for rsync — profiles, honest dry-run preview, live progress
+  description: |
+    lazyrsync is a front-end for the system rsync rather than a
+    reimplementation of it. It provides reusable profiles and tasks, a dry-run
+    preview of what would change, a live progress bar, and snapshot support,
+    plus a headless mode for scheduled runs over cron.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://lazyrsync.westpoint.io/docs/install
+  repository: https://github.com/westpoint-io/lazyrsync
+
+extra:
+  recipe-maintainers:
+    - pavelzw
