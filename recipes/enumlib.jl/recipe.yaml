@@ -1,0 +1,114 @@
+context:
+  version: "0.3.9"
+
+package:
+  name: enumlib.jl
+  version: ${{ version }}
+
+# Built from source, not repackaged from a release artifact: conda-forge asked for
+# the application to be compiled in the recipe (staged-recipes#34550).
+source:
+  url: https://github.com/glwhart/Enumlib.jl/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e3a3cf4e939967605398605e82ef5bdeac434dd8c2a3e07a1722b3f0df964cd8
+
+build:
+  number: 0
+  # The platforms conda-forge ships a `julia` package for AND builds natively.
+  #
+  # osx-arm64 is absent for a structural reason, not a missing dependency:
+  # conda-forge cross-compiles osx-arm64 on osx-64 runners, but
+  # PackageCompiler.create_app has to execute target-architecture code to
+  # precompile its system image, and a Julia system image cannot be
+  # cross-compiled. So no arm64 Julia package would help here either. Under
+  # discussion on the PR; Apple Silicon users have native arm64 binaries on the
+  # project's GitHub releases in the meantime.
+  skip:
+    - win
+    - linux and not x86_64
+    - osx and arm64
+  script:
+    file: build.sh
+
+requirements:
+  build:
+    # PackageCompiler links the app's launchers with a C compiler.
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    # julia is in `host`, not `build`, on purpose. create_app copies Julia's
+    # runtime libraries into the application, and those copies carry references
+    # to wherever they came from -- so they have to come from $PREFIX, which
+    # conda-build relocates, rather than $BUILD_PREFIX, which it does not.
+    # build.sh calls $PREFIX/bin/julia by explicit path rather than trusting PATH.
+    #
+    # 1.10.4 is too old (a dependency floors at 1.11.6) and conda-forge packages
+    # no 1.11, so 1.12 it is. The upstream test suite passes on 1.12.7.
+    - julia 1.12.*
+    # conda-forge's julia deliberately strips Julia's vendored libraries
+    # (see its build.sh: rm $PREFIX/lib/julia/{libcholmod,libcurl,libssh2,
+    # libgit2,libssl}.so) and links against these instead. An application built
+    # with it inherits them as runtime dependencies rather than bundling them,
+    # so the run requirements come from these entries' run_exports.
+    #
+    # This mirrors julia-feedstock's own host list. It is deliberately generous
+    # for a first build -- conda-build's overlinking check will report what the
+    # application actually links, and this should be trimmed to that.
+    - openblas-ilp64
+    - openlibm
+    - gmp
+    - mpfr
+    - curl
+    - libssh2
+    - if: not osx
+      then: libgit2
+    - if: linux
+      then: libunwind
+    - if: osx
+      then: libosxunwind
+    - arpack
+    - suitesparse
+    - pcre2
+    - libutf8proc
+    - libnghttp2
+    - zlib
+
+tests:
+  - script:
+      # Engine identification. Downstream tools (pymatgen's EnumlibAdaptor) probe
+      # this exact token to tell the Julia engine from the legacy Fortran enum.x.
+      - enum.x --version
+      - polya.x --version
+      - makestr.x --version
+      - enum.x --version | grep "Enumlib.jl"
+      # Enumerate, count, and generate structures, using the same invocation style
+      # the Fortran enumlib feedstock tests with: input file as a positional arg.
+      - enum.x struct_enum.in.fcc
+      - test -f struct_enum.out
+      - polya.x struct_enum.in.fcc
+      - makestr.x struct_enum.out 1 1
+      - test -f vasp.1
+    files:
+      recipe:
+        - struct_enum.in.fcc
+
+about:
+  homepage: https://github.com/glwhart/Enumlib.jl
+  summary: Derivative-structure enumeration (Julia reimplementation of enumlib)
+  description: |
+    Enumlib.jl generates the derivative superstructures of a parent lattice,
+    including multilattices such as HCP, over all concentrations or a restricted
+    concentration range. It is a from-scratch Julia reimplementation of enumlib by
+    one of its original authors, and a drop-in replacement for the Fortran enum.x:
+    the struct_enum.in / struct_enum.out file contract is unchanged.
+
+    This package provides the enum.x, polya.x and makestr.x executables, compiled
+    ahead of time with a bundled Julia system image, so no Julia installation is
+    required to run them.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://glwhart.github.io/Enumlib.jl
+  repository: https://github.com/glwhart/Enumlib.jl
+
+extra:
+  recipe-maintainers:
+    - glwhart
