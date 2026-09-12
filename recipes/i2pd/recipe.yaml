@@ -1,0 +1,69 @@
+context:
+  version: "2.60.0"
+  sha256: "ef32100c5ffdf4d23dfe78a2f6c08f65574fd79f992eb2ac8cfea0b6440deabd"
+  cmake_flags: "-DCMAKE_BUILD_TYPE=Release -DWITH_UPNP=ON"
+
+package:
+  name: i2pd
+  version: ${{ version }}
+
+source:
+  # TODO restore. use source of stable release
+  # url: https://github.com/PurpleI2P/i2pd/archive/refs/tags/${{ version }}.tar.gz
+  # sha256: ${{ sha256 }}
+  # fix build with openssl 4
+  # https://github.com/PurpleI2P/i2pd/commit/524d80853d92d698de8b271e081e4d2ba1e30738
+  url: https://github.com/PurpleI2P/i2pd/archive/f60919638b9d7141889be19dea0d14c03f7b6146.tar.gz
+  sha256: "a6c39db4280c987a8d68432b9bc82267b881c6e688e8dfad06975cd24e6c6faa"
+
+build:
+  number: 0
+  script:
+    # trace commands
+    - {"if":"win","then":"echo on","else":"set -x"}
+    # the build directory already exists in the source tree
+    # and contains the CMakeLists.txt file
+    # https://github.com/PurpleI2P/i2pd/pull/2384
+    - cd build
+    - if: win
+      then: cmake -S . -B . ${{ cmake_flags }} %CMAKE_ARGS%
+      else: cmake -S . -B . ${{ cmake_flags }} $CMAKE_ARGS
+    - cmake --build . --config Release
+    - cmake --install . --config Release
+    - if: linux
+      then: |
+        # on osx this fails with: install: illegal option -- -
+        install --mode=444 -D $SRC_DIR/contrib/i2pd.service $PREFIX/etc/systemd/system/i2pd.service
+        install --mode=444 -D $SRC_DIR/debian/i2pd.1 $PREFIX/share/man/man1/i2pd.1
+        gzip $PREFIX/share/man/man1/i2pd.1
+
+requirements:
+  build:
+    - make
+    - cmake
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+
+  host:
+    - libboost-devel
+    - openssl
+    - zlib
+    - miniupnpc
+
+  run:
+    - miniupnpc
+
+tests:
+  - script:
+    - i2pd --version
+
+about:
+  homepage: https://github.com/PurpleI2P/i2pd
+  summary: "C++ implementation of I2P router"
+  # no. use license file from $SRC_DIR/LICENSE
+  # license: BSD-3-Clause
+  # license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - milahu
