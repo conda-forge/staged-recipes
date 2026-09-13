@@ -1,0 +1,263 @@
+# Free-threaded CPython (3.14t) is not supported yet: numpy, protobuf and
+# apache-tvm-ffi publish no 3.14t packages. It will be enabled once all three do
+
+{% set name = "nvidia_cutlass_dsl" %}
+{% set version = "4.7.0" %}
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
+{% set cuda_major = cuda_compiler_version.split(".")[0] %}
+# The wheel layout carries a cu12 and a cu13 directory side by side; only the
+# one matching this build gets any files.
+{% set cuda_major_other = "13" if cuda_major == "12" else "12" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set extension = "tar.xz" %}  # [not win]
+
+# Runtime dependency bounds, mirroring the wheel's Requires-Dist metadata.
+{% set typing_extensions_min = "4.10" %}
+{% set cuda_python_min = "12.8" %}
+{% set protobuf_min = "6.30.2" %}
+{% set protobuf_max = "7" %}
+
+# 3.14 and 3.14t both report py == 314; the `python` variant carries the ABI
+# build string (`3.14.* *_cp314t`)
+# Un-comment below to enable 3.14t builds.
+# {% set py_tag = py ~ ("t" if (python | default("")).endswith("t") else "") %}
+{% set py_tag = py %}
+
+package:
+  name: nvidia-cutlass-dsl-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvidia-cutlass-dsl/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}_cuda{{ cuda_major }}-archive.{{ extension }}
+  {% set sha256 = "c5183ed881efe3899cbb92abac7fb9c8de2dc7d15b0addf5b5580f1a5d98c182" %}  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+  {% set sha256 = "115df0b2e47130b48f0852f753503c1e108bc8b737fa3f6da1bd1f7151ce8e24" %}  # [linux64 and (cuda_compiler_version or "").startswith("13")]
+  {% set sha256 = "0cefd663c54d2124b70c8ec65c8db84993bea18b68706287353e745d22e1f8a9" %}  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+  {% set sha256 = "b2fa2ce51678a85dc0a9dbab952034189a5310e246b4317c10f02d248d88c8da" %}  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64) or cuda_compiler_version in ("None", "")]
+
+requirements:
+  build:
+    - cf-nvidia-tools 1.*   # [linux]
+    - {{ stdlib("c") }}
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+
+outputs:
+
+  # The runtime lib that JIT-compiled kernels dlopen; one per CTK
+  - name: libcute-dsl-runtime
+    build:
+      ignore_run_exports:
+        - cuda-version
+    files:
+      - lib/libcute_dsl_runtime.so
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcute_dsl_runtime.so
+    about:
+      home: https://docs.nvidia.com/cutlass/latest/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/license.html
+      summary: Runtime shared library for the CUTLASS DSL.
+      description: |
+        The shared library that GPU kernels JIT-compiled by the CUTLASS DSL load
+        at run time. It ships neither headers nor Python code, and is
+        pulled in as a dependency rather than installed directly: install
+        libcute-dsl-runtime-dev to build C/C++ against it, or nvidia-cutlass-dsl
+        to use it from Python.
+      doc_url: https://docs.nvidia.com/cutlass/latest/
+
+  # Header/cross-link stubs to build C/C++ against the runtime lib. Also one per CTK.
+  - name: libcute-dsl-runtime-dev
+    build:
+      ignore_run_exports:
+        - cuda-version
+      run_exports:
+        - {{ pin_subpackage("libcute-dsl-runtime", max_pin="x.x") }}
+    files:
+      - include/CuteDSLRuntime.h
+      - lib/stubs
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libcute-dsl-runtime", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/CuteDSLRuntime.h
+        # Cross-compile link stubs target aarch64 only, 
+        # so only the x86_64 redist archive ships them
+        - test -d $PREFIX/lib/stubs                               # [linux64]
+    about:
+      home: https://docs.nvidia.com/cutlass/latest/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/license.html
+      summary: Development files for building against the CUTLASS DSL runtime.
+      description: |
+        The C header and cross-compile link stubs needed to build C/C++ code
+        against libcute-dsl-runtime.
+      doc_url: https://docs.nvidia.com/cutlass/latest/
+
+  # The CUDA dialect shim as a static archive; one per CTK
+  - name: libcute-dsl-runtime-static
+    build:
+      ignore_run_exports:
+        - cuda-version
+    files:
+      - lib/libcuda_dialect_runtime_static.a
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libcute-dsl-runtime-dev", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcuda_dialect_runtime_static.a
+        # Pulled in via the -dev dependency
+        - test -f $PREFIX/include/CuteDSLRuntime.h
+    about:
+      home: https://docs.nvidia.com/cutlass/latest/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/license.html
+      summary: Static library for the CUTLASS DSL CUDA dialect shim.
+      description: |
+        The CUDA dialect shim that DSL-generated code calls into, as a static
+        archive to link into your own binary
+      doc_url: https://docs.nvidia.com/cutlass/latest/
+
+  # Python code + the CPython-ABI-specific extension module; one per python and CTK.
+  - name: nvidia-cutlass-dsl
+    script: install_cutlass_dsl.sh
+    build:
+      string: "py{{ py_tag }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
+      missing_dso_whitelist:
+        - "*libcuda.so*"              # driver, not provided by any conda package
+      ignore_run_exports:
+        - cuda-version
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - python
+        - cuda-version {{ cuda_compiler_version }}
+        # Everything under cu{{ cuda_major }} is a symlink into $PREFIX/lib and $PREFIX/include,
+        # so the real files have to be unpacked here for the links to resolve
+        # while this output is being built.
+        - {{ pin_subpackage("libcute-dsl-runtime", exact=True) }}
+        - {{ pin_subpackage("libcute-dsl-runtime-dev", exact=True) }}
+        - {{ pin_subpackage("libcute-dsl-runtime-static", exact=True) }}
+      run:
+        - python
+        # Python 3.11 and above have the `strenum` module built-in
+        - backports.strenum  # [py<311]
+        - numpy
+        - typing-extensions >={{ typing_extensions_min }}
+        - cuda-python >={{ cuda_python_min }}
+        - protobuf >={{ protobuf_min }},<{{ protobuf_max }}
+        # Provides the `tvm_ffi` module used by the TVM-FFI interop paths.
+        # load_module() → ctypes.CDLL → dlopen
+        - apache-tvm-ffi
+        - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+        - {{ pin_subpackage("libcute-dsl-runtime", exact=True) }}
+        # Installing this package covers the C/C++ use case as well as the
+        # Python one, so that a user who needs both gets them in one step. The
+        # C/C++ use case on its own is libcute-dsl-runtime-dev and
+        # libcute-dsl-runtime-static without this package.
+        - {{ pin_subpackage("libcute-dsl-runtime-dev", exact=True) }}
+        - {{ pin_subpackage("libcute-dsl-runtime-static", exact=True) }}
+      run_constrained:
+        # Optional: only needed to disassemble the cubins when needed
+        - cuda-nvdisasm
+    test:
+      imports:
+        - cutlass
+        - iket
+      commands:
+        # The .pth file is what makes the two imports above resolve out of
+        # nvidia_cutlass_dsl/dsl_packages.
+        - test -f $SP_DIR/nvidia_cutlass_dsl_packages.pth
+        - test -d $SP_DIR/nvidia_cutlass_dsl/dsl_packages/cutlass
+        - test -d $SP_DIR/nvidia_cutlass_dsl/dsl_packages/iket
+        - test -f $SP_DIR/nvidia_cutlass_dsl/cu{{ cuda_major }}/lib/libcute_dsl_runtime.so
+        - test -f $SP_DIR/nvidia_cutlass_dsl/cu{{ cuda_major }}/lib/libcuda_dialect_runtime_static.a
+        - test -f $SP_DIR/nvidia_cutlass_dsl/cu{{ cuda_major }}/include/CuteDSLRuntime.h
+        # Cross-compile link stubs target aarch64 only,
+        # so only the x86_64 redist archive ships them
+        - test -d $SP_DIR/nvidia_cutlass_dsl/cu{{ cuda_major }}/lib/stubs   # [linux64]
+        - test -f $SP_DIR/nvidia_cutlass_dsl/cu{{ cuda_major_other }}/README.txt
+        # Installing this package has to bring the C/C++ use case with it.
+        - test -f $PREFIX/include/CuteDSLRuntime.h
+        - test -f $PREFIX/lib/libcuda_dialect_runtime_static.a
+    about:
+      home: https://docs.nvidia.com/cutlass/latest/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/license.html
+      summary: A Python native interface for writing high-performance CUDA kernels based on core CUTLASS and CuTe concepts without any performance compromises.
+      description: |
+        A Python native interface for writing high-performance CUDA kernels based on
+        core CUTLASS and CuTe concepts without any performance compromises. This allows for
+        a much smoother learning curve, orders of magnitude faster compile times,
+        native integration with DL frameworks without writing glue code and much more
+        intuitive meta-programming that does not require deep C++ expertise.
+        It also pulls in libcute-dsl-runtime-dev and libcute-dsl-runtime-static,
+        so one environment covers both using the DSL from Python and building
+        C/C++ against the runtime. Install those two on their own for the
+        C/C++ use case without Python.
+      doc_url: https://docs.nvidia.com/cutlass/latest/
+
+about:
+  home: https://docs.nvidia.com/cutlass/latest/
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/license.html
+  summary: A Python native interface for writing high-performance CUDA kernels based on core CUTLASS and CuTe concepts without any performance compromises.
+  description: |
+    A Python native interface for writing high-performance CUDA kernels based on
+    core CUTLASS and CuTe concepts without any performance compromises. This allows for
+    a much smoother learning curve, orders of magnitude faster compile times,
+    native integration with DL frameworks without writing glue code and much more
+    intuitive meta-programming that does not require deep C++ expertise.
+
+    This feedstock builds the Python package, the CUTLASS DSL runtime shared
+    library, and the development and static-library packages for building C/C++
+    against that runtime.
+  doc_url: https://docs.nvidia.com/cutlass/latest/
+
+extra:
+  feedstock-name: nvidia-cutlass-dsl
+  recipe-maintainers:
+    - conda-forge/cuda
