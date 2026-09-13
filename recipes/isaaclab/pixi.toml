@@ -1,0 +1,64 @@
+# Self-contained local smoke test for the isaaclab recipe.
+# The smoke env builds isaaclab-all from recipe.yaml as a source dependency
+# (pixi-build-rattler-build), so pixi materializes the artifact itself and there
+# is no chicken-and-egg with a local ./output channel:
+#   pixi run plain          # build, resolve and run the Newton idle smoke
+#   pixi run -e ovrtx ovrtx # same, plus the PyPI-only Omniverse RTX backends
+
+[workspace]
+name = "isaaclab-conda-smoke"
+channels = ["conda-forge"]
+# Custom platform pinning glibc for the manylinux_2_35 Omniverse wheels and cuda
+# for the CUDA pytorch build the examples need.
+platforms = [{ name = "linux-64-cuda13", platform = "linux-64", glibc = "2.35", cuda = "13" }]
+preview = ["pixi-build"]
+
+[package]
+name = "isaaclab-conda-smoke"
+version = "0.0.0"
+
+[package.build.backend]
+name = "pixi-build-rattler-build"
+version = "*"
+
+# isaaclab-all is built from the recipe in this directory.
+[dependencies]
+isaaclab-all = { path = "." }
+
+# The Nucleus/S3 USD assets are fetched through omni.client, so even a Newton
+# idle run needs omniverseclient. It is a closed-source wheel from pypi.nvidia.com
+# (not on conda-forge), which is exactly the blocker described in the README.
+[pypi-options]
+extra-index-urls = ["https://pypi.nvidia.com"]
+no-build-isolation = true
+
+[pypi-dependencies]
+omniverseclient = "==2.72.3"
+
+# Newton idle smoke.
+[tasks]
+plain = """isaaclab train \
+  --task=Isaac-Cartpole-Direct \
+  --num_envs=16 \
+  --rl_library=rsl_rl \
+  --max_iterations=10 \
+  physics=newton_mjwarp"""
+
+# ovrtx layers in the closed-source Omniverse RTX backends from PyPI, on top of
+# the omniverseclient the base env already needs.
+[feature.ovrtx.pypi-dependencies]
+ovrtx = "==0.4.1.*"
+ovstage = "==0.1.1.*"
+
+[feature.ovrtx.tasks]
+ovrtx = """isaaclab train \
+  --task=IsaacContrib-Reorient-Cube-Shadow-Camera-Benchmark-Direct \
+  --num_envs=16 \
+  --rl_library=rsl_rl \
+  --max_iterations=10 \
+  physics=newton_mjwarp \
+  renderer=ovrtx \
+  presets=newton_mjwarp,simple_shading_diffuse_mdl"""
+
+[environments]
+ovrtx = { features = ["ovrtx"] }
