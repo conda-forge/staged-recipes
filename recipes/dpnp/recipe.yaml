@@ -1,0 +1,89 @@
+schema_version: 1
+
+context:
+  version: "0.20.0"
+  buildnumber: 0
+
+package:
+  name: dpnp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/IntelPython/dpnp/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 4b12c63358ff656868e33d16c62633c6ddd1c7981e6c9f62ba67cb1146b2a874
+
+build:
+  number: ${{ buildnumber }}
+  skip: osx or match(python, "<3.10")
+  dynamic_linking:
+    missing_dso_allowlist:
+      - '*DPCTLSyclInterface*'
+      - if: win
+        then: '*/dpnp_backend_c.dll'
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('dpcpp') }}
+    - if: linux
+      then: ninja
+    - cmake
+  host:
+    - python
+    - pip
+    - pybind11
+    - setuptools
+    - wheel
+    - python-build
+    - scikit-build
+    - cython >=3
+    - numpy
+    - versioneer ==0.29
+    # versioneer dependency
+    - if: match(python, "<3.11")
+      then: tomli
+    - dpctl
+    - mkl-devel-dpcpp
+    - onedpl-devel
+    - tbb-devel
+  run:
+    - python
+    - ${{ pin_compatible('dpctl', lower_bound='x.x.x', upper_bound=None) }}
+    # the Intel OpenCL runtime intentionally leaves the ICD loader to the consumer
+    - if: linux
+      then: ocl-icd-system
+    - if: win
+      then: khronos-opencl-icd-loader
+  ignore_run_exports:
+    by_name:
+      # built with Intel DPC++ (icx), which links the Intel runtime, not the MSVC one
+      - if: win
+        then: vc14_runtime
+      - if: win
+        then: ucrt
+
+tests:
+  - requirements:
+      run:
+        - pip
+    script:
+      - pip check
+      - python -c "import dpnp; print(dpnp.__version__)"
+      - python -m dpctl -f
+
+about:
+  homepage: https://github.com/IntelPython/dpnp
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: 'Data Parallel Extension for NumPy'
+  description: |
+    Data Parallel Extension for NumPy (dpnp) is a Python library that
+    implements a subset of the NumPy API using SYCL, providing array
+    computations that can be offloaded to Intel GPUs and other SYCL devices.
+
+extra:
+  recipe-maintainers:
+    - antonwolfy
+    - vlad-perevezentsev
+    - ndgrigorian
