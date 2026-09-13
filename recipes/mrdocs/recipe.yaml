@@ -1,0 +1,90 @@
+# MrDocs (https://mrdocs.com) is a C++ documentation generator built on top of
+# Clang's tooling libraries. It has no tagged release matching the current
+# "develop" architecture described at
+# https://mrdocs.com/docs/mrdocs/develop/install.html, so this recipe pins an
+# exact commit as a development snapshot.
+#
+# Building MrDocs from source (rather than via its own bootstrap.py) means
+# reproducing what that script otherwise does automatically:
+#   - LLVM/Clang + libc++ are built here from the exact unreleased llvm-project
+#     commit MrDocs requires (see build.sh) -- MrDocs' own CMake refuses any
+#     "system" LLVM and needs libc++ headers bundled into the same install
+#     prefix, which conda-forge's llvmdev/clangdev packages do not provide in
+#     this pinned, unreleased revision.
+#   - jerryscript is a separate conda-forge recipe (../jerryscript) providing
+#     the CMake package config MrDocs' `find_package(jerryscript CONFIG)`
+#     needs, which upstream jerryscript does not ship.
+#   - Lua is conda-forge's `lua` package, wired up with a small local CMake
+#     shim (lua-shim/) since MrDocs requires `find_package(Lua CONFIG)` and
+#     neither upstream Lua nor the conda-forge package provide a config.
+context:
+  version: "0.8.0.dev20260902"
+  mrdocs_commit: "47bdd690824e6cb6ac72280e0c43ce5cfbf66d4a"
+  llvm_commit: "77e43ec11cd8fbe1de491118b54de9bba94510a8"
+
+package:
+  name: mrdocs
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/cppalliance/mrdocs/archive/${{ mrdocs_commit }}.tar.gz
+    sha256: 088481fcd8173e96ec2b3baec121779363694db7b06a4115bdfc779660c33146
+    target_directory: mrdocs
+  - url: https://github.com/llvm/llvm-project/archive/${{ llvm_commit }}.tar.gz
+    sha256: efbab0aacbff2f20446667fe7554d21fd91904dbf071a16503bf0fe0fd555c1f
+    target_directory: llvm-project
+  - path: lua-shim
+    target_directory: lua-shim
+
+build:
+  number: 0
+  # Windows needs a substantially different LLVM preset (see MrDocs'
+  # CMakePresets.json) and MSVC-specific flags this recipe does not attempt.
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - git
+    - python
+  host:
+    - lua =5.4.8
+    - jerryscript =3.0.0
+
+tests:
+  - script:
+      - mrdocs --version
+  - package_contents:
+      bin:
+        - mrdocs
+
+about:
+  homepage: https://mrdocs.com
+  repository: https://github.com/cppalliance/mrdocs
+  documentation: https://mrdocs.com/docs/mrdocs/develop
+  summary: A tool for generating documentation from C++ source code
+  description: |
+    MrDocs (short for "Metadata-driven Reference documentation for C++") is a
+    tool designed to generate high-quality reference documentation for C++
+    source code, with a particular focus on library documentation. It uses
+    Clang's tooling libraries to parse C++ code and extract symbol metadata,
+    then renders documentation via a Handlebars-based templating engine.
+
+    This build is a development snapshot: there is no tagged release yet for
+    the "develop" branch architecture this recipe builds from.
+  license: Apache-2.0 WITH LLVM-exception
+  # MrDocs statically links LLVM/Clang into the `mrdocs` binary (both under
+  # the same Apache-2.0 WITH LLVM-exception license), so both license files
+  # are bundled.
+  license_file:
+    - mrdocs/LICENSE.txt
+    - llvm-project/LICENSE.TXT
+
+extra:
+  recipe-maintainers:
+    - sdebionne
