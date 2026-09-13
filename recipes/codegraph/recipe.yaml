@@ -1,0 +1,129 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.6.0"
+
+package:
+  name: codegraph
+  version: ${{ version }}
+
+source:
+  url: https://github.com/colbymchenry/codegraph/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9b264c584395e69595d0b8c602a7f5c65a19d16a26673953721829f32cfda119
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        set -ex
+        pnpm install --ignore-scripts
+        npm run build
+        export CFLAGS="${CFLAGS:-} -D_BSD_SOURCE -D_DEFAULT_SOURCE"
+        ( cd codegraph-kernel && cargo build --release )
+        mkdir -p kernel
+        # rattler-build's rust compiler activation sets a target-triple-specific
+        # cargo output dir (target/<triple>/release/), not plain target/release/
+        # -- find rather than assume the path so this works whichever triple
+        # the host build resolves to.
+        KERNEL_LIB=$(find codegraph-kernel/target -maxdepth 3 \( -name "libcodegraph_kernel.so" -o -name "libcodegraph_kernel.dylib" \) -print -quit)
+        [ -n "$KERNEL_LIB" ] || { echo "error: built codegraph-kernel library not found under codegraph-kernel/target" >&2; exit 1; }
+        cp "$KERNEL_LIB" kernel/codegraph-kernel.node
+        export npm_config_prefix="${PREFIX}"
+        npm pack --ignore-scripts
+        npm install --global "${SRC_DIR}/colbymchenry-codegraph-${{ version }}.tgz"
+        INSTALLDIR="${PREFIX}/lib/node_modules/@colbymchenry/codegraph"
+        mkdir -p "${INSTALLDIR}/kernel"
+        cp kernel/codegraph-kernel.node "${INSTALLDIR}/kernel/codegraph-kernel.node"
+        find "${INSTALLDIR}/node_modules" -type d -name .bin -exec rm -rf {} +
+        ( cd codegraph-kernel && cargo-bundle-licenses --format yaml --output THIRDPARTY.yml )
+        pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else: |
+        call pnpm install --ignore-scripts
+        if %ERRORLEVEL% neq 0 exit /b 1
+        call npm run build
+        if %ERRORLEVEL% neq 0 exit /b 1
+        cd codegraph-kernel
+        call cargo build --release
+        if %ERRORLEVEL% neq 0 exit /b 1
+        cd ..
+        mkdir kernel
+        set "KERNEL_DLL="
+        for /r codegraph-kernel\target %%F in (codegraph_kernel.dll) do if exist "%%F" set "KERNEL_DLL=%%F"
+        if not defined KERNEL_DLL (
+          echo error: codegraph_kernel.dll not found under codegraph-kernel\target
+          exit /b 1
+        )
+        copy /Y "%KERNEL_DLL%" kernel\codegraph-kernel.node
+        if %ERRORLEVEL% neq 0 exit /b 1
+        call npm config set prefix "%PREFIX%"
+        if %ERRORLEVEL% neq 0 exit /b 1
+        call npm pack --ignore-scripts
+        if %ERRORLEVEL% neq 0 exit /b 1
+        call npm install --userconfig nonexistentrc -g colbymchenry-codegraph-${{ version }}.tgz
+        if %ERRORLEVEL% neq 0 exit /b 1
+        set "INSTALLDIR=%PREFIX%\node_modules\@colbymchenry\codegraph"
+        mkdir "%INSTALLDIR%\kernel"
+        copy /Y kernel\codegraph-kernel.node "%INSTALLDIR%\kernel\codegraph-kernel.node"
+        if %ERRORLEVEL% neq 0 exit /b 1
+        cd codegraph-kernel
+        call cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        if %ERRORLEVEL% neq 0 exit /b 1
+        cd ..
+        call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        if %ERRORLEVEL% neq 0 exit /b 1
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - nodejs >=20,<25
+    - pnpm
+    - pnpm-licenses
+    - cargo-bundle-licenses
+  host:
+    # <25: Node 25's V8 turboshaft WASM JIT has a Zone-allocator bug codegraph
+    # hard-blocks on at startup (upstream issue #81) -- constrains the variant
+    # so the run_export never resolves to the broken nodejs 26 build.
+    - nodejs >=20,<25
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - codegraph --help
+      - node -e "const path=require('path'); const prefix=process.env.PREFIX||process.env.CONDA_PREFIX; const base=process.platform==='win32'?path.join(prefix,'node_modules'):path.join(prefix,'lib','node_modules'); const loaderPath=path.join(base,'@colbymchenry','codegraph','dist','extraction','kernel','loader.js'); const {getKernel}=require(loaderPath); const k=getKernel(); if(!k){console.error('native kernel failed to load'); process.exit(1);} const info=k.contractInfo(); if(!info.languages||info.languages.length===0){console.error('kernel loaded but reports zero languages'); process.exit(1);} console.log('native kernel OK:', info.languages.join(','));"
+  - package_contents:
+      files:
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/package.json
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/dist/bin/codegraph.js
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/kernel/codegraph-kernel.node
+
+about:
+  summary: Pre-indexed code knowledge graph for coding agents - fewer tokens, fewer tool calls, 100% local
+  description: |
+    codegraph builds a pre-indexed knowledge graph of your codebase and
+    keeps it synced on code changes, so coding agents (Claude Code, Codex,
+    Gemini, Cursor, OpenCode, AntiGravity, Kiro, Hermes) can answer
+    structure questions from the graph instead of re-reading files —
+    fewer tokens and fewer tool calls, fully local. Built from source: a
+    TypeScript CLI plus a Rust/napi native extraction kernel (tree-sitter
+    parse+extract) compiled for this platform, with a WASM tree-sitter
+    pipeline as the runtime fallback when the native kernel is unavailable.
+
+    Run ``codegraph`` in a repository to index it and wire up the agent
+    integrations.
+  homepage: https://github.com/colbymchenry/codegraph
+  repository: https://github.com/colbymchenry/codegraph
+  documentation: https://github.com/colbymchenry/codegraph#readme
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+    - codegraph-kernel/THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - rxm7706
