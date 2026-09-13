@@ -1,0 +1,72 @@
+context:
+  version: "0.26.3"
+
+package:
+  name: all-smi
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lablup/all-smi/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1feeb5f4d10489858220ce051b5685338063f0ad0b2588d8375bbc51516c62d8
+
+build:
+  number: 0
+  script:
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bin all-smi --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bin all-smi --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    # aws-lc-sys, pulled in via rustls/russh, builds its C sources with cmake
+    - cmake
+    - if: unix
+      then: make
+    - if: win
+      then: nasm
+    # tonic-prost-build compiles the TPU gRPC client, Linux targets only
+    - if: linux
+      then: libprotobuf
+
+tests:
+  - script:
+      - all-smi --help
+      - all-smi --version
+  - package_contents:
+      bin:
+        - all-smi
+      strict: true
+
+about:
+  homepage: https://github.com/lablup/all-smi
+  summary: Command-line utility for monitoring GPU hardware
+  description: |
+    all-smi is a command-line utility for monitoring GPU and NPU hardware
+    across multiple systems. It provides a real-time view of accelerator
+    utilization, memory usage, temperature, power consumption, and other
+    metrics, and is designed to be a cross-platform alternative to
+    nvidia-smi with support for NVIDIA GPUs, AMD GPUs, NVIDIA Jetson
+    platforms, Apple Silicon GPUs, Intel GPUs, Intel Gaudi NPUs, Google
+    Cloud TPUs, Tenstorrent NPUs, Rebellions NPUs and Furiosa NPUs.
+
+    The application presents a terminal-based user interface with cluster
+    overview and interactive sorting, for both local and remote monitoring,
+    and can also export Prometheus metrics via its API mode.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/lablup/all-smi
+
+extra:
+  recipe-maintainers:
+    - pavelzw
