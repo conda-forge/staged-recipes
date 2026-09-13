@@ -1,0 +1,127 @@
+diff --git a/open_spiel/CMakeLists.txt b/open_spiel/CMakeLists.txt
+index 4700ae9..3926100 100644
+--- a/open_spiel/CMakeLists.txt
++++ b/open_spiel/CMakeLists.txt
+@@ -184,29 +184,37 @@ set (OPEN_SPIEL_CORE_FILES
+ )
+ 
+-# We add the subdirectory here so open_spiel_core can #include absl.
+-set(ABSL_PROPAGATE_CXX_STD ON)
+-add_subdirectory (abseil-cpp)
+-include_directories (abseil-cpp)
+-
+-# Similarly for json
+-add_subdirectory (json)
+-include_directories (json/include)
++# Use externally supplied dependencies rather than OpenSpiel's downloaded
++# source trees.
++find_package(absl CONFIG REQUIRED)
++find_package(nlohmann_json CONFIG REQUIRED)
+ 
+ # Find basic Python paths needed by C++ code (e.g. pybind11_json and pybind11_abseil).
+ if (OPEN_SPIEL_BUILD_WITH_PYTHON)
+-  find_package(Python3 COMPONENTS Interpreter Development)
+-  include_directories(pybind11_abseil pybind11_json ../pybind11/include)
++  find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
++  find_package(pybind11 CONFIG REQUIRED)
++  find_package(pybind11_json CONFIG REQUIRED)
++  include_directories(pybind11_abseil)
+   include_directories(${Python3_INCLUDE_DIRS})
+ endif()
+ 
+-# Include pybind11_abseil and pybind11_json
+-include_directories (pybind11_json/include)
+-
+ # Just the core without any of the games
+ add_library(open_spiel_core OBJECT ${OPEN_SPIEL_CORE_FILES})
+ target_include_directories (
+-  open_spiel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} abseil-cpp)
++  open_spiel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
++target_link_libraries(open_spiel_core PUBLIC
++  nlohmann_json::nlohmann_json
++  absl::algorithm
++  absl::flags
++  absl::flags_parse
++  absl::flat_hash_map
++  absl::optional
++  absl::random_random
++  absl::str_format
++  absl::strings
++  absl::time
++)
+ link_libraries(open_spiel_core
++  nlohmann_json::nlohmann_json
+   absl::algorithm
+   absl::flags
+   absl::flags_parse
+@@ -324,7 +332,7 @@ if (BUILD_SHARED_LIB)
+     add_library(open_spiel SHARED ${OPEN_SPIEL_OBJECTS})
+   endif()
+   target_include_directories(open_spiel PUBLIC
+-      ${CMAKE_CURRENT_SOURCE_DIR} abseil-cpp)
++      ${CMAKE_CURRENT_SOURCE_DIR})
+   target_link_libraries(open_spiel PUBLIC
+     absl::algorithm
+     absl::flat_hash_map
+diff --git a/open_spiel/python/CMakeLists.txt b/open_spiel/python/CMakeLists.txt
+index 693a2ed..031642c 100644
+--- a/open_spiel/python/CMakeLists.txt
++++ b/open_spiel/python/CMakeLists.txt
+@@ -24,7 +24,7 @@ endif()
+ endif()
+ 
+ # List of all Python bindings to add to pyspiel.
+-include_directories (../pybind11_abseil ../../pybind11/include)
++include_directories (../pybind11_abseil)
+ set(PYTHON_BINDINGS ${PYTHON_BINDINGS}
+   pybind11/algorithms_infostate_tree.cc
+   pybind11/algorithms_infostate_tree_templates.h
+@@ -148,6 +148,8 @@ if (WIN32)
+   target_link_libraries(pyspiel PRIVATE Python3::Module)
+ endif()
+ target_link_libraries(pyspiel PRIVATE
++  pybind11::headers
++  pybind11_json
+   absl::algorithm
+   absl::flags
+   absl::flags_parse
+diff --git a/setup.py b/setup.py
+index 7fc5934..8448bd4 100644
+--- a/setup.py
++++ b/setup.py
+@@ -18,6 +18,7 @@ limitations under the License.
+ """
+ 
+ import os
++import shlex
+ import subprocess
+ import sys
+ 
+@@ -85,6 +86,9 @@ class BuildExt(build_ext):
+         "-DCMAKE_BUILD_TYPE=Release",
+         "-DOPEN_SPIEL_BUILDING_WHEEL=ON",
+     ]
++    cmake_args += shlex.split(
++        os.environ.get("CMAKE_ARGS", ""), posix=not sys.platform.startswith("win")
++    )
+ 
+     # Platform-specific configuration
+     if sys.platform.startswith("win"):
+diff --git a/pyproject.toml b/pyproject.toml
+index 345ba2e..c9418ae 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -60,9 +60,13 @@ Repository = "https://github.com/deepmind/open_spiel.git"
+ Documentation = "https://openspiel.readthedocs.io/"
+ "Bug Tracker" = "https://github.com/deepmind/open_spiel/issues"
+ 
++[tool.setuptools]
++include-package-data = false
++
+ [tool.setuptools.packages.find]
+ where = ["."]
+ include = ["open_spiel*"]
++exclude = ["open_spiel.pybind11_abseil*"]
+ 
+ [tool.setuptools.package-data]
+ "*" = ["*.so", "*.pyd", "*.dll"]
