@@ -1,0 +1,187 @@
+context:
+  version: "0.4.6"
+
+recipe:
+  name: patinae
+  version: ${{ version }}
+
+source:
+  url: https://github.com/zmactep/patinae/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ba6a6752dc73c31b22ca560fa1bb1b39407982902397a3eff33a387c1d18a1c9
+
+build:
+  number: 0
+  variant:
+    ignore_keys:
+      - nodejs # Only needed to build static web assets.
+
+outputs:
+  - staging:
+      name: patinae-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - ${{ 'm2w64-jq' if win else 'jq' }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - esbuild ==0.25.12
+        - if: osx
+          then: make
+        - nodejs
+        - pkg-config
+        - pnpm
+        - pnpm-licenses
+        - rust-std-wasm32-unknown-unknown
+        # NOTE: Must match the `wasm-bindgen` version pinned in web/Cargo.lock.
+        # wasm-bindgen requires the CLI schema version to exactly match the
+        # version used to compile the Wasm file. If upstream bumps
+        # wasm-bindgen, this pin must be updated accordingly.
+        - wasm-bindgen-cli ==0.2.114
+      host:
+        - expat
+        - fontconfig
+        - freetype
+        - maturin >=1.2.2,<2
+        - pip
+        - python
+      ignore_run_exports:
+        from_package:
+          # expat and freetype are only needed for pkg-config dependency resolution of fontconfig.
+          # patinae does not use expat and freetype directly at runtime.
+          - expat
+          - freetype
+    build:
+      script: build
+
+  - package:
+      name: python-patinae
+    inherit: patinae-build
+    build:
+      files:
+        - if: unix
+          then:
+            - bin/patinae-cli
+            - lib/python*/site-packages/patinae/**
+            - lib/python*/site-packages/patinae-*.dist-info/**
+        - if: win
+          then:
+            - Scripts/patinae-cli.bat
+            - Lib/site-packages/patinae/**
+            - Lib/site-packages/patinae-*.dist-info/**
+    requirements:
+      run:
+        - anywidget >=0.9
+        - python
+        - traitlets >=5
+    tests:
+      - python:
+          pip_check: true
+          imports:
+            - patinae
+            - patinae._patinae
+            - patinae.widget
+      - package_contents:
+          bin:
+            - patinae-cli
+          site_packages:
+            - patinae/widget/_frontend.js
+            - patinae/widget/static/patinae-viewer.js
+            - patinae/widget/static/patinae_web_glue.js
+            - patinae/widget/static/patinae_web_bg.wasm
+      - script:
+          - patinae-cli --help
+          - python -c "from patinae.widget import Viewer; Viewer(width='10px', height='10px')"
+          - pytest -v python/tests/test_labels.py
+        files:
+          source:
+            - python/tests/test_labels.py
+        requirements:
+          run:
+            - pytest
+    about:
+      summary: Python bindings and Jupyter widget for Patinae
+
+  - package:
+      name: patinae
+    inherit: patinae-build
+    build:
+      files:
+        - libexec/patinae/**
+        - Menu/patinae_menu.json
+        - if: linux
+          then:
+            - Menu/patinae.png
+        - if: osx
+          then:
+            - Menu/patinae.icns
+        - if: unix
+          then:
+            - bin/patinae
+        - if: win
+          then:
+            - Scripts/patinae.bat
+            - Menu/patinae.ico
+    requirements:
+      run:
+        - ${{ pin_subpackage('python-patinae', exact=True) }}
+        - if: linux
+          then:
+            - fonts-conda-forge
+            - libvulkan-loader
+            - libxkbcommon
+            - wayland
+            - xorg-libx11
+            - xorg-libxcursor
+            - xorg-libxi
+            - xorg-libxrandr
+    tests:
+      - package_contents:
+          bin:
+            - patinae
+          files:
+            - libexec/patinae/bin/patinae*
+            - libexec/patinae/plugins/*hello_plugin*
+            - libexec/patinae/plugins/*ipc_plugin*
+            - libexec/patinae/plugins/*python_plugin*
+            - libexec/patinae/plugins/*raytracer_plugin*
+            - Menu/patinae_menu.json
+      - script:
+          - if: linux
+            then:
+              - sh -c 'ldd "${PREFIX}/libexec/patinae/bin/patinae" > ldd.txt && ! grep -q "not found" ldd.txt'
+          - if: osx or win
+            then:
+              - python test_runtime_deps.py
+        files:
+          recipe:
+            - test_runtime_deps.py
+        requirements:
+          run:
+            - ${{ compiler('c') if win }} # Required to use `dumpbin` for Windows
+    about:
+      summary: Desktop application and native plugins for Patinae
+
+about:
+  homepage: https://zmactep.github.io/patinae
+  repository: https://github.com/zmactep/patinae
+  documentation: https://zmactep.github.io/patinae/docs.html
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - THIRDPARTY-python.yml
+    - THIRDPARTY-web.yml
+    - web/third-party-licenses.txt
+  summary: A fast, programmable molecular viewer for research, scripting, and the web
+  description: |
+    Patinae is a modern molecular visualization toolkit for interactive research, scripting, structural analysis, publication images, notebooks, and embedding.
+
+    It is built around a responsive GPU-first viewer, a command-driven workflow, and extension points for native, Python, and web applications.
+    The aim is to keep the power of a full molecular workstation while making the everyday experience fast, light, and comfortable.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
+    - zmactep
