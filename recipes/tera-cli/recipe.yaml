@@ -1,0 +1,60 @@
+context:
+  version: "0.5.1"
+
+package:
+  name: tera-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/chevdor/tera-cli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ec5cffd2458a23f0bbd80f6394e8f42b07e9d3efd258816e726aa4909c7ccc0e
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    interpreter: nu
+    content:
+      - let prefix = $env.LIBRARY_PREFIX? | default $env.PREFIX
+      # build main app and generate license data
+      - cargo auditable install --path=. --root=($prefix) --no-track --locked --bins --features=full
+      - cargo-bundle-licenses --format=yaml --output=THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - nushell
+
+tests:
+  - script:
+      - tera --help
+      - tera --version
+  - package_contents:
+      bin:
+        - tera
+      strict: true
+
+about:
+  summary: CLI for rendering Tera templates using JSON, YAML, TOML, and environment variables
+  description: |
+    tera-cli (providing the `tera` command) is a command-line utility built on
+    top of the Rust-based [Tera](https://keats.github.io/tera/) templating
+    engine inspired by Jinja2 and Django. It merges structured context data
+    (from JSON, YAML, or TOML files) and system environment variables into
+    template files to generate rendered outputs.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/chevdor/tera-cli
+  repository: https://github.com/chevdor/tera-cli
+
+extra:
+  recipe-maintainers:
+    - salim-b
