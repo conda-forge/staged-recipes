@@ -1,0 +1,53 @@
+context:
+    version: "1.0.4"
+
+package:
+    name: tgrep
+    version: ${{ version }}
+
+source:
+    url: https://github.com/microsoft/tgrep/archive/v${{ version }}.tar.gz
+    sha256: c199dc73bd98d85a0ece8834e0353d528cada6dca315cac7af572a15e93a4e1f
+
+build:
+    number: 0
+    script:
+        env:
+            CARGO_PROFILE_RELEASE_STRIP: symbols
+            CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+            - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+            - if: unix
+              then: cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path tgrep-cli --locked --no-track
+              else: cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path tgrep-cli --locked --no-track
+
+requirements:
+    build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+
+tests:
+    - script:
+          - tgrep --version
+          - tgrep --help
+    - package_contents:
+          strict: true
+          bin:
+              - tgrep
+
+about:
+    homepage: https://github.com/microsoft/tgrep
+    summary: "Trigram-indexed grep with a client/server architecture for fast regex search in large codebases locally."
+    description: |
+        Tools like grep and ripgrep scan every file on every search — O(total bytes) per query. In a 100k+ file monorepo, that's painfully slow. tgrep pre-builds a trigram index so searches only touch the small set of files that could match.
+    license: MIT
+    license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+    repository: https://github.com/microsoft/tgrep
+
+extra:
+    recipe-maintainers:
+        - XhstormR
