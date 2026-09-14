@@ -1,0 +1,41 @@
+RWF_DSYNC (preadv2()/pwritev2() flag) was added to the Linux kernel uapi
+in 4.14 and picked up by glibc's fcntl-linux.h later still. block/linux-aio.c
+and block/io_uring.c use it unconditionally but only include <libaio.h> /
+<liburing.h>, not QEMU's vendored linux-headers/linux/fs.h, so it is not
+visible when building against conda-forge's pinned (older) sysroot glibc.
+Define it if missing to support building with older sysroots.
+
+diff --git a/block/linux-aio.c b/block/linux-aio.c
+index 1234567..abcdefg 100644
+--- a/block/linux-aio.c
++++ b/block/linux-aio.c
+@@ -23,6 +23,12 @@
+
+ #include <libaio.h>
+
++/* RWF_DSYNC (preadv2/pwritev2 flag, kernel uapi since Linux 4.14) may be
++ * missing from older sysroot headers (e.g. conda-forge's pinned glibc). */
++#ifndef RWF_DSYNC
++#define RWF_DSYNC 0x00000002
++#endif
++
+ /*
+  * Queue size (per-device).
+  *
+diff --git a/block/io_uring.c b/block/io_uring.c
+index 1234567..abcdefg 100644
+--- a/block/io_uring.c
++++ b/block/io_uring.c
+@@ -17,6 +17,12 @@
+ #include "system/block-backend.h"
+ #include "trace.h"
+
++/* RWF_DSYNC (preadv2/pwritev2 flag, kernel uapi since Linux 4.14) may be
++ * missing from older sysroot headers (e.g. conda-forge's pinned glibc). */
++#ifndef RWF_DSYNC
++#define RWF_DSYNC 0x00000002
++#endif
++
+ typedef struct {
+     Coroutine *co;
+     QEMUIOVector *qiov;
