@@ -3,6 +3,8 @@ context:
   version: "1.3.0"
   # BS::thread_pool release matching the upstream FetchContent default (repository HEAD)
   thread_pool_version: "5.1.0"
+  # only used to fetch dlib's license file; the library itself comes from the dlib-cpp package
+  dlib_version: "20.0.1"
 
 package:
   name: ${{ name }}
@@ -22,6 +24,11 @@ source:
   - url: https://github.com/bshoshany/thread-pool/archive/refs/tags/v${{ thread_pool_version }}.tar.gz
     sha256: 54378fb9cbeaee72996d3f8761469c43bb7dd2d4b07faec6d29a68277bd91a51
     target_directory: thread-pool
+  # dlib-cpp ships dlib as a static library on Windows, so dlib is linked into ausaxs.dll
+  # there; package its (Boost Software) license as well.
+  - url: https://raw.githubusercontent.com/davisking/dlib/v${{ dlib_version }}/dlib/LICENSE.txt
+    sha256: 8d8291caf1cee26d23acf3eb67c9f9a2d58f1c681b16a4fbe8cbfb9e3c0b5a9b
+    file_name: dlib-LICENSE.txt
 
 build:
   number: 0
@@ -42,6 +49,13 @@ requirements:
       then:
         - libcblas
         - liblapack
+    # on Windows dlib-cpp is a static library whose CMake target links the import libraries
+    # of its own dependencies (libpng.lib, z.lib, jpeg.lib), so they must be in the host env
+    - if: win
+      then:
+        - zlib
+        - libpng
+        - libjpeg-turbo
     - gcem
     - backward-cpp
     - cli11
@@ -88,6 +102,7 @@ about:
   license_file:
     - LICENSE
     - thread-pool/LICENSE.txt
+    - dlib-LICENSE.txt
 
 extra:
   recipe-maintainers:
