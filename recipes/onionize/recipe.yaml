@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  version: "0.1.2"
+
+package:
+  name: onionize
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AndSemenoff/onionize/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8129daeec5f1d5340b0a73c5da1277d0e45d1baf5e35237a48f7b0bb295a24a3
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      # rusqlite requests `features = ["bundled"]`, which compiles a vendored
+      # SQLite. This overrides it so libsqlite3-sys links conda-forge's
+      # libsqlite instead and SQLite fixes arrive through the package manager.
+      LIBSQLITE3_SYS_USE_PKG_CONFIG: "1"
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bin onionize --root ${{ PREFIX }} --path .
+        else:
+          # libsqlite3-sys only consults PKG_CONFIG_PATH on MSVC when it is
+          # pointed at a lib directory explicitly.
+          - set "SQLITE3_LIB_DIR=%LIBRARY_LIB%"
+          - set "SQLITE3_INCLUDE_DIR=%LIBRARY_INC%"
+          - cargo auditable install --locked --no-track --bin onionize --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+  host:
+    # native-tls uses OpenSSL on Linux, Security.framework on macOS and
+    # SChannel on Windows.
+    - if: linux
+      then: openssl
+    - libsqlite
+    # arti pulls in liblzma-sys for directory compression. It only looks for a
+    # system liblzma through pkg-config; on MSVC it skips the probe and always
+    # compiles its vendored xz, so the headers are of no use there.
+    - if: not win
+      then: liblzma-devel
+
+tests:
+  - script:
+      - onionize --help
+      - onionize --version
+  - package_contents:
+      bin:
+        - onionize
+      strict: true
+
+about:
+  homepage: https://github.com/AndSemenoff/onionize
+  repository: https://github.com/AndSemenoff/onionize
+  documentation: https://docs.rs/onionize
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  summary: A CLI tool for creating ephemeral Tor Onion Services to proxy local ports
+  description: |
+    onionize takes a local port and instantly creates a temporary .onion
+    address for it. No registration, no central servers, no NAT configuration
+    required. Think of it as a decentralized, private alternative to ngrok,
+    powered by Arti, the Tor implementation in Rust.
+
+    Because it embeds the Arti client, no torrc editing or separate tor daemon
+    is needed. Services can be restricted to authorized clients using x25519
+    keys, and a QR code can be generated to open the link in Tor Browser for
+    mobile.
+
+extra:
+  recipe-maintainers:
+    - pavelzw

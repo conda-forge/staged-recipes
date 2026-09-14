@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  version: "4.11.0"
+
+package:
+  name: onioncat
+  version: ${{ version }}
+
+source:
+  url: https://github.com/rahra/onioncat/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 75ff9eed332e97a9efb7999bbe48867d00e06ac20601cc72b87897d5b1859f99
+
+build:
+  number: 0
+  # OnionCat only builds on Windows through Cygwin, which conda-forge does not target.
+  skip: win
+  script:
+    - ./autogen.sh
+    - ./configure --prefix=${PREFIX} --host=${HOST} --build=${BUILD}
+    - make -j${CPU_COUNT}
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - make
+
+tests:
+  - script:
+      # `ocat -h` prints the usage message and exits with a non-zero status,
+      # so match on the output instead of the exit code.
+      - ocat -h 2>&1 | grep -q "usage:"
+      # Round-trip an onion id through the OnionCat IPv6 mapping.
+      - ocat -i 5wyqrzbvrdsumnok.onion | grep -qx "fd87:d87e:eb43:edb1:8e4:3588:e546:35ca"
+      - ocat -o fd87:d87e:eb43:edb1:8e4:3588:e546:35ca | grep -qx "5wyqrzbvrdsumnok.onion"
+    requirements:
+      run:
+        - grep
+  - package_contents:
+      bin:
+        - ocat
+      files:
+        - share/man/man1/ocat.1
+        - share/doc/onioncat/README
+        - share/doc/onioncat/Garlicat-HOWTO
+      strict: true
+
+about:
+  homepage: https://www.onioncat.org/
+  repository: https://github.com/rahra/onioncat
+  documentation: https://github.com/rahra/onioncat/blob/master/README.md
+  license: GPL-3.0-only
+  license_file: COPYING
+  summary: A VPN adapter for Tor and I2P
+  description: |
+    OnionCat creates a transparent IPv6 layer on top of Tor's hidden services
+    or I2P's tunnels. It transmits any kind of IP-based data transparently
+    through the Tor/I2P network on a location hidden basis. You can think of it
+    as a peer-to-peer VPN between hidden services.
+
+    OnionCat is a stand-alone application which runs in userland and is a
+    connector between Tor/I2P and the local OS. Any protocol which is based on
+    IP can be transmitted, most notably TCP, UDP and ICMP.
+
+extra:
+  recipe-maintainers:
+    - pavelzw
