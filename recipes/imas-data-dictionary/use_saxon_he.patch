@@ -1,0 +1,120 @@
+--- a/pyproject.toml	2026-09-01 15:58:46.633618722 +0200
++++ b/pyproject.toml	2026-09-01 15:58:46.681619608 +0200
+@@ -1,6 +1,6 @@
+ 
+ [build-system]
+-requires = ["setuptools>=64", "setuptools-scm>=8", "packaging>=20", "saxonche"]
++requires = ["setuptools>=64", "setuptools-scm>=8", "packaging>=20"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
+--- a/generate.py	2026-09-01 15:58:46.633618722 +0200
++++ b/generate.py	2026-09-01 15:58:46.682619627 +0200
+@@ -1,9 +1,9 @@
+ from setuptools_scm import get_version
++import glob
+ import os
+ import re
+ import shutil
+ import subprocess
+-import saxonche
+ 
+ PWD = os.path.realpath(os.path.dirname(__file__))
+ UAL = os.path.dirname(PWD)
+@@ -29,13 +29,42 @@
+ js_xsl = "docs/generate_js_IDSDef.xsl"
+ js_def = "docs/_static/IDSDefxml.js"
+ 
++
++def _saxon_classpath():
++    """Locate the Saxon-HE jars from the saxon-he conda package."""
++    classpath = os.environ.get("SAXON_CLASSPATH") or os.environ.get("CLASSPATH")
++    if classpath:
++        return classpath
++    for prefix_var in ("BUILD_PREFIX", "PREFIX", "CONDA_PREFIX"):
++        prefix = os.environ.get(prefix_var)
++        if not prefix:
++            continue
++        jars = glob.glob(os.path.join(prefix, "lib", "SaxonHE", "*.jar"))
++        jars += glob.glob(os.path.join(prefix, "lib", "SaxonHE", "lib", "*.jar"))
++        if jars:
++            return os.pathsep.join(jars)
++    raise RuntimeError(
++        "Could not locate the Saxon-HE jars: set SAXON_CLASSPATH or CLASSPATH"
++    )
++
++
++def _transform(source_file, stylesheet_file, output_file, **params):
++    """Run an XSLT transformation with Saxon-HE (java)."""
++    command = [
++        "java",
++        "-cp",
++        _saxon_classpath(),
++        "net.sf.saxon.Transform",
++        "-xsl:" + stylesheet_file,
++        "-s:" + source_file,
++        "-o:" + output_file,
++    ]
++    command += ["%s=%s" % (key, value) for key, value in params.items()]
++    subprocess.run(command, check=True)
++
+ def generate_dd_data_dictionary(extra_opts=""):
+     print("generating dd_data_dictionary.xml")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xdm_ddgit = proc.make_string_value(DD_GIT_DESCRIBE)
+-        xsltproc.set_parameter('DD_GIT_DESCRIBE', xdm_ddgit)
+-        xsltproc.transform_to_file(source_file=dd_xsd, stylesheet_file=dd_xsl, output_file=dd_xml)
++    _transform(dd_xsd, dd_xsl, dd_xml, DD_GIT_DESCRIBE=DD_GIT_DESCRIBE)
+ 
+     try:
+         if not os.path.islink(join_path(PWD, "IDSDef.xml")):
+@@ -49,11 +78,7 @@
+ 
+ def generate_html_documentation(extra_opts=""):
+     print("generating html_documentation.html")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xdm_ddgit = proc.make_string_value(DD_GIT_DESCRIBE)
+-        xsltproc.set_parameter('DD_GIT_DESCRIBE', xdm_ddgit)
+-        xsltproc.transform_to_file(source_file=dd_xml, stylesheet_file=doc_xsl, output_file=doc_html)
++    _transform(dd_xml, doc_xsl, doc_html, DD_GIT_DESCRIBE=DD_GIT_DESCRIBE)
+ 
+     shutil.copy(
+         "utilities/coordinate_identifier.xml",
+@@ -63,31 +88,21 @@
+ 
+ def generate_ids_cocos_transformations_symbolic_table(extra_opts=""):
+     print("generating html_documentation/cocos/ids_cocos_transformations_symbolic_table.csv")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xdm_ddgit = proc.make_string_value(DD_GIT_DESCRIBE)
+-        xsltproc.set_parameter('DD_GIT_DESCRIBE', xdm_ddgit)
+-        xsltproc.transform_to_file(source_file=dd_xml, stylesheet_file=cocos_xsl, output_file=cocos_csv)
++    _transform(dd_xml, cocos_xsl, cocos_csv, DD_GIT_DESCRIBE=DD_GIT_DESCRIBE)
+ 
+ 
+ def generate_idsnames():
+     print("generating IDSNames.txt")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xsltproc.transform_to_file(source_file=dd_xml, stylesheet_file=names_xsl, output_file=names_txt)
++    _transform(dd_xml, names_xsl, names_txt)
+ 
+         
+ def generate_dd_data_dictionary_validation(extra_opts=""):
+     print("dd_data_dictionary_validation.txt")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xsltproc.transform_to_file(source_file=dd_xml, stylesheet_file=valid_xsl, output_file=valid_txt)
++    _transform(dd_xml, valid_xsl, valid_txt)
+ 
+ def generate_idsdef_js():
+     print("Generating docs/_static/IDSDefxml.js")
+-    with saxonche.PySaxonProcessor(license=False) as proc:
+-        xsltproc = proc.new_xslt30_processor()
+-        xsltproc.transform_to_file(source_file=dd_xml, stylesheet_file=js_xsl, output_file=js_def)
++    _transform(dd_xml, js_xsl, js_def)
+ 
+ 
+ if __name__ == "__main__":
