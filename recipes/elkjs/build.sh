@@ -2,8 +2,10 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# elkjs declares no dependencies, so there is nothing to vendor and no third-party
-# licence report to generate: packing and installing the published tarball is enough.
+# elkjs declares no npm dependencies, so there is nothing to vendor at install time. The
+# third-party code it does carry is Java already transpiled into elk-worker.js, and its
+# licences ship from the recipe directory (see THIRD-PARTY-NOTICES.md). Packing and
+# installing the published tarball is enough.
 npm pack --ignore-scripts
 npm install -ddd \
     --no-bin-links \
