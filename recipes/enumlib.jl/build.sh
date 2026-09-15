@@ -61,8 +61,9 @@ export JULIA_CC="${CC}"
 #
 # If conda-forge would prefer a different target -- one multi-versioned binary
 # versus separate packages per x86_64 microarch level is an open question on the
-# PR -- this is where it would go, and upstream build_app.jl now threads the
-# variable through to create_app so that setting it will have an effect.
+# PR -- this is where it would go. Note that setting it here would have no effect
+# against v0.4.0: build_app.jl only started passing the variable through to
+# create_app after that tag, so a release containing that change has to land first.
 
 APPDIR="${PREFIX}/libexec/enumlib.jl"
 # create_app writes APPDIR itself (and clears it when it already exists), so make
