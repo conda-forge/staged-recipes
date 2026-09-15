@@ -1,0 +1,58 @@
+From: luowyang
+Subject: [PATCH] Fix int32 offset overflow in compute-delta reduction
+
+Backport of https://github.com/SHI-Labs/NATTEN/pull/348 (head 4135e823b5d39a42995f5665f8b2ade70e871574),
+fixing https://github.com/SHI-Labs/NATTEN/issues/347: the compute-delta
+reduction evaluated coordinate * stride in 32 bits, silently corrupting
+dQ/dK for long sequences. The CHANGELOG.md hunk is dropped because the
+sdist does not ship CHANGELOG.md.
+
+diff --git a/csrc/include/natten/cuda/reduction/compute_delta.cuh b/csrc/include/natten/cuda/reduction/compute_delta.cuh
+index 20a3ce8a..28f3c346 100644
+--- a/csrc/include/natten/cuda/reduction/compute_delta.cuh
++++ b/csrc/include/natten/cuda/reduction/compute_delta.cuh
+@@ -54,16 +54,18 @@ void compute_delta(
+   OperationSumOdO op_sum_OdO;
+ 
+   ProblemShape problem_shape = cute::make_tuple(batch, heads, seqlen_Q, dim);
+-  auto stride_O = make_stride(
+-      static_cast<int64_t>(dim * heads) * static_cast<int64_t>(seqlen_Q),
+-      dim,
+-      dim * heads,
+-      _1{});
++  // Keep dynamic strides int64-typed so device-side coordinate * stride
++  // address arithmetic is evaluated in 64 bits.
++  const int64_t q_stride =
++      static_cast<int64_t>(dim) * static_cast<int64_t>(heads);
++  const int64_t batch_stride = q_stride * static_cast<int64_t>(seqlen_Q);
++  auto stride_O =
++      make_stride(batch_stride, static_cast<int64_t>(dim), q_stride, _1{});
+   auto stride_dO = stride_O;
+   auto stride_sum_OdO = make_stride(
+       static_cast<int64_t>(heads) * static_cast<int64_t>(seqlen_Q),
+       _1{},
+-      heads);
++      static_cast<int64_t>(heads));
+ 
+   auto args = typename OperationSumOdO::Arguments{
+       problem_shape,
+diff --git a/csrc/include/natten/cuda/reduction/fmha_kernel_bwd_sum_OdO.hpp b/csrc/include/natten/cuda/reduction/fmha_kernel_bwd_sum_OdO.hpp
+index 3a446c3d..81e03e8c 100644
+--- a/csrc/include/natten/cuda/reduction/fmha_kernel_bwd_sum_OdO.hpp
++++ b/csrc/include/natten/cuda/reduction/fmha_kernel_bwd_sum_OdO.hpp
+@@ -47,12 +47,12 @@ struct FmhaKernelBwdSumOdO {
+     ProblemShape problem_shape;
+ 
+     const Element* ptr_O;
+-    cute::tuple<int64_t, int, int, cute::_1> stride_O;
++    cute::tuple<int64_t, int64_t, int64_t, cute::_1> stride_O;
+     const Element* ptr_dO;
+-    cute::tuple<int64_t, int, int, cute::_1> stride_dO;
++    cute::tuple<int64_t, int64_t, int64_t, cute::_1> stride_dO;
+ 
+     ElementAcc* ptr_sum_OdO;
+-    cute::tuple<int64_t, _1, int> stride_sum_OdO;
++    cute::tuple<int64_t, _1, int64_t> stride_sum_OdO;
+   };
+ 
+   using Params = Arguments;
