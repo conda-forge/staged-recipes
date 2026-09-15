@@ -1,0 +1,265 @@
+context:
+  version: "0.4.11"
+  feature_set: full-dynamic
+  llvm_major: "20"
+
+recipe:
+  name: mq-bridge
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 31bc56c24c4f084e4a5ae52791af3aeba658d8289038fae8f854b7cd419c0d3c
+    patches:
+      - patches/0001-split-native-linkage-into-its-own-features.patch
+      - patches/0002-relock-sqlx-without-default-features.patch
+      - patches/0003-reject-both-linkage-features-at-compile-time.patch
+      - patches/0004-take-protoc-from-the-environment.patch
+      - patches/0005-full-dynamic-passthroughs-for-the-dependent-crates.patch
+      - patches/0006-build-the-wheel-with-full-dynamic.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: mq-bridge-app
+
+    build:
+      number: 0
+      script:
+        content:
+          - if: unix
+            then:
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
+            else:
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
+              - set "RDKAFKA_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
+          - if: unix
+            then:
+              - cd apps/mq-bridge-app
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
+              - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
+            else:
+              - cd apps\mq-bridge-app
+              - cargo fetch
+              - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
+              - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: nasm
+        - pkg-config
+        - libprotobuf
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
+      host:
+        - librdkafka >=2.12.1
+        - if: win
+          then: zlib
+
+    tests:
+      - script:
+          - mq-bridge-app --version
+          - mq-bridge-app --help
+          - mqb --version
+      - package_contents:
+          bin:
+            - mq-bridge-app
+            - mqb
+          strict: true
+
+    about:
+      summary: Zero-code ETL bridge between message brokers, databases and HTTP endpoints
+      description: |
+        mq-bridge-app is a standalone application built on the mq-bridge engine.
+        It moves messages between brokers, databases, files and HTTP endpoints
+        from a declarative YAML or JSON route configuration, with
+        transformation, filtering, retries, dead-letter queues, deduplication
+        and rate limiting available as middleware. It runs as a CLI, an MCP
+        server, or a daemon serving a built-in web UI.
+      license: MIT
+      license_file:
+        - apps/mq-bridge-app/LICENSE
+        - THIRDPARTY-app.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
+
+  - package:
+      name: mq-bridge-py
+
+    build:
+      number: 0
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        env:
+          MATURIN_PEP517_ARGS: --locked --no-default-features
+        content:
+          - if: unix
+            then:
+              - export PROTOC="$BUILD_PREFIX/bin/protoc"
+              - export LIBCLANG_PATH="$BUILD_PREFIX/lib"
+              - export BINDGEN_EXTRA_CLANG_ARGS="-I$BUILD_PREFIX/lib/clang/${{ llvm_major }}/include -I$PREFIX/include ${CONDA_TOOLCHAIN_HOST:+--target=$CONDA_TOOLCHAIN_HOST}"
+              - export PKG_CONFIG_ALLOW_CROSS=1
+              - unset RDKAFKA_STATIC LIBCURL_STATIC OPENSSL_STATIC PKG_CONFIG_ALL_STATIC
+              - export PKG_CONFIG_ALL_DYNAMIC=1
+              - export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-L$PREFIX/lib -C link-arg=-Wl,-rpath,$PREFIX/lib"
+            else:
+              - set "PROTOC=%BUILD_PREFIX%\Library\bin\protoc.exe"
+              - if not exist "%SRC_DIR%\libclang-shim" mkdir "%SRC_DIR%\libclang-shim"
+              - for %%F in ("%BUILD_PREFIX%\Library\bin\libclang*.dll") do copy /Y "%%F" "%SRC_DIR%\libclang-shim\libclang.dll"
+              - if not exist "%SRC_DIR%\libclang-shim\libclang.dll" exit /b 1
+              - set "LIBCLANG_PATH=%SRC_DIR%\libclang-shim"
+              - set "BINDGEN_EXTRA_CLANG_ARGS=-I%BUILD_PREFIX%\Library\lib\clang\${{ llvm_major }}\include -I%LIBRARY_INC%"
+              - set "PKG_CONFIG_ALLOW_CROSS=1"
+              - set "RDKAFKA_STATIC="
+              - set "LIBCURL_STATIC="
+              - set "OPENSSL_STATIC="
+              - set "PKG_CONFIG_ALL_STATIC="
+              - set "PKG_CONFIG_ALL_DYNAMIC=1"
+              - if not exist "%SRC_DIR%\libshim" mkdir "%SRC_DIR%\libshim"
+              - for %%P in (curl ssh2 crypto ssl) do if exist "%PREFIX%\Library\lib\lib%%P.lib" copy /Y "%PREFIX%\Library\lib\lib%%P.lib" "%SRC_DIR%\libshim\%%P.lib" >nul
+              - set "LIB=%SRC_DIR%\libshim;%LIB%"
+          - if: linux
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+--sysroot=$CONDA_BUILD_SYSROOT}"
+          - if: osx
+            then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
+          - cargo fetch
+          - if: unix
+            then: cd python/mq-bridge-py
+            else: cd python\mq-bridge-py
+          - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+          - if: unix
+            then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-py.yml
+            else: cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-py.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cmake
+        - if: unix
+          then: make
+        - if: win
+          then: nasm
+        - pkg-config
+        - libprotobuf
+        - libclang ${{ llvm_major }}.*
+        - clang-${{ llvm_major }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.7,<2
+      host:
+        - python
+        - if: is_abi3
+          then: python-abi3
+        - pip
+        - maturin >=1.7,<2
+        - librdkafka >=2.12.1
+        - if: win
+          then: zlib
+      run:
+        - python
+        - typing_extensions >=4.0
+
+    tests:
+      - python:
+          imports:
+            - mq_bridge
+            - mq_bridge.config
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+          pip_check: true
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/mq_bridge/_mq_bridge.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%\mq_bridge\_mq_bridge.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+    about:
+      summary: Python bindings for mq-bridge, an async message-bridging library
+      description: |
+        Thin Python bindings for the Rust mq-bridge engine. They expose
+        Publisher, Consumer and Route objects that connect message brokers,
+        databases, files, HTTP/WebSocket endpoints and in-memory channels
+        behind one small set of traits, with batch-aware processing and
+        acknowledgement sequencing. Routes can be declared in code or loaded
+        from YAML/JSON, and custom endpoints and middleware can be registered
+        from Python or loaded as native plugins.
+      license: MIT
+      license_file:
+        - python/mq-bridge-py/LICENSE.python
+        - THIRDPARTY-py.yml
+      homepage: https://github.com/marcomq/mq-bridge
+      repository: https://github.com/marcomq/mq-bridge
+      documentation: https://github.com/marcomq/mq-bridge/tree/main/python/mq-bridge-py
+
+about:
+  homepage: https://github.com/marcomq/mq-bridge
+  repository: https://github.com/marcomq/mq-bridge
+  documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
+  license: MIT
+  license_file: LICENSE
+  summary: Asynchronous message bridging between brokers, databases and HTTP endpoints
+  description: |
+    mq-bridge moves messages between message brokers, databases, files,
+    HTTP/WebSocket endpoints and in-memory channels, giving each transport the
+    same message, consumer and publisher interfaces and composing them into
+    routes that can transform, filter, batch, retry, rate-limit, deduplicate or
+    fan out along the way.
+
+    This recipe produces two packages: `mq-bridge-app`, the zero-code ETL
+    application driven by a YAML or JSON route configuration, and
+    `mq-bridge-py`, the Python bindings for the engine.
+
+extra:
+  recipe-maintainers:
+    - phreed
