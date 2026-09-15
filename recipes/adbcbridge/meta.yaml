@@ -1,0 +1,90 @@
+{% set name = "adbcbridge" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: adbcbridge-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/singhpratech/adbcbridge/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 081998a2dc88e99d6f72d2b5e28bbf0471a1045030e2c958c82bf0f10c191240
+
+build:
+  number: 0
+  skip: true  # [win]
+
+outputs:
+  # The driver itself: one shared library, plus the ADBC driver manifest (odbc.toml)
+  # so `driver="odbc"` resolves by name through the ADBC driver manager.
+  - name: libadbcbridge
+    script: build-lib.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("libadbcbridge", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+        - cmake
+        - ninja
+      host:
+        - unixodbc
+      run:
+        - unixodbc
+    test:
+      commands:
+        - test -f $PREFIX/lib/libadbc_driver_odbc${SHLIB_EXT}
+    about:
+      summary: ADBC (Apache Arrow) driver over ODBC — the driver library
+      license: Apache-2.0
+      license_file:
+        - LICENSE
+        - NOTICE
+
+  # The Python package. It does not bundle a copy of the library here: adbcbridge's
+  # driver_path() looks in <sys.prefix>/lib, which is where libadbcbridge installs it.
+  - name: adbcbridge
+    script: build-py.sh
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools >=77
+      run:
+        - python
+        - {{ pin_subpackage("libadbcbridge", exact=True) }}
+        - adbc-driver-manager >=1.0
+        - pyarrow >=14
+    test:
+      imports:
+        - adbcbridge
+      commands:
+        - python -c "import adbcbridge, os; p = adbcbridge.driver_path(); assert os.path.exists(p), p; print(p)"
+        - adbcbridge --help
+    about:
+      summary: ADBC (Apache Arrow) driver for any ODBC data source — Python package
+      license: Apache-2.0
+      license_file:
+        - LICENSE
+        - NOTICE
+
+about:
+  home: https://adbcbridge.org
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+  summary: adbcBridge — an ADBC (Apache Arrow) driver that loads any ODBC driver
+  description: |
+    adbcBridge is an ADBC driver written in C that loads an ODBC driver and exposes it
+    through the ADBC API, giving Arrow record batches from databases that have an ODBC
+    driver but no native ADBC one. It reads with ODBC block cursors, converts
+    column-wise into Arrow, and supports bulk ingest, partitioned reads and catalog
+    metadata. Verified against 53 databases on Linux, macOS and Windows.
+  doc_url: https://adbcbridge.org/docs/
+  dev_url: https://github.com/singhpratech/adbcbridge
+
+extra:
+  recipe-maintainers:
+    - singhpratech
+  feedstock-name: adbcbridge
