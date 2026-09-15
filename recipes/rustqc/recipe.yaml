@@ -1,0 +1,65 @@
+context:
+  version: "0.4.0"
+
+package:
+  name: rustqc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/2shakilrafi/rustqc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 023160deb277e03b5cebe4bfbc7b3797b0e96ec383dec535c3127c999793a0a6
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      else:
+        - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - pkg-config
+
+tests:
+  - script:
+      - rustqc --help
+      - rustqc --version
+      - rustqc --quiet --format json --output rustqc-test.json tests/fixtures/tiny.fastq
+      - if: unix
+        then: test -s rustqc-test.json
+      - if: win
+        then: if not exist rustqc-test.json exit 1
+    files:
+      source:
+        - tests/fixtures/tiny.fastq
+  - package_contents:
+      bin:
+        - rustqc
+      files:
+        - etc/conda/test-files/rustqc/0/tests/fixtures/tiny.fastq
+      strict: true
+
+about:
+  homepage: https://github.com/2shakilrafi/rustqc
+  repository: https://github.com/2shakilrafi/rustqc
+  summary: Fast, memory-bounded quality control for FASTQ and FASTA data
+  description: |
+    RustQC is a command-line quality-control analyzer for FASTQ and FASTA data.
+    It implements the eleven active FastQC 0.12.1 analysis modules and emits
+    self-contained reports plus FastQC-compatible data artifacts.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - 2shakilrafi
