@@ -1,4 +1,4 @@
-! The load-bearing check for the whole environment.
+! The central check for the whole environment.
 !
 ! gfortran can only read .mod files written by its own generation, so compiling
 ! this one program proves that conda-forge's Fortran stack (mpich, netcdf-fortran)

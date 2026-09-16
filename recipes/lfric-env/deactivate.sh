@@ -3,7 +3,7 @@
 #
 # Installed as $PREFIX/etc/conda/deactivate.d/000-lfric-env.sh.
 #
-# FILENAME PREFIX -- `000-` is load-bearing, and is the mirror image of the `zzz-`
+# FILENAME PREFIX -- the `000-` matters, and is the mirror image of the `zzz-`
 # on the activate script. conda sources deactivate.d/*.sh in sorted order too (not
 # reverse order), and conda-forge's compiler scripts are named
 # `deactivate-<pkg>_<subdir>.sh`. This must run BEFORE them: it restores CXX to
