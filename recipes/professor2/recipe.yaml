@@ -1,0 +1,114 @@
+context:
+  version: "2.5.5"
+
+package:
+  name: professor2
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.com/hepcedar/professor/-/archive/professor-${{ version }}/professor-professor-${{ version }}.tar.gz
+  sha256: 307fa84b7a3e9e47aac67a457910673b4ed506275a70d25e7d517c4b71137641
+  patches:
+    # Added for v2.5.5
+    - update-to-python3.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage("professor2", upper_bound="x.x") }}
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - make
+    - sed
+    - pkg-config
+    - gnuconfig
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - cython
+  host:
+    - python
+    - pip
+    - setuptools
+    - cython
+    - eigen
+  run:
+    - python
+    - numpy
+    - scipy
+    - yoda
+    - iminuit
+    - pyyaml
+    - tabulate
+    - matplotlib-base
+
+tests:
+  - package_contents:
+      bin:
+        - prof2-ls
+        - prof2-ipol
+        - prof2-tune
+        - prof2-sample
+        - prof2-config
+      lib:
+        - Professor2
+      include:
+        - Professor/Professor.h
+
+  - python:
+      imports:
+        - professor2
+        - professor2.core
+      pip_check: true
+
+  - script:
+      - prof2-ls --help
+      - prof2-ipol --help
+      - prof2-tune --help
+      - prof2-sample --help
+
+      - prof2-config --help
+      - prof2-config --prefix
+      - prof2-config --includedir
+      - prof2-config --libdir
+      - prof2-config --cppflags
+      - prof2-config --ldflags
+      - prof2-config --version
+
+      - test "$(prof2-config --version)" = "${PKG_VERSION}"
+
+  - files:
+      source:
+        - test/testIpol.cc
+    requirements:
+      run:
+        - cxx-compiler
+    script:
+      # Minimal compiler activation does not export CXX, so fall back to the
+      # host-prefixed driver (x86_64-conda-linux-gnu-c++, *-apple-darwin*-clang++).
+      - CXX="${CXX:-$(ls "${PREFIX}"/bin/*-c++ "${PREFIX}"/bin/*-clang++ 2>/dev/null | head -n1)}"
+      - $CXX -std=c++17 $(prof2-config --cppflags) test/testIpol.cc $(prof2-config --ldflags) -o testIpol
+      - ./testIpol
+
+about:
+  homepage: https://professor.hepforge.org/
+  summary: Tool for SVD polynomial parametrisation
+  description: |
+    Professor 2 is a tool primarily for tuning of Monte Carlo event-generator
+    tools in high-energy physics, based on training of a fast "surrogate model"
+    whose parameters can be optimised using various minimiser methods that are
+    intractable for real event-generator runs.
+  license: GPL-3.0-only
+  license_file: LICENSE
+  repository: https://gitlab.com/hepcedar/professor
+  documentation: https://professor.hepforge.org/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
