@@ -5,7 +5,7 @@ set CONFIGURATION=Release
 
 cmake .. ^
 	%CMAKE_ARGS% ^
-	-G "NMake Makefiles" ^
+	-G "Ninja" ^
     -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
 	-DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
 	-DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
@@ -15,8 +15,8 @@ cmake .. ^
 
 if errorlevel 1 exit 1
 
-nmake all
+cmake --build . --config %CONFIGURATION%
 if errorlevel 1 exit 1
 
-nmake install
+cmake --build . --target install
 if errorlevel 1 exit 1
