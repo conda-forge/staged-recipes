@@ -118,6 +118,9 @@ export FC LDMPI CXX
 # LFRic itself is a linux activity; macOS support here is for the library stack.
 if [ -z "${MPICH_CXX:-}" ]; then
     if [ -n "${_lfric_gxx}" ]; then
+        # Note GXX is conventionally a BARE COMMAND NAME
+        # (x86_64-conda-linux-gnu-g++), not a path. That is fine and is what
+        # mpich wants: it resolves MPICH_CXX through PATH.
         MPICH_CXX="${_lfric_gxx}"
         export MPICH_CXX
     elif [ -n "${CONDA_TOOLCHAIN_HOST:-}" ] &&
@@ -125,6 +128,25 @@ if [ -z "${MPICH_CXX:-}" ]; then
          [ -x "${_lfric_prefix}/bin/${CONDA_TOOLCHAIN_HOST}-g++" ]; then
         MPICH_CXX="${_lfric_prefix}/bin/${CONDA_TOOLCHAIN_HOST}-g++"
         export MPICH_CXX
+    elif [ -n "${_lfric_prefix}" ]; then
+        # Neither variable is available. Both come from the compiler activation
+        # script, and there is no guarantee it has run: conda sources
+        # activate.d/ in sorted order (hence this file's `zzz-` prefix), but a
+        # package TEST prefix activates differently and may not run it at all --
+        # which is exactly where this was first seen to be unset.
+        #
+        # The driver itself does not depend on any of that: gxx_<subdir>
+        # installs it as a real file in the prefix, so find it directly. The
+        # glob simply fails to match on macOS, where the C++ compiler is clang
+        # and there is no g++ to point at -- which is the correct outcome there.
+        for _lfric_gpp in "${_lfric_prefix}"/bin/*-g++; do
+            if [ -x "${_lfric_gpp}" ]; then
+                MPICH_CXX="${_lfric_gpp}"
+                export MPICH_CXX
+                break
+            fi
+        done
+        unset _lfric_gpp
     fi
 fi
 unset _lfric_gxx
