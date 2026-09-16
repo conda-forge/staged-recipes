@@ -5,9 +5,6 @@ set -euo pipefail
 # things it promises -- (1) the activation contract has been applied, and (2) the
 # closure it pulls in really is a working LFRic toolchain.
 #
-# This is the packaged form of ickc/lfric-conda's scripts/test-env.sh, which runs
-# the same checks against an environment built from envs/lfric-env.yaml.
-#
 # Every assertion goes through check(), which runs its command inside an `if` so
 # that `set -e` does not abort on the first failure: one CI run should report
 # every broken thing, not just the earliest.

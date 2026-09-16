@@ -1,19 +1,18 @@
 #!/bin/sh
-# lfric-env -- THE STAGE-1 ACTIVATION CONTRACT.
+# lfric-env -- THE ACTIVATION CONTRACT.
 #
 # Installed as $PREFIX/etc/conda/activate.d/zzz-lfric-env.sh, so `conda activate`
-# sources it. This is the conda analogue of the `lfric-env` Lmod modulefile in the
-# Spack delivery (ickc/lfric-env-isambard, scripts/lfric-env.lua): the one place
-# that says what "the LFRic environment is active" means.
+# sources it. This is the one place that says what "the LFRic environment is
+# active" means, and is the conda analogue of the module file HPC sites load.
 #
 # Only variables that LFRic's build system requires to be spelled a PARTICULAR WAY
 # are here. Anything `conda activate` already does correctly (PATH, the compiler
 # activation, library search paths, PYTHONPATH) is left alone.
 #
-# NOT here, deliberately: APPS_ROOT_DIR / CORE_ROOT_DIR / PHYSICS_ROOT. The Spack
-# modulefile points those at its own vendored LFRic checkout, but LFRic SOURCE is
-# Stage 2, not Stage 1 -- a suite owns its extract tree and sets them itself. A
-# package guessing a path there would be wrong for every real workflow.
+# NOT here, deliberately: APPS_ROOT_DIR / CORE_ROOT_DIR / PHYSICS_ROOT. Those point
+# at a checkout of the model source, which is the user's, not this package's -- a
+# workflow owns its extract tree and sets them itself, and a package guessing a
+# path there would be wrong for every real workflow.
 #
 # FILENAME PREFIX -- `zzz-` is load-bearing. conda sources activate.d/*.sh in
 # sorted order, and conda-forge's compiler activation scripts are named
@@ -46,8 +45,7 @@ _lfric_env_save() {
 # Prepend a flag to a space-separated variable, but only if it is not already
 # there, so re-activation (a Cylc task shell, a nested `conda activate`) does not
 # accumulate duplicates. Prepending -- not appending -- is what makes this
-# environment's own headers and libraries win over a caller's, matching the
-# modulefile's pushenv.
+# environment's own headers and libraries win over a caller's.
 _lfric_env_prepend() {
     _lfric_var="$1"
     _lfric_flag="$2"
@@ -93,8 +91,7 @@ fi
 # (lfric_core/infrastructure/build/fortran/<fc>.mk, cxx/<cxx>.mk). It ships
 # mpif90.mk and mpic++.mk -- so conda's <arch>-conda-linux-gnu-gfortran (no .mk)
 # and mpich's mpicxx alias (no mpicxx.mk) both fail. This is the single most
-# load-bearing pair in the file, and the Spack modulefile sets exactly the same
-# one for its from-source variant.
+# load-bearing pair in the file, and is the same pair HPC module files set.
 #
 # GXX is read BEFORE CXX is overridden: it is conda's g++-named driver, exported
 # by the compiler activation that ran ahead of this script.
@@ -115,7 +112,8 @@ export FC LDMPI CXX
 # Set only when a g++ driver actually exists, which is a GNU-toolchain (linux)
 # property: on macOS conda-forge's C/C++ compiler is clang and there is no g++, so
 # this is silently skipped rather than warned about on every activation. Building
-# LFRic itself is a linux activity; macOS support here is for the library stack.
+# the model itself is a linux activity; macOS support here is for the library
+# stack (development and testing on a laptop).
 if [ -z "${MPICH_CXX:-}" ]; then
     if [ -n "${_lfric_gxx}" ]; then
         # Note GXX is conventionally a BARE COMMAND NAME
@@ -157,9 +155,9 @@ if [ -z "${FPP:-}" ]; then
     export FPP
 fi
 
-# Which flag-file set to build with. meto-spice is the generic GNU/Linux one and
-# is what the Spack modulefile defaults to as well. A suite that knows better sets
-# its own before activating, and that value is kept.
+# Which flag-file set to build with. meto-spice is LFRic's generic GNU/Linux one,
+# and is the usual default elsewhere too. A workflow that knows better sets its
+# own before activating, and that value is kept.
 if [ -z "${LFRIC_TARGET_PLATFORM:-}" ]; then
     LFRIC_TARGET_PLATFORM=meto-spice
     export LFRIC_TARGET_PLATFORM
@@ -202,8 +200,8 @@ PYTHONDONTWRITEBYTECODE=1
 export PYTHONDONTWRITEBYTECODE
 
 # Informational marker: which prefix this contract was last applied for. A cheap
-# way for a script (or a person) to check that Stage 1 is active, and which
-# environment it is.
+# way for a script (or a person) to check that the environment is active, and
+# which one it is.
 LFRIC_ENV_ACTIVE="${_lfric_prefix}"
 export LFRIC_ENV_ACTIVE
 
