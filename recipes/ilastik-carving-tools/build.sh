@@ -1,4 +1,4 @@
-if [[ $(uname) == 'Darwin' ]]; then
+if [[ ${target_platform} == "osx-"* ]]; then
     ILASTIKTOOLS_CXXFLAGS="${CXXFLAGS} -std=c++11 -stdlib=libc++"
 else
     ILASTIKTOOLS_CXXFLAGS="${CXXFLAGS} -std=c++11"
