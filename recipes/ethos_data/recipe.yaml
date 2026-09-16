@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: ethos_data
+  version: ${{ version }}
+
+source:
+  url: https://github.com/FZJ-IEK3-VSA/ETHOS.Data/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 2805bdc8e550c2e080261028b4a04c90c881ea304a08db171eec3426b2e2a9d6
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - ethos-data = ethos_data.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - pooch >=1.8.0
+    - pyyaml >=5.4
+    - platformdirs >=3.0
+    - tqdm
+    - rclone
+
+tests:
+  - python:
+      imports:
+        - ethos_data
+        - ethos_data.cli
+        - ethos_data.catalog
+        - ethos_data.maintain
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - ethos-data --help
+      - pytest -v tests
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://github.com/FZJ-IEK3-VSA/ETHOS.Data
+  summary: Shared, deduplicating data access for ETHOS tools and workflows
+  description: |
+    ETHOS.Data gives a family of tools one input data catalogue instead of one
+    copy of the data per tool. The catalogue describes datasets as Frictionless
+    Data Packages -- file paths, sizes, SHA-256 checksums, original sources and
+    licences -- and each tool ships only a `collections.yaml` naming the slices
+    it needs, with no paths, hashes or URLs of its own.
+
+    Because every tool resolves the same catalogue into the same cache layout,
+    a dataset that one tool has already downloaded is found in place by the
+    next one: no synchronisation, no symlink farm, and no per-tool copy. The
+    `ethos-data` command line tool inspects the configuration and cache,
+    exports and verifies offline bundles of test data, and -- for catalogue
+    maintainers -- builds and uploads dataset manifests.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/FZJ-IEK3-VSA/ETHOS.Data
+
+extra:
+  recipe-maintainers:
+    - julian-belina
