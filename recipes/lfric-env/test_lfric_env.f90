@@ -2,7 +2,7 @@
 !
 ! gfortran can only read .mod files written by its own generation, so compiling
 ! this one program proves that conda-forge's Fortran stack (mpich, netcdf-fortran)
-! and every Fortran-module-shipping package built alongside this recipe (xios,
+! and every Fortran-module-shipping package LFRic adds on top of that (xios,
 ! yaxt, shumlib) agree on a single compiler -- the one risk that a per-package
 ! build check cannot catch, because each package is only ever checked against
 ! itself.
