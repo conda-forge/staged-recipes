@@ -24,14 +24,13 @@ source:
     - patches/0004-BUILD-Allow-the-sysconfdir-to-be-overridden.patch
     - patches/0005-BUILD-Make-the-prebuilt-eos-tui-download-optional.patch
     - patches/0006-PROTO-Fix-parallel-build-race-generating-the-gRPC-se.patch
+    - patches/0007-FST-Fix-the-NFS-IO-backend-build-on-macOS.patch
+    - patches/0008-TEST-Fix-the-eos-io-tool-build-on-macOS.patch
+    - patches/0009-BUILD-Do-not-build-the-gRPC-client-tools-off-Linux.patch
 
 build:
   number: 0
-  # Linux only. EOS's macOS client build is not maintained upstream: it does not
-  # compile the NFS backend, eos-io-tool or the gRPC client tools, each of which
-  # fails on a different Linux-only assumption. Fixes are in flight upstream
-  # (branch macos-client-build-fixes); revisit once they land.
-  skip: not linux
+  skip: win
 
 outputs:
   - staging:
@@ -119,7 +118,10 @@ outputs:
       files:
         - bin/eos
         - bin/eoscp
-        - bin/eos-grpc-*
+        # proto/CMakeLists.txt only generates the gRPC service stubs on Linux,
+        # so patch 0009 gates the tools that link them the same way.
+        - if: linux
+          then: bin/eos-grpc-*
         - share/bash-completion/completions/eos
         - share/zsh/site-functions/_eos
     requirements:
@@ -136,7 +138,6 @@ outputs:
             exists:
               - eos
               - eoscp
-              - eos-grpc-ping
               - "*"
             not_exists:
               - eosxd
@@ -144,6 +145,8 @@ outputs:
           files:
             - share/bash-completion/completions/eos
             - share/zsh/site-functions/_eos
+            - if: linux
+              then: bin/eos-grpc-ping
     about:
       summary: Command line client for the EOS storage system
 
@@ -151,6 +154,9 @@ outputs:
       name: eos-fuse
     inherit: eos-build
     build:
+      # macOS FUSE means macFUSE, a kernel extension that cannot be
+      # redistributed through conda-forge.
+      skip: not linux
       files:
         - bin/eosxd3
         - bin/eoscfsd
