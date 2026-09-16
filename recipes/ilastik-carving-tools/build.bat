@@ -4,7 +4,7 @@ cd build
 set CONFIGURATION=Release
 
 cmake .. ^
-	%{CMAKE_ARGS}% ^
+	%CMAKE_ARGS% ^
 	-G "NMake Makefiles" ^
     -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
 	-DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
