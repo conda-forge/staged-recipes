@@ -4,10 +4,12 @@ else
     ILASTIKTOOLS_CXXFLAGS="${CXXFLAGS} -std=c++11"
 fi
 
+CONFIGURATION="Release"
 
 mkdir build
 cd build
 cmake ..\
+    -G "Ninja" \
     ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_FLAGS="${ILASTIKTOOLS_CXXFLAGS}" \
@@ -17,5 +19,5 @@ cmake ..\
     -DWITH_OPENMP=ON \
 ##
 
-make -j${CPU_COUNT}
-make install
+cmake --build . --config ${CONFIGURATION}
+cmake --build . --target install
