@@ -1,0 +1,56 @@
+context:
+  version: "1.1"
+
+package:
+  name: ocaml-gen
+  version: ${{ version }}
+
+source:
+  url: https://github.com/c-cube/gen/archive/v${{ version }}.tar.gz
+  sha256: 6893bf156bbaa4254ec5ec2ea5fe539030f2395bc5cd83ccb8fe3930cff89cb0
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # Temporary workaround for conda-forge/ocaml-feedstock#101.
+    - if: osx
+      then: export CONDA_OCAML_CC="${CC}"
+    - if: osx
+      then: export CONDA_OCAML_MKEXE="${CC} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -Wl,-headerpad_max_install_names -Wl,-rpath,@executable_path/../lib"
+    - if: osx
+      then: export CONDA_OCAML_MKDLL="${CC} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -shared -Wl,-headerpad_max_install_names -undefined dynamic_lookup"
+    # The ocaml package puts only the build prefix on OCAMLPATH, so host
+    # OCaml libraries are invisible to dune without this.
+    - export OCAMLPATH="${PREFIX}/lib/ocaml:${OCAMLPATH:-}"
+    - dune build --profile=release -p gen @install
+    - dune install --prefix="${PREFIX}" --libdir="${PREFIX}/lib/ocaml" gen
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("ocaml") }}
+    - ocaml-dune >=1.1
+  host:
+    - ocaml >=4.03.0
+    - ocaml-seq
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        - lib/ocaml/gen/*
+        - doc/gen/*
+
+about:
+  homepage: https://github.com/c-cube/gen
+  repository: https://github.com/c-cube/gen
+  summary: Iterators for OCaml, both restartable and consumable
+  license: BSD-2-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - ManuelLerchner
