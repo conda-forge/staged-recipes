@@ -1,4 +1,4 @@
-go build -v -o %LIBRARY_BIN%\ov.exe .
+go build -v -o %PREFIX%\bin\ov.exe .
 
 REM Generate PowerShell completion file for Windows environment roots
 if not exist "%LIBRARY_PREFIX%\share\powershell\completions" mkdir "%LIBRARY_PREFIX%\share\powershell\completions"
