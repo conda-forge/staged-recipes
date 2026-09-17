@@ -16,6 +16,15 @@ source:
     # conda-forge has no static libgmp, so link the shared one. PARI is still
     # linked statically from the host prefix.
     - patches/0001-link-shared-gmp.patch
+    # cypari 2.5.6 cannot be cythonised by Cython 3.1 or newer: _pari.pyx
+    # line 1 is missing the leading # on its directive comment, the sources
+    # still cimport the removed python 2 cpython.int API, and Gen defines a
+    # dead __long__ whose body calls the python 2 builtin long(). Newer
+    # Cython is needed for python 3.14. Verified behaviour preserving: with
+    # this patch and cython 3.0.11 on python 3.12 the upstream suite is still
+    # 0 failures out of 2454. See
+    # https://github.com/3-manifolds/CyPari/issues/8
+    - patches/0002-cython-3.1-compat.patch
 
 build:
   number: 0
@@ -33,13 +42,17 @@ requirements:
       then:
         - python
         - cross-python_${{ target_platform }}
-        - cython ==3.0.11
+        - cython >=3.1
   host:
     - python
     - pip
     - setuptools
     - wheel
-    - cython ==3.0.11
+    # Upstream pins cython ==3.0.11, which predates python 3.14 by over a
+    # year and emits the deprecated _PyLong_New/_PyLong_Sign calls. Newer
+    # Cython is needed for 3.14. See
+    # https://github.com/3-manifolds/CyPari/issues/8
+    - cython >=3.1
     # cypari 2.5.6 targets PARI 2.15 and miscomputes against 2.17: its own
     # doctests report 72 failures out of 2454 on 2.17.3 and 0 on 2.15.4,
     # including pari.pi() returning 3.14159265358973. Keep this pinned until
