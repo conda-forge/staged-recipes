@@ -1,0 +1,61 @@
+context:
+  version: "0.6.5"
+
+package:
+  name: mcat
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Skardyy/mcat/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d998b70d88acc06910c0092e5724b72e617abe2d34e7a8601c47f56ff25bd0e1
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        cargo install --locked --no-track --path crates/core --root "${PREFIX}"
+        mkdir -p "${PREFIX}/share/bash-completion/completions" \
+                 "${PREFIX}/share/zsh/site-functions" \
+                 "${PREFIX}/share/fish/vendor_completions.d"
+        "${PREFIX}/bin/mcat" --generate bash > "${PREFIX}/share/bash-completion/completions/mcat"
+        "${PREFIX}/bin/mcat" --generate zsh  > "${PREFIX}/share/zsh/site-functions/_mcat"
+        "${PREFIX}/bin/mcat" --generate fish > "${PREFIX}/share/fish/vendor_completions.d/mcat.fish"
+      else: |
+        cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        if errorlevel 1 exit 1
+        cargo install --locked --no-track --path crates/core --root "%LIBRARY_PREFIX%"
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - mcat --version
+      - mcat --help
+  - package_contents:
+      bin:
+        - mcat
+
+about:
+  homepage: https://github.com/Skardyy/mcat
+  summary: Terminal image, video, PDF, and Markdown viewer
+  description: |
+    mcat parses, converts and previews files directly in your terminal.
+    It renders images, video, PDF, Markdown, Office documents and archives,
+    using inline terminal graphics protocols (kitty, iterm2, sixel) with an
+    ASCII fallback, and provides an interactive zoom and pan viewer.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/Skardyy/mcat
+
+extra:
+  recipe-maintainers:
+    - Skardyy
