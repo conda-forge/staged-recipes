@@ -23,13 +23,6 @@ build:
     # Upstream builds Windows wheels with the msys2 ucrt64 mingw toolchain,
     # which does not map onto the MSVC toolchain conda-forge uses on win.
     - win
-    # On linux and python 3.14 the extension segfaults at interpreter shutdown:
-    # the test suite runs green and the process then exits 139. 3.11 through
-    # 3.13 are clean, and macOS is clean on 3.14 too, so this is specific to
-    # that combination. cypari also still calls _PyLong_New and _PyLong_Sign,
-    # both deprecated in 3.14. Reported upstream at
-    # https://github.com/3-manifolds/CyPari/issues/8
-    - match(python, ">=3.14")
   script: build.sh
 
 requirements:
@@ -68,7 +61,11 @@ tests:
   # the error text by substring. Reported upstream at
   # https://github.com/3-manifolds/CyPari/issues/6
   - script:
-      - python run_test.py
+      # DIAGNOSTIC: narrow down the linux + python 3.14 shutdown segfault.
+      - python -X faulthandler -c "import cypari; print('PROBE_IMPORT_ONLY_OK')"
+      - python -X faulthandler -c "from cypari import pari; print(pari('2^10')); print('PROBE_SMOKE_OK')"
+      - python -X faulthandler run_test.py
+      - echo PROBE_ALL_OK
     files:
       recipe:
         - run_test.py
