@@ -1,0 +1,78 @@
+schema_version: 1
+
+context:
+  version: "0.4.1"
+
+package:
+  name: keyringrs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/k/keyringrs/keyringrs-${{ version }}.tar.gz
+  sha256: 6684e3d0ac70d2c3f0397b1295ae4b1f3bfe2fe889d0d61a0f980122ee0b534d
+
+build:
+  number: 0
+  skip: not is_python_min
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --config-settings=maturin.build-args=--no-default-features
+  python:
+    version_independent: true
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.8,<2
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+    - if: linux
+      then: pkg-config
+  host:
+    - python-abi3
+    - python
+    - pip
+    - maturin >=1.8,<2
+    - if: linux
+      then: dbus
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      imports:
+        - keyringrs
+      pip_check: true
+  - requirements:
+      run:
+        - abi3audit
+    script:
+      - if: unix
+        then: abi3audit $SP_DIR/keyringrs/keyringrs.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        else: abi3audit %SP_DIR%\keyringrs\keyringrs.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://pypi.org/project/keyringrs/
+  repository: https://github.com/aiidateam/keyringrs
+  summary: Python bindings for keyring-rs
+  description: |
+    keyringrs provides Python bindings for keyring-rs, exposing native
+    platform credential stores such as Linux Secret Service/keyutils,
+    macOS Keychain, and Windows Credential Manager.
+  license: Apache-2.0 OR MIT
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - agoscinski
