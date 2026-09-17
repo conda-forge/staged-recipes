@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  version: "1.1.0"
+
+package:
+  name: pyapprentice
+  version: ${{ version }}
+
+source:
+  # upstream does not tag releases on GitHub past v1.0.6, so use the PyPI sdist
+  - url: https://pypi.org/packages/source/p/pyapprentice/pyapprentice-${{ version }}.tar.gz
+    sha256: c35aa0b6175579290fd6d44ce73d89756a41c480b32255dc286afc192e3baf4c
+    patches:
+      # 'sklearn' is the deprecated PyPI alias of scikit-learn and breaks pip check
+      - use-scikit-learn-distribution-name.patch
+      # 'scripts' in setup.py installs extensionless shebang scripts that are
+      # not executable on Windows, so use console_scripts entry points instead
+      - use-console-scripts-entry-points.patch
+  - url: https://raw.githubusercontent.com/HEPonHPC/apprentice/e48ab1d512784452560e56f70dfc66dc365e9184/LICENSE_SF-19-096_apprentice_GPL_3.0.pdf
+    sha256: 7a331cfb587c14566472bff52add99f57020393df7b9cdca027f948cc7a232e3
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - app-ls = apprentice._cli:app_ls
+      - app-tune2 = apprentice._cli:app_tune2
+      - app-build = apprentice._cli:app_build
+      - app-predict = apprentice._cli:app_predict
+      - app-datadirtojson = apprentice._cli:app_datadirtojson
+      - app-yoda2h5 = apprentice._cli:app_yoda2h5
+      - app-yodaenvelope = apprentice._cli:app_yodaenvelope
+      - app-sample = apprentice._cli:app_sample
+      - extrema.py = apprentice._cli:extrema
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.15.0
+    - scipy >=1.7.2
+    - scikit-learn
+    - matplotlib-base >=3.0.0
+    - pydoe2 >=1.3.0
+    # Not in the sdist's install_requires, but used for JIT acceleration
+    # and required by the app-* command line tools for HDF5 I/O and the
+    # GP module
+    - numba >=0.40.0
+    - h5py >=2.8.0
+    - gpy >=1.9.9
+    - pandas >=1.3.4
+    - mpi4py >=3.0.0
+
+tests:
+  - python:
+      imports:
+        - apprentice
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+  - files:
+      recipe:
+        - test_approximation.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - app-build --help
+      - app-tune2 --help
+      - app-predict --help
+      - app-ls --help
+      - app-sample --help
+      - extrema.py --help
+
+      - python ./test_approximation.py
+
+about:
+  homepage: https://github.com/HEPonHPC/apprentice
+  summary: Multivariate surrogate modelling and Monte Carlo event generator tuning
+  description: |
+    Apprentice is a tool for the construction of multivariate polynomial and
+    rational approximations of computationally expensive functions, such as
+    the per-bin response of Monte Carlo event generators to their parameters,
+    and for using these surrogate models in the tuning of the parameters
+    to experimental data.
+  license: BSD-3-Clause AND GPL-3.0-only
+  license_file:
+    - LICENSE
+    - LICENSE_SF-19-096_apprentice_GPL_3.0.pdf
+  repository: https://github.com/HEPonHPC/apprentice
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
