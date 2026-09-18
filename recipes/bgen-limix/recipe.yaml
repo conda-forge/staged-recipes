@@ -107,20 +107,22 @@ outputs:
       version: ${{ version }}
     build:
       script:
-        # nanobind's own dist-info always ships the exact LICENSE matching
-        # whatever version got solved for the `nanobind` host dependency
-        # below, so copying it here (rather than fetching a separately
-        # pinned copy) can never drift out of sync as nanobind is upgraded.
-        - mkdir -p third_party_licenses
-        - cp "$(python -c "import nanobind, pathlib; print(pathlib.Path(nanobind.__file__).parent.parent / f'nanobind-{nanobind.__version__}.dist-info' / 'licenses' / 'LICENSE')")" third_party_licenses/NANOBIND-LICENSE
-        # Force Ninja explicitly: scikit-build-core's generator autodetection
-        # falls back to "Unix Makefiles" if it can't find ninja on PATH, and
-        # that image has no `make` either, so CMake fails outright.
-        # BGEN_NANOBIND_BACKEND is exported (not just passed as a cmake
-        # define) so scripts/dynamic_metadata.py also sees it and omits the
-        # nanobind-backend dependency from the wheel metadata accordingly.
-        - export BGEN_NANOBIND_BACKEND=private
-        - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private --config-settings=cmake.args=-GNinja
+        # Set via env (not `export`) so it also applies under cmd.exe on
+        # Windows; scripts/dynamic_metadata.py reads it to omit the
+        # nanobind-backend dependency from the wheel metadata.
+        env:
+          BGEN_NANOBIND_BACKEND: private
+        content:
+          # nanobind's own dist-info always ships the exact LICENSE matching
+          # whatever version got solved for the `nanobind` host dependency
+          # below, so copying it here (rather than fetching a separately
+          # pinned copy) can never drift out of sync as nanobind is upgraded.
+          # Done in Python rather than mkdir/cp, which aren't portable to cmd.
+          - python -c "import nanobind,pathlib,shutil,os;p=pathlib.Path(nanobind.__file__).parent.parent;os.makedirs('third_party_licenses',exist_ok=True);shutil.copyfile(p/('nanobind-'+nanobind.__version__+'.dist-info')/'licenses'/'LICENSE','third_party_licenses/NANOBIND-LICENSE')"
+          # Force Ninja explicitly: scikit-build-core's generator autodetection
+          # falls back to "Unix Makefiles" if it can't find ninja on PATH, and
+          # that image has no `make` either, so CMake fails outright.
+          - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private --config-settings=cmake.args=-GNinja
       python:
         entry_points: []
     requirements:
