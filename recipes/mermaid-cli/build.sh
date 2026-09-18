@@ -14,5 +14,7 @@ find "${PREFIX}" -name "prebuilds" -type d -exec rm -rf {} +
 rm -rf "${PREFIX}/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/@napi-rs"
 
 # generate a third-party license disclaimer for the bundled node_modules
-pnpm install --prod --ignore-scripts
+# upstream package.json pins `packageManager: npm`; skip pnpm's pm enforcement
+export pnpm_config_pm_on_fail=ignore
+pnpm install --prod --ignore-scripts --no-frozen-lockfile
 pnpm licenses list --prod --json | pnpm-licenses generate-disclaimer --prod --json-input --output-file="${SRC_DIR}/third-party-licenses.txt"
