@@ -1,7 +1,9 @@
 #!/bin/bash
 set -o xtrace -o nounset -o pipefail -o errexit
 
-go build -v -o $PREFIX/bin/ov .
+GO_LDFLAGS="-X main.Version=${PKG_VERSION} -X main.Revision=conda-forge"
+
+go build -v -ldflags "${GO_LDFLAGS}" -o $PREFIX/bin/ov .
 go-licenses save . --save_path="./license-files"
 
 mkdir -p "$PREFIX/share/bash-completion/completions"
