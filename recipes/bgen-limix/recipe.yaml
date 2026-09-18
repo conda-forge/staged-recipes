@@ -14,8 +14,8 @@ recipe:
   version: ${{ version }}
 
 source:
-  url: https://github.com/jpfeuffer/bgen-limix/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: f4fa3e939e93d56ed25aa177202e2e8b5d7c434a8f0a83b1cd0a2ebae3a1b979
+  - url: https://github.com/jpfeuffer/bgen-limix/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: f4fa3e939e93d56ed25aa177202e2e8b5d7c434a8f0a83b1cd0a2ebae3a1b979
 
 build:
   number: 0
@@ -75,16 +75,23 @@ outputs:
   # ---------------------------------------------------------------------
   # Python bindings (python/, imports as `cbgen`). Built via scikit-build-core
   # against the ${{ clib_name }} output above (find_package(bgen) picks it up).
-  # BGEN_NANOBIND_BACKEND=private builds a self-contained nanobind backend
-  # instead of depending on the external nanobind-backend package, which is
-  # not on conda-forge and buys nothing there anyway (conda-forge already
-  # builds one package per Python version regardless of stable-ABI sharing).
+  # BGEN_NANOBIND_BACKEND=private compiles nanobind's (and, transitively,
+  # vendored robin-map's) source into our own binary instead of depending on
+  # the external nanobind-backend package, which is not on conda-forge and
+  # buys nothing there anyway (conda-forge already builds one package per
+  # Python version regardless of stable-ABI sharing).
   # ---------------------------------------------------------------------
   - package:
       name: ${{ py_name }}
       version: ${{ version }}
     build:
       script:
+        # nanobind's own dist-info always ships the exact LICENSE matching
+        # whatever version got solved for the `nanobind` host dependency
+        # below, so copying it here (rather than fetching a separately
+        # pinned copy) can never drift out of sync as nanobind is upgraded.
+        - mkdir -p third_party_licenses
+        - cp "$(python -c "import nanobind, pathlib; print(pathlib.Path(nanobind.__file__).parent.parent / f'nanobind-{nanobind.__version__}.dist-info' / 'licenses' / 'LICENSE')")" third_party_licenses/NANOBIND-LICENSE
         - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private
       python:
         entry_points: []
@@ -119,6 +126,12 @@ outputs:
         files:
           source:
             - python/tests/**
+    about:
+      license: MIT AND BSD-3-Clause
+      license_file:
+        - LICENSE.md
+        - third_party_licenses/NANOBIND-LICENSE
+        - third_party_licenses/ROBIN-MAP-LICENSE
 
 about:
   homepage: https://github.com/jpfeuffer/bgen-limix
