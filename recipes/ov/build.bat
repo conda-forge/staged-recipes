@@ -1,4 +1,4 @@
-go build -v -o %PREFIX%\bin\ov.exe .
+go build -v -ldflags="-X main.Version=%PKG_VERSION% -X main.Revision=conda-forge" -o %PREFIX%\bin\ov.exe .
 go-licenses save . --save_path=".\license-files"
 
 REM Generate PowerShell completion file for Windows environment roots
