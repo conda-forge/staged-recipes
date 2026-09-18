@@ -1,46 +1,71 @@
 context:
   name: bitwarden-cli
-  version: "2025.10.0"
+  version: "2026.9.0"
 
 package:
   name: ${{ name }}
   version: ${{ version }}
 
 source:
-  url: https://registry.npmjs.org/@bitwarden/cli/-/cli-${{ version }}.tgz
-  sha256: 4a1055bb01a3ea9eabb0b437c0bf6a228b924886fc77407fff48503c1457b403 # TODO: Update with correct SHA256 hash
+  - url: https://registry.npmjs.org/@bitwarden/cli/-/cli-${{ version }}.tgz
+    sha256: 7814dbded417ab4d3a99fb76b0991e1674a1012c2f6b18c2ddabad693112e93a
+  # The npm tarball ships no licence text — package.json says "SEE LICENSE IN
+  # LICENSE.txt" and then omits the file. `publish:npm` builds the OSS target,
+  # so the applicable text is the repository's GPL, taken from this release's
+  # own tag rather than from `main`.
+  - url: https://raw.githubusercontent.com/bitwarden/clients/cli-v${{ version }}/LICENSE_GPL.txt
+    sha256: b98fbb37db5b23bc5cfdcd16793206a5a7120a7b01f75374e5e0888376e4691c
+    file_name: LICENSE_GPL.txt
 
 build:
   number: 0
   script:
-    # Extract the package
-    - tar -xzf cli-${{ version }}.tgz
-    - cd package
-    # Install dependencies for license generation
-    - pnpm install --prod
+    # The published tarball is a webpack bundle, but not a self-contained one:
+    # `build/bw.js` still resolves core-js from node_modules at run time. The
+    # production tree is therefore part of the package, not just an input to
+    # the licence scan below.
+    #
+    # --ignore-scripts because nothing here is compiled, and pnpm 10+ fails the
+    # install outright (ERR_PNPM_IGNORED_BUILDS) rather than skipping core-js'
+    # postinstall banner. --node-linker=hoisted because the default tree is a
+    # farm of symlinks into a content-addressed store that this package does
+    # not ship; hoisted gives a plain directory that survives being copied.
+    - pnpm install --prod --ignore-scripts --node-linker=hoisted
     # Generate license files
     - mkdir -p ${{ PREFIX }}/share/licenses/${{ name }}
-    - npx @quantco/pnpm-licenses list --prod --json --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
+    - npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
     - npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
-    # Install the CLI globally using pnpm
-    - pnpm install -g . --prefix ${{ PREFIX }}
+    # Install by copying rather than with `pnpm install -g .`: a global install
+    # from a directory symlinks the package back into the build tree, so `bw`
+    # dangles as soon as that tree is removed.
+    - mkdir -p ${{ PREFIX }}/lib/node_modules/@bitwarden/cli
+    - cp -a build package.json README.md node_modules ${{ PREFIX }}/lib/node_modules/@bitwarden/cli/
+    - chmod +x ${{ PREFIX }}/lib/node_modules/@bitwarden/cli/build/bw.js
+    - mkdir -p ${{ PREFIX }}/bin
+    - ln -s ../lib/node_modules/@bitwarden/cli/build/bw.js ${{ PREFIX }}/bin/bw
 
 requirements:
   host:
-    - nodejs
+    # `engines.node` in package.json. 2025.10.0 declared none; 2026.7.0
+    # reinstated the field as `~22`, and 2026.9.0 relaxed it to `>=22`.
+    - nodejs >=22
     - pnpm
-    - npm
   run:
-    - nodejs
+    - nodejs >=22
 
 tests:
-  commands:
-    - bw --version
-    - bw --help
+  - script:
+      - bw --version
+      - bw --help
+  - package_contents:
+      bin:
+        - bw
 
 about:
   homepage: https://bitwarden.com/help/cli/
   license: GPL-3.0-only
+  license_file:
+    - LICENSE_GPL.txt
   summary: "A secure and free password manager for all of your devices."
   documentation: https://bitwarden.com/help/cli/
   repository: https://github.com/bitwarden/clients/tree/main/apps/cli
