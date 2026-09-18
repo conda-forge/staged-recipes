@@ -15,18 +15,16 @@ build:
     env:
       CARGO_PROFILE_RELEASE_LTO: fat
       CARGO_PROFILE_RELEASE_STRIP: symbols
+    interpreter: nu
     content:
+      - let prefix = $env.LIBRARY_PREFIX? | default $env.PREFIX
       # build web UI assets (`static/`)
       - aube install
       - aube run build-css
       - aube run build-js
-      - if: unix
-        then:
-          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
-      - if: win
-        then:
-          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
-      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+      # build main app and generate license data
+      - cargo auditable install --path=. --root=($prefix) --no-track --locked --bins
+      - cargo-bundle-licenses --format=yaml --output=THIRDPARTY.yml
 
 requirements:
   build:
@@ -37,6 +35,7 @@ requirements:
     - cargo-auditable
     - cargo-bundle-licenses
     - nodejs
+    - nushell
 
 tests:
   - script:
