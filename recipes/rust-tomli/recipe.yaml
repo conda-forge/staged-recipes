@@ -12,33 +12,33 @@ source:
   sha256: 7ec2dafe3dba6f4bde950942e739fc4b590df356d85c7c28f0f7eb7864b0d138
 
 build:
-  script:
-    - if: unix
-      then:
-        - cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY.yml"
-        - cargo install --locked --bins --root "${PREFIX}" --path .
-        - rm -f "${PREFIX}/.crates.toml" "${PREFIX}/.crates2.json"
-    - if: win
-      then:
-        - cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
-        - cargo install --locked --bins --root "%PREFIX%" --path .
-        - del "%PREFIX%\.crates.toml" "%PREFIX%\.crates2.json"
   number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
 requirements:
   build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
     - ${{ compiler('rust') }}
-    - ${{ stdlib("c") }}
     - cargo-bundle-licenses
+    - cargo-auditable
 
 tests:
-  - script:
-      - tomli --help
+  - script: tomli --help
   - package_contents:
       bin:
         - tomli
       strict: true
-
 
 about:
   homepage: https://github.com/blinxen/tomli
