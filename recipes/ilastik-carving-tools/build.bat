@@ -15,7 +15,7 @@ cmake .. ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --config %CONFIGURATION%
+cmake --build . --parallel %CPU_COUNT%
 if errorlevel 1 exit 1
 
 cmake --build . --target install

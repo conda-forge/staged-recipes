@@ -19,5 +19,5 @@ cmake ..\
     -DWITH_OPENMP=ON \
 ##
 
-cmake --build . --config ${CONFIGURATION}
+cmake --build . --parallel ${CPU_COUNT}
 cmake --build . --target install
