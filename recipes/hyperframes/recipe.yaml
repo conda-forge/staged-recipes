@@ -25,8 +25,19 @@ build:
         - node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.devDependencies;fs.writeFileSync('package.json',JSON.stringify(p,null,2));"
         - pnpm install --ignore-scripts --prod
         - npm pack --ignore-scripts
-        - npm install -g ./hyperframes-${{ version }}.tgz
+        - npm install --no-bin-links -g ./hyperframes-${{ version }}.tgz
         - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - mkdir -p "${PREFIX}/bin"
+        - |
+          cat > "${PREFIX}/bin/hyperframes" << 'EOF'
+          #!/bin/sh
+          exec "${CONDA_PREFIX}/bin/node" "${CONDA_PREFIX}/lib/node_modules/hyperframes/bin/hyperframes.mjs" "$@"
+          EOF
+        - chmod +x "${PREFIX}/bin/hyperframes"
+        - |
+          cat > "${PREFIX}/bin/hyperframes.cmd" << 'EOF'
+          @call "%CONDA_PREFIX%\bin\node" "%CONDA_PREFIX%\lib\node_modules\hyperframes\bin\hyperframes.mjs" %*
+          EOF
       else:
         - call npm config set prefix "%PREFIX%"
         - if %ERRORLEVEL% neq 0 exit 1
