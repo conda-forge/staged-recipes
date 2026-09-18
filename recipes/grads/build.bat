@@ -17,6 +17,7 @@ cmake -S . -B build -G Ninja ^
   -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc ^
   -DGRADS_ENABLE_HDF4=OFF ^
   -DGRADS_ENABLE_HDF5=OFF ^
+  -DGRADS_ENABLE_CAIRO=OFF ^
   -DGRADS_G2C_LIBRARY=%SRC_DIR%\build-g2c\src\libg2c.a ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
 if errorlevel 1 exit /b 1
@@ -32,11 +33,9 @@ if errorlevel 1 exit /b 1
 
 (
   echo # Type     Name     Full path to shared object file
-  echo gxdisplay  Cairo    %LIBRARY_BIN%\libgxdCairo.dll
   echo gxdisplay  X11      %LIBRARY_BIN%\libgxdX11.dll
   echo gxdisplay  gxdummy  %LIBRARY_BIN%\libgxdummy.dll
   echo *
-  echo gxprint    Cairo    %LIBRARY_BIN%\libgxpCairo.dll
   echo gxprint    GD       %LIBRARY_BIN%\libgxpGD.dll
   echo gxprint    gxdummy  %LIBRARY_BIN%\libgxdummy.dll
 ) > "%LIBRARY_PREFIX%\share\grads\udpt"
