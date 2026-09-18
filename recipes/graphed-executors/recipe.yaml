@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: graphed-executors
+  version: "0.0.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/g/graphed-executors/graphed_executors-${{ version }}.tar.gz
+  sha256: 5b70ea95914c9086da0c18c0bc4708a5841bd5708e55e0c747c920645de88e8e
+
+build:
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+  run:
+    - python >=${{ python_min }}
+    - graphed >=0.0.2
+  # The dask and parsl backends are optional (pyproject extras `dask`/`parsl`); the local
+  # thread/process executors need neither. Constrain rather than require so an environment that
+  # installs them gets a version the backends were written against.
+  run_constraints:
+    - dask >=2026.6
+    - distributed >=2026.6
+    - parsl >=2026.7.20
+
+tests:
+  - python:
+      imports:
+        - graphed_executors
+        - graphed_executors.local
+        - graphed_exec_local
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - python -c "from graphed_executors.local.executors import ExecContext, LocalResources; print(ExecContext, LocalResources)"
+
+about:
+  summary: Run a graphed plan on threads, processes, a dask cluster, or a parsl pool
+  description: |
+    Executors for graphed plans. The local backend (threads and pinned process pools, peer
+    reduction, work stealing) has no extra dependencies; the dask.distributed and parsl
+    backends are activated by installing `dask`/`distributed` or `parsl` alongside this
+    package.
+  license: MIT
+  # Upstream ships no LICENSE file in the sdist (verified: `tar tzf graphed_executors-0.0.2.tar.gz |
+  # grep -i licen` is empty), so the recipe carries it. Drop this copy once upstream includes one.
+  license_file: LICENSE.txt
+  homepage: https://github.com/graphed-org/graphed-executors
+  repository: https://github.com/graphed-org/graphed-executors
+  documentation: https://graphed-executors.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - lgray
