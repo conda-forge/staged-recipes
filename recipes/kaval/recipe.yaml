@@ -1,0 +1,87 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: kaval
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AppachiTech/kaval/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ba6ef1f37ea9a5aeb18b3b89486d80cfa23577a7a8320c9c09d9cd438e8d117f
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
+          # generate manpage and shell completions
+          - mkdir -p "$PREFIX"/share/man/man1 "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/kav man              > "$PREFIX"/share/man/man1/kav.1'
+          - '"$PREFIX"/bin/kav completions bash > "$PREFIX"/share/bash-completion/completions/kav'
+          - '"$PREFIX"/bin/kav completions fish > "$PREFIX"/share/fish/vendor_completions.d/kav.fish'
+          - '"$PREFIX"/bin/kav completions zsh  > "$PREFIX"/share/zsh/site-functions/_kav'
+      - if: win
+        then:
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
+          # generate manpage and shell completions
+          - mkdir "%LIBRARY_PREFIX%"\share\man\man1
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\kav.exe man              > "%LIBRARY_PREFIX%"\share\man\man1\kav.1'
+          - '"%LIBRARY_BIN%"\kav.exe completions bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\kav'
+          - '"%LIBRARY_BIN%"\kav.exe completions fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\kav.fish'
+          - '"%LIBRARY_BIN%"\kav.exe completions zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_kav'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - script:
+      - kav --help
+      - kav --version
+  - package_contents:
+      bin:
+        - kav
+      files:
+        - if: unix
+          then:
+            - share/man/man1/kav.1
+            - share/bash-completion/completions/kav
+            - share/fish/vendor_completions.d/kav.fish
+            - share/zsh/site-functions/_kav
+        - if: win
+          then:
+            - Library/share/man/man1/kav.1
+            - Library/share/bash-completion/completions/kav
+            - Library/share/fish/vendor_completions.d/kav.fish
+            - Library/share/zsh/site-functions/_kav
+      strict: true
+
+about:
+  summary: Guard your ports. A developer-focused port and process manager TUI.
+  description: |
+    Kaval is a developer-focused port and process manager TUI built in Rust.
+    It shows listening ports, maps them to processes, identifies known development tools,
+    and supports interactive and one-shot CLI workflows.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://www.appachi.tech/kaval/
+  repository: https://github.com/AppachiTech/kaval
+
+extra:
+  recipe-maintainers:
+    - salim-b
