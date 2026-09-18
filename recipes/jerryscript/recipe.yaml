@@ -1,0 +1,62 @@
+context:
+  version: "3.0.0"
+
+package:
+  name: jerryscript
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/jerryscript-project/jerryscript/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4d586d922ba575d95482693a45169ebe6cb539c4b5a0d256a6651a39e47bf0fc
+  # Upstream jerryscript has no top-level CMake packaging: it neither exports
+  # its targets nor generates a config file for find_package(... CONFIG). These
+  # two files replace the upstream root CMakeLists.txt with a thin wrapper that
+  # builds the same jerry-core/jerry-port sources but adds a proper
+  # jerryscript::jerry-core / jerryscript::jerry-port export set, matching what
+  # consumers such as MrDocs (https://github.com/cppalliance/mrdocs) require
+  # via `find_package(jerryscript REQUIRED CONFIG)`.
+  - path: CMakeLists.txt
+  - path: jerryscriptConfig.cmake.in
+
+build:
+  number: 0
+  # The packaging CMakeLists.txt here only wires up the Unix jerry-port
+  # sources (matching what MrDocs currently needs); Windows support would
+  # need the win/ port sources added back in.
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      files:
+        - include/jerryscript.h
+        - lib/cmake/jerryscript/jerryscriptConfig.cmake
+        - lib/cmake/jerryscript/jerryscriptTargets.cmake
+        - lib/libjerry-core.a
+        - lib/libjerry-port.a
+
+about:
+  homepage: https://github.com/jerryscript-project/jerryscript
+  repository: https://github.com/jerryscript-project/jerryscript
+  documentation: https://github.com/jerryscript-project/jerryscript/tree/master/docs
+  summary: Ultra-lightweight JavaScript engine for the Internet of Things
+  description: |
+    JerryScript is a lightweight JavaScript engine intended for running on
+    small embedded devices, with a small memory footprint. This build enables
+    the es.next profile with an external-context jerry-port, matching the
+    configuration required by MrDocs (https://mrdocs.com), which embeds
+    jerryscript as the JavaScript engine backing its addon/templating system.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - sdebionne
