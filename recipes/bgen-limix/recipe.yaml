@@ -1,0 +1,136 @@
+schema_version: 1
+
+context:
+  name: bgen-limix
+  version: "4.8.0"
+  # Distinct package names because this is a diverged fork of limix/bgen
+  # (adds S3 streaming support, nanobind split-mode bindings, etc.) and would
+  # otherwise collide with the existing conda-forge "bgen" package.
+  clib_name: libbgen-limix
+  py_name: bgen-limix
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jpfeuffer/bgen-limix/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f4fa3e939e93d56ed25aa177202e2e8b5d7c434a8f0a83b1cd0a2ebae3a1b979
+
+build:
+  number: 0
+
+outputs:
+  # ---------------------------------------------------------------------
+  # C library (src/, include/bgen) — installs headers, shared libs and the
+  # bgen-config.cmake package so downstream `find_package(bgen)` works.
+  # ---------------------------------------------------------------------
+  - package:
+      name: ${{ clib_name }}
+      version: ${{ version }}
+    build:
+      script:
+        - cmake -GNinja -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=${{ PREFIX }}
+          -DCMAKE_PREFIX_PATH=${{ PREFIX }}
+          -DBGEN_BUILD_TESTS=OFF
+          -DBGEN_USE_SYSTEM_ZLIB_NG=ON
+          -DBGEN_USE_SYSTEM_ZSTD=ON
+          -DBGEN_USE_SYSTEM_ATHR=ON
+          -DBGEN_USE_SYSTEM_CURL=ON
+          -DBGEN_ENABLE_S3=ON
+        - cmake --build build --parallel
+        - cmake --install build
+      dynamic_linking:
+        overlinking_behavior: error
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - zlib-ng
+        - zstd
+        - almosthere
+        - libcurl
+        - openssl
+      run_exports:
+        - ${{ pin_subpackage(clib_name, upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then:
+              - test -f ${{ PREFIX }}/lib/cmake/bgen/bgen-config.cmake
+              - test -f ${{ PREFIX }}/include/bgen/bgen.h
+      - package_contents:
+          include:
+            - bgen/bgen.h
+          lib:
+            - bgen
+            - bgen_s3
+
+  # ---------------------------------------------------------------------
+  # Python bindings (python/, imports as `cbgen`). Built via scikit-build-core
+  # against the ${{ clib_name }} output above (find_package(bgen) picks it up).
+  # BGEN_NANOBIND_BACKEND=private builds a self-contained nanobind backend
+  # instead of depending on the external nanobind-backend package, which is
+  # not on conda-forge and buys nothing there anyway (conda-forge already
+  # builds one package per Python version regardless of stable-ABI sharing).
+  # ---------------------------------------------------------------------
+  - package:
+      name: ${{ py_name }}
+      version: ${{ version }}
+    build:
+      script:
+        - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private
+      python:
+        entry_points: []
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - nanobind >=2.4
+        - numpy
+        - ${{ pin_subpackage(clib_name, exact=True) }}
+      run:
+        - python
+        - numpy >=2.0
+        - pooch >=1.6
+    tests:
+      - python:
+          imports:
+            - cbgen
+          pip_check: true
+      - requirements:
+          run:
+            - pytest >=7
+        script:
+          - pytest --pyargs cbgen -v
+        files:
+          source:
+            - python/tests/**
+
+about:
+  homepage: https://github.com/jpfeuffer/bgen-limix
+  repository: https://github.com/jpfeuffer/bgen-limix
+  documentation: https://bgen.readthedocs.io
+  summary: C library and Python bindings for the BGEN format (specifications 1.2 and 1.3)
+  description: |
+    bgen-limix is a fork of limix/bgen adding S3/HTTPS streaming support and
+    nanobind-based Python bindings for reading BGEN genotype files.
+  license: MIT
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - jpfeuffer
