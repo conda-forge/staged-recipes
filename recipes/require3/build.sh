@@ -2,7 +2,7 @@
 
 export EPICS_MODULES="${PREFIX}/epics-modules"
 export E3_REQUIRE_LOCATION="${EPICS_MODULES}/${PKG_NAME}"
-export INSTALL_PREFIX=$PREFIX
+export INSTALL_PREFIX="${PREFIX}"
 
 cat <<EOF > configure/RELEASE.local
 EPICS_BASE:=${PREFIX}/epics
@@ -17,10 +17,10 @@ make INSTALL_LOCATION=${E3_REQUIRE_LOCATION} \
      INSTALL_INCLUDE=${PREFIX}/include
 
 # Create activate/deactivate scripts
-mkdir -p $PREFIX/etc/conda/activate.d
-cat <<EOF > $PREFIX/etc/conda/activate.d/require3_activate.sh
-export INSTALL_PREFIX="$PREFIX"
-export EPICS_MODULES="$EPICS_MODULES"
+mkdir -p "${PREFIX}/etc/conda/activate.d"
+cat <<EOF > "${PREFIX}/etc/conda/activate.d/require3_activate.sh"
+export INSTALL_PREFIX="${PREFIX}"
+export EPICS_MODULES="${EPICS_MODULES}"
 export E3_REQUIRE_VERSION="${PKG_VERSION}"
 export E3_REQUIRE_LOCATION="${E3_REQUIRE_LOCATION}"
 export E3_REQUIRE_TOOLS="${E3_REQUIRE_LOCATION}/share"
@@ -36,8 +36,8 @@ export REQUIRE_MODULE_PATH="${EPICS_MODULES}"
 source "${PREFIX}/bin/iocsh_complete.bash"
 EOF
 
-mkdir -p $PREFIX/etc/conda/deactivate.d
-cat <<EOF > $PREFIX/etc/conda/deactivate.d/require3_deactivate.sh
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+cat <<EOF > "${PREFIX}/etc/conda/deactivate.d/require3_deactivate.sh"
 unset EPICS_MODULES
 unset E3_REQUIRE_VERSION
 unset E3_REQUIRE_LOCATION
