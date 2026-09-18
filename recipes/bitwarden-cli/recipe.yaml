@@ -17,15 +17,26 @@ source:
 build:
   number: 0
   script:
-    - cd pkg
-    - npm pack
-    - npm install -g --prefix ${{ PREFIX }} --no-audit --no-fund ./${{ name }}-${{ version }}.tgz
-    - pnpm install --prod --ignore-scripts
+    # npm, npx and pnpm are batch files on Windows, and a batch file invoked
+    # from a batch script without `call` never returns to it. The two branches
+    # differ only in that and in mkdir.
     - if: unix
-      then: mkdir -p ${{ PREFIX }}/share/licenses/${{ name }}
-      else: if not exist "${{ PREFIX }}\share\licenses\${{ name }}" mkdir "${{ PREFIX }}\share\licenses\${{ name }}"
-    - npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
-    - npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
+      then:
+        - cd pkg
+        - npm pack
+        - npm install -g --prefix ${{ PREFIX }} --no-audit --no-fund ./${{ name }}-${{ version }}.tgz
+        - pnpm install --prod --ignore-scripts
+        - mkdir -p ${{ PREFIX }}/share/licenses/${{ name }}
+        - npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
+        - npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
+      else:
+        - cd pkg
+        - call npm pack
+        - call npm install -g --prefix ${{ PREFIX }} --no-audit --no-fund ./${{ name }}-${{ version }}.tgz
+        - call pnpm install --prod --ignore-scripts
+        - if not exist "${{ PREFIX }}\share\licenses\${{ name }}" mkdir "${{ PREFIX }}\share\licenses\${{ name }}"
+        - call npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
+        - call npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
 
 requirements:
   host:
