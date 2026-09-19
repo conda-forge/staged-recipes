@@ -1,0 +1,47 @@
+Add `full-dynamic` passthroughs to the dependent crates
+
+Cargo's `--features dep/feature` syntax only reaches a *direct*
+dependency. `crates/cli` sees `mq_bridge_app`, not `mq-bridge`, so two
+hops down there is no command line that turns on `mq-bridge/link-dynamic`
+from the CLI package. Each crate on the path needs its own `full-dynamic`
+that forwards to the next.
+
+mq-bridge-py is a direct dependent and would not strictly need one, but
+carries it for symmetry — and so pyproject.toml can name a feature rather
+than re-spell the list.
+diff --git a/apps/mq-bridge-app/crates/cli/Cargo.toml b/apps/mq-bridge-app/crates/cli/Cargo.toml
+index 1e3aeb4..99edfd6 100644
+--- a/apps/mq-bridge-app/crates/cli/Cargo.toml
++++ b/apps/mq-bridge-app/crates/cli/Cargo.toml
+@@ -84,6 +84,7 @@ bench-cdc = ["bench", "mq_bridge_app/bench-cdc", "rustls-aws-lc"]
+ ibm-mq = ["mq_bridge_app/ibm-mq"]
+ arm64-cross-compile = ["mq_bridge_app/arm64-cross-compile"]
+ full = ["mq_bridge_app/full", "mimalloc", "rustls-aws-lc"]
++full-dynamic = ["mq_bridge_app/full-dynamic", "mimalloc", "rustls-aws-lc"]
+ middleware = ["mq_bridge_app/middleware"]
+ compression = ["mq_bridge_app/compression"]
+ encryption = ["mq_bridge_app/encryption"]
+diff --git a/apps/mq-bridge-app/crates/core/Cargo.toml b/apps/mq-bridge-app/crates/core/Cargo.toml
+index 75b9a17..72bec76 100644
+--- a/apps/mq-bridge-app/crates/core/Cargo.toml
++++ b/apps/mq-bridge-app/crates/core/Cargo.toml
+@@ -71,6 +71,7 @@ integration-test = []
+ ibm-mq = ["mq-bridge/ibm-mq"]
+ arm64-cross-compile = ["rdkafka", "rdkafka/cmake-build"]
+ full = ["mq-bridge/full", "rustls-aws-lc"]
++full-dynamic = ["mq-bridge/full-dynamic", "rustls-aws-lc"]
+ # Lean feature set for the ETL/CDC benchmarks (benches/etl): Postgres bulk-insert
+ # (sqlx) + logical-replication CDC + per-route metrics. Avoids the heavy `full`
+ # deps (rdkafka/librdkafka, grpc/protoc, ibm-mq) that aren't needed to move
+diff --git a/python/mq-bridge-py/Cargo.toml b/python/mq-bridge-py/Cargo.toml
+index c700c59..9bc4c06 100644
+--- a/python/mq-bridge-py/Cargo.toml
++++ b/python/mq-bridge-py/Cargo.toml
+@@ -52,6 +52,7 @@ default = ["full"]
+ # Testing-only middleware hooks; do not include this feature in production wheels.
+ middleware = ["mq-bridge/middleware"]
+ full = ["mq-bridge/full", "plugin", "rustls-aws-lc", "mimalloc"]
++full-dynamic = ["mq-bridge/full-dynamic", "plugin", "rustls-aws-lc", "mimalloc"]
+ # mimalloc as Rust-side global allocator. Only redirects allocations made by
+ # this cdylib's Rust code; CPython's own allocator is untouched. Safe here
+ # because no raw Rust-allocated buffer crosses the extension boundary.
