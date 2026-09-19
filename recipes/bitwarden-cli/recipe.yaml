@@ -1,0 +1,71 @@
+context:
+  name: bitwarden-cli
+  version: "2026.9.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://registry.npmjs.org/@bitwarden/cli/-/cli-${{ version }}.tgz
+    sha256: 7814dbded417ab4d3a99fb76b0991e1674a1012c2f6b18c2ddabad693112e93a
+    target_directory: pkg
+  - url: https://raw.githubusercontent.com/bitwarden/clients/cli-v${{ version }}/LICENSE_GPL.txt
+    sha256: b98fbb37db5b23bc5cfdcd16793206a5a7120a7b01f75374e5e0888376e4691c
+    file_name: LICENSE_GPL.txt
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cd pkg
+        - npm pack
+        - npm install -g --prefix ${{ PREFIX }} --no-audit --no-fund ./${{ name }}-${{ version }}.tgz
+        - pnpm install --prod --ignore-scripts
+        - mkdir -p ${{ PREFIX }}/share/licenses/${{ name }}
+        - npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
+        - npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
+      else:
+        - cd pkg
+        - call npm pack
+        - call npm install -g --prefix ${{ PREFIX }} --no-audit --no-fund ./${{ name }}-${{ version }}.tgz
+        - call pnpm install --prod --ignore-scripts
+        - if not exist "${{ PREFIX }}\share\licenses\${{ name }}" mkdir "${{ PREFIX }}\share\licenses\${{ name }}"
+        - call npx @quantco/pnpm-licenses list --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/licenses.json
+        - call npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file ${{ PREFIX }}/share/licenses/${{ name }}/THIRD_PARTY_LICENSES.txt
+
+requirements:
+  host:
+    - nodejs >=22
+    - pnpm
+  run:
+    - nodejs >=22
+
+tests:
+  - script:
+      - bw --version
+      - bw --help
+  - package_contents:
+      bin:
+        - bw
+
+about:
+  homepage: https://bitwarden.com/help/cli/
+  license: GPL-3.0-only
+  license_file:
+    - LICENSE_GPL.txt
+  summary: "A secure and free password manager for all of your devices."
+  description: |
+    `bw` is the command-line interface to a Bitwarden vault. It logs in and
+    unlocks a vault, then creates, reads, edits and deletes items, folders,
+    attachments and organization collections, either interactively or as JSON
+    on stdin and stdout for scripting. It also generates passwords, imports
+    and exports vault data, sends and receives Bitwarden Sends, and can serve
+    a local REST API for other tools to query.
+  documentation: https://bitwarden.com/help/cli/
+  repository: https://github.com/bitwarden/clients/tree/main/apps/cli
+
+extra:
+  recipe-maintainers:
+    - phreed
