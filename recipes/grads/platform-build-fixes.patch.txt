@@ -1,0 +1,143 @@
+diff --git a/m4/cairo.m4 b/m4/cairo.m4
+--- a/m4/cairo.m4
++++ b/m4/cairo.m4
+@@ -8,10 +8,18 @@ AC_DEFUN([GA_CHECK_LIB_CAIRO],
+   cairo_pkgconfig=no
++  cairo_xlib=no
+-  PKG_CHECK_MODULES([CAIRO],[cairo],[cairo_pkgconfig=yes])
++  PKG_CHECK_MODULES([CAIRO],[cairo],[cairo_pkgconfig=yes],[:])
+ 
++  if test $cairo_pkgconfig = 'yes'; then
++     ga_save_CPPFLAGS=$CPPFLAGS
++     CPPFLAGS="$CPPFLAGS $CAIRO_CFLAGS"
++     AC_CHECK_HEADER([cairo-xlib.h],[cairo_xlib=yes])
++     CPPFLAGS=$ga_save_CPPFLAGS
++  fi
++
+-  if test $cairo_pkgconfig = 'yes'; then
++  if test $cairo_pkgconfig = 'yes' -a $cairo_xlib = 'yes'; then
+      m4_if([$1], [], [:], [$1])
+   else
+      m4_if([$2], [], [:], [$2])
+   fi
+ 
+ ])
+diff --git a/src/gafunc.c b/src/gafunc.c
+--- a/src/gafunc.c
++++ b/src/gafunc.c
+@@ -5445 +5445 @@ gaint ffoacr (struct gafunc *pfc, struct gastat *pst) {
+-gadouble e1,e2,e,wsum,x,y,xmin,xmax,ymin,ymax,d,d2,rad,rad2,w;
++gadouble e1,e2,e,wsum,x,y,xmin,xmax,ymin,ymax,d,d2,rad,radius_squared,weight;
+@@ -5643 +5643 @@ gaint ffoacr (struct gafunc *pfc, struct gastat *pst) {
+-    rad2 = rad*rad;
++    radius_squared = rad*rad;
+@@ -5673,3 +5673,3 @@ gaint ffoacr (struct gafunc *pfc, struct gastat *pst) {
+-            w = (rad2-d2)/(rad2+d2);
+-            sum += e*w;
+-            wsum += w;
++            weight = (radius_squared-d2)/(radius_squared+d2);
++            sum += e*weight;
++            wsum += weight;
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -11,1 +11,19 @@
+ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
++option(GRADS_ENABLE_HDF4 "Enable HDF4 support" ON)
++if(GRADS_ENABLE_HDF4)
++  set(GRADS_HDF4_SUPPORT 1)
++else()
++  set(GRADS_HDF4_SUPPORT 0)
++endif()
++option(GRADS_ENABLE_HDF5 "Enable HDF5 support" ON)
++if(GRADS_ENABLE_HDF5)
++  set(GRADS_HDF5_SUPPORT 1)
++else()
++  set(GRADS_HDF5_SUPPORT 0)
++endif()
++option(GRADS_ENABLE_CAIRO "Enable Cairo X11 plugins" ON)
++if(GRADS_ENABLE_CAIRO)
++  set(GRADS_CAIRO_SUPPORT 1)
++else()
++  set(GRADS_CAIRO_SUPPORT 0)
++endif()
+@@ -15,2 +21,3 @@
+ file(MAKE_DIRECTORY "${GRADS_GENERATED_DIR}")
++file(REMOVE "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" "${CMAKE_CURRENT_SOURCE_DIR}/src/buildinfo.h")
+ configure_file(cmake/config.h.in "${GRADS_GENERATED_DIR}/config.h" @ONLY)
+@@ -41,1 +45,3 @@ find_path(GRADS_NETCDF_INCLUDE netcdf.h HINTS ${GRADS_INCLUDE_HINTS} REQUIRED)
+-find_path(GRADS_HDF4_INCLUDE mfhdf.h HINTS ${GRADS_INCLUDE_HINTS} PATH_SUFFIXES hdf4 REQUIRED)
++if(GRADS_ENABLE_HDF4)
++  find_path(GRADS_HDF4_INCLUDE mfhdf.h HINTS ${GRADS_INCLUDE_HINTS} PATH_SUFFIXES hdf4 REQUIRED)
++endif()
+@@ -52,2 +58,4 @@ grads_find_library(GRADS_NETCDF_LIBRARY netcdf)
+-grads_find_library(GRADS_HDF4_MFHDF_LIBRARY mfhdf)
+-grads_find_library(GRADS_HDF4_DF_LIBRARY hdf libhdf df)
++if(GRADS_ENABLE_HDF4)
++  grads_find_library(GRADS_HDF4_MFHDF_LIBRARY mfhdf)
++  grads_find_library(GRADS_HDF4_DF_LIBRARY hdf libhdf df)
++endif()
+@@ -80,6 +80,9 @@
+-  ${GRADS_NETCDF_LIBRARY} ${GRADS_HDF4_MFHDF_LIBRARY} ${GRADS_HDF4_DF_LIBRARY}
++  ${GRADS_NETCDF_LIBRARY}
+   ${GRADS_HDF5_HL_LIBRARY} ${GRADS_HDF5_LIBRARY} ${GRADS_UDUNITS_LIBRARY}
+   ${GRADS_G2C_LIBRARY} ${GRADS_JASPER_LIBRARY} ${GRADS_PNG_LIBRARY}
+   ${GRADS_ZLIB_LIBRARY} ${GRADS_JPEG_LIBRARY} ${GRADS_GEOTIFF_LIBRARY}
+   ${GRADS_TIFF_LIBRARY} ${GRADS_SHAPE_LIBRARY} ${GRADS_CAIRO_LIBRARY}
+-  ${GRADS_GD_LIBRARY} ${GRADS_X11_LIBRARY} ${GRADS_XEXT_LIBRARY})
++  ${GRADS_GD_LIBRARY} ${GRADS_X11_LIBRARY} ${GRADS_XEXT_LIBRARY})
++if(GRADS_ENABLE_HDF4)
++  list(APPEND GRADS_DEPENDENCY_LIBRARIES ${GRADS_HDF4_MFHDF_LIBRARY} ${GRADS_HDF4_DF_LIBRARY})
++endif()
+diff --git a/cmake/config.h.in b/cmake/config.h.in
+--- a/cmake/config.h.in
++++ b/cmake/config.h.in
+@@ -12,1 +12,1 @@
+-#define HAVE_HDF4_NETCDF_H 1
++#define HAVE_HDF4_NETCDF_H @GRADS_HDF4_SUPPORT@
+@@ -25,1 +25,1 @@
+-#define READLINE 1
++#define READLINE 0
+@@ -28,1 +28,1 @@
+-#define USECAIRO 1
++#define USECAIRO @GRADS_CAIRO_SUPPORT@
+@@ -32,1 +32,1 @@
+-#define USEHDF 1
++#define USEHDF @GRADS_HDF4_SUPPORT@
+@@ -33,1 +33,1 @@
+-#define USEHDF5 1
++#define USEHDF5 @GRADS_HDF5_SUPPORT@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -117,2 +117,7 @@
+-add_library(gxpCairo SHARED src/gxprint.c src/gxC.c)
+-add_library(gxdCairo SHARED src/gxX.c src/gxC.c)
++if(GRADS_ENABLE_CAIRO)
++  add_library(gxpCairo SHARED src/gxprint.c src/gxC.c)
++  add_library(gxdCairo SHARED src/gxX.c src/gxC.c)
++  set(GRADS_CAIRO_PLUGINS gxpCairo gxdCairo)
++else()
++  set(GRADS_CAIRO_PLUGINS)
++endif()
+@@ -120,1 +125,1 @@
+-foreach(plugin gxdummy gxdX11 gxpGD gxpCairo gxdCairo)
++foreach(plugin gxdummy gxdX11 gxpGD ${GRADS_CAIRO_PLUGINS})
+@@ -148,1 +153,1 @@
+-install(TARGETS grads gradspy gxdummy gxdX11 gxpGD gxpCairo gxdCairo
++install(TARGETS grads gradspy gxdummy gxdX11 gxpGD ${GRADS_CAIRO_PLUGINS}
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -96,1 +96,1 @@ function(grads_configure_target target)
+-  target_compile_definitions(${target} PRIVATE HAVE_CONFIG_H _CRT_SECURE_NO_WARNINGS)
++  target_compile_definitions(${target} PRIVATE HAVE_CONFIG_H _CRT_SECURE_NO_WARNINGS H5_BUILT_AS_DYNAMIC_LIB)
+diff --git a/src/gaio.c b/src/gaio.c
+--- a/src/gaio.c
++++ b/src/gaio.c
+@@ -32,1 +32,5 @@
+ #endif
++
++#ifdef _WIN32
++int ncopts;
++#endif

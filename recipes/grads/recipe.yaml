@@ -1,0 +1,226 @@
+schema_version: 1
+
+context:
+  version: "2.3"
+  source_commit: "3f70b28c2ea5d07da5084ffc10dd6fc3f05c38f3"
+
+recipe:
+  name: grads
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/RogierFloors/GrADS/archive/3f70b28c2ea5d07da5084ffc10dd6fc3f05c38f3.tar.gz
+    sha256: 191b39b33b7ef4de18399b15d3aeaeaaa0538cd45c620de83459cf9ecabafc83
+    patches:
+      - platform-build-fixes.patch.txt
+  - if: win
+    then:
+      url: https://github.com/NOAA-EMC/NCEPLIBS-g2c/archive/refs/tags/v1.9.0.tar.gz
+      sha256: 5554276e18bdcddf387a08c2dd23f9da310c6598905df6a2a244516c22ded9aa
+      target_directory: nceplibs-g2c
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: grads-build
+    build:
+      script:
+        - if: win
+          then: build.bat
+          else: build.sh
+    requirements:
+      build:
+        - if: unix
+          then:
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+            - make
+            - autoconf
+            - automake
+            - libtool
+            - pkg-config
+        - if: win
+          then:
+            - cmake
+            - ninja
+            - m2w64-toolchain
+            - pkg-config
+        - xorg-xproto
+      host:
+        - xorg-xproto
+        - libxcb
+        - xorg-libx11
+        - xorg-libxext
+        - freetype
+        - libnetcdf
+        - hdf5
+        - if: unix
+          then: hdf4
+        - udunits2
+        - g2clib
+        - if: unix
+          then: nceplibs-g2c
+        - geotiff
+        - libtiff
+        - cairo
+        - if: unix
+          then:
+            - readline
+            - ncurses
+        - libpng
+        - zlib
+        - libjpeg-turbo
+        - jasper
+        - libgd
+        - libxml2
+        - curl
+        - shapelib
+
+  - package:
+      name: grads
+    inherit: grads-build
+    build:
+      number: 0
+      files:
+        - if: unix
+          then:
+            - bin/grads
+            - bin/gribmap
+            - bin/stnmap
+            - bin/gribscan
+            - bin/grib2scan
+            - bin/bufrscan
+            - lib/libgxd*
+            - lib/libgxp*
+            - lib/libgradspy*
+            - share/grads
+            - etc/conda/activate.d/grads-env.sh
+            - etc/conda/deactivate.d/grads-env.sh
+        - if: win
+          then:
+            - Library/bin/grads.exe
+            - Library/bin/gribmap.exe
+            - Library/bin/stnmap.exe
+            - Library/bin/gribscan.exe
+            - Library/bin/grib2scan.exe
+            - Library/bin/bufrscan.exe
+            - Library/bin/libgxd*.dll
+            - Library/bin/libgxp*.dll
+            - Library/bin/gradspy.dll
+            - Library/share/grads
+            - etc/conda/activate.d/grads-env.bat
+            - etc/conda/deactivate.d/grads-env.bat
+    requirements:
+      run:
+        - libnetcdf
+        - hdf5
+        - if: unix
+          then: hdf4
+        - libudunits2
+        - g2clib
+        - if: unix
+          then: nceplibs-g2c
+        - geotiff
+        - libtiff
+        - jasper
+        - cairo
+        - libcurl
+        - if: unix
+          then: readline
+        - libpng
+        - if: unix
+          then: ncurses
+        - libgd
+        - shapelib
+        - xorg-libice
+        - xorg-libsm
+        - xorg-libx11
+        - xorg-libxext
+    tests:
+      - if: unix
+        then:
+          - script:
+              - printf "q config\nquit\n" | grads -bl -d gxdummy | grep "grib2.*netcdf.*hdf4-sds.*hdf5.*geotiff.*shapefile"
+              - test -x "$PREFIX/bin/gribmap"
+              - test -f "$PREFIX/share/grads/udpt"
+              - test -f "$PREFIX/share/grads/ne10m"
+              - test -f "$PREFIX/share/grads/ne50m"
+              - test -f "$PREFIX/share/grads/ne110m"
+              - test -f "$PREFIX/share/grads/nebasemap.gs"
+              - test -f "$PREFIX/share/grads/natural_earth_masks.json"
+              - test -f "$PREFIX/share/grads/ne110m_land.shp"
+              - test -f "$PREFIX/share/grads/ne110m_ocean.shp"
+              - test -f "$PREFIX/share/grads/ne50m_land.shp"
+              - test -f "$PREFIX/share/grads/ne50m_ocean.shp"
+              - test -f "$PREFIX/share/grads/ne10m_land.shp"
+              - test -f "$PREFIX/share/grads/ne10m_ocean.shp"
+              - test -f "$PREFIX/share/grads/ne10m_land.shx"
+              - test -f "$PREFIX/share/grads/ne10m_land.dbf"
+              - test -f "$PREFIX/share/grads/ne10m_land.prj"
+              - test -f "$GAGPY"
+      - if: win
+        then:
+          - script:
+              - '(echo q config& echo quit) | grads -bl -d gxdummy | findstr /r "grib2.*netcdf.*geotiff.*shapefile"'
+              - if not exist "%LIBRARY_BIN%\gribmap.exe" exit /b 1
+              - if not exist "%LIBRARY_PREFIX%\share\grads\udpt" exit /b 1
+              - if not exist "%LIBRARY_PREFIX%\share\grads\natural_earth_masks.json" exit /b 1
+              - if not exist "%GAGPY%" exit /b 1
+
+  - package:
+      name: gradspy
+    build:
+      number: 0
+      noarch: python
+      script:
+        - if: unix
+          then: install -Dm644 src/gradspy.py "${SP_DIR}/gradspy.py"
+        - if: win
+          then:
+            - if not exist "%SP_DIR%" mkdir "%SP_DIR%"
+            - copy src\gradspy.py "%SP_DIR%\gradspy.py"
+      files:
+        - if: unix
+          then: lib/python*/site-packages/gradspy.py
+        - if: win
+          then: Lib/site-packages/gradspy.py
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - numpy >=1.23
+        - pandas
+        - xarray
+        - grads ==${{ version }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - gradspy
+      - script:
+          - python -c "from gradspy import GrADS; print(GrADS)"
+          - python -c "from gradspy import GrADS; ga = GrADS(); print(ga)"
+
+about:
+  homepage: https://wetterzentrale.de/grads/docs/index.html
+  documentation: https://wetterzentrale.de/grads/docs/index.html
+  repository: https://github.com/RogierFloors/GrADS
+  license: GPL-2.0-or-later
+  license_file:
+    - COPYRIGHT
+    - data/UDUNITS2-COPYRIGHT
+    - if: win
+      then: nceplibs-g2c/LICENSE.md
+  summary: Grid Analysis and Display System
+  description: |
+    GrADS is an interactive desktop tool for access, manipulation, and
+    visualization of earth science data.
+
+extra:
+  recipe-maintainers:
+    - RogierFloors
