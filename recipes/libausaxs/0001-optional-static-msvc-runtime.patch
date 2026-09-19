@@ -1,0 +1,44 @@
+diff -ruN a/cmake/setup_compile_commands.cmake b/cmake/setup_compile_commands.cmake
+--- a/cmake/setup_compile_commands.cmake	2026-09-09 12:08:36.000000000 -0400
++++ b/cmake/setup_compile_commands.cmake	2026-09-10 14:49:53.759203952 -0400
+@@ -3,6 +3,10 @@
+         "Allow building on unknown CPU architectures (no -march flag applied)"
+         OFF
+     )
++    option(STATIC_MSVC_RUNTIME
++        "Link the static MSVC runtime library (/MT) instead of the DLL runtime (/MD)"
++        ON
++    )
+ 
+     ############################################
+     ##             Safety checks              ##
+@@ -94,7 +98,9 @@
+             "$<$<STREQUAL:${SYS_ARCH},x86_64>:/arch:AVX>"
+             "$<$<STREQUAL:${SYS_ARCH},arm64>:/arch:armv8.0>"
+         )
+-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded" PARENT_SCOPE)
++        if (STATIC_MSVC_RUNTIME)
++            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded" PARENT_SCOPE)
++        endif()
+         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE PARENT_SCOPE)
+ 
+     else()
+diff -ruN a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2026-09-09 12:08:36.000000000 -0400
++++ b/CMakeLists.txt	2026-09-10 14:49:53.759203952 -0400
+@@ -137,11 +137,13 @@
+ ##           Find and link CURL           ##
+ ############################################
+ if (WIN32)
++	find_package(CURL REQUIRED)
+ 	if (STATIC_CURL)
+ 		add_compile_definitions("CURL_STATICLIB")
++		set(LIBS -static CURL::libcurl)
++	else()
++		set(LIBS CURL::libcurl)
+ 	endif()
+-	find_package(CURL REQUIRED)
+-	set(LIBS -static CURL::libcurl)
+ 	include_directories(${CURL_INCLUDE_DIRS}) # find_package apparently does not always include the headers
+ elseif (APPLE)
+ 	find_package(CURL REQUIRED)
