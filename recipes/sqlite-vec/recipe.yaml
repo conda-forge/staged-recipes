@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.9"
+
+package:
+  name: sqlite-vec
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/asg017/sqlite-vec/archive/v${{ version }}.tar.gz
+    sha256: 9823e737d9934dcbe85dff75d3fca81018a9beee803d70fa77b16faab5d61dc9
+  - url: https://raw.githubusercontent.com/asg017/sqlite-vec/v${{ version }}/LICENSE-MIT
+    sha256: 6ce72bbe12d975bd5286e5ab0a064c069693300c47bccbc57bec18485f1621ea
+    file_name: LICENSE-MIT
+  - url: https://raw.githubusercontent.com/asg017/sqlite-vec/v${{ version }}/LICENSE-APACHE
+    sha256: a38070a94d4afd9cd710e3ce67bd1de78097cfe1784c1f0109ac95d3c196bfdc
+    file_name: LICENSE-APACHE
+  # extra_init.py is the upstream-curated body of the Python package's
+  # __init__.py (serialize_float32/serialize_int8/register_numpy). sqlite-dist
+  # prepends a small loader prefix (loadable_path/load) to it to form the wheel's
+  # __init__.py; build.sh reproduces that exact assembly.
+  - url: https://raw.githubusercontent.com/asg017/sqlite-vec/v${{ version }}/bindings/python/extra_init.py
+    sha256: 12038b99f015816f51364c6febc14749cab33553ab0d15583c657e08356f911e
+    file_name: extra_init.py
+
+build:
+  number: 0
+  script:
+    file: build.sh
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("c") }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - libsqlite
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - sqlite_vec
+      pip_check: true
+  - script:
+      - python -c "import sqlite_vec, sqlite3; db = sqlite3.connect(':memory:'); db.enable_load_extension(True); sqlite_vec.load(db); print(db.execute('select vec_version()').fetchone()[0]); db.execute('create virtual table v using vec0(embedding float[4])')"
+
+about:
+  homepage: https://pypi.org/project/sqlite-vec/
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+  summary: A vector search SQLite extension that runs anywhere
+  repository: https://github.com/asg017/sqlite-vec
+  documentation: https://alexgarcia.xyz/sqlite-vec
+  description: |
+    sqlite-vec is an extremely small, "fast enough" vector search SQLite
+    extension written in pure C with no dependencies. It runs anywhere SQLite
+    runs — Linux, macOS, Windows, in the browser with WebAssembly, and on small
+    devices like Raspberry Pis.
+
+    This conda package provides the Python bindings (import name `sqlite_vec`),
+    which bundle the compiled `vec0` loadable extension and a thin loader:
+
+        import sqlite_vec, sqlite3
+        db = sqlite3.connect(":memory:")
+        db.enable_load_extension(True)
+        sqlite_vec.load(db)
+        db.execute("select vec_version()")
+
+    Unlike the upstream PyPI wheels (which repackage a prebuilt binary), this
+    recipe compiles the `vec0` extension from the upstream C source amalgamation.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
