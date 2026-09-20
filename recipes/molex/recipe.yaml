@@ -22,15 +22,18 @@ outputs:
       script:
         - if: unix
           then:
-            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features c-api
             - cargo build --release --locked --features c-api
             - mkdir -p $PREFIX/lib $PREFIX/include
             - cp include/molex.h include/molex.hpp $PREFIX/include/
             - if: osx
-              then: cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.dylib $PREFIX/lib/
-              else: cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.so $PREFIX/lib/
+              then:
+                - cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.dylib "$PREFIX/lib/"
+                - install_name_tool -id @rpath/libmolex.dylib "$PREFIX/lib/libmolex.dylib"
+              else:
+                - cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.so "$PREFIX/lib/"
           else:
-            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features c-api
             - cargo build --release --locked --features c-api
             - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
             - if not exist %LIBRARY_LIB% mkdir %LIBRARY_LIB%
@@ -45,6 +48,9 @@ outputs:
         - ${{ stdlib('c') }}
         - ${{ compiler('rust') }}
         - cargo-bundle-licenses
+      run_exports:
+        # 0.x: the C ABI may change with any minor version, so pin to x.x.
+        - ${{ pin_subpackage('libmolex', upper_bound='x.x') }}
     tests:
       - package_contents:
           include:
@@ -64,7 +70,7 @@ outputs:
     build:
       skip: is_abi3 and not is_python_min
       script:
-        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features python,extension-module
         - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
       python:
         version_independent: ${{ is_abi3 }}
