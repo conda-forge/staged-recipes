@@ -336,9 +336,6 @@ def build_folders_rattler_build(
         "--target-platform",
         f"{platform}-{arch}",
     ]
-    if platform == "win":
-        # Temporary diagnostics for the cdxgen test-cache failure.
-        args += ["-vv", "--log-style", "plain"]
 
     # Construct a temporary file where we write the combined variant config. We can then pass that
     # to rattler-build.

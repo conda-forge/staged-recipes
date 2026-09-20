@@ -3,6 +3,8 @@ schema_version: 1
 
 context:
   version: "12.7.1"
+  # Keep in sync with cdxgen's optionalDependencies.
+  atom_parsetools_version: "1.2.2"
 
 package:
   name: cdxgen
@@ -38,6 +40,15 @@ build:
         - if %ERRORLEVEL% neq 0 exit 1
         - call npm install --userconfig nonexistentrc -g cyclonedx-cdxgen-${{ version }}.tgz
         - if %ERRORLEVEL% neq 0 exit 1
+        # Install parser tools at the top level to shorten their bundled Ruby
+        # paths before rattler-build extracts the package into its test cache.
+        - call npm install --userconfig nonexistentrc --prefix "%PREFIX%" -g @appthreat/atom-parsetools@${{ atom_parsetools_version }}
+        - if %ERRORLEVEL% neq 0 exit 1
+        - if exist "%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@appthreat\atom-parsetools" rmdir /s /q "%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@appthreat\atom-parsetools"
+        - if %ERRORLEVEL% neq 0 exit 1
+        # Use npm's new top-level shims; remove shims pointing to the old copy.
+        - for %%F in (astgen astgen.cmd astgen.ps1 rbastgen rbastgen.cmd rbastgen.ps1 scalasem scalasem.cmd scalasem.ps1 phpastgen phpastgen.cmd phpastgen.ps1) do if exist "%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\.bin\%%F" del /q "%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\.bin\%%F"
+        - if %ERRORLEVEL% neq 0 exit 1
         - for /d %%D in ("%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@cdxgen\cdxgen-plugins-bin*") do rmdir /s /q "%%D"
         - if %ERRORLEVEL% neq 0 exit 1
         - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
@@ -54,9 +65,22 @@ requirements:
 
 tests:
   - script:
-      - cdxgen --version
-      - cdxgen --help
-      - cdx-validate --help
+      - if: unix
+        then:
+          - cdxgen --version
+          - cdxgen --help
+          - cdx-validate --help
+        else:
+          - call cdxgen --version
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call cdxgen --help
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call cdx-validate --help
+          - if %ERRORLEVEL% neq 0 exit 1
+          - call astgen --help
+          - if %ERRORLEVEL% neq 0 exit 1
+          - if not exist "%PREFIX%\node_modules\@appthreat\atom-parsetools\package.json" exit 1
+          - if exist "%PREFIX%\node_modules\@cyclonedx\cdxgen\node_modules\@appthreat\atom-parsetools" exit 1
   - if: unix
     then:
       script:
