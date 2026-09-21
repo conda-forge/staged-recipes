@@ -1,0 +1,54 @@
+context:
+    version: "0.10.2"
+
+package:
+    name: boxlite
+    version: ${{ version }}
+
+source:
+    url: https://github.com/boxlite-ai/boxlite/archive/v${{ version }}.tar.gz
+    sha256: 8db55b29f43449ddbf8c1614466c9962581c39718721f5dac8ebad77ca6c576c
+
+build:
+    number: 0
+    script:
+        env:
+            CARGO_PROFILE_RELEASE_STRIP: symbols
+            CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+            - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+            - if: unix
+              then: cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path src/cli --locked --no-track
+              else: cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path src/cli --locked --no-track
+
+requirements:
+    build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+
+tests:
+    - script:
+          - boxlite --version
+          - boxlite --help
+    - package_contents:
+          strict: true
+          bin:
+              - boxlite
+
+about:
+    homepage: https://github.com/boxlite-ai/boxlite
+    summary: "The micro-VM for AI agents — light enough to embed on your laptop, elastic enough to power an agentic cloud."
+    description: |
+        A Box is a hardware-isolated micro-VM that runs any OCI image — and it persists. Agents install packages, write files, and resume across turns, never from cold.
+    license: Apache-2.0
+    license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+    repository: https://github.com/boxlite-ai/boxlite
+
+extra:
+    recipe-maintainers:
+        - XhstormR
