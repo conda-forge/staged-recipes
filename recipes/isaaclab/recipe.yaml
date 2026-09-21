@@ -44,10 +44,15 @@ outputs:
         # Surface skips as native CI warnings (GitHub Actions, Azure) or plain text.
         - |
           warn() {
-            if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning::$*"
-            elif [ "${TF_BUILD:-}" = "True" ]; then echo "##vso[task.logissue type=warning]$*"
-            elif [ -t 1 ]; then printf '\033[1;33mWARNING: %s\033[0m\n' "$*"
-            else echo "WARNING: $*"; fi
+            if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning::$*"; return; fi
+            # Azure logging command. Keep the hash prefix in a variable so the v1
+            # recipe linter does not read the bracket as a comment selector.
+            if [ "${TF_BUILD:-}" = "True" ]; then
+              h='##'
+              echo "${h}vso[task.logissue type=warning]$*"
+              return
+            fi
+            if [ -t 1 ]; then printf '\033[1;33mWARNING: %s\033[0m\n' "$*"; else echo "WARNING: $*"; fi
           }
         # Install every workspace member under source/, minus skip_extensions.
         # Kit-only stubs without a Python project are skipped by find.
