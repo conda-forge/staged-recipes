@@ -1,0 +1,109 @@
+schema_version: 1
+
+context:
+  version: "14.0.0"
+
+recipe:
+  name: xclang-bootstrap
+  version: ${{ version }}
+
+source:
+  # The SourceForge release is a .tar.bz2 that rattler-build 0.76 fails to
+  # unpack (a 14 MB Makefile.in trips its bzip2 path); the tag tarball on
+  # GitHub is the same tree, generated configure scripts included.
+  url: https://github.com/mingw-w64/mingw-w64/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d71cc644cd5a37c337f2719f3e0c79d89e8d8d5fb9e2952a62d3fa23623dc137
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: xclang-bootstrap-stage
+    build:
+      script:
+        file: build.sh
+    requirements:
+      build:
+        - clang
+        - lld
+        - llvm-tools
+        - make
+
+  - package:
+      name: xclang-sysroot-x86_64-w64-mingw32
+    inherit: xclang-bootstrap-stage
+    build:
+      noarch: generic
+      files:
+        - xclang/x86_64-w64-mingw32/**
+    tests:
+      - package_contents:
+          files:
+            - xclang/x86_64-w64-mingw32/include/windows.h
+            - xclang/x86_64-w64-mingw32/include/pthread.h
+            - xclang/x86_64-w64-mingw32/lib/crt2.o
+            - xclang/x86_64-w64-mingw32/lib/libucrt.a
+            - xclang/x86_64-w64-mingw32/lib/libkernel32.a
+            - xclang/x86_64-w64-mingw32/lib/libwinpthread.a
+      - script:
+          file: test.sh
+          env:
+            XCLANG_TRIPLE: x86_64-w64-mingw32
+        requirements:
+          run:
+            - clang
+            - lld
+            - llvm-tools
+    about:
+      summary: mingw-w64 headers and CRT for the x86_64-w64-mingw32 target, laid out for xclang
+
+  - package:
+      name: xclang-sysroot-aarch64-w64-mingw32
+    inherit: xclang-bootstrap-stage
+    build:
+      noarch: generic
+      files:
+        - xclang/aarch64-w64-mingw32/**
+    tests:
+      - package_contents:
+          files:
+            - xclang/aarch64-w64-mingw32/include/windows.h
+            - xclang/aarch64-w64-mingw32/include/pthread.h
+            - xclang/aarch64-w64-mingw32/lib/crt2.o
+            - xclang/aarch64-w64-mingw32/lib/libucrt.a
+            - xclang/aarch64-w64-mingw32/lib/libkernel32.a
+            - xclang/aarch64-w64-mingw32/lib/libwinpthread.a
+      - script:
+          file: test.sh
+          env:
+            XCLANG_TRIPLE: aarch64-w64-mingw32
+        requirements:
+          run:
+            - clang
+            - lld
+            - llvm-tools
+    about:
+      summary: mingw-w64 headers and CRT for the aarch64-w64-mingw32 target, laid out for xclang
+
+about:
+  homepage: https://www.mingw-w64.org/
+  repository: https://github.com/mingw-w64/mingw-w64
+  license: ZPL-2.1 AND LGPL-2.1-or-later AND MIT AND BSD-3-Clause-Clear
+  license_file:
+    - COPYING
+    - COPYING.MinGW-w64/COPYING.MinGW-w64.txt
+    - COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt
+    - mingw-w64-headers/ddk/readme.txt
+    - mingw-w64-libraries/winpthreads/COPYING
+  summary: mingw-w64 sysroots (headers, CRT, winpthreads) built with clang, one per target triple
+  description: |
+    Each package installs a complete mingw-w64 UCRT sysroot under
+    $PREFIX/xclang/<triple>/, the layout clang's MinGW driver finds on its own
+    when the compiler lives in $PREFIX/xclang/bin. The CRT is built with clang
+    and the LLVM binutils, which is what makes the aarch64 sysroot possible:
+    GCC has no aarch64-w64-mingw32 target.
+
+extra:
+  recipe-maintainers:
+    - 16bit-ykiko
