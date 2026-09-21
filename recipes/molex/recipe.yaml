@@ -1,0 +1,130 @@
+schema_version: 1
+
+context:
+  version: "0.8.1"
+
+recipe:
+  name: molex
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/molex/molex-${{ version }}.tar.gz
+  sha256: 17a0db3cf9a209a20ac19b5ba0196f103d00eab84d5833b58a535b872f00137d
+
+build:
+  number: 0
+
+outputs:
+  # C/C++ library: libmolex.{so,dylib,dll} + static lib + molex.h / molex.hpp
+  - package:
+      name: libmolex
+    build:
+      script:
+        - if: unix
+          then:
+            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features c-api
+            - cargo build --release --locked --features c-api
+            - mkdir -p $PREFIX/lib $PREFIX/include
+            - cp include/molex.h include/molex.hpp $PREFIX/include/
+            - if: osx
+              then:
+                - cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.dylib "$PREFIX/lib/"
+                - install_name_tool -id @rpath/libmolex.dylib "$PREFIX/lib/libmolex.dylib"
+              else:
+                - cp target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/libmolex.so "$PREFIX/lib/"
+          else:
+            - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features c-api
+            - cargo build --release --locked --features c-api
+            - if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
+            - if not exist %LIBRARY_LIB% mkdir %LIBRARY_LIB%
+            - if not exist %LIBRARY_INC% mkdir %LIBRARY_INC%
+            - copy include\molex.h %LIBRARY_INC%\
+            - copy include\molex.hpp %LIBRARY_INC%\
+            - copy target\%CARGO_BUILD_TARGET%\release\molex.dll %LIBRARY_BIN%\
+            - copy target\%CARGO_BUILD_TARGET%\release\molex.dll.lib %LIBRARY_LIB%\molex.lib
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      run_exports:
+        # 0.x: the C ABI may change with any minor version, so pin to x.x.
+        - ${{ pin_subpackage('libmolex', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - molex.h
+            - molex.hpp
+          lib:
+            - molex
+    about:
+      license: MIT
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+
+  # Python bindings, one abi3 build covering every CPython >= python_min
+  - package:
+      name: molex
+    build:
+      skip: is_abi3 and not is_python_min
+      script:
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml --features python,extension-module
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        version_independent: ${{ is_abi3 }}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - if: build_platform != host_platform
+          then:
+            - python
+            - cross-python_${{ host_platform }}
+            - maturin >=1.7,<2
+      host:
+        - if: is_abi3
+          then: python-abi3
+        - python
+        - pip
+        - maturin >=1.7,<2
+      run:
+        - python
+        - numpy
+    tests:
+      - python:
+          imports:
+            - molex
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/molex/molex.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%\molex\molex.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    about:
+      license: MIT
+      license_file:
+        - LICENSE
+        - THIRDPARTY.yml
+
+about:
+  homepage: https://github.com/foldit-org/molex
+  repository: https://github.com/foldit-org/molex
+  documentation: https://foldit-org.github.io/molex/
+  summary: Parse, analyze, and transform molecular structure data (PDB, mmCIF, BinaryCIF, MRC)
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - petridecus
