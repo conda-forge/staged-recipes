@@ -56,6 +56,16 @@ cp "${RECIPE_DIR}/xsltproc.py" common/xsltproc.py
 mkdir -p build
 python -m venv build/dd_build_env
 
+# The al-core.pc file from libimas-core embeds the GNU-ld-only flag
+# '-Wl,--defsym,AL_VER_<version>=0', which Apple's linker (ld64) rejects.
+# Strip it from the pkg-config file in the host environment on macOS.
+# This is a build-time change only: files pre-existing in the host prefix
+# are not packaged, so the installed libimas-core package is unaffected.
+if [[ "${target_platform}" == osx-* ]]; then
+    sed -i.bak -E 's/-Wl,--defsym,[A-Za-z0-9_.]+=0 ?//g' "${PREFIX}/lib/pkgconfig/al-core.pc"
+    rm -f "${PREFIX}/lib/pkgconfig/al-core.pc.bak"
+fi
+
 # The build system requires find_package(Python): point it explicitly at the
 # python interpreter in the build environment, as the restricted search paths
 # used in conda builds prevent FindPython from locating it on its own
@@ -76,3 +86,13 @@ cmake ${CMAKE_ARGS} \
     -D AL_EXAMPLES=OFF
 
 cmake --build build --target install
+
+# Our own generated pkg-config files embed the same GNU-ld-only --defsym
+# flag: strip it on macOS so that consumers of this package can link.
+# (imas-*.pc are symlinks to these files, so only edit the real files.)
+if [[ "${target_platform}" == osx-* ]]; then
+    for pc in al-fortran.pc "al-fortran-${DD_VERSION}.pc" al-identifiers-fortran.pc; do
+        sed -i.bak -E 's/-Wl,--defsym,[A-Za-z0-9_.]+=0 ?//g' "${PREFIX}/lib/pkgconfig/${pc}"
+        rm -f "${PREFIX}/lib/pkgconfig/${pc}.bak"
+    done
+fi
