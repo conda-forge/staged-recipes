@@ -6,6 +6,16 @@ npm install --production=false --ignore-scripts 2>&1
 # Run postinstall (applies patches)
 node patches/apply-patches.js
 
+# Rebuild native addons with the conda-forge toolchain. Their install hooks are
+# skipped above, and bundled prebuilds should not be used at runtime.
+for native_module in drivelist mountutils; do
+	(
+		cd "node_modules/${native_module}"
+		node-gyp rebuild
+		rm -rf prebuilds
+	)
+done
+
 # Build: compile TypeScript and generate oclif manifest
 npx tsc
 npx oclif manifest
