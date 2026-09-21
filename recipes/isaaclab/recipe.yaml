@@ -1,16 +1,11 @@
 context:
   name: isaaclab
-  # Dev version until upstream tags GA: base version plus the source commit date
-  # (the git rev below). Switch to "3.0.0" once the v3.0.0 tag exists.
-  version: "3.0.0.dev20260821"
+  # Dev version until the GA tag: base plus the pinned rev commit date, bumped together.
+  version: "3.0.0.dev20260921"
   # tag: v3.0.0
   build_number: 0
   python_min: "3.12"
-  # Extension skipped in the base install: isaaclab_teleop is the optional XR
-  # teleoperation extension, off the core import path (only isaaclab.devices.openxr
-  # pulls it), and its OpenXR runtime is not on conda-forge. isaaclab_ov must NOT be
-  # skipped: the base package imports it unconditionally (isaaclab/app/sim_launcher.py),
-  # and its config classes import fine without the closed-source ovphysx/ovrtx backends.
+  # Skipped: its OpenXR runtime is not on conda-forge, and it is off the core import path.
   skip_extensions: "isaaclab_teleop"
 
 recipe:
@@ -18,64 +13,111 @@ recipe:
   version: ${{ version }}
 
 source:
-  # Track the v3 release branch until upstream tags GA, then switch to the tag.
+  # Pinned to a release/3.0.0 SHA for reproducibility. At GA, switch to the
+  # commented url + sha256 and drop the git/rev pair.
   # url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/${{ tag }}.tar.gz
   # sha256: <fill-in-at-GA>
   git: https://github.com/isaac-sim/IsaacLab.git
-  # rev: release/3.0.0
-  rev: e13060d3ab01a7d43a9863c6c9b7d3d565094c47
-  # Resolve the vendored apps/ and scripts/ dirs from $PREFIX/share/isaaclab.
-  # See the patch header, it is worth upstreaming.
+  # release/3.0.0 @ 2026-09-21
+  rev: 76c7c60de65eb5196dbfacac91d3febbff6044d2
+  # No source-layout patch needed: upstream flattens the package itself (stage.py).
+  # The two patches gate source-checkout-only unit tests that predate the upstream
+  # source_checkout_root fixture, so they self-skip against the installed package.
   patches:
-    - patches/0001-conda-forge-path-adjustments.patch
+    - patches/0001-skip-checkout-only-launcher-tests.patch
+    - patches/0002-skip-checkout-only-cli-install-tests.patch
 
 build:
-  # noarch: python
+  noarch: python
   number: ${{ build_number }}
-  skip:
-    - osx
-    - win
 
 outputs:
-  # ========
-  # isaaclab
-  # ========
-  # Single bundled package: every workspace member under source/ in one package,
-  # the way upstream tools/wheel_builder does.
-  # Pins come from the root pyproject.toml. Run gen_recipe_deps.py to re-derive them, see README.md.
-  - package:
-      name: isaaclab
+  # ========================
+  # isaaclab-build (staging)
+  # ========================
+  # Builds the bundled install once. Every output below inherits it and selects
+  # only its files, so the clone and installs run a single time.
+  - staging:
+      name: isaaclab-build
     build:
-      python:
-        entry_points:
-          - isaaclab = isaaclab.cli:cli
       script:
-        # Install every workspace member under source/, skip the ones in skip_extensions.
+        # Surface skips as native CI warnings (GitHub Actions, Azure) or plain text.
+        - |
+          warn() {
+            if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning::$*"
+            elif [ "${TF_BUILD:-}" = "True" ]; then echo "##vso[task.logissue type=warning]$*"
+            elif [ -t 1 ]; then printf '\033[1;33mWARNING: %s\033[0m\n' "$*"
+            else echo "WARNING: $*"; fi
+          }
+        # Install every workspace member under source/, minus skip_extensions.
+        # Kit-only stubs without a Python project are skipped by find.
         - |
           set -euo pipefail
-          for ext in source/isaaclab source/isaaclab_*; do
+          find source/isaaclab source/isaaclab_* -maxdepth 1 \
+            \( -name pyproject.toml -o -name setup.py \) -printf '%h\n' \
+            | sort -u | while read -r ext; do
             pkg=$(basename "$ext")
             case " ${{ skip_extensions }} " in
-              *" $pkg "*) echo "skip $pkg, backend missing on conda-forge"; continue ;;
+              *" $pkg "*) warn "skip $pkg, backend missing on conda-forge"; continue ;;
             esac
             ${{ PYTHON }} -m pip install "./$ext" -vv --no-deps --no-build-isolation
           done
-        # Vendor apps/ and scripts/ under share/ (paths patched to match), not $PREFIX/lib.
-        - mkdir -p ${PREFIX}/share/isaaclab
-        - cp -r apps ${PREFIX}/share/isaaclab/apps
-        - cp -r scripts ${PREFIX}/share/isaaclab/scripts
+        # Co-locate the runtime resources inside the flat package, so
+        # isaaclab/_paths.py::ISAACLAB_ROOT resolves them (isaac-sim/IsaacLab#7438).
+        - cp -r apps "${SP_DIR}/isaaclab/apps"
+        # apps/ ships no __init__.py, so make each directory importable.
+        - find "${SP_DIR}/isaaclab/apps" -type d -exec touch {}/__init__.py \;
+        - mkdir -p "${SP_DIR}/isaaclab/tools"
+        - cp -r tools/template "${SP_DIR}/isaaclab/tools/template"
+        # Reinject the third-party deps into the installed metadata (the per-member
+        # installs drop them), so the base pip_check validates them against upstream.
+        # Names only, since conda-forge serves newer builds. Closed-source deps excluded.
+        - ${{ PYTHON }} tools/wheel_builder/gen_pyproject.py pyproject.toml gen_deps.toml "0"
+        - ${{ PYTHON }} "${RECIPE_DIR}/gen_extra_metadata.py" base gen_deps.toml "${SP_DIR}"
+        # Generate a synthetic dist-info per extra in one pass. Each metapackage
+        # selects its own for pip_check (see gen_extra_metadata.py, README).
+        - |
+          set -euo pipefail
+          for extra in all video sb3 viser rerun mimic tetrahedralization leapp torchrl; do
+            ${{ PYTHON }} "${RECIPE_DIR}/gen_extra_metadata.py" \
+              extra gen_deps.toml pyproject.toml "${SP_DIR}" "$extra" "${{ version }}"
+          done
     requirements:
       host:
         - pip
         - python ${{ python_min }}.*
         - setuptools >=70.0,<82.0.0
         - wheel
+  # ========
+  # isaaclab
+  # ========
+  # The bundled package: every workspace member, minus the synthetic
+  # isaaclab_extra_* dist-infos that are the metapackages' payload.
+  - package:
+      name: isaaclab
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      python:
+        entry_points:
+          - isaaclab = isaaclab.cli:cli
+      files:
+        include:
+          - "**"
+        exclude:
+          - "**/isaaclab_extra_*"
+    requirements:
       run:
         - python >=${{ python_min }}
         - numpy >=2
-        - pytorch >=2.11
-        - torchvision >=0.26.0
-        - torchaudio >=2.11
+        # Upstream pins torch==2.12.0, but no conda pytorchrl build for 2.12
+        # co-solves with mujoco: libtorch 2.12.1 needs a newer libabseil than
+        # newton-sim allows. torch 2.11 is the highest that resolves the whole
+        # stack, torchrl extra included.
+        - pytorch >=2.11.0,<2.12
+        - torchvision 0.26.0.*
+        - torchaudio 2.11.0.*
         - onnx >=1.18.0
         - prettytable >=3.3.0
         - psutil
@@ -84,19 +126,19 @@ outputs:
         - gymnasium >=1.2.0
         - trimesh >=4.6.8
         - pyglet >=2.1.6,<3
-        - transformers 4.57.6.*
+        - transformers >=5.10.4
         - einops
-        - warp-lang >=1.16.0
+        - warp-lang 1.17.0.*
         - matplotlib-base >=3.10.3
-        - pillow >=12.1.1
+        - pillow >=12.3.0
         - botocore
-        - starlette >=0.46.0,<0.50
+        - starlette >=1.3.1
         - filelock
         - lazy-loader >=0.4
         - pinocchio
         - pink 3.3.0.*
         - daqp 0.8.5.*
-        - usd-exchange >=2.3.0
+        - usd-exchange 2.3.0.*
         - hf-xet >=1.4.1,<2.0.0
         - tensorboard
         - numba >=0.63.1
@@ -105,9 +147,9 @@ outputs:
         - packaging
         - rich
         - tqdm >=4.67.1
-        - rsl-rl-lib 5.4.1.*
+        - rsl-rl-lib 5.5.1.*
         - onnxscript >=0.5
-        - newton-sim >=1.5.0
+        - newton-sim 1.6.0.*
         - requests >=2.25.0
         - scipy >=1.11.0
         - coacd >=1.0.7
@@ -121,85 +163,90 @@ outputs:
         - pyopengl-accelerate >=3.1.0
         - imgui-bundle >=1.92.5
         - typing-extensions >=4.15.0
-        # omniverseclient and isaacsim-asset-isolated dropped, closed-source and not redistributable
+        - gitpython >=3.1.59
+        - jinja2
+        # transformers is floored, not exact: conda-forge has no 5.10.4 (nearest
+        # 5.16.1). Other pins track upstream 1:1. Closed-source deps are dropped.
     tests:
+      # Validates the reinjected third-party deps resolve against the installed env.
       - python:
           imports:
             - isaaclab
-          # pip_check is off in every output: the relaxed and remapped pins differ from
-          # the exact versions pip recorded, so pip check would flag them as inconsistent.
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
-      # Run upstream's unit tests against the installed package. This is a local-first
-      # extra: it tries to pip install omniverseclient from pypi.nvidia.com (closed
-      # source, not on conda-forge) because a few unit tests import omni.client.
+      # CLI smoke test. Reaches the dispatcher without Isaac Sim or a GPU, and
+      # exercises the flat package entry point plus ISAACLAB_ROOT resolution.
       - script:
+          - isaaclab --help
+          - isaaclab train --help
+          - isaaclab play --help
+      # Runs upstream's unit suite against the installed package, adapting to the
+      # runner (GPU cases only when a GPU is present). See README.
+      - script:
+          - set -euo pipefail
+          # omni.client loads only where glibc >= 2.35, so keep it best-effort.
+          # Its absence drops utils/test_assets.py, whose fixture imports it.
+          - python -m pip install --no-deps --no-build-isolation --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
           - |
-            set -euo pipefail
-            # omni.client ships only on pypi.nvidia.com as manylinux_2_35 wheels, so it
-            # installs and loads only where glibc >= 2.35 (true locally, not on the
-            # staged-recipes alma9 image which is glibc 2.34). Keep it best-effort; the
-            # import check below drops utils/test_assets.py when omni.client is missing,
-            # since a shared fixture in that file imports it.
-            python -m pip install --no-deps --no-build-isolation \
-              --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
             omni_ok=1
             if ! python -c "import omni.client" >/dev/null 2>&1; then
               echo "omni.client not importable, skipping utils/test_assets.py"
               omni_ok=0
             fi
-            # Pointing pytest at test/ as a whole would import standalone scripts that
-            # call parse_args() at import time, so collect only the unit-marked files.
-            # The layout/checkout-dependent files always need excluding: they want the
-            # source checkout (root pyproject.toml, uv.lock, tools/, apps/, scripts/).
-            # See the "worth upstreaming" note in README.md.
-            unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py' \
-              | grep -v \
-                -e app/test_experience_files \
-                -e cli/test_install_command_parsing \
-                -e cli/test_install_commands \
-                -e cli/test_install.py \
-                -e cli/test_teleop_entrypoints \
-                -e cli/test_uv_run_pyproject \
-                -e cli/test_wheel_builder_metadata \
-                -e cli/test_source_package_metadata \
-                -e test_scripts_warp_backward_ordering)
+          # Auto-detect a usable GPU: torch.cuda.is_available() is true only with
+          # the driver, a device, and a cuda torch, exactly what the cuda cases need.
+          - |
+            gpu_ok=0
+            if python -c "import torch; raise SystemExit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1; then
+              gpu_ok=1
+            fi
+            echo "gpu_ok=${gpu_ok} omni_ok=${omni_ok}"
+          # Collect only the unit-marked files: pointing pytest at test/ would
+          # import scripts that parse args at import. Checkout-only tests self-skip
+          # via source_checkout_root (isaac-sim/IsaacLab#7389), the few predating
+          # it via patches 0001 and 0002. See README.
+          - unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py')
+          # Drop utils/test_assets.py when omni.client did not load.
+          - |
             if [ "${omni_ok}" = 0 ]; then
               unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e utils/test_assets.py)
             fi
-            # The cuda runners have a GPU but the cpu-only runners do not: detect the
-            # device and run the cuda-parametrized tests (and deps/test_torch.py, which
-            # is cuda-only) only when one is actually present.
-            cuda_filter=""
-            if python -c "import torch,sys; sys.exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
-              echo "GPU detected, running the unit suite including the cuda tests"
-            else
-              echo "no GPU, running the CPU-only unit subset"
-              export CUDA_VISIBLE_DEVICES=""
-              cuda_filter="not cuda and not test_wp_launch_accepts_proxy_array"
-              unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e deps/test_torch.py)
-            fi
-            if [ -n "${cuda_filter}" ]; then
-              python -m pytest ${unit_files} -m unit -k "${cuda_filter}" -p no:cacheprovider
-            else
+          # A CPU runner hides the device and drops the cuda cases: device-aware
+          # tests keep only cpu (isaac-sim/IsaacLab#7918), and `-k "not cuda"`
+          # catches older cuda-parametrized ids.
+          - |
+            if [ "${gpu_ok}" = 1 ]; then
               python -m pytest ${unit_files} -m unit -p no:cacheprovider
+            else
+              export CUDA_VISIBLE_DEVICES=""
+              python -m pytest ${unit_files} -m unit \
+                -k "not cuda" \
+                -p no:cacheprovider
             fi
         requirements:
           run:
-            # Pin to python_min so the omniverseclient wheels (cp310/311/312 only,
-            # no cp313) resolve; an unpinned run env would solve to a newer python.
+            # Pin to python_min so the omniverseclient wheels (no cp313) resolve.
             - python ${{ python_min }}.*
             - pip
             - pytest
         files:
           source:
             - source/isaaclab/test/
+            # Some tests load kernels by relative path, so ship the source tree next to test/.
             - source/isaaclab/isaaclab/
   # ============
   # isaaclab-all
   # ============
+  # Aggregates the packaged extras. Its synthetic `all` dist-info lets pip_check
+  # confirm they cover what upstream's `all` declares.
   - package:
       name: isaaclab-all
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_all-*.dist-info/**"
     requirements:
       run:
         - python >=${{ python_min }}
@@ -209,19 +256,28 @@ outputs:
         - ${{ pin_subpackage('isaaclab-rerun', exact=True) }}
         - ${{ pin_subpackage('isaaclab-sb3', exact=True) }}
         - ${{ pin_subpackage('isaaclab-tetrahedralization', exact=True) }}
+        - ${{ pin_subpackage('isaaclab-torchrl', exact=True) }}
         - ${{ pin_subpackage('isaaclab-video', exact=True) }}
         - ${{ pin_subpackage('isaaclab-viser', exact=True) }}
     tests:
       - python:
           imports:
             - isaaclab
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ==============
   # isaaclab-video
   # ==============
+  # Ships the synthetic `video` dist-info so pip_check validates the extra's deps
+  # against upstream. The other extras below follow the same pattern.
   - package:
       name: isaaclab-video
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_video-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
@@ -231,13 +287,19 @@ outputs:
       - python:
           imports:
             - moviepy
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ============
   # isaaclab-sb3
   # ============
   - package:
       name: isaaclab-sb3
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_sb3-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
@@ -249,13 +311,19 @@ outputs:
       - python:
           imports:
             - isaaclab_rl.sb3
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ==============
   # isaaclab-viser
   # ==============
   - package:
       name: isaaclab-viser
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_viser-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
@@ -265,30 +333,44 @@ outputs:
       - python:
           imports:
             - isaaclab_visualizers.viser
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ==============
   # isaaclab-rerun
   # ==============
   - package:
       name: isaaclab-rerun
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_rerun-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
         - python >=${{ python_min }}
         - rerun-sdk >=0.29.0
-        - pyarrow 22.0.*
+        - pyarrow 23.0.1.*
     tests:
       - python:
           imports:
             - isaaclab_visualizers.rerun
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ==============
   # isaaclab-mimic
   # ==============
+  # robomimic is a Git dep upstream but has a feedstock, so gen_extra_metadata.py
+  # re-adds it by name for pip_check.
   - package:
       name: isaaclab-mimic
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_mimic-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
@@ -299,51 +381,85 @@ outputs:
       - python:
           imports:
             - robomimic
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ===========================
   # isaaclab-tetrahedralization
   # ===========================
   - package:
       name: isaaclab-tetrahedralization
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_tetrahedralization-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
         - python >=${{ python_min }}
-        # Upstream pins pytetwild[all] >=0.3.0,<0.4 but conda-forge only ships 0.4.2.
-        # Relax the upper bound: the `from pytetwild import tetrahedralize` API that
-        # isaaclab.sim.schemas uses is unchanged across 0.3/0.4. pyvista mirrors the
-        # pytetwild [all] extra (its only member). TODO: drop the relax once upstream
-        # lifts the <0.4 cap.
+        # Upstream pins pytetwild[all] >=0.3.0,<0.4 but conda-forge only ships
+        # 0.4.2. Relax the upper bound: the `from pytetwild import tetrahedralize`
+        # API that isaaclab.sim.schemas uses is unchanged across 0.3/0.4. pyvista
+        # mirrors the pytetwild [all] extra (its only member). TODO: drop
+        # the relax once upstream lifts the <0.4 cap.
         - pytetwild >=0.3.0
         - pyvista
     tests:
       - python:
           imports:
             - pytetwild
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
   # ==============
   # isaaclab-leapp
   # ==============
   - package:
       name: isaaclab-leapp
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_leapp-*.dist-info/**"
     requirements:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
         - python >=${{ python_min }}
-        - leapp >=0.5.2
+        - leapp 0.6.1.*
     tests:
       - python:
           imports:
             - leapp
-          pip_check: false
+          pip_check: true
           python_version: ${{ python_min }}.*
-  # Inactive extras: kept commented until they can be packaged.
-  # The rsl-rl extra is already in the base install, so it needs no subpackage.
-  #
-  # skrl and rl-games have no conda-forge feedstock yet (rl-games also needs
-  # standard-distutils, itself missing).
+  # ================
+  # isaaclab-torchrl
+  # ================
+  # The torchrl extra maps to conda pytorchrl, which provides the torchrl module.
+  # It co-solves with the newton-sim/mujoco stack only at the base torch 2.11 pin.
+  - package:
+      name: isaaclab-torchrl
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_torchrl-*.dist-info/**"
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - pytorchrl >=0.13
+    tests:
+      - python:
+          imports:
+            - torchrl
+          pip_check: true
+          python_version: ${{ python_min }}.*
+  # Inactive extras: kept commented until they can be packaged. rsl-rl is
+  # already in the base, so it needs no subpackage. skrl and rl-games have no
+  # conda-forge feedstock (rl-games also needs standard-distutils).
   #
   # - package:
   #     name: isaaclab-skrl
@@ -364,11 +480,9 @@ outputs:
   #       - rl-games          # missing in conda-forge (git @ python3.11)
   #       - standard-distutils  # missing in conda-forge
   #
-  # rlinf: every dep is now on conda-forge, but the stack does not co-solve.
-  # decord2 pulls ffmpeg 9 -> libopenvino-onnx-frontend -> libabseil 20260526, while
-  # ray-default pins libgrpc to an older libabseil, so the two cannot share it. Wait
-  # for the conda-forge libabseil migration to settle (ray/grpc to catch up), then
-  # re-enable. Verify with a dry-run solve of the run list below before uncommenting.
+  # rlinf: every dep is on conda-forge, but the stack does not co-solve. decord2
+  # pulls ffmpeg 9 -> libabseil 20260526, while ray-default pins libgrpc to an
+  # older libabseil. Re-enable once the conda-forge libabseil migration settles.
   #
   # - package:
   #     name: isaaclab-rlinf
