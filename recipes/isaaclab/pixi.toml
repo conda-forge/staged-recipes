@@ -10,7 +10,10 @@ name = "isaaclab-conda-smoke"
 channels = ["conda-forge"]
 # Custom platform pinning glibc for the manylinux_2_35 Omniverse wheels and cuda
 # for the CUDA pytorch build the examples need.
-platforms = [{ name = "linux-64-cuda13", platform = "linux-64", glibc = "2.35", cuda = "13" }]
+platforms = [
+    { name = "linux-64-cuda13", platform = "linux-64", glibc = "2.35", cuda = "13" },
+    { name = "linux-64-cpu", platform = "linux-64", glibc = "2.35" },
+]
 preview = ["pixi-build"]
 
 [package]
@@ -21,7 +24,8 @@ version = "0.0.0"
 name = "pixi-build-rattler-build"
 version = "*"
 
-# isaaclab-all is built from the recipe in this directory.
+# isaaclab-all is built from the recipe in this directory. It pulls every
+# packaged subpackage, so the smoke env exercises the full metapackage graph.
 [dependencies]
 isaaclab-all = { path = "." }
 
@@ -35,14 +39,25 @@ no-build-isolation = true
 [pypi-dependencies]
 omniverseclient = "==2.72.3"
 
-# Newton idle smoke.
-[tasks]
-plain = """isaaclab train \
+# Newton idle smoke. The device is an argument so the long command lives once:
+# it defaults to CPU (works on a GPU-less machine) and the CUDA platform wrapper
+# below flips it to the GPU.
+[tasks._cartpole]
+args = [{ arg = "device", default = "cpu", choices = ["cpu", "cuda"] }]
+cmd = """isaaclab train \
   --task=Isaac-Cartpole-Direct \
   --num_envs=16 \
   --rl_library=rsl_rl \
   --max_iterations=10 \
-  physics=newton_mjwarp"""
+  physics=newton_mjwarp \
+  --device {{ device }} \
+  agent.device={{ device }}"""
+
+[tasks.plain]
+depends-on = ["_cartpole"]
+
+[target.linux-64-cuda13.tasks.plain]
+depends-on = [{ task = "_cartpole", args = ["cuda"] }]
 
 # ovrtx layers in the closed-source Omniverse RTX backends from PyPI, on top of
 # the omniverseclient the base env already needs.
@@ -50,7 +65,8 @@ plain = """isaaclab train \
 ovrtx = "==0.4.1.*"
 ovstage = "==0.1.1.*"
 
-[feature.ovrtx.tasks]
+# RTX rendering needs a GPU, so expose this task only on the CUDA platform.
+[feature.ovrtx.target.linux-64-cuda13.tasks]
 ovrtx = """isaaclab train \
   --task=IsaacContrib-Reorient-Cube-Shadow-Camera-Benchmark-Direct \
   --num_envs=16 \
