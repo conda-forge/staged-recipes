@@ -15,14 +15,10 @@ set -euxo pipefail
 #  3. replace common/xsltproc.py with a Saxon-HE (Java) based drop-in;
 #  4. pre-create the venv so the build system skips venv creation and pip.
 
-# Classpath with the Saxon-HE jars from the saxon-he conda package
-SAXON_CLASSPATH=$(printf '%s:' "${BUILD_PREFIX}"/lib/SaxonHE/*.jar "${BUILD_PREFIX}"/lib/SaxonHE/lib/*.jar)
-export SAXON_CLASSPATH="${SAXON_CLASSPATH%:}"
-
 # 1. Generate IDSDef.xml from the Data Dictionary sources (same command that
 #    the upstream build system runs when building the DD from source)
 pushd data-dictionary
-java -cp "${SAXON_CLASSPATH}" net.sf.saxon.Transform \
+java -cp "${CLASSPATH}" net.sf.saxon.Transform \
     -xsl:dd_data_dictionary.xml.xsl \
     -s:dd_data_dictionary.xml.xsd \
     -o:IDSDef.xml \
