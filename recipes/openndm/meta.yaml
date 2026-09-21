@@ -11,7 +11,7 @@ source:
   # release, and must be regenerated on every version bump:
   #   python -c "import hashlib,urllib.request as u; \
   #     print(hashlib.sha256(u.urlopen(URL).read()).hexdigest())"
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  url: https://files.pythonhosted.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   sha256: d0ef309177f1c783492d2d9140bf6b9910ad711e57c8185c8290340ca5796d70
 
 build:
@@ -19,7 +19,15 @@ build:
   # A compiled extension, so this is not noarch and not skipped per-platform
   # except where h5py has no wheel story. Python 3.10 is the floor.
   skip: true  # [py<310]
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  # CMake picked "Unix Makefiles" on linux_64 and then failed with
+  # CMAKE_MAKE_PROGRAM not set: conda-forge's Linux build environment has no
+  # make. ninja is already a build dependency, so the generator is named
+  # explicitly instead of left to detection. The CMAKE_CXX_COMPILER error
+  # that followed was a cascade of the same failure, not a missing compiler.
+  script:
+    - set "CMAKE_GENERATOR=Ninja"     # [win]
+    - export CMAKE_GENERATOR=Ninja    # [not win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
@@ -44,6 +52,11 @@ requirements:
     - python
     - numpy >=1.24
     - h5py >=3.8
+    # OPENNDM_USE_OPENMP is on by default, so the extension links the MSVC
+    # OpenMP runtime (vcomp140.dll) on Windows. conda-build's overlinking
+    # check rejects a binary whose DSOs are not declared, and the cxx
+    # compiler's run_exports do not cover this one.
+    - vcomp14  # [win]
 
 test:
   imports:
