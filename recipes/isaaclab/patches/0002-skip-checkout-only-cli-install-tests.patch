@@ -1,0 +1,91 @@
+Skip source-checkout-only CLI install and teleop tests on installed packages.
+
+Several cli/ unit tests load the repository root pyproject.toml or run a
+script from the source scripts/ directory, so they only work from a source
+checkout and fail against an installed package:
+
+  - test_install_command_parsing.py: TestCommandInstallDispatch drives
+    command_install(), which loads the root pyproject even with the dependency
+    installers mocked.
+  - test_install.py: TestEnsureNewton.test_installs_pinned_release_when_absent
+    calls install._load_root_pyproject().
+  - test_install_commands.py: the two TestInstallRootExtraExcludesIsaacSim
+    tests read the teleop extra from the root pyproject.
+  - test_teleop_entrypoints.py: test_teleop_workflow_help_exposes_task_preset_selectors
+    executes scripts/.../*.py from ISAACLAB_ROOT.
+
+Gate them the same way the rest of the source-checkout-only suite is gated,
+by requesting the source_checkout_root fixture, which skips when there is no
+source checkout. The teleop help test also resolves its script from the
+checkout root instead of ISAACLAB_ROOT, matching its sibling dispatch test.
+
+diff --git a/source/isaaclab/test/cli/test_install.py b/source/isaaclab/test/cli/test_install.py
+index 12ad116..104092f 100644
+--- a/source/isaaclab/test/cli/test_install.py
++++ b/source/isaaclab/test/cli/test_install.py
+@@ -371,7 +371,7 @@ class TestEnsureNewton:
+     def _completed(stdout: str = "", returncode: int = 0) -> subprocess.CompletedProcess:
+         return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr="")
+ 
+-    def test_installs_pinned_release_when_absent(self):
++    def test_installs_pinned_release_when_absent(self, source_checkout_root: Path):
+         """When the pinned release is not installed, uninstall Newton then install it."""
+         from isaaclab.cli.commands import install
+ 
+diff --git a/source/isaaclab/test/cli/test_install_command_parsing.py b/source/isaaclab/test/cli/test_install_command_parsing.py
+index a24f6df..f037d80 100644
+--- a/source/isaaclab/test/cli/test_install_command_parsing.py
++++ b/source/isaaclab/test/cli/test_install_command_parsing.py
+@@ -203,6 +203,10 @@ def _make_mock_env(**extra_env):
+ class TestCommandInstallDispatch:
+     """Test that command_install() calls the right functions with the right args."""
+ 
++    @pytest.fixture(autouse=True)
++    def _requires_source_checkout(self, source_checkout_root):
++        """command_install() loads the root pyproject, present only in a source checkout."""
++
+     def _run(self, install_type: str):
+         """Invoke command_install() with all I/O mocked; return captured mock calls."""
+         mocks = {}
+diff --git a/source/isaaclab/test/cli/test_install_commands.py b/source/isaaclab/test/cli/test_install_commands.py
+index c0c0d09..65558b5 100644
+--- a/source/isaaclab/test/cli/test_install_commands.py
++++ b/source/isaaclab/test/cli/test_install_commands.py
+@@ -1036,14 +1036,14 @@ class TestRePointPrebundlePackages:
+ class TestInstallRootExtraExcludesIsaacSim:
+     """The ``teleop`` extra lists Isaac Sim for uv, but pip must never resolve it inline."""
+ 
+-    def test_root_extra_dependencies_exclude_isaacsim(self):
++    def test_root_extra_dependencies_exclude_isaacsim(self, source_checkout_root: Path):
+         """pip has no override mechanism, so isaacsim + isaacteleop in one pass cannot resolve."""
+         dependencies = install_cmd._root_extra_dependencies("teleop")
+ 
+         assert not any(d.startswith("isaacsim") for d in dependencies)
+         assert any(d.startswith("isaacteleop") for d in dependencies)
+ 
+-    def test_install_root_extra_omits_isaacsim_from_the_pip_command(self, tmp_path):
++    def test_install_root_extra_omits_isaacsim_from_the_pip_command(self, source_checkout_root: Path, tmp_path):
+         """``./isaaclab.sh -i teleop`` must not hand Isaac Sim to pip alongside Isaac Teleop."""
+         python_exe = str(tmp_path / "python")
+         pip_cmd = [python_exe, "-m", "pip"]
+diff --git a/source/isaaclab/test/cli/test_teleop_entrypoints.py b/source/isaaclab/test/cli/test_teleop_entrypoints.py
+index a459e5f..8c56e01 100644
+--- a/source/isaaclab/test/cli/test_teleop_entrypoints.py
++++ b/source/isaaclab/test/cli/test_teleop_entrypoints.py
+@@ -27,13 +27,13 @@ TELEOP_WORKFLOWS = {
+ 
+ 
+ @pytest.mark.parametrize(("command", "script_parts"), TELEOP_WORKFLOWS.items())
+-def test_teleop_workflow_help_exposes_task_preset_selectors(command, script_parts):
++def test_teleop_workflow_help_exposes_task_preset_selectors(source_checkout_root: Path, command, script_parts):
+     """Every teleop workflow accepts the task preset selectors documented for teleoperation."""
+-    script = cli.ISAACLAB_ROOT.joinpath(*script_parts)
++    script = source_checkout_root.joinpath(*script_parts)
+ 
+     result = subprocess.run(
+         [sys.executable, str(script), "--help"],
+-        cwd=cli.ISAACLAB_ROOT,
++        cwd=source_checkout_root,
+         capture_output=True,
+         text=True,
+         check=False,
