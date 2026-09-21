@@ -21,7 +21,9 @@ np.testing.assert_allclose(eos.volume(pressures), volumes, rtol=1e-8)
 
 package = resources.files("peritheos")
 assert package.joinpath("py.typed").is_file()
-manifest = json.loads(package.joinpath("data", "materials", "manifest.json").read_text())
+manifest = json.loads(
+    package.joinpath("data").joinpath("materials").joinpath("manifest.json").read_text()
+)
 documents = [
     get_material_document(identifier) for identifier in list_material_documents()
 ]
