@@ -138,11 +138,17 @@ exec "${here}/../libexec/patinae/bin/patinae" "$@"
 EOF
 chmod +x "${PREFIX}/bin/patinae"
 
+# Fail fast rather than shipping a broken menu.json with an empty version.
+if [[ -z "${PATINAE_VERSION:-}" ]]; then
+  echo "PATINAE_VERSION is empty; cannot generate menu.json" >&2
+  exit 1
+fi
+
 # Register a menuinst desktop shortcut so the installed icon launches the
 # `patinae` wrapper (and thus picks up PATINAE_PLUGIN_DIR) rather than the
 # raw libexec binary.
 mkdir -p "${PREFIX}/Menu"
-sed -e "s/__PKG_VERSION__/${PKG_VERSION}/g" "${RECIPE_DIR}/menu.json" > "${PREFIX}/Menu/patinae_menu.json"
+sed -e "s/__PKG_VERSION__/${PATINAE_VERSION}/g" "${RECIPE_DIR}/menu.json" > "${PREFIX}/Menu/patinae_menu.json"
 
 if [[ "${target_platform}" == osx-* ]]; then
   make -C "${SRC_DIR}" icon PYTHON="${PYTHON}"
