@@ -230,11 +230,17 @@ del /F /Q ^
 >> "%PREFIX%\Scripts\patinae.bat" echo "%%PREFIX_DIR%%\libexec\patinae\bin\patinae.exe" %%*
 >> "%PREFIX%\Scripts\patinae.bat" echo exit /b %%ERRORLEVEL%%
 
+@REM Fail fast rather than shipping a broken menu.json with an empty version.
+if not defined PATINAE_VERSION (
+  echo PATINAE_VERSION is empty; cannot generate menu.json
+  exit /b 1
+)
+
 @REM Register a menuinst desktop shortcut so the installed icon launches the
 @REM `patinae` wrapper (and thus picks up PATINAE_PLUGIN_DIR) rather than the
 @REM raw libexec binary.
 if not exist "%PREFIX%\Menu" mkdir "%PREFIX%\Menu"
-powershell -Command "(Get-Content '%RECIPE_DIR%\menu.json') -replace '__PKG_VERSION__', '%PKG_VERSION%' | Set-Content '%PREFIX%\Menu\patinae_menu.json'"
+powershell -Command "(Get-Content '%RECIPE_DIR%\menu.json') -replace '__PKG_VERSION__', '%PATINAE_VERSION%' | Set-Content '%PREFIX%\Menu\patinae_menu.json'"
 if errorlevel 1 exit /b !ERRORLEVEL!
 copy /Y "%SRC_DIR%\images\patinae.png" "%PREFIX%\Menu\patinae.png"
 if errorlevel 1 exit /b !ERRORLEVEL!
