@@ -100,19 +100,20 @@ outputs:
   # vendored robin-map's) source into our own binary instead of depending on
   # the external nanobind-backend package, which is not on conda-forge.
   #
-  # The extension is built against CPython's stable ABI (nanobind_add_module
-  # ... STABLE_ABI in python/CMakeLists.txt), so one build per platform covers
-  # every supported Python version -- is_abi3/is_python_min/python_min below
-  # come from conda-forge's global pinning and select that build-once mode.
-  # See https://conda-forge.org/docs/maintainer/example_recipes/abi3/.
+  # The extension itself builds against CPython's stable ABI (nanobind_add_module
+  # ... STABLE_ABI in python/CMakeLists.txt), but the private backend shim that
+  # STABLE_ABI mode requires (BACKEND_MODULE) is NOT itself limited-API -- it's
+  # compiled per CPython version. So this cannot be a build-once-run-anywhere
+  # (is_abi3/python-abi3) package on conda-forge: verified by testing the abi3
+  # variant against a second Python version, which failed with "nanobind backend
+  # module 'cbgen._bgen_nb_backend' is not installed". One build per Python
+  # version, same as any other extension module.
   # ---------------------------------------------------------------------
   - package:
       name: ${{ py_name }}
       version: ${{ version }}
     build:
-      skip: is_abi3 and not is_python_min
       python:
-        version_independent: ${{ is_abi3 }}
         entry_points: []
       script:
         # Set via env (not `export`) so it also applies under cmd.exe on
@@ -138,13 +139,7 @@ outputs:
         - ${{ stdlib('c') }}
         - cmake
         - ninja
-        - if: build_platform != host_platform
-          then:
-            - python
-            - cross-python_${{ host_platform }}
       host:
-        - if: is_abi3
-          then: python-abi3
         - python
         - pip
         - scikit-build-core
@@ -160,19 +155,6 @@ outputs:
           imports:
             - cbgen
           pip_check: true
-          python_version:
-            - if: is_abi3
-              then: ${{ python_min }}.*
-            - "*"
-      - if: is_abi3
-        then:
-          requirements:
-            run:
-              - abi3audit
-          script:
-            - if: unix
-              then: abi3audit $SP_DIR/cbgen/_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
-              else: abi3audit %SP_DIR%/cbgen/_core.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
       - requirements:
           run:
             - pytest >=7
