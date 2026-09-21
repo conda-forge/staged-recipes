@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: bgen-limix
-  version: "4.10.2"
+  version: "4.11.0"
   # Distinct package names because this is a diverged fork of limix/bgen
   # (adds S3 streaming support, nanobind split-mode bindings, etc.) and would
   # otherwise collide with the existing conda-forge "bgen" package.
@@ -15,7 +15,7 @@ recipe:
 
 source:
   - url: https://github.com/jpfeuffer/bgen-limix/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: e1f4cf9daa2090e545916e4f9cd205123ffee15eaa33b4794c95684c2dae86f5
+    sha256: 3fe20a0e1101765e7c4b38cdf726a7c67857823f3094550169ce01bef69e1654
 
 build:
   number: 0
@@ -98,14 +98,22 @@ outputs:
   # against the ${{ clib_name }} output above (find_package(bgen) picks it up).
   # BGEN_NANOBIND_BACKEND=private compiles nanobind's (and, transitively,
   # vendored robin-map's) source into our own binary instead of depending on
-  # the external nanobind-backend package, which is not on conda-forge and
-  # buys nothing there anyway (conda-forge already builds one package per
-  # Python version regardless of stable-ABI sharing).
+  # the external nanobind-backend package, which is not on conda-forge.
+  #
+  # The extension is built against CPython's stable ABI (nanobind_add_module
+  # ... STABLE_ABI in python/CMakeLists.txt), so one build per platform covers
+  # every supported Python version -- is_abi3/is_python_min/python_min below
+  # come from conda-forge's global pinning and select that build-once mode.
+  # See https://conda-forge.org/docs/maintainer/example_recipes/abi3/.
   # ---------------------------------------------------------------------
   - package:
       name: ${{ py_name }}
       version: ${{ version }}
     build:
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+        entry_points: []
       script:
         # Set via env (not `export`) so it also applies under cmd.exe on
         # Windows; scripts/dynamic_metadata.py reads it to omit the
@@ -123,8 +131,6 @@ outputs:
           # falls back to "Unix Makefiles" if it can't find ninja on PATH, and
           # that image has no `make` either, so CMake fails outright.
           - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private --config-settings=cmake.args=-GNinja
-      python:
-        entry_points: []
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -132,7 +138,13 @@ outputs:
         - ${{ stdlib('c') }}
         - cmake
         - ninja
+        - if: build_platform != host_platform
+          then:
+            - python
+            - cross-python_${{ host_platform }}
       host:
+        - if: is_abi3
+          then: python-abi3
         - python
         - pip
         - scikit-build-core
@@ -148,6 +160,19 @@ outputs:
           imports:
             - cbgen
           pip_check: true
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/cbgen/_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%/cbgen/_core.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
       - requirements:
           run:
             - pytest >=7
