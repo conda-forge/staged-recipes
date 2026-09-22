@@ -8,8 +8,16 @@ else
   EXT="so"
 fi
 
-# 1. Generate sqlite-vec.h using standard sed (avoids needing make/gettext)
-sed 's/\({VERSION}/v'"\){PKG_VERSION}"'/g' sqlite-vec.h.tmpl > sqlite-vec.h
+# 1. Generate sqlite-vec.h using Python to avoid any shell escaping issues
+cat > make_header.py << 'EOF'
+import os
+with open('sqlite-vec.h.tmpl', 'r', encoding='utf-8') as f:
+    t = f.read()
+v = os.environ.get('PKG_VERSION', '0.1.9')
+with open('sqlite-vec.h', 'w', encoding='utf-8') as f:
+    f.write(t.replace('${VERSION}', 'v' + v))
+EOF
+${PYTHON} make_header.py
 
 # 2. Compile the vec0 loadable SQLite extension from the upstream C source.
 ${CC} -fPIC -shared -O3 \
