@@ -8,52 +8,28 @@ else
   EXT="so"
 fi
 
-	
-# Generate the header file from the template using make and envsubst (via gettext)
-# We pass VERSION so the template populates the correct version string.
-	
-VERSION="v${PKG_VERSION}" make sqlite-vec.h
+# 1. Generate sqlite-vec.h using standard sed (avoids needing make/gettext)
+sed 's/\({VERSION}/v'"\){PKG_VERSION}"'/g' sqlite-vec.h.tmpl > sqlite-vec.h
 
-# 1. Compile the vec0 loadable SQLite extension from the upstream C amalgamation.
-#    sqlite-vec.c includes sqlite3ext.h / sqlite3.h, provided by the libsqlite
-#    host dependency under $PREFIX/include. The amalgamation already ships a
-#    pre-generated sqlite-vec.h, so no Makefile templating (git/date) is needed.
+# 2. Compile the vec0 loadable SQLite extension from the upstream C source.
 ${CC} -fPIC -shared -O3 \
   -I"${PREFIX}/include" \
   sqlite-vec.c -o vec0."${EXT}" -lm
 
-# 2. Assemble the Python package layout that the upstream wheel ships:
-#    sqlite_vec/__init__.py = sqlite-dist loader prefix + bundled extra_init.py,
-#    plus the compiled vec0 loadable extension alongside it.
+# 3. Assemble the Python package layout
 mkdir -p build_pkg/sqlite_vec
 cp vec0."${EXT}" build_pkg/sqlite_vec/
 
-cat > build_pkg/sqlite_vec/__init__.py <<PYEOF
-from os import path
-import sqlite3
-
-__version__ = "${PKG_VERSION}"
-__version_info__ = tuple(__version__.split("."))
-
-
-def loadable_path():
-    """Returns the full path to the sqlite-vec loadable SQLite extension bundled with this package"""
-    loadable_path = path.join(path.dirname(__file__), "vec0")
-    return path.normpath(loadable_path)
-
-
-def load(conn: sqlite3.Connection) -> None:
+cat > build_pkg/sqlite_vec/__init__.py < None:
     """Load the sqlite-vec SQLite extension into the given database connection."""
     conn.load_extension(loadable_path())
-
 
 PYEOF
 
 # Append the upstream-curated body (serialize_float32/int8, register_numpy).
 cat extra_init.py >> build_pkg/sqlite_vec/__init__.py
 
-# 3. Minimal setup.py so `pip install .` produces a proper .dist-info (pip check)
-#    and packages the compiled vec0 extension as package data.
+# 4. Minimal setup.py
 cat > build_pkg/setup.py <<PYEOF
 from setuptools import setup
 
