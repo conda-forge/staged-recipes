@@ -77,12 +77,14 @@ added the `source_checkout_root` fixture that auto-skips such tests, but a few
 CLI tests predate it. Both patches wire those tests onto the same fixture:
 
 - `0001-skip-checkout-only-launcher-tests.patch`: the five `test_launcher_*` in
-  `cli/test_env_commands.py`.
+  `cli/test_env_commands.py`, resolving the launcher from the checkout root.
 - `0002-skip-checkout-only-cli-install-tests.patch`: `TestCommandInstallDispatch`,
-  one `TestEnsureNewton` case, the two `TestInstallRootExtraExcludesIsaacSim`
-  cases, and `test_teleop_workflow_help_exposes_task_preset_selectors`.
+  `TestEnsureCudaTorch`, one `TestEnsureNewton` case, the two
+  `TestInstallRootExtraExcludesIsaacSim` cases, and
+  `test_teleop_workflow_help_exposes_task_preset_selectors`.
 
-Both are one line per test and upstreamable as-is.
+Both use the fixture-provided path where the tests access checkout files and are
+upstreamable as-is.
 
 ## What is not packaged
 
