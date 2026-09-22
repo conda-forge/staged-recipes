@@ -6,8 +6,8 @@ set -euxo pipefail
 # The release tarball has no .git directory, so create a throwaway one.
 # Refer: https://github.com/liquibase/liquibase-parent-pom/blob/v1.0.2/pom.xml#L417-L434
 git init -q
-git -c user.email="gaganpb08singh@gmail.com" -c user.name="pb01ka" add -A
-git -c user.email="gaganpb08singh@gmail.com" -c user.name="pb01ka" \
+git -c user.email="build.user@xyz.com" -c user.name="build.user" add -A
+git -c user.email="build.user@xyz.com" -c user.name="build.user" \
     commit -q -m "source" --allow-empty
 
 mvn --batch-mode --no-transfer-progress versions:set \
