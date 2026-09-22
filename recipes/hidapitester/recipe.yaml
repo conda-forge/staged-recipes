@@ -1,0 +1,60 @@
+context:
+  version: "0.6"
+
+package:
+  name: hidapitester
+  version: ${{ version }}
+
+source:
+  url: https://github.com/todbot/hidapitester/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: af13fd2a5056cd9961adac684812414405ec98a9e8cedcc9bcbca9b9425c6836
+  patches:
+    - 0001-use-conda-provided-dependencies.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - libhidapi
+    - if: win
+      then: getopt-win32
+
+tests:
+  - script:
+      - hidapitester --version
+      - hidapitester -h
+      - if: unix
+        then: hidapitester --list || echo "no HID devices found (expected on CI runners)"
+      - if: win
+        then: hidapitester --list || echo no HID devices found
+  - files:
+      source:
+        - tests/test_nohardware.sh
+    script:
+      - if: unix
+        then: sh tests/test_nohardware.sh hidapitester
+  - package_contents:
+      bin:
+        - hidapitester
+
+about:
+  homepage: https://github.com/todbot/hidapitester
+  summary: Simple command-line program to exercise HIDAPI
+  description: |
+    hidapitester is a command-line tool for testing the API of HIDAPI, a
+    cross-platform library for communicating with USB and Bluetooth HID-class
+    devices. It can list HID devices, open them, and read and write input,
+    output, and feature reports, as well as retrieve report descriptors.
+  license: GPL-3.0-only
+  license_file: LICENSE
+  repository: https://github.com/todbot/hidapitester
+
+extra:
+  recipe-maintainers:
+    - ytausch
