@@ -1,7 +1,9 @@
 """Exercise the installed native extension and its NumPy interface offline."""
 
 import importlib.machinery
+import subprocess
 from importlib.metadata import version
+from pathlib import Path
 
 import numpy as np
 import phasesmith
@@ -9,6 +11,21 @@ from phasesmith import _core, reference
 
 assert phasesmith.__version__ == version("phasesmith")
 assert any(_core.__file__.endswith(suffix) for suffix in importlib.machinery.EXTENSION_SUFFIXES)
+
+# Exercise the installed launcher and resources outside the source checkout.
+skill = subprocess.run(
+    ["phasesmith", "skill", "--path"], check=True, capture_output=True, text=True
+)
+skill_path = Path(skill.stdout.strip())
+assert skill_path.is_absolute()
+for relative in (
+    "SKILL.md",
+    "agents/openai.yaml",
+    "references/experiment.md",
+    "references/workflow.md",
+    "references/interpretation.md",
+):
+    assert (skill_path / relative).read_text(encoding="utf-8").strip(), relative
 
 delta = np.linspace(-0.8, 0.8, 401, dtype=np.float64)
 actual = phasesmith.profile(delta, 0.12, 0.35)
