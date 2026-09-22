@@ -1,0 +1,82 @@
+context:
+  version: "0.20.0"
+
+package:
+  name: secretspec
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cachix/secretspec/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 007ae4422ad59c2d2e12046db84311f098a53dc4327a51165ed26cb4db61be70
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: thin
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path secretspec
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path secretspec
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/zsh/site-functions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/secretspec completions bash > $PREFIX/share/bash-completion/completions/secretspec
+          - $PREFIX/bin/secretspec completions zsh > $PREFIX/share/zsh/site-functions/_secretspec
+          - $PREFIX/bin/secretspec completions fish > $PREFIX/share/fish/vendor_completions.d/secretspec.fish
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - cmake
+    - if: win
+      then:
+        - nasm
+
+tests:
+  - script:
+      - secretspec --help
+      - secretspec --version
+      - docker-credential-secretspec --help
+      - git-credential-secretspec --help
+  - package_contents:
+      bin:
+        - secretspec
+        - docker-credential-secretspec
+        - git-credential-secretspec
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/secretspec
+            - share/zsh/site-functions/_secretspec
+            - share/fish/vendor_completions.d/secretspec.fish
+      strict: true
+
+about:
+  homepage: https://secretspec.dev
+  summary: A declarative interface for every secret provider
+  description: |
+    SecretSpec separates the declaration of which secrets an application needs
+    from where those secrets are stored. Applications declare their required
+    secrets in a secretspec.toml manifest, and users choose the provider that
+    supplies them: the system keyring, .env files, LastPass, OnePassword,
+    HashiCorp Vault, AWS Secrets Manager, Azure Key Vault, Google Secret
+    Manager, Kubernetes secrets, and more.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://secretspec.dev
+  repository: https://github.com/cachix/secretspec
+
+extra:
+  recipe-maintainers:
+    - pavelzw
