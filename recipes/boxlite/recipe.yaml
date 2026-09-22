@@ -6,28 +6,81 @@ package:
     version: ${{ version }}
 
 source:
-    url: https://github.com/boxlite-ai/boxlite/archive/v${{ version }}.tar.gz
-    sha256: 8db55b29f43449ddbf8c1614466c9962581c39718721f5dac8ebad77ca6c576c
+    - git: https://github.com/boxlite-ai/boxlite.git
+      tag: v${{ version }}
+      patches:
+          # libgvproxy-sys/build.rs 只在 /usr/lib/<triple> 和 /usr/lib64 找 libresolv.a
+          # （Go c-archive 的 CGO resolver 要 res_search），conda 的 glibc 静态库在
+          # sysroot 内，两条都不命中。rustc 找 native static 库只认命令行 -L，
+          # 而 scripts/build/build-shim.sh 硬覆盖 RUSTFLAGS，没法从外面传。
+          - patches/0001-libgvproxy-sys-find-libresolv-in-conda-sysroot.patch
 
 build:
     number: 0
+    skip:
+        - win
+        - osx and x86_64
     script:
         env:
             CARGO_PROFILE_RELEASE_STRIP: symbols
             CARGO_PROFILE_RELEASE_LTO: fat
         content:
             - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
-            - if: unix
-              then: cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path src/cli --locked --no-track
-              else: cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path src/cli --locked --no-track
+            # 复用上游自己的 runtime 组装脚本。单独跑 `cargo install --path src/cli` 是不够的：
+            # src/boxlite/build.rs 在 Source 模式下只会去找**已经编好的** boxlite-shim /
+            # boxlite-guest / guest-mke2fs / guest-resize2fs，找不到就打个 warning 跳过，
+            # 产出一个 embedded runtime 为空、跑不了 box 的空壳二进制。
+            # 该脚本等价于上游 `make runtime`（见 make/build.mk），依次完成
+            # shim -> guest -> guest-deps -> 收集 FFI 库 -> 组装进 cargo 的 OUT_DIR/runtime。
+            # 直接调脚本而不是走 make，因为 make/vars.mk 会把 $HOME/.cargo/bin 插到 PATH 最前，
+            # 可能挤掉 conda 提供的 rust 工具链。
+            - bash scripts/build/build-runtime.sh --profile release
+            - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path src/cli --target-dir target --locked --no-track
 
 requirements:
     build:
         - ${{ stdlib('c') }}
         - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
         - ${{ compiler('rust') }}
         - cargo-bundle-licenses
         - cargo-auditable
+        # src/shared/build.rs 用 tonic_build 生成 gRPC 代码，需要 PATH 上有 protoc；
+        # conda-forge 的 protoc 由 libprotobuf 提供。prost/tonic 是纯 Rust，
+        # 不链接 protobuf C++ 库，所以只放 build 不放 host。
+        - libprotobuf
+        # libgvproxy 是 Go 的 CGO c-archive，boxlite-shim 开了 gvproxy feature。
+        # 变体键是 cgo_compiler（值 go-cgo），所以写 'cgo' 而不是 'go-cgo'
+        - ${{ compiler('cgo') }}
+        # libkrun：bindgen 需要 clang/llvm；llvm-readelf 也被 build-guest.sh 用于校验产物
+        - clangdev
+        - llvmdev
+        # libkrunfw 内核构建
+        - make
+        - bc
+        - bison
+        - flex
+        - cpio
+        - rsync
+        - patch
+        - xz-tools
+        - python
+        - pyelftools
+        # bubblewrap（meson/ninja）
+        - meson
+        - ninja
+        # libseccomp（scripts/build/build-libseccomp.sh）
+        - gperf
+        # 杂项：build-runtime.sh 用 file 打摘要，build.rs 读 git commit 做缓存键
+        - pkg-config
+        - git
+        - file
+        - unzip
+    host:
+        - libcap
+        - elfutils
+        - ncurses
+        - openssl
 
 tests:
     - script:
