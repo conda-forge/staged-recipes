@@ -8,6 +8,12 @@ else
   EXT="so"
 fi
 
+	
+# Generate the header file from the template using make and envsubst (via gettext)
+# We pass VERSION so the template populates the correct version string.
+	
+VERSION="v${PKG_VERSION}" make sqlite-vec.h
+
 # 1. Compile the vec0 loadable SQLite extension from the upstream C amalgamation.
 #    sqlite-vec.c includes sqlite3ext.h / sqlite3.h, provided by the libsqlite
 #    host dependency under $PREFIX/include. The amalgamation already ships a
