@@ -1,0 +1,91 @@
+context:
+  name: pypestutils
+  version: "0.3.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: 58097fe17374de92d5faf0a06779c4d320b660279cdd000db698821d87337c49
+    patches:
+      # backport of upstream c7ab0c2 and 644e608; remove for > 0.3.0
+      - mod2obs-mf6-pandas3.patch
+  # upstream test suite, which the sdist does not include
+  - url: https://github.com/pypest/pypestutils/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 28a1811a7998883829e62ad1c4a2c46ca3e87e29a53756f6776ee23af8efddd9
+    target_directory: upstream
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.10")
+
+requirements:
+  build:
+    # use the m2w64 gfortran toolchain on win-64, as for the PyPI wheels
+    - if: win
+      then:
+        - ${{ compiler('m2w64_fortran') }}
+        - ${{ stdlib('m2w64_c') }}
+      else:
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - setuptools >=77
+    # for the upstream test suite run in the build script
+    - numpy
+    - pandas
+    - pytest
+    - pytest-timeout
+  run:
+    - python
+    - numpy
+    - pandas
+  ignore_run_exports:
+    # numpy is in host only for the test suite; pypestutils has no C extension
+    by_name:
+      - numpy
+
+tests:
+  - python:
+      imports:
+        - pypestutils
+        - pypestutils.helpers
+      pip_check: true
+  - script:
+      - python test_load.py
+    files:
+      recipe:
+        - test_load.py
+
+about:
+  homepage: https://github.com/pypest/pypestutils
+  repository: https://github.com/pypest/pypestutils
+  summary: PEST utilities for MODFLOW
+  description: |
+    Python interface to the pestutils Fortran library, which provides
+    utilities for spatial interpolation, geostatistics, and MODFLOW binary
+    file processing used to build PEST interfaces.
+  license: Unlicense AND BSD-3-Clause AND LicenseRef-GSLIB
+  license_file:
+    - LICENSE
+    # vendored LAPACK 3.0 routines in pestutils/lapack1.F
+    - LAPACK_LICENSE
+    # geostatistics routines derived from GSLIB
+    - GSLIB_LICENSE
+
+extra:
+  recipe-maintainers:
+    - jtwhite79
+    - mwtoews
+    - jdhughes-dev
