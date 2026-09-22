@@ -8,16 +8,9 @@ else
   EXT="so"
 fi
 
-# 1. Generate sqlite-vec.h using Python to avoid any shell escaping issues
-cat > make_header.py << 'EOF'
-import os
-with open('sqlite-vec.h.tmpl', 'r', encoding='utf-8') as f:
-    t = f.read()
-v = os.environ.get('PKG_VERSION', '0.1.9')
-with open('sqlite-vec.h', 'w', encoding='utf-8') as f:
-    f.write(t.replace('${VERSION}', 'v' + v))
-EOF
-${PYTHON} make_header.py
+# 1. Generate sqlite-vec.h cleanly using standard sed.
+# Single quotes protect ${VERSION} from being evaluated by bash as an empty variable.
+sed 's/\({VERSION}/v'"\){PKG_VERSION}"'/g' sqlite-vec.h.tmpl > sqlite-vec.h
 
 # 2. Compile the vec0 loadable SQLite extension from the upstream C source.
 ${CC} -fPIC -shared -O3 \
@@ -31,14 +24,13 @@ cp vec0."${EXT}" build_pkg/sqlite_vec/
 cat > build_pkg/sqlite_vec/__init__.py < None:
     """Load the sqlite-vec SQLite extension into the given database connection."""
     conn.load_extension(loadable_path())
-
-PYEOF
+EOF
 
 # Append the upstream-curated body (serialize_float32/int8, register_numpy).
 cat extra_init.py >> build_pkg/sqlite_vec/__init__.py
 
 # 4. Minimal setup.py
-cat > build_pkg/setup.py <<PYEOF
+cat > build_pkg/setup.py <<EOF
 from setuptools import setup
 
 setup(
@@ -51,7 +43,8 @@ setup(
     has_ext_modules=lambda: True,  # mark as platform (non-pure) wheel
     python_requires=">=3.9",
 )
-PYEOF
+EOF
 
+# 5. Install the package natively
 cd build_pkg
 ${PYTHON} -m pip install . --no-deps --no-build-isolation -vv
