@@ -17,19 +17,20 @@ build:
   noarch: python
   # The sdist ships with a prebuilt renderer.js. The hatch-build-scripts hook
   # would rerun "npm ci" (network access), which is unavailable on conda-forge
-  # CI, so strip the hook from pyproject.toml before installing.
+  # CI, so strip the hook from pyproject.toml before installing. Python is
+  # used for the patch so the script runs identically on bash and cmd.exe.
   script:
-    - sed -i '/hooks\.build-scripts\.scripts/,/^\]/d' pyproject.toml
+    - ${{ PYTHON }} -c "lines = open('pyproject.toml').read().splitlines(True); i = next(k for k, l in enumerate(lines) if l.startswith('build.hooks.build-scripts.scripts')); j = next(k for k in range(i, len(lines)) if lines[k].strip() == ']'); open('pyproject.toml', 'w').writelines(lines[:i] + lines[j+1:])"
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python >=3.12
     - pip
     - hatch-build-scripts
     - hatchling
   run:
-    - python >=${{ python_min }}
+    - python >=3.12
     - gitpython >=3.1.58
     - jinja2 >=3.1.0,<3.2.0
     - lazy-loader >=0.4.0,<0.6.0
@@ -42,10 +43,7 @@ tests:
       imports:
         - pyvista_wasm
       pip_check: true
-  - requirements:
-      run:
-        - python ${{ python_min }}.*
-    script:
+  - script:
       - pyvista-wasm --version
 
 about:
