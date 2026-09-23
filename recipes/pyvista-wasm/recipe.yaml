@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.14.0"
+
+package:
+  name: pyvista-wasm
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyvista-wasm/pyvista_wasm-${{ version }}.tar.gz
+  sha256: e1e024c272e0d2279362d107ec156c7dde67c54b77d0bdbdaced7bba31d21eb9
+
+build:
+  number: 0
+  noarch: python
+  # The sdist ships with a prebuilt renderer.js. The hatch-build-scripts hook
+  # would rerun "npm ci" (network access), which is unavailable on conda-forge
+  # CI, so strip the hook from pyproject.toml before installing.
+  script:
+    - sed -i '/hooks\.build-scripts\.scripts/,/^\]/d' pyproject.toml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatch-build-scripts
+    - hatchling
+  run:
+    - python >=${{ python_min }}
+    - gitpython >=3.1.58
+    - jinja2 >=3.1.0,<3.2.0
+    - lazy-loader >=0.4.0,<0.6.0
+    - numpy >=2.0.0,<2.6.0
+    - pyyaml >=6.0
+    - typer >=0.9.0,<0.28.0
+
+tests:
+  - python:
+      imports:
+        - pyvista_wasm
+      pip_check: true
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - pyvista-wasm --version
+
+about:
+  homepage: https://github.com/tkoyama010/pyvista-wasm
+  summary: PyVista-like API for VTK.wasm
+  description: >-
+    PyVista-like API for VTK.wasm - bring intuitive 3D visualization to the
+    browser using WebAssembly.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://github.com/tkoyama010/pyvista-wasm
+  repository: https://github.com/tkoyama010/pyvista-wasm
+
+extra:
+  recipe-maintainers:
+    - tkoyama010
