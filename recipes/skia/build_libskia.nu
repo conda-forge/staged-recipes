@@ -150,7 +150,13 @@ def install [src_dir: string, build_dir: string, prefix: string, version: string
     if ($dst_include | path exists) { rm --recursive --force $dst_include }
     mkdir ($dst_include | path dirname)
     cp --recursive ($src_dir | path join "include") $dst_include
-    glob $"($dst_include)/**/{BUILD.bazel,*.gni,WORKSPACE*}" | each {|f| rm --force $f }
+    # glob cannot parse a Windows drive prefix ("D:\..." and "D:/..." both fail), so
+    # match relative to the directory rather than embedding the absolute path. cd is
+    # scoped to the do block; glob still yields absolute paths, so rm works.
+    do {
+        cd $dst_include
+        glob "**/{BUILD.bazel,*.gni,WORKSPACE*}" | each {|f| rm --force $f }
+    }
 
     let lib_dir = ($prefix | path join "lib")
     mkdir $lib_dir
