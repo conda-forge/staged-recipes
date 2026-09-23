@@ -1,0 +1,96 @@
+From 0696c333543d6bd8b2de86bad49022bf93c037e6 Mon Sep 17 00:00:00 2001
+From: Yannik Tausch <dev@ytausch.de>
+Date: Wed, 23 Sep 2026 14:31:26 +0200
+Subject: [PATCH] Use conda-provided dependencies
+
+Use find_package() for hidapi and getopt-win32 instead of fetching them
+at configure time, allow HIDAPITESTER_VERSION to be set externally for
+builds from source tarballs, and add an install() rule.
+---
+ CMakeLists.txt | 59 +++++++++++++++-----------------------------------
+ 1 file changed, 18 insertions(+), 41 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c106169..fef7c8b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,57 +2,32 @@ cmake_minimum_required(VERSION 3.15)
+ 
+ project(hidapitester LANGUAGES C)
+ 
+-# Get version from most recent git tag, fall back to date stamp
+-execute_process(
+-    COMMAND git describe --tags --abbrev=0
+-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+-    OUTPUT_VARIABLE HIDAPITESTER_VERSION
+-    ERROR_QUIET
+-    OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
++# Version is normally taken from the most recent git tag. Builds from a source
++# tarball have no git history, so allow the version to be supplied externally.
++if(NOT HIDAPITESTER_VERSION)
++    execute_process(
++        COMMAND git describe --tags --abbrev=0
++        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
++        OUTPUT_VARIABLE HIDAPITESTER_VERSION
++        ERROR_QUIET
++        OUTPUT_STRIP_TRAILING_WHITESPACE
++    )
++endif()
+ if(NOT HIDAPITESTER_VERSION MATCHES "^v")
+     string(TIMESTAMP HIDAPITESTER_VERSION "v%Y%m%d")
+ endif()
+ message(STATUS "hidapitester version: ${HIDAPITESTER_VERSION}")
+ 
+-include(FetchContent)
+-
+-# Build HIDAPI as static library
+-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+-
+-# In case if we have a local copy of HIDAPI
+-set(HIDAPI_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../hidapi" CACHE STRING "Path to HIDAPI source")
+-if(EXISTS "${HIDAPI_SOURCE_DIR}")
+-    message(STATUS "Using local HIDAPI from: ${HIDAPI_SOURCE_DIR}")
+-
+-    add_subdirectory("${HIDAPI_SOURCE_DIR}" hidapi EXCLUDE_FROM_ALL)
+-else()
+-    message(STATUS "Fetching HIDAPI from git...")
+-    FetchContent_Declare(
+-        hidapi
+-        GIT_REPOSITORY https://github.com/libusb/hidapi.git
+-        GIT_TAG master
+-    )
+-
+-    FetchContent_MakeAvailable(hidapi)
+-endif()
++# Use the HIDAPI and getopt implementations provided by the build environment
++# instead of downloading them at configure time.
++find_package(hidapi CONFIG REQUIRED)
+ 
+ add_executable(hidapitester hidapitester.c)
+ 
+ if(MSVC)
+-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+-    set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+-    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+-
+-    FetchContent_Declare(
+-        getopt_win
+-        GIT_REPOSITORY https://github.com/ludvikjerabek/getopt-win.git
+-        GIT_TAG v2.42.0
+-    )
+-    FetchContent_MakeAvailable(getopt_win)
++    find_package(unofficial-getopt-win32 CONFIG REQUIRED)
+ 
+-    target_link_libraries(hidapitester PRIVATE getopt::getopt_static)
+-    target_compile_definitions(hidapitester PRIVATE STATIC_GETOPT)
++    target_link_libraries(hidapitester PRIVATE unofficial::getopt-win32getopt)
+ endif()
+ 
+ target_link_libraries(hidapitester PRIVATE hidapi::hidapi)
+@@ -60,3 +35,5 @@ target_link_libraries(hidapitester PRIVATE hidapi::hidapi)
+ target_compile_definitions(hidapitester PRIVATE 
+     HIDAPITESTER_VERSION="${HIDAPITESTER_VERSION}"
+ )
++
++install(TARGETS hidapitester RUNTIME DESTINATION bin)
