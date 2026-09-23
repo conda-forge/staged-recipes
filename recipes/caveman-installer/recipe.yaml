@@ -7,7 +7,7 @@ context:
 package:
   # Upstream npm `name` is `caveman-installer`; both `caveman` slots (PyPI + npm)
   # are taken by unrelated dormant projects, so we keep the upstream name here.
-  # The installed CLI shim is `caveman` (per package.json `bin` map).
+  # The installed CLI is `caveman-install` (per package.json `bin` map).
   name: caveman-installer
   version: ${{ version }}
 
@@ -22,22 +22,28 @@ build:
       then:
         - set -ex
         - NPM_VER=$(node -p "require('./package.json').version")
-        - npx --yes pnpm-licenses generate-disclaimer --prod > ThirdPartyLicenses.txt
+        - pnpm install --prod --ignore-scripts
+        - pnpm-licenses generate-disclaimer --prod --output-file=ThirdPartyLicenses.txt
         - npm pack --ignore-scripts --userconfig nonexistentrc
         - npm install --userconfig nonexistentrc --global "${SRC_DIR}/caveman-installer-${NPM_VER}.tgz"
         - find "${PREFIX}/lib/node_modules/caveman-installer" -type d -name .bin -exec rm -rf {} + || true
       else:
         - for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set NPM_VER=%%v
-        - call npx --yes pnpm-licenses generate-disclaimer --prod > ThirdPartyLicenses.txt
+        - call pnpm install --prod --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=ThirdPartyLicenses.txt
         - if %ERRORLEVEL% neq 0 exit 1
         - call npm pack --ignore-scripts --userconfig nonexistentrc
         - if %ERRORLEVEL% neq 0 exit 1
         - call npm install --userconfig nonexistentrc --global "%SRC_DIR%/caveman-installer-%NPM_VER%.tgz"
         - if %ERRORLEVEL% neq 0 exit 1
+        - for /d /r "%PREFIX%\node_modules\caveman-installer" %%d in (.bin) do if exist "%%d" rd /s /q "%%d"
 
 requirements:
   build:
     - nodejs >=18
+    - pnpm
+    - pnpm-licenses
   host:
     - nodejs >=18
   run:
@@ -45,7 +51,7 @@ requirements:
 
 tests:
   - script:
-      - caveman --help
+      - caveman-install --help
 
 about:
   license: MIT
