@@ -1,0 +1,35 @@
+From 4cdcc9d0097e3b01a108c813dd858dce292ec91a Mon Sep 17 00:00:00 2001
+From: Yannik Tausch <dev@ytausch.de>
+Date: Wed, 23 Sep 2026 14:29:42 +0200
+Subject: [PATCH] Allow RawAhkVersion to be set without git
+
+The release tarball has no .git directory, so the version cannot be read via
+`git describe`. Allow it to be supplied through /p:RawAhkVersion instead.
+---
+ AutoHotkeyx.vcxproj | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/AutoHotkeyx.vcxproj b/AutoHotkeyx.vcxproj
+index 98b5f41..953e88a 100644
+--- a/AutoHotkeyx.vcxproj
++++ b/AutoHotkeyx.vcxproj
+@@ -400,7 +400,7 @@
+       </ClCompile>
+     </ItemGroup>
+   </Target>
+-  <Target Name="SetAhkVersion" Condition="Exists('@(AhkVersionInput)')" BeforeTargets="PrepareForBuild">
++  <Target Name="SetAhkVersion" Condition="Exists('@(AhkVersionInput)') or '$(RawAhkVersion)'!=''" BeforeTargets="PrepareForBuild">
+     <Exec Condition="'$(RawAhkVersion)'==''" Command="git describe --dirty --match v*" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true">
+       <Output PropertyName="GitDescription" TaskParameter="ConsoleOutput" />
+     </Exec>
+@@ -410,6 +410,10 @@
+       <AhkVersionN4 Condition="'$(AhkVersionN4)'=='$(GitDescription)'">0</AhkVersionN4>
+       <AhkVersionN>$([System.Text.RegularExpressions.Regex]::Replace($(RawAhkVersion), "\.(\d+)([^\.\d].*)?", ",$1")),$(AhkVersionN4)</AhkVersionN>
+     </PropertyGroup>
++    <PropertyGroup Condition="'$(AhkVersionN)'=='' and '$(RawAhkVersion)'!=''">
++      <AhkVersionN4 Condition="'$(AhkVersionN4)'==''">0</AhkVersionN4>
++      <AhkVersionN>$([System.Text.RegularExpressions.Regex]::Replace($(RawAhkVersion), "\.(\d+)([^\.\d].*)?", ",$1")),$(AhkVersionN4)</AhkVersionN>
++    </PropertyGroup>
+     <Message Text="RAW_AHK_VERSION sourced from git: '$(RawAhkVersion)'" Importance="high" />
+     <Message Text="AHK_VERSION_N sourced from git: '$(AhkVersionN)'" Importance="high" />
+     <ItemGroup Condition="'$(RawAhkVersion)'!=''">
