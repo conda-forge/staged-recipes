@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+# Internxt Drive Desktop: Windows (v2.6.5) from drive-desktop,
+# Linux (v2.5.2) from drive-desktop-linux.
+# The two repos use different native APIs: Windows Cloud Files vs FUSE.
+
+context:
+  win_version: "2.6.5"
+  linux_version: "2.5.2"
+  version: ${{ win_version if win else linux_version }}
+
+package:
+  name: internxt-drive
+  version: ${{ version }}
+
+source:
+  - if: win
+    then:
+      url: https://github.com/internxt/drive-desktop/archive/refs/tags/v${{ win_version }}.tar.gz
+      sha256: d973cc553b1b6e89bb23b104e5e6faec3889f41e22c4bc6b2c7a2c6410e22807
+  - if: linux
+    then:
+      url: https://github.com/internxt/drive-desktop-linux/archive/refs/tags/v${{ linux_version }}.tar.gz
+      sha256: 1ea94b8d63bc5060918612bb84d40f2cf86f10e77f250349821a8cf5129eb70b
+      patches:
+        - fix-typeorm-imports.patch
+
+build:
+  number: 0
+  skip:
+    - osx
+  script:
+    - if: win
+      then: build.bat
+    - if: linux
+      then: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: win
+      then:
+        - nodejs >=20.19
+    - if: linux
+      then:
+        - nodejs >=18,<19
+    - pnpm
+    - pnpm-licenses
+  host:
+    - if: win
+      then:
+        - nodejs >=20.19
+    - if: linux
+      then:
+        - nodejs >=18,<19
+        - libfuse
+  run:
+    - if: win
+      then:
+        - nodejs >=20.19
+    - if: linux
+      then:
+        - nodejs >=18,<19
+        - libfuse
+
+tests:
+  - if: win
+    then:
+      package_contents:
+        files:
+          - Library/lib/internxt-drive/dist/main/main.js
+          - Library/lib/internxt-drive/package.json
+          - Library/bin/internxt-drive.cmd
+  - if: linux
+    then:
+      package_contents:
+        files:
+          - lib/internxt-drive/dist/main/main.js
+          - lib/internxt-drive/package.json
+          - bin/internxt-drive
+  - script:
+    - if: win
+      then: where internxt-drive
+    - if: linux
+      then: which internxt-drive
+
+about:
+  homepage: https://internxt.com
+  summary: Internxt Drive Desktop - encrypted cloud storage client
+  description: |
+    Internxt Drive is a privacy-focused cloud storage desktop application.
+    On Windows it uses the Cloud Files API (CldApi) for virtual drive
+    integration. On Linux it uses FUSE for virtual filesystem mounting.
+    Files are end-to-end encrypted and synchronized with the Internxt
+    cloud service.
+  license: MIT OR AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+  repository: https://github.com/internxt/
+
+extra:
+  recipe-maintainers:
+    - phreed
