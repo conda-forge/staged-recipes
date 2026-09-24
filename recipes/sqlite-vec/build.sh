@@ -4,15 +4,13 @@ set -euxo pipefail
 mkdir -p dist
 
 if [[ "${target_platform}" == "win-64" ]]; then
-    # LIBRARY_INC and LIBRARY_LIB may be MSYS-style paths in the conda build shell.
     include_dir="$(cygpath -m "${LIBRARY_INC}")"
     library_lib="$(cygpath -u "${LIBRARY_LIB}")"
 
-    # Generate sqlite-vec.h from sqlite-vec.h.tmpl.
-    # This is the same target used upstream.
+    # Generate sqlite-vec.h
     make sqlite-vec.h
 
-    # Build the Windows loadable extension with MSVC.
+    # Build the extension with MSVC
     MSYS2_ARG_CONV_EXCL='*' \
         cl.exe \
         /nologo \
