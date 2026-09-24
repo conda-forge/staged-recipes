@@ -1,0 +1,124 @@
+schema_version: 1
+
+context:
+  name: koopmans-qe-utils
+  version: "0.1.1"
+  qe_version: "7.5"
+  mpi: openmpi
+  mpi_prefix: "mpi_${{ mpi }}"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # TEMP: point at the add-scalapack branch for an osx-64 link fix; revert to
+  # the v${{ version }} tag once the fix is merged and a new release is cut.
+  - url: https://github.com/epfl-theos/${{ name }}/archive/refs/heads/add-scalapack.tar.gz
+    sha256: "a4f31263afd6cdfd96a43afc110d7e474d6818cc0e45dac3f23b107a740c84b4"
+  - url: https://gitlab.com/QEF/q-e/-/archive/qe-${{ qe_version }}/q-e-qe-${{ qe_version }}.tar.gz
+    sha256: "7e1f7a9a21b63192f5135218bee20a5321b66582e4756536681b76e9c59b3cc8"
+    target_directory: external/qe
+
+build:
+  number: 0
+  skip: win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    - openmpi-mpifort
+    - cmake >=3.18.0
+    - make
+    - pkg-config
+  host:
+    - libblas
+    - liblapack
+    # Pin to 1.14 series to match what conda-forge qe 7.5 was built
+    # against; hdf5 2.x exists but qe-feedstock hasn't rebuilt against
+    # it yet, and run_exports would otherwise force an incompatible pin
+    # in our run: requirements.
+    - "hdf5 1.14.* *${{ mpi_prefix }}_*"
+    - openmpi
+    - scalapack
+    - fftw
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  run:
+    - fftw
+    - openmpi
+    - scalapack
+    - qe ==${{ qe_version }}
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  ignore_run_exports:
+    # The compiler's run_exports pin _openmp_mutex, but our binaries link
+    # libgomp (linux) / llvm-openmp (osx) directly — we declare those in
+    # run:, so _openmp_mutex is redundant and shows up as overdepending.
+    by_name:
+      - _openmp_mutex
+
+tests:
+  - package_contents:
+      bin:
+        - merge_evc.x
+        - wann2kcp.x
+        - epsilon.x
+  - script:
+      env:
+        # Allow openmpi to launch inside the conda-forge test container:
+        # root is fine, fall back to the local fork launcher rather than
+        # looking for a nonexistent ssh/rsh agent, and oversubscribe so
+        # `-np 2` runs on a single-core CI runner. We set both OMPI_*
+        # (openmpi 4) and PRTE_* (openmpi 5+, which moved most launch
+        # logic into PRTE) so this works regardless of which qe build
+        # the solver picks up.
+        OMPI_ALLOW_RUN_AS_ROOT: "1"
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: "1"
+        OMPI_MCA_plm_rsh_agent: "false"
+        OMPI_MCA_rmaps_base_oversubscribe: "yes"
+        PRTE_MCA_plm_ssh_agent: "false"
+        PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
+      content:
+        - cmake -S tests -B tests/_build
+        - ctest --test-dir tests/_build --output-on-failure $EXCLUDE
+    files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - cmake
+        - make
+        # wannier90.x comes from `qe` (already in the package's run:),
+        # which ships its own bundled wannier90.x built in the same
+        # environment as qe — guaranteed ABI-compatible and avoids a
+        # segfault seen with the standalone wannier90 osx-64 package.
+        - python
+
+about:
+  license: GPL-2.0-only
+  license_file: LICENSE
+  summary: Fortran utilities for performing Koopmans calculations with Quantum ESPRESSO
+  description: |
+    koopmans-qe-utils is a set of Fortran utilities required for
+    performing Koopmans calculations with koopmans-kcp, built on top
+    of Quantum ESPRESSO. It provides:
+
+    - merge_evc.x, a program for merging wavefunction files
+    - wann2kcp.x, a program for converting Wannier90 files into a
+      format readable by kcp.x
+    - epsilon.x, a modified version of Quantum ESPRESSO's epsilon.x
+  homepage: https://github.com/epfl-theos/koopmans-qe-utils
+  repository: https://github.com/epfl-theos/koopmans-qe-utils
+
+extra:
+  recipe-maintainers:
+    - elinscott
+    - nscolonna
