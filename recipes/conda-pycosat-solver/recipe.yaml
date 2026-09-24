@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: conda-pycosat-solver
+  version: ${{ version }}
+
+source:
+  # stable, checksummed archive uploaded by .github/workflows/upload.yml,
+  # rather than GitHub's own auto-generated (and historically not
+  # format-stable) archive link
+  url: https://github.com/conda/conda-pycosat-solver/releases/download/${{ version }}/conda-pycosat-solver-${{ version }}.tar.gz
+  sha256: c8521a11f1d9753af1ed2d5c4e4327af646e90a5a5b738cf3c937e87055d8119
+  target_directory: src/
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: ${{ PYTHON }} -m pip install src/ -vv
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=71.0
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+    - pycosat >=0.6.3
+  run_constraints:
+    # Technically a run dependency (imported at runtime), but conda already
+    # bundles conda-pycosat-solver by default, so a hard `run` dependency
+    # here would create a dependency cycle that complicates migrations.
+    - conda >=26.9
+
+tests:
+  - python:
+      imports:
+        - conda_pycosat_solver
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - conda
+    script:
+      - conda create -c conda-forge -n test --dry-run scipy --solver=pycosat
+      - conda create -c conda-forge -n test --dry-run scipy --solver=classic
+
+about:
+  license: BSD-3-Clause
+  license_file: src/LICENSE
+  summary: The pycosat solver used in conda, also available as classic
+  description: |
+    conda-pycosat-solver provides the pycosat-based SAT solver that has been
+    powering conda's resolution process since its inception, historically
+    known as the classic solver (classic remains available as an alias).
+    It is packaged separately to benefit from the configurability of the
+    conda plugin system.
+  homepage: https://github.com/conda/conda-pycosat-solver
+  repository: https://github.com/conda/conda-pycosat-solver
+  documentation: https://conda.github.io/conda-pycosat-solver/
+
+extra:
+  recipe-maintainers:
+    - jaimergp
+    - jezdez
+    - kenodegard
