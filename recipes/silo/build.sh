@@ -5,7 +5,11 @@ set -euxo pipefail
 export CGO_ENABLED=0
 
 # upstream's buildscripts/gen-ldflags.go calls `git log`, which fails on a tarball
-# source, so reproduce its flags from the release tag set in recipe.yaml
+# source, so reproduce its flags from the release tag set in recipe.yaml and
+# look up the tag's commit through the GitHub API
+GIT_COMMIT="$(curl -fsSL --retry 3 \
+    -H "Accept: application/vnd.github.sha" \
+    "https://api.github.com/repos/pgsty/silo/commits/RELEASE.${RELEASE}")"
 release_date="${RELEASE%%T*}"
 release_time="${RELEASE#*T}"
 VERSION="${release_date}T${release_time//-/:}"
@@ -13,6 +17,8 @@ LDFLAGS="-s -w"
 LDFLAGS+=" -X github.com/minio/minio/cmd.Version=${VERSION}"
 LDFLAGS+=" -X github.com/minio/minio/cmd.CopyrightYear=${RELEASE:0:4}"
 LDFLAGS+=" -X github.com/minio/minio/cmd.ReleaseTag=RELEASE.${RELEASE}"
+LDFLAGS+=" -X github.com/minio/minio/cmd.CommitID=${GIT_COMMIT}"
+LDFLAGS+=" -X github.com/minio/minio/cmd.ShortCommitID=${GIT_COMMIT:0:12}"
 
 mkdir -p "${PREFIX}/bin"
 go build -tags kqueue -trimpath -ldflags "${LDFLAGS}" -o "${PREFIX}/bin/silo"
