@@ -1,0 +1,143 @@
+schema_version: 1
+
+context:
+  version: "3.5.1"
+
+recipe:
+  name: osl-dynamics
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/o/osl-dynamics/osl_dynamics-${{ version }}.tar.gz
+  sha256: faf6fd653eb09f7c9b5bd53b1af5f4f5f41bebd9847b0fde6e126ea426151c17
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: osl-dynamics-base
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - osl-dynamics = osl_dynamics.config_api.pipeline:osl_dynamics_cli
+      script:
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+        content: python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77
+        - setuptools_scm >=8
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - fslpy
+        - h5io
+        - h5py
+        - ipyevents
+        - ipywidgets
+        - mat73
+        - matplotlib-base
+        - mne-base
+        - mne-icalabel
+        - onnxruntime
+        - nest-asyncio2
+        - nibabel
+        - nilearn
+        - numba
+        - numpy
+        - osfclient
+        - packaging
+        - pandas
+        - pqdm
+        - pyside6
+        - pyvista
+        - pyvistaqt
+        - pyyaml
+        - scikit-image
+        - scikit-learn
+        - scipy
+        - seaborn
+        - threadpoolctl
+        - tqdm
+        - trame
+        - trame-vtk
+        - trame-vuetify
+    tests:
+      - python:
+          imports:
+            - osl_dynamics
+            - osl_dynamics.analysis
+            - osl_dynamics.config_api
+            - osl_dynamics.data
+            - osl_dynamics.glm
+            - osl_dynamics.inference
+            - osl_dynamics.meeg
+            - osl_dynamics.simulation
+            - osl_dynamics.utils
+          pip_check: true
+          # noarch, so check the oldest and the newest supported Python
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - script:
+          - osl-dynamics --help
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+
+  # As above, plus the TensorFlow stack needed to build and train models.
+  - package:
+      name: osl-dynamics
+    build:
+      # conda-forge has no TensorFlow for Windows newer than 1.14
+      skip:
+        - win
+    requirements:
+      run:
+        - osl-dynamics-base ==${{ version }}
+        - if: osx and x86_64
+          then:
+            # conda-forge's newest TensorFlow for Intel Macs. Pinning the 2.19
+            # used elsewhere is not possible: it has no osx-64 build
+            - tensorflow ==2.18.0
+            - tensorflow-probability ==0.25.0
+            - tf-keras ==2.18.0
+          else:
+            - tensorflow ==2.19.1
+            - tensorflow-probability ==0.25.0
+            - tf-keras ==2.19.0
+        - if: linux and x86_64
+          then:
+            # software (off-screen) rendering, so that the 3D plotting works
+            # on machines without a display. This is the only platform with
+            # OSMesa VTK builds
+            - vtk * *osmesa*
+    tests:
+      - python:
+          imports:
+            - osl_dynamics.models
+          pip_check: false
+
+about:
+  homepage: https://github.com/OHBA-analysis/osl-dynamics
+  repository: https://github.com/OHBA-analysis/osl-dynamics
+  documentation: https://osl-dynamics.readthedocs.io
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Toolbox for studying dynamic functional brain networks in neuroimaging data
+  description: |
+    osl-dynamics is a Python toolbox for studying brain dynamics using
+    neuroimaging data: MEG, EEG and fMRI. It provides generative models that
+    decompose data into brain networks, including the Hidden Markov Model
+    (HMM) and Dynamic Network Modes (DyNeMo), along with data preparation,
+    spectral estimation, network visualisation and statistical significance
+    testing.
+
+extra:
+  recipe-maintainers:
+    - cgohil8
