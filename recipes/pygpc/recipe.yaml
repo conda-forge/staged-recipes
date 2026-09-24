@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  version: "0.4.4"
+
+package:
+  name: pygpc
+  version: ${{ version }}
+
+source:
+  url: "https://github.com/pygpc-polynomial-chaos/pygpc/archive/51c975354b8c4db0c579cd30b284d5bdc7b3f7f7.tar.gz"
+  sha256: 2d03311925999a1d47e6f96eca1607e2af3f7f8d2b9191fc35ec99641e3e7e1c
+  patches:
+    - patches/openmp_link_fix.patch
+    - patches/modernize_cuda_cmake.patch
+    - patches/numpy2_api_compat.patch
+
+build:
+  number: 0
+  variant:
+    use_keys:
+      - cuda_compiler_version
+    down_prioritize_variant: ${{ 1 if cuda_compiler_version != "None" else 0 }}
+  script:
+    - if: cuda_compiler_version != "None"
+      then:
+        - if: unix
+          then:
+            - cmake -GNinja ${CMAKE_ARGS}
+                -B build/pygpc_extensions_cuda
+                -S pckg/pygpc_extensions_cuda
+                -DPROJECT_ROOT_PATH=${SRC_DIR}
+                -DPython3_EXECUTABLE=${PYTHON}
+            - cmake --build build/pygpc_extensions_cuda
+        - if: win
+          then:
+            - cmake -GNinja %CMAKE_ARGS%
+                -B build\pygpc_extensions_cuda
+                -S pckg\pygpc_extensions_cuda
+                -DPROJECT_ROOT_PATH=%SRC_DIR%
+                -DPython3_EXECUTABLE=%PYTHON%
+            - cmake --build build\pygpc_extensions_cuda
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+    - if: osx
+      then: llvm-openmp
+    - if: linux
+      then: libgomp
+  host:
+    - python
+    - pip
+    - setuptools
+    - numpy >=2.0.0
+    - if: cuda_compiler_version != "None"
+      then: libcublas-dev
+  run:
+    - python
+    - numpy
+    - scipy
+    - scikit-learn
+    - h5py
+    - tqdm
+    - pandas
+    - matplotlib-base
+    - seaborn-base
+
+tests:
+  - python:
+      imports:
+        - pygpc
+
+about:
+  homepage: https://github.com/pygpc-polynomial-chaos/pygpc
+  summary: A Sensitivity and uncertainty analysis toolbox for Python based on the generalized polynomial chaos method
+  license: GPL-3.0-only
+  license_file: LICENSE
+  documentation: https://pygpc.readthedocs.io/en/latest/
+  repository: https://github.com/pygpc-polynomial-chaos/pygpc
+
+extra:
+  recipe-maintainers:
+    - srimanachanta
