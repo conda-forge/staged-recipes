@@ -1,0 +1,84 @@
+diff --git a/src/mvFileDialog.cpp b/src/mvFileDialog.cpp
+--- a/src/mvFileDialog.cpp
++++ b/src/mvFileDialog.cpp
+@@ -3,7 +3,7 @@
+ #include "mvItemRegistry.h"
+ #include "mvPyUtils.h"
+
+-static void Panel(const char* vFilter, IGFDUserDatas vUserDatas, bool* vCantContinue)
++static void Panel(const char* vFilter, IGFD::UserDatas vUserDatas, bool* vCantContinue)
+ {
+ static_cast<mvFileDialog*>(vUserDatas)->drawPanel();
+ *vCantContinue = static_cast<mvFileDialog*>(vUserDatas)->getContinueValue();
+@@ -55,25 +55,23 @@
+ 	ImGuiStyle* style = &ImGui::GetStyle();
+ 	ImGui::PushStyleColor(ImGuiCol_Header, style->Colors[ImGuiCol_FrameBgActive]);
+
+-	// without panel
+-	if (childslots[1].empty())
+ 	{
++		IGFD::FileDialogConfig fdConfig;
++		fdConfig.path = _defaultPath;
++		fdConfig.fileName = _defaultFilename;
++		fdConfig.countSelectionMax = _fileCount;
+ 		if (_modal)
+-			_instance.OpenModal(info.internalLabel.c_str(), info.internalLabel.c_str(), _directory ? nullptr : _filters.c_str(), _defaultPath, _defaultFilename, _fileCount);
+-		else
+-			_instance.OpenDialog(info.internalLabel.c_str(), info.internalLabel.c_str(), _directory ? nullptr : _filters.c_str(), _defaultPath, _defaultFilename, _fileCount);
+-	}
++			fdConfig.flags = ImGuiFileDialogFlags_Modal;
+
+-	// with panel
+-	else
+-	{
++		// with panel
++		if (!childslots[1].empty())
++		{
++			fdConfig.sidePane = std::bind(&Panel, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
++			fdConfig.sidePaneWidth = 250.0f;
++			fdConfig.userDatas = this;
++		}
+
+-		if (_modal)
+-			_instance.OpenModal(info.internalLabel.c_str(), info.internalLabel.c_str(), _directory ? nullptr : _filters.c_str(), _defaultPath, _defaultFilename,
+-				std::bind(&Panel, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), 250.0f, _fileCount, IGFDUserDatas(this));
+-		else
+-			_instance.OpenDialog(info.internalLabel.c_str(), info.internalLabel.c_str(), _directory ? nullptr : _filters.c_str(), _defaultPath, _defaultFilename,
+-				std::bind(&Panel, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), 250.0f, _fileCount, IGFDUserDatas(this));
++		_instance.OpenDialog(info.internalLabel.c_str(), info.internalLabel.c_str(), _directory ? nullptr : _filters.c_str(), fdConfig);
+ 	}
+
+ 	{
+@@ -91,12 +89,6 @@
+ 			info.dirty_size = false;
+ 		}
+
+-		// display
+-		if (_instance.IsOpened())
+-		{
+-			state.rectSize = { _instance.windowSizeDPG.x, _instance.windowSizeDPG.y };
+-		}
+-
+ 		if (_instance.Display(info.internalLabel, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings, _min_size, _max_size))
+ 		{
+
+diff --git a/src/mvFileExtension.cpp b/src/mvFileExtension.cpp
+--- a/src/mvFileExtension.cpp
++++ b/src/mvFileExtension.cpp
+@@ -5,13 +5,9 @@
+
+ void mvFileExtension::draw(ImDrawList* drawlist, float x, float y)
+ {
+-	IGFD::FileExtentionInfos info;
+-	info.icon = _customText;
+-	if (_color.r >= 0)
+-		info.color = _color.toVec4();
+-	else
+-		info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+-	static_cast<mvFileDialog*>(this->info.parentPtr)->getDialog().SetExtentionInfos(_extension.c_str(), info);
++	ImVec4 color = (_color.r >= 0) ? _color.toVec4() : ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
++	static_cast<mvFileDialog*>(this->info.parentPtr)->getDialog().SetFileStyle(
++		IGFD_FileStyleByExtention, _extension.c_str(), color, _customText);
+ }
+
+ void mvFileExtension::handleSpecificRequiredArgs(PyObject* dict)
