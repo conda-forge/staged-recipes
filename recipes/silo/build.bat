@@ -30,7 +30,7 @@ go-licenses save . ^
     --ignore github.com/minio/kms-go/kes ^
     --ignore github.com/minio/kms-go/kms ^
     --ignore github.com/minio/mc ^
-    --ignore  github.com/minio/madmin-go/v3 ^
+    --ignore github.com/minio/madmin-go/v3 ^
     --ignore github.com/minio/minio ^
     --ignore github.com/minio/pkg/v3 ^
     --ignore github.com/pgsty/silo-pkg/v3
