@@ -1,0 +1,1129 @@
+From d0e998ee2a5a517049453da87766ed2475ae0ab9 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Mon, 3 Aug 2026 23:09:02 -0600
+Subject: [PATCH 1/3] refactor: Migrate all Python code to Python 3
+
+* Update all Python code to be Python 3.6+ compliant and drop the dependency on
+the unmaintained third-party 'future' compatibility package.
+This is a breaking change as Python 2 is no longer supported and Python 3.6 or
+later is required. The third-party 'future' package is also no longer used.
+
+* Convert the two remaining Python 2-only scripts in data/analysis_info/
+  (update_varj_file.py, check_consistency_of_ref_and_var.py):
+  - print statements -> print() function calls
+  - 'except Exception, e' -> 'except Exception as e'
+  - raw_input() -> input()
+  - 'type(x) in [type("string"), type(u"string")]' -> isinstance(x, str)
+  - open files in text mode for json.loads()/json.dumps() (writing str
+    to a binary-mode handle raises TypeError on Python 3)
+* Remove all 'future' package shims from the 12 futurize-converted
+  modules in tools/python/ (46 import lines):
+  - 'from future import standard_library' + install_aliases()
+  - 'from builtins import ...'
+  - 'from past.utils import old_div'
+  The standard library 'from __future__ import ...' lines are kept
+  (harmless no-ops on Python 3).
+* Replace all old_div(a, b) call sites with plain 'a / b'. Every
+  call site was classified by operand provenance: at least one operand
+  is always float (parsed via float() or a float-valued expression), so
+  true division preserves behavior exactly. The textual rewrite was
+  verified by comparing the AST of each result against the original AST
+  with old_div calls rewritten to division nodes, and cls.py/get_s95.py
+  produce bit-identical numerical results before and after the change
+  for fixed float inputs.
+* Fix Python 2-only str.translate() calls in checkmate_core.py:
+  .translate(None, "[]'") raises TypeError on Python 3, and
+  .translate({"[": None, ...}) with str keys is a silent no-op
+  (Python 3 translate tables map ordinals); both forms now use
+  {91: None, 93: None, 39: None}, matching the existing call sites.
+* Wrap non-string configparser.set() values in str() (Python 3 raises
+  "TypeError: option values must be strings"): nevents, invisiblepids,
+  and longlivedpids in process.py, randomseed in info.py, and
+  xsectthresh in events.py.
+* Remove the duplicate 'pickle' import in checkmate_core.py (futurize
+  artifact of 'import cPickle').
+* Remove the Python 2 reload(sys)/setdefaultencoding vestige from
+  AnalysisManager.raw.
+* Convert string literals containing invalid escape sequences (ASCII
+  art logos, "95\%") to raw strings; all values verified byte-identical.
+* Update shebangs to '#!/usr/bin/env python3' in CheckMATE.raw,
+  AnalysisManager.raw, checkmate_core.py, cls.py, update_varj_file.py.
+---
+ .../check_consistency_of_ref_and_var.py       | 34 ++++-----
+ data/analysis_info/update_varj_file.py        | 44 ++++++------
+ tools/python/AnalysisManager.raw              |  7 +-
+ tools/python/CheckMATE.raw                    |  2 +-
+ tools/python/advprint.py                      |  3 -
+ tools/python/analysismanager_core.py          | 12 ++--
+ tools/python/checkmate_core.py                | 21 +++---
+ tools/python/cls.py                           | 71 +++++++++----------
+ tools/python/detectorsettings.py              |  6 --
+ tools/python/evaluator.py                     | 29 ++++----
+ tools/python/events.py                        |  8 +--
+ tools/python/get_s95.py                       | 23 +++---
+ tools/python/info.py                          |  7 +-
+ tools/python/initialize.py                    |  7 +-
+ tools/python/process.py                       | 10 +--
+ tools/python/resultcollector.py               | 23 +++---
+ 16 files changed, 128 insertions(+), 179 deletions(-)
+
+diff --git a/data/analysis_info/check_consistency_of_ref_and_var.py b/data/analysis_info/check_consistency_of_ref_and_var.py
+index cea8f8b..92f8a48 100644
+--- a/data/analysis_info/check_consistency_of_ref_and_var.py
++++ b/data/analysis_info/check_consistency_of_ref_and_var.py
+@@ -22,56 +22,56 @@ for a in all_analyses:
+                   ref_sr_results[columntokens[i]] = tokens[i]
+               refresults.append(ref_sr_results)
+   except:
+-      print columntokens
+-      print i
+-      print tokens
++      print(columntokens)
++      print(i)
++      print(tokens)
+       exit()
+-  jfile = open(jfilename, "rb")
++  jfile = open(jfilename, "r")
+   jvarresults = json.loads(jfile.read())
+-  print "Testing "+a+" from ref to var"
++  print("Testing "+a+" from ref to var")
+   # test if everything in ref is present in var.j
+   for col in refresults[0]:
+       if col == "SR":
+           continue
+       if col not in jvarresults["info_set"]:
+-          print " >>>column "+col+" not set in infoset of "+jfilename+" but in "+reffilename
++          print(" >>>column "+col+" not set in infoset of "+jfilename+" but in "+reffilename)
+ 
+       for ref_sr_results in refresults:
+           sr = ref_sr_results["SR"]
+           if sr not in jvarresults["reference_data"]:
+-              print " >>>SR "+sr+" present in "+reffilename+" but not in "+jfilename
++              print(" >>>SR "+sr+" present in "+reffilename+" but not in "+jfilename)
+               continue # FIXME
+           if col not in jvarresults["reference_data"][sr]:
+-              print " >>>column "+col+" has no value for "+sr+" in "+jfilename+" but in "+reffilename
++              print(" >>>column "+col+" has no value for "+sr+" in "+jfilename+" but in "+reffilename)
+               continue #FIXME
+           try:
+               if float(ref_sr_results[col]) != float(jvarresults["reference_data"][sr][col]):
+-                  print " >>>column "+col+" has different values for "+sr+" in "+jfilename+" ("+jvarresults["reference_data"][sr][col]+")  and in "+reffilename+" ("+ref_sr_results[col]+")"
++                  print(" >>>column "+col+" has different values for "+sr+" in "+jfilename+" ("+jvarresults["reference_data"][sr][col]+")  and in "+reffilename+" ("+ref_sr_results[col]+")")
+                   continue #FIXME
+           except:
+-              print ref_sr_results[col]
+-              print jvarresults["reference_data"][sr][col]
++              print(ref_sr_results[col])
++              print(jvarresults["reference_data"][sr][col])
+               exit()
+ 
+ 
+-  print "Testing "+a+" from var to ref"
++  print("Testing "+a+" from var to ref")
+   # test if everything in var.j is present in ref.dat
+   srindices = dict()
+   for i in range(len(refresults)):
+       srindices[refresults[i]["SR"]] = i 
+   for sr in jvarresults["reference_data"]:
+       if sr not in srindices:
+-          print " >>>SR "+sr+" present in "+jfilename+" but not in "+reffilename
++          print(" >>>SR "+sr+" present in "+jfilename+" but not in "+reffilename)
+           continue # FIXME
+       for col in jvarresults["reference_data"][sr]:
+           if col not in refresults[srindices[sr]]:
+-              print " >>>column "+col+" has no value for "+sr+" in "+reffilename+" but in "+jfilename
++              print(" >>>column "+col+" has no value for "+sr+" in "+reffilename+" but in "+jfilename)
+               continue #FIXME
+ #          if float(refresults[srindices[sr]][col]) != float(jvarresults["reference_data"][sr][col]):
+ #              print " >>>column "+col+" has different values for "+sr+" in "+jfilename+" ("+jvarresults["reference_data"][sr][col]+") and in "+reffilename+"(+"+refresults[srindices[sr]][col]+")"
+ #              continue #FIXME
+-  print ""
+-  i = raw_input("Click for Next (press X to write new var.j from ref.dat) ")
++  print("")
++  i = input("Click for Next (press X to write new var.j from ref.dat) ")
+   if i == "X":
+       newrefdata = dict()
+       jvarresults["info_set"] = []
+@@ -89,7 +89,7 @@ for a in all_analyses:
+                   continue            
+               newrefdata[sr][col] = ref_sr_results[col]
+       jvarresults["reference_data"] = newrefdata
+-      jfile = open(jfilename+".2", "wb")
++      jfile = open(jfilename+".2", "w")
+       jfile.write(json.dumps(jvarresults, sort_keys=True, indent=2))
+ 
+       
+diff --git a/data/analysis_info/update_varj_file.py b/data/analysis_info/update_varj_file.py
+index f8268df..f2f33ba 100644
+--- a/data/analysis_info/update_varj_file.py
++++ b/data/analysis_info/update_varj_file.py
+@@ -1,35 +1,35 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3
+ import os, sys
+ import shutil
+ import json
+ 
+ if len(sys.argv) < 2:
+-   print "This script updates a given _var.j file to the newest CheckMATE format."
+-   print "Some obsolete parameters are removed and some required ones are added."
+-   print "The values of the added parameters are guessed or set to standard values."
+-   print "You might want to edit the file by hand afterwards to edit some of these."
++   print("This script updates a given _var.j file to the newest CheckMATE format.")
++   print("Some obsolete parameters are removed and some required ones are added.")
++   print("The values of the added parameters are guessed or set to standard values.")
++   print("You might want to edit the file by hand afterwards to edit some of these.")
+    exit("Usage: ./updater file_var.j ")
+    
+ infile = sys.argv[1]
+ 
+-injfile = open(infile, "rb")
++injfile = open(infile, "r")
+ parameters = json.loads(injfile.read())
+ injfile.close()
+ 
+ try:
+ 
+     if "version" not in parameters or parameters["version"] < 2.0:
+-        print "Parameter file has version less than 2.0"
++        print("Parameter file has version less than 2.0")
+         parameters["version"] = 2.0
+         # Add parameters that did not exist before
+         parameters["expectation_known"] = "y"
+-        print "    - 'expectation known' added and set to 'y'"
++        print("    - 'expectation known' added and set to 'y'")
+         
+         parameters["author"] = "CheckMATE"
+-        print "    - 'author' added and set to 'CheckMATE' (note that the analysis.cc file is NOT updated!)"
++        print("    - 'author' added and set to 'CheckMATE' (note that the analysis.cc file is NOT updated!)")
+         
+         parameters["authoremail"] = "checkmate@projects.hepforge.org"
+-        print "    - 'authoremail' added and set to 'checkmate@projects.hepforge.org' (note that the analysis.cc file is NOT updated!)"
++        print("    - 'authoremail' added and set to 'checkmate@projects.hepforge.org' (note that the analysis.cc file is NOT updated!)")
+ 
+         # Remove parameters that should not be there
+         if "files" in parameters:
+@@ -38,10 +38,10 @@ try:
+             parameters.pop("CURRLEVEL")
+         # dict() parameters have to be put as dict()
+         for p in parameters:
+-            if type(parameters[p]) in [type("string"), type(u"string")]:
++            if isinstance(parameters[p], str):
+                 if (parameters[p].startswith("[") or parameters[p].startswith("{")):
+                     parameters[p] = eval(parameters[p])
+-        print "    - Some obsolete parameters removed or format changed"
++        print("    - Some obsolete parameters removed or format changed")
+ 
+         # Some integers have to be put as real integers
+         parameters["electron_niso"] = int(parameters["electron_niso"])
+@@ -49,32 +49,32 @@ try:
+         parameters["photon_niso"] = int(parameters["photon_niso"])
+         if parameters["jets_btagging"] == "y":
+             parameters["jets_btagging_n"] = int(parameters["jets_btagging_n"])
+-        print "    - Some obsolete parameters removed or format changed"
++        print("    - Some obsolete parameters removed or format changed")
+     if "version" in parameters and parameters["version"] < 3.0:        
+-        print "Parameter file has version less than 3.0:"
++        print("Parameter file has version less than 3.0:")
+         parameters["version"] = 3.0
+         parameters["tags"] = list()
+         if parameters["experiment"] == "A":
+             parameters["tags"].append("atlas")
+-            print "    - Tag 'atlas' added"            
++            print("    - Tag 'atlas' added")
+         elif parameters["experiment"] == "C":
+             parameters["tags"].append("cms")
+-            print "    - Tag 'cms' added"
++            print("    - Tag 'cms' added")
+         parameters["ecm"] = 8.0
+         if "7 TeV" in parameters["short_info"] or "7TeV" in parameters["short_info"]:
+             parameters["ecm"] = 7.0
+         parameters["tags"].append(str(int(parameters["ecm"]))+"TeV")
+-        print "    - Tag 'ecm' added and set to "+str(parameters["ecm"])+" and tag "+parameters["tags"][-1]+" added!"
++        print("    - Tag 'ecm' added and set to "+str(parameters["ecm"])+" and tag "+parameters["tags"][-1]+" added!")
+ 
+-except Exception, e:
+-    print str(e)
+-    print "Problem with "+infile
++except Exception as e:
++    print(str(e))
++    print("Problem with "+infile)
+     exit(1)
+ 
+ outfile = "foo.dat"
+-jfile = open(outfile, "wb")
++jfile = open(outfile, "w")
+ jfile.write(json.dumps(parameters, sort_keys=True, indent=2))
+ jfile.close()
+ shutil.move(outfile, infile)
+ 
+-print "Translated "+infile+" successfully to verson 3.0!"
++print("Translated "+infile+" successfully to verson 3.0!")
+diff --git a/tools/python/AnalysisManager.raw b/tools/python/AnalysisManager.raw
+index e561723..a45292a 100755
+--- a/tools/python/AnalysisManager.raw
++++ b/tools/python/AnalysisManager.raw
+@@ -1,15 +1,10 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ 
+ import os
+ import sys
+ 
+ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "tools", "python"))
+ 
+-if sys.version_info[0] == 3:
+-    from importlib import reload
+-
+-reload(sys)
+-
+ import analysismanager_core
+ from advprint import AdvPrint
+ from info import Info
+diff --git a/tools/python/CheckMATE.raw b/tools/python/CheckMATE.raw
+index 5d597da..d477ac1 100644
+--- a/tools/python/CheckMATE.raw
++++ b/tools/python/CheckMATE.raw
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/env python3
+ import sys,os
+ sys.path.append('RUN_PATH')
+ sys.path.append('ROOT_LIB_DIR')
+diff --git a/tools/python/advprint.py b/tools/python/advprint.py
+index 52d4fca..fa8ed83 100644
+--- a/tools/python/advprint.py
++++ b/tools/python/advprint.py
+@@ -1,8 +1,5 @@
+ ''' Module contains advanced printing and formatting routines '''
+ from __future__ import print_function
+-from builtins import zip
+-from builtins import range
+-from builtins import object
+ import os, re, sys
+ 
+ class AdvPrint(object):
+diff --git a/tools/python/analysismanager_core.py b/tools/python/analysismanager_core.py
+index 3a60b6f..68220ab 100644
+--- a/tools/python/analysismanager_core.py
++++ b/tools/python/analysismanager_core.py
+@@ -1,9 +1,5 @@
+ from __future__ import print_function
+ from __future__ import division
+-from builtins import zip
+-from builtins import input
+-from builtins import str
+-from past.utils import old_div
+ import json
+ from math import sqrt
+ from multiprocessing import Pool
+@@ -258,7 +254,7 @@ def normalize_error(reference_data):
+         # Asymmetric error: as a rough approximation, use the mean of the squares
+         upper = float(reference_data["bkg_errp"])
+         lower = float(reference_data["bkg_errm"])
+-        return sqrt(old_div((upper**2+lower**2),2))
++        return sqrt((upper**2+lower**2)/2)
+     if "bkg_err_sys" in reference_data and "bkg_err_stat" in reference_data:
+         # Total error = independent quadratic sum of statistical and systematical component
+         sys = float(reference_data["bkg_err_sys"])
+@@ -268,7 +264,7 @@ def normalize_error(reference_data):
+         sys_upper = float(reference_data["bkg_errp_sys"])
+         sys_lower = float(reference_data["bkg_errm_sys"])
+         stat = float(reference_data["bkg_err_stat"])
+-        return sqrt(stat**2 + old_div((sys_upper**2 + sys_lower**2),2))
++        return sqrt(stat**2 + (sys_upper**2 + sys_lower**2)/2)
+     AdvPrint.cerr_exit("Invalid combination of errors given.")
+ 
+ 
+@@ -353,7 +349,7 @@ def ask_for_signal_region_information(parameters):
+     myprint("The set of information you entered is valid.")
+     myprint("You now have to add the numbers for each of the given signal regions.")
+     myprint("Note that while you enter more numbers, the corresponding model independent")
+-    myprint(" 95\% confidence limits for the items you have already entered are calculated")
++    myprint(r" 95\% confidence limits for the items you have already entered are calculated")
+     myprint(" in the background. ")
+ 
+     try:
+@@ -1255,7 +1251,7 @@ def replace_in_file(fun, parameters, in_file_name, out_file_name=None):
+ ########################
+ 
+ def main():
+-    print("""
++    print(r"""
+    ____ _               _    __  __    _  _____ _____ ____
+   / ___| |__   ___  ___| | _|  \/  |  / \|_   _| ____|___ \ 
+  | |   | '_ \ / _ \/ __| |/ / |\/| | / _ \ | | |  _|   __) |
+diff --git a/tools/python/checkmate_core.py b/tools/python/checkmate_core.py
+index 0029ee6..1e1cea5 100644
+--- a/tools/python/checkmate_core.py
++++ b/tools/python/checkmate_core.py
+@@ -1,13 +1,8 @@
+-#!/usr/bin/python
+-from future import standard_library
+-standard_library.install_aliases()
+-from builtins import input
+-from builtins import str
+-from builtins import object
++#!/usr/bin/env python3
+ import sys,os
+ from math import sqrt
+ from copy import deepcopy
+-import json, pickle, pickle
++import json, pickle
+ import os
+ import shutil
+ import subprocess
+@@ -125,7 +120,7 @@ class CheckMATE2(object):
+     
+     def printLogo(self):
+         """ Obvious"""
+-        AdvPrint.cout( """
++        AdvPrint.cout( r"""
+   ____ _               _    __  __    _  _____ _____ ____  
+  / ___| |__   ___  ___| | _|  \/  |  / \|_   _| ____|___ \ 
+ | |   | '_ \ / _ \/ __| |/ / |\/| | / _ \ | | |  _|   __) |
+@@ -136,7 +131,7 @@ class CheckMATE2(object):
+ 
+     def printUsage(self):
+         self.printLogo()
+-        AdvPrint.cout( """
++        AdvPrint.cout( r"""
+                                                   ___   
+                                       |__| _       | _  
+                                       |  |(_)\)/   |(_) 
+@@ -226,13 +221,13 @@ class CheckMATE2(object):
+         if Info.flags["write_pythia_events"]:
+             AdvPrint.cout("\t - pythia .hepmc files will be written!")
+         if Info.parameters["EventResultFileColumns"] != ['analysis', 'sr', 'signal_normevents', 'signal_err_tot']:            
+-            AdvPrint.cout("\t - print columns "+str(Info.parameters['EventResultFileColumns']).translate(None, "[]'")+" in event result files!")
++            AdvPrint.cout("\t - print columns "+str(Info.parameters['EventResultFileColumns']).translate({91: None, 93: None, 39: None})+" in event result files!")
+         if Info.parameters["ProcessResultFileColumns"] != ['analysis', 'sr', 'signal_normevents', 'signal_err_tot']:            
+-            AdvPrint.cout("\t - print columns "+str(Info.parameters['ProcessResultFileColumns']).translate(None, "[]'")+" in process result files!")
++            AdvPrint.cout("\t - print columns "+str(Info.parameters['ProcessResultFileColumns']).translate({91: None, 93: None, 39: None})+" in process result files!")
+         if Info.parameters["TotalEvaluationFileColumns"] != ['analysis', 'sr', 'o', 'b', 'db', 's', 'ds', 's95obs', 's95exp', 'robscons', 'rexpcons']:
+-            AdvPrint.cout("\t - print columns "+str(Info.parameters['TotalEvaluationFileColumns']).translate({"[":None,"]":None,"'":None})+" in total evaluation files!")
++            AdvPrint.cout("\t - print columns "+str(Info.parameters['TotalEvaluationFileColumns']).translate({91: None, 93: None, 39: None})+" in total evaluation files!")
+         if Info.parameters["BestPerAnalysisEvaluationFileColumns"] != ['analysis', 'sr', 'o', 'b', 'db', 's', 'ds', 's95obs', 's95exp', 'robscons', 'rexpcons']:
+-            AdvPrint.cout("\t - print columns "+str(Info.parameters['BestPerAnalysisEvaluationFileColumns']).translate({"[":None,"]":None,"'":None})+" in best-per-analysis evaluation files!")
++            AdvPrint.cout("\t - print columns "+str(Info.parameters['BestPerAnalysisEvaluationFileColumns']).translate({91: None, 93: None, 39: None})+" in best-per-analysis evaluation files!")
+         if Info.parameters["srcombination"]:
+             AdvPrint.cout("\t - Multibin signal regions for statistical combination: " + str(Info.parameters["srcombination"]) )
+             
+diff --git a/tools/python/cls.py b/tools/python/cls.py
+index 6e31b56..1350794 100644
+--- a/tools/python/cls.py
++++ b/tools/python/cls.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3
+ 
+ """Calculates CLs for simple one bin counting experiments.
+ 
+@@ -8,9 +8,6 @@ for the test statistic.
+ from __future__ import print_function
+ from __future__ import division
+ 
+-from builtins import str
+-from builtins import range
+-from past.utils import old_div
+ __author__ = "Daniel Schmeier, Jamie Tattersall, Sebastian Belkner"
+ __copyright__ = "Copyright 2014, CheckMATE"
+ __credits__ = ["Daniel Schmeier"]
+@@ -42,7 +39,7 @@ def nexp(mu, nu_b, nu_s):
+     the exponential of a normal distributed random number (nu).
+   Note that b0, s0, db and ds are global variables defined at input
+   """
+-  return b0*exp(old_div(db,b0)*nu_b) + mu*s0*exp(old_div(ds,s0)*nu_s)
++  return b0*exp(db/b0*nu_b) + mu*s0*exp(ds/s0*nu_s)
+ 
+ def eqForMaxL(xxx_todo_changeme, n, nuTil_b, nuTil_s, mu):
+   """
+@@ -51,7 +48,7 @@ def eqForMaxL(xxx_todo_changeme, n, nuTil_b, nuTil_s, mu):
+   """
+   (nu_b, nu_s) = xxx_todo_changeme
+   lam = nexp(mu, nu_b, nu_s)
+-  return ((n-lam)*db*exp(old_div(db,b0)*nu_b)-lam*(nu_b-nuTil_b), (n-lam)*ds*mu*exp(old_div(ds,s0)*nu_s)-lam*(nu_s-nuTil_s))
++  return ((n-lam)*db*exp(db/b0*nu_b)-lam*(nu_b-nuTil_b), (n-lam)*ds*mu*exp(ds/s0*nu_s)-lam*(nu_s-nuTil_s))
+   #return ((n-lam)*db*exp(db/b0*nu_b)-lam*(nu_b-nuTil_b), db*exp(db/b0*nu_b-ds/s0*nu_s)*(nu_s-nuTil_s)-ds*mu*(nu_b-nuTil_b))
+ 
+ def nuWithMaxL(n, nuTil_b, nuTil_s, mu):
+@@ -67,7 +64,7 @@ def qMu(n, nuTil_b, nuTil_s):
+   """ Test statisctic for signal+background hypothesis """
+ 
+   # First, overall maximum is easy to calculate (b0, s0, db are defined during input)
+-  mu_hat = old_div((n-b0*exp(old_div(db,b0)*nuTil_b)),(s0*exp(old_div(ds,s0)*nuTil_s)))
++  mu_hat = (n-b0*exp(db/b0*nuTil_b))/(s0*exp(ds/s0*nuTil_s))
+   nu_b_hat = nuTil_b
+   nu_s_hat = nuTil_s
+ 
+@@ -108,7 +105,7 @@ def qMu(n, nuTil_b, nuTil_s):
+     result = -2.*(reduced_logp(nuTil_b, nu_b_mu_hat) + reduced_logp(nuTil_s, nu_s_mu_hat) - reduced_logp(nuTil_b, nu_b_hat) - reduced_logp(nuTil_s, nu_s_hat))
+   else:
+     # Otherwise, return the normal likelihood    
+-    result = -2.*(n*log(old_div(lam_hat,lam_hat_hat)) - (lam_hat-lam_hat_hat) + reduced_logp(nuTil_b, nu_b_mu_hat) + reduced_logp(nuTil_s, nu_s_mu_hat) - reduced_logp(nuTil_b, nu_b_hat) - reduced_logp(nuTil_s, nu_s_hat))
++    result = -2.*(n*log(lam_hat/lam_hat_hat) - (lam_hat-lam_hat_hat) + reduced_logp(nuTil_b, nu_b_mu_hat) + reduced_logp(nuTil_s, nu_s_mu_hat) - reduced_logp(nuTil_b, nu_b_hat) - reduced_logp(nuTil_s, nu_s_hat))
+   
+   # We have to return a rounded result as E-15 differences in the floats can
+   # have weird effects on the CLs+b and CLb results for special cases
+@@ -174,8 +171,8 @@ def calc_CLs(n_obs, nuTil_b_obs, b0_in, db_in, nuTil_s_obs, s0_in, ds_in, nPseud
+     CLs = 1.0
+     dCLs = 1.0
+   else:
+-    CLs = old_div(ps,oneMinusPb)
+-    dCLs = sqrt((old_div(dps,oneMinusPb))**2+(old_div(ps*doneMinusPb,oneMinusPb**2))**2)
++    CLs = ps/oneMinusPb
++    dCLs = sqrt((dps/oneMinusPb)**2+(ps*doneMinusPb/oneMinusPb**2)**2)
+     
+   del n_pseu_sig
+   del n_pseu_bkg
+@@ -229,10 +226,10 @@ def Lambda(mu,  b,  s,  db,  ds,  nuisance = []):
+         if(b==0.0 and s==0.0):
+             return 1.0
+         if(b==0.0):
+-            return mu*s*exp(old_div(ds,s)*nuisance[0])
++            return mu*s*exp(ds/s*nuisance[0])
+         if(s==0.0):
+-            return b*exp(old_div(db,b)*nuisance[1])
+-        return mu*s*exp(old_div(ds,s)*nuisance[0]) + b*exp(old_div(db,b)*nuisance[1])
++            return b*exp(db/b*nuisance[1])
++        return mu*s*exp(ds/s*nuisance[0]) + b*exp(db/b*nuisance[1])
+     except OverflowError as e:
+         print("Error A",  e)
+         return 1.0
+@@ -242,7 +239,7 @@ def Lambda(mu,  b,  s,  db,  ds,  nuisance = []):
+ 
+ def derLambdasig(mu,  nu_sig,  s,  ds):
+     try:
+-        return mu*ds*exp(old_div(ds,s)*nu_sig)
++        return mu*ds*exp(ds/s*nu_sig)
+     except OverflowError as e:
+         print("Error E",  e)
+         return 1.0
+@@ -252,7 +249,7 @@ def derLambdasig(mu,  nu_sig,  s,  ds):
+ 
+ def derLambdabackg(nu_backg, b,  db):
+     try:
+-        return db*exp(old_div(db,b)*nu_backg) 
++        return db*exp(db/b*nu_backg) 
+     except OverflowError as e:
+         print("Error G",  e)
+         return 1.0
+@@ -262,7 +259,7 @@ def derLambdabackg(nu_backg, b,  db):
+     
+ def derLambdamu(nu_sig, s, ds):
+     try:
+-        return s*exp(old_div(ds,s)*nu_sig)
++        return s*exp(ds/s*nu_sig)
+     except OverflowError as e:
+         print("Error I",  e)
+         return 1.0
+@@ -279,7 +276,7 @@ def get_CMLparameter(mu,  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,  nuTilde =
+             c=np.random.uniform(low=0.8, high=1.0)*250.0
+             #print "case c1", N_sig, N_backg
+         try:
+-            NFunc[0] = derLambdabackg(c,  N_backg,  dN_backg)*(-1.0+old_div(N_obs,Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, [0.0,  c])))-(c-nuTilde[0])        
++            NFunc[0] = derLambdabackg(c,  N_backg,  dN_backg)*(-1.0+N_obs/Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, [0.0,  c]))-(c-nuTilde[0])        
+         except:
+             NFunc[0] = 500.0
+         return NFunc[0]
+@@ -291,11 +288,11 @@ def get_CMLparameter(mu,  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,  nuTilde =
+             c[1]=np.random.uniform(low=0.8, high=1.0)*250.0
+             #xprint "case c1, [N_sig, Nbackg] = [", N_sig, N_backg,"]"
+         try:
+-            NFunc[0] = derLambdasig(mu,   c[0],   N_sig, dN_sig)*(-1.0+old_div(N_obs,Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, c)))-(c[0]-nuTilde[0])
++            NFunc[0] = derLambdasig(mu,   c[0],   N_sig, dN_sig)*(-1.0+N_obs/Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, c))-(c[0]-nuTilde[0])
+         except:
+             NFunc[0] = 500.0
+         try:
+-            NFunc[1] = derLambdabackg(c[1],  N_backg, dN_backg)*(-1.0+old_div(N_obs,Lambda(mu, N_backg,  N_sig,  dN_backg,  dN_sig,  c)))-(c[1]-nuTilde[1])
++            NFunc[1] = derLambdabackg(c[1],  N_backg, dN_backg)*(-1.0+N_obs/Lambda(mu, N_backg,  N_sig,  dN_backg,  dN_sig,  c))-(c[1]-nuTilde[1])
+         except:
+             NFunc[1] = 500.0
+         return NFunc
+@@ -303,7 +300,7 @@ def get_CMLparameter(mu,  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,  nuTilde =
+         if(c>=250):
+             c=np.random.uniform(low=0.8, high=1.0)*250
+             #print "case c0, [N_sig, Nbackg] = [", N_sig, N_backg,"]"
+-        NFunc[1] = derLambdasig(mu, c, N_sig, dN_sig)*(-1.0+old_div(N_obs,Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, [c, 0.0])))-(c-nuTilde[1])
++        NFunc[1] = derLambdasig(mu, c, N_sig, dN_sig)*(-1.0+N_obs/Lambda(mu,  N_backg,  N_sig,  dN_backg,  dN_sig, [c, 0.0]))-(c-nuTilde[1])
+         return NFunc[1]
+     
+     #decision-tree
+@@ -328,62 +325,62 @@ def get_CMLparameter(mu,  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,  nuTilde =
+    
+     if(opt_nuis_backg==0 and opt_nuis_sig==1):
+         try:        
+-            guess[0] = old_div(N_sig,(2*dN_sig))*log(old_div(N_obs,(mu*N_sig)))
++            guess[0] = N_sig/(2*dN_sig)*log(N_obs/(mu*N_sig))
+         except:
+-            guess[0] = old_div(old_div(N_sig,(2*dN_sig))*N_obs,(mu*N_sig))
++            guess[0] = N_sig/(2*dN_sig)*N_obs/(mu*N_sig)
+         solution = opt.root(i, guess[0])
+         while(not solution.success and counter<=10):
+             counter+=1
+             succ=False
+             try:
+-                guess[0] = old_div(N_sig,(2*dN_sig))*log(old_div(N_obs,(mu*N_sig)))*np.random.uniform(low=0.0, high=2.0)
++                guess[0] = N_sig/(2*dN_sig)*log(N_obs/(mu*N_sig))*np.random.uniform(low=0.0, high=2.0)
+             except:
+-                guess[0] = old_div(old_div(N_sig,(2*dN_sig))*N_obs,(mu*N_sig))*np.random.uniform(low=0.0, high=2.0)
++                guess[0] = N_sig/(2*dN_sig)*N_obs/(mu*N_sig)*np.random.uniform(low=0.0, high=2.0)
+             solution = opt.root(i, guess[0])
+         return [solution.x[0],  nuTilde[1]], succ 
+     
+     if(opt_nuis_backg==1 and opt_nuis_sig==0):
+         try:
+-            guess[1] = old_div(N_backg,(2*dN_backg))*log(old_div(N_obs,N_backg))
++            guess[1] = N_backg/(2*dN_backg)*log(N_obs/N_backg)
+         except:
+-            guess[1] = old_div(old_div(N_backg,(2*dN_backg))*N_obs,N_backg)
++            guess[1] = N_backg/(2*dN_backg)*N_obs/N_backg
+         solution = opt.root(g, guess[1])
+         while(not solution.success and counter<=10):
+             counter+=1
+             succ=False
+             try:
+-                guess[1] = old_div(N_backg,(2*dN_backg))*log(old_div(N_obs,N_backg))*np.random.uniform(low=0.0, high=2.0)
++                guess[1] = N_backg/(2*dN_backg)*log(N_obs/N_backg)*np.random.uniform(low=0.0, high=2.0)
+             except:
+-                guess[1] = old_div(old_div(N_backg,(2*dN_backg))*N_obs,N_backg)*np.random.uniform(low=0.0, high=2.0)
++                guess[1] = N_backg/(2*dN_backg)*N_obs/N_backg*np.random.uniform(low=0.0, high=2.0)
+             solution = opt.root(g, guess[1])
+         return [nuTilde[0],  solution.x[0]], succ
+     
+     if(opt_nuis_backg==1 and opt_nuis_sig==1):
+         try:
+-            guess[0] = old_div(log(old_div((N_obs-N_backg*exp(old_div(dN_backg,N_backg))),N_sig))*N_sig,(2*dN_sig))
+-            guess[1] = old_div(log(old_div((N_obs-N_sig*exp(old_div(dN_sig,N_sig))),N_backg))*N_backg,(dN_backg))
++            guess[0] = log((N_obs-N_backg*exp(dN_backg/N_backg))/N_sig)*N_sig/(2*dN_sig)
++            guess[1] = log((N_obs-N_sig*exp(dN_sig/N_sig))/N_backg)*N_backg/(dN_backg)
+         except:
+         #print "Couldn't use a good guess, switching to approximation for tupel [N_obs, N_backg,  N_sig,  dN_backg,  dN_sig] = [",  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,"]"
+-            guess[0] = old_div(N_sig,(2*dN_sig))*log(old_div(N_obs,(mu*N_sig)))
+-            guess[1] = old_div(N_backg,(2*dN_backg))*log(old_div(N_obs,N_backg))
++            guess[0] = N_sig/(2*dN_sig)*log(N_obs/(mu*N_sig))
++            guess[1] = N_backg/(2*dN_backg)*log(N_obs/N_backg)
+         solution = opt.root(h, guess)
+         while(not solution.success and counter<=10):
+             counter+=1
+             succ=False
+             try:
+-                guess[0] = old_div(log(old_div((N_obs-N_backg*exp(old_div(dN_backg,N_backg))),N_sig))*N_sig,(2*dN_sig))*np.random.uniform(low=0.0, high=2.0)
+-                guess[1] = old_div(log(old_div((N_obs-N_sig*exp(old_div(dN_sig,N_sig))),N_backg))*N_backg,(dN_backg))*np.random.uniform(low=0.0, high=2.0)
++                guess[0] = log((N_obs-N_backg*exp(dN_backg/N_backg))/N_sig)*N_sig/(2*dN_sig)*np.random.uniform(low=0.0, high=2.0)
++                guess[1] = log((N_obs-N_sig*exp(dN_sig/N_sig))/N_backg)*N_backg/(dN_backg)*np.random.uniform(low=0.0, high=2.0)
+             except:
+                 #print "Couldn't use a good guess, switching to approximation for tupel [N_obs, N_backg,  N_sig,  dN_backg,  dN_sig] = [",  N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,"]"
+-                guess[0] = old_div(N_sig,(2*dN_sig))*log(old_div(N_obs,(mu*N_sig)))*np.random.uniform(low=0.0, high=2.0)
+-                guess[1] = old_div(N_backg,(2*dN_backg))*log(old_div(N_obs,N_backg))*np.random.uniform(low=0.0, high=2.0)
++                guess[0] = N_sig/(2*dN_sig)*log(N_obs/(mu*N_sig))*np.random.uniform(low=0.0, high=2.0)
++                guess[1] = N_backg/(2*dN_backg)*log(N_obs/N_backg)*np.random.uniform(low=0.0, high=2.0)
+             solution = opt.root(h, guess)
+         return solution.x, succ
+ 
+ def Teststat(mu_tested, N_obs, N_backg,  N_sig,  dN_backg,  dN_sig,  nuisance_cml = [], nuisanceTilde = []):
+     NFunc = 0.0
+     try:
+-        NFunc += 2.*(Lambda(mu_tested, N_backg,  N_sig,  dN_backg,  dN_sig,  nuisance_cml)-N_obs)-2.*N_obs*log(old_div(Lambda(mu_tested, N_backg,  N_sig,  dN_backg,  dN_sig,  nuisance_cml),N_obs)) 
++        NFunc += 2.*(Lambda(mu_tested, N_backg,  N_sig,  dN_backg,  dN_sig,  nuisance_cml)-N_obs)-2.*N_obs*log(Lambda(mu_tested, N_backg,  N_sig,  dN_backg,  dN_sig,  nuisance_cml)/N_obs) 
+     except:
+         NFunc += 500.0
+     if(N_sig==0.0):
+diff --git a/tools/python/detectorsettings.py b/tools/python/detectorsettings.py
+index 51696d3..fa2f6df 100644
+--- a/tools/python/detectorsettings.py
++++ b/tools/python/detectorsettings.py
+@@ -1,9 +1,3 @@
+-from future import standard_library
+-standard_library.install_aliases()
+-from builtins import map
+-from builtins import str
+-from builtins import range
+-from builtins import object
+ import os
+ import pickle
+ import json
+diff --git a/tools/python/evaluator.py b/tools/python/evaluator.py
+index 10ac8fe..d884282 100644
+--- a/tools/python/evaluator.py
++++ b/tools/python/evaluator.py
+@@ -1,8 +1,5 @@
+ from __future__ import print_function
+ from __future__ import division
+-from builtins import str
+-from builtins import object
+-from past.utils import old_div
+ from math import sqrt
+ import operator
+ 
+@@ -226,7 +223,7 @@ class Evaluator(object):
+             self.bkg_err = float(parameters["reference_data"][sr]["bkg_err"])
+         elif "bkg_errp" in parameters["reference_data"][sr]:
+             # Asymmetric error: as a rough approximation, use the mean of the squares
+-            self.bkg_err = old_div(sqrt(float(parameters["reference_data"][sr]["bkg_errp"])**2 + float(parameters["reference_data"][sr]["bkg_errm"])**2),sqrt(2.))
++            self.bkg_err = sqrt(float(parameters["reference_data"][sr]["bkg_errp"])**2 + float(parameters["reference_data"][sr]["bkg_errm"])**2)/sqrt(2.)
+         elif "bkg_err_sys" in parameters["reference_data"][sr]:
+             # Total error = independent quadratic sum of statistical and systematical component
+             self.bkg_err = sqrt(float(parameters["reference_data"][sr]["bkg_err_stat"])**2 + float(parameters["reference_data"][sr]["bkg_err_sys"])**2 )
+@@ -243,30 +240,30 @@ class Evaluator(object):
+             self.signal_eff_error_sys = 0
+             self.signal_eff_error_tot = 0
+         else:
+-            self.signal_eff = old_div(self.resultCollector.signal_normevents,self.resultCollector.total_normevents)
+-            self.signal_eff_error_stat =  old_div(self.resultCollector.signal_err_stat,self.resultCollector.total_normevents)
+-            self.signal_eff_error_sys = old_div(self.resultCollector.signal_err_sys,self.resultCollector.total_normevents)
+-            self.signal_eff_error_tot = old_div(self.resultCollector.signal_err_tot,self.resultCollector.total_normevents)
++            self.signal_eff = self.resultCollector.signal_normevents/self.resultCollector.total_normevents
++            self.signal_eff_error_stat =  self.resultCollector.signal_err_stat/self.resultCollector.total_normevents
++            self.signal_eff_error_sys = self.resultCollector.signal_err_sys/self.resultCollector.total_normevents
++            self.signal_eff_error_tot = self.resultCollector.signal_err_tot/self.resultCollector.total_normevents
+     
+     def calc_r_values(self):
+         """ Compares event numbers to pre-calculated S95 results """        
+-        self.r_obs = old_div(self.resultCollector.signal_normevents, self.s95_obs)
++        self.r_obs = self.resultCollector.signal_normevents/self.s95_obs
+         if self.r_obs < 0: # 95% lower limit on S cannot be negative
+             self.r_obs = 0            
+-        self.r_obs_cons = old_div((self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_tot), self.s95_obs)
++        self.r_obs_cons = (self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_tot)/self.s95_obs
+         if self.r_obs_cons < 0:
+             self.r_obs_cons = 0
+-        self.r_obs_cons_sysonly = old_div((self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_sys), self.s95_obs)
++        self.r_obs_cons_sysonly = (self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_sys)/self.s95_obs
+         if self.r_obs_cons_sysonly < 0:
+             self.r_obs_cons_sysonly = 0
+         
+-        self.r_exp = old_div(self.resultCollector.signal_normevents, self.s95_exp)
++        self.r_exp = self.resultCollector.signal_normevents/self.s95_exp
+         if self.r_exp < 0: # 95% lower limit on S cannot be negative
+             self.r_exp = 0            
+-        self.r_exp_cons = old_div((self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_tot), self.s95_exp)
++        self.r_exp_cons = (self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_tot)/self.s95_exp
+         if self.r_exp_cons < 0:
+             self.r_exp_cons = 0
+-        self.r_exp_cons_sysonly = old_div((self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_sys), self.s95_exp)
++        self.r_exp_cons_sysonly = (self.resultCollector.signal_normevents - 1.64*self.resultCollector.signal_err_sys)/self.s95_exp
+         if self.r_exp_cons_sysonly < 0:
+             self.r_exp_cons_sysonly = 0
+         
+@@ -313,7 +310,7 @@ class Evaluator(object):
+             bkg_err = float(parameters["reference_data"][sr]["bkg_err"])
+         elif "bkg_errp" in parameters["reference_data"][sr]:
+             # Asymmetric error: as a rough approximation, use the mean of the squares
+-            bkg_err = old_div(sqrt(float(parameters["reference_data"][sr]["bkg_errp"])**2 + float(parameters["reference_data"][sr]["bkg_errm"])**2),sqrt(2.))
++            bkg_err = sqrt(float(parameters["reference_data"][sr]["bkg_errp"])**2 + float(parameters["reference_data"][sr]["bkg_errm"])**2)/sqrt(2.)
+         elif "bkg_err_sys" in parameters["reference_data"][sr]:
+             # Total error = independent quadratic sum of statistical and systematical component
+             bkg_err = sqrt(float(parameters["reference_data"][sr]["bkg_err_stat"])**2 + float(parameters["reference_data"][sr]["bkg_err_sys"])**2 )
+@@ -345,7 +342,7 @@ class Evaluator(object):
+             if stat_err_max2 > 0:
+                 stat_err_max = sqrt(stat_err_max2)
+                 # find NMC which lets stat_err drop below stat_err_max
+-                r_nmc_min = (old_div(self.resultCollector.signal_err_stat,stat_err_max))**2
++                r_nmc_min = (self.resultCollector.signal_err_stat/stat_err_max)**2
+                 self.warnings.append("There is a chance the signal could be excluded with about "+str(round(r_nmc_min, 1))+" times more MC events!")
+         
+ def find_strongest_evaluators(list_of_evaluators, n_best):
+diff --git a/tools/python/events.py b/tools/python/events.py
+index b47033e..34ed48f 100644
+--- a/tools/python/events.py
++++ b/tools/python/events.py
+@@ -1,7 +1,5 @@
+ from __future__ import division
+ 
+-from builtins import str
+-from past.utils import old_div
+ import os, sys, shutil
+ from math import sqrt
+ from copy import deepcopy
+@@ -108,8 +106,8 @@ class Events(dict):
+                             
+                             # Calculate errors
+                             if resultCollector.signal_sumofweights > 0:
+-                                resultCollector.signal_err_stat = old_div(resultCollector.signal_normevents*sqrt(resultCollector.signal_sumofweights2),resultCollector.signal_sumofweights)
+-                                resultCollector.signal_err_sys = old_div(resultCollector.signal_normevents*xsecterr,xsect)
++                                resultCollector.signal_err_stat = resultCollector.signal_normevents*sqrt(resultCollector.signal_sumofweights2)/resultCollector.signal_sumofweights
++                                resultCollector.signal_err_sys = resultCollector.signal_normevents*xsecterr/xsect
+                                 resultCollector.signal_err_tot = sqrt(resultCollector.signal_err_stat**2+resultCollector.signal_err_sys**2)
+                             else:
+                                 resultCollector.signal_err_stat = 0
+@@ -577,5 +575,5 @@ class MG5Events(Pythia8Events):
+         fritzconfig.set(secname, "mgRunPath",os.path.join(Info.paths['output_mg5'], self.identifier))
+         fritzconfig.set(secname, "mgSourcePath",Info.paths['mg5_source_path'])
+         if self.have_xsth:
+-            fritzconfig.set(secname, "xsectthresh",old_div(self.xsth*Info.unit(self.xsth_unit),Info.unit('pb'))) # pythia calculates in pb
++            fritzconfig.set(secname, "xsectthresh",str(self.xsth*Info.unit(self.xsth_unit)/Info.unit('pb'))) # pythia calculates in pb
+         return fritzconfig, secname
+diff --git a/tools/python/get_s95.py b/tools/python/get_s95.py
+index 5e2417e..d4e1777 100755
+--- a/tools/python/get_s95.py
++++ b/tools/python/get_s95.py
+@@ -11,9 +11,6 @@ uses these as the actual observation to find S95.
+ from __future__ import print_function
+ from __future__ import division
+ 
+-from builtins import str
+-from builtins import range
+-from past.utils import old_div
+ __author__ = "Daniel Schmeier"
+ __copyright__ = "Copyright 2014, CheckMATE"
+ __credits__ = ["Daniel Schmeier"]
+@@ -40,7 +37,7 @@ def nexp(mu, nu_b):
+     the exponential of a normal distributed random number (nu).
+   Note that b0, s0 and db are global variables defined at input
+   """
+-  return b0*exp(old_div(db,b0)*nu_b) + s0*mu
++  return b0*exp(db/b0*nu_b) + s0*mu
+ 
+ def eqForMaxL(nu_b, n, nuTil_b, mu,):
+   """
+@@ -48,7 +45,7 @@ def eqForMaxL(nu_b, n, nuTil_b, mu,):
+   The nu_b for which this function is zero maximises the likelihood 
+   """
+   lam = nexp(mu, nu_b)
+-  return (n-lam)*db*exp(old_div(db,b0)*nu_b)-lam*(nu_b-nuTil_b)
++  return (n-lam)*db*exp(db/b0*nu_b)-lam*(nu_b-nuTil_b)
+ 
+ def nuWithMaxL(n, nuTil_b, mu):
+   """ Finds root of eqForMaxL to maximise Likelihood   """
+@@ -62,7 +59,7 @@ def qMu(n, nuTil_b):
+   """ Test statisctic for signal+background hypothesis """
+ 
+   # First, overall maximum is easy to calculate (b0, s0, db are defined during input)
+-  mu_hat = old_div((n-b0*exp(old_div(db,b0)*nuTil_b)),s0)
++  mu_hat = (n-b0*exp(db/b0*nuTil_b))/s0
+   nu_b_hat = nuTil_b
+ 
+   # mu_hat > 1 should result in zero to ensure one sided limit
+@@ -101,7 +98,7 @@ def qMu(n, nuTil_b):
+     result = -2.*(reduced_logp(nuTil_b, nu_b_mu_hat) - reduced_logp(nuTil_b, nu_b_hat))
+   else:
+     # Otherwise, return the normal likelihood    
+-    result = -2.*(n*log(old_div(lam_hat,lam_hat_hat)) - (lam_hat-lam_hat_hat) + reduced_logp(nuTil_b, nu_b_mu_hat) - reduced_logp(nuTil_b, nu_b_hat))
++    result = -2.*(n*log(lam_hat/lam_hat_hat) - (lam_hat-lam_hat_hat) + reduced_logp(nuTil_b, nu_b_mu_hat) - reduced_logp(nuTil_b, nu_b_hat))
+   
+   return result
+ 
+@@ -160,11 +157,11 @@ def calc_CLs(n_obs, nuTil_b_obs, b0_in, db_in, s0_in, nPseudo):
+     CLs = 1.0
+     dCLs = 1.0
+   else:
+-    CLs = old_div(ps,oneMinusPb)
++    CLs = ps/oneMinusPb
+     if CLs == 0.0:
+       dCLs = 1.0
+     else:
+-      dCLs = sqrt((old_div(dps,oneMinusPb))**2+(old_div(ps*doneMinusPb,oneMinusPb**2))**2)
++      dCLs = sqrt((dps/oneMinusPb)**2+(ps*doneMinusPb/oneMinusPb**2)**2)
+     
+   del n_pseu_sig
+   del n_pseu_bkg
+@@ -183,16 +180,16 @@ def f(x, N, n_data, nuTil_b_data, b0, sigma_b):
+ 
+ def new_x(x0, x1, y0, y1):
+   """ Determines the new x in the regula falsi method """
+-  return x0 - old_div((x1-x0),(y1-y0))*y0
++  return x0 - (x1-x0)/(y1-y0)*y0
+ 
+ 
+ def find_s95_obs(n_data, nuTil_b_data, b0, sigma_b):  
+   """ Uses the pegasus type regula falsi method to determine S for which CLs(n, b, db, s) = 0.05 """
+   
+   # First, get an estimate for the size of s
+-  db = sqrt(sigma_b*sigma_b + b0*exp(old_div(sigma_b,b0)*nuTil_b_data)) 
++  db = sqrt(sigma_b*sigma_b + b0*exp(sigma_b/b0*nuTil_b_data)) 
+   if b0 < 1:
+-    db = sqrt(sigma_b*sigma_b + 1*exp(old_div(sigma_b,b0)*nuTil_b_data)) 
++    db = sqrt(sigma_b*sigma_b + 1*exp(sigma_b/b0*nuTil_b_data)) 
+   if n_data > b0:
+     db = sqrt(db*db+(n_data-b0)**2)
+     
+@@ -257,7 +254,7 @@ def find_s95_obs(n_data, nuTil_b_data, b0, sigma_b):
+     else:
+       # If m is put on the right, then scale down yl to improve convergence (Pegasus algorithm)
+       kappa = 0.5  
+-      yl = old_div(yr,(yr+ym[0]-3.*ym[1]))*yl 
++      yl = yr/(yr+ym[0]-3.*ym[1])*yl 
+       r, yr = m, ym[0]-3.*ym[1]
+ 
+ def find_s95_exp(n_data, b0, sigma_b):  
+diff --git a/tools/python/info.py b/tools/python/info.py
+index 15f9398..bab5fc0 100644
+--- a/tools/python/info.py
++++ b/tools/python/info.py
+@@ -1,9 +1,4 @@
+ from __future__ import print_function
+-from future import standard_library
+-standard_library.install_aliases()
+-from builtins import input
+-from builtins import str
+-from builtins import range
+ import os, shutil,  sys
+ import json, pickle
+ import argparse
+@@ -963,7 +958,7 @@ class Info(dict):
+             name = "Global"
+             if not cls.config.has_section(name):
+                cls.config.add_section(name)
+-            cls.config.set(name, 'randomseed', randomseed)
++            cls.config.set(name, 'randomseed', str(randomseed))
+         
+     @classmethod
+     def make_flags_consistent(cls):
+diff --git a/tools/python/initialize.py b/tools/python/initialize.py
+index 9684379..1a9572f 100644
+--- a/tools/python/initialize.py
++++ b/tools/python/initialize.py
+@@ -1,8 +1,3 @@
+-from future import standard_library
+-standard_library.install_aliases()
+-from builtins import str
+-from builtins import input
+-from builtins import range
+ import argparse
+ import configparser
+ import os
+@@ -369,7 +364,7 @@ def prepare_run(analyses, events, files, flags, output, paths):
+       flags["skipparamcheck"] = True
+       output.mute()
+     # Print parameters.
+-    output.cout("""
++    output.cout(r"""
+    ____ _               _    __  __    _  _____ _____ 
+   / ___| |__   ___  ___| | _|  \/  |  / \|_   _| ____|
+  | |   | '_ \ / _ \/ __| |/ / |\/| | / _ \ | | |  _|  
+diff --git a/tools/python/process.py b/tools/python/process.py
+index 515535b..0e9af99 100644
+--- a/tools/python/process.py
++++ b/tools/python/process.py
+@@ -1,7 +1,3 @@
+-from future import standard_library
+-standard_library.install_aliases()
+-from builtins import str
+-from builtins import object
+ import os, sys
+ import subprocess
+ import signal
+@@ -177,13 +173,13 @@ class Process(object):
+ #            globalconfig.set(name, "main_dir", os.path.split(os.path.split(os.path.split(os.path.realpath(__file__))[0])[0])[0] )    
+             globalconfig.set(name, "main_dir", Info.paths['data_dir'] )  
+             if Info.parameters["invisiblePIDs"]:
+-                    globalconfig.set(name, "invisiblepids", Info.parameters["invisiblePIDs"][0] )
++                    globalconfig.set(name, "invisiblepids", str(Info.parameters["invisiblePIDs"][0]) )
+             if Info.parameters["longlivedPIDs"]:
+-                    globalconfig.set(name, "longlivedpids", Info.parameters["longlivedPIDs"][0] )    
++                    globalconfig.set(name, "longlivedpids", str(Info.parameters["longlivedPIDs"][0]) )
+             if events.maxEvents > 0:
+ #                if not globalconfig.has_section(name):
+ #                    globalconfig.add_section(name)
+-                globalconfig.set(name, "nevents", events.maxEvents)
++                globalconfig.set(name, "nevents", str(events.maxEvents))
+             elif globalconfig.has_section("Global"):
+                 globalconfig.remove_option(name, "nevents") # unfortunately this globalconfig construction is badly designed. Each event has its own maxevents but there can be only one globalconfig, so each one has to make sure that globalconfig is set correctly
+             config = configparser.RawConfigParser()
+diff --git a/tools/python/resultcollector.py b/tools/python/resultcollector.py
+index 33a6d03..7adddd7 100644
+--- a/tools/python/resultcollector.py
++++ b/tools/python/resultcollector.py
+@@ -1,8 +1,5 @@
+ from __future__ import print_function
+ from __future__ import division
+-from builtins import str
+-from builtins import object
+-from past.utils import old_div
+ from math import sqrt
+ import os, sys
+ 
+@@ -114,8 +111,8 @@ class ResultCollector(object):
+             weight_other = 0
+         # otherwise, evaluate weights properly
+         else: 
+-            weight_self = old_div(old_div(self.total_normevents, (other.total_normevents + self.total_normevents)) * (self.total_sumofweights + other.total_sumofweights),self.total_sumofweights)
+-            weight_other = old_div(old_div(other.total_normevents, (other.total_normevents + self.total_normevents)) * (self.total_sumofweights + other.total_sumofweights),other.total_sumofweights)
++            weight_self = self.total_normevents/(other.total_normevents + self.total_normevents) * (self.total_sumofweights + other.total_sumofweights)/self.total_sumofweights
++            weight_other = other.total_normevents/(other.total_normevents + self.total_normevents) * (self.total_sumofweights + other.total_sumofweights)/other.total_sumofweights
+         
+         self.total_mcevents = self.total_mcevents + other.total_mcevents
+         self.total_normevents = self.total_normevents + other.total_normevents
+@@ -146,9 +143,9 @@ class ResultCollector(object):
+         if self.total_normevents == 0:
+             self.total_normevents = other.total_normevents
+         else:
+-            weight1 = old_div(self.total_mcevents, (self.total_mcevents + other.total_mcevents))
+-            weight2 = old_div(other.total_mcevents, (self.total_mcevents + other.total_mcevents))
+-            self.total_normevents = old_div((self.total_normevents * weight1 + other.total_normevents * weight2),(weight1 + weight2))
++            weight1 = self.total_mcevents/(self.total_mcevents + other.total_mcevents)
++            weight2 = other.total_mcevents/(self.total_mcevents + other.total_mcevents)
++            self.total_normevents = (self.total_normevents * weight1 + other.total_normevents * weight2)/(weight1 + weight2)
+         """    
+           the below test is not correct anymore as combined runs of the same process with event gneration via Pythia8 or MadGraph can lead to different
+           values for the respective cross sections. In that case, total_normevents should be given as the weighted mean of the respective total_normevents-numbers, using
+@@ -164,9 +161,9 @@ class ResultCollector(object):
+         # store old relative syserror (beware the case N = 0 and that self and other should be consistent!)
+         rel_sys_error = 0
+         if self.signal_err_sys != 0:
+-            rel_sys_error = old_div(self.signal_err_sys,self.signal_normevents)
++            rel_sys_error = self.signal_err_sys/self.signal_normevents
+         if other.signal_err_sys != 0:
+-            rel_sys_error = old_div(other.signal_err_sys,other.signal_normevents)
++            rel_sys_error = other.signal_err_sys/other.signal_normevents
+         # ds1/s1 must equal ds2/s2, or in other words ds1*s2 = ds2*s1, which avoids rounding problems
+         if self.signal_err_sys != 0 and other.signal_err_sys != 0 and abs(self.signal_err_sys*other.signal_normevents - other.signal_err_sys*self.signal_normevents)>1E-5:
+             print(self.signal_err_sys) # debug
+@@ -184,19 +181,19 @@ class ResultCollector(object):
+         
+         # redetermine event numbers and stat error
+         if self.signal_sumofweights != 0:
+-            self.signal_normevents = old_div(self.total_normevents * self.signal_sumofweights, self.total_sumofweights)
++            self.signal_normevents = self.total_normevents * self.signal_sumofweights/self.total_sumofweights
+             
+             if self.signal_sumofweights <= 0: # If there are no events in the signal region, ...
+                 if Info.flags['no_mc_stat_err']:
+                     self.signal_err_stat = 0.0 
+                 else:  
+-                    self.signal_err_stat = old_div(1.*self.total_normevents,self.total_sumofweights) # ... set staterror to error on 1 Monte Carlo Event under the assumption that all events have equal weight
++                    self.signal_err_stat = 1.*self.total_normevents/self.total_sumofweights # ... set staterror to error on 1 Monte Carlo Event under the assumption that all events have equal weight
+                 self.signal_err_sys = 0 # ... set syserror to 0
+             else:
+                 if Info.flags['no_mc_stat_err']:
+                     self.signal_err_stat = 0.0 
+                 else:
+-                    self.signal_err_stat = old_div(self.total_normevents*sqrt(self.signal_sumofweights2),(self.total_sumofweights))
++                    self.signal_err_stat = self.total_normevents*sqrt(self.signal_sumofweights2)/(self.total_sumofweights)
+                 self.signal_err_sys = self.signal_normevents * rel_sys_error # multiply new normevents by old rel_sys_error
+         else: # if there are no events, everything is 0
+             self.signal_normevents = 0
+-- 
+2.55.0
+
+
+From 192100f33046283dd793a1a6e894c9a9c92a9619 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Mon, 3 Aug 2026 23:09:17 -0600
+Subject: [PATCH 2/3] build: Detect python3 and require Python 3.6+ in
+ configure
+
+* m4/python.m4: search for 'python3' before 'python' when locating the
+  interpreter (AC_PATH_PROG -> AC_PATH_PROGS) so that configure works
+  on systems that ship no bare 'python' binary.
+* m4/python.m4: parenthesize the Python 2-only print statements in the
+  embedded interpreter one-liners of PY_PYTHON_VERSION,
+  PY_PYTHON_PREFIX, and PY_PYTHON_EXEC_PREFIX so they are valid under
+  Python 3 as well (these macros are currently not invoked by
+  configure.ac, but they no longer set a trap).
+* configure.ac: bump the required Python version from 2.7.3 to 3.6 in
+  both the PY_PROG_PYTHON and AM_PATH_PYTHON checks and update the
+  corresponding error messages.
+---
+ configure.ac |  4 ++--
+ m4/python.m4 | 10 +++++-----
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 88da261..3c598a7 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -42,8 +42,8 @@ AM_CONDITIONAL([USER_PREFIX], [test "x$user_defined_prefix" = xyes])
+ THEPEG_CHECK_HEPMC([2], ,AC_MSG_ERROR("No HepMC... but why?") )
+ CHECK_PYTHIA([6], ,AC_MSG_ERROR("No Pythia... but why?") )
+ # first command allows for --with-python but doesn't check the version. This is why we have two checks.
+-PY_PROG_PYTHON([2.7.3], ,AC_MSG_ERROR(You need Python 2.7.3+ to run CheckMATE. Use --with-python and refer to a valid python binary.) )
+-AM_PATH_PYTHON([2.7.3], ,AC_MSG_ERROR(You need Python 2.7.3+ to run CheckMATE. Use --with-python and refer to a valid python binary.) )
++PY_PROG_PYTHON([3.6], ,AC_MSG_ERROR(You need Python 3.6+ to run CheckMATE. Use --with-python and refer to a valid python binary.) )
++AM_PATH_PYTHON([3.6], ,AC_MSG_ERROR(You need Python 3.6+ to run CheckMATE. Use --with-python and refer to a valid python binary.) )
+ ROOT_PATH([5.20], , AC_MSG_ERROR(ROOT could not be initialised. Try using --with-rootsys and check whether you have ver. 5.34/06 or newer.))
+ # removed due to incompatibility with newer root versions (around 6.20); future check should have 'pyroot' instead
+ #ROOT_FEATURE(python, ,AC_MSG_ERROR(ROOT could be initialised but apparently it has been configured without Python functionality. Checkout the manual to find out how to add it.))
+diff --git a/m4/python.m4 b/m4/python.m4
+index 45aa7ee..6da521e 100644
+--- a/m4/python.m4
++++ b/m4/python.m4
+@@ -14,7 +14,7 @@ AC_DEFUN([PY_PROG_PYTHON],
+     AC_MSG_RESULT($PYTHON)
+     AC_SUBST(PYTHON)
+   else    
+-    AC_PATH_PROG(PYTHON, python, python)
++    AC_PATH_PROGS(PYTHON, [python3 python], python3)
+     AC_MSG_RESULT($PYTHON)
+   fi]
+ )
+@@ -25,11 +25,11 @@ AC_DEFUN([PY_PYTHON_VERSION],
+   AC_MSG_CHECKING(python version)
+ 
+   AC_CACHE_VAL(py_cv_major, [changequote((_,_))
+-    py_cv_major=`$PYTHON -c 'import sys; print str(sys.version_info[0])'`
++    py_cv_major=`$PYTHON -c 'import sys; print(str(sys.version_info[0]))'`
+     changequote([,])
+   ])
+   AC_CACHE_VAL(py_cv_minor, [changequote((_,_))
+-    py_cv_minor=`$PYTHON -c 'import sys; print str(sys.version_info[1])'`
++    py_cv_minor=`$PYTHON -c 'import sys; print(str(sys.version_info[1]))'`
+     changequote([,])
+   ])
+   if test "$py_cv_major" != "2"; then
+@@ -61,7 +61,7 @@ fi
+ AC_MSG_CHECKING(python installation prefix)
+ if test -z "$PYTHON_PREFIX"; then
+   AC_CACHE_VAL(py_cv_python_prefix,
+-  [py_cv_python_prefix=`$PYTHON -c 'import sys; print sys.prefix'`])
++  [py_cv_python_prefix=`$PYTHON -c 'import sys; print(sys.prefix)'`])
+ else
+   py_cv_python_prefix="$PYTHON_PREFIX"
+ fi
+@@ -84,7 +84,7 @@ fi
+ AC_MSG_CHECKING(python installation exec_prefix)
+ if test -z "$PYTHON_EXEC_PREFIX"; then
+   AC_CACHE_VAL(py_cv_python_exec_prefix,
+-  [py_cv_python_exec_prefix=`$PYTHON -c 'import sys; print sys.exec_prefix'`])
++  [py_cv_python_exec_prefix=`$PYTHON -c 'import sys; print(sys.exec_prefix)'`])
+ else
+   py_cv_python_exec_prefix="$PYTHON_EXEC_PREFIX"
+ fi
+-- 
+2.55.0
+
+
+From a3864f95619e38775e45974bb0e4cb24a3d3d550 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Mon, 3 Aug 2026 23:09:18 -0600
+Subject: [PATCH 3/3] docs: Require Python 3.6+ and drop the future package
+ instruction
+
+* Update the README.md and Installation_TLDR.txt to reflect new Python
+  lower bounds as CheckMATE now requires Python 3 (3.6 or later).
+  Remove the Python 2 compatibility claim and the instruction to
+  use the long deprecated 'future' package, which is no longer a
+  runtime dependency.
+---
+ Installation_TLDR.txt | 2 +-
+ README.md             | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Installation_TLDR.txt b/Installation_TLDR.txt
+index d295a8e..27d8d1c 100644
+--- a/Installation_TLDR.txt
++++ b/Installation_TLDR.txt
+@@ -1,6 +1,6 @@
+ This is a brief note on how to install CheckMATE from the master branch on https://github.com/CheckMATE2/checkmate2
+ 
+-0) The current version is compatible with both Python2 (2.7.4 or later) and Python3 (possibly >= 3.4). 'future' library is required ('pip install future'). You can control which Python version is used at configuring with '--with-python=/path/to/python'. Other than that your default 'python' will be used. Note that the features like multi-bin signal region and likelihoods require Python3. 
++0) The current version requires Python3 (3.6 or later). You can control which Python version is used at configuring with '--with-python=/path/to/python'. Other than that your default 'python3' (or 'python') will be used. 
+ 
+ 1) Requirements
+   a) root; 6.38 recommended
+diff --git a/README.md b/README.md
+index 40a43ea..3755144 100644
+--- a/README.md
++++ b/README.md
+@@ -11,7 +11,7 @@ https://arxiv.org/abs/1611.09856
+ 
+ This is a brief note on how to install CheckMATE from the master branch on https://github.com/CheckMATE2/checkmate2
+ 
+-0) The current version is compatible with both Python2 (2.7.4 or later) and Python3 (possibly >= 3.4). 'future' library is required ('pip install future'). You can control which Python version is used at configuring with '--with-python=/path/to/python'. Other than that your default 'python' will be used. Note that the features like multi-bin signal region and likelihoods require Python3. 
++0) The current version requires Python3 (3.6 or later). You can control which Python version is used at configuring with '--with-python=/path/to/python'. Other than that your default 'python3' (or 'python') will be used. 
+ 
+ 
+ 1) Requirements
+-- 
+2.55.0
+

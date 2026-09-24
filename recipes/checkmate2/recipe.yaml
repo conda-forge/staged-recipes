@@ -1,0 +1,132 @@
+schema_version: 1
+
+context:
+  version: "2.5.4"
+
+package:
+  name: checkmate2
+  version: ${{ version }}
+
+source:
+  url: https://github.com/CheckMATE2/checkmate2/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f992c41d4bf53fa84e581e26fb7313011938994ebdf84c1df0f3fe4e592a0361
+  patches:
+    - remove-external-prefix.patch
+    # c.f. https://github.com/CheckMATE2/checkmate2/pull/45
+    - migrate_to_python3.patch
+    # c.f. https://github.com/CheckMATE2/checkmate2/pull/46
+    - make-stats-deps-optional-at-import.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    # Get an updated config.sub and config.guess
+    - cp $BUILD_PREFIX/share/gnuconfig/config.* .
+    - autoreconf --install --force
+    - ./configure --help
+    - |
+      ./configure \
+        --prefix=${PREFIX} \
+        --exec-prefix=${PREFIX} \
+        --with-delphes=${PREFIX} \
+        --with-hepmc=${PREFIX} \
+        --with-python=${PYTHON} \
+        --enable-shared=yes \
+        --enable-static=no
+    - make --jobs=${CPU_COUNT}
+    - |
+      # Skip 'make check' when cross-compiling
+      if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR:-}" != "" ]]; then
+        make check --jobs=${CPU_COUNT}
+      fi
+    - make install prefix=${PREFIX}
+
+requirements:
+  build:
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cxx") }}
+    - automake
+    - libtool
+    - make
+    - pkg-config
+    - gnuconfig
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    # Tools that autotools looks for
+    - sed
+    - grep
+    - gawk
+    - tar
+  host:
+    - python
+    - root_base
+    - root_cxx_standard
+    - delphes
+    - hepmc2
+    # No modern ROOT build uses a version of pythia8 old enough
+    # to be compatible with PYTHIA8 v8.2xx.
+    # - pythia8 8.2*
+  run:
+    # root_base, delphes, hepmc2 have run exports
+    - python
+    - scipy
+
+tests:
+  - package_contents:
+      strict: true
+      bin:
+        - CheckMATE
+        - advprint.py
+        - checkmate_core.py
+        - cls.py
+        - detectorsettings.py
+        - evaluator.py
+        - events.py
+        - example.py
+        - fritz
+        - get_s95.py
+        - hs3_wrapper.py
+        - info.py
+        - initialize.py
+        - multibin_limit.py
+        - multibin_limit_full.py
+        - process.py
+        - resultcollector.py
+        - spey_wrapper.py
+        - workspace_calc.py
+      lib:
+        - analyses
+        - archer
+      files:
+        - share/CheckMATE/*
+        - bin/__pycache__/*
+
+  - script:
+      - CheckMATE --help
+
+about:
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  summary: 'Check Models At Terascale Energies'
+  description: |
+    CheckMATE (Check Models At Terascale Energies) is a program package which
+    accepts simulated event files in many formats for any given model.
+    The program then determines whether the model is excluded or not at 95% C.L.
+    by comparing to many recent experimental analyses.
+    Furthermore the program can calculate confidence limits and provide detailed
+    information about signal regions of interest.
+    It is simple to use and the program structure allows for easy extensions to
+    upcoming LHC results in the future.
+  homepage: https://checkmate.hepforge.org/
+  repository: https://github.com/CheckMATE2/checkmate2
+  documentation: https://github.com/CheckMATE2/checkmate2
+
+extra:
+  feedstock-name: checkmate2
+  recipe-maintainers:
+    - krolbiecki
+    - matthewfeickert
