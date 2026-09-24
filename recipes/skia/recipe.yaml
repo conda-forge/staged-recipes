@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  # Skia's version is its Chrome milestone (SK_MILESTONE in
+  # include/core/SkMilestone.h), which is also its unit of ABI compatibility.
+  version: "143.0.0"
+  # Skia publishes no usable tags: the only chrome/m* tags are m37-m39 from 2014,
+  # and canvaskit/* tags version the CanvasKit WASM product rather than Skia.
+  # Milestones are branches, which cannot be used as a source because the archive
+  # (and its hash) changes whenever the branch moves. So we pin a commit: this is
+  # the final commit of chrome/m143, which upstream has since retired, so the
+  # branch will not move again. m143 is the milestone skia-pathops builds against.
+  commit: b88b661b7fca3a45cf6d5d684d1259939eca1c71
+
+recipe:
+  name: skia
+  version: ${{ version }}
+
+source:
+  url: https://github.com/google/skia/archive/${{ commit }}.tar.gz
+  sha256: 6429d5d4869e8e48a076ff22daa15461b2bdc338dd92dcf3dc56a44dcc5d2b49
+  patches:
+    - patches/0001-link-pathops-into-the-skia-component.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libskia
+    build:
+      script:
+        # one script for every platform, so the unix and Windows paths cannot drift
+        file: build_libskia.nu
+      variant:
+        ignore_keys:
+          # python is only here because GN needs it; nothing Python-specific ends
+          # up in the library, so it must not turn a plain C++ library into one
+          # build per Python version
+          - python
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - gn
+        - ninja
+        - nushell
+        # GN runs python for exec_script() and for its action() targets
+        - python
+      run_exports:
+        # Skia has no stable ABI and no versioned soname; every milestone is a
+        # fresh ABI, so pin consumers to the milestone they were built against.
+        - ${{ pin_subpackage('libskia', upper_bound='x') }}
+    tests:
+      - package_contents:
+          lib:
+            - skia
+          include:
+            - skia/include/core/SkPath.h
+            - skia/include/pathops/SkPathOps.h
+          files:
+            - ${{ "Library/" if win }}lib/pkgconfig/skia.pc
+      - script:
+          - if: unix
+            then:
+              - pkg-config --print-errors --exists skia
+              - ${CXX} ${CXXFLAGS} -std=c++17 test_skia.cpp $(pkg-config --cflags --libs skia) ${LDFLAGS} -o test_skia
+              - ./test_skia
+            else:
+              - cl /std:c++17 /EHsc /I"%LIBRARY_PREFIX%\include\skia" test_skia.cpp /link /LIBPATH:"%LIBRARY_PREFIX%\lib" skia.lib
+              - test_skia.exe
+        files:
+          recipe:
+            - test_skia.cpp
+        requirements:
+          build:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - if: unix
+              then: pkg-config
+
+about:
+  homepage: https://skia.org
+  repository: https://github.com/google/skia
+  documentation: https://skia.org/docs/
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Skia is a complete 2D graphic library for drawing text, geometries and images
+  description: |
+    Skia is an open source 2D graphics library which provides common APIs that
+    work across a variety of hardware and software platforms. It serves as the
+    graphics engine for Google Chrome and ChromeOS, Android, Flutter and many
+    other products.
+
+    This build is deliberately minimal: it provides Skia's geometry and path
+    handling (including pathops) with no GPU backends, image codecs, text shaping
+    or system font managers, which is what allows it to be built without Skia's
+    third_party/externals checkout.
+
+extra:
+  recipe-maintainers:
+    - pavelzw
