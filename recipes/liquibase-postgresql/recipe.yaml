@@ -1,0 +1,65 @@
+context:
+  version: "5.0.4"
+
+package:
+  name: liquibase-postgresql
+  version: ${{ version }}
+
+source:
+  url: https://github.com/liquibase/liquibase-postgresql/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: cadba5a2cfa6a1ddd172d4801ef39ed9295154fa5634dd2a351b474de3e802e5
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    file: build.sh
+
+requirements:
+  build:
+    - maven
+    - openjdk 17.*
+    - git
+  run:
+    - openjdk >=17
+    # The extension jar is compiled against, and only supported with, the
+    # matching liquibase-core release (liquibase.version in pom.xml).
+    - liquibase ==${{ version }}
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        exists:
+          - share/liquibase/lib/liquibase-postgresql-${{ version }}.jar
+  - requirements:
+      run:
+        - ripgrep
+    script:
+      env:
+        LIQUIBASE_ANALYTICS_ENABLED: "false"
+      content:
+        # Match on the filename only: Java prints the library path with the
+        # platform separator, so "lib/..." would not match on Windows.
+        - liquibase --version | rg --fixed-strings "liquibase-postgresql-${{ version }}.jar"
+
+about:
+  homepage: https://github.com/liquibase/liquibase-postgresql
+  summary: Liquibase extension adding additional PostgreSQL-specific functionality
+  description: |
+    liquibase-postgresql extends the Liquibase database schema change
+    management and migration tool with additional PostgreSQL-specific
+    change types (such as VACUUM and COPY). It ships as a single JAR that
+    Liquibase auto-loads from its global library directory, so installing
+    this package alongside `liquibase` is enough to enable it; no
+    additional configuration is required.
+  license: FSL-1.1-ALv2
+  license_file:
+    - LICENSE.txt
+    - aggregate-third-party-report.html
+  documentation: https://docs.liquibase.com
+  repository: https://github.com/liquibase/liquibase-postgresql
+
+extra:
+  recipe-maintainers:
+    - pb01ka
