@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.6.0"
+
+package:
+  name: codegraph
+  version: ${{ version }}
+
+source:
+  url: https://github.com/colbymchenry/codegraph/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9b264c584395e69595d0b8c602a7f5c65a19d16a26673953721829f32cfda119
+
+build:
+  number: 0
+  # Upstream issue #81: Node 25+ V8 turboshaft WASM JIT breaks codegraph at
+  # startup. nodejs is a pinned variant key, so skip the variants we cannot use
+  # rather than letting them fail to solve against the host bound below.
+  skip:
+    - match(nodejs, ">=25")
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+    - cargo-bundle-licenses
+  host:
+    - nodejs
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - codegraph --help
+      - >-
+        node -e "
+          const path=require('path');
+          const prefix=process.env.PREFIX||process.env.CONDA_PREFIX;
+          const base=process.platform === 'win32' ?
+            path.join(prefix, 'node_modules') :
+            path.join(prefix, 'lib', 'node_modules');
+          const loaderPath = path.join(base, '@colbymchenry', 'codegraph', 'dist', 'extraction', 'kernel', 'loader.js');
+          const {getKernel} = require(loaderPath);
+          const k = getKernel();
+          if (!k) {
+            console.error('native kernel failed to load');
+            process.exit(1);
+          };
+          const info = k.contractInfo();
+          if (!info.languages || info.languages.length === 0) {
+            console.error('kernel loaded but reports zero languages');
+            process.exit(1);
+          };
+          console.log('native kernel OK:', info.languages.join(','));
+        "
+  - package_contents:
+      files:
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/package.json
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/dist/bin/codegraph.js
+        - ${{ 'node_modules' if win else 'lib/node_modules' }}/@colbymchenry/codegraph/kernel/codegraph-kernel.node
+
+about:
+  summary: Pre-indexed code knowledge graph for coding agents - fewer tokens, fewer tool calls, 100% local
+  description: |
+    codegraph builds a pre-indexed knowledge graph of your codebase and
+    keeps it synced on code changes, so coding agents (Claude Code, Codex,
+    Gemini, Cursor, OpenCode, AntiGravity, Kiro, Hermes) can answer
+    structure questions from the graph instead of re-reading files —
+    fewer tokens and fewer tool calls, fully local. Built from source: a
+    TypeScript CLI plus a Rust/napi native extraction kernel (tree-sitter
+    parse+extract) compiled for this platform, with a WASM tree-sitter
+    pipeline as the runtime fallback when the native kernel is unavailable.
+
+    Run ``codegraph`` in a repository to index it and wire up the agent
+    integrations.
+  homepage: https://github.com/colbymchenry/codegraph
+  repository: https://github.com/colbymchenry/codegraph
+  documentation: https://github.com/colbymchenry/codegraph#readme
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+    - codegraph-kernel/THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - rxm7706
