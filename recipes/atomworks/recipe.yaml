@@ -1,0 +1,97 @@
+schema_version: 1
+
+context:
+  name: atomworks
+  version: 2.2.0
+
+recipe:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/RosettaCommons/atomworks/archive/v${{ version }}.tar.gz
+  sha256: 7ea78c6267578556f5241500112bc84b2d33e925363d4ccb9b0a82e2db386471
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ${{ name|lower }}
+    build:
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - atomworks = atomworks_cli.__main__:main
+          - aw = atomworks_cli.__main__:main
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+      host:
+        - python >=3.11
+        - hatchling
+        - hatch-vcs
+        - tqdm
+        - typer
+        - pip
+      run:
+        - python >=3.11
+        - cytoolz >=0.12.3,<1
+        - tqdm >=4.65.0,<5
+        - typer >=0.12.5,<1
+        - numpy >=1.25.0,<3
+        - scipy >=1.13.1,<2
+        - pandas >=2.2,<2.4
+        - pyarrow >=23.0.1
+        - zstandard >=0.21.0,<1
+        - py3dmol >=2.2.1,<3
+        - pymol-remote >=0.0.5
+        - biotite ==1.4.0  # TODO: loosen upstream
+        - hydride >=1.2.3,<2
+        - rdkit >=2024.3.5,<2025.9
+        - python-dotenv >= 3.6.1
+        - networkx >= 0.9.9
+
+    tests:
+      - python:
+          imports:
+            - atomworks
+      - requirements:
+          run:
+            - pip
+        script:
+          - pip check
+          - atomworks --help
+          - aw --help
+
+  - package:
+      name: ${{ name|lower }}-ml
+    build:
+      noarch: generic          
+    requirements:
+      run:
+        - ${{ pin_subpackage('atomworks', upper_bound='x.x.x') }}
+        - pytorch >= 2.2.0,<2.8
+        - einops >= 0.7.0,<1
+        - jaxtyping >= 0.2.17,<1
+    tests:
+      - python:
+          imports:
+            - atomworks
+      - requirements:
+          run:
+            - pip
+        script:
+          - pip check
+
+about:
+  summary: A research-oriented data toolkit for training biomolecular deep-learning foundation models
+  license: BSD-3-Clause
+  license_file: LICENSE.md
+  homepage: https://github.com/RosettaCommons/atomworks
+
+extra:
+  recipe-maintainers:
+    - Emrys-Merlin
