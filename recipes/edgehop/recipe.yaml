@@ -1,0 +1,57 @@
+context:
+  version: "0.1.1"
+
+package:
+  name: edgehop
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ytausch/edgehop/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 35e539a6b2e33080f20558c9d1fb4b7bdd8de347c80d8349a865130f374a22c7
+
+build:
+  number: 0
+  # edgehop only supports macOS and Windows
+  skip: linux
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: edgehop --help
+  - package_contents:
+      bin:
+        - edgehop
+      strict: true
+
+about:
+  homepage: https://github.com/ytausch/edgehop
+  summary: Switch Logitech Easy-Switch devices when the cursor hits a screen edge
+  description: |
+    Push the mouse cursor against an outer edge of the screen, and your Logitech
+    Easy-Switch keyboard and mouse switch to another computer.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/ytausch/edgehop
+
+extra:
+  recipe-maintainers:
+    - ytausch
