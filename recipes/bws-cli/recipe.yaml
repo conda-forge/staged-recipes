@@ -1,0 +1,69 @@
+context:
+  version: "2.1.0"
+
+package:
+  name: bws-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bitwarden/sdk-sm/archive/refs/tags/bws-v${{ version }}.tar.gz
+  sha256: 3ea669ae57b1d3090f98ff2c09894b4da0bf2c700a4f8d79f70a0f96615cd9ed
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/bws
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/bws
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/bws completions zsh > $PREFIX/share/zsh/site-functions/_bws
+          - $PREFIX/bin/bws completions bash > $PREFIX/share/bash-completion/completions/bws
+          - $PREFIX/bin/bws completions fish > $PREFIX/share/fish/vendor_completions.d/bws.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: bws --help
+  - package_contents:
+      bin:
+        - bws
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/bws
+            - share/fish/vendor_completions.d/bws.fish
+            - share/zsh/site-functions/_bws
+      strict: true
+
+about:
+  homepage: https://github.com/bitwarden/sdk-sm
+  summary: Bitwarden Secrets Manager CLI
+  description: |
+    bws is the official CLI for Bitwarden Secrets Manager.
+    It allows developers and CI/CD pipelines to retrieve, create, and manage secrets
+    without embedding credentials in code or configuration files.
+  license: LicenseRef-Bitwarden-SDK
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/bws
+  repository: https://github.com/bitwarden/sdk-sm
+
+extra:
+  recipe-maintainers:
+    - phreed
