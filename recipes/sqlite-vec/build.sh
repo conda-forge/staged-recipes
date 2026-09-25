@@ -10,7 +10,8 @@ if [[ "${target_platform}" == "win-64" ]]; then
     # Generate sqlite-vec.h
     make sqlite-vec.h
 
-    # Build the extension with MSVC
+    # Build the extension with MSVC (note we don't use `/Ivendor` but `/I${include_dir}`)
+    # Refer - https://github.com/asg017/sqlite-vec/blob/e9f598abfa0c06b328d8fe5da9c3760cce74be10/.github/workflows/release.yaml#L52
     MSYS2_ARG_CONV_EXCL='*' \
         cl.exe \
         /nologo \
