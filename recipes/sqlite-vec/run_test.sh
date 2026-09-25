@@ -15,8 +15,4 @@ case "$(uname -s)" in
         ;;
 esac
 
-# Avoid using uv for running tests
-sed -e 's/^test-loadable: loadable$/test-loadable:/' \
-    -e 's/uv run --managed-python --project tests pytest -vv -s -x \./python -m pytest -vvv -s -x/' \
-    Makefile > Makefile.test
-make -f Makefile.test test-loadable
+make test-loadable
