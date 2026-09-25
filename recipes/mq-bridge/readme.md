@@ -29,7 +29,7 @@ has to be a conda package.
 
 ## What the recipe patches
 
-The linkage split and build-system fixes are included in upstream v0.4.13.
+The linkage split and build-system fixes are included in upstream v0.4.15.
 `patches/` carries the one recipe-local change that is still needed for the
 tarball.
 
