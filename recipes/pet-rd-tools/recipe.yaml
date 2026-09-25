@@ -1,0 +1,74 @@
+schema_version: 1
+
+context:
+  version: "2.0.2"
+  build_number: 0
+
+package:
+  name: pet-rd-tools
+  version: ${{ version }}
+
+source:
+  # UCL/pet-rd-tools#61 - repoint at upstream tag once merged
+  url: https://github.com/casperdcl/pet-rd-tools/archive/523ef079d4725001f5a09645a19203a6ed7352f5.tar.gz
+  sha256: 6c47ec39972f0a632306b9342fefff67dc8bf2e7768f1c02bd15cf1fdc1a564a
+
+build:
+  number: ${{ build_number }}
+  script:
+    # the script runs in the source directory; CMAKE_ARGS is set by
+    # conda-forge CI (install prefix, prefix path, build type)
+    - if: unix
+      then: cmake -S . -B build -GNinja $CMAKE_ARGS
+    - if: win
+      then: cmake -S . -B build -GNinja %CMAKE_ARGS%
+    - cmake --build build --parallel
+    - cmake --install build
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+  host:
+    - libboost-devel
+    - glog
+    - libitk-devel
+  run:
+    - glog
+    - libitk
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -x $PREFIX/bin/nm_validate
+          - test -x $PREFIX/bin/nm_extract
+          - test -x $PREFIX/bin/nm_mrac2mu
+          - test -x $PREFIX/bin/nm_signa2mu
+          - nm_validate --help
+      - if: win
+        then:
+          - if not exist %LIBRARY_BIN%\nm_validate.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_extract.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_mrac2mu.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_signa2mu.exe exit 1
+          - '%LIBRARY_BIN%\nm_validate.exe --help >nul'
+
+about:
+  homepage: https://github.com/UCL/pet-rd-tools
+  repository: https://github.com/UCL/pet-rd-tools
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: PET MRAC (magnetic-resonance-based attenuation correction) command-line tools
+  description: |
+    pet-rd-tools (a.k.a. nmtools) provides command-line utilities for
+    preparing and validating PET MRI-based attenuation correction (MRAC)
+    data: nm_validate, nm_extract, nm_mrac2mu and nm_signa2mu.
+
+extra:
+  recipe-maintainers:
+    - casperdcl
+    - KrisThielemans
