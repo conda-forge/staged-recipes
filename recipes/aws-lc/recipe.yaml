@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  version: "5.5.0"
+
+package:
+  name: aws-lc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aws/aws-lc/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d79a5beb1c2f7fd86a17d91eb230ae12da71dc28bedeb775c179863cf279c650
+  patches:
+    - allow-dist-pkg-on-macos.patch
+
+build:
+  number: 0
+  # AWS-LC's CMake build does not support the MSVC generator for assembly.
+  skip: win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - perl
+    - ${{ compiler('go-nocgo') }}
+
+tests:
+  - script:
+      - aws-lc-bssl version
+      - aws-lc-openssl version
+      - test -f $PREFIX/include/aws-lc/openssl/ssl.h
+      - test -f $PREFIX/lib/pkgconfig/aws-lc.pc
+      - pkg-config --exists --print-errors aws-lc
+    requirements:
+      run:
+        - pkg-config
+  - package_contents:
+      bin:
+        - aws-lc-bssl
+        - aws-lc-openssl
+      include:
+        - aws-lc/openssl/ssl.h
+        - aws-lc/openssl/crypto.h
+      lib:
+        - crypto-awslc
+        - ssl-awslc
+  # Compile and link a small program against the installed library to verify
+  # the headers, pkg-config metadata and shared libraries are all consistent.
+  - files:
+      recipe:
+        - test_link.c
+    script:
+      - ${{ "$CC" }} $CFLAGS $LDFLAGS test_link.c -o test_link $(pkg-config --cflags --libs aws-lc)
+      - ./test_link
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - pkg-config
+
+about:
+  homepage: https://github.com/aws/aws-lc
+  summary: AWS-LC is a general-purpose cryptographic library maintained by AWS
+  description: |
+    AWS-LC is a general-purpose cryptographic library maintained by the AWS
+    Cryptography team for AWS and their customers. It is based on code from
+    Google's BoringSSL project and the OpenSSL project.
+
+    AWS-LC contains portable C implementations of algorithms needed for TLS
+    and common applications, with optimized assembly versions for x86 and
+    ARM on several platforms.
+
+    To avoid conflicting with the `openssl` package, this build installs its
+    headers under `$PREFIX/include/aws-lc/openssl`, names the libraries
+    `libcrypto-awslc` and `libssl-awslc`, and prefixes the command line tools
+    with `aws-lc-`. Consumers should use the `aws-lc`, `libcrypto-awslc` or
+    `libssl-awslc` pkg-config files, or the CMake packages `crypto` and `ssl`.
+  # New AWS-LC code is Apache-2.0 OR ISC; the BoringSSL/OpenSSL heritage adds
+  # ISC and Apache-2.0, and the third-party code compiled into libcrypto adds
+  # MIT (fiat), MIT-0 (s2n-bignum) and BSD-3-Clause (jitterentropy, which is
+  # dual BSD/GPL-2.0 upstream but which Amazon expressly distributes as
+  # BSD-3-Clause).
+  license: (Apache-2.0 OR ISC) AND Apache-2.0 AND ISC AND MIT AND MIT-0 AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - NOTICE
+    - third_party/fiat/LICENSE
+    - third_party/s2n-bignum/s2n-bignum-imported/LICENSE
+    - third_party/jitterentropy/jitterentropy-library/LICENSE
+    - third_party/jitterentropy/jitterentropy-library/LICENSE.bsd
+  documentation: https://github.com/aws/aws-lc/tree/main/docs
+  repository: https://github.com/aws/aws-lc
+
+extra:
+  recipe-maintainers:
+    - pavelzw
