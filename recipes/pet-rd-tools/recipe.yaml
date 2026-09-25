@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  version: "2.1.0"
+  build_number: 0
+
+package:
+  name: pet-rd-tools
+  version: ${{ version }}
+
+source:
+  url: https://github.com/UCL/pet-rd-tools/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d3c9855ae04b4e714cccfab1eac76776aa342697bbb1f67ea52ae9f114ce4e4b
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then: cmake -S . -B build -GNinja $CMAKE_ARGS
+    - if: win
+      then: cmake -S . -B build -GNinja %CMAKE_ARGS%
+    - cmake --build build --parallel
+    - cmake --install build
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+  host:
+    - libboost-devel
+    - glog
+    - libitk-devel
+  run:
+    - glog
+    - libitk
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - test -x $PREFIX/bin/nm_validate
+          - test -x $PREFIX/bin/nm_extract
+          - test -x $PREFIX/bin/nm_mrac2mu
+          - test -x $PREFIX/bin/nm_signa2mu
+          - nm_validate --help
+      - if: win
+        then:
+          - if not exist %LIBRARY_BIN%\nm_validate.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_extract.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_mrac2mu.exe exit 1
+          - if not exist %LIBRARY_BIN%\nm_signa2mu.exe exit 1
+          - '%LIBRARY_BIN%\nm_validate.exe --help >nul'
+
+about:
+  homepage: https://github.com/UCL/pet-rd-tools
+  repository: https://github.com/UCL/pet-rd-tools
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: PET MRAC (magnetic-resonance-based attenuation correction) command-line tools
+  description: |
+    pet-rd-tools (a.k.a. nmtools) provides command-line utilities for
+    preparing and validating PET MRI-based attenuation correction (MRAC)
+    data: nm_validate, nm_extract, nm_mrac2mu and nm_signa2mu.
+
+extra:
+  recipe-maintainers:
+    - casperdcl
+    - KrisThielemans
