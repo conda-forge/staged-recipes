@@ -1,0 +1,66 @@
+context:
+  version: "0.1.2"
+
+package:
+  name: perix
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MatMechLab/PeriX/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 03212c5150372af02b68a77b07125ac3fcb3e2fe6a75f5faec8cb37c488baf12
+
+build:
+  number: 0
+  skip:
+    - not (linux and x86_64)
+  script:
+    - cmake ${CMAKE_ARGS} -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTING=ON -DPARALLEL_ASSEMBLE=ON -DUSE_ONEAPI=ON -DONEAPI_DIR=${PREFIX} -DUSE_AMGCL=OFF -DCUDA_ASSEMBLE=OFF -DUSE_CUDSS=OFF
+    - cmake --build build --parallel ${CPU_COUNT}
+    - ctest --test-dir build --output-on-failure --parallel 1
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - eigen >=5.0.1
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
+    - mkl-devel
+    - nlohmann_json >=3.12.0
+
+tests:
+  - files:
+      recipe:
+        - check_poisson.py
+        - poisson_pardiso.json
+    requirements:
+      run:
+        - python
+    script:
+      - test -x "${PREFIX}/bin/perix"
+      - test -f "${PREFIX}/share/perix/examples/poisson.json"
+      - test -f "${PREFIX}/share/doc/PeriX/PeriXManual.pdf"
+      - test -f "${PREFIX}/share/doc/PeriX/licenses/LICENSE"
+      - OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 perix -i poisson_pardiso.json > perix.log
+      - python check_poisson.py perix.log poisson_pardiso-PD-results.vtu
+
+about:
+  homepage: https://github.com/MatMechLab/PeriX
+  repository: https://github.com/MatMechLab/PeriX
+  documentation: https://github.com/MatMechLab/PeriX/blob/v${{ version }}/documents/PeriXManual.pdf
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: Peridynamics framework for multiphysics simulation
+  description: |
+    PeriX is a C++20 peridynamics framework for multiphysics simulation.
+    This package enables the OpenMP assembly backend and Intel oneAPI MKL
+    PARDISO solver. AMGCL, CUDA assembly, and cuDSS are not included.
+
+extra:
+  recipe-maintainers:
+    - yangbai90
