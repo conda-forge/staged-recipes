@@ -1,0 +1,109 @@
+{% set name = "openndm" %}
+{% set version = "0.2.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # conda-forge builds from the PyPI sdist, not from the git tag. The
+  # checksum below is of the 281566-byte sdist published by the v0.2.0
+  # release, and must be regenerated on every version bump:
+  #   python -c "import hashlib,urllib.request as u; \
+  #     print(hashlib.sha256(u.urlopen(URL).read()).hexdigest())"
+  url: https://files.pythonhosted.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: d0ef309177f1c783492d2d9140bf6b9910ad711e57c8185c8290340ca5796d70
+
+build:
+  number: 0
+  # A compiled extension, so this is not noarch and not skipped per-platform
+  # except where h5py has no wheel story. Python 3.10 is the floor.
+  skip: true  # [py<310]
+  # Unix only. CMake picked "Unix Makefiles" on linux_64 and then failed with
+  # CMAKE_MAKE_PROGRAM not set: conda-forge's Linux build environment has no
+  # make. ninja is already a build dependency, so the generator is named
+  # explicitly instead of left to detection. The CMAKE_CXX_COMPILER error
+  # that followed was a cascade of the same failure, not a missing compiler.
+  #
+  # Windows must not be forced to Ninja. It builds with the Visual Studio
+  # generator, which is passed -A x64, and Ninja rejects a platform
+  # specification -- configure then fails before the compiler is probed:
+  #
+  #   does not support platform specification, but platform "x64" was
+  #   specified
+  #
+  # MSVC compiles this project fine when the generator is left alone.
+  script:
+    - export CMAKE_GENERATOR=Ninja    # [not win]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.16
+    - ninja
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}      # [build_platform != target_platform]
+    - pybind11                                # [build_platform != target_platform]
+    - numpy                                   # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.8
+    - pybind11 >=2.11
+    - numpy
+    # OpenMP is how the solver threads; see OPENNDM_USE_OPENMP in CMakeLists.
+    - llvm-openmp   # [osx]
+    - libgomp       # [linux]
+  run:
+    - python
+    - numpy >=1.24
+    - h5py >=3.8
+    # OPENNDM_USE_OPENMP is on by default, so the extension links the MSVC
+    # OpenMP runtime (vcomp140.dll) on Windows. conda-build's overlinking
+    # check rejects a binary whose DSOs are not declared, and the cxx
+    # compiler's run_exports do not cover this one.
+    - vcomp14  # [win]
+
+test:
+  imports:
+    - openndm
+    - openndm.gc
+  requires:
+    - pytest
+  commands:
+    # A smoke test that exercises the compiled core rather than just the
+    # import: the bare-cuboid eigenvalue has a closed form, so a wrongly built
+    # extension shows up here instead of at a user's first real calculation.
+    - python -c "import openndm; print(openndm.__version__)"
+    - python -c "import numpy as np, openndm; lib = openndm.XSLibrary(1, 1); lib.set_composition(0, D=[1.0], absorption=[0.08], nu_fission=[0.1], kappa_fission=[0.1], chi=[1.0], scatter=[[0.0]]); lib.finalize(); g = openndm.Geometry.from_lattice(np.zeros((16,16,16), int), pitch=6.25, boundaries=dict.fromkeys(['x_min','x_max','y_min','y_max','z_min','z_max'], 'zero_flux')); k = openndm.Model(g, lib, openndm.Settings(verbosity=0)).solve().k_eff; ref = 0.1/(0.08 + 3*(np.pi/100)**2); assert abs(1e5*(k-ref)) < 10.0, (k, ref)"
+
+about:
+  home: https://github.com/rizkiokt/openndm
+  summary: Open Nodal Diffusion Method — a nodal diffusion solver built on the OpenMC stack
+  description: |
+    OpenNDM is a three-dimensional, multi-group nodal diffusion solver for
+    reactor core analysis, with a C++17 core and a pybind11 Python API.
+
+    It provides the core-calculation stage of a two-step lattice-to-core
+    scheme in which OpenMC performs the lattice physics. A user who already
+    has an openmc.mgxs.Library object can run a full-core nodal calculation
+    without writing any format-conversion code.
+
+    OpenMC itself is an optional runtime dependency: only openndm.gc, the
+    group constant generation path, needs it, and the solver imports and runs
+    without it. Install openmc from conda-forge alongside this package to use
+    that path.
+
+    OpenNDM is research software. It carries no nuclear quality assurance
+    pedigree and is not qualified for licensing or safety analysis.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://openndm.readthedocs.io
+  dev_url: https://github.com/rizkiokt/openndm
+
+extra:
+  recipe-maintainers:
+    - rizkiokt
