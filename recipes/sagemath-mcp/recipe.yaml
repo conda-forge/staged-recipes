@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+# The conda-forge recipe, in the v1 (`recipe.yaml`) format defined by CEP 13/14.
+# staged-recipes marked the v0 `meta.yaml` format deprecated in August 2026 and
+# says v0 submissions are "less likely to be reviewed in a timely manner", so
+# this is the format the submission uses and therefore the one kept here.
+#
+# `tests/test_conda_recipe.py` keeps it honest against `pyproject.toml`: the
+# runtime dependencies, the Python floor, the entry point, and the source hash
+# against PyPI. The version trails the project between a bump and the upload
+# that follows it, because the hash can only exist after the release ships.
+
+context:
+  name: sagemath-mcp
+  version: "0.9.1"
+  # conda-forge's global `python_min` is 3.11, and this package requires 3.12.
+  # Without this override the build environment gets 3.11 and pip refuses the
+  # install outright: "Package 'sagemath-mcp' requires a different Python:
+  # 3.11.16 not in '>=3.12'". Setting it in the recipe context is how a package
+  # raises the floor above the global pin; it flows into the host requirement,
+  # the run requirement and the test matrix below, so there is one number.
+  python_min: "3.12"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/sagemath_mcp-${{ version }}.tar.gz
+  sha256: a69f0f2b8d04bc486ffa5acf3710bd346b7c7c819be9383d022cc7f617cc7eac
+
+build:
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  python:
+    entry_points:
+      - sagemath-mcp = sagemath_mcp.server:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling >=1.32.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+    # 4.0.8 is the floor this package is tested against; conda-forge has
+    # carried it since late September 2026 (4.0.10 on 2026-09-26).
+    - fastmcp >=4.0.8,<5
+    - pydantic >=2.13.4
+    - anyio >=4.14.2
+
+tests:
+  - python:
+      imports:
+        - sagemath_mcp
+      pip_check: true
+      # Both ends of the supported range: a noarch package installs on every
+      # Python at or above python_min, so testing only the floor would miss a
+      # break on the newest one. conda-forge's linter asks for this.
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      # `--help` is the only command that works without a SageMath runtime;
+      # every evaluation needs one, and this package deliberately does not
+      # depend on Sage (see about/description).
+      - sagemath-mcp --help
+
+about:
+  homepage: https://github.com/XBP-Europe/sagemath-mcp
+  summary: Model Context Protocol server that provides stateful SageMath computations.
+  description: |
+    A Model Context Protocol (MCP) server that gives a language model a
+    sandboxed mathematical subset of SageMath: 40 stateful tools for symbolic
+    calculus, algebra, number theory, graphs, groups, elliptic curves, plotting
+    and claim verification. Each MCP session gets a dedicated Sage worker
+    process, so variables, functions and assumptions persist across tool calls.
+    Caller code is deny-by-default: a name is refused unless the generated
+    allowlist offers it or the caller's own code bound it.
+
+    A SageMath runtime is REQUIRED at run time and is deliberately not a
+    dependency of this package: `sage` must be on PATH (conda-forge ships
+    `sage`, which is the usual way to get it), or the pip extra
+    `sagemath-mcp[passagemath]` can supply one. Making Sage a hard dependency
+    would force a multi-gigabyte install on users who run the project's
+    hardened container instead.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/XBP-Europe/sagemath-mcp/blob/main/USAGE.md
+  repository: https://github.com/XBP-Europe/sagemath-mcp
+
+extra:
+  recipe-maintainers:
+    - csteinlxbp
