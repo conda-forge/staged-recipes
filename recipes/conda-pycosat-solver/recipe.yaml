@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: conda-pycosat-solver
+  version: ${{ version }}
+
+source:
+  # stable, checksummed archive uploaded by .github/workflows/upload.yml,
+  # rather than GitHub's own auto-generated (and historically not
+  # format-stable) archive link
+  url: https://github.com/conda/conda-pycosat-solver/releases/download/${{ version }}/conda-pycosat-solver-${{ version }}.tar.gz
+  sha256: ac103446d6f374a54f1427bdc364fc0755350242a8f3a106e7e879d2a463c8ec
+  target_directory: src/
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: ${{ PYTHON }} -m pip install src/ -vv
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling >=1.12.2
+    - hatch-vcs >=0.2.0
+  run:
+    - boltons >=23.0.0
+    - frozendict >=2.4.2
+    - packaging >=26.3
+    - pycosat >=0.6.3
+    - python >=${{ python_min }}
+    - tqdm >=4
+  run_constraints:
+    # Technically a run dependency (imported at runtime), but conda already
+    # bundles conda-pycosat-solver by default, so a hard `run` dependency
+    # here would create a dependency cycle that complicates migrations.
+    - conda >=23.7.3
+
+tests:
+  # rattler-build doesn't support `requirements` in `python` block,
+  # so copy the same script block twice to test oldest and newest python.
+  # xref https://github.com/conda-forge/staged-recipes/pull/34939
+  # we need this because conda is a soft-dependency in run-constraints only
+  # to avoid dependency cycles with conda (which depends on this package).
+  - script:
+      - python -c "import conda_pycosat_solver"
+      - python -m pip check
+      - conda create -c conda-forge -n test --dry-run scipy --solver=pycosat
+      - conda create -c conda-forge -n test --dry-run scipy --solver=classic
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - conda
+        - pip
+  - script:
+      - python -c "import conda_pycosat_solver"
+      - python -m pip check
+      - conda create -c conda-forge -n test --dry-run scipy --solver=pycosat
+      - conda create -c conda-forge -n test --dry-run scipy --solver=classic
+    requirements:
+      run:
+        - python
+        - conda
+        - pip
+
+about:
+  license: BSD-3-Clause
+  license_file: src/LICENSE
+  summary: The pycosat solver used in conda, also available as classic
+  description: |
+    conda-pycosat-solver provides the pycosat-based SAT solver that has been
+    powering conda's resolution process since its inception, historically
+    known as the classic solver (classic remains available as an alias).
+    It is packaged separately to benefit from the configurability of the
+    conda plugin system.
+  homepage: https://github.com/conda/conda-pycosat-solver
+  repository: https://github.com/conda/conda-pycosat-solver
+  documentation: https://conda.github.io/conda-pycosat-solver/
+
+extra:
+  recipe-maintainers:
+    - jaimergp
+    - jezdez
+    - kenodegard
