@@ -1,0 +1,46 @@
+Subject: [PATCH] Do not vendor CUTLASS; use the headers from the environment
+
+tilelang ships the CUTLASS headers under `tilelang/3rdparty/cutlass` only so
+that the JIT can pass them to nvcc/NVRTC via `-I` (see
+`tilelang/cuda/backend.py`, `tilelang/contrib/nvcc.py` and
+`tilelang/jit/adapter/libgen.py`). Nothing in `CMakeLists.txt` compiles
+against CUTLASS, so it is a runtime-only include path.
+
+Stop packaging that copy and let `TL_CUTLASS_PATH` resolve to an installed
+CUTLASS instead. Upstream already honours `TL_CUTLASS_PATH` when it is set;
+this only adds a fallback so the common case works without exporting
+anything. An installed CUTLASS puts `cutlass/`, `cute/` and (with
+`-DCUTLASS_ENABLE_TOOLS=ON`) `cutlass/util/` directly under
+`<prefix>/include`, which is what the JIT `-I` flags need.
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -158,9 +158,8 @@
+ "tilelang/3rdparty/tvm/python" = "3rdparty/tvm/python"
+ "tilelang/3rdparty/tvm/include" = "3rdparty/tvm/include"
+ "tilelang/3rdparty/tvm/version.py" = "3rdparty/tvm/version.py"
+-# CUTLASS
+-"tilelang/3rdparty/cutlass/include" = "3rdparty/cutlass/include"
+-"tilelang/3rdparty/cutlass/tools" = "3rdparty/cutlass/tools"
++# CUTLASS is not vendored here: the headers are taken from the environment
++# (see tilelang/env.py) so that a single, shared copy can be used.
+ 
+ 
+ 
+--- a/tilelang/env.py
++++ b/tilelang/env.py
+@@ -631,6 +631,14 @@
+ # Initialize CUTLASS paths
+ if os.environ.get("TL_CUTLASS_PATH", None) is None:
+     cutlass_inc_path = os.path.join(THIRD_PARTY_ROOT, "cutlass", "include")
++    if not os.path.exists(cutlass_inc_path):
++        # CUTLASS is not vendored in every build. Fall back to an installed copy,
++        # which puts both `cutlass/` and `cute/` under `<prefix>/include`
++        # (e.g. the conda-forge `cutlass` package).
++        for _prefix in (sys.prefix, sys.base_prefix, os.environ.get("CONDA_PREFIX")):
++            if _prefix and os.path.isdir(os.path.join(_prefix, "include", "cutlass")):
++                cutlass_inc_path = os.path.join(_prefix, "include")
++                break
+     if os.path.exists(cutlass_inc_path):
+         os.environ["TL_CUTLASS_PATH"] = env.CUTLASS_INCLUDE_DIR = cutlass_inc_path
+     else:

@@ -1,0 +1,172 @@
+schema_version: 1
+
+context:
+  name: tilelang
+  version: "0.1.14"
+  cuda_enabled: ${{ cuda_compiler_version != "None" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 7ae0fba6c63dae80b3c9c5c11a70bb8d7165794994f290f36e2fe87bfb143cfc
+  patches:
+    # Stop shipping the vendored CUTLASS headers (they are only used as a JIT
+    # include path) and resolve them from the prefix instead, where the
+    # conda-forge `cutlass` package installs them.
+    - patches/0001-do-not-vendor-cutlass.patch
+
+build:
+  number: 0
+  # The only compiled Python extension is a Cython module built against the
+  # stable ABI (`wheel.py-api = "cp39"`), so build once per platform/CUDA variant.
+  # Windows is not supported yet.
+  skip:
+    - win
+    - not (match(python, python_min ~ ".*") and is_abi3)
+  python:
+    version_independent: true
+  script:
+    env:
+      CMAKE_GENERATOR: Ninja
+      # Otherwise the version gets a local label, e.g. `0.1.14+cu130.gitabcdef`.
+      NO_VERSION_LABEL: "1"
+      USE_CUDA: ${{ "ON" if cuda_enabled else "OFF" }}
+      USE_ROCM: "OFF"
+    content:
+      # These are not needed for the build: CUTLASS comes from the `cutlass`
+      # package (see the patch above) and the HIP headers are only used by the
+      # ROCm backend, which is not enabled here. Removing them makes sure
+      # neither gets picked up or packaged by accident.
+      - rm -rf 3rdparty/cutlass 3rdparty/hip-headers
+      # Upstream's FindZ3 only looks inside the PyPI `z3-solver` wheel layout
+      # (NO_DEFAULT_PATH); point it at `libz3` from the prefix instead.
+      - export CMAKE_ARGS="${CMAKE_ARGS} -DPython3_EXECUTABLE=${PYTHON} -DZ3_INCLUDE_DIR=${PREFIX}/include -DZ3_LIBRARY=${PREFIX}/lib/libz3${SHLIB_EXT}"
+      - export CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - cython >=3.1.0
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: cuda_enabled
+      then:
+        - ${{ compiler('cuda') }}
+    - cmake >=3.26.1
+    - ninja
+    # tvm-ffi builds its bundled libbacktrace with autotools
+    - make
+    - if: linux
+      then:
+        - patchelf >=0.17.2
+  host:
+    - python ${{ python_min }}.*
+    - python-abi3 ${{ python_min }}.*
+    - pip
+    - cython >=3.1.0
+    - scikit-build-core
+    # FindZ3.cmake imports `z3` at configure time; the library itself comes from libz3.
+    - z3-solver >=4.13.0,<4.15.5
+    - libz3
+    - if: cuda_enabled
+      then:
+        # Headers for the dlopen-based CUDA driver/runtime/NVRTC stubs; nothing
+        # links against the real CUDA libraries, so the package still imports on
+        # machines without a GPU.
+        # The stubs assert that the CUDA headers match nvcc's version.
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        - cuda-driver-dev
+        - cuda-nvrtc-dev
+  run:
+    - python >=${{ python_min }}
+    - apache-tvm-ffi >=0.1.11,<0.1.13
+    - torch-c-dlpack-ext
+    - cloudpickle
+    - ml_dtypes
+    - numpy >=1.23.5
+    - psutil
+    - pytorch >=2.4
+    - tqdm >=4.62.3
+    - typing_extensions >=4.10.0
+    - z3-solver >=4.13.0,<4.15.5
+    - if: osx
+      then:
+        # Upstream: "jit-compiling a torch extension needs setuptools"
+        - setuptools
+    - if: cuda_enabled
+      then:
+        # Loaded at runtime by the stub libraries.
+        - cuda-cudart
+        - cuda-nvrtc
+        # Header-only, and only consumed by the CUDA JIT at runtime (passed to
+        # nvcc/NVRTC as an -I flag), so it is not needed at build time. The
+        # upstream sdist vendors CUTLASS 4.1.0.
+        - cutlass >=4.1.0,<5
+
+tests:
+  - python:
+      imports:
+        - tilelang
+        - tilelang.cpu
+        - tilelang.engine
+        - tilelang.jit
+        - tilelang.language
+        - tilelang.utils
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - files:
+      recipe:
+        - test_package.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - if: unix
+          then:
+            - abi3audit
+    script:
+      - python test_package.py ${{ version }} ${{ "cuda" if cuda_enabled else "cpu" }}
+      - if: unix
+        then:
+          - abi3audit "$(python -c 'import importlib.util, os; print(os.path.dirname(importlib.util.find_spec("tilelang").origin))')/lib/tilelang_cython_wrapper.abi3.so" -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/tile-ai/tilelang
+  repository: https://github.com/tile-ai/tilelang
+  documentation: https://tilelang.com/
+  summary: A tile level programming language to generate high performance code.
+  description: |
+    Tile Language (tile-lang) is a concise domain-specific language designed to
+    streamline the development of high-performance GPU/CPU kernels (e.g., GEMM,
+    Dequant GEMM, FlashAttention, LinearAttention). It is built on top of TVM,
+    a vendored fork of which is included in this package.
+
+    Just-in-time compilation of CUDA kernels requires `nvcc`; install
+    `cuda-nvcc` alongside this package if you need it.
+  # tilelang itself is MIT. The vendored TVM (compiled into libtvm_*.so and
+  # shipped as headers/sources for the JIT) and tvm-ffi headers are Apache-2.0,
+  # and bring in the third-party code listed in 3rdparty/tvm/licenses.
+  license: MIT AND Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND Unlicense
+  license_file:
+    - LICENSE
+    - THIRDPARTYNOTICES.txt
+    - 3rdparty/tvm/LICENSE
+    - 3rdparty/tvm/NOTICE
+    - 3rdparty/tvm/licenses/
+    - 3rdparty/tvm/3rdparty/tvm-ffi/LICENSE
+    - 3rdparty/tvm/3rdparty/tvm-ffi/NOTICE
+    - 3rdparty/tvm/3rdparty/tvm-ffi/licenses/LICENSE.dlpack.txt
+
+extra:
+  recipe-maintainers:
+    - iamthebot
