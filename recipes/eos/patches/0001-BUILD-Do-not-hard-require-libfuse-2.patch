@@ -1,0 +1,100 @@
+From 8dc809acd9279209cdef7c59674f115e80ee0211 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Tue, 15 Sep 2026 23:38:53 +0200
+Subject: [PATCH] BUILD: Do not hard-require libfuse 2
+
+eosxd needs the FUSE 2 API, but the rest of the tree does not: the eos
+CLI, eoscp and the fuse3 daemons build fine without it. Requiring fuse2
+unconditionally makes the client unbuildable on platforms that only ship
+libfuse3, and on macOS without macFUSE.
+
+find_package(fuse) is now optional and the eosxd target, its object
+library and fusex/tests are built only when it was found, mirroring how
+eosxd3/eoscfsd are already gated on FUSE3_FOUND.
+
+eosfusebind stays outside the guard: it binds krb5/x509 credentials
+for whichever fuse daemon is in use and is not fuse2 specific.
+---
+ cmake/EosFindLibs.cmake |  2 +-
+ cmake/Findfuse.cmake    |  3 +++
+ fusex/CMakeLists.txt    | 11 ++++++++++-
+ 3 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/cmake/EosFindLibs.cmake b/cmake/EosFindLibs.cmake
+index 7cb5f9c70..8e8854c2d 100644
+--- a/cmake/EosFindLibs.cmake
++++ b/cmake/EosFindLibs.cmake
+@@ -39,7 +39,7 @@ if(NOT PACKAGEONLY)
+   find_package(PythonSitePkg REQUIRED)
+   find_package(CURL REQUIRED)
+   find_package(XRootD REQUIRED)
+-  find_package(fuse REQUIRED)
++  find_package(fuse)
+   find_package(Threads REQUIRED)
+   find_package(ZLIB REQUIRED)
+   find_package(readline REQUIRED)
+diff --git a/cmake/Findfuse.cmake b/cmake/Findfuse.cmake
+index 41a5bbcc7..010b01a59 100644
+--- a/cmake/Findfuse.cmake
++++ b/cmake/Findfuse.cmake
+@@ -54,6 +54,9 @@ if (FUSE_FOUND AND NOT TARGET FUSE::FUSE)
+   set_target_properties(FUSE::FUSE PROPERTIES
+     IMPORTED_LOCATION "${FUSE_LIBRARY}"
+     INTERFACE_INCLUDE_DIRECTORIES "${FUSE_INCLUDE_DIR}")
++else()
++  message(WARNING "Notice: fuse2 not found, no fuse2 support")
++  add_library(FUSE::FUSE INTERFACE IMPORTED)
+ endif()
+ 
+ set(FUSE_INCLUDE_DIRS ${FUSE_INCLUDE_DIR})
+diff --git a/fusex/CMakeLists.txt b/fusex/CMakeLists.txt
+index d8403bd60..ba1af33fe 100644
+--- a/fusex/CMakeLists.txt
++++ b/fusex/CMakeLists.txt
+@@ -43,7 +43,9 @@ set(EOSXD3_COMPILE_FLAGS
+ #-------------------------------------------------------------------------------
+ # Add tests directory
+ #-------------------------------------------------------------------------------
+-add_subdirectory(tests)
++if (FUSE_FOUND)
++  add_subdirectory(tests)
++endif()
+ 
+ #-------------------------------------------------------------------------------
+ # Add auth subsystem
+@@ -73,6 +75,7 @@ set(EOSXD_COMMON_LINK_LIBRARIES
+   BZ2::BZ2
+   LIBBFD::LIBBFD)
+ 
++if (FUSE_FOUND)
+ #-------------------------------------------------------------------------------
+ # eosxd common objects, shared between tests and main code.
+ # An object library prevents having to compile them twice.
+@@ -115,6 +118,8 @@ target_link_libraries(eosxd-objects PUBLIC
+   ZMQ::ZMQ
+   fmt::fmt-header-only)
+ 
++endif()
++
+ if (FUSE3_FOUND AND NOT APPLE)
+ #-------------------------------------------------------------------------------
+ # eosxd common objects, shared between tests and main code.
+@@ -168,6 +173,7 @@ if (FUSE3_FOUND AND NOT APPLE)
+     PROPERTIES COMPILE_FLAGS ${EOSXD3_COMPILE_FLAGS})
+ endif()
+ 
++if (FUSE_FOUND)
+ target_link_libraries(eosxd-objects PUBLIC FUSE::FUSE)
+ 
+ set_target_properties(eosxd-objects
+@@ -191,7 +197,10 @@ set_target_properties(eosxd
+ 
+ install(TARGETS eosxd
+   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
++endif()
+ 
++# Not fuse2 specific: eosfusebind binds krb5/x509 credentials for whichever
++# fuse daemon is in use, so install it even in a fuse3-only build.
+ install(FILES eosfusebind
+   DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+   PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ

@@ -1,0 +1,182 @@
+From 856fe76b937b08f8d29139e55215e9ff827a4851 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Tue, 15 Sep 2026 23:38:53 +0200
+Subject: [PATCH] FST: Make XFS pre-allocation support optional
+
+<xfs/xfs.h> was included unconditionally on Linux by FsIo.cc and
+LocalIo.cc, which are part of EosFstIo and so are compiled even for a
+CLIENT=1 build, while XFS::XFS was only ever linked into the server-side
+targets. A client build therefore needed xfsprogs headers on the default
+include path and had no way to be pointed at them.
+
+XFS::XFS is now linked into EosFstIo-Objects so its include directory
+propagates, it carries EOS_HAVE_XFS, and the two xfsctl() fast paths are
+guarded by it. Without xfs the existing posix_fallocate/ftruncate
+fallbacks are used.
+
+When xfs is present the behaviour is unchanged, including the
+EOS_FST_DISABLE_XFS_FALLOCATE escape hatch.
+---
+ cmake/EosFindLibs.cmake |  3 ++-
+ cmake/Findxfs.cmake     |  6 +++++-
+ fst/CMakeLists.txt      |  1 +
+ fst/io/local/FsIo.cc    | 14 +++++++++++---
+ fst/io/local/LocalIo.cc | 14 +++++++++++---
+ 5 files changed, 30 insertions(+), 8 deletions(-)
+
+diff --git a/cmake/EosFindLibs.cmake b/cmake/EosFindLibs.cmake
+index 8e8854c2d..5f3e783b1 100644
+--- a/cmake/EosFindLibs.cmake
++++ b/cmake/EosFindLibs.cmake
+@@ -91,7 +91,7 @@ if(NOT PACKAGEONLY)
+   if (Linux)
+     find_package(help2man)
+     find_package(glibc REQUIRED)
+-    find_package(xfs REQUIRED)
++    find_package(xfs)
+     find_package(procps)
+     find_package(libproc2)
+ 
+@@ -104,6 +104,7 @@ if(NOT PACKAGEONLY)
+     add_library(GLIBC::DL    INTERFACE IMPORTED)
+     add_library(GLIBC::RT    INTERFACE IMPORTED)
+     add_library(GLIBC::M     INTERFACE IMPORTED)
++    add_library(XFS::XFS     INTERFACE IMPORTED)
+   endif()
+ 
+   # The server build also requires
+diff --git a/cmake/Findxfs.cmake b/cmake/Findxfs.cmake
+index c293cc57f..10a4dfca2 100644
+--- a/cmake/Findxfs.cmake
++++ b/cmake/Findxfs.cmake
+@@ -21,7 +21,11 @@ mark_as_advanced(XFS_INCLUDE_DIR)
+ if (XFS_FOUND AND NOT TARGET XFS::XFS)
+   add_library(XFS::XFS INTERFACE IMPORTED)
+   set_target_properties(XFS::XFS PROPERTIES
+-    INTERFACE_INCLUDE_DIRECTORIES "${XFS_INCLUDE_DIR}")
++    INTERFACE_INCLUDE_DIRECTORIES "${XFS_INCLUDE_DIR}"
++    INTERFACE_COMPILE_DEFINITIONS "EOS_HAVE_XFS=1")
++elseif (NOT TARGET XFS::XFS)
++  message(WARNING "Notice: xfs not found, no XFS pre-allocation support")
++  add_library(XFS::XFS INTERFACE IMPORTED)
+ endif()
+ 
+ set(XFS_INCLUDE_DIRS ${XFS_INCLUDE_DIR})
+diff --git a/fst/CMakeLists.txt b/fst/CMakeLists.txt
+index e9609cf27..634f0e375 100644
+--- a/fst/CMakeLists.txt
++++ b/fst/CMakeLists.txt
+@@ -164,6 +164,7 @@ target_link_libraries(EosFstIo-Objects PUBLIC
+   Jerasure-Objects
+   EosCommon
+   DAVIX::DAVIX
++  XFS::XFS
+   XROOTD::PRIVATE
+   NFS::NFS)
+ 
+diff --git a/fst/io/local/FsIo.cc b/fst/io/local/FsIo.cc
+index e3bb06735..81bc6cfe7 100644
+--- a/fst/io/local/FsIo.cc
++++ b/fst/io/local/FsIo.cc
+@@ -25,7 +25,7 @@
+ #include "fst/io/local/FsIo.hh"
+ #include "common/XattrCompat.hh"
+ 
+-#ifndef __APPLE__
++#ifdef EOS_HAVE_XFS
+ #include <xfs/xfs.h>
+ #endif
+ #undef __USE_FILE_OFFSET64
+@@ -209,6 +209,8 @@ FsIo::fileFallocate(XrdSfsFileOffset length)
+   return 0;
+ #else
+ 
++#ifdef EOS_HAVE_XFS
++
+   if (platform_test_xfs_fd(mFd) && !getenv("EOS_FST_DISABLE_XFS_FALLOCATE")) {
+     // Select the fast XFS allocation function if available
+     xfs_flock64_t fl;
+@@ -216,7 +218,9 @@ FsIo::fileFallocate(XrdSfsFileOffset length)
+     fl.l_start = 0;
+     fl.l_len = (off64_t) length;
+     return xfsctl(NULL, mFd, XFS_IOC_RESVSP64, &fl);
+-  } else {
++  } else
++#endif
++  {
+     if (getenv("EOS_FST_POSIX_FALLOCATE")) {
+       // only fallocate if defined
+       return posix_fallocate(mFd, 0, length);
+@@ -244,6 +248,8 @@ FsIo::fileFdeallocate(XrdSfsFileOffset fromOffset,
+ #else
+ 
+   if (mFd > 0) {
++#ifdef EOS_HAVE_XFS
++
+     if (platform_test_xfs_fd(mFd)) {
+       // Select the fast XFS deallocation function if available
+       xfs_flock64_t fl;
+@@ -251,7 +257,9 @@ FsIo::fileFdeallocate(XrdSfsFileOffset fromOffset,
+       fl.l_start = fromOffset;
+       fl.l_len = (off64_t) toOffset - fromOffset;
+       return xfsctl(NULL, mFd, XFS_IOC_UNRESVSP64, &fl);
+-    } else {
++    } else
++#endif
++    {
+       return 0;
+     }
+   }
+diff --git a/fst/io/local/LocalIo.cc b/fst/io/local/LocalIo.cc
+index ab76e70f4..fe6e2f52c 100644
+--- a/fst/io/local/LocalIo.cc
++++ b/fst/io/local/LocalIo.cc
+@@ -26,7 +26,7 @@
+ #include "fst/io/local/FsIo.hh"
+ #include "common/XattrCompat.hh"
+ 
+-#ifndef __APPLE__
++#ifdef EOS_HAVE_XFS
+ #include <xfs/xfs.h>
+ #endif
+ 
+@@ -257,6 +257,8 @@ LocalIo::fileFallocate(XrdSfsFileOffset length)
+ #else
+   int fd = error.getErrInfo();
+ 
++#ifdef EOS_HAVE_XFS
++
+   if (platform_test_xfs_fd(fd) && !getenv("EOS_FST_DISABLE_XFS_FALLOCATE")) {
+     // Select the fast XFS allocation function if available
+     xfs_flock64_t fl;
+@@ -264,7 +266,9 @@ LocalIo::fileFallocate(XrdSfsFileOffset length)
+     fl.l_start = 0;
+     fl.l_len = (off64_t) length;
+     return xfsctl(NULL, fd, XFS_IOC_RESVSP64, &fl);
+-  } else {
++  } else
++#endif
++  {
+     if (getenv("EOS_FST_POSIX_FALLOCATE")) {
+       // only fallocate if defined
+       return posix_fallocate(fd, 0, length);
+@@ -299,6 +303,8 @@ LocalIo::fileFdeallocate(XrdSfsFileOffset fromOffset,
+   int fd = error.getErrInfo();
+ 
+   if (fd > 0) {
++#ifdef EOS_HAVE_XFS
++
+     if (platform_test_xfs_fd(fd)) {
+       // Select the fast XFS deallocation function if available
+       xfs_flock64_t fl;
+@@ -306,7 +312,9 @@ LocalIo::fileFdeallocate(XrdSfsFileOffset fromOffset,
+       fl.l_start = fromOffset;
+       fl.l_len = (off64_t) toOffset - fromOffset;
+       return xfsctl(NULL, fd, XFS_IOC_UNRESVSP64, &fl);
+-    } else {
++    } else
++#endif
++    {
+       // Posix_fallocate truncates a file to the reserved size, we have
+       // to truncate back to the beginning of the unwritten extent
+       return ftruncate(fd, fromOffset);

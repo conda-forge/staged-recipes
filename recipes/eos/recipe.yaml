@@ -1,0 +1,229 @@
+schema_version: 1
+
+context:
+  version: "5.5.1"
+  release: "1"
+
+recipe:
+  name: eos-split
+  version: ${{ version }}
+
+source:
+  # Not the GitHub tag archive: EOS has 13 git submodules and several of them
+  # (qclient, eos-protobuf-spec, grpc-proto, backward-cpp, ...) are needed even
+  # for a client-only build. This is the tarball the SRPMs are built from and it
+  # has them vendored in.
+  url: https://storage-ci.web.cern.ch/storage-ci/eos/diopside/tarball/eos-${{ version }}-${{ release }}.tar.gz
+  sha256: 1e497fdb61e7bc579ee17044ba4c29cb2078f80b28a288faadda0a2b455054d1
+  patches:
+    # Being sent to cern-eos/eos; the subjects match the upstream commits so
+    # they can be dropped by version once merged.
+    - patches/0001-BUILD-Do-not-hard-require-libfuse-2.patch
+    - patches/0002-FST-Make-XFS-pre-allocation-support-optional.patch
+    - patches/0003-COMMON-Only-enable-backward-cpp-s-libbfd-support-whe.patch
+    - patches/0004-BUILD-Allow-the-sysconfdir-to-be-overridden.patch
+    - patches/0005-BUILD-Make-the-prebuilt-eos-tui-download-optional.patch
+    - patches/0006-PROTO-Fix-parallel-build-race-generating-the-gRPC-se.patch
+    - patches/0007-FST-Fix-the-NFS-IO-backend-build-on-macOS.patch
+    - patches/0008-TEST-Fix-the-eos-io-tool-build-on-macOS.patch
+    - patches/0009-BUILD-Do-not-build-the-gRPC-client-tools-off-Linux.patch
+    - patches/0010-COMMON-Allow-building-against-a-system-jwt-cpp.patch
+    - patches/0011-COMMON-Allow-building-against-a-system-CLI11.patch
+    - patches/0012-COMMON-Allow-building-against-a-system-backward-cpp.patch
+
+build:
+  number: 0
+  skip: win
+
+outputs:
+  - staging:
+      name: eos-build
+    build:
+      script:
+        file: build.sh
+        env:
+          EOS_VERSION: ${{ version }}
+          EOS_RELEASE: ${{ release }}
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - make
+        - pkg-config
+        # Only used to locate an interpreter at configure time; nothing in a
+        # CLIENT build links against or installs into Python.
+        - python
+      host:
+        - libxrootd-devel
+        # Unvendored from EOS's submodules by patches 0010-0012
+        - jwt-cpp
+        - cli11
+        - backward-cpp
+        - libgrpc
+        - libprotobuf
+        - libabseil
+        - rocksdb
+        - fmt
+        - jsoncpp
+        - libevent
+        - krb5
+        - zeromq
+        - cppzmq
+        - ncurses
+        - readline
+        - libuuid
+        - openssl
+        - zlib
+        - bzip2
+        - libcurl
+        - sparsehash
+        - davix
+        - libnfs
+        - scitokens-cpp
+        - jemalloc
+        - xxhash
+        - zstd
+        - lz4
+        - snappy
+        - if: linux
+          then:
+            - libcap
+            - procps-ng
+            - isa-l
+            # Deliberately no libfuse (FUSE 2): eosxd is dropped in favour of
+            # eosxd3, see the not_exists check on the eos-fuse output.
+            - libfuse3
+
+  - package:
+      name: libeos
+    inherit: eos-build
+    build:
+      files:
+        - lib/libEos*
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('libeos', upper_bound='x') }}
+    tests:
+      - package_contents:
+          strict: true
+          lib:
+            - EosCommon
+            - EosFstIo
+          files:
+            # EosFstCss is a runtime-loaded plugin, so it has no SONAME and is
+            # not matched by the `lib` checks above.
+            - lib/libEosFstCss.*
+    about:
+      summary: Shared libraries used by the EOS storage system client
+
+  - package:
+      name: eos
+    inherit: eos-build
+    build:
+      files:
+        - bin/eos
+        - bin/eoscp
+        # proto/CMakeLists.txt only generates the gRPC service stubs on Linux,
+        # so patch 0009 gates the tools that link them the same way.
+        - if: linux
+          then: bin/eos-grpc-*
+        - share/bash-completion/completions/eos
+        - share/zsh/site-functions/_eos
+    requirements:
+      run:
+        - ${{ pin_subpackage('libeos', upper_bound='x') }}
+    tests:
+      - script:
+          # `eos version` contacts the MGM, `eos --version` does not.
+          - eos --version
+          - eoscp --version
+      - package_contents:
+          strict: true
+          bin:
+            exists:
+              - eos
+              - eoscp
+              - "*"
+            not_exists:
+              - eosxd
+              - eosxd3
+          files:
+            - share/bash-completion/completions/eos
+            - share/zsh/site-functions/_eos
+            - if: linux
+              then: bin/eos-grpc-ping
+    about:
+      summary: Command line client for the EOS storage system
+
+  - package:
+      name: eos-fuse
+    inherit: eos-build
+    build:
+      # macOS FUSE means macFUSE, a kernel extension that cannot be
+      # redistributed through conda-forge.
+      skip: not linux
+      files:
+        - bin/eosxd3
+        - bin/eoscfsd
+        # Binds krb5/x509 credentials for the mount; not specific to a daemon.
+        - bin/eosfusebind
+    requirements:
+      run:
+        - ${{ pin_subpackage('libeos', upper_bound='x') }}
+        # `eosxd3 get`/`set` shell out to getfattr/setfattr rather than calling
+        # the xattr syscalls, so this is a runtime dependency despite not
+        # appearing in the linkage.
+        - attr
+    tests:
+      - script:
+          # The daemons have no version flag; -V starts reading the mount
+          # configuration and exits 22 without an endpoint, so use -h.
+          - eosxd3 -h
+          - eoscfsd -h
+      - package_contents:
+          strict: true
+          bin:
+            exists:
+              - eosxd3
+              - eoscfsd
+              - eosfusebind
+            not_exists:
+              - eos
+              - eoscp
+              # the fuse2 daemon, which this build deliberately does not produce
+              - eosxd
+    about:
+      summary: FUSE 3 daemons (eosxd3, eoscfsd) for the EOS storage system
+      description: |
+        Mounting requires a setuid `fusermount3` on the host, which conda-forge
+        cannot ship. Install your distribution's fuse3 package (present by
+        default on EL8+, Debian 11+ and Ubuntu 20.04+); the copy under
+        $PREFIX/sbin is not setuid and is kept off PATH so that the system one
+        is used.
+
+about:
+  homepage: https://eos.web.cern.ch/
+  repository: https://github.com/cern-eos/eos
+  documentation: https://eos-docs.web.cern.ch/
+  # Jerasure and GF-Complete are still vendored, compiled into libEosFstIo,
+  # eos and eoscp. Everything else EOS vendors is taken from conda-forge.
+  license: GPL-3.0-or-later AND BSD-3-Clause
+  license_file:
+    - License
+    - fst/layout/gf-complete/License.txt
+    - fst/layout/jerasure/License.txt
+  summary: Client for EOS, the CERN disk storage system
+  description: |
+    EOS is the disk storage system developed at CERN for the LHC experiments,
+    holding several hundred petabytes across the CERN computer centre.
+
+    These packages provide the client side only: the `eos` shell, `eoscp`, and
+    the `eosxd3`/`eoscfsd` FUSE 3 daemons used to mount an EOS instance as a
+    POSIX filesystem. The MGM, FST and MQ server daemons are not built.
+
+extra:
+  feedstock-name: eos
+  recipe-maintainers:
+    - chrisburr

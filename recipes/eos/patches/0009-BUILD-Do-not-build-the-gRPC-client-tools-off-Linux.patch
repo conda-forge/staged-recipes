@@ -1,0 +1,38 @@
+From e4e4fa7c25a1addfabf3803f2bfa29b1cd4d3cbb Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Wed, 16 Sep 2026 11:08:21 +0200
+Subject: [PATCH 9/9] BUILD: Do not build the gRPC client tools off Linux
+
+proto/CMakeLists.txt generates the gRPC service stubs and defines
+EosGrpcProto-Objects inside `if (Linux)`, but the top level adds
+client/ on GRPC_FOUND alone, and every tool in there links
+EosGrpcProto-Objects. On macOS that target does not exist, so the build
+fails on the header it would have produced:
+
+  client/grpc/GrpcClient.hh:31:10: fatal error: 'proto/Rpc.grpc.pb.h'
+  file not found
+
+This is not caught at generate time because EosGrpcProto-Objects is not a
+namespaced target, so CMake treats the unresolved name as a plain library
+to link rather than an error.
+
+Gate client/ on Linux as well, matching where its dependencies are built.
+---
+ CMakeLists.txt | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c052d6e9a..d7acbc65f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -153,7 +153,9 @@ add_subdirectory(misc)
+ add_subdirectory(test)
+ add_subdirectory(namespace/ns_quarkdb/qclient)
+ 
+-if (GRPC_FOUND)
++# The gRPC service stubs the client tools link against are only generated on
++# Linux (see proto/CMakeLists.txt), so gate the tools the same way.
++if (GRPC_FOUND AND Linux)
+   add_subdirectory(client)
+ endif()
+ 
