@@ -1,0 +1,60 @@
+context:
+  version: "2026.9.0"
+
+package:
+  name: bitwarden-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bitwarden/clients/archive/refs/tags/cli-v${{ version }}.tar.gz
+  sha256: e62ee385ae1256521f85646cfe35372c6580949f353d35642c41b51ea74bc786
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - npm install --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+        - cd apps/cli && npm run build:oss:prod --ignore-scripts
+        - npm pack --ignore-scripts
+        - npm install --global --prefix ${{ PREFIX }} --omit=dev --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 ./bitwarden-cli-${{ version }}.tgz
+      else:
+        - call npm install --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+        - cd apps/cli && call npm run build:oss:prod --ignore-scripts
+        - call npm pack --ignore-scripts
+        - call npm install --global --prefix ${{ PREFIX }} --omit=dev --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 ./bitwarden-cli-${{ version }}.tgz
+
+requirements:
+  build:
+    - nodejs >=24.17,<25
+  run:
+    - nodejs >=24.17,<25
+
+tests:
+  - script:
+      - bw --version
+      - bw --help
+  - package_contents:
+      bin:
+        - bw
+
+about:
+  homepage: https://bitwarden.com/help/cli/
+  license: GPL-3.0-only
+  license_file:
+    - LICENSE.txt
+    - LICENSE_GPL.txt
+  summary: "A secure and free password manager for all of your devices."
+  description: |
+    `bw` is the command-line interface to a Bitwarden vault. It logs in and
+    unlocks a vault, then creates, reads, edits and deletes items, folders,
+    attachments and organization collections, either interactively or as JSON
+    on stdin and stdout for scripting. It also generates passwords, imports
+    and exports vault data, sends and receives Bitwarden Sends, and can serve
+    a local REST API for other tools to query.
+  documentation: https://bitwarden.com/help/cli/
+  repository: https://github.com/bitwarden/clients/tree/main/apps/cli
+
+extra:
+  recipe-maintainers:
+    - phreed
