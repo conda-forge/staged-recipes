@@ -65,6 +65,6 @@ if flavor == "cuda":
             for i in T.Parallel(128):
                 B[bx * 128 + i] = A[bx * 128 + i] + 1.0
 
-    artifact = tilelang.lower(add_one, target="cuda -arch=sm_80")
+    artifact = tilelang.lower(add_one, target={"kind": "cuda", "arch": "sm_80"})
     assert "__global__" in artifact.kernel_source, artifact.kernel_source
     print(artifact.kernel_source)
