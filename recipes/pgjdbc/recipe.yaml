@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "42.7.13"
+
+package:
+  name: pgjdbc
+  version: ${{ version }}
+
+source:
+  url: https://repo1.maven.org/maven2/org/postgresql/postgresql/${{ version }}/postgresql-${{ version }}-jdbc-src.tar.gz
+  sha256: 4537ba157c6eab9022d0a48bb6e6ca5a736ced8cc7121e1276322fb104dd3718
+  patches:
+    - 0001-shade-scram-into-the-driver-jar.patch
+
+build:
+  number: 0
+  noarch: generic
+
+requirements:
+  build:
+    - maven
+    - openjdk 17.*
+  run:
+    - openjdk >=8
+
+tests:
+  - package_contents:
+      strict: true
+      files:
+        exists:
+          - share/liquibase/lib/postgresql.jar
+  - requirements:
+      run:
+        - openjdk 17.*
+        - liquibase
+        - ripgrep
+    script:
+      env:
+        LIQUIBASE_ANALYTICS_ENABLED: "false"
+      content:
+        - if: unix
+          then:
+            - java -jar "${PREFIX}/share/liquibase/lib/postgresql.jar" | rg --fixed-strings "${{ version }}"
+            - jar tf "${PREFIX}/share/liquibase/lib/postgresql.jar" | rg --fixed-strings "org/postgresql/shaded/com/ongres/scram/client/ScramClient.class"
+          else:
+            - java -jar "%PREFIX%\share\liquibase\lib\postgresql.jar" | rg --fixed-strings "${{ version }}"
+            - jar tf "%PREFIX%\share\liquibase\lib\postgresql.jar" | rg --fixed-strings "org/postgresql/shaded/com/ongres/scram/client/ScramClient.class"
+        - liquibase --version | rg --fixed-strings "postgresql.jar"
+
+about:
+  homepage: https://jdbc.postgresql.org/
+  repository: https://github.com/pgjdbc/pgjdbc
+  documentation: https://jdbc.postgresql.org/documentation/
+  summary: PostgreSQL JDBC driver (pgjdbc)
+  description: |
+    PgJDBC is the official PostgreSQL JDBC driver: a pure-Java (Type 4) driver
+    that lets Java programs connect to PostgreSQL using standard, database
+    independent Java code. This build bundles the SCRAM client (relocated under
+    org.postgresql.shaded, as in the published jar) so SCRAM-SHA-256
+    authentication works out of the box. The jar is installed to
+    share/liquibase/lib, which Liquibase auto-loads; other Java tools can add
+    $CONDA_PREFIX/share/liquibase/lib/postgresql.jar to their classpath.
+  license: BSD-2-Clause
+  license_file:
+    - LICENSE
+    - third-party-licenses/
+
+extra:
+  recipe-maintainers:
+    - rxm7706
