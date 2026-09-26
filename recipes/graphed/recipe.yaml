@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: graphed
+  version: "0.0.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 4d3a0d38d3f4111f3398cfda359464131708957d3df51bf903ec19c41c8c6574
+
+build:
+  number: 0
+  # pyproject.toml pins `pyo3/abi3-py311`, so one limited-API build serves every CPython.
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.9.4,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - pip
+    - maturin >=1.9.4,<2
+  run:
+    - python
+    - executing >=2.0
+    - cloudpickle
+
+tests:
+  - python:
+      imports:
+        - graphed
+        - graphed.core
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - package_contents:
+      site_packages:
+        - graphed/__init__.py
+        - if: is_abi3
+          then: graphed/core/graphed_core.${{ 'abi3.so' if unix else 'pyd' }}
+          else: graphed/core/graphed_core.${{ '*.so' if unix else '*.pyd' }}
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/graphed/core/graphed_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\graphed\core\graphed_core.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  - script:
+      - python -c "import graphed; print(graphed.__version__, graphed.core.version())"
+
+about:
+  summary: Schedulable, serializable, debuggable HEP task graphs with an interned Rust IR
+  description: |
+    graphed reduces a task graph to a concise set of stage nodes incrementally as the user
+    builds it, so a large un-reduced graph never exists. Reduction runs in a Rust extension
+    using equality saturation over e-graphs. The serializable IR - not cloudpickle - is the
+    canonical durable representation, so plans are reproducible and resumable.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/graphed-org/graphed
+  repository: https://github.com/graphed-org/graphed
+  documentation: https://graphed.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - lgray
