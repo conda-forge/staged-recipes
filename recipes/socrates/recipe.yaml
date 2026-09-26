@@ -1,0 +1,99 @@
+context:
+  name: socrates
+  version: "2026.07.1"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/MetOffice/socrates/archive/${{ version }}.tar.gz
+  sha256: 25c78ee04c121ee0fa7cb5953099150121ce41a44bbcde8ee1f4ce54f76fde5f
+  patches:
+    - fix-build.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+
+outputs:
+  - package:
+      name: ${{ name }}-python
+    build:
+      noarch: python
+      script:
+        - mkdir python/src
+        - mv python/*.py python/src
+        - printf '%s\n' 'version = "${{ version }}"' >> python/pyproject.toml
+        - ${{ PYTHON }} -m pip install ./python -vv
+    requirements:
+      build: []
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - netcdf4
+      run_constraints: []
+    tests:
+      - python:
+          python_version: ${{ python_min }}.*
+          imports:
+            - nctools
+  - package:
+      name: ${{ name }}
+    build:
+      script:
+        - ./build_code ""
+        - rm bin/*.a
+        - mkdir -p $PREFIX/share/socrates
+        - cp -r . $PREFIX/share/socrates
+        - mkdir -p $PREFIX/bin
+        - find bin/ -type f -executable -exec ln -s ../share/socrates/{} $PREFIX/bin \;
+        - find sbin/ -type f -executable -exec ln -s ../share/socrates/{} $PREFIX/bin \;
+        - cp -r man/* $PREFIX/share/man
+        - ACTIVATE_DIR=$PREFIX/etc/conda/activate.d
+        - DEACTIVATE_DIR=$PREFIX/etc/conda/deactivate.d
+        - mkdir -p "$ACTIVATE_DIR"
+        - mkdir -p "$DEACTIVATE_DIR"
+        - cp $RECIPE_DIR/scripts/activate.sh $ACTIVATE_DIR/socrates-activate.sh
+        - cp $RECIPE_DIR/scripts/deactivate.sh $DEACTIVATE_DIR/socrates-deactivate.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+        - libgomp
+        - make
+        - netcdf-fortran
+        - perl
+      host:
+        - libgomp
+        - netcdf-fortran
+      run:
+        - ${{ pin_subpackage('socrates-python', upper_bound='x.x') }}
+      run_constraints: []
+    tests:
+      - script:
+          - cd share/socrates/examples
+          - ./core_tests
+      - script:
+          - cd share/socrates/examples
+          - ./quick_tests
+      # - script:
+      #     - cd share/socrates/examples
+      #     - ./slow_tests
+
+about:
+  homepage: https://github.com/MetOffice/socrates
+  license: BSD-3-Clause
+  license_file: LICENCE
+  summary: Suite of Community Radiative Transfer codes based on Edwards and Slingo
+  description: ""
+  repository: https://github.com/MetOffice/socrates
+
+extra:
+  recipe-maintainers:
+    - matrss
