@@ -1,0 +1,69 @@
+schema_version: 1
+
+context:
+  version: "0.10.0"
+
+package:
+  name: peritheos
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/peritheos/peritheos-${{ version }}.tar.gz
+  sha256: 1edbe3374737697eeea314a834059d36954c2ea29fd67dc5a8326668bdb0dba0
+
+build:
+  number: 0
+  skip: match(python, "<3.9")
+  script:
+    - python -m pip install . -vv --no-deps --no-build-isolation --config-settings=build-args=--locked
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+  host:
+    - python
+    - pip
+    - maturin >=1.15,<2
+  run:
+    - python
+    - numpy >=1.21.0
+    - scipy >=1.9.3
+
+tests:
+  - python:
+      imports:
+        - peritheos
+        - peritheos._rust
+      pip_check: true
+  - script: python run_test.py
+    files:
+      recipe:
+        - run_test.py
+
+about:
+  homepage: https://github.com/CPrescher/peritheos
+  summary: Thermodynamic equations of state, fitting, and uncertainty propagation
+  description: |
+    Peritheos provides thermodynamic equations of state for solid materials,
+    with Rust implementations exposed through a NumPy-compatible Python API.
+    It includes fitting, uncertainty propagation, and a material catalog with
+    literature provenance and packaged observation datasets.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://peritheos.readthedocs.io/
+  repository: https://github.com/CPrescher/peritheos
+
+extra:
+  recipe-maintainers:
+    - CPrescher
