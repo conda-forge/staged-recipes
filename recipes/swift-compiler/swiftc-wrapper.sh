@@ -3,7 +3,10 @@ set -e
 
 bin_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 prefix="${bin_dir%/bin}"
-real_driver="${prefix}/libexec/swift/bin/swiftc"
+if [[ "${bin_dir}" == */libexec/swift/usr/bin ]]; then
+  prefix="${bin_dir%/libexec/swift/usr/bin}"
+fi
+real_driver="${prefix}/libexec/swift/driver/swiftc"
 
 swift_sysroot=""
 for candidate in "${prefix}"/*/sysroot; do
@@ -32,10 +35,13 @@ for arg in "$@"; do
   fi
 done
 if [[ "${add_toolchain_args}" == 1 && -n "${swift_sysroot}" && -n "${swift_gcc_dir}" ]]; then
+  target_prefix="${PREFIX:-${prefix}}"
   extra_args+=(
     -sysroot "${swift_sysroot}"
     -Xclang-linker "--gcc-install-dir=${swift_gcc_dir}"
     -L "${prefix}/lib"
+    -Xlinker -rpath
+    -Xlinker "${target_prefix}/libexec/swift/usr/lib/swift/linux"
     -lstdc++
   )
 fi

@@ -15,7 +15,7 @@ fi
 
 # Keep Swift's version-coupled LLVM/Clang toolchain private. Flattening it into
 # PREFIX would collide with conda-forge's clang, lld, and lldb packages.
-toolchain_root="${PREFIX}/libexec/swift"
+toolchain_root="${PREFIX}/libexec/swift/usr"
 mkdir -p "${toolchain_root}"
 cp -R "${toolchain_usr}/." "${toolchain_root}/"
 find "${toolchain_root}" -name '._*' -delete
@@ -35,18 +35,16 @@ for swift_tool in \
 done
 
 # The upstream Linux driver does not know where conda-forge installs its
-# sysroot and GCC runtime. This public launcher supplies those paths, and
-# SwiftPM also uses it through SWIFT_EXEC.
+# sysroot and GCC runtime. Install the wrapper both publicly and in the
+# standard usr/bin toolchain layout expected by SwiftPM.
 if [[ "${target_platform}" == linux-* ]]; then
+  mkdir -p "${PREFIX}/libexec/swift/driver"
+  ln -s ../usr/bin/swift-driver "${PREFIX}/libexec/swift/driver/swiftc"
+  rm "${toolchain_root}/bin/swiftc"
+  cp "${RECIPE_DIR}/swiftc-wrapper.sh" "${toolchain_root}/bin/swiftc"
   cp "${RECIPE_DIR}/swiftc-wrapper.sh" "${PREFIX}/bin/swiftc"
-  chmod +x "${PREFIX}/bin/swiftc"
+  chmod +x "${toolchain_root}/bin/swiftc" "${PREFIX}/bin/swiftc"
 else
   cp "${RECIPE_DIR}/swift-wrapper.sh" "${PREFIX}/bin/swiftc"
   chmod +x "${PREFIX}/bin/swiftc"
 fi
-
-mkdir -p "${PREFIX}/etc/conda/activate.d" "${PREFIX}/etc/conda/deactivate.d"
-cp "${RECIPE_DIR}/activate.sh" \
-  "${PREFIX}/etc/conda/activate.d/zz-activate-swift.sh"
-cp "${RECIPE_DIR}/deactivate.sh" \
-  "${PREFIX}/etc/conda/deactivate.d/zz-deactivate-swift.sh"

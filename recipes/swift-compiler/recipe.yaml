@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "6.3.3"
+  version: "6.4.0"
 
 recipe:
   name: swift-split
@@ -13,20 +13,20 @@ source:
   - if: osx
     then:
       url: https://download.swift.org/swift-${{ version }}-release/xcode/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-osx.pkg
-      sha256: ee82e57774d6650f94aa06302435d6f44a055b9411698db8ecb85d9a3bcc91d0
+      sha256: 8fd03185b98fe27f54a54631c2449decf75d5b466ce8e34abbd414141063c6aa
       file_name: swift.pkg
   - if: linux and x86_64
     then:
-      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2.tar.gz
-      sha256: ece8c60b48b52e589f144462e247617b6ea0ce9f85dbd3d12907cf1821e20c20
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2023/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2023.tar.gz
+      sha256: b285b14886c58450f37f411eece4fc8ef49b2bb2ce9c2e4dac3d768965f8e35b
   - if: linux and aarch64
     then:
-      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2-aarch64/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2-aarch64.tar.gz
-      sha256: ea7258ee30ccf21e8d20a007c41156be997ab558954c5ab12915c7a4fbcbc89e
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2023-aarch64/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2023-aarch64.tar.gz
+      sha256: bab95f4809c7c12db3695741cefb206146c300822452a28d728843f5a01691fb
   - if: win and x86_64
     then:
       url: https://download.swift.org/swift-${{ version }}-release/windows10/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-windows10.exe
-      sha256: 235626548f249cd516d3d4d90eee980dccad46f3822dac1f8e3119b0fede94b7
+      sha256: 76169a85bcba82854a0cd8f9655ffb74b3758d60c35a245457510095f2823c03
       file_name: swift-installer.exe
 
 build:
@@ -46,10 +46,10 @@ outputs:
           else: build.sh
       dynamic_linking:
         rpaths:
-          - libexec/swift/lib/
-          - libexec/swift/lib/swift/linux/
-          - libexec/swift/lib/swift/host/
-          - libexec/swift/lib/swift/host/compiler/
+          - libexec/swift/usr/lib/
+          - libexec/swift/usr/lib/swift/linux/
+          - libexec/swift/usr/lib/swift/host/
+          - libexec/swift/usr/lib/swift/host/compiler/
         # The macOS toolchain uses executable-relative runtime paths. They are
         # already relocatable and must survive Mach-O post-processing.
         rpath_allowlist:
@@ -75,6 +75,12 @@ outputs:
         # Swift invokes a platform C toolchain and linker when producing native
         # executables. This also supplies the conda-forge SDK/sysroot.
         - ${{ compiler('c') }}
+        - if: linux
+          then: __glibc >=2.34
+        - if: osx and x86_64
+          then: __osx >=10.15
+        - if: osx and arm64
+          then: __osx >=11
     tests:
       - if: unix
         then:
@@ -89,14 +95,14 @@ outputs:
         then:
           - package_contents:
               files:
-                - libexec/swift/lib/swift/linux/libswiftCore.so
-                - libexec/swift/share/swift/LICENSE.txt
+                - libexec/swift/usr/lib/swift/linux/libswiftCore.so
+                - libexec/swift/usr/share/swift/LICENSE.txt
       - if: osx
         then:
           - package_contents:
               files:
-                - libexec/swift/lib/swift/macosx/libswiftCore.dylib
-                - libexec/swift/share/swift/LICENSE.txt
+                - libexec/swift/usr/lib/swift/macosx/libswiftCore.dylib
+                - libexec/swift/usr/share/swift/LICENSE.txt
       - if: win
         then:
           - package_contents:
@@ -105,8 +111,6 @@ outputs:
       - script:
           - if: unix
             then:
-              - test "$CONDA_SWIFT_COMPILER" = "1"
-              - test "$SWIFT" = "$CONDA_PREFIX/bin/swiftc"
               - swift --version
               - swiftc hello.swift -o hello
               - test "$(./hello)" = "Swift works"
@@ -114,12 +118,11 @@ outputs:
               - swift run | grep "Hello, world!"
           - if: win
             then:
-              - if not "%CONDA_SWIFT_COMPILER%"=="1" exit /b 1
-              - '"%SWIFT%" --version'
+              - swiftc --version
               # Validate SDK and standard-library discovery without launching a
               # freshly linked executable, which causes intermittent file locks
               # during rattler-build's Windows test-environment cleanup.
-              - '"%SWIFT%" -typecheck hello.swift'
+              - swiftc -typecheck hello.swift
         files:
           recipe:
             - hello.swift
@@ -128,9 +131,25 @@ outputs:
   - package:
       name: swift_${{ target_platform }}
       version: ${{ version }}
+    build:
+      script:
+        - if: win
+          then: build-activation.bat
+          else: build-activation.sh
     requirements:
       run:
         - ${{ pin_subpackage('swift', exact=True) }}
+      # Packages built with Swift dynamically link its standard library.
+      run_exports:
+        strong:
+          - ${{ pin_subpackage('swift', exact=True) }}
+        strong_constraints:
+          - if: linux
+            then: __glibc >=2.34
+          - if: osx and x86_64
+            then: __osx >=10.15
+          - if: osx and arm64
+            then: __osx >=11
     tests:
       - script:
           - if: unix

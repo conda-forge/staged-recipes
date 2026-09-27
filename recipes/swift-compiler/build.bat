@@ -7,23 +7,19 @@ rem only the MSIs and external cabinets needed by the native toolchain.
 python "%RECIPE_DIR%\extract-burn.py" "%SRC_DIR%\swift-installer.exe" "%SRC_DIR%\attached.cab"
 if errorlevel 1 exit /b 1
 mkdir "%SRC_DIR%\layout"
-7z x -y "%SRC_DIR%\attached.cab" -o"%SRC_DIR%\layout" a1 a3 a9 a11 a13 a15 a21 a27 a28 a29 a30 a31 a32 a33 a34
+7z x -y "%SRC_DIR%\attached.cab" -o"%SRC_DIR%\layout" a1 a3 a10 a12 a14 a16 a23 a29 a30 a31 a32
 if errorlevel 1 exit /b 1
 move /y "%SRC_DIR%\layout\a1" "%SRC_DIR%\layout\bld.noasserts.msi"
 move /y "%SRC_DIR%\layout\a3" "%SRC_DIR%\layout\cli.noasserts.msi"
-move /y "%SRC_DIR%\layout\a9" "%SRC_DIR%\layout\rtl.msi"
-move /y "%SRC_DIR%\layout\a11" "%SRC_DIR%\layout\windows.msi"
-move /y "%SRC_DIR%\layout\a13" "%SRC_DIR%\layout\bld.noasserts.cab"
-move /y "%SRC_DIR%\layout\a15" "%SRC_DIR%\layout\cli.noasserts.cab"
-move /y "%SRC_DIR%\layout\a21" "%SRC_DIR%\layout\rtl.cab"
-move /y "%SRC_DIR%\layout\a27" "%SRC_DIR%\layout\windows.cab"
-move /y "%SRC_DIR%\layout\a28" "%SRC_DIR%\layout\sdk.windows.arm64.cab"
-move /y "%SRC_DIR%\layout\a29" "%SRC_DIR%\layout\sdk.windows.x64.cab"
-move /y "%SRC_DIR%\layout\a30" "%SRC_DIR%\layout\sdk.windows.x86.cab"
-move /y "%SRC_DIR%\layout\a31" "%SRC_DIR%\layout\windows.experimental.cab"
-move /y "%SRC_DIR%\layout\a32" "%SRC_DIR%\layout\sdk.windows.experimental.arm64.cab"
-move /y "%SRC_DIR%\layout\a33" "%SRC_DIR%\layout\sdk.windows.experimental.x64.cab"
-move /y "%SRC_DIR%\layout\a34" "%SRC_DIR%\layout\sdk.windows.experimental.x86.cab"
+move /y "%SRC_DIR%\layout\a10" "%SRC_DIR%\layout\rtl.amd64.msi"
+move /y "%SRC_DIR%\layout\a12" "%SRC_DIR%\layout\windows.msi"
+move /y "%SRC_DIR%\layout\a14" "%SRC_DIR%\layout\bld.noasserts.cab"
+move /y "%SRC_DIR%\layout\a16" "%SRC_DIR%\layout\cli.noasserts.cab"
+move /y "%SRC_DIR%\layout\a23" "%SRC_DIR%\layout\rtl.amd64.cab"
+move /y "%SRC_DIR%\layout\a29" "%SRC_DIR%\layout\windows.cab"
+move /y "%SRC_DIR%\layout\a30" "%SRC_DIR%\layout\sdk.windows.arm64.cab"
+move /y "%SRC_DIR%\layout\a31" "%SRC_DIR%\layout\sdk.windows.x64.cab"
+move /y "%SRC_DIR%\layout\a32" "%SRC_DIR%\layout\sdk.windows.x86.cab"
 
 rem Administratively extract only the native no-assert compiler, command-line
 rem tools, runtime, and Windows SDK. Use a short path because the platform SDK
@@ -31,7 +27,7 @@ rem contains filenames which exceed MAX_PATH under rattler-build's work path.
 for %%D in ("%SRC_DIR%") do set "SWIFT_ADMIN=%%~dD\swift-admin"
 rmdir /S /Q "!SWIFT_ADMIN!" 2>nul
 mkdir "!SWIFT_ADMIN!"
-for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
+for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.amd64.msi windows.msi) do (
   set "SWIFT_MSI=%SRC_DIR%\layout\%%M"
   if not exist "!SWIFT_MSI!" exit /b 1
   mkdir "!SWIFT_ADMIN!\%%~nM"
@@ -40,7 +36,7 @@ for %%M in (bld.noasserts.msi cli.noasserts.msi rtl.msi windows.msi) do (
     type "!SWIFT_ADMIN!\%%~nM.log"
     exit /b 1
   )
-  if /i "%%M"=="rtl.msi" (
+  if /i "%%M"=="rtl.amd64.msi" (
     rem The runtime MSI targets TARGETDIR directly. Library\bin is on conda's
     rem standard Windows PATH without exposing Swift's private Clang binaries.
     mkdir "%PREFIX%\Library\bin"
@@ -64,10 +60,6 @@ for %%T in (sourcekit-lsp swift swift-build swift-format swift-package swift-run
   copy "%RECIPE_DIR%\swift-launcher.bat" "%PREFIX%\Scripts\%%T.bat"
 )
 
-mkdir "%PREFIX%\etc\conda\activate.d"
-mkdir "%PREFIX%\etc\conda\deactivate.d"
-copy "%RECIPE_DIR%\activate.bat" "%PREFIX%\etc\conda\activate.d\activate-swift.bat"
-copy "%RECIPE_DIR%\deactivate.bat" "%PREFIX%\etc\conda\deactivate.d\deactivate-swift.bat"
 copy "%RECIPE_DIR%\LICENSE.txt" "%SRC_DIR%\LICENSE.txt"
 
 endlocal
