@@ -1,0 +1,60 @@
+context:
+  version: "0.9.2"
+
+package:
+  name: cargo-about
+  version: ${{ version }}
+
+source:
+  url: https://github.com/EmbarkStudios/cargo-about/archive/refs/tags/${{ version }}.tar.gz
+  sha256: bc82b1c4ec112780652f8b8fee043b5826e580a946f8dda68c25eb39bc168a05
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --features cli --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --features cli --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - cargo-about --help
+      - cargo-about --version
+  - package_contents:
+      bin:
+        - cargo-about
+      strict: true
+
+about:
+  homepage: https://github.com/EmbarkStudios/cargo-about
+  summary: Cargo plugin for generating a listing of all of the crates and the terms under which they are licensed
+  description: |
+    cargo-about is a cargo plugin that generates a listing of all crates used by a
+    Rust project along with the licenses under which they are distributed, rendered
+    through user-provided Handlebars templates.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://embarkstudios.github.io/cargo-about/
+  repository: https://github.com/EmbarkStudios/cargo-about
+
+extra:
+  recipe-maintainers:
+    - ytausch
