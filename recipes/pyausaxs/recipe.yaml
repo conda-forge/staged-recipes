@@ -1,0 +1,77 @@
+context:
+  name: pyausaxs
+  version: "1.3.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: b26acd0dc13c1b62622fade8c21ee952caa4d2b01316df78cfba4483424d8267
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - ausaxs = pyausaxs.__main__:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=61.0
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    - py-cpuinfo >=8.0.0
+    - numpy >=1.20.0
+    # The C++ backend. The PyPI wheels bundle it; the sdist used here does not, so the
+    # loader resolves it from the environment prefix ($PREFIX/lib, Library/bin on Windows).
+    # pyausaxs declares the ctypes signatures of the backend C API, so stay within the
+    # matching minor series.
+    - libausaxs >=1.3.0,<1.4
+
+tests:
+  - python:
+      imports:
+        - pyausaxs
+        - pyausaxs.loader
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - ausaxs --version
+      - ausaxs setup --show
+      - python test_backend.py
+    files:
+      recipe:
+        - test_backend.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/AUSAXS/pyAUSAXS
+  repository: https://github.com/AUSAXS/pyAUSAXS
+  documentation: https://github.com/AUSAXS/AUSAXS/wiki
+  summary: Python interface to the AUSAXS small-angle X-ray scattering calculator
+  description: |
+    pyAUSAXS is the Python interface to AUSAXS, an efficient small-angle X-ray scattering
+    (SAXS) calculator built on the Debye equation. It computes scattering profiles from
+    atomic models, fits them against experimental data with an explicit-solvent hydration
+    shell and grid-based excluded-volume model, validates electron-microscopy maps, and
+    drives rigid-body optimization of multi-body assemblies.
+
+    The C++ backend is provided by the `libausaxs` package. Plotting helpers additionally
+    need `matplotlib` and `scipy`; the optional Tk GUI additionally needs `tkinterdnd2`,
+    which is only available from PyPI.
+  license: LGPL-3.0-or-later
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - backmari
