@@ -66,10 +66,20 @@ remap them by hand:
 `source` is pinned to a `release/3.0.0` SHA (`b8c1a6b`, commit date
 `2026-09-28`) for a reproducible build, rather than tracking the moving branch.
 `release/3.0.0` already carries the flattened wheel layout (#7438) and the
-checkout-only test gating (#7945), so no fork or patch is needed. The version is
-a dev marker `3.0.0.devYYYYMMDD` (the commit date of the pinned `rev`), which
-sorts below the eventual `3.0.0` GA. Switch to the commented `url` + `sha256`
-block and a plain `3.0.0` once upstream tags v3.
+checkout-only test gating (#7945), so no fork or source-layout patch is needed.
+The version is a dev marker `3.0.0.devYYYYMMDD` (the commit date of the pinned
+`rev`), which sorts below the eventual `3.0.0` GA. Switch to the commented
+`url` + `sha256` block and a plain `3.0.0` once upstream tags v3.
+
+## Patches
+
+- `0001-support-python-3.14-annotations-in-configclass.patch`: Python 3.14
+  evaluates annotations lazily (PEP 649), so `isaaclab.utils.configclass` no
+  longer finds them in `cls.__dict__["__annotations__"]` and raises `number of
+  annotations (0) does not match number of class members`. This already breaks
+  at import of `isaaclab.sim`, i.e. `isaaclab train --help`. The patch reads
+  own-class annotations through `annotationlib.get_annotations()` on 3.14 and
+  keeps the class-dict lookup on older versions. Upstreamable as-is.
 
 ## What is not packaged
 
@@ -126,6 +136,7 @@ are kept at the bottom for context.
 | High | Closed-source Omniverse wheels | The base needs `omniverseclient` and `isaacsim-asset-isolated` (closed-source), so nothing resolves end-to-end. Making the Omniverse backends optional would make Isaac Lab packageable. |
 | Medium | Wheel build layout | `tools/wheel_builder/stage.py` flattens extensions by copying each inner package to top-level, duplicating `config`/`data` and rewriting a hardcoded `os.path.dirname(__file__), "../"` to `""`. Resolving resources via `importlib.resources` would drop that. |
 | Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`, `newton[sim]`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. Raised in [#5084](https://github.com/isaac-sim/IsaacLab/issues/5084#issuecomment-4138346195). |
+| Medium | Python 3.14 | Upstream caps the bundled wheel at `<3.13`, but the per-extension projects declare `>=3.12` and the conda package is `noarch`. `configclass` breaks on 3.14 (PEP 649 lazy annotations); the recipe carries patch 0001. |
 | Low | Missing feedstocks | `skrl` and `rl-games` (plus `standard-distutils`) have no conda-forge feedstock, so their extras cannot be packaged. |
 | Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by [`albumentationsx`](https://github.com/conda-forge/staged-recipes/pull/34440). |
 | Resolved | Flat wheel layout | [#7438](https://github.com/isaac-sim/IsaacLab/pull/7438) makes the core a flat package resolving resources via `_paths.py::ISAACLAB_ROOT`, so the recipe drops the old path patch. |
