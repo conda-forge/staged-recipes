@@ -1,31 +1,42 @@
 context:
+  name: bitwarden-cli
   version: "2026.9.0"
 
 package:
-  name: bitwarden-cli
+  name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
-  url: https://github.com/bitwarden/clients/archive/refs/tags/cli-v${{ version }}.tar.gz
-  sha256: e62ee385ae1256521f85646cfe35372c6580949f353d35642c41b51ea74bc786
+  - url: https://github.com/bitwarden/clients/archive/refs/tags/cli-v${{ version }}.tar.gz
+    sha256: e62ee385ae1256521f85646cfe35372c6580949f353d35642c41b51ea74bc786
 
 build:
   number: 0
   script:
     - if: unix
       then:
-        - npm install --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
-        - cd apps/cli && npm run build:oss:prod --ignore-scripts
-        - npm pack --ignore-scripts
+        - cp "$RECIPE_DIR/pnpm-workspace.yaml" .
+        - pnpm import
+        - pnpm install --frozen-lockfile --ignore-scripts
+        - pnpm --filter @bitwarden/cli run build:oss:prod
+        - pnpm --filter @bitwarden/cli licenses list --prod --json | pnpm-licenses generate-disclaimer --prod --json-input --output-file THIRD_PARTY_LICENSES.txt
+        - pnpm --dir apps/cli pack --out ../../bitwarden-cli-${{ version }}.tgz
         - npm install --global --prefix ${{ PREFIX }} --omit=dev --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 ./bitwarden-cli-${{ version }}.tgz
       else:
-        - call npm install --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
-        - cd apps/cli && call npm run build:oss:prod --ignore-scripts
-        - call npm pack --ignore-scripts
+        - copy "%RECIPE_DIR%\pnpm-workspace.yaml" .
+        - call pnpm import
+        - call pnpm install --frozen-lockfile --ignore-scripts
+        - call pnpm --filter @bitwarden/cli run build:oss:prod
+        - call pnpm --filter @bitwarden/cli licenses list --prod --json | pnpm-licenses generate-disclaimer --prod --json-input --output-file THIRD_PARTY_LICENSES.txt
+        - call pnpm --dir apps/cli pack --out ../../bitwarden-cli-${{ version }}.tgz
         - call npm install --global --prefix ${{ PREFIX }} --omit=dev --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 ./bitwarden-cli-${{ version }}.tgz
 
 requirements:
   build:
+    - nodejs >=24.17,<25
+    - pnpm >=10,<13
+    - pnpm-licenses >=2.4,<3
+  host:
     - nodejs >=24.17,<25
   run:
     - nodejs >=24.17,<25
@@ -44,6 +55,7 @@ about:
   license_file:
     - LICENSE.txt
     - LICENSE_GPL.txt
+    - THIRD_PARTY_LICENSES.txt
   summary: "A secure and free password manager for all of your devices."
   description: |
     `bw` is the command-line interface to a Bitwarden vault. It logs in and
