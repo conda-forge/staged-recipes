@@ -3,8 +3,8 @@ set -euxo pipefail
 
 REPO="${SRC_DIR}/.m2-repository"
 
-# Build the driver; 0001-shade-scram-into-the-driver-jar.patch bundles the SCRAM
-# client under org.postgresql.shaded, the same layout as the published jar.
+# pgjdbc's own pom.xml shades+relocates the SCRAM client under org.postgresql.shaded
+# by default (the shade-dependencies profile), matching the published jar.
 mvn --batch-mode --no-transfer-progress -Dmaven.repo.local="${REPO}" package \
     -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
 
