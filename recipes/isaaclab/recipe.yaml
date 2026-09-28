@@ -1,7 +1,7 @@
 context:
   name: isaaclab
   # Dev version until the GA tag: base plus the pinned rev commit date, bumped together.
-  version: "3.0.0.dev20260921"
+  version: "3.0.0.dev20260928"
   # tag: v3.0.0
   build_number: 0
   python_min: "3.12"
@@ -18,14 +18,9 @@ source:
   # url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/${{ tag }}.tar.gz
   # sha256: <fill-in-at-GA>
   git: https://github.com/isaac-sim/IsaacLab.git
-  # release/3.0.0 @ 2026-09-21
-  rev: 76c7c60de65eb5196dbfacac91d3febbff6044d2
+  # release/3.0.0 @ 2026-09-28
+  rev: b8c1a6b0543192ecf3d2a097508a1e44e92bd411
   # No source-layout patch needed: upstream flattens the package itself (stage.py).
-  # The two patches gate source-checkout-only unit tests that predate the upstream
-  # source_checkout_root fixture, so they self-skip against the installed package.
-  patches:
-    - patches/0001-skip-checkout-only-launcher-tests.patch
-    - patches/0002-skip-checkout-only-cli-install-tests.patch
 
 build:
   noarch: python
@@ -81,6 +76,8 @@ outputs:
         - find "${SP_DIR}/isaaclab/apps" -type d -exec touch {}/__init__.py \;
         - mkdir -p "${SP_DIR}/isaaclab/tools"
         - cp -r tools/template "${SP_DIR}/isaaclab/tools/template"
+        # Backs the `isaaclab demo` and `isaaclab example` catalogs (isaaclab/programs.py).
+        - cp -r examples "${SP_DIR}/isaaclab/examples"
         # Reinject the third-party deps into the installed metadata (the per-member
         # installs drop them), so the base pip_check validates them against upstream.
         # Names only, since conda-forge serves newer builds. Closed-source deps excluded.
@@ -171,7 +168,7 @@ outputs:
         - pycollada >=0.9
         - resolve-robotics-uri-py >=0.4.0
         - open3d >=0.19.0
-        - newton-usd-schemas >=0.4.1
+        - newton-usd-schemas >=0.5.0
         - pyopengl-accelerate >=3.1.0
         - imgui-bundle >=1.92.5
         - typing-extensions >=4.15.0
@@ -192,13 +189,15 @@ outputs:
           - isaaclab --help
           - isaaclab train --help
           - isaaclab play --help
+          # Every demo and example script resolves inside the installed package.
+          - python -c "from isaaclab.programs import DEMOS, EXAMPLES; missing = [p.relative_path for p in DEMOS + EXAMPLES if not p.path.is_file()]; assert not missing, missing"
       # Runs upstream's unit suite against the installed package, adapting to the
       # runner (GPU cases only when a GPU is present). See README.
       - script:
           - set -euo pipefail
           # omni.client loads only where glibc >= 2.35, so keep it best-effort.
           # Its absence drops utils/test_assets.py, whose fixture imports it.
-          - python -m pip install --no-deps --no-build-isolation --extra-index-url https://pypi.nvidia.com "omniverseclient==2.72.3" || true
+          - python -m pip install --no-deps --no-build-isolation --extra-index-url https://pypi.nvidia.com "omniverseclient==2.74.0" || true
           - |
             omni_ok=1
             if ! python -c "import omni.client" >/dev/null 2>&1; then
@@ -214,9 +213,7 @@ outputs:
             fi
             echo "gpu_ok=${gpu_ok} omni_ok=${omni_ok}"
           # Collect only the unit-marked files: pointing pytest at test/ would
-          # import scripts that parse args at import. Checkout-only tests self-skip
-          # via source_checkout_root (isaac-sim/IsaacLab#7389), the few predating
-          # it via patches 0001 and 0002. See README.
+          # import scripts that parse args at import.
           - unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py')
           # Drop utils/test_assets.py when omni.client did not load.
           - |

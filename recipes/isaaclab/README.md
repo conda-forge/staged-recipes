@@ -36,9 +36,11 @@ upstream wheel builder:
   conda-forge, because the base imports it unconditionally
   (`isaaclab/app/sim_launcher.py`) and its config classes import fine without
   them.
-- After the installs it copies `apps/` and `tools/template` into the installed
-  core package (`$SP_DIR/isaaclab/`), the same resources the upstream wheel
-  builder co-locates there.
+- After the installs it copies `apps/`, `examples/` and `tools/template` into
+  the installed core package (`$SP_DIR/isaaclab/`), the same resources the
+  upstream wheel builder co-locates there. `examples/` backs the `isaaclab demo`
+  and `isaaclab example` catalogs, and a CLI smoke test checks that every
+  catalog script resolves.
 
 No path patch is needed. [isaac-sim/IsaacLab#7438](https://github.com/isaac-sim/IsaacLab/pull/7438)
 flattens the core package and resolves its runtime resources through
@@ -61,30 +63,13 @@ remap them by hand:
 
 ## Source revision
 
-`source` is pinned to a `release/3.0.0` SHA (`76c7c60`, commit date
-`2026-09-21`) for a reproducible build, rather than tracking the moving branch.
-`release/3.0.0` already carries the flattened wheel layout (#7438 merged), so no
-fork or patch is needed. The version is a dev marker `3.0.0.devYYYYMMDD` (the
-commit date of the pinned `rev`), which sorts below the eventual `3.0.0` GA.
-Switch to the commented `url` + `sha256` block and a plain `3.0.0` once upstream
-tags v3.
-
-## Patches
-
-Two small patches gate `unit` tests that need the source checkout rather than an
-installed package. Upstream [isaac-sim/IsaacLab#7389](https://github.com/isaac-sim/IsaacLab/pull/7389)
-added the `source_checkout_root` fixture that auto-skips such tests, but a few
-CLI tests predate it. Both patches wire those tests onto the same fixture:
-
-- `0001-skip-checkout-only-launcher-tests.patch`: the five `test_launcher_*` in
-  `cli/test_env_commands.py`, resolving the launcher from the checkout root.
-- `0002-skip-checkout-only-cli-install-tests.patch`: `TestCommandInstallDispatch`,
-  `TestEnsureCudaTorch`, one `TestEnsureNewton` case, the two
-  `TestInstallRootExtraExcludesIsaacSim` cases, and
-  `test_teleop_workflow_help_exposes_task_preset_selectors`.
-
-Both use the fixture-provided path where the tests access checkout files and are
-upstreamable as-is.
+`source` is pinned to a `release/3.0.0` SHA (`b8c1a6b`, commit date
+`2026-09-28`) for a reproducible build, rather than tracking the moving branch.
+`release/3.0.0` already carries the flattened wheel layout (#7438) and the
+checkout-only test gating (#7945), so no fork or patch is needed. The version is
+a dev marker `3.0.0.devYYYYMMDD` (the commit date of the pinned `rev`), which
+sorts below the eventual `3.0.0` GA. Switch to the commented `url` + `sha256`
+block and a plain `3.0.0` once upstream tags v3.
 
 ## What is not packaged
 
@@ -126,7 +111,6 @@ bumps.
 | `torchvision` | `==0.27.0` | `0.26.0.*` | pinned by the `torch 2.11` downgrade above (`0.27` needs `torch 2.12`) |
 | `transformers` | `==5.10.4` | `>=5.10.4` | conda-forge has no `5.10.4` build (nearest `5.16.1`); floor instead of exact |
 | `pytetwild` (`pytetwild[all]`) | `>=0.3.0,<0.4` | `>=0.3.0` (+ `pyvista`) | relax the `<0.4` cap: conda-forge only ships `0.4.2`, and the `tetrahedralize` API is unchanged across `0.3`/`0.4`. `pyvista` is the sole `[all]` member |
-| `newton-usd-schemas` | `>=0.2.0` declared, `>=0.4.1` via `[tool.uv]` | `>=0.4.1` | match the effective upstream floor from the `override-dependencies` block |
 
 `onnxscript>=0.5` is a recipe-only base dep kept to avoid a regression.
 `gitpython>=3.1.59` and `Jinja2` (`-> jinja2`) are new base deps in
@@ -144,9 +128,10 @@ are kept at the bottom for context.
 | Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`, `newton[sim]`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. Raised in [#5084](https://github.com/isaac-sim/IsaacLab/issues/5084#issuecomment-4138346195). |
 | Low | Missing feedstocks | `skrl` and `rl-games` (plus `standard-distutils`) have no conda-forge feedstock, so their extras cannot be packaged. |
 | Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by [`albumentationsx`](https://github.com/conda-forge/staged-recipes/pull/34440). |
-| Low | Pre-fixture CLI tests | A few CLI `unit` tests predate the `source_checkout_root` fixture ([#7389](https://github.com/isaac-sim/IsaacLab/pull/7389)) and still need the checkout. The recipe gates them via patches 0001/0002; the one-line changes are upstreamable. |
 | Resolved | Flat wheel layout | [#7438](https://github.com/isaac-sim/IsaacLab/pull/7438) makes the core a flat package resolving resources via `_paths.py::ISAACLAB_ROOT`, so the recipe drops the old path patch. |
 | Resolved | Device-hardcoded tests | [#7918](https://github.com/isaac-sim/IsaacLab/pull/7918) (backported via [#7921](https://github.com/isaac-sim/IsaacLab/pull/7921)) adds `test_devices()` so the `cuda` cases self-skip on CPU, dropping the old device patch. |
+| Resolved | Pre-fixture CLI tests | [#7945](https://github.com/isaac-sim/IsaacLab/pull/7945) (backported to `release/3.0.0`) moves the remaining checkout-only CLI tests onto the `source_checkout_root` fixture ([#7389](https://github.com/isaac-sim/IsaacLab/pull/7389)), dropping the two checkout-only test patches. |
+| Resolved | `newton-usd-schemas` declared spec | Upstream now declares `>=0.5.0` directly, matching its `uv` override, so the recipe tracks it 1:1. |
 | Resolved | `newton[sim]` declared spec | Upstream now declares `newton[sim]==1.6.0` directly instead of a loose `>=1.2.0` masked by a `uv` override. |
 
 ## Dependency drift detection (`pip check`)
