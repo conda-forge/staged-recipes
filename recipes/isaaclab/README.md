@@ -166,6 +166,12 @@ upstream dependency change turns CI red instead of shipping stale metadata:
   build runs `gen_extra_metadata.py extra` to emit a synthetic
   `isaaclab_extra_<name>.dist-info` whose `Requires-Dist` is that extra's set. Its
   `pip_check: true` test fails if the recipe's `run:` list drifts from upstream.
+- **CUDA onnxruntime.** The CUDA builds of conda-forge `onnxruntime` register the
+  dist as `onnxruntime-gpu`, so `leapp`'s `Requires-Dist: onnxruntime` looks
+  missing. `isaaclab-leapp` and `isaaclab-all` run `pip check` from a script
+  test that skips it only when `onnxruntime-gpu` is installed. CPU runs, e.g.
+  conda-forge CI, still check everything. Tracked in
+  [conda-forge/onnxruntime-feedstock#212](https://github.com/conda-forge/onnxruntime-feedstock/issues/212).
 
 Both layers are name-only (version specifiers dropped): conda-forge often serves
 newer builds than upstream's exact pins, so a name check catches added or removed
