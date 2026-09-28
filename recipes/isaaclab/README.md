@@ -42,11 +42,9 @@ upstream wheel builder:
   and `isaaclab example` catalogs, and a CLI smoke test checks that every
   catalog script resolves.
 
-No path patch is needed. [isaac-sim/IsaacLab#7438](https://github.com/isaac-sim/IsaacLab/pull/7438)
-flattens the core package and resolves its runtime resources through
-`isaaclab/_paths.py::ISAACLAB_ROOT`, computed relative to the install directory,
-so the `isaaclab` CLI works from the flat package. #7438 is already in
-`release/3.0.0`, which the recipe tracks.
+No path patch is needed. Upstream flattens the core package and resolves its
+runtime resources through `isaaclab/_paths.py::ISAACLAB_ROOT`, computed relative
+to the install directory, so the `isaaclab` CLI works from the flat package.
 
 A few PyPI names do not match their conda-forge package, so the `run:` lists
 remap them by hand:
@@ -65,11 +63,11 @@ remap them by hand:
 
 `source` is pinned to a `release/3.0.0` SHA (`b8c1a6b`, commit date
 `2026-09-28`) for a reproducible build, rather than tracking the moving branch.
-`release/3.0.0` already carries the flattened wheel layout (#7438) and the
-checkout-only test gating (#7945), so no fork or source-layout patch is needed.
-The version is a dev marker `3.0.0.devYYYYMMDD` (the commit date of the pinned
-`rev`), which sorts below the eventual `3.0.0` GA. Switch to the commented
-`url` + `sha256` block and a plain `3.0.0` once upstream tags v3.
+`release/3.0.0` already carries the flattened wheel layout and the checkout-only
+test gating, so no fork or source-layout patch is needed. The version is a dev
+marker `3.0.0.devYYYYMMDD` (the commit date of the pinned `rev`), which sorts
+below the eventual `3.0.0` GA. Switch to the commented `url` + `sha256` block and
+a plain `3.0.0` once upstream tags v3.
 
 ## Patches
 
@@ -143,14 +141,14 @@ are kept at the bottom for context.
 |---|---|---|
 | High | Closed-source Omniverse wheels | The base needs `omniverseclient` and `isaacsim-asset-isolated` (closed-source), so nothing resolves end-to-end. Making the Omniverse backends optional would make Isaac Lab packageable. |
 | Medium | Wheel build layout | `tools/wheel_builder/stage.py` flattens extensions by copying each inner package to top-level, duplicating `config`/`data` and rewriting a hardcoded `os.path.dirname(__file__), "../"` to `""`. Resolving resources via `importlib.resources` would drop that. |
-| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`, `newton[sim]`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. Raised in [#5084](https://github.com/isaac-sim/IsaacLab/issues/5084#issuecomment-4138346195). |
+| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`, `newton[sim]`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. |
 | Medium | Python 3.14 | Upstream caps the bundled wheel at `<3.13`, but the per-extension projects declare `>=3.12` and the conda package is `noarch`. `configclass` breaks on 3.14 (PEP 649 lazy annotations); the recipe carries patch 0001. |
 | Low | OpenUSD 26.05 | A `unit` test uses `Usd.ZipFileWriter`, removed in OpenUSD 26.05 in favor of `Sdf.ZipFileWriter`; the recipe carries patch 0002. |
 | Low | Missing feedstocks | `skrl` and `rl-games` (plus `standard-distutils`) have no conda-forge feedstock, so their extras cannot be packaged. |
-| Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by [`albumentationsx`](https://github.com/conda-forge/staged-recipes/pull/34440). |
-| Resolved | Flat wheel layout | [#7438](https://github.com/isaac-sim/IsaacLab/pull/7438) makes the core a flat package resolving resources via `_paths.py::ISAACLAB_ROOT`, so the recipe drops the old path patch. |
-| Resolved | Device-hardcoded tests | [#7918](https://github.com/isaac-sim/IsaacLab/pull/7918) (backported via [#7921](https://github.com/isaac-sim/IsaacLab/pull/7921)) adds `test_devices()` so the `cuda` cases self-skip on CPU, dropping the old device patch. |
-| Resolved | Pre-fixture CLI tests | [#7945](https://github.com/isaac-sim/IsaacLab/pull/7945) (backported to `release/3.0.0`) moves the remaining checkout-only CLI tests onto the `source_checkout_root` fixture ([#7389](https://github.com/isaac-sim/IsaacLab/pull/7389)), dropping the two checkout-only test patches. |
+| Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by `albumentationsx` (already on conda-forge). |
+| Resolved | Flat wheel layout | Upstream makes the core a flat package resolving resources via `_paths.py::ISAACLAB_ROOT`, so the recipe drops the old path patch. |
+| Resolved | Device-hardcoded tests | Upstream adds `test_devices()` so the `cuda` cases self-skip on CPU, dropping the old device patch. |
+| Resolved | Pre-fixture CLI tests | Checkout-only `unit` tests self-skip through the `source_checkout_root` fixture, dropping the two checkout-only test patches. |
 | Resolved | `newton-usd-schemas` declared spec | Upstream now declares `>=0.5.0` directly, matching its `uv` override, so the recipe tracks it 1:1. |
 | Resolved | `newton[sim]` declared spec | Upstream now declares `newton[sim]==1.6.0` directly instead of a loose `>=1.2.0` masked by a `uv` override. |
 
@@ -207,3 +205,18 @@ The `linux_64_cuda_*` variants fail earlier, at test-env setup, with `No space
 left on device` while linking `libtorch_cuda.so` (the CUDA `libtorch` plus the
 build artifacts exceed the runner disk). That is an infrastructure limit of the
 shared runners, not the recipe: a runner with a GPU picks up the `cuda` cases.
+
+## Upstream contributions
+
+Isaac Lab changes that originated from this recipe:
+
+- [isaac-sim/IsaacLab#5084](https://github.com/isaac-sim/IsaacLab/issues/5084#issuecomment-4138346195):
+  exact patch pins and their downstream cost.
+- [isaac-sim/IsaacLab#7388](https://github.com/isaac-sim/IsaacLab/pull/7388)
+  (closed): resolve Isaac Lab paths from installed layouts, superseded by
+  [isaac-sim/IsaacLab#7438](https://github.com/isaac-sim/IsaacLab/pull/7438).
+- [isaac-sim/IsaacLab#7389](https://github.com/isaac-sim/IsaacLab/pull/7389):
+  `source_checkout_root` fixture that skips checkout-only tests on an installed
+  package.
+- [isaac-sim/IsaacLab#7945](https://github.com/isaac-sim/IsaacLab/pull/7945):
+  moves the remaining checkout-only CLI tests onto the fixture.
