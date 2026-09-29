@@ -3,16 +3,22 @@ schema_version: 1
 
 context:
   version: "0.9.0"
+  # platform
+  export: ${{ "export" if unix else "set" }}
+  env_src_dir: ${{ "${SRC_DIR}" if unix else "%SRC_DIR%" }}
+  # go build
   go_mod: github.com/Open-MBEE/OpenSysML
   go_build: go build -v -buildmode=pie -trimpath -modcacherw
   go_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "$PREFIX/bin/sysml" }}
 
 recipe:
   name: opensysml
+  version: ${{ version }}
 
 source:
   url: https://${{ go_mod }}/archive/refs/tags/v${{ version }}.tar.gz
   sha256: aee03fe0b5a41fc6d06ee1640bed4f7963da96c9acce4bb269c83f480908ebf9
+  target_directory: ${{ go_mod }}
 
 build:
   number: 0
@@ -26,9 +32,8 @@ outputs:
         - go-licenses
     build:
       script:
-        env:
-          GOPATH: ${{ SRC_DIR }}
         content:
+          - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml
           - ${{ go_build }} -o "${{ go_bin }}"
           - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
