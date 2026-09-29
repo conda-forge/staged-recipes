@@ -1,0 +1,61 @@
+context:
+  version: "1.5.7"
+
+package:
+  name: pzstd
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebook/zstd/archive/v${{ version }}.tar.gz
+  sha256: 37d7284556b20954e56e1ca85b80226768902e2edabd3b649e9e72c0c9012ee3
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - make
+  host:
+    # pzstd uses the static-only zstd API and compiles against the headers in this
+    # source tree, so it links the libzstd.a of the exact same release
+    - zstd-static ${{ version }}.*
+  ignore_run_exports:
+    by_name:
+      - zstd
+
+tests:
+  - package_contents:
+      bin:
+        - pzstd
+  - requirements:
+      run:
+        - zstd
+    script:
+      - pzstd --version
+      - echo "hello pzstd" > input.txt
+      - pzstd -q -p 2 input.txt -o input.txt.zst
+      - test "$(pzstd -q -dc input.txt.zst)" = "hello pzstd"
+      - test "$(zstd -q -dc input.txt.zst)" = "hello pzstd"
+
+about:
+  homepage: https://facebook.github.io/zstd/
+  summary: Parallel Zstandard compression and decompression tool
+  description: |
+    pzstd is a parallel implementation of the Zstandard command line tool. It
+    splits the input into independent frames that are compressed and
+    decompressed on multiple threads, and its output can be read by the regular
+    zstd tool.
+  license: BSD-3-Clause OR GPL-2.0-only
+  license_file:
+    - LICENSE
+    - COPYING
+  repository: https://github.com/facebook/zstd
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
