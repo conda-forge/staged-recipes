@@ -1,5 +1,5 @@
 context:
-  version: "0.4.15"
+  version: "0.4.16"
   feature_set: full-dynamic
   llvm_major: "20"
 
@@ -9,7 +9,7 @@ recipe:
 
 source:
   - url: https://github.com/marcomq/mq-bridge/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: 134b166e296c2dbb7faa8a96e4b16690d2419da145c4f73ca7f51629868dabfb
+    sha256: 495b0361bcba51e7089d78f2b1e9fedeae6d43559b9ae3e62af852d6fed0845a
     patches:
       - patches/0006-build-the-wheel-with-full-dynamic.patch
 
@@ -55,15 +55,27 @@ outputs:
             then: export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_EXTRA_CLANG_ARGS ${CONDA_BUILD_SYSROOT:+-isysroot $CONDA_BUILD_SYSROOT}"
           - if: unix
             then:
+              - cp "$RECIPE_DIR/pnpm-workspace.yaml" apps/mq-bridge-app/
               - cd apps/mq-bridge-app
+              - pnpm import
+              - pnpm install --frozen-lockfile
+              - pnpm run build:ui
+              - cp node_modules/@tauri-apps/api/LICENSE_MIT node_modules/@tauri-apps/api/LICENSE
+              - pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file ../../THIRDPARTY-node-app.txt
               - cargo fetch
               - cargo auditable install --path=crates/cli --root="$PREFIX" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
-              - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-app.yml
+              - cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-rust-app.yml
             else:
+              - copy "%RECIPE_DIR%\pnpm-workspace.yaml" apps\mq-bridge-app\
               - cd apps\mq-bridge-app
+              - call pnpm import
+              - call pnpm install --frozen-lockfile
+              - call pnpm run build:ui
+              - copy node_modules\@tauri-apps\api\LICENSE_MIT node_modules\@tauri-apps\api\LICENSE
+              - call pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file ..\..\THIRDPARTY-node-app.txt
               - cargo fetch
               - cargo auditable install --path=crates/cli --root="%LIBRARY_PREFIX%" --no-track --locked --bins --no-default-features --features "${{ feature_set }}"
-              - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-app.yml
+              - cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-rust-app.yml
 
     requirements:
       build:
@@ -74,6 +86,9 @@ outputs:
         - cargo-auditable
         - cargo-bundle-licenses
         - cmake
+        - nodejs >=24,<25
+        - pnpm >=10.4,<13
+        - pnpm-licenses >=2.4,<3
         - if: unix
           then: make
         - if: win
@@ -112,7 +127,8 @@ outputs:
         - apps/mq-bridge-app/LICENSE
         - apps/mq-bridge-app/LICENSE-MIT
         - apps/mq-bridge-app/LICENSE-APACHE
-        - THIRDPARTY-app.yml
+        - THIRDPARTY-node-app.txt
+        - THIRDPARTY-rust-app.yml
       homepage: https://github.com/marcomq/mq-bridge
       repository: https://github.com/marcomq/mq-bridge
       documentation: https://github.com/marcomq/mq-bridge/tree/main/docs
@@ -164,8 +180,8 @@ outputs:
             else: cd python\mq-bridge-py
           - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
           - if: unix
-            then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-py.yml
-            else: cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-py.yml
+            then: cargo-bundle-licenses --format=yaml --output=../../THIRDPARTY-rust-py.yml
+            else: cargo-bundle-licenses --format=yaml --output=..\..\THIRDPARTY-rust-py.yml
 
     requirements:
       build:
@@ -236,7 +252,7 @@ outputs:
         - python/mq-bridge-py/LICENSE.python
         - python/mq-bridge-py/LICENSE-MIT.python
         - python/mq-bridge-py/LICENSE-APACHE.python
-        - THIRDPARTY-py.yml
+        - THIRDPARTY-rust-py.yml
       homepage: https://github.com/marcomq/mq-bridge
       repository: https://github.com/marcomq/mq-bridge
       documentation: https://github.com/marcomq/mq-bridge/tree/main/python/mq-bridge-py
