@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.9.0"
+  go_mod: github.com/Open-MBEE/OpenSysML
+  go_build: go build -v -buildmode=pie -trimpath -modcacherw
+  go_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "$PREFIX/bin/sysml" }}
+
+recipe:
+  name: opensysml
+
+source:
+  url: https://${{ go_mod }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: aee03fe0b5a41fc6d06ee1640bed4f7963da96c9acce4bb269c83f480908ebf9
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: opensysml
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        env:
+          GOPATH: ${{ SRC_DIR }}
+        content:
+          - cd ${{ go_mod }}/cmd/sysml
+          - ${{ go_build }} -o "${{ go_bin }}"
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - sysml
+      - script:
+          - sysml --version
+    about:
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - library_licenses/
+
+about:
+  summary: Open Source SysML v2 Implementation in Go
+  homepage: https://opensysml.org
+  license: Apache-2.0
+  license_file: ${{ go_mod }}/LICENSE
+  repository: https://github.com/Open-MBEE/OpenSysML
