@@ -1,0 +1,96 @@
+context:
+  version: "2.3.0"
+
+package:
+  name: libmoto
+  version: ${{ version }}
+
+source:
+  url: https://github.com/HaizhouZ/moto/archive/refs/tags/v2.3.tar.gz
+  sha256: f8c76929a674ca8c39a2c05b52eaeea23df6f72603d32723d00381de40d05e71
+  patches:
+    - gcc16-var-symbol-equality.patch
+    - gcc16-problem-symbol-lookup.patch
+
+build:
+  number: 0
+  skip:
+    - not (linux and x86_64)
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - eigen
+    - magic_enum
+    - fmt
+    - libgomp
+    - casadi
+    - re2
+    - nlohmann_json
+    - openssl
+    - libblasfeo
+    - nanobind
+    - typing-extensions
+  run:
+    - python
+    - eigen
+    - magic_enum
+    - fmt
+    - libgomp
+    - casadi
+    - re2
+    - nlohmann_json
+    - openssl
+    - libblasfeo
+    - cxx-compiler
+  run_exports:
+    - ${{ pin_subpackage('libmoto', upper_bound='x') }}
+
+tests:
+  - python:
+      imports:
+        - moto
+      pip_check: false
+  - package_contents:
+      include:
+        - moto/core/expr.hpp
+      lib:
+        - moto
+        - moto_multibody
+  - script:
+      - python -c "import moto; assert moto.__version__ == '2.3.0'"
+      - MOTO_SYNC_CODEGEN=1 python unittests/canonical_reuse.py
+      - cmake -S test-cmake -B test-cmake-build -G Ninja
+      - cmake --build test-cmake-build -j2
+      - test-cmake-build/libmoto_consumer
+    requirements:
+      run:
+        - cmake
+        - ninja
+    files:
+      source:
+        - unittests/canonical_reuse.py
+      recipe:
+        - test-cmake
+
+about:
+  homepage: https://github.com/HaizhouZ/moto
+  summary: C++20 and Python trajectory optimizer
+  description: |
+    Moto is a trajectory optimizer with graph-first symbolic optimal-control
+    modeling, sparse generated derivatives, a nonsmooth SQP method, and a
+    stagewise nullspace/Riccati QP solver.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  documentation: https://haizhouz.github.io/moto/
+  repository: https://github.com/HaizhouZ/moto
+
+extra:
+  recipe-maintainers:
+    - HaizhouZ
