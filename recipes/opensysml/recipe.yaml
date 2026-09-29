@@ -22,19 +22,11 @@ context:
   python_check_max: "3.14"
   py_grpcio_min: "1.83.0"
   py_protobuf_min: "7.35.1"
-  # uses weird in-tree fixtures
-  #  - placeholder
-  #  - release_checksums
-  # relies on git info, in-tree fixtures
-  #  - test_version
-  #  - check_version
-  pytest_k: |-
-    not (
-      placeholder
-      or release_checksums
-      or test_check_version
-      or test_version
-    )
+  # avoid discovery failures for in-tree assumptions
+  py_unlink_tests: |-
+    test_pin_release_checksums.py
+    test_check_version.py
+    test_version.py
   py_cov_fail_under: "85"
   # test
   grep_version: ${{ grep }} "${{ version | replace(".", "\\.") }}$"
@@ -48,6 +40,9 @@ source:
   - url: https://${{ go_mod }}/archive/refs/tags/v${{ version }}.tar.gz
     sha256: aee03fe0b5a41fc6d06ee1640bed4f7963da96c9acce4bb269c83f480908ebf9
     target_directory: ${{ go_mod }}
+    patches:
+      # avoid rando runtime binary downloading
+      - 0000-conda-sysml-grpc-path.patch
   - url: https://files.pythonhosted.org/packages/source/o/opensysml/opensysml-${{ version }}.tar.gz
     sha256: 22b69318f15692d529e3f2a5d96a38a4aad13a872020c601758f6bda5c26258c
     target_directory: _py
@@ -155,6 +150,7 @@ outputs:
         - python ${{ python_min }}.*
         - setuptools >=77
       run:
+        - ${{ pin_subpackage("opensysml-grpc", exact=True) }}
         - grpcio >=${{ py_grpcio_min }}
         - protobuf >=${{ py_protobuf_min }}
         - python >=${{ python_min }}
@@ -175,15 +171,11 @@ outputs:
             - ${{ python_check_max }}.*
       - files:
           source:
-            - ${{ go_mod }}/scripts/**
-            - ${{ go_mod }}/client/release-digests.json
             - ${{ go_mod }}/internal/frontend/repl/testdata/vehicle_package.sysml
             - ${{ py_dir }}/pyproject.toml
-            - ${{ py_dir }}/scripts/**
             - ${{ py_dir }}/tests/**
         requirements:
           run:
-            - ${{ pin_subpackage("opensysml-grpc", exact=True) }}
             - grpcio-tools ${{ py_grpcio_min }}.*
             - psutil >=5.9.0
             - pytest-cov >=5.0.0
@@ -191,7 +183,7 @@ outputs:
             - python ${{ python_min }}.*
             # for local debugging without rattler-build mangling
             - pytest-html
-            # use mins from above
+            # check minimum pins more aggressively with another `pip check`
             - pip
             - grpcio ${{ py_grpcio_min }}.*
             - protobuf ${{ py_protobuf_min }}.*
@@ -200,7 +192,8 @@ outputs:
           # provides no `--version`
           - opensysml-generate --help
           - cd ${{ py_dir }}
-          - coverage run --source opensysml --branch -m pytest -vv --tb=long --color=yes --html=pytest.html --self-contained-html -k "${{ pytest_k | replace('\n', ' ') }}"
+          - python -c "import os; [os.unlink(f'tests/{p}') for p in '${{ py_unlink_tests | split | join(' ') }}'.split()]"
+          - coverage run --source opensysml --branch -m pytest -vv --tb=long --color=yes --html=pytest.html --self-contained-html
           - coverage report --show-missing --skip-covered --fail-under=${{ py_cov_fail_under }}
 
 about:
