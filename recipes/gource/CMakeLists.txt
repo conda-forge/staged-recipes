@@ -96,10 +96,12 @@ target_link_libraries(gource PRIVATE
 )
 
 if(MSVC)
-    # Sources include <unistd.h> unguarded and call getcwd/chdir, which MSVC
-    # declares in <direct.h>; the shim dir supplies a unistd.h that pulls both in.
+    # Sources use POSIX calls (getcwd, chdir, mktemp) that MSVC declares in
+    # <direct.h>/<io.h>, often without including <unistd.h> under _MSC_VER.
+    # The shim stands in for <unistd.h> and is force-included everywhere.
     target_include_directories(gource PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/msvc)
-    target_compile_options(gource PRIVATE /FIdirect.h /utf-8)
+    target_compile_options(gource PRIVATE
+        "/FI${CMAKE_CURRENT_SOURCE_DIR}/msvc/unistd.h" /utf-8)
     target_compile_definitions(gource PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
 endif()
 
