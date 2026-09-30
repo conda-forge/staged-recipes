@@ -1,0 +1,53 @@
+context:
+    version: "0.8.0"
+
+package:
+    name: turso
+    version: ${{ version }}
+
+source:
+    url: https://github.com/tursodatabase/turso/archive/v${{ version }}.tar.gz
+    sha256: 51f09329c327aca24dc8ca9d4376a4ec9363606950c327db3636585c3c81586e
+
+build:
+    number: 0
+    script:
+        env:
+            CARGO_PROFILE_RELEASE_STRIP: symbols
+            CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+            - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+            - if: unix
+              then: cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path cli --locked --no-track
+              else: cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path cli --locked --no-track
+
+requirements:
+    build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - cargo-auditable
+
+tests:
+    - script:
+          - tursodb --version
+          - tursodb --help
+    - package_contents:
+          strict: true
+          bin:
+              - tursodb
+
+about:
+    homepage: https://github.com/tursodatabase/turso
+    summary: "Turso is an in-process SQL database written in Rust, compatible with SQLite. It runs in production today at multiple organizations."
+    description: |
+        A SQL database in Rust: SQLite-compatible, now also speaking Postgres (experimental). The LLVM of databases.
+    license: MIT
+    license_file:
+        - LICENSE.md
+        - THIRDPARTY.yml
+    repository: https://github.com/tursodatabase/turso
+
+extra:
+    recipe-maintainers:
+        - XhstormR
