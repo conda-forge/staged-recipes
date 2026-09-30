@@ -1,7 +1,6 @@
 @echo on
 set "ENV_D=%PREFIX%\etc\conda\env_vars.d"
-set "FWD_PREFIX=%PREFIX:\=/%"
-set ENV_JSON={"OPENSYSML_BINARY":"%FWD_PREFIX%/Library/bin/sysml-grpc.exe"}
+set ENV_JSON={"OPENSYSML_BINARY":"%PREFIX:\=/%/Library/bin/sysml-grpc.exe"}
 
 md "%ENV_D%"                                    || exit 3
 cd "%ENV_D%"                                    || exit 4
