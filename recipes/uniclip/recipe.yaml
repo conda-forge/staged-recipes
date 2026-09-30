@@ -1,0 +1,63 @@
+context:
+  version: "1.0.1"
+
+package:
+  name: uniclip
+  version: ${{ version }}
+
+source:
+  url: https://github.com/UniClipboard/UniClipboard/archive/v${{ version }}.tar.gz
+  sha256: aef6fe5edb49354f1c568097dc0ff4711ecedc892afb92c9251359c1a6cdb8c4
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path apps/daemon --locked --no-track
+          - cargo auditable install -j ${CPU_COUNT} --root "${PREFIX}" --path apps/cli --locked --no-track
+        else:
+          - cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path apps/daemon --locked --no-track
+          - cargo auditable install -j %CPU_COUNT% --root "%PREFIX%" --path apps/cli --locked --no-track
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - if: linux
+      then: pkg-config
+  host:
+    - if: linux
+      then: dbus
+
+tests:
+  - script:
+      - uniclip --version
+      - uniclip --help
+  - package_contents:
+      strict: true
+      bin:
+        - uniclip
+        - uniclipd
+
+about:
+  homepage: https://github.com/UniClipboard/UniClipboard
+  summary: "Real-time clipboard sync across all your devices — local-first, peer-to-peer, and end-to-end encrypted. No account. No cloud dependency. No central server."
+  description: |
+    UniClipboard is a privacy-first clipboard tool. It keeps a searchable, encrypted history of everything you copy, brings it back instantly through the Quick Panel, and syncs text, images, and files across your devices, whether they are on the same Wi-Fi or on different networks. Clipboard content is end-to-end encrypted in transit and stays encrypted at rest; it is decrypted only on your own devices, so relays and the network in between only ever see ciphertext.
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/UniClipboard/UniClipboard
+
+extra:
+  recipe-maintainers:
+    - XhstormR
