@@ -9,7 +9,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 find_package(GLEW REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
-find_package(SDL2_image CONFIG REQUIRED)
+# SDL2_imageConfig.cmake requires the dev files of every codec it was built
+# with (libavif, TIFF, WebP, ...); gource only needs the import library.
+find_path(SDL2_IMAGE_INCLUDE_DIR SDL_image.h PATH_SUFFIXES SDL2 REQUIRED)
+find_library(SDL2_IMAGE_LIBRARY SDL2_image REQUIRED)
+add_library(SDL2_image::SDL2_image UNKNOWN IMPORTED)
+set_target_properties(SDL2_image::SDL2_image PROPERTIES
+    IMPORTED_LOCATION "${SDL2_IMAGE_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${SDL2_IMAGE_INCLUDE_DIR}"
+    INTERFACE_LINK_LIBRARIES SDL2::SDL2)
 find_package(Freetype REQUIRED)
 find_package(PNG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED COMPONENTS 8BIT)
