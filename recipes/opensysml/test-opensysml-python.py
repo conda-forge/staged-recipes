@@ -51,7 +51,6 @@ PATCHES = {
 
 # standard invocations
 IS_WIN = os.name == "nt"
-WHICH = "where" if IS_WIN else "which"
 PYTEST_ARGS = ["pytest", "-vv", "--tb=long", "--color=yes", "-k", PYTEST_K]
 COV_RUN_ARGS = ["--source=opensysml", "--branch"]
 COV_REPORT_ARGS = ["--show-missing", "--skip-covered", f"--fail-under={COV_FAIL_UNDER}"]
@@ -132,7 +131,7 @@ def main() -> int:
         or patch()
         or do("pip", "check")
         or do("opensysml-generate", "--help")
-        or do(WHICH, os.environ.get(ENV_GRPC_BINARY, "missing-opensysml-grpc"))
+        or do(os.environ.get(ENV_GRPC_BINARY, "missing-opensysml-grpc"), "--help")
         or do("coverage", "run", *COV_RUN_ARGS, "-m", *PYTEST_ARGS, env=env)
         or do("coverage", "report", *COV_REPORT_ARGS)
     )
