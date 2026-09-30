@@ -1,10 +1,6 @@
 context:
   version: "20260929.200159"
   # Commits pinned by Dawn's git submodules at this version.
-  # Tint's SPIR-V reader uses SPIRV-Tools internal headers, so SPIRV-Tools and
-  # the matching SPIRV-Headers are built from source and bundled statically.
-  spirv_tools_commit: 19e35eae1ab1574f31704ac002d77cbad6a064aa
-  spirv_headers_commit: cb42dec3830d3ac67fa449ecdc0c0f73d5e74498
   # Only gl.xml is needed from the OpenGL registry; EGL headers come from the EGL registry.
   opengl_registry_commit: 1cdd228e34966dd6b95bd203e9f84faba0f371a1
   egl_registry_commit: db3425b8246136faccb5e2782b5694960bd6edf1
@@ -18,12 +14,6 @@ source:
     sha256: 1d3bbe20e1c0e1344db888440b0a9698a8e73a2598b76757617f3b1a8c817dc4
     patches:
       - 0001-Link-imported-dependencies-into-the-monolithic-library.patch
-  - url: https://github.com/KhronosGroup/SPIRV-Tools/archive/${{ spirv_tools_commit }}.tar.gz
-    sha256: acbdda0e32365987b613746e32784deb776f0d1d9a7201370831896f9a4ef5af
-    target_directory: third_party/spirv-tools/src
-  - url: https://github.com/KhronosGroup/SPIRV-Headers/archive/${{ spirv_headers_commit }}.tar.gz
-    sha256: 117010e525fe36b1ce006e0e58a6e0a3b415aabc9179d912b92737f41f3f994f
-    target_directory: third_party/spirv-headers/src
   - url: https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/${{ opengl_registry_commit }}/xml/gl.xml
     sha256: b9ca2cfa5c676e901c20d34af3407f1687cde0f1336a5ff7a8974d04c7494ad3
     target_directory: third_party/OpenGL-Registry/src/xml
@@ -46,6 +36,9 @@ requirements:
     - jinja2
   host:
     - libabseil
+    - spirv-headers
+    # Tint's SPIR-V reader uses the private headers in include/spirv-tools-private
+    - spirv-tools
     - if: not osx
       then:
         - libvulkan-headers
@@ -63,6 +56,8 @@ requirements:
       - if: linux
         then: xorg-libx11
   run:
+    # Tint uses the internal spvtools::opt C++ API, which is not ABI stable
+    - ${{ pin_compatible('spirv-tools', upper_bound='x.x') }}
     # Dawn loads the Vulkan loader at runtime
     - if: linux
       then:
@@ -106,10 +101,7 @@ about:
     Tint shader compiler, and backends for D3D11, D3D12, Metal, Vulkan and
     OpenGL.
   license: BSD-3-Clause
-  license_file:
-    - LICENSE
-    - third_party/spirv-tools/src/LICENSE
-    - third_party/spirv-headers/src/LICENSE
+  license_file: LICENSE
 
 extra:
   recipe-maintainers:
