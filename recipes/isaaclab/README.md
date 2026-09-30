@@ -77,15 +77,17 @@ a plain `3.0.0` once upstream tags v3.
   annotations (0) does not match number of class members`. This already breaks
   at import of `isaaclab.sim`, i.e. `isaaclab train --help`. The patch reads
   own-class annotations through `annotationlib.get_annotations()` on 3.14 and
-  keeps the class-dict lookup on older versions.
+  keeps the class-dict lookup on older versions. Proposed upstream in
+  [isaac-sim/IsaacLab#8108](https://github.com/isaac-sim/IsaacLab/pull/8108).
 - `0002-support-openusd-26.05-zipfilewriter-in-test-assets.patch`: a `unit` test
   builds a `.usdz` through `Usd.ZipFileWriter`. OpenUSD 25.08 moved it to `Sdf`
   and 26.05 dropped the `Usd` alias. Upstream gets OpenUSD 25.05 bundled in the
   PyPI `usd-exchange 2.3.0` wheel, while the conda-forge `usd-exchange 2.3.0` is
   built against `openusd 26.05`. The patch prefers `Sdf.ZipFileWriter` and falls
-  back to `Usd.ZipFileWriter`.
-
-Both are upstreamable as-is.
+  back to `Usd.ZipFileWriter`. Fixed on `develop` by
+  [isaac-sim/IsaacLab#7192](https://github.com/isaac-sim/IsaacLab/pull/7192)
+  (switch to `Sdf.ZipFileWriter`); drop the patch once it reaches the release
+  branch.
 
 ## What is not packaged
 
@@ -166,12 +168,10 @@ upstream dependency change turns CI red instead of shipping stale metadata:
   build runs `gen_extra_metadata.py extra` to emit a synthetic
   `isaaclab_extra_<name>.dist-info` whose `Requires-Dist` is that extra's set. Its
   `pip_check: true` test fails if the recipe's `run:` list drifts from upstream.
-- **CUDA onnxruntime.** The CUDA builds of conda-forge `onnxruntime` register the
-  dist as `onnxruntime-gpu`, so `leapp`'s `Requires-Dist: onnxruntime` looks
-  missing. `isaaclab-leapp` and `isaaclab-all` run `pip check` from a script
-  test that skips it only when `onnxruntime-gpu` is installed. CPU runs, e.g.
-  conda-forge CI, still check everything. Tracked in
-  [conda-forge/onnxruntime-feedstock#212](https://github.com/conda-forge/onnxruntime-feedstock/issues/212).
+- **CUDA onnxruntime.** Before build 202, the CUDA builds of conda-forge
+  `onnxruntime` registered the dist only as `onnxruntime-gpu`, so `leapp`'s
+  `Requires-Dist: onnxruntime` looked missing. Fixed in
+  [conda-forge/onnxruntime-feedstock#213](https://github.com/conda-forge/onnxruntime-feedstock/pull/213).
 
 Both layers are name-only (version specifiers dropped): conda-forge often serves
 newer builds than upstream's exact pins, so a name check catches added or removed
@@ -226,3 +226,5 @@ Isaac Lab changes that originated from this recipe:
   package.
 - [isaac-sim/IsaacLab#7945](https://github.com/isaac-sim/IsaacLab/pull/7945):
   moves the remaining checkout-only CLI tests onto the fixture.
+- [isaac-sim/IsaacLab#8108](https://github.com/isaac-sim/IsaacLab/pull/8108):
+  `configclass` support for Python 3.14 (patch 0001).
