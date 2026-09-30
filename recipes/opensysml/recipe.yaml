@@ -86,23 +86,23 @@ outputs:
         content:
           - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml-grpc
-          - ${{ go_build }} -o "${{ go_grpc_bin }}"
-          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+          - ${{ go_build }} -o "${{ go_grpc_bin }}" || exit 1
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }} || exit 2
           # activation environment variables, used by clients to avoid runtime downloading
           - if: unix
             then:
-              - mkdir -p "${{ env_d }}"
+              - mkdir -p "${{ env_d }}" || exit 3
               - |-
                 cat > "${{ go_rpc_env_d_json }}" <<EOF
                 {"OPENSYSML_BINARY":"${PREFIX}/bin/sysml-grpc"}
                 EOF
-              - cat "${{ go_rpc_env_d_json }}"
+              - cat "${{ go_rpc_env_d_json }}" || exit 4
             else:
-              - if not exist "${{ env_d }}" md "${{ env_d }}"
+              - if not exist "${{ env_d }}" md "${{ env_d }}" || exit 3
               - set "FWD_PREFIX=%PREFIX:\=/%"
               - |-
                 echo {"OPENSYSML_BINARY":"%FWD_PREFIX%/Library/bin/sysml-grpc.exe"} > "${{ go_rpc_env_d_json }}"
-              - type "${{ go_rpc_env_d_json }}"
+              - type "${{ go_rpc_env_d_json }}" || exit 4
     tests:
       - package_contents:
           strict: true
