@@ -1,9 +1,5 @@
 context:
   version: "20260929.200159"
-  # Commits pinned by Dawn's git submodules at this version.
-  # Only gl.xml is needed from the OpenGL registry; EGL headers come from the EGL registry.
-  opengl_registry_commit: 1cdd228e34966dd6b95bd203e9f84faba0f371a1
-  egl_registry_commit: db3425b8246136faccb5e2782b5694960bd6edf1
 
 package:
   name: dawn
@@ -14,12 +10,6 @@ source:
     sha256: 1d3bbe20e1c0e1344db888440b0a9698a8e73a2598b76757617f3b1a8c817dc4
     patches:
       - 0001-Link-imported-dependencies-into-the-monolithic-library.patch
-  - url: https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/${{ opengl_registry_commit }}/xml/gl.xml
-    sha256: b9ca2cfa5c676e901c20d34af3407f1687cde0f1336a5ff7a8974d04c7494ad3
-    target_directory: third_party/OpenGL-Registry/src/xml
-  - url: https://github.com/KhronosGroup/EGL-Registry/archive/${{ egl_registry_commit }}.tar.gz
-    sha256: 3d6b42b23da8030f5b29ade07d7384c5f885e713f17f04650f6cd4b8329b88e8
-    target_directory: third_party/EGL-Registry/src
 
 build:
   number: 0
@@ -34,6 +24,10 @@ requirements:
     # Used by Dawn's code generators
     - python >=3.10
     - jinja2
+    - if: linux
+      then:
+        # Provides the Khronos gl.xml used to generate the OpenGL loader
+        - glad2
   host:
     - libabseil
     - spirv-headers
@@ -45,16 +39,19 @@ requirements:
         - vulkan-utility-libraries
     - if: linux
       then:
+        - libegl-devel
         - xorg-libx11
         - xorg-xorgproto
   ignore_run_exports:
-    # Only the header-only Vulkan::UtilityHeaders target is used, and libX11
-    # is loaded at runtime with dlopen.
+    # Only the header-only Vulkan::UtilityHeaders target is used, and libEGL
+    # and libX11 are loaded at runtime with dlopen.
     from_package:
       - if: not osx
         then: vulkan-utility-libraries
       - if: linux
-        then: xorg-libx11
+        then:
+          - libegl-devel
+          - xorg-libx11
   run:
     # Tint uses the internal spvtools::opt C++ API, which is not ABI stable
     - ${{ pin_compatible('spirv-tools', upper_bound='x.x') }}
