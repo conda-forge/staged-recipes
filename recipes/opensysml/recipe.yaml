@@ -10,7 +10,6 @@ context:
   # shell aliases
   cp: ${{ "cp" if unix else "copy" }}
   cpr: ${{ "cp -r" if unix else "copy" }}
-  env_d: ${{ '${PREFIX}/etc/conda/env_vars.d' if unix else "%PREFIX%\etc\conda\env_vars.d" }}
   # go
   go_mod: github.com/Open-MBEE/OpenSysML
   go_ld_flags: -s -w -X main.Version=${{ version }}
@@ -81,29 +80,20 @@ outputs:
       build:
         - ${{ compiler("go-nocgo") }}
         - go-licenses
+        - python *
     build:
       script:
         content:
           - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml-grpc
-          - ${{ go_build }} -o "${{ go_grpc_bin }}" || exit 1
-          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }} || exit 2
-          # activation environment variables, used by clients to avoid runtime downloading
-          - if: unix
-            then:
-              - mkdir -p "${{ env_d }}" || exit 3
-              - |-
-                cat > "${{ go_rpc_env_d_json }}" <<EOF
-                {"OPENSYSML_BINARY":"${PREFIX}/bin/sysml-grpc"}
-                EOF
-              - cat "${{ go_rpc_env_d_json }}" || exit 4
-            else:
-              - call "%RECIPE_DIR%\build-env-json.bat" || exit 6
+          - ${{ go_build }} -o "${{ go_grpc_bin }}"
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+          - python "${{ RECIPE_DIR }}/build-opensysml-grpc-env-json.py"
     tests:
       - package_contents:
           strict: true
           files:
-            - etc/conda/env_vars.d/sysml-grpc.json
+            - etc/conda/env_vars.d/opensysml-grpc.json
           bin:
             - sysml-grpc
       - script:
