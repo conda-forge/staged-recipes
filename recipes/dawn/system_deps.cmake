@@ -1,0 +1,11 @@
+# Injected with CMAKE_PROJECT_Dawn_INCLUDE so that the dependencies below come
+# from the host environment instead of Dawn's (absent) git submodules. Dawn's
+# third_party/CMakeLists.txt skips vendored copies when these targets exist.
+find_package(absl CONFIG REQUIRED)
+
+# DAWN_ENABLE_VULKAN is not defined yet at this point; Vulkan is enabled
+# by default everywhere except Apple platforms.
+if(NOT APPLE)
+  find_package(VulkanHeaders CONFIG REQUIRED)
+  find_package(VulkanUtilityLibraries CONFIG REQUIRED)
+endif()

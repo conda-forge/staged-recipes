@@ -1,0 +1,37 @@
+diff --git a/src/cmake/BundleLibraries.cmake b/src/cmake/BundleLibraries.cmake
+index 1ea9cfb4e..eb9b90bb5 100644
+--- a/src/cmake/BundleLibraries.cmake
++++ b/src/cmake/BundleLibraries.cmake
+@@ -97,12 +97,20 @@ function(bundle_libraries output_target library_type)
+ 
+   # Collect $<TARGET_OBJECTS:...> from STATIC and OBJECT library dependencies
+   set(all_objects "")
++  set(all_imported_libs "")
+   foreach(dependency IN LISTS all_dependencies)
+     get_target_property(type ${dependency} TYPE)
++    get_target_property(is_imported ${dependency} IMPORTED)
+ 
++    # Imported libraries (e.g. system provided dependencies found with
++    # find_package) cannot be bundled, so link against them instead.
++    if(is_imported)
++      if(NOT ${type} STREQUAL "INTERFACE_LIBRARY")
++        list(APPEND all_imported_libs ${dependency})
++      endif()
+     # We only want object files from static or object libraries.
+     # This correctly excludes shared libraries, modules, executables, interfaces, etc.
+-    if(${type} STREQUAL "STATIC_LIBRARY")
++    elseif(${type} STREQUAL "STATIC_LIBRARY")
+       list(APPEND all_objects $<TARGET_OBJECTS:${dependency}>)
+     elseif(${type} STREQUAL "OBJECT_LIBRARY")
+       list(APPEND all_objects $<TARGET_OBJECTS:${dependency}>)
+@@ -126,6 +134,10 @@ function(bundle_libraries output_target library_type)
+   # that were discovered during the recursive dependency walk. These are dependencies
+   # like liblog.so on Android, framework flags on Apple, or other system libraries
+   # that the bundled static/object libraries depend on but which are not CMake targets.
++  if(all_imported_libs)
++    target_link_libraries(${output_target} PRIVATE ${all_imported_libs})
++  endif()
++
+   if(all_non_target_libs)
+     list(REMOVE_DUPLICATES all_non_target_libs)
+     target_link_libraries(${output_target} PRIVATE ${all_non_target_libs})
