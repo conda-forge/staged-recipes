@@ -16,7 +16,7 @@ fi
 
 cmake -S . -B build -G Ninja \
     ${CMAKE_ARGS} \
-    "${EXTRA_CMAKE_ARGS[@]}" \
+    ${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PROJECT_Dawn_INCLUDE="${RECIPE_DIR}/system_deps.cmake" \
     -DPython3_EXECUTABLE="${BUILD_PREFIX}/bin/python" \
