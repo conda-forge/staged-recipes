@@ -1,0 +1,18 @@
+--- a/build.zig
++++ b/build.zig
+@@ -525,6 +525,15 @@
+         });
+         ninja_run.setCwd(v8_dir_lazy_path);
+         addDepotToolsToPath(ninja_run, depot_tools_dir);
++        // conda-forge: addPathDir() switches the step to an explicit
++        // environment that drops everything except PATH, so the glibc
++        // development headers (sysroot_linux-64) must be forwarded
++        // explicitly for the v8 compile to find <pthread.h> etc.
++        inline for (.{ "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LIBRARY_PATH" }) |key| {
++            if (b.option([]const u8, "v8_env_" ++ key, "Forward " ++ key ++ " to the v8 build")) |value| {
++                ninja_run.setEnvironmentVariable(key, value);
++            }
++        }
+         ninja_run.step.dependOn(&gn_run.step);
+         final_step.dependOn(&ninja_run.step);
+         last_step = &ninja_run.step;
