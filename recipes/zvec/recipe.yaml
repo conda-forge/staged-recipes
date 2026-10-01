@@ -1,0 +1,143 @@
+context:
+  version: "0.7.0"
+
+package:
+  name: zvec
+  version: ${{ version }}
+
+source:
+  # zvec does not publish an sdist to PyPI, so the primary source is the
+  # official GitHub release tarball for the tag.
+  #
+  # zvec vendors ~17 dependencies as git submodules under thirdparty/,
+  # which a plain tag tarball does not seem to include. Each is therefore
+  # pulled in as its own pinned git source placed at the exact path the
+  # build expects, following the precedent set by conda-forge/pyg-lib-feedstock
+  # (main package from a tarball; vendored third_party/cccl, third_party/
+  # cuCollections and third_party/METIS each as a separate git_url/git_rev
+  # source with a folder/target_directory):
+  # https://github.com/conda-forge/pyg-lib-feedstock/blob/main/recipe/meta.yaml
+  #
+  # Each `rev` below is the exact submodule commit pinned by zvec's current
+  # tree, and `submodules: false` avoids pulling in seemingly unrelated nested submodules
+  # some of these upstream repos carry.
+  - url: https://github.com/alibaba/zvec/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 441ce2b1c5a5eccde322c21cc7a973d9f967068667ade93a7de6bf5c4c36a5f4
+  - git: https://github.com/google/googletest.git
+    rev: 703bd9caab50b139428cea1aaff9974ebee5742e
+    target_directory: thirdparty/googletest/googletest-1.10.0
+    submodules: false
+  - git: https://github.com/sparsehash/sparsehash.git
+    rev: f93c0c69e959c1c77611d0ba8d107aa971338811
+    target_directory: thirdparty/sparsehash/sparsehash-2.0.4
+    submodules: false
+  - git: https://github.com/gflags/gflags.git
+    rev: e171aa2d15ed9eb17054558e0b3a6a413bb01067
+    target_directory: thirdparty/gflags/gflags-2.2.2
+    submodules: false
+  - git: https://github.com/facebook/rocksdb.git
+    rev: 6a436150417120a3f9732d65a2a5c2b8d19b60fc
+    target_directory: thirdparty/rocksdb/rocksdb-8.1.1
+    submodules: false
+  - git: https://github.com/jbeder/yaml-cpp.git
+    rev: 9a3624205e8774953ef18f57067b3426c1c5ada6
+    target_directory: thirdparty/yaml-cpp/yaml-cpp-0.6.3
+    submodules: false
+  - git: https://github.com/apache/arrow.git
+    rev: ee4d09ebef61c663c1efbfa4c18e518a03b798be
+    target_directory: thirdparty/arrow/apache-arrow-21.0.0
+    submodules: false
+  - git: https://github.com/google/glog.git
+    rev: 8f9ccfe770add9e4c64e9b25c102658e3c763b73
+    target_directory: thirdparty/glog/glog-0.5.0
+    submodules: false
+  - git: https://github.com/lz4/lz4.git
+    rev: 5ff839680134437dbf4678f3d0c7b371d84f4964
+    target_directory: thirdparty/lz4/lz4-1.9.4
+    submodules: false
+  - git: https://github.com/antlr/antlr4.git
+    rev: 7a3f40bc341ddfb463d6e0aa1a6265064d020cb6
+    target_directory: thirdparty/antlr/antlr4
+    submodules: false
+  - git: https://github.com/Neargye/magic_enum.git
+    rev: 83ab7f4f578bd00e1026a7cd9f7baa4f1a62cbeb
+    target_directory: thirdparty/magic_enum/magic_enum-0.9.7
+    submodules: false
+  - git: https://github.com/VectorDB-NTU/RaBitQ-Library.git
+    rev: 540242ea0a68926f1b827bf1f9add844f07a427b
+    target_directory: thirdparty/RaBitQ-Library/RaBitQ-Library-0.1
+    submodules: false
+  - git: https://github.com/yanyiwu/cppjieba.git
+    rev: b3602bef7d1f67521a61788a74fb5801a0e62cd3
+    target_directory: thirdparty/cppjieba/cppjieba-5.6.7
+    submodules: false
+  - git: https://github.com/fast-pack/FastPFOR.git
+    rev: 2be1f976935b8ff9296b029f574d7f964be9d35d
+    target_directory: thirdparty/FastPFOR/FastPFOR-0.4.0
+    submodules: false
+  - git: https://github.com/yanyiwu/limonp.git
+    rev: 9d74077dfcdf8073536c97a00bb79d7a3c3fdaba
+    target_directory: thirdparty/limonp/limonp-v1.0.2
+    submodules: false
+  - git: https://github.com/JuliaStrings/utf8proc.git
+    rev: e5e799221b45bbb90f5fdc5c69b6b8dfbf017e78
+    target_directory: thirdparty/utf8proc/utf8proc-2.11.3
+    submodules: false
+  - git: https://github.com/snowballstem/snowball.git
+    rev: cd195b51e948a902a4312f023f4a14392516a543
+    target_directory: thirdparty/snowball/snowball-3.1.1
+    submodules: false
+
+build:
+  number: 0
+  skip:
+    # Upstream only publishes macosx_11_0_arm64 wheels (no osx-64), and the
+    # AVX2/AVX-512 (RaBitQ) and DiskANN dispatch code is only wired up for
+    # x86_64 and aarch64/arm64.
+    - osx and x86_64
+    - linux and ppc64le
+  script:
+    - python -m pip install . -vv --no-build-isolation --no-deps
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.26,<4.0a0
+    - ninja >=1.11
+  host:
+    - python >=3.10
+    - pip
+    - scikit-build-core >=0.11
+    - pybind11 >=3.0
+    - setuptools-scm >=8.0
+  run:
+    - python >=3.10
+    - numpy >=1.23
+
+tests:
+  - python:
+      imports:
+        - zvec
+      pip_check: true
+
+about:
+  homepage: https://github.com/alibaba/zvec
+  summary: A high-performance, in-process vector database engine with a native C++ backend and Python bindings
+  description: |
+    Zvec is an open-source, in-process vector database that embeds directly
+    into applications. It delivers production-grade, low-latency similarity
+    search over dense and sparse vectors, native full-text search, and
+    hybrid queries that fuse both, backed by durable write-ahead-logged
+    storage.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+  documentation: https://zvec.org
+  repository: https://github.com/alibaba/zvec
+
+extra:
+  recipe-maintainers:
+    - pb01ka
