@@ -146,7 +146,11 @@ build:
           os.unlink(tar)
       EOF
     - export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-    - export V8_CLANG_BASE_PATH="${BUILD_PREFIX}"
+    # the CF container ships glibc runtime but no dev headers; v8's clang gets
+    # them from the sysroot package (same glibc version as the container)
+    - export C_INCLUDE_PATH="${BUILD_PREFIX}/x86_64-conda_sysroot/include${C_INCLUDE_PATH:+:${C_INCLUDE_PATH}}"
+    - export CPLUS_INCLUDE_PATH="${BUILD_PREFIX}/x86_64-conda_sysroot/include${CPLUS_INCLUDE_PATH:+:${CPLUS_INCLUDE_PATH}}"
+    - export LIBRARY_PATH="${BUILD_PREFIX}/x86_64-conda_sysroot/lib${LIBRARY_PATH:+:${LIBRARY_PATH}}"
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
@@ -157,8 +161,10 @@ requirements:
   build:
     - python
     - zig =0.16.0
-    - clangdev
     - rust
+    - if: linux
+      then:
+        - sysroot_linux-64 =2.34
     - glib
     - pkg-config
     - rsync
