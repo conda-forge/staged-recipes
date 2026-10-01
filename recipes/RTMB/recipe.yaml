@@ -18,7 +18,14 @@ source:
 
 build:
   number: 0
-  script: R CMD INSTALL --build .
+  script:
+    - if: win
+      then:
+        # RTMB's Makevars.win looks up FFTW via $(LIB_FFTW)/include and $(LIB_FFTW)/lib
+        - set "LIB_FFTW=%PREFIX%\Library"
+        - R CMD INSTALL --build .
+    - if: not win
+      then: R CMD INSTALL --build .
   merge_build_and_host_envs: true
   dynamic_linking:
     rpaths:
@@ -44,6 +51,8 @@ requirements:
       then: m2-base
     - ${{ posix }}make
   host:
+    - if: win
+      then: fftw
     - r-MASS
     - r-Matrix
     - r-Rcpp >=1.0.9
@@ -57,11 +66,9 @@ requirements:
     - r-base
 
 tests:
-  - script:
-      - if: not win
-        then: $R -e "library('RTMB')"
-      - if: win
-        then: "\"%R%\" -e \"library('RTMB')\""
+  - r:
+      libraries:
+        - RTMB
 
 about:
   summary: Native 'R' interface to 'TMB' (Template Model Builder) so models can be written entirely in 'R' rather than 'C++'. Automatic differentiation, to any order, is available for a rich subset of 'R' features, including linear algebra for dense and sparse matrices, complex arithmetic, Fast Fourier Transform, probability distributions and special functions. 'RTMB' provides easy access to model fitting and validation following the principles of Kristensen, K., Nielsen, A., Berg, C. W., Skaug, H., & Bell, B. M. (2016) <DOI:10.18637/jss.v070.i05> and Thygesen, U.H., Albertsen, C.M., Berg,
