@@ -69,14 +69,16 @@ PY
 )
 driver_stub_directory=$(mktemp -d)
 trap 'rm -rf -- "$driver_stub_directory"' EXIT
-driver_stub=$(find "$PREFIX" \( -type f -o -type l \) \
+driver_stub=$(find "${PREFIX}" \( -type f -o -type l \) \
   -path '*/stubs/libcuda.so' -print -quit)
-test -n "$driver_stub"
-ln -s "$driver_stub" "$driver_stub_directory/libcuda.so.1"
-export LD_LIBRARY_PATH="$driver_stub_directory${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-linkage=$(ldd "$native")
-test -z "$(awk '/not found/ { print $1 }' <<<"$linkage")"
+test -n "${driver_stub}"
+ln -s "${driver_stub}" "${driver_stub_directory}/libcuda.so.1"
+export LD_LIBRARY_PATH="${driver_stub_directory}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+linkage=$(ldd "${native}")
+if grep -q 'not found' <<<"${linkage}"; then
+  exit 1
+fi
 for library in libcudart libcublas; do
-  grep -E "^[[:space:]]*$library\\.so[^[:space:]]* => $PREFIX/(bin/\\.\\./)?lib/" \
-    <<<"$linkage"
+  grep -E "^[[:space:]]*${library}\\.so[^[:space:]]* => ${PREFIX}/(bin/\\.\\./)?lib/" \
+    <<<"${linkage}"
 done
