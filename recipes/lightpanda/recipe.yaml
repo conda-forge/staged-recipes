@@ -29,6 +29,7 @@ source:
     target_directory: deps/v8
     patches:
       - patches/0001-v8-warnings-not-errors-all-linux.patch
+      - patches/0002-v8-clang-base-path-env.patch
   - url: https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz
     sha256: 0afe09a53c8bad9861c8dd1fc1284308d54f19d2979ba3541cfdcc9b05fe360f
     target_directory: deps/brotli
@@ -97,6 +98,15 @@ build:
   script:
     - |
       set -eu
+      # --- environment diagnostics (v8 toolchain debugging) ---
+      echo "=== CF env diagnostics ==="
+      echo "glibc: $(ldd --version 2>&1 | head -1)"
+      ls /usr/include/pthread.h 2>&1 || echo "no /usr/include/pthread.h"
+      echo "clang: $(which clang clang++ 2>/dev/null || echo none)"
+      clang --version 2>/dev/null | head -1 || true
+      echo "gcc: $(which gcc 2>/dev/null || echo none) $(gcc --version 2>/dev/null | head -1 || true)"
+      echo "CFLAGS=${CFLAGS:-unset} CXXFLAGS=${CXXFLAGS:-unset}"
+      echo "=== end diagnostics ==="
       # build.zig hardcodes the cache at <browser root>/.lp-cache
       mv lp-cache .lp-cache
       # .v8 -> path dep on the patched fork (hash-independent)
@@ -136,6 +146,7 @@ build:
           os.unlink(tar)
       EOF
     - export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+    - export V8_CLANG_BASE_PATH="${BUILD_PREFIX}"
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
@@ -146,6 +157,7 @@ requirements:
   build:
     - python
     - zig =0.16.0
+    - clangdev
     - rust
     - glib
     - pkg-config
