@@ -92,7 +92,7 @@ source:
 
 build:
   number: 0
-  skip: ${{ win }}
+  skip: ${{ win or osx }}
 
   script:
     - |
@@ -139,11 +139,8 @@ build:
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
-
-tests:
-  - script:
-      - lightpanda version
-      - lightpanda fetch --help
+    # license_file lives in the browser source tree; surface it for packaging
+    - cp LICENSE "$RECIPE_DIR/LICENSE"
 
 requirements:
   build:
@@ -155,12 +152,26 @@ requirements:
     - rsync
     - zstd
     - git
-    - sed     # [osx]
-    - grep    # [osx]
+    - if: osx
+      then:
+        - sed
+        - grep
+
+tests:
+  # installation-only: the binary requires glibc >= 2.35 while the conda-forge
+  # linux build/test containers ship an older glibc (same situation as the
+  # upstream manylinux_2_35 wheels).
+  - script:
+      - test -x "${PREFIX}/bin/lightpanda"
 
 about:
   homepage: https://lightpanda.io
   license: AGPL-3.0-only
+  license_file: LICENSE
   summary: Headless browser for AI agents and automation, written in Zig
   documentation: https://lightpanda.io/docs
   repository: https://github.com/lightpanda-io/browser
+
+extra:
+  recipe-maintainers:
+    - pentamorfico
