@@ -6,23 +6,40 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://herwig.hepforge.org/downloads/Herwig-${{ version }}.tar.bz2
-  sha256: 5933545ddff7fde2bea86fa61943fba5d4be50ba993c336e9a372529a2f2b164
+  - url: https://herwig.hepforge.org/downloads/Herwig-${{ version }}.tar.bz2
+    sha256: 5933545ddff7fde2bea86fa61943fba5d4be50ba993c336e9a372529a2f2b164
+    patches:
+      - determine-length-of-compiled-in-install-paths-at-run.patch
+  # 'make install' runs 'Herwig init' to create the default repository
+  # HerwigDefaults.rpo, which fails if the default PDF sets are not installed.
+  # The PDF sets are only used during the build and are not packaged.
+  - url: https://lhapdfsets.web.cern.ch/current/CT14lo.tar.gz
+    sha256: 5554b2f66027accc3fe38b55b846d5c7c6d771283868187870bf9c86e5c46678
+    target_directory: pdfsets/CT14lo
+  - url: https://lhapdfsets.web.cern.ch/current/CT14nlo.tar.gz
+    sha256: ad62063067e1d73942b1aadcaff2e50a6b2e2d28ad989e8bd3eee5f48e05f18c
+    target_directory: pdfsets/CT14nlo
 
 build:
-  script:
-    - export LD_LIBRARY_PATH=`thepeg-config --libdir`
-    - lhapdf install CT14lo CT14nlo
-    - FCFLAGS="-fallow-argument-mismatch -fno-range-check" FFLAGS="-fallow-argument-mismatch -fno-range-check" ./configure \
-    - ${CONFIGURE_COMMON_FLAGS} --prefix=${PREFIX} --with-thepeg=${PREFIX} --with-fastjet=${PREFIX} --with-gsl=${PREFIX} --with-boost=${PREFIX}
-    - make -j${CPU_COUNT} CXX=$CXX
-    - make install
-    - mv ${PREFIX}/bin/Herwig ${PREFIX}/bin/Herwig.orig
-    - cp ${RECIPE_DIR}/Herwig ${PREFIX}/bin/
   number: 0
   skip:
     - win
     - osx
+  script:
+    - export LHAPDF_DATA_PATH="${SRC_DIR}/pdfsets"
+    # libThePEG is installed under lib/ThePEG, which is not on the default rpath
+    - export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib/ThePEG"
+    # The bundled LoopTools Fortran does not compile with gfortran >= 10 defaults
+    - export FFLAGS="${FFLAGS} -fallow-argument-mismatch -fno-range-check"
+    - export FCFLAGS="${FFLAGS}"
+
+    # Get an updated config.sub and config.guess
+    - cp $BUILD_PREFIX/share/gnuconfig/config.* .
+
+    - ./configure --help
+    - ./configure --prefix=${PREFIX} --with-thepeg=${PREFIX} --with-fastjet=${PREFIX} --with-gsl=${PREFIX} --with-boost=${PREFIX}
+    - make -j${CPU_COUNT}
+    - make install
 
 requirements:
   build:
@@ -30,19 +47,48 @@ requirements:
     - ${{ compiler("cxx") }}
     - ${{ stdlib("c") }}
     - make
+    - pkg-config
+    - gnuconfig
   host:
-    - fastjet-cxx
+    - fastjet-cxx  # pick up global pinning
+    # Provides fastjet-config, which configure uses to find FastJet
+    - fastjet-cxx-devel
     - gsl
-    - lhapdf
-    - libboost-devel
-    - thepeg
+    - libboost-headers
+    # Herwig 7.2 is the release series for ThePEG 2.2
+    - thepeg 2.2.*
+  run:
+    - python
   run_exports:
     - ${{ pin_subpackage("herwig", upper_bound="x.x") }}
 
 tests:
   - script:
-    - Herwig read ${PREFIX}/share/Herwig/LHC-Matchbox.in
-    - Herwig run LHC-Matchbox.run -N 100
+      - Herwig --version
+      # The default PDF sets are not shipped with the package
+      - lhapdf install CT14lo CT14nlo &> /dev/null
+      - Herwig read ${PREFIX}/share/Herwig/LHC-Matchbox.in
+      - Herwig run LHC-Matchbox.run -N 100
+  - package_contents:
+      bin:
+        - Herwig
+        - herwig-config
+        - herwig-combinedistributions
+        - herwig-combineruns
+        - herwig-makedistributions
+        - herwig-mergegrids
+        - gosam2herwig
+        - mg2herwig
+        - slha2herwig
+        - ufo2herwig
+      include:
+        - Herwig/API/HerwigAPI.h
+      files:
+        - lib/Herwig/libHerwigAPI.so
+        - lib/Herwig/Herwig.so
+        - lib/Herwig/Hw*.so
+        - share/Herwig/HerwigDefaults.rpo
+        - share/Herwig/LHC.in
 
 about:
   homepage: https://herwig.hepforge.org/
@@ -52,6 +98,9 @@ about:
     HERWIG 6 and Herwig++ 2, while keeping the key model motivations such as coherent parton showers (including
     angular-ordered and dipole-based evolution), the cluster hadronization model, an eikonal multiple-interaction model,
     highly flexible BSM capabilities and improved perturbative input using next-to-leading order QCD.
+
+    The default PDF sets used by Herwig are not distributed with the package and need to be installed with
+    `lhapdf install CT14lo CT14nlo`.
   license: GPL-3.0-or-later
   license_file: COPYING
   documentation: https://herwig.hepforge.org/doxygen/
@@ -63,3 +112,4 @@ extra:
     - GiacomoXT
     - vvsagar
     - AlexanderHeidelbach
+    - conda-forge/hepmc3
