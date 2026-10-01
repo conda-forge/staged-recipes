@@ -1,0 +1,128 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.14.0"
+
+recipe:
+  name: rdocx-split
+  version: ${{ version }}
+
+source:
+  # The PyPI sdist must stay first: the upstream monorepo publishes rdocx and
+  # rpptx under interleaved GitHub tags, so the bot tracks versions on PyPI
+  # (see conda-forge.yml).
+  - url: https://pypi.org/packages/source/r/rdocx/rdocx-${{ version }}.tar.gz
+    sha256: 2ac14ef29fd8edc93259564788b90e667e27cb2861766d6b0961b79acc61affc
+    target_directory: python
+  # The sdist only contains the crates needed by the Python binding, so the CLI
+  # and the license files come from the tag matching the PyPI release.
+  - url: https://github.com/tensorbee/rdocx/archive/refs/tags/py-rdocx-v${{ version }}.tar.gz
+    sha256: 28e63288e4837f7d720decae4afaa388f16f0f87f97f1d13c779696d26530926
+    target_directory: repo
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: rdocx
+    build:
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        - cd python
+        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      build:
+        - if: build_platform != host_platform
+          then:
+            - python
+            - cross-python_${{ host_platform }}
+            - maturin >=1.9,<2
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      host:
+        - if: is_abi3
+          then: python-abi3
+        - python
+        - maturin >=1.9,<2
+        - pip
+      run:
+        - python
+    tests:
+      - python:
+          imports:
+            - rdocx
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+      - files:
+          recipe:
+            - test_rdocx.py
+        script:
+          - python test_rdocx.py
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/rdocx/_rdocx.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%/rdocx/_rdocx.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    about:
+      summary: Native DOCX creation, editing, comparison, layout, and rendering for Python
+
+  - package:
+      name: rdocx-cli
+    build:
+      script:
+        - cd repo
+        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+        - if: unix
+          then: cargo install --locked --no-track --root "$PREFIX" --path crates/rdocx-cli
+          else: cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates/rdocx-cli
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+    tests:
+      - package_contents:
+          bin:
+            - rdocx
+      - script:
+          - rdocx --version
+          - rdocx --help
+    about:
+      summary: CLI tool for inspecting, converting, and manipulating DOCX files
+
+about:
+  summary: Native DOCX creation, editing, comparison, layout, and rendering
+  homepage: https://github.com/tensorbee/rdocx
+  repository: https://github.com/tensorbee/rdocx
+  description: |
+    rdocx creates, opens, edits, compares, lays out, and renders Word (DOCX)
+    documents natively, without Microsoft Word or LibreOffice. It ships as a
+    Python binding (rdocx) and a command line tool (rdocx-cli).
+  # The code is dual licensed MIT OR Apache-2.0 upstream but only the MIT text
+  # is shipped. The bundled fonts are Apache-2.0 (Caladea) and OFL-1.1 (Carlito,
+  # Liberation, Noto); the embedded ICC profile has its own permissive license.
+  license: MIT AND Apache-2.0 AND OFL-1.1 AND LicenseRef-sRGB2014
+  license_file:
+    - repo/LICENSE
+    - repo/crates/oxml-layout/fonts/LICENSE-*
+    - repo/crates/oxml-layout/fonts/NOTICE-*
+    - repo/crates/oxml-pdf/assets/LICENSE-sRGB2014
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - hadim
