@@ -17,7 +17,10 @@ meson install -C builddir
 
 # The installed headers and the shared library are the consumer surface.
 smoke_bin="${SRC_DIR}/rgpot-link-smoke"
-"${CXX}" -std=c++20 "${RECIPE_DIR}/link_smoke.cpp" -o "${smoke_bin}" \
+# LDFLAGS carries the conda rpath-link. librgpot needs libgfortran,
+# and the linker opens that dependency through rpath-link rather than -L.
+"${CXX}" ${CXXFLAGS:-} ${LDFLAGS:-} -std=c++20 \
+  "${RECIPE_DIR}/link_smoke.cpp" -o "${smoke_bin}" \
   $(pkg-config --cflags --libs rgpot)
 if [ "$(uname)" = "Darwin" ]; then
   DYLD_LIBRARY_PATH="${PREFIX}/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}" \
