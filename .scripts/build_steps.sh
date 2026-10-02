@@ -7,6 +7,7 @@
 
 set -xeuo pipefail
 
+export RECIPE_ROOT="${RECIPE_ROOT:-/home/conda/staged-recipes}"
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
