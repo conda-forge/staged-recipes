@@ -29,7 +29,7 @@ source:
     target_directory: deps/v8
     patches:
       - patches/0001-v8-warnings-not-errors-all-linux.patch
-      - patches/0002-forward-sysroot-env-to-v8-build.patch
+      - patches/0002-v8-clang-base-path-env.patch
   - url: https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz
     sha256: 0afe09a53c8bad9861c8dd1fc1284308d54f19d2979ba3541cfdcc9b05fe360f
     target_directory: deps/brotli
@@ -96,6 +96,7 @@ build:
   skip: ${{ win or osx }}
 
   script:
+  script:
     - |
       set -eu
       # --- environment diagnostics (v8 toolchain debugging) ---
@@ -117,48 +118,19 @@ build:
                '.v8 = .{ .path = "deps/v8" },', s, count=1)
       open(p,'w').write(s)
       EOF
-      # seed the global package cache from vendored sources only. Each dep
-      # was extracted by rattler-build (mostly with one nested top dir); we
-      # repack into a throwaway tar.gz and `zig fetch` it from here: the
-      # package hash covers the content tree, not the container (proven by
-      # scripts/verify-vendoring.sh: 14/14 match upstream zons offline).
-      python3 - deps <<'EOF'
-      import os, subprocess, sys, tarfile, tempfile
-      deps = sys.argv[1]
-      for name in sorted(os.listdir(deps)):
-          if name == 'v8':
-              continue  # consumed as path dep
-          d = os.path.join(deps, name)
-          if not os.path.isdir(d):
-              continue
-          entries = os.listdir(d)
-          fd, tar = tempfile.mkstemp(suffix='.tar.gz')
-          os.close(fd)
-          with tarfile.open(tar, 'w:gz') as tf:
-              if len(entries) == 1 and os.path.isdir(os.path.join(d, entries[0])):
-                  tf.add(os.path.join(d, entries[0]), arcname=entries[0])
-              else:  # flat pack (depot_tools): root files directly
-                  for e in entries:
-                      tf.add(os.path.join(d, e), arcname=e)
-          subprocess.run(['zig', 'fetch', tar], check=True,
-                         stdout=subprocess.DEVNULL)
-          print('fetched', name)
-          os.unlink(tar)
-      EOF
     - export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-    # the CF container ships glibc runtime but no dev headers; give v8's
-    # vendored chromium clang the sysroot_linux-64 headers (see prepare_sysroot.py)
     - python3 "${RECIPE_DIR}/prepare_sysroot.py"
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
-    # license_file lives in the browser source tree; surface it for packaging
     - cp LICENSE "$RECIPE_DIR/LICENSE"
 
 requirements:
   build:
     - python
     - zig =0.16.0
+    - clangdev
+    - gcc_impl_linux-64
     - rust
     - ${{ stdlib("c") }}
     - glib
