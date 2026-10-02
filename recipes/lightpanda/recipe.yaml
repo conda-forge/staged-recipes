@@ -1,0 +1,203 @@
+# lightpanda feedstock — PROVEN end-to-end by scripts/rebuild-offline.sh:
+# fresh tree + lp-cache bundle + isolated seed, network fully blocked via
+# `unshare -rn`; binary renders example.com. See ../FEASIBILITY.md.
+#
+# Mirrors repo: git-only deps + the vendored v8 bootstrap cache, maintainer-packed
+# with checksums (upstream distributes prebuilt binaries only, and three deps are
+# git-clone-only). osx-* cache bundles still pending.
+schema_version: 1
+
+context:
+  version: "1.0.0.dev"
+  browser_sha: "5f73e07cd6ea6c0bab53400d93162d29ca279a63"
+  v8_fork_sha: "31b233ce6162c18eb37cacd001473057f75daad9"
+  v8_ver: "14.9.207.35"
+
+package:
+  name: lightpanda
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/lightpanda-io/browser/archive/${{ browser_sha }}.tar.gz
+    sha256: e3152ba88c42c6a56906a2ce46cb3c9c63dad1bbca4ada954d741c179a124d1e
+
+  # ---- build.zig.zon deps (seed the zig global cache by `zig fetch`) ------
+  # The .v8 entry is rewritten to a *path* dep on the patched fork below, so
+  # the fork tarball itself is only used as that path target.
+  - url: https://github.com/lightpanda-io/zig-v8-fork/archive/${{ v8_fork_sha }}.tar.gz
+    sha256: c2cf5232d920a99d1f1435fecb0df4834698116ae6931edb02f3ff9feb383313
+    target_directory: deps/v8
+    patches:
+      - patches/0001-v8-warnings-not-errors-all-linux.patch
+      - patches/0002-forward-sysroot-env-to-v8-build.patch
+  - url: https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz
+    sha256: 0afe09a53c8bad9861c8dd1fc1284308d54f19d2979ba3541cfdcc9b05fe360f
+    target_directory: deps/brotli
+  - url: https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz
+    sha256: bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
+    target_directory: deps/zlib
+  - url: https://github.com/nghttp2/nghttp2/releases/download/v1.69.0/nghttp2-1.69.0.tar.gz
+    sha256: c866b7477cbb7512ab6863a685027adbb1bb8da8fc3bab7429ed43d3281d5aa9
+    target_directory: deps/nghttp2
+  - url: https://github.com/curl/curl/releases/download/curl-8_22_0/curl-8.22.0.tar.gz
+    sha256: d54dd598bf05927a726deb38df31c6a255ba83ff1de57c5d1464dac3ed8f44a1
+    target_directory: deps/curl
+  - url: https://github.com/allyourcodebase/sqlite3/archive/7a615f5af79009cd733e3480658586d9b0d28b35.tar.gz
+    sha256: 60b5b0772652a659f00bf74bc4ad9345dda73eb1f096b9c10384dd4355de8afa
+    target_directory: deps/sqlite3
+  # nested (sqlite.org zip repacked as tar.gz — tree hash identical)
+  - url: https://github.com/pentamorfico/lightpanda-conda-mirrors/releases/download/v1/sqlite-amalgamation-3530200.tar.gz
+    sha256: 8b187a070870c6768af73e22bda11307f6780172e5d90ee5bb19db4b336e8acb
+    target_directory: deps/sqlite-amalgamation
+  - url: https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.48/pcre2-10.48.tar.gz
+    sha256: ebcc25aadf2a51fa1fefa9b8bc9e7a79b3dae86870a0f1152a22e42befd46888
+    target_directory: deps/pcre2
+  - url: https://github.com/arrufat/isocline/archive/ec538faf435c616a6b38716f53980b5815c30f8a.tar.gz
+    sha256: cd4a78b15500c2b17ba20b389ec10bd4ecb820aebc046184aee7d4b6ab294aa0
+    target_directory: deps/isocline
+  - url: https://github.com/google/boringssl/archive/535cc391915c37912ff9b3edb0cff9b3c5c77db0.tar.gz
+    sha256: a08fe8c76b70eeabf0466855710c553a3bfc9195f6a9a082b07bab8fe9085e9c
+    target_directory: deps/boringssl
+  - url: https://github.com/zherczeg/sljit/archive/de0259c7aaf36aa40cba8014f3fad3edde9307f9.tar.gz
+    sha256: 256b50b4e96c806fd13fc9b630f6c1ba41b777e7cedfcf406651d062d8260611
+    target_directory: deps/sljit
+  # local-git deps of browser/v8 fork, packed by maintainer
+  - url: https://github.com/pentamorfico/lightpanda-conda-mirrors/releases/download/v1/boringssl-zig.tar.gz
+    sha256: 8599cc7fc4dd7d6693f18cf7b3a8e0020903fe72b4e9bcb7f0afd2a426ee16de
+    target_directory: deps/boringssl-zig
+  - url: https://github.com/pentamorfico/lightpanda-conda-mirrors/releases/download/v1/zenai.tar.gz
+    sha256: 296a4da22cca402e3b14d292aa42a1fc700fbdadeb40bf0108c65d9341a266db
+    target_directory: deps/zenai
+  - url: https://pkg.lightpanda.io/chromium/depot_tools.git-4ce8ba39a3488397a2d1494f167020f21de502f3.tar.gz
+    sha256: 91e34498eb98e68e13be404e2a2a6878c6285cc551e67e16c05110a3c9104291
+    target_directory: deps/depot_tools
+
+  # ---- pre-seeded V8 bootstrap cache (scripts/make-cache.sh) --------------
+  # v8-$VER with .bootstrap-complete, bootstrapped depot_tools-$VER, chromium
+  # clang; out/ and nested .git stripped. The v8 ROOT .git is an EMPTY repo:
+  # siso.py finds the project via `git rev-parse --show-toplevel` once the
+  # .gclient_entries validation fails for out/* dirs — do not strip it.
+  # (rattler-build uses if/then maps, not conda-build `# [...]` selectors)
+  - if: linux and x86_64
+    then:
+      url: https://github.com/pentamorfico/lightpanda-conda-mirrors/releases/download/cache-v8-${{ v8_ver }}/lp-cache-linux-64-v8-${{ v8_ver }}.tar.zst
+      sha256: c0dd71f15b2d79fee3499bd40d25cebb9e0010e228cb7ec968507e54a9f0ef96
+      target_directory: lp-cache
+  # osx: run scripts/make-cache.sh on a macOS builder (arm64/x86_64), upload
+  # the bundle to the release, then add sibling if/then blocks:
+  #   - if: osx and arm64
+  #     then:
+  #       url: .../lp-cache-osx-arm64-v8-${{ v8_ver }}.tar.zst
+  #       sha256: REPLACE_ME
+  #       target_directory: lp-cache
+
+build:
+  number: 0
+  skip: ${{ win or osx }}
+
+  script:
+    - |
+      set -eu
+      # --- environment diagnostics (v8 toolchain debugging) ---
+      echo "=== CF env diagnostics ==="
+      echo "glibc: $(ldd --version 2>&1 | head -1)"
+      ls /usr/include/pthread.h 2>&1 || echo "no /usr/include/pthread.h"
+      echo "clang: $(which clang clang++ 2>/dev/null || echo none)"
+      clang --version 2>/dev/null | head -1 || true
+      echo "gcc: $(which gcc 2>/dev/null || echo none) $(gcc --version 2>/dev/null | head -1 || true)"
+      echo "CFLAGS=${CFLAGS:-unset} CXXFLAGS=${CXXFLAGS:-unset}"
+      echo "=== end diagnostics ==="
+      # build.zig hardcodes the cache at <browser root>/.lp-cache
+      mv lp-cache .lp-cache
+      # .v8 -> path dep on the patched fork (hash-independent)
+      python3 - build.zig.zon <<'EOF'
+      import re,sys
+      p=sys.argv[1]; s=open(p).read()
+      s=re.sub(r'\.v8 = \.\{[^}]*\.hash = "[^"]*",\s*\},',
+               '.v8 = .{ .path = "deps/v8" },', s, count=1)
+      open(p,'w').write(s)
+      EOF
+      # seed the global package cache from vendored sources only. Each dep
+      # was extracted by rattler-build (mostly with one nested top dir); we
+      # repack into a throwaway tar.gz and `zig fetch` it from here: the
+      # package hash covers the content tree, not the container (proven by
+      # scripts/verify-vendoring.sh: 14/14 match upstream zons offline).
+      python3 - deps <<'EOF'
+      import os, subprocess, sys, tarfile, tempfile
+      deps = sys.argv[1]
+      for name in sorted(os.listdir(deps)):
+          if name == 'v8':
+              continue  # consumed as path dep
+          d = os.path.join(deps, name)
+          if not os.path.isdir(d):
+              continue
+          entries = os.listdir(d)
+          fd, tar = tempfile.mkstemp(suffix='.tar.gz')
+          os.close(fd)
+          with tarfile.open(tar, 'w:gz') as tf:
+              if len(entries) == 1 and os.path.isdir(os.path.join(d, entries[0])):
+                  tf.add(os.path.join(d, entries[0]), arcname=entries[0])
+              else:  # flat pack (depot_tools): root files directly
+                  for e in entries:
+                      tf.add(os.path.join(d, e), arcname=e)
+          subprocess.run(['zig', 'fetch', tar], check=True,
+                         stdout=subprocess.DEVNULL)
+          print('fetched', name)
+          os.unlink(tar)
+      EOF
+    - export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+    # the CF container ships glibc runtime but no dev headers; v8's clang gets
+    # them from the sysroot package (same glibc version as the container). The
+    # fork's build.zig carries @V8_SYSROOT_*@ placeholders that get substituted
+    # below (patch 0002) because zig compiles that file after this script runs.
+    - python3 - <<'PYEOF'
+      import os
+      prefix = os.environ['BUILD_PREFIX']
+      p = 'deps/v8/build.zig'
+      s = open(p).read()
+      s = s.replace('@V8_SYSROOT_INCLUDE@', prefix + '/x86_64-conda_sysroot/include')
+      s = s.replace('@V8_SYSROOT_LIBRARY_PATH@', prefix + '/x86_64-conda_sysroot/lib')
+      open(p, 'w').write(s)
+      assert 'x86_64-conda_sysroot' in s and '@V8_SYSROOT' not in s
+      print('sysroot paths substituted:', prefix)
+      PYEOF
+    - zig build -Doptimize=ReleaseFast
+    - mkdir -p "$PREFIX/bin"
+    - cp zig-out/bin/lightpanda "$PREFIX/bin/"
+    # license_file lives in the browser source tree; surface it for packaging
+    - cp LICENSE "$RECIPE_DIR/LICENSE"
+
+requirements:
+  build:
+    - python
+    - zig =0.16.0
+    - rust
+    - ${{ stdlib("c") }}
+    - glib
+    - pkg-config
+    - rsync
+    - zstd
+    - git
+    - if: osx
+      then:
+        - sed
+        - grep
+
+tests:
+  # installation-only: the binary requires glibc >= 2.35 while the conda-forge
+  # linux build/test containers ship an older glibc (same situation as the
+  # upstream manylinux_2_35 wheels).
+  - script:
+      - test -x "${PREFIX}/bin/lightpanda"
+
+about:
+  homepage: https://lightpanda.io
+  license: AGPL-3.0-only
+  license_file: LICENSE
+  summary: Headless browser for AI agents and automation, written in Zig
+  documentation: https://lightpanda.io/docs
+  repository: https://github.com/lightpanda-io/browser
+
+extra:
+  recipe-maintainers:
+    - pentamorfico
