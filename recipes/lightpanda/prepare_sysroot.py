@@ -84,7 +84,7 @@ for g in search_globs:
 print("link objects collected:", collected)
 
 # 4. inject that directory into the v8 compiler config ldflags
-gn_file = ".lp-cache/v8-*/third_party/llvm-build/Release+Asserts/../build/config/compiler/BUILD.gn"
+gn_file = ".lp-cache/v8-*/build/config/compiler/BUILD.gn"
 gn_file = glob.glob(gn_file)[0]
 s = open(gn_file).read()
 anchor = """  rustenv = []
