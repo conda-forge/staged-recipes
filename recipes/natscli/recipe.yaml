@@ -1,0 +1,59 @@
+schema_version: 1
+
+context:
+  name: natscli
+  version: "0.5.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nats-io/natscli/archive/v${{ version }}.tar.gz
+  sha256: 832f2fcd53de5eceeb9d497ab603cbf32698646dfe156d23b70553e40eb1438b
+
+build:
+  number: 0
+  script:
+    env:
+      GOTOOLCHAIN: local
+      CGO_ENABLED: "0"
+    content:
+      - if: unix
+        then:
+          - go build -trimpath -ldflags="-s -w -X main.version=${{ version }}" -o ${PREFIX}/bin/nats ./nats
+        else:
+          - go build -trimpath -ldflags="-s -w -X main.version=${{ version }}" -o %PREFIX%\nats.exe ./nats
+      - go-licenses save ./nats --save_path=library_licenses --ignore=github.com/nats-io/natscli
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then: bin/nats
+          else: nats.exe
+  - script:
+      - nats --version
+
+about:
+  homepage: https://github.com/nats-io/natscli
+  repository: https://github.com/nats-io/natscli
+  documentation: https://docs.nats.io/using-nats/nats-tools/nats_cli
+  summary: The NATS command line interface
+  description: |
+    The `nats` command line utility for interacting with NATS servers:
+    publish/subscribe, JetStream management, KV and object stores,
+    server and account administration, benchmarking and more.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - library_licenses/
+
+extra:
+  recipe-maintainers:
+    - carlodri
