@@ -80,6 +80,19 @@ for src in glob.glob(prefix + "/lib/gcc/*/*/crt*.o") + glob.glob(
         shutil.copy(src, dst)
         placed += 1
 print("crt/libgcc placed in the clang GCC-installation dir:", placed)
+
+# 5. complete the conda gcc_impl installation with the glibc CRT files: the
+#    clang driver picks the newest detected GCC installation (gcc_impl's 14
+#    beats the container's 12) and resolves libc_nonshared.a / Scrt1.o from
+#    its lib dir — which conda's gcc_impl alone does not ship.
+for gcc_dir in glob.glob(prefix + "/lib/gcc/x86_64-conda-linux-gnu/*/"):
+    for f in ("libc_nonshared.a", "Scrt1.o", "crt1.o", "crti.o", "crtn.o"):
+        src = os.path.join(sysroot, "usr/lib64", f)
+        dst = os.path.join(gcc_dir, f)
+        if os.path.exists(src) and not os.path.exists(dst):
+            shutil.copy(src, dst)
+            placed += 1
+    print("gcc_impl dir completed:", gcc_dir)
 # 5. bridge the compiler-rt runtime to the path the v8 build.gn expects:
 #    <build_env>/lib/clang/<ver>/lib/x86_64-unknown-linux-gnu/ — where
 #    <build_env> is the sibling "build_env" dir of this work dir.
