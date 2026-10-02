@@ -10,9 +10,13 @@ sys.prefix is used instead of os.environ["BUILD_PREFIX"] because the CF
 script runner passes a literal "$BUILD_PREFIX" as the env value.
 """
 
+import os
 import sys
 
 prefix = sys.prefix
+print("diagnostics: sys.executable =", sys.executable)
+print("diagnostics: sys.prefix =", prefix)
+print("diagnostics: env BUILD_PREFIX =", os.environ.get("BUILD_PREFIX"))
 p = "deps/v8/build.zig"
 s = open(p).read()
 s = s.replace("@V8_CLANG_BASE_PATH@", prefix)
