@@ -17,6 +17,19 @@ import shutil
 prefix = os.environ["BUILD_PREFIX"]
 sysroot = os.path.join(prefix, "x86_64-conda_sysroot")
 
+# diagnostics: where are the sysroot headers, really?
+print("BUILD_PREFIX:", prefix, "| exists:", os.path.isdir(prefix))
+print("sysroot dir:", sysroot, "| exists:", os.path.isdir(sysroot))
+hits = glob.glob(prefix + "/**/pthread.h", recursive=True)
+print("pthread.h under prefix:", hits[:3])
+print("clang include dirs:", glob.glob(".lp-cache/v8-*/third_party/llvm-build/Release+Asserts/lib/clang/*/include"))
+if not os.path.isdir(sysroot + "/include"):
+    # the sysroot package may have installed the headers elsewhere; locate them
+    alt = os.path.dirname(hits[0]) if hits else None
+    if alt:
+        sysroot = os.path.dirname(alt)
+        print("using sysroot:", sysroot)
+
 # 1. fork build.zig placeholders -> absolute sysroot paths
 p = "deps/v8/build.zig"
 s = open(p).read()
