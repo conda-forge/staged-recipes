@@ -33,3 +33,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec node "${SCRIPT_DIR}/../lib/node_modules/eval-quality/dist/cli/main.js" "$@"
 WRAPPER
 chmod +x "${PREFIX}/bin/eval-quality"
+
+# package.json also declares "eval-quality-gates", an independent repo-governance
+# CLI built by the same `npm run build` above.
+cat > "${PREFIX}/bin/eval-quality-gates" << 'WRAPPER'
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec node "${SCRIPT_DIR}/../lib/node_modules/eval-quality/dist/gates/gates-cli.js" "$@"
+WRAPPER
+chmod +x "${PREFIX}/bin/eval-quality-gates"

@@ -32,13 +32,21 @@ copy /Y README.md "%INSTALL_DIR%\README.md" >NUL
 copy /Y LICENSE "%INSTALL_DIR%\LICENSE" >NUL
 copy /Y package.json "%INSTALL_DIR%\package.json" >NUL
 
-:: Wrapper .bat (no symlinks in a noarch artifact).
+:: Wrapper .bat files (no symlinks in a noarch artifact).
 if not exist "%PREFIX%\Scripts" mkdir "%PREFIX%\Scripts"
 (
   echo @echo off
   echo SET "DIR=%%~dp0.."
   echo node "%%DIR%%\lib\node_modules\eval-quality\dist\cli\main.js" %%*
 ) > "%PREFIX%\Scripts\eval-quality.bat"
+
+:: package.json also declares "eval-quality-gates", an independent
+:: repo-governance CLI built by the same `npm run build` above.
+(
+  echo @echo off
+  echo SET "DIR=%%~dp0.."
+  echo node "%%DIR%%\lib\node_modules\eval-quality\dist\gates\gates-cli.js" %%*
+) > "%PREFIX%\Scripts\eval-quality-gates.bat"
 
 :: robocopy signals success with exit codes 0-7 (1 = files copied), so the
 :: script must not fall off the end and inherit a stale non-zero errorlevel.
