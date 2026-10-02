@@ -10,6 +10,7 @@ source:
     sha256: 5933545ddff7fde2bea86fa61943fba5d4be50ba993c336e9a372529a2f2b164
     patches:
       - determine-length-of-compiled-in-install-paths-at-run.patch
+      - link-against-an-external-looptools-library.patch
   # 'make install' runs 'Herwig init' to create the default repository
   # HerwigDefaults.rpo, which fails if the default PDF sets are not installed.
   # The PDF sets are only used during the build and are not packaged.
@@ -29,9 +30,15 @@ build:
     - export LHAPDF_DATA_PATH="${SRC_DIR}/pdfsets"
     # libThePEG is installed under lib/ThePEG, which is not on the default rpath
     - export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib/ThePEG"
-    # The bundled LoopTools Fortran does not compile with gfortran >= 10 defaults
-    - export FFLAGS="${FFLAGS} -fallow-argument-mismatch -fno-range-check"
-    - export FCFLAGS="${FFLAGS}"
+
+    # Herwig bundles a modified copy of LoopTools 2.13. Remove its sources so that
+    # only the looptools library can be used, and regenerate the build system
+    # for the patched Looptools/Makefile.am.
+    # Herwig's changes to the removed sources do not affect results, and its C++
+    # interface (Herwig::Looptools) is kept. Results with LoopTools 2.16 agree
+    # with the bundled copy to a relative difference of 1.5e-14.
+    - rm -rf Looptools/{A,B,C,D,E,util}
+    - autoreconf --force --install
 
     # Get an updated config.sub and config.guess
     # Herwig sets AC_CONFIG_AUX_DIR([Config]) in configure.ac, so configure looks for them in Config/
@@ -50,12 +57,16 @@ requirements:
     - make
     - pkg-config
     - gnuconfig
+    - autoconf
+    - automake
+    - libtool
   host:
     - fastjet-cxx  # pick up global pinning
     # Provides fastjet-config, which configure uses to find FastJet
     - fastjet-cxx-devel
     - gsl
     - libboost-headers
+    - looptools
     # Herwig 7.2 is the release series for ThePEG 2.2
     - thepeg 2.2.*
   run:
@@ -90,6 +101,9 @@ tests:
       - lhapdf install CT14lo CT14nlo &> /dev/null
       - Herwig read ${PREFIX}/share/Herwig/LHC-Matchbox.in
       - Herwig run LHC-Matchbox.run -N 100
+      # The loop induced Higgs decays of the MSSM use LoopTools
+      - cp ${PREFIX}/share/Herwig/CMSSM40.1.1.slha .
+      - Herwig read ${PREFIX}/share/Herwig/LHC-MSSM.in
 
 about:
   homepage: https://herwig.hepforge.org/

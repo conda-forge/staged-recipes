@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Thu, 1 Oct 2026 17:03:11 -0600
+Subject: [PATCH] Link against an external LoopTools library
+
+Herwig bundles a modified copy of LoopTools 2.13 in the Looptools
+directory and compiles its Fortran sources into Herwig.so.
+
+Only build the C++ interface, clooptools.cc, which wraps the LoopTools
+Fortran routines in the Herwig::Looptools namespace, and link it against
+an external installation of the LoopTools library instead of compiling
+the bundled Fortran sources and cache.c.
+
+The Fortran routines, the ltvars common block layout, and the integral
+coefficient ids used by the interface are unchanged between the bundled
+LoopTools 2.13 and LoopTools 2.16.
+
+As Makefile.am is changed, the build system needs to be regenerated with
+autoreconf.
+---
+ Looptools/Makefile.am | 68 +++++--------------------------------------
+ 1 file changed, 7 insertions(+), 61 deletions(-)
+
+diff --git a/Looptools/Makefile.am b/Looptools/Makefile.am
+index ab827a7..f80b5da 100644
+--- a/Looptools/Makefile.am
++++ b/Looptools/Makefile.am
+@@ -1,67 +1,13 @@
+-noinst_LTLIBRARIES  = libHwLooptoolsXFC.la libHwLooptoolsCFC.la 
+-noinst_LTLIBRARIES += libHwLooptools.la
++noinst_LTLIBRARIES = libHwLooptools.la
+ 
+-EXTRA_DIST = \
+-include/cexternals.h \
+-include/clooptools.h \
+-include/defs.h \
+-include/externals.h \
+-include/fferr.h \
+-include/ff.h \
+-include/ffperm5.h \
+-include/ffwarn.h \
+-include/ftypes.h \
+-include/looptools.h \
+-include/lt.h \
+-include/ltnames.h \
+-include/perm.h \
+-include/types.h \
+-util/solve-LU.F \
+-util/solve-LU.h \
+-util/solve-Eigen.F
++EXTRA_DIST = include/clooptools.h
+ 
+-theXFCSOURCES = \
+-A/Aget.F     A/ffxa0.F   A/ffca0.F \
+-B/Bget.F     B/Bcoeff.F  B/BcoeffC.F B/BcoeffAD.F B/BcoeffFF.F \
+-B/ffxb0.F    B/ffcb0.F   B/ffxb1.F   B/ffcb1.F    B/ffxb2p.F   B/ffcb2p.F \
+-B/ffxdb0.F   B/ffcdb0.F  B/ffxdb1.F  B/ffdel2.F   B/ffcel2.F \
+-C/C0func.F   C/C0funcC.F C/Cget.F    C/ffxc0.F    C/ffcc0.F \
+-C/ffxc0i.F   C/ffxc0p.F  C/ffxc0p0.F C/ffcc0p.F   C/ffdxc0.F \
+-C/ffdel3.F   C/ffcel3.F  \
+-D/D0func.F   D/D0funcC.F D/Dget.F \
+-D/ffxd0.F    D/ffxd0h.F  D/ffxd0i.F  D/ffxd0p.F   D/ffxd0m0.F \
+-D/ffxd0tra.F D/ffxdbd.F  D/ffdcc0.F  D/ffdel4.F   D/ffd0c.F \
+-D/ffTn.F     D/ffT13.F   D/ffS2.F    D/ffS3n.F    D/ffRn.F \
+-E/E0func.F   E/Eget.F    E/Ecoeffa.F E/Ecoeffb.F \
+-E/ffxe0.F    E/ffdel5.F \
+-util/ini.F    util/auxCD.F  util/solve.F  util/Dump.F \
+-util/Li2.F    util/Li2omx.F util/ffinit.F util/ffxli2.F util/ffcli2.F util/ffxxyz.F \
+-util/ffcxyz.F util/ffcrr.F  util/ffcxr.F  util/fftran.F util/ffabcd.F \
+-util/ff2dl2.F util/ffcxs3.F util/ffcxs4.F util/ffdcxs.F util/ffbndc.F
+-
+-## the following need -DCOMPLEXPARA
+-theCFCSOURCES = \
+-A/Aget.F   B/Bget.F B/BcoeffFF.F C/Cget.F D/Dget.F  \
+-E/E0func.F E/Eget.F E/Ecoeffa.F  E/Ecoeffb.F  \
+-util/solve.F util/Dump.F util/Li2.F util/Li2omx.F
+-
+-commonCPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/include
+-
+-libHwLooptoolsXFC_la_SOURCES = $(theXFCSOURCES)
+-libHwLooptoolsXFC_la_CPPFLAGS = $(commonCPPFLAGS)
+-libHwLooptoolsXFC_la_FCFLAGS = $(AM_FCFLAGS) -ffixed-line-length-none
+-libHwLooptoolsXFC_la_FFLAGS  = $(AM_FFLAGS)  -ffixed-line-length-none
+-
+-libHwLooptoolsCFC_la_SOURCES = $(theCFCSOURCES)
+-libHwLooptoolsCFC_la_CPPFLAGS = $(commonCPPFLAGS) -DCOMPLEXPARA
+-libHwLooptoolsCFC_la_FCFLAGS = $(AM_FCFLAGS) -ffixed-line-length-none
+-libHwLooptoolsCFC_la_FFLAGS  = $(AM_FFLAGS)  -ffixed-line-length-none
+-
+-libHwLooptools_la_SOURCES = util/cache.c clooptools.cc
++## Only the C++ interface is built. The LoopTools library itself is linked
++## from an external installation.
++libHwLooptools_la_SOURCES = clooptools.cc
+ libHwLooptools_la_CXXFLAGS = $(AM_CXXFLAGS) -Wno-strict-aliasing
+-libHwLooptools_la_CPPFLAGS = $(commonCPPFLAGS) 
+-libHwLooptools_la_CFLAGS = $(AM_CFLAGS) -std=c99 
+-libHwLooptools_la_LIBADD = libHwLooptoolsXFC.la libHwLooptoolsCFC.la
++libHwLooptools_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/include
++libHwLooptools_la_LIBADD = -looptools $(FCLIBS)
+ 
+ EXTRA_PROGRAMS = tester
+ tester_SOURCES = tester.cc
