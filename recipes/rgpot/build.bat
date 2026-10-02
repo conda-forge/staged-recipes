@@ -34,3 +34,22 @@ if errorlevel 1 exit 1
 
 meson install -C builddir
 if errorlevel 1 exit 1
+
+REM The frontend classes live in rgpot-3.dll. The import library lists
+REM them only when the defining objects were built dllexport.
+set "RGPOT_DLL=%PREFIX%\Library\bin\rgpot-3.dll"
+if not exist "%RGPOT_DLL%" exit 1
+dumpbin /EXPORTS "%RGPOT_DLL%" > "%TEMP%\rgpot-exports.txt"
+if errorlevel 1 exit 1
+findstr CPMDPot "%TEMP%\rgpot-exports.txt" >nul
+if errorlevel 1 (
+  echo rgpot-3.dll does not export CPMDPot
+  type "%TEMP%\rgpot-exports.txt"
+  exit 1
+)
+findstr NWChemPot "%TEMP%\rgpot-exports.txt" >nul
+if errorlevel 1 (
+  echo rgpot-3.dll does not export NWChemPot
+  type "%TEMP%\rgpot-exports.txt"
+  exit 1
+)
