@@ -1,0 +1,279 @@
+# zowe-python-sdk-bundle is a meta-package that bundles together six sibling
+# "Zowe Client Python SDK" packages (console, files, jobs, tso, zosmf, workflows)
+# plus the shared "core" package they all depend on. None of these seven
+# packages exist on conda-forge yet, and they are released in lockstep from a
+# single monorepo (https://github.com/zowe/zowe-client-python-sdk), so they are
+# built here as outputs of one multi-output recipe rather than as separate
+# feedstocks.
+context:
+  version: "1.0.0.dev26"
+  commit: 75ff18266f501a18ddb527aa28c1572cd7a2e8be # tag v1.0.0-dev26
+
+recipe:
+  name: zowe-python-sdk-bundle
+  version: ${{ version }}
+
+source:
+  url: https://github.com/zowe/zowe-client-python-sdk/archive/${{ commit }}.tar.gz
+  sha256: c6a2830b4dea0051498a146c8ead0c417a51ea415e0271effa614bd2a571d4cd
+
+build:
+  number: 0
+
+outputs:
+  # Shared base package that all the other SDK packages depend on.
+  - package:
+      name: zowe-core-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/core
+        # Upstream pins jsonschema differently depending on the installing
+        # Python's version. A noarch package is built once for all Python versions,
+        # so collapse that to a single range here.
+        - sed -i.bak "/jsonschema~=4.17.3/d" setup.py
+        - sed -i.bak "s/jsonschema~=4.25.1; python_version>='3.14'/jsonschema>=4.17.3,<5/" setup.py
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - deepmerge >=1.1.0,<1.2.0a0
+        - json5 >=0.12.1,<0.13.0a0
+        - jsonschema >=4.17.3,<5
+        - pyyaml >=6.0.1,<6.1.0a0
+        - requests >=2.33.0,<2.34.0a0
+        - urllib3 >=1.26,<3
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.core_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - Core package
+
+  - package:
+      name: zowe-zos-console-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/zos_console
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.zos_console_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OS Console package
+
+  - package:
+      name: zowe-zos-files-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/zos_files
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.zos_files_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OS Files package
+
+  - package:
+      name: zowe-zos-jobs-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/zos_jobs
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.zos_jobs_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OS Jobs package
+
+  - package:
+      name: zowe-zos-tso-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/zos_tso
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.zos_tso_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OS TSO package
+
+  - package:
+      name: zowe-zosmf-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/zosmf
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.zosmf_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OSMF package
+
+  - package:
+      name: zowe-workflows-for-zowe-sdk
+    build:
+      noarch: python
+      script:
+        - cd src/workflows
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - wheel
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-core-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.workflows_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK - z/OSMF Workflows package
+
+  # The bundle itself: a pure meta-package with no code of its own, pulling in
+  # the six packages.
+  - package:
+      name: zowe-python-sdk-bundle
+    build:
+      noarch: python
+      script:
+        - cd src
+        - python -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("zowe-zos-console-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+        - ${{ pin_subpackage("zowe-zos-files-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+        - ${{ pin_subpackage("zowe-zos-tso-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+        - ${{ pin_subpackage("zowe-zos-jobs-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+        - ${{ pin_subpackage("zowe-zosmf-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+        - ${{ pin_subpackage("zowe-workflows-for-zowe-sdk", lower_bound="x.x.x.x", upper_bound="x.x.x.x") }}
+    tests:
+      - python:
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          imports:
+            - zowe.core_for_zowe_sdk
+            - zowe.zos_console_for_zowe_sdk
+            - zowe.zos_files_for_zowe_sdk
+            - zowe.zos_jobs_for_zowe_sdk
+            - zowe.zos_tso_for_zowe_sdk
+            - zowe.zosmf_for_zowe_sdk
+            - zowe.workflows_for_zowe_sdk
+          pip_check: true
+    about:
+      summary: Zowe Python SDK
+      description: |
+        A set of Python packages designed to allow programmatic interactions
+        with z/OS REST API interfaces with minimal effort, enabling developers
+        to craft scripts and applications that interact with z/OS components.
+        This bundle installs all of the individual Zowe Client Python SDK
+        packages (console, files, jobs, tso, zosmf, workflows) together.
+
+about:
+  summary: Zowe Python SDK packages for interacting with z/OS REST APIs
+  homepage: https://github.com/zowe/zowe-client-python-sdk
+  repository: https://github.com/zowe/zowe-client-python-sdk
+  documentation: https://docs.zowe.org/stable/user-guide/python-sdk/python-sdk-overview/
+  license: EPL-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pb01ka
