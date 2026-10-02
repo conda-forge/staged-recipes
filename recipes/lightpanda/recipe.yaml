@@ -150,8 +150,17 @@ build:
     # them from the sysroot package (same glibc version as the container). The
     # fork's build.zig carries @V8_SYSROOT_*@ placeholders that get substituted
     # below (patch 0002) because zig compiles that file after this script runs.
-    - sed -i "s|@V8_SYSROOT_INCLUDE@|${BUILD_PREFIX}/x86_64-conda_sysroot/include|g; s|@V8_SYSROOT_LIBRARY_PATH@|${BUILD_PREFIX}/x86_64-conda_sysroot/lib|g" deps/v8/build.zig
-    - grep -q "x86_64-conda_sysroot" deps/v8/build.zig
+    - python3 - <<'PYEOF'
+      import os
+      prefix = os.environ['BUILD_PREFIX']
+      p = 'deps/v8/build.zig'
+      s = open(p).read()
+      s = s.replace('@V8_SYSROOT_INCLUDE@', prefix + '/x86_64-conda_sysroot/include')
+      s = s.replace('@V8_SYSROOT_LIBRARY_PATH@', prefix + '/x86_64-conda_sysroot/lib')
+      open(p, 'w').write(s)
+      assert 'x86_64-conda_sysroot' in s and '@V8_SYSROOT' not in s
+      print('sysroot paths substituted:', prefix)
+      PYEOF
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
