@@ -88,8 +88,10 @@ if [[ "${target_platform}" == osx-* ]]; then
     DIST_DIR=$(echo "${BUILD_DIR}/target/tuxguitar-"*"-${BUILD_TARGET_SUFFIX}.app")
     INSTALL_DIR="${PREFIX}/opt/tuxguitar"
     mkdir -p "${INSTALL_DIR}"
-    # Extract Contents/MacOS/ only — skip the .app bundle wrapper and macOS metadata
-    cp -r "${DIST_DIR}/Contents/MacOS/" "${INSTALL_DIR}/"
+    # Extract Contents/MacOS/ only — skip the .app bundle wrapper and macOS metadata.
+    # Trailing "/." (not "/") copies the directory's contents into the already-created
+    # INSTALL_DIR instead of nesting a "MacOS" subdirectory inside it.
+    cp -r "${DIST_DIR}/Contents/MacOS/." "${INSTALL_DIR}/"
     # The bundled launcher hardcodes ./jre/bin/java; replace with plain `java` from PATH
     sed -i.bak 's|JAVA="./jre/bin/java"|JAVA="java"|' \
         "${INSTALL_DIR}/tuxguitar.sh"
@@ -104,7 +106,11 @@ LAUNCHER
 else
     DIST_DIR=$(echo "${BUILD_DIR}/target/tuxguitar-"*"-${BUILD_TARGET_SUFFIX}")
     mkdir -p "${PREFIX}/opt/tuxguitar"
-    cp -r "${DIST_DIR}/" "${PREFIX}/opt/tuxguitar/"
+    # Trailing "/." (not "/") copies DIST_DIR's contents into the already-created
+    # opt/tuxguitar instead of nesting it as opt/tuxguitar/<DIST_DIR basename>/ —
+    # GNU cp (unlike BSD cp on macOS) does not treat a trailing "/" on the source
+    # as "copy contents only" when the destination directory already exists.
+    cp -r "${DIST_DIR}/." "${PREFIX}/opt/tuxguitar/"
     mkdir -p "${PREFIX}/bin"
     cat > "${PREFIX}/bin/tuxguitar" <<'LAUNCHER'
 #!/usr/bin/env bash
