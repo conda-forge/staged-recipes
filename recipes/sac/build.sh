@@ -5,6 +5,9 @@ set -euo pipefail
 export CPPFLAGS="${CPPFLAGS//-DNDEBUG/}"
 export CFLAGS="${CFLAGS//-DNDEBUG/}"
 
+# C23, the default in GCC 15, rejects the deliberately unprototyped setfhdr().
+export CFLAGS="${CFLAGS} -std=gnu17"
+
 # The compiler wrappers do not search ${PREFIX}, so point AC_PATH_XTRA at it.
 ./configure \
   --prefix="${PREFIX}" \
