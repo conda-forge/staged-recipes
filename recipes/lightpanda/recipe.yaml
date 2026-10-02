@@ -150,7 +150,32 @@ build:
     # them from the sysroot package (same glibc version as the container). The
     # fork's build.zig carries @V8_SYSROOT_*@ placeholders that get substituted
     # below (patch 0002) because zig compiles that file after this script runs.
-    - python3 -c "import os; prefix = os.environ['BUILD_PREFIX']; p = 'deps/v8/build.zig'; s = open(p).read(); s = s.replace('@V8_SYSROOT_INCLUDE@', prefix + '/x86_64-conda_sysroot/include'); s = s.replace('@V8_SYSROOT_LIBRARY_PATH@', prefix + '/x86_64-conda_sysroot/lib'); open(p, 'w').write(s); assert 'x86_64-conda_sysroot' in s; print('sysroot paths substituted:', prefix)"
+    - python3 - <<'PYEOF'
+      import glob, os, shutil
+      prefix = os.environ['BUILD_PREFIX']
+      sysroot = prefix + '/x86_64-conda_sysroot'
+      # 1. substitute the fork build.zig placeholders (env forwarding belt)
+      p = 'deps/v8/build.zig'
+      s = open(p).read()
+      s = s.replace('@V8_SYSROOT_INCLUDE@', sysroot + '/include')
+      s = s.replace('@V8_SYSROOT_LIBRARY_PATH@', sysroot + '/lib')
+      open(p, 'w').write(s)
+      # 2. siso does not propagate the environment to compile subprocesses, so
+      #    the reliable way to give the vendored chromium clang the glibc dev
+      #    headers is to place them in its builtin resource include dirs.
+      n = 0
+      for d in glob.glob('.lp-cache/v8-*/third_party/llvm-build/Release+Asserts/lib/clang/*/include'):
+          for src in glob.glob(sysroot + '/include/**/*.h', recursive=True):
+              rel = os.path.relpath(src, sysroot + '/include')
+              dst = os.path.join(d, rel)
+              if os.path.exists(dst):
+                  continue  # keep clang builtins (stddef.h, stdarg.h, ...)
+              os.makedirs(os.path.dirname(dst), exist_ok=True)
+              shutil.copy(src, dst)
+              n += 1
+      print('glibc headers copied into clang resource dirs:', n)
+      assert n > 0
+      PYEOF
     - zig build -Doptimize=ReleaseFast
     - mkdir -p "$PREFIX/bin"
     - cp zig-out/bin/lightpanda "$PREFIX/bin/"
