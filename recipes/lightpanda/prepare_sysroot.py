@@ -1,15 +1,18 @@
 """Prepare the v8 build environment for the conda-forge lightpanda build.
 
-Runs from the browser source root (the rattler-build work dir): substitutes
-the @V8_CLANG_BASE_PATH@ placeholder in the vendored zig-v8-fork build.zig
-with the conda build prefix, so v8 compiles with the conda-forge clangdev +
-gcc_impl toolchain (which can run on any CF image) instead of the
-chromium-bundled prebuilt toolchain.
+Points gn's clang_base_path at the conda build prefix, so v8 compiles and
+links with the conda-forge clangdev + gcc_impl toolchain (which can run on
+any CF image) instead of the chromium-bundled prebuilt toolchain. The
+placeholder lives in the vendored zig-v8-fork build.zig and is substituted
+here.
+
+sys.prefix is used instead of os.environ["BUILD_PREFIX"] because the CF
+script runner passes a literal "$BUILD_PREFIX" as the env value.
 """
 
-import os
+import sys
 
-prefix = os.environ["BUILD_PREFIX"]
+prefix = sys.prefix
 p = "deps/v8/build.zig"
 s = open(p).read()
 s = s.replace("@V8_CLANG_BASE_PATH@", prefix)
