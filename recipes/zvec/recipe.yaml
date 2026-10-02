@@ -47,6 +47,16 @@ source:
       # reliably order rocksdb's compile after it (fails with "lz4.h: No such
       # file or directory").
       - patches/lz4-build-byproducts.patch
+      # lz4's own Makefile does `PREFIX ?= /usr/local`, which only applies
+      # when PREFIX isn't already set - but conda-build always exports
+      # PREFIX (the host env path) into the build, so lz4's `make install`
+      # silently installs into $DESTDIR/<conda host prefix>/include instead
+      # of $DESTDIR/usr/local/include, the path thirdparty/lz4/CMakeLists.txt
+      # hardcodes as lz4_INCLUDE_DIR for rocksdb's -isystem flag (fails with
+      # the same "lz4.h: No such file or directory", deterministically, not
+      # a race - confirmed by Linux CI logs showing Lz4.BUILD's install step
+      # fully completing before rocksdb's compile even starts).
+      - patches/lz4-install-prefix.patch
       # Same bug class, worse: ARROW.BUILD passes a bare `BYPRODUCTS` keyword,
       # which ExternalProject_Add doesn't recognize and silently drops, so it
       # has zero declared byproducts (fixes the MSVC/Linux/macOS branches).
