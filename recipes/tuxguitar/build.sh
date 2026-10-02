@@ -97,7 +97,8 @@ if [[ "${target_platform}" == osx-* ]]; then
     mkdir -p "${PREFIX}/bin"
     cat > "${PREFIX}/bin/tuxguitar" <<'LAUNCHER'
 #!/usr/bin/env bash
-exec "${CONDA_PREFIX}/opt/tuxguitar/tuxguitar.sh" "$@"
+PREFIX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "${PREFIX_DIR}/opt/tuxguitar/tuxguitar.sh" "$@"
 LAUNCHER
     chmod +x "${PREFIX}/bin/tuxguitar"
 else
@@ -107,7 +108,8 @@ else
     mkdir -p "${PREFIX}/bin"
     cat > "${PREFIX}/bin/tuxguitar" <<'LAUNCHER'
 #!/usr/bin/env bash
-exec "${CONDA_PREFIX}/opt/tuxguitar/tuxguitar.sh" "$@"
+PREFIX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "${PREFIX_DIR}/opt/tuxguitar/tuxguitar.sh" "$@"
 LAUNCHER
     chmod +x "${PREFIX}/bin/tuxguitar"
 fi
