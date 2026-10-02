@@ -82,7 +82,12 @@ robocopy "%DESKTOP%\TuxGuitar\share"                            "%DIST_DIR%\shar
 robocopy "%COMMON%\resources"                                   "%DIST_DIR%\share"              /E /NFL /NDL /NJH /NJS
 robocopy "%DOCS%"                                               "%DIST_DIR%\doc"                /E /NFL /NDL /NJH /NJS
 robocopy "%DESKTOP%\TuxGuitar\dist"                             "%DIST_DIR%\dist"               /E /NFL /NDL /NJH /NJS
-robocopy "%DESKTOP%\TuxGuitar-resources\resources\soundfont"   "%DIST_DIR%\share\soundfont"    /E /NFL /NDL /NJH /NJS
+:: Replace upstream's bundled default soundfont (MagicSFver2.sf2, unclear
+:: license) with FluidR3_GM.sf2 (MIT licensed), matching what Debian/Ubuntu
+:: ship as the "fluid-soundfont-gm" package.
+if not exist "%DIST_DIR%\share\soundfont" mkdir "%DIST_DIR%\share\soundfont"
+copy /Y "%SRC_DIR%\fluid-soundfont\FluidR3_GM.sf2" "%DIST_DIR%\share\soundfont\FluidR3_GM.sf2"
+if errorlevel 1 exit /b 1
 robocopy "%BUILD_SCRIPTS%\common-resources\common"              "%DIST_DIR%"                    /E /NFL /NDL /NJH /NJS
 robocopy "%BUILD_SCRIPTS%\common-resources\common-windows"      "%DIST_DIR%"                    /E /NFL /NDL /NJH /NJS
 robocopy "%BUILD_SCRIPTS%\tuxguitar-windows-swt-x86_64\dist"   "%DIST_DIR%\dist"               /E /NFL /NDL /NJH /NJS

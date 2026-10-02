@@ -114,6 +114,14 @@ LAUNCHER
     chmod +x "${PREFIX}/bin/tuxguitar"
 fi
 
+# Replace upstream's bundled default soundfont (MagicSFver2.sf2, unclear
+# license) with FluidR3_GM.sf2 (MIT licensed), matching what Debian/Ubuntu
+# ship as the "fluid-soundfont-gm" package.
+rm -f "${PREFIX}/opt/tuxguitar/share/soundfont/MagicSFver2.sf2" \
+      "${PREFIX}/opt/tuxguitar/share/soundfont/readme.txt"
+cp "${SRC_DIR}/fluid-soundfont/FluidR3_GM.sf2" \
+    "${PREFIX}/opt/tuxguitar/share/soundfont/FluidR3_GM.sf2"
+
 # Install menuinst shortcut metadata (application menu / Dock entry).
 mkdir -p "${PREFIX}/Menu"
 cp "${RECIPE_DIR}/menu.json" "${PREFIX}/Menu/tuxguitar_menu.json"
