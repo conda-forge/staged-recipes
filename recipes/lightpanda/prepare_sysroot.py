@@ -57,30 +57,26 @@ for d in glob.glob(".lp-cache/v8-*/third_party/llvm-build/Release+Asserts/lib/cl
         n += 1
 print("glibc headers copied into clang resource dirs:", n)
 
-# 4. CRT objects + libgcc -> /usr/lib64 (the clang driver's default search
-#    path for linking v8's internal executables; the container lacks them)
-lib64 = "/usr/lib64"
-os.makedirs(lib64, exist_ok=True)
-copied = 0
-wanted = (
-    "libc_nonshared.a",
-    "Scrt1.o",
-    "crt1.o",
-    "crti.o",
-    "crtn.o",
-    "Mcrt1.o",
-)
-for f in wanted:
+# 4. create a GCC installation dir inside the vendored chromium clang prefix:
+#    the clang driver's GCC detection scans <clang-prefix>/lib/gcc/<triple>/<ver>/
+#    for the CRT objects and libgcc when linking v8's internal executables
+#    (mksnapshot, torque, ...) — the CF container lacks them entirely.
+gcc_root = glob.glob(".lp-cache/v8-*/third_party/llvm-build/Release+Asserts")[0]
+gcc_dir = gcc_root + "/lib/gcc/x86_64-conda-linux-gnu/14"
+os.makedirs(gcc_dir, exist_ok=True)
+placed = 0
+for f in ("crt1.o", "Scrt1.o", "crti.o", "crtn.o", "Mcrt1.o", "libc_nonshared.a"):
     src = os.path.join(sysroot, "usr/lib64", f)
-    if os.path.exists(src) and not os.path.exists(os.path.join(lib64, f)):
-        shutil.copy(src, lib64)
-        copied += 1
-for gcc_dir in glob.glob(prefix + "/lib/gcc/*/*/") + glob.glob(
-    os.path.realpath(prefix) + "/lib/gcc/*/*/"
+    if os.path.exists(src) and not os.path.exists(os.path.join(gcc_dir, f)):
+        shutil.copy(src, gcc_dir)
+        placed += 1
+for src in glob.glob(prefix + "/lib/gcc/*/*/crt*.o") + glob.glob(
+    prefix + "/lib/gcc/*/*/libgcc*.a"
+) + glob.glob(prefix + "/lib64/gcc/*/*/crt*.o") + glob.glob(
+    prefix + "/lib64/gcc/*/*/libgcc*.a"
 ):
-    for f in ("crtbegin.o", "crtend.o", "crtbeginS.o", "crtendS.o", "libgcc.a", "libgcc_s.so"):
-        src = os.path.join(gcc_dir, f)
-        if os.path.exists(src) and not os.path.exists(os.path.join(lib64, f)):
-            shutil.copy(src, lib64)
-            copied += 1
-print("crt/libgcc files placed in /usr/lib64:", copied)
+    dst = os.path.join(gcc_dir, os.path.basename(src))
+    if not os.path.exists(dst):
+        shutil.copy(src, dst)
+        placed += 1
+print("crt/libgcc placed in the clang GCC-installation dir:", placed)
