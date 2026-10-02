@@ -126,3 +126,10 @@ if not exist "%PREFIX%\Scripts" mkdir "%PREFIX%\Scripts"
     -Djava.library.path="%PREFIX%\opt\tuxguitar\lib" ^
     app.tuxguitar.app.TuxGuitar %%*
 ) > "%PREFIX%\Scripts\tuxguitar.bat"
+
+:: Install menuinst shortcut metadata (Start Menu entry).
+if not exist "%PREFIX%\Menu" mkdir "%PREFIX%\Menu"
+copy /Y "%RECIPE_DIR%\menu.json" "%PREFIX%\Menu\tuxguitar_menu.json"
+if errorlevel 1 exit /b 1
+copy /Y "%BUILD_SCRIPTS%\common-resources\common-windows\dist\tuxguitar.ico" "%PREFIX%\Menu\tuxguitar.ico"
+if errorlevel 1 exit /b 1

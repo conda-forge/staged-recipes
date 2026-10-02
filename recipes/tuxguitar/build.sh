@@ -111,3 +111,14 @@ exec "${CONDA_PREFIX}/opt/tuxguitar/tuxguitar.sh" "$@"
 LAUNCHER
     chmod +x "${PREFIX}/bin/tuxguitar"
 fi
+
+# Install menuinst shortcut metadata (application menu / Dock entry).
+mkdir -p "${PREFIX}/Menu"
+cp "${RECIPE_DIR}/menu.json" "${PREFIX}/Menu/tuxguitar_menu.json"
+if [[ "${target_platform}" == osx-* ]]; then
+    cp "${SRC_DIR}/src/desktop/build-scripts/common-resources/common-macosx/Contents/Resources/icon.icns" \
+        "${PREFIX}/Menu/tuxguitar.icns"
+else
+    cp "${SRC_DIR}/src/desktop/build-scripts/common-resources/common-linux/share/pixmaps/tuxguitar.png" \
+        "${PREFIX}/Menu/tuxguitar.png"
+fi
