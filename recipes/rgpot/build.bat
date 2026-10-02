@@ -53,3 +53,10 @@ if errorlevel 1 (
   type "%TEMP%\rgpot-exports.txt"
   exit 1
 )
+
+REM A consumer translation unit includes the installed headers and
+REM links the two frontend methods.
+cl /nologo /EHsc /std:c++20 /I"%PREFIX%\Library\include" "%RECIPE_DIR%\link_smoke.cpp" /Fe:rgpot-link-smoke.exe /link /LIBPATH:"%PREFIX%\Library\lib" rgpot.lib
+if errorlevel 1 exit 1
+rgpot-link-smoke.exe
+if errorlevel 1 exit 1
