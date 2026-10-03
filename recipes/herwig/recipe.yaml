@@ -1,0 +1,130 @@
+context:
+  version: "7.2.0"
+
+package:
+  name: herwig
+  version: ${{ version }}
+
+source:
+  - url: https://herwig.hepforge.org/downloads/Herwig-${{ version }}.tar.bz2
+    sha256: 5933545ddff7fde2bea86fa61943fba5d4be50ba993c336e9a372529a2f2b164
+    patches:
+      - determine-length-of-compiled-in-install-paths-at-run.patch
+      - link-against-an-external-looptools-library.patch
+  # 'make install' runs 'Herwig init' to create the default repository
+  # HerwigDefaults.rpo, which fails if the default PDF sets are not installed.
+  # The PDF sets are only used during the build and are not packaged.
+  - url: https://lhapdfsets.web.cern.ch/current/CT14lo.tar.gz
+    sha256: 5554b2f66027accc3fe38b55b846d5c7c6d771283868187870bf9c86e5c46678
+    target_directory: pdfsets/CT14lo
+  - url: https://lhapdfsets.web.cern.ch/current/CT14nlo.tar.gz
+    sha256: ad62063067e1d73942b1aadcaff2e50a6b2e2d28ad989e8bd3eee5f48e05f18c
+    target_directory: pdfsets/CT14nlo
+
+build:
+  number: 0
+  skip:
+    - win
+    - osx
+  script:
+    - export LHAPDF_DATA_PATH="${SRC_DIR}/pdfsets"
+    # libThePEG is installed under lib/ThePEG, which is not on the default rpath
+    - export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib/ThePEG"
+
+    # Herwig bundles a modified copy of LoopTools 2.13. Remove its sources so that
+    # only the looptools library can be used, and regenerate the build system
+    # for the patched Looptools/Makefile.am.
+    # Herwig's changes to the removed sources do not affect results, and its C++
+    # interface (Herwig::Looptools) is kept. Results with LoopTools 2.16 agree
+    # with the bundled copy to a relative difference of 1.5e-14.
+    - rm -rf Looptools/{A,B,C,D,E,util}
+    - autoreconf --force --install
+
+    # Get an updated config.sub and config.guess
+    # Herwig sets AC_CONFIG_AUX_DIR([Config]) in configure.ac, so configure looks for them in Config/
+    - cp $BUILD_PREFIX/share/gnuconfig/config.* ./Config
+
+    - ./configure --help
+    - ./configure --prefix=${PREFIX} --with-thepeg=${PREFIX} --with-fastjet=${PREFIX} --with-gsl=${PREFIX} --with-boost=${PREFIX}
+    - make -j${CPU_COUNT}
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler("fortran") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - make
+    - pkg-config
+    - gnuconfig
+    - autoconf
+    - automake
+    - libtool
+  host:
+    - fastjet-cxx  # pick up global pinning
+    # Provides fastjet-config, which configure uses to find FastJet
+    - fastjet-cxx-devel
+    - gsl
+    - libboost-headers
+    - looptools
+    # Herwig 7.2 is the release series for ThePEG 2.2
+    - thepeg 2.2.*
+  run:
+    - python
+  run_exports:
+    - ${{ pin_subpackage("herwig", upper_bound="x.x") }}
+
+tests:
+  - package_contents:
+      bin:
+        - Herwig
+        - herwig-config
+        - herwig-combinedistributions
+        - herwig-combineruns
+        - herwig-makedistributions
+        - herwig-mergegrids
+        - gosam2herwig
+        - mg2herwig
+        - slha2herwig
+        - ufo2herwig
+      include:
+        - Herwig/API/HerwigAPI.h
+      files:
+        - lib/Herwig/libHerwigAPI.so
+        - lib/Herwig/Herwig.so
+        - lib/Herwig/Hw*.so
+        - share/Herwig/HerwigDefaults.rpo
+        - share/Herwig/LHC.in
+  - script:
+      - Herwig --version
+      # The default PDF sets are not shipped with the package
+      - lhapdf install CT14lo CT14nlo &> /dev/null
+      - Herwig read ${PREFIX}/share/Herwig/LHC-Matchbox.in
+      - Herwig run LHC-Matchbox.run -N 100
+      # The loop induced Higgs decays of the MSSM use LoopTools
+      - cp ${PREFIX}/share/Herwig/CMSSM40.1.1.slha .
+      - Herwig read ${PREFIX}/share/Herwig/LHC-MSSM.in
+
+about:
+  homepage: https://herwig.hepforge.org/
+  summary: 'Multi-purpose particle physics event generator'
+  description: |
+    Herwig provides significantly improved and extended physics capabilities when compared to both its predecessors,
+    HERWIG 6 and Herwig++ 2, while keeping the key model motivations such as coherent parton showers (including
+    angular-ordered and dipole-based evolution), the cluster hadronization model, an eikonal multiple-interaction model,
+    highly flexible BSM capabilities and improved perturbative input using next-to-leading order QCD.
+
+    The default PDF sets used by Herwig are not distributed with the package and need to be installed with
+    `lhapdf install CT14lo CT14nlo`.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  documentation: https://herwig.hepforge.org/doxygen/
+  repository: https://repo.hepforge.org/source/herwighg/
+
+extra:
+  recipe-maintainers:
+    - utk4r-sh
+    - GiacomoXT
+    - vvsagar
+    - AlexanderHeidelbach
+    - conda-forge/hepmc3
