@@ -1,5 +1,5 @@
 {% set name = "pycuampcor" %}
-{% set version = "2.1.0" %}
+{% set version = "2.2.0" %}
 
 package:
   name: {{ name }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://github.com/earthdef/cuAmpcor/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 00caf37f8e1e6d42a0b3ed0206f96e0d653ba14db0fa3398f0fb1ae7dc075c36
+  sha256: 7ef1e4794305067a8b30fbe514b4e2ea007db742b46048e97ac3aa18dce0e125
 
 build:
   # cuda builds get a higher build number so that they are preferred where the
@@ -20,8 +20,8 @@ build:
   script:
     # conda-build sets CMAKE_GENERATOR="Unix Makefiles"; use ninja (make is not a build dependency)
     - export CMAKE_GENERATOR=Ninja
-    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=ON -Ccmake.define.CMAKE_CUDA_ARCHITECTURES=all-major  # [cuda_compiler_version != "None"]
-    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=OFF  # [cuda_compiler_version == "None"]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=ON -Ccmake.define.PYCUAMPCOR_HDF5=ON -Ccmake.define.CMAKE_CUDA_ARCHITECTURES=all-major  # [cuda_compiler_version != "None"]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=OFF -Ccmake.define.PYCUAMPCOR_HDF5=ON  # [cuda_compiler_version == "None"]
 
 requirements:
   build:
@@ -39,6 +39,8 @@ requirements:
     - scikit-build-core >=0.10
     - pybind11
     - fftw
+    - hdf5
+    - zlib
     - libgomp  # [linux]
     - llvm-openmp  # [osx]
     - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
@@ -55,12 +57,14 @@ test:
     - pip
     - pytest
     - numpy
+    - h5py
   imports:
     - pycuampcor
   commands:
     - pip check
     - python -c "import pycuampcor; assert pycuampcor.has_cuda"  # [cuda_compiler_version != "None"]
     - python -c "import pycuampcor; assert not pycuampcor.has_cuda"  # [cuda_compiler_version == "None"]
+    - python -c "import pycuampcor; assert pycuampcor.has_hdf5"
     - pytest -v tests/python
 
 about:
