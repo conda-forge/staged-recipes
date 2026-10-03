@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.3.5.1"
+
+package:
+  name: traceml-ai
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/traceml-ai/traceml_ai-${{ version }}.tar.gz
+  sha256: 019b86705954db88ca9fc797721cb307c819cd354705e2aa3699044bfe7071b9
+
+build:
+  number: 0
+  noarch: python
+  # Declared so the console script is regenerated for the target platform at
+  # install time. Without this the noarch package carries whatever launcher
+  # the build machine produced, which on a win-64 build is a Scripts/*.exe
+  # that cannot start anywhere else.
+  python:
+    entry_points:
+      - traceml = traceml_ai.launcher.cli:main
+  # setuptools-scm derives the version from a git tag. The PyPI sdist has no
+  # .git, and --no-build-isolation means the build-system requires are not
+  # installed for us, so without the host dependency and this pretend version
+  # the package builds as 0.0.0.
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=64
+    - setuptools-scm >=8
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    - rich >=12.0.0
+    - psutil >=5.0.0
+    - nvidia-ml-py
+    - numpy >=1.26
+    - msgspec
+    - pyyaml >=6.0
+    - nicegui >=1.4.23
+
+tests:
+  - python:
+      imports:
+        - traceml_ai
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - traceml --help
+
+about:
+  homepage: https://github.com/traceopt-ai/traceml
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Lightweight runtime bottleneck diagnostics for PyTorch training.
+  description: |
+    TraceML is open-source, real-time bottleneck diagnostics for PyTorch
+    training runs. It auto-instruments the training loop (dataloader,
+    forward, backward, optimizer, H2D transfer) with no manual logging,
+    and reports where step time and GPU hours are actually going.
+  repository: https://github.com/traceopt-ai/traceml
+  documentation: https://github.com/traceopt-ai/traceml/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - Pendu
+    - abhinavsriva
