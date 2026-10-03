@@ -1,0 +1,126 @@
+schema_version: 1
+
+context:
+  name: rgpot
+  version: "3.4.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/OmniPotentRPC/rgpot/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 29ebcab04647063f51ff793bad40788556a93d6e0a8b100b4f189ac00c3e134e
+  patches:
+    - 0001-eigen-cmake-no-subproject-kwarg.patch
+    - 0002-windows-export-cuh2-plugin.patch
+    - 0003-do-not-install-frontend-archives.patch
+    - 0004-export-frontend-classes.patch
+    - 0005-install-public-headers.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    - meson
+    - ninja
+    - pkg-config
+    - cmake
+  host:
+    - capnproto
+    - eigen
+    - fmt
+  run_exports:
+    # librgpot carries soversion 3, so the ABI is stable across the
+    # major. capnproto and fmt reach run through their own run_exports.
+    - ${{ pin_subpackage('rgpot', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      files:
+        - if: linux
+          then:
+            - lib/librgpot.so
+            - lib/pkgconfig/rgpot.pc
+            - include/rgpot/Potential.hpp
+            - include/rgpot/CalculatorGroup.hpp
+            - include/rgpot/LennardJones/LJPot.hpp
+            - include/rgpot/Morse/MorsePot.hpp
+            - include/rgpot/fortran/FortranPots.hpp
+            - include/rgpot/frontend_api.hpp
+            - include/rgpot/CPMDPot/CPMDPot.hpp
+            - include/rgpot/NWChemPot/NWChemPot.hpp
+        - if: osx
+          then:
+            - lib/librgpot.dylib
+            - lib/pkgconfig/rgpot.pc
+            - include/rgpot/Potential.hpp
+            - include/rgpot/CalculatorGroup.hpp
+            - include/rgpot/LennardJones/LJPot.hpp
+            - include/rgpot/Morse/MorsePot.hpp
+            - include/rgpot/fortran/FortranPots.hpp
+            - include/rgpot/frontend_api.hpp
+            - include/rgpot/CPMDPot/CPMDPot.hpp
+            - include/rgpot/NWChemPot/NWChemPot.hpp
+        - if: win
+          then:
+            - Library/lib/pkgconfig/rgpot.pc
+            - Library/include/rgpot/Potential.hpp
+            - Library/include/rgpot/CalculatorGroup.hpp
+            - Library/include/rgpot/LennardJones/LJPot.hpp
+            - Library/include/rgpot/Morse/MorsePot.hpp
+            - Library/include/rgpot/fortran/FortranPots.hpp
+            - Library/include/rgpot/frontend_api.hpp
+            - Library/include/rgpot/CPMDPot/CPMDPot.hpp
+            - Library/include/rgpot/NWChemPot/NWChemPot.hpp
+            - Library/bin/rgpot-3.dll
+            - Library/lib/rgpot.lib
+            - Library/bin/rgpot_cuh2.dll
+            - Library/lib/rgpot_cuh2.lib
+  - script:
+      - if: unix
+        then:
+          - pkg-config --exists rgpot
+          - pkg-config --atleast-version=3.4.0 rgpot
+          - pkg-config --cflags rgpot | grep -q RGPOT_HAS_FORTRAN_POTS
+          - test ! -e "${PREFIX}/lib/libcpmdpot.a"
+          - test ! -e "${PREFIX}/lib/libnwchempot.a"
+          - if pkg-config --libs rgpot | grep -E -q 'cpmdpot|nwchempot'; then exit 1; fi
+          - if find "${PREFIX}/include/rgpot" -type f ! -name '*.h' ! -name '*.hpp' ! -name '*.capnp' | grep -q .; then exit 1; fi
+      - if: win
+        then:
+          - pkg-config --exists rgpot
+          - if errorlevel 1 exit 1
+          - pkg-config --cflags rgpot | findstr RGPOT_HAS_FORTRAN_POTS
+          - if errorlevel 1 exit 1
+          - if exist "%PREFIX%\Library\lib\libcpmdpot.a" exit 1
+          - if exist "%PREFIX%\Library\lib\libnwchempot.a" exit 1
+          - 'pkg-config --libs rgpot | findstr /c:"cpmdpot" /c:"nwchempot" && exit 1 || cd .'
+          - 'for /f "delims=" %%f in (''dir /s /b /a-d "%PREFIX%\Library\include\rgpot"'') do if /I not "%%~xf"==".h" if /I not "%%~xf"==".hpp" if /I not "%%~xf"==".capnp" (echo bad-header %%f & exit /b 1)'
+    requirements:
+      run:
+        - pkg-config
+
+about:
+  homepage: https://github.com/OmniPotentRPC/rgpot
+  summary: Potential energy surfaces for atomistic simulation
+  description: |
+    rgpot hosts potential energy surface implementations for atomic-scale
+    simulation behind one C++ interface: classical pair potentials
+    (Lennard-Jones, LJ cluster, Morse, ZBL), Fortran 2018 kernels
+    (Stillinger-Weber, EDIP, Lenosky, Tersoff, EAM aluminium, FeHe, CuH2,
+    TIP4P-H), and Cap'n Proto RPC frontends for QM engines that are loaded
+    at run time. Everything ships inside one versioned librgpot.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/OmniPotentRPC/rgpot
+  documentation: https://omnipotentrpc.github.io/rgpot/
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
