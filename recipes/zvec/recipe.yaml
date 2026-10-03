@@ -42,32 +42,8 @@ source:
   - url: https://github.com/alibaba/zvec/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 441ce2b1c5a5eccde322c21cc7a973d9f967068667ade93a7de6bf5c4c36a5f4
     patches:
-      # thirdparty/lz4/CMakeLists.txt only lists the .a as a BUILD_BYPRODUCTS,
-      # not the headers which its install step also produces, so ninja doesn't
-      # reliably order rocksdb's compile after it (fails with "lz4.h: No such
-      # file or directory").
-      - patches/lz4-build-byproducts.patch
-      # lz4's own Makefile does `PREFIX ?= /usr/local`, which only applies
-      # when PREFIX isn't already set - but conda-build always exports
-      # PREFIX (the host env path) into the build, so lz4's `make install`
-      # silently installs into $DESTDIR/<conda host prefix>/include instead
-      # of $DESTDIR/usr/local/include, the path thirdparty/lz4/CMakeLists.txt
-      # hardcodes as lz4_INCLUDE_DIR for rocksdb's -isystem flag (fails with
-      # the same "lz4.h: No such file or directory", deterministically, not
-      # a race - confirmed by Linux CI logs showing Lz4.BUILD's install step
-      # fully completing before rocksdb's compile even starts).
       - patches/lz4-install-prefix.patch
-      # Same libstdc++/GCC-13+ missing-<cstdint> issue as the rocksdb
-      # patch below, but in zvec's own src/ tree rather than a vendored
-      # thirdparty/ dependency. Unlike rocksdb's public headers, zvec's
-      # own headers aren't self-contained enough to compile standalone
-      # and enumerate exhaustively, so this patch grows one hunk at a
-      # time as CI (or a local `make -k` run) turns them up.
       - patches/zvec-missing-cstdint.patch
-      # Same bug class, worse: ARROW.BUILD passes a bare `BYPRODUCTS` keyword,
-      # which ExternalProject_Add doesn't recognize and silently drops, so it
-      # has zero declared byproducts (fixes the MSVC/Linux/macOS branches).
-      # - patches/arrow-build-byproducts.patch
   - git: https://github.com/google/googletest.git
     rev: 703bd9caab50b139428cea1aaff9974ebee5742e
     target_directory: thirdparty/googletest/googletest-${{ googletest_version }}
@@ -85,23 +61,6 @@ source:
     target_directory: thirdparty/rocksdb/rocksdb-${{ rocksdb_version }}
     submodules: false
     patches:
-      # rocksdb 8.1.1 predates libstdc++'s GCC-13+ header cleanup that
-      # stopped other standard headers transitively pulling in <cstdint>,
-      # so headers that use uint32_t/uint64_t without including it
-      # directly fail under our newer GCC. Two of these hunks
-      # (db/blob/blob_file_meta.h, include/rocksdb/trace_record.h) are
-      # the exact upstream fixes, cherry-picked verbatim (only merged
-      # upstream in 2025, long after this 2023 release) - see
-      # facebook/rocksdb@72c38871673f and @58420b7c60c4. The rest
-      # (trace_record_result.h, utilities/checkpoint.h, utilities/
-      # replayer.h, port/port_example.h, util/aligned_buffer.h,
-      # utilities/transactions/.../partitioned_counter.h) aren't fixed
-      # upstream yet as of this writing, so these are our own hunks in
-      # the same style. This full list was derived by compiling every
-      # non-vendored header in the pinned tree standalone against the
-      # exact gcc_linux-64/gxx_linux-64 15.3.0 used in CI (not guessed
-      # file-by-file from CI failures), so it should be exhaustive for
-      # this compiler.
       - patches/rocksdb-missing-cstdint.patch
   - git: https://github.com/jbeder/yaml-cpp.git
     rev: 9a3624205e8774953ef18f57067b3426c1c5ada6
