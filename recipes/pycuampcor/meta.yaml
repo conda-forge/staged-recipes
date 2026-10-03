@@ -1,0 +1,85 @@
+{% set name = "pycuampcor" %}
+{% set version = "2.2.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/earthdef/cuAmpcor/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 7ef1e4794305067a8b30fbe514b4e2ea007db742b46048e97ac3aa18dce0e125
+
+build:
+  # cuda builds get a higher build number so that they are preferred where the
+  # __cuda virtual package (an NVIDIA driver) is available; cpu builds otherwise
+  number: 100  # [cuda_compiler_version != "None"]
+  number: 0  # [cuda_compiler_version == "None"]
+  skip: true  # [win]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  script:
+    # conda-build sets CMAKE_GENERATOR="Unix Makefiles"; use ninja (make is not a build dependency)
+    - export CMAKE_GENERATOR=Ninja
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=ON -Ccmake.define.PYCUAMPCOR_HDF5=ON -Ccmake.define.CMAKE_CUDA_ARCHITECTURES=all-major  # [cuda_compiler_version != "None"]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PYCUAMPCOR_CUDA=OFF -Ccmake.define.PYCUAMPCOR_HDF5=ON  # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - python  # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - pybind11  # [build_platform != target_platform]
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake >=3.23
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    - pybind11
+    - fftw
+    - hdf5
+    - zlib
+    - libgomp  # [linux]
+    - llvm-openmp  # [osx]
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-cudart-dev  # [cuda_compiler_version != "None"]
+    - libcufft-dev  # [cuda_compiler_version != "None"]
+  run:
+    - python
+    - __cuda  # [cuda_compiler_version != "None"]
+
+test:
+  source_files:
+    - tests
+  requires:
+    - pip
+    - pytest
+    - numpy
+    - h5py
+  imports:
+    - pycuampcor
+  commands:
+    - pip check
+    - python -c "import pycuampcor; assert pycuampcor.has_cuda"  # [cuda_compiler_version != "None"]
+    - python -c "import pycuampcor; assert not pycuampcor.has_cuda"  # [cuda_compiler_version == "None"]
+    - python -c "import pycuampcor; assert pycuampcor.has_hdf5"
+    - pytest -v tests/python
+
+about:
+  home: https://github.com/earthdef/cuAmpcor
+  license: MIT
+  license_file: LICENSE
+  summary: Amplitude cross-correlation (ampcor) for SAR images with CPU (OpenMP) and CUDA backends
+  description: |
+    PyCuAmpcor estimates the pixel offsets between two SAR images with the
+    amplitude cross-correlation (feature tracking) method, for InSAR processing
+    with ISCE2/ISCE3. The cpu variant provides PyCPUAmpcor; the cuda variant
+    provides both PyCPUAmpcor and PyCuAmpcor (GPU).
+  dev_url: https://github.com/earthdef/cuAmpcor
+  doc_url: https://github.com/earthdef/cuAmpcor/blob/main/README.md
+
+extra:
+  recipe-maintainers:
+    - lijun99
