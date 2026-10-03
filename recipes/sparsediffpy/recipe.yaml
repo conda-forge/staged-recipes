@@ -1,0 +1,88 @@
+context:
+  name: sparsediffpy
+  version: "0.6.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 00bcfbb4dd7ca6b9902da7e326b5f47c5bacd6824812421f2e3be97d9b073044
+  patches:
+    # link conda-forge's BLAS (libcblas on unix, openblas.lib on Windows, which
+    # has no OpenBLASConfig.cmake) and drop MSVC's warnings-as-errors
+    - patches/0001-use-conda-forge-blas.patch
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.11")
+  script:
+    - if: linux
+      then:
+        - export SKBUILD_CMAKE_ARGS="-DBLA_VENDOR=Generic"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    - numpy
+    # macOS links the Accelerate framework
+    - if: linux
+      then:
+        - libblas
+        - libcblas
+        - blas-devel
+    - if: win
+      then:
+        - openblas
+  run:
+    - python
+    - numpy >=2
+
+tests:
+  - python:
+      imports:
+        - sparsediffpy
+        - sparsediffpy._sparsediffengine
+      pip_check: true
+  - files:
+      recipe:
+        - test_sparsediffpy.py
+    requirements:
+      run:
+        - python
+        - numpy
+    script:
+      - python test_sparsediffpy.py
+
+about:
+  homepage: https://github.com/SparseDifferentiation/SparseDiffPy
+  repository: https://github.com/SparseDifferentiation/SparseDiffPy
+  summary: Python bindings for SparseDiffEngine algorithmic differentiation
+  description: |
+    SparseDiffPy provides Python bindings for SparseDiffEngine, a C library for
+    computing sparse Jacobians and Hessians. It backs the diff engine used by
+    CVXPY's disciplined nonlinear programming (DNLP) support.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - SparseDiffEngine/LICENSE
+
+extra:
+  recipe-maintainers:
+    - Transurgeon
+    - dance858
