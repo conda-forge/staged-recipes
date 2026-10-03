@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.12.1"
+
+recipe:
+  name: rpptx-split
+  version: ${{ version }}
+
+source:
+  # The PyPI sdist must stay first: the upstream monorepo publishes rdocx and
+  # rpptx under interleaved GitHub tags, so the bot tracks versions on PyPI
+  # (see conda-forge.yml).
+  - url: https://pypi.org/packages/source/r/rpptx/rpptx-${{ version }}.tar.gz
+    sha256: 990121d23f46434d5070ecb311a490d77f964f0bdf9ad5532993095b70262a3a
+    target_directory: python
+  # The sdist only contains the crates needed by the Python binding, so the CLI
+  # and the license files come from the tag matching the PyPI release.
+  - url: https://github.com/tensorbee/rdocx/archive/refs/tags/py-rpptx-v${{ version }}.tar.gz
+    sha256: be08c0a1894d0467824af413b02d05ed394550a781889d1ad6b6d4791ab6c3e9
+    target_directory: repo
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: rpptx
+    build:
+      skip: is_abi3 and not is_python_min
+      python:
+        version_independent: ${{ is_abi3 }}
+      script:
+        - cd python
+        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    requirements:
+      build:
+        - if: build_platform != host_platform
+          then:
+            - python
+            - cross-python_${{ host_platform }}
+            - maturin >=1.9,<2
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+      host:
+        - if: is_abi3
+          then: python-abi3
+        - python
+        - maturin >=1.9,<2
+        - pip
+      run:
+        - python
+    tests:
+      - python:
+          imports:
+            - rpptx
+          python_version:
+            - if: is_abi3
+              then: ${{ python_min }}.*
+            - "*"
+      - files:
+          recipe:
+            - test_rpptx.py
+        script:
+          - python test_rpptx.py
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - if: unix
+              then: abi3audit $SP_DIR/rpptx/_rpptx.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+              else: abi3audit %SP_DIR%/rpptx/_rpptx.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+    about:
+      summary: Native PPTX creation, editing, comments, notes, and rendering for Python
+
+  - package:
+      name: rpptx-cli
+    build:
+      script:
+        - cd repo
+        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+        - if: unix
+          then: cargo install --locked --no-track --root "$PREFIX" --path crates/rpptx-cli
+          else: cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates/rpptx-cli
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+    tests:
+      - package_contents:
+          bin:
+            - rpptx
+      - files:
+          source:
+            - repo/crates/rpptx/assets/default.pptx
+        script:
+          - rpptx --version
+          - rpptx inspect repo/crates/rpptx/assets/default.pptx
+          - rpptx validate repo/crates/rpptx/assets/default.pptx
+          - rpptx convert repo/crates/rpptx/assets/default.pptx --to pdf --output default.pdf
+    about:
+      summary: CLI tool for inspecting, converting, and manipulating PPTX files
+
+about:
+  summary: Native PPTX creation, editing, comments, notes, and rendering
+  homepage: https://github.com/tensorbee/rdocx
+  repository: https://github.com/tensorbee/rdocx
+  description: |
+    rpptx creates, opens, edits, and renders PowerPoint (PPTX) presentations
+    natively, without Microsoft PowerPoint or LibreOffice. It ships as a
+    Python binding (rpptx) and a command line tool (rpptx-cli).
+  # The code is dual licensed MIT OR Apache-2.0 upstream but only the MIT text
+  # is shipped. The bundled fonts are Apache-2.0 (Caladea) and OFL-1.1 (Carlito,
+  # Liberation, Noto); the embedded ICC profile has its own permissive license.
+  license: MIT AND Apache-2.0 AND OFL-1.1 AND LicenseRef-sRGB2014
+  license_file:
+    - repo/LICENSE
+    - repo/crates/oxml-layout/fonts/LICENSE-*
+    - repo/crates/oxml-layout/fonts/NOTICE-*
+    - repo/crates/oxml-pdf/assets/LICENSE-sRGB2014
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - hadim
