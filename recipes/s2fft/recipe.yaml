@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  version: "1.4.0"
+  build_number: 0
+  cuda_version: ${{ cuda_compiler_version if cuda_compiler_version is defined else "None" }}
+  cuda: ${{ "true" if cuda_version != "None" else "" }}
+  cuda_major: ${{ 0 if cuda_version == "None" else (cuda_version | split("."))[0] | int }}
+  cuda_build_string: cuda${{ cuda_version | version_to_buildstring }}
+  build_prefix: ${{ cuda_build_string if cuda else "cpu" }}
+
+package:
+  name: s2fft
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/s2fft/s2fft-${{ version }}.tar.gz
+  sha256: b84c0c2bb0c3dfabe3431360bf90224705554e92966ab87e92affc0fe8f956ba
+
+build:
+  number: ${{ build_number }}
+  string: ${{ build_prefix }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      - ${{ "cuda" if cuda }}
+    down_prioritize_variant: ${{ 1 if cuda == "true" else 0 }}
+  skip:
+    - match(python, "<3.11")
+    - cuda and not linux
+  script:
+    - if: cuda and cuda_major >= 13
+      then: CMAKE_ARGS="-DCMAKE_CUDA_ARCHITECTURES=75;80;89" ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - if: not cuda or cuda_major < 13
+      then: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.19
+    - ninja
+    - if: cuda
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_version }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - setuptools-scm
+    - scikit-build-core >=0.8
+    - nanobind >=1.3.2
+    - jax >=0.5.0
+    - if: cuda
+      then:
+        - cuda-version ==${{ cuda_version }}
+        - cuda-cudart-dev
+        - cuda-cudart-static
+        - libcufft-dev
+        - libcufft-static
+        - cuda-culibos-static
+  run:
+    - python >=3.11
+    - numpy >=1.20
+    - jax >=0.5.0
+
+tests:
+  - python:
+      imports:
+        - s2fft
+        - s2fft_lib._s2fft
+      pip_check: true
+  - script:
+      - if: cuda
+        then: python -c "from s2fft_lib import _s2fft; assert _s2fft.COMPILED_WITH_CUDA"
+        else: python -c "from s2fft_lib import _s2fft; assert not _s2fft.COMPILED_WITH_CUDA"
+
+about:
+  homepage: https://github.com/astro-informatics/s2fft
+  summary: Differentiable and accelerated spherical transforms with JAX
+  description: |
+    S2FFT provides differentiable and accelerated spin spherical harmonic
+    and Wigner transforms, with JAX and PyTorch frontends and support for
+    several spherical sampling schemes.
+  license: MIT
+  license_file: LICENCE.txt
+  documentation: https://astro-informatics.github.io/s2fft/
+  repository: https://github.com/astro-informatics/s2fft
+
+extra:
+  recipe-maintainers:
+    - mwyau
