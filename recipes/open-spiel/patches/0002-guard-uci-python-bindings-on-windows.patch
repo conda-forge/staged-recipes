@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jeongseok Lee <jeongseok@meta.com>
+Date: Wed, 2 Sep 2026 12:20:00 -0700
+Subject: [PATCH] Guard UCI Python bindings on Windows
+
+The UCI bot uses POSIX process APIs and is already excluded from the core
+Windows build. Keep its POSIX-only header and enum out of the Python extension
+on Windows as well.
+---
+ open_spiel/python/pybind11/bots.cc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/open_spiel/python/pybind11/bots.cc b/open_spiel/python/pybind11/bots.cc
+index c045177..fa5ac3d 100644
+--- a/open_spiel/python/pybind11/bots.cc
++++ b/open_spiel/python/pybind11/bots.cc
+@@ -24,7 +24,9 @@
+ #include "open_spiel/algorithms/is_mcts.h"
+ #include "open_spiel/algorithms/mcts.h"
+ #include "open_spiel/bots/gin_rummy/simple_gin_rummy_bot.h"
++#ifndef _WIN32
+ #include "open_spiel/bots/uci/uci_bot.h"
++#endif
+ #include "open_spiel/game_parameters.h"
+ #include "open_spiel/python/pybind11/pybind11.h"
+ #include "open_spiel/spiel.h"
+@@ -193,13 +195,13 @@ void init_pyspiel_bots(py::module& m) {
+       },
+       "A bot that samples from a policy.");
+ 
++#ifndef _WIN32
+   py::enum_<open_spiel::uci::SearchLimitType>(m, "SearchLimitType")
+       .value("MOVETIME", open_spiel::uci::SearchLimitType::kMoveTime)
+       .value("NODES", open_spiel::uci::SearchLimitType::kNodes)
+       .value("DEPTH", open_spiel::uci::SearchLimitType::kDepth)
+       .export_values();
+ 
+-#ifndef _WIN32
+   m.def("make_uci_bot", open_spiel::uci::MakeUCIBot, py::arg("bot_binary_path"),
+         py::arg("search_limit_value"), py::arg("ponder"), py::arg("options"),
+         py::arg("search_limit_type") =
+-- 
+2.51.0
+
