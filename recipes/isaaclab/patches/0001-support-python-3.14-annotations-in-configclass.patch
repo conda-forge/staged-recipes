@@ -1,0 +1,83 @@
+Read class annotations in configclass through annotationlib on Python 3.14.
+
+Python 3.14 evaluates annotations lazily (PEP 649), so they are no longer stored
+in cls.__dict__["__annotations__"]. configclass read that dictionary directly,
+so on 3.14 every class without `from __future__ import annotations` reported no
+annotations and failed with "number of annotations (0) does not match number of
+class members". Importing isaaclab.sim.schemas.schemas_cfg, and therefore the
+`isaaclab train` CLI, failed at import time.
+
+Add an _own_annotations() helper that uses annotationlib.get_annotations() with
+the FORWARDREF format on 3.14, keeping unresolved forward references like the
+previous behavior, and falls back to the class dictionary on older versions.
+Instances no longer expose __annotations__ on 3.14, so the test reads it from
+the class. Upstreamable as-is.
+diff --git a/source/isaaclab/isaaclab/utils/configclass.py b/source/isaaclab/isaaclab/utils/configclass.py
+index eb1c2f398..a5e3eb87b 100644
+--- a/source/isaaclab/isaaclab/utils/configclass.py
++++ b/source/isaaclab/isaaclab/utils/configclass.py
+@@ -99,7 +99,7 @@ def configclass(cls, **kwargs):
+     """
+     # snapshot field names declared in *this* class body before configclass
+     # merges parent fields — used by _field_module_dir to resolve {DIR} correctly.
+-    _own_ann = set(cls.__dict__.get("__annotations__", {}).keys())
++    _own_ann = set(_own_annotations(cls).keys())
+     _own_body = {k for k in cls.__dict__ if not k.startswith("__")}
+     cls.__configclass_own_fields__ = frozenset(_own_ann | _own_body)
+     # add type annotations
+@@ -250,6 +250,20 @@ Private helper functions.
+ """
+ 
+ 
++def _own_annotations(cls: type) -> dict[str, Any]:
++    """Return the annotations declared in the body of ``cls``, excluding its bases.
++
++    Python 3.14 evaluates annotations lazily (PEP 649), so they are no longer stored in
++    ``cls.__dict__["__annotations__"]`` and reading the class dictionary returns nothing.
++    Forward references are kept unresolved, matching the pre-3.14 behavior.
++    """
++    if sys.version_info >= (3, 14):
++        import annotationlib
++
++        return annotationlib.get_annotations(cls, format=annotationlib.Format.FORWARDREF)
++    return cls.__dict__.get("__annotations__", {})
++
++
+ def _add_annotation_types(cls):
+     """Add annotations to all elements in the dataclass.
+ 
+@@ -277,7 +291,7 @@ def _add_annotation_types(cls):
+         if base is object:
+             continue
+         # get base class annotations
+-        ann = base.__dict__.get("__annotations__", {})
++        ann = _own_annotations(base)
+         # iterate over base class members
+         # Note: Do not change this to dir(base) since it orders the members alphabetically.
+         #   This is not desirable since the order of the members is important in some cases.
+@@ -425,7 +439,7 @@ def _process_mutable_types(cls):
+     """
+     # note: Need to set this up in the same order as annotations. Otherwise, it
+     #   complains about missing positional arguments.
+-    ann = cls.__dict__.get("__annotations__", {})
++    ann = _own_annotations(cls)
+ 
+     # iterate over all class members and store them in a dictionary
+     class_members = {}
+diff --git a/source/isaaclab/test/utils/test_configclass.py b/source/isaaclab/test/utils/test_configclass.py
+index 557bd6055..81e67ec64 100644
+--- a/source/isaaclab/test/utils/test_configclass.py
++++ b/source/isaaclab/test/utils/test_configclass.py
+@@ -801,9 +801,9 @@ def test_functions_config():
+     """Tests having functions as values in the configuration instance."""
+     cfg = FunctionsDemoCfg()
+     # check types
+-    assert cfg.__annotations__["func"] is type(dummy_function1)
+-    assert cfg.__annotations__["wrapped_func"] is type(wrapped_dummy_function3)
+-    assert cfg.__annotations__["func_in_dict"] is dict
++    assert type(cfg).__annotations__["func"] is type(dummy_function1)
++    assert type(cfg).__annotations__["wrapped_func"] is type(wrapped_dummy_function3)
++    assert type(cfg).__annotations__["func_in_dict"] is dict
+     # check calling
+     assert cfg.func() == 1
+     assert cfg.wrapped_func() == 4
