@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  name: cf
+  npm_version: 1.0.0-beta.12
+  version: ${{ npm_version | replace("-beta.", "b") }}
+
+package:
+  name: cloudflare-cli
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/${{ name }}/-/${{ name }}-${{ npm_version }}.tgz
+  sha256: 2c668df92ba9b73c50ab5b8495bc00ef51f3064dde9ff70b3d9c02c8e4cb3076
+
+build:
+  number: 0
+  # bundles prebuilt workerd and sharp binaries from npm
+  dynamic_linking:
+    binary_relocation: false
+  prefix_detection:
+    ignore_binary_files: true
+  script:
+    - if: unix
+      then:
+        - npm pack --ignore-scripts
+        - npm install -ddd --global --allow-scripts=workerd ./${{ name }}-${{ npm_version }}.tgz
+        # devDependencies reference vendored tarballs not shipped in the npm package
+        - npm pkg delete devDependencies
+        - pnpm install --prod --ignore-scripts
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+      else:
+        - call npm pack --ignore-scripts
+        - if errorlevel 1 exit 1
+        - call npm install -ddd --global --allow-scripts=workerd .\${{ name }}-${{ npm_version }}.tgz
+        - if errorlevel 1 exit 1
+        - call npm pkg delete devDependencies
+        - if errorlevel 1 exit 1
+        - call pnpm install --prod --ignore-scripts
+        - if errorlevel 1 exit 1
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+  host:
+    - nodejs >=22
+  run:
+    - nodejs >=22
+  ignore_run_exports:
+    from_package:
+      - nodejs
+
+tests:
+  - script:
+      - cf --help
+      - cf --version
+      - cloudflare --help
+
+about:
+  homepage: https://github.com/cloudflare/cf
+  summary: The agentic CLI for the entire Cloudflare API
+  description: |
+    cf is Cloudflare's command-line interface for managing Cloudflare
+    products and the Cloudflare API, including Workers, R2, D1, KV, DNS
+    and Zero Trust.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    - third-party-licenses.txt
+  repository: https://github.com/cloudflare/cf
+
+extra:
+  recipe-maintainers:
+    - pavelzw
