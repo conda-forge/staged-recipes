@@ -2,24 +2,16 @@
 schema_version: 1
 
 context:
-  version: "0.14.0"
+  version: "0.15.0"
 
 recipe:
   name: rdocx-split
   version: ${{ version }}
 
 source:
-  # The PyPI sdist must stay first: the upstream monorepo publishes rdocx and
-  # rpptx under interleaved GitHub tags, so the bot tracks versions on PyPI
-  # (see conda-forge.yml).
-  - url: https://pypi.org/packages/source/r/rdocx/rdocx-${{ version }}.tar.gz
-    sha256: 2ac14ef29fd8edc93259564788b90e667e27cb2861766d6b0961b79acc61affc
-    target_directory: python
-  # The sdist only contains the crates needed by the Python binding, so the CLI
-  # and the license files come from the tag matching the PyPI release.
-  - url: https://github.com/tensorbee/rdocx/archive/refs/tags/py-rdocx-v${{ version }}.tar.gz
-    sha256: 28e63288e4837f7d720decae4afaa388f16f0f87f97f1d13c779696d26530926
-    target_directory: repo
+  # One tag per family releases the CLI, the crates and the Python distribution.
+  url: https://github.com/tensorbee/rdocx/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 49967dfbf8921bacf26d9ae6193eff3ae2780c1efe96f29f316d1be41d76aacf
 
 build:
   number: 0
@@ -32,9 +24,8 @@ outputs:
       python:
         version_independent: ${{ is_abi3 }}
       script:
-        - cd python
-        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
-        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install ./crates/rdocx-py -vv --no-deps --no-build-isolation --disable-pip-version-check
     requirements:
       build:
         - if: build_platform != host_platform
@@ -83,8 +74,7 @@ outputs:
       name: rdocx-cli
     build:
       script:
-        - cd repo
-        - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
         - if: unix
           then: cargo install --locked --no-track --root "$PREFIX" --path crates/rdocx-cli
           else: cargo install --locked --no-track --root "%LIBRARY_PREFIX%" --path crates/rdocx-cli
@@ -117,10 +107,10 @@ about:
   # Liberation, Noto); the embedded ICC profile has its own permissive license.
   license: MIT AND Apache-2.0 AND OFL-1.1 AND LicenseRef-sRGB2014
   license_file:
-    - repo/LICENSE
-    - repo/crates/oxml-layout/fonts/LICENSE-*
-    - repo/crates/oxml-layout/fonts/NOTICE-*
-    - repo/crates/oxml-pdf/assets/LICENSE-sRGB2014
+    - LICENSE
+    - crates/oxml-layout/fonts/LICENSE-*
+    - crates/oxml-layout/fonts/NOTICE-*
+    - crates/oxml-pdf/assets/LICENSE-sRGB2014
     - THIRDPARTY.yml
 
 extra:
