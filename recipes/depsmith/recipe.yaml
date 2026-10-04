@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+# conda-forge recipe (rattler-build), built from the PyPI sdist. CI builds the
+# same recipe against a locally built sdist; see README.md.
+schema_version: 1
+
+context:
+  name: depsmith
+  version: "0.1.0rc1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 4ad4a7cd8646478b0ee49e08817f41deb4153a572709f21fb52820d27c932224
+
+build:
+  number: 0
+  # One build serves every Python: the extension uses the stable ABI (abi3).
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.9.3,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - maturin >=1.9.3,<2
+    - pip
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - depsmith
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min ~ ".*" }}
+        - "*"
+  - files:
+      source:
+        - tests/python/
+    requirements:
+      run:
+        - pip
+    script:
+      - depsmith --version
+      - depsmith --help
+      - pip check
+      - python -m unittest discover -s tests/python -v
+  - if: is_abi3 and build_platform == target_platform
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: win
+          then: abi3audit %SP_DIR%/depsmith/_native.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit $SP_DIR/depsmith/_native.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/ArjunRachithcf/depsmith
+  repository: https://github.com/ArjunRachithcf/depsmith
+  documentation: https://github.com/ArjunRachithcf/depsmith/wiki
+  summary: Review and apply repository dependency updates through Rust and Python
+  description: |
+    depsmith proposes dependency updates for Pixi, conda-lock, uv, Cargo and
+    npm projects in a disposable stage, with evidence for every suggested
+    constraint change, and applies exactly the reviewed bytes. It ships a CLI
+    and a Python API sharing one Rust core.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - ArjunRachithcf
