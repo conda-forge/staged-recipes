@@ -11,9 +11,9 @@ context:
   go_mod: github.com/Open-MBEE/OpenSysML
   go_ld_flags: -s -w -X main.Version=${{ version }}
   go_build: go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
-  go_cli_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "$PREFIX/bin/sysml" }}
-  go_grpc_bin: ${{ "%LIBRARY_BIN%\\sysml-grpc.exe" if win else "$PREFIX/bin/sysml-grpc" }}
-  go_lsp_bin: ${{ "%LIBRARY_BIN%\\sysml-lsp.exe" if win else "$PREFIX/bin/sysml-lsp" }}
+  go_cli_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "${PREFIX}/bin/sysml" }}
+  go_grpc_bin: ${{ "%LIBRARY_BIN%\\sysml-grpc.exe" if win else "${PREFIX}/bin/sysml-grpc" }}
+  go_lsp_bin: ${{ "%LIBRARY_BIN%\\sysml-lsp.exe" if win else "${PREFIX}/bin/sysml-lsp" }}
   # python
   py_dir: ${{ go_mod }}/client/python
   python_check_max: "3.14"
@@ -65,7 +65,7 @@ outputs:
     about:
       license_file:
         - ${{ go_mod }}/LICENSE
-        - library_licenses/
+        - library_licenses/**
 
   - package:
       name: opensysml-grpc
@@ -73,7 +73,6 @@ outputs:
       build:
         - ${{ compiler("go-nocgo") }}
         - go-licenses
-        - python *
     build:
       script:
         content:
@@ -82,7 +81,15 @@ outputs:
           - ${{ go_build }} -o "${{ go_grpc_bin }}"
           - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
           - cd "${{ RECIPE_DIR }}"
-          - python build-opensysml-grpc-env-json.py
+          - if: unix
+            then:
+              - mkdir -p "${PREFIX}/etc/conda/env_vars.d"
+              - |-
+                echo {"OPENSYSML_BINARY": "${PREFIX}/bin/sysml-grpc"} > "${PREFIX}/etc/conda/env_vars.d/opensysml-grpc.json"
+            else:
+              - mkdir "%PREFIX%\etc\conda\env_vars.d"
+              - |-
+                echo {"OPENSYSML_BINARY": "%PREFIX%\\Library\\bin\\sysml-grpc.exe"} > "%PREFIX%\\etc\\conda\\env_vars.d\\opensysml-grpc.json"
     tests:
       - package_contents:
           strict: true
