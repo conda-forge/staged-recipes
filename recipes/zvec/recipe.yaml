@@ -41,6 +41,9 @@ source:
   # some of these upstream repos carry.
   - url: https://github.com/alibaba/zvec/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 441ce2b1c5a5eccde322c21cc7a973d9f967068667ade93a7de6bf5c4c36a5f4
+    patches:
+      - patches/lz4-install-prefix.patch
+      - patches/zvec-missing-cstdint.patch
   - git: https://github.com/google/googletest.git
     rev: 703bd9caab50b139428cea1aaff9974ebee5742e
     target_directory: thirdparty/googletest/googletest-${{ googletest_version }}
@@ -57,6 +60,8 @@ source:
     rev: 6a436150417120a3f9732d65a2a5c2b8d19b60fc
     target_directory: thirdparty/rocksdb/rocksdb-${{ rocksdb_version }}
     submodules: false
+    patches:
+      - patches/rocksdb-missing-cstdint.patch
   - git: https://github.com/jbeder/yaml-cpp.git
     rev: 9a3624205e8774953ef18f57067b3426c1c5ada6
     target_directory: thirdparty/yaml-cpp/yaml-cpp-${{ yaml_cpp_version }}
@@ -115,7 +120,15 @@ build:
     - osx and x86_64
     - linux and ppc64le
   script:
-    - python -m pip install . -vv --no-build-isolation --no-deps
+    content:
+      - if: win
+        then:
+          - set CMAKE_GENERATOR_PLATFORM=
+          - set CMAKE_GENERATOR_TOOLSET=
+      - python -m pip install . -vv --no-build-isolation --no-deps
+    env:
+      CMAKE_GENERATOR: ${{ "Ninja" if win else "Unix Makefiles" }}
+      CMAKE_BUILD_PARALLEL_LEVEL: "1"
 
 requirements:
   build:
@@ -124,6 +137,7 @@ requirements:
     - ${{ stdlib('c') }}
     - cmake >=3.26,<4.0a0
     - ninja >=1.11
+    - make
   host:
     - python
     - pip
