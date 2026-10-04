@@ -16,21 +16,18 @@ installed_packages=$(awk '
   capture && NF { seen = 1; print; next }
   capture && seen && !NF { exit }
 ' "${help_output}")
-for package in \
-  ASPHERE BODY BROWNIAN CLASS2 COLLOID CORESHELL DIPOLE ELECTRODE \
-  EXTRA-COMPUTE EXTRA-DUMP EXTRA-FIX EXTRA-MOLECULE EXTRA-PAIR FEP \
-  GRANULAR KOKKOS KSPACE MANYBODY MC MEAM MISC ML-SNAP MOLECULE \
-  OPENMP OPT PERI PHONON PLUGIN REAXFF REPLICA RIGID SHOCK SRD; do
+for package in EXTRA-PAIR KOKKOS; do
   grep -qw -- "${package}" <<<"${installed_packages}"
 done
-if grep -qw -- 'COLVARS' <<<"${installed_packages}"; then
-  exit 1
-fi
-if grep -qw -- 'ML-PACE' <<<"${installed_packages}"; then
-  exit 1
-fi
-
-ldd "${PREFIX}/bin/lmp-symmetrix" | grep -q 'libfftw3'
+for package in \
+  ASPHERE BODY BROWNIAN CLASS2 COLLOID CORESHELL DIPOLE ELECTRODE \
+  EXTRA-COMPUTE EXTRA-DUMP EXTRA-FIX EXTRA-MOLECULE FEP GRANULAR KSPACE \
+  MANYBODY MC MEAM MISC ML-SNAP ML-PACE MOLECULE OPENMP OPT PERI PHONON \
+  PLUGIN REAXFF REPLICA RIGID SHOCK SRD COLVARS; do
+  if grep -qw -- "${package}" <<<"${installed_packages}"; then
+    exit 1
+  fi
+done
 
 lmp_executable=$(command -v lmp-symmetrix)
 linkage=$(ldd "${lmp_executable}")
@@ -50,33 +47,28 @@ test -x "${mpi_probe}"
 mpirun --version
 cat > "${mpi_input}" <<'EOF'
 units lj
-atom_style charge
+atom_style atomic
 boundary p p p
 
 region box block 0 4 0 4 0 4
-create_box 2 box
+create_box 1 box
 create_atoms 1 single 1.0 1.0 1.0
-create_atoms 2 single 3.0 3.0 3.0
+create_atoms 1 single 3.0 3.0 3.0
 
-mass * 1.0
-set type 1 charge 1.0
-set type 2 charge -1.0
-pair_style lj/cut/coul/long 2.5
+mass 1 1.0
+pair_style lj/cut 2.5
 pair_coeff * * 0.1 1.0
-kspace_style pppm 1.0e-4
 
 neighbor 0.3 bin
 velocity all set 0.01 -0.01 0.02
 fix integrate all nve
 thermo 1
 run 1
-print "SYMMETRIX_MPI_PPPM_SMOKE_COMPLETE"
+print "SYMMETRIX_MPI_SMOKE_COMPLETE"
 EOF
 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1 \
   mpirun -n 2 lmp-symmetrix -log none -in "${mpi_input}" > "${mpi_output}"
-grep -q 'PPPM initialization' "${mpi_output}"
-grep -q 'using double precision FFTW3' "${mpi_output}"
-grep -q '^SYMMETRIX_MPI_PPPM_SMOKE_COMPLETE$' "${mpi_output}"
+grep -q '^SYMMETRIX_MPI_SMOKE_COMPLETE$' "${mpi_output}"
 if grep -aFq "${SRC_DIR}" "${lmp_executable}"; then
   exit 1
 fi

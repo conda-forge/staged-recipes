@@ -21,29 +21,25 @@ installed_packages=$(awk '
   capture && NF { seen = 1; print; next }
   capture && seen && !NF { exit }
 ' "${help_output}")
-for package in \
-  ASPHERE BODY BROWNIAN CLASS2 COLLOID CORESHELL DIPOLE ELECTRODE \
-  EXTRA-COMPUTE EXTRA-DUMP EXTRA-FIX EXTRA-MOLECULE EXTRA-PAIR FEP \
-  GRANULAR KOKKOS KSPACE MANYBODY MC MEAM MISC ML-SNAP MOLECULE \
-  OPENMP OPT PERI PHONON PLUGIN REAXFF REPLICA RIGID SHOCK SRD; do
+for package in EXTRA-PAIR KOKKOS; do
   grep -qw -- "${package}" <<<"${installed_packages}"
 done
-if grep -qw -- 'COLVARS' <<<"${installed_packages}"; then
-  exit 1
-fi
-if grep -qw -- 'ML-PACE' <<<"${installed_packages}"; then
-  exit 1
-fi
-
-ldd "${PREFIX}/bin/lmp-symmetrix" | grep -q 'libfftw3'
-ldd "${PREFIX}/bin/lmp-symmetrix" | grep -q 'libcufft'
+for package in \
+  ASPHERE BODY BROWNIAN CLASS2 COLLOID CORESHELL DIPOLE ELECTRODE \
+  EXTRA-COMPUTE EXTRA-DUMP EXTRA-FIX EXTRA-MOLECULE FEP GRANULAR KSPACE \
+  MANYBODY MC MEAM MISC ML-SNAP ML-PACE MOLECULE OPENMP OPT PERI PHONON \
+  PLUGIN REAXFF REPLICA RIGID SHOCK SRD COLVARS; do
+  if grep -qw -- "${package}" <<<"${installed_packages}"; then
+    exit 1
+  fi
+done
 
 lmp_executable=$(command -v lmp-symmetrix)
 linkage=$(ldd "${lmp_executable}")
 if grep -q 'not found' <<<"${linkage}"; then
   exit 1
 fi
-for library in libmpi libopenblas libgomp libcudart libcublas libcufft; do
+for library in libmpi libopenblas libgomp libcudart libcublas; do
   grep -E "^[[:space:]]*${library}\\.so[^[:space:]]* => ${PREFIX}/(bin/\\.\\./)?lib/" \
     <<<"${linkage}"
 done
