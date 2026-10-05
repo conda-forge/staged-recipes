@@ -10,7 +10,7 @@ export OPENCODE_CHANNEL=latest
 bun install --frozen-lockfile --ignore-scripts
 
 pushd packages/opencode
-npx --yes license-checker-rseidelsohn --production --plainVertical --out "${SRC_DIR}/third-party-licenses.txt"
+bunx --bun license-checker-rseidelsohn --production --plainVertical --out "${SRC_DIR}/third-party-licenses.txt"
 # upstream runs the compiled binary as a smoke test before it is installed,
 # so point it at the libraries bun was linked against
 if [[ "${target_platform}" == linux-* ]]; then
