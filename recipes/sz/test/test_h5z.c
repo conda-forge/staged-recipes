@@ -1,4 +1,5 @@
 /* Writes plain.h5 (no filter) for h5repack, and checks a round trip through the filter linked as a library. */
+#include <math.h>
 #include <stdio.h>
 
 #include "H5Z_SZ3.hpp"
@@ -50,7 +51,7 @@ int main(void) {
         for (int j = 0; j < NY; ++j) {
             double err = (double)data[i][j] - back[i][j];
             if (err < 0) err = -err;
-            if (err > max_err) max_err = err;
+            if (isnan(err) || err > max_err) max_err = err; /* a NaN stays and fails the check */
         }
     printf("H5Z-SZ3 linked: filter applied %d, max error %g\n", has_sz3, max_err);
     return !(has_sz3 && max_err <= 1e-3);

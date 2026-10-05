@@ -30,7 +30,8 @@ int main() {
 
     double maxErr = 0;
     for (size_t i = 0; i < data.size(); ++i) {
-        maxErr = std::fmax(maxErr, std::fabs(static_cast<double>(data[i]) - dec[i]));
+        const double err = std::fabs(static_cast<double>(data[i]) - dec[i]);
+        if (std::isnan(err) || err > maxErr) maxErr = err;  // a NaN stays and fails the check
     }
     std::printf("SZ3 %s: ratio %.1f, max error %g\n", SZ3_VER, data.size() * sizeof(float) / double(cmpSize), maxErr);
     return maxErr <= conf.absErrorBound ? 0 : 1;
