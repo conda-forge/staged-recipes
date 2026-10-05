@@ -1,0 +1,89 @@
+context:
+  version: "0.6.0"
+
+package:
+  name: forgejo-cli
+  version: ${{ version }}
+
+source:
+  url: https://codeberg.org/forgejo-contrib/forgejo-cli/archive/v${{ version }}.tar.gz
+  sha256: 8b91194cb1886f253261a4567ee6f83aa34b05a9637644793f88b40b7110322a
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      LIBGIT2_NO_VENDOR: "1"
+      LIBSSH2_SYS_USE_PKG_CONFIG: "1"
+    content:
+      - if: unix
+        then:
+          # ssh2-config's build script links libgit2 dynamically
+          - export DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib
+          - export LD_LIBRARY_PATH=$PREFIX/lib
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/fj completion zsh > $PREFIX/share/zsh/site-functions/_fj
+          - $PREFIX/bin/fj completion bash > $PREFIX/share/bash-completion/completions/fj
+          - $PREFIX/bin/fj completion fish > $PREFIX/share/fish/vendor_completions.d/fj.fish
+        else:
+          - set OPENSSL_DIR=%LIBRARY_PREFIX%
+          # libssh2.pc says -lssh2 / -lcrypto but the import libraries are
+          # called libssh2.lib / libcrypto.lib
+          - mkdir %SRC_DIR%\winlib
+          - copy %LIBRARY_LIB%\libssh2.lib %SRC_DIR%\winlib\ssh2.lib
+          - copy %LIBRARY_LIB%\libcrypto.lib %SRC_DIR%\winlib\crypto.lib
+          - set "LIB=%SRC_DIR%\winlib;%LIB%"
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+  host:
+    - libgit2
+    - libssh2
+    - openssl
+    # needed for libssh2's pkg-config file, not linked directly
+    - zlib
+  ignore_run_exports:
+    by_name:
+      - libzlib
+
+tests:
+  - script: fj --help
+  - package_contents:
+      bin:
+        - fj
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/fj
+            - share/fish/vendor_completions.d/fj.fish
+            - share/zsh/site-functions/_fj
+      strict: true
+
+about:
+  homepage: https://codeberg.org/forgejo-contrib/forgejo-cli
+  summary: CLI tool for Forgejo
+  description: |
+    fj is a command-line tool for interacting with Forgejo instances,
+    allowing you to manage repositories, issues, pull requests and more
+    from your terminal.
+  license: Apache-2.0 OR MIT
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  repository: https://codeberg.org/forgejo-contrib/forgejo-cli
+
+extra:
+  recipe-maintainers:
+    - pavelzw
