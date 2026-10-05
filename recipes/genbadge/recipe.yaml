@@ -18,15 +18,12 @@ requirements:
   host:
     - python ${{ python_min }}.*
     - pip
-    # setup.py calls `import pkg_resources` unconditionally at build time;
-    # setuptools removed the bundled pkg_resources module in 82.0.0.
     - setuptools >=39.2,<82
     - setuptools_scm
-    - wheel
   run:
     - python >=${{ python_min }}
-    - setuptools
-    - click >7.0
+    - setuptools >=39.2,<82
+    - click >7.0,<8.4.2
     - pillow
     - requests
 
@@ -43,6 +40,27 @@ tests:
       - python -m genbadge.main tests --help
       - python -m genbadge.main coverage --help
       - python -m genbadge.main flake8 --help
+  # Runs the project's own pytest suite against the installed package.
+  # Deselected:
+  #  - test_threshold/test_local_remote: default/--webshields hit the real
+  #    shields.io API;
+  #  - test_genbadge/test_genbadge_red: hardcode expected SVG metrics for
+  #    "pillow >= 8.0" that do not seem to match the actual output of any pillow
+  #    release.
+  #  - test_parse_flake8 and test_any_command's flake8 cases: need the
+  #    `flake8_html` module (genbadge's own "flake8" extra), which is not
+  #    packaged on conda-forge.
+  - script:
+      - python -m pytest tests/test_core.py tests/test_readme_common.py
+        -k "not test_threshold and not test_local_remote and not test_genbadge
+        and not test_parse_flake8 and not (test_any_command and flake8)" -v
+    requirements:
+      run:
+        - pytest
+        - defusedxml
+    files:
+      source:
+        - tests/
 
 about:
   homepage: https://github.com/smarie/python-genbadge
