@@ -61,7 +61,7 @@ popd
 # ============================================================
 # Phase 6: Install into conda prefix
 # ============================================================
-INSTALL_DIR="${PREFIX}/lib/internxt-drive"
+INSTALL_DIR="${PREFIX}/lib/internxt-drive-desktop-linux"
 
 mkdir -p "${INSTALL_DIR}"
 
@@ -96,13 +96,13 @@ fi
 # ============================================================
 mkdir -p "${PREFIX}/bin"
 
-cat > "${PREFIX}/bin/internxt-drive" << 'LAUNCHER'
+cat > "${PREFIX}/bin/internxt-drive-desktop-linux" << 'LAUNCHER'
 #!/usr/bin/env bash
-APP_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")/lib/internxt-drive"
+APP_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")/lib/internxt-drive-desktop-linux"
 exec "${APP_DIR}/node_modules/.bin/electron" "${APP_DIR}" "$@"
 LAUNCHER
 
-chmod +x "${PREFIX}/bin/internxt-drive"
+chmod +x "${PREFIX}/bin/internxt-drive-desktop-linux"
 
 # ============================================================
 # Phase 8: Generate third-party license report

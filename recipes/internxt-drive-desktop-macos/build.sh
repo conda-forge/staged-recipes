@@ -54,10 +54,10 @@ cp -R "${APP_BUNDLE}" "${INSTALL_DIR}/InternxtDesktop.app"
 
 # Create a convenience symlink in bin/
 mkdir -p "${PREFIX}/bin"
-cat > "${PREFIX}/bin/internxt-drive-macos" << 'LAUNCHER'
+cat > "${PREFIX}/bin/internxt-drive-desktop-macos" << 'LAUNCHER'
 #!/usr/bin/env bash
 open "$(dirname "$(dirname "$(readlink -f "$0")")")/Applications/InternxtDesktop.app" "$@"
 LAUNCHER
-chmod +x "${PREFIX}/bin/internxt-drive-macos"
+chmod +x "${PREFIX}/bin/internxt-drive-desktop-macos"
 
 echo "Build completed successfully."

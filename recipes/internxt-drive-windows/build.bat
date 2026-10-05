@@ -78,7 +78,7 @@ if errorlevel 1 exit /b 1
 :: ============================================================
 :: Phase 7: Install into conda prefix
 :: ============================================================
-set INSTALL_DIR=%LIBRARY_PREFIX%\lib\internxt-drive
+set INSTALL_DIR=%LIBRARY_PREFIX%\lib\internxt-drive-windows
 
 mkdir "%INSTALL_DIR%" 2>nul
 mkdir "%INSTALL_DIR%\dist" 2>nul
@@ -110,10 +110,10 @@ mkdir "%BIN_DIR%" 2>nul
 (
 echo @echo off
 echo setlocal
-echo set "APP_DIR=%%CONDA_PREFIX%%\Library\lib\internxt-drive"
+echo set "APP_DIR=%%CONDA_PREFIX%%\Library\lib\internxt-drive-windows"
 echo "%%APP_DIR%%\node_modules\.bin\electron.cmd" "%%APP_DIR%%\dist\main\main.js" %%*
 echo endlocal
-) > "%BIN_DIR%\internxt-drive.cmd"
+) > "%BIN_DIR%\internxt-drive-windows.cmd"
 if errorlevel 1 exit /b 1
 
 :: ============================================================
