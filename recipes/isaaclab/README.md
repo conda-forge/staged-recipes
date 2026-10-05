@@ -61,8 +61,8 @@ remap them by hand:
 
 ## Source revision
 
-`source` is pinned to a `release/3.0.0` SHA (`b8c1a6b`, commit date
-`2026-09-28`) for a reproducible build, rather than tracking the moving branch.
+`source` is pinned to a `release/3.0.0` SHA (`be6c3e1`, commit date
+`2026-10-05`) for a reproducible build, rather than tracking the moving branch.
 `release/3.0.0` already carries the flattened wheel layout and the checkout-only
 test gating, so no fork or source-layout patch is needed. The version is a dev
 marker `3.0.0.devYYYYMMDD` (the commit date of the pinned `rev`), which sorts
@@ -79,15 +79,6 @@ a plain `3.0.0` once upstream tags v3.
   own-class annotations through `annotationlib.get_annotations()` on 3.14 and
   keeps the class-dict lookup on older versions. Proposed upstream in
   [isaac-sim/IsaacLab#8108](https://github.com/isaac-sim/IsaacLab/pull/8108).
-- `0002-support-openusd-26.05-zipfilewriter-in-test-assets.patch`: a `unit` test
-  builds a `.usdz` through `Usd.ZipFileWriter`. OpenUSD 25.08 moved it to `Sdf`
-  and 26.05 dropped the `Usd` alias. Upstream gets OpenUSD 25.05 bundled in the
-  PyPI `usd-exchange 2.3.0` wheel, while the conda-forge `usd-exchange 2.3.0` is
-  built against `openusd 26.05`. The patch prefers `Sdf.ZipFileWriter` and falls
-  back to `Usd.ZipFileWriter`. Fixed on `develop` by
-  [isaac-sim/IsaacLab#7192](https://github.com/isaac-sim/IsaacLab/pull/7192)
-  (switch to `Sdf.ZipFileWriter`); drop the patch once it reaches the release
-  branch.
 
 ## What is not packaged
 
@@ -128,6 +119,8 @@ bumps.
 | `pytorch` | `==2.12.0` | `>=2.11.0,<2.12` | downgrade a minor so the whole stack co-solves with the `torchrl` extra. `pytorchrl` needs `libtorch`, and the only `2.12` build (`libtorch 2.12.1`) requires a newer `libabseil` than `mujoco 3.12` (pulled by `newton-sim`) allows. `torch 2.11` is the highest that resolves everything, and it drags `torchvision` to `0.26.0` |
 | `torchvision` | `==0.27.0` | `0.26.0.*` | pinned by the `torch 2.11` downgrade above (`0.27` needs `torch 2.12`) |
 | `transformers` | `==5.10.4` | `>=5.10.4` | conda-forge has no `5.10.4` build (nearest `5.16.1`); floor instead of exact |
+| `usd-exchange` | `==3.0.0` | `2.3.0.*` | conda-forge has no `3.0.0` build yet ([conda-forge/usd-exchange-feedstock#11](https://github.com/conda-forge/usd-exchange-feedstock/pull/11)). The conda `2.3.0` is built against `openusd 26.05` |
+| `newton-sim` (`newton[sim]`) | `>=1.2.0` | `1.6.0.*` | upstream declares a loose floor and pins the real version through a `uv` override (`git@release-1.6`, currently `1.6.1rc1`). conda-forge has no `1.6.1` yet, so the recipe stays on the latest release `1.6.0` |
 | `pytetwild` (`pytetwild[all]`) | `>=0.3.0,<0.4` | `>=0.3.0` (+ `pyvista`) | relax the `<0.4` cap: conda-forge only ships `0.4.2`, and the `tetrahedralize` API is unchanged across `0.3`/`0.4`. `pyvista` is the sole `[all]` member |
 
 `onnxscript>=0.5` is a recipe-only base dep kept to avoid a regression.
@@ -143,16 +136,15 @@ are kept at the bottom for context.
 |---|---|---|
 | High | Closed-source Omniverse wheels | The base needs `omniverseclient` and `isaacsim-asset-isolated` (closed-source), so nothing resolves end-to-end. Making the Omniverse backends optional would make Isaac Lab packageable. |
 | Medium | Wheel build layout | `tools/wheel_builder/stage.py` flattens extensions by copying each inner package to top-level, duplicating `config`/`data` and rewriting a hardcoded `os.path.dirname(__file__), "../"` to `""`. Resolving resources via `importlib.resources` would drop that. |
-| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`, `newton[sim]`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. |
+| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. |
 | Medium | Python 3.14 | Upstream caps the bundled wheel at `<3.13`, but the per-extension projects declare `>=3.12` and the conda package is `noarch`. `configclass` breaks on 3.14 (PEP 649 lazy annotations); the recipe carries patch 0001. |
-| Low | OpenUSD 26.05 | A `unit` test uses `Usd.ZipFileWriter`, removed in OpenUSD 26.05 in favor of `Sdf.ZipFileWriter`; the recipe carries patch 0002. |
 | Low | Missing feedstocks | `skrl` and `rl-games` (plus `standard-distutils`) have no conda-forge feedstock, so their extras cannot be packaged. |
 | Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by `albumentationsx` (already on conda-forge). |
 | Resolved | Flat wheel layout | Upstream makes the core a flat package resolving resources via `_paths.py::ISAACLAB_ROOT`, so the recipe drops the old path patch. |
 | Resolved | Device-hardcoded tests | Upstream adds `test_devices()` so the `cuda` cases self-skip on CPU, dropping the old device patch. |
 | Resolved | Pre-fixture CLI tests | Checkout-only `unit` tests self-skip through the `source_checkout_root` fixture, dropping the two checkout-only test patches. |
 | Resolved | `newton-usd-schemas` declared spec | Upstream now declares `>=0.5.0` directly, matching its `uv` override, so the recipe tracks it 1:1. |
-| Resolved | `newton[sim]` declared spec | Upstream now declares `newton[sim]==1.6.0` directly instead of a loose `>=1.2.0` masked by a `uv` override. |
+| Resolved | OpenUSD 26.05 | A `unit` test used `Usd.ZipFileWriter`, removed in OpenUSD 26.05. Upstream switched to `Sdf.ZipFileWriter` ([isaac-sim/IsaacLab#7192](https://github.com/isaac-sim/IsaacLab/pull/7192), backported in [isaac-sim/IsaacLab#8122](https://github.com/isaac-sim/IsaacLab/pull/8122)), dropping the old patch 0002. |
 
 ## Dependency drift detection (`pip check`)
 
