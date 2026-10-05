@@ -11,7 +11,15 @@ bun install --frozen-lockfile --ignore-scripts
 
 pushd packages/opencode
 npx --yes license-checker-rseidelsohn --production --plainVertical --out "${SRC_DIR}/third-party-licenses.txt"
+# upstream runs the compiled binary as a smoke test before it is installed,
+# so point it at the libraries bun was linked against
+if [[ "${target_platform}" == linux-* ]]; then
+  export LD_LIBRARY_PATH="${BUILD_PREFIX}/lib"
+else
+  export DYLD_FALLBACK_LIBRARY_PATH="${BUILD_PREFIX}/lib"
+fi
 bun run script/build.ts --single --skip-install
+unset LD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 
 case "${target_platform}" in
   linux-64)      DIST=opencode-linux-x64 ;;
