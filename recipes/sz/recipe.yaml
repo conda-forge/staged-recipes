@@ -1,0 +1,106 @@
+context:
+  version: "3.4.0"
+
+package:
+  name: sz
+  version: ${{ version }}
+
+source:
+  url: https://github.com/szcompressor/SZ3/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d8d4c8a3602c23fd084c0bf72ff4ce4a9121c3e2ccfdc7ed8492ee03ec70a23a
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - if: osx
+      then: llvm-openmp
+  host:
+    - zstd
+    - hdf5
+    # OpenMP for the sz3 tools and libSZ3c (the HDF5 filter does not use it); on Linux, libgcc brings libgomp.
+    - if: osx
+      then: llvm-openmp
+  run_exports:
+    # libhdf5sz3 and libSZ3c carry a major.minor SOVERSION.
+    - ${{ pin_subpackage('sz', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - SZ3/api/sz.hpp
+        - SZ3/version.hpp
+        - SZ3c/sz3c.h
+        - hdf5_sz3/H5Z_SZ3.hpp
+      lib:
+        - SZ3c
+        - hdf5sz3
+      bin:
+        - sz3
+        - sz3_smoke_test
+      files:
+        - if: unix
+          then:
+            - lib/cmake/SZ3/SZ3Config.cmake
+            - lib/cmake/SZ3/SZ3ConfigVersion.cmake
+            - lib/cmake/SZ3/HDF5SZ3.cmake
+            - lib/hdf5/plugin/libhdf5sz3${{ ".dylib" if osx else ".so" }}
+          else:
+            - Library/lib/cmake/SZ3/SZ3Config.cmake
+            - Library/lib/cmake/SZ3/SZ3ConfigVersion.cmake
+            - Library/lib/cmake/SZ3/HDF5SZ3.cmake
+            - lib/hdf5/plugin/hdf5sz3.dll
+  - files:
+      source:
+        - tools/sz3/testfloat_8_8_128.dat
+    script:
+      - sz3_smoke_test
+      - sz3 -v
+      - sz3 -f -i tools/sz3/testfloat_8_8_128.dat -z out.sz -o out.f32 -3 8 8 128 -M ABS 1e-3 -a
+      - if: unix
+        then:
+          # Built against conda-forge's zstd, not the copy bundled in tools/zstd.
+          - grep -q 'if(NOT "OFF")' "${PREFIX}/lib/cmake/SZ3/SZ3Config.cmake"
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - if: unix
+        then: bash test/run_test.sh
+        else: call test\run_test.bat
+
+about:
+  homepage: https://github.com/szcompressor/SZ3
+  summary: SZ3, an error-bounded lossy compressor for scientific data, with its CLI and HDF5 filter
+  description: |
+    SZ3 is a modular error-bounded lossy compressor for floating-point and
+    integer scientific data. This package provides the header-only C++17
+    library with its CMake package (SZ3::SZ3core, SZ3::SZ3, SZ3::hdf5sz3),
+    the sz3 command-line tool, the C API library libSZ3c, and the H5Z-SZ3
+    HDF5 filter (filter id 32024), installed in HDF5's default plugin
+    directory.
+  license: BSD-3-Clause AND LGPL-2.1-or-later
+  license_file:
+    - copyright-and-BSD-license.txt
+    - LGPL-2.1.txt
+  documentation: https://github.com/szcompressor/SZ3/blob/master/docs/advanced-guide.md
+  repository: https://github.com/szcompressor/SZ3
+
+extra:
+  recipe-maintainers:
+    - ayzk
+    - robertu94
+    - disheng222
