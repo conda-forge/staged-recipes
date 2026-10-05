@@ -37,6 +37,13 @@ call npm pack
 if errorlevel 1 (popd & exit /b 1)
 popd
 
+:: npm ci verifies the integrity recorded for the local file dependency in
+:: package-lock.json. The addon tarball is generated above, so its bytes (and
+:: therefore its integrity) can differ from the value shipped in the source
+:: archive. Refresh only the lockfile metadata before npm ci validates it.
+call npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+if errorlevel 1 exit /b 1
+
 :: ============================================================
 :: Phase 3: Install JavaScript dependencies
 :: ============================================================
