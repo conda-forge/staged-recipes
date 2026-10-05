@@ -1,0 +1,70 @@
+context:
+  version: "0.4.3"
+
+package:
+  name: arcmira
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/a/arcmira/arcmira-${{ version }}.tar.gz
+  sha256: a758762289c5ceed07a584a7069aad318be8cde26c2e04e51cc4e471537e6636
+
+build:
+  noarch: python
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling ==1.32.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - httpx >=0.21.2,<1
+    - pydantic >=1.9.2,<3
+    - typing_extensions >=4.0.0
+
+tests:
+  - python:
+      imports:
+        - arcmira
+        - arcmira.client
+        - arcmira.transcripts.client
+        - arcmira.monitors.client
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - python -c "from arcmira import Arcmira, AsyncArcmira; from importlib.metadata import version; assert version('arcmira') == '${{ version }}'; assert callable(Arcmira); assert callable(AsyncArcmira)"
+      - >-
+        python -c "import httpx; from arcmira import Arcmira;
+        payload = {'query': 'fixture', 'limit': 1, 'returned': 0,
+        'filters': {'channel_ids': [], 'entity_ids': [], 'about': [], 'by': [], 'kind': []},
+        'window': {'after': '2026-01-01T00:00:00Z', 'before': None}, 'chunks': [],
+        'search_index': {'state': 'live', 'missing_before': None}, 'note': 'fixture coverage'};
+        requests = []; transport = httpx.MockTransport(lambda request: (requests.append(request), httpx.Response(200, json=payload))[1]);
+        http = httpx.Client(transport=transport); client = Arcmira(api_key='fixture', httpx_client=http);
+        result = client.transcripts.search(q='fixture', limit=1); http.close();
+        assert result.query == 'fixture' and result.chunks == [] and result.note == 'fixture coverage';
+        assert len(requests) == 1 and requests[0].url.path == '/v1/search';
+        assert requests[0].headers['Authorization'] == 'Bearer fixture'"
+
+about:
+  homepage: https://arcmira.com/docs
+  summary: Python SDK for YouTube transcript search and media monitoring
+  description: |
+    The Arcmira Python SDK provides synchronous and asynchronous clients for
+    transcript search, timestamped passages, speaker appearances, mentions,
+    recommendations and monitors. API access requires an Arcmira account;
+    account tiers and usage limits apply.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://arcmira.com/docs
+  repository: https://github.com/arcmira/python
+
+extra:
+  recipe-maintainers:
+    - zealous1
