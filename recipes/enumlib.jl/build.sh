@@ -208,7 +208,16 @@ link_missing_libs() {
       echo "  ${exe##*/} starts standalone: ${err}"
       return 0
     fi
-    name=$(printf '%s' "${err}" | grep -oE 'lib[A-Za-z0-9_.+-]*\.(so|dylib)[0-9.]*' | head -1)
+    # Take the library the loader actually could not open, which is not always the
+    # first one named. SuiteSparse_jll reports
+    #   could not load library "libamd.so.3"
+    #   libsuitesparseconfig.so.7: cannot open shared object file
+    # where libamd was found and its own dependency was not. So: restrict to the
+    # line carrying the failure, and take the last library named on it.
+    name=$(printf '%s\n' "${err}" \
+      | grep -E 'cannot open shared object file|Library not loaded|image not found' \
+      | head -1 \
+      | grep -oE 'lib[A-Za-z0-9_.+-]*\.(so|dylib)[0-9.]*' | tail -1)
     if [ -z "${name}" ]; then
       echo "  ${exe##*/} failed for a reason that is not a missing library:" >&2
       printf '%s\n' "${err}" >&2
