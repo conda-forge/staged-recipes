@@ -202,8 +202,8 @@ export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib${DYLD_FALLBACK_LIBRARY_PATH:+:$
 # to the app. Link each one in, relative so it never leaves $PREFIX, and keep going
 # until the binary starts rather than discovering them one CI round at a time.
 link_missing_libs() {
-  exe="$1"; tries=0
-  while [ "${tries}" -lt 40 ]; do
+  exe="$1"; tries=0; last=""
+  while [ "${tries}" -lt 60 ]; do
     if err=$(env -u LD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH "${exe}" --version 2>&1); then
       echo "  ${exe##*/} starts standalone: ${err}"
       return 0
@@ -214,14 +214,25 @@ link_missing_libs() {
       printf '%s\n' "${err}" >&2
       return 1
     fi
-    if [ -e "${PREFIX}/lib/${name}" ]; then
-      ln -sf "../../../lib/${name}" "${APPDIR}/lib/${name}"
-      echo "  linked ${name} from \$PREFIX/lib"
-    else
+    if [ "${name}" = "${last}" ]; then
+      # Linking it did not help, so stop rather than spin: the first attempt at
+      # this looped 40 times on libamd.so.3 because the library was wanted by
+      # something inside lib/julia, which searches its own directory.
+      echo "  ${name} is still not found after linking it into both lib/ and lib/julia/" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    if [ ! -e "${PREFIX}/lib/${name}" ]; then
       echo "  ${name} is needed but absent from \$PREFIX/lib -- a run dependency is missing" >&2
       printf '%s\n' "${err}" >&2
       return 1
     fi
+    # Both search paths: the executables look in ../lib and ../lib/julia, while a
+    # library inside lib/julia resolves its own dependencies relative to itself.
+    ln -sf "../../../lib/${name}"    "${APPDIR}/lib/${name}"
+    ln -sf "../../../../lib/${name}" "${APPDIR}/lib/julia/${name}"
+    echo "  linked ${name} into lib/ and lib/julia/"
+    last="${name}"
     tries=$((tries + 1))
   done
   echo "  gave up after ${tries} libraries for ${exe}" >&2
