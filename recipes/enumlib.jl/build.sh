@@ -132,6 +132,33 @@ fi
 echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for the build"
 
 "${JULIA}" --project=build -e 'using Pkg; Pkg.instantiate()'
+# --- Testing @mkitti's two suggestions for the sysimage segfault ----------------
+# staged-recipes#34550: the object-file step died with ProcessSignaled(11) roughly
+# 23 minutes in. Both suggestions reduce peak memory during codegen, which fits the
+# builder-ceiling theory:
+#
+#   incremental = true   build on top of conda julia's existing sysimage rather
+#                        than compiling a fresh base one
+#   JULIA_CPU_THREADS=1  hold codegen to a single thread
+#
+# v0.4.0's build_app.jl hardcodes `incremental = false` and exposes no option for
+# it, so the source is patched here rather than waiting on a release. (An earlier
+# round of this recipe set an environment variable that create_app ignores and
+# spent two CI cycles learning nothing; hence the explicit grep below, which fails
+# the build if the substitution does not take.) If this is the fix, it becomes a
+# proper keyword upstream rather than a sed.
+#
+# incremental = true requires filter_stdlibs = false, which build_app.jl already
+# passes, so the two are compatible.
+export JULIA_CPU_THREADS=1
+sed -i.bak 's/incremental = false,/incremental = true,/' build/build_app.jl
+grep -q 'incremental = true,' build/build_app.jl || {
+  echo "ERROR: could not switch build_app.jl to incremental = true" >&2
+  grep -n 'incremental' build/build_app.jl >&2
+  exit 1
+}
+echo "patched build_app.jl -> incremental = true; JULIA_CPU_THREADS=${JULIA_CPU_THREADS}"
+
 "${JULIA}" --project=build build/build_app.jl "${APPDIR}"
 
 # Point the application's copied libraries back at conda's, and put the host env
