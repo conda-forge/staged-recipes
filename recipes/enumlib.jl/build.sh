@@ -152,6 +152,32 @@ echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for
 # passes, so the two are compatible.
 export JULIA_CPU_THREADS=1
 sed -i.bak 's/incremental = false,/incremental = true,/' build/build_app.jl
+
+# The incremental build got much further much faster (45 s rather than 23 min, and
+# on conda julia's own sysimage), but still segfaulted -- and this time Julia named
+# the expression:
+#
+#   [1118] signal 11 (1): Segmentation fault
+#   in expression starting at $SRC_DIR/src/Enumlib.jl:475
+#   Allocations: 53855876 (Pool: 53854865; Big: 1011); GC: 22
+#
+# Line 475 is this package's PrecompileTools @setup_workload: real enumeration code
+# (enumerate_structures, to_poscar, a ConcentrationRange run) executed at
+# sysimage-build time. 54M allocations and 22 GCs is not a memory ceiling, so the
+# crash looks like running *our* workload under conda-forge's julia rather than
+# anything about codegen scale.
+#
+# Disable the workload for this build to confirm. It exists to avoid ~19 s of JIT
+# on a cold `enumerate_structures` in a REPL; an application gets its native code
+# from create_app's own precompilation regardless, so if this is the cause, turning
+# it off here costs the app nothing.
+sed -i.bak2 's/@setup_workload begin/if false  # workload disabled for the conda build/' src/Enumlib.jl
+grep -q 'if false  # workload disabled' src/Enumlib.jl || {
+  echo "ERROR: could not disable the precompile workload" >&2
+  sed -n '470,480p' src/Enumlib.jl >&2
+  exit 1
+}
+echo "disabled the PrecompileTools workload for this build"
 grep -q 'incremental = true,' build/build_app.jl || {
   echo "ERROR: could not switch build_app.jl to incremental = true" >&2
   grep -n 'incremental' build/build_app.jl >&2
