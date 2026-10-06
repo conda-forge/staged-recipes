@@ -185,7 +185,53 @@ grep -q 'incremental = true,' build/build_app.jl || {
 }
 echo "patched build_app.jl -> incremental = true; JULIA_CPU_THREADS=${JULIA_CPU_THREADS}"
 
+# build_app.jl runs its own --version smoke test immediately after create_app, and
+# that test runs before we get control back to fix the application's library paths.
+# Give it $PREFIX/lib for the duration so it can complete; the application is then
+# linked properly below and re-verified with these variables cleared, so nothing
+# here is load-bearing for the installed package.
+export LD_LIBRARY_PATH="${PREFIX}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib${DYLD_FALLBACK_LIBRARY_PATH:+:${DYLD_FALLBACK_LIBRARY_PATH}}"
+
 "${JULIA}" --project=build build/build_app.jl "${APPDIR}"
+
+# --- Link the conda libraries the application needs but did not bundle ----------
+# create_app copies lib/julia into the app and gives it RPATHs into its own tree.
+# conda-forge's julia also links libraries straight out of $PREFIX/lib through its
+# own RPATH -- libutf8proc.so.3 was the first to surface -- and those are invisible
+# to the app. Link each one in, relative so it never leaves $PREFIX, and keep going
+# until the binary starts rather than discovering them one CI round at a time.
+link_missing_libs() {
+  exe="$1"; tries=0
+  while [ "${tries}" -lt 40 ]; do
+    if err=$(env -u LD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH "${exe}" --version 2>&1); then
+      echo "  ${exe##*/} starts standalone: ${err}"
+      return 0
+    fi
+    name=$(printf '%s' "${err}" | grep -oE 'lib[A-Za-z0-9_.+-]*\.(so|dylib)[0-9.]*' | head -1)
+    if [ -z "${name}" ]; then
+      echo "  ${exe##*/} failed for a reason that is not a missing library:" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    if [ -e "${PREFIX}/lib/${name}" ]; then
+      ln -sf "../../../lib/${name}" "${APPDIR}/lib/${name}"
+      echo "  linked ${name} from \$PREFIX/lib"
+    else
+      echo "  ${name} is needed but absent from \$PREFIX/lib -- a run dependency is missing" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    tries=$((tries + 1))
+  done
+  echo "  gave up after ${tries} libraries for ${exe}" >&2
+  return 1
+}
+
+for exe in enum polya makestr; do
+  link_missing_libs "${APPDIR}/bin/${exe}" || exit 1
+done
+
 
 # Point the application's copied libraries back at conda's, and put the host env
 # back the way conda-forge's julia package had it.
