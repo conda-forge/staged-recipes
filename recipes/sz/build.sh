@@ -13,8 +13,8 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
     -DSZ3_USE_BUNDLED_ZSTD=OFF \
     -DH5Z_SZ3_PLUGIN_INSTALL_DIR=lib/hdf5/plugin
 
-# SZ3 falls back to its bundled Zstd when pkg-config finds none; conda-forge's must be used.
-grep -q '^ZSTD_FOUND:INTERNAL=1$' build/CMakeCache.txt
+# SZ3 falls back to its bundled Zstd when find_library finds none; conda-forge's must be used.
+grep -q "^SZ3_ZSTD_LIBRARY:FILEPATH=$PREFIX/lib/libzstd" build/CMakeCache.txt
 
 cmake --build build --parallel "${CPU_COUNT}"
 cmake --install build
