@@ -1,0 +1,54 @@
+From 296de4a330d7311451d54ff3f78e2833f3db332e Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 18 Sep 2026 07:14:46 +0200
+Subject: [PATCH 12/12] COMMON: Allow building against a system backward-cpp
+
+StacktraceHere.cc reaches into the submodule with a path-qualified
+include, unlike quarkdb/src/utils/Stacktrace.hh which already uses the
+installed form <backward.hpp>.
+
+USE_SYSTEM_BACKWARD_CPP switches to that form. Only the include directory
+is taken from the system copy, not backward-cpp's imported target, so the
+BACKWARD_HAS_* selection made just above stays in charge of which
+resolver is compiled in. The default is unchanged.
+---
+ common/CMakeLists.txt    | 8 ++++++++
+ common/StacktraceHere.cc | 4 ++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/common/CMakeLists.txt b/common/CMakeLists.txt
+index 24c2aaf12..94230840a 100644
+--- a/common/CMakeLists.txt
++++ b/common/CMakeLists.txt
+@@ -21,6 +21,14 @@
+ # * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
+ # ************************************************************************
+ 
++option(USE_SYSTEM_BACKWARD_CPP "Use backward-cpp installed in the system if found" OFF)
++
++if(USE_SYSTEM_BACKWARD_CPP)
++  find_path(BACKWARD_CPP_INCLUDE_DIR NAMES backward.hpp REQUIRED)
++  include_directories(${BACKWARD_CPP_INCLUDE_DIR})
++  add_compile_definitions(EOS_USE_SYSTEM_BACKWARD_CPP=1)
++endif()
++
+ option(USE_SYSTEM_JWT_CPP "Use jwt-cpp installed in the system if found" OFF)
+ 
+ if(USE_SYSTEM_JWT_CPP)
+diff --git a/common/StacktraceHere.cc b/common/StacktraceHere.cc
+index 3119f4417..84e53dc68 100644
+--- a/common/StacktraceHere.cc
++++ b/common/StacktraceHere.cc
+@@ -35,8 +35,12 @@
+ #if !defined(bfd_get_section_vma)
+ #define bfd_get_section_vma(ptr, section) bfd_section_vma(section)
+ #endif /* !defined(bfd_get_section_size) */
++#ifdef EOS_USE_SYSTEM_BACKWARD_CPP
++#include <backward.hpp>
++#else
+ #include "common/backward-cpp/backward.hpp"
+ #endif
++#endif
+ 
+ EOSCOMMONNAMESPACE_BEGIN
+ 

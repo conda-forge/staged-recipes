@@ -1,0 +1,50 @@
+From dd1a124e957a5bca99d20e384b0e0be21fc083eb Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Wed, 16 Sep 2026 09:58:27 +0200
+Subject: [PATCH 7/9] FST: Fix the NFS IO backend build on macOS
+
+NfsIo.cc is compiled whenever Findnfs.cmake defines HAVE_NFS. That never
+happens on the Homebrew macOS build, so the file has not been compiled
+there and two Linux-only constructs went unnoticed:
+
+  NfsIo.cc:125:17: error: use of undeclared identifier 'O_DIRECT'
+  NfsIo.cc:991:8:  error: no member named 'f_namelen' in 'statfs'
+
+O_DIRECT gets the same `#define O_DIRECT 0` shim already used in
+fst/storage/FileSystem.cc, fst/storage/Scrub.cc and fusex/eosxd/eosfuse.cc.
+
+f_namelen moves into the non-Apple branch of the statfs block just above
+it, which already switches between f_iosize and f_frsize; Darwin's
+struct statfs has no name-length field at all.
+---
+ fst/io/nfs/NfsIo.cc | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/fst/io/nfs/NfsIo.cc b/fst/io/nfs/NfsIo.cc
+index 4e5be7e56..b815e30c1 100644
+--- a/fst/io/nfs/NfsIo.cc
++++ b/fst/io/nfs/NfsIo.cc
+@@ -32,6 +32,10 @@
+ #include <unistd.h>
+ #include <errno.h>
+ 
++#ifdef __APPLE__
++#define O_DIRECT 0
++#endif
++
+ EOSFSTNAMESPACE_BEGIN
+ 
+ #define NFS_QUOTA_FILE ".nfs.quota"
+@@ -984,11 +988,11 @@ int NfsIo::Statfs(struct statfs* sfs)
+   sfs->f_bsize = sfs->f_frsize;
+   sfs->f_blocks = (fsblkcnt_t)(vfs.f_blocks);
+   sfs->f_bavail = (fsblkcnt_t)(vfs.f_bavail);
++  sfs->f_namelen = vfs.f_namemax;
+ #endif
+   sfs->f_bfree = (fsblkcnt_t)(vfs.f_bfree);
+   sfs->f_files = (fsfilcnt_t)(vfs.f_files);
+   sfs->f_ffree = (fsfilcnt_t)(vfs.f_ffree);
+-  sfs->f_namelen = vfs.f_namemax;
+   unsigned long long total_bytes = vfs.f_blocks * vfs.f_bsize;
+   unsigned long long free_bytes = vfs.f_bavail * vfs.f_bsize;
+   unsigned long long total_files = vfs.f_files;
