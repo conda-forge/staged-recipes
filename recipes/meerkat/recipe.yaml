@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  version: "0.4.0"
+
+package:
+  name: meerkat
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/meerkat/meerkat-${{ version }}.tar.gz
+  sha256: 4a311a3ac91528056aa3a95032c658dcdd48179476a555c569a0ea2108616f06
+
+build:
+  # Pure python, so one noarch package serves every platform and python version.
+  # This is only true because the Qt and OpenGL dependencies are optional: a
+  # recipe that required pyqt would have to be built per platform.
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - meerkat = meerkat.cli.main:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=64
+    - wheel
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.22
+    - h5py >=3.0
+    - fabio >=0.11
+
+tests:
+  - python:
+      imports:
+        # meerkat.xds must import with numpy alone; if a stray fabio import
+        # creeps back in, this is where it gets noticed. meerkat.viewer must
+        # import without pyqt, which is deliberately not a dependency here.
+        - meerkat
+        - meerkat.xds
+        - meerkat.viewer
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - script:
+      - meerkat --help
+      - meerkat --version
+      # The viewer's widget tests skip without pyqt, which is deliberately not a
+      # test dependency: adding it would make this recipe need a display.
+      - pytest -q tests
+    requirements:
+      run:
+        - pytest >=7
+        - scipy >=1.7
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://github.com/aglie/meerkat
+  summary: Reciprocal space reconstruction from single crystal x-ray measurements
+  description: |
+    meerkat reconstructs reciprocal space from single crystal x-ray diffraction
+    frames, using the orientation matrix determined by XDS. It writes hdf5 in
+    Yell format, records the provenance of every reconstruction, and ships tools
+    for refining the experimental geometry, re-indexing a cell, converting a
+    DIALS experiment to XDS format, and viewing the measured spots in reciprocal
+    space.
+
+    The GUI viewer needs pyqt and pyopengl, which this package does not depend
+    on; install them alongside it to use `meerkat view`.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/aglie/meerkat
+  documentation: https://github.com/aglie/meerkat#readme
+
+extra:
+  recipe-maintainers:
+    - aglie
