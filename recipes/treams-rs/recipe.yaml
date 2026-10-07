@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  version: "0.2.0"
+
+package:
+  name: treams-rs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/treams-rs/treams_rs-${{ version }}.tar.gz
+  sha256: aa30649631984c18b6e241a7314b8ab816b7126c0d5bac3d79478d593f2d65ee
+
+build:
+  number: 0
+  skip:
+    - match(python, '<3.12')
+    - match(python, '>=3.16')
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.12,<2
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.12,<2
+  run:
+    - python
+    - numpy >=2.1,<2.6
+
+tests:
+  - python:
+      imports:
+        - treams_rs
+        - treams_rs._native
+      pip_check: true
+  - script:
+      - >-
+        python -c "import numpy as np; import treams_rs as tr;
+        sphere = tr.sphere_tmatrix(k0=1.3, lmax=2, radius=0.2, material=3);
+        incident = tr.plane_wave([0, 0, 1], 'positive_helicity', k0=1.3);
+        xs = sphere.cross_sections(incident); assert xs.scattering > 0;
+        np.testing.assert_allclose(xs.scattering, xs.extinction, rtol=1e-10)"
+  # Advect's conda-forge builds currently cover x86-64 only.
+  - if: x86_64
+    then:
+      requirements:
+        run:
+          - advect >=0.3.1,<0.4
+      script:
+        - >-
+          python -c "import numpy as np; from advect import grad; import treams_rs as tr;
+          incident = tr.plane_wave([0, 0, 1], 'positive_helicity', k0=1.3);
+          f = lambda r: tr.sphere_tmatrix(k0=1.3, lmax=2, radius=r, material=3).cross_sections(incident).scattering;
+          r = 0.2; h = 1e-5;
+          np.testing.assert_allclose(grad(f)(r), (f(r + h) - f(r - h)) / (2 * h), rtol=1e-7)"
+
+about:
+  homepage: https://yaugenst.github.io/treams-rs/latest/
+  repository: https://github.com/yaugenst/treams-rs
+  documentation: https://yaugenst.github.io/treams-rs/latest/
+  summary: A Rust port of treams with a Python interface and analytic gradients
+  license: MIT
+  license_file:
+    - LICENSE
+    - LICENSE.treams
+    - THIRD_PARTY_NOTICES.md
+    - THIRD_PARTY_LICENSES.txt
+    - RUST_STDLIB_COPYRIGHT.html
+    - RUST_STDLIB_LICENSE_MIT.txt
+    - RUST_STDLIB_LICENSE_UNICODE_3_0.txt
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - yaugenst
