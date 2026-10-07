@@ -132,58 +132,30 @@ fi
 echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for the build"
 
 "${JULIA}" --project=build -e 'using Pkg; Pkg.instantiate()'
-# --- Testing @mkitti's two suggestions for the sysimage segfault ----------------
-# staged-recipes#34550: the object-file step died with ProcessSignaled(11) roughly
-# 23 minutes in. Both suggestions reduce peak memory during codegen, which fits the
-# builder-ceiling theory:
+# --- Precompile workload, and why this build does not run it -------------------
+# The sysimage step used to segfault here. With mkitti's incremental = true the
+# crash arrived in 45 s instead of 23 min and Julia named the expression:
+# src/Enumlib.jl:475, this package's PrecompileTools @setup_workload. It runs a
+# small enumeration at precompile time so a cold call in a REPL does not pay ~19 s
+# of JIT; an application gets its native code from create_app regardless, so the
+# packaged result loses nothing by skipping it.
 #
-#   incremental = true   build on top of conda julia's existing sysimage rather
-#                        than compiling a fresh base one
-#   JULIA_CPU_THREADS=1  hold codegen to a single thread
-#
-# v0.4.0's build_app.jl hardcodes `incremental = false` and exposes no option for
-# it, so the source is patched here rather than waiting on a release. (An earlier
-# round of this recipe set an environment variable that create_app ignores and
-# spent two CI cycles learning nothing; hence the explicit grep below, which fails
-# the build if the substitution does not take.) If this is the fix, it becomes a
-# proper keyword upstream rather than a sed.
-#
-# incremental = true requires filter_stdlibs = false, which build_app.jl already
-# passes, so the two are compatible.
-export JULIA_CPU_THREADS=1
-sed -i.bak 's/incremental = false,/incremental = true,/' build/build_app.jl
+# PrecompileTools supports this directly -- `const enabled =
+# @load_preference("precompile_workloads", true)` -- so set the preference rather
+# than patching the source. create_app precompiles with --project=$SRC_DIR, which
+# is where this file is read from.
+cat > "${SRC_DIR}/LocalPreferences.toml" <<'PREFS'
+[PrecompileTools]
+precompile_workloads = false
+PREFS
+echo "disabled PrecompileTools workloads via LocalPreferences.toml"
 
-# The incremental build got much further much faster (45 s rather than 23 min, and
-# on conda julia's own sysimage), but still segfaulted -- and this time Julia named
-# the expression:
-#
-#   [1118] signal 11 (1): Segmentation fault
-#   in expression starting at $SRC_DIR/src/Enumlib.jl:475
-#   Allocations: 53855876 (Pool: 53854865; Big: 1011); GC: 22
-#
-# Line 475 is this package's PrecompileTools @setup_workload: real enumeration code
-# (enumerate_structures, to_poscar, a ConcentrationRange run) executed at
-# sysimage-build time. 54M allocations and 22 GCs is not a memory ceiling, so the
-# crash looks like running *our* workload under conda-forge's julia rather than
-# anything about codegen scale.
-#
-# Disable the workload for this build to confirm. It exists to avoid ~19 s of JIT
-# on a cold `enumerate_structures` in a REPL; an application gets its native code
-# from create_app's own precompilation regardless, so if this is the cause, turning
-# it off here costs the app nothing.
-sed -i.bak2 's/@setup_workload begin/if false  # workload disabled for the conda build/' src/Enumlib.jl
-grep -q 'if false  # workload disabled' src/Enumlib.jl || {
-  echo "ERROR: could not disable the precompile workload" >&2
-  sed -n '470,480p' src/Enumlib.jl >&2
-  exit 1
-}
-echo "disabled the PrecompileTools workload for this build"
-grep -q 'incremental = true,' build/build_app.jl || {
-  echo "ERROR: could not switch build_app.jl to incremental = true" >&2
-  grep -n 'incremental' build/build_app.jl >&2
-  exit 1
-}
-echo "patched build_app.jl -> incremental = true; JULIA_CPU_THREADS=${JULIA_CPU_THREADS}"
+# incremental is deliberately left at build_app.jl's default (false). It was
+# needed to make the segfault visible; with the workload off, a fresh base
+# sysimage should build, and that is what the GitHub release binaries use. If
+# this round fails on memory or time, incremental = true is the knob to add
+# upstream and set here.
+export JULIA_CPU_THREADS=1
 
 # build_app.jl runs its own --version smoke test immediately after create_app, and
 # that test runs before we get control back to fix the application's library paths.
