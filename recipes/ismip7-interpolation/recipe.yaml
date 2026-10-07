@@ -1,0 +1,82 @@
+schema_version: 1
+
+context:
+  name: ismip7-interpolation
+  version: "0.1.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ismip/ismip7-interpolation/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 4b76e2082f780989cdc215d3d820ecfc63df1b5f7e6c77fc3a68e2476135741e
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - ismip7-interpolate = ismip7_interp.interpolate:main
+      - ismip7-process-experiment = ismip7_interp.experiment:main
+      - ismip7-run-all = ismip7_interp.run_all:main
+      - ismip7-inventory = ismip7_interp.inventory:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=77
+    - pip
+  run:
+    - python >=${{ python_min }},<3.15
+    # CDO does all of the remapping; it is called as an executable
+    - cdo >=2.2
+    - netcdf4 >=1.7,<2
+    - isschecker >=0.2,<1
+
+tests:
+  - python:
+      imports:
+        - ismip7_interp
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - ismip7-interpolate --help
+      - ismip7-process-experiment --help
+      - ismip7-run-all --help
+      - ismip7-inventory --help
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest >=8
+    script:
+      - pytest tests
+
+about:
+  license: MIT
+  license_file: LICENSE
+  summary: Regrid ISMIP7 ice sheet model output onto the standard ISMIP7 grids
+  description: |
+    ismip7-interpolation regrids ISMIP7 ice sheet model output, for Greenland
+    (GrIS) and Antarctica (AIS), onto the standard ISMIP7 grids so that models
+    on different native grids can be compared.  CDO does the remapping; this
+    package decides what to remap, how, and where to put it.  It works on an
+    archive laid out as an ISMIP7 submission, and can process a single file,
+    an experiment or a whole archive, as well as take an inventory of what an
+    archive holds.
+  homepage: https://github.com/ismip/ismip7-interpolation
+  repository: https://github.com/ismip/ismip7-interpolation
+  documentation: https://ismip.github.io/ismip7-interpolation/
+
+extra:
+  recipe-maintainers:
+    - xylar
