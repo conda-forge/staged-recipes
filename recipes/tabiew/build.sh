@@ -1,9 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -ex
-
-# Build the Rust binary with cargo
-cargo install --locked --root "${PREFIX}" --path .
-
-# Verify the binary was installed
-ls -la "${PREFIX}/bin/tw"
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+cargo install --locked --no-track --root "${PREFIX}" --path .
