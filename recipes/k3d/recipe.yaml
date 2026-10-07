@@ -6,26 +6,8 @@ package:
   version: ${{ version }}
 
 source:
-  - if: target_platform == "linux-64"
-    then:
-      - url: https://github.com/k3d-io/k3d/releases/download/v${{ version }}/k3d-linux-amd64
-        sha256: 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0
-  - if: target_platform == "linux-aarch64"
-    then:
-      - url: https://github.com/k3d-io/k3d/releases/download/v${{ version }}/k3d-linux-arm64
-        sha256: 03cde5cf23e6e8e67de5a039ecf26e5b85aca82fba3e5d13dadf904cd218a250
-  - if: target_platform == "osx-64"
-    then:
-      - url: https://github.com/k3d-io/k3d/releases/download/v${{ version }}/k3d-darwin-amd64
-        sha256: fd0f8e9e8ea4d8bc3674572ca6ed0833b639bf57c43c708616d937377324cfea
-  - if: target_platform == "osx-arm64"
-    then:
-      - url: https://github.com/k3d-io/k3d/releases/download/v${{ version }}/k3d-darwin-arm64
-        sha256: 8da468daa7dc7cf7cdd4735f90a9bb05179fa27858250f62e3d8cdf5b5ca0698
-  - if: target_platform == "win-64"
-    then:
-      - url: https://github.com/k3d-io/k3d/releases/download/v${{ version }}/k3d-windows-amd64.exe
-        sha256: 49d0b9c796f5b8ba6f58a1dd5469e8b7b34bf9b6ce9078633eedb2789680a034
+  url: https://github.com/k3d-io/k3d/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 969cce82c4871bb829be798655abe2b6709b77cc0f42f7ff69293c621dfbbab0
 
 build:
   number: 0
@@ -33,13 +15,19 @@ build:
     - if: win
       then: |
         if not exist "%PREFIX%\\bin" mkdir "%PREFIX%\\bin"
-        copy /y k3d-windows-amd64.exe "%PREFIX%\\bin\\k3d.exe"
+        set CGO_ENABLED=0
+        go build -p 2 -mod=vendor -trimpath -ldflags "-s -w -X github.com/k3d-io/k3d/v5/version.Version=v${PKG_VERSION}" -o "%PREFIX%\\bin\\k3d.exe" .
         if errorlevel 1 exit 1
     - if: not win
       then: |
         set -euxo pipefail
         mkdir -p "${PREFIX}/bin"
-        install -m 0755 k3d-* "${PREFIX}/bin/k3d"
+        export CGO_ENABLED=0
+        go build -p 2 -mod=vendor -trimpath -ldflags "-s -w -X github.com/k3d-io/k3d/v5/version.Version=v${PKG_VERSION}" -o "${PREFIX}/bin/k3d" .
+
+requirements:
+  build:
+    - go >=1.26.3
 
 tests:
   - script:
