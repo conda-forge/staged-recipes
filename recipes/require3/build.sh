@@ -31,9 +31,6 @@ export E3_REQUIRE_DB="${E3_REQUIRE_LOCATION}/db"
 export E3_REQUIRE_DBD="${E3_REQUIRE_LOCATION}/dbd"
 export E3_REQUIRE_CONFIG="${E3_REQUIRE_LOCATION}/cfg"
 export REQUIRE_MODULE_PATH="${EPICS_MODULES}"
-
-# Add iocsh autocompletion for require3
-source "${PREFIX}/bin/iocsh_complete.bash"
 EOF
 
 mkdir -p "${PREFIX}/etc/conda/deactivate.d"
