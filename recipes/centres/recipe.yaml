@@ -45,6 +45,10 @@ build:
   script:
     interpreter: python
     file: build.py
+  variant:
+    # python only runs build.py; the package is the same for every python
+    ignore_keys:
+      - python
 
 requirements:
   build:
@@ -63,15 +67,29 @@ tests:
         - openjdk ${{ openjdk_min }}.*
     script:
       # centres prints its usage line and exits with 0 when no input file is given
-      - 'centres --help 2>&1 | grep "Usage: label"'
-      - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
-      - echo "C[C@H](N)C(=O)O L-alanine" > alanine.smi
-      - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
-      - test "$(centres alanine.smi)" = "$(printf '2S\tL-alanine')"
+      - if: unix
+        then:
+          - 'centres --help 2>&1 | grep "Usage: label"'
+          - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
+          - echo "C[C@H](N)C(=O)O L-alanine" > alanine.smi
+          - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
+          - test "$(centres alanine.smi)" = "$(printf '2S\tL-alanine')"
+      - if: win
+        then:
+          - 'centres --help 2>&1 | findstr /c:"Usage: label"'
+          - echo C[C@@H](O)CC butan-2-ol> butanol.smi
+          - centres butanol.smi | findstr /r /c:"^2R.butan-2-ol$"
   - script:
-      - 'centres --help 2>&1 | grep "Usage: label"'
-      - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
-      - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
+      - if: unix
+        then:
+          - 'centres --help 2>&1 | grep "Usage: label"'
+          - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
+          - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
+      - if: win
+        then:
+          - 'centres --help 2>&1 | findstr /c:"Usage: label"'
+          - echo C[C@@H](O)CC butan-2-ol> butanol.smi
+          - centres butanol.smi | findstr /r /c:"^2R.butan-2-ol$"
 
 about:
   summary: Cahn-Ingold-Prelog (CIP) stereo labels (R/S, E/Z) for chemical structures
