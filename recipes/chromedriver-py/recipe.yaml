@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  version: "154.0.8037.57"
+
+package:
+  name: chromedriver-py
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/c/chromedriver-py/chromedriver_py-${{ version }}.tar.gz
+    sha256: e5fb7af85ba78f657683fe1988b4c1882635891d9133eb4925e52bae4b24e6c1
+  - if: target_platform == "linux-64"
+    then:
+      url: https://storage.googleapis.com/chrome-for-testing-public/${{ version }}/linux64/chromedriver-linux64.zip
+      sha256: 48edfc7f6e02ed85c45357110f18a54a82d8993b908cc9bfff9517b12abc96d9
+      target_directory: chromedriver-dist
+  - if: target_platform == "osx-64"
+    then:
+      url: https://storage.googleapis.com/chrome-for-testing-public/${{ version }}/mac-x64/chromedriver-mac-x64.zip
+      sha256: ca6b0310539f7c053f4a00e193265cfacf4388e5ebe6788af8931498688e215e
+      target_directory: chromedriver-dist
+  - if: target_platform == "osx-arm64"
+    then:
+      url: https://storage.googleapis.com/chrome-for-testing-public/${{ version }}/mac-arm64/chromedriver-mac-arm64.zip
+      sha256: 97a96253f407512086744a953a3def997461fc7c37882b4f9cca297bab5f644e
+      target_directory: chromedriver-dist
+  - if: target_platform == "win-64"
+    then:
+      url: https://storage.googleapis.com/chrome-for-testing-public/${{ version }}/win64/chromedriver-win64.zip
+      sha256: 51bea6d1ef7ac5b79b3f96fc5235e77e99a1ce6e9d2181bc5aa057d931128468
+      target_directory: chromedriver-dist
+
+build:
+  number: 0
+  skip: not (linux and x86_64) and not osx and not (win and x86_64)
+  dynamic_linking:
+    binary_relocation: ${{ not osx }}
+  python:
+    version_independent: true
+  script:
+    - ${{ PYTHON }} ${{ RECIPE_DIR }}/prepare.py ${{ target_platform }}
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - chromedriver_py
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "import os, chromedriver_py; p = chromedriver_py.binary_path; assert os.path.isfile(p), p; assert os.access(p, os.X_OK), p; assert b'${{ version }}' in open(p, 'rb').read(), p"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/breuerfelix/chromedriver-py
+  repository: https://github.com/breuerfelix/chromedriver-py
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE.chromedriver
+    - THIRD_PARTY_NOTICES.chromedriver
+  summary: ChromeDriver binary for automated testing of web apps
+  description: |
+    chromedriver-py ships the ChromeDriver executable and exposes its
+    location as chromedriver_py.binary_path, so Selenium and other WebDriver
+    clients can find it without a separate download step or a PATH entry.
+    The driver version tracks the Chrome release it was built for.
+
+extra:
+  recipe-maintainers:
+    - killua156
