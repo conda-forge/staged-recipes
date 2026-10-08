@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  name: centres
+  version: "1.2.1"
+  openjdk_min: "8"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # The release jar is used as is. It bundles centres and the libraries it uses.
+  - url: https://github.com/SiMolecule/centres/releases/download/${{ version }}/centres.jar
+    sha256: 6c5d5cafa9393ed7b667a2340222348cd15a9bbdd0d1b92518229f26cc5e87fb
+    file_name: centres.jar
+  # Licence texts of the jar's contents. The jar itself holds none.
+  - url: https://raw.githubusercontent.com/SiMolecule/centres/${{ version }}/LICENSE
+    sha256: 4274d6b41d143abf6afd669ba07cd1b082c60b2c827bb4381aae9ace0d2518dd
+    file_name: LICENSE
+    target_directory: licenses/centres
+  # Chemistry Development Kit (CDK) 2.9
+  - url: https://raw.githubusercontent.com/cdk/cdk/cdk-2.9/LICENSE.txt
+    sha256: ff7c97939bbe385b950aab505ca9378ffa717f23e9c3753a825430b661c36ff6
+    file_name: LICENSE.txt
+    target_directory: licenses/cdk
+  # Beam SMILES library 1.3.5
+  - url: https://raw.githubusercontent.com/johnmay/beam/1.3.5/LICENSE
+    sha256: f43752d9c6b07fc521322eb7bd0c345a4288aced2d4bad63ca7f45a6fe9d3f92
+    file_name: LICENSE
+    target_directory: licenses/beam
+  # vecmath 1.5.2 (svn tag rel-1_5_2-fcs); this commit sets the licence of the 1.5.x sources
+  - url: https://raw.githubusercontent.com/hharrison/vecmath/c5d3057b2e46b8dd9d53f8ee5f628353f5af91c4/LICENSE.txt
+    sha256: e138710ed19cee8839bcdb478fc5e383e37a80e45d2cad922d1a6438082392dd
+    file_name: LICENSE.txt
+    target_directory: licenses/vecmath
+  - url: https://raw.githubusercontent.com/hharrison/vecmath/c5d3057b2e46b8dd9d53f8ee5f628353f5af91c4/COPYRIGHT.txt
+    sha256: 059de385c12a219acede0589023248eea4fefc56f205f739f0792c6d6d8912c9
+    file_name: COPYRIGHT.txt
+    target_directory: licenses/vecmath
+
+build:
+  number: 0
+  noarch: generic
+
+requirements:
+  run:
+    - openjdk >=${{ openjdk_min }}
+
+tests:
+  - package_contents:
+      files:
+        - share/centres/centres.jar
+        - bin/centres
+        - bin/centres.bat
+  - requirements:
+      run:
+        - openjdk ${{ openjdk_min }}.*
+    script:
+      # centres prints its usage line and exits with 0 when no input file is given
+      - 'centres --help 2>&1 | grep "Usage: label"'
+      - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
+      - echo "C[C@H](N)C(=O)O L-alanine" > alanine.smi
+      - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
+      - test "$(centres alanine.smi)" = "$(printf '2S\tL-alanine')"
+  - script:
+      - 'centres --help 2>&1 | grep "Usage: label"'
+      - echo "C[C@@H](O)CC butan-2-ol" > butanol.smi
+      - test "$(centres butanol.smi)" = "$(printf '2R\tbutan-2-ol')"
+
+about:
+  summary: Cahn-Ingold-Prelog (CIP) stereo labels (R/S, E/Z) for chemical structures
+  description: |
+    centres perceives stereogenic centres in chemical structures and labels
+    them with the Cahn-Ingold-Prelog priority rules (R/S, r/s, E/Z, M/P).
+    This package ships the official centres jar (built on the Chemistry
+    Development Kit, CDK) and a `centres` command that labels the molecules
+    in an SD file or a SMILES file (.smi). The jar is installed at
+    `$PREFIX/share/centres/centres.jar`, a path that does not change between
+    versions, so other programs can load it. Java options can be passed with
+    the `JAVA_OPTS` environment variable.
+  license: BSD-2-Clause AND LGPL-2.1-or-later AND BSD-2-Clause-Views AND GPL-2.0-only WITH Classpath-exception-2.0
+  license_file:
+    - licenses/
+  homepage: https://github.com/SiMolecule/centres
+  repository: https://github.com/SiMolecule/centres
+  documentation: https://github.com/SiMolecule/centres/blob/develop/README.md
+
+extra:
+  recipe-maintainers:
+    - Kohulan
