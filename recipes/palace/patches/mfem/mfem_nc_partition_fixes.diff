@@ -1,0 +1,191 @@
+MFEM 4.9 source backport of mfem/mfem#5494:
+  10b0b596dbc26dca384b9f25f23026b1a6403592..399d72c2b7607e25d196dc19fd70b8840eaf1cc8
+
+The upstream regression tests are kept in the MFEM pull request. The only
+source adaptation for MFEM 4.9 is spelling FlipIndexSign(index) as -1-index,
+since the helper was introduced after that release.
+
+diff --git a/fem/pfespace.cpp b/fem/pfespace.cpp
+index 225104d..6b23e49 100644
+--- a/fem/pfespace.cpp
++++ b/fem/pfespace.cpp
+@@ -4106,6 +4106,7 @@ int ParFiniteElementSpace
+                constexpr int variant = 0;
+                const int q = GetEntityDofs(entity, sf.index, slave_dofs, mf.Geom(), variant);
+                if (q < 0) { break; }
++               if (slave_dofs.Size() == 0) { continue; }
+ 
+                list.OrientedPointMatrix(sf, T.GetPointMat());
+ 
+diff --git a/mesh/ncmesh.cpp b/mesh/ncmesh.cpp
+index d4f482e..badd02b 100644
+--- a/mesh/ncmesh.cpp
++++ b/mesh/ncmesh.cpp
+@@ -3658,19 +3658,24 @@ NCMesh::TriFaceTraverseResults NCMesh::TraverseTriFace(int vn0, int vn1,
+                              PointMatrix(pmid1, pmid2, pmid0),
+                              level+1, matrix_map);
+ 
+-      // Traverse possible tet edges constrained by the master face. This needs
+-      // to occur if none of these first NC level faces are split further, OR if
+-      // they are on different processors. The different processor constraint is
+-      // needed in the case of local elements constrained by this face via the
+-      // edge alone. Cannot know this a priori, so just constrain any edge
+-      // attached to two neighbors.
+-      if (HaveTets() && (!b[3].unsplit || b[3].ghost_neighbor))
+-      {
+-         // If the faces have no further splits, so would not be captured by
+-         // normal face relations, add possible edge constraints.
+-         if (!b[1].unsplit || b[1].ghost_neighbor) { TraverseTetEdge(mid[0],mid[1], pmid0,pmid1, matrix_map); }
+-         if (!b[2].unsplit || b[2].ghost_neighbor) { TraverseTetEdge(mid[1],mid[2], pmid1,pmid2, matrix_map); }
+-         if (!b[0].unsplit || b[0].ghost_neighbor) { TraverseTetEdge(mid[2],mid[0], pmid2,pmid0, matrix_map); }
++      // An interior edge may be owned by a rank with no local slave face.
++      // Record the edge-face relation so that rank receives the master face's
++      // P rows, including its edge and vertex rows.
++      const bool all_edges = IsParallel();
++      if (HaveTets() && (all_edges || !b[3].unsplit || b[3].ghost_neighbor))
++      {
++         if (all_edges || !b[1].unsplit || b[1].ghost_neighbor)
++         {
++            TraverseTetEdge(mid[0],mid[1], pmid0,pmid1, matrix_map);
++         }
++         if (all_edges || !b[2].unsplit || b[2].ghost_neighbor)
++         {
++            TraverseTetEdge(mid[1],mid[2], pmid1,pmid2, matrix_map);
++         }
++         if (all_edges || !b[0].unsplit || b[0].ghost_neighbor)
++         {
++            TraverseTetEdge(mid[2],mid[0], pmid2,pmid0, matrix_map);
++         }
+       }
+    }
+    return {false, false};
+diff --git a/mesh/pncmesh.cpp b/mesh/pncmesh.cpp
+index 45433ee..461bc75 100644
+--- a/mesh/pncmesh.cpp
++++ b/mesh/pncmesh.cpp
+@@ -18,6 +18,7 @@
+ #include "../general/binaryio.hpp"
+ #include "../general/communication.hpp"
+ 
++#include <algorithm>
+ #include <numeric> // std::accumulate
+ #include <map>
+ #include <climits> // INT_MIN, INT_MAX
+@@ -341,6 +342,9 @@ void ParNCMesh::BuildVertexList()
+    // This is an extension of NCMesh::BuildVertexList() which also determines
+    // vertex ownership and creates vertex processor groups.
+ 
++   GetEdgeList();
++   if (Dim >= 3) { GetFaceList(); }
++
+    int nvertices = NVertices + NGhostVertices;
+ 
+    tmp_owner.SetSize(nvertices);
+@@ -357,6 +361,78 @@ void ParNCMesh::BuildVertexList()
+ 
+    NCMesh::BuildVertexList();
+ 
++   // The owner needs a local slave to build the vertex constraint.
++   // Vertex-neighbor ghosts give all sharing ranks the same candidates.
++   Array<int> hanging_owner(nvertices);
++   hanging_owner = INT_MAX;
++
++   auto owner_rank = [&](int entity, int index, int nlocal)
++   {
++      // For a ghost, group 0 means unknown owner, not self.
++      if (index < 0 || index >= entity_owner[entity].Size() ||
++          (index >= nlocal && entity_owner[entity][index] == 0))
++      {
++         return INT_MAX;
++      }
++      return groups[entity_owner[entity][index]][0];
++   };
++   auto update_owner = [&](int vertex, int owner, const int *master, int nmaster)
++   {
++      if (vertex >= 0 && vertex < nvertices && owner != INT_MAX &&
++          std::find(master, master + nmaster, vertex) == master + nmaster)
++      {
++         hanging_owner[vertex] = std::min(hanging_owner[vertex], owner);
++      }
++   };
++
++   int mv[4], me[4], mo[4], sv[4];
++   for (const auto &master : edge_list.masters)
++   {
++      GetEdgeVertices(master, mv);
++      for (int i = master.slaves_begin; i < master.slaves_end; i++)
++      {
++         const Slave &slave = edge_list.slaves[i];
++         const int owner = owner_rank(1, slave.index, NEdges);
++         if (owner == INT_MAX) { continue; }
++         MFEM_ASSERT(slave.element >= 0, "observed slave edge has no element");
++         GetEdgeVertices(slave, sv);
++         update_owner(sv[0], owner, mv, 2);
++         update_owner(sv[1], owner, mv, 2);
++      }
++   }
++   for (const auto &master : face_list.masters)
++   {
++      const int nmv = GetFaceVerticesEdges(master, mv, me, mo);
++      for (int i = master.slaves_begin; i < master.slaves_end; i++)
++      {
++         const Slave &slave = face_list.slaves[i];
++         if (slave.index >= 0)
++         {
++            if (slave.element < 0 || elements[slave.element].rank < 0) { continue; }
++            const int owner = owner_rank(2, slave.index, NFaces);
++            const int nsv = GetFaceVerticesEdges(slave, sv, me, mo);
++            for (int j = 0; j < nsv; j++)
++            {
++               update_owner(sv[j], owner, mv, nmv);
++            }
++         }
++         else
++         {
++            const int edge = -1-slave.index;
++            const int owner = owner_rank(1, edge, NEdges);
++            if (owner == INT_MAX) { continue; }
++            MFEM_ASSERT(slave.element >= 0, "observed edge-face slave has no element");
++            GetEdgeVertices(slave, sv);
++            update_owner(sv[0], owner, mv, nmv);
++            update_owner(sv[1], owner, mv, nmv);
++         }
++      }
++   }
++   for (int i = 0; i < nvertices; i++)
++   {
++      if (hanging_owner[i] != INT_MAX) { tmp_owner[i] = hanging_owner[i]; }
++   }
++
+    InitOwners(nvertices, entity_owner[0]);
+    MakeSharedList(vertex_list, shared_vertices);
+ 
+@@ -398,9 +474,9 @@ void ParNCMesh::MakeSharedList(const NCList &list, NCList &shared)
+             master_flag |= slave_flag;
+             slave_flag |= master_old_flag;
+          }
+-         else // special case: prism edge-face constraint
++         else // special case: edge-face constraint
+          {
+-            if (entity_owner[1][-1-si] != MyRank)
++            if (entity_owner[1][-1-si] != 0)
+             {
+                master_flag |= 0x2;
+             }
+diff --git a/mesh/pncmesh.hpp b/mesh/pncmesh.hpp
+index d427780..333737c 100644
+--- a/mesh/pncmesh.hpp
++++ b/mesh/pncmesh.hpp
+@@ -46,9 +46,9 @@ namespace mfem
+  *  seen by the rest of MFEM as they are skipped when a Mesh is created from
+  *  the NCMesh.
+  *
+- *  The processor that owns a vertex, edge or a face (and in turn its DOFs) is
+- *  currently defined to be the one with the lowest rank in the group of
+- *  processors that share the entity.
++ *  Edges, faces, and non-hanging vertices use the lowest sharing rank as owner.
++ *  A hanging vertex uses the lowest-ranked owner of a constraining slave
++ *  edge or face containing it.
+  *
+  *  Vertices, edges and faces that are not owned by this ('MyRank') processor
+  *  are ghosts, and are numbered after all real vertices/edges/faces, i.e.,
