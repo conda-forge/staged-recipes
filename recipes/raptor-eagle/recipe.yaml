@@ -19,31 +19,34 @@ source:
     sha256: 97f80cd64f3bd383a045e5d372968e00be731932c4bfa7c6b2bbc40b0dcab76a
     target_directory: _sib/aether
 
-# One build serves every machine: eagle._core is plain C++, and the CUDA
-# backend (eagle/libeagle_cuda.so) links neither cudart nor libcuda. It finds
-# the NVIDIA driver at run time, so the same package runs on CPU-only
-# machines and under CUDA 12 or 13 drivers. It is built with CUDA 12.9, the
-# newest toolkit that still compiles for Pascal and Volta, with PTX for newer
-# GPUs.
+# eagle._core is plain C++, and the CUDA backend (eagle/libeagle_cuda.so)
+# links neither cudart nor libcuda: it finds the NVIDIA driver at run time, so
+# every build also runs on CPU-only machines. There is one build per CUDA
+# major (12.9 and 13.0), each compiled for every GPU architecture its nvcc
+# supports from sm_60 up (aether needs FP64 atomicAdd), plus PTX for newer
+# GPUs. cuda-version's run export picks the build matching the environment.
 build:
   number: 0
   skip:
     - not linux
-    - cuda_compiler_version != "12.9"
+    - cuda_compiler_version == "None"
   script:
     content:
       - export CMAKE_GENERATOR=Ninja
       - export SIB_PREFIX="$SRC_DIR/_sib/prefix"
-      - cmake -S "$SRC_DIR/_sib/aether" -B "$SRC_DIR/_sib/aether-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=61
+      - cmake -S "$SRC_DIR/_sib/aether" -B "$SRC_DIR/_sib/aether-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=75
       - cmake --install "$SRC_DIR/_sib/aether-build"
-      - cmake -S "$SRC_DIR" -B "$SRC_DIR/_sib/eagle-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_PREFIX_PATH="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=61
+      - cmake -S "$SRC_DIR" -B "$SRC_DIR/_sib/eagle-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_PREFIX_PATH="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=75
       - cmake --install "$SRC_DIR/_sib/eagle-build"
       - export CMAKE_PREFIX_PATH="$SIB_PREFIX:$PREFIX"
-      # eagle's own arch list (sm_61/70/80/90 plus PTX for newer GPUs), as on
-      # PyPI: aether needs FP64 atomicAdd, which sm_50/52 in CUDAARCHS lack
+      # every architecture this nvcc compiles from sm_60 up, plus PTX at the
+      # newest; CUDAARCHS would add sm_50/52, which lack FP64 atomicAdd
       - unset CUDAARCHS
+      - EAGLE_ARCHS=$(nvcc --list-gpu-arch | sed -n 's/^compute_\([0-9]*\)$/\1/p' | sort -n | awk '$1 >= 60' | sed 's/$/-real/' | paste -sd';')
+      - EAGLE_ARCHS="$EAGLE_ARCHS;$(nvcc --list-gpu-arch | sed -n 's/^compute_\([0-9]*\)$/\1/p' | sort -n | tail -1)-virtual"
+      - echo "eagle CUDA architectures $EAGLE_ARCHS"
       # conda-forge ships libstdcxx: link it dynamically instead of bundling it
-      - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation -Ccmake.define.EAGLE_STATIC_LIBSTDCXX=OFF -Ccmake.define.EAGLE_PYTHON_MPI=OFF
+      - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation -Ccmake.define.EAGLE_STATIC_LIBSTDCXX=OFF -Ccmake.define.EAGLE_PYTHON_MPI=OFF "-Ccmake.define.CMAKE_CUDA_ARCHITECTURES=$EAGLE_ARCHS"
 
 requirements:
   build:
@@ -67,12 +70,11 @@ requirements:
   run_constraints:
     # the optional GPU route for CuPy arrays
     - cupy >=13.6
-  # The CUDA backend has no CUDA runtime dependency (see above), so the
-  # toolkit's cuda-version pin does not apply to the package.
+  # The CUDA backend links no CUDA runtime library (see above); only
+  # cuda-version's run export is kept, to select the build per CUDA major.
   ignore_run_exports:
     from_package:
       - ${{ compiler('cuda') }}
-      - cuda-version
       - cuda-cudart-dev
 
 tests:
