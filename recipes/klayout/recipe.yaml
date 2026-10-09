@@ -1,0 +1,103 @@
+schema_version: 1
+
+context:
+  version: "0.30.12"
+
+package:
+  name: klayout
+  version: ${{ version }}
+
+source:
+  url: https://github.com/KLayout/klayout/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fa747d9a4c216d0645587e05df365d5c22f73609ab98b34471372c711d8c2b75
+
+build:
+  number: 0
+  skip:
+    # linux-only: build script uses the x86_64-conda-linux-gnu toolchain shim
+    - win
+    - osx
+  script:
+    - export CPPFLAGS="$CPPFLAGS -I$PREFIX/include"
+    - export CFLAGS="$CFLAGS -O2 -fPIC"
+    - export CXXFLAGS="$CXXFLAGS -O2 -fPIC"
+    - export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-rpath,$PREFIX/bin"
+    - PY_MM=$($PYTHON -c "import sys; print('%d.%d' % sys.version_info[:2])")
+    - mkdir -p "$PWD/cc_shim"
+    - ln -sf "$(command -v x86_64-conda-linux-gnu-c++)" "$PWD/cc_shim/g++"
+    - ln -sf "$(command -v x86_64-conda-linux-gnu-c++)" "$PWD/cc_shim/c++"
+    - ln -sf "$(command -v x86_64-conda-linux-gnu-cc)" "$PWD/cc_shim/gcc"
+    - ln -sf "$(command -v x86_64-conda-linux-gnu-cc)" "$PWD/cc_shim/cc"
+    - export PATH="$PWD/cc_shim:$PATH"
+    - ./build.sh -expert -bin "$PREFIX/bin" -qmake "$PREFIX/bin/qmake6" -noruby -python "$PYTHON" -pyinc "$($PYTHON -c "import sysconfig; print(sysconfig.get_paths()['include'])")" -pylib "$PREFIX/lib/libpython${PY_MM}.so" -libpng -libcurl -libexpat -option "-j12"
+    - mkdir -p "$SP_DIR"
+    - cp -a "$PREFIX/bin/pymod/klayout" "$SP_DIR/klayout"
+    - cp -a "$PREFIX/bin/pymod/pya" "$SP_DIR/pya"
+    - rm -f "$PREFIX/bin"/*.a
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - qt6-main >=6.7,<6.12
+    - qt6-multimedia
+    - libgl-devel
+    - libopengl-devel
+    - libpng
+    - libcurl
+    - expat
+    - zlib
+    - libgit2
+  run:
+    - python
+    - qt6-main >=6.7,<6.12
+    - qt6-multimedia
+    - libcurl
+    - libexpat
+    - libpng
+    - libgit2
+
+tests:
+  - python:
+      imports:
+        - klayout
+        - klayout.db
+        - klayout.lay
+        - klayout.tl
+        - klayout.rdb
+        - klayout.pex
+        - klayout.lib
+        - klayout.pya
+  - script:
+      - export QT_QPA_PLATFORM=offscreen
+      - klayout -v
+      - python -c "import klayout.db as db; assert db.__version__ == '${{ version }}', db.__version__; print('klayout.db version OK', db.__version__)"
+      - python -c "import klayout.db as db; ly = db.Layout(); ly.dbu = 0.001; top = ly.create_cell('TOP'); layer = ly.layer(1, 0); top.shapes(layer).insert(db.Box(0, 0, 1000, 2000)); ly.write('roundtrip.gds'); ly2 = db.Layout(); ly2.read('roundtrip.gds'); assert ly2.top_cell().name == 'TOP'; print('GDS roundtrip OK')"
+
+about:
+  homepage: https://www.klayout.de/
+  repository: https://github.com/KLayout/klayout
+  documentation: https://github.com/KLayout/klayout/wiki
+  summary: KLayout layout viewer and editor with Python bindings
+  description: |
+    KLayout is an open-source layout viewer and editor for semiconductor
+    designs. This package provides the full application and the Python
+    bindings built from the KLayout sources with Qt6:
+
+    - klayout: GUI application and command-line tool (batch mode -b)
+    - buddy tools: strm2gds, strm2oas, strm2txt, strmclip, strmxor, strmrun, ...
+    - Python module: klayout.db, klayout.lay, klayout.tl, klayout.rdb,
+      klayout.pex, klayout.lib, klayout.pya (with Qt bindings)
+
+    Use `klayout -b` for batch processing or `import klayout.db as db`
+    in Python scripts.
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Xkhanh720
