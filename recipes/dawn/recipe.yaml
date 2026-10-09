@@ -1,0 +1,110 @@
+context:
+  version: "20260929.200159"
+
+package:
+  name: dawn
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/google/dawn/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 1d3bbe20e1c0e1344db888440b0a9698a8e73a2598b76757617f3b1a8c817dc4
+    patches:
+      - 0001-Link-imported-dependencies-into-the-monolithic-library.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    # Used by Dawn's code generators
+    - python >=3.10
+    - jinja2
+    - if: linux
+      then:
+        # Provides the Khronos gl.xml used to generate the OpenGL loader
+        - glad2
+  host:
+    - libabseil
+    - spirv-headers
+    - if: not osx
+      then:
+        # Tint's SPIR-V reader uses the private headers in include/spirv-tools-private.
+        # SPIR-V support is only built with the Vulkan backend, not on macOS.
+        - spirv-tools
+    - if: not osx
+      then:
+        - libvulkan-headers
+        - vulkan-utility-libraries
+    - if: linux
+      then:
+        - libegl-devel
+        - xorg-libx11
+        - xorg-xorgproto
+  ignore_run_exports:
+    # Only the header-only Vulkan::UtilityHeaders target is used, and libEGL
+    # and libX11 are loaded at runtime with dlopen.
+    from_package:
+      - if: not osx
+        then: vulkan-utility-libraries
+      - if: linux
+        then:
+          - libegl-devel
+          - xorg-libx11
+  run:
+    # Tint uses the internal spvtools::opt C++ API, which is not ABI stable
+    - if: not osx
+      then:
+        - ${{ pin_compatible('spirv-tools', upper_bound='x.x') }}
+    # Dawn loads the Vulkan loader at runtime
+    - if: linux
+      then:
+        - libvulkan-loader
+
+tests:
+  - package_contents:
+      lib:
+        - webgpu_dawn
+      include:
+        - webgpu/webgpu.h
+        - dawn/webgpu_cpp.h
+      files:
+        - ${{ "Library/" if win }}lib/cmake/Dawn/DawnConfig.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -S test -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - if: win
+        then: build\dawn_test.exe
+        else: ./build/dawn_test
+
+about:
+  homepage: https://dawn.googlesource.com/dawn
+  repository: https://github.com/google/dawn
+  documentation: https://dawn.googlesource.com/dawn/+/HEAD/docs/
+  summary: Dawn, a WebGPU implementation
+  description: |
+    Dawn is an open-source and cross-platform implementation of the WebGPU
+    standard. It exposes a C/C++ API that maps almost one-to-one to the
+    WebGPU IDL and can be managed as part of a larger system such as a Web
+    browser. Dawn provides several WebGPU building blocks, including the
+    Tint shader compiler, and backends for D3D11, D3D12, Metal, Vulkan and
+    OpenGL.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
