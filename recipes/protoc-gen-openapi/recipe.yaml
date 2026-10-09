@@ -1,0 +1,63 @@
+schema_version: 1
+
+context:
+  version: "0.4.0"
+
+package:
+  name: protoc-gen-openapi
+  version: ${{ version }}
+
+source:
+  url: https://github.com/solo-io/protoc-gen-openapi/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: de64ec62faaa28843259679b1da169c2c9c779855dad9bdb45516c15eda51f05
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/protoc-gen-openapi -ldflags="-s -w"
+      else: go build -v -o %LIBRARY_BIN%\protoc-gen-openapi.exe -ldflags="-s"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go 1.25.*
+    - go-licenses
+
+tests:
+  - script:
+      - protoc --openapi_out=. test.proto
+      - if: unix
+        then: test -f test.json
+        else: if not exist test.json exit 1
+    files:
+      recipe:
+        - test.proto
+    requirements:
+      run:
+        - libprotobuf
+  - package_contents:
+      bin:
+        - protoc-gen-openapi
+      files:
+        - etc/conda/test-files/protoc-gen-openapi/0/test.proto
+      strict: true
+
+about:
+  homepage: https://github.com/solo-io/protoc-gen-openapi
+  summary: Compile Google Protocol Buffers to OpenAPI v3 specifications
+  description: |
+    protoc-gen-openapi is a plugin for the Google Protocol Buffer compiler that
+    generates OpenAPI v3 specifications from input protobuf definitions.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/solo-io/protoc-gen-openapi
+
+extra:
+  recipe-maintainers:
+    - phreed
