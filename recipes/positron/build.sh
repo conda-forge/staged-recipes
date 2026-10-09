@@ -20,25 +20,28 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_
 # Ark (R kernel): install-kernel.ts picks up a local build at ark/target/release/ark
 pushd extensions/positron-r/ark
 cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY-ark.yml"
-cargo build --release --locked -p ark
+cargo install --bins --no-track --locked --root "${SRC_DIR}/_bin" --path crates/ark
 popd
+# conda's rust activation sets a target triple, so place the binary where install-kernel.ts looks
+mkdir -p extensions/positron-r/ark/target/release
+cp _bin/bin/ark extensions/positron-r/ark/target/release/ark
 
 # Kallichore (kernel supervisor)
 pushd _kallichore
 cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY-kallichore.yml"
-cargo build --release --locked -p kcserver
+cargo install --bins --no-track --locked --root "${SRC_DIR}/_bin" --path crates/kcserver
 popd
 mkdir -p extensions/positron-supervisor/resources/kallichore
-cp _kallichore/target/release/kcserver extensions/positron-supervisor/resources/kallichore/
+cp _bin/bin/kcserver extensions/positron-supervisor/resources/kallichore/
 printf '%s' "${KALLICHORE_VERSION}" > extensions/positron-supervisor/resources/kallichore/VERSION
 
 # Python Environment Tools
 pushd _pet
 cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY-pet.yml"
-cargo build --release --locked -p pet
+cargo install --bins --no-track --locked --root "${SRC_DIR}/_bin" --path crates/pet
 popd
 mkdir -p extensions/positron-python/python-env-tools extensions/positron-python/resources/pet
-cp _pet/target/release/pet extensions/positron-python/python-env-tools/
+cp _bin/bin/pet extensions/positron-python/python-env-tools/
 printf '%s' "${PET_VERSION}" > extensions/positron-python/resources/pet/VERSION
 
 # --- Positron ---
