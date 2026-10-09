@@ -1,4 +1,4 @@
-From ffc115519ecc22467b05e9645cecdeec3565b95c Mon Sep 17 00:00:00 2001
+From f35a35f2b7af63bd79b407df23742acc32d4e10b Mon Sep 17 00:00:00 2001
 From: Pavel Zwerschke <pavel.zwerschke@quantco.com>
 Date: Fri, 9 Oct 2026 09:08:13 +0200
 Subject: [PATCH] Build with conda-forge toolchain and system glfw/freetype
@@ -9,15 +9,16 @@ Subject: [PATCH] Build with conda-forge toolchain and system glfw/freetype
   the vendored git submodules.
 - Link X11 explicitly on Linux; imgui's GLFW backend calls Xlib directly,
   which was previously satisfied by the statically linked vendored glfw.
+- Don't link libcrypt on Linux; it is unused and not part of newer glibc.
 - Don't bundle vcruntime140_1.dll; conda provides the VC runtime.
 - Include <mutex> in mvContext.h for std::recursive_mutex; newer libc++
   no longer provides it transitively.
 ---
  CMakeLists.txt         |  7 +++++-
  setup.py               | 54 +++++++++++++-----------------------------
- src/distribution.cmake |  4 ++--
+ src/distribution.cmake |  6 ++---
  src/mvContext.h        |  1 +
- 4 files changed, 25 insertions(+), 41 deletions(-)
+ 4 files changed, 26 insertions(+), 42 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 33a5405..80cc6c4 100644
@@ -124,7 +125,7 @@ index be68c1c..c13a244 100644
          metadata['package_data']['dearpygui'] = ["__init__.py", "_dearpygui.so", "_dearpygui.pyd", "_dearpygui.pyi", "dearpygui.py", "demo.py", "experimental.py", "type_info.py"]
  
 diff --git a/src/distribution.cmake b/src/distribution.cmake
-index c943053..1b4a582 100644
+index c943053..be9463a 100644
 --- a/src/distribution.cmake
 +++ b/src/distribution.cmake
 @@ -25,7 +25,6 @@ target_include_directories(_dearpygui
@@ -144,8 +145,12 @@ index c943053..1b4a582 100644
  
  elseif(APPLE)
  
-@@ -77,6 +76,7 @@ else() # Linux
- 			"-fPIC -lcrypt -lpthread -ldl  -lutil -lm"
+@@ -74,9 +73,10 @@ else() # Linux
+ 	add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GL3W)
+ 	target_link_libraries(_dearpygui 
+ 		PRIVATE 
+-			"-fPIC -lcrypt -lpthread -ldl  -lutil -lm"
++			"-fPIC -lpthread -ldl  -lutil -lm"
  			GL
  			glfw
 +			X11::X11
