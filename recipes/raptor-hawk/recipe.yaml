@@ -1,0 +1,88 @@
+schema_version: 1
+
+context:
+  name: raptor-hawk
+  version: "0.3.0"
+  aether_version: "0.2.0"
+  eagle_version: "0.4.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# hawk's compiled core includes aether's and eagle's C++ headers at build
+# time, so the build needs both header trees, as the upstream wheel build does.
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/raptor_hawk-${{ version }}.tar.gz
+    sha256: 920554ff50b35a64b310dce8fa3e32816baea2514aef34349524ae40f9bdca3e
+  - url: https://github.com/amasat01/aether/archive/refs/tags/v${{ aether_version }}.tar.gz
+    sha256: 97f80cd64f3bd383a045e5d372968e00be731932c4bfa7c6b2bbc40b0dcab76a
+    target_directory: _sib/aether
+  - url: https://github.com/amasat01/eagle/archive/refs/tags/v${{ eagle_version }}.tar.gz
+    sha256: 49ab17251224888d5509c19c2d06b9694dd90e05a977bc40d4e68632fb0f2d2f
+    target_directory: _sib/eagle
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    content:
+      - export HAWK_AETHER_INCLUDE="$SRC_DIR/_sib/aether" HAWK_EAGLE_INCLUDE="$SRC_DIR/_sib/eagle"
+      # conda-forge ships libstdcxx: link it dynamically instead of bundling it
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.HAWK_STATIC_LIBSTDCXX=OFF
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    - nanobind >=2.0
+  run:
+    - python
+    - aether-dsc >=0.2.0,<0.3
+    - numpy
+  run_constraints:
+    # the optional GPU route (NVRTC); install these for device kernels
+    - cuda-bindings >=12.6
+    - cuda-nvrtc >=12.6
+    - cuda-cccl >=12.6
+
+tests:
+  - python:
+      imports:
+        - hawk
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        # the host route compiles kernels with a C++23 compiler at runtime
+        - gxx
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://github.com/amasat01/hawk
+  repository: https://github.com/amasat01/hawk
+  documentation: https://amasat01.github.io/hawk/
+  summary: Hardware Agnostic Writing of Kernels, a Python DSL that writes GPU/CPU kernels
+  description: |
+    hawk writes numerical kernels from Python and compiles them for the host
+    (a C++23 compiler) or for NVIDIA GPUs through NVRTC, deploying them through
+    eagle. For the GPU route, also install cuda-bindings, cuda-nvrtc and
+    cuda-cccl. The import name is `hawk`.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - amasat01
