@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "2.2.0"
+  build_number: 0
+
+package:
+  name: pet-rd-tools
+  version: ${{ version }}
+
+source:
+  url: https://github.com/UCL/pet-rd-tools/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 95e6c6101c632de0c1201c3910ee8b3076a748a7cd387d62441f24907fca1e21
+
+build:
+  number: ${{ build_number }}
+  script:
+    - if: unix
+      then: cmake -S . -B build -GNinja $CMAKE_ARGS
+    - if: win
+      then: |
+        set "CXXFLAGS=%CXXFLAGS% /permissive-"
+        cmake -S . -B build -GNinja %CMAKE_ARGS%
+    - cmake --build build --parallel ${{ CPU_COUNT }}
+    - cmake --install build
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+  host:
+    - libboost-devel
+    - glog
+    - libitk-devel >=5.3
+    - nlohmann_json >=3.2
+
+tests:
+  - script:
+      - nm_validate --help
+  - package_contents:
+      bin:
+        - nm_validate
+        - nm_extract
+        - nm_mrac2mu
+        - nm_signa2mu
+
+about:
+  homepage: https://github.com/UCL/pet-rd-tools
+  repository: https://github.com/UCL/pet-rd-tools
+  license: Apache-2.0
+  license_file: LICENSE.txt
+  summary: PET raw-data command-line tools
+  description: |
+    pet-rd-tools (a.k.a. nmtools) provides command-line utilities for
+    validating and extracting raw PET data, and associated files, for
+    the purposes of image reconstruction via [STIR](https://github.com/UCL/STIR)
+    and [SIRF](https://github.com/SyneRBI/SIRF).
+
+extra:
+  recipe-maintainers:
+    - casperdcl
+    - KrisThielemans
