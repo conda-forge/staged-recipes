@@ -1,0 +1,91 @@
+context:
+  version: "2.3.1"
+  imgui_commit: 3912b3d9a9c1b3f17431aebafd86d2f40ee6e59c
+  implot_commit: 4707b245fbcd69075b1a8a74fa8d2435561b3134
+
+package:
+  name: dearpygui
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/hoffstadt/DearPyGui/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: d86822978f7856ea8556a715bb84d0ed4f909720c9ec78f6e1ec20102ad73ee2
+    patches:
+      - patches/0001-Build-with-conda-forge-toolchain-and-system-glfw-fre.patch
+  # git submodules pinned by DearPyGui (imgui docking branch with DearPyGui-specific config)
+  - url: https://github.com/ocornut/imgui/archive/${{ imgui_commit }}.tar.gz
+    sha256: cd1cd7d279e568217e9caef0d49b2f199edc65cf0b9497712bc422cef5339bc0
+    target_directory: thirdparty/imgui
+  - url: https://github.com/epezent/implot/archive/${{ implot_commit }}.tar.gz
+    sha256: f5228da176a03d9b179e2f58438b7f69d9e8555d2008243095dfab2a80c5e886
+    target_directory: thirdparty/implot
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - echo ${{ version }}> version_number.txt
+      else:
+        - echo ${{ version }} > version_number.txt
+    - if: osx
+      then:
+        # CMake only adds $PREFIX/include via CFLAGS/CXXFLAGS, which aren't used for .m/.mm files
+        - export OBJCFLAGS="${CFLAGS}" OBJCXXFLAGS="${CXXFLAGS}"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - glfw
+    - if: linux
+      then:
+        - libgl-devel
+    - if: win
+      then:
+        - freetype
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - dearpygui
+        - dearpygui.dearpygui
+      pip_check: true
+  - script:
+      - python -c "import dearpygui.dearpygui as dpg; dpg.create_context(); dpg.destroy_context()"
+      - python -c "import dearpygui; assert dearpygui.__version__ == '${{ version }}', dearpygui.__version__"
+
+about:
+  homepage: https://github.com/hoffstadt/DearPyGui
+  summary: 'DearPyGui: A simple Python GUI Toolkit'
+  description: |
+    Dear PyGui is an easy-to-use, dynamic, GPU-Accelerated, cross-platform
+    graphical user interface toolkit (GUI) for Python. It is built on top of
+    Dear ImGui.
+  license: MIT
+  license_file:
+    - LICENSE
+    - thirdparty/imgui/LICENSE.txt
+    - thirdparty/implot/LICENSE
+    - thirdparty/imnodes/LICENSE.md
+    - thirdparty/ImGuiFileDialog/LICENSE
+  documentation: https://dearpygui.readthedocs.io/
+  repository: https://github.com/hoffstadt/DearPyGui
+
+extra:
+  recipe-maintainers:
+    - pavelzw
