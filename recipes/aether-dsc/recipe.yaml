@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  name: aether-dsc
+  version: "0.2.0"
+  eagle_version: "0.4.0"
+  # sha256 over the sealed headers of the tagged sources; equals the payload
+  # shipped in the PyPI wheel and sdist of the same version.
+  payload_digest: a9c89146169d59183c41dba2a050a420a5f3dd40729154ae547b61a2239c38b8
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# The payload is built from source here: build_seal.py packs aether's headers
+# (plus eagle's two plugin ABI headers) into one zlib-compressed tar and checks
+# its digest against the released one. The eagle source supplies
+# plugin/gref_layout.h and plugin/gref_abi.h only.
+source:
+  - url: https://github.com/amasat01/aether/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 97f80cd64f3bd383a045e5d372968e00be731932c4bfa7c6b2bbc40b0dcab76a
+    target_directory: aether
+  - url: https://github.com/amasat01/eagle/archive/refs/tags/v${{ eagle_version }}.tar.gz
+    sha256: 49ab17251224888d5509c19c2d06b9694dd90e05a977bc40d4e68632fb0f2d2f
+    target_directory: eagle
+
+build:
+  number: 0
+  noarch: python
+  script:
+    interpreter: python
+    file: build_seal.py
+    env:
+      PAYLOAD_DIGEST: ${{ payload_digest }}
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=61
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - aether_dsc
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - python -c "import aether_dsc; p = aether_dsc.payload(); assert p.digest == '${{ payload_digest }}', p.digest; assert p.headers"
+
+about:
+  homepage: https://github.com/amasat01/aether
+  repository: https://github.com/amasat01/aether
+  documentation: https://amasat01.github.io/aether/
+  summary: The sealed AETHER header payload that hawk compiles kernels from
+  description: |
+    aether-dsc ships aether's C++ headers as one digest-named payload:
+    NVRTC compiles a hawk device kernel straight from it in memory, and a
+    host compiler gets the headers through a private temporary directory.
+    The payload is a zlib-compressed tar of Apache-2.0 headers, sealed at
+    build time from the tagged aether sources.
+  license: Apache-2.0
+  license_file:
+    - aether/dsc/LICENSE
+    - aether/dsc/NOTICE
+
+extra:
+  recipe-maintainers:
+    - amasat01
