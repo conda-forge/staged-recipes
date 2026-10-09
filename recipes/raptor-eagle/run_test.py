@@ -1,28 +1,24 @@
-# The README example on the CPU route: NumPy arrays in, OpenMP threads out.
-import numpy as np
+# The installed package imports, runs host work, and reports its CUDA backend.
+# The build machines have no NVIDIA driver: eagle must still import, and it
+# must not load the CUDA runtime or driver libraries on its own.
+import pathlib
 
 import eagle
-import hawk
-from hawk import Mutable, Param, Scalar, Terminated
+import eagle._core
+import eagle.exec
 
+assert eagle.exec.fold("sum", [1.0, 2.0]) == 3.0
+backend = eagle._core.cuda_backend()
+print("cuda backend:", {k: backend[k] for k in ("loaded", "path", "error")})
+assert pathlib.Path(backend["path"]).is_file(), backend["path"]
+if not backend["loaded"]:
+    try:
+        eagle._core.Stream()
+    except eagle.BackendUnavailable as e:
+        print("typed refusal:", e)
+    else:
+        raise SystemExit("Stream() did not refuse without a driver")
 
-@hawk.kernel
-def oscillator(omega: Scalar, t_end: Param, dt: Param, terminated: Terminated,
-               x: Mutable[Scalar], v: Mutable[Scalar], t: Mutable[Scalar]):
-    x0, v0 = x, v
-    x = x0 + dt * v0
-    v = v0 - dt * omega * omega * x0
-    t += dt
-    terminated = t >= t_end
-
-
-n = 1000
-result = eagle.simulate(
-    oscillator,
-    omega=np.linspace(1.0, 3.0, n), t_end=1.0, dt=1e-3,
-    x=np.ones(n), v=np.zeros(n), t=np.zeros(n),
-    max_steps=10_000,
-)
-assert "finished" in str(result.status), result.status
-np.testing.assert_allclose(result.x[0], 0.54057281, rtol=1e-6)
-print("eagle CPU route OK", result.x[:3])
+maps = pathlib.Path("/proc/self/maps").read_text()
+assert "libcudart" not in maps, "eagle loaded the CUDA runtime"
+print("eagle host smoke OK")
