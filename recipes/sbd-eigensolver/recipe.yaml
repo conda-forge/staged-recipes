@@ -1,0 +1,131 @@
+schema_version: 1
+
+context:
+  version: "1.7.0"
+
+package:
+  name: sbd-eigensolver
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/sbd-eigensolver/sbd_eigensolver-${{ version }}.tar.gz
+  sha256: 9ac04384de836a0b56f356ace5c2a1fddda0453bdfc0ea32beee47b19bca6378
+
+build:
+  number: 0
+  # One build per MPI implementation (see conda_build_config.yaml). The prefix
+  # goes in the build string so downstream recipes and users can select one,
+  # e.g. `sbd-eigensolver=*=mpi_mpich_*`.
+  string: mpi_${{ mpi }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  # Windows is not supported: the extension is built against an MPI toolchain
+  # and upstream SBD's build has only been exercised on Linux and macOS.
+  skip: win
+  script:
+    # CPU backend only. The GPU backends need either NVHPC's nvc++ (Thrust and
+    # OpenMP target offload) or ROCm's amdclang++ (offload), neither of which is
+    # packaged on conda-forge. Pin this explicitly rather than relying on the
+    # default `auto`, which would silently switch to a GPU build on any builder
+    # that happened to have nvc++ on PATH.
+    - export SBD_BUILD_BACKEND=cpu
+    # Link the generic BLAS/LAPACK shims rather than setup.py's `openblas`
+    # default, so the resulting binary works with whichever implementation the
+    # user selects (`conda install "libblas=*=*_mkl"` and friends).
+    - export BLAS_LIBS=blas,lapack
+    # setup.py locates macOS libomp by probing $CONDA_PREFIX/include/omp.h, but
+    # under rattler-build CONDA_PREFIX is the base installation rather than the
+    # build environment, so the probe misses the llvm-openmp installed in $PREFIX
+    # and the build fails. Point it at the build environment. Remove this once a
+    # release carrying Qiskit/sbd-eigensolver-python#58 is available, which also
+    # consults sys.prefix.
+    - if: osx
+      then:
+        - export CONDA_PREFIX=$PREFIX
+    # MPI is found from the environment prefix: setup.py derives the prefix from
+    # the MPI that mpi4py is linked against, and falls back to $PREFIX, so
+    # neither MPI_HOME nor BLAS_LIB_PATH needs setting here.
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools >=77.0.1
+    - wheel
+    - pybind11 >=2.12.0
+    - numpy >=1.26.0
+    - ${{ mpi }}
+    - mpi4py >=4.0.0
+    - libblas
+    - liblapack
+    # The CPU backend compiles with `-fopenmp`. On Linux that resolves to GCC's
+    # libgomp, which arrives through the compiler's run_exports; macOS builds
+    # with clang and need the runtime named explicitly.
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+    # mpi4py is a genuine runtime dependency, not just a build one: the Python
+    # API takes an mpi4py communicator, and `import sbd` initializes MPI
+    # through it. The MPI library itself arrives via mpi4py's and ${{ mpi }}'s
+    # run_exports, as do libblas/liblapack.
+    - mpi4py >=4.0.0
+    # numpy's run_export is a loose `>=1.25,<3`, which would allow an install
+    # below the floor the package's own metadata declares. State it explicitly
+    # so the recipe cannot resolve a numpy that `pip check` would reject.
+    - numpy >=1.26.0
+
+tests:
+  - python:
+      imports:
+        - sbd
+      pip_check: true
+  - script:
+      # Exercise the compiled extension, not just the import: check that the
+      # CPU backend registered, that MPI initializes in a single-rank run, and
+      # that a round trip through the bit-packing helpers is correct.
+      - python -c "import sbd; assert 'cpu' in sbd.available_backends(), sbd.available_backends()"
+      - python -c "import sbd; assert (sbd.get_rank(), sbd.get_world_size()) == (0, 1)"
+      - python -c "import sbd; assert sbd.from_string('1100', 20, 4) == [12]"
+      - python -c "import sbd; sbd.print_info()"
+      # And that it actually runs under a launcher, which is the point of the
+      # package. Two ranks is enough to tell a distributed path from a
+      # single-rank one.
+      - mpiexec -n 2 python -c "import sbd; assert sbd.get_world_size() == 2"
+    requirements:
+      run:
+        - ${{ mpi }}
+        - mpi4py >=4.0.0
+
+about:
+  homepage: https://github.com/Qiskit/sbd-eigensolver-python
+  summary: Python bindings for Selected Basis Diagonalization (SBD)
+  description: |
+    Python bindings for the Selected Basis Diagonalization (SBD) library, a
+    high-performance code for quantum chemistry eigenvalue problems.
+
+    The bindings expose SBD's Tensor-Product Basis (TPB) diagonalization, in
+    which the subspace is spanned by the Cartesian product of an alpha and a
+    beta determinant list, along with experimental support for the
+    General-Determinant Basis (GDB) method over an explicit determinant list.
+    Calculations are distributed with MPI and integrate with qiskit-addon-sqd
+    for sample-based quantum diagonalization workflows.
+
+    This conda package provides the CPU (OpenMP) backend. The CUDA backends
+    require the NVIDIA HPC SDK or ROCm compilers, which are not available on
+    conda-forge; build from source to use them.
+  license: Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - vendor/sbd-upstream/LICENSE.txt
+  documentation: https://github.com/Qiskit/sbd-eigensolver-python#readme
+  repository: https://github.com/Qiskit/sbd-eigensolver-python
+
+extra:
+  feedstock-name: sbd-eigensolver-python
+  recipe-maintainers:
+    - garrison
+    - hfwen0502
