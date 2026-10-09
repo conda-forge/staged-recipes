@@ -12,11 +12,10 @@ package:
   name: ${{ name }}
   version: ${{ version }}
 
-# The payload is built from source here: `python -m aether_dsc.seal` packs
-# aether's headers (plus eagle's two plugin ABI headers) into one
-# zlib-compressed tar after an NVRTC compile check, exactly as the upstream
-# release workflow does. The eagle source supplies plugin/gref_layout.h and
-# plugin/gref_abi.h only.
+# The payload is built from source here: build_seal.py packs aether's headers
+# (plus eagle's two plugin ABI headers) into one zlib-compressed tar and checks
+# its digest against the released one. The eagle source supplies
+# plugin/gref_layout.h and plugin/gref_abi.h only.
 source:
   - url: https://github.com/amasat01/aether/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 97f80cd64f3bd383a045e5d372968e00be731932c4bfa7c6b2bbc40b0dcab76a
@@ -29,40 +28,27 @@ build:
   number: 0
   noarch: python
   script:
+    interpreter: python
+    file: build_seal.py
     env:
       PAYLOAD_DIGEST: ${{ payload_digest }}
-    content:
-      - cd aether/dsc
-      - rm -f aether_dsc/_payload/*.bin
-      - export CUDA_PATH="$PREFIX"
-      - ${{ PYTHON }} -m aether_dsc.seal
-      - test -f "aether_dsc/_payload/${PAYLOAD_DIGEST}.bin"
-      - test "$(ls aether_dsc/_payload | wc -l)" -eq 1
-      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
     - python ${{ python_min }}.*
     - pip
     - setuptools >=61
-    # build-time only: the NVRTC compile check that gates the seal
-    - cuda-version 12.*
-    - cuda-bindings
-    - cuda-nvrtc
-    - cuda-cccl
   run:
     - python >=${{ python_min }}
-  ignore_run_exports:
-    from_package:
-      - cuda-nvrtc
-      - cuda-version
 
 tests:
   - python:
       imports:
         - aether_dsc
       pip_check: true
-      python_version: ${{ python_min }}.*
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
   - requirements:
       run:
         - python ${{ python_min }}.*
