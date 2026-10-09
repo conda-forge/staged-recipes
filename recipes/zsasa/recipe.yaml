@@ -1,0 +1,245 @@
+schema_version: 1
+
+context:
+  version: "0.10.1"
+  # Zig packages zsasa is built from, as resolved from build.zig.zon:
+  #   zsasa -> ztraj -> zsasa 0.2.11 (an older release, for ztraj's own SASA code) -> zxdrfile
+  # When updating, follow the `.dependencies` of each build.zig.zon and keep
+  # these three in step. A stale entry cannot go unnoticed: build.sh/build.bat
+  # let Zig recompute each package hash, and `zig build --system` only accepts
+  # the hashes that build.zig.zon asks for.
+  ztraj_version: "0.8.0"
+  zsasa_dep_version: "0.2.11"
+  zxdrfile_version: "0.4.0"
+  # Zig compiles for the build machine (its CPU and OS version) unless it is
+  # given a target, and it does not read MACOSX_DEPLOYMENT_TARGET. Spell the
+  # target out from the conda-forge pinning instead: c_stdlib_version is the
+  # glibc version on linux and the deployment target on osx. This is also what
+  # makes cross-compiled builds (osx-arm64 from osx-64, linux-aarch64 from
+  # linux-64) correct: Zig is a cross-compiler for every target out of the box.
+  zig_target: >-
+    ${{
+      "x86_64-linux-gnu."  ~ c_stdlib_version if host_platform == "linux-64"      else
+      "aarch64-linux-gnu." ~ c_stdlib_version if host_platform == "linux-aarch64" else
+      "x86_64-macos."      ~ c_stdlib_version if host_platform == "osx-64"        else
+      "aarch64-macos."     ~ c_stdlib_version if host_platform == "osx-arm64"     else
+      "x86_64-windows-gnu"                    if host_platform == "win-64"        else
+      ""
+    }}
+
+recipe:
+  name: zsasa-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/N283T/zsasa/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 219151e12b22c5f5c848fa8889ed4baed97d076e2becc893894ab56a78d8987d
+  # Zig package dependencies. `zig build` would download these; the build has
+  # no network access, so they are listed here and handed to Zig as local
+  # directories (see build.sh).
+  - url: https://github.com/N283T/ztraj/archive/refs/tags/v${{ ztraj_version }}.tar.gz
+    sha256: c7abf6d94b9ca401e07752fe2f99502c50f79321d2f9558969464151cba2628a
+    target_directory: zig-deps/ztraj
+  - url: https://github.com/N283T/zsasa/archive/refs/tags/v${{ zsasa_dep_version }}.tar.gz
+    sha256: 72f7e50e3eb00341a7f10ca144134a09b0cad5b8c414156cc98beb625ee05bb9
+    target_directory: zig-deps/zsasa
+  - url: https://github.com/N283T/zxdrfile/archive/refs/tags/v${{ zxdrfile_version }}.tar.gz
+    sha256: daffd0008cdac67b3485f12c169a93b6f6e7f0287a1a85caf0b2ba706606f644
+    target_directory: zig-deps/zxdrfile
+
+build:
+  number: 0
+
+outputs:
+  # The shared library with the C ABI. It is what the Python package loads.
+  - package:
+      name: libzsasa
+    build:
+      dynamic_linking:
+        # libzsasa links against the system C library only, so there is no RPATH
+        # to rewrite. Zig also leaves no header padding in Mach-O files, so
+        # install_name_tool cannot add one ("larger updated load commands do
+        # not fit").
+        binary_relocation: false
+        # Without an LC_RPATH the library's own install name
+        # (@rpath/libzsasa.dylib) is not recognised as the library itself and
+        # is reported as overlinking.
+        missing_dso_allowlist:
+          - if: osx
+            then: "@rpath/libzsasa.dylib"
+      script:
+        file: build
+        env:
+          ZIG_TARGET: ${{ zig_target }}
+      # The build script installs the program and the library; keep the library.
+      files:
+        include:
+          - if: unix
+            then: lib/libzsasa.*
+            else:
+              - Library/bin/zsasa.dll
+              - Library/lib/zsasa.lib
+    requirements:
+      build:
+        - zig >=0.16.0,<0.17
+        # Zig brings its own libc stubs and needs no C compiler or sysroot. The
+        # stdlib package is listed for its run-export: it puts the __glibc /
+        # __osx lower bound on the package, the same c_stdlib_version zig_target
+        # uses.
+        - if: unix
+          then: ${{ stdlib('c') }}
+      run:
+        # On Windows Zig links against its bundled mingw-w64, which uses the
+        # Universal CRT (api-ms-win-crt-*.dll) and nothing from the MSVC
+        # runtime that stdlib('c') would add.
+        - if: win
+          then: ucrt
+    tests:
+      - package_contents:
+          lib:
+            - zsasa
+      # The library has no command line: load it and call the C API.
+      - script:
+          - python test_libzsasa.py ${{ version }}
+        requirements:
+          run:
+            - python
+        files:
+          recipe:
+            - test_libzsasa.py
+    about:
+      summary: Shared library of the zsasa solvent accessible surface area calculator (C ABI)
+
+  # The command line program: a self-contained executable that does not use
+  # libzsasa (on linux it is fully static).
+  - package:
+      name: zsasa-cli
+    build:
+      dynamic_linking:
+        binary_relocation: false
+      script:
+        file: build
+        env:
+          ZIG_TARGET: ${{ zig_target }}
+      # The build script installs the program and the library; keep the program.
+      files:
+        include:
+          - if: unix
+            then: bin/zsasa
+            else: Library/bin/zsasa.exe
+    requirements:
+      build:
+        - zig >=0.16.0,<0.17
+        - if: unix
+          then: ${{ stdlib('c') }}
+      run:
+        - if: win
+          then: ucrt
+    tests:
+      - package_contents:
+          bin:
+            - zsasa
+      - script:
+          - if: unix
+            then:
+              - zsasa --version | grep -Fx "zsasa ${{ version }}"
+              - zsasa calc examples/1ubq.pdb sasa.json
+              # 4834.72 A^2 is the value upstream documents for 1ubq.
+              - grep -E "total_area.+4834[.]7" sasa.json
+            else:
+              - zsasa --version | findstr /C:"zsasa ${{ version }}"
+              - zsasa calc examples/1ubq.pdb sasa.json
+              - findstr /R /C:"total_area.*4834[.]7" sasa.json
+        files:
+          source:
+            - examples/1ubq.pdb
+    about:
+      summary: Command line program of the zsasa solvent accessible surface area calculator
+
+  # The Python package, with what `pip install zsasa` provides: the Python API
+  # and the zsasa command. The wheel on PyPI bundles the library and the
+  # program; here they are the two packages above.
+  - package:
+      name: zsasa
+    build:
+      noarch: python
+      # One package serves every platform and Python version: build it once, in
+      # the linux-64 job, next to the libzsasa and zsasa-cli it is tested with.
+      skip: not (linux and x86_64)
+      script:
+        env:
+          # python/hatch_build.py: build a pure-Python wheel, compile and
+          # bundle nothing. The package then loads libzsasa from the
+          # environment.
+          ZSASA_NO_BUNDLE: "1"
+        content:
+          - python -m pip install ./python -vv --no-deps --no-build-isolation
+          # pyproject.toml declares a `zsasa` console script that runs the
+          # program bundled in a wheel. In this package `zsasa` is the program
+          # of zsasa-cli itself, at the very path pip writes the script to, so
+          # the script must not be packaged (and python.entry_points is left
+          # out for the same reason).
+          - rm "${PREFIX}/bin/zsasa"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling
+      run:
+        - python >=${{ python_min }}
+        - numpy >=1.24
+        - cffi >=1.15
+        # The Python package checks the ABI version of the library and calls
+        # its functions by name, so it goes with the library of its own release.
+        - ${{ pin_subpackage("libzsasa", lower_bound="x.x.x", upper_bound="x.x.x") }}
+        - ${{ pin_subpackage("zsasa-cli", lower_bound="x.x.x", upper_bound="x.x.x") }}
+    tests:
+      - python:
+          imports:
+            - zsasa
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - script:
+          - python test_python.py ${{ version }}
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+        files:
+          recipe:
+            - test_python.py
+    about:
+      summary: Fast solvent accessible surface area (SASA) calculator written in Zig, with Python bindings
+
+about:
+  homepage: https://n283t.github.io/zsasa/
+  summary: Fast solvent accessible surface area (SASA) calculator written in Zig
+  description: |
+    zsasa calculates the solvent accessible surface area of proteins and other
+    molecules with the Shrake-Rupley and Lee-Richards algorithms. It reads
+    mmCIF, BinaryCIF, PDB, SDF/MOL and JSON structures, processes whole
+    directories of them, and analyses XTC, TRR, DCD and AMBER NetCDF
+    trajectories. It is multi-threaded and SIMD-accelerated.
+
+    `zsasa` is the Python package (NumPy API, integrations with Gemmi,
+    Biopython, Biotite, MDTraj and MDAnalysis) and brings the command line
+    program with it. `zsasa-cli` is the command line program alone, and
+    `libzsasa` the shared library with the C ABI.
+  # zsasa and ztraj are MIT; the XTC/TRR reader in ztraj and zxdrfile derives
+  # from libxdrfile (BSD-2-Clause). All of them are compiled into the binaries.
+  license: MIT AND BSD-2-Clause
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    - zig-deps/ztraj/LICENSE
+    - zig-deps/ztraj/THIRD_PARTY_NOTICES.md
+    - zig-deps/zsasa/LICENSE
+    - zig-deps/zxdrfile/LICENSE
+  documentation: https://n283t.github.io/zsasa/
+  repository: https://github.com/N283T/zsasa
+
+extra:
+  feedstock-name: zsasa
+  recipe-maintainers:
+    - N283T
