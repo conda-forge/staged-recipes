@@ -1,0 +1,37 @@
+diff --git a/meld/meldwindow.py b/meld/meldwindow.py
+index 18f98917..323bc0e9 100644
+--- a/meld/meldwindow.py
++++ b/meld/meldwindow.py
+@@ -16,8 +16,10 @@
+ 
+ import logging
+ import os
++import sys
+ from typing import Any, Dict, Optional, Sequence
+ 
++import cairo
+ from gi.repository import Gdk, Gio, GLib, Gtk
+ 
+ # Import support module to get all builder-constructed widgets in the namespace
+@@ -120,6 +122,21 @@ class MeldWindow(Gtk.ApplicationWindow):
+             style_context = self.get_style_context()
+             style_context.add_class("devel")
+ 
++        screenshot_filename = os.environ.get('MELD_SCREENSHOT_AND_EXIT')
++        if screenshot_filename:
++            timeout_ms = int(os.environ.get('MELD_SCREENSHOT_TIMEOUT_MS', '3000'))
++            GLib.timeout_add(timeout_ms, self.on_timeout_screenshot, screenshot_filename)
++
++    def on_timeout_screenshot(self, screenshot_filename: str):
++        """For CI: save a screenshot of the window and exit"""
++        alloc = self.get_allocation()
++        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, alloc.width, alloc.height)
++        cr = cairo.Context(surface)
++        self.draw(cr)
++        surface.write_to_png(screenshot_filename)
++        print(f"Screenshot saved to {screenshot_filename}. Exiting.", file=sys.stderr)
++        sys.exit(0)
++
+     def do_realize(self):
+         Gtk.ApplicationWindow.do_realize(self)
+ 

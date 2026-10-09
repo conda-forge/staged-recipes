@@ -1,0 +1,320 @@
+diff --git a/bin/meld b/bin/meld
+index 576ca374..56b26c06 100755
+--- a/bin/meld
++++ b/bin/meld
+@@ -109,6 +109,8 @@ elif frozen:
+     meld.conf.frozen()
+ elif "Contents/MacOS" in sys.executable:
+     meld.conf.setup_macos_application_bundle()
++elif meld.conf.IS_WHEEL:
++    meld.conf.setup_wheel()
+ 
+ # TODO: Possibly move to elib.intl
+ import gettext  # noqa: E402, I100
+diff --git a/bin/meson.build b/bin/meson.build
+index 9a743eb8..c8c2c01b 100644
+--- a/bin/meson.build
++++ b/bin/meson.build
+@@ -1,7 +1,12 @@
++if is_wheel
++  python_path = 'python'
++else
++  python_path = '/usr/bin/python3'
++endif
+ 
+ configure_file(
+     input: 'meld',
+     output: 'meld',
+-    command: ['../meson_shebang_normalisation.py', '@INPUT@', '@OUTPUT@'],
++    command: ['../meson_shebang_normalisation.py', '@INPUT@', '@OUTPUT@', python_path],
+     install_dir: bindir,
+ )
+diff --git a/data/meson.build b/data/meson.build
+index 7777758a..eb16e268 100644
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -1,11 +1,7 @@
+ # Install man page
+-install_man('meld.1')
+-
+-# Install schema file
+-install_data(
+-  '@0@.gschema.xml'.format(resource_base_id),
+-  install_dir: gio_schemasdir,
+-)
++if not is_wheel
++  install_man('meld.1')
++endif
+ 
+ # Install desktop file
+ desktop_file = i18n.merge_file(
+@@ -73,6 +69,21 @@ if compile_schemas.found()
+   )
+ endif
+ 
++# Install xml schema file (for non-wheel) or compiled schema (for wheel)
++if not is_wheel
++  install_data(
++    '@0@.gschema.xml'.format(resource_base_id),
++    install_dir: gio_schemasdir,
++  )
++else
++  configure_file(
++    input: '@0@.gschema.xml'.format(resource_base_id),
++    output: 'gschemas.compiled',
++    command: [compile_schemas, meson.current_source_dir(), '--targetdir', meson.current_build_dir()],
++    install_dir: datadir / 'meld',
++  )
++endif
++
+ # Install GtkSourceview style files
+ styles = [
+   'meld-base.style-scheme.xml',
+diff --git a/meld/conf.py.in b/meld/conf.py.in
+index 242524f3..a3d1d33e 100644
+--- a/meld/conf.py.in
++++ b/meld/conf.py.in
+@@ -14,16 +14,18 @@ RESOURCE_BASE = '/org/gnome/meld'
+ DATADIR = Path(sys.prefix) / "share" / "meld"
+ LOCALEDIR = Path(sys.prefix) / "share" / "locale"
+ 
+-CONFIGURED = '@configured@'
++# This strange form is used in order to allow this file to be used both as a Python
++# source file and as a template.
++CONFIGURED = '@configured@' == 'True'
++IS_WHEEL = '@is_wheel@' == 'True'
+ # Treat an unconfigured installation as development
+-PROFILE = "Devel"
++IS_DEVEL = True
+ 
+-if CONFIGURED == 'True':
++if CONFIGURED:
+     APPLICATION_ID = '@application_id@'
+-    DATADIR = '@pkgdatadir@'
++    DATADIR = Path('@pkgdatadir@')
+     LOCALEDIR = '@localedir@'
+-    PROFILE = '@profile@'
+-
++    IS_DEVEL = '@is_devel@' != 'False'
+ # Flag enabling some workarounds if data dir isn't installed in standard prefix
+ DATADIR_IS_UNINSTALLED = False
+ PYTHON_REQUIREMENT_TUPLE = (3, 6)
+@@ -39,7 +41,7 @@ ngettext = no_translation
+ 
+ 
+ def frozen():
+-    global DATADIR, LOCALEDIR, DATADIR_IS_UNINSTALLED
++    global DATADIR, LOCALEDIR, DATADIR_IS_UNINSTALLED, IS_DEVEL
+ 
+     # FIXME: This is duplicating logic in get_meld_dir in bin/meld
+     # Also, we probably don't actually need the non-_MEIPASS branch
+@@ -52,7 +54,7 @@ def frozen():
+ 
+     DATADIR = os.path.join(melddir, "share", "meld")
+     LOCALEDIR = os.path.join(melddir, "share", "mo")
+-    PROFILE = ""
++    IS_DEVEL = False
+ 
+ 
+ def uninstalled():
+@@ -78,3 +80,15 @@ def setup_macos_application_bundle():
+     DATADIR = share_dir / "meld"
+     LOCALEDIR = share_dir / "locale"
+     DATADIR_IS_UNINSTALLED = False
++
++
++def setup_wheel():
++    global APPLICATION_ID, DATADIR, LOCALEDIR, DATADIR_IS_UNINSTALLED, IS_DEVEL
++
++    melddir = Path(__file__).resolve().parent
++
++    APPLICATION_ID = '@application_id@'
++    DATADIR = melddir / "share" / "meld"
++    LOCALEDIR = melddir / "share" / "locale"
++    DATADIR_IS_UNINSTALLED = True
++    IS_DEVEL = False
+diff --git a/meld/meldwindow.py b/meld/meldwindow.py
+index 18f98917..aa11d47b 100644
+--- a/meld/meldwindow.py
++++ b/meld/meldwindow.py
+@@ -23,7 +23,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk
+ # Import support module to get all builder-constructed widgets in the namespace
+ import meld.ui.gladesupport  # noqa: F401
+ import meld.ui.util
+-from meld.conf import PROFILE, _
++from meld.conf import IS_DEVEL, _
+ from meld.const import (
+     FILE_FILTER_ACTION_FORMAT,
+     TEXT_FILTER_ACTION_FORMAT,
+@@ -116,7 +116,7 @@ class MeldWindow(Gtk.ApplicationWindow):
+         self.scheduler = LifoScheduler()
+         self.scheduler.connect("runnable", self.on_scheduler_runnable)
+ 
+-        if PROFILE != '':
++        if IS_DEVEL:
+             style_context = self.get_style_context()
+             style_context.add_class("devel")
+ 
+diff --git a/meld/meson.build b/meld/meson.build
+index 5a5ee6c1..0e12316e 100644
+--- a/meld/meson.build
++++ b/meld/meson.build
+@@ -86,15 +86,23 @@ foreach folder_name, sources: folders
+   python3.install_sources(sources, pure: true, subdir: pkgdir)
+ endforeach
+ 
+-# Install the executable file
+-app_config = {
+-  'profile': profile,
+-  'application_id': application_id,
+-  'resource_base_id': resource_base_id,
+-  'localedir': prefix / localedir,
+-  'pkgdatadir': prefix / pkgdatadir,
+-  'configured': 'True',
+-}
++if not is_wheel
++  app_config = {
++    'application_id': application_id,
++    'localedir': prefix / localedir,
++    'pkgdatadir': prefix / pkgdatadir,
++    'configured': 'True',
++    'is_wheel': 'False',
++    'is_devel': (is_devel ? 'True' : 'False'),
++  }
++else
++  app_config = {
++    'application_id': application_id,
++    'configured': 'False',
++    'is_wheel': 'True',
++    'is_devel': (is_devel ? 'True' : 'False'),
++  }
++endif
+ 
+ configure_file(
+   input: 'conf.py.in',
+diff --git a/meson.build b/meson.build
+index b82cf72e..a1694b52 100644
+--- a/meson.build
++++ b/meson.build
+@@ -24,19 +24,26 @@ dependency('gtksourceview-4', version: '>= 4.0.0')
+ dependency('pygobject-3.0', version: '>= 3.30')
+ dependency('py3cairo', version: '>= 1.15.0')
+ 
+-profile = get_option('profile')
+-name_suffix = (profile == 'Devel' ? ' (Development Snapshot)' : '')
++is_devel = get_option('profile') == 'Devel'
++name_suffix = (is_devel ? ' (Development Snapshot)' : '')
+ 
+ resource_base_id = 'org.gnome.Meld'
+ application_id_no_profile = 'org.gnome.Meld'
+-application_id = (profile == 'Devel' ? application_id_no_profile + '.' + profile : application_id_no_profile)
++application_id = (is_devel ? application_id_no_profile + '.Devel' : application_id_no_profile)
++
++is_wheel = get_option('is_wheel')
+ 
+ prefix = get_option('prefix')
+ 
+ bindir = get_option('bindir')
+-datadir = get_option('datadir')
+-localedir = get_option('localedir')
+-mandir = get_option('mandir')
++
++if not is_wheel
++  datadir = get_option('datadir')
++  localedir = get_option('localedir')
++else
++  datadir = python3.get_install_dir(pure: true, subdir: meson.project_name()) / 'share'
++  localedir = datadir / 'locale'
++endif
+ 
+ icondir = datadir / 'icons'
+ pkgdatadir = datadir / meson.project_name()
+@@ -55,7 +62,11 @@ install_data('COPYING', install_dir: pkgdatadir)
+ subdir('bin')
+ subdir('meld')
+ subdir('data')
+-subdir('help')
++if not is_wheel
++  # gnome.yelp() doesn't have an option to set the install dir,
++  # so it can't be used to install in the wheel.
++  subdir('help')
++endif
+ subdir('po')
+ 
+ gnome.post_install(
+diff --git a/meson_options.txt b/meson_options.txt
+index 68c2738e..f46bb70e 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -4,3 +4,9 @@ option(
+   choices: ['', 'Devel'],
+   description: 'Build with specified application ID',
+ )
++option(
++  'is_wheel',
++  type: 'boolean',
++  value: false,
++  description: 'Is the build intended to produce a Python wheel',
++)
+diff --git a/meson_shebang_normalisation.py b/meson_shebang_normalisation.py
+index e126d8fb..3d35db27 100755
+--- a/meson_shebang_normalisation.py
++++ b/meson_shebang_normalisation.py
+@@ -7,12 +7,13 @@ import sys
+ def main():
+     in_path = pathlib.Path(sys.argv[1])
+     out_path = pathlib.Path(sys.argv[2])
++    python_path = sys.argv[3]
+     if not in_path.exists():
+         print(f"Couldn't find {in_path}")
+         sys.exit(1)
+ 
+     lines = in_path.read_text().splitlines(keepends=True)
+-    lines[0] = "".join(lines[0].split("env "))
++    lines[0] = "#!" + python_path + "\n"
+     out_path.write_text("".join(lines))
+ 
+     stat = in_path.stat()
+diff --git a/po/meson.build b/po/meson.build
+index daed9fd5..42703175 100644
+--- a/po/meson.build
++++ b/po/meson.build
+@@ -1 +1 @@
+-i18n.gettext(meson.project_name(), preset: 'glib', data_dirs: itsdir)
++i18n.gettext(meson.project_name(), preset: 'glib', data_dirs: itsdir, install_dir: localedir)
+diff --git a/pyproject.toml b/pyproject.toml
+index 2f3e1734..51bf60b1 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,8 +1,10 @@
+ [build-system]
+ build-backend = "mesonpy"
+ requires = [
+-    "meson-python>=0.5.0",
+-    "wheel",
++    "meson-python == 0.19.0",
++    # We currently depend on this PR to meson: https://github.com/mesonbuild/meson/pull/15494
++    # Once it's released, we should set this to the released version.
++    "meson @ git+https://github.com/dnicolodi/meson.git@i18n-install-dir",
+ ]
+ 
+ [project]
+@@ -21,6 +23,8 @@ maintainers = [
+ ]
+ requires-python = ">=3.10"
+ dependencies = [
++    "pycairo==1.29.0",
++    "pygobject==3.38.0",
+ ]
+ readme = "README.md"
+ classifiers = [
+@@ -47,6 +51,9 @@ source = "https://gitlab.gnome.org/GNOME/meld/-/tree/main"
+ download = "https://gitlab.gnome.org/GNOME/meld/-/releases"
+ tracker = "https://gitlab.gnome.org/GNOME/meld/-/issues"
+ 
++[tool.meson-python.args]
++setup = ['-Dis_wheel=true']
++
+ [tool.ruff.lint]
+ select = ["E4", "E7", "E9", "F", "I"]
+ 
