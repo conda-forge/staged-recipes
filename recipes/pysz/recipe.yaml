@@ -1,0 +1,84 @@
+context:
+  name: pysz
+  version: "1.1.0"
+  sz_version: "3.4.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 52c5b0e66571ac379ca316b47c9c5594dfda6c14eaa59a61314a1872ed1bddf1
+  patches:
+    # Build against conda-forge's sz (SZ3) headers and zstd instead of cloning and building SZ3 with its bundled zstd.
+    - use-installed-sz3.patch
+
+build:
+  number: 0
+  script:
+    # The patched setup.py takes SZ3's headers and zstd from this prefix.
+    - if: win
+      then: set "PYSZ_SZ3_PREFIX=%LIBRARY_PREFIX%"
+      else: export PYSZ_SZ3_PREFIX="$PREFIX"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - cython
+        - numpy
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools >=61.0
+    - cython >=3.0.10
+    - numpy
+    # Header-only use: the extension compiles SZ3 in and links only zstd.
+    - sz ==${{ sz_version }}
+    - zstd
+  run:
+    - python
+  ignore_run_exports:
+    from_package:
+      - sz
+
+tests:
+  - python:
+      imports:
+        - pysz
+      pip_check: true
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+    script:
+      - pytest -v tests
+      - python -c "import numpy as np, pysz; d = np.random.rand(8, 8, 128).astype(np.float32); c = pysz.szConfig(); c.errorBoundMode = pysz.szErrorBoundMode.ABS; c.absErrorBound = 1e-3; z, r = pysz.sz.compress(d, c); o, _ = pysz.sz.decompress(z, np.float32, d.shape); e = float(np.abs(d - o).max()); print('ratio', r, 'max error', e); assert e <= 1e-3"
+
+about:
+  homepage: https://github.com/szcompressor/SZ3
+  summary: 'Python interface for SZ3: an error-bounded lossy compressor for scientific data'
+  description: |
+    pysz provides Python bindings (Cython, NumPy arrays) for SZ3, a modular
+    error-bounded lossy compressor for floating-point and integer scientific
+    data.
+  license: LicenseRef-SZ3-BSD
+  license_file:
+    - LICENSE
+  documentation: https://github.com/szcompressor/SZ3/tree/master/tools/pysz
+  repository: https://github.com/szcompressor/SZ3
+
+extra:
+  recipe-maintainers:
+    - ayzk
+    - robertu94
+    - disheng222
