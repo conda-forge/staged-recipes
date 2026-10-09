@@ -1,0 +1,219 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.9.2"
+  summary: Open Source SysML v2 Implementation in Go
+  # platform
+  export: ${{ "export" if unix else "set" }}
+  env_src_dir: ${{ "${SRC_DIR}" if unix else "%SRC_DIR%" }}
+  # go
+  go_mod: github.com/Open-MBEE/OpenSysML
+  go_ld_flags: -s -w -X main.Version=${{ version }}
+  go_build: go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
+  go_cli_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "${PREFIX}/bin/sysml" }}
+  go_grpc_bin: ${{ "%LIBRARY_BIN%\\sysml-grpc.exe" if win else "${PREFIX}/bin/sysml-grpc" }}
+  go_lsp_bin: ${{ "%LIBRARY_BIN%\\sysml-lsp.exe" if win else "${PREFIX}/bin/sysml-lsp" }}
+  # python
+  py_dir: ${{ go_mod }}/client/python
+  python_check_max: "3.14"
+  py_grpcio_min: "1.83.0"
+  py_protobuf_min: "7.35.1"
+  # test
+  grep_version_unix: grep -iE "${{ version | replace(".", "\\.") }}$"
+  grep_version_win: |-
+    findstr /r /c:${{ version | replace(".", "\\.") }}
+  grep_version: ${{ grep_version_unix if unix else grep_version_win }}
+
+recipe:
+  name: opensysml
+  version: ${{ version }}
+
+source:
+  url: https://${{ go_mod }}/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6bd27d86544a9896d05ce99c38a3f71a1f9a0b89a353d64767e189d50168c5a3
+  target_directory: ${{ go_mod }}
+  patches:
+    - 0000-conda-sysml-grpc-path.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: opensysml
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        content:
+          - ${{ export }} "GOPATH=${{ env_src_dir }}"
+          - cd ${{ go_mod }}/cmd/sysml
+          - ${{ go_build }} -o "${{ go_cli_bin }}"
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - sysml
+      - script:
+          - sysml --help
+          - sysml --version
+          - sysml --version | ${{ grep_version }}
+    about:
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - library_licenses/**
+
+  - package:
+      name: opensysml-grpc
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        content:
+          - ${{ export }} "GOPATH=${{ env_src_dir }}"
+          - cd ${{ go_mod }}/cmd/sysml-grpc
+          - ${{ go_build }} -o "${{ go_grpc_bin }}"
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+          - cd "${{ RECIPE_DIR }}"
+          - if: unix
+            then:
+              - mkdir -p "${PREFIX}/etc/conda/env_vars.d"
+              - |-
+                echo "{\"OPENSYSML_BINARY\": \"${PREFIX}/bin/sysml-grpc\"}" > "${PREFIX}/etc/conda/env_vars.d/opensysml-grpc.json"
+            else:
+              - mkdir "%PREFIX%\etc\conda\env_vars.d"
+              - |-
+                echo {"OPENSYSML_BINARY": "%PREFIX%\\Library\\bin\\sysml-grpc.exe"} > "%PREFIX%\\etc\\conda\\env_vars.d\\opensysml-grpc.json"
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - etc/conda/env_vars.d/opensysml-grpc.json
+          bin:
+            - sysml-grpc
+      - script:
+          - sysml-grpc --help
+          - sysml-grpc --version
+          - sysml-grpc --version | ${{ grep_version }}
+    about:
+      summary: ${{ summary }} - GRPC server
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - library_licenses/
+
+  - package:
+      name: opensysml-lsp
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        content:
+          - ${{ export }} "GOPATH=${{ env_src_dir }}"
+          - cd ${{ go_mod }}/cmd/sysml-lsp
+          - ${{ go_build }} -o "${{ go_lsp_bin }}"
+          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - sysml-lsp
+      - script:
+          - sysml-lsp --help
+          - sysml-lsp --version
+          - sysml-lsp --version | ${{ grep_version }}
+    about:
+      summary: ${{ summary }} - Language Server
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - library_licenses/
+
+  - package:
+      name: opensysml-python
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - opensysml-generate = opensysml.generate:main
+          - opensysml-fmi-runner = opensysml.fmi_runner:main
+      script:
+        - cd ${{ py_dir }}
+        - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
+    requirements:
+      host:
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools >=77
+      run:
+        - grpcio >=${{ py_grpcio_min }}
+        - protobuf >=${{ py_protobuf_min }}
+        - python >=${{ python_min }}
+        - sigstore >=4.5.0,<5
+        # conda-forge baseline instead of runtime downloading
+        - ${{ pin_subpackage("opensysml-grpc", upper_bound="x.x.x") }}
+        # not appearing in `pyproject.toml`, but is tested behind a `which`
+        - z3-solver >=4.8.12
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - etc/conda/test-files/opensysml-python/**
+          site_packages:
+            - opensysml/**
+            - opensysml-${{ version }}.dist-info/**
+      - python:
+          imports: opensysml
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - files:
+          source:
+            - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.golden.html
+            - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.golden.md
+            - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.sysml
+            - ${{ go_mod }}/internal/doc/docrender/testdata/verdict_report.sysml
+            - ${{ go_mod }}/internal/frontend/repl/testdata/vehicle_package.sysml
+            - ${{ go_mod }}/tests/grpc/testdata/conformance/document_query_object_by_path.sysml
+            - ${{ go_mod }}/tests/grpc/testdata/conformance/document_query_states.sysml
+            - ${{ py_dir }}/pyproject.toml
+            - ${{ py_dir }}/tests/**
+        requirements:
+          run:
+            - grpcio-tools ${{ py_grpcio_min }}.*
+            - psutil >=5.9.0
+            - pytest-cov >=5.0.0
+            - pytest-mock >=3.10.0
+            - pandas
+            # check minimum pins more aggressively...
+            - grpcio ${{ py_grpcio_min }}.*
+            - protobuf ${{ py_protobuf_min }}.*
+            # ... with a manual pip check
+            - pip
+            - python ${{ python_min }}.*
+        script:
+          env:
+            CF_OPENSYSML_PY_TEST_ROOT: ${{ py_dir }}
+          file: test-opensysml-python.py
+    about:
+      summary: Python client library for OpenSysML, a SysML v2 parser and execution runtime
+      homepage: https://pypi.org/project/opensysml
+
+about:
+  summary: ${{ summary }}
+  homepage: https://opensysml.org
+  license: Apache-2.0
+  license_file: ${{ go_mod }}/LICENSE
+  repository: https://github.com/Open-MBEE/OpenSysML
+
+extra:
+  feedstock-name: opensysml
+  recipe-maintainers:
+    - bollwyvl
