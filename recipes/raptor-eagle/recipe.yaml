@@ -1,0 +1,109 @@
+schema_version: 1
+
+context:
+  name: raptor-eagle
+  version: "0.4.1"
+  aether_version: "0.2.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# The eagle repository holds both the C++ headers the Python package builds
+# against and the Python package itself (in python/). aether supplies the
+# numeric headers underneath.
+source:
+  - url: https://github.com/amasat01/eagle/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 2145a2a9516dcde4e2371482675f1192f2a79ae215e4df6e2978d4702732ee6b
+  - url: https://github.com/amasat01/aether/archive/refs/tags/v${{ aether_version }}.tar.gz
+    sha256: 97f80cd64f3bd383a045e5d372968e00be731932c4bfa7c6b2bbc40b0dcab76a
+    target_directory: _sib/aether
+
+# One build serves every machine: eagle._core is plain C++, and the CUDA
+# backend (eagle/libeagle_cuda.so) links neither cudart nor libcuda. It finds
+# the NVIDIA driver at run time, so the same package runs on CPU-only
+# machines and under CUDA 12 or 13 drivers. It is built with CUDA 12.9, the
+# newest toolkit that still compiles for Pascal and Volta, with PTX for newer
+# GPUs.
+build:
+  number: 0
+  skip:
+    - not linux
+    - cuda_compiler_version != "12.9"
+  script:
+    content:
+      - export CMAKE_GENERATOR=Ninja
+      - export SIB_PREFIX="$SRC_DIR/_sib/prefix"
+      - cmake -S "$SRC_DIR/_sib/aether" -B "$SRC_DIR/_sib/aether-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=61
+      - cmake --install "$SRC_DIR/_sib/aether-build"
+      - cmake -S "$SRC_DIR" -B "$SRC_DIR/_sib/eagle-build" -DCMAKE_INSTALL_PREFIX="$SIB_PREFIX" -DCMAKE_PREFIX_PATH="$SIB_PREFIX" -DCMAKE_CUDA_ARCHITECTURES=61
+      - cmake --install "$SRC_DIR/_sib/eagle-build"
+      - export CMAKE_PREFIX_PATH="$SIB_PREFIX:$PREFIX"
+      # conda-forge ships libstdcxx: link it dynamically instead of bundling it
+      - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation -Ccmake.define.EAGLE_STATIC_LIBSTDCXX=OFF -Ccmake.define.EAGLE_PYTHON_MPI=OFF
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    - nanobind >=2.0
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-driver-dev
+  run:
+    - python
+    - numpy
+    - raptor-core >=0.2.0,<0.3
+  run_constraints:
+    # the optional GPU route for CuPy arrays
+    - cupy >=13.6
+  # The CUDA backend has no CUDA runtime dependency (see above), so the
+  # toolkit's cuda-version pin does not apply to the package.
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('cuda') }}
+      - cuda-version
+      - cuda-cudart-dev
+
+tests:
+  - python:
+      imports:
+        - eagle
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        # the example writes its kernel with hawk, which compiles it for the
+        # host with a C++23 compiler at run time
+        - raptor-hawk
+        - gxx
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://github.com/amasat01/eagle
+  repository: https://github.com/amasat01/eagle
+  documentation: https://amasat01.github.io/eagle/
+  summary: Runs per-sample kernels on CPU and GPU, with precise control
+  description: |
+    eagle launches per-sample kernels on CPU threads (OpenMP) or NVIDIA GPUs,
+    with graph capture and host/device dual mode. The GPU route needs only an
+    NVIDIA driver; install cupy to pass CuPy arrays. The import name is
+    `eagle`. Part of the RAPTOR family.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - amasat01
