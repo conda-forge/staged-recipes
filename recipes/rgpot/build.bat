@@ -1,0 +1,62 @@
+@echo on
+setlocal EnableDelayedExpansion
+
+REM Flang emits COFF objects that MSVC link.exe accepts, but flang's
+REM llvm-ar wraps them in GNU archives (LNK1107). Force MSVC lib.exe via
+REM AR and the meson native file (same as upstream win-flang-msvc.ini).
+set "AR=lib"
+
+REM flang COFF objects embed /DEFAULTLIB:FortranRuntime.dynamic.lib;
+REM put the compiler's Library\lib on LIB so link.exe can resolve it.
+if defined BUILD_PREFIX (
+  if exist "%BUILD_PREFIX%\Library\lib" set "LIB=%BUILD_PREFIX%\Library\lib;%LIB%"
+)
+if defined PREFIX (
+  if exist "%PREFIX%\Library\lib" set "LIB=%PREFIX%\Library\lib;%LIB%"
+)
+if defined BUILD_PREFIX (
+  if exist "%BUILD_PREFIX%\Library\bin\lib.exe" set "AR=%BUILD_PREFIX%\Library\bin\lib.exe"
+)
+
+REM Cap'n Proto RPC: WIN32_LEAN_AND_MEAN fix is in 0002-win32-capnp-lean-mean.patch
+REM (OmniPotentRPC/rgpot#61). Fortran pots enabled with ar=lib as above.
+REM MESON_ARGS already sets buildtype/prefix/libdir.
+meson setup builddir %MESON_ARGS% --native-file="%RECIPE_DIR%\win-flang-msvc.ini" -Dwith_rpc=true -Dwith_fortran_pots=enabled -Dwith_eigen=true -Dpure_lib=false -Dwith_cache=false -Dwith_tests=false -Dwith_examples=false
+REM meson reports "compiler cannot compile programs" without saying why;
+REM the reason is in its own log, which the CI transcript never shows.
+if errorlevel 1 (
+  if exist builddir\meson-logs\meson-log.txt type builddir\meson-logs\meson-log.txt
+  exit 1
+)
+
+meson compile -C builddir -j %CPU_COUNT%
+if errorlevel 1 exit 1
+
+meson install -C builddir
+if errorlevel 1 exit 1
+
+REM The frontend classes live in rgpot-3.dll. The import library lists
+REM them only when the defining objects were built dllexport.
+set "RGPOT_DLL=%PREFIX%\Library\bin\rgpot-3.dll"
+if not exist "%RGPOT_DLL%" exit 1
+dumpbin /EXPORTS "%RGPOT_DLL%" > "%TEMP%\rgpot-exports.txt"
+if errorlevel 1 exit 1
+findstr CPMDPot "%TEMP%\rgpot-exports.txt" >nul
+if errorlevel 1 (
+  echo rgpot-3.dll does not export CPMDPot
+  type "%TEMP%\rgpot-exports.txt"
+  exit 1
+)
+findstr NWChemPot "%TEMP%\rgpot-exports.txt" >nul
+if errorlevel 1 (
+  echo rgpot-3.dll does not export NWChemPot
+  type "%TEMP%\rgpot-exports.txt"
+  exit 1
+)
+
+REM A consumer translation unit includes the installed headers and
+REM links the two frontend methods.
+cl /nologo /EHsc /std:c++20 /I"%PREFIX%\Library\include" "%RECIPE_DIR%\link_smoke.cpp" /Fe:rgpot-link-smoke.exe /link /LIBPATH:"%PREFIX%\Library\lib" rgpot.lib
+if errorlevel 1 exit 1
+rgpot-link-smoke.exe
+if errorlevel 1 exit 1
