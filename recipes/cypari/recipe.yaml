@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "2.5.6"
+
+package:
+  name: cypari
+  version: ${{ version }}
+
+source:
+  # PyPI ships wheels only, with no sdist, so use the release tag.
+  url: https://github.com/3-manifolds/CyPari/archive/refs/tags/${{ version }}_as_released.tar.gz
+  sha256: af9d411e24351e21df8d2d9397ff6e97f134b8a9830c22e4e3fd8e78824b5229
+  patches:
+    # conda-forge has no static libgmp, so link the shared one. PARI is still
+    # linked statically from the host prefix.
+    - patches/0001-link-shared-gmp.patch
+    # cypari 2.5.6 cannot be cythonised by Cython 3.1 or newer: _pari.pyx
+    # line 1 is missing the leading # on its directive comment, and the
+    # sources still use the removed python 2 cpython.int API. The gen.pyx
+    # part is upstream master's (commits f231925 and d6cb914): drop the python
+    # 2 __cmp__ and __long__, rename __nonzero__ to __bool__, and update the
+    # hex() doctests, which newer Cython now collects. Newer Cython is needed
+    # for python 3.14. See https://github.com/3-manifolds/CyPari/issues/8
+    - patches/0002-cython-3.1-compat.patch
+
+build:
+  number: 0
+  skip:
+    # Upstream builds Windows wheels with the msys2 ucrt64 mingw toolchain,
+    # which does not map onto the MSVC toolchain conda-forge uses on win.
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - cython >=3.1
+  host:
+    - python
+    - pip
+    - setuptools
+    - wheel
+    # cypari 2.5.6 was released against cython ==3.0.11, which crashes at
+    # interpreter exit on python 3.14 and truncates PARI error text on linux.
+    # Upstream master now pins cython ==3.2.3. See
+    # https://github.com/3-manifolds/CyPari/issues/6 and
+    # https://github.com/3-manifolds/CyPari/issues/8
+    - cython >=3.1
+    # cypari 2.5.6 targets PARI 2.15 and miscomputes against 2.17: its own
+    # doctests report 72 failures out of 2454 on 2.17.3 and 0 on 2.15.4,
+    # including pari.pi() returning 3.14159265358973. Keep this pinned until
+    # upstream supports the newer precision handling.
+    - pari 2.15.*
+    - gmp
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - cypari
+      pip_check: true
+  # Upstream's own doctest suite. Built with cython 3.0.11 it fails one
+  # doctest on linux (PariError.errtext loses its last character) and
+  # segfaults at exit on python 3.14; both go away with cython >=3.1. See
+  # https://github.com/3-manifolds/CyPari/issues/6 and
+  # https://github.com/3-manifolds/CyPari/issues/8
+  - script:
+      - python -m cypari.test
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://github.com/3-manifolds/CyPari
+  license: GPL-2.0-or-later
+  # Upstream ships no license file in the tag or in the wheels, so this is the
+  # canonical GPL-2.0 text carried in the recipe. The grant itself is upstream:
+  # 15 source files, for example cypari/gen.pyx, carry "GNU General Public
+  # License ... either version 2 of the License, or (at your option) any later
+  # version" alongside the copyright holders. Reported upstream at
+  # https://github.com/3-manifolds/CyPari/issues/5; point license_file at their
+  # file once it exists.
+  license_file: LICENSE
+  summary: Sage's PARI extension, modified to stand alone
+  description: |
+    CyPari is a stand alone version of the PARI extension module from
+    SageMath. It provides a Python interface to the PARI library for
+    computational number theory, without requiring a SageMath installation.
+  repository: https://github.com/3-manifolds/CyPari
+
+extra:
+  recipe-maintainers:
+    - killua156
