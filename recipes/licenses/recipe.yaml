@@ -1,0 +1,58 @@
+schema_version: 1
+
+context:
+  version: "0.9.0"
+
+package:
+  name: licenses
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/git-pkgs/licenses/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 94eebfd197a3f1789473e54081bbee8d39e3f8c7b64ea6fac36856da47acdc27
+  - url: https://raw.githubusercontent.com/spdx/license-list-data/v3.29.0/text/CC-BY-4.0.txt
+    sha256: d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744
+    file_name: LICENSE-CC-BY-4.0.txt
+
+build:
+  number: 0
+  script:
+    - go-licenses save ./cmd/licenses --save_path library_licenses
+    - if: unix
+      then:
+        - go build -v -o ${{ PREFIX }}/bin/licenses -ldflags="-s -w -X main.version=${{ version }}" ./cmd/licenses
+      else:
+        - go build -v -o %PREFIX%\bin\licenses.exe -ldflags="-s -w -X main.version=${{ version }}" ./cmd/licenses
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - licenses -version
+  - package_contents:
+      bin:
+        - licenses
+
+about:
+  homepage: https://github.com/git-pkgs/licenses
+  repository: https://github.com/git-pkgs/licenses
+  license: MIT AND CC-BY-4.0 AND Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+    - LICENSE-CC-BY-4.0.txt
+    - library_licenses/
+  summary: Fast license detection and repository scanning against ScanCode's rule corpus
+  description: |
+    licenses detects the license of a file or a whole repository by matching
+    its text against the ScanCode rule corpus, which ships embedded so no
+    network access or external data directory is needed. It reports SPDX
+    identifiers with the matched text and evidence, and is usable as a Go
+    library or from the command line.
+
+extra:
+  recipe-maintainers:
+    - killua156
