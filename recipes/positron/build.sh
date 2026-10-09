@@ -15,6 +15,19 @@ export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include"
 export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
+# The source tarballs are not git checkouts, but positron's install scripts query
+# git for the ark/ai-lib submodules (version labels) and init them if .git is
+# missing. Give each a minimal local repo so those calls succeed offline.
+git_snapshot() {
+  git -C "$1" init -q
+  git -C "$1" add -A
+  git -C "$1" -c user.name=conda-forge -c user.email=conda-forge@users.noreply.github.com \
+    commit -q --no-verify -m "source snapshot"
+}
+git_snapshot extensions/positron-r/ark
+git_snapshot ai-lib
+git_snapshot .
+
 # --- Rust components, built from source instead of downloading prebuilds ---
 
 # Ark (R kernel): install-kernel.ts picks up a local build at ark/target/release/ark
@@ -45,7 +58,8 @@ cp _bin/bin/pet extensions/positron-python/python-env-tools/
 printf '%s' "${PET_VERSION}" > extensions/positron-python/resources/pet/VERSION
 
 # --- Positron ---
-npm ci --no-audit --no-fund
+# CI=1 makes postinstall skip syncing submodules against their remotes
+CI=1 npm ci --no-audit --no-fund
 npm run gulp core-ci
 npm run gulp vscode-linux-x64-min-ci
 
