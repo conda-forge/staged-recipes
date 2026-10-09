@@ -1,0 +1,62 @@
+Allow using an external (system) CRCpp header instead of the bundled copy.
+
+libE57Format vendors CRCpp in extern/CRCpp/inc. Conda-forge prefers unvendoring,
+so add an E57_USE_EXTERNAL_CRCPP option that points the private include directory
+at an external CRC.h instead. Default is OFF, preserving upstream behaviour.
+
+--- a/extern/CRCpp/CMakeLists.txt
++++ b/extern/CRCpp/CMakeLists.txt
+@@ -3,18 +3,45 @@
+ 
+ # CRCpp from here: https://github.com/d-bahr/CRCpp
+ 
++option( E57_USE_EXTERNAL_CRCPP
++	"Use an external CRCpp (CRC.h) instead of the bundled copy in extern/CRCpp/inc"
++	OFF
++)
++
+ target_compile_definitions( ${PROJECT_NAME}
+     PRIVATE
+         CRCPP_USE_CPP11
+         CRCPP_BRANCHLESS
+     )
+ 
+-target_sources( ${PROJECT_NAME}
+-	PRIVATE
+-	    inc/CRC.h
+-)
++if ( E57_USE_EXTERNAL_CRCPP )
++	find_path( CRCPP_INCLUDE_DIR
++		NAMES CRC.h
++		DOC "Directory containing the CRCpp header (CRC.h)"
++	)
+ 
+-target_include_directories( ${PROJECT_NAME}
+-	PRIVATE
+-	    inc
+-)
++	if ( NOT CRCPP_INCLUDE_DIR )
++		message( FATAL_ERROR
++			"[${PROJECT_NAME}] E57_USE_EXTERNAL_CRCPP is ON but CRC.h could not be found. Set CRCPP_INCLUDE_DIR."
++		)
++	endif()
++
++	message( STATUS "[${PROJECT_NAME}] Using external CRCpp: ${CRCPP_INCLUDE_DIR}" )
++
++	target_include_directories( ${PROJECT_NAME}
++		PRIVATE
++		    ${CRCPP_INCLUDE_DIR}
++	)
++else()
++	message( STATUS "[${PROJECT_NAME}] Using bundled CRCpp" )
++
++	target_sources( ${PROJECT_NAME}
++		PRIVATE
++		    inc/CRC.h
++	)
++
++	target_include_directories( ${PROJECT_NAME}
++		PRIVATE
++		    inc
++	)
++endif()
