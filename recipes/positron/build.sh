@@ -6,6 +6,7 @@ export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 export NPM_CONFIG_AUDIT=false
 export NPM_CONFIG_FUND=false
 export NPM_CONFIG_UPDATE_NOTIFIER=false
+export npm_config_arch=x64
 export NODE_OPTIONS="--max-old-space-size=6144"
 # upstream build number, e.g. 2026.10.0.297 -> 297
 export POSITRON_BUILD_NUMBER="${PKG_VERSION##*.}"
