@@ -13,10 +13,12 @@ export POSITRON_BUILD_NUMBER="${PKG_VERSION##*.}"
 export npm_config_python="${BUILD_PREFIX}/bin/python"
 export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include"
 export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
-# postinstall builds build/ natives with plain CC=gcc / CXX=g++; point those at conda's toolchain
+# postinstall builds some native modules with plain gcc/g++/cc/c++; point those at conda's toolchain
 mkdir -p "${SRC_DIR}/_shims"
 ln -sf "$(command -v "${CC}")" "${SRC_DIR}/_shims/gcc"
 ln -sf "$(command -v "${CXX}")" "${SRC_DIR}/_shims/g++"
+ln -sf "$(command -v "${CC}")" "${SRC_DIR}/_shims/cc"
+ln -sf "$(command -v "${CXX}")" "${SRC_DIR}/_shims/c++"
 export PATH="${SRC_DIR}/_shims:${PATH}"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
