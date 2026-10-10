@@ -1,10 +1,11 @@
+schema_version: 1
+
 context:
   version: "0.5.0"
-  build_number: 0
-  torch_proc_type: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring if cuda_compiler_version != "None" else "cpu" }}
+  python_min: "3.11"
 
-package:
-  name: openfold
+recipe:
+  name: openfold3-split
   version: ${{ version }}
 
 source:
@@ -12,113 +13,95 @@ source:
   sha256: 6a6f1d18fa96764b5f4613102da359a5b6df9868a16ccf33b10421548d9dc543
 
 build:
-  number: ${{ build_number }}
-  string: ${{ torch_proc_type }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
-  skip:
-    - win
-    - match(python, "3.10.*")
-    - not match(python, "3.11.*")  # reduce matrix while in staged-recipes, since we don't have a feedstock yet
-    # workaround for no disk space in staged_recipes runner with cuda 12.9 at testing time env creation
-    - cuda_compiler_version is defined and cuda_compiler_version != "None" and match(cuda_compiler_version, ">=12,<13")
-  script:
-    content:
-      - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
+  number: 0
 
-requirements:
-  host:
-    - python
-    - pip
-    - setuptools
-    - setuptools-scm >=8
-    - wheel
-  run:
-    - python
-    - numpy
-    - scipy
-    - pandas
-    # --- Machine learning
-    - pytorch * ${{ torch_proc_type }}*
-    - pytorch-lightning <=2.6.1
-    - ml-collections
-    # --- Handling molecules
-    - rdkit <2026  # fix for this should come in next release, see https://github.com/aqlaboratory/openfold-3/issues/285
-    - biotite >=1.6
-    - pdbeccdutils
-    - kalign-python
-    # --- Misc
-    - pyyaml
-    - ijson
-    - memory_profiler
-    - wandb
-    - func_timeout
-    - tqdm
-    - typing-extensions
-    - python-lmdb >=2.2.0
-    # --- Downloading stuff
-    - requests
-    - awscli
-    - awscrt >=0.24
-    - boto3
-    - if: cuda_compiler_version != "None" and target_platform == "linux-64"  # we would need a deepspeed aarch64 package
-      then:
-        - deepspeed >=0.18.7
-        # At the time of writing (May 29, 2026), deepspeed kernels cannot be compiled with CUDA >=13.3
-        - cuda-version <13.3
-        # For the `async_io` deepspeed op
-        - libaio
-        # This is needed when not precompiling non-triton kernels, but bloats the environment
-        # We should explore a way to precompile the kernels in the build step
-        # but that would require some changes in OF3 itself (e.g., manage kernel location for isolation)
-        - ninja
-        - cutlass
-        - cuda-minimal-build
-        - libcusparse-dev
-        - libcublas-dev
-        - libcusolver-dev
-        - libcurand-dev
-
-tests:
-  # OF test suite
-  # Runs out of disk space in staged_recipes for CUDA builds
-  # Reactivate when we create the feedstock
-  - if: cuda_compiler_version == "None"
-    then:
-    - requirements:
-        run:
-          - pytest
-          - pytest-regressions
-          - pytest-vcr
+outputs:
+  # --- Production package: pure Python and without tests
+  - package:
+      name: openfold3
+    build:
+      noarch: python
       files:
-        source:
-          - openfold3/tests/
+        exclude:
+          # the test suite is shipped separately in openfold-tests
+          - "**/site-packages/openfold3/tests"
       script:
-          - if: osx
-            # Fix an upstream problem in the conda package
-            # similar to this: https://github.com/pytorch/pytorch/issues/174680
-            then:
-              - >-
-                chmod +x "$(python -c 'import pathlib, torch;
-                print(pathlib.Path(torch.__file__).parent / "bin" / "torch_shm_manager")')"
-          - >-
-            pytest -vvv openfold3/tests/
-            --durations=0 --durations-min=0
-            -k "not test_inference_load_state_dict_benchmark_under_ten_seconds
-            and not test_colabfold_msa_server
-            and not test_model_checkpoint
-            and not test_model_runner
-            and not test_entry_points
-            and not test_of3_model
-            and not test_diffusion_module
-            and not test_pdb_tetrapyrrole_chain_resolves"
-  - script:
-      - run_openfold --help
-  - python:
-      imports:
-        - openfold3
-        # some more meaningful imports
-        - openfold3.core.metrics.model_selection
-        - openfold3.core.model.primitives.activations
-      pip_check: true
+        - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
+      python:
+        entry_points:
+          - run_openfold = openfold3.run_openfold:cli
+          - setup_openfold = openfold3.setup_openfold:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - setuptools-scm >=8
+        - wheel
+      run:
+        # The conda artifact is noarch, but upstream does not support Windows.
+        - __unix
+        - python ${{ python_min }}.*
+        - numpy
+        - scipy
+        - pandas
+        # --- Machine learning
+        - pytorch
+        - pytorch-lightning <=2.6.1
+        - ml-collections
+        # --- Handling molecules
+        - rdkit <2026  # fix for this should come in next release, see https://github.com/aqlaboratory/openfold-3/issues/285
+        - biotite >=1.6
+        - pdbeccdutils
+        - kalign-python
+        # --- Misc
+        - pyyaml
+        - ijson
+        - memory_profiler
+        - wandb
+        - func_timeout
+        - tqdm
+        - typing-extensions
+        - python-lmdb >=2.2.0
+        # --- Downloading stuff
+        - requests
+        - awscli
+        - awscrt >=0.24
+        - boto3
+    tests:
+       - package_contents:
+           bin:
+             - run_openfold
+             - setup_openfold
+           site_packages:
+             - openfold3
+           files:
+             not_exists:
+               # Verify that production contains no installed test suite.
+               - "**/site-packages/openfold3/tests"
+               # Verify that the production package contains no native modules.
+               - "**/site-packages/openfold3/**/*.so"
+               - "**/site-packages/openfold3/**/*.dylib"
+               - "**/site-packages/openfold3/**/*.pyd"
+       - python:
+          imports:
+            - openfold3
+            - openfold3.core.metrics.model_selection
+            - openfold3.core.model.primitives.activations
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - 3.12.*
+            - 3.13.*
+            - 3.14.*
+       - requirements:
+           run:
+             - pytorch * cpu*
+         script:
+           - run_openfold --help
+           - setup_openfold --help
+           # make sure the test suite is not shipped
+           - python -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('openfold3.tests') is not None)"
 
 about:
   homepage: https://openfold.io
