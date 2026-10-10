@@ -36,6 +36,8 @@ git_snapshot() {
 }
 git_snapshot extensions/positron-r/ark
 git_snapshot ai-lib
+# postinstall also runs `git add --renormalize` at the root
+git_snapshot .
 
 # --- Rust components, built from source instead of downloading prebuilds ---
 
