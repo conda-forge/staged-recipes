@@ -1,0 +1,136 @@
+schema_version: 1
+
+context:
+  name: positron
+  tag: "2026.10.0-297"
+  version: ${{ tag | replace("-", ".") }}
+  # pinned in positron's git submodules / extension package.json files
+  ark_commit: f1af004c41dcc9c00505529699823a4bd7191da1
+  ai_lib_commit: 5f17b7fb69f0eeb4f302df4c50aa372999caeef5
+  kallichore_version: "0.1.71"
+  # release/2026.12 branch of microsoft/python-environment-tools
+  pet_version: "2026.12"
+  pet_commit: 89bf1c02290e09413e745cbbb0194bc50491bf0d
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/posit-dev/positron/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: 4d2217de39623b0b76c6372490e501663b25ffab345f377e8c60b29871e0bc4a
+    patches:
+      # use conda-forge's quarto; drop proprietary @github/copilot platform binaries
+      - 0001-skip-bundled-quarto-and-copilot-binaries.patch
+  - url: https://github.com/posit-dev/ark/archive/${{ ark_commit }}.tar.gz
+    sha256: 3d67df7f7728a610aebe7af5a619908a3b6ced772a60b98be14c9b922106580f
+    target_directory: extensions/positron-r/ark
+  - url: https://github.com/posit-dev/ai-lib/archive/${{ ai_lib_commit }}.tar.gz
+    sha256: 47aa16a54244abdc2a44ffe06f0ba87a966b165a0591e25b3b1c36c73b3bfcd6
+    target_directory: ai-lib
+  - url: https://github.com/posit-dev/kallichore/archive/refs/tags/${{ kallichore_version }}.tar.gz
+    sha256: 98c105f6a15dc1da352a7337117c125bd17179e081008e57fdaff4a911eb8047
+    target_directory: _kallichore
+  - url: https://github.com/microsoft/python-environment-tools/archive/${{ pet_commit }}.tar.gz
+    sha256: d21a6a65b480e034992042dda8c1f2982fc3e0a49ba2a5e47e301f8a22a99e9c
+    target_directory: _pet
+
+build:
+  number: 0
+  # linux-64 first; other platforms to follow
+  skip:
+    - not (linux and x86_64)
+  script:
+    file: build.sh
+    env:
+      KALLICHORE_VERSION: ${{ kallichore_version }}
+      PET_VERSION: ${{ pet_version }}
+  # Electron and Chromium bundle their own copies of several libraries
+  prefix_detection:
+    ignore_binary_files: true
+  dynamic_linking:
+    binary_relocation: false
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - nodejs 24.18.*
+    - python 3.12.*
+    - pip
+    - setuptools
+    - unzip
+    - make
+    - pkg-config
+    - git
+  host:
+    - libsecret
+    - krb5
+    - xorg-libx11
+    - xorg-xorgproto
+    - libxkbfile
+    - glib
+    - unixodbc
+  run:
+    - __glibc >=2.28
+    - libsecret
+    - krb5
+    - xorg-libx11
+    - libxkbfile
+    - xorg-libxcomposite
+    - xorg-libxdamage
+    - xorg-libxext
+    - xorg-libxfixes
+    - xorg-libxrandr
+    - xorg-libxcb
+    - libxkbcommon
+    - gtk3
+    - nss
+    - nspr
+    - alsa-lib
+    - libdrm
+    - libgbm
+    - at-spi2-core
+    - libcups
+    - dbus
+    - expat
+    - pango
+    - cairo
+    - glib
+    - unixodbc
+    - quarto
+
+tests:
+  - script:
+      - positron --version
+      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-r/resources/ark/ark
+      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
+      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-python/python-env-tools/pet
+
+about:
+  homepage: https://positron.posit.co/
+  repository: https://github.com/posit-dev/positron
+  documentation: https://positron.posit.co/
+  summary: A next-generation data science IDE
+  description: |
+    Positron is an extensible, polyglot IDE for data science built on Code OSS,
+    with first-class support for Python and R. This package builds Positron from
+    source together with its bundled Ark R kernel, Kallichore kernel supervisor and
+    Python Environment Tools.
+  license: Elastic-2.0 AND MIT
+  license_file:
+    - LICENSE.txt
+    - ThirdPartyNotices.txt
+    - extensions/positron-r/ark/LICENSE
+    - _kallichore/LICENSE.txt
+    - _pet/LICENSE
+    - THIRDPARTY-ark.yml
+    - THIRDPARTY-kallichore.yml
+    - THIRDPARTY-pet.yml
+
+extra:
+  recipe-maintainers:
+    - mediocretech
