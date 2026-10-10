@@ -1,0 +1,38 @@
+diff --git a/source/MaterialXFormat/Util.cpp b/source/MaterialXFormat/Util.cpp
+index ee4e406..3c4ff65 100644
+--- a/source/MaterialXFormat/Util.cpp
++++ b/source/MaterialXFormat/Util.cpp
+@@ -250,6 +250,12 @@ FileSearchPath getDefaultDataSearchPath()
+         }
+     #endif
+ 
++    // conda-forge installs the data libraries to share/materialx/libraries
++    // (Library/share/materialx/libraries on Windows) rather than to a top-level
++    // libraries folder. getModulePath() is the executable's folder, which is
++    // bin/ or, for python on Windows, the prefix itself.
++    const FilePath CONDA_DATA_FOLDERS[] = { FilePath("share/materialx"),
++                                            FilePath("Library/share/materialx") };
+     while (!currentPath.isEmpty())
+     {
+         if ((currentPath / REQUIRED_LIBRARY_FOLDER).exists())
+@@ -257,6 +263,20 @@ FileSearchPath getDefaultDataSearchPath()
+             searchPath.append(FileSearchPath(currentPath));
+             break;
+         }
++        bool found = false;
++        for (const FilePath& dataFolder : CONDA_DATA_FOLDERS)
++        {
++            if ((currentPath / dataFolder / REQUIRED_LIBRARY_FOLDER).exists())
++            {
++                searchPath.append(FileSearchPath(currentPath / dataFolder));
++                found = true;
++                break;
++            }
++        }
++        if (found)
++        {
++            break;
++        }
+         currentPath = currentPath.getParentPath();
+     }
+     return searchPath;
