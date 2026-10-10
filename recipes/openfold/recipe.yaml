@@ -2,17 +2,26 @@ schema_version: 1
 
 context:
   version: "0.5.0"
-  pytest_args: >-
-    -vvv --pyargs openfold3.tests
-    --durations=0 --durations-min=0
-    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds
-    and not test_colabfold_msa_server
-    and not test_model_checkpoint
-    and not test_model_runner
-    and not test_entry_points
-    and not test_of3_model
-    and not test_diffusion_module
-    and not test_pdb_tetrapyrrole_chain_resolves"
+  pytest_script: |
+
+    # Fix an upstream problem in macos pytorch 2.14 conda package
+    # similar to https://github.com/pytorch/pytorch/issues/174680
+    python -c "import pathlib, stat, torch;
+    p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
+    p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
+
+    # Run the test suite, skipping tests that are known to be slow,
+    # fail due to known causes, or require external resources
+    pytest -vvv --pyargs openfold3.tests \
+    --durations=0 --durations-min=0 \
+    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds \
+        and not test_colabfold_msa_server \
+        and not test_model_checkpoint \
+        and not test_model_runner \
+        and not test_entry_points \
+        and not test_of3_model \
+        and not test_diffusion_module \
+        and not test_pdb_tetrapyrrole_chain_resolves"
 
 recipe:
   name: openfold3-split
@@ -103,36 +112,60 @@ outputs:
             - ${{ python_min }}.*
             - 3.*
        - requirements:
-           run:
-             - pytorch * cpu*
          script:
            - run_openfold --help
            - setup_openfold --help
            # make sure the test suite is not shipped
            - python -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('openfold3.tests') is not None)"
 
-       # OF test suite, run from the source tree against the installed package
-       - requirements:
-           run:
-             - python ${{ python_min }}.*
-             - pytorch * cpu*   # keep test envs small, also in CUDA jobs
-             - pytest
-             - pytest-regressions
-             - pytest-vcr
-         files:
-           source:
-             - openfold3/tests/
-         script:
-            # Fix an upstream problem in macos pytorch 2.14 conda package
-            # similar to https://github.com/pytorch/pytorch/issues/174680
-           - >-
-             python -c "import pathlib, stat, torch;
-             p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
-             p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
-           - >-
-             export DYNAMIC_SP_DIR="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')";
-             mv openfold3/tests "$DYNAMIC_SP_DIR/openfold3/";
-             pytest ${{ pytest_args }}
+  # --- Tests package: the upstream test suite, installed as openfold3.tests
+  - package:
+        name: openfold3-tests
+    build:
+      noarch: python
+      script:
+        - mkdir -p "${SP_DIR}/openfold3"
+        - cp -R openfold3/tests "${SP_DIR}/openfold3/"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("openfold3", exact=True) }}
+        - pytest
+        - pytest-regressions
+        - pytest-vcr
+    tests:
+      # files are installed under site-packages/openfold3/tests
+      - package_contents:
+          site_packages:
+            - openfold3.tests
+            - openfold3.tests.config
+      # the test package imports cleanly on top of the installed openfold3
+      - python:
+          imports:
+            - openfold3.tests
+            - openfold3.tests.config
+          pip_check: false
+      # pytest can find and import every test module, without running them
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - >-
+            pytest --collect-only -q
+            "$(python -c 'import openfold3.tests, os; print(os.path.dirname(openfold3.tests.__file__))')"
+
+       # OF test suite, run from the source tree against the installed package against min python version
+      - script: $${{ pytest_script }}
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+       # OF test suite, run from the source tree against the installed package against latest python version
+      - script: $${{ pytest_script }}
+        requirements:
+          run:
+            - python 3.*
 
 about:
   homepage: https://openfold.io
