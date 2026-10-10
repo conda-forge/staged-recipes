@@ -1,0 +1,285 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Build the standalone enum.x / polya.x / makestr.x from source.
+#
+# This is *not* a repackaged release artifact: conda-forge asked for the
+# application to be compiled in the recipe (staged-recipes#34550), so we run the
+# same PackageCompiler entry point the upstream release workflow runs
+# (build/build_app.jl) against conda-forge's own `julia`.
+#
+# create_app resolves the Julia General registry and downloads binary artifacts,
+# which needs network access at build time. That was explicitly sanctioned in the
+# review rather than being an oversight here.
+#
+# Layout in $PREFIX:
+#   libexec/enumlib.jl/{bin,lib,share}   <- the compiled application
+#   bin/{enum,polya,makestr}.x           <- thin launchers on PATH
+#
+# Note the application is NOT self-contained the way this project's GitHub release
+# tarballs are. conda-forge's julia strips Julia's vendored libraries and links
+# against conda-forge's openblas/gmp/mpfr/libgit2/curl, so what we build inherits
+# those as runtime dependencies -- which is the point of building here rather than
+# shipping a bundle. Binary relocation is therefore left ON (the default): the
+# copied runtime carries $PREFIX references that conda-build has to rewrite.
+
+# julia is a host dependency, so call it by path rather than relying on PATH.
+JULIA="${PREFIX}/bin/julia"
+test -x "${JULIA}"
+
+# Keep the depot inside the build tree: it is a build artifact, must not leak into
+# $PREFIX, and must not touch a shared ~/.julia on the builder.
+export JULIA_DEPOT_PATH="${SRC_DIR}/.julia-depot"
+mkdir -p "${JULIA_DEPOT_PATH}"
+
+# PackageCompiler shells out to a C compiler to link the app's launchers; point it
+# at the one conda-forge activated rather than whatever `cc` happens to be first
+# on PATH. The value is shell-split (PackageCompiler.get_compiler_cmd), so it can
+# carry flags -- if the link step turns out to need ${LDFLAGS} for -L$PREFIX/lib,
+# append it here. Starting without, so the first CI build tells us rather than us
+# guessing.
+export JULIA_CC="${CC}"
+
+
+# Without this, create_app inherits PackageCompiler's default of "generic", which
+# disables vectorized codegen -- a measurable loss for a package that is one hot
+# combinatorial loop. This is Julia's own multi-versioning string for x86-64: a
+# generic baseline plus sandybridge and haswell clones, selected at load time, so
+# the binary still runs on any x86-64.
+#
+# PROVISIONAL. conda-forge's own convention for this is separate packages per
+# x86_64-microarch-level rather than one multi-versioned binary; which way to go
+# is an open question on the PR, and the deciding factor is likely system-image
+# size, since that already dominates this package.
+# No JULIA_CPU_TARGET is set here, deliberately. create_app ignores the environment
+# variable in favour of its own `cpu_target` keyword, whose default on x86_64 is
+# already Julia's multi-versioning string
+# ("generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"), so the
+# binaries are vectorized without being told to be. An earlier revision of this
+# file exported the variable expecting it to matter; it did nothing, and two CI
+# rounds were spent discovering that.
+#
+# If conda-forge would prefer a different target -- one multi-versioned binary
+# versus separate packages per x86_64 microarch level is an open question on the
+# PR -- this is where it would go. Note that setting it here would have no effect
+# against v0.4.0: build_app.jl only started passing the variable through to
+# create_app after that tag, so a release containing that change has to land first.
+
+APPDIR="${PREFIX}/libexec/enumlib.jl"
+# create_app writes APPDIR itself (and clears it when it already exists), so make
+# only its parent.
+mkdir -p "${PREFIX}/libexec" "${PREFIX}/bin"
+
+# --- Sharing conda's libraries instead of bundling copies (staged-recipes#34550)
+#
+# conda-forge's julia deliberately symlinks lib/julia/* out to $PREFIX/lib, so Julia
+# uses conda's openblas/gmp/mpfr/suitesparse rather than its own vendored copies.
+# create_app recreates those links verbatim inside the application -- Julia's `cp`
+# defaults to follow_symlinks=false -- where `../` resolves inside the app tree and
+# the links dangle; a later pass retries the same destination and symlink() throws
+# EEXIST, which is what ended the osx-64 build.
+#
+# So: materialise the links into real files for the duration of create_app (Julia
+# keeps working, PackageCompiler copies files, nothing throws), then point the
+# application's copies at $PREFIX/lib and restore the host links. The application
+# ends up sharing conda's libraries rather than duplicating ~74 MB of them, 66 MB
+# of which is OpenBLAS alone.
+# PackageCompiler.bundle_cert (PackageCompiler.jl:1802, v2.4.1) unconditionally
+# copies Julia's bundled share/julia/cert.pem into the application:
+#
+#   cp(joinpath(Sys.BINDIR, "..", "share", "julia", "cert.pem"), ...)
+#
+# conda-forge's julia does not ship that file -- conda supplies ca-certificates --
+# so create_app dies with ENOENT on it. There is no environment variable that
+# helps: this is a plain cp of a fixed path, not a NetworkOptions CA-roots lookup
+# (an earlier attempt at JULIA_SSL_CA_ROOTS_PATH changed nothing, as the identical
+# failure showed). The file has to be there for the duration of the build.
+#
+# It is created here and removed again below, so the package never claims a file
+# in julia's own namespace.
+CONDA_CA_BUNDLE="${PREFIX}/ssl/cacert.pem"
+test -f "${CONDA_CA_BUNDLE}"   # from ca-certificates; fail loudly if it moves
+JULIA_BUNDLED_CERT="${PREFIX}/share/julia/cert.pem"
+CREATED_BUNDLED_CERT=0
+if [ ! -e "${JULIA_BUNDLED_CERT}" ]; then
+  mkdir -p "$(dirname "${JULIA_BUNDLED_CERT}")"
+  cp "${CONDA_CA_BUNDLE}" "${JULIA_BUNDLED_CERT}"
+  CREATED_BUNDLED_CERT=1
+fi
+
+JULIA_LIBDIR="${PREFIX}/lib/julia"
+LINK_MANIFEST="${SRC_DIR}/julia-lib-symlinks.tsv"
+: > "${LINK_MANIFEST}"
+
+if [ -d "${JULIA_LIBDIR}" ]; then
+  while IFS= read -r link; do
+    name="$(basename "${link}")"
+    target="$(readlink "${link}")"
+    resolved="$(cd "$(dirname "${link}")" && cd "$(dirname "${target}")" && pwd)/$(basename "${target}")"
+    # Links that stay inside lib/julia resolve fine in the app; leave them be.
+    case "${resolved}" in
+      "${JULIA_LIBDIR}"/*) continue ;;
+    esac
+    if [ ! -e "${resolved}" ]; then
+      echo "warning: ${link} -> ${target} is already dangling in the host env; skipping"
+      continue
+    fi
+    printf '%s\t%s\n' "${name}" "${target}" >> "${LINK_MANIFEST}"
+    rm "${link}"
+    cp "${resolved}" "${link}"
+  done < <(find "${JULIA_LIBDIR}" -maxdepth 1 -type l)
+fi
+echo "materialised $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') host symlink(s) for the build"
+
+"${JULIA}" --project=build -e 'using Pkg; Pkg.instantiate()'
+# --- Precompile workload, and why this build does not run it -------------------
+# The sysimage step used to segfault here. With mkitti's incremental = true the
+# crash arrived in 45 s instead of 23 min and Julia named the expression:
+# src/Enumlib.jl:475, this package's PrecompileTools @setup_workload. It runs a
+# small enumeration at precompile time so a cold call in a REPL does not pay ~19 s
+# of JIT; an application gets its native code from create_app regardless, so the
+# packaged result loses nothing by skipping it.
+#
+# PrecompileTools supports this directly -- `const enabled =
+# @load_preference("precompile_workloads", true)` -- so set the preference rather
+# than patching the source. create_app precompiles with --project=$SRC_DIR, which
+# is where this file is read from.
+cat > "${SRC_DIR}/LocalPreferences.toml" <<'PREFS'
+[PrecompileTools]
+precompile_workloads = false
+PREFS
+echo "disabled PrecompileTools workloads via LocalPreferences.toml"
+
+# incremental is deliberately left at build_app.jl's default (false). It was
+# needed to make the segfault visible; with the workload off, a fresh base
+# sysimage should build, and that is what the GitHub release binaries use. If
+# this round fails on memory or time, incremental = true is the knob to add
+# upstream and set here.
+export JULIA_CPU_THREADS=1
+
+# build_app.jl runs its own --version smoke test immediately after create_app, and
+# that test runs before we get control back to fix the application's library paths.
+# Give it $PREFIX/lib for the duration so it can complete; the application is then
+# linked properly below and re-verified with these variables cleared, so nothing
+# here is load-bearing for the installed package.
+export LD_LIBRARY_PATH="${PREFIX}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib${DYLD_FALLBACK_LIBRARY_PATH:+:${DYLD_FALLBACK_LIBRARY_PATH}}"
+
+"${JULIA}" --project=build build/build_app.jl "${APPDIR}"
+
+# --- Link the conda libraries the application needs but did not bundle ----------
+# create_app copies lib/julia into the app and gives it RPATHs into its own tree.
+# conda-forge's julia also links libraries straight out of $PREFIX/lib through its
+# own RPATH -- libutf8proc.so.3 was the first to surface -- and those are invisible
+# to the app. Link each one in, relative so it never leaves $PREFIX, and keep going
+# until the binary starts rather than discovering them one CI round at a time.
+link_missing_libs() {
+  exe="$1"; tries=0; last=""
+  while [ "${tries}" -lt 60 ]; do
+    if err=$(env -u LD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH "${exe}" --version 2>&1); then
+      echo "  ${exe##*/} starts standalone: ${err}"
+      return 0
+    fi
+    # Take the library the loader actually could not open, which is not always the
+    # first one named. SuiteSparse_jll reports
+    #   could not load library "libamd.so.3"
+    #   libsuitesparseconfig.so.7: cannot open shared object file
+    # where libamd was found and its own dependency was not. So: restrict to the
+    # line carrying the failure, and take the last library named on it.
+    name=$(printf '%s\n' "${err}" \
+      | grep -E 'cannot open shared object file|Library not loaded|image not found' \
+      | head -1 \
+      | grep -oE 'lib[A-Za-z0-9_.+-]*\.(so|dylib)[0-9.]*' | tail -1)
+    if [ -z "${name}" ]; then
+      echo "  ${exe##*/} failed for a reason that is not a missing library:" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    if [ "${name}" = "${last}" ]; then
+      # Linking it did not help, so stop rather than spin: the first attempt at
+      # this looped 40 times on libamd.so.3 because the library was wanted by
+      # something inside lib/julia, which searches its own directory.
+      echo "  ${name} is still not found after linking it into both lib/ and lib/julia/" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    if [ ! -e "${PREFIX}/lib/${name}" ]; then
+      echo "  ${name} is needed but absent from \$PREFIX/lib -- a run dependency is missing" >&2
+      printf '%s\n' "${err}" >&2
+      return 1
+    fi
+    # Both search paths: the executables look in ../lib and ../lib/julia, while a
+    # library inside lib/julia resolves its own dependencies relative to itself.
+    ln -sf "../../../lib/${name}"    "${APPDIR}/lib/${name}"
+    ln -sf "../../../../lib/${name}" "${APPDIR}/lib/julia/${name}"
+    echo "  linked ${name} into lib/ and lib/julia/"
+    last="${name}"
+    tries=$((tries + 1))
+  done
+  echo "  gave up after ${tries} libraries for ${exe}" >&2
+  return 1
+}
+
+for exe in enum polya makestr; do
+  link_missing_libs "${APPDIR}/bin/${exe}" || exit 1
+done
+
+
+# Point the application's copied libraries back at conda's, and put the host env
+# back the way conda-forge's julia package had it.
+# Undo the temporary host file, and replace the application's copied CA bundle
+# with a link to conda's, so the package ships no private (and eventually stale)
+# certificate snapshot. The application does no network I/O -- enum.x, polya.x and
+# makestr.x only read and write local files -- so nothing here is on a hot path.
+if [ "${CREATED_BUNDLED_CERT}" = "1" ]; then
+  rm -f "${JULIA_BUNDLED_CERT}"
+fi
+APP_CERT="${APPDIR}/share/julia/cert.pem"
+if [ -e "${APP_CERT}" ]; then
+  rm -f "${APP_CERT}"
+  ln -s "../../../../ssl/cacert.pem" "${APP_CERT}"
+  test -e "${APP_CERT}"
+fi
+
+APP_LIBJULIA="${APPDIR}/lib/julia"
+# $APPDIR is $PREFIX/libexec/enumlib.jl, so lib/julia sits four levels below
+# $PREFIX. Relative rather than absolute deliberately: the link never leaves
+# $PREFIX, so there is nothing for conda's prefix rewriting to fix up.
+REL_TO_PREFIX_LIB="../../../../lib"
+
+while IFS="$(printf '\t')" read -r name target; do
+  [ -n "${name}" ] || continue
+  # Prefer the unversioned soname where conda ships one, so an ABI-compatible
+  # rebuild of openblas does not strand the link on a versioned filename.
+  if [ -e "${PREFIX}/lib/${name}" ]; then
+    conda_name="${name}"
+  else
+    conda_name="$(basename "${target}")"
+  fi
+  rm -f "${APP_LIBJULIA}/${name}"
+  ln -s "${REL_TO_PREFIX_LIB}/${conda_name}" "${APP_LIBJULIA}/${name}"
+  # Fail the build rather than ship a dangling link if the layout ever moves.
+  test -e "${APP_LIBJULIA}/${name}"
+  rm -f "${JULIA_LIBDIR}/${name}"
+  ln -s "${target}" "${JULIA_LIBDIR}/${name}"
+done < "${LINK_MANIFEST}"
+echo "repointed $(wc -l < "${LINK_MANIFEST}" | tr -d ' ') application librar(y|ies) at ${PREFIX}/lib"
+
+# create_app emits `enum` / `polya` / `makestr`; the Fortran enumlib these replace
+# -- and pymatgen's EnumlibAdaptor, which looks them up on PATH -- use the .x
+# names. Renaming inside libexec keeps the launchers below a plain exec.
+mv "${APPDIR}/bin/enum"    "${APPDIR}/bin/enum.x"
+mv "${APPDIR}/bin/polya"   "${APPDIR}/bin/polya.x"
+mv "${APPDIR}/bin/makestr" "${APPDIR}/bin/makestr.x"
+
+for exe in enum.x polya.x makestr.x; do
+  test -x "${APPDIR}/bin/${exe}"
+  cat > "${PREFIX}/bin/${exe}" <<EOF
+#!/bin/bash
+# exec preserves argv and the exit status, both of which callers rely on:
+# pymatgen's EnumlibAdaptor checks the exit code and passes the input filename
+# as a positional argument.
+exec "\${CONDA_PREFIX:-${PREFIX}}/libexec/enumlib.jl/bin/${exe}" "\$@"
+EOF
+  chmod +x "${PREFIX}/bin/${exe}"
+done
