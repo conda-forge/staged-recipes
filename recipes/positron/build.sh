@@ -33,7 +33,6 @@ git_snapshot() {
 }
 git_snapshot extensions/positron-r/ark
 git_snapshot ai-lib
-git_snapshot .
 
 # --- Rust components, built from source instead of downloading prebuilds ---
 
@@ -64,9 +63,14 @@ mkdir -p extensions/positron-python/python-env-tools extensions/positron-python/
 cp _bin/bin/pet extensions/positron-python/python-env-tools/
 printf '%s' "${PET_VERSION}" > extensions/positron-python/resources/pet/VERSION
 
+# The CI agents are short on disk: drop rust build trees and caches
+rm -rf extensions/positron-r/ark/target/{debug,x86_64-*} _kallichore/target _pet/target "${CARGO_HOME:-$HOME/.cargo}/registry" "${CARGO_HOME:-$HOME/.cargo}/git"
+
 # --- Positron ---
+export NPM_CONFIG_CACHE="${SRC_DIR}/.npm-cache"
 # CI=1 makes postinstall skip syncing submodules against their remotes
 CI=1 npm ci --no-audit --no-fund
+rm -rf "${NPM_CONFIG_CACHE}"
 npm run gulp core-ci
 npm run gulp vscode-linux-x64-min-ci
 
