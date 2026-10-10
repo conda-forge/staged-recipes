@@ -14,11 +14,24 @@ build:
   number: 0
   skip: not linux or cuda_compiler_version == "None"
   script:
+    # nvcc comes from the compiler('cuda') build dependency (resolved via PATH), not
+    # from the host prefix, so it must be pinned explicitly rather than derived from
+    # CUDA_HOME=$PREFIX.
+    - export NVCC="$(command -v nvcc)"
     - export CUDA_HOME="$PREFIX"
     - export NCCL_HOME="$PREFIX"
     - BUILDDIR="$SRC_DIR/build"
-    - make -C nccl_ep build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" BUILDDIR="$BUILDDIR"
-    - make -C nccl_m2n build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" BUILDDIR="$BUILDDIR"
+    # nccl_ep requires sm_90+, but its own gencode guard is defeated by common.mk
+    # pre-defining NVCC_GENCODE with pre-Hopper architectures, so set it explicitly.
+    - |
+      if [ "${{ cuda_major }}" -ge "13" ]; then
+        NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90 -gencode=arch=compute_100,code=sm_100 -gencode=arch=compute_100a,code=sm_100a -gencode=arch=compute_103a,code=sm_103a -gencode=arch=compute_110,code=sm_110 -gencode=arch=compute_120,code=compute_120"
+      else
+        NVCC_GENCODE="-gencode=arch=compute_90,code=sm_90 -gencode=arch=compute_100,code=sm_100 -gencode=arch=compute_100a,code=sm_100a -gencode=arch=compute_120,code=compute_120"
+      fi
+      export NVCC_GENCODE
+    - make -C nccl_ep build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" NVCC="$NVCC" NVCC_GENCODE="$NVCC_GENCODE" BUILDDIR="$BUILDDIR"
+    - make -C nccl_m2n build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" NVCC="$NVCC" NVCC_GENCODE="$NVCC_GENCODE" BUILDDIR="$BUILDDIR"
     - mkdir -p python/nccl/ep/lib/cu${{ cuda_major }} python/nccl/ep/include
     - mkdir -p python/nccl/m2n/lib/cu${{ cuda_major }} python/nccl/m2n/include
     - cp "$BUILDDIR/lib/libnccl_ep.so" python/nccl/ep/lib/cu${{ cuda_major }}/
