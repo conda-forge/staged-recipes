@@ -13,6 +13,11 @@ export POSITRON_BUILD_NUMBER="${PKG_VERSION##*.}"
 export npm_config_python="${BUILD_PREFIX}/bin/python"
 export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include"
 export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+# postinstall builds build/ natives with plain CC=gcc / CXX=g++; point those at conda's toolchain
+mkdir -p "${SRC_DIR}/_shims"
+ln -sf "$(command -v "${CC}")" "${SRC_DIR}/_shims/gcc"
+ln -sf "$(command -v "${CXX}")" "${SRC_DIR}/_shims/g++"
+export PATH="${SRC_DIR}/_shims:${PATH}"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 # The source tarballs are not git checkouts, but positron's install scripts query
