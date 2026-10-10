@@ -2,26 +2,26 @@ schema_version: 1
 
 context:
   version: "0.5.0"
-  pytest_script: |
-
-    # Fix an upstream problem in macos pytorch 2.14 conda package
-    # similar to https://github.com/pytorch/pytorch/issues/174680
+  # Test suite run, shared by the openfold3-tests test blocks.
+  # 1) Fix an upstream problem in macos pytorch 2.14 conda package,
+  #    similar to https://github.com/pytorch/pytorch/issues/174680
+  # 2) Run the test suite, skipping tests that are known to be slow,
+  #    fail due to known causes, or require external resources
+  pytest_script: >-
     python -c "import pathlib, stat, torch;
     p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
     p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
-
-    # Run the test suite, skipping tests that are known to be slow,
-    # fail due to known causes, or require external resources
-    pytest -vvv --pyargs openfold3.tests \
-    --durations=0 --durations-min=0 \
-    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds \
-        and not test_colabfold_msa_server \
-        and not test_model_checkpoint \
-        and not test_model_runner \
-        and not test_entry_points \
-        and not test_of3_model \
-        and not test_diffusion_module \
-        and not test_pdb_tetrapyrrole_chain_resolves"
+    &&
+    pytest -vvv --pyargs openfold3.tests
+    --durations=0 --durations-min=0
+    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds
+    and not test_colabfold_msa_server
+    and not test_model_checkpoint
+    and not test_model_runner
+    and not test_entry_points
+    and not test_of3_model
+    and not test_diffusion_module
+    and not test_pdb_tetrapyrrole_chain_resolves"
 
 recipe:
   name: openfold3-split
@@ -155,13 +155,13 @@ outputs:
             pytest --collect-only -q
             "$(python -c 'import openfold3.tests, os; print(os.path.dirname(openfold3.tests.__file__))')"
 
-       # OF test suite, run from the source tree against the installed package against min python version
-      - script: $${{ pytest_script }}
+      # test suite, run from the source tree against the installed package against min python version
+      - script: ${{ pytest_script }}
         requirements:
           run:
             - python ${{ python_min }}.*
-       # OF test suite, run from the source tree against the installed package against latest python version
-      - script: $${{ pytest_script }}
+      # test suite, run from the source tree against the installed package against latest python version
+      - script: ${{ pytest_script }}
         requirements:
           run:
             - python 3.*
