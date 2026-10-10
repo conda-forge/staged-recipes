@@ -1,0 +1,260 @@
+schema_version: 1
+
+context:
+  version: "0.5.0"
+  # Test suite run, shared by the openfold3-tests test blocks.
+  # 1) Fix an upstream problem in osx pytorch 2.14 conda package,
+  #    similar to https://github.com/pytorch/pytorch/issues/174680
+  # 2) Run the test suite, skipping tests that are known to be slow,
+  #    fail due to known causes, or require external resources
+  pytest_script: >-
+    python -c "import pathlib, stat, torch;
+    p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
+    p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
+    &&
+    pytest -vvv --pyargs openfold3.tests
+    --durations=0 --durations-min=2.0
+    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds
+    and not test_colabfold_msa_server
+    and not test_model_checkpoint
+    and not test_model_runner
+    and not test_entry_points
+    and not test_of3_model
+    and not test_diffusion_module
+    and not test_pdb_tetrapyrrole_chain_resolves"
+
+recipe:
+  name: openfold3-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aqlaboratory/openfold-3/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6a6f1d18fa96764b5f4613102da359a5b6df9868a16ccf33b10421548d9dc543
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+
+  # --- Production package: pure Python and without tests
+  - package:
+      name: openfold3
+    build:
+      noarch: python
+      files:
+        exclude:
+          # the test suite is shipped separately in openfold3-tests
+          - "**/site-packages/openfold3/tests"
+      script:
+        - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
+      python:
+        entry_points:
+          - run_openfold = openfold3.run_openfold:cli
+          - setup_openfold = openfold3.setup_openfold:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - setuptools-scm >=8
+        - wheel
+      run:
+        # The conda artifact is noarch, but upstream does not support Windows.
+        - __unix
+        - python >=${{ python_min }}
+        - numpy
+        - scipy
+        - pandas
+        # --- Machine learning
+        - pytorch
+        - pytorch-lightning <=2.6.1
+        - ml-collections
+        # --- Handling molecules
+        - rdkit <2026  # pin might be removed soon, see https://github.com/aqlaboratory/openfold-3/issues/285
+        - biotite >=1.6
+        - pdbeccdutils
+        - kalign-python
+        # --- Misc
+        - pyyaml
+        - ijson
+        - memory_profiler
+        - wandb
+        - func_timeout
+        - tqdm
+        - typing-extensions
+        - python-lmdb >=2.2.0
+        # --- Downloading stuff
+        - requests
+        - awscli
+        - awscrt >=0.24
+        - boto3
+    tests:
+       - package_contents:
+           site_packages:
+             - openfold3
+           files:
+             not_exists:
+               # Verify that production contains no installed test suite.
+               - "**/site-packages/openfold3/tests"
+               # Verify that the production package contains no native modules.
+               - "**/site-packages/openfold3/**/*.so"
+               - "**/site-packages/openfold3/**/*.dylib"
+               - "**/site-packages/openfold3/**/*.pyd"
+       - python:
+          imports:
+            - openfold3
+            - openfold3.core.metrics.model_selection
+            - openfold3.core.model.primitives.activations
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+       - script:
+           - run_openfold --help
+           - setup_openfold --help
+           # make sure the test suite is not shipped
+           - python -c "import importlib.util, sys; sys.exit(importlib.util.find_spec('openfold3.tests') is not None)"
+
+  # --- Tests package: the upstream test suite, installed as openfold3.tests
+  - package:
+        name: openfold3-tests
+    build:
+      noarch: python
+      script:
+        - mkdir -p "${SP_DIR}/openfold3"
+        - cp -R openfold3/tests "${SP_DIR}/openfold3/"
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("openfold3", exact=True) }}
+        - pytest
+        - pytest-regressions
+        - pytest-vcr
+    tests:
+      # files are installed under site-packages/openfold3/tests
+      - package_contents:
+          site_packages:
+            - openfold3.tests
+            - openfold3.tests.config
+      # the test package imports cleanly on top of the installed openfold3
+      - python:
+          imports:
+            - openfold3.tests
+            - openfold3.tests.config
+          pip_check: false
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      # pytest can find and import every test module, without running them
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - >-
+            pytest --collect-only -q
+            "$(python -c 'import openfold3.tests, os; print(os.path.dirname(openfold3.tests.__file__))')"
+      # test suite, run from the source tree against the installed package against min python version
+      - script: ${{ pytest_script }}
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+      # test suite, run from the source tree against the installed package against latest python version
+      - script: ${{ pytest_script }}
+        requirements:
+          run:
+            - python *
+
+  # --- CUDA & kernels build package: metapackage pulling CUDA (deepspeed and kernels) toolchain
+  - package:
+      name: openfold3-cuda-build
+    build:
+      skip:
+        - target_platform != "linux-64"  # no deepspeed for aarch64 in conda-forge yet
+        - (cuda_compiler_version | default("None")) == "None"
+    requirements:
+      run:
+        - ${{ pin_subpackage("openfold3", exact=True) }}
+        - pytorch-gpu
+        - deepspeed >=0.18.7
+        # At the time of writing (May 29, 2026), deepspeed kernels cannot be compiled with CUDA >=13.3
+        # Likely fixed in deepspeed v0.19.7
+        #   https://github.com/deepspeedai/DeepSpeed/commit/abf3dfa4c5ff5d23369d3ff87aa052f8eec8b943
+        # TODO: check, bump min deepspeed and remove cuda-version pin
+        - cuda-version <13.3
+        # For the `async_io` deepspeed op
+        - libaio
+        # This is needed when not precompiling non-triton kernels, but bloats the environment
+        # We should explore a way to precompile the kernels in the build step
+        # but that would require some changes in OF3 itself (e.g., manage kernel location for isolation)
+        - ninja
+        - cutlass
+        - cuda-minimal-build
+        - libcusparse-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcurand-dev
+
+     # These tests run out of disk space in the staged_recipes runners (even without the build deps).
+     # TODO: re-enable once feedstock is created
+#    tests:
+#      - python:
+#          imports:
+#            - openfold3
+#            - deepspeed
+#          pip_check: true
+#          python_version: ${{ python_min }}.*
+#      - requirements:
+#          run:
+#            - python ${{ python_min }}.*
+#        script:
+#          # solver picked CUDA pytorch matching this job's CUDA major
+#          - >-
+#            python -c "import torch; v = torch.version.cuda;
+#            assert v is not None, 'CPU pytorch installed';
+#            print('torch CUDA', v)"
+#          # torch finds the conda CUDA toolkit (needed for JIT kernel builds)
+#          - >-
+#            python -c "from torch.utils.cpp_extension import CUDA_HOME;
+#            assert CUDA_HOME, 'CUDA_HOME not found'; print('CUDA_HOME', CUDA_HOME)"
+#          # nvcc matches torch's CUDA major version
+#          - >-
+#            python -c "import re, subprocess, torch;
+#            out = subprocess.check_output(['nvcc', '--version'], text=True);
+#            nv = re.search(r'release (\d+)\.(\d+)', out).groups();
+#            assert nv[0] == torch.version.cuda.split('.')[0], (nv, torch.version.cuda);
+#            print('nvcc', '.'.join(nv))"
+#          # headers that the deepspeed / openfold kernels include are present
+#          - test -f "$PREFIX/include/cutlass/cutlass.h"
+#          - test -f "$PREFIX/include/libaio.h"
+#          - ninja --version
+#          # deepspeed sees libaio for the async_io op (no GPU needed)
+#          - >-
+#            python -c "from deepspeed.ops.op_builder import AsyncIOBuilder;
+#            assert AsyncIOBuilder().is_compatible(verbose=True), 'async_io not buildable'"
+#          # compile a tiny CUDA kernel without running it (no GPU needed)
+#          - >-
+#            printf '__global__ void k(float* x){x[threadIdx.x]*=2.f;}\n' > k.cu
+#            && nvcc -c k.cu -o k.o
+#            && test -s k.o
+#          # the exact openfold3 build is installed, no stale version
+#          - >-
+#            python -c "import importlib.metadata as m, os;
+#            assert m.version('openfold3') == os.environ['PKG_VERSION'], m.version('openfold3')"
+
+about:
+  homepage: https://openfold.io
+  repository: https://github.com/aqlaboratory/openfold-3
+  summary: OpenFold's Biological Structure Prediction Model based on DeepMind's AlphaFold 3
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Emrys-Merlin
+    - jandom
+    - jnwei
+    - sdvillal
