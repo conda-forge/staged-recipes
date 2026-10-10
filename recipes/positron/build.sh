@@ -68,8 +68,10 @@ rm -rf extensions/positron-r/ark/target/{debug,x86_64-*} _kallichore/target _pet
 
 # --- Positron ---
 export NPM_CONFIG_CACHE="${SRC_DIR}/.npm-cache"
-# CI=1 makes postinstall skip syncing submodules against their remotes
-CI=1 npm ci --no-audit --no-fund
+# CI=1 makes postinstall skip syncing submodules against their remotes.
+# positron-python's postinstall pip-installs its hash-pinned pure-python helper
+# wheels (python_files/lib), so let pip reach PyPI for that step.
+env -u PIP_NO_INDEX CI=1 npm ci --no-audit --no-fund
 rm -rf "${NPM_CONFIG_CACHE}"
 npm run gulp core-ci
 npm run gulp vscode-linux-x64-min-ci
