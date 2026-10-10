@@ -6,7 +6,7 @@ export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 export NPM_CONFIG_AUDIT=false
 export NPM_CONFIG_FUND=false
 export NPM_CONFIG_UPDATE_NOTIFIER=false
-export NODE_OPTIONS="--max-old-space-size=8192"
+export NODE_OPTIONS="--max-old-space-size=6144"
 # upstream build number, e.g. 2026.10.0.297 -> 297
 export POSITRON_BUILD_NUMBER="${PKG_VERSION##*.}"
 # node-gyp: use conda's python and compilers
@@ -78,8 +78,8 @@ export NPM_CONFIG_CACHE="${SRC_DIR}/.npm-cache"
 # wheels (python_files/lib), so let pip reach PyPI for that step.
 env -u PIP_NO_INDEX CI=1 npm ci --no-audit --no-fund
 rm -rf "${NPM_CONFIG_CACHE}"
-npm run gulp core-ci
-npm run gulp vscode-linux-x64-min-ci
+# desktop-only build (core-ci would also build the remote server variants, which exhausts CI memory)
+npm run gulp vscode-linux-x64-min
 
 # --- install ---
 mkdir -p "${PREFIX}/lib/positron" "${PREFIX}/bin"
