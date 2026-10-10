@@ -1,0 +1,56 @@
+schema_version: 1
+
+context:
+  name: renovate
+  version: "44.149.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/${{ name }}/-/${{ name }}-${{ version }}.tgz
+  sha256: 99398318ba96eea465f855d5ec00b524078ac23425d655d8d6b784c0679066cd
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - pnpm install --prod --ignore-scripts --no-optional
+        - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        # install from a packed tarball so npm copies files instead of linking the source dir
+        - npm pack --ignore-scripts
+        - npm install --global --omit=optional --ignore-scripts ${{ name }}-${{ version }}.tgz
+      else:
+        # pnpm/npm are .cmd wrappers on Windows; without `call` the batch script stops after the first one
+        - call pnpm install --prod --ignore-scripts --no-optional
+        - call pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+        - call npm pack --ignore-scripts
+        - call npm install --global --omit=optional --ignore-scripts ${{ name }}-${{ version }}.tgz
+requirements:
+  build:
+    - nodejs 24.*
+    - pnpm
+    - pnpm-licenses
+  run:
+    - nodejs >=24.11
+
+tests:
+  - script:
+      - renovate --version
+      - renovate-config-validator --help
+
+about:
+  homepage: https://github.com/renovatebot/renovate
+  repository: https://github.com/renovatebot/renovate
+  documentation: https://docs.renovatebot.com/
+  summary: Automated dependency updates. Multi-platform and multi-language.
+  license: AGPL-3.0-only
+  license_file:
+    - license
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - mediocretech
