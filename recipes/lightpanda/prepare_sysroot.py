@@ -107,3 +107,31 @@ if "__V8_LINK_DIR__" not in s:
 s = s.replace("__V8_LINK_DIR__", link_dir)
 open(gn_file, "w").write(s)
 print("v8 compiler config patched with -B/-L:", link_dir)
+
+# 5. bridge the compiler-rt runtime into the path the v8 build.gn computes:
+#    <build_env>/lib/clang/<ver>/lib/x86_64-unknown-linux-gnu/ — where
+#    <build_env> is the sibling "build_env" dir of this work dir. conda's
+#    compiler-rt installs the legacy layout (lib/linux/, suffixed names),
+#    while clang 19+ GN configs expect the triple subdir with unsuffixed
+#    names, so we place both.
+expected_root = os.path.join(os.path.dirname(os.getcwd()), "build_env", "lib", "clang")
+bridged = 0
+for src in glob.glob(
+    os.path.join(sys.prefix, "lib", "clang", "*", "lib", "*", "libclang_rt.*.a")
+):
+    ver = src.split(os.sep + "lib" + os.sep + "clang" + os.sep)[1].split(os.sep)[0]
+    dst = os.path.join(expected_root, ver, "lib", "x86_64-unknown-linux-gnu", os.path.basename(src))
+    if not os.path.exists(dst):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy(src, dst)
+        bridged += 1
+    base = os.path.basename(src)
+    if "builtins-" in base:
+        unsuffixed = base.replace("builtins-x86_64", "builtins").replace(
+            "builtins-aarch64", "builtins"
+        )
+        dst2 = os.path.join(expected_root, ver, "lib", "x86_64-unknown-linux-gnu", unsuffixed)
+        if not os.path.exists(dst2):
+            shutil.copy(src, dst2)
+            bridged += 1
+print("compiler-rt runtime bridged into build_env:", bridged, "files")
