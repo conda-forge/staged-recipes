@@ -1,0 +1,85 @@
+schema_version: 1
+
+context:
+  version: "0.11.1"
+
+package:
+  name: conda-ship
+  version: ${{ version }}
+
+source:
+  url: https://github.com/conda-incubator/conda-ship/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 5533a2a46ca8e55bdda9e9fb59c62874fe45b8462ef2a2118eab72f0d7726f51
+
+build:
+  number: 0
+  dynamic_linking:
+    # macOS templates reject LC_RPATH and link only system libraries.
+    binary_relocation: ${{ not osx }}
+  python:
+    version_independent: true
+  script:
+    env:
+      MATURIN_PEP517_ARGS: --locked --compatibility off
+    content:
+      - if: osx
+        then: export CARGO_BUILD_RUSTFLAGS=""
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - maturin >=1,<2
+    - if: build_platform != target_platform
+      then:
+        - python ${{ python_min }}.*
+        - cross-python_${{ target_platform }}
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - maturin >=1,<2
+  run:
+    - python >=${{ python_min }}
+    - conda >=25.1
+    - pyproject_hooks >=1.2
+    - if: match(python_min, "<3.11")
+      then: tomli >=1.1
+
+tests:
+  - python:
+      imports:
+        - conda_ship
+        - conda_ship.cli
+        - conda_ship.plugin
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - cs --help
+      - cs package-update --help
+      - python -m conda_ship.cli --help
+      - python -m conda ship -- --help
+      - python tests/ci/validate_runtime_pair.py installed --scratch-root .
+    files:
+      source:
+        - tests/ci/validate_runtime_pair.py
+        - tests/fixtures/structural-runtime/
+
+about:
+  homepage: https://conda-incubator.github.io/conda-ship/
+  summary: Build ready-to-run conda runtimes
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://conda-incubator.github.io/conda-ship/
+  repository: https://github.com/conda-incubator/conda-ship
+
+extra:
+  recipe-maintainers:
+    - jezdez
