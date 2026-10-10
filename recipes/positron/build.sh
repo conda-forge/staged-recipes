@@ -25,6 +25,9 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_
 # The source tarballs are not git checkouts, but positron's install scripts query
 # git for the ark/ai-lib submodules (version labels) and init them if .git is
 # missing. Give each a minimal local repo so those calls succeed offline.
+# The CI work dir sits inside the staged-recipes checkout; stop git from treating the
+# source as part of that repo (otherwise `git apply` in positron-python silently skips patches).
+export GIT_CEILING_DIRECTORIES="$(dirname "${SRC_DIR}")"
 git_snapshot() {
   git -C "$1" init -q
   git -C "$1" add -A
