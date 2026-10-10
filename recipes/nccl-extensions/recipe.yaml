@@ -1,0 +1,96 @@
+context:
+  version: "0.1.0"
+  cuda_major: ${{ (cuda_compiler_version | default("0.0")).split(".")[0] }}
+
+package:
+  name: nccl-extensions
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/nccl-extensions/archive/refs/tags/nccl-extensions-v${{ version }}.tar.gz
+  sha256: ea297c92e11c88817a17ea019d372f5e10484c6408c85055738bcf944090cd97
+
+build:
+  number: 0
+  skip: not linux or cuda_compiler_version == "None"
+  script:
+    - export CUDA_HOME="$PREFIX"
+    - export NCCL_HOME="$PREFIX"
+    - BUILDDIR="$SRC_DIR/build"
+    - make -C nccl_ep build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" BUILDDIR="$BUILDDIR"
+    - make -C nccl_m2n build NCCL_HOME="$NCCL_HOME" CUDA_HOME="$CUDA_HOME" BUILDDIR="$BUILDDIR"
+    - mkdir -p python/nccl/ep/lib/cu${{ cuda_major }} python/nccl/ep/include
+    - mkdir -p python/nccl/m2n/lib/cu${{ cuda_major }} python/nccl/m2n/include
+    - cp "$BUILDDIR/lib/libnccl_ep.so" python/nccl/ep/lib/cu${{ cuda_major }}/
+    - cp "$BUILDDIR/lib/libnccl_m2n.so" python/nccl/m2n/lib/cu${{ cuda_major }}/
+    - cp -r "$BUILDDIR/include/." python/nccl/ep/include/
+    - cp "$BUILDDIR/include/nccl_m2n.h" python/nccl/m2n/include/
+    - cd python
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - make
+  host:
+    - python
+    - pip
+    - setuptools >=77.0.3
+    - cython >=3.1
+    - numpy
+    - nccl4py
+    - nccl 2.30.7.*
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-driver-dev
+    - cuda-cccl ${{ cuda_compiler_version }}.*
+  run:
+    - python
+    - numpy
+    - nccl4py
+    - nccl 2.30.7.*
+    - cuda-core >=1.0,<2.0a0
+    - cuda-pathfinder >=1.5.4,<2.0.0
+    - packaging
+    - if: py<311
+      then:
+        - typing-extensions
+
+tests:
+  - python:
+      imports:
+        - nccl.ep
+        - nccl.m2n
+      pip_check: true
+  - script:
+      - test -f "${SP_DIR}/nccl/ep/lib/cu${{ cuda_major }}/libnccl_ep.so"
+      - test -f "${SP_DIR}/nccl/m2n/lib/cu${{ cuda_major }}/libnccl_m2n.so"
+
+about:
+  homepage: https://github.com/NVIDIA/nccl-extensions
+  summary: Communication patterns for AI workloads built on NCCL's device and host APIs
+  description: |
+    NCCL Extensions is a repository of communication patterns for AI use cases,
+    built on top of NCCL's device and host APIs. It speeds up tensor
+    communication for workloads like MoE token shuffle and reinforcement
+    learning weight rollout.
+
+    This package provides the Python bindings (nccl.ep and nccl.m2n) for:
+    - nccl_ep: optimized dispatch and combine primitives for Mixture-of-Experts
+      (MoE) token routing, built on NCCL's Device API.
+    - nccl_m2n: a library for resharding a tensor between two disjoint groups
+      of GPU processes (e.g. trainer and inference ranks) in a single,
+      zero-copy call, built on NCCL's window API.
+  license: Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - nccl_ep/ThirdPartyNotices.txt
+  repository: https://github.com/NVIDIA/nccl-extensions
+  documentation: https://github.com/NVIDIA/nccl-extensions/blob/main/python/README.md
+
+extra:
+  recipe-maintainers:
+    - LeeNethertonQC
