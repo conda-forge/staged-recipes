@@ -71,15 +71,22 @@ set "npm_config_build_from_source=true"
 set "NPM_CONFIG_CACHE=%SRC_DIR%\.npm-cache"
 set "CI=1"
 call npm ci --no-audit --no-fund || exit /b 1
+@echo on
 set "CI="
 rmdir /s /q "%NPM_CONFIG_CACHE%" 2>nul
 call npm run gulp vscode-win32-x64-min || exit /b 1
+:: npm.cmd turns echo off for the rest of this script
+@echo on
+dir "%SRC_DIR%\.."
 
 :: --- install ---
 rmdir /s /q node_modules build\node_modules remote\node_modules out out-build out-vscode-min .build _bin 2>nul
 for /d %%d in (extensions\*) do if exist "%%d\node_modules" rmdir /s /q "%%d\node_modules"
 mkdir "%LIBRARY_PREFIX%\lib"
+if not exist "%SRC_DIR%\..\VSCode-win32-x64\Positron.exe" ( echo ERROR: build output not found & exit /b 1 )
 move "%SRC_DIR%\..\VSCode-win32-x64" "%LIBRARY_PREFIX%\lib\positron" || exit /b 1
+:: the built-in copilot extension bundles the proprietary @github/copilot package
+rmdir /s /q "%LIBRARY_PREFIX%\lib\positron\resources\app\extensions\copilot"
 
 :: launcher on PATH
 mkdir "%LIBRARY_BIN%"
@@ -90,13 +97,13 @@ mkdir "%LIBRARY_BIN%"
 
 :: use conda-forge's ripgrep instead of the prebuilt rg.exe downloaded by @vscode/ripgrep
 for /r "%LIBRARY_PREFIX%\lib\positron\resources\app\node_modules.asar.unpacked\@vscode" %%f in (rg.exe) do (
-  if exist "%%f" copy /y "%BUILD_PREFIX%\Library\bin\rg.exe" "%%f" || exit /b 1
+  if exist "%%f" ( copy /y "%BUILD_PREFIX%\Library\bin\rg.exe" "%%f" || ( echo ERROR: copying conda rg.exe failed & exit /b 1 ) )
 )
 
 :: desktop integration (menuinst)
 mkdir "%PREFIX%\Menu"
 copy /y "%RECIPE_DIR%\positron.json" "%PREFIX%\Menu\positron.json" || exit /b 1
-copy /y "%LIBRARY_PREFIX%\lib\positron\resources\app\resources\win32\positron.ico" "%PREFIX%\Menu\positron.ico" || exit /b 1
+copy /y "%LIBRARY_PREFIX%\lib\positron\resources\app\resources\win32\positron.ico" "%PREFIX%\Menu\positron.ico" || ( echo ERROR: positron.ico not found & exit /b 1 )
 
 python "%RECIPE_DIR%\collect_licenses.py" "%LIBRARY_PREFIX%\lib\positron\resources\app" "%SRC_DIR%\third-party-licenses" || exit /b 1
 exit /b 0

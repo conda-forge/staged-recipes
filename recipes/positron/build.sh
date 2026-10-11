@@ -101,6 +101,8 @@ rm -rf node_modules build/node_modules remote/node_modules extensions/*/node_mod
 mkdir -p "${PREFIX}/lib" "${PREFIX}/bin"
 # mv (same filesystem) instead of cp, to avoid duplicating ~1GB on the full CI disk
 mv ../VSCode-linux-x64 "${PREFIX}/lib/positron"
+# the built-in copilot extension bundles the proprietary @github/copilot package
+rm -rf "${PREFIX}/lib/positron/resources/app/extensions/copilot"
 ln -sf ../lib/positron/bin/positron "${PREFIX}/bin/positron"
 
 # use conda-forge's ripgrep instead of the prebuilt rg downloaded by @vscode/ripgrep
