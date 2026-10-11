@@ -1,0 +1,63 @@
+context:
+  version: "0.1.12"
+
+package:
+  name: zlib-state
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/z/zlib-state/zlib_state-${{ version }}.tar.gz
+  sha256: ccbb06321daf165b022aa4d22d62effb7df76f55035d50bbe8b93696db416cf0
+  patches:
+    # Upstream hardcodes an absolute Windows include path ("C:/Program Files/zlib/include/zlib.h")
+    # instead of using the system include search path, so zlib.h is never found in a conda env.
+    - patches/0001-fix-windows-zlib-include-path.patch
+    # Upstream falls back to a hardcoded, non-existent "C:/Program Files/zlib/bin" for
+    # os.add_dll_directory() on Windows, which raises FileNotFoundError on import in any
+    # environment that doesn't have zlib installed there (i.e. every conda environment).
+    - patches/0002-fix-windows-dll-directory-fallback.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - set "ZLIB_HOME=%LIBRARY_PREFIX%"
+        - ${{ PYTHON }} -m pip install . -vv
+      else:
+        - ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - zlib
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+      - zlib_state
+      pip_check: true
+
+about:
+  homepage: https://github.com/seanmacavaney/zlib-state
+  summary: Low-level interface to the zlib library that enables capturing the decoding state
+  description: |
+    zlib-state provides a low-level Python interface to the zlib library
+    that allows the decompression state to be captured and later restored.
+    This makes it possible to efficiently seek into gzip-compressed files
+    at arbitrary deflate block boundaries without having to decompress
+    from the start of the file each time.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/seanmacavaney/zlib-state
+
+extra:
+  recipe-maintainers:
+    - pb01ka
