@@ -1,5 +1,5 @@
 context:
-  version: "0.1.3"
+  version: "0.1.4"
 
 package:
   name: git-include
@@ -7,15 +7,17 @@ package:
 
 source:
   url: https://github.com/Flova/git-include/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 6548da75a1baa5f0f34a3c9f2393e70923a9c2857c12c581c430dea748e3c291
+  sha256: 5833ce2f42ed4917f0c66cbebad9f1796c77423dd4462767fec6302523452b7b
 
 build:
   number: 0
   # --no-default-features drops the `self-update` feature (updating is
-  # conda's job) and `vendored-libgit2`; LIBGIT2_NO_VENDOR then forces
-  # libgit2-sys to link the conda-forge libgit2 instead of bundling its own.
+  # conda's job) and `vendored-libgit2`. LIBGIT2_NO_VENDOR and
+  # LIBSSH2_SYS_USE_PKG_CONFIG then make libgit2-sys and libssh2-sys link the
+  # conda-forge libgit2/libssh2 instead of building their bundled C copies.
   script: |
     export LIBGIT2_NO_VENDOR=1
+    export LIBSSH2_SYS_USE_PKG_CONFIG=1
     cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     cargo install --locked --no-default-features --root ${{ PREFIX }} --path . --no-track
 
@@ -27,9 +29,10 @@ requirements:
     - pkg-config
     - cargo-bundle-licenses
   host:
-    # Link conda-forge's libgit2 rather than vendoring a copy; its
-    # run-exports pin the matching runtime library automatically.
+    # Link conda-forge's libgit2 and libssh2 rather than vendoring copies;
+    # their run-exports pin the matching runtime libraries automatically.
     - libgit2
+    - libssh2
     - if: unix
       then:
         - openssl
