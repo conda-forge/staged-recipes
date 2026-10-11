@@ -75,7 +75,7 @@ call npm ci --no-audit --no-fund || exit /b 1
 set "CI="
 rmdir /s /q "%NPM_CONFIG_CACHE%" 2>nul
 call npm run gulp vscode-win32-x64-min || exit /b 1
-:: npm.cmd turns echo off for the rest of this script
+:: npm.cmd turns echo off for the rest of this script (positron names the windows output dir `px64` to save path length)
 @echo on
 dir "%SRC_DIR%\.."
 
@@ -83,8 +83,8 @@ dir "%SRC_DIR%\.."
 rmdir /s /q node_modules build\node_modules remote\node_modules out out-build out-vscode-min .build _bin 2>nul
 for /d %%d in (extensions\*) do if exist "%%d\node_modules" rmdir /s /q "%%d\node_modules"
 mkdir "%LIBRARY_PREFIX%\lib"
-if not exist "%SRC_DIR%\..\VSCode-win32-x64\Positron.exe" ( echo ERROR: build output not found & exit /b 1 )
-move "%SRC_DIR%\..\VSCode-win32-x64" "%LIBRARY_PREFIX%\lib\positron" || exit /b 1
+if not exist "%SRC_DIR%\..\px64\Positron.exe" ( echo ERROR: build output not found & exit /b 1 )
+move "%SRC_DIR%\..\px64" "%LIBRARY_PREFIX%\lib\positron" || exit /b 1
 :: the built-in copilot extension bundles the proprietary @github/copilot package
 rmdir /s /q "%LIBRARY_PREFIX%\lib\positron\resources\app\extensions\copilot"
 
