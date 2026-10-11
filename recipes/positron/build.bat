@@ -16,6 +16,14 @@ set "npm_config_python=%BUILD_PREFIX%\python.exe"
 set "CI_PYTHON_PATH=%BUILD_PREFIX%\python.exe"
 for %%i in ("%SRC_DIR%\..") do set "GIT_CEILING_DIRECTORIES=%%~fi"
 
+:: Windows path-length limits: keep cargo's registry/git checkouts under a short path
+:: (conda's long build prefix pushes some dependency files past MAX_PATH)
+set "CARGO_HOME=C:\ch"
+mkdir "%CARGO_HOME%" 2>nul
+set "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+git config --global core.longpaths true
+git config --global core.autocrlf false
+
 :: --- minimal local git repos for the submodule/postinstall scripts ---
 call :git_snapshot extensions\positron-r\ark || exit /b 1
 call :git_snapshot ai-lib || exit /b 1
