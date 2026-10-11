@@ -47,7 +47,6 @@ source:
 build:
   number: 0
   skip:
-    - osx
     - not x86_64
   script:
     file: ${{ "build.sh" if unix else "build.bat" }}
@@ -98,6 +97,9 @@ requirements:
     # on windows, copied over the prebuilt rg.exe bundled by @vscode/ripgrep
     - ripgrep
   host:
+    - if: osx
+      then:
+        - unixodbc
     - if: linux
       then:
         - libsecret
@@ -109,6 +111,10 @@ requirements:
         - unixodbc
   run:
     - quarto
+    - if: osx
+      then:
+        - unixodbc
+        - ripgrep
     - if: linux
       then:
         - __glibc >=2.28
@@ -140,18 +146,30 @@ requirements:
         - ripgrep
 
 tests:
-  - script:
-      - if: unix
-        then:
-          - positron --version
-          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-r/resources/ark/ark
-          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
-          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-python/python-env-tools/pet
-          - test -f ${PREFIX}/Menu/positron.json
-          - test -f ${PREFIX}/Menu/positron.png
-          - ${PREFIX}/lib/positron/resources/app/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/linux-x64/rg --version
-        else:
-          - call positron --version
+  - if: linux
+    then:
+      script:
+        - positron --version
+        - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-r/resources/ark/ark
+        - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
+        - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-python/python-env-tools/pet
+        - test -f ${PREFIX}/Menu/positron.json
+        - test -f ${PREFIX}/Menu/positron.png
+        - ${PREFIX}/lib/positron/resources/app/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/linux-x64/rg --version
+  - if: osx
+    then:
+      script:
+        - positron --version
+        - test -x ${PREFIX}/lib/Positron.app/Contents/Resources/app/extensions/positron-r/resources/ark/ark
+        - test -x ${PREFIX}/lib/Positron.app/Contents/Resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
+        - test -x ${PREFIX}/lib/Positron.app/Contents/Resources/app/extensions/positron-python/python-env-tools/pet
+        - test -f ${PREFIX}/Menu/positron.json
+        - test -f ${PREFIX}/Menu/positron.icns
+        - codesign --verify --deep ${PREFIX}/lib/Positron.app
+  - if: win
+    then:
+      script:
+        - call positron --version
   - if: win
     then:
       package_contents:
@@ -163,6 +181,15 @@ tests:
           - Library/bin/positron.cmd
           - Menu/positron.json
           - Menu/positron.ico
+  # launch the GUI and wait for a workbench window (see smoke_test.py)
+  - script:
+      - python smoke_test.py
+    requirements:
+      run:
+        - python
+    files:
+      recipe:
+        - smoke_test.py
 
 about:
   homepage: https://positron.posit.co/

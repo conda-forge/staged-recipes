@@ -91,8 +91,20 @@ export NPM_CONFIG_CACHE="${SRC_DIR}/.npm-cache"
 # CI=1 makes postinstall skip syncing submodules against their remotes.
 CI=1 npm ci --no-audit --no-fund
 rm -rf "${NPM_CONFIG_CACHE}"
+if [[ "${target_platform}" == osx-* ]]; then
+  GULP_TARGET="vscode-darwin-x64-min"
+  OUT_DIR="../VSCode-darwin-x64/Positron.app"
+  APP_DEST="${PREFIX}/lib/Positron.app"
+  APP_RES="${APP_DEST}/Contents/Resources/app"
+else
+  GULP_TARGET="vscode-linux-x64-min"
+  OUT_DIR="../VSCode-linux-x64"
+  APP_DEST="${PREFIX}/lib/positron"
+  APP_RES="${APP_DEST}/resources/app"
+fi
+
 # desktop-only build (core-ci would also build the remote server variants, which exhausts CI memory)
-npm run gulp vscode-linux-x64-min
+npm run gulp "${GULP_TARGET}"
 
 # --- install ---
 # free disk before packaging: the build trees are no longer needed
@@ -100,25 +112,44 @@ rm -rf node_modules build/node_modules remote/node_modules extensions/*/node_mod
   out out-build out-vscode-min .build _bin
 mkdir -p "${PREFIX}/lib" "${PREFIX}/bin"
 # mv (same filesystem) instead of cp, to avoid duplicating ~1GB on the full CI disk
-mv ../VSCode-linux-x64 "${PREFIX}/lib/positron"
+mv "${OUT_DIR}" "${APP_DEST}"
 # the built-in copilot extension bundles the proprietary @github/copilot package
-rm -rf "${PREFIX}/lib/positron/resources/app/extensions/copilot"
-ln -sf ../lib/positron/bin/positron "${PREFIX}/bin/positron"
+rm -rf "${APP_RES}/extensions/copilot"
 
-# use conda-forge's ripgrep instead of the prebuilt rg downloaded by @vscode/ripgrep
-rg_bundled="${PREFIX}/lib/positron/resources/app/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/linux-x64/rg"
-if [[ -e "${rg_bundled}" ]]; then
-  rm -f "${rg_bundled}"
-  ln -s ../../../../../../../../../bin/rg "${rg_bundled}"
+if [[ "${target_platform}" == osx-* ]]; then
+  cat > "${PREFIX}/bin/positron" <<'SH'
+#!/bin/bash
+exec "$(dirname "$0")/../lib/Positron.app/Contents/Resources/app/bin/code" "$@"
+SH
+  chmod +x "${PREFIX}/bin/positron"
+else
+  ln -sf ../lib/positron/bin/positron "${PREFIX}/bin/positron"
 fi
 
-# js-debug's VSIX ships Windows-only native helpers; they're unused on linux
-find "${PREFIX}/lib/positron/resources/app/extensions" -name '*win32*.node' -delete
+# use conda-forge's ripgrep instead of the prebuilt rg downloaded by @vscode/ripgrep
+for rg_bundled in "${APP_RES}"/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/*/rg; do
+  [[ -e "${rg_bundled}" ]] || continue
+  rm -f "${rg_bundled}"
+  ln -s "$(python -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "${PREFIX}/bin/rg" "$(dirname "${rg_bundled}")")" "${rg_bundled}"
+done
+
+# js-debug's VSIX ships Windows-only native helpers; they're unused here
+find "${APP_RES}/extensions" -name '*win32*.node' -delete
 
 # desktop integration (menuinst), as in other conda-forge Electron apps
 mkdir -p "${PREFIX}/Menu"
 cp "${RECIPE_DIR}/positron.json" "${PREFIX}/Menu/positron.json"
-cp "${PREFIX}/lib/positron/resources/app/resources/linux/positron.png" "${PREFIX}/Menu/positron.png"
+if [[ "${target_platform}" == osx-* ]]; then
+  icon=$(python -c 'import plistlib,sys; print(plistlib.load(open(sys.argv[1],"rb"))["CFBundleIconFile"])' "${APP_DEST}/Contents/Info.plist")
+  cp "${APP_DEST}/Contents/Resources/${icon%.icns}.icns" "${PREFIX}/Menu/positron.icns"
+else
+  cp "${APP_RES}/resources/linux/positron.png" "${PREFIX}/Menu/positron.png"
+fi
 
 # collect the license files of everything bundled in the app (npm packages, PDF.js, vendored python)
-python "${RECIPE_DIR}/collect_licenses.py" "${PREFIX}/lib/positron/resources/app" "${SRC_DIR}/third-party-licenses"
+python "${RECIPE_DIR}/collect_licenses.py" "${APP_RES}" "${SRC_DIR}/third-party-licenses"
+
+if [[ "${target_platform}" == osx-* ]]; then
+  # files in the bundle changed after packaging (rg, removed extension): re-sign ad hoc, like podman-desktop
+  codesign --force --deep --sign - "${APP_DEST}"
+fi
