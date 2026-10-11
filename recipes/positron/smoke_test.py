@@ -48,11 +48,17 @@ def main():
     exe = app_executable(prefix)
     tmp = tempfile.mkdtemp(prefix="positron-smoke-")
     user_data = os.path.join(tmp, "user-data")
+    # Positron writes logs under $XDG_STATE_HOME / ~/.local/state by default; pin them here
+    logs = os.path.join(tmp, "logs")
     workspace = os.path.join(tmp, "workspace")
     os.makedirs(workspace)
+    os.makedirs(os.path.join(user_data, "User"))
+    with open(os.path.join(user_data, "User", "settings.json"), "w") as fh:
+        fh.write('{"update.mode": "none", "telemetry.telemetryLevel": "off"}')
     args = [
         exe,
         "--user-data-dir", user_data,
+        "--logsPath", logs,
         "--extensions-dir", os.path.join(tmp, "extensions"),
         "--disable-gpu",
         "--no-sandbox",
@@ -76,8 +82,8 @@ def main():
     deadline = time.time() + TIMEOUT
     try:
         while time.time() < deadline:
-            renderer = renderer or next(iter(glob.glob(os.path.join(user_data, "logs", "*", "window1", "renderer.log"))), None)
-            exthost = exthost or next(iter(glob.glob(os.path.join(user_data, "logs", "*", "window1", "exthost", "exthost.log"))), None)
+            renderer = renderer or next(iter(glob.glob(os.path.join(logs, "**", "window*", "renderer.log"), recursive=True)), None)
+            exthost = exthost or next(iter(glob.glob(os.path.join(logs, "**", "exthost*.log"), recursive=True)), None)
             if renderer and exthost:
                 break
             if proc.poll() is not None:
@@ -86,7 +92,7 @@ def main():
         if renderer and not exthost and proc.poll() is None:
             # give the workbench a little longer to start the extension host
             time.sleep(20)
-            exthost = next(iter(glob.glob(os.path.join(user_data, "logs", "*", "window1", "exthost", "exthost.log"))), None)
+            exthost = next(iter(glob.glob(os.path.join(logs, "**", "exthost*.log"), recursive=True)), None)
         exited = proc.poll()
     finally:
         stop(proc)
@@ -96,7 +102,8 @@ def main():
     print(f"extension host log: {exthost}")
     if not renderer:
         print(f"FAILED: no workbench window within {TIMEOUT}s (process exit code: {exited})")
-        for log in [os.path.join(tmp, "stdout.log")] + glob.glob(os.path.join(user_data, "logs", "*", "main.log")):
+        print("log files:", sorted(os.path.relpath(f, logs) for f in glob.glob(os.path.join(logs, "**", "*"), recursive=True)))
+        for log in [os.path.join(tmp, "stdout.log")] + glob.glob(os.path.join(logs, "**", "main.log"), recursive=True):
             print(f"--- {log} (tail) ---")
             with open(log, errors="replace") as fh:
                 print("".join(fh.readlines()[-40:]))
