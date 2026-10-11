@@ -46,11 +46,11 @@ source:
 
 build:
   number: 0
-  # linux-64 first; other platforms to follow
   skip:
-    - not (linux and x86_64)
+    - osx
+    - not x86_64
   script:
-    file: build.sh
+    file: ${{ "build.sh" if unix else "build.bat" }}
     env:
       KALLICHORE_VERSION: ${{ kallichore_version }}
       PET_VERSION: ${{ pet_version }}
@@ -73,7 +73,6 @@ requirements:
     - python 3.12.*
     - pip
     - setuptools
-    - unzip
     - hatchling
     - hatch-vcs
     # pure-python libraries positron-python vendors (pinned in its requirements files)
@@ -91,56 +90,75 @@ requirements:
     - mdurl ==0.1.2
     - pygls ==2.1.1
     - pygments ==2.20.0
-    - make
-    - pkg-config
     - git
+    - if: unix
+      then:
+        - make
+        - pkg-config
+        - unzip
+    - if: win
+      then:
+        # copied over the prebuilt rg.exe bundled by @vscode/ripgrep
+        - ripgrep
   host:
-    - libsecret
-    - krb5
-    - xorg-libx11
-    - xorg-xorgproto
-    - libxkbfile
-    - glib
-    - unixodbc
+    - if: linux
+      then:
+        - libsecret
+        - krb5
+        - xorg-libx11
+        - xorg-xorgproto
+        - libxkbfile
+        - glib
+        - unixodbc
   run:
-    - __glibc >=2.28
-    - libsecret
-    - krb5
-    - xorg-libx11
-    - libxkbfile
-    - xorg-libxcomposite
-    - xorg-libxdamage
-    - xorg-libxext
-    - xorg-libxfixes
-    - xorg-libxrandr
-    - xorg-libxcb
-    - libxkbcommon
-    - gtk3
-    - nss
-    - nspr
-    - alsa-lib
-    - libdrm
-    - libgbm
-    - at-spi2-core
-    - libcups
-    - dbus
-    - expat
-    - pango
-    - cairo
-    - glib
-    - unixodbc
     - quarto
-    - ripgrep
+    - if: linux
+      then:
+        - __glibc >=2.28
+        - libsecret
+        - krb5
+        - xorg-libx11
+        - libxkbfile
+        - xorg-libxcomposite
+        - xorg-libxdamage
+        - xorg-libxext
+        - xorg-libxfixes
+        - xorg-libxrandr
+        - xorg-libxcb
+        - libxkbcommon
+        - gtk3
+        - nss
+        - nspr
+        - alsa-lib
+        - libdrm
+        - libgbm
+        - at-spi2-core
+        - libcups
+        - dbus
+        - expat
+        - pango
+        - cairo
+        - glib
+        - unixodbc
+        - ripgrep
 
 tests:
   - script:
-      - positron --version
-      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-r/resources/ark/ark
-      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
-      - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-python/python-env-tools/pet
-      - test -f ${PREFIX}/Menu/positron.json
-      - test -f ${PREFIX}/Menu/positron.png
-      - ${PREFIX}/lib/positron/resources/app/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/linux-x64/rg --version
+      - if: unix
+        then:
+          - positron --version
+          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-r/resources/ark/ark
+          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-supervisor/resources/kallichore/kcserver
+          - test -x ${PREFIX}/lib/positron/resources/app/extensions/positron-python/python-env-tools/pet
+          - test -f ${PREFIX}/Menu/positron.json
+          - test -f ${PREFIX}/Menu/positron.png
+          - ${PREFIX}/lib/positron/resources/app/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/linux-x64/rg --version
+        else:
+          - call positron --version
+          - if not exist %LIBRARY_PREFIX%\lib\positron\resources\app\extensions\positron-r\resources\ark\ark.exe exit 1
+          - if not exist %LIBRARY_PREFIX%\lib\positron\resources\app\extensions\positron-supervisor\resources\kallichore\kcserver.exe exit 1
+          - if not exist %LIBRARY_PREFIX%\lib\positron\resources\app\extensions\positron-python\python-env-tools\pet.exe exit 1
+          - if not exist %PREFIX%\Menu\positron.json exit 1
 
 about:
   homepage: https://positron.posit.co/
