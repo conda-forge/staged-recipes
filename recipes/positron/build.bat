@@ -96,9 +96,11 @@ mkdir "%LIBRARY_BIN%"
 ) > "%LIBRARY_BIN%\positron.cmd"
 
 :: use conda-forge's ripgrep instead of the prebuilt rg.exe downloaded by @vscode/ripgrep
-for /r "%LIBRARY_PREFIX%\lib\positron\resources\app\node_modules.asar.unpacked\@vscode" %%f in (rg.exe) do (
-  if exist "%%f" ( copy /y "%BUILD_PREFIX%\Library\bin\rg.exe" "%%f" || ( echo ERROR: copying conda rg.exe failed & exit /b 1 ) )
-)
+set "RG_EXE="
+for /f "delims=" %%r in ('where rg.exe') do if not defined RG_EXE set "RG_EXE=%%r"
+if not defined RG_EXE ( echo ERROR: conda-forge rg.exe not found on PATH & exit /b 1 )
+set "RG_BUNDLED=%LIBRARY_PREFIX%\lib\positron\resources\app\node_modules.asar.unpacked\@vscode\ripgrep-universal\bin\win32-x64\rg.exe"
+if exist "%RG_BUNDLED%" ( copy /y "%RG_EXE%" "%RG_BUNDLED%" || ( echo ERROR: copying conda rg.exe failed & exit /b 1 ) )
 
 :: desktop integration (menuinst)
 mkdir "%PREFIX%\Menu"
