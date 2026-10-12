@@ -1,0 +1,80 @@
+# Notes:
+#  - findlib is built PRIVATELY into ${SRC_DIR}/_tools (see building/build_findlib.sh)
+#    and is never published: the conda-forge ocaml-findlib feedstock is unmaintained.
+#  - The library is built with topkg (`ocaml pkg/pkg.ml build`) and installed
+#    with opam-installer from the conda-forge `opam` package.
+schema_version: 1
+
+context:
+  name: uutf
+  version: "1.0.4"
+  findlib_version: "1.9.8"
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/ocaml/ocamlfind/archive/refs/tags/findlib-${{ findlib_version }}.tar.gz
+    sha256: d6899935ccabf67f067a9af3f3f88d94e310075d13c648fa03ff498769ce039d
+    target_directory: findlib
+  - url: https://erratique.ch/software/${{ name }}/releases/${{ name }}-${{ version }}.tbz
+    sha256: a7a578e6af9149a8894e18e3b4759c8565937a69c6c9ace7a30bbf0484619ca8
+    target_directory: ${{ name }}
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/building/build_topkg_pkg.sh --with-cmdliner false
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ocaml 5.4.*
+    # ocamlbuild is pinned to build _3 (ships ocamlbuild.cmo); _2 fails at mtime. Fail-fast guard against stale repodata; drop once _3 is universally resolved.
+    - ocamlbuild 0.16.* *_3
+    - opam
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+  host:
+    - ocaml 5.4.*
+    - ocaml-topkg >=1.1.1
+  run:
+    - ocaml 5.4.*
+    - ocaml-topkg >=1.1.1
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+  # TODO: enable on win once the unix test is proven in CI
+  - if: unix
+    then:
+      script: bash testing/test_ocaml_lib.sh ${{ name }}
+      files:
+        recipe:
+          - testing/test_ocaml_lib.sh
+      requirements:
+        run:
+          - ocaml 5.4.*
+
+about:
+  homepage: https://erratique.ch/software/uutf
+  repository: https://github.com/dbuenzli/uutf
+  license: ISC
+  license_file: uutf/LICENSE.md
+  summary: Non-blocking streaming Unicode codec for OCaml
+
+extra:
+  recipe-maintainers:
+    - MementoRC
