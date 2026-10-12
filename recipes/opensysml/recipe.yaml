@@ -35,7 +35,6 @@ context:
   pip_install: pip install . --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
   # jupyter
   py_jp_dir: ${{ go_mod }}/client/jupyter-kernel
-  js_labext_dir: ${{ go_mod }}/editors/jupyterlab
   jpy_nodejs_min: "24"
   jupyterlab_min: "4.5"
 
@@ -261,24 +260,10 @@ outputs:
         entry_points:
           - jupyter-opensysml-kernel = jupyter_opensysml_kernel.__main__:main
       script:
-        interpreter: python
-        # this is gross, but windows is bad at node
-        content: |-
-          import os, subprocess, sys
-          from subprocess import call
-
-          def do(cwd, cmd):
-              print("\n>>>", cwd, "\n\t", cmd, flush=True)
-              rc = subprocess.call(cmd, shell=True, cwd=cwd)
-              print("rc", rc, cmd, "\n", flush=True)
-
-          ex_dir = """${{ js_labext_dir }}"""
-          py_dir = """${{ py_jp_dir }}"""
-
-          do(ex_dir, """npm install --ignore-scripts""")
-          do(ex_dir, """npm run build:lib""")
-          do(ex_dir, """jupyter-builder build .""")
-          do(py_dir,  sys.executable + """ -m ${{ pip_install }}""")
+        env:
+          GO_MOD: ${{ go_mod }}
+          PIP_INSTALL: ${{ pip_install }}
+        file: build-jupyter-opensysml-kernel.py
     requirements:
       host:
         - jupyter-builder >=1.2.3,<2
@@ -311,13 +296,7 @@ outputs:
             - pip
             - python ${{ python_min }}.*
         script:
-          - pip check
-          - jupyter-opensysml-kernel --help
-          - jupyter-opensysml-kernel --version
-          - jupyter labextension list
-          - jupyter kernelspec list --json
-          - jupyter kernelspec list --json | ${{ grep }}sysml-jupyter-kernel
-          - jupyter labextension list 2>&1 | ${{ grep }}"jupyterlab-opensysml.*v${{ version | replace(".", "\\.") }}.*enabled.*OK"
+          file: test-jupyter-opensysml-kernel.py
     about:
       summary: Jupyter kernel for SysML v2, backed by the OpenSysML REPL
       homepage: https://pypi.org/project/jupyter-opensysml-kernel
