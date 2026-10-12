@@ -7,13 +7,8 @@ export NPM_CONFIG_AUDIT=false
 export NPM_CONFIG_FUND=false
 export NPM_CONFIG_UPDATE_NOTIFIER=false
 export npm_config_arch=x64
-export NODE_OPTIONS="--max-old-space-size=6144"
 # upstream build number, e.g. 2026.10.0.297 -> 297
 export POSITRON_BUILD_NUMBER="${PKG_VERSION##*.}"
-# node-gyp: use conda's python and compilers
-export npm_config_python="${BUILD_PREFIX}/bin/python"
-export CXXFLAGS="${CXXFLAGS:-} -I${PREFIX}/include"
-export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
 # postinstall builds some native modules with plain gcc/g++/cc/c++; point those at conda's toolchain
 mkdir -p "${SRC_DIR}/_shims"
 ln -sf "$(command -v "${CC}")" "${SRC_DIR}/_shims/gcc"
@@ -21,7 +16,6 @@ ln -sf "$(command -v "${CXX}")" "${SRC_DIR}/_shims/g++"
 ln -sf "$(command -v "${CC}")" "${SRC_DIR}/_shims/cc"
 ln -sf "$(command -v "${CXX}")" "${SRC_DIR}/_shims/c++"
 export PATH="${SRC_DIR}/_shims:${PATH}"
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 # The source tarballs are not git checkouts, but positron's install scripts query
 # git for the ark/ai-lib submodules (version labels) and init them if .git is
@@ -51,26 +45,17 @@ popd
 mkdir -p extensions/positron-r/ark/target/release
 cp _bin/bin/ark extensions/positron-r/ark/target/release/ark
 
-# Kallichore (kernel supervisor)
-pushd _kallichore
-cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY-kallichore.yml"
-cargo install --bins --no-track --locked --root "${SRC_DIR}/_bin" --path crates/kcserver
-popd
+# Kallichore and Python Environment Tools come from their own packages (host deps);
+# positron expects copies inside the extensions, with VERSION markers so nothing is downloaded
 mkdir -p extensions/positron-supervisor/resources/kallichore
-cp _bin/bin/kcserver extensions/positron-supervisor/resources/kallichore/
+cp "${PREFIX}/bin/kcserver" extensions/positron-supervisor/resources/kallichore/
 printf '%s' "${KALLICHORE_VERSION}" > extensions/positron-supervisor/resources/kallichore/VERSION
-
-# Python Environment Tools
-pushd _pet
-cargo-bundle-licenses --format yaml --output "${SRC_DIR}/THIRDPARTY-pet.yml"
-cargo install --bins --no-track --locked --root "${SRC_DIR}/_bin" --path crates/pet
-popd
 mkdir -p extensions/positron-python/python-env-tools extensions/positron-python/resources/pet
-cp _bin/bin/pet extensions/positron-python/python-env-tools/
+cp "${PREFIX}/bin/pet" extensions/positron-python/python-env-tools/
 printf '%s' "${PET_VERSION}" > extensions/positron-python/resources/pet/VERSION
 
 # The CI agents are short on disk: drop rust build trees and caches
-rm -rf extensions/positron-r/ark/target/{debug,x86_64-*} _kallichore/target _pet/target "${CARGO_HOME:-$HOME/.cargo}/registry" "${CARGO_HOME:-$HOME/.cargo}/git"
+rm -rf extensions/positron-r/ark/target/{debug,x86_64-*} "${CARGO_HOME:-$HOME/.cargo}/registry" "${CARGO_HOME:-$HOME/.cargo}/git"
 
 # --- Vendored pure-python libraries for positron-python (patch 0002) ---
 # Built from sdist where conda-forge lacks the pinned version; the rest come from the build env.
@@ -123,8 +108,6 @@ rm -rf node_modules build/node_modules remote/node_modules extensions/*/node_mod
 mkdir -p "${PREFIX}/lib" "${PREFIX}/bin"
 # mv (same filesystem) instead of cp, to avoid duplicating ~1GB on the full CI disk
 mv "${OUT_DIR}" "${APP_DEST}"
-# the built-in copilot extension bundles the proprietary @github/copilot package
-rm -rf "${APP_RES}/extensions/copilot"
 
 if [[ "${target_platform}" == osx-* ]]; then
   cat > "${PREFIX}/bin/positron" <<'SH'
@@ -147,9 +130,6 @@ for rg_bundled in "${APP_RES}"/node_modules.asar.unpacked/@vscode/ripgrep-univer
     ln -s "$(python -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "${PREFIX}/bin/rg" "$(dirname "${rg_bundled}")")" "${rg_bundled}"
   fi
 done
-
-# js-debug's VSIX ships Windows-only native helpers; they're unused here
-find "${APP_RES}/extensions" -name '*win32*.node' -delete
 
 # desktop integration (menuinst), as in other conda-forge Electron apps
 mkdir -p "${PREFIX}/Menu"

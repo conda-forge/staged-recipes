@@ -9,9 +9,7 @@ set "NPM_CONFIG_AUDIT=false"
 set "NPM_CONFIG_FUND=false"
 set "NPM_CONFIG_UPDATE_NOTIFIER=false"
 set "npm_config_arch=x64"
-set "NODE_OPTIONS=--max-old-space-size=6144"
 for /f "tokens=4 delims=." %%a in ("%PKG_VERSION%") do set "POSITRON_BUILD_NUMBER=%%a"
-set "npm_config_python=%BUILD_PREFIX%\python.exe"
 :: positron-python's gulpfile looks for `python3`, which conda doesn't provide on Windows
 set "CI_PYTHON_PATH=%BUILD_PREFIX%\python.exe"
 for %%i in ("%SRC_DIR%\..") do set "GIT_CEILING_DIRECTORIES=%%~fi"
@@ -37,25 +35,16 @@ popd
 mkdir extensions\positron-r\ark\target\release
 copy /y _bin\bin\ark.exe extensions\positron-r\ark\target\release\ark.exe || exit /b 1
 
-pushd _kallichore
-cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY-kallichore.yml" || exit /b 1
-cargo install --bins --no-track --locked --root "%SRC_DIR%\_bin" --path crates\kcserver || exit /b 1
-popd
+:: Kallichore and Python Environment Tools come from their own packages (host deps)
 mkdir extensions\positron-supervisor\resources\kallichore
-copy /y _bin\bin\kcserver.exe extensions\positron-supervisor\resources\kallichore\ || exit /b 1
+copy /y "%LIBRARY_BIN%\kcserver.exe" extensions\positron-supervisor\resources\kallichore\ || exit /b 1
 <nul set /p "=%KALLICHORE_VERSION%" > extensions\positron-supervisor\resources\kallichore\VERSION
-
-pushd _pet
-cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY-pet.yml" || exit /b 1
-cargo install --bins --no-track --locked --root "%SRC_DIR%\_bin" --path crates\pet || exit /b 1
-popd
 mkdir extensions\positron-python\python-env-tools
 mkdir extensions\positron-python\resources\pet
-copy /y _bin\bin\pet.exe extensions\positron-python\python-env-tools\ || exit /b 1
+copy /y "%LIBRARY_BIN%\pet.exe" extensions\positron-python\python-env-tools\ || exit /b 1
 <nul set /p "=%PET_VERSION%" > extensions\positron-python\resources\pet\VERSION
 
 :: free disk
-rmdir /s /q _kallichore\target _pet\target 2>nul
 if defined CARGO_HOME ( rmdir /s /q "%CARGO_HOME%\registry" "%CARGO_HOME%\git" 2>nul )
 
 :: --- vendored pure-python libraries for positron-python (patch 0002) ---
@@ -85,8 +74,6 @@ for /d %%d in (extensions\*) do if exist "%%d\node_modules" rmdir /s /q "%%d\nod
 mkdir "%LIBRARY_PREFIX%\lib"
 if not exist "%SRC_DIR%\..\px64\Positron.exe" ( echo ERROR: build output not found & exit /b 1 )
 move "%SRC_DIR%\..\px64" "%LIBRARY_PREFIX%\lib\positron" || exit /b 1
-:: the built-in copilot extension bundles the proprietary @github/copilot package
-rmdir /s /q "%LIBRARY_PREFIX%\lib\positron\resources\app\extensions\copilot"
 
 :: launcher on PATH
 mkdir "%LIBRARY_BIN%"
