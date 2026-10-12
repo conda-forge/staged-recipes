@@ -33,7 +33,6 @@ context:
   js_labext_dir: ${{ go_mod }}/editors/jupyterlab
   jpy_nodejs_min: "24"
   jupyterlab_min: "4.5"
-  jupyterlab_max: "5"
 
 recipe:
   name: opensysml
@@ -248,7 +247,7 @@ outputs:
       summary: Python client library for OpenSysML, a SysML v2 parser and execution runtime
       homepage: https://pypi.org/project/opensysml
 
-  # jupyter (python and js)
+  # jupyter (python and js) ####################################################
   - package:
       name: jupyter-opensysml-kernel
     build:
@@ -259,19 +258,21 @@ outputs:
       script:
         - pushd ${{ js_labext_dir }}
         - npm install
-        - npm run build
+        - npm run build:lib
+        - jupyter-builder build
         - popd
         - cd ${{ py_jp_dir }}
         - ${{ PYTHON }} -m ${{ pip_install }}
     requirements:
       host:
-        - jupyterlab >=${{ jupyterlab_min }},<${{ jupyterlab_max }}
+        - jupyter-builder >=1.2.3,<2
         - nodejs ${{ jpy_nodejs_min }}.*
         - pip
         - python ${{ python_min }}.*
         - setuptools >=77
       run:
-        - ${{ pin_subpackage("opensysml-jupyter-kernel", exact=True) }}
+        # conda-forge baseline instead of runtime downloading
+        - ${{ pin_subpackage("opensysml-jupyter-kernel", upper_bound="x.x.x") }}
         - jupyter_client >=7.0
         - python >=${{ python_min }}
     tests:
@@ -291,8 +292,10 @@ outputs:
       - requirements:
           run:
             - jupyterlab ${{ jupyterlab_min }}.*
+            - pip
             - python ${{ python_min }}.*
         script:
+          - pip check
           - jupyter-opensysml-kernel --help
           - jupyter-opensysml-kernel --version
           - jupyter labextension list
@@ -311,7 +314,7 @@ about:
   homepage: https://opensysml.org
   license: Apache-2.0
   license_file: ${{ go_mod }}/LICENSE
-  repository: https://github.com/Open-MBEE/OpenSysML
+  repository: https://${{ go_mod }}
 
 extra:
   feedstock-name: opensysml
