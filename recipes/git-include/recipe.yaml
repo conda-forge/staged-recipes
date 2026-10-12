@@ -1,0 +1,61 @@
+context:
+  version: "0.1.4"
+
+package:
+  name: git-include
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Flova/git-include/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5833ce2f42ed4917f0c66cbebad9f1796c77423dd4462767fec6302523452b7b
+
+build:
+  number: 0
+  # --no-default-features drops the `self-update` feature (updating is
+  # conda's job) and `vendored-libgit2`. LIBGIT2_NO_VENDOR and
+  # LIBSSH2_SYS_USE_PKG_CONFIG then make libgit2-sys and libssh2-sys link the
+  # conda-forge libgit2/libssh2 instead of building their bundled C copies.
+  script: |
+    export LIBGIT2_NO_VENDOR=1
+    export LIBSSH2_SYS_USE_PKG_CONFIG=1
+    cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    cargo install --locked --no-default-features --root ${{ PREFIX }} --path . --no-track
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - pkg-config
+    - cargo-bundle-licenses
+  host:
+    # Link conda-forge's libgit2 and libssh2 rather than vendoring copies;
+    # their run-exports pin the matching runtime libraries automatically.
+    - libgit2
+    - libssh2
+    - if: unix
+      then:
+        - openssl
+
+tests:
+  - script:
+      - git-include --version
+
+about:
+  homepage: https://github.com/Flova/git-include
+  repository: https://github.com/Flova/git-include
+  summary: Vendor external git repositories as plain files, with full two-way sync
+  description: |
+    git-include is a modern alternative to git-subrepo and git submodules. It
+    inlines an upstream repository into your project as plain, committed files
+    plus a small .gitrepo marker, so collaborators just clone your repo with no
+    extra steps. Changes can be synced in both directions: pull upstream updates
+    in, and contribute local edits back as a clean, topology-preserving history.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - Flova
