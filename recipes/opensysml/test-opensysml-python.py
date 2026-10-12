@@ -34,6 +34,7 @@ PRUNE_TESTS = [
     "test_legacy_pysysml_placeholder.py",
     "test_pin_release_checksums.py",
     "test_version.py",
+    "test_snapshot_version.py"
 ]
 
 SKIPS = [

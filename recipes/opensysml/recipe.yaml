@@ -7,23 +7,32 @@ context:
   # platform
   export: ${{ "export" if unix else "set" }}
   env_src_dir: ${{ "${SRC_DIR}" if unix else "%SRC_DIR%" }}
+  cat: ${{ "cat" if unix else "" }}
+  grep: ${{ "grep -iE " if unix else "findstr /r /c:" }}
   # go
   go_mod: github.com/Open-MBEE/OpenSysML
   go_ld_flags: -s -w -X main.Version=${{ version }}
-  go_build: go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
+  go_licenses: |-
+    go-licenses save . --save_path library_licenses --ignore ${{ go_mod }}
+  go_build: ${{ go_licenses }} && go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
+  # go packages
   go_cli_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "${PREFIX}/bin/sysml" }}
   go_grpc_bin: ${{ "%LIBRARY_BIN%\\sysml-grpc.exe" if win else "${PREFIX}/bin/sysml-grpc" }}
   go_lsp_bin: ${{ "%LIBRARY_BIN%\\sysml-lsp.exe" if win else "${PREFIX}/bin/sysml-lsp" }}
+  go_jpy_bin: ${{ "%LIBRARY_BIN%\\sysml-jupyter-kernel.exe" if win else "${PREFIX}/bin/sysml-jupyter-kernel" }}
   # python
   py_dir: ${{ go_mod }}/client/python
   python_check_max: "3.14"
   py_grpcio_min: "1.83.0"
   py_protobuf_min: "7.35.1"
+  pip_install: pip install . --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
+  # jupyter
+  py_jpy_dir: ${{ go_mod }}/client/jupyter-kernel
+  js_labext_dir: ${{ go_mod }}/editor/jupyterlab
+  jupyterlab_min: "4.5"
+  jupyterlab_max: "5"
   # test
-  grep_version_unix: grep -iE "${{ version | replace(".", "\\.") }}$"
-  grep_version_win: |-
-    findstr /r /c:${{ version | replace(".", "\\.") }}
-  grep_version: ${{ grep_version_unix if unix else grep_version_win }}
+  grep_version: ${{ grep }}${{ version | replace(".", "\\.") }}
 
 recipe:
   name: opensysml
@@ -40,6 +49,7 @@ build:
   number: 0
 
 outputs:
+  # go #########################################################################
   - package:
       name: opensysml
     requirements:
@@ -52,7 +62,6 @@ outputs:
           - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml
           - ${{ go_build }} -o "${{ go_cli_bin }}"
-          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
     tests:
       - package_contents:
           strict: true
@@ -65,7 +74,7 @@ outputs:
     about:
       license_file:
         - ${{ go_mod }}/LICENSE
-        - library_licenses/**
+        - ${{ go_mod }}/cmd/sysml/library_licenses/**
 
   - package:
       name: opensysml-grpc
@@ -79,7 +88,6 @@ outputs:
           - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml-grpc
           - ${{ go_build }} -o "${{ go_grpc_bin }}"
-          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
           - cd "${{ RECIPE_DIR }}"
           - if: unix
             then:
@@ -105,7 +113,47 @@ outputs:
       summary: ${{ summary }} - GRPC server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - library_licenses/
+        - ${{ go_mod }}/cmd/sysml-grpc/library_licenses/**
+
+  - package:
+      name: opensysml-jupyter-kernel
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        content:
+          - ${{ export }} "GOPATH=${{ env_src_dir }}"
+          - cd ${{ go_mod }}/cmd/sysml-jupyter-kernel
+          - ${{ go_build }} -o "${{ go_jpy_bin }}"
+          - if: build_platform == target_platform
+            then:
+              - sysml-jupyter-kernel --help
+              - sysml-jupyter-kernel -install -prefix "${{ PREFIX }}"
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - sysml-jupyter-kernel
+          files:
+            - share/jupyter/kernels/sysml/kernel.json
+            - share/jupyter/kernels/sysml/**
+      - script:
+          - sysml-jupyter-kernel --help
+          - sysml-jupyter-kernel --version
+          - sysml-jupyter-kernel --version | ${{ grep_version }}
+      - requirements:
+          run:
+            - jupyter_server
+        script:
+          - jupyter kernelspec list --json
+          - jupyter kernelspec list --json | ${{ grep }}sysml-jupyter-kernel
+    about:
+      summary: ${{ summary }} - Jupyter Kernel
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - ${{ go_mod }}/cmd/sysml-jupyter-kernel/library_licenses/**
 
   - package:
       name: opensysml-lsp
@@ -119,7 +167,6 @@ outputs:
           - ${{ export }} "GOPATH=${{ env_src_dir }}"
           - cd ${{ go_mod }}/cmd/sysml-lsp
           - ${{ go_build }} -o "${{ go_lsp_bin }}"
-          - go-licenses save . --save_path "${{ SRC_DIR }}/library_licenses" --ignore ${{ go_mod }}
     tests:
       - package_contents:
           strict: true
@@ -133,8 +180,9 @@ outputs:
       summary: ${{ summary }} - Language Server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - library_licenses/
+        - ${{ go_mod }}/cmd/sysml-lsp/library_licenses/**
 
+  # python #####################################################################
   - package:
       name: opensysml-python
     build:
@@ -145,7 +193,7 @@ outputs:
           - opensysml-fmi-runner = opensysml.fmi_runner:main
       script:
         - cd ${{ py_dir }}
-        - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
+        - ${{ PYTHON }} -m ${{ pip_install }}
     requirements:
       host:
         - pip
@@ -176,6 +224,8 @@ outputs:
             - ${{ python_check_max }}.*
       - files:
           source:
+            - ${{ go_mod }}/conformance/fixtures/behavior.sysml
+            - ${{ go_mod }}/conformance/fixtures/views.sysml
             - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.golden.html
             - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.golden.md
             - ${{ go_mod }}/internal/doc/docrender/testdata/telescope_report.sysml
@@ -183,6 +233,9 @@ outputs:
             - ${{ go_mod }}/internal/frontend/repl/testdata/vehicle_package.sysml
             - ${{ go_mod }}/tests/grpc/testdata/conformance/document_query_object_by_path.sysml
             - ${{ go_mod }}/tests/grpc/testdata/conformance/document_query_states.sysml
+            - ${{ go_mod }}/tests/migrate/testdata/xmi/layout.layout.xml
+            - ${{ go_mod }}/tests/migrate/testdata/xmi/layout.xmi
+            - ${{ go_mod }}/tests/migrate/testdata/xmi/vehicle.xmi
             - ${{ py_dir }}/pyproject.toml
             - ${{ py_dir }}/tests/**
         requirements:
@@ -192,12 +245,12 @@ outputs:
             - pytest-cov >=5.0.0
             - pytest-mock >=3.10.0
             - pandas
-            # check minimum pins more aggressively...
-            - grpcio ${{ py_grpcio_min }}.*
-            - protobuf ${{ py_protobuf_min }}.*
-            # ... with a manual pip check
+            # manual pip check
             - pip
             - python ${{ python_min }}.*
+            # .. for minimum pins more aggressively
+            - grpcio ${{ py_grpcio_min }}.*
+            - protobuf ${{ py_protobuf_min }}.*
         script:
           env:
             CF_OPENSYSML_PY_TEST_ROOT: ${{ py_dir }}
@@ -205,6 +258,57 @@ outputs:
     about:
       summary: Python client library for OpenSysML, a SysML v2 parser and execution runtime
       homepage: https://pypi.org/project/opensysml
+
+  - package:
+      name: jupyter-opensysml-kernel
+    build:
+      noarch: python
+      python:
+        entry_points:
+          - jupyter-opensysml-kernel = jupyter_opensysml_kernel.__main__:main
+      script:
+        - pushd ${{ js_labext_dir }}
+        - npm install
+        - npm run build
+        - popd
+        - cd ${{ py_jpy_dir }}
+        - ${{ PYTHON }} -m ${{ pip_install }}
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - setuptools >=77
+        - jupyterlab >=${{ jupyterlab_min }},<${{ jupyterlab_max }}
+      run:
+        - ${{ pin_subpackage("opensysml-jupyter-kernel", exact=True) }}
+        - jupyter_client >=7.0
+        - python >=${{ python_min }}
+    tests:
+      - package_contents:
+          strict: true
+          site_packages:
+            - jupyter_opensysml_kernel/**
+            - jupyter_opensysml_kernel-${{ version }}.dist-info/**
+      - python:
+          imports: jupyter_opensysml_kernel
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - requirements:
+          run:
+            - jupyterlab ${{ jupyterlab_min }}.*
+            - python ${{ python_min }}.*
+        script:
+          - jupyter-opensysml-kernel --help
+          - jupyter-opensysml-kernel --version
+          - jupyter labextension list
+          - jupyter kernelspec list
+    about:
+      summary: Jupyter kernel for SysML v2, backed by the OpenSysML REPL
+      homepage: https://pypi.org/project/jupyter-opensysml-kernel
+      license_file:
+        - ${{ go_mod }}/LICENSE
+        - ${{ py_jpy_dir }}/labextension/static/third-party-licenses.json
 
 about:
   summary: ${{ summary }}
