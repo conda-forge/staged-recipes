@@ -5,33 +5,33 @@ package:
   name: sysml2-mermaid
   version: ${{ version }}
 
-# The npm release contains the compiled CLI and library. Its runtime dependencies
-# are included as pinned npm archives so the build never contacts the npm registry.
+# The npm release contains the compiled CLI and library. Runtime dependencies
+# are provided by conda packages so the build never contacts the npm registry.
 source:
-  - url: https://registry.npmjs.org/sysml2-mermaid/-/sysml2-mermaid-${{ version }}.tgz
-    sha256: bffb3e90a75d1fa9f4270a4fde725c6dcd710b4c3333f0e89b0c4d4821b31ee5
-    target_directory: sysml2-mermaid
-  - url: https://registry.npmjs.org/@dagrejs/dagre/-/dagre-1.1.8.tgz
-    sha256: 95b56294d94103472b60a06014e484972be4dd528b0d3b18ed2b6ba3d7921274
-    target_directory: dagre
-  - url: https://registry.npmjs.org/@dagrejs/graphlib/-/graphlib-2.2.4.tgz
-    sha256: bb9d64d04cfa124ebaef8898953ea270a5f7128f3efe7347da88758ea78ddfd3
-    target_directory: graphlib
-  - url: https://registry.npmjs.org/elkjs/-/elkjs-0.9.3.tgz
-    sha256: b95b224bd1ab71fd40f6d9a6365c28d989745dff6b0d514407bc1eb68f2f561e
-    target_directory: elkjs
+  url: https://registry.npmjs.org/sysml2-mermaid/-/sysml2-mermaid-${{ version }}.tgz
+  sha256: bffb3e90a75d1fa9f4270a4fde725c6dcd710b4c3333f0e89b0c4d4821b31ee5
+  target_directory: sysml2-mermaid
 
 build:
   number: 0
   script:
     - if: win
-      then: python "%RECIPE_DIR%\build.py"
-      else: python "$RECIPE_DIR/build.py"
+      then: |
+        set "PACKAGE=%PREFIX%\lib\node_modules\sysml2-mermaid"
+        xcopy /E /I /Q /Y "%SRC_DIR%\sysml2-mermaid" "%PACKAGE%"
+        echo @echo off> "%PREFIX%\sysml2svg.cmd"
+        echo "%%~dp0node.exe" "%%~dp0lib\node_modules\sysml2-mermaid\dist\cli\cli.js" %%*>> "%PREFIX%\sysml2svg.cmd"
+      else: |
+        package="$PREFIX/lib/node_modules/sysml2-mermaid"
+        mkdir -p "$PREFIX/lib/node_modules" "$PREFIX/bin"
+        cp -R "$SRC_DIR/sysml2-mermaid/." "$package"
+        chmod +x "$package/dist/cli/cli.js"
+        ln -s ../lib/node_modules/sysml2-mermaid/dist/cli/cli.js "$PREFIX/bin/sysml2svg"
 
 requirements:
-  build:
-    - python
   run:
+    - dagrejs-dagre >=1.1.8,<2.0a0
+    - elkjs >=0.9.3,<0.10.0a0
     - nodejs >=20
 
 tests:
@@ -67,13 +67,9 @@ about:
   description: |
     A SysML v2 parser and diagram renderer with a Mermaid plugin, JavaScript
     library, and the sysml2svg command-line tool.
-  license: MIT AND EPL-2.0
-  license_file:
-    - sysml2-mermaid/LICENSE
-    - dagre/LICENSE
-    - graphlib/LICENSE
-    - elkjs/LICENSE.md
+  license: MIT
+  license_file: sysml2-mermaid/LICENSE
 
 extra:
   recipe-maintainers:
-    - feisele
+    - phreed
