@@ -261,13 +261,24 @@ outputs:
         entry_points:
           - jupyter-opensysml-kernel = jupyter_opensysml_kernel.__main__:main
       script:
-        - pushd "${{ js_labext_dir | replace("/", slash) }}"
-        - npm install --ignore-scripts || npm install --ignore-scripts  || echo "try to keep going"
-        - npm run build:lib
-        - jupyter-builder build .
-        - popd
-        - cd ${{ py_jp_dir }}
-        - ${{ PYTHON }} -m ${{ pip_install }}
+        interpreter: python
+        # this is gross, but windows is bad at node
+        content: |-
+          import os, subprocess, sys
+          from subprocess import call
+
+          def do(cwd, cmd):
+              print("\n>>>", cwd, "\n\t", cmd, flush=True)
+              rc = subprocess.call(cmd, shell=True, cwd=cwd)
+              print("rc", rc, cmd, "\n", flush=True)
+
+          ex_dir = """${{ js_labext_dir }}"""
+          py_dir = """${{ py_jp_dir }}"""
+
+          do(ex_dir, """npm install --ignore-scripts""")
+          do(ex_dir, """npm run build:lib""")
+          do(ex_dir, """jupyter-builder build .""")
+          do(py_dir,  sys.executable + """ -m ${{ pip_install }}""")
     requirements:
       host:
         - jupyter-builder >=1.2.3,<2
