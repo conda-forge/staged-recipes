@@ -7,7 +7,7 @@ set -euxo pipefail
 T="${SRC_DIR}/_tools"
 
 # conda-build/rattler-build: on Windows the OCaml tree lives under Library/
-if [[ "${OS:-}" == "Windows_NT" ]]; then
+if [[ "${OS:-}" == "Windows_NT" || "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   SEP=";"
 else
@@ -42,6 +42,13 @@ export PATH="${T}/bin:${PATH}"
 mkdir -p "${T}/etc"
 cat > "${T}/etc/findlib.conf" <<EOF
 destdir="${PFX}/lib/ocaml"
-path="${PFX}/lib/ocaml${SEP}${T}/lib${SEP}$(ocamlc -where)"
+path="${PFX}/lib/ocaml${SEP}${T}/lib${SEP}$(ocamlc -where | tr -d '\r')"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
+
+# TEMPORARY win diagnostic: show the generated findlib.conf (CRs visible)
+if [[ "${SEP}" == ";" ]]; then
+  echo "=== findlib.conf (win diagnostic) ==="
+  cat -A "${OCAMLFIND_CONF}"
+  ocamlfind printconf || true
+fi
