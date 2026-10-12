@@ -86,6 +86,16 @@ export CONDA_VENDOR_LICENSES="${SRC_DIR}/_vendored_licenses"
 # compile native node modules instead of downloading prebuilt binaries
 export npm_config_build_from_source=true
 
+if [[ "${target_platform}" == osx-* ]]; then
+  # conda's osx CPU tuning flags break some node-gyp builds (clang rejects -march=core2 there);
+  # they're optimization-only, so drop them for the npm/node-gyp steps
+  for v in CFLAGS CXXFLAGS CPPFLAGS; do
+    val="${!v:-}"
+    val=$(echo "${val}" | sed -E 's/-march=[^ ]+//g; s/-mtune=[^ ]+//g')
+    export "${v}=${val}"
+  done
+fi
+
 # --- Positron ---
 export NPM_CONFIG_CACHE="${SRC_DIR}/.npm-cache"
 # CI=1 makes postinstall skip syncing submodules against their remotes.
