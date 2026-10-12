@@ -9,19 +9,24 @@ context:
   env_src_dir: ${{ "${SRC_DIR}" if unix else "%SRC_DIR%" }}
   cat: ${{ "cat" if unix else "" }}
   grep: ${{ "grep -iE " if unix else "findstr /r /c:" }}
+  slash: ${{ "/" if unix else "\\" }}
   # test
   grep_version: ${{ grep }}${{ version | replace(".", "\\.") }}
   # go
   go_mod: github.com/Open-MBEE/OpenSysML
-  go_ld_flags: -s -w -X main.Version=${{ version }}
+  go_pushd: |-
+    pushd "${{ (go_mod ~ '/cmd/THE_CMD') | replace("/", slash) }}"
+  go_build: |-
+    go build -v -buildmode=pie -trimpath -modcacherw -ldflags="-s -w -X main.Version=${{ version }}"
+  go_out_bin: |-
+    ${{ "${PREFIX}/bin/THE_CMD" if unix else "%LIBRARY_BIN%\\THE_CMD.exe" }}
   go_licenses: |-
     go-licenses save . --save_path library_licenses --ignore ${{ go_mod }}
-  go_build: ${{ go_licenses }} && go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
-  go_basic_build: |-
-    cd "${{ go_mod }}/cmd/THE_CMD" && ${{ go_build }} -o "${{ "${PREFIX}/bin/THE_CMD" if unix else "%LIBRARY_BIN%\\THE_CMD.exe" }}" && cd "${{ SRC_DIR }}"
-  go_basic_test: THE_CMD --help && THE_CMD --version && THE_CMD --version | ${{ grep_version }}
-  go_basic_files: ${{ "bin/THE_CMD" if unix else "Library/bin/THE_CMD.exe" }}
-  go_basic_licenses: ${{ go_mod }}/cmd/THE_CMD/library_licenses/**
+  go_cmd_build: |-
+    ${{ go_pushd }} && ${{ go_licenses }} && ${{ go_build }} -o "${{ go_out_bin }}" && popd
+  go_cmd_test: THE_CMD --help && THE_CMD --version && THE_CMD --version | ${{ grep_version }}
+  go_cmd_files: ${{ "bin/THE_CMD" if unix else "Library/bin/THE_CMD.exe" }}
+  go_cmd_licenses: ${{ go_mod }}/cmd/THE_CMD/library_licenses/**
   # python
   py_dir: ${{ go_mod }}/client/python
   python_check_max: "3.14"
@@ -59,10 +64,10 @@ outputs:
     build:
       script:
         - ${{ export }} "GOPATH=${{ env_src_dir }}"
-        - ${{ go_basic_build | replace("THE_CMD", "sysml") }}
-        - ${{ go_basic_build | replace("THE_CMD", "sysml-grpc") }}
-        - ${{ go_basic_build | replace("THE_CMD", "sysml-jupyter-kernel") }}
-        - ${{ go_basic_build | replace("THE_CMD", "sysml-lsp") }}
+        - ${{ go_cmd_build | replace("THE_CMD", "sysml") }}
+        - ${{ go_cmd_build | replace("THE_CMD", "sysml-grpc") }}
+        - ${{ go_cmd_build | replace("THE_CMD", "sysml-jupyter-kernel") }}
+        - ${{ go_cmd_build | replace("THE_CMD", "sysml-lsp") }}
 
   # go #########################################################################
   - package:
@@ -74,24 +79,24 @@ outputs:
     inherit: go-staging
     build:
       files:
-        - ${{ go_basic_files | replace("THE_CMD", "sysml") }}
+        - ${{ go_cmd_files | replace("THE_CMD", "sysml") }}
     tests:
       - package_contents:
           strict: true
           bin:
             - sysml
-      - script: ${{ go_basic_test | replace("THE_CMD", "sysml") }}
+      - script: ${{ go_cmd_test | replace("THE_CMD", "sysml") }}
     about:
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_basic_licenses | replace("THE_CMD", "sysml") }}
+        - ${{ go_cmd_licenses | replace("THE_CMD", "sysml") }}
 
   - package:
       name: opensysml-grpc
     inherit: go-staging
     build:
       files:
-        - ${{ go_basic_files | replace("THE_CMD", "sysml-grpc") }}
+        - ${{ go_cmd_files | replace("THE_CMD", "sysml-grpc") }}
         - etc/conda/env_vars.d/opensysml-grpc.json
       script:
         content:
@@ -112,19 +117,19 @@ outputs:
             - etc/conda/env_vars.d/opensysml-grpc.json
           bin:
             - sysml-grpc
-      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-grpc") }}
+      - script: ${{ go_cmd_test | replace("THE_CMD", "sysml-grpc") }}
     about:
       summary: ${{ summary }} - GRPC server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-grpc") }}
+        - ${{ go_cmd_licenses | replace("THE_CMD", "sysml-grpc") }}
 
   - package:
       name: opensysml-jupyter-kernel
     inherit: go-staging
     build:
       files:
-        - ${{ go_basic_files | replace("THE_CMD", "sysml-jupyter-kernel") }}
+        - ${{ go_cmd_files | replace("THE_CMD", "sysml-jupyter-kernel") }}
         - share/jupyter/kernels/sysml/**
       script:
         - if: build_platform == target_platform
@@ -139,7 +144,7 @@ outputs:
           files:
             - share/jupyter/kernels/sysml/kernel.json
             - share/jupyter/kernels/sysml/**
-      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-jupyter-kernel") }}
+      - script: ${{ go_cmd_test | replace("THE_CMD", "sysml-jupyter-kernel") }}
       - requirements:
           run:
             - jupyter_server
@@ -150,25 +155,25 @@ outputs:
       summary: ${{ summary }} - Jupyter Kernel
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-jupyter-kernel") }}
+        - ${{ go_cmd_licenses | replace("THE_CMD", "sysml-jupyter-kernel") }}
 
   - package:
       name: opensysml-lsp
     inherit: go-staging
     build:
       files:
-        - ${{ go_basic_files | replace("THE_CMD", "sysml-lsp") }}
+        - ${{ go_cmd_files | replace("THE_CMD", "sysml-lsp") }}
     tests:
       - package_contents:
           strict: true
           bin:
             - sysml-lsp
-      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-lsp") }}
+      - script: ${{ go_cmd_test | replace("THE_CMD", "sysml-lsp") }}
     about:
       summary: ${{ summary }} - Language Server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-lsp") }}
+        - ${{ go_cmd_licenses | replace("THE_CMD", "sysml-lsp") }}
 
   # python #####################################################################
   - package:
