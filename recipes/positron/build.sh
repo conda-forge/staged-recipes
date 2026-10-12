@@ -140,7 +140,12 @@ fi
 for rg_bundled in "${APP_RES}"/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/*/rg; do
   [[ -e "${rg_bundled}" ]] || continue
   rm -f "${rg_bundled}"
-  ln -s "$(python -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "${PREFIX}/bin/rg" "$(dirname "${rg_bundled}")")" "${rg_bundled}"
+  if [[ "${target_platform}" == osx-* ]]; then
+    # a symlink out of the signed .app gets rewritten on install and breaks the seal; copy instead
+    cp "${BUILD_PREFIX}/bin/rg" "${rg_bundled}"
+  else
+    ln -s "$(python -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "${PREFIX}/bin/rg" "$(dirname "${rg_bundled}")")" "${rg_bundled}"
+  fi
 done
 
 # js-debug's VSIX ships Windows-only native helpers; they're unused here

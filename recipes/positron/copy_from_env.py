@@ -57,6 +57,10 @@ def main():
             parts = Path(f).parts
             if parts[0] == ".." or "__pycache__" in parts or f.suffix == ".pyc":
                 continue
+            # installer metadata isn't needed at runtime, and conda tooling rewrites INSTALLER
+            # (which would break the macOS app bundle's code signature)
+            if parts[-1] in ("INSTALLER", "REQUESTED", "direct_url.json"):
+                continue
             src = base / f
             if not src.is_file():
                 continue
