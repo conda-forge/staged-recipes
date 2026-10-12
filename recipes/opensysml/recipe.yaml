@@ -9,17 +9,19 @@ context:
   env_src_dir: ${{ "${SRC_DIR}" if unix else "%SRC_DIR%" }}
   cat: ${{ "cat" if unix else "" }}
   grep: ${{ "grep -iE " if unix else "findstr /r /c:" }}
+  # test
+  grep_version: ${{ grep }}${{ version | replace(".", "\\.") }}
   # go
   go_mod: github.com/Open-MBEE/OpenSysML
   go_ld_flags: -s -w -X main.Version=${{ version }}
   go_licenses: |-
     go-licenses save . --save_path library_licenses --ignore ${{ go_mod }}
   go_build: ${{ go_licenses }} && go build -v -buildmode=pie -trimpath -modcacherw -ldflags="${{ go_ld_flags }}"
-  # go packages
-  go_cli_bin: ${{ "%LIBRARY_BIN%\\sysml.exe" if win else "${PREFIX}/bin/sysml" }}
-  go_grpc_bin: ${{ "%LIBRARY_BIN%\\sysml-grpc.exe" if win else "${PREFIX}/bin/sysml-grpc" }}
-  go_lsp_bin: ${{ "%LIBRARY_BIN%\\sysml-lsp.exe" if win else "${PREFIX}/bin/sysml-lsp" }}
-  go_jpy_bin: ${{ "%LIBRARY_BIN%\\sysml-jupyter-kernel.exe" if win else "${PREFIX}/bin/sysml-jupyter-kernel" }}
+  go_basic_build: |-
+    pushd ${{ go_mod }}/cmd/THE_CMD && ${{ go_build }} -o "${{ "%LIBRARY_BIN%\\THE_CMD.exe" if win else "${PREFIX}/bin/THE_CMD" }}" && popd
+  go_basic_test: THE_CMD --help && THE_CMD --version && THE_CMD --version | ${{ grep_version }}
+  go_basic_files: ${{ "bin/THE_CMD" if unix else "Library/bin/THE_CMD.exe" }}
+  go_basic_licenses: ${{ go_mod }}/cmd/THE_CMD/library_licenses/**
   # python
   py_dir: ${{ go_mod }}/client/python
   python_check_max: "3.14"
@@ -27,12 +29,11 @@ context:
   py_protobuf_min: "7.35.1"
   pip_install: pip install . --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
   # jupyter
-  py_jpy_dir: ${{ go_mod }}/client/jupyter-kernel
-  js_labext_dir: ${{ go_mod }}/editor/jupyterlab
+  py_jp_dir: ${{ go_mod }}/client/jupyter-kernel
+  js_labext_dir: ${{ go_mod }}/editors/jupyterlab
+  jpy_nodejs_min: "24"
   jupyterlab_min: "4.5"
   jupyterlab_max: "5"
-  # test
-  grep_version: ${{ grep }}${{ version | replace(".", "\\.") }}
 
 recipe:
   name: opensysml
@@ -49,6 +50,21 @@ build:
   number: 0
 
 outputs:
+  # staging
+  - staging:
+      name: go-staging
+    requirements:
+      build:
+        - ${{ compiler("go-nocgo") }}
+        - go-licenses
+    build:
+      script:
+        - ${{ export }} "GOPATH=${{ env_src_dir }}"
+        - ${{ go_basic_build | replace("THE_CMD", "sysml") }}
+        - ${{ go_basic_build | replace("THE_CMD", "sysml-grpc") }}
+        - ${{ go_basic_build | replace("THE_CMD", "sysml-jupyter-kernel") }}
+        - ${{ go_basic_build | replace("THE_CMD", "sysml-lsp") }}
+
   # go #########################################################################
   - package:
       name: opensysml
@@ -56,38 +72,30 @@ outputs:
       build:
         - ${{ compiler("go-nocgo") }}
         - go-licenses
+    inherit: go-staging
     build:
-      script:
-        content:
-          - ${{ export }} "GOPATH=${{ env_src_dir }}"
-          - cd ${{ go_mod }}/cmd/sysml
-          - ${{ go_build }} -o "${{ go_cli_bin }}"
+      files:
+        - ${{ go_basic_files | replace("THE_CMD", "sysml") }}
     tests:
       - package_contents:
           strict: true
           bin:
             - sysml
-      - script:
-          - sysml --help
-          - sysml --version
-          - sysml --version | ${{ grep_version }}
+      - script: ${{ go_basic_test | replace("THE_CMD", "sysml") }}
     about:
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_mod }}/cmd/sysml/library_licenses/**
+        - ${{ go_basic_licenses | replace("THE_CMD", "sysml") }}
 
   - package:
       name: opensysml-grpc
-    requirements:
-      build:
-        - ${{ compiler("go-nocgo") }}
-        - go-licenses
+    inherit: go-staging
     build:
+      files:
+        - ${{ go_basic_files | replace("THE_CMD", "sysml-grpc") }}
+        - etc/conda/env_vars.d/opensysml-grpc.json
       script:
         content:
-          - ${{ export }} "GOPATH=${{ env_src_dir }}"
-          - cd ${{ go_mod }}/cmd/sysml-grpc
-          - ${{ go_build }} -o "${{ go_grpc_bin }}"
           - cd "${{ RECIPE_DIR }}"
           - if: unix
             then:
@@ -105,32 +113,25 @@ outputs:
             - etc/conda/env_vars.d/opensysml-grpc.json
           bin:
             - sysml-grpc
-      - script:
-          - sysml-grpc --help
-          - sysml-grpc --version
-          - sysml-grpc --version | ${{ grep_version }}
+      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-grpc") }}
     about:
       summary: ${{ summary }} - GRPC server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_mod }}/cmd/sysml-grpc/library_licenses/**
+        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-grpc") }}
 
   - package:
       name: opensysml-jupyter-kernel
-    requirements:
-      build:
-        - ${{ compiler("go-nocgo") }}
-        - go-licenses
+    inherit: go-staging
     build:
+      files:
+        - ${{ go_basic_files | replace("THE_CMD", "sysml-jupyter-kernel") }}
+        - share/jupyter/kernels/sysml/**
       script:
-        content:
-          - ${{ export }} "GOPATH=${{ env_src_dir }}"
-          - cd ${{ go_mod }}/cmd/sysml-jupyter-kernel
-          - ${{ go_build }} -o "${{ go_jpy_bin }}"
-          - if: build_platform == target_platform
-            then:
-              - sysml-jupyter-kernel --help
-              - sysml-jupyter-kernel -install -prefix "${{ PREFIX }}"
+        - if: build_platform == target_platform
+          then:
+            - sysml-jupyter-kernel --help
+            - sysml-jupyter-kernel -install -prefix "${{ PREFIX }}"
     tests:
       - package_contents:
           strict: true
@@ -139,10 +140,7 @@ outputs:
           files:
             - share/jupyter/kernels/sysml/kernel.json
             - share/jupyter/kernels/sysml/**
-      - script:
-          - sysml-jupyter-kernel --help
-          - sysml-jupyter-kernel --version
-          - sysml-jupyter-kernel --version | ${{ grep_version }}
+      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-jupyter-kernel") }}
       - requirements:
           run:
             - jupyter_server
@@ -153,34 +151,25 @@ outputs:
       summary: ${{ summary }} - Jupyter Kernel
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_mod }}/cmd/sysml-jupyter-kernel/library_licenses/**
+        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-jupyter-kernel") }}
 
   - package:
       name: opensysml-lsp
-    requirements:
-      build:
-        - ${{ compiler("go-nocgo") }}
-        - go-licenses
+    inherit: go-staging
     build:
-      script:
-        content:
-          - ${{ export }} "GOPATH=${{ env_src_dir }}"
-          - cd ${{ go_mod }}/cmd/sysml-lsp
-          - ${{ go_build }} -o "${{ go_lsp_bin }}"
+      files:
+        - ${{ go_basic_files | replace("THE_CMD", "sysml-lsp") }}
     tests:
       - package_contents:
           strict: true
           bin:
             - sysml-lsp
-      - script:
-          - sysml-lsp --help
-          - sysml-lsp --version
-          - sysml-lsp --version | ${{ grep_version }}
+      - script: ${{ go_basic_test | replace("THE_CMD", "sysml-lsp") }}
     about:
       summary: ${{ summary }} - Language Server
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ go_mod }}/cmd/sysml-lsp/library_licenses/**
+        - ${{ go_basic_licenses | replace("THE_CMD", "sysml-lsp") }}
 
   # python #####################################################################
   - package:
@@ -259,6 +248,7 @@ outputs:
       summary: Python client library for OpenSysML, a SysML v2 parser and execution runtime
       homepage: https://pypi.org/project/opensysml
 
+  # jupyter (python and js)
   - package:
       name: jupyter-opensysml-kernel
     build:
@@ -271,13 +261,15 @@ outputs:
         - npm install
         - npm run build
         - popd
-        - cd ${{ py_jpy_dir }}
+        - cd ${{ py_jp_dir }}
         - ${{ PYTHON }} -m ${{ pip_install }}
     requirements:
       host:
+        - jupyterlab >=${{ jupyterlab_min }},<${{ jupyterlab_max }}
+        - nodejs ${{ jpy_nodejs_min }}.*
+        - pip
         - python ${{ python_min }}.*
         - setuptools >=77
-        - jupyterlab >=${{ jupyterlab_min }},<${{ jupyterlab_max }}
       run:
         - ${{ pin_subpackage("opensysml-jupyter-kernel", exact=True) }}
         - jupyter_client >=7.0
@@ -285,6 +277,8 @@ outputs:
     tests:
       - package_contents:
           strict: true
+          files:
+            - share/jupyter/labextensions/jupyterlab-opensysml/**
           site_packages:
             - jupyter_opensysml_kernel/**
             - jupyter_opensysml_kernel-${{ version }}.dist-info/**
@@ -302,13 +296,15 @@ outputs:
           - jupyter-opensysml-kernel --help
           - jupyter-opensysml-kernel --version
           - jupyter labextension list
-          - jupyter kernelspec list
+          - jupyter kernelspec list --json
+          - jupyter kernelspec list --json | ${{ grep }}sysml-jupyter-kernel
+          - jupyter labextension list 2>&1 | ${{ grep }}"jupyterlab-opensysml.*v${{ version | replace(".", "\\.") }}.*enabled.*OK"
     about:
       summary: Jupyter kernel for SysML v2, backed by the OpenSysML REPL
       homepage: https://pypi.org/project/jupyter-opensysml-kernel
       license_file:
         - ${{ go_mod }}/LICENSE
-        - ${{ py_jpy_dir }}/labextension/static/third-party-licenses.json
+        - ${{ py_jp_dir }}/labextension/static/third-party-licenses.json
 
 about:
   summary: ${{ summary }}
