@@ -5,6 +5,7 @@
 # link of an empty program drops unreferenced units and would prove nothing.
 set -euxo pipefail
 LIBDIR="${PREFIX}/lib/ocaml"
+if [[ -d "${PREFIX}/Library/lib/ocaml" ]]; then LIBDIR="${PREFIX}/Library/lib/ocaml"; fi
 TESTED="${!#}"   # last argument
 d="${LIBDIR}/${TESTED}"
 test -f "${d}/META"
