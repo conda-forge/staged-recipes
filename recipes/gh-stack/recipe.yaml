@@ -1,0 +1,65 @@
+context:
+  version: "0.2.1"
+
+package:
+  name: gh-stack
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/github/gh-stack/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 263af23a0bd8aed815a7db02c088a3606f4f1ae2774ce7806004ff2895945202
+    target_directory: src
+  # go-licenses cannot detect the license of chroma (it ships a COPYING file), so we vendor it manually
+  - url: https://raw.githubusercontent.com/alecthomas/chroma/v2.27.0/COPYING
+    sha256: 13654b052f885cb3fa47d7343e13975d9c8a64c3bcd84993c35d5eb01f22b23f
+    file_name: LICENSE-chroma
+  # go-localereader v0.0.1 (only pulled in on Windows) has no license file in the tagged release;
+  # upstream README states MIT and the LICENSE was added in a later commit, which we vendor here
+  - url: https://raw.githubusercontent.com/mattn/go-localereader/6bae6c923850ab5e0da9f36f69811ffe17064228/LICENSE
+    sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+    file_name: LICENSE-go-localereader
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses --ignore github.com/alecthomas/chroma/v2 --ignore github.com/mattn/go-localereader
+    - if: unix
+      then: go build -v -o $PREFIX/bin/gh-stack -ldflags="-s -w -X github.com/github/gh-stack/cmd.Version=${{ version }}"
+      else: go build -v -o %LIBRARY_BIN%\gh-stack.exe -ldflags="-s -X github.com/github/gh-stack/cmd.Version=${{ version }}"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - gh-stack --help
+      - gh-stack --version
+  - package_contents:
+      bin:
+        - gh-stack
+      strict: true
+
+about:
+  homepage: https://github.com/github/gh-stack
+  summary: GitHub CLI extension for managing stacked branches and pull requests
+  description: |
+    gh-stack is a GitHub CLI (gh) extension for working with stacked pull
+    requests. Stacked PRs break large changes into a chain of small,
+    reviewable pull requests that build on each other. gh-stack automates
+    creating branches, keeping them rebased, setting correct PR base branches,
+    and navigating between layers of the stack.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+    - LICENSE-chroma
+    - LICENSE-go-localereader
+  documentation: https://gh.io/stacks
+  repository: https://github.com/github/gh-stack
+
+extra:
+  recipe-maintainers:
+    - pavelzw
