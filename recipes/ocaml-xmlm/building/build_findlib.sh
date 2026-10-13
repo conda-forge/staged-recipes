@@ -11,11 +11,14 @@ if [[ "${OS:-}" == "Windows_NT" || "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   SEP=";"
   # findlib conf lexer rejects backslash escapes; use forward slashes
-  PFX="${PFX//\\//}"
-  T="${T//\\//}"
+  # (PFXC/TC are for findlib.conf only; PFX/T stay original elsewhere)
+  PFXC="${PFX//\\//}"
+  TC="${T//\\//}"
 else
   PFX="${PREFIX}"
+  PFXC="${PFX}"
   SEP=":"
+  TC="${T}"
 fi
 export OCAML_PREFIX="${PFX}"
 
@@ -44,10 +47,12 @@ export PATH="${T}/bin:${PATH}"
 # tree (so `#require "findlib"` style lookups still work), then the stdlib.
 mkdir -p "${T}/etc"
 OCAML_STDLIB="$(ocamlc -where | tr -d '\r')"
-[[ "${SEP}" == ";" ]] && OCAML_STDLIB="${OCAML_STDLIB//\\//}"
+if [[ "${SEP}" == ";" ]]; then
+  OCAML_STDLIB="${OCAML_STDLIB//\\//}"
+fi
 cat > "${T}/etc/findlib.conf" <<EOF
-destdir="${PFX}/lib/ocaml"
-path="${PFX}/lib/ocaml${SEP}${T}/lib${SEP}${OCAML_STDLIB}"
+destdir="${PFXC}/lib/ocaml"
+path="${PFXC}/lib/ocaml${SEP}${TC}/lib${SEP}${OCAML_STDLIB}"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
 
@@ -56,4 +61,10 @@ if [[ "${SEP}" == ";" ]]; then
   echo "=== findlib.conf (win diagnostic) ==="
   cat -A "${OCAMLFIND_CONF}"
   ocamlfind printconf || true
+  command -v ocamlfind || true
+  env | grep -iE 'ocaml|findlib' || true
+  ls "${T}/etc/findlib.conf.d" 2>&1 || true
+  for d in "${PFX}/lib/ocaml" "${T}/lib" "${OCAML_STDLIB}"; do for f in "$d"/META "$d"/*/META; do [ -f "$f" ] && { echo "== $f"; head -c 64 "$f" | od -c | head -3; }; done; done || true
+  head -5 "${T}/toplevel/topfind" 2>&1 || true
+  ls "${T}/toplevel" "${T}/lib" "${T}/lib/ocaml" 2>&1 || true
 fi
