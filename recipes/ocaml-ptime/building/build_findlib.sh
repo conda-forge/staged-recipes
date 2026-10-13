@@ -49,14 +49,23 @@ mkdir -p "${T}/etc"
 OCAML_STDLIB="$(ocamlc -where | tr -d '\r')"
 if [[ "${SEP}" == ";" ]]; then
   OCAML_STDLIB="${OCAML_STDLIB//\\//}"
-  # win ocamlbuild has an unrelocated baked libdir; it derives -where from OCAMLLIB
-  export OCAMLLIB="${OCAML_STDLIB}"
 fi
 cat > "${T}/etc/findlib.conf" <<EOF
 destdir="${PFXC}/lib/ocaml"
 path="${PFXC}/lib/ocaml${SEP}${TC}/lib${SEP}${OCAML_STDLIB}"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
+
+# win ocamlbuild 0.16.1 _3 bakes its feedstock build-time libdir (not relocated);
+# recreate it so plugin builds (mtime) find ocamlbuild.cmo. Drop once fixed upstream.
+if [[ "${SEP}" == ";" ]]; then
+  OCB_BAKED="$(ocamlbuild -where | tr -d '\r')"
+  if [[ ! -f "${OCB_BAKED}/ocamlbuild.cmo" ]]; then
+    OCB_DIR="$(cygpath -u "${OCB_BAKED}")"
+    mkdir -p "${OCB_DIR}"
+    cp -r "${BUILD_PREFIX}/Library/lib/ocaml/ocamlbuild/." "${OCB_DIR}/"
+  fi
+fi
 
 # TEMPORARY win diagnostic: show the generated findlib.conf (CRs visible)
 if [[ "${SEP}" == ";" ]]; then
