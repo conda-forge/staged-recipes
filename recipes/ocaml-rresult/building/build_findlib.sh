@@ -49,6 +49,8 @@ mkdir -p "${T}/etc"
 OCAML_STDLIB="$(ocamlc -where | tr -d '\r')"
 if [[ "${SEP}" == ";" ]]; then
   OCAML_STDLIB="${OCAML_STDLIB//\\//}"
+  # win ocamlbuild has an unrelocated baked libdir; it derives -where from OCAMLLIB
+  export OCAMLLIB="${OCAML_STDLIB}"
 fi
 cat > "${T}/etc/findlib.conf" <<EOF
 destdir="${PFXC}/lib/ocaml"
