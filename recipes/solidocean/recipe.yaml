@@ -1,0 +1,80 @@
+context:
+  name: solidocean
+  version: "0.1.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/anufrievroman/solidocean/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2f6b871167d582406fc305b82846d3010ccc89c6da80452ce5fc062353c7b80b
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    # desktop shortcut (menuinst): the shortcut definition and its icons in $PREFIX/Menu
+    - mkdir -p $PREFIX/Menu
+    - cp $RECIPE_DIR/menu/solidocean.json $PREFIX/Menu/
+    - ${{ PYTHON }} $RECIPE_DIR/menu/make_icons.py src/solidocean/gui/resources/icon.png $PREFIX/Menu
+  python:
+    entry_points:
+      - solidocean = solidocean.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+    - pillow
+  run:
+    - python >=${{ python_min }}
+    - numpy
+    - scipy
+    - python-gmsh
+    - matplotlib-base
+    - tomli-w
+    - python-mumps
+    - pyside6
+    - pyvista
+    - pyvistaqt
+    - pillow
+
+tests:
+  - python:
+      imports:
+        - solidocean
+        - solidocean.fem
+        - solidocean.physics
+        - solidocean.gui.app
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - solidocean --help
+      # mesh and solve a small model headless
+      - solidocean --template heat_bar bar.toml
+      - solidocean bar.toml
+
+about:
+  homepage: https://github.com/anufrievroman/solidocean
+  repository: https://github.com/anufrievroman/solidocean
+  documentation: https://github.com/anufrievroman/solidocean/tree/main/docs
+  summary: Finite element tool for 3D structures, with phonons, solid mechanics and heat transfer
+  description: |
+    SolidOcean is a free and open-source finite element tool for 3D structures: phonon dispersion and
+    eigenfrequencies of periodic and finite structures, static and driven solid mechanics, and heat
+    transfer. A desktop interface takes a model from geometry and mesh to physics, study and results;
+    every model is a human-readable TOML file that can also be run headless from the command line.
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - anufrievroman
