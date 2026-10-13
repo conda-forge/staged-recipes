@@ -67,4 +67,11 @@ if [[ "${SEP}" == ";" ]]; then
   for d in "${PFX}/lib/ocaml" "${T}/lib" "${OCAML_STDLIB}"; do for f in "$d"/META "$d"/*/META; do [ -f "$f" ] && { echo "== $f"; head -c 64 "$f" | od -c | head -3; }; done; done || true
   head -5 "${T}/toplevel/topfind" 2>&1 || true
   ls "${T}/toplevel" "${T}/lib" "${T}/lib/ocaml" 2>&1 || true
+  echo "=== ocamlbuild (win diagnostic) ==="
+  command -v ocamlbuild || true
+  OCB_WHERE="$(ocamlbuild -where 2>&1 | tr -d '\r')" || true
+  echo "ocamlbuild -where: ${OCB_WHERE}"
+  ls -la "${OCB_WHERE}" 2>&1 | head -30 || true
+  ls -la "${BUILD_PREFIX}/Library/lib/ocaml/ocamlbuild" 2>&1 | head -30 || true
+  ls "${BUILD_PREFIX}/Library/bin" 2>&1 | grep -i ocamlbuild || true
 fi
