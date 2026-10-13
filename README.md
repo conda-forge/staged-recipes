@@ -15,11 +15,17 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 1. [Fork](https://github.com/conda-forge/staged-recipes/fork) this repository.
 2. Make a new branch from `main` for your package's recipe.
-3. Make a new folder in `recipes` for your package, and start a `recipe.yaml` (or `meta.yaml`).
+3. Make a new folder in `recipes` for your package, and start a v1 `recipe.yaml`.
+
+   > **Recipe format policy:** New recipes should use the v1 format. The v0
+   > `meta.yaml` format is deprecated for new recipes and should only be used
+   > in exceptional circumstances where v1 cannot support the recipe. Explain
+   > the exception in the pull request.
 
    For more information:
    - [generate](#generating-recipes-with-grayskull) a recipe
-   - read the [example recipe](recipes/example-v1)
+   - read the [v1 example recipe](recipes/example-v1)
+   - the [v0 example recipe](recipes/example-v0-deprecated) is _deprecated_ and retained only for exceptional cases
    - read the [FAQ](https://github.com/conda-forge/staged-recipes#faq)
    - search for [examples on GitHub](https://github.com/search?q=org%3Aconda-forge+path%3Arecipe.yaml+&type=code)
    - visit our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#)
@@ -39,7 +45,7 @@ for Python/R packages, [linting](#linting-recipes-with-conda-smithy), and [build
 
 [![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
-PRs are converted to feedstocks in two steps. 
+PRs are converted to feedstocks in two steps.
 
 1. PRs get put into a [merge queue](https://github.com/conda-forge/staged-recipes/queue/main) for testing against
    the latest CI scripts. Your PR may fail in the merge queue in which case it needs to be remerged. Be sure to update the
@@ -149,6 +155,8 @@ See the available tasks with `pixi task list`, or get started
 [grayskull](https://github.com/conda-incubator/grayskull) can generate recipes from
 Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
 The user should review the recipe generated, especially the license and dependencies.
+Always pass `--use-v1-format` when invoking `grayskull` for a new recipe, as
+shown below.
 
 <details><summary>Learn more about <b>generating Python and R recipes</b>...</summary>
 Use one of:
@@ -167,7 +175,7 @@ Use one of:
      ```
   3. generate recipe:
 
-     > omit `--use-v1-format` to get a `meta.yaml` for `conda-build` instead
+     > Omit `--use-v1-format` only in an exceptional case that requires the deprecated v0 format.
 
      - Python
        ```bash
@@ -179,8 +187,8 @@ Use one of:
        ```
 
 - with [`pixi`](#pixi):
-  1. generate recipe:
-     > use `pypi-v0` or `cran-v0` to get a `meta.yaml` for `conda-build` instead
+  1. generate recipe (the `pypi` and `cran` tasks pass `--use-v1-format`):
+     > The `pypi-v0` and `cran-v0` tasks are deprecated and only for exceptional cases that require v0.
 
     - Python
       ```bash
@@ -277,7 +285,7 @@ Use the `skip` key in the `build` section along with a selector:
     skip: win
   ```
   > a full description of selectors is [in the rattler-build docs](https://rattler.build/latest/selectors)
-- v0 `meta.yaml`
+- _Deprecated v0 `meta.yaml` (only for exceptional cases)_
   ```yaml
   build:
     skip: true # [win]
