@@ -10,6 +10,9 @@ T="${SRC_DIR}/_tools"
 if [[ "${OS:-}" == "Windows_NT" || "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   SEP=";"
+  # findlib conf lexer rejects backslash escapes; use forward slashes
+  PFX="${PFX//\\//}"
+  T="${T//\\//}"
 else
   PFX="${PREFIX}"
   SEP=":"
@@ -40,9 +43,11 @@ export PATH="${T}/bin:${PATH}"
 # Install into / resolve from conda's OCaml tree, then the private findlib
 # tree (so `#require "findlib"` style lookups still work), then the stdlib.
 mkdir -p "${T}/etc"
+OCAML_STDLIB="$(ocamlc -where | tr -d '\r')"
+[[ "${SEP}" == ";" ]] && OCAML_STDLIB="${OCAML_STDLIB//\\//}"
 cat > "${T}/etc/findlib.conf" <<EOF
 destdir="${PFX}/lib/ocaml"
-path="${PFX}/lib/ocaml${SEP}${T}/lib${SEP}$(ocamlc -where | tr -d '\r')"
+path="${PFX}/lib/ocaml${SEP}${T}/lib${SEP}${OCAML_STDLIB}"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
 
