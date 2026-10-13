@@ -8,7 +8,7 @@ CMD_HELP = ["jupyter-opensysml-kernel", "--help"]
 CMD_VERSION = ["jupyter-opensysml-kernel", "--version"]
 CMD_KERNELS = ["jupyter", "kernelspec", "list", "--json"]
 CMD_EXT_LIST = ["jupyter", "labextension", "list"]
-RE_EXT_OK = rf"jupyterlab-opensysml.*v{re.escape(PKG_VERSION)}.*enabled.*OK"
+RE_EXT_OK = rf"jupyterlab-opensysml.*v{re.escape(PKG_VERSION)}.*enabled.*ok"
 
 
 def do(cmd: list[str]) -> int:
@@ -28,7 +28,7 @@ def check_extension() -> int:
     res = subprocess.run(
         CMD_EXT_LIST, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
     )
-    out = f"{res.stderr}{res.stdout}"
+    out = f"{res.stderr}{res.stdout}".lower()
     found = re.search(RE_EXT_OK, out)
     assert found, f"{RE_EXT_OK} not in {out}"
     return 0
