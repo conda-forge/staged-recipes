@@ -1,0 +1,73 @@
+context:
+  version: "2.3.0"
+
+package:
+  name: k6
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/grafana/k6/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 35d0e4ce17ac3b7557f220a63bd9486f24dd63e032fbe1aed8a79326191a2097
+    target_directory: src
+  - url: https://raw.githubusercontent.com/prometheus/prometheus/refs/heads/main/LICENSE
+    sha256: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+    file_name: LICENSE-prometheus
+
+build:
+  number: 0
+  script:
+    - cd src
+    - |
+      go-licenses save . \
+      --save_path ../library_licenses \
+      --ignore go.k6.io/k6/v2 \
+      --ignore golang.org/x/sys/unix \
+      --ignore github.com/cespare/xxhash/v2 \
+      --ignore github.com/klauspost/compress/zstd \
+      --ignore github.com/klauspost/compress/huff0 \
+      --ignore github.com/klauspost/compress/zstd/internal/xxhash \
+      --ignore github.com/klauspost/compress/s2 \
+      --ignore github.com/grafana/sobek/ftoa \
+      --ignore github.com/grafana/k6provider \
+      --ignore github.com/grafana/xk6-dashboard-assets \
+      --ignore go.k6.io/k6/v2/internal/dashboard \
+      --ignore buf.build/gen/go/prometheus/prometheus/protocolbuffers/go
+    - if: unix
+      then: go build -v -o $PREFIX/bin/k6 -trimpath -ldflags="-X go.k6.io/k6/v2/internal/build.BuildOrigin=release"
+      else: go build -v -o %LIBRARY_BIN%\k6.exe -trimpath -ldflags="-X go.k6.io/k6/v2/internal/build.BuildOrigin=release"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - k6 --help
+      - k6 --version
+  - package_contents:
+      bin:
+        - k6
+      strict: true
+
+about:
+  homepage: https://grafana.com/oss/k6/
+  summary: A modern load testing tool, using Go and JavaScript
+  description: |
+    k6 is a modern load-testing tool, built on our years of experience in the
+    performance and testing industries. It's built to be powerful, extensible,
+    and full-featured. The key design goal is to provide the best developer
+    experience.
+  license: AGPL-3.0-only
+  license_file:
+    - src/LICENSE.md
+    - src/vendor/**/LICENSE
+    - src/vendor/**/LICENSE.txt
+    - library_licenses/
+    - LICENSE-prometheus
+  documentation: https://grafana.com/docs/k6/latest/
+  repository: https://github.com/grafana/k6
+
+extra:
+  recipe-maintainers:
+    - AaronLionsheep
