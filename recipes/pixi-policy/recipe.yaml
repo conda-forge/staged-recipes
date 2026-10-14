@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.1"
+
+package:
+  name: pixi-policy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aesir-oss/pixi-policy/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7c0a628f3c0dd6e1ea8043565508938ca2eac73e65a372d3778de04b22be9cea
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: cargo auditable install --locked --bins --no-track --path . --root "$PREFIX"
+      else: cargo auditable install --locked --bins --no-track --path . --root "%LIBRARY_PREFIX%"
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - pixi-policy --version
+      - pixi-policy --help
+      # Needs no workspace and no network: lists every rule.
+      - pixi-policy explain
+  - package_contents:
+      bin:
+        - pixi-policy
+      strict: true
+
+about:
+  homepage: https://aesir-oss.github.io/pixi-policy/
+  repository: https://github.com/aesir-oss/pixi-policy
+  documentation: https://aesir-oss.github.io/pixi-policy/latest/
+  summary: Check what a pixi workspace's environments may contain against a written policy
+  description: |
+    A pixi extension that checks pixi.toml and pixi.lock against pixi-policy.toml: where packages come from, banned
+    packages and versions, SPDX license allow, review and deny lists, manifest and lockfile hygiene, and waivers that
+    expire. It reports each finding with a fix hint, as text, JSON or SARIF, and exits non-zero so CI can stop a merge.
+    Every check runs offline. Once installed with `pixi global install pixi-policy`, pixi discovers the `pixi-policy`
+    executable on PATH and exposes it as `pixi policy`.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - millsks
