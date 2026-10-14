@@ -13,20 +13,7 @@ with open(out) as fh:
     report = json.load(fh)
 
 
-def findings(node):
-    """Yield every non-empty `findings` list anywhere in the report."""
-    if isinstance(node, dict):
-        for key, value in node.items():
-            if key == "findings" and isinstance(value, list) and value:
-                yield value
-            else:
-                yield from findings(value)
-    elif isinstance(node, list):
-        for item in node:
-            yield from findings(item)
-
-
-found = sum(len(f) for f in findings(report))
-print("top-level keys:", sorted(report) if isinstance(report, dict) else type(report).__name__)
-assert found, "expected findings for the malicious fixture"
-print("skillspector static scan OK:", found, "findings")
+issues = report.get("issues") or []
+print("risk_assessment:", json.dumps(report.get("risk_assessment"))[:300])
+assert issues, "expected issues for the malicious fixture"
+print("skillspector static scan OK:", len(issues), "issues")
