@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  version: "1.6.0"
+
+package:
+  name: streamlit-extras
+  version: ${{ version }}
+
+source:
+  # The GitHub tag rather than the PyPI sdist: the sdist leaves out the
+  # frontends' package-lock.json files.
+  url: https://github.com/arnaudmiribel/streamlit-extras/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 509fbc4def6265eade467bf8d932892d66aad8dc8ca4516a98dc17f4032a0094
+  patches:
+    - 0001-find-npm-on-windows.patch
+
+build:
+  number: 0
+  noarch: python
+  script:
+    # The hatch build hook runs npm to build the React frontends.
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - ${{ PYTHON }} ${{ RECIPE_DIR }}/collect_licenses.py
+
+requirements:
+  build:
+    - nodejs
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+  run:
+    - python >=${{ python_min }}
+    - plotly >=5.23.0
+    - streamlit >=1.54.0
+
+tests:
+  - python:
+      imports:
+        - streamlit_extras
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      # Every React frontend must ship its compiled bundle.
+      - python -c "import pathlib, streamlit_extras as s; b = list(pathlib.Path(s.__file__).parent.glob('*/frontend/build/index-*.js')); assert len(b) == 9, b"
+
+about:
+  homepage: https://github.com/arnaudmiribel/streamlit-extras
+  repository: https://github.com/arnaudmiribel/streamlit-extras
+  documentation: https://arnaudmiribel.github.io/streamlit-extras/
+  summary: A community-driven collection of useful Streamlit components and utilities
+  # MIT and ISC cover the npm packages bundled into the frontend JS.
+  license: Apache-2.0 AND MIT AND ISC
+  license_file:
+    - LICENSE
+    - ThirdPartyLicenses.txt
+
+extra:
+  recipe-maintainers:
+    - killua156
