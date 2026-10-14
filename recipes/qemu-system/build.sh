@@ -17,6 +17,13 @@ main() {
     export CFLAGS="${CFLAGS} -DRWF_DSYNC=0x00000002 -DCLONE_NEWCGROUP=0x02000000"
   fi
 
+  if [[ "${target_platform}" == osx-* ]]; then
+    # MacOSX11.0.sdk predates the *Main renames (SDK 12): IOMainPort (block/file-posix.c),
+    # kAudioObjectPropertyElementMain (audio/coreaudio.m, ObjC). Drop the OBJCFLAGS define when bumping to SDK >= 12.
+    export CFLAGS="${CFLAGS} -DIOMainPort=IOMasterPort"
+    export OBJCFLAGS="${OBJCFLAGS:-} -DkAudioObjectPropertyElementMain=kAudioObjectPropertyElementMaster"
+  fi
+
   QEMU_CONFIGURE_ARGS=(
     "--disable-docs"
     "--disable-linux-user"
