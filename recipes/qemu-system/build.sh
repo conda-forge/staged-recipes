@@ -13,8 +13,8 @@ main() {
   fi
 
   if [[ "${target_platform}" == linux-* ]]; then
-    # glibc 2.17 sysroot lacks RWF_DSYNC (used by block/linux-aio.c, block/io_uring.c)
-    export CFLAGS="${CFLAGS} -DRWF_DSYNC=0x00000002"
+    # glibc 2.17 sysroot lacks RWF_DSYNC (block/linux-aio.c, block/io_uring.c) and CLONE_NEWCGROUP (system/qemu-seccomp.c)
+    export CFLAGS="${CFLAGS} -DRWF_DSYNC=0x00000002 -DCLONE_NEWCGROUP=0x02000000"
   fi
 
   QEMU_CONFIGURE_ARGS=(
