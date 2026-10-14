@@ -12,6 +12,11 @@ main() {
     export QEMU_INSTALL_PREFIX="${PREFIX}"/Library
   fi
 
+  if [[ "${target_platform}" == linux-* ]]; then
+    # glibc 2.17 sysroot lacks RWF_DSYNC (used by block/linux-aio.c, block/io_uring.c)
+    export CFLAGS="${CFLAGS} -DRWF_DSYNC=0x00000002"
+  fi
+
   QEMU_CONFIGURE_ARGS=(
     "--disable-docs"
     "--disable-linux-user"
