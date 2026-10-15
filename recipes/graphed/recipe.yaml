@@ -2,15 +2,14 @@
 schema_version: 1
 
 context:
-  name: graphed
   version: "0.0.3"
 
 package:
-  name: ${{ name }}
+  name: graphed
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  url: https://pypi.org/packages/source/g/graphed/graphed-${{ version }}.tar.gz
   sha256: 4d3a0d38d3f4111f3398cfda359464131708957d3df51bf903ec19c41c8c6574
 
 build:
@@ -25,7 +24,7 @@ build:
       CARGO_PROFILE_RELEASE_LTO: fat
     content:
       - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - ${{ PYTHON }} -m pip install . -vv
 
 requirements:
   build:
@@ -74,6 +73,18 @@ tests:
         - if: unix
           then: abi3audit $SP_DIR/graphed/core/graphed_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
           else: abi3audit %SP_DIR%\graphed\core\graphed_core.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  - files:
+      source:
+        - tests/frozen/core/
+        - conftest.py
+        - pyproject.toml
+    requirements:
+      run:
+        - pytest
+        - hypothesis
+    script:
+      # the Rust IR suite; wall-clock scaling benchmarks are deselected as too noisy for CI
+      - pytest -p no:cacheprovider tests/frozen/core -k "not benchmark and not subquadratic and not reduces_fast"
   - script:
       - python -c "import graphed; print(graphed.__version__, graphed.core.version())"
 
