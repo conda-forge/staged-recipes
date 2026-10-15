@@ -1,0 +1,58 @@
+schema_version: 1
+
+context:
+  version: "1.13.2"
+
+package:
+  name: snowflake
+  version: ${{ version }}
+
+source:
+  # The sdist can't be built: its pyproject.toml loads a metadata hook from
+  # upstream's monorepo (../../scripts/hatch_hooks.py) that the sdist doesn't
+  # ship, so install the wheel instead. It holds only package metadata.
+  url: https://files.pythonhosted.org/packages/py3/s/snowflake/snowflake-${{ version }}-py3-none-any.whl
+  sha256: 09b037b8d1afc736755369418aea573536bceec70a141f7a2a8379f5d640397d
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - ${{ PYTHON }} -c "import zipfile; zipfile.ZipFile('snowflake-${{ version }}-py3-none-any.whl').extract('snowflake-${{ version }}.dist-info/licenses/LICENSE')"
+    - ${{ PYTHON }} -m pip install snowflake-${{ version }}-py3-none-any.whl -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+  run:
+    - python >=${{ python_min }}
+    # Upstream pins snowflake.core to its own version exactly.
+    - snowflake.core ==${{ version }}
+    - snowflake-legacy
+
+tests:
+  - python:
+      imports:
+        - snowflake.core
+        - snowflake._legacy
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://pypi.org/project/snowflake/
+  documentation: https://docs.snowflake.com/en/developer-guide/snowflake-python-api/snowflake-python-overview
+  summary: Snowflake Python API
+  description: |
+    Metapackage for the Snowflake Python API: installs snowflake.core, the
+    library for managing Snowflake resources from Python, together with
+    snowflake-legacy, which keeps the old snowflake-uuid functions
+    importable from the `snowflake` namespace.
+  license: Apache-2.0
+  license_file: snowflake-${{ version }}.dist-info/licenses/LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
