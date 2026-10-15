@@ -38,6 +38,13 @@ build:
     version_independent: ${{ is_abi3 }}
     entry_points:
       - manimgx = manimgx.cli:main
+  dynamic_linking:
+    # the engine's rpath to the prefix's lib/ (set below); rattler-build relinks the package
+    # in its site-packages/ layout, from where that rpath looks like it leaves the prefix
+    rpath_allowlist:
+      - if: osx
+        then: "@loader_path/../../.."
+        else: "$ORIGIN/../../.."
   script:
     env:
       CARGO_PROFILE_RELEASE_STRIP: symbols
@@ -48,8 +55,8 @@ build:
           - export MANIMGX_SOURCES="${SRC_DIR}/sources"
           # The engine links x264 and FFmpeg from the prefix's lib/: an rpath there, relative to
           # the extension's own place in lib/pythonX.Y/site-packages/manimgx/ (the package is
-          # Python version independent, so the rpath rattler-build would derive from its
-          # site-packages/ layout would not resolve once installed).
+          # Python version independent, so the rpath rattler-build derives from its
+          # site-packages/ layout does not resolve once installed).
           - if: osx
             then: export RUSTFLAGS="-C link-arg=-Wl,-rpath,@loader_path/../../.."
             else: export RUSTFLAGS='-C link-arg=-Wl,-rpath,$ORIGIN/../../..'
