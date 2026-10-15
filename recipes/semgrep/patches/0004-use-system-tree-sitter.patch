@@ -1,0 +1,38 @@
+Use the system tree-sitter runtime instead of building one at dune time.
+
+The tree-sitter.bindings flags rule depended on %{project_root}/tree-sitter-out,
+a dune rule that downloads tree-sitter 0.26.3 from the network
+(core/scripts/download-tree-sitter) and builds it. conda-forge builds are
+offline and provide tree-sitter, so drop that dependency and let
+config/discover.exe find tree-sitter through the ambient PKG_CONFIG_PATH.
+discover.exe queries the pkg-config package named "tree-sitter" (the .pc file
+shipped by the conda-forge libtree-sitter package). Upstream pins 0.26.3
+(core/tree-sitter-version). The vendored parser.c files all use
+LANGUAGE_VERSION 14, which older runtimes (ABI 14 supported) also accept; the
+C API used by bindings.c is the only other constraint.
+
+--- a/libs/ocaml-tree-sitter-semgrep/core/src/bindings/lib/dune
++++ b/libs/ocaml-tree-sitter-semgrep/core/src/bindings/lib/dune
+@@ -23,19 +23,13 @@
+ 
+ (rule
+  (targets c_flags.sexp c_library_flags.sexp)
+- (deps (:tree-sitter-prefix %{project_root}/tree-sitter-out))
+  (action
+-  ; Neutralize PKG_CONFIG_SYSROOT_DIR for this query: on Windows the mingw
+-  ; pkg-config otherwise prepends its sysroot to tree-sitter.pc's absolute C:/
+-  ; include/lib paths, producing a broken "-I<sysroot>C:/..." fragment that hides
+-  ; <tree_sitter/api.h>.
++  ; Use the system (conda) tree-sitter found through the ambient
++  ; PKG_CONFIG_PATH instead of downloading and building one into tree-sitter-out.
+   (setenv
+    PKG_CONFIG_SYSROOT_DIR
+    ""
+-   (setenv
+-    PKG_CONFIG_PATH
+-    "%{tree-sitter-prefix}/lib/pkgconfig:%{env:PKG_CONFIG_PATH=}"
+-    (run ./config/discover.exe)))))
++   (run ./config/discover.exe))))
+ 
+ ; atdgen preprocessing for json support
+ 
