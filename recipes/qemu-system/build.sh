@@ -98,32 +98,32 @@ setup_nu_pyvenv() {
   local build_dir=$1
   local qemu_src=$2
 
+  sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
+  
   pushd "${build_dir}" || return 1
-  python -m venv --system-site-packages pyvenv
-  ./pyvenv/Scripts/pip install --no-index  --find-links="${qemu_src}/python/wheels" pycotap
+    python -m venv --system-site-packages pyvenv
+    ./pyvenv/Scripts/pip install --no-index  --find-links="${qemu_src}/python/wheels" pycotap
 
-  local _meson_exe
-  _meson_exe="$(which meson.exe 2>/dev/null || which meson 2>/dev/null)" || _meson_exe=""
-  [[ -z "${_meson_exe}" ]] && { echo "ERROR: meson not found in PATH" >&2; popd || return 1; return 1; }
+    local _meson_exe
+    _meson_exe="$(which meson.exe 2>/dev/null || which meson 2>/dev/null)" || _meson_exe=""
+    [[ -z "${_meson_exe}" ]] && { echo "ERROR: meson not found in PATH" >&2; popd || return 1; return 1; }
 
-  echo "Creating meson wrapper pointing to: ${_meson_exe}"
-  local _meson_win
-  _meson_win="$(cygpath -w "${_meson_exe}" 2>/dev/null || echo "${_meson_exe}")"
+    echo "Creating meson wrapper pointing to: ${_meson_exe}"
+    local _meson_win
+    _meson_win="$(cygpath -w "${_meson_exe}" 2>/dev/null || echo "${_meson_exe}")"
 
-  cat > ./pyvenv/Scripts/meson.bat <<MESONBAT
+    cat > ./pyvenv/Scripts/meson.bat <<MESONBAT
 @echo off
 "${_meson_win}" %*
 MESONBAT
 
-  # Native meson.exe launcher, copied under BOTH the extensioned and the bare name
-  if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
-    cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
-    cp "${_meson_exe}" ./pyvenv/Scripts/meson
-  else
-    echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe)"
-  fi
-  sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
-
+    # Native meson.exe launcher, copied under BOTH the extensioned and the bare name
+    if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
+      cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
+      cp "${_meson_exe}" ./pyvenv/Scripts/meson
+    else
+      echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe)"
+    fi
   popd || return 1
 }
 
