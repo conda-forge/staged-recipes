@@ -98,7 +98,7 @@ setup_nu_pyvenv() {
   local build_dir=$1
   local qemu_src=$2
 
-  sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
+  sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' "${qemu_src}"/configure
   
   pushd "${build_dir}" || return 1
     python -m venv --system-site-packages pyvenv
