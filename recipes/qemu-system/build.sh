@@ -122,6 +122,7 @@ MESONBAT
   else
     echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe)"
   fi
+  sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
 
   popd || return 1
 }
@@ -147,7 +148,6 @@ patch_nu_build_ninja() {
   pushd "${build_dir}" || return 1
     sed -i 's#\(windres\|nm\|windmc\|meson\)\.[eE][xX][eE]#\1#g; s#\(windres\|nm\|windmc\|meson\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
-    sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
   popd || return 1
 }
 
