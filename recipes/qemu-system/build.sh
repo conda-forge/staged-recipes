@@ -119,6 +119,8 @@ MESONBAT
   if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
     cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
     cp "${_meson_exe}" ./pyvenv/Scripts/meson
+    cp "${_meson_exe}" ./pyvenv/bin/meson.exe
+    cp "${_meson_exe}" ./pyvenv/bin/meson
   else
     echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe)"
   fi
