@@ -1,0 +1,504 @@
+From ba1fdbf28fbd2f4acf6c8544ace782d917bbb7c8 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavel.zwerschke@quantco.com>
+Date: Fri, 16 Oct 2026 00:33:32 +0200
+Subject: [PATCH 2/2] x264, ffmpeg: link the libraries the build prefix
+ installs
+
+conda-forge packages x264 and FFmpeg (the same 9.0.2) as shared libraries
+and does not vendor them into other packages. The engine's crates only
+reach either through their C shims over the public APIs, so compile those
+shims against the prefix's headers and link its libx264, libavformat,
+libavcodec, libswresample and libavutil, instead of fetching and building
+x264, NASM, FFmpeg and libopus from source.
+---
+ rust/Cargo.lock               |   3 -
+ rust/ffmpeg/Cargo.toml        |   3 +-
+ rust/ffmpeg/build.rs          | 227 ++++------------------------------
+ rust/ffmpeg/src/opus/config.h |  15 ---
+ rust/x264/Cargo.toml          |   4 +-
+ rust/x264/build.rs            | 150 +++-------------------
+ 6 files changed, 45 insertions(+), 357 deletions(-)
+ delete mode 100644 rust/ffmpeg/src/opus/config.h
+
+diff --git a/rust/Cargo.lock b/rust/Cargo.lock
+index 8bdf567..c5f821c 100644
+--- a/rust/Cargo.lock
++++ b/rust/Cargo.lock
+@@ -1025,7 +1025,6 @@ name = "ffmpeg"
+ version = "9.0.2"
+ dependencies = [
+  "cc",
+- "fetch",
+ ]
+ 
+ [[package]]
+@@ -5700,8 +5699,6 @@ name = "x264"
+ version = "0.165.3223"
+ dependencies = [
+  "cc",
+- "fetch",
+- "nasm",
+ ]
+ 
+ [[package]]
+diff --git a/rust/ffmpeg/Cargo.toml b/rust/ffmpeg/Cargo.toml
+index 3e1224c..49b3ebf 100644
+--- a/rust/ffmpeg/Cargo.toml
++++ b/rust/ffmpeg/Cargo.toml
+@@ -4,9 +4,8 @@ version = "9.0.2"
+ edition = "2024"
+ license = "MIT AND LGPL-2.1-or-later AND BSD-3-Clause"
+ publish = false
+-description = "FFmpeg 9.0.2's audio decoders (libopus 1.6.1's for Opus), fetched and built from their sources, behind one safe call."
++description = "FFmpeg's audio decoders, as the build prefix installs them, behind one safe call."
+ links = "ffmpeg"
+ 
+ [build-dependencies]
+ cc = { version = "1.5.1", features = ["parallel"] }
+-fetch = { path = "../fetch" }
+diff --git a/rust/ffmpeg/build.rs b/rust/ffmpeg/build.rs
+index ef4e14d..72d9b14 100644
+--- a/rust/ffmpeg/build.rs
++++ b/rust/ffmpeg/build.rs
+@@ -1,216 +1,35 @@
+-//! FFmpeg 9.0.2's audio decoders, and libopus 1.6.1 for Opus, from their sources (fetched), with
+-//! nothing installed: no configure, no make. What FFmpeg's configure resolves for the components
+-//! ManimGX decodes with is the lock below (`ON`, the names it turns on; `SOURCES`, the files it
+-//! compiles), made once by
+-//!
+-//! ```text
+-//! configure --arch=c --target-os=none --enable-cross-compile --disable-asm --disable-inline-asm
+-//!   --disable-pthreads --disable-network --disable-autodetect --disable-everything
+-//!   --disable-programs --disable-doc --disable-avdevice --disable-avfilter --disable-swscale
+-//!   --disable-faan --enable-swresample --enable-libopus --enable-decoder=aac,mp3float,mp2float,
+-//!   mp1float,libopus,vorbis,flac,alac,pcm_u8,pcm_s8,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,
+-//!   pcm_s32le,pcm_s32be,pcm_f32le,pcm_f32be,pcm_f64le,pcm_f64be,pcm_alaw,pcm_mulaw,
+-//!   adpcm_ima_wav,adpcm_ms --enable-demuxer=mov,mp3,ogg,matroska,wav,w64,aiff,caf,flac,aac
+-//!   --enable-parser=aac,mpegaudio,vorbis,opus,flac
+-//! ```
+-//!
+-//! (its config.h's and config_components.h's names set to 1, but the documentation's and tests';
+-//! `make -n`'s objects). In portable C, it is the same on every target, the browser's included.
+-//! The configuration is written from the lock: 1 for its names and for what every C99 library
+-//! has, 0 for every other name FFmpeg's sources test, and each component FFmpeg declares on or
+-//! off. libopus's files are read from its own lists. The build has no threads: the crate calls
+-//! FFmpeg one call at a time.
++//! FFmpeg as the build's prefix installs it (conda-forge's `ffmpeg`): the shim (src/shim.c) is
++//! compiled against its headers and linked to libavformat, libavcodec, libswresample and
++//! libavutil.
+ 
+-use std::collections::BTreeSet;
+-use std::path::Path;
+-
+-/// The names configure turns on.
+-const ON: &str = "libopus safe_bitstream_reader avformat avcodec swresample avutil iamf decoders parsers demuxers
+-    adts_header dirac_parse golomb iamfdec iso_media mpegaudio mpegaudiodsp mpegaudioheader mpeg4audio riffdec
+-    sinewin aac_decoder alac_decoder flac_decoder mp1float_decoder mp2float_decoder mp3float_decoder vorbis_decoder
+-    pcm_alaw_decoder pcm_f32be_decoder pcm_f32le_decoder pcm_f64be_decoder pcm_f64le_decoder pcm_mulaw_decoder
+-    pcm_s8_decoder pcm_s16be_decoder pcm_s16le_decoder pcm_s24be_decoder pcm_s24le_decoder pcm_s32be_decoder
+-    pcm_s32le_decoder pcm_u8_decoder adpcm_ima_wav_decoder adpcm_ms_decoder libopus_decoder aac_parser flac_parser
+-    mpegaudio_parser opus_parser vorbis_parser aac_demuxer aiff_demuxer caf_demuxer flac_demuxer matroska_demuxer
+-    mov_demuxer mp3_demuxer ogg_demuxer w64_demuxer wav_demuxer";
+-
+-/// The files configure compiles, by library.
+-const SOURCES: [(&str, &str); 4] = [
+-    (
+-        "libavutil",
+-        "adler32 aes aes_ctr ambient_viewing_environment audio_fifo avsscanf avstring base64 blowfish bprint buffer
+-        camellia cast5 channel_layout container_fifo cpu crc csp des detection_bbox dict display dovi_meta
+-        downmix_info encryption_info error eval executor fifo file file_open film_grain_params fixed_dsp float_dsp
+-        float_scalarproduct frame hash hdr_dynamic_metadata hdr_dynamic_vivid_metadata hmac hwcontext hwcontext_stub
+-        iamf imgutils integer intmath lfg lls log log2_tab lzo mastering_display_metadata mathematics md5 mem
+-        murmur3 opt parseutils pixdesc pixelutils random_seed rational raw_color_params rc4 refstruct reverse
+-        ripemd samplefmt sha sha512 side_data slicethread spherical stereo3d tdrdi tea threadmessage time timecode
+-        timecode_internal timestamp tree twofish tx tx_double tx_float tx_int32 utils uuid version
+-        video_enc_params video_hint xga_font_data xtea",
+-    ),
+-    (
+-        "libavcodec",
+-        "aac/aacdec aac/aacdec_ac aac/aacdec_float aac/aacdec_lpd aac/aacdec_tab aac/aacdec_usac
+-        aac/aacdec_usac_mps212 aac_ac3_parser aac_parser aacps_common aacps_float aacpsdsp_float aacsbr aactab
+-        ac3_channel_layout_tab ac3_parser adpcm adpcm_data adts_header adts_parser alac alac_data alacdsp allcodecs
+-        avcodec avdct bitstream bitstream_filters bsf cbrt_data cbrt_tablegen_common codec_desc codec_par d3d11va
+-        dct32_fixed dct32_float decode dirac dv_profile encode exif flac flac_parser flacdata flacdec flacdsp
+-        get_buffer golomb h2645_parse imgconvert jni kbdwin lcevctab libopus libopusdec mathtables mediacodec
+-        mpeg12framerate mpeg4audio mpeg4audio_sample_rates mpegaudio mpegaudio_parser mpegaudiodata
+-        mpegaudiodec_common mpegaudiodec_float mpegaudiodecheader mpegaudiodsp mpegaudiodsp_data mpegaudiodsp_fixed
+-        mpegaudiodsp_float mpegaudiotabs options opus/frame_duration_tab opus/parse opus/parser packet parser
+-        parsers pcm profiles qsv_api raw sbrdsp sinewin threadprogress tiff_common to_upper4 utils version vlc
+-        vorbis vorbis_data vorbis_parser vorbisdec vorbisdsp xiph",
+-    ),
+-    (
+-        "libavformat",
+-        "aacdec aiff aiffdec allformats apetag av1 avformat avio aviobuf caf cafdec codecstring demux demux_utils
+-        dovi_isom dump dv dvdclut flac_picture flacdec format iamf iamf_parse iamf_reader id3v1 id3v2 img2 isom
+-        isom_tags lcevc matroska matroskadec metadata mov mov_chan mov_esds mp3dec mux mux_utils nal oggdec
+-        oggparsedirac oggparseflac oggparseogm oggparseopus oggparseskeleton oggparsespeex oggparsetheora
+-        oggparsevorbis oggparsevp8 options os_support packet_list pcm protocols qtpalette rawdec replaygain riff
+-        riffdec rmsipr sdp seek url urldecode utils version vorbiscomment vpcc w64 wavdec",
+-    ),
+-    ("libswresample", "audioconvert dither options rematrix resample resample_dsp swresample swresample_frame version"),
+-];
+-
+-/// What every C99 library has (FFmpeg defines replacements for the rest, which clash with these).
+-const C99: &str = "atanf atan2f cbrt cbrtf copysign cosf erf exp2 exp2f expf hypot isfinite isinf isnan ldexpf
+-    llrint llrintf log2 log2f log10f lrint lrintf powf rint round roundf sinf trunc truncf";
++use std::path::PathBuf;
+ 
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=src/shim.c");
+-    println!("cargo:rerun-if-changed=src/opus/config.h");
+-    let ffmpeg = &fetch::tree("https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.gz", "c92e6bbcf8183b80ab4771d4fc07dee2d97dd2af0a72f8a6bf13c4242c756ff0");
+-    let opus = &fetch::tree(
+-        "https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz",
+-        "8a88c521e03839005b87575f322c7347f82d77f666f025643a30f495906de8ca",
+-    );
+-    let out = &std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+-    let target = |key: &str| std::env::var(format!("CARGO_CFG_TARGET_{key}")).unwrap_or_default();
+-    let msvc = target("ENV") == "msvc";
+-    let mut on: BTreeSet<String> = ON.split_whitespace().map(|name| format!("CONFIG_{}", name.to_uppercase())).collect();
+-    on.extend(C99.split_whitespace().map(|name| format!("HAVE_{}", name.to_uppercase())));
+-    on.insert("HAVE_AV_CONFIG_H".into()); // also passed to the compiler, before config.h is read
+-    if target("POINTER_WIDTH") == "64" {
+-        on.insert("HAVE_FAST_64BIT".into());
+-    }
+-
+-    // config.h: the names FFmpeg's sources test, 1 or 0 (but those they define themselves)
+-    let (mut tested, mut defined) = (BTreeSet::new(), BTreeSet::new());
+-    for dir in ["libavutil", "libavcodec", "libavformat", "libswresample", "compat"] {
+-        scan(&ffmpeg.join(dir), &mut tested, &mut defined);
+-    }
+-    let mut config = String::from("#ifndef FFMPEG_CONFIG_H\n#define FFMPEG_CONFIG_H\n#define FFMPEG_CONFIGURATION \"manimgx\"\n");
+-    config += "#define FFMPEG_LICENSE \"LGPL version 2.1 or later\"\n";
+-    // The file-system wrappers use these even without file protocols. Ask the compiler, as
+-    // configure does, rather than assuming a target's available C library headers.
+-    for header in ["direct.h", "io.h", "unistd.h"] {
+-        let name = format!("HAVE_{}", header.replace('.', "_").to_uppercase());
+-        config += &format!("#define {name} __has_include(<{header}>)\n");
+-        defined.insert(name);
+-    }
+-    for name in tested.difference(&defined).chain(&on).collect::<BTreeSet<_>>() {
+-        config += &format!("#define {name} {}\n", on.contains(name) as u8);
+-    }
+-    write(&out.join("config.h"), config + "#endif\n");
+-    write(&out.join("libavutil/avconfig.h"), "#define AV_HAVE_BIGENDIAN 0\n#define AV_HAVE_FAST_UNALIGNED 0\n".into());
+-    write(&out.join("libavutil/ffversion.h"), "#define FFMPEG_VERSION \"9.0.2\"\n".into());
+-    // each component FFmpeg declares, on or off (its sources paste some of those names together,
+-    // which no scan sees), and the lists of those on, in the order they are declared
+-    let mut components = String::new();
+-    for (list, kind, array, file) in [
+-        ("libavcodec/codec_list.c", "FFCodec", "codec_list", "libavcodec/allcodecs.c"),
+-        ("libavcodec/parser_list.c", "FFCodecParser", "parser_list", "libavcodec/parsers.c"),
+-        ("libavcodec/bsf_list.c", "FFBitStreamFilter", "bitstream_filters", "libavcodec/bitstream_filters.c"),
+-        ("libavformat/demuxer_list.c", "FFInputFormat", "demuxer_list", "libavformat/allformats.c"),
+-        ("libavformat/muxer_list.c", "FFOutputFormat", "muxer_list", "libavformat/allformats.c"),
+-        ("libavformat/protocol_list.c", "URLProtocol", "url_protocols", "libavformat/protocols.c"),
+-    ] {
+-        let text = std::fs::read_to_string(ffmpeg.join(file)).unwrap();
+-        let names: Vec<&str> = text
+-            .lines()
+-            .filter_map(|line| match line.split_whitespace().collect::<Vec<_>>()[..] {
+-                ["extern", "const", k, name] if k == kind => name.strip_prefix("ff_")?.strip_suffix(';'),
+-                _ => None,
+-            })
+-            .collect();
+-        let switch = |name: &str| format!("CONFIG_{}", name.to_uppercase());
+-        components += &names.iter().map(|name| format!("#define {} {}\n", switch(name), on.contains(&switch(name)) as u8)).collect::<String>();
+-        let entries: String = names.iter().filter(|name| on.contains(&switch(name))).map(|name| format!("    &ff_{name},\n")).collect();
+-        write(&out.join(list), format!("static const {kind} * const {array}[] = {{\n{entries}    NULL }};\n"));
+-    }
+-    write(&out.join("config_components.h"), components);
+-
+-    let build = || {
+-        let mut build = cc::Build::new();
+-        build.extra_warnings(false).opt_level(3).std("c17"); // FFmpeg counts on dead code being removed
+-        if msvc {
+-            build.define("_USE_MATH_DEFINES", None).define("_CRT_SECURE_NO_WARNINGS", None).define("_CRT_NONSTDC_NO_WARNINGS", None);
+-            build.flag("/we4013").flag("/we4133"); // undeclared functions and incompatible pointers
+-        } else {
+-            build.flag("-Werror=implicit-function-declaration").flag("-Werror=incompatible-pointer-types").flag("-fno-math-errno").flag("-fno-signed-zeros");
+-        }
+-        build
+-    };
+-    // libopus, its float build: the files its lists name
+-    let mut libopus = build();
+-    libopus.include("src/opus").define("HAVE_CONFIG_H", None).includes(["include", "celt", "silk", "silk/float"].map(|dir| opus.join(dir)));
+-    for (list, names) in [("celt_sources.mk", "CELT_SOURCES"), ("silk_sources.mk", "SILK_SOURCES SILK_SOURCES_FLOAT"), ("opus_sources.mk", "OPUS_SOURCES OPUS_SOURCES_FLOAT")] {
+-        // but silk/debug.c, empty without SILK_DEBUG (an object with no symbols, which ranlib warns of)
+-        libopus.files(make_list(&opus.join(list), names).iter().filter(|file| *file != "silk/debug.c").map(|file| opus.join(file)));
+-    }
+-    let mut objects = libopus.compile_intermediates();
+-    // FFmpeg's files, and the shim
+-    let mut libav = build();
+-    libav.include(out).include(ffmpeg).include(ffmpeg.join("compat/stdbit")).include(opus.join("include"));
+-    libav.define("HAVE_AV_CONFIG_H", None).define("_ISOC11_SOURCE", None).define("_FILE_OFFSET_BITS", "64").define("_LARGEFILE_SOURCE", None);
+-    // configure exposes POSIX.1-2001 / XSI alongside ISO C, including fdopen in strict C17.
+-    libav.define("_POSIX_C_SOURCE", "200112").define("_XOPEN_SOURCE", "600");
++    println!("cargo:rerun-if-env-changed=PREFIX");
++    let (include, lib) = prefix();
++    let msvc = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc");
++    let mut build = cc::Build::new();
++    build.file("src/shim.c").include(include).extra_warnings(false).opt_level(2).std("c17");
+     if msvc {
+-        libav.include(ffmpeg.join("compat/atomics/win32")); // FFmpeg's <stdatomic.h> for MSVC
++        build.define("_CRT_SECURE_NO_WARNINGS", None).define("_CRT_NONSTDC_NO_WARNINGS", None);
++    } else {
++        build.flag("-Werror=implicit-function-declaration").flag("-Werror=incompatible-pointer-types");
+     }
+-    for (library, names) in SOURCES {
+-        libav.files(names.split_whitespace().map(|name| ffmpeg.join(format!("{library}/{name}.c"))));
++    build.compile("manimgx_ffmpeg_shim");
++    println!("cargo:rustc-link-search=native={}", lib.display());
++    for library in ["avformat", "avcodec", "swresample", "avutil"] {
++        println!("cargo:rustc-link-lib=dylib={library}");
+     }
+-    objects.extend(libav.file("src/shim.c").compile_intermediates());
+-    cc::Build::new().objects(objects).compile("ffmpeg");
+ }
+ 
+-/// The names in C sources that FFmpeg's configuration sets (HAVE_, CONFIG_, ARCH_): those they
+-/// test, and those they #define themselves.
+-fn scan(dir: &Path, tested: &mut BTreeSet<String>, defined: &mut BTreeSet<String>) {
+-    for entry in std::fs::read_dir(dir).unwrap() {
+-        let path = entry.unwrap().path();
+-        if path.is_dir() {
+-            scan(&path, tested, defined);
+-        } else if path.extension().is_some_and(|ext| ext == "c" || ext == "h") {
+-            let text = String::from_utf8_lossy(&std::fs::read(&path).unwrap()).into_owned();
+-            let mut previous = "";
+-            for word in text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '#')).filter(|w| !w.is_empty()) {
+-                let configured = ["HAVE_", "CONFIG_", "ARCH_"].iter().any(|p| word.len() > p.len() && word.starts_with(p))
+-                    && word.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_');
+-                if configured {
+-                    if previous == "#define" || previous == "define" { defined.insert(word.to_owned()) } else { tested.insert(word.to_owned()) };
+-                }
+-                previous = word;
+-            }
+-        }
++/// The host prefix's include and library folders: conda-build's PREFIX (its Library\ on Windows).
++fn prefix() -> (PathBuf, PathBuf) {
++    let prefix = std::env::var_os("PREFIX").or_else(|| std::env::var_os("CONDA_PREFIX")).expect("PREFIX: the conda host prefix");
++    let mut prefix = PathBuf::from(prefix);
++    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
++        prefix.push("Library");
+     }
+-}
+-
+-/// The files a makefile's variables list (`NAME = a.c b.c \` and the lines it continues on).
+-fn make_list(file: &Path, names: &str) -> Vec<String> {
+-    let text = std::fs::read_to_string(file).unwrap().replace("\\\n", " ");
+-    text.lines()
+-        .filter_map(|line| line.split_once('='))
+-        .filter(|(name, _)| names.split_whitespace().any(|n| n == name.trim()))
+-        .flat_map(|(_, files)| files.split_whitespace().map(str::to_owned).collect::<Vec<_>>())
+-        .collect()
+-}
+-
+-fn write(path: &Path, text: String) {
+-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+-    std::fs::write(path, text).unwrap();
++    (prefix.join("include"), prefix.join("lib"))
+ }
+diff --git a/rust/ffmpeg/src/opus/config.h b/rust/ffmpeg/src/opus/config.h
+deleted file mode 100644
+index 850c29c..0000000
+--- a/rust/ffmpeg/src/opus/config.h
++++ /dev/null
+@@ -1,15 +0,0 @@
+-// Opus's portable float build. C17's compiler feature test chooses the temporary allocation
+-// mode, as Opus's configure does: standard variable-length arrays first, alloca otherwise.
+-#define OPUS_BUILD
+-#define HAVE_LRINT
+-#define HAVE_LRINTF
+-#define ENABLE_HARDENING
+-
+-#ifndef __STDC_NO_VLA__
+-#define VAR_ARRAYS
+-#else
+-#define USE_ALLOCA
+-#if __has_include(<alloca.h>)
+-#define HAVE_ALLOCA_H
+-#endif
+-#endif
+diff --git a/rust/x264/Cargo.toml b/rust/x264/Cargo.toml
+index 0cd11cc..92ce629 100644
+--- a/rust/x264/Cargo.toml
++++ b/rust/x264/Cargo.toml
+@@ -4,10 +4,8 @@ version = "0.165.3223"
+ edition = "2024"
+ license = "MIT AND GPL-2.0-or-later AND ISC"
+ publish = false
+-description = "x264 r3223 (0480cb05), the H.264 encoder, fetched and built from its source, behind a few safe calls."
++description = "x264, the H.264 encoder, as the build prefix installs it, behind a few safe calls."
+ links = "x264"
+ 
+ [build-dependencies]
+ cc = { version = "1.5.1", features = ["parallel"] }
+-fetch = { path = "../fetch" }
+-nasm = { path = "../nasm" }
+diff --git a/rust/x264/build.rs b/rust/x264/build.rs
+index f04592e..26d656e 100644
+--- a/rust/x264/build.rs
++++ b/rust/x264/build.rs
+@@ -1,140 +1,30 @@
+-//! x264 r3223 from its source (the GitHub mirror's archive of 0480cb05, fetched), with nothing installed:
+-//! the configuration its `configure` would write for the target, its C, and its assembly — on
+-//! x86-64 NASM's (the `nasm` crate: NASM from its source, in this script), on AArch64 the C
+-//! compiler's. Elsewhere, its C alone.
++//! x264 as the build's prefix installs it (conda-forge's `x264`): the shim (src/shim.c) is
++//! compiled against its header and linked to its shared library.
+ 
+-use std::path::{Path, PathBuf};
++use std::path::PathBuf;
+ 
+ fn main() {
+-    nasm::serve();
+     println!("cargo:rerun-if-changed=build.rs");
+     println!("cargo:rerun-if-changed=src/shim.c");
+-    let source = &fetch::tree(
+-        "https://github.com/mirror/x264/archive/0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee.tar.gz",
+-        "f6be0c17bbcea2e79823e0dc953ad86f605deb41602d606108e1182a5118c434",
+-    );
+-    let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+-    let target = |key: &str| std::env::var(format!("CARGO_CFG_TARGET_{key}")).unwrap_or_default();
+-    let (arch, os, msvc) = (target("ARCH"), target("OS"), target("ENV") == "msvc");
+-    let (x86, arm) = (arch == "x86_64", arch == "aarch64" && !msvc); // with assembly
+-    let (linux, windows) = (os == "linux", os == "windows");
+-    let stack = if x86 && !msvc { 64 } else { 16 };
+-
+-    // config.h: what configure defines as 1 (x264 tests them with `#if`: the rest are 0)
+-    let mut defines = vec![
+-        "HAVE_BITDEPTH8 HAVE_GPL HAVE_INTERLACED HAVE_THREAD HAVE_LOG2F",
+-        if windows { "HAVE_WIN32THREAD SYS_WINDOWS" } else { "HAVE_POSIXTHREAD HAVE_STRTOK_R HAVE_CLOCK_GETTIME HAVE_SYSCONF HAVE_MMAP" },
+-    ];
+-    for (on, names) in [
+-        (!msvc, "HAVE_VECTOREXT"),
+-        (os == "macos", "SYS_MACOSX"),
+-        (linux, "SYS_LINUX HAVE_MALLOC_H HAVE_CPU_COUNT HAVE_GETAUXVAL"),
+-        (linux && x86, "HAVE_THP"),
+-        (x86, "ARCH_X86_64 HAVE_MMX"),
+-        (x86 && !msvc, "HAVE_X86_INLINE_ASM"),
+-        (x86 && msvc, "__SSE__"),
+-        (arch == "aarch64", "ARCH_AARCH64"),
+-        (arm, "HAVE_AARCH64 HAVE_NEON HAVE_DOTPROD HAVE_I8MM HAVE_SVE HAVE_SVE2 HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE"),
+-        (arm, "HAVE_AS_ARCHEXT_I8MM_DIRECTIVE HAVE_AS_ARCHEXT_SVE_DIRECTIVE HAVE_AS_ARCHEXT_SVE2_DIRECTIVE"),
+-    ] {
+-        if on {
+-            defines.push(names);
+-        }
+-    }
+-    let mut config: String = defines.iter().flat_map(|names| names.split_whitespace()).map(|name| format!("#define {name} 1\n")).collect();
+-    config += &format!("#define STACK_ALIGNMENT {stack}\n#define AS_ARCH_LEVEL armv8.2-a\n");
+-    std::fs::write(out.join("config.h"), config).unwrap();
+-    let version = "#define X264_VERSION \"\"\n#define X264_POINTVER \"0.165.3223 0480cb0\"\n";
+-    std::fs::write(out.join("x264_config.h"), format!("#define X264_GPL 1\n#define X264_INTERLACED 1\n#define X264_BIT_DEPTH 8\n#define X264_CHROMA_FORMAT 0\n{version}")).unwrap();
+-
+-    // configure's compiler flags; the files x264's Makefile compiles once, then those it compiles
+-    // per bit depth (only 8)
+-    let build = || {
+-        let mut build = cc::Build::new();
+-        build.include(&out).include(source).warnings(false).opt_level(3);
+-        if msvc {
+-            build.flag("-fp:fast").flag("-GS-");
+-        } else {
+-            build.flag("-w").flag("-ffast-math").flag("-std=gnu99").define("_GNU_SOURCE", None).flag("-fomit-frame-pointer");
+-            build.flag_if_supported("-fno-tree-vectorize").flag("-fvisibility=hidden");
+-            if x86 {
+-                build.flag_if_supported("-mstack-alignment=64").flag_if_supported("-mpreferred-stack-boundary=6");
+-            }
+-        }
+-        build
+-    };
+-    let sources = |dir: &str, names: &str, ext: &str| names.split_whitespace().map(|name| source.join(format!("{dir}/{name}.{ext}"))).collect::<Vec<_>>();
+-    let mut once = build();
+-    once.files(sources("common", "osdep base cpu tables", "c")).files(sources("encoder", "api", "c")).file("src/shim.c");
+-    if windows {
+-        once.file(source.join("common/win32thread.c"));
+-    }
+-    let mut objects = once.compile_intermediates();
+-    let mut depth = build();
+-    depth.define("HIGH_BIT_DEPTH", "0").define("BIT_DEPTH", "8");
+-    depth.files(sources("common", "mc predict pixel macroblock frame dct cabac common rectangle set quant deblock vlc mvpred bitstream threadpool", "c"));
+-    depth.files(sources("encoder", "analyse me ratecontrol set macroblock cabac cavlc encoder lookahead", "c"));
+-    if x86 {
+-        depth.files(sources("common/x86", "mc-c predict-c", "c"));
+-    }
+-    if arm {
+-        depth.files(sources("common/aarch64", "asm-offsets mc-c predict-c", "c"));
+-        depth.files(sources("common/aarch64", "bitstream-a cabac-a dct-a deblock-a mc-a pixel-a predict-a quant-a", "S"));
+-        depth.files(sources("common/aarch64", "dct-a-sve deblock-a-sve mc-a-sve pixel-a-sve dct-a-sve2", "S"));
+-        depth.define("PIC", None);
+-        if os == "macos" {
+-            depth.define("PREFIX", None);
+-        }
+-    }
+-    objects.extend(depth.compile_intermediates());
+-    if x86 {
+-        objects.extend(assemble(source, &out, &os, stack));
++    println!("cargo:rerun-if-env-changed=PREFIX");
++    let (include, lib) = prefix();
++    let msvc = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc");
++    let mut build = cc::Build::new();
++    build.file("src/shim.c").include(include).warnings(false).opt_level(2);
++    if msvc {
++        build.define("X264_API_IMPORTS", None); // the import library's declarations
+     }
+-    cc::Build::new().objects(objects).compile("x264");
++    build.compile("manimgx_x264_shim");
++    println!("cargo:rustc-link-search=native={}", lib.display());
++    println!("cargo:rustc-link-lib=dylib={}", if msvc { "libx264" } else { "x264" });
+ }
+ 
+-/// x264's x86-64 assembly, by NASM, in parallel: in a folder of their copies, so that NASM, which
+-/// reads its arguments in Windows' ANSI code page, is given ASCII only; with no timestamp in a
+-/// COFF object, so that a build is the same bytes whenever it is made.
+-fn assemble(source: &Path, out: &Path, os: &str, stack: u32) -> Vec<PathBuf> {
+-    let dir = out.join("x86");
+-    std::fs::create_dir_all(&dir).unwrap();
+-    for entry in std::fs::read_dir(source.join("common/x86")).unwrap() {
+-        let path = entry.unwrap().path();
+-        if path.extension().is_some_and(|ext| ext == "asm") {
+-            std::fs::copy(&path, dir.join(path.file_name().unwrap())).unwrap();
+-        }
++/// The host prefix's include and library folders: conda-build's PREFIX (its Library\ on Windows).
++fn prefix() -> (PathBuf, PathBuf) {
++    let prefix = std::env::var_os("PREFIX").or_else(|| std::env::var_os("CONDA_PREFIX")).expect("PREFIX: the conda host prefix");
++    let mut prefix = PathBuf::from(prefix);
++    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
++        prefix.push("Library");
+     }
+-    let format = match os {
+-        "macos" => "-fmacho64",
+-        "windows" => "-fwin64",
+-        _ => "-felf64",
+-    };
+-    // cpu-a is compiled once, the rest per bit depth
+-    let files = "cpu-a bitstream-a const-a cabac-a dct-a deblock-a mc-a mc-a2 pixel-a predict-a quant-a dct-64 trellis-64 sad-a";
+-    std::thread::scope(|scope| {
+-        let jobs: Vec<_> = files
+-            .split_whitespace()
+-            .map(|name| {
+-                let dir = &dir;
+-                scope.spawn(move || {
+-                    let mut nasm = nasm::command();
+-                    nasm.current_dir(dir).args(["--reproducible", "-I./", format, "-DARCH_X86_64=1", &format!("-DSTACK_ALIGNMENT={stack}")]);
+-                    if os == "macos" {
+-                        nasm.arg("-DPREFIX");
+-                    }
+-                    if os != "windows" {
+-                        nasm.arg("-DPIC");
+-                    }
+-                    if name != "cpu-a" {
+-                        nasm.args(["-DBIT_DEPTH=8", "-Dprivate_prefix=x264_8"]);
+-                    }
+-                    let status = nasm.args(["-o", &format!("{name}.o"), &format!("{name}.asm")]).status().expect("NASM");
+-                    assert!(status.success(), "NASM failed on {name}.asm");
+-                    dir.join(format!("{name}.o"))
+-                })
+-            })
+-            .collect();
+-        jobs.into_iter().map(|job| job.join().unwrap()).collect()
+-    })
++    (prefix.join("include"), prefix.join("lib"))
+ }
