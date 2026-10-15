@@ -119,7 +119,6 @@ MESONBAT
   if [[ -f "${_meson_exe}" && "${_meson_exe}" == *.exe ]]; then
     cp "${_meson_exe}" ./pyvenv/Scripts/meson.exe
     cp "${_meson_exe}" ./pyvenv/Scripts/meson
-    mkdir -p ./pyvenv/bin && cp "${_meson_exe}" ./pyvenv/bin/meson.exe && cp "${_meson_exe}" ./pyvenv/bin/meson
   else
     echo "WARNING: meson resolved to '${_meson_exe}' (not a .exe)"
   fi
@@ -148,6 +147,7 @@ patch_nu_build_ninja() {
   pushd "${build_dir}" || return 1
     sed -i 's#\(windres\|nm\|windmc\|meson\)\.[eE][xX][eE]#\1#g; s#\(windres\|nm\|windmc\|meson\)\b#\1.exe#g' build.ninja
     sed -i 's#D__[^ ]*_qapi_#qapi_#g' build.ninja
+    sed -i 's#pyvenv/bin; get_pwd#pyvenv/Scripts; get_pwd#g' configure
   popd || return 1
 }
 
