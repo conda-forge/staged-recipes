@@ -1,0 +1,78 @@
+context:
+  version: "0.73.2"
+
+package:
+  name: bindgen-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/rust-lang/rust-bindgen/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5fc3277dd334e4bbbd7bdb8cad5d4fb87a667b2e95a2bae350a8d5424c280629
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      # Without the default `runtime` feature, clang-sys links libclang at
+      # build time instead of searching for it with dlopen when bindgen runs.
+      # The binary then finds libclang through its rpath / Library/bin and
+      # users do not have to set LIBCLANG_PATH.
+      - if: unix
+        then:
+          - export LIBCLANG_PATH=$PREFIX/lib
+          - cd bindgen-cli
+          - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+          - cargo auditable install --locked --no-track --no-default-features --features logging --root ${{ PREFIX }} --path .
+        else:
+          - set LIBCLANG_PATH=%LIBRARY_BIN%
+          - cd bindgen-cli
+          - cargo-bundle-licenses --format yaml --output ..\THIRDPARTY.yml
+          - cargo auditable install --locked --no-track --no-default-features --features logging --root %LIBRARY_PREFIX% --path .
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+  host:
+    - libclang
+
+tests:
+  - script:
+      - bindgen --version
+  # Generate bindings for a small header to check that libclang is found.
+  - script:
+      - if: unix
+        then:
+          - echo "int add(int a, int b);" > test.h
+          - bindgen test.h | grep "pub fn add"
+        else:
+          - echo int add(int a, int b); > test.h
+          - bindgen test.h | findstr "pub fn add"
+  - package_contents:
+      bin:
+        - bindgen
+      strict: true
+
+about:
+  homepage: https://rust-lang.github.io/rust-bindgen/
+  summary: Command line tool that generates Rust FFI bindings to C and C++ libraries
+  description: |
+    bindgen automatically generates Rust FFI bindings to C (and some C++)
+    libraries. This package provides the `bindgen` command line tool; the
+    library of the same name is available on crates.io.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://rust-lang.github.io/rust-bindgen/command-line-usage.html
+  repository: https://github.com/rust-lang/rust-bindgen
+
+extra:
+  recipe-maintainers:
+    - pavelzw
