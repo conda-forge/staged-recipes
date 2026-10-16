@@ -7,8 +7,11 @@ cd pest_source || exit
 chmod a+rwx doc edpestex papestex pestex ppestex
 
 # SpeedTest is a unused function that causes a compilation error.
-sed '/SpeedTest/d' ip.c > ip.c.tmp
-mv ip.c.tmp ip.c
+sed -i '/SpeedTest/d' ip.c
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i 's/-static//g' *.mak
+fi
 
 make cppp
 make -f pest.mak all
