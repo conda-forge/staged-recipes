@@ -1,0 +1,50 @@
+context:
+  version: "1.29.0"
+
+package:
+  name: bazelisk
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bazelbuild/bazelisk/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7e4c7b8ade016052e63c1553cb4fbe0c4fe921e1e66913d49eef074ed894e933
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: go build -v -trimpath -ldflags="-s -w -X github.com/bazelbuild/bazelisk/core.BazeliskVersion=${{ version }}" -o "$PREFIX/bin/bazelisk" .
+      else: go build -v -trimpath -ldflags="-s -w -X github.com/bazelbuild/bazelisk/core.BazeliskVersion=${{ version }}" -o "%LIBRARY_BIN%\bazelisk.exe" .
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - package_contents:
+      bin:
+        - bazelisk
+  - script:
+      - if: unix
+        then: 'bazelisk bazeliskVersion | grep -F "Bazelisk version: ${{ version }}"'
+        else: 'bazelisk bazeliskVersion | findstr /C:"Bazelisk version: ${{ version }}"'
+
+about:
+  homepage: https://github.com/bazelbuild/bazelisk
+  summary: A user-friendly launcher for Bazel
+  description: |
+    Bazelisk automatically downloads and runs the appropriate version of Bazel,
+    using a project's .bazelversion file or the USE_BAZEL_VERSION environment variable.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/bazelbuild/bazelisk
+
+extra:
+  recipe-maintainers:
+    - wolfv
