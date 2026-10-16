@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  name: chopcal
+  version: "0.7.0"
+  chopper_lib_version: "4.3.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: 7b9d838c6ee535279cbc91c19843b7bd6d633138dc0d6cba58812cd14f482ef2
+  - url: https://github.com/mcdotstar/mcstas-chopper-lib/archive/refs/tags/v${{ chopper_lib_version }}.tar.gz
+    sha256: 70d74198f5f4f6d4aefb34a5f3b3cc75e1ed5b6defb937fc60917d567d698709
+    target_directory: chopper-lib
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: >-
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        -Ccmake.define.FETCHCONTENT_SOURCE_DIR_CHOPPER_LIB="$SRC_DIR/chopper-lib"
+        -Ccmake.define.FETCHCONTENT_FULLY_DISCONNECTED=ON
+      else: >-
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        -Ccmake.define.FETCHCONTENT_SOURCE_DIR_CHOPPER_LIB="%SRC_DIR%\chopper-lib"
+        -Ccmake.define.FETCHCONTENT_FULLY_DISCONNECTED=ON
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - nanobind >=1.7.0
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake >=3.26
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.4.3
+    - nanobind >=1.7.0
+    - setuptools-scm >=8
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - chopcal
+        - chopcal.lib
+        - chopcal.nicos
+      pip_check: true
+  - files:
+      source:
+        - test/
+        - docs/
+        - zensical.toml
+    requirements:
+      run:
+        - pytest
+    script:
+      - python -c "import chopcal; assert chopcal.lib.chopper_lib_version == '${{ chopper_lib_version }}'"
+      - pytest test -q
+
+about:
+  homepage: https://github.com/g5t/chopper-calculations
+  documentation: https://g5t.github.io/chopper-calculations/
+  repository: https://github.com/g5t/chopper-calculations
+  summary: Chopper calculations from McStas instruments, in Python
+  description: |
+    chopcal exposes the chopper calculations of McStas' chopper-lib to Python: chopper
+    settings for ESS's BIFROST, the wavelength bands a chopper train passes, the exact
+    region of (inverse velocity, emission time) it transmits as convex polygons, samplers
+    over that region, and the integration of a gridded source over it, weighted by how
+    likely each neutron is to get through a disc whose edge is sweeping the beam.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - chopper-lib/LICENSE
+
+extra:
+  recipe-maintainers:
+    - g5t
