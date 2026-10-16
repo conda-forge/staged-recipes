@@ -8,6 +8,12 @@ context:
   # 2) Run the test suite, skipping tests that are known to be slow,
   #    fail due to known causes, or require external resources
   pytest_script: >-
+    run_openfold --help
+    &&
+    setup_openfold --help
+    &&
+    - validate-openfold3-rocm && exit 1 || true
+    &&
     python -c "import pathlib, stat, torch;
     p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
     p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
@@ -115,28 +121,19 @@ outputs:
            pip_check: true
            python_version:
              - ${{ python_min }}.*
-             # - "*"
-       - script:
-           - run_openfold --help
-           - setup_openfold --help
-           # this will fail unless we are in an AMD ROCm package we are not building at the moment
-           - validate-openfold3-rocm && exit 1 || true
+             - "*"
+       # test suite, run from the source tree against the installed package against min python version
+       - script: ${{ pytest_script }}
+         requirements:
+            run:
+              - python ${{ python_min }}.*
+              - pytorch-cpu
+       # test suite, run from the source tree against the installed package against latest python version
+       - script: ${{ pytest_script }}
          requirements:
            run:
-             - python ${{ python_min }}.*
+             - python *
              - pytorch-cpu
-       # test suite, run from the source tree against the installed package against min python version
-#       - script: ${{ pytest_script }}
-#         requirements:
-#            run:
-#              - python ${{ python_min }}.*
-#              - pytorch-cpu
-      # test suite, run from the source tree against the installed package against latest python version
-#       - script: ${{ pytest_script }}
-#         requirements:
-#           run:
-#             - python *
-#             - pytorch-cpu
 
 
 about:
