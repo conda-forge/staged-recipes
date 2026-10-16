@@ -21,12 +21,12 @@
 #      0005 cli: relax pyproject pins to lower bounds
 #      0007 src/core: Opentelemetry types -> Telemetry.scope / user_data (after 0003)
 #      0008 cli: relax mcp floor to >=1.28.1 (no mcp 1.x >=1.29 on conda-forge)
+#      0009 cli: skip hard/3,hard/4 stack candidates when hard is RLIM_INFINITY (py3.15 -> EAGAIN)
 #  - Platforms: linux-64, osx-64, osx-arm64 (win skipped upstream-style).
 schema_version: 1
 
 context:
   version: "1.180.0"
-  python_min: "3.10"
   findlib_version: "1.9.8"
 
 recipe:
@@ -46,6 +46,7 @@ source:
       - patches/0006-no-vendored-tree-sitter-runtime.patch
       - patches/0007-core-use-telemetry-types.patch
       - patches/0008-relax-mcp-floor.patch
+      - patches/0009-cli-ignore-infinite-stack-hard-limit.patch
   # private build tools (never installed)
   - url: https://github.com/ocaml/ocamlfind/archive/refs/tags/findlib-${{ findlib_version }}.tar.gz
     sha256: d6899935ccabf67f067a9af3f3f88d94e310075d13c648fa03ff498769ce039d
@@ -592,8 +593,10 @@ outputs:
         - gmp
     tests:
       - script:
-          - semgrep-core -version
-        # Core_CLI.ml:589 '-version' prints the version and exits 0
+          - semgrep-core -version | grep -F "${{ version }}"
+          - semgrep-core -version | grep -F a35fe83061
+          - test -z "$(semgrep-core -version | grep -F dirty)"
+        # Core_CLI.ml:593 prints 'semgrep-core version: <ver> (<Git_info.commit>)'; commit pinned via SEMGREP_GIT_COMMIT in build_semgrep_core.sh
 
   - package:
       name: semgrep
@@ -643,6 +646,9 @@ outputs:
           imports:
             - semgrep
           pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
       - script: |
           semgrep --version
           cat > rule.yaml <<'EOF'
@@ -654,8 +660,7 @@ outputs:
               severity: WARNING
           EOF
           printf 'print("hi")\n' > test.py
-          # TODO: --jobs 1 works around semgrep-core Domain.spawn pthread_create EAGAIN seen only with python 3.15 (passes on 3.12); fix properly
-          SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_SEND_METRICS=off SEMGREP_SETTINGS_FILE=$PWD/s.yaml SEMGREP_VERSION_CACHE_PATH=$PWD/vc semgrep scan --jobs 1 --metrics=off --disable-version-check --config rule.yaml test.py --json | grep -q no-print
+          SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_SEND_METRICS=off SEMGREP_SETTINGS_FILE=$PWD/s.yaml SEMGREP_VERSION_CACHE_PATH=$PWD/vc semgrep scan --metrics=off --disable-version-check --config rule.yaml test.py --json | grep -q no-print
 
 about:
   homepage: https://semgrep.dev

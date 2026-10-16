@@ -17,7 +17,7 @@ pushd "${SRC_DIR}/nondune/num"
   # "already installed" (frontend.ml: Filename.concat "" "META.num"), and
   # src/ holds the generated META.num, so move it out of the way first.
   mv src/META.num src/META.num-gen
-  sed -i 's/^\tcp META\.num META$/\tcp META.num-gen META/' src/Makefile
+  perl -pi -e 's/^\tcp META\.num META$/\tcp META.num-gen META/' src/Makefile
   make findlib-install
 popd
 
@@ -54,7 +54,7 @@ cd "${SRC_DIR}/semgrep"
 # add duniverse and mark it vendored (inherited by every duniverse/<pkg>, so
 # warnings in vendored code never fail the build). Not via duniverse/dune: that
 # path is the vendored dune tarball (dune-configurator).
-sed -i 's/^\([[:space:]]*\)cli$/&\n\1duniverse/' dune
+perl -pi -e 's/^([[:space:]]*)cli$/$&\n$1duniverse/' dune
 grep -qx '[[:space:]]*duniverse' dune
 printf '\n(vendored_dirs duniverse)\n' >> dune
 
@@ -70,6 +70,10 @@ rm -rf duniverse/dune/otherlibs/configurator
 # and not @install (in-tree tree-sitter package install needs cargo).
 # TODO(verify): upstream also runs `dune build libs/ocaml-tree-sitter-semgrep/core/tree-sitter-out`
 # first; patch 0004 should make that unnecessary.
+# src/git_info/dune falls back to `git rev-parse HEAD`, which walks up into the
+# enclosing checkout; pin it to the upstream v${PKG_VERSION} tag commit.
+export SEMGREP_GIT_COMMIT=a35fe8306115b3e55274969098cc46f8451d6b4d
+
 dune build --profile=release -j "${CPU_COUNT:-2}" ./_build/install/default/bin/semgrep-core
 
 mkdir -p "${PREFIX}/bin"
