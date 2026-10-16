@@ -1,0 +1,53 @@
+From 1a127ee930072dfaf06c1d6096d0ee3cab2c7429 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Fri, 16 Oct 2026 13:09:09 -0600
+Subject: [PATCH] Link conda-forge GDAL and PROJ in Makevars.ucrt
+
+Makevars.ucrt either hard-codes the RTools static library list or uses
+`pkg-config --libs gdal`. conda-forge's Windows gdal.pc is written for
+MSVC (-LIBPATH:, bare library names, unquoted Windows SDK paths with
+spaces and parentheses), which breaks the MinGW link command. Link the
+GDAL and PROJ import libraries directly instead; R's Makeconf already
+adds the $PREFIX/Library include and library search paths.
+
+Also drop copying the GDAL and PROJ data into the package: conda-forge
+sets GDAL_DATA and PROJ_DATA on environment activation, and vapour only
+overrides them when the copied data is present.
+---
+ src/Makevars.ucrt | 29 ++---------------------------
+ 1 file changed, 2 insertions(+), 27 deletions(-)
+
+diff --git a/src/Makevars.ucrt b/src/Makevars.ucrt
+index eccaac6..ec5f929 100644
+--- a/src/Makevars.ucrt
++++ b/src/Makevars.ucrt
+@@ -1,27 +1,2 @@
+-TARGET = lib$(subst gcc,,$(COMPILED_BY))$(R_ARCH)
+-
+-PKG_CPPFLAGS =\
+-	-I$(RWINLIB)/include \
+-	-I../inst/include \
+-	-DHAVE_PROJ_H
+-
+-ifeq (,$(shell pkg-config --version 2>/dev/null))
+-  LIBSHARPYUV = $(or $(and $(wildcard $(R_TOOLS_SOFT)/lib/libsharpyuv.a),-lsharpyuv),)
+-
+-  PKG_LIBS =  \
+--fopenmp -lgdal -larmadillo -lopenblas -lgfortran -lquadmath -lpq -lpgcommon -lpgport -lodbc32 -lodbccp32 -lblosc -lkea -lhdf5_cpp -lhdf5 -lpoppler -llcms2 -lfreetype -lharfbuzz -lfreetype -llz4 -lpcre2-8 -lxml2 -lopenjp2 -lnetcdf -lmysqlclient -lspatialite -lgeos_c -lgeos -lminizip -lgeos -ljson-c -lgta -lfreexl -lexpat -lssl -lpsapi -lgif -lmfhdf -lhdf5_hl -lcrypto -lportablexdr -ldf -lhdf5 -lsz -lpng16 -lpng -lpoppler -llcms2 -lfreetype -lharfbuzz -lfreetype -llz4 -lpcre2-8 -lpcre -lcurl -lbcrypt -lrtmp -lssl -lssh2 -lidn2 -lunistring -liconv -lgcrypt -lcrypto -lgpg-error -lws2_32 -ltiff -llzma -ljpeg -lz -lcfitsio -lzstd -lwebpdecoder -lwebp $(LIBSHARPYUV) -lsbml-static -lgeotiff -lproj -lsqlite3 -lbz2 -lcrypt32 -lwldap32 -lsecur32
+-else
+-  PKG_LIBS = $(shell pkg-config --libs gdal)
+-endif
+-
+-
+-all: clean winlibs
+-
+-winlibs:
+-	cp -r "$(R_TOOLS_SOFT)/share/gdal" ../inst/
+-	cp -r "$(R_TOOLS_SOFT)/share/proj" ../inst/
+-
+-clean:
+-	rm -f $(SHLIB) $(OBJECTS)
+-
+-.PHONY: all winlibs clean
++PKG_CPPFLAGS = -I../inst/include -DHAVE_PROJ_H
++PKG_LIBS = -lgdal -lproj
