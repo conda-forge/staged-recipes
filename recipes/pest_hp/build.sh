@@ -39,5 +39,5 @@ make -f pest_hp.mak clean
 rm cppp  # Only needed to compile.
 
 mkdir -p "${PREFIX}/bin"
-find . -type f ! -name '*.sh' -executable -exec cp \{\} "${PREFIX}/bin/" \;
+find . -type f ! -name '*.sh' -perm -ugo+x -exec cp \{\} "${PREFIX}/bin/" \;
 
