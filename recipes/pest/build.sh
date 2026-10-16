@@ -2,7 +2,6 @@
 
 tar xvf ./*.tar
 
-mv 'c:\pest_source' pest_source
 chmod a+rwx pest_source
 cd pest_source || exit
 chmod a+rwx doc edpestex papestex pestex ppestex
