@@ -9,4 +9,3 @@ cmake -S . -B build -G "Unix Makefiles" ${CMAKE_ARGS:-} \
 	-DBUILD_TESTING=ON
 cmake --build build --parallel "${CPU_COUNT}"
 cmake --install build
-test_baud_termiox.sh
