@@ -48,6 +48,8 @@ if IS_WIN:
         "a_parent_killed_with_sigkill_leaves_no_service",
         # not sure
         "a_value_is_changed_and_everything_else_is_kept",
+        # 0.10.1: more unix process assumptions
+        "a_child_that_hangs_after_closing_stdout_is_killed",
     ]
 
 PYTEST_K = f"""not ({" or ".join(["not-a-test", *SKIPS])})"""
