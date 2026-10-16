@@ -1,0 +1,94 @@
+schema_version: 1
+
+context:
+  name: skillspector
+  version: "2.12.0"
+  python_min: "3.12"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # not published on PyPI; built from the GitHub release tag
+  url: https://github.com/NVIDIA/SkillSpector/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c8c473512283a0025d74798ee300d96e570645fe2af2754284774352c9738953
+  patches:
+    # upstream pins pywhatwgurl==0.1.1; conda-forge has 0.1.2 (same 0.1 API)
+    - 0001-relax-pywhatwgurl-pin.patch
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - skillspector = skillspector.cli:app
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }},<3.15
+    - typer >=0.23.0,<0.24
+    - rich >=14.3.0
+    - httpx >=0.28.0
+    - pywhatwgurl >=0.1.1,<0.2
+    - regex ==2026.5.9
+    - packaging >=24.0
+    - pyyaml >=6.0.1
+    - pydantic >=2.12.0
+    - openai >=2.25.0
+    - langgraph >=1.0.10
+    - langchain-anthropic >=1.4.5
+    - langchain-aws >=0.2.0
+    - langchain-core >=1.2.17
+    - langchain-openai >=1.1.10
+    - boto3 >=1.34.0
+    - langsmith >=0.7.30
+    - yara-python >=4.5.0
+    # used to resolve remote skill repositories
+    - git
+  run_constraints:
+    # optional `skillspector mcp` server mode (upstream extra `[mcp]`);
+    # install `mcp` alongside once conda-forge has mcp >=1.29,<2
+    - mcp >=1.29.0,<2.0.0
+
+tests:
+  - python:
+      imports:
+        - skillspector
+        - skillspector.cli
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - skillspector --help
+      - python test_scan.py
+    files:
+      recipe:
+        - test_scan.py
+      source:
+        - tests/fixtures/malicious_skill/
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/NVIDIA/SkillSpector
+  repository: https://github.com/NVIDIA/SkillSpector
+  summary: Security scanner for AI agent skills (Claude Code, Codex, MCP)
+  description: |
+    SkillSpector scans AI agent skills and MCP servers for vulnerabilities, malicious
+    patterns, prompt injection, data exfiltration and supply-chain risks before you
+    install them. It runs static pattern and YARA checks, with optional LLM semantic
+    analysis, and reports risk scores as terminal, JSON or Markdown output.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+
+extra:
+  recipe-maintainers:
+    - mediocretech
