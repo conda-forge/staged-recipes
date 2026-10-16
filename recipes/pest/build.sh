@@ -6,11 +6,18 @@ chmod a+rwx pest_source
 cd pest_source || exit
 chmod a+rwx doc edpestex papestex pestex ppestex
 
-# SpeedTest is a unused function that causes a compilation error.
-sed -i '/SpeedTest/d' ip.c
+# Don't use 'sed -i' since it is not portable across all platforms. Create
+# a temporary file and then move it to the original file instead.
 
+# SpeedTest is a unused function that causes a compilation error.
+sed '/SpeedTest/d' ip.c > ip.c.tmp && mv ip.c.tmp ip.c
+
+# OSX does not support static linking, so remove the -static flag from the
+# makefiles.
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i 's/-static//g' *.mak
+    for file in *.mak; do
+        sed 's/-static//g' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+    done
 fi
 
 make cppp
