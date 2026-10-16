@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 
-sed '/SpeedTest/d' ip.C > ip.tmp
-mv ip.tmp ip.C
+# Don't use 'sed -i' because it is not portable across linux and OSX. Instead,
+# use a temporary file and move it back to the original file.
+
+sed '/SpeedTest/d' ip.C > tmpip.C
+mv tmpip.C ip.C
+
+# OSX does not support static linking, so remove the -static flag from the
+# makefiles.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    for f in *.mak; do
+        sed 's/-static//g' "$f" > tmp"$f"
+        mv tmp"$f" "$f"
+    done
+fi
 
 make -f pest_hp.mak cppp
 make -f pest_hp.mak clean
