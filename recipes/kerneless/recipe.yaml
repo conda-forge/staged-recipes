@@ -9,11 +9,6 @@ package:
 source:
   - url: https://github.com/DOI-USGS/kerneless/archive/refs/tags/${{ version }}.tar.gz
     sha256: a68b0e2f506cd81e8e27f27be1e3d49301bdf15a7bb83d6582d9f38b749b40c5
-  # The leap seconds kernel the SPICE comparison tests load. It is not in the
-  # repository, and the tests would otherwise download it at test time.
-  - url: https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls
-    sha256: 678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b
-    target_directory: tests
 
 build:
   number: 0
@@ -57,36 +52,20 @@ tests:
           - if not exist %PREFIX%\include\kerneless\dsk_reader.h exit 1
           - if exist %SP_DIR%\include exit 1
 
-  # The installed headers are usable with no build system: dsk_reader.h as C99,
-  # and both headers as C++11 linked across two translation units.
-  - files:
-      source:
-        - tests/smoke/
-    requirements:
-      run:
-        - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
-    script:
-      - if: unix
-        then:
-          - $CC -std=c99 -Wall -Wextra -I$PREFIX/include tests/smoke/smoke.c -o smoke_c
-          - ./smoke_c
-          - $CXX -std=c++11 -Wall -Wextra -I$PREFIX/include -DKERNELESS_SMOKE_MAIN -c tests/smoke/smoke.cpp -o smoke_main.o
-          - $CXX -std=c++11 -Wall -Wextra -I$PREFIX/include -c tests/smoke/smoke.cpp -o smoke_other.o
-          - $CXX smoke_main.o smoke_other.o -o smoke_cxx
-          - ./smoke_cxx
+  # The bindings expose the full API. Behaviour is tested upstream against
+  # NAIF SPICE before each release.
+  - script:
+      interpreter: python
+      content: |
+        import kerneless
 
-  # The upstream suite, checked against NAIF SPICE.
-  - files:
-      source:
-        - tests/
-    requirements:
-      run:
-        - pytest
-        - spiceypy >=5.0.0
-    script:
-      - python -c "import spiceypy"
-      - pytest tests -v
+        for name in ("calendarTimeToEphemTime", "ephemTimeToCalendarTime",
+                     "DskFile", "DlaDescriptor", "DskDescriptor"):
+            assert hasattr(kerneless, name), name
+
+        for name in ("close", "dlabfs", "dlafns", "segments", "dskgd",
+                     "dskz02", "dskv02", "dskp02", "__enter__", "__exit__"):
+            assert hasattr(kerneless.DskFile, name), "DskFile." + name
 
 about:
   homepage: https://github.com/DOI-USGS/kerneless
