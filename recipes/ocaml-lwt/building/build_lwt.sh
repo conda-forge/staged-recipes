@@ -9,6 +9,13 @@ export DUNE_CACHE=disabled
 pkg="$1"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Host libs (dune-configurator) live in the host prefix; win activation only lists BUILD_PREFIX.
+if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
+  export OCAMLPATH="${PREFIX}/Library/lib/ocaml${OCAMLPATH:+;${OCAMLPATH}}"
+else
+  export OCAMLPATH="${PREFIX}/lib/ocaml${OCAMLPATH:+:${OCAMLPATH}}"
+fi
+
 if [[ "${pkg}" == "lwt" ]]; then
   dune exec -p lwt src/unix/config/discover.exe -- --save --use-libev false
 fi
