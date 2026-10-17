@@ -10,44 +10,55 @@
 
 setlocal enableextensions enabledelayedexpansion
 
-call :start_group "Provisioning build tools"
+FOR %%A IN ("%~dp0.") DO SET "REPO_ROOT=%%~dpA"
+if "%REPO_ROOT:~-1%"=="\" set "REPO_ROOT=%REPO_ROOT:~0,-1%"
+
+call :start_group "Provisioning build tools with pixi"
 if "%MINIFORGE_HOME%"=="" set "MINIFORGE_HOME=%USERPROFILE%\Miniforge3"
 :: Remove trailing backslash, if present
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
+:: Keep the package cache on the same drive as the env
+set "PIXI_CACHE_DIR=%MINIFORGE_HOME%"
 
-if exist "%MINIFORGE_HOME%\conda-meta\history" (
-    echo Build tools already installed at %MINIFORGE_HOME%.
-) else (
-    where micromamba.exe >nul 2>nul
-    if !errorlevel! == 0 (
-        set "MICROMAMBA_EXE=micromamba.exe"
-        echo "Found micromamba in PATH"
-    ) else (
-        set "MAMBA_ROOT_PREFIX=!MINIFORGE_HOME!-micromamba-!RANDOM!"
-        set "MICROMAMBA_VERSION=1.5.10-0"
-        set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/!MICROMAMBA_VERSION!/micromamba-win-64"
-        set "MICROMAMBA_TMPDIR=!TMP!\micromamba-!RANDOM!"
-        set "MICROMAMBA_EXE=!MICROMAMBA_TMPDIR!\micromamba.exe"
+set "arch=%PROCESSOR_ARCHITECTURE%"
+if /i "%arch%"=="AMD64" set "arch=64"
+if /i "%arch%"=="ARM64" set "arch=arm64"
 
-        echo Downloading micromamba !MICROMAMBA_VERSION!
-        echo if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
-        echo certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
-        if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
-        certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
-        if !errorlevel! neq 0 exit /b !errorlevel!
-    )
-    echo Creating environment
-    call "!MICROMAMBA_EXE!" create --yes --root-prefix "!MAMBA_ROOT_PREFIX!" --prefix "!MINIFORGE_HOME!" ^
-        --channel conda-forge ^
-        --file environment.yaml
+where pixi.exe >nul 2>nul
+if !errorlevel! neq 0 (
+    echo Installing pixi
+    powershell -NoProfile -ExecutionPolicy unrestricted -Command "$Env:PIXI_VERSION='v0.82.0'; iwr -useb https://pixi.sh/install.ps1 | iex"
     if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Moving pkgs cache from !MAMBA_ROOT_PREFIX! to !MINIFORGE_HOME!
-    move /Y "!MAMBA_ROOT_PREFIX!\pkgs" "!MINIFORGE_HOME!" >nul
-    if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Removing !MAMBA_ROOT_PREFIX!
-    del /S /Q "!MAMBA_ROOT_PREFIX!" >nul
-    del /S /Q "!MICROMAMBA_TMPDIR!" >nul
+    set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
 )
+
+:: Install from a copy of the workspace restricted to the target platform,
+:: so that only the `build` env for this platform gets solved.
+if not exist "%MINIFORGE_HOME%" mkdir "%MINIFORGE_HOME%"
+copy /Y "%REPO_ROOT%\pixi.toml" "%MINIFORGE_HOME%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+copy /Y "%REPO_ROOT%\LICENSE.txt" "%MINIFORGE_HOME%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+powershell -NoProfile -Command "$f='%MINIFORGE_HOME%\pixi.toml'; (Get-Content $f) -replace '^platforms = .*', 'platforms = [\"win-%arch%\"]' | Set-Content $f"
+if !errorlevel! neq 0 exit /b !errorlevel!
+pushd "%MINIFORGE_HOME%"
+:: Git on Windows needs to run post link scripts to properly set up SSL certificates
+pixi config set --local run-post-link-scripts insecure
+if !errorlevel! neq 0 exit /b !errorlevel!
+echo Creating environment
+pixi install --environment build
+if !errorlevel! neq 0 exit /b !errorlevel!
+pixi list --environment build
+if !errorlevel! neq 0 exit /b !errorlevel!
+echo Activating environment
+set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
+pixi shell-hook --shell cmd --environment build > "%ACTIVATE_PIXI%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+call "%ACTIVATE_PIXI%"
+if !errorlevel! neq 0 exit /b !errorlevel!
+del "%ACTIVATE_PIXI%"
+popd
+
 call :end_group
 
 call :start_group "Configuring conda"
@@ -55,10 +66,6 @@ call :start_group "Configuring conda"
 if "%CONDA_BLD_PATH%" == "" (
     set "CONDA_BLD_PATH=C:\bld"
 )
-
-:: Activate the base conda environment
-echo Activating "%MINIFORGE_HOME%"
-call "%MINIFORGE_HOME%\Scripts\activate"
 
 :: Set basic configuration
 echo Setting up configuration
