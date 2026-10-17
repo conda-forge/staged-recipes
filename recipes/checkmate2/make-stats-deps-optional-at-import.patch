@@ -1,0 +1,277 @@
+From a11db6996143865f36ca6f1fe71d51f9a82c852d Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 4 Aug 2026 20:29:49 -0600
+Subject: [PATCH 1/3] fix: Route '--help' to the argument parser
+
+* Only the literal '-h' was special-cased when CheckMATE was invoked
+with a single argument, so 'CheckMATE --help' was treated as an input
+file and exited with "Parameter file '--help' does not exist." instead
+of printing the argparse help. Accept '--help' as well; both forms now
+print the help text and exit 0.
+---
+ tools/python/checkmate_core.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/python/checkmate_core.py b/tools/python/checkmate_core.py
+index 1e1cea5..b5fbb35 100644
+--- a/tools/python/checkmate_core.py
++++ b/tools/python/checkmate_core.py
+@@ -34,7 +34,7 @@ class CheckMATE2(object):
+         if len(sys.argv) == 1:
+             self.printUsage()
+         self.printLogo()
+-        if len(sys.argv) == 2 and sys.argv[-1] != "-h":
++        if len(sys.argv) == 2 and sys.argv[-1] not in ("-h", "--help"):
+             Info.fill_info_from_file(sys.argv[1])            
+             self.procList = Info.fill_processes_from_file(sys.argv[1])
+             print(self.procList)
+-- 
+2.55.0
+
+
+From 050e2366a6e20d86c4e3eab2e2a95f4ca0ce384f Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 4 Aug 2026 20:29:27 -0600
+Subject: [PATCH 2/3] fix: Make statistics dependencies optional at import time
+
+* bin/CheckMATE imports checkmate_core at top level, which until now
+unconditionally imported the five multi-bin/likelihood statistics
+modules and thereby required pyhf, matplotlib, jsonpatch, spey,
+spey-pyhf, jax, and ROOT (with ROOT.Experimental.XRooFit, i.e.
+ROOT >= 6.32.14) for every invocation -- including 'CheckMATE --help'
+
+These modules are only used in CheckMATE2.stateval(), which is reached
+only when multibin fits are requested (-mb select|scan|detailed):
+
+- checkmate_core.py: import multibin_limit, multibin_limit_full,
+  workspace_calc, spey_wrapper, and hs3_wrapper through a guarded
+  _import_optional() helper that records the ImportError and binds the
+  name to None instead of failing at startup. Each module is guarded
+  individually so that e.g. a missing bleeding-edge ROOT (hs3_wrapper)
+  does not disable the pyhf/spey paths. The now redundant Python 3
+  version gate around the imports is dropped.
+- stateval(): every call into the five modules is preceded by a
+  _require_stats() check that aborts via AdvPrint.cerr_exit() with the
+  module name, the original ImportError, and an installation hint
+  (pyhf / pyhf and jsonpatch / spey and spey-pyhf / ROOT >= 6.32.14
+  with XRooFit) when the requested feature is unavailable.
+- multibin_limit.py, multibin_limit_full.py: drop the unused
+  'import matplotlib.pyplot' (both files) and 'import scipy'
+  (multibin_limit.py). matplotlib no longer appears anywhere in the
+  dependency surface, so it can be dropped entirely.
+
+A plain CheckMATE run (and AnalysisManager) now only need numpy and
+scipy. pyhf, jsonpatch, spey, spey-pyhf, jax, and ROOT/XRooFit are needed
+at runtime only when multibin fits are actually requested.
+
+Assisted-by: ClaudeCode:claude-fable-5
+---
+ tools/python/checkmate_core.py      | 39 ++++++++++++++++++++++++-----
+ tools/python/multibin_limit.py      |  2 --
+ tools/python/multibin_limit_full.py |  1 -
+ 3 files changed, 33 insertions(+), 9 deletions(-)
+
+diff --git a/tools/python/checkmate_core.py b/tools/python/checkmate_core.py
+index b5fbb35..2df5fdd 100644
+--- a/tools/python/checkmate_core.py
++++ b/tools/python/checkmate_core.py
+@@ -2,6 +2,7 @@
+ import sys,os
+ from math import sqrt
+ from copy import deepcopy
++import importlib
+ import json, pickle
+ import os
+ import shutil
+@@ -13,12 +14,32 @@ from process import Process
+ from detectorsettings import DetectorSettings
+ from evaluator import Evaluator, find_strongest_evaluators, find_strongest_zsig
+ from resultcollector import ResultCollector
+-if sys.version_info[0] == 3:
+-    import multibin_limit as mb
+-    import multibin_limit_full as mbfull
+-    import workspace_calc as wscalc
+-    import spey_wrapper
+-    import hs3_wrapper as hs3
++
++# Optional dependencies for multi-bin signal regions and likelihood combination
++# (-mb select|scan|detailed). Guarded so plain runs and `CheckMATE --help` work
++# without pyhf/spey/ROOT installed; stateval() aborts with an installation hint
++# if a requested feature needs a module that failed to import.
++_stats_import_errors = {}
++
++def _import_optional(name):
++    try:
++        return importlib.import_module(name)
++    except ImportError as exc:
++        _stats_import_errors[name] = str(exc)
++        return None
++
++mb = _import_optional("multibin_limit")
++mbfull = _import_optional("multibin_limit_full")
++wscalc = _import_optional("workspace_calc")
++spey_wrapper = _import_optional("spey_wrapper")
++hs3 = _import_optional("hs3_wrapper")
++
++def _require_stats(module, name, hint):
++    if module is None:
++        AdvPrint.cerr_exit(
++            "This run requires the statistics module '" + name + "', which could not be imported:\n"
++            "  " + _stats_import_errors.get(name, "unknown import error") + "\n"
++            "Please install the optional dependencies: " + hint)
+ 
+ class CheckMATE2(object):
+     """ This is the main object whose instance corresponds to a full CheckMATE run """
+@@ -379,23 +400,28 @@ class CheckMATE2(object):
+ 
+                         sr_list = mb_signal_regions[mbsr]
+                         AdvPrint.cout("Calculating simplified likelihood model for analysis: "+analysis+", SR: "+mbsr+"... ")
++                        _require_stats(mb, "multibin_limit", "pyhf")
+                         inv_r_obs, inv_r_exp, cls_obs, cls_exp = mb.calc_point(Info.paths['output'] , sr_list, analysis, mbsr)
+                         AdvPrint.cout("Done!")
+                     if Info.parameters["statmod"] == "full" and Info.get_analysis_parameters(analysis)["likelihoods"] == "y":
+                         AdvPrint.cout("Calculating full likelihood model for analysis: "+analysis+", SR: "+mbsr+"... ")
++                        _require_stats(spey_wrapper, "spey_wrapper", "spey and spey-pyhf")
+                         inv_r_obs, inv_r_exp, cls_obs, cls_exp = spey_wrapper.calc_point(Info.paths['output'] , analysis, mbsr)
+                         AdvPrint.cout("Done!")
+                     if Info.get_analysis_parameters(analysis)["likelihoods"] == "hs3":   # analysis == "atlas_2411_02040":
+                         AdvPrint.cout("Calculating full likelihood model for analysis: "+analysis+", SR: "+mbsr+"... ")
++                        _require_stats(hs3, "hs3_wrapper", "ROOT >= 6.32.14 with XRooFit Python bindings")
+                         inv_r_obs, inv_r_exp, cls_obs, cls_exp = hs3.calc_workspace(Info.paths['output'] , analysis, mbsr)
+                         AdvPrint.cout("Done!")        
+                     if Info.parameters["statmod"] == "fullpyhf" and Info.get_analysis_parameters(analysis)["likelihoods"] == "y":
+                         AdvPrint.cout("Calculating full likelihood model for analysis: "+analysis+", SR: "+mbsr+"... ")
++                        _require_stats(mbfull, "multibin_limit_full", "pyhf and jsonpatch")
+                         inv_r_obs, inv_r_exp, cls_obs, cls_exp = mbfull.calc_point(Info.paths['output'] , analysis, mbsr)
+                         AdvPrint.cout("Done!")
+                     if (Info.parameters["statmod"] == "full" or Info.parameters["statmod"] == "fullpyhf" or Info.parameters["statmod"] == "simple") and Info.get_analysis_parameters(analysis)["likelihoods"] == "cov":
+                         sr_list = mb_signal_regions[mbsr]
+                         AdvPrint.cout("Calculating approximate likelihood with covariance matrix: "+analysis+", SR: "+mbsr+"... ")
++                        _require_stats(spey_wrapper, "spey_wrapper", "spey and spey-pyhf")
+                         inv_r_obs, inv_r_exp, cls_obs, cls_exp, stat_model = spey_wrapper.calc_cov(Info.paths['output'] , analysis, mbsr)
+                         if combine and [analysis, mbsr] in combination_in:
+                             combination_models.append(stat_model)
+@@ -439,6 +465,7 @@ class CheckMATE2(object):
+             AdvPrint.cout("Results of approximate/fast likelihood to weak to exclude model or no multibin analysis available")       
+             
+         if combine and combination_list:
++            _require_stats(spey_wrapper, "spey_wrapper", "spey and spey-pyhf")
+             spey_wrapper.combination_stat(combination_models, combination_list)
+         elif combine:
+             AdvPrint.cout("Something wrong with the signal region combination list. Skipping.")
+diff --git a/tools/python/multibin_limit.py b/tools/python/multibin_limit.py
+index 2ac9ffd..9a0e4b5 100644
+--- a/tools/python/multibin_limit.py
++++ b/tools/python/multibin_limit.py
+@@ -1,10 +1,8 @@
+ import json
+ import numpy as np
+ import pyhf
+-import matplotlib.pyplot as plt
+ import os
+ import sys
+-import scipy
+ from info import Info
+ from advprint import AdvPrint
+ 
+diff --git a/tools/python/multibin_limit_full.py b/tools/python/multibin_limit_full.py
+index 34688f0..d0d2b53 100644
+--- a/tools/python/multibin_limit_full.py
++++ b/tools/python/multibin_limit_full.py
+@@ -1,7 +1,6 @@
+ import json
+ import numpy as np
+ import pyhf, jsonpatch
+-import matplotlib.pyplot as plt
+ import os
+ import sys, subprocess
+ from info import Info
+-- 
+2.55.0
+
+
+From 2c68336e30d21acfc6fd484e30d52552660ffadf Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 4 Aug 2026 20:29:50 -0600
+Subject: [PATCH 3/3] docs: Document per-feature optional statistics
+ dependencies
+
+* In the requirements sections of README.md and Installation_TLDR.txt,
+  list numpy and scipy as required for the statistical evaluation and
+  spell out which optional packages each multibin mode needs:
+  pyhf (and jsonpatch) for '-mod simple'/'-mod fullpyhf', spey and
+  spey-pyhf for '-mod full', and ROOT >= 6.32.14 with XRooFit for
+  analyses with hs3 likelihoods. Note that a plain CheckMATE run works
+  without any of them.
+
+Assisted-by: ClaudeCode:claude-fable-5
+---
+ Installation_TLDR.txt | 16 +++++++++++-----
+ README.md             | 16 +++++++++++-----
+ 2 files changed, 22 insertions(+), 10 deletions(-)
+
+diff --git a/Installation_TLDR.txt b/Installation_TLDR.txt
+index 27d8d1c..e7209d5 100644
+--- a/Installation_TLDR.txt
++++ b/Installation_TLDR.txt
+@@ -11,13 +11,19 @@ This is a brief note on how to install CheckMATE from the master branch on https
+   c) HEPMC2
+      https://gitlab.cern.ch:8443/hepmc/HepMC/-/tags
+   
++  d) Python packages numpy and scipy (used by the statistical evaluation)
++
+   optional:
+-  d) Pythia; we currently only support 8.2 series
+-  e) MadGraph5_aMC@NLO; versions >=2.7 should work just fine; 
++  e) Pythia; we currently only support 8.2 series
++  f) MadGraph5_aMC@NLO; versions >=2.7 should work just fine;
+      with 3-series there are some hiccups but you should get the result anyway; follow the messages on screen 
+-  f) ONNX Runtime; see: https://onnxruntime.ai/; tested with versions 1.12.1, 1.13.1, 1.22.0 (linux-x64)
+-  g) Spey (0.2 or later), pyhf and spey-pyhf plugin for multibin fits; see https://speysidehep.github.io/spey/quick_start.html#; jax or pytorch or tensorflow are recommended;
+-     pip install spey
++  g) ONNX Runtime; see: https://onnxruntime.ai/; tested with versions 1.12.1, 1.13.1, 1.22.0 (linux-x64)
++  h) statistics packages for multibin fits and likelihood combination; only needed when multibin
++     fits are requested (-mb select/scan/detailed), a plain CheckMATE run works without them:
++     - '-mod simple' or '-mod fullpyhf' fits need pyhf (and jsonpatch)
++     - '-mod full' fits need spey (0.2 or later) and spey-pyhf ('pip install spey spey-pyhf'); jax or pytorch or tensorflow are recommended
++     - analyses with hs3 likelihoods need ROOT >= 6.32.14 with XRooFit Python bindings
++     see https://speysidehep.github.io/spey/quick_start.html
+      
+      
+ 2) Installation
+diff --git a/README.md b/README.md
+index 3755144..3bdbbf0 100644
+--- a/README.md
++++ b/README.md
+@@ -26,17 +26,23 @@ This is a brief note on how to install CheckMATE from the master branch on https
+   c) HEPMC2
+      https://gitlab.cern.ch:8443/hepmc/HepMC/-/tags
+   
++  d) Python packages numpy and scipy (used by the statistical evaluation)
++
+   optional:
+   
+-  d) Pythia; we currently only support 8.2 series
++  e) Pythia; we currently only support 8.2 series
+   
+-  e) MadGraph5_aMC@NLO; versions >=2.7 should work just fine; 
++  f) MadGraph5_aMC@NLO; versions >=2.7 should work just fine;
+      with 3 series there are some hiccups but you should get the result anyway; follow the messages on screen 
+      
+-  f) ONNX Runtime; see: https://onnxruntime.ai/; tested with versions 1.12.1, 1.13.1, 1.23.0 (linux-x64)  
++  g) ONNX Runtime; see: https://onnxruntime.ai/; tested with versions 1.12.1, 1.13.1, 1.23.0 (linux-x64)
+   
+-  g) Spey, pyhf and spey-pyhf plugin for multibin fits; see https://speysidehep.github.io/spey/quick_start.html#; jax or pytorch or tensorflow are recommended;
+-     pip install spey   
++  h) statistics packages for multibin fits and likelihood combination; only needed when multibin
++     fits are requested (-mb select/scan/detailed), a plain CheckMATE run works without them:
++     - '-mod simple' or '-mod fullpyhf' fits need pyhf (and jsonpatch)
++     - '-mod full' fits need spey and spey-pyhf ('pip install spey spey-pyhf'); jax or pytorch or tensorflow are recommended
++     - analyses with hs3 likelihoods need ROOT >= 6.32.14 with XRooFit Python bindings
++     see https://speysidehep.github.io/spey/quick_start.html
+      
+      
+ 2) Installation
+-- 
+2.55.0
+
