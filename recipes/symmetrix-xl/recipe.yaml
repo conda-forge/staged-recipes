@@ -1,0 +1,186 @@
+schema_version: 1
+
+context:
+  version: "0.1.1"
+
+recipe:
+  name: symmetrix-xl-split
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/bonan-group/symmetrix-xl/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 6d5f931d02f69043a48d2c805a97cf546713f04c488ff54135cca60286725446
+    patches:
+      - native-backend-kind.patch
+      - system-dependencies.patch
+      - pybind11-license.patch
+  - url: https://github.com/wcwitt/cblas-prototypes/archive/ce809f5e09a08f6c68bc9645341b037cb8704e01.tar.gz
+    sha256: 80edbd4961379bcab05bd58a10462069da9a1059a50a4bf9df3ed7920b415e49
+    target_directory: libsymmetrix/external/cblas-prototypes
+  - url: https://github.com/kokkos/kokkos/archive/dfceb77277e23361cccfbcf72c0468fd8475153e.tar.gz
+    sha256: 26573d58ac9c9ab57a9557c4e87c4ff827ee00afa77333d5963dce51fd41f74c
+    target_directory: libsymmetrix/external/kokkos
+  - url: https://github.com/kokkos/kokkos-kernels/archive/722619104a9c99da0d497e65d8dfdff07e25145a.tar.gz
+    sha256: d551535fa0f0ac42c3c2c7d91e32ab39d607145946857cebfc74911a5ae9d3e5
+    target_directory: libsymmetrix/external/kokkos-kernels
+    patches:
+      - kokkoskernels-conda-cuda-prefix.patch
+  - url: https://github.com/lab-cosmo/sphericart/archive/1866da4162f14491c44a299dd9991a0816f15e62.tar.gz
+    sha256: 20a69e2c02a8f87979693ef1b4e9cedd235cd8665cde1465291e4f2f4664f63e
+    target_directory: libsymmetrix/external/sphericart
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - cuda_compiler_version == "13.0"
+
+outputs:
+  - package:
+      name: symmetrix-xl
+    build:
+      script:
+        file: build.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11 2.13.*
+        - nlohmann_json 3.12.*
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+        - libgomp
+      run:
+        - python >=3.10
+        - numpy
+        - scipy
+        - ase
+        - libopenblas
+        - libgomp
+    tests:
+      - script: run_test.sh
+        requirements:
+          run:
+            - pip
+
+  - package:
+      name: symmetrix-xl-cuda12-sm80
+    build:
+      skip:
+        - cuda_compiler_version != "12.9"
+      string: cuda12_sm80_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+      script:
+        file: build-cuda12-sm80.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11 >=3,<4
+        - nlohmann_json 3.12.*
+        - cuda-version ==12.9
+        - cuda-cudart-dev >=12,<13
+        - cuda-nvrtc-dev >=12,<13
+        - cuda-driver-dev >=12,<13
+        - libcublas-dev >=12,<13
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+      run:
+        - ${{ pin_subpackage('symmetrix-xl', exact=True) }}
+        - cuda-version >=12,<13
+        - cuda-cudart >=12,<13
+        - cuda-nvrtc >=12,<13
+        - libcublas >=12,<13
+        - libopenblas >=0.3,<0.4
+    tests:
+      - script: run_test_cuda.sh
+        requirements:
+          run:
+            - cuda-driver-dev >=12,<13
+            - pip
+
+  - package:
+      name: symmetrix-xl-cuda12-sm120
+    build:
+      skip:
+        - cuda_compiler_version != "12.9"
+      string: cuda12_sm120_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+      script:
+        file: build-cuda12-sm120.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11 >=3,<4
+        - nlohmann_json 3.12.*
+        - cuda-version ==12.9
+        - cuda-cudart-dev >=12,<13
+        - cuda-nvrtc-dev >=12,<13
+        - cuda-driver-dev >=12,<13
+        - libcublas-dev >=12,<13
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+      run:
+        - ${{ pin_subpackage('symmetrix-xl', exact=True) }}
+        - cuda-version >=12,<13
+        - cuda-cudart >=12,<13
+        - cuda-nvrtc >=12,<13
+        - libcublas >=12,<13
+        - libopenblas >=0.3,<0.4
+    tests:
+      - script: run_test_cuda.sh
+        requirements:
+          run:
+            - cuda-driver-dev >=12,<13
+            - pip
+
+about:
+  homepage: https://github.com/bonan-group/symmetrix-xl
+  repository: https://github.com/bonan-group/symmetrix-xl
+  documentation: https://bonan-group.github.io/symmetrix-xl/
+  license: MIT AND BSD-3-Clause AND (Apache-2.0 WITH LLVM-exception)
+  license_file:
+    - symmetrix/LICENSE
+    - THIRD_PARTY_LICENSES.md
+    - LICENSE.pybind11
+    - libsymmetrix/external/kokkos/LICENSE
+    - libsymmetrix/external/kokkos-kernels/LICENSE
+    - libsymmetrix/external/sphericart/LICENSE.md
+  summary: High-performance backend for MACE interatomic potential inference
+  description: |
+    Symmetrix-XL is a high-performance backend for inference with MACE
+    machine-learning interatomic potentials. It provides CPU and accelerator
+    implementations of symmetry-adapted tensor operations and MACE model
+    evaluation. The base output contains the portable Linux CPU frontend;
+    target-qualified accelerator backends are co-installable plugin outputs.
+
+extra:
+  feedstock-name: symmetrix-xl
+  recipe-maintainers:
+    - zhubonan
