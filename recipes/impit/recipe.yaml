@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.13.0"
+
+package:
+  name: impit
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/i/impit/impit-${{ version }}.tar.gz
+  sha256: ec5ff2932c6ccdd3004b0f5e0d0d9bce5c8a6f48df4f226e5ee172bc79952df8
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      PYTHONUTF8: "1"
+    content:
+      - if: unix
+        then: |
+          export CARGO_BUILD_RUSTFLAGS="${CARGO_BUILD_RUSTFLAGS:-} --cfg reqwest_unstable"
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        else: |
+          set "CARGO_BUILD_RUSTFLAGS=%CARGO_BUILD_RUSTFLAGS% --cfg reqwest_unstable"
+          cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+          %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - crossenv
+        - maturin >=1,<2
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1,<2
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - impit
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://pypi.org/project/impit/
+  license: Apache-2.0
+  license_file:
+    - LICENSE.md
+    - THIRDPARTY.yml
+  summary: A library for making HTTP requests through browser impersonation
+  repository: https://github.com/apify/impit
+  documentation: https://apify.github.io/impit/python
+  description: |
+    impit is a Python package that provides bindings for the Rust impit
+    library. It allows you to switch the TLS fingerprints and the HTTP
+    headers of your requests (browser impersonation), while still using
+    the same API as httpx or requests.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
