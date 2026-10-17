@@ -1,0 +1,34 @@
+From: art-suite conda packaging
+Subject: [PATCH] Use boost::system::error_code instead of removed boost::json::error_code
+
+art was developed against boost 1.82, where boost::json::error_code was a public
+alias for boost::system::error_code. conda-forge's current boost (1.91) removed
+that alias from Boost.JSON, so the two JSON-syntax checks fail to compile with
+"'error_code' is not a member of 'boost::json'". boost::json::parser::write_some
+takes a boost::system::error_code& anyway, so use that type directly.
+
+(boost::system::error_code is already declared via the Boost.JSON headers, so no
+extra include is needed.)
+
+--- a/art/Framework/Services/System/FileCatalogMetadata.cc
++++ b/art/Framework/Services/System/FileCatalogMetadata.cc
+@@ -80,7 +80,7 @@ namespace art {
+     if (checkSyntax_) {
+       string checkString("{ ");
+       checkString += cet::canonical_string(key) + " : " + value + " }";
+-      boost::json::error_code ec;
++      boost::system::error_code ec;
+       boost::json::parser p;
+       auto const n_parsed_chars = p.write_some(checkString, ec);
+       if (ec) {
+--- a/art/Framework/Core/OutputModule.cc
++++ b/art/Framework/Core/OutputModule.cc
+@@ -545,7 +545,7 @@ namespace art {
+             string checkString("{ ");
+             checkString +=
+               cet::canonical_string(entry.first) + " : " + entry.second + " }";
+-            boost::json::error_code ec;
++            boost::system::error_code ec;
+             boost::json::parser p;
+             auto const n_parsed_chars = p.write_some(checkString, ec);
+             if (ec) {
