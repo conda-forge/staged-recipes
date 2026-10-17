@@ -1,0 +1,191 @@
+schema_version: 1
+
+context:
+  name: bgen-limix
+  version: "4.11.0"
+  # Distinct package names because this is a diverged fork of limix/bgen
+  # (adds S3 streaming support, nanobind split-mode bindings, etc.) and would
+  # otherwise collide with the existing conda-forge "bgen" package.
+  clib_name: libbgen-limix
+  py_name: bgen-limix
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/jpfeuffer/bgen-limix/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 3fe20a0e1101765e7c4b38cdf726a7c67857823f3094550169ce01bef69e1654
+
+build:
+  number: 0
+
+outputs:
+  # ---------------------------------------------------------------------
+  # C library (src/, include/bgen) — installs headers, shared libs and the
+  # bgen-config.cmake package so downstream `find_package(bgen)` works.
+  # ---------------------------------------------------------------------
+  - package:
+      name: ${{ clib_name }}
+      version: ${{ version }}
+    build:
+      script:
+        # Windows conda packages live under %PREFIX%\Library, not %PREFIX%.
+        - if: win
+          then:
+            - cmake -GNinja -B build
+              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
+              -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+              -DBUILD_SHARED_LIBS=ON
+              -DBGEN_BUILD_TESTS=OFF
+              -DBGEN_USE_SYSTEM_ZLIB_NG=ON
+              -DBGEN_USE_SYSTEM_ZSTD=ON
+              -DBGEN_USE_SYSTEM_CURL=ON
+              -DBGEN_ENABLE_S3=ON
+          else:
+            - cmake -GNinja -B build
+              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_INSTALL_PREFIX=$PREFIX
+              -DCMAKE_PREFIX_PATH=$PREFIX
+              -DBUILD_SHARED_LIBS=ON
+              -DBGEN_BUILD_TESTS=OFF
+              -DBGEN_USE_SYSTEM_ZLIB_NG=ON
+              -DBGEN_USE_SYSTEM_ZSTD=ON
+              -DBGEN_USE_SYSTEM_CURL=ON
+              -DBGEN_ENABLE_S3=ON
+        - cmake --build build --parallel
+        - cmake --install build
+      dynamic_linking:
+        overlinking_behavior: error
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - zlib-ng
+        - zstd
+        - libcurl
+        - openssl
+      # Not all of these declare their own run_exports, so linking against
+      # libbgen.so wouldn't otherwise pull them in at runtime -> declared
+      # explicitly to satisfy the overlinking check.
+      run:
+        - zlib-ng
+        - zstd
+        - libcurl
+        - openssl
+      run_exports:
+        - ${{ pin_subpackage(clib_name, upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then:
+              - test -f $PREFIX/lib/cmake/bgen/bgen-config.cmake
+              - test -f $PREFIX/include/bgen/bgen.h
+      - package_contents:
+          include:
+            - bgen/bgen.h
+          lib:
+            - bgen
+            - bgen_s3
+
+  # ---------------------------------------------------------------------
+  # Python bindings (python/, imports as `cbgen`). Built via scikit-build-core
+  # against the ${{ clib_name }} output above (find_package(bgen) picks it up).
+  # BGEN_NANOBIND_BACKEND=private compiles nanobind's (and, transitively,
+  # vendored robin-map's) source into our own binary instead of depending on
+  # the external nanobind-backend package, which is not on conda-forge.
+  #
+  # The extension itself builds against CPython's stable ABI (nanobind_add_module
+  # ... STABLE_ABI in python/CMakeLists.txt), but the private backend shim that
+  # STABLE_ABI mode requires (BACKEND_MODULE) is NOT itself limited-API -- it's
+  # compiled per CPython version. So this cannot be a build-once-run-anywhere
+  # (is_abi3/python-abi3) package on conda-forge: verified by testing the abi3
+  # variant against a second Python version, which failed with "nanobind backend
+  # module 'cbgen._bgen_nb_backend' is not installed". One build per Python
+  # version, same as any other extension module.
+  # ---------------------------------------------------------------------
+  - package:
+      name: ${{ py_name }}
+      version: ${{ version }}
+    build:
+      python:
+        entry_points: []
+      script:
+        # Set via env (not `export`) so it also applies under cmd.exe on
+        # Windows; scripts/dynamic_metadata.py reads it to omit the
+        # nanobind-backend dependency from the wheel metadata.
+        env:
+          BGEN_NANOBIND_BACKEND: private
+        content:
+          # nanobind's own dist-info always ships the exact LICENSE matching
+          # whatever version got solved for the `nanobind` host dependency
+          # below, so copying it here (rather than fetching a separately
+          # pinned copy) can never drift out of sync as nanobind is upgraded.
+          # Done in Python rather than mkdir/cp, which aren't portable to cmd.
+          - python -c "import nanobind,pathlib,shutil,os;p=pathlib.Path(nanobind.__file__).parent.parent;os.makedirs('third_party_licenses',exist_ok=True);shutil.copyfile(p/('nanobind-'+nanobind.__version__+'.dist-info')/'licenses'/'LICENSE','third_party_licenses/NANOBIND-LICENSE')"
+          # Force Ninja explicitly: scikit-build-core's generator autodetection
+          # falls back to "Unix Makefiles" if it can't find ninja on PATH, and
+          # that image has no `make` either, so CMake fails outright.
+          - python -m pip install . -vv --no-build-isolation --no-deps --config-settings=cmake.define.BGEN_NANOBIND_BACKEND=private --config-settings=cmake.args=-GNinja
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - nanobind >=2.4
+        - numpy
+        - ${{ pin_subpackage(clib_name, exact=True) }}
+      run:
+        - python
+        - numpy >=2.0
+        - pooch >=1.6
+    tests:
+      - python:
+          imports:
+            - cbgen
+          pip_check: true
+      - requirements:
+          run:
+            - pytest >=7
+        script:
+          # --pyargs cbgen looks for tests bundled inside the installed
+          # cbgen package (there are none); the actual tests are copied in
+          # via files.source below, at this relative path. These tests fetch
+          # fixture files over the network via pooch (cbgen.example.get); if
+          # that proves unreliable in CI, switch back to just the import test.
+          - pytest python/tests -v --import-mode=importlib
+        files:
+          source:
+            - python/tests/**
+    about:
+      license: MIT AND BSD-3-Clause
+      license_file:
+        - LICENSE.md
+        - third_party_licenses/NANOBIND-LICENSE
+        - third_party_licenses/ROBIN-MAP-LICENSE
+
+about:
+  homepage: https://github.com/jpfeuffer/bgen-limix
+  repository: https://github.com/jpfeuffer/bgen-limix
+  documentation: https://bgen.readthedocs.io
+  summary: C library and Python bindings for the BGEN format (specifications 1.2 and 1.3)
+  description: |
+    bgen-limix is a fork of limix/bgen adding S3/HTTPS streaming support and
+    nanobind-based Python bindings for reading BGEN genotype files.
+  license: MIT
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - jpfeuffer
