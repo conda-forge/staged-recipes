@@ -1,0 +1,61 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 44d173a..4ec150c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,28 +30,40 @@ message(STATUS "\n\n  ==========================   ${PROJECT_NAME}   ===========
+ 
+ option(SKIP_CET "Build without CET/cetmodules dependencies" OFF)
+ 
+-if(DEFINED ENV{UPS_DIR})
++if(NOT SKIP_CET)
+     find_package(cetmodules REQUIRED)
+     # cetbuildtools contains our cmake modules
+ 
+     include(CetCMakeEnv)
+     cet_cmake_env()
+ 
+-    set_install_root()
+-
+-    # The specification of the C++ standard is required because CET macros
+-    # set it to C++98 by default, and then override it depending on the
+-    # compiler version, as determined by the compiler qualifier.
+-    # Removing that qualifier, we need to supply that information manually,
+-    # and maintain it too.
+-    cet_set_compiler_flags(DIAGS CAUTIOUS
+-      WERROR
+-      NO_UNDEFINED
+-      ALLOW_DEPRECATIONS
+-      EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-undefined-var-template -I $ENV{CLANG_FQ_DIR}/include/c++/v1
+-    )
+-
+-    cet_report_compiler_flags()
++    if(cetmodules_VERSION VERSION_LESS 4.2.0)
++        set_install_root()
++
++        # The specification of the C++ standard is required because CET macros
++        # set it to C++98 by default, and then override it depending on the
++        # compiler version, as determined by the compiler qualifier.
++        # Removing that qualifier, we need to supply that information manually,
++        # and maintain it too.
++        cet_set_compiler_flags(DIAGS CAUTIOUS
++          WERROR
++          NO_UNDEFINED
++          ALLOW_DEPRECATIONS
++          EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-undefined-var-template -I $ENV{CLANG_FQ_DIR}/include/c++/v1
++        )
++
++        cet_report_compiler_flags()
++    else()
++        # cetmodules >= 4.2 does not auto-load its command modules when project()
++        # precedes find_package(cetmodules) (as it does here), so include the
++        # ones used across this project explicitly. set_install_root was removed,
++        # and the cet_set_compiler_flags/-Werror+clang block is unneeded under
++        # the conda toolchain.
++        include(CetMakeLibrary)
++        include(InstallHeaders)
++        include(InstallSource)
++        include(CetCMakeConfig)
++    endif()
+ 
+     # these are minimum required versions, not the actual product versions
+     find_package(ROOT 6.00.00 REQUIRED)
