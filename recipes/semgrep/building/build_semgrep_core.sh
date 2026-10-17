@@ -66,6 +66,11 @@ rm -rf duniverse/eio/lib_eio_linux
 # vendored copy to avoid two copies.
 rm -rf duniverse/dune/otherlibs/configurator
 
+# iomux stubs hardcode -Werror; on osx clang warns that -L$BUILD_PREFIX/lib (from
+# :standard) is unused when compiling only, which fails the build.
+perl -pi -e 's/"-Werror"//' duniverse/ocaml-iomux/lib/dune
+if grep -q -- '-Werror' duniverse/ocaml-iomux/lib/dune; then exit 1; fi
+
 # Same target as upstream `make core`. Not `-p semgrep` (hides vendored pkgs)
 # and not @install (in-tree tree-sitter package install needs cargo).
 # TODO(verify): upstream also runs `dune build libs/ocaml-tree-sitter-semgrep/core/tree-sitter-out`

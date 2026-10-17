@@ -22,7 +22,8 @@ requires = ""
 EOF
 done
 if [[ "${prefix}" == */Library ]]; then sep=';'; else sep=':'; fi
-export OCAMLPATH="${compat}${OCAMLPATH:+${sep}${OCAMLPATH}}"
+# Host libs (e.g. csexp) live in ${prefix}/lib/ocaml; win activation only lists BUILD_PREFIX.
+export OCAMLPATH="${compat}${sep}${prefix}/lib/ocaml${OCAMLPATH:+${sep}${OCAMLPATH}}"
 
 dune build -p "${pkgs}" --profile=release -j "${CPU_COUNT:-1}" @install
 dune install -p "${pkgs}" --prefix="${prefix}" \
