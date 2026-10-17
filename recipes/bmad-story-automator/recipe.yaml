@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.15.0"
+
+package:
+  name: bmad-story-automator
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bmad-code-org/bmad-automator/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c2210dff5ad6ad660779d660fcf18b6a34f68ad6313208f0658848d2ecaf0e2b
+
+build:
+  number: 0
+  # Upstream's bin script exits with "Unsupported OS: Windows" at runtime
+  # (https://github.com/bmad-code-org/bmad-automator/blob/v${{ version }}/bin/bmad-story-automator).
+  # `skip:` is not permitted inside a noarch recipe (linter rejects), so build
+  # per-platform and skip win. Each Unix platform produces a near-identical
+  # data-only artifact; the small duplication is the price of green CI.
+  skip:
+    - win
+  script: bash ${{ RECIPE_DIR }}/build.sh
+
+requirements:
+  run:
+    - nodejs >=18
+    # Unversioned per the non-noarch lint rule; conda-forge pinning handles
+    # ABI. The bundled Python helper uses only stdlib + standard 3.x APIs.
+    - python
+
+tests:
+  - script:
+      - bmad-story-automator --version
+      - bmad-story-automator --help
+  - package_contents:
+      files:
+        - lib/node_modules/bmad-story-automator/package.json
+        - lib/node_modules/bmad-story-automator/install.sh
+        - lib/node_modules/bmad-story-automator/LICENSE
+        - lib/node_modules/bmad-story-automator/bin/bmad-story-automator
+      bin:
+        - bmad-story-automator
+
+about:
+  homepage: https://github.com/bmad-code-org/bmad-automator
+  repository: https://github.com/bmad-code-org/bmad-automator
+  license: MIT
+  license_file: LICENSE
+  summary: BMAD story-automator skill bundle and Python helper runtime installer
+  description: |
+    bmad-story-automator is the portable installer for the BMAD story-automator
+    pure skill bundle. It drops the orchestration skill, the bundled review
+    skill, and the Python helper runtime that parses stories, builds state
+    docs, spawns tmux child sessions, monitors child agents, and verifies
+    review completion into a target BMAD project's `.claude/skills/` tree.
+
+    The bundled `bmad-story-automator` CLI is a thin Node wrapper that runs
+    `install.sh` against the target project root (defaults to the current
+    working directory).
+
+extra:
+  recipe-maintainers:
+    - rxm7706
+    - killua156
