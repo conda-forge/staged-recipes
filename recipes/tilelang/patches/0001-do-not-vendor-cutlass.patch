@@ -1,0 +1,50 @@
+Subject: [PATCH] Do not vendor CUTLASS; use the headers from the environment
+
+tilelang ships ~30 MB of CUTLASS headers under `tilelang/3rdparty/cutlass`
+purely so that the JIT can pass them to nvcc via `-I` (see
+`tilelang/engine/lower.py`, `tilelang/jit/adapter/libgen.py` and
+`tilelang/utils/sparse.py`). Nothing in `CMakeLists.txt` compiles against
+CUTLASS, so it is a runtime-only include path.
+
+Stop packaging that copy and let `TL_CUTLASS_PATH` resolve to an installed
+CUTLASS instead. Upstream already honours `TL_CUTLASS_PATH` when it is set;
+this only adds a fallback so the common case works without the user having to
+export anything. An installed CUTLASS puts both `cutlass/` and `cute/` (and,
+with `-DCUTLASS_ENABLE_TOOLS=ON`, `cutlass/util/`) directly under
+`<prefix>/include`, which is exactly what the JIT `-I` flags need.
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 80aba41..7c3b122 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -130,9 +130,8 @@ tilelang = "tilelang"
+ "tilelang/3rdparty/tvm/include" = "3rdparty/tvm/include"
+ "tilelang/3rdparty/tvm/3rdparty/dmlc-core/include" = "3rdparty/tvm/3rdparty/dmlc-core/include"
+ "tilelang/3rdparty/tvm/version.py" = "3rdparty/tvm/version.py"
+-# CUTLASS
+-"tilelang/3rdparty/cutlass/include" = "3rdparty/cutlass/include"
+-"tilelang/3rdparty/cutlass/tools" = "3rdparty/cutlass/tools"
++# CUTLASS is not vendored here: the headers are taken from the environment
++# (see tilelang/env.py) so that a single, shared copy can be used.
+ # Composable Kernel
+ "tilelang/3rdparty/composable_kernel/include" = "3rdparty/composable_kernel/include"
+ "tilelang/3rdparty/composable_kernel/library" = "3rdparty/composable_kernel/library"
+diff --git a/tilelang/env.py b/tilelang/env.py
+index 9a9e3e5..691db90 100644
+--- a/tilelang/env.py
++++ b/tilelang/env.py
+@@ -386,6 +386,14 @@ if os.environ.get("TVM_LIBRARY_PATH") is None:
+ # Initialize CUTLASS paths
+ if os.environ.get("TL_CUTLASS_PATH", None) is None:
+     cutlass_inc_path = os.path.join(THIRD_PARTY_ROOT, "cutlass", "include")
++    if not os.path.exists(cutlass_inc_path):
++        # CUTLASS is not vendored in every build. Fall back to an installed copy,
++        # which puts both `cutlass/` and `cute/` under `<prefix>/include`
++        # (e.g. the conda-forge `cutlass` package).
++        for _prefix in (sys.prefix, sys.base_prefix, os.environ.get("CONDA_PREFIX")):
++            if _prefix and os.path.isdir(os.path.join(_prefix, "include", "cutlass")):
++                cutlass_inc_path = os.path.join(_prefix, "include")
++                break
+     if os.path.exists(cutlass_inc_path):
+         os.environ["TL_CUTLASS_PATH"] = env.CUTLASS_INCLUDE_DIR = cutlass_inc_path
+     else:
