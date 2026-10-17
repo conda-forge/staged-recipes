@@ -1,0 +1,46 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-06-04
+Subject: npu_compiler: drop WEIGHTLESS_BLOB (removed from OpenVINO 2026.2)
+
+vcl_compiler.cpp gates the weight-separated ("weightless") compile path
+on either intel_npu::ENABLE_WEIGHTLESS or intel_npu::WEIGHTLESS_BLOB. As
+its own comment states, "WEIGHTLESS_BLOB is equivalent with
+ENABLE_WEIGHTLESS [...] accepting both to facilitate the transition to
+ENABLE_WEIGHTLESS." The npu_ud_2026_20 tag was developed against an
+OpenVINO commit still mid-transition that defined both options.
+
+The public OpenVINO 2026.2.0 release we build against has finished that
+transition: it defines only ENABLE_WEIGHTLESS (config/options.hpp) and
+no longer provides WEIGHTLESS_BLOB, so the two runtime references fail:
+
+    vcl_compiler.cpp:410: error: 'WEIGHTLESS_BLOB' is not a member of
+      'intel_npu'
+
+Since the two options are documented as equivalent, drop the
+WEIGHTLESS_BLOB half of each guard and key the weightless path solely on
+ENABLE_WEIGHTLESS. (The only other use, an _options->add<WEIGHTLESS_BLOB>
+registration, is under #ifdef VPUX_DEVELOPER_BUILD, which this packaging
+build does not define, so it is left untouched.)
+
+--- a/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler.cpp
++++ b/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler.cpp
+@@ -406,8 +406,7 @@
+             // WEIGHTLESS_BLOB is equivalent with ENABLE_WEIGHTLESS
+             // Accepting both to facilitate the transition to ENABLE_WEIGHTLESS
+             const auto compiler = _compilerLoader->getCompiler();
+-            if (buildInfo.parsedConfig.get<intel_npu::ENABLE_WEIGHTLESS>() ||
+-                buildInfo.parsedConfig.get<intel_npu::WEIGHTLESS_BLOB>()) {
++            if (buildInfo.parsedConfig.get<intel_npu::ENABLE_WEIGHTLESS>()) {
+                 return compiler->compileWsIterative(model, buildInfo.parsedConfig,
+                                                     buildInfo.parsedConfig.get<intel_npu::WS_COMPILE_CALL_NUMBER>());
+             }
+@@ -452,8 +451,7 @@
+         // WEIGHTLESS_BLOB is equivalent with ENABLE_WEIGHTLESS
+         // Accepting both to facilitate the transition to ENABLE_WEIGHTLESS
+         const auto compiler = _compilerLoader->getCompiler();
+-        if (buildInfo.parsedConfig.get<intel_npu::ENABLE_WEIGHTLESS>() ||
+-            buildInfo.parsedConfig.get<intel_npu::WEIGHTLESS_BLOB>()) {
++        if (buildInfo.parsedConfig.get<intel_npu::ENABLE_WEIGHTLESS>()) {
+             return compiler->compileWsIterative(model, buildInfo.parsedConfig,
+                                                 buildInfo.parsedConfig.get<intel_npu::WS_COMPILE_CALL_NUMBER>(),
+                                                 allocator);
