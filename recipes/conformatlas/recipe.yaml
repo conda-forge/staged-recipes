@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  name: conformatlas
+  version: "1.0.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: fd3614481e4c8163a34824f300326262a3c203e0d262cedfe897b1d5beecfd07
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - conformatlas = conformatlas.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77.0
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.22.0
+    - scipy >=1.8.0
+    - pandas >=1.4.0
+    - matplotlib-base >=3.5.0
+    - click >=8.0.0
+    - jinja2 >=3.0.0
+    - pyyaml >=6.0
+    - scikit-image >=0.19.0
+    - mdanalysis >=2.2.0
+  run_constraints:
+    # optional features (PDF report, interactive figures, HDF5 container, progress bars)
+    - weasyprint >=59.0
+    - plotly >=5.18
+    - h5py >=3.6
+    - rich >=12
+
+tests:
+  - python:
+      imports:
+        - conformatlas
+        - conformatlas.pipeline
+        - conformatlas.provenance
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - conformatlas --version
+      - conformatlas --help
+      - conformatlas doctor
+      # end-to-end smoke test on the package's own synthetic dataset (the sdist ships no tests)
+      - conformatlas example -o ca_example
+      - conformatlas analyze -s ca_example/WT/topology.pdb -f ca_example/WT/rep1.xtc -f ca_example/WT/rep2.xtc -T 300 --bins 16 --bootstrap 0 --quiet -o ca_example/results
+
+about:
+  homepage: https://github.com/AtharvaTilewale/ConformAtlas
+  summary: Mapping conformational landscapes from molecular simulations
+  description: |
+    ConformAtlas analyses molecular dynamics trajectories: least-squares
+    superposition, Cartesian/dihedral PCA and TICA, Boltzmann-inverted free
+    energy landscapes with block-bootstrap uncertainties, watershed state
+    segmentation with barriers and kinetics, convergence diagnostics
+    (RMSIP, cosine content, effective sample size, equilibration detection)
+    and multi-system comparisons in a shared PCA space. Every numerical
+    component is validated against analytical results or independent
+    implementations (MDAnalysis, GROMACS, pymbar, deeptime, SciPy, ProDy).
+    The optional packages weasyprint, plotly, h5py and rich enable the PDF
+    report, interactive figures, the HDF5 results container and progress bars.
+  license: MIT
+  license_file:
+    - LICENSE
+    # MIT licence of the NGL viewer (ngl.js), shipped as a data file of the HTML report
+    - src/conformatlas/templates/assets/NGL_LICENSE.txt
+  documentation: https://conformatlas.readthedocs.io
+  repository: https://github.com/AtharvaTilewale/ConformAtlas
+
+extra:
+  recipe-maintainers:
+    - AtharvaTilewale
