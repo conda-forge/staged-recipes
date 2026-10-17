@@ -1,0 +1,72 @@
+context:
+  version: "3.0.4"
+
+package:
+  name: gp-connect
+  version: ${{ version }}
+
+source:
+  url: https://github.com/yuezk/GlobalProtect-openconnect/releases/download/v${{ version }}/globalprotect-openconnect-${{ version }}.tar.gz
+  sha256: b45fe25ea4cfe0b95771b0c51a7c4194775a28b669d032e3c9e14d6d50c58fc3
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      # openconnect resolves iconv to GNU libiconv from $PREFIX, but build.rs only links it on macOS/BSD
+      - if: linux
+        then: export CARGO_BUILD_RUSTFLAGS="${CARGO_BUILD_RUSTFLAGS} -C link-arg=-liconv"
+      - make build BUILD_GUI_HELPER=0 BUILD_WEBVIEW_AUTH=0
+      - make install BUILD_GUI_HELPER=0 BUILD_WEBVIEW_AUTH=0 PREFIX="${PREFIX}"
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - make
+    - pkg-config
+    - autoconf
+    - automake
+    - libtool
+  host:
+    - libxml2-devel
+    - zlib
+    - openssl
+    - if: linux
+      then:
+        - libiconv
+        - lz4-c
+        - gnutls
+        - p11-kit
+        - nettle
+        - gmp
+
+tests:
+  - script:
+      - gpclient --version
+      - gpclient --help
+      - gpauth --version
+      - gpauth --help
+
+about:
+  homepage: https://github.com/yuezk/GlobalProtect-openconnect
+  summary: "A GlobalProtect VPN client for Linux and macOS, written in Rust, based on OpenConnect and Tauri, supports SSO with MFA, YubiKey, and client certificate authentication, etc."
+  description: |
+    A GlobalProtect VPN client built on OpenConnect with support for SSO authentication. It provides command-line tools and the GP Connect desktop application for macOS, Linux, FreeBSD, and OpenBSD.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/yuezk/GlobalProtect-openconnect
+
+extra:
+  recipe-maintainers:
+    - XhstormR
