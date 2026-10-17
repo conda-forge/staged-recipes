@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-call gradlew.bat cliJar --no-daemon --no-build-cache
+call gradlew.bat cliJar --no-daemon --no-build-cache --no-watch-fs
 if errorlevel 1 exit /b 1
 
 if not exist "%PREFIX%\share\ti84-evo" mkdir "%PREFIX%\share\ti84-evo"
