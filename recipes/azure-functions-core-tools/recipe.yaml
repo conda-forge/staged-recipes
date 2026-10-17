@@ -1,0 +1,83 @@
+schema_version: 1
+
+context:
+  version: "4.14.0"
+
+package:
+  name: azure-functions-core-tools
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/Azure/azure-functions-core-tools/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 3c47707a121930461b8882d8d680a9cf8b778f4b79bcce85c8447e3eb57b94c8
+  - url: https://cdn.functions.azure.com/public/TemplatesApi/3.1.1648.zip
+    sha256: 618281c1debd4c81d0285d6bf01ce5cc8c832c905c0aab406cadc584dbc0fb9b
+    file_name: templates.zip
+  - url: https://raw.githubusercontent.com/Azure/azure-functions-templates/3.1.1648/LICENSE.txt
+    sha256: 40a35f410eb1057a5356c92d2d5e3911cd6118de664bbd3c46aaa43f56a1a546
+    file_name: AZURE_FUNCTIONS_TEMPLATES_LICENSE.txt
+
+build:
+  number: 0
+  script:
+    file: build.sh
+    interpreter: brush
+  dynamic_linking:
+    binary_relocation: false
+
+requirements:
+  build:
+    - ${{ "patchelf" if linux }}
+    - brush
+    - dotnet-sdk >=10.0.302,<11
+    - nuget-license
+  run:
+    - if: linux
+      then:
+        - __glibc >=2.27  # See https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md#libc
+        - icu
+        - krb5
+        - openssl
+        - libzlib
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - func --version
+          - func --help
+          - test "$(func --version)" = "${PKG_VERSION}"
+      - if: win
+        then:
+          - call func.cmd --version
+          - call func.cmd --help
+          - for /f "delims=" %%i in ('call func.cmd --version') do if not "%%i"=="%PKG_VERSION%" exit /b 1
+  - package_contents:
+      bin:
+        - func
+      files:
+        - if: unix
+          then:
+            - libexec/azure-functions-core-tools/func
+        - if: win
+          then:
+            - Library/libexec/azure-functions-core-tools/func.exe
+
+about:
+  homepage: https://github.com/Azure/azure-functions-core-tools
+  repository: https://github.com/Azure/azure-functions-core-tools
+  documentation: https://learn.microsoft.com/azure/azure-functions/functions-run-local
+  license: MIT
+  license_file:
+    - LICENSE
+    - AZURE_FUNCTIONS_TEMPLATES_LICENSE.txt
+    - THIRD_PARTY_NUGET_LICENSES.md
+    - nuget-licenses/*
+  summary: Command line tools for Azure Functions
+  description: |
+    The Azure Functions Core Tools provide a local development experience
+    for creating, developing, testing, running, and debugging Azure Functions.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
