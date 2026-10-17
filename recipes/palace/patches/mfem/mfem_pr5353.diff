@@ -1,0 +1,1054 @@
+diff --git a/fem/eltrans.cpp b/fem/eltrans.cpp
+index 17548f3e54..c2566fd68a 100644
+--- a/fem/eltrans.cpp
++++ b/fem/eltrans.cpp
+@@ -270,6 +270,10 @@ int InverseElementTransformation::NewtonSolve(const Vector &pt,
+                   }
+                   mfem::out << "Newton: *** stuck on boundary!\n";
+                }
++               // Match the other return paths and set ip; otherwise a point
++               // lying exactly on an element boundary leaves the caller with
++               // an uninitialized IntegrationPoint.
++               ip = xip;
+                return Outside;
+             }
+          }
+diff --git a/fem/linearform.cpp b/fem/linearform.cpp
+index b69aaf6c79..04bf988914 100644
+--- a/fem/linearform.cpp
++++ b/fem/linearform.cpp
+@@ -13,8 +13,39 @@
+ 
+ #include "fem.hpp"
+ 
++#include <memory>
++#include <vector>
++
+ namespace mfem
+ {
++namespace
++{
++
++// Append the local vertices whose order-1 nodal shape function is nonzero at
++// ip; these identify the minimal mesh entity (vertex/edge/face, or the whole
++// element) that ip lies on. The order-1 nodal element has one dof per vertex,
++// in vertex order, so shape(i) is the weight of vertex i. On-entity weights
++// are O(1) and off-entity weights ~1e-12, so the cutoff is not a knife-edge.
++constexpr real_t kEntityTol = 1e-6;
++
++// Physical-space tolerance for the nonconforming containment filter.
++constexpr real_t kContainTol = 1e-9;
++
++void ActiveEntityVertices(Geometry::Type geom, const IntegrationPoint &ip,
++                          Array<int> &active)
++{
++   static const LinearFECollection nodal_fec;
++   const FiniteElement &fe = *nodal_fec.FiniteElementForGeometry(geom);
++   Vector shape(fe.GetDof());
++   fe.CalcShape(ip, shape);
++   active.SetSize(0);
++   for (int i = 0; i < shape.Size(); i++)
++   {
++      if (shape(i) > kEntityTol) { active.Append(i); }
++   }
++}
++
++} // namespace
+ 
+ LinearForm::LinearForm(FiniteElementSpace *f, LinearForm *lf)
+    : Vector(f->GetVSize())
+@@ -361,16 +392,23 @@ void LinearForm::MakeRef(FiniteElementSpace *f, Vector &v, int v_offset)
+    Update(f, v, v_offset);
+ }
+ 
+-void LinearForm::AssembleDelta()
++void LinearForm::FindDeltaCenters(DenseMatrix &centers, Array<int> &elem_ids,
++                                  Array<IntegrationPoint> &ips)
+ {
+-   if (domain_delta_integs.Size() == 0) { return; }
++   fes->GetMesh()->FindPoints(centers, elem_ids, ips, false);
++}
+ 
+-   if (!HaveDeltaLocations())
++void LinearForm::ComputeDeltaLocations()
++{
++   const int ndi = domain_delta_integs.Size();
++   MFEM_ASSERT(ndi > 0, "");
++   Mesh *mesh = fes->GetMesh();
++   const int sdim = mesh->SpaceDimension();
++
++   DenseMatrix centers(sdim, ndi);
+    {
+-      int sdim = fes->GetMesh()->SpaceDimension();
+       Vector center;
+-      DenseMatrix centers(sdim, domain_delta_integs.Size());
+-      for (int i = 0; i < centers.Width(); i++)
++      for (int i = 0; i < ndi; i++)
+       {
+          centers.GetColumnReference(i, center);
+          domain_delta_integs[i]->GetDeltaCenter(center);
+@@ -378,27 +416,153 @@ void LinearForm::AssembleDelta()
+                      "Point dim " << center.Size() <<
+                      " does not match space dim " << sdim);
+       }
+-      fes->GetMesh()->FindPoints(centers, domain_delta_integs_elem_id,
+-                                 domain_delta_integs_ip);
+    }
++   // Find an element containing each center (see FindDeltaCenters).
++   Array<int> anchor_elem_id;
++   Array<IntegrationPoint> anchor_ip;
++   FindDeltaCenters(centers, anchor_elem_id, anchor_ip);
++
++   domain_delta_integs_elems.assign(ndi, std::set<int> {});
++   domain_delta_integs_ips.assign(ndi, std::map<int, IntegrationPoint> {});
++   domain_delta_integs_count.SetSize(ndi);
++
++   // On conforming meshes, containing elements share all vertices of the
++   // active entity. This avoids relying on Inside() for boundary points.
++   if (mesh->Conforming())
++   {
++      std::unique_ptr<Table> vte(mesh->GetVertexToElementTable());
++
++      InverseElementTransformation inv_tr;
++      Vector pt(sdim);
++      Array<int> anchor_verts, cand_verts, active_local, entity_verts;
++
++      for (int i = 0; i < ndi; i++)
++      {
++         const int e0 = anchor_elem_id[i];
++         if (e0 < 0)
++         {
++            domain_delta_integs_count[i] = 0;   // center not in this mesh
++            continue;
++         }
++
++         for (int d = 0; d < sdim; d++) { pt(d) = centers(d, i); }
++
++         auto &elems = domain_delta_integs_elems[i];
++         auto &ips = domain_delta_integs_ips[i];
++         elems.insert(e0);
++         ips[e0] = anchor_ip[i];
++
++         mesh->GetElementVertices(e0, anchor_verts);
++         ActiveEntityVertices(mesh->GetElementBaseGeometry(e0), anchor_ip[i],
++                              active_local);
++
++         // Mesh-vertex ids of the entity the center sits on.
++         entity_verts.SetSize(0);
++         for (int a : active_local) { entity_verts.Append(anchor_verts[a]); }
++
++         // Interior point (entity == whole element) or unsupported geometry:
++         // only the anchor contains the center.
++         if (entity_verts.Size() != 0 &&
++             entity_verts.Size() < anchor_verts.Size())
++         {
++            // Candidates: elements incident to the first entity vertex.
++            const int v0 = entity_verts[0];
++            const int n_adj = vte->RowSize(v0);
++            const int *adj = vte->GetRow(v0);
++            for (int k = 0; k < n_adj; k++)
++            {
++               const int en = adj[k];
++               if (en == e0 || elems.count(en)) { continue; }
++               mesh->GetElementVertices(en, cand_verts);
++               bool shares_all = true;
++               for (int ev : entity_verts)
++               {
++                  if (cand_verts.Find(ev) < 0) { shares_all = false; break; }
++               }
++               if (!shares_all) { continue; }
++               // Topologically contains the center. Compute its reference
++               // point for assembly; the Inside/Outside verdict is irrelevant.
++               inv_tr.SetTransformation(*fes->GetElementTransformation(en));
++               IntegrationPoint ip_n;
++               inv_tr.Transform(pt, ip_n);
++               elems.insert(en);
++               ips[en] = ip_n;
++            }
++         }
++
++         domain_delta_integs_count[i] = static_cast<int>(elems.size());
++      }
++   }
++   else
++   {
++      // Use NCMesh closure nodes to bridge master/slave interfaces where a
++      // hanging vertex is not a coarse element corner.
++      const int ne = mesh->GetNE();
++      InverseElementTransformation inv_tr;
++      Vector pt(sdim), mapped(sdim);
++      Array<int> active_local, candidates;
++
++      for (int i = 0; i < ndi; i++)
++      {
++         const int e0 = anchor_elem_id[i];
++         if (e0 < 0)
++         {
++            domain_delta_integs_count[i] = 0;
++            continue;
++         }
++
++         for (int d = 0; d < sdim; d++) { pt(d) = centers(d, i); }
++         ActiveEntityVertices(mesh->GetElementBaseGeometry(e0), anchor_ip[i],
++                              active_local);
++         mesh->ncmesh->FindClosureElements(e0, active_local, candidates);
++
++         auto &elems = domain_delta_integs_elems[i];
++         auto &ips = domain_delta_integs_ips[i];
++         for (int e : candidates)
++         {
++            if (e >= ne) { continue; }
++            ElementTransformation &Trans = *fes->GetElementTransformation(e);
++            inv_tr.SetTransformation(Trans);
++            IntegrationPoint ip_e;
++            inv_tr.Transform(pt, ip_e);
++            Trans.Transform(ip_e, mapped);
++            mapped -= pt;
++            if (mapped.Norml2() > kContainTol) { continue; }
++            elems.insert(e);
++            ips[e] = ip_e;
++         }
++         domain_delta_integs_count[i] = static_cast<int>(elems.size());
++      }
++   }
++}
++
++void LinearForm::AssembleDelta()
++{
++   if (domain_delta_integs.Size() == 0) { return; }
++
++   if (!HaveDeltaLocations()) { ComputeDeltaLocations(); }
+ 
+    Array<int> vdofs;
+    Vector elemvect;
+    for (int i = 0; i < domain_delta_integs.Size(); i++)
+    {
+-      int elem_id = domain_delta_integs_elem_id[i];
+-      // The delta center may be outside of this sub-domain, or
+-      // (Par)Mesh::FindPoints() failed to find this point:
+-      if (elem_id < 0) { continue; }
+-
+-      const IntegrationPoint &ip = domain_delta_integs_ip[i];
+-      ElementTransformation &Trans = *fes->GetElementTransformation(elem_id);
+-      Trans.SetIntPoint(&ip);
+-
+-      fes->GetElementVDofs(elem_id, vdofs);
+-      domain_delta_integs[i]->AssembleDeltaElementVect(*fes->GetFE(elem_id),
+-                                                       Trans, elemvect);
+-      AddElementVector(vdofs, elemvect);
++      const int n = domain_delta_integs_count[i];
++      if (n <= 0) { continue; }
++
++      const real_t weight = 1.0 / static_cast<real_t>(n);
++      const auto &ips = domain_delta_integs_ips[i];
++      for (const int elem_id : domain_delta_integs_elems[i])
++      {
++         const IntegrationPoint &ip = ips.at(elem_id);
++         ElementTransformation &Trans = *fes->GetElementTransformation(elem_id);
++         Trans.SetIntPoint(&ip);
++
++         fes->GetElementVDofs(elem_id, vdofs);
++         domain_delta_integs[i]->AssembleDeltaElementVect(*fes->GetFE(elem_id),
++                                                          Trans, elemvect);
++         elemvect *= weight;
++         AddElementVector(vdofs, elemvect);
++      }
+    }
+ }
+ 
+diff --git a/fem/linearform.hpp b/fem/linearform.hpp
+index 1e93565c69..bfbb01e1e0 100644
+--- a/fem/linearform.hpp
++++ b/fem/linearform.hpp
+@@ -17,6 +17,10 @@
+ #include "linearform_ext.hpp"
+ #include "gridfunc.hpp"
+ 
++#include <map>
++#include <set>
++#include <vector>
++
+ namespace mfem
+ {
+ 
+@@ -65,18 +69,43 @@ protected:
+    /// Set of Internal Face Integrators to be applied.
+    Array<LinearFormIntegrator*> interior_face_integs;
+ 
+-   /// The element ids where the centers of the delta functions lie
+-   Array<int> domain_delta_integs_elem_id;
++   /// Per domain delta integrator, the set of element ids that contain the
++   /// delta center.
++   std::vector<std::set<int>> domain_delta_integs_elems;
++
++   /// Per domain delta integrator, the reference-space integration points
++   /// keyed by element id (the same ids held in #domain_delta_integs_elems).
++   std::vector<std::map<int, IntegrationPoint>> domain_delta_integs_ips;
+ 
+-   /// The reference coordinates where the centers of the delta functions lie
+-   Array<IntegrationPoint> domain_delta_integs_ip;
++   /// Per domain delta integrator, the number of elements over which the delta
++   /// is split: each containing element's contribution is scaled by 1/count so
++   /// a center on a shared vertex/edge/face is distributed uniformly.
++   Array<int> domain_delta_integs_count;
+ 
+    /// If true, the delta locations are not (re)computed during assembly.
+    bool HaveDeltaLocations()
+-   { return (domain_delta_integs_elem_id.Size() != 0); }
++   { return !domain_delta_integs_elems.empty(); }
+ 
+    /// Force (re)computation of delta locations.
+-   void ResetDeltaLocations() { domain_delta_integs_elem_id.SetSize(0); }
++   void ResetDeltaLocations()
++   {
++      domain_delta_integs_elems.clear();
++      domain_delta_integs_ips.clear();
++      domain_delta_integs_count.SetSize(0);
++   }
++
++   /// Locate an element containing each delta center, returning the element
++   /// ids and reference points (-1 where a center is not found). The base
++   /// performs a geometric point search over the form's mesh.
++   virtual void FindDeltaCenters(DenseMatrix &centers, Array<int> &elem_ids,
++                                 Array<IntegrationPoint> &ips);
++
++   /// For each domain delta integrator, find every element that contains its
++   /// delta center: the center lies on a mesh entity of the anchor element
++   /// found by FindDeltaCenters(), and the containing elements are those
++   /// sharing that entity's vertices. Fills #domain_delta_integs_elems,
++   /// #domain_delta_integs_ips and #domain_delta_integs_count.
++   void ComputeDeltaLocations();
+ 
+ private:
+    /// Copy construction is not supported; body is undefined.
+@@ -205,8 +234,9 @@ public:
+    /// Return true if assembly on device is supported, false otherwise.
+    virtual bool SupportsDevice() const;
+ 
+-   /// Assembles delta functions of the linear form
+-   void AssembleDelta();
++   /// Assembles delta functions of the linear form. Each delta is split
++   /// uniformly (1/N) across the N elements that contain its center.
++   virtual void AssembleDelta();
+ 
+    /// Update the object according to the associated FE space #fes.
+    /** This method should be called when the associated FE space #fes has been
+diff --git a/fem/plinearform.cpp b/fem/plinearform.cpp
+index 45682e1010..8aba112f1f 100644
+--- a/fem/plinearform.cpp
++++ b/fem/plinearform.cpp
+@@ -54,6 +54,27 @@ void ParLinearForm::Assemble()
+    }
+ }
+ 
++void ParLinearForm::AssembleDelta()
++{
++   // A delta center's containing elements may be split across ranks, so sum
++   // the per-rank counts before the 1/N split, then let the base assemble.
++   if (domain_delta_integs.Size() > 0 && !HaveDeltaLocations())
++   {
++      ComputeDeltaLocations();
++      MPI_Allreduce(MPI_IN_PLACE, domain_delta_integs_count.GetData(),
++                    domain_delta_integs_count.Size(), MPI_INT, MPI_SUM,
++                    pfes->GetComm());
++   }
++   LinearForm::AssembleDelta();
++}
++
++void ParLinearForm::FindDeltaCenters(DenseMatrix &centers, Array<int> &elem_ids,
++                                     Array<IntegrationPoint> &ips)
++{
++   pfes->GetParMesh()->Mesh::FindPoints(centers, elem_ids, ips, false);
++}
++
++
+ bool ParLinearForm::SupportsDevice() const
+ {
+    bool parallel;
+diff --git a/fem/plinearform.hpp b/fem/plinearform.hpp
+index 84e9ac8e6e..e458b6266c 100644
+--- a/fem/plinearform.hpp
++++ b/fem/plinearform.hpp
+@@ -119,6 +119,22 @@ public:
+        the assembly will be executed on the device. */
+    void Assemble();
+ 
++   /// Assembles delta functions. Because a delta center's containing elements
++   /// may be split across MPI ranks, the per-rank counts are summed so every
++   /// rank uses the same total in the 1/N split, then
++   /// LinearForm::AssembleDelta() performs the assembly.
++   void AssembleDelta() override;
++
++protected:
++   /// Locate the delta centers on this rank's subdomain only. ParMesh::
++   /// FindPoints would assign each center to a single owning rank, which would
++   /// undercount the elements that share it; the local search lets every rank
++   /// that owns a containing element report it.
++   void FindDeltaCenters(DenseMatrix &centers, Array<int> &elem_ids,
++                         Array<IntegrationPoint> &ips) override;
++
++public:
++
+    /// Return true if assembly on device is supported, false otherwise.
+    bool SupportsDevice() const override;
+ 
+diff --git a/mesh/ncmesh.cpp b/mesh/ncmesh.cpp
+index 0c17d7b373..d4f482e27f 100644
+--- a/mesh/ncmesh.cpp
++++ b/mesh/ncmesh.cpp
+@@ -251,6 +251,7 @@ NCMesh::NCMesh(const NCMesh &other)
+    , boundary_faces(other.boundary_faces)
+    , face_geom(other.face_geom)
+    , element_vertex(other.element_vertex)
++   , node_element(other.node_element)
+    , shadow(1024, 2048)
+ {
+    Update();
+@@ -275,6 +276,7 @@ void NCMesh::Update()
+    edge_list.Clear();
+ 
+    element_vertex.Clear();
++   node_element.Clear();
+ }
+ 
+ NCMesh::~NCMesh()
+@@ -4057,7 +4059,7 @@ NCMesh::NCList::BuildIndex() const
+ 
+ //// Neighbors /////////////////////////////////////////////////////////////////
+ 
+-void NCMesh::CollectEdgeVertices(int v0, int v1, Array<int> &indices)
++void NCMesh::CollectEdgeVertices(int v0, int v1, Array<int> &indices) const
+ {
+    int mid = nodes.FindId(v0, v1);
+    if (mid >= 0 && nodes[mid].HasVertex())
+@@ -4069,7 +4071,8 @@ void NCMesh::CollectEdgeVertices(int v0, int v1, Array<int> &indices)
+    }
+ }
+ 
+-void NCMesh::CollectTriFaceVertices(int v0, int v1, int v2, Array<int> &indices)
++void NCMesh::CollectTriFaceVertices(int v0, int v1, int v2,
++                                    Array<int> &indices) const
+ {
+    int mid[3];
+    if (TriFaceSplit(v0, v1, v2, mid))
+@@ -4094,7 +4097,7 @@ void NCMesh::CollectTriFaceVertices(int v0, int v1, int v2, Array<int> &indices)
+ }
+ 
+ void NCMesh::CollectQuadFaceVertices(int v0, int v1, int v2, int v3,
+-                                     Array<int> &indices)
++                                     Array<int> &indices) const
+ {
+    int mid[5];
+    real_t scale;
+@@ -4128,6 +4131,166 @@ void NCMesh::CollectQuadFaceVertices(int v0, int v1, int v2, int v3,
+    }
+ }
+ 
++void NCMesh::CollectElementClosureNodes(int elem, Array<int> &indices) const
++{
++   const Element &el = elements[leaf_elements[elem]];
++   MFEM_ASSERT(!el.ref_type, "not a leaf element.");
++
++   const GeomInfo &gi = GI[el.Geom()];
++   const int *node = el.node;
++
++   indices.SetSize(0);
++   for (int j = 0; j < gi.nv; j++) { indices.Append(node[j]); }
++   for (int j = 0; j < gi.ne; j++)
++   {
++      const int *ev = gi.edges[j];
++      CollectEdgeVertices(node[ev[0]], node[ev[1]], indices);
++   }
++
++   if (Dim >= 3)
++   {
++      for (int j = 0; j < gi.nf; j++)
++      {
++         const int *fv = gi.faces[j];
++         if (gi.nfv[j] == 4)
++         {
++            CollectQuadFaceVertices(node[fv[0]], node[fv[1]],
++                                    node[fv[2]], node[fv[3]], indices);
++         }
++         else
++         {
++            CollectTriFaceVertices(node[fv[0]], node[fv[1]], node[fv[2]],
++                                   indices);
++         }
++      }
++   }
++
++   indices.Sort();
++   indices.Unique();
++}
++
++void NCMesh::CollectEntityClosureNodes(int elem,
++                                       const Array<int> &local_entity_vertices,
++                                       Array<int> &indices) const
++{
++   const Element &el = elements[leaf_elements[elem]];
++   MFEM_ASSERT(!el.ref_type, "not a leaf element.");
++
++   const GeomInfo &gi = GI[el.Geom()];
++   const int *node = el.node;
++   indices.SetSize(0);
++
++   if (local_entity_vertices.Size() == 1)
++   {
++      indices.Append(node[local_entity_vertices[0]]);
++   }
++   else if (local_entity_vertices.Size() == 2)
++   {
++      for (int j = 0; j < gi.ne; j++)
++      {
++         const int *ev = gi.edges[j];
++         if (local_entity_vertices.Find(ev[0]) >= 0 &&
++             local_entity_vertices.Find(ev[1]) >= 0)
++         {
++            indices.Append(node[ev[0]]);
++            indices.Append(node[ev[1]]);
++            CollectEdgeVertices(node[ev[0]], node[ev[1]], indices);
++            break;
++         }
++      }
++   }
++   else
++   {
++      for (int j = 0; j < gi.nf; j++)
++      {
++         if (gi.nfv[j] != local_entity_vertices.Size()) { continue; }
++         const int *fv = gi.faces[j];
++         bool match = true;
++         for (int k = 0; k < gi.nfv[j]; k++)
++         {
++            if (local_entity_vertices.Find(fv[k]) < 0)
++            {
++               match = false;
++               break;
++            }
++         }
++         if (!match) { continue; }
++
++         for (int k = 0; k < gi.nfv[j]; k++) { indices.Append(node[fv[k]]); }
++         if (gi.nfv[j] == 4)
++         {
++            CollectQuadFaceVertices(node[fv[0]], node[fv[1]],
++                                    node[fv[2]], node[fv[3]], indices);
++         }
++         else
++         {
++            CollectTriFaceVertices(node[fv[0]], node[fv[1]], node[fv[2]],
++                                   indices);
++         }
++         break;
++      }
++   }
++
++   indices.Sort();
++   indices.Unique();
++}
++
++void NCMesh::BuildNodeToElementTable()
++{
++   Array<Connection> conn;
++   Array<int> elem_nodes;
++   for (int i = 0; i < leaf_elements.Size(); i++)
++   {
++      CollectElementClosureNodes(i, elem_nodes);
++      for (int j = 0; j < elem_nodes.Size(); j++)
++      {
++         conn.Append(Connection(elem_nodes[j], i));
++      }
++   }
++   conn.Sort();
++   conn.Unique();
++   node_element.MakeFromList(nodes.NumIds(), conn);
++}
++
++void NCMesh::FindClosureElements(int elem,
++                                 const Array<int> &local_entity_vertices,
++                                 Array<int> &closure)
++{
++   closure.SetSize(0);
++   if (elem < 0 || elem >= leaf_elements.Size()) { return; }
++
++   const Element &el = elements[leaf_elements[elem]];
++   const GeomInfo &gi = GI[el.Geom()];
++   if (local_entity_vertices.Size() == 0 ||
++       local_entity_vertices.Size() >= gi.nv)
++   {
++      closure.Append(elem);
++      return;
++   }
++
++   UpdateNodeToElementTable();
++
++   Array<int> entity_nodes;
++   CollectEntityClosureNodes(elem, local_entity_vertices, entity_nodes);
++   if (entity_nodes.Size() == 0)
++   {
++      closure.Append(elem);
++      return;
++   }
++
++   for (int j = 0; j < entity_nodes.Size(); j++)
++   {
++      const int entity_node = entity_nodes[j];
++      const int *row = node_element.GetRow(entity_node);
++      for (int k = 0; k < node_element.RowSize(entity_node); k++)
++      {
++         closure.Append(row[k]);
++      }
++   }
++   closure.Sort();
++   closure.Unique();
++}
++
+ void NCMesh::BuildElementToVertexTable()
+ {
+    int nrows = leaf_elements.Size();
+@@ -6969,6 +7132,7 @@ void NCMesh::Trim()
+ 
+    boundary_faces.DeleteAll();
+    element_vertex.Clear();
++   node_element.Clear();
+ 
+    ClearTransforms();
+ 
+@@ -7020,6 +7184,7 @@ long NCMesh::MemoryUsage() const
+           vertex_list.MemoryUsage() +
+           boundary_faces.MemoryUsage() +
+           element_vertex.MemoryUsage() +
++          node_element.MemoryUsage() +
+           ref_stack.MemoryUsage() +
+           derefinements.MemoryUsage() +
+           transforms.MemoryUsage() +
+@@ -7044,6 +7209,7 @@ int NCMesh::PrintMemoryDetail() const
+              << vertex_list.MemoryUsage() << " vertex_list\n"
+              << boundary_faces.MemoryUsage() << " boundary_faces\n"
+              << element_vertex.MemoryUsage() << " element_vertex\n"
++             << node_element.MemoryUsage() << " node_element\n"
+              << ref_stack.MemoryUsage() << " ref_stack\n"
+              << derefinements.MemoryUsage() << " derefinements\n"
+              << transforms.MemoryUsage() << " transforms\n"
+diff --git a/mesh/ncmesh.hpp b/mesh/ncmesh.hpp
+index b35661e311..8ce21849c5 100644
+--- a/mesh/ncmesh.hpp
++++ b/mesh/ncmesh.hpp
+@@ -568,6 +568,14 @@ public:
+     */
+    int GetNodeVertex(int node) { return nodes[node].vert_index; }
+ 
++   /** @brief Return leaf-element candidates adjacent to a local entity.
++       @a elem is a Mesh element index. @a local_entity_vertices contains the
++       element-local vertices of a vertex, edge, face, or the whole element.
++       The result is a topological closure neighborhood; callers that need the
++       exact containing set should still apply a geometric containment filter. */
++   void FindClosureElements(int elem, const Array<int> &local_entity_vertices,
++                            Array<int> &closure);
++
+ protected: // non-public interface for the Mesh class
+ 
+    friend class Mesh;
+@@ -796,6 +804,7 @@ protected:
+    Array<char> face_geom; ///< face geometry by face index, set by OnMeshUpdated
+ 
+    Table element_vertex; ///< leaf-element to vertex table, see FindSetNeighbors
++   Table node_element; ///< node-to-leaf-element closure table
+ 
+    /// Update the leaf elements indices in leaf_elements
+    void UpdateLeafElements();
+@@ -1106,11 +1115,22 @@ protected:
+                        const Array<int> *search_set = NULL);
+ 
+ 
+-   void CollectEdgeVertices(int v0, int v1, Array<int> &indices);
+-   void CollectTriFaceVertices(int v0, int v1, int v2, Array<int> &indices);
++   void CollectEdgeVertices(int v0, int v1, Array<int> &indices) const;
++   void CollectTriFaceVertices(int v0, int v1, int v2,
++                               Array<int> &indices) const;
+    void CollectQuadFaceVertices(int v0, int v1, int v2, int v3,
+-                                Array<int> &indices);
++                                Array<int> &indices) const;
++   void CollectElementClosureNodes(int elem, Array<int> &indices) const;
++   void CollectEntityClosureNodes(int elem,
++                                  const Array<int> &local_entity_vertices,
++                                  Array<int> &indices) const;
+    void BuildElementToVertexTable();
++   void BuildNodeToElementTable();
++
++   void UpdateNodeToElementTable()
++   {
++      if (node_element.Size() < 0) { BuildNodeToElementTable(); }
++   }
+ 
+    void UpdateElementToVertexTable()
+    {
+diff --git a/tests/unit/fem/test_domain_int.cpp b/tests/unit/fem/test_domain_int.cpp
+index ca3967c9e6..7b7e71cbb6 100644
+--- a/tests/unit/fem/test_domain_int.cpp
++++ b/tests/unit/fem/test_domain_int.cpp
+@@ -11,6 +11,9 @@
+ 
+ #include "mfem.hpp"
+ #include "unit_tests.hpp"
++#include "mesh/mesh_test_utils.hpp"
++
++#include <cmath>
+ 
+ using namespace mfem;
+ 
+@@ -239,6 +242,190 @@ TEST_CASE("Domain Integration (Vector Field)",
+    }
+ }
+ 
++// ---------------------------------------------------------------------------
++// Delta-coefficient domain integrators. A VectorDeltaCoefficient whose center
++// lies on a shared mesh entity (vertex/edge/face) is split uniformly (1/N)
++// across the N elements that contain it, so the assembled load vector is
++// independent of mesh ordering and partitioning.
++
++// Single hex split into 24 tets, translated so the hex center -- a vertex
++// shared by all 24 tets -- sits at the origin.
++Mesh MakeCenteredHex24Tets()
++{
++   Mesh mesh = Mesh::MakeCartesian3DWith24TetsPerHex(1, 1, 1, 2.0, 2.0, 2.0);
++   for (int v = 0; v < mesh.GetNV(); v++)
++   {
++      real_t *vp = mesh.GetVertex(v);
++      vp[0] -= 1.0;
++      vp[1] -= 1.0;
++      vp[2] -= 1.0;
++   }
++   return mesh;
++}
++
++// A linear vector field not in the lowest-order Nedelec space, so its ND
++// projection has a discontinuous normal trace across element faces.
++void GenericField(const Vector &x, Vector &v)
++{
++   v.SetSize(3);
++   v(0) = 0.1 + 0.2 * x(0) - 0.3 * x(1) + 0.15 * x(2);
++   v(1) = -0.2 + 0.4 * x(1) + 0.25 * x(2) - 0.1 * x(0);
++   v(2) = 0.3 + 0.5 * x(2) + 0.2 * x(0) - 0.35 * x(1);
++}
++
++int FindOriginVertex(const Mesh &mesh)
++{
++   for (int v = 0; v < mesh.GetNV(); v++)
++   {
++      const real_t *vp = mesh.GetVertex(v);
++      if (std::abs(vp[0]) < 1e-12 && std::abs(vp[1]) < 1e-12 &&
++          std::abs(vp[2]) < 1e-12)
++      {
++         return v;
++      }
++   }
++   return -1;
++}
++
++// Reference load vector from uniformly distributing a vector delta at the
++// origin across every element that contains it (weight 1/N per element).
++void AssembleUniformReference(FiniteElementSpace &fes, const Vector &dir,
++                              Vector &expected)
++{
++   Mesh &mesh = *fes.GetMesh();
++   const int v0 = FindOriginVertex(mesh);
++   REQUIRE(v0 >= 0);
++
++   Table *vte = mesh.GetVertexToElementTable();
++   const int N = vte->RowSize(v0);
++   const int *els = vte->GetRow(v0);
++   REQUIRE(N > 1);
++
++   expected.SetSize(fes.GetVSize());
++   expected = 0.0;
++
++   Vector center(mesh.SpaceDimension());
++   center = 0.0;
++
++   for (int j = 0; j < N; j++)
++   {
++      const int e = els[j];
++      ElementTransformation &Trans = *fes.GetElementTransformation(e);
++      InverseElementTransformation inv_tr(&Trans);
++      IntegrationPoint ip;
++      const int res = inv_tr.Transform(center, ip);
++      REQUIRE(res == InverseElementTransformation::Inside);
++      Trans.SetIntPoint(&ip);
++
++      const FiniteElement &fe = *fes.GetFE(e);
++      DenseMatrix vshape(fe.GetDof(), mesh.SpaceDimension());
++      fe.CalcPhysVShape(Trans, vshape);
++
++      Vector elemvect(fe.GetDof());
++      vshape.Mult(dir, elemvect);
++      elemvect *= 1.0 / static_cast<real_t>(N);
++
++      Array<int> vdofs;
++      fes.GetElementVDofs(e, vdofs);
++      expected.AddElementVector(vdofs, elemvect);
++   }
++
++   delete vte;
++}
++
++TEST_CASE("Domain Integration (Vector Delta on Shared Vertex)",
++          "[ND_FECollection]"
++          "[LinearForm]"
++          "[DeltaCoefficient]")
++{
++   Mesh mesh = MakeCenteredHex24Tets();
++
++   ND_FECollection fec(1, 3);
++   FiniteElementSpace fes(&mesh, &fec);
++
++   Vector dir(3);
++   dir = 0.0;
++   dir[2] = 1.0;
++   VectorDeltaCoefficient *vdc =
++      new VectorDeltaCoefficient(dir, 0.0, 0.0, 0.0, 1.0);
++
++   LinearForm rhs(&fes);
++   rhs.AddDomainIntegrator(new VectorFEDomainLFIntegrator(*vdc));
++   rhs.Assemble();
++
++   Vector expected;
++   AssembleUniformReference(fes, dir, expected);
++
++   Vector diff(rhs);
++   diff -= expected;
++   const real_t err = diff.Norml2();
++   const real_t ref = expected.Norml2();
++   INFO("rhs.Norml2 = " << rhs.Norml2() << ", ref.Norml2 = " << ref
++        << ", err = " << err);
++   REQUIRE(ref > 0.0);
++   REQUIRE(err / ref < 1e-12);
++
++   delete vdc;
++}
++
++// A vector delta on a face shared by two elements, oriented along the face
++// NORMAL. The Nedelec tangential trace is continuous across the face so only
++// the normal component is discontinuous: the assembled functional applied to a
++// field with a discontinuous normal trace must equal the symmetric average of
++// the two one-sided values, i.e. the delta is split across the shared face
++// rather than landing on one side.
++TEST_CASE("Domain Integration (Vector Delta on Shared Face)",
++          "[ND_FECollection]"
++          "[LinearForm]"
++          "[DeltaCoefficient]")
++{
++   Mesh mesh = OrientedTriFaceMesh(1);
++
++   ND_FECollection fec(1, 3);
++   FiniteElementSpace fes(&mesh, &fec);
++
++   Vector x0(3);
++   x0(0) = 0.0; x0(1) = 1.0 / 3.0; x0(2) = 1.0 / 3.0;  // shared-face centroid
++   Vector dir(3);
++   dir = 0.0; dir(0) = 1.0;                             // normal to the face
++
++   VectorDeltaCoefficient *vdc =
++      new VectorDeltaCoefficient(dir, x0(0), x0(1), x0(2), 1.0);
++   LinearForm rhs(&fes);
++   rhs.AddDomainIntegrator(new VectorFEDomainLFIntegrator(*vdc));
++   rhs.Assemble();
++
++   VectorFunctionCoefficient Fc(3, GenericField);
++   GridFunction g(&fes);
++   g.ProjectCoefficient(Fc);
++
++   Vector g0(3), g1(3);
++   {
++      IntegrationPoint ip;
++      InverseElementTransformation inv0(fes.GetElementTransformation(0));
++      REQUIRE(inv0.Transform(x0, ip) == InverseElementTransformation::Inside);
++      g.GetVectorValue(0, ip, g0);
++      InverseElementTransformation inv1(fes.GetElementTransformation(1));
++      REQUIRE(inv1.Transform(x0, ip) == InverseElementTransformation::Inside);
++      g.GetVectorValue(1, ip, g1);
++   }
++
++   const real_t side0 = dir * g0;
++   const real_t side1 = dir * g1;
++   INFO("side0 = " << side0 << ", side1 = " << side1);
++   REQUIRE(std::abs(side0 - side1) > 1e-3);   // the two sides genuinely differ
++
++   const real_t Lg = rhs * g;
++   const real_t sym = 0.5 * (side0 + side1);
++   INFO("Lg = " << Lg << ", symmetric avg = " << sym
++        << ", one-sided = " << side0 << "/" << side1);
++   REQUIRE(Lg == MFEM_Approx(sym));
++   REQUIRE(std::abs(Lg - side0) > 1e-4);   // not the old single-element value
++   REQUIRE(std::abs(Lg - side1) > 1e-4);
++
++   delete vdc;
++}
++
+ #ifdef MFEM_USE_MPI
+ 
+ TEST_CASE("Domain Integration in Parallel (Scalar Field)",
+@@ -426,6 +613,162 @@ TEST_CASE("Domain Integration in Parallel (Vector Field)",
+    }
+ }
+ 
++TEST_CASE("Domain Integration in Parallel (Vector Delta on Shared Vertex)",
++          "[ParLinearForm]"
++          "[DeltaCoefficient]"
++          "[Parallel]")
++{
++   // Each rank counts its locally-owned elements containing the center; an
++   // MPI_Allreduce gives the global N and every hit is scaled by 1/N, so the
++   // global function matches the serial reference regardless of partition.
++   Mesh mesh = MakeCenteredHex24Tets();
++
++   Vector dir(3);
++   dir = 0.0;
++   dir[2] = 1.0;
++
++   ND_FECollection fec_serial(1, 3);
++   FiniteElementSpace fes_serial(&mesh, &fec_serial);
++   Vector ref;
++   AssembleUniformReference(fes_serial, dir, ref);
++   const real_t ref_norm = ref.Norml2();
++   REQUIRE(ref_norm > 0.0);
++
++   ParMesh pmesh(MPI_COMM_WORLD, mesh);
++   ND_FECollection fec(1, 3);
++   ParFiniteElementSpace pfes(&pmesh, &fec);
++
++   VectorDeltaCoefficient *vdc =
++      new VectorDeltaCoefficient(dir, 0.0, 0.0, 0.0, 1.0);
++
++   ParLinearForm rhs(&pfes);
++   rhs.AddDomainIntegrator(new VectorFEDomainLFIntegrator(*vdc));
++   rhs.Assemble();
++
++   Vector tv(pfes.GetTrueVSize());
++   rhs.ParallelAssemble(tv);
++   const real_t par_norm = GlobalLpNorm(2.0, tv.Norml2(), MPI_COMM_WORLD);
++
++   INFO("nranks = " << Mpi::WorldSize() << ", ref = " << ref_norm
++        << ", par = " << par_norm);
++   REQUIRE(par_norm == MFEM_Approx(ref_norm));
++
++   delete vdc;
++}
++
++TEST_CASE("Domain Integration in Parallel (Vector Delta, Scattered Partition)",
++          "[ParLinearForm]"
++          "[DeltaCoefficient]"
++          "[Parallel]")
++{
++   // Pathological partition: assign the 24 tets sharing the origin round-robin
++   // across ranks, scattering the origin's element star. Because each rank
++   // counts its owned containing elements directly from its local
++   // vertex-to-element table (no connectivity walk), and the counts are summed
++   // across ranks, the result is still the correct global N and the function
++   // matches the serial reference.
++   Mesh mesh = MakeCenteredHex24Tets();
++
++   Vector dir(3);
++   dir = 0.0;
++   dir[2] = 1.0;
++
++   ND_FECollection fec_serial(1, 3);
++   FiniteElementSpace fes_serial(&mesh, &fec_serial);
++   Vector ref;
++   AssembleUniformReference(fes_serial, dir, ref);
++   const real_t ref_norm = ref.Norml2();
++   REQUIRE(ref_norm > 0.0);
++
++   const int nranks = Mpi::WorldSize();
++   Array<int> part(mesh.GetNE());
++   for (int e = 0; e < mesh.GetNE(); e++) { part[e] = e % nranks; }
++   ParMesh pmesh(MPI_COMM_WORLD, mesh, part.GetData());
++
++   ND_FECollection fec(1, 3);
++   ParFiniteElementSpace pfes(&pmesh, &fec);
++
++   VectorDeltaCoefficient *vdc =
++      new VectorDeltaCoefficient(dir, 0.0, 0.0, 0.0, 1.0);
++   ParLinearForm rhs(&pfes);
++   rhs.AddDomainIntegrator(new VectorFEDomainLFIntegrator(*vdc));
++   rhs.Assemble();
++
++   Vector tv(pfes.GetTrueVSize());
++   rhs.ParallelAssemble(tv);
++   const real_t par_norm = GlobalLpNorm(2.0, tv.Norml2(), MPI_COMM_WORLD);
++
++   INFO("nranks = " << nranks << ", ref = " << ref_norm
++        << ", par = " << par_norm);
++   REQUIRE(par_norm == MFEM_Approx(ref_norm));
++
++   delete vdc;
++}
++
++TEST_CASE("Domain Integration in Parallel (Vector Delta on Shared Face)",
++          "[ParLinearForm]"
++          "[DeltaCoefficient]"
++          "[Parallel]")
++{
++   // Two tets sharing a face, delta on the face along the normal. With one tet
++   // per rank the containing elements live on different ranks, so a correct
++   // result requires the cross-rank count (N=2) and the 1/N split. The action
++   // on a field with a discontinuous normal trace must equal the symmetric
++   // average of the two one-sided values, independent of the partition.
++   const int nranks = Mpi::WorldSize();
++
++   Mesh mesh = OrientedTriFaceMesh(1);
++
++   Vector x0(3);
++   x0(0) = 0.0; x0(1) = 1.0 / 3.0; x0(2) = 1.0 / 3.0;
++   Vector dir(3);
++   dir = 0.0; dir(0) = 1.0;
++
++   real_t sym_ref;
++   {
++      ND_FECollection fec(1, 3);
++      FiniteElementSpace fes(&mesh, &fec);
++      VectorFunctionCoefficient Fc(3, GenericField);
++      GridFunction g(&fes);
++      g.ProjectCoefficient(Fc);
++      Vector g0(3), g1(3);
++      IntegrationPoint ip;
++      InverseElementTransformation inv0(fes.GetElementTransformation(0));
++      REQUIRE(inv0.Transform(x0, ip) == InverseElementTransformation::Inside);
++      g.GetVectorValue(0, ip, g0);
++      InverseElementTransformation inv1(fes.GetElementTransformation(1));
++      REQUIRE(inv1.Transform(x0, ip) == InverseElementTransformation::Inside);
++      g.GetVectorValue(1, ip, g1);
++      sym_ref = 0.5 * ((dir * g0) + (dir * g1));
++      REQUIRE(std::abs((dir * g0) - (dir * g1)) > 1e-3);
++   }
++
++   Array<int> partitioning(mesh.GetNE());
++   for (int e = 0; e < mesh.GetNE(); e++)
++   {
++      partitioning[e] = (nranks >= 2) ? e % nranks : 0;
++   }
++   ParMesh pmesh(MPI_COMM_WORLD, mesh, partitioning.GetData());
++
++   ND_FECollection fec(1, 3);
++   ParFiniteElementSpace pfes(&pmesh, &fec);
++   VectorFunctionCoefficient Fc(3, GenericField);
++   ParGridFunction g(&pfes);
++   g.ProjectCoefficient(Fc);
++
++   VectorDeltaCoefficient *vdc =
++      new VectorDeltaCoefficient(dir, x0(0), x0(1), x0(2), 1.0);
++   ParLinearForm rhs(&pfes);
++   rhs.AddDomainIntegrator(new VectorFEDomainLFIntegrator(*vdc));
++   rhs.Assemble();
++
++   const real_t Lg = rhs(g);
++   INFO("nranks = " << nranks << ", Lg = " << Lg << ", sym_ref = " << sym_ref);
++   REQUIRE(Lg == MFEM_Approx(sym_ref));
++
++   delete vdc;
++}
++
+ #endif // MFEM_USE_MPI
+ 
+ Mesh * GetMesh(MeshType type)
