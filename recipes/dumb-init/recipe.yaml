@@ -1,0 +1,53 @@
+schema_version: 1
+
+context:
+  version: "1.2.5"
+
+package:
+  name: dumb-init
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Yelp/dumb-init/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3eda470d8a4a89123f4516d26877a727c0945006c8830b7e3bad717a5f6efc4e
+
+build:
+  number: 0
+  # Upstream only supports Linux: it's a PID 1 init for containers and
+  # only Linux wheels are published on PyPI.
+  skip:
+    - not linux
+  script:
+    # Same as upstream's Makefile, minus -static and -Werror.
+    - mkdir -p $PREFIX/bin
+    - $CC $CFLAGS -std=gnu99 -Wall -O3 -o $PREFIX/bin/dumb-init dumb-init.c $LDFLAGS
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+
+tests:
+  - package_contents:
+      bin:
+        - dumb-init
+  - script:
+      - dumb-init --version 2>&1 | grep "v${{ version }}"
+      - dumb-init true
+      # The child's exit code must be passed through.
+      - sh -c 'dumb-init sh -c "exit 3"; test $? -eq 3'
+
+about:
+  homepage: https://github.com/Yelp/dumb-init
+  repository: https://github.com/Yelp/dumb-init
+  summary: A minimal init system for Linux containers
+  description: |
+    dumb-init is a simple process supervisor and init system designed to run as
+    PID 1 inside minimal container environments. It forwards signals to its
+    child and reaps zombie processes.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
