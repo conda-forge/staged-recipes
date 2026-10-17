@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  version: "0.4.0"
+
+package:
+  name: gridpin
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/g/gridpin/gridpin-${{ version }}.tar.gz
+  sha256: a76c9c318c5a6af96415011441be5c2d03a9ae91820069825191c13ca6db8082
+  patches:
+    # gridpin 0.4.0 also installs site-packages/LICENSE; the dist-info copy is enough
+    - 0001-do-not-install-LICENSE-into-site-packages.patch
+
+build:
+  number: 0
+  # the extension is built with pyo3's abi3-py39 feature (Cargo.toml), so one build serves every Python
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+      # pyo3 is an optional dependency behind the "python" feature, which the build enables
+      - cargo-bundle-licenses --features python --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.5,<2
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.5,<2
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - gridpin
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - files:
+      recipe:
+        - run_test.py
+    script:
+      - python run_test.py
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/gridpin/gridpin.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\gridpin\gridpin.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  - package_contents:
+      site_packages:
+        - gridpin
+      files:
+        # guards the patch; abi3 (version-independent) packages keep site-packages at the top
+        not_exists:
+          - site-packages/LICENSE
+          - lib/python*/site-packages/LICENSE
+          - Lib/site-packages/LICENSE
+
+about:
+  homepage: https://gridpin.dev
+  summary: Offline forward and reverse geocoder with one memory-mapped file per country
+  description: |
+    GridPin turns addresses into coordinates and coordinates into addresses
+    without a server or an API key. Each country is a single memory-mapped
+    file; queries run locally. The engine is written in Rust; this package
+    provides the Python bindings (gridpin.Geocoder). Country files are
+    downloaded separately, for example with gridpin-fetch from gridpin-mcp.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://gridpin.dev/docs
+  repository: https://github.com/gridpin/gridpin
+
+extra:
+  recipe-maintainers:
+    - gridpin-reserve
