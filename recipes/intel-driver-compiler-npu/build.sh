@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
-# Builds libnpu_driver_compiler.so (the Compiler-in-Driver) from npu_compiler,
+# Builds the Compiler-in-Driver libraries from npu_compiler,
 # consuming the conda-forge OpenVINO runtime + the libopenvino-npu-compiler-support
 # shared lib rather than rebuilding OpenVINO. The Intel LLVM/MLIR fork
 # (npu_compiler/thirdparty/llvm-project) is built in-tree and statically fused
@@ -37,6 +37,7 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_COMPILER_FOR_DRIVER=ON \
     -DENABLE_PREBUILT_LLVM_MLIR_LIBS=OFF \
     -DENABLE_TESTS=OFF \
+    -DENABLE_NPU_EXECUTION_ENGINE=OFF \
     -DLLVM_USE_LINKER=lld \
     -DLLVM_PARALLEL_LINK_JOBS=2 \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -45,10 +46,11 @@ cmake ${CMAKE_ARGS} \
     -DOpenVINONPUCompilerSupport_DIR="$PREFIX/lib/cmake/OpenVINONPUCompilerSupport" \
     ..
 
-cmake --build . --parallel "${CPU_COUNT}"
+cmake --build . --parallel "${CPU_COUNT}" --target openvino_intel_npu_compiler openvino_intel_npu_compiler_loader
 
-# Install only the driver compiler shared lib.
 install -d "$PREFIX/lib"
-install -m 0755 "$(find . -name 'libnpu_driver_compiler.so' | head -1)" "$PREFIX/lib/"
+for lib in libopenvino_intel_npu_compiler.so libopenvino_intel_npu_compiler_loader.so; do
+    install -m 0755 "$(find . -name "$lib" | head -1)" "$PREFIX/lib/"
+done
 
 popd

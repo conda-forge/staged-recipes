@@ -33,6 +33,25 @@ if(NOT TARGET openvino::runtime::dev)
     add_library(openvino::runtime::dev ALIAS openvino_runtime_dev_shim)
 endif()
 
+if(NOT TARGET openvino::core::dev)
+    add_library(openvino::core::dev ALIAS openvino_runtime_dev_shim)
+endif()
+
+if(NOT TARGET openvino::util)
+    add_library(openvino_util_shim INTERFACE IMPORTED GLOBAL)
+    target_link_libraries(openvino_util_shim INTERFACE ${CMAKE_DL_LIBS})
+    add_library(openvino::util ALIAS openvino_util_shim)
+endif()
+
+add_compile_definitions(NPU_CONDA_OUT_OF_TREE)
+
+if(NOT TARGET openvino::threading)
+    find_package(TBB REQUIRED COMPONENTS tbb)
+    add_library(openvino_threading_shim INTERFACE IMPORTED GLOBAL)
+    target_link_libraries(openvino_threading_shim INTERFACE TBB::tbb)
+    add_library(openvino::threading ALIAS openvino_threading_shim)
+endif()
+
 # openvino::itt — Intel ITT profiling interface. In a production package build
 # ITT is disabled; provide an empty INTERFACE target so the generator
 # expression $<TARGET_PROPERTY:openvino::itt,INTERFACE_COMPILE_DEFINITIONS>
@@ -88,6 +107,9 @@ function(ov_commit_hash OUT_VAR SRC_DIR)
         endif()
     endif()
     set(${OUT_VAR} "${_hash}" PARENT_SCOPE)
+endfunction()
+function(ov_branch_name OUT_VAR SRC_DIR)
+    set(${OUT_VAR} "HEAD" PARENT_SCOPE)
 endfunction()
 function(ov_add_version_defines VERSION_FILE TARGET_NAME)
     if(NOT DEFINED CI_BUILD_NUMBER)
