@@ -3,6 +3,9 @@
 # Mirrors the opam build of lwt: the discover step runs first (libev disabled).
 set -euxo pipefail
 
+# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+export DUNE_CACHE=disabled
+
 pkg="$1"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

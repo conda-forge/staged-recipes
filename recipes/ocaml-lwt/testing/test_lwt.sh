@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Checks lwt and lwt.unix are installed and that a dune project using them builds and runs.
 set -euxo pipefail
+
+# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+export DUNE_CACHE=disabled
+
 LIBDIR="${PREFIX}/lib/ocaml"
 if [[ -d "${PREFIX}/Library/lib/ocaml" ]]; then LIBDIR="${PREFIX}/Library/lib/ocaml"; fi
 d="${LIBDIR}/lwt"

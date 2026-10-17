@@ -2,6 +2,9 @@
 # Build semgrep-core with dune inside a workspace holding the vendored duniverse.
 set -euxo pipefail
 
+# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+export DUNE_CACHE=disabled
+
 # shellcheck source=/dev/null
 source "${RECIPE_DIR}/building/build_findlib.sh"
 T="${SRC_DIR}/_tools"

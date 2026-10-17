@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Checks ppxlib files exist and links ppxlib.cmxa with its dependency chain.
 set -euxo pipefail
+
+# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+export DUNE_CACHE=disabled
+
 LIBDIR="${PREFIX}/lib/ocaml"
 if [[ -d "${PREFIX}/Library/lib/ocaml" ]]; then LIBDIR="${PREFIX}/Library/lib/ocaml"; fi
 d="${LIBDIR}/ppxlib"

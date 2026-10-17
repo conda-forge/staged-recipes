@@ -3,6 +3,9 @@
 # Builds and installs dune package(s) into the conda lib/ocaml tree.
 set -euxo pipefail
 
+# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+export DUNE_CACHE=disabled
+
 pkgs="$1"
 
 if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
