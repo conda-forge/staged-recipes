@@ -29,6 +29,8 @@ schema_version: 1
 context:
   version: "1.180.0"
   findlib_version: "1.9.8"
+  # non-unix: conda-forge ocaml has gcc_ and vs2022_ tracks; semgrep-core uses the gcc (MinGW) track like the ocaml-* recipes.
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
 
 recipe:
   name: semgrep-split
@@ -536,10 +538,17 @@ outputs:
       build:
         - python  # unpacks pecu (build_semgrep_core.sh)
         - perl  # in-place edits in build_semgrep_core.sh
-        - ${{ compiler("c") }}
-        - ${{ compiler("cxx") }}
-        - ${{ stdlib("c") }}
-        - ocaml ${{ ocaml_compiler_version }}.*
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+            - ${{ compiler("cxx") }}
+            - ${{ stdlib("c") }}
+          else:
+            # MinGW gcc/g++ (grammar scanner.cc stubs need cc1plus); compiler("c") would be vs2022
+            - ${{ compiler("m2w64_c") }}
+            - ${{ compiler("m2w64_cxx") }}
+            - ${{ stdlib("m2w64_c") }}
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         - ocaml-dune 3.24.*
         # menhir (parser generator) and cppo (preprocessor) are NOT vendored.
         # build >=1: menhirLib under lib/ocaml (build 0 used lib/menhirLib)
@@ -551,7 +560,7 @@ outputs:
           then:
             - m2-grep  # zarith's Makefile greps META for its version
       host:
-        - ocaml ${{ ocaml_compiler_version }}.*
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         # menhirLib runtime (linked into the parsers); see note under build
         - ocaml-menhir[version='20230608.*', build_number='>=1']
         # provided from conda (opam name -> conda name); min versions from the opam solve

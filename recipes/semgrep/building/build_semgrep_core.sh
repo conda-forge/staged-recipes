@@ -76,7 +76,51 @@ export FORCE_DYNLINK=true
 export TREESITTER_INCDIR="${prefix}/include"
 export TREESITTER_LIBDIR="${prefix}/lib"
 
+if [[ -n "${exe}" ]]; then
+  # conda's non-unix libtree-sitter and pcre2 are MSVC builds (tree-sitter.lib, pcre2-8.lib;
+  # no tree-sitter.pc), but flexlink (MinGW) resolves -l<name> to lib<name>.dll.a. Make MinGW
+  # import libs from the DLLs into a private dir and point -L / pkg-config at it.
+  implib="${SRC_DIR//\\//}/_tools/implib"
+  mkdir -p "${implib}/pkgconfig"
+  for lib in tree-sitter pcre2-8; do
+    dll="${prefix//\\//}/bin/${lib}.dll"
+    test -f "${dll}"
+    "${OBJDUMP:-x86_64-w64-mingw32-objdump}" -p "${dll}" | perl -ne '
+      BEGIN { print "EXPORTS\n" }
+      if (/\[Ordinal\/Name Pointer\] Table/) { $in = 1; next }
+      if ($in) { if (/^\s*\[\s*\d+\].*\s(\S+)\s*$/) { print "$1\n"; $n++ } elsif (/^\s*$/ && $n) { $in = 0 } }
+      END { exit 1 unless $n }' > "${implib}/${lib}.def"
+    "${DLLTOOL:-x86_64-w64-mingw32-dlltool}" -d "${implib}/${lib}.def" -D "${lib}.dll" -l "${implib}/lib${lib}.dll.a"
+    test -s "${implib}/lib${lib}.dll.a"
+  done
+  cat > "${implib}/pkgconfig/tree-sitter.pc" <<EOF
+Name: tree-sitter
+Description: tree-sitter runtime (MinGW import lib made by build_semgrep_core.sh)
+Version: 0.27
+Libs: -L${implib} -ltree-sitter
+Cflags: -I${prefix//\\//}/include
+EOF
+  export PKG_CONFIG_PATH="${implib}/pkgconfig${sep}${PKG_CONFIG_PATH}"
+  export TREESITTER_LIBDIR="${implib}"
+  # pcre2-ocaml and the grammar stubs pass bare -l flags; give flexlink the search dir.
+  export FLEXLINKFLAGS="${FLEXLINKFLAGS:+${FLEXLINKFLAGS} }-L${implib}"
+fi
+pkg-config --exists --print-errors tree-sitter
+
 cd "${SRC_DIR}/semgrep"
+
+if [[ -n "${exe}" ]]; then
+  # tarball symlinks (src/*.atd -> interfaces/, languages/*/Makefile, scanner.h, ...) come out
+  # broken on non-unix; replace each resolvable one with a copy of its target. Two passes for
+  # links that go through other links.
+  for pass in 1 2; do
+    while IFS= read -r l; do
+      t="$(dirname "${l}")/$(readlink "${l}")"
+      if [[ -e "${t}" ]]; then rm -f "${l}"; cp -rL "${t}" "${l}"; fi
+    done < <(find . -path ./duniverse -prune -o -type l -print)
+  done
+  test -f src/configuring/Rule_options.atd && ! test -L src/configuring/Rule_options.atd
+fi
 
 # The root `dune` limits scanned dirs to (dirs libs languages src tools cli):
 # add duniverse and mark it vendored (inherited by every duniverse/<pkg>, so
