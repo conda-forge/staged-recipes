@@ -151,11 +151,11 @@ if [[ -n "${exe}" ]]; then
   perl -ne 'exit 1 if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
   # ANSITerminal: caml_raise_with_args is used without <caml/fail.h> (implicit declaration
   # is an error in gcc >= 14), and FillConsoleOutputCharacterA gets an int* for LPDWORD
-  # (both 32-bit on non-unix).
+  # (both 32-bit on non-unix). ANSITerminal_stubs.c is produced by a dune rule, so
+  # force-include the header through the stub flags.
   ansi=duniverse/ANSITerminal/src
-  perl -0pi -e 's/\A/#include <caml\/fail.h>\n/' "${ansi}/ANSITerminal_stubs.c"
-  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
-  perl -ne '$c++ if /-Wno-error=incompatible-pointer-types/; END { exit 1 unless $c }' "${ansi}/dune"
+  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -include caml\/fail.h -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
+  perl -ne '$c++ if /-include caml\/fail\.h -Wno-error=incompatible-pointer-types/; END { exit 1 unless $c }' "${ansi}/dune"
   # parmap: `long len` is passed as intnat* (long is 32-bit, intnat 64-bit on non-unix).
   perl -pi -e 's/\blong(\s+len\b)/intnat$1/g' duniverse/parmap/src/bytearray_stubs.c
   perl -ne '$c++ if /\bintnat\s+len\b/; exit 1 if /\blong\s+len\b/; END { exit 1 unless $c }' duniverse/parmap/src/bytearray_stubs.c
