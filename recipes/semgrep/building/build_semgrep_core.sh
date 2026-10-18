@@ -110,13 +110,14 @@ pkg-config --exists --print-errors tree-sitter
 cd "${SRC_DIR}/semgrep"
 
 if [[ -n "${exe}" ]]; then
-  # tarball symlinks (src/*.atd -> interfaces/, languages/*/Makefile, scanner.h, ...) come out
-  # broken on non-unix; replace each resolvable one with a copy of its target. Two passes for
-  # links that go through other links.
+  # tarball symlinks (src/*.atd -> interfaces/, scanner.h, ...) come out broken on non-unix;
+  # replace each one that points at a regular file with a copy. Directory links (grammar
+  # trees under libs/ocaml-tree-sitter-semgrep/lang) are left alone: dune does not need them
+  # and their trees hold dangling links. Two passes for file links that go through other links.
   for pass in 1 2; do
     while IFS= read -r l; do
       t="$(dirname "${l}")/$(readlink "${l}")"
-      if [[ -e "${t}" ]]; then rm -f "${l}"; cp -rL "${t}" "${l}"; fi
+      if [[ -f "${t}" ]]; then rm -f "${l}"; cp "${t}" "${l}"; fi
     done < <(find . -path ./duniverse -prune -o -type l -print)
   done
   test -f src/configuring/Rule_options.atd && ! test -L src/configuring/Rule_options.atd
