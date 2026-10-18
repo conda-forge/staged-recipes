@@ -1,0 +1,81 @@
+context:
+  version: "0.24.0"
+
+package:
+  name: rom-converto
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DevYukine/rom-converto/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2d1207de31c5f975b409f7e7ed0dfac677ee82a4da1a1bb99b608cae61648d5c
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      # Makes `--version` print the plain semver instead of "dev-<git hash>".
+      ROM_CONVERTO_RELEASE: "1"
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --root ${{ PREFIX }} --path crates/rom-converto-cli
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/rom-converto shell-completions zsh > $PREFIX/share/zsh/site-functions/_rom-converto
+          - $PREFIX/bin/rom-converto shell-completions bash > $PREFIX/share/bash-completion/completions/rom-converto
+          - $PREFIX/bin/rom-converto shell-completions fish > $PREFIX/share/fish/vendor_completions.d/rom-converto.fish
+        else:
+          - cargo auditable install --locked --no-track --root %LIBRARY_PREFIX% --path crates/rom-converto-cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    # aws-lc-sys (via rustls) builds with cmake
+    - cmake
+    - if: unix
+      then: make
+    - if: win
+      then: nasm
+
+tests:
+  - script:
+      - rom-converto --help
+      - rom-converto --version
+  - package_contents:
+      bin:
+        - rom-converto
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/rom-converto
+            - share/fish/vendor_completions.d/rom-converto.fish
+            - share/zsh/site-functions/_rom-converto
+      strict: true
+
+about:
+  homepage: https://github.com/DevYukine/rom-converto
+  summary: Convert, compress, decrypt, and verify ROMs and disc images
+  description: |
+    rom-converto is a command line tool for converting, compressing,
+    decompressing, encrypting, and decrypting ROMs and disc images for
+    many consoles, including Nintendo DS, 3DS, GameCube, Wii, Wii U,
+    Switch, PSP, PS2, PS3, PS Vita, Xbox, Xbox 360, and CD/DVD based
+    systems (CHD). It can also inspect packages, hash and verify files,
+    and organize a whole ROM library into per-console folders.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://github.com/DevYukine/rom-converto/blob/main/docs/cli.md
+  repository: https://github.com/DevYukine/rom-converto
+
+extra:
+  recipe-maintainers:
+    - pavelzw
