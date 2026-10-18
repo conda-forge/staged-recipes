@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: libspelling
+  version: "0.4.10"
+  version_majmin: ${{ (version | split('.'))[:2] | join('.') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://download.gnome.org/sources/${{ name }}/${{ version_majmin }}/${{ name }}-${{ version }}.tar.xz
+  sha256: 56e3f01a3a18b575beea4c34349f99cdaba316e1f7c271b1231f7bcf5d9af73b
+
+build:
+  number: 0
+  # Introspection generation needs to execute the target library.
+  skip: win or build_platform != target_platform
+  script: |
+    meson setup ${MESON_ARGS} \
+      --default-library=shared \
+      --wrap-mode=nofallback \
+      -Ddocs=false \
+      -Dvapi=false \
+      -Dsysprof=false \
+      -Dintrospection=enabled \
+      builddir
+    meson compile -C builddir
+    meson install -C builddir
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=0.62
+    - ninja
+    - pkg-config
+    - gobject-introspection
+    - gettext
+  host:
+    - enchant
+    - expat
+    - glib
+    - gobject-introspection
+    - gtk4 >=4.15.5
+    - gtksourceview >=5.10
+    - icu
+    - if: osx
+      then: libintl-devel
+    - libxml2-devel
+    - zlib
+  run:
+    - gtksourceview >=5.10
+    - libpango
+  run_exports:
+    - ${{ pin_subpackage('libspelling', upper_bound='x.x') }}
+  ignore_run_exports:
+    by_name:
+      - libexpat
+      - libzlib
+    from_package:
+      - libxml2-devel
+
+tests:
+  - package_contents:
+      files:
+        - lib/pkgconfig/libspelling-1.pc
+        - lib/girepository-1.0/Spelling-1.typelib
+      lib:
+        - spelling-1
+  - requirements:
+      run:
+        - python
+        - pygobject
+    script:
+      interpreter: python
+      content: |
+        import gi
+        gi.require_version("Spelling", "1")
+        from gi.repository import Spelling
+        assert Spelling.Provider.get_default() is not None
+
+about:
+  homepage: https://gitlab.gnome.org/GNOME/libspelling
+  repository: https://gitlab.gnome.org/GNOME/libspelling
+  documentation: https://gnome.pages.gitlab.gnome.org/libspelling/
+  summary: Spellcheck library for GTK 4
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - wolfv
