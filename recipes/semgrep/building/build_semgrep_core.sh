@@ -43,9 +43,10 @@ pushd "${SRC_DIR}/nondune/zarith"
   if [[ "${target_platform:-}" == win-* ]]; then
     # configure records backslash paths (ocamlc -where, pkg-config) and gcc then
     # misses gmp.h; use forward slashes.
-    [[ -f Makefile.config ]] || { ls; exit 1; }
-    perl -pi -e 's{\\}{/}g' Makefile.config
-    perl -ne 'print "Makefile.config: $_"' Makefile.config
+    [[ -f Makefile ]] || { ls; exit 1; }
+    # zarith's configure generates Makefile (which includes project.mak); keep EOL continuations
+    perl -pi -e 's{\\(?![\r\n])}{/}g' Makefile
+    perl -ne 'print "Makefile: $_"' Makefile
   fi
   make
   make install
