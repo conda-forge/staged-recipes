@@ -2,7 +2,7 @@
 # Checks ppxlib files exist and links ppxlib.cmxa with its dependency chain.
 set -euxo pipefail
 
-# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+# dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root); keep builds hermetic.
 export DUNE_CACHE=disabled
 
 LIBDIR="${PREFIX}/lib/ocaml"

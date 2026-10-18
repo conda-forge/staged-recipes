@@ -3,7 +3,7 @@
 # Builds and installs dune package(s) into the conda lib/ocaml tree.
 set -euxo pipefail
 
-# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+# dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root); keep builds hermetic.
 export DUNE_CACHE=disabled
 
 pkgs="$1"
@@ -25,7 +25,7 @@ requires = ""
 EOF
 done
 if [[ "${prefix}" == */Library ]]; then sep=';'; else sep=':'; fi
-# Host libs (e.g. csexp) live in ${prefix}/lib/ocaml; win activation only lists BUILD_PREFIX.
+# Host libs (e.g. csexp) live in ${prefix}/lib/ocaml; non-unix activation only lists BUILD_PREFIX.
 export OCAMLPATH="${compat}${sep}${prefix}/lib/ocaml${OCAMLPATH:+${sep}${OCAMLPATH}}"
 
 dune build -p "${pkgs}" --profile=release -j "${CPU_COUNT:-1}" @install

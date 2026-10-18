@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 ARCHIVE_EXT = re.compile(r"\.(tar\.gz|tgz|tar\.bz2|tbz|tar\.xz|txz|tar|zip)$")
 
 # Target dirs whose archive is kept as-is (file_name set) and unpacked by
-# build_semgrep_core.sh: pecu's tests have ':' in file names (not creatable on win).
+# build_semgrep_core.sh: pecu's tests have ':' in file names (not creatable on non-unix).
 NO_EXTRACT = {"pecu"}
 
 

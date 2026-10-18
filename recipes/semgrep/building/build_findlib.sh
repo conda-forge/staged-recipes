@@ -6,7 +6,7 @@ set -euxo pipefail
 
 T="${SRC_DIR}/_tools"
 
-# conda-build/rattler-build: on Windows the OCaml tree lives under Library/
+# conda-build/rattler-build: on non-unix the OCaml tree lives under Library/
 if [[ "${OS:-}" == "Windows_NT" || "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   SEP=";"

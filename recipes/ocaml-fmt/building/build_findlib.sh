@@ -6,7 +6,7 @@ set -euxo pipefail
 
 T="${SRC_DIR}/_tools"
 
-# conda-build/rattler-build: on Windows the OCaml tree lives under Library/
+# conda-build/rattler-build: on non-unix the OCaml tree lives under Library/
 if [[ "${OS:-}" == "Windows_NT" || "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   SEP=";"
@@ -56,7 +56,7 @@ path="${PFXC}/lib/ocaml${SEP}${TC}/lib${SEP}${OCAML_STDLIB}"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
 
-# win ocamlbuild 0.16.1 _3 bakes its feedstock build-time libdir (not relocated);
+# non-unix ocamlbuild 0.16.1 _3 bakes its feedstock build-time libdir (not relocated);
 # recreate it so plugin builds (mtime) find ocamlbuild.cmo. Drop once fixed upstream.
 if [[ "${SEP}" == ";" ]]; then
   OCB_BAKED="$(ocamlbuild -where | tr -d '\r')"

@@ -2,7 +2,7 @@
 # Build semgrep-core with dune inside a workspace holding the vendored duniverse.
 set -euxo pipefail
 
-# dune's shared cache breaks on win (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+# dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root); keep builds hermetic.
 export DUNE_CACHE=disabled
 
 # shellcheck source=/dev/null
@@ -20,12 +20,12 @@ pushd "${SRC_DIR}/nondune/num"
   # "already installed" (frontend.ml: Filename.concat "" "META.num"), and
   # src/ holds the generated META.num, so move it out of the way first.
   mv src/META.num src/META.num-gen
-  # num's Makefile echo's META.num line by line; win make's shell keeps the single
-  # quotes (and may leave a BOM/trailing blanks/CR). Strip them; grep is absent on win.
+  # num's Makefile echo's META.num line by line; non-unix make's shell keeps the single
+  # quotes (and may leave a BOM/trailing blanks/CR). Strip them; grep is absent on non-unix.
   perl -pi -e "s/^\xEF\xBB\xBF//; s/\s+\z//; s/^\s*'//; s/'\s*\z//; \$_ .= qq(\n)" src/META.num-gen
   perl -ne 'chomp(my $l = $_); print "META.num-gen: [$l]\n"; exit 1 if /\x27/ || /\r/' src/META.num-gen
   perl -pi -e 's/^\tcp META\.num META\r?$/\tcp META.num-gen META/' src/Makefile
-  # win make shell keeps quotes in echo'd META.top; num-top unused
+  # non-unix make shell keeps quotes in echo'd META.top; num-top unused
   perl -pi -e 's/^findlib-install: num-top-install\s*$/findlib-install:\n/' src/Makefile
   perl -ne '$c++ if /^\tcp META\.num-gen META/; exit 1 if /^findlib-install: num-top-install/; END { exit 1 unless $c }' src/Makefile
   make findlib-install
@@ -68,13 +68,13 @@ else
   prefix="${PREFIX}"; sep=':'
 fi
 export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
+export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig${sep}${prefix}/share/pkgconfig${PKG_CONFIG_PATH:+${sep}${PKG_CONFIG_PATH}}"
 
 # Dynamic linking: makes src/main/flags.sh emit no static/brew flags.
 export FORCE_DYNLINK=true
 # Per-grammar C stubs read these (default /usr/local); point at conda tree-sitter.
-export TREESITTER_INCDIR="${PREFIX}/include"
-export TREESITTER_LIBDIR="${PREFIX}/lib"
+export TREESITTER_INCDIR="${prefix}/include"
+export TREESITTER_LIBDIR="${prefix}/lib"
 
 cd "${SRC_DIR}/semgrep"
 
@@ -96,10 +96,10 @@ rm -rf duniverse/dune/otherlibs/configurator
 
 # iomux stubs hardcode -Werror; on osx clang warns that -L$BUILD_PREFIX/lib (from
 # :standard) is unused when compiling only, which fails the build.
-perl -pi -e 's/"-Werror"//' duniverse/ocaml-iomux/lib/dune
-if grep -q -- '-Werror' duniverse/ocaml-iomux/lib/dune; then exit 1; fi
+perl -pi -e 's/\x22-Werror\x22//' duniverse/ocaml-iomux/lib/dune
+perl -ne 'exit 1 if /\x22-Werror\x22/' duniverse/ocaml-iomux/lib/dune
 
-# pecu's tarball has test files with ':' in names (not creatable on win), so the recipe
+# pecu's tarball has test files with ':' in names (not creatable on non-unix), so the recipe
 # keeps the .tbz unextracted; unpack it here without test/ (build-env python; $PYTHON is the host one).
 pecu_dir=duniverse/pecu
 python - "${pecu_dir}/pecu-0.7.tbz" "${pecu_dir}" <<'EOF'
