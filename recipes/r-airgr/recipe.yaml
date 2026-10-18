@@ -6,31 +6,74 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://cran.r-project.org/src/contrib/airGR_${{ version }}.tar.gz
-  sha256: REPLACE_ME
+  url:
+    - ${{ cran_mirror }}/src/contrib/airGR_${{ version }}.tar.gz
+    - ${{ cran_mirror }}/src/contrib/Archive/airGR/airGR_${{ version }}.tar.gz
+  sha256: 7af0d1858a116f7525f2615c392acbd2d91baa6d8df3ba2d667bb2ddb3d8b082
 
 build:
   number: 0
   script:
-    content: R CMD INSTALL --build .
+    - if: win
+      then: R CMD INSTALL --build . %R_ARGS%
+      else: R CMD INSTALL --build . ${R_ARGS}
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+    missing_dso_allowlist:
+      - if: win
+        then:
+          - "*/R.dll"
+          - "*/Rblas.dll"
+          - "*/Rlapack.dll"
 
 requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - cross-r-base ${{ r_base }}
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ stdlib('m2w64_c') }}
+        - ${{ compiler('m2w64_fortran') }}
+        - m2-make
+      else:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('fortran') }}
+        - make
   host:
-    - r-base >=3.1
+    - r-base
   run:
-    - r-base >=3.1
+    - r-base
 
 tests:
-  - commands:
-      - R -e "library(airGR); packageVersion('airGR')"
+  - script:
+      - Rscript -e "library(airGR)"
+      - Rscript run_test.R
+    files:
+      recipe:
+        - run_test.R
 
 about:
   homepage: https://hydrogr.github.io/airGR/
-  summary: A set of hydrological models and tools for rainfall-runoff modelling
-  license: CeCILL (>= 2.1)
-  license_file: LICENSE
-  repository: https://github.com/HydroGR/airGR
+  repository: https://forge.inrae.fr/hydroGR/airgrgalaxy/airgr
+  documentation: https://hydrogr.github.io/airGR/
+  summary: Suite of GR Hydrological Models for Precipitation-Runoff Modelling
+  description: |
+    Hydrological modelling tools developed at INRAE-Antony (HYCAR Research
+    Unit, France). The package includes several conceptual rainfall-runoff
+    models (GR4H, GR5H, GR4J, GR5J, GR6J, GR2M, GR1A) that can be applied
+    either on a lumped or semi-distributed way. A snow accumulation and melt
+    model (CemaNeige) and the associated functions for the calibration and
+    evaluation of models are also included.
+  license: GPL-2.0-only
+  license_file:
+    - ${{ PREFIX }}/lib/R/share/licenses/GPL-2
 
 extra:
   recipe-maintainers:
+    - conda-forge/r
     - fbourgin
