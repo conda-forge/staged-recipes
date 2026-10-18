@@ -20,7 +20,13 @@ pushd "${SRC_DIR}/nondune/num"
   # "already installed" (frontend.ml: Filename.concat "" "META.num"), and
   # src/ holds the generated META.num, so move it out of the way first.
   mv src/META.num src/META.num-gen
+  # num's Makefile echo's META.num line by line; win make's shell keeps the single quotes.
+  perl -pi -e "s/^'(.*)'(\r?)\$/\$1\$2/" src/META.num-gen
+  if grep -q "^'" src/META.num-gen; then exit 1; fi
   perl -pi -e 's/^\tcp META\.num META$/\tcp META.num-gen META/' src/Makefile
+  # win make shell keeps quotes in echo'd META.top; num-top unused
+  perl -pi -e 's/^findlib-install: num-top-install\s*$/findlib-install:\n/' src/Makefile
+  if grep -q '^findlib-install: num-top-install' src/Makefile ; then exit 1; fi
   make findlib-install
 popd
 
