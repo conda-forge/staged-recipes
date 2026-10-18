@@ -32,9 +32,21 @@ pushd "${SRC_DIR}/nondune/num"
 popd
 
 pushd "${SRC_DIR}/nondune/zarith"
-  CFLAGS="${CFLAGS:-} -I${PREFIX}/include" \
-  LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib" \
+  if [[ "${target_platform:-}" == win-* ]]; then
+    zinc="${PREFIX//\\//}/Library/include"; zlib="${PREFIX//\\//}/Library/lib"
+  else
+    zinc="${PREFIX}/include"; zlib="${PREFIX}/lib"
+  fi
+  CFLAGS="${CFLAGS:-} -I${zinc}" \
+  LDFLAGS="${LDFLAGS:-} -L${zlib}" \
   ./configure
+  if [[ "${target_platform:-}" == win-* ]]; then
+    # configure records backslash paths (ocamlc -where, pkg-config) and gcc then
+    # misses gmp.h; use forward slashes.
+    [[ -f Makefile.config ]] || { ls; exit 1; }
+    perl -pi -e 's{\\}{/}g' Makefile.config
+    perl -ne 'print "Makefile.config: $_"' Makefile.config
+  fi
   make
   make install
 popd
