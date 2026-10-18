@@ -42,7 +42,12 @@ description = "dummy backward-compatibility package for iterators"
 requires = ""
 EOF
 
-export OCAMLPATH="${T}/lib:${PREFIX}/lib/ocaml"
+if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
+  prefix="${PREFIX}/Library"; sep=';'
+else
+  prefix="${PREFIX}"; sep=':'
+fi
+export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
 
 # Dynamic linking: makes src/main/flags.sh emit no static/brew flags.
@@ -73,6 +78,23 @@ rm -rf duniverse/dune/otherlibs/configurator
 # :standard) is unused when compiling only, which fails the build.
 perl -pi -e 's/"-Werror"//' duniverse/ocaml-iomux/lib/dune
 if grep -q -- '-Werror' duniverse/ocaml-iomux/lib/dune; then exit 1; fi
+
+# pecu's tarball has test files with ':' in names (not creatable on win), so the recipe
+# keeps the .tbz unextracted; unpack it here without test/ (build-env python; $PYTHON is the host one).
+pecu_dir=duniverse/pecu
+python - "${pecu_dir}/pecu-0.7.tbz" "${pecu_dir}" <<'EOF'
+import sys, tarfile
+src, dest = sys.argv[1:3]
+with tarfile.open(src) as t:
+    for m in t.getmembers():
+        parts = m.name.split("/", 1)
+        m.name = parts[1] if len(parts) > 1 else ""
+        if not m.name or m.name.startswith("test") or ":" in m.name:
+            continue
+        t.extract(m, dest)
+EOF
+mv "${pecu_dir}/pecu-0.7.tbz" "${SRC_DIR}/pecu-0.7.tbz.done"
+test -f "${pecu_dir}/dune-project" || exit 1
 
 # Same target as upstream `make core`. Not `-p semgrep` (hides vendored pkgs)
 # and not @install (in-tree tree-sitter package install needs cargo).

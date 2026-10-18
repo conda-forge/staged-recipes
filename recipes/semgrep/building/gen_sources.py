@@ -16,6 +16,10 @@ from urllib.parse import urlparse
 
 ARCHIVE_EXT = re.compile(r"\.(tar\.gz|tgz|tar\.bz2|tbz|tar\.xz|txz|tar|zip)$")
 
+# Target dirs whose archive is kept as-is (file_name set) and unpacked by
+# build_semgrep_core.sh: pecu's tests have ':' in file names (not creatable on win).
+NO_EXTRACT = {"pecu"}
+
 
 def warn(msg):
     sys.stderr.write("WARNING: %s\n" % msg)
@@ -140,6 +144,8 @@ def main(argv):
         else:
             warn("%s: no checksum" % ", ".join(e["pkgs"]))
             print("    sha256: TODO  # WARNING no checksum")
+        if d in NO_EXTRACT:
+            print("    file_name: %s" % urlparse(url).path.rsplit("/", 1)[-1])
         print("    target_directory: %s/%s" % (prefix, d))
     sys.stderr.write("%d source entries from %d packages\n" % (len(order), sum(len(e["pkgs"]) for e in entries.values())))
 
