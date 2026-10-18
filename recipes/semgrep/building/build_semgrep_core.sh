@@ -144,6 +144,23 @@ rm -rf duniverse/dune/otherlibs/configurator
 perl -pi -e 's/\x22-Werror\x22//' duniverse/ocaml-iomux/lib/dune
 perl -ne 'exit 1 if /\x22-Werror\x22/' duniverse/ocaml-iomux/lib/dune
 
+if [[ -n "${exe}" ]]; then
+  # cairo and move_on_sui grammars add -Wl,-rpath,... to c_library_flags; flexlink hands it
+  # to gcc as a bare -rpath, which the MinGW driver rejects. Drop it (comments mention rpath too).
+  perl -pi -e '$_ = "" if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
+  perl -ne 'exit 1 if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
+  # ANSITerminal: caml_raise_with_args is used without <caml/fail.h> (implicit declaration
+  # is an error in gcc >= 14), and FillConsoleOutputCharacterA gets an int* for LPDWORD
+  # (both 32-bit on non-unix).
+  ansi=duniverse/ANSITerminal/src
+  perl -0pi -e 's/\A/#include <caml\/fail.h>\n/' "${ansi}/ANSITerminal_stubs.c"
+  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
+  perl -ne '$c++ if /-Wno-error=incompatible-pointer-types/; END { exit 1 unless $c }' "${ansi}/dune"
+  # parmap: `long len` is passed as intnat* (long is 32-bit, intnat 64-bit on non-unix).
+  perl -pi -e 's/\blong(\s+len\b)/intnat$1/g' duniverse/parmap/src/bytearray_stubs.c
+  perl -ne '$c++ if /\bintnat\s+len\b/; exit 1 if /\blong\s+len\b/; END { exit 1 unless $c }' duniverse/parmap/src/bytearray_stubs.c
+fi
+
 # pecu's tarball has test files with ':' in names (not creatable on non-unix), so the recipe
 # keeps the .tbz unextracted; unpack it here without test/ (build-env python; $PYTHON is the host one).
 pecu_dir=duniverse/pecu
