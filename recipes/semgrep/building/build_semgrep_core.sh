@@ -63,9 +63,9 @@ requires = ""
 EOF
 
 if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
-  prefix="${PREFIX}/Library"; sep=';'
+  prefix="${PREFIX}/Library"; sep=';'; exe=.exe
 else
-  prefix="${PREFIX}"; sep=':'
+  prefix="${PREFIX}"; sep=':'; exe=
 fi
 export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
 export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig${sep}${prefix}/share/pkgconfig${PKG_CONFIG_PATH:+${sep}${PKG_CONFIG_PATH}}"
@@ -124,7 +124,8 @@ test -f "${pecu_dir}/dune-project" || exit 1
 # enclosing checkout; pin it to the upstream v${PKG_VERSION} tag commit.
 export SEMGREP_GIT_COMMIT=a35fe8306115b3e55274969098cc46f8451d6b4d
 
-dune build --profile=release -j "${CPU_COUNT:-2}" ./_build/install/default/bin/semgrep-core
+# dune names executables <name>.exe on non-unix; the install-tree target follows.
+dune build --profile=release -j "${CPU_COUNT:-2}" "./_build/install/default/bin/semgrep-core${exe}"
 
-mkdir -p "${PREFIX}/bin"
-install -m 0755 _build/install/default/bin/semgrep-core "${PREFIX}/bin/semgrep-core"
+mkdir -p "${prefix}/bin"
+install -m 0755 "_build/install/default/bin/semgrep-core${exe}" "${prefix}/bin/semgrep-core${exe}"
