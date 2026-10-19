@@ -46,18 +46,16 @@ CMAKE_ARGS=(
     -Dbundled-sndfile=OFF
     -Dbundled-flac=OFF
     -Dbundled-vorbis=OFF
-    -Dbundled-tracy=OFF
     -Dbundled-gsl=OFF
     -Dbundled-minhook=OFF
     -Dbundled-SPSCQueue=OFF
     -Dbundled-speex=OFF
-    -Dbundled-renamenoise=OFF
-    -DTRACY_ENABLE=OFF
+    -Drenamenoise=OFF
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
-    # speexdsp's cmake config file has a broken hardcoded include path; remove it
-    # so mumble's find_pkg falls back to pkg-config which uses relocatable paths
+    # speexdsp's CMake config contains a non-relocatable include path; remove it
+    # so Mumble falls back to the package's relocatable pkg-config metadata.
     rm -rf "${PREFIX}/lib/cmake/speexdsp"
 
     export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS:-}"

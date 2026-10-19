@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "1.5.857"
+  version: "1.5.939"
   # Number of processors to use during build
   nprocs: ${{ [2, env.get('CPU_COUNT', default="8") | int] | max }}
 
@@ -10,38 +10,14 @@ recipe:
   version: ${{ version }}
 
 source:
-  - url: https://github.com/mumble-voip/mumble/archive/refs/tags/v${{ version }}.tar.gz
-    sha256: fa43acfc513c5099c58f17e737b6ab6f3f1adc8738f75102ae87d8c120747f02
+  - url: https://github.com/mumble-voip/mumble/releases/download/v${{ version }}/mumble-${{ version }}.tar.gz
+    sha256: da181098ab062a44ab7f2b65ab2b65926898ebca5d8c665ca2ce50d38cd11414
     target_directory: src/mumble
     patches:
       - patches/0003-fix-updateentry-struct-initialization.patch
-      - patches/0004-make-tracy-directory-optional.patch
+      - patches/0004-use-system-tracy.patch
       - if: win
         then: patches/0001-fix-msvc-protobuf-warnings.patch
-      - if: osx
-        then:
-          - patches/0002-fix-macos-implicit-int-float-conversion.patch
-  # Keep only essential mumble-specific bundled libraries
-  - url: https://raw.githubusercontent.com/Krzmbrzl/FindPythonInterpreter/refs/heads/main/FindPythonInterpreter.cmake
-    sha256: d3f1988bcc8a239271d281e2dd2417b44c49a0239398c97a08a0e803ed023bf3
-    target_directory: src/mumble/3rdparty/FindPythonInterpreter/
-  - url: https://raw.githubusercontent.com/Krzmbrzl/cmake-compiler-flags/refs/heads/main/CompilerFlags.cmake
-    sha256: 297e2c9fa52a913ac1880812a71313656b40b2cd15e92e5565d570434165bf0c
-    target_directory: src/mumble/3rdparty/cmake-compiler-flags/
-  - url: https://github.com/lipis/flag-icons/archive/refs/tags/v7.3.2.tar.gz
-    sha256: 6a5497e1029e66415c3941a5e5ee001944b0a7e46bf365c6d5a91a033acee87e
-    target_directory: src/mumble/3rdparty/flag-icons/
-  - url: https://github.com/mumble-voip/mach_override/archive/919148f94db54fc04d287eb6a42c0c36b166bbfa.tar.gz
-    sha256: dc2f83c126efece316abff2e49f19cfaeb52c3d1f78324263192ed10ca9fd1f8
-    target_directory: src/mumble/3rdparty/mach-override-src/
-
-  # Tracy stub: release tarball lacks the tracy git submodule; provide a stub
-  # so mumble's cmake finds CMakeLists.txt and creates the Tracy::TracyClient target
-  - path: tracy-stub
-    target_directory: src/mumble/3rdparty/tracy
-  # minhook stub: LICENSE.txt needed by generate_license_header.py (Windows-only dep)
-  - path: minhook-stub
-    target_directory: src/mumble/3rdparty/minhook
   - path: service.yaml
     target_directory: service-config
   - path: cmake_system_libs.cmake
@@ -68,7 +44,7 @@ outputs:
       build:
         - ${{ compiler('cxx') }}
         - ${{ compiler('c') }}
-        - libstdcxx-ng
+        - ${{ stdlib('c') }}
         # - qt6-main
         - qt >=5.15,<6
         - qt-main >=5.15,<6
@@ -125,6 +101,8 @@ outputs:
         - if: linux
           then: mesalib >=21.0
         - if: linux
+          then: libgl-devel
+        - if: linux
           then: avahi >=0.8
         - if: linux
           then: libxcb >=1.13
@@ -145,7 +123,6 @@ outputs:
           then: soci-sqlite >=4.0,<5
         - spscqueue >=1.1,<2
         - speexdsp >=1.2,<2
-        - rnnoise
         - if: win
           then: minhook >=1.3,<2
       run:
@@ -183,7 +160,7 @@ outputs:
       build:
         - ${{ compiler('cxx') }}
         - ${{ compiler('c') }}
-        - libstdcxx-ng
+        - ${{ stdlib('c') }}
         # - qt6-main
         - qt >=5.15,<6
         - qt-main >=5.15,<6

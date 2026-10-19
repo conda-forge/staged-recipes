@@ -53,11 +53,10 @@ cmake -B build ^
     -Dbundled-flac=OFF ^
     -Dbundled-vorbis=OFF ^
     -Dbundled-speex=OFF ^
-    -Dbundled-tracy=OFF ^
     -Dbundled-gsl=OFF ^
     -Dbundled-minhook=OFF ^
     -Dbundled-SPSCQueue=OFF ^
-    -DTRACY_ENABLE=OFF
+    -Drenamenoise=OFF
 if errorlevel 1 exit 1
 
 cmake --build build -j %CPU_COUNT%

@@ -19,7 +19,6 @@ cmake -B build ^
     -Dice=OFF ^
     -Dclient=OFF ^
     -Dserver=ON ^
-    -DTRACY_ENABLE=OFF ^
     "-DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%" ^
     "-DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%" ^
     "-DCMAKE_INSTALL_LIBDIR=%LIBRARY_PREFIX%\lib" ^
@@ -51,7 +50,6 @@ cmake -B build ^
     -Dbundled-flac=OFF ^
     -Dbundled-vorbis=OFF ^
     -Dbundled-speex=OFF ^
-    -Dbundled-tracy=OFF ^
     -Dbundled-soci=OFF ^
     -Dbundled-gsl=OFF ^
     -Dbundled-minhook=OFF ^
