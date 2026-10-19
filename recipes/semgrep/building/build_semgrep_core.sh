@@ -103,7 +103,10 @@ EOF
   export PKG_CONFIG_PATH="${implib}/pkgconfig${sep}${PKG_CONFIG_PATH}"
   export TREESITTER_LIBDIR="${implib}"
   # pcre2-ocaml and the grammar stubs pass bare -l flags; give flexlink the search dir.
-  export FLEXLINKFLAGS="${FLEXLINKFLAGS:+${FLEXLINKFLAGS} }-L${implib}"
+  # The grammar scanner.o files carry inline std::string members that libstdc++.dll.a
+  # (pulled in by the grammars' -lstdc++) also exports; ld then reports multiple
+  # definitions when linking semgrep-core.exe, so let the first definition win.
+  export FLEXLINKFLAGS="${FLEXLINKFLAGS:+${FLEXLINKFLAGS} }-L${implib} -link -Wl,--allow-multiple-definition"
 fi
 pkg-config --exists --print-errors tree-sitter
 
