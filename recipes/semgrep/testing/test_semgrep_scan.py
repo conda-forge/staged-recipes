@@ -35,7 +35,7 @@ def show(label, args, **kw):
 
 
 def diagnose(semgrep, env, work):
-    """Check each layer: pysemgrep, semgrep-core, and semgrep-core run as osemgrep."""
+    """Check each layer: pysemgrep, the semgrep.cli import, semgrep-core, and semgrep-core run as osemgrep."""
     core = shutil.which("semgrep-core")
     print("semgrep: %s" % semgrep)
     print("semgrep-core: %s" % core)
@@ -43,7 +43,12 @@ def diagnose(semgrep, env, work):
     print("pysemgrep: %s" % pysemgrep)
     if pysemgrep is not None:
         show("pysemgrep", [pysemgrep, "--version"], env=env)
+        # Without the SEMGREP_SETTINGS_FILE/SEMGREP_VERSION_CACHE_PATH overrides.
+        show("pysemgrep-plain-env", [pysemgrep, "--version"])
     show("legacy", [semgrep, "--legacy", "--version"], env=env)
+    show("import-cli", [sys.executable, "-X", "faulthandler", "-c",
+                        "import semgrep.cli"], env=env)
+    show("python-m", [sys.executable, "-m", "semgrep", "--version"], env=env)
     if core is None:
         return
     show("core", [core, "-version"], env=env)
