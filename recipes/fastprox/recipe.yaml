@@ -1,0 +1,113 @@
+context:
+  version: "0.5.0"
+  python_min: "3.12"
+
+recipe:
+  name: fastprox-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/dvillacis/fastprox/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 920e2685e9eff1dc9c465bfa54defb82fc2414a835c53c6e194abc70f8aec429
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libfastprox
+    build:
+      script:
+        - if: unix
+          then: |
+            cmake -S . -B build-lib -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release \
+              -DFASTPROX_BUILD_TESTS=OFF -DFASTPROX_STATIC_LIBSTDCXX=OFF \
+              -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=lib
+            cmake --build build-lib
+            cmake --install build-lib
+          else: |
+            cmake -S . -B build-lib -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release ^
+              -DFASTPROX_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
+            if errorlevel 1 exit 1
+            cmake --build build-lib
+            if errorlevel 1 exit 1
+            cmake --install build-lib
+            if errorlevel 1 exit 1
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.20
+        - ninja
+      run_exports:
+        # The minor version may break the ABI before 1.0 (fastprox.h).
+        - ${{ pin_subpackage('libfastprox', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - fastprox.h
+          lib:
+            - fastprox
+      - script:
+          - if: unix
+            then:
+              - test -f ${PREFIX}/lib/pkgconfig/fastprox.pc
+              - test -f ${PREFIX}/lib/cmake/fastprox/fastproxConfig.cmake
+          - if: win
+            then:
+              - if not exist %LIBRARY_LIB%\cmake\fastprox\fastproxConfig.cmake exit 1
+
+  - package:
+      name: fastprox
+    build:
+      python:
+        version_independent: true  # abi3: one package for CPython 3.12 and later
+      script:
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.FASTPROX_STATIC_LIBSTDCXX=OFF
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.20
+        - ninja
+      host:
+        - python ${{ python_min }}.*
+        - python-abi3 ${{ python_min }}.*
+        - pip
+        - scikit-build-core >=0.10
+        - nanobind >=2.4
+      run:
+        - python >=${{ python_min }}
+        - numpy >=1.26
+    tests:
+      - python:
+          imports:
+            - fastprox
+          python_version: ${{ python_min }}.*
+          pip_check: true
+      - script:
+          - python -c "import numpy as np, fastprox as fp; z = fp.tv1d(np.arange(5.0), 0.5); assert z.shape == (5,), z; assert fp.__version__ == '${{ version }}', fp.__version__"
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/dvillacis/fastprox
+  documentation: https://dvillacis.github.io/fastprox/
+  repository: https://github.com/dvillacis/fastprox
+  license: MIT
+  license_file: LICENSE
+  summary: Exact proximal operators and projections with derivatives
+  description: |
+    fastprox computes proximal operators and projections (thresholding, norms,
+    balls and the simplex, 1D, image, graph and tree total variation, nonconvex
+    penalties) along any axis of a batch of arrays, with Jacobian-vector and
+    vector-Jacobian products. A C++17 core behind a plain-C API (libfastprox),
+    with Python bindings (fastprox) and PyTorch, JAX and PyProximal adapters.
+
+extra:
+  feedstock-name: fastprox  # the top-level name differs from the outputs'
+  recipe-maintainers:
+    - dvillacis
