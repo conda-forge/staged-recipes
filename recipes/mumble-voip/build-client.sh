@@ -54,8 +54,8 @@ CMAKE_ARGS=(
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
-    # speexdsp's CMake config contains a non-relocatable include path; remove it
-    # so Mumble falls back to the package's relocatable pkg-config metadata.
+    # The released speexdsp CMake config leaves its include and library paths
+    # empty. Remove it so Mumble uses the package's pkg-config metadata.
     rm -rf "${PREFIX}/lib/cmake/speexdsp"
 
     export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS:-}"

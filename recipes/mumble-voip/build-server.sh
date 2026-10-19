@@ -50,10 +50,6 @@ CMAKE_ARGS=(
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
-    # speexdsp's CMake config contains a non-relocatable include path; remove it
-    # so Mumble falls back to the package's relocatable pkg-config metadata.
-    rm -rf "${PREFIX}/lib/cmake/speexdsp"
-
     export CPPFLAGS="-I${PREFIX}/include -I${PREFIX}/include/tracy ${CPPFLAGS:-}"
     export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
     SYSROOT="${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot"
