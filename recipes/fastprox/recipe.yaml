@@ -64,7 +64,12 @@ outputs:
       python:
         version_independent: true  # abi3: one package for CPython 3.12 and later
       script:
-        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.FASTPROX_STATIC_LIBSTDCXX=OFF
+        # Ninja on Unix, or scikit-build-core may pick Makefiles, and
+        # conda-forge's Linux image has no make. Windows keeps Visual Studio's
+        # generator: scikit-build-core passes it a platform (-A x64).
+        - if: unix
+          then: CMAKE_GENERATOR=Ninja ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.FASTPROX_STATIC_LIBSTDCXX=OFF
+          else: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -85,8 +90,18 @@ outputs:
       - python:
           imports:
             - fastprox
-          python_version: ${{ python_min }}.*
+          python_version:  # abi3: the oldest and the newest supported Python
+            - ${{ python_min }}.*
+            - "*"
           pip_check: true
+      - requirements:
+          run:
+            - abi3audit
+        script:
+          # The extension where Python finds it (SP_DIR missed it on Windows).
+          - if: unix
+            then: abi3audit "$(python -c 'import fastprox._fastprox as m; print(m.__file__)')" -s -v --assume-minimum-abi3 ${{ python_min }}
+            else: for /f "delims=" %%i in ('python -c "import fastprox._fastprox as m; print(m.__file__)"') do abi3audit "%%i" -s -v --assume-minimum-abi3 ${{ python_min }}
       - script:
           - python -c "import numpy as np, fastprox as fp; z = fp.tv1d(np.arange(5.0), 0.5); assert z.shape == (5,), z; assert fp.__version__ == '${{ version }}', fp.__version__"
         requirements:
