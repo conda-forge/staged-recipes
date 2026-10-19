@@ -18,6 +18,25 @@ RULE = """rules:
 """
 
 
+# Runs the pysemgrep console-script target in-process, bypassing the .EXE launcher.
+# Writes to a file so the result survives unusable std handles.
+PROBE = """import sys, traceback
+log = open(sys.argv[1], "w")
+print("stdout=%r stderr=%r" % (sys.stdout, sys.stderr), file=log)
+sys.argv = ["pysemgrep", "--version"]
+try:
+    from semgrep.console_scripts.pysemgrep import main
+    main()
+    print("main() returned", file=log)
+except SystemExit as e:
+    print("SystemExit %r" % (e.code,), file=log)
+    traceback.print_exc(file=log)
+except BaseException:
+    traceback.print_exc(file=log)
+log.close()
+"""
+
+
 def show(label, args, **kw):
     """Run args, print exit code and output, never raise."""
     try:
@@ -48,7 +67,21 @@ def diagnose(semgrep, env, work):
     show("legacy", [semgrep, "--legacy", "--version"], env=env)
     show("import-cli", [sys.executable, "-X", "faulthandler", "-c",
                         "import semgrep.cli"], env=env)
-    show("python-m", [sys.executable, "-m", "semgrep", "--version"], env=env)
+    probe = os.path.join(work, "probe.py")
+    with open(probe, "w") as f:
+        f.write(PROBE)
+    probe_log = os.path.join(work, "probe.log")
+    show("in-process", [sys.executable, "-X", "faulthandler", probe, probe_log], env=env)
+    if os.path.exists(probe_log):
+        with open(probe_log, errors="replace") as f:
+            print("  probe.log:\n%s" % f.read()[-4000:])
+    # Console-script launcher: list what sits next to the .EXE and run its -script.py.
+    scripts = os.path.dirname(semgrep)
+    print("scripts: %r" % sorted(n for n in os.listdir(scripts) if "semgrep" in n.lower()))
+    for name in ("pysemgrep-script.py", "semgrep-script.py"):
+        path = os.path.join(scripts, name)
+        if os.path.exists(path):
+            show(name, [sys.executable, path, "--version"], env=env)
     if core is None:
         return
     show("core", [core, "-version"], env=env)
