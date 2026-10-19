@@ -35,10 +35,15 @@ def show(label, args, **kw):
 
 
 def diagnose(semgrep, env, work):
-    """semgrep execs semgrep-core with argv0=osemgrep; check each layer separately."""
+    """Check each layer: pysemgrep, semgrep-core, and semgrep-core run as osemgrep."""
     core = shutil.which("semgrep-core")
     print("semgrep: %s" % semgrep)
     print("semgrep-core: %s" % core)
+    pysemgrep = shutil.which("pysemgrep")
+    print("pysemgrep: %s" % pysemgrep)
+    if pysemgrep is not None:
+        show("pysemgrep", [pysemgrep, "--version"], env=env)
+    show("legacy", [semgrep, "--legacy", "--version"], env=env)
     if core is None:
         return
     show("core", [core, "-version"], env=env)
