@@ -18,6 +18,40 @@ RULE = """rules:
 """
 
 
+def show(label, args, **kw):
+    """Run args, print exit code and output, never raise."""
+    try:
+        p = subprocess.run(args, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=120, **kw)
+    except Exception as e:  # noqa: BLE001
+        print("[%s] %r raised %r" % (label, args, e))
+        return None
+    print("[%s] %r -> %d" % (label, args, p.returncode))
+    if p.stdout.strip():
+        print("  stdout: %s" % p.stdout.strip()[-2000:])
+    if p.stderr.strip():
+        print("  stderr: %s" % p.stderr.strip()[-2000:])
+    return p
+
+
+def diagnose(semgrep, env, work):
+    """semgrep execs semgrep-core with argv0=osemgrep; check each layer separately."""
+    core = shutil.which("semgrep-core")
+    print("semgrep: %s" % semgrep)
+    print("semgrep-core: %s" % core)
+    if core is None:
+        return
+    show("core", [core, "-version"], env=env)
+    show("osemgrep-argv0", ["osemgrep", "--version"], executable=core, env=env)
+    show("osemgrep-argv0-debug", ["osemgrep", "--version", "--debug"],
+         executable=core, env=env)
+    # Real file named osemgrep, in case argv0 is not seen on non-unix.
+    alias = os.path.join(work, "osemgrep" + os.path.splitext(core)[1])
+    shutil.copy(core, alias)
+    show("osemgrep-copy", [alias, "--version"], env=env)
+    show("osemgrep-copy-debug", [alias, "--version", "--debug"], env=env)
+
+
 def main():
     semgrep = shutil.which("semgrep")
     if semgrep is None:
@@ -34,14 +68,18 @@ def main():
         SEMGREP_SETTINGS_FILE=os.path.join(work, "s.yaml"),
         SEMGREP_VERSION_CACHE_PATH=os.path.join(work, "vc"),
     )
-    subprocess.run([semgrep, "--version"], check=True, env=env)
-    out = subprocess.run(
-        [semgrep, "scan", "--metrics=off", "--disable-version-check",
-         "--config", "rule.yaml", "test.py", "--json"],
-        check=True, env=env, cwd=work, capture_output=True,
-        text=True, encoding="utf-8",
-    ).stdout
-    ids = [r["check_id"] for r in json.loads(out)["results"]]
+    p = show("semgrep", [semgrep, "--version"], env=env)
+    if p is None or p.returncode != 0:
+        diagnose(semgrep, env, work)
+        show("semgrep-debug", [semgrep, "--version", "--debug"], env=env)
+        sys.exit("semgrep --version failed")
+    p = show("scan", [semgrep, "scan", "--metrics=off", "--disable-version-check",
+                      "--config", "rule.yaml", "test.py", "--json"],
+             env=env, cwd=work)
+    if p is None or p.returncode != 0:
+        diagnose(semgrep, env, work)
+        sys.exit("semgrep scan failed")
+    ids = [r["check_id"] for r in json.loads(p.stdout)["results"]]
     if not any(i.endswith("no-print") for i in ids):
         sys.exit("no-print finding not reported: %r" % ids)
     print("ok: %r" % ids)
