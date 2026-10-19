@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+  python_min: "3.12"
+
+package:
+  name: wesl-py
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/w/wesl-py/wesl_py-${{ version }}.tar.gz
+  sha256: 81efaf3386cf5d1dbc22b25d45b35b29bdefc336984956f18cb15b4f517a0778
+
+build:
+  number: 0
+  skip:
+    - not is_python_min
+  python:
+    version_independent: true
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python ${{ python_min }}.*
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python ${{ python_min }}.*
+    - python-abi3
+    - maturin >=1.15,<2
+    - pip
+  run:
+    - python >=${{ python_min }}
+  run_constraints:
+    - pytest >=9.1
+    - wgpu-py >=0.32,<0.33
+
+tests:
+  - python:
+      imports:
+        - wesl
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - abi3audit
+        - python ${{ python_min }}.*
+    script:
+      - if: unix
+        then: abi3audit -s -v --assume-minimum-abi3 ${{ python_min }} $SP_DIR/wesl/_native.abi3.so
+        else: abi3audit -s -v --assume-minimum-abi3 ${{ python_min }} %SP_DIR%\wesl\_native.pyd
+  - files:
+      source:
+        - tests/
+        - examples/
+        - pyproject.toml
+        - wesl.toml
+    requirements:
+      run:
+        - pytest >=9.1
+    script:
+      - python -m pytest tests -q
+
+about:
+  homepage: https://github.com/claydugo/wesl-py
+  repository: https://github.com/claydugo/wesl-py
+  summary: Python bindings for the Rust WESL compiler
+  description: |
+    wesl-py provides Python bindings for the Rust WESL compiler.
+    WESL adds imports and conditional compilation to WGSL.
+    The package also includes a pytest plugin that runs WESL shader tests.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - claydugo
