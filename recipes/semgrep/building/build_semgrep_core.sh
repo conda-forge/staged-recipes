@@ -37,6 +37,8 @@ pushd "${SRC_DIR}/nondune/zarith"
   else
     zinc="${PREFIX}/include"; zlib="${PREFIX}/lib"
   fi
+  # ocaml 5.4.0 _19 no longer records -L$PREFIX/lib in .cmxa; ocamlopt -shared needs it for -lgmp
+  export LIBRARY_PATH="${zlib}${LIBRARY_PATH:+:${LIBRARY_PATH}}"
   CFLAGS="${CFLAGS:-} -I${zinc}" \
   LDFLAGS="${LDFLAGS:-} -L${zlib}" \
   ./configure
