@@ -1,0 +1,104 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: geant4-python-application
+  version: ${{ version }}
+
+source:
+  - url: https://files.pythonhosted.org/packages/source/g/geant4-python-application/geant4_python_application-${{ version }}.tar.gz
+    sha256: a4d3170f4557eb02b2fc036b23dcd5185be61e97fac7976c3e66637a5db0f5fd
+  # Fetched by CMake at build time otherwise; provided as sources so the build
+  # needs no network access. Keep these versions in sync with AWKWARD_VERSION
+  # and PYBIND11_VERSION in the upstream CMakeLists.txt.
+  - url: https://github.com/scikit-hep/awkward/releases/download/v2.6.9/header-only.zip
+    sha256: 37012c62b6df2dbc38345be89cd339c09c78eb2fc166cbbeaa583eda22a20604
+    target_directory: deps/awkward-headers
+  - url: https://github.com/pybind/pybind11/archive/refs/tags/v2.13.6.tar.gz
+    sha256: e08cb87f4773da97fa7b5f035de8763abc656d87d5773e62f6da0587d1f0ec20
+    target_directory: deps/pybind11
+  # the header-only awkward release does not include its licence
+  - url: https://raw.githubusercontent.com/scikit-hep/awkward/v2.6.9/LICENSE
+    sha256: f05e4e003fcfa5901be0d398805a8653aa1e95210433e00e89a4c5528491b4e6
+    file_name: LICENSE
+    target_directory: deps/awkward-license
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - >-
+      CMAKE_GENERATOR=Ninja
+      ${{ PYTHON }} -m pip install . -vv
+      -Ccmake.define.FETCHCONTENT_SOURCE_DIR_AWKWARD-HEADERS=${{ SRC_DIR }}/deps/awkward-headers
+      -Ccmake.define.FETCHCONTENT_SOURCE_DIR_PYBIND11=${{ SRC_DIR }}/deps/pybind11
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - setuptools-scm
+    # version selected in variants.yaml; its run_exports pins the runtime
+    - geant4
+    # Geant4's CMake configuration looks these up
+    - freetype
+    - xerces-c
+    - expat
+    - zlib
+  run:
+    - python
+    - awkward
+    - vector
+    - fsspec
+    - pyarrow
+    - awkward-pandas
+    - numpy
+    - requests
+    - platformdirs
+    - tqdm
+
+tests:
+  - python:
+      imports:
+        - geant4_python_application
+      pip_check: true
+  - script:
+      - python -c "import geant4_python_application as g4; assert g4.geant4_version == '11.4.3', g4.geant4_version"
+      # conda-forge's geant4 brings its datasets; nothing must be downloaded
+      - python -c "import geant4_python_application as g4; assert g4.files.datasets.installation_datasets(), 'datasets not found'"
+      - python -c "import geant4_python_application as g4; app = g4.Application(gdml=g4.basic_gdml, seed=1); app.__enter__(); events = app.run(10); assert len(events) == 10; app.__exit__(None, None, None)"
+    requirements:
+      run:
+        - python
+
+about:
+  summary: Python interface to a configurable Geant4 application
+  description: |
+    A high-level Python interface to a generic, highly configurable Geant4
+    application. Event data is returned as awkward arrays.
+
+    Authors: Luis Antonio Obis Aparicio and Kavya Wadhwa.
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    # compiled in from their sources
+    - deps/awkward-license/LICENSE
+    - deps/pybind11/LICENSE
+  homepage: https://github.com/lobis/geant4-python-application
+  repository: https://github.com/lobis/geant4-python-application
+  documentation: https://github.com/lobis/geant4-python-application/blob/main/INSTALLATION.md
+
+extra:
+  recipe-maintainers:
+    - kavyawadhwa134
