@@ -1,0 +1,58 @@
+schema_version: 1
+
+context:
+  name: git-pkgs-proxy
+  version: "0.9.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/git-pkgs/proxy/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7a470a221374a8ee2ea25f38ef6068096fd674fd46221bafc2ae7dbf948f7616
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    # oapi-codegen/nullable is Apache-2.0, but its LICENSE is in an incompatible/unknown format
+    # https://github.com/oapi-codegen/nullable?tab=License-1-ov-file
+    - go-licenses save ./cmd/proxy --save_path ../library_licenses --ignore github.com/oapi-codegen/nullable
+    - if: unix
+      then: go build -v -o $PREFIX/bin/proxy -ldflags="-s -w -X main.Version=${{ version }}" ./cmd/proxy
+      else: go build -v -o %LIBRARY_BIN%\proxy.exe -ldflags="-s -X main.Version=${{ version }}" ./cmd/proxy
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - proxy -version
+      - if: unix
+        then: proxy -version | grep ${{ version }}
+  - package_contents:
+      bin:
+        - proxy
+      strict: true
+
+about:
+  homepage: https://github.com/git-pkgs/proxy
+  summary: A lightweight caching proxy for package registries
+  description: |
+    A caching proxy for package registries. Speeds up package downloads 
+    by caching artifacts locally, reducing bandwidth usage and improving 
+    reliability.
+  license: GPL-3.0-or-later
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://git-pkgs.dev/docs/tools/proxy/
+  repository: https://github.com/git-pkgs/proxy
+
+extra:
+  recipe-maintainers:
+    - soapy1
