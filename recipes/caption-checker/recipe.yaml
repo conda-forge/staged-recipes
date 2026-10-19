@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "1.1.0"
+
+package:
+  name: caption-checker
+  version: ${{ version }}
+
+source:
+  url: https://github.com/markksantos/caption-checker/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1a7d6f352d5e5e32937b12f2e889309f9c30e4a0bec79f70e7e37bd2130f817f
+
+build:
+  number: 0
+  # Per-platform rather than noarch: npm's global install lays down a bin
+  # symlink on unix and .cmd shims on Windows, which one noarch artifact
+  # can't provide (same pattern as cdxgen and openspec).
+  script:
+    - if: unix
+      then:
+        - export npm_config_prefix="${PREFIX}"
+        - npm pack --ignore-scripts
+        - npm install --global ./caption-checker-${{ version }}.tgz
+      else:
+        - call npm config set prefix "%PREFIX%"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --userconfig nonexistentrc --global caption-checker-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  host:
+    - nodejs
+  run:
+    - nodejs >=18
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - caption-check --help
+        else:
+          - call caption-check --help
+          - if %ERRORLEVEL% neq 0 exit 1
+  # Upstream tests read the bundled example file: no network needed.
+  - script:
+      - node --test test/check.test.js test/mcp.test.js
+    files:
+      source:
+        - index.js
+        - mcp.js
+        - package.json
+        - bin/
+        - examples/
+        - test/
+
+about:
+  homepage: https://www.markstudios.com/tools/caption-checker
+  repository: https://github.com/markksantos/caption-checker
+  summary: Check SRT and WebVTT captions against Netflix, BBC and DCMP Captioning Key limits
+  description: |
+    caption-checker checks SRT and WebVTT caption files against Netflix
+    English, the BBC subtitle guidelines or the DCMP Captioning Key, and flags
+    captions that read too fast, lines that are too long, too many lines,
+    captions on screen too briefly or too long, short gaps, overlaps and
+    unreadable timestamps. It exits with 1 when a caption breaks a limit, so it
+    works as a CI check, has --json output, and runs as an MCP server with
+    --mcp. No dependencies besides Node.js.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - markksantos
