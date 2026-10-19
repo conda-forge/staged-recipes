@@ -16,7 +16,4 @@ cmake -G Ninja ${CMAKE_ARGS} \
     "${SRC_DIR}/projects/amdsmi"
 
 cmake --build . --target amd_smi python_package amdsmi_cli
-
-# Install the shared library and header into the staging prefix
-cp -a src/libamd_smi.so* "${PREFIX}/lib/"
-install -Dm644 "${SRC_DIR}/include/amd_smi/amdsmi.h" "${PREFIX}/include/amd_smi/amdsmi.h"
+cmake --build . --target install
