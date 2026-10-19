@@ -151,11 +151,14 @@ if [[ -n "${exe}" ]]; then
   perl -ne 'exit 1 if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
   # ANSITerminal: caml_raise_with_args is used without <caml/fail.h> (implicit declaration
   # is an error in gcc >= 14), and FillConsoleOutputCharacterA gets an int* for LPDWORD
-  # (both 32-bit on non-unix). ANSITerminal_stubs.c is produced by a dune rule, so
-  # force-include the header through the stub flags.
+  # (both 32-bit on non-unix). The dune rule copies ANSITerminal_win_stubs.c to
+  # ANSITerminal_stubs.c, so add the include there, after its #define CAML_INTERNALS
+  # (a -include would precede that define and leave CAMLalloc_point_here undefined).
   ansi=duniverse/ANSITerminal/src
-  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -include caml\/fail.h -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
-  perl -ne '$c++ if /-include caml\/fail\.h -Wno-error=incompatible-pointer-types/; END { exit 1 unless $c }' "${ansi}/dune"
+  perl -pi -e 's{^(#include <caml/callback\.h>\r?\n)}{$1#include <caml/fail.h>\n}' "${ansi}/ANSITerminal_win_stubs.c"
+  perl -ne '$c++ if /^#include <caml\/fail\.h>/; END { exit 1 unless $c == 1 }' "${ansi}/ANSITerminal_win_stubs.c"
+  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
+  perl -ne '$c++ if /\(flags \(:standard -Wno-error=incompatible-pointer-types\)\)/; END { exit 1 unless $c }' "${ansi}/dune"
   # parmap: `long len` is passed as intnat* (long is 32-bit, intnat 64-bit on non-unix).
   perl -pi -e 's/\blong(\s+len\b)/intnat$1/g' duniverse/parmap/src/bytearray_stubs.c
   perl -ne '$c++ if /\bintnat\s+len\b/; exit 1 if /\blong\s+len\b/; END { exit 1 unless $c }' duniverse/parmap/src/bytearray_stubs.c
