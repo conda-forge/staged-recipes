@@ -1,0 +1,87 @@
+schema_version: 1
+
+context:
+  name: libdivide
+  version: "5.3.0"
+  build_number: 0
+  os_variant: ${{ "win" if win else "unix" }}
+
+package:
+  name: libdivide-devel
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ridiculousfish/libdivide/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: de3933bf2fd21300d99fcc6460a8a4a1343ae90b965d6893f044c350bac68c6e
+  patches:
+    # https://github.com/ridiculousfish/libdivide/pull/177
+    - architecture-independent-version.patch
+
+build:
+  number: ${{ build_number }}
+  noarch: generic
+  string: ${{ os_variant }}_h${{ hash }}_${{ build_number }}
+  script:
+    env:
+      # Compiler activation must target the build host, not the noarch output.
+      # Workaround for https://github.com/conda-forge/conda-forge.github.io/issues/2691
+      target_platform: ${{ host_platform }}
+    file: build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('c') }}
+      - ${{ compiler('cxx') }}
+      - ${{ stdlib('c') }}
+  run:
+    - if: unix
+      then: __unix
+    - if: win
+      then: __win
+
+tests:
+  - requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+    script:
+      - cmake-package-check libdivide --targets libdivide::libdivide
+  - files:
+      recipe:
+        - test-package/CMakeLists.txt
+        - test-package/test.c
+        - test-package/test.cpp
+    requirements:
+      run:
+        - cmake
+        - ninja
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+    script:
+      - cmake -G Ninja -S test-package -B test-build
+      - cmake --build test-build --config Release
+      - ctest --test-dir test-build -C Release --output-on-failure
+  - package_contents:
+      include:
+        - libdivide.h
+
+
+about:
+  homepage: https://libdivide.com
+  repository: https://github.com/ridiculousfish/libdivide
+  license: Zlib OR BSL-1.0
+  license_file: LICENSE.txt
+  summary: Header-only C/C++ library for optimized integer division
+
+extra:
+  feedstock-name: libdivide
+  recipe-maintainers:
+    - traversaro
