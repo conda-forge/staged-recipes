@@ -1,0 +1,122 @@
+context:
+  version: "20261016.190333"
+  # The OpenGL-Registry revision pinned by third_party/OpenGL-Registry/src in
+  # Dawn's DEPS. build.sh fails if it no longer matches; update it together
+  # with the sha256 of gl.xml below.
+  opengl_registry_commit: 6af574a14089ccfee87efe230ebcdd8742859813
+
+package:
+  name: dawn
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/google/dawn/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 7276879eb9b8e510d960f25d203e4f69e62d0b2d63992a2f941b9d1b27518f59
+    patches:
+      - 0001-Link-imported-dependencies-into-the-monolithic-library.patch
+      - 0002-Allow-overriding-the-path-to-khrplatform.h.patch
+  - if: linux
+    then:
+      # The Khronos gl.xml that Dawn's OpenGL loader is generated from, put
+      # where Dawn's DAWN_OPENGL_REGISTRY_DIR expects it.
+      - url: https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/${{ opengl_registry_commit }}/xml/gl.xml
+        sha256: b9ca2cfa5c676e901c20d34af3407f1687cde0f1336a5ff7a8974d04c7494ad3
+        file_name: gl.xml
+        target_directory: third_party/OpenGL-Registry/src/xml
+
+build:
+  number: 0
+  script:
+    file: build
+    env:
+      OPENGL_REGISTRY_COMMIT: ${{ opengl_registry_commit }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    # Used by Dawn's code generators
+    - python >=3.10
+    - jinja2
+  host:
+    - libabseil
+    - spirv-headers
+    - if: not osx
+      then:
+        # Tint's SPIR-V reader uses the private headers in include/spirv-tools-private.
+        # SPIR-V support is only built with the Vulkan backend, not on macOS.
+        # spirv-tools-internal pulls in the matching spirv-tools and, through its
+        # run_exports, pins it to x.x because the internal spvtools::opt C++ API
+        # is not ABI stable.
+        - spirv-tools-internal
+    - if: not osx
+      then:
+        - libvulkan-headers
+        - vulkan-utility-libraries
+    - if: linux
+      then:
+        - libegl-devel
+        - xorg-libx11
+        - xorg-xorgproto
+  ignore_run_exports:
+    # Only the header-only Vulkan::UtilityHeaders target is used, and libEGL
+    # and libX11 are loaded at runtime with dlopen.
+    from_package:
+      - if: not osx
+        then: vulkan-utility-libraries
+      - if: linux
+        then:
+          - libegl-devel
+          - xorg-libx11
+  run:
+    # Dawn loads the Vulkan loader at runtime
+    - if: linux
+      then:
+        - libvulkan-loader
+
+tests:
+  - package_contents:
+      lib:
+        - webgpu_dawn
+      include:
+        - webgpu/webgpu.h
+        - dawn/webgpu_cpp.h
+      files:
+        - ${{ "Library/" if win }}lib/cmake/Dawn/DawnConfig.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -S test -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - if: win
+        then: build\dawn_test.exe
+        else: ./build/dawn_test
+
+about:
+  homepage: https://dawn.googlesource.com/dawn
+  repository: https://github.com/google/dawn
+  documentation: https://dawn.googlesource.com/dawn/+/HEAD/docs/
+  summary: Dawn, a WebGPU implementation
+  description: |
+    Dawn is an open-source and cross-platform implementation of the WebGPU
+    standard. It exposes a C/C++ API that maps almost one-to-one to the
+    WebGPU IDL and can be managed as part of a larger system such as a Web
+    browser. Dawn provides several WebGPU building blocks, including the
+    Tint shader compiler, and backends for D3D11, D3D12, Metal, Vulkan and
+    OpenGL.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
