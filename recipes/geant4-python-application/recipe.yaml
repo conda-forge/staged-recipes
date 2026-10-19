@@ -1,27 +1,24 @@
 context:
-  name: geant4-python-application
   version: "0.2.0"
-  geant4_version: "11.4.3"
-  awkward_version: "2.6.9"
-  pybind11_version: "2.13.6"
 
 package:
-  name: ${{ name }}
+  name: geant4-python-application
   version: ${{ version }}
 
 source:
-  - url: https://pypi.org/packages/source/g/geant4-python-application/geant4_python_application-${{ version }}.tar.gz
+  - url: https://files.pythonhosted.org/packages/source/g/geant4-python-application/geant4_python_application-${{ version }}.tar.gz
     sha256: a4d3170f4557eb02b2fc036b23dcd5185be61e97fac7976c3e66637a5db0f5fd
   # Fetched by CMake at build time otherwise; provided as sources so the build
-  # needs no network access.
-  - url: https://github.com/scikit-hep/awkward/releases/download/v${{ awkward_version }}/header-only.zip
+  # needs no network access. Keep these versions in sync with AWKWARD_VERSION
+  # and PYBIND11_VERSION in the upstream CMakeLists.txt.
+  - url: https://github.com/scikit-hep/awkward/releases/download/v2.6.9/header-only.zip
     sha256: 37012c62b6df2dbc38345be89cd339c09c78eb2fc166cbbeaa583eda22a20604
     target_directory: deps/awkward-headers
-  - url: https://github.com/pybind/pybind11/archive/refs/tags/v${{ pybind11_version }}.tar.gz
+  - url: https://github.com/pybind/pybind11/archive/refs/tags/v2.13.6.tar.gz
     sha256: e08cb87f4773da97fa7b5f035de8763abc656d87d5773e62f6da0587d1f0ec20
     target_directory: deps/pybind11
   # the header-only awkward release does not include its licence
-  - url: https://raw.githubusercontent.com/scikit-hep/awkward/v${{ awkward_version }}/LICENSE
+  - url: https://raw.githubusercontent.com/scikit-hep/awkward/v2.6.9/LICENSE
     sha256: f05e4e003fcfa5901be0d398805a8653aa1e95210433e00e89a4c5528491b4e6
     file_name: LICENSE
     target_directory: deps/awkward-license
@@ -31,10 +28,11 @@ build:
   skip:
     - win
   script:
-    # use the Ninja from the build requirements; conda-forge's Linux image has no make
+    # scikit-build-core defaults to Unix Makefiles, but there is no make in the
+    # build environment; use the Ninja from the build requirements instead
     - >-
       CMAKE_GENERATOR=Ninja
-      ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      ${{ PYTHON }} -m pip install . -vv
       -Ccmake.define.FETCHCONTENT_SOURCE_DIR_AWKWARD-HEADERS=${{ SRC_DIR }}/deps/awkward-headers
       -Ccmake.define.FETCHCONTENT_SOURCE_DIR_PYBIND11=${{ SRC_DIR }}/deps/pybind11
 
@@ -53,7 +51,10 @@ requirements:
     - pip
     - scikit-build-core
     - setuptools-scm
-    - geant4 ==${{ geant4_version }}
+    # only 11.4.3 is supported (the datasets are matched to it), so pin it
+    # rather than build every Geant4 version in the global pinning; Geant4's
+    # run_exports then pins the runtime to the same version
+    - geant4 ==11.4.3
     # Geant4's CMake configuration looks these up
     - freetype
     - xerces-c
@@ -61,8 +62,6 @@ requirements:
     - zlib
   run:
     - python
-    # datasets are matched to this exact Geant4 version
-    - geant4 ==${{ geant4_version }}
     - awkward
     - vector
     - fsspec
@@ -79,7 +78,7 @@ tests:
         - geant4_python_application
       pip_check: true
   - script:
-      - python -c "import geant4_python_application as g4; assert g4.geant4_version == '${{ geant4_version }}', g4.geant4_version"
+      - python -c "import geant4_python_application as g4; assert g4.geant4_version == '11.4.3', g4.geant4_version"
       # conda-forge's geant4 brings its datasets; nothing must be downloaded
       - python -c "import geant4_python_application as g4; assert g4.files.datasets.installation_datasets(), 'datasets not found'"
       - python -c "import geant4_python_application as g4; app = g4.Application(gdml=g4.basic_gdml, seed=1); app.__enter__(); events = app.run(10); assert len(events) == 10; app.__exit__(None, None, None)"
