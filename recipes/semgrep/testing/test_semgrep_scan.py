@@ -96,6 +96,8 @@ def diagnose(semgrep, env, work):
 
 
 def main():
+    # non-unix console is cp1252; semgrep's stderr has characters it cannot encode
+    sys.stdout.reconfigure(errors="replace")
     semgrep = shutil.which("semgrep")
     if semgrep is None:
         sys.exit("semgrep not found on PATH")
