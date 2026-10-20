@@ -1,0 +1,106 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: datalab-capsule
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/d/datalab_capsule/datalab_capsule-${{ version }}.tar.gz
+  sha256: 70a9f562d1dd525635f89a65c8ab77b32caa669f4b123f84bfc73e505459f0dd
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . --no-deps -vv --no-build-isolation
+  python:
+    entry_points:
+      - workspace-capsule = datalab_capsule.cli:main
+      - workspace-capsule-registry = datalab_capsule.cli:registry_main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+    - jsonschema >=4.17
+  run_constraints:
+    # Optional features, as the "hdf5" and "registry" extras on PyPI
+    - numpy >=1.22
+    - h5py >=3.6
+    - fastapi >=0.110
+    - uvicorn >=0.27
+
+tests:
+  # For noarch Python packages, conda-forge checks both the minimum and the
+  # latest supported Python
+  - python:
+      imports:
+        - datalab_capsule
+        - datalab_capsule.cli
+        - datalab_capsule.exchange
+        - datalab_capsule.inspection
+        - datalab_capsule.recorder
+        - datalab_capsule.registry_client
+        - datalab_capsule.verify
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # The core package reads capsules without NumPy, h5py or FastAPI
+  - files:
+      source:
+        - tests/fixtures/corpus/valid/chain-desktop.dlcapsule
+        - tests/fixtures/corpus/valid/chain-web.dlcapsule
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - workspace-capsule --help
+      - workspace-capsule validate tests/fixtures/corpus/valid/chain-desktop.dlcapsule
+      - workspace-capsule inspect tests/fixtures/corpus/valid/chain-web.dlcapsule
+      # Exits with 1 when the capsules differ
+      - workspace-capsule diff tests/fixtures/corpus/valid/chain-desktop.dlcapsule tests/fixtures/corpus/valid/chain-desktop.dlcapsule
+  # Full test suite, with the optional dependencies
+  - files:
+      source:
+        - pyproject.toml
+        - tests/
+        - examples/
+        - benchmarks/
+        - scripts/
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest >=7
+        - numpy >=1.22
+        - h5py >=3.6
+        - httpx >=0.27
+        - fastapi >=0.110
+        - uvicorn >=0.27
+    script:
+      - pytest -v tests
+
+about:
+  homepage: https://github.com/DataLab-Platform/DataLab-Capsule
+  summary: Exchange and verify scientific workspace provenance as open RO-Crate capsules (library and CLI, no DataLab required).
+  description: |
+    DataLab-Capsule is the neutral provenance and exchange layer of the DataLab open-source platform.
+    It records, packages and verifies the processing history of scientific workspaces as capsules
+    (`.dlcapsule`): ZIP archives holding the HDF5 workspace and an RO-Crate 1.3 manifest conforming to
+    Process Run Crate 0.6 and to the DataLab capsule profile. It provides integrity primitives (canonical
+    JSON, SHA-256 digests, signal and image state fingerprints), semantic diff, verification without
+    computation, revisions and reviews, and a `workspace-capsule` command line. The core needs only
+    `jsonschema`: install NumPy and h5py to create capsules or check stored states, and FastAPI and
+    uvicorn to run a capsule registry. It never imports DataLab, Sigima or Qt.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  repository: https://github.com/DataLab-Platform/DataLab-Capsule
+
+extra:
+  recipe-maintainers:
+    - PierreRaybaut
