@@ -1,0 +1,37 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: npu_compiler: link only the MLIR conversion libraries it uses
+
+mlir-dependencies linked every library in MLIR_CONVERSION_LIBS, which
+pulls the GPU, NVVM, ROCDL, SPIRV, AMDGPU, OpenACC, ... dialects and
+their conversions into the in-tree LLVM/MLIR build although the NPU
+compiler never uses them. List the conversions the sources actually
+include instead, plus the Linalg/MemRef transform and tensor tiling
+libraries the passes call directly (they used to arrive transitively).
+
+--- a/src/vpux_compiler/CMakeLists.txt
++++ b/src/vpux_compiler/CMakeLists.txt
+@@ -132,7 +132,23 @@
+ 
+ add_library(mlir-dependencies INTERFACE)
+ 
+-get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
++set(conversion_libs
++    MLIRAffineToStandard
++    MLIRArithToLLVM
++    MLIRAsyncToLLVM
++    MLIRControlFlowToLLVM
++    MLIRConvertToLLVMInterface
++    MLIRConvertToLLVMPass
++    MLIRFuncToLLVM
++    MLIRIndexToLLVM
++    MLIRLinalgTransforms
++    MLIRLLVMCommonConversion
++    MLIRMathToLLVM
++    MLIRMemRefToLLVM
++    MLIRMemRefTransforms
++    MLIRReconcileUnrealizedCasts
++    MLIRSCFToControlFlow
++    MLIRTensorTilingInterfaceImpl)
+ target_link_libraries(mlir-dependencies
+     INTERFACE
+         ${conversion_libs}
