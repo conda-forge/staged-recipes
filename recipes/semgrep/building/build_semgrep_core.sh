@@ -97,7 +97,36 @@ hidden_topkg() {   # HIDDEN(#35158)
   shift
   pushd "${SRC_DIR//\\//}/nondune/${dir}"
     ocaml -I "${T}/toplevel" pkg/pkg.ml build --dev-pkg false "$@"
-    opam-installer --prefix="${Tfwd}" --libdir="${Tfwd}/lib" --docdir="${Tfwd}/share/doc" "${dir}.install"
+    # opam-free install of <dir>.install (no opam: its git dep breaks pkg-config on non-unix)  # HIDDEN(#35158)
+    python - "${dir}.install" "${Tfwd}" <<'EOF'  # HIDDEN(#35158)
+import os, re, shutil, sys
+inst, dest = sys.argv[1], sys.argv[2]
+pkg = os.path.basename(inst)[:-len(".install")]
+text = open(inst).read()
+dirs = {
+    "lib": os.path.join(dest, "lib", pkg),
+    "lib_root": os.path.join(dest, "lib"),
+    "stublibs": os.path.join(dest, "lib", "stublibs"),
+    "bin": os.path.join(dest, "bin"),
+    "doc": os.path.join(dest, "share", "doc", pkg),
+    "share": os.path.join(dest, "share", pkg),
+    "man": os.path.join(dest, "share", "man"),
+    "etc": os.path.join(dest, "share", pkg, "etc"),
+}
+for sec, body in re.findall(r"^(\w+):\s*\[(.*?)\]", text, re.S | re.M):
+    if sec not in dirs:
+        continue
+    for src, dst in re.findall(r'"([^"]*)"(?:\s*\{\s*"([^"]*)"\s*\})?', body):
+        optional = src.startswith("?")
+        src = src.lstrip("?")
+        if not os.path.exists(src):
+            if optional:
+                continue
+            sys.exit("%s: missing %s (%s)" % (inst, src, sec))
+        out = os.path.join(dirs[sec], dst or os.path.basename(src))
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        shutil.copy2(src, out)
+EOF
   popd
   test -f "${T}/lib/${dir}/META"
 }
