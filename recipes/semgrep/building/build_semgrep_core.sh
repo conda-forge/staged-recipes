@@ -68,6 +68,53 @@ else
   prefix="${PREFIX}"; sep=':'; exe=
 fi
 export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
+
+# --- HIDDEN(#35158): private (never installed) builds -> ${T}/lib -----------
+# Packages published by conda-forge/staged-recipes#35158; hidden until it lands.
+# Revert: delete the matching nondune/<dir> source in recipe.yaml, delete its
+# call line below (grep 'HIDDEN(#35158)'), uncomment the host dep.
+# Later calls see earlier ones through OCAMLPATH (${T}/lib first).
+Tfwd="${T//\\//}"   # HIDDEN(#35158): helpers below use forward slashes
+
+# hidden_dune <dir under nondune> <opam-pkg[,pkg...]> [pre-step command...]
+# pre-step runs inside the source dir before the build.
+# --root .: dune would otherwise pick the outermost dune-project as root.
+hidden_dune() {   # HIDDEN(#35158)
+  local dir="$1" pkgs="$2"
+  shift 2
+  pushd "${SRC_DIR//\\//}/nondune/${dir}"
+    if [[ $# -gt 0 ]]; then "$@"; fi
+    dune build --root . -p "${pkgs}" --profile=release -j "${CPU_COUNT:-2}" @install
+    dune install --root . -p "${pkgs}" --prefix="${Tfwd}" --libdir="${Tfwd}/lib" \
+      --docdir="${Tfwd}/share/doc" --mandir="${Tfwd}/share/man"
+  popd
+  test -f "${T}/lib/${pkgs%%,*}/META"
+}
+
+# hidden_topkg <dir under nondune> [pkg.ml args...]  (mirrors ocaml-logs build_topkg_pkg.sh)
+hidden_topkg() {   # HIDDEN(#35158)
+  local dir="$1"
+  shift
+  pushd "${SRC_DIR//\\//}/nondune/${dir}"
+    ocaml -I "${T}/toplevel" pkg/pkg.ml build --dev-pkg false "$@"
+    opam-installer --prefix="${Tfwd}" --libdir="${Tfwd}/lib" --docdir="${Tfwd}/share/doc" "${dir}.install"
+  popd
+  test -f "${T}/lib/${dir}/META"
+}
+
+# lwt: opam runs the discover step first (libev disabled); runs inside the lwt dir.
+hidden_lwt_discover() {   # HIDDEN(#35158)
+  dune exec --root . -p lwt src/unix/config/discover.exe -- --save --use-libev false
+}
+
+hidden_dune ppxlib ppxlib   # HIDDEN(#35158)
+hidden_dune dune-configurator dune-configurator   # HIDDEN(#35158)
+hidden_dune ocplib-endian ocplib-endian   # HIDDEN(#35158)
+hidden_dune lwt lwt hidden_lwt_discover   # HIDDEN(#35158)
+hidden_dune lwt lwt_ppx   # HIDDEN(#35158)
+# logs built with lwt (logs.lwt) shadows host ocaml-logs (built without lwt, still needed by ocaml-bos).
+hidden_topkg logs --with-js_of_ocaml-compiler false --with-fmt true --with-cmdliner true --with-lwt true --with-base-threads true   # HIDDEN(#35158)
+
 export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig${sep}${prefix}/share/pkgconfig${PKG_CONFIG_PATH:+${sep}${PKG_CONFIG_PATH}}"
 
 # Dynamic linking: makes src/main/flags.sh emit no static/brew flags.
@@ -138,8 +185,8 @@ printf '\n(vendored_dirs duniverse)\n' >> dune
 # linux sysroot is 2.17). Without it eio_main selects the eio_posix backend.
 rm -rf duniverse/eio/lib_eio_linux
 
-# dune-configurator is provided by host ocaml-dune-configurator; drop the
-# vendored copy to avoid two copies.
+# dune-configurator is provided by an external copy ($T/lib, HIDDEN(#35158): later host
+# ocaml-dune-configurator); drop the vendored copy to avoid two copies.
 rm -rf duniverse/dune/otherlibs/configurator
 
 # iomux stubs hardcode -Werror; on osx clang warns that -L$BUILD_PREFIX/lib (from
