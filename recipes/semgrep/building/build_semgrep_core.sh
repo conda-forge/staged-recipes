@@ -78,14 +78,14 @@ Tfwd="${T//\\//}"   # HIDDEN(#35158): helpers below use forward slashes
 
 # hidden_dune <dir under nondune> <opam-pkg[,pkg...]> [pre-step command...]
 # pre-step runs inside the source dir before the build.
-# --root .: dune would otherwise pick the outermost dune-project as root.
+# -p implies --release, which implies --root . (the pushd dir is the root).
 hidden_dune() {   # HIDDEN(#35158)
   local dir="$1" pkgs="$2"
   shift 2
   pushd "${SRC_DIR//\\//}/nondune/${dir}"
     if [[ $# -gt 0 ]]; then "$@"; fi
-    dune build --root . -p "${pkgs}" --profile=release -j "${CPU_COUNT:-2}" @install
-    dune install --root . -p "${pkgs}" --prefix="${Tfwd}" --libdir="${Tfwd}/lib" \
+    dune build -p "${pkgs}" --profile=release -j "${CPU_COUNT:-2}" @install
+    dune install -p "${pkgs}" --prefix="${Tfwd}" --libdir="${Tfwd}/lib" \
       --docdir="${Tfwd}/share/doc" --mandir="${Tfwd}/share/man"
   popd
   test -f "${T}/lib/${pkgs%%,*}/META"
@@ -104,7 +104,7 @@ hidden_topkg() {   # HIDDEN(#35158)
 
 # lwt: opam runs the discover step first (libev disabled); runs inside the lwt dir.
 hidden_lwt_discover() {   # HIDDEN(#35158)
-  dune exec --root . -p lwt src/unix/config/discover.exe -- --save --use-libev false
+  dune exec -p lwt src/unix/config/discover.exe -- --save --use-libev false
 }
 
 hidden_dune ppxlib ppxlib   # HIDDEN(#35158)
