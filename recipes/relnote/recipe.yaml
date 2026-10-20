@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  name: relnote
+  version: "0.3.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/loki-inu/relnote/archive/v${{ version }}.tar.gz
+  sha256: 8494ff181d5f25277f8a24676c5a36da60356d1cde6ecbc11b7ee2acabbf7ab3
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - relnote = relnote.__main__:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=61
+  run:
+    - python >=${{ python_min }}
+    - git
+
+tests:
+  - python:
+      imports:
+        - relnote
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - git
+    script:
+      - relnote --version
+      - relnote --help
+      - git init -q demo
+      - cd demo
+      - 'git -c user.name=test -c user.email=test@example.com commit -q --allow-empty -m "feat: add widget"'
+      - 'git -c user.name=test -c user.email=test@example.com commit -q --allow-empty -m "fix: correct widget"'
+      - relnote --output notes.md
+      - python -c "s = open('notes.md', encoding='utf-8').read(); assert '### Features' in s and 'add widget' in s, s"
+      - relnote --next-version
+
+about:
+  homepage: https://loki-inu.github.io/relnote/
+  repository: https://github.com/loki-inu/relnote
+  documentation: https://loki-inu.github.io/relnote/
+  license: MIT
+  license_file: LICENSE
+  summary: Turn a git range into clean GitHub release notes.
+  description: |
+    relnote reads the commits in a git range, groups Conventional Commits
+    into Features, Fixes, and other sections, and prints Markdown release
+    notes ready for a GitHub release. It can also prepend a Keep a Changelog
+    section to CHANGELOG.md and suggest the next SemVer tag. No dependencies
+    beyond Python and git.
+
+extra:
+  recipe-maintainers:
+    - loki-inu
