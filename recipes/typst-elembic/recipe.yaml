@@ -16,8 +16,14 @@ build:
   number: 0
   noarch: generic
   script:
-    - mkdir -p $PREFIX/share/typst/packages/preview/${{ name }}/${{ version }}
-    - cp -r src typst.toml README.md LICENSE* $PREFIX/share/typst/packages/preview/${{ name }}/${{ version }}/
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/typst/packages/preview/${{ name }}/${{ version }}
+        - cp -r src typst.toml README.md LICENSE* $PREFIX/share/typst/packages/preview/${{ name }}/${{ version }}/
+      else:
+        - set "DEST=%PREFIX%\share\typst\packages\preview\${{ name }}\${{ version }}"
+        - xcopy /E /I /Y src "%DEST%\src"
+        - for %%f in (typst.toml README.md LICENSE*) do copy /Y "%%f" "%DEST%"
 
 requirements:
   run:
@@ -30,10 +36,17 @@ tests:
         - share/typst/packages/preview/${{ name }}/${{ version }}/src/lib.typ
   - script:
       # Use an empty package cache so the test fails if typst downloads the package instead of using the local one
-      - export TYPST_PACKAGE_CACHE_PATH=$PWD/typst-cache
-      - typst compile test.typ test.pdf
-      - test -f test.pdf
-      - test ! -e typst-cache
+      - if: unix
+        then:
+          - export TYPST_PACKAGE_CACHE_PATH=$PWD/typst-cache
+          - typst compile test.typ test.pdf
+          - test -f test.pdf
+          - test ! -e typst-cache
+        else:
+          - set "TYPST_PACKAGE_CACHE_PATH=%CD%\typst-cache"
+          - typst compile test.typ test.pdf
+          - if not exist test.pdf exit 1
+          - if exist typst-cache exit 1
     files:
       recipe:
         - test.typ
