@@ -17,7 +17,7 @@ ln -sf "$(command -v x86_64-conda-linux-gnu-cc)" "$PWD/cc_shim/gcc"
 ln -sf "$(command -v x86_64-conda-linux-gnu-cc)" "$PWD/cc_shim/cc"
 export PATH="$PWD/cc_shim:$PATH"
 
-./build.sh -expert -bin "$PREFIX/bin" -qmake "$PREFIX/bin/qmake6" -noruby -python "$PYTHON" -pyinc "$($PYTHON -c "import sysconfig; print(sysconfig.get_paths()['include'])")" -pylib "$PREFIX/lib/libpython${PY_MM}.so" -libpng -libcurl -libexpat -option "-j12"
+./build.sh -expert -bin "$PREFIX/bin" -qmake "$PREFIX/bin/qmake6" -noruby -python "$PYTHON" -pyinc "$($PYTHON -c "import sysconfig; print(sysconfig.get_paths()['include'])")" -pylib "$PREFIX/lib/libpython${PY_MM}.so" -libpng -libcurl -libexpat -option "-j2"
 
 mkdir -p "$SP_DIR"
 cp -a "$PREFIX/bin/pymod/klayout" "$SP_DIR/klayout"
