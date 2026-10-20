@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  name: dune-configurator
+  version: "3.24.2"
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ocaml/dune/releases/download/${{ version }}/dune-${{ version }}.tbz
+  sha256: 472798691b0216daf538709f0f4703b3617ef24ad0866c9096068baaba4d762a
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/building/build_dune_pkg.sh dune-configurator
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    # non-unix: conda-forge ocaml has gcc_ and vs2022_ tracks; these recipes use the gcc (MinGW) track only.
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-dune 3.24.*
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+  host:
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-csexp >=1.5
+  run:
+    - ocaml-csexp >=1.5
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+        - ${{ library }}lib/ocaml/${{ name }}/configurator.cmxa
+        - ${{ library }}lib/ocaml/${{ name }}/configurator.cma
+  - script: bash testing/test_dune_configurator.sh
+    files:
+      recipe:
+        - testing/test_dune_configurator.sh
+    requirements:
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - if: not unix
+          then:
+            - m2-bash
+
+about:
+  homepage: https://github.com/ocaml/dune
+  repository: https://github.com/ocaml/dune
+  license: MIT
+  license_file: LICENSE.md
+  summary: Helper library for gathering system configuration (dune-configurator)
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner

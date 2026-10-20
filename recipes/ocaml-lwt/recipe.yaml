@@ -1,0 +1,131 @@
+schema_version: 1
+
+context:
+  name: lwt
+  version: "6.1.2"
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
+
+recipe:
+  name: ocaml-${{ name }}-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ocsigen/lwt/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 8d17156f4a5de94560a7f9edd444bee58f7eb447270b2a2d3e4483d819c6b0ab
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ocaml-${{ name }}
+      version: ${{ version }}
+    build:
+      script: bash ${{ RECIPE_DIR }}/building/build_lwt.sh lwt
+    requirements:
+      build:
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+            - ${{ stdlib("c") }}
+          else:
+            - ${{ compiler("m2w64_c") }}
+            - ${{ stdlib("m2w64_c") }}
+        # non-unix: conda-forge ocaml has gcc_ and vs2022_ tracks; these recipes use the gcc (MinGW) track only.
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-dune 3.24.*
+        - ocaml-cppo >=1.1
+        - ${{ m2 }}make
+        - if: not unix
+          then:
+            - m2-bash
+      host:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-dune-configurator
+        - ocaml-ocplib-endian
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-ocplib-endian
+    tests:
+      - package_contents:
+          files:
+            - ${{ library }}lib/ocaml/lwt/META
+            - ${{ library }}lib/ocaml/lwt/lwt.cmxa
+            - ${{ library }}lib/ocaml/lwt/unix/lwt_unix.cmxa
+      - script: bash testing/test_lwt.sh
+        files:
+          recipe:
+            - testing/test_lwt.sh
+        requirements:
+          run:
+            - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+            - ocaml-dune 3.24.*
+            - if: unix
+              then:
+                - ${{ compiler("c") }}
+            - if: not unix
+              then:
+                - m2-bash
+    about:
+      homepage: https://github.com/ocsigen/lwt
+      repository: https://github.com/ocsigen/lwt
+      license: MIT
+      license_file: LICENSE.md
+      summary: Promises and event-driven I/O for OCaml
+
+  - package:
+      name: ocaml-${{ name }}-ppx
+      version: ${{ version }}
+    build:
+      script: bash ${{ RECIPE_DIR }}/building/build_lwt.sh lwt_ppx
+    requirements:
+      build:
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+            - ${{ stdlib("c") }}
+          else:
+            - ${{ compiler("m2w64_c") }}
+            - ${{ stdlib("m2w64_c") }}
+        # non-unix: conda-forge ocaml has gcc_ and vs2022_ tracks; these recipes use the gcc (MinGW) track only.
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-dune 3.24.*
+        - ocaml-cppo >=1.1
+        - ${{ m2 }}make
+        - if: not unix
+          then:
+            - m2-bash
+      host:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-ppxlib >=0.36
+        - ${{ pin_subpackage('ocaml-lwt', exact=True) }}
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-ppxlib >=0.36
+        - ${{ pin_subpackage('ocaml-lwt', exact=True) }}
+    tests:
+      - package_contents:
+          files:
+            - ${{ library }}lib/ocaml/lwt_ppx/META
+            - ${{ library }}lib/ocaml/lwt_ppx/lwt_ppx.cmxa
+    about:
+      homepage: https://github.com/ocsigen/lwt
+      repository: https://github.com/ocsigen/lwt
+      license: MIT
+      license_file: LICENSE.md
+      summary: Lwt PPX syntax extension
+
+about:
+  homepage: https://github.com/ocsigen/lwt
+  repository: https://github.com/ocsigen/lwt
+  license: MIT
+  license_file: LICENSE.md
+  summary: Promises and event-driven I/O for OCaml
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
