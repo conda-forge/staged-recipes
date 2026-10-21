@@ -6,20 +6,22 @@ chmod a+rwx pest_source
 cd pest_source || exit
 chmod a+rwx doc edpestex papestex pestex ppestex
 
-# Don't use 'sed -i' since it is not portable across all platforms. Create
-# a temporary file and then move it to the original file instead.
-
 # SpeedTest is a unused function that causes a compilation error.
-sed '/SpeedTest/d' ip.c > ip.c.tmp && mv ip.c.tmp ip.c
+# Don't use 'sed -i' because it is not portable across linux and OSX. Instead,
+# use a temporary file and move it back to the original file.
+sed '/SpeedTest/d' ip.C > tmpip.C
+mv tmpip.C ip.C
 
 # OSX does not support static linking, so remove the -static flag from the
 # makefiles.
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    for file in *.mak; do
-        sed 's/-static//g' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+    for f in *.mak; do
+        sed 's/-static//g' "$f" > tmp"$f"
+        mv tmp"$f" "$f"
     done
 fi
 
+# Compile
 make cppp
 make -f pest.mak all
 make clean
@@ -44,7 +46,8 @@ make clean
 make -f beopest.mak all
 make clean
 
-rm cppp  # only used for building, not needed at runtime
+# Install
+rm cppp  # Only needed when building.
 
 mkdir -p "${PREFIX}/bin"
 find . -type f -perm -ugo+x -exec cp \{\} "${PREFIX}/bin/" \;
