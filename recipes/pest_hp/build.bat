@@ -6,6 +6,13 @@ REM a temporary file and then move it to the original file instead.
 sed '/SpeedTest/d' ip.c > ip.c.tmp
 move ip.c.tmp ip.c
 
+REM CFLAGS needs to include -DWIN32 to select the correct header files for
+REM Windows.  The default CFLAGS in the makefile does not include this.
+for %%f in (.\*.mak) do (
+    sed 's/CFLAGS=/CFLAGS=-DWIN32 ' %%f > %%f.tmp
+    move %%f.tmp %%f
+)
+
 make -f pest_hp.mak cppp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pest_hp
