@@ -21,8 +21,10 @@ REM Bug in the WIN32 block of ip.C.
 REM The line:
 REM     #define mkdir(dir,perm) _mkdir(dir)
 REM should be:
-REM     #define mkdir(dir,perm) _mkdir(dir,perm)
-sed 's/_mkdir.dir./_mkdir(dir,perm)/g' ip.C > ip.C.tmp
+REM     #define mkdir(dir) _mkdir(dir)
+sed 's/ mkdir.dir,perm./ mkdir(dir)/g' ip.C > ip.C.tmp
+move ip.C.tmp ip.C
+sed 's/mkdir.dir,0777./mkdir(dir)/g' ip.C > ip.C.tmp
 move ip.C.tmp ip.C
 
 REM PEST_HP instructions to build the executables call for the "clean" target
