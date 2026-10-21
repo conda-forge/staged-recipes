@@ -1,0 +1,85 @@
+context:
+  version: "0.1.0"
+  # keep in sync with src/default_glibc.rs and the SHA-1s in build.rs
+  glibc_debian_version: "2.41-12+deb13u4"
+
+package:
+  name: pixi-oci
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pavelzw/pixi-oci/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 20332a6a3de54eec53d0e7647881f742999692d21a463b13b14f987cd9d08fdf
+  # Debian libc6 packages embedded with the `bundled-glibc` feature, pinned by SHA-1 in build.rs
+  - url: https://snapshot.debian.org/file/27904cc1b58dd79f0768ba6aa6dd993edc411b97
+    sha256: 967aa62605721081c3eb2a17650611a792aa802d76a6511d1840242623d204c9
+    file_name: libc6_${{ glibc_debian_version }}_amd64.deb
+    target_directory: glibc-debs
+  - url: https://snapshot.debian.org/file/6ee536e6a461ca319776fac983202946f4d3dce8
+    sha256: 8784eda966b189c777a384dac5ce009e8fc9b52d006926c5a013e7fa8aa688cc
+    file_name: libc6_${{ glibc_debian_version }}_arm64.deb
+    target_directory: glibc-debs
+  - url: https://sources.debian.org/data/main/g/glibc/${{ glibc_debian_version | replace("+", "%2B") }}/debian/copyright
+    sha256: f5788886720a2605a946e81d571e6c8162b09f58d2e2ceb8d36e5768fccd850d
+    file_name: GLIBC_COPYRIGHT
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - export GLIBC_DEBIAN_FILE="$SRC_DIR/glibc-debs/libc6_${{ glibc_debian_version }}_amd64.deb:$SRC_DIR/glibc-debs/libc6_${{ glibc_debian_version }}_arm64.deb"
+      - cargo auditable install --locked --no-track --features bundled-glibc --bins --root ${{ PREFIX }} --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+      - $PREFIX/bin/pixi-oci completion zsh > $PREFIX/share/zsh/site-functions/_pixi-oci
+      - $PREFIX/bin/pixi-oci completion bash > $PREFIX/share/bash-completion/completions/pixi-oci
+      - $PREFIX/bin/pixi-oci completion fish > $PREFIX/share/fish/vendor_completions.d/pixi-oci.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - cmake
+    - pkg-config
+  host:
+    - openssl
+
+tests:
+  - script:
+      - pixi-oci --help
+      - pixi-oci --version
+  - package_contents:
+      bin:
+        - pixi-oci
+      files:
+        - share/bash-completion/completions/pixi-oci
+        - share/fish/vendor_completions.d/pixi-oci.fish
+        - share/zsh/site-functions/_pixi-oci
+      strict: true
+
+about:
+  homepage: https://github.com/pavelzw/pixi-oci
+  summary: Build OCI images from pixi environments
+  description: |
+    pixi-oci builds OCI container images from pixi environments without
+    requiring a container daemon.
+
+    This package embeds the Debian libc6 packages of the default glibc
+    version, so they are not downloaded when building images.
+  license: BSD-3-Clause AND LGPL-2.1-or-later
+  license_file:
+    - LICENSE
+    - GLIBC_COPYRIGHT
+    - THIRDPARTY.yml
+  repository: https://github.com/pavelzw/pixi-oci
+
+extra:
+  recipe-maintainers:
+    - pavelzw
