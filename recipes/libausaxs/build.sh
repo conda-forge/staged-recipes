@@ -9,7 +9,7 @@ case "${target_platform}" in
   *) arch="auto" ;;
 esac
 
-cmake ${CMAKE_ARGS} -S . -B build -G Ninja \
+cmake ${CMAKE_ARGS} -S ${SRC_DIR} -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_INSTALL_LIBDIR=lib \

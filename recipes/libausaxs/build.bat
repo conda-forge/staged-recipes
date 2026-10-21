@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-cmake %CMAKE_ARGS% -S . -B build -G Ninja ^
+cmake %CMAKE_ARGS% -S %SRC_DIR% -B build -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DARCH=x86-64 ^
