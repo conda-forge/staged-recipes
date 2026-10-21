@@ -7,9 +7,9 @@ sed '/SpeedTest/d' ip.c > ip.c.tmp
 move ip.c.tmp ip.c
 
 REM CFLAGS needs to include -DWIN32 to select the correct header files for
-REM Windows.  The default CFLAGS in the makefile does not include this.
+REM Windows.  The default CFLAGS in the *.mak makefiles does not include this.
 for %%f in (.\*.mak) do (
-    sed 's/CFLAGS=/CFLAGS=-DWIN32 ' %%f > %%f.tmp
+    sed 's/CFLAGS=/CFLAGS=-DWIN32 /g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
