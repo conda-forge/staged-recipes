@@ -9,6 +9,13 @@ cd /d "%SRC_DIR%\src\mumble"
 copy "%SRC_DIR%\cmake-config\cmake_system_libs.cmake" .
 copy "%SRC_DIR%\cmake-config\conda_toolchain.cmake" .
 
+:: The released speexdsp CMake config contains invalid include/library paths.
+:: Remove it so Mumble falls back to the package's pkg-config metadata.
+if exist "%LIBRARY_PREFIX%\lib\cmake\speexdsp" (
+    rmdir /s /q "%LIBRARY_PREFIX%\lib\cmake\speexdsp"
+    if errorlevel 1 exit /b 1
+)
+
 cmake -B build ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
