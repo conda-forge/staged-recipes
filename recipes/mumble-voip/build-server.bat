@@ -24,8 +24,9 @@ cmake -B build ^
     "-DCMAKE_INSTALL_LIBDIR=%LIBRARY_PREFIX%\lib" ^
     "-DCMAKE_INSTALL_BINDIR=%LIBRARY_PREFIX%\bin" ^
     "-DCMAKE_INSTALL_INCLUDEDIR=%LIBRARY_PREFIX%\include" ^
-    -DMUMBLE_INSTALL_LIBDIR=lib/mumble ^
-    -DMUMBLE_INSTALL_PLUGINDIR=lib/mumble/plugins ^
+    "-DMUMBLE_INSTALL_EXECUTABLEDIR=%PREFIX%\bin" ^
+    "-DMUMBLE_INSTALL_LIBDIR=%LIBRARY_PREFIX%\lib\mumble" ^
+    "-DMUMBLE_INSTALL_PLUGINDIR=%LIBRARY_PREFIX%\lib\mumble\plugins" ^
     "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996" ^
     "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996" ^
     "-DCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /DNDEBUG" ^
@@ -54,13 +55,13 @@ cmake -B build ^
     -Dbundled-gsl=OFF ^
     -Dbundled-minhook=OFF ^
     -Dbundled-SPSCQueue=OFF
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 cmake --build build -j %CPU_COUNT%
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 cmake --install build
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 :: Install license files
 mkdir "%PREFIX%\share\licenses\mumble-server"

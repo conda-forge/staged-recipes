@@ -16,6 +16,10 @@ if exist "%LIBRARY_PREFIX%\lib\cmake\speexdsp" (
     if errorlevel 1 exit /b 1
 )
 
+:: Windows pkg-config includes private flags; MSVC has no separate libm.
+python -c "from pathlib import Path; p = Path(r'%LIBRARY_PREFIX%\lib\pkgconfig\speexdsp.pc'); p.write_text(p.read_text().replace('Libs.private: -lm', 'Libs.private:'))"
+if not "%ERRORLEVEL%"=="0" exit /b 1
+
 cmake -B build ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -35,8 +39,9 @@ cmake -B build ^
     "-DCMAKE_INSTALL_LIBDIR=%LIBRARY_PREFIX%\lib" ^
     "-DCMAKE_INSTALL_BINDIR=%LIBRARY_PREFIX%\bin" ^
     "-DCMAKE_INSTALL_INCLUDEDIR=%LIBRARY_PREFIX%\include" ^
-    -DMUMBLE_INSTALL_LIBDIR=lib/mumble ^
-    -DMUMBLE_INSTALL_PLUGINDIR=lib/mumble/plugins ^
+    "-DMUMBLE_INSTALL_EXECUTABLEDIR=%PREFIX%\bin" ^
+    "-DMUMBLE_INSTALL_LIBDIR=%LIBRARY_PREFIX%\lib\mumble" ^
+    "-DMUMBLE_INSTALL_PLUGINDIR=%LIBRARY_PREFIX%\lib\mumble\plugins" ^
     "-DCMAKE_CXX_FLAGS=/EHsc /DWIN32 /wd4996" ^
     "-DCMAKE_C_FLAGS=/std:c11 /EHsc /DWIN32 /wd4996" ^
     "-DCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /DNDEBUG" ^
@@ -64,13 +69,13 @@ cmake -B build ^
     -Dbundled-minhook=OFF ^
     -Dbundled-SPSCQueue=OFF ^
     -Drenamenoise=OFF
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 cmake --build build -j %CPU_COUNT%
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 cmake --install build
-if errorlevel 1 exit 1
+if not "%ERRORLEVEL%"=="0" exit /b 1
 
 :: Install license files
 mkdir "%PREFIX%\share\licenses\mumble-client"
