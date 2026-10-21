@@ -27,8 +27,9 @@ CMAKE_ARGS=(
     "-DCMAKE_INSTALL_LIBDIR=${PREFIX}/lib"
     "-DCMAKE_INSTALL_BINDIR=${PREFIX}/bin"
     "-DCMAKE_INSTALL_INCLUDEDIR=${PREFIX}/include"
-    -DMUMBLE_INSTALL_LIBDIR=lib/mumble
-    -DMUMBLE_INSTALL_PLUGINDIR=lib/mumble/plugins
+    "-DMUMBLE_INSTALL_EXECUTABLEDIR=${PREFIX}/bin"
+    "-DMUMBLE_INSTALL_LIBDIR=${PREFIX}/lib/mumble"
+    "-DMUMBLE_INSTALL_PLUGINDIR=${PREFIX}/lib/mumble/plugins"
     "-DCMAKE_INCLUDE_PATH=${PREFIX}/include"
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
@@ -71,6 +72,7 @@ if [[ "$(uname)" == "Linux" ]]; then
     )
 elif [[ "$(uname)" == "Darwin" ]]; then
     CMAKE_ARGS+=(
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
         "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -D_LIBCPP_DISABLE_AVAILABILITY"
         "-DCMAKE_C_FLAGS=-Wno-deprecated-declarations -std=c11"
         "-DOpus_ROOT=${PREFIX}"
