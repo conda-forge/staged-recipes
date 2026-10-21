@@ -48,4 +48,3 @@ rm cppp  # only used for building, not needed at runtime
 
 mkdir -p "${PREFIX}/bin"
 find . -type f -perm -ugo+x -exec cp \{\} "${PREFIX}/bin/" \;
-
