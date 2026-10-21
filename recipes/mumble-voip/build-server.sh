@@ -91,12 +91,6 @@ cmake "${CMAKE_ARGS[@]}"
 cmake --build build -j "${CPU_COUNT:-4}"
 cmake --install build
 
-# Install service configuration (Linux only)
-if [[ "$(uname)" == "Linux" ]]; then
-    mkdir -p "${PREFIX}/etc/mumble"
-    cp "${SRC_DIR}/service-config/service.yaml" "${PREFIX}/etc/mumble/service.yaml"
-fi
-
 # Install license files
 mkdir -p "${PREFIX}/share/licenses/mumble-server"
 cp "${SRC_DIR}/src/mumble/LICENSE" "${PREFIX}/share/licenses/mumble-server/"

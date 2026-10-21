@@ -31,22 +31,7 @@ try {
   print "INFO: Help command test completed"
 }
 
-# Test 3: Check for configuration files
-if ($"($env.PREFIX)/etc/mumble/service.yaml" | path exists) {
-  print "✓ Service configuration file found"
-
-  # Validate basic YAML structure
-  try {
-    let config_content = (open $"($env.PREFIX)/etc/mumble/service.yaml")
-    print "✓ Service configuration is valid YAML"
-  } catch {
-    print "WARNING: Could not parse service configuration"
-  }
-} else {
-  print "INFO: Service configuration not found (may be optional)"
-}
-
-# Test 4: Verify license files
+# Test 3: Verify license files
 let license_files = [
   $"($env.PREFIX)/share/licenses/mumble-server/LICENSE"
 ]
@@ -59,7 +44,7 @@ for license in $license_files {
   }
 }
 
-# Test 5: Test basic server initialization (dry-run)
+# Test 4: Test basic server initialization (dry-run)
 print "Testing server initialization..."
 try {
   # Try to run server with invalid config to test basic startup
@@ -71,7 +56,7 @@ try {
   print "INFO: Server initialization test completed"
 }
 
-# Test 6: Check dependencies are available
+# Test 5: Check dependencies are available
 print "Checking runtime dependencies..."
 match ($nu.os-info.name) {
  "linux" =>  {
