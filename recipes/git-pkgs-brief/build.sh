@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -o xtrace -o nounset -o pipefail -o errexit
+set -euxo pipefail
 
 go build -o="${PREFIX}/bin/brief" -ldflags="-s -w -X github.com/git-pkgs/brief.Version=${PKG_VERSION}" ./cmd/brief
 

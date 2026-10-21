@@ -1,7 +1,7 @@
 @echo on
 @setlocal EnableDelayedExpansion
 
-go build -o=%LIBRARY_PREFIX%\bin\brief.exe -ldflags="-s -w -X github.com/git-pkgs/brief.Version=%PKG_VERSION%" .\cmd\brief || goto :error
+go build -o=%LIBRARY_BIN%\brief.exe -ldflags="-s -w -X github.com/git-pkgs/brief.Version=%PKG_VERSION%" .\cmd\brief || goto :error
 
 REM oapi-codegen/nullable's LICENSE file only contains the Apache-2.0 notice
 REM boilerplate (not the full license text), so go-licenses can't classify it.
