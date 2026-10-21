@@ -13,17 +13,18 @@ REM the "DEFINES=...-DUNIX..." to "DEFINES=...-DWIN32..." in the makefiles
 REM would be a better solution, but the "#ifdef UNIX" blocks in the FORTRAN
 REM code actually represent use of the gfortran compiler and should stay as is.
 for %%f in (.\*.mak) do (
-    sed 's/CFLAGS=/CFLAGS=-DWIN32 /g' %%f > %%f.tmp
+    sed 's/\t\.\/cppp \$(DEFINES) ip\.C ip\.cpp/\t.\/cppp -DWIN32 ip.C ip.cpp/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
-REM PEST_HP instructions to build the executables call for the "clean" target to
-REM be run after after each *.mak is used.  The *.mak files should be setup
+REM PEST_HP instructions to build the executables call for the "clean" target
+REM to be run after after each *.mak is used.  The *.mak files should be setup
 REM differently, but for now, we will just follow the instructions and clean
-REM after each use.  This means that ip.cpp will be deleted, and it is not
-REM necessarily created in later *.mak files where it might be needed.  So, we
-REM will build ip.cpp first (using cmaes_hp.mak) and edit the *.mak files to not
-REM delete it.  This is a hack, but it works for now.
+REM after each *.mak.  This means that each "make ... clean" will delete
+REM ip.cpp, and it is not necessarily created in later *.mak files where it
+REM might be needed.  So, we will build ip.cpp first (using cmaes_hp.mak) and
+REM edit the *.mak files to not delete it.  This is a hack, but it works for
+REM now.
 for %%f in (.\*.mak) do (
     sed 's/\trm -r \*\.cpp//g' %%f > %%f.tmp
     move %%f.tmp %%f
