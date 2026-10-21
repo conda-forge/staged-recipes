@@ -3,8 +3,8 @@
 REM SpeedTest is a unused function that causes a compilation error.
 REM Don't use 'sed -i' since it is not portable across all platforms. Create
 REM a temporary file and then move it to the original file instead.
-sed '/SpeedTest/d' ip.c > ip.c.tmp
-move ip.c.tmp ip.c
+sed '/SpeedTest/d' ip.C > ip.C.tmp
+move ip.C.tmp ip.C
 
 REM In ip.C the #ifdef allow configuration of the code for WIN32 or UNIX.
 REM Adding -DWIN32 to the CFLAGS in the makefiles so that ip.cpp (created from
@@ -16,6 +16,14 @@ for %%f in (.\*.mak) do (
     sed 's/\t\.\/cppp .* ip\.C ip\.cpp/\t.\/cppp -DWIN32 ip.C ip.cpp/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
+
+REM Bug in the WIN32 block of ip.C.
+REM The line:
+REM     #define mkdir(dir,perm) _mkdir(dir)
+REM should be:
+REM     #define mkdir(dir,perm) _mkdir(dir,perm)
+sed 's/_mkdir.dir./_mkdir(dir,perm)/g' ip.C > ip.C.tmp
+move ip.C.tmp ip.C
 
 REM PEST_HP instructions to build the executables call for the "clean" target
 REM to be run after after each *.mak is used.  The *.mak files should be setup
