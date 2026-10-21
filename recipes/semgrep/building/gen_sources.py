@@ -8,6 +8,32 @@ OPAM_REPO is a checkout containing packages/<name>/<name>.<ver>/opam.
 Packages sharing one URL are emitted once (target dir named after the repo
 or tarball). Warnings go to stderr; YAML goes to stdout.
 Stdlib only.
+
+Version-bump procedure (recipe.yaml is the source of truth; the block between
+its `# BEGIN generated` / `# END generated` markers is pasted from this
+script's output and then hand-edited, so a re-run is NOT byte-identical):
+  1. Solve the new semgrep.opam with opam (commands in vendored.txt header),
+     drop conda-provided and conf-* packages (building/classification.tsv
+     records the decision per package; classify.py is not kept in the repo),
+     and write the rest to vendored.txt.
+  2. Run: gen_sources.py vendored.txt OPAM_REPO --prefix semgrep/duniverse
+     (OPAM_REPO = a checkout of github.com/ocaml/opam-repository; needs network
+     only to obtain it).
+  3. Paste the output between the markers, then apply the manual post-edits:
+       - delete the entries for the packages listed in vendored-nondune.txt
+         (hmap, jsonm are published as ocaml-hmap / ocaml-jsonm; num, zarith,
+         ocamlfind are built privately via the nondune/ and findlib/ entries
+         above the markers);
+       - alcotest and testo: the generator emits alcotest-lwt / testo-lwt,
+         testo-util, testo-diff under the same URL as one entry; keep one
+         entry and append the "(same ... tarball; vendor it once ...)" note
+         to its `# provides:` comment (dune would see duplicate packages);
+       - dune: add the dune tarball entry by hand, target
+         semgrep/duniverse/dune (it is needed by vendored ocaml-lsp; its
+         otherlibs/configurator is removed in build_semgrep_core.sh);
+       - fix every `sha256: TODO` / `# WARNING` line the generator reports
+         (compute sha256 from the tarball), and check pecu stays in NO_EXTRACT.
+  4. Update the HIDDEN(#35158) entries above the markers separately.
 """
 import os
 import re

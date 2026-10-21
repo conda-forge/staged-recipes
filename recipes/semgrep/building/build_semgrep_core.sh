@@ -273,3 +273,29 @@ dune build --profile=release -j "${CPU_COUNT:-2}" "./_build/install/default/bin/
 
 mkdir -p "${prefix}/bin"
 install -m 0755 "_build/install/default/bin/semgrep-core${exe}" "${prefix}/bin/semgrep-core${exe}"
+
+# License files of everything linked in -> ${SRC_DIR}/vendored-licenses/<same relative dir>/.
+# recipe.yaml license_file globs would recurse (`*` also matches `/`) into _build/, tests and
+# dune's own vendor/ dirs; plain bash globs here match one path segment per `*`.
+src="${SRC_DIR//\\//}"
+lic="${src}/vendored-licenses"
+mkdir -p "${lic}"
+nlic=0
+shopt -s nullglob nocaseglob
+for f in \
+    "${src}"/semgrep/duniverse/*/{LICENSE,LICENCE,COPYING,COPYRIGHT}* \
+    "${src}"/nondune/*/{LICENSE,LICENCE,COPYING,COPYRIGHT}* \
+    "${src}"/findlib/{LICENSE,LICENCE,COPYING,COPYRIGHT}* \
+    "${src}"/semgrep/libs/*/{LICENSE,license.txt,copyright.txt} \
+    "${src}"/semgrep/libs/ocaml-tree-sitter-semgrep/core/LICENSE \
+    "${src}"/semgrep/languages/*/menhir/{*license*.txt,copyright.txt} \
+    "${src}"/semgrep/languages/*/tree-sitter/*/fyi/semgrep-grammars/src/*/{LICENSE,COPYING}*; do
+  [[ -f "${f}" && -s "${f}" ]] || continue
+  rel="${f#"${src}/"}"
+  mkdir -p "${lic}/$(dirname "${rel}")"
+  cp "${f}" "${lic}/${rel}"
+  nlic=$((nlic + 1))
+done
+shopt -u nullglob nocaseglob
+echo "collected ${nlic} license files"
+[[ "${nlic}" -ge 100 ]] || { echo "too few license files collected" >&2; exit 1; }
