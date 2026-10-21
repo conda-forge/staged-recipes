@@ -13,7 +13,7 @@ REM the "DEFINES=...-DUNIX..." to "DEFINES=...-DWIN32..." in the makefiles
 REM would be a better solution, but the "#ifdef UNIX" blocks in the FORTRAN
 REM code actually represent use of the gfortran compiler and should stay as is.
 for %%f in (.\*.mak) do (
-    sed 's/\t\.\/cppp \$(DEFINES) ip\.C ip\.cpp/\t.\/cppp -DWIN32 ip.C ip.cpp/g' %%f > %%f.tmp
+    sed 's/\t\.\/cppp .* ip\.C ip\.cpp/\t.\/cppp -DWIN32 ip.C ip.cpp/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
