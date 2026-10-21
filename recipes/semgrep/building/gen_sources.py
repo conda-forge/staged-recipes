@@ -2,38 +2,16 @@
 """Turn a list of opam `name.version` lines into rattler-build `source:` items.
 
 usage: gen_sources.py LIST.txt OPAM_REPO [--prefix duniverse]
-                      [--extra NAME=URL=SHA256 ...]
 
-OPAM_REPO is a checkout containing packages/<name>/<name>.<ver>/opam.
-Packages sharing one URL are emitted once (target dir named after the repo
-or tarball). Warnings go to stderr; YAML goes to stdout.
-Stdlib only.
+OPAM_REPO is an opam-repository checkout (packages/<name>/<name>.<ver>/opam).
+YAML goes to stdout, warnings to stderr. Stdlib only.
 
-Version-bump procedure (recipe.yaml is the source of truth; the block between
-its `# BEGIN generated` / `# END generated` markers is pasted from this
-script's output and then hand-edited, so a re-run is NOT byte-identical):
-  1. Solve the new semgrep.opam with opam (commands in vendored.txt header),
-     drop conda-provided and conf-* packages (building/classification.tsv
-     records the decision per package; classify.py is not kept in the repo),
-     and write the rest to vendored.txt.
-  2. Run: gen_sources.py vendored.txt OPAM_REPO --prefix semgrep/duniverse
-     (OPAM_REPO = a checkout of github.com/ocaml/opam-repository; needs network
-     only to obtain it).
-  3. Paste the output between the markers, then apply the manual post-edits:
-       - delete the entries for the packages listed in vendored-nondune.txt
-         (hmap, jsonm are published as ocaml-hmap / ocaml-jsonm; num, zarith,
-         ocamlfind are built privately via the nondune/ and findlib/ entries
-         above the markers);
-       - alcotest and testo: the generator emits alcotest-lwt / testo-lwt,
-         testo-util, testo-diff under the same URL as one entry; keep one
-         entry and append the "(same ... tarball; vendor it once ...)" note
-         to its `# provides:` comment (dune would see duplicate packages);
-       - dune: add the dune tarball entry by hand, target
-         semgrep/duniverse/dune (it is needed by vendored ocaml-lsp; its
-         otherlibs/configurator is removed in build_semgrep_core.sh);
-       - fix every `sha256: TODO` / `# WARNING` line the generator reports
-         (compute sha256 from the tarball), and check pecu stays in NO_EXTRACT.
-  4. Update the HIDDEN(#35158) entries above the markers separately.
+Bump procedure (recipe.yaml is the source of truth; its generated block is hand-edited):
+  1. opam-solve the new semgrep.opam; drop conda-provided and conf-* packages; write the rest to LIST.txt.
+  2. gen_sources.py LIST.txt OPAM_REPO --prefix semgrep/duniverse; paste between the BEGIN/END markers.
+  3. Drop hmap, jsonm, num, zarith, ocamlfind (published or built privately); merge alcotest and testo
+     into one entry each (same tarball); add the dune tarball by hand (target semgrep/duniverse/dune).
+  4. A missing sha256 aborts the run: add it to the opam file by hand. pecu must keep its file_name (NO_EXTRACT).
 """
 import os
 import re
@@ -42,8 +20,8 @@ from urllib.parse import urlparse
 
 ARCHIVE_EXT = re.compile(r"\.(tar\.gz|tgz|tar\.bz2|tbz|tar\.xz|txz|tar|zip)$")
 
-# Target dirs whose archive is kept as-is (file_name set) and unpacked by
-# build_semgrep_core.sh: pecu's tests have ':' in file names (not creatable on non-unix).
+# Archives kept packed (file_name set) and unpacked by build_semgrep_core.sh:
+# pecu's tests have ':' in file names (not creatable on non-unix).
 NO_EXTRACT = {"pecu"}
 
 
@@ -63,89 +41,67 @@ def find_repo(path):
 
 
 def parse_opam(text):
-    """Return (src_url, {algo: hash}) from the url { } section."""
+    """Return (src_url, sha256) from the url { } section."""
     m = re.search(r"^url\s*\{(.*?)^\}", text, re.S | re.M)
     if not m:
-        return None, {}
+        return None, None
     body = m.group(1)
     s = re.search(r'\b(?:src|archive):\s*"([^"]+)"', body)
-    sums = {}
-    c = re.search(r"checksum:\s*(\[[^\]]*\]|\"[^\"]*\")", body, re.S)
-    if c:
-        for algo, val in re.findall(r'"(sha256|sha512|md5)=([0-9a-fA-F]+)"', c.group(1)):
-            sums[algo] = val
-    return (s.group(1) if s else None), sums
+    h = re.search(r'"sha256=([0-9a-fA-F]+)"', body)
+    return (s.group(1) if s else None), (h.group(1) if h else None)
+
+
+def strip_version(base):
+    """foo-1.2.3 -> foo."""
+    m = re.match(r"^(.*?)[-_.]v?\d[\w.+~-]*$", base)
+    return m.group(1) if m else base
 
 
 def dir_name(url, pkg):
     u = urlparse(url)
     parts = [p for p in u.path.split("/") if p]
-    if "opam-source-archives" in parts[:2] or u.netloc == "gitlab.inria.fr":
-        # raw tarballs in a shared repo / gitlab ".../-/archive/<tag>/archive.tar.gz":
-        # name after the project (gitlab) or the tarball (opam-source-archives)
-        if u.netloc == "gitlab.inria.fr":
-            return parts[1]
-        base = ARCHIVE_EXT.sub("", parts[-1])
-        m = re.match(r"^(.*?)[-_.]v?\d[\w.+~-]*$", base)
-        return m.group(1) if m else base
+    if u.netloc == "gitlab.inria.fr":
+        return parts[1]  # ".../-/archive/<tag>/archive.tar.gz": name after the project
+    if "opam-source-archives" in parts[:2]:
+        return strip_version(ARCHIVE_EXT.sub("", parts[-1]))
     if u.netloc in ("github.com", "gitlab.com", "codeberg.org") and len(parts) >= 2:
         return parts[1]
-    base = ARCHIVE_EXT.sub("", parts[-1]) if parts else pkg
-    m = re.match(r"^(.*?)[-_.]v?\d[\w.+~-]*$", base)
-    return m.group(1) if m else base or pkg
+    return strip_version(ARCHIVE_EXT.sub("", parts[-1])) if parts else pkg
 
 
 def main(argv):
     args = argv[1:]
     prefix = "duniverse"
-    extra = {}
-    pos = []
-    i = 0
-    while i < len(args):
-        if args[i] == "--prefix":
-            prefix = args[i + 1]
-            i += 2
-        elif args[i] == "--extra":
-            n, url, sha = args[i + 1].split("=", 2)
-            extra[n] = (url, {"sha256": sha} if sha else {})
-            i += 2
-        else:
-            pos.append(args[i])
-            i += 1
-    if len(pos) != 2:
+    if "--prefix" in args:
+        i = args.index("--prefix")
+        prefix = args[i + 1]
+        del args[i:i + 2]
+    if len(args) != 2:
         sys.exit(__doc__)
-    listfile, repo = pos
+    listfile, repo = args
     repo = find_repo(repo)
 
-    entries = {}  # url -> dict(pkgs, sums)
-    order = []
+    entries = {}  # url -> dict(pkgs, sha256)
     with open(listfile) as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            name, _, ver = line.partition(".")
-            if name in extra:
-                url, sums = extra[name]
-            else:
-                p = os.path.join(repo, "packages", name, line, "opam")
-                if not os.path.isfile(p):
-                    warn("%s: no opam file at %s" % (line, p))
-                    continue
-                with open(p) as fh:
-                    url, sums = parse_opam(fh.read())
-                if not url:
-                    warn("%s: no url in opam file" % line)
-                    continue
-            if url not in entries:
-                entries[url] = {"pkgs": [], "sums": sums}
-                order.append(url)
-            entries[url]["pkgs"].append(line)
+            name = line.partition(".")[0]
+            p = os.path.join(repo, "packages", name, line, "opam")
+            if not os.path.isfile(p):
+                warn("%s: no opam file at %s" % (line, p))
+                continue
+            with open(p) as fh:
+                url, sha = parse_opam(fh.read())
+            if not url:
+                warn("%s: no url in opam file" % line)
+                continue
+            entries.setdefault(url, {"pkgs": [], "sha256": sha})["pkgs"].append(line)
 
     used = {}
     print("source:")
-    for url in order:
-        e = entries[url]
+    for url, e in entries.items():
         first = e["pkgs"][0].partition(".")[0]
         d = dir_name(url, first)
         if d in used and used[d] != url:
@@ -155,25 +111,15 @@ def main(argv):
                 d = "%s-%d" % (first, n)
                 n += 1
         used[d] = url
-        sums = e["sums"]
         print("  # provides: %s" % ", ".join(e["pkgs"]))
         print("  - url: %s" % url)
-        if "sha256" in sums:
-            print("    sha256: %s" % sums["sha256"])
-        elif "md5" in sums:
-            warn("%s: md5 only" % ", ".join(e["pkgs"]))
-            print("    md5: %s  # WARNING md5 only" % sums["md5"])
-        elif "sha512" in sums:
-            warn("%s: sha512 only (rattler-build needs sha256/md5)" % ", ".join(e["pkgs"]))
-            print("    # WARNING sha512 only, compute sha256: sha512=%s" % sums["sha512"])
-            print("    sha256: TODO")
-        else:
-            warn("%s: no checksum" % ", ".join(e["pkgs"]))
-            print("    sha256: TODO  # WARNING no checksum")
+        if not e["sha256"]:
+            sys.exit("%s: no sha256 in opam file" % ", ".join(e["pkgs"]))
+        print("    sha256: %s" % e["sha256"])
         if d in NO_EXTRACT:
             print("    file_name: %s" % urlparse(url).path.rsplit("/", 1)[-1])
         print("    target_directory: %s/%s" % (prefix, d))
-    sys.stderr.write("%d source entries from %d packages\n" % (len(order), sum(len(e["pkgs"]) for e in entries.values())))
+    sys.stderr.write("%d source entries from %d packages\n" % (len(entries), sum(len(e["pkgs"]) for e in entries.values())))
 
 
 if __name__ == "__main__":

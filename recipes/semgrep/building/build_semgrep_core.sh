@@ -2,59 +2,94 @@
 # Build semgrep-core with dune inside a workspace holding the vendored duniverse.
 set -euxo pipefail
 
-# dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root); keep builds hermetic.
+# dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root).
 export DUNE_CACHE=disabled
 
-# shellcheck source=/dev/null
-source "${RECIPE_DIR}/building/build_findlib.sh"
 T="${SRC_DIR}/_tools"
+if [[ "${OS:-}" == "Windows_NT" || "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
+  prefix="${PREFIX}/Library"; sep=';'; exe=.exe
+else
+  prefix="${PREFIX}"; sep=':'; exe=
+fi
+# forward-slash variants: findlib.conf, dune and gcc reject backslashes
+src="${SRC_DIR//\\//}"
+tf="${T//\\//}"
+pf="${prefix//\\//}"
+
+# edit PERL_EXPR VERIFY_EXPR FILE...: perl -pi, then fail unless the perl -ne VERIFY_EXPR exits 0 ('' skips it)
+edit() {
+  local expr="$1" verify="$2"
+  shift 2
+  perl -pi -e "${expr}" "$@"
+  if [[ -n "${verify}" ]]; then perl -ne "${verify}" "$@"; fi
+}
+
+# --- findlib: conda's ocaml-findlib (build env) on unix, a private build on non-unix ---
+mkdir -p "${T}/etc" "${T}/lib" "${T}/toplevel"
+if [[ -n "${exe}" ]]; then
+  pushd "${SRC_DIR}/findlib"
+    ./configure \
+      -bindir "${T}/bin" \
+      -sitelib "${T}/lib" \
+      -mandir "${T}/man" \
+      -config "${T}/etc/findlib.conf" \
+      -no-custom \
+      -no-topfind
+    make all
+    make opt
+    make install
+    cp src/findlib/topfind "${T}/toplevel/topfind"
+  popd
+  export PATH="${T}/bin:${PATH}"
+  findlib_extra=""
+else
+  cp "${BUILD_PREFIX}/lib/ocaml/topfind" "${T}/toplevel/topfind"
+  # conda's findlib keeps its own META under site-lib
+  findlib_extra="${sep}${BUILD_PREFIX}/lib/ocaml/site-lib"
+fi
+
+# Search conda's OCaml tree, then the private tree (num, zarith), then the stdlib.
+stdlib="$(ocamlc -where | tr -d '\r')"
+cat > "${T}/etc/findlib.conf" <<EOF
+destdir="${pf}/lib/ocaml"
+path="${pf}/lib/ocaml${sep}${tf}/lib${sep}${stdlib//\\//}${findlib_extra}"
+EOF
+export OCAMLFIND_CONF="${T}/etc/findlib.conf"
 
 # --- Private (never installed) non-dune deps: num, zarith -> ${T}/lib -------
 export OCAMLFIND_DESTDIR="${T}/lib"
 
 pushd "${SRC_DIR}/nondune/num"
   make
-  # findlib-install: everything via ocamlfind into OCAMLFIND_DESTDIR (plain
-  # `install` is legacy mode and writes into the OCaml stdlib dir).
-  # With no metadir configured, `ocamlfind install num` treats ./META.num as
-  # "already installed" (frontend.ml: Filename.concat "" "META.num"), and
-  # src/ holds the generated META.num, so move it out of the way first.
+  # Plain `install` is legacy mode (writes into the stdlib dir), so install via ocamlfind.
+  # ocamlfind treats a ./META.num next to the Makefile as already installed: move the generated one away.
   mv src/META.num src/META.num-gen
-  # num's Makefile echo's META.num line by line; non-unix make's shell keeps the single
-  # quotes (and may leave a BOM/trailing blanks/CR). Strip them; grep is absent on non-unix.
-  perl -pi -e "s/^\xEF\xBB\xBF//; s/\s+\z//; s/^\s*'//; s/'\s*\z//; \$_ .= qq(\n)" src/META.num-gen
-  perl -ne 'chomp(my $l = $_); print "META.num-gen: [$l]\n"; exit 1 if /\x27/ || /\r/' src/META.num-gen
-  perl -pi -e 's/^\tcp META\.num META\r?$/\tcp META.num-gen META/' src/Makefile
-  # non-unix make shell keeps quotes in echo'd META.top; num-top unused
-  perl -pi -e 's/^findlib-install: num-top-install\s*$/findlib-install:\n/' src/Makefile
-  perl -ne '$c++ if /^\tcp META\.num-gen META/; exit 1 if /^findlib-install: num-top-install/; END { exit 1 unless $c }' src/Makefile
+  # non-unix make's shell keeps the single quotes from the echo'd META.num (and may add BOM/CR); grep is absent there.
+  edit "s/^\xEF\xBB\xBF//; s/\s+\z//; s/^\s*'//; s/'\s*\z//; \$_ .= qq(\n)" \
+    'exit 1 if /\x27/ || /\r/' src/META.num-gen
+  edit 's/^\tcp META\.num META\r?$/\tcp META.num-gen META/' '' src/Makefile
+  # num-top is unused and its META.top echo keeps quotes on non-unix
+  edit 's/^findlib-install: num-top-install\s*$/findlib-install:\n/' \
+    '$c++ if /^\tcp META\.num-gen META/; exit 1 if /^findlib-install: num-top-install/; END { exit 1 unless $c }' \
+    src/Makefile
   make findlib-install
 popd
 
 pushd "${SRC_DIR}/nondune/zarith"
-  if [[ "${target_platform:-}" == win-* ]]; then
-    zinc="${PREFIX//\\//}/Library/include"; zlib="${PREFIX//\\//}/Library/lib"
-  else
-    zinc="${PREFIX}/include"; zlib="${PREFIX}/lib"
-  fi
-  CFLAGS="${CFLAGS:-} -I${zinc}" \
-  LDFLAGS="${LDFLAGS:-} -L${zlib}" \
+  CFLAGS="${CFLAGS:-} -I${pf}/include" \
+  LDFLAGS="${LDFLAGS:-} -L${pf}/lib" \
   ./configure
-  if [[ "${target_platform:-}" == win-* ]]; then
-    # configure records backslash paths (ocamlc -where, pkg-config) and gcc then
-    # misses gmp.h; use forward slashes.
-    [[ -f Makefile ]] || { ls; exit 1; }
-    # zarith's configure generates Makefile (which includes project.mak); keep EOL continuations
+  if [[ -n "${exe}" ]]; then
+    # configure records backslash paths (ocamlc -where, pkg-config) and gcc then misses gmp.h.
+    # Keep line-end continuations (Makefile includes project.mak).
     perl -pi -e 's{\\(?![\r\n])}{/}g' Makefile
-    perl -ne 'print "Makefile: $_"' Makefile
   fi
   make
   make install
 popd
 unset OCAMLFIND_DESTDIR
 
-# seq is in the stdlib since OCaml 4.07; opam's seq.base only installs this
-# empty META so `(libraries seq)` resolves. Provide it privately in ${T}/lib.
+# seq is in the stdlib; opam's seq.base only installs this empty META so `(libraries seq)` resolves.
 mkdir -p "${T}/lib/seq"
 cat > "${T}/lib/seq/META" <<'EOF'
 version = "[distributed with OCaml 4.07 or above]"
@@ -62,104 +97,25 @@ description = "dummy backward-compatibility package for iterators"
 requires = ""
 EOF
 
-if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
-  prefix="${PREFIX}/Library"; sep=';'; exe=.exe
-else
-  prefix="${PREFIX}"; sep=':'; exe=
-fi
 export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
 
-# --- HIDDEN(#35158): private (never installed) builds -> ${T}/lib -----------
-# Packages published by conda-forge/staged-recipes#35158; hidden until it lands.
-# Revert: delete the matching nondune/<dir> source in recipe.yaml, delete its
-# call line below (grep 'HIDDEN(#35158)'), uncomment the host dep.
-# Later calls see earlier ones through OCAMLPATH (${T}/lib first).
-Tfwd="${T//\\//}"   # HIDDEN(#35158): helpers below use forward slashes
-
-# hidden_dune <dir under nondune> <opam-pkg[,pkg...]> [pre-step command...]
-# pre-step runs inside the source dir before the build.
-# -p implies --release, which implies --root . (the pushd dir is the root).
-hidden_dune() {   # HIDDEN(#35158)
-  local dir="$1" pkgs="$2"
-  shift 2
-  pushd "${SRC_DIR//\\//}/nondune/${dir}"
-    if [[ $# -gt 0 ]]; then "$@"; fi
-    dune build -p "${pkgs}" --profile=release -j "${CPU_COUNT:-2}" @install
-    dune install -p "${pkgs}" --prefix="${Tfwd}" --libdir="${Tfwd}/lib" \
-      --docdir="${Tfwd}/share/doc" --mandir="${Tfwd}/share/man"
-  popd
-  test -f "${T}/lib/${pkgs%%,*}/META"
-}
-
-# hidden_topkg <dir under nondune> [pkg.ml args...]  (mirrors ocaml-logs build_topkg_pkg.sh)
-hidden_topkg() {   # HIDDEN(#35158)
-  local dir="$1"
-  shift
-  pushd "${SRC_DIR//\\//}/nondune/${dir}"
-    ocaml -I "${T}/toplevel" pkg/pkg.ml build --dev-pkg false "$@"
-    # opam-free install of <dir>.install (no opam: its git dep breaks pkg-config on non-unix)  # HIDDEN(#35158)
-    python - "${dir}.install" "${Tfwd}" <<'EOF'  # HIDDEN(#35158)
-import os, re, shutil, sys
-inst, dest = sys.argv[1], sys.argv[2]
-pkg = os.path.basename(inst)[:-len(".install")]
-text = open(inst).read()
-dirs = {
-    "lib": os.path.join(dest, "lib", pkg),
-    "lib_root": os.path.join(dest, "lib"),
-    "stublibs": os.path.join(dest, "lib", "stublibs"),
-    "bin": os.path.join(dest, "bin"),
-    "doc": os.path.join(dest, "share", "doc", pkg),
-    "share": os.path.join(dest, "share", pkg),
-    "man": os.path.join(dest, "share", "man"),
-    "etc": os.path.join(dest, "share", pkg, "etc"),
-}
-for sec, body in re.findall(r"^(\w+):\s*\[(.*?)\]", text, re.S | re.M):
-    if sec not in dirs:
-        continue
-    for src, dst in re.findall(r'"([^"]*)"(?:\s*\{\s*"([^"]*)"\s*\})?', body):
-        optional = src.startswith("?")
-        src = src.lstrip("?")
-        if not os.path.exists(src):
-            if optional:
-                continue
-            sys.exit("%s: missing %s (%s)" % (inst, src, sec))
-        out = os.path.join(dirs[sec], dst or os.path.basename(src))
-        os.makedirs(os.path.dirname(out), exist_ok=True)
-        shutil.copy2(src, out)
-EOF
-  popd
-  test -f "${T}/lib/${dir}/META"
-}
-
-# lwt: opam runs the discover step first (libev disabled); runs inside the lwt dir.
-hidden_lwt_discover() {   # HIDDEN(#35158)
-  dune exec -p lwt src/unix/config/discover.exe -- --save --use-libev false
-}
-
-hidden_dune ppxlib ppxlib   # HIDDEN(#35158)
-hidden_dune dune-configurator dune-configurator   # HIDDEN(#35158)
-hidden_dune ocplib-endian ocplib-endian   # HIDDEN(#35158)
-hidden_dune lwt lwt hidden_lwt_discover   # HIDDEN(#35158)
-hidden_dune lwt lwt_ppx   # HIDDEN(#35158)
-# logs built with lwt (logs.lwt) shadows host ocaml-logs (built without lwt, still needed by ocaml-bos).
-hidden_topkg logs --with-js_of_ocaml-compiler false --with-fmt true --with-cmdliner true --with-lwt true --with-base-threads true   # HIDDEN(#35158)
+source "${RECIPE_DIR}/building/hidden_private_builds.sh"  # HIDDEN(#35158)
 
 export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig${sep}${prefix}/share/pkgconfig${PKG_CONFIG_PATH:+${sep}${PKG_CONFIG_PATH}}"
 
 # Dynamic linking: makes src/main/flags.sh emit no static/brew flags.
 export FORCE_DYNLINK=true
-# Per-grammar C stubs read these (default /usr/local); point at conda tree-sitter.
+# Per-grammar C stubs read these (default /usr/local).
 export TREESITTER_INCDIR="${prefix}/include"
 export TREESITTER_LIBDIR="${prefix}/lib"
 
 if [[ -n "${exe}" ]]; then
-  # conda's non-unix libtree-sitter and pcre2 are MSVC builds (tree-sitter.lib, pcre2-8.lib;
-  # no tree-sitter.pc), but flexlink (MinGW) resolves -l<name> to lib<name>.dll.a. Make MinGW
-  # import libs from the DLLs into a private dir and point -L / pkg-config at it.
-  implib="${SRC_DIR//\\//}/_tools/implib"
+  # conda's non-unix libtree-sitter/pcre2 are MSVC builds (no tree-sitter.pc), but flexlink (MinGW)
+  # wants lib<name>.dll.a: make import libs from the DLLs in a private dir.
+  implib="${tf}/implib"
   mkdir -p "${implib}/pkgconfig"
   for lib in tree-sitter pcre2-8; do
-    dll="${prefix//\\//}/bin/${lib}.dll"
+    dll="${pf}/bin/${lib}.dll"
     test -f "${dll}"
     "${OBJDUMP:-x86_64-w64-mingw32-objdump}" -p "${dll}" | perl -ne '
       BEGIN { print "EXPORTS\n" }
@@ -174,14 +130,12 @@ Name: tree-sitter
 Description: tree-sitter runtime (MinGW import lib made by build_semgrep_core.sh)
 Version: 0.27
 Libs: -L${implib} -ltree-sitter
-Cflags: -I${prefix//\\//}/include
+Cflags: -I${pf}/include
 EOF
   export PKG_CONFIG_PATH="${implib}/pkgconfig${sep}${PKG_CONFIG_PATH}"
   export TREESITTER_LIBDIR="${implib}"
-  # pcre2-ocaml and the grammar stubs pass bare -l flags; give flexlink the search dir.
-  # The grammar scanner.o files carry inline std::string members that libstdc++.dll.a
-  # (pulled in by the grammars' -lstdc++) also exports; ld then reports multiple
-  # definitions when linking semgrep-core.exe, so let the first definition win.
+  # Bare -l flags (pcre2-ocaml, grammar stubs) need the search dir; the grammars' scanner.o and
+  # libstdc++.dll.a both define std::string members, so let the first definition win.
   export FLEXLINKFLAGS="${FLEXLINKFLAGS:+${FLEXLINKFLAGS} }-L${implib} -link -Wl,--allow-multiple-definition"
 fi
 pkg-config --exists --print-errors tree-sitter
@@ -189,10 +143,8 @@ pkg-config --exists --print-errors tree-sitter
 cd "${SRC_DIR}/semgrep"
 
 if [[ -n "${exe}" ]]; then
-  # tarball symlinks (src/*.atd -> interfaces/, scanner.h, ...) come out broken on non-unix;
-  # replace each one that points at a regular file with a copy. Directory links (grammar
-  # trees under libs/ocaml-tree-sitter-semgrep/lang) are left alone: dune does not need them
-  # and their trees hold dangling links. Two passes for file links that go through other links.
+  # Tarball symlinks come out broken on non-unix: copy file links (two passes for chained links).
+  # Directory links are left alone: dune does not need them.
   for pass in 1 2; do
     while IFS= read -r l; do
       t="$(dirname "${l}")/$(readlink "${l}")"
@@ -202,49 +154,39 @@ if [[ -n "${exe}" ]]; then
   test -f src/configuring/Rule_options.atd && ! test -L src/configuring/Rule_options.atd
 fi
 
-# The root `dune` limits scanned dirs to (dirs libs languages src tools cli):
-# add duniverse and mark it vendored (inherited by every duniverse/<pkg>, so
-# warnings in vendored code never fail the build). Not via duniverse/dune: that
-# path is the vendored dune tarball (dune-configurator).
+# The root `dune` limits scanned dirs: add duniverse and mark it vendored (warnings never fail the build).
+# Not via duniverse/dune: that path is the vendored dune tarball.
 perl -pi -e 's/^([[:space:]]*)cli$/$&\n$1duniverse/' dune
 grep -qx '[[:space:]]*duniverse' dune
 printf '\n(vendored_dirs duniverse)\n' >> dune
 
-# eio_linux needs ocaml-uring, which needs struct statx (glibc >= 2.28; the
-# linux sysroot is 2.17). Without it eio_main selects the eio_posix backend.
+# eio_linux needs ocaml-uring (struct statx, glibc >= 2.28; sysroot is 2.17); eio_main falls back to eio_posix.
 rm -rf duniverse/eio/lib_eio_linux
 
-# dune-configurator is provided by an external copy ($T/lib, HIDDEN(#35158): later host
-# ocaml-dune-configurator); drop the vendored copy to avoid two copies.
+# The dune-configurator copy comes from $T/lib (HIDDEN(#35158): later the host package); drop the vendored one.
 rm -rf duniverse/dune/otherlibs/configurator
 
-# iomux stubs hardcode -Werror; on osx clang warns that -L$BUILD_PREFIX/lib (from
-# :standard) is unused when compiling only, which fails the build.
-perl -pi -e 's/\x22-Werror\x22//' duniverse/ocaml-iomux/lib/dune
-perl -ne 'exit 1 if /\x22-Werror\x22/' duniverse/ocaml-iomux/lib/dune
+# iomux stubs hardcode -Werror; osx clang then fails on the unused -L$BUILD_PREFIX/lib from :standard.
+edit 's/\x22-Werror\x22//' 'exit 1 if /\x22-Werror\x22/' duniverse/ocaml-iomux/lib/dune
 
 if [[ -n "${exe}" ]]; then
-  # cairo and move_on_sui grammars add -Wl,-rpath,... to c_library_flags; flexlink hands it
-  # to gcc as a bare -rpath, which the MinGW driver rejects. Drop it (comments mention rpath too).
-  perl -pi -e '$_ = "" if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
-  perl -ne 'exit 1 if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
-  # ANSITerminal: caml_raise_with_args is used without <caml/fail.h> (implicit declaration
-  # is an error in gcc >= 14), and FillConsoleOutputCharacterA gets an int* for LPDWORD
-  # (both 32-bit on non-unix). The dune rule copies ANSITerminal_win_stubs.c to
-  # ANSITerminal_stubs.c, so add the include there, after its #define CAML_INTERNALS
-  # (a -include would precede that define and leave CAMLalloc_point_here undefined).
+  # -Wl,-rpath in c_library_flags reaches gcc as a bare -rpath via flexlink, which MinGW rejects.
+  edit '$_ = "" if /^\s*-Wl,-rpath,/' 'exit 1 if /^\s*-Wl,-rpath,/' languages/*/tree-sitter/*/lib/dune
+  # ANSITerminal: caml_raise_with_args needs <caml/fail.h> (implicit declaration is an error in gcc >= 14).
+  # Add it after #define CAML_INTERNALS, in the file dune copies to ANSITerminal_stubs.c.
   ansi=duniverse/ANSITerminal/src
-  perl -pi -e 's{^(#include <caml/callback\.h>\r?\n)}{$1#include <caml/fail.h>\n}' "${ansi}/ANSITerminal_win_stubs.c"
-  perl -ne '$c++ if /^#include <caml\/fail\.h>/; END { exit 1 unless $c == 1 }' "${ansi}/ANSITerminal_win_stubs.c"
-  perl -pi -e 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -Wno-error=incompatible-pointer-types))/' "${ansi}/dune"
-  perl -ne '$c++ if /\(flags \(:standard -Wno-error=incompatible-pointer-types\)\)/; END { exit 1 unless $c }' "${ansi}/dune"
+  edit 's{^(#include <caml/callback\.h>\r?\n)}{$1#include <caml/fail.h>\n}' \
+    '$c++ if /^#include <caml\/fail\.h>/; END { exit 1 unless $c == 1 }' "${ansi}/ANSITerminal_win_stubs.c"
+  # FillConsoleOutputCharacterA gets an int* for LPDWORD (both 32-bit on non-unix).
+  edit 's/\(names ANSITerminal_stubs\)/(names ANSITerminal_stubs) (flags (:standard -Wno-error=incompatible-pointer-types))/' \
+    '$c++ if /\(flags \(:standard -Wno-error=incompatible-pointer-types\)\)/; END { exit 1 unless $c }' "${ansi}/dune"
   # parmap: `long len` is passed as intnat* (long is 32-bit, intnat 64-bit on non-unix).
-  perl -pi -e 's/\blong(\s+len\b)/intnat$1/g' duniverse/parmap/src/bytearray_stubs.c
-  perl -ne '$c++ if /\bintnat\s+len\b/; exit 1 if /\blong\s+len\b/; END { exit 1 unless $c }' duniverse/parmap/src/bytearray_stubs.c
+  edit 's/\blong(\s+len\b)/intnat$1/g' \
+    '$c++ if /\bintnat\s+len\b/; exit 1 if /\blong\s+len\b/; END { exit 1 unless $c }' duniverse/parmap/src/bytearray_stubs.c
 fi
 
-# pecu's tarball has test files with ':' in names (not creatable on non-unix), so the recipe
-# keeps the .tbz unextracted; unpack it here without test/ (build-env python; $PYTHON is the host one).
+# pecu's tarball has test files with ':' in names (not creatable on non-unix): the recipe keeps the
+# .tbz packed; unpack it without test/ (build-env python; $PYTHON is the host one).
 pecu_dir=duniverse/pecu
 python - "${pecu_dir}/pecu-0.7.tbz" "${pecu_dir}" <<'EOF'
 import sys, tarfile
@@ -258,15 +200,11 @@ with tarfile.open(src) as t:
         t.extract(m, dest)
 EOF
 mv "${pecu_dir}/pecu-0.7.tbz" "${SRC_DIR}/pecu-0.7.tbz.done"
-test -f "${pecu_dir}/dune-project" || exit 1
+test -f "${pecu_dir}/dune-project"
 
-# Same target as upstream `make core`. Not `-p semgrep` (hides vendored pkgs)
-# and not @install (in-tree tree-sitter package install needs cargo).
-# TODO(verify): upstream also runs `dune build libs/ocaml-tree-sitter-semgrep/core/tree-sitter-out`
-# first; patch 0004 should make that unnecessary.
-# src/git_info/dune falls back to `git rev-parse HEAD`, which walks up into the
-# enclosing checkout; pin it to the upstream v${PKG_VERSION} tag commit.
-export SEMGREP_GIT_COMMIT=a35fe8306115b3e55274969098cc46f8451d6b4d
+# Same target as upstream `make core`; not `-p semgrep` (hides vendored pkgs) and not @install (needs cargo).
+# src/git_info/dune would fall back to `git rev-parse HEAD` of the enclosing checkout: pin the v${PKG_VERSION} commit (SEMGREP_GIT_COMMIT from recipe.yaml).
+export SEMGREP_GIT_COMMIT
 
 # dune names executables <name>.exe on non-unix; the install-tree target follows.
 dune build --profile=release -j "${CPU_COUNT:-2}" "./_build/install/default/bin/semgrep-core${exe}"
@@ -275,9 +213,7 @@ mkdir -p "${prefix}/bin"
 install -m 0755 "_build/install/default/bin/semgrep-core${exe}" "${prefix}/bin/semgrep-core${exe}"
 
 # License files of everything linked in -> ${SRC_DIR}/vendored-licenses/<same relative dir>/.
-# recipe.yaml license_file globs would recurse (`*` also matches `/`) into _build/, tests and
-# dune's own vendor/ dirs; plain bash globs here match one path segment per `*`.
-src="${SRC_DIR//\\//}"
+# Plain globs here match one path segment per `*`; recipe license_file globs would recurse into _build/ and tests.
 lic="${src}/vendored-licenses"
 mkdir -p "${lic}"
 nlic=0
