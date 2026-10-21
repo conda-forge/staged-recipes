@@ -6,10 +6,14 @@ REM a temporary file and then move it to the original file instead.
 sed '/SpeedTest/d' ip.c > ip.c.tmp
 move ip.c.tmp ip.c
 
-REM The makefiles are written for UNIX.  Change the -DUNIX to -DWIN32 in the
-REM makefiles.
+REM In ip.C the #ifdef allow configuration of the code for WIN32 or UNIX.
+REM Adding -DWIN32 to the CFLAGS in the makefiles so that ip.cpp (created from
+REM ip.C) is built for WIN32.  This is a hack, but it works for now. Changing
+REM the "DEFINES=...-DUNIX..." to "DEFINES=...-DWIN32..." in the makefiles
+REM would be a better solution, but the "#ifdef UNIX" blocks in the FORTRAN
+REM code actually represent use of the gfortran compiler and should stay as is.
 for %%f in (.\*.mak) do (
-    sed 's/-DUNIX/-DWIN32/g' %%f > %%f.tmp
+    sed 's/CFLAGS=/CFLAGS=-DWIN32 /g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
