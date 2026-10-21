@@ -11,6 +11,10 @@ cp "${SRC_DIR}/cmake-config/conda_toolchain.cmake" .
 
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
+# The released speexdsp CMake config leaves its include and library paths
+# empty. Remove it so Mumble uses the package's pkg-config metadata.
+rm -rf "${PREFIX}/lib/cmake/speexdsp"
+
 CMAKE_ARGS=(
     -B build
     -G Ninja
@@ -54,10 +58,6 @@ CMAKE_ARGS=(
 )
 
 if [[ "$(uname)" == "Linux" ]]; then
-    # The released speexdsp CMake config leaves its include and library paths
-    # empty. Remove it so Mumble uses the package's pkg-config metadata.
-    rm -rf "${PREFIX}/lib/cmake/speexdsp"
-
     export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS:-}"
     export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
     # Include sysroot in library search so cmake can find system libs like librt
