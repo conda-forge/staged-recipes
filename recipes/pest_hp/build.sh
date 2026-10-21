@@ -15,15 +15,29 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     done
 fi
 
+# PEST_HP instructions to build the executables call for the "clean" target to
+# be run after after each *.mak is used.  The *.mak files should be setup
+# differently, but for now, we will just follow the instructions and clean
+# after each use.  This means that ip.cpp will be deleted, and it is not
+# necessarily created in later *.mak files where it might be needed.  So, we
+# will build ip.cpp first (using cmaes_hp.mak) and edit the *.mak files to not
+# delete it.  This is a hack, but it works for now.
+for f in *.mak; do
+    sed 's/\trm -f \*\.cpp//g' "$f" > tmp"$f"
+    mv tmp"$f" "$f"
+done
+
+# Compile
 make -f pest_hp.mak cppp
+make -f pest_hp.mak clean
+# Used here to build ip.cpp, which is needed for later makefiles.
+make -f cmaes_hp.mak cmaes_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pest_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pwhisp_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pcost_hp
-make -f pest_hp.mak clean
-make -f cmaes_hp.mak cmaes_hp
 make -f pest_hp.mak clean
 make -f jactest_hp.mak jactest_hp
 make -f pest_hp.mak clean
@@ -36,7 +50,8 @@ make -f pest_hp.mak clean
 make -f agent_hp.mak agent_hp
 make -f pest_hp.mak clean
 
-rm cppp  # Only needed to compile.
+# Install
+rm cppp  # Only needed when building.
 
 mkdir -p "${PREFIX}/bin"
 find . -type f ! -name '*.sh' -perm -ugo+x -exec cp \{\} "${PREFIX}/bin/" \;

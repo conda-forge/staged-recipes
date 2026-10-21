@@ -6,22 +6,36 @@ REM a temporary file and then move it to the original file instead.
 sed '/SpeedTest/d' ip.c > ip.c.tmp
 move ip.c.tmp ip.c
 
-REM CFLAGS needs to include -DWIN32 to select the correct header files for
-REM Windows.  The default CFLAGS in the *.mak makefiles does not include this.
+REM The makefiles are written for UNIX.  Change the -DUNIX to -DWIN32 in the
+REM makefiles.
 for %%f in (.\*.mak) do (
-    sed 's/CFLAGS=/CFLAGS=-DWIN32 /g' %%f > %%f.tmp
+    sed 's/-DUNIX/-DWIN32/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
+REM PEST_HP instructions to build the executables call for the "clean" target to
+REM be run after after each *.mak is used.  The *.mak files should be setup
+REM differently, but for now, we will just follow the instructions and clean
+REM after each use.  This means that ip.cpp will be deleted, and it is not
+REM necessarily created in later *.mak files where it might be needed.  So, we
+REM will build ip.cpp first (using cmaes_hp.mak) and edit the *.mak files to not
+REM delete it.  This is a hack, but it works for now.
+for %%f in (.\*.mak) do (
+    sed 's/\trm -r \*\.cpp//g' %%f > %%f.tmp
+    move %%f.tmp %%f
+)
+
+REM Compile
 make -f pest_hp.mak cppp
+make -f pest_hp.mak clean
+REM Used here to build ip.cpp, which is needed for later makefiles.
+make -f cmaes_hp.mak cmaes_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pest_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pwhisp_hp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pcost_hp
-make -f pest_hp.mak clean
-make -f cmaes_hp.mak cmaes_hp
 make -f pest_hp.mak clean
 make -f jactest_hp.mak jactest_hp
 make -f pest_hp.mak clean
@@ -34,9 +48,9 @@ make -f pest_hp.mak clean
 make -f agent_hp.mak agent_hp
 make -f pest_hp.mak clean
 
-mkdir %PREFIX%\bin
-
+REM Install
 REM cppp.exe is only used to build the executables.  Shouldn't install it.
 del cppp.exe
 
+mkdir %PREFIX%\bin
 xcopy ".\\*.exe" "%PREFIX%\bin" /Y /I
