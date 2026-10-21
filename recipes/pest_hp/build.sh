@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
+# SpeedTest is a unused function that causes a compilation error.
 # Don't use 'sed -i' because it is not portable across linux and OSX. Instead,
 # use a temporary file and move it back to the original file.
-
 sed '/SpeedTest/d' ip.C > tmpip.C
 mv tmpip.C ip.C
 
