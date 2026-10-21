@@ -81,6 +81,32 @@ tests:
     requirements:
       run:
         - python
+  # compile and run a C++ program against the installed library, as a non-Python
+  # client would. cxx-compiler v2+ installs minimally activated compilers that do not
+  # set CXX (https://github.com/conda-forge/conda-forge.github.io/issues/2595).
+  - script:
+      - if: linux
+        then: export CXX="${CXX:-g++}"
+      - if: osx
+        then:
+          - export CXX="${CXX:-clang++}"
+          - export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+      - if: unix
+        then:
+          - ${CXX} -std=c++17 test_api.cpp -o test_api -L${PREFIX}/lib -lausaxs -Wl,-rpath,${PREFIX}/lib
+          - ./test_api
+      - if: win
+        then:
+          - cl /nologo /EHsc /std:c++17 test_api.cpp /link /LIBPATH:%LIBRARY_LIB% ausaxs.lib
+          - if errorlevel 1 exit 1
+          - test_api.exe
+          - if errorlevel 1 exit 1
+    files:
+      recipe:
+        - test_api.cpp
+    requirements:
+      run:
+        - cxx-compiler
 
 about:
   homepage: https://github.com/AUSAXS/AUSAXS
