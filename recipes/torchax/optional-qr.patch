@@ -1,0 +1,60 @@
+From 08982ee6ef5102c6a152ca1a37357eaa1a5926ed Mon Sep 17 00:00:00 2001
+From: Manfei <41607353+ManfeiBai@users.noreply.github.com>
+Date: Fri, 11 Sep 2026 15:55:53 -0700
+Subject: [PATCH] Backport torch.ops.aten.qr after PyTorch switch to
+ torch.linalg.qr (#108)
+
+* Maintain backward compatibility of torch.ops.aten.qr after PyTorch switch to torch.linalg.qr
+
+* Maintain backward compatibility of jaten.py support for torch.aten.qr
+
+* format fix
+
+* format fix
+---
+ torchax/amp.py       | 4 +++-
+ torchax/ops/jaten.py | 5 ++++-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/torchax/amp.py b/torchax/amp.py
+index 9638fd9..876849f 100644
+--- a/torchax/amp.py
++++ b/torchax/amp.py
+@@ -196,7 +196,6 @@ def autocast(device, dtype=torch.bfloat16, env=None):
+   torch.ops.aten.fake_quantize_per_tensor_affine.default: CastPolicy.FP32,
+   torch.ops.aten.geqrf.default: CastPolicy.FP32,
+   torch.ops.aten._lu_with_info.default: CastPolicy.FP32,
+-  torch.ops.aten.qr.default: CastPolicy.FP32,
+   torch.ops.aten.svd.default: CastPolicy.FP32,
+   torch.ops.aten.triangular_solve.default: CastPolicy.FP32,
+   torch.ops.aten.fractional_max_pool2d.default: CastPolicy.FP32,
+@@ -224,3 +223,6 @@ def autocast(device, dtype=torch.bfloat16, env=None):
+ ):
+   if op is not None:
+     autocast_policy[op] = policy
++
++if hasattr(torch.ops.aten, "qr") and hasattr(torch.ops.aten.qr, "default"):
++  autocast_policy[torch.ops.aten.qr.default] = CastPolicy.FP32
+diff --git a/torchax/ops/jaten.py b/torchax/ops/jaten.py
+index cae98e3..2d9eaa4 100644
+--- a/torchax/ops/jaten.py
++++ b/torchax/ops/jaten.py
+@@ -5097,7 +5097,6 @@ def _aten_log_sigmoid(x):
+ 
+ 
+ # torch.qr
+-@op(torch.ops.aten.qr)
+ def _aten_qr(input, *args, **kwargs):
+   jax_mode = "reduced"
+   # torch bool param 'simple=True' corresponds to jax 'reduced' mode,
+@@ -5107,6 +5106,10 @@ def _aten_qr(input, *args, **kwargs):
+   return jax.numpy.linalg.qr(input, mode=jax_mode)
+ 
+ 
++if hasattr(torch.ops.aten, "qr"):
++  op(torch.ops.aten.qr)(_aten_qr)
++
++
+ # torch.linalg.qr
+ @op(torch.ops.aten.linalg_qr)
+ def _aten_linalg_qr(input, *args, **kwargs):
