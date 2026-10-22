@@ -1,0 +1,82 @@
+schema_version: 1
+
+context:
+  name: python-snap7
+  version: "3.2.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/python_snap7-${{ version }}.tar.gz
+  sha256: 15748f8423e3726457f6c4d0202aabde4ad65f2b809c2c1e7ee4f2f776509c2b
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - snap7-server = snap7.server:mainloop
+      - s7 = snap7.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=68.0.0
+    - pip
+  run:
+    - python >=${{ python_min }}
+  run_constraints:
+    - pyserial >=3.5
+
+tests:
+  - python:
+      imports:
+        - snap7
+        - snap7.client
+        - snap7.server
+        - snap7.util
+        - s7
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - click
+    script:
+      - s7 --help
+  - files:
+      source:
+        - tests/
+        - pyproject.toml
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+        - pytest-asyncio
+        - hypothesis
+        - pytest-bdd >=8.1,<9
+    script:
+      # test_get_pg_block_info asserts a date that depends on the local timezone
+      - pytest -v tests -k "not test_get_pg_block_info"
+
+about:
+  summary: Pure Python S7 communication library for Siemens PLCs
+  description: |
+    python-snap7 is a pure Python implementation of the Siemens S7
+    communication protocol, providing client, server, partner and LOGO!
+    support for interfacing with Siemens S7 PLCs.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/gijzelaerr/python-snap7
+  repository: https://github.com/gijzelaerr/python-snap7
+  documentation: https://python-snap7.readthedocs.io/en/latest/
+
+extra:
+  recipe-maintainers:
+    - rshanor
+    - gijzelaerr
