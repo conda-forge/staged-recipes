@@ -37,3 +37,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert out.timestamp == 42 and list(out.ranges) == [1, 2, 7] and out.name == "conda"
 
 print("Python memq round trip OK")
+
+# lcm.run_script() must find the tools in the conda layout
+assert lcm.run_script("lcm-gen", ["--version"]) == 0
+print("lcm.run_script OK")

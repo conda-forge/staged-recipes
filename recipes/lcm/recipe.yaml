@@ -11,19 +11,22 @@ source:
   url: https://github.com/lcm-proj/lcm/archive/refs/tags/v${{ version }}.tar.gz
   sha256: f7e693d50e229e37de00387ac8ab9228e16559dd57bddd155c4b5ca1c233834e
   patches:
-    # Do not install/export the static liblcm (conda-forge ships shared libs only)
-    # and let lcm_add_library(C ...) from lcmUtilities.cmake fall back to the
-    # shared library.
-    - 0001-do-not-install-static-library.patch
+    # Build only the shared liblcm; lcm-static becomes an alias of it (in-tree
+    # and in the installed lcmConfig.cmake), so nothing links a static library.
+    - 0001-build-shared-library-only.patch
     # fdatasync() is not declared by the macOS SDK; use fsync() there
     - 0002-use-fsync-on-macos.patch
+    # Allow building lcm-python on its own against an installed lcm
+    # (find_package(lcm)), fix its Windows install path, optionally install a
+    # .dist-info, and let lcm.run_script() find the tools in the conda layout.
+    - 0003-python-standalone-build.patch
 
 build:
   number: 0
 
 outputs:
-  - package:
-      name: liblcm
+  - staging:
+      name: lcm-build
     build:
       script: build_liblcm
     requirements:
@@ -36,6 +39,79 @@ outputs:
         - pkg-config
       host:
         - glib
+
+  - package:
+      name: liblcm
+    inherit: lcm-build
+    build:
+      files:
+        - if: unix
+          then:
+            - lib/liblcm.so.*
+            - lib/liblcm.*.dylib
+            - bin/lcm-gen
+            - bin/lcm-logger
+            - bin/lcm-logplayer
+            - share/man/man1/lcm-*.1
+          else:
+            - Library/bin/lcm.dll
+            - Library/bin/lcm-gen.exe
+            - Library/bin/lcm-logger.exe
+            - Library/bin/lcm-logplayer.exe
+            - Library/share/man/man1/lcm-*.1
+    tests:
+      - package_contents:
+          bin:
+            - lcm-gen
+            - lcm-logger
+            - lcm-logplayer
+          files:
+            exists:
+              - if: linux
+                then:
+                  - lib/liblcm.so.1
+              - if: osx
+                then:
+                  - lib/liblcm.1.dylib
+              - if: win
+                then:
+                  - Library/bin/lcm.dll
+            not_exists:
+              - if: unix
+                then:
+                  - include/**
+                  - lib/liblcm.a
+                  - lib/liblcm.so
+                  - lib/liblcm.dylib
+                else:
+                  - Library/include/**
+                  - Library/lib/*.lib
+      - script:
+          - lcm-gen --version
+          - lcm-gen --help
+
+  - package:
+      name: liblcm-devel
+    inherit: lcm-build
+    build:
+      files:
+        - if: unix
+          then:
+            - include/lcm/**
+            - lib/liblcm.so
+            - lib/liblcm.dylib
+            - lib/lcm/cmake/**
+            - lib/pkgconfig/lcm.pc
+          else:
+            - Library/include/lcm/**
+            - Library/lib/lcm.lib
+            - Library/CMake/lcm*.cmake
+            - Library/lib/pkgconfig/lcm.pc
+    requirements:
+      run:
+        - ${{ pin_subpackage('liblcm', exact=True) }}
+        # lcm.pc has `Requires: glib-2.0`
+        - glib
       run_exports:
         - ${{ pin_subpackage('liblcm', upper_bound='x.x') }}
     tests:
@@ -46,14 +122,14 @@ outputs:
             - lcm/lcm_coretypes.h
             - lcm/lcm_export.h
             - lcm/eventlog.h
-          lib:
-            - lcm
-          bin:
-            - lcm-gen
-            - lcm-logger
-            - lcm-logplayer
           files:
             exists:
+              - if: linux
+                then:
+                  - lib/liblcm.so
+              - if: osx
+                then:
+                  - lib/liblcm.dylib
               - if: unix
                 then:
                   - lib/lcm/cmake/lcmConfig.cmake
@@ -62,15 +138,18 @@ outputs:
                   - lib/lcm/cmake/lcmUtilities.cmake
                   - lib/pkgconfig/lcm.pc
                 else:
+                  - Library/lib/lcm.lib
                   - Library/CMake/lcmConfig.cmake
                   - Library/CMake/lcmConfigVersion.cmake
                   - Library/CMake/lcmTargets.cmake
                   - Library/CMake/lcmUtilities.cmake
                   - Library/lib/pkgconfig/lcm.pc
+            # no static library is built or shipped
             not_exists:
               - if: unix
                 then:
                   - lib/liblcm.a
+                  - lib/liblcm-static.a
                 else:
                   - Library/lib/lcm-static.lib
       - files:
@@ -87,14 +166,7 @@ outputs:
             - cmake
             - ninja
             - pkg-config
-            # lcm.pc has `Requires: glib-2.0`; on Windows glib-2.0.pc is shipped
-            # by the glib development package rather than libglib
-            - if: win
-              then:
-                - glib
         script:
-          - lcm-gen --version
-          - lcm-gen --help
           - pkg-config --exists --print-errors lcm
           - pkg-config --cflags --libs lcm
           - if: unix
@@ -120,25 +192,22 @@ outputs:
             - python
             - cross-python_${{ target_platform }}
         - ${{ compiler('c') }}
-        - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
         - cmake
         - ninja
-        - pkg-config
       host:
         - python
-        - glib
+        - ${{ pin_subpackage('liblcm-devel', exact=True) }}
       run:
         - python
-        # provides the lcm-gen, lcm-logger and lcm-logplayer tools that
-        # the Python package's helpers wrap
+        # also provides the lcm-gen, lcm-logger and lcm-logplayer tools that
+        # lcm.run_script() wraps
         - ${{ pin_subpackage('liblcm', exact=True) }}
     tests:
       - python:
           imports:
             - lcm
-          # installed with CMake, so there is no pip metadata to check
-          pip_check: false
+          pip_check: true
       - files:
           recipe:
             - test/test_python.py
@@ -161,9 +230,9 @@ about:
     model and automatic marshalling/unmarshalling code generation with
     bindings for applications in a variety of programming languages.
 
-    liblcm contains the C/C++ library, headers, CMake/pkg-config files and the
-    lcm-gen, lcm-logger and lcm-logplayer tools; lcm contains the Python
-    bindings.
+    liblcm contains the shared C/C++ library and the lcm-gen, lcm-logger and
+    lcm-logplayer tools; liblcm-devel contains the headers and the CMake and
+    pkg-config files; lcm contains the Python bindings.
   # LCM itself is LGPL-2.1-or-later; on Windows the tools additionally link the
   # vendored BSD-3-Clause getopt implementation from WinSpecific/getopt.
   license: LGPL-2.1-or-later AND BSD-3-Clause

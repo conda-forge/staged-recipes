@@ -1,0 +1,102 @@
+--- a/lcm-python/CMakeLists.txt
++++ b/lcm-python/CMakeLists.txt
+@@ -1,6 +1,19 @@
+ # FindPython added in 3.12
+ cmake_minimum_required(VERSION 3.12)
+ 
++# conda-forge: allow building the Python bindings on their own against an
++# installed lcm (find_package(lcm)), instead of as part of the whole project.
++if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
++  project(lcm-python C)
++  find_package(lcm REQUIRED)
++  include(${CMAKE_CURRENT_SOURCE_DIR}/../lcm-cmake/functions.cmake)
++  if(WIN32)
++    find_package(Python REQUIRED COMPONENTS Interpreter Development)
++  else()
++    find_package(Python REQUIRED COMPONENTS Interpreter)
++  endif()
++endif()
++
+ option(LCM_PIP_BUILD "When true, adjusts install path to something appropriate for a Python wheel" OFF)
+ 
+ if (NOT LCM_PIP_BUILD)
+@@ -11,6 +24,9 @@
+       print(get_path('platlib').replace(get_path('data') + sep, ''))"
+     OUTPUT_VARIABLE PYTHON_SITE
+     OUTPUT_STRIP_TRAILING_WHITESPACE)
++    # conda-forge: sysconfig returns Lib\site-packages on Windows; backslashes
++    # would be treated as escapes in the generated cmake_install.cmake
++    file(TO_CMAKE_PATH "${PYTHON_SITE}" PYTHON_SITE)
+ 
+     set(PYTHON_INSTALL_DIR ${PYTHON_SITE}/lcm)
+ else()
+@@ -51,8 +67,9 @@
+   )
+ endif ()
+ 
++# conda-forge: link the shared liblcm (in-tree target or from find_package(lcm))
+ target_link_libraries(lcm-python PRIVATE
+-  lcm-static
++  lcm
+ )
+ 
+ if(APPLE)
+@@ -91,3 +108,22 @@
+   ${CMAKE_BINARY_DIR}/python/lcm/py.typed
+ )
+ install(FILES lcm/py.typed DESTINATION ${PYTHON_INSTALL_DIR})
++
++# conda-forge: install pip metadata so that pip (e.g. `pip check`) sees the
++# lcm package; see https://packaging.python.org/specifications/recording-installed-packages/
++option(LCM_PYTHON_INSTALL_METADATA "Install a .dist-info directory for the Python package" OFF)
++set(LCM_PYTHON_METADATA_INSTALLER "cmake" CACHE STRING "Content of the INSTALLER file of the .dist-info directory")
++if(LCM_PYTHON_INSTALL_METADATA)
++  get_filename_component(_lcm_python_site ${PYTHON_INSTALL_DIR} DIRECTORY)
++  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/METADATA
++    "Metadata-Version: 2.1\n"
++    "Name: lcm\n"
++    "Version: ${LCM_VERSION}\n"
++    "Summary: Lightweight Communication and Marshalling\n"
++    "Requires-Python: >=3.7\n")
++  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/INSTALLER "${LCM_PYTHON_METADATA_INSTALLER}\n")
++  install(FILES
++    ${CMAKE_CURRENT_BINARY_DIR}/METADATA
++    ${CMAKE_CURRENT_BINARY_DIR}/INSTALLER
++    DESTINATION ${_lcm_python_site}/lcm-${LCM_VERSION}.dist-info)
++endif()
+--- a/lcm-python/lcm/__init__.py
++++ b/lcm-python/lcm/__init__.py
+@@ -176,21 +176,29 @@
+ 
+ LCM_BIN_DIR = os.path.join(os.path.dirname(__file__), '..', 'bin')
+ 
++# conda-forge: the tools are not inside the Python package as in the wheel
++# layout, but in the environment's bin directory (Library\\bin on Windows).
++if platform.system() == 'Windows':
++    _LCM_BIN_DIRS = [LCM_BIN_DIR, os.path.join(sys.prefix, 'Library', 'bin')]
++else:
++    _LCM_BIN_DIRS = [LCM_BIN_DIR, os.path.join(sys.prefix, 'bin')]
++
+ def run_script(name: str, args) -> int:
+     try:
+         if platform.system() == 'Windows':
+             candidates = [
+-                os.path.join(LCM_BIN_DIR, f"{name}.bat"),
+-                os.path.join(LCM_BIN_DIR, f"{name}.exe")
++                os.path.join(bin_dir, f"{name}{ext}")
++                for bin_dir in _LCM_BIN_DIRS
++                for ext in (".bat", ".exe")
+             ]
+         else:
+-            candidates = [os.path.join(LCM_BIN_DIR, name)]
++            candidates = [os.path.join(bin_dir, name) for bin_dir in _LCM_BIN_DIRS]
+ 
+         for executable in candidates:
+             if os.path.exists(executable):
+                 return subprocess.call([executable, *args], close_fds=False)
+ 
+-        raise FileNotFoundError(f"No executable found for {name} in {LCM_BIN_DIR}")
++        raise FileNotFoundError(f"No executable found for {name} in {_LCM_BIN_DIRS}")
+     except KeyboardInterrupt:
+         return 0
+ 
