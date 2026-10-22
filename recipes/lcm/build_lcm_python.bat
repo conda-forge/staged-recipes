@@ -8,6 +8,7 @@ cmake -S . -B build-python -G Ninja %CMAKE_ARGS% ^
   -DLCM_ENABLE_EXAMPLES=OFF ^
   -DLCM_ENABLE_TESTS=OFF ^
   -DLCM_ENABLE_PYTHON=ON ^
+  -DLCM_PIP_BUILD=ON ^
   -DLCM_ENABLE_JAVA=OFF ^
   -DLCM_ENABLE_LUA=OFF ^
   -DLCM_ENABLE_GO=OFF ^
@@ -23,5 +24,8 @@ if errorlevel 1 exit 1
 cmake --build build-python --parallel %CPU_COUNT% --target lcm-python lcm-python-init lcm-python-stub lcm-python-typed
 if errorlevel 1 exit 1
 
-cmake -DCMAKE_INSTALL_PREFIX="%PREFIX%" -P build-python/lcm-python/cmake_install.cmake
+:: Upstream's install dir comes from sysconfig, i.e. Lib\site-packages, whose backslash
+:: breaks cmake_install.cmake ("Invalid character escape '\s'"). LCM_PIP_BUILD installs
+:: into lcm/ relative to the prefix instead, so install with %SP_DIR% as the prefix.
+cmake -DCMAKE_INSTALL_PREFIX="%SP_DIR%" -P build-python/lcm-python/cmake_install.cmake
 if errorlevel 1 exit 1
