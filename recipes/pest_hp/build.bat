@@ -17,6 +17,15 @@ for %%f in (.\*.mak) do (
     move %%f.tmp %%f
 )
 
+REM Place "#include <time.h>" in ip.C where it is available to both the WIN32
+REM and UNIX.
+awk '!/#include <time.h>/{print $0}; /#include <stdio.h>/{print "#include <time.h>"}' ip.C > ip.C.tmp
+mv ip.C.tmp ip.C
+REM Place "#include <process.h>" within a WIN32 block in ip.C to support the
+REM call to getpid().
+awk '/#include <winsock2.h>/{print "#include <process.h>"}' ip.C > ip.C.tmp
+mv ip.C.tmp ip.C
+
 REM Bug in the WIN32 block of ip.C.
 REM The line:
 REM     #define mkdir(dir,perm) _mkdir(dir)
