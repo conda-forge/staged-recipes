@@ -1,0 +1,172 @@
+schema_version: 1
+
+context:
+  version: "1.5.3"
+
+recipe:
+  name: lcm
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lcm-proj/lcm/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f7e693d50e229e37de00387ac8ab9228e16559dd57bddd155c4b5ca1c233834e
+  patches:
+    # Do not install/export the static liblcm (conda-forge ships shared libs only)
+    # and let lcm_add_library(C ...) from lcmUtilities.cmake fall back to the
+    # shared library.
+    - 0001-do-not-install-static-library.patch
+    # fdatasync() is not declared by the macOS SDK; use fsync() there
+    - 0002-use-fsync-on-macos.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: liblcm
+    build:
+      script: build_liblcm
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - glib
+      run_exports:
+        - ${{ pin_subpackage('liblcm', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - lcm/lcm.h
+            - lcm/lcm-cpp.hpp
+            - lcm/lcm_coretypes.h
+            - lcm/lcm_export.h
+            - lcm/eventlog.h
+          lib:
+            - lcm
+          bin:
+            - lcm-gen
+            - lcm-logger
+            - lcm-logplayer
+          files:
+            exists:
+              - if: unix
+                then:
+                  - lib/lcm/cmake/lcmConfig.cmake
+                  - lib/lcm/cmake/lcmConfigVersion.cmake
+                  - lib/lcm/cmake/lcmTargets.cmake
+                  - lib/lcm/cmake/lcmUtilities.cmake
+                  - lib/pkgconfig/lcm.pc
+                else:
+                  - Library/CMake/lcmConfig.cmake
+                  - Library/CMake/lcmConfigVersion.cmake
+                  - Library/CMake/lcmTargets.cmake
+                  - Library/CMake/lcmUtilities.cmake
+                  - Library/lib/pkgconfig/lcm.pc
+            not_exists:
+              - if: unix
+                then:
+                  - lib/liblcm.a
+                else:
+                  - Library/lib/lcm-static.lib
+      - files:
+          recipe:
+            - test/CMakeLists.txt
+            - test/example_t.lcm
+            - test/test_c.c
+            - test/test_cpp.cpp
+        requirements:
+          run:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - cmake
+            - ninja
+            - pkg-config
+        script:
+          - lcm-gen --version
+          - lcm-gen --help
+          - pkg-config --exists --print-errors lcm
+          - pkg-config --cflags --libs lcm
+          - if: unix
+            then:
+              - cmake -S test -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release
+              - cmake --build build
+              - ./build/test_c
+              - ./build/test_cpp
+            else:
+              - cmake -S test -B build -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
+              - cmake --build build
+              - .\build\test_c.exe
+              - .\build\test_cpp.exe
+
+  - package:
+      name: lcm
+    build:
+      script: build_lcm_python
+    requirements:
+      build:
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - python
+        - glib
+      run:
+        - python
+        # provides the lcm-gen, lcm-logger and lcm-logplayer tools that
+        # the Python package's helpers wrap
+        - ${{ pin_subpackage('liblcm', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - lcm
+          # installed with CMake, so there is no pip metadata to check
+          pip_check: false
+      - files:
+          recipe:
+            - test/test_python.py
+            - test/example_t.lcm
+        requirements:
+          run:
+            - python
+        script:
+          - python test/test_python.py
+
+about:
+  homepage: https://lcm-proj.github.io/lcm/
+  repository: https://github.com/lcm-proj/lcm
+  documentation: https://lcm-proj.github.io/lcm/
+  summary: Lightweight Communications and Marshalling
+  description: |
+    LCM is a set of libraries and tools for message passing and data
+    marshalling, targeted at real-time systems where high-bandwidth and low
+    latency are critical. It provides a publish/subscribe message passing
+    model and automatic marshalling/unmarshalling code generation with
+    bindings for applications in a variety of programming languages.
+
+    liblcm contains the C/C++ library, headers, CMake/pkg-config files and the
+    lcm-gen, lcm-logger and lcm-logplayer tools; lcm contains the Python
+    bindings.
+  # LCM itself is LGPL-2.1-or-later; on Windows the tools additionally link the
+  # vendored BSD-3-Clause getopt implementation from WinSpecific/getopt.
+  license: LGPL-2.1-or-later AND BSD-3-Clause
+  license_file:
+    - COPYING
+    - WinSpecific/getopt/getopt.c
+
+extra:
+  feedstock-name: lcm
+  recipe-maintainers:
+    - Tobias-Fischer
