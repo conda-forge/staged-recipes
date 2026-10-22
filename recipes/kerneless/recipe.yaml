@@ -1,0 +1,86 @@
+context:
+  name: kerneless
+  version: "1.0.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/DOI-USGS/kerneless/archive/refs/tags/${{ version }}.tar.gz
+    sha256: a68b0e2f506cd81e8e27f27be1e3d49301bdf15a7bb83d6582d9f38b749b40c5
+
+build:
+  number: 0
+  # setup.py installs the headers to <prefix>/include/kerneless/ via data_files.
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools >=45
+    - wheel
+    - pybind11 >=2.6.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - kerneless
+      pip_check: true
+
+  # The headers land in the include prefix, and only there.
+  - script:
+      - if: unix
+        then:
+          - test -f $PREFIX/include/kerneless/utcet.h
+          - test -f $PREFIX/include/kerneless/dsk_reader.h
+          - test ! -e $SP_DIR/include
+        else:
+          - if not exist %PREFIX%\include\kerneless\utcet.h exit 1
+          - if not exist %PREFIX%\include\kerneless\dsk_reader.h exit 1
+          - if exist %SP_DIR%\include exit 1
+
+  # The bindings expose the full API. Behaviour is tested upstream against
+  # NAIF SPICE before each release.
+  - script:
+      interpreter: python
+      content: |
+        import kerneless
+
+        for name in ("calendarTimeToEphemTime", "ephemTimeToCalendarTime",
+                     "DskFile", "DlaDescriptor", "DskDescriptor"):
+            assert hasattr(kerneless, name), name
+
+        for name in ("close", "dlabfs", "dlafns", "segments", "dskgd",
+                     "dskz02", "dskv02", "dskp02", "__enter__", "__exit__"):
+            assert hasattr(kerneless.DskFile, name), "DskFile." + name
+
+about:
+  homepage: https://github.com/DOI-USGS/kerneless
+  repository: https://github.com/DOI-USGS/kerneless
+  summary: SPICE-compatible time conversion and DSK reading with no SPICE kernels or toolkit
+  description: |
+    kerneless provides header-only C/C++ implementations of SPICE-compatible
+    UTC/ET time conversion (kerneless/utcet.h) and DSK type-2 reading
+    (kerneless/dsk_reader.h), plus Python bindings. The headers are installed
+    to <prefix>/include/kerneless/ for C and C++ consumers.
+  license: CC0-1.0
+  license_file:
+    - LICENSE.md
+    - DISCLAIMER.md
+
+extra:
+  recipe-maintainers:
+    - Kelvinrr
