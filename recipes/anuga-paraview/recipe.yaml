@@ -1,0 +1,100 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+recipe:
+  name: anuga-paraview-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/a/anuga-paraview/anuga_paraview-${{ version }}.tar.gz
+  sha256: 87b823d96bbccafd4e67585fe5201539e150bf09ca95bc8bd40b71376b00a371
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: anuga-paraview
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - anuga-paraview = anuga_paraview.cli:main
+          - anuga-web-viewer = anuga_paraview.web.app:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=64
+      run:
+        - python >=${{ python_min }}
+        - numpy
+        - netcdf4
+    tests:
+      - python:
+          imports:
+            - anuga_paraview
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      # The reader's file code, the reader as a plain VTK algorithm, the web
+      # scene and the launcher, against the sample files in the sdist.  The
+      # offscreen render test needs an OpenGL the build machines may lack.
+      - files:
+          source:
+            - tests/
+            - data/
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest
+            - vtk-base
+        script:
+          - anuga-paraview --version
+          - anuga-paraview --plugin-path
+          - pytest -v tests -k "not offscreen"
+
+  # The browser viewer: anuga-paraview with VTK and trame.
+  - package:
+      name: anuga-paraview-web
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - ${{ pin_subpackage("anuga-paraview", exact=True) }}
+        - vtk-base
+        - trame
+        - trame-vtk
+        - trame-vuetify
+        - trame-plotly
+        - plotly
+    tests:
+      - files:
+          source:
+            - tests/
+            - data/
+        requirements:
+          run:
+            - pytest
+        script:
+          - anuga-web-viewer --help
+          - pytest -v tests/test_web.py -k "not offscreen"
+
+about:
+  homepage: https://github.com/anuga-community/anuga_paraview
+  repository: https://github.com/anuga-community/anuga_paraview
+  summary: View ANUGA .sww files in ParaView, and in a web browser
+  description: |
+    A ParaView reader for the .sww files written by the ANUGA shallow water
+    model, with a timeseries filter, a launcher that starts ParaView with the
+    reader loaded, and a trame browser viewer that renders on the server.
+    Install anuga-paraview-web for the browser viewer.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - stoiver
