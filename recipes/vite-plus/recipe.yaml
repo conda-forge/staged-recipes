@@ -1,0 +1,142 @@
+context:
+  version: "0.1.19"
+
+package:
+  name: vite-plus
+  version: ${{ version }}
+
+source:
+  url: https://github.com/voidzero-dev/vite-plus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 74a8bfb1f58dfac6662cb6c1cf69fa4cd9a3e709cea8500cf642f4d75548991a
+
+build:
+  number: 0
+  skip: win
+  script:
+    interpreter: nu
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS: "false"
+    content:
+      - if: osx
+        then:
+          - $env.RUSTFLAGS = ($env.RUSTFLAGS? | default "") + " -C link-arg=-headerpad_max_install_names"
+          - $env.CARGO_PROFILE_RELEASE_LTO = "off"
+      - let versions = open ./packages/tools/.upstream-versions.json;
+      - $env.ROLLDOWN_HASH = $versions | get rolldown.hash
+      - $env.ROLLDOWN_VITE_HASH = $versions | get vite.hash
+      # Avoid errors caused by newline characters in symlinks when extracting a tar.gz from GitHub on Windows
+      - http get https://github.com/rolldown/rolldown/archive/($env.ROLLDOWN_HASH).tar.gz | save rolldown.tar.gz
+      - http get https://github.com/vitejs/vite/archive/($env.ROLLDOWN_VITE_HASH).tar.gz | save vite.tar.gz
+      - tar -xf rolldown.tar.gz
+      - tar -xf vite.tar.gz
+      - mv rolldown-($env.ROLLDOWN_HASH) rolldown
+      - mv vite-($env.ROLLDOWN_VITE_HASH) vite
+      - pnpm install --frozen-lockfile --ignore-scripts
+      - |
+        def update_toml_version [path: string, version: string] {
+          open --raw $path
+          | str replace 'version = "0.0.0"' $"version = \"($version)\""
+          | save -f $path
+        }
+
+        def update_lock_version [crate: string, version: string] {
+          let lock_path = "Cargo.lock"
+          let lines = (open --raw $lock_path | lines)
+          let idx = (
+            $lines
+            | enumerate
+            | where (($in.item | str trim) == $"name = \"($crate)\"")
+            | get 0.index
+          )
+          let updated = (
+            $lines
+            | update ($idx + 1) $"version = \"($version)\""
+          )
+          (($updated | str join (char nl)) + (char nl)) | save -f $lock_path
+        }
+
+        let version = "${{ version }}"
+
+        update_toml_version crates/vite_global_cli/Cargo.toml $version
+        update_toml_version packages/cli/binding/Cargo.toml $version
+
+        update_lock_version vite_global_cli $version
+        update_lock_version vite-plus-cli $version
+      - pnpm exec tool brand-vite
+      - pnpm --filter @rolldown/pluginutils build
+      - pnpm --filter rolldown build-binding:release
+      - pnpm --filter rolldown build-node
+      - pnpm --filter vite build-types
+      - pnpm --filter "@voidzero-dev/*" build
+      - pnpm --filter vite-plus build
+      - pnpm --filter vite-plus deploy --prod --legacy --no-optional ($env.PREFIX)/node_modules/vite-plus
+      - cargo auditable install --no-track --locked --root $env.PREFIX --path crates/vite_global_cli
+      - mkdir ($env.PREFIX)/share/bash-completion/completions ($env.PREFIX)/share/zsh/site-functions ($env.PREFIX)/share/fish/vendor_completions.d
+      - VP_COMPLETE=bash ($env.PREFIX)/bin/vp | save ($env.PREFIX)/share/bash-completion/completions/vp
+      - VP_COMPLETE=zsh ($env.PREFIX)/bin/vp | save ($env.PREFIX)/share/zsh/site-functions/_vp
+      - VP_COMPLETE=fish ($env.PREFIX)/bin/vp | save ($env.PREFIX)/share/fish/vendor_completions.d/vp.fish
+      - ln -s ($env.PREFIX)/bin/vp ($env.PREFIX)/bin/vpx
+      - ln -s ($env.PREFIX)/bin/vp ($env.PREFIX)/bin/vpr
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+
+requirements:
+  build:
+    - nushell
+    - rust ==1.94.0.dev20251216
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - nodejs
+    - pnpm
+    - pnpm-licenses
+    - cmake
+    - make
+    # Avoid the error: ld: -lto_library library filename must be 'libLTO.dylib'
+    - if: osx
+      then: ld64
+  host:
+    - git
+    - tar
+  run:
+    - nodejs
+
+tests:
+  - script:
+      - vp --version
+      - vpx --version
+      - vpr --help
+  - package_contents:
+      bin:
+        - vp
+        - vpx
+        - vpr
+      files:
+        - node_modules/*
+        - if: unix
+          then:
+            - share/bash-completion/completions/vp
+            - share/zsh/site-functions/_vp
+            - share/fish/vendor_completions.d/vp.fish
+      strict: true
+
+about:
+  homepage: https://github.com/voidzero-dev/vite-plus
+  summary: The Unified Toolchain for the Web runtime and package management, create, dev, check, test, build, pack, and monorepo task caching in a single dependency
+  description: |
+    Vite+ is the unified toolchain and entry point for web development. It manages your runtime, package manager, and frontend toolchain in one place.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - third-party-licenses.txt
+  documentation: https://viteplus.dev/guide/
+  repository: https://github.com/voidzero-dev/vite-plus
+
+extra:
+  recipe-maintainers:
+    - yuikisaito
