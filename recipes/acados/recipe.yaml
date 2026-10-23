@@ -1,0 +1,156 @@
+schema_version: 1
+
+# acados bundles BLASFEO, HPIPM and the Tera template renderer (t_renderer) as
+# git submodules pinned to specific commits.  They are intentionally built as
+# part of this recipe rather than as separate feedstocks:
+#   * acados pins exact BLASFEO/HPIPM submodule commits per release and is
+#     tested by upstream only against those bundled sources -- enabling a system
+#     BLASFEO triggers an explicit "untested configuration" warning in acados,
+#     and HPIPM has no system-build option at all (it is always compiled in via
+#     add_subdirectory).  Splitting them out would require an unsupported,
+#     separately-maintained patch to the acados build.
+#   * The licenses of all bundled sources are packaged: BLASFEO and HPIPM are
+#     BSD-2-Clause (see license_file below) and the Rust crates statically
+#     linked into t_renderer are captured in THIRDPARTY.yml.
+# GitHub release tarballs do not contain submodule contents, so each submodule
+# is fetched separately at the commit pinned by acados v${{ version }} (from
+# acados' .gitmodules + `git submodule status`) into the path the build expects.
+context:
+  version: "0.5.4"
+  blasfeo_rev: d6251233923c9b475fe894fb729fb63ab693e301
+  hpipm_rev: c25e646f938aae4694fd0fe9bfb0059bee6879bf
+  tera_rev: c41c5a03a03a42d3ac5084ddcd415502f7721b05
+
+recipe:
+  name: acados
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/acados/acados/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: bd45effcd9b8b0fa1932b788ff90262d12f9edf7e73532576fcc16317ee05887
+  - url: https://github.com/giaf/blasfeo/archive/${{ blasfeo_rev }}.tar.gz
+    sha256: d2454027985a907f6fedb0c6a14e0e7825e586968309b38f7f02146db70770da
+    target_directory: external/blasfeo
+  - url: https://github.com/giaf/hpipm/archive/${{ hpipm_rev }}.tar.gz
+    sha256: 106ca934940b63acdbd50d8e87321c01690d2210aaa9ed7ddec4a5168074e927
+    target_directory: external/hpipm
+  - url: https://github.com/acados/tera_renderer/archive/${{ tera_rev }}.tar.gz
+    sha256: 7558e070c35413f7b325806fe85b8c4bf040378c2c5cfc9076e00ea92b7766b5
+    target_directory: interfaces/acados_template/tera_renderer
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libacados
+    build:
+      script:
+        file: build-libacados.sh
+      # qpOASES/OSQP/DAQP/Clarabel solvers and the MATLAB/Octave interfaces are
+      # intentionally left out of this first recipe; HPIPM (acados' default and
+      # recommended QP solver) is always built in.
+      skip: win
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cmake
+        - ninja
+        - cargo-bundle-licenses
+      run_exports:
+        - ${{ pin_subpackage('libacados', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - acados
+            - blasfeo
+            - hpipm
+          include:
+            - acados/ocp_nlp/ocp_nlp_common.h
+            - blasfeo/include/blasfeo.h
+          bin:
+            - t_renderer
+          files:
+            - cmake/acadosConfig.cmake
+            - lib/link_libs.json
+    about:
+      homepage: https://docs.acados.org
+      repository: https://github.com/acados/acados
+      documentation: https://docs.acados.org
+      summary: Fast and embedded solvers for nonlinear optimal control (C library)
+      description: |
+        acados is a software package providing fast and embedded solvers for
+        nonlinear optimal control.  This package contains the C library
+        (libacados) together with the bundled BLASFEO linear-algebra backend and
+        the HPIPM interior-point QP solver, the C headers, the CMake package
+        configuration and the Tera template renderer (t_renderer) used by the
+        Python/MATLAB code-generation interfaces.
+      license: BSD-2-Clause
+      license_file:
+        - LICENSE
+        - external/blasfeo/LICENSE.txt
+        - external/hpipm/LICENSE.txt
+        - THIRDPARTY.yml
+
+  - package:
+      name: acados
+    build:
+      script:
+        file: build-acados.sh
+      skip: win
+    requirements:
+      host:
+        # libacados is here so its run_export pins a compatible libacados into
+        # the run requirements (acados_template loads it and the t_renderer
+        # binary at run time).
+        - python
+        - pip
+        - setuptools
+        - ${{ pin_subpackage('libacados', exact=True) }}
+      run:
+        - python
+        - numpy
+        - scipy
+        - casadi
+        - matplotlib-base
+        - cython
+        - deprecated
+    tests:
+      - python:
+          imports:
+            - acados_template
+          pip_check: true
+      - script:
+          - python -c "from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel"
+          - python -c "import os, acados_template as a; p = a.utils.get_tera_exec_path(); assert os.path.isfile(p), p; print(p)"
+    about:
+      homepage: https://docs.acados.org
+      repository: https://github.com/acados/acados
+      documentation: https://docs.acados.org
+      summary: Fast and embedded solvers for nonlinear optimal control (Python interface)
+      description: |
+        acados is a software package providing fast and embedded solvers for
+        nonlinear optimal control, with a collection of computationally efficient
+        building blocks tailored to nonlinear model predictive control (NMPC) and
+        moving horizon estimation (MHE).  This package provides the acados_template
+        Python interface, which generates and compiles C code for embedded optimal
+        control problems on top of the acados C library.
+      license: BSD-2-Clause
+      license_file:
+        - LICENSE
+
+about:
+  homepage: https://docs.acados.org
+  repository: https://github.com/acados/acados
+  documentation: https://docs.acados.org
+  summary: Fast and embedded solvers for nonlinear optimal control
+  license: BSD-2-Clause
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - oursland
