@@ -1,0 +1,82 @@
+# rattler-build recipe (v1 / CEP-13 format) for cetlib.
+#
+# Core utility library: plugin/library management, filesystem & search-path
+# helpers, MD5/SHA1/CRC digests, SQLite helpers, parsed program options.
+
+context:
+  version: "3.19.0"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v3_19_00).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: cetlib
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/cetlib/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 696ef0e98dde96a5f34fa38db9adfdcceed325b04c64f0b70d9cc27986d8f28c
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - cetlib_except              # linked sibling (local channel)
+    # boost: find_package(Boost COMPONENTS regex program_options filesystem).
+    # Bare libboost-devel is auto-pinned by the `libboost_devel` variant. We build
+    # with conda-forge pinning + an override pinning boost to 1.90 (CF's active
+    # libboost190 migration), matching conda-forge geant4's `libboost-python <1.91`.
+    # (UPS pin was boost v1_82_0; CF settled pin is 1.88, migrating to 1.90.)
+    # See conda/build-config/art-stack-boost190.yaml + plan why-not-option-2-*.md.
+    - libboost-devel
+    - libsqlite                  # find_package(SQLite3) -> SQLite::SQLite3
+    - openssl                    # find_package(OpenSSL) -> OpenSSL::Crypto; REQUIRED on
+                                 #   non-Apple but ABSENT from product_deps (pot_impr #4).
+                                 #   Unpinned: conda-forge only ships openssl 3.x, which
+                                 #   ROOT 6.36 also uses. cetlib sets OPENSSL_API_COMPAT>=3.0.
+    # No catch2 / hep_concurrency: both are test-only here and BUILD_TESTING=OFF.
+  run:
+    # boost / sqlite / openssl / cetlib_except runtimes arrive via run_exports of
+    # the host packages.
+  run_exports:
+    - ${{ pin_subpackage('cetlib', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - cetlib                 # libcetlib.so (main library)
+      include:
+        - cetlib/search_path.h
+        - cetlib/sha1.h
+        - cetlib/filesystem.h
+      bin:
+        - inc-expand
+        - get-accessible-paths
+      files:
+        - lib/cetlib/cmake/cetlibConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/cetlib
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: cetlib -- core utility library (plugins, filesystem, digests, sqlite) for the FNAL art suite
+  description: |
+    cetlib provides foundational utilities for the Fermilab art framework suite:
+    dynamic library/plugin management, filesystem and search-path helpers,
+    MD5/SHA1/CRC digests, SQLite convenience wrappers and parsed program
+    options. Depends on cetlib_except, Boost, SQLite3 and OpenSSL.
+  repository: https://github.com/art-framework-suite/cetlib
+
+extra:
+  recipe-maintainers:
+    - calcuttj
