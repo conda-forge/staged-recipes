@@ -1,0 +1,73 @@
+context:
+  version: "0.0.28"
+
+package:
+  name: icann-rdap
+  version: ${{ version }}
+
+source:
+  url: https://github.com/icann/icann-rdap/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9854f31c96086cc54110c7d86e7f4c99a37810aab0a9e2b9331d68918c374ede
+
+build:
+  number: 0
+  script:
+    interpreter: nushell
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - $env.CARGO_INSTALL_ROOT = $env.PREFIX
+        else:
+          - $env.CARGO_INSTALL_ROOT = $env.LIBRARY_PREFIX
+      - cargo auditable install --no-track --locked --path ./icann-rdap-cli --bin rdap --bin rdap-test
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - nushell
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+    - perl
+    - make
+    - if: osx
+      then: ld64
+  host:
+    - openssl
+
+tests:
+  - script:
+      content:
+        # Excluding Windows tests because it seems that the necessary directory information cannot be retrieved from the Windows Known Folder API
+        - if: unix
+          then:
+            - rdap --version
+            - rdap-test --version
+  - package_contents:
+      bin:
+        - rdap
+        - rdap-test
+      strict: true
+
+about:
+  homepage: https://github.com/icann/icann-rdap
+  summary: ICANN implementation of the Registry Data Access Protocol (RDAP)
+  description: |
+    ICANN implementation of the Registry Data Access Protocol (RDAP)
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://icann.github.io/icann-rdap/
+  repository: https://github.com/icann/icann-rdap
+
+extra:
+  recipe-maintainers:
+    - yuikisaito
