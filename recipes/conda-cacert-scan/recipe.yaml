@@ -1,0 +1,62 @@
+context:
+  version: "2026.10.23"
+
+package:
+  name: conda-cacert-scan
+  version: "${{ version }}"
+
+source:
+  url: https://github.com/JeanChristopheMorinPerso/conda-cacert-scan/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 98d8996b54b8a8af75ca661d96a4d5fc146fae6337b565ade13be7ae844f336d
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+          - mv $PREFIX/bin/cacert-scan $PREFIX/bin/conda-cacert-scan
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/conda-cacert-scan completion --shell zsh > $PREFIX/share/zsh/site-functions/_conda-cacert-scan
+          - $PREFIX/bin/conda-cacert-scan completion --shell bash > $PREFIX/share/bash-completion/completions/conda-cacert-scan
+          - $PREFIX/bin/conda-cacert-scan completion --shell fish > $PREFIX/share/fish/vendor_completions.d/conda-cacert-scan.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: conda-cacert-scan --help
+  - package_contents:
+      bin:
+        - conda-cacert-scan
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/conda-cacert-scan
+            - share/fish/vendor_completions.d/conda-cacert-scan.fish
+            - share/zsh/site-functions/_conda-cacert-scan
+      strict: true
+
+about:
+  homepage: https://github.com/JeanChristopheMorinPerso/conda-cacert-scan
+  summary: Find conda packages that vendor their own CA trust store.
+  license: MIT
+
+extra:
+  recipe-maintainers:
+    - beckermr
