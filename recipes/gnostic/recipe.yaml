@@ -1,0 +1,56 @@
+context:
+  version: "0.7.1"
+  grpc_version: "0.1.1"
+
+package:
+  name: gnostic
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/google/gnostic/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 9d8fd682ef0f92a58705afb76bf9f5baa8f2df36f1863b1ce33de5a24c04ec5c
+    target_directory: gnostic
+  - url: https://github.com/google/gnostic-grpc/archive/refs/tags/v${{ grpc_version }}.tar.gz
+    sha256: 03b32ac26d0a76906daa49e85bad07e625d1fb256b352373fd0d5363335ae606
+    target_directory: gnostic-grpc
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - export GOBIN="$PREFIX/bin"
+    - mkdir -p "$GOBIN" "$SRC_DIR/license-files"
+    - cd "$SRC_DIR/gnostic"
+    - env -u CC -u CXX -u CFLAGS CGO_ENABLED=0 go install .
+    - env -u CC -u CXX -u CFLAGS CGO_ENABLED=0 go-licenses save . --save_path="$SRC_DIR/license-files/gnostic"
+    - cd "$SRC_DIR/gnostic-grpc"
+    - env -u CC -u CXX -u CFLAGS CGO_ENABLED=0 go install .
+    - env -u CC -u CXX -u CFLAGS CGO_ENABLED=0 go-licenses save . --save_path="$SRC_DIR/license-files/gnostic-grpc"
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - package_contents:
+      bin:
+        - gnostic
+        - gnostic-grpc
+  - script:
+      - gnostic --help
+
+about:
+  homepage: https://github.com/google/gnostic
+  repository: https://github.com/google/gnostic
+  summary: OpenAPI compiler and gRPC service generator
+  license: Apache-2.0
+  license_file:
+    - gnostic/LICENSE
+    - gnostic-grpc/LICENSE
+    - license-files/
+
+extra:
+  recipe-maintainers:
+    - phreed
