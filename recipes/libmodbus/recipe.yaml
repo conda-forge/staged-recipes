@@ -1,0 +1,73 @@
+context:
+  version: "3.2.0"
+
+package:
+  name: libmodbus
+  version: ${{ version }}
+
+source:
+  # The release tarball did not contain src/win32/configure.js, config.h.win32, modbus.rc, so we use the source tarball.
+  url: https://github.com/stephane/libmodbus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0c61007b2815daf452618f8b877d15cdcd376b71ad5dbd06b330d70f53b2ccaa
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - ./autogen.sh
+        - ./configure --prefix="${PREFIX}" --host="${CONDA_TOOLCHAIN_HOST}" --disable-static
+        - make -j"${CPU_COUNT}"
+        - make install
+    - if: win
+      then:
+        - cd src\\win32
+        - cscript //NoLogo configure.js
+        - if errorlevel 1 exit /b 1
+        - rc /nologo /fo modbus.res modbus.rc
+        - if errorlevel 1 exit /b 1
+        - cl /nologo /O2 /MD /W3 /I.. /I. /DHAVE_CONFIG_H /DDLLBUILD /D_CRT_SECURE_NO_DEPRECATE=1 /D_CRT_NONSTDC_NO_DEPRECATE=1 /LD ..\\modbus.c ..\\modbus-data.c ..\\modbus-rtu.c ..\\modbus-tcp.c ws2_32.lib /link /DLL /OUT:modbus.dll /IMPLIB:modbus.lib modbus.res
+        - if errorlevel 1 exit /b 1
+        - if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
+        - if not exist "%LIBRARY_LIB%" mkdir "%LIBRARY_LIB%"
+        - if not exist "%LIBRARY_INC%\\modbus" mkdir "%LIBRARY_INC%\\modbus"
+        - copy /Y "modbus.dll" "%LIBRARY_BIN%\\modbus.dll"
+        - copy /Y "modbus.lib" "%LIBRARY_LIB%\\modbus.lib"
+        - copy /Y "..\\modbus.h" "%LIBRARY_INC%\\modbus\\modbus.h"
+        - copy /Y "..\\modbus-rtu.h" "%LIBRARY_INC%\\modbus\\modbus-rtu.h"
+        - copy /Y "..\\modbus-tcp.h" "%LIBRARY_INC%\\modbus\\modbus-tcp.h"
+        - copy /Y "..\\modbus-version.h" "%LIBRARY_INC%\\modbus\\modbus-version.h"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: unix
+      then: make
+    - if: unix
+      then:
+        - autoconf
+        - automake
+        - libtool
+  run_exports:
+    - ${{ pin_subpackage('libmodbus', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - modbus/modbus.h
+      lib:
+        - modbus
+
+about:
+  homepage: https://libmodbus.org/
+  summary: A Modbus library for sending and receiving data over serial lines or TCP/IP.
+  license: LGPL-2.1-or-later
+  license_file: COPYING.LESSER
+  documentation: https://libmodbus.org/documentation/
+  repository: https://github.com/stephane/libmodbus
+
+extra:
+  recipe-maintainers:
+    - petermitrano
+    - peter-mitrano-ar
