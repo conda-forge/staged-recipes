@@ -1,0 +1,221 @@
+context:
+  version: "6.1.0"
+
+package:
+  name: moonlight-qt
+  version: ${{ version }}
+
+source:
+  # Official source archive, including the vendored submodules:
+  # moonlight-common-c, enet, qmdnsengine, h264bitstream, and SDL_GameControllerDB.
+  url: https://github.com/moonlight-stream/moonlight-qt/releases/download/v${{ version }}/MoonlightSrc-${{ version }}.tar.gz
+  sha256: 696cc470a62e2f2e9b77739d400b389e7578c9510383c08614007c92be49d5b0
+  patches:
+    # Use upstream's disable-prebuilts option on Windows too, including for
+    # moonlight-common-c. This keeps vendored headers and libraries out of the
+    # build. It also disables libplacebo, discord-rpc, and AntiHooking because
+    # their Windows dependencies are only available here as prebuilts.
+    - patches/0001-win-disable-prebuilts.patch
+
+build:
+  number: 0
+  script:
+    interpreter: brush
+    content: |
+      # Keep the platform checks as case statements. brush 0.4.0 returns the
+      # status of a false [[ ]] condition from the whole if statement, so an
+      # if/else here can stop the script under set -e.
+
+      # qmake's initial config tests use the compiler names from the mkspec
+      # before QMAKE_CC and QMAKE_CXX take effect.
+      case "${target_platform}" in
+        linux-*)
+          ln -sf ${CC} ${BUILD_PREFIX}/bin/gcc
+          ln -sf ${CXX} ${BUILD_PREFIX}/bin/g++
+          ;;
+        osx-*)
+          ln -sf ${CC} ${BUILD_PREFIX}/bin/clang
+          ln -sf ${CXX} ${BUILD_PREFIX}/bin/clang++
+          ;;
+      esac
+
+      case "${target_platform}" in
+        win-*)
+          LI="${LIBRARY_INC//\\//}"
+          LL="${LIBRARY_LIB//\\//}"
+          LB="${LIBRARY_BIN//\\//}"
+          qmake6 "CONFIG+=release" "CONFIG+=disable-prebuilts" \
+            "INCLUDEPATH+=${LI}" "INCLUDEPATH+=${LI}/SDL2" "INCLUDEPATH+=${LI}/opus" "LIBS+=-L${LL}" \
+            moonlight-qt.pro
+          jom
+          cp app/release/Moonlight.exe "${LB}/"
+          ;;
+        *)
+          case "${target_platform}" in
+            # Use pkg-config with conda libraries instead of the vendored macOS frameworks.
+            osx-*) EXTRA_CONFIG="CONFIG+=disable-prebuilts" ;;
+            *) EXTRA_CONFIG="" ;;
+          esac
+          qmake6 "CONFIG+=release" ${EXTRA_CONFIG} PREFIX=${PREFIX} \
+            QMAKE_CC="${CC}" QMAKE_CXX="${CXX}" QMAKE_LINK="${CXX}" QMAKE_LINK_C="${CC}" \
+            "QMAKE_CFLAGS=${CFLAGS}" "QMAKE_CXXFLAGS=${CXXFLAGS}" "QMAKE_LFLAGS=${LDFLAGS}" \
+            moonlight-qt.pro
+          make -j${CPU_COUNT}
+          case "${target_platform}" in
+            osx-*)
+              # qmake has no macOS install target, so copy the app bundle directly.
+              mkdir -p ${PREFIX}/Applications ${PREFIX}/bin
+              cp -R app/Moonlight.app ${PREFIX}/Applications/
+              ln -s ../Applications/Moonlight.app/Contents/MacOS/Moonlight ${PREFIX}/bin/moonlight
+              ;;
+            *)
+              make install
+              ;;
+          esac
+          ;;
+      esac
+
+      # Add a menuinst shortcut on each platform. The macOS bundle lives inside
+      # the prefix, where Launchpad does not index it.
+      P="${PREFIX//\\//}"
+      mkdir -p "${P}/Menu"
+      case "${target_platform}" in
+        win-*) cp app/moonlight.ico "${P}/Menu/moonlight.ico" ;;
+        osx-*) cp app/moonlight.icns "${P}/Menu/moonlight.icns" ;;
+      esac
+      cat > "${P}/Menu/moonlight-qt.json" <<'EOF'
+      {
+        "$schema": "https://schemas.conda.org/menuinst/menuinst-1-1-3.schema.json",
+        "menu_name": "Moonlight",
+        "menu_items": [
+          {
+            "name": "Moonlight",
+            "description": "Stream games and other applications from another PC running Sunshine or GeForce Experience",
+            "command": ["{{ PREFIX }}/bin/moonlight"],
+            "activate": false,
+            "terminal": false,
+            "platforms": {
+              "linux": {
+                "icon": "{{ PREFIX }}/share/icons/hicolor/scalable/apps/moonlight.svg",
+                "Categories": ["Qt", "Game"],
+                "Keywords": ["nvidia", "gamestream", "stream", "sunshine", "remote play"]
+              },
+              "osx": {
+                "icon": "{{ MENU_DIR }}/moonlight.icns",
+                "CFBundleName": "Moonlight",
+                "CFBundleIdentifier": "com.moonlight-stream.moonlight-conda"
+              },
+              "win": {
+                "command": ["{{ PREFIX }}/Library/bin/Moonlight.exe"],
+                "icon": "{{ MENU_DIR }}/moonlight.ico"
+              }
+            }
+          }
+        ]
+      }
+      EOF
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - brush
+    - if: unix
+      then:
+        - make
+        - pkg-config
+      else:
+        - jom
+  host:
+    - qt6-main
+    - sdl2
+    - sdl2_ttf
+    - libopus
+    - openssl
+    - ffmpeg
+    - if: not win
+      then:
+        # libplacebo provides the Vulkan renderer. Windows uses D3D11VA instead.
+        - libplacebo
+        - libvulkan-headers
+    - if: linux
+      then:
+        # qmake enables these backends when pkg-config finds them.
+        - libva
+        - libdrm
+        - wayland
+        - xorg-libx11
+
+tests:
+  - if: linux
+    then:
+      - script:
+          env:
+            QT_QPA_PLATFORM: offscreen
+          content:
+            - moonlight --version
+      - package_contents:
+          strict: true
+          bin:
+            - moonlight
+          files:
+            exists:
+              - share/applications/com.moonlight_stream.Moonlight.desktop
+              - share/icons/hicolor/scalable/apps/moonlight.svg
+              - share/metainfo/com.moonlight_stream.Moonlight.appdata.xml
+              - Menu/moonlight-qt.json
+  - if: osx
+    then:
+      - package_contents:
+          strict: true
+          files:
+            exists:
+              - Applications/Moonlight.app/**
+              - bin/moonlight
+              - Menu/moonlight-qt.json
+              - Menu/moonlight.icns
+  - if: win
+    then:
+      - package_contents:
+          strict: true
+          files:
+            exists:
+              - Library/bin/Moonlight.exe
+              - Menu/moonlight-qt.json
+              - Menu/moonlight.ico
+
+about:
+  homepage: https://moonlight-stream.org
+  summary: GameStream client for streaming games from a remote host PC
+  description: |
+    Moonlight PC is an open source client for NVIDIA GameStream and
+    compatible hosts such as Sunshine, Apollo, and Moonshine. It streams
+    games and full desktops with hardware-accelerated video decoding,
+    HDR support, and low-latency input forwarding for mouse, keyboard,
+    and gamepads.
+  # moonlight-qt is GPL-3.0-or-later. moonlight-common-c only includes the
+  # GPLv3 text, so list it conservatively as GPL-3.0-only. The bundled code and
+  # data add MIT, LGPL-2.1-or-later, BSD-2-Clause, Zlib, CC0-1.0, and the
+  # ModeSeven font notice.
+  license: GPL-3.0-or-later AND GPL-3.0-only AND MIT AND LGPL-2.1-or-later AND BSD-2-Clause AND Zlib AND CC0-1.0 AND LicenseRef-ModeSeven
+  license_file:
+    - LICENSE
+    - moonlight-common-c/moonlight-common-c/LICENSE.txt
+    - moonlight-common-c/moonlight-common-c/enet/LICENSE
+    - qmdnsengine/qmdnsengine/LICENSE.txt
+    - h264bitstream/h264bitstream/LICENSE
+    - app/SDL_GameControllerDB/LICENSE
+    - soundio/libsoundio/LICENSE
+    # reedsolomon/rs.c has no separate license file, so its notice is copied here.
+    - reedsolomon-LICENSE.txt
+    # ModeSeven.ttf stores its license notice in the font name table.
+    - ModeSeven-LICENSE.txt
+    # The AppStream metadata declares CC0-1.0.
+    - CC0-1.0.txt
+  repository: https://github.com/moonlight-stream/moonlight-qt
+  documentation: https://github.com/moonlight-stream/moonlight-docs/wiki
+
+extra:
+  recipe-maintainers:
+    - tdejager
