@@ -1,0 +1,60 @@
+schema_version: 1
+
+context:
+  version: "1.0.3"
+
+package:
+  name: snowflake-legacy
+  version: ${{ version }}
+
+source:
+  # The sdist can't be built: its pyproject.toml expects a src/ layout that
+  # the sdist doesn't ship, so install the pure-Python wheel instead.
+  url: https://files.pythonhosted.org/packages/py3/s/snowflake-legacy/snowflake_legacy-${{ version }}-py3-none-any.whl
+  sha256: 637b8606266300b7630e2a9edad53308c7e14b7e76861d2dee30f50167c4b791
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install snowflake_legacy-${{ version }}-py3-none-any.whl -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - snowflake._legacy
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python
+    script:
+      # snowflake.pth runs at interpreter startup and attaches the legacy API
+      # to the snowflake namespace package; check that it took effect.
+      - python -c "import snowflake; assert snowflake.snowflake.__module__ == 'snowflake._legacy'; assert snowflake.make_snowflake.__module__ == 'snowflake._legacy'"
+
+about:
+  homepage: https://pypi.org/project/snowflake-legacy/
+  summary: Legacy snowflake-uuid API shim for the snowflake namespace package
+  description: |
+    Snowflake Inc. took over the `snowflake` name on PyPI from the unrelated
+    snowflake-uuid project. This package keeps the old `snowflake.snowflake()`
+    and `snowflake.make_snowflake()` functions importable, through a .pth file
+    that attaches them to the `snowflake` namespace at interpreter startup.
+    New code should use the snowflake-uuid package instead.
+  license: Apache-2.0
+  # Upstream ships no license file; this is the Apache-2.0 text from the
+  # sibling snowflake package, published by the same author.
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
