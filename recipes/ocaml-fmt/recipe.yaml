@@ -1,0 +1,87 @@
+schema_version: 1
+
+context:
+  name: fmt
+  version: "0.11.0"
+  findlib_version: "1.9.8"
+
+  library: ${{ "Library/" if not unix else "" }}
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  - if: not unix
+    then:
+      url: https://github.com/ocaml/ocamlfind/archive/refs/tags/findlib-${{ findlib_version }}.tar.gz
+      sha256: d6899935ccabf67f067a9af3f3f88d94e310075d13c648fa03ff498769ce039d
+      target_directory: findlib
+  - url: https://erratique.ch/software/${{ name }}/releases/${{ name }}-${{ version }}.tbz
+    sha256: 857cfd47a54b52429cd9b3e2665e44173cd1bd3b435bece7172f984ad5376a1b
+    target_directory: ${{ name }}
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/build.sh --with-base-unix true --with-cmdliner true
+  # python is build-only; avoid per-python variants
+  variant:
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    # non-unix: gcc_ (MinGW) ocaml track only
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # _3 ships ocamlbuild.cmo (_2 fails)
+    - ocamlbuild 0.16.* *_3
+    - python
+    - if: unix
+      then:
+        - ocaml-findlib
+      else:
+        - m2-make
+        - m2-bash
+  host:
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-topkg >=1.1.1
+    - ocaml-cmdliner >=2.1.1
+  run:
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-topkg >=1.1.1
+    - ocaml-cmdliner >=2.1.1
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+  - script: bash testing/test_ocaml_lib.sh ${{ name }}
+    files:
+      recipe:
+        - testing/test_ocaml_lib.sh
+    requirements:
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - if: not unix
+          then:
+            - m2-bash
+
+about:
+  homepage: https://erratique.ch/software/fmt
+  repository: https://github.com/dbuenzli/fmt
+  license: ISC
+  license_file: fmt/LICENSE.md
+  summary: OCaml Format pretty-printer combinators
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
