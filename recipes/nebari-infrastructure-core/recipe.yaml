@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.14.0"
+  go_mod: github.com/nebari-dev/nebari-infrastructure-core
+  ldflags: "-s -w -X ${{ go_mod }}/internal/cli.version=${{ version }}"
+
+package:
+  name: nebari-infrastructure-core
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nebari-dev/nebari-infrastructure-core/releases/download/v${{ version }}/nebari-infrastructure-core-${{ version }}-source.tar.gz
+  sha256: 3090113f1ec93bc4070750788fbb861409277b25122d64adca7add7014bc1c58
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        set -ex
+        export CGO_ENABLED=0
+        go build -v -trimpath -ldflags "${{ ldflags }}" -o "${PREFIX}/bin/nic" ./cmd/nic
+        go-licenses save ./cmd/nic --save_path "${SRC_DIR}/library_licenses" --ignore ${{ go_mod }}
+      else: |
+        set CGO_ENABLED=0
+        go build -v -trimpath -ldflags "${{ ldflags }}" -o "%LIBRARY_BIN%\nic.exe" .\cmd\nic
+        if errorlevel 1 exit 1
+        go-licenses save .\cmd\nic --save_path "%SRC_DIR%\library_licenses" --ignore ${{ go_mod }}
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - nic --help
+      - nic version
+  - package_contents:
+      bin:
+        - nic
+
+about:
+  summary: CLI for managing Nebari cloud infrastructure using OpenTofu, ArgoCD, and GitOps
+  description: |
+    Nebari Infrastructure Core (NIC) is the `nic` command-line tool behind
+    Nebari, an opinionated Kubernetes distribution built for AI/ML workflows.
+
+    From a single configuration file it provisions and manages a
+    production-ready platform on any supported cloud, driving OpenTofu for
+    infrastructure and ArgoCD for GitOps-based application delivery.
+
+    Supported providers include AWS, Azure, GCP, Hetzner, an existing
+    Kubernetes cluster, and a local kind-based development cluster.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - library_licenses/
+  homepage: https://nebari.dev
+  repository: https://github.com/nebari-dev/nebari-infrastructure-core
+  documentation: https://github.com/nebari-dev/nebari-infrastructure-core/blob/main/docs/README.md
+
+extra:
+  recipe-maintainers:
+    - rxm7706
