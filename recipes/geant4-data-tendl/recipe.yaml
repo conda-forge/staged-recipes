@@ -1,0 +1,67 @@
+schema_version: 1
+
+context:
+  dataset_name: TENDL
+  version: "1.4.0"
+  version_canonical_geant4: "1.4"
+  env_var: G4PARTICLEHPDATA
+  name: geant4-data-tendl
+  install_dir: share/Geant4/data/G4TENDL1.4
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://geant4-data.web.cern.ch/geant4-data/datasets/G4${{ dataset_name }}.${{ version_canonical_geant4 }}.tar.gz
+  sha256: 4b7274020cc8b4ed569b892ef18c2e088edcdb6b66f39d25585ccee25d9721e0
+  target_directory: dataset
+
+build:
+  number: 0
+  noarch: generic
+  prefix_detection:
+    force_file_type:
+      text:
+        - etc/conda/env_vars.d/*.json
+  script:
+    interpreter: nu
+    content: |
+      let dest = ($env.PREFIX | path join ${{ install_dir }})
+      mkdir $dest
+      cp -r dataset/* $dest
+      let env_dir = ($env.PREFIX | path join "etc" "conda" "env_vars.d")
+      mkdir $env_dir
+      let json_path = ($env_dir | path join $"${{ name }}.json")
+      # Use forward slashes so the build prefix substring appears un-escaped
+      # in the JSON (otherwise rattler-build's prefix scanner can't match it,
+      # since JSON encodes "\" as "\\").
+      let prefix_fs = ($env.PREFIX | str replace -a "\\" "/")
+      {"${{ env_var }}": $"($prefix_fs)/${{ install_dir }}"} | to json | save -f $json_path
+
+requirements:
+  build:
+    - nushell
+
+tests:
+  - package_contents:
+      files:
+        - etc/conda/env_vars.d/${{ name }}.json
+        - ${{ install_dir }}/**
+  - script:
+      - if: unix
+        then: '[ "${${{ env_var }}}" = "$CONDA_PREFIX/${{ install_dir }}" ] && [ -d "${${{ env_var }}}" ]'
+        else: 'cd /d "%${{ env_var }}%"'
+
+about:
+  homepage: https://geant4.web.cern.ch/
+  summary: Geant4 dataset translated from the TENDL-2014 incident proton data library
+  description: |
+    Database translated from the TENDL-2014 incident proton data library
+    (written in ENDF-6 format).
+  license: LicenseRef-Geant4
+  license_file: CREDIT
+
+extra:
+  recipe-maintainers:
+    - conda-forge/geant4
