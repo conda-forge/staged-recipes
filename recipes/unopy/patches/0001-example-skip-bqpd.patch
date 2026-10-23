@@ -1,0 +1,55 @@
+Subject: [PATCH] HS015 example: skip BQPD-dependent runs
+
+BQPD is not packaged on conda-forge (proprietary academic license), so the
+two filtersqp+BQPD runs at the top of the example can't execute. Keep the
+model Hessian setup that the remaining runs depend on, and drop runs 1 and
+2 so the example exercises only the MUMPS- and HiGHS-backed presets
+shipped by this build.
+
+diff --git interfaces/Python/example/example_hs015.py interfaces/Python/example/example_hs015.py
+index 75e8bb2..73415ad 100644
+--- interfaces/Python/example/example_hs015.py
++++ interfaces/Python/example/example_hs015.py
+@@ -70,41 +70,12 @@ if __name__ == '__main__':
+ 
+ 	# solver creation
+ 	uno_solver = unopy.UnoSolver()
+-	uno_solver.set_preset("filtersqp")
+-	uno_solver.set_option("QP_solver", "BQPD")
+ 	print("Solving with Uno", unopy.current_uno_version())
+ 
+-	# run 1: solve with the filtersqp preset with no exact Hessian. Uno defaults to L-BFGS Hessian for NLPs
+-	result = uno_solver.optimize(model)
+-	print("Objective at solution:", result.solution_objective)
+-
+-	# run 2: solve with the filtersqp preset with exact Hessian
++	# set exact Hessian on the model (required by the ipopt preset below)
+ 	model.set_lagrangian_hessian(number_hessian_nonzeros, hessian_triangular_part, hessian_row_indices,
+ 	  hessian_column_indices, lagrangian_hessian)
+ 	model.set_lagrangian_sign_convention(lagrangian_sign_convention)
+-	# the Hessian model was overwritten. Set it again
+-	uno_solver.set_option("hessian_model", "exact")
+-	result = uno_solver.optimize(model)
+-	print("Objective at solution:", result.solution_objective)
+-	# optimization summary
+-	print("Optimization status:", result.optimization_status)
+-	print("Solution status:", result.solution_status)
+-	print("Primal feasibility at solution:", result.solution_primal_feasibility)
+-	print("Stationarity at solution:", result.solution_stationarity)
+-	print("Complementarity at solution:", result.solution_complementarity)
+-	print("Primal solution:", result.primal_solution)
+-	print("Constraint dual solution:", result.constraint_dual_solution)
+-	print("Lower bound dual solution:", result.lower_bound_dual_solution)
+-	print("Upper bound dual solution:", result.upper_bound_dual_solution)
+-	print("Number of iterations:", result.number_iterations)
+-	print("CPU time:", result.cpu_time)
+-	print("Number of objective evaluations:", result.number_objective_evaluations)
+-	print("Number of constraint evaluations:", result.number_constraint_evaluations)
+-	print("Number of objective gradient evaluations:", result.number_objective_gradient_evaluations)
+-	print("Number of Jacobian evaluations:", result.number_jacobian_evaluations)
+-	print("Number of Hessian evaluations:", result.number_hessian_evaluations)
+-	print("Number of subproblems solved:", result.number_subproblems_solved)
+-	assert abs(result.solution_objective - 306.5) <= 1e-4
+ 
+ 	# run 3: solve with the ipopt preset
+ 	uno_solver.set_preset("ipopt")
