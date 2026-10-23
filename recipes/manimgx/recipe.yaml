@@ -1,0 +1,167 @@
+context:
+  version: "0.1.1"
+  fonts_version: "2026.9.26.post1"
+  python_min: "3.13"
+
+package:
+  name: manimgx
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/m/manimgx/manimgx-${{ version }}.tar.gz
+    sha256: cc8044905c0e7c3b9755cc6487dd9b7e0ff4b01e07945847f9824fc7d812b698
+    patches:
+      - patches/0001-dxc-do-not-gather-DXC-s-sources-when-MANIMGX_SOURCES.patch
+      - patches/0002-x264-ffmpeg-link-the-libraries-the-build-prefix-inst.patch
+  # The engine serves mitex's Typst package, which its build script would download; placed in
+  # the folder MANIMGX_SOURCES names, under its original file name, it is read from there
+  # instead and verified against the hash pinned in the build script.
+  - url: https://packages.typst.org/preview/mitex-0.2.7.tar.gz
+    sha256: 0159e214845e49cbdc332d9d572da112dae5ad248072e0a7680d38c8307c2e15
+    file_name: mitex-0.2.7.tar.gz
+    target_directory: sources
+  - if: win
+    then:
+      # Microsoft's DirectX shader compiler, which the Windows engine bundles as dxcompiler.dll
+      url: https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip
+      sha256: ad31b1fc8443175d204f77a611fdb3ef2ec42759bdc2f1167368de24a4a7e7f1
+      file_name: dxc_2026_09_29.zip
+      target_directory: sources
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+    entry_points:
+      - manimgx = manimgx.cli:main
+  dynamic_linking:
+    # the engine's rpath to the prefix's lib/ (set below); rattler-build relinks the package
+    # in its site-packages/ layout, from where that rpath looks like it leaves the prefix
+    rpath_allowlist:
+      - if: osx
+        then: "@loader_path/../../.."
+        else: "$ORIGIN/../../.."
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      # Remove this wrapper once https://github.com/conda-forge/rust-activation-feedstock/pull/79 is merged
+      - if: unix
+        then:
+          - export MANIMGX_SOURCES="${SRC_DIR}/sources"
+          # The engine links x264 and FFmpeg from the prefix's lib/: an rpath there, relative to
+          # the extension's own place in lib/pythonX.Y/site-packages/manimgx/ (the package is
+          # Python version independent, so the rpath rattler-build derives from its
+          # site-packages/ layout does not resolve once installed).
+          - if: osx
+            then: export RUSTFLAGS="-C link-arg=-Wl,-rpath,@loader_path/../../.."
+            else: export RUSTFLAGS='-C link-arg=-Wl,-rpath,$ORIGIN/../../..'
+          - mkdir -p "${BUILD_PREFIX}/bin"
+          - cp "${RECIPE_DIR}/cargo-auditable-wrapper.sh" "${BUILD_PREFIX}/bin/cargo-auditable-wrapper"
+          - chmod +x "${BUILD_PREFIX}/bin/cargo-auditable-wrapper"
+          - export CARGO="cargo-auditable-wrapper"
+        else:
+          - set "MANIMGX_SOURCES=%SRC_DIR%\sources"
+          - copy "%RECIPE_DIR%\cargo-auditable-wrapper.bat" "%BUILD_PREFIX%\Library\bin\cargo-auditable-wrapper.bat" || exit 1
+          - set CARGO=cargo-auditable-wrapper.bat
+      - cd rust
+      - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+      - cd ..
+      - python -m pip install . -vv --no-deps --no-build-isolation
+      # The Linux wheels bundle Mesa's lavapipe (Vulkan on the CPU) beside the engine, which
+      # loads it when no GPU driver is found; point the engine at conda-forge's instead.
+      - if: linux
+        then:
+          - mkdir -p "${SP_DIR}/manimgx/lavapipe"
+          - ln -s ../../../../libvulkan_lvp.so "${SP_DIR}/manimgx/lavapipe/libvulkan_lvp.so"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - pip
+    - maturin >=1.15,<2
+    - "x264"
+    - ffmpeg
+  run:
+    - python
+    - isosurfaces >=0.1.2
+    - manimgx-fonts ==${{ fonts_version }}
+    - manimgx-fonts-cjk ==${{ fonts_version }}
+    - networkx >=3.6.1
+    - numpy >=2.4.3
+    - pillow >=12.2.0
+    - skia-pathops >=0.8
+    - svgelements >=1.9.6
+    - typer >=0.27.2
+    - typing-extensions >=4.13
+    - if: linux
+      then: mesa-lavapipe
+
+tests:
+  - python:
+      imports:
+        - manimgx
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - script:
+      - manimgx --help
+      - manimgx --version
+      - manimgx render --help
+  - if: linux
+    then:
+      files:
+        recipe:
+          - smoke.py
+      script:
+        # typeset, draw (on lavapipe) and encode a scene
+        - manimgx render smoke.py Smoke
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/manimgx/_engine.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\manimgx\_engine.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://manimgx.academa.ai/
+  repository: https://github.com/academa-labs/manimgx
+  documentation: https://manimgx.academa.ai/
+  summary: The animation engine for agents, with Manim's Python API on a Rust GPU core
+  description: |
+    ManimGX renders math and 3D videos from scenes written with Manim's
+    Python API. Its engine, written in Rust, typesets with Typst, draws on
+    the GPU through wgpu and encodes to MP4 with x264 and FFmpeg.
+  # ManimGX itself is MIT. The engine embeds Typst's fonts and data (OFL-1.1, LPPL-1.3c,
+  # GPL-3.0-or-later WITH Font-exception-2.0, Bitstream-Vera, Arev, W3C, CC-BY-SA-3.0), mitex's
+  # Typst package and the Rust crates it is built from (THIRDPARTY.yml), and on Windows bundles
+  # DXC (NCSA). x264 and FFmpeg are linked from their own conda-forge packages, not bundled.
+  license: MIT AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND ISC AND MPL-2.0 AND Unicode-3.0 AND Zlib AND OFL-1.1 AND LPPL-1.3c AND GPL-3.0-or-later WITH Font-exception-2.0 AND Bitstream-Vera AND LicenseRef-Arev-Fonts AND W3C-20150513 AND CC-BY-SA-3.0 AND NCSA AND MIT-Khronos-old
+  license_file:
+    - LICENSE
+    - LICENSE-THIRD-PARTY
+    - LICENSE-DXC
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - pavelzw
