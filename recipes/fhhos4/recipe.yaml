@@ -1,0 +1,102 @@
+# The library fhhos4 (U-AMG): the package fhhos4, the library alone (ENABLE_PROGRAM=OFF), which only needs Eigen.
+context:
+  version: "1.4.0"
+
+package:
+  name: fhhos4
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pmatalon/fhhos4/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1134cc878c56c0e1e9ffe4e1bd87a0524b519cf4090c7bff9691d8026249ba88
+
+build:
+  number: 0
+  # Linux only for now: the other platforms are not tested
+  skip: not linux
+  script:
+    - cmake -S . -B build-library -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DENABLE_PROGRAM=OFF
+    - cmake --build build-library
+    - cmake --install build-library --component library
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - eigen
+  run:
+    # Eigen objects cross the interface of the library: their memory layout is the same in Eigen 3.4 and 5.x, whatever
+    # the alignment settings (fhhos4::Solver's constructor checks it)
+    - eigen >=3.4
+  run_exports:
+    # Binary compatibility within a minor version only (SOVERSION major.minor)
+    - ${{ pin_subpackage('fhhos4', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - fhhos4
+      include:
+        - fhhos4
+        - fhhos4.h
+        - fhhos4_error.h
+        - fhhos4_version.h
+      files:
+        - lib/cmake/fhhos4/fhhos4Config.cmake
+        - lib/cmake/fhhos4/fhhos4ConfigVersion.cmake
+        - lib/cmake/fhhos4/fhhos4Targets.cmake
+  - files:
+      # The test client of the release archive
+      source:
+        - conda/recipe/test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      # A client code: find_package(fhhos4), then a solve with the uncondensed interface
+      - cmake -S conda/recipe/test -B build-test -G Ninja -DCMAKE_BUILD_TYPE=Release -DEXPECTED_VERSION=${{ version }}
+      - cmake --build build-test
+      - ./build-test/fhhos4_client
+      # The same, compiled for the CPU of the machine: other alignment settings than the library's (with AVX)
+      - cmake -S conda/recipe/test -B build-test-native -G Ninja -DCMAKE_BUILD_TYPE=Release -DEXPECTED_VERSION=${{ version }} -DCMAKE_CXX_FLAGS=-march=native
+      - cmake --build build-test-native
+      - ./build-test-native/fhhos4_client
+  - files:
+      # The test client of the release archive
+      source:
+        - conda/recipe/test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        # The oldest Eigen the package accepts, for the client code: the library may be built with another one
+        - eigen 3.4.*
+    script:
+      - cmake -S conda/recipe/test -B build-test -G Ninja -DCMAKE_BUILD_TYPE=Release -DEXPECTED_VERSION=${{ version }}
+      - cmake --build build-test
+      - ./build-test/fhhos4_client
+
+about:
+  homepage: https://github.com/pmatalon/fhhos4
+  repository: https://github.com/pmatalon/fhhos4
+  summary: Algebraic multigrid (U-AMG) for the linear systems of hybrid discretizations (HHO, HDG)
+  description: |
+    The library of fhhos4: an algebraic multigrid method for the linear systems arising from hybrid discretizations
+    (HHO, HDG...) of diffusion and convection-diffusion problems, symmetric or not. p-multigrid levels, then h-levels
+    by aggregation, from the blocks of the uncondensed matrix. Only depends on Eigen.
+  license: LGPL-3.0-or-later
+  license_file:
+    - COPYING.LESSER
+    - COPYING
+
+extra:
+  recipe-maintainers:
+    - pmatalon
