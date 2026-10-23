@@ -1,0 +1,81 @@
+context:
+  version: "5.3.0"
+
+package:
+  name: pantab
+  version: ${{ version }}
+
+source:
+  url: https://github.com/innobi/pantab/archive/v${{ version }}.tar.gz
+  sha256: b9337cac58d9abeebcb7fc7b2c580ac55cadb40a12e0737a00219f1f2101827a
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.11")
+  script: ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+    - if: unix
+      then: make
+  host:
+    - python
+    - pip
+    - nanobind >=2.2.0
+    - scikit-build-core
+  run:
+    - python
+    - pyarrow >=14.0.0
+
+tests:
+  - python:
+      imports:
+        - pantab
+      pip_check: true
+  - script:
+      interpreter: python
+      content: |
+        import os
+        import tempfile
+
+        import pandas as pd
+        import pantab
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = os.path.join(tmp_dir, "test.hyper")
+            pantab.frame_to_hyper(df, path, table="test")
+            result = pantab.frame_from_hyper(path, table="test")
+
+        assert list(result["a"]) == [1, 2, 3]
+    requirements:
+      run:
+        - pandas
+
+about:
+  homepage: https://github.com/innobi/pantab
+  summary: Converts pandas DataFrames into Tableau Hyper Extracts and back
+  description: |
+    pantab provides a fast and simple way to convert DataFrames (pandas,
+    polars, or PyArrow) into Tableau Hyper Extracts and back, built on top
+    of Tableau's Hyper API.
+  license: BSD-3-Clause AND Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - TABLEAU_HYPER_API_LICENSE.txt
+  documentation: https://pantab.readthedocs.io/en/latest/index.html
+  repository: https://github.com/innobi/pantab
+
+extra:
+  recipe-maintainers:
+    - pb01ka
