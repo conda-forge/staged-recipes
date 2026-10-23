@@ -1,0 +1,67 @@
+schema_version: 1
+
+# libpg_query is released per PostgreSQL major version: upstream tags look like
+# "17-6.2.2" (PostgreSQL 17, library 6.2.2). conda versions can't contain "-",
+# so we encode it as "<pg_major>.<lib_version>" = "17.6.2.2". This keeps version
+# ordering sane across both the PostgreSQL line and the library version, and a
+# future PostgreSQL 18 line (18-x.y.z -> 18.x.y.z) sorts strictly higher.
+context:
+  pg_major: "17"
+  lib_version: "6.2.2"
+  version: "17.6.2.2"
+
+package:
+  name: libpg_query
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pganalyze/libpg_query/archive/refs/tags/${{ pg_major }}-${{ lib_version }}.tar.gz
+  sha256: e68962c18dbf5890821511be6c5c42261170bf8bfd51a82ea9176069f3d0df8b
+
+build:
+  number: 0
+  # The Windows build uses a separate Makefile.msvc/nmake flow that is not yet
+  # wired up here; unix-only for the initial recipe.
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+  run_exports:
+    # libpg_query makes no stable-ABI promise and the soname encodes the
+    # PostgreSQL major + library major.minor (e.g. 1706.2). Patch releases keep
+    # the same soname, so pin downstreams to the same major.minor line.
+    - ${{ pin_subpackage('libpg_query', upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - pg_query.h
+        - pg_query/pg_query_internal.h
+        - pg_query/pg_query.pb-c.h
+        - pg_query/postgres/postgres.h
+      lib:
+        - pg_query
+
+about:
+  summary: C library for accessing the PostgreSQL parser outside of the server
+  description: |
+    libpg_query parses SQL queries and returns the internal PostgreSQL parse
+    tree. It does this by including the actual PostgreSQL server source code in
+    a vendored snapshot and exposing a stable C API around the parser, so the
+    output matches the real server's grammar for a given major version.
+  license: BSD-3-Clause AND PostgreSQL
+  license_file:
+    - LICENSE
+    - src/postgres/COPYRIGHT
+  homepage: https://github.com/pganalyze/libpg_query
+  repository: https://github.com/pganalyze/libpg_query
+  documentation: https://github.com/pganalyze/libpg_query/blob/17-latest/README.md
+
+extra:
+  recipe-maintainers:
+    - tdsmith
