@@ -1,0 +1,81 @@
+context:
+  name: Shortwave
+  version: 5.1.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  git: "https://gitlab.gnome.org/World/Shortwave.git"
+
+build:
+  number: 0
+  script:
+    interpreter: brush
+    content:
+      - |
+        export GETTEXT_DIR="${PREFIX}"
+        cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        meson setup ${MESON_ARGS} --prefix="${LIBRARY_PREFIX:-${PREFIX}}" --wrap-mode=nofallback builddir
+        ninja -v -C builddir -j "${CPU_COUNT}"
+        ninja -C builddir install -j "${CPU_COUNT}"
+      - |
+        mkdir -p "${PREFIX}/Menu"
+        cp "${RECIPE_DIR}/menu.json" "${PREFIX}/Menu/${PKG_NAME}_menu.json"
+      - if: osx
+        then: install -m0644 "${RECIPE_DIR}/shortwave.icns" "${PREFIX}/Menu/icon.icns"
+      - if: linux
+        then: install -m0644 "${RECIPE_DIR}/shortwave.png" "${PREFIX}/Menu/icon.png"
+      - if: win
+        then: cp "${RECIPE_DIR}/shortwave.ico" "${PREFIX}/Menu/icon.ico"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - brush
+    - cargo-bundle-licenses
+    - meson
+    - pkg-config
+  host:
+    - glycin-gtk4
+    - gst-plugins-bad
+    - gst-plugins-base
+    - gst-plugins-good
+    - gst-plugins-ugly
+    - gstreamer
+    - libadwaita
+    - libsqlite
+    - if: unix
+      then:
+        - libshumate
+    - if: linux
+      then:
+        - glycin-loaders
+    - zlib
+    - expat
+    - freetype
+    - libxml2-devel
+
+tests:
+  - package_contents:
+      bin:
+        - shortwave
+
+about:
+  homepage: https://apps.gnome.org/Shortwave/
+  license: GPL-3.0-or-later
+  license_file:
+    - COPYING.md
+    - THIRDPARTY.yml
+  summary: Listen to internet radio
+  description: |
+    Shortwave is an internet radio player that provides access to a station 
+    database with over 50,000 stations.
+  repository: https://gitlab.gnome.org/World/Shortwave
+
+extra:
+  recipe-maintainers:
+    - haecker-felix
