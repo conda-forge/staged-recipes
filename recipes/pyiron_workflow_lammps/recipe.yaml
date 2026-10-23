@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  name: pyiron_workflow_lammps
+  version: "0.2.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 92cca5f227eb53efbf85c897e5fa235c1fa7b99b7819d6b25031a228b499b521
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+    - versioneer ==0.29
+  run:
+    - python >=${{ python_min }},<3.15
+    - ase >=3.24.0,<3.30.0
+    - flowrep >=0.6.0,<0.7.0
+    - lammpsparser >=0.0.7,<0.1.0
+    - numpy >=1.26.4,<2.6.0
+    - pyiron_snippets >=1.3.0,<2.0.0
+    - pyiron_workflow >=0.19.0,<0.21.0
+    - pyiron-workflow-atomistics >=0.2.2,<0.4.0
+    - pymatgen >=2024.8.8,<2027.0.0
+
+tests:
+  - python:
+      imports:
+        - pyiron_workflow_lammps
+        - pyiron_workflow_lammps.engine
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # The sdist ships the test suite. Run the unit tests; the tests that need
+  # an `lmp` executable skip without one. Only the files they use are listed,
+  # since test files are stored in the package, so the 2 MB EAM potential
+  # (tests/fixtures, used with `lmp` only) is left out and the check that the
+  # sdist ships it is deselected.
+  - files:
+      source:
+        - tests/__init__.py
+        - tests/conftest.py
+        - tests/resources/
+        - tests/unit/
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    script:
+      - pytest tests/unit -q -p no:cacheprovider --deselect tests/unit/test_engine_conformance.py::TestLammpsEngineConformance::test_fixture_potential_present
+
+about:
+  summary: A LAMMPS workflow integration package for pyiron
+  description: |
+    LAMMPS engine for pyiron_workflow_atomistics: writes LAMMPS inputs, runs an
+    `lmp` executable and parses its output into the atomistics EngineOutput.
+    The LAMMPS binary itself is not a dependency; install `lammps` (or bring
+    your own build) to run calculations.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  homepage: https://github.com/pyiron/pyiron_workflow_lammps
+  repository: https://github.com/pyiron/pyiron_workflow_lammps
+  documentation: https://github.com/pyiron/pyiron_workflow_lammps#readme
+
+extra:
+  recipe-maintainers:
+    - ligerzero-ai
