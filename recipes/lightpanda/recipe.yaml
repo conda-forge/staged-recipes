@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.0.0"
+
+package:
+  name: lightpanda
+  version: ${{ version }}
+
+source:
+  - if: linux and x86_64
+    then:
+      url: https://github.com/lightpanda-io/browser/releases/download/${{ version }}/lightpanda-x86_64-linux
+      sha256: aa5a4b8ed53d1e38b3c73f5b2647d0a84a82e6744557f45f9a9c85858aa031c3
+      file_name: lightpanda
+  - if: linux and aarch64
+    then:
+      url: https://github.com/lightpanda-io/browser/releases/download/${{ version }}/lightpanda-aarch64-linux
+      sha256: 69791924bcee43b13b224af4c845622c5fe66fdbc1b8143bfaa39ca8f85244f5
+      file_name: lightpanda
+  - if: osx and x86_64
+    then:
+      url: https://github.com/lightpanda-io/browser/releases/download/${{ version }}/lightpanda-x86_64-macos
+      sha256: e510299683b37a203912eac0ee00732224b2ef9b07fe58e69c467f5255be45e2
+      file_name: lightpanda
+  - if: osx and arm64
+    then:
+      url: https://github.com/lightpanda-io/browser/releases/download/${{ version }}/lightpanda-aarch64-macos
+      sha256: 955440053a84754dd64c62f970449a56a2b350cdf43ea5f2e809a73047b8173d
+      file_name: lightpanda
+
+build:
+  number: 0
+  skip:
+    - win
+    - linux and not (x86_64 or aarch64)
+    - osx and not (x86_64 or arm64)
+  script:
+    - mkdir -p "${PREFIX}/bin"
+    - install -m 0755 lightpanda "${PREFIX}/bin/lightpanda"
+  dynamic_linking:
+    binary_relocation: false
+
+requirements:
+  build:
+    - if: osx
+      then: ${{ stdlib("c") }}
+  run:
+    - if: linux
+      then: __glibc >=2.35
+
+tests:
+  - package_contents:
+      bin:
+        - lightpanda
+  # staged-recipes currently tests Linux on Alma 9 (glibc 2.34), while the
+  # official upstream Linux binary requires glibc >=2.35. Keep the runtime
+  # constraint accurate and avoid creating an unsatisfiable Linux test env.
+  - if: osx
+    then:
+      script:
+        - lightpanda version | grep -F "${{ version }}"
+
+about:
+  homepage: https://lightpanda.io
+  license: AGPL-3.0-only
+  license_file: LICENSE
+  summary: Headless browser built for automation and AI agents
+  description: |
+    Lightpanda is an open-source headless browser written in Zig for web
+    automation, scraping, and AI agents. It provides JavaScript execution,
+    browser APIs, CDP, WebDriver, and a native MCP server.
+  documentation: https://lightpanda.io/docs
+  repository: https://github.com/lightpanda-io/browser
+
+extra:
+  recipe-maintainers:
+    - pentamorfico
