@@ -1,0 +1,81 @@
+{% set version = "0.3.2" %}
+{% set torch_proc_type = "cuda" ~ cuda_compiler_version | replace('.', '') if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: exllamav2
+  version: {{ version }}
+
+source:
+  url: https://github.com/turboderp-org/exllamav2/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 59bd24ff69855a9fbf7c62565479e6e7ecfd2063cce7dfd90cbe785517e34074
+
+build:
+  # noarch: python
+  script_env:
+    - TORCH_CUDA_ARCH_LIST=6.0;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX      # [(cuda_compiler_version or "").startswith("12")]
+    - TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX              # [(cuda_compiler_version or "").startswith("13")]
+    - MAX_JOBS=2
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  skip: true  # [cuda_compiler_version == "None" or osx or win]
+  rpaths:
+    - lib/
+    # PyTorch libs are in site-packages intead of with other shared objects
+    - {{ SP_DIR }}/torch/lib/
+  missing_dso_whitelist:
+    - "*/libtorch_python.so"
+
+requirements:
+  build:
+    - cmake
+    - make
+    - {{ stdlib("c") }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - ninja
+    
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - python
+    - pip
+    - setuptools
+    - pytorch
+    - ninja
+    - cuda-cudart-dev
+    - libcublas-dev
+    - libcusparse-dev
+    - libcurand-dev
+    - libcusolver-dev
+    
+  run:
+    - python
+    - pandas
+    - ninja
+    - fastparquet
+    - pytorch >=2.2.0
+    - safetensors >=0.3.2
+    - pygments
+    - websockets
+    - regex
+    - numpy
+    - tokenizers
+    - rich
+    - pillow >=9.1.0
+
+test:
+  imports:
+    - exllamav2
+  # no `pip check`: upstream requires the PyPI `ninja` wrapper, while conda-forge provides the ninja binary
+  requires:
+    - pip
+
+about:
+  home: https://github.com/turboderp/exllamav2
+  license: MIT
+  license_file: LICENSE
+  summary: ExLlamaV2 is an inference library for running local LLMs on modern consumer GPUs.
+
+extra:
+  recipe-maintainers:
+    - mediocretech
