@@ -1,0 +1,56 @@
+context:
+  version: "1.1.8"
+
+package:
+  name: dagrejs-dagre
+  version: ${{ version }}
+
+source:
+  url: https://registry.npmjs.org/@dagrejs/dagre/-/dagre-${{ version }}.tgz
+  sha256: 95b56294d94103472b60a06014e484972be4dd528b0d3b18ed2b6ba3d7921274
+  target_directory: dagre
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - if: win
+      then: |
+        if not exist "%PREFIX%\lib\node_modules\@dagrejs\dagre" mkdir "%PREFIX%\lib\node_modules\@dagrejs\dagre"
+        xcopy /E /H /Y "%SRC_DIR%\dagre\*" "%PREFIX%\lib\node_modules\@dagrejs\dagre"
+      else: |
+        mkdir -p "$PREFIX/lib/node_modules/@dagrejs/dagre"
+        cp -R "$SRC_DIR/dagre/." "$PREFIX/lib/node_modules/@dagrejs/dagre"
+
+requirements:
+  run:
+    - dagrejs-graphlib ==2.2.4
+
+tests:
+  - package_contents:
+      files:
+        - lib/node_modules/@dagrejs/dagre/package.json
+  - script:
+      - >-
+        node -e "const dagre = require(process.env.PREFIX + '/lib/node_modules/@dagrejs/dagre');
+        const graph = new dagre.graphlib.Graph().setGraph({});
+        graph.setDefaultEdgeLabel(() => ({}));
+        graph.setNode('a', { width: 10, height: 10 });
+        graph.setNode('b', { width: 10, height: 10 });
+        graph.setEdge('a', 'b');
+        dagre.layout(graph);
+        if (!Number.isFinite(graph.node('a').x)) process.exit(1)"
+    requirements:
+      run:
+        - nodejs
+
+about:
+  homepage: https://github.com/dagrejs/dagre
+  repository: https://github.com/dagrejs/dagre
+  summary: Graph layout for JavaScript
+  license: MIT
+  license_file: dagre/LICENSE
+
+extra:
+  recipe-maintainers:
+    - phreed
