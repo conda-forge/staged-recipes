@@ -1,0 +1,57 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: typst2vast
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdkato/typst2vast/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ca818ed38824cc3033f9aaec7de44bb049a7bc41e537731016bcc2d51adeaf02
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      else:
+        - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - typst2vast --version
+      - if: unix
+        then:
+          - printf '= Title\nSome *bold* text.\n' | typst2vast | grep -q '<strong>bold</strong>'
+  - package_contents:
+      bin:
+        - typst2vast
+      strict: true
+
+about:
+  homepage: https://github.com/jdkato/typst2vast
+  repository: https://github.com/jdkato/typst2vast
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Convert Typst to HTML for the Vale prose linter, parsing without evaluating
+  description: |
+    typst2vast reads a Typst document with typst-syntax, the Typst compiler's
+    own parser, and emits the HTML that Vale lints. Nothing is compiled, so
+    documents that do not build still convert and no package is fetched.
+    Vale 3.18 and later call it for .typ files when it is on PATH.
+
+extra:
+  recipe-maintainers:
+    - ManuelLerchner
