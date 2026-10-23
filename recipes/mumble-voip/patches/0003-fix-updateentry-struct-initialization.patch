@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@conda-forge.org>
+Date: Mon, 1 Jan 2025 00:00:00 +0000
+Subject: [PATCH] Fix compilation error with UpdateEntry struct initialization
+
+This patch fixes a compiler error where aggregate initialization
+of the UpdateEntry struct fails because the struct only has a default
+constructor. The error occurs with strict compilers that don't allow
+brace initialization for non-aggregate types.
+
+Error:
+    PluginUpdater.cpp:48:115: error: could not convert '{...}' from '<brace-enclosed initializer list>' to 'UpdateEntry'
+       48 |                                         UpdateEntry entry = { plugin->getID(), updateURL, updateURL.fileName(), 0 };
+          |                                                                                                                   ^
+
+The fix replaces brace initialization with explicit member assignment,
+which is compatible with all compilers and maintains the same functionality.
+
+--- a/src/mumble/PluginUpdater.cpp
++++ b/src/mumble/PluginUpdater.cpp
+@@ -45,7 +45,11 @@ void PluginUpdater::checkForUpdates() {
+ 				QUrl updateURL = plugin->getUpdateDownloadURL();
+ 
+ 				if (updateURL.isValid() && !updateURL.isEmpty() && !updateURL.fileName().isEmpty()) {
+-					UpdateEntry entry = { plugin->getID(), updateURL, updateURL.fileName(), 0 };
++					UpdateEntry entry;
++					entry.pluginID = plugin->getID();
++					entry.updateURL = updateURL;
++					entry.fileName = updateURL.fileName();
++					entry.redirects = 0;
+ 					m_pluginsToUpdate << entry;
+ 				}
+ 			}
