@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  name: ldas-tools-suite
+  version: "3.3.2"
+  ldas_tools_cmake_version: 1.5.1
+  ldas_tools_al_version: 2.10.1
+  ldas_tools_al_swig_version: 2.6.15
+  ldas_tools_ldasgen_version: 2.7.8
+  ldas_tools_ldasgen_swig_version: 2.6.15
+  ldas_tools_filters_version: 2.6.10
+  ldas_tools_framecpp_version: 4.1.2
+  ldas_tools_framecpp_swig_version: 3.1.2
+  ldas_tools_diskcacheapi_version: 2.7.12
+  ldas_tools_diskcacheapi_swig_version: 2.6.17
+  ldas_tools_frameapi_version: 3.0.9
+  ldas_tools_frameapi_swig_version: 2.6.17
+  ldas_tools_utilities_version: 2.7.7
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://software.igwn.org/lscsoft/source/${{ name }}-${{ version }}.tar.gz
+  sha256: 1ea17d0687abf9c506e0ae39e13cd8a47e9773f553a1a0abbf144691a3fb05ba
+
+build:
+  number: 0
+  # Metapackage: no installed payload of its own. The build script is a
+  # no-op so conda-build produces an empty package whose only value is the
+  # `run:` dependency list below.
+  script: "true"
+  # Every pinned component sub-package skips win, so the metapackage's
+  # transitive install cannot resolve on win_64. Skip it here explicitly.
+  # (noarch: generic is incompatible with platform-specific skips per the
+  # conda-forge linter, so we build one small per-platform metapackage
+  # instead — the package still carries no payload of its own.)
+  skip:
+    - win
+
+requirements:
+  run:
+    - ldas-tools-cmake >=${{ ldas_tools_cmake_version }}
+    - ldas-tools-al >=${{ ldas_tools_al_version }}
+    - ldas-tools-al-swig >=${{ ldas_tools_al_swig_version }}
+    - ldas-tools-ldasgen >=${{ ldas_tools_ldasgen_version }}
+    - ldas-tools-ldasgen-swig >=${{ ldas_tools_ldasgen_swig_version }}
+    - ldas-tools-filters >=${{ ldas_tools_filters_version }}
+    - ldas-tools-framecpp >=${{ ldas_tools_framecpp_version }}
+    - ldas-tools-framecpp-swig >=${{ ldas_tools_framecpp_swig_version }}
+    - ldas-tools-diskcacheapi >=${{ ldas_tools_diskcacheapi_version }}
+    - ldas-tools-diskcacheapi-swig >=${{ ldas_tools_diskcacheapi_swig_version }}
+    - ldas-tools-frameapi >=${{ ldas_tools_frameapi_version }}
+    - ldas-tools-frameapi-swig >=${{ ldas_tools_frameapi_swig_version }}
+    - ldas-tools-utilities >=${{ ldas_tools_utilities_version }}
+
+tests:
+  # Existence check — proves the transitive install of the run: set
+  # actually resolved and every component landed a binary on PATH.
+  # Uses only binaries known to accept --version / -V per GNU §4.7.1:
+  #   framecpp_dump_toc     — from ldas-tools-framecpp #390
+  #   ldas_create_rds       — from ldas-tools-utilities #393
+  #   ldas_analysis_ready   — from ldas-tools-frameAPI #392
+  #   diskcache             — from ldas-tools-diskcacheAPI #391
+  # (framecpp_verify is not in the #390 --version cohort; do not add.)
+  - script:
+      - framecpp_dump_toc --version
+      - ldas_create_rds --version
+      - ldas_analysis_ready --version
+      - diskcache -V
+
+about:
+  homepage: https://git.ligo.org/computing/ldastools/LDAS_Tools
+  repository: https://git.ligo.org/computing/ldastools/LDAS_Tools
+  license: GPL-2.0-or-later
+  license_file:
+    - COPYING
+    - LICENSE.md
+  summary: LDAS Tools Suite — coordinated release of the LDAS Tools packages
+  description: |
+    ldas-tools-suite is a runtime metapackage that pins every component of
+    the LDAS Tools Suite to the versions that make up this coordinated
+    release. Installing ldas-tools-suite pulls in the complete set of
+    runtime packages at the release-tagged versions, providing an
+    unambiguous "what versions did I get?" answer for a given install.
+
+    The LDAS Tools Suite provides the C++ library and Python bindings used
+    by LIGO/Virgo/KAGRA data-analysis pipelines to read, write, and
+    manipulate GWF (gravitational-wave frame) files, along with cache/
+    dataset management utilities. See
+    https://git.ligo.org/computing/ldastools/LDAS_Tools for the source and
+    per-release notes.
+
+    Each sub-package (ldas-tools-al, ldas-tools-framecpp, and so on) is
+    independently installable; installing this metapackage is a
+    convenience for consumers who want the coordinated release set.
+
+extra:
+  recipe-maintainers:
+    - emaros
