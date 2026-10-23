@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  version: "0.24.0"
+
+package:
+  name: libdatachannel
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/paullouisageneau/libdatachannel/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 62a4d1fb43df73549bbed9d82161d2bf8b1396bee2a50759b9d8a8d03e62ab12
+  # libsrtp, usrsctp and libjuice are not on conda-forge, so they remain bundled,
+  # pinned to libdatachannel v0.24.0's submodule commits. plog and nlohmann_json
+  # ARE on conda-forge and are used as host deps (USE_SYSTEM_* in the build script).
+  - git: https://github.com/cisco/libsrtp.git
+    rev: ee1a77c9f9dc02c42bda9901038c500c5efe4cfa
+    target_directory: deps/libsrtp
+  - git: https://github.com/sctplab/usrsctp.git
+    rev: fec583d54493f879d2ae44a743423bf8a04371ab
+    target_directory: deps/usrsctp
+  - git: https://github.com/paullouisageneau/libjuice.git
+    rev: 5948a4162d37bc213d6051b67ee2876ccc5a99a6
+    target_directory: deps/libjuice
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DUSE_GNUTLS=OFF -DUSE_MBEDTLS=OFF -DUSE_NICE=OFF -DNO_WEBSOCKET=OFF -DNO_MEDIA=OFF -DNO_EXAMPLES=ON -DNO_TESTS=ON -DUSE_SYSTEM_PLOG=ON -DUSE_SYSTEM_JSON=ON -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DOPENSSL_ROOT_DIR=$PREFIX
+        - cmake --build build
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DUSE_GNUTLS=OFF -DUSE_MBEDTLS=OFF -DUSE_NICE=OFF -DNO_WEBSOCKET=OFF -DNO_MEDIA=OFF -DNO_EXAMPLES=ON -DNO_TESTS=ON -DUSE_SYSTEM_PLOG=ON -DUSE_SYSTEM_JSON=ON -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" -DOPENSSL_ROOT_DIR="%LIBRARY_PREFIX%"
+        - cmake --build build --config Release
+        - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - openssl
+    - plog
+    - nlohmann_json
+
+tests:
+  - package_contents:
+      lib:
+        - datachannel
+
+about:
+  homepage: https://github.com/paullouisageneau/libdatachannel
+  summary: C/C++ WebRTC Data Channels, Media Transport, and WebSockets
+  description: |
+    libdatachannel is a standalone implementation of WebRTC Data Channels,
+    WebRTC Media Transport, and WebSockets, with C and C++ APIs. It does not
+    depend on a full WebRTC stack; it bundles libjuice (ICE), libsrtp and
+    usrsctp, and uses OpenSSL for DTLS/SRTP.
+  license: MPL-2.0 AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - deps/libsrtp/LICENSE
+    - deps/usrsctp/LICENSE.md
+    - deps/libjuice/LICENSE
+  repository: https://github.com/paullouisageneau/libdatachannel
+
+extra:
+  recipe-maintainers:
+    - facontidavide
