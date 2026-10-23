@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: build_dune_pkg.sh <opam-package>[,<opam-package>...]
+# Usage: build.sh <opam-package>[,<opam-package>...]
 # Builds and installs dune package(s) into the conda lib/ocaml tree.
 set -euxo pipefail
 

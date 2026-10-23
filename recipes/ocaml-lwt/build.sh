@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Usage: build_dune_pkg.sh <opam-package>[,<opam-package>...]
-# Builds and installs dune package(s) into the conda lib/ocaml tree.
+# Usage: build.sh <lwt|lwt_ppx>
+# Mirrors the opam build of lwt: the discover step runs first (libev disabled).
 set -euxo pipefail
 
 # dune's shared cache breaks on non-unix (mkdir_p on a mixed-slash cache root); keep builds hermetic.
 export DUNE_CACHE=disabled
 
-pkgs="$1"
+pkg="$1"
 
 if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || "${target_platform:-}" == win-* ]]; then
   prefix="${PREFIX}/Library"
@@ -25,11 +25,15 @@ requires = ""
 EOF
 done
 if [[ "${prefix}" == */Library ]]; then sep=';'; else sep=':'; fi
-# Host libs (e.g. csexp) live in ${prefix}/lib/ocaml; non-unix activation only lists BUILD_PREFIX.
+# Host libs (dune-configurator) live in ${prefix}/lib/ocaml; non-unix activation only lists BUILD_PREFIX.
 export OCAMLPATH="${compat}${sep}${prefix}/lib/ocaml${OCAMLPATH:+${sep}${OCAMLPATH}}"
 
-dune build -p "${pkgs}" --profile=release -j "${CPU_COUNT:-1}" @install
-dune install -p "${pkgs}" --prefix="${prefix}" \
+if [[ "${pkg}" == "lwt" ]]; then
+  dune exec -p lwt src/unix/config/discover.exe -- --save --use-libev false
+fi
+
+dune build -p "${pkg}" --profile=release -j "${CPU_COUNT:-1}" @install
+dune install -p "${pkg}" --prefix="${prefix}" \
   --libdir="${prefix}/lib/ocaml" \
   --docdir="${prefix}/share/doc" \
   --mandir="${prefix}/share/man"
