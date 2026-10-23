@@ -1,0 +1,75 @@
+context:
+  version: "0.1.1"
+
+package:
+  name: sysml2-mermaid
+  version: ${{ version }}
+
+# The npm release contains the compiled CLI and library. Runtime dependencies
+# are provided by conda packages so the build never contacts the npm registry.
+source:
+  url: https://registry.npmjs.org/sysml2-mermaid/-/sysml2-mermaid-${{ version }}.tgz
+  sha256: bffb3e90a75d1fa9f4270a4fde725c6dcd710b4c3333f0e89b0c4d4821b31ee5
+  target_directory: sysml2-mermaid
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        set "PACKAGE=%PREFIX%\lib\node_modules\sysml2-mermaid"
+        xcopy /E /I /Q /Y "%SRC_DIR%\sysml2-mermaid" "%PACKAGE%"
+        echo @echo off> "%PREFIX%\sysml2svg.cmd"
+        echo "%%~dp0node.exe" "%%~dp0lib\node_modules\sysml2-mermaid\dist\cli\cli.js" %%*>> "%PREFIX%\sysml2svg.cmd"
+      else: |
+        package="$PREFIX/lib/node_modules/sysml2-mermaid"
+        mkdir -p "$PREFIX/lib/node_modules" "$PREFIX/bin"
+        cp -R "$SRC_DIR/sysml2-mermaid/." "$package"
+        chmod +x "$package/dist/cli/cli.js"
+        ln -s ../lib/node_modules/sysml2-mermaid/dist/cli/cli.js "$PREFIX/bin/sysml2svg"
+
+requirements:
+  run:
+    - dagrejs-dagre >=1.1.8,<2.0a0
+    - elkjs >=0.9.3,<0.10.0a0
+    - nodejs >=20
+
+tests:
+  - if: win
+    then:
+      package_contents:
+        files:
+          - sysml2svg.cmd
+    else:
+      package_contents:
+        bin:
+          - sysml2svg
+  - script:
+      - if: win
+        then: |
+          call sysml2svg model.sysml -o model.svg
+          if not exist model.svg exit 1
+          call sysml2svg model.sysml -o model-elk.svg --layout elk
+          if not exist model-elk.svg exit 1
+        else: |
+          sysml2svg model.sysml -o model.svg
+          test -s model.svg
+          sysml2svg model.sysml -o model-elk.svg --layout elk
+          test -s model-elk.svg
+    files:
+      recipe:
+        - model.sysml
+
+about:
+  homepage: https://github.com/fengdonglu/sysml2-mermaid
+  repository: https://github.com/fengdonglu/sysml2-mermaid
+  summary: Render SysML v2 models as Mermaid diagrams and SVG
+  description: |
+    A SysML v2 parser and diagram renderer with a Mermaid plugin, JavaScript
+    library, and the sysml2svg command-line tool.
+  license: MIT
+  license_file: sysml2-mermaid/LICENSE
+
+extra:
+  recipe-maintainers:
+    - phreed
