@@ -1,0 +1,56 @@
+schema_version: 1
+
+context:
+  version: "0.13.1"
+
+package:
+  name: sequoia-chameleon-gnupg
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.com/sequoia-pgp/sequoia-chameleon-gnupg/-/archive/v${{ version }}/sequoia-chameleon-gnupg-v${{ version }}.tar.gz
+  sha256: 9fe7b06b6cbdb5282adfb102cc5bdc09b3c8b1f3a7399e225e3ae8127db7078d
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - export OPENSSL_DIR=$PREFIX
+      - cargo auditable install --locked --root ${{ PREFIX }} --path . --no-track --no-default-features --features=crypto-openssl
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler("rust") }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+  host:
+    - openssl <4.0a0
+    - if: linux
+      then: sqlite
+
+tests:
+  - script: gpg-sq --help
+  - package_contents:
+      bin:
+        - gpg-sq
+        - gpgv-sq
+      strict: true
+
+about:
+  homepage: https://sequoia-pgp.org
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE.txt
+    - THIRDPARTY.yml
+  summary: Reimplementatilon of gpg and gpgv using Sequoia
+  description: Sequoia's reimplementation of the GnuPG interface
+  repository: https://gitlab.com/sequoia-pgp/sequoia-chameleon-gnupg
+
+extra:
+  recipe-maintainers:
+    - chawyehsu
