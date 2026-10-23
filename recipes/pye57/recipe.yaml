@@ -1,0 +1,74 @@
+schema_version: 1
+
+context:
+  name: pye57
+  version: 0.4.19
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # GitHub tarball omits the vendored libE57Format submodule and includes test data
+  url: https://github.com/davidcaron/pye57/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f1305270226cb86394e3d54b8a84acd7bc15c0a41287f3dddf0f6b3b2d7d662c
+  patches:
+    # Link conda-forge libe57format instead of compiling the vendored copy
+    - 0001-link-external-libe57format.patch
+
+build:
+  number: 0
+  script:
+    - ${{ PYTHON }} -m pip install . -vv
+    # Tests run here so the 23 MB of sample data stays out of the package
+    - if: build_platform == target_platform
+      then: ${{ PYTHON }} -m pytest tests -v
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+  host:
+    - python
+    - pip
+    - setuptools >=42
+    - pybind11 >=2.8.0
+    - libe57format
+    - if: build_platform == target_platform
+      then:
+        - numpy
+        - pyquaternion
+        - pytest
+  run:
+    - python
+    - numpy
+    - pyquaternion
+  ignore_run_exports:
+    # numpy is only in host to run tests; the extension does not use its C ABI
+    from_package:
+      - numpy
+
+tests:
+  - python:
+      imports:
+        - pye57
+        - pye57.libe57
+      pip_check: true
+
+about:
+  homepage: https://github.com/davidcaron/pye57
+  repository: https://github.com/davidcaron/pye57
+  summary: Python .e57 files reader/writer
+  description: |
+    Read and write E57 point cloud files from Python, using libE57Format.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - swahtz
