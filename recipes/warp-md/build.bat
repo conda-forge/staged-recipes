@@ -1,0 +1,35 @@
+@echo on
+
+rem ── Remove .cargo/config.toml that hardcodes system paths ──────────
+if exist .cargo\config.toml del .cargo\config.toml
+
+rem ── Third-party license bundling (conda-forge requirement for Rust) ─
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yaml
+if errorlevel 1 exit 1
+
+rem ── Build the wheel (CPU only on Windows; CUDA builds are skipped) ──
+set FEATURES=extension-module
+
+rem ── HDF5: point hdf5-metno-sys at conda-forge's Windows layout ─────
+set "HDF5_DIR=%LIBRARY_PREFIX%"
+set "HDF5_ROOT=%LIBRARY_PREFIX%"
+set "HDF5_INCLUDE_DIR=%LIBRARY_PREFIX%\include"
+set "HDF5_LIB_DIR=%LIBRARY_PREFIX%\lib"
+set "HDF5_DYNAMIC=1"
+set "PATH=%LIBRARY_PREFIX%\bin;%PATH%"
+set "CMAKE_POLICY_VERSION_MINIMUM=3.5"
+set "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1"
+maturin build ^
+    --release ^
+    --strip ^
+    --interpreter "%PYTHON%" ^
+    --no-default-features ^
+    --features %FEATURES% ^
+    --out dist
+if errorlevel 1 exit 1
+
+rem ── Install ─────────────────────────────────────────────────────────
+for %%f in (dist\warp_md-*.whl) do (
+    "%PYTHON%" -m pip install "%%f" --no-deps --no-build-isolation -vv
+    if errorlevel 1 exit 1
+)
