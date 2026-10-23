@@ -1,0 +1,125 @@
+schema_version: 1
+
+context:
+  # The grasshopper version is the Geant4 release it was validated against
+  # (optionally with a 4th component for grasshopper-only fixes). The first
+  # three components therefore also select the geant4 package to build against.
+  version: "11.4.3"
+  # Keep equal to the first three components of `version`.
+  geant4_version: "11.4.3"
+
+recipe:
+  name: grasshopper
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ustajan/grasshopper/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 644dee6b0b9f65cc9b6fb19851d86ee267adbc92535b43dec34b39b4e9a6c34d
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: grasshopper
+    build:
+      skip: win
+      script:
+        file: build_grasshopper.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - geant4 ${{ geant4_version }}.*   # brings its exact clhep pin with it
+        # Headers/config files that Geant4Config.cmake's find_dependency() calls
+        # need at configure time. grasshopper links them only through Geant4.
+        - xerces-c
+        - expat
+        - zlib
+        - freetype
+      run:
+        # geant4 has run_exports pinning to its exact patch release; nothing to add.
+        - geant4
+      ignore_run_exports:
+        from_package:
+          - xerces-c
+          - expat
+          - zlib
+          - freetype
+    tests:
+      - script:
+          - grasshopper --version
+          - grasshopper --help
+          - test -f $PREFIX/share/grasshopper/schema/gdml.xsd
+          - test -f $PREFIX/share/grasshopper/examples/beta/beta_lite.gdml
+          # 500-event simulation; needs the geant4-data packages pulled in by geant4.
+          - bash tests/smoke_test.sh grasshopper $PREFIX/share/grasshopper
+        files:
+          source:
+            - tests/
+
+  - package:
+      name: grasshopper-gui
+    build:
+      noarch: python
+      # The noarch package is identical on every platform; build it once.
+      skip: not (linux and x86_64)
+      script: python -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - grasshopper-gui = grasshopper_gui.app:main
+          - grasshopper-gui-novis = grasshopper_gui.novis:main
+          - grasshopper-vtk-viewer = grasshopper_gui.vtk_viewer:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77
+      run:
+        - python >=${{ python_min }}
+        - tk
+        - numpy >=1.21
+        - matplotlib-base >=3.5
+        - platformdirs >=3
+        - grasshopper ==${{ version }}
+      run_constraints:
+        - vtk >=9.0
+    tests:
+      - python:
+          imports:
+            - grasshopper_gui
+            - grasshopper_gui.app
+            - grasshopper_gui.novis
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - script:
+          - grasshopper-gui --version
+          - grasshopper-gui-novis --version
+          - grasshopper-vtk-viewer --version
+
+about:
+  homepage: https://github.com/ustajan/grasshopper
+  repository: https://github.com/ustajan/grasshopper
+  documentation: https://github.com/ustajan/grasshopper/wiki
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: Geant4 front end driven by GDML files, with text output and VRML visualization
+  description: |
+    grasshopper is a Geant4 application configured entirely through a GDML
+    file: geometry, materials, beam parameters, physics cuts and output
+    options. No C++ is needed for typical experiments. The `grasshopper`
+    package provides the simulation executable together with the GDML schema
+    and example inputs (under share/grasshopper); `grasshopper-gui` provides a
+    Tkinter GUI to build GDML inputs, run simulations and inspect results.
+    This build writes ASCII .dat output (no ROOT support).
+
+    Reference: A. Danagoulian, J. N. Miske and E. A. Klein, "Grasshopper, a
+    Geant4 Front End: Validation and Benchmarking", IEEE NSS/MIC 2021,
+    doi:10.1109/NSS/MIC44867.2021.9875720
+
+extra:
+  recipe-maintainers:
+    - ustajan
