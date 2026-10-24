@@ -1,0 +1,77 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: wc3files
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/w/wc3files/wc3files-${{ version }}.tar.gz
+  # Checked against the sha256 PyPI reports for this sdist. If the sdist is
+  # ever rebuilt, recompute it:
+  #     curl -L <url> | openssl dgst -sha256
+  sha256: 542aa7ab7444267e8faaede5f1cf8081784712b2b459333f600afac010dca6ef
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+  run:
+    - python >=${{ python_min }}
+    # Imported at module import time, so the package cannot be imported
+    # without them.
+    - loguru
+    - tqdm
+    # Used for a single pandas.isna() call when reading SYLK tables.
+    - pandas
+
+tests:
+  - python:
+      imports:
+        - wc3files
+        - wc3files.mpq
+        - wc3files.w3x
+        - wc3files.w3o
+        - wc3files.wtg
+        - wc3files.mdl
+        - wc3files.img
+        - wc3files.casc
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - wc3files --help
+      # The package ships copies of the game's own tables and reads them from
+      # disk at runtime, so a build that dropped them would import cleanly
+      # and fail later. These two load such a table and a bundled asset.
+      - python -c "from wc3files.wtg import TriggerData; assert TriggerData.default().arg_count(2, 'KillUnit') == 1"
+      - python -c "from wc3files import border_path; import os; assert os.path.exists(border_path('active'))"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/Bekhouche/wc3files
+  summary: Warcraft III map, campaign, and replay file reader/writer
+  description: |
+    Pure-Python reader and writer for Warcraft III's file formats: MPQ
+    archives and W3X maps, object data, terrain, triggers and scripts
+    (JASS/Lua), MDL/MDX models, BLP/DDS images, replays, and the CASC
+    storage of an installed game. No StormLib and no compiler required.
+
+    Parsers refuse rather than return a plausible misreading of a layout they
+    do not recognise, and reading a file then writing it back unmodified
+    reproduces the original bytes.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/Bekhouche/wc3files/tree/main/docs
+  repository: https://github.com/Bekhouche/wc3files
+
+extra:
+  recipe-maintainers:
+    - Bekhouche
