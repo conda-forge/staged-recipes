@@ -50,6 +50,8 @@ if IS_WIN:
         "a_value_is_changed_and_everything_else_is_kept",
         # 0.10.1: more unix process assumptions
         "a_child_that_hangs_after_closing_stdout_is_killed",
+        # 0.11.0: more unix path assumptions in regex
+        "expand_sources_refuses_a_directory_without_model_files",
     ]
 
 PYTEST_K = f"""not ({" or ".join(["not-a-test", *SKIPS])})"""
