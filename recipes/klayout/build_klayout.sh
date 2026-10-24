@@ -13,7 +13,27 @@ if command -v mold >/dev/null 2>&1; then
 fi
 
 PY_INC=$($PYTHON -c "import sysconfig; print(sysconfig.get_path('include'))")
-PY_LIB=$($PYTHON -c "import sysconfig, os; print(os.path.join(sysconfig.get_config_var('LIBDIR'), sysconfig.get_config_var('LDLIBRARY')))")
+PY_LIB=$($PYTHON - <<'EOF'
+import os
+import sysconfig
+
+libdir = sysconfig.get_config_var("LIBDIR")
+candidates = []
+for key in ("LDLIBRARY", "INSTSONAME"):
+    name = sysconfig.get_config_var(key)
+    if name:
+        candidates.append(os.path.join(libdir, name))
+ldlibrary = sysconfig.get_config_var("LDLIBRARY") or ""
+if ldlibrary.endswith(".a"):
+    candidates.append(os.path.join(libdir, ldlibrary[:-2] + ".so"))
+for path in candidates:
+    if os.path.isfile(path):
+        print(path)
+        break
+else:
+    raise SystemExit(f"error: no usable libpython found in {libdir}: tried {candidates}")
+EOF
+)
 
 mkdir -p "$PWD/cc_shim"
 cat << 'EOF' > "$PWD/cc_shim/g++"
