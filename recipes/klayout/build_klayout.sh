@@ -35,34 +35,16 @@ else:
 EOF
 )
 
-mkdir -p "$PWD/cc_shim"
-cat << 'EOF' > "$PWD/cc_shim/g++"
-#!/usr/bin/env bash
-exec ${CXX:-g++} "$@"
-EOF
-
-cat << 'EOF' > "$PWD/cc_shim/c++"
-#!/usr/bin/env bash
-exec ${CXX:-g++} "$@"
-EOF
-
-cat << 'EOF' > "$PWD/cc_shim/gcc"
-#!/usr/bin/env bash
-exec ${CC:-gcc} "$@"
-EOF
-
-cat << 'EOF' > "$PWD/cc_shim/cc"
-#!/usr/bin/env bash
-exec ${CC:-gcc} "$@"
-EOF
-
-chmod +x "$PWD/cc_shim"/*
-export PATH="$PWD/cc_shim:$PATH"
-
+# -expert passes QMAKE_CC/QMAKE_CXX as ordinary command-line assignments, which
+# qmake applies only after default_pre.prf -> toolchain.prf has already probed
+# the mkspec's hardcoded `g++`. `-early` applies them before that probe; the
+# trailing `-before` restores the default for build.sh's own assignments.
+# build.sh expands $QMAKE unquoted, so these extra words reach qmake.
+# qmake's -early flag applies settings before that compiler check
 ./build.sh \
     -expert \
     -bin "$PREFIX/bin" \
-    -qmake "$PREFIX/bin/qmake6" \
+    -qmake "$PREFIX/bin/qmake6 -early QMAKE_CC=$CC QMAKE_CXX=$CXX -before" \
     -noruby \
     -without-qtbinding \
     -python "$PYTHON" \
