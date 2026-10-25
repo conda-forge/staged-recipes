@@ -12,29 +12,6 @@ if command -v mold >/dev/null 2>&1; then
     export LDFLAGS="$LDFLAGS -fuse-ld=mold"
 fi
 
-PY_INC=$($PYTHON -c "import sysconfig; print(sysconfig.get_path('include'))")
-PY_LIB=$($PYTHON - <<'EOF'
-import os
-import sysconfig
-
-libdir = sysconfig.get_config_var("LIBDIR")
-candidates = []
-for key in ("LDLIBRARY", "INSTSONAME"):
-    name = sysconfig.get_config_var(key)
-    if name:
-        candidates.append(os.path.join(libdir, name))
-ldlibrary = sysconfig.get_config_var("LDLIBRARY") or ""
-if ldlibrary.endswith(".a"):
-    candidates.append(os.path.join(libdir, ldlibrary[:-2] + ".so"))
-for path in candidates:
-    if os.path.isfile(path):
-        print(path)
-        break
-else:
-    raise SystemExit(f"error: no usable libpython found in {libdir}: tried {candidates}")
-EOF
-)
-
 # -expert passes QMAKE_CC/QMAKE_CXX as ordinary command-line assignments, which
 # qmake applies only after default_pre.prf -> toolchain.prf has already probed
 # the mkspec's hardcoded `g++`. `-early` applies them before that probe; the
@@ -48,8 +25,8 @@ EOF
     -noruby \
     -without-qtbinding \
     -python "$PYTHON" \
-    -pyinc "$PY_INC" \
-    -pylib "$PY_LIB" \
+    -pyinc "$PREFIX/include/python${PY_VER}" \
+    -pylib "$PREFIX/lib/libpython${PY_VER}${SHLIB_EXT}" \
     -libpng \
     -libcurl \
     -libexpat \
