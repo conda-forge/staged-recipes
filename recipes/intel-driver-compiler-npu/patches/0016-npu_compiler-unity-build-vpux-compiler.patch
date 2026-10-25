@@ -1,0 +1,345 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: npu_compiler: unity-build the vpux_compiler libraries
+
+Most of the build time of vpux_compiler is spent instantiating the
+templates in the generated MLIR op/pass code, which neither precompiled
+headers nor lower -O levels reduce. Compiling the sources in unity
+batches of 8 shares those instantiations and cuts the CPU time of
+src/vpux_compiler/src from ~2.7 h to well under 1 h (clang 21), which is
+what lets the conda-forge build fit in a 6 h, 2-core CI job.
+
+Sources that clash when merged (file-local helpers with the same name,
+duplicate tablegen includes, ...) are listed in
+cmake/unity_build_exclusions.cmake and compiled on their own.
+
+--- a/src/vpux_compiler/CMakeLists.txt
++++ b/src/vpux_compiler/CMakeLists.txt
+@@ -113,8 +113,22 @@
+ )
+ 
+ # Construct source files after BITCOMPACTOR configuration
++set(CMAKE_UNITY_BUILD ON)
++set(CMAKE_UNITY_BUILD_BATCH_SIZE 8)
+ add_subdirectory(src)
+ get_property(VPU_SRC_LIBS GLOBAL PROPERTY NPU_SRC_LIB_LIST)
++include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/unity_build_exclusions.cmake)
++list(TRANSFORM NPU_UNITY_BUILD_EXCLUSIONS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/../../)
++set(_npu_unity_targets)
++foreach(_lib IN LISTS VPU_SRC_LIBS)
++    string(REGEX REPLACE "^\\$<BUILD_INTERFACE:(.*)>$" "\\1" _lib "${_lib}")
++    if(TARGET ${_lib})
++        list(APPEND _npu_unity_targets ${_lib})
++    endif()
++endforeach()
++set_source_files_properties(${NPU_UNITY_BUILD_EXCLUSIONS}
++    TARGET_DIRECTORY ${_npu_unity_targets}
++    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+ 
+ add_library(mlir-dependencies INTERFACE)
+ 
+--- /dev/null
++++ b/cmake/unity_build_exclusions.cmake
+@@ -0,0 +1,303 @@
++set(NPU_UNITY_BUILD_EXCLUSIONS
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/dpu_variant_invariant_constraint.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/make_ops_with_distributed_tensor_strategy.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/mc_strategy_getter.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/nce_op_interfaces.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/nce_sparsity_converters.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/ppe_factory.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/singleton_initializer.cpp
++    src/vpux_compiler/src/NPU37XX/dialect/VPU/impl/sparsity_constraint.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/IE/transforms/pipelines.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/dpu_variant_invariant_constraint.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/make_ops_with_distributed_tensor_strategy.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/mc_strategy_getter.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/nce_workload_channels.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/singleton_initializer.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/small_kernel_optimization.cpp
++    src/vpux_compiler/src/NPU40XX/dialect/VPU/impl/sparsity_constraint.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/impl/singleton_initializer.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/impl/small_kernel_optimization.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/impl/wlm_register_config.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/interfaces/cluster_broadcasting_ops.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/interfaces/cost_model_utils.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/interfaces/layer_with_dma.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/interfaces/ppe_capability.cpp
++    src/vpux_compiler/src/NPU50XX/dialect/VPU/interfaces/unroll_batch_op.cpp
++    src/vpux_compiler/src/conversion/passes.cpp
++    src/vpux_compiler/src/conversion/passes/Hostcode2Bytecode/convert_hostcode_to_bytecode.cpp
++    src/vpux_compiler/src/conversion/passes/IE2VPU/convert_IE_to_VPU_NCE.cpp
++    src/vpux_compiler/src/conversion/passes/IE2VPU/convert_dynamic_quant_to_vpu_nce.cpp
++    src/vpux_compiler/src/conversion/passes/IE2VPU/convert_layers_to_VPU.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/Approximation.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_Affine_to_LLVM.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_data_movement.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_eltwise_layers_to_math.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_reduce.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_shape_manipulation.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/convert_softmax.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/decompose_aggregate_ops.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/expand_layers.cpp
++    src/vpux_compiler/src/conversion/passes/ShaveCodeGen/linalg_type_conversion.cpp
++    src/vpux_compiler/src/conversion/passes/VPU2VPUIP/add_buffers_for_net_results.cpp
++    src/vpux_compiler/src/conversion/passes/VPUASM2NPUReg50XX/VPUASM2NPUReg50XX.cpp
++    src/vpux_compiler/src/conversion/passes/VPUIP2VPUMI37XX/convert_VPUIP_to_VPUMI37XX.cpp
++    src/vpux_compiler/src/conversion/passes/VPUIP2VPUMI40XX/convert_VPUIP_to_VPUMI40XX.cpp
++    src/vpux_compiler/src/conversion/passes/VPUIPDPU2NPUReg40XX/VPUIPDPU2NPUReg40XX.cpp
++    src/vpux_compiler/src/conversion/passes/VPUIPDPU2NPUReg50XX/VPUIPDPU2NPUReg50XX.cpp
++    src/vpux_compiler/src/conversion/passes/VPUMI37XX2ELFNPU37XX/convert_VPUMI37XX_to_ELF.cpp
++    src/vpux_compiler/src/conversion/passes/VPUMI40XX2VPUASM/VPUMI40XX2VPUASM.cpp
++    src/vpux_compiler/src/conversion/passes/VPUMI40XX2VPUASM/symbolization_type_converter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg40XX/managed_mapped_inference_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg40XX/mapped_inference_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg40XX/mi_version_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg40XX/nnrt_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg40XX/work_item_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg50XX/act_kernel_invocation_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg50XX/act_kernel_range_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg50XX/act_shave_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUASM2NPUReg50XX/work_item_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/barrier_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/buffer_conversion.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/dma_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/nce_cluster_task_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/sw_kernel_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIP2VPUMI40XX/task_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIPDPU2NPUReg40XX/dpu_invariant_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIPDPU2NPUReg40XX/dpu_variant_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIPDPU2NPUReg50XX/dpu_invariant_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUIPDPU2NPUReg50XX/dpu_variant_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUMI40XX2VPUASM/act_shave_runtime_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUMI40XX2VPUASM/barrier_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUMI40XX2VPUASM/bootstrap_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUMI40XX2VPUASM/declare_buffer_rewriter.cpp
++    src/vpux_compiler/src/conversion/rewriters/VPUMI40XX2VPUASM/declare_const_buffer_rewriter.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/dynamic_quantize.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/dynamic_reshape.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/dynamic_tile.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/elu.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/embedding_bag_offsets_sum.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/embedding_bag_packed_sum.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/embedding_segments_sum.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/equal.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/non_max_suppression.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/non_zero.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/normalize_ie.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/normalize_l2.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/not_equal.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/onehot.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/pad.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/permute_cast.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/rope.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/round.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/scale_shift.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/scatter_elements_update.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/scatter_nd_update.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/scatter_update.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/sdpa.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/select.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/slice.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/softmax.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/softplus.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/softsign.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/space_to_batch.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/space_to_depth.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/split.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/sqrt.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/squared_diff.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/squeeze.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/stft.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/strided_slice.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/subtract.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/swish.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/tan.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/tanh.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/tensor_iterator.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/tile.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/topk.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/transpose.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/transposed_convolution.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/unsqueeze.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/upsampling.cpp
++    src/vpux_compiler/src/dialect/IE/IR/ops/variadic_split.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_convolution_weights.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_fake_qdq_params.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_for_vpu_pipeline_rewriter_executor.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_groupconv_shape.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_input_shape.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_layouts.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_maxpool_input_shape.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/adjust_mem_permute_around_op.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_gather.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_gather_elements_to_gather.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_grn_to_normalize_l2.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_groupconv_to_conv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_grouptransposedconv_to_groupconv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_grouptransposedconv_to_transposedconv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_matmul_to_conv_and_permutecast.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_mem_permute_to_op.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_reverse_to_dw_conv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_scalar_to_tensor.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_scaleshift_to_depthwise.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_scatter.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_sdpa_to_flash_sdpa.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_select_to_eltwise.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_shape_to_4d.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_space2depth.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_split_concat_to_affinereshape.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_strided_slice_to_conv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_sub_gru_sequence_to_conv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_subtract_to_negative_add.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_mem_permute.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_mixed_precision.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_palletization_lut.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_quantized_ops.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_scale_shift.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_to_spatial_op.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_transposedconv_to_conv.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_upsampling_to_strided_concat.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_variadic_split_to_strided_slice.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_weights_to_i4.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_weights_to_i8.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/convert_weights_to_unsigned.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_permute_quantize_expand.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_quantization_multiply.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_quantized_ops.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_reduce_square.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_reorders.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_reshape_mvn.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_rms_norm.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_rope.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_scale.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_sdpa.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/fuse_softmax_convert.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/handle_eltwise_with_small_height.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/handle_exclude_pad_for_avg_pool.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/handle_large_kernels.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/handle_large_pads.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/handle_large_strides.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/merge_parallel_fully_connected.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/move_dynamic_dequantize_to_user.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/move_multiply_divide_post_op.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/move_permute_post_eltwise.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/mvn_fusion.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/normalize_L2_fusion.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/opt_dynamic_eltwise_with_shapeof.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/optimize_activations_pipeline_rewriter_executor.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_mem_permute_through_eltwise.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_mem_permute_through_softmax.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_permute_cast.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_reorder_to_nce.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_shape_cast.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/propagate_transpose.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/qdq_optimization_aggressive.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/reassociate_multiply.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_convert_with_sw_op.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_d2s_scale_shift.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_eltwise_and_reduce.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_fake_quant_with_reshape_and_strided_slice.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_mvn_with_transopose.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_operations_with_gather_and_slice.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_pad.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_transpose_with_concat.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_transpose_with_fq.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swap_viewop_and_clamp.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/swish_fusion.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/transpose_to_permute_cast.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/uniquify_branches.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/uniquify_similar_ops.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/unroll_batch.cpp
++    src/vpux_compiler/src/dialect/IE/transforms/passes/unroll_conv3d_to_conv2d.cpp
++    src/vpux_compiler/src/dialect/IE/utils/function_outlining_splitter.cpp
++    src/vpux_compiler/src/dialect/IE/utils/function_outlining_splitter_batching.cpp
++    src/vpux_compiler/src/dialect/IE/utils/function_outlining_splitter_exhaustive.cpp
++    src/vpux_compiler/src/dialect/IE/utils/function_outlining_splitter_naive.cpp
++    src/vpux_compiler/src/dialect/IE/utils/function_outlining_splitter_repeating_blocks.cpp
++    src/vpux_compiler/src/dialect/IE/utils/handle_kernels_utils.cpp
++    src/vpux_compiler/src/dialect/IE/utils/interpolate_utils.cpp
++    src/vpux_compiler/src/dialect/IE/utils/matmul.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/asinh.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/atan.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/atan_dma.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/atanh.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/attention.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/attention_dma.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/avgpool.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/avgpool16.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/loop_select.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/lrn.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/lrn_ie.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/lstm_cell.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/lstm_gates.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/lstm_sequence.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/matmul.cpp
++    src/vpux_compiler/src/dialect/VPU/IR/ops/maximum.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/make_ops_with_distributed_tensor.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/manual_strategy_utils.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/move_convert_around_viewlike_ops.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/move_reflect_pad_to_cmx.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/move_tensor_ops_to_cmx.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/multi_cluster_strategy_assignment.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/multiclustering/scf/scf_multiclustering.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/optimize_concat.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/relocate_weight_table_for_reuse.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/remove_output_sparse_to_avoid_suboptimal_dpu_workloads.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/resolve_eltwise_with_z_tiled_workloads.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/restore_pad_attr_after_scf_tiling.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/run_mvn_normalize_on_dpu.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/scf_compute_ops_outlining.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/scf_loop_analysis_and_debug.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/set_target_independent_pass_options.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/split_gru_sequence.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/split_nce_ops_onto_workloads.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/split_real_dft_ops.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/split_se_ops.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/strategy_manager_pass.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/sw_kernel_data_prefetch_reserve_mem.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/sw_kernel_instruction_prefetch_reserve_mem_for_dummy_kernels.cpp
++    src/vpux_compiler/src/dialect/VPU/transforms/passes/tile_lstm_sequence.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/convert_lut_to_const.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/unroll_depth_to_space_dma.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/unroll_expand_dma.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/unroll_per_axis_tile_dma.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/unroll_permute_dma.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/common_rewriters/unroll_space_to_depth_dma.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/dma_descriptor_generator.cpp
++    src/vpux_compiler/src/dialect/VPUIP/interfaces/dpu_tiler.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/factories/ungroup_buffer_section_strategy_getter.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_copy_between_swkernels_and_network_io.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_placeholder_fetch_dmas.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_placeholder_fetch_dmas_pwlm.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_start_barrier.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_sw_kernel_cache_handling_ops.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/add_sw_kernel_instruction_prefetch.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/split_dma_to_balance_load.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/split_large_invariants.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/static_allocation.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/swizzling.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/tile_act_shave_kernel_task.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/ungroup_bounded_buffer.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/ungroup_bounded_buffers_as_func_args.cpp
++    src/vpux_compiler/src/dialect/VPUIP/transforms/passes/ungroup_buffer_section_rewriter_executor.cpp
++    src/vpux_compiler/src/dialect/core/IR/dialect.cpp
++    src/vpux_compiler/src/dialect/core/IR/dynamic_attrs.cpp
++    src/vpux_compiler/src/dialect/core/IR/indexed_symbol_attr.cpp
++    src/vpux_compiler/src/dialect/core/IR/memref_attr.cpp
++    src/vpux_compiler/src/dialect/core/IR/ops.cpp
++    src/vpux_compiler/src/dialect/core/IR/tensor_attr.cpp
++    src/vpux_compiler/src/dialect/core/IR/unified_dialect_inliner_interface.cpp
++    src/vpux_compiler/src/dialect/core/interfaces/attr_interfaces.cpp
++    src/vpux_compiler/src/frontend/IE.cpp
++    src/vpux_compiler/src/frontend/model_preprocessor.cpp
++    src/vpux_compiler/src/frontend/ov_batch_detection.cpp
++    src/vpux_compiler/src/frontend/xml_deserializer.cpp
++    src/vpux_compiler/src/frontend/xml_deserializer_extensions.cpp
++    src/vpux_compiler/src/utils/npu_actions.cpp
++    src/vpux_compiler/src/utils/options.cpp
++    src/vpux_compiler/src/utils/partitioner.cpp
++    src/vpux_compiler/src/utils/pass_disabling_callback.cpp
++    src/vpux_compiler/src/utils/pass_usage_observer.cpp
++    src/vpux_compiler/src/utils/passes.cpp
++    src/vpux_compiler/src/utils/permute_utils.cpp
++    src/vpux_compiler/src/utils/quantization.cpp
++)

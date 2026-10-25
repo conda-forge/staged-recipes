@@ -1,0 +1,47 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Date: 2026-05-16
+Subject: npu_compiler: take the commit hash from NPU_COMPILER_COMMIT_HASH for archive sources
+
+npu_compiler embeds its git commit in two places: compiler_commit_hash.cmake
+runs `git rev-parse HEAD` (and aborts the build if that fails), and the
+CiD loader's DRIVER_COMPILER_ID uses ov_commit_hash(), which silently
+leaves the hash empty.
+
+conda-forge builds from a GitHub archive tarball with no .git directory.
+The build script stops git from discovering an enclosing repository
+(GIT_CEILING_DIRECTORIES), otherwise both would report the commit of
+whatever checkout the build happens to run in, and exports the pinned
+upstream commit as NPU_COMPILER_COMMIT_HASH. Use it when git cannot
+provide one.
+
+--- a/cmake/compiler_commit_hash.cmake
++++ b/cmake/compiler_commit_hash.cmake
+@@ -10,10 +10,15 @@
+     OUTPUT_VARIABLE CURRENT_COMMIT_HASH
+     OUTPUT_STRIP_TRAILING_WHITESPACE
+     RESULT_VARIABLE ERROR_CODE
++    ERROR_QUIET
+ )
+ 
+ if (NOT ${ERROR_CODE} EQUAL 0)
+-    message(FATAL_ERROR "Failed to capture compiler git commit.")
++    if (DEFINED ENV{NPU_COMPILER_COMMIT_HASH})
++        set(CURRENT_COMMIT_HASH "$ENV{NPU_COMPILER_COMMIT_HASH}")
++    else()
++        message(FATAL_ERROR "Failed to capture compiler git commit.")
++    endif()
+ endif()
+ 
+ set(LAST_COMMIT_HASH "")
+--- a/src/vpux_driver_compiler/src/vpux_compiler_l0/CMakeLists.txt
++++ b/src/vpux_driver_compiler/src/vpux_compiler_l0/CMakeLists.txt
+@@ -19,6 +19,9 @@
+ 
+ # Use commit info to create compiler version
+ ov_commit_hash(PLUGIN_GIT_COMMIT_HASH ${CMAKE_CURRENT_SOURCE_DIR})
++if(NOT PLUGIN_GIT_COMMIT_HASH AND DEFINED ENV{NPU_COMPILER_COMMIT_HASH})
++    string(SUBSTRING "$ENV{NPU_COMPILER_COMMIT_HASH}" 0 11 PLUGIN_GIT_COMMIT_HASH)
++endif()
+ 
+ string(TIMESTAMP DATE_MAJOR "%m%d")
+ string(TIMESTAMP DATE_MINOR "%H%M%S")
