@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-export CPPFLAGS="$CPPFLAGS -I$PREFIX/include"
-
-export CFLAGS="$CFLAGS -O2 -fPIC -g0"
-export CXXFLAGS="$CXXFLAGS -O2 -fPIC -g0"
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-rpath,$PREFIX/bin"
-
 if command -v mold >/dev/null 2>&1; then
     export CXXFLAGS="$CXXFLAGS -fuse-ld=mold"
     export LDFLAGS="$LDFLAGS -fuse-ld=mold"
@@ -39,4 +33,3 @@ fi
 if [ -d "$PREFIX/bin/pymod/pya" ]; then
     cp -a "$PREFIX/bin/pymod/pya" "$SP_DIR/pya"
 fi
-rm -f "$PREFIX/bin"/*.a
