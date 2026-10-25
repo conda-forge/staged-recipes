@@ -1,0 +1,83 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: dau-driver
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/d/dau-driver/dau_driver-${{ version }}.tar.gz
+    sha256: ec6186f140ccba8866126fb768ae40667d5295ff36cc3fc4cee15cf3d566eef6
+  - url: https://raw.githubusercontent.com/wjakob/nanobind/v3.1.0/LICENSE
+    sha256: f305091a4e57805870b217a28ea4b1f16610eece8457d2370f822a9696b75836
+    file_name: nanobind-LICENSE
+  - url: https://raw.githubusercontent.com/Tessil/robin-map/v1.4.0/LICENSE
+    sha256: 11f2c685ba565a31aef1219f63a7a8845602c97bff70016b9e3278dfe51a2ec5
+    file_name: robin-map-LICENSE
+
+build:
+  number: 0
+  skip: match(python, "<3.12")
+  script:
+    interpreter: python
+    file: build.py
+  python:
+    entry_points:
+      - dau-xdma-macos-probe = dau_driver.macos_xdma:main
+      - dau-driver-verify-advertisement = dau_driver.verify_advertisement:main
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - hatchling
+    - hatch-cpp
+    - nanobind
+    - nanobind-abi
+    - pip
+  run:
+    - python
+    - dau-core >=0.2
+    - pyyaml
+
+tests:
+  - python:
+      imports:
+        - dau_driver
+        - dau_driver.extension
+        - dau_driver.native
+      pip_check: true
+  - requirements:
+      run:
+        - pytest
+        - pyarrow
+    files:
+      source:
+        - dau_driver/tests/test_native.py
+        - dau_driver/tests/test_record_batch_codec.py
+        - dau_driver/tests/test_register_write.py
+        - dau_driver/tests/test_stream_codec.py
+        - dau_driver/tests/test_transfer.py
+    script:
+      - python -c "from dau_driver import native_info; info = native_info(); assert info.extension_available and info.backend == 'nanobind' and info.abi_version == 1"
+      - python -m pytest dau_driver/tests -v
+      - dau-xdma-macos-probe --help
+      - dau-driver-verify-advertisement --help
+
+about:
+  homepage: https://github.com/dau-dev/dau-driver
+  repository: https://github.com/dau-dev/dau-driver
+  summary: PCIe driver for dau projects
+  license: Apache-2.0 AND BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE
+    - nanobind-LICENSE
+    - robin-map-LICENSE
+
+extra:
+  recipe-maintainers:
+    - timkpaine
