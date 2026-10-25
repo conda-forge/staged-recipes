@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 set -exo pipefail
-
-if command -v mold >/dev/null 2>&1; then
-    export CXXFLAGS="$CXXFLAGS -fuse-ld=mold"
-    export LDFLAGS="$LDFLAGS -fuse-ld=mold"
-fi
-
 # -expert passes QMAKE_CC/QMAKE_CXX as ordinary command-line assignments, which
 # qmake applies only after default_pre.prf -> toolchain.prf has already probed
 # the mkspec's hardcoded `g++`. `-early` applies them before that probe; the
