@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
-# CPU-only. Pin OpenBLAS via recipe deps so openblas_get_num_threads resolves.
-export CMAKE_ARGS="${CMAKE_ARGS} -DKF_WITH_CUDA=OFF -DKF_BLAS_VENDOR=OpenBLAS"
+# CPU-only. AUTO BLAS works with conda-forge netlib or openblas libblas.
+# OpenBLAS thread helpers are gated by KF_HAVE_OPENBLAS_THREADS in CMake.
+export CMAKE_ARGS="${CMAKE_ARGS} -DKF_WITH_CUDA=OFF -DKF_BLAS_VENDOR=AUTO"
 
 ${PYTHON} -m pip install . -vv --no-deps --no-build-isolation

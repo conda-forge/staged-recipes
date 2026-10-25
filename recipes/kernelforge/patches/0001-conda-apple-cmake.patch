@@ -15,7 +15,7 @@
 -  endif()
    add_compile_definitions(ACCELERATE_NEW_LAPACK)
 -  set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
--
+ 
 -  # Necessary to compile with -Accelerate, homebrew clang and openmp
 -  # Took me way too long to figure out
 -  add_compile_options(-stdlib=libc++)
@@ -24,7 +24,6 @@
 -    -L/opt/homebrew/opt/llvm/lib/c++
 -    -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++
 -  )
- 
 +  if(DEFINED ENV{CONDA_BUILD})
 +    # conda-forge / conda-build: honor feedstock arch + deployment target.
 +    # Do not force arm64 (breaks osx-64 CI) or Homebrew LLVM/libomp paths.
@@ -38,7 +37,7 @@
 +      set(CMAKE_OSX_DEPLOYMENT_TARGET "26.0" CACHE STRING "" FORCE)
 +    endif()
 +    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
-+
+ 
 +    # Necessary to compile with -Accelerate, homebrew clang and openmp
 +    # Took me way too long to figure out
 +    add_compile_options(-stdlib=libc++)
@@ -60,3 +59,87 @@
      # Apple/Homebrew Clang requires explicit flags
      add_compile_options(-Xclang -fopenmp -I/opt/homebrew/opt/libomp/include)
      add_link_options(-L/opt/homebrew/opt/libomp/lib -lomp)
+@@ -80,6 +84,7 @@
+   endif()
+ endif()
+ 
++
+ # ---- BLAS/LAPACK backend detection -------------------------------------------
+ # BLAS vendor selection: AUTO (default, tries MKL then OpenBLAS), MKL, OpenBLAS
+ set(KF_BLAS_VENDOR "AUTO" CACHE STRING "BLAS vendor: AUTO, MKL, OpenBLAS")
+@@ -165,6 +170,14 @@
+   set(KF_BLAS_LIBS BLAS::BLAS)
+   message(STATUS "BLAS backend: OpenBLAS/generic BLAS")
+ 
++  # Only enable openblas_get/set_num_threads when we know OpenBLAS is linked.
++  # conda-forge often provides netlib libblas, which lacks those symbols.
++  if(KF_BLAS_VENDOR STREQUAL "OpenBLAS")
++    add_compile_definitions(KF_HAVE_OPENBLAS_THREADS)
++  elseif(BLAS_LIBRARIES MATCHES "openblas" OR BLAS_LIBRARIES MATCHES "OpenBLAS")
++    add_compile_definitions(KF_HAVE_OPENBLAS_THREADS)
++  endif()
++
+   if(KF_BLAS_ILP64)
+     kf_find_openblas_includes()
+     if(DEFINED KF_OPENBLAS_INCLUDES)
+--- a/src/blas_config.h
++++ b/src/blas_config.h
+@@ -32,13 +32,14 @@
+     #include <mkl.h>
+ 
+ #else
+-    // Generic BLAS (OpenBLAS, ATLAS, reference BLAS, etc.)
++    // Generic BLAS (OpenBLAS, ATLAS, reference BLAS / conda-forge netlib, etc.)
+     // For OpenBLAS ILP64, OPENBLAS_USE64BITINT must be defined before cblas.h
+     #if defined(KF_BLAS_ILP64) && !defined(OPENBLAS_USE64BITINT)
+         #define OPENBLAS_USE64BITINT
+     #endif
+     #include <cblas.h>
+ 
++#if defined(KF_HAVE_OPENBLAS_THREADS)
+ // Forward-declare OpenBLAS threading helpers.  These are declared in
+ // OpenBLAS's own cblas.h, but CMake's BLAS::BLAS imported target does
+ // not propagate include directories, so the wrong (or missing) cblas.h
+@@ -48,6 +49,7 @@
+ int openblas_get_num_threads(void);
+ void openblas_set_num_threads(int num_threads);
+ }
++#endif
+ 
+ // OpenBLAS does not export LAPACKE_dsfrk; declare the Fortran symbol directly.
+ // (MKL and Accelerate already declare dsfrk_ in their own headers.)
+@@ -78,17 +80,18 @@
+ //
+ // On macOS (Accelerate): No threading control needed - Accelerate uses GCD.
+ // On Linux with MKL: We DO need to control MKL threading when inside OMP parallel regions.
+-// On Linux with OpenBLAS: We need to control OpenBLAS threading.
+-//
+-// Note: These functions are no-ops on macOS but functional on Linux for both MKL and OpenBLAS.
++// On Linux with OpenBLAS (KF_HAVE_OPENBLAS_THREADS): control OpenBLAS threading.
++// On generic/netlib BLAS: no-op (symbol is absent).
+ inline int kf_blas_get_num_threads() {
+ #if defined(__APPLE__)
+     // Accelerate uses GCD; no manual threading control
+     return 1;
+ #elif defined(KF_USE_MKL)
+     return mkl_get_max_threads();
+-#else
++#elif defined(KF_HAVE_OPENBLAS_THREADS)
+     return openblas_get_num_threads();
++#else
++    return 1;
+ #endif
+ }
+ 
+@@ -97,8 +100,10 @@
+     (void)n;  // no-op: Accelerate handled automatically
+ #elif defined(KF_USE_MKL)
+     mkl_set_num_threads(n);
+-#else
++#elif defined(KF_HAVE_OPENBLAS_THREADS)
+     openblas_set_num_threads(n);
++#else
++    (void)n;
+ #endif
+ }
+ 
