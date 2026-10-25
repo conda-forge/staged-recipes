@@ -1,0 +1,62 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -35,27 +35,31 @@
+ endif()
+ 
+ if(APPLE)
+-
+-  # Homebrew libomp on macos-26 runners is built for macOS 26; keep the
+-  # deployment target at least that high so delocate accepts the vendored dylib.
+-  # Prefer an explicit env/cache value when present (cibuildwheel sets it).
+-  if(DEFINED ENV{MACOSX_DEPLOYMENT_TARGET} AND NOT "$ENV{MACOSX_DEPLOYMENT_TARGET}" STREQUAL "")
+-    set(CMAKE_OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}" CACHE STRING "" FORCE)
+-  elseif(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+-    set(CMAKE_OSX_DEPLOYMENT_TARGET "26.0" CACHE STRING "" FORCE)
+-  endif()
+   add_compile_definitions(ACCELERATE_NEW_LAPACK)
+-  set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
+-
+-  # Necessary to compile with -Accelerate, homebrew clang and openmp
+-  # Took me way too long to figure out
+-  add_compile_options(-stdlib=libc++)
+-  add_link_options(
+-    -stdlib=libc++
+-    -L/opt/homebrew/opt/llvm/lib/c++
+-    -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++
+-  )
+ 
++  if(DEFINED ENV{CONDA_BUILD})
++    # conda-forge / conda-build: honor feedstock arch + deployment target.
++    # Do not force arm64 (breaks osx-64 CI) or Homebrew LLVM/libomp paths.
++  else()
++    # Homebrew libomp on macos-26 runners is built for macOS 26; keep the
++    # deployment target at least that high so delocate accepts the vendored dylib.
++    # Prefer an explicit env/cache value when present (cibuildwheel sets it).
++    if(DEFINED ENV{MACOSX_DEPLOYMENT_TARGET} AND NOT "$ENV{MACOSX_DEPLOYMENT_TARGET}" STREQUAL "")
++      set(CMAKE_OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}" CACHE STRING "" FORCE)
++    elseif(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
++      set(CMAKE_OSX_DEPLOYMENT_TARGET "26.0" CACHE STRING "" FORCE)
++    endif()
++    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
++
++    # Necessary to compile with -Accelerate, homebrew clang and openmp
++    # Took me way too long to figure out
++    add_compile_options(-stdlib=libc++)
++    add_link_options(
++      -stdlib=libc++
++      -L/opt/homebrew/opt/llvm/lib/c++
++      -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++
++    )
++  endif()
+ endif()
+ 
+ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+@@ -70,7 +74,7 @@
+ 
+ find_package(OpenMP REQUIRED)
+ if (OpenMP_CXX_FOUND)
+-  if (APPLE)
++  if (APPLE AND NOT DEFINED ENV{CONDA_BUILD})
+     # Apple/Homebrew Clang requires explicit flags
+     add_compile_options(-Xclang -fopenmp -I/opt/homebrew/opt/libomp/include)
+     add_link_options(-L/opt/homebrew/opt/libomp/lib -lomp)
