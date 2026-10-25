@@ -1,5 +1,6 @@
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
+diff -Naru a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2022-11-09 13:37:21.000000000 +0100
++++ b/CMakeLists.txt	2026-10-25 19:13:01.796508881 +0100
 @@ -35,27 +35,31 @@
  endif()
  
@@ -67,8 +68,21 @@
  # ---- BLAS/LAPACK backend detection -------------------------------------------
  # BLAS vendor selection: AUTO (default, tries MKL then OpenBLAS), MKL, OpenBLAS
  set(KF_BLAS_VENDOR "AUTO" CACHE STRING "BLAS vendor: AUTO, MKL, OpenBLAS")
-@@ -165,6 +170,14 @@
+@@ -163,8 +168,27 @@
+   find_package(BLAS REQUIRED)
+   set(KF_BLAS_BACKEND "OpenBLAS")
    set(KF_BLAS_LIBS BLAS::BLAS)
++  # conda-forge splits Fortran BLAS (libblas) from CBLAS (libcblas).
++  find_library(KF_CBLAS_LIBRARY NAMES cblas)
++  if(KF_CBLAS_LIBRARY)
++    list(APPEND KF_BLAS_LIBS ${KF_CBLAS_LIBRARY})
++    message(STATUS "CBLAS library: ${KF_CBLAS_LIBRARY}")
++  endif()
++  find_library(KF_LAPACK_LIBRARY NAMES lapack)
++  if(KF_LAPACK_LIBRARY)
++    list(APPEND KF_BLAS_LIBS ${KF_LAPACK_LIBRARY})
++    message(STATUS "LAPACK library: ${KF_LAPACK_LIBRARY}")
++  endif()
    message(STATUS "BLAS backend: OpenBLAS/generic BLAS")
  
 +  # Only enable openblas_get/set_num_threads when we know OpenBLAS is linked.
@@ -82,8 +96,9 @@
    if(KF_BLAS_ILP64)
      kf_find_openblas_includes()
      if(DEFINED KF_OPENBLAS_INCLUDES)
---- a/src/blas_config.h
-+++ b/src/blas_config.h
+diff -Naru a/src/blas_config.h b/src/blas_config.h
+--- a/src/blas_config.h	2022-11-09 13:37:21.000000000 +0100
++++ b/src/blas_config.h	2026-10-25 19:13:01.796646610 +0100
 @@ -32,13 +32,14 @@
      #include <mkl.h>
  
@@ -143,3 +158,16 @@
  #endif
  }
  
+@@ -113,6 +118,12 @@
+     // Both are 64-bit; cast to match MKL's declaration and suppress the type mismatch.
+     const long long n_ll = n, k_ll = k, lda_ll = lda;
+     dsfrk_(&transr, &uplo, &trans, &n_ll, &k_ll, &alpha, a, &lda_ll, &beta, c);
++#elif defined(__APPLE__)
++    // Accelerate's clapack.h takes non-const pointers.
++    double alpha_mut = alpha, beta_mut = beta;
++    dsfrk_(
++        &transr, &uplo, &trans, &n, &k, &alpha_mut, const_cast<double *>(a), &lda, &beta_mut, c
++    );
+ #else
+     dsfrk_(&transr, &uplo, &trans, &n, &k, &alpha, a, &lda, &beta, c);
+ #endif
