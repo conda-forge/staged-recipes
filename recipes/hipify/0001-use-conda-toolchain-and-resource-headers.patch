@@ -1,0 +1,63 @@
+Respect the conda compiler wrappers and use the versioned Clang headers without copying them.
+The resource path stays relative to hipify-clang so relocated environments work.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -123,8 +123,7 @@
+   else()
+     # Overriding CMAKE_CXX_COMPILER/CMAKE_C_COMPILER below is sketchy - could
+     # that be removed or reworked instead?
+-    set(CMAKE_CXX_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang++)
+-    set(CMAKE_C_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
++    # Keep the toolchain selected by the package builder.
+   endif()
+
+   # Link against LLVM and CLANG libraries.
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -156,6 +156,12 @@
+     clang_inc_path = clang_res_path + "/" + include_dir;
+     bExist = checkLLVM(clang_inc_path);
+   }
++  // Conda installs the versioned Clang headers under the shared prefix.
++  if (!bExist) {
++    clang_res_path = hipify_parent_path + "/../lib/clang/" + clang_ver;
++    clang_inc_path = clang_res_path + "/" + include_dir;
++    bExist = checkLLVM(clang_inc_path);
++  }
+   // 2. Check for ROCm LLVM
+   if (!bExist) {
+ #if defined(_WIN32)
+
+Link shared Clang instead of copying its static libraries into the executable.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -127,25 +127,8 @@
+     set(CMAKE_C_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
+   endif()
+
+-  # Link against LLVM and CLANG libraries.
+-  target_link_libraries(hipify-clang PRIVATE
+-    clangASTMatchers
+-    clangFrontend
+-    clangTooling
+-    clangParse
+-    clangSerialization
+-    clangSema
+-    clangEdit
+-    clangFormat
+-    clangLex
+-    clangAnalysis
+-    clangDriver
+-    clangAST
+-    clangToolingCore
+-    clangRewrite
+-    clangBasic
+-    ${HIPIFY_ADDL_LINK_LIBS}
+-  )
++  # Use the distribution's shared Clang library instead of embedding static archives.
++  target_link_libraries(hipify-clang PRIVATE clang-cpp)
+
+   if(LLVM_PACKAGE_VERSION VERSION_EQUAL "5.0.0" OR LLVM_PACKAGE_VERSION VERSION_GREATER "5.0.0")
+     if(MSVC)
