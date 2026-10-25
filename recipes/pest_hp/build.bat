@@ -47,10 +47,9 @@ REM now.
 for %%f in (.\*.mak) do (
     sed 's/\trm -r \*\.cpp//g' %%f > %%f.tmp
     move %%f.tmp %%f
-    sed 's/CFLAGS=-/CFLAGS=-lws2_32 -/g' %%f > %%f.tmp
+    sed 's/ ip\.o/ -lws2_32 ip.o/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
--lws2_32
 
 REM Compile
 make -f pest_hp.mak cppp
