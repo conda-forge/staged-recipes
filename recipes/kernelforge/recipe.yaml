@@ -1,0 +1,92 @@
+# v1 recipe for conda-forge staged-recipes / kernelforge-feedstock.
+# Copy this directory into staged-recipes/recipes/kernelforge/
+schema_version: 1
+
+context:
+  name: kernelforge
+  version: "1.1.0"
+  sha256: 93e6c71b0209218a4205ed3c4a5a10011f9b0c029d303db12abf2cb9d0994eb4
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/k/kernelforge/kernelforge-${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: 0
+  # Native extensions; no Windows support yet (matches PyPI wheels).
+  skip:
+    - win
+  script:
+    file: build
+    env:
+      CMAKE_GENERATOR: Ninja
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - numpy
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.9
+    - setuptools-scm >=8
+    - setuptools
+    - pybind11
+    - numpy
+    - libblas
+    - libcblas
+    - liblapack
+    - if: osx
+      then:
+        - llvm-openmp
+    - if: linux
+      then:
+        - libgomp
+  run:
+    - python
+    - numpy >=2
+    - if: osx
+      then:
+        - llvm-openmp
+    - if: linux
+      then:
+        - libgomp
+
+tests:
+  - python:
+      imports:
+        - kernelforge
+        - kernelforge.global_kernels
+        - kernelforge.fchl18_kernel
+      pip_check: true
+  - script:
+      - python -c "import kernelforge; print(kernelforge.__version__)"
+
+about:
+  homepage: https://github.com/andersx/kernelforge
+  repository: https://github.com/andersx/kernelforge
+  license: MIT
+  license_file: LICENSE
+  summary: Optimized Kernels for ML
+  description: |
+    KernelForge provides high-performance CPU kernels and molecular
+    representations (including FCHL18) with a Python API for kernel ridge
+    regression and related models. CUDA extensions are shipped separately as
+    kernelforge-cuda on platforms where they are available.
+
+extra:
+  recipe-maintainers:
+    - andersx
