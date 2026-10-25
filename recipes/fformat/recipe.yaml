@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  name: fformat
+  version: "1.0.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# fpm fetches the dependencies (fregex, toml-f) during the build, at the tags in fpm.toml, as cargo
+# does for Rust packages; their licenses are included below
+source:
+  url: https://github.com/jacobwilliams/fformat/archive/refs/tags/${{ version }}.tar.gz
+  sha256: cb3a14c21b545548abd1e30a440d3ba10dba512273835ae90f8de788b068edf1
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: python "%RECIPE_DIR%\build.py"
+      else: python "$RECIPE_DIR/build.py"
+
+requirements:
+  build:
+    # gfortran: on Windows the MinGW one, as the fpm feedstock uses (the default Fortran compiler
+    # there is not gfortran); it is the one fformat's CI tests on Windows
+    - if: win
+      then:
+        - ${{ compiler('m2w64_fortran') }}
+        - ${{ stdlib('m2w64_c') }}
+      else:
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+    - fpm >=0.13.0,<0.14
+    - git
+    - python >=3.9
+
+tests:
+  - files:
+      recipe:
+        - test/hello.f90
+    script:
+      # the executable reports the version of the package
+      - if: unix
+        then: test "$(fformat --version)" = "fformat ${{ version }}"
+        else: fformat --version | findstr /x /c:"fformat ${{ version }}"
+      - fformat --help
+      # a formatted file is left as it is
+      - fformat --check --no-config test/hello.f90
+
+about:
+  homepage: https://github.com/jacobwilliams/fformat
+  repository: https://github.com/jacobwilliams/fformat
+  documentation: https://jacobwilliams.github.io/fformat/
+  license: MIT
+  license_file:
+    - LICENSE
+    # the dependencies compiled into the executable
+    - build/dependencies/fregex/LICENSE
+    - build/dependencies/toml-f/LICENSE-MIT
+    - build/dependencies/toml-f/LICENSE-Apache
+  summary: A formatter for free-form Fortran, written in modern Fortran
+  description: |
+    fformat re-indents free-form Fortran (statements by nesting depth, continuation lines by
+    alignment), adjusts the blanks around operators, splits long lines, and can change the letter
+    case of keywords and the spelling of relational operators. The code tokens of the result are
+    checked against the input, so formatting never changes the code, and formatting a formatted
+    file changes nothing.
+
+extra:
+  recipe-maintainers:
+    - jacobwilliams
