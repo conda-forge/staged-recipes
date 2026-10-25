@@ -18,7 +18,8 @@ fi
 export TORCH_CUDA_ARCH_LIST="${CF_TORCH_CUDA_ARCH_LIST}"
 echo "TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
 
-export CMAKE_ARGS="${CMAKE_ARGS} -DKF_WITH_CUDA=ON -DKF_CUDA_ONLY=ON -DKF_BLAS_VENDOR=OpenBLAS"
+# AUTO BLAS: conda-forge libblas may be netlib (OpenBLAS vendor search fails).
+export CMAKE_ARGS="${CMAKE_ARGS} -DKF_WITH_CUDA=ON -DKF_CUDA_ONLY=ON -DKF_BLAS_VENDOR=AUTO"
 
 # Companion project lives under packaging/; CMake source dir is the monorepo root.
 cd packaging/kernelforge-cuda
