@@ -13,7 +13,7 @@ REM the "DEFINES=...-DUNIX..." to "DEFINES=...-DWIN32..." in the makefiles
 REM would be a better solution, but the "#ifdef UNIX" blocks in the FORTRAN
 REM code actually represent use of the gfortran compiler and should stay as is.
 for %%f in (.\*.mak) do (
-    sed 's/\t\.\/cppp .* ip\.C ip\.cpp/\t.\/cppp -DWIN32 ip.C ip.cpp/g' %%f > %%f.tmp
+    sed 's/\t\.\/cppp .* ip\.C ip\.cpp/\t.\/cppp -DWIN32 -DGFORTRAN ip.C ip.cpp/g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
@@ -36,6 +36,12 @@ move ip.C.tmp ip.C
 sed 's/mkdir.dir,0777./mkdir(dir)/g' ip.C > ip.C.tmp
 move ip.C.tmp ip.C
 
+REM Change the first "#ifdef WIN32" to "#ifndef GFORTRAN" in ip.C.  The logic
+REM is not platform dependent as the WIN32 block might suggest, but rather
+REM compiler dependent.
+awk '!done { done = sub("#ifdef WIN32", "#ifndef GFORTRAN") } 1' ip.C > ip.C.tmp
+move ip.C.tmp ip.C
+
 REM PEST_HP instructions to build the executables call for the "clean" target
 REM to be run after after each *.mak is used.  The *.mak files should be setup
 REM differently, but for now, we will just follow the instructions and clean
@@ -46,8 +52,6 @@ REM edit the *.mak files to not delete it.  This is a hack, but it works for
 REM now.
 for %%f in (.\*.mak) do (
     sed 's/\trm -r \*\.cpp//g' %%f > %%f.tmp
-    move %%f.tmp %%f
-    sed 's/LDFLAGS=/LDFLAGS=-lws2_32 /g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
