@@ -47,7 +47,7 @@ REM now.
 for %%f in (.\*.mak) do (
     sed 's/\trm -r \*\.cpp//g' %%f > %%f.tmp
     move %%f.tmp %%f
-    sed 's/ ip\.o/ -lws2_32 ip.o/g' %%f > %%f.tmp
+    sed 's/LDFLAGS=/LDFLAGS=-lws2_32 /g' %%f > %%f.tmp
     move %%f.tmp %%f
 )
 
