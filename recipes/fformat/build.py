@@ -9,6 +9,10 @@ import subprocess
 import sys
 
 env = dict(os.environ)
+if sys.platform == "win32":
+    # fpm detects Windows from OS=Windows_NT, which the build environment does not pass on;
+    # without it, fpm takes the system for Unix and runs Unix commands (`mkdir -p`)
+    env.setdefault("OS", "Windows_NT")
 env["FPM_FC"] = os.environ.get("FC", "gfortran")
 env["FPM_FFLAGS"] = os.environ.get("FFLAGS", "")
 env["FPM_LDFLAGS"] = os.environ.get("LDFLAGS", "")
