@@ -39,7 +39,7 @@ move ip.C.tmp ip.C
 REM Change the first "#ifdef WIN32" to "#ifndef GFORTRAN" in ip.C.  The logic
 REM is not platform dependent as the WIN32 block might suggest, but rather
 REM compiler dependent.
-awk '!done { done = sub("#ifdef WIN32", "#ifndef GFORTRAN") } 1' ip.C > ip.C.tmp
+awk 'BEGIN {done=1}; !done { done = sub("#ifdef WIN32", "#ifndef GFORTRAN") } 1' ip.C > ip.C.tmp
 move ip.C.tmp ip.C
 
 REM PEST_HP instructions to build the executables call for the "clean" target
@@ -60,6 +60,7 @@ make -f pest_hp.mak cppp
 make -f pest_hp.mak clean
 REM Used here to build ip.cpp, which is needed for later makefiles.
 make -f cmaes_hp.mak cmaes_hp
+type ip.cpp
 make -f pest_hp.mak clean
 make -f pest_hp.mak pest_hp
 make -f pest_hp.mak clean
