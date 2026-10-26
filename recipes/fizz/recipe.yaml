@@ -1,0 +1,88 @@
+context:
+  version: "2026.08.03.00"
+
+package:
+  name: fizz
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebookincubator/fizz/archive/v${{ version }}.tar.gz
+  sha256: 78050eaa317c2ff66c000a91a4ddce9bc969fecf5188dc196c01cc9a2515ab06
+  patches:
+    # Make find_package(fizz) work without fizz's source-tree CMake modules.
+    - 0001-Install-FindSodium-module-with-the-CMake-config.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - folly ==${{ version }}
+    # Libraries referenced by folly's exported CMake targets.
+    - bzip2
+    - double-conversion
+    - fmt
+    - gflags
+    - glog
+    - if: linux
+      then: libaio
+    - libboost-devel
+    - libevent
+    - liblzma-devel
+    - libsodium
+    - lz4-c
+    - openssl
+    - snappy
+    - zlib
+    - zstd
+  run_exports:
+    # fizz is ABI-unstable: consumers must use the exact same version.
+    - ${{ pin_subpackage('fizz', upper_bound='x.x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - fizz
+      include:
+        - fizz/fizz-config.h
+        - fizz/crypto/Utils.h
+      files:
+        - lib/cmake/fizz/fizz-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        # folly's CMake config needs these development files.
+        - libboost-devel
+        - liblzma-devel
+        - zlib
+    script:
+      - cmake -S test -B build -G Ninja ${CMAKE_ARGS}
+      - cmake --build build
+      - ./build/fizz_test
+
+about:
+  homepage: https://github.com/facebookincubator/fizz
+  summary: C++14 implementation of the TLS-1.3 standard
+  description: |
+    Fizz is a TLS 1.3 implementation written in C++. It supports all the
+    major handshake modes, robust PSK support, early data, and zero-copy
+    encryption and decryption, and is built on top of folly.
+  license: BSD-3-Clause
+  license_file: LICENSE
+  repository: https://github.com/facebookincubator/fizz
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
