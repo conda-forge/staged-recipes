@@ -4,7 +4,6 @@ setlocal EnableDelayedExpansion
 cmake %CMAKE_ARGS% -S %SRC_DIR% -B build -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-  -DARCH=x86-64 ^
   -DBUILD_TESTS=OFF ^
   -DBUILD_EXECUTABLES=OFF ^
   -DSTATIC_CURL=OFF ^
