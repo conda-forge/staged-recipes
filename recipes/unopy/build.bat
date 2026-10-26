@@ -5,7 +5,7 @@ cd /d "%SRC_DIR%" || exit 1
 :: Force the Ninja generator and clear VS-specific generator fields set by
 :: conda-forge's activation. The default "Visual Studio 17 2022" generator
 :: does not support Fortran, which Uno requires for BLAS/LAPACK/MUMPS name
-:: mangling (CMakeLists.txt:41 enable_language(Fortran)).
+:: mangling (enable_language(Fortran) in CMakeLists.txt).
 set "CMAKE_GENERATOR=Ninja"
 set "CMAKE_GENERATOR_PLATFORM="
 set "CMAKE_GENERATOR_TOOLSET="
@@ -22,7 +22,7 @@ set "CMAKE_GENERATOR_TOOLSET="
 ::
 :: Conda-forge libblas/liblapack on Windows ship only runtime DLLs, no
 :: import libraries. The openblas package provides Library/lib/openblas.lib
-:: which covers both BLAS and LAPACK; blas-devel is in host requirements
+:: which covers both BLAS and LAPACK; openblas is in host requirements
 :: to bring it in.
 ::
 :: Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
