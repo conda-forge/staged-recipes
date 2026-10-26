@@ -28,6 +28,8 @@ set "CMAKE_GENERATOR_TOOLSET="
 :: Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
 :: libuno and its headers (COMPONENT libuno) into site-packages. unopy
 :: compiles the Uno objects directly, so install only the unopy extension.
+:: Also disable the static libuno: with MSVC both it and the shared library's
+:: import library are named uno.lib, which Ninja rejects.
 ::
 :: Uno has no OpenMP code; USE_OPENMP only links an OpenMP runtime when MUMPS
 :: is found, and FindOpenMP fails on the Fortran component with LLVM Flang,
@@ -37,6 +39,7 @@ set "CMAKE_GENERATOR_TOOLSET="
     --no-deps ^
     --no-build-isolation ^
     -C install.components=Unspecified ^
+    -C cmake.define.BUILD_STATIC_LIBS=OFF ^
     -C cmake.define.BLAS_LIBRARIES="%LIBRARY_PREFIX%/lib/openblas.lib" ^
     -C cmake.define.LAPACK_LIBRARIES="%LIBRARY_PREFIX%/lib/openblas.lib" ^
     -C cmake.define.METIS_LIBRARY="%LIBRARY_PREFIX%/lib/metis.lib" ^

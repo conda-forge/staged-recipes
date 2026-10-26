@@ -16,7 +16,8 @@ export CMAKE_GENERATOR=Ninja
 #
 # Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
 # libuno and its headers (COMPONENT libuno) into site-packages. unopy compiles
-# the Uno objects directly, so install only the unopy extension.
+# the Uno objects directly, so install only the unopy extension, and skip the
+# unused static libuno.
 #
 # Uno has no OpenMP code; USE_OPENMP only links an OpenMP runtime when MUMPS
 # is found, so disable it.
@@ -25,6 +26,7 @@ $PYTHON -m pip install . -vv \
     --no-deps \
     --no-build-isolation \
     -C install.components=Unspecified \
+    -C cmake.define.BUILD_STATIC_LIBS=OFF \
     -C cmake.define.BLAS_LIBRARIES="${PREFIX}/lib/libblas${SHLIB_EXT}" \
     -C cmake.define.LAPACK_LIBRARIES="${PREFIX}/lib/liblapack${SHLIB_EXT}" \
     -C cmake.define.METIS_LIBRARY="${PREFIX}/lib/libmetis${SHLIB_EXT}" \
