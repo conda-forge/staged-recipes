@@ -10,6 +10,10 @@ set "CMAKE_GENERATOR=Ninja"
 set "CMAKE_GENERATOR_PLATFORM="
 set "CMAKE_GENERATOR_TOOLSET="
 
+:: Uno uses the `not` alternative token, which MSVC only accepts in
+:: conformance mode (default for C++20, but Uno builds as C++17).
+set "CXXFLAGS=%CXXFLAGS% /permissive-"
+
 :: conda-forge's mumps-seq on Windows splits headers between
 :: %LIBRARY_PREFIX%/include (dmumps_c.h) and
 :: %LIBRARY_PREFIX%/include/mumps_seq (dummy mpi.h). Pass both via
