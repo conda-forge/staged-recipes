@@ -12,13 +12,16 @@ export CMAKE_GENERATOR=Ninja
 # and $PREFIX/include/mumps_seq (dummy mpi.h). Pass both via MUMPS_INCLUDE_DIR
 # as a CMake list (semicolon-separated).
 # Using -C cmake.define rather than --config-settings=cmake.args so the value
-# isn't split on the embedded semicolon. The patch ensures these paths
-# actually reach the compile line despite CMake's implicit-include-directory
-# stripping (see https://github.com/conda-forge/cmake-feedstock/issues/106).
+# isn't split on the embedded semicolon.
+#
+# Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
+# libuno and its headers (COMPONENT libuno) into site-packages. unopy compiles
+# the Uno objects directly, so install only the unopy extension.
 
 $PYTHON -m pip install . -vv \
     --no-deps \
     --no-build-isolation \
+    -C install.components=Unspecified \
     -C cmake.define.BLAS_LIBRARIES="${PREFIX}/lib/libblas${SHLIB_EXT}" \
     -C cmake.define.LAPACK_LIBRARIES="${PREFIX}/lib/liblapack${SHLIB_EXT}" \
     -C cmake.define.METIS_LIBRARY="${PREFIX}/lib/libmetis${SHLIB_EXT}" \
@@ -28,4 +31,6 @@ $PYTHON -m pip install . -vv \
     -C cmake.define.MUMPS_MPISEQ_LIBRARY="${PREFIX}/lib/libmpiseq_seq${SHLIB_EXT}" \
     -C cmake.define.MUMPS_INCLUDE_DIR="${PREFIX}/include;${PREFIX}/include/mumps_seq" \
     -C cmake.define.BQPD="" \
-    -C cmake.define.HIGHS="${PREFIX}/lib/libhighs${SHLIB_EXT}"
+    -C cmake.define.SPRAL="" \
+    -C cmake.define.HIGHS="${PREFIX}/lib/libhighs${SHLIB_EXT}" \
+    -C cmake.define.HIGHS_INCLUDE_DIR="${PREFIX}/include/highs"

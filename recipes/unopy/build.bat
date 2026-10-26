@@ -24,10 +24,15 @@ set "CMAKE_GENERATOR_TOOLSET="
 :: import libraries. The openblas package provides Library/lib/openblas.lib
 :: which covers both BLAS and LAPACK; blas-devel is in host requirements
 :: to bring it in.
+::
+:: Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
+:: libuno and its headers (COMPONENT libuno) into site-packages. unopy
+:: compiles the Uno objects directly, so install only the unopy extension.
 
 %PYTHON% -m pip install . -vv ^
     --no-deps ^
     --no-build-isolation ^
+    -C install.components=Unspecified ^
     -C cmake.define.BLAS_LIBRARIES="%LIBRARY_PREFIX%/lib/openblas.lib" ^
     -C cmake.define.LAPACK_LIBRARIES="%LIBRARY_PREFIX%/lib/openblas.lib" ^
     -C cmake.define.METIS_LIBRARY="%LIBRARY_PREFIX%/lib/metis.lib" ^
@@ -37,5 +42,7 @@ set "CMAKE_GENERATOR_TOOLSET="
     -C cmake.define.MUMPS_MPISEQ_LIBRARY="%LIBRARY_PREFIX%/lib/mumps_common.lib" ^
     -C cmake.define.MUMPS_INCLUDE_DIR="%LIBRARY_PREFIX%/include;%LIBRARY_PREFIX%/include/mumps_seq" ^
     -C cmake.define.BQPD="" ^
-    -C cmake.define.HIGHS="%LIBRARY_PREFIX%/lib/highs.lib"
+    -C cmake.define.SPRAL="" ^
+    -C cmake.define.HIGHS="%LIBRARY_PREFIX%/lib/highs.lib" ^
+    -C cmake.define.HIGHS_INCLUDE_DIR="%LIBRARY_PREFIX%/include/highs"
 if errorlevel 1 exit 1
