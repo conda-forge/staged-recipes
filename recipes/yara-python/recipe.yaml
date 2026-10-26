@@ -1,0 +1,69 @@
+schema_version: 1
+
+context:
+  name: yara-python
+  version: "4.5.4"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/y/yara-python/yara_python-${{ version }}.tar.gz
+    sha256: 4c682170f3d5cb3a73aa1bd0dc9ab1c0957437b937b7a83ff6d7ffd366415b9c
+  # the sdist bundles libyara's sources but not YARA's license file
+  - url: https://raw.githubusercontent.com/VirusTotal/yara/v${{ version }}/COPYING
+    sha256: efdabc1c1f655528b8c3a59b03668d446746d87273fab76f8af800b6e8891bd2
+    file_name: COPYING.yara
+
+build:
+  number: 0
+  script:
+    # yara-python compiles its bundled libyara; enable the OpenSSL-backed features
+    # (hash module, PE signatures) against conda-forge's openssl
+    - ${{ PYTHON }} ${{ RECIPE_DIR }}/enable_openssl.py
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - openssl
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - yara
+      pip_check: true
+  - script:
+      - python test_yara.py
+    files:
+      recipe:
+        - test_yara.py
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://virustotal.github.io/yara/
+  repository: https://github.com/VirusTotal/yara-python
+  documentation: https://yara.readthedocs.io/en/stable/yarapython.html
+  summary: Python interface for YARA, the pattern matching swiss knife for malware researchers
+  description: |
+    yara-python lets Python programs compile and run YARA rules. This package
+    builds the libyara sources bundled in the yara-python sdist, with OpenSSL
+    support enabled.
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - COPYING.yara
+
+extra:
+  recipe-maintainers:
+    - mediocretech
