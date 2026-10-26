@@ -1,0 +1,82 @@
+diff --git a/LICENSE.nlohmann-json b/LICENSE.nlohmann-json
+new file mode 100644
+index 0000000..a3f6ec5
+--- /dev/null
++++ b/LICENSE.nlohmann-json
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2013-2025 Niels Lohmann
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/libsymmetrix/CMakeLists.txt b/libsymmetrix/CMakeLists.txt
+--- a/libsymmetrix/CMakeLists.txt
++++ b/libsymmetrix/CMakeLists.txt
+@@ -64,6 +64,7 @@ else()
+     find_package(BLAS REQUIRED)
+ endif()
+ find_package(Git REQUIRED)
++find_package(nlohmann_json 3.12 CONFIG REQUIRED)
+ 
+ set(_symmetrix_sphericart_cuda_default OFF)
+ if(Kokkos_ENABLE_CUDA)
+@@ -317,13 +318,13 @@ add_library(symmetrix ${SYMMETRIX_SOURCE_FILES})
+ target_include_directories(symmetrix
+     PUBLIC  source
+             "${CMAKE_CURRENT_SOURCE_DIR}/../symmetrix/source/symmetrix"
+-            external/json/single_include
+     PRIVATE "${SYMMETRIX_SPHERICART_SOURCE_DIR}/sphericart/include")
+ if(SYMMETRIX_BLAS_INCLUDE_DIR)
+     target_include_directories(symmetrix PRIVATE "${SYMMETRIX_BLAS_INCLUDE_DIR}")
+ endif()
+ 
+ target_link_libraries(symmetrix
++    PUBLIC nlohmann_json::nlohmann_json
+     PRIVATE ${BLAS_LIBRARIES}
+             sphericart)
+ if(UNIX)
+diff --git a/pair_symmetrix/install.sh b/pair_symmetrix/install.sh
+--- a/pair_symmetrix/install.sh
++++ b/pair_symmetrix/install.sh
+@@ -92,7 +92,12 @@ function(symmetrix_add_lammps_library)
+   add_subdirectory("$script_dir/../libsymmetrix" "\${CMAKE_BINARY_DIR}/libsymmetrix")
+ endfunction()
+ symmetrix_add_lammps_library()
+-target_include_directories(lammps BEFORE PRIVATE "$script_dir/../libsymmetrix/external/json/single_include")
++if(NOT SYMMETRIX_NLOHMANN_JSON_INCLUDE_DIR)
++  message(FATAL_ERROR
++    "SYMMETRIX_NLOHMANN_JSON_INCLUDE_DIR must name the system JSON headers")
++endif()
++target_include_directories(lammps BEFORE PRIVATE
++  "\${SYMMETRIX_NLOHMANN_JSON_INCLUDE_DIR}")
+ target_include_directories(lammps PRIVATE "$script_dir/../libsymmetrix/source")
+ target_link_libraries(lammps PRIVATE symmetrix)
+ # END SYMMETRIX PAIR STYLE
+diff --git a/symmetrix/CMakeLists.txt b/symmetrix/CMakeLists.txt
+--- a/symmetrix/CMakeLists.txt
++++ b/symmetrix/CMakeLists.txt
+@@ -286,7 +286,7 @@ endif()
+ add_subdirectory("${SYMMETRIX_LIBSYM_SOURCE_DIR}"
+   ${CMAKE_CURRENT_BINARY_DIR}/libsymmetrix)
+ 
+-add_subdirectory(external/pybind11)
++find_package(pybind11 2.13 CONFIG REQUIRED)
+ 
+ set(SYMMETRIX_BUILD_OPENMP_ENABLED 0)
+ set(SYMMETRIX_BUILD_OPENMP_VERSION "")
