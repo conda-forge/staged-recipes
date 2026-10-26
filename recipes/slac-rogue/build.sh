@@ -1,8 +1,6 @@
 #!/bin/bash
 set -ex
 
-CPU_COUNT="${CPU_COUNT:-$(nproc)}"
-
 rm -rf build
 mkdir build
 cd build
