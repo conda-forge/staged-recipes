@@ -16,7 +16,7 @@ cmake -G Ninja -B build %CMAKE_ARGS% ^
     -DOVEP_PLUGIN_BUNDLE_RUNTIME=OFF ^
     -DOVEP_PLUGIN_PRODUCTION_BUILD=ON ^
     -DOVEP_PLUGIN_USE_MSVC_STATIC_RUNTIME=OFF ^
-    -DGIT_COMMIT_ID=%GIT_REV:~0,10% ^
+    -DGIT_COMMIT_ID=v%PKG_VERSION% ^
     -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 if errorlevel 1 exit 1
 cmake --build build --target onnxruntime_providers_openvino_plugin --parallel %CPU_COUNT%
