@@ -28,6 +28,10 @@ set "CMAKE_GENERATOR_TOOLSET="
 :: Upstream's pyproject.toml sets BUILD_SHARED_LIBS=ON, which also installs
 :: libuno and its headers (COMPONENT libuno) into site-packages. unopy
 :: compiles the Uno objects directly, so install only the unopy extension.
+::
+:: Uno has no OpenMP code; USE_OPENMP only links an OpenMP runtime when MUMPS
+:: is found, and FindOpenMP fails on the Fortran component with LLVM Flang,
+:: so disable it.
 
 %PYTHON% -m pip install . -vv ^
     --no-deps ^
@@ -41,6 +45,7 @@ set "CMAKE_GENERATOR_TOOLSET="
     -C cmake.define.MUMPS_PORD_LIBRARY="%LIBRARY_PREFIX%/lib/pord.lib" ^
     -C cmake.define.MUMPS_MPISEQ_LIBRARY="%LIBRARY_PREFIX%/lib/mumps_common.lib" ^
     -C cmake.define.MUMPS_INCLUDE_DIR="%LIBRARY_PREFIX%/include;%LIBRARY_PREFIX%/include/mumps_seq" ^
+    -C cmake.define.USE_OPENMP=OFF ^
     -C cmake.define.BQPD="" ^
     -C cmake.define.SPRAL="" ^
     -C cmake.define.HIGHS="%LIBRARY_PREFIX%/lib/highs.lib" ^
