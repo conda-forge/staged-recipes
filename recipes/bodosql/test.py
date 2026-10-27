@@ -3,6 +3,8 @@ import pandas as pd
 
 import bodosql
 
+os.environ["BODOSQL_CPP_BACKEND"] = "1"
+os.environ["BODOSQL_CPP_BACKEND_FALLBACK"] = "0"
 os.environ["BODO_DATAFRAME_LIBRARY_RUN_PARALLEL"] = "0"
 
 df = pd.DataFrame({"A": [1, 2, 3]})
