@@ -1,0 +1,70 @@
+context:
+  name: versatiles
+  version: "5.4.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/versatiles-org/versatiles-rs/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 56e225bfe2654db5662c220888b573f4b44b054705180bac4fe571498fae7f4e
+  # Only for the licence of libwebp, which libwebp-sys 0.14 compiles in
+  # statically from a vendored 1.6.0: THIRDPARTY.yml carries the crate's MIT
+  # licence, not libwebp's own. The vendored copies of zstd and aws-lc have
+  # theirs in THIRDPARTY.yml already, and SQLite is public domain.
+  - url: https://github.com/webmproject/libwebp/archive/refs/tags/v1.6.0.tar.gz
+    sha256: 93a852c2b3efafee3723efd4636de855b46f9fe1efddd607e1f42f60fc8f2136
+    target_directory: libwebp
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: unix
+      then: cargo install --locked --no-track --bins --root ${{ PREFIX }} --path versatiles
+      else: cargo install --locked --no-track --bins --root %LIBRARY_PREFIX% --path versatiles
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    # aws-lc-sys, the TLS backend of reqwest and russh
+    - cmake
+    - if: win
+      then: nasm
+
+tests:
+  - package_contents:
+      bin:
+        - versatiles
+  # Generated tiles, so the package doesn't carry test data: renders PNG,
+  # writes MBTiles (bundled SQLite), then reads it back into PMTiles.
+  - script:
+      - versatiles --version
+      - versatiles convert --max-zoom 3 "[,vpl](from_debug format=png)" test.mbtiles
+      - versatiles convert test.mbtiles test.pmtiles
+      - versatiles probe test.pmtiles
+
+about:
+  homepage: https://versatiles.org
+  repository: https://github.com/versatiles-org/versatiles-rs
+  documentation: https://docs.versatiles.org
+  summary: Convert, serve and process map tiles (VersaTiles, PMTiles, MBTiles, tar)
+  description: |
+    VersaTiles is a toolbox for map tiles. The `versatiles` command converts
+    between tile containers (VersaTiles, PMTiles, MBTiles, tar and folders),
+    serves them over HTTP, and transforms them with VPL pipelines: filtering,
+    merging, recompressing, and raster and vector tile processing.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - libwebp/COPYING
+    - libwebp/PATENTS
+
+extra:
+  recipe-maintainers:
+    - MichaelKreil
