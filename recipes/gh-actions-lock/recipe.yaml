@@ -1,0 +1,57 @@
+context:
+  version: "0.4.0"
+
+package:
+  name: gh-actions-lock
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/github/gh-actions-lock/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 86315cda647df753e35f71b30c66d45e42cdd82fd1d4743f260a49720d5a328b
+    target_directory: src
+    patches:
+      - patches/0001-Allow-overriding-the-version-via-ldflags.patch
+  - url: https://raw.githubusercontent.com/inconshreveable/mousetrap/v1.1.0/LICENSE
+    sha256: 4819582701f150b28a563a6cd8ed0bf5a754e3c67b90ad38d78ba4131bf77795
+    file_name: LICENSE-mousetrap
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/gh-actions-lock --save_path ../library_licenses --ignore github.com/inconshreveable/mousetrap
+    - if: unix
+      then: go build -v -o $PREFIX/bin/gh-actions-lock -ldflags="-s -w -X main.version=v${{ version }}" ./cmd/gh-actions-lock
+      else: go build -v -o %LIBRARY_BIN%\gh-actions-lock.exe -ldflags="-s -X main.version=v${{ version }}" ./cmd/gh-actions-lock
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - gh-actions-lock --help
+      - gh-actions-lock --version
+  - package_contents:
+      bin:
+        - gh-actions-lock
+      strict: true
+
+about:
+  homepage: https://github.com/github/gh-actions-lock
+  summary: gh CLI extension that generates and verifies the GitHub Actions dependency lockfile
+  description: |
+    gh-actions-lock is a gh CLI extension that generates and verifies the GitHub
+    Actions dependency lockfile, pinning every action your workflows use to an
+    exact commit.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+    - LICENSE-mousetrap
+  repository: https://github.com/github/gh-actions-lock
+
+extra:
+  recipe-maintainers:
+    - pavelzw

@@ -1,0 +1,36 @@
+From 8c3712e8a686f4760c45771c430368ae50f90096 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Tue, 27 Oct 2026 13:03:50 +0100
+Subject: [PATCH] Allow overriding the version via ldflags
+
+Builds from the release tarball (as done by conda-forge) are not module
+downloads, so debug.ReadBuildInfo reports "(devel)" as the version.
+Add a version variable that can be set with -ldflags -X main.version=...
+---
+ cmd/gh-actions-lock/run.go | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/cmd/gh-actions-lock/run.go b/cmd/gh-actions-lock/run.go
+index 678bf7b..ce4cd93 100644
+--- a/cmd/gh-actions-lock/run.go
++++ b/cmd/gh-actions-lock/run.go
+@@ -674,10 +674,16 @@ func appendStaleWorkflowFindings(report *checks.Report, workflows []string, prun
+ 	}
+ }
+ 
++// version can be set at build time via -ldflags "-X main.version=...".
++var version string
++
+ // cliVersion returns the gh-actions-lock extension version embedded by the Go
+ // build system. Returns "(devel)" for local `go build` and a real version
+ // like "v0.1.2" when installed via `gh extension install`.
+ func cliVersion() string {
++	if version != "" {
++		return version
++	}
+ 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+ 		return info.Main.Version
+ 	}
+-- 
+2.53.0
+
