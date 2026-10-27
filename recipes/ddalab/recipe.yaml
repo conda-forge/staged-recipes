@@ -1,0 +1,83 @@
+schema_version: 1
+
+context:
+  name: ddalab
+  version: "2.5.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: fc5f1023dfb4df8f09869bcd9b4e182088911a32fd7710407e6a210a48e71bf0
+
+build:
+  number: 0
+  # The extension uses the stable ABI (pyo3 abi3-py39), so one build serves every Python from python_min on.
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ true if is_abi3 }}
+  script:
+    # The Rust crate sits in ddalab-py/ of the sdist, beside its path dependency dda-rs/.
+    - pushd ddalab-py
+    - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+    - popd
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.9,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.9,<2
+  run:
+    - python
+    - numpy >=1.22
+
+tests:
+  - python:
+      imports:
+        - ddalab
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - if: is_abi3
+          then: abi3audit
+    script:
+      - ddalab --version
+      - ddalab variants
+      - if: unix and is_abi3
+        then: abi3audit $SP_DIR/ddalab/_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win and is_abi3
+        then: abi3audit %SP_DIR%/ddalab/_core.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/sdraeger/DDALAB
+  repository: https://github.com/sdraeger/DDALAB
+  summary: Delay differential analysis of neurophysiological recordings
+  description: |
+    The ddalab command line and Python library of DDALAB: delay differential analysis (DDA) of EEG, iEEG and other
+    multichannel recordings, from files, NumPy arrays or MNE objects, with one Rust engine.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - sdraeger
