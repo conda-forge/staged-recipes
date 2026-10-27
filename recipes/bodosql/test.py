@@ -3,7 +3,7 @@ import pandas as pd
 
 import bodosql
 
-os.environ["BODO_NUM_WORKERS"] = "3"
+os.environ["BODO_DATAFRAME_LIBRARY_RUN_PARALLEL"] = "0"
 
 df = pd.DataFrame({"A": [1, 2, 3]})
 bc = bodosql.BodoSQLContext({"TABLE1": df})
