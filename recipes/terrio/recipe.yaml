@@ -1,0 +1,97 @@
+schema_version: 1
+
+context:
+  name: terrio
+  version: "0.5.0"
+  python_min: "3.12"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 967d87125797031ff62f3acbb60c5c697e0d2cdaca2ed4c9306689b201c81dfd
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - terrio = terrio.__main__:main
+      - terrio-rio = terrio.rio.cli:main
+    version_independent: ${{ true if is_abi3 }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python ${{ python_min }}.*
+        - cross-python_${{ target_platform }} ${{ python_min }}.*
+        - crossenv
+        - maturin >=1.9,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python ${{ python_min }}.*
+    - maturin >=1.9,<2
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.21
+    - affine >=2.3
+  run_constraints:
+    - geopandas >=0.14
+    - matplotlib-base >=3.5
+    - xarray >=2024.1
+    - dask-core >=2024.1
+
+tests:
+  - python:
+      imports:
+        - terrio
+        - terrio.rio
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - if: is_abi3
+          then: abi3audit
+    script:
+      - python -c "import terrio; print(terrio.__version__); assert terrio.__version__ == '${{ version }}'"
+      - terrio --help
+      - terrio-rio --help
+      - if: unix and is_abi3
+        then: abi3audit $SP_DIR/terrio/_terrio.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win and is_abi3
+        then: abi3audit %SP_DIR%/terrio/_terrio.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://terrio.opengeos.org
+  repository: https://github.com/opengeos/terrio
+  documentation: https://terrio.opengeos.org
+  summary: Pure-Rust geospatial raster, vector and point cloud data I/O, without GDAL
+  description: |
+    terrio reads, writes, converts and reprojects the geospatial raster, vector and point cloud
+    formats most workflows use, in pure Rust and without GDAL. This package provides its Python
+    bindings, the rasterio-like terrio.rio API, an xarray backend, and the terrio command line.
+  license: MIT
+  license_file:
+    - LICENSE
+    - NOTICE
+    - LICENSE-THIRD-PARTY.md
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - giswqs
