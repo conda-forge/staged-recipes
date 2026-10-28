@@ -2,6 +2,9 @@
 
 mkdir build && cd build
 
+# Remove ancient FindThreads
+del %SRC_DIR%\cmake_modules\FindThreads.cmake
+
 cmake %CMAKE_ARGS% ^
     -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
