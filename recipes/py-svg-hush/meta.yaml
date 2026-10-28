@@ -10,15 +10,17 @@ source:
 
 build:
   skip: true  # [py<310]
-  script_env:
-    - MATURIN_NO_INSTALL_RUST=1
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script:
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --config-settings="build-args=--locked --auditwheel=skip --features=pyo3/extension-module"
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
   number: 0
 
 requirements:
   build:
+    - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - {{ stdlib("c") }}
+    - cargo-bundle-licenses
   host:
     - python
     - maturin >=1.0,<2.0
@@ -27,20 +29,25 @@ requirements:
     - python
 
 test:
+  source_files:
+    - tests
   imports:
     - py_svg_hush
   commands:
     - pip check
+    - pytest -v tests
   requires:
     - pip
-    - python
+    - pytest
 
 about:
   home: https://pypi.org/project/py_svg_hush/
   dev_url: https://github.com/jams2/py-svg-hush
   summary: 'a Python package for sanitizing SVG files using the svg-hush Rust library'
   license: MIT
-  license_file: LICENSE.txt
+  license_file:
+    - LICENSE.txt
+    - THIRDPARTY.yml
 
 extra:
   recipe-maintainers:
