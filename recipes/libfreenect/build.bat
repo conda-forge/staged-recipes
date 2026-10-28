@@ -2,12 +2,10 @@
 
 mkdir build && cd build
 
-# Remove ancient FindThreads
+REM Remove ancient FindThreads
 del %SRC_DIR%\cmake_modules\FindThreads.cmake
 
 cmake %CMAKE_ARGS% ^
-    -GNinja ^
-    -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DBUILD_EXAMPLES=OFF ^
     -DBUILD_FAKENECT=ON ^
@@ -21,8 +19,8 @@ cmake %CMAKE_ARGS% ^
     ..
 if errorlevel 1 exit /b 1
 
-ninja -j%CPU_COUNT%
+cmake --build . --config Release
 if errorlevel 1 exit /b 1
 
-ninja install
+cmake --install . --config Release
 if errorlevel 1 exit /b 1
