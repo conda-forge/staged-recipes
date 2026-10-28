@@ -1,0 +1,77 @@
+context:
+  version: "3.0.4"
+
+package:
+  name: minijinja-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mitsuhiko/minijinja/archive/refs/tags/${{ version }}.tar.gz
+  sha256: c200618aee830aeee4581a6fd92232ccd248d7371170339553caa19733bfc1c4
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          # build.rs writes the man page and shell completions here
+          - export ASSET_OUT_DIR=$SRC_DIR/assets
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path minijinja-cli
+          - mkdir -p ${{ PREFIX }}/share/man/man1 ${{ PREFIX }}/share/bash-completion/completions ${{ PREFIX }}/share/zsh/site-functions ${{ PREFIX }}/share/fish/vendor_completions.d
+          - cp assets/man/minijinja-cli.1 ${{ PREFIX }}/share/man/man1/minijinja-cli.1
+          - cp assets/completions/minijinja-cli.bash ${{ PREFIX }}/share/bash-completion/completions/minijinja-cli
+          - cp assets/completions/_minijinja-cli ${{ PREFIX }}/share/zsh/site-functions/_minijinja-cli
+          - cp assets/completions/minijinja-cli.fish ${{ PREFIX }}/share/fish/vendor_completions.d/minijinja-cli.fish
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path minijinja-cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - minijinja-cli --help
+      - minijinja-cli --version
+      - if: unix
+        then:
+          - test "$(echo 'Hello {{ name }}!' | minijinja-cli -D name=World -)" = "Hello World!"
+        else:
+          - echo Hello {{ name }}| minijinja-cli -D name=World - | findstr /b /c:"Hello World"
+  - package_contents:
+      bin:
+        - minijinja-cli
+      files:
+        - if: unix
+          then:
+            - share/man/man1/minijinja-cli.1
+            - share/bash-completion/completions/minijinja-cli
+            - share/fish/vendor_completions.d/minijinja-cli.fish
+            - share/zsh/site-functions/_minijinja-cli
+      strict: true
+
+about:
+  homepage: https://github.com/mitsuhiko/minijinja
+  summary: Command Line Utility to render MiniJinja/Jinja2 templates
+  description: |
+    minijinja-cli is a command line executable that uses MiniJinja to render
+    Jinja2 templates directly from the command line to stdout.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://github.com/mitsuhiko/minijinja/tree/main/minijinja-cli
+  repository: https://github.com/mitsuhiko/minijinja
+
+extra:
+  recipe-maintainers:
+    - pavelzw
