@@ -1,0 +1,73 @@
+context:
+  version: "0.0.21200.re11c8cb9"
+  win_url: https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-windows-x86_64-release-main.${{ version }}.zip
+  win_sha256: 25938fe6b6d7c0320719e4ff707d4731caf0ebf9cf206f8e165c74f859d00cd7
+  mac_arm_url: https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-arm64-release-main.${{ version }}.zip
+  mac_arm_sha256: 093afdcb3a61b00a5faa92ef62dde36cc69a2122a154130f2cbcd34c6febefc4
+  mac_x86_url: https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.${{ version }}.zip
+  mac_x86_sha256: 864a90b8efa40aa79d6acd88dd4409efa7124f63729ac6892cc1382233094947
+  linux_url: https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.${{ version }}.zip
+  linux_sha256: 0bd0749cd01c3d34b56e45c73683266cdb48bfc546a22af9ccc089d761443c9d
+
+package:
+  name: libtableauhyperapi
+  version: ${{ version }}
+
+# - rattler-build's own downloader gets a 403 from downloads.tableau.com
+# - curl against the same URL works fine
+# - the C++ headers are only available from downloads.tableau.com
+# - so there's no source.url here; context holds the per-platform URL and
+#   sha256, and build.sh/build.bat use them to fetch, verify, and install
+#   everything via curl
+build:
+  number: 0
+  skip:
+    - linux and not x86_64
+  script:
+    file: build
+    env:
+      TABLEAU_URL: ${{ win_url if win else (mac_arm_url if (osx and arm64) else (mac_x86_url if osx else linux_url)) }}
+      TABLEAU_SHA256: ${{ win_sha256 if win else (mac_arm_sha256 if (osx and arm64) else (mac_x86_sha256 if osx else linux_sha256)) }}
+
+requirements:
+  build:
+    - curl
+    - if: unix
+      then:
+        - unzip
+        - coreutils
+        - findutils
+
+tests:
+  - package_contents:
+      files:
+        - if: win
+          then: Library/lib/tableauhyperapi.lib
+        - if: osx
+          then: lib/libtableauhyperapi.dylib
+        - if: linux
+          then: lib/libtableauhyperapi.so
+        - if: win
+          then: Library/include/hyperapi/hyperapi.hpp
+        - if: unix
+          then: include/hyperapi/hyperapi.hpp
+
+about:
+  homepage: https://www.tableau.com/developer/learning/tableau-hyper-api
+  summary: Prebuilt Tableau Hyper API for C++ (headers, client library, and the Hyper engine binary)
+  description: |
+    The Tableau Hyper API lets applications create, read, write, and query
+    .hyper extract files, and ships the Hyper database engine itself as a
+    separate process (hyperd) that the client library starts on demand.
+    This package redistributes Tableau's own prebuilt binaries unmodified;
+    there is no public source repository for the engine.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICES.txt
+    - HYPER_API_OSS_disclosure.txt
+  documentation: https://tableau.github.io/hyper-db/docs/hyper-api/
+
+extra:
+  recipe-maintainers:
+    - pb01ka

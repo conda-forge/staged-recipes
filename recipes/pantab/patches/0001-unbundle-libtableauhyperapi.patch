@@ -1,0 +1,93 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 18c967f..629af65 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,29 +19,19 @@ execute_process(
+ list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
+ find_package(nanobind CONFIG REQUIRED)
+ 
++# conda-forge: tableauhyperapi-cxx comes from the libtableauhyperapi conda
++# package instead of being fetched from downloads.tableau.com. Its
++# share/cmake dir isn't nested under a tableauhyperapi-cxx*/ subfolder, so
++# plain $PREFIX on CMAKE_PREFIX_PATH isn't enough for find_package to see
++# it; append that dir directly, same as the FetchContent URL above did.
+ if(WIN32)
+-  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-windows-x86_64-release-main.0.0.21200.re11c8cb9.zip")
+-elseif(APPLE)
+-  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+-    set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-arm64-release-main.0.0.21200.re11c8cb9.zip")
+-  else()
+-    set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.0.0.21200.re11c8cb9.zip")
+-  endif()
++  list(APPEND CMAKE_PREFIX_PATH "$ENV{LIBRARY_PREFIX}/share/cmake")
+ else()
+-  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.0.0.21200.re11c8cb9.zip")
++  list(APPEND CMAKE_PREFIX_PATH "$ENV{PREFIX}/share/cmake")
+ endif()
+-
+-include(FetchContent)
+-FetchContent_Declare(
+-  tableauhyperapi-cxx
+-  DOWNLOAD_EXTRACT_TIMESTAMP ON
+-  URL "${TABLEAU_DOWNLOAD_URL}"
+-)
+-
+-FetchContent_MakeAvailable(tableauhyperapi-cxx)
+-list(APPEND CMAKE_PREFIX_PATH "${tableauhyperapi-cxx_SOURCE_DIR}/share/cmake")
+ find_package(tableauhyperapi-cxx CONFIG REQUIRED)
+ 
++include(FetchContent)
+ FetchContent_Declare(nanoarrow-project
+   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
+   GIT_TAG 3ba38ff09c691cf9320895d04cf441ecb95caa99
+diff --git a/src/pantab/CMakeLists.txt b/src/pantab/CMakeLists.txt
+index dfee9d8..334dfda 100644
+--- a/src/pantab/CMakeLists.txt
++++ b/src/pantab/CMakeLists.txt
+@@ -17,42 +17,13 @@ set_target_properties(nanoarrow_static
+                       PROPERTIES POSITION_INDEPENDENT_CODE
+                       ON)
+ 
+-if(WIN32)
+-  set(HYPERAPI_LIB_DIR "bin")
+-  set(HYPERAPI_LIB_NAME "tableauhyperapi.dll")
+-  set(HYPERAPI_BIN_LOC "bin/hyper")
+-elseif(APPLE)
+-  set(HYPERAPI_LIB_DIR "lib")
+-  set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
+-  set(HYPERAPI_BIN_LOC "lib/hyper")
+-set_target_properties(
+-  libpantab
+-  PROPERTIES
+-  INSTALL_RPATH "@loader_path"
+-)
+-else()
+-  set(HYPERAPI_LIB_DIR "lib")
+-  set(HYPERAPI_LIB_NAME "libtableauhyperapi.so")
+-  set(HYPERAPI_BIN_LOC "lib/hyper")
+-set_target_properties(
+-  libpantab
+-  PROPERTIES
+-  INSTALL_RPATH "$ORIGIN"
+-)
+-endif()
+-
++# conda-forge: libtableauhyperapi.{so,dylib,dll} and the hyper/ engine dir
++# come from the libtableauhyperapi conda package's own $PREFIX/lib (or
++# Library/bin on Windows) instead of being vendored here; the standard
++# conda-forge toolchain rpath already reaches $PREFIX/lib.
+ install(TARGETS libpantab
+   LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/)
+ 
+-# Auditwheel doesn't know how to handle the cmake dependencies
+-# so we manually install here and exclude from auditwheel
+-install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME}
+-   DESTINATION ${SKBUILD_PROJECT_NAME}/)
+-install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
+-  DESTINATION ${SKBUILD_PROJECT_NAME}/hyper
+-  USE_SOURCE_PERMISSIONS
+-)
+-
+ # Support out of source builds
+ set(SRC_FILES
+   __init__.py
