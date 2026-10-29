@@ -1,5 +1,9 @@
 @echo on
 
+:: OpenMVS loads vcpkg's toolchain whenever VCPKG_ROOT is set (as on the CI
+:: images); build against the conda environment instead.
+set "VCPKG_ROOT="
+
 if "%cuda_compiler_version%"=="None" (
   set "CUDA_ARGS=-DOpenMVS_USE_CUDA=OFF"
 ) else (

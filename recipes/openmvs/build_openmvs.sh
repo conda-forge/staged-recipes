@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euxo pipefail
 
+# OpenMVS loads vcpkg's toolchain whenever VCPKG_ROOT is set.
+unset VCPKG_ROOT
+
 # OpenMVS keeps state in function-local statics of inline functions; with
 # shared libraries, -fvisibility-inlines-hidden gives every library its own
 # copy (patch 0005 fixes the logger, which made the tools print nothing).
