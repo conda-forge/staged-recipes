@@ -18,6 +18,7 @@ if "%cuda_compiler_version%"=="None" (
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DBUILD_SHARED_LIBS=OFF ^
+  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%SRC_DIR%\build\bin ^
   -DVCG_DIR=%PREFIX%\include\vcglib ^
   -DPORTABLE_FILE_DIALOGS_INCLUDE_DIRS=%PREFIX%\include ^
   %CUDA_ARGS% ^
@@ -33,7 +34,8 @@ if errorlevel 1 exit 1
 cmake --build build --parallel %CPU_COUNT%
 if errorlevel 1 exit 1
 
-:: Unit tests (the pipeline test needs downloaded data)
+:: Unit tests (the pipeline test needs downloaded data). Upstream's default
+:: build-tree output directory with MSVC is bin\vc17\x64; overridden above.
 build\bin\Tests.exe 0
 if errorlevel 1 exit 1
 
