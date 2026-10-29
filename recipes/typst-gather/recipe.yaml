@@ -1,0 +1,62 @@
+schema_version: 1
+
+context:
+  version: "0.2.4"
+
+package:
+  name: typst-gather
+  version: ${{ version }}
+
+source:
+  url: https://github.com/quarto-dev/typst-gather/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 746742af744be532d4283a5692fd3e219d4418ccca89cc8b6cbbcc14f9e03446
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: linux
+        then:
+          - export OPENSSL_DIR=$PREFIX
+          - export OPENSSL_NO_VENDOR=1
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  host:
+    - if: linux
+      then: openssl
+
+tests:
+  - package_contents:
+      bin:
+        - typst-gather
+  - script:
+      - typst-gather --help
+
+about:
+  license: MIT
+  license_file:
+    - LICENSE
+    - COPYRIGHT
+    - THIRDPARTY.yml
+  summary: Gather Typst package dependencies locally for offline and hermetic builds
+  homepage: https://github.com/quarto-dev/typst-gather
+  repository: https://github.com/quarto-dev/typst-gather
+
+extra:
+  recipe-maintainers:
+    - cderv
