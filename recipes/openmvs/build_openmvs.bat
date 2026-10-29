@@ -4,6 +4,10 @@
 :: images); build against the conda environment instead.
 set "VCPKG_ROOT="
 
+:: tinygltf is a noarch: generic package, so its header is in %PREFIX%\include
+:: rather than %LIBRARY_INC%
+set "CXXFLAGS=%CXXFLAGS% /I%PREFIX%\include"
+
 :: Bundled code that is not used: IBFS (research-only license, see
 :: OpenMVS_USE_IBFS=OFF) and copies of tinyxml2, nlohmann/json and tinygltf
 :: (from conda-forge instead).
