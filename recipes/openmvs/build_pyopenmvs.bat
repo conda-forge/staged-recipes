@@ -4,12 +4,20 @@
 :: images); build against the conda environment instead.
 set "VCPKG_ROOT="
 
+:: Bundled code that is not used: IBFS (research-only license, see
+:: OpenMVS_USE_IBFS=OFF) and copies of tinyxml2, nlohmann/json and tinygltf
+:: (from conda-forge instead).
+if exist libs\Math\IBFS rmdir /s /q libs\Math\IBFS
+del /q libs\IO\TinyXML2.cpp libs\IO\TinyXML2.h libs\IO\json.hpp libs\IO\tiny_gltf.h
+
+
 :: Windows: OpenMVS 2.4.0 has no shared libraries with MSVC, so (unlike on
 :: Linux/macOS) the module is built in-tree with upstream's Python support,
 :: linking OpenMVS's libraries statically into pyOpenMVS.
 cmake -S . -B build-py -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DBUILD_SHARED_LIBS=OFF ^
+  -DOpenMVS_USE_IBFS=OFF ^
   -DVCG_DIR=%PREFIX%\include\vcglib ^
   -DPython3_EXECUTABLE=%PYTHON% ^
   -DOpenMVS_USE_CUDA=OFF ^

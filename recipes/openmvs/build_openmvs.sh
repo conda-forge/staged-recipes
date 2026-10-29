@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euxo pipefail
 
+# Bundled code that is not used: IBFS (research-only license, see
+# OpenMVS_USE_IBFS=OFF) and copies of tinyxml2, nlohmann/json and tinygltf
+# (from conda-forge instead).
+rm -rf libs/Math/IBFS libs/IO/TinyXML2.cpp libs/IO/TinyXML2.h libs/IO/json.hpp libs/IO/tiny_gltf.h
+
 # OpenMVS loads vcpkg's toolchain whenever VCPKG_ROOT is set.
 unset VCPKG_ROOT
 
@@ -24,10 +29,12 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
   -DBUILD_SHARED_LIBS=ON \
   -DINSTALL_USE_SUBDIR=OFF \
   -DOpenMVS_LIBRARY_NAME_PREFIX=OpenMVS \
+  -DOpenMVS_USE_IBFS=OFF \
   -DVCG_DIR=$PREFIX/include/vcglib \
   ${CUDA_ARGS} \
   -DOpenMVS_USE_PYTHON=OFF \
   -DOpenMVS_BUILD_VIEWER=ON \
+  -DVIEWER_NAME=OpenMVSViewer \
   -DMIME_UPDATE_CMD=MIME_UPDATE_CMD-NOTFOUND \
   -DOpenMVS_USE_BREAKPAD=OFF \
   -DOpenMVS_ENABLE_TESTS=ON \
@@ -46,13 +53,13 @@ fi
 
 cmake --install build
 
-# macOS: the Viewer is an app bundle (bin/Viewer.app, as exported in the CMake
-# package); add a launcher next to it so `Viewer` works like the other tools.
+# macOS: the Viewer is an app bundle (bin/OpenMVSViewer.app, as exported in the
+# CMake package); add a launcher so `OpenMVSViewer` works like the other tools.
 if [[ "${target_platform}" == osx-* ]]; then
-  cat > $PREFIX/bin/Viewer <<'LAUNCHER'
+  cat > $PREFIX/bin/OpenMVSViewer <<'LAUNCHER'
 #!/bin/bash
-exec "$(dirname "$0")/Viewer.app/Contents/MacOS/Viewer" "$@"
+exec "$(dirname "$0")/OpenMVSViewer.app/Contents/MacOS/OpenMVSViewer" "$@"
 LAUNCHER
-  chmod +x $PREFIX/bin/Viewer
+  chmod +x $PREFIX/bin/OpenMVSViewer
 fi
 rm -f $PREFIX/bin/Tests
