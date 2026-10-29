@@ -1,0 +1,86 @@
+# conda-forge recipe, v1 format (rattler-build). Releases are built from the
+# copy in github.com/conda-forge/birdnet-feedstock; this one is the submission
+# and must stay in step with the dependencies in pyproject.toml.
+schema_version: 1
+
+context:
+  version: "1.3.1"
+
+package:
+  name: birdnet
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/b/birdnet/birdnet-${{ version }}.tar.gz
+  sha256: 9d64399feaa9f9944a5fa5d1cd51e90c4252b27d3c0eab27a975b68f3313767d
+
+build:
+  noarch: python
+  number: 0
+  script:
+    # LiteRT (ai-edge-litert) has no conda-forge package: drop its requirement
+    # strings so the installed metadata matches what conda provides and
+    # `pip check` passes. The quoting is valid in bash and cmd alike.
+    - sed -i "/\"ai-edge-litert/d" pyproject.toml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - birdnet-benchmark = birdnet_benchmark.cli:run_benchmark
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=80.9.0
+    - wheel >=0.45.1
+  run:
+    - python >=${{ python_min }}
+    - pysoundfile >=0.11.0
+    - scipy >=1.8.0
+    - ordered-set >=4.1.0
+    - tqdm >=4.64.0
+    - numpy >=1.22.0
+    - pandas >=1.4.0
+    - psutil >=5.9.0
+    - pyarrow >=7.0.0
+    - requests >=2.27.0
+    # The base runtime (3.0 models). pytorch and tensorflow are the conda
+    # counterparts of the [pt] and [tf] extras and are installed separately.
+    - onnxruntime >=1.16.0
+  run_constraints:
+    - pytorch >=2.0.0
+    - tensorflow >=2.8.0
+
+tests:
+  - python:
+      imports:
+        - birdnet
+        - birdnet.model_loader
+        - birdnet.acoustic.inference.session
+        - birdnet.geo.inference.session
+        - birdnet_benchmark.cli
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - script:
+      - birdnet-benchmark --help
+
+about:
+  homepage: https://github.com/birdnet-team/birdnet
+  summary: A Python library for identifying bird species by their sounds.
+  description: |
+    birdnet runs the BirdNET acoustic models (species classification scores and
+    embeddings from audio recordings) and geo models (species presence for a
+    location and week of the year). The official models download on first use.
+    This package carries the ONNX Runtime backend; add pytorch or tensorflow
+    from conda-forge for the pt, tf and pb backends, and
+    `pip install ai-edge-litert` for LiteRT.
+  license: MIT
+  license_file: LICENSE.md
+  documentation: https://birdnet-team.github.io/birdnet
+  repository: https://github.com/birdnet-team/birdnet
+
+extra:
+  recipe-maintainers:
+    - Josef-Haupt
