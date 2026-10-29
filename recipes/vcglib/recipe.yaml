@@ -19,20 +19,29 @@ build:
     # Header-only. The bundled Eigen (eigenlib/) is not installed; the only
     # header using it, vcg/math/eigen.h, is Eigen-2 era code that does not
     # compile with Eigen 3+ (upstream's own bundled copy included).
-    - mkdir -p $PREFIX/include/vcglib
-    - cp -R vcg wrap img $PREFIX/include/vcglib/
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/include/vcglib
+        - cp -R vcg wrap img $PREFIX/include/vcglib/
+      else:
+        - xcopy /E /I /Q vcg %PREFIX%\include\vcglib\vcg
+        - xcopy /E /I /Q wrap %PREFIX%\include\vcglib\wrap
+        - xcopy /E /I /Q img %PREFIX%\include\vcglib\img
 
 requirements:
   run:
     - eigen
 
 tests:
+  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
   - package_contents:
-      include:
-        - vcglib/vcg/complex/complex.h
-        - vcglib/wrap/io_trimesh/import_ply.h
+      files:
+        - include/vcglib/vcg/complex/complex.h
+        - include/vcglib/wrap/io_trimesh/import_ply.h
   - script:
-      - ${CXX} -std=c++17 -fsyntax-only -I$PREFIX/include/vcglib -I$PREFIX/include/eigen3 test.cpp
+      - if: unix
+        then: ${CXX} -std=c++17 -fsyntax-only -I$PREFIX/include/vcglib -I$PREFIX/include/eigen3 test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include\vcglib /I%LIBRARY_INC%\eigen3 test.cpp
     requirements:
       run:
         - ${{ compiler('cxx') }}

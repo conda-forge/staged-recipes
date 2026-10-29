@@ -17,15 +17,23 @@ build:
   noarch: generic
   script:
     # Single header file
-    - mkdir -p $PREFIX/include
-    - cp portable-file-dialogs.h $PREFIX/include/
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/include
+        - cp portable-file-dialogs.h $PREFIX/include/
+      else:
+        - if not exist %PREFIX%\include mkdir %PREFIX%\include
+        - copy portable-file-dialogs.h %PREFIX%\include\
 
 tests:
+  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
   - package_contents:
-      include:
-        - portable-file-dialogs.h
+      files:
+        - include/portable-file-dialogs.h
   - script:
-      - ${CXX} -std=c++11 -fsyntax-only -I$PREFIX/include test.cpp
+      - if: unix
+        then: ${CXX} -std=c++11 -fsyntax-only -I$PREFIX/include test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include test.cpp
     requirements:
       run:
         - ${{ compiler('cxx') }}
