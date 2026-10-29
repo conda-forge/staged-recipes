@@ -20,7 +20,7 @@ source:
     # (backport: fixed upstream in e884035, #1286)
     - patches/0001-Do-not-require-the-boost_system-library-header-only-.patch
     # OpenCV 5: DataType<unsigned/uint64_t> now built in, DIST_* moved to geometry
-    # (not fixed upstream yet)
+    # (submitted upstream: cdcseacave/openMVS#1317)
     - patches/0002-Support-OpenCV-5.patch
     # imgui >= 1.92 removed ImGuiSelectableFlags_AllowItemOverlap
     # (backport: fixed upstream in 6871967)
@@ -32,11 +32,11 @@ source:
     # (backport: fixed upstream in 4694ded, #1279)
     - patches/0005-Define-the-Log-singletons-in-Log.cpp.patch
     # macOS: keep the toolchain's linker flags (tools linked the system libc++)
-    # (not fixed upstream yet)
+    # (submitted upstream: cdcseacave/openMVS#1318)
     - patches/0006-Append-stdlib-libc-to-CMAKE_EXE_LINKER_FLAGS-instead.patch
-    # Windows/MSVC: cList::EmptyDelete on non-pointer types (shared builds)
-    # (backport: fixed upstream in 541b0e9, #1262)
-    - patches/0007-cList-EmptyDelete-only-delete-elements-that-are-poin.patch
+    # CUDA builds without a GPU/driver: do not log uninitialized error strings
+    # (backport: first commit of upstream #1316, open)
+    - patches/0007-Do-not-log-uninitialized-CUDA-error-strings.patch
 
 build:
   number: ${{ build_number }}
@@ -121,11 +121,12 @@ outputs:
             then: for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
             else: for %%t in (DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh) do (call %%t --help > help.txt 2>&1 & findstr /C:"Available options" help.txt || exit 1)
       - package_contents:
-          include:
-            - OpenMVS/MVS/Scene.h
-            - OpenMVS/ConfigLocal.h
           files:
             exists:
+              - if: unix
+                then:
+                  - include/OpenMVS/MVS/Scene.h
+                  - include/OpenMVS/ConfigLocal.h
               - if: linux
                 then: lib/OpenMVS/libMVS.so
               - if: osx
@@ -136,15 +137,19 @@ outputs:
                   - bin/InterfaceCOLMAP
                   - bin/TextureMesh
                   - bin/Viewer
+              # Windows: OpenMVS 2.4.0's libraries are linked statically into
+              # the tools (shared Windows builds came after 2.4.0)
               - if: win
                 then:
-                  - Library/bin/OpenMVS/MVS.dll
-                  - Library/bin/OpenMVS/DensifyPointCloud.exe
-                  - Library/bin/OpenMVS/Viewer.exe
-                  - Library/bin/DensifyPointCloud.bat
+                  - Library/bin/DensifyPointCloud.exe
+                  - Library/bin/InterfaceCOLMAP.exe
+                  - Library/bin/Viewer.exe
             not_exists:
               - if: unix
                 then: lib/OpenMVS/*.a
+                else:
+                  - Library/lib/OpenMVS/*.lib
+                  - Library/include/OpenMVS/**
 
   - package:
       name: pyopenmvs

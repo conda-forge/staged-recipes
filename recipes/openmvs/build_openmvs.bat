@@ -10,11 +10,14 @@ if "%cuda_compiler_version%"=="None" (
   set "CUDA_ARGS=-DOpenMVS_USE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major"
 )
 
+:: OpenMVS 2.4.0 does not support shared libraries on Windows (upstream added
+:: that after 2.4.0, cdcseacave/openMVS#1262), so its internal libraries are
+:: linked statically into the tools; only the tools are shipped.
 :: vcglib and portable-file-dialogs are noarch: generic, so their headers are
 :: in %PREFIX%\include rather than %LIBRARY_INC%.
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
-  -DBUILD_SHARED_LIBS=ON ^
+  -DBUILD_SHARED_LIBS=OFF ^
   -DVCG_DIR=%PREFIX%\include\vcglib ^
   -DPORTABLE_FILE_DIALOGS_INCLUDE_DIRS=%PREFIX%\include ^
   %CUDA_ARGS% ^
@@ -31,21 +34,17 @@ cmake --build build --parallel %CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: Unit tests (the pipeline test needs downloaded data)
-set "PATH=%CD%\build\bin;%PATH%"
 build\bin\Tests.exe 0
 if errorlevel 1 exit 1
 
 cmake --install build
 if errorlevel 1 exit 1
 
-:: The tools and OpenMVS's DLLs (Common, IO, Math, MVS: generic names) stay in
-:: Library\bin\OpenMVS, where Windows finds the DLLs next to the executables;
-:: put small launchers on PATH.
+:: Put the tools on PATH; drop the static libraries, headers and CMake config.
 del /q "%LIBRARY_BIN%\OpenMVS\Tests.exe"
-for %%t in (DensifyPointCloud InterfaceCOLMAP InterfaceMetashape InterfaceMVSNet InterfacePolycam ReconstructMesh RefineMesh TextureMesh TransformScene Viewer) do (
-  if not exist "%LIBRARY_BIN%\OpenMVS\%%t.exe" exit 1
-  > "%LIBRARY_BIN%\%%t.bat" echo @"%%~dp0OpenMVS\%%t.exe" %%*
-)
-
-:: Upstream's CMake config does not find its dependencies; do not ship it.
+move /y "%LIBRARY_BIN%\OpenMVS\*.exe" "%LIBRARY_BIN%\"
+if errorlevel 1 exit 1
+rmdir /s /q "%LIBRARY_BIN%\OpenMVS"
+if exist "%LIBRARY_LIB%\OpenMVS" rmdir /s /q "%LIBRARY_LIB%\OpenMVS"
+if exist "%LIBRARY_INC%\OpenMVS" rmdir /s /q "%LIBRARY_INC%\OpenMVS"
 if exist "%LIBRARY_LIB%\cmake\OpenMVS" rmdir /s /q "%LIBRARY_LIB%\cmake\OpenMVS"
