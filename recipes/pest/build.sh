@@ -9,8 +9,8 @@ chmod a+rwx doc edpestex papestex pestex ppestex
 # SpeedTest is a unused function that causes a compilation error.
 # Don't use 'sed -i' because it is not portable across linux and OSX. Instead,
 # use a temporary file and move it back to the original file.
-sed '/SpeedTest/d' ip.C > tmpip.C
-mv tmpip.C ip.C
+sed '/SpeedTest/d' ip.c > tmpip.c
+mv tmpip.c ip.c
 
 # OSX does not support static linking, so remove the -static flag from the
 # makefiles.
