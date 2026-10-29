@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 19:00:38 +1000
+Subject: [PATCH] cList::EmptyDelete: only delete elements that are pointers
+
+MSVC instantiates every member of cList specializations used by exported
+(DLL) classes, and 'delete' on a non-pointer element type does not compile
+(error C2541) when building shared libraries on Windows.
+---
+ libs/Common/List.h | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/libs/Common/List.h b/libs/Common/List.h
+index d158f04..2e9c2df 100644
+--- a/libs/Common/List.h
++++ b/libs/Common/List.h
+@@ -1240,8 +1240,13 @@ public:
+ 	// Delete also the pointers (take care to use this function only if the elements are pointers).
+ 	inline void		EmptyDelete()
+ 	{
+-		while (_size)
+-			delete _vector[--_size];
++		// MSVC instantiates every member of lists used by exported (DLL) classes
++		if constexpr (std::is_pointer<TYPE>::value) {
++			while (_size)
++				delete _vector[--_size];
++		} else {
++			Empty();
++		}
+ 	}
+ 
+ 	// same as EmptyDelete(), plus free all allocated memory
