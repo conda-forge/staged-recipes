@@ -22,6 +22,8 @@ fi
 cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=ON \
+  -DINSTALL_USE_SUBDIR=OFF \
+  -DOpenMVS_LIBRARY_NAME_PREFIX=OpenMVS \
   -DVCG_DIR=$PREFIX/include/vcglib \
   ${CUDA_ARGS} \
   -DOpenMVS_USE_PYTHON=OFF \
@@ -42,18 +44,13 @@ fi
 
 cmake --install build
 
-# Upstream installs the tools into bin/OpenMVS; put them on PATH.
+# macOS: the Viewer is an app bundle (bin/Viewer.app, as exported in the CMake
+# package); add a launcher next to it so `Viewer` works like the other tools.
 if [[ "${target_platform}" == osx-* ]]; then
-  mv $PREFIX/bin/OpenMVS/Viewer.app $PREFIX/lib/OpenMVS/
-  cat > $PREFIX/bin/Viewer <<'EOF'
+  cat > $PREFIX/bin/Viewer <<'LAUNCHER'
 #!/bin/bash
-exec "$(dirname "$0")/../lib/OpenMVS/Viewer.app/Contents/MacOS/Viewer" "$@"
-EOF
+exec "$(dirname "$0")/Viewer.app/Contents/MacOS/Viewer" "$@"
+LAUNCHER
   chmod +x $PREFIX/bin/Viewer
 fi
-rm -f $PREFIX/bin/OpenMVS/Tests
-mv $PREFIX/bin/OpenMVS/* $PREFIX/bin/
-rmdir $PREFIX/bin/OpenMVS
-# Upstream's CMake config does not find its dependencies and refers to
-# unexported targets; do not ship it.
-rm -rf $PREFIX/lib/cmake/OpenMVS
+rm -f $PREFIX/bin/Tests

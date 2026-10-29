@@ -37,6 +37,16 @@ source:
     # CUDA builds without a GPU/driver: do not log uninitialized error strings
     # (backport: first commit of upstream #1316, open)
     - patches/0007-Do-not-log-uninitialized-CUDA-error-strings.patch
+    # install into bin/ and lib/ instead of bin/OpenMVS and lib/OpenMVS
+    # (backport: fixed upstream in e884035, #1286/#1272)
+    - patches/0008-Add-INSTALL_USE_SUBDIR-to-install-without-per-projec.patch
+    # library file names prefixed with OpenMVS (libOpenMVSMVS, ...), so the
+    # generic names (Common, IO, Math) cannot clash in lib/ (opt-in, not upstream yet)
+    - patches/0009-Add-OpenMVS_LIBRARY_NAME_PREFIX-to-prefix-the-librar.patch
+    # make the installed CMake package usable: find_dependency() for the
+    # exported targets' dependencies, relocatable paths, include directory
+    # (not fixed upstream yet)
+    - patches/0010-Make-the-installed-CMake-package-usable.patch
 
 build:
   number: ${{ build_number }}
@@ -51,12 +61,6 @@ outputs:
         - if: win
           then: call %RECIPE_DIR%\build_openmvs.bat
           else: bash $RECIPE_DIR/build_openmvs.sh
-      dynamic_linking:
-        # OpenMVS's shared libraries (libMVS, libCommon, libIO, libMath) have
-        # generic names, so they stay in lib/OpenMVS
-        rpaths:
-          - lib/
-          - lib/OpenMVS/
     requirements:
       build:
         - if: unix and x86_64
@@ -127,10 +131,12 @@ outputs:
                 then:
                   - include/OpenMVS/MVS/Scene.h
                   - include/OpenMVS/ConfigLocal.h
+                  - lib/cmake/OpenMVS/OpenMVSConfig.cmake
+                  - lib/cmake/OpenMVS/OpenMVSTargets.cmake
               - if: linux
-                then: lib/OpenMVS/libMVS.so
+                then: lib/libOpenMVSMVS.so
               - if: osx
-                then: lib/OpenMVS/libMVS.dylib
+                then: lib/libOpenMVSMVS.dylib
               - if: unix
                 then:
                   - bin/DensifyPointCloud
@@ -145,10 +151,12 @@ outputs:
                   - Library/bin/InterfaceCOLMAP.exe
                   - Library/bin/Viewer.exe
             not_exists:
+              - lib/OpenMVS/**
+              - bin/OpenMVS/**
               - if: unix
-                then: lib/OpenMVS/*.a
+                then: lib/libOpenMVS*.a
                 else:
-                  - Library/lib/OpenMVS/*.lib
+                  - Library/lib/OpenMVS*.lib
                   - Library/include/OpenMVS/**
 
   - package:
@@ -160,10 +168,6 @@ outputs:
         - if: win
           then: call %RECIPE_DIR%\build_pyopenmvs.bat
           else: bash $RECIPE_DIR/build_pyopenmvs.sh
-      dynamic_linking:
-        rpaths:
-          - lib/
-          - lib/OpenMVS/
     requirements:
       build:
         - ${{ compiler('c') }}
@@ -173,8 +177,7 @@ outputs:
           then: ${{ compiler('cuda') }}
         - cmake
         - ninja
-        - if: win
-          then: pkg-config
+        - pkg-config
         - if: build_platform != target_platform
           then:
             - python
@@ -202,14 +205,13 @@ outputs:
         - vcglib
         - gmp
         - mpfr
-        # Windows builds OpenMVS's (static) libraries into the module itself
-        - if: win
-          then:
-            - libpng
-            - libjpeg-turbo
-            - libtiff
-            - libjxl
-            - zlib
+        # find_package(OpenMVS) finds the image libraries OpenMVS::IO links (and
+        # Windows builds OpenMVS's static libraries into the module itself)
+        - libjxl
+        - libpng
+        - libjpeg-turbo
+        - libtiff
+        - zlib
       run:
         - ${{ pin_subpackage('openmvs', exact=True) }}
         - python

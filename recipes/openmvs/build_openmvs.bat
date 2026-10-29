@@ -18,6 +18,8 @@ if "%cuda_compiler_version%"=="None" (
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DBUILD_SHARED_LIBS=OFF ^
+  -DINSTALL_USE_SUBDIR=OFF ^
+  -DOpenMVS_LIBRARY_NAME_PREFIX=OpenMVS ^
   -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%SRC_DIR%\build\bin ^
   -DVCG_DIR=%PREFIX%\include\vcglib ^
   -DPORTABLE_FILE_DIALOGS_INCLUDE_DIRS=%PREFIX%\include ^
@@ -42,11 +44,8 @@ if errorlevel 1 exit 1
 cmake --install build
 if errorlevel 1 exit 1
 
-:: Put the tools on PATH; drop the static libraries, headers and CMake config.
-del /q "%LIBRARY_BIN%\OpenMVS\Tests.exe"
-move /y "%LIBRARY_BIN%\OpenMVS\*.exe" "%LIBRARY_BIN%\"
-if errorlevel 1 exit 1
-rmdir /s /q "%LIBRARY_BIN%\OpenMVS"
-if exist "%LIBRARY_LIB%\OpenMVS" rmdir /s /q "%LIBRARY_LIB%\OpenMVS"
+:: Ship only the tools: drop the static libraries, headers and CMake config.
+del /q "%LIBRARY_BIN%\Tests.exe"
+del /q "%LIBRARY_LIB%\OpenMVS*.lib"
 if exist "%LIBRARY_INC%\OpenMVS" rmdir /s /q "%LIBRARY_INC%\OpenMVS"
-if exist "%LIBRARY_LIB%\cmake\OpenMVS" rmdir /s /q "%LIBRARY_LIB%\cmake\OpenMVS"
+if exist "%LIBRARY_PREFIX%\CMake" del /q "%LIBRARY_PREFIX%\CMake\OpenMVS*.cmake"
