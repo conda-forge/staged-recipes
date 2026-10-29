@@ -36,8 +36,10 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
   -DENABLE_AVX=OFF -DENABLE_AVX2=OFF
 cmake --build build --parallel ${CPU_COUNT}
 
-# Unit tests (the pipeline test needs downloaded data)
-if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]]; then
+# Unit tests (the pipeline test needs downloaded data). CUDA builds link the
+# CUDA driver (libcuda.so.1), so they only run where one is installed.
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]] && \
+   { [[ "${cuda_compiler_version:-None}" == "None" ]] || ( /sbin/ldconfig -p 2>/dev/null || true ) | grep -q "libcuda.so.1"; }; then
   # the build-tree binary has no RPATH to $PREFIX/lib (libomp etc.)
   DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib LD_LIBRARY_PATH=$PREFIX/lib build/bin/Tests 0
 fi

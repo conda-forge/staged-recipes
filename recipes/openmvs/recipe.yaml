@@ -121,9 +121,14 @@ outputs:
     tests:
       - script:
           # The tools print their usage and exit with status 1 on --help.
-          - if: unix
+          # CUDA builds link the CUDA driver (libcuda.so.1); without one (as on CI)
+          # they cannot start, so only run them when a driver is present.
+          - if: unix and not cuda
             then: for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
-            else: for %%t in (DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh) do (call %%t --help > help.txt 2>&1 & findstr /C:"Available options" help.txt || exit 1)
+          - if: unix and cuda
+            then: if ( /sbin/ldconfig -p 2>/dev/null || true ) | grep -q "libcuda.so.1"; then for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done; else echo "no CUDA driver, not running the tools"; fi
+          - if: win
+            then: for %%t in (DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh) do (call %%t --help > help.txt 2>&1 & findstr /C:"Available options" help.txt || exit 1)
       - package_contents:
           files:
             exists:
@@ -216,12 +221,16 @@ outputs:
         - ${{ pin_subpackage('openmvs', exact=True) }}
         - python
     tests:
-      - python:
-          imports:
-            - pyOpenMVS
-          pip_check: false
       - script:
-          - python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"
+          # CUDA builds need the CUDA driver to load (see the openmvs tests)
+          - if: cuda
+            then: if ( /sbin/ldconfig -p 2>/dev/null || true ) | grep -q "libcuda.so.1"; then python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"; else echo "no CUDA driver, not importing pyOpenMVS"; fi
+            else: python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"
+      - package_contents:
+          site_packages:
+            - if: win
+              then: pyOpenMVS.pyd
+              else: pyOpenMVS.so
 
 about:
   homepage: https://cdcseacave.github.io/openMVS
