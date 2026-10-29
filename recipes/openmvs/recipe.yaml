@@ -154,11 +154,12 @@ outputs:
   - package:
       name: pyopenmvs
     build:
-      # Windows: needs os.add_dll_directory for the OpenMVS DLLs; not yet
-      skip: win
       number: ${{ build_number }}
       string: py${{ python | version_to_buildstring }}${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
-      script: build_pyopenmvs.sh
+      script:
+        - if: win
+          then: call %RECIPE_DIR%\build_pyopenmvs.bat
+          else: bash $RECIPE_DIR/build_pyopenmvs.sh
       dynamic_linking:
         rpaths:
           - lib/
@@ -172,6 +173,8 @@ outputs:
           then: ${{ compiler('cuda') }}
         - cmake
         - ninja
+        - if: win
+          then: pkg-config
         - if: build_platform != target_platform
           then:
             - python
@@ -199,6 +202,14 @@ outputs:
         - vcglib
         - gmp
         - mpfr
+        # Windows builds OpenMVS's (static) libraries into the module itself
+        - if: win
+          then:
+            - libpng
+            - libjpeg-turbo
+            - libtiff
+            - libjxl
+            - zlib
       run:
         - ${{ pin_subpackage('openmvs', exact=True) }}
         - python
