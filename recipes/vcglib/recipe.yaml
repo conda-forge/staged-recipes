@@ -1,0 +1,56 @@
+schema_version: 1
+
+context:
+  name: vcglib
+  version: "2025.07"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cnr-isti-vclab/vcglib/archive/refs/tags/${{ version }}.tar.gz
+  sha256: e49fc9342d5476b3e39a5e1939b965b57c91d7a17b4f97b8c5eaf01228b16cf0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # Header-only. The bundled Eigen (eigenlib/) is not installed; the only
+    # header using it, vcg/math/eigen.h, is Eigen-2 era code that does not
+    # compile with Eigen 3+ (upstream's own bundled copy included).
+    - mkdir -p $PREFIX/include/vcglib
+    - cp -R vcg wrap img $PREFIX/include/vcglib/
+
+requirements:
+  run:
+    - eigen
+
+tests:
+  - package_contents:
+      include:
+        - vcglib/vcg/complex/complex.h
+        - vcglib/wrap/io_trimesh/import_ply.h
+  - script:
+      - ${CXX} -std=c++17 -fsyntax-only -I$PREFIX/include/vcglib -I$PREFIX/include/eigen3 test.cpp
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+    files:
+      recipe:
+        - test.cpp
+
+about:
+  homepage: https://vcg.isti.cnr.it/vcglib/
+  repository: https://github.com/cnr-isti-vclab/vcglib
+  summary: The VCG Library, a C++ template library for triangle and tetrahedral meshes
+  description: |
+    Header-only C++ library for the manipulation, processing, cleaning and
+    simplification of triangle meshes (used by MeshLab and OpenMVS). Headers
+    are installed under include/vcglib and use conda-forge's eigen.
+  license: GPL-3.0-or-later
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

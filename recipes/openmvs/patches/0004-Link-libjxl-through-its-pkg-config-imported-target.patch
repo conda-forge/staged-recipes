@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 17:32:03 +1000
+Subject: [PATCH] Link libjxl through its pkg-config imported target
+
+pkg_check_modules_fullpath_libs only resolves static libraries; with a shared
+libjxl the IO library linked a bare -ljxl without a search path.
+---
+ libs/IO/CMakeLists.txt | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/libs/IO/CMakeLists.txt b/libs/IO/CMakeLists.txt
+index 7aa172f..d3374be 100644
+--- a/libs/IO/CMakeLists.txt
++++ b/libs/IO/CMakeLists.txt
+@@ -61,10 +61,13 @@ else()
+ 	SET(JPEG_LIBRARIES "")
+ endif()
+ FIND_PACKAGE(PkgConfig REQUIRED)
+-pkg_check_modules_fullpath_libs(JPEGXL libjxl)
++# The full-path helper above only resolves static libraries (.a); with a
++# shared libjxl it falls back to a bare -ljxl. Use pkg-config's imported
++# target, which carries the full library paths.
++pkg_check_modules(JPEGXL QUIET IMPORTED_TARGET libjxl)
+ if(JPEGXL_FOUND)
+ 	SET(_USE_JXL TRUE CACHE INTERNAL "")
+-	set(JPEGXL_LIBRARIES ${JPEGXL_FULLPATH_LIBRARIES})
++	set(JPEGXL_LIBRARIES PkgConfig::JPEGXL)
+ else()
+ 	SET(JPEGXL_LIBRARIES "")
+ endif()

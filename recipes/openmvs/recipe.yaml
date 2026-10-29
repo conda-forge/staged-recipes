@@ -1,0 +1,202 @@
+schema_version: 1
+
+context:
+  version: "2.4.0"
+  build: 0
+  cuda: ${{ cuda_compiler_version != "None" }}
+  cuda_major: ${{ (cuda_compiler_version | default("None") | split(".") | list)[0] }}
+  # Prefer the most optimised x86_64 microarchitecture, then CUDA builds.
+  build_number: ${{ build + 100 * (microarch_level | default(1) | int - 1) + (50 if cuda else 0) }}
+
+recipe:
+  name: openmvs-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cdcseacave/openMVS/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1668a991fa1fdd3540ee47fdba282a7579ed876af713e8fa907625be1cf8dfc8
+  patches:
+    # Boost >= 1.89 no longer ships a boost_system library / CMake config
+    - patches/0001-Do-not-require-the-boost_system-library-header-only-.patch
+    # OpenCV 5: DataType<unsigned/uint64_t> now built in, DIST_* moved to geometry
+    - patches/0002-Support-OpenCV-5.patch
+    # imgui >= 1.92 removed ImGuiSelectableFlags_AllowItemOverlap
+    - patches/0003-Viewer-use-ImGuiSelectableFlags_AllowOverlap-old-nam.patch
+    # upstream's pkg-config helper only resolves static libjxl
+    - patches/0004-Link-libjxl-through-its-pkg-config-imported-target.patch
+    # one Log instance across the shared libraries (was inline per library)
+    - patches/0005-Define-the-Log-singletons-in-Log.cpp.patch
+    # macOS: keep the toolchain's linker flags (tools linked the system libc++)
+    - patches/0006-Append-stdlib-libc-to-CMAKE_EXE_LINKER_FLAGS-instead.patch
+
+build:
+  number: ${{ build_number }}
+  skip: win
+
+outputs:
+  - package:
+      name: openmvs
+    build:
+      number: ${{ build_number }}
+      string: ${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
+      script: build_openmvs.sh
+      dynamic_linking:
+        # OpenMVS's shared libraries (libMVS, libCommon, libIO, libMath) have
+        # generic names, so they stay in lib/OpenMVS
+        rpaths:
+          - lib/
+          - lib/OpenMVS/
+    requirements:
+      build:
+        - if: unix and x86_64
+          then: x86_64-microarch-level ==${{ microarch_level }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - if: cuda
+          then: ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: cuda
+          then:
+            - cuda-version ==${{ cuda_compiler_version }}
+            - cuda-cudart-dev
+            - cuda-driver-dev
+            - libcurand-dev
+        - libboost-devel
+        - eigen
+        - libopencv
+        - cgal-cpp
+        - nanoflann
+        - vcglib
+        - gmp
+        - mpfr
+        - libpng
+        - libjpeg-turbo
+        - libtiff
+        - libjxl
+        - zlib
+        # Viewer
+        - glad
+        - glfw
+        - imgui
+        # imgui's CMake config also requires SDL2 and Vulkan
+        - sdl2
+        - libvulkan-headers
+        - libvulkan-loader
+        - portable-file-dialogs
+        - if: linux
+          then:
+            - libgl-devel
+            - libegl-devel
+      run:
+        - if: cuda
+          then: __cuda
+      ignore_run_exports:
+        from_package:
+          - libvulkan-headers
+          - sdl2
+          - libvulkan-loader
+    tests:
+      - script:
+          # The tools print their usage and exit with status 1 on --help.
+          - for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
+      - package_contents:
+          bin:
+            - DensifyPointCloud
+            - InterfaceCOLMAP
+            - InterfaceMetashape
+            - ReconstructMesh
+            - RefineMesh
+            - TextureMesh
+            - TransformScene
+            - Viewer
+          include:
+            - OpenMVS/MVS/Scene.h
+            - OpenMVS/ConfigLocal.h
+          files:
+            exists:
+              - if: linux
+                then: lib/OpenMVS/libMVS.so
+                else: lib/OpenMVS/libMVS.dylib
+            not_exists:
+              - lib/OpenMVS/*.a
+
+  - package:
+      name: pyopenmvs
+    build:
+      number: ${{ build_number }}
+      string: py${{ python | version_to_buildstring }}${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
+      script: build_pyopenmvs.sh
+      dynamic_linking:
+        rpaths:
+          - lib/
+          - lib/OpenMVS/
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+      host:
+        # the same openmvs build: CUDA changes the layout of OpenMVS classes
+        - ${{ pin_subpackage('openmvs', exact=True) }}
+        - python
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: cuda
+          then:
+            - cuda-version ==${{ cuda_compiler_version }}
+            - cuda-cudart-dev
+            - cuda-driver-dev
+            - libcurand-dev
+        - libboost-devel
+        - libboost-python-devel
+        - eigen
+        - libopencv
+        - cgal-cpp
+        - nanoflann
+        - vcglib
+        - gmp
+        - mpfr
+      run:
+        - ${{ pin_subpackage('openmvs', exact=True) }}
+        - python
+    tests:
+      - python:
+          imports:
+            - pyOpenMVS
+          pip_check: false
+      - script:
+          - python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"
+
+about:
+  homepage: https://cdcseacave.github.io/openMVS
+  repository: https://github.com/cdcseacave/openMVS
+  documentation: https://github.com/cdcseacave/openMVS/wiki
+  summary: Open Multi-View Stereo reconstruction library
+  description: |
+    OpenMVS reconstructs dense point clouds, meshes and textured meshes from
+    calibrated photos (e.g. a COLMAP, Metashape or OpenMVG camera solution).
+    `openmvs` ships the command-line tools, the Viewer and the shared
+    libraries (with CUDA variants on Linux); `pyopenmvs` ships the Python
+    bindings (pyOpenMVS).
+  license: AGPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
