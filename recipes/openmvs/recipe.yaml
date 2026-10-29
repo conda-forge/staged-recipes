@@ -31,7 +31,6 @@ source:
 
 build:
   number: ${{ build_number }}
-  skip: win
 
 outputs:
   - package:
@@ -39,7 +38,10 @@ outputs:
     build:
       number: ${{ build_number }}
       string: ${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
-      script: build_openmvs.sh
+      script:
+        - if: win
+          then: call %RECIPE_DIR%\build_openmvs.bat
+          else: bash $RECIPE_DIR/build_openmvs.sh
       dynamic_linking:
         # OpenMVS's shared libraries (libMVS, libCommon, libIO, libMath) have
         # generic names, so they stay in lib/OpenMVS
@@ -106,17 +108,10 @@ outputs:
     tests:
       - script:
           # The tools print their usage and exit with status 1 on --help.
-          - for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
+          - if: unix
+            then: for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
+            else: for %%t in (DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh) do (call %%t --help > help.txt 2>&1 & findstr /C:"Available options" help.txt || exit 1)
       - package_contents:
-          bin:
-            - DensifyPointCloud
-            - InterfaceCOLMAP
-            - InterfaceMetashape
-            - ReconstructMesh
-            - RefineMesh
-            - TextureMesh
-            - TransformScene
-            - Viewer
           include:
             - OpenMVS/MVS/Scene.h
             - OpenMVS/ConfigLocal.h
@@ -124,13 +119,29 @@ outputs:
             exists:
               - if: linux
                 then: lib/OpenMVS/libMVS.so
-                else: lib/OpenMVS/libMVS.dylib
+              - if: osx
+                then: lib/OpenMVS/libMVS.dylib
+              - if: unix
+                then:
+                  - bin/DensifyPointCloud
+                  - bin/InterfaceCOLMAP
+                  - bin/TextureMesh
+                  - bin/Viewer
+              - if: win
+                then:
+                  - Library/bin/OpenMVS/MVS.dll
+                  - Library/bin/OpenMVS/DensifyPointCloud.exe
+                  - Library/bin/OpenMVS/Viewer.exe
+                  - Library/bin/DensifyPointCloud.bat
             not_exists:
-              - lib/OpenMVS/*.a
+              - if: unix
+                then: lib/OpenMVS/*.a
 
   - package:
       name: pyopenmvs
     build:
+      # Windows: needs os.add_dll_directory for the OpenMVS DLLs; not yet
+      skip: win
       number: ${{ build_number }}
       string: py${{ python | version_to_buildstring }}${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
       script: build_pyopenmvs.sh
