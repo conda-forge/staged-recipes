@@ -1,0 +1,109 @@
+context:
+  version: "2026.09.30"
+  # Upstream tags releases by date, e.g. YYYY-MM-DD
+  tag: ${{ version | replace(".", "-") }}
+
+recipe:
+  name: wgsl-analyzer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/wgsl-analyzer/wgsl-analyzer/archive/refs/tags/${{ tag }}.tar.gz
+  sha256: 656ca21fc1e37bc8c1bab25c434b315ba910d4f6702ee6905e20e9860e8f482c
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: wgsl-analyzer-build
+    requirements:
+      build:
+        - ${{ compiler('rust') }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - cargo-auditable
+        - cargo-bundle-licenses
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+          CARGO_PROFILE_RELEASE_LTO: fat
+        content:
+          - cd crates/wgsl-analyzer && cargo-bundle-licenses --format yaml --output ../../THIRDPARTY-wgsl-analyzer.yml && cd ../..
+          - cd crates/wgslfmt && cargo-bundle-licenses --format yaml --output ../../THIRDPARTY-wgslfmt.yml && cd ../..
+          - if: unix
+            then:
+              - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/wgsl-analyzer
+              - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/wgslfmt
+            else:
+              - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/wgsl-analyzer
+              - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/wgslfmt
+
+  - package:
+      name: wgsl-analyzer
+    inherit: wgsl-analyzer-build
+    build:
+      files:
+        - if: unix
+          then: bin/wgsl-analyzer
+          else: Library/bin/wgsl-analyzer.exe
+    tests:
+      - script:
+          - wgsl-analyzer --version
+          - wgsl-analyzer --help
+      - package_contents:
+          strict: true
+          bin:
+            - wgsl-analyzer
+    about:
+      summary: A language server implementation for WGSL and WESL
+      description: |
+        wgsl-analyzer is a language server for WGSL (WebGPU Shading Language) and
+        WESL, providing completions, diagnostics, go-to-definition, hover and more
+        to any LSP-compatible editor.
+      license_file:
+        - LICENSE-MIT
+        - LICENSE-APACHE
+        - THIRDPARTY-wgsl-analyzer.yml
+
+  - package:
+      name: wgslfmt
+    inherit: wgsl-analyzer-build
+    build:
+      files:
+        - if: unix
+          then: bin/wgslfmt
+          else: Library/bin/wgslfmt.exe
+    tests:
+      - script:
+          - wgslfmt --version
+          - wgslfmt --help
+      - package_contents:
+          strict: true
+          bin:
+            - wgslfmt
+    about:
+      summary: Tool to find and fix WGSL/WESL formatting issues
+      description: |
+        wgslfmt formats WGSL (WebGPU Shading Language) and WESL source files and
+        can check them for formatting issues, e.g. in CI.
+      license_file:
+        - LICENSE-MIT
+        - LICENSE-APACHE
+        - THIRDPARTY-wgslfmt.yml
+
+about:
+  homepage: https://wgsl-analyzer.github.io
+  summary: Language server and formatter for WGSL and WESL
+  license: MIT OR Apache-2.0
+  # each output overrides this with its own bundled third-party licenses
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+  repository: https://github.com/wgsl-analyzer/wgsl-analyzer
+  documentation: https://wgsl-analyzer.github.io
+
+extra:
+  recipe-maintainers:
+    - VasanthakumarV
