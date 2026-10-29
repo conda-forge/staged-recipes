@@ -2,6 +2,7 @@
 #include <vcg/complex/complex.h>
 #include <vcg/complex/algorithms/update/normal.h>
 #include <wrap/io_trimesh/import_ply.h>
+#include <wrap/io_trimesh/import_fbx.h>
 
 class MyVertex;
 class MyFace;
@@ -15,5 +16,7 @@ int main() {
     vcg::tri::Allocator<MyMesh>::AddVertices(m, 3);
     vcg::tri::Allocator<MyMesh>::AddFaces(m, 1);
     vcg::tri::UpdateNormal<MyMesh>::PerFace(m);
-    return 0;
+    // instantiate the FBX importer against conda-forge's openfbx (not called)
+    int (*open_fbx)(MyMesh&, const char*, vcg::CallBackPos*) = &vcg::tri::io::ImporterFBX<MyMesh>::Open;
+    return open_fbx == nullptr;
 }
