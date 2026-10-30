@@ -30,14 +30,4 @@ ln -s libipopt.so.1.9.9 "$SP_DIR/epcsaft/libipopt.so.1"
 for library in "$SP_DIR/epcsaft"/*.so "$SP_DIR/epcsaft/libipopt.so.1.9.9"; do
     patchelf --set-rpath '$ORIGIN:$ORIGIN/../../..' "$library"
 done
-mkdir -p licenses
-"$PYTHON" - <<'PY'
-from importlib import metadata
-from pathlib import Path
-import nanobind
-dist = metadata.distribution("nanobind")
-license_path = next(p for p in dist.files if str(p).endswith("/licenses/LICENSE"))
-Path("licenses/nanobind-LICENSE").write_text(dist.locate_file(license_path).read_text())
-header = Path(nanobind.__file__).parent / "ext/robin_map/include/tsl/robin_map.h"
-Path("licenses/robin-map-LICENSE").write_text(header.read_text().split("*/", 1)[0] + "*/\n")
-PY
+"$PYTHON" "$RECIPE_DIR/licenses.py"
