@@ -3,6 +3,10 @@
 if exist libs\qCC_io\extern\shapelib rmdir /s /q libs\qCC_io\extern\shapelib
 if exist libs\qCC_io\extern\dxflib rmdir /s /q libs\qCC_io\extern\dxflib
 if exist qCC\extern\QCustomPlot rmdir /s /q qCC\extern\QCustomPlot
+:: the qdarkstyle package's style sheets (compiled into the applications)
+for /f "delims=" %%i in ('call "%BUILD_PREFIX%\python.exe" -c "import os, qdarkstyle; print(os.path.dirname(qdarkstyle.__file__))"') do set "QDARKSTYLE=%%i"
+if not exist "%QDARKSTYLE%\dark\darkstyle.qrc" exit 1
+set "QDARKSTYLE=%QDARKSTYLE:\=/%"
 
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
@@ -12,7 +16,7 @@ cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DOPTION_USE_SYSTEM_SHAPE_LIB=ON ^
   -DOPTION_USE_SYSTEM_DXF_LIB=ON ^
   -DOPTION_USE_SYSTEM_QCUSTOMPLOT=ON ^
-  -DQDARKSTYLESHEET_DIR=%BUILD_PREFIX%\Lib\site-packages\qdarkstyle ^
+  -DQDARKSTYLESHEET_DIR=%QDARKSTYLE% ^
   -DCCCORELIB_USE_SYSTEM_NANOFLANN=ON ^
   -DPLUGIN_IO_QE57=ON ^
   -DPLUGIN_IO_QE57_USE_SYSTEM_LIBE57FORMAT=ON ^
