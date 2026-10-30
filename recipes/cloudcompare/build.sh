@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euxo pipefail
 # bundled copies of libraries conda-forge provides (see the patches)
-rm -rf libs/qCC_io/extern/shapelib
+rm -rf libs/qCC_io/extern/shapelib libs/qCC_io/extern/dxflib qCC/extern/QCustomPlot
+QDARKSTYLE=$(ls -d ${BUILD_PREFIX}/lib/python3.*/site-packages/qdarkstyle)
 EXTRA=""
 if [[ "${target_platform}" == osx-* ]]; then
   # Apple's OpenGL framework, not XQuartz's /usr/X11R6 libGL
@@ -12,6 +13,9 @@ cmake -S . -B build -G Ninja ${CMAKE_ARGS} ${EXTRA} \
   -DCMAKE_PREFIX_PATH=$PREFIX \
   -DOPTION_DEPLOY_QT=OFF \
   -DOPTION_USE_SYSTEM_SHAPE_LIB=ON \
+  -DOPTION_USE_SYSTEM_DXF_LIB=ON \
+  -DOPTION_USE_SYSTEM_QCUSTOMPLOT=ON \
+  -DQDARKSTYLESHEET_DIR=${QDARKSTYLE} \
   -DCCCORELIB_USE_SYSTEM_NANOFLANN=ON \
   -DPLUGIN_IO_QE57=ON \
   -DPLUGIN_IO_QE57_USE_SYSTEM_LIBE57FORMAT=ON \

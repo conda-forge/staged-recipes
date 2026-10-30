@@ -1,6 +1,8 @@
 @echo on
 :: bundled copies of libraries conda-forge provides (see the patches)
 if exist libs\qCC_io\extern\shapelib rmdir /s /q libs\qCC_io\extern\shapelib
+if exist libs\qCC_io\extern\dxflib rmdir /s /q libs\qCC_io\extern\dxflib
+if exist qCC\extern\QCustomPlot rmdir /s /q qCC\extern\QCustomPlot
 
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
@@ -8,6 +10,9 @@ cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DOPTION_DEPLOY_QT=OFF ^
   -DOPTION_USE_SYSTEM_SHAPE_LIB=ON ^
+  -DOPTION_USE_SYSTEM_DXF_LIB=ON ^
+  -DOPTION_USE_SYSTEM_QCUSTOMPLOT=ON ^
+  -DQDARKSTYLESHEET_DIR=%BUILD_PREFIX%\Lib\site-packages\qdarkstyle ^
   -DCCCORELIB_USE_SYSTEM_NANOFLANN=ON ^
   -DPLUGIN_IO_QE57=ON ^
   -DPLUGIN_IO_QE57_USE_SYSTEM_LIBE57FORMAT=ON ^
