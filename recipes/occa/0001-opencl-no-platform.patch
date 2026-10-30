@@ -1,0 +1,28 @@
+--- a/src/occa/internal/modes/opencl/utils.cpp
++++ b/src/occa/internal/modes/opencl/utils.cpp
+@@ -22,14 +22,23 @@
+     int getPlatformCount() {
+       cl_uint platformCount = 0;
+ 
+-      OCCA_OPENCL_ERROR("OpenCL: Get Platform ID Count",
+-                        clGetPlatformIDs(0, NULL, &platformCount));
++      // The ICD loader returns CL_PLATFORM_NOT_FOUND_KHR (-1001) when no
++      // OpenCL driver is installed; treat that as "no platforms" so that
++      // OpenCL is reported as unavailable instead of aborting.
++      const cl_int error = clGetPlatformIDs(0, NULL, &platformCount);
++      if (error == -1001) {
++        return 0;
++      }
++      OCCA_OPENCL_ERROR("OpenCL: Get Platform ID Count", error);
+ 
+       return platformCount;
+     }
+ 
+     std::vector<cl_platform_id> getPlatforms(cl_device_type device_type) {
+       int platform_count = getPlatformCount();
++      if (platform_count == 0) {
++        return std::vector<cl_platform_id>();
++      }
+       std::vector<cl_platform_id> all_platforms(platform_count);
+       
+       OCCA_OPENCL_ERROR("OpenCL: Get Platform ID",
