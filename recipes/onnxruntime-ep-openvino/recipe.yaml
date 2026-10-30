@@ -1,0 +1,69 @@
+schema_version: 1
+
+context:
+  version: "1.8.1"
+
+package:
+  name: onnxruntime-ep-openvino
+  version: ${{ version }}
+
+source:
+  url: https://github.com/onnxruntime/onnxruntime-ep-openvino/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c19d9ce0d462d0cb67761b0eb1766972a3f2f5943a2c62c2226bfca63ab0ff4f
+  patches:
+    - patches/0001-use-conda-forge-gsl-and-nlohmann-json.patch
+    - patches/0002-option-to-skip-bundling-runtime-libraries.patch
+    - patches/0003-use-stable-epcontextconfig-with-ort-1.31.patch
+
+build:
+  number: 0
+  skip:
+    - not x86_64
+    - osx
+  script: build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - libopenvino-dev
+    - onnxruntime-cpp
+    - ms-gsl
+    - nlohmann_json
+
+tests:
+  - package_contents:
+      files:
+        - if: linux
+          then: lib/libonnxruntime_providers_openvino_plugin.so
+          else: Library/bin/onnxruntime_providers_openvino_plugin.dll
+  - script:
+      - python test_ep_openvino.py CPU
+    requirements:
+      run:
+        - python
+        - onnxruntime
+        - onnx
+        - numpy
+    files:
+      recipe:
+        - test_ep_openvino.py
+
+about:
+  homepage: https://github.com/onnxruntime/onnxruntime-ep-openvino
+  summary: OpenVINO Execution Provider plugin for ONNX Runtime
+  description: |
+    The OpenVINO Execution Provider as an ONNX Runtime plugin EP: a single shared
+    library that any ONNX Runtime 1.23+ application can load with
+    register_execution_provider_library, to run models on Intel CPUs, GPUs and
+    NPUs through OpenVINO.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
