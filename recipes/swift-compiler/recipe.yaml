@@ -1,0 +1,302 @@
+schema_version: 1
+
+context:
+  version: "6.4.0"
+
+recipe:
+  name: swift-compiler
+  version: ${{ version }}
+
+source:
+  # Keep platform-independent copies available for every output's license.
+  - path: LICENSE.txt
+  - path: LICENSE-LLVM.txt
+  - path: LICENSE-Unicode.txt
+  - if: osx
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/xcode/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-osx.pkg
+      sha256: 8fd03185b98fe27f54a54631c2449decf75d5b466ce8e34abbd414141063c6aa
+      file_name: swift.pkg
+  - if: linux and x86_64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2023/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2023.tar.gz
+      sha256: b285b14886c58450f37f411eece4fc8ef49b2bb2ce9c2e4dac3d768965f8e35b
+  - if: linux and aarch64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/amazonlinux2023-aarch64/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-amazonlinux2023-aarch64.tar.gz
+      sha256: bab95f4809c7c12db3695741cefb206146c300822452a28d728843f5a01691fb
+  - if: win and x86_64
+    then:
+      url: https://download.swift.org/swift-${{ version }}-release/windows10/swift-${{ version }}-RELEASE/swift-${{ version }}-RELEASE-windows10.exe
+      sha256: 76169a85bcba82854a0cd8f9655ffb74b3758d60c35a245457510095f2823c03
+      file_name: swift-installer.exe
+
+build:
+  number: 0
+  skip:
+    - build_platform != target_platform
+    - linux and not (x86_64 or aarch64)
+    - win and not x86_64
+
+outputs:
+  # The Swift standard library and core libraries. Swift has no stable ABI on
+  # Linux or Windows, so packages built with Swift need the runtime of the
+  # exact compiler version. macOS ships the Swift runtime in the OS.
+  - package:
+      name: swift-runtime
+      version: ${{ version }}
+    build:
+      skip:
+        - osx
+      script:
+        - if: win
+          then: build-runtime.bat
+          else: build-runtime.sh
+      dynamic_linking:
+        rpaths:
+          - lib/
+          - libexec/swift/usr/lib/swift/linux/
+    requirements:
+      build:
+        - if: linux
+          then: ${{ stdlib('c') }}
+        - if: win
+          then:
+            - 7zip
+            # Only runs extract-burn.py; a version spec keeps it from
+            # becoming a build variant.
+            - python >=3.10
+      host:
+        - if: linux
+          then:
+            - libcurl
+            - libgcc
+            - libstdcxx
+            # FoundationXML links libxml2.so.2; libxml2 >=2.14 is ABI 16.
+            - libxml2 2.13.*
+            - libzlib
+            - zstd
+      run:
+        - if: linux
+          then:
+            - libgcc
+            - libstdcxx
+        # The bundled MSVC runtime DLLs are not repackaged; this is the
+        # version they were built against.
+        - if: win
+          then:
+            - ucrt >=10.0.20348.0
+            - vc14_runtime >=14.42.34433
+    tests:
+      - if: linux
+        then:
+          - package_contents:
+              files:
+                - libexec/swift/usr/lib/swift/linux/libswiftCore.so
+                - libexec/swift/usr/lib/swift/linux/libFoundation.so
+                - libexec/swift/usr/lib/swift/linux/libFoundationNetworking.so
+                - libexec/swift/usr/lib/swift/linux/libFoundationXML.so
+                - libexec/swift/usr/lib/swift/linux/libdispatch.so
+      - if: win
+        then:
+          - package_contents:
+              files:
+                exists:
+                  - Library/bin/swiftCore.dll
+                  - Library/bin/Foundation.dll
+                  - Library/bin/dispatch.dll
+                # Provided by vc14_runtime.
+                not_exists:
+                  - Library/bin/vcruntime140.dll
+                  - Library/bin/msvcp140.dll
+
+  - package:
+      name: swift
+      version: ${{ version }}
+    build:
+      script:
+        - if: win
+          then: build.bat
+          else: build.sh
+      dynamic_linking:
+        rpaths:
+          - lib/
+          - if: linux
+            then:
+              - libexec/swift/usr/lib/
+              - libexec/swift/usr/lib/swift/linux/
+              - libexec/swift/usr/lib/swift/host/
+              - libexec/swift/usr/lib/swift/host/compiler/
+        # The macOS toolchain uses executable- and loader-relative runtime
+        # paths, plus the OS Swift runtime. They are already relocatable and
+        # must survive Mach-O post-processing. Its host libraries have no
+        # rpaths of their own and resolve through the loading executable's.
+        rpath_allowlist:
+          - "@executable_path/**"
+          - "@loader_path/**"
+          - /usr/lib/swift
+    requirements:
+      build:
+        - if: unix
+          then: ${{ stdlib('c') }}
+        - if: win
+          then:
+            - 7zip
+            # Only runs extract-burn.py; a version spec keeps it from
+            # becoming a build variant.
+            - python >=3.10
+      host:
+        - if: not osx
+          then:
+            - ${{ pin_subpackage('swift-runtime', exact=True) }}
+        - if: linux
+          then:
+            - libgcc
+            - libstdcxx
+            - libsqlite
+            - libuuid
+            - libxml2 2.13.*
+            - libzlib
+            - ncurses
+            - zstd
+      run:
+        - if: not osx
+          then:
+            - ${{ pin_subpackage('swift-runtime', exact=True) }}
+        - if: linux
+          then:
+            - libgcc
+            - libstdcxx
+        # The toolchain's DLLs link the MSVC runtime directly.
+        - if: win
+          then:
+            - ucrt >=10.0.20348.0
+            - vc14_runtime >=14.42.34433
+        # Swift invokes a platform C toolchain and linker when producing native
+        # executables. This also supplies the conda-forge SDK/sysroot.
+        - ${{ compiler('c') }}
+    tests:
+      - if: unix
+        then:
+          - package_contents:
+              bin:
+                - sourcekit-lsp
+                - swift
+                - swift-format
+                - swift-package
+                - swiftc
+      - if: linux
+        then:
+          - package_contents:
+              files:
+                exists:
+                  - libexec/swift/usr/share/swift/LICENSE.txt
+                  - libexec/swift/usr/lib/swift_static/linux/libswiftCore.a
+                not_exists:
+                  # Packaged by swift-runtime.
+                  - libexec/swift/usr/lib/swift/linux/libswiftCore.so
+                  # LLDB needs the upstream build host's Python 3.9.
+                  - libexec/swift/usr/lib/liblldb.so*
+      - if: osx
+        then:
+          - package_contents:
+              files:
+                - libexec/swift/usr/lib/swift/macosx/libswiftCore.dylib
+                - libexec/swift/usr/share/swift/LICENSE.txt
+      - if: win
+        then:
+          - package_contents:
+              files:
+                exists:
+                  - Scripts/swiftc.bat
+                  - Library/swift/Platforms/*/Windows.platform/Developer/SDKs/Windows.sdk/usr/lib/swift/windows/x86_64/**
+                not_exists:
+                  - Library/swift/Platforms/*/Windows.platform/Developer/SDKs/Windows.sdk/usr/lib/swift/windows/aarch64/**
+                  - Library/swift/Platforms/*/Windows.platform/Developer/SDKs/Windows.sdk/usr/lib/swift/windows/i686/**
+      - script:
+          - if: unix
+            then:
+              - swift --version
+              - swiftc hello.swift -o hello
+              - test "$(./hello)" = "Swift works"
+              - swift hello.swift | grep "Swift works"
+              - cd SmokePackage
+              - swift build
+              - swift run SmokePackage a b | tee out.txt
+              - grep -F '{"ok":true} 3 7 a,b' out.txt
+              - cd ..
+          - if: osx
+            then:
+              # A direct swiftc invocation follows the conda-forge deployment
+              # target instead of the build machine's macOS version.
+              - export MACOSX_DEPLOYMENT_TARGET=11.0
+              - swiftc hello.swift -o hello-dt
+              - otool -l hello-dt | grep -A3 LC_BUILD_VERSION | grep "minos 11.0"
+          - if: win
+            then:
+              # The launchers are batch files, so they must be called.
+              - call swiftc --version
+              # Link, but do not launch, an executable. Launching freshly linked
+              # executables causes intermittent file locks during
+              # rattler-build's Windows test-environment cleanup.
+              - if not exist "%TEMP%\swift-link-test" mkdir "%TEMP%\swift-link-test"
+              - call swiftc hello.swift -o "%TEMP%\swift-link-test\hello.exe"
+              - if not exist "%TEMP%\swift-link-test\hello.exe" exit 1
+        files:
+          recipe:
+            - hello.swift
+            - SmokePackage/
+
+  # compiler('swift') expands to this target-qualified activation package.
+  - package:
+      name: swift_${{ target_platform }}
+      version: ${{ version }}
+    build:
+      script:
+        - if: win
+          then: build-activation.bat
+          else: build-activation.sh
+    requirements:
+      run:
+        - ${{ pin_subpackage('swift', exact=True) }}
+      # Packages built with Swift dynamically link its standard library, which
+      # has no stable ABI outside Apple platforms.
+      run_exports:
+        strong:
+          - if: not osx
+            then: ${{ pin_subpackage('swift-runtime', upper_bound='x.x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then:
+              - test "$CONDA_SWIFT_COMPILER" = "1"
+              - '"$SWIFT" --version'
+          - if: win
+            then:
+              - if not "%CONDA_SWIFT_COMPILER%"=="1" exit /b 1
+              - '"%SWIFT%" --version'
+    about:
+      summary: Swift compiler activation package for ${{ target_platform }}
+
+about:
+  homepage: https://www.swift.org/
+  repository: https://github.com/swiftlang/swift
+  documentation: https://www.swift.org/documentation/
+  # Swift, its core libraries and tools; the bundled LLVM/Clang toolchain;
+  # and the ICU data used by Foundation.
+  license: Apache-2.0 WITH Swift-exception AND Apache-2.0 WITH LLVM-exception AND Unicode-3.0
+  license_file:
+    - LICENSE.txt
+    - LICENSE-LLVM.txt
+    - LICENSE-Unicode.txt
+  summary: Swift programming language compiler and developer toolchain
+  description: |
+    Swift is a general-purpose programming language built using a modern
+    approach to safety, performance, and software design patterns. These
+    packages repackage the official Swift.org toolchains. The swift-runtime
+    package contains the Swift standard and core libraries needed by programs
+    built with Swift on Linux and Windows.
+
+extra:
+  recipe-maintainers:
+    - wolfv
