@@ -1,0 +1,78 @@
+schema_version: 1
+
+context:
+  name: nep-compress
+  version: "1.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/captainkirk99/nep-compress/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1f55bf23d6fb6552c14d868416f71c194843f5d7c011d7571fedfd64a2a45e1e
+
+build:
+  number: 0
+  skip:
+    - not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - libnetcdf >=4.10.1
+    - libnetcdf * nompi_*
+    - netcdf-fortran
+    - netcdf-fortran * nompi_*
+    - hdf5
+    - hdf5 * nompi_*
+    - lz4-c
+  run_constraints:
+    - hdf5-external-filter-plugins-lz4 <0.0.0a0
+
+tests:
+  - script:
+      - test -f $PREFIX/lib/libnepcompress${SHLIB_EXT}
+      - test -f $PREFIX/lib/libnepcompressf${SHLIB_EXT}
+      - test -f $PREFIX/include/nep_compress.h
+      - test -f $PREFIX/lib/cmake/NEPCompress/NEPCompressConfig.cmake
+      - test -f $PREFIX/lib/hdf5/plugin/libh5lz4_nepcompress.so
+      - test ! -e $PREFIX/lib/plugin
+      - cmake -S test/consumer -B consumer-build -G Ninja -DCMAKE_PREFIX_PATH=$PREFIX
+      - cmake --build consumer-build
+      - ./consumer-build/consumer_c
+      - ./consumer-build/consumer_fortran
+    files:
+      source:
+        - test/consumer/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('fortran') }}
+        - cmake
+        - ninja
+        - pkg-config
+
+about:
+  homepage: https://captainkirk99.github.io/nep-compress/
+  repository: https://github.com/captainkirk99/nep-compress
+  documentation: https://captainkirk99.github.io/nep-compress/
+  license: MIT
+  license_file: LICENSE
+  summary: Additional compression filters (LZ4 plugin, BZIP2 Fortran API) for NetCDF-4/HDF5
+  description: |
+    nep-compress provides an LZ4 HDF5 filter plugin (ID 32004) with C and
+    Fortran APIs, and Fortran wrappers for NetCDF-C's BZIP2 filter. The LZ4
+    plugin is installed in HDF5's default plugin directory, so no
+    HDF5_PLUGIN_PATH setting is needed.
+
+extra:
+  recipe-maintainers:
+    - edhartnett
+    - captainkirk99
