@@ -1,0 +1,97 @@
+--- a/CppCore/meson.build
++++ b/CppCore/meson.build
+@@ -986,23 +986,25 @@
+ # XTBDlopen frontend still builds; set RGPOT_XTB_ENGINE for libxtb_engine.so.
+ # See docs/eon_pkgconfig.md.
+ if not meson.is_subproject()
+-    # Headers: #include "rgpot/NWChemPot/..." with -I${prefix}/include
+-    install_subdir(
+-        'rgpot',
+-        install_dir: get_option('includedir'),
+-        exclude_directories: ['__pycache__'],
+-        exclude_files: [
+-            '*.o',
+-            '*.a',
+-            '*.so',
+-            '*.cc',
+-            '*.c',
+-            '*.cpp',
+-            '*.f90',
+-            '*.F',
+-            '*.py',
+-        ],
+-    )
++    # Headers: #include "rgpot/NWChemPot/..." with -I${prefix}/include.
++    # exclude_files is an exact relative path, so a glob excludes
++    # nothing and the source tree would land in the include prefix.
++    # The public files are the headers.
++    _header_py = find_program('python3', 'python')
++    _public_headers = run_command(
++        _header_py,
++        '-c',
++        '''
++import pathlib, sys
++root = pathlib.Path(sys.argv[1])
++for path in sorted(root.rglob('*')):
++    if path.suffix in {'.h', '.hpp'} and '__pycache__' not in path.parts:
++        print(path.relative_to(root.parent).as_posix())
++''',
++        meson.current_source_dir() / 'rgpot',
++        check: true,
++    ).stdout().replace('\r', '').strip().split('\n')
++    install_headers(_public_headers, preserve_path: true)
+     if _rpc_stack
+         # Schema source next to generated header (rpc meson installs .h).
+         install_data(
+--- a/CppCore/rgpot/CPMDPot/CPMDPot.hpp
++++ b/CppCore/rgpot/CPMDPot/CPMDPot.hpp
+@@ -15,6 +15,7 @@
+ 
+ namespace rgpot {
+ 
++RGPOT_FRONTEND_WARN_PUSH
+ class RGPOT_FRONTEND_API CPMDPot : public Potential<CPMDPot> {
+ public:
+   CPMDPot();
+@@ -76,5 +77,6 @@
+ 
+   void forceImplOrThrow(const ForceInput &in, ForceOut *out) const;
+ };
++RGPOT_FRONTEND_WARN_POP
+ 
+ } // namespace rgpot
+--- a/CppCore/rgpot/frontend_api.hpp
++++ b/CppCore/rgpot/frontend_api.hpp
+@@ -17,3 +17,15 @@
+ #else
+ #define RGPOT_FRONTEND_API
+ #endif
++
++// PotentialBase is header-only and the frontend holds a pimpl pointer.
++// Those are not separate exports, and MSVC warns about both on a
++// dll-interface class.
++#if defined(_MSC_VER)
++#define RGPOT_FRONTEND_WARN_PUSH                                           \
++  __pragma(warning(push)) __pragma(warning(disable : 4251 4275))
++#define RGPOT_FRONTEND_WARN_POP __pragma(warning(pop))
++#else
++#define RGPOT_FRONTEND_WARN_PUSH
++#define RGPOT_FRONTEND_WARN_POP
++#endif
+--- a/CppCore/rgpot/NWChemPot/NWChemPot.hpp
++++ b/CppCore/rgpot/NWChemPot/NWChemPot.hpp
+@@ -18,6 +18,7 @@
+ 
+ namespace rgpot {
+ 
++RGPOT_FRONTEND_WARN_PUSH
+ class RGPOT_FRONTEND_API NWChemPot : public Potential<NWChemPot> {
+ public:
+   NWChemPot();
+@@ -57,5 +58,6 @@
+   struct Impl;
+   Impl *impl_;
+ };
++RGPOT_FRONTEND_WARN_POP
+ 
+ } // namespace rgpot
