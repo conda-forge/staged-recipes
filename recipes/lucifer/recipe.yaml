@@ -1,0 +1,134 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+  # NOTE: keep in sync with Bmad release Lucifer has in BMAD_RELEASE
+  bmad_version: "20261023.0"
+  build: 0
+
+recipe:
+  name: lucifer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ChristopherMayes/lucifer/archive/v${{ version }}.tar.gz
+  sha256: a808e51d4229285466e4199258538e78f0802b4ecbce8d0328e717fdce6e39af
+
+build:
+  number: ${{ build }}
+  skip:
+    - win
+
+outputs:
+  - package:
+      name: lucifer
+    build:
+      script: build.sh
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ compiler("fortran") }}
+        - ${{ stdlib("c") }}
+        - cmake
+        - make
+        - if: linux
+          then: libgomp
+      host:
+        - bmad ${{ bmad_version }}.* nompi_*
+        - hdf5 ${{ hdf5 }}.* nompi_*
+        - toml-f
+        - fftw
+        - fgsl
+        - gsl
+        - libxraylib
+        - lapack95
+        - libopenblas
+        - if: osx
+          then:
+            - libgcc
+            - llvm-openmp
+      run:
+        - bmad >=${{ bmad_version }}
+        - lapack95
+        - libopenblas
+        - if: osx
+          then:
+            - libgcc
+            - llvm-openmp
+    tests:
+      - script:
+          - test -f $PREFIX/lib/liblucifer.a
+          - test -f $PREFIX/include/lucifer/fel_struct.mod
+          - lucifer --version
+          - lucifer --version | grep -F "Lucifer version v${{ version }}"
+          - lucifer --schema schema.json
+          - test -s schema.json
+          - cd examples/steady_state && OMP_NUM_THREADS=2 lucifer lucifer.toml beam.n_particle=512
+        files:
+          source:
+            - examples/aramis.bmad
+            - examples/steady_state/
+
+  - package:
+      name: pylucifer
+    build:
+      noarch: python
+      script:
+        - export SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }}
+        - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77
+        - setuptools-scm >=8
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage("lucifer", upper_bound="x.x") }}
+        - numpy >=1.24
+        - h5py >=3.8
+    tests:
+      - python:
+          imports:
+            - lucifer
+            - lucifer.models
+            - lucifer.runner
+            - lucifer.schema
+            - lucifer.stats
+            - lucifer.dumps
+            - lucifer.beam
+            - lucifer.field
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - script:
+          - python -c "import lucifer; assert lucifer.__version__ == '${{ version }}', lucifer.__version__"
+          - cd python && python -m pytest tests -q
+        files:
+          source:
+            - python/tests/
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest
+
+about:
+  homepage: https://github.com/ChristopherMayes/lucifer
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: Lucifer is a free-electron-laser tracker inside Bmad.
+  description: |
+    Lucifer is a free-electron-laser tracker inside Bmad. Its physics is
+    transcribed from Genesis 1.3 Version 4 and embedded in Bmad's lattice
+    machinery: FEL segments are Bmad wiggler elements tracked by a Bmad FEL
+    method, so a Lucifer lattice is a Bmad lattice. pylucifer is the Python
+    side: the input file as typed models, a runner, and readers for the
+    output files.
+  documentation: https://christophermayes.github.io/lucifer/
+
+extra:
+  feedstock-name: lucifer
+  recipe-maintainers:
+    - ken-lauer
