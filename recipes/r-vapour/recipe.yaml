@@ -1,0 +1,183 @@
+schema_version: 1
+
+context:
+  version: "0.16.0"
+
+package:
+  name: r-vapour
+  version: ${{ version }}
+
+source:
+  url:
+    - ${{ cran_mirror }}/src/contrib/vapour_${{ version }}.tar.gz
+    - ${{ cran_mirror }}/src/contrib/Archive/vapour/vapour_${{ version }}.tar.gz
+  sha256: 865927d1036ebd948e7897b4da83af89b036fde87cd6857e84001345bdc1590f
+  patches:
+    # Link configure's GDAL/PROJ test programs with LDFLAGS so they get the
+    # $PREFIX/lib rpath and can run; remove once fixed upstream.
+    - pass-ldflags-to-configure-test-links.patch
+    # conda-forge's Windows gdal.pc is MSVC-style and breaks R's link command,
+    # so link the GDAL and PROJ import libraries directly (as r-sf does).
+    - link-conda-forge-gdal-proj-on-windows.patch
+    # Drop a global `using namespace std;` that makes `list` ambiguous with
+    # cpp11::list under the MSVC STL; remove once fixed upstream.
+    - drop-using-namespace-std.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        # The r_clang wrapper drops R's generated tmp.def export list, so
+        # export the package init function explicitly (as r-sf does). sed
+        # succeeds even without a match, so check the edit took effect.
+        - sed -i -e "s/attribute_visible void R_init_vapour/__declspec(dllexport) void R_init_vapour/" src/cpp11.cpp
+        - findstr /c:"__declspec(dllexport) void R_init_vapour" src\cpp11.cpp >nul || exit /b 1
+        - R CMD INSTALL --build . %R_ARGS%
+      else: R CMD INSTALL --build . ${R_ARGS}
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - cross-r-base ${{ r_base }}.*
+    # vapour uses the GDAL C++ API, and conda-forge's Windows GDAL is built
+    # with MSVC, so build with the MSVC-ABI compatible r_clang (as r-sf does)
+    # rather than MinGW-w64. MSYS2 make strips the shell quoting R passes in
+    # SHLIB_LD, which native make does not.
+    - if: win
+      then:
+        - ${{ compiler("r_clang") }}
+        - m2-filesystem
+        - m2-make
+        - m2-sed
+        - m2-coreutils
+        - m2-zip
+      else:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - make
+        # Only configure (unix) uses pkg-config, to find PROJ.
+        - pkg-config
+    - ${{ stdlib("c") }}
+  host:
+    - libgdal-core
+    - proj
+    - r-base
+    - r-cpp11
+    - r-jsonlite
+    - r-nanoarrow
+    - r-stringr
+    - r-wk
+  run:
+    - r-base
+    - r-jsonlite
+    - r-nanoarrow
+    - r-stringr
+    - r-wk
+
+tests:
+  - r:
+      libraries:
+        - vapour
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - r-testthat
+    script:
+      - Rscript -e "testthat::test_file('tests/testthat.R', stop_on_failure=TRUE)"
+
+about:
+  homepage: https://github.com/hypertidy/vapour
+  summary: Access to the 'Geospatial Data Abstraction Library' ('GDAL')
+  description: |-
+    Provides low-level access to 'GDAL' functionality. 'GDAL'
+    is the 'Geospatial Data Abstraction Library' a translator for
+    raster and vector geospatial data formats that presents a
+    single raster abstract data model and single vector abstract
+    data model to the calling application for all supported formats
+    <https://gdal.org/>. This package is focussed on providing
+    exactly and only what GDAL does, to enable developing further
+    tools.
+  license: GPL-3.0-only
+  license_file:
+    - ${{ PREFIX }}/lib/R/share/licenses/GPL-3
+  repository: https://github.com/hypertidy/vapour
+  documentation: https://hypertidy.github.io/vapour/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
+    - mdsumner
+
+# The original CRAN metadata for this package was:
+
+# Package: vapour
+# Title: Access to the 'Geospatial Data Abstraction Library' ('GDAL')
+# Version: 0.16.0
+# Authors@R: c(person("Michael", "Sumner", email = "mdsumner@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-2471-7511")),
+#              person("Simon", "Wotherspoon", role = "ctb", comment = "RasterIO configuration for resampling options"),
+#              person("Mark", "Padgham", role = "ctb", comment = "helped get started :)"),
+#              person("Edzer", "Pebesma", role = "ctb", comment = "wrote the field-read handling, adapted here from sf"),
+#              person("Roger", "Bivand", role = "ctb", comment = "wrote configure.ac, adapted here from rgdal"),
+#              person("Jim", "Hester", role = c("ctb", "cph"), comment = "wrote CollectorList.h, copied here from fs package"),
+#              person("Timothy", "Keitt", role = c("ctb"), comment = "wrote GetPointsInternal copied here from rgdal2 package"),
+#              person("Jeroen", "Ooms", role = c("ctb"), comment = "tweaked build process, provided Windows build tools"),
+#              person("Dale", "Maschette", role = c("ctb"), comment = "created the hex logo"),
+#              person("Joseph", "Stachelek", role = "ctb"),
+#              person("Even", "Rouault", role = "ctb", comment = "primary author of the COG format and its use of the GDALwarp app-library, example code used by the warper function here"),
+#              person("Robert", "Hijmans", role = "ctb", comment = "code in terra package used as example/inspiration"),
+#              person("Dewey", "Dunnington", role = "ctb", comment = "wrote the columnar-access mode streaming Arrow support"),
+#              person("Tomas", "Kalibera", role = "ctb"))
+# Description: Provides low-level access to 'GDAL' functionality.
+#   'GDAL' is the 'Geospatial Data Abstraction Library' a translator for raster and vector geospatial data formats
+#   that presents a single raster abstract data model and single vector abstract data model to the calling application
+#   for all supported formats <https://gdal.org/>. This package is focussed on providing exactly and only what GDAL does, to enable
+#   developing further tools.
+# Depends: R (>= 4.2.0)
+# License: GPL-3
+# Encoding: UTF-8
+# LazyData: true
+# LinkingTo: cpp11
+# Imports: jsonlite, nanoarrow, stringr, utils, wk
+# RoxygenNote: 7.3.3
+# Suggests: testthat, knitr, markdown, rmarkdown, spelling
+# SystemRequirements: libgdal-dev, GDAL (>= 2.2.3), PROJ (>= 4.8.0)
+# VignetteBuilder: knitr
+# URL: https://github.com/hypertidy/vapour,
+#         https://hypertidy.github.io/vapour/
+# BugReports: https://github.com/hypertidy/vapour/issues
+# Language: en-US
+# NeedsCompilation: yes
+# Packaged: 2026-03-14 00:50:02 UTC; mdsumner
+# Author: Michael Sumner [aut, cre] (ORCID:
+#     <https://orcid.org/0000-0002-2471-7511>),
+#   Simon Wotherspoon [ctb] (RasterIO configuration for resampling options),
+#   Mark Padgham [ctb] (helped get started :)),
+#   Edzer Pebesma [ctb] (wrote the field-read handling, adapted here from
+#     sf),
+#   Roger Bivand [ctb] (wrote configure.ac, adapted here from rgdal),
+#   Jim Hester [ctb, cph] (wrote CollectorList.h, copied here from fs
+#     package),
+#   Timothy Keitt [ctb] (wrote GetPointsInternal copied here from rgdal2
+#     package),
+#   Jeroen Ooms [ctb] (tweaked build process, provided Windows build tools),
+#   Dale Maschette [ctb] (created the hex logo),
+#   Joseph Stachelek [ctb],
+#   Even Rouault [ctb] (primary author of the COG format and its use of the
+#     GDALwarp app-library, example code used by the warper function
+#     here),
+#   Robert Hijmans [ctb] (code in terra package used as
+#     example/inspiration),
+#   Dewey Dunnington [ctb] (wrote the columnar-access mode streaming Arrow
+#     support),
+#   Tomas Kalibera [ctb]
+# Maintainer: Michael Sumner <mdsumner@gmail.com>
+# Repository: CRAN
+# Date/Publication: 2026-03-14 06:10:02 UTC
