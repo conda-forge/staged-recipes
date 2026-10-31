@@ -1,0 +1,88 @@
+From 41be85193e5b79649371255d5ca5ddc48309b0de Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Fri, 30 Oct 2026 21:29:00 +1000
+Subject: [PATCH 5/7] Add OPTION_USE_SYSTEM_DXF_LIB to use an installed dxflib
+
+find_package(dxflib) instead of the bundled extern/dxflib; off by default.
+The installed (upstream QCAD) dxflib has no wide-character file names, so on
+Windows the DXF filter opens the input stream itself.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ libs/qCC_io/CMakeLists.txt    | 13 ++++++++++---
+ libs/qCC_io/src/DxfFilter.cpp | 14 +++++++++++---
+ 2 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/libs/qCC_io/CMakeLists.txt b/libs/qCC_io/CMakeLists.txt
+index 3d3ae3ee..2a3a540f 100644
+--- a/libs/qCC_io/CMakeLists.txt
++++ b/libs/qCC_io/CMakeLists.txt
+@@ -9,10 +9,17 @@ add_subdirectory( src )
+ add_subdirectory( ui )
+ 
+ option( OPTION_USE_DXF_LIB "Build with Ribbonsoft's DXF Lib (AutoCAD DXF files support)" ON )
++option( OPTION_USE_SYSTEM_DXF_LIB "Use an installed dxflib (CMake package) instead of the bundled copy" OFF )
+ if( ${OPTION_USE_DXF_LIB} )
+-	set( DXF_LIB_DIR "extern/dxflib" CACHE PATH "DXF lib path" )
+-	add_subdirectory( "${DXF_LIB_DIR}" )
+-	target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib )
++	if( ${OPTION_USE_SYSTEM_DXF_LIB} )
++		find_package( dxflib 3.26 CONFIG REQUIRED )
++		target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib::dxflib )
++		target_compile_definitions( ${PROJECT_NAME} PRIVATE CC_DXF_SUPPORT CC_SYSTEM_DXF_LIB )
++	else()
++		set( DXF_LIB_DIR "extern/dxflib" CACHE PATH "DXF lib path" )
++		add_subdirectory( "${DXF_LIB_DIR}" )
++		target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib )
++	endif()
+ endif()
+ 
+ option( OPTION_USE_SHAPE_LIB "Build with ShapeLib (SHP files support)" ON )
+diff --git a/libs/qCC_io/src/DxfFilter.cpp b/libs/qCC_io/src/DxfFilter.cpp
+index c487ad1d..5b839b5f 100644
+--- a/libs/qCC_io/src/DxfFilter.cpp
++++ b/libs/qCC_io/src/DxfFilter.cpp
+@@ -36,6 +36,10 @@
+ #include <dl_dxf.h>
+ #endif
+ 
++#if defined(_WIN32) && defined(CC_SYSTEM_DXF_LIB)
++#include <fstream>
++#endif
++
+ // System
+ #include <cassert>
+ 
+@@ -787,14 +791,14 @@ CC_FILE_ERROR DxfFilter::saveToFile(ccHObject* entity, const QString& filename,
+ 	double     pageMargin = baseSize / 20.0;
+ 
+ 	DL_Dxf dxf;
+-#ifdef _WIN32
++#if defined(_WIN32) && !defined(CC_SYSTEM_DXF_LIB)
+ 	DL_WriterA* dw = dxf.out(filename.toStdWString(), DL_VERSION_R12);
+ #else
+ 	if (CheckForSpecialChars(filename))
+ 	{
+ 		ccLog::Warning(QString("[DXF] Output filename contains special characters. It might be scrambled or rejected by the third party library..."));
+ 	}
+-	DL_WriterA* dw = dxf.out(filename.toStdString(), DL_VERSION_R12);
++	DL_WriterA* dw = dxf.out(filename.toStdString().c_str(), DL_VERSION_R12); // the installed dxflib takes a const char*
+ #endif
+ 	if (!dw)
+ 	{
+@@ -1072,7 +1076,11 @@ CC_FILE_ERROR DxfFilter::loadFile(const QString& filename, ccHObject& container,
+ 	{
+ 		DxfImporter importer(&container, parameters);
+ 
+-#ifdef _WIN32
++#if defined(_WIN32) && defined(CC_SYSTEM_DXF_LIB)
++		// the installed dxflib has no wide-character file names: open the file here
++		std::ifstream stream(filename.toStdWString());
++		if (stream && DL_Dxf().in(stream, &importer))
++#elif defined(_WIN32)
+ 		if (DL_Dxf().in(filename.toStdWString(), &importer))
+ #else
+ 		if (CheckForSpecialChars(filename))
+-- 
+2.53.0
+

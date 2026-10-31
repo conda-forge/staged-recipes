@@ -1,0 +1,130 @@
+schema_version: 1
+
+context:
+  name: cloudcompare
+  tag: v2.14.beta2
+  version: 2.14.beta2
+  cccorelib: 8f83c8be6d9270cd83c79d33c74a24c1a96f309f
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/CloudCompare/CloudCompare/archive/refs/tags/${{ tag }}.tar.gz
+    sha256: 2b8f47907c26f44ddf229e2d2cfa0a0b0b3e6199c7f98a51a486afae8161131b
+    patches:
+      # install without macdeployqt/windeployqt (Qt and the other dependencies
+      # come from the environment); CloudCompare/CloudCompare#2498
+      - patches/0001-Add-OPTION_DEPLOY_QT-to-install-without-macdeployqt-.patch
+      # use conda-forge's shapelib and libE57Format instead of the bundled
+      # copies; CloudCompare/CloudCompare#2499
+      - patches/0002-Add-OPTION_USE_SYSTEM_SHAPE_LIB-to-use-an-installed-.patch
+      - patches/0003-qE57IO-add-PLUGIN_IO_QE57_USE_SYSTEM_LIBE57FORMAT-to.patch
+      # build without the MeshIO submodule (not in the release archive);
+      # CloudCompare/CloudCompare#2500
+      - patches/0004-Build-without-the-MeshIO-submodule-when-it-is-not-ch.patch
+      # use the dxflib and qcustomplot packages and the qdarkstyle package's
+      # style sheets instead of the bundled copies; CloudCompare/CloudCompare#2501
+      - patches/0005-Add-OPTION_USE_SYSTEM_DXF_LIB-to-use-an-installed-dx.patch
+      - patches/0006-Add-OPTION_USE_SYSTEM_QCUSTOMPLOT-to-use-an-installe.patch
+      - patches/0007-Add-QDARKSTYLESHEET_DIR-to-use-installed-QDarkStyleS.patch
+  # git submodule, not in the release archive: CloudCompare's own core library
+  - url: https://github.com/CloudCompare/CCCoreLib/archive/${{ cccorelib }}.tar.gz
+    sha256: 7177621c9e0ee80210329c1a0328bb00dfc029d6977c67308f9077f18da1f133
+    target_directory: libs/qCC_db/extern/CCCoreLib
+    patches:
+      # use conda-forge's nanoflann; CloudCompare/CCCoreLib#141
+      - patches/cccorelib/0001-Add-CCCORELIB_USE_SYSTEM_NANOFLANN-to-use-an-install.patch
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: bash ${RECIPE_DIR}/build.sh
+      else: call %RECIPE_DIR%\build.bat
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    # the dark and light themes' style sheets, compiled into the applications
+    - qdarkstyle
+  host:
+    - qt6-main
+    - laszip
+    # 1.6.3 build 1: CMake package usable by native builds (conda-forge/shapelib-feedstock#17)
+    - shapelib >=1.6.3
+    - libe57format
+    - dxflib
+    - qcustomplot
+    - xerces-c
+    - nanoflann
+    - eigen
+    - tbb-devel
+    - cgal-cpp
+    - libboost-devel
+    - gmp
+    - mpfr
+    - zlib
+    - if: linux
+      then:
+        - libgl-devel
+        - libegl-devel
+
+  run:
+    # no run_export
+    - laszip
+
+tests:
+  - script:
+      # the command line converts a cloud to PLY, as for CloudCompare .bin files
+      - if: unix
+        then:
+          # no display on CI
+          - export QT_QPA_PLATFORM=offscreen
+          - CloudCompare -SILENT -AUTO_SAVE OFF -O test_cloud.asc -C_EXPORT_FMT PLY -SAVE_CLOUDS FILE test_cloud.ply
+          - test -s test_cloud.ply
+          # CloudCompare's own .bin (read back) and E57 (installed libE57Format)
+          - CloudCompare -SILENT -AUTO_SAVE OFF -O test_cloud.asc -C_EXPORT_FMT BIN -SAVE_CLOUDS FILE test_cloud.bin
+          - CloudCompare -SILENT -AUTO_SAVE OFF -O test_cloud.bin -C_EXPORT_FMT E57 -SAVE_CLOUDS FILE test_cloud.e57
+          - test -s test_cloud.e57
+      - if: win
+        then:
+          - call CloudCompare.bat -SILENT -AUTO_SAVE OFF -O test_cloud.asc -C_EXPORT_FMT PLY -SAVE_CLOUDS FILE test_cloud.ply
+          - if not exist test_cloud.ply exit 1
+          - call CloudCompare.bat -SILENT -AUTO_SAVE OFF -O test_cloud.asc -C_EXPORT_FMT BIN -SAVE_CLOUDS FILE test_cloud.bin
+          - call CloudCompare.bat -SILENT -AUTO_SAVE OFF -O test_cloud.bin -C_EXPORT_FMT E57 -SAVE_CLOUDS FILE test_cloud.e57
+          - if not exist test_cloud.e57 exit 1
+    files:
+      recipe:
+        - test_cloud.asc
+
+about:
+  homepage: https://www.cloudcompare.org
+  repository: https://github.com/CloudCompare/CloudCompare
+  documentation: https://www.cloudcompare.org/doc/wiki
+  summary: 3D point cloud and mesh processing software
+  description: |
+    CloudCompare compares, edits and processes 3D point clouds and meshes
+    (from laser scanners, photogrammetry, ...). This package has the
+    CloudCompare and ccViewer applications and the command line, with the
+    M3C2, LAS, E57, core and additional I/O plugins and the EDL and SSAO
+    shaders.
+  # CloudCompare (GPL-2.0-or-later); CCCoreLib (LGPL-2.0-or-later, CMake files
+  # MIT); QDarkStyleSheet's style sheets, compiled in from the qdarkstyle
+  # package (MIT code, CC-BY-4.0 images)
+  license: GPL-2.0-or-later AND LGPL-2.0-or-later AND MIT AND CC-BY-4.0
+  license_file:
+    - license.txt
+    - libs/qCC_db/extern/CCCoreLib/LICENSE.txt
+    - libs/qCC_db/extern/CCCoreLib/LICENSE-MIT.txt
+    - QDarkStyleSheet-LICENSE.rst
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
