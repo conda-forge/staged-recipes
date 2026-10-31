@@ -1,0 +1,68 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 18c967f..ba06099 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,6 +19,8 @@ execute_process(
+ list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
+ find_package(nanobind CONFIG REQUIRED)
+ 
++# conda-forge: disabled upstream's own fetch of tableauhyperapi-cxx below
++if(FALSE)
+ if(WIN32)
+   set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-windows-x86_64-release-main.0.0.21200.re11c8cb9.zip")
+ elseif(APPLE)
+@@ -41,7 +43,18 @@ FetchContent_Declare(
+ FetchContent_MakeAvailable(tableauhyperapi-cxx)
+ list(APPEND CMAKE_PREFIX_PATH "${tableauhyperapi-cxx_SOURCE_DIR}/share/cmake")
+ find_package(tableauhyperapi-cxx CONFIG REQUIRED)
++else()
++  # conda-forge: from the libtableauhyperapi package; its share/cmake isn't
++  # nested under a subfolder, so find_package needs it appended explicitly.
++  if(WIN32)
++    list(APPEND CMAKE_PREFIX_PATH "$ENV{LIBRARY_PREFIX}/share/cmake")
++  else()
++    list(APPEND CMAKE_PREFIX_PATH "$ENV{PREFIX}/share/cmake")
++  endif()
++  find_package(tableauhyperapi-cxx CONFIG REQUIRED)
++endif()
+ 
++include(FetchContent)
+ FetchContent_Declare(nanoarrow-project
+   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
+   GIT_TAG 3ba38ff09c691cf9320895d04cf441ecb95caa99
+diff --git a/src/pantab/CMakeLists.txt b/src/pantab/CMakeLists.txt
+index dfee9d8..11633ac 100644
+--- a/src/pantab/CMakeLists.txt
++++ b/src/pantab/CMakeLists.txt
+@@ -17,6 +17,10 @@ set_target_properties(nanoarrow_static
+                       PROPERTIES POSITION_INDEPENDENT_CODE
+                       ON)
+ 
++# conda-forge: libtableauhyperapi.{so,dylib,dll} and the hyper/ engine dir
++# come from the libtableauhyperapi conda package's own $PREFIX/lib (or
++# Library/bin on Windows); the standard toolchain rpath already reaches it.
++if(FALSE)
+ if(WIN32)
+   set(HYPERAPI_LIB_DIR "bin")
+   set(HYPERAPI_LIB_NAME "tableauhyperapi.dll")
+@@ -40,10 +44,12 @@ set_target_properties(
+   INSTALL_RPATH "$ORIGIN"
+ )
+ endif()
++endif()
+ 
+ install(TARGETS libpantab
+   LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/)
+ 
++if(FALSE)
+ # Auditwheel doesn't know how to handle the cmake dependencies
+ # so we manually install here and exclude from auditwheel
+ install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME}
+@@ -52,6 +58,7 @@ install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
+   DESTINATION ${SKBUILD_PROJECT_NAME}/hyper
+   USE_SOURCE_PERMISSIONS
+ )
++endif()
+ 
+ # Support out of source builds
+ set(SRC_FILES
