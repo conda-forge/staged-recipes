@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  name: usagerail
+  version: "0.1.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/usagerail-${{ version }}.tar.gz
+  sha256: ddee2db8ab27a2f61d33bdbc4f00e8bc48412593bbcba03e20b459ac5654ce94
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    # pyproject.toml pins hatchling==1.32.4 for upstream release builds; any version with
+    # PEP 639 license expressions (1.27+) builds the same sdist
+    - hatchling >=1.27
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - usagerail
+        - usagerail.engine
+        - usagerail.routes
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # The framework adapters import their framework on first use, so none of them is a run
+  # dependency; install two of them here to check the adapters import cleanly
+  - requirements:
+      run:
+        - python
+        - starlette
+        - flask
+    script:
+      - python -c "import usagerail.fastapi, usagerail.flask"
+
+about:
+  summary: "UsageRail SDK for Python: API keys, rate limits, quotas and usage metering inside your API server"
+  description: |
+    Middleware for FastAPI, Starlette, Flask and Django that checks API keys,
+    per-customer rate limits and quotas inside the app process, counts usage
+    per customer, and reports the counts to UsageRail in the background.
+    Pure Python with no runtime dependencies; each framework adapter imports
+    its framework only when it's used.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://usagerail.com
+  documentation: https://usagerail.com/docs
+  repository: https://github.com/usagerail/sdk
+
+extra:
+  recipe-maintainers:
+    - supertj
