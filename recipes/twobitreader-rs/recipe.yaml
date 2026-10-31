@@ -1,0 +1,63 @@
+context:
+  version: "0.2.2"
+
+package:
+  name: twobitreader-rs
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/t/twobitreader-rs/twobitreader_rs-${{ version }}.tar.gz
+  sha256: 2be192ab7fad3a0a72e0cdb304151e2af45f13cfc8d2c0ad350e7dd218b9d817
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.9")
+
+requirements:
+  build:
+    # The Rust toolchain links libgcc_s for unwinding; the C compiler's run-export is what
+    # puts libgcc into `run` and satisfies conda-build's overlinking check.
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2.0
+  host:
+    - python
+    - pip
+    - maturin >=1.15,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - twobitreader_rs
+      pip_check: true
+  - script:
+      - python -c "from twobitreader_rs import reverse_complement; assert reverse_complement('ACGTN') == 'NACGT'"
+      - python -c "from twobitreader_rs import TwobitReader; assert hasattr(TwobitReader, 'get')"
+
+about:
+  homepage: https://github.com/andrewdelong/twobitreader-rust
+  summary: Fast DNA sequence extraction from 2bit files
+  description: |
+    Python bindings for the twobitreader Rust crate. Reads the UCSC 2bit genome format
+    through a memory map, with batched extraction, exon concatenation, reverse complement,
+    and prefetching for files not yet in the page cache.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/twobitreader
+  repository: https://github.com/andrewdelong/twobitreader-rust
+
+extra:
+  recipe-maintainers:
+    - andrewdelong
