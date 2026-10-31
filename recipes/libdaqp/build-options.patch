@@ -1,0 +1,83 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,7 +30,7 @@
+ endif()
+ 
+ option (FASTER_MATH "Enable some faster math" ON)
+-if(FASTER_MATH)
++if(FASTER_MATH AND NOT MSVC)
+     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fassociative-math -fno-signed-zeros -fno-trapping-math")
+ endif()
+ 
+@@ -69,41 +69,62 @@
+ endif()
+ 
+ 
++# the two libraries can be built one without the other, and the static one
++# alone takes the name of the library, so that a package carries one of them
++option (DAQP_BUILD_SHARED "Build the shared library daqp" ON)
++option (DAQP_BUILD_STATIC "Build the static library daqpstat" ON)
++set(DAQP_CMAKE_INSTALL_DIR cmake CACHE STRING
++    "Directory where the CMake configuration is installed")
++
++set(daqp_targets "")
++
++if(DAQP_BUILD_STATIC)
+ add_library(daqpstat STATIC ${daqp_src} ${daqp_headers} ${daqp_codegen_src} ${daqp_codegen_headers})
+ add_library(daqp::daqpstat ALIAS daqpstat)
+ target_include_directories(daqpstat PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
+ )
++if(NOT DAQP_BUILD_SHARED)
++  set_target_properties(daqpstat PROPERTIES OUTPUT_NAME daqp)
++endif()
++list(APPEND daqp_targets daqpstat)
++endif()
+ 
++if(DAQP_BUILD_SHARED)
+ add_library(daqp SHARED ${daqp_src} ${daqp_headers} ${daqp_codegen_src} ${daqp_codegen_headers})
+ add_library(daqp::daqp ALIAS daqp)
+ set_target_properties(daqp PROPERTIES
+   VERSION ${PROJECT_VERSION}
+   SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
++  WINDOWS_EXPORT_ALL_SYMBOLS ON
+ )
+ target_include_directories(daqp PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
+ )
++list(APPEND daqp_targets daqp)
++endif()
+ 
+-set(CMAKE_C_STANDARD_LIBRARIES "${CMAKE_C_STANDARD_LIBRARIES}") # math for C api
+-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -Wextra")
++# the math library, which the C library of the system keeps apart
++if(UNIX AND NOT APPLE)
++  foreach(t ${daqp_targets})
++    target_link_libraries(${t} PRIVATE m)
++  endforeach()
++endif()
+ 
+-target_link_libraries(daqpstat daqp)
++if(NOT MSVC)
++  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -Wextra")
++endif()
+ 
+ # Install
+-install(TARGETS daqpstat EXPORT  ${PROJECT_NAME}Config
+-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+-  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+-install(TARGETS daqp EXPORT  ${PROJECT_NAME}Config
++install(TARGETS ${daqp_targets} EXPORT  ${PROJECT_NAME}Config
+   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+ install(FILES ${daqp_headers} ${daqp_codegen_headers} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/daqp")
+ 
+-install(EXPORT ${PROJECT_NAME}Config DESTINATION cmake)
++install(EXPORT ${PROJECT_NAME}Config DESTINATION "${DAQP_CMAKE_INSTALL_DIR}")
+ 
+ if(EIGEN)
+   add_subdirectory(interfaces/daqp-eigen)
