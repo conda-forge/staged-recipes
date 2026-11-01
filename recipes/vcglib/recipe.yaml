@@ -1,0 +1,87 @@
+schema_version: 1
+
+context:
+  name: vcglib
+  version: "2025.07"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cnr-isti-vclab/vcglib/archive/refs/tags/${{ version }}.tar.gz
+  sha256: e49fc9342d5476b3e39a5e1939b965b57c91d7a17b4f97b8c5eaf01228b16cf0
+  patches:
+    # use conda-forge's openfbx (0.9 API) instead of the copy in wrap/openfbx
+    - use-conda-forge-openfbx.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # Header-only. Bundled third-party code that conda-forge packages is not
+    # installed: Eigen (eigenlib/; its only user, vcg/math/eigen.h, is Eigen-2
+    # era code that does not compile with Eigen 3+) and OpenFBX incl. miniz
+    # (wrap/openfbx; wrap/io_trimesh/import_fbx.h is patched to use openfbx).
+    # NEWUOA (wrap/newuoa) and Tsai (wrap/tsai) have no conda-forge package
+    # with this API; they stay, with their licenses packaged.
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/include/vcglib
+        - cp -R vcg wrap img $PREFIX/include/vcglib/
+        - rm -r $PREFIX/include/vcglib/wrap/openfbx
+      else:
+        - xcopy /E /I /Q vcg %PREFIX%\include\vcglib\vcg
+        - xcopy /E /I /Q wrap %PREFIX%\include\vcglib\wrap
+        - xcopy /E /I /Q img %PREFIX%\include\vcglib\img
+        - rmdir /S /Q %PREFIX%\include\vcglib\wrap\openfbx
+
+requirements:
+  run:
+    - eigen
+    # for wrap/io_trimesh/import_fbx.h
+    - openfbx
+
+tests:
+  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
+  - package_contents:
+      files:
+        exists:
+          - include/vcglib/vcg/complex/complex.h
+          - include/vcglib/wrap/io_trimesh/import_ply.h
+          - include/vcglib/wrap/io_trimesh/import_fbx.h
+        not_exists:
+          - include/vcglib/wrap/openfbx/**
+          - include/vcglib/eigenlib/**
+  - script:
+      - if: unix
+        then: ${CXX} -std=c++17 -fsyntax-only -I$PREFIX/include/vcglib -I$PREFIX/include/eigen3 -I$PREFIX/include test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include\vcglib /I%LIBRARY_INC%\eigen3 /I%LIBRARY_INC% test.cpp
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+    files:
+      recipe:
+        - test.cpp
+
+about:
+  homepage: https://vcg.isti.cnr.it/vcglib/
+  repository: https://github.com/cnr-isti-vclab/vcglib
+  summary: The VCG Library, a C++ template library for triangle and tetrahedral meshes
+  description: |
+    Header-only C++ library for the manipulation, processing, cleaning and
+    simplification of triangle meshes (used by MeshLab and OpenMVS). Headers
+    are installed under include/vcglib and use conda-forge's eigen and
+    openfbx.
+  # VCG: GPL-3.0 text, files GPL-2.0-or-later; wrap/tsai: GPL-2.0-or-later;
+  # wrap/newuoa: MIT; wrap/nanoply: MPL-2.0 (license notices are in those headers)
+  license: GPL-3.0-or-later AND GPL-2.0-or-later AND MIT AND MPL-2.0
+  license_file:
+    - LICENSE.txt
+    - wrap/newuoa/include/newuoa.h
+    - wrap/tsai/tsaimethods.h
+    - wrap/nanoply/include/nanoply.hpp
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

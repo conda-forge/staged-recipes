@@ -1,0 +1,298 @@
+schema_version: 1
+
+context:
+  version: "2.4.0"
+  build: 0
+  cuda: ${{ cuda_compiler_version != "None" }}
+  cuda_major: ${{ (cuda_compiler_version | default("None") | split(".") | list)[0] }}
+  # Prefer the most optimised x86_64 microarchitecture, then CUDA builds.
+  build_number: ${{ build + 100 * (microarch_level | default(1) | int - 1) + (50 if cuda else 0) }}
+
+recipe:
+  name: openmvs-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cdcseacave/openMVS/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1668a991fa1fdd3540ee47fdba282a7579ed876af713e8fa907625be1cf8dfc8
+  patches:
+    # Boost >= 1.89 no longer ships a boost_system library / CMake config
+    # (backport: fixed upstream in e884035, #1286)
+    - patches/0001-Do-not-require-the-boost_system-library-header-only-.patch
+    # OpenCV 5: DataType<unsigned/uint64_t> now built in, DIST_* moved to geometry
+    # (submitted upstream: cdcseacave/openMVS#1317)
+    - patches/0002-Support-OpenCV-5.patch
+    # imgui >= 1.92 removed ImGuiSelectableFlags_AllowItemOverlap
+    # (backport: fixed upstream in 6871967)
+    - patches/0003-Viewer-use-ImGuiSelectableFlags_AllowOverlap-old-nam.patch
+    # upstream's pkg-config helper only resolves static libjxl
+    # (backport: fixed upstream in e2f38b4, #1289/#1294)
+    - patches/0004-Link-libjxl-through-its-pkg-config-imported-target.patch
+    # one Log instance across the shared libraries (was inline per library)
+    # (backport: fixed upstream in 4694ded, #1279)
+    - patches/0005-Define-the-Log-singletons-in-Log.cpp.patch
+    # macOS: keep the toolchain's linker flags (tools linked the system libc++)
+    # (submitted upstream: cdcseacave/openMVS#1318)
+    - patches/0006-Append-stdlib-libc-to-CMAKE_EXE_LINKER_FLAGS-instead.patch
+    # CUDA builds without a GPU/driver: do not log uninitialized error strings
+    # (backport: first commit of upstream #1316, open)
+    - patches/0007-Do-not-log-uninitialized-CUDA-error-strings.patch
+    # install into bin/ and lib/ instead of bin/OpenMVS and lib/OpenMVS
+    # (backport: fixed upstream in e884035, #1286/#1272)
+    - patches/0008-Add-INSTALL_USE_SUBDIR-to-install-without-per-projec.patch
+    # library file names prefixed with OpenMVS (libOpenMVSMVS, ...), so the
+    # generic names (Common, IO, Math) cannot clash in lib/ (opt-in, not upstream yet)
+    - patches/0009-Add-OpenMVS_LIBRARY_NAME_PREFIX-to-prefix-the-librar.patch
+    # make the installed CMake package usable: find_dependency() for the
+    # exported targets' dependencies, relocatable paths, include directory
+    # (not fixed upstream yet)
+    - patches/0010-Make-the-installed-CMake-package-usable.patch
+    # build without the IBFS max-flow solver (research-only license); the build
+    # scripts delete libs/Math/IBFS and ReconstructMesh uses Boost's solver
+    - patches/0011-Add-OpenMVS_USE_IBFS-to-build-without-the-IBFS-max-f.patch
+    # use conda-forge's tinyxml2, nlohmann_json and tinygltf instead of the
+    # copies in libs/IO (deleted by the build scripts)
+    - patches/0012-Use-system-tinyxml2-nlohmann-json-and-tinygltf.patch
+    # name the Viewer's icon and .reg file after VIEWER_NAME (the recipe uses
+    # OpenMVSViewer: generic Viewer names clash, e.g. embree's bin/viewer); fix
+    # the desktop entry's Exec path (not upstream yet)
+    - patches/0013-Viewer-name-the-installed-icon-and-.reg-after-VIEWER.patch
+
+build:
+  number: ${{ build_number }}
+
+outputs:
+  - package:
+      name: openmvs
+    build:
+      number: ${{ build_number }}
+      string: ${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
+      script:
+        - if: win
+          then: call %RECIPE_DIR%\build_openmvs.bat
+          else: bash $RECIPE_DIR/build_openmvs.sh
+    requirements:
+      build:
+        - if: unix and x86_64
+          then: x86_64-microarch-level ==${{ microarch_level }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - if: cuda
+          then: ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+        - pkg-config
+      host:
+        # Eigen types are part of OpenMVS's public headers: eigen-abi-devel, at the
+        # same microarch level as the build (EIGEN_MAX_ALIGN_BYTES)
+        - if: unix and x86_64
+          then: x86_64-microarch-level ==${{ microarch_level }}
+        - eigen-abi-devel
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: cuda
+          then:
+            - cuda-version ==${{ cuda_compiler_version }}
+            - cuda-cudart-dev
+            - cuda-driver-dev
+            - libcurand-dev
+        - libboost-devel
+        - eigen
+        - libopencv
+        - tinyxml2
+        - nlohmann_json
+        - tinygltf
+        - cgal-cpp
+        - nanoflann
+        - vcglib
+        - gmp
+        - mpfr
+        - libpng
+        - libjpeg-turbo
+        - libtiff
+        - libjxl
+        - zlib
+        # Viewer
+        - glad
+        - glfw
+        - imgui
+        # imgui's CMake config also requires SDL2 and Vulkan
+        - sdl2
+        - libvulkan-headers
+        - libvulkan-loader
+        - portable-file-dialogs
+        - if: linux
+          then:
+            - libgl-devel
+            - libegl-devel
+      run:
+        - if: cuda
+          then: __cuda
+      run_exports:
+        - ${{ pin_subpackage('openmvs', upper_bound='x.x.x') }}
+      ignore_run_exports:
+        from_package:
+          - libvulkan-headers
+          - sdl2
+          - libvulkan-loader
+    tests:
+      - script:
+          # The tools print their usage and exit with status 1 on --help.
+          # CUDA builds link the CUDA driver (libcuda.so.1); without one (as on CI)
+          # they cannot start, so only run them when a driver is present.
+          - if: unix and not cuda
+            then: for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done
+          - if: unix and cuda
+            then: if ( /sbin/ldconfig -p 2>/dev/null || true ) | grep -q "libcuda.so.1"; then for t in DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh; do $t --help > help.txt || test $? -eq 1; grep -q "Available options" help.txt; done; else echo "no CUDA driver, not running the tools"; fi
+          # Windows: the console log may open its own console instead of writing to
+          # the redirected stdout, so also look in the log file each tool writes
+          - if: win
+            then: for %%t in (DensifyPointCloud InterfaceCOLMAP ReconstructMesh RefineMesh TextureMesh) do (call %%t --help > help.txt 2>&1 & type help.txt & findstr /M /C:"Available options" help.txt %%t-*.log || exit 1)
+      - package_contents:
+          files:
+            exists:
+              - if: unix
+                then:
+                  - include/OpenMVS/MVS/Scene.h
+                  - include/OpenMVS/ConfigLocal.h
+                  - lib/cmake/OpenMVS/OpenMVSConfig.cmake
+                  - lib/cmake/OpenMVS/OpenMVSTargets.cmake
+              - if: linux
+                then: lib/libOpenMVSMVS.so
+              - if: osx
+                then: lib/libOpenMVSMVS.dylib
+              - if: unix
+                then:
+                  - bin/DensifyPointCloud
+                  - bin/InterfaceCOLMAP
+                  - bin/TextureMesh
+                  - bin/OpenMVSViewer
+              # Windows: OpenMVS 2.4.0's libraries are linked statically into
+              # the tools (shared Windows builds came after 2.4.0)
+              - if: win
+                then:
+                  - Library/bin/DensifyPointCloud.exe
+                  - Library/bin/InterfaceCOLMAP.exe
+                  - Library/bin/OpenMVSViewer.exe
+            not_exists:
+              - lib/OpenMVS/**
+              - bin/OpenMVS/**
+              # no generic Viewer names (VIEWER_NAME=OpenMVSViewer)
+              - bin/Viewer
+              - share/icons/hicolor/scalable/apps/Viewer.svg
+              - share/doc/Viewer/**
+              - if: unix
+                then: lib/libOpenMVS*.a
+                else:
+                  - Library/lib/OpenMVS*.lib
+                  - Library/include/OpenMVS/**
+
+  - package:
+      name: pyopenmvs
+    build:
+      number: ${{ build_number }}
+      string: py${{ python | version_to_buildstring }}${{ ("cuda" ~ cuda_major) if cuda else "cpu" }}_h${{ hash }}_${{ build_number }}
+      script:
+        - if: win
+          then: call %RECIPE_DIR%\build_pyopenmvs.bat
+          else: bash $RECIPE_DIR/build_pyopenmvs.sh
+    requirements:
+      build:
+        # same microarch level as the openmvs build it links (Eigen alignment)
+        - if: unix and x86_64
+          then: x86_64-microarch-level ==${{ microarch_level }}
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - if: cuda
+          then: ${{ compiler('cuda') }}
+        - cmake
+        - ninja
+        - pkg-config
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+      host:
+        # the same openmvs build: CUDA changes the layout of OpenMVS classes
+        - ${{ pin_subpackage('openmvs', exact=True) }}
+        # OpenMVS's public headers use Eigen
+        - if: unix and x86_64
+          then: x86_64-microarch-level ==${{ microarch_level }}
+        - eigen-abi-devel
+        - python
+        - if: osx
+          then: llvm-openmp
+        - if: linux
+          then: libgomp
+        - if: cuda
+          then:
+            - cuda-version ==${{ cuda_compiler_version }}
+            - cuda-cudart-dev
+            - cuda-driver-dev
+            - libcurand-dev
+        - libboost-devel
+        - libboost-python-devel
+        - eigen
+        - libopencv
+        - cgal-cpp
+        - nanoflann
+        - vcglib
+        - gmp
+        - mpfr
+        # find_package(OpenMVS) finds the image libraries OpenMVS::IO links (and
+        # Windows builds OpenMVS's static libraries into the module itself)
+        - libjxl
+        - libpng
+        - libjpeg-turbo
+        - libtiff
+        - zlib
+        # Windows builds OpenMVS in-tree (see build_pyopenmvs.bat)
+        - if: win
+          then:
+            - tinyxml2
+            - nlohmann_json
+            - tinygltf
+      run:
+        - ${{ pin_subpackage('openmvs', exact=True) }}
+        - python
+    tests:
+      - script:
+          # CUDA builds need the CUDA driver to load (see the openmvs tests)
+          - if: cuda
+            then: if ( /sbin/ldconfig -p 2>/dev/null || true ) | grep -q "libcuda.so.1"; then python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"; else echo "no CUDA driver, not importing pyOpenMVS"; fi
+            else: python -c "import pyOpenMVS; print(pyOpenMVS.Scene())"
+      - package_contents:
+          files:
+            - if: win
+              then: Lib/site-packages/pyOpenMVS.pyd
+              else: lib/python*/site-packages/pyOpenMVS.so
+
+about:
+  homepage: https://cdcseacave.github.io/openMVS
+  repository: https://github.com/cdcseacave/openMVS
+  documentation: https://github.com/cdcseacave/openMVS/wiki
+  summary: Open Multi-View Stereo reconstruction library
+  description: |
+    OpenMVS reconstructs dense point clouds, meshes and textured meshes from
+    calibrated photos (e.g. a COLMAP, Metashape or OpenMVG camera solution).
+    `openmvs` ships the command-line tools, the viewer (OpenMVSViewer) and the shared
+    libraries (with CUDA variants on Linux); `pyopenmvs` ships the Python
+    bindings (pyOpenMVS).
+  # OpenMVS (AGPL-3.0) and the code it includes, see COPYRIGHT.md: SeaCave
+  # (BSL-1.0), histogram and ACRANSAC (MPL-2.0), lmfit (BSD-2-Clause),
+  # loopy-belief-propagation and Ceres parts (BSD-3-Clause), rectangle-bin-packing
+  # (public domain). IBFS is not built; tinyxml2, nlohmann_json and tinygltf
+  # come from conda-forge.
+  license: AGPL-3.0-only AND BSL-1.0 AND MPL-2.0 AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-Public-Domain
+  license_file:
+    - LICENSE
+    - COPYRIGHT.md
+    - libs/Math/LMFit/COPYING
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

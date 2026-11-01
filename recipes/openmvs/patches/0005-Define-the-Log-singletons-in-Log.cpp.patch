@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 17:54:20 +1000
+Subject: [PATCH] Define the Log singletons in Log.cpp
+
+With DECLARE_SINGLETON, GetInstance() is inline with a function-local static,
+so with shared libraries each library can get its own Log/LogFile/LogConsole
+(e.g. built with -fvisibility-inlines-hidden): tools print nothing, and the
+logger is destroyed twice at exit. DEFINE_SINGLETON keeps one instance in
+libCommon, as the macro's comment recommends for use across modules.
+---
+ libs/Common/Log.cpp | 24 ++++++++++++++++++++++++
+ libs/Common/Log.h   |  6 +++---
+ 2 files changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/libs/Common/Log.cpp b/libs/Common/Log.cpp
+index c229315..f4dad7e 100644
+--- a/libs/Common/Log.cpp
++++ b/libs/Common/Log.cpp
+@@ -27,6 +27,14 @@ Log::LogType Log::g_appType;
+ /**
+  * Constructor
+  */
++// defined here (not inline in the header) so that the instance is unique
++// across shared libraries
++Log& Log::GetInstance()
++{
++	static Log instance;
++	return instance;
++}
++
+ Log::Log()
+ {
+ 	// generate default log type
+@@ -169,6 +177,14 @@ void Log::_Record(Idx lt, LPCTSTR szFormat, va_list args)
+ /**
+  * Constructor
+  */
++// defined here (not inline in the header) so that the instance is unique
++// across shared libraries
++LogFile& LogFile::GetInstance()
++{
++	static LogFile instance;
++	return instance;
++}
++
+ LogFile::LogFile()
+ {
+ }
+@@ -245,6 +261,14 @@ public:
+ /**
+  * Constructor
+  */
++// defined here (not inline in the header) so that the instance is unique
++// across shared libraries
++LogConsole& LogConsole::GetInstance()
++{
++	static LogConsole instance;
++	return instance;
++}
++
+ LogConsole::LogConsole()
+ 	:
+ 	#ifdef _USE_COSOLEFILEHANDLES
+diff --git a/libs/Common/Log.h b/libs/Common/Log.h
+index b6f2172..0bdc074 100644
+--- a/libs/Common/Log.h
++++ b/libs/Common/Log.h
+@@ -42,7 +42,7 @@ namespace SEACAVE {
+ 
+ class GENERAL_API Log
+ {
+-	DECLARE_SINGLETON(Log);
++	DEFINE_SINGLETON(Log);
+ 
+ public:
+ 	typedef uint32_t Idx;
+@@ -151,7 +151,7 @@ protected:
+ 
+ class GENERAL_API LogFile
+ {
+-	DECLARE_SINGLETON(LogFile);
++	DEFINE_SINGLETON(LogFile);
+ 
+ public:
+ 	~LogFile() { Close(); }
+@@ -174,7 +174,7 @@ protected:
+ 
+ class GENERAL_API LogConsole
+ {
+-	DECLARE_SINGLETON(LogConsole);
++	DEFINE_SINGLETON(LogConsole);
+ 
+ public:
+ 	~LogConsole() { Close(); }

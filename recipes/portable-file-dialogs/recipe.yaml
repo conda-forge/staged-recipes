@@ -1,0 +1,56 @@
+schema_version: 1
+
+context:
+  name: portable-file-dialogs
+  version: "0.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/samhocevar/portable-file-dialogs/archive/refs/tags/${{ version }}.tar.gz
+  sha256: db57f02a45b169613c41d1fb94edab5f03020cc5cdc5033f538c08b4982cd5d4
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # Single header file
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/include
+        - cp portable-file-dialogs.h $PREFIX/include/
+      else:
+        - if not exist %PREFIX%\include mkdir %PREFIX%\include
+        - copy portable-file-dialogs.h %PREFIX%\include\
+
+tests:
+  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
+  - package_contents:
+      files:
+        - include/portable-file-dialogs.h
+  - script:
+      - if: unix
+        then: ${CXX} -std=c++11 -fsyntax-only -I$PREFIX/include test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include test.cpp
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+    files:
+      recipe:
+        - test.cpp
+
+about:
+  homepage: https://github.com/samhocevar/portable-file-dialogs
+  repository: https://github.com/samhocevar/portable-file-dialogs
+  summary: Portable GUI dialogs library, C++11, single-header
+  description: |
+    Native message boxes, file open/save and folder selection dialogs for
+    Windows, macOS and Linux (via zenity/kdialog), in a single C++11 header.
+  license: WTFPL
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
