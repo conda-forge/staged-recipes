@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  name: py4dgeo
+  version: "1.2.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 21faa7937af5994ee92844db8f39db76b69b007f6db6961e3d3a9f24ae35e101
+  patches:
+    # option to build against installed Eigen3 and nanoflann instead of the
+    # copies in ext/ (to be submitted upstream)
+    - patches/0001-Add-PY4DGEO_USE_EXTERNAL_DEPENDENCIES-to-use-install.patch
+    # nanoflann >= 2.0 needs IndexType in custom result sets (also fine with
+    # the bundled 1.9; to be submitted upstream)
+    - patches/0002-Declare-IndexType-in-the-custom-nanoflann-result-set.patch
+
+build:
+  number: 0
+  script:
+    env:
+      # Unix: scikit-build-core otherwise picks "Unix Makefiles", and the CI
+      # images have no make. Windows: empty, so the compiler activation picks
+      # Visual Studio (it also sets the x64 platform, which Ninja rejects)
+      CMAKE_GENERATOR: ${{ "Ninja" if unix else "" }}
+    content:
+      # bundled copies, replaced by conda-forge's eigen and nanoflann
+      - if: unix
+        then: rm -rf ext/eigen ext/nanoflann ext/benchmark
+        else: rmdir /s /q ext\eigen ext\nanoflann ext\benchmark
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PY4DGEO_USE_EXTERNAL_DEPENDENCIES=ON
+  python:
+    entry_points:
+      - copy_py4dgeo_test_data = py4dgeo.util:copy_test_data_entrypoint
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.30
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.11.0
+    - pybind11
+    - eigen
+    - nanoflann
+    - if: osx
+      then: llvm-openmp
+    - if: linux
+      then: libgomp
+  run:
+    - python
+    - dateparser
+    - laspy >=2.0,<3.0
+    - lazrs-python
+    - matplotlib-base
+    - numpy
+    - pooch
+    - psutil
+    - requests
+    - scikit-learn
+    - seaborn-base
+    - xdg
+
+tests:
+  - python:
+      imports:
+        - py4dgeo
+      pip_check: true
+  # upstream's tests download their data from Zenodo; this one has a known answer
+  - script:
+      - python test_m3c2.py
+    files:
+      recipe:
+        - test_m3c2.py
+
+about:
+  homepage: https://github.com/3dgeo-heidelberg/py4dgeo
+  repository: https://github.com/3dgeo-heidelberg/py4dgeo
+  documentation: https://py4dgeo.readthedocs.io
+  summary: Library for change detection in 4D point cloud data
+  description: |
+    py4dgeo implements change analysis in multi-temporal point clouds:
+    M3C2 (with level of detection) and its variants, cloud-to-cloud distances,
+    registration and spatiotemporal segmentation, with a C++ core.
+  license: MIT
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
