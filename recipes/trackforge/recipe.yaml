@@ -1,0 +1,67 @@
+schema_version: 1
+
+context:
+  name: trackforge
+  version: "0.5.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: bb4bba005fa0811aaf760fcb51957691248ea79ddc5fb2ea1d9ac6885d0ba447
+
+build:
+  number: 0
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - maturin >=0.14,<1.16
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - maturin >=0.14,<1.16
+    - pip
+    - python
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - trackforge
+        - trackforge.ultralytics
+      pip_check: true
+  - script:
+      - python -c "import trackforge; t = trackforge.OCSORT(max_age=30, min_hits=1, iou_threshold=0.3, delta_t=3, inertia=0.2); assert len(t.update([([100.0, 100.0, 50.0, 100.0], 0.9, 0)])) == 1"
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://github.com/onuralpszr/trackforge
+  repository: https://github.com/onuralpszr/trackforge
+  documentation: https://onuralpszr.github.io/trackforge
+  summary: A unified, high-performance computer vision tracking library.
+  description: |
+    Trackforge is a computer vision multi-object tracking library implemented in Rust
+    with Python bindings. It provides SORT, ByteTrack, OC-SORT, DeepSORT, Deep OC-SORT,
+    BoT-SORT and TrackTrack trackers.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - onuralpszr
