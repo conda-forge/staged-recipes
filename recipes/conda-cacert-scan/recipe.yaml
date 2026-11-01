@@ -1,0 +1,70 @@
+context:
+  version: "2026.10.23"
+
+package:
+  name: conda-cacert-scan
+  version: "${{ version }}"
+
+source:
+  url: https://github.com/JeanChristopheMorinPerso/conda-cacert-scan/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 98d8996b54b8a8af75ca661d96a4d5fc146fae6337b565ade13be7ae844f336d
+
+build:
+  number: 0
+  skip: win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo update webpki-root-certs rustls-webpki
+      - OPENSSL_DIR=${PREFIX} cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      - mv $PREFIX/bin/cacert-scan $PREFIX/bin/conda-cacert-scan
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - mkdir -p ${PREFIX}/share/conda-cacert-scan
+      - cp -r patterns ${PREFIX}/share/conda-cacert-scan/patterns
+      - mkdir -p ${PREFIX}/etc/conda/activate.d
+      - cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activate.sh"
+      - mkdir -p ${PREFIX}/etc/conda/deactivate.d
+      - cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh"
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkgconfig
+  host:
+    - openssl
+
+tests:
+  - script:
+      - conda-cacert-scan --help
+      - conda-cacert-scan scan --help
+      - >-
+        conda-cacert-scan scan 
+        https://api.anaconda.org/download/conda-forge/certifi/2022.6.15/linux-64/certifi-2022.6.15-py38h373033e_0.tar.bz2 
+        | grep -q -F "lib/python3.8/site-packages/certifi/cacert.pem"
+  - package_contents:
+      bin:
+        - conda-cacert-scan
+      files:
+        - share/conda-cacert-scan/patterns/roots.pem
+        - share/conda-cacert-scan/patterns/watch.pem
+        - etc/conda/activate.d/conda-cacert-scan_activate.sh
+        - etc/conda/deactivate.d/conda-cacert-scan_deactivate.sh
+      strict: true
+
+about:
+  homepage: https://github.com/JeanChristopheMorinPerso/conda-cacert-scan
+  summary: Find conda packages that vendor their own eMudhra compromised CA trust store.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - beckermr
