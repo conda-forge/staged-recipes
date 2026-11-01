@@ -1,0 +1,86 @@
+From c2fda4e1879aefa68219f2387e6797788c45b201 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Mon, 2 Nov 2026 00:52:38 +0100
+Subject: [PATCH 2/2] ghostty-vt: use ghostty_terminal_vt_write_until
+
+Ghostty 1.4.0 (packaged on conda-forge as libghostty-vt) replaced
+ghostty_terminal_vt_write_until_ground with ghostty_terminal_vt_write_until
+(ghostty-org/ghostty 4d3487ef). Asking only for the GROUND boundary keeps
+the previous semantics: SUCCESS with the consumed count once ground is
+reached, NO_VALUE when the whole slice was consumed without reaching it.
+---
+ crates/ghostty-vt/src/lib.rs | 39 +++++++++++++++++++++++++++++++-----
+ 1 file changed, 34 insertions(+), 5 deletions(-)
+
+diff --git a/crates/ghostty-vt/src/lib.rs b/crates/ghostty-vt/src/lib.rs
+index b5af2e0..a21e355 100644
+--- a/crates/ghostty-vt/src/lib.rs
++++ b/crates/ghostty-vt/src/lib.rs
+@@ -177,6 +177,20 @@ mod ffi {
+         pub message: Str,
+     }
+ 
++    pub const BOUNDARY_GROUND: u32 = 1 << 0;
++
++    /// GhosttyTerminalWriteStop
++    #[repr(C)]
++    pub struct WriteStop {
++        pub size: usize,
++        pub consumed: usize,
++        pub reached: u32,
++        pub kind: i32,
++        pub introducer: i32,
++        pub end: i32,
++        pub byte: u8,
++    }
++
+     #[repr(C)]
+     pub struct ModeConfig {
+         pub mode: u16,
+@@ -189,11 +203,12 @@ mod ffi {
+         pub fn ghostty_terminal_set(t: Terminal, opt: i32, value: *const c_void) -> i32;
+         pub fn ghostty_terminal_get(t: Terminal, data: i32, out: *mut c_void) -> i32;
+         pub fn ghostty_terminal_vt_write(t: Terminal, data: *const u8, len: usize);
+-        pub fn ghostty_terminal_vt_write_until_ground(
++        pub fn ghostty_terminal_vt_write_until(
+             t: Terminal,
+             data: *const u8,
+             len: usize,
+-            consumed: *mut usize,
++            boundaries: u32,
++            out: *mut WriteStop,
+         ) -> i32;
+         pub fn ghostty_terminal_continuation_alloc(
+             t: Terminal,
+@@ -434,11 +449,25 @@ impl Terminal {
+ 
+     /// Consumes through the first clean parser boundary, or the entire slice if none is reached.
+     pub fn write_until_ground(&mut self, bytes: &[u8]) -> Option<usize> {
+-        let mut consumed = 0;
++        let mut stop = ffi::WriteStop {
++            size: std::mem::size_of::<ffi::WriteStop>(),
++            consumed: 0,
++            reached: 0,
++            kind: 0,
++            introducer: 0,
++            end: 0,
++            byte: 0,
++        };
+         let rc = unsafe {
+-            ffi::ghostty_terminal_vt_write_until_ground(self.raw, bytes.as_ptr(), bytes.len(), &mut consumed)
++            ffi::ghostty_terminal_vt_write_until(
++                self.raw,
++                bytes.as_ptr(),
++                bytes.len(),
++                ffi::BOUNDARY_GROUND,
++                &mut stop,
++            )
+         };
+-        (rc == ffi::SUCCESS).then_some(consumed)
++        (rc == ffi::SUCCESS).then_some(stop.consumed)
+     }
+ 
+     /// Query replies and subscribed notifications since the last call, for the program's PTY.
+-- 
+2.53.0
+
