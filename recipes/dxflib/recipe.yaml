@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  name: dxflib
+  # dxflib's own version (DL_VERSION in dl_dxf.h); it is released as part of QCAD
+  version: 3.26.4.0
+  qcad: 3.33.1.0
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/qcad/qcad/archive/refs/tags/v${{ qcad }}.tar.gz
+  sha256: cbb519f089bbf1e588b15e10e33d8894e16dc2cabab6efa7d54cb1ea422d8db6
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: cp ${RECIPE_DIR}/CMakeLists.txt src/3rdparty/dxflib/
+      else: copy %RECIPE_DIR%\CMakeLists.txt src\3rdparty\dxflib\
+    - cmake ${CMAKE_ARGS} -G Ninja -S src/3rdparty/dxflib -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{ PREFIX if unix else LIBRARY_PREFIX }}
+    - cmake --build build
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - dxflib/dl_dxf.h
+      lib:
+        - dxflib
+      files:
+        - if: unix
+          then: lib/cmake/dxflib/dxflib-config.cmake
+          else: Library/lib/cmake/dxflib/dxflib-config.cmake
+  - script:
+      # Release: on Windows a Debug build would use the debug C++ runtime
+      - cmake -G Ninja -S test -B build -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - if: unix
+        then: ./build/write_read
+        else: build\write_read.exe
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    files:
+      recipe:
+        - test/
+
+about:
+  homepage: https://qcad.org/en/90-dxflib
+  repository: https://github.com/qcad/qcad/tree/master/src/3rdparty/dxflib
+  summary: C++ library for reading and writing DXF files
+  description: |
+    dxflib reads and writes DXF files (AutoCAD's exchange format) through a
+    callback interface. It is developed by RibbonSoft as part of QCAD; this
+    package builds it as a shared library with a CMake package
+    (find_package(dxflib), target dxflib::dxflib).
+  license: GPL-2.0-or-later
+  license_file: src/3rdparty/dxflib/gpl-2.0greater.txt
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
