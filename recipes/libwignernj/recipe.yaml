@@ -1,0 +1,71 @@
+context:
+  version: "0.8.0"
+
+package:
+  name: libwignernj
+  version: ${{ version }}
+
+source:
+  url: https://github.com/susilehtola/libwignernj/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7220cea92652040d6456aba92ff151124d9c69ce8695840490c18dd25a0da80c
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: |
+        cmake -S . -B build -G Ninja ${CMAKE_ARGS} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=ON \
+          -DWIGNERNJ_BUILD_FORTRAN=ON \
+          -DWIGNERNJ_BUILD_LTO=OFF \
+          -DWIGNERNJ_BUILD_EXAMPLES=OFF \
+          -DWIGNERNJ_BUILD_TESTS=ON
+        cmake --build build --parallel ${CPU_COUNT}
+        if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || -n "${CROSSCOMPILING_EMULATOR:-}" ]]; then
+          ctest --test-dir build --output-on-failure
+        fi
+        cmake --install build
+      else: |
+        cmake -S . -B build -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DWIGNERNJ_BUILD_FORTRAN=OFF -DWIGNERNJ_BUILD_LTO=OFF -DWIGNERNJ_BUILD_EXAMPLES=OFF
+        if errorlevel 1 exit 1
+        cmake --build build --parallel %CPU_COUNT%
+        if errorlevel 1 exit 1
+        ctest --test-dir build --output-on-failure
+        if errorlevel 1 exit 1
+        cmake --install build
+        if errorlevel 1 exit 1
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - if: unix
+      then: ${{ compiler("fortran") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage("libwignernj", upper_bound="x.x") }}
+
+tests:
+  - package_contents:
+      include:
+        - wignernj.h
+        - wignernj.hpp
+      lib:
+        - wignernj
+      files:
+        - if: unix
+          then: lib/pkgconfig/libwignernj.pc
+
+about:
+  homepage: https://github.com/susilehtola/libwignernj
+  summary: Exact evaluation of Wigner 3j, 6j, 9j symbols, Clebsch-Gordan, Racah W, Fano X and Gaunt coefficients
+  license: BSD-3-Clause
+  license_file: LICENSE
+  repository: https://github.com/susilehtola/libwignernj
+
+extra:
+  recipe-maintainers:
+    - mkrack
