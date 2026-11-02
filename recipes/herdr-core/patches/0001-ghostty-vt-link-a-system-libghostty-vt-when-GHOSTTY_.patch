@@ -1,0 +1,35 @@
+From 951266bbec804c29e37d3428720b32712528724d Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Mon, 2 Nov 2026 00:52:27 +0100
+Subject: [PATCH 1/2] ghostty-vt: link a system libghostty-vt when
+ GHOSTTY_VT_LIB_DIR is set
+
+conda-forge ships libghostty-vt as its own package; link against it
+instead of building the vendored Ghostty submodule with Zig.
+---
+ crates/ghostty-vt/build.rs | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/crates/ghostty-vt/build.rs b/crates/ghostty-vt/build.rs
+index 77cc17d..e5a12b0 100644
+--- a/crates/ghostty-vt/build.rs
++++ b/crates/ghostty-vt/build.rs
+@@ -4,6 +4,15 @@ use std::path::PathBuf;
+ use std::process::Command;
+ 
+ fn main() {
++    // Link a system-provided libghostty-vt (e.g. from conda-forge) instead of
++    // building the vendored Ghostty submodule with Zig.
++    println!("cargo:rerun-if-env-changed=GHOSTTY_VT_LIB_DIR");
++    if let Ok(dir) = std::env::var("GHOSTTY_VT_LIB_DIR") {
++        println!("cargo:rustc-link-search=native={dir}");
++        println!("cargo:rustc-link-lib=dylib=ghostty-vt");
++        return;
++    }
++
+     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+     let src = manifest
+         .join("../../vendor/ghostty")
+-- 
+2.53.0
+
