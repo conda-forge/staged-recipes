@@ -1,0 +1,77 @@
+context:
+  version: "0.1.16"
+
+package:
+  name: herdr-core
+  version: ${{ version }}
+
+source:
+  url: https://github.com/herdrdev/herdr-core/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 63fdb4a556f99f5642d0f52c7dc0bb87e424c2363c5717d920a7e71de84f3f5e
+  patches:
+    # link conda-forge's libghostty-vt instead of building vendor/ghostty with zig
+    - patches/0001-ghostty-vt-link-a-system-libghostty-vt-when-GHOSTTY_.patch
+    # ghostty 1.4.0 replaced vt_write_until_ground with vt_write_until
+    - patches/0002-ghostty-vt-use-ghostty_terminal_vt_write_until.patch
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - export GHOSTTY_VT_LIB_DIR="${PREFIX}/lib"
+          - cargo auditable install --locked --no-track --bin herdr-core --root ${{ PREFIX }} --path crates/herdr-core
+          - ln -s herdr-core ${{ PREFIX }}/bin/hc
+        else:
+          # upstream links the C runtime statically on windows; use the dynamic one like the rest of conda-forge
+          - if exist .cargo\config.toml del .cargo\config.toml
+          - set "GHOSTTY_VT_LIB_DIR=%LIBRARY_LIB%"
+          - cargo auditable install --locked --no-track --bin herdr-core --root %LIBRARY_PREFIX% --path crates/herdr-core
+          - if errorlevel 1 exit 1
+          - copy %LIBRARY_BIN%\herdr-core.exe %LIBRARY_BIN%\hc.exe
+          - if errorlevel 1 exit 1
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+  host:
+    - libghostty-vt
+
+tests:
+  - script:
+      - herdr-core --version
+      - hc --version
+      - hc --help
+  - package_contents:
+      bin:
+        - herdr-core
+        - hc
+      strict: true
+
+about:
+  homepage: https://herdr.dev
+  summary: Terminals for coding agents that stay alive after you leave
+  description: |
+    herdr-core (`hc`) runs programs and coding agents in terminals that stay
+    alive after you leave. Agents can start other agents, send them work, and
+    hear back; you can attach to any terminal and take over.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - crates/herdr-core/THIRD-PARTY-NOTICES
+    - THIRDPARTY.yml
+  documentation: https://github.com/herdrdev/herdr-core/tree/master/docs
+  repository: https://github.com/herdrdev/herdr-core
+
+extra:
+  recipe-maintainers:
+    - pavelzw
