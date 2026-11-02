@@ -15,6 +15,8 @@ source:
 build:
   number: 0
   noarch: generic
+  # one variant per OS family: headers go to $PREFIX/include on unix and to
+  # %PREFIX%\Library\include on Windows (noarch_platforms in conda-forge.yml)
   script:
     # Single header file
     - if: unix
@@ -22,18 +24,25 @@ build:
         - mkdir -p $PREFIX/include
         - cp portable-file-dialogs.h $PREFIX/include/
       else:
-        - if not exist %PREFIX%\include mkdir %PREFIX%\include
-        - copy portable-file-dialogs.h %PREFIX%\include\
+        - if not exist %LIBRARY_INC% mkdir %LIBRARY_INC%
+        - copy portable-file-dialogs.h %LIBRARY_INC%\
+
+requirements:
+  run:
+    - if: unix
+      then: __unix
+      else: __win
 
 tests:
-  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
   - package_contents:
       files:
-        - include/portable-file-dialogs.h
+        - if: unix
+          then: include/portable-file-dialogs.h
+          else: Library/include/portable-file-dialogs.h
   - script:
       - if: unix
         then: ${CXX} -std=c++11 -fsyntax-only -I$PREFIX/include test.cpp
-        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%LIBRARY_INC% test.cpp
     requirements:
       run:
         - ${{ compiler('cxx') }}

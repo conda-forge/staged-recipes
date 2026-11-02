@@ -22,7 +22,7 @@ cmake -S . -B build-py -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DOpenMVS_USE_IBFS=OFF ^
-  -DVCG_DIR=%PREFIX%\include\vcglib ^
+  -DVCG_DIR=%LIBRARY_INC%\vcglib ^
   -DPython3_EXECUTABLE=%PYTHON% ^
   -DOpenMVS_USE_CUDA=OFF ^
   -DOpenMVS_USE_PYTHON=ON ^

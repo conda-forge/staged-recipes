@@ -24,8 +24,8 @@ if "%cuda_compiler_version%"=="None" (
 :: OpenMVS 2.4.0 does not support shared libraries on Windows (upstream added
 :: that after 2.4.0, cdcseacave/openMVS#1262), so its internal libraries are
 :: linked statically into the tools; only the tools are shipped.
-:: vcglib and portable-file-dialogs are noarch: generic, so their headers are
-:: in %PREFIX%\include rather than %LIBRARY_INC%.
+:: vcglib and portable-file-dialogs install their headers in %LIBRARY_INC% on
+:: Windows (their win variant).
 cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DBUILD_SHARED_LIBS=OFF ^
@@ -33,8 +33,8 @@ cmake -S . -B build -G Ninja %CMAKE_ARGS% ^
   -DOpenMVS_LIBRARY_NAME_PREFIX=OpenMVS ^
   -DOpenMVS_USE_IBFS=OFF ^
   -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%SRC_DIR%\build\bin ^
-  -DVCG_DIR=%PREFIX%\include\vcglib ^
-  -DPORTABLE_FILE_DIALOGS_INCLUDE_DIRS=%PREFIX%\include ^
+  -DVCG_DIR=%LIBRARY_INC%\vcglib ^
+  -DPORTABLE_FILE_DIALOGS_INCLUDE_DIRS=%LIBRARY_INC% ^
   %CUDA_ARGS% ^
   -DOpenMVS_USE_PYTHON=OFF ^
   -DOpenMVS_BUILD_VIEWER=ON ^

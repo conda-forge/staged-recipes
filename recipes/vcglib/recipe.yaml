@@ -18,6 +18,8 @@ source:
 build:
   number: 0
   noarch: generic
+  # one variant per OS family: headers go to $PREFIX/include on unix and to
+  # %PREFIX%\Library\include on Windows (noarch_platforms in conda-forge.yml)
   script:
     # Header-only. Bundled third-party code that conda-forge packages is not
     # installed: Eigen (eigenlib/; its only user, vcg/math/eigen.h, is Eigen-2
@@ -31,32 +33,40 @@ build:
         - cp -R vcg wrap img $PREFIX/include/vcglib/
         - rm -r $PREFIX/include/vcglib/wrap/openfbx
       else:
-        - xcopy /E /I /Q vcg %PREFIX%\include\vcglib\vcg
-        - xcopy /E /I /Q wrap %PREFIX%\include\vcglib\wrap
-        - xcopy /E /I /Q img %PREFIX%\include\vcglib\img
-        - rmdir /S /Q %PREFIX%\include\vcglib\wrap\openfbx
+        - xcopy /E /I /Q vcg %LIBRARY_INC%\vcglib\vcg
+        - xcopy /E /I /Q wrap %LIBRARY_INC%\vcglib\wrap
+        - xcopy /E /I /Q img %LIBRARY_INC%\vcglib\img
+        - rmdir /S /Q %LIBRARY_INC%\vcglib\wrap\openfbx
 
 requirements:
   run:
+    - if: unix
+      then: __unix
+      else: __win
     - eigen
     # for wrap/io_trimesh/import_fbx.h
     - openfbx
 
 tests:
-  # noarch: generic installs to include/ on every platform (not Library/ on Windows)
   - package_contents:
       files:
         exists:
-          - include/vcglib/vcg/complex/complex.h
-          - include/vcglib/wrap/io_trimesh/import_ply.h
-          - include/vcglib/wrap/io_trimesh/import_fbx.h
+          - if: unix
+            then:
+              - include/vcglib/vcg/complex/complex.h
+              - include/vcglib/wrap/io_trimesh/import_ply.h
+              - include/vcglib/wrap/io_trimesh/import_fbx.h
+            else:
+              - Library/include/vcglib/vcg/complex/complex.h
+              - Library/include/vcglib/wrap/io_trimesh/import_ply.h
+              - Library/include/vcglib/wrap/io_trimesh/import_fbx.h
         not_exists:
-          - include/vcglib/wrap/openfbx/**
-          - include/vcglib/eigenlib/**
+          - "**/vcglib/wrap/openfbx/**"
+          - "**/vcglib/eigenlib/**"
   - script:
       - if: unix
         then: ${CXX} -std=c++17 -fsyntax-only -I$PREFIX/include/vcglib -I$PREFIX/include/eigen3 -I$PREFIX/include test.cpp
-        else: cl /nologo /std:c++17 /EHsc /Zs /I%PREFIX%\include\vcglib /I%LIBRARY_INC%\eigen3 /I%LIBRARY_INC% test.cpp
+        else: cl /nologo /std:c++17 /EHsc /Zs /I%LIBRARY_INC%\vcglib /I%LIBRARY_INC%\eigen3 /I%LIBRARY_INC% test.cpp
     requirements:
       run:
         - ${{ compiler('cxx') }}
