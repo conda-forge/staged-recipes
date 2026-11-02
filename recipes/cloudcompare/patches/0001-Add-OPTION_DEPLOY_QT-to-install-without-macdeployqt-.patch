@@ -12,16 +12,18 @@ instead of application bundles: executables in bin/, the shared libraries in
 lib/cloudcompare, plugins in lib/cloudcompare/plugins, shaders and
 translations in share/cloudcompare, with install rpaths to lib/cloudcompare
 (relative to the installing file on macOS). ccApplicationBase finds plugins and
-shaders there when the executable runs from a bin/ directory on macOS.
+shaders there when the executable runs from a bin/ directory on macOS (only
+compiled for OPTION_DEPLOY_QT=OFF: CC_INSTALL_FHS_LAYOUT).
 ---
- CMakeLists.txt                             | 34 ++++++++++++++++++----
+ CMakeLists.txt                             | 34 +++++++++++++++++----
  ccViewer/CMakeLists.txt                    | 12 ++++----
  cmake/DeployQt.cmake                       | 10 ++++++-
  cmake/Install.cmake                        |  4 +--
- libs/CCAppCommon/src/ccApplicationBase.cpp | 45 +++++++++++++++++++-----------
+ libs/CCAppCommon/CMakeLists.txt            |  5 ++++
+ libs/CCAppCommon/src/ccApplicationBase.cpp | 47 ++++++++++++++++++++----------
  qCC/CMakeLists.txt                         | 12 ++++----
  qCC/translations/CMakeLists.txt            |  2 +-
- 7 files changed, 81 insertions(+), 38 deletions(-)
+ 8 files changed, 88 insertions(+), 38 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 68aa48b7..d815629c 100644
@@ -172,16 +174,33 @@ index ccb5a980..f2c266c8 100644
  		endif()
  
  		_InstallSharedTarget(
+diff --git a/libs/CCAppCommon/CMakeLists.txt b/libs/CCAppCommon/CMakeLists.txt
+index 511132e5..cd4c59b6 100644
+--- a/libs/CCAppCommon/CMakeLists.txt
++++ b/libs/CCAppCommon/CMakeLists.txt
+@@ -16,6 +16,11 @@ target_link_libraries( ${PROJECT_NAME}
+ 
+ target_compile_definitions( ${PROJECT_NAME} PRIVATE CCAPPCOMMON_LIBRARY_BUILD )
+ 
++if( APPLE AND NOT OPTION_DEPLOY_QT )
++	# bin/, lib/cloudcompare and share/cloudcompare instead of an application bundle
++	target_compile_definitions( ${PROJECT_NAME} PRIVATE CC_INSTALL_FHS_LAYOUT )
++endif()
++
+ set_target_properties( ${PROJECT_NAME} PROPERTIES
+ 	AUTOUIC ON # FIXME Remove after everything has moved to targets and we can set it globally
+ 	CXX_VISIBILITY_PRESET hidden
 diff --git a/libs/CCAppCommon/src/ccApplicationBase.cpp b/libs/CCAppCommon/src/ccApplicationBase.cpp
-index 795e59c0..8cdb13b3 100644
+index 795e59c0..4a547f1e 100644
 --- a/libs/CCAppCommon/src/ccApplicationBase.cpp
 +++ b/libs/CCAppCommon/src/ccApplicationBase.cpp
-@@ -185,29 +185,42 @@ void ccApplicationBase::setupPaths()
+@@ -185,29 +185,44 @@ void ccApplicationBase::setupPaths()
  
  	// Set up our shader and plugin paths
  #if defined(Q_OS_MAC)
 -	QDir bundleDir = appDir;
 -	if (bundleDir.dirName() == "MacOS")
++#if defined(CC_INSTALL_FHS_LAYOUT)
 +	if (appDir.dirName() == "bin")
  	{
 -		bundleDir.cdUp();
@@ -194,6 +213,7 @@ index 795e59c0..8cdb13b3 100644
 +		m_translationPath = (theDir.absolutePath() + "/share/cloudcompare/translations");
  	}
 +	else
++#endif
 +	{
 +		QDir bundleDir = appDir;
 +		if (bundleDir.dirName() == "MacOS")
