@@ -1,7 +1,7 @@
-From 718a9f436826c2a74795565ac5d33b12e950f82d Mon Sep 17 00:00:00 2001
+From a1d4d48f18cc2ac5d12514876d11b4babc094b38 Mon Sep 17 00:00:00 2001
 From: Tobias Fischer <tobias.fischer@qut.edu.au>
-Date: Fri, 30 Oct 2026 18:21:36 +1000
-Subject: [PATCH 1/7] Add OPTION_DEPLOY_QT to install without
+Date: Tue, 3 Nov 2026 07:21:41 +1000
+Subject: [PATCH] Add OPTION_DEPLOY_QT to install without
  macdeployqt/windeployqt
 
 Package managers (conda-forge, Homebrew, ...) provide Qt and the other
@@ -12,16 +12,16 @@ instead of application bundles: executables in bin/, the shared libraries in
 lib/cloudcompare, plugins in lib/cloudcompare/plugins, shaders and
 translations in share/cloudcompare, with install rpaths to lib/cloudcompare
 (relative to the installing file on macOS). ccApplicationBase finds plugins and
-shaders there when the executable runs from a bin/ directory on macOS (only
-compiled for OPTION_DEPLOY_QT=OFF: CC_INSTALL_FHS_LAYOUT).
+shaders there on macOS (only compiled for OPTION_DEPLOY_QT=OFF:
+CC_INSTALL_FHS_LAYOUT, where the executable is always in bin/).
 ---
- CMakeLists.txt                             | 34 +++++++++++++++++----
- ccViewer/CMakeLists.txt                    | 12 ++++----
- cmake/DeployQt.cmake                       | 10 ++++++-
- cmake/Install.cmake                        |  4 +--
- libs/CCAppCommon/CMakeLists.txt            |  5 ++++
- libs/CCAppCommon/src/ccApplicationBase.cpp | 47 ++++++++++++++++++++----------
- qCC/CMakeLists.txt                         | 12 ++++----
+ CMakeLists.txt                             | 34 +++++++++++++---
+ ccViewer/CMakeLists.txt                    | 12 +++---
+ cmake/DeployQt.cmake                       | 10 ++++-
+ cmake/Install.cmake                        |  4 +-
+ libs/CCAppCommon/CMakeLists.txt            |  5 +++
+ libs/CCAppCommon/src/ccApplicationBase.cpp | 47 ++++++++++++++--------
+ qCC/CMakeLists.txt                         | 12 +++---
  qCC/translations/CMakeLists.txt            |  2 +-
  8 files changed, 88 insertions(+), 38 deletions(-)
 
@@ -191,20 +191,20 @@ index 511132e5..cd4c59b6 100644
  	AUTOUIC ON # FIXME Remove after everything has moved to targets and we can set it globally
  	CXX_VISIBILITY_PRESET hidden
 diff --git a/libs/CCAppCommon/src/ccApplicationBase.cpp b/libs/CCAppCommon/src/ccApplicationBase.cpp
-index 795e59c0..4a547f1e 100644
+index 795e59c0..a7f9541a 100644
 --- a/libs/CCAppCommon/src/ccApplicationBase.cpp
 +++ b/libs/CCAppCommon/src/ccApplicationBase.cpp
-@@ -185,29 +185,44 @@ void ccApplicationBase::setupPaths()
+@@ -185,28 +185,43 @@ void ccApplicationBase::setupPaths()
  
  	// Set up our shader and plugin paths
  #if defined(Q_OS_MAC)
 -	QDir bundleDir = appDir;
 -	if (bundleDir.dirName() == "MacOS")
 +#if defined(CC_INSTALL_FHS_LAYOUT)
-+	if (appDir.dirName() == "bin")
  	{
 -		bundleDir.cdUp();
-+		// Installed like on Linux (OPTION_DEPLOY_QT=OFF, e.g. by a package manager)
++		// Installed like on Linux (OPTION_DEPLOY_QT=OFF, e.g. by a package manager):
++		// the executable is always in <prefix>/bin
 +		QDir theDir = appDir;
 +		theDir.cdUp();
 +
@@ -212,8 +212,7 @@ index 795e59c0..4a547f1e 100644
 +		m_shaderPath      = (theDir.absolutePath() + "/share/cloudcompare/shaders");
 +		m_translationPath = (theDir.absolutePath() + "/share/cloudcompare/translations");
  	}
-+	else
-+#endif
++#else
 +	{
 +		QDir bundleDir = appDir;
 +		if (bundleDir.dirName() == "MacOS")
@@ -250,11 +249,11 @@ index 795e59c0..4a547f1e 100644
 -	m_translationPath = (bundleDir.absolutePath() + "/translations");
 +		m_shaderPath      = (bundleDir.absolutePath() + "/Shaders");
 +		m_translationPath = (bundleDir.absolutePath() + "/translations");
- #endif
++#endif
 +	}
+ #endif
  #elif defined(Q_OS_WIN)
  	m_pluginPaths << (appDir.absolutePath() + "/plugins");
- 	m_shaderPath      = (appDir.absolutePath() + "/shaders");
 diff --git a/qCC/CMakeLists.txt b/qCC/CMakeLists.txt
 index 5e21aed0..9acddd62 100644
 --- a/qCC/CMakeLists.txt
@@ -326,3 +325,6 @@ index f1cd448f..27920e7b 100644
  	install( FILES ${TRANSLATION_QM} DESTINATION ${CLOUDCOMPARE_MAC_BASE_DIR}/Contents/translations )
  elseif( UNIX )
  	install( FILES ${TRANSLATION_QM} DESTINATION share/cloudcompare/translations )
+-- 
+2.53.0
+
