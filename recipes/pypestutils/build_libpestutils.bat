@@ -11,5 +11,5 @@ if errorlevel 1 exit 1
 :: test?
 
 :: install
-meson install -C builddir
+meson install -C builddir --destdir "%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
