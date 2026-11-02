@@ -1,0 +1,63 @@
+From: Vorschreibung <Vorschreibung@users.noreply.github.com>
+Subject: [PATCH] give q3map2 worker threads 8 MiB of stack on macOS
+
+Since upstream switched RunThreadsOn() from pthreads to std::thread,
+worker threads use the platform's default thread stack size. That is
+8 MiB on Linux, but only 512 KiB on macOS, which TraceGrid() alone
+overflows with its MAX_CONTRIBUTIONS (32768 * 40 bytes) array on the
+stack, so -light crashes with a segfault. std::thread can't set a
+stack size, so create the threads with pthreads and an explicit
+8 MiB stack on macOS, like the former pthreads code did.
+---
+--- a/tools/quake3/common/threads.cpp
++++ b/tools/quake3/common/threads.cpp
+@@ -113,6 +113,10 @@
+ 
+ #include <thread>
+ #include <mutex>
++#ifdef __APPLE__
++#include <cstdint>
++#include <pthread.h>
++#endif
+ 
+ std::mutex crit;
+ static bool enter;
+@@ -159,6 +163,30 @@
+ 	{
+ 		threaded = true;
+ 
++#ifdef __APPLE__
++		/* macOS gives secondary threads only 512 KiB of stack, which is overflowed
++		   e.g. by TraceGrid() (MAX_CONTRIBUTIONS on the stack); std::thread can not
++		   change that, so use pthreads with the 8 MiB Linux threads get by default */
++		pthread_attr_t attr;
++		pthread_attr_init( &attr );
++		if ( pthread_attr_setstacksize( &attr, 8 * 1024 * 1024 ) != 0 ) {
++			Error( "pthread_attr_setstacksize failed" );
++		}
++
++		static void ( *threadfunc )( int );
++		threadfunc = func;
++		pthread_t threads[MAX_THREADS];
++
++		for ( int i = 0; i < numthreads; ++i )
++			if ( pthread_create( &threads[i], &attr, []( void *num ) -> void* { threadfunc( (int)(intptr_t)num ); return nullptr; }, (void*)(intptr_t)i ) != 0 ) {
++				Error( "pthread_create failed" );
++			}
++
++		for ( int i = 0; i < numthreads; ++i )
++			pthread_join( threads[i], nullptr );
++
++		pthread_attr_destroy( &attr );
++#else
+ 		std::thread threads[MAX_THREADS];
+ 
+ 		for ( int i = 0; i < numthreads; ++i )
+@@ -166,6 +194,7 @@
+ 
+ 		for ( int i = 0; i < numthreads; ++i )
+ 			threads[i].join();
++#endif
+ 
+ 		threaded = false;
+ 	}
