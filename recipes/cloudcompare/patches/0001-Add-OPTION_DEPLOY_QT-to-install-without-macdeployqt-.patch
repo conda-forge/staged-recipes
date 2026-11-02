@@ -11,23 +11,23 @@ macdeployqt/windeployqt step off. Without it, macOS uses the Linux layout
 instead of application bundles: executables in bin/, the shared libraries in
 lib/cloudcompare, plugins in lib/cloudcompare/plugins, shaders and
 translations in share/cloudcompare, with install rpaths to lib/cloudcompare
-and to the dependencies' directories. ccApplicationBase finds plugins and
+(relative to the installing file on macOS). ccApplicationBase finds plugins and
 shaders there when the executable runs from a bin/ directory on macOS.
 ---
- CMakeLists.txt                             | 22 +++++++++--
- ccViewer/CMakeLists.txt                    | 12 +++---
- cmake/DeployQt.cmake                       | 10 ++++-
- cmake/Install.cmake                        |  2 +-
- libs/CCAppCommon/src/ccApplicationBase.cpp | 45 ++++++++++++++--------
- qCC/CMakeLists.txt                         | 12 +++---
+ CMakeLists.txt                             | 34 ++++++++++++++++++----
+ ccViewer/CMakeLists.txt                    | 12 ++++----
+ cmake/DeployQt.cmake                       | 10 ++++++-
+ cmake/Install.cmake                        |  4 +--
+ libs/CCAppCommon/src/ccApplicationBase.cpp | 45 +++++++++++++++++++-----------
+ qCC/CMakeLists.txt                         | 12 ++++----
  qCC/translations/CMakeLists.txt            |  2 +-
- 7 files changed, 70 insertions(+), 35 deletions(-)
+ 7 files changed, 81 insertions(+), 38 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4e62a6a4..31b79949 100644
+index 68aa48b7..d815629c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -29,9 +29,19 @@ endif()
+@@ -35,9 +35,19 @@ endif()
  # Default debug suffix for libraries.
  set( CMAKE_DEBUG_POSTFIX "d" )
  
@@ -48,7 +48,7 @@ index 4e62a6a4..31b79949 100644
  	set( CLOUDCOMPARE_DEST_FOLDER CloudCompare )
  	set( CCVIEWER_DEST_FOLDER ccViewer )
  else()
-@@ -45,12 +55,16 @@ if( WIN32 )
+@@ -51,12 +61,24 @@ if( WIN32 )
      if( ${OPTION_BUILD_CCVIEWER} )
          list( APPEND INSTALL_DESTINATIONS ${CCVIEWER_DEST_FOLDER} )
  	endif()
@@ -60,10 +60,20 @@ index 4e62a6a4..31b79949 100644
 +	# (dynamic) libs are put in $prefix/$lib/cloudcompare, since they are only used
 +	# by qCC/ccViewer; Qt and the other dependencies are found where they are installed
  	include( GNUInstallDirs )
- 	set( LINUX_INSTALL_SHARED_DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/cloudcompare" )
- 	set( CMAKE_INSTALL_RPATH ${LINUX_INSTALL_SHARED_DESTINATION} )
+-	set( LINUX_INSTALL_SHARED_DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/cloudcompare" )
+-	set( CMAKE_INSTALL_RPATH ${LINUX_INSTALL_SHARED_DESTINATION} )
++	set( UNIX_INSTALL_SHARED_CC_LIB_DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/cloudcompare" )
 +	if( APPLE )
-+		set( CMAKE_INSTALL_RPATH_USE_LINK_PATH ON )
++		# relative to the installing file (executables in bin, plugins in lib/cloudcompare/plugins,
++		# libraries in lib/cloudcompare), so that the installation can be relocated
++		list( APPEND CMAKE_INSTALL_RPATH
++			"@loader_path/../${CMAKE_INSTALL_LIBDIR}/cloudcompare"
++			"@loader_path/.."
++			"@loader_path"
++		)
++	else()
++		# keeps any CMAKE_INSTALL_RPATH set by the caller (e.g. a package manager)
++		list( APPEND CMAKE_INSTALL_RPATH ${UNIX_INSTALL_SHARED_CC_LIB_DESTINATION} )
 +	endif()
  	set( INSTALL_DESTINATIONS ${CMAKE_INSTALL_PREFIX})
  endif()
@@ -148,18 +158,20 @@ index a7dd3e1d..f9f5ca29 100644
  
  	get_target_property( name ${DEPLOY_QT_TARGET} NAME )
 diff --git a/cmake/Install.cmake b/cmake/Install.cmake
-index ccb5a980..f8d7a27c 100644
+index ccb5a980..f2c266c8 100644
 --- a/cmake/Install.cmake
 +++ b/cmake/Install.cmake
-@@ -24,7 +24,7 @@ function(InstallSharedLibrary)
+@@ -24,8 +24,8 @@ function(InstallSharedLibrary)
  	message(STATUS "Install shared library: ${shared_lib_target}")
  
  	foreach (destination ${INSTALL_DESTINATIONS})
 -		if(UNIX AND NOT APPLE)
-+		if(LINUX_INSTALL_SHARED_DESTINATION)
- 			set(destination ${LINUX_INSTALL_SHARED_DESTINATION})
+-			set(destination ${LINUX_INSTALL_SHARED_DESTINATION})
++		if(UNIX_INSTALL_SHARED_CC_LIB_DESTINATION)
++			set(destination ${UNIX_INSTALL_SHARED_CC_LIB_DESTINATION})
  		endif()
  
+ 		_InstallSharedTarget(
 diff --git a/libs/CCAppCommon/src/ccApplicationBase.cpp b/libs/CCAppCommon/src/ccApplicationBase.cpp
 index 795e59c0..8cdb13b3 100644
 --- a/libs/CCAppCommon/src/ccApplicationBase.cpp
@@ -224,7 +236,7 @@ index 795e59c0..8cdb13b3 100644
  	m_pluginPaths << (appDir.absolutePath() + "/plugins");
  	m_shaderPath      = (appDir.absolutePath() + "/shaders");
 diff --git a/qCC/CMakeLists.txt b/qCC/CMakeLists.txt
-index 6286c9c4..5717d580 100644
+index 5e21aed0..9acddd62 100644
 --- a/qCC/CMakeLists.txt
 +++ b/qCC/CMakeLists.txt
 @@ -42,7 +42,7 @@ if( MSVC )
@@ -236,7 +248,7 @@ index 6286c9c4..5717d580 100644
  	add_executable( ${PROJECT_NAME} MACOSX_BUNDLE ${header_list} ${source_list} ${generated_ui_list} ${generated_qrc_list} ${txt_list} )
  else()
  	add_executable( ${PROJECT_NAME} ${header_list} ${source_list} ${generated_ui_list} ${generated_qrc_list} ${rc_list} ${txt_list} )
-@@ -99,7 +99,7 @@ if( WIN32 )
+@@ -100,7 +100,7 @@ if( WIN32 )
  	endif()
  endif()
  
@@ -245,7 +257,7 @@ index 6286c9c4..5717d580 100644
  	# Install program.
  	# On macOs, the DeployQt step will install the bundle that contains the executable with
  	# library paths properly set, reinstalling the executable here would break the bundle.
-@@ -116,7 +116,7 @@ if( WIN32 )
+@@ -117,7 +117,7 @@ if( WIN32 )
  endif()
  
  # Install auxiliary files
@@ -254,7 +266,7 @@ index 6286c9c4..5717d580 100644
  	foreach( filename ${auxFiles} )
  		install_ext( FILES ${filename} ${CLOUDCOMPARE_DEST_FOLDER} "" )
  	endforeach()
-@@ -127,7 +127,7 @@ else( UNIX )
+@@ -128,7 +128,7 @@ else( UNIX )
  endif()
  
  # Put together our Application bundle on macOS
@@ -263,7 +275,7 @@ index 6286c9c4..5717d580 100644
      add_subdirectory( Mac )
  endif()
  
-@@ -145,7 +145,7 @@ file( COPY ${CC_FBO_LIB_SOURCE_DIR}/shaders DESTINATION "${CMAKE_BINARY_DIR}" )
+@@ -146,7 +146,7 @@ file( COPY ${CC_FBO_LIB_SOURCE_DIR}/shaders DESTINATION "${CMAKE_BINARY_DIR}" )
  file( COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders DESTINATION "${CMAKE_BINARY_DIR}" )
  
  # Export common shader files to all install destinations
@@ -272,7 +284,7 @@ index 6286c9c4..5717d580 100644
  	install( FILES ${CC_FBO_LIB_SOURCE_DIR}/shaders/Bilateral/bilateral.frag DESTINATION ${CLOUDCOMPARE_MAC_BASE_DIR}/Contents/Shaders/Bilateral )
  	install( FILES ${CC_FBO_LIB_SOURCE_DIR}/shaders/Bilateral/bilateral.vert DESTINATION ${CLOUDCOMPARE_MAC_BASE_DIR}/Contents/Shaders/Bilateral )
  	install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorRamp/color_ramp.frag DESTINATION ${CLOUDCOMPARE_MAC_BASE_DIR}/Contents/Shaders/ColorRamp )
-@@ -170,7 +170,7 @@ else()
+@@ -171,7 +171,7 @@ else()
  endif()
  
  # Install plugins and shaders in the correct folder for each platform
@@ -294,6 +306,3 @@ index f1cd448f..27920e7b 100644
  	install( FILES ${TRANSLATION_QM} DESTINATION ${CLOUDCOMPARE_MAC_BASE_DIR}/Contents/translations )
  elseif( UNIX )
  	install( FILES ${TRANSLATION_QM} DESTINATION share/cloudcompare/translations )
--- 
-2.53.0
-
