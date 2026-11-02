@@ -1,29 +1,64 @@
-From 66bd85b8fb4142f5106a468b5e11ea127f8dbf32 Mon Sep 17 00:00:00 2001
+From 9dbbfe85c261bb49a36ea4457c499f2c061f78fc Mon Sep 17 00:00:00 2001
 From: Tobias Fischer <tobias.fischer@qut.edu.au>
-Date: Fri, 30 Oct 2026 18:23:49 +1000
-Subject: [PATCH 4/7] Build without the MeshIO submodule when it is not checked
- out
+Date: Tue, 3 Nov 2026 09:09:48 +1000
+Subject: [PATCH] Build without the MeshIO submodule when it is not checked out
 
 Source archives (e.g. GitHub's release tarballs) do not contain submodules;
-add_subdirectory(MeshIO) then failed even with the plugin off.
+add_subdirectory(MeshIO) then failed even with the plugin off. The loop that
+adds submodule plugins only when present becomes AddSubmodulePlugins() and is
+used for MeshIO too.
 ---
- plugins/core/IO/CMakeLists.txt | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ plugins/cmake/Plugins.cmake          | 12 ++++++++++++
+ plugins/core/IO/CMakeLists.txt       |  3 ++-
+ plugins/core/Standard/CMakeLists.txt |  7 +------
+ 3 files changed, 15 insertions(+), 7 deletions(-)
 
+diff --git a/plugins/cmake/Plugins.cmake b/plugins/cmake/Plugins.cmake
+index d2acef0a..3b0cfd26 100644
+--- a/plugins/cmake/Plugins.cmake
++++ b/plugins/cmake/Plugins.cmake
+@@ -145,3 +145,15 @@ define_property( TARGET
+ 	FULL_DOCS
+ 		"Path to the folder containing the shader files for a gl plugin. Files are copied from here when installing."
+ )
++
++# AddSubmodulePlugins adds the plugins in the given directories that are present.
++# Plugins kept as git submodules are skipped when they are not checked out (e.g. in
++# source archives without submodules).
++function( AddSubmodulePlugins )
++	foreach( dir ${ARGN} )
++		if( IS_DIRECTORY ${dir} AND EXISTS ${dir}/CMakeLists.txt )
++			message( STATUS "Found submodule plugin: " ${dir} )
++			add_subdirectory( ${dir} )
++		endif()
++	endforeach()
++endfunction()
 diff --git a/plugins/core/IO/CMakeLists.txt b/plugins/core/IO/CMakeLists.txt
-index aba22267..8fc0dc24 100644
+index aba22267..2a6ee3b4 100644
 --- a/plugins/core/IO/CMakeLists.txt
 +++ b/plugins/core/IO/CMakeLists.txt
-@@ -1,4 +1,8 @@
+@@ -1,4 +1,5 @@
 -add_subdirectory( MeshIO )
-+# MeshIO is a git submodule: source archives without submodules can still be
-+# built (without it)
-+if ( EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/MeshIO/CMakeLists.txt" )
-+	add_subdirectory( MeshIO )
-+endif()
++# MeshIO is a git submodule: built only when it is checked out
++AddSubmodulePlugins( ${CMAKE_CURRENT_SOURCE_DIR}/MeshIO )
  add_subdirectory( qAdditionalIO )
  add_subdirectory( qCoreIO )
  add_subdirectory( qCSVMatrixIO )
+diff --git a/plugins/core/Standard/CMakeLists.txt b/plugins/core/Standard/CMakeLists.txt
+index 72e546fc..4289696e 100644
+--- a/plugins/core/Standard/CMakeLists.txt
++++ b/plugins/core/Standard/CMakeLists.txt
+@@ -29,9 +29,4 @@ set( submod_plugins
+ 		${CMAKE_CURRENT_SOURCE_DIR}/qVoxFall
+ )
+ 
+-foreach( dir ${submod_plugins} )
+-    if( IS_DIRECTORY ${dir} AND EXISTS ${dir}/CMakeLists.txt )
+-		message( STATUS "Found submodule plugin: " ${dir} )
+-		add_subdirectory( ${dir} )
+-	endif()
+-endforeach()
++AddSubmodulePlugins( ${submod_plugins} )
 -- 
 2.53.0
 
