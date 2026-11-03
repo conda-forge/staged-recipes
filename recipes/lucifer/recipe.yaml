@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.0"
+  version: "0.2.0"
   # NOTE: keep in sync with Bmad release Lucifer has in BMAD_RELEASE
   bmad_version: "20261023.0"
   build: 0
@@ -12,7 +12,7 @@ recipe:
 
 source:
   url: https://github.com/ChristopherMayes/lucifer/archive/v${{ version }}.tar.gz
-  sha256: a808e51d4229285466e4199258538e78f0802b4ecbce8d0328e717fdce6e39af
+  sha256: 6da67e3afc168c04d00420018e788356f080c1905e9331db1df9d1827cd252a7
 
 build:
   number: ${{ build }}
@@ -25,6 +25,8 @@ outputs:
     build:
       script: build.sh
     requirements:
+      run_exports:
+        - ${{ pin_subpackage("lucifer", upper_bound="x.x") }}
       build:
         - ${{ compiler("c") }}
         - ${{ compiler("cxx") }}
@@ -39,9 +41,9 @@ outputs:
         - hdf5 ${{ hdf5 }}.* nompi_*
         - toml-f
         - fftw
+        # FindBmad.cmake refuses to configure unless every library bmad links is in
+        # $PREFIX/lib; bmad's own run deps bring them, these just make that explicit
         - fgsl
-        - gsl
-        - libxraylib
         - lapack95
         - libopenblas
         - if: osx
@@ -49,7 +51,10 @@ outputs:
             - libgcc
             - llvm-openmp
       run:
-        - bmad >=${{ bmad_version }}
+        # liblucifer links Bmad's shared libraries, which carry no ABI promise across
+        # releases, so the run pin is the release it was built against
+        - bmad ${{ bmad_version }}.*
+        # linked directly (lapack95 on osx) and without run_exports
         - lapack95
         - libopenblas
         - if: osx
@@ -58,8 +63,10 @@ outputs:
             - llvm-openmp
     tests:
       - script:
-          - test -f $PREFIX/lib/liblucifer.a
+          - test -f $PREFIX/lib/liblucifer${SHLIB_EXT}
           - test -f $PREFIX/include/lucifer/fel_struct.mod
+          - test -f $PREFIX/lib/cmake/lucifer/LuciferConfig.cmake
+          - test -f $PREFIX/lib/cmake/lucifer/LuciferTargets.cmake
           - lucifer --version
           - lucifer --version | grep -F "Lucifer version v${{ version }}"
           - lucifer --schema schema.json
