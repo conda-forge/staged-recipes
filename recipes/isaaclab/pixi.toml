@@ -1,33 +1,27 @@
 # Self-contained local smoke test for the isaaclab recipe.
-# The smoke env builds isaaclab-all from recipe.yaml as a source dependency
-# (pixi-build-rattler-build), so pixi materializes the artifact itself and there
-# is no chicken-and-egg with a local ./output channel:
-#   pixi run plain          # build, resolve and run the Newton idle smoke
+# pixi-build currently drops conda-forge in the staging host env, so build the
+# recipe with rattler-build into a local channel first, then run the tasks:
+#   rattler-build build --recipe recipe.yaml -m ../../.ci_support/linux64.yaml --output-dir .pixi/channel
+#   pixi run plain          # resolve and run the Newton idle smoke
 #   pixi run -e ovrtx ovrtx # same, plus the PyPI-only Omniverse RTX backends
 
 [workspace]
 name = "isaaclab-conda-smoke"
-channels = ["conda-forge"]
+channels = ["./.pixi/channel", "conda-forge"]
 # Custom platform pinning glibc for the manylinux_2_35 Omniverse wheels and cuda
 # for the CUDA pytorch build the examples need.
 platforms = [
     { name = "linux-64-cuda13", platform = "linux-64", glibc = "2.35", cuda = "13" },
     { name = "linux-64-cpu", platform = "linux-64", glibc = "2.35" },
 ]
-preview = ["pixi-build"]
 
-[package]
-name = "isaaclab-conda-smoke"
-version = "0.0.0"
-
-[package.build.backend]
-name = "pixi-build-rattler-build"
-version = "*"
-
-# isaaclab-all is built from the recipe in this directory. It pulls every
-# packaged subpackage, so the smoke env exercises the full metapackage graph.
 [dependencies]
-isaaclab-all = { path = "." }
+isaaclab-all = "*"
+
+[constraints]
+python = "3.12.*"
+# The driver here (580) supports CUDA 13.0, newer nvrtc PTX fails to load in warp.
+cuda-version = "13.0.*"
 
 # The Nucleus/S3 USD assets are fetched through omni.client, so even a Newton
 # idle run needs omniverseclient. It is a closed-source wheel from pypi.nvidia.com
@@ -62,8 +56,8 @@ depends-on = [{ task = "_cartpole", args = ["cuda"] }]
 # ovrtx layers in the closed-source Omniverse RTX backends from PyPI, on top of
 # the omniverseclient the base env already needs.
 [feature.ovrtx.pypi-dependencies]
-ovrtx = "==0.5.0.*"
-ovstage = "==0.2.0.*"
+ovrtx = "==0.5.1.*"
+ovstage = "==0.2.1.*"
 
 # RTX rendering needs a GPU, so expose this task only on the CUDA platform.
 [feature.ovrtx.target.linux-64-cuda13.tasks]
