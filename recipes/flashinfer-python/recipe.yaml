@@ -2,55 +2,39 @@ schema_version: 1
 
 context:
   name: flashinfer-python
-  version: 0.3.1
+  version: 0.7.2.post1
   cuda_build_string: cuda_${{ cuda_compiler_version | version_to_buildstring }}
-  is_cross_compiling: ${{ build_platform != target_platform }}
-  string_prefix: ${{ cuda_build_string if cuda_compiler_version != "None" else "cpu_" }}
 
 package:
-  name: ${{ name|lower }}
+  name: ${{ name }}
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/flashinfer_python-${{ version }}.tar.gz
-  sha256: 992017d193dfbbc62e67401a6d5416629bf90b640872d14b7863de45e9371446
-  patches:
-    - patches/0001-Remove-unneeded-dependencies.patch
-    - patches/0002-Include-the-BUILD_PREFIX-s-include-targets-directory.patch
+  # The repository archive supplies the cache projects omitted from the sdist.
+  - url: https://github.com/flashinfer-ai/flashinfer/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 37bcb689ddc7e68d6b6d23e1ddd1981407c61a7484cd94ea77881e0ad7c82ab7
+    target_directory: upstream-source
+  # The sdist supplies the release's bundled submodule headers.
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/flashinfer_python-${{ version }}.tar.gz
+    sha256: af60319898dcfd552ba12a34165b9dd46c0bbd83d48ce665b1df6bd6ae77e9f1
 
 build:
   number: 0
+  skip:
+    - not linux
+    - cuda_compiler_version != "13.0"
+    - match(python, "<3.10")
+    # Native cache compilation has not yet been validated with cross-python.
+    - build_platform != target_platform
+  string: ${{ cuda_build_string }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
   script:
-    # Override the CUDA architectures configured in the conda-forge nvcc package: https://github.com/conda-forge/cuda-nvcc-feedstock/blob/7843e9f1b9ea6bc555cd70c247d774189fc34110/recipe/conda_build_config.yaml#L21-L28
-    # CUDA synchronization primitives are only supported for sm_70 and up.
-    # tanh kernels require sm_75 and up.
-    - if: cuda_compiler_version == "12.6"
-      then:
-        # Build only for sm_75 on cuda 12.6 to reduce RAM usage during staged-recipes build.
-        # Re-enable other architectures when building the feedstock for conda-forge directly.
-        - export CUDAARCHS="75-real"
-        - export TORCH_CUDA_ARCH_LIST="7.5"
-        - export FLASHINFER_CUDA_ARCH_LIST="7.5"
-        # - export CUDAARCHS="75-real;80-real;86-real;89-real;90a-real"
-        # - export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0+PTX"
-        # - export FLASHINFER_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0"
-    - if: cuda_compiler_version == "12.9"
-      then:
-        - export CUDAARCHS="75-real;80-real;86-real;89-real;90a-real;100f-real;120a-real"
-        - export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
-        - export FLASHINFER_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0 10.0 12.0"
-    - if: x86_64
-      then:
-        - export export CONDA_BUILD_INCLUDE_TARGETS_DIR=$BUILD_PREFIX/targets/x86_64-linux/include
-    - if: aarch64
-      then:
-        - export CONDA_BUILD_INCLUDE_TARGETS_DIR=$BUILD_PREFIX/targets/sbsa-linux/include
-    - export NVSHMEM_INCLUDE_PATH=$PREFIX/include
-    - export NVSHMEM_LIBRARY_PATH=$PREFIX/lib
-    - ${{ PYTHON }} -m flashinfer.aot
-    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  skip: cuda_compiler_version == "None"
-  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+    file: build.sh
+    env:
+      FLASHINFER_BUILD_CUDA_VERSION: ${{ cuda_compiler_version }}
+      FLASHINFER_BUILD_TARGET: ${{ target_platform }}
+  python:
+    entry_points:
+      - flashinfer = flashinfer.__main__:cli
 
 requirements:
   build:
@@ -59,35 +43,52 @@ requirements:
     - ${{ compiler('cxx') }}
     - ${{ compiler('cuda') }}
     - ninja
-    - if: is_cross_compiling
-      then:
-        - python
-        - cross-python_${{ target_platform }}
-        - pytorch * [build=cuda*]
   host:
     - python
-    - cuda-cccl
-    - cuda-cudart-dev
-    - cuda-python ${{ cuda_compiler_version }}.*
+    - pip
+    - setuptools >=77
+    - wheel
     - cuda-version ==${{ cuda_compiler_version }}
+    - cuda-cudart-dev
+    - cuda-cccl
     - libcublas-dev
     - libcurand-dev
-    - libnvshmem-dev
     - libcusolver-dev
     - libcusparse-dev
-    - requests
-    - setuptools >=77
-    - packaging >=24
-    - pynvml
-    - pytorch * [build=cuda*]
-    - pip
-  run:
-    - python
+    - libnvshmem-dev
+    - apache-tvm-ffi >=0.1.11,<0.2
     - click
+    - cuda-python >=12.0
+    - cutile-python >=1.4.0
     - einops
+    - nccl-extensions >=0.1.0
+    - nccl4py >=0.4.1
+    - ninja
     - numpy
+    - python-cudnn-frontend >=1.31.0
+    - nvidia-cutlass-dsl >=4.6.2a0
+    - nvidia-ml-py
     - packaging >=24.2
-    - python-cudnn-frontend >=1.13.0
+    - pytorch * [build=cuda*]
+    - requests
+    - tabulate
+    - tqdm
+  run:
+    - cuda-version ==${{ cuda_compiler_version }}
+    - python >=3.10,<4
+    - apache-tvm-ffi >=0.1.11,<0.2
+    - click
+    - cuda-python >=12.0
+    - cutile-python >=1.4.0
+    - einops
+    - nccl-extensions >=0.1.0
+    - nccl4py >=0.4.1
+    - ninja
+    - numpy
+    - python-cudnn-frontend >=1.31.0
+    - nvidia-cutlass-dsl >=4.6.2a0
+    - nvidia-ml-py
+    - packaging >=24.2
     - pytorch * [build=cuda*]
     - requests
     - tabulate
@@ -97,28 +98,37 @@ tests:
   - python:
       imports:
         - flashinfer
+        - flashinfer_jit_cache
       pip_check: true
   - script:
-      - pytest ./tests
-    requirements:
-      run:
-        - pytest
+      - python test_cache.py
+      # Verify bundled JIT sources without requiring a GPU or invoking nvcc.
+      - python -c "from importlib.resources import files; p = files('flashinfer') / 'data'; assert (p / 'include/flashinfer').is_dir(); assert (p / 'csrc').is_dir(); assert (p / 'cutlass/include/cutlass').is_dir(); assert (p / 'spdlog/include/spdlog').is_dir(); assert (p / 'cccl/cub/cub').is_dir()"
     files:
-      source:
-        - tests
+      recipe:
+        - test_cache.py
 
 about:
   homepage: https://flashinfer.ai/
   repository: https://github.com/flashinfer-ai/flashinfer
   documentation: https://docs.flashinfer.ai/
   summary: "FlashInfer: Kernel Library for LLM Serving"
-  license: Apache-2.0 AND BSD-3-Clause AND MIT
+  description: |
+    FlashInfer includes CUDA kernel sources and kernel cache providers compiled
+    from source for the selected CUDA version. A compatible NVIDIA GPU is
+    required to execute kernels. Specializations outside the compiled cache
+    require a CUDA toolkit and C++ compiler for JIT compilation. The optional
+    native NIXL-EP backend is not included.
+  license: Apache-2.0 AND (Apache-2.0 WITH LLVM-exception) AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT
   license_file:
     - LICENSE
-    - licenses/LICENSE.flashattention3.txt
-    - licenses/LICENSE.cutlass.txt
-    - licenses/LICENSE.spdlog.txt
-    - licenses/LICENSE.fmt.txt
+    - licenses/LICENSE.kda-for-kda
+    # The repository archive restores license texts omitted from the sdist.
+    - upstream-source/licenses/LICENSE.flashattention3.txt
+    - upstream-source/licenses/LICENSE.cutlass.txt
+    - upstream-source/licenses/LICENSE.spdlog.txt
+    - upstream-source/licenses/LICENSE.fmt.txt
+    - ${{ RECIPE_DIR }}/licenses/LICENSE.cccl.txt
 
 extra:
   recipe-maintainers:
