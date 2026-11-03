@@ -15,16 +15,20 @@ class ActivationTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.temp = tempfile.TemporaryDirectory(prefix="imas-paraview hooks ")
         cls.root = Path(cls.temp.name)
-        cls.prefixes = [cls.root / name for name in ("env A", "env B")]
+        cls.prefixes: list[Path] = []
         cls.paths: list[str] = []
         installed = Path(sys.prefix) / "etc" / "conda"
-        for prefix in cls.prefixes:
+        for name in ("env A", "env B"):
+            prefix = cls.root / name
             subprocess.run(
                 [sys.executable, "-m", "venv", "--without-pip", str(prefix)], check=True
             )
             if os.name == "nt":
-                # Conda places Python at the prefix root; venv uses Scripts instead.
-                shutil.copyfile(prefix / "Scripts/python.exe", prefix / "python.exe")
+                # Keep the venv launcher in Scripts: Python 3.11/3.12 derive
+                # sys.prefix from its parent directory, even with adjacent pyvenv.cfg.
+                # Use Scripts as the hook prefix so it can find python.exe.
+                prefix = prefix / "Scripts"
+            cls.prefixes.append(prefix)
             shutil.copytree(installed, prefix / "etc" / "conda")
             py = prefix / ("python.exe" if os.name == "nt" else "bin/python")
             cls.paths.append(
@@ -37,6 +41,8 @@ class ActivationTests(unittest.TestCase):
                     text=True,
                 ).strip()
             )
+        if cls.paths[0] == cls.paths[1]:
+            raise AssertionError("Test environments must have distinct plugin paths")
         cls.snapshot = cls.root / "snapshot.py"
         cls.snapshot.write_text(
             "import json, os, sys\n"
