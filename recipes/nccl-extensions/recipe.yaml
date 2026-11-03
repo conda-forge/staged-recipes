@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  version: 0.1.0
+  cuda_build_string: cuda${{ cuda_compiler_version | version_to_buildstring }}
+  string_prefix: ${{ cuda_build_string if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: nccl-extensions
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/nccl-extensions/archive/nccl-extensions-v${{ version }}.tar.gz
+  sha256: ea297c92e11c88817a17ea019d372f5e10484c6408c85055738bcf944090cd97
+
+build:
+  number: 0
+  skip: not linux or cuda_compiler_version == "None"
+  script: build.sh
+  string: ${{ string_prefix }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - make
+  host:
+    - python
+    - setuptools >=77.0.3
+    - cython >=3.1
+    - nccl4py
+    - pip
+    - packaging
+    - nccl >=2.30.7
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-cudart-static
+    - cuda-driver-dev
+  run:
+    - python
+    - nccl4py
+    - packaging
+    - numpy
+    - cuda-core >=1.0,<2.dev0
+    - cuda-pathfinder >=1.5.4,<2.0.0
+    - typing_extensions
+
+tests:
+  - python:
+      imports:
+        - nccl._extensions
+        - nccl.ep
+        - nccl.m2n
+      pip_check: true
+
+about:
+  homepage: https://github.com/NVIDIA/nccl-extensions
+  summary: Python bindings for the nccl-extensions communication libraries (nccl_ep, nccl_m2n)
+  license: MIT AND Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - python/LICENSE.txt
+    - nccl_m2n/third_party/nlohmann/LICENSE.MIT
+    - nccl_ep/LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - shermansiu
