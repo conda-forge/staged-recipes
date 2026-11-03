@@ -1,0 +1,59 @@
+schema_version: 1
+
+context:
+  version: "3.0.1"
+
+package:
+  name: prepair
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tudelft3d/prepair/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1820ff1a6ff717648bb959b13d190bc0dbe52d3f2efe5301e187bf0f95fb9030
+
+build:
+  number: 0
+  # Windows is initially skipped: the binary installs to $PREFIX/bin, but
+  # conda-forge expects executables in %LIBRARY_BIN% on Windows.
+  skip: win
+  script:
+    - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX
+    - cmake --build build
+    - ctest --test-dir build --output-on-failure
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - cgal-cpp
+    - gmp
+    - libboost-devel
+    - libgdal-core
+
+tests:
+  - script:
+      - prepair --help
+      - prepair -w "POLYGON((0 0, 0 10, 10 0, 10 10, 0 0))"
+      - prepair -w "POLYGON((0 0 0, 0 10 5, 10 0 10, 10 10 15, 0 0 0))"
+      - prepair -w "POLYGON((0 0, 0 10, 10 0, 10 10, 0 0))" -o test.gpkg
+
+about:
+  homepage: https://github.com/tudelft3d/prepair
+  summary: Automatic repair of invalid GIS polygons
+  description: |
+    prepair repairs invalid GIS polygons according to ISO 19107. It reads
+    WKT or GDAL/OGR data sources, repairs self-intersections, dangling edges,
+    unclosed rings and other defects, and writes WKT or GDAL/OGR outputs.
+    It also supports 3D polygons by fitting a plane.
+  license: GPL-3.0-or-later
+  license_file: LICENSE.txt
+  repository: https://github.com/tudelft3d/prepair
+  documentation: https://github.com/tudelft3d/prepair/blob/main/README.md
+
+extra:
+  recipe-maintainers:
+    - kenohori
