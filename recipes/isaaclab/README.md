@@ -16,10 +16,11 @@ The recipe mirrors that layout:
 - The `isaaclab` output installs every workspace member under `source/` into one
   package. Its `run:` list is the third-party set from the root `pyproject.toml`.
 - The subpackages are the pip *extras* that add third-party deps on top of the
-  base: `isaaclab-video`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`,
+  base: `isaaclab-video`, `isaaclab-wandb`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`,
   `isaaclab-mimic`, `isaaclab-tetrahedralization`, `isaaclab-leapp`,
   `isaaclab-torchrl`. `isaaclab-all` aggregates the ones whose deps resolve on
-  conda-forge.
+  conda-forge. `isaaclab-wandb` is packaged but left out of `isaaclab-all`, as in
+  upstream's `all`.
 - The `rsl-rl` extra is already in the base install, so it has no subpackage.
 
 ## Build and name mapping
@@ -56,18 +57,15 @@ remap them by hand:
 | `newton[sim]` | `newton-sim` |
 | `matplotlib` | `matplotlib-base` |
 | `lazy_loader` | `lazy-loader` |
+| `Jinja2` | `jinja2` |
 | `torch` | `pytorch` |
 | `torchrl` | `pytorchrl` |
 
-## Source revision
+## Source
 
-`source` is pinned to a `release/3.0.0` SHA (`be6c3e1`, commit date
-`2026-10-05`) for a reproducible build, rather than tracking the moving branch.
-`release/3.0.0` already carries the flattened wheel layout and the checkout-only
-test gating, so no fork or source-layout patch is needed. The version is a dev
-marker `3.0.0.devYYYYMMDD` (the commit date of the pinned `rev`), which sorts
-below the eventual `3.0.0` GA. Switch to the commented `url` + `sha256` block and
-a plain `3.0.0` once upstream tags v3.
+`source` is the `v3.0.0` release tarball, pinned by `sha256`. The release
+already carries the flattened wheel layout and the checkout-only test gating, so
+no fork or source-layout patch is needed.
 
 ## Patches
 
@@ -108,23 +106,20 @@ cannot share it until the conda-forge `libabseil` migration settles.
 
 The recipe tracks the `release/3.0.0` pins 1:1. Upstream states its third-party
 versions as exact `==X.Y.Z`; the recipe mirrors each as the conda-forge idiom
-`X.Y.Z.*` (e.g. `torchvision==0.27.0 -> torchvision 0.27.0.*`), which resolves to
+`X.Y.Z.*` (e.g. `torchvision==0.26.0 -> torchvision 0.26.0.*`), which resolves to
 the same release but tolerates the conda build string.
 
-A few pins cannot track upstream verbatim. Re-check these whenever the `rev`
-bumps.
+A few pins cannot track upstream verbatim. Re-check these whenever the
+version bumps.
 
 | conda-forge package | upstream pin | recipe pin | reason |
 |---|---|---|---|
-| `pytorch` | `==2.12.0` | `>=2.11.0,<2.12` | downgrade a minor so the whole stack co-solves with the `torchrl` extra. `pytorchrl` needs `libtorch`, and the only `2.12` build (`libtorch 2.12.1`) requires a newer `libabseil` than `mujoco 3.12` (pulled by `newton-sim`) allows. `torch 2.11` is the highest that resolves everything, and it drags `torchvision` to `0.26.0` |
-| `torchvision` | `==0.27.0` | `0.26.0.*` | pinned by the `torch 2.11` downgrade above (`0.27` needs `torch 2.12`) |
 | `transformers` | `==5.10.4` | `>=5.10.4` | conda-forge has no `5.10.4` build (nearest `5.16.1`); floor instead of exact |
-| `usd-exchange` | `==3.0.0` | `2.3.0.*` | conda-forge has no `3.0.0` build yet ([conda-forge/usd-exchange-feedstock#11](https://github.com/conda-forge/usd-exchange-feedstock/pull/11)). The conda `2.3.0` is built against `openusd 26.05` |
-| `newton-sim` (`newton[sim]`) | `>=1.2.0` | `1.6.0.*` | upstream declares a loose floor and pins the real version through a `uv` override (`git@release-1.6`, currently `1.6.1rc1`). conda-forge has no `1.6.1` yet, so the recipe stays on the latest release `1.6.0` |
+| `usd-exchange` | `==3.0.1` | `2.3.0.*` | conda-forge has no `3.x` build yet ([conda-forge/usd-exchange-feedstock#11](https://github.com/conda-forge/usd-exchange-feedstock/pull/11)). The conda `2.3.0` is built against `openusd 26.05` |
 | `pytetwild` (`pytetwild[all]`) | `>=0.3.0,<0.4` | `>=0.3.0` (+ `pyvista`) | relax the `<0.4` cap: conda-forge only ships `0.4.2`, and the `tetrahedralize` API is unchanged across `0.3`/`0.4`. `pyvista` is the sole `[all]` member |
 
 `onnxscript>=0.5` is a recipe-only base dep kept to avoid a regression.
-`gitpython>=3.1.59` and `Jinja2` (`-> jinja2`) are new base deps in
+`gitpython>=3.1.60`, `urllib3>=2.8.0` and `Jinja2` (`-> jinja2`) are new base deps in
 `release/3.0.0`, mirrored 1:1.
 
 ## Worth upstreaming
@@ -136,7 +131,7 @@ are kept at the bottom for context.
 |---|---|---|
 | High | Closed-source Omniverse wheels | The base needs `omniverseclient` and `isaacsim-asset-isolated` (closed-source), so nothing resolves end-to-end. Making the Omniverse backends optional would make Isaac Lab packageable. |
 | Medium | Wheel build layout | `tools/wheel_builder/stage.py` flattens extensions by copying each inner package to top-level, duplicating `config`/`data` and rewriting a hardcoded `os.path.dirname(__file__), "../"` to `""`. Resolving resources via `importlib.resources` would drop that. |
-| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.12.0`, `torchvision==0.27.0`, `torchaudio==2.11.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Concretely, `torch==2.12.0` is unsatisfiable together with the `torchrl` extra: the only conda `pytorchrl` build for `2.12` pulls `libtorch 2.12.1`, whose `libabseil` conflicts with the `mujoco 3.12` that `newton-sim` requires, so the recipe has to downgrade the whole stack to `torch 2.11`. The upstream pin set is itself inconsistent (`torch 2.12` with `torchaudio 2.11`). Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. |
+| Medium | Exact patch pins | Upstream pins core deps to the exact patch (`torch==2.11.0`, `torchvision==0.26.0`, plus `transformers`, `warp-lang`, `pin-pink`, `daqp`, `usd-exchange`, `rsl-rl-lib`). A patch-level `==` is very problematic downstream: it makes conda-forge shadow every patch and blocks co-install with any package that pins a different one. Declared specs should be `>=` on the lowest working version, keeping the exact reproducible pins in `uv.lock` for developers. Users who want the exact validated set could opt into it through a dedicated extra (e.g. `isaaclab[pinned]`) instead of forcing the patch pins on every consumer. |
 | Medium | Python 3.14 | Upstream caps the bundled wheel at `<3.13`, but the per-extension projects declare `>=3.12` and the conda package is `noarch`. `configclass` breaks on 3.14 (PEP 649 lazy annotations); the recipe carries patch 0001. |
 | Low | Missing feedstocks | `skrl` and `rl-games` (plus `standard-distutils`) have no conda-forge feedstock, so their extras cannot be packaged. |
 | Low | `albumentations` archived | The `rlinf` extra depends on the archived `albumentations`, superseded by `albumentationsx` (already on conda-forge). |

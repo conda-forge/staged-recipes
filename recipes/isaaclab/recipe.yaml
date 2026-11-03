@@ -1,8 +1,6 @@
 context:
   name: isaaclab
-  # Dev version until the GA tag: base plus the pinned rev commit date, bumped together.
-  version: "3.0.0.dev20261005"
-  # tag: v3.0.0
+  version: "3.0.0"
   build_number: 0
   python_min: "3.12"
   # Skipped: its OpenXR runtime is not on conda-forge, and it is off the core import path.
@@ -13,22 +11,17 @@ recipe:
   version: ${{ version }}
 
 source:
-  # Pinned to a release/3.0.0 SHA for reproducibility. At GA, switch to the
-  # commented url + sha256 and drop the git/rev pair.
-  # url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/${{ tag }}.tar.gz
-  # sha256: <fill-in-at-GA>
-  git: https://github.com/isaac-sim/IsaacLab.git
-  # release/3.0.0 @ 2026-10-05
-  rev: be6c3e1b34b66ddfb76f42542bf32656d54b9290
+  url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7d751e71662318cf2a545d6465bbc7d853c7537581b66625a4a990d8e9ff28d1
   # No source-layout patch needed: upstream flattens the package itself (stage.py).
   patches:
-    # Python 3.14 compatibility, see README.
+    # Python 3.14 compatibility.
     - patches/0001-support-python-3.14-annotations-in-configclass.patch
 
 build:
   noarch: python
   number: ${{ build_number }}
-  # The build script is POSIX shell and the git clone pulls LFS assets, so the
+  # The build script is POSIX shell, so the
   # single noarch build only runs on the linux CI agent.
   skip:
     - osx
@@ -90,7 +83,7 @@ outputs:
         # selects its own for pip_check (see gen_extra_metadata.py, README).
         - |
           set -euo pipefail
-          for extra in all video sb3 viser rerun mimic tetrahedralization leapp torchrl; do
+          for extra in all video wandb sb3 viser rerun mimic tetrahedralization leapp torchrl; do
             ${{ PYTHON }} "${RECIPE_DIR}/gen_extra_metadata.py" \
               extra gen_deps.toml pyproject.toml "${SP_DIR}" "$extra" "${{ version }}"
           done
@@ -123,13 +116,8 @@ outputs:
       run:
         - python >=${{ python_min }}
         - numpy >=2
-        # Upstream pins torch==2.12.0, but no conda pytorchrl build for 2.12
-        # co-solves with mujoco: libtorch 2.12.1 needs a newer libabseil than
-        # newton-sim allows. torch 2.11 is the highest that resolves the whole
-        # stack, torchrl extra included.
-        - pytorch >=2.11.0,<2.12
+        - pytorch 2.11.0.*
         - torchvision 0.26.0.*
-        - torchaudio 2.11.0.*
         - onnx >=1.18.0
         - prettytable >=3.3.0
         - psutil
@@ -147,9 +135,11 @@ outputs:
         - starlette >=1.3.1
         - filelock
         - lazy-loader >=0.4
+        - jinja2
         - pinocchio
         - pink 3.3.0.*
         - daqp 0.8.5.*
+        # TODO: https://github.com/conda-forge/usd-exchange-feedstock/pull/14
         - usd-exchange 2.3.0.*
         - hf-xet >=1.4.1,<2.0.0
         - tensorboard
@@ -160,9 +150,11 @@ outputs:
         - rich
         - tqdm >=4.67.1
         - rsl-rl-lib 5.5.1.*
+        - gitpython >=3.1.60
         - onnxscript >=0.5
-        - newton-sim 1.6.0.*
+        - newton-sim 1.6.1.*
         - requests >=2.25.0
+        - urllib3 >=2.8.0
         - scipy >=1.11.0
         - coacd >=1.0.7
         - fast-simplification >=0.1.11
@@ -175,10 +167,8 @@ outputs:
         - pyopengl-accelerate >=3.1.0
         - imgui-bundle >=1.92.5
         - typing-extensions >=4.15.0
-        - gitpython >=3.1.59
-        - jinja2
-        # transformers is floored, not exact: conda-forge has no 5.10.4 (nearest
-        # 5.16.1). Other pins track upstream 1:1. Closed-source deps are dropped.
+        # transformers is floored, not exact: conda-forge has no 5.10.4 (nearest 5.16.1).
+        # Other pins track upstream 1:1. Closed-source deps are dropped.
     tests:
       # Validates the reinjected third-party deps resolve against the installed env.
       - python:
@@ -299,6 +289,28 @@ outputs:
       - python:
           imports:
             - moviepy
+          pip_check: true
+          python_version: ${{ python_min }}.*
+  # ==============
+  # isaaclab-wandb
+  # ==============
+  - package:
+      name: isaaclab-wandb
+    inherit:
+      from: isaaclab-build
+      run_exports: false
+    build:
+      files:
+        - "**/isaaclab_extra_wandb-*.dist-info/**"
+    requirements:
+      run:
+        - ${{ pin_subpackage('isaaclab', exact=True) }}
+        - python >=${{ python_min }}
+        - wandb >=0.13.11
+    tests:
+      - python:
+          imports:
+            - wandb
           pip_check: true
           python_version: ${{ python_min }}.*
   # ============
@@ -438,7 +450,7 @@ outputs:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
         - python >=${{ python_min }}
-        - leapp 0.6.1.*
+        - leapp 0.7.2.*
     tests:
       - python:
           imports:
@@ -503,6 +515,7 @@ outputs:
   #       - ${{ pin_subpackage('isaaclab', exact=True) }}
   #       - python >=${{ python_min }}
   #       - ray-default >=2.47.0
+  #       - virtualenv >=21.7.13
   #       - av >=12.3.0
   #       - numpydantic >=1.7.0
   #       # albumentations is archived upstream (superseded by albumentationsx).
