@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 22:23:39 +1000
+Subject: [PATCH] Use system tinyxml2, nlohmann/json and tinygltf
+
+Include them from the environment instead of the copies in libs/IO
+(TinyXML2.*, json.hpp, tiny_gltf.h, which the conda-forge build removes);
+InterfaceMetashape links tinyxml2::tinyxml2.
+---
+ apps/InterfaceMVSNet/InterfaceMVSNet.cpp       |  2 +-
+ apps/InterfaceMetashape/CMakeLists.txt         |  3 ++-
+ apps/InterfaceMetashape/InterfaceMetashape.cpp |  2 +-
+ apps/InterfacePolycam/InterfacePolycam.cpp     |  2 +-
+ libs/MVS/Mesh.cpp                              | 14 ++++++++------
+ libs/MVS/PointCloud.cpp                        |  4 ++--
+ 6 files changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/apps/InterfaceMVSNet/InterfaceMVSNet.cpp b/apps/InterfaceMVSNet/InterfaceMVSNet.cpp
+index 1cfe658..ff4272b 100644
+--- a/apps/InterfaceMVSNet/InterfaceMVSNet.cpp
++++ b/apps/InterfaceMVSNet/InterfaceMVSNet.cpp
+@@ -32,7 +32,7 @@
+ #include "../../libs/MVS/Common.h"
+ #include "../../libs/MVS/Scene.h"
+ #define JSON_NOEXCEPTION
+-#include "../../libs/IO/json.hpp"
++#include <nlohmann/json.hpp>
+ #include <boost/program_options.hpp>
+ 
+ using namespace MVS;
+diff --git a/apps/InterfaceMetashape/CMakeLists.txt b/apps/InterfaceMetashape/CMakeLists.txt
+index 3adb8a6..99e7f47 100644
+--- a/apps/InterfaceMetashape/CMakeLists.txt
++++ b/apps/InterfaceMetashape/CMakeLists.txt
+@@ -6,7 +6,8 @@ else()
+ endif()
+ FILE(GLOB LIBRARY_FILES_H "*.h" "*.inl")
+ 
+-cxx_executable_with_flags(InterfaceMetashape "Apps" "${cxx_default}" "MVS" ${LIBRARY_FILES_C} ${LIBRARY_FILES_H})
++FIND_PACKAGE(tinyxml2 CONFIG REQUIRED)
++cxx_executable_with_flags(InterfaceMetashape "Apps" "${cxx_default}" "MVS;tinyxml2::tinyxml2" ${LIBRARY_FILES_C} ${LIBRARY_FILES_H})
+ 
+ # Install
+ INSTALL(TARGETS InterfaceMetashape
+diff --git a/apps/InterfaceMetashape/InterfaceMetashape.cpp b/apps/InterfaceMetashape/InterfaceMetashape.cpp
+index 438dc0b..ef3a0e4 100644
+--- a/apps/InterfaceMetashape/InterfaceMetashape.cpp
++++ b/apps/InterfaceMetashape/InterfaceMetashape.cpp
+@@ -31,7 +31,7 @@
+ 
+ #include "../../libs/MVS/Common.h"
+ #include "../../libs/MVS/Scene.h"
+-#include "../../libs/IO/TinyXML2.h"
++#include <tinyxml2.h>
+ #include <boost/program_options.hpp>
+ 
+ using namespace MVS;
+diff --git a/apps/InterfacePolycam/InterfacePolycam.cpp b/apps/InterfacePolycam/InterfacePolycam.cpp
+index b66c787..f92c802 100644
+--- a/apps/InterfacePolycam/InterfacePolycam.cpp
++++ b/apps/InterfacePolycam/InterfacePolycam.cpp
+@@ -32,7 +32,7 @@
+ #include "../../libs/MVS/Common.h"
+ #include "../../libs/MVS/Scene.h"
+ #define JSON_NOEXCEPTION
+-#include "../../libs/IO/json.hpp"
++#include <nlohmann/json.hpp>
+ #include <boost/program_options.hpp>
+ 
+ using namespace MVS;
+diff --git a/libs/MVS/Mesh.cpp b/libs/MVS/Mesh.cpp
+index 5b78fdd..4a04a0d 100644
+--- a/libs/MVS/Mesh.cpp
++++ b/libs/MVS/Mesh.cpp
+@@ -60,8 +60,8 @@
+ #define TINYGLTF_NO_INCLUDE_STB_IMAGE
+ #define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
+ #define TINYGLTF_IMPLEMENTATION
+-#include "../IO/json.hpp"
+-#include "../IO/tiny_gltf.h"
++#include <nlohmann/json.hpp>
++#include <tiny_gltf.h>
+ 
+ using namespace MVS;
+ 
+@@ -1825,15 +1825,17 @@ bool Mesh::SaveGLTF(const String& fileName, bool bBinary) const
+ 
+ 	// setup GLTF
+ 	struct Tools {
++		// tinygltf >= 2.6 callback: the URI is returned through out_uri
+ 		static bool WriteImageData(const std::string *basepath, const std::string *filename,
+-			tinygltf::Image *image, bool embedImages, void *) {
++			const tinygltf::Image *image, bool embedImages, const tinygltf::FsCallbacks *,
++			const tinygltf::URICallbacks *, std::string *out_uri, void *) {
+ 			ASSERT(!embedImages);
+-			image->uri = Util::isFullPath(filename->c_str()) ?
++			*out_uri = Util::isFullPath(filename->c_str()) ?
+ 				Util::getRelativePath(*basepath, *filename) : String(*filename);
+ 			String basePath(*basepath);
+ 			return SaveImage(
+-				cv::Mat(image->height, image->width, CV_8UC3, image->image.data()),
+-				Util::ensureFolderSlash(basePath) + image->uri);
++				cv::Mat(image->height, image->width, CV_8UC3, const_cast<unsigned char*>(image->image.data())),
++				Util::ensureFolderSlash(basePath) + *out_uri);
+ 		}
+ 	};
+ 	tinygltf::TinyGLTF gltf;
+diff --git a/libs/MVS/PointCloud.cpp b/libs/MVS/PointCloud.cpp
+index c6c0931..06760e1 100644
+--- a/libs/MVS/PointCloud.cpp
++++ b/libs/MVS/PointCloud.cpp
+@@ -41,8 +41,8 @@
+ #define TINYGLTF_NO_INCLUDE_STB_IMAGE
+ #define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
+ // #define TINYGLTF_IMPLEMENTATION
+-#include "../IO/json.hpp"
+-#include "../IO/tiny_gltf.h"
++#include <nlohmann/json.hpp>
++#include <tiny_gltf.h>
+ 
+ using namespace MVS;
+ 

@@ -1,0 +1,123 @@
+diff --git a/wrap/io_trimesh/import_fbx.h b/wrap/io_trimesh/import_fbx.h
+index 88ad721..f770ccf 100644
+--- a/wrap/io_trimesh/import_fbx.h
++++ b/wrap/io_trimesh/import_fbx.h
+@@ -28,7 +28,7 @@
+ 
+ #ifndef VCGLIB_IMPORT_FBX
+ #define VCGLIB_IMPORT_FBX
+-#include <wrap/openfbx/src/ofbx.h>
++#include <ofbx.h>
+ 
+ #include <fstream>
+ #include <vcg/complex/complex.h>
+@@ -137,25 +137,29 @@ public:
+     fread(content, 1, size_t(file_size), fp);
+     fclose(fp);
+     
+-    ofbx::IScene* scene =ofbx::load(content, int(file_size));   
++    ofbx::IScene* scene = ofbx::load(content, ofbx::usize(file_size), ofbx::u16(ofbx::LoadFlags::NONE));
++    delete[] content;
++    if (!scene) return false;
+     
+     m.Clear();
+     int mesh_count = scene->getMeshCount();
+     printf("mesh count %i\n",mesh_count);
++    // OpenFBX >= 0.9 keeps the polygons; they are triangulated per material partition below
+     int totVert=0;
+-    for (int i = 0; i < mesh_count; ++i)
+-      totVert += scene->getMesh(i)->getGeometry()->getVertexCount();
++    for (int i = 0; i < mesh_count; ++i) {
++      const ofbx::GeometryData& geom = scene->getMesh(i)->getGeometryData();
++      for (int p = 0; p < geom.getPartitionCount(); ++p)
++        totVert += geom.getPartition(p).triangles_count * 3;
++    }
++    if (totVert == 0) totVert = 1;
+     
+-    int baseVertexCount;
+     printf("Scene has %i meshes\n",mesh_count);
+     for (int i = 0; i < mesh_count; ++i)
+     {
+-      baseVertexCount=m.vert.size();
+       int baseTextureIndexCount = m.textures.size();
+ 
+       const ofbx::Mesh& mesh = *scene->getMesh(i);
+-      const ofbx::Geometry& geom = *mesh.getGeometry();
+-      const int *materials = geom.getMaterials();
++      const ofbx::GeometryData& geom = mesh.getGeometryData();
+ 
+       // Load textured materials. The mesh object has pointers to the materials,
+       // the geometry object instead has a vector of FN material indices
+@@ -182,39 +186,45 @@ public:
+       Transpose(globTransf);
+       */
+       Transpose(globTransfd);
+-      int vertex_count = geom.getVertexCount();
+-      const ofbx::Vec3* vertices = geom.getVertices();
+-      const ofbx::Vec2* texcoords = geom.getUVs();
+-      printf("  Mesh %i has %i vertices\n",i,vertex_count);
+-      
+-      for (int j = 0; j < vertex_count; ++j)
+-      {
+-        ofbx::Vec3 vt = vertices[j];
+-        Point3d vd = globTransfd*Point3d(vt.x, vt.y, vt.z);
+-        CoordType v(vd.X(), vd.Y(), vd.Z());
+-        tri::Allocator<OpenMeshType>::AddVertex(m,v);
+-        if(cb && (m.vert.size()%1000) == 0 ) cb(m.vert.size() * 100 / totVert, "Vertex Loading");
+-      }
+-      
+-//      bool has_normals = geom.getNormals() != nullptr;
+-      bool has_uvs = texcoords != nullptr;           
+-      
+-      const ofbx::Skin* skin = geom.getSkin();
++      const ofbx::Vec3Attributes positions = geom.getPositions();
++      const ofbx::Vec2Attributes texcoords = geom.getUVs();
++      bool has_uvs = texcoords.values != nullptr;
++
++      const ofbx::Skin* skin = mesh.getSkin();
+       if(!skin)
+       {
+         printf("Geom has no skin\n");
+-        for (int j = 0; j < vertex_count/3; ++j)
++        // One partition per material: a triangle soup, three new vertices per face
++        std::vector<int> tri_indices;
++        for (int p = 0; p < geom.getPartitionCount(); ++p)
+         {
+-          int curTriBase = baseVertexCount + j*3;
+-          tri::Allocator<OpenMeshType>::AddFace(m,curTriBase,curTriBase+1,curTriBase+2);   
+-          if(has_uvs) 
++          const ofbx::GeometryPartition partition = geom.getPartition(p);
++          tri_indices.resize(size_t(partition.max_polygon_triangles) * 3);
++          for (int poly = 0; poly < partition.polygon_count; ++poly)
+           {
+-            for(int k=0;k<3;++k)
++            const ofbx::u32 n = ofbx::triangulate(geom, partition.polygons[poly], tri_indices.data());
++            for (ofbx::u32 t = 0; t + 2 < n; t += 3)
+             {
+-              m.face.back().WT(k).u() = texcoords[j*3+k].x;
+-              m.face.back().WT(k).v() = texcoords[j*3+k].y;
+-              if (materials != nullptr)
+-                m.face.back().WT(k).n() = baseTextureIndexCount + materials[j];
++              const int curTriBase = int(m.vert.size());
++              for (int k = 0; k < 3; ++k)
++              {
++                ofbx::Vec3 vt = positions.get(tri_indices[t+k]);
++                Point3d vd = globTransfd*Point3d(vt.x, vt.y, vt.z);
++                tri::Allocator<OpenMeshType>::AddVertex(m, CoordType(vd.X(), vd.Y(), vd.Z()));
++              }
++              tri::Allocator<OpenMeshType>::AddFace(m,curTriBase,curTriBase+1,curTriBase+2);
++              if(has_uvs)
++              {
++                for(int k=0;k<3;++k)
++                {
++                  ofbx::Vec2 uv = texcoords.get(tri_indices[t+k]);
++                  m.face.back().WT(k).u() = uv.x;
++                  m.face.back().WT(k).v() = uv.y;
++                  if (mesh.getMaterialCount() > 0)
++                    m.face.back().WT(k).n() = baseTextureIndexCount + p;
++                }
++              }
++              if(cb && (m.vert.size()%1000) < 3 ) cb(int(m.vert.size() * 100 / totVert), "Vertex Loading");
+             }
+           }
+         }

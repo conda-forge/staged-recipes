@@ -1,0 +1,189 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 20:29:08 +1000
+Subject: [PATCH] Make the installed CMake package usable
+
+- OpenMVSConfig.cmake finds the dependencies its exported targets refer to
+  (Boost, Eigen3, OpenCV, CGAL, nanoflann, and OpenMP, CUDAToolkit, libjxl
+  when used), and computes its paths from where it is installed
+  (INSTALL_DESTINATION was the build directory); OpenMVS_INCLUDE_DIRS is set
+  and OpenMVS_LIBRARIES is the namespaced OpenMVS::MVS
+- the exported targets carry the install include directory
+- the CMake files stay in lib/cmake/OpenMVS with INSTALL_USE_SUBDIR=OFF
+- the Tests helper is not exported
+- IO links PNG::PNG, JPEG::JPEG and TIFF::TIFF instead of absolute library
+  paths, and the config finds them
+---
+ CMakeLists.txt                         | 10 ++++-
+ apps/Tests/CMakeLists.txt              |  1 -
+ build/Templates/OpenMVSConfig.cmake.in | 52 +++++++++++++++++++-------
+ build/Utils.cmake                      |  5 ++-
+ libs/Common/CMakeLists.txt             |  2 +
+ libs/IO/CMakeLists.txt                 |  3 ++
+ 6 files changed, 54 insertions(+), 19 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2f85ec9..d572317 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -319,10 +319,16 @@ write_basic_package_version_file("${PROJECT_BINARY_DIR}/OpenMVSConfigVersion.cma
+ 	VERSION ${OpenMVS_VERSION}
+ 	COMPATIBILITY AnyNewerVersion)
+ # Note: Include paths are handled via imported targets and target_include_directories
+-SET(INSTALL_CMAKE_DIR_IN ${INSTALL_CMAKE_DIR_PREFIX})
++SET(OpenMVS_CONFIG_USE_OPENMP ${_USE_OPENMP})
++SET(OpenMVS_CONFIG_USE_PNG ${_USE_PNG})
++SET(OpenMVS_CONFIG_USE_JPG ${_USE_JPG})
++SET(OpenMVS_CONFIG_USE_TIFF ${_USE_TIFF})
++SET(OpenMVS_CONFIG_USE_CUDA ${_USE_CUDA})
++SET(OpenMVS_CONFIG_USE_JXL ${_USE_JXL})
+ configure_package_config_file("${CMAKE_CURRENT_SOURCE_DIR}/build/Templates/OpenMVSConfig.cmake.in"
+ 	"${PROJECT_BINARY_DIR}/OpenMVSConfig.cmake"
+-	INSTALL_DESTINATION ${PROJECT_BINARY_DIR}
++	INSTALL_DESTINATION "${INSTALL_CMAKE_DIR}"
++	PATH_VARS INSTALL_INCLUDE_DIR
+ 	NO_SET_AND_CHECK_MACRO)
+ # Install the OpenMVSConfig.cmake and OpenMVSConfigVersion.cmake
+ INSTALL(FILES
+diff --git a/apps/Tests/CMakeLists.txt b/apps/Tests/CMakeLists.txt
+index 66f1fe1..61f4475 100644
+--- a/apps/Tests/CMakeLists.txt
++++ b/apps/Tests/CMakeLists.txt
+@@ -12,5 +12,4 @@ cxx_executable_with_flags(Tests "Apps" "${cxx_default}" "MVS" ${LIBRARY_FILES_C}
+ 
+ # Install
+ INSTALL(TARGETS Tests
+-	EXPORT OpenMVSTargets
+ 	RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin)
+diff --git a/build/Templates/OpenMVSConfig.cmake.in b/build/Templates/OpenMVSConfig.cmake.in
+index 9747b3e..df963cf 100644
+--- a/build/Templates/OpenMVSConfig.cmake.in
++++ b/build/Templates/OpenMVSConfig.cmake.in
+@@ -1,23 +1,47 @@
+-# Configure file for the OpenMVS package, defining the following variables:
+-#  OpenMVS_INCLUDE_DIRS - include directories
+-#  OpenMVS_DEFINITIONS  - definitions to be used
+-#  OpenMVS_LIBRARIES    - libraries to link against
+-#  OpenMVS_BINARIES     - binaries
++# - Config file for the OpenMVS package
++# It defines the imported targets OpenMVS::Common, OpenMVS::Math, OpenMVS::IO and
++# OpenMVS::MVS (and the tools) and the variables
++#  OpenMVS_INCLUDE_DIRS - include directory of OpenMVS
++#  OpenMVS_LIBRARIES    - libraries to link against (OpenMVS::MVS)
++#  OpenMVS_BINARIES     - the OpenMVS tools
+ 
+ @PACKAGE_INIT@
+ 
+-set(OpenMVS_VERSION "@OpenMVS_VERSION@")
+-
+-# Compute paths
+-set(OpenMVS_PREFIX "@CMAKE_INSTALL_PREFIX@")
+-set(OpenMVS_CMAKE_DIR "@INSTALL_CMAKE_DIR_IN@")
+-set(OpenMVS_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR_IN@")
++# Dependencies of the exported targets
++include(CMakeFindDependencyMacro)
++find_dependency(Boost COMPONENTS iostreams program_options serialization)
++find_dependency(Eigen3 CONFIG)
++find_dependency(OpenCV)
++find_dependency(CGAL)
++find_dependency(nanoflann)
++if("@OpenMVS_CONFIG_USE_PNG@")
++	find_dependency(PNG)
++endif()
++if("@OpenMVS_CONFIG_USE_JPG@")
++	find_dependency(JPEG)
++endif()
++if("@OpenMVS_CONFIG_USE_TIFF@")
++	find_dependency(TIFF)
++endif()
++if("@OpenMVS_CONFIG_USE_OPENMP@")
++	find_dependency(OpenMP)
++endif()
++if("@OpenMVS_CONFIG_USE_CUDA@")
++	find_dependency(CUDAToolkit)
++endif()
++if("@OpenMVS_CONFIG_USE_JXL@")
++	find_dependency(PkgConfig)
++	pkg_check_modules(JPEGXL QUIET REQUIRED IMPORTED_TARGET libjxl)
++endif()
+ 
++set(OpenMVS_VERSION "@OpenMVS_VERSION@")
++set(OpenMVS_PREFIX "${PACKAGE_PREFIX_DIR}")
++set(OpenMVS_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
++set(OpenMVS_INCLUDE_DIRS "@PACKAGE_INSTALL_INCLUDE_DIR@")
+ set(OpenMVS_DEFINITIONS "@OpenMVS_DEFINITIONS@")
+-
+-# These are IMPORTED targets created by OpenMVSTargets.cmake
+-set(OpenMVS_LIBRARIES MVS)
++set(OpenMVS_LIBRARIES OpenMVS::MVS)
+ set(OpenMVS_BINARIES InterfaceCOLMAP DensifyPointCloud ReconstructMesh RefineMesh TextureMesh)
+ 
+ include("${CMAKE_CURRENT_LIST_DIR}/OpenMVSTargets.cmake")
++
+ check_required_components("OpenMVS")
+diff --git a/build/Utils.cmake b/build/Utils.cmake
+index 7e54088..9406bb5 100644
+--- a/build/Utils.cmake
++++ b/build/Utils.cmake
+@@ -844,7 +844,8 @@ macro(ConfigLibrary)
+ 	# Disable to install them directly into <prefix>/bin, <prefix>/lib, ... so the
+ 	# executables sit next to their dependency DLLs (e.g. a shared vcpkg triplet).
+ 	# Headers are always namespaced under <prefix>/include/${PROJECT_NAME} to avoid
+-	# collisions with other packages in a shared include prefix.
++	# collisions with other packages in a shared include prefix, and the CMake
++	# package files under <prefix>/lib/cmake/${PROJECT_NAME} where find_package() looks.
+ 	option(INSTALL_USE_SUBDIR "Group installed binaries/libraries/CMake files under a per-project (${PROJECT_NAME}) subdirectory" ON)
+ 	# Make relative paths absolute (needed later on)
+ 	foreach(p LIB BIN INCLUDE CMAKE)
+@@ -856,7 +857,7 @@ macro(ConfigLibrary)
+ 			set(${varp} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+ 		endif()
+ 		set(${var} "${${varp}}")
+-		if(INSTALL_USE_SUBDIR OR p STREQUAL "INCLUDE")
++		if(INSTALL_USE_SUBDIR OR p STREQUAL "INCLUDE" OR p STREQUAL "CMAKE")
+ 			set(${var} "${${var}}/${PROJECT_NAME}")
+ 		endif()
+ 	endforeach()
+diff --git a/libs/Common/CMakeLists.txt b/libs/Common/CMakeLists.txt
+index 65c046f..6120c5e 100644
+--- a/libs/Common/CMakeLists.txt
++++ b/libs/Common/CMakeLists.txt
+@@ -21,8 +21,10 @@ IF(CMAKE_VERSION VERSION_GREATER_EQUAL 3.16.0)
+ endif()
+ 
+ # Add public include directories that propagate to dependent targets
++file(RELATIVE_PATH OpenMVS_INSTALL_INCLUDE_RELDIR "${CMAKE_INSTALL_PREFIX}" "${INSTALL_INCLUDE_DIR}")
+ target_include_directories(Common PUBLIC
+ 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
++	$<INSTALL_INTERFACE:${OpenMVS_INSTALL_INCLUDE_RELDIR}>
+ )
+ 
+ # Link its dependencies with PUBLIC visibility so they propagate
+diff --git a/libs/IO/CMakeLists.txt b/libs/IO/CMakeLists.txt
+index d3374be..d30cb6e 100644
+--- a/libs/IO/CMakeLists.txt
++++ b/libs/IO/CMakeLists.txt
+@@ -49,6 +49,7 @@ if(PNG_FOUND)
+ 	INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIRS})
+ 	ADD_DEFINITIONS(${PNG_DEFINITIONS})
+ 	SET(_USE_PNG TRUE CACHE INTERNAL "")
++	SET(PNG_LIBRARIES PNG::PNG)
+ else()
+ 	SET(PNG_LIBRARIES "")
+ endif()
+@@ -57,6 +58,7 @@ if(JPEG_FOUND)
+ 	INCLUDE_DIRECTORIES(${JPEG_INCLUDE_DIR})
+ 	ADD_DEFINITIONS(${JPEG_DEFINITIONS})
+ 	SET(_USE_JPG TRUE CACHE INTERNAL "")
++	SET(JPEG_LIBRARIES JPEG::JPEG)
+ else()
+ 	SET(JPEG_LIBRARIES "")
+ endif()
+@@ -76,6 +78,7 @@ if(TIFF_FOUND)
+ 	INCLUDE_DIRECTORIES(${TIFF_INCLUDE_DIR})
+ 	ADD_DEFINITIONS(${TIFF_DEFINITIONS})
+ 	SET(_USE_TIFF TRUE CACHE INTERNAL "")
++	SET(TIFF_LIBRARIES TIFF::TIFF)
+ else()
+ 	SET(TIFF_LIBRARIES "")
+ endif()

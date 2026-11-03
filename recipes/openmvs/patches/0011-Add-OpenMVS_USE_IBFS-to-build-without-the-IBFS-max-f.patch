@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 22:23:39 +1000
+Subject: [PATCH] Add OpenMVS_USE_IBFS to build without the IBFS max-flow
+ solver
+
+IBFS is licensed for research use only. With OpenMVS_USE_IBFS=OFF it is
+neither compiled nor installed, and ReconstructMesh uses Boost's
+Boykov-Kolmogorov max-flow (already supported as the non-IBFS path).
+Default ON, so nothing changes unless it is turned off.
+---
+ CMakeLists.txt                   | 4 ++++
+ build/Templates/ConfigLocal.h.in | 3 +++
+ libs/MVS/SceneReconstruct.cpp    | 6 ++++--
+ libs/Math/CMakeLists.txt         | 8 ++++++--
+ 4 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d572317..a42cde2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -33,6 +33,7 @@ OPTION(OpenMVS_USE_OPENMP "Enable OpenMP library" ON)
+ OPTION(OpenMVS_USE_BREAKPAD "Enable BreakPad library" ON)
+ OPTION(OpenMVS_USE_PYTHON "Enable Python library bindings" ON)
+ OPTION(OpenMVS_USE_CERES "Enable CERES optimization library" OFF)
++OPTION(OpenMVS_USE_IBFS "Use the IBFS max-flow solver in ReconstructMesh (licensed for research use only); OFF uses Boost's Boykov-Kolmogorov solver" ON)
+ OPTION(OpenMVS_USE_CUDA "Enable CUDA library" ON)
+ OPTION(OpenMVS_USE_FAST_FLOAT2INT "Use an optimized code to convert real numbers to int" OFF)
+ OPTION(OpenMVS_USE_FAST_INVSQRT "Use an optimized code to compute the inverse square root (slower in fact on modern compilers)" OFF)
+@@ -284,6 +285,9 @@ endif()
+ if(OpenMVS_USE_CERES)
+ 	SET(_USE_CERES TRUE)
+ endif()
++if(OpenMVS_USE_IBFS)
++	SET(_USE_IBFS TRUE)
++endif()
+ 
+ # Add modules
+ ADD_SUBDIRECTORY(libs)
+diff --git a/build/Templates/ConfigLocal.h.in b/build/Templates/ConfigLocal.h.in
+index b598f64..5de2fe0 100644
+--- a/build/Templates/ConfigLocal.h.in
++++ b/build/Templates/ConfigLocal.h.in
+@@ -30,6 +30,9 @@
+ // CERES optimization library
+ #cmakedefine _USE_CERES
+ 
++// IBFS max-flow solver (research-only license)
++#cmakedefine _USE_IBFS
++
+ // JPEG codec
+ #cmakedefine _USE_JPG
+ 
+diff --git a/libs/MVS/SceneReconstruct.cpp b/libs/MVS/SceneReconstruct.cpp
+index 0b5e44e..0a8e04e 100644
+--- a/libs/MVS/SceneReconstruct.cpp
++++ b/libs/MVS/SceneReconstruct.cpp
+@@ -55,9 +55,11 @@ using namespace MVS;
+ // uncomment to enable reconstruction algorithm of weakly supported surfaces
+ #define DELAUNAY_WEAKSURF
+ 
+-// uncomment to use IBFS algorithm for max-flow
+-// (faster, but not clear license policy)
++// use IBFS algorithm for max-flow (OpenMVS_USE_IBFS)
++// (faster, but not clear license policy); otherwise Boost's Boykov-Kolmogorov
++#ifdef _USE_IBFS
+ #define DELAUNAY_MAXFLOW_IBFS
++#endif
+ 
+ #pragma push_macro("VERBOSE")
+ #undef VERBOSE
+diff --git a/libs/Math/CMakeLists.txt b/libs/Math/CMakeLists.txt
+index 3958042..5c8366a 100644
+--- a/libs/Math/CMakeLists.txt
++++ b/libs/Math/CMakeLists.txt
+@@ -4,8 +4,12 @@ INCLUDE_DIRECTORIES(".")
+ FILE(GLOB LIBRARY_FILES_C "*.cpp")
+ FILE(GLOB LIBRARY_FILES_H "*.h" "*.inl")
+ 
+-FILE(GLOB IBFS_LIBRARY_FILES_C "IBFS/*.cpp")
+-FILE(GLOB IBFS_LIBRARY_FILES_H "IBFS/*.h" "IBFS/*.inl")
++SET(IBFS_LIBRARY_FILES_C "")
++SET(IBFS_LIBRARY_FILES_H "")
++if(OpenMVS_USE_IBFS)
++	FILE(GLOB IBFS_LIBRARY_FILES_C "IBFS/*.cpp")
++	FILE(GLOB IBFS_LIBRARY_FILES_H "IBFS/*.h" "IBFS/*.inl")
++endif()
+ SOURCE_GROUP("IBFS" FILES ${IBFS_LIBRARY_FILES_C} ${IBFS_LIBRARY_FILES_H})
+ 
+ FILE(GLOB LMFit_LIBRARY_FILES_C "LMFit/*.cpp")

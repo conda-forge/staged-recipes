@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <tobias.fischer@qut.edu.au>
+Date: Thu, 29 Oct 2026 17:19:21 +1000
+Subject: [PATCH] Support OpenCV 5
+
+OpenCV 5 defines cv::DataType<unsigned> (CV_32U) and cv::DataType<uint64_t>
+(CV_64U) itself, and moved DistanceTypes (cv::DIST_L1, ...) into the new
+geometry module, which opencv2/opencv.hpp does not include.
+---
+ libs/Common/Types.h   | 4 ++++
+ libs/Common/Types.inl | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/libs/Common/Types.h b/libs/Common/Types.h
+index b0d0727..6bf5cbc 100644
+--- a/libs/Common/Types.h
++++ b/libs/Common/Types.h
+@@ -119,6 +119,10 @@
+ #include <opencv2/opencv_modules.hpp>
+ #endif
+ #include <opencv2/opencv.hpp>
++#if CV_MAJOR_VERSION >= 5 && defined(HAVE_OPENCV_GEOMETRY)
++// OpenCV 5 moved DistanceTypes (cv::DIST_L1, ...) into the new geometry module
++#include <opencv2/geometry.hpp>
++#endif
+ #ifdef HAVE_OPENCV_GPU
+ #if CV_MAJOR_VERSION > 2
+ #include <opencv2/cudaarithm.hpp>
+diff --git a/libs/Common/Types.inl b/libs/Common/Types.inl
+index 765db20..dd85dbe 100644
+--- a/libs/Common/Types.inl
++++ b/libs/Common/Types.inl
+@@ -112,6 +112,7 @@ INT_TYPE cvRANSACUpdateNumIters(REAL_TYPE p, REAL_TYPE ep, INT_TYPE modelPoints,
+ namespace cv {
+ 
+ #if CV_MAJOR_VERSION > 2
++#if CV_MAJOR_VERSION < 5 // OpenCV 5 defines DataType<unsigned> itself (CV_32U)
+ template<> class DataType<unsigned>
+ {
+ public:
+@@ -126,6 +127,7 @@ public:
+ 		type         = CV_MAKETYPE(depth, channels)
+ 	};
+ };
++#endif
+ #else
+ #if CV_MINOR_VERSION < 4
+ template<typename _Tp, typename _AccTp> static inline
+@@ -1558,7 +1560,9 @@ DEFINE_CVDATADEPTH(SEACAVE::cuint32_t)
+ // define specialized cv:DataType<>
+ DEFINE_CVDATATYPE(SEACAVE::hfloat)
+ DEFINE_CVDATATYPE(SEACAVE::cuint32_t)
++#if CV_MAJOR_VERSION < 5 // OpenCV 5 defines DataType<uint64_t> itself (CV_64U)
+ DEFINE_GENERIC_CVDATATYPE(uint64_t,double)
++#endif
+ /*----------------------------------------------------------------*/
+ DEFINE_CVDATATYPE(SEACAVE::Point2i)
+ DEFINE_CVDATATYPE(SEACAVE::Point2hf)
