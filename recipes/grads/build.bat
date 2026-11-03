@@ -1,24 +1,12 @@
 @echo on
 setlocal EnableExtensions
 
-cmake -S nceplibs-g2c -B build-g2c -G Ninja ^
-  -DCMAKE_BUILD_TYPE=Release ^
-  -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc ^
-  -DBUILD_SHARED_LIBS=OFF ^
-  -DBUILD_STATIC_LIBS=ON ^
-  -DBUILD_TESTING=OFF ^
-  -DUTILS=OFF
-if errorlevel 1 exit /b 1
-cmake --build build-g2c --parallel %CPU_COUNT%
-if errorlevel 1 exit /b 1
-
 cmake -S . -B build -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc ^
   -DGRADS_ENABLE_HDF4=OFF ^
   -DGRADS_ENABLE_HDF5=OFF ^
   -DGRADS_ENABLE_CAIRO=OFF ^
-  -DGRADS_G2C_LIBRARY=%SRC_DIR%\build-g2c\src\libg2c.a ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
 if errorlevel 1 exit /b 1
 
