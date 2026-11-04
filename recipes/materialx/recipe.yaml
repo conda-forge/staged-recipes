@@ -1,0 +1,128 @@
+schema_version: 1
+
+context:
+  name: materialx
+  version: "1.39.5"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AcademySoftwareFoundation/MaterialX/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c0d739b70a36f6f72888a0e8e66db5c83ae87c40737cc9b51c108166804f3a3b
+  patches:
+    # The data libraries are installed to share/materialx/libraries (see
+    # build-lib.sh); teach getDefaultDataSearchPath() to look there too.
+    - data-search-path-share.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libmaterialx
+    build:
+      script:
+        file: build-lib
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - if: linux
+          then:
+            - libgl-devel
+            - xorg-libx11
+            - xorg-libxt
+      run:
+        # MaterialXRenderHw links X11::X11 and X11::Xt publicly, so
+        # MaterialXConfig.cmake runs find_dependency(X11 COMPONENTS Xt) for
+        # every consumer, and FindX11 requires the protocol headers (X11/X.h).
+        - if: linux
+          then:
+            - xorg-xorgproto
+      run_exports:
+        # The C++ namespace is versioned down to the patch release
+        # (MaterialX_v1_39_5), so every release is ABI-incompatible.
+        - ${{ pin_subpackage('libmaterialx', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - MaterialXCore/Document.h
+            - MaterialXFormat/XmlIo.h
+            - MaterialXGenGlsl/GlslShaderGenerator.h
+            - MaterialXGenMsl/MslShaderGenerator.h
+            - MaterialXRender/ImageHandler.h
+          lib:
+            - MaterialXCore
+            - MaterialXFormat
+            - MaterialXGenShader
+            - MaterialXGenGlsl
+            - MaterialXGenMsl
+            - MaterialXGenOsl
+            - MaterialXGenMdl
+            - MaterialXRender
+            - MaterialXRenderGlsl
+            - if: osx
+              then: MaterialXRenderMsl
+          files:
+            - if: unix
+              then:
+                - share/materialx/libraries/stdlib/stdlib_defs.mtlx
+                - lib/cmake/MaterialX/MaterialXConfig.cmake
+              else:
+                - Library/share/materialx/libraries/stdlib/stdlib_defs.mtlx
+                - Library/lib/cmake/MaterialX/MaterialXConfig.cmake
+      - script:
+          - cmake-package-check MaterialX --targets MaterialXCore MaterialXFormat MaterialXGenShader MaterialXGenGlsl MaterialXRender
+        requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+      # A downstream CMake project that generates GLSL for standard_surface,
+      # finding the data libraries through getDefaultDataSearchPath(). That
+      # searches upward from the executable, so run it from the prefix's bin.
+      - script:
+          - if: unix
+            then:
+              - cmake ${CMAKE_ARGS} -G Ninja -S test -B build
+              - cmake --build build
+              - cp build/load_stdlib ${PREFIX}/bin/
+              - load_stdlib
+            else:
+              - cmake %CMAKE_ARGS% -G Ninja -S test -B build
+              - cmake --build build
+              - copy build\load_stdlib.exe %LIBRARY_BIN%\
+              - load_stdlib.exe
+        files:
+          recipe:
+            - test/
+        requirements:
+          run:
+            - cmake
+            - ninja
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+
+about:
+  homepage: https://materialx.org
+  repository: https://github.com/AcademySoftwareFoundation/MaterialX
+  documentation: https://materialx.org/docs/api/
+  summary: Open standard for the exchange of rich material and look-development content
+  description: |
+    MaterialX is an open standard for representing rich material and
+    look-development content in computer graphics, enabling its platform-independent
+    description and exchange across applications and renderers.
+  license: Apache-2.0 AND MIT
+  license_file:
+    - LICENSE.txt
+    - THIRD-PARTY.md
+
+extra:
+  recipe-maintainers:
+    - oursland
