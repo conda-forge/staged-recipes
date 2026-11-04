@@ -1,0 +1,93 @@
+schema_version: 1
+
+context:
+  version: "0.20.0"
+
+package:
+  name: secs2r
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/secs2r/secs2r-${{ version }}.tar.gz
+  sha256: 8f29ec50fa4151d12890be6e86cb4f3cb09617ad6d6fc385b2859a39761cf399
+
+build:
+  number: 0
+  skip:
+    - is_freethreading
+    - python_impl != "cpython"
+    - is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    - if: win
+      then: set PYO3_USE_RAW_DYLIB=0
+    - python -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+  host:
+    - python
+    - pip
+    - maturin >=1.15,<2
+    - if: is_abi3
+      then:
+        - python ${{ python_min }}.*
+        - python-abi3 ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      imports:
+        - secs2r
+        - secs2r._secs2r
+      pip_check: true
+      python_version:
+        - "*"
+        - if: is_abi3
+          then:
+            - ${{ python_min }}.*
+  - script:
+      - python -c "import secs2r"
+      - >-
+        python -c "import secs2r; engine = secs2r.Engine(); info = engine.call({'method': 'bootstrap'}); assert info['data']['version'] == '${{ version }}'"
+  - if: is_abi3
+    then:
+      - requirements:
+          run:
+            - abi3audit
+            - python ${{ python_min }}.*
+        script:
+          interpreter: python
+          content: |
+            import subprocess
+            import secs2r._secs2r as native
+            subprocess.run(
+                ["abi3audit", "-s", "-v", "--assume-minimum-abi3", "3.9", native.__file__],
+                check=True,
+            )
+
+about:
+  homepage: https://github.com/115dkk/Sound-Equalization-and-Correction-System-2R
+  repository: https://github.com/115dkk/Sound-Equalization-and-Correction-System-2R
+  documentation: https://pypi.org/project/secs2r/
+  summary: SECS 2R의 방 보정 엔진과 로컬 API 클라이언트를 Python에서 쓸 수 있는 패키지입니다.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - 115dkk
