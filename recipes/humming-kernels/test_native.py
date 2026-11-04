@@ -6,8 +6,15 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Import-time warmup uses detached subprocesses that can outlive the test and
+# recreate files while rattler-build removes its temporary environment.
+# Exercise the packaged helpers synchronously below instead.
+os.environ["HUMMING_DISABLE_PARALLEL_BUILD"] = "1"
+
 import humming
 from humming.utils import cubin, jit, nvrtc
+
+subprocess.run([sys.executable, "-m", "pip", "check"], check=True)
 
 package_dir = Path(humming.__file__).parent
 sources = {
