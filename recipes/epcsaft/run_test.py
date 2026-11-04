@@ -150,3 +150,18 @@ assert math.isclose(vapor[1], 0.13267836328486465, rel_tol=0.0, abs_tol=1e-9)
 assert math.isclose(batch.results[0].action, 39302.24177938897, rel_tol=1e-8)
 assert max(map(abs, bubble.residuals)) <= 1e-10
 assert batch.diagnostics.maximum_linear_residual <= 1e-10
+
+# Installed packet and version must be independent of the build checkout.
+from importlib.metadata import version
+from pathlib import Path
+
+assert epcsaft.__version__ == version("epcsaft")
+packet_root = Path(epcsaft.__file__).resolve().parent / "data" / "packets"
+hexane = epcsaft.Parameters.from_packets(packet_root, [("feos-gross-sadowski-2001/1", ["hexane"])])
+assert hexane.component_ids == ("hexane",)
+for name in ("feos-gross-sadowski-2001", "feos-gross-sadowski-2002"):
+    packet = packet_root / name / "1"
+    assert (packet / "packet.toml").is_file()
+    assert (packet / "parameters" / "parameters.json").is_file()
+    assert (packet / "sources" / "record-accounting.csv").is_file()
+    assert (packet / "provenance" / "source-origin.toml").is_file()
