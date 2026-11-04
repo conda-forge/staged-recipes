@@ -1,0 +1,96 @@
+schema_version: 1
+
+context:
+  name: lance-csr
+  version: "0.8.0"
+  # upstream requires Python >=3.12 and builds a cp312 abi3 extension
+  python_min: "3.12"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/lance_csr-${{ version }}.tar.gz
+  sha256: 0863dec056db8815f067090be3ef54825a8bc8816518572ac9ef91b4dcd10927
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python ${{ python_min }}.*
+        - cross-python_${{ target_platform }} ${{ python_min }}.*
+        - maturin >=1.4,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    # protoc for the build scripts of the lance crates
+    - libprotobuf
+    # assembler for aws-lc-sys on win-64
+    - if: win
+      then: nasm
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python ${{ python_min }}.*
+    - pip
+    - maturin >=1.4,<2
+  run:
+    - python >=${{ python_min }}
+    - pyarrow >=14
+    - pylance >=13.0.0,<14
+  ignore_run_exports:
+    from_package:
+      - libprotobuf
+
+tests:
+  - python:
+      imports:
+        - lance_csr
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+        - abi3audit
+    script:
+      - if: unix
+        then: abi3audit ${SP_DIR}/lance_csr/_internal.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+        else: abi3audit %SP_DIR%\lance_csr\_internal.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - run_test.py
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://lance-csr.hdclabs.ai/
+  summary: Cypher graph queries over Lance datasets, built on DataFusion with a CSR adjacency index
+  description: |
+    lance-csr is a fast graph query engine over Lance datasets, built in Rust on
+    Apache DataFusion, with Python bindings. It is a maintained fork of lance-graph
+    that adds CSR-index based traversal, a Lance-native engine and much wider
+    openCypher support.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - crates/lance-csr/NOTICE
+    - THIRDPARTY.yml
+  documentation: https://lance-csr.hdclabs.ai/
+  repository: https://github.com/hyperdimensionalcomputingai/lance-csr
+
+extra:
+  recipe-maintainers:
+    - geoHeil
