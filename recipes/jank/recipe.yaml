@@ -13,28 +13,19 @@ package:
 source:
   - url: https://github.com/jank-lang/jank/archive/${{ commit }}.tar.gz
     sha256: 7d92d57e22bcd58d777fc06db8b37b60f887dd81b0180c5f109f12559911b41d
-  # Submodules are listed explicitly because GitHub archive tarballs do not
-  # include submodule content and rattler-build fetches sources offline.
-  - url: https://github.com/jank-lang/clojure-test-suite/archive/a920de9330ab2f111822729581e177a6a9bd5b9f.tar.gz
-    sha256: b3793e39ba1944d741649e59f507959d9350e7a372a64d403eac81e9aba17ca0
-    target_directory: compiler+runtime/test/bash/clojure-test-suite/clojure-test-suite
-  # https://prefix.dev/channels/conda-forge/packages/folly
-  - url: https://github.com/jank-lang/folly/archive/e54ca53d2d57dc8dd205873f93b5a2715b0fee5e.tar.gz
-    sha256: 3f546b519a2ccb13fb6b95ee83683710af864d1fcbc5b5cdc6927aeac35590dc
-    target_directory: compiler+runtime/third-party/folly
+    patches:
+      - use-system-libraries.patch
+      - fix-aot-constant-types.patch
+  # Only dependencies unavailable as compatible conda-forge packages are vendored.
   # https://github.com/arximboldi/immer
   - url: https://github.com/jank-lang/immer/archive/282629d01917d4c7d0aba2322de700c6d1111276.tar.gz
     sha256: 21a6ef49a3e9ab3c8613fc5a6ef4b8f3ad2abce0d4ceb00e4be1bce052e6532a
     target_directory: compiler+runtime/third-party/immer
-  # https://prefix.dev/channels/conda-forge/packages/cpptrace
-  - url: https://github.com/jank-lang/cpptrace/archive/33a8348af776eb91c091390c0eb8a099cd1525b7.tar.gz
-    sha256: 23c259c0ad0880511c10b80f44ff000f4ac5a906edd8006cf8b134e38912140c
-    target_directory: compiler+runtime/third-party/cpptrace
-  # https://prefix.dev/channels/conda-forge/packages/cppinterop
+  # The packaged CppInterOp 1.9.0 targets LLVM 21; jank requires LLVM 23.
   - url: https://github.com/jank-lang/CppInterOp/archive/f7e840b4f99693741448f16f889855e29adecde6.tar.gz
     sha256: f536ae6612c0c245d2e2487b7e7451d708dfdc201fed1e658c506aad18615dc5
     target_directory: compiler+runtime/third-party/cppinterop
-  # https://prefix.dev/channels/conda-forge/packages/bdw-gc
+  # jank requires development BDWGC with its custom POINTER_MASK configuration.
   - url: https://github.com/jank-lang/bdwgc/archive/327ef1f8c80a611b2f8b915850c8b2fd38e6595e.tar.gz
     sha256: 0c273a852db08def4e447d2f82b081c6f595f1e65169750bf5374e485a8311de
     target_directory: compiler+runtime/third-party/bdwgc
@@ -46,35 +37,13 @@ source:
   - url: https://github.com/jank-lang/zip/archive/52d1c1d00831c4f10ef8a6bb12ae6bb3e57743b9.tar.gz
     sha256: 51f022a6aebb1b0fb311c118029153f420f5a366e45cf660575ae60772ed7576
     target_directory: compiler+runtime/third-party/zip
-  # https://prefix.dev/channels/conda-forge/packages/doctest
-  - url: https://github.com/jank-lang/doctest/archive/d44d4f6e66232d716af82f00a063759e9d0e50d6.tar.gz
-    sha256: 5c3682e391ce01c16d9b1e2b3d890366a7a10e35d32fa94d8443b21cdbde94c7
-    target_directory: compiler+runtime/third-party/doctest
-  # possibly available as https://prefix.dev/channels/conda-forge/packages/boost-cpp
-  # https://github.com/boostorg/process
-  - url: https://github.com/jank-lang/boost-process/archive/e4d0d405a12f13ebe7d894382d3a98830ae1c7bd.tar.gz
-    sha256: 4f9c30b47368bea905272fb36e8a3a32f93f69f44e0cd5ebac7ee68870018b57
-    target_directory: compiler+runtime/third-party/boost-process
-  # https://github.com/boostorg/preprocessor
-  - url: https://github.com/jank-lang/boost-preprocessor/archive/c4ea7e40d365ba28faecef8917d5c3f1e0121bf9.tar.gz
-    sha256: f9c48540b33defa2b76689b2d005cd3711eadf53960916db543470a00b8d1bfc
-    target_directory: compiler+runtime/third-party/boost-preprocessor
-  # https://github.com/boostorg/multiprecision
-  - url: https://github.com/jank-lang/boost-multiprecision/archive/2b3ab082fac41c0d4bdb5a1c3daf7411be6fd679.tar.gz
-    sha256: 9993b263a5b3d7a8ad80a58f76c950bcc3ef8148cb80f27a8638e9fc8691f5cb
-    target_directory: compiler+runtime/third-party/boost-multiprecision
   - url: https://github.com/daanx/isocline/archive/8d6dc1ef95b1b46711e66eb23d39d4467a0fcdac.tar.gz
     sha256: 0a2149aa99bdffc0c430aa4ecfcdc378bd5f98565eef10991475db52b33f607b
     target_directory: compiler+runtime/third-party/isocline
-  - url: https://github.com/jank-lang/json/archive/02dfbea39d94b8d19ddcd0eabfdc943a65bf3368.tar.gz
-    sha256: aa5eb8947298e6ed84106d76983374be9bd7f2488a3e0171f82bf17cdb1b1a3f
-    target_directory: compiler+runtime/third-party/json
 
 build:
-  number: 0
-  # Windows requires MSYS2/CLANG64 (MinGW-w64), which doesn't map to conda-forge's
-  # MSVC-based Windows environment. sbcl is available on conda-forge for all platforms
-  # including Windows, but the jank build on Windows has not been validated.
+  number: 1
+  # Upstream's MSYS2/CLANG64 Windows build is incompatible with conda-forge MSVC.
   skip: win
   script:
     interpreter: nu
@@ -100,13 +69,12 @@ build:
       # not require flag-path adjacency. bdwgc (libgc) is already bundled in the merged
       # archive, so do not add -lgc here or duplicate symbols may cause a link failure.
       let linker_flags = if ($env.HOST | str contains "darwin") {
-        $"-L($env.PREFIX)/lib -lzstd -ldwarf -Wl,-all_load"
+        $"-L($env.PREFIX)/lib -lzstd -lfolly -lcpptrace -Wl,-all_load"
       } else {
-        $"-L($env.PREFIX)/lib -ldl -lzstd -ldwarf -pthread -Wl,--no-as-needed"
+        $"-L($env.PREFIX)/lib -ldl -lzstd -lfolly -lcpptrace -pthread -Wl,--no-as-needed"
       }
 
-      # Use conda-forge libdwarf instead of cpptrace fetching dependencies.
-      ^./bin/configure -DCPPTRACE_USE_EXTERNAL_LIBDWARF=ON -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
+      ^./bin/configure -Djank_test=OFF -DFETCHCONTENT_FULLY_DISCONNECTED=ON -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
 
       ^./bin/compile
 
@@ -143,27 +111,24 @@ requirements:
     - sed
 
   host:
-    - bdw-gc
-    - bzip2
-    - doctest
-    - double-conversion
-    - if: linux
-      then: elfutils
     - fmt
-    - gmp
-    - libatomic_ops
+    # Folly exports the unversioned liblzma link path.
+    - liblzma-devel
+    # Folly's CMake config requires compiled Boost component targets.
     - libboost-devel
+    - libboost-headers
+    - folly
+    - cpptrace >=1.0.4,<1.1
+    - nlohmann_json >=3.12,<4
     - clangdev 23.*
     - libclang-cpp 23.*
-    - libdwarf-dev
-    - libffi
-    - libzip
     - llvmdev 23.*
-    - openssl
     - zlib
     - zstd
 
   run:
+    # Public jank headers and jank.shell are compiled by the embedded JIT.
+    - ${{ pin_compatible('libboost-headers', upper_bound='x.x') }}
     - clang 23.*
     - clangdev 23.*
 
@@ -175,22 +140,24 @@ tests:
         - lib/jank/0.1/bin/clang++
         - lib/jank/0.1/src/jank/clojure/core.jank
   - script:
-      - jank --help
-      - echo '(assert (= 42 (+ 40 2)))' > smoke.jank
+      - jank print-binary-version
       - jank run smoke.jank
+      - jank -O0 --module-path . compile smoke --name smoke-aot
+      - ./target/smoke-aot > aot-result.txt
+      - grep -x jank-smoke aot-result.txt
+    files:
+      recipe:
+        - smoke.jank
 
 about:
   license: MPL-2.0
   license_file:
     - LICENSE
+    - THIRD_PARTY_LICENSES.txt
     - compiler+runtime/third-party/bdwgc/LICENSE
-    - compiler+runtime/third-party/boost-multiprecision/LICENSE
     - compiler+runtime/third-party/cppinterop/LICENSE.txt
-    - compiler+runtime/third-party/cpptrace/LICENSE
-    - compiler+runtime/third-party/folly/LICENSE
     - compiler+runtime/third-party/immer/LICENSE
     - compiler+runtime/third-party/isocline/LICENSE
-    - compiler+runtime/third-party/json/LICENSE.MIT
     - compiler+runtime/third-party/nanobench/include/nanobench.h
     - compiler+runtime/third-party/stduuid/LICENSE
     - compiler+runtime/third-party/zip/LICENSE.txt
