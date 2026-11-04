@@ -1,0 +1,53 @@
+context:
+  name: kubernetes-mcp-server
+  version: "0.1.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/containers/kubernetes-mcp-server/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 37189b9939dabab68d2d5f0cb4eac20525027b2317d1d7f468d9e4144c97410d
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/kubernetes-mcp-server --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/kubernetes-mcp-server -ldflags="-s -w -X github.com/containers/kubernetes-mcp-server/pkg/version.Version=v${{ version }}" ./cmd/kubernetes-mcp-server
+      else: go build -v -o %LIBRARY_BIN%\kubernetes-mcp-server.exe -ldflags="-s -X github.com/containers/kubernetes-mcp-server/pkg/version.Version=v${{ version }}" ./cmd/kubernetes-mcp-server
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - kubernetes-mcp-server --help
+      - kubernetes-mcp-server --version
+  - package_contents:
+      bin:
+        - kubernetes-mcp-server
+      strict: true
+
+about:
+  homepage: https://github.com/containers/kubernetes-mcp-server
+  summary: Model Context Protocol (MCP) server for Kubernetes and OpenShift.
+  description: |
+    A Model Context Protocol (MCP) server that lets AI assistants inspect and
+    manage Kubernetes and OpenShift clusters. It talks to the Kubernetes API
+    directly and ships as a single native Go binary without kubectl or helm.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://github.com/containers/kubernetes-mcp-server/tree/main/docs
+  repository: https://github.com/containers/kubernetes-mcp-server
+
+extra:
+  recipe-maintainers:
+    - jviehhauser
