@@ -1,0 +1,85 @@
+schema_version: 1
+
+context:
+  version: "0.3.0"
+
+package:
+  name: openzl
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/meta/openzl/archive/v${{ version }}.tar.gz
+    sha256: 6e105e5c49187ebf63e0bf62fb3ecb22b628248c0bf55bd40ace434721f394f5
+  # Workaround until openzl supports system libzstd - https://github.com/meta/openzl/issues/105
+  # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
+  - git: https://github.com/meta/zstd.git
+    tag: v1.5.7
+    expected_commit: f8745da6ff1ad1e7bab384bd1f9d742439278e99
+    submodules: false
+    target_directory: deps/zstd
+  # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
+  - git: https://github.com/lz4/lz4.git
+    tag: v1.10.0
+    expected_commit: ebb370ca83af193212df4dcbadcc5d87bc0de2f0
+    submodules: false
+    target_directory: deps/lz4
+
+build:
+  number: 0
+  script:
+   content:
+     - mkdir build-cmake
+     - cd build-cmake
+     - cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENZL_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX
+     - make -j
+     - ctest . -j 10
+     - make install
+     - make zli  # https://openzl.org/getting-started/quick-start/#building-the-openzl-cli
+     - cp cli/zli $PREFIX/bin/zli
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake-no-system
+    - if: unix
+      then:
+        - make
+    # - lz4-c
+    # - zstd
+  host:
+    - zstd
+
+tests:
+  - package_contents:
+      files:
+        exists:
+          - if: unix
+            then:
+              - lib/libopenzl.a
+              - lib/libopenzl_cpp.a
+      include:
+        - openzl/openzl.h
+        - openzl/openzl.hpp
+
+  - script:
+    - zli --help
+    - zli list-profiles
+    - zli benchmark --help
+    - zli compress --help
+    - zli decompress --help
+    - zli inspect --help
+    - zli train --help
+
+about:
+  homepage: https://openzl.org
+  summary: A novel take on lossless data compression
+  documentation: https://openzl.org/api/c/compressor/
+  repository: https://github.com/meta/openzl
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - weiji14
