@@ -1,0 +1,40 @@
+From 80a3874e66cbd13c1f1dc356af8ffdcd1309bffe Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Tue, 3 Nov 2026 22:46:34 +0100
+Subject: [PATCH 3/3] gpui-kit fps: pass MACH_PORT_NULL instead of
+ kIOMainPortDefault
+
+kIOMainPortDefault is only exported by the macOS 12+ SDK; linking against
+an older SDK fails with an undefined symbol. Its value is MACH_PORT_NULL
+(0), the same as the deprecated kIOMasterPortDefault, so pass that.
+---
+ vendor/gpui-kit/crates/fps/src/gpu/macos.rs | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/vendor/gpui-kit/crates/fps/src/gpu/macos.rs b/vendor/gpui-kit/crates/fps/src/gpu/macos.rs
+index ac6591f..69c8e00 100644
+--- a/vendor/gpui-kit/crates/fps/src/gpu/macos.rs
++++ b/vendor/gpui-kit/crates/fps/src/gpu/macos.rs
+@@ -15,7 +15,7 @@ use objc2_core_foundation::{CFArray, CFDictionary, CFNumber, CFNumberType, CFRet
+ use objc2_io_kit::{
+     IOIteratorNext, IOObjectRelease, IORegistryEntryCreateCFProperties,
+     IORegistryEntryGetChildIterator, IOServiceGetMatchingServices, IOServiceMatching,
+-    io_iterator_t, io_registry_entry_t, kIOMainPortDefault, kIOReturnSuccess,
++    io_iterator_t, io_registry_entry_t, kIOReturnSuccess,
+ };
+ use web_time::Instant;
+ 
+@@ -154,7 +154,9 @@ fn accelerators() -> Vec<io_registry_entry_t> {
+     // mutable type, and the iterator is a live out parameter.
+     let result = unsafe {
+         IOServiceGetMatchingServices(
+-            kIOMainPortDefault,
++            // kIOMainPortDefault (MACH_PORT_NULL); the symbol only exists
++            // in the macOS 12+ SDK.
++            0,
+             Some(CFRetained::cast_unchecked::<CFDictionary>(matching)),
+             &mut iterator,
+         )
+-- 
+2.53.0
+
