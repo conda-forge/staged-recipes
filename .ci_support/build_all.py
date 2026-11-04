@@ -62,7 +62,7 @@ def build_all(recipes_dir, arch):
 
     has_meta_yaml = False
     has_recipe_yaml = False
-
+    has_conda_build_config_or_conda_forge_yml = False
     found_cuda = False
     found_centos7 = False
     for folder in folders:
@@ -86,8 +86,13 @@ def build_all(recipes_dir, arch):
                 if "sysroot_linux-64" in text:
                     found_centos7 = True
 
+        cfy = os.path.join(recipes_dir, folder, "conda-forge.yml")
+        if os.path.exists(cfy):
+            has_conda_build_config_or_conda_forge_yml = True
+
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
+            has_conda_build_config_or_conda_forge_yml = True
             with open(cbc, "r") as f:
                 lines = f.readlines()
             pat = re.compile(
@@ -108,10 +113,12 @@ def build_all(recipes_dir, arch):
     if has_meta_yaml and has_recipe_yaml:
         raise ValueError("Mixing meta.yaml and recipe.yaml recipes is not supported")
     if not has_meta_yaml and not has_recipe_yaml:
-        raise ValueError("Neither a meta.yaml or a recipe.yaml recipes was found")
+        raise ValueError("Neither a meta.yaml or a recipe.yaml recipe was found")
 
     if found_cuda:
         print("##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1")
+    if has_conda_build_config_or_conda_forge_yml:
+        print("##vso[task.setvariable variable=TEST_RERENDER;isOutput=true]1")
     if found_centos7:
         os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
         print("Overriding DEFAULT_LINUX_VERSION to be cos7")
