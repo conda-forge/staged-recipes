@@ -2,6 +2,7 @@ schema_version: 1
 
 context:
   version: "0.4.2"
+  scripts_dir: ${{ 'Library/share/mwz/scripts' if win else 'share/mwz/scripts' }}
 
 package:
   name: mwz
@@ -17,14 +18,21 @@ build:
     env:
       CARGO_TARGET_DIR: target
     content:
-      - export RUSTFLAGS="${RUSTFLAGS:-} -C linker=$CC"
-      - cargo auditable install --locked --no-track --path crates/mwz-cli --root "$PREFIX" --bin mwz
+      - if: unix
+        then:
+          - export RUSTFLAGS="${RUSTFLAGS:-} -C linker=$CC"
+          - cargo auditable install --locked --no-track --path crates/mwz-cli --root "$PREFIX" --bin mwz
+        else:
+          - cargo auditable install --locked --no-track --path crates/mwz-cli --root "%LIBRARY_PREFIX%" --bin mwz
       - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-      - |
-        for f in $(cd crates/mwz-core/src/scripts && find . -name '*.rhai'); do
-          mkdir -p "$PREFIX/share/mwz/scripts/$(dirname "$f")"
-          install -m644 "crates/mwz-core/src/scripts/$f" "$PREFIX/share/mwz/scripts/$f"
-        done
+      - if: unix
+        then: |
+          for f in $(cd crates/mwz-core/src/scripts && find . -name '*.rhai'); do
+            mkdir -p "$PREFIX/share/mwz/scripts/$(dirname "$f")"
+            install -m644 "crates/mwz-core/src/scripts/$f" "$PREFIX/share/mwz/scripts/$f"
+          done
+        else:
+          - xcopy /s /i /y "crates\mwz-core\src\scripts\*.rhai" "%LIBRARY_PREFIX%\share\mwz\scripts\"
 
 requirements:
   build:
@@ -40,14 +48,19 @@ tests:
       bin:
         - mwz
       files:
-        - share/mwz/scripts/git/push.rhai
-        - share/mwz/scripts/create/github.rhai
-        - share/mwz/scripts/residence/ensure.rhai
+        - ${{ scripts_dir }}/git/push.rhai
+        - ${{ scripts_dir }}/create/github.rhai
+        - ${{ scripts_dir }}/residence/ensure.rhai
   - script:
       - mwz --version
       - mwz serve:mcp --help
       - mwz show:mwz --completions bash
-      - test "$(find $PREFIX/share/mwz/scripts -name '*.rhai' | wc -l)" -eq 15
+      - if: unix
+        then: test "$(find $PREFIX/share/mwz/scripts -name '*.rhai' | wc -l)" -eq 15
+        else: |
+          set "MWZ_SCRIPT_COUNT=0"
+          for /r "%PREFIX%\Library\share\mwz\scripts" %%f in (*.rhai) do set /a MWZ_SCRIPT_COUNT+=1
+          if %MWZ_SCRIPT_COUNT% neq 15 exit /b 1
 
 about:
   homepage: https://gitlab.com/babeloff/conda/mwz
