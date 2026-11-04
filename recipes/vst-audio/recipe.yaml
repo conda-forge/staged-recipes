@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: vst-audio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/115dkk/vst-audio/archive/refs/tags/python-v${{ version }}.tar.gz
+  sha256: 421a07c3f87bcab68a5fc26497072d14b125b6ee4e36779e80f69a617b0f18bc
+
+build:
+  number: 0
+  skip:
+    - host_platform not in ["linux-64", "osx-64", "osx-arm64", "win-64"]
+    # stage_worker.py needs tomllib; these are per-Python conda builds.
+    - match(python, "<3.11")
+  script:
+    file: build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }} >=1.99
+    - cargo-bundle-licenses
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - maturin >=1.16,<2
+  host:
+    # The upstream worker staging script uses Python's tomllib.
+    - python
+    - pip
+    - maturin >=1.16,<2
+  run:
+    - python
+    - numpy >=1.21
+
+tests:
+  - python:
+      imports:
+        - vst_audio
+      pip_check: true
+  - script: python test_worker.py
+    files:
+      recipe:
+        - test_worker.py
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://github.com/115dkk/vst-audio
+  summary: Isolated-process VST2/VST3 plugin hosting and offline rendering
+  description: |
+    Python bindings for vst-audio, with a matching worker built from the same
+    source archive. Plugins run in separate processes; no audio device is
+    opened. Supports offline NumPy rendering, scanning, state and parameters.
+  license: MIT AND BSD-3-Clause AND ISC
+  license_file:
+    - LICENSE
+    - NOTICE
+    - LICENSE-ISC-DPF
+    - bindings/python/python/vst_audio/_worker/LICENSE-BSD-3-Clause-VST2.txt
+    - THIRDPARTY-worker.yml
+    - bindings/python/THIRDPARTY-extension.yml
+  repository: https://github.com/115dkk/vst-audio
+  documentation: https://github.com/115dkk/vst-audio/blob/python-v0.1.0/bindings/python/README.md
+
+extra:
+  recipe-maintainers:
+    - 115dkk
