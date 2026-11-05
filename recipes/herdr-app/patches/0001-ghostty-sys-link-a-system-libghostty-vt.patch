@@ -1,0 +1,52 @@
+From 3b6bbd79042f550d163947ffde308fc4a12debe8 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Tue, 3 Nov 2026 21:09:19 +0100
+Subject: [PATCH] ghostty-sys: link a system libghostty-vt when
+ GHOSTTY_VT_LIB_DIR is set
+
+conda-forge ships libghostty-vt as its own package; link against it and
+generate the bindings from its installed headers instead of building the
+vendored Ghostty submodule (not part of the release tarball) with Zig.
+---
+ crates/ghostty-sys/build.rs | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/crates/ghostty-sys/build.rs b/crates/ghostty-sys/build.rs
+index 69ffe8f..8dbec3e 100644
+--- a/crates/ghostty-sys/build.rs
++++ b/crates/ghostty-sys/build.rs
+@@ -18,6 +18,31 @@ fn zig_target(target: &str) -> &'static str {
+ }
+ 
+ fn main() {
++    // Link a system-provided libghostty-vt (e.g. from conda-forge) and generate
++    // the bindings from its installed headers instead of building the vendored
++    // Ghostty submodule with Zig.
++    println!("cargo:rerun-if-env-changed=GHOSTTY_VT_LIB_DIR");
++    println!("cargo:rerun-if-env-changed=GHOSTTY_VT_INCLUDE_DIR");
++    if let (Ok(lib), Ok(include)) = (std::env::var("GHOSTTY_VT_LIB_DIR"), std::env::var("GHOSTTY_VT_INCLUDE_DIR")) {
++        println!("cargo:rustc-link-search=native={lib}");
++        println!("cargo:rustc-link-lib=dylib=ghostty-vt");
++        let include = PathBuf::from(include);
++        bindgen::Builder::default()
++            .header(include.join("ghostty/vt.h").to_string_lossy())
++            .clang_arg(format!("-I{}", include.display()))
++            .allowlist_function("ghostty_.*")
++            .allowlist_type("Ghostty.*")
++            .allowlist_var("GHOSTTY_.*")
++            .prepend_enum_name(false)
++            .derive_default(true)
++            .layout_tests(false)
++            .generate()
++            .expect("bindgen failed on ghostty/vt.h")
++            .write_to_file(PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("bindings.rs"))
++            .unwrap();
++        return;
++    }
++
+     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+     let src = manifest
+         .join("../../vendor/ghostty")
+-- 
+2.53.0
+

@@ -1,0 +1,55 @@
+From aa97e0e3eb3b08470839b671a910844df311c159 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Tue, 3 Nov 2026 21:13:19 +0100
+Subject: [PATCH 2/2] core_bin: look for herdr-core beside the app's own executable
+
+A package manager (conda, pixi) installs herdr-core as a dependency into
+the same prefix as the app. That prefix's bin folder isn't on PATH when
+the app is opened from a menu shortcut, and pixi global doesn't expose a
+dependency's executables, so look there before PATH.
+---
+ src/core_bin.rs | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/src/core_bin.rs b/src/core_bin.rs
+index 2b962ef..06272b1 100644
+--- a/src/core_bin.rs
++++ b/src/core_bin.rs
+@@ -93,7 +93,7 @@ pub fn find(configured: Option<&str>) -> Option<PathBuf> {
+     }
+     // The quick places first; the login shell (slow) only if they have none.
+     let path = std::env::var_os("PATH").unwrap_or_default();
+-    let quick: Vec<PathBuf> = dirs_on(&path).chain(usual_dirs(&home)).flat_map(|d| names(&d)).collect();
++    let quick: Vec<PathBuf> = beside_exe().into_iter().chain(dirs_on(&path)).chain(usual_dirs(&home)).flat_map(|d| names(&d)).collect();
+     pick(quick).or_else(|| pick(dirs_on(&login_shell_path()?).flat_map(|d| names(&d)).collect()))
+ }
+ 
+@@ -113,6 +113,25 @@ fn dirs_on(path: &std::ffi::OsStr) -> impl Iterator<Item = PathBuf> + '_ {
+     std::env::split_paths(path)
+ }
+ 
++/// A package manager (conda, pixi) installs herdr-core into the same prefix as
++/// the app, which isn't on PATH when the app is opened from a menu shortcut:
++/// `<prefix>/bin` (Linux), `<prefix>/Library/bin` (Windows), or beside
++/// `<prefix>/Applications/Herdr.app` (macOS).
++fn beside_exe() -> Vec<PathBuf> {
++    let Some(dir) = std::env::current_exe().and_then(|e| e.canonicalize()).ok().and_then(|e| e.parent().map(Path::to_path_buf)) else {
++        return Vec::new();
++    };
++    let mut dirs = Vec::new();
++    if cfg!(target_os = "macos")
++        && let Some(prefix) = dir.ancestors().nth(4)
++        && dir.ancestors().nth(2).and_then(|b| b.extension()).is_some_and(|e| e == "app")
++    {
++        dirs.push(prefix.join("bin"));
++    }
++    dirs.push(dir);
++    dirs
++}
++
+ /// Where herdr-core gets installed: its own installer and Herdr 1.x's
+ /// (~/.local/bin), Homebrew, mise, Nix, cargo.
+ fn usual_dirs(home: &Path) -> Vec<PathBuf> {
+-- 
+2.53.0
+
