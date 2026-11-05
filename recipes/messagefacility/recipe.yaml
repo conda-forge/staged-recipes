@@ -1,0 +1,74 @@
+# rattler-build recipe (v1 / CEP-13 format) for messagefacility.
+#
+# The art suite's message-logging library (MF_MessageLogger) + message services.
+
+context:
+  version: "2.11.0"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v2_11_00).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: messagefacility
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/messagefacility/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 6b3f7a8ef870bbea7e1127f4f841d1ecac4fca57509b4108cd284d6b7813d360
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - fhiclcpp                   # linked sibling (local channel)
+    - cetlib                     # find_package(cetlib) direct (local channel)
+    - cetlib_except              # find_package(cetlib_except) direct (local channel)
+    - catch2                     # find_package(Catch2 REQUIRED EXPORT) is UNCONDITIONAL
+                                 #   here (not test-gated) -> needed at configure and
+                                 #   propagated via messagefacilityConfig.
+    - libboost-devel             # find_package(Boost filesystem program_options)
+    # Transitive closure pulled by fhiclcpp/cetlib Configs' find_dependency():
+    - libsqlite
+    - tbb-devel
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
+  run:
+    # Runtimes arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('messagefacility', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - MF_MessageLogger       # libMF_MessageLogger.so (the main library)
+      include:
+        - messagefacility/MessageLogger/MessageLogger.h
+        - messagefacility/Utilities/exception.h
+      bin:
+        - fix-mf-macros          # installed migration helper script
+      files:
+        - lib/messagefacility/cmake/messagefacilityConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/messagefacility
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: messagefacility -- message logging library for the FNAL art suite
+  description: |
+    messagefacility provides the MF_MessageLogger library and message-service
+    plugins used by the art framework for configurable, severity-aware logging.
+    Depends on fhiclcpp, cetlib, cetlib_except, Boost and Catch2.
+  repository: https://github.com/art-framework-suite/messagefacility
+
+extra:
+  recipe-maintainers:
+    - calcuttj

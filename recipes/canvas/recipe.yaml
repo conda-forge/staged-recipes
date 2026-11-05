@@ -1,0 +1,80 @@
+# rattler-build recipe (v1 / CEP-13 format) for canvas.
+#
+# canvas is the art suite's data-product / persistency / provenance model and is
+# the last pure-C++ product before ROOT enters (canvas_root_io is next).
+
+context:
+  version: "3.17.0"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v3_17_00).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: canvas
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/canvas/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 05c08194b49e5467bffbd89dc99d2b7ec357c8ae021445b32a190509a9bb60dc
+  patches:
+    # Drop -Werror: RangeSet.cc ignores std::unique()'s [[nodiscard]] result,
+    # which conda's newer libstdc++ turns into a hard error under VIGILANT+WERROR.
+    # See potential_improvements.md (#2, #6).
+    - patches/0001-drop-WERROR.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - messagefacility            # linked sibling (local channel)
+    - fhiclcpp                   # find_package direct (local channel)
+    - cetlib                     # find_package direct (local channel)
+    - cetlib_except              # find_package direct (local channel)
+    - clhep                      # find_package(CLHEP COMPONENTS Matrix Vector)
+    - range-v3                   # find_package(Range-v3) (CF current = 0.12.0)
+    - libboost-devel             # find_package(Boost headers date_time)
+    - catch2                     # transitive: messagefacilityConfig find_dependency(Catch2)
+    # Transitive closure via fhiclcpp/cetlib/messagefacility Configs:
+    - libsqlite
+    - tbb-devel
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
+  run:
+    # Runtimes arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('canvas', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - canvas                 # libcanvas.so (AssnsAlgorithms is header-only INTERFACE)
+      include:
+        - canvas/Utilities/Exception.h
+        - canvas/Persistency/Provenance/EventID.h
+      files:
+        - lib/canvas/cmake/canvasConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/canvas
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: canvas -- data-product, persistency and provenance model for the FNAL art suite
+  description: |
+    canvas provides the art framework's data-product model: Assns, Ptr/RefCore,
+    provenance (EventID/RunID/SubRunID, ProductID), type utilities and the
+    persistency interfaces shared by art and art_root_io. Depends on
+    messagefacility, fhiclcpp, cetlib(_except), CLHEP, Range-v3 and Boost.
+  repository: https://github.com/art-framework-suite/canvas
+
+extra:
+  recipe-maintainers:
+    - calcuttj
