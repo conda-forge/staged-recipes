@@ -1,0 +1,213 @@
+From 904fed311fae4922c1bcdc2d025fbabae5988fd2 Mon Sep 17 00:00:00 2001
+From: Lang Hames <lhames@gmail.com>
+Date: Wed, 23 Aug 2023 13:39:19 -0700
+Subject: [PATCH 2/2] [ORC] Use EPC bootstrap symbols to communicate eh-frame
+ registration fn addrs.
+
+By using bootstrap symbols to communicate these addresseses, rather than dlsym
+lookups, we no longer need them to be exported from the main executable. On ELF,
+where symbols aren't exported from the main executable by default, this
+eliminates a common source of missing symbol errors and allows for smaller
+executables (if exports from the main executable aren't otherwise needed and
+can be removed).
+---
+ .../ExecutionEngine/Orc/EPCEHFrameRegistrar.h | 15 ++---
+ .../Orc/EPCEHFrameRegistrar.cpp               | 65 ++++++-------------
+ .../Orc/ExecutorProcessControl.cpp            |  7 ++
+ .../Orc/Shared/OrcRTBridge.cpp                |  4 +-
+ .../TargetProcess/SimpleRemoteEPCServer.cpp   |  6 ++
+ 5 files changed, 41 insertions(+), 56 deletions(-)
+
+diff --git a/llvm/include/llvm/ExecutionEngine/Orc/EPCEHFrameRegistrar.h b/llvm/include/llvm/ExecutionEngine/Orc/EPCEHFrameRegistrar.h
+index 9772c84b682a..182e9ed1041a 100644
+--- a/llvm/include/llvm/ExecutionEngine/Orc/EPCEHFrameRegistrar.h
++++ b/llvm/include/llvm/ExecutionEngine/Orc/EPCEHFrameRegistrar.h
+@@ -33,24 +33,23 @@ public:
+   /// find the registration functions. If it is None then the process dylib
+   /// will be loaded to find the registration functions.
+   static Expected<std::unique_ptr<EPCEHFrameRegistrar>>
+-  Create(ExecutionSession &ES,
+-         std::optional<ExecutorAddr> RegistrationFunctionsDylib = std::nullopt);
++  Create(ExecutionSession &ES);
+ 
+   /// Create a EPCEHFrameRegistrar with the given ExecutorProcessControl
+   /// object and registration/deregistration function addresses.
+   EPCEHFrameRegistrar(ExecutionSession &ES,
+-                      ExecutorAddr RegisterEHFrameWrapperFnAddr,
+-                      ExecutorAddr DeregisterEHFRameWrapperFnAddr)
+-      : ES(ES), RegisterEHFrameWrapperFnAddr(RegisterEHFrameWrapperFnAddr),
+-        DeregisterEHFrameWrapperFnAddr(DeregisterEHFRameWrapperFnAddr) {}
++                      ExecutorAddr RegisterEHFrameSectionWrapper,
++                      ExecutorAddr DeregisterEHFRameSectionWrapper)
++      : ES(ES), RegisterEHFrameSectionWrapper(RegisterEHFrameSectionWrapper),
++        DeregisterEHFrameSectionWrapper(DeregisterEHFRameSectionWrapper) {}
+ 
+   Error registerEHFrames(ExecutorAddrRange EHFrameSection) override;
+   Error deregisterEHFrames(ExecutorAddrRange EHFrameSection) override;
+ 
+ private:
+   ExecutionSession &ES;
+-  ExecutorAddr RegisterEHFrameWrapperFnAddr;
+-  ExecutorAddr DeregisterEHFrameWrapperFnAddr;
++  ExecutorAddr RegisterEHFrameSectionWrapper;
++  ExecutorAddr DeregisterEHFrameSectionWrapper;
+ };
+ 
+ } // end namespace orc
+diff --git a/llvm/lib/ExecutionEngine/Orc/EPCEHFrameRegistrar.cpp b/llvm/lib/ExecutionEngine/Orc/EPCEHFrameRegistrar.cpp
+index 56cd982cd5e1..49af3f3d0124 100644
+--- a/llvm/lib/ExecutionEngine/Orc/EPCEHFrameRegistrar.cpp
++++ b/llvm/lib/ExecutionEngine/Orc/EPCEHFrameRegistrar.cpp
+@@ -9,67 +9,40 @@
+ #include "llvm/ExecutionEngine/Orc/EPCEHFrameRegistrar.h"
+ 
+ #include "llvm/ExecutionEngine/Orc/Core.h"
+-#include "llvm/Support/BinaryStreamWriter.h"
++#include "llvm/ExecutionEngine/Orc/Shared/OrcRTBridge.h"
+ 
+ using namespace llvm::orc::shared;
+ 
+ namespace llvm {
+ namespace orc {
+ 
+-Expected<std::unique_ptr<EPCEHFrameRegistrar>> EPCEHFrameRegistrar::Create(
+-    ExecutionSession &ES,
+-    std::optional<ExecutorAddr> RegistrationFunctionsDylib) {
+-  // FIXME: Proper mangling here -- we really need to decouple linker mangling
+-  // from DataLayout.
+-
+-  // Find the addresses of the registration/deregistration functions in the
+-  // executor process.
+-  auto &EPC = ES.getExecutorProcessControl();
+-
+-  if (!RegistrationFunctionsDylib) {
+-    if (auto D = EPC.loadDylib(nullptr))
+-      RegistrationFunctionsDylib = *D;
+-    else
+-      return D.takeError();
+-  }
+-
+-  std::string RegisterWrapperName, DeregisterWrapperName;
+-  if (EPC.getTargetTriple().isOSBinFormatMachO()) {
+-    RegisterWrapperName += '_';
+-    DeregisterWrapperName += '_';
+-  }
+-  RegisterWrapperName += "llvm_orc_registerEHFrameSectionWrapper";
+-  DeregisterWrapperName += "llvm_orc_deregisterEHFrameSectionWrapper";
+-
+-  SymbolLookupSet RegistrationSymbols;
+-  RegistrationSymbols.add(EPC.intern(RegisterWrapperName));
+-  RegistrationSymbols.add(EPC.intern(DeregisterWrapperName));
+-
+-  auto Result =
+-      EPC.lookupSymbols({{*RegistrationFunctionsDylib, RegistrationSymbols}});
+-  if (!Result)
+-    return Result.takeError();
+-
+-  assert(Result->size() == 1 && "Unexpected number of dylibs in result");
+-  assert((*Result)[0].size() == 2 &&
+-         "Unexpected number of addresses in result");
+-
+-  auto RegisterEHFrameWrapperFnAddr = (*Result)[0][0];
+-  auto DeregisterEHFrameWrapperFnAddr = (*Result)[0][1];
+-
+-  return std::make_unique<EPCEHFrameRegistrar>(ES, RegisterEHFrameWrapperFnAddr,
+-                                               DeregisterEHFrameWrapperFnAddr);
++Expected<std::unique_ptr<EPCEHFrameRegistrar>>
++EPCEHFrameRegistrar::Create(ExecutionSession &ES) {
++
++  // Lookup addresseses of the registration/deregistration functions in the
++  // bootstrap map.
++  ExecutorAddr RegisterEHFrameSectionWrapper;
++  ExecutorAddr DeregisterEHFrameSectionWrapper;
++  if (auto Err = ES.getExecutorProcessControl().getBootstrapSymbols(
++          {{RegisterEHFrameSectionWrapper,
++            rt::RegisterEHFrameSectionWrapperName},
++           {DeregisterEHFrameSectionWrapper,
++            rt::DeregisterEHFrameSectionWrapperName}}))
++    return Err;
++
++  return std::make_unique<EPCEHFrameRegistrar>(
++      ES, RegisterEHFrameSectionWrapper, DeregisterEHFrameSectionWrapper);
+ }
+ 
+ Error EPCEHFrameRegistrar::registerEHFrames(ExecutorAddrRange EHFrameSection) {
+   return ES.callSPSWrapper<void(SPSExecutorAddrRange)>(
+-      RegisterEHFrameWrapperFnAddr, EHFrameSection);
++      RegisterEHFrameSectionWrapper, EHFrameSection);
+ }
+ 
+ Error EPCEHFrameRegistrar::deregisterEHFrames(
+     ExecutorAddrRange EHFrameSection) {
+   return ES.callSPSWrapper<void(SPSExecutorAddrRange)>(
+-      DeregisterEHFrameWrapperFnAddr, EHFrameSection);
++      DeregisterEHFrameSectionWrapper, EHFrameSection);
+ }
+ 
+ } // end namespace orc
+diff --git a/llvm/lib/ExecutionEngine/Orc/ExecutorProcessControl.cpp b/llvm/lib/ExecutionEngine/Orc/ExecutorProcessControl.cpp
+index b8b013f8a7a9..fc928f2e6146 100644
+--- a/llvm/lib/ExecutionEngine/Orc/ExecutorProcessControl.cpp
++++ b/llvm/lib/ExecutionEngine/Orc/ExecutorProcessControl.cpp
+@@ -9,6 +9,8 @@
+ #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
+ 
+ #include "llvm/ExecutionEngine/Orc/Core.h"
++#include "llvm/ExecutionEngine/Orc/Shared/OrcRTBridge.h"
++#include "llvm/ExecutionEngine/Orc/TargetProcess/RegisterEHFrames.h"
+ #include "llvm/ExecutionEngine/Orc/TargetProcess/TargetExecutionUtils.h"
+ #include "llvm/Support/FormatVariadic.h"
+ #include "llvm/Support/Process.h"
+@@ -42,6 +44,11 @@ SelfExecutorProcessControl::SelfExecutorProcessControl(
+                ExecutorAddr::fromPtr(this)};
+   if (this->TargetTriple.isOSBinFormatMachO())
+     GlobalManglingPrefix = '_';
++
++  this->BootstrapSymbols[rt::RegisterEHFrameSectionWrapperName] =
++      ExecutorAddr::fromPtr(&llvm_orc_registerEHFrameSectionWrapper);
++  this->BootstrapSymbols[rt::DeregisterEHFrameSectionWrapperName] =
++      ExecutorAddr::fromPtr(&llvm_orc_deregisterEHFrameSectionWrapper);
+ }
+ 
+ Expected<std::unique_ptr<SelfExecutorProcessControl>>
+diff --git a/llvm/lib/ExecutionEngine/Orc/Shared/OrcRTBridge.cpp b/llvm/lib/ExecutionEngine/Orc/Shared/OrcRTBridge.cpp
+index 86e31c52100e..ae39b1d1bfaa 100644
+--- a/llvm/lib/ExecutionEngine/Orc/Shared/OrcRTBridge.cpp
++++ b/llvm/lib/ExecutionEngine/Orc/Shared/OrcRTBridge.cpp
+@@ -51,9 +51,9 @@ const char *MemoryWriteBuffersWrapperName =
+     "__llvm_orc_bootstrap_mem_write_buffers_wrapper";
+ 
+ const char *RegisterEHFrameSectionWrapperName =
+-    "__llvm_orc_bootstrap_register_ehframe_section_wrapper";
++    "llvm_orc_registerEHFrameSectionWrapper";
+ const char *DeregisterEHFrameSectionWrapperName =
+-    "__llvm_orc_bootstrap_deregister_ehframe_section_wrapper";
++    "llvm_orc_deregisterEHFrameSectionWrapper";
+ 
+ const char *RunAsMainWrapperName = "__llvm_orc_bootstrap_run_as_main_wrapper";
+ const char *RunAsVoidFunctionWrapperName =
+diff --git a/llvm/lib/ExecutionEngine/Orc/TargetProcess/SimpleRemoteEPCServer.cpp b/llvm/lib/ExecutionEngine/Orc/TargetProcess/SimpleRemoteEPCServer.cpp
+index 67bc379f9821..a585767bf474 100644
+--- a/llvm/lib/ExecutionEngine/Orc/TargetProcess/SimpleRemoteEPCServer.cpp
++++ b/llvm/lib/ExecutionEngine/Orc/TargetProcess/SimpleRemoteEPCServer.cpp
+@@ -8,7 +8,9 @@
+ 
+ #include "llvm/ExecutionEngine/Orc/TargetProcess/SimpleRemoteEPCServer.h"
+ 
++#include "llvm/ExecutionEngine/Orc/Shared/OrcRTBridge.h"
+ #include "llvm/ExecutionEngine/Orc/Shared/TargetProcessControlTypes.h"
++#include "llvm/ExecutionEngine/Orc/TargetProcess/RegisterEHFrames.h"
+ #include "llvm/Support/FormatVariadic.h"
+ #include "llvm/Support/Process.h"
+ #include "llvm/TargetParser/Host.h"
+@@ -206,6 +208,10 @@ Error SimpleRemoteEPCServer::sendSetupMessage(
+          "Dispatch function name should not be set");
+   EI.BootstrapSymbols[ExecutorSessionObjectName] = ExecutorAddr::fromPtr(this);
+   EI.BootstrapSymbols[DispatchFnName] = ExecutorAddr::fromPtr(jitDispatchEntry);
++  EI.BootstrapSymbols[rt::RegisterEHFrameSectionWrapperName] =
++      ExecutorAddr::fromPtr(&llvm_orc_registerEHFrameSectionWrapper);
++  EI.BootstrapSymbols[rt::DeregisterEHFrameSectionWrapperName] =
++      ExecutorAddr::fromPtr(&llvm_orc_deregisterEHFrameSectionWrapper);
+ 
+   using SPSSerialize =
+       shared::SPSArgList<shared::SPSSimpleRemoteEPCExecutorInfo>;
