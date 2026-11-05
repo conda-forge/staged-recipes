@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export SYMMETRIX_BACKEND_SELECTOR=cuda12-sm120
+export SYMMETRIX_BACKEND_ARCHITECTURE=sm120
+export SYMMETRIX_CUDA_ARCH_NUMBER=120
+export SYMMETRIX_KOKKOS_ARCH=BLACKWELL120
+
+exec "${RECIPE_DIR}/build-cuda.sh"
