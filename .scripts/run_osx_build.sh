@@ -8,46 +8,32 @@ source .scripts/logging_utils.sh
 
 MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
 MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
-export CONDA_BLD_PATH=${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}
+export CONDA_BLD_PATH="${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}"
 
-if [[ -f "${MINIFORGE_HOME}/conda-meta/history" ]]; then
-  echo "Build tools already installed at ${MINIFORGE_HOME}."
-else
-  if command -v micromamba >/dev/null 2>&1; then
-    micromamba_exe="micromamba"
-    echo "Found micromamba in PATH"
-  else
-    MICROMAMBA_VERSION="1.5.10-0"
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      osx_arch="osx-arm64"
-    else
-      osx_arch="osx-64"
-    fi
-    MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-${osx_arch}"
-    echo "Downloading micromamba ${MICROMAMBA_VERSION}"
-    micromamba_exe="$(mktemp -d)/micromamba"
-    curl -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
-    chmod +x "${micromamba_exe}"
-  fi
-  echo "Creating environment"
-  "${micromamba_exe}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
-    --channel conda-forge \
-    --file environment.yaml
+set -e
+if ! command -v pixi >/dev/null 2>&1; then
+    curl -fsSL https://pixi.sh/install.sh | PIXI_VERSION=v0.82.0 bash
+    export PATH="$HOME/.pixi/bin:$PATH"
 fi
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+    arch="64"
+fi
+# Install from a copy of the workspace restricted to the target platform,
+# so that only the `build` env for this platform gets solved.
+mkdir -p "${MINIFORGE_HOME}"
+cp pixi.toml LICENSE.txt "${MINIFORGE_HOME}/"
+sed -i.bak -E "s/^platforms = .*/platforms = [\"osx-${arch}\"]/" "${MINIFORGE_HOME}/pixi.toml"
+echo "Creating environment"
+pixi install --manifest-path "${MINIFORGE_HOME}/pixi.toml" --environment build
+pixi list --manifest-path "${MINIFORGE_HOME}/pixi.toml" --environment build
+echo "Activating environment"
+eval "$(pixi shell-hook --manifest-path "${MINIFORGE_HOME}/pixi.toml" --environment build)"
+set +e
 
 ( endgroup "Provisioning build tools" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
-
-cat >~/.condarc <<CONDARC
-always_yes: true
-show_channel_urls: true
-solver: libmamba
-CONDARC
-
-source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
-conda activate base
-
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
 if [[ "${CI:-}" != "" ]]; then

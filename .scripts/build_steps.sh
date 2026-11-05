@@ -66,11 +66,23 @@ shopt -u extglob dotglob
 popd > /dev/null
 
 # Update environment
-mv /opt/conda/conda-meta/history /opt/conda/conda-meta/history.$(date +%Y-%m-%d-%H-%M-%S)
-echo > /opt/conda/conda-meta/history
-micromamba install --root-prefix ~/.conda --prefix /opt/conda \
-    --yes --override-channels --channel conda-forge --strict-channel-priority \
-    --file "${FEEDSTOCK_ROOT}/environment.yaml"
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
+fi
+# Install from a copy of the workspace restricted to the target platform,
+# so that only the `build` env for this platform gets solved, and so that
+# the env does not end up in the mounted staged-recipes checkout.
+PIXI_WORKSPACE=/home/conda/pixi-base
+mkdir -p "${PIXI_WORKSPACE}"
+cp "${FEEDSTOCK_ROOT}/pixi.toml" "${FEEDSTOCK_ROOT}/LICENSE.txt" "${PIXI_WORKSPACE}/"
+sed -i -E "s/^platforms = .*/platforms = [\"linux-${arch}\"]/" "${PIXI_WORKSPACE}/pixi.toml"
+
+echo "Creating environment"
+PIXI_CACHE_DIR=/opt/conda pixi install --manifest-path "${PIXI_WORKSPACE}/pixi.toml" --environment build
+pixi list --manifest-path "${PIXI_WORKSPACE}/pixi.toml" --environment build
+echo "Activating environment"
+eval "$(pixi shell-hook --manifest-path "${PIXI_WORKSPACE}/pixi.toml" --environment build)"
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
