@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.14.0"
+
+package:
+  name: pyvista-wasm
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyvista-wasm/pyvista_wasm-${{ version }}.tar.gz
+  sha256: e1e024c272e0d2279362d107ec156c7dde67c54b77d0bdbdaced7bba31d21eb9
+
+build:
+  number: 0
+  noarch: python
+  # The sdist ships with a prebuilt renderer.js. The hatch-build-scripts hook
+  # would rerun "npm ci" (network access), which is unavailable on conda-forge
+  # CI, so strip the hook from pyproject.toml before installing. Python is
+  # used for the patch so the script runs identically on bash and cmd.exe.
+  script:
+    - ${{ PYTHON }} -c "lines = open('pyproject.toml').read().splitlines(True); i = next(k for k, l in enumerate(lines) if l.startswith('build.hooks.build-scripts.scripts')); j = next(k for k in range(i, len(lines)) if lines[k].strip() == ']'); open('pyproject.toml', 'w').writelines(lines[:i] + lines[j+1:])"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python >=3.12
+    - pip
+    - hatch-build-scripts
+    - hatchling
+  run:
+    - python >=3.12
+    - gitpython >=3.1.58
+    - jinja2 >=3.1.0,<3.2.0
+    - lazy-loader >=0.4.0,<0.6.0
+    - numpy >=2.0.0,<2.6.0
+    - pyyaml >=6.0
+    - typer >=0.9.0,<0.28.0
+
+tests:
+  - python:
+      imports:
+        - pyvista_wasm
+      pip_check: true
+  - script:
+      # "python -m" is used instead of the console script because the
+      # Windows console-script shim fails under the conda test environment.
+      - python -m pyvista_wasm --version
+
+about:
+  homepage: https://github.com/tkoyama010/pyvista-wasm
+  summary: PyVista-like API for VTK.wasm
+  description: >-
+    PyVista-like API for VTK.wasm - bring intuitive 3D visualization to the
+    browser using WebAssembly.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://github.com/tkoyama010/pyvista-wasm
+  repository: https://github.com/tkoyama010/pyvista-wasm
+
+extra:
+  recipe-maintainers:
+    - tkoyama010
