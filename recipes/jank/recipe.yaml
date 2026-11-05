@@ -62,14 +62,10 @@ build:
       }
 
       # GNU ld flags (-ldl, --no-as-needed) are not supported on macOS Apple ld.
-      # jank's cmake uses -Wl,-force_load for the merged archive on macOS, but Phase 2
-      # inherits Phase 1's LINK_LIBRARIES via a generator expression; cmake can separate
-      # the flag from its archive-path argument when processing the expanded list, so
-      # -force_load silently becomes a no-op. -all_load is a global alternative that does
-      # not require flag-path adjacency. bdwgc (libgc) is already bundled in the merged
-      # archive, so do not add -lgc here or duplicate symbols may cause a link failure.
+      # The CMake patch force-loads only the merged runtime archive. Global -all_load
+      # also loads the separate isocline archive, duplicating its bundled symbols.
       let linker_flags = if ($env.HOST | str contains "darwin") {
-        $"-L($env.PREFIX)/lib -lzstd -lfolly -lcpptrace -Wl,-all_load"
+        $"-L($env.PREFIX)/lib -lzstd -lfolly -lcpptrace"
       } else {
         $"-L($env.PREFIX)/lib -ldl -lzstd -lfolly -lcpptrace -pthread -Wl,--no-as-needed"
       }
