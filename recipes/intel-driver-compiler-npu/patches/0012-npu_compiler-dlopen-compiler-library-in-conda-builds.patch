@@ -1,0 +1,65 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: npu_compiler: locate the compiler library with dladdr/dlopen in conda out-of-tree builds
+
+The CiD loader (libopenvino_intel_npu_compiler_loader.so) finds and loads
+libopenvino_intel_npu_compiler.so through OpenVINO's internal static util
+library (ov::util::load_shared_object/get_symbol/get_ov_lib_path/
+make_plugin_library_name). conda-forge OpenVINO does not ship that static
+library and libopenvino.so does not export those functions.
+
+Under -DNPU_CONDA_OUT_OF_TREE=ON, do the same thing directly: dladdr() on a
+function in the loader to find its own directory, dlopen() the compiler
+library next to it, and dlsym() CreateNPUCompiler. Behavior is unchanged
+when the option is off.
+
+diff --git a/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler_loader.cpp b/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler_loader.cpp
+index 0d928ed..e840b8d 100644
+--- a/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler_loader.cpp
++++ b/src/vpux_driver_compiler/src/vpux_compiler_l0/vcl_compiler_loader.cpp
+@@ -5,8 +5,15 @@
+ 
+ #include "vcl_compiler_loader.hpp"
+ 
++#ifdef NPU_CONDA_OUT_OF_TREE
++#include <dlfcn.h>
++
++#include <stdexcept>
++#include <string>
++#else
+ #include <openvino/util/file_util.hpp>
+ #include <openvino/util/shared_object.hpp>
++#endif
+ 
+ #include <memory>
+ #include <mutex>
+@@ -29,10 +36,30 @@ CreateFuncT loadCreateCompilerFunc() {
+     std::lock_guard<std::mutex> lock(mtx);
+ 
+     if (!compilerSO || !createNPUCompilerFunc) {
++#ifdef NPU_CONDA_OUT_OF_TREE
++        Dl_info info{};
++        if (dladdr(reinterpret_cast<void*>(&loadCreateCompilerFunc), &info) == 0 || info.dli_fname == nullptr) {
++            throw std::runtime_error("dladdr failed to locate the compiler loader library");
++        }
++        std::string libPath(info.dli_fname);
++        libPath = libPath.substr(0, libPath.find_last_of('/') + 1) + "lib" + COMPILER_LIBRARY_NAME + ".so";
++        void* handle = dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
++        if (handle == nullptr) {
++            throw std::runtime_error(std::string("dlopen failed: ") + dlerror());
++        }
++        compilerSO = std::shared_ptr<void>(handle, [](void* h) {
++            dlclose(h);
++        });
++        createNPUCompilerFunc = reinterpret_cast<CreateFuncT>(dlsym(handle, CREATE_NPU_COMPILER_FUNC_NAME));
++        if (createNPUCompilerFunc == nullptr) {
++            throw std::runtime_error(std::string("dlsym failed: ") + dlerror());
++        }
++#else
+         compilerSO = ov::util::load_shared_object(
+                 ov::util::make_plugin_library_name(ov::util::get_ov_lib_path(), COMPILER_LIBRARY_NAME));
+         createNPUCompilerFunc =
+                 reinterpret_cast<CreateFuncT>(ov::util::get_symbol(compilerSO, CREATE_NPU_COMPILER_FUNC_NAME));
++#endif
+     }
+     return createNPUCompilerFunc;
+ }
