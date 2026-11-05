@@ -1,0 +1,71 @@
+context:
+  name: FASTBuild
+  version: "1.18"
+  lz4_version: "1.10.0"
+  xxhash_version: "0.8.2"
+  zstd_version: "1.5.7"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://www.fastbuild.org/downloads/v1.18/${{ name }}-Src-v${{ version }}.zip
+  sha256: 75e50a6bda6ad788d494507cc543ef0845e1cef544855450386a2f4219ba1ce3
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - mkdir %LIBRARY_BIN%
+        - if: x86_64
+          then:
+            - copy Bin\Windows-x64\*.exe %LIBRARY_BIN%
+        - if: aarch64
+          then:
+            - copy Bin\Windows-ARM\*.exe %LIBRARY_BIN%
+    - if: unix
+      then:
+        - mkdir ${PREFIX}/bin
+        - if: linux
+          then:
+            - rm Bin/Linux-x64/*.debug
+            - cp Bin/Linux-x64/* ${PREFIX}/bin
+        - if: osx
+          then:
+            - cp Bin/OSX-x64+ARM/* ${PREFIX}/bin
+
+tests:
+  - script:
+    - if: linux
+      then:
+        - test -f ${PREFIX}/bin/fbuild
+        - test -f ${PREFIX}/bin/fbuildworker
+    - if: osx
+      then:
+        - test -f ${PREFIX}/bin/FBuild
+        - test -f ${PREFIX}/bin/FBuildWorker
+    - if: win
+      then:
+        - if not exist %LIBRARY_BIN%\FBuild.exe (exit 1)
+        - if not exist %LIBRARY_BIN%\FBuildWorker.exe (exit 1)
+
+about:
+  homepage: https://fastbuild.org/
+  summary: 'High performance build system for Windows, OSX and Linux'
+  description: |
+    FASTBuild is a high performance, open-source build system for Windows, Linux and OS X.
+    It supports highly scalable compilation, caching and network distribution.
+  license: Zlib
+  license_file:
+    - Code/LICENSE.TXT
+    - External/LZ4/lz4-${{ lz4_version }}/lib/LICENSE
+    - External/xxHash/${{ xxhash_version }}/LICENSE
+    - External/Zstd/zstd-${{ zstd_version }}/LICENSE
+  documentation: https://www.fastbuild.org/docs/documentation.html
+  repository: https://github.com/fastbuild/fastbuild
+
+extra:
+  recipe-maintainers:
+    - paperchalice
