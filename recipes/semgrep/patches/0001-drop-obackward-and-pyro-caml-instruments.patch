@@ -1,0 +1,49 @@
+Drop obackward and pyro-caml-instruments from the semgrep-core executable.
+
+Both are semgrep-forked opam packages (semgrep/obackward, semgrep/pyro-caml)
+that are not available on conda-forge. obackward only installs a segfault
+backtrace handler; pyro-caml-instruments only wraps main in an optional memprof
+sampler. Neither affects behaviour, so remove the libraries, the
+Backward.register () call and run the body of main directly.
+
+--- a/src/main/dune
++++ b/src/main/dune
+@@ -5,10 +5,6 @@
+    (:include flags.sexp))
+   )
+  (libraries
+-  ; nice backtraces on segfaults; keep this out of library code so that
+-  ; only the final binaries link it
+-  obackward
+-  pyro-caml-instruments
+   semgrep.core_cli
+   semgrep.osemgrep_cli
+   ; implementations of dune virtual modules
+--- a/src/main/Main.ml
++++ b/src/main/Main.ml
+@@ -84,25 +84,10 @@
+ (* Entry point *)
+ (*****************************************************************************)
+ 
+-(* Setup obackward for nice segfaults. This must run as early as possible so
+- * that even crashes during the rest of the initialization get a backtrace.
+- * Note that obackward must stay out of library code (e.g., commons) so that
+- * other binaries linking those libraries do not pull in its C++ stubs,
+- * which previously caused linking errors.
+- *)
+-let () =
+-  match Backward.register () with
+-  | Error e ->
+-      prerr_string e;
+-      prerr_newline ();
+-      flush stderr
+-  | Ok () -> ()
+-
+ (* We currently use the same binary for semgrep-core and osemgrep. See 'make
+  * core' and './dune' install section. We use the argv[0] trick below to decide
+  * whether the user wants the semgrep-core or osemgrep behavior. *)
+ let () =
+-  Pyro_caml_instruments.maybe_with_memprof_sampler @@ fun () ->
+   let argv = Sys.argv in
+   let argv0 =
+     (* remove the possible ".exe" extension for Windows and ".bc" *)
