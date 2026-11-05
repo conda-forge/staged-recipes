@@ -1,0 +1,65 @@
+context:
+  version: 0.4.16
+
+package:
+  name: pccm
+  version: ${{ version }}
+
+source:
+  url: https://github.com/FindDefinition/PCCM/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 7613db7e0bfccad9a4457bf3ab1c4580fc7f0d3dc07d7c9290917c80ebd45964
+  patches:
+    - patches/manifest-version-fix.patch
+
+build:
+  number: 0
+  noarch: python
+  script: pip install .
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python >=${{ python_min }}
+    - fire
+    - pybind11
+    - ccimport
+    - lark
+    - portalocker
+    - ninja
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+
+tests:
+  - python:
+      imports:
+        - pccm
+      pip_check: true
+      python_version: ${{ python_min }}.*
+
+  # Skip C++ compilation test on macOS due to ccimport not picking up
+  # environment CXXFLAGS for -D_LIBCPP_DISABLE_AVAILABILITY flag needed
+  # for libc++ availability annotations. See conda-forge/staged-recipes#...
+  - if: not osx
+    then:
+      script:
+        - python test/test_core.py
+      files:
+        source:
+          - test
+
+about: 
+  homepage: https://github.com/FindDefinition/PCCM
+  license: MIT
+  license_family: MIT
+  license_file: 
+    - LICENSE
+  repository: https://github.com/FindDefinition/PCCM
+  summary: Python C++ Code Manager (requires a C++ compiler, e.g. cxx-compiler)
+
+extra:
+  recipe-maintainers:
+    - lllangWV
