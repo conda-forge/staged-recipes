@@ -14,14 +14,13 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script: ${{ PYTHON }} -m pip install . -vv
 
 requirements:
   host:
     - python ${{ python_min }}.*
     - pip
-    - setuptools ==78.1.1
-    - wheel
+    - setuptools
   run:
     - python >=${{ python_min }}
     - setuptools
@@ -37,7 +36,20 @@ tests:
   - script:
       interpreter: python
       content: |
-        from zope.datetime import rfc1123_date; assert rfc1123_date(0) == 'Thu, 01 Jan 1970 00:00:00 GMT'
+        import importlib, pkgutil, sys, unittest
+        import zope.datetime as pkg
+        import os, time
+        os.environ["TZ"] = "UTC"
+        if hasattr(time, "tzset"):
+            time.tzset()
+        loader = unittest.defaultTestLoader
+        suite = unittest.TestSuite()
+        for info in pkgutil.walk_packages(pkg.__path__, pkg.__name__ + "."):
+            if info.name.rsplit(".", 1)[-1].startswith("test"):
+                m = importlib.import_module(info.name)
+                suite.addTest(m.test_suite() if hasattr(m, "test_suite") else loader.loadTestsFromModule(m))
+        result = unittest.TextTestRunner(verbosity=2).run(suite)
+        sys.exit(not result.wasSuccessful() or result.testsRun == 0)
 
 about:
   homepage: https://github.com/zopefoundation/zope.datetime

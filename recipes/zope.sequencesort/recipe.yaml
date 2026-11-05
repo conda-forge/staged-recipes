@@ -14,14 +14,13 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script: ${{ PYTHON }} -m pip install . -vv
 
 requirements:
   host:
     - python ${{ python_min }}.*
     - pip
-    - setuptools ==78.1.1
-    - wheel
+    - setuptools
   run:
     - python >=${{ python_min }}
     - setuptools
@@ -35,6 +34,19 @@ tests:
       python_version:
         - ${{ python_min }}.*
         - "*"
+  - script:
+      interpreter: python
+      content: |
+        import importlib, pkgutil, sys, unittest
+        import zope.sequencesort as pkg
+        loader = unittest.defaultTestLoader
+        suite = unittest.TestSuite()
+        for info in pkgutil.walk_packages(pkg.__path__, pkg.__name__ + "."):
+            if info.name.rsplit(".", 1)[-1].startswith("test"):
+                m = importlib.import_module(info.name)
+                suite.addTest(m.test_suite() if hasattr(m, "test_suite") else loader.loadTestsFromModule(m))
+        result = unittest.TextTestRunner(verbosity=2).run(suite)
+        sys.exit(not result.wasSuccessful() or result.testsRun == 0)
 
 about:
   homepage: https://github.com/zopefoundation/zope.sequencesort
