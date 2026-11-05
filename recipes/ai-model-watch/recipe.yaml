@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  version: "1.0.0"
+
+package:
+  name: ai-model-watch
+  version: ${{ version }}
+
+source:
+  url: https://github.com/markksantos/ai-model-watch/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ab64e081ae8f1be28f820d04ea4a5edf45db8ff068f22f65cb7f36453ff1b5b8
+
+build:
+  number: 0
+  # Per-platform rather than noarch: npm's global install lays down a bin
+  # symlink on unix and .cmd shims on Windows, which one noarch artifact
+  # can't provide (same pattern as cdxgen and openspec).
+  script:
+    - if: unix
+      then:
+        - export npm_config_prefix="${PREFIX}"
+        - npm pack --ignore-scripts
+        - npm install --global ./ai-model-watch-${{ version }}.tgz
+      else:
+        - call npm config set prefix "%PREFIX%"
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm pack --ignore-scripts
+        - if %ERRORLEVEL% neq 0 exit 1
+        - call npm install --userconfig nonexistentrc --global ai-model-watch-${{ version }}.tgz
+        - if %ERRORLEVEL% neq 0 exit 1
+
+requirements:
+  host:
+    - nodejs
+  run:
+    - nodejs >=18
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - ai-model-watch --help
+        else:
+          - call ai-model-watch --help
+          - if %ERRORLEVEL% neq 0 exit 1
+  # Upstream unit tests use a fake fetch: no network, no API keys.
+  - script:
+      - node --test test/watch.test.js
+    files:
+      source:
+        - index.js
+        - package.json
+        - test/
+
+about:
+  homepage: https://artificialwatch.com
+  repository: https://github.com/markksantos/ai-model-watch
+  summary: List the models each AI provider's API serves and show which are new since the last run
+  description: |
+    ai-model-watch fetches the model list from each AI provider's API
+    (OpenRouter with no key; OpenAI, Anthropic, Google Gemini, Mistral, xAI
+    and DeepSeek with your own keys), saves it, and on the next run prints
+    only the model IDs that weren't there before. Listing models spends no
+    tokens. It has --watch, --json and --exit-code for cron and CI, and no
+    dependencies besides Node.js.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - markksantos
