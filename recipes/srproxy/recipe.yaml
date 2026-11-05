@@ -1,0 +1,64 @@
+context:
+  version: "0.45.0"
+  parts: ${{ version | split('.') }}
+  tag: ${{ ("0" ~ parts[0])[-2:] ~ "." ~ ("0" ~ parts[1])[-2:] }}
+
+package:
+  name: srproxy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cafana/SRProxy/archive/refs/tags/v${{ tag }}.tar.gz
+  sha256: be614ac5637796f0a16f3480caacfd647abcfa8992a47556f63a5aefe4f2f85e
+  patches:
+    # Make gen_srproxy derive castxml's compiler from $CXX/$CC; pygccxml only
+    # auto-detects unprefixed clang++/c++, which is absent in a conda build env.
+    - patches/0001-gen_srproxy-compiler-path-from-env.patch
+
+build:
+  number: 0
+  # Pure file copy (headers + a Python generator script); nothing is compiled.
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  run:
+    - python
+    - pygccxml
+    - castxml
+    # SRProxy's installed headers (BasicTypesProxy.h, FlatBasicTypes.h) include
+    # ROOT headers, so downstream compilation needs ROOT available. root_base is
+    # enough (the `root` metapackage only adds PyROOT/Jupyter on top).
+    - root_base
+
+tests:
+  - package_contents:
+      include:
+        - SRProxy/BasicTypesProxy.h
+        - SRProxy/BasicTypesProxy.cxx
+        - SRProxy/FlatBasicTypes.h
+        - SRProxy/IBranchPolicy.h
+      bin:
+        - gen_srproxy
+  - script:
+      - gen_srproxy --help
+
+about:
+  homepage: https://github.com/cafana/SRProxy
+  repository: https://github.com/cafana/SRProxy
+  summary: Code generator and headers for ROOT StandardRecord proxy classes (CAFAna)
+  description: |
+    SRProxy provides the BasicTypesProxy/FlatBasicTypes headers plus the
+    `gen_srproxy` code generator used by CAFAna-based experiments (DUNE, SBN) to
+    build compile-time proxy classes over a StandardRecord ROOT type. The
+    generator parses C++ headers with castxml/pygccxml and emits proxy/flat
+    encoding classes.
+  # NOTE: upstream (cafana/SRProxy v00.45) ships no LICENSE file; this MIT
+  # LICENSE is provided with the recipe per the maintainer's decision.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - calcuttj
