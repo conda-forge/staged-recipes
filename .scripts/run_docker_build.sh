@@ -44,7 +44,15 @@ mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done"
 rm -f "$DONE_CANARY"
 
-DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
+# Use -it by default to get interactive progress output from micromamba and
+# rattler-build. When piping to a log file, set CONDA_FORGE_NO_TTY=True to drop
+# the -t flag — without this, ANSI escape sequences from progress bars pollute
+# the captured output.
+if [ "${CONDA_FORGE_NO_TTY:-False}" == "True" ]; then
+    DOCKER_RUN_ARGS="-i ${CONDA_FORGE_DOCKER_RUN_ARGS}"
+else
+    DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
+fi
 
 if [ "${AZURE}" == "True" ]; then
     DOCKER_RUN_ARGS=""
