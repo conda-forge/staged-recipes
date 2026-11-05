@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  version: "1.1.0"
+
+package:
+  name: isocline
+  version: ${{ version }}
+
+source:
+  url: https://github.com/daanx/isocline/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1e5f0efa2b719c3e1d292f501e5329e141a039deefc801099f8bbb9a50255531
+  patches:
+    - cmake-install.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: cmake -S . -B build -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DIC_BUILD_TESTS=OFF
+      else: cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DIC_BUILD_TESTS=OFF
+    - cmake --build build --parallel
+    - cmake --install build
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage('isocline', upper_bound='x') }}
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - isocline.h
+      lib:
+        - isocline
+      files:
+        - if: win
+          then: Library/lib/pkgconfig/isocline.pc
+          else: lib/pkgconfig/isocline.pc
+        - if: win
+          then: Library/bin/isocline.dll
+        - if: win
+          then: Library/lib/isocline_static.lib
+          else: lib/libisocline.a
+  - script:
+      - cmake -S test -B test-build -G Ninja
+      - cmake --build test-build
+      - if: win
+        then: test-build\isocline-smoke.exe
+        else: ./test-build/isocline-smoke
+      - pkg-config --exact-version=${{ version }} isocline
+    files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+
+about:
+  homepage: https://github.com/daanx/isocline
+  summary: Portable C library for readline-style line editing
+  description: |
+    Isocline is a portable alternative to GNU readline with multiline editing,
+    history, completion, syntax highlighting, Unicode, and color support.
+    It works on Unix, macOS, and Windows without external library dependencies.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://daanx.github.io/isocline/
+  repository: https://github.com/daanx/isocline
+
+extra:
+  recipe-maintainers:
+    - phreed
