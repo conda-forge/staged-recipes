@@ -1,0 +1,188 @@
+schema_version: 1
+
+context:
+  name: nb2workflow
+  version: "1.3.117"
+  python_min: "3.11" # same as in noarch oda-api 
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/n/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 747f345bf4a743605987e041bfeb5182a9807753687cca1a7c6fcbd0d9fc7ec5
+
+build:
+  number: 0
+  noarch: python
+  # skip: match(python, ">=3.14")
+
+outputs:
+  - package:
+      name: ${{ name }}-base
+    build:
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - setuptools >=61.0
+        - wheel
+        - pip
+      run:
+        - python >=${{ python_min }}
+        - papermill
+        - ipykernel
+        - nbconvert >7.0.0
+        - psutil
+        - diskcache
+        - requests
+        - pyyaml
+        - scrapbook
+        - validators >=0.35.0
+        - sentry-sdk
+        - rdflib
+        - gitpython
+        - typeguard
+
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+            - ${{ name }}.nbadapter
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+        script:
+          - nbrun --help
+          - nbinspect --help
+
+
+  - package:
+      name: ${{ name }}-service
+    requirements:
+      run:
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
+        - gitpython
+        - flask >=3.1.2
+        - flask-caching
+        - flask_cors
+        - flasgger
+        - apscheduler
+        - beautifulsoup4
+    tests:
+      - python:
+          imports:
+            - ${{ name }}.service
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+        script:
+          - nb2service --help
+
+  - package:
+      name: ${{ name }}-domains
+    requirements:
+      run:
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
+        - numpy
+        - astropy-base
+        - pandas
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+            - ${{ name }}.nbadapter
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+        script:
+          - nbrun --help
+          - nbinspect --help
+
+  - package:
+      name: ${{ name }}-mmoda
+    requirements:
+      run:
+        - ${{ pin_subpackage(name ~ '-base', exact=True) }}
+        - oda-api >= 1.3
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+            - oda_api.data_products
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python ${{ python_min }}.*
+        script:
+          - nbrun --help
+          - nbinspect --help
+
+  # - package:
+  #     name: ${{ name }}-galaxy
+  #   requirements:
+  #     run:
+  #       - ${{ pin_subpackage(name, exact=True) }}
+  #       - oda-api
+  #       - bibtexparser >=2.0.0b3 # v2 is not in conda...
+  #       - pypandoc
+  #       - black
+  #       - isort
+  #       - autoflake
+  #   tests:
+  #     - python:
+  #         imports:
+  #           - ${{ name }}
+  #         pip_check: true
+  #     - requirements:
+  #         run:
+  #           - pip
+  #           - python
+  #       script:
+  #         - nb2galaxy --help
+  - package:
+      name: ${{ name }}
+    requirements: 
+      run:
+        - ${{ pin_subpackage(name~ '-base', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-service', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-domains', exact=True) }}
+        - ${{ pin_subpackage(name ~ '-mmoda', exact=True) }}
+        #- ${{ pin_subpackage(name ~ '-galaxy', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - ${{ name }}
+            - ${{ name }}.nbadapter
+            - ${{ name }}.service
+            - oda_api.data_products
+          pip_check: true
+      - requirements:
+          run:
+            - pip
+            - python
+        script:
+          - nbrun --help
+          - nbinspect --help
+          - nb2service --help
+
+
+about:
+  summary: convert notebook to workflow
+  license: GPL-3.0-only
+  license_file: LICENSE
+  homepage: https://github.com/oda-hub/${{ name }}
+
+extra:
+  feedstock-name: ${{ name }}
+  recipe-maintainers:
+    - dsavchenko
+    - volodymyrss
