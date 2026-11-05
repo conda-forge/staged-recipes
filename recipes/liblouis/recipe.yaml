@@ -1,0 +1,157 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "3.39.0"
+  summary: Open-source braille translator and back-translator.
+  help_cmds: >-
+    lou_allround
+    lou_checkhyphens
+    lou_checktable
+    lou_checkyaml
+    lou_debug
+    lou_tableinfo
+    lou_trace
+    lou_translate
+  cmds: >-
+    ${{ help_cmds }}
+    lou_maketable
+  python_check_max: "3.15"
+  test_cmd: >-
+    echo "... testing CMD ..."
+    && CMD --help
+    && CMD --version | grep -iE "${{ version | replace('.', '\\.') }}"
+    && echo "... OK CMD ..."
+
+recipe:
+  name: liblouis-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/liblouis/liblouis/releases/download/v${{ version }}/liblouis-${{ version }}.tar.gz
+  sha256: 629fa8cb0dfd9ad457c5bf47a42f0953b673e62c8ad6b1d03ddc4e2bd20008f1
+
+build:
+  skip: not linux
+  number: 0
+
+outputs:
+  - staging:
+      name: staging
+    build:
+      script:
+        - ./configure --prefix=${{ PREFIX }} --enable-ucs4 --disable-static
+        - make -j${{ CPU_COUNT }}
+        - make -j${{ CPU_COUNT }} install
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+        - autoconf
+        - automake
+        - libtool
+        - make
+        - pkgconf
+      host:
+        - yaml
+
+  - package:
+      name: liblouis
+    inherit:
+      from: staging
+      run_exports: true
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      host:
+        - yaml
+      run_exports:
+        - ${{ pin_subpackage("liblouis", upper_bound='x.x') }}
+    build:
+      files:
+        include:
+          - bin/lou_*
+          - lib/*
+          - share/*
+    tests:
+      - package_contents:
+          strict: true
+          bin:
+            - lou_*
+          lib:
+            - liblouis.so
+            - liblouis.so.*
+          files:
+            - bin/lou_maketable.d/**
+            - lib/pkgconfig/liblouis.pc
+            - share/liblouis/tables/**
+      - script:
+          - >-
+            set -eux {% for cmd in help_cmds | split(' ') %}
+            && ${{ test_cmd | replace('CMD', cmd) }}{% endfor %}
+            && echo OK
+
+  - package:
+      name: python-liblouis
+    inherit: staging
+    build:
+      noarch: python
+      script:
+        - cd python
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check --check-build-dependencies
+      files:
+        - lib/python${{ python_min }}/site-packages/louis/**
+        - lib/python${{ python_min }}/site-packages/louis-${{ version }}.dist-info/**
+    requirements:
+      host:
+        - ${{ pin_subpackage("liblouis", exact=True) }}
+        - pip
+        - python ${{ python_min }}.*
+        - setuptools >=61.0
+      run:
+        - ${{ pin_subpackage("liblouis", exact=True) }}
+        - python >=${{ python_min }}
+    tests:
+      - package_contents:
+          strict: true
+          files:
+            - etc/conda/test-files/python-liblouis/**
+          site_packages:
+            # at present, a single file
+            - louis/__init__.py
+            - louis-${{ version }}.dist-info/**
+      - python:
+          imports: louis
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - ${{ python_check_max }}.*
+      - files:
+          source:
+            - python/tests/**
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+            - pytest-cov
+        script:
+          # invoke tests here for hard-coded paths to `tests/test.cti`, etc.
+          - cd python
+          - pytest -vv --tb=long --color=yes
+    about:
+      summary: ${{ summary }} (Python bindings)
+
+about:
+  homepage: https://liblouis.io
+  license: LGPL-2.1-or-later
+  summary: ${{ summary }}
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+  repository: https://github.com/liblouis/liblouis
+  documentation: https://liblouis.io/documentation
+
+extra:
+  feedstock-name: liblouis
+  recipe-maintainers:
+    - bollwyvl
