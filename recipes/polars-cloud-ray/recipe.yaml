@@ -1,0 +1,65 @@
+context:
+  version: "0.1.1"
+
+package:
+  name: polars-cloud-ray
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/polars-cloud-ray/polars_cloud_ray-${{ version }}.tar.gz
+  sha256: 2abd844dc4c6a877c931af4e95a4d34af37187171173bd9c3ad5b9a353335d58
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+  run:
+    - python >=${{ python_min }}
+    - polars >=1.42.1
+    - polars-cloud >=0.9
+    - psutil >=7.0
+    - pydantic >=2.0
+    - ray-core >=2.0
+    - toml >=0.10
+
+tests:
+  - if: not win
+    then:
+      python:
+        imports:
+          - polars_cloud_ray
+        pip_check: true
+        python_version:
+          - ${{ python_min }}.*
+          - "*"
+  # polars_cloud resolves its config directory on import, which fails in the
+  # Windows test environment unless the config directory is set explicitly
+  - if: win
+    then:
+      script:
+        env:
+          POLARS_CLOUD_CONFIG_DIR: polars_cloud_config
+          NANOOK_CONFIG_DIR: nanook_config
+        content:
+          - python -c "import polars_cloud_ray"
+          - python -m pip check
+      requirements:
+        run:
+          - python ${{ python_min }}.*
+          - pip
+
+about:
+  homepage: https://pypi.org/project/polars-cloud-ray/
+  summary: Polars On-Prem over Ray
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pavelzw
