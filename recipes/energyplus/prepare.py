@@ -1,8 +1,74 @@
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
+
+
+NOTICE_COMPONENTS = {
+    "BCVTB": "Building Controls Virtual Test Bed",
+    "DElight": "Regents of University of California",
+    "fast_float": "Permission is hereby granted",
+    "milo": "THL A29 Limited",
+    "nlohmann": "Niels Lohmann",
+    "valijson": "Andrzej Krzemienski",
+    "SQLite": "disclaims copyright",
+    "zlib": "Jean-loup Gailly",
+    "ssc/shared": "Copyright",
+    "ssc/ssc": "Copyright",
+    "ssc/splinter": "Bjarne Grimstad",
+    "ssc/jsoncpp": "Copyright",
+}
+SUPPLEMENTAL_LICENSES = (
+    "README.txt",
+    "milo-LICENSE.txt",
+    "nlohmann-LICENSE.txt",
+    "valijson-LICENSE.txt",
+)
+
+
+def collect_bundled_notices(source: Path, recipe: Path) -> None:
+    destination = source / "bundled-licenses"
+    destination.mkdir(exist_ok=True)
+    for name in SUPPLEMENTAL_LICENSES:
+        path = recipe / "licenses" / name
+        if not path.is_file():
+            raise RuntimeError(f"Bundled license text is missing from the recipe: {name}")
+        shutil.copyfile(path, destination / path.name)
+
+    prologue = re.compile(r"\A(?:\s+|//[^\n]*(?:\n|$)|/\*.*?\*/)*", re.DOTALL)
+    comments = re.compile(
+        r"^[ \t]*/\*.*?\*/|^[ \t]*//[^\n]*(?:\n[ \t]*//[^\n]*)*",
+        re.MULTILINE | re.DOTALL,
+    )
+    for component, required_notice in NOTICE_COMPONENTS.items():
+        directory = source / "third_party" / component
+        notices: dict[str, list[str]] = {}
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in {".c", ".cc", ".cpp", ".h", ".hpp", ".hxx"}:
+                continue
+            text = path.read_text(encoding="utf-8")
+            prefix = prologue.match(text)
+            if prefix is None:
+                raise RuntimeError(f"Could not read source comment prologue: {path}")
+            blocks = [prefix.group().strip()]
+            # Some notices follow include guards or appear inside amalgamated headers.
+            blocks.extend(block.group().strip() for block in comments.finditer(text))
+            for block in dict.fromkeys(blocks):
+                if re.search(r"copyright|permission is hereby granted|redistribution and use", block, re.IGNORECASE):
+                    notices.setdefault(block, []).append(path.relative_to(source).as_posix())
+        if not any(required_notice in notice for notice in notices):
+            raise RuntimeError(f"Expected bundled copyright/license notice is missing: {component}")
+        sections = [
+            f"Bundled source notices: {component}",
+            "Source availability and supplemental license texts: see README.txt.",
+        ]
+        for notice, paths in notices.items():
+            sections.append("Source files:\n" + "\n".join(paths) + "\n\n" + notice)
+        target = destination / (component.replace("/", "-") + "-NOTICES.txt")
+        target.write_text("\n\n".join(sections) + "\n", encoding="utf-8")
+        print(f"Collected {len(notices)} distinct notice blocks for {component}", flush=True)
 
 
 def replace_once(path: Path, old: str, new: str) -> None:
@@ -151,7 +217,10 @@ def install_windows_paths(prefix: Path, site_packages: Path) -> None:
 
 if __name__ == "__main__":
     if sys.argv[1] == "patch":
+        collect_bundled_notices(Path(os.environ["SRC_DIR"]), Path(os.environ["RECIPE_DIR"]))
         patch_source(Path(os.environ["SRC_DIR"]))
+    elif sys.argv[1] == "licenses":
+        collect_bundled_notices(Path(os.environ["SRC_DIR"]), Path(os.environ["RECIPE_DIR"]))
     elif sys.argv[1] == "clean":
         clean_install(Path(os.environ["PREFIX"]), Path(sys.argv[2]))
     elif sys.argv[1] == "windows-paths":

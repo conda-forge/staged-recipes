@@ -4,10 +4,70 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from prepare import clean_install, install_windows_paths, replace_once
+from prepare import (
+    NOTICE_COMPONENTS,
+    SUPPLEMENTAL_LICENSES,
+    clean_install,
+    collect_bundled_notices,
+    install_windows_paths,
+    replace_once,
+)
 
 
 class PreparationTests(unittest.TestCase):
+    def test_collect_bundled_notices_preserves_attribution_and_excludes_code(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            recipe = root / "recipe"
+            licenses = recipe / "licenses"
+            licenses.mkdir(parents=True)
+            for name in SUPPLEMENTAL_LICENSES:
+                (licenses / name).write_text("Supplemental license\n")
+            for component, marker in NOTICE_COMPONENTS.items():
+                path = source / "third_party" / component / "library.h"
+                path.parent.mkdir(parents=True)
+                path.write_text(f"/* Copyright: {marker}\nLicense terms.\n*/\nint implementation;\n")
+                duplicate = path.with_name("duplicate.h")
+                duplicate.write_bytes(path.read_bytes())
+            json_header = source / "third_party/nlohmann/library.h"
+            with json_header.open("a") as file:
+                file.write("// SPDX-FileCopyrightText: Another author\n// SPDX-License-Identifier: MIT\nint other;\n")
+            (json_header.parent / "alphanum.h").write_text(
+                "#ifndef HEADER\n#define HEADER\n/* Copyright: Dirk Jagdmann\nLicense terms for sorting.\n*/\nint sorter;\n"
+            )
+            collect_bundled_notices(source, recipe)
+            destination = source / "bundled-licenses"
+            for name in SUPPLEMENTAL_LICENSES:
+                self.assertEqual((destination / name).read_text(), "Supplemental license\n")
+            for component, marker in NOTICE_COMPONENTS.items():
+                text = (destination / (component.replace("/", "-") + "-NOTICES.txt")).read_text()
+                self.assertIn(marker, text)
+                self.assertIn(f"third_party/{component}/library.h", text)
+                self.assertIn(f"third_party/{component}/duplicate.h", text)
+                self.assertEqual(text.count("License terms."), 1)
+                self.assertNotIn("int implementation", text)
+            self.assertIn("Another author", (destination / "nlohmann-NOTICES.txt").read_text())
+            self.assertIn("Dirk Jagdmann", (destination / "nlohmann-NOTICES.txt").read_text())
+
+    def test_collect_bundled_notices_rejects_missing_source_notices(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            source.mkdir()
+            licenses = root / "recipe/licenses"
+            licenses.mkdir(parents=True)
+            for name in SUPPLEMENTAL_LICENSES:
+                (licenses / name).write_text("Supplemental license\n")
+            with self.assertRaisesRegex(RuntimeError, "BCVTB"):
+                collect_bundled_notices(source, root / "recipe")
+
+    def test_collect_bundled_notices_rejects_missing_supplemental_licenses(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(RuntimeError, "missing from the recipe"):
+                collect_bundled_notices(root, root / "recipe")
+
     def test_patch_requires_exactly_one_match(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "source"
