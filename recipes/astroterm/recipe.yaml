@@ -1,0 +1,54 @@
+schema_version: 1
+
+context:
+  version: "1.2.0"
+
+package:
+  name: astroterm
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/da-luce/astroterm/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 10a98255a46517ee306be73f156eb78163aff8801f46b84a731f7b5913e1d6f5
+  - url: https://distfiles.alpinelinux.org/distfiles/edge/astroterm-bsc5-20231007
+    sha256: e471d02eaf4eecb61c12f879a1cb6432ba9d7b68a9a8c5654a1eb42a0c8cc340
+    file_name: bsc5
+    target_directory: data
+
+build:
+  number: 0
+  skip: win
+  script:
+    - meson setup build ${MESON_ARGS}
+    - meson compile -C build -j "${CPU_COUNT}"
+    - if [ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]; then meson test -C build --print-errorlogs; fi
+    - meson install -C build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - meson >=1.4
+    - ninja
+    - pkg-config
+    - vim  # Provides xxd for embedding the star catalog.
+  host:
+    - argtable2 >=2.13 [build_number='>=1005']
+    - ncurses
+
+tests:
+  - script:
+      - astroterm --help
+      - astroterm --version | grep -F "${{ version }}"
+      - astroterm --bash-completions
+
+about:
+  homepage: https://github.com/da-luce/astroterm
+  repository: https://github.com/da-luce/astroterm
+  summary: A planetarium for your terminal
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - ManuelLerchner
