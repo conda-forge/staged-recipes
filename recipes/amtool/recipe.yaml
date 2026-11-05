@@ -1,0 +1,79 @@
+context:
+  version: "0.34.0"
+  # Version metadata is normally stamped in by promu, which is not used here.
+  # BuildDate and Revision are left unset on purpose: the source tarball has no
+  # git metadata, and a timestamp would make the build unreproducible.
+  ldflags: -s -w -X github.com/prometheus/common/version.Version=${{ version }} -X github.com/prometheus/common/version.BuildUser=conda-forge
+
+package:
+  name: amtool
+  version: ${{ version }}
+
+source:
+  url: https://github.com/prometheus/alertmanager/archive/v${{ version }}.tar.gz
+  sha256: f09117dd6ad62d3f53d2618ba3950ced4a318110b95ce5afe76b7df0ba74000f
+  target_directory: src
+
+build:
+  number: 0
+  # Upstream cross-builds for Windows, but the build script below is unix-only
+  # and untested there; left for a follow-up.
+  skip: win
+  script:
+    - cd src
+    - go mod download
+    - go-licenses save ./cmd/amtool --save_path ../library_licenses
+    - go build -v -o $PREFIX/bin/amtool -ldflags="${{ ldflags }}" ./cmd/amtool
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - amtool --version
+      # Written here rather than shipped as a test file: anything under
+      # `files: recipe:` is installed into the package under
+      # etc/conda/test-files, which the strict package_contents check below
+      # then flags as an unexpected file.
+      - |
+        cat > test-config.yml <<'YAML'
+        route:
+          receiver: default
+          group_by: [alertname]
+        receivers:
+          - name: default
+        YAML
+      - amtool check-config test-config.yml
+  - package_contents:
+      bin:
+        - amtool
+      strict: true
+
+about:
+  homepage: https://prometheus.io/docs/alerting/latest/alertmanager/
+  summary: Command line interface for the Prometheus Alertmanager
+  description: |
+    amtool is the command line interface to the Prometheus Alertmanager. It
+    validates Alertmanager configuration files, and talks to a running
+    Alertmanager to list, add and expire silences, query alerts, and inspect
+    cluster status.
+
+    Only `amtool` is packaged here. The `alertmanager` server itself cannot
+    currently be built on conda-forge: `ui/web.go` carries an unguarded
+    `//go:embed app/dist`, and `app/dist` is a vite + Elm build artifact that
+    is not in the source tarball, so a plain `go build` of the server fails.
+    Producing it needs the Elm 0.19.1 toolchain, which has no arm64 builds, so
+    it cannot be built across the conda-forge platform matrix.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - src/NOTICE
+    - library_licenses/
+  documentation: https://prometheus.io/docs/alerting/latest/alertmanager/
+  repository: https://github.com/prometheus/alertmanager
+
+extra:
+  recipe-maintainers:
+    - wolfv
