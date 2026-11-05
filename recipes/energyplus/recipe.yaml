@@ -1,0 +1,79 @@
+context:
+  version: "26.2.0"
+
+package:
+  name: energyplus
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NatLabRockies/EnergyPlus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0f77c71449e2f03fe33c8db2ab1f16aa210322ea978d62bdc38bc47317be408b
+
+build:
+  number: 0
+  skip: match(python, "<3.12")
+  script:
+    - if: unix
+      then: bash $RECIPE_DIR/build.sh
+    - if: win
+      then: call "%RECIPE_DIR%\build.bat"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('fortran') }}
+    # The Visual Studio generator builds Fortran through a MinGW ExternalProject.
+    - if: win
+      then: make
+    - cmake >=3.25
+    - ninja
+    - python
+  host:
+    - python
+  run:
+    - python
+
+tests:
+  - package_contents:
+      files:
+        - if: unix
+          then: bin/energyplus
+        - if: win
+          then: Library/energyplus.exe
+        - if: win
+          then: Library/bin/energyplus.bat
+  - script:
+      - energyplus --version
+      - python -c "from pyenergyplus.api import EnergyPlusAPI; api = EnergyPlusAPI(); print('pyenergyplus OK')"
+  - script:
+      - python test_plugin.py
+    files:
+      recipe:
+        - test_plugin.py
+      source:
+        - testfiles/PythonPlugin1ZoneUncontrolledCondFD.idf
+        - testfiles/PythonPlugin1ZoneUncontrolledCondFD.py
+
+about:
+  homepage: https://energyplus.net
+  repository: https://github.com/NatLabRockies/EnergyPlus
+  documentation: https://energyplus.net/documentation
+  summary: EnergyPlus whole-building energy simulation program
+  description: |
+    EnergyPlus is a whole building energy simulation program developed by
+    the U.S. Department of Energy (DOE) Building Technologies Office (BTO).
+    It models heating, cooling, lighting, ventilating, and other energy flows
+    in buildings, and includes a Python API for programmatic control.
+  license: LicenseRef-EnergyPlus
+  license_file:
+    - LICENSE.txt
+    - third_party/**/LICENSE*
+    - third_party/**/COPYING*
+    - third_party/**/Copyright/*
+    - third_party/ObjexxFCL/ObjexxFCL.License*.txt
+
+extra:
+  recipe-maintainers:
+    - luzechao
