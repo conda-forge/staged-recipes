@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  # Uno library version, not the unopy version in pyproject.toml
+  version: "2.9.2"
+
+package:
+  name: unopy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cvanaret/Uno/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: cfa3071fe3b19c14bce0b8677f1ac7968b42503bb6b6a7ee56c4601a56850bcd
+  patches:
+    - patches/0001-example-skip-bqpd.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: unix
+      then: pkg-config
+  host:
+    - python
+    - scikit-build-core >=0.8
+    - pybind11 >=2.11
+    - mumps-seq
+    - metis
+    - highs
+    - if: unix
+      then:
+        - libblas
+        - liblapack
+      else:
+        - openblas
+    - pip
+  run:
+    - python
+    - numpy
+    - if: win
+      then:
+        # unopy.pyd's import table references openblas.dll because the
+        # Windows build links against openblas.lib. Pull libopenblas at
+        # runtime so the DLL is present even when the user has libblas
+        # resolved to MKL/blis/netlib.
+        - libopenblas
+
+tests:
+  - python:
+      imports:
+        - unopy
+      pip_check: true
+  - script:
+      # package version tracks the Uno library version, not the unopy version
+      - python -c "import unopy; assert unopy.current_uno_version() == '${{ version }}', unopy.current_uno_version()"
+  - script:
+      - python interfaces/Python/examples/example_hs015.py
+    files:
+      source:
+        - interfaces/Python/examples/example_hs015.py
+
+about:
+  summary: With Uno, finally take full control of your SQP/barrier solver for nonlinearly constrained optimization
+  description: |
+    unopy is the Python interface to Uno, which allows you to solve an optimization model described by callback functions.
+  license: MIT
+  license_file:
+    - LICENSE
+  homepage: https://github.com/cvanaret/Uno
+
+extra:
+  recipe-maintainers:
+    - ewu63
