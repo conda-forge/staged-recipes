@@ -1,0 +1,116 @@
+context:
+  name: polars-nanook
+  version: 0.13.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/polars-nanook/polars_nanook-${{ version }}.tar.gz
+  sha256: 45b3a4ee8d273728b69cc9317dc2f280362f78063e3c8b037770422f9b475f1d
+
+build:
+  number: 0
+  python:
+    version_independent: true
+    entry_points:
+      - nanook=polars_nanook:cli_main
+  skip:
+    - not (match(python, python_min ~ ".*") and is_abi3)
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO: cargo-auditable-wrapper${{ '' if unix else '.bat' }}
+    content:
+      - if: unix
+        then:
+          - cp ${RECIPE_DIR}/cargo-auditable-wrapper.sh ${BUILD_PREFIX}/bin/cargo-auditable-wrapper
+        else:
+          - copy %RECIPE_DIR%\cargo-auditable-wrapper.bat %BUILD_PREFIX%\Library\bin\cargo-auditable-wrapper.bat
+      - python -m pip install . -vv --no-deps --no-build-isolation
+      - cd client
+      - cargo-bundle-licenses --format yaml --output ../THIRD_PARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - libprotobuf
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1,<2
+  host:
+    - python
+    - python-abi3
+    - pip
+    - maturin >=1,<2
+    - libprotobuf
+  run:
+    - python
+    - polars ==2.1.0
+    - polars-runtime-64 ==2.1.0
+    - cloudpickle
+    - typing_extensions >=4.5
+
+tests:
+  - if: not win
+    then:
+      python:
+        imports:
+          - polars_nanook
+        pip_check: true
+        python_version:
+          - ${{ python_min }}.*
+          - "*"
+  # polars_nanook resolves its config directory on import, which fails in the
+  # Windows test environment unless NANOOK_CONFIG_DIR is set
+  - if: win
+    then:
+      script:
+        env:
+          NANOOK_CONFIG_DIR: nanook_config
+        content:
+          - python -c "import polars_nanook"
+          - python -m pip check
+      requirements:
+        run:
+          - python ${{ python_min }}.*
+          - pip
+  - script:
+      env:
+        NANOOK_CONFIG_DIR: nanook_config
+      content:
+        - nanook --help
+  - script:
+      content:
+        - if: win
+          then: abi3audit %SP_DIR%\polars_nanook\polars_nanook.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit $SP_DIR/polars_nanook/polars_nanook.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+    requirements:
+      run:
+        - abi3audit
+
+about:
+  homepage: https://pola.rs/nanook
+  summary: Run Polars Nanook queries, managed or on-premises
+  description: |
+    Polars Nanook is the compute platform for Polars. The queries you write and test on your
+    laptop run in production exactly as they are, with no rewrite and no new API. When your data
+    outgrows one machine, the distributed engine scales the same query across a full cluster.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRD_PARTY.yml
+  documentation: https://docs.nanook.pola.rs/
+  repository: https://github.com/pola-rs/polars-cloud-client
+
+extra:
+  recipe-maintainers:
+    - pavelzw
