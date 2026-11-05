@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  version: "0.10.3"
+
+package:
+  name: libdaqp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/darnstrom/daqp/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6105b9875100214786fce5caf2829380c3e49981757fede84e42b0008a210949
+  patches:
+    # the static library links the shared one and is built with it, the
+    # shared one does not declare the math library it uses, its DLL exports
+    # nothing, the GCC flags reach MSVC, and the CMake configuration goes to
+    # <prefix>/cmake, where find_package() does not look
+    - build-options.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    # project() of DAQP enables C++ as well, though the library is C
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    # the SONAME is libdaqp.so.<major>.<minor>
+    - ${{ pin_subpackage('libdaqp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - daqp
+      include:
+        - daqp/api.h
+      files:
+        - if: unix
+          then: lib/cmake/daqp/daqpConfig.cmake
+          else: Library/lib/cmake/daqp/daqpConfig.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - cmake
+        - ninja
+    script:
+      - if: unix
+        then:
+          - cmake -S test -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=${PREFIX}
+          - cmake --build build
+          - ./build/qp
+        else:
+          - cmake -S test -B build -G Ninja %CMAKE_ARGS% -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+          - cmake --build build
+          - build\qp.exe
+
+about:
+  homepage: https://github.com/darnstrom/daqp
+  summary: Dual active-set solver for convex quadratic programs, C library
+  description: |
+    DAQP solves convex quadratic programs, and linear ones, with linear
+    inequality and equality constraints and simple bounds by a dual
+    active-set method, which can be warm started from the working set of a
+    previous solve. This is the C library, with its headers and its CMake
+    configuration; the Python interface is the package daqp.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/darnstrom/daqp
+  documentation: https://darnstrom.github.io/daqp/
+
+extra:
+  recipe-maintainers:
+    - dmeoli
