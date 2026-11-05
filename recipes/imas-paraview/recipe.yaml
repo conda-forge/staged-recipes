@@ -1,0 +1,77 @@
+context:
+  version: "2.4.0"
+
+package:
+  name: imas-paraview
+  version: ${{ version }}
+
+source:
+  url: https://github.com/iterorganization/IMAS-ParaView/archive/refs/tags/${{ version }}.tar.gz
+  sha256: e928f3034d1fbbdbe7e5015dd212341d442a58189f9b463a70bd9301d9a2ffe5
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: |
+      "${{ PYTHON }}" -m pip install . -vv --no-deps --no-build-isolation
+      "${{ PYTHON }}" "${{ RECIPE_DIR }}/scripts/install-activation.py"
+
+  python:
+    entry_points:
+      - imas-paraview = imas_paraview.cli:cli
+      - ggd2vtk = imas_paraview.cli:convert_ggd_to_vtk
+      - vtk2ggd = imas_paraview.cli:convert_vtk_to_ggd
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=61
+    - setuptools-scm >8
+  run:
+    - python >=${{ python_min }}
+    - paraview
+    - numpy >=1.19.4
+    - imas-python >=2.3.0
+
+tests:
+  - python:
+      imports:
+        - imas_paraview
+        - imas_paraview.cli
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - imas-paraview --help
+      - ggd2vtk --help
+      - vtk2ggd --help
+      - python test-activation.py
+      - pvpython test-plugin.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - test-activation.py
+        - test-plugin.py
+
+about:
+  homepage: https://imas.iter.org/
+  license: LGPL-3.0-only
+  license_file: LICENSE.txt
+  summary: ParaView plugins for visualizing GGDs and other IMAS data
+  description: |
+    Tool to convert IMAS Generalized Grid Description (GGD) structures to VTK,
+    together with a few plugins to visualize GGD and non-GGD IMAS data in ParaView.
+  repository: https://github.com/iterorganization/IMAS-ParaView
+  documentation: https://imas-paraview.readthedocs.io/en/stable/
+
+extra:
+  recipe-maintainers:
+    - SimonPinches
+    - munechika-koyo
