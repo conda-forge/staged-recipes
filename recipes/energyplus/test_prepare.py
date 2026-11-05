@@ -33,7 +33,10 @@ class PreparationTests(unittest.TestCase):
             self.assertNotIn(str(prefix).encode(), wrapper)
             pth = site_packages / "energyplus.pth"
             self.assertEqual(pth.read_text(), "../../Library\n")
-            self.assertEqual((site_packages / pth.read_text().strip()).resolve(), prefix / "Library")
+            self.assertEqual(
+                (site_packages / pth.read_text().strip()).resolve(),
+                (prefix / "Library").resolve(),
+            )
 
     def test_windows_cleanup_preserves_conda_python_and_cli_tools(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
