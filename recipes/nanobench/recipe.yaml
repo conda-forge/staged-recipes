@@ -1,0 +1,67 @@
+context:
+  version: "4.6.0"
+
+package:
+  name: nanobench
+  version: ${{ version }}
+
+source:
+  url: https://github.com/martinus/nanobench/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 80fe0835e85da6acc57285354d86b17d5d1dc7182432a5eaea3b2098a17d4c26
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: cmake -S . -B build-conda -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DNANOBENCH_BUILD_TEST=OFF
+      else: cmake -S . -B build-conda -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DNANOBENCH_BUILD_TEST=OFF
+    - cmake --build build-conda
+    - cmake --install build-conda
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - nanobench.h
+      files:
+        - if: win
+          then: Library/lib/nanobench.lib
+          else: lib/libnanobench.a
+        - if: win
+          then: Library/lib/cmake/nanobench/nanobenchConfig.cmake
+          else: lib/cmake/nanobench/nanobenchConfig.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - if: win
+        then: cmake -S test -B build -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
+        else: cmake -S test -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - if: win
+        then: build\consumer.exe
+        else: ./build/consumer
+
+about:
+  homepage: https://nanobench.ankerl.com
+  summary: Simple, fast, accurate microbenchmarking library for C++11/14/17/20
+  license: MIT
+  license_file: LICENSE
+  documentation: https://nanobench.ankerl.com
+  repository: https://github.com/martinus/nanobench
+
+extra:
+  recipe-maintainers:
+    - babeloff
