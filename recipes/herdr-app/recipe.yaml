@@ -1,0 +1,102 @@
+context:
+  version: "0.1.12"
+  ghostty_version: "1.4.0"
+
+package:
+  name: herdr-app
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/herdrdev/herdr-app/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 391371de1e201159e9d8f0bc24d474227f99e6059a89bd5ea746502c8af98a54
+    patches:
+      # link conda-forge's libghostty-vt instead of building vendor/ghostty with zig
+      - patches/0001-ghostty-sys-link-a-system-libghostty-vt.patch
+      # find the herdr-core installed into the same prefix when opened from a menu shortcut
+      - patches/0002-core_bin-look-for-herdr-core-beside-the-app.patch
+  # src/vt.rs include_str!s the Kitty placeholder diacritics table from the
+  # vendor/ghostty submodule (absent from the tarball); take it from the Ghostty
+  # release conda-forge's libghostty-vt is built from
+  - url: https://raw.githubusercontent.com/ghostty-org/ghostty/v${{ ghostty_version }}/src/terminal/kitty/graphics_unicode.zig
+    sha256: 360b03cdd44dda018f2869b3cfbfe61567b258a3e604d04823ff7ad7e0770149
+    file_name: graphics_unicode.zig
+    target_directory: vendor/ghostty/src/terminal/kitty
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - pkg-config
+    # bindgen for the libghostty-vt bindings
+    - clang
+    - libclang
+  host:
+    - libghostty-vt
+    - zstd
+    - if: linux
+      then:
+        - expat
+        - fontconfig
+        - freetype
+        - libxcb
+        - libxkbcommon
+        - wayland
+  run:
+    # herdr-app is the window; herdr-core (`hc`) runs the terminals
+    # (distribution/core-version is the oldest core this app works with)
+    - herdr-core >=0.1.11
+    - if: linux
+      then:
+        # loaded at runtime by wgpu and the Wayland backend
+        - libvulkan-loader
+        - wayland
+
+tests:
+  - script:
+      - herdr-app --version
+      - herdr-app --help
+      - herdr-app --skill
+  - package_contents:
+      bin:
+        - herdr-app
+      files:
+        - Menu/herdr-app.json
+        - if: linux
+          then:
+            - Menu/herdr-app.png
+            - share/icons/hicolor/scalable/apps/herdr-app.svg
+        - if: osx
+          then:
+            - Menu/herdr-app.icns
+            - Applications/Herdr.app/Contents/Info.plist
+            - Applications/Herdr.app/Contents/MacOS/Herdr
+            - Applications/Herdr.app/Contents/Resources/Herdr.icns
+        - if: win
+          then:
+            - Menu/herdr-app.ico
+
+about:
+  homepage: https://herdr.dev
+  summary: Desktop app for terminals and coding agents
+  description: |
+    Herdr is a desktop app for terminals and coding agents. Keep work in
+    spaces, see which agents need you, and leave terminals running when you
+    close the window. The terminals run in herdr-core, which this app connects
+    to locally or over SSH.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRD-PARTY-NOTICES
+    - THIRDPARTY.yml
+  documentation: https://github.com/herdrdev/herdr-app/tree/master/docs
+  repository: https://github.com/herdrdev/herdr-app
+
+extra:
+  recipe-maintainers:
+    - pavelzw
