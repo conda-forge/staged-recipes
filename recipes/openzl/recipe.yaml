@@ -10,32 +10,42 @@ package:
 source:
   - url: https://github.com/meta/openzl/archive/v${{ version }}.tar.gz
     sha256: 6e105e5c49187ebf63e0bf62fb3ecb22b628248c0bf55bd40ace434721f394f5
-  # Workaround until openzl supports system libzstd - https://github.com/meta/openzl/issues/105
-  # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
-  - git: https://github.com/meta/zstd.git
-    tag: v1.5.7
-    expected_commit: f8745da6ff1ad1e7bab384bd1f9d742439278e99
-    submodules: false
-    target_directory: deps/zstd
-  # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
-  - git: https://github.com/lz4/lz4.git
-    tag: v1.10.0
-    expected_commit: ebb370ca83af193212df4dcbadcc5d87bc0de2f0
-    submodules: false
-    target_directory: deps/lz4
 
 build:
   number: 0
   script:
    content:
+     # Workaround until openzl supports system libzstd? - https://github.com/meta/openzl/issues/105
+     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
+     - mkdir -p $SRC_DIR/deps/zstd/lib/
+     - ln -s $BUILD_PREFIX/include/zstd.h $SRC_DIR/deps/zstd/lib/zstd.h
+     - mkdir -p $SRC_DIR/deps/zstd/build/cmake/
+     - ln -s $BUILD_PREFIX/etc/conda/test-files/zstd/1/cf_test/CMakeLists.txt $SRC_DIR/deps/zstd/build/cmake/CMakeLists.txt
+     - ls -lhR $SRC_DIR/deps/zstd/
+     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
+     - mkdir -p $SRC_DIR/deps/lz4/lib/
+     - ln -s $BUILD_PREFIX/include/lz4.h $SRC_DIR/deps/lz4/lib/lz4.h
+     - ln -s $BUILD_PREFIX/include/lz4hc.h $SRC_DIR/deps/lz4/lib/lz4hc.h
+     - mkdir -p $SRC_DIR/deps/lz4/build/cmake/
+     - touch $SRC_DIR/deps/lz4/build/cmake/CMakeLists.txt
+     - ls -lhR $SRC_DIR/deps/lz4/
+     - sleep 1
+     # Actual build steps
      - mkdir build-cmake
      - cd build-cmake
-     - cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENZL_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX
+     # More options at https://github.com/meta/openzl/blob/v0.3.0/CMakeLists.txt#L12-L35
+     - >
+       cmake ..
+       -DCMAKE_BUILD_TYPE=Release
+       -DCMAKE_INSTALL_PREFIX=$PREFIX
+       -DOPENZL_BUILD_CLI=OFF
+       -DOPENZL_BUILD_EXAMPLES=OFF
+       -DOPENZL_BUILD_SHARED_LIBS=ON
+       -DOPENZL_BUILD_TESTS=OFF
+       -DOPENZL_BUILD_TOOLS=OFF
      - make -j
      - ctest . -j 10
      - make install
-     - make zli  # https://openzl.org/getting-started/quick-start/#building-the-openzl-cli
-     - cp cli/zli $PREFIX/bin/zli
 
 requirements:
   build:
@@ -46,8 +56,8 @@ requirements:
     - if: unix
       then:
         - make
-    # - lz4-c
-    # - zstd
+    - lz4-c
+    - zstd
   host:
     - zstd
 
@@ -62,15 +72,9 @@ tests:
       include:
         - openzl/openzl.h
         - openzl/openzl.hpp
-
-  - script:
-    - zli --help
-    - zli list-profiles
-    - zli benchmark --help
-    - zli compress --help
-    - zli decompress --help
-    - zli inspect --help
-    - zli train --help
+        - openzl/zl_compress.h
+        - openzl/zl_compressor.h
+        - openzl/zl_decompress.h
 
 about:
   homepage: https://openzl.org
