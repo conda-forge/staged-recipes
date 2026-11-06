@@ -1,10 +1,7 @@
-# Minimal CMake packaging wrapper for JerryScript, adapted from the equivalent
-# patch MrDocs applies via its own bootstrap tool
-# (https://github.com/cppalliance/mrdocs/blob/develop/utils/bootstrap/patches/jerryscript/CMakeLists.txt),
-# so this package's CMake config matches what MrDocs' `find_package(jerryscript
-# REQUIRED CONFIG)` expects. Builds a shared jerry-core/jerry-port with the es.next
-# profile, no tools/debugger/snapshots, and installs jerryscript::jerry-core /
-# jerryscript::jerry-port import targets plus a jerryscriptConfig.cmake.
+# Minimal CMake packaging wrapper for JerryScript. Builds a shared
+# jerry-core/jerry-port with the es.next profile, no tools/debugger/snapshots,
+# and installs jerryscript::jerry-core / jerryscript::jerry-port import targets
+# plus a jerryscriptConfig.cmake for `find_package(jerryscript CONFIG)`.
 cmake_minimum_required(VERSION 3.16)
 project(jerryscript VERSION 3.0.0 LANGUAGES C)
 
