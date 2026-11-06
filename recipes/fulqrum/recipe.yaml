@@ -1,0 +1,130 @@
+schema_version: 1
+
+context:
+  version: "0.5.0"
+
+package:
+  name: fulqrum
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/f/fulqrum/fulqrum-${{ version }}.tar.gz
+    sha256: 0b3c6c6de0450a3ebb80596334bc805ee8d4cf046e3290aff618a61aed87849d
+
+build:
+  number: 0
+  # Upstream builds with -fopenmp and -std=c++17 unconditionally and has only
+  # been exercised on Linux and macOS.
+  skip: win
+  script:
+    # setup.py feeds requirements.txt straight into install_requires, so pyscf
+    # would land in the installed metadata and fail `pip check` given the run deps
+    # below. It is an optional lazy import (see the run section), so strip it.
+    - sed -i -E '/^pyscf/d' requirements.txt
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    # See https://github.com/conda-forge/openmp-feedstock/issues/126
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  host:
+    - python
+    - pip
+    - setuptools
+    - cython >=3.0.5
+    - numpy
+    # See https://github.com/conda-forge/openmp-feedstock/issues/126
+    - if: linux
+      then: libgomp
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+    - orjson
+    - psutil
+    - scipy >=1.14.1
+    # Deliberately not depending on pyscf. Upstream lists it in requirements.txt,
+    # but it is imported lazily inside one function
+    # (fulqrum.convert.fcidump_to_fq_fermionic_op, for reading FCIDUMP files) and
+    # fulqrum plus all five subpackages import fine without it. PySCF is heavy, so
+    # users who need FCIDUMP support can install it themselves.
+
+tests:
+  - python:
+      imports:
+        - fulqrum
+        - fulqrum.core
+        - fulqrum.convert
+        - fulqrum.ramps
+        - fulqrum.utils
+      pip_check: true
+  - script:
+      # Only the primme-dependent tests are excluded; primme is not yet on
+      # conda-forge (conda-forge/staged-recipes#35091).
+      - pytest -v fulqrum/test -p no:cacheprovider
+          --ignore=fulqrum/test/test_eigen.py
+          --ignore=fulqrum/test/test_eigen_H2.py
+          --ignore=fulqrum/test/test_eigen_H20.py
+          --ignore=fulqrum/test/test_eigen_LiH.py
+          --ignore=fulqrum/test/test_primme.py
+    requirements:
+      run:
+        - pytest
+        # Test-environment only, so none of these become runtime dependencies.
+        # Each gates tests of code this recipe ships, and each is an upstream
+        # dev dependency. openfermion covers the test_convert cases exercising
+        # fulqrum/convert/openfermion.pyx, a compiled module that exists only
+        # for that interop. qiskit gates test_grouping. test_addon_sqd_support
+        # needs both pyscf, which it imports at module scope, and
+        # qiskit-addon-sqd, which it importorskips there.
+        - openfermion
+        - pyscf
+        - qiskit
+        - qiskit-addon-sqd
+    files:
+      source:
+        # pytest.ini now ships in the sdist but is deliberately not copied: its
+        # addopts include --benchmark-min-rounds, which makes pytest exit with a
+        # usage error unless pytest-benchmark is installed. The only other thing
+        # it does is register a `long` marker that no test in the suite uses.
+        - fulqrum/test/
+
+about:
+  homepage: https://github.com/Qiskit/fulqrum
+  summary: A generalized framework for quantum subspace eigensolving
+  description: |
+    Fulqrum is a set of tools for solving large-scale Hamiltonian subspace
+    eigenproblems over extended alphabets. It provides a unified code base for
+    both spin and fermionic systems, works for arbitrary numbers of qubits, and
+    reduces memory consumption relative to existing methods by decoupling
+    operator construction from eigensolving itself.
+
+    Beyond eigensolving, Fulqrum generates compact subspaces that yield accurate
+    solutions using orders of magnitude fewer bit-strings than standard quantum
+    subspace methods alone.
+  # AND is conjunctive: the package redistributes fulqrum's own Apache-2.0 code
+  # together with vendored headers under BSL-1.0 (Boost, PStreams) and MIT
+  # (nlohmann/json, emhash, rapidhash), so all three sets of terms apply at once.
+  # OR would wrongly assert a license the recipient may choose between.
+  # qiskit-addon-sqd-hpc is also Apache-2.0, so it adds a notice but no new term.
+  license: Apache-2.0 AND BSL-1.0 AND MIT
+  license_file:
+    - LICENSE.txt
+    - fulqrum/include/boost/LICENSE_1_0.txt
+    - qiskit-addon-sqd-hpc/LICENSE.txt
+    - fulqrum/core/src/external/LICENSE-emhash.txt
+    - fulqrum/core/src/external/LICENSE-nlohmann-json.txt
+    - fulqrum/core/src/external/LICENSE-pstreams.txt
+    - fulqrum/core/src/external/LICENSE-rapidhash.txt
+  documentation: https://qiskit.github.io/fulqrum
+  repository: https://github.com/Qiskit/fulqrum
+
+extra:
+  recipe-maintainers:
+    - garrison
