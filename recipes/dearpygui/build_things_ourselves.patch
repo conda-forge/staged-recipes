@@ -1,0 +1,153 @@
+diff --git a/setup.py b/setup.py
+index c35ef0dc..e712fd2d 100644
+--- a/setup.py
++++ b/setup.py
+@@ -116,15 +116,6 @@ def setup_package():
+     with open("./README.md", encoding='utf-8') as f:
+         long_description = f.read()
+ 
+-    # create the necessary directories if they do not exist
+-    if os.path.isdir(src_path +  "/output"):
+-        shutil.rmtree(src_path +  "/output")
+-    os.mkdir(src_path + "/output")
+-    os.mkdir(src_path + "/output/dearpygui")
+-
+-    if os.path.isdir(src_path + "/cmake-build-local"):
+-        shutil.rmtree(src_path + "/cmake-build-local")
+-
+     # copy add items to temporary location
+     if os.environ.get('READTHEDOCS') == 'True':
+         shutil.copy(src_path + "/dearpygui/_dearpygui_RTD.py", src_path + "/output/dearpygui")
+@@ -156,8 +147,6 @@ def setup_package():
+ 
+         # copy add items to temporary location
+         shutil.copy(src_path + "/dearpygui/_dearpygui.pyi", src_path + "/output/dearpygui")
+-        if get_platform() == "Windows":
+-            shutil.copy(src_path + "/thirdparty/Microsoft/vcruntime140_1.dll", src_path + "/output/dearpygui")
+ 
+     metadata = dict(
+         name='dearpygui',                                      # Required
+@@ -195,10 +184,6 @@ def setup_package():
+         package_dir = {'': 'output'},
+         package_data={},
+         distclass=BinaryDistribution,
+-        cmdclass={
+-        'dpg_build': DPGBuildCommand,
+-        'build_py': BuildPyCommand,
+-        },
+     )
+ 
+     if os.environ.get('READTHEDOCS') == 'True':
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index ad7f650c..c00f9322 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -89,9 +89,6 @@ set(MARVEL_SOURCES
+         "$<$<PLATFORM_ID:Darwin>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+         "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_glfw.cpp>"
+         "$<$<PLATFORM_ID:Linux>:../thirdparty/imgui/backends/imgui_impl_opengl3.cpp>"
+-
+-        # gl3w
+-        "$<$<PLATFORM_ID:Linux>:../thirdparty/gl3w/GL/gl3w.c>"
+         )
+ 
+ set(MARVEL_INCLUDE_DIR
+@@ -100,17 +97,8 @@ set(MARVEL_INCLUDE_DIR
+         "../thirdparty/stb"
+         "../thirdparty/imnodes"
+         "../thirdparty/ImGuiFileDialog"
+-        "../thirdparty/glfw/include/"
+-        "../thirdparty/glfw/deps/"
+         "../thirdparty/imgui/"
+-        "../thirdparty/gl3w/"
+-        "../thirdparty/imgui/misc/freetype/"
+         "../thirdparty/imgui/backends/"
+-        "../thirdparty/cpython/"
+-        "../thirdparty/cpython/Include/"
+-        "../thirdparty/cpython/build/debug/"
+-        "$<$<PLATFORM_ID:Windows>:${CMAKE_SOURCE_DIR}/thirdparty/cpython/PC/>"
+-        "$<IF:$<CONFIG:Release>,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/release/,${CMAKE_SOURCE_DIR}/thirdparty/cpython/build/debug/>"
+         )
+ 
+ 
+diff --git a/src/distribution.cmake b/src/distribution.cmake
+index b8583840..90d5db54 100644
+--- a/src/distribution.cmake
++++ b/src/distribution.cmake
+@@ -24,7 +24,6 @@ target_include_directories(_dearpygui
+ 
+ target_link_directories(_dearpygui 
+ 		PRIVATE 
+-			"$<$<PLATFORM_ID:Linux>:/usr/lib>"
+ 			${Python_LIBRARY_DIRS}
+ 	)
+ 
+@@ -40,7 +39,7 @@ if(WIN32)
+ 
+ 	set_target_properties(_dearpygui PROPERTIES SUFFIX ".pyd")
+ 	set_target_properties(_dearpygui PROPERTIES PREFIX "")
+-	target_link_libraries(_dearpygui PUBLIC d3d11 dxgi dwmapi ${Python_LIBRARIES} freetype)
++	target_link_libraries(_dearpygui PRIVATE d3d11 dxgi dwmapi ${Python_LIBRARIES} freetype)
+ 
+ elseif(APPLE)
+ 
+diff --git a/src/mvLinuxSpecifics.h b/src/mvLinuxSpecifics.h
+index 83f113fa..6a3b34b8 100644
+--- a/src/mvLinuxSpecifics.h
++++ b/src/mvLinuxSpecifics.h
+@@ -1,6 +1,6 @@
+ #pragma once
+ 
+-#include <GL/gl3w.h>
++#include <GL/glew.h>
+ #include <GLFW/glfw3.h>
+ 
+ struct mvViewportData
+diff --git a/src/mvUtilities_linux.cpp b/src/mvUtilities_linux.cpp
+index b26ef1ff..43bec2f1 100644
+--- a/src/mvUtilities_linux.cpp
++++ b/src/mvUtilities_linux.cpp
+@@ -9,7 +9,7 @@
+ #include <string>
+ #include <vector>
+ #include <unordered_map>
+-#include <GL/gl3w.h>
++#include <GL/glew.h>
+ #include <GLFW/glfw3.h>
+ #include "mvContext.h"
+ #include "mvLinuxSpecifics.h"
+diff --git a/src/mvViewport_linux.cpp b/src/mvViewport_linux.cpp
+index b8b6496e..eba9f839 100644
+--- a/src/mvViewport_linux.cpp
++++ b/src/mvViewport_linux.cpp
+@@ -189,7 +189,7 @@ mvShowViewport(mvViewport& viewport, bool minimized, bool maximized)
+         glfwSetWindowIcon(viewportData->handle, images.size(), images.data());
+ 
+     glfwMakeContextCurrent(viewportData->handle);
+-    gl3wInit();
++    glewInit();
+ 
+     ImGuiIO& io = ImGui::GetIO(); (void)io;
+     io.ConfigWindowsMoveFromTitleBarOnly = true;
+diff --git a/thirdparty/CMakeLists.txt b/thirdparty/CMakeLists.txt
+index 4e4f7212..2e8baeca 100644
+--- a/thirdparty/CMakeLists.txt
++++ b/thirdparty/CMakeLists.txt
+@@ -1,13 +1,5 @@
+-﻿
+-set(GLFW_BUILD_DOCS OFF)
+-set(GLFW_BUILD_EXAMPLES OFF)
+-set(GLFW_BUILD_TESTS OFF)
+-set(GLFW_INSTALL OFF)
+-
+-if(WIN32)
+-    add_subdirectory("freetype")
+-elseif(APPLE)
+-    add_subdirectory ("glfw")
+-else() #Linux
+-	add_subdirectory ("glfw")
++﻿if(WIN32)
++find_package(Freetype REQUIRED)
++else()
++find_package(glfw3 REQUIRED)
+ endif()
