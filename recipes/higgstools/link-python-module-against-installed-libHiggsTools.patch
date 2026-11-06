@@ -1,0 +1,100 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 563bdca..4d76179 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,6 +37,10 @@ option(${PROJECT_NAME}_STATIC_CXX_STDLIB "Statically link the C++ std library"
+        OFF)
+ option(${PROJECT_NAME}_BUILD_SHARED_LIBS
+        "Build libHiggsTools as a shared library" ${${PROJECT_NAME}_IS_TOPLEVEL})
++option(
++  ${PROJECT_NAME}_PYTHON_USE_INSTALLED_LIBRARY
++  "Link the python module against an installed libHiggsTools instead of compiling the library sources into it"
++  OFF)
+ # ----------------  compiler versions and C++ standard ------------------------
+ if(NOT "${CMAKE_CXX_STANDARD}" OR "${CMAKE_CXX_STANDARD}" LESS 17)
+   set(CMAKE_CXX_STANDARD 17)
+@@ -95,7 +99,11 @@ if(${PROJECT_NAME}_RUN_IWYU)
+       "${IWYU_COMMAND};-Xiwyu;--mapping_file=${PROJECT_SOURCE_DIR}/.iwyu.imp")
+ endif()
+ # ------------------------------ subdirectories -------------------------------
+-add_subdirectory(src)
++if(${PROJECT_NAME}_PYTHON_USE_INSTALLED_LIBRARY)
++  find_package(HiggsTools REQUIRED CONFIG)
++else()
++  add_subdirectory(src)
++endif()
+ if(${PROJECT_NAME}_BUILD_EXAMPLES)
+   add_subdirectory(examples)
+ endif()
+@@ -125,6 +133,11 @@ if(${PROJECT_NAME}_BUILD_TESTING)
+   add_subdirectory(tests)
+ endif()
+ 
++# The library itself comes from an installed HiggsTools, so there is nothing
++# to export or install here.
++if(${PROJECT_NAME}_PYTHON_USE_INSTALLED_LIBRARY)
++  return()
++endif()
+ # ----------------------- alias for use as subdirectory -----------------------
+ add_library(HiggsTools::HiggsTools ALIAS HiggsTools)
+ # -------------------------- export and installation --------------------------
+diff --git a/external/CMakeLists.txt b/external/CMakeLists.txt
+index 2b1576b..1bd4b05 100644
+--- a/external/CMakeLists.txt
++++ b/external/CMakeLists.txt
+@@ -10,11 +10,15 @@ if(NOT HiggsTools_FETCH_DEPENDENCIES)
+   find_package(range-v3 REQUIRED CONFIG)
+   find_package(magic_enum REQUIRED CONFIG)
+   find_package(fmt REQUIRED CONFIG)
+-  find_package(spdlog REQUIRED CONFIG)
+-  find_package(nlohmann_json 3.10 REQUIRED CONFIG)
+-  # No version request: Eigen 5's Eigen3ConfigVersion.cmake rejects a 3.x
+-  # request, while HiggsTools builds with both Eigen 3.4 and 5.
+-  find_package(Eigen3 REQUIRED NO_MODULE)
++  # Only the library sources use these. The python module linked against an
++  # installed libHiggsTools only needs range-v3, magic_enum and fmt.
++  if(NOT ${PROJECT_NAME}_PYTHON_USE_INSTALLED_LIBRARY)
++    find_package(spdlog REQUIRED CONFIG)
++    find_package(nlohmann_json 3.10 REQUIRED CONFIG)
++    # No version request: Eigen 5's Eigen3ConfigVersion.cmake rejects a 3.x
++    # request, while HiggsTools builds with both Eigen 3.4 and 5.
++    find_package(Eigen3 REQUIRED NO_MODULE)
++  endif()
+   if(${PROJECT_NAME}_BUILD_PYTHON_MODULE)
+     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+     find_package(pybind11 REQUIRED CONFIG)
+diff --git a/python/Higgs/CMakeLists.txt b/python/Higgs/CMakeLists.txt
+index 464b69a..441be5e 100644
+--- a/python/Higgs/CMakeLists.txt
++++ b/python/Higgs/CMakeLists.txt
+@@ -6,15 +6,21 @@ pybind11_add_module(
+   HiggsSignals.cpp
+   HiggsBounds.cpp
+   Higgs.cpp)
+-target_link_libraries(
+-  _Higgs
+-  PRIVATE HiggsPredictions
+-          HiggsBounds
+-          HiggsSignals
+-          HiggsUtilities
+-          magic_enum::magic_enum
+-          range-v3::range-v3
+-          fmt::fmt)
++if(HiggsTools_PYTHON_USE_INSTALLED_LIBRARY)
++  target_link_libraries(
++    _Higgs PRIVATE HiggsTools::HiggsTools magic_enum::magic_enum
++                   range-v3::range-v3 fmt::fmt)
++else()
++  target_link_libraries(
++    _Higgs
++    PRIVATE HiggsPredictions
++            HiggsBounds
++            HiggsSignals
++            HiggsUtilities
++            magic_enum::magic_enum
++            range-v3::range-v3
++            fmt::fmt)
++endif()
+ if(HiggsTools_STATIC_CXX_STDLIB)
+   target_link_options(_Higgs PRIVATE -static-libstdc++)
+ endif()

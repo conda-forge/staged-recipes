@@ -1,0 +1,72 @@
+diff --git a/python/Higgs/HiggsPredictions.cpp b/python/Higgs/HiggsPredictions.cpp
+index 4b823e3..4fc6374 100755
+--- a/python/Higgs/HiggsPredictions.cpp
++++ b/python/Higgs/HiggsPredictions.cpp
+@@ -20,7 +20,7 @@ using namespace py::literals;
+ namespace fmt {
+ template <> struct formatter<std::complex<double>> : formatter<double> {
+     template <typename FormatCtx>
+-    auto format(const std::complex<double> &x, FormatCtx &ctx)
++    auto format(const std::complex<double> &x, FormatCtx &ctx) const
+         -> decltype(ctx.out()) {
+         if (x.real() != 0) {
+             format_to(ctx.out(), "(");
+@@ -164,7 +164,8 @@ void bindHiggsPredictions(pybind11::module &higgs) {
+             return fmt::format(
+                 "<Higgs.predictions.BsmParticle {0} (CP={1}, e={2}) "
+                 "with m{0} = {3}+-{4} GeV>",
+-                self.id(), magic_enum::enum_name(self.cp()), self.charge(),
++                self.id(), magic_enum::enum_name(self.cp()),
++                static_cast<int>(self.charge()),
+                 self.mass(), self.massUnc());
+         });
+ 
+diff --git a/src/predictions/Basics.cpp b/src/predictions/Basics.cpp
+index 72891b6..bfef480 100755
+--- a/src/predictions/Basics.cpp
++++ b/src/predictions/Basics.cpp
+@@ -18,13 +18,15 @@ ColliderType classifyCollider(Collider coll) noexcept {
+ 
+ InvalidChannel::InvalidChannel(ECharge charge, Decay d) noexcept
+     : std::runtime_error{fmt::format(
+-          "Invalid decay mode {} for charge {} particle", d, charge)} {
++          "Invalid decay mode {} for charge {} particle", d,
++          static_cast<int>(charge))} {
+     logger()->error(what());
+ }
+ 
+ InvalidChannel::InvalidChannel(ECharge charge, Production p) noexcept
+     : std::runtime_error{fmt::format(
+-          "Invalid production mode {} for charge {} particle", p, charge)} {
++          "Invalid production mode {} for charge {} particle", p,
++          static_cast<int>(charge))} {
+     logger()->error(what());
+ }
+ 
+diff --git a/src/predictions/UncertainMass.hpp b/src/predictions/UncertainMass.hpp
+index 8b2cddd..1c6380f 100755
+--- a/src/predictions/UncertainMass.hpp
++++ b/src/predictions/UncertainMass.hpp
+@@ -52,7 +52,8 @@ template <>
+ struct formatter<Higgs::predictions::UncertainMass> // LCOV_EXCL_LINE
+     : formatter<std::pair<double, double>> {
+     template <typename FormatContext>
+-    auto format(Higgs::predictions::UncertainMass e, FormatContext &ctx) {
++    auto format(Higgs::predictions::UncertainMass e,
++                FormatContext &ctx) const {
+         return formatter<std::pair<double, double>>::format(
+             std::pair{e.mass, e.uncertainty}, ctx);
+     }
+diff --git a/src/utilities/Format.hpp b/src/utilities/Format.hpp
+index 38b7276..6a66e2f 100755
+--- a/src/utilities/Format.hpp
++++ b/src/utilities/Format.hpp
+@@ -9,7 +9,7 @@
+     namespace fmt {                                                            \
+     template <> struct formatter<ENUM> : formatter<string_view> {              \
+         template <typename FormatContext>                                      \
+-        auto format(ENUM e, FormatContext &ctx) {                              \
++        auto format(ENUM e, FormatContext &ctx) const {                            \
+             return formatter<string_view>::format(magic_enum::enum_name(e),    \
+                                                   ctx);                        \
+         }                                                                      \
