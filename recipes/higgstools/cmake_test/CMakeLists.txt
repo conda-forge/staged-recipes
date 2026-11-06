@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.17...4.4)
+project(higgstools_test LANGUAGES CXX)
+find_package(HiggsTools REQUIRED CONFIG)
+add_executable(higgstools_test main.cpp)
+target_link_libraries(higgstools_test PRIVATE HiggsTools::HiggsTools)
