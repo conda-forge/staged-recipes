@@ -2,7 +2,6 @@ schema_version: 1
 
 context:
   group: jank-lang
-  # Upstream still reports 0.1; distinguish this immutable development snapshot.
   version: 0.1.1.post20261101
   commit: f3d82d65499920f81216e9235bd5d3a34a968e3f
 
@@ -16,24 +15,18 @@ source:
     patches:
       - use-system-libraries.patch
       - fix-aot-constant-types.patch
-  # Only dependencies unavailable as compatible conda-forge packages are vendored.
-  # https://github.com/arximboldi/immer
   - url: https://github.com/jank-lang/immer/archive/282629d01917d4c7d0aba2322de700c6d1111276.tar.gz
     sha256: 21a6ef49a3e9ab3c8613fc5a6ef4b8f3ad2abce0d4ceb00e4be1bce052e6532a
     target_directory: compiler+runtime/third-party/immer
-  # The packaged CppInterOp 1.9.0 targets LLVM 21; jank requires LLVM 23.
   - url: https://github.com/jank-lang/CppInterOp/archive/f7e840b4f99693741448f16f889855e29adecde6.tar.gz
     sha256: f536ae6612c0c245d2e2487b7e7451d708dfdc201fed1e658c506aad18615dc5
     target_directory: compiler+runtime/third-party/cppinterop
-  # jank requires development BDWGC with its custom POINTER_MASK configuration.
   - url: https://github.com/jank-lang/bdwgc/archive/327ef1f8c80a611b2f8b915850c8b2fd38e6595e.tar.gz
     sha256: 0c273a852db08def4e447d2f82b081c6f595f1e65169750bf5374e485a8311de
     target_directory: compiler+runtime/third-party/bdwgc
-  # https://github.com/mariusbancila/stduuid
   - url: https://github.com/jank-lang/stduuid/archive/3afe7193facd5d674de709fccc44d5055e144d7a.tar.gz
     sha256: e11f9bf30c7f9c03d8e9a3a3fd7fe016eb5d8d9b89a2fe2c11b5f049e1d97916
     target_directory: compiler+runtime/third-party/stduuid
-  # https://github.com/kuba--/zip
   - url: https://github.com/jank-lang/zip/archive/52d1c1d00831c4f10ef8a6bb12ae6bb3e57743b9.tar.gz
     sha256: 51f022a6aebb1b0fb311c118029153f420f5a366e45cf660575ae60772ed7576
     target_directory: compiler+runtime/third-party/zip
@@ -43,27 +36,17 @@ source:
 
 build:
   number: 1
-  # Upstream's MSYS2/CLANG64 Windows build is incompatible with conda-forge MSVC.
   skip: win
   script:
     interpreter: nu
     content: |
       cd compiler+runtime
 
-      # Set macOS SDK root so jank's embedded clang can find system headers during JIT
-      # compilation. The cmake build runs jank-phase-1 to AOT-compile clojure.core; without
-      # SDKROOT that embedded clang invocation fails to find system headers, leaving the
-      # generated C++ files empty and Phase 2 missing symbols at link time.
-      # Also expose $PREFIX/lib via DYLD_LIBRARY_PATH so jank-phase-1 can load LLVM dylibs
-      # when cmake invokes it as a custom command (before install RPATH is in effect).
       if ($env.HOST | str contains "darwin") {
         $env.SDKROOT = (^xcrun --sdk macosx --show-sdk-path | str trim)
         $env.DYLD_LIBRARY_PATH = $"($env.PREFIX)/lib"
       }
 
-      # GNU ld flags (-ldl, --no-as-needed) are not supported on macOS Apple ld.
-      # The CMake patch force-loads only the merged runtime archive. Global -all_load
-      # also loads the separate isocline archive, duplicating its bundled symbols.
       let linker_flags = if ($env.HOST | str contains "darwin") {
         $"-L($env.PREFIX)/lib -lzstd -lfolly -lcpptrace"
       } else {
@@ -71,20 +54,15 @@ build:
       }
 
       ^./bin/configure -Djank_test=OFF -DFETCHCONTENT_FULLY_DISCONNECTED=ON -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
-
       ^./bin/compile
-
-      # Install binary and resource dir (lib/jank/0.1/ with headers and sources)
       ^./bin/install --prefix $env.PREFIX
 
-      # Create clang symlinks so jank can discover clang at runtime via lib/jank/0.1/bin/
       let jank_bin_dir = ($env.PREFIX | path join "lib" "jank" "0.1" "bin")
       ^mkdir -p $jank_bin_dir
       ^ln -sf "../../../../bin/clang" ($jank_bin_dir | path join "clang")
       ^ln -sf "../../../../bin/clang++" ($jank_bin_dir | path join "clang++")
       ^ln -sf "../../../../bin/clang-23" ($jank_bin_dir | path join "clang-23")
 
-      # Activation scripts so the conda env lib/ is in LIBRARY_PATH for jank's AOT linker
       let activate_dir = ($env.PREFIX | path join "etc" "conda" "activate.d")
       let deactivate_dir = ($env.PREFIX | path join "etc" "conda" "deactivate.d")
       ^mkdir -p $activate_dir $deactivate_dir
@@ -108,15 +86,10 @@ requirements:
 
   host:
     - fmt
-    # Folly exports the unversioned liblzma link path.
     - liblzma-devel
-    # Folly's CMake config requires compiled Boost component targets.
     - libboost-devel
     - libboost-headers
-    # Load the gflags_shared CMake target referenced by Folly's link interface.
     - gflags
-    # jank defines FOLLY_ASSUME_NO_JEMALLOC for native and JIT compilation.
-    # Folly's default build ends in a build number; exclude *_jemalloc builds.
     - folly * [build="^h[0-9a-f]+_[0-9]+$"]
     - cpptrace >=1.0.4,<1.1
     - nlohmann_json >=3.12,<4
@@ -127,9 +100,7 @@ requirements:
     - zstd
 
   run:
-    # Folly's version-only run export does not preserve the allocator variant.
     - folly * [build="^h[0-9a-f]+_[0-9]+$"]
-    # Public jank headers and jank.shell are compiled by the embedded JIT.
     - ${{ pin_compatible('libboost-headers', upper_bound='x.x') }}
     - clang 23.*
     - clangdev 23.*
