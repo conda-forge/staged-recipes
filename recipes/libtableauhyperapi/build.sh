@@ -18,11 +18,15 @@ fi
 unzip -q sdk.zip
 SDK_DIR=$(find . -maxdepth 1 -type d -name "tableauhyperapi-cxx-*")
 
-mkdir -p "${PREFIX}/include" "${PREFIX}/lib" "${PREFIX}/share/cmake"
+mkdir -p "${PREFIX}/include" "${PREFIX}/lib" "${PREFIX}/bin" "${PREFIX}/share/cmake"
 cp -r "${SDK_DIR}/include/hyperapi" "${PREFIX}/include/"
 cp -r "${SDK_DIR}/share/cmake/." "${PREFIX}/share/cmake/"
 cp -r "${SDK_DIR}/lib/hyper" "${PREFIX}/lib/"
 cp "${SDK_DIR}/lib/${LIBNAME}" "${PREFIX}/lib/"
+
+# conda-forge: hyperd is an executable, so also symlink it into bin/;
+# the real file stays in lib/hyper/, matching upstream's own SDK layout.
+ln -s "../lib/hyper/hyperd" "${PREFIX}/bin/hyperd"
 
 cp "${SDK_DIR}/LICENSE" .
 cp "${SDK_DIR}/NOTICES.txt" .
