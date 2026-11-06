@@ -1,0 +1,212 @@
+schema_version: 1
+
+context:
+  version: "1.1.3"
+
+recipe:
+  name: higgstools-suite
+  version: ${{ version }}
+
+source:
+  url: https://gitlab.com/higgsbounds/higgstools/-/archive/v${{ version }}/higgstools-v${{ version }}.tar.gz
+  sha256: 71464d8836cfdb8a6094ed9d2fd13e633b80c215845e62af3d0d5cecdd955767
+  patches:
+    # Upstream downloads range-v3, magic_enum, fmt, spdlog, nlohmann_json,
+    # Eigen, pybind11 and Catch2 with FetchContent at configure time. Use the
+    # conda-forge packages via find_package() instead (FetchContent kept
+    # behind -DHiggsTools_FETCH_DEPENDENCIES=ON). Also adds the missing
+    # include(GNUInstallDirs).
+    - use-find_package-for-dependencies-instead-of-FetchContent.patch
+    # Upstream pins fmt 8.0.1; conda-forge pins fmt 12. Make formatter::format
+    # const and stop relying on implicit enum formatting.
+    - support-fmt-10-and-newer.patch
+    # magic_enum >= 0.9 moved ostream_operators to magic_enum_iostream.hpp
+    - support-magic_enum-0.9-in-tests.patch
+    # Option to link the Python extension module against the installed
+    # libHiggsTools instead of compiling the library sources into it again.
+    - link-python-module-against-installed-libHiggsTools.patch
+    # The CMake project version was left at 0.0.6 upstream, which setup.py
+    # uses for the Python package metadata and CMake writes to
+    # HiggsToolsConfigVersion.cmake. This should get fixed upstream; until then
+    # update this patch on every version bump (the dist-info test below fails
+    # if it is out of date).
+    - set-project-version-to-1.1.3.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+  # Build and install the C++ library once, then split the installed files
+  # into the runtime library and the -devel package.
+  - staging:
+      name: libhiggstools-build
+    build:
+      script:
+        file: build-lib.sh
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.17
+        - ninja
+      host:
+        - range-v3
+        - magic_enum
+        - fmt
+        - spdlog
+        - nlohmann_json
+        # The installed headers only include the C++ standard library (Eigen
+        # is linked privately), so use eigen and not eigen-abi-devel.
+        # See https://github.com/conda-forge/eigen-feedstock/blob/main/recipe/README.md
+        - eigen
+        - catch2
+      ignore_run_exports:
+        from_package:
+          # Only used to build the test suite
+          - catch2
+
+  - package:
+      name: libhiggstools
+    inherit: libhiggstools-build
+    build:
+      files:
+        - lib/libHiggsTools.*
+    requirements:
+      run_exports:
+        # libHiggsTools.so has no SOVERSION, so pin to patch level
+        - ${{ pin_subpackage('libhiggstools', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          lib:
+            - HiggsTools
+
+  - package:
+      name: libhiggstools-devel
+    inherit:
+      from: libhiggstools-build
+      # Headers and CMake config only; the library's dependencies come from
+      # libhiggstools.
+      run_exports: false
+    build:
+      files:
+        - include/Higgs/
+        - lib/cmake/HiggsTools/
+    requirements:
+      run:
+        - ${{ pin_subpackage('libhiggstools', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libhiggstools', upper_bound='x.x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - Higgs/Predictions.hpp
+            - Higgs/Bounds.hpp
+            - Higgs/Signals.hpp
+            - Higgs/HiggsTools_export.h
+          files:
+            - lib/cmake/HiggsTools/HiggsToolsConfig.cmake
+            - lib/cmake/HiggsTools/HiggsToolsConfigVersion.cmake
+
+      - files:
+          recipe:
+            - cmake_test/
+        requirements:
+          run:
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - cmake
+            - ninja
+        script:
+          - cmake -S cmake_test -B cmake_test/build -G Ninja -DCMAKE_PREFIX_PATH="$PREFIX"
+          - cmake --build cmake_test/build
+          - ./cmake_test/build/higgstools_test
+
+  - package:
+      name: higgstools
+    build:
+      script:
+        env:
+          CMAKE_GENERATOR: Ninja
+        content:
+          # scikit-build (classic) forwards CMAKE_ARGS to CMake
+          - export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=${PREFIX} -DPython_EXECUTABLE=${PYTHON} -DHiggsTools_FETCH_DEPENDENCIES=OFF -DHiggsTools_PYTHON_USE_INSTALLED_LIBRARY=ON"
+          - ${PYTHON} -m pip install . -vv
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.17
+        - ninja
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - pybind11
+      host:
+        - python
+        - pip
+        - setuptools
+        - scikit-build
+        # Imported by setup.py but not listed in pyproject.toml
+        - packaging
+        - pybind11
+        - libhiggstools-devel
+        - range-v3
+        - magic_enum
+        - fmt
+      run:
+        # _Higgs links against libHiggsTools, which has no SOVERSION and no ABI
+        # guarantee across releases, so require the exact build from this recipe
+        - ${{ pin_subpackage('libhiggstools', exact=True) }}
+        - python
+        - numpy
+        - scipy
+        - pandas
+        - requests
+        - matplotlib-base
+        # Needed by Higgs.tools.Input.readHB5SLHA() but not listed upstream
+        - pylha
+
+    tests:
+      - python:
+          imports:
+            - Higgs
+            - Higgs.predictions
+            - Higgs.bounds
+            - Higgs.signals
+            - Higgs.tools.Input
+          pip_check: true
+      - package_contents:
+          files:
+            - lib/python*/site-packages/higgstools-${{ version }}.dist-info/METADATA
+      - files:
+          recipe:
+            - test_higgstools.py
+        script:
+          - python ./test_higgstools.py
+        requirements:
+          run:
+            - python
+
+about:
+  homepage: https://gitlab.com/higgsbounds/higgstools
+  repository: https://gitlab.com/higgsbounds/higgstools
+  documentation: https://higgsbounds.gitlab.io/higgstools/
+  summary: HiggsPredictions, HiggsBounds, HiggsSignals - comparing extended Higgs sectors to collider results
+  description: |
+    HiggsTools is a toolbox for comparing BSM models with extended scalar
+    sectors to experimental results. It unifies and extends HiggsBounds and
+    HiggsSignals in modern C++ with a native Python interface, and contains
+    the sub-libraries HiggsPredictions, HiggsBounds and HiggsSignals. The
+    experimental data sets are distributed separately
+    (https://gitlab.com/higgsbounds/hbdataset and
+    https://gitlab.com/higgsbounds/hsdataset).
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+
+extra:
+  feedstock-name: higgstools
+  recipe-maintainers:
+    - matthewfeickert
