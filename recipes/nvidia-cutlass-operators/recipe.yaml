@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  version: "0.2.0"
+  # Runtime dependency bounds, mirroring the wheel's Requires-Dist metadata.
+  cutlass_dsl_min: "4.6"
+  tvm_ffi_min: "0.1.11"
+  networkx_min: "3.0.0"
+
+package:
+  name: nvidia-cutlass-operators
+  version: ${{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvidia-cutlass-operators/redist/nvidia_cutlass_operators/source/nvidia_cutlass_operators-source-${{ version }}-archive.tar.xz
+  sha256: 96c02b72aaf5b54f03ceef199d7220a5cb7e6ad7d6106563eaf3536ec441895d
+
+build:
+  noarch: python
+  number: 0
+
+requirements:
+  host:
+    # The trailing `.*` is required here. rattler-build reads a bare
+    # `python 3.11` as exactly 3.11, where conda-build reads it as a prefix
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+    - nvidia-cutlass-dsl >=${{ cutlass_dsl_min }}
+    - networkx >=${{ networkx_min }}
+    - apache-tvm-ffi >=${{ tvm_ffi_min }}
+
+tests:
+  # `pytorch` is an optional dependency, but this test needs it installed.
+  # Without it, `import cutlass.operators` fails with an ImportError.
+  # Importing the `cutlass` package from nvidia-cutlass-dsl runs
+  # cutlass/base_dsl/compiler.py before any cutlass.operators code runs.
+  # compiler.py appends its own directory, cutlass/base_dsl, to sys.path.
+  # That directory contains the DSL's own torch.py.
+  # nvidia-cutlass-operators checks for PyTorch with is_torch_available(),
+  # which calls importlib.util.find_spec("torch"). Without PyTorch, find_spec
+  # finds base_dsl/torch.py, so is_torch_available() returns True.
+  # cutlass/operators/fusion/library.py then runs `import torch`.
+  # Python loads base_dsl/torch.py as a top-level module named `torch`.
+  # A top-level module has no parent package, so the relative import
+  # `from .typing import ...` in that file fails with
+  # "attempted relative import with no known parent package".
+  # With PyTorch installed, find_spec finds the real package first, because
+  # site-packages comes before cutlass/base_dsl on sys.path.
+  - script:
+      - test -d $SP_DIR/cutlass/operators
+      - python -c "import cutlass.operators"
+      - python -c "import os, cutlass.operators as ops; assert ops.__version__ == os.environ['PKG_VERSION']"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytorch
+
+about:
+  homepage: https://docs.nvidia.com/cutlass/latest/
+  license: BSD-3-Clause
+  # Top level of the archive, byte-for-byte identical to the copy inside
+  # site-packages/nvidia_cutlass_operators-${{ version }}.dist-info/licenses/.
+  license_file: LICENSE
+  summary: High-level discover/compile/execute API for CUTLASS Python kernels.
+  description: |
+    CUTLASS Operator API is a Python interface for integrating kernels written in CUTLASS Python DSLs (like CuTe DSL) into your code.
+
+    While DSLs focus on kernel authoring, CUTLASS Operator API focuses on ease of managing and integrating those kernels into libraries that use CUTLASS.
+  documentation: https://docs.nvidia.com/cutlass/latest/media/docs/operators/overview.html
+
+extra:
+  feedstock-name: nvidia-cutlass-operators
+  recipe-maintainers:
+    - conda-forge/cuda
