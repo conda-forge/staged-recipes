@@ -2,7 +2,7 @@
 # patch MrDocs applies via its own bootstrap tool
 # (https://github.com/cppalliance/mrdocs/blob/develop/utils/bootstrap/patches/jerryscript/CMakeLists.txt),
 # so this package's CMake config matches what MrDocs' `find_package(jerryscript
-# REQUIRED CONFIG)` expects. Builds a static jerry-core with the es.next
+# REQUIRED CONFIG)` expects. Builds a shared jerry-core/jerry-port with the es.next
 # profile, no tools/debugger/snapshots, and installs jerryscript::jerry-core /
 # jerryscript::jerry-port import targets plus a jerryscriptConfig.cmake.
 cmake_minimum_required(VERSION 3.16)
@@ -24,6 +24,9 @@ option(JERRY_LINE_INFO "Enable line info" OFF)
 option(JERRY_LTO "Enable LTO" OFF)
 option(JERRY_LIBC "Use bundled libc" OFF)
 option(JERRY_PORT "Build default port implementation" ON)
+
+# Build shared libraries (honoured by upstream jerry-core and by jerry-port below).
+set(BUILD_SHARED_LIBS ON)
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU")
     set(USING_GCC 1)
@@ -60,6 +63,11 @@ if(JERRY_PORT)
     target_include_directories(jerry-port PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/jerry-core/include
     )
+    # jerry-port may reference host-provided context functions (external
+    # context); allow those to stay unresolved in the shared library on macOS.
+    if(APPLE)
+        target_link_options(jerry-port PRIVATE -undefined dynamic_lookup)
+    endif()
     target_compile_definitions(jerry-port PRIVATE
         _BSD_SOURCE
         _DEFAULT_SOURCE
@@ -70,6 +78,10 @@ set_target_properties(jerry-core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(jerry-core PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/jerry-core/include>;$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+
+if(APPLE)
+    target_link_options(jerry-core PRIVATE -undefined dynamic_lookup)
+endif()
 
 add_library(jerryscript ALIAS jerry-core)
 

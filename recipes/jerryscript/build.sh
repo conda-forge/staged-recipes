@@ -3,6 +3,7 @@ set -euxo pipefail
 
 cmake -S "${SRC_DIR}" -B build ${CMAKE_ARGS} -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DJERRY_PROFILE=es.next \
     -DJERRY_EXTERNAL_CONTEXT=ON \
