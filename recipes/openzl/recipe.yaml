@@ -1,0 +1,89 @@
+schema_version: 1
+
+context:
+  version: "0.3.0"
+
+package:
+  name: openzl
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/meta/openzl/archive/v${{ version }}.tar.gz
+    sha256: 6e105e5c49187ebf63e0bf62fb3ecb22b628248c0bf55bd40ace434721f394f5
+
+build:
+  number: 0
+  script:
+   content:
+     # Workaround until openzl supports system libzstd? - https://github.com/meta/openzl/issues/105
+     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
+     - mkdir -p $SRC_DIR/deps/zstd/lib/
+     - ln -s $BUILD_PREFIX/include/zstd.h $SRC_DIR/deps/zstd/lib/zstd.h
+     - mkdir -p $SRC_DIR/deps/zstd/build/cmake/
+     - ln -s $BUILD_PREFIX/etc/conda/test-files/zstd/1/cf_test/CMakeLists.txt $SRC_DIR/deps/zstd/build/cmake/CMakeLists.txt
+     - ls -lhR $SRC_DIR/deps/zstd/
+     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
+     - mkdir -p $SRC_DIR/deps/lz4/lib/
+     - ln -s $BUILD_PREFIX/include/lz4.h $SRC_DIR/deps/lz4/lib/lz4.h
+     - ln -s $BUILD_PREFIX/include/lz4hc.h $SRC_DIR/deps/lz4/lib/lz4hc.h
+     - mkdir -p $SRC_DIR/deps/lz4/build/cmake/
+     - touch $SRC_DIR/deps/lz4/build/cmake/CMakeLists.txt
+     - ls -lhR $SRC_DIR/deps/lz4/
+     - sleep 1
+     # Actual build steps
+     - mkdir build-cmake
+     - cd build-cmake
+     # More options at https://github.com/meta/openzl/blob/v0.3.0/CMakeLists.txt#L12-L35
+     - >
+       cmake ..
+       -DCMAKE_BUILD_TYPE=Release
+       -DCMAKE_INSTALL_PREFIX=$PREFIX
+       -DOPENZL_BUILD_CLI=OFF
+       -DOPENZL_BUILD_EXAMPLES=OFF
+       -DOPENZL_BUILD_SHARED_LIBS=ON
+       -DOPENZL_BUILD_TESTS=OFF
+       -DOPENZL_BUILD_TOOLS=OFF
+     - make -j
+     - ctest . -j 10
+     - make install
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake-no-system
+    - if: unix
+      then:
+        - make
+    - lz4-c
+    - zstd
+  host:
+    - zstd
+
+tests:
+  - package_contents:
+      files:
+        exists:
+          - if: unix
+            then:
+              - lib/libopenzl.a
+              - lib/libopenzl_cpp.a
+      include:
+        - openzl/openzl.h
+        - openzl/openzl.hpp
+        - openzl/zl_compress.h
+        - openzl/zl_compressor.h
+        - openzl/zl_decompress.h
+
+about:
+  homepage: https://openzl.org
+  summary: A novel take on lossless data compression
+  documentation: https://openzl.org/api/c/compressor/
+  repository: https://github.com/meta/openzl
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - weiji14
