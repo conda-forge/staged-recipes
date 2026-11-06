@@ -2,6 +2,11 @@ schema_version: 1
 
 context:
   version: "0.4.1"
+  build_number: 0
+  cuda: ${{ cuda_compiler_version != "None" }}
+  string_prefix: ${{ "cuda" ~ (cuda_compiler_version | replace(".", "")) if cuda_compiler_version != "None" else "cpu" }}
+  # nanobind's stable ABI requires Python 3.12+, so the CUDA runtime is built against 3.12
+  abi3_min: ${{ "3.12" if cuda_compiler_version != "None" else python_min }}
 
 recipe:
   name: moreau-split
@@ -12,14 +17,18 @@ source:
   sha256: ec2f62ee50538c46526622d560a5663b16d0c0137647a8a634afe2fb6381d0ab
 
 build:
-  number: 0
+  number: ${{ build_number }}
 
 outputs:
   - package:
-      name: moreau-cpu
+      name: moreau-runtime
     build:
+      string: ${{ string_prefix }}_h${{ hash }}_${{ build_number }}
       skip:
         - win
+        - is_abi3 and not match(python, abi3_min ~ ".*")
+      python:
+        version_independent: ${{ is_abi3 }}
       script:
         # cmake-rs passes --target to clang, which then picks the system ld instead of conda's
         - if: osx
@@ -27,12 +36,23 @@ outputs:
         - cd packages/moreau-cpu
         - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
         - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - if: cuda
+          then:
+            - cd ../moreau-cuda
+            # PyPI-only CUDA wheels and the moreau front end are provided by conda packages
+            - sed -i '/"moreau==/d; /"nvidia-cudss/d; /"cuda-toolkit/d' pyproject.toml
+            - export CUDSS_ROOT=$PREFIX
+            - export CMAKE_ARGS="$CMAKE_ARGS -DMOREAU_BUILD_TESTS=OFF -DMOREAU_BUILD_EXAMPLES=OFF"
+            - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
     requirements:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
         - ${{ compiler('rust') }}
         - ${{ stdlib('c') }}
+        - if: cuda
+          then:
+            - ${{ compiler('cuda') }}
         - cargo-bundle-licenses
         - cmake
         - make
@@ -43,29 +63,79 @@ outputs:
             - maturin >=1.0,<2.0
       host:
         - python
+        - if: is_abi3
+          then:
+            - python-abi3
         - pip
         - maturin >=1.0,<2.0
+        - if: cuda
+          then:
+            - scikit-build-core >=0.5
+            - nanobind >=2.11.0
+            - cuda-version ${{ cuda_compiler_version }}.*
+            - cuda-cudart-dev
+            - libcublas-dev
+            - libcusparse-dev
+            - libcusolver-dev
+            - libcudss-dev >=0.7.1,<0.8
       run:
         - python
         - numpy >=1.19.0
         - scipy >=1.6.0
+        - if: cuda
+          then:
+            - __cuda
+            # cuDSS config enum values shift between minor versions
+            - libcudss >=0.7.1,<0.8
     tests:
       - python:
           imports:
             - moreau_cpu
           pip_check: true
+          python_version:
+            - if: is_abi3
+              then: ${{ abi3_min }}.*
+            - "*"
+      - if: is_abi3
+        then:
+          requirements:
+            run:
+              - abi3audit
+          script:
+            - abi3audit $SP_DIR/moreau_cpu/_cpu_solver.abi3.so -s -v --assume-minimum-abi3 ${{ abi3_min }}
+            - if: cuda
+              then: abi3audit $SP_DIR/moreau_cuda/_moreau_cuda.abi3.so -s -v --assume-minimum-abi3 ${{ abi3_min }}
+      # the noarch front end is built in one job only, so test against its source here
+      - script:
+          - export PYTHONPATH=packages/moreau/python
+          - python test_solve.py
+          - if: cuda
+            then: python -c "import moreau_cuda"
+        files:
+          source:
+            - packages/moreau/python/
+          recipe:
+            - test_solve.py
+        requirements:
+          run:
+            - pydantic >=2.0.0
     about:
-      summary: "Moreau CPU solver: conic interior-point optimization in Rust"
-      license: Apache-2.0
+      summary: Compiled CPU and optional CUDA backends for moreau
+      license: Apache-2.0 AND BSD-3-Clause AND MIT
       license_file:
         - packages/moreau-cpu/LICENSE
         - packages/moreau-cpu/NOTICE
         - packages/moreau-cpu/THIRDPARTY.yml
+        - if: cuda
+          then:
+            - nanobind-LICENSE
+            - robin-map-LICENSE
 
   - package:
       name: moreau
     build:
       noarch: python
+      skip: not (target_platform == "linux-64" and cuda_compiler_version == "None")
       script:
         - ${{ PYTHON }} -m pip install ./packages/moreau -vv --no-deps --no-build-isolation
     requirements:
@@ -75,7 +145,7 @@ outputs:
         - hatchling
       run:
         - python >=${{ python_min }}
-        - moreau-cpu ==${{ version }}
+        - moreau-runtime ==${{ version }}
         - numpy >=1.19.0
         - pydantic >=2.0.0
     tests:
@@ -100,6 +170,22 @@ outputs:
       license_file:
         - packages/moreau/LICENSE
         - packages/moreau/NOTICE
+
+  - package:
+      name: ${{ "moreau-gpu" if cuda else "moreau-cpu" }}
+    build:
+      string: ${{ string_prefix }}_h${{ hash }}_${{ build_number }}
+      skip:
+        - win
+    requirements:
+      run:
+        - moreau ==${{ version }}
+        - moreau-runtime ==${{ version }} ${{ "cuda" if cuda else "cpu" }}*
+    about:
+      summary: Metapackage selecting the ${{ "CUDA" if cuda else "CPU" }} build of moreau
+      license: Apache-2.0
+      license_file:
+        - LICENSE
 
 about:
   homepage: https://moreau.so
