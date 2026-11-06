@@ -1,0 +1,118 @@
+schema_version: 1
+
+context:
+  version: "0.4.1"
+
+recipe:
+  name: moreau-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/moreau-project/moreau/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ec2f62ee50538c46526622d560a5663b16d0c0137647a8a634afe2fb6381d0ab
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: moreau-cpu
+    build:
+      skip:
+        - win
+      script:
+        # cmake-rs passes --target to clang, which then picks the system ld instead of conda's
+        - if: osx
+          then: export LDFLAGS="$LDFLAGS --ld-path=$BUILD_PREFIX/bin/$LD"
+        - cd packages/moreau-cpu
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+        - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('rust') }}
+        - ${{ stdlib('c') }}
+        - cargo-bundle-licenses
+        - cmake
+        - make
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >=1.0,<2.0
+      host:
+        - python
+        - pip
+        - maturin >=1.0,<2.0
+      run:
+        - python
+        - numpy >=1.19.0
+        - scipy >=1.6.0
+    tests:
+      - python:
+          imports:
+            - moreau_cpu
+          pip_check: true
+    about:
+      summary: "Moreau CPU solver: conic interior-point optimization in Rust"
+      license: Apache-2.0
+      license_file:
+        - packages/moreau-cpu/LICENSE
+        - packages/moreau-cpu/NOTICE
+        - packages/moreau-cpu/THIRDPARTY.yml
+
+  - package:
+      name: moreau
+    build:
+      noarch: python
+      script:
+        - ${{ PYTHON }} -m pip install ./packages/moreau -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - hatchling
+      run:
+        - python >=${{ python_min }}
+        - moreau-cpu ==${{ version }}
+        - numpy >=1.19.0
+        - pydantic >=2.0.0
+    tests:
+      - python:
+          imports:
+            - moreau
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - script:
+          - python test_solve.py
+        files:
+          recipe:
+            - test_solve.py
+        requirements:
+          run:
+            - python ${{ python_min }}.*
+    about:
+      summary: "Moreau: conic optimization solver with CPU and optional GPU backends"
+      license: Apache-2.0
+      license_file:
+        - packages/moreau/LICENSE
+        - packages/moreau/NOTICE
+
+about:
+  homepage: https://moreau.so
+  repository: https://github.com/moreau-project/moreau
+  documentation: https://moreau.so
+  summary: GPU-native, batched, differentiable conic optimization
+  description: |
+    Moreau solves quadratic cone programs with a Rust CPU backend and a
+    C++/CUDA GPU backend behind one Python API, with support for batching
+    and differentiation through the solution.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - timkpaine
