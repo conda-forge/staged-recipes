@@ -23,7 +23,7 @@ except ImportError:
     from yaml import BaseLoader, load
 
 
-EXAMPLE_RECIPE_FOLDERS = ["example", "example-v1"]
+EXAMPLE_RECIPE_FOLDERS = ["example", "example-v0-deprecated", "example-v1"]
 LOCAL_CHANNELS = os.environ.get("CONDA_BLD_PATH", "local").split(",")
 
 
