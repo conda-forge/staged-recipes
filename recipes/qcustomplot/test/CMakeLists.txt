@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(qcustomplot_test CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(qcustomplot 2.1 CONFIG REQUIRED)
+add_executable(plot plot.cpp)
+target_link_libraries(plot PRIVATE qcustomplot::qcustomplot)
