@@ -1,0 +1,69 @@
+schema_version: 1
+
+context:
+  version: "1.1.0"
+
+package:
+  name: pprepair
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tudelft3d/pprepair/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d0596066644f9bb240b8bdd405c053dcaecb067b88fbc6e5cd2c77de470eb17d
+
+build:
+  number: 0
+  script:
+    file: build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    - cgal-cpp >=6
+    - gmp
+    - mpfr
+    - libboost-devel
+    - libgdal-core
+    - libgdal-core-devel
+  run:
+    - gmp
+    - mpfr
+    - libgdal-arrow-parquet
+
+tests:
+  - files:
+      recipe:
+        - overlap.geojson
+    script:
+      content:
+        - pprepair --version
+        - pprepair --help
+        - pprepair -i overlap.geojson -o out.geojson -fix
+        - if: unix
+          then: export GDAL_DRIVER_PATH=$PREFIX/lib/gdalplugins
+        - if: win
+          then: set GDAL_DRIVER_PATH=%LIBRARY_PREFIX%\lib\gdalplugins
+        - ogr2ogr -f Parquet -lco FID= overlap.parquet overlap.geojson
+        - pprepair -i overlap.parquet -o out.parquet -fix
+        - ogrinfo -so -al out.parquet
+
+about:
+  license: GPL-3.0-or-later
+  license_file: LICENSE.txt
+  summary: Repair planar partitions using a constrained triangulation
+  description: |
+    pprepair takes a set of polygons and ensures that they form a valid planar
+    partition, made of valid polygons and having no gaps or overlaps. It can
+    be used to validate individual polygons or a planar partition, and to
+    automatically repair them.
+  homepage: https://github.com/tudelft3d/pprepair
+  repository: https://github.com/tudelft3d/pprepair
+  documentation: https://github.com/tudelft3d/pprepair#readme
+
+extra:
+  recipe-maintainers:
+    - kenohori
