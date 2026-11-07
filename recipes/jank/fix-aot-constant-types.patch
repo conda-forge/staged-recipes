@@ -1,0 +1,26 @@
+From: conda-forge maintainers
+Subject: [PATCH] Preserve pointer tags for lifted big-number constants
+
+Big numbers are declared as generic object_ref constants, but their
+initializers return typed references containing raw pointers. Placement new
+with auto bypasses the conversion to a tagged generic reference. Erase the
+typed reference explicitly before storing it in a lifted constant.
+
+--- a/compiler+runtime/src/cpp/jank/codegen/cpp_processor.cpp
++++ b/compiler+runtime/src/cpp/jank/codegen/cpp_processor.cpp
+@@ -305,13 +305,13 @@
+           else if constexpr(std::same_as<T, obj::big_integer>)
+           {
+             util::format_to(buffer,
+-                            "jank::runtime::make_box<jank::runtime::obj::big_integer>(\"{}\")",
++                            "jank::runtime::make_box<jank::runtime::obj::big_integer>(\"{}\").erase()",
+                             typed_o->to_string());
+           }
+           else if constexpr(std::same_as<T, obj::big_decimal>)
+           {
+             util::format_to(buffer,
+-                            "jank::runtime::make_box<jank::runtime::obj::big_decimal>(\"{}\")",
++                            "jank::runtime::make_box<jank::runtime::obj::big_decimal>(\"{}\").erase()",
+                             typed_o->to_string());
+           }
+           else if constexpr(std::same_as<T, obj::ratio>)

@@ -1,0 +1,151 @@
+schema_version: 1
+
+context:
+  group: jank-lang
+  version: 0.1.1.post20261101
+  commit: f3d82d65499920f81216e9235bd5d3a34a968e3f
+
+package:
+  name: jank
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/jank-lang/jank/archive/${{ commit }}.tar.gz
+    sha256: 7d92d57e22bcd58d777fc06db8b37b60f887dd81b0180c5f109f12559911b41d
+    patches:
+      - use-system-libraries.patch
+      - fix-aot-constant-types.patch
+  - url: https://github.com/jank-lang/immer/archive/282629d01917d4c7d0aba2322de700c6d1111276.tar.gz
+    sha256: 21a6ef49a3e9ab3c8613fc5a6ef4b8f3ad2abce0d4ceb00e4be1bce052e6532a
+    target_directory: compiler+runtime/third-party/immer
+  - url: https://github.com/jank-lang/CppInterOp/archive/f7e840b4f99693741448f16f889855e29adecde6.tar.gz
+    sha256: f536ae6612c0c245d2e2487b7e7451d708dfdc201fed1e658c506aad18615dc5
+    target_directory: compiler+runtime/third-party/cppinterop
+  - url: https://github.com/jank-lang/bdwgc/archive/327ef1f8c80a611b2f8b915850c8b2fd38e6595e.tar.gz
+    sha256: 0c273a852db08def4e447d2f82b081c6f595f1e65169750bf5374e485a8311de
+    target_directory: compiler+runtime/third-party/bdwgc
+  - url: https://github.com/jank-lang/stduuid/archive/3afe7193facd5d674de709fccc44d5055e144d7a.tar.gz
+    sha256: e11f9bf30c7f9c03d8e9a3a3fd7fe016eb5d8d9b89a2fe2c11b5f049e1d97916
+    target_directory: compiler+runtime/third-party/stduuid
+  - url: https://github.com/jank-lang/zip/archive/52d1c1d00831c4f10ef8a6bb12ae6bb3e57743b9.tar.gz
+    sha256: 51f022a6aebb1b0fb311c118029153f420f5a366e45cf660575ae60772ed7576
+    target_directory: compiler+runtime/third-party/zip
+  - url: https://github.com/daanx/isocline/archive/8d6dc1ef95b1b46711e66eb23d39d4467a0fcdac.tar.gz
+    sha256: 0a2149aa99bdffc0c430aa4ecfcdc378bd5f98565eef10991475db52b33f607b
+    target_directory: compiler+runtime/third-party/isocline
+
+build:
+  number: 1
+  skip: win
+  script:
+    interpreter: nu
+    content: |
+      cd compiler+runtime
+
+      if ($env.HOST | str contains "darwin") {
+        $env.SDKROOT = (^xcrun --sdk macosx --show-sdk-path | str trim)
+        $env.DYLD_LIBRARY_PATH = $"($env.PREFIX)/lib"
+      }
+
+      let linker_flags = if ($env.HOST | str contains "darwin") {
+        $"-L($env.PREFIX)/lib -lzstd -lfolly -lcpptrace"
+      } else {
+        $"-L($env.PREFIX)/lib -ldl -lzstd -lfolly -lcpptrace -pthread -Wl,--no-as-needed"
+      }
+
+      ^./bin/configure -Djank_test=OFF -DFETCHCONTENT_FULLY_DISCONNECTED=ON -GNinja -DCMAKE_BUILD_TYPE=Release $"-DCMAKE_PREFIX_PATH=($env.PREFIX)" $"-Dclang_dir=($env.PREFIX)" $"-DCMAKE_EXE_LINKER_FLAGS=($linker_flags)"
+      ^./bin/compile
+      ^./bin/install --prefix $env.PREFIX
+
+      let jank_bin_dir = ($env.PREFIX | path join "lib" "jank" "0.1" "bin")
+      ^mkdir -p $jank_bin_dir
+      ^ln -sf "../../../../bin/clang" ($jank_bin_dir | path join "clang")
+      ^ln -sf "../../../../bin/clang++" ($jank_bin_dir | path join "clang++")
+      ^ln -sf "../../../../bin/clang-23" ($jank_bin_dir | path join "clang-23")
+
+      let activate_dir = ($env.PREFIX | path join "etc" "conda" "activate.d")
+      let deactivate_dir = ($env.PREFIX | path join "etc" "conda" "deactivate.d")
+      ^mkdir -p $activate_dir $deactivate_dir
+      "export JANK_LIBRARY_PATH_BACKUP=\"${LIBRARY_PATH:-}\"\nexport LIBRARY_PATH=\"${CONDA_PREFIX}/lib${LIBRARY_PATH:+:${LIBRARY_PATH}}\"\n" | save ($activate_dir | path join "jank.sh")
+      "export LIBRARY_PATH=\"${JANK_LIBRARY_PATH_BACKUP}\"\nunset JANK_LIBRARY_PATH_BACKUP\n" | save ($deactivate_dir | path join "jank.sh")
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: linux
+      then: binutils
+    - cmake
+    - git
+    - ninja
+    - nushell
+    - pkgconf
+    - sbcl
+    - sed
+
+  host:
+    - fmt
+    - liblzma-devel
+    - libboost-devel
+    - libboost-headers
+    - gflags
+    - folly * [build="^h[0-9a-f]+_[0-9]+$"]
+    - cpptrace >=1.0.4,<1.1
+    - nlohmann_json >=3.12,<4
+    - clangdev 23.*
+    - libclang-cpp 23.*
+    - llvmdev 23.*
+    - zlib
+    - zstd
+
+  run:
+    - folly * [build="^h[0-9a-f]+_[0-9]+$"]
+    - ${{ pin_compatible('libboost-headers', upper_bound='x.x') }}
+    - clang 23.*
+    - clangdev 23.*
+
+tests:
+  - package_contents:
+      bin:
+        - jank
+      files:
+        - lib/jank/0.1/bin/clang++
+        - lib/jank/0.1/src/jank/clojure/core.jank
+  - script:
+      - jank print-binary-version
+      - jank run smoke.jank
+      - jank -O0 --module-path . compile smoke --name smoke-aot
+      - ./target/smoke-aot > aot-result.txt
+      - grep -x jank-smoke aot-result.txt
+    files:
+      recipe:
+        - smoke.jank
+
+about:
+  license: MPL-2.0
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_LICENSES.txt
+    - compiler+runtime/third-party/bdwgc/LICENSE
+    - compiler+runtime/third-party/cppinterop/LICENSE.txt
+    - compiler+runtime/third-party/immer/LICENSE
+    - compiler+runtime/third-party/isocline/LICENSE
+    - compiler+runtime/third-party/nanobench/include/nanobench.h
+    - compiler+runtime/third-party/stduuid/LICENSE
+    - compiler+runtime/third-party/zip/LICENSE.txt
+  summary: Jank a LLVM hosted Clojure
+  description: |
+    Jank is a general-purpose programming language which embraces the interactive,
+    functional, value-oriented nature of Clojure and the desire for the native
+    runtime and performance of C++. It is a dialect of Clojure that targets LLVM,
+    offering native code compilation via a C++ backend and an LLVM-based JIT
+    compiler, with seamless C++ interop from within Clojure source files.
+  homepage: https://jank-lang.org/
+  documentation: https://book.jank-lang.org
+  repository: https://github.com/${{ group }}/jank
+
+extra:
+  recipe-maintainers:
+    - phreed
+    - jeaye
