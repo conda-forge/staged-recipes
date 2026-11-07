@@ -1,0 +1,67 @@
+schema_version: 1
+
+context:
+  version: "0.0.1"
+  # spey-hs3 needs pytensor, which has no Python 3.10 builds on win-64
+  python_min: "3.11"
+
+package:
+  name: spey-roofit
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/s/spey_roofit/spey_roofit-${{ version }}.tar.gz
+  sha256: be8bf8e2d72e1ba64194b192f7b9403b0013c47a3d967a7f1428477919f0286d
+
+build:
+  number: 0
+  # not noarch: root and cms-combine are built per platform and Python version, and
+  # are not available on Windows
+  skip:
+    - win
+    - match(python, "<${{ python_min }}")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools >=64
+  run:
+    - python
+    - spey >=0.2.6
+    - spey-hs3 >=0.0.3
+    - numpy >=1.24
+    # not a hard dependency in pyproject.toml, but the reference environment
+    # (environment.yml) ships it and the validation workflows need it
+    - scipy >=1.10
+    # ROOT (RooFit/HS3) and CMS Combine are only distributed through conda-forge,
+    # which is why the plug-in is packaged as a conda recipe in the first place
+    - root >=6.30
+    - cms-combine >=10.5
+
+tests:
+  - python:
+      imports:
+        - spey_roofit
+        - ROOT
+      pip_check: true
+  - script:
+      - python -c "import spey; b = spey.AvailableBackends(); assert all(n in b for n in ('root.roofit', 'root.hs3', 'root.cms-combine')), b"
+
+about:
+  summary: RooFit plug-in for Spey
+  description: |
+    spey-roofit adds the ``root.roofit``, ``root.hs3`` and ``root.cms-combine``
+    backends to Spey, allowing statistical models stored as ROOT RooFit
+    workspaces, HS3 JSON files or CMS Combine datacards to be used for
+    smooth inference in reinterpretation studies.
+  license: MIT
+  license_file: LICENSE
+  homepage: https://github.com/SpeysideHEP/spey-roofit
+  repository: https://github.com/SpeysideHEP/spey-roofit
+  documentation: https://spey-roofit.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - jackaraz
