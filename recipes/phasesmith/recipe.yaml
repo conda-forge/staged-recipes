@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "0.7.0"
+
+package:
+  name: phasesmith
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/phasesmith/phasesmith-${{ version }}.tar.gz
+  sha256: f2c1df81add94a92446f171a2c77d22acacf57b7fff3254935b6841be5b4a4ba
+
+build:
+  number: 0
+  # is_freethreading is supplied by conda-forge-pinning.
+  skip: match(python, "<3.11") or (is_freethreading | default(false))
+  python:
+    # Generate a relocatable launcher instead of retaining pip's Windows launcher.
+    entry_points:
+      - phasesmith = phasesmith.cli:main
+  script:
+    - python -m pip install . -vv --no-deps --no-build-isolation --config-settings=build-args=--locked
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.10,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.10,<2
+  run:
+    - python
+    - numpy >=1.26
+
+tests:
+  - python:
+      imports:
+        - phasesmith
+        - phasesmith._core
+        - phasesmith.automation
+        - phasesmith.persistence
+        - phasesmith.refinement
+        - phasesmith.refinement.pawley
+        - phasesmith.refinement.tof_pawley
+      pip_check: true
+  - script: run_test.py
+  - script: phasesmith --help
+
+about:
+  homepage: https://github.com/CPrescher/PhaseSmith
+  summary: Fast, validated powder-diffraction profile calculations
+  description: |
+    PhaseSmith provides Rust numerical kernels and a typed NumPy API for
+    powder-diffraction profiles, crystallography, and Le Bail, Pawley, and Rietveld
+    refinement. GSAS-II is an optional external validation oracle and is
+    not required to build or use this package.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    - THIRDPARTY.yml
+  documentation: https://phasesmith.readthedocs.io/
+  repository: https://github.com/CPrescher/PhaseSmith
+
+extra:
+  recipe-maintainers:
+    - CPrescher
