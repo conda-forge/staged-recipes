@@ -1,0 +1,77 @@
+context:
+  version: "2.2.3"
+
+package:
+  name: pynvvideocodec
+  version: ${{ version }}
+
+source:
+  url: https://api.ngc.nvidia.com/v2/resources/nvidia/pynvvideocodec/versions/v${{ version }}/files/PyNvVideoCodec_${{ version }}.zip
+  sha256: 29f7c0694d683266c563aca9a4f8e979ba0c5dce8f0ccc1efe500073e0948be0
+  patches:
+    - 0001-use-conda-dependencies.patch
+
+build:
+  number: 0
+  skip:
+    - not (linux and (x86_64 or aarch64))
+    - match(python, "<3.10")
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.21
+    - ninja
+  host:
+    - python
+    - pip
+    - setuptools >=42
+    - wheel
+    - packaging
+    - scikit-build
+    - numpy
+    - pybind11 >=2.12
+    - dlpack >=0.8
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-driver-dev
+    - ffmpeg
+  run:
+    - python
+    - __cuda >=12
+
+# Importing PyNvVideoCodec queries the NVIDIA driver. Load the extensions
+# directly instead, so CI can check them without a GPU or driver.
+tests:
+  - script:
+      - python -m pip check
+      - python test_extensions.py
+    requirements:
+      run:
+        - pip
+        - cuda-driver-dev
+    files:
+      recipe:
+        - test_extensions.py
+
+about:
+  homepage: https://pypi.org/project/pynvvideocodec/
+  summary: NVIDIA Python library for hardware-accelerated video encoding and decoding
+  description: |
+    PyNvVideoCodec provides Python APIs for hardware-accelerated video encoding,
+    decoding, and transcoding on NVIDIA GPUs, built on the Video Codec SDK.
+    An NVIDIA GPU and a driver supporting NVENC 12.1 or newer are required.
+  license: MIT
+  license_file:
+    - LICENSE.txt
+    - NOTICES.txt
+  documentation: https://docs.nvidia.com/video-technologies/pynvvideocodec/index.html
+  repository: https://catalog.ngc.nvidia.com/orgs/nvidia/resources/pynvvideocodec
+
+extra:
+  recipe-maintainers:
+    - shermansiu
