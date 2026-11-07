@@ -1,0 +1,30 @@
+--- a/tokenspeed-kernel/python/setup.py
++++ b/tokenspeed-kernel/python/setup.py
+@@ -321,6 +321,9 @@
+ 
+ 
+ def _install_backend_build_requirements(verbose) -> None:
++    if os.environ.get("TOKENSPEED_KERNEL_CONDA_BUILD") == "1":
++        # The conda host environment supplies all build dependencies.
++        return
+     backend = _selected_backend()
+     if (
+         backend == "cuda"
+@@ -637,6 +640,8 @@
+ 
+     def _resolve_include_dirs(self):
+         dirs = [str(CUDA_CSRC_DIR / "include"), str(CUDA_CSRC_DIR)]
++        if os.environ.get("TOKENSPEED_KERNEL_CONDA_BUILD") == "1":
++            dirs.append(str(Path(os.environ["PREFIX"]) / "include"))
+         seen = set(dirs)
+ 
+         def _add_dir(path: Path) -> None:
+@@ -869,7 +874,7 @@
+             "-DENABLE_FP8",
+         ] + gencode_flags
+         include_dirs = self._resolve_include_dirs()
+-        ldflags = ["-shared"] + self._resolve_cuda_lib_flags()
++        ldflags = ["-shared"] + shlex.split(os.environ.get("LDFLAGS", "")) + self._resolve_cuda_lib_flags()
+         build_identity = self._build_identity(nvcc_flags, include_dirs, ldflags)
+ 
+         # Ensure output directory exists
