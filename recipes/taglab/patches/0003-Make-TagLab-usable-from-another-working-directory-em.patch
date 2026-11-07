@@ -1,0 +1,612 @@
+From 0a158ac483b8a8513fd05a566619cfed3f9f77ab Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Mon, 2 Nov 2026 20:55:44 +1000
+Subject: [PATCH 3/5] Make TagLab usable from another working directory /
+ embeddable
+
+TagLab only worked when started from its own folder, and only through
+`python TagLab.py`. Resources were opened with paths relative to the
+current directory (icons, models, dictionaries; several icons even used
+Windows backslashes, so they were missing on Linux and macOS), and
+everything the program needs besides the TagLab widget itself lived under
+`if __name__ == '__main__'`. Started from elsewhere the window had no
+icons and a modal "dictionary not found" box blocked start-up; used from
+another application, TagLab() raised NameError (slider_style2).
+
+- genutils.TAGLAB_DIR / taglabPath() give the TagLab folder; icons,
+  model weights, the default dictionary, the version file, the log and the
+  classifier's temp folder are joined onto it
+- slider_style1/2 are module level
+- the application icon, style sheet and font are set by setupApplication(),
+  which __main__ calls; an application that embeds TagLab does not have
+  to adopt them
+- TagLab(screen_size, check_updates=False) skips the online version
+  check, which quits the process when a newer version exists on main
+- a relative default dictionary stored in the settings is resolved
+  against the TagLab folder
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ TagLab.py                        | 85 +++++++++++++++++++-------------
+ models/trainYolo11.py            | 22 ++++-----
+ models/training.py               |  6 +--
+ source/MapClassifier.py          |  5 +-
+ source/QtBricksWidget.py         |  7 +--
+ source/QtClassifierWidget.py     |  3 +-
+ source/QtCropWidget.py           |  3 +-
+ source/QtGeoreferencingWidget.py |  3 +-
+ source/QtGridWidget.py           |  3 +-
+ source/QtNewDatasetWidget.py     |  3 +-
+ source/QtSampleWidget.py         |  5 +-
+ source/QtSettingsWidget.py       |  2 +-
+ source/QtWorkingAreaWidget.py    |  3 +-
+ source/genutils.py               |  9 ++++
+ source/tools/FourClicks.py       |  3 +-
+ source/tools/Sam.py              |  4 +-
+ 16 files changed, 100 insertions(+), 66 deletions(-)
+
+diff --git a/TagLab.py b/TagLab.py
+index 3cd4341..120a3da 100644
+--- a/TagLab.py
++++ b/TagLab.py
+@@ -129,7 +129,7 @@ import logging
+ # configure the logger
+ now = datetime.datetime.now()
+ #LOG_FILENAME = "tool" + now.strftime("%Y-%m-%d-%H-%M") + ".log"
+-LOG_FILENAME = "TagLab.log"
++LOG_FILENAME = genutils.taglabPath("TagLab.log")
+ logging.basicConfig(level=logging.DEBUG, filemode='w', filename=LOG_FILENAME, format = '%(asctime)s %(levelname)-8s %(message)s')
+ logfile = logging.getLogger("tool-logger")
+ 
+@@ -159,14 +159,16 @@ class MainWindow(QMainWindow):
+ class TagLab(QMainWindow):
+     
+ 
+-    def __init__(self, screen_size, parent=None):
++    def __init__(self, screen_size, parent=None, check_updates=True):
+         super(TagLab, self).__init__(parent)
+ 
+         ##### CUSTOM STYLE #####
+ 
+         self.setStyleSheet("background-color: rgb(55,55,55); color: white")
+ 
+-        current_version, need_to_update = self.checkNewVersion()
++        # check_updates=False (e.g. when TagLab is embedded in another application) skips the network check, which
++        # would otherwise quit the whole process if a newer version is online.
++        current_version, need_to_update = self.checkNewVersion() if check_updates else (self.readOfflineVersion(), False)
+         if need_to_update:
+             if self.getGitBranch() == 'main':
+                 print("\033[91m" + "*" * 60)
+@@ -185,7 +187,7 @@ class TagLab(QMainWindow):
+ 
+         ##### DATA INITIALIZATION AND SETUP #####
+ 
+-        self.taglab_dir = os.path.dirname(__file__)
++        self.taglab_dir = genutils.TAGLAB_DIR
+ 
+         self.TAGLAB_VERSION = "TagLab " + current_version
+ 
+@@ -285,7 +287,7 @@ class TagLab(QMainWindow):
+ 
+ 
+         # separator
+-        pxmapSeparator = QPixmap("icons/separator.png")
++        pxmapSeparator = QPixmap(genutils.taglabPath("icons", "separator.png"))
+         labelSeparator1 = QLabel()
+         labelSeparator1.setPixmap(pxmapSeparator.scaled(QSize(35, 30)))
+         labelSeparator2 = QLabel()
+@@ -525,8 +527,8 @@ class TagLab(QMainWindow):
+             self.default_dictionary = self.settings_widget.settings.value("default-dictionary",
+                                                                           defaultValue=default_dict,
+                                                                           type=str)
+-            # Check if previously stored dict actually exists
+-            if not os.path.exists(self.default_dictionary):
++            # Check if previously stored dict actually exists (relative paths are relative to the TagLab folder)
++            if not os.path.exists(os.path.join(self.taglab_dir, self.default_dictionary)):
+                 QMessageBox.warning(self,
+                                     "Warning",
+                                     f"Previously loaded dictionary {self.default_dictionary} not found! "
+@@ -534,14 +536,14 @@ class TagLab(QMainWindow):
+ 
+                 # If not, check for the scripps dictionary
+                 self.default_dictionary = default_dict
+-                if not os.path.exists(self.default_dictionary):
++                if not os.path.exists(os.path.join(self.taglab_dir, self.default_dictionary)):
+                     raise Exception(f"TagLab default dictionary {self.default_dictionary} not found! "
+                                     f"Please re-download it.")
+ 
+             # Re-set the default dictionary
+             self.settings_widget.settings.setValue("default-dictionary", self.default_dictionary)
+             # Load the dictionary, load the project
+-            self.project.loadDictionary(self.default_dictionary)
++            self.project.loadDictionary(os.path.join(self.taglab_dir, self.default_dictionary))
+             self.labels_widget.setLabels(self.project, None)
+ 
+         except Exception as e:
+@@ -836,7 +838,7 @@ class TagLab(QMainWindow):
+     def getGitBranch(self):
+         """Return the current git branch name, or 'main' if it cannot be determined."""
+         try:
+-            git_head = os.path.join(os.path.dirname(__file__), '.git', 'HEAD')
++            git_head = os.path.join(genutils.TAGLAB_DIR, '.git', 'HEAD')
+             with open(git_head, 'r') as f:
+                 content = f.read().strip()
+             if content.startswith('ref: refs/heads/'):
+@@ -845,6 +847,11 @@ class TagLab(QMainWindow):
+             pass
+         return 'main'
+ 
++    def readOfflineVersion(self):
++
++        with open(os.path.join(genutils.TAGLAB_DIR, "TAGLAB_VERSION"), "r") as f:
++            return f.read()
++
+     def checkNewVersion(self):
+ 
+         github_repo = 'cnr-isti-vclab/TagLab/'
+@@ -852,9 +859,7 @@ class TagLab(QMainWindow):
+         raw_link = 'https://raw.githubusercontent.com/' + github_repo + 'main/TAGLAB_VERSION'
+ 
+         # read offline version
+-        taglab_version_file = os.path.join(os.path.dirname(__file__), "TAGLAB_VERSION")
+-        f_off_version = open(taglab_version_file, "r")
+-        taglab_offline_version = f_off_version.read()
++        taglab_offline_version = self.readOfflineVersion()
+ 
+         #print('Raw link: ' + raw_link)
+         try:
+@@ -6481,7 +6486,7 @@ class TagLab(QMainWindow):
+                     self.progress_bar.setMessage("Finalizing classification results..")
+                     QApplication.processEvents()
+ 
+-                    filename = os.path.join("temp", "labelmap.png")
++                    filename = genutils.taglabPath("temp", "labelmap.png")
+ 
+                     offset = self.classifier.offset
+                     scale = [self.classifier.scale_factor, self.classifier.scale_factor]
+@@ -6517,33 +6522,35 @@ class TagLab(QMainWindow):
+                     self.move()
+ 
+ 
+-if __name__ == '__main__':
++# styles shared by the widgets of TagLab (module level, so that TagLab can be used without running __main__)
++slider_style1 = "\
++ QSlider::groove::horizontal\
++ {\
++     border: 1px solid;\
++     height: 8px;\
++     color: rgb(100,100,100);\
++ }"
++
++slider_style2 = "QSlider::handle::horizontal\
++ {\
++     background: white;\
++     border: 1;\
++     width: 18px;\
++ }"
+ 
+-    # Create the QApplication.
+-    app = QApplication(sys.argv)
+ 
+-    TAGLAB_PATH = os.path.dirname(__file__)
+-    PATH_ICONS = os.path.join(TAGLAB_PATH, "icons")
+-    PATH_FONTS = os.path.join(TAGLAB_PATH, "fonts")
++def setupApplication(app):
++    """
++    Application-wide setup of TagLab: icon, style sheet and font. It is called when TagLab is run as a program;
++    an application that embeds TagLab can skip it (or call it) to decide whether to adopt the TagLab look.
++    """
++
++    PATH_ICONS = os.path.join(genutils.TAGLAB_DIR, "icons")
++    PATH_FONTS = os.path.join(genutils.TAGLAB_DIR, "fonts")
+ 
+     # set application icon
+     app.setWindowIcon(QIcon(os.path.join(PATH_ICONS, "taglab50px.png")))
+ 
+-    slider_style1 = "\
+-     QSlider::groove::horizontal\
+-     {\
+-         border: 1px solid;\
+-         height: 8px;\
+-         color: rgb(100,100,100);\
+-     }"
+-
+-    slider_style2 = "QSlider::handle::horizontal\
+-     {\
+-         background: white;\
+-         border: 1;\
+-         width: 18px;\
+-     }"
+-
+     app.setStyleSheet("QLabel {color: white}")
+     app.setStyleSheet("QPushButton {background-color: rgb(49,51,53); color: white}")
+     app.setStyleSheet(slider_style1)
+@@ -6574,6 +6581,14 @@ if __name__ == '__main__':
+         font = QFont('Roboto')
+         app.setFont(font)
+ 
++
++if __name__ == '__main__':
++
++    # Create the QApplication.
++    app = QApplication(sys.argv)
++
++    setupApplication(app)
++
+     # get the scren size
+     screen_size = app.primaryScreen().size()
+ 
+diff --git a/models/trainYolo11.py b/models/trainYolo11.py
+index 78066b9..17fcb12 100644
+--- a/models/trainYolo11.py
++++ b/models/trainYolo11.py
+@@ -1,5 +1,5 @@
+ 
+-from source.genutils import requirePackage
++from source.genutils import requirePackage, taglabPath
+ import yaml
+ import os
+ import sys
+@@ -87,19 +87,19 @@ def trainYOLOSeg(params,log_callback=None):
+     model_file = {
+ 
+         "yolo11": {
+-            "n": os.path.join("models", "yolo11n-seg.pt"),
+-            "s": os.path.join("models", "yolo11s-seg.pt"),
+-            "m": os.path.join("models", "yolo11m-seg.pt"),
+-            "l": os.path.join("models", "yolo11l-seg.pt"),
+-            "x": os.path.join("models", "yolo11x-seg.pt"),
++            "n": taglabPath("models", "yolo11n-seg.pt"),
++            "s": taglabPath("models", "yolo11s-seg.pt"),
++            "m": taglabPath("models", "yolo11m-seg.pt"),
++            "l": taglabPath("models", "yolo11l-seg.pt"),
++            "x": taglabPath("models", "yolo11x-seg.pt"),
+         },
+ 
+         "yolo26": {
+-            "n": os.path.join("models", "yolo26n-seg.pt"),
+-            "s": os.path.join("models", "yolo26s-seg.pt"),
+-            "m": os.path.join("models", "yolo26m-seg.pt"),
+-            "l": os.path.join("models", "yolo26l-seg.pt"),
+-            "x": os.path.join("models", "yolo26x-seg.pt"),
++            "n": taglabPath("models", "yolo26n-seg.pt"),
++            "s": taglabPath("models", "yolo26s-seg.pt"),
++            "m": taglabPath("models", "yolo26m-seg.pt"),
++            "l": taglabPath("models", "yolo26l-seg.pt"),
++            "x": taglabPath("models", "yolo26x-seg.pt"),
+         }
+     }
+ 
+diff --git a/models/training.py b/models/training.py
+index 7d9b879..a7b1088 100644
+--- a/models/training.py
++++ b/models/training.py
+@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
+ from models.coral_dataset import CoralsDataset
+ import models.losses as losses
+ from PySide6.QtWidgets import QApplication
+-from source.genutils import requirePackage
++from source.genutils import requirePackage, taglabPath
+ 
+ 
+ def QHAdam(*args, **kwargs):
+@@ -323,9 +323,9 @@ def trainingNetwork(images_folder_train, labels_folder_train, images_folder_val,
+     net = DeepLab(backbone='resnet', output_stride=16, num_classes=output_classes)
+ 
+     if torch.cuda.is_available():
+-        state = torch.load("models/deeplab-resnet.pth.tar", weights_only=False, map_location=torch.device("cuda"))
++        state = torch.load(taglabPath("models", "deeplab-resnet.pth.tar"), weights_only=False, map_location=torch.device("cuda"))
+     else:
+-        state = torch.load("models/deeplab-resnet.pth.tar", weights_only=False, map_location=torch.device("cpu"))
++        state = torch.load(taglabPath("models", "deeplab-resnet.pth.tar"), weights_only=False, map_location=torch.device("cpu"))
+ 
+     # RE-INIZIALIZE THE CLASSIFICATION LAYER WITH THE RIGHT NUMBER OF CLASSES, DON'T LOAD WEIGHTS OF THE CLASSIFICATION LAYER
+     new_dictionary = state['state_dict']
+diff --git a/source/MapClassifier.py b/source/MapClassifier.py
+index 400615d..96aa7fd 100644
+--- a/source/MapClassifier.py
++++ b/source/MapClassifier.py
+@@ -37,6 +37,7 @@ from PySide6.QtCore import QCoreApplication, Qt, QObject, Slot, Signal
+ from PySide6.QtGui import QPainter, QImage, QColor, QPixmap, qRgb, qRed, qGreen, qBlue
+ 
+ from source import genutils
++from source.genutils import taglabPath
+ 
+ 
+ class MapClassifier(QObject):
+@@ -85,12 +86,12 @@ class MapClassifier(QObject):
+         self.wa_width = 0
+         self.wa_height = 0
+ 
+-        self.temp_dir = "temp"
++        self.temp_dir = taglabPath("temp")
+ 
+ 
+     def _load_classifier(self, modelName):
+ 
+-        models_dir = "models/"
++        models_dir = taglabPath("models")
+ 
+         network_name = os.path.join(models_dir, modelName)
+ 
+diff --git a/source/QtBricksWidget.py b/source/QtBricksWidget.py
+index c485ae2..f4902e5 100644
+--- a/source/QtBricksWidget.py
++++ b/source/QtBricksWidget.py
+@@ -38,6 +38,7 @@ from models.isegm.inference import utils
+ from source.genutils import cropQImage, cropImage, qimageToNumpyArray, maskToQImage, rgbToQImage, floatmapToQImage
+ from source.Mask import checkIntersection, intersectMask, paintMask
+ import random
++from source.genutils import taglabPath
+ 
+ class QtBricksWidget(QWidget):
+ 
+@@ -154,7 +155,7 @@ class QtBricksWidget(QWidget):
+         self.btnRectangularShape = QPushButton("")
+         self.btnRectangularShape.setFixedWidth(BUTTON_SIZE+2)
+         self.btnRectangularShape.setFixedHeight(BUTTON_SIZE+2)
+-        iconRectangularShape = QIcon("icons/bricks-type-rectangular-shape.png")
++        iconRectangularShape = QIcon(taglabPath("icons", "bricks-type-rectangular-shape.png"))
+         self.btnRectangularShape.setIcon(iconRectangularShape)
+         self.btnRectangularShape.setIconSize(QSize(BUTTON_SIZE,BUTTON_SIZE))
+         self.btnRectangularShape.setCheckable(True)
+@@ -163,7 +164,7 @@ class QtBricksWidget(QWidget):
+         self.btnIrregularShape = QPushButton("")
+         self.btnIrregularShape.setFixedWidth(BUTTON_SIZE+2)
+         self.btnIrregularShape.setFixedHeight(BUTTON_SIZE+2)
+-        iconIrregularShape = QIcon("icons/bricks-type-irregular-shape.png")
++        iconIrregularShape = QIcon(taglabPath("icons", "bricks-type-irregular-shape.png"))
+         self.btnIrregularShape.setIcon(iconIrregularShape)
+         self.btnIrregularShape.setIconSize(QSize(BUTTON_SIZE,BUTTON_SIZE))
+         self.btnIrregularShape.setCheckable(True)
+@@ -384,7 +385,7 @@ class QtBricksWidget(QWidget):
+         if self.ritm_net is None:
+ 
+             model_name = 'ritm_corals.pth'
+-            model_path = os.path.join("models", model_name)
++            model_path = taglabPath("models", model_name)
+ 
+             if not torch.cuda.is_available():
+                 print("CUDA NOT AVAILABLE!")
+diff --git a/source/QtClassifierWidget.py b/source/QtClassifierWidget.py
+index d73542d..bf55564 100644
+--- a/source/QtClassifierWidget.py
++++ b/source/QtClassifierWidget.py
+@@ -26,6 +26,7 @@ from source.Annotation import Annotation
+ import numpy as np
+ 
+ from source import genutils
++from source.genutils import taglabPath
+ 
+ class QtClassifierWidget(QWidget):
+ 
+@@ -108,7 +109,7 @@ class QtClassifierWidget(QWidget):
+         #prev panel
+ 
+         self.btnChooseArea = QPushButton()
+-        ChooseAreaIcon = QIcon("icons\\select_area.png")
++        ChooseAreaIcon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btnChooseArea.setIcon(ChooseAreaIcon)
+         self.chkAutocolor = QCheckBox("Auto color")
+         self.chkAutolevel = QCheckBox("Auto contrast")
+diff --git a/source/QtCropWidget.py b/source/QtCropWidget.py
+index 943ee35..5c2afc6 100644
+--- a/source/QtCropWidget.py
++++ b/source/QtCropWidget.py
+@@ -20,6 +20,7 @@
+ 
+ from PySide6.QtCore import Qt, Slot, Signal
+ from PySide6.QtGui import QIcon
++from source.genutils import taglabPath
+ from PySide6.QtWidgets import QWidget, QMessageBox, QSizePolicy, QLineEdit, QLabel, QPushButton, \
+     QHBoxLayout, QVBoxLayout
+ 
+@@ -95,7 +96,7 @@ class QtCropWidget(QWidget):
+         self.btnChooseArea = QPushButton()
+         self.btnChooseArea.setFixedWidth(32)
+         self.btnChooseArea.setFixedHeight(32)
+-        ChooseAreaIcon = QIcon("icons\\select_area.png")
++        ChooseAreaIcon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btnChooseArea.setIcon(ChooseAreaIcon)
+ 
+         layout_main_horiz = QHBoxLayout()
+diff --git a/source/QtGeoreferencingWidget.py b/source/QtGeoreferencingWidget.py
+index bdf984a..7ea9e5a 100644
+--- a/source/QtGeoreferencingWidget.py
++++ b/source/QtGeoreferencingWidget.py
+@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QWidget, QGroupBox, QComboBox, QRadioButton, QLine
+     QHBoxLayout, QVBoxLayout, QGridLayout, QMessageBox
+ from osgeo import osr
+ import rasterio as rio
++from source.genutils import taglabPath
+ 
+ class QtGeoreferencingWidget(QWidget):
+ 
+@@ -86,7 +87,7 @@ class QtGeoreferencingWidget(QWidget):
+         coord_grid.setSpacing(10)
+ 
+ 
+-        area_icon = QIcon("icons\\select_area.png")
++        area_icon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btn_pick_point_1 = QPushButton("")
+         self.btn_pick_point_1.setIcon(area_icon)
+         self.btn_pick_point_1.setMinimumWidth(30)
+diff --git a/source/QtGridWidget.py b/source/QtGridWidget.py
+index bc62b7d..b73310e 100644
+--- a/source/QtGridWidget.py
++++ b/source/QtGridWidget.py
+@@ -24,6 +24,7 @@ from PySide6.QtGui import QImage, QImageReader, QPixmap, QIcon, qRgb, qRed, qGre
+ from PySide6.QtWidgets import QWidget, QMessageBox, QFileDialog, QComboBox, QSizePolicy, QLineEdit, QLabel, QPushButton, \
+     QHBoxLayout, QVBoxLayout
+ from source.Grid import Grid
++from source.genutils import taglabPath
+ 
+ 
+ class QtGridWidget(QWidget):
+@@ -97,7 +98,7 @@ class QtGridWidget(QWidget):
+             layoutV.addLayout(layout)
+ 
+ 
+-        WorkingAreaIcon = QIcon("icons\\corner.png")
++        WorkingAreaIcon = QIcon(taglabPath("icons", "corner.png"))
+         self.fields["position"]["button"].setIcon(WorkingAreaIcon)
+ 
+         buttons_layout = QHBoxLayout()
+diff --git a/source/QtNewDatasetWidget.py b/source/QtNewDatasetWidget.py
+index dac4081..842cf7f 100644
+--- a/source/QtNewDatasetWidget.py
++++ b/source/QtNewDatasetWidget.py
+@@ -23,6 +23,7 @@ import os
+ from PySide6.QtCore import Qt, Slot, Signal
+ from PySide6.QtGui import QImage, QPixmap, QIcon, qRgb, qRed, qGreen, qBlue
+ from PySide6.QtWidgets import QWidget, QCheckBox, QFileDialog, QComboBox, QSizePolicy, QLineEdit, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
++from source.genutils import taglabPath
+ 
+ class QtNewDatasetWidget(QWidget):
+ 
+@@ -114,7 +115,7 @@ class QtNewDatasetWidget(QWidget):
+         self.btnChooseDatasetFolder.clicked.connect(self.chooseDatasetFolder)
+ 
+         self.btnChooseExportArea = QPushButton()
+-        exportAreaIcon = QIcon("icons\\select_area.png")
++        exportAreaIcon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btnChooseExportArea.setIcon(exportAreaIcon)
+ 
+         layoutH0c = QVBoxLayout()
+diff --git a/source/QtSampleWidget.py b/source/QtSampleWidget.py
+index 9474075..0484ac4 100644
+--- a/source/QtSampleWidget.py
++++ b/source/QtSampleWidget.py
+@@ -3,6 +3,7 @@ from PySide6.QtGui import QIcon, QPalette, QColor
+ from PySide6.QtWidgets import QSizePolicy, QCheckBox, QLineEdit, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
+ from PySide6.QtWidgets import QRadioButton, QButtonGroup, QGroupBox, QMessageBox,  QWidget, QComboBox
+ from source import genutils
++from source.genutils import taglabPath
+ 
+ class QtSampleWidget(QWidget):
+ 
+@@ -26,7 +27,7 @@ class QtSampleWidget(QWidget):
+         self.group_SA = QGroupBox()
+         self.radio_SA = QRadioButton("Add a single sampling area")
+ 
+-        area_icon = QIcon("icons\\select_area.png")
++        area_icon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btn_select_area_SA = QPushButton("")
+         self.btn_select_area_SA.setIcon(area_icon)
+         self.btn_select_area_SA.setMinimumWidth(30)
+@@ -98,7 +99,7 @@ class QtSampleWidget(QWidget):
+         self.combo_method_T.addItem('Equi-spaced')
+         self.combo_method_T.addItem('Random')
+ 
+-        line_icon = QIcon("icons\\select_line.png")
++        line_icon = QIcon(taglabPath("icons", "select_line.png"))
+         self.btn_select_transect_T = QPushButton("")
+         self.btn_select_transect_T.setIcon(line_icon)
+         self.btn_select_transect_T.setMinimumWidth(30)
+diff --git a/source/QtSettingsWidget.py b/source/QtSettingsWidget.py
+index 33fda16..1e39802 100644
+--- a/source/QtSettingsWidget.py
++++ b/source/QtSettingsWidget.py
+@@ -466,7 +466,7 @@ class QtSettingsWidget(QWidget):
+         default_dict = "dictionaries/scripps.json"
+         # Check that the default dictionary isn't None, if it is set it to the default one
+         # Otherwise, don't set a default dictionary in registry
+-        if not "default-dictionary" in self.settings.allKeys() and os.path.exists(default_dict):
++        if not "default-dictionary" in self.settings.allKeys() and os.path.exists(os.path.join(taglab_dir, default_dict)):
+             self.settings.setValue("default-dictionary", default_dict)
+ 
+         self.setStyleSheet("background-color: rgb(40,40,40); color: white")
+diff --git a/source/QtWorkingAreaWidget.py b/source/QtWorkingAreaWidget.py
+index 2702a6d..25b02e4 100644
+--- a/source/QtWorkingAreaWidget.py
++++ b/source/QtWorkingAreaWidget.py
+@@ -23,6 +23,7 @@ from PySide6.QtGui import QIcon
+ from PySide6.QtWidgets import QWidget, QMessageBox, QSizePolicy, QLineEdit, QLabel, QPushButton, \
+     QHBoxLayout, QVBoxLayout, QApplication
+ import json
++from source.genutils import taglabPath
+ 
+ 
+ class QtWorkingAreaWidget(QWidget):
+@@ -191,7 +192,7 @@ class QtWorkingAreaWidget(QWidget):
+         self.btnChooseArea = QPushButton()
+         self.btnChooseArea.setFixedWidth(32)
+         self.btnChooseArea.setFixedHeight(32)
+-        ChooseAreaIcon = QIcon("icons\\select_area.png")
++        ChooseAreaIcon = QIcon(taglabPath("icons", "select_area.png"))
+         self.btnChooseArea.setIcon(ChooseAreaIcon)
+         self.btnDelete = QPushButton("Delete")
+         self.btnCancel = QPushButton("Cancel")
+diff --git a/source/genutils.py b/source/genutils.py
+index 687e458..d91f42d 100644
+--- a/source/genutils.py
++++ b/source/genutils.py
+@@ -21,6 +21,7 @@
+ 
+ import io
+ import importlib
++import os
+ from PySide6.QtCore import Qt, QObject, QMetaObject, QMetaMethod
+ from PySide6.QtGui import QImage, QPixmap, qRgb, qRgba
+ import numpy as np
+@@ -30,6 +31,14 @@ import datetime
+ 
+ from source.Mask import checkIntersection, intersectMask
+ 
++# the directory that contains TagLab.py, icons/, models/, dictionaries/ ... (independent of the working directory)
++TAGLAB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
++
++
++def taglabPath(*parts):
++    """ Path of a TagLab resource (icon, model, dictionary...), whatever the current working directory is. """
++    return os.path.join(TAGLAB_DIR, *parts)
++
+ import math
+ 
+ def clampCoords(x, y, W, H):
+diff --git a/source/tools/FourClicks.py b/source/tools/FourClicks.py
+index 6f1e4ba..f65ac01 100644
+--- a/source/tools/FourClicks.py
++++ b/source/tools/FourClicks.py
+@@ -22,6 +22,7 @@ from models.dataloaders import helpers as helpers
+ from collections import OrderedDict
+ 
+ import time
++from source.genutils import taglabPath
+ 
+ class FourClicks(Tool):
+     def __init__(self, viewerplus, pick_points):
+@@ -180,7 +181,7 @@ class FourClicks(Tool):
+ 
+     def loadNetwork(self):
+ 
+-        models_dir = "models/"
++        models_dir = taglabPath("models")
+ 
+         if self.deepextreme_net is None:
+ 
+diff --git a/source/tools/Sam.py b/source/tools/Sam.py
+index dec0ed4..d6f938c 100644
+--- a/source/tools/Sam.py
++++ b/source/tools/Sam.py
+@@ -7,7 +7,7 @@ import os
+ from skimage import measure
+ from PySide6.QtCore import Qt, Signal
+ from source.Mask import paintMask, jointBox, jointMask, replaceMask, checkIntersection, intersectMask
+-from source.genutils import qimageToNumpyArray, cropQImage
++from source.genutils import qimageToNumpyArray, cropQImage, taglabPath
+ from PySide6.QtWidgets import QApplication, QMessageBox
+ from PySide6.QtGui import QPen, QBrush
+ from source import genutils
+@@ -244,7 +244,7 @@ class Sam(Tool):
+             sam_checkpoint = "sam_vit_h_4b8939.pth"
+             model_type = "vit_h"
+ 
+-            models_dir = "models/"
++            models_dir = taglabPath("models")
+             network_name = os.path.join(models_dir, sam_checkpoint)
+ 
+             if not torch.cuda.is_available():
+-- 
+2.53.0
+
