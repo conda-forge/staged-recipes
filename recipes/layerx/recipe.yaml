@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  version: "1.6.4"
+
+package:
+  name: layerx
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/deveshctl/layerx/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 0d69a72a602acf07dc8832c960fcb8d9321538f96375f063d0a9386ea233da2b
+    target_directory: src
+  # Chroma combines MIT and OFL text, which go-licenses cannot classify.
+  - url: https://raw.githubusercontent.com/alecthomas/chroma/v2.27.0/COPYING
+    sha256: 13654b052f885cb3fa47d7343e13975d9c8a64c3bcd84993c35d5eb01f22b23f
+    file_name: chroma-COPYING
+
+build:
+  number: 0
+  script:
+    env:
+      GOTOOLCHAIN: local
+    content:
+      - cd src
+      - go-licenses save . --save_path ../library_licenses --ignore github.com/alecthomas/chroma/v2
+      - if: unix
+        then: go build -v -trimpath -o "$PREFIX/bin/layerx" -ldflags="-s -w -X main.version=$PKG_VERSION" .
+        else: go build -v -trimpath -o "%LIBRARY_BIN%\layerx.exe" -ldflags="-s -w -X main.version=%PKG_VERSION%" .
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go >=1.27.2
+    - go-licenses
+
+tests:
+  - script:
+      - layerx --version
+      - layerx --help
+      - layerx completion bash
+  - package_contents:
+      bin:
+        - layerx
+      strict: true
+
+about:
+  homepage: https://github.com/deveshctl/layerx
+  summary: Terminal-based Docker image layer inspector
+  description: |
+    LayerX inspects Docker and OCI image layers in an interactive terminal UI,
+    compares images, and reports wasted space. It supports Docker, Podman,
+    and local image archives.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - chroma-COPYING
+    - library_licenses/
+  documentation: https://github.com/deveshctl/layerx#readme
+  repository: https://github.com/deveshctl/layerx
+
+extra:
+  recipe-maintainers:
+    - deveshctl
