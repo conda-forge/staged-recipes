@@ -41,8 +41,6 @@ tests:
   - python:
       imports:
         - pica
-        # the entry-point modules, so both python_min and latest import them
-        - pica.main_v2
         - pica.cli
       pip_check: true
       python_version:
@@ -51,11 +49,26 @@ tests:
   # pica-gui opens a Tk window and pica-cli waits for keyboard input; neither
   # has a --help flag, so on conda-forge's headless CI only check that the
   # entry-point targets import and that both launchers were installed.
+  # The GUI modules import tkinter, which on Linux loads the system libX11
+  # (conda-forge's tk does not depend on it); the CI container has none, so
+  # the test envs add xorg-libx11. Run on python_min and on the latest python.
   - script:
       - python -c "from pica.main_v2 import main_advanced; from pica.cli import main"
       - python -c "import pymeasure, pyvisa, pyvisa_py, matplotlib.backends.backend_tkagg"
       # shutil.which, not `command -v`: this test also runs under cmd.exe on win_64
       - python -c "import shutil, sys; sys.exit(0 if shutil.which('pica-gui') and shutil.which('pica-cli') else 1)"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - if: linux
+          then: xorg-libx11
+  - script:
+      - python -c "from pica.main_v2 import main_advanced; from pica.cli import main"
+      - python -c "import pymeasure, pyvisa, pyvisa_py, matplotlib.backends.backend_tkagg"
+    requirements:
+      run:
+        - if: linux
+          then: xorg-libx11
 
 about:
   homepage: https://github.com/prathameshnium/PICA-Python-Instrument-Control-and-Automation
