@@ -1,0 +1,56 @@
+context:
+  version: "0.4.2.post1"
+
+package:
+  name: python-lzfse
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/l/lzfse/lzfse-${{ version }}.tar.gz
+  sha256: 4120481728af8a1d12e73b59173ccf1941896bf2fb593b7758aec99e60a16ced
+  patches:
+    - patches/0001-link-system-lzfse.patch
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - set "INCLUDE=%LIBRARY_INC%;%INCLUDE%"
+        - set "LIB=%LIBRARY_LIB%;%LIB%"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+  host:
+    - python
+    - pip
+    - setuptools
+    - lzfse
+  run:
+    - python
+    - lzfse
+
+tests:
+  - python:
+      imports:
+        - lzfse
+      pip_check: true
+  - script:
+      - python -c "import lzfse; data = b'hello world' * 100; assert lzfse.decompress(lzfse.compress(data)) == data"
+
+about:
+  homepage: https://github.com/m1stadev/lzfse
+  summary: Python bindings for the LZFSE reference implementation
+  license: MIT
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - pavelzw
