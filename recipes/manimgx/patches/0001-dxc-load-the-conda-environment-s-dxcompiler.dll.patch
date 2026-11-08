@@ -1,0 +1,68 @@
+From b9362731ffa458863a058d184aebea9ce6ac1212 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@gmail.com>
+Date: Sun, 8 Nov 2026 16:43:52 +0100
+Subject: [PATCH 1/2] dxc: load the conda environment's dxcompiler.dll
+
+conda-forge provides DXC as directx-shader-compiler, built from source,
+which installs dxcompiler.dll into %PREFIX%\Library\bin. Load it from
+there instead of staging a copy of Microsoft's release archive beside
+the extension.
+---
+ pyproject.toml         |  1 -
+ rust/engine/build.rs   |  4 ++--
+ rust/engine/src/dxc.rs | 11 ++++++++++-
+ 3 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 5994a47..45b7ca7 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -66,7 +66,6 @@ locked = true
+ # before it (scripts/release/build_lavapipe.sh) and ignored by git
+ include = [
+     { path = "manimgx/lavapipe/libvulkan_lvp.so", format = "wheel" },
+-    { path = "dxcompiler.dll", from = "out-dir", to = "manimgx/" },
+ ]
+ 
+ # the font packages, as they are here: ManimGX requires them at exact versions, and in the
+diff --git a/rust/engine/build.rs b/rust/engine/build.rs
+index bd7f6ea..f0a5968 100644
+--- a/rust/engine/build.rs
++++ b/rust/engine/build.rs
+@@ -7,8 +7,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ fn main() {
+-    #[cfg(feature = "render")]
+-    dxc::prepare();
++    // conda-forge: the engine loads the environment's dxcompiler.dll (directx-shader-compiler)
++    // instead of a copy of Microsoft's release staged beside it.
+     println!("cargo::rustc-check-cfg=cfg(web_player)");
+     #[cfg(feature = "python")]
+     web_player();
+diff --git a/rust/engine/src/dxc.rs b/rust/engine/src/dxc.rs
+index bad0ad3..50e03da 100644
+--- a/rust/engine/src/dxc.rs
++++ b/rust/engine/src/dxc.rs
+@@ -8,8 +8,17 @@ pub(super) fn compiler() -> Result<wgpu::Dx12Compiler, String> {
+     // the extension and its resources together. Both load this build's exact staged compiler.
+     #[cfg(test)]
+     let path = PathBuf::from(env!("OUT_DIR")).join("dxcompiler.dll");
++    // conda-forge's directx-shader-compiler, in the Library\bin of the environment the extension
++    // is installed in: the nearest of its ancestors that has it.
+     #[cfg(not(test))]
+-    let path = module_path()?.with_file_name("dxcompiler.dll");
++    let path = {
++        let module = module_path()?;
++        module
++            .ancestors()
++            .map(|dir| dir.join("Library").join("bin").join("dxcompiler.dll"))
++            .find(|path| path.is_file())
++            .ok_or_else(|| format!("the shader compiler (directx-shader-compiler) is not installed above {}", module.display()))?
++    };
+     if !path.is_file() { return Err(format!("the engine's shader compiler is missing: {}", path.display())); }
+     Ok(wgpu::Dx12Compiler::DynamicDxc { dxc_path: path.to_str().ok_or("the shader compiler's path is not Unicode")?.to_owned() })
+ }
+-- 
+2.56.0
+
