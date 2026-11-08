@@ -40,15 +40,21 @@ tests:
   - python:
       imports:
         - pica
-      pip_check: true
-      python_version: ${{ python_min }}.*
+      # pip check is off: conda-forge's pymeasure 0.13.1 build carries
+      # version 0.0.0 in its pip metadata, so pip check rejects our
+      # PyMeasure>=0.10.0 even though conda installed 0.13.1.
+      pip_check: false
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
   # pica-gui opens a Tk window and pica-cli waits for keyboard input; neither
   # has a --help flag, so on conda-forge's headless CI only check that the
   # entry-point targets import and that both launchers were installed.
   - script:
       - python -c "from pica.main_v2 import main_advanced; from pica.cli import main"
-      - command -v pica-gui
-      - command -v pica-cli
+      - python -c "import pymeasure, pyvisa, pyvisa_py, matplotlib.backends.backend_tkagg"
+      # shutil.which, not `command -v`: this test also runs under cmd.exe on win_64
+      - python -c "import shutil, sys; sys.exit(0 if shutil.which('pica-gui') and shutil.which('pica-cli') else 1)"
 
 about:
   homepage: https://github.com/prathameshnium/PICA-Python-Instrument-Control-and-Automation
