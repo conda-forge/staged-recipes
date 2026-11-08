@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  name: bijective-gamut
+  version: "2.2.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/bijective_gamut-${{ version }}.tar.gz
+  sha256: 773a6d43413e318bd3d6618577ff166d270cbae84791acbe8a466a2d06df34eb
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.11")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake >=3.20
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    - hdf5
+    - zlib
+  run:
+    - python
+    - numpy >=1.26
+
+tests:
+  - python:
+      imports:
+        - gamut
+      pip_check: true
+  - requirements:
+      run:
+        - pytest
+        - h5py
+        - pint
+        - xarray
+        - netcdf4
+        - pandas
+    files:
+      source:
+        - python/tests/
+    script:
+      - gamut --version
+      - python -c "import gamut, sys; print(gamut.__version__, gamut.FORMAT, gamut.library_path())"
+      - pytest -q python/tests/test_binding.py python/tests/test_files.py python/tests/test_validate.py python/tests/test_models.py python/tests/test_layouts.py python/tests/test_existing_destinations.py python/tests/test_cli.py
+
+about:
+  homepage: https://bijective-systems-org.github.io/gamut/
+  repository: https://github.com/bijective-systems-org/gamut
+  documentation: https://bijective-systems-org.github.io/gamut/
+  summary: An open file format for parametric simulation studies and fitted models
+  description: |
+    Gamut is an open file format for the results of a parametric simulation
+    study and the models fitted to it: one HDF5 file, laid out as valid
+    netCDF-4, holding the run table, the mesh, the fields, uncertainty and
+    gradients, and fitted models, every number with its units. This package
+    is the Python library and the `gamut` command line (validate, inspect,
+    VTK conversion) over the shared C++ core.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Interfluo
