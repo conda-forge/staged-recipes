@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  name: hklforge
+  version: "0.1.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 24b34b287d8ff04f0d9939ff25874685088ff9c3531966a419a55f44bf7fc49f
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+    - setuptools-scm >=8
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.24
+    - pyyaml >=6.0
+
+tests:
+  - python:
+      imports:
+        - hklforge
+        - hklforge.crystal
+        - hklforge.orient
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - python -c "import hklforge; print(hklforge.__version__)"
+      - |
+        python - <<'PY'
+        from hklforge import Diffractometer, Geometry
+        from hklforge.lattice import b_matrix
+        d = Diffractometer(Geometry.builtin("psic"), b_matrix(5.431, 5.431, 5.431),
+                           energy=9000, surface_hkl=(0, 0, 1), reference_hkl=(0, 0, 1))
+        s = d.solve((1, 1, 2), {"eta": 0, "chi": 0, "phi": 0})
+        assert len(s) > 0, s
+        print(len(s), "solutions")
+        PY
+
+about:
+  homepage: https://github.com/swissfel/hklforge
+  repository: https://github.com/swissfel/hklforge
+  documentation: https://github.com/swissfel/hklforge/tree/main/docs
+  summary: Diffractometer angle solvers generated exactly from a declared geometry, with crystallography for planning
+  description: |
+    hklforge turns a declared diffractometer geometry (YAML: circles, axes,
+    beam) into exact angle solvers for reflections (hkl), with diffcalc's
+    modes and virtual angles as a special case, plus crystallography for
+    planning: space-group absences and equivalents, structure factors and
+    reflection lists.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - htlemke
