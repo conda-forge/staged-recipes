@@ -14,8 +14,8 @@ export CUDA_INC="${PREFIX}/targets/${cuda_target}/include"
 unset NVCC_GENCODE
 export MAKEFLAGS="-j${CPU_COUNT}"
 
-# Upstream passes LDFLAGS directly to nvcc, which needs -Xlinker in place
-# of the host compiler's -Wl, spelling.
+# Upstream passes LDFLAGS directly to nvcc.
+# Convert GCC's -Wl,<options> syntax to nvcc's -Xlinker <options> syntax.
 host_ldflags="${LDFLAGS}"
 export LDFLAGS="${LDFLAGS//-Wl,/-Xlinker }"
 for library in nccl_ep nccl_m2n; do
