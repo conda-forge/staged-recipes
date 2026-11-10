@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  version: "0.2.2"
+
+package:
+  name: frostwork
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/f/frostwork/frostwork-${{ version }}.tar.gz
+  sha256: da4ac35a703b68a6fd1ad92dba53abeed4d38bcfaa5125b6f7f50b4405de7066
+
+build:
+  number: 0
+  script:
+    - ${{ PYTHON }} -m pip install . -vv
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+  skip:
+    - is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+    entry_points:
+      - frostwork-audit = frostwork.audit:main
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - maturin >=1.9,<2
+    - pip
+  run:
+    - python
+    - typing_extensions >=4.13
+
+tests:
+  - python:
+      imports:
+        - frostwork
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python
+        - if: is_abi3
+          then: abi3audit
+        - pytest
+        - lxml
+        # tests are fragile to cssselect version
+        - cssselect ==1.5.0
+        - parsel
+    files:
+      source:
+        - tests/
+        - tools/
+    script:
+      - frostwork-audit --help
+      # skip all tests requiring web-poet, too many dependencies
+      - if: unix
+        then: echo "import pytest; pytest.skip('requires web-poet', allow_module_level=True)" > ${SP_DIR}/web_poet.py
+        else: echo import pytest; pytest.skip('requires web-poet', allow_module_level=True) > %SP_DIR%\\web_poet.py
+      # gate tests are partially broken, and require more dependencies
+      # make_gates and release tests are irrelevant to us
+      # tests/test_python.py::test_every_shipped_base_is_injectable requires andi
+      # tests/test_python.py::test_extract_releases_gil_for_parallel_scans fragile to timing
+      - python -m pytest -vv
+          --ignore=tests/test_gates.py
+          --ignore=tests/test_make_gates.py
+          --ignore=tests/test_release.py
+          --deselect=tests/test_python.py::test_every_shipped_base_is_injectable
+          --deselect=tests/test_python.py::test_extract_releases_gil_for_parallel_scans
+      - if: is_abi3
+        then:
+          - if: unix
+            then: abi3audit $SP_DIR/frostwork/_frostwork.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+            else: abi3audit %SP_DIR%/frostwork/_frostwork.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  summary: Treeless, one-pass HTML extraction — CSS/XPath selectors matched on a streaming scan, no DOM.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/scrapy/frostwork
+  documentation: https://github.com/scrapy/frostwork/blob/main/docs/PYTHON.md
+
+extra:
+  recipe-maintainers:
+    - mgorny
+    - AdrianAtZyte
+    - wRAR
