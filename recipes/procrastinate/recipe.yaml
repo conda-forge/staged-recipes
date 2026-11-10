@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  version: "3.10.0"
+
+package:
+  name: procrastinate
+  version: ${{ version }}
+
+source:
+  url: https://github.com/procrastinate-org/procrastinate/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 994eb2a5b8d921bd4643c5f218a99c378204c40ad3fb61fdd806c5896881e8a4
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      UV_DYNAMIC_VERSIONING_BYPASS: ${{ version }}
+    content:
+      - ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - procrastinate = procrastinate.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - uv-dynamic-versioning
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - psycopg
+    - psycopg-pool
+    - asgiref
+    - attrs
+    - croniter
+    - python-dateutil
+    - typing_extensions
+    - packaging
+
+tests:
+  - python:
+      imports:
+        - procrastinate
+      pip_check: true
+      python_version:
+        - '*'
+        - ${{ python_min }}.*
+  - requirements:
+      run:
+        - pip
+        - python
+    script:
+      - procrastinate --help
+  - requirements:
+      run:
+        - pytest
+        - pytest-asyncio
+        - pytest-mock
+        - pytest-django
+        - pytest-benchmark
+        - pytest-cov
+        - sphinx
+        - django
+    script:
+      - if: not win
+        then:
+          - >-
+            pytest tests/unit --ignore=tests/unit/contrib
+            --deselect "tests/unit/test_worker.py::test_worker_run_respects_polling"
+    files:
+      source:
+        - tests/
+        - pyproject.toml
+
+about:
+  summary: Postgres-based distributed task processing library
+  license: MIT
+  license_file: LICENSE.md
+  homepage: https://pypi.org/project/procrastinate/
+
+extra:
+  recipe-maintainers:
+    - jsmolic
