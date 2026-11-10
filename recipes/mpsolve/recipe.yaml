@@ -1,0 +1,72 @@
+context:
+  version: "3.2.3"
+
+package:
+  name: mpsolve
+  version: ${{ version }}
+
+source:
+  url: https://numpi.dm.unipi.it/wp-content/uploads/2025/08/mpsolve-${{ version }}.tar.bz2
+  sha256: 1f2e239c698c783b63a5e6903e76316c0335a01d71c466a8551e8a3f790b3971
+
+build:
+  skip:
+    - win
+  script:
+    # workaround for https://github.com/robol/MPSolve/issues/48
+    - rm src/libmps/monomial/yacc-parser.c
+    - rm src/libmps/monomial/yacc-parser.h
+    - ./configure --prefix=$PREFIX --disable-static PYTHON=":"
+    - make -j${CPU_COUNT}
+    - if: build_platform == target_platform
+      then: make check -j${CPU_COUNT}
+    - make install
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - ${{ stdlib('c') }}
+    - bison
+    - make
+    - pkgconf
+  host:
+    - check
+    - gmp
+  run_exports:
+    - ${{ pin_subpackage('mpsolve', upper_bound='x') }}
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('fortran') }}
+
+tests:
+  - package_contents:
+      files:
+        - include/mps/mps.h
+      lib:
+        - mps
+  - script:
+      - mpsolve -p "x^2 - 2"
+
+about:
+  homepage: https://numpi.dm.unipi.it/scientific-computing-libraries/mpsolve
+  summary: 'Multiprecision Polynomial SOLVEr'
+  description: |
+    MPSolve is a multiprecision polynomial solver designed as a
+    universal blackbox for solving polynomials and secular
+    equations. It supports arbitrary precision approximation, provides
+    guaranteed inclusion radii for computed roots, and exploits
+    polynomial structure such as sparsity and special coefficient
+    domains. MPSolve can also be specialized for particular classes of
+    polynomials, enabling large-scale computations like the roots of
+    the Mandelbrot polynomial of degree over two million.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  documentation: https://numpi.dm.unipi.it/scientific-computing-libraries/mpsolve/polynomialfiles/
+  repository: https://github.com/robol/MPSolve
+
+extra:
+  recipe-maintainers:
+    - d-torrance
