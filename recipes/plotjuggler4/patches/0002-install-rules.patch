@@ -1,0 +1,49 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d162b43..37be87b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -336,7 +336,9 @@ endif()
+ set(ADS_VERSION "4.5.0" CACHE STRING "" FORCE)
+ set(BUILD_STATIC ON CACHE BOOL "" FORCE)
+ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+-add_subdirectory(3rdparty/Qt-Advanced-Docking)
++# EXCLUDE_FROM_ALL: linked statically into the app, so its own install rules
++# (headers, static library, CMake package) stay out of `cmake --install`.
++add_subdirectory(3rdparty/Qt-Advanced-Docking EXCLUDE_FROM_ALL)
+ add_library(qt_advanced_docking ALIAS qtadvanceddocking-qt6)
+ # Qt 6.12 deprecates Q_ENUMS, which the fork's ads_globals.h still uses; as a
+ # system include its warnings stay out of our -Werror targets.
+diff --git a/pj_app/CMakeLists.txt b/pj_app/CMakeLists.txt
+index 899bcea..7d0c7f0 100644
+--- a/pj_app/CMakeLists.txt
++++ b/pj_app/CMakeLists.txt
+@@ -297,6 +297,29 @@ if(TARGET pj-plugin-check)
+         COMMENT "Placing pj-plugin-check next to the application binary")
+ endif()
+ 
++# Install layout (`cmake --install`): the app and its admission helper side by
++# side in bin/ (see above), and on Linux the desktop entry and icons. Every other
++# dependency is linked in or comes from the prefix, so a package manager that runs
++# a plain configure/build/install (conda's pixi-build-cmake, distro packages) gets
++# a working install. Bundled plugins, the CPython runtime and Qt's own files stay
++# with the packaging that bundles them (packaging/appimage, deb, macos).
++if(NOT EMSCRIPTEN)
++    include(GNUInstallDirs)
++    install(TARGETS pj_app RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
++    if(TARGET pj-plugin-check)
++        install(TARGETS pj-plugin-check RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
++    endif()
++    if(UNIX AND NOT APPLE)
++        install(FILES ${CMAKE_SOURCE_DIR}/packaging/appimage/plotjuggler4.desktop
++            DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
++        install(FILES ${CMAKE_SOURCE_DIR}/resources/svg/plotjuggler4.png
++            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps)
++        install(FILES ${CMAKE_SOURCE_DIR}/resources/svg/plotjuggler.svg
++            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
++            RENAME plotjuggler4.svg)
++    endif()
++endif()
++
+ # App version: single source of truth is versions.env, stamped by the root
+ # CMakeLists into generated/pj_version.h (PJ_VERSION_STRING). main.cpp — the only
+ # user — includes that header directly, so no per-target compile definition is

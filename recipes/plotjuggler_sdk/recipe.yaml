@@ -1,0 +1,88 @@
+# Based on the recipe.yaml that Davide Faconti and contributors maintain in
+# PlotJuggler/plotjuggler_sdk, adapted for conda-forge.
+schema_version: 1
+
+context:
+  name: plotjuggler_sdk
+  version: "0.40.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/PlotJuggler/plotjuggler_sdk/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ba063722321816d7f52fae82b8b1454082813537f3888f1619e97d7b429af69e
+
+build:
+  number: 0
+  # The SDK installs static libraries only (see the notes in the PR): PlotJuggler
+  # and its plugins talk across a C ABI (vtables), so the SDK is linked into each.
+  skip:
+    - win
+  script:
+    - cmake -G Ninja -B build -S . ${CMAKE_ARGS}
+      -DPJ_INSTALL_SDK=ON
+      -DPJ_BUILD_TESTS=OFF
+      -DPJ_BUILD_PORTED_PLUGINS=OFF
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_CXX_STANDARD=20
+      -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      -DCMAKE_INSTALL_LIBDIR=lib
+    - cmake --build build
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - nlohmann_json
+    - fmt
+    - fast_float
+  run:
+    # nlohmann_json is in public headers and find_dependency()'d by the config.
+    - nlohmann_json >=3.12,<4
+  ignore_run_exports:
+    # header-only / BUILD_INTERFACE-only in the SDK: never in the installed
+    # targets or the static archives
+    by_name:
+      - fmt
+      - fast_float
+
+tests:
+  - package_contents:
+      files:
+        - lib/cmake/plotjuggler_sdk/plotjuggler_sdkConfig.cmake
+        - lib/cmake/plotjuggler_sdk/PjPlugin.cmake
+        - include/pj_base/sdk/version.hpp
+        - lib/libpj_base.a
+  - files:
+      source:
+        - examples/sdk_consumer/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -G Ninja -B test_build -S examples/sdk_consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_PREFIX_PATH=$PREFIX
+      - cmake --build test_build
+
+about:
+  homepage: https://github.com/PlotJuggler/plotjuggler_sdk
+  repository: https://github.com/PlotJuggler/plotjuggler_sdk
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - LICENSE-APACHE
+  summary: PlotJuggler SDK for plugins and hosts
+  description: |
+    The plotjuggler_sdk CMake package (plotjuggler_sdk::base, ::plugin_sdk and
+    ::plugin_host) that PlotJuggler 4 and its plugins build against.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

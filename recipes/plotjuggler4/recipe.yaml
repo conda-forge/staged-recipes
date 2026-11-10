@@ -1,0 +1,124 @@
+# Based on PlotJuggler's own conda recipe (packaging/conda in PlotJuggler/PlotJuggler)
+# by Davide Faconti, adapted for conda-forge: a plain CMake configure/build/install.
+schema_version: 1
+
+context:
+  name: plotjuggler4
+  version: "4.1.0"
+  # Qt-Advanced-Docking: PlotJuggler's fork, the 3rdparty/ submodule of this release
+  ads_commit: d713b1f97ecec009fa07b83f6594adec2f131d41
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/PlotJuggler/PlotJuggler/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 5d68e61c0d21be42b0058da8e2b9a3decd36deecb5395a762f014fd2d9c2ba66
+    patches:
+      # Both are merged upstream after 4.1.0 (PlotJuggler/PlotJuggler#1498) or
+      # proposed there (install rules); drop them with the next release.
+      - patches/0001-qt-floor-and-nanoarrow-codecs.patch
+      - patches/0002-install-rules.patch
+  - url: https://github.com/PlotJuggler/Qt-Advanced-Docking-System/archive/${{ ads_commit }}.tar.gz
+    sha256: 3a57649dd2f7bc1b3bf8f835f0f79c9c29bdb9959f4225c0329ff71af4a21e8a
+    target_directory: 3rdparty/Qt-Advanced-Docking
+
+build:
+  number: 0
+  # MSVC builds are not set up for conda yet.
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.28
+    - ninja
+    - pkg-config
+  host:
+    - qt6-main
+    - qwt
+    - plotjuggler_sdk >=0.39
+    - fmt
+    - tsl_robin_map
+    - glm
+    - nlohmann_json
+    - python
+    - pybind11
+    - zstd
+    - lz4-c
+    - fast_float
+    # PlotJuggler is MPL-2.0: only the LGPL builds of libarchive and ffmpeg.
+    - libarchive * lgpl_*
+    - ffmpeg * lgpl_*
+    - libjpeg-turbo
+    - libpng
+    - backward-cpp
+    - draco
+    - assimp
+    - luau
+    - libmcap
+    - cloudini
+    - kissfft
+    - libnanoarrow >=0.9
+    - if: linux
+      then:
+        - elfutils
+        - libgl-devel
+        - libopengl-devel
+        - libegl-devel
+  ignore_run_exports:
+    # ffmpeg's run_export asks for at least the patch release built against;
+    # the ABI holds within a major (pinned below).
+    from_package:
+      - ffmpeg
+    by_name:
+      # static or header-only here
+      - plotjuggler_sdk
+      - luau
+  run:
+    # the embedded interpreter links libpython and loads the stdlib from the env
+    - python
+    - ${{ pin_compatible('ffmpeg', lower_bound='x.x', upper_bound='x') }}
+    - ffmpeg * lgpl_*
+    - libarchive * lgpl_*
+
+tests:
+  - package_contents:
+      bin:
+        - plotjuggler4
+        - pj-plugin-check
+      files:
+        - if: linux
+          then:
+            - share/applications/plotjuggler4.desktop
+            - share/icons/hicolor/scalable/apps/plotjuggler4.svg
+  - script:
+      env:
+        QT_QPA_PLATFORM: offscreen
+      content:
+        - plotjuggler4 --version
+        # the embedded interpreter's PYTHONHOME is baked at build time; this
+        # proves conda's prefix relocation rewrote it to the installed env
+        - plotjuggler4 --selftest-python
+
+about:
+  homepage: https://plotjuggler.io
+  repository: https://github.com/PlotJuggler/PlotJuggler
+  license: MPL-2.0 AND LGPL-2.1-only AND Apache-2.0
+  license_file:
+    - LICENSE
+    - 3rdparty/Qt-Advanced-Docking/LICENSE
+  summary: PlotJuggler 4, the time series visualization tool
+  description: |
+    Multi-modal visualization for time series, images, video and 3D data, with
+    loaders, streamers and parsers as plugins. Statically includes PlotJuggler's
+    fork of Qt-Advanced-Docking-System (LGPL-2.1) and the header-only nanocdr
+    (Apache-2.0).
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
