@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  version: "131.2.0"
+
+package:
+  name: kissfft
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mborgerding/kissfft/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 205a8f6a448ef12b091f8ac6a514b5091bb5f6b0b543431ed75f673116cf5cbf
+  patches:
+    # kissfft-config.cmake selects the shared or static targets from
+    # BUILD_SHARED_LIBS (default: static) unless a SHARED/STATIC component is
+    # requested, so a plain find_package(kissfft) finds nothing when only the
+    # shared libraries are installed. Fall back to the installed linkage.
+    - 0001-config-fall-back-to-installed-linkage.patch
+
+build:
+  number: 0
+  # Shared libraries for the two floating-point datatypes, float (upstream's
+  # default, kissfft::kissfft-float) and double (kissfft::kissfft-double).
+  # The fixed-point (int16_t/int32_t) and SIMD variants are not built.
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    # SONAME is libkissfft-<datatype>.so.<major>, major == first version component.
+    - ${{ pin_subpackage('kissfft', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - kissfft-float
+        - kissfft-double
+      include:
+        - kissfft/kiss_fft.h
+        - kissfft/kiss_fftr.h
+        - kissfft/kiss_fftnd.h
+        - kissfft/kiss_fftndr.h
+        - kissfft/kissfft.hh
+      files:
+        - ${{ "Library/" if win }}lib/cmake/kissfft/kissfft-config.cmake
+        - ${{ "Library/" if win }}lib/cmake/kissfft/kissfft-config-version.cmake
+        - ${{ "Library/" if win }}lib/cmake/kissfft/kissfft-float-shared-targets.cmake
+        - ${{ "Library/" if win }}lib/cmake/kissfft/kissfft-double-shared-targets.cmake
+        - ${{ "Library/" if win }}lib/pkgconfig/kissfft-float.pc
+        - ${{ "Library/" if win }}lib/pkgconfig/kissfft-double.pc
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -G Ninja -S test -B build -DCMAKE_BUILD_TYPE=Release ${{ "%CMAKE_ARGS%" if win else "$CMAKE_ARGS" }}
+      - cmake --build build
+      - ${{ "build\\test_float.exe" if win else "./build/test_float" }}
+      - ${{ "build\\test_double.exe" if win else "./build/test_double" }}
+      - cmake -G Ninja -S test/component -B build_component -DCMAKE_BUILD_TYPE=Release ${{ "%CMAKE_ARGS%" if win else "$CMAKE_ARGS" }}
+      - cmake --build build_component
+      - ${{ "build_component\\test_component.exe" if win else "./build_component/test_component" }}
+
+about:
+  homepage: https://github.com/mborgerding/kissfft
+  repository: https://github.com/mborgerding/kissfft
+  summary: A mixed-radix Fast Fourier Transform library that tries to Keep It Simple, Stupid
+  description: |
+    KISS FFT is a small, reasonably efficient, mixed-radix FFT library that
+    can use either fixed or floating point data types. This package provides
+    the float and double shared libraries (libkissfft-float,
+    libkissfft-double) with upstream's CMake package (`find_package(kissfft)`,
+    targets `kissfft::kissfft-float` / `kissfft::kissfft-double`, plus
+    `kissfft::kissfft` when a datatype component is requested) and
+    pkg-config files.
+  license: BSD-3-Clause
+  license_file:
+    - COPYING
+    - LICENSES/BSD-3-Clause
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
