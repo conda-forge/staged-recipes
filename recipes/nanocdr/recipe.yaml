@@ -1,0 +1,70 @@
+# Packaged for PlotJuggler 4 (plotjuggler4), which vendors this header today.
+schema_version: 1
+
+context:
+  name: nanocdr
+  # upstream has no tags yet; its CMakeLists declares 1.0
+  version: "1.0.0"
+  commit: ab39d14169dd4e1088ec01c31fc19af3f9f3093c
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facontidavide/NanoCDR/archive/${{ commit }}.tar.gz
+  sha256: e3d1d3c29f1094c70d6289573e834d37165f49d4251cf040dc9b3fc177d7c42f
+  patches:
+    # explicit casts for -Wconversion, as in PlotJuggler's copy (3rdparty/nanocdr)
+    - 0001-explicit-string-length-casts.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/include/nanocdr $PREFIX/lib/cmake/nanocdr
+        - cp include/nanocdr/nanocdr.hpp $PREFIX/include/nanocdr/
+        - cp $RECIPE_DIR/nanocdr-config.cmake $PREFIX/lib/cmake/nanocdr/
+      else:
+        - mkdir %LIBRARY_INC%\nanocdr %LIBRARY_LIB%\cmake\nanocdr
+        - copy include\nanocdr\nanocdr.hpp %LIBRARY_INC%\nanocdr\
+        - copy %RECIPE_DIR%\nanocdr-config.cmake %LIBRARY_LIB%\cmake\nanocdr\
+
+tests:
+  - package_contents:
+      include:
+        - nanocdr/nanocdr.hpp
+      files:
+        - ${{ "lib" if unix else "Library/lib" }}/cmake/nanocdr/nanocdr-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -G Ninja -S test -B test/build
+      - cmake --build test/build
+      - if: unix
+        then: ./test/build/roundtrip
+        else: test\build\roundtrip.exe
+
+about:
+  homepage: https://github.com/facontidavide/NanoCDR
+  repository: https://github.com/facontidavide/NanoCDR
+  license: Apache-2.0
+  # upstream ships no license file (the header carries the Apache-2.0 notice)
+  license_file: LICENSE
+  summary: Header-only CDR encoder/decoder for ROS 2 and DDS messages
+  description: |
+    A single-file, header-only, minimal replacement of eProsima's Fast-CDR that
+    encodes and decodes ROS 2 / DDS (CDR) messages.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

@@ -18,19 +18,16 @@ build:
   number: 0
   # The SDK installs static libraries only (see the notes in the PR): PlotJuggler
   # and its plugins talk across a C ABI (vtables), so the SDK is linked into each.
-  skip:
-    - win
   script:
-    - cmake -G Ninja -B build -S . ${CMAKE_ARGS}
-      -DPJ_INSTALL_SDK=ON
-      -DPJ_BUILD_TESTS=OFF
-      -DPJ_BUILD_PORTED_PLUGINS=OFF
-      -DCMAKE_BUILD_TYPE=Release
-      -DCMAKE_CXX_STANDARD=20
-      -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-      -DCMAKE_INSTALL_LIBDIR=lib
-    - cmake --build build
-    - cmake --install build
+    - if: unix
+      then:
+        - cmake -G Ninja -B build -S . ${CMAKE_ARGS} -DPJ_INSTALL_SDK=ON -DPJ_BUILD_TESTS=OFF -DPJ_BUILD_PORTED_PLUGINS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_LIBDIR=lib
+        - cmake --build build
+        - cmake --install build
+      else:
+        - cmake -G Ninja -B build -S . %CMAKE_ARGS% -DPJ_INSTALL_SDK=ON -DPJ_BUILD_TESTS=OFF -DPJ_BUILD_PORTED_PLUGINS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20
+        - cmake --build build --config Release
+        - cmake --install build --config Release
 
 requirements:
   build:
@@ -55,10 +52,12 @@ requirements:
 tests:
   - package_contents:
       files:
-        - lib/cmake/plotjuggler_sdk/plotjuggler_sdkConfig.cmake
-        - lib/cmake/plotjuggler_sdk/PjPlugin.cmake
-        - include/pj_base/sdk/version.hpp
-        - lib/libpj_base.a
+        - ${{ "lib" if unix else "Library/lib" }}/cmake/plotjuggler_sdk/plotjuggler_sdkConfig.cmake
+        - ${{ "lib" if unix else "Library/lib" }}/cmake/plotjuggler_sdk/PjPlugin.cmake
+        - ${{ "include" if unix else "Library/include" }}/pj_base/sdk/version.hpp
+        - if: unix
+          then: lib/libpj_base.a
+          else: Library/lib/pj_base.lib
   - files:
       source:
         - examples/sdk_consumer/
@@ -68,7 +67,9 @@ tests:
         - cmake
         - ninja
     script:
-      - cmake -G Ninja -B test_build -S examples/sdk_consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_PREFIX_PATH=$PREFIX
+      - if: unix
+        then: cmake -G Ninja -B test_build -S examples/sdk_consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_PREFIX_PATH=$PREFIX
+        else: cmake -G Ninja -B test_build -S examples/sdk_consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
       - cmake --build test_build
 
 about:
