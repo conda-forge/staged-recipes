@@ -39,7 +39,21 @@ tests:
         - ${{ python_min }}.*
         - "*"
   - script:
-      - python -m unittest discover -v zope.configuration
+      interpreter: python
+      content: |
+        import os, sys, unittest
+        # upstream CI is linux only; these tests treat "/path" as absolute
+        posix_only = {"test_checkDuplicate_hit", "test_checkDuplicate_miss",
+                      "test_path_expand_filenames", "test_path_expand_user",
+                      "test_path_w_absolute_filename", "test_processFile_hit",
+                      "test_processFile_miss", "test_fromUnicode_absolute"}
+        def flat(s):
+            for t in s:
+                yield from (flat(t) if isinstance(t, unittest.TestSuite) else [t])
+        tests = [t for t in flat(unittest.defaultTestLoader.discover("zope.configuration"))
+                 if os.name != "nt" or t._testMethodName not in posix_only]
+        result = unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(tests))
+        sys.exit(not result.wasSuccessful())
     requirements:
       run:
         - zope.testing
