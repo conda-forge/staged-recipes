@@ -5,5 +5,5 @@ cd build/Tests
 ctest
 ln -s $SRC_DIR/Tests/plouf.nc
 ./test_netcdf95
-cd ..
+cd -
 cmake --install build
