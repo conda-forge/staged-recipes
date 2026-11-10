@@ -1,0 +1,95 @@
+schema_version: 1
+
+context:
+  version: "0.2.1"
+
+package:
+  name: ccache-storage-redis
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ccache/ccache-storage-redis/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 56cd23972860ba2caa17efffcff31dc9a327cfd717217ab680cac8e94871c006
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then:
+        - go build -v -o $PREFIX/bin/ccache-storage-redis -ldflags="-s -w" .
+        - ln -s ccache-storage-redis $PREFIX/bin/ccache-storage-rediss
+        - ln -s ccache-storage-redis "$PREFIX/bin/ccache-storage-redis+unix"
+      else:
+        - go build -v -o %LIBRARY_BIN%\ccache-storage-redis.exe -ldflags="-s" .
+        - copy /Y %LIBRARY_BIN%\ccache-storage-redis.exe %LIBRARY_BIN%\ccache-storage-rediss.exe
+        # cmd.exe `copy` treats "+" as concatenation, so copy this name with PowerShell.
+        - powershell -NoProfile -Command "Copy-Item -LiteralPath ($env:LIBRARY_BIN + '\ccache-storage-redis.exe') -Destination ($env:LIBRARY_BIN + '\ccache-storage-redis+unix.exe') -Force"
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - package_contents:
+      bin:
+        - ccache-storage-redis
+        - ccache-storage-rediss
+        - ccache-storage-redis+unix
+      strict: true
+  - script:
+      - if: unix
+        then:
+          # Without CRSH_IPC_ENDPOINT and CRSH_URL the helper prints usage and exits 1.
+          - |
+            bin_dir="$(dirname "$(command -v ccache-storage-redis)")"
+            test "$(readlink "$bin_dir/ccache-storage-rediss")" = "ccache-storage-redis"
+            test "$(readlink "$bin_dir/ccache-storage-redis+unix")" = "ccache-storage-redis"
+            for bin in ccache-storage-redis ccache-storage-rediss 'ccache-storage-redis+unix'; do
+              status=0
+              output=$("$bin" 2>&1) || status=$?
+              test "$status" -eq 1
+              printf '%s\n' "$output" | grep -q "ccache Redis storage helper"
+              printf '%s\n' "$output" | grep -q "Version: ${{ version }}"
+            done
+        else:
+          - |
+            call :check "%CONDA_PREFIX%\Library\bin\ccache-storage-redis.exe"
+            if errorlevel 1 exit /b 1
+            call :check "%CONDA_PREFIX%\Library\bin\ccache-storage-rediss.exe"
+            if errorlevel 1 exit /b 1
+            call :check "%CONDA_PREFIX%\Library\bin\ccache-storage-redis+unix.exe"
+            if errorlevel 1 exit /b 1
+            fc /b "%CONDA_PREFIX%\Library\bin\ccache-storage-redis.exe" "%CONDA_PREFIX%\Library\bin\ccache-storage-rediss.exe" >nul
+            if errorlevel 1 exit /b 1
+            fc /b "%CONDA_PREFIX%\Library\bin\ccache-storage-redis.exe" "%CONDA_PREFIX%\Library\bin\ccache-storage-redis+unix.exe" >nul
+            if errorlevel 1 exit /b 1
+            exit /b 0
+            :check
+            "%~1" > "%TEMP%\crsh-out.txt" 2>&1
+            if not "%ERRORLEVEL%"=="1" exit /b 1
+            findstr /C:"ccache Redis storage helper" "%TEMP%\crsh-out.txt" >nul
+            if errorlevel 1 exit /b 1
+            findstr /C:"Version: ${{ version }}" "%TEMP%\crsh-out.txt" >nul
+            if errorlevel 1 exit /b 1
+            exit /b 0
+
+about:
+  homepage: https://github.com/ccache/ccache-storage-redis
+  summary: ccache Redis storage helper (Go)
+  description: |
+    ccache-storage-redis is a ccache remote storage helper for Redis,
+    implemented in Go. ccache invokes it for redis://, rediss://, and
+    redis+unix: URLs.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/ccache/ccache-storage-redis
+
+extra:
+  recipe-maintainers:
+    - faceprint
