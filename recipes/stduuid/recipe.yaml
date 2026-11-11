@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  version: "1.2.3"
+
+package:
+  name: stduuid
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mariusbancila/stduuid/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b1176597e789531c38481acbbed2a6894ad419aab0979c10410d59eb0ebf40d3
+  patches:
+    - cmake-package.patch
+
+build:
+  number: 0
+  script:
+    file: ${{ 'build.bat' if win else 'build.sh' }}
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - ms-gsl
+  run:
+    - ms-gsl
+  # The package contains headers and CMake metadata, with no compiled objects.
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('cxx') }}
+      - ${{ stdlib('c') }}
+
+tests:
+  - package_contents:
+      include:
+        - uuid.h
+      files:
+        - if: win
+          then: Library/lib/cmake/stduuid/stduuid-config.cmake
+          else: lib/cmake/stduuid/stduuid-config.cmake
+        - if: win
+          then: Library/lib/cmake/stduuid/stduuid-config-version.cmake
+          else: lib/cmake/stduuid/stduuid-config-version.cmake
+        - if: win
+          then: Library/lib/cmake/stduuid/stduuid-targets.cmake
+          else: lib/cmake/stduuid/stduuid-targets.cmake
+  - script:
+      - cmake -S test -B test-build -G Ninja
+      - cmake --build test-build
+      - ctest --test-dir test-build --output-on-failure
+    files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+
+about:
+  homepage: https://github.com/mariusbancila/stduuid
+  summary: Cross-platform C++17 library for universally unique identifiers
+  description: |
+    stduuid is a header-only C++17 library for UUIDs. It supports parsing,
+    formatting, random generation, and name-based UUID generation, with
+    Microsoft GSL span support for C++17 and standard span support for C++20.
+  license: MIT
+  license_file: LICENSE
+  documentation: https://github.com/mariusbancila/stduuid#readme
+  repository: https://github.com/mariusbancila/stduuid
+
+extra:
+  recipe-maintainers:
+    - phreed
