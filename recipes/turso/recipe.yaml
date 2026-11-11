@@ -1,0 +1,88 @@
+context:
+  version: "0.4.4"
+
+recipe:
+  name: turso
+  version: ${{ version }}
+
+source:
+  url: https://github.com/tursodatabase/turso/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 24b737c2a04c27f0c2b7676d324bff2517a5b3f2de9e63fab9832d2c8bec5733
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: turso-cli
+      version: ${{ version }}
+
+    build:
+      script:
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        content:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path cli
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("rust") }}
+        - cargo-auditable
+
+    tests:
+      - script:
+          - tursodb --help
+      - package_contents:
+          bin:
+            - tursodb
+          strict: true
+
+    about:
+      summary: The Turso interactive SQL shell
+      license_file: LICENSE.md
+
+  - package:
+      name: pyturso
+      version: ${{ version }}
+
+    build:
+      script: ${{ PYTHON }} -m pip install ./bindings/python -vv --no-deps --no-build-isolation
+
+    requirements:
+      build:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+        - ${{ compiler("rust") }}
+      host:
+        - python
+        - pip
+        - maturin
+        - setuptools
+        - typing-extensions
+        - wheel
+      run:
+        - python
+        - typing-extensions >=4.6.0,!=4.7.0
+
+    tests:
+      - python:
+          imports:
+            - turso
+          pip_check: true
+
+    about:
+      summary: Turso Python bindings
+      license_file: LICENSE.md
+
+about:
+  homepage: https://github.com/tursodatabase/turso
+  summary: SQLite-compatible database written in Rust
+  license: MIT
+  license_file: LICENSE.md
+  repository: https://github.com/tursodatabase/turso
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
