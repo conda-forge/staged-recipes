@@ -1,0 +1,88 @@
+context:
+  version: "6.2.0"
+
+package:
+  name: csdp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/coin-or/Csdp/archive/refs/tags/releases/${{ version }}.tar.gz
+  sha256: 3d341974af1f8ed70e1a37cc896e7ae4a513375875e5b46db8e8f38b7680b32f
+  patches:
+    - 0001-include-stdio.patch
+    - 0002-configurable-makefiles.patch
+
+build:
+  skip:
+    - win
+  script:
+    - export SHARED=yes prefix="$PREFIX" TOOL_PREFIX=csdp-
+    - make -j${CPU_COUNT}
+    - make install
+    - rm "$PREFIX/lib/libsdp.a"
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+  host:
+    - libblas
+    - liblapack
+    - if: osx
+      then: llvm-openmp
+  run_exports:
+    - ${{ pin_subpackage('csdp', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      bin:
+        - csdp
+        - csdp-complement
+        - csdp-graphtoprob
+        - csdp-rand_graph
+        - csdp-theta
+      lib:
+        - sdp
+      files:
+        - include/csdp/declarations.h
+        - lib/pkgconfig/csdp.pc
+  - files:
+      source:
+        - test/theta1.dat-s
+        - test/g50
+    script:
+      - csdp test/theta1.dat-s | tee theta1.out
+      - "grep -F 'Success: SDP solved' theta1.out"
+      - "grep -F 'Primal objective value: 2.3000000e+01' theta1.out"
+      - csdp-theta test/g50 | tee g50.out
+      - grep -F 'The Lovasz Theta Number is 2.3000000e+01' g50.out
+  - files:
+      source:
+        - example/example.c
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - pkg-config
+    script:
+      - $CC example/example.c $(pkg-config --cflags --libs csdp) -Wl,-rpath,$PREFIX/lib -o csdp-example
+      - ./csdp-example | tee example.out
+      - grep -F 'The objective value is 2.7500000e+00' example.out
+
+about:
+  homepage: https://github.com/coin-or/Csdp
+  summary: 'A C library and solver for semidefinite programming'
+  description: |
+    CSDP is a library of routines that implements a predictor corrector
+    variant of the semidefinite programming algorithm of Helmberg, Rendl,
+    Vanderbei, and Wolkowicz. It includes a stand alone solver, csdp, that
+    reads problems in SDPA sparse format, and a program, csdp-theta, that
+    computes the Lovasz theta number of a graph.
+  license: CPL-1.0
+  license_file: LICENSE
+  repository: https://github.com/coin-or/Csdp
+
+extra:
+  recipe-maintainers:
+    - d-torrance
