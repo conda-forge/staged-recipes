@@ -1,0 +1,109 @@
+# based on
+# https://github.com/ikatson/rqbit/blob/main/.github/workflows/release-linux.yml
+
+# example use
+# rqbit --http-api-listen-addr 127.0.0.1:3032 server start ~/Downloads/rqbit/
+
+context:
+  # 2026-01-20
+  version: "9.0.0-beta.2"
+  sha256: "45a2d4b5ffe8dfd0231d7417fff8b77d604e8412a858b6ee8b53cef25bdbcf9b"
+  # fix: error: failed to run custom build command for `openssl-sys v0.9.111`
+  # This crate is only compatible with OpenSSL (version 1.0.2 through 1.1.1, or 3), or LibreSSL 3.5  through 4.2.x,
+  # but a different version of OpenSSL was found.
+  openssl_version: ">=4.2|<4"
+
+package:
+  name: rqbit
+  # fix: invalid value for `version`: `version cannot contain `-``.
+  version: ${{ version | replace("-", "_") }}
+
+source:
+  url: https://github.com/ikatson/rqbit/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: 0
+  script:
+    content:
+
+      # fix: stdout and stderr of build script are not correctly interleaved
+      # https://github.com/prefix-dev/rattler-build/issues/2511
+      # - {"if":"win","then":"","else":"exec 2>&1"}
+      - {"if":"unix","then":"exec 2>&1"}
+
+      # trace commands
+      - {"if":"win","then":"echo on","else":"set -x"}
+
+      - if: unix
+        then:
+          - export RUST_BACKTRACE=1
+        else:
+          - set RUST_BACKTRACE=1
+
+      # fix: failed to run rustc: $BUILD_PREFIX/bin/rustc: error while loading shared libraries: libz.so.1: cannot open shared object file: No such file or directory
+      # https://github.com/conda-forge/rust-feedstock/issues/290
+      - if: unix
+        then:
+          - export LD_LIBRARY_PATH="$BUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+        else:
+          - set LD_LIBRARY_PATH="$BUILD_PREFIX/lib:$LD_LIBRARY_PATH"
+
+      # no: error: failed to load manifest for workspace member `$SRC_DIR/desktop/src-tauri` referenced by workspace at `$SRC_DIR/Cargo.toml`
+      # - rm -rf desktop
+
+      - npm ci
+
+      # create crates/librqbit/webui/dist
+      - pushd crates/librqbit/webui
+      - npm run build
+      - popd
+
+      - pushd crates/librqbit/webui
+      - npm prune --omit=dev
+      - popd
+
+      # This script fascilitates the build of the webui,
+      #  we've already built that
+      - rm crates/librqbit/build.rs
+
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/rqbit
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/rqbit
+
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+      # TODO postInstall
+      # for shell in bash fish zsh; do
+      #   installShellCompletion --cmd rqbit --$shell <($out/bin/rqbit completions $shell)
+      # done
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - openssl ${{ openssl_version }}
+    - zlib
+    - nodejs
+
+  host:
+    - openssl ${{ openssl_version }}
+
+tests:
+  - script:
+    - rqbit --version
+
+about:
+  homepage: https://github.com/ikatson/rqbit
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: "A bittorrent client in Rust"
+
+extra:
+  recipe-maintainers:
+    - milahu
