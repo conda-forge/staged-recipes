@@ -1,0 +1,55 @@
+context:
+  version: "4.112.0"
+
+package:
+  name: redpanda-connect
+  version: ${{ version }}
+
+source:
+  url: https://github.com/redpanda-data/connect/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d1023f918ab974796581db63c8d88ae806eb3e80b2b314b0c2bd0a27668d82bf
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - go-licenses save ./cmd/redpanda-connect --save_path ./library_licenses --ignore buf.build/gen/go/redpandadata --ignore github.com/apache --ignore github.com/dop251 --ignore github.com/jmespath --ignore github.com/redpanda-data --ignore github.com/segmentio/asm --ignore go.opentelemetry.io/otel/exporters/jaeger/internal/third_party
+        - cp licenses/third_party.md ./library_licenses/third_party.md
+        - go build -v -o $PREFIX/bin/redpanda-connect -ldflags="-s -w" ./cmd/redpanda-connect
+      else:
+        - go-licenses save ./cmd/redpanda-connect --save_path ./library_licenses --ignore buf.build/gen/go/redpandadata --ignore github.com/apache --ignore github.com/dop251 --ignore github.com/jmespath --ignore github.com/redpanda-data --ignore github.com/segmentio/asm --ignore go.opentelemetry.io/otel/exporters/jaeger/internal/third_party
+        - copy licenses\\third_party.md library_licenses\\third_party.md
+        - go build -v -o %LIBRARY_BIN%\\redpanda-connect.exe -ldflags="-s" ./cmd/redpanda-connect
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - redpanda-connect --help
+  - package_contents:
+      bin:
+        - redpanda-connect
+
+about:
+  homepage: https://redpanda.com/connect
+  summary: Stream processor for moving data between a wide range of sources and sinks
+  description: |
+    Redpanda Connect is a stream processor that moves data between a wide range
+    of sources and sinks, with support for hydration, enrichment, transformation,
+    and filtering. It includes connectors for databases, cloud services, message
+    brokers, HTTP, and many other systems.
+  license: Apache-2.0 AND LicenseRef-Redpanda-Community
+  license_file:
+    - licenses/Apache-2.0.txt
+    - licenses/rcl.md
+    - library_licenses/
+  documentation: https://docs.redpanda.com/redpanda-connect/
+  repository: https://github.com/redpanda-data/connect
+
+extra:
+  recipe-maintainers:
+    - phreed
