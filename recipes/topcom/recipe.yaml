@@ -1,0 +1,69 @@
+context:
+  version: "1.1.2"
+
+package:
+  name: topcom
+  version: ${{ version }}
+
+source:
+  url: https://www.wm.uni-bayreuth.de/de/team/rambau_joerg/TOPCOM-Downloads/TOPCOM-${{ version | replace('.', '_') }}.tgz
+  sha256: 4fb10754ee5b76056441fea98f2c8dee5db6f2984d8c14283b49239ad4378ab6
+  patches:
+    - system-cddlib.patch
+
+build:
+  skip:
+    - win
+  script:
+    - autoreconf -fi
+    - ./configure --prefix="$PREFIX" --program-prefix=topcom- CPPFLAGS="$CPPFLAGS -I$PREFIX/include/cddlib"
+    - make -j${CPU_COUNT}
+    - make -C src install-binPROGRAMS
+    - make -C src-reg install-binPROGRAMS
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - make
+  host:
+    - cddlib >=1!0.94n # first thread-safe release
+    - gmp
+
+tests:
+  - package_contents:
+      bin:
+        - topcom-checkregularity
+        - topcom-chiro2circuits
+        - topcom-cube
+        - topcom-points2chiro
+        - topcom-points2finetriang
+  - files:
+      source:
+        - examples/cube_5.dat
+    script:
+      - topcom-cube 5 > cube_5.out
+      - diff examples/cube_5.dat cube_5.out
+
+about:
+  homepage: https://www.wm.uni-bayreuth.de/de/team/rambau_joerg/TOPCOM/
+  summary: 'Triangulations Of Point Configurations and Oriented Matroids'
+  description: |
+    TOPCOM is a collection of clients to compute Triangulations Of Point
+    Configurations and Oriented Matroids, resp.
+
+    The algorithms use only combinatorial data of the point configuration
+    as is given by its oriented matroid. Some basic commands for computing
+    and manipulating oriented matroids can also be accessed by the user.
+
+    The programs are installed with a topcom- prefix, e.g., topcom-cube.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - d-torrance
