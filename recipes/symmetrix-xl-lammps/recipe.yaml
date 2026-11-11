@@ -1,0 +1,211 @@
+schema_version: 1
+
+context:
+  lammps_version: "2026.09.02"
+  lammps_tag: patch_2Sep2026
+  symmetrix_version: "0.1.1"
+
+recipe:
+  name: symmetrix-xl-lammps-split
+  version: ${{ lammps_version }}
+
+source:
+  - url: https://github.com/bonan-group/symmetrix-xl/archive/refs/tags/v${{ symmetrix_version }}.tar.gz
+    sha256: 6d5f931d02f69043a48d2c805a97cf546713f04c488ff54135cca60286725446
+    patches:
+      - mpi-init.patch
+      - system-dependencies.patch
+  - url: https://github.com/wcwitt/cblas-prototypes/archive/ce809f5e09a08f6c68bc9645341b037cb8704e01.tar.gz
+    sha256: 80edbd4961379bcab05bd58a10462069da9a1059a50a4bf9df3ed7920b415e49
+    target_directory: libsymmetrix/external/cblas-prototypes
+  - url: https://github.com/kokkos/kokkos-kernels/archive/722619104a9c99da0d497e65d8dfdff07e25145a.tar.gz
+    sha256: d551535fa0f0ac42c3c2c7d91e32ab39d607145946857cebfc74911a5ae9d3e5
+    target_directory: libsymmetrix/external/kokkos-kernels
+    patches:
+      - kokkoskernels-conda-cuda-prefix.patch
+  - url: https://github.com/lab-cosmo/sphericart/archive/1866da4162f14491c44a299dd9991a0816f15e62.tar.gz
+    sha256: 20a69e2c02a8f87979693ef1b4e9cedd235cd8665cde1465291e4f2f4664f63e
+    target_directory: libsymmetrix/external/sphericart
+  - url: https://github.com/lammps/lammps/archive/refs/tags/${{ lammps_tag }}.tar.gz
+    sha256: df89defbca87aad40f6c55ab6fca05b910089d831774219ba5a8ddbb9fa4c5dc
+    target_directory: lammps
+    patches:
+      - lammps-system-json.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - cuda_compiler_version == "13.0"
+
+outputs:
+  - package:
+      name: symmetrix-xl-lammps
+    build:
+      string: cpu_sxt011_openmpi_h${{ hash }}_${{ build_number }}
+      script:
+        file: build-cpu.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+        - patchelf
+        - python 3.11.*
+      host:
+        - openmpi >=5,<6
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+        - liblapack * *openblas
+        - libgomp
+        - nlohmann_json 3.12.*
+      run:
+        - openmpi >=5,<6
+        - ucx >=1.22,<1.23
+        - ucc >=1.8,<2
+        - libopenblas >=0.3,<0.4
+        - libgomp
+      run_constraints:
+        - symmetrix-xl-lammps-cuda12-sm80 <0a0
+        - symmetrix-xl-lammps-cuda12-sm120 <0a0
+    tests:
+      - script: run_test_cpu.sh
+
+  - package:
+      name: symmetrix-xl-lammps-cuda12-sm80
+    build:
+      skip:
+        - cuda_compiler_version != "12.9"
+      string: cuda12_sm80_sxt011_openmpi_h${{ hash }}_${{ build_number }}
+      script:
+        file: build-cuda12-sm80.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+        - patchelf
+        - python 3.11.*
+      host:
+        - cuda-version ==12.9
+        - cuda-cudart-dev >=12,<13
+        - cuda-nvrtc-dev >=12,<13
+        - cuda-driver-dev >=12,<13
+        - libcublas-dev >=12,<13
+        - openmpi >=5,<6
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+        - liblapack * *openblas
+        - libgomp
+        - nlohmann_json 3.12.*
+      run:
+        - cuda-version >=12,<13
+        - cuda-cudart >=12,<13
+        - cuda-nvrtc >=12,<13
+        - libcublas >=12,<13
+        - openmpi >=5,<6
+        - ucx >=1.22,<1.23
+        - ucc >=1.8,<2
+        - libopenblas >=0.3,<0.4
+        - libgomp
+      run_constraints:
+        - symmetrix-xl-lammps <0a0
+        - symmetrix-xl-lammps-cuda12-sm120 <0a0
+    tests:
+      - script: run_test.sh
+        requirements:
+          run:
+            - cuda-driver-dev >=12,<13
+
+  - package:
+      name: symmetrix-xl-lammps-cuda12-sm120
+    build:
+      skip:
+        - cuda_compiler_version != "12.9"
+      string: cuda12_sm120_sxt011_openmpi_h${{ hash }}_${{ build_number }}
+      script:
+        file: build-cuda12-sm120.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - cmake >=3.27
+        - git
+        - make
+        - patchelf
+        - python 3.11.*
+      host:
+        - cuda-version ==12.9
+        - cuda-cudart-dev >=12,<13
+        - cuda-nvrtc-dev >=12,<13
+        - cuda-driver-dev >=12,<13
+        - libcublas-dev >=12,<13
+        - openmpi >=5,<6
+        - libopenblas
+        - libblas * *openblas
+        - libcblas * *openblas
+        - liblapack * *openblas
+        - libgomp
+        - nlohmann_json 3.12.*
+      run:
+        - cuda-version >=12,<13
+        - cuda-cudart >=12,<13
+        - cuda-nvrtc >=12,<13
+        - libcublas >=12,<13
+        - openmpi >=5,<6
+        - ucx >=1.22,<1.23
+        - ucc >=1.8,<2
+        - libopenblas >=0.3,<0.4
+        - libgomp
+      run_constraints:
+        - symmetrix-xl-lammps <0a0
+        - symmetrix-xl-lammps-cuda12-sm80 <0a0
+    tests:
+      - script: run_test.sh
+        requirements:
+          run:
+            - cuda-driver-dev >=12,<13
+
+about:
+  homepage: https://github.com/bonan-group/symmetrix-xl
+  repository: https://github.com/bonan-group/symmetrix-xl
+  documentation: https://bonan-group.github.io/symmetrix-xl/user/lammps.html
+  license: GPL-2.0-only AND MIT AND (Apache-2.0 WITH LLVM-exception)
+  license_file:
+    - lammps/LICENSE
+    - lammps/lib/kokkos/LICENSE
+    - lammps/src/fmt/LICENSE
+    - symmetrix/LICENSE
+    - pair_symmetrix/LICENSE
+    - THIRD_PARTY_LICENSES.md
+    - LICENSE.nlohmann-json
+    - libsymmetrix/external/kokkos-kernels/LICENSE
+    - libsymmetrix/external/sphericart/LICENSE.md
+  summary: LAMMPS with the Symmetrix-XL MACE inference backend
+  description: |
+    Target-qualified LAMMPS executables containing pair styles backed by
+    Symmetrix-XL for inference with MACE machine-learning interatomic
+    potentials and linked against the conda-forge Open MPI stack. Each output
+    enables the same minimal LAMMPS package set: Kokkos and EXTRA-PAIR (for
+    pair_style dispersion/d3), with the other optional package groups off.
+    The portable CPU/OpenMP and CUDA 12 sm80/sm120 outputs are mutually
+    exclusive because all three provide bin/lmp-symmetrix.
+
+extra:
+  feedstock-name: symmetrix-xl-lammps
+  recipe-maintainers:
+    - zhubonan
+  symmetrix-version: ${{ symmetrix_version }}
+  mpi: openmpi
