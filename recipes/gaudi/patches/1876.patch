@@ -1,0 +1,142 @@
+From b6c93db5aa8284d4cafc9577167ab667d2901682 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 9 Jan 2026 22:57:26 +0100
+Subject: [PATCH 1/3] fix: Make Gaudi_PYTHON_DIR check optional in
+ GaudiConfig.cmake
+
+The set_and_check macro verifies that a directory exists at CMake
+configuration time. When GAUDI_INSTALL_PYTHONDIR is set to a
+non-default path (e.g., lib/python3.14/site-packages for conda),
+the downstream project test fails because the directory doesn't
+exist in the test install location.
+
+Change to use set() instead of set_and_check() for Gaudi_PYTHON_DIR,
+and only add it to PYTHONPATH if it exists.
+---
+ cmake/GaudiConfig.cmake.in | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/cmake/GaudiConfig.cmake.in b/cmake/GaudiConfig.cmake.in
+index 48c4d482f3..b12a3d7882 100644
+--- a/cmake/GaudiConfig.cmake.in
++++ b/cmake/GaudiConfig.cmake.in
+@@ -79,7 +79,8 @@ set_and_check(Gaudi_BINARY_DIR @PACKAGE_CMAKE_INSTALL_BINDIR@)
+ set_and_check(Gaudi_INCLUDE_DIR @PACKAGE_CMAKE_INSTALL_INCLUDEDIR@)
+ set_and_check(Gaudi_LIBRARY_DIR @PACKAGE_CMAKE_INSTALL_LIBDIR@)
+ set_and_check(Gaudi_PLUGINS_DIR @PACKAGE_GAUDI_INSTALL_PLUGINDIR@)
+-set_and_check(Gaudi_PYTHON_DIR @PACKAGE_GAUDI_INSTALL_PYTHONDIR@)
++# Use set instead of set_and_check for PYTHON_DIR as it may not exist in all configurations
++set(Gaudi_PYTHON_DIR @PACKAGE_GAUDI_INSTALL_PYTHONDIR@)
+ 
+ if(NOT GAUDI_NO_TOOLBOX)
+     # Import the functions
+@@ -91,7 +92,9 @@ if(NOT GAUDI_NO_TOOLBOX)
+         _gaudi_runtime_prepend(ld_library_path ${Gaudi_PLUGINS_DIR})
+     endif()
+     _gaudi_runtime_prepend(root_include_path ${Gaudi_INCLUDE_DIR})
+-    _gaudi_runtime_prepend(pythonpath ${Gaudi_PYTHON_DIR})
++    if(EXISTS ${Gaudi_PYTHON_DIR})
++        _gaudi_runtime_prepend(pythonpath ${Gaudi_PYTHON_DIR})
++    endif()
+ endif()
+ 
+ # Enable optional dependencies
+-- 
+GitLab
+
+
+From e372b172c7969963ea70622ff22a8a18cc86e3f1 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sat, 10 Jan 2026 23:48:03 +0100
+Subject: [PATCH 2/3] Fix generator expressions to handle empty paths
+
+The SHELL_PATH generator expression fails when it receives an empty string
+because "" is not a valid absolute path. This can happen when the filtered
+path list is empty (e.g., in downstream projects with no custom paths).
+
+This patch wraps SHELL_PATH in a conditional that only evaluates it when
+the filtered list is non-empty, using $<$<BOOL:...>:$<SHELL_PATH:...>>.
+---
+ cmake/GaudiToolbox.cmake | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/cmake/GaudiToolbox.cmake b/cmake/GaudiToolbox.cmake
+index 10ac54de65..8a832d3a8d 100644
+--- a/cmake/GaudiToolbox.cmake
++++ b/cmake/GaudiToolbox.cmake
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2020-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2020-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -1536,11 +1536,11 @@ if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT TARGET target_runtime_paths)
+     file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/${_env_file}
+                   CONTENT "#!/bin/sh
+ # Auto-generated script to set environment variables
+-export PATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,EXCLUDE,^[^/]>>\${PATH:+:\${PATH}}\"
+-export LD_LIBRARY_PATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,EXCLUDE,^[^/]>>\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\"
+-export PYTHONPATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_pythonpath>>;${_ENV_PYTHONPATH}>,EXCLUDE,^[^/]>>\${PYTHONPATH:+:\${PYTHONPATH}}\"
++export PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_path>>;${_ENV_PATH}>,INCLUDE,^/>>>\${PATH:+:\${PATH}}\"
++export LD_LIBRARY_PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_ld_library_path>>;${_ENV_LD_LIBRARY_PATH}>,INCLUDE,^/>>>\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\"
++export PYTHONPATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_pythonpath>>;${_ENV_PYTHONPATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_pythonpath>>;${_ENV_PYTHONPATH}>,INCLUDE,^/>>>\${PYTHONPATH:+:\${PYTHONPATH}}\"
+ $<$<NOT:$<STREQUAL:$ENV{PYTHONHOME},>>:export PYTHONHOME=\"$ENV{PYTHONHOME}\">
+-export ROOT_INCLUDE_PATH=\"$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_root_include_path>>;${_ENV_ROOT_INCLUDE_PATH}>,EXCLUDE,^[^/]>>\${ROOT_INCLUDE_PATH:+:\${ROOT_INCLUDE_PATH}}\"
++export ROOT_INCLUDE_PATH=\"$<$<BOOL:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_root_include_path>>;${_ENV_ROOT_INCLUDE_PATH}>,INCLUDE,^/>>:$<SHELL_PATH:$<FILTER:$<REMOVE_DUPLICATES:$<GENEX_EVAL:$<TARGET_PROPERTY:target_runtime_paths,runtime_root_include_path>>;${_ENV_ROOT_INCLUDE_PATH}>,INCLUDE,^/>>>\${ROOT_INCLUDE_PATH:+:\${ROOT_INCLUDE_PATH}}\"
+ export ENV_PROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"
+ export ENV_PROJECT_BINARY_DIR=\"${PROJECT_BINARY_DIR}\"
+ export ENV_CMAKE_BUILD_TYPE=\"$<CONFIG>\"
+-- 
+GitLab
+
+
+From 59e993638fedca466bece751fde729331e73aa3f Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Sun, 11 Jan 2026 13:49:47 +0100
+Subject: [PATCH 3/3] fix: Skip install test when GAUDI_INSTALL_PYTHONDIR is
+ absolute
+
+When GAUDI_INSTALL_PYTHONDIR is an absolute path (e.g., for conda
+packaging), cmake --install ignores the --prefix for those destinations.
+This means the test would install Python files to the real system
+location instead of the isolated test directory, polluting the build
+environment.
+
+Skip the test entirely in this case. For relative paths, correctly
+pass the absolute path to the check by prepending the install prefix.
+---
+ cmake/tests/testGaudiInstallation.cmake | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/tests/testGaudiInstallation.cmake b/cmake/tests/testGaudiInstallation.cmake
+index cf145d2f6b..1437df23bb 100644
+--- a/cmake/tests/testGaudiInstallation.cmake
++++ b/cmake/tests/testGaudiInstallation.cmake
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2020-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2020-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -210,6 +210,16 @@ elseif(DEFINED TEST_GAUDI_INSTALL_PACKAGE)
+         message(FATAL_ERROR "Packaging of Gaudi failed")
+     endif()
+ else()
++    # Skip the installation test if GAUDI_INSTALL_PYTHONDIR is an absolute path.
++    # When absolute, cmake --install ignores the --prefix for Python files,
++    # meaning the test would install to the real system location instead of
++    # the isolated test directory, polluting the build environment.
++    if(IS_ABSOLUTE "${GAUDI_INSTALL_PYTHONDIR}")
++        message(STATUS "Skipping cmake.test_gaudi_install tests: GAUDI_INSTALL_PYTHONDIR is absolute (${GAUDI_INSTALL_PYTHONDIR})")
++        cmake_policy(POP)
++        return()
++    endif()
++
+     # Try to install (locally in the build tree)
+     set(tmpInstallDest ${CMAKE_CURRENT_BINARY_DIR}/GaudiTestInstall)
+     add_test(NAME cmake.test_gaudi_install
+-- 
+GitLab
+
