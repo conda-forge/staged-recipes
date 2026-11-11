@@ -1,0 +1,104 @@
+schema_version: 1
+
+context:
+  version: "0.4.0"
+  build_number: 0
+
+package:
+  name: libulmblas
+  version: ${{ version }}
+
+source:
+  url: https://github.com/michael-lehn/ulmBLAS/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2ff901132885162b423ae3901c2e91159b7b9c5cdd25d0d9c7d0afbcc33748cd
+
+build:
+  number: ${{ build_number }}
+  # Intel Macs are not supported
+  skip: osx and x86_64
+
+requirements:
+  build:
+    # Windows: MinGW-w64 (UCRT); the library has only a C interface and
+    # depends only on system DLLs, so MSVC programs can use it
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ compiler('m2w64_cxx') }}
+        - ${{ stdlib('m2w64_c') }}
+      else:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+    - if: unix
+      then: make
+    - if: win
+      then:
+        - m2-make
+        - m2-bash
+        - m2-coreutils
+        - m2-sed
+        - m2-grep
+        - m2-gawk
+  run_exports:
+    - ${{ pin_subpackage('libulmblas', upper_bound='x.x') }}
+
+tests:
+  - files:
+      recipe:
+        - test_ulmblas.c
+    requirements:
+      run:
+        - if: win
+          then: ${{ compiler('m2w64_c') }}
+          else:
+            - ${{ compiler('c') }}
+            - pkg-config
+    script:
+      - if: unix
+        then:
+          - test -f $PREFIX/include/ulmblas/cblas.h
+          - test -f $PREFIX/lib/pkgconfig/ulmblas.pc
+          - if: osx
+            then:
+              - test -f $PREFIX/lib/libulmblas.0.dylib
+              - test -f $PREFIX/lib/libulmblas_neon.dylib
+              - test -f $PREFIX/lib/libulmblas_sme.dylib
+          - if: linux and x86_64
+            then:
+              - test -f $PREFIX/lib/libulmblas.so.0
+              - test -f $PREFIX/lib/libulmblas_sse3.so
+              - test -f $PREFIX/lib/libulmblas_avx2.so
+              - test -f $PREFIX/lib/libulmblas_avx512.so
+          - if: linux and aarch64
+            then:
+              - test -f $PREFIX/lib/libulmblas.so.0
+          - $CC $CFLAGS test_ulmblas.c $(pkg-config --cflags --libs ulmblas) -lm -o test_ulmblas
+          - ./test_ulmblas
+      - if: win
+        then:
+          - if not exist %LIBRARY_INC%\ulmblas\cblas.h exit 1
+          - if not exist %LIBRARY_BIN%\libulmblas.dll exit 1
+          - if not exist %LIBRARY_BIN%\libulmblas_sse3.dll exit 1
+          - if not exist %LIBRARY_BIN%\libulmblas_avx2.dll exit 1
+          - if not exist %LIBRARY_BIN%\libulmblas_avx512.dll exit 1
+          - if not exist %LIBRARY_LIB%\ulmblas.lib exit 1
+          - '%CC% test_ulmblas.c -I%LIBRARY_INC%\ulmblas -L%LIBRARY_LIB% -lulmblas -o test_ulmblas.exe'
+          - test_ulmblas.exe
+
+about:
+  homepage: https://github.com/michael-lehn/ulmBLAS
+  repository: https://github.com/michael-lehn/ulmBLAS
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: BLAS (Fortran 77 and CBLAS interface) with micro kernels selected for the CPU at load time
+  description: |
+    ulmBLAS implements all 148 routines of the reference BLAS (single,
+    double, complex) with the Fortran 77 (LP64) and the C (CBLAS)
+    interface.  libulmblas selects at load time the build for the CPU:
+    SME2 or NEON on Apple Silicon; AVX-512, AVX2/FMA or SSE3 on x86-64.
+    ULMBLAS_BACKEND overrides the choice, ulmblas_backend() reports it.
+
+extra:
+  recipe-maintainers:
+    - michael-lehn
