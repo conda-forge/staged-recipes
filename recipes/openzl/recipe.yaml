@@ -3,8 +3,8 @@ schema_version: 1
 context:
   version: "0.3.0"
 
-package:
-  name: openzl
+recipe:
+  name: openzl-split
   version: ${{ version }}
 
 source:
@@ -13,68 +13,122 @@ source:
 
 build:
   number: 0
-  script:
-   content:
-     # Workaround until openzl supports system libzstd? - https://github.com/meta/openzl/issues/105
-     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
-     - mkdir -p $SRC_DIR/deps/zstd/lib/
-     - ln -s $BUILD_PREFIX/include/zstd.h $SRC_DIR/deps/zstd/lib/zstd.h
-     - mkdir -p $SRC_DIR/deps/zstd/build/cmake/
-     - ln -s $BUILD_PREFIX/etc/conda/test-files/zstd/1/cf_test/CMakeLists.txt $SRC_DIR/deps/zstd/build/cmake/CMakeLists.txt
-     - ls -lhR $SRC_DIR/deps/zstd/
-     # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
-     - mkdir -p $SRC_DIR/deps/lz4/lib/
-     - ln -s $BUILD_PREFIX/include/lz4.h $SRC_DIR/deps/lz4/lib/lz4.h
-     - ln -s $BUILD_PREFIX/include/lz4hc.h $SRC_DIR/deps/lz4/lib/lz4hc.h
-     - mkdir -p $SRC_DIR/deps/lz4/build/cmake/
-     - touch $SRC_DIR/deps/lz4/build/cmake/CMakeLists.txt
-     - ls -lhR $SRC_DIR/deps/lz4/
-     - sleep 1
-     # Actual build steps
-     - mkdir build-cmake
-     - cd build-cmake
-     # More options at https://github.com/meta/openzl/blob/v0.3.0/CMakeLists.txt#L12-L35
-     - >
-       cmake ..
-       -DCMAKE_BUILD_TYPE=Release
-       -DCMAKE_INSTALL_PREFIX=$PREFIX
-       -DOPENZL_BUILD_CLI=OFF
-       -DOPENZL_BUILD_EXAMPLES=OFF
-       -DOPENZL_BUILD_SHARED_LIBS=ON
-       -DOPENZL_BUILD_TESTS=OFF
-       -DOPENZL_BUILD_TOOLS=OFF
-     - make -j
-     - ctest . -j 10
-     - make install
 
-requirements:
-  build:
-    - ${{ stdlib('c') }}
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - cmake-no-system
-    - if: unix
-      then:
-        - make
-    - lz4-c
-    - zstd
-  host:
-    - zstd
+outputs:
+  # Staging: builds the library once
+  - staging:
+      name: openzl-build
+    build:
+      script:
+        content:
+          # Workaround until openzl supports system libzstd? - https://github.com/meta/openzl/issues/105
+          # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L21-L29
+          - mkdir -p $SRC_DIR/deps/zstd/lib/
+          - ln -s $BUILD_PREFIX/include/zstd.h $SRC_DIR/deps/zstd/lib/zstd.h
+          - ln -s $BUILD_PREFIX/lib/libzstd.a $PREFIX/lib/liblibzstd.a
+          - mkdir -p $SRC_DIR/deps/zstd/build/cmake/
+          - ln -s $BUILD_PREFIX/etc/conda/test-files/zstd/1/cf_test/CMakeLists.txt $SRC_DIR/deps/zstd/build/cmake/CMakeLists.txt
+          - ls -lhR $SRC_DIR/deps/zstd/
+          # https://github.com/meta/openzl/blob/v0.3.0/build-scripts/cmake/openzl-deps.cmake#L111-L116
+          - mkdir -p $SRC_DIR/deps/lz4/lib/
+          - ln -s $BUILD_PREFIX/include/lz4.h $SRC_DIR/deps/lz4/lib/lz4.h
+          - ln -s $BUILD_PREFIX/include/lz4hc.h $SRC_DIR/deps/lz4/lib/lz4hc.h
+          - mkdir -p $SRC_DIR/deps/lz4/build/cmake/
+          - touch $SRC_DIR/deps/lz4/build/cmake/CMakeLists.txt
+          - ls -lhR $SRC_DIR/deps/lz4/
+          - sleep 1
+          # Actual build steps
+          - mkdir build-cmake
+          - cd build-cmake
+          # More options at https://github.com/meta/openzl/blob/v0.3.0/CMakeLists.txt#L12-L35
+          - >
+            cmake ..
+            -DOPENZL_BUILD_CLI=ON
+            -DOPENZL_BUILD_EXAMPLES=OFF
+            -DOPENZL_BUILD_SHARED_LIBS=ON
+            -DOPENZL_BUILD_TESTS=OFF
+            -DOPENZL_BUILD_TOOLS=OFF
+            $CMAKE_ARGS # already sets CMAKE_BUILD_TYPE=Release & CMAKE_INSTALL_PREFIX=$PREFIX
+          - make -j
+          - ctest . -j 10
+          - make install
+          # https://openzl.org/getting-started/quick-start/#building-the-openzl-cli
+          - cp cli/zli $PREFIX/bin/zli
+    requirements:
+      build:
+        - ${{ stdlib('c') }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake-no-system
+        - if: unix
+          then:
+          - make
+        - lz4-c
+        - zstd
+        - zstd-static
+      host:
+        - zstd
 
-tests:
-  - package_contents:
+  # Package: runtime library and development headers
+  - package:
+      name: openzl
+    inherit: openzl-build
+    build:
       files:
-        exists:
-          - if: unix
-            then:
-              - lib/libopenzl.a
-              - lib/libopenzl_cpp.a
-      include:
-        - openzl/openzl.h
-        - openzl/openzl.hpp
-        - openzl/zl_compress.h
-        - openzl/zl_compressor.h
-        - openzl/zl_decompress.h
+        - lib/libopenzl*
+        - include/*
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('openzl', exact=True) }}
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - if: unix
+                then:
+                - lib/libopenzl.a
+                - lib/libopenzl_cpp.a
+            not_exists:
+              - lib/libzstd.so
+          include:
+            - openzl/openzl.h
+            - openzl/openzl.hpp
+            - openzl/zl_compress.h
+            - openzl/zl_compressor.h
+            - openzl/zl_decompress.h
+
+  # Package: command-line interface (zli)
+  - package:
+      name: zli
+    inherit: openzl-build
+    build:
+      files:
+        - bin/*
+    requirements:
+      host:
+        - ${{ pin_subpackage('openzl', exact=True) }}
+      run:
+        - ${{ pin_subpackage('openzl', exact=True) }}
+    tests:
+      - package_contents:
+          bin:
+            - zli
+      - script:
+        - zli --help
+        - zli list-profiles
+        - zli benchmark --help
+        - zli compress --help
+        - zli decompress --help
+        - zli inspect --help
+        - zli train --help
+        # Compress with default settings (lvl6) - https://openzl.org/getting-started/cli/#numeric-data-in-openzl
+        - zli compress --profile le-i32 examples/getting_started/sample_inputs/era5_ints.bin --output era5_ints.le_i32.zl
+        # Compress using transformer - https://openzl.org/blog/2026-09-24-compression-transformer/#trying-it-out
+        - zli compress --profile le-i32 --level 7 examples/getting_started/sample_inputs/era5_ints.bin --output era5_ints.zl
+        files:
+          source:
+            - examples/getting_started/sample_inputs/era5_ints.bin
+
 
 about:
   homepage: https://openzl.org
@@ -85,5 +139,6 @@ about:
   license_file: LICENSE
 
 extra:
+  feedstock-name: openzl
   recipe-maintainers:
     - weiji14
