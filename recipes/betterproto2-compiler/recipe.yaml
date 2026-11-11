@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  version: "0.10.1"
+
+package:
+  name: betterproto2-compiler
+  version: ${{ version }}
+
+source:
+  url: https://github.com/betterproto/python-betterproto2/archive/refs/tags/compiler-v${{ version }}.tar.gz
+  sha256: 4bfc966b6ed389a8121d4270d8225ac87056c3102ba4a8b36f54416ee403266e
+
+build:
+  noarch: python
+  number: 0
+  script:
+    - cd betterproto2_compiler/
+    # strip dependency on the Python wrapper, we do not install it
+    # and ruff is used via subprocess anyway
+    - sed -i -e '/ruff>=/d' pyproject.toml
+    - ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - protoc-gen-python_betterproto2 = betterproto2_compiler.plugin:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - uv-build >=0.9.7,<0.12
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - betterproto2 >=0.10.0,<0.11.dev0
+    - ruff >=0.9.3
+    - jinja2 >=3.0.3
+    - typing_extensions >=4.7.1,<5
+  run_exports:
+    weak:
+      - betterproto2 >=0.10.0,<0.11.dev0
+    noarch:
+      - betterproto2 >=0.10.0,<0.11.dev0
+
+tests:
+  - python:
+      imports:
+        - betterproto2_compiler
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - pytest >=8.3.4,<10
+        - protobuf >=5.29.3,<6
+    files:
+      source:
+        - betterproto2_compiler/tests/
+    script:
+      - protoc-gen-python_betterproto2 --help
+      - pytest
+
+about:
+  summary: Compiler for betterproto2
+  license: MIT
+  license_file: LICENSE.md
+  homepage: https://pypi.org/project/betterproto2-compiler/
+  documentation: https://betterproto.github.io/python-betterproto2/
+
+extra:
+  recipe-maintainers:
+    - mgorny
