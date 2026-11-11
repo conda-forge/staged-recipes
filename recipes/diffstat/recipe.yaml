@@ -1,0 +1,60 @@
+context:
+  version: "1.69"
+
+package:
+  name: diffstat
+  version: ${{ version }}
+
+source:
+  url: https://invisible-island.net/archives/diffstat/diffstat-${{ version }}.tgz
+  sha256: bb02464072f769dd9832fd999526734c90eb4d66fb56d5351540a750c88a77f6
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    # configure records which decompressors exist; diffstat runs them from PATH
+    - bzip2
+    - gzip
+    - xz-tools
+    - zstd
+
+tests:
+  - package_contents:
+      bin:
+        - diffstat
+  - files:
+      recipe:
+        - test.diff
+    requirements:
+      run:
+        - gzip
+        - xz-tools
+    script:
+      - diffstat -V
+      - test "$(diffstat -s test.diff)" = " 1 file changed, 1 insertion(+), 1 deletion(-)"
+      - gzip -c test.diff > test.diff.gz
+      - test "$(diffstat -s test.diff.gz)" = " 1 file changed, 1 insertion(+), 1 deletion(-)"
+      - xz -c test.diff > test.diff.xz
+      - test "$(diffstat -s test.diff.xz)" = " 1 file changed, 1 insertion(+), 1 deletion(-)"
+
+about:
+  homepage: https://invisible-island.net/diffstat/
+  summary: Make a histogram from diff output
+  description: |
+    diffstat reads the output of diff and displays a histogram of the
+    insertions, deletions, and modifications per file. It is useful for
+    reviewing large, complex patch files.
+  license: X11
+  license_file: COPYING
+  documentation: https://invisible-island.net/diffstat/manpage/diffstat.html
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
