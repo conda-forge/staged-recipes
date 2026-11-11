@@ -1,0 +1,30 @@
+--- a/scripts/symlink-install-tree.py
++++ b/scripts/symlink-install-tree.py
+@@ -14,8 +14,24 @@ def destdir_join(d1: str, d2: str) -> str:
+     # c:\destdir + c:\prefix must produce c:\destdir\prefix
+     return str(PurePath(d1, *PurePath(d2).parts[1:]))
+
+-introspect = os.environ.get('MESONINTROSPECT')
+-out = subprocess.run([*shlex.split(introspect), '--installed'],
++introspect_env = os.environ.get('MESONINTROSPECT', '')
++# conda-forge: Handle Windows paths properly
++# Remove surrounding quotes that may be present
++introspect_env = introspect_env.strip().strip("'\"")
++
++# On Windows, shlex.split doesn't handle paths well; use the path directly
++if os.name == 'nt':
++    # The env var might be "path/to/meson introspect" or just "path/to/meson"
++    # Try to find 'meson' and use it with 'introspect' subcommand
++    import shutil
++    meson_path = shutil.which('meson') or shutil.which('meson.exe')
++    if meson_path:
++        introspect_cmd = [meson_path, 'introspect']
++    else:
++        introspect_cmd = [introspect_env, 'introspect'] if introspect_env else ['meson', 'introspect']
++else:
++    introspect_cmd = [*shlex.split(introspect_env)] if introspect_env else ['meson', 'introspect']
++
++out = subprocess.run([*introspect_cmd, '--installed'],
+                      stdout=subprocess.PIPE, check=True).stdout
+ for source, dest in json.loads(out).items():
+     bundle_dest = destdir_join('qemu-bundle', dest)
