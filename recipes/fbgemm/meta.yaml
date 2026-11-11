@@ -1,0 +1,208 @@
+{% set name = "fbgemm" %}
+{% set version = "1.2.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # Need to use git_url instead of tarball due to extensive git submodules
+  git_url: https://github.com/pytorch/FBGEMM.git
+  git_rev: v{{ version }}
+
+build:
+  number: 0
+  skip: true  # [win]
+  skip: true  # [aarch64]  # git_url source requires git on build system, problematic for cross-compilation
+
+outputs:
+  - name: libfbgemm
+    build:
+      script: |
+        mkdir build && cd build
+        cmake \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DCMAKE_PREFIX_PATH=$PREFIX \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DFBGEMM_LIBRARY_TYPE=shared \
+          -DASMJIT_STATIC=OFF \
+          -DCPUINFO_LIBRARY_TYPE=shared \
+          -DFBGEMM_BUILD_TESTS=OFF \
+          -DFBGEMM_BUILD_BENCHMARKS=OFF \
+          -DFBGEMM_BUILD_DOCS=OFF \
+          -DFBGEMM_BUILD_FBGEMM_GPU=OFF \
+          ..
+        make -j${CPU_COUNT}
+        make install
+      string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        - {{ pin_subpackage('fbgemm', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+        - cmake
+        - make
+        - git
+      host:
+        - llvm-openmp  # [osx]
+        - libgomp  # [linux]
+      run:
+    test:
+      commands:
+        - test -f $PREFIX/lib/libfbgemm${SHLIB_EXT}  # [unix]
+        - test -f $PREFIX/include/fbgemm/FbgemmBuild.h  # [unix]
+
+  - name: fbgemm
+    build:
+      # TODO: OSX build fails with CMake errors - needs investigation
+      # OSX should be supported per https://pytorch.org/FBGEMM/fbgemm_gpu/development/BuildInstructions.html
+      skip: true  # [osx]
+      script: |
+        cd fbgemm_gpu
+        {% if cuda_compiler_version == "None" %}
+        python setup.py --package_variant=cpu --package_channel=release install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
+        {% else %}
+        python setup.py --package_variant=cuda --package_channel=release install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
+        {% endif %}
+      script_env:
+        # Set CUDA architectures: starts at 6.0 because code uses __hfma2 (half-precision FMA)
+        # which requires Compute Capability 6.0+ (Pascal). CC 5.0 (Maxwell) only supports FP16 storage, not arithmetic.
+        # Compiling with 10.0 failed with error: nvcc fatal: Unsupported gpu architecture 'compute_100' - cuda 12.6 issue ?
+        # TODO switch back to full arch list before merging
+        # - TORCH_CUDA_ARCH_LIST=6.0;7.0;7.5;8.0;8.6;9.0+PTX  # [cuda_compiler_version != "None"]
+        - TORCH_CUDA_ARCH_LIST=9.0  # [cuda_compiler_version != "None"]
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+      string: cpu_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+        - {{ stdlib('c') }}
+        - cmake
+        - make
+        - ninja
+        - git
+        - python
+        - pip
+        - setuptools-git-versioning
+        - pytorch
+        - pytorch * *cuda*  # [cuda_compiler_version != "None"]
+        - scikit-build
+        - tabulate
+        - jinja2
+        - pyyaml
+        - cuda-cudart-dev  # [cuda_compiler_version != "None"]
+        - cuda-nvrtc-dev  # [cuda_compiler_version != "None"]
+        - cuda-nvtx-dev  # [cuda_compiler_version != "None"]
+        - libcublas-dev  # [cuda_compiler_version != "None"]
+        - libcusolver-dev  # [cuda_compiler_version != "None"]
+        - libcusparse-dev  # [cuda_compiler_version != "None"]
+        - libcurand-dev  # [cuda_compiler_version != "None"]
+      host:
+        - python
+        - pip
+        - setuptools
+        - setuptools-git-versioning
+        - wheel
+        - pytorch
+        - scikit-build
+        - numpy
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+      run:
+        - python
+        - pytorch
+        - numpy
+        - cuda-version >={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - cuda-cudart  # [cuda_compiler_version != "None"]
+    test:
+      imports:
+        - fbgemm_gpu
+
+  - name: fbgemm-genai
+    build:
+      skip: true  # [cuda_compiler_version == "None"]
+      script: |
+        cd fbgemm_gpu
+        python setup.py --package_variant=genai --package_channel=release install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
+      script_env:
+        # Set CUDA architectures: starts at 6.0 because genai code uses __hfma2 (half-precision FMA)
+        # which requires Compute Capability 6.0+ (Pascal). CC 5.0 (Maxwell) only supports FP16 storage, not arithmetic.
+        # Compiling with 10.0 failed with error: nvcc fatal: Unsupported gpu architecture 'compute_100' - cuda 12.6 issue ?
+        # TODO switch back to full arch list before merging
+        # - TORCH_CUDA_ARCH_LIST=6.0;7.0;7.5;8.0;8.6;9.0+PTX  # [cuda_compiler_version != "None"]
+        - TORCH_CUDA_ARCH_LIST=9.0  # [cuda_compiler_version != "None"]
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+        - {{ stdlib('c') }}
+        - cmake
+        - make
+        - ninja
+        - git
+        - python
+        - pip
+        - setuptools-git-versioning
+        - pytorch
+        - pytorch * *cuda*  # [cuda_compiler_version != "None"]
+        - scikit-build
+        - tabulate
+        - jinja2
+        - pyyaml
+        - click
+        - pyre-extensions
+        - patchelf  # [linux]
+        - cuda-cccl  # [cuda_compiler_version != "None"]
+        - cuda-cudart-dev  # [cuda_compiler_version != "None"]
+        - cuda-nvrtc-dev  # [cuda_compiler_version != "None"]
+        - cuda-nvtx-dev  # [cuda_compiler_version != "None"]
+        - libcublas-dev  # [cuda_compiler_version != "None"]
+        - libcusolver-dev  # [cuda_compiler_version != "None"]
+        - libcusparse-dev  # [cuda_compiler_version != "None"]
+        - libcurand-dev  # [cuda_compiler_version != "None"]
+      host:
+        - python
+        - pip
+        - setuptools
+        - setuptools-git-versioning
+        - wheel
+        - pytorch
+        - pytorch * *cuda*  # [cuda_compiler_version != "None"]
+        - scikit-build
+        - numpy
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+      run:
+        - python
+        - pytorch
+        - numpy
+        - cuda-version >={{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - cuda-cudart  # [cuda_compiler_version != "None"]
+    test:
+      imports:
+        - fbgemm_gpu
+        - fbgemm_gpu.experimental.gen_ai
+
+about:
+  home: https://github.com/pytorch/FBGEMM
+  summary: 'FBGEMM GPU kernel libraries for PyTorch'
+  description: |
+    FBGEMM (Facebook GEneral Matrix Multiplication) is a low-precision, high-performance matrix-matrix multiplications and convolution library for server-side inference.
+    The library provides efficient low-precision general matrix multiplication for small batch sizes and support for accuracy-loss minimizing techniques such as row-wise quantization and outlier-aware quantization. FBGEMM also exploits fusion opportunities in order to overcome the unique challenges of matrix multiplication at lower precision with bandwidth-bound operations.
+  license: BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE-fbgemm.txt           # LICENSE
+    - LICENSE-asmjit.txt           # external/asmjit/LICENSE.md
+    - LICENSE-cutlass.txt          # external/cutlass/README.md
+    - LICENSE-json.txt             # external/json/LICENSE.MIT
+    - LICENSE-quantize_ops_mx.txt  # fbgemm_gpu/src/quantize_ops/mx/LICENSE
+  doc_url: https://github.com/pytorch/FBGEMM
+  dev_url: https://github.com/pytorch/FBGEMM
+
+extra:
+  recipe-maintainers:
+    - das-intensity
