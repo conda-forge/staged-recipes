@@ -12,12 +12,9 @@ source:
   url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
   sha256: 21faa7937af5994ee92844db8f39db76b69b007f6db6961e3d3a9f24ae35e101
   patches:
-    # option to build against installed Eigen3 and nanoflann instead of the
-    # copies in ext/ (to be submitted upstream)
-    - patches/0001-Add-PY4DGEO_USE_EXTERNAL_DEPENDENCIES-to-use-install.patch
-    # nanoflann >= 2.0 needs IndexType in custom result sets (also fine with
-    # the bundled 1.9; to be submitted upstream)
-    - patches/0002-Declare-IndexType-in-the-custom-nanoflann-result-set.patch
+    # option to build against an installed Eigen3 instead of the copy in
+    # ext/eigen (to be submitted upstream)
+    - patches/0001-Add-PY4DGEO_USE_EXTERNAL_EIGEN-to-use-an-installed-E.patch
 
 build:
   number: 0
@@ -28,11 +25,14 @@ build:
       # Visual Studio (it also sets the x64 platform, which Ninja rejects)
       CMAKE_GENERATOR: ${{ "Ninja" if unix else "" }}
     content:
-      # bundled copies, replaced by conda-forge's eigen and nanoflann
+      # bundled Eigen replaced by conda-forge's. The bundled nanoflann (1.9.0,
+      # header-only) stays: epoch archives store nanoflann's own KD-tree format,
+      # which 2.0 changed (old trees fail to load), and conda-forge has no 1.9;
+      # keeping it reads and writes the same archives as the PyPI wheels
       - if: unix
-        then: rm -rf ext/eigen ext/nanoflann ext/benchmark
-        else: rmdir /s /q ext\eigen ext\nanoflann ext\benchmark
-      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PY4DGEO_USE_EXTERNAL_DEPENDENCIES=ON
+        then: rm -rf ext/eigen ext/benchmark
+        else: rmdir /s /q ext\eigen ext\benchmark
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.PY4DGEO_USE_EXTERNAL_EIGEN=ON
   python:
     entry_points:
       - copy_py4dgeo_test_data = py4dgeo.util:copy_test_data_entrypoint
@@ -54,11 +54,10 @@ requirements:
     - scikit-build-core >=0.11.0
     - pybind11
     - eigen
-    - nanoflann
-    - if: osx
-      then: llvm-openmp
+    # upstream's CMake asks MSVC for /openmp:llvm
     - if: linux
       then: libgomp
+      else: llvm-openmp
   run:
     - python
     - dateparser
@@ -66,10 +65,12 @@ requirements:
     - lazrs-python
     - matplotlib-base
     - numpy
+    - pandas
     - pooch
     - psutil
     - requests
     - scikit-learn
+    - scipy
     - seaborn-base
     - xdg
 
@@ -84,6 +85,7 @@ tests:
     files:
       recipe:
         - test_m3c2.py
+        - epoch_pypi_1.2.1.zip
 
 about:
   homepage: https://github.com/3dgeo-heidelberg/py4dgeo
@@ -95,7 +97,9 @@ about:
     M3C2 (with level of detection) and its variants, cloud-to-cloud distances,
     registration and spatiotemporal segmentation, with a C++ core.
   license: MIT
-  license_file: LICENSE.md
+  license_file:
+    - LICENSE.md
+    - ext/nanoflann/COPYING
 
 extra:
   recipe-maintainers:

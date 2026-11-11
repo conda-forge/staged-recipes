@@ -30,3 +30,13 @@ distances, _ = py4dgeo.M3C2(
 ).run()
 assert np.allclose(distances[np.isfinite(distances)], 0)
 print("M3C2 OK")
+
+# an epoch saved by the PyPI wheel (py4dgeo 1.2.1) after build_kdtree(): its saved KD-tree
+# (nanoflann's own format) must load and answer like a tree built here
+epoch = py4dgeo.load_epoch("epoch_pypi_1.2.1.zip")
+assert epoch.kdtree.leaf_parameter() == 10, epoch.kdtree.leaf_parameter()
+query = np.array([0.5, 0.5, 0.5])
+found = np.sort(epoch.kdtree.radius_search(query, 0.2))
+expected = np.flatnonzero(np.linalg.norm(epoch.cloud - query, axis=1) < 0.2)
+assert np.array_equal(found, expected), (found, expected)
+print("PyPI epoch archive OK")
