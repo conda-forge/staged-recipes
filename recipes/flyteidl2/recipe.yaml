@@ -1,0 +1,66 @@
+schema_version: 1
+
+context:
+  version: "2.0.54"
+
+package:
+  name: flyteidl2
+  version: ${{ version }}
+
+source:
+  # PyPI only has a wheel. The package is built from gen/python in the flyte repo.
+  url: https://github.com/flyteorg/flyte/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 5753834b5bd12b7437a8ff344d76ad0651844e890618ab885be8581c16b6fef2
+  patches:
+    # Upstream vendors generated buf/validate code that clashes with the
+    # protovalidate package; depend on protovalidate for it instead.
+    - use-protovalidate-buf.patch
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content:
+      # license-files in gen/python/pyproject.toml expects LICENSE next to it;
+      # the file lives at the repo root.
+      - ${{ PYTHON }} -c "import shutil; shutil.copy('LICENSE', 'gen/python/LICENSE')"
+      - ${{ PYTHON }} -m pip install ./gen/python -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+    - googleapis-common-protos
+    - protoc-gen-openapiv2
+    - protobuf >=4.21.1
+    - protovalidate >=1.0.0
+
+tests:
+  - python:
+      imports:
+        - flyteidl2
+        - flyteidl2.common.identifier_pb2
+        - flyteidl2.core.tasks_pb2
+        - flyteidl2.task.task_definition_pb2
+        - flyteidl2.workflow.run_definition_pb2
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://flyte.org
+  repository: https://github.com/flyteorg/flyte
+  summary: Protobuf IDL for Flyte
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156

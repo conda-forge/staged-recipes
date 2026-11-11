@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  version: "2.13.1"
+
+package:
+  name: flyte
+  version: ${{ version }}
+
+source:
+  # PyPI only has a wheel.
+  url: https://github.com/flyteorg/flyte-sdk/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: dbaabd6f799ee3c2ff3dd9f834d6cd4631d4de88c8ace23925892612d25ebb4e
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - flyte = flyte.cli.main:main
+      - a0 = flyte._bin.runtime:main
+      - clustered = flyte._bin.clustered:main
+      - fserve = flyte._bin.serve:main
+      - c0 = flyte._bin.connect:main
+      - flyte-mcp = flyte._bin.mcp:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+    - aiofiles >=24.1.0
+    - click >=8.2.1
+    - cloudpickle >=3.1.1
+    - docstring_parser >=0.16
+    - fsspec >=2025.3.0
+    - connectrpc >=0.9.0,<0.11
+    - obstore >=0.7.3
+    - protobuf >=6.30.1
+    - pydantic >=2.10.6
+    - pyyaml >=6.0.2
+    - rich-click ==1.8.9
+    - httpx >=0.28.1,<1.0.0
+    - keyring >=25.6.0
+    - msgpack-python >=1.1.0
+    - toml >=0.10.2
+    - async-lru >=2.0.5
+    - mashumaro >=3.15
+    - aiolimiter >=1.2.1
+    - flyteidl2 ==2.0.54
+    - packaging
+    - sentry-sdk >=2.0
+    - pyopenssl >=24.0.0
+
+tests:
+  - python:
+      imports:
+        - flyte
+        - flyte.cli.main
+        - flyte.io
+        - flyte.remote
+        - flyte.storage
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      # rich-click help output needs UTF-8 on Windows CI.
+      - python -X utf8 -c "from flyte.cli.main import main; main(['--help'])"
+
+about:
+  homepage: https://flyte.org
+  repository: https://github.com/flyteorg/flyte-sdk
+  summary: The open source durable AI runtime for model training and batch/online inference
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
