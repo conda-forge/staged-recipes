@@ -1,0 +1,30 @@
+From: art-suite conda packaging
+Subject: [PATCH] cet_cmake_env(NO_INSTALL_PKGMETA): do not auto-install LICENSE/README
+
+cetmodules' cet_cmake_env() calls install_pkgmeta(), which finds the project's
+top-level LICENSE/README and installs them as files at the $PREFIX root. For this
+first ROOT-dependent product that is FATAL, not just untidy: ROOT owns
+$PREFIX/README as a *directory* (README/ReleaseNotes/...), already present in the
+host environment. When cmake installs our README *file* to that path it drops the
+file inside the directory and chmods the directory to 0644 (losing +x), after
+which rattler-build's post-build step can no longer traverse README/ and aborts
+with "Permission denied (os error 13)".
+
+NO_INSTALL_PKGMETA (documented in cetmodules CetCMakeEnv.cmake) suppresses the
+automatic install_pkgmeta() call, so cet_cmake_env() never stages the prefix-root
+docs and ROOT's directory is left untouched. This is the cetmodules-native fix;
+stripping $PREFIX after `make install` does not work because the chmod has already
+happened during install and the path is ROOT's directory (cannot rm it).
+See conda/potential_improvements.md (#7).
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,7 +17,7 @@ find_package(cetmodules 2.13.00 REQUIRED)
+ project(canvas_root_io VERSION 1.14.01 LANGUAGES CXX)
+
+ include(CetCMakeEnv)
+-cet_cmake_env()
++cet_cmake_env(NO_INSTALL_PKGMETA)
+
+ # Find our own CMake modules, and tell everyone else where to find them.
+ cet_cmake_module_directories(Modules)

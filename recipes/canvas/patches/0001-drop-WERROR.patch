@@ -1,0 +1,22 @@
+From: art-suite conda packaging
+Subject: [PATCH] Drop -Werror so canvas builds under conda's newer libstdc++
+
+canvas/Persistency/Provenance/RangeSet.cc ignores the return value of
+std::unique() (a latent dedup bug: it should be the erase-unique idiom). With
+conda-forge's newer libstdc++, std::unique is [[nodiscard]], so the suite's
+VIGILANT+WERROR flags turn the warning into a hard error. Rather than alter the
+runtime logic (which would diverge from the binary FNAL actually ships), we
+demote -Werror by removing the WERROR keyword from cet_set_compiler_flags --
+this reproduces upstream's behavior exactly while letting the build complete.
+See conda/potential_improvements.md (#2: WERROR has no external off-switch).
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,7 +7,6 @@
+ cet_cmake_env()
+ 
+ cet_set_compiler_flags(DIAGS VIGILANT DWARF_VER 4
+-  WERROR
+   NO_UNDEFINED
+   EXTRA_FLAGS -pedantic
+   )
