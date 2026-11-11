@@ -1,0 +1,146 @@
+diff --git a/setup.py b/setup.py
+index fce34e5..8a49a2c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,6 +1,4 @@
+-import os
+ import platform
+-import shutil
+ import sys
+ from pathlib import Path
+ 
+@@ -15,67 +13,28 @@ with open(HERE / "src" / "pye57" / "__version__.py") as f:
+     exec(f.read(), about)
+ version = about["__version__"]
+ 
+-libE57_cpp = sorted(map(str, (HERE / "libE57Format" / "src").glob("*.cpp")))
+-
+-libraries = []
++libraries = ["E57Format"]
+ library_dirs = []
+-include_dirs = [
+-    "libE57Format/include",
+-    "libE57Format/src",
+-    "libE57Format/extern/CRCpp/inc",
+-]
+-package_data = []
+-extra_link_args = []
++include_dirs = []
+ 
+ if platform.system() == "Windows":
+-    libraries.append("xerces-c_3")
+-
+     # using conda
+     conda_library_dir = Path(sys.executable).parent / "Library"
+     if conda_library_dir.exists():
+         library_dirs.append(str(conda_library_dir / "lib"))
+         include_dirs.append(str(conda_library_dir / "include"))
+ 
+-    # using cibuildwheel
+-    xerces_dir = Path(os.environ["TEMP"]) / "xerces_c"
+-    if xerces_dir.exists():
+-        library_dirs.append(str(xerces_dir / "lib"))
+-        include_dirs.append(str(xerces_dir / "include"))
+-        # include xerces-c dll in the package
+-        shutil.copy2(xerces_dir / "bin" / "xerces-c_3_2.dll", HERE / "src" / "pye57")
+-        package_data.append("xerces-c_3_2.dll")
+-elif platform.system() == "Darwin":
+-    xerces_dir = Path("/usr/local/")
+-    if xerces_dir.exists():
+-        # include xerces-c dylib in the package
+-        shutil.copy2(xerces_dir / "lib" / "libxerces-c-3.2.dylib", HERE / "src" / "pye57")
+-        library_dirs.append(str(xerces_dir / "lib"))
+-        include_dirs.append(str(xerces_dir / "include"))
+-        package_data.append("libxerces-c-3.2.dylib")
+-    libraries.append("xerces-c")
+-    extra_link_args = [
+-        f"-Wl,-rpath,@loader_path",
+-        f"-L{str(HERE / 'src' / 'pye57')}",
+-        "-lxerces-c",
+-    ]
+-else:
+-    libraries.append("xerces-c")
+-
+ ext_modules = [
+     Pybind11Extension(
+         "pye57.libe57",
+-        ["src/pye57/libe57_wrapper.cpp"] + libE57_cpp,
+-        define_macros=[("E57_DLL", "")],
++        ["src/pye57/libe57_wrapper.cpp"],
+         include_dirs=include_dirs,
+         libraries=libraries,
+         library_dirs=library_dirs,
+         language="c++",
+-        extra_link_args=extra_link_args,
+     ),
+ ]
+ 
+-export_header_path = HERE / "libE57Format" / "include" / "E57Export.h"
+-
+ 
+ class BuildExt(build_ext):
+     """A custom build extension for adding compiler-specific options."""
+@@ -87,25 +46,14 @@ class BuildExt(build_ext):
+         if ct == "unix":
+             opts.append(f'-DVERSION_INFO="{version}"')
+             opts.append(f'-DREVISION_ID="{revision_id}"')
+-            opts.append("-DCRCPP_USE_CPP11")
+-            opts.append("-DCRCPP_BRANCHLESS")
+             opts.append("-Wno-unused-variable")
+-            opts.append("-DE57_ENABLE_DIAGNOSTIC_OUTPUT")
+         elif ct == "msvc":
+             opts.append(f'/DVERSION_INFO="{version}"')
+             opts.append(rf'/DREVISION_ID="\"{revision_id}\""')
+-            opts.append("/DCRCPP_USE_CPP11")
+-            opts.append("/DCRCPP_BRANCHLESS")
+-            opts.append("/DWINDOWS")
+-            opts.append("/DE57_ENABLE_DIAGNOSTIC_OUTPUT")
+         for ext in self.extensions:
+             ext.extra_compile_args = opts
+ 
+-        export_header_path.touch()
+-        try:
+-            super().build_extensions()
+-        finally:
+-            export_header_path.unlink()
++        super().build_extensions()
+ 
+ 
+ with open(HERE / "README.md") as f:
+@@ -127,7 +75,6 @@ setup(
+     packages=["pye57"],
+     package_dir={"": "src"},
+     # include_package_data=True,
+-    package_data={"pye57": package_data},
+     extras_require={"test": "pytest"},
+     license="MIT",
+     classifiers=[
+diff --git a/src/pye57/libe57_wrapper.cpp b/src/pye57/libe57_wrapper.cpp
+index 4b038a3..a04a4e1 100644
+--- a/src/pye57/libe57_wrapper.cpp
++++ b/src/pye57/libe57_wrapper.cpp
+@@ -3,10 +3,9 @@
+ #include <pybind11/stl_bind.h>
+ #include <pybind11/numpy.h>
+ 
+-#include <E57Exception.h>
+-#include <E57Format.h>
+-#include <E57Version.h>
+-#include <ASTMVersion.h>
++#include <E57Format/E57Exception.h>
++#include <E57Format/E57Format.h>
++#include <E57Format/E57Version.h>
+ #include <sstream>
+ #include <string.h>
+ 
+@@ -52,8 +51,8 @@ PYBIND11_MODULE(libe57, m) {
+         }
+     });
+ 
+-    m.attr("E57_FORMAT_MAJOR") = E57_FORMAT_MAJOR;
+-    m.attr("E57_FORMAT_MINOR") = E57_FORMAT_MINOR;
++    m.attr("E57_FORMAT_MAJOR") = Version::astmMajor();
++    m.attr("E57_FORMAT_MINOR") = Version::astmMinor();
+     m.attr("E57_LIBRARY_ID") = REVISION_ID;
+     m.attr("E57_V1_0_URI") = "http://www.astm.org/COMMIT/E57/2010-e57-v1.0";
+     m.attr("CHECKSUM_POLICY_NONE") = CHECKSUM_POLICY_NONE;
