@@ -1,0 +1,67 @@
+context:
+  version: "0.24.1"
+  # dos-kernel requires Python >=3.11 (pyproject `requires-python`), above
+  # conda-forge's global python_min.
+  python_min: "3.11"
+
+package:
+  name: dos-kernel
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/d/dos-kernel/dos_kernel-${{ version }}.tar.gz
+  sha256: 74c7e1ac12e4125468270b7d478c1ed4b8ac8293d05ee4ab6dd890f0919b8ed1
+
+build:
+  noarch: python
+  script: python -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=75.0
+  run:
+    - python >=${{ python_min }}
+    - pyyaml >=6.0
+
+tests:
+  - python:
+      imports:
+        - dos
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      # On win the test-phase `dos.EXE` launcher exits 1 with no output while
+      # `python -m dos.cli --help` in the SAME env exits 0 (diagnosed in this
+      # PR's CI: the module works; the generated exe shim does not run it).
+      # The shim is exercised on linux/osx; win tests the entry point module.
+      - if: win
+        then: python -m dos.cli --help
+        else: dos --help
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/anthony-chaudhary/dos-kernel
+  summary: Trust kernel for fleets of AI agents - verify, refuse, arbitrate from evidence the agents did not author
+  description: |
+    DOS (the Dispatch Operating System) is a small, deterministic kernel
+    that adjudicates ground truth across many unreliable, self-narrating
+    AI agents. "dos verify" answers "did this actually ship?" from git
+    ancestry rather than an agent's self-report; "dos arbitrate" referees
+    which agents may touch which files concurrently; refusals are
+    structured and machine-checkable instead of free text. Pure Python,
+    one runtime dependency (PyYAML), works on a plain git repo with no
+    configuration. Optional extras add an MCP server (dos-mcp), terminal
+    UIs, and notification transports.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/anthony-chaudhary/dos-kernel
+  documentation: https://anthony-chaudhary.github.io/dos-kernel/
+
+extra:
+  recipe-maintainers:
+    - anthony-chaudhary
