@@ -1,0 +1,62 @@
+From 8cf61a162713211594c1a1781806f2504bd90cb7 Mon Sep 17 00:00:00 2001
+From: Doug Torrance <dtorrance9@gatech.edu>
+Date: Wed, 11 Nov 2026 21:26:21 -0500
+Subject: [PATCH] Use CXX for C++ compiler + other Makefile changes
+
+We were using CC (defaulting to g++), but that meant we were compiling
+the C code in polylib using a C++ compiler.
+
+Also:
+* Drop the LD variable and use CXX for linking.  It had defaulted to
+  g++, but it's usually used for ld.
+* Add default value for CXXFLAGS to match CFLAGS.
+* Use ?= instead of := for flags so we can get them from the
+  environment.
+* Stop providing a default compiler with := since we'll already get
+  one from make.
+* Use LDLIBS when linking.
+
+Forwarded: https://github.com/BenjaminJurke/cohomCalg/pull/10
+---
+ Makefile | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 1b462a6..373c9bd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -4,12 +4,11 @@
+ #                                                                       #
+ #########################################################################
+ 
+-# compilers & flags
+-CC        := g++
+-CFLAGS    := -O3
+-LD        := g++
++# flags
++CFLAGS    ?= -O3
++CXXFLAGS  ?= -O3
+ # Note: (1) If you want to enforce 32-bit or 64-bit compilation, 
+-#           add "-m32" or "-m64" to both CFLAGS and LDFLAGS.
++#           add "-m32" or "-m64" to CFLAGS, CXXFLAGS and LDFLAGS.
+ #       (2) If you want to enforce a static linking of all libraries 
+ #           (i.e. include everything into one binary), add "-static" to LDFLAGS
+ 
+@@ -35,7 +34,7 @@ vpath %.cpp $(COHOMCALG_SRC_DIR)
+ # macros for .c/.cpp dirs
+ define make-goal-cpp
+ $1/%.o: %.cpp
+-	$(CC) $(INCLUDES) $(DEFS) $(CPPFLAGS) $(CXXFLAGS) -c $$< -o $$@
++	$(CXX) $(INCLUDES) $(DEFS) $(CPPFLAGS) $(CXXFLAGS) -c $$< -o $$@
+ endef
+ 
+ define make-goal-c
+@@ -49,7 +48,7 @@ endef
+ all: checkdirs bin/cohomcalg
+ 
+ bin/cohomcalg: $(COHOMCALG_OBJ) $(POLYLIB_OBJ)
+-	$(LD) $^ $(LDFLAGS) -lpthread -o $@
++	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -lpthread -o $@
+ #-static -lsource/polylib-5.22.5/.libs/libpolylib64.a
+ 
+ checkdirs: $(BUILD_DIR)
