@@ -1,0 +1,76 @@
+context:
+  version: "0.28.3"
+
+package:
+  name: sofka
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nklmilojevic/sofka/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2839c14f7ed8d414fd5986551f14a404a13931c5eed717ebabd40864e4a2f477
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      # sofka's completion subcommand takes the shell as a positional arg
+      # (`sofka completion <shell>`), not `--shell <shell>` as in the
+      # generic conda-forge Rust template.
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/sofka completion zsh > $PREFIX/share/zsh/site-functions/_sofka
+          - $PREFIX/bin/sofka completion bash > $PREFIX/share/bash-completion/completions/sofka
+          - $PREFIX/bin/sofka completion fish > $PREFIX/share/fish/vendor_completions.d/sofka.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: sofka info --offline
+  - package_contents:
+      bin:
+        - sofka
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/sofka
+            - share/fish/vendor_completions.d/sofka.fish
+            - share/zsh/site-functions/_sofka
+      strict: true
+
+about:
+  homepage: https://sofka.rs/
+  summary: A Kubernetes TUI, reimagined in Rust, built on kube-rs and ratatui
+  description: |
+    sofka is a from-scratch reimagining of k9s, a fast keyboard-driven
+    Kubernetes cluster navigator. It is async-first, built on kube-rs and
+    ratatui, with a single generic object-rendering pipeline (rather than
+    one hand-written renderer per resource kind), first-class Flux CD
+    support, background port-forwards, bulk multiselect actions, and
+    switchable skins (Catppuccin, Gruvbox, Nord, Dracula).
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://sofka.rs/
+  repository: https://github.com/nklmilojevic/sofka
+
+extra:
+  recipe-maintainers:
+    - keponk
