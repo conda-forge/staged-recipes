@@ -1,0 +1,85 @@
+context:
+  version: "0.36.0"
+
+package:
+  name: cookcli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cooklang/cookcli/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 868ea0e05be14bce98e4cc89028e3a5d8a3fc6b2131b10376103db8a46b644c6
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: fat
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    interpreter: nu
+    content:
+      - let prefix = $env.LIBRARY_PREFIX? | default $env.PREFIX
+      # build web UI assets (`static/`)
+      - aube install
+      - aube run build-css
+      - aube run build-js
+      # build main app and generate license data
+      - cargo auditable install --path=. --root=($prefix) --no-track --locked --bins
+      - cargo-bundle-licenses --format=yaml --output=THIRDPARTY.yml
+      # generate shell completions
+      - if: build_platform == host_platform
+        then:
+          - mkdir ($prefix)/share/bash-completion/completions ($prefix)/share/fish/vendor_completions.d ($prefix)/share/zsh/site-functions
+          - cook completions bash | save ($prefix)/share/bash-completion/completions/cook
+          - cook completions fish | save ($prefix)/share/fish/vendor_completions.d/cook.fish
+          - cook completions zsh  | save ($prefix)/share/zsh/site-functions/_cook
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - aube
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - nodejs
+    - nushell
+
+tests:
+  - script:
+      - cook --help
+      - cook --version
+  - package_contents:
+      bin:
+        - cook
+      files:
+        - if: unix and build_platform == host_platform
+          then:
+            - share/bash-completion/completions/cook
+            - share/fish/vendor_completions.d/cook.fish
+            - share/zsh/site-functions/_cook
+        - if: win and build_platform == host_platform
+          then:
+            - Library/share/bash-completion/completions/cook
+            - Library/share/fish/vendor_completions.d/cook.fish
+            - Library/share/zsh/site-functions/_cook
+      strict: true
+
+about:
+  summary: A command-line interface for managing and working with Cooklang recipes
+  description: |
+    CookCLI (`cook`) provides a suite of commands to create shopping lists, reports
+    and maintain recipes. It's built to be simple and useful for automating cooking
+    and shopping routines with existing UNIX command line and scripting tools.
+    It can also function as a webserver for Cooklang recipes, making them
+    browsable on any device with a web browser.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://cooklang.org
+  repository: https://github.com/cooklang/cookcli
+  documentation: https://cooklang.org/cli/
+
+extra:
+  recipe-maintainers:
+    - salim-b
