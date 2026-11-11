@@ -1,0 +1,92 @@
+context:
+  version: "0.7.2"
+  python_min: "3.12"
+
+package:
+  name: akko-mcp-trino
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/a/akko-mcp-trino/akko_mcp_trino-${{ version }}.tar.gz
+  sha256: 52a115a13859f9e2d2a602335e6fbf83edb0551334f0cc1b78cc9c968c5234fe
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - akko-mcp-trino = akko_mcp_trino.__main__:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=77
+    - wheel
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - mcp >=2.2.0,<3
+    - trino-python-client >=0.339.0,<1
+    - httpx >=0.28.1,<1
+    - starlette >=1.6.0,<2
+    - uvicorn >=0.52.4,<1
+    - sqlglot >=30.18.0,<31
+    - prometheus_client >=0.21.1,<1
+    - pyjwt >=2.15.0,<3
+    - cryptography >=50.0.1
+
+tests:
+  - python:
+      imports:
+        - akko_mcp_trino
+        - akko_mcp_trino.__main__
+        - akko_mcp_trino.app
+        - akko_mcp_trino.auth
+        - akko_mcp_trino.config
+        - akko_mcp_trino.server
+        - akko_mcp_trino.sql_guard
+        - akko_mcp_trino.token_exchange
+        - akko_mcp_trino.tools
+        - akko_mcp_trino.trino_client
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - akko-mcp-trino --version
+      - python -c "import subprocess; out = subprocess.check_output(['akko-mcp-trino', '--version'], text=True); assert out.strip() == 'akko-mcp-trino ${{ version }}', out"
+  # Validates a complete configuration offline: no Trino and no port needed.
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      env:
+        MCP_AUTH_ENABLED: "false"
+        MCP_AUTH_REQUIRED: "false"
+        TRINO_IDENTITY_MODE: service
+      content:
+        - akko-mcp-trino --check
+
+about:
+  homepage: https://akko-ai.com/docs/akko-mcp-trino/
+  repository: https://github.com/AKKO-p/akko-mcp-trino
+  documentation: https://akko-ai.com/docs/coeur-open-source/
+  summary: "Read-only MCP server for Trino: queries run as the verified user, and Trino's own policies decide."
+  description: |
+    akko-mcp-trino gives AI agents read-only MCP access to Trino: eight tools, writes
+    refused on the SQL tree, bounded rows and time, one audit line per call. Queries
+    run as one named identity, or as the verified user (token exchange or
+    impersonation), so Trino's access control (OPA, Ranger, file rules) decides for
+    each user.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - ab2dridi
