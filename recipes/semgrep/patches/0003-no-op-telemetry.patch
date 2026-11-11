@@ -1,0 +1,1386 @@
+Replace libs/telemetry with a no-op implementation.
+
+opentelemetry 0.91.1 (+ client-ocurl, client-cohttp-eio, logs), ambient-context
+and curl are not available in the conda-forge ocaml 5.4 stack. All .ml files in
+libs/telemetry are rewritten as no-ops satisfying the existing .mli files.
+Only Telemetry.mli (scope / user_data are now concrete local types instead of
+Opentelemetry.Span.t / Opentelemetry.value) and Logging.mli (attributes use
+Telemetry.user_data) are touched; all consumers compile unchanged.
+eio and eio.unix are added to the libraries because Telemetry.mli mentions
+Eio types (previously pulled in transitively by opentelemetry-client-cohttp-eio).
+Tracing.mli, Ometrics.mli, ppx/ and Log_telemetry/Telemetry_commons are unchanged.
+
+--- a/libs/telemetry/dune
++++ b/libs/telemetry/dune
+@@ -7,14 +7,8 @@
+     uri
+     yojson
+     logs
+-    opentelemetry
+-    opentelemetry-client-ocurl
+-    opentelemetry-client-cohttp-eio
+-    opentelemetry-logs
+-    opentelemetry-client
+-    opentelemetry.ambient-context
+-    ambient-context-lwt
+-    ambient-context-eio
++    eio
++    eio.unix
+   )
+   (preprocess (pps
+       ppx_deriving.show
+--- a/libs/telemetry/Telemetry.mli
++++ b/libs/telemetry/Telemetry.mli
+@@ -14,7 +14,8 @@
+ (* Types *)
+ (*****************************************************************************)
+ 
+-type scope = Opentelemetry.Span.t [@@deriving show]
++(* No-op telemetry build: no real span type, so scopes are just unit. *)
++type scope = unit [@@deriving show]
+ 
+ type config = {
+   endpoint : Uri.t;
+@@ -27,7 +28,15 @@
+ }
+ [@@deriving show]
+ 
+-type user_data = Opentelemetry.value [@@deriving show]
++(* Same shape as the former Opentelemetry.value *)
++type user_data =
++  [ `String of string
++  | `Int of int
++  | `Float of float
++  | `Bool of bool
++  | `None
++  ]
++[@@deriving show]
+ 
+ (*****************************************************************************)
+ (* Constants *)
+--- a/libs/telemetry/Telemetry.ml
++++ b/libs/telemetry/Telemetry.ml
+@@ -13,27 +13,29 @@
+  * LICENSE for more details.
+  *)
+ 
+-module Otel = Opentelemetry
+-module Log = Log_telemetry.Log
+-
+ (*****************************************************************************)
+ (* Prelude *)
+ (*****************************************************************************)
+-(* This module includes any functions/types that are used for telemetry, so OTel
+-   scopes, attributes, and more. This module is basically just a lot of setup
+-   stuff for OTel and some shared types*)
++(* No-op telemetry: this build does not link opentelemetry, so every entry
++   point below does nothing. The public interface (Telemetry.mli) is kept so
++   that callers do not need to change. *)
++
+ (*****************************************************************************)
+ (* Types *)
+ (*****************************************************************************)
+ 
+-type scope = Otel.Span.t
++type scope = unit
+ 
+-(* coupling: added to every metric in Ometrics.ml, so cannot contain spaces or
+-   special chars etc *)
+-let show_scope (sp : scope) = Otel.Span.trace_id sp |> Otel.Trace_id.to_hex
++let show_scope (_ : scope) = "no_trace"
+ let pp_scope fmt (sp : scope) = Format.fprintf fmt "%s" (show_scope sp)
+ 
+-type user_data = Otel.value
++type user_data =
++  [ `String of string
++  | `Int of int
++  | `Float of float
++  | `Bool of bool
++  | `None
++  ]
+ 
+ let show_user_data (ud : user_data) =
+   match ud with
+@@ -49,7 +51,6 @@
+ type config = {
+   endpoint : Uri.t;
+   env : string option;
+-  (* To add data to our opentelemetry top level span, so easier to filter *)
+   top_level_scope : scope option;
+ }
+ [@@deriving show]
+@@ -57,34 +58,13 @@
+ (*****************************************************************************)
+ (* Constants *)
+ (*****************************************************************************)
+-(* The endpoint that otel traces will be sent to. This should only ever be set
+-   in configure_otel, which is called once, at the beginning. The ref isn't
+-   nice, but we need it to start and stop tracing without having to pass around
+-   an env. See [with_otel_paused]
+-
+-   TODO(SAF-1938): This is a Domain-local value in order to more closely match
+-   with ParMap (which re-creates its own endpoint after forking in order to
+-   pull random seeds - see [restart_otel]).  Once we are using multicore by
+-   default, we should revisit this.
+-   *)
+-let active_endpoint = Domain.DLS.new_key (Fun.const None)
+-
+-(* [Sdk.remove] returns before the queue drains, each client's
+-   [remove_exporter] blocks until it has. Remember which one to call. *)
+-let active_remove_exporter = Domain.DLS.new_key (Fun.const None)
+ 
+-(* Service related attributes *)
+ module Attributes = struct
+-  open Opentelemetry.Conventions
+-
+-  let version = Attributes.Service.version
+-  let instance_id = Attributes.Service.instance_id
++  let version = "service.version"
++  let instance_id = "service.instance.id"
+   let deployment_environment_name = "deployment.environment.name"
+   let vcs_ref_head_revision = "vcs.ref.head.revision"
+   let vcs_ref_head_name = "vcs.ref.head.name"
+-
+-  (* These are semgrep specific and technically shouldn't be in this library but
+-     these will be applied to all metrics *)
+   let scan_engine = "scan.engine"
+   let scan_source = "scan.source"
+   let experiment_name = "experiment.name"
+@@ -95,234 +75,17 @@
+ (* Helper Functions *)
+ (*****************************************************************************)
+ 
+-let ( let@ ) = ( @@ )
+-
+-(* The [Random.State.t] below is shared across domains. *)
+-let rand_mutex = Mutex.create ()
+-
+-(* Needed so we can reset scope id's randomness on telemetry restart *)
+-(* See restart_otel for more detail *)
+-let mk_rand_bytes_8 rand_ () : bytes =
+-  let@ () = Mutex.protect rand_mutex in
+-  let b = Bytes.create 8 in
+-  for i = 0 to 1 do
+-    let r = Random.State.bits rand_ in
+-    (* 30 bits, of which we use 24 *)
+-    Bytes.set b (i * 3) (Char.chr (r land 0xff));
+-    Bytes.set b ((i * 3) + 1) (Char.chr ((r lsr 8) land 0xff));
+-    Bytes.set b ((i * 3) + 2) (Char.chr ((r lsr 16) land 0xff))
+-  done;
+-  let r = Random.State.bits rand_ in
+-  Bytes.set b 6 (Char.chr (r land 0xff));
+-  Bytes.set b 7 (Char.chr ((r lsr 8) land 0xff));
+-  b
+-
+-let mk_rand_bytes_16 rand_ () : bytes =
+-  let@ () = Mutex.protect rand_mutex in
+-  let b = Bytes.create 16 in
+-  for i = 0 to 4 do
+-    let r = Random.State.bits rand_ in
+-    (* 30 bits, of which we use 24 *)
+-    Bytes.set b (i * 3) (Char.chr (r land 0xff));
+-    Bytes.set b ((i * 3) + 1) (Char.chr ((r lsr 8) land 0xff));
+-    Bytes.set b ((i * 3) + 2) (Char.chr ((r lsr 16) land 0xff))
+-  done;
+-  let r = Random.State.bits rand_ in
+-  Bytes.set b 15 (Char.chr (r land 0xff));
+-  (* last byte *)
+-  b
+-
+-let get_current_scope () = Otel.Ambient_span.get ()
+-
+-let with_opt_scope scope_opt f =
+-  match scope_opt with
+-  | None -> f ()
+-  | Some scope -> Otel.Ambient_span.with_ambient scope f
+-
+-let force_curr_scope f =
+-  let current_scope_opt = get_current_scope () in
+-  let f x = with_opt_scope current_scope_opt (fun () -> f x) in
+-  f
+-
+-(* Python and other otel libraries % encode their values, so let's do that here
+-   too instead of using the default OTEL kv parser *)
+-(* TODO: upstream *)
+-let set_global_attr_from_env () =
+-  let global_attributes : Otel.Proto.Common.key_value list =
+-    let parse_pair s =
+-      match String.split_on_char '=' s with
+-      | [ a; b ] ->
+-          let value = Uri.pct_decode b in
+-          Otel.Proto.Common.make_key_value ~key:a ~value:(String_value value) ()
+-      | _ -> failwith (Printf.sprintf "invalid attribute: %S" s)
+-    in
+-    try
+-      Sys.getenv "OTEL_RESOURCE_ATTRIBUTES"
+-      |> String.split_on_char ',' |> List.map parse_pair
+-    with
+-    | _ -> []
+-  in
+-  Otel.Globals.global_attributes := global_attributes
+-
+-let get_global_attr_opt key =
+-  List.find_map
+-    (fun (kv : Otel.Proto.Common.key_value) ->
+-      if String.equal kv.key key then Some (Otel.Key_value.of_otel kv) else None)
+-    !Otel.Globals.global_attributes
+-
+-let find_global_attrs attr_keys = List.filter_map get_global_attr_opt attr_keys
++let get_current_scope () : scope option = None
++let with_opt_scope _scope_opt f = f ()
++let force_curr_scope f = f
++let get_global_attr_opt _key : (string * user_data) option = None
++let find_global_attrs _attr_keys : (string * user_data) list = []
+ 
+ (*****************************************************************************)
+ (* Entry points for setting up telemetry *)
+ (*****************************************************************************)
+-(* The exporter workers must belong to the shutdown race's switch: timing out
+-   remove_exporter alone leaves the caller's switch waiting for HTTP requests.
+-   Start the deadline only when shutdown is requested, not during the scan. *)
+-let create_eio_exporter ~(config : Opentelemetry_client_cohttp_eio.Config.t)
+-    ~(sw : Eio.Switch.t) ~(env : Eio_unix.Stdenv.base) () :
+-    Otel.Exporter.t * (unit -> unit) =
+-  let exporter, publish_exporter = Eio.Promise.create () in
+-  let stop, request_stop = Eio.Promise.create () in
+-  let drained, finish_drain = Eio.Promise.create () in
+-  let stopped, finish_stop = Eio.Promise.create () in
+-  Eio.Fiber.fork ~sw (fun () ->
+-      Eio.Fiber.first
+-        (fun () ->
+-          Eio.Switch.run (fun sw ->
+-              let exporter =
+-                Opentelemetry_client_cohttp_eio.create_exporter ~config ~sw ~env
+-                  ()
+-              in
+-              Eio.Promise.resolve publish_exporter exporter;
+-              Eio.Promise.await drained))
+-        (fun () ->
+-          Eio.Promise.await stop;
+-          Eio.Time.Mono.sleep env#mono_clock
+-            (float_of_int (max 0 config.timeout_ms) /. 1000.);
+-          Log.debug (fun m ->
+-              m "Tracing shutdown timed out; dropping remaining telemetry"));
+-      Eio.Promise.resolve finish_stop ());
+-  let remove_exporter () : unit =
+-    (* Detach the SDK before starting the deadline, including a zero timeout. *)
+-    Otel.Sdk.remove ~on_done:(Eio.Promise.resolve finish_drain) ();
+-    Eio.Promise.resolve request_stop ();
+-    Eio.Promise.await stopped
+-  in
+-  (Eio.Promise.await exporter, remove_exporter)
+-
+-(* Safe to call whenever *)
+-let stop_otel () =
+-  if Otel.Sdk.present () then (
+-    Log.info (fun m -> m "Stopping tracing");
+-    match Domain.DLS.get active_remove_exporter with
+-    | Some remove_exporter -> remove_exporter ()
+-    | None -> Otel.Sdk.remove ~on_done:Fun.id ())
+-
+-(* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
+-let setup_otel ?eio_sw_base trace_endpoint =
+-  let url = Uri.to_string trace_endpoint in
+-  Log.info (fun m -> m "Tracing endpoint set to %s" url);
+-  let ( exporter,
+-        remove_exporter,
+-        (common : Opentelemetry_client.Exporter_config.t) ) =
+-    match eio_sw_base with
+-    | None ->
+-        let config = Opentelemetry_client_ocurl.Config.make ~url () in
+-        ( Opentelemetry_client_ocurl.create_exporter ~config (),
+-          Opentelemetry_client_ocurl.remove_exporter,
+-          config.common )
+-    | Some (sw, base) ->
+-        (* If we are provided an eio switch + base let's use the eio backend
+-           since the curl backend has been known to segfault *)
+-        let config = Opentelemetry_client_cohttp_eio.Config.make ~url () in
+-        let exporter, remove_exporter =
+-          create_eio_exporter ~config ~sw ~env:base ()
+-        in
+-        (exporter, remove_exporter, config)
+-  in
+-  (* hack: let's just keep track of the endpoint for if we restart tracing
+-     instead of having to pass it down everywhere. We will assume that we will
+-     only ever report to one endpoint for the lifetime of the program *)
+-  Domain.DLS.set active_endpoint (Some trace_endpoint);
+-  Domain.DLS.set active_remove_exporter (Some remove_exporter);
+-  (* We bypass the client's setup helper, so pass its batching config through
+-     ourselves; it carries the OTEL_* env var settings. *)
+-  Otel.Sdk.set ~traces:common.traces ~metrics:common.metrics ~logs:common.logs
+-    exporter
+-
+-(* We wrap [Ambient_context_eio.storage]. In ambient-context 0.2 they fixed a
+-   bug(?) where ambient context was per thread, and so in new threads it would
+-   fall back from eio to a thread level storage mechanism. unfortunately for us
+-   in non main threads we do secret validation via lwt which means the eio
+-   effect handler isnt set. this ensures even if we are in a non eio context we
+-   still get some ambient context even if its empty, so we can do things like
+-   send logs (although this means spans from lwt contexts might not work
+-   well) *)
+-let eio_ambient_storage : Opentelemetry_ambient_context.Storage.t =
+-  let eio : Opentelemetry_ambient_context.Storage.t =
+-    Ambient_context_eio.storage
+-  in
+-  let in_fiber () =
+-    match eio.get_context () with
+-    | _ -> true
+-    | exception Effect.Unhandled _ -> false
+-  in
+-  {
+-    name = "eio-or-empty";
+-    get_context =
+-      (fun () ->
+-        match eio.get_context () with
+-        | ctx -> ctx
+-        | exception Effect.Unhandled _ ->
+-            Opentelemetry_ambient_context.Context.empty);
+-    with_context =
+-      (fun ctx f -> if in_fiber () then eio.with_context ctx f else f ());
+-  }
+-
+-(* Set according to README of https://github.com/ocaml-tracing/ocaml-opentelemetry/ *)
+-let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
+-    service_name trace_endpoint =
+-  set_global_attr_from_env ();
+-  Otel.Globals.service_name := service_name;
+-  Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
+-  (* Disable self tracing, e.g. tracing the otel library *)
+-  Opentelemetry_client.Self_trace.set_enabled false;
+-  let attrs = attrs @ Otel.Globals.get_runtime_attributes () in
+-  List.iter
+-    (fun (key, value) -> Otel.Globals.add_global_attribute key value)
+-    attrs;
+-  Log.info (fun m -> m "Setting up tracing with service name %s" service_name);
+-  Otel.Gc_metrics.basic_setup ();
+-  let ambient_storage_provider =
+-    match eio_sw_base with
+-    (* If we are provided an eio switch + base we know we are going to use eio,
+-       so let's use that as our ambient context storage provider *)
+-    | None -> Ambient_context_lwt.storage
+-    | Some _ -> eio_ambient_storage
+-  in
+-  Opentelemetry_ambient_context.set_current_storage ambient_storage_provider;
+-  setup_otel ?eio_sw_base trace_endpoint
+-
+-let restart_otel () =
+-  (* We must re-initialize the randomness on restart since this usually happens
+-     after a parmap fork. If we don't do this then all parmap forks will have
+-     the same randomness and use duplicate span ids! This behavior is fine in
+-     jaeger but duplicates don't show up in datadog *)
+-  let new_random_state = Random.State.make_self_init () in
+-  Otel.Core.Rand_bytes.rand_bytes_8_ref := mk_rand_bytes_8 new_random_state;
+-  Otel.Core.Rand_bytes.rand_bytes_16_ref := mk_rand_bytes_16 new_random_state;
+-  Domain.DLS.get active_endpoint
+-  |> Option.iter (fun endpoint ->
+-      Log.info (fun m -> m "Restarting tracing");
+-      setup_otel endpoint)
+-
+-(* Otel SOMETIMES segfaults if the traced process forks while the collector is running. So we
+-   need to stop the backends before forking, then continue after forking is
+-   done.
+-
+-   See https://github.com/ocaml-tracing/ocaml-opentelemetry/issues/68
+-*)
+-let with_otel_paused f =
+-  (* Don't exit current spans here since we only want to pause *)
+-  stop_otel ();
+-  Telemetry_commons.protect ~finally:restart_otel f
++
++let configure_otel ?eio_sw_base:_ ?attrs:_ _service_name _trace_endpoint = ()
++let stop_otel () = ()
++let restart_otel () = ()
++let with_otel_paused f = f ()
+--- a/libs/telemetry/Tracing.ml
++++ b/libs/telemetry/Tracing.ml
+@@ -13,66 +13,11 @@
+  * license.txt for more details.
+  *)
+ 
+-module Otel = Opentelemetry
+-module Log = Log_telemetry.Log
+-open Telemetry
+-
+ (*****************************************************************************)
+ (* Prelude *)
+ (*****************************************************************************)
+-(* Tracing library wrapper relying on OpenTelemetry and several libraries:
+- *
+- * - trace (https://github.com/c-cube/ocaml-trace) for the trace
+- *   instrumentation frontend (e.g. the annotations)
+- * - opentelemetry (https://github.com/ocaml-tracing/ocaml-opentelemetry)
+- *   for the backend that processes traces
+- * - opentelemetry-client-ocurl (included with opentelemetry) for the
+- *   collector.
+- *   TODO use opentelemetry-client-cohttp-lwt instead since
+- *   we rely on cottp in other places already
+- * - ambient-context (https://github.com/ELLIOTTCABLE/ocaml-ambient-context)
+- *   which we set up for opentelemetry to use
+- *
+- * The goal of tracing is to track how we perform in real scans. Things we
+- * might do with this data include tracking the p95 scan time, tracking the
+- * p95 scan time of a particular phase, alerting on significantly large scans,
+- * or digging into the trace of a scan that's taking too long to figure out
+- * where it's taking the most time.
+- *
+- * We use the `trace` frontend for instrumenting the code so that if we want
+- * to use a different backend (permanently, or for our own profiling), we can
+- * switch it out in just this file.
+- *
+- * Functions can be instrumented using a ppx (see ../ppx/) or directly with
+- * the `with_span` function. The results are sent to the default endpoint
+- * (see constants below), which collects them to send to a viewer.
+- *
+- * If you want to send traces to a different endpoint, append your command with
+- * the `--trace-endpoint=<url> argument
+- *
+- * Communicates with the Python tracing in cli/src/semgrep/tracing.py
+- *
+- * See also https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
+- *
+- * TODO:
+- *  - code in libs/ should be independent of semgrep, so some of the
+- *    hardcoded endpoints below should be moved to src/, not in libs/
+- *  - get rid of our dependency to curl, but the current alternative is to
+- *    use Opentelemetry_client_cohttp_lwt which require to lwt-ify the code
+- *    which is annoying. Does opentelemetry have an eio backend?
+- *)
+-
+-(*****************************************************************************)
+-(* Constants *)
+-(*****************************************************************************)
+-(* Coupling: these need to be kept in sync with tracing.py *)
+-let trace_level_var = "SEMGREP_TRACE_LEVEL"
+-let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
+-let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
+-
+-(* Otel never records or mutates [Span.dummy], so attributes attached to a
+-   filtered-out span are discarded. *)
+-let empty_scope = Otel.Span.dummy
++(* No-op tracing: this build does not link opentelemetry. Spans are never
++   recorded; [with_span] and friends just run the wrapped function. *)
+ 
+ (*****************************************************************************)
+ (* Levels *)
+@@ -83,189 +28,38 @@
+   | Debug  (** Traces to help profile a specific run *)
+   | Trace  (** All traces *)
+ 
+-(* ~split_from_parent here so we persist it when we do multicore! *)
+-let trace_level : level option Domain.DLS.key =
+-  Domain.DLS.new_key ~split_from_parent:Fun.id (Fun.const None)
+-
+-let get_level () =
+-  match Domain.DLS.get trace_level with
+-  | Some level -> level
+-  | None -> Info
+-
+-let set_level level = Domain.DLS.set trace_level (Some level)
+-
+-let filter_level (x : level) =
+-  match (x, get_level ()) with
+-  | Info, Info
+-  | Debug, Debug
+-  | Info, Debug
+-  | _, Trace ->
+-      true
+-  | _, Info
+-  | Trace, Debug ->
+-      false
+-
+-(* TODO: replace by [@@deriving show] above, but then weird compilation errors*)
+ let show_level = function
+   | Info -> "Info"
+   | Debug -> "Debug"
+   | Trace -> "Trace"
+ 
+ (*****************************************************************************)
+-(* Wrapping functions Trace gives us to instrument the code *)
++(* Functions to instrument the code *)
+ (*****************************************************************************)
+-let add_data_to_span sc attrs = Otel.Span.add_attrs' sc (fun () -> attrs)
+ 
+-let opt_add_data_to_span data sc =
+-  sc |> Option.iter (fun sc -> add_data_to_span sc data)
+-
+-(* This function is helpful for Semgrep, which stores an optional span *)
+-let add_data data (tracing_opt : config option) =
+-  tracing_opt
+-  |> Option.iter (fun tracing ->
+-      tracing.top_level_scope |> opt_add_data_to_span data)
+-
+-let add_global_attribute = Otel.Globals.add_global_attribute
+-let record_exn = Otel.Span.record_exception
+-
+-let record_exn_curr_span exn raw_backtrace =
+-  (* Only record if there's an active scope *)
+-  let _ =
+-    Option.map
+-      (fun sc -> Otel.Span.record_exception sc exn raw_backtrace)
+-      (get_current_scope ())
+-  in
+-  ()
++let add_data_to_span _sc _attrs = ()
++let add_data _data _tracing_opt = ()
++let add_global_attribute _key _value = ()
++let record_exn _sc _exn _raw_backtrace = ()
++let record_exn_curr_span _exn _raw_backtrace = ()
+ 
+ (*****************************************************************************)
+ (* Span/Event entrypoints *)
+ (*****************************************************************************)
+ 
+-let with_ ?attrs ?kind ?trace_id ?parent name f =
+-  Otel.Tracer.with_ ?attrs ?kind ?trace_id ?parent name f
++let with_span ?level:_ ?__FUNCTION__:_ ~__FILE__:_ ~__LINE__:_ ?data:_ _name f =
++  f ()
+ 
+-let with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data =
+-  let code_attrs =
+-    [
+-      ( Opentelemetry.Conventions.Attributes.Code.function_,
+-        `String (Option.value ~default:"" __FUNCTION__) );
+-      (Opentelemetry.Conventions.Attributes.Code.filepath, `String __FILE__);
+-      (Opentelemetry.Conventions.Attributes.Code.line, `Int __LINE__);
+-    ]
+-  in
+-  match data with
+-  | Some data -> data @ code_attrs
+-  | None -> code_attrs
+-
+-let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
+-  if filter_level level then
+-    let attrs =
+-      with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
+-    in
+-    with_ ~attrs name (fun sp ->
+-        match f sp with
+-        | result -> result
+-        | exception exn ->
+-            let bt = Printexc.get_raw_backtrace () in
+-            Otel.Span.set_status sp
+-              (Otel.Span_status.make ~message:(Printexc.to_string exn)
+-                 ~code:Otel.Span_status.Status_code_error);
+-            Otel.Span.record_exception sp exn bt;
+-            Printexc.raise_with_backtrace exn bt)
+-  else f empty_scope
+-
+-let with_span_result ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
+-    ?error_to_string name f =
+-  with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name (fun sp ->
+-      match f sp with
+-      | Error err as result ->
+-          let message =
+-            match error_to_string with
+-            | Some to_s -> to_s err
+-            | None -> ""
+-          in
+-          Otel.Span.set_status sp
+-            (Otel.Span_status.make ~message
+-               ~code:Otel.Span_status.Status_code_error);
+-          result
+-      | Ok _ as ok -> ok)
+-
+-(* Run the entrypoint function with a span. If a parent span is given
+-   (e.g. via Semgrep Managed Scanning), use that as the parent span
+-   so that we can connect the semgrep-core trace to other traces. *)
+-let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
+-    ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
+-  ignore level;
+-  let trace_id =
+-    Option.map Otel.Trace_id.of_hex
+-      (match parent_trace_id with
+-      | Some _ -> parent_trace_id
+-      | None -> Sys.getenv_opt parent_trace_id_var)
+-  in
+-  let parent =
+-    (* [~parent] takes a span but ours arrives as a bare hex id; only its id
+-       and trace_id are read, and it is never emitted. *)
+-    (match parent_span_id with
+-      | Some _ -> parent_span_id
+-      | None -> Sys.getenv_opt parent_span_id_var)
+-    |> Option.map (fun hex ->
+-        let id = Otel.Span_id.of_hex hex in
+-        let trace_id =
+-          match trace_id with
+-          | Some trace_id -> trace_id
+-          | None -> Otel.Trace_id.create ()
+-        in
+-        Otel.Span.make ~trace_id ~id ~start_time:0L ~end_time:0L "remote-parent")
+-  in
+-  let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
+-  let kind = Otel.Span_kind.Span_kind_server in
+-  with_ ~attrs ~kind ?trace_id ?parent name f
+-
+-let log_trace_message () =
+-  match Otel.Ambient_span.get () with
+-  | None ->
+-      (* nosemgrep: no-logs-in-library *)
+-      Logs.info (fun m ->
+-          m "Tracing is enabled for this scan. There was no trace id recorded.")
+-  | Some scope ->
+-      let id = Otel.Trace_id.to_hex (Otel.Span.trace_id scope) in
+-      (* nosemgrep: no-logs-in-library *)
+-      Logs.info (fun m ->
+-          m "Tracing is enabled for this scan. The trace id is <%s>." id)
++let with_span_result ?level:_ ?__FUNCTION__:_ ~__FILE__:_ ~__LINE__:_ ?data:_
++    ?error_to_string:_ _name f =
++  f ()
++
++let with_top_level_span ?level:_ ?parent_span_id:_ ?parent_trace_id:_
++    ?__FUNCTION__:_ ~__FILE__:_ ~__LINE__:_ ?data:_ _name f =
++  f ()
+ 
+ (*****************************************************************************)
+ (* Entry points for setting up tracing *)
+ (*****************************************************************************)
+ 
+-let with_tracing ?(stop_otel_after = true) fname data f =
+-  (* This sets up the OTel collector and runs the given function.
+-   * Note that the function is traced by default. This makes sure we
+-     always trace the given function; it also ensures that all the spans from
+-     the given run are nested under a single trace.
+-   * ALT: we could also have wrapped this with a `Otel.Ambient_span.with_ambient`
+-     to ensure the trace_id is the same for all spans, but we decided that
+-     having the top level time is a good default. *)
+-  let level =
+-    match Sys.getenv_opt trace_level_var with
+-    | Some level -> (
+-        match String.lowercase_ascii level with
+-        | "info" -> Info
+-        | "debug" -> Debug
+-        | "trace" -> Trace
+-        | _ -> Info)
+-    | None -> Info
+-  in
+-  set_level level;
+-  (* TODO some sort of filter for trace level *)
+-  let f' () =
+-    with_top_level_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp ->
+-    log_trace_message ();
+-    f sp
+-  in
+-  if stop_otel_after then
+-    (* coupling: [restart_otel] *)
+-    Telemetry_commons.protect ~finally:stop_otel f'
+-  else f' ()
+-
+-(* TODO: switch to otel eio once we are on multicore/it is supported by the otel
+-   lib *)
++let with_tracing ?stop_otel_after:_ _fname _data f = f ()
+--- a/libs/telemetry/Ometrics.ml
++++ b/libs/telemetry/Ometrics.ml
+@@ -13,480 +13,35 @@
+  * LICENSE for more details.
+  *)
+ 
+-module Otel = Opentelemetry
+ open Telemetry
+ 
+-(**
+-   ATTENTION!!!!!!!! READ THE FOLLOWING BEFORE ADDING METRICS SERIOUSLY!!! It is
+-   VERY easy to create metrics that will blow up our metrics backend, and you
+-   WILL make infra sad
+-
+-   !!! METRICS DO NOT CURRENTLY WORK AFTER WE HAVE FORKED BUT HAVE NOT RETURNED
+-
+-   This module adds suport for opentelemetry metrics! Use this if you want to
+-   record simple data en masse, e.g. ocaml gc statistics
+-
+-   [^0] = footnote
+-
+-   Otel metrics can be a bit confusing, so here is a short primer:
+-   A Meter Provider is just an entrypoint, don't worry about it unless you are
+-   doing something crazy
+-
+-   A meter is responsible for creating instruments, and instruments record
+-   individual data points
+-
+-   An instrument is a type of metric, e.g. a counter, gauge, etc. and can be
+-   used to record say how many allocations have happened in the course of a
+-   program. See the doc comments below for when to use what kind of
+-   instrument
+-
+-   Instrument names are important, see
+-   https://prometheus.io/docs/practices/naming/ for a guide, but TL;DR; They
+-   will be named semgrep_<thing_measuring>_<units>. Note that our infra will
+-   automatically add the units to the metric name, so no need to do that.
+-
+-   A meter is just an organizational tool for instruments. You use them to apply
+-   labels/attributes to any data point recorded by an instrument in that meter.
+-   In general you should have a meter for each component of your application,
+-   say one for GC metrics, another for file targeting, a third for parsing etc.
+-
+-   An attribute/label, which we will refer to as a label, is a way to collate
+-   data. What's important here is that labels should be thought of as a way to
+-   create different time series, not a way to record arbitrary data about a data
+-   point.
+-
+-   For example if you are recording how many files you've scanned, a useful
+-   label may be the language, so you can have a timeseries of how many files
+-   we've scanned for each language. You would NOT want a label with the file
+-   name, directory, or project that you scanned, since that's not a helpful way
+-   to present a time series.
+-
+-   Getting this important is critical for having correct metrics, as each label
+-   combination is a different time series, and most metrics you add will be
+-   cumulative. What this means is that if you have a metric recording GC
+-   allocations, and no labels, and one process reports 5 allocations, and the
+-   next 10 allocations, the metric will be 10 NOT 15. If you add a label "run1"
+-   to the first run and "run2" then these will be 2 separate time series, and
+-   the metric will report 15 [^1]. By default we will always add the trace id to
+-   the metric value, so this latter behavior will be the default.
+-
+-   Getting this right is also important because of how metrics are stored. Each
+-   time series uses a lot of storage (relative to a data point). So high
+-   cardinality labels, such as project or file names, will create a lot of time
+-   series take up a dumb amount of storage. The exception here are high
+-   cardinality names that are ephemeral and we will only ever see once for a
+-   short period of time, e.g. a scan id. The backend will garbage collect labels
+-   that aren't used for a long time, and so we will not spend a lot of storage
+-   on them long term.
+-
+-   See https://prometheus.io/docs/practices/naming/#labels for recommendations
+-   on label names.
+-
+-   If you have any questions on if a label is ok, please ask!
+-
+-   [^1] unless you use cumulative metrics, but that's a whole different thing,
+-   and is not possible right now.
+-
+-*)
++(*****************************************************************************)
++(* Prelude *)
++(*****************************************************************************)
++(* No-op metrics: this build does not link opentelemetry. All instruments
++   accept data points and discard them. See Ometrics.mli for the interface. *)
+ 
+-(* TODO: Upstream pretty much this entire module to the opentelemetry
+-   library *)
+ (*****************************************************************************)
+ (* Types *)
+ (*****************************************************************************)
+-(* https://opentelemetry.io/docs/specs/otel/metrics/api/#instrument *)
++
+ type instrument_meta = {
+   name : string;
+   description : string option;
+   unit_ : string option;
+ }
+-(* should be self explanatory :). Just basic info *)
+-
+-(* https://opentelemetry.io/docs/specs/otel/metrics/api/#get-a-meter *)
+-type meter_meta = {
+-  name : string option; (* Overrides global service name *)
+-  attrs : (string * user_data) list;
+-      (* labels applied to ALL data points recorded by any instruments made by
+-         this meter. an example may be: a Parsing meter that labels all gc
+-         metrics as parsing *)
+-}
+-
+-(* handy type alias*)
+-type exemplar = Otel.Proto.Metrics.exemplar
+-
+-(* Possible types for a metric value. This just maps to Otel.Proto.Metrics.As_* and is a bit nicer *)
+-type metric_value = Otel.Proto.Metrics.number_data_point_value
+-type exemplar_value = Otel.Proto.Metrics.exemplar_value
+-
+-(* Needed so we can keep track of our histogram data *)
+-type histogram_data = {
+-  (* a list of buckets as described in
+-     https://opentelemetry.io/docs/specs/otel/metrics/sdk/#explicit-bucket-histogram-aggregation,
+-     with the second item in the tuple being a count for that bucket *)
+-  bounds_and_buckets : (float * int64) list option;
+-  (* We could derive the below from the above, but let's keep track of it
+-     separately for perf reasons I guess *)
+-  count : int64;
+-  (* Similar here for sum and max. Let's just be explicit for perf reasons *)
+-  sum : float option;
+-  min_max : (float * float) option;
+-}
+-
+-(*****************************************************************************)
+-(* Helpers *)
+-(*****************************************************************************)
+ 
+-let now = Otel.Clock.now_main
+-let _program_start = now ()
++type meter_meta = { name : string option; attrs : (string * user_data) list }
+ 
+-(* nice conversion functions *)
+ let make_instrument_meta ~name ?description ?unit_ () : instrument_meta =
+   { name; description; unit_ }
+ 
+-let default_meter_meta =
+-  {
+-    name = None;
+-    (* no instrumentation scope name *)
+-    attrs = [];
+-  }
+-
+-let create_histogram_data (explicit_bounds : float list option) =
+-  let bounds_and_buckets =
+-    explicit_bounds
+-    |> Option.map (fun bounds ->
+-        let bounds_and_buckets = List.map (fun bound -> (bound, 0L)) bounds in
+-        (* We add infinity so there's an upper bound, which makes insertion a
+-              bit easier *)
+-        let bounds_and_buckets_with_inf =
+-          bounds_and_buckets @ [ (Float.infinity, 0L) ]
+-        in
+-        (* Sort bounds/buckets so it's easy to insert *)
+-        List.sort
+-          (fun (bound_a, _count_a) (bound_b, _count_b) ->
+-            Float.compare bound_a bound_b)
+-          bounds_and_buckets_with_inf)
+-  in
+-  { bounds_and_buckets; count = 0L; sum = None; min_max = None }
+-
+-let metric_value_of_float (f : float) : metric_value = As_double f
+-let metric_value_of_int (i : int) : metric_value = As_int (Int64.of_int i)
+-let metric_value_of_int64 (i : int64) : metric_value = As_int i
+-
+-(* Same as Otel.Metrics.float but with exemplars *)
+-let number_datapoint_of_metric_value ?(start_time_unix_nano = _program_start)
+-    ?(now = now ()) ?exemplars ?(attributes = []) ?flags (value : metric_value)
+-    : Otel.Proto.Metrics.number_data_point =
+-  Otel.Proto.Metrics.make_number_data_point ~start_time_unix_nano
+-    ~time_unix_nano:now ?exemplars ?flags ~attributes ~value ()
+-
+-let explicit_bounds_of_histogram (histogram : histogram_data) =
+-  match histogram.bounds_and_buckets with
+-  | None -> None
+-  | Some bounds_and_buckets ->
+-      let explicit_bounds =
+-        bounds_and_buckets |> List.map fst
+-        (* we don't want to include infinite in our bounds, but it is there for convenience *)
+-        (* See otel link above bounds_and_buckets in histogram_data for more info *)
+-        |> List.filter (fun b -> not (Float.is_infinite b))
+-      in
+-      Some explicit_bounds
+-
+-let buckets_of_histogram (histogram : histogram_data) =
+-  match histogram.bounds_and_buckets with
+-  | None -> []
+-  | Some bounds_and_buckets -> List.map snd bounds_and_buckets
+-
+-(* See otel link above bounds_and_buckets in histogram_data for more info *)
+-let increment_bucket_count (value : float)
+-    (bounds_and_buckets : (float * int64) list) : (float * int64) list =
+-  let rec aux acc = function
+-    | [] -> List.rev acc
+-    | (bound, count) :: rest when value <= bound ->
+-        List.rev ((bound, Int64.succ count) :: acc) @ rest
+-    | (bound, count) :: rest -> aux ((bound, count) :: acc) rest
+-  in
+-  aux [] bounds_and_buckets
+-
+-(* Add a value to a histogram data, updating the min, max, and sum as needed *)
+-let add_value_to_histogram_data (histogram : histogram_data) value =
+-  let bounds_and_buckets =
+-    Option.map (increment_bucket_count value) histogram.bounds_and_buckets
+-  in
+-  let min_max =
+-    match histogram.min_max with
+-    | None -> Some (value, value) (* first value is both min and max *)
+-    | Some (min, max) when value < min -> Some (value, max) (* new min *)
+-    | Some (min, max) when value > max -> Some (min, value) (* new max *)
+-    | Some min_max -> Some min_max
+-  in
+-  let count = Int64.succ histogram.count in
+-  let sum =
+-    match histogram.sum with
+-    | None -> Some value (* first value is the sum *)
+-    | Some s -> Some (s +. value)
+-    (* add to the sum *)
+-  in
+-  { bounds_and_buckets; count; sum; min_max }
+-
+-let histogram_datapoint_of_histogram_data
+-    ?(start_time_unix_nano = _program_start) ?(now = now ()) ?exemplars
+-    ?(attributes = []) ?flags histogram_data :
+-    Otel.Proto.Metrics.histogram_data_point =
+-  let count = histogram_data.count in
+-  let sum = histogram_data.sum in
+-  let bucket_counts = buckets_of_histogram histogram_data in
+-  let explicit_bounds = explicit_bounds_of_histogram histogram_data in
+-  let min, max =
+-    match histogram_data.min_max with
+-    | None -> (None, None)
+-    | Some (min, max) -> (Some min, Some max)
+-  in
+-  Otel.Proto.Metrics.make_histogram_data_point ~start_time_unix_nano
+-    ~time_unix_nano:now ~count ?sum ~bucket_counts ?explicit_bounds ?exemplars
+-    ?flags ~attributes ?min ?max ()
+-
+-let exemplar_value_of_metric_value (value : metric_value) : exemplar_value =
+-  match value with
+-  | As_double f -> Otel.Proto.Metrics.As_double f
+-  | As_int i -> Otel.Proto.Metrics.As_int i
+-
+-let exemplar_of_metric_value ?(now = now ()) ?filtered_attrs value =
+-  let value = exemplar_value_of_metric_value value in
+-  let current_scope = Otel.Ambient_span.get () in
+-  let trace_id =
+-    Option.map
+-      (fun sp -> Otel.Span.trace_id sp |> Otel.Trace_id.to_bytes)
+-      current_scope
+-  in
+-  let span_id =
+-    Option.map
+-      (fun sp -> Otel.Span.id sp |> Otel.Span_id.to_bytes)
+-      current_scope
+-  in
+-  let filtered_attributes =
+-    Option.map (fun xs -> List.map Otel.Key_value.conv xs) filtered_attrs
+-  in
+-  Otel.Proto.Metrics.make_exemplar ?filtered_attributes ?span_id ?trace_id
+-    ~time_unix_nano:now ~value ()
+-
+-(*****************************************************************************)
+-(* Defaults *)
+-(*****************************************************************************)
+-
+-(* NOTE: Some resource/global attributes have special handling and are
+-   automatically added to all metrics:
+-   https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#resource-attributes-1 *)
+-(* labels added to ALL metrics, see the prelude comment for why *)
+-(* WARNING: DO NOT ADD ANYTHING HERE WITHOUT SERIOUS!!!!!! CONSIDERATION AND
+-   CONVERSATION WITH OTHERS. You should not need to add anything here, you
+-   probably want to add it to the meter meta or pass the label when recording
+-   the data point *)
+-let default_metric_attributes () =
+-  let trace_id =
+-    match Telemetry.get_current_scope () with
+-    | Some scope -> Telemetry.show_scope scope
+-    | None -> "local_run"
+-  in
+-  let default_attr_keys =
+-    [
+-      (* Semgrep version *)
+-      Telemetry.Attributes.version;
+-      (* e.g. prod, dev2, staging *)
+-      Telemetry.Attributes.deployment_environment_name;
+-      (* pro or oss engine *)
+-      Telemetry.Attributes.scan_engine;
+-      (* if it was from SMS *)
+-      Telemetry.Attributes.scan_source;
+-      (* If it's an sms experiment *)
+-      Telemetry.Attributes.experiment_name;
+-      (* If we're running with eio or not *)
+-      Telemetry.Attributes.eio;
+-      (* e.g. console, intuit, etc. *)
+-      Otel.Conventions.Attributes.Service.namespace;
+-    ]
+-  in
+-  let default_attrs = [ ("trace_id", `String trace_id) ] in
+-  find_global_attrs default_attr_keys @ default_attrs
+-
+-(*****************************************************************************)
+-(* OTel SDK *)
+-(*****************************************************************************)
+-(* https://opentelemetry.io/docs/specs/otel/metrics/api/#meterprovider *)
+-module type Meter_provider = sig
+-  val make_emitter :
+-    ?name:string ->
+-    ?attrs:(string * user_data) list ->
+-    unit ->
+-    Otel.Metrics.t list ->
+-    unit
+-end
+-
+-(* Normal meter provider, shouldn't need anything else unless we get weird *)
+-module Simple_meter_provider : Meter_provider = struct
+-  (* Resolves the global provider at emit time, so this is safe to build
+-     before [configure_otel] runs. *)
+-  let make_emitter ?name ?(attrs = []) () =
+-    let meter = Otel.Meter_provider.get_meter ?name ~attrs () in
+-    fun metrics -> Otel.Meter.emit meter metrics
+-end
+-
+-(* an instrument kind is just a type for an instrument. An instrument can be
+-   float or int, monotonic or not, a sum/guage/histogram, and delta aggregate or
+-   not. This is nice to have so you can just pass straight ints or floats to the
+-   final record function, instead of an (As_double x) or something. It also
+-   wraps the data point types, number data point (for sum or guage) vs histogram
+-   vs exponential. *)
+-module type Instrument_kind = sig
+-  type data_point
+-  type value
+-
+-  val make_data_point :
+-    ?start_time_unix_nano:int64 ->
+-    ?now:int64 ->
+-    ?exemplars:exemplar list ->
+-    ?attributes:Otel.Proto.Common.key_value list ->
+-    ?flags:int32 ->
+-    value ->
+-    data_point
+-
+-  val make_exemplar :
+-    ?now:int64 -> ?filtered_attrs:(string * user_data) list -> value -> exemplar
+-
+-  val report_data_points :
+-    name:string ->
+-    ?description:string ->
+-    ?unit_:string ->
+-    data_point list ->
+-    Otel.Metrics.t
+-end
+-
+-(* a guage can record non additive values, think CPU fan speed *)
+-let make_gauge_kind (type a) (metric_value_of_value : a -> metric_value) :
+-    (module Instrument_kind with type value = a) =
+-  (module struct
+-    type data_point = Otel.Proto.Metrics.number_data_point
+-    type value = a
+-
+-    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+-        v =
+-      number_datapoint_of_metric_value ?start_time_unix_nano ?now ?exemplars
+-        ?attributes ?flags (metric_value_of_value v)
+-
+-    let make_exemplar ?now ?filtered_attrs v =
+-      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_value v)
+-
+-    let report_data_points = Otel.Metrics.gauge
+-  end)
++let default_meter_meta = { name = None; attrs = [] }
+ 
+-(* a sum records additive values, e.g. number of gc allocations, and can be
+-   delta aggregation, e.g. each data point reports the change in the value, or
+-   it's not, and so reports the underlying value. is_monotonic means the value strictcly increases*)
+-let make_sum_kind (type a) ?is_monotonic
+-    (metric_value_of_value : a -> metric_value) :
+-    (module Instrument_kind with type value = a) =
+-  (* TODO: We cannot use delta aggregation as we load balance our metric endpoints,
+-     leading to the metrics to be split in half, as the endpoint is what keeps the running total *)
+-  let delta_aggregation = false in
+-  let aggregation_temporality =
+-    if delta_aggregation then Otel.Metrics.Aggregation_temporality_delta
+-    else Otel.Metrics.Aggregation_temporality_cumulative
+-  in
+-  (module struct
+-    type data_point = Otel.Proto.Metrics.number_data_point
+-    type value = a
+-
+-    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+-        v =
+-      number_datapoint_of_metric_value ?start_time_unix_nano ?now ?exemplars
+-        ?attributes ?flags (metric_value_of_value v)
+-
+-    let make_exemplar ?now ?filtered_attrs v =
+-      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_value v)
++module type Meter_provider = sig end
+ 
+-    let report_data_points =
+-      Otel.Metrics.sum ~aggregation_temporality ?is_monotonic
+-  end)
+-
+-(* default boundaries as described by the otel spec:
+-   https://opentelemetry.io/docs/specs/otel/metrics/sdk/#histogram-aggregations
+- *)
+-let default_boundaries =
+-  [
+-    0.0;
+-    5.0;
+-    10.0;
+-    25.0;
+-    50.0;
+-    75.0;
+-    100.0;
+-    250.0;
+-    500.0;
+-    750.0;
+-    1000.0;
+-    2500.0;
+-    5000.0;
+-    7500.0;
+-    10000.0;
+-  ]
++module Simple_meter_provider : Meter_provider = struct end
+ 
+-(* TODO: base2 exponential bucket histogram:
+-   https://opentelemetry.io/docs/specs/otel/metrics/sdk/#base2-exponential-bucket-histogram-aggregation
+- *)
+-(* A histogram records data about a population of recorded measurements. It's
+-   useful for when you have a high cardinality + size population, and so want to
+-   avoid creating a label for each possible type. A bucket will provide the
+-   counts per bucket, and then a total sum and count of the population.
+-   Optionally it will also record the min and max.
+-
+-   Boundaries define the buckets into which data points are recorded, and
+-   buckets are lower bound exclusive, and upper bound inclusive. A histogram
+-   without buckets will only record sum, count, and optionally min/max of the
+-   entire population.
+-
+-   An example may be wanting to record the distribution of file sizes. We
+-   wouldn't want to create a new metric for each possible size, but we do want
+-   to see the shape of the population, so histograms are a good fit.
+- *)
+-let make_histogram_kind ?(explicit_boundaries = Some default_boundaries) () :
+-    (module Instrument_kind with type value = float list) =
+-  (* TODO: We cannot use delta aggregation as we load balance our metric endpoints,
+-     leading to the metrics to be split in half, as the endpoint is what keeps the running total *)
+-  let delta_aggregation = false in
+-  let aggregation_temporality =
+-    if delta_aggregation then Otel.Metrics.Aggregation_temporality_delta
+-    else Otel.Metrics.Aggregation_temporality_cumulative
+-  in
+-  (module struct
+-    type data_point = Otel.Proto.Metrics.histogram_data_point
+-    type value = float list
+-
+-    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+-        value =
+-      (* Create a default empty histogram *)
+-      (* THINK: Do we want to allow people to change bounds after creating the
+-         metric? Otel spec wasn't clear to me *)
+-      let empty_histogram = create_histogram_data explicit_boundaries in
+-      let histogram_data =
+-        List.fold_left add_value_to_histogram_data empty_histogram value
+-      in
+-      histogram_datapoint_of_histogram_data ?start_time_unix_nano ?now
+-        ?exemplars ?attributes ?flags histogram_data
+-
+-    let make_exemplar ?now ?filtered_attrs v =
+-      (* exemplars for histograms will be a little broken because of this :/ But
+-         they're already experimental so *)
+-      let v =
+-        match v with
+-        | [] -> 0.0 (* no values, use 0.0 as the exemplar value *)
+-        | v :: _ -> v
+-      in
+-      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_float v)
+-
+-    let report_data_points = Otel.Metrics.histogram ~aggregation_temporality
+-  end)
+-
+-(* https://opentelemetry.io/docs/specs/otel/metrics/api/#instrument *)
+-(* TODO: async option *)
+ module type Instrument = sig
+   type value
+ 
+@@ -499,142 +54,67 @@
+     unit
+ end
+ 
+-(* https://opentelemetry.io/docs/specs/otel/metrics/api/#meter *)
+-(* Meter has some metadata, and then provides a way to make all the diff
+-   instruments *)
+ module type Meter = sig
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#counter *)
+   val make_int_counter :
+     instrument_meta -> (module Instrument with type value = int)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#counter *)
+   val make_int64_counter :
+     instrument_meta -> (module Instrument with type value = int64)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#counter *)
+   val make_float_counter :
+     instrument_meta -> (module Instrument with type value = float)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#updowncounter *)
+   val make_int_updown_counter :
+     instrument_meta -> (module Instrument with type value = int)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#updowncounter *)
+   val make_int64_updown_counter :
+     instrument_meta -> (module Instrument with type value = int64)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#updowncounter *)
+   val make_float_updown_counter :
+     instrument_meta -> (module Instrument with type value = float)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#gauge *)
+   val make_int_gauge :
+     instrument_meta -> (module Instrument with type value = int)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#gauge *)
+   val make_int64_gauge :
+     instrument_meta -> (module Instrument with type value = int64)
+ 
+-  (* https://opentelemetry.io/docs/specs/otel/metrics/api/#gauge *)
+   val make_float_gauge :
+     instrument_meta -> (module Instrument with type value = float)
+-  (* TODO: histograms... *)
+ 
+   val make_histogram :
+     ?explicit_bounds:float list option ->
+     instrument_meta ->
+     (module Instrument with type value = float list)
+-  (* TODO: async variants *)
+ end
+ 
+-module Make_meter
+-    (P : Meter_provider)
+-    (M : sig
+-      val meta : meter_meta
+-    end) : Meter = struct
+-  let meter_meta = M.meta
+-
+-  let emit_metrics =
+-    P.make_emitter ?name:meter_meta.name ~attrs:meter_meta.attrs ()
+-
+-  module Make_instrument
+-      (K : Instrument_kind)
+-      (M : sig
+-        val instrument_meta : instrument_meta
+-      end) : Instrument with type value = K.value = struct
+-    type value = K.value
+-
+-    let instrument_meta = M.instrument_meta
+-
+-    let report_data_points =
+-      K.report_data_points ~name:instrument_meta.name
+-        ?description:instrument_meta.description ?unit_:instrument_meta.unit_
+-
+-    let emit ?exemplar ?(attrs = []) ?now (x : value) : unit =
+-      (* Always include some attrs on all metrics such as semgrep's version. See module level comment for
+-         why *)
+-      let attrs = attrs @ default_metric_attributes () in
+-      let data_point =
+-        let exemplars = Option.map (fun x -> [ x ]) exemplar in
+-        let attributes = List.map Otel.Key_value.conv attrs in
+-        K.make_data_point ?now ?exemplars ~attributes x
+-      in
+-      let metric = report_data_points [ data_point ] in
+-      emit_metrics [ metric ]
+-
+-    let record ?(attrs = []) (x : value) : unit = x |> emit ~attrs
+-
+-    let record_exemplar ?attrs ?filtered_attrs (value : value) : unit =
+-      let now = now () in
+-      let exemplar = K.make_exemplar ~now ?filtered_attrs value in
+-      emit ?attrs ~exemplar ~now value
+-  end
+-
+-  let make_instrument (type a)
+-      (kind : (module Instrument_kind with type value = a)) instrument_meta :
+-      (module Instrument with type value = a) =
+-    (module Make_instrument
+-              ((val kind))
+-              (struct
+-                let instrument_meta = instrument_meta
+-              end))
+-
+-  let make_base_sum ~is_monotonic metric_value_of =
+-    make_instrument (make_sum_kind ~is_monotonic metric_value_of)
+-
+-  let make_int_counter = make_base_sum ~is_monotonic:true metric_value_of_int
+-
+-  let make_int64_counter =
+-    make_base_sum ~is_monotonic:true metric_value_of_int64
+-
+-  let make_float_counter =
+-    make_base_sum ~is_monotonic:true metric_value_of_float
+-
+-  let make_int_updown_counter =
+-    make_base_sum ~is_monotonic:false metric_value_of_int
+-
+-  let make_int64_updown_counter =
+-    make_base_sum ~is_monotonic:false metric_value_of_int64
+-
+-  let make_float_updown_counter =
+-    make_base_sum ~is_monotonic:false metric_value_of_float
+-
+-  let make_base_gauge metric_value_of =
+-    make_instrument (make_gauge_kind metric_value_of)
+-
+-  let make_int_gauge = make_base_gauge metric_value_of_int
+-  let make_int64_gauge = make_base_gauge metric_value_of_int64
+-  let make_float_gauge = make_base_gauge metric_value_of_float
+-
+-  let make_histogram ?explicit_bounds =
+-    make_instrument
+-      (make_histogram_kind ?explicit_boundaries:explicit_bounds ())
++(*****************************************************************************)
++(* No-op implementation *)
++(*****************************************************************************)
++
++let make_noop_instrument (type a) () : (module Instrument with type value = a)
++    =
++  (module struct
++    type value = a
++
++    let record ?attrs:_ (_ : value) = ()
++    let record_exemplar ?attrs:_ ?filtered_attrs:_ (_ : value) = ()
++  end)
++
++module Noop_meter : Meter = struct
++  let make_int_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_int64_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_float_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_int_updown_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_int64_updown_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_float_updown_counter (_ : instrument_meta) = make_noop_instrument ()
++  let make_int_gauge (_ : instrument_meta) = make_noop_instrument ()
++  let make_int64_gauge (_ : instrument_meta) = make_noop_instrument ()
++  let make_float_gauge (_ : instrument_meta) = make_noop_instrument ()
++
++  let make_histogram ?explicit_bounds:_ (_ : instrument_meta) =
++    make_noop_instrument ()
+ end
+ 
+-let make_meter ?(provider = (module Simple_meter_provider : Meter_provider))
+-    meta : (module Meter) =
+-  (module Make_meter
+-            ((val provider))
+-            (struct
+-              let meta = meta
+-            end))
++let make_meter ?provider:_ (_ : meter_meta) : (module Meter) =
++  (module Noop_meter)
+--- a/libs/telemetry/Logging.mli
++++ b/libs/telemetry/Logging.mli
+@@ -17,7 +17,7 @@
+     example *)
+ 
+ val attach_otel_reporter :
+-  ?attributes:(string * Opentelemetry.value) list ->
++  ?attributes:(string * Telemetry.user_data) list ->
+   Logs.reporter ->
+   Logs.reporter
+ (** [attach_otel_reporter ?attributes logger] attaches a
+--- a/libs/telemetry/Logging.ml
++++ b/libs/telemetry/Logging.ml
+@@ -16,34 +16,8 @@
+ (*****************************************************************************)
+ (* Prelude *)
+ (*****************************************************************************)
+-(* This module is for sending logs via telemetry. It is NOT a general logging
+-   library (See Logs for that). This is just a thin wrapper over
+-   opentelemetry-logs *)
++(* No-op: this build does not link opentelemetry-logs, so logs are never sent
++   to a telemetry backend. *)
+ 
+-let no_telemetry_tag_set = Opentelemetry_logs.(emit_telemetry false)
+-
+-(* Same as Opentelemetry_logs.attach_otel_reporter but does not log if level is
+-   DEBUG *)
+-let attach_otel_reporter ?attributes reporter =
+-  let combine r1 r2 =
+-    let report src level ~over k msgf =
+-      (* Let's not send debug logs for now, as they can be expensive and
+-               and we're not sure of the usefulness *)
+-      (* COUPLING: we do something similar in tracing.py. If we want to
+-               enable sending debug logs here we probably want to send them from
+-               pysemgrep too! *)
+-      match level with
+-      | Logs.Debug -> r1.Logs.report src level ~over k msgf
+-      | _ -> (
+-          let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
+-          (* Catch-all is deliberate: a raising otel reporter must not kill
+-             the program it reports on. [over] is r2's job, so we call it. *)
+-          try r2.Logs.report src level ~over (fun () -> v) msgf with
+-          | _ ->
+-              over ();
+-              v)
+-    in
+-    { Logs.report }
+-  in
+-  let otel_reporter = Opentelemetry_logs.otel_reporter ?attributes () in
+-  combine reporter otel_reporter
++let no_telemetry_tag_set = Logs.Tag.empty
++let attach_otel_reporter ?attributes:_ reporter = reporter
