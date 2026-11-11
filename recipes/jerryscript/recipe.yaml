@@ -1,0 +1,64 @@
+context:
+  version: "3.0.0"
+
+package:
+  name: jerryscript
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/jerryscript-project/jerryscript/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4d586d922ba575d95482693a45169ebe6cb539c4b5a0d256a6651a39e47bf0fc
+  # Upstream jerryscript has no top-level CMake packaging: it neither exports
+  # its targets nor generates a config file for find_package(... CONFIG). These
+  # two files replace the upstream root CMakeLists.txt with a thin wrapper that
+  # builds the same jerry-core/jerry-port sources but adds a proper
+  # jerryscript::jerry-core / jerryscript::jerry-port export set, so consumers can
+  # use `find_package(jerryscript REQUIRED CONFIG)`.
+  - path: CMakeLists.txt
+  - path: jerryscriptConfig.cmake.in
+
+build:
+  number: 0
+  # The packaging CMakeLists.txt here only wires up the Unix jerry-port
+  # sources; Windows support would need the win/ port sources added back in.
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      files:
+        - include/jerryscript.h
+        - lib/cmake/jerryscript/jerryscriptConfig.cmake
+        - lib/cmake/jerryscript/jerryscriptTargets.cmake
+        - if: unix and not osx
+          then:
+            - lib/libjerry-core.so
+            - lib/libjerry-port.so
+        - if: osx
+          then:
+            - lib/libjerry-core.dylib
+            - lib/libjerry-port.dylib
+
+about:
+  homepage: https://github.com/jerryscript-project/jerryscript
+  repository: https://github.com/jerryscript-project/jerryscript
+  documentation: https://github.com/jerryscript-project/jerryscript/tree/master/docs
+  summary: Ultra-lightweight JavaScript engine for the Internet of Things
+  description: |
+    JerryScript is a lightweight JavaScript engine intended for running on
+    small embedded devices, with a small memory footprint. This build enables
+    the es.next profile with an external-context jerry-port.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - sdebionne
