@@ -1,0 +1,84 @@
+context:
+  version: "2026.08.03.00"
+
+package:
+  name: mvfst
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebook/mvfst/archive/v${{ version }}.tar.gz
+  sha256: fe54b237315036982cf808384dadc9c25ad707eb0707319d8ed0b043d27c2eca
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - fizz ==${{ version }}
+    - folly ==${{ version }}
+    # Libraries referenced by folly's exported CMake targets.
+    - bzip2
+    - double-conversion
+    - fmt
+    - gflags
+    - glog
+    - if: linux
+      then: libaio
+    - libboost-devel
+    - libevent
+    - liblzma-devel
+    - libsodium
+    - lz4-c
+    - openssl
+    - snappy
+    - zlib
+    - zstd
+  run_exports:
+    # mvfst is ABI-unstable: consumers must use the exact same version.
+    - ${{ pin_subpackage('mvfst', upper_bound='x.x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - mvfst
+      include:
+        - quic/codec/Types.h
+      files:
+        - lib/cmake/mvfst/mvfst-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        # folly's CMake config needs these development files.
+        - libboost-devel
+        - liblzma-devel
+        - zlib
+    script:
+      - cmake -S test -B build -G Ninja ${CMAKE_ARGS}
+      - cmake --build build
+      - ./build/mvfst_test
+
+about:
+  homepage: https://github.com/facebook/mvfst
+  summary: Implementation of the IETF QUIC protocol in C++
+  description: |
+    mvfst (pronounced "move fast") is a client and server implementation of
+    the IETF QUIC transport protocol, built on top of folly and fizz.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/facebook/mvfst
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
