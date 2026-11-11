@@ -4,20 +4,21 @@ Thank you very much for putting in this recipe PR!
 This repository is very active, so if you need help with a PR, please let the
 right people know. There are language-specific teams for reviewing recipes.
 
-| Language        | Name of review team           |
-| --------------- | ----------------------------- |
-| c/c++           | `@conda-forge/help-c-cpp`     |
-| go              | `@conda-forge/help-go`        |
-| java            | `@conda-forge/help-java`      |
-| Julia           | `@conda-forge/help-julia`     |
-| nodejs          | `@conda-forge/help-nodejs`    |
-| perl            | `@conda-forge/help-perl`      |
-| python          | `@conda-forge/help-python`    |
-| python/c hybrid | `@conda-forge/help-python-c`  |
-| r               | `@conda-forge/help-r`         |
-| ruby            | `@conda-forge/help-ruby`      |
-| rust            | `@conda-forge/help-rust`      |
-| other           | `@conda-forge/staged-recipes` |
+| Language           | Name of review team             |
+| ------------------ | ------------------------------- |
+| c/c++              | `@conda-forge/help-c-cpp`       |
+| go                 | `@conda-forge/help-go`          |
+| java               | `@conda-forge/help-java`        |
+| Julia              | `@conda-forge/help-julia`       |
+| nodejs             | `@conda-forge/help-nodejs`      |
+| perl               | `@conda-forge/help-perl`        |
+| python             | `@conda-forge/help-python`      |
+| python/c hybrid    | `@conda-forge/help-python-c`    |
+| python/rust hybrid | `@conda-forge/help-python-rust` |
+| r                  | `@conda-forge/help-r`           |
+| ruby               | `@conda-forge/help-ruby`        |
+| rust               | `@conda-forge/help-rust`        |
+| other              | `@conda-forge/staged-recipes`   |
 
 Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
