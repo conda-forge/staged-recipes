@@ -1,0 +1,64 @@
+schema_version: 1
+
+context:
+  version: "1.2.0"
+
+package:
+  name: gitea-cli
+  version: ${{ version }}
+source:
+  url: https://gitea.com/gitea/cli/archive/v${{ version }}.tar.gz
+  sha256: 09854deee075d10d1930131c1acb9d3e1f035627bbdad729d4c994410e90b433
+
+build:
+  number: 0
+  script:
+    - cd cmd/gt
+    - go-licenses save . --save_path ../../license_files
+    - if: unix
+      then: go build -v -o $PREFIX/bin/gt -ldflags "-s -w -X gitea.dev/cli/internal/version.Version=${{ version }} -X gitea.dev/cli/internal/version.Tags=''"
+      else: go build -v -o %LIBRARY_BIN%\gt.exe -ldflags "-s -w -X gitea.dev/cli/internal/version.Version=${{ version }} -X gitea.dev/cli/internal/version.Tags=''"
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/gt completion zsh > $PREFIX/share/zsh/site-functions/_gt
+        - $PREFIX/bin/gt completion bash > $PREFIX/share/bash-completion/completions/gt
+        - $PREFIX/bin/gt completion fish > $PREFIX/share/fish/vendor_completions.d/gt.fish
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - gt --version
+      - gt --help
+  - package_contents:
+      bin:
+        - gt
+      files:
+        - if: unix
+          then:
+            - share/zsh/site-functions/_gt
+            - share/bash-completion/completions/gt
+            - share/fish/vendor_completions.d/gt.fish
+      strict: true
+
+about:
+  homepage: https://about.gitea.com/
+  license: MIT
+  license_file:
+    - LICENSE
+    - license_files/
+  summary: The official CLI for Gitea
+  description: |
+    Gitea-cli manages repositories, issues, pull requests, releases, and
+    other Gitea resources with explicit commands suitable for local
+    development and CI.
+  documentation: https://about.gitea.com/
+  repository: https://gitea.com/gitea/cli
+
+extra:
+  recipe-maintainers:
+    - nodtem66
