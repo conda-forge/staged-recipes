@@ -1,0 +1,139 @@
+schema_version: 1
+
+context:
+  version: "0.5.2"
+  source_sha256: "950060911e920137cf84de929e52f88d377d533eb07b868e801aab60ab625a99"
+
+recipe:
+  name: peslite
+  version: ${{ version }}
+
+source:
+  url: https://github.com/lonaparte/PESLite/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: ${{ source_sha256 }}
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: peslite-core
+      version: ${{ version }}
+    build:
+      noarch: python
+      script:
+        - ${{ PYTHON }} scripts/distributions.py stage peslite-core _conda-stage/peslite-core
+        - ${{ PYTHON }} -m pip install _conda-stage/peslite-core --no-deps --no-build-isolation -vv
+      python:
+        entry_points:
+          - peslite = peslite.solver.simulation:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77.0.3
+      run:
+        - python >=${{ python_min }}
+        - numpy >=1.24.0
+        - scipy >=1.10.0
+        - pyyaml >=6.0.0
+    tests:
+      - python:
+          imports:
+            - peslite
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - peslite --help
+
+  - package:
+      name: peslite
+      version: ${{ version }}
+    build:
+      noarch: python
+      script:
+        - ${{ PYTHON }} scripts/distributions.py stage peslite _conda-stage/peslite
+        - ${{ PYTHON }} -m pip install _conda-stage/peslite --no-deps --no-build-isolation -vv
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77.0.3
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('peslite-core', exact=true) }}
+        - matplotlib-base >=3.7.0
+    tests:
+      - python:
+          imports:
+            - peslite.addons.components.cable
+            - peslite.addons.control.voltage_adaptive_pll
+            - peslite.addons.functions.plotting
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+
+  - package:
+      name: peslite-gui
+      version: ${{ version }}
+    build:
+      noarch: python
+      script:
+        - ${{ PYTHON }} scripts/distributions.py stage peslite-gui _conda-stage/peslite-gui
+        - ${{ PYTHON }} -m pip install _conda-stage/peslite-gui --no-deps --no-build-isolation -vv
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77.0.3
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage('peslite', exact=true) }}
+    tests:
+      - python:
+          imports:
+            - peslite.gui
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - python -m peslite.gui --help
+
+  - package:
+      name: peslite-full
+      version: ${{ version }}
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - ${{ pin_subpackage('peslite-gui', exact=true) }}
+        - onnx >=1.17.0
+        - onnxruntime >=1.18.0
+    tests:
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - python -c "import onnx, onnxruntime, peslite.gui"
+
+about:
+  homepage: https://github.com/lonaparte/PESLite
+  repository: https://github.com/lonaparte/PESLite
+  documentation: https://github.com/lonaparte/PESLite/wiki
+  summary: Deterministic power electronics simulation in Python
+  license: AGPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - lonaparte
