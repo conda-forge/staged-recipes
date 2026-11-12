@@ -105,12 +105,14 @@ outputs:
             - abi3audit $SP_DIR/moreau_cpu/_cpu_solver.abi3.so -s -v --assume-minimum-abi3 ${{ abi3_min }}
             - if: cuda
               then: abi3audit $SP_DIR/moreau_cuda/_moreau_cuda.abi3.so -s -v --assume-minimum-abi3 ${{ abi3_min }}
-      # the noarch front end is built in one job only, so test against its source here
+      # the noarch front end is built in one job only, so test it against each backend from source here
       - script:
           - export PYTHONPATH=packages/moreau/python
+          - python -c "import moreau"
           - python test_solve.py
+          # backend entry points that fail to load are swallowed, so assert registration explicitly
           - if: cuda
-            then: python -c "import moreau_cuda"
+            then: python -c "import moreau; assert moreau.device_available('cuda'), moreau.device_error('cuda')"
         files:
           source:
             - packages/moreau/python/
@@ -135,8 +137,8 @@ outputs:
       name: moreau
     build:
       noarch: python
-      skip:
-        - win
+      # built in one job; the runtime tests cover it against every backend
+      skip: not (target_platform == "linux-64" and cuda_compiler_version == "None")
       script:
         - ${{ PYTHON }} -m pip install ./packages/moreau -vv --no-deps --no-build-isolation
     requirements:
@@ -155,7 +157,7 @@ outputs:
             - moreau
           pip_check: true
           python_version:
-            - ${{ abi3_min }}.*
+            - ${{ python_min }}.*
             - "*"
       - script:
           - python test_solve.py
@@ -164,7 +166,7 @@ outputs:
             - test_solve.py
         requirements:
           run:
-            - python ${{ abi3_min }}.*
+            - python ${{ python_min }}.*
     about:
       summary: "Moreau: conic optimization solver with CPU and optional GPU backends"
       license: Apache-2.0
@@ -180,12 +182,9 @@ outputs:
         - win
     requirements:
       run:
-        - ${{ pin_subpackage("moreau", upper_bound="x.x.x") }}
+        # not pin_subpackage: moreau is only built in the linux-64 CPU job
+        - moreau ==${{ version }}
         - moreau-runtime ==${{ version }} ${{ "cuda" if cuda else "cpu" }}*
-    tests:
-      - python:
-          imports:
-            - moreau
     about:
       summary: Metapackage selecting the ${{ "CUDA" if cuda else "CPU" }} build of moreau
       license: Apache-2.0
