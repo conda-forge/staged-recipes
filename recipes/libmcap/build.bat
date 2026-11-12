@@ -2,7 +2,6 @@
 
 cmake -G Ninja -B _build -S "%RECIPE_DIR%" ^
   -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-  -DCMAKE_INSTALL_LIBDIR=lib ^
   -DMCAP_SOURCE_DIR="%SRC_DIR%\cpp\mcap" ^
   -DMCAP_VERSION="%PKG_VERSION%"
 if errorlevel 1 exit 1

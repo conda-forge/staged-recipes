@@ -20,7 +20,7 @@ set(_cmakedir ${CMAKE_INSTALL_DATADIR}/cmake/mcap)
 configure_package_config_file(mcap-config.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/mcap-config.cmake"
   INSTALL_DESTINATION ${_cmakedir}
-  PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR)
+  PATH_VARS CMAKE_INSTALL_INCLUDEDIR)
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/mcap-config-version.cmake"
   VERSION ${MCAP_VERSION}
