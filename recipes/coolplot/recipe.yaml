@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  name: coolplot
+  version: "1.5.1"
+  python_min: "3.11"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 6a316dc0486ae240e273ba02e1658231bf866c80a17bdb467508d72e7ba56576
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.22
+    - coolprop >=8.0
+  # The plotting backends are optional extras on PyPI; constrain them when
+  # they are installed, without pulling them in.
+  run_constraints:
+    - matplotlib-base >=3.8
+    - plotly >=5.22
+
+tests:
+  - python:
+      imports:
+        - coolplot
+        - coolplot.render.svg
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      - python -c "import coolplot; assert coolplot.__version__ == '${{ version }}', coolplot.__version__"
+      - python -c "from coolplot import PropertyDiagram; from coolplot.render.svg import SvgRenderer; chart = PropertyDiagram('HEOS::R290', 'ph', units='engineering', tp_limits='ACHP'); chart.set_default_lines(labels=True); chart.draw(SvgRenderer()).save('try.svg'); print(len(open('try.svg').read()), 'bytes of SVG')"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+  - script:
+      # The suite runs from the sdist; it skips the browser, Kaleido and
+      # slow tests by itself (tests/conftest.py)
+      - pytest tests -q -p no:cacheprovider
+    files:
+      source:
+        - tests/
+        - examples/
+        - docs/
+        - src/
+        - pyproject.toml
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest >=7
+        - matplotlib-base >=3.8
+        - plotly >=5.22
+
+about:
+  homepage: https://github.com/CoolProp/CoolPlot
+  repository: https://github.com/CoolProp/CoolPlot
+  summary: Thermodynamic property diagrams with CoolProp as data source.
+  description: |
+    CoolPlot draws thermodynamic property diagrams (p-h, T-s, h-s and more)
+    and psychrometric charts with CoolProp as the data source. Charts render
+    to SVG without extra dependencies, or through matplotlib or plotly.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - jowr
