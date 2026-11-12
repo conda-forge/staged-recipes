@@ -1,0 +1,79 @@
+context:
+  version: "2.9"
+
+package:
+  name: stellarsolver
+  version: ${{ version }}
+
+source:
+  url: https://github.com/rlancaste/stellarsolver/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 8eccfc6fb3fdc6bf95bf9b49a6d609b5bc8d3b8d2a82549562478d674b303da7
+  patches:
+    - 0001-conda-portability.patch
+
+build:
+  number: 0
+  skip: win
+  script: build.sh
+
+requirements:
+  run_exports:
+    - ${{ pin_subpackage("stellarsolver", upper_bound="x") }}
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake <4
+    - ninja
+    - pkgconf
+  host:
+    - qt-main 5.15.*
+    - if: linux
+      then: libgl-devel
+    - cfitsio
+    - gsl
+    - libcblas
+    - wcslib
+  run:
+    - qt-main 5.15.*
+
+tests:
+  - package_contents:
+      files:
+        - bin/stellarsolver-cli
+        - include/libstellarsolver/stellarsolver.h
+        - lib/pkgconfig/stellarsolver.pc
+        - lib/cmake/StellarSolver/StellarSolverConfig.cmake
+      lib:
+        - stellarsolver
+  - script:
+      - stellarsolver-cli --help
+      - stellarsolver-cli --version
+      - pkg-config --exists stellarsolver
+      - test "$(pkg-config --modversion stellarsolver)" = "${{ version }}"
+    requirements:
+      run:
+        - pkgconf
+
+about:
+  homepage: https://github.com/rlancaste/stellarsolver
+  repository: https://github.com/rlancaste/stellarsolver
+  documentation: https://github.com/rlancaste/stellarsolver/blob/master/cli/README.md
+  summary: Star extraction and plate solving library with a command-line interface
+  description: |
+    StellarSolver is a C++/Qt star extraction and plate solving library with
+    embedded Astrometry.net and SEP code. This package includes the shared
+    library, development headers, and stellarsolver-cli. Astrometric index
+    files are not included; supply their directory with --index-files.
+  license: GPL-3.0-or-later AND BSD-3-Clause AND MIT AND LGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - stellarsolver/astrometry/LICENSE
+    - stellarsolver/astrometry/libkd/LICENSE
+    - stellarsolver/sep/BSD_LICENSE.txt
+    - stellarsolver/sep/MIT_LICENSE.txt
+    - stellarsolver/sep/LGPL_LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - cgobat

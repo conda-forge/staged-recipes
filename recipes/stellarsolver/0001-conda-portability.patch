@@ -1,0 +1,82 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 84ad009..ac94da1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,9 +37,9 @@ configure_file(
+ set(CMAKE_AUTOMOC ON)
+ set(CMAKE_AUTORCC ON)
+ 
+-if(APPLE)
++if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+     set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
+-endif(APPLE)
++endif()
+ 
+ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+ include(GNUInstallDirs)
+@@ -67,6 +67,17 @@ if (WIN32)
+     file(APPEND "${config_FN}" "#define NEED_QSORT_R 1\n")
+     file(APPEND "${config_FN}" "#define NEED_SWAP_QSORT_R 0\n")
+ 
++elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
++    # conda-forge Linux uses glibc and its GNU qsort_r calling convention.
++    # The bundled os-features-test.c no longer implements the qsort probes.
++    file(APPEND "${config_FN}" "#define NEED_DECLARE_QSORT_R 0\n")
++    file(APPEND "${config_FN}" "#define NEED_QSORT_R 0\n")
++    file(APPEND "${config_FN}" "#define NEED_SWAP_QSORT_R 1\n")
++elseif(APPLE)
++    # macOS provides the BSD qsort_r calling convention.
++    file(APPEND "${config_FN}" "#define NEED_DECLARE_QSORT_R 0\n")
++    file(APPEND "${config_FN}" "#define NEED_QSORT_R 0\n")
++    file(APPEND "${config_FN}" "#define NEED_SWAP_QSORT_R 0\n")
+ else(WIN32)
+ 
+ try_run(RUN_RESULT_2 COMPILE_SUCCESS_2 ${CMAKE_CURRENT_BINARY_DIR} ${config_SRCS} COMPILE_DEFINITIONS -DTEST_DECLARE_QSORT_R=ON)
+@@ -553,8 +564,8 @@ if(BUILD_CLI)
+ 
+     if(APPLE)
+         install(TARGETS CommandLineInterface
+-        BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}
+-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
++        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
++        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+     )
+     else(APPLE)
+         #installation for Linux and Windows
+diff --git a/stellarsolver/astrometry/include/astrometry/ioutils.h b/stellarsolver/astrometry/include/astrometry/ioutils.h
+index 0231be7..9095044 100644
+--- a/stellarsolver/astrometry/include/astrometry/ioutils.h
++++ b/stellarsolver/astrometry/include/astrometry/ioutils.h
+@@ -28,17 +28,15 @@ char* dirname(const char* path);
+ #include "astrometry/an-bool.h"
+ #include "astrometry/bl.h"
+ #include "astrometry/keywords.h"
++#include "astrometry/os-features.h"
+ 
+ extern uint32_t ENDIAN_DETECTOR;
+ 
+-void QSORT_R(void* base, size_t nmembers, size_t member_size,
+-             void* token, int (*compar)(void *, const void *, const void *));
+ 
+ /**
+    You should define the "comparison" function like this:
+    static int QSORT_COMPARISON_FUNCTION(my_comparison, void* token, const void* v1, const void* v2) {
+  */
+-#define QSORT_COMPARISON_FUNCTION(func, thunk, v1, v2) func(thunk, v1, v2)
+ 
+ int copy_file(const char* infn, const char* outfn);
+ 
+diff --git a/stellarsolver/astrometry/util/ioutils.c b/stellarsolver/astrometry/util/ioutils.c
+index 9227b05..01e00c0 100644
+--- a/stellarsolver/astrometry/util/ioutils.c
++++ b/stellarsolver/astrometry/util/ioutils.c
+@@ -43,7 +43,9 @@
+ 
+ #include "os-features.h"
+ #include "ioutils.h"
++#if NEED_QSORT_R
+ #include "qsort_reentrant.c"
++#endif
+ #include "errors.h"
+ #include "log.h"
+ 
