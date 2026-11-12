@@ -29,7 +29,7 @@ if platform.startswith('linux-'):
                     f'crt_dir={sysroot}/usr/lib64\nmsvc_lib_dir=\nkernel32_lib_dir=\n'
                     f'cc_dir={Path(gcc).parent}\ndarwin_sdk_dir=\n')
     flags = ['--sysroot', str(sysroot), '--libc', str(libc),
-             '-Dbuild-glibc-version=' + os.environ['c_stdlib_version'] + '.0']
+             '-Dbuild-glibc-version=' + os.environ['C_STDLIB_VERSION'] + '.0']
 subprocess.run([zig, 'build', '-Demit-lib-vt=true', '-Demit-xcframework=false', '--prefix', str(prefix), '--system', str(packages),
                 '-Dtarget=' + target, '-Dcpu=baseline', '-Doptimize=fast',
                 '-Dsimd=false', '-Dapp-runtime=none', '-Demit-exe=false', '-Demit-docs=false',
