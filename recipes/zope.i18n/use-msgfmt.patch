@@ -1,0 +1,79 @@
+--- a/setup.py
++++ b/setup.py
+@@ -83,7 +83,6 @@
+     python_requires='>=3.9',
+     install_requires=[
+         'setuptools',
+-        'python-gettext',
+         'pytz',
+         'zope.deprecation',
+         'zope.schema',
+--- a/src/zope/i18n/compile.py
++++ b/src/zope/i18n/compile.py
+@@ -1,15 +1,14 @@
+ import logging
+ import os.path
+-from contextlib import closing
++import subprocess
+ from os.path import join
+ 
+-from pythongettext.msgfmt import Msgfmt
+-from pythongettext.msgfmt import PoSyntaxError
+ 
+-
+ logger = logging.getLogger('zope.i18n')
+ 
+ 
++# conda-forge: compile with msgfmt(1) from gettext-tools instead of
++# python-gettext. Name kept for callers and tests that check it.
+ HAS_PYTHON_GETTEXT = True
+ 
+ 
+@@ -37,15 +36,14 @@
+ 
+     if po_mtime > mo_mtime:
+         try:
+-            # Msgfmt doesn't properly close a
+-            # file it opens for reading if you pass the path,
+-            # but it does if you pass the file.
+-            with open(pofile, 'rb') as pofd:
+-                with closing(Msgfmt(pofd, domain).getAsFile()) as mo:
+-                    with open(mofile, 'wb') as fd:
+-                        fd.write(mo.read())
+-        except PoSyntaxError as err:
+-            logger.warning(
+-                'Syntax error while compiling %s (%s).', pofile, err.msg)
++            proc = subprocess.run(['msgfmt', '-o', '-', pofile],
++                                  capture_output=True)
++            if proc.returncode != 0:
++                logger.warning(
++                    'Syntax error while compiling %s (%s).', pofile,
++                    proc.stderr.decode(errors='replace').strip())
++                return
++            with open(mofile, 'wb') as fd:
++                fd.write(proc.stdout)
+         except OSError as err:
+             logger.warning('Error while compiling %s (%s).', pofile, err)
+--- a/src/zope/i18n/testing.py
++++ b/src/zope/i18n/testing.py
+@@ -17,10 +17,9 @@
+ This relies on :mod:`zope.publisher` being available.
+ """
+ import os.path
++import subprocess
+ 
+-from pythongettext.msgfmt import Msgfmt
+ 
+-
+ def setUp(test=None):
+     import zope.component
+     from zope.publisher.browser import BrowserLanguages
+@@ -53,6 +52,7 @@
+     """If `mo_path` does not exist, compile its po file."""
+     if not os.path.exists(mo_path):  # pragma: no cover
+         po_path = mo_path.replace('.mo', '.po')
+-        mo_content = Msgfmt(po_path, name=po_path).get()
++        mo_content = subprocess.run(['msgfmt', '-o', '-', po_path],
++                                    capture_output=True, check=True).stdout
+         with open(mo_path, "wb") as mo:
+             mo.write(mo_content)
