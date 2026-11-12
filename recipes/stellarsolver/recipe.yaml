@@ -1,7 +1,7 @@
 context:
   version: "2.9"
 
-package:
+recipe:
   name: stellarsolver
   version: ${{ version }}
 
@@ -10,50 +10,90 @@ source:
   sha256: 8eccfc6fb3fdc6bf95bf9b49a6d609b5bc8d3b8d2a82549562478d674b303da7
   patches:
     - 0001-conda-portability.patch
+    - 0002-build-guis-with-installed-library.patch
 
 build:
   number: 0
   skip: win
-  script: build.sh
 
-requirements:
-  run_exports:
-    - ${{ pin_subpackage("stellarsolver", upper_bound="x") }}
-  build:
-    - ${{ compiler("c") }}
-    - ${{ compiler("cxx") }}
-    - ${{ stdlib("c") }}
-    - cmake <4
-    - ninja
-    - pkgconf
-  host:
-    - qt-main 5.15.*
-    - if: linux
-      then: libgl-devel
-    - cfitsio
-    - gsl
-    - libcblas
-    - wcslib
-  run:
-    - qt-main 5.15.*
-
-tests:
-  - package_contents:
-      files:
-        - bin/stellarsolver-cli
-        - include/libstellarsolver/stellarsolver.h
-        - lib/pkgconfig/stellarsolver.pc
-        - lib/cmake/StellarSolver/StellarSolverConfig.cmake
-      lib:
-        - stellarsolver
-  - script:
-      - stellarsolver-cli --help
-      - stellarsolver-cli --version
-      - pkg-config --exists stellarsolver
-      - test "$(pkg-config --modversion stellarsolver)" = "${{ version }}"
+outputs:
+  - package:
+      name: stellarsolver
+    build:
+      script: bash "${RECIPE_DIR}/build.sh" base
     requirements:
-      run:
+      run_exports:
+        - ${{ pin_subpackage("stellarsolver", upper_bound="x") }}
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake <4
+        - ninja
         - pkgconf
+      host:
+        - qt-main 5.15.*
+        - if: linux
+          then: libgl-devel
+        - cfitsio
+        - gsl
+        - libcblas
+        - wcslib
+      run:
+        - qt-main 5.15.*
+
+    tests:
+      - package_contents:
+          files:
+            - bin/stellarsolver-cli
+            - include/libstellarsolver/stellarsolver.h
+            - lib/pkgconfig/stellarsolver.pc
+            - lib/cmake/StellarSolver/StellarSolverConfig.cmake
+          lib:
+            - stellarsolver
+      - script:
+          - stellarsolver-cli --help
+          - stellarsolver-cli --version
+          - pkg-config --exists stellarsolver
+          - test "$(pkg-config --modversion stellarsolver)" = "${{ version }}"
+        requirements:
+          run:
+            - pkgconf
+
+  - package:
+      name: stellarsolver-gui
+    build:
+      script: bash "${RECIPE_DIR}/build.sh" gui
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake <4
+        - ninja
+        - pkgconf
+      host:
+        - ${{ pin_subpackage("stellarsolver", exact=True) }}
+        - qt-main 5.15.*
+        - if: linux
+          then: libgl-devel
+        - cfitsio
+        - gsl
+        - libcblas
+        - wcslib
+      run:
+        - ${{ pin_subpackage("stellarsolver", exact=True) }}
+        - qt-main 5.15.*
+    tests:
+      - package_contents:
+          files:
+            - bin/StellarSolverTester
+            - bin/StellarBatchSolver
+    about:
+      summary: StellarSolver interactive and batch graphical applications
+      description: |
+        StellarSolverTester and StellarBatchSolver, dynamically linked to the
+        matching stellarsolver package. Astrometric index files are not included.
 
 about:
   homepage: https://github.com/rlancaste/stellarsolver

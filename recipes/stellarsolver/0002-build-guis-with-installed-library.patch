@@ -1,0 +1,87 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ac94da1..5b78ec4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -109,6 +109,8 @@ endif(WIN32)
+ # We aren't using netpbm in this program, so set this to 0 no matter what
+ file(APPEND "${config_FN}" "#define HAVE_NETPBM 0")
+ 
++option(BUILD_LIBRARY "Build the shared library instead of using an installed copy" On)
++
+ option(BUILD_TESTER "Build stellarsolver tester program, instead of just the library" Off)
+ option(BUILD_BATCH_SOLVER "Build stellarsolver batch solver program, instead of just the library" Off)
+ option(BUILD_DEMOS "Build stellarsolver basic demonstration programs, instead of just the library" Off)
+@@ -264,6 +266,7 @@ set(ALL_SRCS
+     ${qfits_SRCS}
+     )
+ 
++if(BUILD_LIBRARY)
+ if (WIN32)
+     add_library(stellarsolver STATIC ${ALL_SRCS})
+     target_compile_definitions(stellarsolver PUBLIC stellarsolver_STATIC)
+@@ -333,6 +336,11 @@ install(DIRECTORY
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/stellarsolver.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/stellarsolver.pc @ONLY)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/stellarsolver.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
+ 
++else()
++    find_package(StellarSolver ${StellarSolver_VERSION} EXACT CONFIG REQUIRED)
++    add_library(stellarsolver ALIAS StellarSolver::stellarsolver)
++endif()
++
+ if(BUILD_TESTER OR BUILD_BATCH_SOLVER OR BUILD_DEMOS OR BUILD_TESTS OR BUILD_CLI)
+     set(SSolverUtilsLib_SRCS
+         ${CMAKE_CURRENT_SOURCE_DIR}/ssolverutils/fileio.cpp
+@@ -380,7 +388,7 @@ add_executable(StellarSolverTester ${StellarSolverTester_SRCS} ${StellarSolverui
+ 
+ if(APPLE)
+     SET_TARGET_PROPERTIES(StellarSolverTester PROPERTIES
+-      MACOSX_BUNDLE TRUE
++      MACOSX_BUNDLE FALSE
+       MACOSX_BUNDLE_GUI_IDENTIFIER com.rlancaste.stellarsolvertester
+       MACOSX_BUNDLE_BUNDLE_NAME StellarSolverTester
+       MACOSX_BUNDLE_BUNDLE_VERSION ${StellarSolver_VERSION_STRING}
+@@ -408,8 +416,8 @@ endif(WIN32)
+ 
+ if(APPLE)
+ install(TARGETS StellarSolverTester
+-    BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}
+-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
++    BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+     )
+ else(APPLE)
+         #installation for Linux and Windows
+@@ -453,7 +461,7 @@ if(BUILD_BATCH_SOLVER)
+ 
+     if(APPLE)
+         SET_TARGET_PROPERTIES(StellarBatchSolver PROPERTIES
+-          MACOSX_BUNDLE TRUE
++          MACOSX_BUNDLE FALSE
+           MACOSX_BUNDLE_GUI_IDENTIFIER com.rlancaste.stellarbatchsolver
+           MACOSX_BUNDLE_BUNDLE_NAME StellarBatchSolver
+           MACOSX_BUNDLE_BUNDLE_VERSION ${StellarSolver_VERSION_STRING}
+@@ -479,8 +487,8 @@ if(BUILD_BATCH_SOLVER)
+ 
+     if(APPLE)
+     install(TARGETS StellarBatchSolver
+-        BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}
+-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
++        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
++        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+         )
+     else(APPLE)
+             #installation for Linux and Windows
+@@ -636,6 +644,7 @@ endif(BUILD_TESTS)
+ #########################################################################################
+ # Generate Package Config Files
+ #########################################################################################
++if(BUILD_LIBRARY)
+ # Set destination directory
+ set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+ 
+@@ -666,3 +675,5 @@ install(EXPORT ${TARGET_EXPORT_NAME}
+ install(FILES
+         "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_EXPORT_CONFIG}Version.cmake"
+         DESTINATION ${ConfigPackageLocation})
++
++endif()
