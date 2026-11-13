@@ -1,0 +1,112 @@
+# Based on the luau recipe by Davide Faconti in PlotJuggler/PlotJuggler
+# (recipes/luau, added in PlotJuggler/PlotJuggler#342), adapted for conda-forge.
+schema_version: 1
+
+context:
+  version: "0.700"
+
+package:
+  name: luau
+  version: ${{ version }}
+
+source:
+  url: https://github.com/luau-lang/luau/archive/refs/tags/${{ version }}.tar.gz
+  sha256: e0dffe07a4b27c568b9688916e1d97ba7204b7a4d487d0a03648c99b88fc8df8
+
+build:
+  number: 0
+  # Upstream only supports static libraries: every library target is
+  # hard-coded as `add_library(... STATIC)`, and the C++ APIs (Ast, Compiler,
+  # Analysis, ...) carry no export macros, so there is no shared build on
+  # Windows. Luau also gives no ABI stability guarantees between its (weekly)
+  # releases. Conan and vcpkg ship it static for the same reasons. Upstream has
+  # no install rules either, so CMakeLists.txt in this recipe adds them
+  # (install(EXPORT) of upstream's own targets; see the comments there).
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - luau/lua.h
+        - luau/lualib.h
+        - luau/luaconf.h
+        - luau/luacode.h
+        - luau/luacodegen.h
+        - luau/Luau/Common.h
+        - luau/Luau/Ast.h
+        - luau/Luau/Compiler.h
+      bin:
+        - luau
+        - luau-analyze
+        - luau-ast
+        - luau-compile
+        - luau-bytecode
+      files:
+        - if: win
+          then:
+            - Library/lib/Luau.Common.lib
+            - Library/lib/Luau.Ast.lib
+            - Library/lib/Luau.Compiler.lib
+            - Library/lib/Luau.Config.lib
+            - Library/lib/Luau.Analysis.lib
+            - Library/lib/Luau.EqSat.lib
+            - Library/lib/Luau.CodeGen.lib
+            - Library/lib/Luau.VM.lib
+            - Library/lib/Luau.Require.lib
+          else:
+            - lib/libLuau.Common.a
+            - lib/libLuau.Ast.a
+            - lib/libLuau.Compiler.a
+            - lib/libLuau.Config.a
+            - lib/libLuau.Analysis.a
+            - lib/libLuau.EqSat.a
+            - lib/libLuau.CodeGen.a
+            - lib/libLuau.VM.a
+            - lib/libLuau.Require.a
+        - ${{ "Library/" if win }}lib/cmake/Luau/LuauConfig.cmake
+        - ${{ "Library/" if win }}lib/cmake/Luau/LuauConfigVersion.cmake
+        - ${{ "Library/" if win }}lib/cmake/Luau/LuauTargets.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - luau test/hello.luau
+      - luau-compile --help
+      - luau-analyze test/hello.luau
+      - cmake -G Ninja -S test -B build -DCMAKE_BUILD_TYPE=Release ${{ "%CMAKE_ARGS%" if win else "$CMAKE_ARGS" }}
+      - cmake --build build
+      - ${{ "build\\luau_test.exe" if win else "./build/luau_test" }}
+
+about:
+  homepage: https://luau.org
+  repository: https://github.com/luau-lang/luau
+  documentation: https://luau.org/getting-started
+  summary: A fast, small, safe, gradually typed embeddable scripting language derived from Lua
+  description: |
+    Luau is a fast, small, safe, gradually typed embeddable scripting language
+    derived from Lua 5.1. This package provides the Luau command-line tools
+    (luau, luau-analyze, luau-compile, ...) and the static Luau libraries with
+    a CMake package (`find_package(Luau)`, targets `Luau::VM`, `Luau::Compiler`,
+    `Luau::CodeGen`, `Luau::Ast`, `Luau::Analysis`, ...). Headers are installed
+    to `include/luau` so that Luau's `lua.h` does not clash with the `lua` package.
+  license: MIT
+  license_file:
+    - LICENSE.txt
+    - lua_LICENSE.txt
+    - extern/isocline/LICENSE
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
