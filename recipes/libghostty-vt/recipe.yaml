@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  version: "1.0.1"
+
+package:
+  name: libghostty-vt
+  version: ${{ version }}
+
+source:
+  - url: https://release.files.ghostty.org/libghostty-vt/${{ version }}/libghostty-vt-${{ version }}.tar.gz
+    sha256: 333dfce97641ef9b536bb9e08907ad86abaaada50e8f7417b70d9284adef37aa
+    patches:
+      - patches/build-glibc-version.patch
+  - url: https://release.files.ghostty.org/libghostty-vt/${{ version }}/libghostty-vt-${{ version }}-deps.tar.gz
+    sha256: 91a4e10960a52bf5bf4b15aa2a2cddaff8a89d6cd903d3055bda4fd17de3356d
+    target_directory: vt-deps
+build:
+  number: 0
+  skip: target_platform not in ["linux-64", "linux-aarch64", "osx-arm64", "osx-64", "win-64"]
+  script:
+    interpreter: python
+    file: build-lib.py
+    env:
+      # Recipe variants are not automatically exported to build scripts.
+      C_STDLIB_VERSION: ${{ c_stdlib_version if linux else "" }}
+requirements:
+  # The stable C ABI is compatible within the same major version.
+  run_exports:
+    - ${{ pin_subpackage('libghostty-vt', upper_bound='x') }}
+  build:
+    - zig 0.17.0.*
+    - python >=3.11
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+tests:
+  - package_contents:
+      include:
+        - ghostty/vt.h
+        - ghostty/vt/osc.h
+      files:
+        - if: unix
+          then:
+            - lib/pkgconfig/libghostty-vt.pc
+            - lib/pkgconfig/libghostty-vt-static.pc
+          else:
+            - Library/lib/pkgconfig/libghostty-vt.pc
+            - Library/lib/pkgconfig/libghostty-vt-static.pc
+        - if: linux
+          then:
+            - lib/libghostty-vt.so.${{ version }}
+            - lib/libghostty-vt.a
+        - if: osx
+          then:
+            - lib/libghostty-vt.${{ version }}.dylib
+            - lib/libghostty-vt.a
+        - if: win
+          then:
+            - Library/bin/ghostty-vt.dll
+            - Library/lib/ghostty-vt.lib
+            - Library/lib/ghostty-vt-static.lib
+  - script: python test-lib.py
+    requirements:
+      run:
+        - python >=3.11
+        - ${{ compiler('c') }}
+        - pkgconf
+    files:
+      recipe:
+        - test-lib.py
+        - test-lib.c
+
+about:
+  homepage: https://ghostty.org
+  summary: Ghostty VT parsing library with a C API
+  description: Standalone terminal sequence parsing library, without the Ghostty GUI.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/ghostty-org/ghostty
+  documentation: https://ghostty.org/docs
+
+extra:
+  recipe-maintainers:
+    - davidbrochart
