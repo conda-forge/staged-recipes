@@ -1,0 +1,50 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d092f4a..d162b43 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -145,7 +145,11 @@ if(EMSCRIPTEN)
+     find_package(Qt6 ${PJ_QT_REQUIRED_VERSION} REQUIRED COMPONENTS
+         Core Gui GuiPrivate Widgets Concurrent Network Xml Svg SvgWidgets PrintSupport ShaderTools)
+ else()
+-    set(PJ_QT_REQUIRED_VERSION ${PJ_QT_VERSION})
++    # versions.env pins the Qt kit of the release builds. A distribution that builds
++    # against its own Qt 6 (conda-forge and RoboStack pin qt6-main 6.11) can lower
++    # the floor: -DPJ_QT_MIN_VERSION=6.11.
++    set(PJ_QT_MIN_VERSION "${PJ_QT_VERSION}" CACHE STRING "Oldest Qt 6 release the desktop build accepts")
++    set(PJ_QT_REQUIRED_VERSION ${PJ_QT_MIN_VERSION})
+     # OpenGLWidgets: no PJ4 code links it outside the display tests (pj_scene3D's
+     # runners take the target from here), but Qt6UiTools (pj_dialog_host) depends
+     # on it, so the kit, the app and its packages need it regardless.
+diff --git a/pj_datastore/CMakeLists.txt b/pj_datastore/CMakeLists.txt
+index ac7d5b6..e9e829d 100644
+--- a/pj_datastore/CMakeLists.txt
++++ b/pj_datastore/CMakeLists.txt
+@@ -28,6 +28,28 @@ if(PJ_BUILD_TESTS AND NOT PJ_ENABLE_MSAN)
+ endif()
+ 
+ # --- nanoarrow core ---
++# nanoarrow >= 0.8 links its IPC target to zstd::libzstd and lz4::lz4, but its
++# config looks neither up (no find_dependency), and some lz4 packages ship no
++# CMake config at all: provide whichever target is missing before nanoarrow.
++find_package(zstd CONFIG QUIET)
++find_package(lz4 CONFIG QUIET)
++foreach(_pj_codec IN ITEMS zstd lz4)
++  if(_pj_codec STREQUAL "zstd")
++    set(_pj_codec_target zstd::libzstd)
++  else()
++    set(_pj_codec_target lz4::lz4)
++  endif()
++  if(NOT TARGET ${_pj_codec_target})
++    find_library(PJ_${_pj_codec}_LIBRARY NAMES ${_pj_codec} lib${_pj_codec})
++    find_path(PJ_${_pj_codec}_INCLUDE_DIR NAMES ${_pj_codec}.h)
++    if(PJ_${_pj_codec}_LIBRARY AND PJ_${_pj_codec}_INCLUDE_DIR)
++      add_library(${_pj_codec_target} UNKNOWN IMPORTED)
++      set_target_properties(${_pj_codec_target} PROPERTIES
++        IMPORTED_LOCATION "${PJ_${_pj_codec}_LIBRARY}"
++        INTERFACE_INCLUDE_DIRECTORIES "${PJ_${_pj_codec}_INCLUDE_DIR}")
++    endif()
++  endif()
++endforeach()
+ find_package(nanoarrow CONFIG QUIET)
+ 
+ set(PJ_NANOARROW_TARGET "")

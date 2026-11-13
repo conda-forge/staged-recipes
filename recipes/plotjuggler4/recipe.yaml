@@ -1,0 +1,115 @@
+# Based on PlotJuggler's own conda recipe (packaging/conda in PlotJuggler/PlotJuggler)
+# by Davide Faconti, adapted for conda-forge: a plain CMake configure/build/install.
+schema_version: 1
+
+context:
+  name: plotjuggler4
+  version: "4.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/PlotJuggler/PlotJuggler/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 5d68e61c0d21be42b0058da8e2b9a3decd36deecb5395a762f014fd2d9c2ba66
+    patches:
+      # PlotJuggler/PlotJuggler#1498 (merged after 4.1.0) and #1500 (install rules,
+      # cloudini's own CMake package, PJ_SYSTEM_ADS/NANOCDR, system Qwt on
+      # Windows); drop with the next release.
+      - patches/0001-qt-floor-and-nanoarrow-codecs.patch
+      - patches/0002-pr1500-install-rules-cloudini-system-deps.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.28
+    - ninja
+    - pkgconf
+  host:
+    - qt6-main
+    - qt6-advanced-docking-system
+    - qwt
+    - plotjuggler_sdk >=0.39
+    - nanocdr
+    - fmt
+    - tsl_robin_map
+    - glm
+    - nlohmann_json
+    - python
+    - pybind11
+    - zstd
+    - lz4-c
+    - fast_float
+    # PlotJuggler is MPL-2.0: only the LGPL builds of libarchive and ffmpeg.
+    - libarchive * lgpl_*
+    - ffmpeg * lgpl_*
+    - libjpeg-turbo
+    - libpng
+    - backward-cpp
+    - draco
+    - assimp
+    - luau
+    - libmcap
+    - cloudini
+    - kissfft
+    - libnanoarrow >=0.9
+    - if: linux
+      then:
+        - elfutils
+        - libgl-devel
+        - libopengl-devel
+        - libegl-devel
+  ignore_run_exports:
+    # ffmpeg's run_export asks for at least the patch release built against;
+    # the ABI holds within a major (pinned below).
+    from_package:
+      - ffmpeg
+    by_name:
+      # static or header-only here
+      - plotjuggler_sdk
+      - luau
+  run:
+    # the embedded interpreter links libpython and loads the stdlib from the env
+    - python
+    - ${{ pin_compatible('ffmpeg', lower_bound='x.x', upper_bound='x') }}
+    - ffmpeg * lgpl_*
+    - libarchive * lgpl_*
+
+tests:
+  - package_contents:
+      bin:
+        - plotjuggler4
+        - pj-plugin-check
+      files:
+        - if: linux
+          then:
+            - share/applications/plotjuggler4.desktop
+            - share/icons/hicolor/scalable/apps/plotjuggler4.svg
+  - script:
+      env:
+        QT_QPA_PLATFORM: offscreen
+      content:
+        - plotjuggler4 --version
+        # the embedded interpreter's PYTHONHOME is baked at build time; this
+        # proves conda's prefix relocation rewrote it to the installed env
+        - plotjuggler4 --selftest-python
+
+about:
+  homepage: https://plotjuggler.io
+  repository: https://github.com/PlotJuggler/PlotJuggler
+  license: MPL-2.0
+  license_file: LICENSE
+  summary: PlotJuggler 4, the time series visualization tool
+  description: |
+    Multi-modal visualization for time series, images, video and 3D data, with
+    loaders, streamers and parsers as plugins.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
