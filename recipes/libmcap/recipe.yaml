@@ -1,0 +1,80 @@
+# Based on the libmcap recipe by Davide Faconti in PlotJuggler/PlotJuggler
+# (recipes/libmcap, added in PlotJuggler/PlotJuggler#342), adapted for conda-forge.
+schema_version: 1
+
+context:
+  version: "2.1.1"
+
+package:
+  # The conda-forge `mcap` package is the Python library; this is the C++ one.
+  name: libmcap
+  version: ${{ version }}
+
+source:
+  url: https://github.com/foxglove/mcap/archive/refs/tags/releases/cpp/v${{ version }}.tar.gz
+  sha256: f5ec006beccfb6d56a26fee8e460e79bed02f125eb2604159ddfbb9906d57da4
+
+build:
+  number: 0
+  # Header-only, but not noarch: on Windows the headers and the CMake package
+  # have to go to %LIBRARY_PREFIX%.
+  # Upstream has no CMake build or install rules for the C++ library (only a
+  # Conan recipe that copies the headers), so CMakeLists.txt in this recipe
+  # installs the headers plus a CMake package with the mcap::mcap target.
+
+requirements:
+  build:
+    - cmake
+    - ninja
+  host:
+    # Not linked here (header-only); listed so that their run_exports pin the
+    # run requirements to compatible versions.
+    # 1.11.1 is the first lz4-c with lz4's CMake package (lz4::lz4) on all
+    # platforms; see conda_build_config.yaml.
+    - lz4-c >=1.11.1
+    - zstd
+  run:
+    - lz4-c
+    - zstd
+
+tests:
+  - package_contents:
+      include:
+        - mcap/mcap.hpp
+        - mcap/reader.hpp
+        - mcap/writer.hpp
+        - mcap/reader.inl
+      files:
+        - ${{ "Library/" if win }}share/cmake/mcap/mcap-config.cmake
+        - ${{ "Library/" if win }}share/cmake/mcap/mcap-config-version.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - cmake -G Ninja -S test -B build -DCMAKE_BUILD_TYPE=Release ${{ "%CMAKE_ARGS%" if win else "$CMAKE_ARGS" }}
+      - cmake --build build
+      - ${{ "build\\mcap_test.exe" if win else "./build/mcap_test" }}
+
+about:
+  homepage: https://mcap.dev
+  repository: https://github.com/foxglove/mcap
+  documentation: https://mcap.dev/docs/cpp
+  summary: C++ implementation of the MCAP container file format (header-only)
+  description: |
+    MCAP is a modular container format and logging library for pub/sub
+    messages with arbitrary message serialization. This package provides the
+    header-only C++ reader/writer library and a CMake package
+    (`find_package(mcap)`, target `mcap::mcap`, which links lz4 and zstd).
+    The Python library is packaged separately as `mcap`.
+  license: MIT
+  license_file: cpp/mcap/LICENSE
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
