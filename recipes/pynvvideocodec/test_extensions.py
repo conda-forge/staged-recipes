@@ -14,7 +14,8 @@ package_dir = Path(dist.locate_file("PyNvVideoCodec"))
 
 
 def load_extension(stem, module_name):
-    paths = list(package_dir.glob(f"{stem}.*.so"))
+    suffix = "pyd" if sys.platform == "win32" else "so"
+    paths = list(package_dir.glob(f"{stem}.*.{suffix}"))
     assert len(paths) == 1, (stem, paths)
     spec = importlib.util.spec_from_file_location(module_name, paths[0])
     module = importlib.util.module_from_spec(spec)
@@ -29,12 +30,16 @@ if len(sys.argv) > 1:
     assert callable(codec.CreateDemuxer)
     assert hasattr(codec, "PyNvEncoder")
 else:
-    # The CUDA stub supplies link symbols without requiring an installed driver.
     # Each variant gets its own process to avoid duplicate pybind11 registrations.
-    stub = Path(sys.prefix) / "lib/stubs/libcuda.so"
-    assert stub.is_file(), stub
-    with tempfile.TemporaryDirectory() as directory:
-        (Path(directory) / "libcuda.so.1").symlink_to(stub)
-        env = dict(os.environ, LD_LIBRARY_PATH=directory)
+    if sys.platform == "win32":
         for suffix in ("121", "130"):
-            subprocess.run([sys.executable, __file__, suffix], env=env, check=True)
+            subprocess.run([sys.executable, __file__, suffix], check=True)
+    else:
+        # The CUDA stub supplies link symbols without requiring an installed driver.
+        stub = Path(sys.prefix) / "lib/stubs/libcuda.so"
+        assert stub.is_file(), stub
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "libcuda.so.1").symlink_to(stub)
+            env = dict(os.environ, LD_LIBRARY_PATH=directory)
+            for suffix in ("121", "130"):
+                subprocess.run([sys.executable, __file__, suffix], env=env, check=True)
