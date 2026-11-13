@@ -1,0 +1,75 @@
+context:
+  version: "3.0.0"
+  build_number: 0
+
+package:
+  name: fepx
+  version: ${{ version }}
+
+source:
+  url: https://github.com/neperfepx/FEPX/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3a27c78b8b06cb637ffa1294aae79afd08aa6589cb1390e7f4e1cc585441c8d3
+
+build:
+  number: ${{ build_number }}
+  # one package per MPI implementation (variant mpi: openmpi or mpich)
+  string: ${{ mpi }}_h${{ hash }}_${{ build_number }}
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('fortran') }}
+    # C: for the CMake package file of HDF5 (it looks for the threads library)
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+    # the manual page, gzipped
+    - gzip
+    # cross-compilation (osx-arm64 from osx-64): Open MPI's Fortran wrapper is a
+    # program, run from the build machine (with OPAL_PREFIX, build.sh)
+    - if: mpi == "openmpi" and build_platform != target_platform
+      then:
+        - ${{ mpi }}
+        - ${{ mpi }}-mpifort
+  host:
+    - ${{ mpi }}
+    # the MPI Fortran wrapper (mpifort), used by CMake to find MPI
+    - ${{ mpi }}-mpifort
+    # serial HDF5 (FEPX writes the HDF5 file from rank 0 only)
+    - hdf5 * nompi_*
+  run:
+    - ${{ mpi }}
+
+tests:
+  - script:
+      - fepx --version
+      - test -f "${PREFIX}/share/man/man1/fepx.1.gz"
+      # Open MPI in a container: no ssh launcher, oversubscription allowed
+      - export OMPI_MCA_plm=isolated OMPI_MCA_rmaps_base_oversubscribe=yes
+      - export OMPI_MCA_btl_vader_single_copy_mechanism=none
+      # an installed tutorial case, with the text output...
+      - cp -r "${PREFIX}/share/doc/fepx/examples/hcp_basal" ascii
+      - cd ascii && mpirun -np 1 fepx && test -d simulation.sim && cd ..
+      # ... and with the HDF5 output
+      - cp -r "${PREFIX}/share/doc/fepx/examples/hcp_basal" hdf5
+      - cd hdf5 && echo "output_format hdf5" >> simulation.cfg && mpirun -np 1 fepx
+      - test -f simulation.sim/simulation.h5 && cd ..
+
+about:
+  homepage: https://fepx.info
+  repository: https://github.com/neperfepx/FEPX
+  documentation: https://fepx.info
+  license: MIT
+  license_file:
+    - COPYING
+  summary: Finite element software for polycrystal plasticity
+  description: |
+    FEPX is a finite element software package for polycrystal plasticity.
+    It can model the elastic-plastic deformation of polycrystalline
+    materials, at the scale of the grains, with MPI parallelism.
+
+extra:
+  recipe-maintainers:
+    - rquey
