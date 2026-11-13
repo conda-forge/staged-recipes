@@ -1,0 +1,192 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9fdc214..b28a85b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,46 +3,6 @@ cmake_minimum_required(VERSION 3.12)
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_EXTENSIONS ON)
+ 
+-if (APPLE)
+-    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew/opt/libomp)
+-endif ()
+-
+-set(VCPKG_ROOT ${CMAKE_SOURCE_DIR}/vcpkg)
+-set(VCPKG_MANIFEST_MODE
+-    TRUE
+-    CACHE BOOL "")
+-set(ENV{VCPKG_ROOT} ${VCPKG_ROOT})
+-
+-set(VCPKG_INSTALL_OPTIONS "--allow-unsupported")
+-
+-if (APPLE)
+-    set(CMAKE_OSX_ARCHITECTURES "arm64")
+-    set(VCPKG_TARGET_TRIPLET "arm64-osx")
+-    set(VCPKG_HOST_TRIPLET "arm64-osx")
+-elseif (WIN32)
+-    set(VCPKG_TARGET_TRIPLET "x64-windows-static-md")
+-    set(VCPKG_HOST_TRIPLET "x64-windows-static-md")
+-else ()
+-    execute_process(
+-        COMMAND uname -m
+-        OUTPUT_VARIABLE HOST_ARCH
+-        OUTPUT_STRIP_TRAILING_WHITESPACE)
+-    if (HOST_ARCH MATCHES "aarch64|arm64")
+-        set(VCPKG_TARGET_TRIPLET "arm64-linux")
+-        set(VCPKG_HOST_TRIPLET "arm64-linux")
+-    else ()
+-        set(VCPKG_TARGET_TRIPLET "x64-linux")
+-        set(VCPKG_HOST_TRIPLET "x64-linux")
+-    endif ()
+-endif ()
+-
+-set(CMAKE_TOOLCHAIN_FILE
+-    ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
+-    CACHE PATH "")
+-set(VCPKG_INSTALLED_DIR
+-    ${CMAKE_SOURCE_DIR}/vcpkg_installed
+-    CACHE PATH "")
+-
+ project(fft_benchmark)
+ 
+ if (MSVC)
+@@ -66,9 +26,8 @@ enable_testing()
+ option(OPEN "Only include open-source libraries" ON)
+ 
+ if (SINGLE)
+-    if (SINGLE MATCHES "^[A-Za-z0-9_-]+$")
+-        message(STATUS "SINGLE is set to ${SINGLE}: compiling only ${SINGLE} library.")
+-        message(STATUS "  Resulting package will have the same license as ${SINGLE}")
++    if (SINGLE MATCHES "^[A-Za-z0-9_;-]+$")
++        message(STATUS "SINGLE is set to ${SINGLE}: compiling only these libraries.")
+     else ()
+         message(
+             FATAL_ERROR
+diff --git a/libs/CMakeLists.txt b/libs/CMakeLists.txt
+index aab7130..38fa7b1 100644
+--- a/libs/CMakeLists.txt
++++ b/libs/CMakeLists.txt
+@@ -1,6 +1,8 @@
+ if (SINGLE)
+ 
+-    add_subdirectory(${SINGLE})
++    foreach (LIB IN LISTS SINGLE)
++        add_subdirectory(${LIB})
++    endforeach ()
+ 
+ else ()
+ 
+diff --git a/libs/fftw/CMakeLists.txt b/libs/fftw/CMakeLists.txt
+index d0f0657..540805c 100644
+--- a/libs/fftw/CMakeLists.txt
++++ b/libs/fftw/CMakeLists.txt
+@@ -1,10 +1,23 @@
+-find_package(FFTW3)
+-find_package(FFTW3f)
++# The FFTW3 CMake package of some distributions (conda-forge among them) is
++# installed without its targets file, so look for the libraries directly.
++find_library(FFTW3_LIBRARY NAMES fftw3)
++find_library(FFTW3F_LIBRARY NAMES fftw3f)
++find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h)
+ 
+-if (FFTW3_FOUND AND FFTW3f_FOUND)
+-    message(STATUS "FFTW3 ${FFTW3_VERSION} is found. Enabling FFTW3")
++if (FFTW3_LIBRARY AND FFTW3F_LIBRARY AND FFTW3_INCLUDE_DIR)
++    message(STATUS "FFTW3 is found (${FFTW3_LIBRARY}). Enabling FFTW3")
+ 
+-    add_benchmark(fftw FFT ANY SOURCES ${CMAKE_CURRENT_LIST_DIR}/fftw.cpp LIBRARIES FFTW3::fftw3 FFTW3::fftw3f)
++    add_benchmark(
++        fftw
++        FFT
++        ANY
++        SOURCES
++        ${CMAKE_CURRENT_LIST_DIR}/fftw.cpp
++        LIBRARIES
++        ${FFTW3_LIBRARY}
++        ${FFTW3F_LIBRARY}
++        INCLUDES
++        ${FFTW3_INCLUDE_DIR})
+ 
+ else ()
+     message(STATUS "FFTW3 is not found. Disabling FFTW3. Add <FFTW3> to CMAKE_PREFIX_PATH")
+diff --git a/libs/kfr/CMakeLists.txt b/libs/kfr/CMakeLists.txt
+index ede6803..1dc1571 100644
+--- a/libs/kfr/CMakeLists.txt
++++ b/libs/kfr/CMakeLists.txt
+@@ -1,6 +1,9 @@
+ if (KFR_SRC_DIR)
+ 
+-    add_compile_definitions(KFR_NG=1)
++    # KFR_LEGACY: a KFR older than 7.1, without the ngFFT interface
++    if (NOT KFR_LEGACY)
++        add_compile_definitions(KFR_NG=1)
++    endif ()
+ 
+     set(CMAKE_CXX_STANDARD 20)
+     set(CMAKE_CXX_EXTENSIONS ON)
+@@ -19,5 +22,9 @@ else ()
+ endif ()
+ 
+ if (TARGET kfr)
+-    add_benchmark(kfr FFT SRC ANY SOURCES ${CMAKE_CURRENT_LIST_DIR}/kfr.cpp LIBRARIES kfr kfr_dft kfr_dsp)
++    set(KFR_BENCHMARK_LIBRARIES kfr kfr_dft)
++    if (TARGET kfr_dsp) # a separate library since KFR 6
++        list(APPEND KFR_BENCHMARK_LIBRARIES kfr_dsp)
++    endif ()
++    add_benchmark(kfr FFT SRC ANY SOURCES ${CMAKE_CURRENT_LIST_DIR}/kfr.cpp LIBRARIES ${KFR_BENCHMARK_LIBRARIES})
+ endif ()
+diff --git a/libs/kfr/kfr.cpp b/libs/kfr/kfr.cpp
+index 7d63e58..3975e3d 100644
+--- a/libs/kfr/kfr.cpp
++++ b/libs/kfr/kfr.cpp
+@@ -12,15 +12,24 @@
+ #include "src_benchmark.hpp"
+ #include <string>
+ 
++#if KFR_VERSION_MAJOR >= 6
+ namespace kfr
+ {
+ const char* library_version_dft();
+ const char* library_version_dsp();
+ } // namespace kfr
++#else
++// KFR 5 has one version string for the whole library
++namespace kfr
++{
++inline const char* library_version_dft() { return library_version(); }
++inline const char* library_version_dsp() { return library_version(); }
++} // namespace kfr
++#endif
+ 
+ std::string fft_name()
+ {
+-#if defined(__x86_64__) || defined(_M_X64)
++#if (defined(__x86_64__) || defined(_M_X64)) && KFR_VERSION_MAJOR >= 6 // override_cpu: KFR 6+
+     if (avx2only)
+     {
+         fprintf(stderr, "KFR: enabling AVX2\n");
+@@ -134,6 +143,7 @@ private:
+     unsigned char* temp;
+ };
+ 
++#if KFR_VERSION_MAJOR >= 6 // multidimensional plans: KFR 6+
+ // complex, multidimensional
+ template <int dims, typename real, bool invert, bool inplace>
+ class fft_implementation<dims, real, true, invert, inplace> : public fft_impl<real>
+@@ -182,6 +192,8 @@ private:
+     unsigned char* temp;
+ };
+ 
++#endif
++
+ template <typename real>
+ fft_impl_ptr<real> fft_create(const std::vector<size_t>& size, bool is_complex, bool invert, bool inplace)
+ {
+@@ -211,7 +223,7 @@ std::string src_name()
+     printf("sidelobe attenuation: %f dB, transition width: %f radians, filter order: %u, param = %f\n", att,
+            trans, order, param);
+ 
+-#if defined(__x86_64__) || defined(_M_X64)
++#if (defined(__x86_64__) || defined(_M_X64)) && KFR_VERSION_MAJOR >= 6 // override_cpu: KFR 6+
+     if (avx2only)
+     {
+         fprintf(stderr, "KFR: enabling AVX2\n");
