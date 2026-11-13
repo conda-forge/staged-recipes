@@ -1,0 +1,131 @@
+schema_version: 1
+
+context:
+  version: "1.10.2"
+
+recipe:
+  name: zenoh-python-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/e/eclipse-zenoh/eclipse_zenoh-${{ version }}.tar.gz
+  sha256: a338f4d1a0a736cbae4e1f5becdd2e81a6a2e5934ffa8a4b1436cf0fbac7fb2e
+
+build:
+  number: 0
+  skip: not is_python_min
+
+outputs:
+  - package:
+      # The output matches the pypi package name
+      name: eclipse-zenoh
+    build:
+      python:
+        version_independent: true
+      script:
+        env:
+          # The sdist's Cargo.lock pins a Git revision of the Zenoh Rust workspace.
+          # workaround for https://github.com/rust-lang/cargo/issues/10583
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+        content:
+          - python -m pip install . -vv --no-deps --no-build-isolation -C "build-args=--locked --auditwheel skip"
+          - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('rust') }}
+        - cargo-bundle-licenses
+        - git
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+            - maturin >1,<2
+      host:
+        - python ${{ python_min }}.*
+        - python-abi3
+        - maturin >1,<2
+        - pip
+      run:
+        - python >=${{ python_min }}
+        # We want to protect about a possible future zenoh 2 that may
+        # break wire compatibility
+        - zenoh-rust-abi >=1,<2
+
+    tests:
+      - requirements:
+          run:
+            - abi3audit
+        script:
+          - if: win
+            then: abi3audit -s -v --assume-minimum-abi3 ${{ python_min }} "%SP_DIR%\zenoh\zenoh.pyd"
+            else: abi3audit -s -v --assume-minimum-abi3 ${{ python_min }} "$SP_DIR/zenoh/zenoh.abi3.so"
+
+      - python:
+          imports:
+            - zenoh
+            - zenoh.ext
+            - zenoh.shm
+          pip_check: true
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+      - files:
+          recipe:
+            - test_pubsub.py
+        script:
+          - python test_pubsub.py
+      - files:
+          source:
+            - tests/test_serializer.py
+            - tests/test_timestamp_stack.py
+        requirements:
+          run:
+            - pytest
+            - python ${{ python_min }}.*
+        script:
+          # The other upstream session tests use fixed ports and sleep-based synchronization.
+          - >-
+            python -m pytest -q tests/test_serializer.py
+            tests/test_timestamp_stack.py::test_timestamp_instrumentation_builder
+            tests/test_timestamp_stack.py::test_timestamp_instrumentation_builder_empty
+
+    about:
+      license_file:
+        - LICENSE
+        - NOTICE.md
+        - THIRDPARTY.yml
+
+  - package:
+      # The output matches the repository name, as eclipse-zenoh used in PyPI
+      # world is familiar for people coming from PyPI, but it is not clear for
+      # the multi-language context of conda-forge, in which it is not clear the
+      # the difference between other zenoh packages and the package of zenoh Python.
+      name: zenoh-python
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - eclipse-zenoh ==${{ version }}
+    tests:
+      - python:
+          imports:
+            - zenoh
+
+about:
+  homepage: https://zenoh.io/
+  repository: https://github.com/eclipse-zenoh/zenoh-python
+  documentation: https://zenoh-python.readthedocs.io/
+  license: Apache-2.0 OR EPL-2.0
+  license_file:
+    - LICENSE
+    - NOTICE.md
+  summary: Python bindings for Eclipse Zenoh
+
+extra:
+  # The feedstock name should match the upstream name of the repo
+  feedstock-name: zenoh-python
+  recipe-maintainers:
+    - traversaro
