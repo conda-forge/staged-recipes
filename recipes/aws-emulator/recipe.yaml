@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "1.0.322"
+
+package:
+  name: aws-emulator
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aws/aws-emulator/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 1ce66d941f3ccf6adfc1dd247cc23132a0002bdaf48b13eba46b94c39949d362
+
+build:
+  number: 0
+  # Upstream only supports building from source on Linux; the Lambda service uses
+  # Linux-only `RUSAGE_THREAD`.
+  skip: not linux
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      # Stamp the release version, otherwise `--version` reports `0.1.0-dev`.
+      EMULATOR_VERSION: ${{ version }}
+    content:
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path core/router
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - aws-emulator --help
+      - aws-emulator --version | grep "${{ version }}"
+  - package_contents:
+      bin:
+        - aws-emulator
+      strict: true
+
+about:
+  homepage: https://docs.aws.amazon.com/emulator/latest/userguide/what-is-service.html
+  summary: A local emulator of the AWS APIs
+  description: |
+    AWS Emulator is a local emulator of the AWS APIs. Use it to test your
+    software without calling AWS, on your own machine, on a development
+    server, or in continuous integration. It serves an AWS API endpoint that
+    the AWS CLI and AWS SDKs can be pointed at.
+  license: CC0-1.0 AND Apache-2.0
+  license_file:
+    - LICENSE
+    - vendor/LICENSE
+    - vendor/NOTICE
+    - THIRDPARTY.yml
+  documentation: https://docs.aws.amazon.com/emulator/latest/userguide/what-is-service.html
+  repository: https://github.com/aws/aws-emulator
+
+extra:
+  recipe-maintainers:
+    - pavelzw
+    - xhochy
