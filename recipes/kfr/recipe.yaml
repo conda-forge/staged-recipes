@@ -1,0 +1,92 @@
+schema_version: 1
+
+context:
+  version: "7.2.0"
+
+package:
+  name: kfr
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kfrlib/kfr/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 4f1603d5b6e609c25d25cff58fe7154a371583fd6d379615b342e44223be0763
+  patches:
+    # upstream links libstdc++ and libgcc statically into the C API library
+    - 0001-capi-link-the-C-runtime-dynamically.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - libboost-headers
+  run_exports:
+    - ${{ pin_subpackage('kfr', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - kfr/kfr.h
+        - kfr/capi.h
+      lib:
+        - kfr_capi
+      files:
+        - lib/cmake/kfr/KFRConfig.cmake
+        - lib/libkfr_dft.a
+        - lib/libkfr_dsp.a
+        - lib/libkfr_io.a
+        - lib/libkfr_audio.a
+  - script:
+      - cmake -S test -B build-test -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build-test
+      - if: build_platform == target_platform
+        then:
+          - ./build-test/test_kfr
+          - ./build-test/test_capi
+    files:
+      recipe:
+        - test/
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+
+about:
+  homepage: https://www.kfrlib.com
+  summary: Fast, modern C++ DSP framework (FFT, sample rate conversion, FIR/IIR/biquad filters) with runtime SIMD dispatch
+  description: |
+    KFR is a C++20 DSP framework providing optimized building blocks for
+    audio, scientific and other signal processing applications: FFT/DFT/DCT,
+    convolution, FIR and IIR filter design and processing, biquads, sample
+    rate conversion, window functions, oscillators, EBU R128 loudness and
+    audio file reading and writing (WAV, W64, AIFF, CAF, MP3 decoding).
+
+    On x86-64 the DFT and DSP libraries are built for several instruction
+    sets (SSE2/SSE4.1 up to AVX-512) and the best one is selected at runtime.
+    The C++ libraries are static, as upstream only supports static linking
+    for them; the C API is provided as the shared library `kfr_capi`.
+
+    KFR is dual licensed: GPL-2.0-or-later, or a commercial license from the
+    authors. This package is distributed under GPL-2.0-or-later.
+  license: GPL-2.0-or-later
+  license_file:
+    - LICENSE.txt
+    - include/kfr/thirdparty/expected/LICENSE
+    - include/kfr/thirdparty/catch/LICENSE.txt
+  documentation: https://www.kfrlib.com/docs/latest/
+  repository: https://github.com/kfrlib/kfr
+
+extra:
+  recipe-maintainers:
+    - meiyasan
