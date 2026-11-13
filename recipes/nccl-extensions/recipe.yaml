@@ -14,6 +14,7 @@ source:
   sha256: ea297c92e11c88817a17ea019d372f5e10484c6408c85055738bcf944090cd97
   patches:
     - shared-libraries.patch
+    - split-m2n-cmake-exports.patch
 
 build:
   number: 0
@@ -129,14 +130,14 @@ outputs:
       files:
         # M2N has no runtime JIT; its C header is needed only by consumers.
         - include/nccl_m2n.h
-        - lib/cmake/NCCLM2N/**
+        - lib/cmake/NCCLM2N/NCCLM2NConfig*.cmake
+        - lib/cmake/NCCLM2N/NCCLM2NTargets*.cmake
     requirements:
       run:
         - ${{ pin_subpackage('libnccl-m2n', exact=True) }}
         - nccl
         - cuda-cudart-dev
         - cuda-driver-dev
-        - ${{ pin_subpackage('libnccl-m2n-static', exact=True) }}
       run_exports:
         - ${{ pin_subpackage('libnccl-m2n', upper_bound='x.x') }}
     tests:
@@ -157,12 +158,22 @@ outputs:
     build:
       files:
         - lib/libnccl_m2n.a
+        - lib/cmake/NCCLM2N/NCCLM2NStaticTargets*.cmake
     requirements:
       run:
         - ${{ pin_subpackage('libnccl-m2n-devel', exact=True) }}
     tests:
       - script:
           - test -f "$PREFIX/lib/libnccl_m2n.a"
+          - test -f "$PREFIX/include/nccl_m2n.h"
+      - script: bash test-cmake.sh --static
+        requirements:
+          run:
+            - cmake
+            - ninja
+            - cuda-nvcc
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
 
   - package:
       name: nccl-extensions
