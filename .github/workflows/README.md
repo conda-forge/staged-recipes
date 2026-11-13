@@ -15,7 +15,7 @@ sequenceDiagram
     User->>issue: Adds any comment
     activate GitHub actions
     alt is PR AND no review-requested label exists
-        loop Over ['@conda-forge/staged-recipes', '@conda-forge/help-python', '@conda-forge/help-python-c', '@conda-forge/help-r', '@conda-forge/help-java', '@conda-forge/help-nodejs', '@conda-forge/help-c-cpp', '@conda-forge/help-perl', '@conda-forge/help-julia', '@conda-forge/help-ruby']
+        loop Over ['@conda-forge/staged-recipes', '@conda-forge/help-python', '@conda-forge/help-python-c' '@conda-forge/help-python-rust', '@conda-forge/help-r', '@conda-forge/help-java', '@conda-forge/help-nodejs', '@conda-forge/help-c-cpp', '@conda-forge/help-perl', '@conda-forge/help-julia', '@conda-forge/help-ruby']
             alt team is in comment
                 GitHub actions->>issue: Adds review-requested label
                 GitHub actions->>issue: Adds team label
