@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  name: qcustomplot
+  version: 2.1.1
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://www.qcustomplot.com/release/${{ version }}/QCustomPlot-source.tar.gz
+  sha256: 5e2d22dec779db8f01f357cbdb25e54fbcf971adaee75eae8d7ad2444487182f
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then: cp ${RECIPE_DIR}/CMakeLists.txt .
+      else: copy %RECIPE_DIR%\CMakeLists.txt .
+    - cmake ${CMAKE_ARGS} -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{ PREFIX if unix else LIBRARY_PREFIX }}
+    - cmake --build build
+    - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - qt6-main
+    - if: linux
+      then: libgl-devel
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - qcustomplot.h
+      lib:
+        - qcustomplot
+      files:
+        - if: unix
+          then: lib/cmake/qcustomplot/qcustomplot-config.cmake
+          else: Library/lib/cmake/qcustomplot/qcustomplot-config.cmake
+  - script:
+      # Release: on Windows a Debug build would use the debug C++ runtime
+      - cmake -G Ninja -S test -B build -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - if: unix
+        then:
+          - export QT_QPA_PLATFORM=offscreen
+          - ./build/plot
+          - test -s plot.png
+        else:
+          - set QT_QPA_PLATFORM=offscreen
+          - build\plot.exe
+          - if not exist plot.png exit 1
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - qt6-main
+        - if: linux
+          then: libgl-devel
+    files:
+      recipe:
+        - test/
+
+about:
+  homepage: https://www.qcustomplot.com
+  summary: Qt C++ widget for plotting and data visualization
+  description: |
+    QCustomPlot is a Qt widget for 2D plots and graphs with high-quality
+    export to PDF, PNG and other formats. This package builds it for Qt 6 as
+    a shared library with a CMake package (find_package(qcustomplot), target
+    qcustomplot::qcustomplot).
+  license: GPL-3.0-or-later
+  license_file: GPL.txt
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer

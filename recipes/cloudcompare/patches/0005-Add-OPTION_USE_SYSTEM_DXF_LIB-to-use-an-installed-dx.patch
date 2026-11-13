@@ -1,0 +1,42 @@
+From 41be85193e5b79649371255d5ca5ddc48309b0de Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Fri, 30 Oct 2026 21:29:00 +1000
+Subject: [PATCH 5/7] Add OPTION_USE_SYSTEM_DXF_LIB to use an installed dxflib
+
+find_package(dxflib) instead of the bundled extern/dxflib; off by default.
+The installed dxflib must have the file name overloads of the bundled copy
+(std::string for DL_Dxf::out, std::wstring for in/out with MSVC), so that
+DxfFilter.cpp is the same for both.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ libs/qCC_io/CMakeLists.txt | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/libs/qCC_io/CMakeLists.txt b/libs/qCC_io/CMakeLists.txt
+index afd11b56..6ce0359b 100644
+--- a/libs/qCC_io/CMakeLists.txt
++++ b/libs/qCC_io/CMakeLists.txt
+@@ -9,10 +9,19 @@ add_subdirectory( src )
+ add_subdirectory( ui )
+ 
+ option( OPTION_USE_DXF_LIB "Build with Ribbonsoft's DXF Lib (AutoCAD DXF files support)" ON )
++option( OPTION_USE_SYSTEM_DXF_LIB "Use an installed dxflib (CMake package) instead of the bundled copy" OFF )
+ if( ${OPTION_USE_DXF_LIB} )
+-	set( DXF_LIB_DIR "extern/dxflib" CACHE PATH "DXF lib path" )
+-	add_subdirectory( "${DXF_LIB_DIR}" )
+-	target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib )
++	if( ${OPTION_USE_SYSTEM_DXF_LIB} )
++		# the installed dxflib must have the file name overloads of the bundled copy
++		# (std::string for DL_Dxf::out, std::wstring for in/out with MSVC)
++		find_package( dxflib 3.26 CONFIG REQUIRED )
++		target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib::dxflib )
++		target_compile_definitions( ${PROJECT_NAME} PRIVATE CC_DXF_SUPPORT )
++	else()
++		set( DXF_LIB_DIR "extern/dxflib" CACHE PATH "DXF lib path" )
++		add_subdirectory( "${DXF_LIB_DIR}" )
++		target_link_libraries( ${PROJECT_NAME} PRIVATE dxflib )
++	endif()
+ endif()
+ 
+ option( OPTION_USE_SHAPE_LIB "Build with ShapeLib (SHP files support)" ON )
