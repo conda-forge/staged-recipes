@@ -1,0 +1,152 @@
+From 8b587832880ef3f23376209161846a1d78db0539 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Mon, 2 Nov 2026 20:52:32 +1000
+Subject: [PATCH 2/5] Load optional heavy dependencies on first use
+
+TagLab imported ultralytics, qhoptim and the CoralNet web stack
+(selenium, webdriver-manager, beautifulsoup4, requests) at start-up, so it
+did not start unless all of them were installed, although each serves one
+optional feature:
+
+- ultralytics (AGPL-3.0): YOLO training only
+- qhoptim (PyPI only): the QHAdam optimizer of the DeepLab training only
+- selenium, webdriver-manager, bs4, requests: the CoralNet Toolbox only
+
+They are now loaded when the feature is first used. genutils.requirePackage()
+imports a package and raises MissingDependency with an install hint if it
+is absent; the Train dialog checks ultralytics/qhoptim before it starts and
+the CoralNet Toolbox menu entry checks its packages before opening, and
+both show the message in a dialog instead of failing at start-up or
+half-way through a run.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ TagLab.py             | 19 ++++++++++++++++++-
+ models/trainYolo11.py |  5 ++++-
+ models/training.py    |  8 +++++++-
+ source/genutils.py    | 19 +++++++++++++++++++
+ 4 files changed, 48 insertions(+), 3 deletions(-)
+
+diff --git a/TagLab.py b/TagLab.py
+index 609f418..3cd4341 100644
+--- a/TagLab.py
++++ b/TagLab.py
+@@ -109,7 +109,6 @@ from source.QtPanelInfo import QtPanelInfo
+ from source.Sampler import Sampler
+ 
+ from source.QtImportViscoreWidget import QtImportViscoreWidget
+-from source.QtCoralNetToolboxWidget import QtCoralNetToolboxWidget
+ from source.QtExportCoralNetDataWidget import QtExportCoralNetDataWidget
+ 
+ from source import genutils
+@@ -5930,6 +5929,17 @@ class TagLab(QMainWindow):
+ 
+         self.trainYourNetworkWidget.yoloLog.clear()
+ 
++        # check the optional packages the chosen training needs before starting
++        try:
++            if self.trainYourNetworkWidget.modelStack.currentIndex() == 2:
++                genutils.requirePackage("ultralytics", "YOLO training")
++            elif self.trainYourNetworkWidget.modelStack.currentIndex() == 1 and \
++                    self.trainYourNetworkWidget.getOptimizer().upper() == "QHADAM":
++                genutils.requirePackage("qhoptim", "The QHAdam optimizer")
++        except genutils.MissingDependency as e:
++            QMessageBox.warning(self, "Missing package", str(e))
++            return
++
+         # DeepLab
+         if self.trainYourNetworkWidget.modelStack.currentIndex() == 1:
+             self.trainNewNetwork()
+@@ -6110,8 +6120,15 @@ class TagLab(QMainWindow):
+         Opens the CoralNetToolbox Widget in a new window.
+         """
+         try:
++            # the CoralNet web tools need these packages; they are loaded here so that TagLab starts without them
++            for module_name, pip_name in (("requests", "requests"), ("bs4", "beautifulsoup4"),
++                                          ("selenium", "selenium"), ("webdriver_manager", "webdriver-manager")):
++                genutils.requirePackage(module_name, "The CoralNet Toolbox", pip_name)
++            from source.QtCoralNetToolboxWidget import QtCoralNetToolboxWidget
+             self.coralNetToolbox = QtCoralNetToolboxWidget(self)
+             self.coralNetToolbox.show()
++        except genutils.MissingDependency as e:
++            QMessageBox.warning(self, "Missing package", str(e))
+         except Exception as e:
+             print(f"{e}")
+ 
+diff --git a/models/trainYolo11.py b/models/trainYolo11.py
+index 1127c0c..78066b9 100644
+--- a/models/trainYolo11.py
++++ b/models/trainYolo11.py
+@@ -1,5 +1,5 @@
+ 
+-from ultralytics import YOLO
++from source.genutils import requirePackage
+ import yaml
+ import os
+ import sys
+@@ -53,6 +53,9 @@ def clearYoloCache(dataset_yaml):
+ 
+ def trainYOLOSeg(params,log_callback=None):
+ 
++    # ultralytics (AGPL-3.0) is optional and only needed here, so it is loaded when first used
++    YOLO = requirePackage("ultralytics", "YOLO training").YOLO
++
+ 
+ 
+     dataset_yaml = params["dataset_yaml"]
+diff --git a/models/training.py b/models/training.py
+index 6e17983..7d9b879 100644
+--- a/models/training.py
++++ b/models/training.py
+@@ -12,7 +12,13 @@ from sklearn.metrics import confusion_matrix
+ from models.coral_dataset import CoralsDataset
+ import models.losses as losses
+ from PySide6.QtWidgets import QApplication
+-from qhoptim.pyt import QHAdam
++from source.genutils import requirePackage
++
++
++def QHAdam(*args, **kwargs):
++    # qhoptim is only needed by the QHAdam optimizer, so it is loaded when first used
++    return requirePackage("qhoptim.pyt", "The QHAdam optimizer", "qhoptim").QHAdam(*args, **kwargs)
++
+ 
+ # SEED
+ torch.manual_seed(997)
+diff --git a/source/genutils.py b/source/genutils.py
+index 3c56abc..687e458 100644
+--- a/source/genutils.py
++++ b/source/genutils.py
+@@ -20,6 +20,7 @@
+ # THIS FILE CONTAINS UTILITY FUNCTIONS, E.G. CONVERSION BETWEEN DATA TYPES, BASIC OPERATIONS, ETC.
+ 
+ import io
++import importlib
+ from PySide6.QtCore import Qt, QObject, QMetaObject, QMetaMethod
+ from PySide6.QtGui import QImage, QPixmap, qRgb, qRgba
+ import numpy as np
+@@ -642,3 +643,21 @@ def getLabelNamesByColor(labels_dict, color):
+             label_names.append(key)
+ 
+     return label_names
++
++
++class MissingDependency(ImportError):
++    """ Raised when a tool needs an optional Python package that is not installed. """
++    pass
++
++
++def requirePackage(module_name, feature, pip_name=None):
++    """
++    Imports an optional package the first time a feature needs it, so that TagLab starts without it.
++    Raises MissingDependency with a message that says what to install if the package is missing.
++    """
++    try:
++        return importlib.import_module(module_name)
++    except ImportError as e:
++        pip_name = pip_name if pip_name is not None else module_name.split(".")[0]
++        raise MissingDependency(feature + " needs the Python package '" + pip_name + "', which is not installed.\n\n"
++                                "Install it with:  pip install " + pip_name) from e
+-- 
+2.53.0
+

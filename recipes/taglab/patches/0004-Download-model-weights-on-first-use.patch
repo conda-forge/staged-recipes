@@ -1,0 +1,406 @@
+From 5fb5539d44f28c5a3b6b5068ff9a0c4689984527 Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Mon, 2 Nov 2026 21:00:25 +1000
+Subject: [PATCH 4/5] Download model weights on first use
+
+The weights (about 4 GB in total, SAM alone 2.5 GB) were only fetched by
+install.py. A missing file made a tool fail with a bare exception, or,
+for SAM, silently removed the SAM buttons.
+
+source/ModelWeights.py adds ensureModel(name): if the file is not in the
+models folder it asks, then downloads it from taglab.isti.cnr.it/models
+(the URLs install.py uses) with a Qt progress dialog that can be cancelled.
+The file is written as *.part and renamed when complete, so an interrupted
+download is never mistaken for a finished one. It returns None when the
+user declines, cancels or the download fails (the user has been told),
+and the tools just stop.
+
+Used by the 4-clicks (DEXTR), RITM, SAM and interactive SAM tools, the
+automatic classifiers (*.net) and the base network of the DeepLab
+training. SAM is now offered whenever segment_anything is installed,
+instead of only when the weights were already present, so the download
+can be offered where the user needs it. Also restores the wait cursor
+when RITM cannot load its network.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ README.md                      |   2 +
+ TagLab.py                      |   9 +++
+ models/training.py             |  12 +++-
+ source/ModelWeights.py         | 111 +++++++++++++++++++++++++++++++++
+ source/Tools.py                |  12 +---
+ source/tools/FourClicks.py     |  20 +++---
+ source/tools/Ritm.py           |   7 ++-
+ source/tools/SAMInteractive.py |   8 +++
+ source/tools/Sam.py            |   9 ++-
+ 9 files changed, 167 insertions(+), 23 deletions(-)
+ create mode 100644 source/ModelWeights.py
+
+diff --git a/README.md b/README.md
+index 44065f3..0f2f2cd 100644
+--- a/README.md
++++ b/README.md
+@@ -45,6 +45,8 @@ See the instructions on the [wiki](https://github.com/cnr-isti-vclab/TagLab/wiki
+ The user interface uses Qt 6 through PySide6 (`pip install pyside6`) instead of PyQt5. If you update an existing
+ installation, re-run `install.py` (or `pip install pyside6`) and you can remove `pyqt5`.
+ 
++Network weights that are missing from the `models` folder are downloaded (after asking) the first time a tool needs them.
++
+ ## Updating TagLab
+ 
+ If you already installed TagLab and you need to update to a new version, you can just run the `update.py` script from 
+diff --git a/TagLab.py b/TagLab.py
+index 120a3da..8f7ae97 100644
+--- a/TagLab.py
++++ b/TagLab.py
+@@ -112,6 +112,7 @@ from source.QtImportViscoreWidget import QtImportViscoreWidget
+ from source.QtExportCoralNetDataWidget import QtExportCoralNetDataWidget
+ 
+ from source import genutils
++from source.ModelWeights import ensureModel
+ from source.Blob import Blob
+ from source.Shape import Layer, Shape
+ 
+@@ -6360,6 +6361,10 @@ class TagLab(QMainWindow):
+                     msgBox.exec()
+                     return
+ 
++            # download the weights of the classifier if they are missing
++            if ensureModel(classifier_selected['Weights'], self) is None:
++                return
++
+             # free GPU memory
+             self.resetNetworks()
+             self.setupProgressBar()
+@@ -6436,6 +6441,10 @@ class TagLab(QMainWindow):
+                     msgBox.exec()
+                     return
+ 
++            # download the weights of the classifier if they are missing
++            if ensureModel(classifier_selected['Weights'], self) is None:
++                return
++
+             # free GPU memory
+             self.resetNetworks()
+ 
+diff --git a/models/training.py b/models/training.py
+index a7b1088..958149d 100644
+--- a/models/training.py
++++ b/models/training.py
+@@ -12,7 +12,8 @@ from sklearn.metrics import confusion_matrix
+ from models.coral_dataset import CoralsDataset
+ import models.losses as losses
+ from PySide6.QtWidgets import QApplication
+-from source.genutils import requirePackage, taglabPath
++from source.genutils import requirePackage
++from source.ModelWeights import ensureModel
+ 
+ 
+ def QHAdam(*args, **kwargs):
+@@ -322,10 +323,15 @@ def trainingNetwork(images_folder_train, labels_folder_train, images_folder_val,
+     # num_classes parmeters adapt the num classes to the new dictionary
+     net = DeepLab(backbone='resnet', output_stride=16, num_classes=output_classes)
+ 
++    # the base network is downloaded when missing
++    base_network = ensureModel("deeplab-resnet.pth.tar")
++    if base_network is None:
++        raise Exception("The base network deeplab-resnet.pth.tar is not available, the training cannot start.")
++
+     if torch.cuda.is_available():
+-        state = torch.load(taglabPath("models", "deeplab-resnet.pth.tar"), weights_only=False, map_location=torch.device("cuda"))
++        state = torch.load(base_network, weights_only=False, map_location=torch.device("cuda"))
+     else:
+-        state = torch.load(taglabPath("models", "deeplab-resnet.pth.tar"), weights_only=False, map_location=torch.device("cpu"))
++        state = torch.load(base_network, weights_only=False, map_location=torch.device("cpu"))
+ 
+     # RE-INIZIALIZE THE CLASSIFICATION LAYER WITH THE RIGHT NUMBER OF CLASSES, DON'T LOAD WEIGHTS OF THE CLASSIFICATION LAYER
+     new_dictionary = state['state_dict']
+diff --git a/source/ModelWeights.py b/source/ModelWeights.py
+new file mode 100644
+index 0000000..1eb3493
+--- /dev/null
++++ b/source/ModelWeights.py
+@@ -0,0 +1,111 @@
++# TagLab
++# Network weights are not part of the repository: they are downloaded from the TagLab web site the first time
++# a tool needs them (the same files that install.py downloads).
++
++import os
++import urllib.request
++
++from PySide6.QtCore import Qt
++from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog
++
++from source.genutils import taglabPath
++
++MODELS_URL = "http://taglab.isti.cnr.it/models/"
++
++# the weights that can be downloaded and their approximate size in MB
++MODEL_SIZES_MB = {
++    "dextr_corals.pth": 196,
++    "deeplab-resnet.pth.tar": 475,
++    "ritm_corals.pth": 41,
++    "pocillopora.net": 238,
++    "porites.net": 238,
++    "pocillopora_porite_montipora.net": 238,
++    "sam_vit_h_4b8939.pth": 2560,
++}
++
++
++def downloadFile(url, filename, progress=None):
++    """
++    Downloads url to filename (through a .part file, so that an interrupted download is never mistaken
++    for a complete one). progress(read_bytes, total_bytes) may return False to cancel. Returns True if completed.
++    """
++
++    request = urllib.request.Request(url, headers={"User-agent": "Mozilla/5.0"})
++    part = filename + ".part"
++    try:
++        cancelled = False
++        with urllib.request.urlopen(request) as response, open(part, "wb") as out:
++            total = int(response.headers.get("Content-Length", 0))
++            read = 0
++            while True:
++                chunk = response.read(1 << 20)
++                if not chunk:
++                    break
++                out.write(chunk)
++                read += len(chunk)
++                if progress is not None and progress(read, total) is False:
++                    cancelled = True
++                    break
++        if not cancelled and (total == 0 or read == total):
++            os.replace(part, filename)
++            return True
++    except Exception:
++        pass
++    if os.path.exists(part):
++        os.remove(part)
++    return False
++
++
++def ensureModel(name, parent=None):
++    """
++    Returns the path of the weights file `name` in the models folder. If it is missing, asks the user and downloads
++    it (with a progress dialog). Returns None if the file is not available (declined, cancelled or download failed);
++    in that case the user has already been told, so the caller only has to give up.
++    """
++
++    path = taglabPath("models", name)
++    if os.path.exists(path):
++        return path
++
++    if name not in MODEL_SIZES_MB:
++        QMessageBox.warning(parent, "Model not found", "The model file " + name + " is not in the models folder.")
++        return None
++
++    size = MODEL_SIZES_MB[name]
++    reply = QMessageBox.question(parent, "Download model",
++                                 "The network weights " + name + " (about " + str(size) + " MB) are needed by this tool "
++                                 "and are not installed.\n\nDownload them now from " + MODELS_URL + " ?",
++                                 QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
++    if reply != QMessageBox.Yes:
++        return None
++
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++
++    dialog = QProgressDialog("Downloading " + name + "...", "Cancel", 0, size, parent)
++    dialog.setWindowTitle("Downloading model")
++    dialog.setWindowModality(Qt.WindowModal)
++    dialog.setMinimumDuration(0)
++    dialog.setValue(0)
++
++    cancelled = []
++    dialog.canceled.connect(lambda: cancelled.append(True))
++
++    def progress(read, total):
++        if total > 0:
++            dialog.setMaximum(max(1, total // (1 << 20)))
++        dialog.setValue(min(read // (1 << 20), dialog.maximum() - 1))
++        QApplication.processEvents()
++        return not cancelled
++
++    ok = downloadFile(MODELS_URL + name, path, progress)
++    dialog.canceled.disconnect()
++    dialog.close()
++
++    if not ok:
++        if not cancelled:
++            QMessageBox.warning(parent, "Download failed",
++                                "Could not download " + name + ".\nCheck the internet connection, or download\n" +
++                                MODELS_URL + name + "\nand copy it into the folder " + os.path.dirname(path))
++        return None
++
++    return path
+diff --git a/source/Tools.py b/source/Tools.py
+index a49e578..e717da3 100644
+--- a/source/Tools.py
++++ b/source/Tools.py
+@@ -50,15 +50,9 @@ class Tools(QObject):
+         self.CROSS_LINE_WIDTH = 2
+         self.extreme_pick_style = {'width': self.CROSS_LINE_WIDTH, 'color': Qt.red,  'size': 6}
+ 
+-        self.SAM_is_available = False
+-        if importlib.util.find_spec("segment_anything"):
+-
+-            modelName = "sam_vit_h_4b8939"
+-            models_dir = os.path.join(self.viewerplus.taglab_dir, "models")
+-            path = os.path.join(models_dir, modelName + '.pth')
+-
+-            if os.path.exists(path):
+-                self.SAM_is_available = True
++        # SAM is available when the package is installed; the weights (2.5 GB) are downloaded, after asking,
++        # the first time a SAM tool needs them (see ModelWeights.ensureModel)
++        self.SAM_is_available = importlib.util.find_spec("segment_anything") is not None
+ 
+         # DATA FOR THE CREATECRACK TOOL
+         self.crackWidget = None
+diff --git a/source/tools/FourClicks.py b/source/tools/FourClicks.py
+index f65ac01..3322337 100644
+--- a/source/tools/FourClicks.py
++++ b/source/tools/FourClicks.py
+@@ -22,7 +22,7 @@ from models.dataloaders import helpers as helpers
+ from collections import OrderedDict
+ 
+ import time
+-from source.genutils import taglabPath
++from source.ModelWeights import ensureModel
+ 
+ class FourClicks(Tool):
+     def __init__(self, viewerplus, pick_points):
+@@ -109,7 +109,9 @@ class FourClicks(Tool):
+         self.log.emit("[TOOL][DEEPEXTREME] Segmentation begins..")
+ 
+         # load network if necessary
+-        self.loadNetwork()
++        if not self.loadNetwork():
++            QApplication.restoreOverrideCursor()
++            return
+ 
+         pad = 50
+         thres = 0.8
+@@ -181,20 +183,22 @@ class FourClicks(Tool):
+ 
+     def loadNetwork(self):
+ 
+-        models_dir = taglabPath("models")
+-
+         if self.deepextreme_net is None:
+ 
+-            self.infoMessage.emit("Loading deepextreme network..")
+-
+             # Initialization
+             modelName = 'dextr_corals'
++            model_path = ensureModel(modelName + '.pth', self.viewerplus)
++            if model_path is None:
++                self.infoMessage.emit("Deepextreme network not available.")
++                return False
++
++            self.infoMessage.emit("Loading deepextreme network..")
+ 
+             #  Create the network and load the weights
+             self.deepextreme_net = resnet.resnet101(1, nInputChannels=4, classifier='psp')
+ 
+             # dictionary layers' names - weights
+-            state_dict_checkpoint = torch.load(os.path.join(models_dir, modelName + '.pth'),
++            state_dict_checkpoint = torch.load(model_path,
+                                                map_location=lambda storage, loc: storage)
+ 
+             # Remove the prefix .module from the model when it is trained using DataParallel
+@@ -217,6 +221,8 @@ class FourClicks(Tool):
+                 self.deepextreme_net.to(device)
+                 self.device = device
+ 
++        return True
++
+     def resetNetwork(self):
+         try:
+             torch.cuda.empty_cache()
+diff --git a/source/tools/Ritm.py b/source/tools/Ritm.py
+index 9aa23c2..0a07ce5 100644
+--- a/source/tools/Ritm.py
++++ b/source/tools/Ritm.py
+@@ -5,6 +5,7 @@ from PySide6.QtGui import QPen, QBrush
+ from source.tools.Tool import Tool
+ from source.Mask import paintMask, jointBox, jointMask, replaceMask, checkIntersection, intersectMask
+ from source.genutils import qimageToNumpyArray
++from source.ModelWeights import ensureModel
+ from source.genutils import cropQImage, maskToQImage, floatmapToQImage
+ 
+ import os
+@@ -227,6 +228,7 @@ class Ritm(Tool):
+ 
+         QApplication.setOverrideCursor(Qt.WaitCursor)
+         if not self.loadNetwork():
++            QApplication.restoreOverrideCursor()
+             return
+ 
+         QApplication.restoreOverrideCursor()
+@@ -313,7 +315,10 @@ class Ritm(Tool):
+             self.infoMessage.emit("Loading RITM network..")
+ 
+             model_name = 'ritm_corals.pth'
+-            model_path = os.path.join(os.path.join(self.viewerplus.taglab_dir, "models"), model_name)
++            model_path = ensureModel(model_name, self.viewerplus)
++            if model_path is None:
++                self.infoMessage.emit("RITM network not available.")
++                return False
+ 
+             if not torch.cuda.is_available():
+                 print("CUDA NOT AVAILABLE!")
+diff --git a/source/tools/SAMInteractive.py b/source/tools/SAMInteractive.py
+index 776e981..af4a86e 100644
+--- a/source/tools/SAMInteractive.py
++++ b/source/tools/SAMInteractive.py
+@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt
+ from PySide6.QtWidgets import QApplication, QMessageBox
+ from PySide6.QtGui import QPen, QBrush, QColor, QPainterPath
+ from source.genutils import qimageToNumpyArray, cropQImage
++from source.ModelWeights import ensureModel, MODEL_SIZES_MB
+ 
+ from source.Blob import Blob
+ from source.tools.Tool import Tool
+@@ -649,6 +650,13 @@ class SAMInteractive(Tool):
+             models_dir = os.path.join(self.viewerplus.taglab_dir, "models")
+             path = os.path.join(models_dir, modelName + '.pth')
+ 
++            # the vit_h weights can be downloaded from the TagLab web site if they are missing
++            if not os.path.exists(path) and modelName + '.pth' in MODEL_SIZES_MB:
++                path = ensureModel(modelName + '.pth', self.viewerplus)
++                if path is None:
++                    self.viewerplus.resetTools()
++                    return False
++
+             if not os.path.exists(path):
+ 
+                 # Create a box with a warning
+diff --git a/source/tools/Sam.py b/source/tools/Sam.py
+index d6f938c..04f3856 100644
+--- a/source/tools/Sam.py
++++ b/source/tools/Sam.py
+@@ -7,7 +7,8 @@ import os
+ from skimage import measure
+ from PySide6.QtCore import Qt, Signal
+ from source.Mask import paintMask, jointBox, jointMask, replaceMask, checkIntersection, intersectMask
+-from source.genutils import qimageToNumpyArray, cropQImage, taglabPath
++from source.genutils import qimageToNumpyArray, cropQImage
++from source.ModelWeights import ensureModel
+ from PySide6.QtWidgets import QApplication, QMessageBox
+ from PySide6.QtGui import QPen, QBrush
+ from source import genutils
+@@ -244,8 +245,10 @@ class Sam(Tool):
+             sam_checkpoint = "sam_vit_h_4b8939.pth"
+             model_type = "vit_h"
+ 
+-            models_dir = taglabPath("models")
+-            network_name = os.path.join(models_dir, sam_checkpoint)
++            network_name = ensureModel(sam_checkpoint, self.viewerplus)
++            if network_name is None:
++                self.infoMessage.emit("SAM network not available.")
++                return False
+ 
+             if not torch.cuda.is_available():
+                 print("CUDA NOT AVAILABLE! Using CPU.")
+-- 
+2.53.0
+
