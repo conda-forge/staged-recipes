@@ -1,0 +1,81 @@
+context:
+  version: "2.1.1"
+
+package:
+  name: r-gputools
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/nullsatz/gputools/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4be05b3b4f6743f08d095db2aa6e8e5fedffcdbee6abee6526fa78b9822bbc08
+  # the package's licence is R's shared GPL-3; the text, for the package
+  - url: https://www.gnu.org/licenses/gpl-3.0.txt
+    sha256: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+    file_name: LICENSE
+
+build:
+  number: 0
+  # the GPU code is CUDA: Linux only, and no CPU-only variant (the package
+  # would install but every GPU function would refuse to run)
+  skip:
+    - not linux
+    - cuda_compiler_version == "None"
+  string: cuda${{ cuda_compiler_version | replace('.', '') }}_h${{ hash }}_${{ build_number }}
+  script: build.sh
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    # nothing is compiled with nvcc (the kernels compile at run time
+    # through NVRTC); the CUDA compiler entry selects the toolkit version
+    - ${{ compiler('cuda') }}
+    - make
+  host:
+    - r-base
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - libcublas-dev
+    - libcusolver-dev
+  run:
+    - r-base
+    # no __cuda: the package installs and loads on machines without a GPU
+    # (login nodes, build servers), and gpuAvailable() says whether the GPU
+    # functions can run; the CUDA runtime libraries come from the -dev
+    # packages' run exports
+
+tests:
+  - script:
+      # the build machine has no GPU: the package must load, say so through
+      # gpuAvailable(), and be the CUDA build (not the no-CUDA fallback)
+      - Rscript -e "library(gputools); ok <- gpuAvailable(); stopifnot(is.logical(ok)); reason <- attr(ok, 'reason'); if (!is.null(reason)) { cat(reason, '\n'); stopifnot(!grepl('CUDA toolkit|no CUDA support', reason)) }"
+      - Rscript -e "stopifnot(all(c('gpuCor', 'gpuGranger', 'gpuMi', 'gpuCorPairs', 'gpuRowTtest') %in% getNamespaceExports('gputools')))"
+
+about:
+  homepage: https://nullsatz.github.io/gputools/
+  summary: GPU drop-ins for base R statistics on wide data (CUDA)
+  description: |
+    GPU versions of base R statistics for data with many variables, on
+    NVIDIA GPUs: correlation matrices (Pearson, Spearman, Kendall) and
+    their tests, the strongly correlated pairs among tens of thousands of
+    variables without forming the matrix, association scans with
+    covariates (eQTL studies), permutation tests with Westfall-Young maxT
+    adjustment, distance matrices, hierarchical and k-means clustering,
+    Granger causality tests, B-spline mutual information, principal
+    components and least-squares fits. Results agree with the base R
+    functions they replace. The package installs and loads without a GPU;
+    gpuAvailable() says whether the GPU functions can run.
+  license: GPL-3.0-only
+  license_file: LICENSE
+  documentation: https://nullsatz.github.io/gputools/
+  repository: https://github.com/nullsatz/gputools
+
+extra:
+  recipe-maintainers:
+    - nullsatz
