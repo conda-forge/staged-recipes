@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  name: pleaseai-ask
+  version: "0.4.9"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pleaseai/ask/archive/refs/tags/ask-v${{ version }}.tar.gz
+  sha256: 49778c386ba78c9b2ef22249593d32d2f3f204258a55f9f0a0a364de2d2ad5f1
+
+build:
+  number: 0
+  # not noarch: npm's node_modules/.bin symlinks can't be shipped in noarch packages on Windows
+  script:
+    env:
+      # don't let pnpm self-download a pinned package-manager version (as in podman-desktop)
+      npm_config_manage_package_manager_versions: "false"
+      COREPACK_ENABLE_AUTO_PIN: "0"
+    content:
+      - node ${{ RECIPE_DIR }}/use_published_schema.js .
+      - if: unix
+        then:
+          - cd packages/cli
+          - pnpm install --ignore-scripts
+          - pnpm exec tsc -p tsconfig.json
+          - pnpm-licenses generate-disclaimer --prod --output-file=${{ SRC_DIR }}/third-party-licenses.txt
+          - npm pack --ignore-scripts
+          - npm install --global --ignore-scripts pleaseai-ask-${{ version }}.tgz
+        else:
+          - cd packages\cli
+          # pnpm/npm are .cmd wrappers on Windows; `call` keeps the batch script running
+          - call pnpm install --ignore-scripts
+          - call pnpm exec tsc -p tsconfig.json
+          - call pnpm-licenses generate-disclaimer --prod --output-file=%SRC_DIR%\third-party-licenses.txt
+          - call npm pack --ignore-scripts
+          - call npm install --global --ignore-scripts pleaseai-ask-${{ version }}.tgz
+
+requirements:
+  build:
+    - nodejs >=22
+    - pnpm
+    - pnpm-licenses
+  run:
+    - nodejs >=22
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - ask --version
+          - ask --help
+        else:
+          # ask is a .cmd wrapper on Windows; `call` keeps the test script running
+          - call ask --version
+          - call ask --help
+
+about:
+  homepage: https://github.com/pleaseai/ask
+  repository: https://github.com/pleaseai/ask
+  summary: Agent Skills Kit - version-specific library docs for AI coding agents
+  description: |
+    ASK (Agent Skills Kit) downloads version-specific library documentation for AI
+    coding agents. Declare libraries in ask.json; `ask install` resolves versions from
+    your lockfile and generates AGENTS.md and Claude Code SKILL.md files that point
+    agents at the docs via `ask src` / `ask docs`.
+  license: MIT
+  license_file:
+    - LICENSE
+    - third-party-licenses.txt
+
+extra:
+  recipe-maintainers:
+    - mediocretech
