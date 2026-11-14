@@ -1,3 +1,5 @@
+schema_version: 1
+
 context:
   version: "1.0.0"
   build: 0
@@ -241,6 +243,29 @@ outputs:
         - ${{ pin_subpackage('libggml', exact=True) }}
       run_exports:
         - ${{ pin_subpackage('libggml-cpu', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              found=0
+              for f in "$PREFIX"/lib/libggml-cpu*; do
+                if [ -e "$f" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" != 1 ]; then
+                echo "Missing libggml-cpu"
+                exit 1
+              fi
+              echo "Found libggml-cpu"
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-cpu*" if not exist "%LIBRARY_LIB%\ggml-cpu*" (
+                echo Missing ggml-cpu
+                exit /b 1
+              )
+              echo Found ggml-cpu
 
   - package:
       name: libggml-blas
@@ -264,6 +289,29 @@ outputs:
         - ${{ pin_subpackage('libggml', exact=True) }}
       run_exports:
         - ${{ pin_subpackage('libggml-blas', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              found=0
+              for f in "$PREFIX"/lib/libggml-blas*; do
+                if [ -e "$f" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" != 1 ]; then
+                echo "Missing libggml-blas"
+                exit 1
+              fi
+              echo "Found libggml-blas"
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-blas*" if not exist "%LIBRARY_LIB%\ggml-blas*" (
+                echo Missing ggml-blas
+                exit /b 1
+              )
+              echo Found ggml-blas
 
   - package:
       name: libggml-vulkan
@@ -289,6 +337,37 @@ outputs:
         - ${{ pin_subpackage('libggml', exact=True) }}
       run_exports:
         - ${{ pin_subpackage('libggml-vulkan', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              found=0
+              for f in "$PREFIX"/lib/libggml-vulkan*; do
+                if [ -e "$f" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" != 1 ]; then
+                echo "Missing libggml-vulkan"
+                exit 1
+              fi
+              if [ ! -x "$PREFIX/bin/vulkan-shaders-gen" ]; then
+                echo "Missing vulkan-shaders-gen"
+                exit 1
+              fi
+              echo "Found libggml-vulkan"
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-vulkan*" if not exist "%LIBRARY_LIB%\ggml-vulkan*" (
+                echo Missing ggml-vulkan
+                exit /b 1
+              )
+              if not exist "%LIBRARY_BIN%\vulkan-shaders-gen.exe" (
+                echo Missing vulkan-shaders-gen.exe
+                exit /b 1
+              )
+              echo Found ggml-vulkan
 
   - package:
       name: libggml-cuda
@@ -324,6 +403,29 @@ outputs:
         - cuda-nvcc-tools
       run_exports:
         - ${{ pin_subpackage('libggml-cuda', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              found=0
+              for f in "$PREFIX"/lib/libggml-cuda*; do
+                if [ -e "$f" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" != 1 ]; then
+                echo "Missing libggml-cuda"
+                exit 1
+              fi
+              echo "Found libggml-cuda"
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-cuda*" if not exist "%LIBRARY_LIB%\ggml-cuda*" (
+                echo Missing ggml-cuda
+                exit /b 1
+              )
+              echo Found ggml-cuda
 
   - package:
       name: libggml-metal
@@ -343,6 +445,33 @@ outputs:
         - ${{ pin_subpackage('libggml', exact=True) }}
       run_exports:
         - ${{ pin_subpackage('libggml-metal', upper_bound='x.x') }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              found=0
+              for f in "$PREFIX"/lib/libggml-metal*; do
+                if [ -e "$f" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" != 1 ]; then
+                echo "Missing libggml-metal"
+                exit 1
+              fi
+              metallib_found=0
+              for f in "$PREFIX"/bin/*.metallib; do
+                if [ -e "$f" ]; then
+                  metallib_found=1
+                  break
+                fi
+              done
+              if [ "$metallib_found" != 1 ]; then
+                echo "Missing Metal library"
+                exit 1
+              fi
+              echo "Found libggml-metal"
 
   - package:
       name: ggml
@@ -362,6 +491,89 @@ outputs:
         - if: osx and arm64
           then:
             - ${{ pin_subpackage('libggml-metal', exact=True) }}
+    tests:
+      - script:
+          - if: unix
+            then: |
+              set -e
+              # Match libggml.so and libggml.dylib, not libggml-base or libggml-cpu.
+              check_lib() {
+                name="$1"
+                for f in "$PREFIX"/lib/lib${name}.so* "$PREFIX"/lib/lib${name}.dylib "$PREFIX"/lib/lib${name}.*.dylib; do
+                  if [ -e "$f" ]; then
+                    echo "Found lib${name}"
+                    return 0
+                  fi
+                done
+                echo "Missing lib${name}"
+                return 1
+              }
+              check_lib ggml
+              check_lib ggml-base
+              check_lib ggml-cpu
+          - if: unix and (osx or (linux and x86_64 and cuda_ver == "None"))
+            then:
+              - check_lib ggml-blas
+          - if: linux
+            then:
+              - check_lib ggml-vulkan
+              - test -x "$PREFIX/bin/vulkan-shaders-gen"
+          - if: unix and cuda_ver != "None"
+            then:
+              - check_lib ggml-cuda
+          - if: osx and arm64
+            then:
+              - check_lib ggml-metal
+              - |
+                found=0
+                for f in "$PREFIX"/bin/*.metallib; do
+                  if [ -e "$f" ]; then
+                    found=1
+                    break
+                  fi
+                done
+                test "$found" = 1
+                echo "Found Metal library"
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml.dll" (
+                echo Missing ggml.dll
+                exit /b 1
+              )
+              if not exist "%LIBRARY_BIN%\ggml-base.dll" (
+                echo Missing ggml-base.dll
+                exit /b 1
+              )
+              if not exist "%LIBRARY_BIN%\ggml-cpu*" if not exist "%LIBRARY_LIB%\ggml-cpu*" (
+                echo Missing ggml-cpu
+                exit /b 1
+              )
+              echo Found ggml stack
+          - if: win and cuda_ver == "None"
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-blas*" if not exist "%LIBRARY_LIB%\ggml-blas*" (
+                echo Missing ggml-blas
+                exit /b 1
+              )
+              echo Found ggml-blas
+          - if: win
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-vulkan*" if not exist "%LIBRARY_LIB%\ggml-vulkan*" (
+                echo Missing ggml-vulkan
+                exit /b 1
+              )
+              if not exist "%LIBRARY_BIN%\vulkan-shaders-gen.exe" (
+                echo Missing vulkan-shaders-gen.exe
+                exit /b 1
+              )
+              echo Found ggml-vulkan
+          - if: win and cuda_ver != "None"
+            then: |
+              if not exist "%LIBRARY_BIN%\ggml-cuda*" if not exist "%LIBRARY_LIB%\ggml-cuda*" (
+                echo Missing ggml-cuda
+                exit /b 1
+              )
+              echo Found ggml-cuda
 
 about:
   homepage: https://github.com/ggml-org/ggml
