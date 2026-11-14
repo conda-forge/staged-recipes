@@ -25,7 +25,7 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     for package, version in manifest["nuget_packages"].items():
         if not (nuget_packages / package / version).is_dir():
-            raise ValueError(f"Missing {package}/{version}; review the pinned license sources")
+            raise ValueError(f"Missing {package}/{version}. Review the pinned license sources")
 
     output.mkdir(parents=True, exist_ok=True)
     texts = output / "texts"
@@ -125,9 +125,8 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
         "Collected from Core Tools/templates, NuGet license downloads, the bundled",
         ".NET runtime packs, AccentedCommandLineParser, published workers, and the",
         "versioned upstream sources recorded in [SOURCES.json](SOURCES.json).",
-        "Identical documents share a file; every original path is retained below.",
-        "See the separate THIRD_PARTY_NUGET_LICENSES.md for NuGet metadata and",
-        "LICENSE_REVIEW.md for unresolved licensing questions.",
+        "Identical documents share a file. Every original path is retained below.",
+        "See THIRD_PARTY_NUGET_LICENSES.md for NuGet metadata.",
         "",
         "| Original document | Packaged text | SHA-256 |",
         "| --- | --- | --- |",

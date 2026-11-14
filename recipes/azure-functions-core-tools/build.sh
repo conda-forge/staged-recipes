@@ -52,8 +52,8 @@ dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
   -p:Version="${PKG_VERSION}" \
   --output "${appdir}"
 
-# Combine existing license downloads with missing worker/runtime notices;
-# identical documents are packaged once across all sources.
+# Combine existing license downloads with missing worker/runtime notices.
+# Package identical documents once across all sources.
 python "${RECIPE_DIR}/collect_licenses.py" \
   --source-dir "${SRC_DIR}" \
   --runtime-id "${rid}" \

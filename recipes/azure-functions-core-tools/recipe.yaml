@@ -23,8 +23,8 @@ build:
     file: build.sh
     interpreter: brush
   dynamic_linking:
-    # Keep the DT_RPATH that build.sh sets on func; it is inherited by the
-    # native shims .NET dlopen()s, which have no rpath of their own.
+    # Keep the DT_RPATH set by build.sh so native libraries loaded by .NET
+    # can find their dependencies without an rpath of their own.
     binary_relocation: false
 
 requirements:
@@ -38,8 +38,8 @@ requirements:
     - if: linux
       then:
         - __glibc >=2.27  # See https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md#libc
-        # libcoreclr/libclrjit link libstdc++ and libgcc_s; no compiler in
-        # build, so declare them instead of relying on transitive deps.
+        # libcoreclr/libclrjit link libstdc++ and libgcc_s.
+        # No C/C++ compiler in build adds these runtime dependencies.
         - libstdcxx
         - libgcc
         - icu
@@ -57,8 +57,7 @@ tests:
           - test "$(func --version)" = "${PKG_VERSION}"
       - if: linux
         then:
-          # Exercises .NET's OpenSSL shim offline; aborts with "No usable
-          # version of libssl was found" if the OpenSSL is unsupported.
+          # Check that .NET can load OpenSSL without making network requests.
           - mkdir -p enc && cd enc
           - echo '{"IsEncrypted":false,"Values":{"FOO":"bar"}}' > local.settings.json
           - func settings encrypt
@@ -83,15 +82,12 @@ about:
   homepage: https://github.com/Azure/azure-functions-core-tools
   repository: https://github.com/Azure/azure-functions-core-tools
   documentation: https://learn.microsoft.com/azure/azure-functions/functions-run-local
-  license: MIT  # Core Tools itself; bundled dependency questions are in LICENSE_REVIEW.md.
+  license: MIT  # Core Tools itself. See LICENSE_REVIEW.md for bundled dependencies.
   license_file:
     - THIRD_PARTY_NUGET_LICENSES.md
-    # Includes Core Tools/templates, NuGet downloads and supplemental notices,
-    # deduplicated together by content in collect_licenses.py.
     - third-party-licenses/INDEX.md
     - third-party-licenses/SOURCES.json
     - third-party-licenses/texts/*
-    - LICENSE_REVIEW.md
   summary: Command line tools for Azure Functions
   description: |
     The Azure Functions Core Tools provide a local development experience

@@ -1,5 +1,7 @@
 # Third-party license collection for Core Tools 4.14.0
 
+This file is a review note and is not listed in `about.license_file`.
+
 The recipe retains the language workers so that Python Functions can run locally.
 `collect_licenses.py` combines the existing `nuget-licenses` downloads with
 supplemental notices in one content-deduplicated directory. The original
@@ -13,8 +15,8 @@ supplemental notices in one content-deduplicated directory. The original
   That package has the text at `lib/netstandard2.0/LICENCE.txt` despite missing
   license metadata.
 - Notices from the published workers and inside Java JARs, including the Java
-  worker and Application Insights agent. Original paths are recorded in an index;
-  documents with the same filename cannot overwrite each other.
+  worker and Application Insights agent. Original paths are recorded in an index.
+  Documents with the same filename cannot overwrite each other.
 - Versioned official LICENSE/ThirdPartyNotices documents for the Python and Java
   workers, all four PowerShell workers, and their PowerShell SDK versions
   7.0.13, 7.2.23, 7.4.13 and 7.6.0-preview.5. SDK versions come from the worker
@@ -32,11 +34,11 @@ The collection step performs no network requests.
 The 46 upstream source records share 23 byte-distinct snapshot files in the
 recipe. Original URLs, versions, archive members and checksums are retained for
 every record. The final collection deduplicates by SHA-256 across *all* inputs,
-regardless of filename or extension; it does not merge merely similar licenses
+regardless of filename or extension. It does not merge merely similar licenses
 or discard differing copyright/notice text. The recipe packages only this
 combined text directory, rather than also copying the raw NuGet downloads and
 runtime notices a second time. Notices embedded in published workers/JARs are
-left intact; the collection provides their separately accessible license copy.
+left intact. The collection provides their separately accessible license copy.
 uvloop/libuv supplemental notices are included only when the published Python
 worker contains uvloop. libuv's documentation-only CC BY 4.0 license is excluded:
 the worker bundles the library, not the libuv documentation.
@@ -44,7 +46,7 @@ the worker bundles the library, not the libuv documentation.
 The supplemental collector does not recursively scan the NuGet cache. This
 avoids collecting build-only packages and worker assets for unselected platforms
 through that path. The existing NuGet metadata report/download scope is
-unchanged; this is not a complete published-file-to-package attribution audit.
+unchanged. This is not a complete published-file-to-package attribution audit.
 
 Python dependencies were identified by reading files from the official
 Microsoft.Azure.Functions.PythonWorker 4.45.1 nupkg, without executing worker code.
@@ -54,7 +56,7 @@ six 1.17.0, uvloop 0.21.0/0.22.1, and the Azure package versions in the manifest
 Source comparison against official wheels identifies MarkupSafe 3.0.3 and
 typing_extensions 4.15.0. A comparison of every Werkzeug `.py` file identifies
 3.1.8 in all four sampled trees. The Azure Functions runtime wheels omit their
-LICENSE; the Python worker repository's matching source release supplies it.
+LICENSE. The Python worker repository's matching source release supplies it.
 
 ## Unresolved license information
 
@@ -77,7 +79,7 @@ and reviewed by the conda-forge reviewers.
 
 The review also identified dependencies whose license URLs point to Microsoft
 EULAs (`aspnetcomponent_rtw_enu.htm` and `NET_Library_EULA_ENU.txt`). The existing
-NuGet report and downloaded documents are retained; those terms and the final
+NuGet report and downloaded documents are retained. Those terms and the final
 combined `about.license` expression still need review. The existing `MIT` value
 identifies Core Tools' own license and does not establish the terms of these
 dependencies. This document collection does not resolve those questions.
