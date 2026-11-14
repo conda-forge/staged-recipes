@@ -1,4 +1,4 @@
-# Third-party license collection for Core Tools 4.16.1
+# Third-party license collection for Core Tools 4.16.0
 
 This file is a review note and is not listed in `about.license_file`.
 
@@ -86,6 +86,6 @@ dependencies. This document collection does not resolve those questions.
 
 References:
 
-- [Core Tools dependency versions](https://github.com/Azure/azure-functions-core-tools/blob/4.16.1/eng/build/Packages.props)
-- [Official NuGet feeds and mappings](https://github.com/Azure/azure-functions-core-tools/blob/4.16.1/NuGet.Config)
+- [Core Tools dependency versions](https://github.com/Azure/azure-functions-core-tools/blob/4.16.0/eng/build/Packages.props)
+- [Official NuGet feeds and mappings](https://github.com/Azure/azure-functions-core-tools/blob/4.16.0/NuGet.Config)
 - [Review identifying the gaps](https://github.com/conda-forge/staged-recipes/pull/34802#issuecomment-6877530245)
