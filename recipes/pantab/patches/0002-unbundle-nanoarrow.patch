@@ -1,0 +1,48 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4265226..01d5257 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -54,12 +54,17 @@ else()
+   find_package(tableauhyperapi-cxx CONFIG REQUIRED)
+ endif()
+ 
++if(FALSE)
+ include(FetchContent)
+ FetchContent_Declare(nanoarrow-project
+   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
+   GIT_TAG 3ba38ff09c691cf9320895d04cf441ecb95caa99
+ )
+ FetchContent_MakeAvailable(nanoarrow-project)
++else()
++  # conda-forge: nanoarrow comes from the libnanoarrow conda package instead.
++  find_package(nanoarrow CONFIG REQUIRED)
++endif()
+ 
+ if (PANTAB_USE_SANITIZERS)
+     add_compile_options(-fsanitize=address -fsanitize=undefined)
+diff --git a/src/pantab/CMakeLists.txt b/src/pantab/CMakeLists.txt
+index 11633ac..590ebe2 100644
+--- a/src/pantab/CMakeLists.txt
++++ b/src/pantab/CMakeLists.txt
+@@ -9,6 +9,7 @@ nanobind_add_module(
+   NOMINSIZE
+   ${PANTAB_SOURCES}
+ )
++if(FALSE)
+ target_link_libraries(libpantab
+   PRIVATE Tableau::tableauhyperapi-cxx
+   PRIVATE nanoarrow_static
+@@ -16,6 +17,13 @@ target_link_libraries(libpantab
+ set_target_properties(nanoarrow_static
+                       PROPERTIES POSITION_INDEPENDENT_CODE
+                       ON)
++endif()
++# conda-forge: nanoarrow_static above comes from upstream's own FetchContent
++# build; libnanoarrow's prebuilt nanoarrow::nanoarrow_static replaces it.
++target_link_libraries(libpantab
++  PRIVATE Tableau::tableauhyperapi-cxx
++  PRIVATE nanoarrow::nanoarrow_static
++)
+ 
+ # conda-forge: libtableauhyperapi.{so,dylib,dll} and the hyper/ engine dir
+ # come from the libtableauhyperapi conda package's own $PREFIX/lib (or
