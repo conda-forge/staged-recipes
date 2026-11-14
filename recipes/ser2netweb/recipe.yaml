@@ -1,0 +1,95 @@
+# ser2netweb for conda-forge: staged-recipes' recipes/ser2netweb/recipe.yaml, then its
+# feedstock's. Kept in packaging/conda-forge/ of https://github.com/haliskilic/ser2netweb
+# (CI lints it with conda-smithy and builds it with rattler-build:
+# .github/workflows/conda-forge.yml; docs/PACKAGING.md, "conda-forge").
+schema_version: 1
+
+context:
+  version: "3.1.0"
+
+package:
+  name: ser2netweb
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/s/ser2netweb/ser2netweb-${{ version }}.tar.gz
+  sha256: b6ab6c7d291df123b328aa3792c8bbde6754c8da22fa0511ce9ca6db4f974771
+  patches:
+    # pyserial-asyncio-fast isn't on conda-forge: ser2netweb runs on its built-in copy of
+    # that library's serial transport (ser2netweb/engine/serial_transport.py)
+    - 0001-Leave-out-pyserial-asyncio-fast.patch
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - ser2netweb = ser2netweb.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+    - pyserial >=3.5
+    - starlette >=0.46.1
+    - uvicorn >=0.32.0
+    - h11 >=0.14.0
+    - websockets >=14.2
+    - python-multipart >=0.0.20
+    - jinja2 >=3.1.6
+    - markupsafe >=2.1.3
+    - psutil >=5.9.8
+  # the optional features (each says what is missing without its package): MQTT, LDAP
+  # sign-in, OpenID Connect sign-in, self-signed certificates
+  run_constraints:
+    - paho-mqtt >=1.6.1
+    - ldap3 >=2.9.1
+    - authlib >=1.4.0
+    - cryptography >=43.0.0
+
+tests:
+  - python:
+      imports:
+        - ser2netweb
+        - ser2netweb.cli
+        - ser2netweb.web.server
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - ser2netweb --version
+      - ser2netweb --about
+      - ser2netweb --help
+
+about:
+  homepage: https://github.com/haliskilic/ser2netweb
+  summary: 'Serial-to-network bridge with a web UI: raw TCP, telnet, RFC 2217, UDP, Modbus, MQTT'
+  description: |
+    ser2netweb shares local serial ports over the network as raw TCP, telnet, RFC 2217 or
+    UDP, is a Modbus RTU/TCP gateway and publishes serial data and Modbus points to MQTT and
+    Sparkplug B. Everything is set up in a web UI with accounts, roles, two-factor sign-in,
+    an audit log, a REST API and a cluster view of several machines; a web console shows a
+    port's traffic live. It is an independent project, not related to the classic ser2net
+    daemon, whose configuration files it can import.
+  # ser2netweb: AGPL-3.0-only; code copied from pyserial-asyncio-fast and Starlette:
+  # BSD-3-Clause; the web UI's xterm.js and its fit addon: MIT; htmx: 0BSD
+  license: AGPL-3.0-only AND BSD-3-Clause AND MIT AND 0BSD
+  license_file:
+    - LICENSE
+    - NOTICE
+    - COMMERCIAL_LICENSE.md
+    - THIRD-PARTY-NOTICES.md
+    - tools/licenses/npm/htmx.org.txt
+    - tools/licenses/npm/xterm-addon-fit.txt
+    - tools/licenses/npm/xterm.txt
+  documentation: https://github.com/haliskilic/ser2netweb/blob/main/README.en.md
+  repository: https://github.com/haliskilic/ser2netweb
+
+extra:
+  recipe-maintainers:
+    - haliskilic
