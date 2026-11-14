@@ -1,12 +1,17 @@
 # Third-party license collection for Core Tools 4.14.0
 
 The recipe retains the language workers so that Python Functions can run locally.
-`collect_licenses.py` packages additional notices alongside the existing
-`THIRD_PARTY_NUGET_LICENSES.md` report and `nuget-licenses` downloads. It collects:
+`collect_licenses.py` combines the existing `nuget-licenses` downloads with
+supplemental notices in one content-deduplicated directory. The original
+`THIRD_PARTY_NUGET_LICENSES.md` report is retained. It collects:
 
-- License and notice files from the restored NuGet cache, including `LICENCE.txt`
-  in AccentedCommandLineParser 2.0.1 (the two-clause FreeBSD license). That package
-  has the text at `lib/netstandard2.0/LICENCE.txt` despite missing license metadata.
+- Core Tools and templates licenses, and all existing NuGet license downloads.
+- The LICENSE and THIRD-PARTY-NOTICES of the .NET runtime packs selected by the
+  published `func.runtimeconfig.json` and target runtime identifier. Other
+  versions/platforms and SDK/reference packs in the cache are not scanned.
+- `LICENCE.txt` in AccentedCommandLineParser 2.0.1 (the two-clause FreeBSD license).
+  That package has the text at `lib/netstandard2.0/LICENCE.txt` despite missing
+  license metadata.
 - Notices from the published workers and inside Java JARs, including the Java
   worker and Application Insights agent. Original paths are recorded in an index;
   documents with the same filename cannot overwrite each other.
@@ -23,6 +28,23 @@ source URL, release version, archive member where applicable, and SHA-256.
 The build verifies these checksums and the worker NuGet versions before copying
 the documents. Updating a worker requires reviewing the corresponding snapshots.
 The collection step performs no network requests.
+
+The 46 upstream source records share 23 byte-distinct snapshot files in the
+recipe. Original URLs, versions, archive members and checksums are retained for
+every record. The final collection deduplicates by SHA-256 across *all* inputs,
+regardless of filename or extension; it does not merge merely similar licenses
+or discard differing copyright/notice text. The recipe packages only this
+combined text directory, rather than also copying the raw NuGet downloads and
+runtime notices a second time. Notices embedded in published workers/JARs are
+left intact; the collection provides their separately accessible license copy.
+uvloop/libuv supplemental notices are included only when the published Python
+worker contains uvloop. libuv's documentation-only CC BY 4.0 license is excluded:
+the worker bundles the library, not the libuv documentation.
+
+The supplemental collector does not recursively scan the NuGet cache. This
+avoids collecting build-only packages and worker assets for unselected platforms
+through that path. The existing NuGet metadata report/download scope is
+unchanged; this is not a complete published-file-to-package attribution audit.
 
 Python dependencies were identified by reading files from the official
 Microsoft.Azure.Functions.PythonWorker 4.45.1 nupkg, without executing worker code.
