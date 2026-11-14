@@ -1,0 +1,137 @@
+--- a/src/system/os_interface_sub.f90_serial
++++ b/src/system/os_interface_sub.f90_serial
+@@ -52,6 +52,23 @@
+     paths%lhapdfdir = ""
+   end subroutine paths_init
+ 
++  ! The install paths (PREFIX etc.) are compile-time constants.  conda
++  ! relocates a package by overwriting the build prefix inside string
++  ! literals with a shorter one, padded with NUL characters.  Cut the
++  ! string at the first NUL.  index is evaluated at run time on the
++  ! patched bytes, so the padding is seen.
++  function strip_nul (s) result (t)
++    character(*), intent(in) :: s
++    type(string_t) :: t
++    integer :: i
++    i = index (s, achar (0))
++    if (i > 0) then
++       t = s(:i-1)
++    else
++       t = s
++    end if
++  end function strip_nul
++
+   module subroutine os_data_init (os_data, paths)
+     class(os_data_t), intent(out) :: os_data
+     type(paths_t), intent(in), optional :: paths
+@@ -100,12 +117,12 @@
+     os_data%unpack_cmd     = DEFAULT_UNPACK_CMD
+     os_data%pack_ext       = DEFAULT_PACK_EXT
+     os_data%makeflags      = DEFAULT_MAKEFLAGS
+-    os_data%prefix      = PREFIX
+-    os_data%exec_prefix = EXEC_PREFIX
+-    os_data%bindir      = BINDIR
+-    os_data%libdir      = LIBDIR
+-    os_data%includedir  = INCLUDEDIR
+-    os_data%datarootdir = DATAROOTDIR
++    os_data%prefix      = strip_nul(PREFIX)
++    os_data%exec_prefix = strip_nul(EXEC_PREFIX)
++    os_data%bindir      = strip_nul(BINDIR)
++    os_data%libdir      = strip_nul(LIBDIR)
++    os_data%includedir  = strip_nul(INCLUDEDIR)
++    os_data%datarootdir = strip_nul(DATAROOTDIR)
+     if (present (paths)) then
+        if (paths%prefix      /= "")  os_data%prefix      = paths%prefix
+        if (paths%exec_prefix /= "")  os_data%exec_prefix = paths%exec_prefix
+--- a/src/system/os_interface_sub.f90_mpi
++++ b/src/system/os_interface_sub.f90_mpi
+@@ -52,6 +52,23 @@
+     paths%lhapdfdir = ""
+   end subroutine paths_init
+ 
++  ! The install paths (PREFIX etc.) are compile-time constants.  conda
++  ! relocates a package by overwriting the build prefix inside string
++  ! literals with a shorter one, padded with NUL characters.  Cut the
++  ! string at the first NUL.  index is evaluated at run time on the
++  ! patched bytes, so the padding is seen.
++  function strip_nul (s) result (t)
++    character(*), intent(in) :: s
++    type(string_t) :: t
++    integer :: i
++    i = index (s, achar (0))
++    if (i > 0) then
++       t = s(:i-1)
++    else
++       t = s
++    end if
++  end function strip_nul
++
+   module subroutine os_data_init (os_data, paths)
+     class(os_data_t), intent(out) :: os_data
+     type(paths_t), intent(in), optional :: paths
+@@ -100,12 +117,12 @@
+     os_data%unpack_cmd     = DEFAULT_UNPACK_CMD
+     os_data%pack_ext       = DEFAULT_PACK_EXT
+     os_data%makeflags      = DEFAULT_MAKEFLAGS
+-    os_data%prefix      = PREFIX
+-    os_data%exec_prefix = EXEC_PREFIX
+-    os_data%bindir      = BINDIR
+-    os_data%libdir      = LIBDIR
+-    os_data%includedir  = INCLUDEDIR
+-    os_data%datarootdir = DATAROOTDIR
++    os_data%prefix      = strip_nul(PREFIX)
++    os_data%exec_prefix = strip_nul(EXEC_PREFIX)
++    os_data%bindir      = strip_nul(BINDIR)
++    os_data%libdir      = strip_nul(LIBDIR)
++    os_data%includedir  = strip_nul(INCLUDEDIR)
++    os_data%datarootdir = strip_nul(DATAROOTDIR)
+     if (present (paths)) then
+        if (paths%prefix      /= "")  os_data%prefix      = paths%prefix
+        if (paths%exec_prefix /= "")  os_data%exec_prefix = paths%exec_prefix
+--- a/src/system/system.nw
++++ b/src/system/system.nw
+@@ -2273,6 +2273,25 @@
+       type(paths_t), intent(in), optional :: paths
+     end subroutine os_data_init
+ <<OS interface: procedures>>=
++  ! The install paths (PREFIX etc.) are compile-time constants.  conda
++  ! relocates a package by overwriting the build prefix inside string
++  ! literals with a shorter one, padded with NUL characters.  Cut the
++  ! string at the first NUL.  index is evaluated at run time on the
++  ! patched bytes, so the padding is seen.
++  function strip_nul (s) result (t)
++    character(*), intent(in) :: s
++    type(string_t) :: t
++    integer :: i
++    i = index (s, achar (0))
++    if (i > 0) then
++       t = s(:i-1)
++    else
++       t = s
++    end if
++  end function strip_nul
++
++@ %def strip_nul
++<<OS interface: procedures>>=
+   module subroutine os_data_init (os_data, paths)
+     class(os_data_t), intent(out) :: os_data
+     type(paths_t), intent(in), optional :: paths
+@@ -2321,12 +2340,12 @@
+     os_data%unpack_cmd     = DEFAULT_UNPACK_CMD
+     os_data%pack_ext       = DEFAULT_PACK_EXT
+     os_data%makeflags      = DEFAULT_MAKEFLAGS
+-    os_data%prefix      = PREFIX
+-    os_data%exec_prefix = EXEC_PREFIX
+-    os_data%bindir      = BINDIR
+-    os_data%libdir      = LIBDIR
+-    os_data%includedir  = INCLUDEDIR
+-    os_data%datarootdir = DATAROOTDIR
++    os_data%prefix      = strip_nul(PREFIX)
++    os_data%exec_prefix = strip_nul(EXEC_PREFIX)
++    os_data%bindir      = strip_nul(BINDIR)
++    os_data%libdir      = strip_nul(LIBDIR)
++    os_data%includedir  = strip_nul(INCLUDEDIR)
++    os_data%datarootdir = strip_nul(DATAROOTDIR)
+     if (present (paths)) then
+        if (paths%prefix      /= "")  os_data%prefix      = paths%prefix
+        if (paths%exec_prefix /= "")  os_data%exec_prefix = paths%exec_prefix
