@@ -23,6 +23,8 @@ build:
     file: build.sh
     interpreter: brush
   dynamic_linking:
+    # Keep the DT_RPATH that build.sh sets on func; it is inherited by the
+    # native shims .NET dlopen()s, which have no rpath of their own.
     binary_relocation: false
 
 requirements:
@@ -35,9 +37,14 @@ requirements:
     - if: linux
       then:
         - __glibc >=2.27  # See https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md#libc
+        # libcoreclr/libclrjit link libstdc++ and libgcc_s; no compiler in
+        # build, so declare them instead of relying on transitive deps.
+        - libstdcxx
+        - libgcc
         - icu
         - krb5
-        - openssl
+        # .NET 10's crypto shim dlopens libssl.so.{3,1.1,1.0.x}, not .so.4
+        - openssl <4
         - libzlib
 
 tests:
@@ -47,6 +54,14 @@ tests:
           - func --version
           - func --help
           - test "$(func --version)" = "${PKG_VERSION}"
+      - if: linux
+        then:
+          # Exercises .NET's OpenSSL shim offline; aborts with "No usable
+          # version of libssl was found" if the OpenSSL is unsupported.
+          - mkdir -p enc && cd enc
+          - echo '{"IsEncrypted":false,"Values":{"FOO":"bar"}}' > local.settings.json
+          - func settings encrypt
+          - grep -Eq '"IsEncrypted":[[:space:]]*true' local.settings.json
       - if: win
         then:
           - call func.cmd --version
@@ -73,6 +88,10 @@ about:
     - AZURE_FUNCTIONS_TEMPLATES_LICENSE.txt
     - THIRD_PARTY_NUGET_LICENSES.md
     - nuget-licenses/*
+    # --self-contained bundles the .NET and ASP.NET Core runtime packs; they are
+    # implicit downloads, so nuget-license does not report them.
+    - .nuget/packages/microsoft.*.app.runtime.*/*/LICENSE.*
+    - .nuget/packages/microsoft.*.app.runtime.*/*/THIRD-PARTY-NOTICES.*
   summary: Command line tools for Azure Functions
   description: |
     The Azure Functions Core Tools provide a local development experience
