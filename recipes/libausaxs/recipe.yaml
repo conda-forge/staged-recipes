@@ -1,0 +1,130 @@
+context:
+  version: "1.3.0"
+
+package:
+  name: libausaxs
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/AUSAXS/AUSAXS/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: de338b5c00a86b57cfd8dccb8e34cfcc816952c85048691cad6c7682b4f03cba
+    patches:
+      # Make the Windows static-runtime linkage (/MT, -static) optional so the conda build
+      # can link the dynamic MSVC runtime, matching the dlib-cpp and libcurl DLLs.
+      # Not yet submitted upstream; intended as a follow-up to AUSAXS PR #336.
+      - 0001-optional-static-msvc-runtime.patch
+  # BS::thread_pool is a header-only library that is not packaged on conda-forge.
+  # Upstream fetches it with FetchContent at configure time; the recipe provides the
+  # same source offline and points FetchContent at it (no network access during the build).
+  # The pinned release matches the upstream FetchContent default (repository HEAD).
+  - url: https://github.com/bshoshany/thread-pool/archive/refs/tags/v5.1.0.tar.gz
+    sha256: 54378fb9cbeaee72996d3f8761469c43bb7dd2d4b07faec6d29a68277bd91a51
+    target_directory: thread-pool
+  # dlib-cpp ships dlib as a static library on Windows, so dlib is linked into ausaxs.dll
+  # there; package its (Boost Software) license as well. Only the license file is fetched;
+  # the library itself comes from the dlib-cpp package.
+  - url: https://raw.githubusercontent.com/davisking/dlib/v20.0.1/dlib/LICENSE.txt
+    sha256: 8d8291caf1cee26d23acf3eb67c9f9a2d58f1c681b16a4fbe8cbfb9e3c0b5a9b
+    file_name: dlib-LICENSE.txt
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - libcurl
+    - dlib-cpp
+    # the dlib-cpp CMake target links cblas and lapack on unix (as declared by dlib-cpp itself).
+    # conda-forge's libcblas/liblapack are symlinks into OpenBLAS, so the linker records the
+    # OpenBLAS soname and rattler-build reports an overlinking warning; this is expected.
+    - if: unix
+      then:
+        - libcblas
+        - liblapack
+    # on Windows dlib-cpp is a static library whose CMake target links the import libraries
+    # of its own dependencies (libpng.lib, z.lib, jpeg.lib), so they must be in the host env
+    - if: win
+      then:
+        - zlib
+        - libpng
+        - libjpeg-turbo
+    - gcem
+    - backward-cpp
+    - cli11
+  run_exports:
+    - ${{ pin_subpackage('libausaxs', upper_bound='x.x') }}
+  ignore_run_exports:
+    from_package:
+      # needed only to satisfy the dlib-cpp link line; libausaxs itself references cblas
+      # symbols but no LAPACK symbols, so it does not need liblapack at runtime
+      - liblapack
+
+tests:
+  # expands to lib/libausaxs.so / .dylib on unix and to both Library/bin/ausaxs.dll
+  # and Library/lib/ausaxs.lib on Windows
+  - package_contents:
+      lib:
+        - ausaxs
+  # the library is consumed through ctypes by pyausaxs; make sure it loads and exposes the C API
+  - script:
+      - python test_load.py
+    files:
+      recipe:
+        - test_load.py
+    requirements:
+      run:
+        - python
+  # compile and run a C++ program against the installed library, as a non-Python
+  # client would. cxx-compiler v2+ installs minimally activated compilers that do not
+  # set CXX (https://github.com/conda-forge/conda-forge.github.io/issues/2595).
+  - script:
+      - if: linux
+        then: export CXX="${CXX:-g++}"
+      - if: osx
+        then:
+          - export CXX="${CXX:-clang++}"
+          - export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+      - if: unix
+        then:
+          - ${CXX} -std=c++17 test_api.cpp -o test_api -L${PREFIX}/lib -lausaxs -Wl,-rpath,${PREFIX}/lib
+          - ./test_api
+      - if: win
+        then:
+          - cl /nologo /EHsc /std:c++17 test_api.cpp /link /LIBPATH:%LIBRARY_LIB% ausaxs.lib
+          - if errorlevel 1 exit 1
+          - test_api.exe
+          - if errorlevel 1 exit 1
+    files:
+      recipe:
+        - test_api.cpp
+    requirements:
+      run:
+        - cxx-compiler
+
+about:
+  homepage: https://github.com/AUSAXS/AUSAXS
+  repository: https://github.com/AUSAXS/AUSAXS
+  documentation: https://github.com/AUSAXS/AUSAXS/wiki
+  summary: Shared library of the AUSAXS small-angle X-ray scattering calculator
+  description: |
+    AUSAXS is a modern C++20 small-angle X-ray scattering (SAXS) calculator built on the
+    Debye equation. It fits atomic models and electron-microscopy maps against
+    experimental SAXS data, using an explicit-solvent hydration shell and grid-based
+    excluded-volume model, and supports rigid-body optimization of multi-body assemblies.
+
+    This package provides the shared library (`libausaxs`) with the C API used by the
+    Python package `pyausaxs`. The command-line executables are not included.
+  license: LGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - thread-pool/LICENSE.txt
+    - dlib-LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - backmari
