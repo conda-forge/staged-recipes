@@ -1,0 +1,59 @@
+schema_version: 1
+
+context:
+  version: "0.2.0"
+
+package:
+  name: modelname
+  version: ${{ version }}
+
+source:
+  url: https://github.com/BoNour/modelname/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c95136957102fd78a1011aaf6946dfced50127d771eae098cbfc2b3b85857bad
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    env:
+      GOTOOLCHAIN: local
+    content:
+      - cd src
+      - go-licenses save ./cmd/modelname --save_path ../library_licenses
+      - if: unix
+        then: go build -v -trimpath -o "$PREFIX/bin/modelname" -ldflags="-s -w -X main.version=$PKG_VERSION" ./cmd/modelname
+        else: go build -v -trimpath -o "%LIBRARY_BIN%\modelname.exe" -ldflags="-s -w -X main.version=%PKG_VERSION%" ./cmd/modelname
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - modelname -version
+      - modelname claude-opus-4-1-20250805
+      - modelname -json "Gemini 3.1 Pro Preview"
+  - package_contents:
+      bin:
+        - modelname
+      strict: true
+
+about:
+  homepage: https://whizi.io/models/
+  summary: Parse AI model IDs into vendor, family, version and date
+  description: |
+    modelname reads AI model IDs and display names (claude-opus-4-1-20250805,
+    meta-llama/llama-3.3-70b-instruct:free, Gemini 3.1 Pro Preview) and prints
+    their vendor, family, version, size, date and tags. Old and new naming
+    schemes land in the same family so they sort correctly. No network calls.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  documentation: https://pkg.go.dev/github.com/BoNour/modelname
+  repository: https://github.com/BoNour/modelname
+
+extra:
+  recipe-maintainers:
+    - BoNour
