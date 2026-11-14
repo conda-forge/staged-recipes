@@ -1,0 +1,141 @@
+schema_version: 1
+
+context:
+  version: "0.5.0"
+  # Test suite run, shared by the openfold3 test blocks.
+  # 1) Test entry points (beware fix rocm's when we get it working in CF)
+  # 2) Fix an upstream problem in osx pytorch 2.14 conda package,
+  #    similar to https://github.com/pytorch/pytorch/issues/174680
+  # 3) Run the test suite, skipping tests that are known to be slow,
+  #    fail due to known causes, or require external resources
+  pytest_script: >-
+    run_openfold --help
+    &&
+    setup_openfold --help
+    &&
+    validate-openfold3-rocm && exit 1 || true
+    &&
+    python -c "import pathlib, stat, torch;
+    p = pathlib.Path(torch.__file__).parent / 'bin' / 'torch_shm_manager';
+    p.exists() and p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)"
+    &&
+    pytest -vvv --pyargs openfold3.tests
+    --durations=0 --durations-min=2.0
+    -k "not test_inference_load_state_dict_benchmark_under_ten_seconds
+    and not test_colabfold_msa_server
+    and not test_model_checkpoint
+    and not test_model_runner
+    and not test_entry_points
+    and not test_of3_model
+    and not test_diffusion_module
+    and not test_pdb_tetrapyrrole_chain_resolves"
+
+recipe:
+  name: openfold3-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/aqlaboratory/openfold-3/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6a6f1d18fa96764b5f4613102da359a5b6df9868a16ccf33b10421548d9dc543
+
+build:
+  number: 0
+  skip:
+    - win
+
+outputs:
+
+  # --- Production package, noarch-python
+  - package:
+      name: openfold3
+    build:
+      noarch: python
+      script:
+        - pip install . --no-deps --ignore-installed --no-build-isolation --no-cache-dir -vvv
+      python:
+        entry_points:
+          - run_openfold = openfold3.run_openfold:cli
+          - setup_openfold = openfold3.setup_openfold:main
+          - validate-openfold3-rocm = openfold3.entry_points.validate_rocm:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - setuptools-scm >=8
+        - wheel
+      run:
+        - __unix  # upstream does not support Windows.
+        - python >=${{ python_min }}
+        - numpy
+        - scipy
+        - pandas
+        # --- Machine learning
+        - pytorch
+        - pytorch-lightning <=2.6.1
+        - ml-collections
+        # --- Handling molecules
+        - rdkit <2026  # pin might be removed soon, see https://github.com/aqlaboratory/openfold-3/issues/285
+        - biotite >=1.6
+        - pdbeccdutils
+        - kalign-python
+        # --- Misc
+        - pyyaml
+        - ijson
+        - memory_profiler
+        - wandb
+        - func_timeout
+        - tqdm
+        - typing-extensions
+        - python-lmdb >=2.2.0
+        # --- Downloading stuff
+        - requests
+        - awscli
+        - awscrt >=0.24
+        - boto3
+        # --- Testing as first-class operation
+        - pytest
+        - pytest-regressions
+        - pytest-vcr
+    tests:
+       - python:
+           imports:
+             - openfold3
+             - openfold3.core.metrics.model_selection
+             - openfold3.core.model.primitives.activations
+             - openfold3.tests
+             - openfold3.tests.config
+           pip_check: true
+           python_version:
+             - ${{ python_min }}.*
+             - "*"
+       # Selected test suite, run against min python version
+       - script: ${{ pytest_script }}
+         requirements:
+            run:
+              - python ${{ python_min }}.*
+              - pytorch-cpu
+       # Selected test suite, run against latest python version
+       - script: ${{ pytest_script }}
+         requirements:
+           run:
+             - python *
+             - pytorch-cpu
+
+
+about:
+  homepage: https://openfold.io
+  repository: https://github.com/aqlaboratory/openfold-3
+  summary: OpenFold's Biological Structure Prediction Model based on DeepMind's AlphaFold 3
+  license: Apache-2.0 AND BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE
+    - LICENSE-biotite.rst
+    - LICENSE-colabfold
+
+extra:
+  recipe-maintainers:
+    - Emrys-Merlin
+    - jandom
+    - jnwei
+    - sdvillal
