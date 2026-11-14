@@ -52,6 +52,14 @@ dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
   -p:Version="${PKG_VERSION}" \
   --output "${appdir}"
 
+# NuGet metadata does not cover notices inside workers or implicit downloads.
+python "${RECIPE_DIR}/collect_licenses.py" \
+  --nuget-packages "${NUGET_PACKAGES}" \
+  --appdir "${appdir}" \
+  --source-licenses "${RECIPE_DIR}/licenses" \
+  --manifest "${RECIPE_DIR}/license-sources.json" \
+  --output "${SRC_DIR}/third-party-licenses"
+
 case "${target_platform}" in
   win-*)
     scripts_dir="${PREFIX}\\Scripts"
