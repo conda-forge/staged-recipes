@@ -1,0 +1,111 @@
+context:
+  name: pica-suite
+  version: "1.0.8"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  # PyPI sdist. Its file name uses an underscore (pica_suite), not the
+  # package name. On the feedstock the autotick bot opens a PR updating
+  # version and sha256 for each new PyPI release.
+  url: https://pypi.org/packages/source/${{ name[:1] }}/${{ name }}/pica_suite-${{ version }}.tar.gz
+  sha256: f6a37b6c40458e8d5d4f33fa52c91f7f1f33892a2445b429ef5366e34dba716d
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - pica-gui = pica.main_v2:main_advanced
+      - pica-cli = pica.cli:main
+
+requirements:
+  host:
+    # python_min is not set in this recipe: it comes from conda-forge's global
+    # pinning (CFEP-25; 3.11 in Nov 2026). Upstream requires-python is >=3.10,
+    # so the conda package simply starts at conda-forge's minimum.
+    - python ${{ python_min }}.*
+    - setuptools >=77.0
+    - pip
+  run:
+    # Same packages and floors as [project].dependencies in pyproject.toml,
+    # except matplotlib-base and pymeasure (explained below). Keep them in
+    # step when pyproject changes.
+    - python >=${{ python_min }}
+    - numpy >=1.22.4
+    - pandas >=1.4.2
+    # pyproject says matplotlib. PICA imports only the TkAgg and Agg
+    # backends, so the Qt-free matplotlib-base is enough.
+    - matplotlib-base >=3.5.2
+    - pyvisa >=1.12.0
+    # Stricter than pyproject's >=0.10.0 on purpose. conda-forge's pymeasure
+    # 0.13.0 and 0.13.1 builds carry version 0.0.0 in their pip metadata, so
+    # pip check fails on them, and the solver picks 0.13.1 whenever pandas 3
+    # is allowed because pymeasure 0.14+ requires pandas <3. The 0.14, 0.15
+    # and 0.16 builds report correct versions. Only relax this if the 0.13
+    # builds are fixed or removed.
+    - pymeasure >=0.14.0
+    - pyvisa-py >=0.5.3
+    - pillow >=10.3.0
+    - psutil >=5.9.8
+    # Not imported by PICA. pyvisa-py uses it to discover HiSLIP and VICP
+    # instruments on the network.
+    - zeroconf >=0.113.0
+    # Deliberately not listed:
+    # - pyserial: PICA's two imports of it are optional (try/except), and
+    #   pymeasure already depends on it, so it is installed anyway.
+    # - gpib-ctypes: the pip extra "gpib"; not packaged on conda-forge.
+    # - NI-VISA / Keysight IO Libraries: vendor VISA drivers, not conda
+    #   packages; users install them separately, as with pip. pyvisa-py above
+    #   is the pure-Python backend for setups without one.
+
+tests:
+  # Keep pip check on. If it fails, find the package with wrong metadata and
+  # constrain it (as with pymeasure above) rather than switching it off.
+  - python:
+      imports:
+        - pica
+        - pica.cli
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # pica-gui opens a Tk window and pica-cli waits for keyboard input, and
+  # neither has a --help flag, so headless CI only checks that the
+  # entry-point modules import and that both launchers were installed.
+  # pica.main_v2 and the TkAgg backend import tkinter. On Linux, conda-forge's
+  # tk links the system libX11 but does not depend on xorg-libx11, and the CI
+  # container has no libX11, so these test envs add xorg-libx11. The first
+  # script test runs on python_min, the second on the latest python.
+  - script:
+      - python -c "from pica.main_v2 import main_advanced; from pica.cli import main"
+      - python -c "import pymeasure, pyvisa, pyvisa_py, matplotlib.backends.backend_tkagg"
+      # shutil.which, not `command -v`: on win_64 this runs under cmd.exe
+      - python -c "import shutil, sys; sys.exit(0 if shutil.which('pica-gui') and shutil.which('pica-cli') else 1)"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - if: linux
+          then: xorg-libx11
+  - script:
+      - python -c "from pica.main_v2 import main_advanced; from pica.cli import main"
+      - python -c "import pymeasure, pyvisa, pyvisa_py, matplotlib.backends.backend_tkagg"
+    requirements:
+      run:
+        - if: linux
+          then: xorg-libx11
+
+about:
+  homepage: https://github.com/prathameshnium/PICA-Python-Instrument-Control-and-Automation
+  summary: 'PICA: Advanced High-Precision Transport Measurement Automation with Python'
+  license: MIT
+  license_file: LICENSE
+  documentation: https://prathameshnium.github.io/PICA-Python-Instrument-Control-and-Automation/
+  repository: https://github.com/prathameshnium/PICA-Python-Instrument-Control-and-Automation
+
+extra:
+  recipe-maintainers:
+    - prathameshnium
