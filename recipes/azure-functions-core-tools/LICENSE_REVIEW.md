@@ -27,7 +27,7 @@ supplemental notices in one content-deduplicated directory. The original
 
 `recipe.yaml` records the supplemental license URLs and SHA-256 checksums as
 sources. rattler-build verifies the downloads. Raw worker documents and Python
-wheels/sdists are kept outside the published application. The collector reads
+sdists are kept outside the published application. The collector reads
 only license documents from these inputs, including libuv's authors and notices.
 It excludes libuv's documentation-only license and build-tool sources.
 

@@ -91,19 +91,14 @@ def collect(nuget_packages, appdir, source_licenses, output,
             continue
         origin = "source/" + relative
         count = len(entries)
-        if path.suffix == ".whl":
-            with zipfile.ZipFile(path) as archive:
-                for member in sorted(archive.namelist()):
-                    if ".dist-info/" in member and not member.endswith("/") and is_notice(member):
-                        save(archive.read(member), origin + "!/" + member)
-        elif path.name.endswith(".tar.gz"):
-            # Only uvloop/libuv and dateutil notices are needed from the sdists.
+        if path.name.endswith(".tar.gz"):
+            # Collect top-level licenses, plus required libuv/dateutil notices.
             # Do not include libuv's documentation-only license or build tools.
             allowed = {
                 "uvloop": {"LICENSE-MIT", "LICENSE-APACHE", "vendor/libuv/LICENSE",
                            "vendor/libuv/LICENSE-extra", "vendor/libuv/AUTHORS"},
                 "python-dateutil": {"LICENSE", "AUTHORS.md"},
-            }[component]
+            }.get(component, {"LICENSE", "LICENSE.txt"})
             with tarfile.open(path) as archive:
                 for member in archive.getmembers():
                     name = member.name.partition("/")[2]
