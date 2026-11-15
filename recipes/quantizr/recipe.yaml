@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "1.4.3"
+
+package:
+  name: quantizr
+  version: ${{ version }}
+
+source:
+  url: https://github.com/DarthSim/quantizr/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 83b471de2a2bb898f33bef5ab8514ae33b535f36a749ce79cdaa6d5a73558ae8
+
+build:
+  number: 0
+  script:
+    interpreter: brush
+    content:
+      - if: unix
+        then: cargo cinstall --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --library-type=cdylib --release --target="${CARGO_BUILD_TARGET}"
+      - if: win
+        then: cargo cinstall --prefix="${LIBRARY_PREFIX}" --library-type=cdylib --release --target="${CARGO_BUILD_TARGET}" --meson-paths
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - brush
+    - cargo-bundle-licenses
+    - cargo-c
+  run_exports:
+    - ${{ pin_subpackage('quantizr', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - quantizr
+      include:
+        - quantizr/quantizr.h
+      files:
+        exists:
+          - "**/lib/pkgconfig/quantizr.pc"
+
+  - script:
+      - pkg-config --exact-version=${{ version }} quantizr
+    requirements:
+      build:
+        - pkgconf * pkg_config_*
+
+about:
+  homepage: https://github.com/DarthSim/quantizr
+  repository: https://github.com/DarthSim/quantizr
+  documentation: https://github.com/DarthSim/quantizr/blob/v{{ version }}/README.md
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Fast library for converting RGBA images to 8-bit palette images
+  description: Fast library for converting RGBA images to 8-bit palette images. Written in Rust; can be used in C programs.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
