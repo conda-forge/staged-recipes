@@ -8,12 +8,23 @@ package:
 source:
   url: https://github.com/openinterpreter/openinterpreter/archive/refs/tags/rust-v${{ version }}.tar.gz
   sha256: 1cbb079f1ac1dcdd569cece1fa4c81d9e8fb65360acb1d554cde06b59fd76040
+  patches:
+    - patches/0001-isolate-conda-package-layout.patch
+    - patches/0002-use-auditable-locked-package-builds.patch
 
 build:
   number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+    file: build
 
 requirements:
   build:
+    - python >=3.11
+    - just
+    - git
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
     - ${{ compiler('rust') }}
@@ -25,8 +36,8 @@ requirements:
   host:
     - ${{ 'libcap' if linux }}
     - ${{ 'openssl' if unix }}
+    - ripgrep
   run:
-    - ${{ 'bubblewrap' if linux }}
     - ripgrep
 
 tests:
@@ -34,17 +45,34 @@ tests:
       bin:
         - i
         - interpreter
+        - openinterpreter-code-mode-host
       files:
+        - openinterpreter-package.json
+        - ${{ 'openinterpreter-path/rg.exe' if win else 'openinterpreter-path/rg' }}
+        - if: linux
+          then: openinterpreter-resources/bwrap
+        - if: unix
+          then: openinterpreter-resources/zsh/bin/zsh
+        - if: win
+          then:
+            - openinterpreter-resources/codex-command-runner.exe
+            - openinterpreter-resources/codex-windows-sandbox-setup.exe
         - etc/pixi/i/global-ignore-conda-prefix
         - etc/pixi/interpreter/global-ignore-conda-prefix
       strict: true
   - requirements:
       run:
         - codex
+        - python >=3.11
+    files:
+      recipe:
+        - test_package.py
     script:
       - codex --version
       - i --version
       - interpreter --help
+      - openinterpreter-code-mode-host --help
+      - python test_package.py
 
 about:
   homepage: https://openinterpreter.com

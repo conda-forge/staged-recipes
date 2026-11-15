@@ -1,14 +1,14 @@
 @echo on
 setlocal enabledelayedexpansion
 
-REM Fix HOME for git config (CI sets it to Unix-style path that doesn't exist on Windows)
+REM Keep Git paths valid and short in Windows CI.
 set "HOME=%USERPROFILE%"
-
-REM Enable long paths for Git/libgit2 (required even if OS-level long paths are enabled)
-git config --global core.longpaths true
-
-cd codex-rs
-cargo-bundle-licenses --format yaml --output ..\THIRDPARTY.yml
+set "GIT_CONFIG_COUNT=1"
+set "GIT_CONFIG_KEY_0=core.longpaths"
+set "GIT_CONFIG_VALUE_0=true"
+for %%I in ("%SRC_DIR%") do set "BUILD_DRIVE=%%~dI"
+set "CARGO_TARGET_DIR=%BUILD_DRIVE%\oi-target"
+set "CARGO_HOME=%BUILD_DRIVE%\oi-cargo"
 
 if not defined CARGO_BUILD_TARGET (
     if "%target_platform%"=="win-arm64" (
@@ -18,26 +18,14 @@ if not defined CARGO_BUILD_TARGET (
     )
 )
 
-REM Open Interpreter's upstream package variant builds the Cargo bin named
-REM "codex", then exposes it as "interpreter" with "i" as an alias.
-if defined CARGO_BUILD_TARGET (
-    echo Building for target: %CARGO_BUILD_TARGET%
-    cargo auditable install --locked --no-track --bin codex --root "%PREFIX%" --path cli --target %CARGO_BUILD_TARGET%
-) else (
-    cargo auditable install --locked --no-track --bin codex --root "%PREFIX%" --path cli
-)
+just assemble-codex-package --variant open-interpreter --cargo-profile release --package-dir out --target "%CARGO_BUILD_TARGET%" --rg-bin "%PREFIX%\bin\rg.exe"
+if errorlevel 1 exit /b 1
+python "%RECIPE_DIR%\install_package.py" out "%PREFIX%"
+if errorlevel 1 exit /b 1
 
-move "%PREFIX%\bin\codex.exe" "%PREFIX%\bin\interpreter.exe"
-copy /Y "%PREFIX%\bin\interpreter.exe" "%PREFIX%\bin\i.exe"
-
-REM Pixi: prevent CONDA_PREFIX from leaking into sandboxed processes
-set "MARKER_DIR=%PREFIX%\etc\pixi\interpreter"
-if not exist "%MARKER_DIR%" mkdir "%MARKER_DIR%" 2>nul
-type nul > "%MARKER_DIR%\global-ignore-conda-prefix"
-
-set "MARKER_DIR=%PREFIX%\etc\pixi\i"
-if not exist "%MARKER_DIR%" mkdir "%MARKER_DIR%" 2>nul
-type nul > "%MARKER_DIR%\global-ignore-conda-prefix"
+cd codex-rs
+cargo-bundle-licenses --format yaml --output ..\THIRDPARTY.yml
+if errorlevel 1 exit /b 1
 
 endlocal
 exit /b 0

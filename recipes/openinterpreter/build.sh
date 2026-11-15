@@ -2,8 +2,8 @@
 
 set -exo pipefail
 
-export CFLAGS="$CFLAGS -D_GNU_SOURCE"
-export CXXFLAGS="$CXXFLAGS -D_GNU_SOURCE"
+export CFLAGS="${CFLAGS:-} -D_GNU_SOURCE"
+export CXXFLAGS="${CXXFLAGS:-} -D_GNU_SOURCE"
 
 if [[ ${OSTYPE} == "linux"* && "${build_platform:-}" != "${target_platform:-}" ]]; then
     export PKG_CONFIG_ALLOW_CROSS=1
@@ -18,23 +18,9 @@ if [[ "${target_platform:-}" == "linux-aarch64" ]]; then
     export RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-C link-arg=-Wl,--no-keep-memory"
 fi
 
+just assemble-codex-package --variant open-interpreter --cargo-profile release \
+    --package-dir out --target "${CARGO_BUILD_TARGET}" --rg-bin "${PREFIX}/bin/rg"
+python "${RECIPE_DIR}/install_package.py" out "${PREFIX}"
+
 cd codex-rs
 cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
-
-# Open Interpreter's upstream package variant builds the Cargo bin named
-# "codex", then exposes it as "interpreter" with "i" as an alias.
-if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
-    echo "Building for target: ${CARGO_BUILD_TARGET}"
-    cargo auditable install --locked --no-track --bin codex --root "${PREFIX}" --path cli --target "${CARGO_BUILD_TARGET}"
-else
-    cargo auditable install --locked --no-track --bin codex --root "${PREFIX}" --path cli
-fi
-
-mv "${PREFIX}/bin/codex" "${PREFIX}/bin/interpreter"
-ln -s interpreter "${PREFIX}/bin/i"
-
-# Pixi: prevent CONDA_PREFIX from leaking into sandboxed processes
-mkdir -p "${PREFIX}/etc/pixi/interpreter"
-touch "${PREFIX}/etc/pixi/interpreter/global-ignore-conda-prefix"
-mkdir -p "${PREFIX}/etc/pixi/i"
-touch "${PREFIX}/etc/pixi/i/global-ignore-conda-prefix"
