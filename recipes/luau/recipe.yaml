@@ -15,13 +15,16 @@ source:
 
 build:
   number: 0
-  # Upstream only supports static libraries: every library target is
-  # hard-coded as `add_library(... STATIC)`, and the C++ APIs (Ast, Compiler,
-  # Analysis, ...) carry no export macros, so there is no shared build on
-  # Windows. Luau also gives no ABI stability guarantees between its (weekly)
-  # releases. Conan and vcpkg ship it static for the same reasons. Upstream has
-  # no install rules either, so CMakeLists.txt in this recipe adds them
-  # (install(EXPORT) of upstream's own targets; see the comments there).
+  # Static libraries only. Upstream's default build is static, and the shared
+  # build it added in 0.706 (LUAU_BUILD_SHARED) requires LUAU_EXTERN_C=ON, which
+  # sets LUA_USE_LONGJMP=1: lua_error then unwinds with longjmp (skipping C++
+  # destructors) and only the C API is exported. That is a different ABI and
+  # behaviour from what C++ embedders rely on, and Luau makes no ABI promises
+  # between its weekly releases anyway (Conan and vcpkg ship it static too).
+  # build.sh/build.bat pass LUAU_EXTERN_C=OFF explicitly: it is part of this
+  # package's ABI and must not change. Upstream has no install rules, so
+  # CMakeLists.txt in this recipe adds them (install(EXPORT) of upstream's own
+  # targets; see the comments there).
 
 requirements:
   build:
@@ -101,6 +104,8 @@ about:
     a CMake package (`find_package(Luau)`, targets `Luau::VM`, `Luau::Compiler`,
     `Luau::CodeGen`, `Luau::Ast`, `Luau::Analysis`, ...). Headers are installed
     to `include/luau` so that Luau's `lua.h` does not clash with the `lua` package.
+    Built with the default luaconf.h (LUA_VECTOR_SIZE=3, C++ linkage, lua_error
+    as a C++ exception); consumers must not override the LUA_* configuration macros.
   license: MIT
   license_file:
     - LICENSE.txt

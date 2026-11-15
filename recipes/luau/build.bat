@@ -8,7 +8,8 @@ cmake -G Ninja -B _build -S "%RECIPE_DIR%" %CMAKE_ARGS% ^
   -DLUAU_VERSION="%PKG_VERSION%" ^
   -DLUAU_BUILD_CLI=ON ^
   -DLUAU_BUILD_TESTS=OFF ^
-  -DLUAU_BUILD_WEB=OFF
+  -DLUAU_BUILD_WEB=OFF ^
+  -DLUAU_EXTERN_C=OFF
 if errorlevel 1 exit 1
 cmake --build _build --parallel %CPU_COUNT%
 if errorlevel 1 exit 1

@@ -20,9 +20,15 @@ add_subdirectory("${LUAU_SOURCE_DIR}" luau)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-set(_components Common Ast Compiler Config Analysis EqSat CodeGen VM Require)
+# Upstream adds/removes libraries between releases (EqSat dropped in 0.702,
+# Bytecode added in 0.718, Inliner in 0.727): install whichever exist.
+set(_components)
 set(_targets)
-foreach(_c IN LISTS _components)
+foreach(_c Common Ast Bytecode Inliner Compiler Config Analysis EqSat CodeGen VM Require)
+  if(NOT TARGET Luau.${_c})
+    continue()
+  endif()
+  list(APPEND _components ${_c})
   set(_t Luau.${_c})
   list(APPEND _targets ${_t})
   # Upstream uses source-relative include directories; keep them for the
@@ -35,12 +41,16 @@ foreach(_c IN LISTS _components)
     # MSVC: drop the /NATVIS:<source-dir>/... link options, which would point
     # into the (deleted) build tree in the installed package.
     INTERFACE_LINK_OPTIONS "")
+  # CodeGen (and Inliner since 0.727) privately link the header-only
+  # Luau.VM.Internals target (VM/src include dir); consumers of the static
+  # library do not need it, and it cannot be exported.
+  get_target_property(_libs ${_t} INTERFACE_LINK_LIBRARIES)
+  if(_libs)
+    list(FILTER _libs EXCLUDE REGEX "Luau\\.VM\\.Internals")
+    set_target_properties(${_t} PROPERTIES INTERFACE_LINK_LIBRARIES "${_libs}")
+  endif()
 endforeach()
 
-# CodeGen privately links the header-only Luau.VM.Internals helper target
-# (VM/src include dir); it is not needed by consumers of the static library.
-set_property(TARGET Luau.CodeGen PROPERTY INTERFACE_LINK_LIBRARIES
-  "Luau.Common;$<LINK_ONLY:Luau.VM>")
 
 install(TARGETS ${_targets} EXPORT LuauTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
