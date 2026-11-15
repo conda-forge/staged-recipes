@@ -23,23 +23,22 @@ dotnet restore src/Cli/func/Azure.Functions.Cli.csproj \
   --configfile NuGet.Config \
   -p:NuGetAudit=false
 
-# nuget-license returns 8 when one or more packages have no license metadata.
-# Keep those entries in the report, but fail for every other tool error.
-set +e
+assets_file=$(dotnet msbuild src/Cli/func/Azure.Functions.Cli.csproj -getProperty:ProjectAssetsFile)
+python "${RECIPE_DIR}/prepare_license_policy.py" \
+  "${RECIPE_DIR}/license-policy.json" "${assets_file}" "${SRC_DIR}"
+
+# Keep the five unresolved packages visible while core reviews their terms.
+# Every other validation error, including exit code 8, fails the build.
 dotnet "${BUILD_PREFIX}/libexec/nuget-license/nuget-license.dll" \
   --input src/Cli/func/Azure.Functions.Cli.csproj \
   --include-transitive \
   --target-framework net10.0 \
+  --ignored-packages "${SRC_DIR}/ignored-packages.json" \
+  --include-ignored-packages \
+  --override-package-information "${SRC_DIR}/license-overrides.json" \
   --output Markdown \
   --file-output "${license_report}" \
   --license-information-download-location "${license_download_dir}"
-license_status=$?
-set -e
-
-case "${license_status}" in
-  0|8) ;;
-  *) exit "${license_status}" ;;
-esac
 
 dotnet publish src/Cli/func/Azure.Functions.Cli.csproj \
   --disable-build-servers \
@@ -59,14 +58,12 @@ python "${RECIPE_DIR}/collect_licenses.py" \
   --runtime-id "${rid}" \
   --nuget-packages "${NUGET_PACKAGES}" \
   --appdir "${appdir}" \
-  --source-licenses "${RECIPE_DIR}/licenses" \
-  --manifest "${RECIPE_DIR}/license-sources.json" \
+  --source-licenses "${SRC_DIR}/license-sources" \
   --output "${SRC_DIR}/third-party-licenses"
 
 case "${target_platform}" in
   win-*)
-    scripts_dir="${PREFIX}\\Scripts"
-    cmd.exe /d /c if not exist "${scripts_dir}" mkdir "${scripts_dir}"
+    mkdir -p "${PREFIX}/Scripts"
     printf '%s\r\n' \
       '@echo off' \
       '"%~dp0..\Library\libexec\azure-functions-core-tools\func.exe" %*' \

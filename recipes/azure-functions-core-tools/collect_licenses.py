@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
+import tarfile
 import zipfile
 
 
@@ -20,13 +21,8 @@ def is_notice(name):
     return any(LICENSE_NAME.fullmatch(part) for part in parts)
 
 
-def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
+def collect(nuget_packages, appdir, source_licenses, output,
             source_dir, runtime_id):
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    for package, version in manifest["nuget_packages"].items():
-        if not (nuget_packages / package / version).is_dir():
-            raise ValueError(f"Missing {package}/{version}. Review the pinned license sources")
-
     output.mkdir(parents=True, exist_ok=True)
     texts = output / "texts"
     texts.mkdir(exist_ok=True)
@@ -34,7 +30,9 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
     for path in texts.iterdir():
         path.unlink()
     entries = []
-    documents = {}
+    # Core Tools' own license is packaged directly by license_file.
+    core_license = (source_dir / "LICENSE").read_bytes()
+    documents = {hashlib.sha256(core_license).hexdigest(): "../LICENSE"}
 
     def save(data, origin):
         if not data:
@@ -43,10 +41,10 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
         suffix = PurePosixPath(origin).suffix.lower()
         if suffix not in {".html", ".htm", ".md", ".txt"}:
             suffix = ".txt"
-        target = documents.setdefault(digest, texts / (digest + suffix))
-        if not target.exists():
-            target.write_bytes(data)
-        entries.append((origin, target.relative_to(output).as_posix(), digest))
+        if digest not in documents:
+            documents[digest] = "texts/" + digest + suffix
+            (output / documents[digest]).write_bytes(data)
+        entries.append((origin, documents[digest], digest))
 
     # Use one content store for the original recipe inputs and the supplements.
     # Otherwise NuGet downloads and runtime-pack notices bypass deduplication.
@@ -74,28 +72,47 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
                 save(path.read_bytes(), "nuget/" + path.relative_to(nuget_packages).as_posix())
 
     # This is the known NuGet metadata gap with an embedded license document.
+    policy = json.loads((source_dir / "LICENSE_POLICY.json").read_text(encoding="utf-8"))
     accent = (nuget_packages / "accentedcommandlineparser" /
-              manifest["nuget_packages"]["accentedcommandlineparser"] /
+              policy["reviewed_packages"]["accentedcommandlineparser"] /
               "lib/netstandard2.0/LICENCE.txt")
     save(accent.read_bytes(), "nuget/" + accent.relative_to(nuget_packages).as_posix())
 
     has_uvloop = any((appdir / "workers/python").rglob("uvloop/__init__.py"))
-    packaged_sources = []
-    for item in manifest["sources"]:
-        path = source_licenses / item["file"]
-        if not path.resolve().is_relative_to(source_licenses.resolve()):
-            raise ValueError(f"Invalid source path: {item['file']}")
-        data = path.read_bytes()
-        if hashlib.sha256(data).hexdigest() != item["sha256"]:
-            raise ValueError(f"License checksum mismatch: {item['file']}")
+    sources = sorted(path for path in source_licenses.rglob("*") if path.is_file())
+    if not sources:
+        raise ValueError("Missing supplemental license sources")
+    # rattler-build verifies every raw document and archive against recipe.yaml.
+    for path in sources:
+        relative = path.relative_to(source_licenses).as_posix()
+        component = relative.split("/", 1)[0]
         # The Windows Python worker does not bundle uvloop/libuv.
-        if item["component"] == "uvloop" and not has_uvloop:
+        if component == "uvloop" and not has_uvloop:
             continue
-        packaged_sources.append(item)
-        # Keep component/version attribution even when several sources share
-        # the same snapshot file in the recipe.
-        save(data, f"upstream/{item['component']}/{item['version']}: {item['url']}"
-             + ("!/" + item["archive_member"] if "archive_member" in item else ""))
+        origin = "source/" + relative
+        count = len(entries)
+        if path.suffix == ".whl":
+            with zipfile.ZipFile(path) as archive:
+                for member in sorted(archive.namelist()):
+                    if ".dist-info/" in member and not member.endswith("/") and is_notice(member):
+                        save(archive.read(member), origin + "!/" + member)
+        elif path.name.endswith(".tar.gz"):
+            # Only uvloop/libuv and dateutil notices are needed from the sdists.
+            # Do not include libuv's documentation-only license or build tools.
+            allowed = {
+                "uvloop": {"LICENSE-MIT", "LICENSE-APACHE", "vendor/libuv/LICENSE",
+                           "vendor/libuv/LICENSE-extra", "vendor/libuv/AUTHORS"},
+                "python-dateutil": {"LICENSE", "AUTHORS.md"},
+            }[component]
+            with tarfile.open(path) as archive:
+                for member in archive.getmembers():
+                    name = member.name.partition("/")[2]
+                    if member.isfile() and name in allowed:
+                        save(archive.extractfile(member).read(), origin + "!/" + member.name)
+        else:
+            save(path.read_bytes(), origin)
+        if len(entries) == count:
+            raise ValueError(f"No license documents found in {path}")
 
     # Inspect only published workers, not the entire restored NuGet cache:
     # the latter also contains build-only packages and unselected worker assets.
@@ -115,18 +132,15 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
                         if not member.endswith("/") and is_notice(member):
                             save(archive.read(member), origin + "!/" + member)
 
-    manifest["sources"] = packaged_sources
-    (output / "SOURCES.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
     rows = [
         "# License documents",
         "",
         "Collected from Core Tools/templates, NuGet license downloads, the bundled",
         ".NET runtime packs, AccentedCommandLineParser, published workers, and the",
-        "versioned upstream sources recorded in [SOURCES.json](SOURCES.json).",
+        "versioned upstream sources whose URLs and checksums are in recipe.yaml.",
         "Identical documents share a file. Every original path is retained below.",
-        "See THIRD_PARTY_NUGET_LICENSES.md for NuGet metadata.",
+        "See THIRD_PARTY_NUGET_LICENSES.md for NuGet metadata and LICENSE_POLICY.json",
+        "for the exact unresolved packages and source-backed metadata corrections.",
         "",
         "| Original document | Packaged text | SHA-256 |",
         "| --- | --- | --- |",
@@ -139,9 +153,9 @@ def collect(nuget_packages, appdir, source_licenses, manifest_path, output,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ["nuget-packages", "appdir", "source-licenses", "manifest", "output", "source-dir"]:
+    for name in ["nuget-packages", "appdir", "source-licenses", "output", "source-dir"]:
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--runtime-id", required=True)
     args = parser.parse_args()
-    collect(args.nuget_packages, args.appdir, args.source_licenses, args.manifest,
-            args.output, args.source_dir, args.runtime_id)
+    collect(args.nuget_packages, args.appdir, args.source_licenses, args.output,
+            args.source_dir, args.runtime_id)

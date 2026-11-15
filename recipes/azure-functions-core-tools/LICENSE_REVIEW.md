@@ -25,23 +25,23 @@ supplemental notices in one content-deduplicated directory. The original
   extensions-base, grpcio, protobuf, dateutil, six, MarkupSafe, Werkzeug,
   typing_extensions and uvloop (including its vendored libuv notices and authors).
 
-`license-sources.json` records each externally collected document's official
-source URL, release version, archive member where applicable, and SHA-256.
-The build verifies these checksums and the worker NuGet versions before copying
-the documents. Updating a worker requires reviewing the corresponding snapshots.
-The collection step performs no network requests.
+`recipe.yaml` records the supplemental license URLs and SHA-256 checksums as
+sources. rattler-build verifies the downloads. Raw worker documents and Python
+wheels/sdists are kept outside the published application. The collector reads
+only license documents from these inputs, including libuv's authors and notices.
+It excludes libuv's documentation-only license and build-tool sources.
 
-The 47 upstream source records share 23 byte-distinct snapshot files in the
-recipe. Original URLs, versions, archive members and checksums are retained for
-every record. The final collection deduplicates by SHA-256 across *all* inputs,
-regardless of filename or extension. It does not merge merely similar licenses
-or discard differing copyright/notice text. The recipe packages only this
-combined text directory, rather than also copying the raw NuGet downloads and
-runtime notices a second time. Notices embedded in published workers/JARs are
-left intact. The collection provides their separately accessible license copy.
-uvloop/libuv supplemental notices are included only when the published Python
-worker contains uvloop. libuv's documentation-only CC BY 4.0 license is excluded:
-the worker bundles the library, not the libuv documentation.
+The collection deduplicates by content across NuGet downloads, runtime notices,
+published workers and supplemental sources. Copyright lines are part of the
+comparison. Core Tools' own `LICENSE` is packaged directly and is not duplicated
+in the content store. The index records every input path and archive member.
+Original notices inside published workers and JARs remain intact.
+
+The Python workers and their dependencies must be reviewed again when updating
+versions. The comment beside the recipe sources calls this out for maintainers
+and version-update PRs. `license-policy.json` also pins the reviewed worker
+versions and the exact unresolved package versions. The build checks these
+against the resolved project.assets.json, so a version change requires review.
 
 The supplemental collector does not recursively scan the NuGet cache. This
 avoids collecting build-only packages and worker assets for unselected platforms
@@ -50,13 +50,33 @@ unchanged. This is not a complete published-file-to-package attribution audit.
 
 Python dependencies were identified by reading files from the official
 Microsoft.Azure.Functions.PythonWorker 4.46.0 nupkg, without executing worker code.
-The sampled Linux x64 trees cover Python 3.9, 3.12, 3.13 and 3.14. Version constants
+The sampled Linux x64 trees cover Python 3.9, 3.10, 3.11, 3.12, 3.13 and 3.14. Version constants
 identify grpcio 1.70.0/1.75.1, protobuf 5.29.6/6.33.6, dateutil 2.9.0.post0,
-six 1.17.0, uvloop 0.21.0/0.22.1, and the Azure package versions in the manifest.
+six 1.17.0, uvloop 0.21.0/0.22.1, and the Azure package versions in the recipe sources.
 Source comparison against official wheels identifies MarkupSafe 3.0.3 and
 typing_extensions 4.15.0/4.16.0. A comparison of every Werkzeug `.py` file identifies
-3.1.8 in all four sampled trees. The Azure Functions runtime wheels omit their
+3.1.8 in all six sampled trees. The sampled dependency files for 3.10 and 3.11
+match the 3.12 files byte for byte. The Azure Functions runtime wheels omit their
 LICENSE. The Python worker repository's matching source release supplies it.
+
+The grpcio 1.70.0/1.75.1 LICENSE files are byte-identical, as are protobuf
+5.29.6/6.33.6 and uvloop 0.21.0/0.22.1's MIT and Apache licenses and libuv notices.
+This includes their copyright lines. Both versions are fetched as sources and
+compared by content during collection, so changed text will be retained.
+
+## License validation
+
+`nuget-license` now fails on every nonzero exit code, including 8. Only the five
+unresolved package IDs below are passed via `--ignored-packages`, after checking
+their exact resolved versions. `--include-ignored-packages` keeps them visible
+in the report. This exception is not a redistribution approval.
+
+Three version-specific metadata corrections use `--override-package-information`:
+AccentedCommandLineParser 2.0.1 is BSD-2-Clause according to its embedded
+`LICENCE.txt`, and NodeJsWorker 3.16.0 and PythonWorker 4.46.0 are MIT according
+to their matching upstream LICENSE files. Those original documents are also
+collected. No license is invented for the five unresolved packages.
+The generated `LICENSE_POLICY.json` is packaged alongside the report.
 
 ## Unresolved license information
 
