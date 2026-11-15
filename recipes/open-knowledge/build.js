@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 
 const prefix = process.env.PREFIX;
 const parts = ["lib", "node_modules", "@inkeep", "open-knowledge"];
@@ -48,6 +49,16 @@ for (const file of fs.readdirSync(native)) {
   }
 }
 fs.copyFileSync(path.join(release, built), path.join(native, binding));
+if (process.platform === "darwin") {
+  execFileSync("install_name_tool", ["-id", `@rpath/${binding}`, "-add_rpath", "@loader_path", path.join(native, binding)]);
+}
+
+// Resolve native dependencies from conda's lib/node_modules instead of npm copies.
+for (const pattern of ["node_modules/@napi-rs/keyring{,-*}", "node_modules/@parcel/watcher{,-*}"]) {
+  for (const dependency of fs.globSync(pattern, { cwd: pkg })) {
+    fs.rmSync(path.join(pkg, dependency), { recursive: true, force: true });
+  }
+}
 
 // npm puts its Windows shims next to the install prefix, not in %PREFIX%\bin.
 if (process.platform === "win32") {
