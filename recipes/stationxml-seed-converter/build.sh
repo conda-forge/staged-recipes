@@ -17,7 +17,17 @@ mkdir -p "${PREFIX}/bin"
 cat > "${PREFIX}/bin/stationxml-seed-converter" <<'EOF'
 #!/bin/bash
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec java -jar "${root}/share/stationxml-seed-converter/stationxml-seed-converter.jar" "$@"
+# conda-forge's openjdk installs java under lib/jvm/bin (not bin/) and its
+# activation only sets JAVA_HOME, so a bare `java` would pick up the system
+# Java. Prefer this environment's JVM, then JAVA_HOME, then PATH.
+if [ -x "${root}/lib/jvm/bin/java" ]; then
+  java="${root}/lib/jvm/bin/java"
+elif [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/java" ]; then
+  java="${JAVA_HOME}/bin/java"
+else
+  java=java
+fi
+exec "${java}" -jar "${root}/share/stationxml-seed-converter/stationxml-seed-converter.jar" "$@"
 EOF
 chmod +x "${PREFIX}/bin/stationxml-seed-converter"
 
