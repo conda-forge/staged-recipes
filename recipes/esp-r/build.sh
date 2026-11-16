@@ -131,6 +131,10 @@ esp_cflags="${esp_cflags} ${defines} -DXSL -O1"
 # The C sources are pre-C99 (implicit int, implicit function declarations),
 # which recent GCC versions reject by default.
 esp_cflags="${esp_cflags} -fpermissive"
+# They also declare functions as "void f();" and call them with arguments,
+# which is an error in C23, the default standard from GCC 15 on. The option
+# is given with the C compiler because CFLAGS is also passed to C++.
+esp_cc="${CC} -std=gnu17"
 
 esp_ulibs="-L${SRCdir}/lib -lversion -lxesru -L${PREFIX}/lib -lX11 -lXft"
 esp_ulibs="${esp_ulibs} -lXML -lstdc++ -lxslt -lxml2 -lSQLite"
@@ -139,7 +143,7 @@ esp_ulibs="${esp_ulibs} -lXML -lstdc++ -lxslt -lxml2 -lSQLite"
 # from pkg-config (for GTK 2) even for the X11 build.
 esp_make() {
   make -C "${SRCdir}" \
-    MCTYPE=lin MCC="${CC}" MCPL="${CXX}" MFC="${FC}" \
+    MCTYPE=lin MCC="${esp_cc}" MCPL="${CXX}" MFC="${FC}" \
     DESTdir="${ESPdir}" ESPdir="${ESPdir}" ESPBinDir="${ESPdir}/bin" \
     WWLINK=unshared EXE="" XINSTALLDIR="${PREFIX}" \
     CFLAGS="${esp_cflags}" FFLAGS="${esp_fflags}" \
@@ -162,7 +166,7 @@ done
 # The makefiles do not track the Fortran module dependencies, so each program
 # is built serially; the programs are independent and are built in parallel.
 export -f esp_make
-export SRCdir ESPdir esp_cflags esp_fflags esp_ulibs
+export SRCdir ESPdir esp_cc esp_cflags esp_fflags esp_ulibs
 echo ${programs} | tr ' ' '\n' | xargs -P "${CPU_COUNT}" -I{} \
   bash -c 'esp_make "$1" > "build_$1.log" 2>&1 || { cat "build_$1.log"; exit 255; }' _ {}
 
