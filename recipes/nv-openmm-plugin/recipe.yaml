@@ -1,0 +1,150 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# The plugin is built from source, from the GitHub tree of the release, against
+# libcupo-dev. Its tree has no build/ (GitHub has no libcupo.so), so the plugin
+# can only link the libcupo package. The tree also has cupo's headers in
+# include/cupo; build.sh removes them, so that the plugin is compiled against
+# the headers of libcupo-dev.
+
+schema_version: 1
+
+context:
+  version: "0.3.5"
+
+package:
+  name: nv-openmm-plugin
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/cuPotential/archive/refs/tags/v0.3.5.tar.gz
+  sha256: 4654eb31afddeaa72d8433c5bfc2e7379066725e903ef93c7dcdca704f939801
+  patches:
+    # pip installs the package without the libcupo.so, notices and requirements
+    # that the wheel carries (NV_OPENMM_PLUGIN_CONDA=1 in build.sh).
+    - setup-conda.patch
+
+build:
+  number: 0
+  # libcupo exists for one CUDA major.minor and for x86_64 only.
+  skip:
+    - not (linux and x86_64)
+    # Every CUDA 13 variant of conda-forge's pinning, as the NVIDIA feedstocks
+    # choose by major version (libcuest, libcudss, cudnn; tensorrt in v1). The
+    # variants without CUDA have no version for match(), so they are skipped first.
+    - cuda_compiler_version is undefined or cuda_compiler_version == "None" or not match(cuda_compiler_version, ">=13,<14")
+  script: build.sh
+  dynamic_linking:
+    missing_dso_allowlist:
+      - "**/libcuda.so*"              # the driver, which no conda package provides
+    overlinking_behavior: error
+    overdepending_behavior: error
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("cuda") }}
+    # check-glibc
+    - cf-nvidia-tools 1.*
+    # readelf, which check-glibc runs.
+    - binutils
+    - cmake
+    - make
+    # Version 4.3 or newer: the SWIG runtime ABI of OpenMM's own Python module.
+    - swig >=4.3
+  host:
+    - python
+    - pip
+    # The plugin's pyproject.toml asks for setuptools 68 or newer.
+    - setuptools >=68
+    - openmm 8.4.*
+    - libcupo-dev ==${{ version }}
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-driver-dev
+    - libcufft-dev
+  run:
+    - python
+    # The OpenMM series the plugin is built against: libOpenMM.so has no version
+    # in its name, so the loader would take any OpenMM.
+    - openmm >=8.4,<8.5.0a0
+    # cuFFT loads both to link the LTO callbacks of the reciprocal-space code;
+    # no library names them, so nothing else asks for them.
+    - libnvjitlink
+    - cuda-nvrtc
+    # The major version of the CUDA the plugin is built with, as conda-forge's CUDA
+    # guide pins it. cudart's run export asks for the build's CUDA or newer, and
+    # libcupo, which the plugin runs with, for >=13.4,<14 itself.
+    - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+  ignore_run_exports:
+    # cuda-version comes back above, with the minor version (see run:).
+    by_name:
+      - cuda-version
+    # The plugin does not link cuFFT; libcupo does, and asks for it. CMake needs
+    # libcufft-dev here, for the CUDA::cufft that Cupo::Runtime names.
+    from_package:
+      - libcufft-dev
+
+tests:
+  - package_contents:
+      site_packages:
+        - nv_openmm_plugin
+        - nv_openmm_plugin.nvplugin
+      files:
+        exists:
+          - lib/python*/site-packages/nv_openmm_plugin/_nvplugin.so
+          - lib/python*/site-packages/nv_openmm_plugin/lib/libOpenMMNvidia.so
+          - lib/python*/site-packages/nv_openmm_plugin/lib/libOpenMMNvidiaCUDA.so
+          - lib/python*/site-packages/nv_openmm_plugin/notices/NOTICE
+          - lib/python*/site-packages/nv_openmm_plugin-${{ version }}.dist-info/METADATA
+        # libcupo.so is libcupo's, not a copy in this package.
+        not_exists:
+          - lib/python*/site-packages/nv_openmm_plugin/lib/libcupo.so*
+  # Without a GPU driver the import does not load the CUDA platform plugin, and
+  # does not fail (the test below loads it); pip knows the package, and finds
+  # nothing it needs missing.
+  - python:
+      imports:
+        - nv_openmm_plugin
+      pip_check: true
+  - requirements:
+      run:
+        - pip
+    script:
+      - python -m pip list | grep -E "^nv-openmm-plugin +${{ version }}$"
+      - python -c "import importlib.metadata as m; d = m.distribution('nv-openmm-plugin'); assert d.read_text('RECORD') and d.read_text('INSTALLER') and not d.requires"
+  # The plugin's libraries load into OpenMM, CUDA platform included. The import
+  # does not fail when they cannot, so _load(), which raises then, is called. The
+  # build machines have no GPU driver, so libcuda.so.1 is the stub of
+  # cuda-driver-dev; with it the libraries load, and no kernel runs.
+  - requirements:
+      run:
+        - cuda-driver-dev
+    script:
+      - test -f $PREFIX/lib/libcupo.so.${{ version }}
+      - LD_PRELOAD=$PREFIX/lib/stubs/libcuda.so python -c "import nv_openmm_plugin; nv_openmm_plugin._load()"
+
+about:
+  homepage: https://github.com/NVIDIA/cuPotential
+  repository: https://github.com/NVIDIA/cuPotential
+  documentation: https://docs.nvidia.com/cuda/cupotential
+  license: Apache-2.0 AND BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE
+    - LICENSE-apache.txt
+    - LICENSE-cupo.txt
+    - NOTICE
+    - THIRD-PARTY.txt
+  summary: NVIDIA GPU-accelerated nonbonded, bonded and integrator plugin for OpenMM
+  description: |
+    An OpenMM plugin with NVIDIA's CUDA implementations of NonbondedForce,
+    custom nonbonded expressions, bonded forces, a Langevin middle integrator
+    and a Monte Carlo barostat, on top of the cuPotential runtime (libcupo).
+    `import nv_openmm_plugin` loads it into OpenMM.
+
+extra:
+  recipe-maintainers:
+    - antonvnv
+    - abde-ali-kagalwalla
