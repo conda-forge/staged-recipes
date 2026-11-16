@@ -12,7 +12,8 @@ cmake -G Ninja -S . -B build %CMAKE_ARGS% ^
   -DPJ_INSTALLATION=conda ^
   -DPJ_QT_MIN_VERSION=6.11 ^
   -DPJ_SYSTEM_ADS=ON ^
-  -DPJ_SYSTEM_NANOCDR=ON
+  -DPJ_SYSTEM_NANOCDR=ON ^
+  -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 if errorlevel 1 exit 1
 
 cmake --build build
