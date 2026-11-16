@@ -1,0 +1,97 @@
+schema_version: 1
+
+context:
+  version: "13.3.18"
+
+package:
+  name: esp-r
+  version: ${{ version }}
+
+source:
+  # Official ESRU release (the GitHub mirror stops at v13.3.15); it bundles
+  # the source code, databases, weather files, manual and training models.
+  url: https://www.esru.strath.ac.uk/Downloads/esp-r/ESP-r_V${{ version }}_Src.tar.gz
+  sha256: b76878247fc9d7256b8d8ba71c07eae00415a5fed0f7fa95ad483a2dd00e468d
+  patches:
+    - patches/0001-clm-do-not-abort-on-long-site-names.patch
+
+build:
+  number: 0
+  # Upstream also supports macOS and Windows (MSYS2/Cygwin), but only the
+  # Linux build has been ported to conda-forge so far.
+  skip:
+    - not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('fortran') }}
+    - make
+    - sed
+  host:
+    - libxml2-devel
+    - libxslt
+    - xorg-libx11
+    - xorg-libxft
+    - xorg-xorgproto
+    # Headers needed by Xft.h; the libraries are only used through libXft.
+    - freetype
+  ignore_run_exports:
+    from_package:
+      - freetype
+
+tests:
+  - package_contents:
+      bin:
+        - bps
+        - clm
+        - esp-r
+        - ish
+        - prj
+        - res
+      files:
+        - opt/esp-r/bin/bps
+        - opt/esp-r/default
+        - opt/esp-r/esprc
+        - opt/esp-r/climate/climatelist
+        - opt/esp-r/climate/clm67
+        - opt/esp-r/databases/material.db
+        - opt/esp-r/databases/plantc.db1
+        - opt/esp-r/lib/esrubps.help
+        - opt/esp-r/xsl/h3k.xsl
+        - opt/esp-r/training/exemplars
+        - opt/esp-r/training/basic/cfg/bld_basic.cfg
+        - opt/esp-r/validation/stds_list
+  - script:
+      file: run_test.sh
+
+about:
+  homepage: https://www.strath.ac.uk/research/energysystemsresearchunit/applications/esp-r/
+  repository: https://github.com/ESP-rCommunity/ESP-rSource
+  summary: Integrated, dynamic building performance simulation program
+  description: |
+    ESP-r is an integrated energy modelling tool for the simulation of the
+    thermal, visual and acoustic performance of buildings and the energy use
+    and gaseous emissions associated with environmental control systems. It
+    models heat, air, moisture, light and electrical power flows at
+    user-determined spatial and temporal resolution.
+
+    This package installs the ESP-r tree (executables, databases, weather
+    files, help, manual, training and validation models) in
+    `$CONDA_PREFIX/opt/esp-r` and links the executables (`prj`, `bps`,
+    `res`, `clm`, ...) into `$CONDA_PREFIX/bin`. The interactive tools use
+    the X11 interface; pass `-mode text` to run them in a terminal.
+
+    The location of the ESP-r tree is looked up at run time, in order, from
+    the `ESPRDIR` environment variable and from `$CONDA_PREFIX/opt/esp-r`.
+    ESP-r stores file names in short fixed-length strings: environments
+    whose prefix is longer than 50 characters are not supported unless
+    `ESPRDIR` points to a shorter path (e.g. a symbolic link).
+  license: GPL-2.0-or-later
+  license_file: src/GPL.txt
+
+extra:
+  recipe-maintainers:
+    - ldallolio
