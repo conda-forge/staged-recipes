@@ -32,7 +32,7 @@ requirements:
     - cargo-bundle-licenses
     - cargo-auditable
     - if: linux
-      then: pkg-config
+      then: pkgconf
   host:
     - if: linux
       then: wayland
@@ -46,33 +46,38 @@ requirements:
         - xorg-libxi
         - libvulkan-loader
         - fontconfig
+        # fontique panics when fontconfig finds no fonts at all
+        - fonts-conda-ecosystem
 
 tests:
   - script:
       - codestrand --version
       - codestrand --help
-  - requirements:
-      run:
-        - if: linux
-          then: mesa-lavapipe
-    script:
-      - if: linux
-        then:
-          - set -- "$PREFIX"/share/vulkan/icd.d/lvp_icd*.json
-          - export VK_DRIVER_FILES="$1"
-          - export WGPU_BACKEND=vulkan WGPU_ADAPTER_NAME=llvmpipe
-      - if: win
-        then:
-          - set WGPU_BACKEND=dx12
-          - set WGPU_ADAPTER_NAME=Microsoft Basic Render Driver
-      - codestrand export smoke-render --test-input synthetic --frames 2 --resolution 320x180
-      - if: unix
-        then:
-          - test -s smoke-render/frame-00000.png
-          - test -s smoke-render/frame-00001.png
-        else:
-          - if not exist smoke-render\frame-00000.png exit /b 1
-          - if not exist smoke-render\frame-00001.png exit /b 1
+  # The osx-64 CI agent was lost mid-export on its paravirtual Metal device
+  - if: not osx
+    then:
+      - requirements:
+          run:
+            - if: linux
+              then: mesa-lavapipe
+        script:
+          - if: linux
+            then:
+              - set -- "$PREFIX"/share/vulkan/icd.d/lvp_icd*.json
+              - export VK_DRIVER_FILES="$1"
+              - export WGPU_BACKEND=vulkan WGPU_ADAPTER_NAME=llvmpipe
+          - if: win
+            then:
+              - set WGPU_BACKEND=dx12
+              - set WGPU_ADAPTER_NAME=Microsoft Basic Render Driver
+          - codestrand export smoke-render --test-input synthetic --frames 2 --resolution 320x180
+          - if: unix
+            then:
+              - test -s smoke-render/frame-00000.png
+              - test -s smoke-render/frame-00001.png
+            else:
+              - if not exist smoke-render\frame-00000.png exit /b 1
+              - if not exist smoke-render\frame-00001.png exit /b 1
   - package_contents:
       bin:
         - codestrand
