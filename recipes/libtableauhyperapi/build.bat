@@ -20,6 +20,7 @@ if not exist "%LIBRARY_PREFIX%\share\cmake" mkdir "%LIBRARY_PREFIX%\share\cmake"
 xcopy /E /I /Y "%SDK_DIR%\include\hyperapi" "%LIBRARY_INC%\hyperapi" || exit /b 1
 xcopy /E /I /Y "%SDK_DIR%\share\cmake" "%LIBRARY_PREFIX%\share\cmake" || exit /b 1
 xcopy /E /I /Y "%SDK_DIR%\bin\hyper" "%LIBRARY_BIN%\hyper" || exit /b 1
+mklink /H "%LIBRARY_BIN%\hyperd.exe" "%LIBRARY_BIN%\hyper\hyperd.exe" || exit /b 1
 copy /Y "%SDK_DIR%\bin\tableauhyperapi.dll" "%LIBRARY_BIN%\" || exit /b 1
 copy /Y "%SDK_DIR%\lib\tableauhyperapi.lib" "%LIBRARY_LIB%\" || exit /b 1
 
