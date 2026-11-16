@@ -1,0 +1,96 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: codestrand
+  version: ${{ version }}
+
+source:
+  url: https://github.com/owenlamont/codestrand/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 53e996552f001822bf0c3000bc91970fcbbf73ad933224bbc0b130a53e79e993
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - rust >=1.99.1
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - if: linux
+      then: pkg-config
+  host:
+    - if: linux
+      then: wayland
+  run:
+    - if: linux
+      then:
+        - wayland
+        - libxkbcommon
+        - xorg-libx11
+        - xorg-libxcursor
+        - xorg-libxi
+        - libvulkan-loader
+        - fontconfig
+
+tests:
+  - script:
+      - codestrand --version
+      - codestrand --help
+  - requirements:
+      run:
+        - if: linux
+          then: mesa-lavapipe
+    script:
+      - if: linux
+        then:
+          - set -- "$PREFIX"/share/vulkan/icd.d/lvp_icd*.json
+          - export VK_DRIVER_FILES="$1"
+          - export WGPU_BACKEND=vulkan WGPU_ADAPTER_NAME=llvmpipe
+      - if: win
+        then:
+          - set WGPU_BACKEND=dx12
+          - set WGPU_ADAPTER_NAME=Microsoft Basic Render Driver
+      - codestrand export smoke-render --test-input synthetic --frames 2 --resolution 320x180
+      - if: unix
+        then:
+          - test -s smoke-render/frame-00000.png
+          - test -s smoke-render/frame-00001.png
+        else:
+          - if not exist smoke-render\frame-00000.png exit /b 1
+          - if not exist smoke-render\frame-00001.png exit /b 1
+  - package_contents:
+      bin:
+        - codestrand
+      strict: true
+
+about:
+  homepage: https://github.com/owenlamont/codestrand
+  summary: A Git history visualiser with restrained 3D depth and animated diffs
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE
+    - LICENSE-APACHE
+    - THIRDPARTY.yml
+    - THIRDPARTY.txt
+    - assets/material/LICENSE.txt
+  documentation: https://codestrand.pages.dev/
+  repository: https://github.com/owenlamont/codestrand
+
+extra:
+  recipe-maintainers:
+    - owenlamont
