@@ -8,6 +8,7 @@ context:
   llvm_major: "22"
   # contents of llvm-version.txt in the tinygo source
   llvm_fork_commit: 472a22901c0dd9edc2903ad5c435d9076a745a6e
+  cmsis_svd_commit: 05a9562ec59b87945a8d7177a4b08b7aa2f2fd58
 
 package:
   name: ${{ name }}
@@ -20,9 +21,13 @@ source:
   # layout and compiled on demand by tinygo for each target. These come from
   # the tinygo LLVM fork at the commit pinned in llvm-version.txt, since
   # tinygo relies on builtins (e.g. arm/aeabi_uread4.S) not in stock LLVM 22.
+  # This archive and cmsis-svd-data below are left unextracted (file_name)
+  # and only the needed paths are extracted in build.sh: in full they unpack
+  # to ~8 GB, which exhausts the CI runner's disk.
   - url: https://github.com/tinygo-org/llvm-project/archive/${{ llvm_fork_commit }}.tar.gz
     sha256: 3ec660c9881ca7fc53792623d79d8d407623c9416c089e493d38e1e8e8e26ee7
-    target_directory: llvm-project
+    file_name: llvm-project.tar.gz
+    target_directory: archives
   # git submodules, pinned to the commits referenced by the v${{ version }} tag
   - url: https://github.com/ARM-software/CMSIS/archive/9fe411cef1cef5de58e5957b89760759de44e393.tar.gz
     sha256: b61f6ceeef65469780d985518d41513d3853e61f51cc777d4010ff4c315d51e4
@@ -33,9 +38,10 @@ source:
   - url: https://github.com/ivmai/bdwgc/archive/7577ca7c2dc7364bb6733dab23be34231279db6b.tar.gz
     sha256: 70508190844a314b2603ef1cfb9ec2f8e25bc3da3eae8a50ed0daedbf8ac9cfb
     target_directory: lib/bdwgc
-  - url: https://github.com/cmsis-svd/cmsis-svd-data/archive/05a9562ec59b87945a8d7177a4b08b7aa2f2fd58.tar.gz
+  - url: https://github.com/cmsis-svd/cmsis-svd-data/archive/${{ cmsis_svd_commit }}.tar.gz
     sha256: e93862aaeb93be28e9aa6ffda4da4dabe935b3abcc9a2edae74f04b897203827
-    target_directory: lib/cmsis-svd
+    file_name: cmsis-svd-data.tar.gz
+    target_directory: archives
   - url: https://github.com/tinygo-org/macos-minimal-sdk/archive/d7462e1318e724116b45d2de98d51bbdcddef856.tar.gz
     sha256: 466aa26b20906287115afcc76351139a2250594d5fc1d7dbdb1b0e8ca1e64aa6
     target_directory: lib/macos-minimal-sdk
@@ -71,14 +77,12 @@ build:
   number: 0
   skip:
     - win
-  # Go strings are not NUL-terminated, so binary prefix replacement would
-  # corrupt them. tinygo locates its root relative to its own executable.
-  prefix_detection:
-    ignore_binary_files: true
   script:
     file: build.sh
     env:
       LLVM_MAJOR: ${{ llvm_major }}
+      LLVM_FORK_COMMIT: ${{ llvm_fork_commit }}
+      CMSIS_SVD_COMMIT: ${{ cmsis_svd_commit }}
 
 requirements:
   build:
@@ -157,10 +161,13 @@ about:
     - llvm-project/clang/LICENSE.TXT
     - llvm-project/lld/LICENSE.TXT
     - lib/bdwgc/LICENSE
+    - lib/cmsis-svd/LICENSE-APACHE
     - lib/mingw-w64/COPYING
     - lib/musl/COPYRIGHT
     - lib/nrfx/LICENSE
     - lib/picolibc/COPYING.picolibc
+    - lib/stm32-svd/LICENSE-APACHE
+    - lib/stm32-svd/LICENSE-MIT
     - lib/wasi-libc/LICENSE
     - lib/wasi-libc/LICENSE-APACHE
     - lib/wasi-libc/LICENSE-APACHE-LLVM

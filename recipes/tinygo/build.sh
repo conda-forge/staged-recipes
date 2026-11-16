@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# Extract only what the build uses from the two large source archives (see
+# recipe.yaml). These paths come from make/gen-device.mk and make/release.mk.
+mkdir -p llvm-project lib/cmsis-svd
+llvm_top="llvm-project-${LLVM_FORK_COMMIT}"
+tar -xzf archives/llvm-project.tar.gz -C llvm-project --strip-components=1 \
+  "${llvm_top}/compiler-rt/lib/builtins" \
+  "${llvm_top}/compiler-rt/LICENSE.TXT" \
+  "${llvm_top}/clang/lib/Headers" \
+  "${llvm_top}/clang/LICENSE.TXT" \
+  "${llvm_top}/lld/LICENSE.TXT"
+svd_top="cmsis-svd-data-${CMSIS_SVD_COMMIT}"
+svd_members=("${svd_top}/LICENSE-APACHE")
+for vendor in Atmel Espressif Espressif-Community Kendryte-Community NXP RaspberryPi Renesas SiFive-Community; do
+  svd_members+=("${svd_top}/data/${vendor}")
+done
+tar -xzf archives/cmsis-svd-data.tar.gz -C lib/cmsis-svd --strip-components=1 "${svd_members[@]}"
+rm -rf archives
+
 # Link against conda-forge's LLVM, clang and lld instead of a source-built
 # LLVM tree. This mirrors CGO_*FLAGS from make/llvm.mk, but uses the shared
 # libLLVM, libclang and libclang-cpp. lld is only available as static
