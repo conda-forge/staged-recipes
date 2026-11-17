@@ -28,17 +28,20 @@ requirements:
     - libseams >=2.14.0,<2.15
     - plumed
   run:
-    - plumed
+    - ${{ pin_compatible('plumed', upper_bound='x.x') }}
 
 tests:
-  - script:
-      - if: linux
-        then:
-          - test -f "${PREFIX}/lib/libdseams_plumed.so"
-          - ldd "${PREFIX}/lib/libdseams_plumed.so"
-      - if: osx
-        then:
-          - test -f "${PREFIX}/lib/libdseams_plumed.dylib"
+  - files:
+      recipe:
+        - plumed.dat
+        - frames.xyz
+    script:
+      - echo "LOAD FILE=${PREFIX}/lib/libdseams_plumed${SHLIB_EXT}" > load.dat
+      - cat plumed.dat >> load.dat
+      - plumed driver --natoms 64 --parse-only --plumed load.dat
+      - plumed driver --plumed load.dat --ixyz frames.xyz --length-units A
+      - test "$(awk 'NR == 2 {print $2, $3, $4, $5, $6}' ICE)" = "64 64 1 64 0"
+      - test "$(awk 'NR == 3 {print $2, $3, $4, $5, $6}' ICE)" = "0 0 0 0 0"
 
 about:
   homepage: https://dseams.info
