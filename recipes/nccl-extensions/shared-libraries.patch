@@ -1,0 +1,84 @@
+--- a/nccl_ep/Makefile
++++ b/nccl_ep/Makefile
+@@ -190,7 +190,7 @@
+ $(SOLIBTARGET): $(ALL_OBJ) $(DEVGLUE_OBJ) | $(NCCL_EP_JIT_HEADER_TARGETS)
+ 	@echo "Creating shared library $@"
+ 	@mkdir -p $(dir $@)
+-	$(NVCC) -shared -cudart=static $(NVCC_GENCODE) -Xlinker -soname=$(SOLIBSONAME) \
++	$(NVCC) -shared -cudart=shared $(NVCC_GENCODE) -Xlinker -soname=$(SOLIBSONAME) \
+ 		-o $@ $^ -L$(NCCL_LIBDIR) -lnccl \
+ 		$(CUDA_DRIVER_LDFLAGS) -lcuda $(LDFLAGS)
+ 
+--- a/python/nccl/_extensions/bindings/_internal/nccl_ep_linux.pyx
++++ b/python/nccl/_extensions/bindings/_internal/nccl_ep_linux.pyx
+@@ -56,6 +56,7 @@
+ from .utils import FunctionNotFoundError, NotSupportedError
+ 
+ import os
++import sys
+ from nccl._extensions._runtime import bundled_library
+ 
+ 
+@@ -91,10 +92,10 @@
+         return pkg_lib
+ 
+     # 2. CONDA_PREFIX/lib[64]
+-    conda_prefix = os.environ.get("CONDA_PREFIX")
++    conda_prefix = sys.prefix
+     if conda_prefix:
+         for sub in ("lib", "lib64"):
+-            candidate = os.path.join(conda_prefix, sub, "libnccl_ep.so")
++            candidate = os.path.join(conda_prefix, sub, "libnccl_ep.so.0")
+             if os.path.exists(candidate):
+                 return candidate
+ 
+@@ -103,14 +104,14 @@
+         root = os.environ.get(env_var)
+         if root:
+             for sub in ("lib", "lib64"):
+-                candidate = os.path.join(root, sub, "libnccl_ep.so")
++                candidate = os.path.join(root, sub, "libnccl_ep.so.0")
+                 if os.path.exists(candidate):
+                     return candidate
+ 
+     # 4. SONAME fallback — let dlopen perform its own search across
+     # LD_LIBRARY_PATH, /etc/ld.so.cache, and /lib, /usr/lib, /lib64,
+     # /usr/lib64. If it fails the caller surfaces a clear error.
+-    return "libnccl_ep.so"
++    return "libnccl_ep.so.0"
+ 
+ 
+ ###############################################################################
+--- a/python/nccl/_extensions/bindings/_internal/nccl_m2n_linux.pyx
++++ b/python/nccl/_extensions/bindings/_internal/nccl_m2n_linux.pyx
+@@ -6,6 +6,7 @@
+ from libc.stdint cimport intptr_t
+ 
+ import os
++import sys
+ import threading
+ 
+ from cuda.pathfinder import load_nvidia_dynamic_lib
+@@ -45,7 +46,7 @@
+     if home:
+         candidates.append(os.path.join(home, "lib", "libnccl_m2n.so"))
+ 
+-    conda_prefix = os.environ.get("CONDA_PREFIX")
++    conda_prefix = sys.prefix
+     if conda_prefix:
+         for subdir in ("lib", "lib64"):
+             candidates.append(os.path.join(conda_prefix, subdir, "libnccl_m2n.so"))
+--- a/nccl_ep/device/jit/nvcc_compiler.cc
++++ b/nccl_ep/device/jit/nvcc_compiler.cc
+@@ -42,7 +42,11 @@
+         if (std::filesystem::exists(cuda_nvcc, ec)) return cuda_nvcc.string();
+     }
+ 
++#ifdef NCCL_EP_JIT_NVCC
++    return NCCL_EP_JIT_NVCC;
++#else
+     return "nvcc";
++#endif
+ }
+ 
+ std::vector<std::string> include_options(const JitCompileConfig& config) {

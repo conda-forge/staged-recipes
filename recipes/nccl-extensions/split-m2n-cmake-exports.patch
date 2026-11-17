@@ -1,0 +1,53 @@
+--- a/nccl_m2n/CMakeLists.txt
++++ b/nccl_m2n/CMakeLists.txt
+@@ -289,20 +289,28 @@
+   set(NCCL_M2N_BUILD_PACKAGE_DIR "${NCCL_M2N_BINARY_DIR}/cmake")
+   file(MAKE_DIRECTORY "${NCCL_M2N_BUILD_PACKAGE_DIR}/install")
+ 
+-  install(TARGETS nccl_m2n_shared nccl_m2n_static
+-      EXPORT NCCLM2NTargets
+-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+-      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++  # Separate export sets let shared consumers install without the archive.
++  foreach(_variant IN ITEMS shared static)
++    if(_variant STREQUAL "shared")
++      set(_export NCCLM2NTargets)
++    else()
++      set(_export NCCLM2NStaticTargets)
++    endif()
++    install(TARGETS nccl_m2n_${_variant}
++        EXPORT ${_export}
++        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++    install(EXPORT ${_export}
++        FILE ${_export}.cmake
++        NAMESPACE NCCL::
++        DESTINATION "${NCCL_M2N_PACKAGE_INSTALL_DIR}")
++    export(EXPORT ${_export}
++        FILE "${NCCL_M2N_BUILD_PACKAGE_DIR}/${_export}.cmake"
++        NAMESPACE NCCL::)
++  endforeach()
+   install(FILES ${NCCL_M2N_PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+-  install(EXPORT NCCLM2NTargets
+-      FILE NCCLM2NTargets.cmake
+-      NAMESPACE NCCL::
+-      DESTINATION "${NCCL_M2N_PACKAGE_INSTALL_DIR}")
+-  export(EXPORT NCCLM2NTargets
+-      FILE "${NCCL_M2N_BUILD_PACKAGE_DIR}/NCCLM2NTargets.cmake"
+-      NAMESPACE NCCL::)
+ 
+   set(NCCL_M2N_CONFIG_NCCL_HINT "${NCCL_HOME}")
+   configure_package_config_file(
+--- a/nccl_m2n/cmake/NCCLM2NConfig.cmake.in
++++ b/nccl_m2n/cmake/NCCLM2NConfig.cmake.in
+@@ -69,4 +69,6 @@
+ endif()
+ 
+ include("${CMAKE_CURRENT_LIST_DIR}/NCCLM2NTargets.cmake")
++# The static archive and its target exports are an optional companion package.
++include("${CMAKE_CURRENT_LIST_DIR}/NCCLM2NStaticTargets.cmake" OPTIONAL)
+ check_required_components(NCCLM2N)
