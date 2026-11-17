@@ -259,10 +259,14 @@ EOF
 # The freshly built tools are needed to convert the ASCII databases to
 # binary. They are run through a short symbolic link to the installation
 # because ESP-r cannot handle a path as long as the conda build prefix.
+# They also build file names from the home folder in short strings, and
+# write files there: give them a short, empty one.
 short_esp="$(mktemp -u /tmp/espr-XXXXXX)"
 ln -s "${ESPdir}" "${short_esp}"
-trap 'rm -f "${short_esp}"' EXIT
+esp_home="$(mktemp -d /tmp/espr-home-XXXXXX)"
+trap 'rm -f "${short_esp}"; rm -rf "${esp_home}"' EXIT
 export ESPRDIR="${short_esp}"
+export HOME="${esp_home}"
 PDB="${ESPdir}/bin/pdb"
 CLM="${ESPdir}/bin/clm"
 

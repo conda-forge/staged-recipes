@@ -8,6 +8,12 @@ ln -s "${PREFIX}/opt/esp-r" "${esp_short}"
 trap 'rm -f "${esp_short}"' EXIT
 export ESPRDIR="${esp_short}"
 
+# The programs also build file names from the home folder and write files
+# there: use a short, empty one.
+esp_home="$(mktemp -d /tmp/espr-home-XXXXXX)"
+trap 'rm -f "${esp_short}"; rm -rf "${esp_home}"' EXIT
+export HOME="${esp_home}"
+
 # Weather file: binary -> ASCII export.
 clm -mode text -file "${ESPRDIR}/climate/clm67" -act bin2asci silent clm67.a
 test -s clm67.a
