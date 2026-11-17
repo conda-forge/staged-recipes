@@ -13,11 +13,19 @@ source:
 
 build:
   number: 0
+  python:
+    # pip's Windows launcher embeds the build prefix as its interpreter path.
+    # rattler-build writes relocatable entry points from this list instead.
+    entry_points:
+      - pdfluent = pdfluent._cli:main
   script:
     - cd pdf-python
     - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
     - cd ..
     - python -m pip install . -vv --no-deps --no-build-isolation
+    - if: win
+      then:
+        - if exist "%PREFIX%\Scripts\pdfluent.exe" del "%PREFIX%\\Scripts\\pdfluent.exe"
 
 requirements:
   build:
@@ -43,16 +51,7 @@ tests:
         - pdfluent
       pip_check: true
   - script:
-      - if: win
-        then:
-          - where pdfluent
-          - python -c "import pdfluent, sys; print(pdfluent.__file__, sys.executable)"
-          - python -m pdfluent --help
-          - python -c "import pdfluent._cli as c, sys; sys.exit(c.main(['--help']))"
-          - python -c "import sys; print(open(sys.prefix + '/Scripts/pdfluent.exe','rb').read()[-400:])"
-          - pdfluent --help
-        else:
-          - pdfluent --help
+      - pdfluent --help
 
 about:
   homepage: https://pdfluent.com
