@@ -81,6 +81,7 @@ tests:
   - files:
       source:
         - docs/examples/quickstart.c
+        - input/traj/ice1h.lammpstrj
     requirements:
       run:
         - ${{ compiler('c') }}
@@ -94,6 +95,13 @@ tests:
       - pkg-config --exists --print-errors seams-lang
       - ${CC} ${CFLAGS} -std=c11 docs/examples/quickstart.c $(pkg-config --cflags --libs seams) -lm ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o quickstart
       - ./quickstart
+      - test "$(seams chill-plus input/traj/ice1h.lammpstrj)" = "nop 128 hexagonal 128"
+      - test "$(seams cages input/traj/ice1h.lammpstrj)" = "nop 128 graph seeded hexagonal 128 cubic 0 both 0 water 0"
+      - test "$(seams cluster input/traj/ice1h.lammpstrj)" = "nop 128 largest 127 subset 128 percolation 0.992188"
+      - test "$(nucleation-pathway input/traj/ice1h.lammpstrj --out nucleation.tsv --summary nucleation.summary 2>&1)" = "frame 1 nop 128 chill 128 ovito 128 q6 128 sym 128 n6 256"
+      - test "$(awk '$1 == "molecules" {print $2}' nucleation.summary)" = "128"
+      - test "$(science-front nucleation input/traj/ice1h.lammpstrj --out-dir front 2>&1)" = "nucleus frame 1 ext 128 core 128 q6 128 shell 128"
+      - test -s front/nucleation-summary.csv
 
 about:
   homepage: https://dseams.info
