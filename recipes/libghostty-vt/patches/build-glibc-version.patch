@@ -1,0 +1,20 @@
+--- a/build.zig
++++ b/build.zig
+@@ -18,6 +18,17 @@
+ }
+ 
+ pub fn build(b: *std.Build) !void {
++    // Match build-time tools to the libc installation supplied by the packager.
++    // Native host detection otherwise selects APIs newer than the sysroot.
++    if (b.option([]const u8, "build-glibc-version", "glibc version for build-time tools")) |version| {
++        var query = b.graph.host.query;
++        query.cpu_arch = b.graph.host.result.cpu.arch;
++        query.os_tag = b.graph.host.result.os.tag;
++        query.abi = b.graph.host.result.abi;
++        query.glibc_version = try std.SemanticVersion.parse(version);
++        b.graph.host = b.resolveTargetQuery(query);
++    }
++
+     // This defines all the available build options (e.g. `-D`). If you
+     // want to know what options are available, you can run `--help` or
+     // you can read `src/build/Config.zig`.
