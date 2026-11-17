@@ -1,0 +1,57 @@
+schema_version: 1
+
+context:
+  name: fleche-pandas
+  version: "1.0.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/fleche_pandas-${{ version }}.tar.gz
+  sha256: 284033826565549ca97f84953528f288ab266350a4df91023cadd0825e53fbc2
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=64.0
+    - pip
+  run:
+    - python >=${{ python_min }},<3.15
+    # fleche's core; the conda-forge `fleche` package is a metapackage that
+    # pulls this one in, so depending on it would be circular.
+    - fleche-base >=0.24.0
+    - fleche-numpy >=1.0.0
+    - pandas >=2.2,<4
+
+tests:
+  - python:
+      imports:
+        - fleche_pandas
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - script:
+      # The hooks reach fleche through its entry point; without them fleche
+      # raises Indigestible for frames.
+      - python -c "import pandas as pd; from fleche.digest import digest; digest(pd.DataFrame(dict(a=[1, 2]))); digest(pd.Series([1.0]))"
+
+about:
+  homepage: https://github.com/pmrv/fleche
+  documentation: https://fleche.readthedocs.io/
+  repository: https://github.com/pmrv/fleche
+  summary: pandas digest hooks for fleche
+  description: |
+    Lets fleche digest pandas objects, so functions taking them can be
+    cached.  Installed by the conda-forge `fleche` metapackage.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pmrv
