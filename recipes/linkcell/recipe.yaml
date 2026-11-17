@@ -1,0 +1,97 @@
+schema_version: 1
+
+context:
+  version: "0.4.2"
+
+package:
+  name: linkcell
+  version: ${{ version }}
+
+source:
+  url: https://github.com/d-SEAMS/linkcell/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 40982f7494957dda3aec7db989fd88b936079390d8eff80785c4996692c46e09
+
+build:
+  number: 0
+  # Python only runs the meson cargo helper. It is not part of the library.
+  variant:
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkgconf
+    - python
+    - cargo-bundle-licenses
+    - if: win
+      then:
+        - m2-bash
+  host:
+    # The fused OpenMP region is built on glibc Linux only. macOS keeps
+    # the rayon walk and does not link an OpenMP runtime.
+    - if: linux
+      then:
+        - libgomp
+  run_exports:
+    - ${{ pin_subpackage('linkcell', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - linkcell
+      include:
+        - linkcell.h
+        - linkcell.hpp
+        - linkcell_gpu.h
+        - linkcell_gpu.hpp
+      files:
+        exists:
+          - if: unix
+            then: lib/pkgconfig/linkcell.pc
+          - if: win
+            then: Library/lib/pkgconfig/linkcell.pc
+  - files:
+      recipe:
+        - test_knearest.c
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - pkgconf
+    script:
+      - if: unix
+        then:
+          - test "$(pkg-config --modversion linkcell)" = "${{ version }}"
+          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest
+          - ./test_knearest
+      - if: win
+        then:
+          - pkg-config --modversion linkcell
+          - cl -nologo /std:c11 /I%LIBRARY_INC% test_knearest.c /Fe:test_knearest.exe /link /LIBPATH:%LIBRARY_LIB% linkcell.lib
+          - test_knearest.exe
+
+about:
+  homepage: https://github.com/d-SEAMS/linkcell
+  repository: https://github.com/d-SEAMS/linkcell
+  documentation: https://d-seams.github.io/linkcell/
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Periodic linked-cell k-nearest neighbour search
+  description: |
+    linkcell is the periodic linked-cell k-nearest neighbour search
+    used by the d-SEAMS engine. This package ships the shared library,
+    the C and C++ headers, and the pkg-config file.
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
+    - amritagos
+    - RuhiRG
