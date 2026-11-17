@@ -1,0 +1,243 @@
+schema_version: 1
+
+context:
+  version: 0.1.0
+  cuda_major: ${{ (cuda_compiler_version | split('.'))[0] if cuda_compiler_version != "None" else "0" }}
+  cuda_build_string: cuda${{ cuda_compiler_version | version_to_buildstring }}
+
+recipe:
+  name: nccl-extensions
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/nccl-extensions/archive/nccl-extensions-v${{ version }}.tar.gz
+  sha256: ea297c92e11c88817a17ea019d372f5e10484c6408c85055738bcf944090cd97
+  patches:
+    - shared-libraries.patch
+    - split-m2n-cmake-exports.patch
+
+build:
+  number: 0
+  skip: not linux or cuda_compiler_version == "None"
+  string: ${{ cuda_build_string }}_h${{ hash }}_${{ build_number }}
+
+outputs:
+  - staging:
+      name: native-build
+    build:
+      script: build.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+        - ${{ stdlib('c') }}
+        - make
+        - cmake
+        - ninja
+      host:
+        - cuda-cudart-dev
+        - cuda-driver-dev
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - nccl >=2.30.7
+        - nccl
+      ignore_run_exports:
+        by_name:
+          - cuda-version
+
+  - package:
+      name: libnccl-ep
+    inherit: native-build
+    build:
+      files:
+        - lib/libnccl_ep.so.*
+        # These C headers are also inputs to EP's runtime JIT compiler.
+        - include/nccl_ep.h
+        - include/nccl_ep/**
+    requirements:
+      run:
+        # EP JIT compiles kernels at runtime. Keep the toolkit at least as
+        # new as the build; Blackwell CFT kernels require CUDA 13.3+.
+        - cuda-nvcc
+        - cuda-cudart-dev
+        - cuda-cccl
+        - cuda-version >=${{ cuda_compiler_version }},<${{ cuda_major | int + 1 }}.0a0
+    tests:
+      - script:
+          - test -f "$PREFIX/lib/libnccl_ep.so.0"
+          - test -f "$PREFIX/include/nccl_ep.h"
+          - test -f "$PREFIX/include/nccl_ep/device/ht_ep.cuh"
+
+  - package:
+      name: libnccl-ep-devel
+    inherit:
+      from: native-build
+      run_exports: false
+    build:
+      files:
+        - lib/libnccl_ep.so
+    requirements:
+      run:
+        - ${{ pin_subpackage('libnccl-ep', exact=True) }}
+        - nccl
+        - cuda-cudart-dev
+      run_exports:
+        - ${{ pin_subpackage('libnccl-ep', upper_bound='x.x') }}
+    tests:
+      - script:
+          - test -L "$PREFIX/lib/libnccl_ep.so"
+          - test -f "$PREFIX/lib/libnccl_ep.so"
+
+  - package:
+      name: libnccl-ep-static
+    inherit:
+      from: native-build
+      run_exports: false
+    build:
+      files:
+        - lib/libnccl_ep.a
+    requirements:
+      run:
+        - ${{ pin_subpackage('libnccl-ep', exact=True) }}
+    tests:
+      - script:
+          - test -f "$PREFIX/lib/libnccl_ep.a"
+
+  - package:
+      name: libnccl-m2n
+    inherit: native-build
+    build:
+      files:
+        - lib/libnccl_m2n.so
+    requirements:
+      run:
+        # M2N uses compiled kernels; allow CUDA enhanced compatibility.
+        - cuda-cudart
+        - cuda-version >=${{ cuda_major }}.0,<${{ cuda_major | int + 1 }}.0a0
+      ignore_run_exports:
+        from_package:
+          - cuda-cudart-dev
+    tests:
+      - script:
+          - test -f "$PREFIX/lib/libnccl_m2n.so"
+
+  - package:
+      name: libnccl-m2n-devel
+    inherit:
+      from: native-build
+      run_exports: false
+    build:
+      files:
+        # M2N has no runtime JIT; its C header is needed only by consumers.
+        - include/nccl_m2n.h
+        - lib/cmake/NCCLM2N/NCCLM2NConfig*.cmake
+        - lib/cmake/NCCLM2N/NCCLM2NTargets*.cmake
+    requirements:
+      run:
+        - ${{ pin_subpackage('libnccl-m2n', exact=True) }}
+        - nccl
+        - cuda-cudart-dev
+        - cuda-driver-dev
+      run_exports:
+        - ${{ pin_subpackage('libnccl-m2n', upper_bound='x.x') }}
+    tests:
+      - script: test-cmake.sh
+        requirements:
+          run:
+            - cmake
+            - ninja
+            - cuda-nvcc
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+
+  - package:
+      name: libnccl-m2n-static
+    inherit:
+      from: native-build
+      run_exports: false
+    build:
+      files:
+        - lib/libnccl_m2n.a
+        - lib/cmake/NCCLM2N/NCCLM2NStaticTargets*.cmake
+    requirements:
+      run:
+        - ${{ pin_subpackage('libnccl-m2n-devel', exact=True) }}
+    tests:
+      - script:
+          - test -f "$PREFIX/lib/libnccl_m2n.a"
+          - test -f "$PREFIX/include/nccl_m2n.h"
+      - script: bash test-cmake.sh --static
+        files:
+          recipe:
+            - test-cmake.sh
+        requirements:
+          run:
+            - cmake
+            - ninja
+            - cuda-nvcc
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+
+  - package:
+      name: nccl-extensions
+    build:
+      string: ${{ cuda_build_string }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+      script: build-python.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+      host:
+        - python
+        - pip
+        - cython >=3.1
+        - setuptools >=77.0.3
+        - packaging
+        - nccl4py
+        - cuda-cudart-dev
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - ${{ pin_subpackage('libnccl-ep', exact=True) }}
+        - ${{ pin_subpackage('libnccl-m2n', exact=True) }}
+      run:
+        - python
+        - ${{ pin_subpackage('libnccl-ep', exact=True) }}
+        - ${{ pin_subpackage('libnccl-m2n', exact=True) }}
+        - cuda-core >=1.0,<2.0a0
+        - cuda-pathfinder >=1.5.4,<2.0.0
+        - nccl4py
+        - numpy
+        - packaging
+        - typing_extensions
+      ignore_run_exports:
+        from_package:
+          - cuda-cudart-dev
+        by_name:
+          - cuda-version
+    tests:
+      - python:
+          imports:
+            - nccl._extensions
+            - nccl.ep
+            - nccl.m2n
+          pip_check: true
+      - script: test_bindings.py
+        requirements:
+          run:
+            - python
+            - binutils
+
+about:
+  homepage: https://github.com/NVIDIA/nccl-extensions
+  summary: Python bindings for the nccl-extensions communication libraries (nccl_ep, nccl_m2n)
+  license: MIT AND Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - python/LICENSE.txt
+    - nccl_m2n/third_party/nlohmann/LICENSE.MIT
+    - nccl_ep/LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - shermansiu
+    - conda-forge/cuda
