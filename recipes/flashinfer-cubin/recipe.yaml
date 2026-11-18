@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  name: flashinfer-cubin
+  version: 0.7.4
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # The flashinfer-cubin build backend imports flashinfer from the repository
+  # root, so it needs the whole release archive. It does not need the submodules.
+  url: https://github.com/flashinfer-ai/flashinfer/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6047cd3a82402cc4504bcfef78e6424ec6d29fd0485272b8c8ae04ae15ddc16e
+
+build:
+  number: 0
+  # The cubins are device code for NVIDIA GPUs, so there is no CPU-only variant.
+  # Linux only because FlashInfer is Linux only.
+  skip: not linux or cuda_compiler_version == "None"
+  python:
+    # The wheel is py3-none-any, but the DSL-FMHA cubins are different on x86_64
+    # and aarch64, so this cannot be a noarch package.
+    version_independent: true
+  variant:
+    # Build the 1.8 GB of cubins once, not once per Python version.
+    ignore_keys:
+      - python
+  script:
+    # The build backend downloads about 1.8 GB of cubins from the FlashInfer
+    # artifactory (https://edge.urm.nvidia.com/artifactory), and verifies them
+    # against the sha256 checksums pinned in flashinfer/artifacts.py.
+    - ${{ PYTHON }} -m pip install ./flashinfer-cubin -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools >=61
+    - wheel
+    # The build backend imports flashinfer.artifacts, which imports flashinfer
+    # and torch to get the list of files to download. Nothing is compiled, so
+    # the CPU build of PyTorch is enough.
+    - apache-tvm-ffi >=0.1.11,<0.2
+    - filelock
+    - numpy
+    - nvidia-ml-py
+    - pytorch * [build=cpu*]
+    - requests
+    - tqdm
+    - cuda-arch ${{ cuda_arch_version }}.*
+  run:
+    - python
+  run_constraints:
+    # Upstream has no dependency on flashinfer-python, which finds this package
+    # at runtime and ignores it, with a warning, when the versions differ.
+    - flashinfer-python ==${{ version }}
+
+tests:
+  - python:
+      imports:
+        - flashinfer_cubin
+      pip_check: true
+  - requirements:
+      run:
+        - cuda-arch ${{ cuda_arch_version }}.*
+    script:
+      - python -c "import flashinfer_cubin as c; assert c.__version__ == '${{ version }}', c.__version__; assert len(c.list_cubins()) > 0"
+
+about:
+  homepage: https://flashinfer.ai/
+  repository: https://github.com/flashinfer-ai/flashinfer
+  documentation: https://docs.flashinfer.ai/
+  summary: Pre-compiled cubins for FlashInfer
+  # TODO: Confirm the license of the cubins. They are built by NVIDIA and
+  # downloaded from the FlashInfer artifactory; five of the downloaded
+  # directories contain an Apache-2.0 LICENSE and the others contain none.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - shermansiu
