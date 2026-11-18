@@ -1,0 +1,100 @@
+schema_version: 1
+
+context:
+  name: morphogen
+  version: "1.0.0"  # src/morphogen/_version.py
+  python_min: "3.12"  # requires-python
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/morphogen/morphogen-${{ version }}.tar.gz
+  sha256: 5b738e770a750ecc6f4b7d9e83400c88779946842ead6cc5a1b6e58dcfd0dee0
+
+build:
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - morphogen = morphogen.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling >=1.27
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.26
+    - scipy >=1.12
+    - numba >=0.60
+    - pyyaml >=6.0
+  # the optional dependencies (the extras of the PyPI package), when installed; for the
+  # extra mesh (pymmg, not on conda-forge), the package mmg puts mmg3d on the PATH
+  run_constraints:
+    - scikit-image >=0.22  # surface
+    - tifffile >=2024.1  # io
+    - meshio >=5.3  # io
+    - matplotlib-base >=3.8  # plot
+    - vtk >=9.3  # video
+    - imageio-ffmpeg >=0.4  # video
+    - pywebview >=5.0  # desktop (the stand-alone application)
+    - cupy >=14  # gpu (cupy-cuda13x on PyPI; conda-forge's brings its CUDA libraries)
+
+tests:
+  - python:
+      imports:
+        - morphogen
+        - morphogen.analysis
+        - morphogen.automata
+        - morphogen.contact
+        - morphogen.coupling
+        - morphogen.design
+        - morphogen.dynamics
+        - morphogen.fracture
+        - morphogen.homogenization
+        - morphogen.iga
+        - morphogen.io
+        - morphogen.laser
+        - morphogen.learning
+        - morphogen.mesh
+        - morphogen.micromorphic
+        - morphogen.models
+        - morphogen.optimization
+        - morphogen.rve
+        - morphogen.viz
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - script:
+      - morphogen info
+      - morphogen template boolean_spheres -o smoke.yaml
+      - morphogen run smoke.yaml -o smoke_out -q
+      - test -f smoke_out/results.csv
+
+about:
+  homepage: https://github.com/jdirr/morphoGen
+  repository: https://github.com/jdirr/morphoGen
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: Morphological modelling and generation of virtual microstructures for RVE studies
+  description: |
+    morphoGen generates random media from models of mathematical morphology and
+    stochastic geometry, architected and bio-inspired materials, polycrystals, fibre
+    networks and the microstructures grown by cellular automata; measures them,
+    percolation included, against the theory of their models where it exists; estimates
+    the size of their representative volume elements; computes their apparent properties by finite
+    elements and FFT (on the CPU or, with cupy, an NVIDIA GPU), in linear and nonlinear
+    behaviours, and the macroscopic laws identified or learned from them; simulates their
+    crushing and impacts with OpenRadioss; and writes them for other codes (Z-set, MFront,
+    AMITEX_FFTP, Abaqus, OpenRadioss, FEniCSx, Neper, DAMASK). The graphical interface runs
+    in the web browser or, with pywebview, as a stand-alone application.
+    The conforming meshes need MMG: the package mmg of conda-forge puts mmg3d on the PATH.
+
+extra:
+  recipe-maintainers:
+    - jdirr
