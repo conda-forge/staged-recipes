@@ -1,0 +1,106 @@
+context:
+  version: "1.9b"
+
+package:
+  name: alexandria
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AlexandriaChemistry/ACT/archive/v${{ version }}.tar.gz
+  sha256: 4db89fe6e00c9e62109889d84603db3ecbdb60271d2702fa6cf3b30e9f0df07f
+
+build:
+  number: 0
+  # Apple silicon with ARM NEON, and x86-64 with AVX2 and SYCL with the CUDA
+  # backend of AdaptiveCpp; other platforms are not supported yet
+  skip:
+    - not ((osx and arm64) or (linux and x86_64))
+  string: mpi_${{ mpi }}_${{ gpu }}_h${{ hash }}_${{ build_number }}
+  script:
+    file: build.sh
+    env:
+      ACT_GPU_VARIANT: ${{ gpu }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.24
+    - make
+    - if: build_platform != target_platform
+      then:
+        - ${{ mpi }}
+    # Compiles everything for x86-64-v3 (AVX2, FMA); its run_exports keep the
+    # package from installing on processors without AVX2
+    - if: linux and x86_64
+      then:
+        - x86_64-microarch-level ==3
+  host:
+    - ${{ mpi }}
+    # The Python modules and data files of ACT, which CMake checks for; they
+    # bring Python into the host environment
+    - act-utilities ==${{ version }}
+    - libxml2-devel
+    - eigen >=5
+    - nlohmann_json
+    - libboost-devel
+    - librdkit-dev
+    - librdkit
+    - libsqlite
+    - if: gpu == "sycl_cuda"
+      then:
+        - adaptivecpp * cuda*
+  run:
+    - ${{ mpi }}
+    - act-utilities ==${{ version }}
+    # The libraries of RDKit change ABI with each release
+    - ${{ pin_compatible('librdkit', upper_bound='x.x.x') }}
+    # A build of AdaptiveCpp with the CUDA backend, for any CUDA version: the
+    # solver takes the newest that the NVIDIA driver supports
+    - if: gpu == "sycl_cuda"
+      then:
+        - ${{ pin_compatible('adaptivecpp', upper_bound='x.x', build='cuda*') }}
+  run_constraints:
+    - if: gpu == "sycl_cuda"
+      then:
+        - __cuda
+  ignore_run_exports:
+    by_name:
+      # Pins one build string of librdkit, see the pin above
+      - librdkit
+
+tests:
+  - script:
+      # MPICH may fail to open the network devices of the test machine
+      - export UCX_TLS=self,sm,tcp
+      - alexandria -h
+      - alexandria train_ff -h
+      - test -f $PREFIX/share/act/alexandria.json
+      - 'alexandria -version | grep "Precision: *single"'
+      - if: osx
+        then: 'alexandria -version | grep "Explicit SIMD: *ARM_NEON"'
+      - if: linux
+        then: 'alexandria -version | grep "Explicit SIMD: *AVX2"'
+      - if: gpu == "sycl_cuda"
+        then: 'alexandria -version | grep "GPU support: *SYCL"'
+
+about:
+  homepage: https://github.com/AlexandriaChemistry/ACT
+  repository: https://github.com/AlexandriaChemistry/ACT
+  documentation: https://alexandriachemistry.github.io/ACT
+  license: GPL-2.0-or-later AND LGPL-2.1-or-later
+  license_file: COPYING
+  summary: Alexandria Chemistry Toolkit, machine learning of physics-based force fields
+  description: |
+    The Alexandria Chemistry Toolkit (ACT) trains physics-based force fields
+    for molecular simulation on quantum chemistry data, with evolutionary
+    algorithms and Markov chain Monte Carlo. The ACT files are under the GPL
+    version 2 or later, the parts derived from GROMACS under the LGPL version
+    2.1 or later.
+
+extra:
+  recipe-maintainers:
+    - dspoel
+    - JulianKoengeter
+    - MansRosenbaum
