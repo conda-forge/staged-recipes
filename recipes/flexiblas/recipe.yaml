@@ -1,0 +1,119 @@
+context:
+  version: "3.5.0"
+
+recipe:
+  name: flexiblas
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mpimd-csc/flexiblas/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 175bd4ad7b44348c5dc0531c7a0169ad451cbc9a3d018dd17f01d4a0d0244680
+
+build:
+  number: 0
+
+outputs:
+  - staging:
+      name: flexiblas-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('fortran') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - make
+      host:
+        - libopenblas
+        - libblas * *netlib
+        - libcblas * *netlib
+        - liblapack * *netlib
+        - liblapacke * *netlib
+    build:
+      script:
+        - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ PREFIX }} -DSYSCONFDIR=${{ PREFIX }}/etc -DBLAS_AUTO_DETECT=OFF -DEXAMPLES=OFF -DTESTS=OFF -DFLEXIBLAS_DEFAULT=OPENBLASPTHREAD -DFLEXIBLAS_DEFAULT_BLAS=OPENBLASPTHREAD -DEXTRA=OpenBLASPThread -DOpenBLASPThread_LIBRARY=${{ PREFIX }}/lib/${{ 'libopenblas.dylib' if osx else 'libopenblas.so.0' }} -DSYS_BLAS_LIBRARY=${{ PREFIX }}/lib/libblas${{ '.dylib' if osx else '.so' }} -DSYS_LAPACK_LIBRARY=${{ PREFIX }}/lib/liblapack${{ '.dylib' if osx else '.so' }}
+        - cmake --build build --parallel ${{ env.get("CPU_COUNT", default="1") }}
+        - cmake --install build
+
+  - package:
+      name: libflexiblas
+    inherit:
+      from: flexiblas-build
+      run_exports: false
+    build:
+      number: 0
+      skip:
+        - win
+      files:
+        - lib/libflexiblas*
+        - lib/flexiblas/**
+        - include/flexiblas/**
+        - lib/pkgconfig/flexiblas*.pc
+        - etc/flexiblasrc
+        - etc/flexiblasrc.d/**
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('libflexiblas', upper_bound='x') }}
+      run:
+        - libopenblas
+        - libblas * *netlib
+        - libcblas * *netlib
+        - liblapack * *netlib
+        - liblapacke * *netlib
+    tests:
+      - script:
+          - pkg-config --exists flexiblas
+          - ${{ env.get("CC", default="cc") }} test_flexiblas_c.c -o test_flexiblas_c -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -lflexiblas -lm
+          - ${{ env.get("FC", default="gfortran") }} test_flexiblas_fortran.f90 -o test_flexiblas_fortran -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -lflexiblas
+          - FLEXIBLAS=OPENBLASPTHREAD ./test_flexiblas_c
+          - FLEXIBLAS=NETLIB ./test_flexiblas_c
+          - FLEXIBLAS=OPENBLASPTHREAD ./test_flexiblas_fortran
+          - FLEXIBLAS=NETLIB ./test_flexiblas_fortran
+        files:
+          recipe:
+            - test_flexiblas_c.c
+            - test_flexiblas_fortran.f90
+        requirements:
+          run:
+            - pkg-config
+            - ${{ compiler('c') }}
+            - ${{ compiler('fortran') }}
+
+  - package:
+      name: flexiblas
+    inherit:
+      from: flexiblas-build
+      run_exports: false
+    build:
+      number: 0
+      skip:
+        - win
+      files:
+        - bin/flexiblas
+        - bin/flexiblas-config
+        - share/man/man1/flexiblas*.1
+    requirements:
+      run:
+        - ${{ pin_subpackage('libflexiblas', exact=True) }}
+    tests:
+      - script:
+          - flexiblas --help
+          - flexiblas list
+          - flexiblas print
+
+about:
+  homepage: https://github.com/mpimd-csc/flexiblas
+  repository: https://github.com/mpimd-csc/flexiblas
+  summary: Runtime BLAS/LAPACK wrapper with switchable backend libraries
+  description: |
+    FlexiBLAS provides BLAS and LAPACK entry points and dispatches calls
+    to a selected backend at runtime. This package is configured with
+    conda-forge provided NETLIB and OpenBLAS backends.
+  license: LGPL-3.0-or-later AND BSD-3-Clause
+  license_file:
+    - COPYING
+    - COPYING.NETLIB
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
