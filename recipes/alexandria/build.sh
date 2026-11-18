@@ -8,10 +8,19 @@ case "${target_platform}" in
     *)                       SIMD=NONE ;;
 esac
 
-case "${ACT_GPU_VARIANT:-none}" in
-    sycl_*) GPU="-DACT_GPU=SYCL -DAdaptiveCpp_DIR=${PREFIX}/lib/cmake/AdaptiveCpp" ;;
-    *)      GPU="-DACT_GPU=NONE" ;;
-esac
+GPU=(-DACT_GPU=NONE)
+if [[ "${ACT_GPU_VARIANT:-none}" == sycl_* ]]; then
+    GPU=(-DACT_GPU=SYCL -DAdaptiveCpp_DIR="${PREFIX}/lib/cmake/AdaptiveCpp")
+    if [[ "${target_platform}" == linux-* ]]; then
+        # acpp compiles and links libactGpu with the clang of AdaptiveCpp,
+        # which has no sysroot of its own and would take the headers and the
+        # C library of the build machine or container,
+        # so that the package does not run on systems with an older glibc.
+        # Give it the sysroot and the GCC (libstdc++) of the conda compiler.
+        GCC_DIR=$(dirname "$(${CXX} -print-libgcc-file-name)")
+        GPU+=("-DACPP_EXTRA_ARGS=--sysroot=$(${CXX} -print-sysroot) --gcc-install-dir=${GCC_DIR}")
+    fi
+fi
 
 # Warnings are errors in the ACT build, which is good for development, but a
 # newer compiler or library should not stop the package from building.
@@ -23,12 +32,37 @@ cmake ${CMAKE_ARGS} --compile-no-warning-as-error -S . -B build \
     -DBUILD_SHARED_LIBS=ON \
     -DACT_MPI=ON \
     -DACT_SIMD=${SIMD} \
-    ${GPU} \
+    "${GPU[@]}" \
     -DACT_OPENMP=OFF \
     -DACT_DOUBLE=OFF \
     -DACT_BUILD_TARBALL=ON
 
 cmake --build build --parallel ${CPU_COUNT}
+
+if [[ "${target_platform}" == linux-* ]]; then
+    # No library may need a newer glibc than that of the sysroot, which the
+    # package requires (__glibc)
+    SYSROOT=$(${CXX} -print-sysroot)
+    # features.h separates the words with tabs
+    LIMIT=$(awk '$1 == "#define" && $2 == "__GLIBC__" {a=$3}
+                 $1 == "#define" && $2 == "__GLIBC_MINOR__" {b=$3}
+                 END {if (a != "" && b != "") print a "." b}' \
+            "${SYSROOT}/usr/include/features.h")
+    if [[ -z "${LIMIT}" ]]; then
+        echo "No glibc version in ${SYSROOT}/usr/include/features.h"
+        exit 1
+    fi
+    NEEDED=$(for f in build/lib/*.so* build/bin/alexandria; do ${OBJDUMP:-objdump} -T "$f"; done |
+             grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sed 's/GLIBC_//' | sort -V -u | tail -1)
+    echo "glibc of the sysroot ${LIMIT}, newest needed ${NEEDED}"
+    if [[ "$(printf '%s\n%s\n' "${NEEDED}" "${LIMIT}" | sort -V | tail -1)" != "${LIMIT}" ]]; then
+        echo "A library needs glibc ${NEEDED}, newer than ${LIMIT} of the sysroot:"
+        for f in build/lib/*.so* build/bin/alexandria; do
+            ${OBJDUMP:-objdump} -T "$f" | grep -E "GLIBC_${NEEDED}" | sed "s|^|$f: |"
+        done
+        exit 1
+    fi
+fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]]; then
     # The test programs are not part of the default target
