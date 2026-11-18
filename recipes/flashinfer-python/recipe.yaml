@@ -2,90 +2,56 @@ schema_version: 1
 
 context:
   name: flashinfer-python
-  version: 0.3.1
-  cuda_build_string: cuda_${{ cuda_compiler_version | version_to_buildstring }}
-  is_cross_compiling: ${{ build_platform != target_platform }}
+  version: 0.7.4
+  python_min: "3.10"
 
 package:
   name: ${{ name|lower }}
   version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/flashinfer_python-${{ version }}.tar.gz
-  sha256: 992017d193dfbbc62e67401a6d5416629bf90b640872d14b7863de45e9371446
+  # The 3rdparty/ submodules (cutlass, cccl) are not in GitHub archives.
+  git: https://github.com/flashinfer-ai/flashinfer.git
+  tag: v${{ version }}
   patches:
     - patches/0001-Remove-unneeded-dependencies.patch
     - patches/0002-Use-spdlog-and-fmt-from-the-environment.patch
 
 build:
   number: 0
+  noarch: python
   script:
-    # FlashInfer expects a space-separated list without PTX suffixes.
-    # - export FLASHINFER_CUDA_ARCH_LIST=$(echo "$CF_TORCH_CUDA_ARCH_LIST" | tr ';' ' ' | sed 's/+PTX//g')
-    # For debugging only build one arch.
-    - export FLASHINFER_CUDA_ARCH_LIST="7.5"
-    - if: x86_64
-      then:
-        - export CUDA_HOME=$BUILD_PREFIX/targets/x86_64-linux
-    - if: aarch64
-      then:
-        - export CUDA_HOME=$BUILD_PREFIX/targets/sbsa-linux
-    - export NVSHMEM_INCLUDE_PATH=$PREFIX/include
-    - export NVSHMEM_LIBRARY_PATH=$PREFIX/lib
-    - ${{ PYTHON }} -m flashinfer.aot
+    # Do not try to pip install NIXL or build NIXL-EP.
+    - export BUILD_NVEP=0
     - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  skip:
-    - cuda_compiler_version == "None"
-    - cuda_compiler_version < "13.0"
-    - not linux
-  string: ${{ cuda_build_string }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
 
 requirements:
-  build:
-    - ${{ stdlib('c') }}
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - ${{ compiler('cuda') }}
-    - ninja
-    - if: is_cross_compiling
-      then:
-        - python
-        - cross-python_${{ target_platform }}
-        - pytorch * [build=cuda*]
   host:
-    - python
-    - cuda-cccl
-    - cuda-cudart-dev
-    - cuda-driver-dev
-    - cuda-nvrtc-dev
-    - cuda-bindings
-    - cuda-version ${{ cuda_compiler_version }}.*
-    - fmt
-    - libcublas-dev
-    - libcurand-dev
-    - libnvshmem-dev
-    - libcusolver-dev
-    - libcusparse-dev
-    - requests
-    - setuptools >=77
+    - python ${{ python_min }}.*
+    - apache-tvm-ffi >=0.1.11,<0.2
     - packaging >=24
-    - pynvml
-    - pytorch * [build=cuda*]
     - pip
-    - spdlog
+    - setuptools >=77
   run:
-    - python
+    - python >=${{ python_min }}
+    - apache-tvm-ffi >=0.1.11,<0.2
     - click
     - cuda-bindings
+    - cutile-python >=1.4.0
     - einops
     - filelock
     - fmt
     - jinja2
+    - nccl-extensions >=0.1.0
+    - nccl4py >=0.4.1
     - ninja
     - numpy
+    - nvidia-cutlass-dsl >=4.8.0
+    - nvidia-ml-py
     - packaging >=24.2
-    - pynvml
-    - python-cudnn-frontend >=1.13.0
+    # Needed at runtime for flashinfer/cudnn even though a snapshot is vendored.
+    # Upstream requires >=1.32, but conda-forge only has 1.28.0 at the moment.
+    - python-cudnn-frontend
     - pytorch * [build=cuda*]
     - requests
     - spdlog
@@ -98,24 +64,87 @@ tests:
         - flashinfer
       pip_check: true
   - script:
-      - pytest ./tests
+      # The rest of the test suite requires a GPU.
+      # The flashinfer/ source tree, which some CPU tests read, must not be on
+      # sys.path where it would shadow the installed package. Only expose the
+      # scripts package that some CPU tests import.
+      - mkdir pythonpath
+      - ln -s "$PWD/scripts" pythonpath/scripts
+      # Skipped tests:
+      # - test_cake_fp4_allreduce_host, test_blackwell_msa_jit and the
+      #   test_cake_ssd_combined_rubin_* tests find csrc/ relative to the
+      #   location of the flashinfer package, so they only work in a source
+      #   checkout.
+      # - test_kda_preserves_inference_tensor_mutation_rules requires
+      #   cudnn-frontend >=1.29, but conda-forge has 1.28.0.
+      #   TODO: Remove when python-cudnn-frontend is updated.
+      - >-
+        PYTHONPATH="$PWD/pythonpath" pytest tests/cpu
+        --deselect tests/cpu/comm/test_cake_fp4_allreduce_host.py::test_program_sources_exist_and_declare_their_kernels
+        --deselect tests/cpu/jit/test_blackwell_msa_jit.py::test_shared_bindings_take_each_record_from_its_compile_flags
+        --deselect tests/cpu/jit/test_blackwell_msa_jit.py::test_shared_bindings_have_the_generated_form
+        --deselect tests/cpu/mamba/test_cake_ssd_combined_rubin_single_sequence.py::test_programs_and_units
+        --deselect tests/cpu/mamba/test_cake_ssd_combined_rubin_wrap.py::test_source_wrap_units_match_their_identity
+        --deselect tests/cpu/kda/test_cudnn_linear_attention_contract.py::test_kda_preserves_inference_tensor_mutation_rules
     requirements:
       run:
         - pytest
     files:
       source:
+        - .devcontainer
+        - .github
+        - benchmarks
+        - build_backend.py
+        - build_utils.py
+        - ci
+        - csrc
+        - docker
+        - docs
+        - examples
+        - flashinfer
+        - flashinfer-jit-cache
+        - flashinfer-jit-cache-provider
+        - include
+        - pyproject.toml
+        - pytest.ini
+        - requirements.txt
+        - scripts
         - tests
+        - version.txt
 
 about:
   homepage: https://flashinfer.ai/
   repository: https://github.com/flashinfer-ai/flashinfer
   documentation: https://docs.flashinfer.ai/
   summary: "FlashInfer: Kernel Library for LLM Serving"
-  license: Apache-2.0 AND BSD-3-Clause
+  license: Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-3-Clause AND MIT
+  # The package still vendors the following third-party code, so it needs the
+  # license texts. Remove an entry when the dependency is devendored.
   license_file:
     - LICENSE
-    - licenses/LICENSE.flashattention3.txt
-    - licenses/LICENSE.cutlass.txt
+    # TODO: Devendor cudnn-frontend (flashinfer/*/_cudnn_frost, a 1.33.0
+    # snapshot) when python-cudnn-frontend >=1.33 is available on conda-forge.
+    - LICENSE.cudnn-frontend-MIT.txt
+    # TODO: Devendor cutlass using the cutlass package: point CUTLASS_INCLUDE_DIRS
+    # in flashinfer/jit/env.py at $PREFIX/include. The vendored version is
+    # 4.5.0 and the JIT must be verified against the conda-forge version.
+    - LICENSE.cutlass.txt
+    # Cannot be devendored: FlashInfer does not vendor the FlashAttention 3
+    # library. Its own kernels contain snippets adapted from the FlashAttention 3
+    # sources (for example the FP8 transpose in
+    # include/flashinfer/attention/hopper/quantization/kernel_traits.cuh),
+    # so there is no package, including flash-attn-3, that could replace them.
+    - LICENSE.flashattention3.txt
+    # Cannot be devendored for now: the PTX programs (csrc/kda/ptx) and host
+    # scheduling code (flashinfer/kda_kernels/ptx) are imported from the
+    # NVlabs/kda branch 260927-kda-for-kda and adapted by FlashInfer. That
+    # source is only a git branch; there is no package on PyPI or conda-forge.
+    # Revisit if upstream publishes one.
+    - LICENSE.kda-for-kda.txt
+    # TODO: Devendor CCCL using the cccl package once conda-forge has a release
+    # at least as new as the vendored 3.6.0 development snapshot (the newest
+    # is 3.5.0). FlashInfer puts it ahead of the CTK copy on the include path.
+    - 3rdparty/cccl/LICENSE
 
 extra:
   recipe-maintainers:

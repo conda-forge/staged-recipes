@@ -1,75 +1,58 @@
-Subject: [PATCH] Use spdlog and fmt from the environment
-
-Do not install the vendored spdlog headers. Instead, use the spdlog and fmt
-headers from the environment's include directory, and compile in
-header-only mode against the external fmt.
----
 --- a/flashinfer/jit/env.py
 +++ b/flashinfer/jit/env.py
-@@ -21,6 +21,7 @@
+@@ -22,6 +22,7 @@
+ import logging
  import os
  import pathlib
- import re
 +import sys
- import warnings
+ from dataclasses import dataclass
+ from typing import Any, FrozenSet, Mapping, Optional, Tuple
  
- from torch.utils.cpp_extension import _get_cuda_arch_flags
-@@ -65,7 +66,8 @@
+@@ -403,7 +404,7 @@
      _package_root / "data" / "cutlass" / "include",
      _package_root / "data" / "cutlass" / "tools" / "util" / "include",
  ]
--SPDLOG_INCLUDE_DIR = _package_root / "data" / "spdlog" / "include"
-+# spdlog and fmt are provided by the environment instead of being vendored.
-+SPDLOG_INCLUDE_DIR = pathlib.Path(sys.prefix) / "include"
- 
- 
- def get_nvshmem_include_dirs():
---- a/flashinfer/aot.py
-+++ b/flashinfer/aot.py
-@@ -664,7 +664,6 @@
-         project_root / "3rdparty" / "cutlass" / "include",
-         project_root / "3rdparty" / "cutlass" / "tools" / "util" / "include",
-     ]
--    jit_env.SPDLOG_INCLUDE_DIR = project_root / "3rdparty" / "spdlog" / "include"
- 
-     # Update workdir
-     jit_env.FLASHINFER_WORKSPACE_DIR = build_dir
+-SPDLOG_INCLUDE_DIR: pathlib.Path = _package_root / "data" / "spdlog" / "include"
++SPDLOG_INCLUDE_DIR: pathlib.Path = pathlib.Path(sys.prefix) / "include"
+ CCCL_INCLUDE_DIRS: list[pathlib.Path] = [
+     _package_root / "data" / "cccl" / "cub",
+     _package_root / "data" / "cccl" / "libcudacxx" / "include",
 --- a/flashinfer/jit/cpp_ext.py
 +++ b/flashinfer/jit/cpp_ext.py
-@@ -90,6 +90,8 @@
-         "-DTORCH_EXTENSION_NAME=$name",
-         "-DTORCH_API_INCLUDE_EXTENSION_H",
-         "-DPy_LIMITED_API=0x03090000",
-+        "-DSPDLOG_FMT_EXTERNAL",
-+        "-DFMT_HEADER_ONLY",
-     ]
-     common_cflags += _get_pybind11_abi_build_flags()
+@@ -161,7 +161,7 @@
+     cccl_includes = get_cccl_includes()
+     system_includes = get_system_includes(cuda_home)
+ 
+-    common_cflags = []
++    common_cflags = ["-DSPDLOG_FMT_EXTERNAL", "-DFMT_HEADER_ONLY"]
+     if not sysconfig.get_config_var("Py_GIL_DISABLED"):
+         common_cflags.append("-DPy_LIMITED_API=0x03090000")
      common_cflags += _get_glibcxx_abi_build_flags()
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -45,7 +45,6 @@
-     "flashinfer.data.aot",
-     "flashinfer.data.csrc",
-     "flashinfer.data.cutlass",
--    "flashinfer.data.spdlog",
-     "flashinfer.data.tvm_binding",
-     "flashinfer.data.include",
-     "flashinfer.fused_moe",
-@@ -67,7 +66,6 @@
+@@ -78,7 +78,6 @@
+ "b12x" = "flashinfer/experimental/b12x/_compat/b12x"
  "flashinfer.data" = "."
- "flashinfer.data.aot" = "build/aot-ops-package-dir"
  "flashinfer.data.cutlass" = "3rdparty/cutlass"
 -"flashinfer.data.spdlog" = "3rdparty/spdlog"
+ "flashinfer.data.cccl" = "3rdparty/cccl"
  
  [tool.setuptools.package-data]
- "flashinfer.data" = [
-@@ -83,9 +81,6 @@
-     "include/**",
-     "tools/util/include/**"
+@@ -243,7 +242,6 @@
  ]
--"flashinfer.data.spdlog" = [
--    "include/**",
--]
+ "flashinfer.data" = ["csrc/**", "include/**"]
+ "flashinfer.data.cutlass" = ["include/**", "tools/util/include/**"]
+-"flashinfer.data.spdlog" = ["include/**"]
+ "flashinfer.data.cccl" = ["cub/cub/**", "libcudacxx/include/**", "thrust/thrust/**"]
+ # EP backend shared libraries built in-tree from 3rdparty/nixl by default
+ # during `pip install` (opt out with BUILD_NIXL_EP=0). The .so files live under
+--- a/build_backend.py
++++ b/build_backend.py
+@@ -1118,7 +1118,6 @@
+                 shutil.copytree(src, dst, symlinks=False, dirs_exist_ok=True)
  
- [tool.mypy]
- ignore_missing_imports = false
+     ln("3rdparty/cutlass", "cutlass")
+-    ln("3rdparty/spdlog", "spdlog")
+     ln("3rdparty/cccl", "cccl")
+     ln("csrc", "csrc")
+     ln("include", "include")
