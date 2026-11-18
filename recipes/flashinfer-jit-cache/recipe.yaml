@@ -11,6 +11,8 @@ package:
 source:
   - url: https://github.com/flashinfer-ai/flashinfer/archive/refs/tags/v${{ version }}.tar.gz
     sha256: 6047cd3a82402cc4504bcfef78e6424ec6d29fd0485272b8c8ae04ae15ddc16e
+    patches:
+      - patches/0001-Search-the-conda-lib-directories-for-CUDA-libraries.patch
   # The git submodules are not in the GitHub archive. These are the commits that
   # the v0.7.4 tag pins (git ls-tree v0.7.4 3rdparty/). The AOT build compiles
   # against them and puts the headers of cutlass, CCCL and spdlog on the include
@@ -46,6 +48,13 @@ build:
   script:
     # Do not try to pip install NIXL or build NIXL-EP.
     - export BUILD_NVEP=0
+    # FlashInfer takes the CUDA headers and libraries from CUDA_HOME, which
+    # defaults to the prefix of the nvcc that it finds, the build prefix. They
+    # are in the targets directory of the host prefix (targetsDir is set by the
+    # activation script of cuda-nvcc), so use the nvcc from the build prefix
+    # explicitly.
+    - export CUDA_HOME=${PREFIX}/${targetsDir}
+    - export FLASHINFER_NVCC=${BUILD_PREFIX}/bin/nvcc
     - export FLASHINFER_JIT_CACHE_PROVIDER_ARCH=${{ cuda_provider_arch }}
     - export FLASHINFER_JIT_CACHE_PROVIDER_ARCHS=${{ cuda_provider_arch }}
     - export MAX_JOBS=${CPU_COUNT}
@@ -97,6 +106,17 @@ requirements:
     - libnvshmem-dev
   run:
     - python
+  # The kernels are TVM-FFI modules. They link against the CUDA runtime and
+  # cuBLAS, but not against PyTorch, NumPy, NVRTC, cuRAND or NVSHMEM, which
+  # the host packages would otherwise add as dependencies.
+  ignore_run_exports:
+    by_name:
+      - cuda-nvrtc
+      - libcurand
+      - libnvshmem3
+      - libtorch
+      - numpy
+      - pytorch
   run_constraints:
     # Upstream has no dependency on flashinfer-python, which finds this package
     # at runtime and ignores it, with a warning, when the versions differ.
