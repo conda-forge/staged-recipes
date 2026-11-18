@@ -36,7 +36,12 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]]; then
     # MPICH of conda-forge uses UCX, which may fail to open the network
     # devices of a build machine, for instance on the GitHub runners. The tests
     # run on one machine, which needs only shared memory and TCP.
-    (cd build && UCX_TLS=self,sm,tcp ctest --output-on-failure --parallel ${CPU_COUNT})
+    export UCX_TLS=self,sm,tcp
+    # The MPI tests start 4 ranks, which Open MPI only allows on machines with
+    # fewer cores with oversubscription (Open MPI 4 and 5); MPICH ignores this
+    export OMPI_MCA_rmaps_base_oversubscribe=1
+    export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
+    (cd build && ctest --output-on-failure --parallel ${CPU_COUNT})
 fi
 
 cmake --install build
