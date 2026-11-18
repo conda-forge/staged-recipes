@@ -1,6 +1,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include <flexiblas/flexiblas_api.h>
 
 extern void dgemm_(const char *transa, const char *transb, const int *m, const int *n, const int *k,
                    const double *alpha, const double *a, const int *lda,
@@ -67,7 +70,31 @@ static int check_dgesvd(void) {
     return s[0] >= s[1] && s[0] > 0.0 && s[1] > 0.0;
 }
 
+static int check_requested_backend(void) {
+    const char *requested = getenv("FLEXIBLAS");
+    char loaded[128];
+
+    if (requested == NULL || requested[0] == '\0') {
+        return 1;
+    }
+    if (flexiblas_current_backend(loaded, sizeof(loaded)) <= 0) {
+        fprintf(stderr, "flexiblas_current_backend failed\n");
+        return 0;
+    }
+    if (strcmp(loaded, requested) != 0) {
+        fprintf(stderr,
+                "flexiblas BLAS backend %s not loaded (got %s). Loading default is not acceptable.\n",
+                requested, loaded);
+        return 0;
+    }
+    printf("loaded backend %s\n", loaded);
+    return 1;
+}
+
 int main(void) {
+    if (!check_requested_backend()) {
+        return 1;
+    }
     if (!check_dgemm()) {
         fprintf(stderr, "DGEMM check failed\n");
         return 1;

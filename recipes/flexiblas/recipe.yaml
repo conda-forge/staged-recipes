@@ -31,8 +31,34 @@ outputs:
         - liblapacke * *netlib
     build:
       script:
-        - if [[ "$target_platform" == osx-* ]]; then export OPENBLAS_PTHREAD_LIBS="$PREFIX/lib/libopenblas.dylib;$PREFIX/lib/libomp.dylib"; else export OPENBLAS_PTHREAD_LIBS="$PREFIX/lib/libopenblas.so.0"; fi
-        - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ PREFIX }} -DSYSCONFDIR=${{ PREFIX }}/etc -DBLAS_AUTO_DETECT=OFF -DEXAMPLES=OFF -DTESTS=OFF -DFLEXIBLAS_DEFAULT=OPENBLASPTHREAD -DFLEXIBLAS_DEFAULT_BLAS=OPENBLASPTHREAD -DEXTRA=OpenBLASPThread -DOpenBLASPThread_LIBRARY="${OPENBLAS_PTHREAD_LIBS}" -DSYS_BLAS_LIBRARY=${{ PREFIX }}/lib/libblas${{ '.dylib' if osx else '.so' }} -DSYS_LAPACK_LIBRARY=${{ PREFIX }}/lib/liblapack${{ '.dylib' if osx else '.so' }}
+        # conda-forge libopenblas on macOS installs libopenblas.0.dylib (id
+        # @rpath/libopenblas.0.dylib). There is no libopenblas.dylib, so the
+        # Check_Fortran_Function_Exists(DAXPY) probe dies in the generator
+        # ("No rule to make target") before ld runs. libomp is already an
+        # LC_LOAD_DYLIB of that library; listing it again overlinks.
+        - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ PREFIX }} -DSYSCONFDIR=${{ PREFIX }}/etc -DBLAS_AUTO_DETECT=OFF -DEXAMPLES=OFF -DTESTS=OFF -DFLEXIBLAS_DEFAULT=OPENBLASPTHREAD -DFLEXIBLAS_DEFAULT_BLAS=OPENBLASPTHREAD -DEXTRA=OpenBLASPThread -DOpenBLASPThread_LIBRARY=${{ PREFIX }}/lib/${{ 'libopenblas.0.dylib' if osx else 'libopenblas.so.0' }} -DSYS_BLAS_LIBRARY=${{ PREFIX }}/lib/libblas${{ '.dylib' if osx else '.so' }} -DSYS_LAPACK_LIBRARY=${{ PREFIX }}/lib/liblapack${{ '.dylib' if osx else '.so' }}
+        - |
+          if [[ "${target_platform}" == osx-* ]]; then
+            echo "===== OpenBLAS DAXPY probe ====="
+            if [[ -f build/CMakeFiles/CMakeConfigureLog.yaml ]]; then
+              awk '
+                BEGIN { buf = ""; keep = 0 }
+                /^  -$/ {
+                  if (keep) printf "%s", buf
+                  buf = ""
+                  keep = 0
+                }
+                { buf = buf $0 "\n" }
+                /Looking for Fortran DAXPY/ || /Looking for cblas_daxpy/ { keep = 1 }
+                END { if (keep) printf "%s", buf }
+              ' build/CMakeFiles/CMakeConfigureLog.yaml
+            elif [[ -f build/CMakeFiles/CMakeError.log ]]; then
+              echo "----- CMakeError.log -----"
+              grep -n -C 20 -E "DAXPY|cblas_daxpy" build/CMakeFiles/CMakeError.log || true
+            else
+              echo "No CMake configure log found"
+            fi
+          fi
         - cmake --build build --parallel ${{ env.get("CPU_COUNT", default="1") }}
         - cmake --install build
 
@@ -66,7 +92,7 @@ outputs:
     tests:
       - script:
           - pkg-config --exists flexiblas
-          - $CC test_flexiblas_c.c -o test_flexiblas_c -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -lflexiblas -lm
+          - $CC test_flexiblas_c.c -o test_flexiblas_c -I${PREFIX}/include -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -lflexiblas -lm
           - $FC test_flexiblas_fortran.f90 -o test_flexiblas_fortran -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib -lflexiblas
           - FLEXIBLAS=OPENBLASPTHREAD ./test_flexiblas_c
           - FLEXIBLAS=NETLIB ./test_flexiblas_c
@@ -105,6 +131,10 @@ outputs:
           - flexiblas -h
           - flexiblas list
           - flexiblas print
+          - FLEXIBLAS=OPENBLASPTHREAD flexiblas print > flexiblas-openblas.txt 2>&1
+          - cat flexiblas-openblas.txt
+          - grep -q OPENBLASPTHREAD flexiblas-openblas.txt
+          - if grep -F -q "not found" flexiblas-openblas.txt; then echo "OPENBLASPTHREAD fell back to NETLIB"; exit 1; fi
 
 about:
   homepage: https://github.com/mpimd-csc/flexiblas
