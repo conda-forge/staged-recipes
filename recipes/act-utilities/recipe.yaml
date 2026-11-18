@@ -13,7 +13,13 @@ build:
   number: 0
   noarch: python
   script:
-    - cmake -S . -B build -DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF -DPython3_EXECUTABLE=$PYTHON
+    - if: unix
+      then:
+        - cmake -S . -B build -DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF -DPython3_EXECUTABLE=$PYTHON
+      else:
+        # The noarch package is built on Linux, but staged-recipes also
+        # checks it on Windows, where site-packages is Lib\site-packages
+        - cmake -S . -B build -DCMAKE_INSTALL_PREFIX:PATH="%PREFIX%" -DBUILD_TESTING=OFF -DPython3_EXECUTABLE:FILEPATH="%PYTHON%" -DCMAKE_INSTALL_PYTHON_LIBDIR=Lib/site-packages
     - cmake --install build
 
 requirements:
@@ -44,10 +50,16 @@ tests:
       run:
         - python ${{ python_min }}.*
     script:
-      - coords2molprop -h
-      - test -f $PREFIX/bin/gauss2molprop
-      - test -f $PREFIX/share/act/atom_bond.xml
-      - test -f $PREFIX/share/act/atomtypes_gui.csv
+      # The scripts are Unix scripts without an extension
+      - if: unix
+        then:
+          - coords2molprop -h
+          - test -f $PREFIX/bin/gauss2molprop
+          - test -f $PREFIX/share/act/atom_bond.xml
+          - test -f $PREFIX/share/act/atomtypes_gui.csv
+        else:
+          - if not exist "%PREFIX%\share\act\atom_bond.xml" exit 1
+          - if not exist "%PREFIX%\share\act\atomtypes_gui.csv" exit 1
 
 about:
   homepage: https://github.com/AlexandriaChemistry/ACT-utilities
