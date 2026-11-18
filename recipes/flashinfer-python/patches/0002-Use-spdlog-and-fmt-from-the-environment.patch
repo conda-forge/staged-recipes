@@ -1,0 +1,75 @@
+Subject: [PATCH] Use spdlog and fmt from the environment
+
+Do not install the vendored spdlog headers. Instead, use the spdlog and fmt
+headers from the environment's include directory, and compile in
+header-only mode against the external fmt.
+---
+--- a/flashinfer/jit/env.py
++++ b/flashinfer/jit/env.py
+@@ -21,6 +21,7 @@
+ import os
+ import pathlib
+ import re
++import sys
+ import warnings
+ 
+ from torch.utils.cpp_extension import _get_cuda_arch_flags
+@@ -65,7 +66,8 @@
+     _package_root / "data" / "cutlass" / "include",
+     _package_root / "data" / "cutlass" / "tools" / "util" / "include",
+ ]
+-SPDLOG_INCLUDE_DIR = _package_root / "data" / "spdlog" / "include"
++# spdlog and fmt are provided by the environment instead of being vendored.
++SPDLOG_INCLUDE_DIR = pathlib.Path(sys.prefix) / "include"
+ 
+ 
+ def get_nvshmem_include_dirs():
+--- a/flashinfer/aot.py
++++ b/flashinfer/aot.py
+@@ -664,7 +664,6 @@
+         project_root / "3rdparty" / "cutlass" / "include",
+         project_root / "3rdparty" / "cutlass" / "tools" / "util" / "include",
+     ]
+-    jit_env.SPDLOG_INCLUDE_DIR = project_root / "3rdparty" / "spdlog" / "include"
+ 
+     # Update workdir
+     jit_env.FLASHINFER_WORKSPACE_DIR = build_dir
+--- a/flashinfer/jit/cpp_ext.py
++++ b/flashinfer/jit/cpp_ext.py
+@@ -90,6 +90,8 @@
+         "-DTORCH_EXTENSION_NAME=$name",
+         "-DTORCH_API_INCLUDE_EXTENSION_H",
+         "-DPy_LIMITED_API=0x03090000",
++        "-DSPDLOG_FMT_EXTERNAL",
++        "-DFMT_HEADER_ONLY",
+     ]
+     common_cflags += _get_pybind11_abi_build_flags()
+     common_cflags += _get_glibcxx_abi_build_flags()
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -45,7 +45,6 @@
+     "flashinfer.data.aot",
+     "flashinfer.data.csrc",
+     "flashinfer.data.cutlass",
+-    "flashinfer.data.spdlog",
+     "flashinfer.data.tvm_binding",
+     "flashinfer.data.include",
+     "flashinfer.fused_moe",
+@@ -67,7 +66,6 @@
+ "flashinfer.data" = "."
+ "flashinfer.data.aot" = "build/aot-ops-package-dir"
+ "flashinfer.data.cutlass" = "3rdparty/cutlass"
+-"flashinfer.data.spdlog" = "3rdparty/spdlog"
+ 
+ [tool.setuptools.package-data]
+ "flashinfer.data" = [
+@@ -83,9 +81,6 @@
+     "include/**",
+     "tools/util/include/**"
+ ]
+-"flashinfer.data.spdlog" = [
+-    "include/**",
+-]
+ 
+ [tool.mypy]
+ ignore_missing_imports = false
