@@ -22,6 +22,9 @@ export CXXFLAGS=$(echo "$CXXFLAGS" | sed -e 's/-march=[^ ]*//g' -e 's/-mtune=[^ 
 
 export MAKE="make -j${CPU_COUNT:-2}"
 export FC=none
+export ULMBLAS_VERSION="$PKG_VERSION"
+#  Linux: libstdc++ of conda-forge (run export of the C++ compiler)
+export ULMBLAS_STATIC_LIBSTDCXX=no
 export ULMBLAS_INCLUDEDIR="$PREFIX/include/ulmblas"
 if [ "$target_platform" = win-64 ]; then
     export ULMBLAS_INCLUDEDIR="$PREFIX/Library/include/ulmblas"
