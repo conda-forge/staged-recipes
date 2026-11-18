@@ -37,28 +37,6 @@ outputs:
         # ("No rule to make target") before ld runs. libomp is already an
         # LC_LOAD_DYLIB of that library; listing it again overlinks.
         - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ PREFIX }} -DSYSCONFDIR=${{ PREFIX }}/etc -DBLAS_AUTO_DETECT=OFF -DEXAMPLES=OFF -DTESTS=OFF -DFLEXIBLAS_DEFAULT=OPENBLASPTHREAD -DFLEXIBLAS_DEFAULT_BLAS=OPENBLASPTHREAD -DEXTRA=OpenBLASPThread -DOpenBLASPThread_LIBRARY=${{ PREFIX }}/lib/${{ 'libopenblas.0.dylib' if osx else 'libopenblas.so.0' }} -DSYS_BLAS_LIBRARY=${{ PREFIX }}/lib/libblas${{ '.dylib' if osx else '.so' }} -DSYS_LAPACK_LIBRARY=${{ PREFIX }}/lib/liblapack${{ '.dylib' if osx else '.so' }}
-        - |
-          if [[ "${target_platform}" == osx-* ]]; then
-            echo "===== OpenBLAS DAXPY probe ====="
-            if [[ -f build/CMakeFiles/CMakeConfigureLog.yaml ]]; then
-              awk '
-                BEGIN { buf = ""; keep = 0 }
-                /^  -$/ {
-                  if (keep) printf "%s", buf
-                  buf = ""
-                  keep = 0
-                }
-                { buf = buf $0 "\n" }
-                /Looking for Fortran DAXPY/ || /Looking for cblas_daxpy/ { keep = 1 }
-                END { if (keep) printf "%s", buf }
-              ' build/CMakeFiles/CMakeConfigureLog.yaml
-            elif [[ -f build/CMakeFiles/CMakeError.log ]]; then
-              echo "----- CMakeError.log -----"
-              grep -n -C 20 -E "DAXPY|cblas_daxpy" build/CMakeFiles/CMakeError.log || true
-            else
-              echo "No CMake configure log found"
-            fi
-          fi
         - cmake --build build --parallel ${{ env.get("CPU_COUNT", default="1") }}
         - cmake --install build
 
