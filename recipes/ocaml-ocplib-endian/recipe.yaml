@@ -1,0 +1,73 @@
+schema_version: 1
+
+context:
+  name: ocplib-endian
+  version: "1.2"
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/OCamlPro/ocplib-endian/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 97ae74e8aeead46a0475df14af637ce78e2372c07258619ad8967506f2d4b320
+  patches:
+    - patches/0001-drop-bytes-compat-library.patch
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/build.sh ocplib-endian
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    # non-unix: conda-forge ocaml has gcc_ and vs2022_ tracks; these recipes use the gcc (MinGW) track only.
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-dune 3.24.*
+    - ocaml-cppo >=1.1
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+  host:
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+  run:
+    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+        - ${{ library }}lib/ocaml/${{ name }}/bigstring/ocplib_endian_bigstring.cmxa
+  - script: bash testing/test_ocaml_lib.sh
+    files:
+      recipe:
+        - testing/test_ocaml_lib.sh
+    requirements:
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - if: not unix
+          then:
+            - m2-bash
+
+about:
+  homepage: https://github.com/OCamlPro/ocplib-endian
+  repository: https://github.com/OCamlPro/ocplib-endian
+  license: LGPL-2.1-only WITH OCaml-LGPL-linking-exception
+  license_file: COPYING.txt
+  summary: Optimised functions to read and write int16/32/64 from strings and bigarrays
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
