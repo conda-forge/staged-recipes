@@ -1,0 +1,65 @@
+context:
+  version: "0.1.1"
+
+package:
+  name: lazyfwd
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/glattziehen/lazyfwd/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 800226118087c2caa5d21885e0c6d4c9a9507bfecb47e2cd43af7b92e0351756
+    target_directory: src
+  # go-localereader (Windows-only dependency) added its LICENSE after its last tag
+  - if: win
+    then:
+      url: https://raw.githubusercontent.com/mattn/go-localereader/2491eb6c1c75720122ef321ed7acc3a8d9de95b1/LICENSE
+      sha256: dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3
+      file_name: LICENSE
+      target_directory: go-localereader-license
+
+build:
+  number: 0
+  script:
+    - cd src
+    - if: unix
+      then:
+        - go-licenses save . --save_path ../library_licenses
+        - go build -v -o $PREFIX/bin/lazyfwd -ldflags="-s -w" .
+      else:
+        - go-licenses save . --save_path ../library_licenses --ignore github.com/mattn/go-localereader
+        - mkdir ..\library_licenses\github.com\mattn\go-localereader
+        - copy ..\go-localereader-license\LICENSE ..\library_licenses\github.com\mattn\go-localereader\LICENSE
+        - go build -v -o %LIBRARY_BIN%\lazyfwd.exe -ldflags="-s" .
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - lazyfwd --version
+      - if: unix
+        then: lazyfwd --version | grep ${{ version }}
+  - package_contents:
+      bin:
+        - lazyfwd
+      strict: true
+
+about:
+  homepage: https://github.com/glattziehen/lazyfwd
+  summary: Keyboard-first TUI for managing SSH port forwards
+  description: |
+    lazyfwd is a terminal UI for starting, stopping, and monitoring SSH port
+    forwards. It drives the system ssh, so your SSH config, agent, and
+    ProxyJump work as usual.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/glattziehen/lazyfwd
+
+extra:
+  recipe-maintainers:
+    - moritzwilksch
+    - pavelzw
