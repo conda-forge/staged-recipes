@@ -7,8 +7,14 @@ set CFLAGS=
 set CXXFLAGS=
 
 REM Configure step
-cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+REM TIGL_CREATOR_BUNDLE_DEPENDENCIES=OFF (patches/disable-creator-dependency-bundling.patch) and
+REM CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=ON keep upstream's standalone-installer logic from copying
+REM Qt/tixi/MSVC runtime DLLs and Qt plugins into the package; conda provides those as dependencies.
+cmake %CMAKE_ARGS% -G "Ninja" -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
  -DCMAKE_BUILD_TYPE=Release ^
+ -DTIGL_USE_INTERNAL_BOOST=OFF ^
+ -DTIGL_CREATOR_BUNDLE_DEPENDENCIES=OFF ^
+ -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=ON ^
  -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
  -DCMAKE_SYSTEM_PREFIX_PATH="%LIBRARY_PREFIX%" ^
  -DTIGL_CREATOR=ON ^

@@ -1,8 +1,4 @@
-
-declare -a CMAKE_PLATFORM_FLAGS
-if [[ ${HOST} =~ .*linux.* ]]; then
-    CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
-fi
+set -euxo pipefail
 
 
 mkdir -p build
@@ -13,12 +9,12 @@ cd build
 # into thirdparty/pythonocc-core via the second `source:` entry in recipe.yaml (an intermediate
 # solution until the pythonocc-core-feedstock ships these files directly). It must be set here
 # rather than left to tigl's own cmake/FindPythonOCC.cmake to auto-detect, because
-# cross-linux.cmake sets CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY, which would make find_path()
-# restrict its search to $PREFIX/sysroot and never see anything under $SRC_DIR.
-cmake -G "Ninja" -DCMAKE_INSTALL_PREFIX=$PREFIX \
+# conda's CMAKE_ARGS set CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY, which would make find_path()
+# restrict its search to $PREFIX and the sysroot and never see anything under $SRC_DIR.
+cmake ${CMAKE_ARGS} -G "Ninja" -DCMAKE_INSTALL_PREFIX=$PREFIX \
  -DCMAKE_BUILD_TYPE=Release \
-  ${CMAKE_PLATFORM_FLAGS[@]} \
  -DCMAKE_PREFIX_PATH=$PREFIX \
+ -DTIGL_USE_INTERNAL_BOOST=OFF \
  -DTIGL_CREATOR=ON \
  -DTIGL_CONCAT_GENERATED_FILES=OFF \
  -DTIGL_BINDINGS_PYTHON_INTERNAL=ON \

@@ -19,6 +19,11 @@ source:
       # our py312/py313 build variants and silently falls back to installing the python bindings
       # under share/tigl3/python instead of site-packages. Report upstream and drop once fixed.
       - patches/fix-python-site-packages-detection.patch
+      # Upstream's Windows install rules turn TiGL Creator into a standalone bundle by copying the
+      # tixi/glog/Qt DLLs and Qt plugins next to the executable. This patch adds an option
+      # (TIGL_CREATOR_BUNDLE_DEPENDENCIES, default ON as before) so that build.bat can turn it off;
+      # in conda these come from their own packages.
+      - patches/disable-creator-dependency-bundling.patch
   # INTERMEDIATE SOLUTION: tigl vendors pythonocc-core's SWIG interface files (.i) via a git
   # submodule at thirdparty/pythonocc-core, but a plain source tarball checkout (used here) does
   # not populate git submodules. The conda-forge pythonocc-core package does not currently ship
@@ -34,48 +39,45 @@ build:
   number: 0
 
 requirements:
+  run_exports:
+    # libtigl3's SOVERSION is the minor version
+    - ${{ pin_subpackage("tigl", upper_bound="x.x") }}
   build:
     - ${{ stdlib("c") }}
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    - if: linux
-      then:
-        - ${{ cdt('libx11-devel') }}
-        - ${{ cdt('xorg-x11-proto-devel') }}
-        - ${{ cdt('mesa-libgl-devel') }}
-        - ${{ cdt('mesa-dri-drivers') }}
-        - ${{ cdt('libxcb') }}
-        - ${{ cdt('libxi-devel') }}
-        - ${{ cdt('libxau-devel') }}
-        - ${{ cdt('libxext-devel') }}
-        - ${{ cdt('libselinux') }}
-        - ${{ cdt('libXdamage') }}
-        - ${{ cdt('libXfixes') }}
-        - ${{ cdt('libXxf86vm') }}
     - ninja >=1.10.0
     - cmake >=3.11
-    # Must match the swig version conda-forge's pythonocc-core 7.9.3 package was actually built
-    # with (4.4.1)
+    # The tigl3 python bindings %import pythonocc-core's SWIG interfaces and exchange wrapped
+    # OCC objects (e.g. TopoDS_Shape) with the OCC.Core modules at runtime. This only works if
+    # both were generated with the same SWIG runtime ABI (SWIG_RUNTIME_VERSION, i.e. the shared
+    # "swig_runtime_data<N>" module); otherwise the type tables are not shared and passing OCC
+    # objects into tigl3 fails with TypeErrors. conda-forge's pythonocc-core 7.9.3 was generated
+    # with SWIG 4.4.1 (runtime ABI 5; SWIG 4.3 uses ABI 4), so we use the same SWIG minor here.
     - swig 4.4.*
     - doxygen ==1.13.2
 
   host:
     - tixi ==3.3.2
+    - libboost-devel
+    # Build against the novtk variant only to keep VTK (and with it qt6-main) out of the build
+    # environment; tigl does not use TKIVtk, so the package works with either occt variant.
     - occt ==${{ occt_version }} *novtk*
     - pythonocc-core ==${{ occt_version }} *novtk*
     - python
     - if: linux
       then:
+        - libgl-devel
         - libglu
+        - xorg-libx11
+        - xorg-xorgproto
     - qt ==5.15.15
 
   run:
-    - tixi ==3.3.2
-    - occt ==${{ occt_version }} *novtk*
-    - pythonocc-core ==${{ occt_version }} *novtk*
     - python
-    - qt ==5.15.15
-    - pyqt
+    # pythonocc-core has no run_exports, and the tigl3 bindings are generated from this exact
+    # pythonocc-core version's SWIG interface files.
+    - pythonocc-core ==${{ occt_version }}
 
 tests:
   - python:
@@ -83,6 +85,48 @@ tests:
         - tigl3.tigl3wrapper
         - tigl3.geometry
         - tigl3.surface_factories
+  # Upstream test that checks the SWIG interoperability with pythonocc-core: it opens a CPACS file
+  # and checks that geometry returned by tigl3 is a proper OCC.Core object (e.g. gp_Vec2d,
+  # TopoDS_Edge) rather than a raw SwigPyObject.
+  - files:
+      source:
+        - tests/python/test_naca4profile.py
+        - tests/TestData/naca_test.cpacs.xml
+    requirements:
+      run:
+        - python
+    script:
+      - cd tests
+      - python python/test_naca4profile.py -v
+  - package_contents:
+      lib:
+        - tigl3
+      include:
+        - tigl3/tigl.h
+      bin:
+        - tiglcreator
+      files:
+        - "**/cmake/tigl3/tigl3-config.cmake"
+  # Build a minimal downstream consumer against the installed CMake config
+  - files:
+      recipe:
+        - test/cmake_consumer/
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - if: win
+        then:
+          - cmake %CMAKE_ARGS% -G Ninja -S test/cmake_consumer -B build_consumer
+          - cmake --build build_consumer
+          - build_consumer\tigl_consumer.exe
+        else:
+          - cmake ${CMAKE_ARGS} -G Ninja -S test/cmake_consumer -B build_consumer
+          - cmake --build build_consumer
+          - ./build_consumer/tigl_consumer
 
 about:
   homepage: https://dlr-sc.github.io/tigl/
@@ -107,8 +151,19 @@ about:
      Python, Java and MATLAB. In addition, the TiGL software package includes the TiGL Creator
      that enables also the visualization and editing of the aircraft geometries and other 
      CAD files. 
-  license: Apache-2.0
-  license_file: LICENSE.txt
+  # TiGL itself is Apache-2.0, but v${{ version }} still compiles in some third-party code:
+  #  - src/boolean_operations/GEOMAlgo_Splitter.{cxx,hxx} (SALOME): LGPL-2.1-only
+  #    (to be removed upstream, see https://github.com/DLR-SC/tigl/issues/1024)
+  #  - TIGLCreator/src/TIGLAISTriangulation.{cpp,h} (copy of OCCT 6.5 code, TiGL Creator only):
+  #    Open CASCADE Technology Public License 6.5 (to be replaced upstream by OCCT's own class)
+  #  - src/system/CheckedMutex.h and TIGLCreator/styles/qdarkstyle: MIT
+  license: Apache-2.0 AND LGPL-2.1-only AND MIT AND LicenseRef-OCCT-PL-6.5
+  license_file:
+    - LICENSE.txt
+    - licenses/LGPL-2.1.txt
+    - licenses/OCCT-PL-6.5.txt
+    - licenses/MIT-CheckedMutex.txt
+    - licenses/MIT-QDarkStyle.txt
   documentation: https://dlr-sc.github.io/tigl/doc/latest/index.html
   repository: https://github.com/DLR-SC/tigl
 
