@@ -59,6 +59,23 @@ tests:
         - if: is_abi3
           then: ${{ python_min }}.*
         - "*"
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+        - anyio
+        - trio
+        - sniffio
+    script:
+      # Most of the suite runs against a pyvoy (Envoy) server, and the conftest
+      # imports pyvoy and opentelemetry-test-utils, neither of which is on
+      # conda-forge. Run the files that don't need the server, without the
+      # conftest. The deselected tests need its server or certs fixtures, and
+      # test_response_content_awaitable_ensure_future is asyncio-only (the
+      # conftest normally deselects it on trio).
+      - pytest -v --noconftest --import-mode=importlib tests/test_asgi.py tests/test_common.py tests/test_headers.py tests/test_multipart_encode.py tests/test_protocol_errors.py tests/test_proxy.py tests/test_request.py tests/test_response.py tests/test_timeout.py tests/test_tls_system.py tests/test_trio_bridge.py tests/test_uds.py tests/test_unwinding.py -k "not test_response_content_awaitable_ensure_future and not ca_cert_and_include_system_certs"
   - if: is_abi3
     then:
       requirements:

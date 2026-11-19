@@ -18,7 +18,12 @@ build:
   script:
     env:
       SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
-    content: ${{ PYTHON }} -m pip install . -vv
+    content:
+      # include-package-data relies on setuptools-scm's git file finder, which
+      # finds nothing in the tarball, so py.typed and report/_template.html
+      # would be left out.
+      - ${{ PYTHON }} -c "import shutil; shutil.copy(r'${{ RECIPE_DIR }}/MANIFEST.in', 'MANIFEST.in')"
+      - ${{ PYTHON }} -m pip install . -vv
   python:
     entry_points:
       - flyte = flyte.cli.main:main
@@ -77,6 +82,70 @@ tests:
     script:
       # rich-click help output needs UTF-8 on Windows CI.
       - python -X utf8 -c "from flyte.cli.main import main; main(['--help'])"
+  # Upstream only runs the suite on Linux.
+  - if: not win
+    then:
+      files:
+        source:
+          - tests/
+      requirements:
+        run:
+          # Python 3.15 isn't supported upstream yet, and grpcio isn't built for it.
+          - python ${{ python_min }}.*
+          - pytest
+          - pytest-asyncio
+          - pytest-xdist
+          - mock
+          - grpcio
+          - fastapi
+          - uvicorn
+          - starlette
+          - pandas
+          - pyarrow
+          - mcp >=1.26.0,<2
+          - textual >=0.80
+          # kubernetes 37 turned its models into pydantic models that reject
+          # the int CPU values flyte passes; upstream locks 35.
+          - python-kubernetes >=35,<37
+          - prometheus_client
+          - regex >=2024.5.15
+          - orjson
+          - asyncssh >=2.14
+          - ruff
+      script:
+        # Left out:
+        # - orchestrator/test_local_runs.py, orchestrator/test_conditions.py:
+        #   need pydantic-monty 1.0 (conda-forge only has 0.0.1)
+        # - imagebuild/test_docker_builder.py, test_int_image_builder.py and three
+        #   image_build_engine tests: need docker
+        # - storage/io_types tests that talk to the S3 sandbox on localhost:4566
+        # - test_reregister_encoder: needs google-cloud-bigquery
+        # - test_default_base_image: assumes a dev (unreleased) flyte version
+        # - test_unknown_option_keeps_click_message: click 8.5 reworded the message
+        # - TestMergeKubeconfig*: need kubectl
+        # - test_round_trip launch_remote tests and the *_include_populates_declaring_file
+        #   tests: rattler-build puts the tests under $PREFIX/etc/conda/test-files/flyte/,
+        #   which flyte treats as SDK code (path has /flyte/) or an environment dir
+        # - test_detects_system_cert_support_from_signature: order-dependent under
+        #   xdist (lru_cache'd helper gets filled while other tests mock pyqwest)
+        - >-
+          pytest -v -n auto tests
+          -o asyncio_default_fixture_loop_scope=function
+          --ignore=tests/flyte/orchestrator/test_local_runs.py
+          --ignore=tests/flyte/orchestrator/test_conditions.py
+          --ignore=tests/flyte/imagebuild/test_docker_builder.py
+          --ignore=tests/flyte/test_int_image_builder.py
+          --deselect=tests/flyte/imagebuild/test_image_build_engine.py::test_cached
+          --deselect=tests/flyte/imagebuild/test_image_build_engine.py::test_build_looks_up_in_the_explicit_build_queue
+          --deselect=tests/flyte/imagebuild/test_image_build_engine.py::test_local_docker
+          -k "not test_obstore_parallel_reader and not test_get_underlying_filesystem_upload_download
+          and not test_download_dir and not test_dir_walk_s3 and not test_list_dir_mock_s3
+          and not test_download_file and not test_from_local_to_s3
+          and not test_task_write_file_local_then_upload and not test_reregister_encoder
+          and not test_default_base_image and not test_unknown_option_keeps_click_message
+          and not TestMergeKubeconfig and not test_launch_remote_success
+          and not test_launch_remote_err and not include_populates_declaring_file
+          and not test_detects_system_cert_support_from_signature"
 
 about:
   homepage: https://flyte.org
