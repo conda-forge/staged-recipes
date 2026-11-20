@@ -1,0 +1,79 @@
+schema_version: 1
+
+context:
+  version: "0.18.0.2"
+  # Git submodule revision used by this release of the Python bindings.
+  quickjs_rev: d7215b0ad3fc2c562e8317fd9bca058fd4863804
+
+package:
+  name: quickjs-ng
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/genotrance/quickjs-ng/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 98f3704051237ce941554c410113ea9ac4a5f40df7943926b15366633476ca67
+  - url: https://github.com/quickjs-ng/quickjs/archive/${{ quickjs_rev }}.tar.gz
+    sha256: a49defe70cbcae9226d9fac025af116e87ebae2440dcff1ca3c80b79e1cdef0b
+    target_directory: upstream-quickjs
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python
+  run_constraints:
+    # Both packages provide the quickjs Python module.
+    - python-quickjs <0a0
+
+tests:
+  - python:
+      imports:
+        - quickjs
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "from quickjs import Function; assert Function('add', 'function add(a, b) { return a + b; }')(20, 22) == 42"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: win
+          then: abi3audit "%SP_DIR%/_quickjs.pyd" -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit "$SP_DIR/_quickjs.abi3.so" -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/genotrance/quickjs-ng
+  repository: https://github.com/genotrance/quickjs-ng
+  license: MIT
+  license_file:
+    - LICENSE
+    - upstream-quickjs/LICENSE
+  summary: Python bindings for the QuickJS-NG JavaScript engine
+
+extra:
+  recipe-maintainers:
+    - dhirschfeld
