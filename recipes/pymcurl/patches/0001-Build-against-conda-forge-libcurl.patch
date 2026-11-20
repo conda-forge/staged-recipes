@@ -1,21 +1,21 @@
-From 859e9b80e3f0731ac23089b40750bda0e056429a Mon Sep 17 00:00:00 2001
+From 6ca35759b535adac493ce8aaa8cd89979712273a Mon Sep 17 00:00:00 2001
 From: Copilot <223556219+Copilot@users.noreply.github.com>
-Date: Sat, 21 Nov 2026 08:57:22 +1000
+Date: Sat, 21 Nov 2026 09:25:28 +1000
 Subject: [PATCH] Build against conda-forge libcurl
 
 Use libcurl from the conda host prefix and its default CA store so the
 build does not need jbb or download assets. Use the activated compiler
 on Unix and clang for preprocessing on Windows, where MSVC links the
-extension.
+extension. Normalize the Windows integer spelling for the CFFI parser.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ---
- mcurl/gen.py   | 65 ++++++++++++--------------------------------------
+ mcurl/gen.py   | 68 +++++++++++++-------------------------------------
  pyproject.toml |  2 +-
- 2 files changed, 16 insertions(+), 51 deletions(-)
+ 2 files changed, 19 insertions(+), 51 deletions(-)
 
 diff --git a/mcurl/gen.py b/mcurl/gen.py
-index beda23a..fe4b524 100644
+index beda23a..c31d698 100644
 --- a/mcurl/gen.py
 +++ b/mcurl/gen.py
 @@ -7,7 +7,6 @@ import sys
@@ -96,7 +96,7 @@ index beda23a..fe4b524 100644
          library_dirs=libs,
          include_dirs=[inc],
          define_macros=define_macros,
-@@ -358,51 +358,16 @@ def find_curlh(libs, fallback):
+@@ -358,51 +358,19 @@ def find_curlh(libs, fallback):
  
  
  def source_prep():
@@ -150,6 +150,9 @@ index beda23a..fe4b524 100644
      # Preprocess and clean code
 -    cdef = get_preprocessor(curlh, recurse=True)
 +    cdef = get_preprocessor(curlh, defines=["CURL_DISABLE_DEPRECATION", "CURL_STATICLIB"], recurse=True)
++    if sys.platform == "win32":
++        # CFFI's parser does not recognize MSVC's 64-bit integer spelling.
++        cdef = re.sub(r"\b__int64\b", "long long", cdef)
  
      # Generate callback stubs
      cdef += gen_callbacks(cdef) + CDEF_FOOTER
