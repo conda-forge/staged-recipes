@@ -4,6 +4,7 @@ context:
   name: flashinfer-python
   version: 0.7.4
   python_min: "3.10"
+  cuda_build_string: ${{ "cuda" ~ cuda_compiler_version | version_to_buildstring }}
 
 package:
   name: ${{ name|lower }}
@@ -15,6 +16,10 @@ source:
     patches:
       - patches/0001-Remove-unneeded-dependencies.patch
       - patches/0002-Search-the-conda-lib-directories-for-CUDA-libraries.patch
+      # cutile-python is only available for CUDA 13, so the requirement on
+      # cuda-tile would make pip check fail.
+      - if: match(cuda_compiler_version, "<13")
+        then: patches/0003-Remove-cuda-tile-dependency.patch
   # The git submodules are not in the GitHub archive. These are the commits that
   # the v0.7.4 tag pins (git ls-tree v0.7.4 3rdparty/). 3rdparty/nixl is not
   # needed because the NIXL-EP build is disabled (BUILD_NVEP=0).
@@ -30,6 +35,10 @@ source:
 
 build:
   number: 0
+  string: ${{ cuda_build_string }}_h${{ hash }}_${{ build_number }}
+  # One noarch variant per CUDA version, because cutile-python is only
+  # available for CUDA 13.
+  skip: cuda_compiler_version == "None"
   noarch: python
   script:
     # Do not try to pip install NIXL or build NIXL-EP.
@@ -43,6 +52,7 @@ requirements:
   host:
     - python ${{ python_min }}.*
     - apache-tvm-ffi >=0.1.11,<0.2
+    - cuda-version ${{ cuda_compiler_version }}.*
     - packaging >=24
     - pip
     - setuptools >=77
@@ -51,8 +61,12 @@ requirements:
     - apache-tvm-ffi >=0.1.11,<0.2
     - click
     - cuda-python
-    - cuda-version >=12.0
-    - cutile-python >=1.4.0
+    # Enhanced compatibility: any CUDA minor version of the same major version.
+    - ${{ pin_compatible("cuda-version", lower_bound="x", upper_bound="x") }}
+    # Upstream requires cuda-tile on every CUDA version, but cutile-python on
+    # conda-forge requires CUDA 13. FlashInfer only uses it when it is available.
+    - if: match(cuda_compiler_version, ">=13")
+      then: cutile-python >=1.4.0
     - einops
     - filelock
     - jinja2
