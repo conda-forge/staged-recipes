@@ -36,8 +36,15 @@ def setup_environment(ns):
         os.environ["MINIFORGE_HOME"] = os.path.join(
             os.path.dirname(__file__), "miniforge3"
         )
-    if "OSX_SDK_DIR" not in os.environ:
-        os.environ["OSX_SDK_DIR"] = os.path.join(os.path.dirname(__file__), "SDKs")
+    if (
+        ns.config.startswith("osx")
+        and platform.system() == "Darwin"
+        and not os.environ.get("OSX_SDK_DIR")
+    ):
+        sys.exit(
+            "Set OSX_SDK_DIR to an absolute path for the macOS SDKs. "
+            "Setting it implies agreement to Apple's SDK licensing terms."
+        )
 
     # The default cache location might not be writable using docker on macOS.
     if ns.config.startswith("linux") and platform.system() == "Darwin":

@@ -1,3 +1,4 @@
+import os
 import runpy
 import unittest
 from argparse import Namespace
@@ -5,9 +6,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-verify_config = runpy.run_path(
+build_locally = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "build-locally.py")
-)["verify_config"]
+)
+verify_config = build_locally["verify_config"]
 
 
 class ConfigSelectionTests(unittest.TestCase):
@@ -25,3 +27,10 @@ class ConfigSelectionTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "1 to 2"),
         ):
             verify_config(Namespace(config=None, filter=None))
+
+    @patch("platform.system", return_value="Darwin")
+    def test_native_macos_build_requires_sdk_directory(self, _system):
+        with patch.dict(os.environ, clear=True), self.assertRaisesRegex(
+            SystemExit, "OSX_SDK_DIR"
+        ):
+            build_locally["setup_environment"](Namespace(config="osx64", debug=False))
