@@ -1,0 +1,95 @@
+schema_version: 1
+
+context:
+  version: "7.8"
+  test_modules:
+    - AccessControl.tests.testClassSecurityInfo
+    - AccessControl.tests.testImplementation
+    - AccessControl.tests.testModuleSecurity
+    - AccessControl.tests.testPermissionMapping
+    - AccessControl.tests.testPermissionRole
+    - AccessControl.tests.testSecurityManager
+    - AccessControl.tests.testZCML
+    - AccessControl.tests.testZopeGuards
+    - AccessControl.tests.testZopeSecurityPolicy
+    - AccessControl.tests.test_frozen
+    - AccessControl.tests.test_owner
+    - AccessControl.tests.test_requestmethod
+    - AccessControl.tests.test_rolemanager
+    - AccessControl.tests.test_safe_formatter
+    - AccessControl.tests.test_safeiter
+    - AccessControl.tests.test_tainted
+    - AccessControl.tests.test_userfolder
+    - AccessControl.tests.test_users
+
+package:
+  name: accesscontrol
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/a/accesscontrol/accesscontrol-${{ version }}.tar.gz
+  sha256: 0680aa799533468f3ef37b95ad857a986d91a979313487c528362d48407d0a6a
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+    - acquisition
+    - authencoding
+    - btrees
+    - datetime
+    - extensionclass
+    - persistence
+    - restrictedpython
+    - transaction
+    - zexceptions
+    - zope.component
+    - zope.configuration
+    - zope.deferredimport
+    - zope.interface
+    - zope.publisher
+    - zope.schema
+    - zope.security
+    - zope.testing
+
+tests:
+  - python:
+      imports:
+        - AccessControl
+        - AccessControl.cAccessControl
+        - AccessControl.SecurityManagement
+        - AccessControl.ZopeGuards
+        - AccessControl.userfolder
+      pip_check: true
+  - script:
+      # use each module's test_suite() like zope.testrunner does; plain loading
+      # also collects abstract base TestCases (ZopeSecurityPolicyTestBase, ...)
+      - |
+        python -c "import sys, unittest, importlib; L = unittest.defaultTestLoader; s = unittest.TestSuite(getattr(m, 'test_suite', lambda m=m: L.loadTestsFromModule(m))() for m in map(importlib.import_module, sys.argv[1:])); sys.exit(not unittest.TextTestRunner(verbosity=2).run(s).wasSuccessful())" ${{ test_modules | join(" ") }}
+
+about:
+  homepage: https://github.com/zopefoundation/AccessControl
+  repository: https://github.com/zopefoundation/AccessControl
+  summary: Security framework for Zope
+  license: ZPL-2.1
+  license_file:
+    - LICENSE.txt
+    - COPYRIGHT.txt
+
+extra:
+  recipe-maintainers:
+    - killua156
