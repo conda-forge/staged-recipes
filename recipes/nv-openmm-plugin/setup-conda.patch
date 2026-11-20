@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# NV_OPENMM_PLUGIN_CONDA=1 makes plugins/openmm/setup.py build the package that a
+# conda package installs: with no bundled libcupo.so, none of the files that come
+# with libcupo (runtime_build.json, the cupo tarball's third-party notices), and no
+# requirements, since conda, not pip, provides openmm and the CUDA libraries.
+# Without the variable, setup.py is unchanged. This text, before the first ---
+# line, is not part of the diff, and patch ignores it.
+--- a/plugins/openmm/setup.py
++++ b/plugins/openmm/setup.py
+@@ -76,6 +76,18 @@
+     # Source checkouts need run_build first. Do not quietly emit an incomplete wheel
+     # when the prebuilt payload has not been staged.
+     root = Path(__file__).resolve().parent
++    # NV_OPENMM_PLUGIN_CONDA=1: a conda package build. libcupo is a package of its
++    # own there, with its runtime_build.json and third-party notices, and conda,
++    # not pip, provides openmm and the CUDA libraries: no bundled runtime, no
++    # requirements.
++    conda = os.environ.get('NV_OPENMM_PLUGIN_CONDA') == '1'
++    conda_absent = {
++        'runtime-requirements.txt',
++        'python/nv_openmm_plugin/runtime_build.json',
++        'python/nv_openmm_plugin/notices/OpenMM-Bonded-MIT.txt',
++        'python/nv_openmm_plugin/notices/OpenMM-Bonded-UPSTREAM.txt',
++        'python/nv_openmm_plugin/notices/LEPTON_NOTICE.txt',
++    }
+     for relative in (
+         'runtime-requirements.txt',
+         'python/nv_openmm_plugin/runtime_build.json',
+@@ -91,11 +103,13 @@
+         'python/nv_openmm_plugin/notices/LICENSE-apache.txt',
+         'python/nv_openmm_plugin/notices/LICENSE-cupo.txt',
+     ):
++        if conda and relative in conda_absent:
++            continue
+         if not (root/relative).is_file():
+             raise RuntimeError(f'Missing release payload {relative}; run run_build first')
+     # The cuPo runtime, one file under its SONAME: libcupo.so.<ABI>.
+     runtime = sorted(p.name for p in (root/'python/nv_openmm_plugin/lib').glob('libcupo.so*'))
+-    if len(runtime) != 1:
++    if len(runtime) != (0 if conda else 1):
+         raise RuntimeError('Expected one cuPo runtime in python/nv_openmm_plugin/lib, '
+                            f'found {runtime}; run run_build first')
+ 
+@@ -104,4 +118,5 @@
+             return True
+ 
+     setup(distclass=BinaryDistribution, long_description=long_description(root),
+-          long_description_content_type='text/markdown')
++          long_description_content_type='text/markdown',
++          **({'install_requires': []} if conda else {}))
