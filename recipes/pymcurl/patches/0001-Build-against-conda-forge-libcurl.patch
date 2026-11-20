@@ -1,35 +1,32 @@
-From c752a278453cb57645c15cbf0a9b3de4f80d3a85 Mon Sep 17 00:00:00 2001
+From 859e9b80e3f0731ac23089b40750bda0e056429a Mon Sep 17 00:00:00 2001
 From: Copilot <223556219+Copilot@users.noreply.github.com>
-Date: Fri, 20 Nov 2026 11:56:20 +1000
+Date: Sat, 21 Nov 2026 08:57:22 +1000
 Subject: [PATCH] Build against conda-forge libcurl
 
-Use build and host dependencies instead of downloading libcurl and CA certificates at build time. Use clang only to preprocess headers on Windows, where the extension still links with MSVC.
+Use libcurl from the conda host prefix and its default CA store so the
+build does not need jbb or download assets. Use the activated compiler
+on Unix and clang for preprocessing on Windows, where MSVC links the
+extension.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ---
- mcurl/gen.py   | 153 ++++++++-----------------------------------------
- pyproject.toml |   2 +-
- 2 files changed, 24 insertions(+), 131 deletions(-)
+ mcurl/gen.py   | 65 ++++++++++++--------------------------------------
+ pyproject.toml |  2 +-
+ 2 files changed, 16 insertions(+), 51 deletions(-)
 
 diff --git a/mcurl/gen.py b/mcurl/gen.py
-index beda23a..0db16fe 100644
+index beda23a..fe4b524 100644
 --- a/mcurl/gen.py
 +++ b/mcurl/gen.py
-@@ -1,13 +1,9 @@
--import glob
- import os
- import re
--import shutil
- import subprocess
- import sys
--import tempfile
+@@ -7,7 +7,6 @@ import sys
+ import tempfile
  
  import cffi
 -import jbb
  
  # Platform specific additions
  if sys.platform == "linux":
-@@ -23,9 +19,9 @@ struct sockaddr {
+@@ -23,9 +22,9 @@ struct sockaddr {
  typedef long time_t;
  
  typedef struct {
@@ -41,127 +38,56 @@ index beda23a..0db16fe 100644
  
      HEADER = """
  #include <sys/socket.h>
-@@ -203,30 +199,18 @@ def gen_callbacks(code):
-     return callbacks
+@@ -205,7 +204,7 @@ def gen_callbacks(code):
  
- 
--def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
--    # Get preprocessed output from the C/C++ compiler
+ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+     # Get preprocessed output from the C/C++ compiler
 -    args = ["gcc"]
-+def get_preprocessor(sfile):
-+    # Clang can dump macro definitions on Windows; MSVC builds the extension.
 +    args = ["clang" if sys.platform == "win32" else os.environ["CC"]]
      start = False
--
--    sfileName = os.path.basename(sfile)
--    pDir = os.path.dirname(sfile)
--
--    includeDirs = []
--
--    args.extend(["-E", "-xc", "-w", "-dD"])
--
--    # Add include directories to args
--    for inc in incs:
--        args.append(f"-I{inc}")
--        includeDirs.append(inc.absolutePath().sanitizePath(noQuote=True))
--
--    # Add #define values if needed
--    for hdef in defines:
--        args.append(f"-D{hdef}")
-+    curl_include = os.path.normcase(os.path.dirname(sfile) + os.sep)
+ 
+     sfileName = os.path.basename(sfile)
+@@ -226,7 +225,7 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
  
      # Remove gcc special calls
      args.extend([
 -        '"-D__attribute__(x)="',
-+        "-E", "-xc", "-w", "-dD",
-+        "-DCURL_DISABLE_DEPRECATION",
-+        "-DCURL_STATICLIB",
 +        "-D__attribute__(x)=",
          "-D__restrict=",
          "-D__restrict__=",
          "-D__extension__=",
-@@ -237,42 +221,18 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+@@ -237,9 +236,9 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
      ])
  
      # Run preprocessor
 -    p = subprocess.run(" ".join(args), capture_output=True, text=True, shell=True)
-+    p = subprocess.run(args, stdout=subprocess.PIPE, check=True, text=True)
++    p = subprocess.run(args, capture_output=True, text=True)
      outp = p.stdout.replace("\\\\", os.sep).splitlines()
 -    if len(p.stderr) != 0:
--        print(p.stderr)
--        raise Exception("Failed in preprocessing")
++    if p.returncode != 0:
+         print(p.stderr)
+         raise Exception("Failed in preprocessing")
  
--    # Include content only from file
-+    # Only feed curl headers (not system headers) to CFFI.
-     code = ""
-     for line in outp:
--        # We want to keep blank lines here for comment processing
-         if len(line) > 10 and line[0] == "#" and line[1] == " " and '"' in line:
-             # # 1 "path/to/file.h" 1
--            start = False
--            line = line.split('"')[1]
--            if sfile == line or (os.path.sep not in line and sfileName == line):
--                start = True
--            elif recurse:
+@@ -254,7 +253,8 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+             if sfile == line or (os.path.sep not in line and sfileName == line):
+                 start = True
+             elif recurse:
 -                if len(pDir) == 0 or pDir in line:
--                    start = True
--                else:
--                    for inc in includeDirs:
--                        if line.startswith(inc):
--                            start = True
--                            if start:
--                                break
--        elif ": fatal error:" in line:
--            raise Exception(
--                "Failed in preprocessing, check if `incs` is needed or compiler `mode` is correct (c/cpp)"
--                + "\n\nERROR:"
--                + line.split(": fatal error:")[1]
--            )
--        else:
--            if start:
--                if "#undef" in line:
--                    continue
--                code += line + "\n"
-+            path = os.path.normcase(os.path.normpath(line.split('"')[1]))
-+            start = path.startswith(curl_include)
-+        elif start and not line.startswith("#undef"):
-+            code += line + "\n"
- 
-     # Write preprocessor output to file
-     prefile = os.path.basename(sfile).replace(".", "-pre.")
-@@ -289,22 +249,6 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
-     return code
- 
- 
--def get_libcurl_version():
--    # Get module version from pyproject.toml
--    with open("pyproject.toml") as f:
--        toml = f.read()
--    for line in toml.splitlines():
--        if line.startswith("version"):
--            spl = line.split("=", 1)
--            if len(spl) == 2:
--                version = spl[1].strip(' "')
--                break
--
--    # Return version without the last octet
--    lastdot = version.rfind(".")
--    return version[:lastdot]
--
--
- def _use_stable_abi():
-     # Detect whether we can use the stable/limited API
-     # - PyPy does not honour Py_LIMITED_API
-@@ -329,15 +273,13 @@ def cffi_prep(cdef, inc, libs):
++                path = os.path.normcase(os.path.normpath(line))
++                if len(pDir) == 0 or path.startswith(os.path.normcase(pDir + os.sep)):
+                     start = True
+                 else:
+                     for inc in includeDirs:
+@@ -329,7 +329,7 @@ def cffi_prep(cdef, inc, libs):
      extra_compile_args = []
      extra_link_args = []
      if sys.platform == "darwin":
 -        # Embed rpaths for all brew lib dirs so the extension finds
--        # libcurl at runtime regardless of the active Python interpreter
--        # (CPython, PyPy) without requiring DYLD_LIBRARY_PATH.
-+        # Find libcurl in the conda prefix without DYLD_LIBRARY_PATH.
++        # Embed rpaths for the lib dirs so the extension finds
+         # libcurl at runtime regardless of the active Python interpreter
+         # (CPython, PyPy) without requiring DYLD_LIBRARY_PATH.
          for lib in libs:
-             extra_link_args.append(f"-Wl,-rpath,{lib}")
+@@ -337,7 +337,7 @@ def cffi_prep(cdef, inc, libs):
      ffibuilder.set_source(
          "_libcurl_cffi",
          HEADER,
@@ -170,19 +96,9 @@ index beda23a..0db16fe 100644
          library_dirs=libs,
          include_dirs=[inc],
          define_macros=define_macros,
-@@ -348,61 +290,12 @@ def cffi_prep(cdef, inc, libs):
-     return ffibuilder
+@@ -358,51 +358,16 @@ def find_curlh(libs, fallback):
  
  
--def find_curlh(libs, fallback):
--    "Find curl/curl.h in the include/ sibling of each jbb lib/ (bin/ on Windows) directory, else fallback"
--    derived = [os.path.join(os.path.dirname(d), "include", "curl", "curl.h") for d in libs]
--    for curlh in derived + [fallback]:
--        if os.path.isfile(curlh):
--            return curlh
--    raise RuntimeError(f"curl/curl.h not found at jbb-derived paths {derived} or fallback path {fallback}")
--
--
  def source_prep():
 -    # Download libcurl from JBB for Linux and Windows
 -    key = jbb.get_key()
@@ -214,10 +130,14 @@ index beda23a..0db16fe 100644
 -            libs.append(prefix + "/opt/" + dep + "/lib")
 -
 -        curlh = prefix + "/opt/curl/include/curl/curl.h"
--
--    # Include directory
--    inc = os.path.dirname(curlh)
--
++    # Use the host libcurl and leave TLS trust to its default CA store.
++    prefix = os.environ["LIBRARY_PREFIX" if sys.platform == "win32" else "PREFIX"]
++    libs = [os.path.join(prefix, "lib")]
++    curlh = os.path.join(prefix, "include", "curl", "curl.h")
+ 
+     # Include directory
+     inc = os.path.dirname(curlh)
+ 
 -    # Download CAcerts
 -    pemdst = "mcurl/cacert.pem"
 -    jbb.jbb("mozillaCACerts", outdir=outdir, quiet=False)
@@ -227,13 +147,9 @@ index beda23a..0db16fe 100644
 -    except shutil.SameFileError:
 -        pass
 -
--    # Preprocess and clean code
+     # Preprocess and clean code
 -    cdef = get_preprocessor(curlh, recurse=True)
-+    # Use the host libcurl and leave TLS trust to its default CA store.
-+    prefix = os.environ["LIBRARY_PREFIX" if sys.platform == "win32" else "PREFIX"]
-+    libs = [os.path.join(prefix, "lib")]
-+    inc = os.path.join(prefix, "include", "curl")
-+    cdef = get_preprocessor(os.path.join(inc, "curl.h"))
++    cdef = get_preprocessor(curlh, defines=["CURL_DISABLE_DEPRECATION", "CURL_STATICLIB"], recurse=True)
  
      # Generate callback stubs
      cdef += gen_callbacks(cdef) + CDEF_FOOTER
