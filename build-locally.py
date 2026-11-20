@@ -70,27 +70,33 @@ def verify_config(ns):
     if choices_filter != "*":
         print(f"filtering for '{choices_filter}.yaml' configs")
     print(f"valid configs are {valid_configs}")
-    if ns.config in valid_configs:
+    if not valid_configs:
+        raise ValueError(f"no build configurations match {choices_filter!r}")
+    if ns.config is not None:
+        if ns.config not in valid_configs:
+            choices = ", ".join(sorted(valid_configs))
+            raise ValueError(f"config {ns.config!r} is not one of {choices}")
         print("Using " + ns.config + " configuration")
         return
-    elif len(valid_configs) == 1:
+    if len(valid_configs) == 1:
         ns.config = valid_configs.pop()
         print("Found " + ns.config + " configuration")
-    elif ns.config is None:
+    else:
         print("config not selected, please choose from the following:\n")
         selections = list(enumerate(sorted(valid_configs), 1))
         for i, c in selections:
             print(f"{i}. {c}")
         try:
-            s = input("\n> ")
+            choice = int(input("\n> "))
+        except (ValueError, EOFError):
+            raise ValueError(f"choose a number from 1 to {len(selections)}") from None
         except KeyboardInterrupt:
             print("\nno option selected, bye!", file=sys.stderr)
             sys.exit(1)
-        idx = int(s) - 1
-        ns.config = selections[idx][1]
+        if not 1 <= choice <= len(selections):
+            raise ValueError(f"choose a number from 1 to {len(selections)}")
+        ns.config = selections[choice - 1][1]
         print(f"selected {ns.config}")
-    else:
-        raise ValueError("config " + ns.config + " is not valid")
     if ns.config.startswith("osx") and platform.system() == "Darwin":
         if "OSX_SDK_DIR" not in os.environ:
             raise RuntimeError(
@@ -116,7 +122,10 @@ def main(args=None):
 
     ns = p.parse_args(args=args)
     verify_system()
-    verify_config(ns)
+    try:
+        verify_config(ns)
+    except ValueError as e:
+        p.error(str(e))
     setup_environment(ns)
 
     if ns.config.startswith("linux") or (
