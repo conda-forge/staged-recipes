@@ -40,7 +40,8 @@ def get_host_platform():
 
 def get_config_name(arch):
     platform = get_host_platform()
-    return os.environ.get("CONFIG", "{}{}".format(platform, arch))
+    suffix = arch if arch in ("32", "64") else f"_{arch}"
+    return os.environ.get("CONFIG", f"{platform}{suffix}")
 
 
 def build_all(recipes_dir, arch):
@@ -403,8 +404,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--arch",
-        default="64",
-        help="target architecture (second component of a subdir; e.g. 64, arm64, ppc64le)",
+        default=conda.base.context.context.subdir.split("-", 1)[1],
+        help="target architecture (defaults to the architecture of the conda subdir)",
     )
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
