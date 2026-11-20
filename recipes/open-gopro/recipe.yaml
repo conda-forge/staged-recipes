@@ -1,0 +1,99 @@
+context:
+  version: 0.22.0
+
+package:
+  name: open-gopro
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/o/open-gopro/open_gopro-${{ version }}.tar.gz
+  sha256: ecf8b4baed8ef0ab8c83d5673afee4dcea8ced942a82d1feec9a500967df703a
+  patches:
+    # bleak==0.22.3 is not available on conda-forge; upstream main has since moved to
+    # bleak 2.x without changes to the BLE API calls used here. packaging is relaxed
+    # as upstream did in gopro/OpenGoPro#844.
+    - relax-pins.patch
+    # multi-line f-string in the gopro-cohn demo is a SyntaxError on Python 3.11
+    - fix-py311-fstring.patch
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - gopro-photo = open_gopro.demos.photo:entrypoint
+      - gopro-video = open_gopro.demos.video:entrypoint
+      - gopro-log-battery = open_gopro.demos.log_battery:entrypoint
+      - gopro-wifi = open_gopro.demos.connect_wifi:entrypoint
+      - gopro-webcam = open_gopro.demos.gui.webcam:entrypoint
+      - gopro-livestream = open_gopro.demos.gui.livestream:entrypoint
+      - gopro-preview-stream = open_gopro.demos.gui.preview_stream:entrypoint
+      - gopro-cohn = open_gopro.demos.cohn:entrypoint
+      - gopro-scan = open_gopro.demos.scanner:entrypoint
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - poetry-core >=1.0.0
+    - pip
+  run:
+    - python >=${{ python_min }},<3.14
+    - bleak >=0.22.3,<3
+    - construct >=2,<3
+    - wrapt >=1,<2
+    - requests >=2,<3
+    - protobuf >=6,<7
+    - packaging >=24
+    - rich >=14,<15
+    - pexpect >=4,<5
+    - zeroconf <1
+    - pydantic >=2,<3
+    - pytz
+    - tzlocal
+    - tinydb >=4,<5
+    - returns <1
+    # from the returns[compatible-mypy] extra
+    - mypy
+    - asyncstdlib >=3,<4
+  run_constraints:
+    # optional "gui" extra (gopro-webcam, gopro-livestream, gopro-preview-stream)
+    - opencv >=4,<5
+    - pillow >=11,<12
+
+tests:
+  - python:
+      imports:
+        - open_gopro
+        - open_gopro.network.ble.adapters.bleak_wrapper
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - gopro-photo --help
+      - gopro-video --help
+      - gopro-scan --help
+      - gopro-cohn --help
+
+about:
+  summary: Python SDK for controlling GoPro cameras over BLE and WiFi via the Open GoPro API.
+  description: |
+    The Open GoPro Python SDK provides an asyncio-based interface for discovering,
+    connecting to and controlling GoPro cameras over Bluetooth Low Energy, WiFi and
+    Camera-on-the-Home-Network (COHN), including commands, settings, statuses,
+    media management and live/preview streaming. It also ships a set of demo
+    command-line tools (gopro-photo, gopro-video, gopro-scan, ...).
+  homepage: https://gopro.github.io/OpenGoPro/
+  repository: https://github.com/gopro/OpenGoPro
+  documentation: https://gopro.github.io/OpenGoPro/python_sdk/
+  license: MIT
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - roaldarbol
