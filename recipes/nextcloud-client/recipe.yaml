@@ -1,0 +1,99 @@
+context:
+  name: nextcloud-client
+  version: "35.0.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nextcloud/desktop/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8e79f3df02e04740e03cf1d254c9016265ce2fac88cbd3a745c41d9659fc0134
+  patches:
+    # Upstream installs the app-bundle-only container-migration.plist to
+    # ${OWNCLOUD_OSX_BUNDLE}/Contents/Resources without the
+    # BUILD_OWNCLOUD_OSX_BUNDLE guard that every other bundle install has;
+    # in a non-bundle build the empty variable makes the destination the
+    # absolute path /Contents/Resources and cmake --install fails.
+    - patches/0001-guard-app-bundle-install-for-non-bundle-builds.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # cmake configure/build/install plus the macOS-only bundle move,
+    # PlistBuddy and bin/ shim; see build.sh.
+    file: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - pkgconf
+    # The GUI build converts the theme SVG icons to PNGs at configure time
+    # (cmake/modules/GenerateIconsUtils.cmake); it accepts inkscape or
+    # rsvg-convert, and only the latter is on conda-forge (via librsvg).
+    - librsvg
+  host:
+    - qt6-main >=6.5.0
+    - qt6-keychain
+    - extra-cmake-modules >=6.0.0
+    - openssl >=1.1.0
+    - sqlite >=3.9.0
+    - zlib
+    - libp11
+    - kdsingleapplication
+    - kf6-karchive
+    # Notification sounds on Linux (src/gui/CMakeLists.txt): soft
+    # pkg-config dep, only used under `if(UNIX AND NOT APPLE)`.
+    - if: linux
+      then:
+        - libcanberra
+  run:
+    - qt6-main >=6.5.0
+    - qt6-keychain
+    - openssl >=1.1.0
+    - sqlite >=3.9.0
+    - zlib
+    - libp11
+    - kf6-karchive
+    # With the GUI enabled, nextcloudcmd additionally links the static
+    # nextcloudCore (src/cmd/CMakeLists.txt), which pulls in
+    # KDSingleApplication (used by the GUI for the single-instance check).
+    - kdsingleapplication
+    # Notification sounds on Linux (linked via HAVE_LIBCANBERRA).
+    - if: linux
+      then:
+        - libcanberra
+
+tests:
+  - package_contents:
+      bin:
+        - nextcloud
+        - nextcloudcmd
+  - script:
+    - nextcloudcmd --version
+    # The GUI executable constructs the QApplication even for --version,
+    # so use the offscreen platform plugin for the headless CI test.
+    - QT_QPA_PLATFORM=offscreen nextcloud --version
+
+about:
+  homepage: https://nextcloud.com/client/
+  repository: https://github.com/nextcloud/desktop
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  summary: Nextcloud desktop client (GUI and nextcloudcmd command-line sync client)
+  description: |
+    The Nextcloud desktop client synchronizes files between a Nextcloud
+    server and the local file system. This package provides the graphical
+    client (nextcloud) as well as the nextcloudcmd command-line sync
+    client, which can be scripted and run headless. File-manager shell
+    integrations (Nautilus/Dolphin on Linux, Finder Sync on macOS) and the
+    macOS auto-updater (Sparkle) are not built.
+extra:
+  recipe-maintainers:
+    - claudiushaag
