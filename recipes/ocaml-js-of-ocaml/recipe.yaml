@@ -2,6 +2,11 @@ schema_version: 1
 
 context:
   version: "6.4.1"
+  build_number: 0
+
+  library: ${{ "Library/" if not unix else "" }}
+  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
 
 recipe:
   name: ocaml-js-of-ocaml-split
@@ -12,27 +17,40 @@ source:
   sha256: e59bbffcaefaba3191620556514b7f53bb3249e3f881a070d72724234dffd819
 
 build:
-  number: 0
-  # sedlex is not yet published for win-64
-  skip:
-    - win
+  number: ${{ build_number }}
 
 outputs:
   - package:
       name: ocaml-js-of-ocaml-compiler
       version: ${{ version }}
     build:
-      script:
-        - dune build --profile=release -p js_of_ocaml-compiler @install
-        - dune install --prefix="${PREFIX}" --libdir="${PREFIX}/lib/ocaml" --docdir="${PREFIX}/share/doc" --mandir="${PREFIX}/share/man" js_of_ocaml-compiler
+      string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+      script: bash ${{ RECIPE_DIR }}/build.sh js_of_ocaml-compiler
     requirements:
       build:
-        - ${{ stdlib("c") }}
         - ${{ compiler("ocaml") }}
+        - if: not unix and c_compiler == "gcc"
+          then:
+            - ${{ stdlib("m2w64_c") }}
+            - ${{ compiler("m2w64_c") }}
+          else:
+            - ${{ stdlib("c") }}
+            # jsoo_runtime has C stubs
+            - ${{ compiler("c") }}
+        # compiler("ocaml") renders no toolchain track; name it on windows
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+            - m2-bash
+            - m2-coreutils
         - ocaml-dune >=3.20
         - ocaml-menhir
       host:
         - ocaml ${{ ocaml_compiler_version }}.*
+        # the noarch ocaml metapackage does not pin the windows toolchain track
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         - ocaml-ppxlib >=0.33
         - ocaml-compiler-libs >=0.12.4
         - ocaml-cmdliner >=2.0
@@ -45,12 +63,17 @@ outputs:
         - ocaml-sedlex >=3.3
         - ocaml-menhir
         - ocaml-yojson >=2.1
+      # the ocaml run_export does not encode the windows toolchain track
+      run_constraints:
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     tests:
       - package_contents:
           files:
-            - lib/ocaml/js_of_ocaml-compiler/META
-            - lib/ocaml/js_of_ocaml-compiler/js_of_ocaml_compiler.cmxa
-            - lib/ocaml/js_of_ocaml-compiler/runtime/jsoo_runtime.cmxa
+            - ${{ library }}lib/ocaml/js_of_ocaml-compiler/META
+            - ${{ library }}lib/ocaml/js_of_ocaml-compiler/js_of_ocaml_compiler.cmxa
+            - ${{ library }}lib/ocaml/js_of_ocaml-compiler/runtime/jsoo_runtime.cmxa
           bin:
             - js_of_ocaml
       - script:
@@ -64,26 +87,47 @@ outputs:
       name: ocaml-js-of-ocaml
       version: ${{ version }}
     build:
-      script:
-        - dune build --profile=release -p js_of_ocaml @install
-        - dune install --prefix="${PREFIX}" --libdir="${PREFIX}/lib/ocaml" --docdir="${PREFIX}/share/doc" --mandir="${PREFIX}/share/man" js_of_ocaml
+      string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+      script: bash ${{ RECIPE_DIR }}/build.sh js_of_ocaml
     requirements:
       build:
-        - ${{ stdlib("c") }}
         - ${{ compiler("ocaml") }}
+        - if: not unix and c_compiler == "gcc"
+          then:
+            - ${{ stdlib("m2w64_c") }}
+            - ${{ compiler("m2w64_c") }}
+          else:
+            - ${{ stdlib("c") }}
+            # js_of_ocaml has C stubs
+            - ${{ compiler("c") }}
+        # compiler("ocaml") renders no toolchain track; name it on windows
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+            - m2-bash
+            - m2-coreutils
         - ocaml-dune >=3.20
       host:
         - ocaml ${{ ocaml_compiler_version }}.*
+        # the noarch ocaml metapackage does not pin the windows toolchain track
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         - ocaml-ppxlib >=0.33
         - ${{ pin_subpackage("ocaml-js-of-ocaml-compiler", exact=True) }}
       run:
         # the installed META requires only js_of_ocaml-compiler; ppxlib is build-only
         - ${{ pin_subpackage("ocaml-js-of-ocaml-compiler", exact=True) }}
+      # the ocaml run_export does not encode the windows toolchain track
+      run_constraints:
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     tests:
       - package_contents:
           files:
-            - lib/ocaml/js_of_ocaml/META
-            - lib/ocaml/js_of_ocaml/js_of_ocaml.cmxa
+            - ${{ library }}lib/ocaml/js_of_ocaml/META
+            - ${{ library }}lib/ocaml/js_of_ocaml/js_of_ocaml.cmxa
       - script: bash testing/test_js.sh
         files:
           recipe:
@@ -93,7 +137,16 @@ outputs:
             - ocaml ${{ ocaml_compiler_version }}.*
             - ocaml-dune >=3.20
             - nodejs
-            - ${{ compiler("c") }}
+            - if: not unix and c_compiler == "gcc"
+              then:
+                - ${{ compiler("m2w64_c") }}
+              else:
+                - ${{ compiler("c") }}
+            - if: not unix
+              then:
+                - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+                - m2-bash
+                - m2-coreutils
     about:
       summary: Bindings and runtime library for programs compiled with js_of_ocaml
       license: LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception
@@ -103,19 +156,35 @@ outputs:
       name: ocaml-wasm-of-ocaml-compiler
       version: ${{ version }}
     build:
-      script:
-        - dune build --profile=release -p wasm_of_ocaml-compiler @install
-        - dune install --prefix="${PREFIX}" --libdir="${PREFIX}/lib/ocaml" --docdir="${PREFIX}/share/doc" --mandir="${PREFIX}/share/man" wasm_of_ocaml-compiler
+      string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+      script: bash ${{ RECIPE_DIR }}/build.sh wasm_of_ocaml-compiler
     requirements:
       build:
-        - ${{ stdlib("c") }}
         - ${{ compiler("ocaml") }}
+        - if: not unix and c_compiler == "gcc"
+          then:
+            - ${{ stdlib("m2w64_c") }}
+            - ${{ compiler("m2w64_c") }}
+          else:
+            - ${{ stdlib("c") }}
+            # wasm_of_ocaml-compiler.dynlink has C stubs
+            - ${{ compiler("c") }}
+        # compiler("ocaml") renders no toolchain track; name it on windows
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+            - m2-bash
+            - m2-coreutils
         - ocaml-dune >=3.20
         - ocaml-menhir
         # the wasm runtime is linked with wasm-merge/wasm-opt during the build
         - binaryen >=119
       host:
         - ocaml ${{ ocaml_compiler_version }}.*
+        # the noarch ocaml metapackage does not pin the windows toolchain track
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         - ocaml-ppxlib >=0.33
         - ocaml-cmdliner >=2.0
         - ocaml-sedlex >=3.3
@@ -128,10 +197,15 @@ outputs:
         # the installed META requires js_of_ocaml-compiler and sedlex
         - ocaml-sedlex >=3.3
         - ${{ pin_subpackage("ocaml-js-of-ocaml", exact=True) }}
+      # the ocaml run_export does not encode the windows toolchain track
+      run_constraints:
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
     tests:
       - package_contents:
           files:
-            - lib/ocaml/wasm_of_ocaml-compiler/META
+            - ${{ library }}lib/ocaml/wasm_of_ocaml-compiler/META
           bin:
             - wasm_of_ocaml
       - script:
@@ -145,7 +219,16 @@ outputs:
             - ocaml ${{ ocaml_compiler_version }}.*
             - ocaml-dune >=3.20
             - nodejs >=22
-            - ${{ compiler("c") }}
+            - if: not unix and c_compiler == "gcc"
+              then:
+                - ${{ compiler("m2w64_c") }}
+              else:
+                - ${{ compiler("c") }}
+            - if: not unix
+              then:
+                - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+                - m2-bash
+                - m2-coreutils
     about:
       summary: Compiler from OCaml bytecode to WebAssembly
       license: LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception
