@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(mcap_test LANGUAGES CXX)
+find_package(mcap CONFIG REQUIRED)
+add_executable(mcap_test test.cpp)
+target_link_libraries(mcap_test PRIVATE mcap::mcap)
