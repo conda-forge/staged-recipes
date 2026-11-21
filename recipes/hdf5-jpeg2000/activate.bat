@@ -1,6 +1,0 @@
-@set "HDF5_JPEG2000_BACKUP_HDF5_PLUGIN_PATH=%HDF5_PLUGIN_PATH%"
-@if defined HDF5_PLUGIN_PATH (
-  @set "HDF5_PLUGIN_PATH=%CONDA_PREFIX%\Library\lib\hdf5\plugin;%HDF5_PLUGIN_PATH%"
-) else (
-  @set "HDF5_PLUGIN_PATH=%CONDA_PREFIX%\Library\lib\hdf5\plugin"
-)
