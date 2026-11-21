@@ -1,0 +1,126 @@
+schema_version: 1
+
+context:
+  name: q3map2
+  # netradiant-custom release tag the q3map2 sources are taken from
+  version: "20260114"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Garux/netradiant-custom/archive/refs/tags/${{ version }}.tar.gz
+  sha256: a225b3bf39e49ef4f5f92c49c57902b84355169437d777d0de6488db7cc9eeb8
+  patches:
+    # Backport of upstream cd048695 (missing <cstdint> includes with GCC 16)
+    - patches/0001-fix-GCC-16.1.0-build.patch
+    # Not upstream yet: libc++ (macOS) can't copy entities holding patches
+    - patches/0002-fix-libc++-build.patch
+    # Not upstream yet: macOS worker threads overflow their 512 KiB stack
+    - patches/0003-fix-macOS-thread-stack-size.patch
+
+build:
+  number: 0
+  script:
+    # build.sh (unix) / build.bat (windows)
+    file: build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - if: unix
+      then: ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - zlib
+    - libpng
+    - libjpeg-turbo
+    - libxml2-devel
+    # 'glib' carries the development files (glibconfig.h, link symlinks)
+    - glib
+    # On Windows the vendored assimp is used, see cmake/CMakeLists.txt
+    - if: unix
+      then: assimp
+
+tests:
+  - script:
+      - q3map2 -help
+
+  # Smoke test: compile, vis and light a small sealed room which also
+  # contains an OBJ model (loaded via assimp)
+  - files:
+      recipe:
+        - tests/
+    script:
+      - q3map2 -fs_basepath tests -game quake3 -meta tests/baseq3/maps/box.map
+      - q3map2 -fs_basepath tests -game quake3 -vis -fast tests/baseq3/maps/box.bsp
+      - q3map2 -fs_basepath tests -game quake3 -light -fast tests/baseq3/maps/box.bsp
+      # Read the resulting BSP back in: 6 brush faces + 1 model surface are
+      # expected, i.e. the model must have been loaded successfully
+      - q3map2 -fs_basepath tests -game quake3 -info tests/baseq3/maps/box.bsp
+      - if: unix
+        then: q3map2 -fs_basepath tests -game quake3 -info tests/baseq3/maps/box.bsp | grep -E "^ +7 drawsurfaces"
+        else: q3map2 -fs_basepath tests -game quake3 -info tests/baseq3/maps/box.bsp | findstr /R /C:"^  *7 drawsurfaces"
+
+about:
+  homepage: https://github.com/Garux/netradiant-custom
+  repository: https://github.com/Garux/netradiant-custom
+  # q3map2 itself is GPL-2.0-or-later. The following third party code is
+  # statically linked into the executable (see license_file below):
+  #   BSD-3-Clause: vfs and jpeg (Loki Software), ddslib, tiny_webp
+  #   Zlib:         unzip (minizip), crnlib
+  #   MIT:          miniz
+  #   Apache-2.0:   etclib
+  # On Windows the vendored assimp is linked in statically too (on other
+  # platforms the conda-forge assimp package is used instead), including its
+  # bundled libraries:
+  #   BSD-3-Clause: assimp, poly2tri
+  #   MIT:          openddlparser, Open3DGC, pugixml, rapidjson, m3d, stb_image
+  #   BSL-1.0:      clipper, utf8cpp
+  #   Unlicense:    zip (with miniz)
+  #   Zlib:         unzip (minizip)
+  # BSL-1.0 and Unlicense only apply to the Windows build, but the license is
+  # kept a plain SPDX expression (no selector) so that it can be linted
+  license: GPL-2.0-or-later AND BSD-3-Clause AND Zlib AND MIT AND Apache-2.0 AND BSL-1.0 AND Unlicense
+  license_file:
+    # GPL-2.0 text; the q3map2 sources are GPL-2.0-or-later
+    - GPL
+    # Upstream's overview of the licenses used throughout the source tree
+    - LICENSE
+    # Third party code without a separate license file, the license text is
+    # part of the respective source file
+    - tools/quake3/common/vfs.cpp
+    - tools/quake3/common/unzip.cpp
+    - tools/quake3/common/miniz.cpp
+    - libs/ddslib/ddslib.c
+    - libs/webplib/tiny_webp.h
+    - libs/crnlib/crunch/inc/crnlib.h
+    - libs/etclib.c
+    # Vendored assimp and its bundled libraries (Windows only, see above)
+    - if: win
+      then:
+        - libs/assimp/LICENSE
+        - libs/assimp/contrib/poly2tri/LICENSE
+        - libs/assimp/contrib/clipper/License.txt
+        - libs/assimp/contrib/openddlparser/LICENSE
+        - libs/assimp/contrib/Open3DGC/o3dgcAdjacencyInfo.h
+        - libs/assimp/contrib/pugixml/readme.txt
+        - libs/assimp/contrib/rapidjson/license.txt
+        - libs/assimp/contrib/utf8cpp/source/utf8.h
+        - libs/assimp/contrib/stb/stb_image.h
+        - libs/assimp/contrib/unzip/unzip.c
+        - libs/assimp/contrib/zip/UNLICENSE
+        - libs/assimp/code/AssetLib/M3D/m3d.h
+  summary: NetRadiant-custom's q3map2 map compiler for id Tech 3 based games
+  description: |
+    q3map2 is the BSP, vis and light compiler for idTech 3 based games
+    (Quake III Arena, Wolfenstein: Enemy Territory, Xonotic, Unvanquished
+    and many more). This package contains only the q3map2 executable as
+    maintained in NetRadiant-custom, which is all that is needed to compile maps.
+
+extra:
+  recipe-maintainers:
+    - Vorschreibung
