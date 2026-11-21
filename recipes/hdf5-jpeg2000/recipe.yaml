@@ -1,0 +1,73 @@
+context:
+  version: "0.1.0"
+  commit: f5ee0fef4f6026e9c493e76d95aa981a33eb1762
+
+package:
+  name: hdf5-jpeg2000
+  version: ${{ version }}
+
+source:
+  # Replace with a release tag once tagged.
+  url: https://github.com/hmaarrfk/hdf5_jpeg2000/archive/${{ commit }}.tar.gz
+  sha256: e71a59141bdaf71ae77770362467ef5ea4925f9d78493df62668da0e6a1158ff
+
+build:
+  number: 0
+  script:
+    - if: win
+      then:
+        - cmake -S . -B build -G Ninja %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DHDF5_PLUGIN_INSTALL_DIR:STRING=lib/hdf5/plugin
+        - cmake --build build
+        - cmake --install build
+        - if not exist "%PREFIX%\etc\conda\activate.d" mkdir "%PREFIX%\etc\conda\activate.d"
+        - if not exist "%PREFIX%\etc\conda\deactivate.d" mkdir "%PREFIX%\etc\conda\deactivate.d"
+        - copy "%RECIPE_DIR%\activate.bat" "%PREFIX%\etc\conda\activate.d\hdf5-jpeg2000_activate.bat"
+        - copy "%RECIPE_DIR%\deactivate.bat" "%PREFIX%\etc\conda\deactivate.d\hdf5-jpeg2000_deactivate.bat"
+      else:
+        - cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DHDF5_PLUGIN_INSTALL_DIR:STRING=lib/hdf5/plugin
+        - cmake --build build
+        - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - hdf5
+    - libojph
+
+tests:
+  - package_contents:
+      files:
+        - if: linux
+          then: lib/hdf5/plugin/libh5jpeg2000.so
+        - if: osx
+          then: lib/hdf5/plugin/libh5jpeg2000.dylib
+        - if: win
+          then: Library/lib/hdf5/plugin/h5jpeg2000.dll
+  - requirements:
+      run:
+        - h5py
+    script:
+      - python -c "import h5py; assert h5py.h5z.filter_avail(32031)"
+
+about:
+  homepage: https://github.com/hmaarrfk/hdf5_jpeg2000
+  repository: https://github.com/hmaarrfk/hdf5_jpeg2000
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: HDF5 filter plugin 32031 that stores each chunk as a JPEG 2000 codestream
+  description: |
+    A dynamically loaded HDF5 filter plugin, registered as filter 32031, that
+    stores each chunk of a dataset as one JPEG 2000 (including HTJ2K)
+    codestream, encoded and decoded with libojph. It installs to
+    lib/hdf5/plugin, the directory HDF5 searches by default on Linux and
+    macOS; on Windows, activating the environment adds that directory to
+    HDF5_PLUGIN_PATH.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
