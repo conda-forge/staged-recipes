@@ -1,0 +1,78 @@
+context:
+  version: "0.1.0"
+
+package:
+  name: libasdf-gwcs
+  version: ${{ version }}
+
+source:
+  url: https://github.com/asdf-format/libasdf-gwcs/releases/download/${{ version }}/libasdf-gwcs-${{ version }}.tar.gz
+  sha256: d671b94d53fe66dd4a9794d511b768c2c7f77c7d571af01ea3db34d82c534679
+
+build:
+  number: 0
+  skip: win
+  script:
+    - ./configure --prefix="${PREFIX}" --disable-docs
+    - make -j${CPU_COUNT}
+    - |
+      if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR:-}" != "" ]]; then
+          make check || (cat tests/test-suite.log && exit 1)
+      fi
+    - make install
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - make
+    - pkg-config
+  host:
+    - libasdf
+    - libfyaml
+  run_exports:
+    - ${{ pin_subpackage('libasdf-gwcs', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - asdf-gwcs
+      include:
+        - asdf/gwcs/gwcs.h
+      files:
+        - lib/pkgconfig/libasdf-gwcs.pc
+  - files:
+      recipe:
+        - test/test.asdf
+        - test/test.c
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+      run:
+        - pkg-config
+    script:
+      - cd test/
+      - ${CC} ${CFLAGS} test.c $(pkg-config --cflags --libs libasdf-gwcs) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test
+      - test "$(./test)" = "3 7.5"
+
+about:
+  homepage: https://github.com/asdf-format/libasdf-gwcs
+  summary: "GWCS plugin for libasdf"
+  description: |
+    A libasdf extension library implementing GWCS (Generalized World
+    Coordinate System) support for ASDF files containing WCS transforms and
+    coordinate frames.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE
+    - third_party/ast/COPYING
+    - third_party/STC/LICENSE
+  documentation: https://libasdf-gwcs.readthedocs.io/
+  repository: https://github.com/asdf-format/libasdf-gwcs/
+
+extra:
+  recipe-maintainers:
+    - embray
+    - jhunkeler
