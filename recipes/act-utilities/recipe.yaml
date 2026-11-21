@@ -1,0 +1,80 @@
+context:
+  version: "1.9b"
+
+package:
+  name: act-utilities
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AlexandriaChemistry/ACT-utilities/archive/v${{ version }}.tar.gz
+  sha256: 6a0a012617f6cf93ffd3174e837e73c6ff880bf019f6b537f3c2e9f85ae07360
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - if: unix
+      then:
+        - cmake -S . -B build -DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF -DPython3_EXECUTABLE=$PYTHON
+      else:
+        # The noarch package is built on Linux, but staged-recipes also
+        # checks it on Windows, where site-packages is Lib\site-packages
+        - cmake -S . -B build -DCMAKE_INSTALL_PREFIX:PATH="%PREFIX%" -DBUILD_TESTING=OFF -DPython3_EXECUTABLE:FILEPATH="%PYTHON%" -DCMAKE_INSTALL_PYTHON_LIBDIR=Lib/site-packages
+    - cmake --install build
+
+requirements:
+  build:
+    - cmake >=3.24
+    - make
+  host:
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+    - numpy
+    - matplotlib-base
+    - rdkit
+    - pyyaml
+    - xmltodict
+
+tests:
+  - python:
+      imports:
+        - actutils
+        - molprops
+        - mol_json
+      pip_check: false
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      # The scripts are Unix scripts without an extension
+      - if: unix
+        then:
+          - coords2molprop -h
+          - test -f $PREFIX/bin/gauss2molprop
+          - test -f $PREFIX/share/act/atom_bond.xml
+          - test -f $PREFIX/share/act/atomtypes_gui.csv
+        else:
+          - if not exist "%PREFIX%\share\act\atom_bond.xml" exit 1
+          - if not exist "%PREFIX%\share\act\atomtypes_gui.csv" exit 1
+
+about:
+  homepage: https://github.com/AlexandriaChemistry/ACT-utilities
+  repository: https://github.com/AlexandriaChemistry/ACT-utilities
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: Python modules, scripts and data files of the Alexandria Chemistry Toolkit (ACT)
+  description: |
+    Pre- and post-processing scripts, converters to molprop files, the
+    interface to OpenMM and the data files, such as alexandria.json and
+    atomprops.csv, of the Alexandria Chemistry Toolkit. The package
+    alexandria, the programs of ACT, requires them.
+
+extra:
+  recipe-maintainers:
+    - dspoel
+    - JulianKoengeter
+    - MansRosenbaum
