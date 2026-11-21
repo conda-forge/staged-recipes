@@ -1,0 +1,154 @@
+schema_version: 1
+
+context:
+  name: flashinfer-jit-cache
+  version: 0.7.4
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/flashinfer-ai/flashinfer/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 6047cd3a82402cc4504bcfef78e6424ec6d29fd0485272b8c8ae04ae15ddc16e
+    patches:
+      - patches/0001-Search-the-conda-lib-directories-for-CUDA-libraries.patch
+  # The git submodules are not in the GitHub archive. These are the commits that
+  # the v0.7.4 tag pins (git ls-tree v0.7.4 3rdparty/). The AOT build compiles
+  # against them and puts the headers of cutlass, CCCL and spdlog on the include
+  # path (see the notes in the flashinfer-python recipe about devendoring them).
+  - url: https://github.com/NVIDIA/cccl/archive/16bd510c9b712e82b0ab6cbb630d8e29ba1f7116.tar.gz
+    sha256: 8c4a1bebc5dfefaebbd40f21460951c62403f9c1f7c52b151b99cae82a02c844
+    target_directory: 3rdparty/cccl
+  - url: https://github.com/NVIDIA/cutlass/archive/b46b16d003484063bca4ed365e44095c4c6ed633.tar.gz
+    sha256: eb32d2231412541cdaefedf82827903360b07762a0c8d554ca10a59951b321d0
+    target_directory: 3rdparty/cutlass
+  - url: https://github.com/gabime/spdlog/archive/c3aed4b68373955e1cc94307683d44dca1515d2b.tar.gz
+    sha256: 206184e0d3be5b4ea56343dca519d38d1fdf567b59dd9913e3e959ed4c6b0f4d
+    target_directory: 3rdparty/spdlog
+
+build:
+  number: 0
+  string: cuda${{ cuda_compiler_version | version_to_buildstring }}_sm${{ cuda_provider_arch | replace(".", "") }}_h${{ hash }}_${{ build_number }}
+  skip:
+    # TODO: Remove. Skip everything for debugging.
+    - true
+    - not linux
+    - cuda_compiler_version == "None"
+    # Only built for linux-aarch64, and for CUDA 13.0 and newer.
+    - (match(cuda_arch_version, "==11.0") or match(cuda_arch_version, "==12.1")) and (target_platform != "linux-aarch64" or match(cuda_compiler_version, "<13.0"))
+    # Only built for CUDA 13.4 and newer.
+    - match(cuda_arch_version, "==10.7") and match(cuda_compiler_version, "<13.4")
+  python:
+    # The provider wheel has the abi3 tag; the kernels are TVM-FFI modules, not
+    # Python extensions.
+    version_independent: true
+  variant:
+    # Build the kernels once, not once per Python version.
+    ignore_keys:
+      - python
+  script:
+    # Do not try to pip install NIXL or build NIXL-EP.
+    - export BUILD_NVEP=0
+    - export FLASHINFER_BUILD_NO_PIP=1
+    # FlashInfer takes the CUDA headers and libraries from CUDA_HOME, which
+    # defaults to the prefix of the nvcc that it finds, the build prefix. They
+    # are in the targets directory of the host prefix (targetsDir is set by the
+    # activation script of cuda-nvcc), so use the nvcc from the build prefix
+    # explicitly.
+    - export CUDA_HOME=${PREFIX}/${targetsDir}
+    - export FLASHINFER_NVCC=${BUILD_PREFIX}/bin/nvcc
+    - export FLASHINFER_JIT_CACHE_PROVIDER_ARCH=${{ cuda_provider_arch }}
+    - export FLASHINFER_JIT_CACHE_PROVIDER_ARCHS=${{ cuda_provider_arch }}
+    - export MAX_JOBS=${CPU_COUNT}
+    # The wheel, which holds the kernels of one architecture.
+    - ${{ PYTHON }} -m pip install ./flashinfer-jit-cache-provider -vv --no-deps --no-build-isolation
+    # The shim, which is the wheel that flashinfer-python looks for and which
+    # requires the provider above.
+    - ${{ PYTHON }} -m pip install ./flashinfer-jit-cache -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ compiler("cuda") }}
+    - ${{ stdlib("c") }}
+    - ninja
+  host:
+    - python
+    - pip
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-arch ${{ cuda_arch_version }}.*
+    - packaging >=24
+    - setuptools >=77
+    - wheel
+    # flashinfer is imported from the source tree by the AOT build.
+    - apache-tvm-ffi >=0.1.11,<0.2
+    - click
+    - cuda-python
+    - cutile-python >=1.4.0
+    - einops
+    - filelock
+    - jinja2
+    - nccl-extensions >=0.1.0
+    - nccl4py >=0.4.1
+    - numpy
+    - nvidia-cutlass-dsl >=4.8.0
+    - nvidia-ml-py
+    - python-cudnn-frontend
+    - pytorch * [build=cuda*]
+    - requests
+    - tabulate
+    - tqdm
+    # CUDA headers and libraries that the kernels are compiled against.
+    - cuda-cudart-dev
+    - cuda-driver-dev
+    - cuda-nvrtc-dev
+    - libcublas-dev
+    - libcurand-dev
+    - libnvshmem-dev
+  run:
+    - python
+  # The kernels are TVM-FFI modules. They link against the CUDA runtime and
+  # cuBLAS, but not against PyTorch, NumPy, NVRTC, cuRAND or NVSHMEM, which
+  # the host packages would otherwise add as dependencies.
+  ignore_run_exports:
+    by_name:
+      - cuda-nvrtc
+      - libcurand
+      - libnvshmem3
+      - libtorch
+      - numpy
+      - pytorch
+  run_constraints:
+    # Upstream has no dependency on flashinfer-python, which finds this package
+    # at runtime and ignores it, with a warning, when the versions differ.
+    - flashinfer-python ==${{ version }}
+
+tests:
+  - requirements:
+      run:
+        - cuda-arch ${{ cuda_arch_version }}.*
+    script:
+      - python -c "import flashinfer_jit_cache"
+      - python -c "from importlib.metadata import entry_points; assert entry_points(group='flashinfer.jit_cache.providers')"
+      - pip check
+
+about:
+  homepage: https://flashinfer.ai/
+  repository: https://github.com/flashinfer-ai/flashinfer
+  documentation: https://docs.flashinfer.ai/
+  summary: Pre-compiled FlashInfer kernels for one CUDA architecture
+  license: Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-3-Clause AND MIT
+  # The kernels are compiled with the headers of these projects.
+  license_file:
+    - LICENSE
+    - licenses/LICENSE.cutlass.txt
+    - licenses/LICENSE.flashattention3.txt
+    - licenses/LICENSE.fmt.txt
+    - licenses/LICENSE.spdlog.txt
+    - 3rdparty/cccl/LICENSE
+
+extra:
+  recipe-maintainers:
+    - shermansiu
