@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  name: ovis
+  version: "0.5.3"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/devswha/ovis/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: a88ac9de8e552db81a5ddc52e2d2a77154e66e6ee8290c156524d3009a9364e6
+  # Licenses of npm packages that do not ship one (picked up by collect-node-modules.ts)
+  - url: https://raw.githubusercontent.com/martinthomson/encrypted-content-encoding/v1.2.0/LICENSE
+    sha256: 717363ac0c7f0883042868db171cfed1f4b423119249eac9bce5131291017ea8
+    file_name: http_ece
+    target_directory: npm-licenses
+  - url: https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8/LICENSE
+    sha256: 3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c
+    file_name: qrcode-generator
+    target_directory: npm-licenses
+
+build:
+  number: 0
+  # Windows has no Rust PTY host upstream and uses a different launcher
+  skip: win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - bun
+  run:
+    # the server is TypeScript run directly by bun; upstream pins bun 1.4.2 (packageManager)
+    - bun >=1.4.2
+    - herdr-core
+
+tests:
+  - script:
+      - ovis --help
+      - ovis --version | grep "${{ version }}"
+      - test -x "$PREFIX/libexec/ovis/ovis-pty-sidecar"
+      # refuses a non-loopback address without a token
+      - if HOST=0.0.0.0 ovis; then exit 1; fi
+      - sh test-serve.sh
+    files:
+      recipe:
+        - test-serve.sh
+    requirements:
+      run:
+        - curl
+
+about:
+  homepage: https://ovis.sh
+  summary: Browser and phone client for herdr and herdr-core, with chat and live terminals for coding agents
+  description: |
+    Ovis is a web server and browser client for the herdr terminal multiplexer and herdr-core.
+    It shows live terminals and a chat view for Claude Code, Codex and other agent panes,
+    and can reach remote PCs over SSH. This package runs the server on herdr-core with
+    telemetry and the ovis.sh account service turned off by default.
+  # Ovis is MIT; the rest covers the bundled npm packages (ThirdPartyLicenses.txt), fonts and vendored code
+  # (THIRD_PARTY_NOTICES.md) and the Rust crates of the PTY host (THIRDPARTY.yml).
+  license: MIT AND ISC AND BSD-3-Clause AND Apache-2.0 AND MPL-2.0 AND EPL-2.0 AND Unlicense AND OFL-1.1 AND CC-BY-4.0 AND (MIT OR Apache-2.0) AND Unicode-3.0
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    - ThirdPartyLicenses.txt
+    - THIRDPARTY.yml
+  documentation: https://github.com/devswha/ovis/blob/main/docs/guide.md
+  repository: https://github.com/devswha/ovis
+
+extra:
+  recipe-maintainers:
+    - pavelzw
