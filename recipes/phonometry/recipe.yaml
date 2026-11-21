@@ -1,0 +1,127 @@
+schema_version: 1
+
+context:
+  version: "4.0.1"
+  python_min: "3.12"
+
+package:
+  name: phonometry
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/p/phonometry/phonometry-${{ version }}.tar.gz
+  sha256: 1318cf243efb2f49e3751bb8224e7aeca587ea296c1eff7041880da1d42c7ea8
+
+build:
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=84.0.0
+  run:
+    - python >=${{ python_min }}
+    # pyproject.toml raises these floors on Python 3.13 and 3.14 behind
+    # python_version markers, only because older releases have no wheel
+    # there. conda-forge's first builds for 3.13 (numpy 2.1.0, scipy 1.14.1)
+    # and 3.14 (numpy 2.3.2, scipy 1.16.1) are the same releases, so the
+    # solver keeps each Python's floor without the markers.
+    - numpy >=2.0.2
+    - scipy >=1.14.0
+  run_constraints:
+    - matplotlib-base >=3.10.7
+    - numba >=0.60.0
+    - pysoundfile >=0.12.0
+    - reportlab >=4.3.0
+    - svglib >=0.9.1,!=1.4.0
+    - pytorch >=2.3.0
+    - array-api-compat >=1.5.1
+
+tests:
+  - python:
+      imports:
+        - phonometry
+        - phonometry.aircraft
+        - phonometry.broadcast
+        - phonometry.building
+        - phonometry.electroacoustics
+        - phonometry.emission
+        - phonometry.environment
+        - phonometry.filters
+        - phonometry.fluids
+        - phonometry.hearing
+        - phonometry.io
+        - phonometry.materials
+        - phonometry.metrology
+        - phonometry.noise_control
+        - phonometry.psychoacoustics
+        - phonometry.room
+        - phonometry.signals
+        - phonometry.simulation
+        - phonometry.solids
+        - phonometry.speech
+        - phonometry.underwater
+        - phonometry.vibration
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - package_contents:
+      site_packages:
+        - phonometry
+      files:
+        exists:
+          - site-packages/phonometry/py.typed
+          - site-packages/phonometry/aircraft/data/anp/*.csv
+          - site-packages/phonometry/aircraft/data/anp/*.md
+          - site-packages/phonometry/building/data/*.json
+          - site-packages/phonometry/environment/propagation/data/*.json
+          - site-packages/phonometry/fluids/data/*.json
+          - site-packages/phonometry/materials/absorbers/data/*.json
+          - site-packages/phonometry/materials/diffusers/data/*.json
+          - site-packages/phonometry/materials/resilient/data/*.json
+          - site-packages/phonometry/noise_control/data/*.json
+          - site-packages/phonometry/solids/data/*.json
+  - script:
+      - python -c "import phonometry; assert phonometry.__version__ == '${{ version }}', phonometry.__version__"
+      - python -c "from phonometry import aircraft; assert len(aircraft.load_anp_database().aircraft_ids) > 0"
+      - python -c "import numpy as np, phonometry as pm; from phonometry import filters; r = filters.octave_filter(pm.Signal(np.random.default_rng(0).standard_normal(48000), 48000), fraction=3); assert len(r.frequencies) == 33"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+  - script:
+      - python -c "import numpy as np, phonometry as pm; from phonometry import filters; r = filters.octave_filter(pm.Signal(np.random.default_rng(0).standard_normal(48000), 48000), fraction=3); assert len(r.frequencies) == 33"
+  - script:
+      - python -c "import matplotlib; matplotlib.use('Agg'); import numpy as np, phonometry as pm; from phonometry import filters; filters.octave_filter(pm.Signal(np.random.default_rng(0).standard_normal(48000), 48000), fraction=3).plot()"
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - matplotlib-base >=3.10.7
+
+about:
+  homepage: https://phonometry.dev/
+  repository: https://github.com/jmrplens/phonometry
+  documentation: https://phonometry.dev/
+  license: MIT AND LicenseRef-EASA-ANP
+  license_file:
+    - LICENSE
+    - LICENSES/LicenseRef-EASA-ANP.txt
+  summary: Acoustic measurement, analysis and prediction for Python, each method implemented from its standard.
+  description: |
+    phonometry (formerly published as PyOctaveBand) implements acoustic
+    measurement, analysis and prediction from the text of each governing
+    standard, and checks its results in CI against
+    that standard's own tables and worked examples and against further
+    published reference values. It covers sound level metrology (fractional
+    octave filter banks, frequency and time weighting, levels, dose,
+    calibration), psychoacoustics and hearing, speech intelligibility, room
+    and building acoustics, materials, vibration and structure-borne sound,
+    environmental, aircraft and underwater noise, electroacoustics and
+    broadcast loudness, and wave simulation.
+
+extra:
+  recipe-maintainers:
+    - jmrplens
