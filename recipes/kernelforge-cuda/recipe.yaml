@@ -1,0 +1,141 @@
+# v1 recipe for conda-forge staged-recipes / kernelforge-cuda-feedstock.
+# Copy this directory into staged-recipes/recipes/kernelforge-cuda/
+#
+# Builds the CUDA companion from the kernelforge sdist (no separate PyPI sdist)
+# via packaging/kernelforge-cuda, matching the PyPI companion layout.
+#
+# CUDA versions come from conda-forge-pinning (12.9, 13.4, …), not this recipe —
+# same pattern as torchvision / xformers / flash-attn.
+schema_version: 1
+
+context:
+  name: kernelforge-cuda
+  version: "1.1.0"
+  build_number: 0
+  # Same upstream tarball as CPU kernelforge (includes packaging/ + src/*.cu).
+  sha256: 93e6c71b0209218a4205ed3c4a5a10011f9b0c029d303db12abf2cb9d0994eb4
+  torch_proc_type: cuda
+  build_string_prefix: cuda${{ cuda_compiler_version | replace('.', '') }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/k/kernelforge/kernelforge-${{ version }}.tar.gz
+  sha256: ${{ sha256 }}
+  patches:
+    - patches/0001-conda-apple-cmake.patch
+
+build:
+  number: ${{ build_number }}
+  string: ${{ build_string_prefix }}_py${{ python | version_to_buildstring }}_h${{ hash }}_${{ build_number }}
+  # Linux + CUDA only; CPython range matches PyPI companion wheels.
+  # Skip non-CUDA variants (flash-attn style). Do not hardcode 12.9/13.4 here —
+  # pinning/migrator supplies those. Azure staged-recipes still injects a 13.0
+  # label that is not in pinning; skip that orphan so 13.4 can build later.
+  skip:
+    - win
+    - osx
+    - cuda_compiler_version == "None"
+    - cuda_compiler_version == "13.0"
+    - match(python, "<3.11")
+    - match(python, ">=3.15")
+  script:
+    file: build
+    env:
+      CMAKE_GENERATOR: Ninja
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+      TORCH_DONT_CHECK_COMPILER_ABI: "1"
+      # Lean list (flash-attn style). sm_60+ required for double atomicAdd;
+      # keep short to avoid OOM on staged-recipes Azure agents.
+      TORCH_CUDA_ARCH_LIST: 8.0;8.6;9.0+PTX
+      # Serialise nvcc; parallel fatbins OOMed ~8GB Azure VMs.
+      CMAKE_BUILD_PARALLEL_LEVEL: "1"
+      MAX_JOBS: "1"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_compiler_version }}
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - numpy
+        - pytorch
+        - pytorch * [build=${{ torch_proc_type }}*]
+        - if: cuda_compiler_version != "None"
+          then:
+            - cuda-driver-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+            - cuda-nvtx-dev
+            - cuda-nvml-dev
+            - libcublas-dev
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.9
+    - setuptools-scm >=8
+    - setuptools
+    - pybind11
+    - numpy
+    - libblas
+    - libcblas
+    - liblapack
+    - libgomp
+    - pytorch
+    - pytorch * [build=${{ torch_proc_type }}*]
+    - libtorch
+    - libtorch * [build=${{ torch_proc_type }}*]
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ==${{ cuda_compiler_version }}
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - libcublas-dev
+        - libcusolver-dev
+        - libcusparse-dev
+        - libnvjitlink-dev
+  run:
+    - python
+    - numpy >=2
+    - libgomp
+    # CPU package must be present so cuda_*.so land beside kernelforge/.
+    - kernelforge ==${{ version }}
+    - pytorch * [build=${{ torch_proc_type }}*]
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ pin_compatible('cuda-version', lower_bound='x', upper_bound='x') }}
+
+tests:
+  - script:
+      # Forge builders typically have no GPU / driver; only check the companion
+      # modules were installed into site-packages/kernelforge/.
+      - python -c "from pathlib import Path; import kernelforge; root = Path(kernelforge.__file__).resolve().parent; so = sorted(root.glob('cuda_*.so')); print('cuda modules:', [p.name for p in so]); assert so, 'no cuda_*.so installed'"
+
+about:
+  homepage: https://github.com/andersx/kernelforge
+  repository: https://github.com/andersx/kernelforge
+  license: MIT
+  license_file: LICENSE
+  summary: CUDA extensions for KernelForge (Linux)
+  description: |
+    Linux companion package that installs KernelForge CUDA extension modules
+    (cuda_*.so) into site-packages/kernelforge/. Requires the CPU kernelforge
+    package and a CUDA build of pytorch from conda-forge.
+
+extra:
+  recipe-maintainers:
+    - andersx
