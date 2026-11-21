@@ -1,0 +1,155 @@
+schema_version: 1
+
+context:
+  name: procrastinate
+  version: "3.10.0"
+
+recipe:
+  name: ${{ name }}-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 3668da769088682abf91b8c760de467be1203218411872f1a26ac7515d4f980d
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: ${{ name }}
+    build:
+      script:
+        env:
+          # The sdist has no git metadata; use the version recorded in PKG-INFO.
+          UV_DYNAMIC_VERSIONING_BYPASS: ${{ version }}
+        content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - procrastinate = procrastinate.cli:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - hatchling
+        - uv-dynamic-versioning
+        - pip
+      run:
+        - python >=${{ python_min }}
+        - asgiref
+        - attrs
+        - croniter
+        - packaging
+        - psycopg
+        - psycopg-pool
+        - python-dateutil
+        - typing-extensions
+    tests:
+      - python:
+          imports:
+            - procrastinate
+            - procrastinate.cli
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          pip_check: true
+      - script:
+          - procrastinate --help
+
+  - package:
+      name: ${{ name }}-django
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage(name, exact=True) }}
+        - django >=2.2
+    tests:
+      - python:
+          imports:
+            - procrastinate.contrib.django
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          pip_check: true
+
+  - package:
+      name: ${{ name }}-sqlalchemy
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage(name, exact=True) }}
+        - sqlalchemy >=2.0,<3
+        - psycopg2
+    tests:
+      - python:
+          imports:
+            - procrastinate.contrib.sqlalchemy
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          pip_check: true
+
+  - package:
+      name: ${{ name }}-psycopg2
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage(name, exact=True) }}
+        - psycopg2
+    tests:
+      - python:
+          imports:
+            - procrastinate.contrib.psycopg2
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          pip_check: true
+
+  - package:
+      name: ${{ name }}-sphinx
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+      run:
+        - python >=${{ python_min }}
+        - ${{ pin_subpackage(name, exact=True) }}
+        - sphinx
+    tests:
+      - python:
+          imports:
+            - procrastinate.contrib.sphinx
+          python_version:
+            - ${{ python_min }}.*
+            - "*"
+          pip_check: true
+
+  # No procrastinate-aiopg output: aiopg is not on conda-forge, upstream is dormant (last stable release 1.4.0,
+  # 2022-10; classifiers stop at Python 3.11), and procrastinate has recommended PsycopgConnector (psycopg 3, a run
+  # dependency above) since 1.0. procrastinate.contrib.aiopg is in the package but needs aiopg installed separately.
+
+about:
+  homepage: https://procrastinate.readthedocs.io/
+  summary: Postgres-based distributed task processing library
+  description: |
+    Procrastinate is an open-source Python 3.10+ distributed task processing
+    library, leveraging PostgreSQL 13+ to store task definitions, manage locks
+    and dispatch tasks. It can be used within both sync and async code, has
+    Django integration, and is easy to use with ASGI frameworks.
+
+    Optional integrations are available as separate packages:
+    procrastinate-django, procrastinate-sqlalchemy, procrastinate-psycopg2
+    and procrastinate-sphinx.
+  license: MIT
+  license_file: LICENSE.md
+  repository: https://github.com/procrastinate-org/procrastinate
+  documentation: https://procrastinate.readthedocs.io/
+
+extra:
+  recipe-maintainers:
+    - millsks
