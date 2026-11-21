@@ -1,0 +1,170 @@
+From 6ca35759b535adac493ce8aaa8cd89979712273a Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sat, 21 Nov 2026 09:25:28 +1000
+Subject: [PATCH] Build against conda-forge libcurl
+
+Use libcurl from the conda host prefix and its default CA store so the
+build does not need jbb or download assets. Use the activated compiler
+on Unix and clang for preprocessing on Windows, where MSVC links the
+extension. Normalize the Windows integer spelling for the CFFI parser.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ mcurl/gen.py   | 68 +++++++++++++-------------------------------------
+ pyproject.toml |  2 +-
+ 2 files changed, 19 insertions(+), 51 deletions(-)
+
+diff --git a/mcurl/gen.py b/mcurl/gen.py
+index beda23a..c31d698 100644
+--- a/mcurl/gen.py
++++ b/mcurl/gen.py
+@@ -7,7 +7,6 @@ import sys
+ import tempfile
+ 
+ import cffi
+-import jbb
+ 
+ # Platform specific additions
+ if sys.platform == "linux":
+@@ -23,9 +22,9 @@ struct sockaddr {
+ typedef long time_t;
+ 
+ typedef struct {
+-    long %s int fds_bits[%d];
++    long int fds_bits[%d];
+ } fd_set;
+-""" % ("unsigned" if jbb.get_libc() == "musl" else "", 16 if sys.maxsize > 2**32 else 32)
++""" % (16 if sys.maxsize > 2**32 else 32)
+ 
+     HEADER = """
+ #include <sys/socket.h>
+@@ -205,7 +204,7 @@ def gen_callbacks(code):
+ 
+ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+     # Get preprocessed output from the C/C++ compiler
+-    args = ["gcc"]
++    args = ["clang" if sys.platform == "win32" else os.environ["CC"]]
+     start = False
+ 
+     sfileName = os.path.basename(sfile)
+@@ -226,7 +225,7 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+ 
+     # Remove gcc special calls
+     args.extend([
+-        '"-D__attribute__(x)="',
++        "-D__attribute__(x)=",
+         "-D__restrict=",
+         "-D__restrict__=",
+         "-D__extension__=",
+@@ -237,9 +236,9 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+     ])
+ 
+     # Run preprocessor
+-    p = subprocess.run(" ".join(args), capture_output=True, text=True, shell=True)
++    p = subprocess.run(args, capture_output=True, text=True)
+     outp = p.stdout.replace("\\\\", os.sep).splitlines()
+-    if len(p.stderr) != 0:
++    if p.returncode != 0:
+         print(p.stderr)
+         raise Exception("Failed in preprocessing")
+ 
+@@ -254,7 +253,8 @@ def get_preprocessor(sfile, incs=[], defines=[], recurse=False):
+             if sfile == line or (os.path.sep not in line and sfileName == line):
+                 start = True
+             elif recurse:
+-                if len(pDir) == 0 or pDir in line:
++                path = os.path.normcase(os.path.normpath(line))
++                if len(pDir) == 0 or path.startswith(os.path.normcase(pDir + os.sep)):
+                     start = True
+                 else:
+                     for inc in includeDirs:
+@@ -329,7 +329,7 @@ def cffi_prep(cdef, inc, libs):
+     extra_compile_args = []
+     extra_link_args = []
+     if sys.platform == "darwin":
+-        # Embed rpaths for all brew lib dirs so the extension finds
++        # Embed rpaths for the lib dirs so the extension finds
+         # libcurl at runtime regardless of the active Python interpreter
+         # (CPython, PyPy) without requiring DYLD_LIBRARY_PATH.
+         for lib in libs:
+@@ -337,7 +337,7 @@ def cffi_prep(cdef, inc, libs):
+     ffibuilder.set_source(
+         "_libcurl_cffi",
+         HEADER,
+-        libraries=["curl"],
++        libraries=["libcurl" if sys.platform == "win32" else "curl"],
+         library_dirs=libs,
+         include_dirs=[inc],
+         define_macros=define_macros,
+@@ -358,51 +358,19 @@ def find_curlh(libs, fallback):
+ 
+ 
+ def source_prep():
+-    # Download libcurl from JBB for Linux and Windows
+-    key = jbb.get_key()
+-    outdir = os.path.join(os.environ.get("TMP", tempfile.gettempdir()), "mcurl", key)
+-    version = get_libcurl_version()
+-    libs = []
+-    if sys.platform != "darwin":
+-        libs.extend(jbb.jbb(f"LibCURL-v{version}", outdir=outdir, project="genotrance", quiet=False))
+-
+-        # On Windows, jbb returns bin/ dirs but mingw32 linker needs lib/ dirs
+-        # for import libraries (.dll.a / .a). Add lib/ equivalents.
+-        if sys.platform == "win32":
+-            lib_dirs = []
+-            for d in libs:
+-                lib_dirs.append(d)
+-                lib_dir = d.replace(os.sep + "bin", os.sep + "lib")
+-                if lib_dir != d and os.path.isdir(lib_dir):
+-                    lib_dirs.append(lib_dir)
+-            libs = lib_dirs
+-
+-        # Header file location, derived from the directories jbb returned
+-        curlh = find_curlh(libs, f"{outdir}{os.sep}LibCURL{os.sep}include{os.sep}curl{os.sep}curl.h")
+-    else:
+-        prefix = subprocess.check_output("brew --prefix", shell=True, text=True).strip()
+-        deps = ["curl"] + subprocess.check_output("brew deps -n --installed curl", shell=True, text=True).splitlines()
+-        for dep in deps:
+-            if dep == "ca-certificates":
+-                continue
+-            libs.append(prefix + "/opt/" + dep + "/lib")
+-
+-        curlh = prefix + "/opt/curl/include/curl/curl.h"
++    # Use the host libcurl and leave TLS trust to its default CA store.
++    prefix = os.environ["LIBRARY_PREFIX" if sys.platform == "win32" else "PREFIX"]
++    libs = [os.path.join(prefix, "lib")]
++    curlh = os.path.join(prefix, "include", "curl", "curl.h")
+ 
+     # Include directory
+     inc = os.path.dirname(curlh)
+ 
+-    # Download CAcerts
+-    pemdst = "mcurl/cacert.pem"
+-    jbb.jbb("mozillaCACerts", outdir=outdir, quiet=False)
+-    pemsrc = glob.glob(f"{outdir}/**/cacert.pem", recursive=True)[0]
+-    try:
+-        shutil.copy(pemsrc, pemdst)
+-    except shutil.SameFileError:
+-        pass
+-
+     # Preprocess and clean code
+-    cdef = get_preprocessor(curlh, recurse=True)
++    cdef = get_preprocessor(curlh, defines=["CURL_DISABLE_DEPRECATION", "CURL_STATICLIB"], recurse=True)
++    if sys.platform == "win32":
++        # CFFI's parser does not recognize MSVC's 64-bit integer spelling.
++        cdef = re.sub(r"\b__int64\b", "long long", cdef)
+ 
+     # Generate callback stubs
+     cdef += gen_callbacks(cdef) + CDEF_FOOTER
+diff --git a/pyproject.toml b/pyproject.toml
+index 0ecaf38..4b097f1 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,6 +1,6 @@
+ [build-system]
+ build-backend = "setuptools.build_meta"
+-requires = ["cffi", "jbb>=0.1.6", "setuptools"]
++requires = ["cffi", "setuptools"]
+ 
+ [project]
+ name = "pymcurl"

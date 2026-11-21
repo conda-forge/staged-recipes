@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "8.23.0.4"
+
+package:
+  name: pymcurl
+  version: ${{ version }}
+
+source:
+  url: https://github.com/genotrance/mcurl/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: a9024b8b33434914c8e61873a93a84f1fd980dece24a345be394f108ef135123
+  patches:
+    - patches/0001-Build-against-conda-forge-libcurl.patch
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - if: win
+      then: clang
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cffi
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - if: is_abi3
+      then: python-abi3
+    - cffi
+    - libcurl >=8.23.0
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python
+    - cffi
+
+tests:
+  - python:
+      imports:
+        - mcurl
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - script:
+      - python -c "import mcurl; assert mcurl.curl_version() >= 0x081700; assert 'SSL' in mcurl.get_curl_features()"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: win
+          then: abi3audit "%SP_DIR%/_libcurl_cffi.pyd" -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit "$SP_DIR/_libcurl_cffi.abi3.so" -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/genotrance/mcurl
+  repository: https://github.com/genotrance/mcurl
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Python bindings for libcurl's easy and multi interfaces
+
+extra:
+  recipe-maintainers:
+    - dhirschfeld
