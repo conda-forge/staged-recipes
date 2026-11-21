@@ -1,0 +1,260 @@
+diff --git a/GaudiKernel/CMakeLists.txt b/GaudiKernel/CMakeLists.txt
+index 8ef3d4aa5..b24c36cab 100644
+--- a/GaudiKernel/CMakeLists.txt
++++ b/GaudiKernel/CMakeLists.txt
+@@ -242,18 +242,26 @@ gaudi_install(PYTHON)
+ # Install other scripts
+ gaudi_install(SCRIPTS)
+ 
+-# Check that gdb can be used for stack traces
+-find_program(gdb_cmd gdb)
+-mark_as_advanced(gdb_cmd)
+-if(gdb_cmd)
+-  get_filename_component(gdb_dir "${gdb_cmd}" DIRECTORY)
++# Check that a debugger can be used for stack traces
++if(APPLE)
++  find_program(debugger_cmd lldb)
++else()
++  find_program(debugger_cmd gdb)
++endif()
++mark_as_advanced(debugger_cmd)
++if(debugger_cmd)
++  get_filename_component(debugger_dir "${debugger_cmd}" DIRECTORY)
+   file(TO_CMAKE_PATH "$ENV{PATH}" envpath)
+-  if(NOT gdb_dir IN_LIST envpath)
++  if(NOT debugger_dir IN_LIST envpath)
+     set_property(TARGET target_runtime_paths APPEND
+-      PROPERTY runtime_path $<SHELL_PATH:${gdb_dir}>)
++      PROPERTY runtime_path $<SHELL_PATH:${debugger_dir}>)
+   endif()
+ else()
+-  message(WARNING "gdb not found, you will not be able to have stack traces for problems")
++  if(APPLE)
++    message(WARNING "lldb not found, you will not be able to have stack traces for problems")
++  else()
++    message(WARNING "gdb not found, you will not be able to have stack traces for problems")
++  endif()
+ endif()
+ 
+ if(BUILD_TESTING)
+diff --git a/GaudiKernel/src/Lib/ProcessDescriptor.cpp b/GaudiKernel/src/Lib/ProcessDescriptor.cpp
+index 8e2f7063f..c660c345c 100644
+--- a/GaudiKernel/src/Lib/ProcessDescriptor.cpp
++++ b/GaudiKernel/src/Lib/ProcessDescriptor.cpp
+@@ -56,6 +56,11 @@ namespace System {
+ #include <unistd.h>
+ #ifndef __APPLE__
+ #  include <sys/procfs.h>
++#else
++#  include <mach/mach.h>
++#  include <mach/task_info.h>
++#  include <sys/resource.h>
++#  include <sys/time.h>
+ #endif
+ #include <cstdio>
+ #include <sys/resource.h>
+@@ -450,7 +455,48 @@ long System::ProcessDescriptor::query( long pid, InfoType fetch, VM_COUNTERS* in
+     info->PagefileUsage              = prc.vsize - resident * pg_size;
+     info->PeakPagefileUsage          = prc.vsize - resident * pg_size;
+ #elif defined( __APPLE__ )
+-    if ( pid ) {}
++    // Use Mach API to get memory information on macOS
++    // Note: We can only query our own task reliably without special entitlements
++    mach_task_basic_info_data_t taskInfo;
++    mach_msg_type_number_t      infoCount = MACH_TASK_BASIC_INFO_COUNT;
++
++    kern_return_t kr = task_info( mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&taskInfo, &infoCount );
++    if ( kr == KERN_SUCCESS ) {
++      info->VirtualSize                = taskInfo.virtual_size;
++      info->PeakVirtualSize            = taskInfo.virtual_size; // macOS doesn't track peak, use current
++      info->WorkingSetSize             = taskInfo.resident_size;
++      info->PeakWorkingSetSize         = taskInfo.resident_size_max;
++      info->QuotaPagedPoolUsage        = 0;
++      info->QuotaPeakPagedPoolUsage    = 0;
++      info->QuotaNonPagedPoolUsage     = 0;
++      info->QuotaPeakNonPagedPoolUsage = 0;
++      info->PagefileUsage              = taskInfo.virtual_size - taskInfo.resident_size;
++      info->PeakPagefileUsage          = taskInfo.virtual_size - taskInfo.resident_size;
++
++      // Get page fault count from getrusage (not available in task_info)
++      struct rusage usage;
++      if ( getrusage( RUSAGE_SELF, &usage ) == 0 ) {
++        info->PageFaultCount = static_cast<unsigned long>( usage.ru_majflt + usage.ru_minflt );
++      } else {
++        info->PageFaultCount = 0;
++      }
++      status = 1;
++    } else {
++      // Zero out the struct on failure so we don't return garbage
++      info->VirtualSize                = 0;
++      info->PeakVirtualSize            = 0;
++      info->WorkingSetSize             = 0;
++      info->PeakWorkingSetSize         = 0;
++      info->PageFaultCount             = 0;
++      info->QuotaPagedPoolUsage        = 0;
++      info->QuotaPeakPagedPoolUsage    = 0;
++      info->QuotaNonPagedPoolUsage     = 0;
++      info->QuotaPeakNonPagedPoolUsage = 0;
++      info->PagefileUsage              = 0;
++      info->PeakPagefileUsage          = 0;
++      status                           = 0;
++    }
++    (void)pid; // suppress unused parameter warning
+ #else  // All Other
+     if ( pid ) {}
+ #endif // End ALL OS
+@@ -567,9 +613,30 @@ long System::ProcessDescriptor::query( long pid, InfoType fetch, KERNEL_USER_TIM
+     status = 1;
+ 
+ #elif defined( __APPLE__ )
+-    if ( pid ) {}
+-// FIXME (MCl): Make an alternative function get timing on OSX
+-// times() seems to cause a segmentation fault
++    // Use getrusage for user and kernel times on macOS
++    // Track process start time using a static variable initialized on first call
++    static long long prc_start = 0;
++    if ( prc_start == 0 ) {
++      struct timeval tv;
++      gettimeofday( &tv, nullptr );
++      // Convert to 100-nanosecond units: 1 sec = 10,000,000 units, 1 usec = 10 units
++      prc_start = static_cast<long long>( tv.tv_sec ) * 10000000LL + static_cast<long long>( tv.tv_usec ) * 10LL;
++    }
++
++    struct rusage usage;
++    if ( getrusage( RUSAGE_SELF, &usage ) == 0 ) {
++      // Convert timeval to 100-nanosecond units
++      info->UserTime = static_cast<long long>( usage.ru_utime.tv_sec ) * 10000000LL +
++                       static_cast<long long>( usage.ru_utime.tv_usec ) * 10LL;
++      info->KernelTime = static_cast<long long>( usage.ru_stime.tv_sec ) * 10000000LL +
++                         static_cast<long long>( usage.ru_stime.tv_usec ) * 10LL;
++      info->CreateTime = prc_start;
++      info->ExitTime   = 0;
++      status           = 1;
++    } else {
++      status = 0;
++    }
++    (void)pid; // suppress unused parameter warning
+ #else // no /proc file system: assume sys_start for the first call
+     tms              tmsb;
+     static clock_t   sys_start = times( 0 );
+diff --git a/GaudiKernel/src/Lib/System.cpp b/GaudiKernel/src/Lib/System.cpp
+index c7d8c26fd..bb6e03e63 100644
+--- a/GaudiKernel/src/Lib/System.cpp
++++ b/GaudiKernel/src/Lib/System.cpp
+@@ -1,5 +1,5 @@
+ /***********************************************************************************\
+-* (c) Copyright 1998-2025 CERN for the benefit of the LHCb and ATLAS collaborations *
++* (c) Copyright 1998-2026 CERN for the benefit of the LHCb and ATLAS collaborations *
+ *                                                                                   *
+ * This software is distributed under the terms of the Apache version 2 licence,     *
+ * copied verbatim in the file "LICENSE".                                            *
+@@ -365,18 +365,18 @@ std::vector<std::string> System::getEnv() {
+ // -----------------------------------------------------------------------------
+ // backtrace utilities
+ // -----------------------------------------------------------------------------
+-#ifdef __linux
++#if defined( __linux ) || defined( __APPLE__ )
+ #  include <execinfo.h>
+ #endif
+ 
+ int System::backTrace( [[maybe_unused]] void** addresses, [[maybe_unused]] const int depth ) {
+ 
+-#ifdef __linux
++#if defined( __linux ) || defined( __APPLE__ )
+ 
+   int count = backtrace( addresses, depth );
+   return count > 0 ? count : 0;
+ 
+-#else // osx parts not implemented
++#else
+   return 0;
+ #endif
+ }
+@@ -408,7 +408,7 @@ bool System::backTrace( std::string& btrace, const int depth, const int offset )
+ bool System::getStackLevel( [[maybe_unused]] void* addresses, [[maybe_unused]] void*& addr,
+                             [[maybe_unused]] std::string& fnc, [[maybe_unused]] std::string& lib ) {
+ 
+-#ifdef __linux
++#if defined( __linux ) || defined( __APPLE__ )
+ 
+   Dl_info info;
+ 
+@@ -431,7 +431,7 @@ bool System::getStackLevel( [[maybe_unused]] void* addresses, [[maybe_unused]] v
+     return false;
+   }
+ 
+-#else // not implemented for osx
++#else
+   return false;
+ #endif
+ }
+diff --git a/GaudiPolicy/python/GaudiTesting/SubprocessBaseTest.py b/GaudiPolicy/python/GaudiTesting/SubprocessBaseTest.py
+index 3b541ac09..56360f0e3 100644
+--- a/GaudiPolicy/python/GaudiTesting/SubprocessBaseTest.py
++++ b/GaudiPolicy/python/GaudiTesting/SubprocessBaseTest.py
+@@ -1,5 +1,5 @@
+ #####################################################################################
+-# (c) Copyright 2024-2025 CERN for the benefit of the LHCb and ATLAS collaborations #
++# (c) Copyright 2024-2026 CERN for the benefit of the LHCb and ATLAS collaborations #
+ #                                                                                   #
+ # This software is distributed under the terms of the Apache version 2 licence,     #
+ # copied verbatim in the file "LICENSE".                                            #
+@@ -11,6 +11,7 @@
+ import os
+ import re
+ import select
++import shutil
+ import signal
+ import subprocess
+ import threading
+@@ -131,17 +132,41 @@ class SubprocessBaseTest:
+ 
+     @staticmethod
+     def _collect_stack_trace(proc: subprocess.Popen) -> str:
+-        cmd = [
+-            "gdb",
+-            "--pid",
+-            str(proc.pid),
+-            "--batch",
+-            "--eval-command=thread apply all backtrace",
+-        ]
+-        gdb = subprocess.Popen(
++        """
++        Collect stack trace from a running process using the available debugger.
++        Uses lldb on macOS and gdb on Linux. Returns a message if no debugger
++        is available.
++        """
++        import sys
++
++        if sys.platform == "darwin":
++            # Use lldb on macOS
++            if not shutil.which("lldb"):
++                return "(lldb not available for stack trace collection)"
++            cmd = [
++                "lldb",
++                "-p",
++                str(proc.pid),
++                "-o",
++                "bt all",
++                "-o",
++                "quit",
++            ]
++        else:
++            # Use gdb on Linux
++            if not shutil.which("gdb"):
++                return "(gdb not available for stack trace collection)"
++            cmd = [
++                "gdb",
++                "--pid",
++                str(proc.pid),
++                "--batch",
++                "--eval-command=thread apply all backtrace",
++            ]
++        debugger = subprocess.Popen(
+             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+         )
+-        return gdb.communicate()[0].decode("utf-8", errors="backslashreplace")
++        return debugger.communicate()[0].decode("utf-8", errors="backslashreplace")
+ 
+     @staticmethod
+     def _terminate_process(proc: subprocess.Popen) -> None:
