@@ -1,0 +1,75 @@
+--- a/humming/build.py
++++ b/humming/build.py
+@@ -11,7 +11,7 @@
+ 
+ import humming.utils.jit as jit_utils
+ from humming.utils.cubin import build_cubin_patcher
+-from humming.utils.cuda import get_cuda_library_path
++from humming.utils.cuda import filter_cuda_paths, get_cuda_library_path
+ from humming.utils.device import build_device_info_extension
+ from humming.utils.nvrtc import build_nvrtc_compile_binary
+ 
+@@ -27,20 +27,14 @@
+ 
+ 
+ def _find_cuda_include() -> Path:
+-    candidates: list[Path] = []
+-    for variable in ("CUDA_HOME", "CUDA_PATH"):
+-        if value := os.environ.get(variable):
+-            candidates.append(Path(value) / "include")
+-    candidates.extend(Path(entry) / "nvidia" / "cuda_runtime" / "include" for entry in sys.path if entry)
+-    candidates.extend(Path(entry) / "nvidia" / "cu13" / "include" for entry in sys.path if entry)
+-    for candidate in candidates:
+-        if (candidate / "cuda.h").is_file():
+-            return candidate.resolve()
+-    raise RuntimeError("CUDA headers were not found; install nvidia-cuda-runtime-cu12 or set CUDA_HOME")
++    environment = filter_cuda_paths(required_headers=["cuda.h"])
++    return next(Path(path) for path in environment["include_paths"] if (Path(path) / "cuda.h").is_file())
+ 
+ 
+ def _torch_library(name: str) -> Path:
+     library = Path(torch.__file__).resolve().parent / "lib" / name
++    if not library.is_file():
++        library = Path(sys.prefix) / "lib" / name
+     if not library.is_file():
+         raise RuntimeError(f"{name} is required; build with a CUDA-enabled torch wheel")
+     return library
+@@ -55,7 +49,7 @@
+     empty_source = output_dir / "empty.c"
+     cuda_stub = output_dir / "libcuda.so"
+     empty_source.write_text("void humming_cuda_stub(void) {}\n")
+-    _run(["cc", "-shared", str(empty_source), "-Wl,-soname,libcuda.so.1", "-o", str(cuda_stub)])
++    _run([os.environ.get("CC", "cc"), "-shared", str(empty_source), "-Wl,-soname,libcuda.so.1", "-o", str(cuda_stub)])
+ 
+ 
+ def build_launcher(output: Path, compiler: str, cuda_library_dir: Path) -> None:
+--- a/humming/utils/cuda.py
++++ b/humming/utils/cuda.py
+@@ -262,5 +262,27 @@
+             }
+         )
+ 
++    # Conda distributes CUDA headers under targets/<architecture>-linux.
++    conda_root = Path(sys.prefix)
++    include_paths = _collect_include_paths(str(conda_root))
++    for target in sorted((conda_root / "targets").glob("*")):
++        _add_include_path(include_paths, str(target / "include"))
++    for include in include_paths:
++        header = Path(include) / "cuda.h"
++        if not header.is_file():
++            continue
++        match = re.search(r"^#define CUDA_VERSION\s+(\d+)", header.read_text(), re.MULTILINE)
++        if match is not None:
++            version = int(match.group(1))
++            results.append({
++                "source": "conda",
++                "path": str(conda_root),
++                "major": version // 1000,
++                "minor": (version % 1000) // 10,
++                "binaries": _collect_binaries(str(conda_root)),
++                "include_paths": include_paths,
++            })
++            break
++
+     results.extend(_find_nvidia_pypi_cuda_paths())
+     return results
