@@ -1,0 +1,309 @@
+diff --git a/build_code b/build_code
+index 79ce2ad..16b0da2 100755
+--- a/build_code
++++ b/build_code
+@@ -1,5 +1,6 @@
+ #! /bin/bash
+ # Script to set-up and make the radiation code
++set -euxo pipefail
+ 
+ here=`pwd`
+ host=`uname -n`
+@@ -59,7 +60,9 @@ cd $here
+ for SRCDIR in $SRC_LIST
+ do
+   cd src/$SRCDIR
++  set +e
+   FILE_LIST=`ls *.f* 2> /dev/null`
++  set -e
+   for FILE in $FILE_LIST
+   do
+     if [ $FILE -nt $here/bin/$FILE ]
+@@ -67,7 +70,9 @@ do
+         cp $FILE $here/bin/$FILE
+     fi
+   done
++  set +e
+   FILE_LIST=`ls *.F90 2> /dev/null`
++  set -e
+   for FILE in $FILE_LIST
+   do
+     ppfile=$here/bin/${FILE%F90}f90
+@@ -112,8 +117,8 @@ case "$1" in
+     fi
+     ;;
+ esac
+-. ./set_prog_env
+-make $1 && echo "All compiled OK"
++# . ./set_prog_env
++make $1
+ cd $here
+ 
+ echo "Setting path to distribution in set_rad_env"
+diff --git a/make/Mk_cmd b/make/Mk_cmd
+index acaf7dd..67b8984 100644
+--- a/make/Mk_cmd
++++ b/make/Mk_cmd
+@@ -1,11 +1,11 @@
+ #
+ # Pathnames for compilers and global options for naming files
+ #
+-FORTCOMP        = gfortran -O -c
+-LINK            = gfortran -O
+-LIBLINK         = ar rvu
+-INCCDF_PATH     = /usr/include
+-LIBCDF_PATH     = /usr/lib
++FORTCOMP        = $(FC) $(FFLAGS) $(CPPFLAGS) -c
++LINK            = $(FC) $(FFLAGS) $(LDFLAGS)
++LIBLINK         = $(AR) rvu
++INCCDF_PATH     =
++LIBCDF_PATH     =
+ LIBCDF_NAME     = netcdff
+ OMPARG          = -fopenmp
+ FLAGS_ODEPACK   = -w -std=legacy -fallow-argument-mismatch
+diff --git a/make/Mk_depend_cdf b/make/Mk_depend_cdf
+index 72eb979..0493ffb 100644
+--- a/make/Mk_depend_cdf
++++ b/make/Mk_depend_cdf
+@@ -3,49 +3,49 @@
+ #
+ 
+ read_cdf.o: read_cdf.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) read_cdf.f90
++	$(FORTCOMP) read_cdf.f90
+ 
+ read_nc.o: read_nc.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) read_nc.f90
++	$(FORTCOMP) read_nc.f90
+ 
+ write_cdf.o: write_cdf.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) write_cdf.f90
++	$(FORTCOMP) write_cdf.f90
+ 
+ write_nc.o: write_nc.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) write_nc.f90
++	$(FORTCOMP) write_nc.f90
+ 
+ dimensions_field_cdf_ucf.o: dimensions_field_cdf_ucf.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) dimensions_field_cdf_ucf.f90
++	$(FORTCOMP) dimensions_field_cdf_ucf.f90
+ 
+ l_run_cdf.o: l_run_cdf.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) l_run_cdf.f90 
++	$(FORTCOMP) l_run_cdf.f90 
+ 
+ runes_nc.o: runes_nc.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) runes_nc.f90
++	$(FORTCOMP) runes_nc.f90
+ 
+ corr_k_single.o: corr_k_single.f90
+-	$(FORTCOMP) $(OMPARG) -I$(INCCDF_PATH) corr_k_single.f90
++	$(FORTCOMP) corr_k_single.f90 $(OMPARG)
+ 
+ make_block_17.o: make_block_17.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) make_block_17.f90
++	$(FORTCOMP) make_block_17.f90
+ 
+ calc_horizon_angles.o: calc_horizon_angles.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) calc_horizon_angles.f90
++	$(FORTCOMP) calc_horizon_angles.f90
+ 
+ lblcat.o: lblcat.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) lblcat.f90 
++	$(FORTCOMP) lblcat.f90 
+ 
+ cosp2_io.o: cosp2_io.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) cosp2_io.f90
++	$(FORTCOMP) cosp2_io.f90
+ 
+ cosp_driver.o: cosp_driver.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) cosp_driver.f90
++	$(FORTCOMP) cosp_driver.f90
+ 
+ set_extern_ckd_frn_data.o: set_extern_ckd_frn_data.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) set_extern_ckd_frn_data.f90
++	$(FORTCOMP) set_extern_ckd_frn_data.f90
+ 
+ set_extern_ckd_self_data.o: set_extern_ckd_self_data.f90
+-	$(FORTCOMP) -I$(INCCDF_PATH) set_extern_ckd_self_data.f90
++	$(FORTCOMP) set_extern_ckd_self_data.f90
+ 
+ #
+ # Object dependencies for programs that use netCDF
+diff --git a/make/Mk_target_aux b/make/Mk_target_aux
+index 79b47ab..58e4ba4 100644
+--- a/make/Mk_target_aux
++++ b/make/Mk_target_aux
+@@ -22,7 +22,7 @@ TARGET_AUX: AUX_CDL AUX_CDF
+ #
+ 
+ l_run_cdf: l_run_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o l_run_cdf \
++	$(LINK) -o l_run_cdf \
+ 	   l_run_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ l_run_cdl: l_run_cdl.o radlib.$(LIBSUFFIX)
+@@ -32,7 +32,7 @@ runes_driver: runes_driver.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o runes_driver runes_driver.o radlib.$(LIBSUFFIX)
+ 
+ runes_nc: runes_nc.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o runes_nc \
++	$(LINK) -o runes_nc \
+ 	runes_nc.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ #
+@@ -50,18 +50,18 @@ assign_subcols: assign_subcols.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o assign_subcols assign_subcols.o radlib.$(LIBSUFFIX)
+ 
+ cdf2cdl: cdf2cdl.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o cdf2cdl \
++	$(LINK) -o cdf2cdl \
+ 	   cdf2cdl.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ cdl2cdf: cdl2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o cdl2cdf \
++	$(LINK) -o cdl2cdf \
+ 	   cdl2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ dentomix: dentomix.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o dentomix dentomix.o radlib.$(LIBSUFFIX)
+ 
+ dentomix_cdf: dentomix_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o dentomix_cdf \
++	$(LINK) -o dentomix_cdf \
+ 	   dentomix_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ dentoq: dentoq.o radlib.$(LIBSUFFIX)
+@@ -101,7 +101,7 @@ interp: interp.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o interp interp.o radlib.$(LIBSUFFIX)
+ 
+ interp_cdf: interp_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o interp_cdf \
++	$(LINK) -o interp_cdf \
+ 	   interp_cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ merge: merge.o radlib.$(LIBSUFFIX)
+@@ -126,18 +126,18 @@ samson2cdl: samson2cdl.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o samson2cdl samson2cdl.o radlib.$(LIBSUFFIX)
+ 
+ samson2cdf: samson2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o samson2cdf \
++	$(LINK) -o samson2cdf \
+ 	   samson2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ genln2cdf: genln2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o genln2cdf \
++	$(LINK) -o genln2cdf \
+ 	   genln2cdf.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ cdl2samson: cdl2samson.o radlib.$(LIBSUFFIX)
+ 	$(LINK) -o cdl2samson cdl2samson.o radlib.$(LIBSUFFIX)
+ 
+ cdf2samson: cdf2samson.o $(CDF_OBJ) radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o cdf2samson \
++	$(LINK) -o cdf2samson \
+ 	   cdf2samson.o $(CDF_OBJ) radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ scale_field: scale_field.o radlib.$(LIBSUFFIX)
+@@ -151,7 +151,7 @@ wadd: wadd.o radlib.$(LIBSUFFIX)
+ 
+ calc_horizon_angles: calc_horizon_angles.o \
+            socrates_horizon_1d.o socrates_horizon_2d.o rad_ccf.o realtype_rd.o
+-	$(LINK) -L$(LIBCDF_PATH) -o calc_horizon_angles calc_horizon_angles.o \
++	$(LINK) -o calc_horizon_angles calc_horizon_angles.o \
+            socrates_horizon_1d.o socrates_horizon_2d.o rad_ccf.o realtype_rd.o \
+            -l$(LIBCDF_NAME)
+ 
+diff --git a/make/Mk_target_ck b/make/Mk_target_ck
+index e240699..276ebc4 100644
+--- a/make/Mk_target_ck
++++ b/make/Mk_target_ck
+@@ -5,7 +5,7 @@ TARGET_CK: corr_k tune_weights convert_elsey_shine dat2xsc xsc2xsc \
+ 	   qtxt2parsum lblcat
+ 
+ corr_k: corr_k.o cklib.$(LIBSUFFIX)
+-	$(LINK) $(OMPARG) -L$(LIBCDF_PATH) -o corr_k corr_k.o \
++	$(LINK) $(OMPARG) -o corr_k corr_k.o \
+ 	   cklib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ tune_weights: tune_weights.o radlib.$(LIBSUFFIX) cklib.$(LIBSUFFIX)
+@@ -39,5 +39,5 @@ qtxt2parsum: qtxt2parsum.o cklib.$(LIBSUFFIX)
+ 	$(LINK) -o qtxt2parsum qtxt2parsum.o cklib.$(LIBSUFFIX)
+ 
+ lblcat: lblcat.o cklib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o lblcat lblcat.o \
++	$(LINK) -o lblcat lblcat.o \
+ 	   cklib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+diff --git a/make/Mk_target_cosp b/make/Mk_target_cosp
+index caa8312..a92dcab 100644
+--- a/make/Mk_target_cosp
++++ b/make/Mk_target_cosp
+@@ -4,5 +4,5 @@
+ TARGET_COSP: cosp_driver
+ 
+ cosp_driver: cosp_driver.o $(COSP_CDF_OBJ) cosplib.$(LIBSUFFIX)
+-	${LINK} -L$(LIBCDF_PATH) -o cosp_driver \
++	${LINK} -o cosp_driver \
+ 	   cosp_driver.o $(COSP_CDF_OBJ) cosplib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+diff --git a/make/Mk_target_gen b/make/Mk_target_gen
+index eee27a3..23266f5 100644
+--- a/make/Mk_target_gen
++++ b/make/Mk_target_gen
+@@ -4,7 +4,7 @@
+ TARGET_GEN: prep_spec tidy_90
+ 
+ prep_spec: prep_spec.o radlib.$(LIBSUFFIX)
+-	$(LINK) -L$(LIBCDF_PATH) -o prep_spec prep_spec.o \
++	$(LINK) -o prep_spec prep_spec.o \
+ 	   radlib.$(LIBSUFFIX) -l$(LIBCDF_NAME)
+ 
+ tidy_90: tidy_90.o radlib.$(LIBSUFFIX)
+diff --git a/make/mkdep b/make/mkdep
+index 86a33a3..c839e0f 100755
+--- a/make/mkdep
++++ b/make/mkdep
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl
++#! /usr/bin/env perl
+ #
+ open(MAKEFILE, "> Mk_depend");
+ &MakeDependsf90($ARGV[1]);
+diff --git a/python/__init__.py b/python/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/python/pyproject.toml b/python/pyproject.toml
+new file mode 100644
+index 0000000..3bc71d0
+--- /dev/null
++++ b/python/pyproject.toml
+@@ -0,0 +1,6 @@
++[build-system]
++requires = ["setuptools >= 77.0.3"]
++build-backend = "setuptools.build_meta"
++
++[project]
++name = "socrates"
+diff --git a/sbin/Makefile b/sbin/Makefile
+index 356ce83..be3b77f 100644
+--- a/sbin/Makefile
++++ b/sbin/Makefile
+@@ -10,17 +10,13 @@
+ 
+ all: Cinc_field Cscale_field
+ 
+-# Compiler
+-
+-CC = cc
+-
+ # Scripts written in C:
+ 
+ Cinc_field: Cinc_field.c
+-	$(CC) -o Cinc_field Cinc_field.c -lm
++	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o Cinc_field Cinc_field.c -lm
+ 
+ Cscale_field: Cscale_field.c
+-	$(CC) -o Cscale_field Cscale_field.c -lm
++	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o Cscale_field Cscale_field.c -lm
+ 
+ # Special targets:
+ 
