@@ -63,6 +63,18 @@ While all of the above steps eventually need to work in CI for a recipe to be me
 building locally is a good way to learn more about conda-forge, and make better
 use of donated, community resources.
 
+### Building a v1 recipe on the host
+
+To build and test one recipe on your current platform, run:
+
+```bash
+pixi run build-native recipes/<package-name>
+```
+
+This uses rattler-build with the conda-forge pins and the staged-recipes
+configuration for your host. Packages are written to `build_artifacts/`.
+For the CI build environment, use `build-locally.py` as described below.
+
 ### Building with `build-locally.py`
 
 The script `build-locally.py` will guide you through the local debugging process. This script
