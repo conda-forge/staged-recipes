@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  name: zarr-indexing
+  version: "0.3.0"
+  # requires-python = ">=3.12", newer than conda-forge's global python_min.
+  python_min: "3.12"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/zarr_indexing-${{ version }}.tar.gz
+  sha256: c0991b5b5666442a29defcf6796b0f4cba9c5154634a9831313191f7d5ab6d1b
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling >=1.29.0
+    - hatch-vcs
+    - setuptools-scm >=9
+  run:
+    - python >=${{ python_min }}
+    - numpy >=2
+  run_constraints:
+    # The optional `testing` extra (zarr_indexing.testing).
+    - hypothesis >=6.160.0
+
+tests:
+  - python:
+      imports:
+        - zarr_indexing
+        - zarr_indexing.lazy_array
+        - zarr_indexing.transform
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - files:
+      source:
+        # tests/test_doc_examples.py executes docs/snippets and examples/ and
+        # resolves the docs' include of CHANGELOG.md; pyproject.toml carries
+        # the pytest configuration.
+        - tests/
+        - docs/
+        - examples/
+        - CHANGELOG.md
+        - pyproject.toml
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+        - hypothesis >=6.160.0
+    script:
+      # The lazy_indexing_numpy example script passes `-c <path>` to
+      # pytest.main as a single argument, which pytest >=9.2 rejects; the
+      # example itself, not the package, is at fault.
+      - >-
+        python -m pytest tests -q -p no:cacheprovider
+        --deselect "tests/test_doc_examples.py::test_cli_example_runs_as_a_subprocess[lazy_indexing_numpy]"
+
+about:
+  homepage: https://zarr-indexing.readthedocs.io/
+  summary: Composable, lazy coordinate transforms for Zarr array indexing.
+  description: |
+    TensorStore-inspired index transforms for Zarr arrays. Each indexing
+    operation (slicing, fancy indexing, and so on) produces a coordinate
+    mapping from user space to storage space; these mappings compose
+    without reading data, and LazyArray materializes them on request.
+    It is developed in the zarr-python repository and released
+    independently of zarr itself.
+  license: MIT
+  license_file: LICENSE.txt
+  repository: https://github.com/zarr-developers/zarr-python/tree/main/packages/zarr-indexing
+  documentation: https://zarr-indexing.readthedocs.io/
+
+extra:
+  recipe-maintainers:
+    - d-v-b
