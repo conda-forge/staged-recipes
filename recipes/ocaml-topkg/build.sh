@@ -4,16 +4,6 @@ set -euxo pipefail
 
 NAME="${PKG_NAME#ocaml-}"
 T="${SRC_DIR}/_tools"
-if [[ "${target_platform:-}" == win-* ]]; then
-  # TEMP diagnostic (non-unix): ocamlc -where exits 127 on the gcc track
-  echo "DIAG PATH=${PATH}"
-  command -v ocamlc ocamlc.exe ocamlrun || true
-  ls -la "${BUILD_PREFIX}/Library/bin/"ocaml* || true
-  "${BUILD_PREFIX}/Library/bin/ocamlc.exe" -where || echo "DIAG direct ocamlc rc=$?"
-  "${BUILD_PREFIX}/Library/bin/ocamlrun.exe" -version || echo "DIAG ocamlrun rc=$?"
-  if command -v objdump >/dev/null 2>&1; then objdump -p "${BUILD_PREFIX}/Library/bin/ocamlc.exe" | grep -i 'DLL Name' || true; fi
-  ls "${BUILD_PREFIX}/Library/bin/"lib{gcc,winpthread,stdc}*.dll || true
-fi
 OCAML_STDLIB="$(ocamlc -where | tr -d '\r')"
 
 if [[ "${target_platform:-}" == win-* ]]; then
