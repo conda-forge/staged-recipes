@@ -13,23 +13,31 @@ if [[ "${target_platform:-}" == win-* ]]; then
   PFX="${LIBRARY_PREFIX:-${PREFIX}/Library}"
   EXE=".exe"
   SEP=";"
-  # no conda ocaml-findlib for non-unix: build one privately, never into $PREFIX
-  pushd "${SRC_DIR}/findlib"
-    ./configure \
-      -bindir "${T}/bin" \
-      -sitelib "${T}/lib" \
-      -mandir "${T}/man" \
-      -config "${T}/etc/findlib.conf" \
-      -no-custom \
-      -no-topfind
-    make all
-    make opt
-    make install
-    mkdir -p "${T}/toplevel"
-    cp src/findlib/topfind "${T}/toplevel/topfind"
-  popd
-  export PATH="${T}/bin:${PATH}"
-  TOPFIND_DIR="${T}/toplevel"
+else
+  PFX="${PREFIX}"
+  EXE=""
+  SEP=":"
+fi
+
+# findlib is built privately on all platforms (the cf ocaml-findlib build is stale): never into $PREFIX
+pushd "${SRC_DIR}/findlib"
+  ./configure \
+    -bindir "${T}/bin" \
+    -sitelib "${T}/lib" \
+    -mandir "${T}/man" \
+    -config "${T}/etc/findlib.conf" \
+    -no-custom \
+    -no-topfind
+  make all
+  make opt
+  make install
+  mkdir -p "${T}/toplevel"
+  cp src/findlib/topfind "${T}/toplevel/topfind"
+popd
+export PATH="${T}/bin:${PATH}"
+TOPFIND_DIR="${T}/toplevel"
+
+if [[ "${target_platform:-}" == win-* ]]; then
   # findlib.conf lexer rejects backslashes
   CONF_PFX="${PFX//\\//}"
   CONF_STDLIB="${OCAML_STDLIB//\\//}"
@@ -43,13 +51,9 @@ if [[ "${target_platform:-}" == win-* ]]; then
     cp -r "${BUILD_PREFIX}/Library/lib/ocaml/ocamlbuild/." "${OCB_DIR}/"
   fi
 else
-  PFX="${PREFIX}"
-  EXE=""
-  SEP=":"
-  TOPFIND_DIR="${OCAML_STDLIB}"
   CONF_PFX="${PFX}"
   CONF_STDLIB="${OCAML_STDLIB}"
-  FINDLIB_LIB="${OCAML_STDLIB}/site-lib"
+  FINDLIB_LIB="${T}/lib"
 fi
 
 # ocamlfind runs from the build env but must resolve and install into the host tree

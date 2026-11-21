@@ -1,0 +1,122 @@
+schema_version: 1
+
+context:
+  name: ppx_devtools-optcomp
+  version: "0.1"
+  build_number: 0
+
+  # ocaml_win-64 ships gcc_* and vs2022_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  # static archive paired with the .cmxa: msvc ships .lib, gcc and unix ship .a
+  native_lib_ext: ${{ ".lib" if c_compiler == "vs2022" else ".a" }}
+
+package:
+  name: ocaml-ppx-devtools-optcomp
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ocsigen/ppx_devtools/releases/download/${{ version }}/ppx_devtools-${{ version }}.tbz
+  sha256: 46ad4e62a213e3c0852c02cd1cc182d88ec89afa284a45a4316cfb3ffc0bcb9c
+
+build:
+  number: ${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+  script: bash ${{ RECIPE_DIR }}/build.sh
+
+requirements:
+  build:
+    - ${{ compiler("ocaml") }}
+    - if: not unix and c_compiler == "gcc"
+      then:
+        - ${{ stdlib("m2w64_c") }}
+      else:
+        - ${{ stdlib("c") }}
+    # ocaml_win-64 >=14 only run-constrains the C compiler; activate it here, once
+    - if: not unix and c_compiler != "gcc"
+      then:
+        - ${{ compiler("c") }}
+    # compiler("ocaml") renders no toolchain track; name it on non-unix
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # the cross compiler does not pull the native one; the build runs OCaml on the build machine
+    - if: build_platform != target_platform and unix
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.*
+        # the cross compiler activates itself (shims, OCAMLLIB, host OCAMLPATH)
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
+    # non-unix cross: the self-contained gcc track needs no vcvars
+    - if: build_platform != target_platform and not unix
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.* gcc_*
+    - ocaml-dune >=3.20
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+        - m2-coreutils
+  host:
+    # library: ocaml's run_export pins the compiler patch version
+    - ocaml ${{ ocaml_compiler_version }}.*
+    # the noarch ocaml metapackage does not pin the non-unix toolchain track
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-ppxlib >=0.33
+  run:
+    - ocaml-ppxlib >=0.33
+  # the ocaml run_export does not encode the non-unix toolchain track
+  run_constraints:
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+        - ${{ library }}lib/ocaml/${{ name }}/ppx_devtools_optcomp.cma
+        # win-arm64 is bytecode-only upstream: OCaml 5.4 has no arm64 non-unix backend
+        - if: target_platform != "win-arm64"
+          then:
+            - ${{ library }}lib/ocaml/${{ name }}/ppx_devtools_optcomp.cmxa
+            - ${{ library }}lib/ocaml/${{ name }}/ppx_devtools_optcomp${{ native_lib_ext }}
+            - ${{ library }}lib/ocaml/${{ name }}/ppx_devtools_optcomp.cmxs
+  # dune links a native driver, so it cannot run on the bytecode-only lane
+  - if: target_platform != "win-arm64"
+    then:
+      script: bash testing/test_optcomp.sh
+      files:
+        recipe:
+          - testing/test_optcomp.sh
+      requirements:
+        run:
+          - ocaml ${{ ocaml_compiler_version }}.*
+          - if: not unix
+            then:
+              - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+          - ocaml-dune >=3.20
+          - if: not unix and c_compiler != "gcc"
+            then:
+              - ${{ compiler("c") }}
+          - if: not unix
+            then:
+              - m2-bash
+              - m2-coreutils
+
+about:
+  homepage: https://github.com/ocsigen/ppx_devtools
+  repository: https://github.com/ocsigen/ppx_devtools
+  license: LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception
+  license_file: LICENSE
+  summary: Lightweight ppx for conditional compilation
+  description: |
+    ppx_devtools-optcomp gates code at compile time with [@if] attributes,
+    depending on the OCaml version, the operating system or the compiler flavour.
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner

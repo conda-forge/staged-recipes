@@ -24,35 +24,27 @@ edit() {
   if [[ -n "${verify}" ]]; then perl -ne "${verify}" "$@"; fi
 }
 
-# --- findlib: conda's ocaml-findlib (build env) on unix, a private build on non-unix ---
-mkdir -p "${T}/etc" "${T}/lib" "${T}/toplevel"
-if [[ -n "${exe}" ]]; then
-  pushd "${SRC_DIR}/findlib"
-    ./configure \
-      -bindir "${T}/bin" \
-      -sitelib "${T}/lib" \
-      -mandir "${T}/man" \
-      -config "${T}/etc/findlib.conf" \
-      -no-custom \
-      -no-topfind
-    make all
-    make opt
-    make install
-    cp src/findlib/topfind "${T}/toplevel/topfind"
-  popd
-  export PATH="${T}/bin:${PATH}"
-  findlib_extra=""
-else
-  cp "${BUILD_PREFIX}/lib/ocaml/topfind" "${T}/toplevel/topfind"
-  # conda's findlib keeps its own META under site-lib
-  findlib_extra="${sep}${BUILD_PREFIX}/lib/ocaml/site-lib"
-fi
+# --- findlib: private build on all platforms (cf ocaml-findlib is stale), never installed ---
+mkdir -p "${T}/etc" "${T}/lib"
+pushd "${SRC_DIR}/findlib"
+  ./configure \
+    -bindir "${T}/bin" \
+    -sitelib "${T}/lib" \
+    -mandir "${T}/man" \
+    -config "${T}/etc/findlib.conf" \
+    -no-custom \
+    -no-topfind
+  make all
+  make opt
+  make install
+popd
+export PATH="${T}/bin:${PATH}"
 
-# Search conda's OCaml tree, then the private tree (num, zarith), then the stdlib.
+# Search conda's OCaml tree, then the private tree (findlib, num, zarith), then the stdlib.
 stdlib="$(ocamlc -where | tr -d '\r')"
 cat > "${T}/etc/findlib.conf" <<EOF
 destdir="${pf}/lib/ocaml"
-path="${pf}/lib/ocaml${sep}${tf}/lib${sep}${stdlib//\\//}${findlib_extra}"
+path="${pf}/lib/ocaml${sep}${tf}/lib${sep}${stdlib//\\//}"
 EOF
 export OCAMLFIND_CONF="${T}/etc/findlib.conf"
 
@@ -76,8 +68,9 @@ pushd "${SRC_DIR}/nondune/num"
 popd
 
 pushd "${SRC_DIR}/nondune/zarith"
+  # ocamlmklib (5.5) rejects -Wl,* from LDFLAGS
   CFLAGS="${CFLAGS:-} -I${pf}/include" \
-  LDFLAGS="${LDFLAGS:-} -L${pf}/lib" \
+  LDFLAGS="$(perl -e 'print join(" ", grep { length && !/^-Wl,/ } split(/\s+/, $ARGV[0] // ""))' -- "${LDFLAGS:-}") -L${pf}/lib" \
   ./configure
   if [[ -n "${exe}" ]]; then
     # configure records backslash paths (ocamlc -where, pkg-config) and gcc then misses gmp.h.
@@ -98,8 +91,6 @@ requires = ""
 EOF
 
 export OCAMLPATH="${T}/lib${sep}${prefix}/lib/ocaml"
-
-source "${RECIPE_DIR}/building/hidden_private_builds.sh"  # HIDDEN(#35158)
 
 export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig${sep}${prefix}/share/pkgconfig${PKG_CONFIG_PATH:+${sep}${PKG_CONFIG_PATH}}"
 
@@ -163,7 +154,7 @@ printf '\n(vendored_dirs duniverse)\n' >> dune
 # eio_linux needs ocaml-uring (struct statx, glibc >= 2.28; sysroot is 2.17); eio_main falls back to eio_posix.
 rm -rf duniverse/eio/lib_eio_linux
 
-# The dune-configurator copy comes from $T/lib (HIDDEN(#35158): later the host package); drop the vendored one.
+# dune-configurator comes from the ocaml-dune-configurator host package; drop the vendored copy.
 rm -rf duniverse/dune/otherlibs/configurator
 
 # iomux stubs hardcode -Werror; osx clang then fails on the unused -L$BUILD_PREFIX/lib from :standard.
@@ -231,6 +222,21 @@ for f in \
   mkdir -p "${lic}/$(dirname "${rel}")"
   cp "${f}" "${lic}/${rel}"
   nlic=$((nlic + 1))
+done
+# conda-forge OCaml libs linked statically into semgrep-core: licenses live under share/doc/<pkg>/ in the host prefix
+for pkg in ppxlib lwt lwt_ppx dune-configurator ocplib-endian; do
+  found=0
+  for f in "${prefix}"/share/doc/${pkg}/{LICENSE,LICENCE,COPYING}*; do
+    [[ -f "${f}" && -s "${f}" ]] || continue
+    mkdir -p "${lic}/host/${pkg}"
+    cp "${f}" "${lic}/host/${pkg}/"
+    nlic=$((nlic + 1))
+    found=1
+  done
+  if [[ "${found}" -eq 0 ]]; then
+    echo "no license file found for ${pkg} under ${prefix}/share/doc/${pkg}" >&2
+    exit 1
+  fi
 done
 shopt -u nullglob nocaseglob
 echo "collected ${nlic} license files"
