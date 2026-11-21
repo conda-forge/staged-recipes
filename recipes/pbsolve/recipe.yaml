@@ -1,0 +1,90 @@
+schema_version: 1
+
+context:
+  name: pbsolve
+  version: "0.1.0"
+  # CUDA variants get build number + 200, so the solver prefers them whenever
+  # the __cuda virtual package (an NVIDIA driver) is present.
+  build_number: ${{ 200 if cuda_compiler_version != "None" else 0 }}
+  cuda_major: ${{ (cuda_compiler_version | split(".") | first) if cuda_compiler_version != "None" else "0" }}
+  variant: ${{ ("cuda" ~ cuda_major) if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/Bio-Otto/pbsolve/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 030c9b39aba3edc0da947df73240a5139444496154ba71a34c30db039b8e878f
+
+build:
+  number: ${{ build_number }}
+  string: ${{ variant }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  skip:
+    - match(python, "<3.10")
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    # compiler('cuda') turns on conda-forge's CUDA variants; nvcc itself is not
+    # used (NVRTC compiles the kernels at runtime) but its activation needs cxx.
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+        - ${{ compiler('cxx') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.9,<2
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ${{ cuda_compiler_version }}.*
+  run:
+    - python
+    - numpy >=1.23
+    - if: cuda_compiler_version != "None"
+      then:
+        - __cuda
+        - cuda-version >=${{ cuda_major }},<${{ cuda_major | int + 1 }}
+        - cuda-nvrtc
+
+tests:
+  - python:
+      imports:
+        - pbsolve
+      pip_check: true
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+    script:
+      - pbsolve info
+      - python -m pbsolve.test_installation --platform CPU
+      # A fast subset that needs only tests/data (API, readers, analytic accuracy,
+      # pdb2pqr parity, MM-PBSA, APBS apolar); the full suite reads the repository.
+      - pytest -q tests/test_api.py tests/test_io.py tests/test_analytic.py tests/test_prep.py tests/test_mmpbsa.py tests/test_apolar.py
+
+about:
+  homepage: https://github.com/Bio-Otto/pbsolve
+  repository: https://github.com/Bio-Otto/pbsolve
+  documentation: https://pbsolve.readthedocs.io
+  license: MIT AND BSD-3-Clause AND BSD-2-Clause
+  license_file:
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    # Licenses of the Rust crates linked in, written by build.sh / build.bat.
+    - THIRDPARTY.yml
+  summary: Fast Poisson-Boltzmann electrostatics and solvation energies (CPU/CUDA)
+  description: |
+    Poisson-Boltzmann electrostatics and solvation energies with CPU and CUDA
+    backends, a Python API, readers for common simulation formats and OpenMM
+    integration for MM-PBSA.
+
+extra:
+  recipe-maintainers:
+    - Bio-Otto
