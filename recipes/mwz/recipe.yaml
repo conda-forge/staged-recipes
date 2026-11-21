@@ -1,0 +1,82 @@
+schema_version: 1
+
+context:
+  version: "0.4.2"
+  scripts_dir: ${{ 'Library/share/mwz/scripts' if win else 'share/mwz/scripts' }}
+
+package:
+  name: mwz
+  version: ${{ version }}
+
+source:
+  - url: https://gitlab.com/api/v4/projects/82914660/packages/generic/mwz/v${{ version }}/mwz-v${{ version }}.tar.gz
+    sha256: 05472c4add7397f398dc43752ed8686c6bf9ae2befafb2151d544c7c4714cf3d
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_TARGET_DIR: target
+    content:
+      - if: unix
+        then:
+          - export RUSTFLAGS="${RUSTFLAGS:-} -C linker=$CC"
+          - cargo auditable install --locked --no-track --path crates/mwz-cli --root "$PREFIX" --bin mwz
+        else:
+          - cargo auditable install --locked --no-track --path crates/mwz-cli --root "%LIBRARY_PREFIX%" --bin mwz
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - if: unix
+        then: |
+          for f in $(cd crates/mwz-core/src/scripts && find . -name '*.rhai'); do
+            mkdir -p "$PREFIX/share/mwz/scripts/$(dirname "$f")"
+            install -m644 "crates/mwz-core/src/scripts/$f" "$PREFIX/share/mwz/scripts/$f"
+          done
+        else:
+          - xcopy /s /i /y "crates\mwz-core\src\scripts\*.rhai" "%LIBRARY_PREFIX%\share\mwz\scripts\"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - rust >=1.88
+    - cargo-auditable
+    - cargo-bundle-licenses
+
+tests:
+  - package_contents:
+      bin:
+        - mwz
+      files:
+        - ${{ scripts_dir }}/git/push.rhai
+        - ${{ scripts_dir }}/create/github.rhai
+        - ${{ scripts_dir }}/residence/ensure.rhai
+  - script:
+      - mwz --version
+      - mwz serve:mcp --help
+      - mwz show:mwz --completions bash
+      - if: unix
+        then: test "$(find $PREFIX/share/mwz/scripts -name '*.rhai' | wc -l)" -eq 15
+        else: |
+          set "MWZ_SCRIPT_COUNT=0"
+          for /r "%PREFIX%\Library\share\mwz\scripts" %%f in (*.rhai) do set /a MWZ_SCRIPT_COUNT+=1
+          if %MWZ_SCRIPT_COUNT% neq 15 exit /b 1
+
+about:
+  homepage: https://gitlab.com/babeloff/conda/mwz
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Multi-Workspace Zoo — a menagerie of version control systems
+  description: |
+    mwz is a management tool for coordinated multi-workspace zoos.
+    It reads a SysML v2 manifest that describes a zoo of git repositories,
+    then dispatches named actions across the zoo in parallel --
+    supporting work-order scoping, Rhai
+    scripting, execution-environment wrappers (pixi, conda, nix), and
+    AI-assisted operations via MCP and ACP.
+
+extra:
+  recipe-maintainers:
+    - phreed
