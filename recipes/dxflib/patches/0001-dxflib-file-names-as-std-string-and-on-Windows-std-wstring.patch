@@ -1,0 +1,126 @@
+Subject: [PATCH] dxflib: file names as std::string and, on Windows, std::wstring
+
+CloudCompare (which bundles dxflib) opens DXF files by their wide-character
+name on Windows, so that names outside the ANSI code page work, and passes
+std::string names elsewhere. Add overloads for both, leaving the existing
+const char* / std::string API unchanged:
+
+- DL_Dxf::out(const std::string&, version)
+- MSVC: DL_Dxf::in(const std::wstring&, ...), DL_Dxf::out(const std::wstring&, ...)
+  and DL_WriterA(const std::wstring&, ...) (std::ofstream accepts wide names
+  with MSVC; _wfopen for reading)
+
+---
+diff --git a/src/3rdparty/dxflib/src/dl_dxf.cpp b/src/3rdparty/dxflib/src/dl_dxf.cpp
+index cd0753d..169ae09 100644
+--- a/src/3rdparty/dxflib/src/dl_dxf.cpp
++++ b/src/3rdparty/dxflib/src/dl_dxf.cpp
+@@ -134,6 +134,31 @@ bool DL_Dxf::in(const std::string& file, DL_CreationInterface* creationInterface
+ 
+ 
+ 
++#ifdef _MSC_VER
++/**
++ * @brief Same as above, for a file name that is not representable in the
++ * ANSI code page (Windows).
++ */
++bool DL_Dxf::in(const std::wstring& file, DL_CreationInterface* creationInterface) {
++    FILE *fp;
++    firstCall = true;
++    currentObjectType = DL_UNKNOWN;
++
++    fp = _wfopen(file.c_str(), L"rt");
++    if (fp) {
++        std::locale oldLocale = std::locale::global(std::locale("C"));	// use dot in numbers
++        while (readDxfGroups(fp, creationInterface)) {}
++        std::locale::global(oldLocale);
++        fclose(fp);
++        return true;
++    }
++
++    return false;
++}
++#endif
++
++
++
+ /**
+  * Reads a DXF file from an existing stream.
+  *
+@@ -2353,6 +2378,32 @@ DL_WriterA* DL_Dxf::out(const char* file, DL_Codes::version version) {
+ 
+ 
+ 
++/**
++ * @brief Same as above, for a std::string file name.
++ */
++DL_WriterA* DL_Dxf::out(const std::string& file, DL_Codes::version version) {
++    return out(file.c_str(), version);
++}
++
++#ifdef _MSC_VER
++/**
++ * @brief Same as above, for a file name that is not representable in the
++ * ANSI code page (Windows).
++ */
++DL_WriterA* DL_Dxf::out(const std::wstring& file, DL_Codes::version version) {
++    this->version = version;
++
++    DL_WriterA* dw = new DL_WriterA(file, version);
++    if (dw->openFailed()) {
++        delete dw;
++        return NULL;
++    }
++    return dw;
++}
++#endif
++
++
++
+ /**
+  * @brief Writes a DXF header to the file currently opened 
+  * by the given DXF writer object.
+diff --git a/src/3rdparty/dxflib/src/dl_dxf.h b/src/3rdparty/dxflib/src/dl_dxf.h
+index d0eaa8e..16e6234 100644
+--- a/src/3rdparty/dxflib/src/dl_dxf.h
++++ b/src/3rdparty/dxflib/src/dl_dxf.h
+@@ -130,6 +130,11 @@ public:
+ 
+     bool in(const std::string& file,
+             DL_CreationInterface* creationInterface);
++#ifdef _MSC_VER
++    // file names with characters outside the ANSI code page (Windows)
++    bool in(const std::wstring& file,
++            DL_CreationInterface* creationInterface);
++#endif
+     bool readDxfGroups(FILE* fp,
+                        DL_CreationInterface* creationInterface);
+     static bool getStrippedLine(std::string& s, FILE* stream,
+@@ -220,6 +225,12 @@ public:
+ 
+     DL_WriterA* out(const char* file,
+                     DL_Codes::version version=DL_VERSION_2000);
++    DL_WriterA* out(const std::string& file,
++                    DL_Codes::version version=DL_VERSION_2000);
++#ifdef _MSC_VER
++    DL_WriterA* out(const std::wstring& file,
++                    DL_Codes::version version=DL_VERSION_2000);
++#endif
+ 
+     void writeHeader(DL_WriterA& dw);
+ 
+diff --git a/src/3rdparty/dxflib/src/dl_writer_ascii.h b/src/3rdparty/dxflib/src/dl_writer_ascii.h
+index 827f66c..f28612a 100644
+--- a/src/3rdparty/dxflib/src/dl_writer_ascii.h
++++ b/src/3rdparty/dxflib/src/dl_writer_ascii.h
+@@ -50,6 +50,10 @@ class DXFLIB_EXPORT DL_WriterA : public DL_Writer {
+ public:
+     DL_WriterA(const char* fname, DL_Codes::version version=DL_VERSION_2000)
+             : DL_Writer(version), m_ofile(fname) {}
++#ifdef _MSC_VER
++    DL_WriterA(const std::wstring& fname, DL_Codes::version version=DL_VERSION_2000)
++            : DL_Writer(version), m_ofile(fname) {}
++#endif
+     virtual ~DL_WriterA() {}
+ 
+     bool openFailed() const;
