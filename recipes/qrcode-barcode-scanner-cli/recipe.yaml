@@ -1,0 +1,72 @@
+context:
+  version: "0.11.0"
+
+package:
+  name: qrcode-barcode-scanner-cli
+  version: ${{ version }}
+
+source:
+  # The release source archive of tag v0.11.0: the whole workspace, its Cargo.lock and fixtures.
+  url: https://github.com/qrcode-ai-com/qrcode-barcode-scanner-rust/releases/download/v${{ version }}/qrcode-barcode-scanner-cli-${{ version }}-source.tar.gz
+  sha256: 8e5e09f0ec8d93ae49ca35615c05bb1d326448b6de9757cef86ef48d7bf3a96d
+
+build:
+  number: 0
+  script:
+    # Only the qrscan crate is installed. The workspace release profile stays as it is: it checks
+    # integer overflow in the rxing reader, and the engine catches reader panics (no panic=abort).
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/qrcode-ai-scanner-cli
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path crates/qrcode-ai-scanner-cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: qrscan --capabilities
+  - files:
+      source:
+        - fixtures/symbology/mixed-code128-qr.png
+      recipe:
+        - test-scan.sh
+        - test-scan.bat
+    script:
+      # The mixed fixture holds a QR code and a Code 128: every profile must read both.
+      - if: unix
+        then:
+          - bash test-scan.sh fixtures/symbology/mixed-code128-qr.png
+        else:
+          - call test-scan.bat fixtures\symbology\mixed-code128-qr.png
+  - package_contents:
+      bin:
+        - qrscan
+
+about:
+  homepage: https://github.com/qrcode-ai-com/qrcode-barcode-scanner-rust
+  summary: Offline QR code and barcode scanner for the command line (qrscan)
+  description: |
+    qrscan reads every QR code and barcode in an image file and prints a JSON report. It works
+    offline: no account, no upload and no network access. It reads QR Code, Micro QR, rMQR,
+    Data Matrix, Aztec, PDF417, MaxiCode and the common linear barcodes, keeps the payload bytes
+    and the position of each code, and gives each QR code a scannability score.
+  license: AGPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - crates/qrcode-ai-scanner/LICENSE-APACHE-2.0
+    - crates/qrcode-ai-scanner/THIRD-PARTY.md
+    - THIRDPARTY.yml
+  repository: https://github.com/qrcode-ai-com/qrcode-barcode-scanner-rust
+  documentation: https://github.com/qrcode-ai-com/qrcode-barcode-scanner-rust/blob/main/crates/qrcode-ai-scanner-cli/README.md
+
+extra:
+  recipe-maintainers:
+    - ThibautMelen
