@@ -1,0 +1,89 @@
+schema_version: 1
+
+context:
+  version: "2026.4.1"
+  # upstream main with this version (TAGLAB_VERSION); TagLab tags no releases
+  rev: d9fc870c79dc661aa2e7fdbe30dd02c047cd6b0b
+
+package:
+  name: taglab
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cnr-isti-vclab/TagLab/archive/${{ rev }}.tar.gz
+  sha256: a984773c273f00855f662a18bbe5055016263a2a7c1864dae08d2233de33caf2
+  patches:
+    # PyQt5 -> PySide6 and packaging support, from https://github.com/Tobias-Fischer/TagLab/tree/pyside6
+    # (to be offered upstream)
+    - patches/0001-Port-from-PyQt5-to-PySide6-Qt-6.patch
+    - patches/0002-Load-optional-heavy-dependencies-on-first-use.patch
+    - patches/0003-Make-TagLab-usable-from-another-working-directory-em.patch
+    - patches/0004-Download-model-weights-on-first-use.patch
+    - patches/0005-Conda-packaging-support-taglab_launcher-entry-point-.patch
+
+build:
+  number: 0
+  noarch: python
+  script: python ${{ RECIPE_DIR }}/install_taglab.py
+  python:
+    entry_points:
+      - taglab = taglab_launcher:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+  run:
+    - python >=${{ python_min }}
+    - pyside6
+    - numpy
+    - scipy
+    - scikit-image
+    - scikit-learn
+    - pandas
+    - opencv
+    - matplotlib-base
+    - pillow
+    - shapely
+    - rasterio
+    - gdal
+    - pycocotools
+    - ezdxf
+    - pytorch
+    - torchvision
+    - segment-anything
+    - pyyaml
+    - requests
+
+tests:
+  - python:
+      imports:
+        - taglab_launcher
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      - python smoke.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+    files:
+      recipe:
+        - smoke.py
+
+about:
+  homepage: https://github.com/cnr-isti-vclab/TagLab
+  summary: Interactive segmentation and annotation of coral reef orthomosaics
+  description: |
+    TagLab (CNR-ISTI Visual Computing Lab) for the semi-automatic annotation of coral reef
+    orthomosaics, with colony tracking across surveys. Built on PySide6 (Qt 6). Network weights
+    are downloaded on first use into a user data folder (or $TAGLAB_MODELS). Optional, loaded
+    only when used: ultralytics, qhoptim, albumentations (network training), selenium,
+    webdriver-manager, beautifulsoup4 (CoralNet toolbox).
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  repository: https://github.com/cnr-isti-vclab/TagLab
+  documentation: https://github.com/cnr-isti-vclab/TagLab/wiki
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
