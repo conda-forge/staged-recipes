@@ -1,0 +1,100 @@
+schema_version: 1
+
+context:
+  version: "0.14.0"
+
+package:
+  name: pyqwest
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyqwest/pyqwest-${{ version }}.tar.gz
+  sha256: a5a1db2aeb3d63fd45fb055098adc2f7ce5169bf9e0c1fd075eb7b572dfe73fe
+  patches:
+    - cargo-target-rustflags.patch
+
+build:
+  number: 0
+  # Upstream publishes cp311-abi3 wheels (maturin --features pyo3/abi3-py311),
+  # so build once at python_min and ship one artifact per platform.
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    env:
+      MATURIN_PEP517_ARGS: --features pyo3/abi3-py311
+    content:
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      - ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.16.0,<2.0
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.16.0,<2.0
+  run:
+    - python
+    - opentelemetry-api >=1.39.1
+
+tests:
+  - python:
+      imports:
+        - pyqwest
+        - pyqwest._pyqwest
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+        - anyio
+        - trio
+        - sniffio
+    script:
+      # Most of the suite runs against a pyvoy (Envoy) server, and the conftest
+      # imports pyvoy and opentelemetry-test-utils, neither of which is on
+      # conda-forge. Run the files that don't need the server, without the
+      # conftest. The deselected tests need its server or certs fixtures, and
+      # test_response_content_awaitable_ensure_future is asyncio-only (the
+      # conftest normally deselects it on trio).
+      - pytest -v --noconftest --import-mode=importlib tests/test_asgi.py tests/test_common.py tests/test_headers.py tests/test_multipart_encode.py tests/test_protocol_errors.py tests/test_proxy.py tests/test_request.py tests/test_response.py tests/test_timeout.py tests/test_tls_system.py tests/test_trio_bridge.py tests/test_uds.py tests/test_unwinding.py -k "not test_response_content_awaitable_ensure_future and not ca_cert_and_include_system_certs"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/pyqwest/_pyqwest.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\pyqwest\_pyqwest.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/curioswitch/pyqwest
+  repository: https://github.com/curioswitch/pyqwest
+  summary: A modern, high-performance HTTP client for Python and Rust
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - killua156
