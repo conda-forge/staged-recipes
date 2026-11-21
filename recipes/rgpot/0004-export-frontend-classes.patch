@@ -1,0 +1,121 @@
+--- a/CppCore/meson.build
++++ b/CppCore/meson.build
+@@ -231,7 +231,9 @@
+         ['rgpot/rpc/server.cpp'],
+         link_with: [ptlrpc, _linkto],
+         dependencies: _deps + [capnp_rpc_dep, ptlrpc_hdr_dep, vesin_dep] + fortran_rt_deps,
+-        cpp_args: _args,
++        # potserv links the frontend objects, so it calls the symbols
++        # directly instead of the Windows import thunks.
++        cpp_args: _args + ['-DRGPOT_FRONTEND_STATIC'],
+         build_rpath: _metatomic_build_rpath,
+         include_directories: _incdirs,
+         link_language: 'cpp',
+@@ -307,6 +309,8 @@
+     )
+     test_args = _args
+     test_args += ['-DRGPOTTEST']
++    # Frontend tests link the static objects, same as potserv.
++    test_args += ['-DRGPOT_FRONTEND_STATIC']
+     # Client-only builds skip rgpot_core; UnitsTest still needs units.cc.
+     if get_option('with_rpc_client_only')
+         units_for_tests = static_library(
+--- a/CppCore/rgpot/CPMDPot/CPMDPot.hpp
++++ b/CppCore/rgpot/CPMDPot/CPMDPot.hpp
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include "rgpot/Potential.hpp"
++#include "rgpot/frontend_api.hpp"
+ #include "rgpot/rpc/Potentials.capnp.h"
+ 
+ #include <cstdint>
+@@ -14,7 +15,7 @@
+ 
+ namespace rgpot {
+ 
+-class CPMDPot : public Potential<CPMDPot> {
++class RGPOT_FRONTEND_API CPMDPot : public Potential<CPMDPot> {
+ public:
+   CPMDPot();
+   explicit CPMDPot(const ::CPMDParams::Reader &params);
+--- a/CppCore/rgpot/CPMDPot/meson.build
++++ b/CppCore/rgpot/CPMDPot/meson.build
+@@ -20,7 +20,10 @@
+     'cpmdpot',
+     'CPMDPot.cc',
+     dependencies: _deps + [cpmd_dl_dep, ptlrpc_hdr_dep],
+-    cpp_args: _args + cpmd_frontend_cpp_args,
++    # Export from this translation unit only. The dependency's
++    # compile_args stay the feature flag, so a consumer does not
++    # dllexport the class again.
++    cpp_args: _args + cpmd_frontend_cpp_args + ['-DRGPOT_FRONTEND_EXPORT'],
+     include_directories: _incdirs + [cpmd_inc],
+     install: false,
+ )
+--- /dev/null
++++ b/CppCore/rgpot/frontend_api.hpp
+@@ -0,0 +1,19 @@
++#pragma once
++// MIT License
++// Copyright 2023--present rgpot developers
++
++// Package consumers on Windows link the import library. The objects
++// that define these classes are built with RGPOT_FRONTEND_EXPORT.
++// A target that links those objects directly defines
++// RGPOT_FRONTEND_STATIC and calls the symbols rather than import
++// thunks. Other platforms leave the macro empty.
++
++#if defined(_WIN32) && !defined(RGPOT_FRONTEND_STATIC)
++#if defined(RGPOT_FRONTEND_EXPORT)
++#define RGPOT_FRONTEND_API __declspec(dllexport)
++#else
++#define RGPOT_FRONTEND_API __declspec(dllimport)
++#endif
++#else
++#define RGPOT_FRONTEND_API
++#endif
+--- a/CppCore/rgpot/NWChemPot/meson.build
++++ b/CppCore/rgpot/NWChemPot/meson.build
+@@ -24,7 +24,10 @@
+     'nwchempot',
+     'NWChemPot.cc',
+     dependencies: _deps + [nwchem_dl_dep, ptlrpc_hdr_dep],
+-    cpp_args: _args + nwchem_frontend_cpp_args,
++    # Export from this translation unit only. The dependency's
++    # compile_args stay the feature flag, so a consumer does not
++    # dllexport the class again.
++    cpp_args: _args + nwchem_frontend_cpp_args + ['-DRGPOT_FRONTEND_EXPORT'],
+     include_directories: _incdirs + [nwchem_inc],
+     install: false,
+ )
+--- a/CppCore/rgpot/NWChemPot/NWChemPot.hpp
++++ b/CppCore/rgpot/NWChemPot/NWChemPot.hpp
+@@ -11,13 +11,14 @@
+  */
+ 
+ #include "rgpot/Potential.hpp"
++#include "rgpot/frontend_api.hpp"
+ #include "rgpot/rpc/Potentials.capnp.h"
+ 
+ #include <string>
+ 
+ namespace rgpot {
+ 
+-class NWChemPot : public Potential<NWChemPot> {
++class RGPOT_FRONTEND_API NWChemPot : public Potential<NWChemPot> {
+ public:
+   NWChemPot();
+   /** Apply schema defaults, then optional Cap'n Proto NWChemParams. */
+--- a/CppCore/rgpot/SkalaPot/meson.build
++++ b/CppCore/rgpot/SkalaPot/meson.build
+@@ -2,7 +2,8 @@
+     'skala',
+     'SkalaPot.cc',
+     dependencies: _deps,
+-    cpp_args: _args,
++    # Links nwchempot directly, so the header must not say dllimport.
++    cpp_args: _args + ['-DRGPOT_FRONTEND_STATIC'],
+     include_directories: ['../../'],
+     link_with: [nwchempot],
+     pic: true,
