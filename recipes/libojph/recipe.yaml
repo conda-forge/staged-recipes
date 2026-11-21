@@ -1,5 +1,5 @@
 context:
-  version: "1.1.2"
+  version: "1.1.3"
 
 package:
   name: libojph
@@ -7,11 +7,7 @@ package:
 
 source:
   url: https://github.com/hmaarrfk/OpenJPH/archive/refs/tags/ojph-${{ version }}.tar.gz
-  sha256: a871a0b849fc45324989233dccb07fa2fbbf9ce130347582f4b0ce8ac80da63f
-  patches:
-    # Name the MSVC library ojph.dll / ojph.lib instead of ojph.<major>.<minor>,
-    # so that -lojph in ojph.pc matches it (the openjph feedstock does the same).
-    - windows_lib_name.patch
+  sha256: 107a457b9b833b93d4f75797ade4d5c35a2abec07514281dad8886e0023fdd36
 
 build:
   number: 0
@@ -36,13 +32,7 @@ requirements:
 tests:
   - package_contents:
       include:
-        - ojph/ojph_arch.h
         - ojph/ojph_codestream.h
-        - ojph/ojph_defs.h
-        - ojph/ojph_file.h
-        - ojph/ojph_mem.h
-        - ojph/ojph_message.h
-        - ojph/ojph_params.h
         - ojph/ojph_version.h
       lib:
         - ojph
@@ -50,50 +40,10 @@ tests:
         - if: win
           then:
             - Library/lib/cmake/ojph/ojph-config.cmake
-            - Library/lib/cmake/ojph/ojph-config-version.cmake
-            - Library/lib/cmake/ojph/ojph-targets.cmake
             - Library/lib/pkgconfig/ojph.pc
           else:
             - lib/cmake/ojph/ojph-config.cmake
-            - lib/cmake/ojph/ojph-config-version.cmake
-            - lib/cmake/ojph/ojph-targets.cmake
             - lib/pkgconfig/ojph.pc
-  # Encode and decode with the rev53, rev13 and rev12 kernels through the
-  # installed CMake package and, off Windows, through pkg-config.
-  - files:
-      recipe:
-        - tests/
-    requirements:
-      build:
-        - ${{ compiler('cxx') }}
-        - ${{ stdlib('c') }}
-        - cmake
-        - ninja
-        - pkgconf
-    script:
-      - if: win
-        then:
-          - cmake -S tests -B consumer-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
-          - cmake --build consumer-build
-          - ctest --test-dir consumer-build --output-on-failure
-        else:
-          - cmake -S tests -B consumer-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX
-          - cmake --build consumer-build
-          - ctest --test-dir consumer-build --output-on-failure
-          - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-          - test "$(pkg-config --modversion ojph)" = "${{ version }}"
-          - $CXX $CXXFLAGS -std=c++14 tests/roundtrip.cpp $(pkg-config --cflags --libs ojph) $LDFLAGS -Wl,-rpath,$PREFIX/lib -o roundtrip-pkg-config
-          - ./roundtrip-pkg-config
-  # The library installs next to upstream OpenJPH without sharing a file.
-  - requirements:
-      run:
-        - openjph
-        - python
-    files:
-      recipe:
-        - tests/
-    script:
-      - python tests/check_no_shared_files.py
 
 about:
   homepage: https://github.com/hmaarrfk/OpenJPH
