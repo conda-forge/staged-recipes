@@ -1,0 +1,38 @@
+From: conda-forge maintainers
+Subject: cli: ignore an infinite stack hard limit in setrlimits_preexec_fn
+
+Python >= 3.15 reports resource.RLIM_INFINITY as 2**64-1 rather than -1, so
+int(hard_limit / 3) becomes the soft stack limit. glibc sizes every thread
+stack from that limit and semgrep-core's Domain.spawn fails with EAGAIN.
+Only derive soft limit candidates from a finite hard limit.
+
+--- a/cli/src/semgrep/core_runner.py
++++ b/cli/src/semgrep/core_runner.py
+@@ -197,10 +197,6 @@
+ 
+     # Have candidates in case os unable to set certain limit
+     potential_soft_limits = [
+-        int(
+-            hard_limit / 3
+-        ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
+-        int(hard_limit / 4),
+         old_soft_limit * 100,
+         old_soft_limit * 10,
+         old_soft_limit * 5,
+@@ -210,6 +206,16 @@
+         5120000,  # Magic numbers that seems to work for most cases
+         old_soft_limit,
+     ]
++    # Python >= 3.15 reports RLIM_INFINITY as 2**64-1 rather than -1; hard/3 of
++    # that becomes the soft limit and glibc sizes every thread stack from it,
++    # so semgrep-core's Domain.spawn fails with EAGAIN. Only derive from a finite hard limit.
++    if hard_limit != resource.RLIM_INFINITY:
++        potential_soft_limits += [
++            int(
++                hard_limit / 3
++            ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
++            int(hard_limit / 4),
++        ]
+ 
+     # Reverse sort so maximum possible soft limit is set
+     potential_soft_limits.sort(reverse=True)
