@@ -1,0 +1,42 @@
+--- a/scripts/build/compiledDefinesTemplate.hpp.in
++++ b/scripts/build/compiledDefinesTemplate.hpp.in
+@@ -31,7 +31,10 @@
+ #cmakedefine01 OCCA_THREAD_SHARABLE_ENABLED
+ #cmakedefine OCCA_MAX_ARGS @OCCA_MAX_ARGS@
+ 
+-#cmakedefine OCCA_SOURCE_DIR "@OCCA_SOURCE_DIR@"
+-#cmakedefine OCCA_BUILD_DIR "@OCCA_BUILD_DIR@"
++// Default OCCA_DIR / OCCA_INSTALL_DIR to the install prefix rather than the
++// build tree, so the installed library finds include/occa/scripts and its
++// headers without OCCA_DIR being set.
++#define OCCA_SOURCE_DIR "@CMAKE_INSTALL_PREFIX@"
++#define OCCA_BUILD_DIR "@CMAKE_INSTALL_PREFIX@"
+ 
+ #endif
+--- a/src/occa/internal/utils/env.cpp
++++ b/src/occa/internal/utils/env.cpp
+@@ -107,17 +107,18 @@
+ #endif
+ 
+       // OCCA environment variables
++      // Read the default through a volatile pointer so its length is
++      // computed at runtime: package managers such as conda rewrite this
++      // path inside the binary and pad it with NUL bytes.
++      static const char *volatile defaultDir = OCCA_BUILD_DIR;
++
+       OCCA_DIR = env::var("OCCA_DIR");
+       if (OCCA_DIR.size() == 0) {
+-#ifdef OCCA_SOURCE_DIR
+-        OCCA_DIR = OCCA_SOURCE_DIR;
+-#else
+-        OCCA_DIR = OCCA_BUILD_DIR;
+-#endif
++        OCCA_DIR = std::string(defaultDir);
+       }
+       OCCA_INSTALL_DIR = env::var("OCCA_INSTALL_DIR");
+       if (OCCA_INSTALL_DIR.size() == 0) {
+-        OCCA_INSTALL_DIR = OCCA_BUILD_DIR;
++        OCCA_INSTALL_DIR = std::string(defaultDir);
+       }
+       OCCA_COLOR_ENABLED = env::get<bool>("OCCA_COLOR_ENABLED", true);
+ 

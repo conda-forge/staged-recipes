@@ -1,0 +1,93 @@
+# OCCA v2.0.0 does not build against CUDA 13.
+#
+# CUDA 13 changed cuMemAdvise() and cuMemPrefetchAsync() to take a CUmemLocation
+# descriptor instead of a CUdevice (and gave cuMemPrefetchAsync an extra flags
+# argument), so occa/internal/modes/cuda/utils.cpp fails to compile with:
+#
+#   error: could not convert 'cuDevice' from 'CUdevice' to 'CUmemLocation'
+#
+# Upstream OCCA (v2.0.0 and main as of 2026-09) is still unfixed. Without this
+# patch, a machine with a current CUDA toolkit silently ends up with a CPU-only
+# AutoDock build. Apply with: patch -p1 -d <occa-src> < occa_cuda13.patch
+#
+--- a/src/occa/internal/modes/cuda/utils.cpp
++++ b/src/occa/internal/modes/cuda/utils.cpp
+@@ -174,6 +174,48 @@
+       advise(mem, advice, bytes, mem.getDevice());
+     }
+ 
++    // ---[ CUDA 13 compatibility ]------------------------------------------
++    // CUDA 13 replaced the trailing CUdevice argument of cuMemAdvise() and
++    // cuMemPrefetchAsync() with a CUmemLocation descriptor, and gave the latter
++    // an additional flags argument. These wrappers keep a single set of call
++    // sites working against both toolkit generations. Note the directives live
++    // here rather than inside the OCCA_CUDA_ERROR(...) argument lists, since a
++    // preprocessor directive inside a macro invocation is not portable.
++#if CUDA_VERSION >= 13000
++    static CUmemLocation occaCudaMemLocation(CUdevice cuDevice) {
++      CUmemLocation location;
++      if (cuDevice == CU_DEVICE_CPU) {
++        location.type = CU_MEM_LOCATION_TYPE_HOST;
++        location.id   = 0;
++      } else {
++        location.type = CU_MEM_LOCATION_TYPE_DEVICE;
++        location.id   = (int) cuDevice;
++      }
++      return location;
++    }
++
++    static CUresult occaCudaMemAdvise(CUdeviceptr ptr, size_t bytes,
++                                      CUmem_advise advice, CUdevice cuDevice) {
++      return cuMemAdvise(ptr, bytes, advice, occaCudaMemLocation(cuDevice));
++    }
++
++    static CUresult occaCudaMemPrefetchAsync(CUdeviceptr ptr, size_t bytes,
++                                             CUdevice cuDevice, CUstream stream) {
++      return cuMemPrefetchAsync(ptr, bytes, occaCudaMemLocation(cuDevice), 0, stream);
++    }
++#elif CUDA_VERSION >= 8000
++    static CUresult occaCudaMemAdvise(CUdeviceptr ptr, size_t bytes,
++                                      CUmem_advise advice, CUdevice cuDevice) {
++      return cuMemAdvise(ptr, bytes, advice, cuDevice);
++    }
++
++    static CUresult occaCudaMemPrefetchAsync(CUdeviceptr ptr, size_t bytes,
++                                             CUdevice cuDevice, CUstream stream) {
++      return cuMemPrefetchAsync(ptr, bytes, cuDevice, stream);
++    }
++#endif
++    // ----------------------------------------------------------------------
++
+     void advise(occa::memory mem, advice_t advice, occa::device device) {
+       advise(mem, advice, -1, device);
+     }
+@@ -186,10 +228,10 @@
+                            : CU_DEVICE_CPU);
+ 
+       OCCA_CUDA_ERROR("Advising about unified memory",
+-                      cuMemAdvise(((cuda::memory*) mem.getModeMemory())->cuPtr,
+-                                  (size_t) bytes_,
+-                                  advice,
+-                                  cuDevice));
++                      occaCudaMemAdvise(((cuda::memory*) mem.getModeMemory())->cuPtr,
++                                        (size_t) bytes_,
++                                        advice,
++                                        cuDevice));
+ #else
+       OCCA_FORCE_ERROR("CUDA version ["
+                        << cuda::getVersion()
+@@ -216,10 +258,10 @@
+                            : CU_DEVICE_CPU);
+       occa::stream stream = device.getStream();
+       OCCA_CUDA_ERROR("Prefetching unified memory",
+-                      cuMemPrefetchAsync(((cuda::memory*) mem.getModeMemory())->cuPtr,
+-                                         (size_t) bytes_,
+-                                         cuDevice,
+-                                         *((CUstream*) stream.getModeStream())) );
++                      occaCudaMemPrefetchAsync(((cuda::memory*) mem.getModeMemory())->cuPtr,
++                                               (size_t) bytes_,
++                                               cuDevice,
++                                               *((CUstream*) stream.getModeStream())) );
+ #else
+       OCCA_FORCE_ERROR("CUDA version ["
+                        << cuda::getVersion()

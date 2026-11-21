@@ -1,0 +1,129 @@
+schema_version: 1
+
+context:
+  name: occa
+  version: "2.0.0"
+  build_number: 0
+  # CUDA builds get a higher build number so the solver prefers them on machines
+  # with an NVIDIA driver; they require __cuda, so elsewhere the CPU build is used.
+  cuda_build: ${{ (cuda_compiler_version | default("None")) != "None" }}
+  build: ${{ build_number + 200 if cuda_build else build_number }}
+  variant: ${{ "cuda" ~ (cuda_compiler_version | replace(".", "")) if cuda_build else "cpu" }}
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/libocca/occa/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f2521901fed5d199193d54c7db4186479a974bdae92ac97779c47fa2bb68badd
+  patches:
+    # don't abort when no OpenCL driver (ICD) is installed
+    - 0001-opencl-no-platform.patch
+    # find scripts/headers in the install prefix instead of the build tree
+    - 0002-default-dirs-to-install-prefix.patch
+    # CUDA 13 changed the cuMemAdvise/cuMemPrefetchAsync signatures
+    - 0003-cuda13-api.patch
+
+build:
+  number: ${{ build }}
+  string: ${{ variant }}_h${{ hash }}_${{ build }}
+  skip: win
+  dynamic_linking:
+    # libocca links the CUDA driver library directly; it comes with the NVIDIA
+    # driver, not from a conda package
+    missing_dso_allowlist:
+      - if: cuda_build
+        then: "*/libcuda.so*"
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - if: cuda_build
+      then: ${{ compiler('cuda') }}
+  host:
+    - if: osx
+      then: llvm-openmp
+    - if: linux
+      then:
+        - libgomp
+        - ocl-icd
+        - opencl-headers
+    - if: cuda_build
+      then:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-driver-dev
+  run:
+    - if: cuda_build
+      then:
+        - __cuda
+        # The CUDA backend JIT-compiles kernels by running nvcc
+        - cuda-nvcc
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x') }}
+
+tests:
+  - package_contents:
+      include:
+        - occa.h
+        - occa.hpp
+      lib:
+        - occa
+      files:
+        exists:
+          - lib/cmake/OCCA/OCCAConfig.cmake
+        not_exists:
+          - modulefiles/**
+  - files:
+      recipe:
+        - test_occa.cpp
+    requirements:
+      run:
+        # OCCA JIT-compiles kernels at runtime with $OCCA_CXX / $CXX
+        - ${{ compiler('cxx') }}
+        # CPU OpenCL driver, so the OpenCL backend can be exercised
+        - if: linux
+          then: pocl
+        - if: cuda_build
+          then: cuda-driver-dev
+    script:
+      # Without an NVIDIA driver (e.g. on CI), load the stub libcuda so libocca
+      # can be loaded; CUDA mode then reports itself as unavailable.
+      - if: cuda_build
+        then: >-
+          if ! ldconfig -p 2>/dev/null | grep -q 'libcuda\.so\.1 '; then
+          mkdir -p cuda-stub && ln -sf $PREFIX/lib/stubs/libcuda.so cuda-stub/libcuda.so.1 &&
+          export LD_LIBRARY_PATH=$PWD/cuda-stub; fi
+      - occa version
+      - occa info
+      - occa modes
+      - $CXX $CXXFLAGS -I$PREFIX/include test_occa.cpp -o test_occa $LDFLAGS -L$PREFIX/lib -locca
+      - OCCA_CACHE_DIR=$PWD/occa-cache ./test_occa Serial
+      - OCCA_CACHE_DIR=$PWD/occa-cache ./test_occa OpenMP
+      # OCCA requests OpenCL C 2.0 by default, which pocl's CPU device lacks
+      - if: linux
+        then: OCCA_CACHE_DIR=$PWD/occa-cache OCCA_OPENCL_C_VERSION=1.2 ./test_occa OpenCL
+      - if: cuda_build
+        then: if nvidia-smi -L >/dev/null 2>&1; then OCCA_CACHE_DIR=$PWD/occa-cache ./test_occa CUDA; fi
+
+about:
+  homepage: https://libocca.org
+  repository: https://github.com/libocca/occa
+  documentation: https://libocca.org
+  license: MIT
+  license_file: LICENSE
+  summary: Portable and vendor neutral framework for parallel programming on heterogeneous platforms
+  description: |
+    OCCA is a portable, vendor-neutral framework for parallel programming on
+    heterogeneous platforms. Kernels are written once in OKL (a C-like kernel
+    language) and JIT-compiled for the Serial, OpenMP, OpenCL, CUDA, HIP,
+    SYCL/DPC++ and Metal backends.
+
+extra:
+  recipe-maintainers:
+    - diogomart
+    - atillack
