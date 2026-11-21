@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "20231205"
+
+recipe:
+  name: libpff
+  version: ${{ version }}
+
+source:
+  # The libpff-python sdist is the full libpff release tree, including the
+  # pypff bindings and the pfftools.
+  url: https://pypi.org/packages/source/l/libpff-python/libpff-python-${{ version }}.tar.gz
+  sha256: 06c218be51321b16dc3b835185ee1cd2fa5c2a1ca856e0390c1d6e4ddf329250
+  patches:
+    # setup.py compiles libpff and every helper library straight into the
+    # extension, because "pip does not integrate well with the system package
+    # management". Here it does, so link the libpff output instead. Windows
+    # keeps the bundled build until the libpff output supports it.
+    - if: unix
+      then: patches/0001-link-shared-libpff.patch
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: libpff
+    build:
+      # libpff is built with autotools, and on Windows setup.py builds pypff
+      # with MSVC instead, so a shared libpff there needs its own work.
+      skip: win
+      script: build_libpff.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+        - pkg-config
+      host:
+        - zlib
+      run_exports:
+        - ${{ pin_subpackage('libpff', upper_bound='x') }}
+    tests:
+      - package_contents:
+          lib:
+            - pff
+          include:
+            - libpff.h
+          bin:
+            - pffinfo
+            - pffexport
+      - script:
+          - pffinfo -V
+    about:
+      homepage: https://github.com/libyal/libpff
+      license: LGPL-3.0-or-later
+      license_file:
+        - COPYING
+        - COPYING.LESSER
+      summary: Library and tools to access the Personal Folder File (PST/OST) format
+      description: |
+        libpff is a library to access the Personal Folder File (PFF) and
+        Offline Folder File (OFF) formats used by Microsoft Outlook, that is
+        PST, OST and PAB files. Includes the pffinfo and pffexport tools.
+      repository: https://github.com/libyal/libpff
+
+  - package:
+      name: libpff-python
+    build:
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - if: build_platform != target_platform
+          then:
+            - python
+            - cross-python_${{ target_platform }}
+        - if: unix
+          then:
+            - make
+            - pkg-config
+          else:
+            - m2-autoconf
+            - m2-automake-wrapper
+            - m2-libtool
+            - m2-make
+      host:
+        - python
+        - pip
+        - setuptools
+        - wheel
+        - if: unix
+          then: ${{ pin_subpackage('libpff', exact=True) }}
+      run:
+        - python
+        - if: unix
+          then: ${{ pin_subpackage('libpff', exact=True) }}
+    tests:
+      - python:
+          imports:
+            - pypff
+          pip_check: true
+      - script:
+          - python -c "import pypff; v = pypff.get_version(); print('libpff', v); assert v"
+          - python -c "import pypff, pathlib; p = pathlib.Path('not-a-pff.bin'); p.write_bytes(b'not a pff file at all'); assert pypff.check_file_signature(str(p)) is False"
+        requirements:
+          run:
+            - python
+    about:
+      homepage: https://github.com/libyal/libpff
+      license: LGPL-3.0-or-later
+      license_file:
+        - COPYING
+        - COPYING.LESSER
+      summary: Python bindings module (pypff) for libpff
+      repository: https://github.com/libyal/libpff
+
+about:
+  homepage: https://github.com/libyal/libpff
+  license: LGPL-3.0-or-later
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+  summary: Library, tools and Python bindings for the Personal Folder File (PST/OST) format
+  repository: https://github.com/libyal/libpff
+
+extra:
+  feedstock-name: libpff
+  recipe-maintainers:
+    - killua156
