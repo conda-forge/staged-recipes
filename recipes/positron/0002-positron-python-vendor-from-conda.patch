@@ -1,0 +1,96 @@
+--- a/extensions/positron-python/gulpfile.js	2026-10-10 19:19:10.350094895 -0400
++++ b/extensions/positron-python/gulpfile.js	2026-10-10 19:19:10.368094897 -0400
+@@ -304,6 +304,11 @@
+ }
+ 
+ async function installPythonScriptRequirements() {
++    // conda-forge: copy from conda-forge / source-built packages instead of PyPI wheels
++    if (process.env.CONDA_VENDOR_SCRIPT) {
++        await spawnAsync(pythonCommand, [process.env.CONDA_VENDOR_SCRIPT, './requirements.txt', './python_files/lib/python']);
++        return;
++    }
+     await pipInstall(['--target', './python_files/lib/python', '--implementation', 'py', '-r', './requirements.txt']);
+ }
+ 
+@@ -493,7 +498,8 @@
+ gulp.task(
+     'installPythonLibs',
+     // Run in parallel since vendoring rewrites imports which is somewhat CPU-bound.
+-    gulp.parallel(vendorPythonKernelRequirements, gulp.series(installPythonScriptRequirements, bundleIPykernel)),
++    // conda-forge: don't bundle ipykernel (prebuilt binary wheels); use ipykernel from the selected environment
++    gulp.parallel(vendorPythonKernelRequirements, gulp.series(installPythonScriptRequirements)),
+ );
+ 
+ function locatePython() {
+--- a/extensions/positron-python/package.json	2026-10-10 19:19:10.350094895 -0400
++++ b/extensions/positron-python/package.json	2026-10-10 19:19:10.369094897 -0400
+@@ -1268,7 +1268,7 @@
+                     "type": "boolean"
+                 },
+                 "python.useBundledIpykernel": {
+-                    "default": true,
++                    "default": false,
+                     "markdownDescription": "%python.useBundledIpykernel.description%",
+                     "scope": "resource",
+                     "type": "boolean"
+--- a/extensions/positron-python/scripts/vendor.py	2026-10-10 19:19:10.351094895 -0400
++++ b/extensions/positron-python/scripts/vendor.py	2026-10-10 19:19:10.369094897 -0400
+@@ -2,6 +2,7 @@
+ #   Copyright (C) 2024-2025 Posit Software, PBC. All rights reserved.
+ #
+ 
++import os
+ import re
+ import shlex
+ import shutil
+@@ -46,26 +47,30 @@
+                 item.unlink()
+ 
+     print("Download vendored libraries")
+-    # Note that we use flags for secure and reproducible installs, via: https://github.com/brettcannon/pip-secure-install.
+-    run(
+-        [
+-            sys.executable,
+-            "-m",
+-            "pip",
+-            "install",
+-            "-t",
+-            str(destination),
+-            "--no-cache-dir",
+-            "--implementation",
+-            "py",
+-            "--no-deps",
+-            "--require-hashes",
+-            "--only-binary",
+-            ":all:",
+-            "-r",
+-            str(requirements_file),
+-        ],
+-    )
++    if os.environ.get("CONDA_VENDOR_SCRIPT"):
++        # conda-forge: copy from conda-forge / source-built packages instead of PyPI wheels
++        run([sys.executable, os.environ["CONDA_VENDOR_SCRIPT"], str(requirements_file), str(destination)])
++    else:
++        # Note that we use flags for secure and reproducible installs, via: https://github.com/brettcannon/pip-secure-install.
++        run(
++            [
++                sys.executable,
++                "-m",
++                "pip",
++                "install",
++                "-t",
++                str(destination),
++                "--no-cache-dir",
++                "--implementation",
++                "py",
++                "--no-deps",
++                "--require-hashes",
++                "--only-binary",
++                ":all:",
++                "-r",
++                str(requirements_file),
++            ],
++        )
+ 
+     # Detect what got downloaded.
+     vendored_libs = detect_vendored_libs(destination)
