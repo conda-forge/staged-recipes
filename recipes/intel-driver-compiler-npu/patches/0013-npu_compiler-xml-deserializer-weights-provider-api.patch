@@ -1,0 +1,72 @@
+From: hmaarrfk <mark.harfouche@conda-forge.org>
+Subject: npu_compiler: build the XML deserializer against the OpenVINO 2026.4 WeightsProvider API
+
+OpenVINO 2026.4 changed ov::util::XmlDeserializer (src/core/xml_util) to take a
+std::shared_ptr<ov::util::WeightsProvider> instead of a
+std::shared_ptr<ov::AlignedBuffer>, both in its constructor and in the virtual
+make_visitor() hook. npu_ud_2026_38_rc1 was developed against an earlier
+OpenVINO commit and still uses the AlignedBuffer signatures, so
+vpux::XmlDeserializer no longer compiles against the 2026.4 headers:
+
+    error: no matching function for call to
+    'ov::util::XmlDeserializer::XmlDeserializer(const pugi::xml_node&,
+     const std::shared_ptr<ov::AlignedBuffer>&, ...)'
+
+Take a WeightsProvider in the constructor and make_visitor() override, and
+wrap the serialized-model constants buffer in ov::util::BufferWeightsProvider
+at the top-level call. The WeightsPointerAttribute path is unchanged.
+
+diff --git a/src/vpux_compiler/include/vpux/compiler/frontend/xml_deserializer.hpp b/src/vpux_compiler/include/vpux/compiler/frontend/xml_deserializer.hpp
+index 1885fff..6768d5c 100644
+--- a/src/vpux_compiler/include/vpux/compiler/frontend/xml_deserializer.hpp
++++ b/src/vpux_compiler/include/vpux/compiler/frontend/xml_deserializer.hpp
+@@ -47,7 +47,7 @@ std::shared_ptr<ov::Model> deserializeIrModelOptimized(uint8_t* serializedModel,
+  */
+ class XmlDeserializer : public ov::util::XmlDeserializer {
+ public:
+-    XmlDeserializer(const pugi::xml_node& node, const std::shared_ptr<ov::AlignedBuffer>& weights,
++    XmlDeserializer(const pugi::xml_node& node, const std::shared_ptr<ov::util::WeightsProvider>& weights,
+                     const std::unordered_map<std::string, ov::OpSet>& opsets,
+                     const std::unordered_map<ov::DiscreteTypeInfo, ov::BaseOpExtension::Ptr>& extensions,
+                     std::unordered_map<std::string, std::shared_ptr<ov::op::util::Variable>>& variables,
+@@ -71,7 +71,7 @@ public:
+     void set_constant_num_buffer(ov::AttributeAdapter<std::shared_ptr<ov::AlignedBuffer>>& adapter) override;
+ 
+     std::unique_ptr<ov::util::XmlDeserializer> make_visitor(
+-            const pugi::xml_node& node, const std::shared_ptr<ov::AlignedBuffer>& originalWeights,
++            const pugi::xml_node& node, const std::shared_ptr<ov::util::WeightsProvider>& originalWeights,
+             const std::unordered_map<std::string, ov::OpSet>& opsets,
+             const std::unordered_map<ov::DiscreteTypeInfo, ov::BaseOpExtension::Ptr>& extensions,
+             std::unordered_map<std::string, std::shared_ptr<ov::op::util::Variable>>& variables,
+diff --git a/src/vpux_compiler/src/frontend/xml_deserializer.cpp b/src/vpux_compiler/src/frontend/xml_deserializer.cpp
+index 641297a..200a098 100644
+--- a/src/vpux_compiler/src/frontend/xml_deserializer.cpp
++++ b/src/vpux_compiler/src/frontend/xml_deserializer.cpp
+@@ -192,7 +192,8 @@ std::shared_ptr<ov::Model> deserializeIrModelOptimized(uint8_t* serializedModel,
+     std::unordered_map<std::string, std::shared_ptr<ov::op::util::Variable>> variables;
+     size_t version = static_cast<size_t>(ov::util::pugixml::get_uint64_attr(root, "version", 0));
+ 
+-    XmlDeserializer visitor(root, weightsBuffer, opsets, extensionsMap, variables, version);
++    XmlDeserializer visitor(root, std::make_shared<ov::util::BufferWeightsProvider>(weightsBuffer), opsets,
++                            extensionsMap, variables, version);
+     std::shared_ptr<ov::Model> model;
+     visitor.on_attribute("net", model);
+ 
+@@ -205,7 +206,7 @@ std::shared_ptr<ov::Model> deserializeIrModelOptimized(uint8_t* serializedModel,
+     return model;
+ }
+ 
+-XmlDeserializer::XmlDeserializer(const pugi::xml_node& node, const std::shared_ptr<ov::AlignedBuffer>& weights,
++XmlDeserializer::XmlDeserializer(const pugi::xml_node& node, const std::shared_ptr<ov::util::WeightsProvider>& weights,
+                                  const std::unordered_map<std::string, ov::OpSet>& opsets,
+                                  const std::unordered_map<ov::DiscreteTypeInfo, ov::BaseOpExtension::Ptr>& extensions,
+                                  std::unordered_map<std::string, std::shared_ptr<ov::op::util::Variable>>& variables,
+@@ -255,7 +256,7 @@ void XmlDeserializer::set_constant_num_buffer(ov::AttributeAdapter<std::shared_p
+ }
+ 
+ std::unique_ptr<ov::util::XmlDeserializer> XmlDeserializer::make_visitor(
+-        const pugi::xml_node& node, const std::shared_ptr<ov::AlignedBuffer>& originalWeights,
++        const pugi::xml_node& node, const std::shared_ptr<ov::util::WeightsProvider>& originalWeights,
+         const std::unordered_map<std::string, ov::OpSet>& opsets,
+         const std::unordered_map<ov::DiscreteTypeInfo, ov::BaseOpExtension::Ptr>& extensions,
+         std::unordered_map<std::string, std::shared_ptr<ov::op::util::Variable>>& variables, size_t version) const {
