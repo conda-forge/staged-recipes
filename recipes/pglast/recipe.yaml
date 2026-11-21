@@ -1,0 +1,72 @@
+schema_version: 1
+
+context:
+  version: "7.14"
+
+package:
+  name: pglast
+  version: ${{ version }}
+
+source:
+  # Build from the GitHub tag rather than the PyPI sdist: the sdist bundles an
+  # incomplete copy of the libpg_query submodule, and we devendor it anyway
+  # (linking the separate libpg_query package), so the submodule is not needed.
+  # The repo ships pglast/parser.{pyx,c}; parser.c is regenerated from the
+  # patched parser.pyx during the build (see build.sh).
+  url: https://github.com/lelit/pglast/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: c6fa4c2ea2966806bcab5646f1b9f302f4c979c55129d3b7bbe72e08bdbaf746
+  patches:
+    - devendor-libpg_query.patch
+
+build:
+  number: 0
+  # The Windows build uses nmake/Makefile.msvc and is not wired up here yet.
+  skip:
+    - win
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - cython
+    - libpg_query
+    # provides protobuf-c/protobuf-c.h; the protobuf-c symbols themselves are
+    # statically embedded in libpg_query (matching Debian's arrangement).
+    - protobuf-c
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - pglast
+        - pglast.parser
+      pip_check: true
+  - script:
+      # Exercise the compiled parser extension and the CLI entry point.
+      - python -c "from pglast import parse_sql; assert parse_sql('SELECT 1')"
+      - pgpp --help
+
+about:
+  summary: PostgreSQL Languages AST and statements prettifier
+  description: |
+    pglast is a Python library that exposes the real PostgreSQL parser (via
+    libpg_query) as an abstract syntax tree, and can reformat / prettify SQL
+    statements from that tree. It also ships a `pgpp` command line tool.
+  # Upstream ships no license file (the license is only declared in metadata
+  # and source headers), so the canonical GPL-3.0 text is provided alongside
+  # this recipe.
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  homepage: https://github.com/lelit/pglast
+  repository: https://github.com/lelit/pglast
+  documentation: https://pglast.readthedocs.io/
+
+extra:
+  recipe-maintainers:
+    - tdsmith
