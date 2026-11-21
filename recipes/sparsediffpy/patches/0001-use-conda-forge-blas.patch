@@ -1,0 +1,33 @@
+--- a/SparseDiffEngine/CMakeLists.txt
++++ b/SparseDiffEngine/CMakeLists.txt
+@@ -23,7 +23,7 @@
+ 
+ # Warning flags (compiler-specific)
+ if(MSVC)
+-    add_compile_options(/W4 /WX)
++    add_compile_options(/W4)
+ else()
+     add_compile_options(
+         -Wall                  # Enable most warnings
+@@ -59,10 +59,19 @@
+     find_library(ACCELERATE_FRAMEWORK Accelerate)
+     target_link_libraries(dnlp_diff ${ACCELERATE_FRAMEWORK})
+ elseif(MSVC)
+-    find_package(OpenBLAS CONFIG REQUIRED)
+-    target_link_libraries(dnlp_diff OpenBLAS::OpenBLAS)
++    # conda-forge's openblas ships openblas.lib and include/openblas/cblas.h,
++    # but no OpenBLASConfig.cmake
++    find_library(OPENBLAS_LIBRARY NAMES openblas REQUIRED)
++    find_path(OPENBLAS_INCLUDE_DIR cblas.h PATH_SUFFIXES openblas REQUIRED)
++    target_link_libraries(dnlp_diff ${OPENBLAS_LIBRARY})
++    target_include_directories(dnlp_diff PUBLIC ${OPENBLAS_INCLUDE_DIR})
+ else()
+     find_package(BLAS REQUIRED)
++    # conda-forge splits the CBLAS interface into its own libcblas
++    find_library(CBLAS_LIBRARY NAMES cblas)
++    if(CBLAS_LIBRARY)
++        target_link_libraries(dnlp_diff ${CBLAS_LIBRARY})
++    endif()
+     target_link_libraries(dnlp_diff ${BLAS_LIBRARIES})
+ endif()
+ 
