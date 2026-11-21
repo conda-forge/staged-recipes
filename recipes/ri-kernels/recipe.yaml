@@ -1,0 +1,114 @@
+schema_version: 1
+
+context:
+  version: "0.2.1"
+  build: 0
+  # XLA's FFI ABI is backward compatible, so build against the minimum jaxlib
+  # supported upstream and use the same floor at runtime.
+  jaxlib_min: "0.6.0"
+
+package:
+  name: ri-kernels
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/r/ri_kernels/ri_kernels-${{ version }}.tar.gz
+  sha256: 92d4b633c454cec517fd268385d454ef6db1016cb01ead8fcc8a34edaaddb587
+
+build:
+  number: ${{ build if cuda_compiler_version == "None" else build + 200 }}
+  string: ${{ "cpu" if cuda_compiler_version == "None" else "cuda" + (cuda_compiler_version | replace('.', '')) }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build if cuda_compiler_version == "None" else build + 200 }}
+  skip: win or cuda_compiler_version == "13.0"
+  dynamic_linking:
+    # macOS reports the dylib's own LC_ID_DYLIB as a missing dependency.
+    missing_dso_allowlist:
+      - "@rpath/libri_kernels.so"
+  script:
+    env:
+      CMAKE_GENERATOR: Ninja
+      RI_KERNELS_CUDA: ${{ "1" if cuda_compiler_version != "None" else "0" }}
+    content: |
+      # Disable network fetching and locate the target jaxlib when cross compiling.
+      export SKBUILD_CMAKE_DEFINE="RI_KERNELS_BUNDLED_HIGHWAY=OFF;JAXLIB_HOME=${SP_DIR}/jaxlib"
+
+      # Conda supplies cudart as a managed shared runtime dependency.
+      if [ "${RI_KERNELS_CUDA}" = "1" ]; then
+        export SKBUILD_CMAKE_DEFINE="${SKBUILD_CMAKE_DEFINE};RI_KERNELS_STATIC_CUDART=OFF"
+      fi
+
+      # CUDAARCHS is supplied by conda-forge's nvcc activation and includes PTX.
+      if [ -n "${CUDAARCHS:-}" ]; then
+        export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CUDA_ARCHITECTURES=${CUDAARCHS}"
+      fi
+
+      $PYTHON -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - ${{ compiler('cuda') }}
+    - cmake >=3.20
+    - ninja
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10
+    # Header-only build dependency; XLA loads the FFI entry points at runtime.
+    - jaxlib ==${{ jaxlib_min }}
+    - libhwy
+    - if: cuda_compiler_version != "None"
+      then:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+  run:
+    - python
+    - jax >=${{ jaxlib_min }}
+    - if: cuda_compiler_version != "None"
+      then:
+        - __cuda
+        - jaxlib * cuda*
+
+tests:
+  - python:
+      imports:
+        - ri_kernels
+        - ri_kernels.jax_api
+      pip_check: true
+  - script:
+      - pytest -v tests
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://github.com/epfl-radio-astro/ri-kernels
+  repository: https://github.com/epfl-radio-astro/ri-kernels
+  summary: CPU and GPU kernels for radio interferometry, exposed to JAX as FFI custom calls
+  description: |
+    RI Kernels provides CPU and GPU compute kernels for radio interferometry,
+    exposed to JAX as FFI custom calls with full support for automatic
+    differentiation.
+
+    The CPU kernels use Google Highway for portable SIMD with run-time dispatch
+    across instruction sets. The CUDA kernels are built into the same package
+    and are selected automatically when a GPU is present.
+
+    The kernels back the RFI visibility calculations used by TABASCAL, a
+    Bayesian method for removing radio frequency interference from radio
+    interferometric observations.
+  license: GPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - chrisfinlay
