@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "1.3.0"
+
+package:
+  name: bmad-dashboard
+  version: ${{ version }}
+
+source:
+  # Upstream publishes a prebuilt .vsix on each GitHub release. The recipe ships
+  # that bundle plus a thin Python helper; no Node/pnpm build pipeline is needed.
+  - url: https://github.com/elvince/bmad-dashboard-extension/releases/download/v${{ version }}/bmad-dashboard-${{ version }}.vsix
+    sha256: d3d672ef06b750a32146a0f3a0b7792e5d2bcd0fcda0466dfdf2b355d448f140
+    file_name: bmad-dashboard-${{ version }}.vsix
+  - url: https://raw.githubusercontent.com/elvince/bmad-dashboard-extension/v${{ version }}/LICENSE.md
+    sha256: 96e35770682129aa4dde4cf6f9ffe894df726fde61fb2dc6bf1a0902a5e9da83
+    file_name: LICENSE.md
+
+build:
+  number: 0
+  # Each platform builds its own native CLI wrapper (build.sh on Unix,
+  # build.bat on Windows). The .vsix payload is identical across platforms;
+  # only the entry-point wrapper differs, so per-platform builds are cheaper
+  # than reproducing both wrappers under noarch.
+  script:
+    file: build
+
+requirements:
+  run:
+    # Unversioned per the linter rule for non-noarch packages — the conda-forge
+    # pinning system handles ABI compatibility. The installer script uses only
+    # stdlib (argparse, glob, shutil, subprocess), so any modern python works.
+    - python
+
+tests:
+  - package_contents:
+      files:
+        - share/bmad-dashboard/bmad-dashboard-${{ version }}.vsix
+        - share/bmad-dashboard/LICENSE.md
+  - script:
+      # Resolves to bin/bmad-dashboard-install on Unix and
+      # Scripts/bmad-dashboard-install.bat on Windows via PATH.
+      - bmad-dashboard-install --help
+
+about:
+  homepage: https://github.com/elvince/bmad-dashboard-extension
+  repository: https://github.com/elvince/bmad-dashboard-extension
+  license: MIT
+  license_file: LICENSE.md
+  summary: BMAD Dashboard VS Code extension (.vsix bundle + install helper)
+  description: |
+    bmad-dashboard ships the BMAD Dashboard VS Code extension as an installable
+    .vsix bundle along with a `bmad-dashboard-install` helper that runs
+    `code --install-extension` against an installed VS Code (or any compatible
+    editor exposing the `code` CLI, e.g. VS Code Insiders, VSCodium, Cursor).
+
+    The dashboard auto-activates in workspaces containing a `_bmad/` directory
+    and provides a sidebar view with sprint progress, epic/story navigation,
+    and next-action recommendations driven by BMAD V6 workflow artifacts.
+
+    conda-forge does not ship VS Code, so `vscode` is not in `requirements.run`.
+    Users must install VS Code separately and ensure the `code` CLI is on PATH
+    before running `bmad-dashboard-install`.
+
+extra:
+  recipe-maintainers:
+    - rxm7706
