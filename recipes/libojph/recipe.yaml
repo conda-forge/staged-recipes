@@ -1,0 +1,67 @@
+context:
+  version: "1.1.3"
+
+package:
+  name: libojph
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hmaarrfk/OpenJPH/archive/refs/tags/ojph-${{ version }}.tar.gz
+  sha256: 107a457b9b833b93d4f75797ade4d5c35a2abec07514281dad8886e0023fdd36
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    # The Highway kernels are x86-only; other architectures build the generic
+    # kernels and do not link libhwy.
+    - if: x86_64
+      then: libhwy
+  run_exports:
+    - ${{ pin_subpackage('libojph', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - ojph/ojph_codestream.h
+        - ojph/ojph_version.h
+      lib:
+        - ojph
+      files:
+        - if: win
+          then:
+            - Library/lib/cmake/ojph/ojph-config.cmake
+            - Library/lib/pkgconfig/ojph.pc
+          else:
+            - lib/cmake/ojph/ojph-config.cmake
+            - lib/pkgconfig/ojph.pc
+
+about:
+  homepage: https://github.com/hmaarrfk/OpenJPH
+  repository: https://github.com/hmaarrfk/OpenJPH
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: A fork of OpenJPH (HTJ2K / JPEG 2000) with the rev12 and rev13 reversible kernels, co-installable with OpenJPH.
+  description: |
+    libojph is a C++ JPEG 2000 / High-Throughput JPEG 2000 (HTJ2K) codec built
+    from a fork of OpenJPH. Besides the 5/3 and 9/7 wavelet kernels, it
+    encodes and decodes the reversible predict-only kernels rev13 and rev12
+    (JPEG 2000 Part 2, signalled with ATK markers), so that decoding with r
+    skipped resolutions returns exactly image[::2**r, ::2**r]. On x86-64 it
+    dispatches at run time to Google Highway SIMD kernels.
+
+    Its files (libojph, include/ojph, lib/cmake/ojph, ojph.pc) do not overlap
+    with the openjph package, so both can be installed in one environment.
+    Use it from CMake with find_package(ojph CONFIG REQUIRED) and the target
+    ojph::ojph, or with pkg-config's ojph module.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
