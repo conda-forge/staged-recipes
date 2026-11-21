@@ -1,0 +1,93 @@
+context:
+  name: trnsci
+  version: "0.2.0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: d2774e8fec93df1cb2a94051c61d39bb09474f95a111a579b41e74736ed7278d
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+    - setuptools-scm >=8.0
+  # PyPI's trnsci puts the six libraries behind extras; conda has no
+  # extras, so this package is the PyPI `trnsci[all]`. The minimums match
+  # the `[all]` extra in pyproject.toml (scripts/check_docs_drift.py checks).
+  run:
+    - python >=${{ python_min }}
+    - trnblas >=0.12.1
+    - trnfft >=0.29.0
+    - trnrand >=0.14.0
+    - trnsolver >=0.22.1
+    - trnsparse >=0.15.0
+    - trntensor >=0.25.1
+
+tests:
+  # The meta-package installs no module of its own (py-modules = []);
+  # import the six libraries it pulls in and check its metadata.
+  - python:
+      imports:
+        - trnblas
+        - trnfft
+        - trnrand
+        - trnsolver
+        - trnsparse
+        - trntensor
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - python -c "import importlib.metadata as m; assert m.version('trnsci') == '${{ version }}'"
+
+about:
+  homepage: https://trnsci.dev/
+  summary: Scientific computing suite for AWS Trainium via NKI — installs all six libraries
+  description: |
+    `trnsci` is a meta-package that installs all six scientific-computing
+    libraries in the `trnsci` suite for AWS Trainium:
+
+      - trnfft    (cuFFT-equivalent)
+      - trnblas   (cuBLAS-equivalent)
+      - trnrand   (cuRAND-equivalent)
+      - trnsolver (cuSOLVER-equivalent)
+      - trnsparse (cuSPARSE-equivalent)
+      - trntensor (cuTENSOR-equivalent)
+
+    `conda install trnsci` gives the full suite; each library is also a
+    separate conda-forge package for installing on its own. `trnsci` itself
+    has no runtime code. It is the conda equivalent of the PyPI
+    `trnsci[all]`, since conda has no extras.
+
+    NKI acceleration depends on AWS's `neuronxcc` and `torch-neuronx`
+    packages, which are not distributed via conda-forge. Those install
+    separately from AWS's pip index on Neuron hardware. The PyTorch
+    fallback in every `trnsci` library works on any platform without
+    the Neuron runtime.
+
+    trnsci is an independent open-source project — not sponsored by, endorsed
+    by, or affiliated with Amazon, AWS, or Annapurna Labs. "Trainium",
+    "Neuron", and related names are trademarks of their respective owners.
+    See the project README for the full disclaimer.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/trnsci/trnsci
+  documentation: https://trnsci.dev/
+
+extra:
+  recipe-maintainers:
+    - scttfrdmn
