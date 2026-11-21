@@ -1,0 +1,791 @@
+Description: Make the build configurable instead of hardcoded
+ Lets CC, CFLAGS, LDFLAGS, BLAS_LIBS, OpenMP flags, prefix and DESTDIR be
+ set from the make command line, drops -march=native, -Ofast and -static,
+ pins -std=gnu99, installs the library, headers and a pkg-config file, and
+ optionally (SHARED=yes) builds a shared library.
+Forwarded: https://github.com/coin-or/Csdp/pull/22
+
+diff --git a/INSTALL b/INSTALL
+index de8dfe4..d030205 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -69,9 +69,9 @@ for the most recent stable release of CSDP from the project web site.
+ INSTALLING CSDP:
+ 
+ The following instructions assume that you're using a Linux system
+-with gcc, gfortran, LAPACK, and BLAS installed.  The make files will
+-have to be altered for other systems, but the basic process of
+-building the software will be similar.
++with gcc, gfortran, LAPACK, and BLAS installed.  Other systems are
++configured with the variables described below rather than by editing
++the make files.  GNU make is required.
+ 
+ After you've downloaded the source code, unpack the tar archive if you
+ downloaded a .tar archive of CSDP, and then go into the csdp
+@@ -81,38 +81,87 @@ solver, an example program that computes the Lovasz theta number of
+ a graph, and a small example program showing how to call CSDP.  There
+ are Makefiles within these subdirectories.
+ 
+-There are two lines in the top level Makefile that will likely need to
+-be edited:
+-
+-1. CFLAGS.  The CFLAGS variable specifies command line arguments to the
+-C compiler.  The default value of CFLAGS is appropriate for 64 bit Linux
+-systems using the gcc compiler.  It is:
+-
+-CFLAGS=-m64 -march=native -mtune=native -Ofast, -fopenmp -ansi -Wall -DBIT64
+-       -DUSEOPENMP -DSETNUMTHREADS -DUSESIGTERM -DUSEGETTIME -I../include
+-
+-The flags -m64 through -fopenmp tell gcc to produce optimized 64 bit
+-multithreaded code using the OpenMP features.  The flags -ansi and -Wall
+-tell gcc to produce warnings for any code that vioates the ANSI C standard.
+-The -D... flags specify options within the code as described below.
+-The -I../include flag specifies the location of CSDP's .h files.
+-
+-The -D flags that are recommended for CSDP on 64 bit Linux are
+-
+--DBIT64              Used on 64 bit systems
+--DUSEOPENMP          Used to build a parallel threaded version of CSDP
+--DSETNUMTHREADS      Use OpenMP to set the number of threads to use.
++The default settings should work as they stand on a Linux system with the
++reference BLAS and LAPACK installed.  If you need to change something, you
++do not have to edit any of the Makefiles: every setting lives in
++Makefile.inc and may be overridden either in the environment or on the make
++command line.  For example,
++
++> make CC=clang CFLAGS="-O3 -g" BLAS_LIBS="-lopenblas"
++
++The variables you are most likely to want are:
++
++CC              The C compiler.  Default: cc
++CFLAGS          Optimization and warning flags.  Default: -O2 -Wall.  Note
++                that CSDP is a numerical code, so -Ofast is not recommended.
++CPPFLAGS        Additional preprocessor flags.
++LDFLAGS         Additional linker flags.
++BLAS_LIBS       The BLAS and LAPACK libraries, plus any Fortran run time
++                library they need.  Default: -llapack -lblas
++LIBS            Anything else to link against.  Additive; no default.
++OPENMP_CFLAGS   The flag that enables OpenMP.  Default: -fopenmp
++OPENMP_LIBS     The corresponding link flag.  Default: empty
++SHARED          Set to yes to build a shared library alongside libsdp.a.
++                The programs then link against it.  Default: no
++prefix          Installation prefix.  Default: /usr/local
++exec_prefix     Default: $(prefix)
++bindir          Where the programs are installed.  Default: $(exec_prefix)/bin
++libdir          Where the library is installed.  Default: $(exec_prefix)/lib
++includedir      Where the headers are installed, in a csdp subdirectory.
++                Default: $(prefix)/include
++pkgconfigdir    Where csdp.pc is installed.  Default: $(libdir)/pkgconfig
++DESTDIR         Staging directory prepended to the install paths.
++INSTALL         The install(1) program.  Default: install
++INSTALL_PROGRAM The command used to install the programs.
++                Default: $(INSTALL) -m 755
++INSTALL_DATA    The command used to install everything else.
++                Default: $(INSTALL) -m 644
++TOOL_PREFIX     A prefix for the installed names of theta, complement,
++                graphtoprob and rand_graph, whose names are rather generic.
++                TOOL_PREFIX=csdp- installs them as csdp-theta and so on.
++                The solver itself is always installed as csdp.
++
++With OpenBLAS, which supplies both BLAS and LAPACK:
++
++> make BLAS_LIBS="-L/opt/OpenBLAS/lib -lopenblas"
++
++On macOS, with Accelerate and Homebrew's libomp:
++
++> make BLAS_LIBS="-framework Accelerate" \
++    OPENMP_CFLAGS="-Xpreprocessor -fopenmp -I$(brew --prefix libomp)/include" \
++    OPENMP_LIBS="-L$(brew --prefix libomp)/lib -lomp"
++
++Without OpenMP at all:
++
++> make OPENMP_CFLAGS=
++
++CSDP's own required flags are kept in CSDP_CPPFLAGS, CSDP_CFLAGS and
++CSDP_LIBS, which are separate from CPPFLAGS, CFLAGS and LIBS precisely so
++that setting the latter cannot accidentally drop them.  CSDP_LIBS is just
++CSDP's own library, so BLAS_LIBS and LIBS only ever need the external ones.
++CSDP_CPPFLAGS holds the feature macros:
++
++-DBIT64              Use long int for array indexing, which raises the limit
++                     on the number of constraints from 23169.
+ -DUSESIGTERM         Terminate CSDP nicely after SIGTERM or other signals
+--DUSEGETTIME         Use ANSI C gettime() to get wall clock running time.
++-DUSEGETTIME         Use gettimeofday() to get wall clock running time
++-DUSEOPENMP          Build a parallel threaded version of CSDP
++-DSETNUMTHREADS      Use OpenMP to set the number of threads to use
+ 
+-For Windows 64 bit systems using the mingw64 compiler, recommended CFLAGS
+-are:
++All of these are set automatically, since getting them wrong is worse than
++not having them:
+ 
+-CFLAGS=-m64 -march=native -mtune=native -Ofast, -fopenmp -ansi -Wall -DBIT64
+-       -DUSEOPENMP -DSETNUMTHREADS -DUSEGETTIME -I../include
++  BIT64 also turns off the check in read_prob() that rejects problems too
++  large for 32 bit indexing, so it is set only where long is 64 bits wide.
++  That excludes 32 bit targets, and Windows, where long is 32 bits even on
++  64 bit builds.
+ 
+-The only difference here is that -DUSESIGTERM is left out because Windows
+-doesn't support Linux/unix signals.
++  USESIGTERM needs setrlimit() and USEGETTIME needs gettimeofday(), so they
++  are set only where <sys/resource.h> and <sys/time.h> exist.  Windows has
++  neither in a plain MSVC build, though mingw does supply <sys/time.h>.
++
++  USEOPENMP and SETNUMTHREADS include <omp.h> and call the OpenMP runtime,
++  so they are set only when OPENMP_CFLAGS is non-empty.
+ 
+ There are some flags that may rarely be useful on other systems:
+ 
+@@ -122,34 +171,7 @@ There are some flags that may rarely be useful on other systems:
+ -DNOUNDERLAPACK      if LAPACK routine names have no underscore
+ -DHIDDENSTRLEN       if Fortran string lengths are hidden arguments
+ 
+-2. LIBS.  The LIBS= line of the Makefile specifies the location of the
+-CSDP library and the BLAS and LAPACK libraries.  The distributed version
+-of the Makefile has values suitable for a 64 bit Linux system with BLAS
+-and LAPACK installed in the system library directories:
+-
+-LIBS=-static -L../lib -lsdp -llapack -lblas -lm
+-
+--static               produce a statically linked executable
+--L../lib -lsdp        libsdp.a is in the lib subdirectory
+--llapack -lblas       LAPACK and BLAS libraries
+--lm                   C standard math library
+-
+-In many cases it will be necessary to add the Fortran run time library:
+-
+--lgfortran
+-
+-The LIBS variable will also have to be edited if your LAPACK and BLAS libraries
+-are not in the standard location or have different names.
+-
+-For example, on my system, the OpenBLAS library is located in
+-/opt/OpenBLAS/lib/libopenblas.a.  This OpenBLAS library contains both
+-LAPACK and BLAS routines, so I don't need to specify a spearate LAPACK
+-library.  Thus I use the flags:
+-
+-LIBS=-static -L../lib -L/opt/OpenBLAS/lib -lopenblas -lm
+-
+-Once you've set the LIBS and CFLAGS variables in the top level Makefile,
+-issue the command
++Then issue the command
+  
+ > make
+  
+@@ -192,11 +214,24 @@ command
+ 
+ > make install
+ 
+-This will copy csdp, rand_graph, complement, theta, and graphtoprob
+-into the /usr/local/bin directory.  If you use the C shell, remember
++This will copy csdp, rand_graph, complement, theta, and graphtoprob into
++the /usr/local/bin directory, libsdp.a into /usr/local/lib, the headers
++into /usr/local/include/csdp, and a pkg-config file into
++/usr/local/lib/pkgconfig.  With SHARED=yes the shared library is installed
++as well.  Code using CSDP can then be built with either
++
++> cc `pkg-config --cflags csdp` prog.c `pkg-config --libs csdp`
++
++and either #include <csdp/declarations.h> or #include "declarations.h".  If you use the C shell, remember
+ to "rehash" so that the shell will know that these programs have been
+ added to the /usr/local/bin directory.
+ 
++To install somewhere else, set prefix, and to install into a staging
++directory rather than onto the live system, set DESTDIR:
++
++> make install prefix=/opt/csdp
++> make install DESTDIR=/tmp/stage prefix=/usr
++
+ The matlab directory contains .m files that provide a matlab interface
+ to CSDP solver. To install these .m files they must be added to your
+ matlab path.  This requires use of the path(...) command in
+diff --git a/Makefile b/Makefile
+index 3430806..3826eae 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,60 +5,77 @@
+ # rebuild the system with "make clean" followed by "make all".
+ #
+ #
+-# You can change the C compiler by setting CC=...
+-#
+-# CC=gcc
+-#
+-# CFLAGS settings for 64 bit Linux/unix systems.
+-#
+-export CFLAGS=-m64 -march=native -mtune=native -Ofast -fopenmp -ansi -Wall -DBIT64 -DUSEOPENMP -DSETNUMTHREADS -DUSESIGTERM -DUSEGETTIME -I../include
+-#
+-# LIBS settings for 64 bit Linux/unix systems.
+-#
+-export LIBS=-static -L../lib -lsdp -llapack -lblas -lm
++# Build settings are in Makefile.inc.  Every variable there can be set in the
++# environment or on the make command line; see INSTALL.
+ #
++include Makefile.inc
++
++.PHONY: all clean install unitTest
++
+ #
+ # On most systems, this should handle everything.
+ #
+ all:
+-	cd lib; make libsdp.a
+-	cd solver; make csdp
+-	cd theta; make all
+-	cd example; make all
++	$(MAKE) -C lib all
++	$(MAKE) -C solver all
++	$(MAKE) -C theta all
++	$(MAKE) -C example all
+ 
+ #
+ # Perform a unitTest
+ #
+ 
+-unitTest:
+-	cd test; make all
++unitTest: all
++	$(MAKE) -C test all
+ 
+-#
+-# Install the executables in /usr/local/bin.
+-#
++csdp.pc: csdp.pc.in
++	sed -e 's|@prefix@|$(prefix)|' -e 's|@exec_prefix@|$(exec_prefix)|' \
++	    -e 's|@libdir@|$(libdir)|' -e 's|@includedir@|$(includedir)|' \
++	    -e 's|@VERSION@|$(CSDP_VERSION)|' -e 's|@BLAS_LIBS@|$(BLAS_LIBS)|' \
++	    -e 's|@LIBS@|$(LIBS)|' -e 's|@OPENMP_LIBS@|$(OPENMP_LIBS)|' \
++	    -e 's|@PC_CPPFLAGS@|$(CSDP_PC_CPPFLAGS)|' \
++	    csdp.pc.in > $@
+ 
+-install:
+-	cp -f solver/csdp /usr/local/bin
+-	cp -f theta/theta /usr/local/bin
+-	cp -f theta/graphtoprob /usr/local/bin
+-	cp -f theta/complement /usr/local/bin
+-	cp -f theta/rand_graph /usr/local/bin
++#
++# Install the executables in $(bindir), and the library, headers and
++# pkg-config file under $(libdir) and $(includedir).  install is among the
++# .PHONY targets above so that the INSTALL file does not satisfy it on case
++# insensitive filesystems.
++#
++install: all csdp.pc
++	$(INSTALL) -d "$(DESTDIR)$(bindir)"
++	$(INSTALL_PROGRAM) solver/csdp "$(DESTDIR)$(bindir)/csdp"
++	$(INSTALL_PROGRAM) theta/theta "$(DESTDIR)$(bindir)/$(TOOL_PREFIX)theta"
++	$(INSTALL_PROGRAM) theta/graphtoprob "$(DESTDIR)$(bindir)/$(TOOL_PREFIX)graphtoprob"
++	$(INSTALL_PROGRAM) theta/complement "$(DESTDIR)$(bindir)/$(TOOL_PREFIX)complement"
++	$(INSTALL_PROGRAM) theta/rand_graph "$(DESTDIR)$(bindir)/$(TOOL_PREFIX)rand_graph"
++	$(INSTALL) -d "$(DESTDIR)$(libdir)"
++	$(INSTALL_DATA) lib/libsdp.a "$(DESTDIR)$(libdir)/libsdp.a"
++ifeq ($(SHARED),yes)
++ifeq ($(CSDP_IMPLIB),)
++	$(INSTALL_PROGRAM) lib/$(CSDP_SHLIB) "$(DESTDIR)$(libdir)/$(CSDP_SHLIB)"
++	ln -sf $(CSDP_SHLIB) "$(DESTDIR)$(libdir)/$(CSDP_SONAME)"
++	ln -sf $(CSDP_SHLIB) "$(DESTDIR)$(libdir)/$(CSDP_SHLIB_DEV)"
++else
++	$(INSTALL_PROGRAM) lib/$(CSDP_SHLIB) "$(DESTDIR)$(bindir)/$(CSDP_SHLIB)"
++	$(INSTALL_DATA) lib/$(CSDP_IMPLIB) "$(DESTDIR)$(libdir)/$(CSDP_IMPLIB)"
++endif
++endif
++	$(INSTALL) -d "$(DESTDIR)$(includedir)/csdp"
++	for h in include/*.h; do \
++	  $(INSTALL_DATA) $$h "$(DESTDIR)$(includedir)/csdp" || exit 1; \
++	done
++	$(INSTALL) -d "$(DESTDIR)$(pkgconfigdir)"
++	$(INSTALL_DATA) csdp.pc "$(DESTDIR)$(pkgconfigdir)/csdp.pc"
+ 
+ #
+ # Clean out all of the directories.
+ # 
+ 
+ clean:
+-	cd lib; make clean
+-	cd solver; make clean
+-	cd theta; make clean
+-	cd test; make clean
+-	cd example; make clean
+-
+-
+-
+-
+-
+-
+-
+-
++	rm -f csdp.pc
++	$(MAKE) -C lib clean
++	$(MAKE) -C solver clean
++	$(MAKE) -C theta clean
++	$(MAKE) -C test clean
++	$(MAKE) -C example clean
+diff --git a/Makefile.inc b/Makefile.inc
+new file mode 100644
+index 0000000..f47da7f
+--- /dev/null
++++ b/Makefile.inc
+@@ -0,0 +1,168 @@
++#
++# Build settings shared by the subdirectory Makefiles.  Every variable here
++# can be set in the environment or on the make command line, for example
++#
++#	make CC=clang CFLAGS="-O3 -g" BLAS_LIBS="-lopenblas"
++#
++# GNU make is required.  See INSTALL for the full list of variables.
++#
++# CSDP_CPPFLAGS and CSDP_CFLAGS hold the flags the build itself requires.
++# They are kept separate from CPPFLAGS and CFLAGS so that setting the latter
++# cannot silently drop -I../include or the feature macros.
++#
++
++CC ?= cc
++INSTALL ?= install
++INSTALL_PROGRAM ?= $(INSTALL) -m 755
++INSTALL_DATA ?= $(INSTALL) -m 644
++
++# theta, complement, graphtoprob and rand_graph have rather generic names, so
++# distributors may want to install them under a prefix, e.g. TOOL_PREFIX=csdp-
++TOOL_PREFIX ?=
++
++prefix ?= /usr/local
++exec_prefix ?= $(prefix)
++bindir ?= $(exec_prefix)/bin
++libdir ?= $(exec_prefix)/lib
++includedir ?= $(prefix)/include
++pkgconfigdir ?= $(libdir)/pkgconfig
++
++CFLAGS ?= -O2 -Wall
++
++# Set OPENMP_CFLAGS to nothing to build CSDP without OpenMP.
++OPENMP_CFLAGS ?= -fopenmp
++OPENMP_LIBS ?=
++
++# The BLAS and LAPACK libraries, plus any Fortran run time library they need.
++# On macOS this is "-framework Accelerate".
++BLAS_LIBS ?= -llapack -lblas
++
++# LIBS is anything else to link against.  It is deliberately additive and has
++# no default, so that a build system which exports an empty LIBS -- FreeBSD's
++# bsd.port.mk does -- cannot knock out the BLAS.
++
++# Where the top of the tree is, relative to whichever makefile included this
++# one: "./" at the top level, "../" from a subdirectory, and so on.  Spelling
++# the paths this way rather than hardcoding ../ keeps them right whatever the
++# depth, and keeps them relative, which -I and -L in a reproducible build want
++# to be.
++CSDP_TOP := $(dir $(lastword $(MAKEFILE_LIST)))
++
++CSDP_CPPFLAGS = -I$(CSDP_TOP)include
++CSDP_CFLAGS = -std=gnu99
++# The build's own -L has to precede the user's LDFLAGS, for the same reason
++# CSDP_CPPFLAGS precedes CPPFLAGS: -L is searched in command line order, so a
++# -L naming a directory that already holds an installed libsdp would otherwise
++# win over the one just built here.
++CSDP_LDFLAGS = -L$(CSDP_TOP)lib
++CSDP_LIBS = -lsdp
++
++# The probes below have to see the same compiler and flags as the build, or
++# they will answer for the wrong target: a packager who selects 32 bit with
++# CFLAGS=-m32 rather than CC="gcc -m32" would otherwise get -DBIT64.
++CSDP_PROBE = $(CC) $(CPPFLAGS) $(CFLAGS)
++
++# Set SHARED=yes to build a shared library alongside libsdp.a.  The programs
++# then link against it, since -lsdp prefers the shared library when both are
++# present.
++SHARED ?= no
++
++# CSDP_VERSION is the release, and is what goes in csdp.pc.
++CSDP_VERSION = 6.2.0
++
++ifeq ($(SHARED),yes)
++
++# The shared library is versioned independently of the release, because its
++# ABI has nothing to do with the release number.  These are libtool's
++# -version-info numbers, and the rules for bumping them are libtool's:
++#
++#	if the code changed at all                       revision + 1
++#	if any interface was added, removed or changed   current + 1, revision 0
++#	if any interface was added and none removed
++#	  or changed                                     age + 1
++#	if any interface was removed or changed          age 0
++#
++CSDP_CURRENT = 0
++CSDP_REVISION = 0
++CSDP_AGE = 0
++
++# As libtool names them: the soname is libsdp.so.(current - age), and the file
++# it points at is libsdp.so.(current - age).(age).(revision).
++CSDP_SOVERSION := $(shell expr $(CSDP_CURRENT) - $(CSDP_AGE))
++CSDP_LIBVERSION := $(CSDP_SOVERSION).$(CSDP_AGE).$(CSDP_REVISION)
++
++# Ask the compiler what it is targeting rather than asking uname what we are
++# running on, so that this is right when cross compiling.
++CSDP_TARGET_MACROS := $(shell : | $(CSDP_PROBE) -dM -E - 2>/dev/null)
++
++ifneq ($(findstring __APPLE__,$(CSDP_TARGET_MACROS)),)
++CSDP_CFLAGS += -fPIC
++CSDP_SHLIB = libsdp.$(CSDP_LIBVERSION).dylib
++CSDP_SONAME = libsdp.$(CSDP_SOVERSION).dylib
++CSDP_SHLIB_DEV = libsdp.dylib
++# Darwin's ld does not accept 0 for these, so libtool passes current + 1.
++CSDP_COMPAT_VERSION := $(shell expr $(CSDP_CURRENT) + 1)
++CSDP_SHLIB_FLAGS = -dynamiclib -install_name $(libdir)/$(CSDP_SONAME) \
++	-compatibility_version $(CSDP_COMPAT_VERSION) \
++	-current_version $(CSDP_COMPAT_VERSION).$(CSDP_REVISION)
++CSDP_SHLIB_LINKS = ln -sf $(CSDP_SHLIB) $(CSDP_SONAME) && \
++	ln -sf $(CSDP_SHLIB) $(CSDP_SHLIB_DEV)
++
++else ifneq ($(findstring _WIN32,$(CSDP_TARGET_MACROS)),)
++# Windows has no sonames and no symlinks.  The DLL is named for its ABI
++# version and belongs next to the programs; what goes in $(libdir) is the
++# import library.  Code is always position independent, so -fPIC is not used.
++CSDP_SHLIB = libsdp-$(CSDP_SOVERSION).dll
++CSDP_IMPLIB = libsdp.dll.a
++CSDP_SHLIB_FLAGS = -shared -Wl,--out-implib,$(CSDP_IMPLIB)
++CSDP_SHLIB_LINKS = :
++
++else
++CSDP_CFLAGS += -fPIC
++CSDP_SHLIB = libsdp.so.$(CSDP_LIBVERSION)
++CSDP_SONAME = libsdp.so.$(CSDP_SOVERSION)
++CSDP_SHLIB_DEV = libsdp.so
++CSDP_SHLIB_FLAGS = -shared -Wl,-soname,$(CSDP_SONAME)
++CSDP_SHLIB_LINKS = ln -sf $(CSDP_SHLIB) $(CSDP_SONAME) && \
++	ln -sf $(CSDP_SHLIB) $(CSDP_SHLIB_DEV)
++endif
++
++endif
++
++# Both of these are POSIX interfaces that Windows lacks: USESIGTERM needs
++# setrlimit(), and USEGETTIME needs gettimeofday().  Probe with -include
++# rather than a here-doc, so that these lines contain no "#", which make 3.81
++# would take as the start of a comment.
++ifneq ($(shell : | $(CSDP_PROBE) -E -include sys/resource.h - >/dev/null 2>&1 && echo yes),)
++CSDP_CPPFLAGS += -DUSESIGTERM
++endif
++
++ifneq ($(shell : | $(CSDP_PROBE) -E -include sys/time.h - >/dev/null 2>&1 && echo yes),)
++CSDP_CPPFLAGS += -DUSEGETTIME
++endif
++
++LONG_BYTES := $(shell echo csdp_long __SIZEOF_LONG__ | $(CSDP_PROBE) -E -P - \
++	2>/dev/null | sed -n '/csdp_long/s/[^0-9]//gp')
++ifeq ($(LONG_BYTES),8)
++CSDP_CPPFLAGS += -DBIT64
++endif
++
++# BIT64 switches the indexing macros in index.h, which is an installed header,
++# so a consumer has to be given it too: its ijtok() must do the same arithmetic
++# as the library's did.  The other feature macros appear only in the .c files,
++# so they stay private.
++CSDP_PC_CPPFLAGS = $(filter -DBIT64,$(CSDP_CPPFLAGS))
++
++# USEOPENMP includes <omp.h> and calls the OpenMP runtime, so define it only
++# when we are actually compiling with OpenMP.
++ifneq ($(strip $(OPENMP_CFLAGS)),)
++CSDP_CPPFLAGS += -DUSEOPENMP -DSETNUMTHREADS
++endif
++
++CSDP_COMPILE = $(CC) $(CSDP_CPPFLAGS) $(CPPFLAGS) $(CSDP_CFLAGS) \
++	$(OPENMP_CFLAGS) $(CFLAGS)
++CSDP_LINK = $(CC) $(CSDP_CFLAGS) $(OPENMP_CFLAGS) $(CFLAGS) \
++	$(CSDP_LDFLAGS) $(LDFLAGS)
++
++%.o: %.c
++	$(CSDP_COMPILE) -c $< -o $@
+diff --git a/csdp.pc.in b/csdp.pc.in
+new file mode 100644
+index 0000000..5336658
+--- /dev/null
++++ b/csdp.pc.in
+@@ -0,0 +1,11 @@
++prefix=@prefix@
++exec_prefix=@exec_prefix@
++libdir=@libdir@
++includedir=@includedir@
++
++Name: CSDP
++Description: A library for semidefinite programming
++Version: @VERSION@
++Cflags: -I${includedir}/csdp -I${includedir} @PC_CPPFLAGS@
++Libs: -L${libdir} -lsdp
++Libs.private: @BLAS_LIBS@ @LIBS@ @OPENMP_LIBS@
+diff --git a/example/Makefile b/example/Makefile
+index 8c7f000..f4a4697 100644
+--- a/example/Makefile
++++ b/example/Makefile
+@@ -1,12 +1,16 @@
+ #
+ # Target all builds everything.
+ #
++include ../Makefile.inc
++
++.PHONY: all clean
++
+ all: example
+ #
+ # This builds the example code.
+ #
+ example: example.o 
+-	$(CC) $(CFLAGS) example.o $(LIBS) -o example
++	$(CSDP_LINK) example.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o example
+ #
+ # To clean up the directory.
+ #
+@@ -15,6 +19,3 @@ clean:
+ 	rm -f example
+ 	rm -f prob.dat-s
+ 	rm -f prob.sol
+-
+-
+-
+diff --git a/include/blockmat.h b/include/blockmat.h
+index f567d55..cbd8492 100644
+--- a/include/blockmat.h
++++ b/include/blockmat.h
+@@ -1,3 +1,10 @@
++#ifndef CSDPBLOCKMAT
++#define CSDPBLOCKMAT
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /*
+   This file contains definitions for the block matrix data structures used
+   in CSDP 3.0.  Note that there are an additional set of definitions used
+@@ -70,7 +77,8 @@ struct sparseblock {
+ struct constraintmatrix {
+   struct sparseblock *blocks;
+ };
++#ifdef __cplusplus
++}
++#endif
+ 
+-
+-
+-
++#endif
+diff --git a/include/declarations.h b/include/declarations.h
+index c7d1b8c..d5e31b1 100644
+--- a/include/declarations.h
++++ b/include/declarations.h
+@@ -6,6 +6,10 @@
+ #ifndef CSDPDECLARATIONS
+ #define CSDPDECLARATIONS 
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /*
+   Other important includes that we need.
+  */
+@@ -316,4 +320,8 @@ void dtrtri_();
+ #endif
+ 
+ 
++#ifdef __cplusplus
++}
++#endif
++
+ #endif
+diff --git a/include/index.h b/include/index.h
+index ca664eb..d227911 100644
+--- a/include/index.h
++++ b/include/index.h
+@@ -1,3 +1,10 @@
++#ifndef CSDPINDEX
++#define CSDPINDEX
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /*
+   Declarations needed to handle indexing into Fortran arrays and packed
+   arrays.
+@@ -46,5 +53,9 @@
+ #define ktoj(k,lda) ((((long int)k)/(lda))+1L)
+ 
+ 
++#endif
++#ifdef __cplusplus
++}
+ #endif
+ 
++#endif
+diff --git a/include/parameters.h b/include/parameters.h
+index a169ab2..9f0d009 100644
+--- a/include/parameters.h
++++ b/include/parameters.h
+@@ -1,3 +1,10 @@
++#ifndef CSDPPARAMETERS
++#define CSDPPARAMETERS
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /*
+ 
+   This include file contains declarations for a number of parameters that 
+@@ -27,9 +34,8 @@ struct paramstruc {
+   double perturbobj;
+   int fastmode;
+ };
++#ifdef __cplusplus
++}
++#endif
+ 
+-
+-
+-
+-
+-
++#endif
+diff --git a/lib/Makefile b/lib/Makefile
+index 05878f2..22a5796 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -1,20 +1,29 @@
+ #
+ #  Build the library.
+ #
+-libsdp.a: readprob.o sdp.o op_o.o psd_feas.o op_a.o op_at.o  Fnorm.o calc_pobj.o calc_dobj.o trace_prod.o zero_mat.o mat_mult.o sym_mat.o copy_mat.o addscaledmat.o  user_exit.o make_i.o allocmat.o initsoln.o initparams.o add_mat.o writesol.o readsol.o easysdp.o writeprob.o solvesys.o makefill.o mat_multsp.o norms.o linesearch.o matvec.o chol.o  qreig.o tweakgap.o freeprob.o packed.o  sortentries.o
+-	ar cr libsdp.a  readprob.o sdp.o op_o.o psd_feas.o op_a.o op_at.o  Fnorm.o calc_pobj.o calc_dobj.o trace_prod.o zero_mat.o mat_mult.o sym_mat.o copy_mat.o addscaledmat.o  user_exit.o make_i.o allocmat.o initsoln.o initparams.o add_mat.o writesol.o readsol.o easysdp.o writeprob.o solvesys.o makefill.o mat_multsp.o norms.o linesearch.o matvec.o chol.o qreig.o tweakgap.o freeprob.o packed.o sortentries.o
+-#
+-# On some systems, you might need to add after "ar cr libsdp.a ..."
+-#        ranlib libsdp.a
+-#
++include ../Makefile.inc
++
++.PHONY: all clean
++
++OBJS = readprob.o sdp.o op_o.o psd_feas.o op_a.o op_at.o  Fnorm.o calc_pobj.o calc_dobj.o trace_prod.o zero_mat.o mat_mult.o sym_mat.o copy_mat.o addscaledmat.o  user_exit.o make_i.o allocmat.o initsoln.o initparams.o add_mat.o writesol.o readsol.o easysdp.o writeprob.o solvesys.o makefill.o mat_multsp.o norms.o linesearch.o matvec.o chol.o  qreig.o tweakgap.o freeprob.o packed.o  sortentries.o
++
++ifeq ($(SHARED),yes)
++all: libsdp.a $(CSDP_SHLIB)
++else
++all: libsdp.a
++endif
++
++libsdp.a: $(OBJS)
++	$(AR) crs libsdp.a $(OBJS)
++
++$(CSDP_SHLIB): $(OBJS)
++	$(CSDP_LINK) $(CSDP_SHLIB_FLAGS) -o $(CSDP_SHLIB) $(OBJS) \
++		$(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm
++	$(CSDP_SHLIB_LINKS)
+ #
+ # To clean things up.
+ #
+ clean:
+ 	rm -f *.o
+ 	rm -f libsdp.a
+-
+-
+-
+-
+-
++	rm -f libsdp.so* libsdp*.dylib libsdp*.dll libsdp.dll.a
+diff --git a/solver/Makefile b/solver/Makefile
+index 4466e45..4b54d84 100644
+--- a/solver/Makefile
++++ b/solver/Makefile
+@@ -1,13 +1,17 @@
+ #
+ #  This builds the stand alone solver.
+ #
++include ../Makefile.inc
++
++.PHONY: all clean
++
++all: csdp
++
+ csdp: csdp.o 
+-	$(CC) $(CFLAGS) csdp.o $(LIBS) -o csdp
++	$(CSDP_LINK) csdp.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o csdp
+ #
+ # To clean out the directory:
+ #
+ clean:
+ 	rm -f *.o
+ 	rm -f csdp
+-
+-
+diff --git a/test/Makefile b/test/Makefile
+index 0c0064f..0c525fe 100644
+--- a/test/Makefile
++++ b/test/Makefile
+@@ -10,8 +10,20 @@
+ # 1.0e-6.  
+ #
+ 
++.PHONY: all clean
++
+ all: theta1.out g50.out 
+  
++#
++# The programs are run out of the build tree, so with SHARED=yes they have to
++# find libsdp there rather than in $(libdir).  Exported rather than set on each
++# recipe, so that adding a platform, or a test, does not mean editing every
++# other line.
++#
++export LD_LIBRARY_PATH := ../lib
++export DYLD_LIBRARY_PATH := ../lib
++export PATH := ../lib:$(PATH)
++
+ #
+ # Test the solver on theta1.dat-s
+ #
+diff --git a/theta/Makefile b/theta/Makefile
+index e3097de..2cf2f1c 100644
+--- a/theta/Makefile
++++ b/theta/Makefile
+@@ -1,28 +1,32 @@
+ #
+ # Target all builds everything.
+ #
++include ../Makefile.inc
++
++.PHONY: all clean
++
+ all: theta complement rand_graph graphtoprob
+ #
+ # This builds the theta number code. 
+ #
+ theta: theta.o 
+-	$(CC) $(CFLAGS) theta.o $(LIBS) -o theta
++	$(CSDP_LINK) theta.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o theta
+ #
+ # Complement computes the complement of a graph.
+ #
+ complement: complement.o 
+-	$(CC) $(CFLAGS) complement.o $(LIBS) -o complement
++	$(CSDP_LINK) complement.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o complement
+ #
+ # rand_graph generates a random graph.  
+ #
+ rand_graph: rand_graph.o
+-	$(CC) $(CFLAGS) rand_graph.o $(LIBS) -o rand_graph
++	$(CSDP_LINK) rand_graph.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o rand_graph
+ #
+ # graphtoprob converts a file in the graph format to an SDP problem in our
+ # SDP format.
+ #
+ graphtoprob: graphtoprob.o 
+-	$(CC) $(CFLAGS) graphtoprob.o $(LIBS) -o graphtoprob
++	$(CSDP_LINK) graphtoprob.o $(CSDP_LIBS) $(BLAS_LIBS) $(LIBS) $(OPENMP_LIBS) -lm -o graphtoprob
+ #
+ # To clean up the directory.
+ #
+@@ -32,5 +36,3 @@ clean:
+ 	rm -f complement
+ 	rm -f rand_graph
+ 	rm -f graphtoprob
+-
+-
