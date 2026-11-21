@@ -1,0 +1,103 @@
+context:
+  version: "1.13.6"
+
+package:
+  name: r-timp
+  version: ${{ version }}
+
+source:
+  url:
+    - https://cran.r-project.org/src/contrib/TIMP_${{ version }}.tar.gz
+    - https://cran.r-project.org/src/contrib/Archive/TIMP/TIMP_${{ version }}.tar.gz
+  sha256: e920ef3d60005958f2ccdcd33639b22c5629e625b76d4cfd25e5530b48c5c2c5
+
+build:
+  number: 0
+  # r-spam, r-minpack.lm and r-kernsmooth for R 4.5 on win-64 fail to load with
+  # "Mingw-w64 runtime failure: 32 bit pseudo relocation ... out of range",
+  # which breaks the lazy-loading step of this package.
+  # Fixed in r-base (conda-forge/r-base-feedstock#428); remove this skip once
+  # those packages are rebuilt against the fixed r-base.
+  skip: win and match(r_base, "4.5.*")
+  script:
+    - if: win
+      then: R CMD INSTALL --build . %R_ARGS%
+      else: R CMD INSTALL --build . ${R_ARGS}
+  dynamic_linking:
+    rpaths:
+      - lib/R/lib/
+      - lib/
+    missing_dso_allowlist:
+      - if: win
+        then:
+          - "*/R.dll"
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - cross-r-base ${{ r_base }}.*
+        - r-fields
+        - r-colorspace
+        - r-desolve
+        - r-gclus
+        - r-gplots
+        - r-minpack.lm
+        - r-nnls
+    - if: not win
+      then:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+    - if: win
+      then:
+        - ${{ compiler('m2w64_c') }}
+        - ${{ stdlib('m2w64_c') }}
+        - m2-filesystem
+        - m2-make
+        - m2-sed
+        - m2-coreutils
+        - m2-zip
+  host:
+    - r-base
+    - r-fields >=4.1
+    - r-colorspace
+    - r-desolve
+    - r-gclus
+    - r-gplots
+    - r-minpack.lm >=1.1_1
+    - r-nnls >=1.1
+  run:
+    - r-base
+    - r-fields >=4.1
+    - r-colorspace
+    - r-desolve
+    - r-gclus
+    - r-gplots
+    - r-minpack.lm >=1.1_1
+    - r-nnls >=1.1
+
+tests:
+  - if: build_platform == target_platform
+    then:
+      - script:
+          - Rscript -e "library('TIMP'); example(fitModel)"
+
+about:
+  homepage: https://github.com/glotaran/TIMP
+  repository: https://github.com/glotaran/TIMP
+  documentation: https://CRAN.R-project.org/package=TIMP
+  license: GPL-2.0-or-later
+  license_file:
+    - ${{ PREFIX }}/lib/R/share/licenses/GPL-2
+  summary: Fitting Separable Nonlinear Models in Spectroscopy and Microscopy
+  description: |
+    A problem solving environment (PSE) for fitting separable nonlinear models
+    to measurements arising in physics and chemistry experiments, in particular
+    time-resolved spectroscopy and Fluorescence Lifetime Imaging Microscopy
+    (FLIM) data. TIMP is the computational backend of the Glotaran software.
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
+    - jsnel
