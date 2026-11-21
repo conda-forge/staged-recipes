@@ -1,0 +1,102 @@
+schema_version: 1
+
+context:
+  name: fusionspace-hpr
+  version: "0.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name | replace('-', '_') }}-${{ version }}.tar.gz
+  sha256: 5fa4fa3c85a8a984fbdf0c43cb7c8bfb13a85d85b639aa90ebcc22403e55d5f2
+
+build:
+  number: 0
+  # The extension is built against CPython's stable ABI (PyO3's abi3-py310 feature), so one build
+  # on the oldest supported Python serves every later one.
+  skip: is_abi3 and not is_python_min
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRD-PARTY-LICENSES.yaml
+  python:
+    version_independent: ${{ is_abi3 }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+        - maturin >=1.9.4,<2
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.9.4,<2
+  run:
+    - python
+    - numpy >=1.22
+
+tests:
+  - python:
+      imports:
+        - fusionspace.hpr
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/fusionspace/hpr/_hpr.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%\fusionspace\hpr\_hpr.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+  # The first example on the package's documentation page (https://hpr.fusionspace.co/python.html),
+  # which flies one rocket with a bundled motor and needs no network. The page prints an apogee of
+  # 1118.3 m; the project's release checks accept it within a meter, as this does.
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://hpr.fusionspace.co
+  repository: https://github.com/nrdptel/fusionspace-eridanus
+  documentation: https://hpr.fusionspace.co/python.html
+  summary: A flight simulator for hobby and high-power rockets.
+  description: |
+    FusionSpace HPR is an open-source flight simulator for hobby and high-power
+    rockets, written in Rust. This package is its Python interface, imported as
+    `fusionspace.hpr`: describe a rocket part by part or read it from a design
+    file, fly it from a rail once or as a Monte Carlo run with its inputs
+    scattered, and get its metrics as numbers and its recording as NumPy arrays.
+    Every number is an estimate, not a go/no-go verdict.
+  # The project's code is MIT OR Apache-2.0; the package also bundles OpenRocket's
+  # parts catalog (openrocket-database), which is Apache-2.0 only.
+  license: (MIT OR Apache-2.0) AND Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    - THIRD-PARTY-NOTICES.md
+    - THIRD-PARTY-LICENSES.txt
+    - THIRD-PARTY-LICENSES.yaml
+    - crates/hpr-io/data/openrocket-database/LICENSE
+
+extra:
+  recipe-maintainers:
+    - nrdptel
