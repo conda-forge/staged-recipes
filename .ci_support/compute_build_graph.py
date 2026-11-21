@@ -439,11 +439,22 @@ def collapse_subpackage_nodes(graph):
             # fold in dependencies for all of the other subpackages within a group.  This is just
             #     the intersection of the edges between all nodes.  Store this on the "master" node.
             if subpackages:
-                remap_edges = [edge for edge in graph.edges() if edge[1] in subpackages]
-                for edge in remap_edges:
+                # make sure to remap edges both into and out of subpackages
+                # before deleting nodes
+                # remap '* -> subpackage' to '* -> recipe'
+                remap_in = [edge for edge in graph.edges() if edge[1] in subpackages]
+                for edge in remap_in:
                     # make sure not to add references to yourself
                     if edge[0] != master_key:
                         graph.add_edge(edge[0], master_key)
+                    graph.remove_edge(*edge)
+
+                # remap 'subpackage -> *' to 'recipe -> *'
+                remap_out = [edge for edge in graph.edges() if edge[0] in subpackages]
+                for edge in remap_out:
+                    # make sure not to add references to yourself
+                    if edge[1] != master_key:
+                        graph.add_edge(master_key, edge[1])
                     graph.remove_edge(*edge)
 
                 # remove nodes that have been folded into master nodes
