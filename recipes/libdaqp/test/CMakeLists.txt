@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.10)
+project(qp C)
+find_package(daqp CONFIG REQUIRED)
+add_executable(qp qp.c)
+target_link_libraries(qp PRIVATE daqp)
