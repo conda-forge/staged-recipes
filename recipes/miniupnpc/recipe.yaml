@@ -1,0 +1,56 @@
+context:
+  version: "2.3.3"
+  sha256: "8cf2c833b3e76fc4893ff29c2a376e3394962449e5970e373c0a91421724d222"
+  cmake_flags: "-DCMAKE_BUILD_TYPE=Release -DUPNPC_BUILD_SHARED=yes -DUPNPC_BUILD_STATIC=no"
+
+package:
+  name: miniupnpc
+  version: ${{ version }}
+
+source:
+  url: https://github.com/miniupnp/miniupnp/archive/refs/tags/miniupnpc_${{ version | replace(".", "_") }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: 0
+  script:
+    # trace commands
+    - {"if":"win","then":"echo on","else":"set -x"}
+    - cd miniupnpc
+    - if: win
+      then: cmake -S . -B . ${{ cmake_flags }} %CMAKE_ARGS%
+      else: cmake -S . -B . ${{ cmake_flags }} $CMAKE_ARGS
+    - cmake --build . --config Release
+    - cmake --install . --config Release
+    - if: win
+      then: |
+        move %PREFIX%\\bin\\upnpc-shared.exe %PREFIX%\\bin\\upnpc.exe
+        move %PREFIX%\\bin\\upnp-listdevices-shared.exe %PREFIX%\\bin\\upnp-listdevices.exe
+        rm %PREFIX%\\bin\\external-ip.sh
+      else: |
+        mv -v $PREFIX/bin/upnpc-shared $PREFIX/bin/upnpc
+        mv -v $PREFIX/bin/upnp-listdevices-shared $PREFIX/bin/upnp-listdevices
+        rm -v $PREFIX/bin/external-ip.sh
+
+requirements:
+  build:
+    - cmake
+    - make
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+
+tests:
+  - script:
+    # - upnpc --version # no, this tries to find UPNP devices...
+    - upnpc --help
+
+about:
+  homepage: https://github.com/miniupnp/miniupnp
+  summary: "UPnP IGD client library"
+  # no. use license file from $SRC_DIR/LICENSE
+  # license: BSD-3-Clause
+  # license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - milahu
