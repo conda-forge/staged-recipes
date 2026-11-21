@@ -1,0 +1,424 @@
+schema_version: 1
+
+context:
+  version: "1.0.0"
+  build: 0
+  # Missing on some staged-recipes configs; conda-forge-pinning sets it on the feedstock.
+  cuda_ver: ${{ cuda_compiler_version | default("None") }}
+  # ensure arm_variant_type gets detected as a used variable
+  touch_arm_variant_type: ${{ (arm_variant_type | default("None")) if (linux and aarch64) else "None" }}
+
+recipe:
+  name: ggml
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ggml-org/ggml/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 27de4df871da091112a1e4ea0e13be70f364af5da666c1246fb26fde2b21fac0
+  patches:
+    - if: linux or win
+      then:
+        - patches/0001-vulkan-disable-spirv-opt-for-cm2-ocp.patch
+
+build:
+  # Same numbering and string as llama.cpp-feedstock, so a variant can select
+  # libggml cuda129*, cpu_mkl*, cpu_openblas*, or cpu_accelerate*.
+  number: ${{ build if cuda_ver == "None" else build + 200 }}
+  string: '{%- if cuda_ver != "None" -%}cuda${{ cuda_ver | replace(".", "") }}_h${{ hash }}_${{ build }}{%- else -%}cpu_${{ blas_impl }}_h${{ hash }}_${{ build }}{%- endif -%}'
+
+outputs:
+  - staging:
+      name: ggml-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - if: cuda_ver != "None"
+          then:
+            - ${{ compiler('cuda') }}
+        - if: cuda_ver != "None" and linux and aarch64
+          then:
+            - arm-variant * ${{ arm_variant_type | default("None") }}
+        - cmake
+        - git
+        - ninja
+        - pkgconfig
+      host:
+        - if: linux or win
+          then:
+            - libvulkan-headers
+            - libvulkan-loader
+            - shaderc
+            - spirv-headers
+        - if: cuda_ver != "None"
+          then:
+            - cuda-version ${{ cuda_ver }}.*
+            - cuda-cudart-dev
+            - libcublas-dev
+        - if: (linux and x86_64 or win) and cuda_ver == "None" and blas_impl == "mkl"
+          then:
+            - blas-devel * *_${{ blas_impl }}
+            - mkl-devel
+        - if: osx
+          then:
+            - llvm-openmp
+    build:
+      script:
+        - if: unix
+          then: |
+            # Hotfix for https://github.com/NVIDIA/cccl/issues/4967. Not needed for CUDA >= 13.
+            {%- if match(cuda_ver, "12.*") and linux and x86_64 %}
+            CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/x86_64-linux/include/cuda/std/__cccl/preprocessor.h"
+            {%- endif %}
+
+            {%- if match(cuda_ver, "12.*") and linux and aarch64 and (arm_variant_type | default("None")) == "sbsa" %}
+            CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/sbsa-linux/include/cuda/std/__cccl/preprocessor.h"
+            {%- endif %}
+
+            {%- if match(cuda_ver, "12.*") and linux and aarch64 and (arm_variant_type | default("None")) == "tegra" %}
+            CCCL_PREPROCESSOR_H_TO_PATCH="$PREFIX/targets/aarch64-linux/include/cuda/std/__cccl/preprocessor.h"
+            {%- endif %}
+
+            {%- if match(cuda_ver, "12.*") and linux %}
+            ROOT_DIR="$(dirname "${CCCL_PREPROCESSOR_H_TO_PATCH}")/../../../.."
+            patch -p1 -d "${ROOT_DIR}" -i "${RECIPE_DIR}/cuda12_cccl_arch_all.patch"
+            {%- endif %}
+
+            GGML_ARGS="-DGGML_BUILD_TESTS=OFF -DGGML_BUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=ON -DGGML_BACKEND_DL=ON -DGGML_NATIVE=OFF -DGGML_BACKEND_DIR=$PREFIX/lib"
+
+            {%- macro cmake_args(value) -%}
+            GGML_ARGS="${GGML_ARGS} -D${{ value }}"
+            {%- endmacro %}
+
+            {%- if osx and arm64 %}
+            ${{ cmake_args("GGML_AVX=OFF") }}
+            ${{ cmake_args("GGML_AVX2=OFF") }}
+            ${{ cmake_args("GGML_FMA=OFF") }}
+            ${{ cmake_args("GGML_F16C=OFF") }}
+            ${{ cmake_args("GGML_METAL=ON") }}
+            ${{ cmake_args("GGML_ACCELERATE=ON") }}
+            {%- endif %}
+
+            {%- if osx and x86_64 %}
+            ${{ cmake_args("GGML_METAL=OFF") }}
+            ${{ cmake_args("GGML_ACCELERATE=ON") }}
+            {%- endif %}
+
+            {%- if osx %}
+            ${{ cmake_args("GGML_BLAS=ON") }}
+            ${{ cmake_args("GGML_BLAS_VENDOR=Apple") }}
+            {%- endif %}
+
+            {%- if linux %}
+            ${{ cmake_args("GGML_VULKAN=ON") }}
+            {%- endif %}
+
+            {%- if build_platform != target_platform %}
+            ${{ cmake_args("HOST_C_COMPILER=$CC_FOR_BUILD") }}
+            ${{ cmake_args("HOST_CXX_COMPILER=$CXX_FOR_BUILD") }}
+            {%- endif %}
+
+            {%- if cuda_ver != "None" %}
+            ${{ cmake_args("GGML_CUDA=ON") }}
+            ${{ cmake_args("CMAKE_CUDA_ARCHITECTURES=$CUDAARCHS") }}
+            {%- endif %}
+
+            {%- if linux and x86_64 and cuda_ver == "None" %}
+            ${{ cmake_args("GGML_BLAS=ON") }}
+            {%- if blas_impl == "mkl" %}
+            ${{ cmake_args("GGML_BLAS_VENDOR=Intel10_64_dyn") }}
+            {%- endif %}
+            {%- endif %}
+
+            echo $GGML_ARGS
+            cmake -S . -B build -G Ninja ${CMAKE_ARGS} ${GGML_ARGS}
+            cmake --build build
+            cmake --install build
+        - if: win
+          then: |
+            set GGML_ARGS=-DGGML_BUILD_TESTS=OFF -DGGML_BUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=ON -DGGML_BACKEND_DL=ON -DGGML_NATIVE=OFF -DGGML_BACKEND_DIR=%LIBRARY_BIN% -DGGML_VULKAN=ON
+
+            {%- macro cmake_args(value) -%}
+            set GGML_ARGS=%GGML_ARGS% -D${{ value }}
+            {%- endmacro %}
+
+            {%- if cuda_ver != "None" %}
+            ${{ cmake_args("GGML_CUDA=ON") }}
+            ${{ cmake_args("CMAKE_CUDA_ARCHITECTURES=%CUDAARCHS%") }}
+            rem Silence all NVCC warnings on Windows to keep CI logs small enough for the runner disk.
+            set "NVCC_APPEND_FLAGS=-w"
+            {%- else %}
+            ${{ cmake_args("GGML_BLAS=ON") }}
+            {%- if blas_impl == "mkl" %}
+            ${{ cmake_args("GGML_BLAS_VENDOR=Intel10_64_dyn") }}
+            {%- endif %}
+            {%- endif %}
+
+            set GGML_ARGS
+            cmake -S . -B build -G Ninja %CMAKE_ARGS% %GGML_ARGS%
+            cmake --build build
+            cmake --install build
+
+  - package:
+      name: libggml
+    inherit: ggml-build
+    build:
+      files:
+        - if: unix
+          then:
+            - include/ggml*.h
+            - include/gguf.h
+            - lib/libggml.so
+            - lib/libggml.so.*
+            - lib/libggml.dylib
+            - lib/libggml.*.dylib
+            - lib/libggml-base.so
+            - lib/libggml-base.so.*
+            - lib/libggml-base.dylib
+            - lib/libggml-base.*.dylib
+            - lib/cmake/ggml/**
+            - lib/pkgconfig/ggml.pc
+        - if: win
+          then:
+            - Library/include/ggml*.h
+            - Library/include/gguf.h
+            - Library/bin/ggml.dll
+            - Library/lib/ggml.lib
+            - Library/lib/ggml.exp
+            - Library/bin/ggml-base.dll
+            - Library/lib/ggml-base.lib
+            - Library/lib/ggml-base.exp
+            - Library/lib/cmake/ggml/**
+            - Library/lib/pkgconfig/ggml.pc
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      run_exports:
+        - ${{ pin_subpackage('libggml', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - ggml.h
+            - gguf.h
+          lib:
+            - ggml
+            - ggml-base
+
+  - package:
+      name: libggml-cpu
+    inherit: ggml-build
+    build:
+      files:
+        - if: unix
+          then:
+            - lib/libggml-cpu*
+        - if: win
+          then:
+            - Library/bin/ggml-cpu*
+            - Library/lib/ggml-cpu*
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libggml-cpu', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          files:
+            - if: unix
+              then:
+                - lib/libggml-cpu*
+            - if: win
+              then:
+                - Library/bin/ggml-cpu.dll
+
+  - package:
+      name: libggml-blas
+    inherit: ggml-build
+    build:
+      skip: ${{ not (osx or ((linux and x86_64 or win) and cuda_ver == "None")) }}
+      files:
+        - if: unix
+          then:
+            - lib/libggml-blas*
+        - if: win
+          then:
+            - Library/bin/ggml-blas*
+            - Library/lib/ggml-blas*
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libggml-blas', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          files:
+            - if: unix
+              then:
+                - lib/libggml-blas*
+            - if: win
+              then:
+                - Library/bin/ggml-blas.dll
+
+  - package:
+      name: libggml-vulkan
+    inherit: ggml-build
+    build:
+      skip: osx
+      files:
+        - if: unix
+          then:
+            - lib/libggml-vulkan*
+        - if: win
+          then:
+            - Library/bin/ggml-vulkan*
+            - Library/lib/ggml-vulkan*
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libggml-vulkan', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          files:
+            - if: unix
+              then:
+                - lib/libggml-vulkan*
+            - if: win
+              then:
+                - Library/bin/ggml-vulkan.dll
+
+  - package:
+      name: libggml-cuda
+    inherit: ggml-build
+    build:
+      skip: ${{ cuda_ver == "None" }}
+      files:
+        - if: unix
+          then:
+            - lib/libggml-cuda*
+        - if: win
+          then:
+            - Library/bin/ggml-cuda*
+            - Library/lib/ggml-cuda*
+      dynamic_linking:
+        missing_dso_allowlist:
+          - if: win
+            then:
+              - "*/nvcuda.dll"
+          - if: linux
+            then:
+              - "*/libcuda.so.1"
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('cuda') }}
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+        - cuda-version ${{ cuda_ver }}.*
+        - __cuda
+        - cuda-nvcc-tools
+      run_exports:
+        - ${{ pin_subpackage('libggml-cuda', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          files:
+            - if: unix
+              then:
+                - lib/libggml-cuda*
+            - if: win
+              then:
+                - Library/bin/ggml-cuda.dll
+
+  - package:
+      name: libggml-metal
+    inherit: ggml-build
+    build:
+      skip: ${{ not (osx and arm64) }}
+      files:
+        - lib/libggml-metal*
+        - bin/*.metallib
+        - bin/kernels/**
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('libggml-metal', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          files:
+            - lib/libggml-metal*
+
+  - package:
+      name: ggml
+    requirements:
+      run:
+        - ${{ pin_subpackage('libggml', exact=True) }}
+        - ${{ pin_subpackage('libggml-cpu', exact=True) }}
+        - if: osx or ((linux and x86_64 or win) and cuda_ver == "None")
+          then:
+            - ${{ pin_subpackage('libggml-blas', exact=True) }}
+        - if: linux or win
+          then:
+            - ${{ pin_subpackage('libggml-vulkan', exact=True) }}
+        - if: cuda_ver != "None"
+          then:
+            - ${{ pin_subpackage('libggml-cuda', exact=True) }}
+        - if: osx and arm64
+          then:
+            - ${{ pin_subpackage('libggml-metal', exact=True) }}
+    tests:
+      - script:
+          - if: unix
+            then:
+              - cmake -S test-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+              - cmake --build build
+              - ./build/test-cmake
+          - if: win
+            then:
+              - cmake -S test-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+              - cmake --build build
+              - build\test-cmake.exe
+        files:
+          recipe:
+            - test-cmake/
+        requirements:
+          build:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+          run:
+            - cmake
+            - ninja
+
+about:
+  homepage: https://github.com/ggml-org/ggml
+  repository: https://github.com/ggml-org/ggml
+  summary: Tensor library for machine learning
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  feedstock-name: ggml
+  recipe-maintainers:
+    - jjerphan
