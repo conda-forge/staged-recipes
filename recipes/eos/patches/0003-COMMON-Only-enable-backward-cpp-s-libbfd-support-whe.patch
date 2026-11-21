@@ -1,0 +1,51 @@
+From 3636c1a77267e020dab7bcf701a7e93ef5809c2a Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Tue, 15 Sep 2026 20:06:12 +0200
+Subject: [PATCH] COMMON: Only enable backward-cpp's libbfd support when libbfd
+ was found
+
+BACKWARD_HAS_BFD was defined unconditionally on non-Apple platforms, so
+backward-cpp emitted calls to bfd_fdopenr() and friends even when
+Findlibbfd reported "libbfd not found" and LIBBFD::LIBBFD was an empty
+interface target. The build succeeded and then every binary linking
+libEosCommon died at startup with
+
+  symbol lookup error: libEosCommon.so.5: undefined symbol: bfd_fdopenr
+
+The define now follows what CMake actually found, falling back to
+backward-cpp's backtrace_symbols() resolver.
+---
+ cmake/Findlibbfd.cmake   | 3 ++-
+ common/StacktraceHere.cc | 4 ++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/Findlibbfd.cmake b/cmake/Findlibbfd.cmake
+index 9d7ff8480..4e335649e 100644
+--- a/cmake/Findlibbfd.cmake
++++ b/cmake/Findlibbfd.cmake
+@@ -30,7 +30,8 @@ if (LIBBFD_FOUND AND NOT TARGET LIBBFD::LIBBFD)
+   add_library(LIBBFD::LIBBFD UNKNOWN IMPORTED)
+   set_target_properties(LIBBFD::LIBBFD PROPERTIES
+     IMPORTED_LOCATION "${LIBBFD_LIBRARY}"
+-    INTERFACE_INCLUDE_DIRECTORIES "${LIBBFD_INCLUDE_DIR}")
++    INTERFACE_INCLUDE_DIRECTORIES "${LIBBFD_INCLUDE_DIR}"
++    INTERFACE_COMPILE_DEFINITIONS "EOS_HAVE_LIBBFD=1")
+   add_library(LIBBFD::IBERTY UNKNOWN IMPORTED)
+   set_target_properties(LIBBFD::IBERTY PROPERTIES
+     IMPORTED_LOCATION "${LIBIBERTY_LIBRARY}"
+diff --git a/common/StacktraceHere.cc b/common/StacktraceHere.cc
+index 3119f4417..5d113b9a2 100644
+--- a/common/StacktraceHere.cc
++++ b/common/StacktraceHere.cc
+@@ -25,7 +25,11 @@
+ 
+ #ifndef __APPLE__
+ #include <execinfo.h>
++#ifdef EOS_HAVE_LIBBFD
+ #define BACKWARD_HAS_BFD 1
++#else
++#define BACKWARD_HAS_BACKTRACE_SYMBOL 1
++#endif
+ #if !defined(bfd_get_section_flags)
+ #define bfd_get_section_flags(ptr, section) bfd_section_flags(section)
+ #endif /* !defined(bfd_get_section_flags) */
