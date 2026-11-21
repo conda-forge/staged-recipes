@@ -1,0 +1,62 @@
+context:
+  name: grobx
+  version: "0.155.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# The public repo's root is the workspace that user/public-sync.sh exports from
+# grobx/, so the Python crate stands at python/.
+source:
+  url: https://github.com/code1-de/grobx/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 69284926ca27fac3718749614398a76b5dbe03b0efc9623c3aacf48c54dec9e4
+
+build:
+  number: 0
+  skip: match(python, "<3.12")
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install python/ -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.9,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.9,<2
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - grobx
+      pip_check: true
+  - requirements:
+      run:
+        - python
+    script:
+      - python -c "import grobx; r = grobx.groebner('x,y,z\n0\nx+y+z,\nx*y+y*z+z*x,\nx*y*z-1\n', checker='exact'); assert r.basis == '[x+y+z,\ny^2+y*z+z^2,\nz^3-1]:\n', r.basis; assert r.certified is True, r.flaw"
+
+about:
+  homepage: https://grobx.com
+  repository: https://github.com/code1-de/grobx
+  summary: Fast reduced Gröbner (Groebner) bases by F4 over GF(2), GF(p), and the rationals
+  license: GPL-3.0-only
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - code1-de
