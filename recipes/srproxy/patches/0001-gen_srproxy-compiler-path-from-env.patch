@@ -1,0 +1,28 @@
+diff --git a/gen_srproxy b/gen_srproxy
+index 0cd8cfc..3b27e5d 100755
+--- a/gen_srproxy
++++ b/gen_srproxy
+@@ -449,9 +449,23 @@ def main():
+     # Locate the castxml executable
+     generator_path, generator_name = pygccxml.utils.find_xml_generator()
+ 
++    # Determine the C++ compiler castxml should emulate. pygccxml only
++    # auto-detects unprefixed 'clang++'/'c++' on PATH, which fails in toolchains
++    # (e.g. conda) that expose the compiler under a prefixed name via $CXX/$CC.
++    # When neither is set, leave it None so pygccxml's own detection applies.
++    compiler_path = os.environ.get('CXX') or os.environ.get('CC')
++    if compiler_path:
++        try:
++            from shutil import which as _which
++        except ImportError:
++            _which = None
++        if _which is not None:
++            compiler_path = _which(compiler_path) or compiler_path
++
+     config = pygccxml.parser.xml_generator_configuration_t(
+         xml_generator_path = generator_path,
+         xml_generator = generator_name,
++        compiler_path = compiler_path,
+         include_paths = path,
+         cflags = '-std=c++1z -Wno-unknown-warning-option '+opts['extra_cflags']
+         )
