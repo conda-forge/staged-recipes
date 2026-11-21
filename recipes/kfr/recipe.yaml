@@ -1,0 +1,239 @@
+schema_version: 1
+
+context:
+  version: "7.2.0"
+  # kfrlib/fft-benchmark has no releases: the commit and its date
+  benchmark_commit: 6dc202b7991ed2401690ded227a44f0a31f872e5
+  benchmark_version: "2026.06.23"
+
+recipe:
+  name: kfr
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/kfrlib/kfr/archive/refs/tags/${{ version }}.tar.gz
+    sha256: 4f1603d5b6e609c25d25cff58fe7154a371583fd6d379615b342e44223be0763
+    patches:
+      # upstream links libstdc++ and libgcc statically into the C API library
+      - kfr-capi-link-the-C-runtime-dynamically.patch
+  - url: https://github.com/kfrlib/fft-benchmark/archive/${{ benchmark_commit }}.tar.gz
+    sha256: 21fd6b8a402553da39d03edbf3269885d69e40c53b7dbf2582ce779387337cdf
+    target_directory: fft-benchmark
+    patches:
+      # upstream builds its dependencies with a vcpkg submodule: use the
+      # libraries of the host environment, take a list of them, and compile
+      # against KFR 5 and 6 as well
+      - benchmark-build-against-installed-libraries.patch
+  # The two previous generations of KFR: only used by kfrlib-benchmark, which
+  # builds them into fft_benchmark_kfr5-any and fft_benchmark_kfr6-any
+  - url: https://github.com/kfrlib/kfr/archive/refs/tags/5.2.0.tar.gz
+    sha256: 8597b7334cf9f317daeeb64615d562a1374545e8c196b06a86705c7a391c6761
+    target_directory: kfr5
+    patches:
+      - kfr5-compile-with-current-clang.patch
+  - url: https://github.com/kfrlib/kfr/archive/refs/tags/6.3.1.tar.gz
+    sha256: 800f8e782fb514176c06526792ec766b718a7b91c73e9d07efe47dff6cb0816d
+    target_directory: kfr6
+    patches:
+      - kfr6-compile-with-current-clang.patch
+
+build:
+  number: 0
+
+outputs:
+  # Headers and the C API (the only shared library of KFR)
+  - package:
+      name: kfrlib
+    build:
+      skip:
+        - win
+      script: build-kfr.sh
+      files:
+        exclude:
+          - lib/*.a
+          - lib/cmake/**
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - libboost-headers
+      run_exports:
+        - ${{ pin_subpackage('kfrlib', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - kfr/kfr.h
+            - kfr/capi.h
+          lib:
+            - kfr_capi
+      - script:
+          - ${CC} ${CFLAGS} test/test_capi.c -I${PREFIX}/include -L${PREFIX}/lib -lkfr_capi -Wl,-rpath,${PREFIX}/lib -o test_capi
+          - if: build_platform == target_platform
+            then: ./test_capi
+        files:
+          recipe:
+            - test/test_capi.c
+        requirements:
+          build:
+            - ${{ compiler('c') }}
+            - ${{ stdlib('c') }}
+    about:
+      summary: Fast, modern C++ DSP framework (FFT, sample rate conversion, FIR/IIR/biquad filters) - headers and C API
+      license: GPL-2.0-or-later AND CC0-1.0 AND BSL-1.0
+      license_file:
+        - LICENSE.txt
+        - include/kfr/thirdparty/expected/LICENSE
+        - include/kfr/thirdparty/catch/LICENSE.txt
+        - minimp3-LICENSE
+
+  # The C++ libraries, which upstream only builds as static archives, and the
+  # CMake package that refers to them (CFEP-18)
+  - package:
+      name: kfrlib-static
+    build:
+      skip:
+        - win
+      script: build-kfr.sh
+      files:
+        include:
+          - lib/*.a
+          - lib/cmake/**
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+      host:
+        - libboost-headers
+      run:
+        - ${{ pin_subpackage('kfrlib', exact=True) }}
+    tests:
+      - package_contents:
+          files:
+            - lib/cmake/kfr/KFRConfig.cmake
+            - lib/libkfr_dft.a
+            - lib/libkfr_dsp.a
+            - lib/libkfr_io.a
+            - lib/libkfr_audio.a
+      - script:
+          - cmake -S test -B build-test -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release
+          - cmake --build build-test
+          - if: build_platform == target_platform
+            then: ./build-test/test_kfr
+        files:
+          recipe:
+            - test/CMakeLists.txt
+            - test/test_kfr.cpp
+        requirements:
+          build:
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+            - ${{ stdlib('c') }}
+            - cmake
+            - ninja
+    about:
+      summary: Static C++ libraries and CMake package of the KFR DSP framework
+      license: GPL-2.0-or-later AND CC0-1.0
+      license_file:
+        - LICENSE.txt
+        - include/kfr/thirdparty/expected/LICENSE
+        - minimp3-LICENSE
+
+  # KFR's FFT and sample rate conversion benchmark: KFR 5, 6 and 7 against
+  # FFTW and KissFFT
+  - package:
+      name: kfrlib-benchmark
+      version: ${{ benchmark_version }}
+    build:
+      skip:
+        - win
+      script: build-benchmark.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        # the DFT of KFR 5 and 6 only compiles with Clang
+        - if: linux
+          then:
+            - clang
+            - clangxx
+      host:
+        - ${{ pin_subpackage('kfrlib-static', exact=True) }}
+        - fftw
+    tests:
+      - script:
+          - fft_benchmark_kfr-any --no-banner 1024
+          - fft_benchmark_kfr6-any --no-banner 1024
+          - fft_benchmark_kfr5-any --no-banner 1024
+          - fft_benchmark_fftw-any --no-banner 1024
+          - test -x ${PREFIX}/bin/src_benchmark_kfr-any
+          - test -x ${PREFIX}/bin/src_benchmark_kfr6-any
+          - test -x ${PREFIX}/bin/src_benchmark_kfr5-any
+          - if: x86_64
+            then: test -x ${PREFIX}/bin/fft_benchmark_kissfft-avx2
+            else: fft_benchmark_kissfft-any --no-banner 1024
+          - test -f ${PREFIX}/share/kfrlib-benchmark/plot.py
+    about:
+      homepage: https://github.com/kfrlib/fft-benchmark
+      repository: https://github.com/kfrlib/fft-benchmark
+      summary: FFT and sample rate conversion benchmark of KFR 5, 6 and 7 against FFTW and KissFFT
+      description: |
+        The benchmark programs of the KFR project. fft_benchmark_kfr-any,
+        fft_benchmark_fftw-any and fft_benchmark_kissfft-avx2 / -avx512
+        (-any outside x86-64) measure the current KFR, FFTW and KissFFT;
+        fft_benchmark_kfr5-any and fft_benchmark_kfr6-any are the same
+        program built with KFR 5.2.0 and 6.3.1, to compare the three
+        generations of the library. src_benchmark_kfr*-any measure the sample
+        rate converter. Each takes transform sizes as arguments and
+        `--save <file.json>`; the plotting scripts of the project are in
+        share/kfrlib-benchmark.
+
+        The benchmark sources are MIT licensed. The programs link KFR
+        statically and FFTW, so the package is under GPL-2.0-or-later.
+      license: GPL-2.0-or-later AND MIT AND BSD-3-Clause AND CC0-1.0
+      license_file:
+        - fft-benchmark/LICENSE
+        - LICENSE.txt
+        - include/kfr/thirdparty/expected/LICENSE
+        - minimp3-LICENSE
+        - kissfft-COPYING
+
+about:
+  homepage: https://www.kfrlib.com
+  summary: Fast, modern C++ DSP framework (FFT, sample rate conversion, FIR/IIR/biquad filters) with runtime SIMD dispatch
+  license: GPL-2.0-or-later AND CC0-1.0 AND BSL-1.0
+  license_file:
+    - LICENSE.txt
+    - include/kfr/thirdparty/expected/LICENSE
+    - include/kfr/thirdparty/catch/LICENSE.txt
+    - minimp3-LICENSE
+  description: |
+    KFR is a C++20 DSP framework providing optimized building blocks for
+    audio, scientific and other signal processing applications: FFT/DFT/DCT,
+    convolution, FIR and IIR filter design and processing, biquads, sample
+    rate conversion, window functions, oscillators, EBU R128 loudness and
+    audio file reading and writing (WAV, W64, AIFF, CAF, MP3 decoding).
+
+    `kfrlib` holds the headers and the C API (shared library `kfr_capi`).
+    `kfrlib-static` adds the C++ libraries, which upstream only supports as
+    static archives, and the CMake package (`find_package(KFR)`). On x86-64
+    they are built for every instruction set from SSE2 to AVX-512 and the
+    DFT and DSP kernels are selected at runtime.
+
+    KFR is dual licensed: GPL-2.0-or-later, or a commercial license from the
+    authors. These packages are distributed under GPL-2.0-or-later.
+  documentation: https://www.kfrlib.com/docs/latest/
+  repository: https://github.com/kfrlib/kfr
+
+extra:
+  recipe-maintainers:
+    - meiyasan
