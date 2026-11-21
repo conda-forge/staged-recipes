@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: pyhmeasure
+  version: ${{ version }}
+
+source:
+  url: https://github.com/robinwiseman/pyhmeasure/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: dba402f274f665f635eea2c9ebb94ff7dd91ea17eecdb26769fa8f5a9abc3b4d
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - ${{ PYTHON }} -m pip install . -vv
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != host_platform
+      then:
+        - python
+        - cross-python_${{ host_platform }}
+    - ${{ compiler("c") }}
+    - ${{ compiler("rust") }}
+    - ${{ stdlib("c") }}
+    - cargo-bundle-licenses
+  host:
+    - maturin >=1.9.4,<2.0
+    - pip
+    - python
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - pyhmeasure
+      pip_check: true
+  - files:
+      source:
+        - tests/
+        - python_src/
+    requirements:
+      run:
+        - numpy
+        - pandas
+        - scipy
+        - pytest
+        - pytest-benchmark
+    script:
+      # the 360,000 score benchmarks are skipped to keep the build quick
+      - python -m pytest tests -v --benchmark-disable -k "not large"
+
+about:
+  homepage: https://github.com/robinwiseman/pyhmeasure
+  repository: https://github.com/robinwiseman/pyhmeasure
+  summary: Python bindings to a Rust implementation of the H-measure for assessing binary classifiers
+  description: |
+    pyhmeasure exposes the Rust hmeasure crate to Python. The H-measure, introduced by
+    David J. Hand, is a coherent alternative to the area under the ROC curve (AUC) for
+    assessing binary classifiers: it fixes the distribution of misclassification costs
+    consistently across all classifiers being compared.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    # Rust dependencies that do not ship a licence file of their own
+    - license-files/hmeasure-LICENSE
+    - license-files/quadrature-LICENSE
+    - license-files/r-efi-AUTHORS
+
+extra:
+  recipe-maintainers:
+    - robinwiseman
