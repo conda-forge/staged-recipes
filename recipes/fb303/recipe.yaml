@@ -1,0 +1,94 @@
+context:
+  version: "2026.08.03.00"
+
+package:
+  name: fb303
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebook/fb303/archive/v${{ version }}.tar.gz
+  sha256: 660db57e0ce6dce4603bc36936973d65a1b56d5d3b66cd8309cbb7d7d8553328
+  patches:
+    # Make find_package(fb303) work without finding fbthrift first.
+    - 0001-Find-dependencies-in-the-CMake-config.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - fbthrift ==${{ version }}
+    - fizz ==${{ version }}
+    - folly ==${{ version }}
+    - mvfst ==${{ version }}
+    - wangle ==${{ version }}
+    - xxhash
+    # Libraries referenced by folly's exported CMake targets.
+    - bzip2
+    - double-conversion
+    - fmt
+    - gflags
+    - glog
+    - if: linux
+      then: libaio
+    - libboost-devel
+    - libevent
+    - liblzma-devel
+    - libsodium
+    - lz4-c
+    - openssl
+    - snappy
+    - zlib
+    - zstd
+  run_exports:
+    # fb303 is ABI-unstable: consumers must use the exact same version.
+    - ${{ pin_subpackage('fb303', upper_bound='x.x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - fb303
+        - fb303_thrift_cpp
+      include:
+        - fb303/ServiceData.h
+        - fb303/thrift/gen-cpp2/BaseService.h
+      files:
+        - lib/cmake/fb303/fb303-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        # folly's CMake config needs these development files.
+        - libboost-devel
+        - liblzma-devel
+        - zlib
+    script:
+      - cmake -S test -B build -G Ninja ${CMAKE_ARGS}
+      - cmake --build build
+      - ./build/fb303_test
+
+about:
+  homepage: https://github.com/facebook/fb303
+  summary: Base Thrift service and common monitoring library
+  description: |
+    fb303 is a core set of thrift functions that provide a common mechanism
+    for querying stats and other information from a service, along with the
+    C++ libraries for collecting and exporting those statistics.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/facebook/fb303
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
