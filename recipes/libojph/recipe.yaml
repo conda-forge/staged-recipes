@@ -1,0 +1,119 @@
+context:
+  version: "1.1.2"
+
+package:
+  name: libojph
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hmaarrfk/OpenJPH/archive/refs/tags/ojph-${{ version }}.tar.gz
+  sha256: a871a0b849fc45324989233dccb07fa2fbbf9ce130347582f4b0ce8ac80da63f
+  patches:
+    # Name the MSVC library ojph.dll / ojph.lib instead of ojph.<major>.<minor>,
+    # so that -lojph in ojph.pc matches it (the openjph feedstock does the same).
+    - windows_lib_name.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    # The Highway kernels are x86-only; other architectures build the generic
+    # kernels and do not link libhwy.
+    - if: x86_64
+      then: libhwy
+  run_exports:
+    # The shared library's SOVERSION is <major>.<minor> (libojph.so.1.1), so a
+    # new minor release may change the ABI.
+    - ${{ pin_subpackage('libojph', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - ojph/ojph_arch.h
+        - ojph/ojph_codestream.h
+        - ojph/ojph_defs.h
+        - ojph/ojph_file.h
+        - ojph/ojph_mem.h
+        - ojph/ojph_message.h
+        - ojph/ojph_params.h
+        - ojph/ojph_version.h
+      lib:
+        - ojph
+      files:
+        - if: win
+          then:
+            - Library/lib/cmake/ojph/ojph-config.cmake
+            - Library/lib/cmake/ojph/ojph-config-version.cmake
+            - Library/lib/cmake/ojph/ojph-targets.cmake
+            - Library/lib/pkgconfig/ojph.pc
+          else:
+            - lib/cmake/ojph/ojph-config.cmake
+            - lib/cmake/ojph/ojph-config-version.cmake
+            - lib/cmake/ojph/ojph-targets.cmake
+            - lib/pkgconfig/ojph.pc
+  # Encode and decode with the rev53, rev13 and rev12 kernels through the
+  # installed CMake package and, off Windows, through pkg-config.
+  - files:
+      recipe:
+        - tests/
+    requirements:
+      build:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkg-config
+    script:
+      - if: win
+        then:
+          - cmake -S tests -B consumer-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+          - cmake --build consumer-build
+          - ctest --test-dir consumer-build --output-on-failure
+        else:
+          - cmake -S tests -B consumer-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX
+          - cmake --build consumer-build
+          - ctest --test-dir consumer-build --output-on-failure
+          - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+          - test "$(pkg-config --modversion ojph)" = "${{ version }}"
+          - $CXX $CXXFLAGS -std=c++14 tests/roundtrip.cpp $(pkg-config --cflags --libs ojph) $LDFLAGS -Wl,-rpath,$PREFIX/lib -o roundtrip-pkg-config
+          - ./roundtrip-pkg-config
+  # The library installs next to upstream OpenJPH without sharing a file.
+  - requirements:
+      run:
+        - openjph
+        - python
+    files:
+      recipe:
+        - tests/
+    script:
+      - python tests/check_no_shared_files.py
+
+about:
+  homepage: https://github.com/hmaarrfk/OpenJPH
+  repository: https://github.com/hmaarrfk/OpenJPH
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: A fork of OpenJPH (HTJ2K / JPEG 2000) with the rev12 and rev13 reversible kernels, co-installable with OpenJPH.
+  description: |
+    libojph is a C++ JPEG 2000 / High-Throughput JPEG 2000 (HTJ2K) codec built
+    from a fork of OpenJPH. Besides the 5/3 and 9/7 wavelet kernels, it
+    encodes and decodes the reversible predict-only kernels rev13 and rev12
+    (JPEG 2000 Part 2, signalled with ATK markers), so that decoding with r
+    skipped resolutions returns exactly image[::2**r, ::2**r]. On x86-64 it
+    dispatches at run time to Google Highway SIMD kernels.
+
+    Its files (libojph, include/ojph, lib/cmake/ojph, ojph.pc) do not overlap
+    with the openjph package, so both can be installed in one environment.
+    Use it from CMake with find_package(ojph CONFIG REQUIRED) and the target
+    ojph::ojph, or with pkg-config's ojph module.
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
