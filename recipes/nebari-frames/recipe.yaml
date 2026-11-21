@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  version: "0.1.7"
+
+package:
+  name: nebari-frames
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nebari-dev/nebari-frames/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 518d2dde0ae9af344c3007bce33a156c97e57a3f9a39e57eefc0e3631fcd734f
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    env:
+      GOTOOLCHAIN: local
+    content:
+      - cd src
+      - go-licenses save ./cli --save_path ../library_licenses
+      - if: unix
+        then: go build -v -trimpath -o $PREFIX/bin/frames -ldflags="-s -w -X github.com/nebari-dev/nebari-frames/cli/cmd.version=${{ version }}" ./cli
+        else: go build -v -trimpath -o %LIBRARY_BIN%\frames.exe -ldflags="-s -w -X github.com/nebari-dev/nebari-frames/cli/cmd.version=${{ version }}" ./cli
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - frames --version
+      - frames --help
+  - package_contents:
+      bin:
+        - frames
+      strict: true
+
+about:
+  homepage: https://packs.nebari.dev/nebari-frames/
+  repository: https://github.com/nebari-dev/nebari-frames
+  documentation: https://packs.nebari.dev/nebari-frames/
+  summary: CLI for publishing, browsing, and resolving Nebari Frames
+  description: |
+    Nebari Frames is the registry and exchange for Frames: scoped, text-based
+    artifacts that carry organizational context — terminology, style, goals,
+    rules, business processes — into AI conversations. A Frame composes through
+    inheritance, is governed through role-based access control, and is
+    consumable by any MCP-capable AI client or installed directly as a file.
+
+    This package ships the `frames` command-line client, the only binary the
+    upstream project publishes as a release artifact. Use it to authenticate
+    against a Frames registry, publish Frames authored in your editor, browse
+    the Frames your organization has shared, inspect inheritance chains, and
+    print the inheritance-resolved form of a Frame.
+
+    Frames import and export as conformant Frame Spec 0.2 `.frame.md`
+    documents, so they survive a round trip through other Frame tooling.
+
+    The Frames server and its web UI are deployed from the upstream container
+    image and Helm chart and are not part of this package.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+
+extra:
+  recipe-maintainers:
+    - rxm7706
