@@ -1,0 +1,61 @@
+context:
+  # Upstream publishes no releases: package a commit of the C++ `cpp` branch, versioned
+  # by its date so a future upstream release (any X.Y >= 0.1) sorts above it.
+  version: "0.0.0.20261018"
+  commit: 4d865cba24359b05b37da4e75aee24498c3b78e7
+
+package:
+  name: pocketfft
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mreineck/pocketfft/archive/${{ commit }}.tar.gz
+  sha256: db236e44b1020dd0b415e5040ce10d8be604fefb7ce83ec0b32bc0f78975aa2f
+
+build:
+  number: 0
+  script:
+    - if: unix
+      then:
+        - mkdir -p ${PREFIX}/include
+        - cp pocketfft_hdronly.h ${PREFIX}/include/
+      else:
+        - if not exist "%LIBRARY_INC%" mkdir "%LIBRARY_INC%"
+        - copy pocketfft_hdronly.h "%LIBRARY_INC%\"
+
+tests:
+  - package_contents:
+      include:
+        - pocketfft_hdronly.h
+  - files:
+      recipe:
+        - test.cpp
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+    script:
+      - if: unix
+        then:
+          - ${CXX} ${CXXFLAGS} -std=c++17 -I${PREFIX}/include test.cpp -o test_pocketfft
+          - ./test_pocketfft
+        else:
+          - cl /nologo /EHsc /std:c++17 /I"%LIBRARY_INC%" test.cpp /Fe:test_pocketfft.exe
+          - test_pocketfft.exe
+
+about:
+  homepage: https://github.com/mreineck/pocketfft
+  repository: https://github.com/mreineck/pocketfft
+  summary: Header-only C++ FFT library (the FFT behind numpy and scipy)
+  description: |
+    pocketfft is a single-header C++11 library for fast Fourier transforms of
+    any length (O(n log n) for every size, via Bluestein's algorithm for large
+    prime factors): complex and real transforms, DCT/DST and Hartley
+    transforms, multi-dimensional arrays with arbitrary strides, in float,
+    double and long double, with optional SIMD and multithreading. Its C++
+    branch is the FFT used by numpy and scipy.
+  license: BSD-3-Clause
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - facontidavide
