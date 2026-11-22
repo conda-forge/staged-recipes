@@ -1,0 +1,42 @@
+import os
+import subprocess
+import tempfile
+from pathlib import Path
+
+with tempfile.TemporaryDirectory() as directory:
+    env = dict(os.environ, LETTA_CONFIG_DIR=directory, DO_NOT_TRACK='1', SCARF_ANALYTICS='false')
+    version = subprocess.check_output(['letta', '--version'], env=env, text=True)
+    assert '0.34.68' in version, version
+    subprocess.run(['letta', '--help'], env=env, check=True)
+    info = subprocess.check_output(['letta', '--info'], env=env, text=True)
+    assert 'Pinned agents: (none)' in info, info
+    root = Path(os.environ['PREFIX']) / 'lib/node_modules/@letta-ai/letta-code'
+    subprocess.run(['node', '--input-type=commonjs', '-e', r'''
+const assert = require('node:assert/strict');
+const { createRequire } = require('node:module');
+const requireApp = createRequire(process.argv[1] + '/package.json');
+(async () => {
+  const sharp = requireApp('sharp');
+  const png = await sharp({create: {width: 8, height: 8, channels: 3, background: 'red'}}).resize(4, 4).png().toBuffer();
+  assert.equal((await sharp(png).metadata()).width, 4);
+  const { pathToFileURL } = require('node:url');
+  const imageResize = await import(pathToFileURL(process.argv[1] + '/image-resize.js'));
+  const largePng = await sharp({create: {width: 3000, height: 3000, channels: 3, background: 'red'}}).png().toBuffer();
+  const resized = await imageResize.resizeImageIfNeeded(largePng, 'image/png');
+  assert.equal(resized.resized, true);
+  assert.ok(resized.width <= imageResize.MAX_IMAGE_WIDTH);
+  assert.ok(resized.height <= imageResize.MAX_IMAGE_HEIGHT);
+  const pty = requireApp('node-pty');
+  await new Promise((resolve, reject) => {
+    const terminal = pty.spawn('/bin/sh', ['-c', 'printf conda-pty-ok'], {env: process.env});
+    let output = '';
+    const timer = setTimeout(() => { terminal.kill(); reject(new Error('PTY timeout')); }, 10000);
+    terminal.onData(data => { output += data; });
+    terminal.onExit(({exitCode}) => {
+      clearTimeout(timer);
+      try { assert.equal(exitCode, 0); assert.match(output, /conda-pty-ok/); resolve(); }
+      catch (error) { reject(error); }
+    });
+  });
+})().catch(error => { console.error(error); process.exit(1); });
+''', str(root)], env=env, check=True)
