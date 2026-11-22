@@ -22,7 +22,8 @@ cd node_modules
 patch --binary -p1 < "%RECIPE_DIR%\native-deps.patch"
 if errorlevel 1 exit /b 1
 cd node-pty
-rmdir /s /q prebuilds third_party
+rmdir /s /q prebuilds
+rmdir /s /q third_party
 node "%BUILD_PREFIX%\node_modules\node-gyp\bin\node-gyp.js" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
 if errorlevel 1 exit /b 1
 rmdir /s /q deps
