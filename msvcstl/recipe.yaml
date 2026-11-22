@@ -1,8 +1,8 @@
 context:
   version: 2022-17.14
 
-package:
-  name: msvcstl
+recipe:
+  name: msvcstl-packages
   version: ${{ version | replace("-", "_") }}
 
 source:
@@ -16,30 +16,135 @@ build:
   number: 0
   skip: not win
 
-requirements:
-  build:
-    - ${{ stdlib('c') }}
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - cmake
-    - ninja
-    - python
-
-tests:
-  - package_contents:
-      files:
-        - Library/bin/msvcp*.dll
-        - Library/lib/msvcprt.lib
-        - Library/include/iostream
-  - script: compile_test.bat
+outputs:
+  - staging:
+      name: msvcstl-build
     requirements:
-      run:
+      build:
         - ${{ stdlib('c') }}
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
-    files:
-      recipe:
-        - test_sources/
+        - cmake
+        - ninja
+        - python
+
+  - package:
+      name: msvcstl-headers
+    inherit: msvcstl-build
+    build:
+      noarch: generic
+      files:
+        - Library/include/c++/*
+        - Library/modules/modules.json
+        - Library/modules/std.compat.ixx
+        - Library/modules/std.ixx
+    requirements:
+      run:
+        - if: win
+          then: __win
+      run_constraints:
+        - msvcstl-devel ==${{ version | replace("-", "_") }}
+        # What is the oldest version of clang we should allow?
+        - clangxx >=19
+        - vs >=2022
+    tests:
+      - package_contents:
+          files:
+            - Library/include/c++/*
+            - Library/modules/modules.json
+            - Library/modules/std.compat.ixx
+            - Library/modules/std.ixx
+
+  - package:
+      name: msvcstl
+    inherit: msvcstl-build
+    build:
+      string: ${{ "debug_" if hardening == "debug" }}h${{ hash }}_${{ build_number }}
+      files:
+        - if: hardening == "none"
+          then:
+            # Dynamic libraries
+            - Library/bin/msvcp140_1_conda.dll
+            - Library/bin/msvcp140_2_conda.dll
+            - Library/bin/msvcp140_atomic_wait_conda.dll
+            - Library/bin/msvcp140_codecvt_ids_conda.dll
+            - Library/bin/msvcp140_conda.dll
+            # Static library archives
+            - Library/lib/libcpmt.lib
+            - Library/lib/libcpmt1.lib
+            # Import libraries for dynamic linking
+            - Library/lib/msvcprt.lib
+          else:
+            # Dynamic libraries
+            - Library/bin/msvcp140_1d_conda.dll
+            - Library/bin/msvcp140_2d_conda.dll
+            - Library/bin/msvcp140d_atomic_wait_conda.dll
+            - Library/bin/msvcp140d_codecvt_ids_conda.dll
+            - Library/bin/msvcp140d_conda.dll
+            # Static library archives
+            - Library/lib/libcpmtd.lib
+            - Library/lib/libcpmtd0.lib
+            - Library/lib/libcpmtd1.lib
+            # Import libraries for dynamic linking
+            - Library/lib/msvcprtd.lib
+        - Library/lib/stl_asan.lib
+    requirements:
+      run_exports:
+        - if: hardening == "debug"
+          then: msvcstl * debug*
+    tests:
+      - package_contents:
+          files:
+            - if: hardening == "none"
+              then:
+                - Library/bin/msvcp140_1_conda.dll
+                - Library/bin/msvcp140_2_conda.dll
+                - Library/bin/msvcp140_atomic_wait_conda.dll
+                - Library/bin/msvcp140_codecvt_ids_conda.dll
+                - Library/bin/msvcp140_conda.dll
+                - Library/lib/libcpmt.lib
+                - Library/lib/libcpmt1.lib
+                - Library/lib/msvcprt.lib
+              else:
+                - Library/bin/msvcp140_1d_conda.dll
+                - Library/bin/msvcp140_2d_conda.dll
+                - Library/bin/msvcp140d_atomic_wait_conda.dll
+                - Library/bin/msvcp140d_codecvt_ids_conda.dll
+                - Library/bin/msvcp140d_conda.dll
+                - Library/lib/libcpmtd.lib
+                - Library/lib/libcpmtd0.lib
+                - Library/lib/libcpmtd1.lib
+                - Library/lib/msvcprtd.lib
+            - Library/lib/stl_asan.lib
+          strict: true
+
+  - package:
+      name: msvcstl-devel
+    build:
+      files:
+        - Library/include2/c++
+      string: ${{ "debug_" if hardening == "debug" }}h${{ hash }}_${{ build_number }}
+    inherit: msvcstl-build
+    requirements:
+      host:
+        - ${{ pin_subpackage("msvcstl", exact = True) }}
+        - ${{ pin_subpackage("msvcstl-headers", exact = True) }}
+      run:
+        - if: hardening == "none"
+          then: msvcstl * h*
+          else: msvcstl * debug*
+        - ${{ pin_subpackage("msvcstl", upper_bound = None) }}
+        - ${{ pin_subpackage("msvcstl-headers", upper_bound = "x.x.x") }}
+    tests:
+      - script: compile_test.bat
+        requirements:
+          run:
+            - ${{ stdlib('c') }}
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+        files:
+          recipe:
+            - test_sources/
 
 about:
   license: Apache-2.0

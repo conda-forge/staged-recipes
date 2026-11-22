@@ -9,7 +9,6 @@ if %host_platform% == "win-arm64" (
     set target_folder=arm64
 )
 
-
 cmake -S . -B build -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCONFIGURE_TESTING=True ^
@@ -20,14 +19,14 @@ cmake -S . -B build -G Ninja ^
 
 cmake --build build || goto :error
 
-mkdir %LIBRARY_LIB%
-mkdir %LIBRARY_INC%
-mkdir %LIBRARY_PREFIX%\modules
+mkdir "%LIBRARY_LIB%"
+mkdir "%LIBRARY_INC%\c++\v1"
+mkdir "%LIBRARY_PREFIX%\modules"
 
-copy build\out\bin\%target_folder%\* %LIBRARY_BIN%
-copy build\out\lib\%target_folder%\* %LIBRARY_LIB%
-copy build\out\inc\* %LIBRARY_INC%
-copy build\out\modules\* %LIBRARY_PREFIX%\modules
+copy "build\out\bin\%target_folder%\*" "%LIBRARY_BIN%" || goto :error
+copy "build\out\lib\%target_folder%\*" "%LIBRARY_LIB%" || goto :error
+copy "build\out\inc\*" "%LIBRARY_INC%\c++\v1" || goto :error
+copy "build\out\modules\*" "%LIBRARY_PREFIX%\modules" || goto :error
 
 goto :eof
 
