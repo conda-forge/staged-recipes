@@ -11,68 +11,60 @@ source:
   sha256: 773325003ce829e4c99fa2a9534617d8a918fab5fd6d035ef73df39562d16b42
 
 build:
-  # Uncomment the following line if the package is pure Python and the recipe is exactly the same for all platforms.
-  # It is okay if the dependencies are not built for all platforms/versions, although selectors are still not allowed.
-  # See https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-python for more details.
-  # noarch: python
-  # If the installation is complex, or different between Unix and Windows, use separate build.bat and build.sh files instead of this key.
-  # By default, the package will be built for the Python versions supported by conda-forge and for all major OSs.
-  # Uncomment the following lines to limit to Python 3.5 and newer (for example)
-  # skip:
-  #   - match(python, "<3.5")
-  # or the following to limit to Windows.
-  # skip:
-  #   - win
-  script: python -m pip install . -vv
   number: 0
+  skip:
+    - match(python, "<3.11")
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   build:
-    # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
-    # Compiler names include 'c', 'cxx' and 'fortran', among others.
     - ${{ compiler('c') }}
-    - ${{ stdlib('c') }}  # If you need any compiler, add the C standard library ("stdlib") too
+    - ${{ stdlib('c') }}
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - numpy
   host:
     - python
     - pip
-    - setuptools
+    - setuptools >=77
+    - numpy
   run:
     - python
+    - qpsolvers >=4.3.1
+    - typing-extensions
 
 tests:
-  # Some packages might need a `test/commands` key to check CLI.
   - python:
-      # A list of modules that the test will try to import
       imports:
-      - simplejson
-      - simplejson.tests
-      # Also run `pip check` to verify the integrity
+        - pinker
+        - pinker.kinematics._kinematics_c
       pip_check: true
+  - files:
+      source:
+        - tests/
+    script:
+      # Other unit tests need other dependencies or networking
+      - cd tests/kinematics
+      - python -m unittest --verbose test_algorithms test_mjcf test_urdf
 
 about:
-  homepage: https://github.com/simplejson/simplejson
-  summary: 'Simple, fast, extensible JSON encoder/decoder for Python'
+  homepage: https://pink-kinematics.github.io/pinker/
+  summary: Python inverse kinematics for embedded robots
   description: |
-    simplejson is a simple, fast, complete, correct and extensible
-    JSON <https://json.org> encoder and decoder for Python 2.5+ and
-    Python 3.3+. It is pure Python code with no dependencies, but includes
-    an optional C extension for a serious speed boost.
-  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
-  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
-  # See https://spdx.org/licenses/
-  license: MIT
-  # It is required to include a license file in the package,
-  # (even if the license doesn't require it) using the license_file entry.
-  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
-  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
-  license_file: LICENSE.txt
-  # The documentation and repository URLs are optional.
-  documentation: https://simplejson.readthedocs.io/
-  repository: https://github.com/simplejson/simplejson
+    Pinker is a leaner version of Pink aimed in particular at single-board
+    computers. It ships its own kinematics backend, so the whole library is
+    NumPy, a QP solver and one C file that takes seconds to compile. Pinker is
+    API-compatible with Pink 4.4.0 and produces the same results at the same
+    speed.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+  documentation: https://pink-kinematics.github.io/pinker/
+  repository: https://github.com/pink-kinematics/pinker
 
 extra:
   recipe-maintainers:
-    # GitHub IDs for maintainers of the recipe.
-    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
-    - LisaSimpson
-    - LandoCalrissian
+    - stephane-caron
