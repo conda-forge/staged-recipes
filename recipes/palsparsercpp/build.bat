@@ -1,12 +1,15 @@
 @echo on
 
 :: AtomicAndPhysicalConstantsCLib: a static archive that is bundled into
-:: PALSParserCpp.dll, as on the other platforms.
-cmake %CMAKE_ARGS% -S apc -B build-apc -G Ninja ^
-    -DCMAKE_BUILD_TYPE=Release ^
-    -DAPC_BUILD_TESTS=OFF
+:: PALSParserCpp.dll, as on the other platforms. It is configured with the
+:: Visual Studio generator, which the compiler activation makes CMake's
+:: default, not with Ninja: on Windows its static `apc` and its shared
+:: `apc_shared` both write apc.lib (a static library and an import library),
+:: and Ninja refuses that ("multiple rules generate apc.lib"). Only `apc` is
+:: built.
+cmake %CMAKE_ARGS% -S apc -B build-apc -DAPC_BUILD_TESTS=OFF
 if errorlevel 1 exit 1
-cmake --build build-apc --target apc
+cmake --build build-apc --config Release --target apc
 if errorlevel 1 exit 1
 
 :: rapidyaml, PCRE2 and Catch2 come from the host environment; on Windows
@@ -20,7 +23,7 @@ cmake %CMAKE_ARGS% -S . -B build -G Ninja ^
     -DBUILD_TESTING=ON ^
     -DPALS_BUILD_EXAMPLES=OFF ^
     -DPALS_APC_INCLUDE_DIR="%SRC_DIR%\apc\include" ^
-    -DPALS_APC_LIBRARY="%SRC_DIR%\build-apc\apc.lib"
+    -DPALS_APC_LIBRARY="%SRC_DIR%\build-apc\Release\apc.lib"
 if errorlevel 1 exit 1
 cmake --build build
 if errorlevel 1 exit 1
