@@ -42,5 +42,5 @@ if errorlevel 1 exit /b 1
 call pnpm-licenses generate-disclaimer --json-input-file "%SRC_DIR%\licenses.json" --output-file "%SRC_DIR%\THIRDPARTY.txt"
 if errorlevel 1 exit /b 1
 rem Preserve original license files and additional notices alongside the disclaimer.
-node -e "const fs = require('fs'), path = require('path'); for (const p of fs.globSync('**/{LICENSE*,LICENCE*,license*,licence*,COPYING*,NOTICE*,*NOTICES*,*notices*,COPYRIGHT*,Copyright*,copyright*,ThirdParty*,third-party*}')) { if (!fs.statSync(p).isFile()) continue; const dest = path.join(process.env.SRC_DIR, 'third-party-licenses', p); fs.mkdirSync(path.dirname(dest), {recursive:true}); fs.copyFileSync(p, dest); }"
+node -e "const fs = require('fs'), path = require('path'); for (const p of fs.globSync('**/{LICENSE*,LICENCE*,license*,licence*,COPYING*,NOTICE*,*NOTICES*,*notices*,COPYRIGHT*,Copyright*,copyright*,ThirdParty*,third-party*}')) { const dest = path.join(process.env.SRC_DIR, 'third-party-licenses', p); fs.mkdirSync(path.dirname(dest), {recursive:true}); fs.cpSync(p, dest, {recursive:true}); }"
 if errorlevel 1 exit /b 1
