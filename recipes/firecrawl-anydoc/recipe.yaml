@@ -11,6 +11,9 @@ source:
 
 build:
   number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
   script:
     interpreter: brush
     content: |
@@ -26,6 +29,8 @@ requirements:
     - brush
     - cargo-bundle-licenses
   host:
+    - if: is_abi3
+      then: python-abi3
     - python
     - pip
     - maturin >=1.9,<2
@@ -38,6 +43,10 @@ tests:
         - anydoc
         - anydoc._anydoc
       pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
   - script:
       interpreter: python
       content: |
@@ -55,6 +64,23 @@ tests:
             assert anydoc.to_markdown(path) == markdown
         rtf = br"{\rtf1\ansi Hello from conda-forge.}"
         assert "Hello from conda-forge." in anydoc.to_markdown_bytes(rtf)
+
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        interpreter: python
+        content: |
+          import subprocess
+          import anydoc._anydoc as extension
+
+          # Upstream's PyO3 feature is abi3-py310.
+          subprocess.run([
+              "abi3audit", extension.__file__, "--strict", "--verbose",
+              "--assume-minimum-abi3", "3.10",
+          ], check=True)
 
 about:
   homepage: https://firecrawl.github.io/anydoc
