@@ -10,12 +10,12 @@ if %host_platform% == "win-arm64" (
 )
 
 cmake -S . -B build -G Ninja ^
-	-DCMAKE_BUILD_TYPE=Release ^
-	-DCONFIGURE_TESTING=True ^
-	-DTESTS_BUILD_ONLY=False ^
-	-DVCLIBS_SUFFIX="_conda" ^
-	-DVCLIBS_TARGET_ARCHITECTURE=%target_architecture% ^
-	%CMAKE_ARGS% || goto :error
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCONFIGURE_TESTING=True ^
+    -DTESTS_BUILD_ONLY=False ^
+    -DVCLIBS_SUFFIX="_conda" ^
+    -DVCLIBS_TARGET_ARCHITECTURE=%target_architecture% ^
+    %CMAKE_ARGS% || goto :error
 
 cmake --build build || goto :error
 
