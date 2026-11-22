@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -x
+set -xeo pipefail
 
 source .scripts/logging_utils.sh
 
@@ -26,7 +26,7 @@ else
     MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-${osx_arch}"
     echo "Downloading micromamba ${MICROMAMBA_VERSION}"
     micromamba_exe="$(mktemp -d)/micromamba"
-    curl -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
+    curl --fail --retry 5 --retry-delay 5 -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
     chmod +x "${micromamba_exe}"
   fi
   echo "Creating environment"
@@ -83,8 +83,6 @@ fi
 
 echo -e "\n\nRunning the build setup script."
 source run_conda_forge_build_setup
-
-set -e
 
 # make sure there is a package directory so that artifact publishing works
 mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD_PATH}/noarch/"
