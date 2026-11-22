@@ -11,8 +11,7 @@ commands require a separate upstream installation.
 
 Windows x64 uses the ConPTY provided by Windows 10/11. The native add-ons
 are built with MSVC against conda libvips; bundled OpenConsole/conpty binaries
-and the legacy winpty backend are not installed. Windows ARM64 is excluded
-because conda-forge does not currently provide libvips for that platform.
+and the legacy winpty backend are not installed.
 The same brush script drives the builds on Windows, macOS, and Linux.
 
 Third-party JavaScript licenses are generated with pnpm-licenses from the
