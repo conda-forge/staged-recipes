@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(rtabmap_consumer LANGUAGES CXX)
 
-find_package(RTABMap 0.23.8 CONFIG REQUIRED COMPONENTS core gui)
+find_package(RTABMap 0.24.2 CONFIG REQUIRED COMPONENTS core gui)
 
 add_executable(rtabmap_core_consumer core.cpp)
 target_link_libraries(rtabmap_core_consumer PRIVATE rtabmap::core)

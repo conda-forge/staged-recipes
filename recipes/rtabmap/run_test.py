@@ -67,7 +67,7 @@ for path in cmake_files:
 assert not cmake_leaks, f"build paths leaked into CMake metadata: {cmake_leaks}"
 
 include_root = prefix / ("Library/include" if os.name == "nt" else "include")
-version_header = include_root / "rtabmap-0.23/rtabmap/core/Version.h"
+version_header = include_root / "rtabmap-0.24/rtabmap/core/Version.h"
 version_text = version_header.read_text(encoding="utf-8")
 
 
