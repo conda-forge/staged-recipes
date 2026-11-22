@@ -1,0 +1,65 @@
+schema_version: 1
+
+context:
+  version: "1.7.0"
+  # Upstream OBS revision containing the vendor archive for this tag.
+  obs_revision: e3883f113a803763b2c0121b338e848c
+
+package:
+  name: rustnet
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/domcyrus/rustnet/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 9d3f6509da06f832c04c5accc7b777c18f3de8b32c885137c9a1346990694dda
+  - url: https://api.opensuse.org/public/source/home:domcyrus:rustnet/rustnet/vendor.tar.zst?rev=${{ obs_revision }}
+    sha256: 94ac1cee9e7c1e11770a2dfe2d9afe7c11b007716bfb805a96ddfc57296edffe
+    target_directory: obs
+
+build:
+  number: 0
+  skip: target_platform not in ["linux-64", "linux-aarch64", "osx-64", "osx-arm64"]
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - pkg-config
+    - if: linux
+      then:
+        - clang
+        - make
+  host:
+    - libpcap
+    - if: linux
+      then:
+        - elfutils
+        - zlib
+
+tests:
+  - script:
+      - test "$(rustnet --version)" = "rustnet ${{ version }}"
+      - rustnet --help
+
+about:
+  homepage: https://github.com/domcyrus/rustnet
+  summary: Per-process network monitor with a terminal UI and headless JSON output
+  description: |
+    Packet capture on Linux requires CAP_NET_RAW. On modern Linux kernels,
+    eBPF process attribution also uses CAP_BPF and CAP_PERFMON. On macOS,
+    basic capture requires access to /dev/bpf* and PKTAP requires root.
+    See the permissions section of the installation guide for setup.
+  documentation: https://github.com/domcyrus/rustnet/blob/v${{ version }}/INSTALL.md#permissions-setup
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+    - if: linux
+      then: vendor/libbpf-sys/libbpf/LICENSE.BSD-2-Clause
+
+extra:
+  recipe-maintainers:
+    - domcyrus
