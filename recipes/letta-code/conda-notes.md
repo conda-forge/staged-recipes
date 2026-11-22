@@ -9,5 +9,8 @@ proprietary prebuilt native packages are removed from the npm dependency
 metadata. The normal Letta agent workflow is available. Cursor-specific
 commands require a separate upstream installation.
 
-Windows is not enabled in this initial recipe. The Homebrew formula used as
-reference also targets Unix, and Windows needs a separate native build path.
+Windows x64 uses the ConPTY provided by Windows 10/11. The native add-ons
+are built with MSVC against conda libvips; bundled OpenConsole/conpty binaries
+and the legacy winpty backend are not installed. Windows ARM64 is excluded
+because conda-forge does not currently provide libvips for that platform.
+The same brush script drives the builds on Windows, macOS, and Linux.
