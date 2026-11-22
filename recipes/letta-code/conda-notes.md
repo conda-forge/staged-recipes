@@ -17,4 +17,5 @@ The same brush script drives the builds on Windows, macOS, and Linux.
 
 Third-party JavaScript licenses are generated with pnpm-licenses from the
 installed npm tree and the separately supplied bundled dependency sources.
-Supplemental upstream license texts and nested notices are also included.
+The installed package's own license is preferred; supplemental upstream texts
+are used only when its license file is missing. Nested notices are also included.

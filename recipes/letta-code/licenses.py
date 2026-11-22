@@ -1,6 +1,7 @@
 """Pass the installed npm tree and bundled JS to pnpm-licenses' JSON interface."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,9 @@ supplements = {
     'standardwebhooks': 'STANDARDWEBHOOKS-LICENSE',
     'proxy-agent-negotiate': 'PROXY-AGENTS-LICENSE',
 }
+# Match the top-level license filenames recognized by pnpm-licenses.
+license_filename = re.compile(
+    r'(?:licen[cs]e(?:\.\w+|-\w+(?:\.\w+)?)?|unlicen[cs]e|copying)', re.IGNORECASE)
 for manifest in sorted([*root.rglob('package.json'), *bundled.rglob('package.json')]):
     data = json.loads(manifest.read_text(encoding='utf-8'))
     if not data.get('name') or not data.get('version'):
@@ -28,6 +32,10 @@ for manifest in sorted([*root.rglob('package.json'), *bundled.rglob('package.jso
         supplemental = 'AWS-SDK-LICENSE'
     if name.startswith('@earendil-works/pi-'):
         supplemental = 'PI-LICENSE'
+    if any(path.is_file() and license_filename.fullmatch(path.name)
+           for path in manifest.parent.iterdir()):
+        # Prefer the license shipped with this exact installed version.
+        supplemental = None
     if supplemental:
         # Supply the real upstream text rather than letting pnpm-licenses
         # synthesize copyright attribution from incomplete npm metadata.
