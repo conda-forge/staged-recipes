@@ -1,4 +1,4 @@
-"""Platform-specific paths and native add-on setup for the common brush build."""
+"""Prepare npm metadata and build native add-ons against conda libraries."""
 import ast
 import json
 import os
@@ -6,6 +6,12 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+prefix = Path(os.environ['PREFIX'])
+build = Path(os.environ['BUILD_PREFIX'])
+src = Path(os.environ['SRC_DIR'])
+modules = 'node_modules' if os.name == 'nt' else 'lib/node_modules'
+node = shutil.which('node')
 
 
 def prepare():
@@ -36,7 +42,7 @@ def configure_pty(path, windows):
     for directory in ('prebuilds', 'third_party'):
         shutil.rmtree(path / directory, ignore_errors=True)
     if windows:
-        # Node.js 24 requires modern Windows, which provides ConPTY itself.
+        # Supported Node.js versions require Windows with built-in ConPTY.
         # Build the ConPTY add-ons, not the legacy winpty backend or bundled
         # OpenConsole.exe/conpty.dll. Keep the upstream /guard:cf flags.
         gyp = path / 'binding.gyp'
@@ -77,14 +83,9 @@ def configure_sharp(path, prefix, windows):
 
 
 def native(root):
-    prefix = Path(os.environ['PREFIX'])
-    src = Path(os.environ['SRC_DIR'])
-    node = shutil.which('node')
     # Invoke conda's build dependency directly, including on Windows where
     # the command-line launcher is a .cmd file.
-    modules = 'node_modules' if os.name == 'nt' else 'lib/node_modules'
-    node_gyp = Path(os.environ['BUILD_PREFIX']) / modules / 'node-gyp/bin/node-gyp.js'
-    headers = src / 'node-headers' if os.name == 'nt' else prefix
+    node_gyp = build / modules / 'node-gyp/bin/node-gyp.js'
     env = dict(os.environ, SHARP_FORCE_GLOBAL_LIBVIPS='1')
     for manifest in root.rglob('package.json'):
         name = json.loads(manifest.read_text(encoding='utf-8')).get('name')
@@ -97,9 +98,13 @@ def native(root):
         else:
             configure_sharp(path, prefix, windows=os.name == 'nt')
             cwd = path / 'src'
-        command = [node, str(node_gyp), 'rebuild', '--nodedir', str(headers)]
+        command = [node, str(node_gyp), 'rebuild']
         if os.name == 'nt':
-            command += ['--msvs_version=2022']
+            # Windows nodejs packages omit headers and node.lib. Let node-gyp
+            # fetch and checksum the files for the selected Node.js version.
+            command += ['--devdir', str(src / 'node-headers'), '--msvs_version=2022']
+        else:
+            command += ['--nodedir', str(prefix)]
         subprocess.run(command, cwd=cwd, env=env, check=True)
         if name == 'node-pty' and os.name != 'nt':
             subprocess.run([node, 'scripts/post-install.js'], cwd=path, check=True)
@@ -120,29 +125,11 @@ def native(root):
             shutil.rmtree(path / 'deps', ignore_errors=True)
 
 
-def main():
-    command = sys.argv[1]
-    if command == 'npm-cli':
-        build = Path(os.environ['BUILD_PREFIX'])
-        candidates = [build / 'node_modules/npm/bin/npm-cli.js', build / 'lib/node_modules/npm/bin/npm-cli.js']
-        print(next(path for path in candidates if path.is_file()).as_posix(), end='')
-    elif command == 'npm-root':
-        prefix = Path(os.environ['PREFIX'])
-        directory = 'node_modules' if os.name == 'nt' else 'lib/node_modules'
-        print((prefix / directory / '@letta-ai/letta-code').as_posix(), end='')
-    elif command == 'prepare':
-        prepare()
-    elif command == 'clean':
-        clean(Path(sys.argv[2]))
-    elif command == 'native':
-        native(Path(sys.argv[2]))
-    elif command == 'finish':
-        directory = Path(os.environ['PREFIX']) / 'share/doc/letta-code'
-        directory.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(Path(os.environ['RECIPE_DIR']) / 'conda-notes.md', directory / 'conda-notes.md')
-    else:
-        raise ValueError(command)
-
-
-if __name__ == '__main__':
-    main()
+if sys.argv[1] == 'prepare':
+    prepare()
+elif sys.argv[1] == 'native':
+    root = Path(sys.argv[2])
+    clean(root)
+    native(root)
+else:
+    raise ValueError(sys.argv[1])
