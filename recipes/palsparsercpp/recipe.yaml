@@ -1,0 +1,78 @@
+context:
+  version: "0.0.1"
+  # AtomicAndPhysicalConstantsCLib is not on conda-forge. It is built from
+  # source and linked into libPALSParserCpp statically. Keep this equal to the
+  # tag PALSParserCpp pins in CMakeLists.txt (FetchContent_Declare(apc ...)):
+  # the test reference values depend on that APC release.
+  apc_version: "0.11.1"
+
+package:
+  name: palsparsercpp
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pals-project/PALSParserCpp/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: 4d33de255ad18bf27bf66c9ea5cb0bd8b152f305073567deb36bb4250eba2d23
+  - url: https://github.com/pals-project/AtomicAndPhysicalConstantsCLib/archive/refs/tags/v${{ apc_version }}.tar.gz
+    sha256: ecd4629a35f25e010c7d33c598eec6d47ec3a312090f09bea53b6c33f2f65595
+    target_directory: apc
+
+build:
+  number: 0
+  skip:
+    # PALSParserCpp has not been built on Windows yet.
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - librapidyaml
+    - pcre2
+    # Only for the test suite run during the build; nothing links it at run time.
+    - catch2
+  ignore_run_exports:
+    by_name:
+      - catch2
+
+tests:
+  - package_contents:
+      lib:
+        - PALSParserCpp
+      include:
+        - PALSParserCpp.h
+  # The installed library must load with nothing but the environment: its
+  # rpath finds librapidyaml and pcre2 beside it.
+  - script:
+      - python -c "import ctypes, os, sys; ext = 'dylib' if sys.platform == 'darwin' else 'so'; ctypes.CDLL(os.path.join(sys.prefix, 'lib', 'libPALSParserCpp.' + ext))"
+    requirements:
+      run:
+        - python
+
+about:
+  homepage: https://github.com/pals-project/PALSParserCpp
+  repository: https://github.com/pals-project/PALSParserCpp
+  documentation: https://pals-project.github.io/PALSParserCpp/
+  summary: Parser and expander for PALS accelerator lattice files
+  description: |
+    PALSParserCpp reads lattice files written in PALS
+    (https://github.com/pals-project/pals), the standard for exchanging
+    particle accelerator lattices. It expands them as the standard defines:
+    include and load, inheritance, sets, expressions and controllers, branch
+    expansion, and bookkeeping that computes every dependent parameter. Its C
+    API is used by the palsparserpy Python package and by PALSParserJ.jl.
+
+    AtomicAndPhysicalConstantsCLib, which supplies particle data and physical
+    constants, is linked into the library statically.
+  license: GPL-2.0-only
+  license_file:
+    - LICENSE
+    - apc/LICENSE
+
+extra:
+  recipe-maintainers:
+    - DavidSagan
