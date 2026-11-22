@@ -14,3 +14,7 @@ are built with MSVC against conda libvips; bundled OpenConsole/conpty binaries
 and the legacy winpty backend are not installed. Windows ARM64 is excluded
 because conda-forge does not currently provide libvips for that platform.
 The same brush script drives the builds on Windows, macOS, and Linux.
+
+Third-party JavaScript licenses are generated with pnpm-licenses from the
+installed npm tree and the separately supplied bundled dependency sources.
+Supplemental upstream license texts and nested notices are also included.
