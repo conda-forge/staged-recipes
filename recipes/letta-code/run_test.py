@@ -49,6 +49,8 @@ const requireApp = createRequire(process.argv[1] + '/package.json');
     terminal.onData(data => { output += data; });
     terminal.onExit(({exitCode}) => {
       clearTimeout(timer);
+      // ConPTY's socket worker outlives the child until kill() releases it.
+      if (windows) terminal.kill();
       try { assert.equal(exitCode, 0); assert.match(output, /conda-pty-ok/); resolve(); }
       catch (error) { reject(error); }
     });
