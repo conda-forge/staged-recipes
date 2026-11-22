@@ -1,8 +1,8 @@
 # Letta Code in conda
 
 This package runs the upstream npm distribution with Node.js. Bun is not
-required at runtime. `node-pty` and `sharp` are built from source, and the
-package uses conda's ripgrep and libvips.
+required at runtime. `node-pty` and `sharp` are built from source using
+conda-forge's node-gyp, and the package uses conda's ripgrep and libvips.
 
 The optional Cursor integration is not included: `@cursor/sdk` and its
 proprietary prebuilt native packages are removed from the npm dependency

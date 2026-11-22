@@ -80,7 +80,10 @@ def native(root):
     prefix = Path(os.environ['PREFIX'])
     src = Path(os.environ['SRC_DIR'])
     node = shutil.which('node')
-    node_gyp = src / 'node-gyp/node_modules/node-gyp/bin/node-gyp.js'
+    # Invoke conda's build dependency directly, including on Windows where
+    # the command-line launcher is a .cmd file.
+    modules = 'node_modules' if os.name == 'nt' else 'lib/node_modules'
+    node_gyp = Path(os.environ['BUILD_PREFIX']) / modules / 'node-gyp/bin/node-gyp.js'
     headers = src / 'node-headers' if os.name == 'nt' else prefix
     env = dict(os.environ, SHARP_FORCE_GLOBAL_LIBVIPS='1')
     for manifest in root.rglob('package.json'):
