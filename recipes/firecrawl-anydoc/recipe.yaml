@@ -11,12 +11,19 @@ source:
 
 build:
   number: 0
+  script:
+    interpreter: brush
+    content: |
+      export CARGO_HOME="${SRC_DIR}/.cargo"
+      cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      "${PYTHON}" -m pip install . --no-deps --no-build-isolation -vv
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - ${{ compiler('rust') }}
+    - brush
     - cargo-bundle-licenses
   host:
     - python
@@ -31,10 +38,23 @@ tests:
         - anydoc
         - anydoc._anydoc
       pip_check: true
-  - script: python run_test.py
-    files:
-      recipe:
-        - run_test.py
+  - script:
+      interpreter: python
+      content: |
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        import anydoc
+
+        csv = b"name,value\nalpha,42\n"
+        markdown = anydoc.to_markdown_bytes(csv, format="csv")
+        assert "alpha" in markdown and "42" in markdown, markdown
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.csv"
+            path.write_bytes(csv)
+            assert anydoc.to_markdown(path) == markdown
+        rtf = br"{\rtf1\ansi Hello from conda-forge.}"
+        assert "Hello from conda-forge." in anydoc.to_markdown_bytes(rtf)
 
 about:
   homepage: https://firecrawl.github.io/anydoc
