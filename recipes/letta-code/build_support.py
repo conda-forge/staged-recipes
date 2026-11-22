@@ -122,7 +122,11 @@ def main():
     if command == 'npm-cli':
         build = Path(os.environ['BUILD_PREFIX'])
         candidates = [build / 'node_modules/npm/bin/npm-cli.js', build / 'lib/node_modules/npm/bin/npm-cli.js']
-        print(next(path for path in candidates if path.is_file()))
+        print(next(path for path in candidates if path.is_file()).as_posix(), end='')
+    elif command == 'npm-root':
+        prefix = Path(os.environ['PREFIX'])
+        directory = 'node_modules' if os.name == 'nt' else 'lib/node_modules'
+        print((prefix / directory / '@letta-ai/letta-code').as_posix(), end='')
     elif command == 'prepare':
         prepare()
     elif command == 'clean':
