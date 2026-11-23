@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.4.2"
+  version: "0.5.0"
 
 package:
   name: linkcell
@@ -9,7 +9,7 @@ package:
 
 source:
   url: https://github.com/d-SEAMS/linkcell/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 40982f7494957dda3aec7db989fd88b936079390d8eff80785c4996692c46e09
+  sha256: 8cd9d3264edc10d061c66de908fea24e21fd647d6969bef8eed1f15f8d4d4006
 
 build:
   number: 0
@@ -33,11 +33,14 @@ requirements:
       then:
         - m2-bash
   host:
-    # The fused OpenMP region is built on glibc Linux only. macOS keeps
-    # the rayon walk and does not link an OpenMP runtime.
+    # The fused OpenMP region links libgomp under GCC on Linux and
+    # libomp on macOS. Windows keeps the rayon walk and links neither.
     - if: linux
       then:
         - libgomp
+    - if: osx
+      then:
+        - llvm-openmp
   run_exports:
     - ${{ pin_subpackage('linkcell', upper_bound='x.x') }}
 
@@ -59,27 +62,48 @@ tests:
   - files:
       recipe:
         - test_knearest.c
+        - test_knearest_csr.cpp
     requirements:
       run:
         - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
         - ${{ stdlib('c') }}
         - pkgconf
     script:
       - if: unix
         then:
           - test "$(pkg-config --modversion linkcell)" = "${{ version }}"
-          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest
-          - ./test_knearest
+          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --libs linkcell) -lm ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest
+          - ${CXX} ${CXXFLAGS} -std=c++17 test_knearest_csr.cpp $(pkg-config --cflags --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest_csr
+          - OMP_NUM_THREADS=1 ./test_knearest
+          - OMP_NUM_THREADS=4 ./test_knearest
+          - OMP_NUM_THREADS=4 ./test_knearest_csr
+          # A static consumer needs the OpenMP runtime the region calls,
+          # and every library directory it is given is in the prefix.
+          - pkg-config --static --libs linkcell
+          - for flag in $(pkg-config --static --libs linkcell); do case "${flag}" in -L"${PREFIX}"/*) ;; -L*) echo "linkcell.pc names ${flag}"; exit 1 ;; esac; done
+          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --static --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest_private
+          - OMP_NUM_THREADS=2 ./test_knearest_private
+      - if: linux
+        then:
+          - pkg-config --static --libs linkcell | grep -q -- -lgomp
+          - ${READELF} -d ${PREFIX}/lib/liblinkcell.so | grep NEEDED | grep -q libgomp
+      - if: osx
+        then:
+          - pkg-config --static --libs linkcell | grep -q omp
+          - ${OTOOL:-otool} -L ${PREFIX}/lib/liblinkcell.dylib | grep -q libomp
       - if: win
         then:
           - pkg-config --modversion linkcell
           - cl -nologo /std:c11 /I%LIBRARY_INC% test_knearest.c /Fe:test_knearest.exe /link /LIBPATH:%LIBRARY_LIB% linkcell.lib
+          - cl -nologo /std:c++17 /EHsc /I%LIBRARY_INC% test_knearest_csr.cpp /Fe:test_knearest_csr.exe /link /LIBPATH:%LIBRARY_LIB% linkcell.lib
           - test_knearest.exe
+          - test_knearest_csr.exe
 
 about:
   homepage: https://github.com/d-SEAMS/linkcell
   repository: https://github.com/d-SEAMS/linkcell
-  documentation: https://d-seams.github.io/linkcell/
+  documentation: https://linkcell.dseams.info/
   license: MIT
   license_file:
     - LICENSE
