@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: motorbridge
+  version: "0.5.6"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/motorbridge/motorbridge/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f56c0771ad73a4c18bd212a729e614dc4aee586f0d096c4cd04e731d504f94fb
+
+build:
+  number: 0
+  script:
+    - cargo build -p motor_abi -p ws_gateway --release
+    - if: unix
+      then: cp target/${CARGO_BUILD_TARGET}/release/* target/release/ || true
+      else: copy target\%CARGO_BUILD_TARGET%\release\* target\release\ || ver>nul
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install ./bindings/python -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - motorbridge = motorbridge.cli:main
+      - motorbridge-cli = motorbridge.cli:main
+      - motorbridge-gateway = motorbridge.gateway:main
+      - motorbridge-install-dm-device = motorbridge.dm_device_runtime:main
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - setuptools
+        - wheel
+  host:
+    - python
+    - setuptools
+    - wheel
+    - pip
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - motorbridge
+      pip_check: true
+  - script:
+      - motorbridge --help
+
+about:
+  summary: Unified CAN motor control stack with pluggable vendor drivers and Python SDK
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/motorbridge/motorbridge
+  repository: https://github.com/motorbridge/motorbridge
+
+extra:
+  recipe-maintainers:
+    - flferretti
