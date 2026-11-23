@@ -1,0 +1,86 @@
+schema_version: 1
+
+context:
+  version: "0.18.0"
+
+package:
+  name: matrix-sdk-python
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/m/matrix-sdk-python/matrix_sdk_python-${{ version }}.tar.gz
+  sha256: 92eebb8d6aa46e2c9458fe126c77262cb53f77cf5fc5444d54f4a3c4d00d0edd
+  patches:
+    # Respect conda's Rust target, build the binding generator for the host, and keep Cargo.lock unchanged.
+    - conda-toolchain.patch
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      CMAKE_GENERATOR: Ninja
+      LIBSQLITE3_SYS_USE_PKG_CONFIG: "1"
+      ZSTD_SYS_USE_PKG_CONFIG: "1"
+    content:
+      - cd matrix-rust-sdk/bindings/matrix-sdk-ffi
+      - cargo-bundle-licenses --format yaml --output ../../../THIRDPARTY.yml --features sentry
+      - cd ../../..
+      - python -m pip install . -vv --no-deps --no-build-isolation
+      - if: osx
+        then: install_name_tool -id "$SP_DIR/matrix_sdk_python/_generated/libmatrix_sdk_ffi.dylib" "$SP_DIR/matrix_sdk_python/_generated/libmatrix_sdk_ffi.dylib"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cmake
+    - ninja
+    - pkgconf
+    - perl
+    - git
+    - if: win
+      then: nasm
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - setuptools >=80
+    - wheel
+    - libsqlite
+    - zstd
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - matrix_sdk_python
+        - matrix_sdk_python._generated.matrix_sdk_ffi
+      pip_check: true
+  - files:
+      source:
+        - tests/test_smoke.py
+    requirements:
+      run:
+        - pytest
+    script: python -m pytest tests/test_smoke.py -v
+
+about:
+  homepage: https://elysia-best.github.io/matrix-sdk-python/
+  repository: https://github.com/elysia-best/matrix-sdk-python
+  summary: Python bindings for the Matrix Rust SDK via UniFFI
+  license: Apache-2.0
+  license_file:
+    - matrix-rust-sdk/LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - timkpaine

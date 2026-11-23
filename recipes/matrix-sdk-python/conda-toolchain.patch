@@ -1,0 +1,40 @@
+--- a/scripts/build_bindings.py
++++ b/scripts/build_bindings.py
+@@ -33,7 +33,12 @@
+ 
+ def resolve_library(profile: str) -> Path:
+     profile_dir = "debug" if profile == "dev" else profile
+-    target_dir = SUBMODULE_ROOT / "target" / profile_dir
++    target_dir = Path(os.environ.get("CARGO_TARGET_DIR", SUBMODULE_ROOT / "target"))
++    if not target_dir.is_absolute():
++        target_dir = SUBMODULE_ROOT / target_dir
++    if target := os.environ.get("CARGO_BUILD_TARGET"):
++        target_dir = target_dir / target
++    target_dir = target_dir / profile_dir
+ 
+     for pattern in NATIVE_LIB_PATTERNS:
+         candidate = target_dir / pattern
+@@ -68,6 +73,7 @@
+         [
+             "cargo",
+             "build",
++            "--locked",
+             "-p",
+             TARGET_CRATE,
+             "--profile",
+@@ -81,10 +87,15 @@
+ 
+ 
+ def generate_python_bindings(library_path: Path) -> None:
++    rust_version = subprocess.check_output(["rustc", "-vV"], text=True)
++    host = next(line.removeprefix("host: ") for line in rust_version.splitlines() if line.startswith("host: "))
+     run(
+         [
+             "cargo",
+             "run",
++            "--locked",
++            "--target",
++            host,
+             "-p",
+             "uniffi-bindgen",
+             "--",
