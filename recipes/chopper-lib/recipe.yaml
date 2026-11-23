@@ -1,0 +1,78 @@
+schema_version: 1
+
+context:
+  name: chopper-lib
+  version: "4.4.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mcdotstar/mcstas-chopper-lib/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 8fb4e4a710a29b0113d8c41a5775e7c0b40eac3c68c666090194c917ed4fa3fa
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -GNinja %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -B build %SRC_DIR%
+        if errorlevel 1 exit 1
+        cmake --build build
+        if errorlevel 1 exit 1
+        ctest --test-dir build --output-on-failure
+        if errorlevel 1 exit 1
+        cmake --install build
+      else: |
+        cmake -GNinja $CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -B build $SRC_DIR
+        cmake --build build
+        if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]]; then
+          ctest --test-dir build --output-on-failure
+        fi
+        cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.25
+    - ninja
+  run_exports:
+    # The major version changes when the meaning or layout of a structure does
+    - ${{ pin_subpackage(name, upper_bound="x") }}
+
+tests:
+  - package_contents:
+      lib:
+        - chopper_lib
+      include:
+        - chopper-lib.h
+      files:
+        exists:
+          - if: win
+            then:
+              - Library/lib/cmake/chopper_lib/chopper_libConfig.cmake
+              - Library/lib/cmake/chopper_lib/chopper_libConfigVersion.cmake
+            else:
+              - lib/cmake/chopper_lib/chopper_libConfig.cmake
+              - lib/cmake/chopper_lib/chopper_libConfigVersion.cmake
+
+about:
+  homepage: https://github.com/mcdotstar/mcstas-chopper-lib
+  repository: https://github.com/mcdotstar/mcstas-chopper-lib
+  summary: Disk chopper calculations from McStas, as a C library
+  description: |
+    The C library behind McStas' disk chopper components: the wavelength bands a chopper
+    train passes, the exact region of (inverse velocity, emission time) it transmits as
+    convex polygons, samplers over that region, and the probability a neutron gets
+    through a disk whose edge is sweeping the beam. McStas instruments include its source
+    directly, and McStas ships its own copy of it; this package installs it as a shared
+    library with a CMake package (find_package(chopper_lib)) for other programs, such
+    as chopcal.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - g5t
