@@ -9,7 +9,7 @@ from threadpoolctl import threadpool_limits
 import htfa
 from htfa.stats import reconstruction_statistics
 
-assert htfa.__version__ == "0.1.0"
+assert htfa.__version__ == "0.2.0"
 
 with threadpool_limits(limits=1):
     xs, rs, _ = htfa.make_htfa_data(
