@@ -18,6 +18,9 @@ if errorlevel 1 exit /b 1
 rem Replace npm's prebuilt dependencies with builds using conda libraries.
 for /d %%D in (node_modules\@vscode\ripgrep* node_modules\@img\sharp-* node_modules\@janhapke) do if exist "%%D" rmdir /s /q "%%D"
 cd node_modules
+rem node-pty: use Windows ConPTY without legacy winpty or a Spectre CRT requirement.
+rem sharp: use conda libvips headers/import libraries on Windows and disable
+rem building/copying npm vendor libraries; exclude Homebrew pkg-config paths on macOS.
 patch --binary -p1 < "%RECIPE_DIR%\native-deps.patch"
 if errorlevel 1 exit /b 1
 

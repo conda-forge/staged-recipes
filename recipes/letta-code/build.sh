@@ -16,6 +16,9 @@ node scripts/postinstall-patches.js
 # Replace npm's prebuilt dependencies with builds using conda libraries.
 rm -rf node_modules/@vscode/ripgrep* node_modules/@img/sharp-* node_modules/@janhapke
 cd node_modules
+# node-pty: use Windows ConPTY without legacy winpty or a Spectre CRT requirement.
+# sharp: use conda libvips headers/import libraries on Windows and disable
+# building/copying npm vendor libraries; exclude Homebrew pkg-config paths on macOS.
 patch -p1 < "${RECIPE_DIR}/native-deps.patch"
 
 cd node-pty
