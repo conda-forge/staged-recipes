@@ -18,9 +18,21 @@ build:
       then:
         - |
           ${{ PYTHON }} -c '
-          p = open("CMakeLists.txt").read()
-          p = p.replace("-DWITH_TESTS=0", "-DWITH_TESTS=0 -DCMAKE_INSTALL_LIBDIR=lib")
-          open("CMakeLists.txt", "w").write(p)
+          import os
+          for root, _, files in os.walk("."):
+              for fn in files:
+                  path = os.path.join(root, fn)
+                  if fn.endswith(".py"):
+                      s = open(path, encoding="utf-8").read()
+                      s2 = s.replace("\"-DWITH_TESTS=0\"", "\"-DWITH_TESTS=0\", \"-DCMAKE_INSTALL_LIBDIR=lib\"")
+                      s2 = s2.replace("\x27-DWITH_TESTS=0\x27", "\x27-DWITH_TESTS=0\x27, \x27-DCMAKE_INSTALL_LIBDIR=lib\x27")
+                      if s2 != s:
+                          open(path, "w", encoding="utf-8").write(s2)
+                  elif fn == "CMakeLists.txt" or fn.endswith(".cmake"):
+                      s = open(path, encoding="utf-8").read()
+                      s2 = s.replace("-DWITH_TESTS=0", "-DWITH_TESTS=0 -DCMAKE_INSTALL_LIBDIR=lib")
+                      if s2 != s:
+                          open(path, "w", encoding="utf-8").write(s2)
           '
         - export CFLAGS="${CFLAGS} -include stdio.h -include stddef.h -include stdint.h"
         - export CXXFLAGS="${CXXFLAGS} -include stdio.h -include stddef.h -include stdint.h"
