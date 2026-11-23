@@ -13,25 +13,42 @@ npm install --global --prefix "${PREFIX}" --install-links --ignore-scripts --omi
 cd "${PREFIX}/lib/node_modules/@letta-ai/letta-code"
 node scripts/postinstall-patches.js
 
-# Replace npm's prebuilt native dependencies with conda libraries.
-node -e "const fs = require('fs'); for (const p of fs.globSync('**/node_modules/{@vscode/ripgrep*,@img/sharp-*,@janhapke}')) fs.rmSync(p, {recursive:true, force:true});"
-cd node_modules
-patch -p1 < "${RECIPE_DIR}/native-deps.patch"
-cd node-pty
+# Replace npm's prebuilt dependencies with builds using conda libraries.
+rm -rf node_modules/@vscode/ripgrep* node_modules/@img/sharp-* node_modules/@janhapke
+cp "${SRC_DIR}/native-sources/node-pty/binding.gyp" node_modules/node-pty/
+cp "${SRC_DIR}/native-sources/sharp/src/binding.gyp" node_modules/sharp/src/
+cp "${SRC_DIR}/native-sources/sharp/dist/libvips.cjs" node_modules/sharp/dist/
+
+cd node_modules/node-pty
 rm -rf prebuilds third_party
-node "${BUILD_PREFIX}/lib/node_modules/node-gyp/bin/node-gyp.js" rebuild --nodedir "${PREFIX}"
-node scripts/post-install.js
+"${BUILD_PREFIX}/bin/node-gyp" rebuild --nodedir "${PREFIX}"
+npm run postinstall
 rm -rf deps build/Release/obj.target
 cd ../sharp/src
-node "${BUILD_PREFIX}/lib/node_modules/node-gyp/bin/node-gyp.js" rebuild --nodedir "${PREFIX}"
+"${BUILD_PREFIX}/bin/node-gyp" rebuild --nodedir "${PREFIX}"
 rm -rf build/Release/obj.target
 cd ../..
-node -e "const fs = require('fs'); const binary = fs.globSync('sharp/src/build/Release/sharp-*.node')[0]; const name = require('./sharp/package.json').version; const dir = '@img/' + require('path').basename(binary).replace('-' + name + '.node', ''); fs.mkdirSync(dir, {recursive:true}); fs.writeFileSync(dir + '/sharp.node.js', 'module.exports = require(\"../../' + binary + '\");');"
+# The bundled Letta code looks for sharp under @img.
+for binary in sharp/src/build/Release/sharp-*.node; do
+    name="${binary##*/}"
+    destination="@img/${name%-*}"
+    mkdir -p "${destination}"
+    cp "${binary}" "${destination}/sharp.node"
+done
 cd ..
 
-# Let npm enumerate the installed tree and pnpm-licenses collect its licenses.
+# Adapt npm's package metadata to pnpm-licenses' input format.
 npm query '*' > "${SRC_DIR}/npm-dependencies.json"
-node -e "const fs = require('fs'); const dependencies = require(process.env.SRC_DIR + '/npm-dependencies.json').filter(p => p.name && p.version).map(p => ({...p, license:p.license || 'UNKNOWN', author:typeof p.author === 'object' ? p.author.name : p.author})); fs.writeFileSync(process.env.SRC_DIR + '/licenses.json', JSON.stringify({dependencies}));"
+jq '{dependencies: map(select(.name and .version)
+    | .author |= (if type == "object" then .name else . end)
+    | del(.author | nulls) | .license //= "UNKNOWN")}' "${SRC_DIR}/npm-dependencies.json" > "${SRC_DIR}/licenses.json"
 pnpm-licenses generate-disclaimer --json-input-file "${SRC_DIR}/licenses.json" --output-file "${SRC_DIR}/THIRDPARTY.txt"
-# Preserve original license files and additional notices alongside the disclaimer.
-node -e "const fs = require('fs'), path = require('path'); for (const p of fs.globSync('**/{LICENSE*,LICENCE*,license*,licence*,COPYING*,NOTICE*,*NOTICES*,*notices*,COPYRIGHT*,Copyright*,copyright*,ThirdParty*,third-party*}')) { const dest = path.join(process.env.SRC_DIR, 'third-party-licenses', p); fs.mkdirSync(path.dirname(dest), {recursive:true}); fs.cpSync(p, dest, {recursive:true}); }"
+
+# Keep the original license files and additional attribution notices too.
+find . -type f \( -iname '*license*' -o -iname '*licence*' -o -iname '*notice*' \
+    -o -iname '*copying*' -o -iname '*copyright*' -o -iname '*thirdparty*' \) -print0 |
+while IFS= read -r -d '' file; do
+    destination="${SRC_DIR}/third-party-licenses/${file}"
+    mkdir -p "$(dirname "${destination}")"
+    cp "${file}" "${destination}"
+done

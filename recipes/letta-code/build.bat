@@ -15,33 +15,45 @@ cd /d "%PREFIX%\node_modules\@letta-ai\letta-code"
 node scripts\postinstall-patches.js
 if errorlevel 1 exit /b 1
 
-rem Replace npm's prebuilt native dependencies with conda libraries.
-node -e "const fs = require('fs'); for (const p of fs.globSync('**/node_modules/{@vscode/ripgrep*,@img/sharp-*,@janhapke}')) fs.rmSync(p, {recursive:true, force:true});"
+rem Replace npm's prebuilt dependencies with builds using conda libraries.
+for /d %%D in (node_modules\@vscode\ripgrep* node_modules\@img\sharp-* node_modules\@janhapke) do if exist "%%D" rmdir /s /q "%%D"
+copy /y "%SRC_DIR%\native-sources\node-pty\binding.gyp" node_modules\node-pty\
 if errorlevel 1 exit /b 1
-cd node_modules
-patch --binary -p1 < "%RECIPE_DIR%\native-deps.patch"
+copy /y "%SRC_DIR%\native-sources\sharp\src\binding.gyp" node_modules\sharp\src\
 if errorlevel 1 exit /b 1
-cd node-pty
+copy /y "%SRC_DIR%\native-sources\sharp\dist\libvips.cjs" node_modules\sharp\dist\
+if errorlevel 1 exit /b 1
+
+cd node_modules\node-pty
 rmdir /s /q prebuilds
 rmdir /s /q third_party
-node "%BUILD_PREFIX%\node_modules\node-gyp\bin\node-gyp.js" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
+call "%BUILD_PREFIX%\node-gyp.cmd" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
 if errorlevel 1 exit /b 1
 rmdir /s /q deps
 cd ..\sharp\src
-node "%BUILD_PREFIX%\node_modules\node-gyp\bin\node-gyp.js" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
+call "%BUILD_PREFIX%\node-gyp.cmd" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
 if errorlevel 1 exit /b 1
 cd ..\..
-node -e "const fs = require('fs'); const binary = fs.globSync('sharp/src/build/Release/sharp-*.node')[0].replaceAll('\\', '/'); const name = require('./sharp/package.json').version; const dir = '@img/' + require('path').basename(binary).replace('-' + name + '.node', ''); fs.mkdirSync(dir, {recursive:true}); fs.writeFileSync(dir + '/sharp.node.js', 'module.exports = require(\"../../' + binary + '\");');"
-if errorlevel 1 exit /b 1
+rem The bundled Letta code looks for sharp under @img.
+for %%F in (sharp\src\build\Release\sharp-*.node) do (
+    for /f "tokens=1-3 delims=-" %%A in ("%%~nF") do (
+        mkdir "@img\%%A-%%B-%%C"
+        copy /y "%%F" "@img\%%A-%%B-%%C\sharp.node"
+        if errorlevel 1 exit /b 1
+    )
+)
 cd ..
 
-rem Let npm enumerate the installed tree and pnpm-licenses collect its licenses.
+rem Adapt npm's package metadata to pnpm-licenses' input format.
 call npm query "*" > "%SRC_DIR%\npm-dependencies.json"
 if errorlevel 1 exit /b 1
-node -e "const fs = require('fs'); const dependencies = require(process.env.SRC_DIR + '/npm-dependencies.json').filter(p => p.name && p.version).map(p => ({...p, license:p.license || 'UNKNOWN', author:typeof p.author === 'object' ? p.author.name : p.author})); fs.writeFileSync(process.env.SRC_DIR + '/licenses.json', JSON.stringify({dependencies}));"
+jq "{dependencies: map(select(.name and .version) | .author |= (if type == \"object\" then .name else . end) | del(.author | nulls) | .license //= \"UNKNOWN\")}" ^
+    "%SRC_DIR%\npm-dependencies.json" > "%SRC_DIR%\licenses.json"
 if errorlevel 1 exit /b 1
 call pnpm-licenses generate-disclaimer --json-input-file "%SRC_DIR%\licenses.json" --output-file "%SRC_DIR%\THIRDPARTY.txt"
 if errorlevel 1 exit /b 1
-rem Preserve original license files and additional notices alongside the disclaimer.
-node -e "const fs = require('fs'), path = require('path'); for (const p of fs.globSync('**/{LICENSE*,LICENCE*,license*,licence*,COPYING*,NOTICE*,*NOTICES*,*notices*,COPYRIGHT*,Copyright*,copyright*,ThirdParty*,third-party*}')) { const dest = path.join(process.env.SRC_DIR, 'third-party-licenses', p); fs.mkdirSync(path.dirname(dest), {recursive:true}); fs.cpSync(p, dest, {recursive:true}); }"
-if errorlevel 1 exit /b 1
+
+rem Keep original licenses and notices. Robocopy codes below 8 indicate success.
+robocopy . "%SRC_DIR%\third-party-licenses" *LICENSE* *LICENCE* *NOTICE* *COPYING* *COPYRIGHT* *ThirdParty* /S /R:0 /W:0 /NFL /NDL
+if errorlevel 8 exit /b 1
+exit /b 0
