@@ -17,14 +17,11 @@ if errorlevel 1 exit /b 1
 
 rem Replace npm's prebuilt dependencies with builds using conda libraries.
 for /d %%D in (node_modules\@vscode\ripgrep* node_modules\@img\sharp-* node_modules\@janhapke) do if exist "%%D" rmdir /s /q "%%D"
-copy /y "%SRC_DIR%\native-sources\node-pty\binding.gyp" node_modules\node-pty\
-if errorlevel 1 exit /b 1
-copy /y "%SRC_DIR%\native-sources\sharp\src\binding.gyp" node_modules\sharp\src\
-if errorlevel 1 exit /b 1
-copy /y "%SRC_DIR%\native-sources\sharp\dist\libvips.cjs" node_modules\sharp\dist\
+cd node_modules
+patch --binary -p1 < "%RECIPE_DIR%\native-deps.patch"
 if errorlevel 1 exit /b 1
 
-cd node_modules\node-pty
+cd node-pty
 rmdir /s /q prebuilds
 rmdir /s /q third_party
 call "%BUILD_PREFIX%\node-gyp.cmd" rebuild --devdir "%SRC_DIR%\node-headers" --msvs_version=2022
