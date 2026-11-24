@@ -1,0 +1,180 @@
+schema_version: 1
+
+context:
+  version: "2.13.1"
+
+package:
+  name: flyte
+  version: ${{ version }}
+
+source:
+  # PyPI only has a wheel.
+  url: https://github.com/flyteorg/flyte-sdk/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: dbaabd6f799ee3c2ff3dd9f834d6cd4631d4de88c8ace23925892612d25ebb4e
+
+build:
+  number: 0
+  noarch: python
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content:
+      # include-package-data relies on setuptools-scm's git file finder, which
+      # finds nothing in the tarball, so py.typed and report/_template.html
+      # would be left out. https://github.com/flyteorg/flyte/issues/8430
+      - if: unix
+        then: cp ${{ RECIPE_DIR }}/MANIFEST.in MANIFEST.in
+        else: copy ${{ RECIPE_DIR }}\MANIFEST.in MANIFEST.in
+      - ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - flyte = flyte.cli.main:main
+      - a0 = flyte._bin.runtime:main
+      - clustered = flyte._bin.clustered:main
+      - fserve = flyte._bin.serve:main
+      - c0 = flyte._bin.connect:main
+      - flyte-mcp = flyte._bin.mcp:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools
+    - setuptools-scm
+  run:
+    - python >=${{ python_min }}
+    - aiofiles >=24.1.0
+    - click >=8.2.1
+    - cloudpickle >=3.1.1
+    - docstring_parser >=0.16
+    - fsspec >=2025.3.0
+    - connectrpc >=0.9.0,<0.11
+    - obstore >=0.7.3
+    - protobuf >=6.30.1
+    - pydantic >=2.10.6
+    - pyyaml >=6.0.2
+    - rich-click ==1.8.9
+    - httpx >=0.28.1,<1.0.0
+    - keyring >=25.6.0
+    - msgpack-python >=1.1.0
+    - toml >=0.10.2
+    - async-lru >=2.0.5
+    - mashumaro >=3.15
+    - aiolimiter >=1.2.1
+    - flyteidl2 ==2.0.54
+    - packaging
+    - sentry-sdk >=2.0
+    - pyopenssl >=24.0.0
+
+tests:
+  - python:
+      imports:
+        - flyte
+        - flyte.cli.main
+        - flyte.io
+        - flyte.remote
+        - flyte.storage
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      # rich-click help output needs UTF-8 on Windows CI.
+      - python -X utf8 -c "from flyte.cli.main import main; main(['--help'])"
+  # Upstream only runs the suite on Linux.
+  - if: not win
+    then:
+      files:
+        source:
+          - tests/
+      requirements:
+        run:
+          - python ${{ python_min }}.*
+          - pytest
+          - pytest-asyncio
+          - pytest-xdist
+          - mock
+          - grpcio
+          - fastapi
+          - uvicorn
+          - starlette
+          - pandas
+          - pyarrow
+          - mcp >=1.26.0,<2
+          - textual >=0.80
+          # kubernetes 37 turned its models into pydantic models that reject
+          # the int CPU values flyte passes; upstream locks 35.
+          - python-kubernetes >=35,<37
+          - prometheus_client
+          - regex >=2024.5.15
+          - orjson
+          - asyncssh >=2.14
+          - ruff
+      script:
+        - |
+          ignore=(
+            # need pydantic-monty 1.0, conda-forge only has 0.0.1
+            tests/flyte/orchestrator/test_local_runs.py
+            tests/flyte/orchestrator/test_conditions.py
+            # need docker
+            tests/flyte/imagebuild/test_docker_builder.py
+            tests/flyte/test_int_image_builder.py
+          )
+          deselect=(
+            # need docker
+            tests/flyte/imagebuild/test_image_build_engine.py::test_cached
+            tests/flyte/imagebuild/test_image_build_engine.py::test_build_looks_up_in_the_explicit_build_queue
+            tests/flyte/imagebuild/test_image_build_engine.py::test_local_docker
+            # need kubectl
+            tests/cli/test_devbox.py::TestMergeKubeconfigRetry
+            tests/cli/test_devbox.py::TestMergeKubeconfigWindows
+            # needs google-cloud-bigquery
+            tests/flyte/type_engine/test_dataframe.py::test_reregister_encoder
+            # assumes a dev (unreleased) flyte version
+            tests/flyte/test_image.py::test_default_base_image
+            # click 8.5 reworded the message
+            tests/cli/test_main_options.py::test_unknown_option_keeps_click_message
+            # rattler-build puts the tests under $PREFIX/etc/conda/test-files/flyte/,
+            # which flyte treats as SDK code (path has /flyte/) or an environment dir
+            tests/flyte/roundtrip/test_round_trip.py::test_launch_remote_success
+            tests/flyte/roundtrip/test_round_trip.py::test_launch_remote_err
+            tests/flyte/roundtrip/test_round_trip.py::test_launch_remote_success_interactive
+            tests/flyte/roundtrip/test_round_trip.py::test_launch_remote_err_interactive
+            tests/flyte/type_engine/test_dataframe.py::test_setting_of_unset_formats
+            tests/user_api/test_environment.py::test_environment_include_populates_declaring_file
+            tests/user_api/test_task_environment.py::test_task_environment_include_populates_declaring_file
+            # calls ps, which isn't in the CI image
+            tests/flyte/apple_silicon/test_robustness.py::test_stopping_kills_the_whole_process_group
+            # reads the repo's plugins/ directory
+            tests/test_plugin_install_names.py::test_installable_plugin_names_are_published_by_this_repo
+            # patches time.monotonic, which stalls the asyncio loop for ~3 minutes per test on osx
+            tests/user_api/test_workload_token_auth.py::TestWorkloadTokenAuthenticator
+            # timing-dependent, the fake daemon doesn't die mid-request on the slower osx runner
+            tests/flyte/apple_silicon/test_bridge.py::test_oom_kill_is_surfaced_not_silent
+            # order-dependent under xdist (an lru_cache'd helper gets filled while other tests mock pyqwest)
+            tests/flyte/remote/test_session.py::TestBuildPyqwestClient::test_detects_system_cert_support_from_signature
+            # order-dependent under xdist: inspect.getsource() on the cloudpickled task
+            # fails or passes depending on which tests ran before it in the same worker
+            tests/flyte/clustered/test_serde.py::test_custom_survives_pickle_roundtrip
+          )
+          args=()
+          for path in "${ignore[@]}"; do args+=("--ignore=$path"); done
+          for test in "${deselect[@]}"; do args+=("--deselect=$test"); done
+          # Same marker filter as upstream's `make unit_test`: skips the tests that
+          # need a Flyte backend or the S3 sandbox on localhost:4566.
+          pytest -v -n auto tests -o asyncio_default_fixture_loop_scope=function \
+            -m "not integration and not sandbox" "${args[@]}"
+
+about:
+  homepage: https://flyte.org
+  repository: https://github.com/flyteorg/flyte-sdk
+  summary: The open source durable AI runtime for model training and batch/online inference
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - killua156
