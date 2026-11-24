@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build the linkcell v0.5.0 shared library.
+# Build the linkcell v0.6.0 shared library.
 set -euxo pipefail
 
-# Native conda rust still exports CARGO_BUILD_TARGET. v0.5.0 copies
+# Native conda rust still exports CARGO_BUILD_TARGET. v0.6.0 copies
 # artifacts from cargo-target/<profile>, which is the layout cargo uses
 # when that variable is unset. A cross build keeps the triple.
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" != "1" ]]; then
