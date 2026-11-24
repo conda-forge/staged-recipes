@@ -1,0 +1,133 @@
+schema_version: 1
+
+context:
+  name: base
+  opam_name: base
+  version: "0.17.3"
+  build_number: 0
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  # ocaml_win-64 ships gcc_* and vs_* at the same version/build; name the track.
+  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
+  # static archive paired with the .cmxa: msvc ships .lib, gcc and unix ship .a
+  native_lib_ext: ${{ ".lib" if not unix and c_compiler == "vs" else ".a" }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/janestreet/base/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3f3f64789ab25bb5cb7f5f907dd651dec9cc9440981822fe75df6b94344b7208
+
+build:
+  number: ${{ build_number }}
+  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+  script: bash ${{ RECIPE_DIR }}/build.sh ${{ opam_name }}
+
+requirements:
+  build:
+    - ${{ compiler("ocaml") }}
+    - if: not unix and c_compiler == "gcc"
+      then:
+        - ${{ stdlib("m2w64_c") }}
+      else:
+        - ${{ stdlib("c") }}
+    # C stubs and the discover.exe step: a C compiler on every lane
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+    - if: not unix and c_compiler == "gcc"
+      then:
+        - ${{ compiler("m2w64_c") }}
+    # ocaml_win-64 >=14 only run-constrains the C compiler; activate it here, once (vs)
+    - if: not unix and c_compiler != "gcc"
+      then:
+        - ${{ compiler("c") }}
+    # compiler("ocaml") renders no toolchain track; name it on non-unix
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # the cross compiler does not pull the native one; the build runs OCaml on the build machine
+    - if: build_platform != target_platform and unix
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.*
+        # the cross compiler activates itself (shims, OCAMLLIB, host OCAMLPATH)
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.*
+    # non-unix cross: the self-contained gcc track needs no vcvars
+    - if: build_platform != target_platform and not unix
+      then:
+        - ocaml_${{ build_platform }} ${{ ocaml_compiler_version }}.* gcc_*
+    - ocaml-dune >=3.11
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+        - m2-coreutils
+        - m2-sed
+        - m2-grep
+        - m2-findutils
+  host:
+    # library: ocaml's run_export pins the compiler patch version
+    - ocaml ${{ ocaml_compiler_version }}.*
+    # the noarch ocaml metapackage does not pin the non-unix toolchain track
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml-dune >=3.11
+    - ocaml-dune-configurator
+    - ocaml-intrinsics-kernel >=0.17.0,<0.18
+    - ocaml-sexplib0 >=0.17.0,<0.18
+  run:
+    - ocaml-intrinsics-kernel >=0.17.0,<0.18
+    - ocaml-sexplib0 >=0.17.0,<0.18
+  # the ocaml run_export does not encode the non-unix toolchain track
+  run_constraints:
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    # installed dune-package declares (lang dune X.Y); older dune cannot read it
+    - ${{ pin_compatible('ocaml-dune', lower_bound='x.x', upper_bound=None) }}
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ opam_name }}/META
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cma
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxa
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}${{ native_lib_ext }}
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxs
+  - script: bash testing/test_base.sh
+    files:
+      recipe:
+        - testing/test_base.sh
+    requirements:
+      run:
+        - ocaml ${{ ocaml_compiler_version }}.*
+        - if: not unix
+          then:
+            - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml-dune >=3.11
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+        - if: not unix and c_compiler != "gcc"
+          then:
+            - ${{ compiler("c") }}
+        - if: not unix
+          then:
+            - m2-bash
+            - m2-coreutils
+
+about:
+  homepage: https://github.com/janestreet/base
+  repository: https://github.com/janestreet/base
+  license: MIT
+  license_file: LICENSE.md
+  summary: Full standard library replacement for OCaml (Jane Street)
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
