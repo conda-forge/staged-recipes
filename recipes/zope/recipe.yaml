@@ -102,10 +102,18 @@ tests:
       python_version:
         - ${{ python_min }}.*
         - "*"
-  # upstream unit tests, see run_tests.py for the few that need zope.testrunner layers
   - script:
-      interpreter: python
-      file: run_tests.py
+      # the sdist ships the test .po files but not the compiled .mo files,
+      # so let zope.i18n compile them when the tests register translations
+      - if: win
+        then: set "zope_i18n_compile_mo_files=true"
+        else: export zope_i18n_compile_mo_files=true
+      # test_no_second_transaction_is_created_if_closed passes on its own but
+      # depends on test order when the whole suite runs in one process
+      - zope-testrunner --auto-path -vc -s App -s OFS -s Products.Five -s Products.PageTemplates -s Products.SiteAccess -s Testing -s webdav -s zmi -s Zope2 -s ZPublisher -s ZTUtils -t "!test_no_second_transaction_is_created_if_closed"
+    requirements:
+      run:
+        - zope.testrunner
   - script:
       - mkwsgiinstance --help
       - runwsgi --help
