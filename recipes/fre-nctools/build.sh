@@ -18,6 +18,6 @@ make -j1 PERL="/usr/bin/env perl"
 make install PERL="/usr/bin/env perl"
 
 for script in "${PREFIX}/bin/"*.csh; do
-    sed -i.bak "1s|^#!/bin/csh|#!${PREFIX}/bin/tcsh|" "${script}"
+    sed -i.bak '1s|^#!/bin/csh|#!/usr/bin/env -S tcsh|' "${script}"
     rm "${script}.bak"
 done
