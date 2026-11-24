@@ -2,7 +2,7 @@
 schema_version: 1
 
 context:
-  version: "0.17.0"
+  version: "0.18.0"
   go_mod: github.com/nebari-dev/nebari-infrastructure-core
   ldflags: "-s -w -X ${{ go_mod }}/internal/cli.version=${{ version }}"
 
@@ -12,23 +12,22 @@ package:
 
 source:
   url: https://github.com/nebari-dev/nebari-infrastructure-core/releases/download/v${{ version }}/nebari-infrastructure-core-${{ version }}-source.tar.gz
-  sha256: 9dc0aac3d17517c1bdd7a08f5708335f7a162a23ba5e43cf4283a3af2331c028
+  sha256: ea8252594591990a508ab210851a5d213648e75e9787dc5115a0d43193e0f50f
 
 build:
   number: 0
   script:
-    - if: unix
-      then: |
-        set -ex
-        export CGO_ENABLED=0
-        go build -v -trimpath -ldflags "${{ ldflags }}" -o "${PREFIX}/bin/nic" ./cmd/nic
-        go-licenses save ./cmd/nic --save_path "${SRC_DIR}/library_licenses" --ignore ${{ go_mod }}
-      else: |
-        set CGO_ENABLED=0
-        go build -v -trimpath -ldflags "${{ ldflags }}" -o "%LIBRARY_BIN%\nic.exe" .\cmd\nic
-        if errorlevel 1 exit 1
-        go-licenses save .\cmd\nic --save_path "%SRC_DIR%\library_licenses" --ignore ${{ go_mod }}
-        if errorlevel 1 exit 1
+    env:
+      CGO_ENABLED: "0"
+    content:
+      - if: unix
+        then: |
+          set -ex
+          go build -v -trimpath -ldflags "${{ ldflags }}" -o "${PREFIX}/bin/nic" ./cmd/nic
+          go-licenses save ./cmd/nic --save_path "${SRC_DIR}/library_licenses" --ignore ${{ go_mod }}
+        else: |
+          go build -v -trimpath -ldflags "${{ ldflags }}" -o "%LIBRARY_BIN%\nic.exe" .\cmd\nic || exit 1
+          go-licenses save .\cmd\nic --save_path "%SRC_DIR%\library_licenses" --ignore ${{ go_mod }} || exit 1
 
 requirements:
   build:
