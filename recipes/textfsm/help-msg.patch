@@ -1,0 +1,124 @@
+# https://github.com/google/textfsm/pull/153
+From a8897841a163ade7234cda57eadc56a7d8fd01ea Mon Sep 17 00:00:00 2001
+From: 0z5a <dezhen.lu@student.uni-tuebingen.de>
+Date: Sat, 14 Nov 2026 14:17:54 +0100
+Subject: [PATCH] fix: define help_msg in main() so --help works from the
+ textfsm script
+
+help_msg was only set under `if __name__ == '__main__':`, but the
+installed `textfsm` console script calls textfsm.parser:main()
+directly, so `textfsm --help` failed with
+"NameError: name 'help_msg' is not defined". terminal.main() had the
+same problem when called directly.
+
+Build the usage line inside main() from argv[0], and add tests that
+call main() with --help.
+---
+ tests/terminal_test.py | 13 +++++++++++++
+ tests/textfsm_test.py  | 13 +++++++++++++
+ textfsm/parser.py      |  3 ++-
+ textfsm/terminal.py    |  3 ++-
+ 4 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/tests/terminal_test.py b/tests/terminal_test.py
+index d03da1d..5c27809 100755
+--- a/tests/terminal_test.py
++++ b/tests/terminal_test.py
+@@ -17,6 +17,8 @@
+ 
+ """Unittest for terminal module."""
+ 
++import contextlib
++import io
+ import sys
+ import unittest
+ 
+@@ -240,5 +242,16 @@ def testBlankLines(self):
+                      buffer.splitlines())
+ 
+ 
++
++class UnitTestMain(unittest.TestCase):
++
++  def testHelp(self):
++    out = io.StringIO()
++    with contextlib.redirect_stdout(out):
++      self.assertEqual(0, terminal.main(['terminal', '--help']))
++    self.assertIn('terminal [--help] [--size] [--nodelay] [input_file]',
++                  out.getvalue())
++
++
+ if __name__ == '__main__':
+   unittest.main()
+diff --git a/tests/textfsm_test.py b/tests/textfsm_test.py
+index 9177e56..862f126 100755
+--- a/tests/textfsm_test.py
++++ b/tests/textfsm_test.py
+@@ -17,6 +17,7 @@
+ 
+ """Unittest for textfsm module."""
+ 
++import contextlib
+ import io
+ import unittest
+ 
+@@ -1011,5 +1012,17 @@ def testTemplateValue(self):
+     self.assertEqual(str(t), buf_result)
+ 
+ 
++
++class UnitTestMain(unittest.TestCase):
++
++  def testHelp(self):
++    out = io.StringIO()
++    with contextlib.redirect_stdout(out):
++      self.assertEqual(0, textfsm.parser.main(['textfsm', '--help']))
++    self.assertIn(
++        'textfsm [--help] template [input_file [output_file]]', out.getvalue()
++    )
++
++
+ if __name__ == '__main__':
+   unittest.main()
+diff --git a/textfsm/parser.py b/textfsm/parser.py
+index 07efb96..d4c9a31 100755
+--- a/textfsm/parser.py
++++ b/textfsm/parser.py
+@@ -1085,6 +1085,8 @@ def main(argv=None):
+   if argv is None:
+     argv = sys.argv
+ 
++  help_msg = '%s [--help] template [input_file [output_file]]\n' % argv[0]
++
+   try:
+     opts, args = getopt.getopt(argv[1:], 'h', ['help'])
+   except getopt.error as exc:
+@@ -1133,7 +1135,6 @@ def main(argv=None):
+ 
+ 
+ if __name__ == '__main__':
+-  help_msg = '%s [--help] template [input_file [output_file]]\n' % sys.argv[0]
+   try:
+     sys.exit(main())
+   except UsageError as err:
+diff --git a/textfsm/terminal.py b/textfsm/terminal.py
+index 980f994..c1e2ce3 100755
+--- a/textfsm/terminal.py
++++ b/textfsm/terminal.py
+@@ -508,6 +508,8 @@ def main(argv=None):
+   if argv is None:
+     argv = sys.argv
+ 
++  help_msg = '%s [--help] [--size] [--nodelay] [input_file]\n' % argv[0]
++
+   try:
+     opts, args = getopt.getopt(argv[1:], 'dhs', ['nodelay', 'help', 'size'])
+   except getopt.error as exc:
+@@ -543,7 +545,6 @@ def main(argv=None):
+ 
+ 
+ if __name__ == '__main__':
+-  help_msg = '%s [--help] [--size] [--nodelay] [input_file]\n' % sys.argv[0]
+   try:
+     sys.exit(main())
+   except UsageError as err:
