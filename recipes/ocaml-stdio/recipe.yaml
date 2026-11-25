@@ -71,13 +71,19 @@ tests:
   - script:
       interpreter: bash
       content:
+        - export DUNE_CACHE=disabled
+        - LIBDIR=$PREFIX/lib/ocaml; SEP=:
+        - if [[ -d $PREFIX/Library/lib/ocaml ]]; then LIBDIR=$PREFIX/Library/lib/ocaml; SEP=';'; fi
+        - export OCAMLPATH="$LIBDIR${OCAMLPATH:+$SEP$OCAMLPATH}"
+        - echo '(lang dune 3.0)' > dune-project
+        - echo '(executable (name t) (libraries stdio))' > dune
         - echo 'let () = Stdio.print_string "stdio ok"' > t.ml
-        - ocamlfind ocamlopt -package stdio -linkpkg t.ml -o t
-        - ./t | grep -q "stdio ok"
+        - dune build --root . ./t.exe
+        - ./_build/default/t.exe | grep -q "stdio ok"
     requirements:
       run:
         - ocaml ${{ ocaml_spec }}
-        - ocaml-findlib
+        - ocaml-dune >=3.11
         - if: unix
           then:
             - ${{ compiler("c") }}

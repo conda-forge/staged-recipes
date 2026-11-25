@@ -75,13 +75,19 @@ tests:
   - script:
       interpreter: bash
       content:
+        - export DUNE_CACHE=disabled
+        - LIBDIR=$PREFIX/lib/ocaml; SEP=:
+        - if [[ -d $PREFIX/Library/lib/ocaml ]]; then LIBDIR=$PREFIX/Library/lib/ocaml; SEP=';'; fi
+        - export OCAMLPATH="$LIBDIR${OCAMLPATH:+$SEP$OCAMLPATH}"
+        - echo '(lang dune 3.0)' > dune-project
+        - echo '(executable (name t) (libraries base))' > dune
         - echo 'let () = assert (Base.Int.popcount 7 = 3); print_string (Base.String.uppercase "base ok")' > t.ml
-        - ocamlfind ocamlopt -package base -linkpkg t.ml -o t
-        - ./t | grep -q "BASE OK"
+        - dune build --root . ./t.exe
+        - ./_build/default/t.exe | grep -q "BASE OK"
     requirements:
       run:
         - ocaml ${{ ocaml_spec }}
-        - ocaml-findlib
+        - ocaml-dune >=3.11
         - if: unix
           then:
             - ${{ compiler("c") }}
