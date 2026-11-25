@@ -6,7 +6,8 @@ context:
   findlib_version: "1.9.8"
 
   library: ${{ "Library/" if not unix else "" }}
-  c_toolchain: ${{ "" if unix else "gcc_*" }}
+  # ocaml matchspec tail: version, plus the gcc_ (MinGW) track on non-unix
+  ocaml_spec: ${{ ocaml_compiler_version ~ (".*" if unix else ".* gcc_*") }}
 
 package:
   name: ocaml-${{ name }}
@@ -38,8 +39,9 @@ requirements:
       else:
         - ${{ compiler("m2w64_c") }}
         - ${{ stdlib("m2w64_c") }}
-    # non-unix: gcc_ (MinGW) ocaml track only
-    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ${{ compiler("ocaml") }}
+    # compiler("ocaml") renders no toolchain track; name the gcc_ (MinGW) one on non-unix
+    - ocaml_${{ target_platform }} ${{ ocaml_spec }}
     # ocaml pin selects a build that ships ocamlbuild.cmo (_2 did not)
     - ocamlbuild 0.16.*
     - python
@@ -54,11 +56,11 @@ requirements:
         - m2-grep
         - m2-sed
   host:
-    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml ${{ ocaml_spec }}
     - ocaml-topkg >=1.1.1
     - ocaml-cmdliner >=2.1.1
   run:
-    - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+    - ocaml ${{ ocaml_spec }}
     - ocaml-topkg >=1.1.1
     - ocaml-cmdliner >=2.1.1
 
@@ -72,7 +74,7 @@ tests:
         - testing/test_ocaml_lib.sh
     requirements:
       run:
-        - ocaml ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
+        - ocaml ${{ ocaml_spec }}
         - if: not unix
           then:
             - m2-bash
