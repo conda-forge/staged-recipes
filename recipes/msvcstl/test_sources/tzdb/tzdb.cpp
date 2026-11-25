@@ -16,7 +16,7 @@
       {                                                         \
         std::printf(stderr,                                   \
             "%s:%d: %s: Assertion '%s' failed.\n",                  \
-            __FILE__, __LINE__, __PRETTY_FUNCTION__, #fn);          \
+            __FILE__, __LINE__, __func__, #fn);          \
         std::abort();                                          \
       }                                                         \
   } while (false)
