@@ -1,0 +1,67 @@
+context:
+  version: "2.3.6"
+
+package:
+  name: pyfasm64
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyfasm64/pyfasm64-${{ version }}.tar.gz
+  sha256: 2321691d6061787f0bfb32a34b7e78e7d32127906345adeb077ab86d53393739
+  patches:
+    - patches/0001-unvendor-fasm-binaries.patch
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - '${{ PYTHON }} -c "import pathlib, shutil; shutil.rmtree(''src/pyfasm/bin'', ignore_errors=True); [p.unlink() for p in pathlib.Path(''src/pyfasm/include'').rglob(''*'') if p.is_symlink()]"'
+    - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  python:
+    entry_points:
+      - pyfasm64 = pyfasm.cli:main
+      - pyfasm = pyfasm.cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }}
+
+tests:
+  - python:
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      imports:
+        - pyfasm
+        - pyfasm64
+      pip_check: true
+  - script:
+      - pyfasm64 --help
+      - pyfasm --help
+      - pyfasm64 -V
+      - 'python -c "import pyfasm, pyfasm64; assert pyfasm.__version__ == ''${{ version }}''"'
+      - 'python -c "from pyfasm import PyFasmCompiler; asm = PyFasmCompiler().compile_source_to_asm(''x = 1 + 2''); assert len(asm) > 1000"'
+
+about:
+  homepage: https://github.com/eminsk/pyfasm
+  summary: Ahead-of-time Python to x86_64 Flat Assembler (FASM) native compiler and bundler
+  description: |
+    PyFASM64 translates Python code into x86_64 Flat Assembler (FASM)
+    assembly source and bundles native targets for Windows, Linux, and macOS.
+    Prebuilt third-party FASM executables are unvendored in this conda-forge
+    package; provide an external FASM binary on PATH (or via PYFASM_FASM_PATH)
+    or allow pyfasm64 to locate/download one at runtime.
+  license: MIT AND LicenseRef-FASM
+  license_file:
+    - LICENSE
+    - FASM_LICENSE.txt
+  repository: https://github.com/eminsk/pyfasm
+  documentation: https://github.com/eminsk/pyfasm#readme
+
+extra:
+  recipe-maintainers:
+    - eminsk
