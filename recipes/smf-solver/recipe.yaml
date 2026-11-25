@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: smf-solver
-  version: "0.2.0"
+  version: "0.2.1"
 
 package:
   name: ${{ name }}
@@ -10,7 +10,7 @@ package:
 
 source:
   url: https://github.com/danlil240/opt_solver/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: a63735ddc80b758af636a24c093c5f9993945c9c367304375cccac40fd183eda
+  sha256: ca6fce663cd96e2a7e6458696085a66949e51735c61fa0fb9ef378bddccec72c
 
 build:
   number: 0
@@ -23,10 +23,6 @@ requirements:
     - cmake >=3.20
     - ninja
     - pkgconf
-    - if: linux
-      then: libgomp
-    - if: osx
-      then: llvm-openmp
   host:
     - blas-devel
     - libblas
@@ -35,6 +31,9 @@ requirements:
     # Only AMD (BSD-3-Clause) is linked; not the full `suitesparse`
     # metapackage, which also pulls in the GPL/LGPL components.
     - libamd
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
   run_exports:
     - ${{ pin_subpackage('smf-solver', upper_bound='x.x') }}
 
@@ -45,10 +44,22 @@ tests:
       lib:
         - smf_c
         - smf_ma97
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - cmake >=3.20
+        - ninja
+    script:
+      - cmake -S test -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build
+      - ctest --test-dir build --output-on-failure
   - if: unix
     then:
       script:
-        - pkg-config --exists --exact-version=${{ version }} smf
+        - pkg-config --exists --exact-version=${{ version }} smf-solver
       requirements:
         run:
           - pkgconf
@@ -67,8 +78,9 @@ about:
   description: |
     smf is a C++20 sparse symmetric multifrontal direct solver designed for
     interior-point optimizers (IPOPT, CasADi, cyipopt, JuMP/MadNLP). It ships
-    a versioned C ABI (libsmf_c, pkg-config smf) for native linear_solver=smf
-    integration as well as a drop-in HSL MA97 plugin (libsmf_ma97).
+    a versioned C ABI (libsmf_c, pkg-config smf-solver) for native
+    linear_solver=smf integration as well as a drop-in HSL MA97 plugin
+    (libsmf_ma97).
 
 extra:
   recipe-maintainers:
