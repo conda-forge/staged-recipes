@@ -14,7 +14,7 @@
   {                                                             \
     if (! (fn))                                                 \
       {                                                         \
-        std::fprintf(stderr,                                     \
+        std::fprintf(stderr,                                    \
             "%s:%d: %s: Assertion '%s' failed.\n",              \
             __FILE__, __LINE__, __func__, #fn);                 \
         std::abort();                                           \
