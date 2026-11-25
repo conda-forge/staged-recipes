@@ -1,15 +1,15 @@
 context:
-  version: 2022-17.14
+  version: 14.51
 
 recipe:
   name: msvcstl-packages
-  version: ${{ version | replace("-", "_") }}
+  version: "${{ version }}"
 
 source:
-  - url: https://github.com/microsoft/STL/archive/refs/tags/vs-${{ version }}.tar.gz
-    sha256: 848542f4d92ea157dec5e66e1f71cde28675b34982390430ad11fcec0cd35bb0
-  - url: https://github.com/boostorg/math/archive/4d0885ae44f7d4ce94568339b2ae5501eb234e8f.tar.gz
-    sha256: 40d66987f3eabe43a2dcd02fdd96ea64dfd9b2b9387131051b7d8ba65436ea49
+  - url: https://github.com/microsoft/STL/archive/refs/tags/msvc-build-tools-${{ version }}.tar.gz
+    sha256: 504de81500b18e68829fcef9a14495d66b3d0c00e1a1b88456ff6e8b70cdf2c6
+  - url: https://github.com/boostorg/math/archive/e0fcd19f7227d81391770ea46015acc3c80af810.tar.gz
+    sha256: 1abfe848c60e409b88b3a7f4f592e2c0dad7a1e2798197dedf623588a77585a6
     target_directory: boost-math
 
 build:
@@ -19,6 +19,9 @@ build:
 outputs:
   - staging:
       name: msvcstl-build
+    build:
+      script:
+        file: build.bat
     requirements:
       build:
         - ${{ stdlib('c') }}
@@ -35,25 +38,17 @@ outputs:
       noarch: generic
       files:
         - Library/include/c++/*
-        - Library/modules/modules.json
-        - Library/modules/std.compat.ixx
-        - Library/modules/std.ixx
     requirements:
-      run:
-        - if: win
-          then: __win
       run_constraints:
-        - msvcstl-devel ==${{ version | replace("-", "_") }}
-        # What is the oldest version of clang we should allow?
-        - clangxx >=19
+        - msvcstl-devel ==${{ version }}
+        # Keep in sync with the __clang_major__ check in stl/inc/yvals_core.h
+        - clangxx >=20
         - vs >=2022
     tests:
       - package_contents:
           files:
             - Library/include/c++/*
-            - Library/modules/modules.json
-            - Library/modules/std.compat.ixx
-            - Library/modules/std.ixx
+          strict: true
 
   - package:
       name: msvcstl
@@ -61,33 +56,11 @@ outputs:
     build:
       string: ${{ "debug_" if hardening == "debug" }}h${{ hash }}_${{ build_number }}
       files:
-        - if: hardening == "none"
-          then:
-            # Dynamic libraries
-            - Library/bin/msvcp140_1_conda.dll
-            - Library/bin/msvcp140_2_conda.dll
-            - Library/bin/msvcp140_atomic_wait_conda.dll
-            - Library/bin/msvcp140_codecvt_ids_conda.dll
-            - Library/bin/msvcp140_conda.dll
-            # Static library archives
-            - Library/lib/libcpmt.lib
-            - Library/lib/libcpmt1.lib
-            # Import libraries for dynamic linking
-            - Library/lib/msvcprt.lib
-          else:
-            # Dynamic libraries
-            - Library/bin/msvcp140_1d_conda.dll
-            - Library/bin/msvcp140_2d_conda.dll
-            - Library/bin/msvcp140d_atomic_wait_conda.dll
-            - Library/bin/msvcp140d_codecvt_ids_conda.dll
-            - Library/bin/msvcp140d_conda.dll
-            # Static library archives
-            - Library/lib/libcpmtd.lib
-            - Library/lib/libcpmtd0.lib
-            - Library/lib/libcpmtd1.lib
-            # Import libraries for dynamic linking
-            - Library/lib/msvcprtd.lib
-        - Library/lib/stl_asan.lib
+        - Library/bin/msvcp140_1${{ "d" if hardening == "debug" }}_conda.dll
+        - Library/bin/msvcp140_2${{ "d" if hardening == "debug" }}_conda.dll
+        - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_atomic_wait_conda.dll
+        - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_codecvt_ids_conda.dll
+        - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_conda.dll
     requirements:
       run_exports:
         - if: hardening == "debug"
@@ -95,34 +68,26 @@ outputs:
     tests:
       - package_contents:
           files:
-            - if: hardening == "none"
-              then:
-                - Library/bin/msvcp140_1_conda.dll
-                - Library/bin/msvcp140_2_conda.dll
-                - Library/bin/msvcp140_atomic_wait_conda.dll
-                - Library/bin/msvcp140_codecvt_ids_conda.dll
-                - Library/bin/msvcp140_conda.dll
-                - Library/lib/libcpmt.lib
-                - Library/lib/libcpmt1.lib
-                - Library/lib/msvcprt.lib
-              else:
-                - Library/bin/msvcp140_1d_conda.dll
-                - Library/bin/msvcp140_2d_conda.dll
-                - Library/bin/msvcp140d_atomic_wait_conda.dll
-                - Library/bin/msvcp140d_codecvt_ids_conda.dll
-                - Library/bin/msvcp140d_conda.dll
-                - Library/lib/libcpmtd.lib
-                - Library/lib/libcpmtd0.lib
-                - Library/lib/libcpmtd1.lib
-                - Library/lib/msvcprtd.lib
-            - Library/lib/stl_asan.lib
+            - Library/bin/msvcp140_1${{ "d" if hardening == "debug" }}_conda.dll
+            - Library/bin/msvcp140_2${{ "d" if hardening == "debug" }}_conda.dll
+            - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_atomic_wait_conda.dll
+            - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_codecvt_ids_conda.dll
+            - Library/bin/msvcp140${{ "d" if hardening == "debug" }}_conda.dll
           strict: true
 
   - package:
       name: msvcstl-devel
     build:
       files:
-        - Library/include2/c++
+        - Library/modules/modules.json
+        - Library/modules/std.compat.ixx
+        - Library/modules/std.ixx
+        - Library/lib/stl_asan.lib
+        - Library/lib/msvcprt${{ "d" if hardening == "debug" }}.lib
+        - Library/lib/libcpmt${{ "d" if hardening == "debug" }}.lib
+        - Library/lib/libcpmt${{ "d" if hardening == "debug" }}1.lib
+        - if: hardening == "debug"
+          then: Library/lib/libcpmtd0.lib
       string: ${{ "debug_" if hardening == "debug" }}h${{ hash }}_${{ build_number }}
     inherit: msvcstl-build
     requirements:
@@ -136,6 +101,18 @@ outputs:
         - ${{ pin_subpackage("msvcstl", upper_bound = None) }}
         - ${{ pin_subpackage("msvcstl-headers", upper_bound = "x.x.x") }}
     tests:
+      - package_contents:
+          files:
+            - Library/modules/modules.json
+            - Library/modules/std.compat.ixx
+            - Library/modules/std.ixx
+            - Library/lib/stl_asan.lib
+            - Library/lib/msvcprt${{ "d" if hardening == "debug" }}.lib
+            - Library/lib/libcpmt${{ "d" if hardening == "debug" }}.lib
+            - Library/lib/libcpmt${{ "d" if hardening == "debug" }}1.lib
+            - if: hardening == "debug"
+              then: Library/lib/libcpmtd0.lib
+          strict: true
       - script: compile_test.bat
         requirements:
           run:
@@ -154,5 +131,7 @@ about:
 
 extra:
   recipe-maintainers:
+    - h-vetinari
+    - isuruf
     - danielnachun
   feedstock-name: msvcstl
