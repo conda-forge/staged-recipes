@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  name: cascadio
+  version: "0.2.0rc0"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # The GitHub archive leaves out the vendored OCCT/RapidJSON/zstd
+  # submodules, so CMake falls back to the conda-forge packages.
+  url: https://github.com/trimesh/cascadio/archive/refs/tags/${{ version }}.tar.gz
+  sha256: f74e49edfe5d115556c6110a1bbd29fa17a6160ada0f8c35cb78409eb3cb44be
+
+build:
+  number: 0
+  script:
+    env:
+      # use conda-forge's compiler rather than a system clang
+      CASCADIO_CLANG: "OFF"
+    content: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.29
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - nanobind >=2.2
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.11
+    - nanobind >=2.2
+    - occt >=7.9
+    - rapidjson
+    - zstd
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - cascadio
+        - cascadio.primitives
+        - cascadio.extension
+      pip_check: true
+  - files:
+      source:
+        - tests/
+        - extensions/
+    requirements:
+      run:
+        - pytest
+        - trimesh
+        - chardet
+        - jsonschema
+    script:
+      # test_generated_files_are_current is a source-tree consistency check
+      # that needs the repo's scripts/, not the installed package
+      - pytest -v tests -k "not test_generated_files_are_current"
+
+about:
+  summary: Convert STEP and IGES files to GLB using OpenCASCADE
+  description: |
+    cascadio is a Python module using OpenCASCADE to load STEP and IGES
+    files and convert them to triangulated GLB meshes, with optional B-rep
+    face metadata for use with trimesh.
+  license: MIT
+  license_file: LICENSE/LICENSE-cascadio.md
+  homepage: https://github.com/trimesh/cascadio
+  repository: https://github.com/trimesh/cascadio
+
+extra:
+  recipe-maintainers:
+    - rshanor
