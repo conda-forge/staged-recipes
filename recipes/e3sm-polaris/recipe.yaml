@@ -1,0 +1,117 @@
+schema_version: 1
+
+context:
+  name: e3sm-polaris
+  version: "1.2.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/E3SM-Project/polaris/archive/refs/tags/${{ version }}.tar.gz
+  sha256: db0e1b74c5526dd37a857a98305bf72d7f1e7419ce6602c8a6397506fa1e06aa
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  python:
+    entry_points:
+      - polaris = polaris.__main__:main
+      - mpas_to_yaml = polaris.yaml:main_mpas_to_yaml
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - __unix
+    - python >=${{ python_min }}
+    - cartopy >=0.26.0
+    - cartopy_offlinedata
+    - cfchecker
+    - cftime
+    - cmocean
+    - esmf
+    - geometric_features >=1.6.3,<2.0.0
+    - gsw
+    - jinja2
+    - lxml
+    - mache >=5.1.0,<6.0.0
+    - matplotlib-base >=3.9.0
+    - moab >=5.6.0 *_tempest_*
+    - mosaic >=1.3.0,<2.0.0
+    - mpas_tools >=2.2.1,<3.0.0
+    - nco
+    - netcdf4
+    - numpy >=2.0,<3.0
+    - pandas
+    - pillow
+    - progressbar2
+    - pyproj
+    - pyremap >=2.5.0,<3.0.0
+    - pyshp
+    - requests
+    - ruamel.yaml
+    - scipy >=1.8.0
+    - shapely >=2.0.4,<3.0
+    - termcolor
+    - tranche >=0.6.1
+    - xarray
+  run_constraints:
+    # the Polaris Hub client is also imported as `polaris`
+    - polaris <0.0.0a0
+
+tests:
+  - python:
+      imports:
+        - polaris
+        - polaris.mesh.spherical
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - files:
+      source:
+        - tests/
+    requirements:
+      run:
+        - pytest
+        - python ${{ python_min }}.*
+    script:
+      - polaris --help
+      - polaris list
+      - polaris list --suites
+      - mpas_to_yaml --help
+      # `python -m` puts polaris's own `tests` package ahead of the one
+      # mpas_tools installs into site-packages; the ignored tests check the
+      # repository's scripts and deployment rather than the package
+      - >-
+        python -m pytest tests
+        --ignore=tests/benchmark
+        --ignore=tests/cron_scripts
+        --ignore=tests/omega_ctest
+        --ignore=tests/omega_pr_testing
+        --ignore=tests/pr_testing
+        --ignore=tests/test_dependency_pins.py
+
+about:
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - licenses/compass-LICENSE
+  summary: Testing and analysis for Omega, MPAS-Ocean, MALI and MPAS-Seaice
+  description: |
+    Polaris configures and runs tasks that test and analyze Omega, MPAS-Ocean,
+    MALI (MPAS-Albany Land Ice) and MPAS-Seaice, the ocean, land-ice and
+    sea-ice components of the Energy Exascale Earth System Model (E3SM). The
+    package is imported as `polaris`.
+  homepage: https://github.com/E3SM-Project/polaris
+  repository: https://github.com/E3SM-Project/polaris
+  documentation: https://docs.e3sm.org/polaris
+
+extra:
+  recipe-maintainers:
+    - xylar
