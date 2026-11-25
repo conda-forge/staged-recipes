@@ -1,0 +1,117 @@
+diff -ruN a/pyproject.toml b/pyproject.toml
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,3 +1,3 @@
+ [build-system]
+-requires = ["setuptools", "wheel", "setuptools_dso>=2.1", "epicscorelibs>=7.0.7.99.1.1a3"]
++requires = ["setuptools", "wheel", "epicscorelibs"]
+ build-backend = "setuptools.build_meta:__legacy__"
+diff -ruN a/setup.py b/setup.py
+--- a/setup.py
++++ b/setup.py
+@@ -1,10 +1,9 @@
+ import os
+ import sys
+ 
++from setuptools import Extension, setup
+ from setuptools.command.develop import develop
+ import epicscorelibs.path
+-import epicscorelibs.version
+-from setuptools_dso import Extension, setup
+ from epicscorelibs.config import get_config_var
+ 
+ # Place the directory containing _version_git on the path
+@@ -73,12 +72,12 @@
+     name='softioc._extension',
+     sources = sources,
+     include_dirs = include_dirs,
+-    dsos = [
+-        'epicscorelibs.lib.dbRecStd',
+-        'epicscorelibs.lib.dbCore',
+-        'epicscorelibs.lib.ca',
+-        'epicscorelibs.lib.Com',
+-    ],
++    # Link against the EPICS libraries provided by the epics-base package
++    libraries = ['dbRecStd', 'dbCore', 'ca', 'Com'],
++    library_dirs = [epicscorelibs.path.lib_path],
++    runtime_library_dirs = (
++        [] if sys.platform == 'win32' else [epicscorelibs.path.lib_path]
++    ),
+     define_macros = get_config_var('CPPFLAGS'),
+     extra_compile_args = get_config_var('CFLAGS') + ["-std=c99"],
+     extra_link_args = get_config_var('LDFLAGS'),
+@@ -102,9 +101,7 @@
+     version=__version__,
+     ext_modules = [ext],
+     install_requires = [
+-        # Dependency version declared in pyproject.toml
+-        epicscorelibs.version.abi_requires(),
+-        "pvxslibs>=1.3.2a2",
++        "epicscorelibs",
+         "numpy",
+         "epicsdbbuilder>=1.4",
+         "pyyaml>=6.0"
+diff -ruN a/softioc/imports.py b/softioc/imports.py
+--- a/softioc/imports.py
++++ b/softioc/imports.py
+@@ -7,6 +7,14 @@
+ # Use the libs with the right windows flags
+ from epicscorelibs.ioc import dbCore, Com
+ 
++if sys.platform == 'win32':
++    # Let the extension find the epics-base DLLs it links against
++    import os
++    import epicscorelibs.path
++    os.add_dll_directory(os.path.join(
++        epicscorelibs.path.base_path, 'bin',
++        os.path.basename(epicscorelibs.path.lib_path)))
++
+ from . import _extension
+ 
+ 
+diff -ruN a/softioc/softioc.py b/softioc/softioc.py
+--- a/softioc/softioc.py
++++ b/softioc/softioc.py
+@@ -5,9 +5,7 @@
+ from ctypes import *
+ from tempfile import NamedTemporaryFile
+ 
+-import pvxslibs.path
+ from epicscorelibs.ioc import pdbbase
+-from setuptools_dso.runtime import find_dso
+ 
+ from . import autosave, imports, device
+ from . import cothread_dispatcher
+@@ -15,6 +13,21 @@
+ __all__ = ['dbLoadDatabase', 'iocInit', 'interactive_ioc']
+ 
+ 
++# PVXS is provided by the pvxs conda package
++def _pvxs_dbd_path():
++    return os.path.join(
++        os.environ.get('PVXS') or os.path.join(sys.prefix, 'pvxs'), 'dbd')
++
++
++def _pvxs_ioc_lib():
++    if sys.platform == 'win32':
++        return os.path.join(sys.prefix, 'Library', 'bin', 'pvxsIoc.dll')
++    elif sys.platform == 'darwin':
++        return os.path.join(sys.prefix, 'lib', 'libpvxsIoc.dylib')
++    else:
++        return os.path.join(sys.prefix, 'lib', 'libpvxsIoc.so')
++
++
+ # tie in epicsAtExit() to interpreter lifecycle
+ @atexit.register
+ def epicsAtPyExit():
+@@ -41,8 +54,8 @@
+     device.dispatcher = dispatcher
+ 
+     if enable_pva:
+-        dbLoadDatabase('pvxsIoc.dbd', pvxslibs.path.dbd_path, None)
+-        ctypes.CDLL(find_dso('pvxslibs.lib.pvxsIoc'), ctypes.RTLD_GLOBAL)
++        dbLoadDatabase('pvxsIoc.dbd', _pvxs_dbd_path(), None)
++        ctypes.CDLL(_pvxs_ioc_lib(), ctypes.RTLD_GLOBAL)
+ 
+         imports.registerRecordDeviceDriver(pdbbase)
+ 
