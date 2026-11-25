@@ -68,13 +68,28 @@ tests:
   - package_contents:
       files:
         - ${{ library }}lib/ocaml/${{ name }}/META
-  - script: bash testing/test_ocaml_lib.sh ${{ name }}
-    files:
-      recipe:
-        - testing/test_ocaml_lib.sh
+        - ${{ library }}lib/ocaml/${{ name }}/${{ name }}.cma
+        - ${{ library }}lib/ocaml/${{ name }}/${{ name }}.cmxa
+        - ${{ library }}lib/ocaml/${{ name }}/*.cmi
+  - script:
+      interpreter: bash
+      content:
+        - export DUNE_CACHE=disabled
+        - LIBDIR=$PREFIX/lib/ocaml; SEP=':'
+        - if [[ -d $PREFIX/Library/lib/ocaml ]]; then LIBDIR=$PREFIX/Library/lib/ocaml; SEP=';'; fi
+        - export OCAMLPATH="$LIBDIR${OCAMLPATH:+$SEP$OCAMLPATH}"
+        - echo '(lang dune 3.0)' > dune-project
+        - echo '(executable (name t) (libraries ${{ name }}) (link_flags (-linkall)))' > dune
+        - echo 'let () = ()' > t.ml
+        - dune build --root . ./t.exe
+        - ./_build/default/t.exe
     requirements:
       run:
         - ocaml ${{ ocaml_spec }}
+        - ocaml-dune >=3.11
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
         - if: not unix
           then:
             - m2-bash
