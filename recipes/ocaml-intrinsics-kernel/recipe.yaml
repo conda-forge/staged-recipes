@@ -8,10 +8,8 @@ context:
 
   library: ${{ "Library/" if not unix else "" }}
   m2: ${{ "m2-" if not unix else "" }}
-  # ocaml_win-64 ships gcc_* and vs_* at the same version/build; name the track.
-  c_toolchain: ${{ "" if unix else c_compiler ~ "_*" }}
-  # static archive paired with the .cmxa: msvc ships .lib, gcc and unix ship .a
-  native_lib_ext: ${{ ".lib" if not unix and c_compiler == "vs" else ".a" }}
+  # non-unix: gcc_ (MinGW) ocaml track only
+  c_toolchain: ${{ "" if unix else "gcc_*" }}
 
 package:
   name: ocaml-${{ name }}
@@ -23,28 +21,20 @@ source:
 
 build:
   number: ${{ build_number }}
-  string: ${{ c_compiler ~ "_" if not unix }}h${{ hash }}_${{ build_number }}
+  string: ${{ "gcc_" if not unix }}h${{ hash }}_${{ build_number }}
   script: bash ${{ RECIPE_DIR }}/build.sh ${{ opam_name }}
 
 requirements:
   build:
     - ${{ compiler("ocaml") }}
-    - if: not unix and c_compiler == "gcc"
-      then:
-        - ${{ stdlib("m2w64_c") }}
-      else:
-        - ${{ stdlib("c") }}
     # C stubs: a C compiler on every lane
     - if: unix
       then:
+        - ${{ stdlib("c") }}
         - ${{ compiler("c") }}
-    - if: not unix and c_compiler == "gcc"
-      then:
+      else:
         - ${{ compiler("m2w64_c") }}
-    # ocaml_win-64 >=14 only run-constrains the C compiler; activate it here, once (vs)
-    - if: not unix and c_compiler != "gcc"
-      then:
-        - ${{ compiler("c") }}
+        - ${{ stdlib("m2w64_c") }}
     # compiler("ocaml") renders no toolchain track; name it on non-unix
     - if: not unix
       then:
@@ -90,7 +80,7 @@ tests:
         - ${{ library }}lib/ocaml/${{ opam_name }}/META
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cma
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxa
-        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}${{ native_lib_ext }}
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.a
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxs
   - script: bash testing/test_intrinsics_kernel.sh
     files:
@@ -104,9 +94,6 @@ tests:
             - ocaml_${{ target_platform }} ${{ ocaml_compiler_version }}.* ${{ c_toolchain }}
         - ocaml-dune >=3.11
         - if: unix
-          then:
-            - ${{ compiler("c") }}
-        - if: not unix and c_compiler != "gcc"
           then:
             - ${{ compiler("c") }}
         - if: not unix
