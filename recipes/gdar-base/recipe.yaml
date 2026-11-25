@@ -1,0 +1,101 @@
+context:
+  version: "1.3.0"
+
+package:
+  name: gdar-base
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/g/gdar_base/gdar_base-${{ version }}.tar.gz
+  sha256: ea516dbc2fa38b844184d278af7aedc52baa9ea58873a4259b6c927216f56135
+  patches:
+    # Patch forwarded upstream to ylarsen via e-mail on the 24/11/2026.
+    # The patch should be included in the next version of teh gdar-base.
+    - patches/0001-pwd.patch
+
+build:
+  noarch: python
+  script: python -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+    - hatch-vcs
+  run:
+    - python >=${{ python_min }}
+    - astropy-base
+    - numpy >=2.1
+    - pyproj
+    - python-dateutil
+    - scipy
+    - shapely
+  extras:
+    crs:
+      - rasterio
+    plotting:
+      - matplotlib
+    interactive:
+      - ipython
+
+tests:
+  - python:
+      python_version:
+      - ${{ python_min }}.*
+      - "*"
+      imports:
+      - gdar.base
+      - gdar.io
+      pip_check: true
+  - script:
+      - python -m pytest tests
+    requirements:
+      run:
+        - pytest
+    files:
+      source:
+        - tests/
+
+about:
+  homepage: https://pypi.org/project/gdar-base
+  summary: 'GDAR -- The Generic Data Raster'
+  description: |
+    GDAR — the Generic Data Raster — is a Python library for working with
+    gridded geospatial data. Its central abstraction is the DataRaster,
+    which combines a data source with metadata describing the grid the data
+    lives on (shape, origin, sample spacing, coordinate reference system)
+    and the meaning of its values (data type, nodata sentinel, units).
+    The data source can be a NumPy-like array already in memory, a file read
+    on demand, or a get_data() callable that computes the necessary subset
+    of the data when invoked. That last option gives DataRaster pull semantics:
+    an entire processing chain can be assembled in which intermediate steps
+    are neither written to disk nor ever materialised in their entirety -
+    data is produced only for the regions that downstream consumers actually
+    request. Once data is wrapped in a DataRaster, operations that would
+    otherwise require juggling separate geo-transforms, masks, and projection
+    strings - indexing by physical coordinates, resampling onto another grid,
+    cropping, reading and writing native file formats - become straightforward
+    method calls that keep the spatial bookkeeping in sync with the pixel data.
+    A companion abstraction, the Collection, groups multiple related
+    DataRasters that belong together - for example time slices of a dataset,
+    bands from a multi-spectral instrument, or polarimetric channels from a
+    SAR acquisition.
+    gdar-base is the core of the library and has deliberately few dependencies:
+    NumPy, with optional extras for plotting (matplotlib) and map-projection
+    support. It forms the foundation for a family of companion packages that
+    build on the same DataRaster abstraction:
+      * gdar-crs - coordinate reference systems and map projections
+      * gdar-orbit - satellite orbit propagation and geometry
+      * gdar-sar - synthetic-aperture radar processing primitives
+      * gdar-optical - remotely-sensed optical data
+      * gafa - geometry- and frequency-agnostic SAR focusing and simulation
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://earth-observation-public.pages.norce.dev/gafa-doc
+
+extra:
+  recipe-maintainers:
+    - avalentino
+    - ylarsen
