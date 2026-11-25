@@ -1,16 +1,6 @@
 context:
   name: versatiles
-  version: "5.4.1"
-  # The workspace's `[profile.release]`, which a published crate leaves
-  # behind: the settings that differ from cargo's defaults, including overflow
-  # checks kept on in the crates that parse untrusted files.
-  cargo_profile: >-
-    --config profile.release.lto=true
-    --config profile.release.codegen-units=1
-    --config profile.release.strip=true
-    --config profile.release.package.versatiles_core.overflow-checks=true
-    --config profile.release.package.versatiles_container.overflow-checks=true
-    --config profile.release.package.versatiles_geometry.overflow-checks=true
+  version: "5.15.0"
 
 package:
   name: ${{ name }}
@@ -20,13 +10,12 @@ source:
   # The published crate rather than the repository tarball: the workspace pins
   # an optional dependency to a git fork whose GDAL submodule cannot be checked
   # out on Windows (path too long), and `cargo metadata` fetches it even with
-  # the feature off. crates.io resolves it to the registry release.
+  # the feature off. crates.io resolves it to the registry release. The crate
+  # carries the licence file and the workspace's release profile (LTO, and
+  # overflow checks kept on in the crates that parse untrusted files), which
+  # `cargo install --path .` applies because the crate is the root package.
   - url: https://static.crates.io/crates/${{ name }}/${{ name }}-${{ version }}.crate
-    sha256: 22bab81e3abecea3fd694ebdbd12d60d171a678ac79b0013458aca2a1d99adba
-  # The crate does not include the licence file.
-  - url: https://raw.githubusercontent.com/versatiles-org/versatiles-rs/v${{ version }}/LICENSE
-    sha256: 41d4ca2336e27cc4de873d173946db1f450e4487014288789718aa1269479dcf
-    file_name: LICENSE
+    sha256: 99c059cc183463e29536a6dc653dc4331a68295bcb2844e1d9b627df83731625
   # Only for the licence of libwebp, which libwebp-sys 0.14 compiles in
   # statically from a vendored 1.6.0: THIRDPARTY.yml carries the crate's MIT
   # licence, not libwebp's own. The vendored copies of zstd and aws-lc have
@@ -47,8 +36,8 @@ build:
     - tar -xzf ${{ name }}-${{ version }}.crate --strip-components=1
     - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
     - if: unix
-      then: cargo install --locked --no-track --bins --root ${{ PREFIX }} --path . ${{ cargo_profile }}
-      else: cargo install --locked --no-track --bins --root %LIBRARY_PREFIX% --path . ${{ cargo_profile }}
+      then: cargo install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      else: cargo install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
 
 requirements:
   build:
