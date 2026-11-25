@@ -1,0 +1,97 @@
+context:
+  version: "1.52.0"
+  # pinned by espeak-ng's cmake/deps.cmake (FetchContent GIT_TAG)
+  sonic_commit: fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104
+
+package:
+  name: espeak-ng
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/espeak-ng/espeak-ng/archive/refs/tags/${{ version }}.tar.gz
+    sha256: bb4338102ff3b49a81423da8a1a158b420124b055b60fa76cfb4b18677130a23
+    patches:
+      - patches/0001-Allow-a-native-espeak-ng-to-compile-the-data-when-cr.patch
+      - patches/0002-Find-espeak-ng-data-relative-to-the-DLL-on-Windows.patch
+      - patches/0003-Add-the-ucd-include-directory-to-the-espeak-ng-execu.patch
+      - patches/0004-Link-libespeak-ng-against-pthreads-when-USE_ASYNC-is.patch
+  # libsonic is not on conda-forge; espeak-ng would otherwise git-clone it at configure time
+  - url: https://github.com/waywardgeek/sonic/archive/${{ sonic_commit }}.tar.gz
+    sha256: 715827b5a39b79e56e44397d7b845910df996d4cca74777b3b61629b1ddc98c1
+    target_directory: sonic
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    # a native espeak-ng is needed to compile the voice data when cross-compiling
+    - if: build_platform != target_platform
+      then:
+        - ${{ c_compiler }}_${{ build_platform }}
+        - ${{ cxx_compiler }}_${{ build_platform }}
+  run_exports:
+    - ${{ pin_subpackage('espeak-ng', upper_bound='x') }}
+
+tests:
+  - package_contents:
+      bin:
+        - espeak-ng
+      lib:
+        - espeak-ng
+      include:
+        - espeak-ng/speak_lib.h
+        - espeak/speak_lib.h
+      files:
+        - if: win
+          then:
+            - Library/share/espeak-ng-data/phontab
+            - Library/share/espeak-ng-data/en_dict
+            - Library/share/espeak-ng-data/lang/gmw/en-US
+          else:
+            - share/espeak-ng-data/phontab
+            - share/espeak-ng-data/en_dict
+            - share/espeak-ng-data/lang/gmw/en-US
+            - lib/pkgconfig/espeak-ng.pc
+  - script:
+      - espeak-ng --version
+      - espeak-ng --voices=en
+      - espeak-ng -v en-us -q -x hello world
+      - espeak-ng -v en-us -w out.wav hello
+      - if: unix
+        then:
+          - test -s out.wav
+          - pkg-config --exists --print-errors espeak-ng
+        else:
+          - if not exist out.wav exit 1
+    requirements:
+      run:
+        - if: unix
+          then: pkg-config
+
+about:
+  homepage: https://github.com/espeak-ng/espeak-ng
+  summary: Multi-lingual software speech synthesizer
+  description: |
+    eSpeak NG is a compact open source software text-to-speech synthesizer that
+    supports more than a hundred languages and accents. This package contains
+    the espeak-ng command line tool, the libespeak-ng shared library and the
+    compiled espeak-ng-data voice data.
+  license: GPL-3.0-or-later AND BSD-2-Clause AND Apache-2.0 AND Unicode-DFS-2016
+  license_file:
+    - COPYING
+    - COPYING.APACHE
+    - COPYING.BSD2
+    - COPYING.UCD
+    - sonic/LICENSE
+  documentation: https://github.com/espeak-ng/espeak-ng/blob/master/docs/index.md
+  repository: https://github.com/espeak-ng/espeak-ng
+
+extra:
+  recipe-maintainers:
+    - pavelzw

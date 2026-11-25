@@ -1,0 +1,39 @@
+From 741b93bdf89434eabe51ecfe6dba4abe671b95ec Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:22:17 +0100
+Subject: [PATCH] Allow a native espeak-ng to compile the data when
+ cross-compiling
+
+The data step runs the espeak-ng that was just built to compile phoneme
+tables and dictionaries. When cross-compiling (e.g. osx-arm64 from osx-64,
+linux-aarch64 from linux-64), that binary cannot run on the build machine.
+Add an ESPEAK_NG_NATIVE_EXECUTABLE cache variable that points at an
+espeak-ng built for the build machine, and use it for the data step.
+---
+ cmake/data.cmake | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/data.cmake b/cmake/data.cmake
+index 47709ba..f092a11 100644
+--- a/cmake/data.cmake
++++ b/cmake/data.cmake
+@@ -61,7 +61,15 @@ file(COPY "${DATA_SRC_DIR}/voices/!v" DESTINATION "${DATA_DIST_DIR}/voices")
+ file(COPY "${PHONEME_SRC_DIR}" DESTINATION "${DATA_DIST_ROOT}")
+ 
+ set(ESPEAK_RUN_ENV ${CMAKE_COMMAND} -E env "ESPEAK_DATA_PATH=${DATA_DIST_ROOT}")
+-set(ESPEAK_RUN_CMD ${ESPEAK_RUN_ENV} $ENV{VALGRIND} "$<TARGET_FILE:espeak-ng-bin>")
++# When cross-compiling, the freshly built espeak-ng cannot run on the build
++# machine. ESPEAK_NG_NATIVE_EXECUTABLE points at an espeak-ng built for the
++# build machine, which is then used to compile the (portable) voice data.
++set(ESPEAK_NG_NATIVE_EXECUTABLE "" CACHE FILEPATH "espeak-ng executable runnable on the build machine, used to compile the data when cross-compiling")
++if(ESPEAK_NG_NATIVE_EXECUTABLE)
++  set(ESPEAK_RUN_CMD ${ESPEAK_RUN_ENV} $ENV{VALGRIND} "${ESPEAK_NG_NATIVE_EXECUTABLE}")
++else()
++  set(ESPEAK_RUN_CMD ${ESPEAK_RUN_ENV} $ENV{VALGRIND} "$<TARGET_FILE:espeak-ng-bin>")
++endif()
+ 
+ add_custom_command(
+   OUTPUT "${DATA_DIST_DIR}/intonations"
+-- 
+2.56.1
+

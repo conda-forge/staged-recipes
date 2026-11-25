@@ -1,0 +1,41 @@
+From d66a303b3200d357fa3a596e91d47f73079bc5bd Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:38:36 +0100
+Subject: [PATCH] Link libespeak-ng against pthreads when USE_ASYNC is on
+
+event.c and fifo.c use pthread_create/pthread_join, but libespeak-ng
+never links the threads library. With glibc < 2.34 (e.g. 2.17), these
+symbols live in libpthread, so the library is underlinked and the test
+executables fail to link.
+---
+ cmake/deps.cmake                | 1 +
+ src/libespeak-ng/CMakeLists.txt | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/cmake/deps.cmake b/cmake/deps.cmake
+index b63ced2..0608189 100644
+--- a/cmake/deps.cmake
++++ b/cmake/deps.cmake
+@@ -9,6 +9,7 @@ include(FetchContent)
+ 
+ if (PTHREAD_LIB)
+   set(HAVE_PTHREAD ON)
++  find_package(Threads REQUIRED)
+ endif(PTHREAD_LIB)
+ if (MBROLA_BIN)
+   set(HAVE_MBROLA ON)
+diff --git a/src/libespeak-ng/CMakeLists.txt b/src/libespeak-ng/CMakeLists.txt
+index 6ca6223..74abcf4 100644
+--- a/src/libespeak-ng/CMakeLists.txt
++++ b/src/libespeak-ng/CMakeLists.txt
+@@ -77,6 +77,7 @@ if (USE_ASYNC)
+     fifo.c
+     espeak_command.c
+   )
++  target_link_libraries(espeak-ng PRIVATE Threads::Threads)
+ endif(USE_ASYNC)
+ 
+ if (USE_MBROLA)
+-- 
+2.56.1
+
