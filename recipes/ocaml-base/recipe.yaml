@@ -48,11 +48,7 @@ requirements:
         - m2-findutils
   host:
     # library: ocaml's run_export pins the compiler patch version
-    - ocaml ${{ ocaml_compiler_version }}.*
-    # the noarch ocaml metapackage does not pin the non-unix toolchain track
-    - if: not unix
-      then:
-        - ocaml_${{ target_platform }} ${{ ocaml_spec }}
+    - ocaml ${{ ocaml_spec }}
     - ocaml-dune >=3.11
     - ocaml-dune-configurator
     - ocaml-intrinsics-kernel >=0.17.0,<0.18
@@ -76,17 +72,16 @@ tests:
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxa
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.a
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxs
-  - script: bash testing/test_base.sh
-    files:
-      recipe:
-        - testing/test_base.sh
+  - script:
+      interpreter: bash
+      content:
+        - echo 'let () = assert (Base.Int.popcount 7 = 3); print_string (Base.String.uppercase "base ok")' > t.ml
+        - ocamlfind ocamlopt -package base -linkpkg t.ml -o t
+        - ./t | grep -q "BASE OK"
     requirements:
       run:
-        - ocaml ${{ ocaml_compiler_version }}.*
-        - if: not unix
-          then:
-            - ocaml_${{ target_platform }} ${{ ocaml_spec }}
-        - ocaml-dune >=3.11
+        - ocaml ${{ ocaml_spec }}
+        - ocaml-findlib
         - if: unix
           then:
             - ${{ compiler("c") }}

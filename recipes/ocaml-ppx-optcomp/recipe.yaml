@@ -47,11 +47,7 @@ requirements:
         - m2-findutils
   host:
     # library: ocaml's run_export pins the compiler patch version
-    - ocaml ${{ ocaml_compiler_version }}.*
-    # the noarch ocaml metapackage does not pin the non-unix toolchain track
-    - if: not unix
-      then:
-        - ocaml_${{ target_platform }} ${{ ocaml_spec }}
+    - ocaml ${{ ocaml_spec }}
     - ocaml-dune >=3.11
     - ocaml-base >=0.17,<0.18
     - ocaml-stdio >=0.17,<0.18
@@ -76,17 +72,16 @@ tests:
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxa
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.a
         - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxs
-  - script: bash testing/test_ppx_optcomp.sh
-    files:
-      recipe:
-        - testing/test_ppx_optcomp.sh
+  - script:
+      interpreter: bash
+      content:
+        - printf '%s\n' '[%%if ocaml_version >= (4, 8, 0)]' 'let x = 1' '[%%else]' 'let x = this_identifier_does_not_exist' '[%%endif]' 'let () = assert (x = 1); print_string "ppx_optcomp ok"' > t.ml
+        - ocamlfind ocamlopt -package ppx_optcomp -linkpkg t.ml -o t
+        - ./t | grep -q "ppx_optcomp ok"
     requirements:
       run:
-        - ocaml ${{ ocaml_compiler_version }}.*
-        - if: not unix
-          then:
-            - ocaml_${{ target_platform }} ${{ ocaml_spec }}
-        - ocaml-dune >=3.11
+        - ocaml ${{ ocaml_spec }}
+        - ocaml-findlib
         - if: unix
           then:
             - ${{ compiler("c") }}
