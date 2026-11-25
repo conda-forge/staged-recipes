@@ -14,10 +14,10 @@
   {                                                             \
     if (! (fn))                                                 \
       {                                                         \
-    __builtin_fprintf(stderr,                                   \
-        "%s:%d: %s: Assertion '%s' failed.\n",                  \
-        __FILE__, __LINE__, __PRETTY_FUNCTION__, #fn);          \
-    __builtin_abort();                                          \
+        std::printf(stderr,                                   \
+            "%s:%d: %s: Assertion '%s' failed.\n",                  \
+            __FILE__, __LINE__, __PRETTY_FUNCTION__, #fn);          \
+        std::abort();                                          \
       }                                                         \
   } while (false)
 
