@@ -31,7 +31,7 @@ cmake -S "${SRC_DIR}" -B build -G Ninja ${CMAKE_ARGS} \
   -DLLVM_DIR="${PREFIX}/lib/cmake/llvm" \
   -DLLVM_ENABLE_ASSERTIONS=OFF \
   -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
-  "${EXTRA_CMAKE_ARGS[@]}"
+  ${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"}  # bash 3.2 safe with set -u
 
 cmake --build build
 
