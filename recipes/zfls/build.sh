@@ -14,7 +14,7 @@ esac
 
 export ZIG_GLOBAL_CACHE_DIR="${SRC_DIR}/.zig-global-cache"
 export ZIG_LOCAL_CACHE_DIR="${SRC_DIR}/.zig-cache"
-zig build bin -Dtarget="${target}" -Doptimize=ReleaseSafe --prefix "${PREFIX}"
+zig build bin -Dtarget="${target}" -Doptimize=safe --prefix "${PREFIX}"
 
 # Installed next to the binary, it makes zfls report a release candidate
 # version; a released zfls reports the plain one
