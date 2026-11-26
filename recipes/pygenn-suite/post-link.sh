@@ -20,8 +20,10 @@ MSG_FILE="${PREFIX}/.messages.txt"
   echo "    # Optional if your loader can't find libcudart:"
   echo "    # export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib:\${LD_LIBRARY_PATH:-}"
   echo
-  echo "--- To choose a CUDA Toolkit version, install this package with e.g.: ---"
-  echo "    conda install pygenn cuda-version=12.4"
+  echo "--- CUDA Toolkit version ---"
+  echo "    This build is tied to the CUDA Toolkit version it was compiled"
+  echo "    against, and depends on a matching cuda-version. Check with:"
+  echo "        conda list cuda-version"
   echo
   echo "Notes:"
   echo " - Ensure nvcc and libcudart match your chosen CUDA_PATH."
