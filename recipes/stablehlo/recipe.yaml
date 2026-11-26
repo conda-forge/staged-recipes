@@ -1,0 +1,101 @@
+schema_version: 1
+
+context:
+  name: stablehlo
+  version: "1.20.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/openxla/stablehlo/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 4f49afdd7cc51ca36ef50142e2935a99bca59e33b395370d5464a458912ff212
+  patches:
+    # Lets the build use native mlir-tblgen/mlir-pdll when cross-compiling.
+    - patches/0001-allow-native-mlir-tablegen-tools.patch
+    # The interpreter's run_parallel deadlocks (rendezvous timeout) when there
+    # are fewer hardware threads than simulated processes.
+    - patches/0002-size-run-parallel-thread-pool-to-process-count.patch
+
+build:
+  number: 0
+  # Upstream builds Windows with Bazel only. The CMake build is untested there.
+  skip: win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        # Native tablegen tools and MLIR to build mlir_builder_tblgen
+        - mlir 23.1.*
+        - llvmdev 23.1.*
+        - zlib
+        - zstd
+  host:
+    # Upstream pins an LLVM main commit (build_tools/llvm_version.txt);
+    # v1.20.0 is known to build against the LLVM 23.1 release.
+    - mlir 23.1.*
+    - llvmdev 23.1.*
+    # The tools link libLLVM.so dynamically; llvmdev has no run_exports.
+    - libllvm23
+    - zlib
+    - zstd
+  run_constraints:
+    # The static libraries and headers must be used with the same MLIR.
+    - ${{ pin_compatible('mlir', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      bin:
+        - stablehlo-opt
+        - stablehlo-translate
+        - stablehlo-lsp-server
+      files:
+        - lib/libStablehloOps.a
+        - lib/libStablehloPasses.a
+        - lib/libStablehloCAPI.a
+        - lib/libVhloOps.a
+        - lib/libChloOps.a
+      include:
+        - stablehlo/dialect/StablehloOps.h
+        - stablehlo/dialect/StablehloOps.h.inc
+        - stablehlo/integrations/c/StablehloDialect.h
+        - stablehlo/api/PortableApi.h
+  - files:
+      source:
+        - stablehlo/tests/interpret/
+    script:
+      - stablehlo-opt --version
+      - stablehlo-translate --help > /dev/null
+      # Reference interpreter tests check their own results with check.expect_* ops.
+      # probe.mlir needs an extra output-dir flag, so skip it.
+      - |
+        for f in stablehlo/tests/interpret/*.mlir; do
+          if [[ "$f" == */probe.mlir ]] || grep -q FileCheck "$f"; then continue; fi
+          echo "Running $f"
+          stablehlo-translate --interpret -split-input-file "$f" > /dev/null
+        done
+
+about:
+  homepage: https://openxla.org/stablehlo
+  repository: https://github.com/openxla/stablehlo
+  documentation: https://openxla.org/stablehlo
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Backward compatible ML compute opset inspired by HLO/MHLO
+  description: |
+    StableHLO is an operation set for high-level operations (HLO) in machine
+    learning models. It is a portability layer between ML frameworks and ML
+    compilers. This package provides the stablehlo-opt, stablehlo-translate
+    and stablehlo-lsp-server tools, plus the static libraries and headers for
+    the StableHLO, CHLO and VHLO MLIR dialects.
+
+extra:
+  recipe-maintainers:
+    - isuruf

@@ -1,0 +1,18 @@
+--- a/stablehlo/reference/InterpreterOps.cpp
++++ b/stablehlo/reference/InterpreterOps.cpp
+@@ -174,11 +174,14 @@
+     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr>& infeed,
+     SmallVector<SmallVector<StringAttr>> programs, SymbolTable& symbolTable,
+     InterpreterFallback* fallback) {
+-  llvm::DefaultThreadPool threadPool;
+   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
+ 
+   uint32_t numReplicas = programs.size();
+   uint32_t numPartitions = programs[0].size();
++  // Every process must run concurrently so collectives can rendezvous, so
++  // don't cap the pool at the number of hardware threads.
++  llvm::DefaultThreadPool threadPool(
++      llvm::hardware_concurrency(numReplicas * numPartitions));
+   ProcessGrid processGrid(numReplicas, numPartitions, infeed);
+ 
+   auto inputsIt = inputs.begin();
