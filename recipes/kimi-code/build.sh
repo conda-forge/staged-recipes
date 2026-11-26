@@ -59,7 +59,7 @@ if [[ "${native_platform}" == "darwin" ]]; then
 else
     "${CC}" \
         -std=c11 \
-        -D_POSIX_C_SOURCE=200809L \
+        -D_GNU_SOURCE \
         -Wall \
         -Wextra \
         -Werror \

@@ -30,7 +30,14 @@ if errorlevel 1 exit 1
 call pnpm -r --filter "./packages/*" run build
 if errorlevel 1 exit 1
 
-call pnpm --filter @moonshot-ai/kimi-code run prebuild
+@rem Run prebuild steps directly because sync-web-dist.mjs hardcodes pnpm.cmd (conda-forge ships pnpm.exe)
+node apps\kimi-code\scripts\build-vis-asset.mjs
+if errorlevel 1 exit 1
+
+call pnpm --filter kimi-code-app run build:web
+if errorlevel 1 exit 1
+
+xcopy /e /i /y apps\desktop\web-dist apps\kimi-code\dist-web
 if errorlevel 1 exit 1
 
 call pnpm --filter @moonshot-ai/kimi-code exec tsdown
