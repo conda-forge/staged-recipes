@@ -58,10 +58,11 @@ if errorlevel 1 exit 1
 copy LICENSE "%INSTALL_DIR%\LICENSE"
 if errorlevel 1 exit 1
 
-mkdir "%LIBRARY_PREFIX%\bin" 2>nul
+if not exist "%LIBRARY_PREFIX%\bin" mkdir "%LIBRARY_PREFIX%\bin"
+if errorlevel 1 exit 1
 (
   echo @echo off
-  echo call node "%%CONDA_PREFIX%%\Library\share\kimi-code\dist\main.mjs" %%*
+  echo call node "%%~dp0..\share\kimi-code\dist\main.mjs" %%*
 ) > "%LIBRARY_PREFIX%\bin\kimi.cmd"
 if errorlevel 1 exit 1
 
