@@ -8,6 +8,7 @@ cmake -S solver -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_INSTALL_LIBDIR=lib \
+  -DBLA_VENDOR=Generic \
   -DSMF_USE_MKL=OFF \
   -DSMF_USE_SUITESPARSE_AMD=ON \
   -DSMF_USE_METIS=ON \
