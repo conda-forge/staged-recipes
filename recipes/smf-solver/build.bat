@@ -1,6 +1,12 @@
 @echo on
 setlocal enabledelayedexpansion
 
+:: clang-cl, so that OpenMP comes from conda-forge's llvm-openmp. With cl the
+:: only runtime that supports OpenMP tasks is libomp140.x86_64.dll, which
+:: ships with Visual Studio and not with the VC redistributable.
+set "CC=clang-cl.exe"
+set "CXX=clang-cl.exe"
+
 cmake -S solver -B build -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
