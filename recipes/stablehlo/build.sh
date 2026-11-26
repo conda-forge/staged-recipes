@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
 
-EXTRA_CMAKE_ARGS=()
-
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == "1" ]]; then
   # mlir_builder_tblgen is built and run during the build, so build a native
   # copy first against the MLIR in BUILD_PREFIX.
@@ -17,11 +15,9 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == "1" ]]; then
       -DLLVM_DIR="${BUILD_PREFIX}/lib/cmake/llvm"
     cmake --build build-native --target mlir_builder_tblgen
   )
-  EXTRA_CMAKE_ARGS+=(
-    -DMLIR_NATIVE_TOOLS_DIR="${BUILD_PREFIX}/bin"
-    -DMLIR_BUILDER_TABLEGEN="${SRC_DIR}/build-native/bin/mlir_builder_tblgen"
-    -DMLIR_BUILDER_TABLEGEN_EXE="${SRC_DIR}/build-native/bin/mlir_builder_tblgen"
-  )
+  CMAKE_ARGS="${CMAKE_ARGS} -DMLIR_NATIVE_TOOLS_DIR=${BUILD_PREFIX}/bin"
+  CMAKE_ARGS="${CMAKE_ARGS} -DMLIR_BUILDER_TABLEGEN=${SRC_DIR}/build-native/bin/mlir_builder_tblgen"
+  CMAKE_ARGS="${CMAKE_ARGS} -DMLIR_BUILDER_TABLEGEN_EXE=${SRC_DIR}/build-native/bin/mlir_builder_tblgen"
 fi
 
 cmake -S "${SRC_DIR}" -B build -G Ninja ${CMAKE_ARGS} \
@@ -30,8 +26,7 @@ cmake -S "${SRC_DIR}" -B build -G Ninja ${CMAKE_ARGS} \
   -DMLIR_DIR="${PREFIX}/lib/cmake/mlir" \
   -DLLVM_DIR="${PREFIX}/lib/cmake/llvm" \
   -DLLVM_ENABLE_ASSERTIONS=OFF \
-  -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF \
-  ${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"}  # bash 3.2 safe with set -u
+  -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=OFF
 
 cmake --build build
 
