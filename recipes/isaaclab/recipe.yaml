@@ -13,7 +13,7 @@ recipe:
 source:
   url: https://github.com/isaac-sim/IsaacLab/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 7d751e71662318cf2a545d6465bbc7d853c7537581b66625a4a990d8e9ff28d1
-  # No source-layout patch needed: upstream flattens the package itself (stage.py).
+  # No source-layout patch is needed because upstream flattens the package itself (stage.py).
   patches:
     # Python 3.14 compatibility.
     - patches/0001-support-python-3.14-annotations-in-configclass.patch
@@ -31,8 +31,8 @@ outputs:
   # ========================
   # isaaclab-build (staging)
   # ========================
-  # Builds the bundled install once. Every output below inherits it and selects
-  # only its files, so the clone and installs run a single time.
+  # Builds the bundled install once.
+  # Every output below inherits it and selects only its files, so the clone and installs run a single time.
   - staging:
       name: isaaclab-build
     build:
@@ -50,8 +50,7 @@ outputs:
             esac
             ${{ PYTHON }} -m pip install "./$ext" -vv --no-deps --no-build-isolation
           done
-        # Co-locate the runtime resources inside the flat package, so
-        # isaaclab/_paths.py::ISAACLAB_ROOT resolves them.
+        # Co-locate the runtime resources inside the flat package, so isaaclab/_paths.py::ISAACLAB_ROOT resolves them.
         - cp -r apps "${{ SP_DIR }}/isaaclab/apps"
         # apps/ ships no __init__.py, so make each directory importable.
         - find "${{ SP_DIR }}/isaaclab/apps" -type d -exec touch {}/__init__.py \;
@@ -59,13 +58,13 @@ outputs:
         - cp -r tools/template "${{ SP_DIR }}/isaaclab/tools/template"
         # Backs the `isaaclab demo` and `isaaclab example` catalogs (isaaclab/programs.py).
         - cp -r examples "${{ SP_DIR }}/isaaclab/examples"
-        # Reinject the third-party deps into the installed metadata (the per-member
-        # installs drop them), so the base pip_check validates them against upstream.
-        # Names only, since conda-forge serves newer builds. Closed-source deps excluded.
+        # Reinject the third-party deps into the installed metadata, since the per-member installs drop them.
+        # The base pip_check then validates them against upstream.
+        # Names only, since conda-forge serves newer builds, and closed-source deps are excluded.
         - ${{ PYTHON }} tools/wheel_builder/gen_pyproject.py pyproject.toml gen_deps.toml "0"
         - ${{ PYTHON }} "${{ RECIPE_DIR }}/gen_extra_metadata.py" base gen_deps.toml "${{ SP_DIR }}"
-        # Generate a synthetic dist-info per extra in one pass. Each metapackage
-        # selects its own for pip_check (see gen_extra_metadata.py).
+        # Generate a synthetic dist-info per extra in one pass.
+        # Each metapackage selects its own for pip_check (see gen_extra_metadata.py).
         - |
           set -euo pipefail
           for extra in all video wandb sb3 viser rerun mimic tetrahedralization leapp torchrl; do
@@ -81,8 +80,8 @@ outputs:
   # ========
   # isaaclab
   # ========
-  # The bundled package: every workspace member, minus the synthetic
-  # isaaclab_extra_* dist-infos that are the metapackages' payload.
+  # The bundled package contains every workspace member.
+  # The synthetic isaaclab_extra_* dist-infos are excluded because they are the metapackages' payload.
   - package:
       name: isaaclab
     inherit:
@@ -153,7 +152,7 @@ outputs:
         - pyopengl-accelerate >=3.1.0
         - imgui-bundle >=1.92.5
         - typing-extensions >=4.15.0
-        # transformers is floored, not exact: conda-forge has no 5.10.4 (nearest 5.16.1).
+        # transformers is floored, not exact, because conda-forge has no 5.10.4 (nearest 5.16.1).
         # Other pins track upstream 1:1. Closed-source deps are dropped.
     tests:
       # Validates the reinjected third-party deps resolve against the installed env.
@@ -162,8 +161,8 @@ outputs:
             - isaaclab
           pip_check: true
           python_version: ${{ python_min }}.*
-      # CLI smoke test. Reaches the dispatcher without Isaac Sim or a GPU, and
-      # exercises the flat package entry point plus ISAACLAB_ROOT resolution.
+      # CLI smoke test.
+      # It reaches the dispatcher without Isaac Sim or a GPU, and exercises the flat package entry point plus ISAACLAB_ROOT resolution.
       - script:
           - isaaclab --help
           - isaaclab train --help
@@ -190,8 +189,8 @@ outputs:
   # ============
   # isaaclab-all
   # ============
-  # Aggregates the packaged extras. Its synthetic `all` dist-info lets pip_check
-  # confirm they cover what upstream's `all` declares.
+  # Aggregates the packaged extras.
+  # Its synthetic `all` dist-info lets pip_check confirm they cover what upstream's `all` declares.
   - package:
       name: isaaclab-all
     inherit:
@@ -336,8 +335,7 @@ outputs:
   # ==============
   # isaaclab-mimic
   # ==============
-  # robomimic is a Git dep upstream but has a feedstock, so gen_extra_metadata.py
-  # re-adds it by name for pip_check.
+  # robomimic is a Git dep upstream but has a feedstock, so gen_extra_metadata.py re-adds it by name for pip_check.
   - package:
       name: isaaclab-mimic
     inherit:
@@ -373,11 +371,10 @@ outputs:
       run:
         - ${{ pin_subpackage('isaaclab', exact=True) }}
         - python >=${{ python_min }}
-        # Upstream pins the pytetwild all extra >=0.3.0,<0.4 but conda-forge only
-        # ships 0.4.2. Relax the upper bound: the tetrahedralize API that
-        # isaaclab.sim.schemas uses is unchanged across 0.3/0.4. pyvista mirrors
-        # the pytetwild all extra (its only member). TODO: drop
-        # the relax once upstream lifts the <0.4 cap.
+        # Upstream pins the pytetwild all extra >=0.3.0,<0.4 but conda-forge only ships 0.4.2.
+        # Relax the upper bound, since the tetrahedralize API that isaaclab.sim.schemas uses is unchanged across 0.3 and 0.4.
+        # pyvista mirrors the pytetwild all extra, which has it as its only member.
+        # TODO: drop the relax once upstream lifts the <0.4 cap.
         - pytetwild >=0.3.0
         - pyvista
     tests:
@@ -432,9 +429,9 @@ outputs:
             - torchrl
           pip_check: true
           python_version: ${{ python_min }}.*
-  # Inactive extras: kept commented until they can be packaged. rsl-rl is
-  # already in the base, so it needs no subpackage. skrl and rl-games have no
-  # conda-forge feedstock (rl-games also needs standard-distutils).
+  # Inactive extras are kept commented until they can be packaged.
+  # rsl-rl is already in the base, so it needs no subpackage.
+  # skrl and rl-games have no conda-forge feedstock, and rl-games also needs standard-distutils.
   #
   # - package:
   #     name: isaaclab-skrl
@@ -455,9 +452,9 @@ outputs:
   #       - rl-games          # missing in conda-forge (git @ python3.11)
   #       - standard-distutils  # missing in conda-forge
   #
-  # rlinf: every dep is on conda-forge, but the stack does not co-solve. decord2
-  # pulls ffmpeg 9 -> libabseil 20260526, while ray-default pins libgrpc to an
-  # older libabseil. Re-enable once the conda-forge libabseil migration settles.
+  # rlinf has every dep on conda-forge, but the stack does not co-solve.
+  # decord2 pulls ffmpeg 9 -> libabseil 20260526, while ray-default pins libgrpc to an older libabseil.
+  # Re-enable once the conda-forge libabseil migration settles.
   #
   # - package:
   #     name: isaaclab-rlinf
