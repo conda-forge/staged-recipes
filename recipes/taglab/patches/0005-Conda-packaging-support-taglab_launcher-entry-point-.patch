@@ -1,0 +1,313 @@
+From 68c5f9e40e0bc78a8f8063cd733972a3adb9a49b Mon Sep 17 00:00:00 2001
+From: Tobias Fischer <info@tobiasfischer.info>
+Date: Mon, 2 Nov 2026 21:46:25 +1000
+Subject: [PATCH 5/5] Conda packaging support: taglab_launcher entry point;
+ weights, log, temp and settings go to a user data folder when the TagLab
+ folder is read-only (TAGLAB_MODELS overrides); albumentations imported only
+ for training
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ TagLab.py                      | 11 ++++++-----
+ models/coral_dataset.py        |  3 ++-
+ models/trainYolo11.py          | 22 +++++++++++-----------
+ source/MapClassifier.py        |  8 +++-----
+ source/ModelWeights.py         |  4 ++--
+ source/QtBricksWidget.py       |  4 ++--
+ source/genutils.py             | 32 ++++++++++++++++++++++++++++++++
+ source/tools/SAMInteractive.py |  4 ++--
+ taglab_launcher.py             | 26 ++++++++++++++++++++++++++
+ 9 files changed, 86 insertions(+), 28 deletions(-)
+ create mode 100644 taglab_launcher.py
+
+diff --git a/TagLab.py b/TagLab.py
+index 8f7ae97..74071ed 100644
+--- a/TagLab.py
++++ b/TagLab.py
+@@ -130,7 +130,7 @@ import logging
+ # configure the logger
+ now = datetime.datetime.now()
+ #LOG_FILENAME = "tool" + now.strftime("%Y-%m-%d-%H-%M") + ".log"
+-LOG_FILENAME = genutils.taglabPath("TagLab.log")
++LOG_FILENAME = os.path.join(genutils.userDataDir(), "TagLab.log")
+ logging.basicConfig(level=logging.DEBUG, filemode='w', filename=LOG_FILENAME, format = '%(asctime)s %(levelname)-8s %(message)s')
+ logfile = logging.getLogger("tool-logger")
+ 
+@@ -199,7 +199,8 @@ class TagLab(QMainWindow):
+ 
+         # LOAD CONFIGURATION FILE
+ 
+-        f = open(os.path.join(self.taglab_dir, "config.json"), "r")
++        user_config = os.path.join(genutils.userDataDir(), "config.json")   # written when a classifier is trained
++        f = open(user_config if os.path.exists(user_config) else os.path.join(self.taglab_dir, "config.json"), "r")
+         config_dict = json.load(f)
+         self.available_classifiers = config_dict["Available Classifiers"]
+ 
+@@ -5804,7 +5805,7 @@ class TagLab(QMainWindow):
+ 
+         classifier_name = self.trainYourNetworkWidget.editNetworkName.text()
+         network_name = self.trainYourNetworkWidget.editNetworkName.text() + ".net"
+-        network_filename = os.path.join(os.path.join(self.taglab_dir, "models"), network_name)
++        network_filename = genutils.modelPath(network_name)
+ 
+         # training folders
+         train_folder = os.path.join(dataset_folder, "training")
+@@ -5912,7 +5913,7 @@ class TagLab(QMainWindow):
+         newconfig = dict()
+         newconfig["Available Classifiers"] = self.available_classifiers
+         str = json.dumps(newconfig, indent=2)
+-        newconfig_filename = os.path.join(self.taglab_dir, "config.json")
++        newconfig_filename = os.path.join(genutils.userDataDir(), "config.json")
+         f = open(newconfig_filename, "w")
+         f.write(str)
+         f.close()
+@@ -6495,7 +6496,7 @@ class TagLab(QMainWindow):
+                     self.progress_bar.setMessage("Finalizing classification results..")
+                     QApplication.processEvents()
+ 
+-                    filename = genutils.taglabPath("temp", "labelmap.png")
++                    filename = os.path.join(genutils.userDataDir(), "temp", "labelmap.png")
+ 
+                     offset = self.classifier.offset
+                     scale = [self.classifier.scale_factor, self.classifier.scale_factor]
+diff --git a/models/coral_dataset.py b/models/coral_dataset.py
+index ff885d0..91855b7 100644
+--- a/models/coral_dataset.py
++++ b/models/coral_dataset.py
+@@ -8,12 +8,13 @@ import torch
+ from torch.utils.data import Dataset
+ from torchvision import transforms
+ import glob
+-from albumentations import (CLAHE, Blur, HueSaturationValue, Equalize, ISONoise, Spatter, PixelDropout, FancyPCA, RandomToneCurve, CoarseDropout, RGBShift, RandomBrightnessContrast, Compose)
+ from source.Label import Label
+ 
+ 
+ # ALBUMENTATIONS - USED JUST TO PERFORM THE COLOR AUGMENTATION
+ def augmentation_color(p=0.8):
++    # albumentations is only needed for training, so it is imported when first used
++    from albumentations import (CLAHE, Blur, HueSaturationValue, Equalize, ISONoise, Spatter, PixelDropout, FancyPCA, RandomToneCurve, CoarseDropout, RGBShift, RandomBrightnessContrast, Compose)
+     return Compose([
+ 
+         CLAHE(clip_limit=3.0, tile_grid_size=(2, 2), always_apply=False, p=0.2),
+diff --git a/models/trainYolo11.py b/models/trainYolo11.py
+index 17fcb12..0a854ae 100644
+--- a/models/trainYolo11.py
++++ b/models/trainYolo11.py
+@@ -1,5 +1,5 @@
+ 
+-from source.genutils import requirePackage, taglabPath
++from source.genutils import requirePackage, taglabPath, modelPath
+ import yaml
+ import os
+ import sys
+@@ -87,19 +87,19 @@ def trainYOLOSeg(params,log_callback=None):
+     model_file = {
+ 
+         "yolo11": {
+-            "n": taglabPath("models", "yolo11n-seg.pt"),
+-            "s": taglabPath("models", "yolo11s-seg.pt"),
+-            "m": taglabPath("models", "yolo11m-seg.pt"),
+-            "l": taglabPath("models", "yolo11l-seg.pt"),
+-            "x": taglabPath("models", "yolo11x-seg.pt"),
++            "n": modelPath("yolo11n-seg.pt"),
++            "s": modelPath("yolo11s-seg.pt"),
++            "m": modelPath("yolo11m-seg.pt"),
++            "l": modelPath("yolo11l-seg.pt"),
++            "x": modelPath("yolo11x-seg.pt"),
+         },
+ 
+         "yolo26": {
+-            "n": taglabPath("models", "yolo26n-seg.pt"),
+-            "s": taglabPath("models", "yolo26s-seg.pt"),
+-            "m": taglabPath("models", "yolo26m-seg.pt"),
+-            "l": taglabPath("models", "yolo26l-seg.pt"),
+-            "x": taglabPath("models", "yolo26x-seg.pt"),
++            "n": modelPath("yolo26n-seg.pt"),
++            "s": modelPath("yolo26s-seg.pt"),
++            "m": modelPath("yolo26m-seg.pt"),
++            "l": modelPath("yolo26l-seg.pt"),
++            "x": modelPath("yolo26x-seg.pt"),
+         }
+     }
+ 
+diff --git a/source/MapClassifier.py b/source/MapClassifier.py
+index 96aa7fd..bea4311 100644
+--- a/source/MapClassifier.py
++++ b/source/MapClassifier.py
+@@ -37,7 +37,7 @@ from PySide6.QtCore import QCoreApplication, Qt, QObject, Slot, Signal
+ from PySide6.QtGui import QPainter, QImage, QColor, QPixmap, qRgb, qRed, qGreen, qBlue
+ 
+ from source import genutils
+-from source.genutils import taglabPath
++from source.genutils import taglabPath, modelPath, userDataDir
+ 
+ 
+ class MapClassifier(QObject):
+@@ -86,14 +86,12 @@ class MapClassifier(QObject):
+         self.wa_width = 0
+         self.wa_height = 0
+ 
+-        self.temp_dir = taglabPath("temp")
++        self.temp_dir = os.path.join(userDataDir(), "temp")
+ 
+ 
+     def _load_classifier(self, modelName):
+ 
+-        models_dir = taglabPath("models")
+-
+-        network_name = os.path.join(models_dir, modelName)
++        network_name = modelPath(modelName)
+ 
+         classifier = DeepLab(backbone='resnet', output_stride=16, num_classes=self.nclasses)
+ 
+diff --git a/source/ModelWeights.py b/source/ModelWeights.py
+index 1eb3493..ba921f5 100644
+--- a/source/ModelWeights.py
++++ b/source/ModelWeights.py
+@@ -8,7 +8,7 @@ import urllib.request
+ from PySide6.QtCore import Qt
+ from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog
+ 
+-from source.genutils import taglabPath
++from source.genutils import modelPath
+ 
+ MODELS_URL = "http://taglab.isti.cnr.it/models/"
+ 
+@@ -63,7 +63,7 @@ def ensureModel(name, parent=None):
+     in that case the user has already been told, so the caller only has to give up.
+     """
+ 
+-    path = taglabPath("models", name)
++    path = modelPath(name)
+     if os.path.exists(path):
+         return path
+ 
+diff --git a/source/QtBricksWidget.py b/source/QtBricksWidget.py
+index f4902e5..1c55452 100644
+--- a/source/QtBricksWidget.py
++++ b/source/QtBricksWidget.py
+@@ -38,7 +38,7 @@ from models.isegm.inference import utils
+ from source.genutils import cropQImage, cropImage, qimageToNumpyArray, maskToQImage, rgbToQImage, floatmapToQImage
+ from source.Mask import checkIntersection, intersectMask, paintMask
+ import random
+-from source.genutils import taglabPath
++from source.genutils import taglabPath, modelPath
+ 
+ class QtBricksWidget(QWidget):
+ 
+@@ -385,7 +385,7 @@ class QtBricksWidget(QWidget):
+         if self.ritm_net is None:
+ 
+             model_name = 'ritm_corals.pth'
+-            model_path = taglabPath("models", model_name)
++            model_path = modelPath(model_name)
+ 
+             if not torch.cuda.is_available():
+                 print("CUDA NOT AVAILABLE!")
+diff --git a/source/genutils.py b/source/genutils.py
+index d91f42d..615e37c 100644
+--- a/source/genutils.py
++++ b/source/genutils.py
+@@ -22,6 +22,7 @@
+ import io
+ import importlib
+ import os
++import sys
+ from PySide6.QtCore import Qt, QObject, QMetaObject, QMetaMethod
+ from PySide6.QtGui import QImage, QPixmap, qRgb, qRgba
+ import numpy as np
+@@ -39,6 +40,37 @@ def taglabPath(*parts):
+     """ Path of a TagLab resource (icon, model, dictionary...), whatever the current working directory is. """
+     return os.path.join(TAGLAB_DIR, *parts)
+ 
++
++def userDataDir():
++    """ Writable folder for TagLab's own files (log, temp, settings, models): the TagLab folder itself if it is writable (a source checkout), else a per-user data folder (a read-only installation, e.g. a conda package). """
++    path = TAGLAB_DIR
++    if not os.access(path, os.W_OK):
++        if sys.platform == "win32":
++            base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
++        elif sys.platform == "darwin":
++            base = os.path.expanduser("~/Library/Application Support")
++        else:
++            base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
++        path = os.path.join(base, "TagLab")
++        os.makedirs(path, exist_ok=True)
++    return path
++
++
++def modelsDir():
++    """ Folder where downloaded/trained network weights are stored: $TAGLAB_MODELS if set, else models/ inside userDataDir(). Created if needed. """
++    path = os.environ.get("TAGLAB_MODELS") or os.path.join(userDataDir(), "models")
++    os.makedirs(path, exist_ok=True)
++    return path
++
++
++def modelPath(name):
++    """ Path of the weights file `name`: an existing file in the models folder or in the TagLab one, else where it would be stored. """
++    path = os.path.join(modelsDir(), name)
++    bundled = taglabPath("models", name)
++    if not os.path.exists(path) and os.path.exists(bundled):
++        return bundled
++    return path
++
+ import math
+ 
+ def clampCoords(x, y, W, H):
+diff --git a/source/tools/SAMInteractive.py b/source/tools/SAMInteractive.py
+index af4a86e..8744403 100644
+--- a/source/tools/SAMInteractive.py
++++ b/source/tools/SAMInteractive.py
+@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt
+ from PySide6.QtWidgets import QApplication, QMessageBox
+ from PySide6.QtGui import QPen, QBrush, QColor, QPainterPath
+ from source.genutils import qimageToNumpyArray, cropQImage
++from source.genutils import modelPath
+ from source.ModelWeights import ensureModel, MODEL_SIZES_MB
+ 
+ from source.Blob import Blob
+@@ -647,8 +648,7 @@ class SAMInteractive(Tool):
+ 
+             # Initialization
+             modelName = sam_dict[self.sam_model_type]
+-            models_dir = os.path.join(self.viewerplus.taglab_dir, "models")
+-            path = os.path.join(models_dir, modelName + '.pth')
++            path = modelPath(modelName + '.pth')
+ 
+             # the vit_h weights can be downloaded from the TagLab web site if they are missing
+             if not os.path.exists(path) and modelName + '.pth' in MODEL_SIZES_MB:
+diff --git a/taglab_launcher.py b/taglab_launcher.py
+new file mode 100644
+index 0000000..75c00ac
+--- /dev/null
++++ b/taglab_launcher.py
+@@ -0,0 +1,26 @@
++"""
++Entry point `taglab` of the conda package: runs TagLab.py from the folder where the package installed the TagLab tree
++(<prefix>/share/taglab), or from the folder of this file when run from a source checkout.
++"""
++
++import os
++import runpy
++import sys
++
++
++def taglab_dir():
++    here = os.path.dirname(os.path.abspath(__file__))
++    if os.path.exists(os.path.join(here, "TagLab.py")):
++        return here
++    return os.path.join(sys.prefix, "share", "taglab")
++
++
++def main():
++    path = taglab_dir()
++    sys.path.insert(0, path)    # TagLab imports its own `source` and `models` packages
++    sys.argv[0] = os.path.join(path, "TagLab.py")
++    runpy.run_path(sys.argv[0], run_name="__main__")
++
++
++if __name__ == "__main__":
++    main()
+-- 
+2.53.0
+
