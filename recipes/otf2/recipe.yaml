@@ -1,0 +1,112 @@
+schema_version: 1
+
+context:
+  version: "3.2"
+  devel_files: "{include/**,lib/pkgconfig/**,bin/otf2-config,share/otf2/**}"
+
+recipe:
+  name: otf2-split
+  version: ${{ version }}
+
+source:
+  url: https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-${{ version }}/otf2-${{ version }}.tar.gz
+  sha256: 82b3a88a550cb8c3cec8fd45eca82cdcbaf945209977482471b4b5e430d64a8d
+
+build:
+  number: 0
+  skip: not linux
+
+outputs:
+  - staging:
+      name: otf2-build
+    build:
+      script: build.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - make
+        - pkgconf
+
+  - package:
+      name: libotf2
+    inherit: otf2-build
+    build:
+      files:
+        include:
+          - "**"
+        exclude:
+          - "${{ devel_files }}"
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/libotf2.so
+              - lib/libotf2.so.*
+            not_exists:
+              - "${{ devel_files }}"
+              - lib/*.a
+              - lib/*.la
+      - script:
+          - otf2-print --version
+      - requirements:
+          run:
+            - python
+        script:
+          - python -c "import ctypes; ctypes.CDLL('libotf2.so')"
+
+  - package:
+      name: libotf2-devel
+    inherit: otf2-build
+    build:
+      files:
+        - "${{ devel_files }}"
+    requirements:
+      run:
+        - ${{ pin_subpackage('libotf2', exact=True) }}
+      run_exports:
+        # OTF2 tracks ABI separately from release versions in build-config/VERSION:
+        # https://gitlab.jsc.fz-juelich.de/perftools/otf2/-/blob/otf2-3.2/build-config/VERSION
+        # Conservatively restrict consumers to the same minor release series.
+        - ${{ pin_subpackage('libotf2', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - otf2/otf2.h
+          files:
+            exists:
+              - lib/pkgconfig/otf2.pc
+            not_exists:
+              - lib/libotf2.so
+              - lib/libotf2.so.*
+              - lib/*.a
+              - lib/*.la
+              - bin/otf2-print
+      - script:
+          - otf2-config --version
+      - requirements:
+          run:
+            - ${{ compiler('c') }}
+            - pkgconf
+        files:
+          recipe:
+            - test_otf2.c
+        script:
+          - ${CC} ${CFLAGS} $(pkg-config --cflags otf2) test_otf2.c ${LDFLAGS} $(pkg-config --libs otf2) -o test_otf2
+          - ./test_otf2
+
+about:
+  homepage: https://perftools.pages.jsc.fz-juelich.de/cicd/otf2
+  repository: https://gitlab.jsc.fz-juelich.de/perftools/otf2
+  license: BSD-3-Clause
+  license_file: COPYING
+  summary: The Open Trace Format 2 library
+  description: |
+    OTF2 is a highly scalable, memory efficient event trace data format plus
+    support library, and the successor of OTF.
+
+extra:
+  feedstock-name: otf2
+  recipe-maintainers:
+    - traversaro
